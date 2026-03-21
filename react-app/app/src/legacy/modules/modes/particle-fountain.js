@@ -8,6 +8,7 @@ import { Ball } from '../physics/Ball.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
+import { getSimulationVisibleInsetPx } from '../utils/frame-geometry.js';
 
 // Emission timer for continuous particle spawning
 let emissionTimer = 0;
@@ -58,8 +59,9 @@ function createParticle() {
   
   // Calculate bottom center position (accounting for wall inset)
   // Position slightly above bottom so particles don't immediately trigger recycling
-  const wallInset = Math.max(0, (g.frameBorderWidthEffective ?? g.frameBorderWidth ?? g.wallThickness ?? 0) * DPR);
-  const borderInset = Math.max(0, (g.wallInset ?? 3) * DPR);
+  const wallInset = getSimulationVisibleInsetPx(g);
+  const wi = Number(g.wallInset);
+  const borderInset = Math.max(0, (Number.isFinite(wi) ? wi : 0) * DPR);
   const bottomInset = wallInset + borderInset;
   const fountainX = w / 2;
   // Start slightly above the ground threshold so particles have room to rise
@@ -115,8 +117,9 @@ function recycleParticle(ball) {
   
   // Calculate bottom center position
   // Position slightly above bottom so particles don't immediately trigger recycling
-  const wallInset = Math.max(0, (g.frameBorderWidthEffective ?? g.frameBorderWidth ?? g.wallThickness ?? 0) * DPR);
-  const borderInset = Math.max(0, (g.wallInset ?? 3) * DPR);
+  const wallInset = getSimulationVisibleInsetPx(g);
+  const wi = Number(g.wallInset);
+  const borderInset = Math.max(0, (Number.isFinite(wi) ? wi : 0) * DPR);
   const bottomInset = wallInset + borderInset;
   const fountainX = w / 2;
   // Start slightly above the ground threshold so particles have room to rise
@@ -275,8 +278,9 @@ export function updateParticleFountain(dt) {
   const DPR = g.DPR || 1;
   const w = canvas.width;
   const h = canvas.height;
-  const wallInset = Math.max(0, (g.frameBorderWidthEffective ?? g.frameBorderWidth ?? g.wallThickness ?? 0) * DPR);
-  const borderInset = Math.max(0, (g.wallInset ?? 3) * DPR);
+  const wallInset = getSimulationVisibleInsetPx(g);
+  const wi = Number(g.wallInset);
+  const borderInset = Math.max(0, (Number.isFinite(wi) ? wi : 0) * DPR);
   const bottomThreshold = h - wallInset - borderInset;
   const velocityThreshold = 20 * DPR; // Very slow upward velocity
   

@@ -6,7 +6,12 @@
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { MODES } from '../core/constants.js';
 import { Ball } from '../physics/Ball.js';
-import { pickRandomColor, pickRandomColorWithIndex } from '../visual/colors.js';
+import {
+  PALETTE_BRIGHT_ACCENT_INDICES,
+  PALETTE_CHROMATIC_INDICES,
+  PALETTE_NEUTRAL_INDICES,
+  pickRandomColorWithIndex,
+} from '../visual/colors.js';
 import { randomRadiusForKaleidoscopeVh } from '../utils/ball-sizing.js';
 import { drawPebbleBody } from '../visual/pebble-body.js';
 
@@ -18,6 +23,25 @@ let _lastRenderMs = 0;
 
 function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
+}
+
+function pickWeightedRow(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  let total = 0;
+  for (let i = 0; i < rows.length; i += 1) {
+    const weight = Number(rows[i]?.weight);
+    if (Number.isFinite(weight) && weight > 0) total += weight;
+  }
+  if (total <= 0) return rows[0] || null;
+  let roll = Math.random() * total;
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
+    const weight = Number(row?.weight);
+    if (!Number.isFinite(weight) || weight <= 0) continue;
+    roll -= weight;
+    if (roll <= 0) return row;
+  }
+  return rows[rows.length - 1] || null;
 }
 
 function getLensCenterX(canvas) {
@@ -71,7 +95,8 @@ export function applyKaleidoscopeBounds(ball, w, h, dt) {
   // - No sounds, no rubber wall impacts, no corner repellers
   // - Gentle reflection with mild energy loss for stability
   const g = getGlobals();
-  const inset = Math.max(2, (g.wallInset || 3)) * (g.DPR || 1);
+  const wiK = Number(g.wallInset);
+  const inset = Math.max(2, Number.isFinite(wiK) ? Math.max(0, wiK) : 3) * (g.DPR || 1);
   const minX = inset + ball.r;
   const maxX = w - inset - ball.r;
   const minY = inset + ball.r;
@@ -141,31 +166,56 @@ function initializeKaleidoscopeWithCount(count, mode) {
   // Non-overlapping spawn (one-time O(n²), acceptable at init)
   const placed = [];
   const maxAttemptsPerBall = 90;
-  const margin = Math.max(2, g.wallInset || 3) * g.DPR;
+  const wiM = Number(g.wallInset);
+  const margin = Math.max(2, Number.isFinite(wiM) ? Math.max(0, wiM) : 3) * g.DPR;
 
   const palette = Array.isArray(g.currentColors) ? g.currentColors : [];
   const distribution = Array.isArray(g.colorDistribution) ? g.colorDistribution : [];
-  const ACCENT_INDICES = [5, 6, 7, 3, 0];  // vivid anchors + light grey (index 0)
-  const NEUTRAL_INDICES = [0, 1, 2, 4]; // greys/black
 
-  function findDistributionIndexForPaletteIdx(idx) {
-    const clamped = Math.max(0, Math.min(7, idx | 0));
-    for (let i = 0; i < distribution.length; i++) {
-      const row = distribution[i];
-      if ((row?.colorIndex | 0) === clamped) return i;
-    }
-    return 0;
-  }
+  const categorizedRows = distribution.reduce((acc, row, distributionIndex) => {
+    const colorIndex = Math.max(0, Math.min(7, Number(row?.colorIndex) || 0));
+    const entry = { colorIndex, distributionIndex, weight: Number(row?.weight) || 0 };
+    if (PALETTE_BRIGHT_ACCENT_INDICES.includes(colorIndex)) acc.bright.push(entry);
+    else if (PALETTE_CHROMATIC_INDICES.includes(colorIndex)) acc.chromatic.push(entry);
+    else if (PALETTE_NEUTRAL_INDICES.includes(colorIndex)) acc.neutral.push(entry);
+    else acc.neutral.push(entry);
+    acc.all.push(entry);
+    return acc;
+  }, { neutral: [], chromatic: [], bright: [], all: [] });
 
   function pickBiasedColor(rr) {
     const rNorm = Math.max(0, Math.min(1, rr / Math.max(ringMax, 1)));
-    // Inner/mid bands = saturated accents; outer band = neutrals.
-    const useAccents = rNorm <= 0.55 ? true : rNorm >= 0.75 ? false : Math.random() < 0.65;
-    const pool = useAccents ? ACCENT_INDICES : NEUTRAL_INDICES;
-    const paletteIdx = pool[Math.floor(Math.random() * pool.length)] ?? 0;
-    const color = palette[paletteIdx] || palette[0] || '#ffffff';
-    const distributionIndex = findDistributionIndexForPaletteIdx(paletteIdx);
-    return { color, distributionIndex };
+    const bucketWeights = rNorm <= 0.4
+      ? { neutral: 70, chromatic: 27, bright: 3 }
+      : rNorm <= 0.75
+        ? { neutral: 82, chromatic: 16, bright: 2 }
+        : { neutral: 92, chromatic: 7, bright: 1 };
+
+    const bucketPool = [];
+    if (categorizedRows.neutral.length) bucketPool.push({ key: 'neutral', weight: bucketWeights.neutral });
+    if (categorizedRows.chromatic.length) bucketPool.push({ key: 'chromatic', weight: bucketWeights.chromatic });
+    if (categorizedRows.bright.length) bucketPool.push({ key: 'bright', weight: bucketWeights.bright });
+
+    let pickedRow = null;
+    if (bucketPool.length) {
+      let total = 0;
+      for (let i = 0; i < bucketPool.length; i += 1) total += bucketPool[i].weight;
+      let roll = Math.random() * Math.max(total, 1);
+      for (let i = 0; i < bucketPool.length; i += 1) {
+        roll -= bucketPool[i].weight;
+        if (roll <= 0) {
+          pickedRow = pickWeightedRow(categorizedRows[bucketPool[i].key]);
+          break;
+        }
+      }
+    }
+
+    pickedRow = pickedRow || pickWeightedRow(categorizedRows.all);
+    if (!pickedRow) return pickRandomColorWithIndex();
+    return {
+      color: palette[pickedRow.colorIndex] || palette[0] || '#ffffff',
+      distributionIndex: pickedRow.distributionIndex
+    };
   }
 
   function spawnOne() {
@@ -489,4 +539,3 @@ export function renderKaleidoscope(ctx) {
     }
   }
 }
-

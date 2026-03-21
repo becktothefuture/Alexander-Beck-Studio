@@ -119,7 +119,6 @@ const RETIRED_RUNTIME_KEYS = new Set([
   'wallThicknessAreaMultiplier',
   'wallThicknessMinPx',
   'wallThicknessMaxPx',
-  'wallInset',
   'mobileWallThicknessXFactor',
   'mobileEdgeLabelsVisible',
   'mobileEdgeLabelSizeFactor',

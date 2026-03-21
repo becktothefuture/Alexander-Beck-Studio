@@ -1,17 +1,56 @@
 {
   "cssVars": {
-    "--portfolio-drawer-inner-shadow-opacity": "0.18",
-    "--portfolio-drawer-inner-shadow-blur": "56px",
-    "--portfolio-drawer-inner-shadow-spread": "10px"
+    "--portfolio-nav-top": "0px",
+    "--portfolio-stage-pad": "8px",
+    "--portfolio-hero-title-max": "14ch",
+    "--portfolio-image-veil-opacity": "0.14",
+    "--portfolio-scroll-hint-offset": "clamp(26px, 18px + 1.2vw, 52px)",
+    "--portfolio-drawer-inner-radius-shrink": "0px",
+    "--portfolio-drawer-seat-inset": "-1px",
+    "--portfolio-drawer-insert-contact-opacity": "0.55",
+    "--portfolio-drawer-insert-top-light-opacity": "0.35",
+    "--portfolio-drawer-insert-lip-opacity": "0",
+    "--portfolio-drawer-outline-width": "2.5px",
+    "--portfolio-drawer-outline-opacity": "0.65"
   },
   "runtime": {
+    "layout": {
+      "spawnInsetViewport": 0.1,
+      "headerTopSpacing": 24
+    },
+    "bodies": {
+      "minDiameterViewport": 0.21,
+      "maxDiameterViewport": 0.21
+    },
+    "labeling": {
+      "fontDesktopPx": 30,
+      "fontMobilePx": 20,
+      "titleLineHeight": 0.76,
+      "innerPaddingRatio": 0.18,
+      "blockRotationRangeDeg": 3.5
+    },
     "motion": {
+      "wallRestitution": 0.51,
+      "collisionRestitution": 0.53,
+      "gravityScale": 1.2,
+      "massMultiplier": 2,
+      "neighborImpulse": 750,
+      "dragThrowMultiplier": 2,
+      "openDurationMs": 420,
+      "colorFloodHoldMs": 120,
+      "imageFadeMs": 220,
+      "titleRevealDelayMs": 480,
       "heroKenBurnsDurationMs": 28000,
       "heroKenBurnsPanPx": 18,
       "heroKenBurnsZoomPct": 18
     },
-    "labeling": {
-      "titleLineHeight": 0.76
+    "openHero": {
+      "imageVeilOpacity": 0.14,
+      "titleMaxWidthCh": 14,
+      "scrollHintOffsetVh": 52
+    },
+    "behavior": {
+      "reducedMotionDurationMs": 320
     }
   }
 }

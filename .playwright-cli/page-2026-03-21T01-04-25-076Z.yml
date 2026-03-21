@@ -1,0 +1,49 @@
+- generic [ref=e2]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - banner:
+            - generic:
+              - navigation "Areas of expertise" [ref=e3]:
+                - generic [ref=e6]: Product Systems
+                - generic [ref=e9]: Interaction Design
+                - generic [ref=e12]: Creative Technology
+                - generic [ref=e15]: Applied AI
+                - generic [ref=e18]: Experience Strategy
+                - generic [ref=e21]: Art Direction
+                - generic [ref=e24]: Prototyping
+              - generic:
+                - blockquote [ref=e25]:
+                  - paragraph [ref=e26]:
+                    - text: The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI to shape clear, usable experiences that are ready to ship.
+                    - link "Let's chat." [ref=e27] [cursor=pointer]:
+                      - /url: "#"
+                - button "Sound off" [ref=e29] [cursor=pointer]:
+                  - generic: 
+          - main
+          - navigation "Main navigation links" [ref=e30]:
+            - button "Contact" [ref=e31] [cursor=pointer]:
+              - generic [ref=e32]: Contact
+            - button "Portfolio" [ref=e33] [cursor=pointer]:
+              - generic [ref=e34]: Portfolio
+            - button "About me" [ref=e35] [cursor=pointer]:
+              - generic [ref=e36]: About me
+      - contentinfo:
+        - generic:
+          - group "Social media links" [ref=e38]:
+            - link "Apple Music" [ref=e39] [cursor=pointer]:
+              - /url: https://music.apple.com/profile/beckandeggs
+              - generic: 
+              - generic [ref=e40]: Apple Music
+            - link "LinkedIn" [ref=e41] [cursor=pointer]:
+              - /url: https://www.linkedin.com/in/thisisbeck/
+              - generic: 
+              - generic [ref=e42]: LinkedIn
+          - button "Toggle theme" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]:
+              - strong [ref=e46]: London
+              - text: · 1:04:25 AM
+      - status:
+        - generic: Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable.
+        - generic: © 2026 Alexander Beck

@@ -289,11 +289,11 @@ function createProjectDrawerMarkup() {
                 <img class="portfolio-project-view__image" alt="" loading="eager" />
               </div>
               <div class="portfolio-project-view__image-veil" aria-hidden="true"></div>
-            </div>
-            <div class="portfolio-project-view__hero-copy">
               <div class="portfolio-project-view__scroll-cue" aria-hidden="true">
                 <i class="ti ti-arrow-left portfolio-project-view__scroll-cue-icon"></i>
               </div>
+            </div>
+            <div class="portfolio-project-view__hero-copy">
               <p id="portfolioProjectEyebrow" class="portfolio-project-view__eyebrow"></p>
               <h1 id="portfolioProjectTitle" class="portfolio-project-view__title"></h1>
             </div>

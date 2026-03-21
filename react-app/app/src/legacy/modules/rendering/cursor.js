@@ -8,6 +8,7 @@ import { getGlobals } from '../core/state.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
 import { triggerCursorExplosion, updateMouseVelocity } from '../visual/cursor-explosion.js';
 import { getMouseVelocity, getMouseDirection } from '../input/pointer.js';
+import { getSimulationVisibleInsetCssPx } from '../utils/frame-geometry.js';
 
 let cursorElement = null;
 let isInitialized = false;
@@ -85,12 +86,12 @@ function isMouseInSimulation(clientX, clientY) {
   const now = performance.now();
   if (!cachedContainerRect || (now - rectCacheTime) > RECT_CACHE_MS) {
     cachedContainerRect = container.getBoundingClientRect();
-    const style = getComputedStyle(container);
+    const visibleInset = getSimulationVisibleInsetCssPx(getGlobals());
     cachedFrameInsets = {
-      top: Number.parseFloat(style.borderTopWidth) || 0,
-      right: Number.parseFloat(style.borderRightWidth) || 0,
-      bottom: Number.parseFloat(style.borderBottomWidth) || 0,
-      left: Number.parseFloat(style.borderLeftWidth) || 0
+      top: visibleInset,
+      right: visibleInset,
+      bottom: visibleInset,
+      left: visibleInset
     };
     rectCacheTime = now;
   }

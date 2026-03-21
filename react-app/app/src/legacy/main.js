@@ -7,7 +7,7 @@ import { CONSTANTS, MODES, NARRATIVE_MODE_SEQUENCE } from './modules/core/consta
 import { initState, setCanvas, getGlobals, applyLayoutCSSVars } from './modules/core/state.js';
 import { getDailyMode } from './modules/core/daily-scheduler.js';
 import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
-import { getPaletteTemplateOverrideFromUrl, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './modules/visual/colors.js';
+import { getPaletteTemplateOverrideFromUrl, getWeatherDrivenPaletteTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './modules/visual/colors.js';
 import { initNoiseSystem } from './modules/visual/noise-system.js';
 import {
   setupRenderer,
@@ -509,7 +509,7 @@ export async function bootstrapHomePage() {
     if (paletteOverride) {
       getGlobals().currentTemplate = paletteOverride;
     } else {
-      rotatePaletteChapterOnReload();
+      getGlobals().currentTemplate = getWeatherDrivenPaletteTemplate() || rotatePaletteChapterOnReload();
     }
 
     // Initialize sound engine once (no AudioContext yet; unlock requires user gesture)

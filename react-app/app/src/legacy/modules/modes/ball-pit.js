@@ -5,9 +5,9 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
+import { getSimulationVisibleInsetCssPx } from '../utils/frame-geometry.js';
 
 const HOME_PIT_PEBBLE_SURFACE_GAP_PX = 2;
-const HOME_PIT_PEBBLE_WALL_INSET_PX = 1;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -52,12 +52,7 @@ function spawnPourBallPit(globals, targetBalls) {
 
   // Spawn from the top, biased toward the right but ~1/3 in toward center.
   // Keep a narrow band so the drop-in reads as a deliberate "pour".
-  const frameBorderWidth = Number.isFinite(globals.frameBorderWidthEffective)
-    ? globals.frameBorderWidthEffective
-    : (Number.isFinite(globals.frameBorderWidth)
-      ? globals.frameBorderWidth
-      : (globals.wallThickness || 20));
-  const padding = frameBorderWidth * DPR;
+  const padding = getSimulationVisibleInsetCssPx(globals) * DPR;
   const spawnXLeft = padding;
   const spawnXRight = w - padding;
   const usableW = spawnXRight - spawnXLeft;
@@ -97,7 +92,6 @@ export function initializeBallPit() {
   globals.ballSpacing = 0;
   globals.ballBallSurfaceGapPx = HOME_PIT_PEBBLE_SURFACE_GAP_PX * dpr;
   globals.collisionPairSlopPx = null;
-  globals.wallInset = HOME_PIT_PEBBLE_WALL_INSET_PX;
   clearBalls();
   
   const targetBalls = getMobileAdjustedCount(globals.maxBalls ?? 300);

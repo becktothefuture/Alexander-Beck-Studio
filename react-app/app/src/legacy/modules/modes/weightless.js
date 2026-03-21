@@ -17,39 +17,39 @@ const WEIGHTLESS_PALETTE = {
 };
 
 const WEIGHTLESS_DISTRIBUTION = [
-  { label: 'Product Systems', colorIndex: 0, weight: 14 },
-  { label: 'Applied AI', colorIndex: 2, weight: 14 },
-  { label: 'Interaction Design', colorIndex: 4, weight: 14 },
-  { label: 'Creative Technology', colorIndex: 3, weight: 14 },
-  { label: 'Experience Strategy', colorIndex: 5, weight: 14 },
-  { label: 'Art Direction', colorIndex: 6, weight: 14 },
-  { label: 'Prototyping', colorIndex: 7, weight: 16 }
+  { label: 'Product Systems', colorIndex: 0, weight: 34 },
+  { label: 'Applied AI', colorIndex: 2, weight: 22 },
+  { label: 'Interaction Design', colorIndex: 1, weight: 20 },
+  { label: 'Creative Technology', colorIndex: 3, weight: 12 },
+  { label: 'Experience Strategy', colorIndex: 5, weight: 10 },
+  { label: 'Art Direction', colorIndex: 6, weight: 1 },
+  { label: 'Prototyping', colorIndex: 7, weight: 1 }
 ];
 
 const SHAPE_COLOR_MAP = {
   ring: {
-    label: 'Creative Technology',
-    fallbackPaletteIndex: 3
-  },
-  pyramid: {
-    label: 'Prototyping',
-    fallbackPaletteIndex: 7
-  },
-  frame: {
-    label: 'Art Direction',
-    fallbackPaletteIndex: 6
-  },
-  systemsMini: {
     label: 'Product Systems',
     fallbackPaletteIndex: 0
   },
-  appliedMini: {
+  pyramid: {
     label: 'Applied AI',
     fallbackPaletteIndex: 2
   },
-  interactionMini: {
+  frame: {
+    label: 'Creative Technology',
+    fallbackPaletteIndex: 3
+  },
+  systemsMini: {
     label: 'Interaction Design',
-    fallbackPaletteIndex: 4
+    fallbackPaletteIndex: 1
+  },
+  appliedMini: {
+    label: 'Art Direction',
+    fallbackPaletteIndex: 6
+  },
+  interactionMini: {
+    label: 'Prototyping',
+    fallbackPaletteIndex: 7
   }
 };
 

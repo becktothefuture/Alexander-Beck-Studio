@@ -3,6 +3,8 @@
 // ║  Render-only contour system for all non-portfolio ball bodies.               ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
+import { MODES } from '../core/constants.js';
+
 const TAU = Math.PI * 2;
 const TEMPLATE_COUNT = 16;
 const CIRCLE_FALLBACK_DPR_MUL = 4;
@@ -44,6 +46,10 @@ function getPebbleControls(globals) {
     bulge,
     dpr,
   };
+}
+
+function getPebbleRenderRadius(radius) {
+  return radius;
 }
 
 function buildTemplate(index) {
@@ -210,27 +216,49 @@ function getRgb(hex) {
   };
 }
 
+function getRelativeLuminance(rgb) {
+  const channel = (value) => {
+    const normalized = value / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : Math.pow((normalized + 0.055) / 1.055, 2.4);
+  };
+  return (0.2126 * channel(rgb.r)) + (0.7152 * channel(rgb.g)) + (0.0722 * channel(rgb.b));
+}
+
+function mixToward(rgb, target, t) {
+  return {
+    r: Math.round(rgb.r + ((target.r - rgb.r) * t)),
+    g: Math.round(rgb.g + ((target.g - rgb.g) * t)),
+    b: Math.round(rgb.b + ((target.b - rgb.b) * t)),
+  };
+}
+
+function getPebbleContourStyle(color, globals, radius) {
+  const rgb = getRgb(color);
+  const luminance = getRelativeLuminance(rgb);
+  const useShadowContour = luminance > 0.72;
+  const contourRgb = useShadowContour
+    ? mixToward(rgb, { r: 0, g: 0, b: 0 }, 0.14)
+    : mixToward(rgb, { r: 255, g: 255, b: 255 }, 0.22);
+  const contourAlpha = useShadowContour ? 0.22 : 0.28;
+  const dpr = globals?.DPR || 1;
+  return {
+    strokeStyle: `rgba(${contourRgb.r},${contourRgb.g},${contourRgb.b},${contourAlpha})`,
+    lineWidth: clamp(radius * 0.06, 0.8 * dpr, 2.2 * dpr, 1.2 * dpr),
+    inset: 0.72,
+  };
+}
+
 export function drawPebbleBodyRim(ctx, ball, x, y, radius, color, globals, opts = {}) {
   if (!ctx) return;
+  if (globals?.currentMode === MODES.PIT) return;
+  const renderRadius = getPebbleRenderRadius(radius, globals);
+  const contour = getPebbleContourStyle(color, globals, radius);
   if (!ball || !shouldUsePebbleBody(radius, globals)) {
-    const rgb = getRgb(color);
-    const light = `${Math.min(255, Math.round(rgb.r + (255 - rgb.r) * 0.35))},${Math.min(255, Math.round(rgb.g + (255 - rgb.g) * 0.35))},${Math.min(255, Math.round(rgb.b + (255 - rgb.b) * 0.35))}`;
-    const shadow = `${Math.max(0, Math.round(rgb.r * 0.65))},${Math.max(0, Math.round(rgb.g * 0.65))},${Math.max(0, Math.round(rgb.b * 0.65))}`;
-    const mid = `${rgb.r},${rgb.g},${rgb.b}`;
-    const lw = radius * 0.12;
-    const strokeR = radius - (lw * 0.55);
-    const grad = ctx.createLinearGradient(
-      x - radius * 0.10,
-      y - radius * 0.15,
-      x + radius * 0.10,
-      y + radius * 0.15
-    );
-    grad.addColorStop(0, `rgba(${light},0.6)`);
-    grad.addColorStop(0.33, `rgba(${mid},0)`);
-    grad.addColorStop(0.83, `rgba(${mid},0)`);
-    grad.addColorStop(1, `rgba(${shadow},0.4)`);
-    ctx.strokeStyle = grad;
-    ctx.lineWidth = lw;
+    const strokeR = renderRadius - (contour.lineWidth * contour.inset);
+    ctx.strokeStyle = contour.strokeStyle;
+    ctx.lineWidth = contour.lineWidth;
     ctx.beginPath();
     ctx.arc(x, y, strokeR, 0, TAU);
     ctx.stroke();
@@ -242,30 +270,15 @@ export function drawPebbleBodyRim(ctx, ball, x, y, radius, color, globals, opts 
     return;
   }
 
-  const rgb = getRgb(color);
-  const light = `${Math.min(255, Math.round(rgb.r + (255 - rgb.r) * 0.35))},${Math.min(255, Math.round(rgb.g + (255 - rgb.g) * 0.35))},${Math.min(255, Math.round(rgb.b + (255 - rgb.b) * 0.35))}`;
-  const shadow = `${Math.max(0, Math.round(rgb.r * 0.65))},${Math.max(0, Math.round(rgb.g * 0.65))},${Math.max(0, Math.round(rgb.b * 0.65))}`;
-  const mid = `${rgb.r},${rgb.g},${rgb.b}`;
-  const lw = radius * 0.12;
-  const strokeR = radius - (lw * 0.55);
-  const grad = ctx.createLinearGradient(
-    x - radius * 0.10,
-    y - radius * 0.15,
-    x + radius * 0.10,
-    y + radius * 0.15
-  );
-  grad.addColorStop(0, `rgba(${light},0.6)`);
-  grad.addColorStop(0.33, `rgba(${mid},0)`);
-  grad.addColorStop(0.83, `rgba(${mid},0)`);
-  grad.addColorStop(1, `rgba(${shadow},0.4)`);
+  const strokeR = renderRadius - (contour.lineWidth * contour.inset);
 
   ctx.save();
   ctx.translate(x, y);
   if (Number.isFinite(opts.rotationRad) && opts.rotationRad !== 0) {
     ctx.rotate(opts.rotationRad);
   }
-  ctx.strokeStyle = grad;
-  ctx.lineWidth = lw;
+  ctx.strokeStyle = contour.strokeStyle;
+  ctx.lineWidth = contour.lineWidth;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   ctx.beginPath();
@@ -282,6 +295,7 @@ export function drawPebbleBody(ctx, ball, x, y, radius, color, globals, opts = {
   if (!ctx) return;
   const rotationRad = Number.isFinite(opts.rotationRad) ? opts.rotationRad : 0;
   const alpha = Number.isFinite(opts.alpha) ? opts.alpha : 1;
+  const renderRadius = getPebbleRenderRadius(radius, globals);
   if (!ball || !shouldUsePebbleBody(radius, globals)) {
     const needsTransform = rotationRad !== 0 || alpha < 1;
     if (needsTransform) {
@@ -291,14 +305,14 @@ export function drawPebbleBody(ctx, ball, x, y, radius, color, globals, opts = {
       if (alpha < 1) ctx.globalAlpha = alpha;
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(0, 0, radius, 0, TAU);
+      ctx.arc(0, 0, renderRadius, 0, TAU);
       ctx.fill();
       ctx.restore();
       drawPebbleBodyRim(ctx, ball, x, y, radius, color, globals, opts);
     } else {
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(x, y, radius, 0, TAU);
+      ctx.arc(x, y, renderRadius, 0, TAU);
       ctx.fill();
       drawPebbleBodyRim(ctx, ball, x, y, radius, color, globals, opts);
     }
@@ -315,7 +329,7 @@ export function drawPebbleBody(ctx, ball, x, y, radius, color, globals, opts = {
   }
   ctx.fillStyle = color;
   ctx.beginPath();
-  appendPebbleBodyPath(ctx, ball, radius, globals);
+  appendPebbleBodyPath(ctx, ball, renderRadius, globals);
   ctx.fill();
   ctx.restore();
   drawPebbleBodyRim(ctx, ball, x, y, radius, color, globals, opts);

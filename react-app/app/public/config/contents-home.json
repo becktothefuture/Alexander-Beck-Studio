@@ -102,11 +102,11 @@
     }
   },
   "portfolio": {
+    "heroEyebrow": "Alexander Beck",
     "heroLines": [
-      "I understand the levers that shape behaviour: design strategy, human psychology, and aesthetic principles.",
-      "Then I turn that into digital direction teams can align around and experiences people can feel their way through."
+      "Psychology first: perception, motivation, choice. Structure, interaction, writing, and build until it delivers."
     ],
-    "blurb": "A few projects that show how I work in practice: define the system, test the interaction, and stay close to the build."
+    "blurb": "A curated selection of product projects across several industries—finance, mobility, digital ventures, and more. Each case shows how I partner with teams to clarify the proposition, shape the interaction, and carry the work through to what actually ships."
   },
   "gates": {
     "common": {

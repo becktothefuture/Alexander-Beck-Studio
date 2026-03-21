@@ -49,9 +49,12 @@ function getInteriorWallViolation(ball, w, h) {
     : (globals.cornerRadius ?? globals.wallRadius ?? 0);
   const cr = Math.max(0, Number(cornerRadiusPx) || 0) * (DPR || 1);
 
-  const frameBorderWidthPx = Math.max(0, (globals.frameBorderWidthEffective ?? globals.frameBorderWidth ?? 0) * (DPR || 1));
-  const insetPx = frameBorderWidthPx;
-  const borderInset = Math.max(0, (globals.wallInset ?? 3)) * (DPR || 1);
+  // The renderer now bleeds `#c` out to the wall's visible surface inset.
+  // Keep collision bounds at the canvas edge here; adding a second frame-derived
+  // inset recreates the false floating gap the user called out.
+  const insetPx = 0;
+  const wi = Number(globals.wallInset);
+  const borderInset = Math.max(0, Number.isFinite(wi) ? wi : 0) * (DPR || 1);
 
   const innerW = Math.max(1, w - insetPx * 2);
   const innerH = Math.max(1, h - insetPx * 2);
@@ -243,7 +246,9 @@ export class Ball {
     const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
     
     // Base drag from config (skip for WEIGHTLESS; managed separately)
-    const baseDrag = currentMode === MODES.WEIGHTLESS ? 0 : FRICTION;
+    const baseDrag = currentMode === MODES.WEIGHTLESS
+      ? 0
+      : (currentMode === MODES.PIT ? FRICTION * 0.8 : FRICTION);
     
     // Progressive drag: multiply instead of divide for stability
     // At high speed (>100 px/s * DPR): base drag only (multiplier = 0)
@@ -293,10 +298,13 @@ export class Ball {
     // SPIN DAMPING - Progressive damping prevents endless rotation
     // ════════════════════════════════════════════════════════════════════════════
     const angularSpeed = Math.abs(this.omega);
-    // Multiply instead of divide for stability: higher damping at low angular velocity
     const angularMultiplier = Math.max(0, Math.min(1, 1 - angularSpeed / 2.0));
-    const progressiveSpinDamp = CONSTANTS.SPIN_DAMP_PER_S * (1 + angularMultiplier * 0.5); // Up to 1.5x
-    const spinDamp = Math.max(0, 1 - progressiveSpinDamp * dt);
+    const pitLikeContact = isPitLikeMode(currentMode) && (wasGrounded || wasSupported || hadRestingContact);
+    const contactSpinDamp = pitLikeContact
+      ? CONSTANTS.ROLL_FRICTION_PER_S * (currentMode === MODES.PIT ? 1.8 : 1) * (1 + speedMultiplier)
+      : 0;
+    const progressiveSpinDamp = CONSTANTS.SPIN_DAMP_PER_S * (1 + angularMultiplier * 0.5);
+    const spinDamp = Math.max(0, 1 - ((progressiveSpinDamp + contactSpinDamp) * dt / massScale));
     this.omega *= spinDamp;
     if (currentMode === MODES.PORTFOLIO_PIT) {
       const { maxAngularSpeed } = getPortfolioMotionLimits(globals);
@@ -305,7 +313,7 @@ export class Ball {
     this.theta += this.omega * dt;
     
     // Snap tiny angular velocity to zero
-    if (Math.abs(this.omega) < 0.01) this.omega = 0;
+    if (Math.abs(this.omega) < (pitLikeContact ? 0.035 : 0.01)) this.omega = 0;
     
     // Squash decay (skip for balls that should stay round)
     if (!this._noSquash) {
@@ -430,7 +438,10 @@ export class Ball {
         const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
         const groundSpeed = Math.abs(this.vx);
         const frictionMul = Math.max(0, Math.min(1, 1 - groundSpeed / (80 * DPR)));
-        const rollFriction = CONSTANTS.ROLL_FRICTION_PER_S * (1 + frictionMul);
+        const rollFrictionBase = globals.currentMode === MODES.PIT
+          ? CONSTANTS.ROLL_FRICTION_PER_S * 0.72
+          : CONSTANTS.ROLL_FRICTION_PER_S;
+        const rollFriction = rollFrictionBase * (1 + frictionMul);
         const rollDamp = Math.max(0, 1 - rollFriction * dt / massScale);
         this.vx *= rollDamp;
         
@@ -441,6 +452,9 @@ export class Ball {
         this.omega += (slip / this.r) * CONSTANTS.SPIN_GAIN / massScale;
         const rollTarget = this.vx / this.r;
         this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
+        if (globals.currentMode === MODES.PIT && groundSpeed < 6 * DPR) {
+          this.omega *= 0.7;
+        }
         if (Math.abs(this.omega) < 0.05) this.omega = 0;
 
         if (globals.currentMode === MODES.PORTFOLIO_PIT) {

@@ -215,7 +215,7 @@ function getWarmupFramesForMode(mode, globals) {
   // Default is 10 everywhere unless overridden via config/panel.
   switch (mode) {
     case MODES.PIT: return globals.pitWarmupFrames ?? 10;
-    case MODES.PORTFOLIO_PIT: return globals.portfolioPitWarmupFrames ?? 12;
+    case MODES.PORTFOLIO_PIT: return globals.portfolioPitWarmupFrames ?? 0;
     case MODES.FLIES: return globals.fliesWarmupFrames ?? 10;
     case MODES.WEIGHTLESS: return globals.weightlessWarmupFrames ?? 10;
     case MODES.WATER: return globals.waterWarmupFrames ?? 10;

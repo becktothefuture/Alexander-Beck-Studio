@@ -7,7 +7,7 @@
 import { getGlobals } from '../core/state.js';
 import { applyColorTemplate, populateColorSelect } from '../visual/colors.js';
 import { autoSaveSettings } from '../utils/storage.js';
-import { bindRegisteredControls } from './control-registry.js';
+import { bindRegisteredControls, syncSlidersToState } from './control-registry.js';
 import { isDev } from '../utils/logger.js';
 
 /**
@@ -20,6 +20,8 @@ export function setupMasterControls() {
   // BIND ALL REGISTERED CONTROLS FROM REGISTRY (single source of truth)
   // ═══════════════════════════════════════════════════════════════════════════
   bindRegisteredControls();
+  // Match the panel UI to the live runtime state before the user saves/export.
+  syncSlidersToState();
 
   // ═══════════════════════════════════════════════════════════════════════════
   // COLOR TEMPLATE SELECT — Special handling (not in registry)

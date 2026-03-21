@@ -6,17 +6,21 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
-import { getColorByIndex } from '../visual/colors.js';
+import {
+  getColorByIndex,
+  PALETTE_BRIGHT_ACCENT_INDICES,
+  PALETTE_CHROMATIC_INDICES,
+  pickRandomColorWithIndex,
+} from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { MODES } from '../core/constants.js';
 
 // ════════════════════════════════════════════════════════════════════════════════
 // SWARM COLOR DISTRIBUTION
-// Waypoints: ALL bright accent colors from current palette (indices 3, 5, 6, 7)
-// Critters: All colors from palette (indices 0-7) - no strict separation
+// Critters use the shared pit-weighted palette mix.
+// Waypoints carry the clearer chromatic accents, with the brightest hues last.
 // ════════════════════════════════════════════════════════════════════════════════
-const WAYPOINT_COLOR_INDICES = [3, 5, 6, 7];  // All 4 bright accents from palette
-const CRITTER_COLOR_INDICES = [0, 1, 2, 3, 4, 5, 6, 7];  // All colors from palette
+const WAYPOINT_COLOR_INDEX_FALLBACK = [...PALETTE_CHROMATIC_INDICES, ...PALETTE_BRIGHT_ACCENT_INDICES];
 
 // ════════════════════════════════════════════════════════════════════════════════
 // SPATIAL HASH GRID (for O(1) neighbor lookups instead of O(n²))
@@ -300,10 +304,8 @@ export function initializeCritters() {
   for (let i = 0; i < count; i++) {
     const x = (Math.random() * w) | 0;
     const y = (Math.random() * h) | 0;
-    // Critters use greys only (waypoints hold the color)
-    const colorIndex = CRITTER_COLOR_INDICES[Math.floor(Math.random() * CRITTER_COLOR_INDICES.length)];
-    const color = getColorByIndex(colorIndex);
-    const ball = spawnBall(x, y, color);
+    const { color, distributionIndex } = pickRandomColorWithIndex();
+    const ball = spawnBall(x, y, color, distributionIndex);
 
     const rr = randomRadiusForMode(globals, MODES.CRITTERS);
     ball.r = rr;
@@ -1041,6 +1043,23 @@ let waypointColors = [];
 let lastJourneyPointCount = 0;
 let lastPaletteTemplate = null;
 
+function getWaypointColorIndices(globals) {
+  const distribution = Array.isArray(globals?.colorDistribution) ? globals.colorDistribution : [];
+  const chromaticRows = [];
+  const brightRows = [];
+  for (let i = 0; i < distribution.length; i += 1) {
+    const row = distribution[i];
+    const colorIndex = Math.max(0, Math.min(7, Number(row?.colorIndex) || 0));
+    const entry = { colorIndex, weight: Number(row?.weight) || 0 };
+    if (PALETTE_CHROMATIC_INDICES.includes(colorIndex)) chromaticRows.push(entry);
+    else if (PALETTE_BRIGHT_ACCENT_INDICES.includes(colorIndex)) brightRows.push(entry);
+  }
+  chromaticRows.sort((a, b) => b.weight - a.weight);
+  brightRows.sort((a, b) => a.weight - b.weight);
+  const ordered = [...chromaticRows, ...brightRows].map((entry) => entry.colorIndex);
+  return ordered.length ? ordered : WAYPOINT_COLOR_INDEX_FALLBACK;
+}
+
 function ensureWaypointColors() {
   const globals = getGlobals();
   const pointCount = globals.hiveJourneyPointCount || 4;
@@ -1053,10 +1072,10 @@ function ensureWaypointColors() {
     lastPaletteTemplate !== currentTemplate;
     
   if (needsRegeneration) {
-    // Waypoints use the dominant/accent colors from the palette
+    const orderedWaypointIndices = getWaypointColorIndices(globals);
     waypointColors = [];
     for (let i = 0; i < pointCount; i++) {
-      const colorIndex = WAYPOINT_COLOR_INDICES[i % WAYPOINT_COLOR_INDICES.length];
+      const colorIndex = orderedWaypointIndices[i % orderedWaypointIndices.length];
       waypointColors.push(getColorByIndex(colorIndex));
     }
     lastJourneyPointCount = pointCount;

@@ -31,7 +31,7 @@ export function setUpdateTactileLayer(fn) {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // WALL SHADOW CSS UPDATE
-// Dynamically updates box-shadow on #simulations::after via CSS custom properties
+// Legacy note: pit depth uses #simulations::before (inset shadow) + .inner-wall-gradient-edge rim.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Export for initialization
@@ -2450,6 +2450,73 @@ export const CONTROL_SECTIONS = {
             mod.applyLayoutCSSVars();
           });
         }
+      },
+      {
+        id: 'wallInset',
+        label: 'Simulation wall inset',
+        stateKey: 'wallInset',
+        type: 'range',
+        min: 0, max: 24, step: 1,
+        default: 10,
+        format: v => `${Math.round(Number(v) || 0)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Extra physics margin so balls stay inside the inner wall, clear of the light rim (px). Applies to pit modes and all modes using the same wall SDF.',
+        onChange: (g) => {
+          Promise.all([
+            import('../physics/Ball.js'),
+            import('../rendering/renderer.js')
+          ]).then(([ballMod, rendererMod]) => {
+            try { rendererMod.resize?.(); } catch (e) {}
+            const canvas = g?.canvas;
+            const balls = Array.isArray(g?.balls) ? g.balls : [];
+            const w = Number(canvas?.width) || 0;
+            const h = Number(canvas?.height) || 0;
+            if (w <= 0 || h <= 0) return;
+            for (let i = 0; i < balls.length; i += 1) {
+              const ball = balls[i];
+              if (!ball) continue;
+              ballMod.clampBallPositionToWallInterior(ball, w, h);
+              ball.isSleeping = false;
+              ball.sleepTimer = 0;
+            }
+          }).catch(() => {});
+        }
+      },
+      {
+        id: 'simulationPaddingVw',
+        label: 'Corner padding (vw)',
+        stateKey: 'simulationPaddingVw',
+        type: 'range',
+        min: 0, max: 2, step: 0.05,
+        default: 0,
+        format: v => `${Number(v).toFixed(2)}vw`,
+        parse: parseFloat,
+        hint: 'Shrinks the physics corner radius vs the wall (--simulation-padding, getCanvasCornerRadius). Use with wall inset to keep rounded corners off the rim.',
+        onChange: (g) => {
+          Promise.all([
+            import('../core/state.js'),
+            import('../physics/Ball.js'),
+            import('../rendering/renderer.js')
+          ]).then(([stateMod, ballMod, rendererMod]) => {
+            try {
+              stateMod.applyLayoutFromVwToPx();
+              stateMod.applyLayoutCSSVars();
+            } catch (e) {}
+            try { rendererMod.resize?.(); } catch (e) {}
+            const canvas = g?.canvas;
+            const balls = Array.isArray(g?.balls) ? g.balls : [];
+            const w = Number(canvas?.width) || 0;
+            const h = Number(canvas?.height) || 0;
+            if (w <= 0 || h <= 0) return;
+            for (let i = 0; i < balls.length; i += 1) {
+              const ball = balls[i];
+              if (!ball) continue;
+              ballMod.clampBallPositionToWallInterior(ball, w, h);
+              ball.isSleeping = false;
+              ball.sleepTimer = 0;
+            }
+          }).catch(() => {});
+        }
       }
     ]
   },
@@ -2898,12 +2965,42 @@ export const CONTROL_SECTIONS = {
         stateKey: 'innerWallGradientEdgeWidth',
         type: 'range',
         min: 0.5, max: 6, step: 0.5,
-        default: 2,
+        default: 3,
         format: v => `${v}px`,
         parse: parseFloat,
-        hint: 'Thickness of the light rim',
+        hint: 'Thickness of the light rim on the pit opening (home + all routes).',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--inner-wall-gradient-edge-width', `${val}px`);
+        }
+      },
+      {
+        id: 'innerWallPitInsetShadowOpacity',
+        label: 'Pit inset shadow',
+        stateKey: 'innerWallPitInsetShadowOpacity',
+        type: 'range',
+        min: 0, max: 0.28, step: 0.005,
+        default: 0.12,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Soft interior shadow inside the pit (below the rim overlay). Scene Light Depth/Softness in the dock scales this on top.',
+        onChange: (g, val) => {
+          g.innerWallPitInsetShadowOpacity = val;
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'innerWallPitInsetShadowBlurPx',
+        label: 'Pit shadow blur',
+        stateKey: 'innerWallPitInsetShadowBlurPx',
+        type: 'range',
+        min: 8, max: 56, step: 1,
+        default: 28,
+        format: v => `${Math.round(v)}px`,
+        parse: parseFloat,
+        hint: 'How far the pit inset shadow feathers inward.',
+        onChange: (g, val) => {
+          g.innerWallPitInsetShadowBlurPx = val;
+          applyLayoutCSSVars();
         }
       },
       {
@@ -6443,7 +6540,7 @@ export function syncSlidersToState(options = {}) {
         // Call onChange handler to initialize CSS variables / apply side effects.
         // IMPORTANT: Avoid re-entrant loops for preset selectors that themselves call `syncSlidersToState()`.
         // (e.g. wallPreset → applyWallPreset → syncSlidersToState → wallPreset.onChange → ...)
-        if (runOnChange && control.onChange && control.id !== 'wallPreset') {
+        if (runOnChange && control.onChange && control.id !== 'wallPreset' && control.id !== 'entranceEnabled' && control.id !== 'contentFadeInDelay' && control.id !== 'contentFadeInDuration') {
           control.onChange(g, stateVal);
         }
       }

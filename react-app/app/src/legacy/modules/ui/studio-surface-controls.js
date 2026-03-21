@@ -57,7 +57,7 @@ const SHELL_OBJECT_CONTROL_SECTIONS = [
     icon: '📐',
     defaultOpen: true,
     controls: [
-      { id: 'wallThicknessVw', label: 'Wall inset', min: 0.5, max: 12, step: 0.1, unit: 'vw' },
+      { id: 'wallThicknessVw', label: 'Outer Wall Size', min: 0.5, max: 12, step: 0.1, unit: 'vw' },
       { id: 'frameBorderWidth', label: 'Wall thickness', min: 0, max: 20, step: 1, unit: 'px' },
     ],
   },
@@ -217,6 +217,27 @@ export function applyStudioSurfaceConfig(config) {
     edgeCaptionDistanceMax,
   });
 
+  const studioSurfaceSnapshot = {
+    edgeStrength,
+    edgeWidth,
+    fillOpacity,
+    glowOpacity,
+    sceneHighlight,
+    sceneDepth,
+    sceneSoftness,
+    scriptMaxWidth,
+    scriptPaddingX,
+    scriptPaddingY,
+    quoteButtonSize,
+    quotePaddingX,
+    quotePaddingY,
+    edgeCaptionDistanceMin,
+    edgeCaptionDistanceMax,
+    wallThicknessVw,
+    frameBorderWidth,
+  };
+  window.__ABS_STUDIO_SURFACE_CONFIG__ = studioSurfaceSnapshot;
+
   const g = getGlobals();
   if (g) {
     if (Number.isFinite(wallThicknessVw)) g.wallThicknessVw = wallThicknessVw;
@@ -275,26 +296,6 @@ export function applyStudioSurfaceConfig(config) {
     edgeCaptionDistanceMin,
     edgeCaptionDistanceMax,
   });
-
-  window.__ABS_STUDIO_SURFACE_CONFIG__ = {
-    edgeStrength,
-    edgeWidth,
-    fillOpacity,
-    glowOpacity,
-    sceneHighlight,
-    sceneDepth,
-    sceneSoftness,
-    scriptMaxWidth,
-    scriptPaddingX,
-    scriptPaddingY,
-    quoteButtonSize,
-    quotePaddingX,
-    quotePaddingY,
-    edgeCaptionDistanceMin,
-    edgeCaptionDistanceMax,
-    wallThicknessVw,
-    frameBorderWidth,
-  };
 }
 
 function generateControlHTML(control, value) {

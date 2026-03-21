@@ -304,7 +304,10 @@ class PortfolioPitApp {
     );
     const massMultiplier = clamp(toNumber(this.config.runtime.motion?.massMultiplier, 1), 0.5, 2);
     const bodySpacing = clamp(toNumber(this.config.runtime.bodies?.ballSpacing, 0.08), 0, 1);
-    const wallInset = Math.max(0, Math.round(toNumber(this.config.runtime.layout?.wallInset, 3)));
+    const layoutWallInset = this.config.runtime.layout?.wallInset;
+    const wallInset = layoutWallInset === undefined || layoutWallInset === null
+      ? Math.max(0, Math.round(toNumber(globals.wallInset, 5)))
+      : Math.max(0, Math.round(toNumber(layoutWallInset, 0)));
     const ballBallSurfaceGapPx = Math.max(0, toNumber(this.config.runtime.bodies?.ballBallSurfaceGapPx, 0));
     const collisionPairSlopPx = this.config.runtime.bodies?.collisionPairSlopPx ?? null;
     globals.gravityMultiplier = baseGravity * gravityScale;
@@ -1244,7 +1247,16 @@ export async function bootstrapPortfolio() {
   });
   await app.init();
   installPortfolioAuditBridge(app);
-  getGlobals().warmupFramesRemaining = 180;
+  {
+    const g = getGlobals();
+    const reducedMotion = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    // Engine consumes warmupFramesRemaining on the first main-loop tick before drawing,
+    // which pre-settles the pit while #c is still opacity:0. Use 0 so pebbles are
+    // still “in the air” when the canvas is revealed; reduced motion keeps a long
+    // warmup so the layout appears stable immediately.
+    g.warmupFramesRemaining = reducedMotion ? 180 : 0;
+  }
   updateCursorSize();
 
   const settlePortfolioPresentation = () => {

@@ -10,7 +10,7 @@ import { loadRuntimeConfig } from './utils/runtime-config.js';
 import { loadRuntimeText } from './utils/text-loader.js';
 import { applyRuntimeTextToDOM } from './ui/apply-text.js';
 import { initializeDarkMode } from './visual/dark-mode-v2.js';
-import { getPaletteTemplateOverrideFromUrl, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './visual/colors.js';
+import { getPaletteTemplateOverrideFromUrl, getWeatherDrivenPaletteTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './visual/colors.js';
 import { initTimeDisplay } from './ui/time-display.js';
 import { upgradeSocialIcons } from './ui/social-icons.js';
 import { waitForFonts } from './utils/font-loader.js';
@@ -221,7 +221,7 @@ export async function bootstrapCvPage() {
   if (paletteOverride) {
     getGlobals().currentTemplate = paletteOverride;
   } else {
-    rotatePaletteChapterOnReload();
+    getGlobals().currentTemplate = getWeatherDrivenPaletteTemplate() || rotatePaletteChapterOnReload();
   }
 
   // Panel before dark mode init so theme segment buttons in the dock receive listeners (init runs once).

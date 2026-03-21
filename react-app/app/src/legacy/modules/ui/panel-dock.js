@@ -949,8 +949,6 @@ function setupSoundControls(panel) {
 function setupLayoutControls(panel) {
   const viewportWidthSlider = panel.querySelector('#layoutViewportWidth');
   const viewportWidthValue = panel.querySelector('#viewportWidthValue');
-  const wallInsetSlider = panel.querySelector('#layoutWallInset');
-  const wallInsetValue = panel.querySelector('#wallInsetValue');
   const g = getGlobals();
 
   const syncDerivedLayout = ({ triggerResize = false } = {}) => {
@@ -967,22 +965,13 @@ function setupLayoutControls(panel) {
     // Notify overlay system that layout changed (blur needs recalculation)
     document.dispatchEvent(new CustomEvent('layout-updated'));
   };
-  
+
   // Virtual viewport width (debug): changes the vw→px conversion basis
   if (viewportWidthSlider && viewportWidthValue) {
     viewportWidthSlider.addEventListener('input', (e) => {
       const val = parseInt(e.target.value, 10);
       g.layoutViewportWidthPx = Number.isFinite(val) ? Math.max(0, val) : 0;
       syncDerivedLayout({ triggerResize: true });
-    });
-  }
-
-  // Wall inset (physics-only): shrinks the effective collision bounds uniformly
-  if (wallInsetSlider && wallInsetValue) {
-    wallInsetSlider.addEventListener('input', (e) => {
-      const val = parseInt(e.target.value, 10);
-      wallInsetValue.textContent = `${val}px`;
-      g.wallInset = val;
     });
   }
 }

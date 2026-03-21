@@ -10,13 +10,15 @@ export function getPortfolioRouteView() {
   const contactLink = homeContent.footer.links.contact;
   const aboutMeLabel = 'About Me';
   const portfolioBlurb = homeContent.portfolio?.blurb
-    || 'A few projects that show how I work in practice: define the system, test the interaction, and stay close to the build.';
+    || 'A curated selection of product projects across several industries—finance, mobility, digital ventures, and more. Each case shows how I partner with teams to clarify the proposition, shape the interaction, and carry the work through to what actually ships.';
+  const portfolioHeroEyebrow = homeContent.portfolio?.heroEyebrow || 'Alexander Beck';
   const portfolioHeroLines = Array.isArray(homeContent.portfolio?.heroLines)
     ? homeContent.portfolio.heroLines
     : [
-        'I work from system to surface: defining the structure, testing the interaction, and building what the team needs to ship.',
-        'This selection shows that range across product design, creative technology, and applied AI.'
+        'Psychology first: perception, motivation, choice. Structure, interaction, writing, and build until it delivers.'
       ];
+  const portfolioHeroAria = [portfolioHeroEyebrow, ...portfolioHeroLines].filter(Boolean).join(' ');
+  const portfolioHeroSecondary = portfolioHeroLines[1] || '';
 
   return {
     bodyClass: 'body portfolio-page',
@@ -37,10 +39,13 @@ export function getPortfolioRouteView() {
       <h2
         id="hero-title"
         className="hero-title hero-title--portfolio"
-        aria-label={portfolioHeroLines.join(' ')}
+        aria-label={portfolioHeroAria}
       >
+        <span className="hero-title__eyebrow">{portfolioHeroEyebrow}</span>
         <span className="hero-title__line">{portfolioHeroLines[0]}</span>
-        <span className="hero-title__line hero-title__line--secondary">{portfolioHeroLines[1]}</span>
+        {portfolioHeroSecondary ? (
+          <span className="hero-title__line hero-title__line--secondary">{portfolioHeroSecondary}</span>
+        ) : null}
       </h2>
     ),
     headerContent: (

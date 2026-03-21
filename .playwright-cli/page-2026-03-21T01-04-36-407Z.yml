@@ -1,0 +1,194 @@
+- generic [active] [ref=e1]:
+  - region "Settings" [ref=e47]:
+    - generic [ref=e48]:
+      - generic [ref=e49]: Settings
+      - button "Toggle light/dark mode" [ref=e50] [cursor=pointer]: 🌙
+    - generic [ref=e51]:
+      - group [ref=e52]:
+        - generic "✨ Studio" [ref=e53] [cursor=pointer]:
+          - generic [ref=e54]: ✨
+          - generic [ref=e55]: Studio
+        - option "Ball 1 — Product Systems" [selected]
+        - option "Ball 2 — Interaction Design" [disabled]
+        - option "Ball 3 — Creative Technology" [disabled]
+        - option "Ball 4 — Applied AI" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [disabled]
+        - option "Ball 7 — Experience Strategy" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2 — Interaction Design" [selected]
+        - option "Ball 3 — Creative Technology" [disabled]
+        - option "Ball 4 — Applied AI" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [disabled]
+        - option "Ball 7 — Experience Strategy" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2 — Interaction Design" [disabled]
+        - option "Ball 3 — Creative Technology" [selected]
+        - option "Ball 4 — Applied AI" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [disabled]
+        - option "Ball 7 — Experience Strategy" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2 — Interaction Design" [disabled]
+        - option "Ball 3 — Creative Technology" [disabled]
+        - option "Ball 4 — Applied AI" [selected]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [disabled]
+        - option "Ball 7 — Experience Strategy" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2 — Interaction Design" [disabled]
+        - option "Ball 3 — Creative Technology" [disabled]
+        - option "Ball 4 — Applied AI" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [disabled]
+        - option "Ball 7 — Experience Strategy" [selected]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2 — Interaction Design" [disabled]
+        - option "Ball 3 — Creative Technology" [disabled]
+        - option "Ball 4 — Applied AI" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [selected]
+        - option "Ball 7 — Experience Strategy" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2 — Interaction Design" [disabled]
+        - option "Ball 3 — Creative Technology" [disabled]
+        - option "Ball 4 — Applied AI" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [disabled]
+        - option "Ball 7 — Experience Strategy" [disabled]
+        - option "Ball 8 — Prototyping" [selected]
+      - group [ref=e56]:
+        - generic "💡 Light" [ref=e57] [cursor=pointer]:
+          - generic [ref=e58]: 💡
+          - generic [ref=e59]: Light
+      - group [ref=e60]:
+        - generic "🧱 Shell" [ref=e61] [cursor=pointer]:
+          - generic [ref=e62]: 🧱
+          - generic [ref=e63]: Shell
+        - option "Jitter (film grain)" [selected]
+        - option "Drift (slow pan)"
+        - option "Static"
+      - group [ref=e64]:
+        - generic "⚡ Simulation" [ref=e65] [cursor=pointer]:
+          - generic [ref=e66]: ⚡
+          - generic [ref=e67]: Simulation
+      - group [ref=e68]:
+        - generic "🔊 Audio" [ref=e69] [cursor=pointer]:
+          - generic [ref=e70]: 🔊
+          - generic [ref=e71]: Audio
+        - text: 
+      - group [ref=e72]:
+        - generic "🧪 Advanced" [ref=e73] [cursor=pointer]:
+          - generic [ref=e74]: 🧪
+          - generic [ref=e75]: Advanced
+        - option "Normal"
+        - option "Multiply"
+        - option "Screen"
+        - option "Overlay"
+        - option "Darken"
+        - option "Lighten"
+        - option "Color Dodge" [selected]
+        - option "Color Burn"
+        - option "Hard Light"
+        - option "Soft Light"
+        - option "Difference"
+        - option "Exclusion"
+        - option "Normal"
+        - option "Multiply" [selected]
+        - option "Screen"
+        - option "Overlay"
+        - option "Darken"
+        - option "Lighten"
+        - option "Color Dodge"
+        - option "Color Burn"
+        - option "Hard Light"
+        - option "Soft Light"
+        - option "Difference"
+        - option "Exclusion"
+        - option "Organic (default)" [selected]
+        - option "Ease Out"
+        - option "Ease In Out"
+        - option "Bounce"
+        - option "Overshoot"
+        - option "Auto (adapt only when needed)" [selected]
+        - option "Site (benchmark)"
+        - option "Browser (force adapt)"
+      - group [ref=e77]:
+        - generic "↗ Views" [ref=e78] [cursor=pointer]:
+          - generic [ref=e79]: ↗
+          - generic [ref=e80]: Views
+      - button "💾 Save Design JSON" [ref=e82] [cursor=pointer]
+      - generic [ref=e83]:
+        - generic [ref=e84]: R
+        - text: reset ·
+        - generic [ref=e85]: /
+        - text: panel ·
+        - generic [ref=e86]: "9"
+        - text: kalei
+  - generic [ref=e87]:
+    - generic:
+      - application "Bouncy balls" [ref=e88]
+      - heading "Alexander Beck — Creative Technologist" [level=1]:
+        - generic: Alexander Beck
+        - generic: Creative Technologist
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - banner:
+              - generic:
+                - navigation "Areas of expertise" [ref=e3]:
+                  - generic [ref=e6]: Product Systems
+                  - generic [ref=e9]: Interaction Design
+                  - generic [ref=e12]: Creative Technology
+                  - generic [ref=e15]: Applied AI
+                  - generic [ref=e18]: Experience Strategy
+                  - generic [ref=e21]: Art Direction
+                  - generic [ref=e24]: Prototyping
+                - generic:
+                  - blockquote [ref=e25]:
+                    - paragraph [ref=e26]:
+                      - text: The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI to shape clear, usable experiences that are ready to ship.
+                      - link "Let's chat." [ref=e27]:
+                        - /url: "#"
+                  - button "Sound off" [ref=e29]:
+                    - generic: 
+            - main
+            - navigation "Main navigation links" [ref=e30]:
+              - button "Contact" [ref=e31]:
+                - generic [ref=e32]: Contact
+              - button "Portfolio" [ref=e33]:
+                - generic [ref=e34]: Portfolio
+              - button "About me" [ref=e35]:
+                - generic [ref=e36]: About me
+        - contentinfo:
+          - generic:
+            - group "Social media links" [ref=e38]:
+              - link "Apple Music" [ref=e39]:
+                - /url: https://music.apple.com/profile/beckandeggs
+                - generic: 
+                - generic [ref=e40]: Apple Music
+              - link "LinkedIn" [ref=e41]:
+                - /url: https://www.linkedin.com/in/thisisbeck/
+                - generic: 
+                - generic [ref=e42]: LinkedIn
+            - button "Toggle theme" [ref=e44]:
+              - generic [ref=e45]:
+                - strong [ref=e46]: London
+                - text: · 1:04:36 AM
+        - status:
+          - generic: Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable.
+          - generic: © 2026 Alexander Beck
+    - button [ref=e89]:
+      - generic:
+        - paragraph: The details are not the details. They make the design. ⁕
+        - paragraph: Charles Eames
+  - button "Toggle config panel" [ref=e91]: ⚙
+  - generic: FPS 58 / 60 | 13.70ms | throttle L0 (no, 0%) | >16.67ms 318 | >8.33ms 580 | PIT p95 frame 3.8ms (phy 3.4 col 2.9 rnd 0.6)

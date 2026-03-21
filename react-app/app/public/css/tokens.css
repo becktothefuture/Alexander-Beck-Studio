@@ -473,8 +473,8 @@
   --outer-wall-top-bevel-opacity: 0.25;       /* Outer wall bevel opacity (light mode) */
   --outer-wall-top-bevel-opacity-dark: 0.35;  /* Outer wall bevel opacity (dark mode) */
   
-  /* Pit interior: soft inset shadow (below rim overlay, above canvas) */
-  --inner-wall-pit-inset-shadow-opacity: 0.12;
+  /* Pit interior: soft inset shadow (below rim overlay, above canvas); JS applies +20% light / stronger dark */
+  --inner-wall-pit-inset-shadow-opacity: 0.144;
   --inner-wall-pit-inset-shadow-blur: 28px;
   --inner-wall-pit-inset-shadow-spread: -6px;
   --inner-wall-pit-inset-shadow-offset-y: 4px;
@@ -756,7 +756,7 @@
   --inner-wall-gradient-edge-side-opacity: 0.14;
   --inner-wall-gradient-edge-side-shadow-opacity: 0.14;
 
-  --inner-wall-pit-inset-shadow-opacity: 0.17;
+  --inner-wall-pit-inset-shadow-opacity: 0.24;
 }
 
 /* ╔══════════════════════════════════════════════════════════════════════════════╗

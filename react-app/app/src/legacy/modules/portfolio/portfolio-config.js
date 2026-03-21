@@ -15,9 +15,12 @@ const DEFAULT_PORTFOLIO_CONFIG = {
     '--portfolio-hero-image-radius': 'max(0px, calc(var(--portfolio-drawer-radius) - var(--portfolio-hero-image-gutter)))',
     '--portfolio-scroll-hint-offset': 'clamp(26px, 18px + 1.2vw, 52px)',
     '--portfolio-drawer-seat-inset': '0px',
-    '--portfolio-drawer-edge-width': '2px',
-    '--portfolio-drawer-top-light-opacity': '0.32',
-    '--portfolio-drawer-rim-shadow-opacity': '0.3',
+    '--portfolio-drawer-inner-radius-shrink': '1px',
+    '--portfolio-drawer-insert-contact-opacity': '0.24',
+    '--portfolio-drawer-insert-top-light-opacity': '0.14',
+    '--portfolio-drawer-insert-lip-opacity': '0.16',
+    '--portfolio-drawer-outline-width': '1px',
+    '--portfolio-drawer-outline-opacity': '0.28',
   },
   runtime: {
     layout: {
@@ -27,7 +30,6 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       spawnHeightViewport: 0.62,
       bodyCountPolicy: 'one-per-project',
       headerTopSpacing: 24,
-      wallInset: 0,
     },
     bodies: {
       minDiameterViewport: 0.105,

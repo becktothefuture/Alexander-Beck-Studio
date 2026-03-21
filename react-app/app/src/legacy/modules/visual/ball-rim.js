@@ -135,6 +135,7 @@ export function drawDirectionalPathRim(ctx, x, y, r, color, drawPath, opts = {})
 export function drawBallRims(ctx, balls, opts) {
   if (!balls || balls.length === 0) return;
   const globals = getGlobals();
+  if (globals?.currentMode === 'pit') return;
   const cw = opts?.canvasWidth ?? Number.POSITIVE_INFINITY;
   const ch = opts?.canvasHeight ?? Number.POSITIVE_INFINITY;
   const minR = opts?.minRadius ?? 0;

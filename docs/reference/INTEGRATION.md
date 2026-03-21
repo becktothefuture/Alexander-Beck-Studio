@@ -91,7 +91,7 @@ The simulation needs this CSS for dynamic height:
 
 The simulation loads with sensible defaults:
 - Mode: Ball Pit
-- Color Palette: London weather chapter system (default: River Mist)
+- Color Palette: London weather chapter system (privacy-first London weather assessment, nearest chapter fallback)
 - Ball Size: 0.7 (70% of base)
 - Gravity: 1.1× Earth
 - 60 FPS target

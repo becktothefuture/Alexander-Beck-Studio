@@ -5,6 +5,11 @@
 
 import { CONSTANTS, MODES, WALL_PRESETS } from './constants.js';
 import { readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
+import { getLondonWeatherPaletteFromAssessment } from '../../../weather/londonWeatherAssessment.js';
+import { getLondonWeatherPaletteTheme } from '../../../palette/londonPalettes.js';
+
+const assessedPalette = getLondonWeatherPaletteFromAssessment();
+const assessedTheme = getLondonWeatherPaletteTheme(assessedPalette?.id) || {};
 
 // Helper: Convert hex color to "r, g, b" string for CSS rgba()
 function hexToRgbString(hex) {
@@ -391,7 +396,7 @@ const state = {
   
   // Wall collision inset (px). Helps prevent visual overlap with the wall edge.
   // This is distinct from radius: it shrinks the effective collision bounds uniformly.
-  wallInset: 3,
+  wallInset: 5,
 
   // Magnetic mode params (updated defaults)
   magneticBallCount: 180,
@@ -414,11 +419,11 @@ const state = {
   
   // Colors
   // Palette chapters ("colour schemes") — see `source/modules/visual/colors.js`
-  // Keep these aligned with the default London weather palette so:
+  // Keep these aligned with the assessed London weather palette so:
   // - CSS fallback matches JS-driven palette chapters
   // - early paints (before JS applies templates) look correct
-  currentColors: ['#a4aba8', '#c9cfcb', '#f7f5ef', '#5e857f', '#121416', '#d36e4b', '#5c7c96', '#d2ad62'],
-  currentTemplate: 'riverMist',
+  currentColors: Array.isArray(assessedPalette?.light) ? assessedPalette.light.slice() : ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#f03030', '#0d5cb6', '#ffa000'],
+  currentTemplate: assessedPalette?.id || 'portlandHaze',
   // If true, rotate to the next palette chapter on each reload.
   // If false, respect `currentTemplate` from runtime config.
   paletteRotateOnReload: false,
@@ -426,13 +431,13 @@ const state = {
   // Used by `pickRandomColor()` for ALL modes.
   // NOTE: 7 disciplines choose 7 distinct palette indices (0..7). One palette color may remain unused.
   colorDistribution: [
-    { label: 'Product Systems', colorIndex: 0, weight: 30 },
-    { label: 'Interaction Design', colorIndex: 4, weight: 18 },
-    { label: 'Creative Technology', colorIndex: 3, weight: 15 },
-    { label: 'Applied AI', colorIndex: 2, weight: 12 },
-    { label: 'Experience Strategy', colorIndex: 5, weight: 10 },
-    { label: 'Art Direction', colorIndex: 6, weight: 10 },
-    { label: 'Prototyping', colorIndex: 7, weight: 5 }
+    { label: 'Product Systems', colorIndex: 0, weight: 34 },
+    { label: 'Interaction Design', colorIndex: 1, weight: 22 },
+    { label: 'Creative Technology', colorIndex: 2, weight: 20 },
+    { label: 'Applied AI', colorIndex: 3, weight: 12 },
+    { label: 'Experience Strategy', colorIndex: 6, weight: 10 },
+    { label: 'Art Direction', colorIndex: 5, weight: 1 },
+    { label: 'Prototyping', colorIndex: 7, weight: 1 }
   ],
   
   // Flies mode
@@ -613,17 +618,17 @@ const state = {
   // Container inner shadow removed
   
   // Unified Color System (backgrounds, frame, walls)
-  bgLight: '#efefef',       // Light mode background color
-  bgDark: '#181818',        // Dark mode background color
-  wallBaseLight: '#efefef', // Inner wall surface in light mode
-  wallBaseDark: '#181818',  // Inner wall surface in dark mode
-  frameColor: '#242529',    // Frame color (legacy - use frameColorLight/frameColorDark)
-  frameColorLight: '#242529',  // Frame/wall color in light mode (browser chrome + walls + border)
-  frameColorDark: '#242529',   // Frame/wall color in dark mode (browser chrome + walls + border)
-  lockedHeaderLight: '#f1f3f4', // Locked-header browser fallback in light mode
-  lockedHeaderDark: '#3c3c3c',  // Locked-header browser fallback in dark mode
-  safariFrameLight: '#181818',  // Safari-specific outer wall fallback in light mode (dark strip)
-  safariFrameDark: '#181818',   // Safari-specific outer wall fallback in dark mode
+  bgLight: assessedTheme.bgLight || '#efefef',       // Light mode background color
+  bgDark: assessedTheme.bgDark || '#181818',        // Dark mode background color
+  wallBaseLight: assessedTheme.wallBaseLight || '#efefef', // Inner wall surface in light mode
+  wallBaseDark: assessedTheme.wallBaseDark || '#181818',  // Inner wall surface in dark mode
+  frameColor: assessedTheme.frameColorLight || '#242529',    // Frame color (legacy - use frameColorLight/frameColorDark)
+  frameColorLight: assessedTheme.frameColorLight || '#242529',  // Frame/wall color in light mode (browser chrome + walls + border)
+  frameColorDark: assessedTheme.frameColorDark || assessedTheme.frameColorLight || '#242529',   // Frame/wall color in dark mode (browser chrome + walls + border)
+  lockedHeaderLight: assessedTheme.lockedHeaderLight || '#f1f3f4', // Locked-header browser fallback in light mode
+  lockedHeaderDark: assessedTheme.lockedHeaderDark || '#3c3c3c',  // Locked-header browser fallback in dark mode
+  safariFrameLight: assessedTheme.safariFrameLight || '#181818',  // Safari-specific outer wall fallback in light mode (dark strip)
+  safariFrameDark: assessedTheme.safariFrameDark || assessedTheme.safariFrameLight || '#181818',   // Safari-specific outer wall fallback in dark mode
   useSimplifiedFrame: true, // CSS-only frame (disables legacy canvas inner-wall rendering)
   // Simplified frame geometry + effects (single-wall model)
   frameBorderWidth: 20,     // Desktop visual wall thickness / frame band (px)
@@ -641,10 +646,10 @@ const state = {
   frameVignetteAmbientOpacity: 0.08, // Ambient vignette opacity
   
   // Text Colors
-  textColorLight: '#161616',          // Primary text (light mode)
-  textColorLightMuted: '#2f2f2f',     // Secondary/muted text (light mode)
-  textColorDark: '#f0f0f0', // Primary text (dark mode)
-  textColorDarkMuted: '#c8c8c8', // Secondary/muted (dark mode)
+  textColorLight: assessedTheme.textColorLight || '#161616',          // Primary text (light mode)
+  textColorLightMuted: assessedTheme.textColorLightMuted || '#2f2f2f',     // Secondary/muted text (light mode)
+  textColorDark: assessedTheme.textColorDark || '#f0f0f0', // Primary text (dark mode)
+  textColorDarkMuted: assessedTheme.textColorDarkMuted || '#c8c8c8', // Secondary/muted (dark mode)
   // Edge labels now derive from `--text-muted` in CSS (not independently tunable).
   edgeLabelInsetAdjustPx: 0,
   // Page caption: clamp(min, 2vh, max) for bottom distance (universal: index, portfolio, cv).
@@ -659,18 +664,18 @@ const state = {
   depthWashCenterY: 0.3, // Center position (0=top, 1=bottom)
   depthWashRadiusScale: 1.0, // Radius multiplier
   // Light mode gradient
-  depthWashCenterColorLight: '#ffffff',
-  depthWashEdgeColorLight: '#142b48',
+  depthWashCenterColorLight: assessedTheme.depthWashCenterColorLight || '#ffffff',
+  depthWashEdgeColorLight: assessedTheme.depthWashEdgeColorLight || '#142b48',
   depthWashCenterAlphaLight: 0.3,
   depthWashEdgeAlphaLight: 0.4,
   // Dark mode gradient
-  depthWashCenterColorDark: '#1a1e23',
-  depthWashEdgeColorDark: '#05020f',
+  depthWashCenterColorDark: assessedTheme.depthWashCenterColorDark || '#1a1e23',
+  depthWashEdgeColorDark: assessedTheme.depthWashEdgeColorDark || '#05020f',
   depthWashCenterAlphaDark: 0,
   depthWashEdgeAlphaDark: 0.8,
   
   // Link Colors
-  linkHoverColor: '#f03030',          // Link hover accent (shared)
+  linkHoverColor: assessedTheme.linkHoverColor || '#f03030',          // Link hover accent (shared)
 
   // Logo colors now derive from `--text-primary` in CSS (same for index + portfolio).
   // Logo sizing + index main link placement (CSS vars)
@@ -801,9 +806,13 @@ const state = {
   innerWallShineOpacityLight: 0,
   innerWallShineOpacityDark: 0,
   innerWallShineColor: '',
-  innerWallGradientEdgeWidth: 2,            // Gradient edge rim thickness (px)
+  innerWallGradientEdgeWidth: 3,            // Gradient edge rim thickness (px) — ~50% above legacy 2px
   innerWallGradientEdgeTopOpacity: 0.18,    // Master — bottom + sides light rim only
   innerWallGradientEdgeTopShadowOpacity: 0.3, // Top inner edge shadow rim (0–1, CSS-clamped in apply)
+  innerWallPitInsetShadowOpacity: 0.12,     // Pit interior inset shadow (light mode; dark ×1.45 in apply)
+  innerWallPitInsetShadowBlurPx: 28,        // Inset shadow blur (px)
+  innerWallPitInsetShadowSpreadPx: -6,      // Negative pulls shadow inward from rim
+  innerWallPitInsetShadowOffsetYPx: 4,      // Slight downward bias (top light)
   puckShadowOpacity: 0.045,                 // Puck disk drop shadow strength
   puckEdgeWidth: 1,                         // Puck rim thickness (px)
   puckEdgeLightOpacity: 0.3,               // Puck top rim light
@@ -860,7 +869,7 @@ const state = {
   entrancePerspectivePortrait: 800,  // Perspective for portrait aspect ratio (px)
   
   // Link Controls (Panel Tunable)
-  uiHitAreaMul: 1,                    // Multiplier for most UI hit areas (links/buttons); drives `--ui-hit-area-mul`
+  uiHitAreaMul: 0.7,                  // Multiplier for most UI hit areas (links/buttons); drives `--ui-hit-area-mul`
   uiIconCornerRadiusMul: 0.5,         // Icon button corner radius as a fraction of wall radius; drives `--ui-icon-corner-radius-mul` (directly tracks wall)
   uiIconFramePx: 0,                  // Icon button square frame size (px). 0 = use token-derived default
   uiIconGlyphPx: 0,                  // Icon glyph size (px). 0 = use token-derived default
@@ -1315,12 +1324,43 @@ export function applyLayoutCSSVars() {
   // Inner wall shine — disabled (replaced by gradient edge system)
   root.style.setProperty('--inner-wall-shine-opacity', '0');
 
+  // Pit inset shadow (#simulations::before — above canvas, below rim overlay).
+  // Light: ~20% stronger than raw slider. Dark: extra lift — black on charcoal needs higher α to read.
+  const pitOp = state.innerWallPitInsetShadowOpacity ?? 0.12;
+  const pitLightMul = 1.2;
+  const pitDarkMul = 1.88; // ~1.45 × 1.3 vs previous dark tuning
+  const pitCapLight = 0.36;
+  const pitCapDark = 0.46;
+  let pitOpacity = Number(
+    Math.min(isDarkMode ? pitCapDark : pitCapLight, pitOp * (isDarkMode ? pitDarkMul : pitLightMul)).toFixed(3)
+  );
+  let pitBlur = state.innerWallPitInsetShadowBlurPx ?? 28;
+  const pitSpread = state.innerWallPitInsetShadowSpreadPx ?? -6;
+  const pitOff = state.innerWallPitInsetShadowOffsetYPx ?? 4;
+  try {
+    const studio = typeof window !== 'undefined' ? window.__ABS_STUDIO_SURFACE_CONFIG__ : null;
+    if (studio && typeof studio.sceneDepth === 'number' && Number.isFinite(studio.sceneDepth)) {
+      const depthK = 0.88 + Math.min(0.42, studio.sceneDepth * 1.5);
+      const pitDepthCap = isDarkMode ? 0.52 : 0.4;
+      pitOpacity = Number(Math.min(pitDepthCap, pitOpacity * depthK).toFixed(3));
+    }
+    if (studio && typeof studio.sceneSoftness === 'number' && Number.isFinite(studio.sceneSoftness)) {
+      pitBlur = Math.round(pitBlur * (0.85 + studio.sceneSoftness * 0.22));
+    }
+  } catch (e) {
+    /* ignore */
+  }
+  root.style.setProperty('--inner-wall-pit-inset-shadow-blur', `${pitBlur}px`);
+  root.style.setProperty('--inner-wall-pit-inset-shadow-spread', `${pitSpread}px`);
+  root.style.setProperty('--inner-wall-pit-inset-shadow-offset-y', `${pitOff}px`);
+  root.style.setProperty('--inner-wall-pit-inset-shadow-opacity', String(pitOpacity));
+
   // Gradient edge — master drives bottom/sides light; top shadow has its own control
   const ge = state.innerWallGradientEdgeTopOpacity ?? 0.22;
   const dm = isDarkMode ? 0.75 : 1;
   const topShadow = state.innerWallGradientEdgeTopShadowOpacity ?? 0.3;
   const topShadowDm = isDarkMode ? 1.15 : 1;
-  root.style.setProperty('--inner-wall-gradient-edge-width', `${state.innerWallGradientEdgeWidth ?? 2}px`);
+  root.style.setProperty('--inner-wall-gradient-edge-width', `${state.innerWallGradientEdgeWidth ?? 3}px`);
   root.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(Number((ge * 1.45 * dm).toFixed(3))));
   root.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(Number((ge * 0.85 * dm).toFixed(3))));
   root.style.setProperty('--inner-wall-gradient-edge-side-shadow-opacity', String(Number((ge * 0.85 * dm).toFixed(3))));
@@ -2150,7 +2190,9 @@ export function initState(config) {
     // Keep physics corner collision aligned to the visual radius.
     state.cornerRadius = config.wallRadius;
   }
-  if (config.wallInset !== undefined) state.wallInset = config.wallInset;
+  if (config.wallInset !== undefined) {
+    state.wallInset = clampInt(config.wallInset, 0, 48, state.wallInset);
+  }
 
   // Ball spacing (collision padding)
   if (config.ballSpacing !== undefined) state.ballSpacing = config.ballSpacing;
@@ -2263,7 +2305,19 @@ export function initState(config) {
   if (config.innerWallShineOpacityLight !== undefined) state.innerWallShineOpacityLight = config.innerWallShineOpacityLight;
   if (config.innerWallShineOpacityDark !== undefined) state.innerWallShineOpacityDark = config.innerWallShineOpacityDark;
   if (config.innerWallShineColor !== undefined) state.innerWallShineColor = String(config.innerWallShineColor ?? '');
-  if (config.innerWallGradientEdgeWidth !== undefined) state.innerWallGradientEdgeWidth = clampNumber(config.innerWallGradientEdgeWidth, 0, 6, 2);
+  if (config.innerWallGradientEdgeWidth !== undefined) state.innerWallGradientEdgeWidth = clampNumber(config.innerWallGradientEdgeWidth, 0, 6, 3);
+  if (config.innerWallPitInsetShadowOpacity !== undefined) {
+    state.innerWallPitInsetShadowOpacity = clampNumber(config.innerWallPitInsetShadowOpacity, 0, 0.35, 0.12);
+  }
+  if (config.innerWallPitInsetShadowBlurPx !== undefined) {
+    state.innerWallPitInsetShadowBlurPx = clampNumber(config.innerWallPitInsetShadowBlurPx, 8, 64, 28);
+  }
+  if (config.innerWallPitInsetShadowSpreadPx !== undefined) {
+    state.innerWallPitInsetShadowSpreadPx = clampNumber(config.innerWallPitInsetShadowSpreadPx, -14, 4, -6);
+  }
+  if (config.innerWallPitInsetShadowOffsetYPx !== undefined) {
+    state.innerWallPitInsetShadowOffsetYPx = clampNumber(config.innerWallPitInsetShadowOffsetYPx, 0, 14, 4);
+  }
   if (config.innerWallGradientEdgeTopOpacity !== undefined) {
     state.innerWallGradientEdgeTopOpacity = clampNumber(config.innerWallGradientEdgeTopOpacity, 0, 1, 0.18);
   }

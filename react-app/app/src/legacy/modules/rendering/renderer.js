@@ -20,6 +20,7 @@ import {
 import { applyCanvasShadow } from './effects.js';
 import { stopMainLoop } from './loop.js';
 import { isDev } from '../utils/logger.js';
+import { getSimulationCanvasBleedCssPx, getSimulationVisibleInsetPx } from '../utils/frame-geometry.js';
 
 let canvas, ctx;
 
@@ -127,13 +128,8 @@ function getPortfolioBodyRadiusForResize(ball, balls, globals, newWidth, newHeig
   const index = Number.isInteger(ball?.projectIndex) ? ball.projectIndex : -1;
 
   if (index >= 0 && count > 0) {
-    const frameBorderWidth = Number.isFinite(globals.frameBorderWidthEffective)
-      ? globals.frameBorderWidthEffective
-      : (Number.isFinite(globals.frameBorderWidth)
-        ? globals.frameBorderWidth
-        : (globals.wallThickness || 20));
     const dpr = globals.DPR || 1;
-    const frameInset = frameBorderWidth * dpr;
+    const frameInset = getSimulationVisibleInsetPx(globals);
     const innerW = Math.max(1, newWidth - 2 * frameInset);
     const innerH = Math.max(1, newHeight - 2 * frameInset);
     const areaNorm = Math.sqrt(innerW * innerH);
@@ -451,8 +447,9 @@ export function resize() {
   // Canvas CSS is calc(100% + 2px) for edge coverage, so buffer should be container + 2px.
   // This ensures the wall drawing fills to the actual CSS edges.
   const CSS_EDGE_OVERFLOW = 2;
-  const canvasWidth = containerWidth + CSS_EDGE_OVERFLOW;
-  const canvasHeight = containerHeight + CSS_EDGE_OVERFLOW;
+  const canvasBleedCssPx = getSimulationCanvasBleedCssPx(globals);
+  const canvasWidth = containerWidth + CSS_EDGE_OVERFLOW + (canvasBleedCssPx * 2);
+  const canvasHeight = containerHeight + CSS_EDGE_OVERFLOW + (canvasBleedCssPx * 2);
   
   // Canvas fills container - CSS handles mode-specific heights
   // Ball Pit: CSS sets 150vh, Other modes: CSS sets 100%
@@ -577,6 +574,8 @@ export function resize() {
   }
   
   // Always update CSS display size (doesn't cause flicker)
+  canvas.style.left = `${-canvasBleedCssPx}px`;
+  canvas.style.top = `${-canvasBleedCssPx}px`;
   canvas.style.width = canvasWidth + 'px';
   canvas.style.height = simHeight + 'px';
 

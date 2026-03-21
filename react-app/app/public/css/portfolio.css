@@ -5,8 +5,8 @@
   --portfolio-hero-title-max: 14ch;
   --portfolio-scroll-cue-color: #f5f1ea;
   --portfolio-intro-title-max-width: 38ch;
-  --portfolio-intro-title-size: clamp(1.42rem, 2.34vw, 2.28rem);
-  --portfolio-intro-title-line-height: 1.04;
+  --portfolio-intro-title-size: clamp(2.13rem, 3.51vw, 3.42rem);
+  --portfolio-intro-title-line-height: 1.08;
   --portfolio-intro-title-letter-spacing: -0.034em;
   --portfolio-image-veil-opacity: 0.2;
   /* Sheet insets: px + vw only (no vh) so low viewport height doesn’t collapse padding */
@@ -19,15 +19,25 @@
   --portfolio-sheet-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   /* Drawer stack: same corner radius token as `#simulations canvas` (inner wall). */
   --portfolio-drawer-radius: var(--frame-inner-radius);
+  /* Positive = gap around sheet → real pit + .inner-wall-gradient-edge show through (wall lights).
+     Negative = sheet extends toward / under the host clip (still clipped by #portfolio-sheet-host). */
   --portfolio-drawer-seat-inset: 0px;
-  --portfolio-drawer-seat-radius: var(--portfolio-drawer-radius);
+  --portfolio-drawer-seat-radius: max(0px, calc(var(--portfolio-drawer-radius) - var(--portfolio-drawer-seat-inset)));
+  /* Tighter than seat radius so anti-aliased corners don’t show a hairline behind the insert. */
+  --portfolio-drawer-inner-radius-shrink: 1px;
+  --portfolio-drawer-surface-radius: max(
+    0px,
+    calc(var(--portfolio-drawer-seat-radius) - var(--portfolio-drawer-inner-radius-shrink))
+  );
   --portfolio-drawer-ground: var(--abs-browser-chrome, var(--frame-inner-surface, var(--wall-color)));
   --portfolio-drawer-ink: var(--text-primary);
   --portfolio-drawer-muted: color-mix(in srgb, var(--portfolio-drawer-ink) 72%, transparent);
-  --portfolio-drawer-edge-opacity: 0.18;
-  --portfolio-drawer-inner-shadow-opacity: 0.18;
-  --portfolio-drawer-inner-shadow-blur: 56px;
-  --portfolio-drawer-inner-shadow-spread: 10px;
+  /* Insert face only: contact shadows + top read (no bottom “wall floor” light — that lives on the pit). */
+  --portfolio-drawer-insert-contact-opacity: 0.24;
+  --portfolio-drawer-insert-top-light-opacity: 0.14;
+  --portfolio-drawer-insert-lip-opacity: 0.16;
+  --portfolio-drawer-outline-width: 1px;
+  --portfolio-drawer-outline-opacity: 0.28;
   --portfolio-hero-image-gutter: clamp(12px, 8px + 0.9vw, 24px);
   --portfolio-hero-image-radius: max(
     0px,
@@ -42,8 +52,10 @@ html.dark-mode,
 html.is-safari {
   --portfolio-drawer-ink: #f5f1ea;
   --portfolio-drawer-muted: rgba(245, 241, 234, 0.72);
-  --portfolio-drawer-edge-opacity: 0.26;
-  --portfolio-drawer-inner-shadow-opacity: 0.24;
+  --portfolio-drawer-insert-contact-opacity: 0.32;
+  --portfolio-drawer-insert-top-light-opacity: 0.11;
+  --portfolio-drawer-insert-lip-opacity: 0.22;
+  --portfolio-drawer-outline-opacity: 0.36;
 }
 
 @media (min-width: 641px) {
@@ -259,7 +271,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   z-index: 0;
   opacity: 0;
   background: rgba(0, 0, 0, 0.38);
-  border-radius: var(--portfolio-drawer-seat-radius);
+  border-radius: var(--portfolio-drawer-surface-radius);
   transition: opacity var(--portfolio-project-open-ms) var(--portfolio-sheet-ease-out);
   pointer-events: none;
 }
@@ -285,7 +297,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   min-height: 0;
   box-sizing: border-box;
   border: none;
-  border-radius: var(--portfolio-drawer-seat-radius);
+  border-radius: var(--portfolio-drawer-surface-radius);
   background: var(--portfolio-drawer-ground);
   color: var(--portfolio-drawer-ink);
   overflow: hidden;
@@ -293,18 +305,61 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   transition: transform var(--portfolio-project-open-ms) var(--portfolio-sheet-ease-out);
   pointer-events: auto;
   isolation: isolate;
-  box-shadow:
-    inset 0 0 var(--portfolio-drawer-inner-shadow-blur) var(--portfolio-drawer-inner-shadow-spread)
-      rgba(var(--inner-wall-bottom-shadow-rgb), var(--portfolio-drawer-inner-shadow-opacity));
+  box-shadow: none;
 }
 
+/* Insert in a recess: bottom + sides = contact shadow (pit supplies wall lights in the reveal).
+   Top = faint highlight on the sheet + lip shadow from the opening. Band width tracks pit rim. */
 .portfolio-project-view__drawer::before {
   content: '';
   position: absolute;
   inset: 0;
+  border-radius: inherit;
   pointer-events: none;
-  z-index: 0;
-  background: none;
+  z-index: 2;
+  background:
+    radial-gradient(
+      50% 100% at 50% 100%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), var(--portfolio-drawer-insert-contact-opacity)) 0%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-contact-opacity) * 0.3)) 60%,
+      transparent 100%
+    ) bottom center / 100% var(--inner-wall-gradient-edge-width) no-repeat,
+    radial-gradient(
+      100% 50% at 0% 50%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-contact-opacity) * 0.59)) 0%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-contact-opacity) * 0.59 * 0.3)) 60%,
+      transparent 100%
+    ) left center / var(--inner-wall-gradient-edge-width) 100% no-repeat,
+    radial-gradient(
+      100% 50% at 100% 50%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-contact-opacity) * 0.59)) 0%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-contact-opacity) * 0.59 * 0.3)) 60%,
+      transparent 100%
+    ) right center / var(--inner-wall-gradient-edge-width) 100% no-repeat,
+    radial-gradient(
+      50% 100% at 50% 0%,
+      rgba(var(--inner-wall-top-light-rgb), var(--portfolio-drawer-insert-top-light-opacity)) 0%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--portfolio-drawer-insert-top-light-opacity) * 0.3)) 60%,
+      transparent 100%
+    ) top center / 100% var(--inner-wall-gradient-edge-width) no-repeat,
+    radial-gradient(
+      50% 100% at 50% 0%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), var(--portfolio-drawer-insert-lip-opacity)) 0%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-lip-opacity) * 0.3)) 60%,
+      transparent 100%
+    ) top center / 100% var(--inner-wall-gradient-edge-width) no-repeat;
+}
+
+/* Inset ring on the insert face (avoids border sitting outside the rounded clip / wrong optical edge). */
+.portfolio-project-view__drawer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  box-shadow: inset 0 0 0 var(--portfolio-drawer-outline-width)
+    rgba(var(--inner-wall-bottom-shadow-rgb), var(--portfolio-drawer-outline-opacity));
 }
 
 .portfolio-project-view.is-open .portfolio-project-view__drawer {
@@ -344,7 +399,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
 
 .portfolio-project-view__scroll {
   position: relative;
-  z-index: 0;
+  z-index: 1;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -469,16 +524,16 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
 
 .portfolio-project-view__scroll-cue {
   position: absolute;
-  top: clamp(88px, 22vh, 198px);
-  left: 50%;
+  bottom: max(clamp(14px, 1.8vw, 26px), env(safe-area-inset-bottom, 0px));
+  left: max(clamp(14px, 1.8vw, 26px), env(safe-area-inset-left, 0px));
   z-index: 3;
   display: grid;
   place-items: center;
-  width: clamp(44px, 3.8vw, 58px);
-  height: clamp(62px, 8vh, 84px);
+  width: calc(0.79 * clamp(40px, 3.2vw, 52px));
+  height: calc(0.79 * clamp(48px, 6vh, 64px));
   color: var(--portfolio-scroll-cue-color);
   opacity: 0.001;
-  transform: translate3d(-50%, -8px, 0);
+  transform: translate3d(0, 0, 0);
   transition:
     opacity 180ms linear,
     transform 260ms ease;
@@ -486,18 +541,17 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
 }
 
 .portfolio-project-view__scroll-cue-icon {
-  font-size: clamp(36px, 3.2vw, 48px);
+  font-size: calc(0.79 * clamp(36px, 3.2vw, 48px));
   line-height: 1;
   transform: rotate(-90deg) scale(1.5);
-  filter: drop-shadow(0 6px 20px color-mix(in srgb, currentColor 22%, transparent));
+  filter: drop-shadow(
+    0 calc(0.79 * 6px) calc(0.79 * 20px) color-mix(in srgb, currentColor 22%, transparent)
+  );
 }
 
 .portfolio-project-view.is-open .portfolio-project-view__scroll-cue {
   opacity: 1;
-  transform: translate3d(-50%, 0, 0);
-}
-
-.portfolio-project-view.is-open .portfolio-project-view__scroll-cue {
+  transform: translate3d(0, 0, 0);
   animation: portfolioScrollCueGesture 1.7s ease-in-out infinite;
 }
 
@@ -703,9 +757,10 @@ body.portfolio-project-open .ui-bottom {
   }
 
   .portfolio-project-view__scroll-cue {
-    top: clamp(74px, 18vh, 142px);
-    width: 40px;
-    height: 58px;
+    bottom: max(clamp(12px, 1.6vw, 22px), env(safe-area-inset-bottom, 0px));
+    left: max(clamp(12px, 1.6vw, 22px), env(safe-area-inset-left, 0px));
+    width: calc(0.79 * 36px);
+    height: calc(0.79 * 48px);
   }
 }
 
@@ -825,12 +880,12 @@ body.portfolio-project-open .ui-bottom {
 @keyframes portfolioScrollCueGesture {
   0%,
   100% {
-    transform: translate3d(-50%, -6px, 0);
+    transform: translate3d(0, calc(0.79 * -4px), 0);
   }
   48% {
-    transform: translate3d(-50%, 8px, 0);
+    transform: translate3d(0, calc(0.79 * 6px), 0);
   }
   72% {
-    transform: translate3d(-50%, 14px, 0);
+    transform: translate3d(0, calc(0.79 * 10px), 0);
   }
 }
