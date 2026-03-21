@@ -7,6 +7,7 @@ import { Ball } from '../physics/Ball.js';
 import { getGlobals, clearBalls, syncPitPortfolioRadiusStatsFromBalls } from '../core/state.js';
 import { getPortfolioProjectPaletteColor } from '../visual/colors.js';
 import { resize, detectOptimalDPR } from '../rendering/renderer.js';
+import { getSimulationVisibleInsetPx } from '../utils/frame-geometry.js';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -25,8 +26,11 @@ const PORTFOLIO_SPAWN_ORDER = [
   [2, 1],
 ];
 const PORTFOLIO_PEBBLE_VARIANTS = 16;
-const PORTFOLIO_PEBBLE_SEGMENTS = 28;
-const PORTFOLIO_PEBBLE_RENDER_SCALE = 1.04;
+const PORTFOLIO_PEBBLE_SEGMENTS = 22;
+const PORTFOLIO_PEBBLE_RENDER_SCALE = 1;
+const PORTFOLIO_HOVER_SCALE = 1.05;
+const PORTFOLIO_HOVER_SPEED_IN = 8;
+const PORTFOLIO_HOVER_SPEED_OUT = 5;
 
 function toNumber(value, fallback) {
   const numeric = Number(value);
@@ -68,8 +72,11 @@ function getReadableLabelRotation(rotationRad) {
   return normalized;
 }
 
+// Time-based salt so each page load produces a slightly different drop pattern.
+let _spawnSalt = 0;
+
 function hashUnit(seed) {
-  const value = Math.sin((seed + 1) * 12.9898) * 43758.5453;
+  const value = Math.sin((seed + 1 + _spawnSalt) * 12.9898) * 43758.5453;
   return value - Math.floor(value);
 }
 
@@ -107,14 +114,14 @@ function makePebbleVariant(index) {
   const phase = (index / PORTFOLIO_PEBBLE_VARIANTS) * Math.PI * 2;
   const phaseB = phase * 1.7;
   const phaseC = phase * 2.3;
-  const stretchX = 0.90 + (hashUnit(index + 211) * 0.16);
-  const stretchY = 0.86 + (hashUnit(index + 223) * 0.14);
-  const swellA = 0.025 + (hashUnit(index + 227) * 0.030);
-  const swellB = 0.015 + (hashUnit(index + 229) * 0.020);
-  const swellC = 0.008 + (hashUnit(index + 233) * 0.014);
-  const taper = 0.020 + (hashUnit(index + 239) * 0.022);
-  const skewX = (hashUnit(index + 241) - 0.5) * 0.085;
-  const skewY = (hashUnit(index + 251) - 0.5) * 0.065;
+  const stretchX = 0.965 + (hashUnit(index + 211) * 0.07);
+  const stretchY = 0.955 + (hashUnit(index + 223) * 0.06);
+  const swellA = 0.007 + (hashUnit(index + 227) * 0.010);
+  const swellB = 0.004 + (hashUnit(index + 229) * 0.008);
+  const swellC = 0.002 + (hashUnit(index + 233) * 0.004);
+  const taper = 0.004 + (hashUnit(index + 239) * 0.006);
+  const skewX = (hashUnit(index + 241) - 0.5) * 0.028;
+  const skewY = (hashUnit(index + 251) - 0.5) * 0.022;
   const xPoints = new Float32Array(PORTFOLIO_PEBBLE_SEGMENTS);
   const yPoints = new Float32Array(PORTFOLIO_PEBBLE_SEGMENTS);
   let maxRadius = 1;
@@ -165,43 +172,56 @@ function appendPebbleBodyPath(ctx, ball, radius) {
     return;
   }
 
-  ctx.moveTo(xs[0] * radius, ys[0] * radius);
-  for (let i = 1; i < xs.length; i += 1) {
-    ctx.lineTo(xs[i] * radius, ys[i] * radius);
+  const count = xs.length;
+  const startMidX = ((xs[count - 1] + xs[0]) * 0.5) * radius;
+  const startMidY = ((ys[count - 1] + ys[0]) * 0.5) * radius;
+  ctx.moveTo(startMidX, startMidY);
+  for (let i = 0; i < count; i += 1) {
+    const next = (i + 1) % count;
+    const ctrlX = xs[i] * radius;
+    const ctrlY = ys[i] * radius;
+    const midX = ((xs[i] + xs[next]) * 0.5) * radius;
+    const midY = ((ys[i] + ys[next]) * 0.5) * radius;
+    ctx.quadraticCurveTo(ctrlX, ctrlY, midX, midY);
   }
   ctx.closePath();
 }
 
-const PORTFOLIO_RIM_LIGHT_X = 0;
-const PORTFOLIO_RIM_LIGHT_Y = -0.82;
 const PORTFOLIO_RIM_WIDTH_MIN_PX = 3;
 const PORTFOLIO_RIM_WIDTH_MAX_PX = 6.5;
-const PORTFOLIO_RIM_LIGHT_STR = 0.46;
-const PORTFOLIO_RIM_SHADOW_STR = 0.42;
-const PORTFOLIO_RIM_LIGHT_ALPHA = 0.52;
-const PORTFOLIO_RIM_SHADOW_ALPHA = 0.34;
-const PORTFOLIO_RIM_FADE_START = 0.2;
-const PORTFOLIO_RIM_FADE_END = 0.76;
 const PORTFOLIO_RIM_INSET = 0.64;
+
+function getRelativeLuminance(rgb) {
+  const channel = (value) => {
+    const normalized = value / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : Math.pow((normalized + 0.055) / 1.055, 2.4);
+  };
+  return (0.2126 * channel(rgb.r)) + (0.7152 * channel(rgb.g)) + (0.0722 * channel(rgb.b));
+}
 
 function drawPortfolioBodyRim(ctx, x, y, r, color, drawPath, rotationRad) {
   if (typeof drawPath !== 'function') return;
 
   const rgb = hexToRgb(color);
-  const light = `${Math.min(255, Math.round(rgb.r + (255 - rgb.r) * PORTFOLIO_RIM_LIGHT_STR))},${Math.min(255, Math.round(rgb.g + (255 - rgb.g) * PORTFOLIO_RIM_LIGHT_STR))},${Math.min(255, Math.round(rgb.b + (255 - rgb.b) * PORTFOLIO_RIM_LIGHT_STR))}`;
-  const shadow = `${Math.max(0, Math.round(rgb.r * (1 - PORTFOLIO_RIM_SHADOW_STR)))},${Math.max(0, Math.round(rgb.g * (1 - PORTFOLIO_RIM_SHADOW_STR)))},${Math.max(0, Math.round(rgb.b * (1 - PORTFOLIO_RIM_SHADOW_STR)))}`;
-  const mid = `${rgb.r},${rgb.g},${rgb.b}`;
+  const luminance = getRelativeLuminance(rgb);
+  const useShadowContour = luminance > 0.72;
+  const contour = useShadowContour
+    ? {
+        r: Math.round(rgb.r * 0.86),
+        g: Math.round(rgb.g * 0.86),
+        b: Math.round(rgb.b * 0.86),
+        alpha: 0.2,
+      }
+    : {
+        r: Math.round(rgb.r + ((255 - rgb.r) * 0.2)),
+        g: Math.round(rgb.g + ((255 - rgb.g) * 0.2)),
+        b: Math.round(rgb.b + ((255 - rgb.b) * 0.2)),
+        alpha: 0.26,
+      };
   const lineWidth = clamp(r * 0.022, PORTFOLIO_RIM_WIDTH_MIN_PX, PORTFOLIO_RIM_WIDTH_MAX_PX);
   const strokeRadius = Math.max(1, r - (lineWidth * PORTFOLIO_RIM_INSET));
-  const grad = ctx.createLinearGradient(
-    x + PORTFOLIO_RIM_LIGHT_X * r, y + PORTFOLIO_RIM_LIGHT_Y * r,
-    x - PORTFOLIO_RIM_LIGHT_X * r, y - PORTFOLIO_RIM_LIGHT_Y * r
-  );
-
-  grad.addColorStop(0, `rgba(${light},${PORTFOLIO_RIM_LIGHT_ALPHA})`);
-  grad.addColorStop(PORTFOLIO_RIM_FADE_START, `rgba(${mid},0)`);
-  grad.addColorStop(PORTFOLIO_RIM_FADE_END, `rgba(${mid},0)`);
-  grad.addColorStop(1, `rgba(${shadow},${PORTFOLIO_RIM_SHADOW_ALPHA})`);
 
   ctx.save();
   ctx.translate(x, y);
@@ -209,7 +229,7 @@ function drawPortfolioBodyRim(ctx, x, y, r, color, drawPath, rotationRad) {
   ctx.beginPath();
   drawPath(ctx, strokeRadius);
   ctx.clip();
-  ctx.strokeStyle = grad;
+  ctx.strokeStyle = `rgba(${contour.r},${contour.g},${contour.b},${contour.alpha})`;
   ctx.lineWidth = lineWidth;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
@@ -453,6 +473,7 @@ export function relayoutPortfolioProjectLabels() {
 
 function seedProjectBodies(globals) {
   clearBalls();
+  _spawnSalt = (Date.now() % 10000) * 0.001;
 
   const config = globals.portfolioPitConfig || {};
   const projects = Array.isArray(globals.portfolioProjects) ? globals.portfolioProjects : [];
@@ -466,12 +487,7 @@ function seedProjectBodies(globals) {
   const fontFamily = getComputedStyle(document.body).fontFamily || 'Helvetica Neue, Arial, sans-serif';
   const isMobile = width < 700;
 
-  const frameBorderWidth = Number.isFinite(globals.frameBorderWidthEffective)
-    ? globals.frameBorderWidthEffective
-    : (Number.isFinite(globals.frameBorderWidth)
-      ? globals.frameBorderWidth
-      : (globals.wallThickness || 20));
-  const frameInset = frameBorderWidth * dpr;
+  const frameInset = getSimulationVisibleInsetPx(globals);
   const innerW = Math.max(1, width - 2 * frameInset);
   const innerH = Math.max(1, height - 2 * frameInset);
   const innerArea = innerW * innerH;
@@ -497,18 +513,18 @@ function seedProjectBodies(globals) {
     18 * dpr,
     toNumber(config.layout?.headerTopSpacing, 24) * dpr * 1.6
   );
-  const vxBase = (isMobile ? 22 : 34) * dpr;
-  const vyBase = (isMobile ? 74 : 108) * dpr;
+  const vxBase = (isMobile ? 40 : 65) * dpr;
+  const vyBase = (isMobile ? 120 : 180) * dpr;
 
   for (let index = 0; index < projects.length; index += 1) {
     const project = projects[index];
-    const t = projects.length <= 1 ? 0.5 : index / (projects.length - 1);
-    const diameter = minD + ((maxD - minD) * (0.25 + (0.75 * (1 - Math.abs(0.5 - t)))));
+    const sizeT = hashUnit(index + 29);
+    const diameter = minD + (maxD - minD) * sizeT;
     const radius = diameter * 0.5;
     const isAccentCircle = index === 0;
     const fill = isAccentCircle
       ? getPortfolioAccentCircleFill()
-      : getPortfolioProjectPaletteColor(index, projects.length);
+      : getPortfolioProjectPaletteColor(index - 1, projects.length - 1);
     const spawnPoint = getPortfolioSpawnPoint(
       index,
       width,
@@ -520,7 +536,9 @@ function seedProjectBodies(globals) {
       isMobile
     );
     const x = spawnPoint.x;
-    const y = spawnPoint.y;
+    // Stagger drop heights: each pebble starts at a different altitude
+    const staggerHeight = hashUnit(index + 53) * height * 0.3;
+    const y = spawnPoint.y - staggerHeight;
 
     const ball = new Ball(x, y, radius, fill);
     ball.projectIndex = index;
@@ -529,9 +547,9 @@ function seedProjectBodies(globals) {
     ball.portfolioBodyShape = 'circle';
     ball.__portfolioAccentCircle = isAccentCircle;
     ball._noSquash = true;
-    ball.theta = (hashUnit(index + 11) - 0.5) * 0.14;
+    ball.theta = (hashUnit(index + 11) - 0.5) * 0.5;
     ball.rotationOffset = 0;
-    ball.omega = (hashUnit(index + 13) - 0.5) * 0.22;
+    ball.omega = (hashUnit(index + 13) - 0.5) * 4.5;
     ball._portfolioDpr = dpr;
     storePortfolioSeedMetrics(ball, width, height, radius);
 
@@ -543,21 +561,30 @@ function seedProjectBodies(globals) {
     ball.projectTitle = labelContent.title;
     ball.projectTitleFull = String(project.title || labelContent.title || '').trim();
 
-    const inwardBias = (width * 0.5 - x) * 0.04;
-    ball.vx = inwardBias + ((hashUnit(index + 71) - 0.5) * vxBase);
-    ball.vy = vyBase + (hashUnit(index + 97) * vyBase * 0.3);
+    // Each pebble gets a distinct throw angle and speed
+    const throwAngle = (hashUnit(index + 71) - 0.5) * 1.2;
+    const throwSpeed = vyBase * (0.4 + hashUnit(index + 41) * 1.2);
+    const inwardBias = (width * 0.5 - x) * 0.08;
+    ball.vx = inwardBias + Math.sin(throwAngle) * throwSpeed * 0.7;
+    ball.vy = Math.cos(throwAngle) * throwSpeed + vyBase * 0.3;
     globals.balls.push(ball);
   }
 
   syncPitPortfolioRadiusStatsFromBalls();
 }
 
-function renderProjectBody(ctx, ball) {
+function renderProjectBody(ctx, ball, isHovered) {
   if (!ball || ball.__portfolioHidden) return;
+
+  const targetScale = isHovered ? PORTFOLIO_HOVER_SCALE : 1;
+  const currentScale = ball._hoverScale ?? 1;
+  const speed = targetScale > currentScale ? PORTFOLIO_HOVER_SPEED_IN : PORTFOLIO_HOVER_SPEED_OUT;
+  const dt = 1 / 60;
+  ball._hoverScale = currentScale + (targetScale - currentScale) * Math.min(1, speed * dt);
 
   const focusDimmer = toNumber(ball.__portfolioDimAlpha, 1);
   const r = ball.r;
-  const drawR = r * PORTFOLIO_PEBBLE_RENDER_SCALE;
+  const drawR = r * PORTFOLIO_PEBBLE_RENDER_SCALE * ball._hoverScale;
   const x = ball.x;
   const y = ball.y;
   const alpha = clamp(focusDimmer, 0, 1);
@@ -640,6 +667,7 @@ function shouldSyncPortfolioLabelLayer(globals, balls) {
       (ball.__portfolioDimAlpha ?? 1).toFixed(3),
       ball.__portfolioSelected ? 1 : 0,
       ball.labelColor || '',
+      (ball._hoverScale ?? 1).toFixed(3),
     ].join(':');
   }).join('|');
   if (globals.__portfolioLabelLayerSignature === nextSignature) return false;
@@ -650,8 +678,10 @@ function shouldSyncPortfolioLabelLayer(globals, balls) {
 export function renderPortfolioPit(ctx) {
   const globals = getGlobals();
   const balls = Array.isArray(globals.balls) ? globals.balls : [];
+  const hoveredIndex = globals.__portfolioHoveredIndex ?? -1;
   for (let index = 0; index < balls.length; index += 1) {
-    renderProjectBody(ctx, balls[index]);
+    const ball = balls[index];
+    renderProjectBody(ctx, ball, ball?.projectIndex === hoveredIndex);
   }
   if (shouldSyncPortfolioLabelLayer(globals, balls)) {
     globals.portfolioSyncLabelLayer?.();

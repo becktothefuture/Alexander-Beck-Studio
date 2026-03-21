@@ -9,7 +9,7 @@ import {
 } from './pit-mode.js';
 import { createSoundToggle } from '../ui/sound-toggle.js';
 import { initializeDarkMode } from '../visual/dark-mode-v2.js';
-import { getPaletteTemplateOverrideFromUrl, getPortfolioProjectPaletteColor, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
+import { getPaletteTemplateOverrideFromUrl, getPortfolioProjectPaletteColor, getWeatherDrivenPaletteTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
 import { getGlobals } from '../core/state.js';
 import { initNoiseSystem } from '../visual/noise-system.js';
 import { initTimeDisplay } from '../ui/time-display.js';
@@ -189,6 +189,7 @@ class PortfolioPitApp {
     this.selectedBall = null;
     this.selectedProjectIndex = -1;
     this.focusedProjectIndex = -1;
+    this.hoveredBallIndex = -1;
     this.lastFocusedElement = null;
     this.projectNav = null;
     this.projectButtons = [];
@@ -563,7 +564,8 @@ class PortfolioPitApp {
 
       const widthCss = `${width}px`;
       const heightCss = `${height}px`;
-      const transformCss = `translate(${ball.x / dpr}px, ${ball.y / dpr}px) translate(-50%, -50%) rotate(${rotation}rad)`;
+      const hoverScale = ball._hoverScale ?? 1;
+      const transformCss = `translate(${ball.x / dpr}px, ${ball.y / dpr}px) translate(-50%, -50%) rotate(${rotation}rad) scale(${hoverScale.toFixed(4)})`;
       const opacityCss = `${alpha}`;
       const colorCss = ball.labelColor || '#ffffff';
       const gapCss = `${gap}px`;
@@ -604,6 +606,8 @@ class PortfolioPitApp {
     this.canvas.addEventListener('pointermove', (event) => this.handlePointerMove(event));
     this.canvas.addEventListener('pointerup', (event) => this.handlePointerUp(event));
     this.canvas.addEventListener('pointercancel', (event) => this.handlePointerUp(event));
+    this.canvas.addEventListener('pointermove', (event) => this.handleHoverMove(event));
+    this.canvas.addEventListener('pointerleave', () => { this.hoveredBallIndex = -1; getGlobals().__portfolioHoveredIndex = -1; });
   }
 
   getCanvasPoint(event) {
@@ -674,6 +678,18 @@ class PortfolioPitApp {
 
   setFocusedProjectIndex(projectIndex) {
     this.focusedProjectIndex = Number.isInteger(projectIndex) ? projectIndex : -1;
+  }
+
+  handleHoverMove(event) {
+    if (this.dragBall || this.isProjectOpen) {
+      this.hoveredBallIndex = -1;
+      getGlobals().__portfolioHoveredIndex = -1;
+      return;
+    }
+    const point = this.getCanvasPoint(event);
+    const hit = this.hitTestBall(point);
+    this.hoveredBallIndex = hit && Number.isInteger(hit.projectIndex) ? hit.projectIndex : -1;
+    getGlobals().__portfolioHoveredIndex = this.hoveredBallIndex;
   }
 
   pushDragSample(x, y, stamp) {
@@ -897,27 +913,37 @@ class PortfolioPitApp {
     this.selectedProjectIndex = ball.projectIndex;
     this.isProjectOpen = true;
     this.setFocusedProjectIndex(-1);
-    ball.__portfolioSelected = true;
-    ball.isPointerLocked = true;
-    ball.vx = 0;
-    ball.vy = 0;
-    ball.omega = 0;
-    this.applyNeighborImpulse(ball);
+
+    // Freeze all pebbles in place — no dimming, no hiding, no physics.
+    const globals = getGlobals();
+    const allBalls = Array.isArray(globals.balls) ? globals.balls : [];
+    for (let i = 0; i < allBalls.length; i += 1) {
+      const b = allBalls[i];
+      if (!b) continue;
+      b.vx = 0;
+      b.vy = 0;
+      b.omega = 0;
+      b.isPointerLocked = true;
+      if (b.sleep) b.sleep(); else b.isSleeping = true;
+    }
+    globals.__portfolioDrawerOpen = true;
+
     this.disableBackgroundInteractivity();
     try {
       this.syncProjectHero(project, true);
     } catch (error) {
       this.restoreBackgroundInteractivity();
-      const globals = getGlobals();
-      const balls = Array.isArray(globals.balls) ? globals.balls : [];
-      for (let index = 0; index < balls.length; index += 1) {
-        const candidate = balls[index];
-        if (!candidate) continue;
-        candidate.__portfolioDimAlpha = 1;
+      // Unfreeze all balls on failure
+      const g = getGlobals();
+      g.__portfolioDrawerOpen = false;
+      const allB = Array.isArray(g.balls) ? g.balls : [];
+      for (let i = 0; i < allB.length; i += 1) {
+        const b = allB[i];
+        if (!b) continue;
+        b.__portfolioDimAlpha = 1;
+        b.isPointerLocked = false;
+        if (b.wake) b.wake();
       }
-      ball.__portfolioHidden = false;
-      ball.__portfolioSelected = false;
-      ball.isPointerLocked = false;
       this.isProjectOpen = false;
       this.selectedBall = null;
       this.selectedProjectIndex = -1;
@@ -941,11 +967,14 @@ class PortfolioPitApp {
     this.restoreBackgroundInteractivity();
 
     const globals = getGlobals();
+    globals.__portfolioDrawerOpen = false;
     const balls = Array.isArray(globals.balls) ? globals.balls : [];
     for (let index = 0; index < balls.length; index += 1) {
       const ball = balls[index];
       if (!ball) continue;
       ball.__portfolioDimAlpha = 1;
+      ball.isPointerLocked = false;
+      if (ball.wake) ball.wake();
     }
     if (this.selectedBall) {
       this.selectedBall.__portfolioSelected = false;
@@ -1198,7 +1227,7 @@ export async function bootstrapPortfolio() {
   if (paletteOverride) {
     getGlobals().currentTemplate = paletteOverride;
   } else {
-    rotatePaletteChapterOnReload();
+    getGlobals().currentTemplate = getWeatherDrivenPaletteTemplate() || rotatePaletteChapterOnReload();
   }
   initializeDarkMode();
   maybeAutoPickCursorColor('startup');
@@ -1244,17 +1273,9 @@ export async function bootstrapPortfolio() {
 
   startMainLoop(null, { getForcesFn: getForceApplicator });
 
-  // Run several physics + render frames offscreen so balls drop from their
-  // spawn positions above the viewport and settle into the pit before the
-  // gate-success CSS transition fades the wall-slot in.
-  // `bootstrapPortfolio` must not return until this is done, because
-  // `dispatchRouteReady` fires immediately after return and triggers the
-  // enter transition.
-  const SETTLE_FRAMES = 6;
-  for (let i = 0; i < SETTLE_FRAMES; i++) {
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    settlePortfolioPresentation();
-  }
+  // Wait one frame so layout is stable before revealing.
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  settlePortfolioPresentation();
 
   // Reveal canvas + label mount; the parent wall-slot is still at opacity 0
   // (pre-enter phase) so this won't cause a flash. The enter transition

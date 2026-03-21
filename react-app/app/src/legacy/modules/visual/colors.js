@@ -2,8 +2,12 @@ import { getGlobals } from '../core/state.js';
 import {
   DEFAULT_LONDON_WEATHER_PALETTE_ID,
   LONDON_WEATHER_PALETTES,
+  getLondonWeatherPaletteTheme,
   resolveLondonWeatherPaletteId,
 } from '../../../palette/londonPalettes.js';
+import { getLondonWeatherPaletteIdFromAssessment } from '../../../weather/londonWeatherAssessment.js';
+import { invalidateDepthWashCache } from './depth-wash.js';
+import { patchShellTheme, syncShellToDocument } from './site-shell.js';
 
 function clamp01(t) {
   const n = Number(t);
@@ -30,6 +34,13 @@ function rgb255ToHex({ r, g, b }) {
   const bb = (b | 0) & 255;
   const n = (rr << 16) | (gg << 8) | bb;
   return `#${n.toString(16).padStart(6, '0')}`;
+}
+
+function hexToRgbaString(hex, alpha = 1) {
+  const rgb = hexToRgb255(hex);
+  if (!rgb) return alpha >= 1 ? '#ffffff' : `rgba(255, 255, 255, ${alpha})`;
+  if (alpha >= 1) return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 }
 
 function rgb01ToHsv({ r, g, b }) {
@@ -103,6 +114,12 @@ const PALETTE_ROTATION_STORAGE_KEY = 'abs_palette_chapter';
 // Legacy fallback weights (only used if no valid `colorDistribution` is present).
 const LEGACY_COLOR_WEIGHTS = [0.50, 0.25, 0.12, 0.06, 0.03, 0.02, 0.01, 0.01];
 
+// Shared palette roles across simulation modes:
+// neutrals dominate, chromatic accents are secondary, and the hottest accents are rare.
+export const PALETTE_NEUTRAL_INDICES = [0, 1, 2, 4];
+export const PALETTE_CHROMATIC_INDICES = [3, 6];
+export const PALETTE_BRIGHT_ACCENT_INDICES = [5, 7];
+
 function clampIntFallback(v, min, max, fallback = min) {
   const n = Number(v);
   if (!Number.isFinite(n)) return fallback;
@@ -127,6 +144,10 @@ export function getPaletteTemplateOverrideFromUrl() {
   } catch (_) {
     return null;
   }
+}
+
+export function getWeatherDrivenPaletteTemplate() {
+  return resolveLondonWeatherPaletteId(getLondonWeatherPaletteIdFromAssessment()) || DEFAULT_LONDON_WEATHER_PALETTE_ID;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -568,83 +589,49 @@ export function getPortfolioProjectPaletteColor(index, projectCount) {
   return seq[i % seq.length] || seq[0];
 }
 
+function getPortfolioContrastNeutral() {
+  const isDark = typeof document !== 'undefined'
+    && (document.documentElement?.classList?.contains('dark-mode')
+      || document.body?.classList?.contains('dark-mode'));
+  // Accent circle is white in dark / black in light; contrast neutral is the opposite.
+  return isDark ? '#111111' : '#f5f1ea';
+}
+
 function buildPortfolioProjectColorSequence(projectCount) {
   const globals = getGlobals();
   const colors = Array.isArray(globals.currentColors) ? globals.currentColors.filter(Boolean) : [];
-  const out = [];
-  const seen = new Set();
-  const pushUnique = (c) => {
-    const key = normalizeHexKey(c);
-    if (!key || seen.has(key)) return;
-    seen.add(key);
-    out.push(c);
-  };
 
   if (!colors.length) {
-    for (let k = 0; k < PORTFOLIO_GREY_FALLBACKS.length && out.length < projectCount; k += 1) {
-      out.push(PORTFOLIO_GREY_FALLBACKS[k]);
-    }
-    let step = 0;
-    while (out.length < projectCount && step < 128) {
-      step += 1;
-      const b = 42 + ((step * 19 + projectCount * 3) % 156);
-      out.push(rgb255ToHex({ r: b, g: clamp255(b + 4), b: clamp255(b + 2) }));
-    }
-    return out.slice(0, projectCount);
+    const grey = PORTFOLIO_GREY_FALLBACKS[0] || '#6b7670';
+    const out = [];
+    for (let i = 0; i < projectCount; i += 1) out.push(grey);
+    return out;
   }
 
+  // Extract up to 3 chromatic colours from the palette
   const chromatic = [];
-  const neutralGreys = [];
-  const neutralWhites = [];
-  const neutralBlacks = [];
+  const greys = [];
   for (let i = 0; i < colors.length; i += 1) {
     const color = colors[i];
     if (!isProjectNeutralColor(color)) {
-      chromatic.push(color);
-      continue;
-    }
-    const key = normalizeHexKey(color);
-    if (key === '#ffffff') {
-      neutralWhites.push(color);
-    } else if (key === '#000000') {
-      neutralBlacks.push(color);
+      if (chromatic.length < 3) chromatic.push(color);
     } else {
-      neutralGreys.push(color);
+      const key = normalizeHexKey(color);
+      if (key !== '#ffffff' && key !== '#000000' && greys.length === 0) {
+        greys.push(color);
+      }
     }
   }
 
-  for (let i = 0; i < chromatic.length && out.length < Math.min(projectCount, 3); i += 1) {
-    pushUnique(chromatic[i]);
-  }
-  for (let i = 0; i < neutralGreys.length; i += 1) pushUnique(neutralGreys[i]);
-  for (let i = 0; i < neutralWhites.length; i += 1) pushUnique(neutralWhites[i]);
-  for (let i = 3; i < chromatic.length; i += 1) pushUnique(chromatic[i]);
-  for (let i = 0; i < neutralBlacks.length; i += 1) pushUnique(neutralBlacks[i]);
-  for (let i = 0; i < PORTFOLIO_GREY_FALLBACKS.length && out.length < projectCount; i += 1) {
-    pushUnique(PORTFOLIO_GREY_FALLBACKS[i]);
-  }
+  // One grey — prefer the first palette neutral, fall back to the static grey
+  const grey = greys[0] || PORTFOLIO_GREY_FALLBACKS[0] || '#6b7670';
 
-  if (out.length < projectCount) {
-    pushUnique('#ffffff');
-  }
+  // 5-slot cycle: 3 chromatic + 1 grey + 1 contrast neutral (black in dark, white in light)
+  const cycle = [...chromatic, grey, getPortfolioContrastNeutral()];
 
-  let guard = 0;
-  while (out.length < projectCount && guard < 96) {
-    guard += 1;
-    const before = out.length;
-    const t = out.length / (projectCount + 3);
-    pushUnique(rgb255ToHex({
-      r: lerp255(58, 140, t),
-      g: lerp255(62, 148, t),
-      b: lerp255(60, 144, t)
-    }));
-    if (out.length === before) {
-      const b = 48 + ((guard + out.length * 11 + projectCount) % 152);
-      out.push(rgb255ToHex({ r: b, g: clamp255(b + 3), b: clamp255(b + 1) }));
-    }
-  }
-
-  return out.slice(0, projectCount);
+  const out = [];
+  for (let i = 0; i < projectCount; i += 1) out.push(cycle[i % cycle.length]);
+  return out;
 }
 
 export function getProjectPaletteColor(index) {
@@ -672,10 +659,124 @@ export function getProjectPaletteColor(index) {
   return colors[Math.abs(Math.floor(index)) % colors.length] || colors[0];
 }
 
+function applyPaletteTheme(templateName) {
+  const globals = getGlobals();
+  const root = document.documentElement;
+  const body = document.body;
+  const isDark = Boolean(globals.isDarkMode);
+  const theme = getLondonWeatherPaletteTheme(templateName);
+  if (!theme || !root) return;
+
+  globals.bgLight = theme.bgLight || globals.bgLight;
+  globals.bgDark = theme.bgDark || globals.bgDark;
+  globals.wallBaseLight = theme.wallBaseLight || globals.wallBaseLight;
+  globals.wallBaseDark = theme.wallBaseDark || globals.wallBaseDark;
+  globals.quoteButtonColorLight = theme.quoteButtonColorLight || globals.quoteButtonColorLight || globals.wallBaseLight;
+  globals.quoteButtonColorDark = theme.quoteButtonColorDark || globals.quoteButtonColorDark || globals.wallBaseDark;
+  globals.frameColorLight = theme.frameColorLight || theme.siteFrameLight || globals.frameColorLight;
+  globals.frameColorDark = theme.frameColorDark || theme.siteFrameDark || globals.frameColorDark;
+  globals.frameColor = isDark ? globals.frameColorDark : globals.frameColorLight;
+  globals.lockedHeaderLight = theme.lockedHeaderLight || theme.siteFrameLight || globals.lockedHeaderLight;
+  globals.lockedHeaderDark = theme.lockedHeaderDark || theme.siteFrameDark || globals.lockedHeaderDark;
+  globals.safariFrameLight = theme.safariFrameLight || theme.siteFrameLight || globals.safariFrameLight;
+  globals.safariFrameDark = theme.safariFrameDark || theme.siteFrameDark || globals.safariFrameDark;
+  globals.textColorLight = theme.textColorLight || globals.textColorLight;
+  globals.textColorLightMuted = theme.textColorLightMuted || globals.textColorLightMuted;
+  globals.textColorDark = theme.textColorDark || globals.textColorDark;
+  globals.textColorDarkMuted = theme.textColorDarkMuted || globals.textColorDarkMuted;
+  globals.linkHoverColor = theme.linkHoverColor || globals.linkHoverColor;
+  globals.noiseColorLight = theme.noiseColorLight || globals.noiseColorLight;
+  globals.noiseColorDark = theme.noiseColorDark || globals.noiseColorDark;
+  globals.depthWashCenterColorLight = theme.depthWashCenterColorLight || globals.depthWashCenterColorLight;
+  globals.depthWashEdgeColorLight = theme.depthWashEdgeColorLight || globals.depthWashEdgeColorLight;
+  globals.depthWashCenterColorDark = theme.depthWashCenterColorDark || globals.depthWashCenterColorDark;
+  globals.depthWashEdgeColorDark = theme.depthWashEdgeColorDark || globals.depthWashEdgeColorDark;
+
+  patchShellTheme({
+    wallBaseLight: globals.wallBaseLight,
+    wallBaseDark: globals.wallBaseDark,
+    quoteButtonColorLight: globals.quoteButtonColorLight,
+    quoteButtonColorDark: globals.quoteButtonColorDark,
+    siteFrameLight: theme.siteFrameLight || globals.frameColorLight,
+    siteFrameDark: theme.siteFrameDark || globals.frameColorDark,
+    safariFrameLight: globals.safariFrameLight,
+    safariFrameDark: globals.safariFrameDark,
+  });
+  syncShellToDocument({ isDark });
+
+  root.style.setProperty('--bg-light', globals.bgLight);
+  root.style.setProperty('--bg-dark', globals.bgDark);
+  root.style.setProperty('--text-color-light', globals.textColorLight);
+  root.style.setProperty('--text-color-light-muted', globals.textColorLightMuted);
+  root.style.setProperty('--text-color-dark', globals.textColorDark);
+  root.style.setProperty('--text-color-dark-muted', globals.textColorDarkMuted);
+  root.style.setProperty('--link-hover-color', globals.linkHoverColor);
+  root.style.setProperty('--color-accent', theme.colorAccent || globals.linkHoverColor);
+  root.style.setProperty('--text-logo', isDark ? globals.textColorDark : globals.textColorLight);
+  root.style.setProperty('--hero-role-accent', theme.heroRoleAccent || globals.linkHoverColor);
+  root.style.setProperty('--noise-color-light', globals.noiseColorLight);
+  root.style.setProperty('--noise-color-dark', globals.noiseColorDark);
+
+  const activePrimary = isDark
+    ? (theme.absFgPrimaryDark || globals.textColorDark)
+    : (theme.absFgPrimaryLight || globals.textColorLight);
+  const activeSecondary = isDark
+    ? (theme.absFgSecondaryDark || globals.textColorDarkMuted)
+    : (theme.absFgSecondaryLight || globals.textColorLightMuted);
+  const activeMuted = isDark
+    ? (theme.absFgMutedDark || theme.absFgSecondaryDark || globals.textColorDarkMuted)
+    : (theme.absFgMutedLight || theme.absFgSecondaryLight || globals.textColorLightMuted);
+
+  root.style.setProperty('--abs-fg-primary', activePrimary);
+  root.style.setProperty('--abs-fg-secondary', activeSecondary);
+  root.style.setProperty('--abs-fg-muted', activeMuted);
+
+  const panelBg = isDark ? globals.bgDark : globals.bgLight;
+  const panelCard = isDark ? globals.frameColorDark : globals.wallBaseLight;
+  const panelFg = isDark ? globals.textColorDark : globals.textColorLight;
+  const panelMutedFg = isDark ? globals.textColorDarkMuted : globals.textColorLightMuted;
+  const panelBrand = theme.panelBrand || theme.colorAccent || globals.linkHoverColor;
+  const panelAccent = globals.linkHoverColor;
+  const panelActionFg = computeSafeTextOnCursorColor(panelBrand) || panelFg;
+
+  const panelVars = {
+    '--panel-background': hexToRgbaString(panelBg, isDark ? 0.84 : 0.82),
+    '--panel-foreground': panelFg,
+    '--panel-card': hexToRgbaString(panelCard, isDark ? 0.96 : 0.98),
+    '--panel-card-foreground': panelFg,
+    '--panel-muted': hexToRgbaString(panelFg, isDark ? 0.09 : 0.06),
+    '--panel-muted-foreground': panelMutedFg,
+    '--panel-accent': hexToRgbaString(panelAccent, isDark ? 0.2 : 0.14),
+    '--panel-accent-foreground': panelFg,
+    '--panel-border': hexToRgbaString(panelFg, isDark ? 0.18 : 0.12),
+    '--panel-input': hexToRgbaString(panelFg, isDark ? 0.16 : 0.1),
+    '--panel-ring': panelAccent,
+    '--panel-primary': panelAccent,
+    '--panel-primary-foreground': computeSafeTextOnCursorColor(panelAccent) || panelFg,
+    '--panel-brand': panelBrand,
+    '--panel-brand-foreground': panelActionFg,
+  };
+
+  Object.entries(panelVars).forEach(([name, value]) => {
+    root.style.setProperty(name, value);
+    if (body) body.style.setProperty(name, value);
+  });
+
+  invalidateDepthWashCache();
+
+  try {
+    import('./noise-system.js').then(({ applyNoiseSystem }) => applyNoiseSystem({
+      noiseColorLight: globals.noiseColorLight,
+      noiseColorDark: globals.noiseColorDark,
+    }));
+  } catch (_) { /* no-op */ }
+}
+
 export function applyColorTemplate(templateName) {
   const globals = getGlobals();
   const resolvedTemplateName = resolveColorTemplateName(templateName);
   globals.currentTemplate = resolvedTemplateName;
+  applyPaletteTheme(resolvedTemplateName);
   globals.currentColors = getCurrentPalette(resolvedTemplateName);
 
   // Persist for chapter rotation and keep any UI selects in sync.

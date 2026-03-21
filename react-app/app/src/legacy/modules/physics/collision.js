@@ -31,15 +31,15 @@ function clamp(value, min, max, fallback) {
 function getPortfolioPitContactProfile(globals) {
   const motion = globals?.portfolioPitConfig?.motion || {};
   const dpr = globals?.DPR || 1;
-  const dynamicFriction = clamp(motion.contactFriction, 0, 2, 0.34);
+  const dynamicFriction = clamp(motion.contactFriction, 0, 2, 0.55);
   const staticFriction = clamp(
     motion.contactStaticFriction,
     dynamicFriction,
     3,
-    Math.max(dynamicFriction, 0.72)
+    Math.max(dynamicFriction, 1.0)
   );
   return {
-    restitution: clamp(motion.collisionRestitution, 0, 1, 0.04),
+    restitution: clamp(motion.collisionRestitution, 0, 1, 0.35),
     dynamicFriction,
     staticFriction,
     staticSlipPx: clamp(motion.contactStaticSlipPx, 0, 80, 18) * dpr,

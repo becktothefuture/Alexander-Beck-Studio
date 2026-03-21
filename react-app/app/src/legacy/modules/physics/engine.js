@@ -55,7 +55,7 @@ function clampNumber(value, min, max, fallback) {
 function getPortfolioPitMotionProfile(globals) {
   const motion = globals?.portfolioPitConfig?.motion || {};
   return {
-    wallRestitution: clampNumber(motion.wallRestitution, 0, 1, 0.08),
+    wallRestitution: clampNumber(motion.wallRestitution, 0, 1, 0.3),
     maxPhysicsSteps: Math.round(clampNumber(motion.maxPhysicsSteps, 4, 10, 6)),
     accumulatorResetThreshold: clampNumber(motion.accumulatorResetThreshold, 3, 24, 8),
     sleepVelocityThreshold: clampNumber(motion.sleepVelocityThreshold, 4, 48, 18),

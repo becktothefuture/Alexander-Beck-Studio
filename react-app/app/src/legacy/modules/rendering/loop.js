@@ -259,7 +259,9 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
     }
     
     // Physics update (deterministic throttling when under sustained pressure)
-    const runPhysics = shouldRunPhysicsThisFrame(globals, effectiveThrottleLevel);
+    // Skip physics entirely while the portfolio drawer is open (bodies are frozen).
+    const drawerOpen = globals?.currentMode === MODES.PORTFOLIO_PIT && globals.__portfolioDrawerOpen;
+    const runPhysics = !drawerOpen && shouldRunPhysicsThisFrame(globals, effectiveThrottleLevel);
     if (runPhysics) {
       updatePhysics(dt, cachedForceFn ?? applyForcesFunc);
     }
