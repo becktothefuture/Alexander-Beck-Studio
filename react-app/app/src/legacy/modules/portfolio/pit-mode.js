@@ -58,6 +58,16 @@ function getContrastText(fill) {
   return luminance > 0.42 ? '#111111' : '#f5f1ea';
 }
 
+function getReadableLabelRotation(rotationRad) {
+  if (!Number.isFinite(rotationRad)) return 0;
+  let normalized = rotationRad % (Math.PI * 2);
+  if (normalized > Math.PI) normalized -= Math.PI * 2;
+  if (normalized < -Math.PI) normalized += Math.PI * 2;
+  if (normalized > Math.PI * 0.5) normalized -= Math.PI;
+  if (normalized < -Math.PI * 0.5) normalized += Math.PI;
+  return normalized;
+}
+
 function hashUnit(seed) {
   const value = Math.sin((seed + 1) * 12.9898) * 43758.5453;
   return value - Math.floor(value);
@@ -611,11 +621,39 @@ export function applyPortfolioPitForces(ball, dt) {
   if (!ball || ball.__portfolioHidden || ball.isPointerLocked || ball.__portfolioSelected) return;
 }
 
+function shouldSyncPortfolioLabelLayer(globals, balls) {
+  if (!globals) return false;
+  if (globals.__portfolioForceLabelSync) {
+    globals.__portfolioForceLabelSync = false;
+    globals.__portfolioLabelLayerSignature = '';
+  }
+  const dpr = globals.DPR || 1;
+  const nextSignature = balls.map((ball) => {
+    if (!ball) return 'x';
+    return [
+      ball.projectIndex ?? -1,
+      ball.__portfolioHidden ? 1 : 0,
+      (ball.x / dpr).toFixed(2),
+      (ball.y / dpr).toFixed(2),
+      (ball.r / dpr).toFixed(2),
+      getReadableLabelRotation(ball.theta || 0).toFixed(3),
+      (ball.__portfolioDimAlpha ?? 1).toFixed(3),
+      ball.__portfolioSelected ? 1 : 0,
+      ball.labelColor || '',
+    ].join(':');
+  }).join('|');
+  if (globals.__portfolioLabelLayerSignature === nextSignature) return false;
+  globals.__portfolioLabelLayerSignature = nextSignature;
+  return true;
+}
+
 export function renderPortfolioPit(ctx) {
   const globals = getGlobals();
   const balls = Array.isArray(globals.balls) ? globals.balls : [];
   for (let index = 0; index < balls.length; index += 1) {
     renderProjectBody(ctx, balls[index]);
   }
-  globals.portfolioSyncLabelLayer?.();
+  if (shouldSyncPortfolioLabelLayer(globals, balls)) {
+    globals.portfolioSyncLabelLayer?.();
+  }
 }

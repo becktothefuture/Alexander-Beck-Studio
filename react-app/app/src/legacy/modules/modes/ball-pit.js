@@ -7,7 +7,7 @@ import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 
 const HOME_PIT_PEBBLE_SURFACE_GAP_PX = 2;
-const HOME_PIT_PEBBLE_WALL_INSET_PX = 2;
+const HOME_PIT_PEBBLE_WALL_INSET_PX = 1;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));

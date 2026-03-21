@@ -31,15 +31,7 @@ const SHAPE_COLOR_MAP = {
     label: 'Creative Technology',
     fallbackPaletteIndex: 3
   },
-  horizon: {
-    label: 'Experience Strategy',
-    fallbackPaletteIndex: 5
-  },
   pyramid: {
-    label: 'Prototyping',
-    fallbackPaletteIndex: 7
-  },
-  cross: {
     label: 'Prototyping',
     fallbackPaletteIndex: 7
   },
@@ -152,7 +144,7 @@ function createRingFormation(globals, spacing) {
   if (!canvas) return [];
 
   const centerX = canvas.width * 0.385;
-  const centerY = canvas.height * 0.235;
+  const centerY = canvas.height * 0.215;
   const step = spacing * 0.98;
   const points = [];
 
@@ -170,44 +162,24 @@ function createRingFormation(globals, spacing) {
   return pushFormationAwayFromCenter(globals, points, 1.2, spacing * 1.6);
 }
 
-function createHorizonFormation(globals, spacing) {
+function createPyramidFormation(globals, spacing) {
   const canvas = globals.canvas;
   if (!canvas) return [];
 
-  const centerX = canvas.width * 0.645;
-  const centerY = canvas.height * 0.36;
-  const step = spacing * 0.94;
-  const points = [];
-
-  for (let row = -1; row <= 1; row += 1) {
-    for (let column = -1.5; column <= 1.5; column += 1) {
-      points.push({
-        x: centerX + column * step,
-        y: centerY + row * step
-      });
-    }
-  }
-
-  return pushFormationAwayFromCenter(globals, points, 1.2, spacing * 1.6);
-}
-
-function createCrossFormation(globals, spacing) {
-  const canvas = globals.canvas;
-  if (!canvas) return [];
-
-  const centerX = canvas.width * 0.27;
-  const centerY = canvas.height * 0.69;
+  const centerX = canvas.width * 0.22;
+  const topY = canvas.height * 0.61;
   const step = spacing * 0.92;
   const points = [];
 
-  for (let row = -2; row <= 2; row += 1) {
-    for (let column = -2; column <= 2; column += 1) {
-      const inVerticalBar = Math.abs(column) <= 1;
-      const inHorizontalBar = Math.abs(row) <= 1;
-      if (!inVerticalBar && !inHorizontalBar) continue;
+  for (let row = 0; row < 5; row += 1) {
+    const columns = row + 1;
+    const rowWidth = (columns - 1) * step;
+    const startX = centerX - rowWidth * 0.5;
+    const y = topY + row * step;
+    for (let column = 0; column < columns; column += 1) {
       points.push({
-        x: centerX + column * step,
-        y: centerY + row * step
+        x: startX + column * step,
+        y
       });
     }
   }
@@ -219,8 +191,8 @@ function createFrameFormation(globals, spacing) {
   const canvas = globals.canvas;
   if (!canvas) return [];
 
-  const centerX = canvas.width * 0.73;
-  const centerY = canvas.height * 0.69;
+  const centerX = canvas.width * 0.72;
+  const centerY = canvas.height * 0.675;
   const step = spacing * 0.94;
   const points = [];
 
@@ -241,23 +213,15 @@ function createNeutralAccentFormation(globals, spacing) {
   const canvas = globals.canvas;
   if (!canvas) return [];
 
-  const centerX = canvas.width * 0.17;
-  const centerY = canvas.height * 0.50;
+  const centerX = canvas.width * 0.165;
+  const centerY = canvas.height * 0.455;
   const step = spacing * 0.90;
   const points = [];
 
-  for (let row = -1; row <= 1; row += 1) {
-    for (let column = -1; column <= 1; column += 1) {
-      let colorKey = 'systemsMini';
-      if (column === 1 && row <= 0) colorKey = 'appliedMini';
-      if (row === 1 && column >= 0) colorKey = 'interactionMini';
-      points.push({
-        x: centerX + column * step,
-        y: centerY + row * step,
-        colorKey
-      });
-    }
-  }
+  points.push({ x: centerX - step * 0.5, y: centerY - step * 0.5, colorKey: 'systemsMini' });
+  points.push({ x: centerX + step * 0.5, y: centerY - step * 0.5, colorKey: 'appliedMini' });
+  points.push({ x: centerX - step * 0.5, y: centerY + step * 0.5, colorKey: 'systemsMini' });
+  points.push({ x: centerX + step * 0.5, y: centerY + step * 0.5, colorKey: 'interactionMini' });
 
   return pushFormationAwayFromCenter(globals, points, 1.2, spacing * 1.6);
 }
@@ -298,14 +262,12 @@ function arrangeBallsInComposition(globals, targetBalls) {
   const avgRadius = ((globals.R_MIN || 15) + (globals.R_MAX || 25)) * 0.5;
   const spacing = avgRadius * 1.86;
   const ring = createRingFormation(globals, spacing);
-  const horizon = createHorizonFormation(globals, spacing);
-  const cross = createCrossFormation(globals, spacing);
+  const pyramid = createPyramidFormation(globals, spacing);
   const frame = createFrameFormation(globals, spacing);
   const neutralAccent = createNeutralAccentFormation(globals, spacing);
   const formations = trimFormationPoints([
     { name: 'ring', points: ring },
-    { name: 'horizon', points: horizon },
-    { name: 'cross', points: cross },
+    { name: 'pyramid', points: pyramid },
     { name: 'frame', points: frame },
     { name: 'systemsMini', points: neutralAccent }
   ], targetBalls);

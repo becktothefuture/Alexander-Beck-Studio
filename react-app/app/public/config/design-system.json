@@ -185,7 +185,7 @@
     "swarmSpeed": 0.4,
     "fliesSeparation": 15000,
     "fliesWarmupFrames": 10,
-    "weightlessCount": 75,
+    "weightlessCount": 43,
     "weightlessInitialSpeed": 250,
     "weightlessBounce": 0.7,
     "weightlessRepelPower": 50000,

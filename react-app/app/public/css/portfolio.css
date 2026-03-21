@@ -651,12 +651,25 @@ body.portfolio-project-open .ui-bottom {
 }
 
 /* Clip subtle scroll-linked translate on media (see portfolio app.js). */
+.portfolio-project-view__block--media,
 .portfolio-project-view__block:has(> img),
 .portfolio-project-view__block:has(> video) {
   overflow: hidden;
 }
 
+.portfolio-project-view__block-media {
+  position: relative;
+  overflow: hidden;
+}
+
+.portfolio-project-view__block-media--ken-burns {
+  animation: portfolioHeroKenBurns var(--portfolio-kb-duration) cubic-bezier(0.32, 0, 0.12, 1) infinite alternate;
+  will-change: transform;
+  transform-origin: center center;
+}
+
 .portfolio-project-view__block img,
+.portfolio-project-view__block-media-image,
 .portfolio-project-view__block video {
   width: 100%;
   display: block;
@@ -770,7 +783,8 @@ body.portfolio-project-open .ui-bottom {
     transition-delay: 0ms;
   }
 
-  .portfolio-project-view__image-motion {
+  .portfolio-project-view__image-motion,
+  .portfolio-project-view__block-media--ken-burns {
     animation: none;
     transform: none;
   }

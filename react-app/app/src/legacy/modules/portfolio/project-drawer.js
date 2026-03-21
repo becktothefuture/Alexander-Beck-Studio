@@ -218,6 +218,50 @@ function createKenBurnsSequence(project, motionConfig = {}) {
   };
 }
 
+function createDetailImageKenBurnsSequence(project, blockSrc, imageOrdinal) {
+  const seed = hashString(`${project?.title || ''}|${blockSrc || ''}|detail|${imageOrdinal}`);
+  const directionX = (seed & 1) === 0 ? -1 : 1;
+  const directionY = (seed & 2) === 0 ? -1 : 1;
+  const spanX = 10 + ((seed >>> 3) % 7);
+  const spanY = 6 + ((seed >>> 6) % 5);
+  const startScale = 1.03 + (((seed >>> 9) % 3) * 0.015);
+  const endScale = startScale + (0.08 + (((seed >>> 12) % 4) * 0.015));
+  const midScale = startScale + ((endScale - startScale) * 0.46);
+  const settleScale = startScale + ((endScale - startScale) * 0.74);
+  const durationMs = 18000 + ((seed >>> 15) % 7001);
+  return {
+    durationMs,
+    points: [
+      { x: directionX * -spanX, y: directionY * -spanY, scale: Number(startScale.toFixed(3)) },
+      {
+        x: directionX * -Math.round(spanX * 0.34),
+        y: directionY * -Math.round(spanY * 0.4),
+        scale: Number(midScale.toFixed(3)),
+      },
+      {
+        x: directionX * Math.round(spanX * 0.28),
+        y: directionY * Math.round(spanY * 0.24),
+        scale: Number(settleScale.toFixed(3)),
+      },
+      {
+        x: directionX * Math.round(spanX * 0.72),
+        y: directionY * Math.round(spanY * 0.66),
+        scale: Number(endScale.toFixed(3)),
+      },
+    ],
+  };
+}
+
+function buildKenBurnsStyleVars(sequence) {
+  const vars = [`--portfolio-kb-duration:${sequence.durationMs}ms`];
+  sequence.points.forEach((point, index) => {
+    vars.push(`--portfolio-kb-x-${index}:${point.x}px`);
+    vars.push(`--portfolio-kb-y-${index}:${point.y}px`);
+    vars.push(`--portfolio-kb-scale-${index}:${point.scale.toFixed(3)}`);
+  });
+  return vars.join(';');
+}
+
 function createProjectDrawerMarkup() {
   return `
     <section
@@ -395,6 +439,7 @@ export class PortfolioProjectDrawer {
     const blocks = getProjectContentBlocks(project);
     const links = Array.isArray(project?.links) ? project.links : [];
     const takeaways = Array.isArray(project?.takeaways) ? project.takeaways : [];
+    let stillImageOrdinal = 1;
 
     const linksHtml = links.length
       ? `
@@ -425,9 +470,16 @@ export class PortfolioProjectDrawer {
       if (block.type === 'text') {
         return `<div class="portfolio-project-view__block portfolio-project-view__block--text"><p>${escapeHtml(block.text)}</p></div>`;
       }
+      stillImageOrdinal += 1;
+      const shouldAnimate = stillImageOrdinal % 4 === 0;
+      const imageMarkup = shouldAnimate
+        ? `<div class="portfolio-project-view__block-media portfolio-project-view__block-media--ken-burns" style="${escapeHtml(buildKenBurnsStyleVars(createDetailImageKenBurnsSequence(project, block.src, stillImageOrdinal)))}">
+            <img class="portfolio-project-view__block-media-image" src="${this.resolveAsset(block.src)}" alt="${escapeHtml(block.alt || project?.title || 'Project image')}" loading="lazy">
+          </div>`
+        : `<img class="portfolio-project-view__block-media-image" src="${this.resolveAsset(block.src)}" alt="${escapeHtml(block.alt || project?.title || 'Project image')}" loading="lazy">`;
       return `
-        <figure class="portfolio-project-view__block">
-          <img src="${this.resolveAsset(block.src)}" alt="${escapeHtml(block.alt || project?.title || 'Project image')}" loading="lazy">
+        <figure class="portfolio-project-view__block portfolio-project-view__block--media${shouldAnimate ? ' portfolio-project-view__block--ken-burns' : ''}">
+          ${imageMarkup}
           ${block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : ''}
         </figure>
       `;

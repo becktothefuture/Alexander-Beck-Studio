@@ -501,6 +501,7 @@ class PortfolioPitApp {
 
       if (!ball || ball.__portfolioHidden) {
         label.style.opacity = '0';
+        label.__portfolioSyncSignature = '';
         continue;
       }
 
@@ -539,6 +540,26 @@ class PortfolioPitApp {
       const eyebrowLineHeight = (ball.label?.eyebrowLineHeight || (eyebrowFontSize * 0.92)) / Math.max(eyebrowFontSize, 1);
       const gap = (ball.label?.gap || 0) / dpr;
       const alpha = clamp(toNumber(ball.__portfolioDimAlpha, 1), 0, 1) * (ball.__portfolioSelected ? 0 : 1);
+      const syncSignature = [
+        width.toFixed(2),
+        height.toFixed(2),
+        (ball.x / dpr).toFixed(2),
+        (ball.y / dpr).toFixed(2),
+        rotation.toFixed(3),
+        alpha.toFixed(3),
+        ball.labelColor || '#ffffff',
+        gap.toFixed(2),
+        titleFontSize.toFixed(2),
+        titleLineHeight.toFixed(3),
+        eyebrowFontSize.toFixed(2),
+        eyebrowLineHeight.toFixed(3),
+        eyebrowKey,
+        titleKey,
+      ].join('|');
+      if (label.__portfolioSyncSignature === syncSignature) {
+        continue;
+      }
+      label.__portfolioSyncSignature = syncSignature;
 
       const widthCss = `${width}px`;
       const heightCss = `${height}px`;

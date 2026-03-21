@@ -37,7 +37,7 @@ export function PaletteLabExperience() {
   const [activeIndex, setActiveIndex] = useState(
     Math.max(
       0,
-      LONDON_WEATHER_PALETTES.findIndex((palette) => palette.id === 'blueBreak')
+      LONDON_WEATHER_PALETTES.findIndex((palette) => palette.id === 'portlandHaze')
     )
   );
   const active = LONDON_WEATHER_PALETTES[activeIndex] || LONDON_WEATHER_PALETTES[0];
