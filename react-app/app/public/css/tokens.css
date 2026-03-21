@@ -105,7 +105,7 @@
   --abs-text-sm: clamp(11px, 1.2vw, 13px);
   --abs-text-md: clamp(12px, 1.4vw, 15px);
   --abs-text-lg: clamp(0.85rem, 1.5vw, 1.05rem);
-  --abs-text-xl: clamp(1.2rem, 1.8vw, 1.35rem);;
+  --abs-text-xl: clamp(1.2rem, 1.8vw, 1.35rem);
 
   --abs-line-display: 0.95;
   --abs-line-title: 1.1;
@@ -292,6 +292,9 @@
   --text-placeholder: var(--text-primary);
   --text-action: var(--text-primary);
   --text-logo: #161616;
+  --abs-fg-primary: var(--text-primary);
+  --abs-fg-secondary: var(--text-muted);
+  --abs-fg-muted: var(--text-muted);
 
   /* Link + Accent Colors (hover system depends on these vars) */
   --link-hover-color: var(--color-accent);
@@ -470,8 +473,14 @@
   --outer-wall-top-bevel-opacity: 0.25;       /* Outer wall bevel opacity (light mode) */
   --outer-wall-top-bevel-opacity-dark: 0.35;  /* Outer wall bevel opacity (dark mode) */
   
+  /* Pit interior: soft inset shadow (below rim overlay, above canvas) */
+  --inner-wall-pit-inset-shadow-opacity: 0.12;
+  --inner-wall-pit-inset-shadow-blur: 28px;
+  --inner-wall-pit-inset-shadow-spread: -6px;
+  --inner-wall-pit-inset-shadow-offset-y: 4px;
+
   /* Inner wall gradient edge - radial gradient light/shadow edges */
-  --inner-wall-gradient-edge-width: 2px;      /* Thickness of gradient edge border */
+  --inner-wall-gradient-edge-width: 3px;      /* Thickness of gradient edge border (~50% above prior 2px default) */
   --inner-wall-gradient-radius: 70;           /* Percentage of width for gradient spread */
   --inner-wall-top-bevel-width: 2px;          /* Inner wall top light edge thickness */
   --inner-wall-top-light-opacity: 0.22;       /* Inner wall top light edge opacity (light mode) */
@@ -746,6 +755,8 @@
   --inner-wall-gradient-edge-bottom-opacity: 0.24;
   --inner-wall-gradient-edge-side-opacity: 0.14;
   --inner-wall-gradient-edge-side-shadow-opacity: 0.14;
+
+  --inner-wall-pit-inset-shadow-opacity: 0.17;
 }
 
 /* ╔══════════════════════════════════════════════════════════════════════════════╗

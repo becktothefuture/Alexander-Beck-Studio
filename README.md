@@ -23,7 +23,7 @@ This project powers an interactive homepage where motion, physics, and narrative
 - 120Hz fixed-timestep physics with spatial hashing and optimized hot paths
 - Curated production runtime; dev: React on 8012, preview on 8013
 - Accessibility-conscious interactions and `prefers-reduced-motion` support
-- Privacy-first defaults with local settings storage only
+- Privacy-conscious defaults: **no analytics**; fonts load from **Google Fonts** on shipped HTML; optional tactile layer may use **jsdelivr** when enabled
 
 ## Quick Start
 ```bash
@@ -75,7 +75,7 @@ Automated tests are currently disabled. Before shipping:
 - Verify all 20 modes run correctly
 - Check keyboard navigation and ARIA behavior
 - Validate mobile behavior and visual clipping
-- Confirm no external network calls outside local asset/config loading
+- Confirm third-party behavior matches expectations (fonts; optional tactile CDN when on)
 
 ## Integration Guide (Consumers)
 Embed the runtime with:
@@ -93,6 +93,7 @@ For full setup and host-page constraints, see [`docs/reference/INTEGRATION.md`](
 
 ## Documentation
 ### Project Docs
+- **[`docs/BACKLOG.md`](docs/BACKLOG.md)** — consolidated backlog (**BL-*** audit items, **FE-*** PRD epics, **DO-***, **XP-***); start at **Product view**
 - [`docs/development/DEV-WORKFLOW.md`](docs/development/DEV-WORKFLOW.md)
 - [`docs/reference/MODES.md`](docs/reference/MODES.md)
 - [`docs/reference/CONFIGURATION.md`](docs/reference/CONFIGURATION.md)

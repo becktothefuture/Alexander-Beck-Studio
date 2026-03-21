@@ -11,3 +11,5 @@ Canonical commands and architecture live in:
 **Screenshots:** `npm run certify:screens` writes under `output/playwright/`; that path is gitignored—run locally when you need certification artifacts.
 
 **Figma exports:** Any token/mapping dumps under `output/figma/` are gitignored and not part of the shipped app—regenerate from your design workflow if needed.
+
+**Backlog:** [`docs/BACKLOG.md`](BACKLOG.md) — audit items (**BL-***), feature epics with PRD links (**FE-***), documentation work (**DO-***), and optional experiments (**XP-***). Start from **Product view** for roadmap-style planning.

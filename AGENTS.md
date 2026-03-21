@@ -77,7 +77,7 @@
 
 ## Critical Constraints
 - 20 simulation modes (see `docs/reference/MODES.md`)
-- Privacy-first: No external calls, localStorage for settings only
+- Privacy-first: **No analytics or remote telemetry.** Main HTML entries load **Google Fonts** (`fonts.googleapis.com` / `fonts.gstatic.com`). Optional **tactile** layer may load **jsdelivr** when enabled (`legacy/.../tactile-layer.js`). **`localStorage` / `sessionStorage`:** settings, theme, panel/UI helpers — not canonical design truth (see Config Workflow).
 - Accessibility: ARIA labels, keyboard nav, respect `prefers-reduced-motion`
 - Modal blur uses two-layer architecture (locked, do not modify)
 

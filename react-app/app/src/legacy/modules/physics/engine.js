@@ -367,8 +367,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
                globals.currentMode !== MODES.CUBE_3D &&
                globals.currentMode !== MODES.PARALLAX_LINEAR &&
                globals.currentMode !== MODES.PARALLAX_FLOAT &&
-               globals.currentMode !== MODES.STARFIELD_3D &&
-               globals.currentMode !== MODES.DVD_LOGO) {
+               globals.currentMode !== MODES.STARFIELD_3D) {
       collisionStats = resolveCollisions(collisionIterations) || EMPTY_COLLISION_STATS; // configurable solver iterations
     }
     if (isPitMode) {

@@ -33,6 +33,12 @@ jobs:
           cd react-app/app
           if [ -f package-lock.json ]; then npm ci --ignore-scripts --no-audit --no-fund; else npm install --no-audit --no-fund; fi
 
+      - name: Lint React app
+        run: npm run lint --prefix react-app/app
+
+      - name: Validate HTML fragments
+        run: npm run validate:html-fragments
+
       # Parity with root `npm run build`: regenerate legacy JSON shards from design-system.json
       - name: Flatten design config
         run: node scripts/flatten-design-config.mjs

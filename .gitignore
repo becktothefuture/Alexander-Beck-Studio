@@ -8,7 +8,6 @@ react-app/app/public/video/under consideration/
 
 # Dependencies
 node_modules/
-package-lock.json
 
 # Test artifacts
 test-results/
