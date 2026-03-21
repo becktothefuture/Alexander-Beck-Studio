@@ -125,7 +125,7 @@ body.portfolio-page .route-topbar__left .portfolio-topnav {
   justify-content: flex-start;
   gap: clamp(4px, 1vw, 12px);
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   pointer-events: auto;
 }
 
@@ -789,7 +789,7 @@ body.portfolio-project-open .ui-bottom {
     justify-content: flex-start;
     gap: clamp(6px, 1.4vw, 10px);
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   body.portfolio-page .route-topbar__left > .gate-back {
@@ -800,7 +800,7 @@ body.portfolio-project-open .ui-bottom {
     flex-wrap: nowrap;
     flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   body.portfolio-page .route-topbar__left .portfolio-topnav .footer_link {

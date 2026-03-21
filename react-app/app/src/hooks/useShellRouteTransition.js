@@ -104,11 +104,19 @@ function cancelActiveAnimations() {
   activeAnimations = [];
 }
 
+function isShellManagedHomeNavButton(el) {
+  return Boolean(el?.matches?.('#main-links .footer_link'));
+}
+
 function commitStaggerStyles() {
   collectStaggerTargets().forEach(({ el }) => {
     el.style.opacity = '1';
     el.style.transform = '';
     el.style.filter = '';
+    if (isShellManagedHomeNavButton(el)) {
+      el.style.transition = '';
+      el.style.transitionDelay = '';
+    }
     el.style.willChange = 'auto';
   });
 }
@@ -120,6 +128,7 @@ function finalizeTransition(isGate) {
   commitStaggerStyles();
   if (isGate) dismissGateBackdrop();
   delete document.documentElement.dataset.absGateTransition;
+  delete document.documentElement.dataset.absRouteTransition;
 
   // Restore content layers.
   const { wall, ui } = getContentLayers();
@@ -185,8 +194,11 @@ function collectStaggerTargets() {
   add(document.querySelector('#shell-route-slot .ui-top'), { slide: true });
   // Home: central logo
   add(document.getElementById('brand-logo'), { slide: true });
-  // Home: nav buttons
-  add(document.getElementById('main-links'), { slide: true });
+  // Home: nav buttons. Animate the individual pills instead of the row so the
+  // fixed `translateX(-50%)` layout on `#main-links` is never clobbered.
+  document.querySelectorAll('#main-links .footer_link').forEach((el) => {
+    add(el, { slide: true });
+  });
   // Footer
   add(document.querySelector('.ui-bottom'), { slide: true });
   // Edge caption
@@ -213,6 +225,10 @@ function staggeredEntrance() {
 
     // Hide every target before making the UI layer visible.
     targets.forEach(({ el }) => {
+      if (isShellManagedHomeNavButton(el)) {
+        el.style.transition = 'none';
+        el.style.transitionDelay = '0ms';
+      }
       el.style.opacity = '0';
       el.style.willChange = 'opacity, transform';
     });
@@ -259,6 +275,10 @@ function staggeredEntrance() {
           el.style.opacity = '1';
           el.style.transform = '';
           el.style.filter = '';
+          if (isShellManagedHomeNavButton(el)) {
+            el.style.transition = '';
+            el.style.transitionDelay = '';
+          }
           el.style.willChange = 'auto';
         };
         anim.oncancel = anim.onfinish;
@@ -312,6 +332,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
     /* ── smooth transition (gate-success OR any SPA route change) ────────── */
     if (!isSameRoute && !reduceMotion) {
       transitionActiveRef.current = true;
+      document.documentElement.dataset.absRouteTransition = 'active';
       if (isGate) document.documentElement.dataset.absGateTransition = 'active';
 
       const token = ++transitionToken;
@@ -333,6 +354,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
         .then(() => {
           if (stale()) return;
           delete document.documentElement.dataset.absGateTransition;
+          delete document.documentElement.dataset.absRouteTransition;
           activeAnimations = [];
           transitionActiveRef.current = false;
         })
@@ -347,6 +369,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
     /* ── reduced motion or same-route: instant with cleanup ──────────────── */
     if (isGate) {
       transitionActiveRef.current = true;
+      document.documentElement.dataset.absRouteTransition = 'active';
       document.documentElement.dataset.absGateTransition = 'active';
 
       Promise.resolve()

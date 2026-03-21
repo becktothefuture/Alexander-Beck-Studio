@@ -2739,7 +2739,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   
   /* Nav staggering — links appear after hero title has emerged */
   --ui-stagger: 104ms;
-  --ui-nav-delay: 1000ms;
+  --ui-nav-delay: 0ms;
 }
 
 /* State flag toggles */
@@ -2808,6 +2808,16 @@ html.modal-active { --ui-obscured: 1; }
   
   /* Default stagger: entrance order (left to right) */
   transition-delay: calc(var(--ui-nav-delay) + (var(--ui-stagger) * var(--i, 0)));
+}
+
+/* SPA route transitions already animate the home nav row as part of the shell
+   reveal, so skip the secondary delayed entrance on the individual pills. */
+html[data-abs-route-transition="active"] #main-links .footer_link {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0) scale(1);
+  transition-delay: 0ms;
+  transition-duration: 0ms;
 }
 
 /* Exit stagger: reverse order (right to left) when modal opens */
