@@ -3231,12 +3231,18 @@ html.is-safari .noise::before {
     /* Horizontal ratio is now handled by JS (contentPaddingHorizontalRatio).
        CSS fallback kept for graceful degradation if JS hasn't stamped values yet. */
     --noise-size-scale: 0.8;
+    --mobile-type-scale: 0.9;
     /* Narrow chrome 1.5× is baked in applyLayoutCSSVars (matches this breakpoint). */
-    --text-xs: calc(var(--abs-text-xs) - var(--abs-size-1px));
-    --text-sm: calc(var(--abs-text-sm) - var(--abs-size-1px));
-    --text-md: calc(var(--abs-text-md) - var(--abs-size-1px));
-    --text-lg: calc(var(--abs-text-lg) - var(--abs-size-1px));
-    --text-xl: calc(var(--abs-text-xl) - var(--abs-size-1px));
+    --text-xs: calc(var(--abs-text-xs) * var(--mobile-type-scale));
+    --text-sm: calc(var(--abs-text-sm) * var(--mobile-type-scale));
+    --text-md: calc(var(--abs-text-md) * var(--mobile-type-scale));
+    --text-lg: calc(var(--abs-text-lg) * var(--mobile-type-scale));
+    --text-xl: calc(var(--abs-text-xl) * var(--mobile-type-scale));
+    --portfolio-intro-title-size: calc(clamp(1.77rem, 2.925vw, 2.85rem) * var(--mobile-type-scale));
+    --cv-name-size: calc(clamp(1.8rem, 3.5vw, 2.5rem) * var(--mobile-type-scale));
+    --cv-title-size: calc(clamp(0.75rem, 1.2vw, 0.9rem) * var(--mobile-type-scale));
+    --cv-section-title-size: calc(clamp(0.65rem, 0.9vw, 0.75rem) * var(--mobile-type-scale));
+    --cv-body-size: calc(clamp(0.75rem, 1vw, 0.9rem) * var(--mobile-type-scale));
     
     /* Side labels closer to the wall */
     --edge-label-inset-gap: 2px;
@@ -3246,11 +3252,11 @@ html.is-safari .noise::before {
   .hero-title__name,
   .hero-title__role,
   .hero-title__line {
-    font-size: clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px);
+    font-size: calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px) * var(--mobile-type-scale));
   }
 
   body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
-    font-size: clamp(1.8rem, 6.12vw, 2.415rem);
+    font-size: calc(clamp(1.8rem, 6.12vw, 2.415rem) * var(--mobile-type-scale));
   }
 
   .ui-top {

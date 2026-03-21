@@ -11,6 +11,9 @@ const CIRCLE_FALLBACK_DPR_MUL = 4;
 const BASE_POINT_COUNT = 14;
 const MIN_POINT_COUNT = 10;
 const MAX_POINT_COUNT = 18;
+const MOBILE_BASE_POINT_COUNT = 10;
+const MOBILE_MIN_POINT_COUNT = 8;
+const MOBILE_MAX_POINT_COUNT = 12;
 
 const _pathScratchX = [];
 const _pathScratchY = [];
@@ -80,16 +83,59 @@ function getTemplateForBall(ball) {
   return PEBBLE_TEMPLATES[index];
 }
 
+function getPebblePointBudget(globals) {
+  const mobile = globals?.isMobile || globals?.isMobileViewport;
+  const throttleLevel = Math.max(0, Math.min(2, Number(globals?.adaptiveThrottleLevel) || 0));
+
+  let min = mobile ? MOBILE_MIN_POINT_COUNT : MIN_POINT_COUNT;
+  let base = mobile ? MOBILE_BASE_POINT_COUNT : BASE_POINT_COUNT;
+  let max = mobile ? MOBILE_MAX_POINT_COUNT : MAX_POINT_COUNT;
+
+  if (throttleLevel >= 1) {
+    base -= 1;
+    max -= 1;
+  }
+  if (throttleLevel >= 2) {
+    min -= 1;
+    base -= 1;
+    max -= 2;
+  }
+
+  min = Math.max(6, min);
+  base = Math.max(min, base);
+  max = Math.max(base, max);
+
+  return { min, base, max };
+}
+
 function getPebblePointCount(radius, controls, template) {
+  const budget = getPebblePointBudget(getGlobals());
   const sizeBand = clamp(radius / 30, 0, 1, 0);
   const stretchBand = controls.stretch * 0.5 + controls.organic * 0.25;
   const count = Math.round(
-    BASE_POINT_COUNT +
+    budget.base +
     (sizeBand * 2) +
     (stretchBand * 2) +
     (template.pointCount > BASE_POINT_COUNT ? 1 : 0)
   );
-  return clamp(count, MIN_POINT_COUNT, MAX_POINT_COUNT, BASE_POINT_COUNT);
+  return clamp(count, budget.min, budget.max, budget.base);
+}
+
+function appendPebbleGeometryPath(ctx, geom, radius) {
+  if (!ctx || !geom || geom.pointCount < 3) return;
+  const count = geom.pointCount;
+  const startMidX = ((geom.xs[count - 1] + geom.xs[0]) * 0.5) * radius;
+  const startMidY = ((geom.ys[count - 1] + geom.ys[0]) * 0.5) * radius;
+  ctx.moveTo(startMidX, startMidY);
+  for (let i = 0; i < count; i += 1) {
+    const next = (i + 1) % count;
+    const ctrlX = geom.xs[i] * radius;
+    const ctrlY = geom.ys[i] * radius;
+    const midX = ((geom.xs[i] + geom.xs[next]) * 0.5) * radius;
+    const midY = ((geom.ys[i] + geom.ys[next]) * 0.5) * radius;
+    ctx.quadraticCurveTo(ctrlX, ctrlY, midX, midY);
+  }
+  ctx.closePath();
 }
 
 function getPebbleGeometry(ball, radius, globals) {
@@ -196,11 +242,7 @@ export function appendPebbleBodyPath(ctx, ball, radius, globals) {
     return;
   }
 
-  ctx.moveTo(geom.xs[0] * radius, geom.ys[0] * radius);
-  for (let i = 1; i < geom.pointCount; i += 1) {
-    ctx.lineTo(geom.xs[i] * radius, geom.ys[i] * radius);
-  }
-  ctx.closePath();
+  appendPebbleGeometryPath(ctx, geom, radius);
 }
 
 function getRgb(hex) {
@@ -282,11 +324,7 @@ export function drawPebbleBodyRim(ctx, ball, x, y, radius, color, globals, opts 
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(geom.xs[0] * strokeR, geom.ys[0] * strokeR);
-  for (let i = 1; i < geom.pointCount; i += 1) {
-    ctx.lineTo(geom.xs[i] * strokeR, geom.ys[i] * strokeR);
-  }
-  ctx.closePath();
+  appendPebbleGeometryPath(ctx, geom, strokeR);
   ctx.stroke();
   ctx.restore();
 }

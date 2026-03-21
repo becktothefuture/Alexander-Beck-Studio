@@ -26,11 +26,13 @@ const PORTFOLIO_SPAWN_ORDER = [
   [2, 1],
 ];
 const PORTFOLIO_PEBBLE_VARIANTS = 16;
-const PORTFOLIO_PEBBLE_SEGMENTS = 22;
+const PORTFOLIO_PEBBLE_SEGMENTS_DESKTOP = 18;
+const PORTFOLIO_PEBBLE_SEGMENTS_MOBILE = 12;
 const PORTFOLIO_PEBBLE_RENDER_SCALE = 1;
 const PORTFOLIO_HOVER_SCALE = 1.05;
 const PORTFOLIO_HOVER_SPEED_IN = 8;
 const PORTFOLIO_HOVER_SPEED_OUT = 5;
+const MOBILE_TYPE_SCALE = 0.9;
 
 function toNumber(value, fallback) {
   const numeric = Number(value);
@@ -110,24 +112,32 @@ function getPortfolioBodyRotationRad(ball) {
   return (ball.theta || 0) + (ball.rotationOffset || 0);
 }
 
-function makePebbleVariant(index) {
+function isPortfolioMobileRender(globals = getGlobals()) {
+  return Boolean(
+    globals?.isMobile
+    || globals?.isMobileViewport
+    || ((globals?.canvas?.width || 0) > 0 && globals.canvas.width < 700)
+  );
+}
+
+function makePebbleVariant(index, segmentCount) {
   const phase = (index / PORTFOLIO_PEBBLE_VARIANTS) * Math.PI * 2;
   const phaseB = phase * 1.7;
   const phaseC = phase * 2.3;
   const stretchX = 0.965 + (hashUnit(index + 211) * 0.07);
   const stretchY = 0.955 + (hashUnit(index + 223) * 0.06);
-  const swellA = 0.007 + (hashUnit(index + 227) * 0.010);
-  const swellB = 0.004 + (hashUnit(index + 229) * 0.008);
-  const swellC = 0.002 + (hashUnit(index + 233) * 0.004);
-  const taper = 0.004 + (hashUnit(index + 239) * 0.006);
-  const skewX = (hashUnit(index + 241) - 0.5) * 0.028;
-  const skewY = (hashUnit(index + 251) - 0.5) * 0.022;
-  const xPoints = new Float32Array(PORTFOLIO_PEBBLE_SEGMENTS);
-  const yPoints = new Float32Array(PORTFOLIO_PEBBLE_SEGMENTS);
+  const swellA = 0.006 + (hashUnit(index + 227) * 0.008);
+  const swellB = 0.003 + (hashUnit(index + 229) * 0.005);
+  const swellC = 0.001 + (hashUnit(index + 233) * 0.002);
+  const taper = 0.002 + (hashUnit(index + 239) * 0.003);
+  const skewX = (hashUnit(index + 241) - 0.5) * 0.02;
+  const skewY = (hashUnit(index + 251) - 0.5) * 0.016;
+  const xPoints = new Float32Array(segmentCount);
+  const yPoints = new Float32Array(segmentCount);
   let maxRadius = 1;
 
-  for (let i = 0; i < PORTFOLIO_PEBBLE_SEGMENTS; i += 1) {
-    const theta = (i / PORTFOLIO_PEBBLE_SEGMENTS) * Math.PI * 2;
+  for (let i = 0; i < segmentCount; i += 1) {
+    const theta = (i / segmentCount) * Math.PI * 2;
     const ct = Math.cos(theta);
     const st = Math.sin(theta);
     const radial = 1
@@ -144,7 +154,7 @@ function makePebbleVariant(index) {
   }
 
   const inv = 1 / Math.max(1e-6, maxRadius);
-  for (let i = 0; i < PORTFOLIO_PEBBLE_SEGMENTS; i += 1) {
+  for (let i = 0; i < segmentCount; i += 1) {
     xPoints[i] *= inv;
     yPoints[i] *= inv;
   }
@@ -152,15 +162,23 @@ function makePebbleVariant(index) {
   return { xPoints, yPoints };
 }
 
-const PORTFOLIO_PEBBLE_VARIANT_DATA = Array.from(
+const PORTFOLIO_PEBBLE_VARIANT_DATA_DESKTOP = Array.from(
   { length: PORTFOLIO_PEBBLE_VARIANTS },
-  (_, index) => makePebbleVariant(index)
+  (_, index) => makePebbleVariant(index, PORTFOLIO_PEBBLE_SEGMENTS_DESKTOP)
 );
 
-function getPebbleVariantForBall(ball) {
+const PORTFOLIO_PEBBLE_VARIANT_DATA_MOBILE = Array.from(
+  { length: PORTFOLIO_PEBBLE_VARIANTS },
+  (_, index) => makePebbleVariant(index, PORTFOLIO_PEBBLE_SEGMENTS_MOBILE)
+);
+
+function getPebbleVariantForBall(ball, globals = getGlobals()) {
   const index = Number.isInteger(ball?.projectIndex) ? ball.projectIndex : 0;
-  const variantIndex = Math.abs(index) % PORTFOLIO_PEBBLE_VARIANT_DATA.length;
-  return PORTFOLIO_PEBBLE_VARIANT_DATA[variantIndex];
+  const variants = isPortfolioMobileRender(globals)
+    ? PORTFOLIO_PEBBLE_VARIANT_DATA_MOBILE
+    : PORTFOLIO_PEBBLE_VARIANT_DATA_DESKTOP;
+  const variantIndex = Math.abs(index) % variants.length;
+  return variants[variantIndex];
 }
 
 function appendPebbleBodyPath(ctx, ball, radius) {
@@ -393,7 +411,7 @@ function computeLabelForBall(ctx, ball, config, project, fontFamily, isMobile) {
     ),
     12,
     48
-  ) * dpr;
+  ) * dpr * (isMobile ? MOBILE_TYPE_SCALE : 1);
   const diameter = ball.r * 2;
   const labelWidth = diameter * (1 - (insetRatio * 2));
   const labelHeight = diameter * (1 - (insetRatio * 2));

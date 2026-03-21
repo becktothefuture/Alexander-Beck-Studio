@@ -178,19 +178,18 @@ function isPortfolioSimulationPage() {
 
 export function detectOptimalDPR() {
   const baseDPR = window.devicePixelRatio || 1;
-  const isPortfolioPage = isPortfolioSimulationPage();
-
-  if (isPortfolioPage) {
-    effectiveDPR = Math.min(baseDPR, 2);
-    setEffectiveDPR(effectiveDPR);
-    return effectiveDPR;
-  }
-  
-  // Check for low-power hints
   const isLowPower = navigator.connection?.saveData || 
                      navigator.hardwareConcurrency <= 4 ||
                      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  
+  const isPortfolioPage = isPortfolioSimulationPage();
+
+  if (isPortfolioPage) {
+    const portfolioCap = isLowPower ? 1.5 : 2;
+    effectiveDPR = Math.min(baseDPR, portfolioCap);
+    setEffectiveDPR(effectiveDPR);
+    return effectiveDPR;
+  }
+
   // Cap DPR more aggressively on mobile/low-power devices
   if (isLowPower) {
     const lowPowerCap = 1.25;

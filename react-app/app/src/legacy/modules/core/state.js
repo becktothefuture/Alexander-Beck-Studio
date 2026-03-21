@@ -2454,7 +2454,7 @@ export function getMobileAdjustedCount(baseCount) {
   }
 
   let factor = 1;
-  if (globals.isMobile) {
+  if (globals.isMobile || globals.isMobileViewport) {
     const mobileFactor = Math.max(0, Math.min(1, Number(globals.mobileObjectReductionFactor ?? 0.7)));
     const reductionThreshold = Math.max(0, Number(globals.mobileObjectReductionThreshold ?? 0));
     const shouldReduce = reductionThreshold > 0 ? n >= reductionThreshold : true;
