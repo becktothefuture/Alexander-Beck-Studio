@@ -4,7 +4,7 @@ Guide for how the site should feel in motion, at rest, and during state changes.
 
 **Goal:** The interface should feel solid, continuous, and available. Motion should confirm change without making the UI feel absent, airy, or temporarily lost.
 
-**Related:** [`SITE-STYLEGUIDE.md`](SITE-STYLEGUIDE.md), [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md), [`TONE-OF-VOICE.md`](TONE-OF-VOICE.md), [`AGENTS.md`](../../AGENTS.md)
+**Related:** [`SITE-STYLEGUIDE.md`](SITE-STYLEGUIDE.md), [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md), [`TRANSITION-ORCHESTRATION.md`](TRANSITION-ORCHESTRATION.md), [`TONE-OF-VOICE.md`](TONE-OF-VOICE.md), [`AGENTS.md`](../../AGENTS.md)
 
 ---
 
@@ -144,6 +144,8 @@ If the answer exposes delay, fragmentation, or theatrical absence in primary UI,
 - [ ] Motion supports accessibility by reducing cognitive reconstruction work.
 - [ ] Verified on home, portfolio, CV, and modal flows affected by the change.
 - [ ] Verified with `prefers-reduced-motion` if the change adds or alters motion.
+- [ ] Transition ownership still follows `TRANSITION-ORCHESTRATION.md` (single owner + phase contract).
+- [ ] Chromium + WebKit transition audits are attached (normal + strict RAF), including in-flight and settled checkpoints.
 
 ---
 

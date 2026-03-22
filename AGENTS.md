@@ -13,6 +13,7 @@
 - `npm run audit:canvas-spa` — Playwright: **polls until** `#c` buffer matches layout×DPR after each hop (`ABS_SPA_ROUNDS`, `ABS_CANVAS_WAIT_MS`, `ABS_DEV_URL`, `ABS_AUDIT_QUIET=1` optional)
 - `npm run audit:canvas-spa:quick` — 2 round-trips, one-line PASS (POSIX env; Windows: set vars then `node scripts/audit-canvas-spa.mjs`)
 - `npm run audit:portfolio-gate` — Playwright: home → portfolio modal `1234` → pit; asserts `#c` buffer vs CSS×DPR and non-empty `.portfolio-project-label__text` (`ABS_DEV_URL` = origin e.g. `http://127.0.0.1:8013` or preview; run `npm run preview` in another shell first)
+- `npm run audit:transition-flows` — Playwright transition audit with in-flight + settled checkpoints, screenshots, timing assertions, and optional strict cadence (`ABS_BROWSER=chromium|webkit`, `ABS_TRANSITION_STRICT_RAF=1`)
 - `npm run validate:html-fragments` — Validate partial HTML templates
 - No automated tests; manual testing required (all 20 modes, 60 FPS, mobile)
 
@@ -28,6 +29,7 @@
 - Build: Vite → `react-app/app/dist/`
 - **Site UI styleguide (chrome buttons, harmony):** `docs/reference/SITE-STYLEGUIDE.md`
 - **Material presence (site-wide motion and continuity rule):** `docs/reference/MATERIAL-PRESENCE.md` is canonical. Preserve perceptual continuity, restore primary UI quickly as whole objects/groups, and avoid decorative delay that makes controls feel absent or rebuilt.
+- **Transition orchestration (ownership + test gate):** `docs/reference/TRANSITION-ORCHESTRATION.md` is canonical. Keep one transition owner, phase contract on `<html data-abs-transition-phase>`, and enforce transition audits for any motion/routing change.
 - **Route top bar:** Same standing as the **footer**—fixed pattern only: `header.ui-top` → `ui-top-main.route-topbar` → `route-topbar__left` / `route-topbar__center.ui-main-nav` (`.footer_link` buttons) / `route-topbar__right` + `#sound-toggle-slot`. Do not invent alternate top-bar text buttons or absolute-center layouts. See `docs/reference/COMPONENT-LIBRARY.md` (route top bar) + `SITE-STYLEGUIDE.md` §1.4 + live `/styleguide.html`.
 - **Layer stacking (z-order):** **`docs/reference/LAYER-STACKING.md` is canonical.** Read it before changing `#portfolio-sheet-host`, `.fade-content`, `#abs-scene`, or `#portfolioProjectView` mount. **Portfolio drawer MUST stack above header + footer** (`.fade-content`, z-index 200): host is **`#abs-scene` sibling after `.fade-content`**, z-index **220** / **260** when open — **never** only inside `#simulations`.
 - **Portfolio pit physics (collisions, walls, spatial grid):** `docs/reference/PORTFOLIO-PIT-PHYSICS.md`
@@ -50,6 +52,8 @@
 
 ## Verification
 - `npm run certify:screens` writes to `output/playwright/screens-certification/`; the whole `output/playwright/` tree is gitignored—regenerate after visual changes. Scratch audit scripts under `tmp/*.cjs` / `output/cv_audit.js` are gitignored—do not commit.
+- For transition/motion/routing changes, run `audit:transition-flows` for both Chromium and WebKit. Also run strict mode (`ABS_TRANSITION_STRICT_RAF=1`) and attach in-flight + settled artifacts for review.
+- Run transition audits **serially** per browser when validating reliability (avoid parallel Playwright runs against the same server/output path to reduce false negatives).
 - After changes to SPA routing, `renderer.js`, `loop.js`, or keyed wall/canvas remounts: with **dev server on 8012**, run `npm run audit:canvas-spa`. It asserts **backing-store dimensions** (fails on 300×150-style remount bugs); it does not prove 60 FPS or every browser quirk—manual pass still matters.
 - For config or panel changes, verify the full parity loop:
   - change value in dev
