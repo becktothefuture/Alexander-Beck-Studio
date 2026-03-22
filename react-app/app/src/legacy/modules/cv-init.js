@@ -101,11 +101,17 @@ export async function bootstrapCvPage() {
       });
     };
 
+    const shellRouteTransitionActive = document.documentElement.dataset.absRouteTransition === 'active';
     // Check if View Transition just handled the animation (skip entrance entirely)
     const { didViewTransitionRun } = await import('./utils/page-nav.js');
     const viewTransitionHandled = didViewTransitionRun();
     
-    if (viewTransitionHandled) {
+    if (shellRouteTransitionActive) {
+      // SPA route transitions are orchestrated by useShellRouteTransition.
+      // Skip legacy entrance work and let the shell own reveal timing.
+      removeBlocker();
+      console.log('✓ CV entrance skipped (shell route transition active)');
+    } else if (viewTransitionHandled) {
       await waitForVisualReady();
       // View Transition handled animation - just reveal elements instantly
       forcePageVisible(['#abs-scene', '#app-frame', '.cv-scroll-container']);

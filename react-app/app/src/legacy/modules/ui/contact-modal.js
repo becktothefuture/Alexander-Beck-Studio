@@ -273,8 +273,17 @@ export function initContactModal() {
   try {
     if (sessionStorage.getItem('abs_open_contact_modal')) {
       sessionStorage.removeItem('abs_open_contact_modal');
-      // Defer one frame so other init steps (overlay, layout) are fully settled.
-      requestAnimationFrame(() => openGate());
+      // Defer until the shell route transition has yielded ownership.
+      const startedAt = performance.now();
+      const waitForRouteSettleThenOpen = () => {
+        const shellBusy = document.documentElement.dataset.absRouteTransition === 'active';
+        if (shellBusy && (performance.now() - startedAt) < 2000) {
+          setStableTimeout(waitForRouteSettleThenOpen, 16);
+          return;
+        }
+        openGate();
+      };
+      setStableTimeout(waitForRouteSettleThenOpen, 0);
     }
   } catch (e) {}
 }

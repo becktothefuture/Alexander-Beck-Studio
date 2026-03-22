@@ -7,7 +7,6 @@ import { activateModalAccessibility } from './modal-accessibility.js';
 import { getText } from '../utils/text-loader.js';
 import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
 import { consumeGateRequest, markGateAccess } from '../../../lib/access-gates.js';
-import { setStableTimeout } from '../../../lib/legacy-runtime-scope.js';
 import {
     closeGateModal,
     dismissGateBackdrop,
@@ -155,7 +154,7 @@ export function initCVModal() {
         const enteredCode = inputs.map(input => input.value).join('');
         
         if (enteredCode.length === 4) {
-            if (enteredCode === INVITE_CODE) {
+                if (enteredCode === INVITE_CODE) {
                 // ═══════════════════════════════════════════════════════════════════
                 // GATE UNLOCK ANIMATION SEQUENCE (US-005)
                 // 1. Input pulse (200ms) - immediate tactile feedback
@@ -175,15 +174,12 @@ export function initCVModal() {
                 
                 markGateAccess('cv');
 
-                setStableTimeout(() => {
+                requestAnimationFrame(() => {
                     closeGate(false, { restoreFocus: false, keepBackdrop: true });
                     navigateWithTransition('cv.html', NAV_STATES.INTERNAL, {
                         transitionStyle: 'gate-success',
-                        exitMs: 400,
-                        enterMs: 400,
-                        readyFallbackMs: 2000
                     });
-                }, 140);
+                });
                 
             } else {
                 // Failure - clear inputs

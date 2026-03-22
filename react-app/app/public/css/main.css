@@ -2736,10 +2736,13 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   --ui-duration-out: 455ms;
   --ui-logo-duration-in: 1040ms;
   --ui-nav-return-duration: 240ms;
+  --ui-route-duration-in: 280ms;
+  --ui-route-duration-out: 220ms;
+  --ui-route-stagger: 0ms;
   
   /* Nav staggering — links appear after hero title has emerged */
   --ui-stagger: 104ms;
-  --ui-nav-delay: 0ms;
+  --ui-nav-delay: 1000ms;
 }
 
 /* State flag toggles */
@@ -2756,6 +2759,9 @@ html.modal-active { --ui-obscured: 1; }
     --ui-duration-out: 150ms;
     --ui-logo-duration-in: 200ms;
     --ui-stagger: 0ms;
+    --ui-route-duration-in: 150ms;
+    --ui-route-duration-out: 150ms;
+    --ui-route-stagger: 0ms;
     --ui-nav-delay: 0ms;
     --ui-entrance-blur: 0px;
     --ui-entrance-ty: 0px;
@@ -2785,12 +2791,12 @@ html.modal-active { --ui-obscured: 1; }
    ───────────────────────────────────────────────────────────────────────────── */
 
 /* Assign stagger indices to each link */
-#main-links .footer_link:nth-child(1) { --i: 0; --ri: 2; }
-#main-links .footer_link:nth-child(2) { --i: 1; --ri: 1; }
-#main-links .footer_link:nth-child(3) { --i: 2; --ri: 0; }
+.ui-main-nav .footer_link:nth-child(1) { --i: 0; --ri: 2; }
+.ui-main-nav .footer_link:nth-child(2) { --i: 1; --ri: 1; }
+.ui-main-nav .footer_link:nth-child(3) { --i: 2; --ri: 0; }
 
 /* Nav link animation */
-#main-links .footer_link {
+.ui-main-nav .footer_link {
   /* Derived properties from state */
   opacity: calc(var(--ui-page-opacity) * var(--ui-visible));
   filter: blur(calc(var(--ui-entrance-blur) * (1 - var(--ui-entered))));
@@ -2812,7 +2818,7 @@ html.modal-active { --ui-obscured: 1; }
 
 /* SPA route transitions already animate the home nav row as part of the shell
    reveal, so skip the secondary delayed entrance on the individual pills. */
-html[data-abs-route-transition="active"] #main-links .footer_link {
+html[data-abs-route-transition='active'] .ui-main-nav .footer_link {
   opacity: 1;
   filter: blur(0);
   transform: translateY(0) scale(1);
@@ -2820,22 +2826,39 @@ html[data-abs-route-transition="active"] #main-links .footer_link {
   transition-duration: 0ms;
 }
 
+/* During shell-owned route transitions, disable layered CSS animations on key route surfaces.
+   This avoids CSS/WAAPI interference while route content is hidden and re-animated by JS. */
+html[data-abs-route-transition='active'] #shell-wall-slot,
+html[data-abs-route-transition='active'] #shell-hero-slot,
+html[data-abs-route-transition='active'] #hero-title,
+html[data-abs-route-transition='active'] .fade-content {
+  transition: none;
+}
+
+html[data-abs-route-transition='active'] main.ui-center.center-stage--modal-hidden,
+html[data-abs-route-transition='active'] main.ui-center-spacer.center-stage--modal-hidden,
+html[data-abs-route-transition='active'] .hero-title.fade-out-up,
+html[data-abs-route-transition='active'] .cv-scroll-container.fade-out-up,
+html[data-abs-route-transition='active'] body.cv-page #abs-scene {
+  transition: none;
+}
+
 /* Exit stagger: reverse order (right to left) when modal opens */
-html.modal-active #main-links .footer_link {
+html.modal-active .ui-main-nav .footer_link {
   transition-duration: var(--ui-duration-out);
   transition-timing-function: var(--ui-ease-out);
   transition-delay: calc(var(--ui-stagger) * var(--ri, 0));
 }
 
 /* On modal close, restore the row as one unit instead of replaying the full entrance stagger. */
-html.modal-returning #main-links .footer_link {
+html.modal-returning .ui-main-nav .footer_link {
   transition-duration: var(--ui-nav-return-duration);
   transition-timing-function: var(--ui-ease-in);
   transition-delay: 0ms;
 }
 
 /* Disable pointer events when hidden */
-html.modal-active #main-links { pointer-events: none; }
+html.modal-active .ui-main-nav { pointer-events: none; }
 
 /* Legacy .brand-logo-svg sizing removed — replaced by shared .hero-title__* font-size */
 
@@ -3893,7 +3916,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   pointer-events: none;
   
   opacity: 0;
-  transition: opacity var(--modal-overlay-transition-out-duration, 1700ms) var(--ease-gate-motion);
+  transition: opacity var(--modal-overlay-transition-out-duration, var(--ui-nav-return-duration, 240ms)) var(--ease-gate-motion);
   
   display: flex;
   flex-direction: column;
@@ -6020,6 +6043,14 @@ html {
 #cv-modal,
 #portfolio-modal,
 #contact-modal,
+.modal-overlay,
+#modal-blur-layer,
+#modal-content-layer,
+#modal-modal-host,
+.modal-blur-layer,
+.modal-content-layer,
+.modal-modal-host,
+#custom-cursor,
 .modal,
 .panel,
 #master-panel,
@@ -6049,13 +6080,13 @@ html {
 
 /* Old content recedes into depth */
 ::view-transition-old(content) {
-  animation: vt-recede 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: vt-recede var(--ui-duration-out, 450ms) var(--ui-ease-out, cubic-bezier(0.4, 0, 1, 1)) forwards;
   transform-origin: center center;
 }
 
 /* New content emerges from depth */
 ::view-transition-new(content) {
-  animation: vt-emerge 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: vt-emerge var(--ui-duration-in, 780ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
   transform-origin: center center;
 }
 

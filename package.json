@@ -21,6 +21,7 @@
     "audit:portfolio-pebbles": "node scripts/audit-portfolio-pebbles.mjs",
     "audit:portfolio-drawer": "node scripts/audit-portfolio-drawer-open.mjs",
     "audit:portfolio-drawer:pointer": "node scripts/audit-portfolio-drawer-pointer.mjs",
+    "audit:transition-flows": "node scripts/audit-transition-flows.mjs",
     "start": "npm run preview",
     "startup": "node scripts/dev-startup.js",
     "precommit:check": "bash scripts/precommit-check.sh",

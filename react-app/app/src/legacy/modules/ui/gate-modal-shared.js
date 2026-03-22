@@ -1,5 +1,6 @@
 import {
   forceHideOverlayModal,
+  getGateHandoffDurationMs,
   getModalCloseDurationMs,
   hideOverlay,
   mountModalIntoOverlay,
@@ -69,6 +70,10 @@ export function closeGateModal({
   keepBackdrop = false,
   shouldFinalize = () => true
 }) {
+  const closeDurationMs = keepBackdrop
+    ? getGateHandoffDurationMs()
+    : getModalCloseDurationMs();
+
   if (instant) {
     modal.style.transition = 'none';
 
@@ -90,6 +95,7 @@ export function closeGateModal({
   modal.classList.add('closing');
   modal.setAttribute('aria-hidden', 'true');
   modal.dataset.modalState = 'closing';
+  modal.style.transitionDuration = `${closeDurationMs}ms`;
 
   if (!keepOverlayActive && !keepBackdrop) {
     setCenterStageObscured(false);
@@ -101,11 +107,12 @@ export function closeGateModal({
     if (shouldFinalize()) {
       setModalHidden(modal);
     }
-  }, getModalCloseDurationMs());
+    modal.style.removeProperty('transition-duration');
+  }, closeDurationMs);
 }
 
-export function dismissGateBackdrop() {
+export function dismissGateBackdrop({ suppressReturnAnimation = false } = {}) {
   setCenterStageObscured(false);
   setCvContainerObscured(false);
-  hideOverlay();
+  hideOverlay({ suppressReturnAnimation });
 }

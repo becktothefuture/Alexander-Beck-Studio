@@ -38,34 +38,47 @@ if (typeof window !== 'undefined') {
       // during the View Transition animation. The View Transition handles the animation,
       // so we don't need the entrance animation's initial hidden state.
       document.documentElement.classList.remove('entrance-pre-transition', 'entrance-transitioning');
-      document.documentElement.classList.add('entrance-complete');
+      document.documentElement.classList.add('entrance-complete', 'ui-entered');
       
       // Ensure key elements are visible (they may have inline opacity: 0 from HTML)
-      const elementsToReveal = ['#app-frame', '#abs-scene', '#brand-logo', '#main-links'];
+      const elementsToReveal = ['#app-frame', '#abs-scene', '#hero-title'];
       elementsToReveal.forEach(selector => {
         const el = document.querySelector(selector);
         if (el) {
-          el.style.opacity = '1';
-          el.style.visibility = 'visible';
+          el.style.removeProperty('opacity');
+          el.style.removeProperty('visibility');
         }
       });
       
-      // Also reveal main-links buttons
-      document.querySelectorAll('#main-links .footer_link').forEach(btn => {
-        btn.style.opacity = '1';
-        btn.style.transform = 'translateY(0) scale(1)';
-        btn.style.filter = 'blur(0)';
+      // Also reveal route nav buttons
+      document.querySelectorAll('.ui-main-nav .footer_link').forEach(btn => {
+        btn.style.removeProperty('opacity');
+        btn.style.removeProperty('transform');
+        btn.style.removeProperty('filter');
+      });
+
+      // Clear inline hero title line state if any prior transition wrote temporary values.
+      document.querySelectorAll(
+        '.hero-title__name, .hero-title__role, .hero-title__line, .hero-title__eyebrow'
+      ).forEach((node) => {
+        node.style.removeProperty('opacity');
+        node.style.removeProperty('filter');
+        node.style.removeProperty('transform');
       });
     }
   });
   
   // Close overlays before navigation to prevent ghost UI in view transitions
   window.addEventListener('pageswap', () => {
-    closeOverlaysBeforeNavigation();
+    closeOverlaysBeforeNavigation({
+      preserveBackdrop: document.documentElement.dataset.absGateTransition === 'active',
+    });
   });
   
   window.addEventListener('pagehide', () => {
-    closeOverlaysBeforeNavigation();
+    closeOverlaysBeforeNavigation({
+      preserveBackdrop: document.documentElement.dataset.absGateTransition === 'active',
+    });
   });
 }
 
@@ -73,19 +86,46 @@ if (typeof window !== 'undefined') {
  * Close all modals, panels, and overlays before navigation.
  * Prevents ghost UI artifacts in View Transitions.
  */
-function closeOverlaysBeforeNavigation() {
+function closeOverlaysBeforeNavigation({ preserveBackdrop = false } = {}) {
   // Close modals
-  const modals = document.querySelectorAll('.modal.active, [data-modal].active');
+  const modals = document.querySelectorAll(
+    '.modal.active, [data-modal].active, #contact-modal:not(.hidden), #cv-modal:not(.hidden), #portfolio-modal:not(.hidden)'
+  );
   modals.forEach(modal => {
     modal.classList.remove('active');
+    modal.classList.remove('closing');
+    modal.classList.add('hidden');
     modal.setAttribute('aria-hidden', 'true');
+    modal.dataset.modalState = 'hidden';
   });
   
-  // Close modal overlay
-  const overlay = document.getElementById('modal-overlay');
-  if (overlay?.classList.contains('active')) {
-    overlay.classList.remove('active');
+  // Close legacy and modern overlay layers.
+  const overlaySelectors = [
+    '#modal-overlay',
+    '#modal-blur-layer',
+    '#modal-content-layer',
+    '#modal-modal-host',
+    '.modal-overlay',
+    '.modal-blur-layer',
+    '.modal-content-layer',
+    '.modal-modal-host',
+  ];
+
+  if (!preserveBackdrop) {
+    overlaySelectors.forEach((selector) => {
+      document.querySelectorAll(selector).forEach((overlay) => {
+        overlay.classList.remove('active', 'hidden', 'open');
+        overlay.setAttribute('aria-hidden', 'true');
+      });
+    });
   }
+
+  document.querySelectorAll('#modal-modal-host > .contact-modal, #modal-modal-host > .cv-modal, #modal-modal-host > .portfolio-modal').forEach((modal) => {
+    modal.classList.remove('active', 'closing');
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    modal.dataset.modalState = 'hidden';
+  });
   
   // Close settings/master panel if open
   const panel = document.getElementById('master-panel');
@@ -93,8 +133,40 @@ function closeOverlaysBeforeNavigation() {
     panel.classList.remove('open');
   }
   
-  // Remove any modal-active class from html
-  document.documentElement.classList.remove('modal-active');
+  // Reset modal state classes
+  if (preserveBackdrop) {
+    document.documentElement.classList.remove('modal-returning');
+  } else {
+    document.documentElement.classList.remove('modal-active', 'modal-returning');
+  }
+
+  if (!preserveBackdrop) {
+    const scene = document.getElementById('abs-scene');
+    if (scene) {
+      scene.classList.remove('gate-depth-active');
+    }
+  }
+
+  if (!preserveBackdrop) {
+    const cursor = document.getElementById('custom-cursor');
+    if (cursor) {
+      cursor.classList.remove('modal-active');
+      if (cursor.style.display) {
+        cursor.style.display = '';
+      }
+    }
+  }
+
+  // Remove temporary modal obscuration from route content.
+  if (!preserveBackdrop) {
+    const cvContainer = document.querySelector('.cv-scroll-container');
+    if (cvContainer) {
+      cvContainer.classList.remove('fade-out-up');
+    }
+    document.querySelectorAll('main.ui-center, main.ui-center-spacer').forEach((el) => {
+      el.classList.remove('center-stage--modal-hidden');
+    });
+  }
 }
 
 // Navigation state types
@@ -172,6 +244,15 @@ export function getNavigationState() {
   return null;
 }
 
+export function clearNavigationState() {
+  try {
+    sessionStorage.removeItem(NAV_STATE_KEY);
+    sessionStorage.removeItem(NAV_TIMESTAMP_KEY);
+  } catch (e) {
+    // Storage unavailable
+  }
+}
+
 /**
  * Check if page was loaded via browser back/forward navigation.
  * Uses Performance Navigation Timing API.
@@ -245,23 +326,27 @@ export function getModalToAutoOpen() {
  * @param {object} options - Optional SPA transition controls
  */
 export async function navigateWithTransition(href, state = NAV_STATES.INTERNAL, options = {}) {
-  if (isTransitioning) return; // Debounce rapid clicks
+  if (isTransitioning) return true; // Already transitioning; treat as handled.
   isTransitioning = true;
   
   setNavigationState(state);
 
   const spaHandled = await Promise.resolve(trySpaNavigate(href, { state, ...options }));
   if (spaHandled) {
+    clearNavigationState();
     resetTransitionState();
-    return;
+    return true;
   }
   
   const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
   
   // If View Transitions API is supported, just navigate (browser handles animation via CSS)
   if (supportsViewTransitions()) {
+    closeOverlaysBeforeNavigation({
+      preserveBackdrop: options.transitionStyle === 'gate-success',
+    });
     window.location.href = href;
-    return;
+    return false;
   }
   
   // Safari/Firefox fallback: departure animation before navigation
@@ -277,6 +362,7 @@ export async function navigateWithTransition(href, state = NAV_STATES.INTERNAL, 
   }
   
   window.location.href = href;
+  return false;
 }
 
 /**

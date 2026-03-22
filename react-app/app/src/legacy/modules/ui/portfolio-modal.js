@@ -8,7 +8,6 @@ import { getText } from '../utils/text-loader.js';
 import { isDev } from '../utils/logger.js';
 import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
 import { consumeGateRequest, markGateAccess } from '../../../lib/access-gates.js';
-import { setStableTimeout } from '../../../lib/legacy-runtime-scope.js';
 import {
     closeGateModal,
     dismissGateBackdrop,
@@ -180,7 +179,7 @@ export function initPortfolioModal() {
         const enteredCode = inputs.map(input => input.value).join('');
         
         if (enteredCode.length === 4) {
-            if (enteredCode === INVITE_CODE) {
+                if (enteredCode === INVITE_CODE) {
                 // ═══════════════════════════════════════════════════════════════════
                 // GATE UNLOCK ANIMATION SEQUENCE (US-005)
                 // 1. Input pulse (200ms) - immediate tactile feedback
@@ -203,15 +202,12 @@ export function initPortfolioModal() {
                 // Hide the modal card but keep the backdrop/overlay frozen so the
                 // shell transition can animate over a stable visual state.
                 // The shell will call dismissGateBackdrop() after the new route enters.
-                setStableTimeout(() => {
+                requestAnimationFrame(() => {
                     closeGate(false, { restoreFocus: false, keepBackdrop: true });
                     navigateWithTransition('portfolio.html', NAV_STATES.INTERNAL, {
                         transitionStyle: 'gate-success',
-                        exitMs: 400,
-                        enterMs: 400,
-                        readyFallbackMs: 2000
                     });
-                }, 140);
+                });
                 
             } else {
                 // Failure - clear inputs

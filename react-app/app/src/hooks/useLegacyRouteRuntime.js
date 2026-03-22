@@ -3,7 +3,11 @@ import { createLegacyRuntimeScope } from '../lib/legacy-runtime-scope.js';
 
 function dispatchRouteReady(routeId) {
   if (typeof window === 'undefined' || !routeId) return;
-  window.dispatchEvent(new CustomEvent('abs:route-ready', { detail: { routeId } }));
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent('abs:route-ready', { detail: { routeId } }));
+    });
+  });
 }
 
 export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId }) {
@@ -13,6 +17,11 @@ export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId 
     const scope = createLegacyRuntimeScope();
     let cancelled = false;
     let legacyCleanup = null;
+    const markReady = () => {
+      if (!cancelled) {
+        dispatchRouteReady(routeId);
+      }
+    };
 
     Promise.resolve()
       .then(() => loadModule())
@@ -24,12 +33,14 @@ export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId 
             if (typeof cleanup === 'function') {
               legacyCleanup = cleanup;
             }
-            if (!cancelled) {
-              dispatchRouteReady(routeId);
-            }
           });
         }
         throw new Error(`Legacy module is missing export "${exportName}"`);
+      })
+      .then(() => {
+        if (!cancelled) {
+          markReady();
+        }
       })
       .catch((error) => {
         if (!cancelled) {

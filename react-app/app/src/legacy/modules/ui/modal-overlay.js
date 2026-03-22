@@ -72,6 +72,22 @@ export function getModalCloseDurationMs(fallback = 700) {
     return fallback;
 }
 
+export function getGateHandoffDurationMs(fallback = 220) {
+    try {
+        const routeOutRaw = getComputedStyle(document.documentElement)
+            .getPropertyValue('--ui-route-duration-out')
+            .trim();
+        const uiOutRaw = getComputedStyle(document.documentElement)
+            .getPropertyValue('--ui-duration-out')
+            .trim();
+        const parsed = parseFloat(routeOutRaw || uiOutRaw);
+        if (Number.isFinite(parsed) && parsed >= 0) {
+            return parsed;
+        }
+    } catch (e) {}
+    return fallback;
+}
+
 function getNavReturnDurationMs(fallback = 240) {
     try {
         const raw = getComputedStyle(document.documentElement)
@@ -229,14 +245,26 @@ export function initModalOverlay(config) {
     root.style.setProperty('--modal-overlay-transition-duration', `${transitionMs}ms`);
     root.style.setProperty('--modal-overlay-transition-out-duration', `${transitionOutMs}ms`);
     
-    // Ensure initial state: not active
-    blurLayerElement.classList.remove('active');
-    contentLayerElement.classList.remove('active');
-    blurLayerElement.setAttribute('aria-hidden', 'true');
-    contentLayerElement.setAttribute('aria-hidden', 'true');
-    
-    // Explicitly ensure blur is cleared on initialization (no modal active)
-    applyDepthEffect(false);
+    const preserveActiveBackdrop =
+      blurLayerElement.classList.contains('active')
+      || contentLayerElement.classList.contains('active')
+      || document.documentElement.classList.contains('modal-active');
+
+    if (preserveActiveBackdrop) {
+      blurLayerElement.classList.add('active');
+      contentLayerElement.classList.add('active');
+      blurLayerElement.setAttribute('aria-hidden', 'false');
+      contentLayerElement.setAttribute('aria-hidden', 'false');
+      document.documentElement.classList.add('modal-active');
+      applyDepthEffect(true);
+    } else {
+      // Ensure initial state: not active
+      blurLayerElement.classList.remove('active');
+      contentLayerElement.classList.remove('active');
+      blurLayerElement.setAttribute('aria-hidden', 'true');
+      contentLayerElement.setAttribute('aria-hidden', 'true');
+      applyDepthEffect(false);
+    }
     
     // Click on content layer dismisses active modal
     contentLayerElement.addEventListener('click', handleOverlayClick, { capture: true });
@@ -366,8 +394,18 @@ export function showOverlay() {
 /**
  * Hide the overlay with smooth blur animation
  */
-export function hideOverlay() {
+export function hideOverlay({ suppressReturnAnimation = false } = {}) {
     if (!blurLayerElement || !contentLayerElement || !isEnabled) return;
+
+    const wasOverlayActive =
+      blurLayerElement.classList.contains('active') ||
+      contentLayerElement.classList.contains('active') ||
+      document.documentElement.classList.contains('modal-active');
+
+    if (!wasOverlayActive) {
+      clearModalReturnState();
+      return;
+    }
 
     clearModalReturnState();
     
@@ -375,13 +413,17 @@ export function hideOverlay() {
     blurLayerElement.classList.remove('active');
     contentLayerElement.classList.remove('active');
 
-    document.documentElement.classList.add('modal-returning');
     // Remove modal-active (CSS will animate logo/nav back in)
     document.documentElement.classList.remove('modal-active');
-    modalReturnClassTimeout = window.setTimeout(() => {
-        document.documentElement.classList.remove('modal-returning');
-        modalReturnClassTimeout = null;
-    }, getNavReturnDurationMs() + 50);
+    if (!suppressReturnAnimation) {
+      document.documentElement.classList.add('modal-returning');
+      modalReturnClassTimeout = window.setTimeout(() => {
+          document.documentElement.classList.remove('modal-returning');
+          modalReturnClassTimeout = null;
+      }, getNavReturnDurationMs() + 50);
+    } else {
+      document.documentElement.classList.remove('modal-returning');
+    }
     
     blurLayerElement.setAttribute('aria-hidden', 'true');
     contentLayerElement.setAttribute('aria-hidden', 'true');

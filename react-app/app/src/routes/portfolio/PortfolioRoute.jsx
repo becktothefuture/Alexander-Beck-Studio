@@ -56,7 +56,6 @@ export function getPortfolioRouteView() {
               href="index.html"
               className="gate-back abs-icon-btn"
               data-nav-transition
-              data-transition
               aria-label="Back to home"
             >
               <i className="ti ti-arrow-left" aria-hidden="true" />

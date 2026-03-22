@@ -37,7 +37,9 @@ export function StudioShell({
               {wallContent}
             </div>
           </div>
-          {heroTitle}
+          <div id="shell-hero-slot" className="shell-hero-slot">
+            {heroTitle}
+          </div>
         </div>
         <div className="frame-vignette" aria-hidden="true" />
 
