@@ -3,6 +3,17 @@ import { hasGateAccess, requestGateOpen } from '../lib/access-gates.js';
 import { buildRouteHref, getRouteById, resolveRouteFromHref, resolveRouteFromPathname } from '../lib/routes.js';
 import { installSpaNavigationBridge } from '../lib/spa-navigation.js';
 import { clearStableTimeout, setStableTimeout } from '../lib/legacy-runtime-scope.js';
+import {
+  clearLegacyRouteTransitionFlags,
+  clearTransitionReturningState,
+  getTransitionPhase,
+  installTransitionPhaseObserver,
+  isRouteTransitionPhase,
+  setLegacyRouteTransitionActive,
+  setTransitionPhase,
+  syncTransitionPhaseFromDom,
+  TRANSITION_PHASES
+} from '../lib/transition-phase.js';
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    ROUTE STATE
@@ -152,19 +163,14 @@ function setRouteLayerVisibility(visible) {
 
 function forceBackdropDismiss() {
   try {
-    document.documentElement.classList.remove('modal-active');
-    document.documentElement.classList.remove('modal-returning');
+    setTransitionPhase(TRANSITION_PHASES.IDLE);
+    clearTransitionReturningState();
     const blur = document.getElementById('modal-blur-layer');
     const content = document.getElementById('modal-content-layer');
     if (blur) blur.classList.remove('active');
     if (content) content.classList.remove('active');
     const scene = document.getElementById('abs-scene');
     if (scene) scene.classList.remove('gate-depth-active');
-    document.querySelectorAll('main.ui-center, main.ui-center-spacer').forEach((el) => {
-      el.classList.remove('center-stage--modal-hidden');
-    });
-    const cv = document.querySelector('.cv-scroll-container');
-    if (cv) cv.classList.remove('fade-out-up');
   } catch {
     /* no-op */
   }
@@ -221,8 +227,8 @@ function finalizeTransition(
   if (isGate && !gateBackdropDismissed) {
     dismissGateBackdrop({ suppressReturnAnimation });
   }
-  delete document.documentElement.dataset.absGateTransition;
-  delete document.documentElement.dataset.absRouteTransition;
+  clearLegacyRouteTransitionFlags();
+  setTransitionPhase(TRANSITION_PHASES.IDLE);
 
   // Restore content layers.
   const { wall, hero, ui } = getContentLayers();
@@ -249,9 +255,9 @@ function interruptTransitionForPopstate(isGate) {
   if (isGate) {
     dismissGateBackdrop({ suppressReturnAnimation: true });
   }
-  delete document.documentElement.dataset.absGateTransition;
-  delete document.documentElement.dataset.absRouteTransition;
+  clearLegacyRouteTransitionFlags();
   setRouteLayerVisibility(false);
+  setTransitionPhase(TRANSITION_PHASES.IDLE);
 
   const { wall, hero, ui } = getContentLayers();
   if (wall) wall.style.willChange = 'auto';
@@ -419,7 +425,7 @@ function staggeredEntrance({
   return new Promise((resolve) => {
     const targets = collectStaggerTargets();
     const { wall, hero, ui } = getContentLayers();
-    const isRouteTransition = document.documentElement.dataset.absRouteTransition === 'active';
+    const isRouteTransition = isRouteTransitionPhase(getTransitionPhase());
 
     // Safety: if DOM is unexpectedly empty, just restore layers.
     if (targets.length === 0) {
@@ -529,6 +535,9 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
   const activeRouteIdRef = useRef(routeState.route.id);
   const activeGateTransitionRef = useRef(false);
   const activeRouteReadyCancelRef = useRef(null);
+  const syncSteadyTransitionPhase = useCallback(() => {
+    syncTransitionPhaseFromDom(document.documentElement);
+  }, []);
 
   const navigate = useCallback((href, options = {}) => {
     const route = resolveRouteFromHref(href, window.location.href);
@@ -591,6 +600,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
         suppressReturnAnimation: isGateTransition,
         gateBackdropDismissed,
       });
+      syncSteadyTransitionPhase();
       processQueuedNavigation();
     };
 
@@ -598,8 +608,8 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
     if (!isSameRoute && !reduceMotion) {
       transitionActiveRef.current = true;
       activeGateTransitionRef.current = isGate;
-      document.documentElement.dataset.absRouteTransition = 'active';
-      if (isGate) document.documentElement.dataset.absGateTransition = 'active';
+      setLegacyRouteTransitionActive(true, { gate: isGate });
+      setTransitionPhase(TRANSITION_PHASES.ROUTE_OUT);
 
       const token = ++transitionToken;
       const stale = () => token !== transitionToken;
@@ -636,6 +646,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
             routeReadyWaiter.cancel();
             return;
           }
+          setTransitionPhase(TRANSITION_PHASES.ROUTE_IN);
           setRouteLayerVisibility(true);
           return staggeredEntrance({
             enterMs: routeTimings.reveal,
@@ -665,8 +676,8 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
     if (isGate) {
       transitionActiveRef.current = true;
       activeGateTransitionRef.current = true;
-      document.documentElement.dataset.absRouteTransition = 'active';
-      document.documentElement.dataset.absGateTransition = 'active';
+      setLegacyRouteTransitionActive(true, { gate: true });
+      setTransitionPhase(TRANSITION_PHASES.ROUTE_OUT);
       const token = ++transitionToken;
       const stale = () => token !== transitionToken;
       const routeReadyWaiter = waitForRouteReady(nextState.route.id, routeTimings.ready);
@@ -697,6 +708,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
             routeReadyWaiter.cancel();
             return;
           }
+          setTransitionPhase(TRANSITION_PHASES.ROUTE_IN);
           setRouteLayerVisibility(true);
           dismissGateBackdropOnce();
           return undefined;
@@ -720,10 +732,36 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
 
     /* ── same-route or reduced-motion non-gate: instant commit ────────────── */
     commit();
+    syncSteadyTransitionPhase();
     return true;
-  }, [getRouteRuntime]);
+  }, [getRouteRuntime, syncSteadyTransitionPhase]);
 
   useEffect(() => installSpaNavigationBridge(navigate), [navigate]);
+
+  useEffect(() => installTransitionPhaseObserver({
+    root: document.documentElement,
+    isRouteTransitionActive: () => transitionActiveRef.current,
+  }), []);
+
+  useEffect(() => {
+    const onModalOpen = () => {
+      if (transitionActiveRef.current) return;
+      setTransitionPhase(TRANSITION_PHASES.MODAL_OPEN);
+    };
+    const onModalClose = (event) => {
+      if (transitionActiveRef.current) return;
+      setTransitionPhase(TRANSITION_PHASES.IDLE, {
+        returning: !event?.detail?.suppressReturnAnimation,
+      });
+    };
+
+    window.addEventListener('abs:transition-modal-open', onModalOpen);
+    window.addEventListener('abs:transition-modal-close', onModalClose);
+    return () => {
+      window.removeEventListener('abs:transition-modal-open', onModalOpen);
+      window.removeEventListener('abs:transition-modal-close', onModalClose);
+    };
+  }, []);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -746,6 +784,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
         setRouteLayerVisibility(true);
         setRouteState(nextState);
         activeRouteIdRef.current = nextState.route.id;
+        syncSteadyTransitionPhase();
         return;
       }
       setStableTimeout(() => {
@@ -763,13 +802,20 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
         finalizeTransition(activeGateTransitionRef.current);
         transitionActiveRef.current = false;
         activeGateTransitionRef.current = false;
+        syncSteadyTransitionPhase();
       }
     };
-  }, []);
+  }, [navigate, syncSteadyTransitionPhase]);
 
   useLayoutEffect(() => {
     activeRouteIdRef.current = routeState.route.id;
   }, [routeState.route.id]);
+
+  useLayoutEffect(() => {
+    if (!transitionActiveRef.current) {
+      syncSteadyTransitionPhase();
+    }
+  }, [routeState.route.id, syncSteadyTransitionPhase]);
 
   useLayoutEffect(() => {
     const gateId = routeState.redirectGateId || '';

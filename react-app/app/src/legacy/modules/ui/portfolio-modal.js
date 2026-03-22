@@ -10,7 +10,6 @@ import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
 import { consumeGateRequest, markGateAccess } from '../../../lib/access-gates.js';
 import {
     closeGateModal,
-    dismissGateBackdrop,
     hideCompetingGateModals,
     isGateModalParticipating,
     openGateModal,
@@ -21,7 +20,6 @@ export function initPortfolioModal() {
     const trigger = document.getElementById('portfolio-modal-trigger');
     const modal = document.getElementById('portfolio-modal');
     // Brand logo is optional (some layouts remove it); modal should still function without it.
-    const logo = document.getElementById('brand-logo');
     const cvGate = document.getElementById('cv-modal'); // Get CV modal to check/close if open
     const contactGate = document.getElementById('contact-modal'); // Get contact modal to check/close if open
     const inputs = Array.from(document.querySelectorAll('.portfolio-digit'));
@@ -81,7 +79,6 @@ export function initPortfolioModal() {
 
     // State
     let isOpen = false;
-    let lastOpenTime = 0;
     let deactivateModalA11y = null;
 
     // Helper to check if any modal is currently active
@@ -128,10 +125,8 @@ export function initPortfolioModal() {
         hideCompetingGateModals([cvGate, contactGate]);
         
         isOpen = true;
-        lastOpenTime = Date.now();
-        
         // Show overlay only if no modal was previously active
-        showGateBackdrop({ logo, hadActiveGate: wasAnyGateActive });
+        showGateBackdrop({ hadActiveGate: wasAnyGateActive });
 
         deactivateModalA11y = activateModalAccessibility(modal, {
             initialFocus: () => inputs[0]
@@ -151,7 +146,6 @@ export function initPortfolioModal() {
         
         closeGateModal({
             modal,
-            logo,
             instant,
             keepOverlayActive: isGateModalParticipating(cvGate) || isGateModalParticipating(contactGate),
             keepBackdrop: options.keepBackdrop || false,

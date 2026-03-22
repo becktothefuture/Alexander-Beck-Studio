@@ -5,6 +5,11 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { trySpaNavigate } from '../../../lib/spa-navigation.js';
+import {
+  clearTransitionReturningState,
+  setTransitionPhase,
+  TRANSITION_PHASES,
+} from '../../../lib/transition-phase.js';
 
 const NAV_STATE_KEY = 'abs_nav_state';
 const NAV_TIMESTAMP_KEY = 'abs_nav_ts';
@@ -133,18 +138,13 @@ function closeOverlaysBeforeNavigation({ preserveBackdrop = false } = {}) {
     panel.classList.remove('open');
   }
   
-  // Reset modal state classes
-  if (preserveBackdrop) {
-    document.documentElement.classList.remove('modal-returning');
-  } else {
-    document.documentElement.classList.remove('modal-active', 'modal-returning');
-  }
-
   if (!preserveBackdrop) {
     const scene = document.getElementById('abs-scene');
     if (scene) {
       scene.classList.remove('gate-depth-active');
     }
+    clearTransitionReturningState();
+    setTransitionPhase(TRANSITION_PHASES.IDLE);
   }
 
   if (!preserveBackdrop) {
@@ -157,16 +157,6 @@ function closeOverlaysBeforeNavigation({ preserveBackdrop = false } = {}) {
     }
   }
 
-  // Remove temporary modal obscuration from route content.
-  if (!preserveBackdrop) {
-    const cvContainer = document.querySelector('.cv-scroll-container');
-    if (cvContainer) {
-      cvContainer.classList.remove('fade-out-up');
-    }
-    document.querySelectorAll('main.ui-center, main.ui-center-spacer').forEach((el) => {
-      el.classList.remove('center-stage--modal-hidden');
-    });
-  }
 }
 
 // Navigation state types

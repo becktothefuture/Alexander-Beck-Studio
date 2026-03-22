@@ -616,14 +616,14 @@ export function showLogoAndLinks() {
 
 /**
  * Hide logo and links (when modal opens)
- * This is now handled by modal-overlay.js adding html.modal-active
+ * This is now handled by modal-overlay.js setting transition phase
  * which sets --ui-obscured: 1 and CSS derives opacity: 0
  * 
  * This function is kept for compatibility but does nothing -
- * modal visibility is controlled by the modal-active class on <html>
+ * modal visibility is controlled by data-abs-transition-phase on <html>
  */
 export function hideLogoAndLinks() {
-  // No-op: modal-overlay.js handles this via html.modal-active class
+  // No-op: modal-overlay.js handles this via transition phase state
   // CSS derives visibility from --ui-obscured state variable
 }
 

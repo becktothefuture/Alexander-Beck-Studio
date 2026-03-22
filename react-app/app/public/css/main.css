@@ -502,7 +502,7 @@ body.page-transitioning .page-content {
   }
 }
 
-html.modal-active .fade-content {
+html[data-abs-transition-phase='modal-open'] .fade-content {
   opacity: 1;
   transition-duration: var(--modal-hide-duration, 500ms);
 }
@@ -546,8 +546,8 @@ html.modal-active .fade-content {
 }
 
 /* Gate modals: hide center column (logo / spacer) without fighting .ui-center transform */
-main.ui-center.center-stage--modal-hidden,
-main.ui-center-spacer.center-stage--modal-hidden {
+html[data-abs-transition-phase='modal-open'] main.ui-center,
+html[data-abs-transition-phase='modal-open'] main.ui-center-spacer {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -556,8 +556,8 @@ main.ui-center-spacer.center-stage--modal-hidden {
     visibility 0s linear 0.4s;
 }
 
-main.ui-center:not(.center-stage--modal-hidden),
-main.ui-center-spacer:not(.center-stage--modal-hidden) {
+html:not([data-abs-transition-phase='modal-open']) main.ui-center,
+html:not([data-abs-transition-phase='modal-open']) main.ui-center-spacer {
   transition: opacity 0.4s var(--ease-hesitant), visibility 0s linear 0s;
 }
 
@@ -2606,7 +2606,7 @@ button.abs-meta-btn,
 }
 
 /* Faster exit when modal opens */
-html.modal-active .hero-title {
+html[data-abs-transition-phase='modal-open'] .hero-title {
   transition-duration: var(--ui-duration-out);
   transition-timing-function: var(--ui-ease-out);
 }
@@ -2705,7 +2705,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
    
    State flags (set by JS on <html>):
    - html.ui-entered: entrance animation complete, UI should be visible
-   - html.modal-active: modal is open, UI should be hidden
+   - html[data-abs-transition-phase='modal-open']: modal is open, UI should be hidden
    
    Properties derived from state via calc():
    - --ui-visible: 1 when entered AND not obscured, 0 otherwise
@@ -2747,7 +2747,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 /* State flag toggles */
 html.ui-entered { --ui-entered: 1; }
-html.modal-active { --ui-obscured: 1; }
+html[data-abs-transition-phase='modal-open'] { --ui-obscured: 1; }
 
 /* UI elements full opacity on all pages */
 :root { --ui-page-opacity: 1; }
@@ -2818,7 +2818,8 @@ html.modal-active { --ui-obscured: 1; }
 
 /* SPA route transitions already animate the home nav row as part of the shell
    reveal, so skip the secondary delayed entrance on the individual pills. */
-html[data-abs-route-transition='active'] .ui-main-nav .footer_link {
+html[data-abs-transition-phase='route-out'] .ui-main-nav .footer_link,
+html[data-abs-transition-phase='route-in'] .ui-main-nav .footer_link {
   opacity: 1;
   filter: blur(0);
   transform: translateY(0) scale(1);
@@ -2828,37 +2829,46 @@ html[data-abs-route-transition='active'] .ui-main-nav .footer_link {
 
 /* During shell-owned route transitions, disable layered CSS animations on key route surfaces.
    This avoids CSS/WAAPI interference while route content is hidden and re-animated by JS. */
-html[data-abs-route-transition='active'] #shell-wall-slot,
-html[data-abs-route-transition='active'] #shell-hero-slot,
-html[data-abs-route-transition='active'] #hero-title,
-html[data-abs-route-transition='active'] .fade-content {
+html[data-abs-transition-phase='route-out'] #shell-wall-slot,
+html[data-abs-transition-phase='route-out'] #shell-hero-slot,
+html[data-abs-transition-phase='route-out'] #hero-title,
+html[data-abs-transition-phase='route-out'] .fade-content,
+html[data-abs-transition-phase='route-in'] #shell-wall-slot,
+html[data-abs-transition-phase='route-in'] #shell-hero-slot,
+html[data-abs-transition-phase='route-in'] #hero-title,
+html[data-abs-transition-phase='route-in'] .fade-content {
   transition: none;
 }
 
-html[data-abs-route-transition='active'] main.ui-center.center-stage--modal-hidden,
-html[data-abs-route-transition='active'] main.ui-center-spacer.center-stage--modal-hidden,
-html[data-abs-route-transition='active'] .hero-title.fade-out-up,
-html[data-abs-route-transition='active'] .cv-scroll-container.fade-out-up,
-html[data-abs-route-transition='active'] body.cv-page #abs-scene {
+html[data-abs-transition-phase='route-out'] main.ui-center,
+html[data-abs-transition-phase='route-out'] main.ui-center-spacer,
+html[data-abs-transition-phase='route-out'] .hero-title,
+html[data-abs-transition-phase='route-out'] .cv-scroll-container,
+html[data-abs-transition-phase='route-out'] body.cv-page #abs-scene,
+html[data-abs-transition-phase='route-in'] main.ui-center,
+html[data-abs-transition-phase='route-in'] main.ui-center-spacer,
+html[data-abs-transition-phase='route-in'] .hero-title,
+html[data-abs-transition-phase='route-in'] .cv-scroll-container,
+html[data-abs-transition-phase='route-in'] body.cv-page #abs-scene {
   transition: none;
 }
 
 /* Exit stagger: reverse order (right to left) when modal opens */
-html.modal-active .ui-main-nav .footer_link {
+html[data-abs-transition-phase='modal-open'] .ui-main-nav .footer_link {
   transition-duration: var(--ui-duration-out);
   transition-timing-function: var(--ui-ease-out);
   transition-delay: calc(var(--ui-stagger) * var(--ri, 0));
 }
 
 /* On modal close, restore the row as one unit instead of replaying the full entrance stagger. */
-html.modal-returning .ui-main-nav .footer_link {
+html[data-abs-transition-returning='active'] .ui-main-nav .footer_link {
   transition-duration: var(--ui-nav-return-duration);
   transition-timing-function: var(--ui-ease-in);
   transition-delay: 0ms;
 }
 
 /* Disable pointer events when hidden */
-html.modal-active .ui-main-nav { pointer-events: none; }
+html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none; }
 
 /* Legacy .brand-logo-svg sizing removed — replaced by shared .hero-title__* font-size */
 
@@ -4844,7 +4854,7 @@ body.cv-page #abs-scene {
   transition: opacity var(--modal-show-duration, 400ms) var(--ease-gate);
 }
 
-html.modal-active body.cv-page #abs-scene {
+html[data-abs-transition-phase='modal-open'] body.cv-page #abs-scene {
   opacity: 0;
   pointer-events: none;
   transition-duration: var(--modal-hide-duration, 500ms);

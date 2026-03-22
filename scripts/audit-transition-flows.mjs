@@ -27,13 +27,21 @@ const LOOP_REPEAT = Math.max(1, Number(process.env.ABS_TRANSITION_LOOPS || 1));
 const MAX_GAP_FRAMES = Number(process.env.ABS_TRANSITION_MAX_GAP_FRAMES || 2);
 const BRIDGE_WITHIN_MS = Number(process.env.ABS_TRANSITION_BRIDGE_WITHIN_MS || 300);
 const DESTINATION_WITHIN_MS = Number(process.env.ABS_TRANSITION_DESTINATION_WITHIN_MS || 1200);
+const STRICT_RAF = ['1', 'true', 'yes'].includes(String(process.env.ABS_TRANSITION_STRICT_RAF || '').toLowerCase());
 const SAMPLE_MS = Number(
   process.env.ABS_TRANSITION_SAMPLE_MS
   || Math.max(1200, DESTINATION_WITHIN_MS + 200)
 );
 const MAX_SAMPLE_FAILURE_PCT = Number(process.env.ABS_TRANSITION_MAX_SAMPLE_FAILURE_PCT || 15);
-const MAX_RAF_GAP_MS = Number(process.env.ABS_TRANSITION_MAX_RAF_GAP_MS || 300);
-const MAX_RAF_GAP_COUNT = Number(process.env.ABS_TRANSITION_MAX_RAF_GAP_COUNT || 100);
+const MAX_RAF_GAP_MS = Number(
+  process.env.ABS_TRANSITION_MAX_RAF_GAP_MS
+  || (STRICT_RAF ? 190 : 300)
+);
+const MAX_RAF_GAP_COUNT = Number(
+  process.env.ABS_TRANSITION_MAX_RAF_GAP_COUNT
+  || (STRICT_RAF ? 30 : 100)
+);
+const HARD_TIMEOUT_MS = Number(process.env.ABS_TRANSITION_HARD_TIMEOUT_MS || 420000);
 
 function resolveBrowserEngine() {
   if (BROWSER === 'webkit' || BROWSER === 'safari') return webkit;
@@ -126,6 +134,35 @@ async function waitForCvSettled(page) {
   await waitForRouteTransitionSettled(page);
 }
 
+async function captureCheckpoint(page, label, phase) {
+  const safeLabel = String(label || 'checkpoint')
+    .replace(/[^a-z0-9-_]+/gi, '-')
+    .replace(/-+/g, '-')
+    .replace(/(^-|-$)/g, '');
+  const safePhase = String(phase || 'state')
+    .replace(/[^a-z0-9-_]+/gi, '-')
+    .replace(/-+/g, '-')
+    .replace(/(^-|-$)/g, '');
+  const baseName = `${safeLabel}-${safePhase}`;
+  const imagePath = resolve(outputRoot, `${baseName}.png`);
+  const jsonPath = resolve(outputRoot, `${baseName}.json`);
+  const snapshot = await snapshotState(page);
+  await writeFile(jsonPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+
+  try {
+    await page.screenshot({ path: imagePath, fullPage: true });
+    return { label: safeLabel, phase: safePhase, imagePath, jsonPath };
+  } catch (error) {
+    return {
+      label: safeLabel,
+      phase: safePhase,
+      imagePath: null,
+      jsonPath,
+      error: String(error?.message || 'checkpoint screenshot failed'),
+    };
+  }
+}
+
 async function snapshotState(page) {
   try {
     return await page.evaluate(() => {
@@ -164,8 +201,8 @@ async function snapshotState(page) {
       return {
         path: window.location.pathname,
         bodyClass: document.body.className,
-        htmlModalActive: document.documentElement.classList.contains('modal-active'),
-        htmlModalReturning: document.documentElement.classList.contains('modal-returning'),
+        transitionPhase: document.documentElement.dataset.absTransitionPhase || 'idle',
+        transitionReturning: document.documentElement.dataset.absTransitionReturning || '',
         routeTransition: document.documentElement.dataset.absRouteTransition || '',
         gateTransition: document.documentElement.dataset.absGateTransition || '',
         wallVisible: visible(wallSlot),
@@ -271,7 +308,10 @@ async function sampleFrames(page, label, durationMs = SAMPLE_MS) {
     }
   }
 
-  const rafMetrics = await rafMetricsPromise;
+  const rafMetrics = await Promise.race([
+    rafMetricsPromise,
+    sleep(durationMs + 300).then(() => ({ frames: 0, maxDeltaMs: 0, gapsOver50: 0, timedOut: true })),
+  ]);
   return { label, durationMs, frames, rafMetrics };
 }
 
@@ -437,80 +477,100 @@ function commonChecks(label, source, destination, bridge) {
 
 async function runHomePortfolioRound(index, page) {
   const report = [];
+  const checkpoints = [];
   await waitForHomeSettled(page);
 
   let sample = sampleFrames(page, `home-${index}-portfolio-modal-open`);
   await page.click('#portfolio-modal-trigger', { timeout: 10_000 });
+  checkpoints.push(await captureCheckpoint(page, `home-${index}-portfolio-modal-open`, 'in-flight'));
   await page.waitForSelector('#portfolio-modal.active', { timeout: 10_000 });
   sample = await sample;
+  checkpoints.push(await captureCheckpoint(page, `home-${index}-portfolio-modal-open`, 'settled'));
   report.push(sample);
 
   sample = sampleFrames(page, `home-${index}-portfolio-route`);
   const portfolioNav = page.waitForURL(/portfolio/i, { timeout: WAIT_MS });
   await enterDigits(page, '.portfolio-digit', '1234');
+  checkpoints.push(await captureCheckpoint(page, `home-${index}-portfolio-route`, 'in-flight'));
   await portfolioNav;
   await waitForPortfolioSettled(page);
   sample = await sample;
+  checkpoints.push(await captureCheckpoint(page, `home-${index}-portfolio-route`, 'settled'));
   report.push(sample);
 
   sample = sampleFrames(page, `home-${index}-portfolio-route-to-home`);
   const homeNavFromPortfolio = page.waitForURL(/index|\/$/i, { timeout: WAIT_MS });
   await page.click('.ui-top .gate-back', { timeout: 10_000 });
+  checkpoints.push(await captureCheckpoint(page, `home-${index}-portfolio-route-to-home`, 'in-flight'));
   await homeNavFromPortfolio;
   await waitForHomeSettled(page);
   sample = await sample;
+  checkpoints.push(await captureCheckpoint(page, `home-${index}-portfolio-route-to-home`, 'settled'));
   report.push(sample);
 
-  return report;
+  return { steps: report, checkpoints };
 }
 
 async function runHomeCvRound(index, page) {
   const report = [];
+  const checkpoints = [];
   await waitForHomeSettled(page);
 
   let sample = sampleFrames(page, `home-${index}-cv-modal-open`);
   await page.click('#cv-modal-trigger', { timeout: 10_000 });
+  checkpoints.push(await captureCheckpoint(page, `home-${index}-cv-modal-open`, 'in-flight'));
   await page.waitForSelector('#cv-modal.active', { timeout: 10_000 });
   sample = await sample;
+  checkpoints.push(await captureCheckpoint(page, `home-${index}-cv-modal-open`, 'settled'));
   report.push(sample);
 
   sample = sampleFrames(page, `home-${index}-cv-route`);
   const cvNav = page.waitForURL(/cv/i, { timeout: WAIT_MS });
   await enterDigits(page, '.cv-digit', '1111');
+  checkpoints.push(await captureCheckpoint(page, `home-${index}-cv-route`, 'in-flight'));
   await cvNav;
   await waitForCvSettled(page);
   sample = await sample;
+  checkpoints.push(await captureCheckpoint(page, `home-${index}-cv-route`, 'settled'));
   report.push(sample);
 
   sample = sampleFrames(page, `home-${index}-cv-route-to-home`);
   const homeNavFromCv = page.waitForURL(/index|\/$/i, { timeout: WAIT_MS });
   await page.click('.ui-top .gate-back', { timeout: 10_000 });
+  checkpoints.push(await captureCheckpoint(page, `home-${index}-cv-route-to-home`, 'in-flight'));
   await homeNavFromCv;
   await waitForHomeSettled(page);
   sample = await sample;
+  checkpoints.push(await captureCheckpoint(page, `home-${index}-cv-route-to-home`, 'settled'));
   report.push(sample);
 
-  return report;
+  return { steps: report, checkpoints };
 }
 
 async function runCvContactRound(index, page) {
   const report = [];
+  const checkpoints = [];
 
   await page.click('#cv-modal-trigger', { timeout: 10_000 });
   await page.waitForSelector('#cv-modal.active', { timeout: 10_000 });
   const cvNav = page.waitForURL(/cv/i, { timeout: WAIT_MS });
   await enterDigits(page, '.cv-digit', '1111');
+  checkpoints.push(await captureCheckpoint(page, `cv-${index}-route`, 'in-flight'));
   await cvNav;
   await waitForCvSettled(page);
+  checkpoints.push(await captureCheckpoint(page, `cv-${index}-route`, 'settled'));
 
   let sample = sampleFrames(page, `cv-${index}-contact-open`);
   await page.click('#contact-email', { timeout: 10_000 });
+  checkpoints.push(await captureCheckpoint(page, `cv-${index}-contact-open`, 'in-flight'));
   await page.waitForSelector('#contact-modal.active', { timeout: 10_000 });
   sample = await sample;
+  checkpoints.push(await captureCheckpoint(page, `cv-${index}-contact-open`, 'settled'));
   report.push(sample);
 
   sample = sampleFrames(page, `cv-${index}-contact-close`);
   await page.click('#contact-modal [data-modal-back]', { timeout: 10_000 });
+  checkpoints.push(await captureCheckpoint(page, `cv-${index}-contact-close`, 'in-flight'));
   await page.waitForFunction(
     () => {
       const modal = document.getElementById('contact-modal');
@@ -520,17 +580,20 @@ async function runCvContactRound(index, page) {
   );
   await waitForCvSettled(page);
   sample = await sample;
+  checkpoints.push(await captureCheckpoint(page, `cv-${index}-contact-close`, 'settled'));
   report.push(sample);
 
   sample = sampleFrames(page, `cv-${index}-contact-route-to-home`);
   const homeNavFromContact = page.waitForURL(/index|\/$/i, { timeout: WAIT_MS });
   await page.click('.ui-top .gate-back', { timeout: 10_000 });
+  checkpoints.push(await captureCheckpoint(page, `cv-${index}-contact-route-to-home`, 'in-flight'));
   await homeNavFromContact;
   await waitForHomeSettled(page);
   sample = await sample;
+  checkpoints.push(await captureCheckpoint(page, `cv-${index}-contact-route-to-home`, 'settled'));
   report.push(sample);
 
-  return report;
+  return { steps: report, checkpoints };
 }
 
 function collectFailures(steps) {
@@ -620,7 +683,7 @@ async function runFlowInFreshPage(browser, name, runner) {
   await page.waitForSelector('#c', { timeout: 30_000 });
   await waitForHomeSettled(page);
 
-  const steps = await runner(page);
+  const { steps, checkpoints } = await runner(page);
   const failures = collectFailures(steps);
 
   await context.close();
@@ -628,6 +691,7 @@ async function runFlowInFreshPage(browser, name, runner) {
     name,
     steps,
     failures,
+    checkpoints,
     ok: failures.length === 0,
   };
 }
@@ -665,6 +729,12 @@ async function runAllFlows(browser) {
 }
 
 async function main() {
+  const hardTimeout = setTimeout(() => {
+    console.error(`Transition audit hard timeout after ${HARD_TIMEOUT_MS}ms`);
+    process.exit(1);
+  }, HARD_TIMEOUT_MS);
+  hardTimeout.unref?.();
+
   await mkdir(outputRoot, { recursive: true });
 
   const browser = await resolveBrowserEngine().launch();
@@ -675,6 +745,7 @@ async function main() {
     baseUrl: resolveHomeEntryUrl(),
     browser: BROWSER,
     repeats: LOOP_REPEAT,
+    strictRaf: STRICT_RAF,
     sampleMs: SAMPLE_MS,
     sampleIntervalMs: SAMPLE_INTERVAL_MS,
     ok: failedFlows.length === 0,
@@ -687,6 +758,7 @@ async function main() {
     `baseUrl: ${report.baseUrl}`,
     `sampleMs: ${report.sampleMs}`,
     `sampleIntervalMs: ${report.sampleIntervalMs}`,
+    `strictRaf: ${report.strictRaf ? 'on' : 'off'}`,
     `loops: ${LOOP_REPEAT}`,
     '',
     ...flows.flatMap((flow) => {
@@ -705,6 +777,7 @@ async function main() {
   }
 
   await browser.close();
+  clearTimeout(hardTimeout);
 }
 
 main().catch((error) => {

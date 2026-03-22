@@ -73,7 +73,6 @@ export function initContactModal() {
     document.getElementById('contact-email-inline')
   ].filter(Boolean);
 
-  const logo = document.getElementById('brand-logo');
   const modal = document.getElementById('contact-modal');
   const modalLabel = document.getElementById('contact-modal-label');
   const modalInputs = document.getElementById('contact-modal-inputs');
@@ -134,7 +133,6 @@ export function initContactModal() {
   // State
   let isOpen = false;
   let copyTimer = null;
-  let lastOpenTime = 0;
   let deactivateModalA11y = null;
 
   // Helper to check if any modal is currently active
@@ -183,8 +181,6 @@ export function initContactModal() {
 
   const openGate = (e) => {
     e?.preventDefault?.();
-    lastOpenTime = Date.now();
-
     // Check if any other modal is currently open
     const wasAnyGateActive = isAnyGateActive();
 
@@ -194,7 +190,7 @@ export function initContactModal() {
     isOpen = true;
     
     // Show overlay only if no modal was previously active
-    showGateBackdrop({ logo, hadActiveGate: wasAnyGateActive });
+    showGateBackdrop({ hadActiveGate: wasAnyGateActive });
     setCopyUI('idle');
 
     deactivateModalA11y = activateModalAccessibility(modal, {
@@ -214,7 +210,6 @@ export function initContactModal() {
 
     closeGateModal({
       modal,
-      logo,
       instant,
       keepOverlayActive: isGateModalParticipating(cvGate) || isGateModalParticipating(portfolioGate),
       shouldFinalize: () => !isOpen

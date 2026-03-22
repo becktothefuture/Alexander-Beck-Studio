@@ -7,6 +7,13 @@
 
 import { getGlobals } from '../core/state.js';
 import { readTokenMs, readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
+import {
+    getTransitionPhase,
+    isRouteTransitionPhase,
+    setTransitionPhase,
+    setTransitionReturningState,
+    TRANSITION_PHASES
+} from '../../../lib/transition-phase.js';
 
 // Two-layer references
 let blurLayerElement = null;    // #modal-blur-layer - backdrop-filter only, no children
@@ -17,7 +24,6 @@ let isEnabled = true;
 let isInitialized = false;
 const modalOriginalPlacement = new WeakMap();
 let blurExplicitlySet = false; // Track if blur was set from config
-let modalReturnClassTimeout = null;
 
 function ensureModalHost() {
     if (!contentLayerElement) return null;
@@ -88,7 +94,7 @@ export function getGateHandoffDurationMs(fallback = 220) {
     return fallback;
 }
 
-function getNavReturnDurationMs(fallback = 240) {
+export function getModalReturnDurationMs(fallback = 240) {
     try {
         const raw = getComputedStyle(document.documentElement)
             .getPropertyValue('--ui-nav-return-duration')
@@ -101,12 +107,18 @@ function getNavReturnDurationMs(fallback = 240) {
     return fallback;
 }
 
-function clearModalReturnState() {
-    if (modalReturnClassTimeout !== null) {
-        clearTimeout(modalReturnClassTimeout);
-        modalReturnClassTimeout = null;
-    }
-    document.documentElement.classList.remove('modal-returning');
+export function clearModalReturnState() {
+    setTransitionReturningState(false);
+}
+
+export function beginModalReturnState(durationMs = getModalReturnDurationMs()) {
+    void durationMs;
+    setTransitionReturningState(true);
+}
+
+function dispatchModalTransitionEvent(name, detail = {}) {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent(name, { detail }));
 }
 
 export function forceHideOverlayModal(modalEl) {
@@ -248,14 +260,16 @@ export function initModalOverlay(config) {
     const preserveActiveBackdrop =
       blurLayerElement.classList.contains('active')
       || contentLayerElement.classList.contains('active')
-      || document.documentElement.classList.contains('modal-active');
+      || getTransitionPhase() === TRANSITION_PHASES.MODAL_OPEN;
 
     if (preserveActiveBackdrop) {
       blurLayerElement.classList.add('active');
       contentLayerElement.classList.add('active');
       blurLayerElement.setAttribute('aria-hidden', 'false');
       contentLayerElement.setAttribute('aria-hidden', 'false');
-      document.documentElement.classList.add('modal-active');
+      if (!isRouteTransitionPhase(getTransitionPhase())) {
+        setTransitionPhase(TRANSITION_PHASES.MODAL_OPEN);
+      }
       applyDepthEffect(true);
     } else {
       // Ensure initial state: not active
@@ -343,7 +357,7 @@ function applyDepthEffect(active) {
     }
 }
 
-// Logo/nav fade is now handled purely by CSS via html.modal-active class
+// Logo/nav fade is now handled purely by CSS via data-abs-transition-phase
 // The CSS sets --ui-obscured: 1 which derives opacity: 0 for logo and nav
 
 /**
@@ -356,9 +370,8 @@ export function showOverlay() {
     updateBlurFromWallThickness('showOverlay');
 
     clearModalReturnState();
-
-    // Global flag for modal-active styling (CSS derives logo/nav visibility from this)
-    document.documentElement.classList.add('modal-active');
+    setTransitionPhase(TRANSITION_PHASES.MODAL_OPEN);
+    dispatchModalTransitionEvent('abs:transition-modal-open');
     
     // Update aria states
     blurLayerElement.setAttribute('aria-hidden', 'false');
@@ -394,36 +407,24 @@ export function showOverlay() {
 /**
  * Hide the overlay with smooth blur animation
  */
-export function hideOverlay({ suppressReturnAnimation = false } = {}) {
+export function hideOverlay({ clearReturnState = true } = {}) {
     if (!blurLayerElement || !contentLayerElement || !isEnabled) return;
 
     const wasOverlayActive =
       blurLayerElement.classList.contains('active') ||
       contentLayerElement.classList.contains('active') ||
-      document.documentElement.classList.contains('modal-active');
+      getTransitionPhase() === TRANSITION_PHASES.MODAL_OPEN;
 
     if (!wasOverlayActive) {
-      clearModalReturnState();
+      if (clearReturnState) clearModalReturnState();
       return;
     }
 
-    clearModalReturnState();
+    if (clearReturnState) clearModalReturnState();
     
     // Remove active class from BOTH layers
     blurLayerElement.classList.remove('active');
     contentLayerElement.classList.remove('active');
-
-    // Remove modal-active (CSS will animate logo/nav back in)
-    document.documentElement.classList.remove('modal-active');
-    if (!suppressReturnAnimation) {
-      document.documentElement.classList.add('modal-returning');
-      modalReturnClassTimeout = window.setTimeout(() => {
-          document.documentElement.classList.remove('modal-returning');
-          modalReturnClassTimeout = null;
-      }, getNavReturnDurationMs() + 50);
-    } else {
-      document.documentElement.classList.remove('modal-returning');
-    }
     
     blurLayerElement.setAttribute('aria-hidden', 'true');
     contentLayerElement.setAttribute('aria-hidden', 'true');
@@ -434,6 +435,13 @@ export function hideOverlay({ suppressReturnAnimation = false } = {}) {
     
     // Remove depth effect from scene
     applyDepthEffect(false);
+
+    if (!isRouteTransitionPhase(getTransitionPhase())) {
+        setTransitionPhase(TRANSITION_PHASES.IDLE, { returning: clearReturnState });
+        dispatchModalTransitionEvent('abs:transition-modal-close', {
+            suppressReturnAnimation: !clearReturnState,
+        });
+    }
 }
 
 /**

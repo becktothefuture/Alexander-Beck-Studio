@@ -45,7 +45,7 @@ function easeOutExpo(t) {
   return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
 }
 
-/** Mirrors html.modal-active / gate timing so canvas logo fades with the DOM chrome (DOM #brand-logo is display:none). */
+/** Mirrors transition phase so canvas logo fades with the DOM chrome (DOM #brand-logo is display:none). */
 const modalLogoFade = {
   lastModalActive: null,
   startMs: 0,
@@ -73,7 +73,8 @@ function parseCssTimeMs(raw, fallbackMs) {
 function resolveModalLogoOpacityMultiplier(nowMs) {
   if (typeof document === 'undefined') return 1;
 
-  const modalActive = document.documentElement.classList.contains('modal-active');
+  const transitionPhase = document.documentElement.dataset.absTransitionPhase || 'idle';
+  const modalActive = transitionPhase === 'modal-open';
   const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
 
   if (modalLogoFade.lastModalActive === null) {

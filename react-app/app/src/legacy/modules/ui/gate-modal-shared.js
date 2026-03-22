@@ -9,19 +9,6 @@ import {
 } from './modal-overlay.js';
 import { setStableTimeout } from '../../../lib/legacy-runtime-scope.js';
 
-function setCvContainerObscured(obscured) {
-  const cvContainer = document.querySelector('.cv-scroll-container');
-  if (cvContainer) {
-    cvContainer.classList.toggle('fade-out-up', obscured);
-  }
-}
-
-function setCenterStageObscured(obscured) {
-  document.querySelectorAll('main.ui-center, main.ui-center-spacer').forEach((el) => {
-    el.classList.toggle('center-stage--modal-hidden', obscured);
-  });
-}
-
 function setModalHidden(modal) {
   modal.classList.remove('active', 'closing');
   modal.classList.add('hidden');
@@ -46,9 +33,6 @@ export function showGateBackdrop({ hadActiveGate = false } = {}) {
   if (!hadActiveGate) {
     showOverlay();
   }
-
-  setCenterStageObscured(true);
-  setCvContainerObscured(true);
 }
 
 export function openGateModal(modal) {
@@ -64,7 +48,6 @@ export function openGateModal(modal) {
 
 export function closeGateModal({
   modal,
-  logo,
   instant = false,
   keepOverlayActive = false,
   keepBackdrop = false,
@@ -73,15 +56,14 @@ export function closeGateModal({
   const closeDurationMs = keepBackdrop
     ? getGateHandoffDurationMs()
     : getModalCloseDurationMs();
+  const shouldReleaseBackdrop = !keepOverlayActive && !keepBackdrop;
 
   if (instant) {
     modal.style.transition = 'none';
 
     setModalHidden(modal);
 
-    if (!keepOverlayActive && !keepBackdrop) {
-      setCenterStageObscured(false);
-      setCvContainerObscured(false);
+    if (shouldReleaseBackdrop) {
       hideOverlay();
     }
 
@@ -97,10 +79,8 @@ export function closeGateModal({
   modal.dataset.modalState = 'closing';
   modal.style.transitionDuration = `${closeDurationMs}ms`;
 
-  if (!keepOverlayActive && !keepBackdrop) {
-    setCenterStageObscured(false);
-    setCvContainerObscured(false);
-    hideOverlay();
+  if (shouldReleaseBackdrop) {
+    hideOverlay({ clearReturnState: !keepBackdrop });
   }
 
   setStableTimeout(() => {
@@ -112,7 +92,5 @@ export function closeGateModal({
 }
 
 export function dismissGateBackdrop({ suppressReturnAnimation = false } = {}) {
-  setCenterStageObscured(false);
-  setCvContainerObscured(false);
-  hideOverlay({ suppressReturnAnimation });
+  hideOverlay({ clearReturnState: !suppressReturnAnimation });
 }
