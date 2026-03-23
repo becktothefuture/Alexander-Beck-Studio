@@ -5,6 +5,7 @@
 
 import { getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES, NARRATIVE_MODE_SEQUENCE } from '../core/constants.js';
+import { setMode } from '../modes/mode-controller.js';
 import { updateCursorPosition, hideCursor, showCursor } from '../rendering/cursor.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
 import { sceneImpactPress, sceneImpactRelease } from '../ui/scene-impact-react.js';
@@ -53,9 +54,7 @@ function cycleMode() {
   const base = idx >= 0 ? idx : 0;
   const next = seq[(base + 1) % seq.length];
 
-  import('../modes/mode-controller.js').then(({ setMode }) => {
-    setMode(next);
-  });
+  setMode(next);
   import('../ui/controls.js').then(({ updateModeButtonsUI }) => {
     updateModeButtonsUI(next);
   });

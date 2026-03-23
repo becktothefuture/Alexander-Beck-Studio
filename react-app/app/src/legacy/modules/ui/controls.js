@@ -5,6 +5,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
+import { setMode } from '../modes/mode-controller.js';
 import { applyColorTemplate, populateColorSelect } from '../visual/colors.js';
 import { autoSaveSettings } from '../utils/storage.js';
 import { bindRegisteredControls, syncSlidersToState } from './control-registry.js';
@@ -74,12 +75,8 @@ export function setupIndexControls() {
         e.stopPropagation();
         const mode = btn.getAttribute('data-mode');
         console.log('Mode button clicked (dev override):', mode);
-        import('../modes/mode-controller.js')
-          .then(({ setMode }) => {
-            setMode(mode);
-            updateModeButtonsUI(mode);
-          })
-          .catch(() => {});
+        setMode(mode);
+        updateModeButtonsUI(mode);
       });
     });
   }

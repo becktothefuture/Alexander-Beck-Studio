@@ -12,6 +12,9 @@ import {
   MODES,
   isPitLikeMode,
 } from '../core/constants.js';
+import { resetCurrentMode, setMode } from '../modes/mode-controller.js';
+import { resize } from '../rendering/renderer.js';
+import { updateCursorSize } from '../rendering/cursor.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
 import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-shadow.js';
 
@@ -359,7 +362,7 @@ export function applyParallaxLinearPreset(presetName, reinit = true) {
   g.parallaxLinearPreset = presetName;
 
   if (reinit) {
-    import('../modes/mode-controller.js').then(({ resetCurrentMode }) => resetCurrentMode());
+    resetCurrentMode();
   }
 
   try { syncSlidersToState(); } catch (e) {}
@@ -708,9 +711,7 @@ export const CONTROL_SECTIONS = {
         hint: 'Reduces simulation density for smoother 90fps targets.',
         isHero: true,
         onChange: (g) => {
-          import('../modes/mode-controller.js').then(({ setMode }) => {
-            setMode(g.currentMode);
-          }).catch(() => {});
+          setMode(g.currentMode);
         }
       }
     ]
@@ -738,6 +739,8 @@ export const CONTROL_SECTIONS = {
         parse: v => String(v),
         hint: 'If desktop browsers ignore theme-color, the wall adapts to match the browser UI palette.',
         onChange: (g) => {
+          // Intentional dynamic import: dark-mode-v2 already imports this registry,
+          // so keeping theme sync lazy avoids tightening that existing cycle.
           import('../visual/dark-mode-v2.js').then(({ getCurrentTheme, setTheme }) => {
             setTheme(getCurrentTheme());
           }).catch(() => {});
@@ -952,9 +955,7 @@ export const CONTROL_SECTIONS = {
               g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
             }
           });
-          import('../rendering/cursor.js').then(({ updateCursorSize }) => {
-            updateCursorSize();
-          });
+          updateCursorSize();
         }
       },
       {
@@ -976,9 +977,7 @@ export const CONTROL_SECTIONS = {
               g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
             }
           });
-          import('../rendering/cursor.js').then(({ updateCursorSize }) => {
-            updateCursorSize();
-          });
+          updateCursorSize();
         }
       },
       {
@@ -1000,9 +999,7 @@ export const CONTROL_SECTIONS = {
               g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
             }
           });
-          import('../rendering/cursor.js').then(({ updateCursorSize }) => {
-            updateCursorSize();
-          });
+          updateCursorSize();
         }
       },
       {
@@ -1016,9 +1013,7 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Scales object counts on mobile (0% = none). Resets the current mode.',
         onChange: (g, _val) => {
-          import('../modes/mode-controller.js').then(({ setMode }) => {
-            setMode(g.currentMode);
-          }).catch(() => {});
+          setMode(g.currentMode);
         }
       },
       {
@@ -1186,7 +1181,7 @@ export const CONTROL_SECTIONS = {
              } catch (e) {}
              try { document.dispatchEvent(new CustomEvent('layout-updated')); } catch (e) {}
            }).catch(() => {});
-           import('../rendering/renderer.js').then(({ resize }) => { try { resize(); } catch (e) {} }).catch(() => {});
+           try { resize(); } catch (e) {}
          }
        },
        {
@@ -2462,11 +2457,8 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10),
         hint: 'Extra physics margin so balls stay inside the inner wall, clear of the light rim (px). Applies to pit modes and all modes using the same wall SDF.',
         onChange: (g) => {
-          Promise.all([
-            import('../physics/Ball.js'),
-            import('../rendering/renderer.js')
-          ]).then(([ballMod, rendererMod]) => {
-            try { rendererMod.resize?.(); } catch (e) {}
+          import('../physics/Ball.js').then((ballMod) => {
+            try { resize(); } catch (e) {}
             const canvas = g?.canvas;
             const balls = Array.isArray(g?.balls) ? g.balls : [];
             const w = Number(canvas?.width) || 0;
@@ -2495,14 +2487,13 @@ export const CONTROL_SECTIONS = {
         onChange: (g) => {
           Promise.all([
             import('../core/state.js'),
-            import('../physics/Ball.js'),
-            import('../rendering/renderer.js')
-          ]).then(([stateMod, ballMod, rendererMod]) => {
+            import('../physics/Ball.js')
+          ]).then(([stateMod, ballMod]) => {
             try {
               stateMod.applyLayoutFromVwToPx();
               stateMod.applyLayoutCSSVars();
             } catch (e) {}
-            try { rendererMod.resize?.(); } catch (e) {}
+            try { resize(); } catch (e) {}
             const canvas = g?.canvas;
             const balls = Array.isArray(g?.balls) ? g.balls : [];
             const w = Number(canvas?.width) || 0;
@@ -5949,10 +5940,11 @@ export function generateModeSwitcherHTML() {
  * Generate mode-specific sections HTML (only modes in narrative sequence).
  * Disabled simulations (e.g. parallax-linear) are excluded.
  */
-export function generateModeSpecificSectionsHTML() {
+export function generateModeSpecificSectionsHTML(options = {}) {
+  const showAllModes = options.showAllModes === true;
   const currentMode = getGlobals()?.currentMode;
   let allowedModes;
-  if (!currentMode) {
+  if (showAllModes || !currentMode) {
     allowedModes = new Set(NARRATIVE_MODE_SEQUENCE);
   } else if (currentMode === MODES.PORTFOLIO_PIT) {
     // Portfolio uses pit physics tuning (gravity sleep, etc.) but `currentMode` is not `pit`.
@@ -6025,7 +6017,7 @@ function generateHomeModeSectionHTML() {
             return buttons;
           })()}
         </div>
-        ${generateModeSpecificSectionsHTML()}
+        ${generateModeSpecificSectionsHTML({ showAllModes: true })}
       </div>
     </details>`;
 }
@@ -6445,9 +6437,7 @@ export function bindRegisteredControls() {
           // IMPORTANT: Do NOT import per-mode module files by name (e.g. `kaleidoscope-1.js` doesn't exist).
           // Always reset via the mode controller so variants that share a module re-init correctly.
           if (control.reinitMode && g.currentMode === section.mode) {
-            import('../modes/mode-controller.js')
-              .then(({ resetCurrentMode }) => resetCurrentMode?.())
-              .catch(() => {});
+            resetCurrentMode();
           }
         });
 
@@ -6491,9 +6481,7 @@ export function bindRegisteredControls() {
         
         // Re-init mode if needed (see note above)
         if (control.reinitMode && g.currentMode === section.mode) {
-          import('../modes/mode-controller.js')
-            .then(({ resetCurrentMode }) => resetCurrentMode?.())
-            .catch(() => {});
+          resetCurrentMode();
         }
       });
     }

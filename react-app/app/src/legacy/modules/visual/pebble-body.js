@@ -4,6 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { MODES } from '../core/constants.js';
+import { getGlobals } from '../core/state.js';
 
 const TAU = Math.PI * 2;
 const TEMPLATE_COUNT = 16;
@@ -231,6 +232,7 @@ export function shouldUsePebbleBody(radius, globals) {
 
 export function appendPebbleBodyPath(ctx, ball, radius, globals) {
   if (!ctx) return;
+  if (!(radius > 0)) return;
   if (!ball || !shouldUsePebbleBody(radius, globals)) {
     ctx.arc(0, 0, radius, 0, TAU);
     return;
@@ -296,9 +298,11 @@ export function drawPebbleBodyRim(ctx, ball, x, y, radius, color, globals, opts 
   if (!ctx) return;
   if (globals?.currentMode === MODES.PIT) return;
   const renderRadius = getPebbleRenderRadius(radius, globals);
+  if (!(renderRadius > 0)) return;
   const contour = getPebbleContourStyle(color, globals, radius);
   if (!ball || !shouldUsePebbleBody(radius, globals)) {
     const strokeR = renderRadius - (contour.lineWidth * contour.inset);
+    if (!(strokeR > 0)) return;
     ctx.strokeStyle = contour.strokeStyle;
     ctx.lineWidth = contour.lineWidth;
     ctx.beginPath();
@@ -313,6 +317,7 @@ export function drawPebbleBodyRim(ctx, ball, x, y, radius, color, globals, opts 
   }
 
   const strokeR = renderRadius - (contour.lineWidth * contour.inset);
+  if (!(strokeR > 0)) return;
 
   ctx.save();
   ctx.translate(x, y);
@@ -334,6 +339,7 @@ export function drawPebbleBody(ctx, ball, x, y, radius, color, globals, opts = {
   const rotationRad = Number.isFinite(opts.rotationRad) ? opts.rotationRad : 0;
   const alpha = Number.isFinite(opts.alpha) ? opts.alpha : 1;
   const renderRadius = getPebbleRenderRadius(radius, globals);
+  if (!(renderRadius > 0)) return;
   if (!ball || !shouldUsePebbleBody(radius, globals)) {
     const needsTransform = rotationRad !== 0 || alpha < 1;
     if (needsTransform) {

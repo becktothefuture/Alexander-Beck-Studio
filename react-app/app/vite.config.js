@@ -1,38 +1,23 @@
 import { Buffer } from 'node:buffer';
-import { writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { deriveLegacyConfigFiles, normalizeDesignSystemConfig } from './src/legacy/modules/utils/design-config.js';
+import { flattenDesignConfigDir } from '../../scripts/lib/flatten-design-config.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicConfigDir = resolve(__dirname, 'public/config');
-const designSystemPath = resolve(publicConfigDir, 'design-system.json');
-const legacyPaths = {
-  runtime: resolve(publicConfigDir, 'default-config.json'),
-  shell: resolve(publicConfigDir, 'shell-config.json'),
-  portfolio: resolve(publicConfigDir, 'portfolio-config.json'),
-  cv: resolve(publicConfigDir, 'cv-config.json'),
+const VIRTUAL_CONTENT_PREFIX = '\0virtual:abs-content/';
+const CONTENT_MODULES = {
+  'virtual:abs-content/home': resolve(publicConfigDir, 'contents-home.json'),
+  'virtual:abs-content/cv': resolve(publicConfigDir, 'contents-cv.json'),
 };
 
-async function writeJson(path, value) {
-  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
-}
-
-async function flattenAndPersistDesignSystem(config) {
-  const normalized = normalizeDesignSystemConfig(config);
-  const legacy = deriveLegacyConfigFiles(normalized);
-
-  await writeJson(designSystemPath, normalized);
-  await Promise.all([
-    writeJson(legacyPaths.runtime, legacy.runtime),
-    writeJson(legacyPaths.shell, legacy.shell),
-    writeJson(legacyPaths.portfolio, legacy.portfolio),
-    writeJson(legacyPaths.cv, legacy.cv),
-  ]);
-
-  return normalized;
+async function readJsonModule(filePath) {
+  const raw = await readFile(filePath, 'utf8');
+  const parsed = JSON.parse(raw);
+  return `export default ${JSON.stringify(parsed, null, 2)};\n`;
 }
 
 function designSystemDevPlugin() {
@@ -61,7 +46,7 @@ function designSystemDevPlugin() {
             return;
           }
 
-          const normalized = await flattenAndPersistDesignSystem(nextConfig);
+          const { designSystem: normalized } = await flattenDesignConfigDir(publicConfigDir, nextConfig);
           server.ws.send({
             type: 'full-reload',
             path: '/config/design-system.json',
@@ -80,8 +65,41 @@ function designSystemDevPlugin() {
   };
 }
 
+function absContentVirtualPlugin() {
+  const watchedFiles = Object.values(CONTENT_MODULES);
+
+  return {
+    name: 'abs-content-virtual-plugin',
+    buildStart() {
+      watchedFiles.forEach((file) => this.addWatchFile(file));
+    },
+    resolveId(source) {
+      if (source in CONTENT_MODULES) {
+        return `${VIRTUAL_CONTENT_PREFIX}${source.split('/').pop()}`;
+      }
+      return null;
+    },
+    async load(id) {
+      if (id === `${VIRTUAL_CONTENT_PREFIX}home`) {
+        return readJsonModule(CONTENT_MODULES['virtual:abs-content/home']);
+      }
+      if (id === `${VIRTUAL_CONTENT_PREFIX}cv`) {
+        return readJsonModule(CONTENT_MODULES['virtual:abs-content/cv']);
+      }
+      return null;
+    },
+    handleHotUpdate({ file, server }) {
+      if (!watchedFiles.includes(file)) return;
+      const modules = [...server.moduleGraph.idToModuleMap.values()].filter((mod) => mod.id && mod.id.startsWith(VIRTUAL_CONTENT_PREFIX));
+      modules.forEach((mod) => server.moduleGraph.invalidateModule(mod));
+      server.ws.send({ type: 'full-reload' });
+      return [];
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), designSystemDevPlugin()],
+  plugins: [react(), absContentVirtualPlugin(), designSystemDevPlugin()],
   // Legacy bundles gate the dock + authoring UI on `__DEV__` (see main.js / portfolio app).
   define: {
     __DEV__: mode === 'development',

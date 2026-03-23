@@ -1,6 +1,6 @@
 import { MainNavLink } from '../../components/MainNavLink.jsx';
-import homeContent from '../../../public/config/contents-home.json';
-import cvContent from '../../../public/config/contents-cv.json';
+import homeContent from 'virtual:abs-content/home';
+import cvContent from 'virtual:abs-content/cv';
 
 export const CV_ROUTE_RUNTIME = {
   exportName: 'bootstrapCvPage',

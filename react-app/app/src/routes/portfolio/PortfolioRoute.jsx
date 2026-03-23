@@ -1,5 +1,5 @@
 import { MainNavLink } from '../../components/MainNavLink.jsx';
-import homeContent from '../../../public/config/contents-home.json';
+import homeContent from 'virtual:abs-content/home';
 export const PORTFOLIO_ROUTE_RUNTIME = {
   exportName: 'bootstrapPortfolio',
   loadModule: () => import('../../legacy/modules/portfolio/app.js')

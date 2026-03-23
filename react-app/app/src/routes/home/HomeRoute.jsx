@@ -1,4 +1,4 @@
-import homeContent from '../../../public/config/contents-home.json';
+import homeContent from 'virtual:abs-content/home';
 import { MainNavLink } from '../../components/MainNavLink.jsx';
 
 export const HOME_ROUTE_RUNTIME = {

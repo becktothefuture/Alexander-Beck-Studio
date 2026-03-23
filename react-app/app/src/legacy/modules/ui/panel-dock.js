@@ -248,7 +248,7 @@ function getMasterPanelContent({
   // switcher; portfolio adds pit chrome; CV/other routes still get the active mode’s accordion.
   const simulationPrepend =
     page === 'home'
-      ? `${generateModeSwitcherHTML()}${generateModeSpecificSectionsHTML()}`
+      ? `${generateModeSwitcherHTML()}${generateModeSpecificSectionsHTML({ showAllModes: true })}`
       : page === 'portfolio'
         ? (portfolioSimulationPrepend || generateModeSpecificSectionsHTML())
         : generateModeSpecificSectionsHTML();
@@ -494,6 +494,8 @@ function createMasterPanel({
     themeToggleBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      // Intentional dynamic import: dark-mode-v2 imports control-registry, so
+      // this stays lazy to avoid hardening that cycle while toggling theme.
       import('../visual/dark-mode-v2.js').then(({ getCurrentTheme, setTheme }) => {
         const current = getCurrentTheme();
         const next = (current === 'dark' || (current === 'auto' && document.body.classList.contains('dark-mode'))) ? 'light' : 'dark';
