@@ -2275,7 +2275,7 @@ button.abs-meta-btn,
    `#quote-display` = shell + hit target. `.quote-display__disk` = round fill + shadow;
    hover scale applies only to disk. `.quote-display__content` = text (no hover scale). */
 .quote-display {
-  --_size: calc(var(--abs-quote-button-size, 224px) * 0.75);
+  --_size: max(244px, var(--abs-quote-button-size, 272px));
   --quote-puck-hover-scale: 1.05;
   position: fixed;
   right: 24px;
@@ -2365,8 +2365,10 @@ button.abs-meta-btn,
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: calc(var(--abs-gap-xs) * 2);
-  padding: var(--abs-quote-pad-y, 24px) var(--abs-quote-pad-x, 28px);
+  gap: max(calc(var(--abs-gap-xs) * 2), calc(var(--_size) * 0.028));
+  padding:
+    max(var(--abs-quote-pad-y, 24px), calc(var(--_size) * 0.105))
+    max(var(--abs-quote-pad-x, 28px), calc(var(--_size) * 0.125));
   box-sizing: border-box;
   z-index: 1;
   pointer-events: none;
@@ -2396,11 +2398,11 @@ button.abs-meta-btn,
 .quote-display__text {
   margin: 0;
   font-family: var(--abs-font-sans);
-  font-size: 14px;
+  font-size: clamp(15px, calc(var(--_size, 244px) * 0.072), 20px);
   font-style: italic;
   font-weight: var(--abs-weight-regular);
-  line-height: var(--abs-line-relaxed);
-  letter-spacing: 0.012em;
+  line-height: 1.1;
+  letter-spacing: 0.008em;
   color: var(--quote-hover-fg, var(--cursor-hover-fg, rgba(0, 0, 0, 0.85)));
   transition: color 0.2s var(--ease-organic);
 }
@@ -2408,10 +2410,10 @@ button.abs-meta-btn,
 .quote-display__author {
   margin: 0;
   font-family: var(--abs-font-sans);
-  font-size: max(9px, min(calc(var(--_size, 168px) * 0.042), 12px));
+  font-size: clamp(10px, calc(var(--_size, 244px) * 0.045), 13px);
   font-weight: var(--abs-weight-medium);
   line-height: var(--abs-line-tight);
-  letter-spacing: 0.048em;
+  letter-spacing: 0.036em;
   text-transform: uppercase;
   color: var(--quote-hover-fg, var(--cursor-hover-fg, rgba(0, 0, 0, 0.85)));
   opacity: 0.88;

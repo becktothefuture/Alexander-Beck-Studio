@@ -24,7 +24,7 @@
   "ballSpacing": 0,
   "sizeVariationGlobalMul": 1,
   "sizeVariationCap": 0,
-  "cursorInfluenceRadiusVw": 14,
+  "cursorInfluenceRadiusVw": 7,
   "contentPaddingRatio": 0.015,
   "contentPaddingHorizontalRatio": 1,
   "contentPaddingBottomRatio": 1,

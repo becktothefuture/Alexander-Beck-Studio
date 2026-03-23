@@ -545,8 +545,8 @@ const state = {
   // Universal cursor influence (vw-based, derived to px on layout updates)
   // Goal: one radius that scales with viewport width so mobile/touch interaction
   // feels “near the finger” instead of using desktop-fixed pixel distances.
-  cursorInfluenceRadiusVw: 14,          // 14vw ≈ 140px at 1000px viewport
-  cursorInfluenceRadiusPx: 140,         // derived (px)
+  cursorInfluenceRadiusVw: 7,           // 7vw ≈ 70px at 1000px viewport
+  cursorInfluenceRadiusPx: 70,          // derived (px)
   
   // Emitter
   emitterTimer: 0,

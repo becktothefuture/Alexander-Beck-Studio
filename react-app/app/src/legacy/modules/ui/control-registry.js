@@ -951,7 +951,7 @@ export const CONTROL_SECTIONS = {
           import('../core/state.js').then(({ updateBallSizes }) => {
             updateBallSizes();
             const newSize = g.R_MED;
-            if (g.balls && g.balls.length) {
+            if (g.currentMode !== MODES.PORTFOLIO_PIT && g.balls && g.balls.length) {
               g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
             }
           });
@@ -973,7 +973,7 @@ export const CONTROL_SECTIONS = {
           import('../core/state.js').then(({ updateBallSizes }) => {
             updateBallSizes();
             const newSize = g.R_MED;
-            if (g.balls && g.balls.length) {
+            if (g.currentMode !== MODES.PORTFOLIO_PIT && g.balls && g.balls.length) {
               g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
             }
           });
@@ -995,7 +995,7 @@ export const CONTROL_SECTIONS = {
           import('../core/state.js').then(({ updateBallSizes }) => {
             updateBallSizes();
             const newSize = g.R_MED;
-            if (g.balls && g.balls.length) {
+            if (g.currentMode !== MODES.PORTFOLIO_PIT && g.balls && g.balls.length) {
               g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
             }
           });
@@ -1130,7 +1130,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'cursorInfluenceRadiusVw',
         type: 'range',
         min: 0, max: 80, step: 0.5,
-        default: 14,
+        default: 7,
         format: v => `${v.toFixed(1)}vw`,
         parse: parseFloat,
         hint: 'Universal cursor interaction zone (scales with viewport width).'

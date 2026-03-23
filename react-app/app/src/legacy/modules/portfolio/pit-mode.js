@@ -565,9 +565,9 @@ function seedProjectBodies(globals) {
     ball.portfolioBodyShape = 'circle';
     ball.__portfolioAccentCircle = isAccentCircle;
     ball._noSquash = true;
-    ball.theta = (hashUnit(index + 11) - 0.5) * 0.5;
+    ball.theta = 0;
     ball.rotationOffset = 0;
-    ball.omega = (hashUnit(index + 13) - 0.5) * 4.5;
+    ball.omega = 0;
     ball._portfolioDpr = dpr;
     storePortfolioSeedMetrics(ball, width, height, radius);
 
@@ -664,6 +664,8 @@ export function initializePortfolioPit() {
  */
 export function applyPortfolioPitForces(ball, dt) {
   if (!ball || ball.__portfolioHidden || ball.isPointerLocked || ball.__portfolioSelected) return;
+  ball.theta = 0;
+  ball.omega = 0;
 }
 
 function shouldSyncPortfolioLabelLayer(globals, balls) {

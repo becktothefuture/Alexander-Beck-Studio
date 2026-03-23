@@ -140,6 +140,10 @@ function getReadableLabelRotation(rotationRad) {
   return normalized;
 }
 
+function shouldRotatePortfolioLabels() {
+  return Number(getGlobals()?.pebbleBlend) > 0.02;
+}
+
 async function fetchPortfolioData() {
   const paths = [
     CONFIG.dataPath,
@@ -537,7 +541,9 @@ class PortfolioPitApp {
       const diameter = ball.r * 2;
       const width = diameter / dpr;
       const height = diameter / dpr;
-      const rotation = getReadableLabelRotation(ball.theta || 0);
+      const rotation = shouldRotatePortfolioLabels()
+        ? getReadableLabelRotation(ball.theta || 0)
+        : 0;
       const titleFontSize = (ball.label?.titleFontSize || ball.label?.fontSize || 20) / dpr;
       const titleLineHeight = (ball.label?.titleLineHeight || (titleFontSize * 0.76)) / Math.max(titleFontSize, 1);
       const eyebrowFontSize = (ball.label?.eyebrowFontSize || Math.max(10, titleFontSize * 0.42)) / dpr;

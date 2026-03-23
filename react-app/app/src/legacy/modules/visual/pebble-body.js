@@ -295,43 +295,17 @@ function getPebbleContourStyle(color, globals, radius) {
 }
 
 export function drawPebbleBodyRim(ctx, ball, x, y, radius, color, globals, opts = {}) {
-  if (!ctx) return;
-  if (globals?.currentMode === MODES.PIT) return;
-  const renderRadius = getPebbleRenderRadius(radius, globals);
-  if (!(renderRadius > 0)) return;
-  const contour = getPebbleContourStyle(color, globals, radius);
-  if (!ball || !shouldUsePebbleBody(radius, globals)) {
-    const strokeR = renderRadius - (contour.lineWidth * contour.inset);
-    if (!(strokeR > 0)) return;
-    ctx.strokeStyle = contour.strokeStyle;
-    ctx.lineWidth = contour.lineWidth;
-    ctx.beginPath();
-    ctx.arc(x, y, strokeR, 0, TAU);
-    ctx.stroke();
-    return;
-  }
-
-  const geom = getPebbleGeometry(ball, radius, globals);
-  if (!geom || geom.xs.length < 3) {
-    return;
-  }
-
-  const strokeR = renderRadius - (contour.lineWidth * contour.inset);
-  if (!(strokeR > 0)) return;
-
-  ctx.save();
-  ctx.translate(x, y);
-  if (Number.isFinite(opts.rotationRad) && opts.rotationRad !== 0) {
-    ctx.rotate(opts.rotationRad);
-  }
-  ctx.strokeStyle = contour.strokeStyle;
-  ctx.lineWidth = contour.lineWidth;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  appendPebbleGeometryPath(ctx, geom, strokeR);
-  ctx.stroke();
-  ctx.restore();
+  // Shared simulation bodies now render flat fills only. Portfolio keeps its
+  // own dedicated body rim in portfolio/pit-mode.js.
+  void ctx;
+  void ball;
+  void x;
+  void y;
+  void radius;
+  void color;
+  void globals;
+  void opts;
+  return;
 }
 
 export function drawPebbleBody(ctx, ball, x, y, radius, color, globals, opts = {}) {
