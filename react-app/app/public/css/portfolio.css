@@ -238,7 +238,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
 
 .portfolio-project-label__title {
   font-size: var(--portfolio-label-title-size, clamp(0.92rem, 1.32vw, 1.3rem));
-  line-height: var(--portfolio-label-title-line-height, 0.76);
+  line-height: var(--portfolio-label-title-line-height, 0.84);
   font-weight: 500;
   letter-spacing: -0.056em;
 }
@@ -249,7 +249,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
 }
 
 .portfolio-project-label__title span + span {
-  margin-top: -0.06em;
+  margin-top: 0;
 }
 
 .portfolio-project-view {

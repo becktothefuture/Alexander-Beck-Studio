@@ -20,7 +20,7 @@ import { waitForFonts } from '../utils/font-loader.js';
 import * as SoundEngine from '../audio/sound-engine.js';
 import { initSharedChrome } from '../ui/shared-chrome.js';
 import { loadShellConfig, syncShellToDocument } from '../visual/site-shell.js';
-import { forcePageVisible, waitForPageReadyBarrier } from '../visual/page-orchestrator.js';
+import { forceBootVisible, waitForPageReadyBarrier } from '../visual/page-orchestrator.js';
 import { navigateWithTransition, resetTransitionState, setupPrefetchOnHover, NAV_STATES } from '../utils/page-nav.js';
 import { MODES } from '../core/constants.js';
 import {
@@ -45,6 +45,7 @@ import { setupPointer } from '../input/pointer.js';
 import { setupOverscrollLock } from '../input/overscroll-lock.js';
 import { refreshCursor, setupCustomCursor, updateCursorSize } from '../rendering/cursor.js';
 import { PortfolioProjectDrawer, getProjectContentBlocks } from './project-drawer.js';
+import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
 
 const BASE_PATH = (() => {
   try {
@@ -141,7 +142,9 @@ function getReadableLabelRotation(rotationRad) {
 }
 
 function shouldRotatePortfolioLabels() {
-  return Number(getGlobals()?.pebbleBlend) > 0.02;
+  // Portfolio bodies have their own render silhouette and should keep the label
+  // attached to the body rotation even when the global home pit pebble controls are off.
+  return true;
 }
 
 async function fetchPortfolioData() {
@@ -545,7 +548,7 @@ class PortfolioPitApp {
         ? getReadableLabelRotation(ball.theta || 0)
         : 0;
       const titleFontSize = (ball.label?.titleFontSize || ball.label?.fontSize || 20) / dpr;
-      const titleLineHeight = (ball.label?.titleLineHeight || (titleFontSize * 0.76)) / Math.max(titleFontSize, 1);
+      const titleLineHeight = (ball.label?.titleLineHeight || (titleFontSize * 0.84)) / Math.max(titleFontSize, 1);
       const eyebrowFontSize = (ball.label?.eyebrowFontSize || Math.max(10, titleFontSize * 0.42)) / dpr;
       const eyebrowLineHeight = (ball.label?.eyebrowLineHeight || (eyebrowFontSize * 0.92)) / Math.max(eyebrowFontSize, 1);
       const gap = (ball.label?.gap || 0) / dpr;
@@ -750,6 +753,19 @@ class PortfolioPitApp {
     };
   }
 
+  estimateReleaseAngularVelocity(ball, velocity) {
+    if (!ball || !this.dragStart || !velocity) return 0;
+    const grabOffsetX = Number(this.dragStart.offsetX) || 0;
+    const grabOffsetY = Number(this.dragStart.offsetY) || 0;
+    const grabDistance = Math.hypot(grabOffsetX, grabOffsetY);
+    if (!(grabDistance > 1e-3)) return 0;
+
+    const cross = (grabOffsetX * velocity.vy) - (grabOffsetY * velocity.vx);
+    const tangentialSpeed = cross / grabDistance;
+    const armRatio = clamp(grabDistance / Math.max(ball.r, 1), 0, 1);
+    return (tangentialSpeed / Math.max(ball.r, 1)) * armRatio * 1.15;
+  }
+
   handlePointerDown(event) {
     if (this.isProjectOpen) return;
     const point = this.getCanvasPoint(event);
@@ -829,9 +845,10 @@ class PortfolioPitApp {
         vx: this.dragVelocity.vx * throwMultiplier,
         vy: this.dragVelocity.vy * throwMultiplier,
       });
+      const releaseOmega = this.estimateReleaseAngularVelocity(releasedBall, throwVelocity);
       releasedBall.vx = throwVelocity.vx;
       releasedBall.vy = throwVelocity.vy;
-      releasedBall.omega = clamp(releasedBall.omega, -maxAngularSpeed, maxAngularSpeed);
+      releasedBall.omega = clamp(releaseOmega, -maxAngularSpeed, maxAngularSpeed);
       releasedBall.wake?.();
     } else {
       releasedBall.vx = 0;
@@ -1143,8 +1160,113 @@ async function waitForPitSimulationHostReady(options = {}) {
   });
 }
 
+function isCanvasBackingStoreReady(canvas) {
+  if (!canvas) return false;
+  const cssW = canvas.clientWidth || 0;
+  const cssH = canvas.clientHeight || 0;
+  if (cssW < 64 || cssH < 64) return false;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const minW = Math.ceil((cssW + 2) * dpr) - 2;
+  const minH = Math.ceil((cssH + 2) * dpr) - 2;
+  return canvas.width >= minW && canvas.height >= minH;
+}
+
+function rectIsUsable(rect) {
+  return Boolean(rect && rect.width > 0 && rect.height > 0);
+}
+
+function rectsMatchWithinThreshold(previous, next, thresholdPx = 2) {
+  if (!rectIsUsable(previous) || !rectIsUsable(next)) return false;
+  return (
+    Math.abs(previous.top - next.top) <= thresholdPx
+    && Math.abs(previous.left - next.left) <= thresholdPx
+    && Math.abs(previous.width - next.width) <= thresholdPx
+    && Math.abs(previous.height - next.height) <= thresholdPx
+  );
+}
+
+function readPortfolioPresentationSnapshot() {
+  const wall = document.getElementById('simulations');
+  const hero = document.getElementById('hero-title');
+  const topbar = document.querySelector('.ui-top-main.route-topbar');
+  const labelMount = document.getElementById('portfolioProjectMount');
+  const canvas = document.getElementById('c');
+
+  const wallRect = wall?.getBoundingClientRect() || null;
+  const heroRect = hero?.getBoundingClientRect() || null;
+  const topbarRect = topbar?.getBoundingClientRect() || null;
+  const labelCount = labelMount?.querySelectorAll('.portfolio-project-label').length || 0;
+  const centeredTolerance = rectIsUsable(wallRect) ? Math.max(12, wallRect.height * 0.05) : 12;
+  const heroMidY = rectIsUsable(heroRect) ? heroRect.top + (heroRect.height / 2) : 0;
+  const wallMidY = rectIsUsable(wallRect) ? wallRect.top + (wallRect.height / 2) : 0;
+  const heroInsideWall = rectIsUsable(heroRect) && rectIsUsable(wallRect)
+    && heroRect.left >= wallRect.left - 4
+    && heroRect.right <= wallRect.right + 4
+    && heroRect.top >= wallRect.top - 4
+    && heroRect.bottom <= wallRect.bottom + 4;
+  const heroCentered = heroInsideWall && Math.abs(heroMidY - wallMidY) <= centeredTolerance;
+
+  return {
+    wallRect,
+    heroRect,
+    topbarRect,
+    canvasReady: isCanvasBackingStoreReady(canvas),
+    labelCount,
+    ready: Boolean(
+      rectIsUsable(wallRect)
+      && rectIsUsable(heroRect)
+      && rectIsUsable(topbarRect)
+      && isCanvasBackingStoreReady(canvas)
+      && labelCount > 0
+      && heroCentered
+    ),
+  };
+}
+
+async function waitForStablePortfolioPresentation(options = {}) {
+  const timeoutMs = Math.max(400, Number(options.timeoutMs) || 2000);
+  const thresholdPx = Math.max(0.5, Number(options.thresholdPx) || 1.5);
+
+  return new Promise((resolve) => {
+    const startedAt = performance.now();
+    let previous = null;
+    let stablePasses = 0;
+
+    const tick = () => {
+      const snapshot = readPortfolioPresentationSnapshot();
+      if (snapshot.ready && previous) {
+        const stable = (
+          rectsMatchWithinThreshold(previous.wallRect, snapshot.wallRect, thresholdPx)
+          && rectsMatchWithinThreshold(previous.heroRect, snapshot.heroRect, thresholdPx)
+          && rectsMatchWithinThreshold(previous.topbarRect, snapshot.topbarRect, thresholdPx)
+          && previous.labelCount === snapshot.labelCount
+        );
+        stablePasses = stable ? stablePasses + 1 : 0;
+      } else if (!snapshot.ready) {
+        stablePasses = 0;
+      }
+
+      if (snapshot.ready && stablePasses >= 1) {
+        resolve(true);
+        return;
+      }
+
+      if ((performance.now() - startedAt) >= timeoutMs) {
+        resolve(snapshot.ready);
+        return;
+      }
+
+      previous = snapshot;
+      requestAnimationFrame(tick);
+    };
+
+    requestAnimationFrame(tick);
+  });
+}
+
 export async function bootstrapPortfolio() {
   destroyQuoteDisplay();
+  const shellRouteTransitionActive = isRouteTransitionPhase(getTransitionPhase());
 
   try {
     await loadRuntimeText();
@@ -1190,7 +1312,9 @@ export async function bootstrapPortfolio() {
   const pitMount = document.getElementById('portfolioProjectMount');
   if (pitCanvas) { pitCanvas.style.opacity = '0'; }
   if (pitMount) { pitMount.style.opacity = '0'; }
-  forcePageVisible(['#abs-scene', '#app-frame']);
+  if (!shellRouteTransitionActive) {
+    forceBootVisible(['#abs-scene', '#app-frame']);
+  }
   // Canvas + label mount stay invisible; revealed after startMainLoop.
   const hostLaidOut = await waitForPitSimulationHostReady();
   try {
@@ -1212,11 +1336,9 @@ export async function bootstrapPortfolio() {
   createSoundToggle();
   initNoiseSystem({
     ...globals,
-    noiseEnabled: false,
     noiseMotion: 'static',
     noiseFlicker: 0,
     noiseBlurPx: 0,
-    detailNoiseOpacity: 0,
   });
 
   const globalsForPointer = getGlobals();
@@ -1296,6 +1418,10 @@ export async function bootstrapPortfolio() {
   // Wait one frame so layout is stable before revealing.
   await new Promise((resolve) => requestAnimationFrame(resolve));
   settlePortfolioPresentation();
+  const presentationSettled = await waitForStablePortfolioPresentation();
+  if (!presentationSettled && import.meta.env?.DEV) {
+    console.warn('[portfolio] Presentation did not fully settle before reveal; using latest measured layout.');
+  }
 
   // Reveal canvas + label mount; the parent wall-slot is still at opacity 0
   // (pre-enter phase) so this won't cause a flash. The enter transition

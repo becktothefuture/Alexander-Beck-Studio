@@ -44,7 +44,7 @@ const DEFAULT_PORTFOLIO_CONFIG = {
     labeling: {
       fontDesktopPx: 28,
       fontMobilePx: 20,
-      titleLineHeight: 0.76,
+      titleLineHeight: 0.84,
       innerPaddingRatio: 0.18,
       blockRotationRangeDeg: 3.5,
     },

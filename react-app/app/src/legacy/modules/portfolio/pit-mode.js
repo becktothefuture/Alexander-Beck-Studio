@@ -29,6 +29,7 @@ const PORTFOLIO_PEBBLE_VARIANTS = 16;
 const PORTFOLIO_PEBBLE_SEGMENTS_DESKTOP = 18;
 const PORTFOLIO_PEBBLE_SEGMENTS_MOBILE = 12;
 const PORTFOLIO_PEBBLE_RENDER_SCALE = 1;
+const PORTFOLIO_BODY_RIM_ENABLED = false;
 const PORTFOLIO_HOVER_SCALE = 1.05;
 const PORTFOLIO_HOVER_SPEED_IN = 8;
 const PORTFOLIO_HOVER_SPEED_OUT = 5;
@@ -424,7 +425,7 @@ function computeLabelForBall(ctx, ball, config, project, fontFamily, isMobile) {
     height: Math.max(24 * dpr, labelHeight * (labelContent.eyebrow ? 0.73 : 0.88)),
     fontMin: Math.max(10 * dpr, Math.round(labelFontPx * 0.54)),
     fontMax: labelFontPx,
-    lineHeight: clamp(toNumber(config.labeling?.titleLineHeight, 0.76), 0.68, 0.9),
+    lineHeight: clamp(toNumber(config.labeling?.titleLineHeight, 0.84), 0.68, 0.9),
     fontFamily,
     maxLines: isMobile ? 4 : 4,
     fontWeight: 640,
@@ -566,7 +567,7 @@ function seedProjectBodies(globals) {
     ball.__portfolioAccentCircle = isAccentCircle;
     ball._noSquash = true;
     ball.theta = 0;
-    ball.rotationOffset = 0;
+    ball.rotationOffset = hashUnit(index + 89) * Math.PI * 2;
     ball.omega = 0;
     ball._portfolioDpr = dpr;
     storePortfolioSeedMetrics(ball, width, height, radius);
@@ -582,7 +583,7 @@ function seedProjectBodies(globals) {
     // Each pebble gets a distinct throw angle and speed
     const throwAngle = (hashUnit(index + 71) - 0.5) * 1.2;
     const throwSpeed = vyBase * (0.4 + hashUnit(index + 41) * 1.2);
-    const inwardBias = (width * 0.5 - x) * 0.08;
+    const inwardBias = (width * 0.5 - x) * 0.14;
     ball.vx = inwardBias + Math.sin(throwAngle) * throwSpeed * 0.7;
     ball.vy = Math.cos(throwAngle) * throwSpeed + vyBase * 0.3;
     globals.balls.push(ball);
@@ -618,21 +619,23 @@ function renderProjectBody(ctx, ball, isHovered) {
   ctx.fill();
   ctx.restore();
 
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  drawPortfolioBodyRim(
-    ctx,
-    x,
-    y,
-    drawR,
-    ball.color,
-    (pathCtx, strokeR) => {
-      pathCtx.beginPath();
-      appendPebbleBodyPath(pathCtx, ball, strokeR);
-    },
-    rot
-  );
-  ctx.restore();
+  if (PORTFOLIO_BODY_RIM_ENABLED) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawPortfolioBodyRim(
+      ctx,
+      x,
+      y,
+      drawR,
+      ball.color,
+      (pathCtx, strokeR) => {
+        pathCtx.beginPath();
+        appendPebbleBodyPath(pathCtx, ball, strokeR);
+      },
+      rot
+    );
+    ctx.restore();
+  }
 }
 
 export function initializePortfolioPit() {
@@ -663,9 +666,8 @@ export function initializePortfolioPit() {
  * portfolio `app.js` + `clampBallPositionToWallInterior`.
  */
 export function applyPortfolioPitForces(ball, dt) {
-  if (!ball || ball.__portfolioHidden || ball.isPointerLocked || ball.__portfolioSelected) return;
-  ball.theta = 0;
-  ball.omega = 0;
+  void ball;
+  void dt;
 }
 
 function shouldSyncPortfolioLabelLayer(globals, balls) {
