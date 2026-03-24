@@ -10,7 +10,6 @@ import { log as devLog } from '../utils/logger.js';
 import { applyChromeHarmony } from './chrome-harmony.js';
 import { readTokenVar } from '../utils/tokens.js';
 import { invalidateDepthWashCache } from './depth-wash.js';
-import { syncWallPanelTabsToTheme } from '../ui/control-registry.js';
 import { applyShellLayoutVars, syncShellToDocument, syncThemeColorMeta } from './site-shell.js';
 
 const THEME_STORAGE_KEY = 'theme-preference-v2';
@@ -21,6 +20,26 @@ let currentTheme = 'auto'; // Default to auto (system + night heuristic)
 let systemPreference = 'light';
 
 let isDarkModeInitialized = false;
+
+function syncWallPanelTabsToTheme() {
+  const isDark = document.body.classList.contains('dark-mode');
+  const theme = isDark ? 'dark' : 'light';
+  document.querySelectorAll('.wall-section-with-tabs').forEach((container) => {
+    const sectionKey = container.querySelector('.wall-theme-tab')?.getAttribute('data-wall-section');
+    if (!sectionKey) return;
+    const tab = container.querySelector(`.wall-theme-tab[data-theme="${theme}"]`);
+    const panel = document.getElementById(sectionKey + (theme === 'light' ? 'LightPanel' : 'DarkPanel'));
+    if (!tab || !panel) return;
+    container.querySelectorAll('.wall-theme-tab').forEach((t) => {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+    });
+    container.querySelectorAll('.wall-tab-panel').forEach((p) => p.classList.remove('active'));
+    tab.classList.add('active');
+    tab.setAttribute('aria-selected', 'true');
+    panel.classList.add('active');
+  });
+}
 
 function readStoredThemePreference() {
   try {

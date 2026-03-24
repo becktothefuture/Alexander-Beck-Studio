@@ -36,6 +36,7 @@ import {
   syncSoundControlsToConfig
 } from '../audio/sound-control-registry.js';
 import { bindStudioSurfaceControls } from './studio-surface-controls.js';
+import { getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
 import { navigateToGatePage, navigateToHome } from '../../../lib/access-gates.js';
 import { resize } from '../rendering/renderer.js';
 
@@ -494,14 +495,10 @@ function createMasterPanel({
     themeToggleBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      // Intentional dynamic import: dark-mode-v2 imports control-registry, so
-      // this stays lazy to avoid hardening that cycle while toggling theme.
-      import('../visual/dark-mode-v2.js').then(({ getCurrentTheme, setTheme }) => {
-        const current = getCurrentTheme();
-        const next = (current === 'dark' || (current === 'auto' && document.body.classList.contains('dark-mode'))) ? 'light' : 'dark';
-        setTheme(next);
-        themeToggleBtn.textContent = next === 'dark' ? '☀️' : '🌙';
-      }).catch(() => {});
+      const current = getCurrentTheme();
+      const next = (current === 'dark' || (current === 'auto' && document.body.classList.contains('dark-mode'))) ? 'light' : 'dark';
+      setTheme(next);
+      themeToggleBtn.textContent = next === 'dark' ? '☀️' : '🌙';
     });
   }
   

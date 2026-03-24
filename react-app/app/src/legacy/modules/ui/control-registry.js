@@ -15,6 +15,7 @@ import {
 import { resetCurrentMode, setMode } from '../modes/mode-controller.js';
 import { resize } from '../rendering/renderer.js';
 import { updateCursorSize } from '../rendering/cursor.js';
+import { getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
 import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-shadow.js';
 
@@ -739,11 +740,7 @@ export const CONTROL_SECTIONS = {
         parse: v => String(v),
         hint: 'If desktop browsers ignore theme-color, the wall adapts to match the browser UI palette.',
         onChange: (g) => {
-          // Intentional dynamic import: dark-mode-v2 already imports this registry,
-          // so keeping theme sync lazy avoids tightening that existing cycle.
-          import('../visual/dark-mode-v2.js').then(({ getCurrentTheme, setTheme }) => {
-            setTheme(getCurrentTheme());
-          }).catch(() => {});
+          setTheme(getCurrentTheme());
         }
       },
       {
@@ -756,9 +753,7 @@ export const CONTROL_SECTIONS = {
         parse: v => !!v,
         hint: 'In Auto theme, prefer Dark during the night window (privacy-first: local clock only).',
         onChange: () => {
-          import('../visual/dark-mode-v2.js').then(({ getCurrentTheme, setTheme }) => {
-            if (getCurrentTheme() === 'auto') setTheme('auto');
-          }).catch(() => {});
+          if (getCurrentTheme() === 'auto') setTheme('auto');
         }
       },
       {
@@ -784,9 +779,7 @@ export const CONTROL_SECTIONS = {
         format: v => `${Math.round(v)}:00`,
         parse: v => parseInt(v, 10),
         onChange: () => {
-          import('../visual/dark-mode-v2.js').then(({ getCurrentTheme, setTheme }) => {
-            if (getCurrentTheme() === 'auto') setTheme('auto');
-          }).catch(() => {});
+          if (getCurrentTheme() === 'auto') setTheme('auto');
         }
       },
       {
@@ -799,9 +792,7 @@ export const CONTROL_SECTIONS = {
         format: v => `${Math.round(v)}:00`,
         parse: v => parseInt(v, 10),
         onChange: () => {
-          import('../visual/dark-mode-v2.js').then(({ getCurrentTheme, setTheme }) => {
-            if (getCurrentTheme() === 'auto') setTheme('auto');
-          }).catch(() => {});
+          if (getCurrentTheme() === 'auto') setTheme('auto');
         }
       }
     ]
@@ -2656,9 +2647,7 @@ export const CONTROL_SECTIONS = {
           import('../visual/site-shell.js').then((mod) => {
             mod.patchShellTheme?.({ siteFrameLight: val });
           }).catch(() => {});
-          import('../visual/dark-mode-v2.js').then(mod => {
-            mod.setTheme(mod.getCurrentTheme());
-          }).catch(() => {});
+          setTheme(getCurrentTheme());
         }
       },
       {
@@ -2679,9 +2668,7 @@ export const CONTROL_SECTIONS = {
           import('../visual/site-shell.js').then((mod) => {
             mod.patchShellTheme?.({ siteFrameDark: val });
           }).catch(() => {});
-          import('../visual/dark-mode-v2.js').then(mod => {
-            mod.setTheme(mod.getCurrentTheme());
-          }).catch(() => {});
+          setTheme(getCurrentTheme());
         }
       },
       {
@@ -2697,9 +2684,7 @@ export const CONTROL_SECTIONS = {
           import('../visual/site-shell.js').then((mod) => {
             mod.patchShellTheme?.({ safariFrameLight: val });
           }).catch(() => {});
-          import('../visual/dark-mode-v2.js').then(mod => {
-            mod.setTheme(mod.getCurrentTheme());
-          }).catch(() => {});
+          setTheme(getCurrentTheme());
         }
       },
       {
@@ -2715,9 +2700,7 @@ export const CONTROL_SECTIONS = {
           import('../visual/site-shell.js').then((mod) => {
             mod.patchShellTheme?.({ safariFrameDark: val });
           }).catch(() => {});
-          import('../visual/dark-mode-v2.js').then(mod => {
-            mod.setTheme(mod.getCurrentTheme());
-          }).catch(() => {});
+          setTheme(getCurrentTheme());
         }
       },
       // ─── TEXT (LIGHT MODE) ───────────────────────────────────────────────
