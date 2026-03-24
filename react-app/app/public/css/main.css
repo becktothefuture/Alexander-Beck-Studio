@@ -6327,6 +6327,9 @@ body.cv-page .cv-scroll-container {
   display: block;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   border-radius: var(--wall-radius);
   background: var(--abs-wall-base, var(--bg-light));
   opacity: 1;
