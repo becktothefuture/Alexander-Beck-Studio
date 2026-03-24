@@ -1,0 +1,3 @@
+[submodule "amp-skills"]
+	path = amp-skills
+	url = https://github.com/snarktank/amp-skills.git
