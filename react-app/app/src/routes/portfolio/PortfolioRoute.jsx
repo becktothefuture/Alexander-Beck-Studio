@@ -15,7 +15,7 @@ export function getPortfolioRouteView() {
   const portfolioHeroLines = Array.isArray(homeContent.portfolio?.heroLines)
     ? homeContent.portfolio.heroLines
     : [
-        'Psychology first: perception, motivation, choice. Structure, interaction, writing, and build until it delivers.'
+        'I design digital experiences around human response.'
       ];
   const portfolioHeroAria = [portfolioHeroEyebrow, ...portfolioHeroLines].filter(Boolean).join(' ');
   const portfolioHeroSecondary = portfolioHeroLines[1] || '';
