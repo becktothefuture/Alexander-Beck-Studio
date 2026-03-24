@@ -4915,6 +4915,12 @@ body.cv-page #simulations {
   flex-direction: column;
 }
 
+body.cv-page #shell-wall-slot,
+body.cv-page .shell-wall-route-root,
+body.cv-page .cv-scroll-container {
+  pointer-events: auto;
+}
+
 .cv-simulation {
   display: flex;
   flex-direction: column;
@@ -6306,5 +6312,157 @@ body.dark-mode .dev-perf-hud {
   /* Disable view transitions entirely - just use instant navigation */
   @view-transition {
     navigation: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CV ROUTE: SIMPLE WALL-CONTAINED DOCUMENT
+   ───────────────────────────────────────────────────────────────────────────── */
+
+body.cv-page .cv-scroll-container {
+  position: absolute;
+  inset: var(--wall-thickness);
+  bottom: calc(var(--wall-thickness) + var(--cv-footer-clearance, clamp(108px, 16vh, 124px)));
+  z-index: 10;
+  display: block;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: var(--wall-radius);
+  background: var(--abs-wall-base, var(--bg-light));
+  opacity: 1;
+  visibility: visible;
+  scrollbar-width: thin;
+  scrollbar-color: var(--abs-fg-muted) transparent;
+}
+
+body.cv-page.dark-mode .cv-scroll-container {
+  background: var(--abs-wall-base, var(--bg-dark));
+}
+
+body.cv-page .cv-scroll-container::-webkit-scrollbar {
+  width: clamp(4px, 0.5vw, 6px);
+}
+
+body.cv-page .cv-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body.cv-page .cv-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--abs-fg-muted);
+  border-radius: clamp(2px, 0.3vw, 3px);
+}
+
+body.cv-page .cv-page-content {
+  min-height: 100%;
+  color: var(--abs-fg-primary);
+  font-family: var(--abs-font-sans);
+}
+
+body.cv-page .cv-page-inner {
+  width: min(100%, 72rem);
+  margin: 0 auto;
+  padding: clamp(2.75rem, 6vh, 4.5rem) clamp(1.25rem, 4vw, 3rem) clamp(6rem, 10vh, 8rem);
+  box-sizing: border-box;
+}
+
+body.cv-page .cv-hero {
+  display: grid;
+  grid-template-columns: minmax(0, clamp(11rem, 24vw, 14rem)) minmax(0, 1fr);
+  gap: clamp(1.5rem, 3vw, 3rem);
+  align-items: start;
+  margin: 0 0 clamp(2rem, 5vw, 3.5rem);
+  padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
+  border-bottom: 1px solid var(--abs-fg-muted);
+}
+
+body.cv-page .cv-photo {
+  width: 100%;
+  height: clamp(16rem, 36vh, 22rem);
+  margin: 0;
+  aspect-ratio: auto;
+  max-width: none;
+  transform: none;
+  background: var(--abs-wall-base, var(--bg-light));
+}
+
+body.cv-page.dark-mode .cv-photo {
+  background: var(--abs-wall-base, var(--bg-dark));
+}
+
+body.cv-page .cv-photo__image {
+  position: static;
+  width: 100%;
+  height: 100%;
+  transform: none;
+  object-fit: cover;
+}
+
+body.cv-page .cv-intro {
+  gap: var(--gap-md);
+  max-width: 40rem;
+}
+
+body.cv-page .cv-intro-text {
+  max-width: none;
+}
+
+body.cv-page .cv-section {
+  display: grid;
+  grid-template-columns: minmax(0, 10rem) minmax(0, 1fr);
+  column-gap: clamp(1.5rem, 3vw, 3rem);
+  row-gap: clamp(0.85rem, 1.5vw, 1.25rem);
+  align-items: start;
+  margin-bottom: clamp(2rem, 4vw, 3rem);
+  padding-top: clamp(1rem, 2vw, 1.25rem);
+  border-top: 1px solid color-mix(in srgb, var(--abs-fg-muted) 60%, transparent);
+}
+
+body.cv-page .cv-section > :not(.cv-section-title) {
+  grid-column: 2;
+}
+
+body.cv-page .cv-section-title {
+  margin: 0;
+  padding: 0;
+  border-bottom: 0;
+  align-self: start;
+}
+
+@media (max-width: 900px) {
+  body.cv-page .cv-page-inner {
+    padding-inline: clamp(1rem, 5vw, 1.75rem);
+  }
+
+  body.cv-page .cv-hero {
+    grid-template-columns: 1fr;
+  }
+
+  body.cv-page .cv-section {
+    grid-template-columns: 1fr;
+  }
+
+  body.cv-page .cv-section > :not(.cv-section-title) {
+    grid-column: auto;
+  }
+
+  body.cv-page .cv-photo {
+    max-width: min(18rem, 100%);
+    height: clamp(15rem, 48vw, 20rem);
+  }
+}
+
+@media (max-width: 768px) {
+  body.cv-page .cv-scroll-container {
+    top: calc(var(--wall-thickness) + clamp(74px, 11vh, 94px));
+  }
+
+  body.cv-page .cv-page-inner {
+    padding-top: clamp(1.5rem, 4vh, 2.5rem);
+    padding-bottom: clamp(4rem, 10vh, 6rem);
+  }
+
+  body.cv-page .cv-skills,
+  body.cv-page .cv-projects {
+    grid-template-columns: 1fr;
   }
 }

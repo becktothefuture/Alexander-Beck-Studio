@@ -3,8 +3,8 @@ import homeContent from 'virtual:abs-content/home';
 import cvContent from 'virtual:abs-content/cv';
 
 export const CV_ROUTE_RUNTIME = {
-  exportName: 'bootstrapCvPage',
-  loadModule: () => import('../../legacy/modules/cv-init.js')
+  exportName: 'bootstrapCvRoute',
+  loadModule: () => import('./cv-bootstrap.js')
 };
 
 function renderParagraphs(paragraphs = []) {
@@ -43,51 +43,45 @@ export function getCvRouteView() {
     bodyClass: 'body cv-page',
     wallClassName: 'cv-simulation w-embed',
     wallContent: (
-      <>
-        <div className="cv-scroll-container">
-          <article className="cv-content cv-content--single">
-            <div className="cv-right cv-right--single">
-              <div className="cv-right__inner">
-                <header className="cv-hero" aria-label="Profile">
-                  <div className="cv-photo">
-                    <img
-                      src={cvContent.intro.photo.src}
-                      alt={cvContent.intro.photo.alt}
-                      className="cv-photo__image"
-                    />
-                  </div>
-                  <div className="cv-intro">
-                    <h1 className="cv-name">{cvContent.intro.name}</h1>
-                    <p className="cv-title">{cvContent.intro.title}</p>
-                    <p className="cv-intro-text">{cvContent.intro.text}</p>
-                  </div>
-                </header>
-
-                {cvContent.sections.map((section) => (
-                  <section key={section.title} className="cv-section">
-                    <h2 className="cv-section-title">{section.title}</h2>
-                    {section.paragraphs ? renderParagraphs(section.paragraphs) : null}
-                    {section.entries ? renderEntries(section.entries) : null}
-                    {section.items ? <ul className="cv-skills">{renderSkills(section.items)}</ul> : null}
-                    {section.lead ? <p>{section.lead}</p> : null}
-                    {section.projects ? <ul className="cv-projects">{renderProjects(section.projects)}</ul> : null}
-                    {section.recognition ? (
-                      <p className="cv-recognition">{section.recognition}</p>
-                    ) : null}
-                  </section>
-                ))}
-
-                <footer className="cv-footer">
-                  <p className="cv-contact">{cvContent.footer.contact}</p>
-                  <p className="cv-copyright">{cvContent.footer.copyright}</p>
-                </footer>
+      <div className="cv-scroll-container">
+        <main className="cv-page-content" aria-label="About Me">
+          <article className="cv-page-inner">
+            <header className="cv-hero" aria-label="Profile">
+              <div className="cv-photo">
+                <img
+                  src={cvContent.intro.photo.src}
+                  alt={cvContent.intro.photo.alt}
+                  className="cv-photo__image"
+                />
               </div>
-            </div>
-          </article>
-        </div>
+              <div className="cv-intro">
+                <h1 className="cv-name">{cvContent.intro.name}</h1>
+                <p className="cv-title">{cvContent.intro.title}</p>
+                <p className="cv-intro-text">{cvContent.intro.text}</p>
+              </div>
+            </header>
 
-        <canvas className="cv-wall-canvas" aria-hidden="true" />
-      </>
+            {cvContent.sections.map((section) => (
+              <section key={section.title} className="cv-section">
+                <h2 className="cv-section-title">{section.title}</h2>
+                {section.paragraphs ? renderParagraphs(section.paragraphs) : null}
+                {section.entries ? renderEntries(section.entries) : null}
+                {section.items ? <ul className="cv-skills">{renderSkills(section.items)}</ul> : null}
+                {section.lead ? <p>{section.lead}</p> : null}
+                {section.projects ? <ul className="cv-projects">{renderProjects(section.projects)}</ul> : null}
+                {section.recognition ? (
+                  <p className="cv-recognition">{section.recognition}</p>
+                ) : null}
+              </section>
+            ))}
+
+            <footer className="cv-footer">
+              <p className="cv-contact">{cvContent.footer.contact}</p>
+              <p className="cv-copyright">{cvContent.footer.copyright}</p>
+            </footer>
+          </article>
+        </main>
+      </div>
     ),
     headerContent: (
       <header className="ui-top">
