@@ -6,8 +6,7 @@ import process from 'node:process';
 const repoRoot = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const fragmentPaths = [
   'react-app/app/src/templates/index-body.html',
-  'react-app/app/src/templates/portfolio-body.html',
-  'react-app/app/src/templates/cv-body.html'
+  'react-app/app/src/templates/portfolio-body.html'
 ];
 
 const voidTags = new Set([
