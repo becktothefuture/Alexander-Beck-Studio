@@ -105,7 +105,7 @@ body.portfolio-page .route-topbar {
 
 body.portfolio-page .route-topbar__left,
 body.portfolio-page .route-topbar__right {
-  align-items: flex-start;
+  align-items: center;
 }
 
 body.portfolio-page .route-topbar__left {

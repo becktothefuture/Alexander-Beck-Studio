@@ -2064,6 +2064,8 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-block-size: var(--ui-icon-frame-size);
+  min-height: var(--ui-icon-frame-size);
   white-space: nowrap;
   flex: 0 0 auto;
   /* Button-specific resets */
@@ -3408,6 +3410,8 @@ html.is-safari .noise::before {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    min-block-size: calc(var(--ui-icon-frame-size) * 0.75);
+    min-height: calc(var(--ui-icon-frame-size) * 0.75);
     /* Button resets for mobile */
     background: none;
     border: none;

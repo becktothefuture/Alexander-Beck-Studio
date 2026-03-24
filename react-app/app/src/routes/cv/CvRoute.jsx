@@ -101,23 +101,24 @@ export function getCvRouteView() {
             >
               <i className="ti ti-arrow-left" aria-hidden="true" />
             </a>
+            <nav className="portfolio-topnav ui-main-nav" aria-label="CV navigation">
+              <MainNavLink
+                id={portfolioLink.id}
+                aria-label={portfolioLink.text}
+                aria-haspopup="dialog"
+              >
+                {portfolioLink.text}
+              </MainNavLink>
+              <MainNavLink
+                id={contactLink.id}
+                aria-label={contactLink.text}
+                aria-haspopup="dialog"
+              >
+                {contactLink.text}
+              </MainNavLink>
+            </nav>
           </div>
-          <nav className="route-topbar__center portfolio-topnav ui-main-nav" aria-label="CV navigation">
-            <MainNavLink
-              id={portfolioLink.id}
-              aria-label={portfolioLink.text}
-              aria-haspopup="dialog"
-            >
-              {portfolioLink.text}
-            </MainNavLink>
-            <MainNavLink
-              id={contactLink.id}
-              aria-label={contactLink.text}
-              aria-haspopup="dialog"
-            >
-              {contactLink.text}
-            </MainNavLink>
-          </nav>
+          <div className="route-topbar__center" aria-hidden="true" />
           <div className="route-topbar__right ui-top-right">
             <div id="sound-toggle-slot" className="portfolio-sound-slot" />
           </div>
