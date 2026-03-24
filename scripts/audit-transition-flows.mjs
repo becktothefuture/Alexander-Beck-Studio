@@ -94,8 +94,7 @@ async function waitForHomeSettled(page) {
           footer &&
           !document.body.classList.contains('portfolio-page') &&
           !document.body.classList.contains('cv-page') &&
-          document.documentElement.dataset.absRouteTransition !== 'active' &&
-          document.documentElement.dataset.absGateTransition !== 'active' &&
+          (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle' &&
           !blur?.classList.contains('active') &&
           !content?.classList.contains('active')
       );
@@ -111,8 +110,7 @@ async function waitForRouteTransitionSettled(page) {
       const blur = document.getElementById('modal-blur-layer');
       const content = document.getElementById('modal-content-layer');
       return (
-        document.documentElement.dataset.absRouteTransition !== 'active'
-        && document.documentElement.dataset.absGateTransition !== 'active'
+        (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
         && !blur?.classList.contains('active')
         && !content?.classList.contains('active')
       );

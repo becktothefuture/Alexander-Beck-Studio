@@ -7,6 +7,8 @@
 import { trySpaNavigate } from '../../../lib/spa-navigation.js';
 import {
   clearTransitionReturningState,
+  getTransitionPhase,
+  isRouteTransitionPhase,
   setTransitionPhase,
   TRANSITION_PHASES,
 } from '../../../lib/transition-phase.js';
@@ -30,6 +32,11 @@ export function supportsViewTransitions() {
  */
 export function didViewTransitionRun() {
   return _viewTransitionDetected;
+}
+
+function isGateRouteTransitionCompatActive() {
+  return isRouteTransitionPhase(getTransitionPhase())
+    && document.documentElement.dataset.absGateTransition === 'active';
 }
 
 // Listen for pagereveal event to detect View Transition arrival (backup)
@@ -76,13 +83,13 @@ if (typeof window !== 'undefined') {
   // Close overlays before navigation to prevent ghost UI in view transitions
   window.addEventListener('pageswap', () => {
     closeOverlaysBeforeNavigation({
-      preserveBackdrop: document.documentElement.dataset.absGateTransition === 'active',
+      preserveBackdrop: isGateRouteTransitionCompatActive(),
     });
   });
   
   window.addEventListener('pagehide', () => {
     closeOverlaysBeforeNavigation({
-      preserveBackdrop: document.documentElement.dataset.absGateTransition === 'active',
+      preserveBackdrop: isGateRouteTransitionCompatActive(),
     });
   });
 }

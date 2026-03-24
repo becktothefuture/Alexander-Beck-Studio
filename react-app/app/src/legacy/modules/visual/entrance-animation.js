@@ -6,6 +6,7 @@
 
 import { getGlobals } from '../core/state.js';
 import { getShellConfig } from './site-shell.js';
+import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
 
 /**
  * Detects aspect ratio category (landscape, square, portrait)
@@ -714,7 +715,7 @@ export async function orchestrateEntrance(options = {}) {
   // Skip entrance entirely if View Transition just ran (Chrome handles animation)
   // Also skip if a gate-success transition is in progress — the shell handles the
   // staggered reveal so the bootstrap should just mark elements ready without animating.
-  if (skipEntranceAnimation || document.documentElement.dataset.absGateTransition === 'active') {
+  if (skipEntranceAnimation || isRouteTransitionPhase(getTransitionPhase())) {
     document.documentElement.classList.remove('entrance-pre-transition', 'entrance-transitioning');
     document.documentElement.classList.add('entrance-complete');
     // Just reveal elements that may be hidden

@@ -1217,7 +1217,6 @@ function readPortfolioPresentationSnapshot() {
       && rectIsUsable(heroRect)
       && rectIsUsable(topbarRect)
       && isCanvasBackingStoreReady(canvas)
-      && labelCount > 0
       && heroCentered
     ),
   };
@@ -1239,7 +1238,6 @@ async function waitForStablePortfolioPresentation(options = {}) {
           rectsMatchWithinThreshold(previous.wallRect, snapshot.wallRect, thresholdPx)
           && rectsMatchWithinThreshold(previous.heroRect, snapshot.heroRect, thresholdPx)
           && rectsMatchWithinThreshold(previous.topbarRect, snapshot.topbarRect, thresholdPx)
-          && previous.labelCount === snapshot.labelCount
         );
         stablePasses = stable ? stablePasses + 1 : 0;
       } else if (!snapshot.ready) {
@@ -1261,6 +1259,13 @@ async function waitForStablePortfolioPresentation(options = {}) {
     };
 
     requestAnimationFrame(tick);
+  });
+}
+
+function signalRouteReady(routeId) {
+  if (typeof window === 'undefined' || !routeId) return;
+  requestAnimationFrame(() => {
+    window.dispatchEvent(new CustomEvent('abs:route-ready', { detail: { routeId } }));
   });
 }
 
@@ -1428,6 +1433,9 @@ export async function bootstrapPortfolio() {
   // fades in already-settled content.
   if (pitCanvas) { pitCanvas.style.opacity = '1'; }
   if (pitMount) { pitMount.style.opacity = '1'; }
+  if (shellRouteTransitionActive) {
+    signalRouteReady('portfolio');
+  }
 
   const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : false;
   if (ABS_DEV) {

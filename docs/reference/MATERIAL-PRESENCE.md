@@ -100,6 +100,8 @@ Accessibility here means reducing unnecessary cognitive effort. The site should 
 - Keep persistent landmarks perceptually continuous where possible.
 - Do not stack multiple delays on top of already-recognizable UI.
 - Prefer one strong transition idea over several layered effects competing for attention.
+- Primary route groups should restore together: hero, top chrome, and footer first; secondary labels/accents after the primary group is readable.
+- The first readable frame should already be in final layout. If text becomes readable before it reaches its settled geometry, the motion is wrong even if the timing feels elegant.
 
 ### 5.4 Typography and grouped content
 

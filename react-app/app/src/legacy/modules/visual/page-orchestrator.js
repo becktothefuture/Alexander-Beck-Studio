@@ -1,4 +1,5 @@
 import { getShellConfig, getSimulationWarmupMs } from './site-shell.js';
+import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
 
 export function setPageBootState(state) {
   try {
@@ -13,14 +14,13 @@ export function clearFadeBlocking() {
   if (blocker) blocker.remove();
 }
 
-export function forcePageVisible(selectors = ['#abs-scene', '#app-frame']) {
-  const gateActive = document.documentElement.dataset.absGateTransition === 'active';
+export function forceBootVisible(selectors = ['#abs-scene', '#app-frame']) {
+  if (isRouteTransitionPhase(getTransitionPhase())) {
+    return false;
+  }
 
   selectors.forEach((selector) => {
     document.querySelectorAll(selector).forEach((element) => {
-      // During a gate-success transition the shell owns scene opacity;
-      // do not override it here or the invisible scene will flash visible.
-      if (gateActive && element.id === 'abs-scene') return;
       element.style.opacity = '1';
       element.style.visibility = 'visible';
       element.style.transform = 'translateZ(0)';
@@ -31,7 +31,10 @@ export function forcePageVisible(selectors = ['#abs-scene', '#app-frame']) {
   document.documentElement.classList.remove('entrance-pre-transition', 'entrance-transitioning');
   document.documentElement.classList.add('entrance-complete', 'ui-entered');
   setPageBootState('entered');
+  return true;
 }
+
+export const forcePageVisible = forceBootVisible;
 
 export async function waitForPageReadyBarrier(options = {}) {
   const waitForFonts = options.waitForFonts;

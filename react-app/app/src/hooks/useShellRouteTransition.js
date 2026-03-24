@@ -7,6 +7,7 @@ import {
   clearLegacyRouteTransitionFlags,
   clearTransitionReturningState,
   getTransitionPhase,
+  installTransitionOwnershipGuard,
   installTransitionPhaseObserver,
   isRouteTransitionPhase,
   setLegacyRouteTransitionActive,
@@ -62,6 +63,7 @@ const STAGGER_OFFSET_MS = 0;
 const ELEMENT_REVEAL_MS = 280;
 const EASE_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)';
 const READY_FALLBACK_MS = 1200;
+const GROUPED_ROUTE_OFFSET_MS = 80;
 
 let transitionToken = 0;
 let activeAnimations = [];
@@ -130,16 +132,28 @@ function getRouteTransitionTimings({
 
 /* ── content layer references ────────────────────────────────────────────── */
 
-function getContentLayers() {
+function getSurfaceNode(surfaceRef, fallbackSelector) {
+  if (surfaceRef?.current) return surfaceRef.current;
+  if (!fallbackSelector) return null;
+  if (fallbackSelector.startsWith('#')) {
+    return document.getElementById(fallbackSelector.slice(1));
+  }
+  return document.querySelector(fallbackSelector);
+}
+
+function getContentLayers(surfaceRefs) {
   return {
-    wall: document.getElementById('shell-wall-slot'),
-    hero: document.getElementById('shell-hero-slot'),
-    ui: document.querySelector('.fade-content'),
+    wall: getSurfaceNode(surfaceRefs?.wall, '#shell-wall-slot'),
+    hero: getSurfaceNode(surfaceRefs?.hero, '#shell-hero-slot'),
+    ui: getSurfaceNode(surfaceRefs?.ui, '.fade-content'),
+    chrome: getSurfaceNode(surfaceRefs?.chrome, '.shell-transition-surface--chrome'),
+    secondary: getSurfaceNode(surfaceRefs?.secondary, '.shell-transition-surface--secondary'),
+    footer: getSurfaceNode(surfaceRefs?.footer, '.shell-transition-surface--footer'),
   };
 }
 
-function setRouteLayerVisibility(visible) {
-  const { wall, hero, ui } = getContentLayers();
+function setRouteLayerVisibility(visible, surfaceRefs) {
+  const { wall, hero, ui } = getContentLayers(surfaceRefs);
   const hidden = !visible;
   const opacity = hidden ? '0' : '';
   const visibility = hidden ? 'hidden' : '';
@@ -157,6 +171,68 @@ function setRouteLayerVisibility(visible) {
       el.style.removeProperty('pointer-events');
     }
   });
+}
+
+function buildRouteTransitionGroups(routeId, surfaceRefs) {
+  const surfaces = getContentLayers(surfaceRefs);
+  const addGroup = (delayMs, items) => ({
+    delayMs,
+    items: items.filter((item) => item?.el),
+  });
+
+  if (routeId === 'portfolio') {
+    return [
+      addGroup(0, [
+        { el: surfaces.hero, slide: true },
+        { el: surfaces.chrome, slide: true },
+        { el: surfaces.footer, slide: false },
+      ]),
+      addGroup(GROUPED_ROUTE_OFFSET_MS, [
+        { el: surfaces.wall, slide: false },
+        { el: surfaces.secondary, slide: false },
+      ]),
+    ];
+  }
+
+  if (routeId === 'home') {
+    return [
+      addGroup(0, [
+        { el: surfaces.hero, slide: true },
+        { el: surfaces.chrome, slide: true },
+        { el: surfaces.secondary, slide: true },
+        { el: surfaces.footer, slide: false },
+      ]),
+      addGroup(GROUPED_ROUTE_OFFSET_MS, [
+        { el: surfaces.wall, slide: false },
+      ]),
+    ];
+  }
+
+  return [
+    addGroup(0, [
+      { el: surfaces.chrome, slide: true },
+      { el: surfaces.secondary, slide: true },
+      { el: surfaces.footer, slide: false },
+    ]),
+    addGroup(GROUPED_ROUTE_OFFSET_MS, [
+      { el: surfaces.wall, slide: false },
+      { el: surfaces.hero, slide: true },
+    ]),
+  ];
+}
+
+function getGroupedTransitionItems(routeId, surfaceRefs) {
+  const groups = buildRouteTransitionGroups(routeId, surfaceRefs);
+  const seen = new Set();
+  const items = [];
+  groups.forEach((group) => {
+    group.items.forEach((item) => {
+      if (!item?.el || seen.has(item.el)) return;
+      seen.add(item.el);
+      items.push(item);
+    });
+  });
+  return items;
 }
 
 /* ── backdrop cleanup (with direct-DOM fallback) ─────────────────────────── */
@@ -199,8 +275,8 @@ function isShellManagedRouteNavButton(el) {
   return Boolean(el?.matches?.('.ui-main-nav .footer_link'));
 }
 
-function commitStaggerStyles() {
-  collectStaggerTargets().forEach(({ el }) => {
+function commitStaggerStyles(routeId, surfaceRefs) {
+  getGroupedTransitionItems(routeId, surfaceRefs).forEach(({ el }) => {
     el.style.opacity = '1';
     el.style.transform = '';
     el.style.filter = '';
@@ -216,14 +292,16 @@ function commitStaggerStyles() {
 
 function finalizeTransition(
   isGate,
+  routeId,
+  surfaceRefs,
   {
     suppressReturnAnimation = false,
     gateBackdropDismissed = false,
   } = {}
 ) {
   cancelActiveAnimations();
-  commitStaggerStyles();
-  setRouteLayerVisibility(true);
+  commitStaggerStyles(routeId, surfaceRefs);
+  setRouteLayerVisibility(true, surfaceRefs);
   if (isGate && !gateBackdropDismissed) {
     dismissGateBackdrop({ suppressReturnAnimation });
   }
@@ -231,7 +309,7 @@ function finalizeTransition(
   setTransitionPhase(TRANSITION_PHASES.IDLE);
 
   // Restore content layers.
-  const { wall, hero, ui } = getContentLayers();
+  const { wall, hero, ui } = getContentLayers(surfaceRefs);
   if (wall) { wall.style.opacity = '1'; wall.style.willChange = 'auto'; }
   if (hero) { hero.style.opacity = '1'; hero.style.willChange = 'auto'; }
   if (ui) { ui.style.opacity = '1'; ui.style.willChange = 'auto'; }
@@ -249,17 +327,17 @@ function finalizeTransition(
   }
 }
 
-function interruptTransitionForPopstate(isGate) {
+function interruptTransitionForPopstate(isGate, routeId, surfaceRefs) {
   cancelActiveAnimations();
-  commitStaggerStyles();
+  commitStaggerStyles(routeId, surfaceRefs);
   if (isGate) {
     dismissGateBackdrop({ suppressReturnAnimation: true });
   }
   clearLegacyRouteTransitionFlags();
-  setRouteLayerVisibility(false);
+  setRouteLayerVisibility(false, surfaceRefs);
   setTransitionPhase(TRANSITION_PHASES.IDLE);
 
-  const { wall, hero, ui } = getContentLayers();
+  const { wall, hero, ui } = getContentLayers(surfaceRefs);
   if (wall) wall.style.willChange = 'auto';
   if (hero) hero.style.willChange = 'auto';
   if (ui) ui.style.willChange = 'auto';
@@ -267,8 +345,8 @@ function interruptTransitionForPopstate(isGate) {
 
 /* ── fade out content layers (wall stays visible) ─────────────────────────── */
 
-function fadeOutContent(durationMs, easing = EASE_OUT) {
-  const { wall, hero, ui } = getContentLayers();
+function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs) {
+  const { wall, hero, ui } = getContentLayers(surfaceRefs);
   const anims = [];
 
   [wall, hero, ui].forEach((el) => {
@@ -316,6 +394,71 @@ function hasCanvasBufferReady() {
   return canvas.width >= minW && canvas.height >= minH;
 }
 
+function isRectUsable(rect) {
+  return Boolean(rect && rect.width > 0 && rect.height > 0);
+}
+
+function rectContains(innerRect, outerRect, tolerancePx = 2) {
+  if (!isRectUsable(innerRect) || !isRectUsable(outerRect)) return false;
+  return (
+    innerRect.left >= outerRect.left - tolerancePx
+    && innerRect.right <= outerRect.right + tolerancePx
+    && innerRect.top >= outerRect.top - tolerancePx
+    && innerRect.bottom <= outerRect.bottom + tolerancePx
+  );
+}
+
+function isCenteredWithin(innerRect, outerRect, tolerancePx = 12) {
+  if (!isRectUsable(innerRect) || !isRectUsable(outerRect)) return false;
+  const innerMidY = innerRect.top + (innerRect.height / 2);
+  const outerMidY = outerRect.top + (outerRect.height / 2);
+  return Math.abs(innerMidY - outerMidY) <= tolerancePx;
+}
+
+function rectsMatchWithinThreshold(previous, next, thresholdPx = 2) {
+  if (!isRectUsable(previous) || !isRectUsable(next)) return false;
+  return (
+    Math.abs(previous.top - next.top) <= thresholdPx
+    && Math.abs(previous.left - next.left) <= thresholdPx
+    && Math.abs(previous.width - next.width) <= thresholdPx
+    && Math.abs(previous.height - next.height) <= thresholdPx
+  );
+}
+
+function isHeroSettledInsideWall() {
+  const wall = document.getElementById('simulations');
+  const hero = document.getElementById('hero-title');
+  if (!wall || !hero) return false;
+  const wallRect = wall.getBoundingClientRect();
+  const heroRect = hero.getBoundingClientRect();
+  return (
+    rectContains(heroRect, wallRect, 4)
+    && isCenteredWithin(heroRect, wallRect, Math.max(12, wallRect.height * 0.05))
+  );
+}
+
+function readRouteReadySnapshot(routeId) {
+  if (routeId === 'portfolio') {
+    return {
+      wallRect: document.getElementById('simulations')?.getBoundingClientRect() || null,
+      heroRect: document.getElementById('hero-title')?.getBoundingClientRect() || null,
+      topbarRect: document.querySelector('.ui-top-main.route-topbar')?.getBoundingClientRect() || null,
+    };
+  }
+
+  return null;
+}
+
+function isRouteReadySnapshotStable(routeId, previous, next) {
+  if (routeId !== 'portfolio') return true;
+  if (!previous || !next) return false;
+  return (
+    rectsMatchWithinThreshold(previous.wallRect, next.wallRect, 2)
+    && rectsMatchWithinThreshold(previous.heroRect, next.heroRect, 2)
+    && rectsMatchWithinThreshold(previous.topbarRect, next.topbarRect, 2)
+  );
+}
+
 function isRouteBaselineReady(routeId) {
   const body = document.body;
   if (!body) return false;
@@ -324,7 +467,12 @@ function isRouteBaselineReady(routeId) {
     const isHomeRoute = !body.classList.contains('portfolio-page') && !body.classList.contains('cv-page');
     const hero = document.getElementById('hero-title');
     const navButtons = document.querySelectorAll('#main-links .footer_link');
-    return Boolean(isHomeRoute && hero && navButtons.length >= 3 && hasCanvasBufferReady());
+    return Boolean(
+      isHomeRoute
+      && hero
+      && navButtons.length >= 3
+      && isHeroSettledInsideWall()
+    );
   }
 
   if (routeId === 'portfolio') {
@@ -333,6 +481,7 @@ function isRouteBaselineReady(routeId) {
       && document.getElementById('portfolioProjectMount')
       && document.querySelector('.ui-top-main.route-topbar')
       && hasCanvasBufferReady()
+      && isHeroSettledInsideWall()
     );
   }
 
@@ -353,7 +502,37 @@ function waitForRouteReady(routeId, timeoutMs) {
     let settled = false;
     let pollId = 0;
     let timeoutId = 0;
+    let readyEventSeen = false;
+    let previousSnapshot = null;
+    let stableReadyFrames = 0;
     const POLL_MS = 16;
+    const REQUIRED_STABLE_FRAMES = routeId === 'portfolio' ? 1 : 0;
+    const maybeSettleReady = () => {
+      if (!isRouteBaselineReady(routeId)) {
+        stableReadyFrames = 0;
+        previousSnapshot = null;
+        return false;
+      }
+      if (REQUIRED_STABLE_FRAMES === 0) {
+        settle();
+        return true;
+      }
+
+      const snapshot = readRouteReadySnapshot(routeId);
+      if (snapshot && previousSnapshot && isRouteReadySnapshotStable(routeId, previousSnapshot, snapshot)) {
+        stableReadyFrames += 1;
+      } else {
+        stableReadyFrames = 0;
+      }
+      previousSnapshot = snapshot;
+
+      if (stableReadyFrames >= REQUIRED_STABLE_FRAMES) {
+        settle();
+        return true;
+      }
+      return false;
+    };
+
     settle = () => {
       if (settled) return;
       settled = true;
@@ -363,20 +542,23 @@ function waitForRouteReady(routeId, timeoutMs) {
       resolve();
     };
     const onReady = (e) => {
-      if ((e?.detail?.routeId || '') === routeId) settle();
+      if ((e?.detail?.routeId || '') !== routeId) return;
+      readyEventSeen = true;
+      maybeSettleReady();
     };
     window.addEventListener('abs:route-ready', onReady);
     timeoutId = setStableTimeout(settle, timeoutMs);
 
-    if (isRouteBaselineReady(routeId)) {
-      settle();
+    if (maybeSettleReady()) {
       return;
     }
 
     const tick = () => {
       if (settled) return;
-      if (isRouteBaselineReady(routeId)) {
-        settle();
+      if (readyEventSeen && maybeSettleReady()) {
+        return;
+      }
+      if (!readyEventSeen && maybeSettleReady()) {
         return;
       }
       pollId = setStableTimeout(tick, POLL_MS);
@@ -389,42 +571,19 @@ function waitForRouteReady(routeId, timeoutMs) {
   };
 }
 
-/* ── stagger targets ──────────────────────────────────────────────────────── */
-
-function collectStaggerTargets() {
-  const targets = [];
-  const add = (el, opts) => { if (el) targets.push({ el, ...opts }); };
-
-  // Simulation canvas (inside the wall — the wall frame itself stays visible)
-  add(document.getElementById('shell-wall-slot'), { slide: false });
-  // Header bar
-  add(document.querySelector('#shell-route-slot .ui-top'), { slide: true });
-  // Central hero title slot (animate as one surface to avoid phased line pops)
-  add(document.getElementById('shell-hero-slot'), { slide: true });
-  // Nav pills. Animate the individual links so route-row layout transforms are
-  // never clobbered.
-  document.querySelectorAll('.ui-main-nav .footer_link').forEach((el) => {
-    add(el, { slide: true });
-  });
-  // Footer
-  add(document.querySelector('.ui-bottom'), { slide: true });
-  // Edge caption
-  add(document.getElementById('edge-caption'), { slide: false });
-
-  return targets;
-}
-
 /* ── staggered entrance ───────────────────────────────────────────────────── */
 
 function staggeredEntrance({
+  routeId,
+  surfaceRefs,
   enterMs = ELEMENT_REVEAL_MS,
-  staggerMs = STAGGER_OFFSET_MS,
   revealEasing = EASE_OUT,
   onPrepared,
 } = {}) {
   return new Promise((resolve) => {
-    const targets = collectStaggerTargets();
-    const { wall, hero, ui } = getContentLayers();
+    const groups = buildRouteTransitionGroups(routeId, surfaceRefs);
+    const targets = getGroupedTransitionItems(routeId, surfaceRefs);
+    const { wall, hero, ui } = getContentLayers(surfaceRefs);
     const isRouteTransition = isRouteTransitionPhase(getTransitionPhase());
 
     // Safety: if DOM is unexpectedly empty, just restore layers.
@@ -473,53 +632,56 @@ function staggeredEntrance({
     const hasWaapi = typeof document.documentElement.animate === 'function';
     if (typeof onPrepared === 'function') onPrepared();
 
-    targets.forEach(({ el, slide }, i) => {
-      const delay = isRouteTransition ? 0 : i * staggerMs;
+    groups.forEach((group) => {
+      group.items.forEach(({ el, slide }) => {
+        const delay = isRouteTransition ? group.delayMs : group.delayMs;
+        const routeSlideOffset = isRouteTransition ? 'translateY(0)' : 'translateY(8px)';
 
-      if (hasWaapi) {
-        const keyframes = slide
-          ? [
-              { opacity: 0, transform: 'translateY(10px)', filter: 'blur(4px)' },
-              { opacity: 1, transform: 'translateY(0)',    filter: 'blur(0)' },
-            ]
-          : [
-              { opacity: 0, filter: 'blur(4px)' },
-              { opacity: 1, filter: 'blur(0)' },
-            ];
+        if (hasWaapi) {
+          const keyframes = slide
+            ? [
+                { opacity: 0, transform: routeSlideOffset, filter: 'blur(4px)' },
+                { opacity: 1, transform: 'translateY(0)', filter: 'blur(0)' },
+              ]
+            : [
+                { opacity: 0, filter: 'blur(4px)' },
+                { opacity: 1, filter: 'blur(0)' },
+              ];
 
-        const anim = el.animate(keyframes, {
-          duration: enterMs,
-          delay,
-          easing: revealEasing,
-          fill: 'forwards',
-        });
-        activeAnimations.push(anim);
-        anim.onfinish = () => {
-          el.style.opacity = '1';
-          el.style.transform = '';
-          el.style.filter = '';
-          if (isShellManagedRouteNavButton(el)) {
-            el.style.transition = '';
-            el.style.transitionDelay = '';
-          }
-          el.style.willChange = 'auto';
-        };
-        anim.oncancel = anim.onfinish;
-      } else {
-        setStableTimeout(() => {
-          el.style.transition = `opacity ${enterMs}ms ${revealEasing}, transform ${enterMs}ms ${revealEasing}, filter ${enterMs}ms ${revealEasing}`;
-          el.style.opacity = '1';
-          el.style.transform = '';
-          el.style.filter = '';
-          setStableTimeout(() => {
-            el.style.transition = '';
+          const anim = el.animate(keyframes, {
+            duration: enterMs,
+            delay,
+            easing: revealEasing,
+            fill: 'forwards',
+          });
+          activeAnimations.push(anim);
+          anim.onfinish = () => {
+            el.style.opacity = '1';
+            el.style.transform = '';
+            el.style.filter = '';
+            if (isShellManagedRouteNavButton(el)) {
+              el.style.transition = '';
+              el.style.transitionDelay = '';
+            }
             el.style.willChange = 'auto';
-          }, enterMs + 50);
-        }, delay);
-      }
+          };
+          anim.oncancel = anim.onfinish;
+        } else {
+          setStableTimeout(() => {
+            el.style.transition = `opacity ${enterMs}ms ${revealEasing}, transform ${enterMs}ms ${revealEasing}, filter ${enterMs}ms ${revealEasing}`;
+            el.style.opacity = '1';
+            el.style.transform = '';
+            el.style.filter = '';
+            setStableTimeout(() => {
+              el.style.transition = '';
+              el.style.willChange = 'auto';
+            }, enterMs + 50);
+          }, delay);
+        }
+      });
     });
 
-    const total = (isRouteTransition ? 0 : (targets.length - 1) * staggerMs) + enterMs;
+    const total = Math.max(0, ...groups.map((group) => group.delayMs)) + enterMs;
     setStableTimeout(resolve, total + 50);
   });
 }
@@ -528,7 +690,7 @@ function staggeredEntrance({
    HOOK
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
+export function useShellRouteTransition({ getRouteView, getRouteRuntime, surfaceRefs }) {
   const [routeState, setRouteState] = useState(() => computeRouteState(window.location.href));
   const transitionActiveRef = useRef(false);
   const queuedNavigationRef = useRef(null);
@@ -596,7 +758,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
       activeGateTransitionRef.current = false;
       activeRouteReadyCancelRef.current?.();
       activeRouteReadyCancelRef.current = null;
-      finalizeTransition(isGateTransition, {
+      finalizeTransition(isGateTransition, activeRouteIdRef.current, surfaceRefs, {
         suppressReturnAnimation: isGateTransition,
         gateBackdropDismissed,
       });
@@ -630,15 +792,15 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
             routeReadyWaiter.cancel();
             return;
           }
-          return fadeOutContent(routeTimings.fadeOut, routeTimings.fadeEasing);
+          return fadeOutContent(routeTimings.fadeOut, routeTimings.fadeEasing, surfaceRefs);
         })
         .then(() => {
           if (stale()) {
             routeReadyWaiter.cancel();
             return;
           }
+          setRouteLayerVisibility(false, surfaceRefs);
           commit();
-          setRouteLayerVisibility(false);
           return routeReady;
         })
         .then(() => {
@@ -647,10 +809,13 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
             return;
           }
           setTransitionPhase(TRANSITION_PHASES.ROUTE_IN);
-          setRouteLayerVisibility(true);
+          // Keep route layers hidden until staggeredEntrance has already pinned
+          // the new route surfaces to opacity 0. Restoring visibility first can
+          // expose portfolio text for a frame before the stagger prep runs.
           return staggeredEntrance({
+            routeId: nextState.route.id,
+            surfaceRefs,
             enterMs: routeTimings.reveal,
-            staggerMs: routeTimings.stagger,
             revealEasing: routeTimings.revealEasing,
             onPrepared: dismissGateBackdropOnce,
           });
@@ -698,8 +863,8 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
             return;
           }
           if (!isSameRoute) {
+            setRouteLayerVisibility(false, surfaceRefs);
             commit();
-            setRouteLayerVisibility(false);
           }
           return routeReady;
         })
@@ -709,7 +874,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
             return;
           }
           setTransitionPhase(TRANSITION_PHASES.ROUTE_IN);
-          setRouteLayerVisibility(true);
+          setRouteLayerVisibility(true, surfaceRefs);
           dismissGateBackdropOnce();
           return undefined;
         })
@@ -734,7 +899,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
     commit();
     syncSteadyTransitionPhase();
     return true;
-  }, [getRouteRuntime, syncSteadyTransitionPhase]);
+  }, [getRouteRuntime, surfaceRefs, syncSteadyTransitionPhase]);
 
   useEffect(() => installSpaNavigationBridge(navigate), [navigate]);
 
@@ -742,6 +907,13 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
     root: document.documentElement,
     isRouteTransitionActive: () => transitionActiveRef.current,
   }), []);
+
+  useEffect(() => {
+    if (!import.meta.env?.DEV) return () => {};
+    return installTransitionOwnershipGuard({
+      root: document.documentElement,
+    });
+  }, []);
 
   useEffect(() => {
     const onModalOpen = () => {
@@ -774,14 +946,14 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
       ++transitionToken;
       queuedNavigationRef.current = null;
       if (wasTransitionActive || wasGateTransition) {
-        interruptTransitionForPopstate(wasGateTransition);
+        interruptTransitionForPopstate(wasGateTransition, activeRouteIdRef.current, surfaceRefs);
       }
       activeRouteReadyCancelRef.current?.();
       activeRouteReadyCancelRef.current = null;
       transitionActiveRef.current = false;
       activeGateTransitionRef.current = false;
       if (isSameRoute) {
-        setRouteLayerVisibility(true);
+        setRouteLayerVisibility(true, surfaceRefs);
         setRouteState(nextState);
         activeRouteIdRef.current = nextState.route.id;
         syncSteadyTransitionPhase();
@@ -799,13 +971,13 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
         queuedNavigationRef.current = null;
         activeRouteReadyCancelRef.current?.();
         activeRouteReadyCancelRef.current = null;
-        finalizeTransition(activeGateTransitionRef.current);
+        finalizeTransition(activeGateTransitionRef.current, activeRouteIdRef.current, surfaceRefs);
         transitionActiveRef.current = false;
         activeGateTransitionRef.current = false;
         syncSteadyTransitionPhase();
       }
     };
-  }, [navigate, syncSteadyTransitionPhase]);
+  }, [navigate, surfaceRefs, syncSteadyTransitionPhase]);
 
   useLayoutEffect(() => {
     activeRouteIdRef.current = routeState.route.id;

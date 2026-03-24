@@ -26,13 +26,92 @@ import { setupPointer } from './input/pointer.js';
 import { setupOverscrollLock } from './input/overscroll-lock.js';
 import { setupCustomCursor, updateCursorSize } from './rendering/cursor.js';
 import { getShellConfig, loadShellConfig, syncShellToDocument } from './visual/site-shell.js';
-import { forcePageVisible, waitForPageReadyBarrier } from './visual/page-orchestrator.js';
+import { forceBootVisible, waitForPageReadyBarrier } from './visual/page-orchestrator.js';
+import { getTransitionPhase, isRouteTransitionPhase } from '../../lib/transition-phase.js';
 import { 
   navigateWithTransition, 
   resetTransitionState, 
   setupPrefetchOnHover,
   NAV_STATES 
 } from './utils/page-nav.js';
+
+function rectIsUsable(rect) {
+  return Boolean(rect && rect.width > 0 && rect.height > 0);
+}
+
+function rectsMatchWithinThreshold(previous, next, thresholdPx = 1.5) {
+  if (!rectIsUsable(previous) || !rectIsUsable(next)) return false;
+  return (
+    Math.abs(previous.top - next.top) <= thresholdPx
+    && Math.abs(previous.left - next.left) <= thresholdPx
+    && Math.abs(previous.width - next.width) <= thresholdPx
+    && Math.abs(previous.height - next.height) <= thresholdPx
+  );
+}
+
+function readCvPresentationSnapshot() {
+  const wall = document.getElementById('simulations');
+  const topbar = document.querySelector('.ui-top-main.route-topbar');
+  const scroll = document.querySelector('.cv-scroll-container');
+
+  return {
+    wallRect: wall?.getBoundingClientRect() || null,
+    topbarRect: topbar?.getBoundingClientRect() || null,
+    scrollRect: scroll?.getBoundingClientRect() || null,
+    ready: Boolean(
+      rectIsUsable(wall?.getBoundingClientRect?.())
+      && rectIsUsable(topbar?.getBoundingClientRect?.())
+      && rectIsUsable(scroll?.getBoundingClientRect?.())
+    ),
+  };
+}
+
+async function waitForStableCvPresentation(options = {}) {
+  const timeoutMs = Math.max(400, Number(options.timeoutMs) || 1800);
+  const thresholdPx = Math.max(0.5, Number(options.thresholdPx) || 1.5);
+
+  return new Promise((resolve) => {
+    const startedAt = performance.now();
+    let previous = null;
+    let stablePasses = 0;
+
+    const tick = () => {
+      const snapshot = readCvPresentationSnapshot();
+      if (snapshot.ready && previous) {
+        const stable = (
+          rectsMatchWithinThreshold(previous.wallRect, snapshot.wallRect, thresholdPx)
+          && rectsMatchWithinThreshold(previous.topbarRect, snapshot.topbarRect, thresholdPx)
+          && rectsMatchWithinThreshold(previous.scrollRect, snapshot.scrollRect, thresholdPx)
+        );
+        stablePasses = stable ? stablePasses + 1 : 0;
+      } else if (!snapshot.ready) {
+        stablePasses = 0;
+      }
+
+      if (snapshot.ready && stablePasses >= 1) {
+        resolve(true);
+        return;
+      }
+
+      if ((performance.now() - startedAt) >= timeoutMs) {
+        resolve(snapshot.ready);
+        return;
+      }
+
+      previous = snapshot;
+      requestAnimationFrame(tick);
+    };
+
+    requestAnimationFrame(tick);
+  });
+}
+
+function signalRouteReady(routeId) {
+  if (typeof window === 'undefined' || !routeId) return;
+  requestAnimationFrame(() => {
+    window.dispatchEvent(new CustomEvent('abs:route-ready', { detail: { routeId } }));
+  });
+}
 
 export async function bootstrapCvPage() {
   // CV has no `#c` sim canvas — drop home/portfolio resize observers if SPA navigated here.
@@ -43,6 +122,7 @@ export async function bootstrapCvPage() {
   }
 
   const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : false;
+  const shellRouteTransitionActive = isRouteTransitionPhase(getTransitionPhase());
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗
   // ║                    STEP 1: LOAD RUNTIME TEXT                                 ║
@@ -84,7 +164,7 @@ export async function bootstrapCvPage() {
     };
     const forceVisible = (reason) => {
       if (!fadeContent) return;
-      forcePageVisible(['#abs-scene', '#app-frame', '.cv-scroll-container']);
+      forceBootVisible(['#abs-scene', '#app-frame', '.cv-scroll-container']);
       console.warn(`⚠️ CV entrance fallback (${reason})`);
     };
     const waitForVisualReady = async () => {
@@ -101,7 +181,6 @@ export async function bootstrapCvPage() {
       });
     };
 
-    const shellRouteTransitionActive = document.documentElement.dataset.absRouteTransition === 'active';
     // Check if View Transition just handled the animation (skip entrance entirely)
     const { didViewTransitionRun } = await import('./utils/page-nav.js');
     const viewTransitionHandled = didViewTransitionRun();
@@ -109,17 +188,18 @@ export async function bootstrapCvPage() {
     if (shellRouteTransitionActive) {
       // SPA route transitions are orchestrated by useShellRouteTransition.
       // Skip legacy entrance work and let the shell own reveal timing.
+      await waitForVisualReady();
       removeBlocker();
       console.log('✓ CV entrance skipped (shell route transition active)');
     } else if (viewTransitionHandled) {
       await waitForVisualReady();
       // View Transition handled animation - just reveal elements instantly
-      forcePageVisible(['#abs-scene', '#app-frame', '.cv-scroll-container']);
+      forceBootVisible(['#abs-scene', '#app-frame', '.cv-scroll-container']);
       removeBlocker();
       console.log('✓ CV entrance skipped (View Transition handled it)');
     } else if (!g.entranceEnabled || reduceMotion) {
       await waitForVisualReady();
-      forcePageVisible(['#abs-scene', '#app-frame', '.cv-scroll-container']);
+      forceBootVisible(['#abs-scene', '#app-frame', '.cv-scroll-container']);
       removeBlocker();
       console.log('✓ CV entrance animation skipped (disabled or reduced motion)');
     } else {
@@ -269,6 +349,14 @@ export async function bootstrapCvPage() {
     initCvPhotoSlideshow();
   } catch (e) {
     console.warn('CV photo slideshow failed to initialize', e);
+  }
+
+  const cvPresentationSettled = await waitForStableCvPresentation();
+  if (!cvPresentationSettled && import.meta.env?.DEV) {
+    console.warn('[cv] Presentation did not fully settle before route-ready dispatch.');
+  }
+  if (shellRouteTransitionActive) {
+    signalRouteReady('cv');
   }
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗

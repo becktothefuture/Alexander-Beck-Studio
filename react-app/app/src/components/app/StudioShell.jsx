@@ -22,7 +22,8 @@ export function StudioShell({
   wallContent,
   headerContent,
   mainContent,
-  heroTitle
+  heroTitle,
+  surfaceRefs,
 }) {
   return (
     <>
@@ -32,29 +33,57 @@ export function StudioShell({
             <div className="noise" />
           </div>
           <div className="inner-wall-gradient-edge" aria-hidden="true" />
-          <div id="shell-wall-slot" className="shell-wall-slot">
+          <div
+            id="shell-wall-slot"
+            ref={surfaceRefs?.wall}
+            className="shell-wall-slot shell-transition-surface shell-transition-surface--wall"
+          >
             <div key={`wall-${routeRenderKey}`} className="shell-wall-route-root">
               {wallContent}
             </div>
           </div>
-          <div id="shell-hero-slot" className="shell-hero-slot">
-            {heroTitle}
+          <div
+            id="shell-hero-slot"
+            ref={surfaceRefs?.hero}
+            className="shell-hero-slot shell-transition-surface shell-transition-surface--hero"
+          >
+            <div className="shell-hero-surface">
+              {heroTitle}
+            </div>
           </div>
         </div>
         <div className="frame-vignette" aria-hidden="true" />
 
-        <div className="fade-content page-content">
+        <div
+          ref={surfaceRefs?.ui}
+          className="fade-content page-content"
+        >
           <div id="app-frame" className="ui-layer-wrapper">
             <div
               id="shell-route-slot"
               className="shell-route-slot"
             >
               <div key={`content-${routeRenderKey}`} className="shell-route-content-root">
-                {headerContent}
-                {mainContent}
+                <div
+                  ref={surfaceRefs?.chrome}
+                  className="shell-transition-surface shell-transition-surface--chrome"
+                >
+                  {headerContent}
+                </div>
+                <div
+                  ref={surfaceRefs?.secondary}
+                  className="shell-transition-surface shell-transition-surface--secondary"
+                >
+                  {mainContent}
+                </div>
               </div>
             </div>
-            <SiteFooter />
+            <div
+              ref={surfaceRefs?.footer}
+              className="shell-transition-surface shell-transition-surface--footer"
+            >
+              <SiteFooter />
+            </div>
           </div>
         </div>
 

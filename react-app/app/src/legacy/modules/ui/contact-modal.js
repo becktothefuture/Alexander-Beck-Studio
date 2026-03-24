@@ -23,6 +23,7 @@ import {
   openGateModal,
   showGateBackdrop
 } from './gate-modal-shared.js';
+import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
 
 const COPY_FEEDBACK_MS = 3000;
 
@@ -271,7 +272,7 @@ export function initContactModal() {
       // Defer until the shell route transition has yielded ownership.
       const startedAt = performance.now();
       const waitForRouteSettleThenOpen = () => {
-        const shellBusy = document.documentElement.dataset.absRouteTransition === 'active';
+        const shellBusy = isRouteTransitionPhase(getTransitionPhase());
         if (shellBusy && (performance.now() - startedAt) < 2000) {
           setStableTimeout(waitForRouteSettleThenOpen, 16);
           return;

@@ -8,6 +8,12 @@ export const TRANSITION_PHASES = Object.freeze({
 });
 
 const RETURNING_DATASET_KEY = 'absTransitionReturning';
+const FORBIDDEN_ENTRANCE_CLASSES = [
+  'entrance-pre-transition',
+  'entrance-transitioning',
+  'entrance-complete',
+  'ui-entered',
+];
 let returningTimeoutId = 0;
 
 function getRoot() {
@@ -186,6 +192,47 @@ export function installTransitionPhaseObserver({
   observeClass(content);
 
   sync();
+  return () => {
+    observer.disconnect();
+  };
+}
+
+export function installTransitionOwnershipGuard({
+  root = getRoot(),
+  onViolation = null,
+} = {}) {
+  if (!root || typeof MutationObserver === 'undefined') {
+    return () => {};
+  }
+
+  let previous = new Set(
+    FORBIDDEN_ENTRANCE_CLASSES.filter((className) => root.classList.contains(className))
+  );
+
+  const handleMutation = () => {
+    const current = new Set(
+      FORBIDDEN_ENTRANCE_CLASSES.filter((className) => root.classList.contains(className))
+    );
+    const changed = FORBIDDEN_ENTRANCE_CLASSES.filter(
+      (className) => current.has(className) !== previous.has(className)
+    );
+    previous = current;
+    if (!changed.length || !isRouteTransitionPhase(getTransitionPhase())) return;
+
+    const message = `[transition] Legacy entrance class mutation during SPA route transition: ${changed.join(', ')}`;
+    if (typeof onViolation === 'function') {
+      onViolation({ changed, message });
+      return;
+    }
+    console.warn(message);
+  };
+
+  const observer = new MutationObserver(handleMutation);
+  observer.observe(root, {
+    attributes: true,
+    attributeFilter: ['class'],
+  });
+
   return () => {
     observer.disconnect();
   };

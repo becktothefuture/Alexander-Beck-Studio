@@ -87,10 +87,7 @@ async function main() {
       await browser.close();
       return;
     }
-    await page.waitForFunction(
-      () => /portfolio/i.test(window.location.pathname || ''),
-      { timeout: BUFFER_WAIT_MS }
-    );
+    await page.waitForURL(/portfolio/i, { timeout: BUFFER_WAIT_MS });
     await page.waitForSelector('#c', { timeout: BUFFER_WAIT_MS });
     await waitForSimulationCanvasBuffer(page);
     rows.push({ ...(await snapshot(page, `portfolio-r${round}`)) });
@@ -98,13 +95,10 @@ async function main() {
     await page.evaluate(() => {
       window.__ABS_SPA_NAVIGATE__('/index.html', {});
     });
-    await page.waitForFunction(
-      () => {
-        const p = window.location.pathname || '';
-        return p === '/' || /index/i.test(p);
-      },
-      { timeout: BUFFER_WAIT_MS }
-    );
+    await page.waitForURL((url) => {
+      const path = url.pathname || '';
+      return path === '/' || /index/i.test(path);
+    }, { timeout: BUFFER_WAIT_MS });
     await page.waitForSelector('#c', { timeout: BUFFER_WAIT_MS });
     await waitForSimulationCanvasBuffer(page);
   }

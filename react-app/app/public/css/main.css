@@ -457,6 +457,42 @@ html.fonts-loading .project-detail {
   height: 100%;
 }
 
+.shell-hero-slot {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.shell-hero-surface {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.shell-transition-surface {
+  pointer-events: none;
+  transform: translateZ(0);
+}
+
+.shell-transition-surface--chrome {
+  position: relative;
+  grid-area: top;
+  min-height: 0;
+}
+
+.shell-transition-surface--secondary {
+  position: relative;
+  grid-area: center;
+  min-height: 0;
+}
+
+.shell-transition-surface--footer {
+  position: relative;
+  grid-area: bottom;
+  min-height: 0;
+}
+
 .shell-route-slot {
   position: relative;
   grid-column: 1;
@@ -2835,11 +2871,21 @@ html[data-abs-transition-phase='route-in'] .ui-main-nav .footer_link {
    This avoids CSS/WAAPI interference while route content is hidden and re-animated by JS. */
 html[data-abs-transition-phase='route-out'] #shell-wall-slot,
 html[data-abs-transition-phase='route-out'] #shell-hero-slot,
+html[data-abs-transition-phase='route-out'] #abs-scene,
+html[data-abs-transition-phase='route-out'] #simulations,
 html[data-abs-transition-phase='route-out'] #hero-title,
+html[data-abs-transition-phase='route-out'] .shell-transition-surface--chrome,
+html[data-abs-transition-phase='route-out'] .shell-transition-surface--secondary,
+html[data-abs-transition-phase='route-out'] .shell-transition-surface--footer,
 html[data-abs-transition-phase='route-out'] .fade-content,
 html[data-abs-transition-phase='route-in'] #shell-wall-slot,
 html[data-abs-transition-phase='route-in'] #shell-hero-slot,
+html[data-abs-transition-phase='route-in'] #abs-scene,
+html[data-abs-transition-phase='route-in'] #simulations,
 html[data-abs-transition-phase='route-in'] #hero-title,
+html[data-abs-transition-phase='route-in'] .shell-transition-surface--chrome,
+html[data-abs-transition-phase='route-in'] .shell-transition-surface--secondary,
+html[data-abs-transition-phase='route-in'] .shell-transition-surface--footer,
 html[data-abs-transition-phase='route-in'] .fade-content {
   transition: none;
 }
@@ -3954,14 +4000,6 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   padding-inline: calc(var(--abs-modal-mobile-pad-x, 20px) + var(--modal-pad-md-x));
 }
 
-@media (max-width: 768px) {
-  .cv-modal,
-  .portfolio-modal,
-  .contact-modal {
-    padding-inline: 15vw;
-  }
-}
-
 @media (min-width: 769px) {
   .cv-modal,
   .portfolio-modal {
@@ -4049,6 +4087,34 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 .portfolio-modal .modal-description {
   letter-spacing: 0.018ch;
+}
+
+@media (max-width: 768px) {
+  .cv-modal,
+  .portfolio-modal,
+  .contact-modal {
+    padding-inline: 11vw;
+  }
+
+  .modal-label {
+    max-width: min(30rem, 88vw);
+    gap: calc(var(--modal-label-stack-gap) * 0.78);
+  }
+
+  .cv-modal .modal-title,
+  .portfolio-modal .modal-title,
+  .contact-modal .modal-title {
+    font-size: clamp(2rem, 7.8vw, 2.35rem);
+    line-height: 0.98;
+  }
+
+  .cv-modal .modal-description,
+  .portfolio-modal .modal-description,
+  .contact-modal .modal-description {
+    font-size: clamp(0.9rem, 3.3vw, 0.95rem);
+    line-height: 1.22;
+    max-width: 26ch;
+  }
 }
 
 .gate-nav {
@@ -4454,6 +4520,17 @@ body.dark-mode .contact-email-copy {
   border-color: rgba(var(--abs-rgb-black), 0.1);
   background: rgba(var(--abs-rgb-white), 0.5);
   transform: none;
+}
+
+@media (max-width: 768px) {
+  .cv-modal-inputs,
+  .portfolio-modal-inputs {
+    width: min(100%, 17rem);
+    justify-content: center;
+    margin-inline: auto;
+    padding-inline: clamp(0.35rem, 2.8vw, 0.9rem);
+    box-sizing: border-box;
+  }
 }
 
 .cv-digit::placeholder,
@@ -5718,8 +5795,14 @@ body.cv-page.dark-mode .cv-scroll-container {
 
   body.portfolio-page .route-topbar {
     --route-topbar-top: calc(var(--gap-xs) + var(--portfolio-nav-top, 0px));
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "left right"
+      "blurb blurb";
     gap: clamp(8px, 2vw, 12px);
     min-height: 44px;
+    align-items: start;
+    row-gap: clamp(10px, 3vw, 14px);
   }
 
   body.cv-page .route-topbar {
@@ -5731,6 +5814,54 @@ body.cv-page.dark-mode .cv-scroll-container {
   body.portfolio-page .route-topbar__center,
   body.cv-page .route-topbar__center {
     gap: clamp(4px, 1.8vw, 10px);
+  }
+
+  body.portfolio-page .route-topbar__center {
+    display: none;
+  }
+
+  body.portfolio-page .route-topbar__left {
+    grid-area: left;
+    gap: clamp(10px, 2.8vw, 14px);
+  }
+
+  body.portfolio-page .route-topbar__left .portfolio-topnav {
+    gap: clamp(4px, 2vw, 10px);
+  }
+
+  body.portfolio-page .route-topbar__right,
+  body.portfolio-page .route-topbar__right.ui-top-right {
+    display: contents;
+  }
+
+  body.portfolio-page .portfolio-sound-slot {
+    grid-area: right;
+    justify-self: end;
+    align-self: start;
+  }
+
+  body.portfolio-page .route-topbar__right .portfolio-topline {
+    grid-area: blurb;
+    max-width: min(100%, 28ch);
+    width: min(100%, 28ch);
+    margin: 0;
+    padding-block-start: 0;
+    justify-self: start;
+    font-size: clamp(0.94rem, 3.1vw, 1rem);
+    line-height: 1.28;
+  }
+
+  body.portfolio-page .hero-title.hero-title--portfolio {
+    width: min(82vw, 18ch);
+  }
+
+  body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
+    font-size: clamp(0.58rem, 2.3vw, 0.7rem);
+  }
+
+  body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
+    font-size: clamp(1.35rem, 6.2vw, 1.85rem);
+    line-height: 1.04;
   }
 
   body:not(.portfolio-page):not(.cv-page) .ui-top-left,
@@ -5765,9 +5896,9 @@ body.cv-page.dark-mode .cv-scroll-container {
     max-width: min(100%, 30ch);
     text-align: left;
     font-size: clamp(
-      calc(0.82rem + var(--abs-size-1px)),
-      3.4vw,
-      calc(0.94rem + var(--abs-size-1px))
+      calc(0.82rem + var(--abs-size-1px) - 1px),
+      calc(3.4vw - 1px),
+      calc(0.94rem + var(--abs-size-1px) - 1px)
     );
     line-height: 1.4;
     padding: 0;
@@ -5926,9 +6057,9 @@ body.cv-page.dark-mode .cv-scroll-container {
   body:not(.portfolio-page):not(.cv-page) .decorative-script {
     max-width: min(100%, 24ch);
     font-size: clamp(
-      calc(0.76rem + var(--abs-size-1px)),
-      3vw,
-      calc(0.88rem + var(--abs-size-1px))
+      calc(0.76rem + var(--abs-size-1px) - 1px),
+      calc(3vw - 1px),
+      calc(0.88rem + var(--abs-size-1px) - 1px)
     );
     line-height: 1.32;
   }
@@ -5994,9 +6125,9 @@ body.cv-page.dark-mode .cv-scroll-container {
   body:not(.portfolio-page):not(.cv-page) .decorative-script {
     max-width: 100%;
     font-size: clamp(
-      calc(0.72rem + var(--abs-size-1px)),
-      3.3vw,
-      calc(0.82rem + var(--abs-size-1px))
+      calc(0.72rem + var(--abs-size-1px) - 1px),
+      calc(3.3vw - 1px),
+      calc(0.82rem + var(--abs-size-1px) - 1px)
     );
     line-height: 1.28;
   }

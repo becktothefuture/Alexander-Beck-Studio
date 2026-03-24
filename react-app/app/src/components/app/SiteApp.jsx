@@ -1,3 +1,4 @@
+import { useMemo, useRef } from 'react';
 import { BodyClassManager } from '../layout/BodyClassManager.jsx';
 import { StudioShell } from './StudioShell.jsx';
 import { getHomeRouteView, HOME_ROUTE_RUNTIME } from '../../routes/home/HomeRoute.jsx';
@@ -34,9 +35,25 @@ function getRouteRuntimeForId(routeId) {
 }
 
 export function SiteApp() {
+  const wallSurfaceRef = useRef(null);
+  const heroSurfaceRef = useRef(null);
+  const uiSurfaceRef = useRef(null);
+  const chromeSurfaceRef = useRef(null);
+  const secondarySurfaceRef = useRef(null);
+  const footerSurfaceRef = useRef(null);
+  const surfaceRefs = useMemo(() => ({
+    wall: wallSurfaceRef,
+    hero: heroSurfaceRef,
+    ui: uiSurfaceRef,
+    chrome: chromeSurfaceRef,
+    secondary: secondarySurfaceRef,
+    footer: footerSurfaceRef,
+  }), []);
+
   const { routeState, routeRuntime, routeView } = useShellRouteTransition({
     getRouteView: getRouteViewForId,
-    getRouteRuntime: getRouteRuntimeForId
+    getRouteRuntime: getRouteRuntimeForId,
+    surfaceRefs,
   });
 
   useLegacyRouteRuntime({
@@ -57,6 +74,7 @@ export function SiteApp() {
         headerContent={routeView.headerContent}
         mainContent={routeView.mainContent}
         heroTitle={routeView.heroTitle}
+        surfaceRefs={surfaceRefs}
       />
     </>
   );

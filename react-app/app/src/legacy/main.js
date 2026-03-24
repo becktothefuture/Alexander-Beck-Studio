@@ -50,7 +50,8 @@ import { applyRuntimeTextToDOM } from './modules/ui/apply-text.js';
 import { loadRuntimeConfig } from './modules/utils/runtime-config.js';
 import { waitForFonts } from './modules/utils/font-loader.js';
 import { getShellConfig, loadShellConfig, syncShellToDocument } from './modules/visual/site-shell.js';
-import { forcePageVisible, getPageWarmupMs, waitForPageReadyBarrier } from './modules/visual/page-orchestrator.js';
+import { forceBootVisible, getPageWarmupMs, waitForPageReadyBarrier } from './modules/visual/page-orchestrator.js';
+import { getTransitionPhase, isRouteTransitionPhase } from '../lib/transition-phase.js';
 import {
   initConsolePolicy,
   printConsoleBanner,
@@ -76,6 +77,13 @@ function setBootLifecycleState(state) {
       document.documentElement.dataset.absBootState = String(state || '');
     }
   } catch (e) {}
+}
+
+function signalRouteReady(routeId) {
+  if (typeof window === 'undefined' || !routeId) return;
+  requestAnimationFrame(() => {
+    window.dispatchEvent(new CustomEvent('abs:route-ready', { detail: { routeId } }));
+  });
 }
 
 // Removed: pickStartupMode() - replaced with deterministic daily scheduler
@@ -145,7 +153,7 @@ function fadeInContentLayer(options = {}) {
   if (!fadeTarget) return Promise.resolve();
 
   // During a gate-success transition the shell owns scene opacity.
-  if (document.documentElement.dataset.absGateTransition === 'active') {
+  if (isRouteTransitionPhase(getTransitionPhase())) {
     return Promise.resolve();
   }
   
@@ -594,6 +602,9 @@ export async function bootstrapHomePage() {
     const startMode = configuredHeroMode || getDailyMode() || MODES.PIT;
 
     await setMode(startMode);
+    if (isRouteTransitionPhase(getTransitionPhase())) {
+      signalRouteReady('home');
+    }
 
     if (ABS_DEV && typeof window !== 'undefined') {
       window.__ABS_HOME_AUDIT__ = {
@@ -731,7 +742,7 @@ export async function bootstrapHomePage() {
       window.addEventListener('pageshow', (event) => {
         if (event.persisted) {
           resetTransitionState();
-          forcePageVisible(['#abs-scene', '#app-frame']);
+          forceBootVisible(['#abs-scene', '#app-frame']);
         }
       });
       
@@ -742,7 +753,14 @@ export async function bootstrapHomePage() {
       if (portfolioTrigger) setupPrefetchOnHover(portfolioTrigger, 'portfolio.html');
 
       // Skip entrance animation if disabled or reduced motion preferred
-      if (!g.entranceEnabled || reduceMotion) {
+      const shellRouteTransitionActive = isRouteTransitionPhase(getTransitionPhase());
+
+      if (shellRouteTransitionActive) {
+        await waitForVisualReady();
+        const blocker = document.getElementById('fade-blocking');
+        if (blocker) blocker.remove();
+        console.log('✓ Home entrance skipped (shell route transition active)');
+      } else if (!g.entranceEnabled || reduceMotion) {
         await waitForVisualReady();
         await fadeInContentLayer({ delay: 0, duration: revealDuration });
         // Also reveal late elements (main links) that have inline hidden styles
@@ -815,7 +833,7 @@ export async function bootstrapHomePage() {
         const blocker = document.getElementById('fade-blocking');
         if (blocker) blocker.remove();
       }
-      forcePageVisible(['#abs-scene', '#app-frame']);
+      forceBootVisible(['#abs-scene', '#app-frame']);
     }
 
     setBootLifecycleState('ready');
