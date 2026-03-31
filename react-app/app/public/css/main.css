@@ -2511,26 +2511,39 @@ button.abs-meta-btn,
   font-weight: var(--abs-weight-regular);
   font-size: 1.5em;
   letter-spacing: normal;
+  line-height: 1;
 }
 
-/* Meta stack: location on top, time below */
+/* Meta stack: inline by default, stacked on mobile */
 .meta-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: clamp(4px, 0.45vw, 8px);
+}
+
+.meta-location {
+  display: inline-flex;
+  align-items: baseline;
+  gap: clamp(2px, 0.2vw, 4px);
+}
+
+.meta-separator {
+  line-height: 1;
 }
 
 /* Time Display - DM Sans, 80% size; min-width keeps layout stable before/without JS */
 #time-display {
+  display: inline-block;
   font-family: var(--abs-font-sans);
   font-style: normal;
-  font-size: 0.8em;
+  font-size: 0.84em;
   font-weight: 400;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
   letter-spacing: var(--abs-letter-spacing-global);
-  min-width: 9ch; /* Reserve space so "London · [time]" layout is always shown */
+  min-width: 8.5ch; /* Reserve space so the footer chrome does not jitter as seconds tick. */
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -3502,17 +3515,22 @@ html.is-safari .noise::before {
   }
   
   /* London/time: stack vertically, right aligned */
-  #site-year > span {
+  #site-year .meta-stack {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 2px;
+    gap: 0;
   }
-  
+
+  #site-year .meta-location {
+    gap: 0;
+    line-height: 0.92;
+  }
+
   #site-year .location-name {
     display: block;
   }
-  
+
   /* Hide separator dot on mobile */
   .meta-separator {
     display: none;
@@ -4903,30 +4921,15 @@ html.is-safari .modal-overlay.active {
 body.cv-page #simulations {
   /* CV keeps the shared shell frame and only opts into an interactive surface. */
   pointer-events: auto;
-  height: 100%;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
-body.cv-page #shell-wall-slot,
-body.cv-page .shell-wall-route-root,
 body.cv-page .cv-scroll-container {
   pointer-events: auto;
 }
 
-.cv-simulation {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  height: 100%;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-/* CV should behave like a document: show cursor + allow selecting/copying text. */
-body.cv-page,
-body.cv-page * {
+/* Keep document-like cursor/selection rules scoped to the reading surface only. */
+body.cv-page .cv-scroll-container,
+body.cv-page .cv-scroll-container * {
   cursor: auto;
   -webkit-user-select: text;
   user-select: text;
@@ -5032,13 +5035,13 @@ body.dark-mode .cv-photo {
 }
 
 .cv-title {
-  font-size: var(--cv-title-size, clamp(0.75rem, 1.2vw, 0.9rem));
-  line-height: 1.4;
+  font-size: var(--cv-title-size, clamp(0.85rem, 1.2vw, 1rem));
+  line-height: 1.45;
   color: var(--abs-fg-secondary);
   margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.048em;
-  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-weight: 500;
   text-align: left;
   width: 100%;
 }
@@ -5228,10 +5231,12 @@ body.dark-mode .cv-photo {
   margin: 0;
 }
 
-/* CV Page Dark Mode */
-body.cv-page.dark-mode #simulations {
-  background: var(--bg-dark);
-  background-color: var(--bg-dark);
+.cv-footer-prompt {
+  max-width: 34rem;
+  margin: 0 auto var(--gap-md) auto;
+  font-size: clamp(0.78rem, 1vw, 0.9rem);
+  line-height: 1.55;
+  color: var(--abs-fg-secondary);
 }
 
 /* CV Page Responsive: Stack vertically on mobile */
@@ -5422,11 +5427,12 @@ body.cv-page.dark-mode #simulations {
   }
 
   body:not(.portfolio-page):not(.cv-page) #site-year {
-    font-size: calc(var(--text-sm) * 0.95);
+    font-size: max(calc(var(--text-sm) * 1.08), 14px);
   }
 
   body:not(.portfolio-page):not(.cv-page) #time-display {
-    font-size: 0.72em;
+    font-size: 0.9em;
+    min-width: 8ch;
   }
 
   body:not(.portfolio-page):not(.cv-page) .edge-caption {
@@ -5779,30 +5785,63 @@ body.dark-mode .dev-perf-hud {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   SCROLL PRESENCE
+   Gradual edge fade for any scroll-owned storytelling surface.
+   ------------------------------------------------------------------------- */
+
+[data-scroll-presence-root] [data-scroll-presence] {
+  --scroll-presence: 1;
+  --scroll-presence-min-opacity: 0;
+  opacity: calc(var(--scroll-presence-min-opacity) + ((1 - var(--scroll-presence-min-opacity)) * var(--scroll-presence)));
+  transition: opacity 140ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scroll-presence-root] [data-scroll-presence] {
+    opacity: 1;
+    transition: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    CV ROUTE: SIMPLE WALL-CONTAINED DOCUMENT
    ───────────────────────────────────────────────────────────────────────────── */
 
+body.cv-page {
+  --cv-ink: color-mix(in srgb, var(--text-primary) 88%, #050505 12%);
+  --cv-ink-strong: color-mix(in srgb, var(--text-primary) 84%, #000 16%);
+  --cv-muted-ink: color-mix(in srgb, var(--cv-ink) 68%, transparent);
+  --cv-accent: #a54d30;
+  --cv-measure: 35rem;
+  --cv-measure-wide: 40rem;
+}
+
+body.dark-mode.cv-page {
+  --cv-ink: color-mix(in srgb, var(--text-primary) 92%, #fff3e6 8%);
+  --cv-ink-strong: color-mix(in srgb, var(--text-primary) 86%, #fff8f0 14%);
+  --cv-muted-ink: color-mix(in srgb, var(--cv-ink) 72%, transparent);
+  --cv-accent: #ffab7c;
+}
+
 body.cv-page .cv-scroll-container {
   position: absolute;
-  inset: var(--wall-thickness);
-  bottom: calc(var(--wall-thickness) + var(--cv-footer-clearance, clamp(108px, 16vh, 124px)));
+  top: calc(var(--wall-thickness) + var(--cv-header-clearance, clamp(78px, 11vh, 110px)));
+  left: var(--wall-thickness);
+  right: var(--wall-thickness);
+  bottom: calc(var(--wall-thickness) + var(--cv-footer-clearance, clamp(156px, 20vh, 196px)));
   z-index: 10;
   display: block;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: visible;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   touch-action: pan-y;
-  border-radius: var(--wall-radius);
-  background: var(--abs-wall-base, var(--bg-light));
+  border-radius: 0;
+  background: transparent;
   opacity: 1;
   visibility: visible;
   scrollbar-width: thin;
   scrollbar-color: var(--abs-fg-muted) transparent;
-}
-
-body.cv-page.dark-mode .cv-scroll-container {
-  background: var(--abs-wall-base, var(--bg-dark));
 }
 
 body.cv-page .cv-scroll-container::-webkit-scrollbar {
@@ -5820,25 +5859,27 @@ body.cv-page .cv-scroll-container::-webkit-scrollbar-thumb {
 
 body.cv-page .cv-page-content {
   min-height: 100%;
-  color: var(--abs-fg-primary);
+  overflow: visible;
+  color: var(--cv-ink);
   font-family: var(--abs-font-sans);
 }
 
 body.cv-page .cv-page-inner {
-  width: min(100%, 72rem);
+  width: min(100%, 54rem);
   margin: 0 auto;
-  padding: clamp(2.75rem, 6vh, 4.5rem) clamp(1.25rem, 4vw, 3rem) clamp(6rem, 10vh, 8rem);
+  padding: clamp(2.2rem, 5vh, 3.8rem) clamp(1.5rem, 4.5vw, 3.35rem) clamp(6.8rem, 11vh, 8.8rem);
   box-sizing: border-box;
+  overflow: visible;
 }
 
 body.cv-page .cv-hero {
   display: grid;
-  grid-template-columns: minmax(0, clamp(11rem, 24vw, 14rem)) minmax(0, 1fr);
-  gap: clamp(1.5rem, 3vw, 3rem);
+  grid-template-columns: minmax(0, clamp(12rem, 24vw, 15rem)) minmax(0, 1fr);
+  gap: clamp(2rem, 4vw, 4.2rem);
   align-items: start;
-  margin: 0 0 clamp(2rem, 5vw, 3.5rem);
-  padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
-  border-bottom: 1px solid var(--abs-fg-muted);
+  margin: 0 0 clamp(3.5rem, 7.5vw, 5.8rem);
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 body.cv-page .cv-photo {
@@ -5847,44 +5888,58 @@ body.cv-page .cv-photo {
   margin: 0;
   aspect-ratio: auto;
   max-width: none;
-  transform: none;
-  background: var(--abs-wall-base, var(--bg-light));
-}
-
-body.cv-page.dark-mode .cv-photo {
-  background: var(--abs-wall-base, var(--bg-dark));
+  transform: translate3d(0, calc((1 - var(--scroll-presence, 1)) * -16px), 0) rotate(-0.5deg);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  background: var(--frame-inner-surface);
 }
 
 body.cv-page .cv-photo__image {
   position: static;
   width: 100%;
   height: 100%;
-  transform: none;
+  transform: scale(calc(1.015 + ((1 - var(--scroll-presence, 1)) * 0.05)));
+  transform-origin: center center;
   object-fit: cover;
+  filter: grayscale(1) contrast(1.08) brightness(1.02);
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 180ms linear;
 }
 
 body.cv-page .cv-intro {
-  gap: var(--gap-md);
-  max-width: 40rem;
+  gap: clamp(1rem, 2vw, 1.45rem);
+  max-width: var(--cv-measure-wide);
+}
+
+body.cv-page .cv-hero-label {
+  margin: 0;
+  font-size: clamp(4rem, 7.5vw, 7rem);
+  line-height: 0.88;
+  letter-spacing: -0.078em;
+  font-weight: 700;
+  color: var(--cv-ink-strong);
+  text-wrap: balance;
+  transform: translate3d(0, calc((1 - var(--scroll-presence, 1)) * 22px), 0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body.cv-page .cv-intro-text {
-  max-width: none;
+  max-width: var(--cv-measure);
+}
+
+body.cv-page .cv-title {
+  max-width: 31rem;
 }
 
 body.cv-page .cv-section {
-  display: grid;
-  grid-template-columns: minmax(0, 10rem) minmax(0, 1fr);
-  column-gap: clamp(1.5rem, 3vw, 3rem);
-  row-gap: clamp(0.85rem, 1.5vw, 1.25rem);
-  align-items: start;
-  margin-bottom: clamp(2rem, 4vw, 3rem);
-  padding-top: clamp(1rem, 2vw, 1.25rem);
-  border-top: 1px solid color-mix(in srgb, var(--abs-fg-muted) 60%, transparent);
+  display: block;
+  margin-bottom: clamp(3rem, 7vw, 5rem);
+  padding-top: 0;
+  border-top: 0;
 }
 
 body.cv-page .cv-section > :not(.cv-section-title) {
-  grid-column: 2;
+  grid-column: auto;
 }
 
 body.cv-page .cv-section-title {
@@ -5894,41 +5949,298 @@ body.cv-page .cv-section-title {
   align-self: start;
 }
 
+body.cv-page .cv-name {
+  font-size: clamp(2rem, 3vw, 2.65rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  font-weight: 650;
+  color: var(--cv-ink-strong);
+  transform: translate3d(0, calc((1 - var(--scroll-presence, 1)) * 16px), 0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.cv-page .cv-title {
+  font-size: clamp(1.16rem, 1.9vw, 1.42rem);
+  line-height: 1.43;
+  font-weight: 540;
+  letter-spacing: -0.02em;
+  color: var(--cv-ink-strong);
+  max-width: 30rem;
+  transform: translate3d(0, calc((1 - var(--scroll-presence, 1)) * 12px), 0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.cv-page .cv-intro-text,
+body.cv-page .cv-section p,
+body.cv-page .cv-entry p,
+body.cv-page .cv-recognition,
+body.cv-page .cv-skills li,
+body.cv-page .cv-projects li,
+body.cv-page .cv-entry-meta {
+  font-size: clamp(1.08rem, 1.3vw, 1.2rem);
+  line-height: 1.88;
+  text-wrap: pretty;
+}
+
+body.cv-page .cv-intro > .cv-intro-text + .cv-intro-text {
+  margin-top: -0.45rem;
+}
+
+body.cv-page .cv-section p,
+body.cv-page .cv-entry p,
+body.cv-page .cv-recognition,
+body.cv-page .cv-skills li,
+body.cv-page .cv-projects li {
+  max-width: var(--cv-measure);
+}
+
+body.cv-page .cv-section-title {
+  font-size: clamp(2.25rem, 3.6vw, 3.05rem);
+  line-height: 0.94;
+  letter-spacing: -0.058em;
+  text-transform: none;
+  color: var(--cv-ink-strong);
+  margin-bottom: clamp(1.25rem, 2.4vw, 1.8rem);
+  max-width: 14ch;
+  text-wrap: balance;
+  transform: translate3d(0, calc((1 - var(--scroll-presence, 1)) * 16px), 0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.cv-page .cv-entry {
+  margin-bottom: clamp(2.2rem, 4.2vw, 3.2rem);
+}
+
+body.cv-page .cv-entry-title {
+  font-size: clamp(1.38rem, 2vw, 1.9rem);
+  line-height: 1.08;
+  margin-bottom: clamp(0.42rem, 1vw, 0.62rem);
+  color: var(--cv-ink-strong);
+  max-width: 24rem;
+  text-wrap: balance;
+}
+
+body.cv-page .cv-entry-meta {
+  margin-bottom: clamp(0.65rem, 1.5vw, 0.9rem);
+  color: var(--cv-muted-ink);
+  font-family: var(--abs-font-mono);
+  font-size: clamp(0.7rem, 0.84vw, 0.82rem);
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+body.cv-page .cv-skills,
+body.cv-page .cv-projects {
+  margin-top: clamp(1.1rem, 2.2vw, 1.55rem);
+  gap: clamp(1rem, 2.1vw, 1.45rem) clamp(1.3rem, 3vw, 2rem);
+}
+
+body.cv-page .cv-section-lead {
+  margin: 0 0 clamp(1.1rem, 2vw, 1.5rem);
+  color: var(--cv-muted-ink);
+  font-family: var(--abs-font-mono);
+  font-size: clamp(0.74rem, 0.84vw, 0.86rem);
+  line-height: 1.6;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: translate3d(0, calc((1 - var(--scroll-presence, 1)) * 10px), 0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.cv-page .cv-skills li,
+body.cv-page .cv-projects li {
+  padding-left: 1.1rem;
+}
+
+body.cv-page .cv-skills li::marker,
+body.cv-page .cv-projects li::marker {
+  color: var(--cv-accent);
+}
+
+body.cv-page .cv-footer {
+  margin-top: clamp(4.5rem, 9vw, 6.8rem);
+  padding-top: 0;
+  border-top: 0;
+  text-align: center;
+}
+
+body.cv-page .cv-back-to-top {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto clamp(2.4rem, 5vw, 3.4rem);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cv-ink-strong);
+  font-family: var(--abs-font-mono);
+  font-size: clamp(0.84rem, 0.94vw, 0.92rem);
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transform: translate3d(0, calc((1 - var(--scroll-presence, 1)) * 8px), 0);
+  transition:
+    color 160ms linear,
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.cv-page .cv-back-to-top:hover,
+body.cv-page .cv-back-to-top:focus-visible {
+  color: var(--abs-fg-muted);
+}
+
+body.cv-page .cv-footer-prompt {
+  max-width: 30rem;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: clamp(1rem, 2vw, 1.4rem);
+  font-size: clamp(0.75rem, 0.82vw, 0.86rem);
+  line-height: 1.75;
+  text-align: center;
+  color: var(--cv-muted-ink);
+  font-family: var(--abs-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: translate3d(0, calc((1 - var(--scroll-presence, 1)) * 10px), 0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.cv-page .cv-contact {
+  font-size: clamp(1.2rem, 1.7vw, 1.45rem);
+  line-height: 1.35;
+  margin-bottom: clamp(0.55rem, 1vw, 0.85rem);
+  color: var(--cv-ink-strong);
+  transform: translate3d(0, calc((1 - var(--scroll-presence, 1)) * 12px), 0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.cv-page .cv-copyright {
+  color: var(--cv-muted-ink);
+  font-family: var(--abs-font-mono);
+  font-size: clamp(0.68rem, 0.78vw, 0.78rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transform: translate3d(0, calc((1 - var(--scroll-presence, 1)) * 14px), 0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.cv-page .cv-section--list {
+  margin-bottom: clamp(2.75rem, 5vw, 4rem);
+}
+
+body.cv-page .cv-section--chapters {
+  margin-top: clamp(0.35rem, 1vw, 0.8rem);
+  margin-bottom: clamp(4rem, 7.5vw, 5.6rem);
+}
+
+body.cv-page .cv-section--experience {
+  margin-bottom: clamp(4.1rem, 8vw, 5.8rem);
+}
+
+body.cv-page .cv-section--signals {
+  margin-top: clamp(0.35rem, 1vw, 0.7rem);
+}
+
 @media (max-width: 900px) {
   body.cv-page .cv-page-inner {
-    padding-inline: clamp(1rem, 5vw, 1.75rem);
+    width: min(100%, 52rem);
+    padding-inline: clamp(1.15rem, 5vw, 2rem);
   }
 
   body.cv-page .cv-hero {
     grid-template-columns: 1fr;
-  }
-
-  body.cv-page .cv-section {
-    grid-template-columns: 1fr;
-  }
-
-  body.cv-page .cv-section > :not(.cv-section-title) {
-    grid-column: auto;
+    gap: clamp(1.35rem, 3vw, 1.9rem);
+    margin-bottom: clamp(2.5rem, 5.5vw, 3.4rem);
   }
 
   body.cv-page .cv-photo {
-    max-width: min(18rem, 100%);
-    height: clamp(15rem, 48vw, 20rem);
+    max-width: min(14rem, 72vw);
+    height: clamp(12rem, 42vw, 15rem);
   }
 }
 
 @media (max-width: 768px) {
   body.cv-page .cv-scroll-container {
-    top: calc(var(--wall-thickness) + clamp(74px, 11vh, 94px));
+    top: calc(var(--wall-thickness) + var(--cv-header-clearance-mobile, clamp(74px, 11vh, 94px)));
+    bottom: calc(var(--wall-thickness) + var(--cv-footer-clearance-mobile, clamp(172px, 24vh, 220px)));
   }
 
   body.cv-page .cv-page-inner {
-    padding-top: clamp(1.5rem, 4vh, 2.5rem);
-    padding-bottom: clamp(4rem, 10vh, 6rem);
+    padding-top: clamp(1.25rem, 3.5vh, 1.8rem);
+    padding-bottom: clamp(4.5rem, 10vh, 6.5rem);
+  }
+
+  body.cv-page .cv-hero {
+    gap: clamp(1rem, 3vw, 1.25rem);
+    margin-bottom: clamp(2rem, 6vw, 2.6rem);
+    padding-bottom: 0;
+  }
+
+  body.cv-page .cv-photo {
+    max-width: min(13rem, 68vw);
+    height: clamp(11rem, 52vw, 14rem);
+  }
+
+  body.cv-page .cv-name {
+    font-size: clamp(1.8rem, 6vw, 2.2rem);
+  }
+
+  body.cv-page .cv-hero-label {
+    font-size: clamp(3.3rem, 12.8vw, 4.8rem);
+    line-height: 0.9;
+  }
+
+  body.cv-page .cv-title {
+    font-size: clamp(1.06rem, 4.1vw, 1.22rem);
+    line-height: 1.38;
+  }
+
+  body.cv-page .cv-intro {
+    gap: clamp(0.7rem, 2.5vw, 1rem);
+  }
+
+  body.cv-page .cv-intro-text,
+  body.cv-page .cv-section p,
+  body.cv-page .cv-entry p,
+  body.cv-page .cv-recognition,
+  body.cv-page .cv-skills li,
+  body.cv-page .cv-projects li,
+  body.cv-page .cv-entry-meta,
+  body.cv-page .cv-footer-prompt {
+    font-size: clamp(1.03rem, 3.8vw, 1.12rem);
+    line-height: 1.78;
+  }
+
+  body.cv-page .cv-intro > .cv-intro-text + .cv-intro-text {
+    margin-top: -0.2rem;
+  }
+
+  body.cv-page .cv-section {
+    margin-bottom: clamp(2.4rem, 8vw, 3.2rem);
+  }
+
+  body.cv-page .cv-section-title {
+    font-size: clamp(2.05rem, 7.8vw, 2.4rem);
+    margin-bottom: clamp(1rem, 3vw, 1.25rem);
+  }
+
+  body.cv-page .cv-entry-title {
+    font-size: clamp(1.26rem, 4.8vw, 1.5rem);
+  }
+
+  body.cv-page .cv-section-lead {
+    font-size: clamp(0.72rem, 3vw, 0.82rem);
+    margin-bottom: clamp(0.95rem, 3vw, 1.15rem);
   }
 
   body.cv-page .cv-skills,
   body.cv-page .cv-projects {
     grid-template-columns: 1fr;
+  }
+
+  body.cv-page .cv-back-to-top {
+    margin-bottom: clamp(2rem, 6vw, 2.8rem);
   }
 }

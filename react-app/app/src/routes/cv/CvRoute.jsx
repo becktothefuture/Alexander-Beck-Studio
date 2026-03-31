@@ -11,11 +11,21 @@ function renderParagraphs(paragraphs = []) {
   return paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>);
 }
 
+function renderIntroParagraphs(intro = {}) {
+  const paragraphs = Array.isArray(intro.paragraphs) && intro.paragraphs.length
+    ? intro.paragraphs
+    : (intro.text ? [intro.text] : []);
+
+  return paragraphs.map((paragraph) => (
+    <p key={paragraph} className="cv-intro-text">{paragraph}</p>
+  ));
+}
+
 function renderEntries(entries = []) {
   return entries.map((entry) => (
     <div key={`${entry.title}-${entry.meta || ''}`} className="cv-entry">
       <h3 className="cv-entry-title">{entry.title}</h3>
-      <p className="cv-entry-meta">{entry.meta}</p>
+      {entry.meta ? <p className="cv-entry-meta">{entry.meta}</p> : null}
       {entry.body ? <p>{entry.body}</p> : null}
     </div>
   ));
@@ -35,6 +45,28 @@ function renderProjects(projects = []) {
   ));
 }
 
+function getSectionClassName(section) {
+  const classNames = ['cv-section'];
+
+  if (section.projects) classNames.push('cv-section--chapters');
+  if (section.entries) classNames.push('cv-section--experience');
+  if (section.lead) classNames.push('cv-section--with-lead');
+  if (section.items && !section.entries && !section.projects) classNames.push('cv-section--list');
+  if (section.title === 'Where I keep growing' || section.title === 'Signals') {
+    classNames.push('cv-section--closing');
+  }
+  if (section.title === 'Signals') classNames.push('cv-section--signals');
+
+  return classNames.join(' ');
+}
+
+function getSectionPresenceSpan(section) {
+  if (section.projects) return '0.28';
+  if (section.entries) return '0.24';
+  if (section.title === 'Signals') return '0.18';
+  return '0.22';
+}
+
 export function getCvRouteView() {
   const portfolioLink = homeContent.footer.links.portfolio;
   const contactLink = homeContent.footer.links.contact;
@@ -43,10 +75,10 @@ export function getCvRouteView() {
     bodyClass: 'body cv-page',
     wallClassName: 'cv-simulation w-embed',
     wallContent: (
-      <div className="cv-scroll-container">
+      <div id="cv-scroll-container" className="cv-scroll-container" data-scroll-presence-root>
         <main className="cv-page-content" aria-label="About Me">
           <article className="cv-page-inner">
-            <header className="cv-hero" aria-label="Profile">
+            <header className="cv-hero" aria-label="Profile" data-scroll-presence data-scroll-presence-span="0.28">
               <div className="cv-photo">
                 <img
                   src={cvContent.intro.photo.src}
@@ -55,19 +87,25 @@ export function getCvRouteView() {
                 />
               </div>
               <div className="cv-intro">
-                <h1 className="cv-name">{cvContent.intro.name}</h1>
+                <h1 className="cv-hero-label">About me</h1>
+                <p className="cv-name">{cvContent.intro.name}</p>
                 <p className="cv-title">{cvContent.intro.title}</p>
-                <p className="cv-intro-text">{cvContent.intro.text}</p>
+                {renderIntroParagraphs(cvContent.intro)}
               </div>
             </header>
 
             {cvContent.sections.map((section) => (
-              <section key={section.title} className="cv-section">
+              <section
+                key={section.title}
+                className={getSectionClassName(section)}
+                data-scroll-presence
+                data-scroll-presence-span={getSectionPresenceSpan(section)}
+              >
                 <h2 className="cv-section-title">{section.title}</h2>
                 {section.paragraphs ? renderParagraphs(section.paragraphs) : null}
                 {section.entries ? renderEntries(section.entries) : null}
+                {section.lead ? <p className="cv-section-lead">{section.lead}</p> : null}
                 {section.items ? <ul className="cv-skills">{renderSkills(section.items)}</ul> : null}
-                {section.lead ? <p>{section.lead}</p> : null}
                 {section.projects ? <ul className="cv-projects">{renderProjects(section.projects)}</ul> : null}
                 {section.recognition ? (
                   <p className="cv-recognition">{section.recognition}</p>
@@ -75,7 +113,22 @@ export function getCvRouteView() {
               </section>
             ))}
 
-            <footer className="cv-footer">
+            <footer className="cv-footer" data-scroll-presence data-scroll-presence-span="0.24">
+              <button
+                type="button"
+                className="cv-back-to-top"
+                onClick={(event) => {
+                  event.currentTarget.closest('.cv-scroll-container')?.scrollTo({
+                    top: 0,
+                    behavior: 'smooth',
+                  });
+                }}
+              >
+                Back to top
+              </button>
+              {cvContent.footer.prompt ? (
+                <p className="cv-footer-prompt">{cvContent.footer.prompt}</p>
+              ) : null}
               <p className="cv-contact">{cvContent.footer.contact}</p>
               <p className="cv-copyright">{cvContent.footer.copyright}</p>
             </footer>

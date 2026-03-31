@@ -155,9 +155,9 @@ function getEffectiveAdaptiveThrottleLevel(globals) {
 }
 
 function shouldRunPhysicsThisFrame(globals, throttleLevel) {
-  // Large SAT hulls + low body count: skipping physics or cutting solver iterations
-  // under adaptive throttle caused visible tunneling / interpenetration.
-  if (globals?.currentMode === MODES.PORTFOLIO_PIT) return true;
+  // Pit-like modes must preserve simulation time. Skipping a physics frame here
+  // drops that frame's dt entirely, which reads as weak gravity / slow motion.
+  if (isPitLikeMode(globals?.currentMode)) return true;
   if (throttleLevel <= 0) return true;
   if (throttleLevel === 1) {
     // Light throttle: skip one in four physics steps.

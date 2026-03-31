@@ -1,4 +1,5 @@
 import { resolvePortfolioLabelContent } from './pit-mode.js';
+import { createScrollPresence } from '../utils/scroll-presence.js';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -154,6 +155,22 @@ function getVideoMimeType(src) {
   return '';
 }
 
+function resolveBlockAspectRatio(block) {
+  const aspectValue = String(block?.layout?.aspect || '').trim().toLowerCase();
+  if (aspectValue === 'auto') return '';
+  if (aspectValue === '16:9') return '16 / 9';
+  if (aspectValue === '4:3') return '4 / 3';
+  if (aspectValue === '1:1') return '1 / 1';
+  if (aspectValue === '3:2') return '3 / 2';
+  if (aspectValue === '2:3') return '2 / 3';
+
+  const customRatio = Number(block?.layout?.ratio);
+  if (Number.isFinite(customRatio) && customRatio > 0) {
+    return String(customRatio);
+  }
+  return '';
+}
+
 export function getProjectContentBlocks(project) {
   if (Array.isArray(project?.contentBlocks) && project.contentBlocks.length) {
     return project.contentBlocks;
@@ -282,7 +299,7 @@ function createProjectDrawerMarkup() {
             />
           </svg>
         </button>
-        <div class="portfolio-project-view__scroll">
+        <div class="portfolio-project-view__scroll" data-scroll-presence-root>
           <section class="portfolio-project-view__hero">
             <div class="portfolio-project-view__image-shell">
               <div class="portfolio-project-view__image-motion">
@@ -293,7 +310,7 @@ function createProjectDrawerMarkup() {
                 <i class="ti ti-arrow-left portfolio-project-view__scroll-cue-icon"></i>
               </div>
             </div>
-            <div class="portfolio-project-view__hero-copy">
+            <div class="portfolio-project-view__hero-copy" data-scroll-presence data-scroll-presence-span="0.28">
               <p id="portfolioProjectEyebrow" class="portfolio-project-view__eyebrow"></p>
               <h1 id="portfolioProjectTitle" class="portfolio-project-view__title"></h1>
             </div>
@@ -323,6 +340,7 @@ export class PortfolioProjectDrawer {
     this.title = null;
     this.content = null;
     this.closeButton = null;
+    this.scrollPresence = null;
     this.openTimers = [];
     this.closeFallbackTimer = null;
     this.mediaShiftRaf = null;
@@ -357,6 +375,13 @@ export class PortfolioProjectDrawer {
     this.closeButton = this.root?.querySelector('.portfolio-project-view__close') || null;
     this.closeButton?.addEventListener('click', this.boundRequestClose);
     this.backdrop?.addEventListener('pointerdown', this.boundRequestClose);
+    this.scrollPresence = this.scroll
+      ? createScrollPresence(this.scroll, {
+          defaultSpanRatio: 0.18,
+          minSpanPx: 88,
+          maxSpanPx: 220,
+        })
+      : null;
     this.setupMediaScrollShift();
     return this.root;
   }
@@ -443,7 +468,7 @@ export class PortfolioProjectDrawer {
 
     const linksHtml = links.length
       ? `
-        <div class="portfolio-project-view__links">
+        <div class="portfolio-project-view__links" data-scroll-presence data-scroll-presence-span="0.16">
           ${links.map((link) => `
             <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">
               ${escapeHtml(link.label)}
@@ -454,31 +479,69 @@ export class PortfolioProjectDrawer {
       : '';
 
     const blocksHtml = blocks.map((block) => {
+      const blockAspectRatio = resolveBlockAspectRatio(block);
+      const mediaFrameStyle = blockAspectRatio
+        ? ` style="--portfolio-block-aspect-ratio:${escapeHtml(blockAspectRatio)};"`
+        : '';
+
       if (block.type === 'video') {
         const src = this.resolveAsset(block.src);
         const type = getVideoMimeType(src);
         const autoplay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? '' : 'autoplay';
         return `
-          <figure class="portfolio-project-view__block portfolio-project-view__block--video">
-            <video ${autoplay} muted loop playsinline preload="metadata" controls>
-              <source src="${src}"${type ? ` type="${type}"` : ''}>
-            </video>
+          <figure class="portfolio-project-view__block portfolio-project-view__block--video" data-scroll-presence data-scroll-presence-span="0.16">
+            <div class="portfolio-project-view__block-media-frame"${mediaFrameStyle}>
+              <video ${autoplay} muted loop playsinline preload="metadata" controls>
+                <source src="${src}"${type ? ` type="${type}"` : ''}>
+              </video>
+            </div>
             ${block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : ''}
           </figure>
         `;
       }
       if (block.type === 'text') {
-        return `<div class="portfolio-project-view__block portfolio-project-view__block--text"><p>${escapeHtml(block.text)}</p></div>`;
+        const text = block.body || block.text || '';
+        return `<div class="portfolio-project-view__block portfolio-project-view__block--text" data-scroll-presence data-scroll-presence-span="0.16"><p>${escapeHtml(text)}</p></div>`;
+      }
+      if (block.type === 'quote') {
+        const text = block.text || '';
+        const attribution = block.attribution || '';
+        return `
+          <figure class="portfolio-project-view__block portfolio-project-view__block--quote" data-scroll-presence data-scroll-presence-span="0.16">
+            <blockquote>${escapeHtml(text)}</blockquote>
+            ${attribution ? `<figcaption>${escapeHtml(attribution)}</figcaption>` : ''}
+          </figure>
+        `;
+      }
+      if (block.type === 'stats') {
+        const items = Array.isArray(block.items) ? block.items : [];
+        if (!items.length) return '';
+        return `
+          <section class="portfolio-project-view__block portfolio-project-view__block--stats" aria-label="Project stats" data-scroll-presence data-scroll-presence-span="0.16">
+            <ul>
+              ${items.map((item) => `
+                <li>
+                  <span class="portfolio-project-view__stat-value">${escapeHtml(item.value || '')}</span>
+                  <span class="portfolio-project-view__stat-label">${escapeHtml(item.label || '')}</span>
+                </li>
+              `).join('')}
+            </ul>
+          </section>
+        `;
       }
       stillImageOrdinal += 1;
       const shouldAnimate = stillImageOrdinal % 4 === 0;
       const imageMarkup = shouldAnimate
-        ? `<div class="portfolio-project-view__block-media portfolio-project-view__block-media--ken-burns" style="${escapeHtml(buildKenBurnsStyleVars(createDetailImageKenBurnsSequence(project, block.src, stillImageOrdinal)))}">
-            <img class="portfolio-project-view__block-media-image" src="${this.resolveAsset(block.src)}" alt="${escapeHtml(block.alt || project?.title || 'Project image')}" loading="lazy">
+        ? `<div class="portfolio-project-view__block-media-frame"${mediaFrameStyle}>
+            <div class="portfolio-project-view__block-media portfolio-project-view__block-media--ken-burns" style="${escapeHtml(buildKenBurnsStyleVars(createDetailImageKenBurnsSequence(project, block.src, stillImageOrdinal)))}">
+              <img class="portfolio-project-view__block-media-image" src="${this.resolveAsset(block.src)}" alt="${escapeHtml(block.alt || project?.title || 'Project image')}" loading="lazy">
+            </div>
           </div>`
-        : `<img class="portfolio-project-view__block-media-image" src="${this.resolveAsset(block.src)}" alt="${escapeHtml(block.alt || project?.title || 'Project image')}" loading="lazy">`;
+        : `<div class="portfolio-project-view__block-media-frame"${mediaFrameStyle}>
+            <img class="portfolio-project-view__block-media-image" src="${this.resolveAsset(block.src)}" alt="${escapeHtml(block.alt || project?.title || 'Project image')}" loading="lazy">
+          </div>`;
       return `
-        <figure class="portfolio-project-view__block portfolio-project-view__block--media${shouldAnimate ? ' portfolio-project-view__block--ken-burns' : ''}">
+        <figure class="portfolio-project-view__block portfolio-project-view__block--media${shouldAnimate ? ' portfolio-project-view__block--ken-burns' : ''}" data-scroll-presence data-scroll-presence-span="0.16">
           ${imageMarkup}
           ${block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : ''}
         </figure>
@@ -487,7 +550,7 @@ export class PortfolioProjectDrawer {
 
     const takeawayHtml = takeaways.length
       ? `
-        <section class="portfolio-project-view__takeaways">
+        <section class="portfolio-project-view__takeaways" data-scroll-presence data-scroll-presence-span="0.18">
           <h2>Personal takeaways</h2>
           <ul>${takeaways.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
         </section>
@@ -495,11 +558,11 @@ export class PortfolioProjectDrawer {
       : '';
 
     return `
-      <div class="portfolio-project-view__summary">
+      <div class="portfolio-project-view__summary" data-scroll-presence data-scroll-presence-span="0.18">
         <p>${escapeHtml(project?.summary || '')}</p>
       </div>
       ${project?.overview ? `
-        <section class="portfolio-project-view__overview">
+        <section class="portfolio-project-view__overview" data-scroll-presence data-scroll-presence-span="0.18">
           <h2>Overview</h2>
           <p>${escapeHtml(project.overview)}</p>
         </section>
@@ -537,6 +600,7 @@ export class PortfolioProjectDrawer {
       this.image.addEventListener('load', () => {
         this.updateScrollCueColor(accentColor);
         this.scheduleDrawerMediaScrollShift();
+        this.scrollPresence?.refresh();
       }, { once: true });
     }
     this.updateScrollCueColor(accentColor);
@@ -550,6 +614,7 @@ export class PortfolioProjectDrawer {
       ? 'portfolioProjectEyebrow portfolioProjectTitle'
       : 'portfolioProjectTitle');
     if (this.content) this.content.innerHTML = this.buildProjectContent(project);
+    this.scrollPresence?.refresh();
     this.scheduleDrawerMediaScrollShift();
 
     this.clearOpenTimers();
@@ -620,6 +685,8 @@ export class PortfolioProjectDrawer {
   destroy() {
     this.clearOpenTimers();
     this.teardownMediaScrollShift();
+    this.scrollPresence?.destroy();
+    this.scrollPresence = null;
     if (this.closeFallbackTimer !== null) {
       window.clearTimeout(this.closeFallbackTimer);
       this.closeFallbackTimer = null;

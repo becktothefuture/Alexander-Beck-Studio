@@ -21,10 +21,54 @@
         { "label": "Release Notes", "url": "https://example.com" }
       ],
       "contentBlocks": [
-        { "type": "image", "src": "images/portfolio/pages/chapter-1-3.webp", "caption": "Workflow summary for the core user journey." },
-        { "type": "video", "src": "images/portfolio/videos/shutterstock_1092679953---01---02-transcode.mp4", "caption": "Interactive prototype walkthrough." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-1-6.webp", "caption": "Component-driven layout exploration." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-1-10.webp", "caption": "Mobile-first detail states and error paths." }
+        {
+          "type": "text",
+          "body": "The team needed one workflow language across desktop and mobile so operations, field staff, and leadership could move in sync."
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-1-3.webp",
+          "alt": "Journey diagram showing the core workflow from task intake to completion.",
+          "caption": "Workflow summary for the core user journey.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "quote",
+          "text": "When every team saw the same sequence on screen, debates shifted from assumptions to decisions.",
+          "attribution": "Product lead, Bentley SMP"
+        },
+        {
+          "type": "video",
+          "src": "images/portfolio/videos/shutterstock_1092679953---01---02-transcode.mp4",
+          "caption": "Interactive prototype walkthrough.",
+          "layout": { "aspect": "4:3" }
+        },
+        {
+          "type": "stats",
+          "items": [
+            { "label": "Prototype rounds", "value": "12" },
+            { "label": "Flows unified", "value": "9" },
+            { "label": "Cycle time", "value": "-28%" }
+          ]
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-1-6.webp",
+          "alt": "Component-driven app screens arranged in a modular grid.",
+          "caption": "Component-driven layout exploration.",
+          "layout": { "aspect": "3:2" }
+        },
+        {
+          "type": "text",
+          "body": "A shared component model reduced handoff ambiguity and made cross-platform QA far easier."
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-1-10.webp",
+          "alt": "Mobile UI states with validation, error, and recovery paths.",
+          "caption": "Mobile-first detail states and error paths.",
+          "layout": { "aspect": "16:9" }
+        }
       ],
       "takeaways": [
         "Design with real data to keep flows honest.",

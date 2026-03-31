@@ -12,16 +12,21 @@ import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visua
 import { applyWallFrameFromConfig, applyWallFrameLayout } from '../../legacy/modules/visual/wall-frame.js';
 import { stampCursorContrastFromTheme } from '../../legacy/modules/visual/colors.js';
 import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
+import { createScrollPresence } from '../../legacy/modules/utils/scroll-presence.js';
+
+function getCvScrollContainer() {
+  return document.getElementById('cv-scroll-container');
+}
 
 function setCvContentVisible() {
-  const scroller = document.querySelector('.cv-scroll-container');
+  const scroller = getCvScrollContainer();
   if (!scroller) return;
   scroller.style.opacity = '1';
   scroller.style.visibility = 'visible';
 }
 
 export async function bootstrapCvRoute() {
-  forceBootVisible(['#abs-scene', '#app-frame', '.cv-scroll-container']);
+  forceBootVisible(['#abs-scene', '#app-frame', '#cv-scroll-container']);
   setCvContentVisible();
 
   let runtimeConfig = null;
@@ -95,12 +100,20 @@ export async function bootstrapCvRoute() {
     setupPrefetchOnHover(backLink, 'index.html');
   }
 
-  const scrollContainer = document.querySelector('.cv-scroll-container');
+  const scrollContainer = getCvScrollContainer();
+  const scrollPresence = scrollContainer
+    ? createScrollPresence(scrollContainer, {
+        defaultSpanRatio: 0.2,
+        minSpanPx: 92,
+        maxSpanPx: 220,
+      })
+    : null;
   if (scrollContainer) {
     scrollContainer.scrollTop = 0;
   }
 
   return () => {
+    scrollPresence?.destroy();
     window.removeEventListener('resize', handleLayoutResize);
     window.visualViewport?.removeEventListener('resize', handleLayoutResize);
     window.removeEventListener('pageshow', handlePageShow);

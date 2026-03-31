@@ -225,7 +225,7 @@ export function apply3DCubeForces(ball, dt) {
   // Scale size based on z-depth for perspective illusion
   // Back balls (z=0) are smaller, front balls (z=1) are larger
   // This enhances the 3D effect significantly
-  const perspectiveSize = 0.6 + ball.z * 0.8; // 0.6x to 1.4x scale
+  const perspectiveSize = 0.78 + ball.z * 0.34; // 0.78x to 1.12x scale
   
   ball.r = clampRadiusToGlobalBounds(g, rawR * perspectiveSize);
   ball.x = targetX;

@@ -3262,7 +3262,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'noiseChroma',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.9,
+        default: 0.75,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         group: 'Texture',
@@ -4261,7 +4261,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'kaleidoscope3BallCount',
         type: 'range',
         min: 12, max: 300, step: 3,
-        default: 150,
+        default: 180,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true
@@ -4312,7 +4312,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'kaleidoscope3DotSizeVh',
         type: 'range',
         min: 0.2, max: 2.5, step: 0.05,
-        default: 1.05,
+        default: 0.75,
         format: v => v.toFixed(2) + 'vh',
         parse: parseFloat,
         reinitMode: true
@@ -4334,7 +4334,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'kaleidoscope3SpawnAreaMul',
         type: 'range',
         min: 0.2, max: 2.0, step: 0.05,
-        default: 1.05,
+        default: 0.72,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat,
         reinitMode: true
@@ -4450,7 +4450,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldDotSizeMul',
         type: 'range',
         min: 0.2, max: 4.0, step: 0.05,
-        default: 0.35,
+        default: 0.9,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat
       },
@@ -4488,15 +4488,39 @@ export const CONTROL_SECTIONS = {
     controls: [
       {
         id: 'elasticCenterRingCount',
-        label: 'Ring Count',
+        label: 'Outer Ring Count',
         stateKey: 'elasticCenterRingCount',
         type: 'range',
         min: 2, max: 20, step: 1,
-        default: 10,
+        default: 13,
         format: v => String(v),
         parse: v => parseInt(v, 10),
         reinitMode: true,
-        hint: 'Number of concentric rings (more rings = more balls)'
+        hint: 'Overall outer size of the form. Higher values increase the ring diameter and total number of dots.'
+      },
+      {
+        id: 'elasticCenterBandRows',
+        label: 'Band Rows',
+        stateKey: 'elasticCenterBandRows',
+        type: 'range',
+        min: 1, max: 12, step: 1,
+        default: 5,
+        format: v => String(v),
+        parse: v => parseInt(v, 10),
+        reinitMode: true,
+        hint: 'How many concentric rows of dots make up the ring itself. Lower values create a larger hollow center.'
+      },
+      {
+        id: 'elasticCenterSpacingMultiplier',
+        label: 'Dot Spacing',
+        stateKey: 'elasticCenterSpacingMultiplier',
+        type: 'range',
+        min: 2.0, max: 5.0, step: 0.1,
+        default: 2.8,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'Distance between dot centers. Higher values open the form up and make the circle feel airier.'
       },
       {
         id: 'elasticCenterMassMultiplier',
@@ -4511,14 +4535,14 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'elasticCenterElasticStrength',
-        label: 'Elastic Strength',
+        label: 'Shape Tightness',
         stateKey: 'elasticCenterElasticStrength',
         type: 'range',
-        min: 0, max: 15000, step: 250,
-        default: 2000,
+        min: 0, max: 2000, step: 10,
+        default: 200,
         format: v => v.toFixed(0) + 'px/s²',
         parse: parseFloat,
-        hint: 'Force pulling dots back to center position (0 = no elastic force, circle moves freely)'
+        hint: 'How strongly the dots snap back into the round target. Lower values feel looser; higher values feel tighter and cleaner.'
       },
       {
         id: 'elasticCenterMouseRepelStrength',
@@ -4726,7 +4750,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'sphere3dDotSizeMul',
         type: 'range',
         min: 0.2, max: 4.0, step: 0.05,
-        default: 1.5,
+        default: 1.0,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat
       },
@@ -4861,7 +4885,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'cube3dDotSizeMul',
         type: 'range',
         min: 0.2, max: 4.0, step: 0.05,
-        default: 1.5,
+        default: 1.0,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat
       },
@@ -5100,7 +5124,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'parallaxFloatDotSizeMul',
         type: 'range',
         min: 0.5, max: 4.0, step: 0.1,
-        default: 1.8,
+        default: 1.1,
         format: v => v.toFixed(1) + '×',
         parse: parseFloat
       },

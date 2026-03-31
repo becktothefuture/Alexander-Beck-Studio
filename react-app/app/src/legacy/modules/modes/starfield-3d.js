@@ -10,6 +10,9 @@ import { pickRandomColor } from '../visual/colors.js';
 let _stars = [];
 let _lastTime = 0;
 const SPAN_MULTIPLIER = 4;
+const STARFIELD_BASE_SIZE_MULTIPLIER = 0.55;
+const STARFIELD_FAR_SIZE_RATIO = 0.68;
+const STARFIELD_NEAR_SIZE_RATIO = 1.18;
 
 // Smoothed mouse state for parallax panning
 let _smoothMouseX = 0;
@@ -87,7 +90,7 @@ export function renderStarfield3D(ctx) {
   const focalLength = Math.max(100, g.starfieldFocalLength ?? 500);
   const speed = Math.max(10, g.starfieldSpeed ?? 400);
   const dotSizeMul = Math.max(0.2, Math.min(4.0, g.starfieldDotSizeMul ?? 1.0));
-  const baseR = (g.R_MED || 20) * dotSizeMul * 2; // 2× base size requested
+  const baseR = (g.R_MED || 20) * dotSizeMul * STARFIELD_BASE_SIZE_MULTIPLIER;
 
   // Mouse parallax panning
   const parallaxStrength = Math.max(0, g.starfieldParallaxStrength ?? 320);
@@ -180,8 +183,9 @@ export function renderStarfield3D(ctx) {
     const offsetY = _smoothMouseY * parallaxStrength * scale;
     const x2d = cx + (star.x + offsetX) * scale;
     const y2d = cy + (star.y + offsetY) * scale;
-    // Keep radius constant regardless of distance (don't scale with perspective)
-    const r = baseR;
+    const depthRatio = Math.max(0, Math.min(1, 1 - ((star.z - zNear) / Math.max(1, zFar - zNear))));
+    const sizeRatio = STARFIELD_FAR_SIZE_RATIO + (STARFIELD_NEAR_SIZE_RATIO - STARFIELD_FAR_SIZE_RATIO) * depthRatio;
+    const r = baseR * sizeRatio;
 
     // Draw circle with alpha
     if (star.alpha > 0) {

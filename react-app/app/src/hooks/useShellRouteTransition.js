@@ -471,7 +471,6 @@ function isRouteBaselineReady(routeId) {
       isHomeRoute
       && hero
       && navButtons.length >= 3
-      && isHeroSettledInsideWall()
     );
   }
 

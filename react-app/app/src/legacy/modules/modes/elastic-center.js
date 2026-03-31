@@ -15,45 +15,79 @@ let centerX = 0;
 let centerY = 0;
 let targetRadius = 0; // Target radius for the circle formation
 
-/**
- * Calculate total ball count for a given number of rings
- * Ring 0 = center ball, Ring 1 = first ring around center, etc.
- */
-function calculateBallCountForRings(ringCount) {
-  if (ringCount <= 0) return 0;
-  let total = 1; // center ball (ring 0)
-  for (let ring = 1; ring < ringCount; ring++) {
-    total += 6 * ring; // Each ring has 6 * ringNumber balls
+function selectEvenlySpacedPositions(positions, targetCount) {
+  if (!Array.isArray(positions) || positions.length <= targetCount) return positions;
+  if (!Number.isFinite(targetCount) || targetCount <= 0) return [];
+
+  const byLayer = new Map();
+  for (const pos of positions) {
+    const layer = Number(pos?.layer ?? 0);
+    if (!byLayer.has(layer)) byLayer.set(layer, []);
+    byLayer.get(layer).push(pos);
   }
-  return total;
+
+  const layers = Array.from(byLayer.keys()).sort((a, b) => a - b);
+  const total = positions.length;
+  const selected = [];
+  let remainingTarget = targetCount;
+  let remainingTotal = total;
+
+  for (let layerIndex = 0; layerIndex < layers.length; layerIndex++) {
+    const layer = layers[layerIndex];
+    const layerPositions = byLayer.get(layer) || [];
+    const layersRemaining = layers.length - layerIndex;
+    const proportionalQuota = Math.round((layerPositions.length / Math.max(1, remainingTotal)) * remainingTarget);
+    const quota = Math.max(1, Math.min(layerPositions.length, proportionalQuota || (remainingTarget > 0 ? 1 : 0)));
+    const layerTake = Math.min(layerPositions.length, layerIndex === layers.length - 1 ? remainingTarget : quota);
+
+    if (layerTake >= layerPositions.length) {
+      selected.push(...layerPositions);
+    } else if (layerTake > 0) {
+      const step = layerPositions.length / layerTake;
+      for (let i = 0; i < layerTake; i++) {
+        const sourceIndex = Math.min(layerPositions.length - 1, Math.floor(i * step));
+        selected.push(layerPositions[sourceIndex]);
+      }
+    }
+
+    remainingTarget = Math.max(0, targetCount - selected.length);
+    remainingTotal -= layerPositions.length;
+
+    if (remainingTarget <= 0 && layersRemaining > 1) break;
+  }
+
+  return selected.slice(0, targetCount);
 }
 
 /**
- * Create composite circle from many small balls arranged in a circular pattern
- * Based on ring count rather than ball count
+ * Create a ring from many small balls arranged in concentric rows.
+ * `ringCount` controls the overall outer size, while `bandRows` controls how
+ * many populated rows remain at the perimeter before the center is left empty.
  */
 function createCompositeCircle(globals, ringCount) {
   const canvas = globals.canvas;
   if (!canvas) return;
   
-  const DPR = globals.DPR || 1;
   const avgRadius = (globals.R_MIN + globals.R_MAX) * 0.5;
   // Increased spacing for larger gaps between balls
   const spacingMultiplier = globals.elasticCenterSpacingMultiplier || 2.8;
   const spacing = avgRadius * spacingMultiplier; // Larger gaps between ball centers
+  const requestedBandRows = Math.round(globals.elasticCenterBandRows ?? 5);
+  const bandRows = Math.max(1, Math.min(ringCount, requestedBandRows));
+  const startRing = Math.max(0, ringCount - bandRows);
   
   // Calculate target radius based on ring count
   targetRadius = ringCount * spacing;
   
   const ballPositions = [];
   
-  // Center ball (ring 0)
-  if (ringCount > 0) {
+  // Center ball (ring 0) only exists when the occupied band includes the center.
+  if (ringCount > 0 && startRing === 0) {
     ballPositions.push({ x: 0, y: 0, layer: 0, index: 0 });
   }
   
-  // Add rings 1 through ringCount-1
-  for (let ring = 1; ring < ringCount; ring++) {
+  // Add occupied rings only, leaving the interior hollow when startRing > 0.
+  for (let ring = Math.max(1, startRing); ring < ringCount; ring++) {
     const layerRadius = ring * spacing;
     const circumference = layerRadius * 2 * Math.PI;
     // Calculate balls based on spacing distance (not diameter) for consistent gaps
@@ -66,11 +100,14 @@ function createCompositeCircle(globals, ringCount) {
       ballPositions.push({ x, y, layer: ring, index: ballPositions.length });
     }
   }
+
+  const targetBallCount = getMobileAdjustedCount(ballPositions.length);
+  const finalPositions = selectEvenlySpacedPositions(ballPositions, targetBallCount);
   
   // Create balls from positions
   // First 8 get one of each color
-  for (let i = 0; i < Math.min(8, ballPositions.length); i++) {
-    const pos = ballPositions[i];
+  for (let i = 0; i < Math.min(8, finalPositions.length); i++) {
+    const pos = finalPositions[i];
     const r = randomRadiusForMode(globals, MODES.ELASTIC_CENTER);
     const { color, distributionIndex } = pickRandomColorWithIndex();
     const ball = new Ball(centerX + pos.x, centerY + pos.y, r, color);
@@ -88,8 +125,8 @@ function createCompositeCircle(globals, ringCount) {
   }
   
   // Rest get random colors
-  for (let i = 8; i < ballPositions.length; i++) {
-    const pos = ballPositions[i];
+  for (let i = 8; i < finalPositions.length; i++) {
+    const pos = finalPositions[i];
     const r = randomRadiusForMode(globals, MODES.ELASTIC_CENTER);
     const { color, distributionIndex } = pickRandomColorWithIndex();
     const ball = new Ball(centerX + pos.x, centerY + pos.y, r, color);

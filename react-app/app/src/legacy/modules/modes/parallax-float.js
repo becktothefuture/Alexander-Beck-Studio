@@ -13,6 +13,40 @@ import { getModeSizeVarianceFrac, clampRadiusToGlobalBounds } from '../utils/bal
 let _smoothMouseX = 0;
 let _smoothMouseY = 0;
 let _mouseInitialized = false;
+const PARALLAX_FLOAT_GRID_MIN_X = 3;
+const PARALLAX_FLOAT_GRID_MIN_Y = 3;
+const PARALLAX_FLOAT_GRID_MIN_Z = 2;
+const PARALLAX_FLOAT_SIZE_BASE_MULTIPLIER = 0.32 * 1.6;
+
+function reduceGridDimensionsToBudget(gridX, gridY, gridZ, targetCount) {
+  const minCount = PARALLAX_FLOAT_GRID_MIN_X * PARALLAX_FLOAT_GRID_MIN_Y * PARALLAX_FLOAT_GRID_MIN_Z;
+  const safeTarget = Math.max(minCount, Math.round(targetCount || 0));
+  const currentCount = gridX * gridY * gridZ;
+  if (currentCount <= safeTarget) return { gridX, gridY, gridZ };
+
+  const scale = Math.cbrt(safeTarget / currentCount);
+  let nextX = Math.max(PARALLAX_FLOAT_GRID_MIN_X, Math.round(gridX * scale));
+  let nextY = Math.max(PARALLAX_FLOAT_GRID_MIN_Y, Math.round(gridY * scale));
+  let nextZ = Math.max(PARALLAX_FLOAT_GRID_MIN_Z, Math.round(gridZ * scale));
+
+  while (nextX * nextY * nextZ > safeTarget) {
+    if (nextX >= nextY && nextX >= nextZ && nextX > PARALLAX_FLOAT_GRID_MIN_X) {
+      nextX -= 1;
+      continue;
+    }
+    if (nextY >= nextZ && nextY > PARALLAX_FLOAT_GRID_MIN_Y) {
+      nextY -= 1;
+      continue;
+    }
+    if (nextZ > PARALLAX_FLOAT_GRID_MIN_Z) {
+      nextZ -= 1;
+      continue;
+    }
+    break;
+  }
+
+  return { gridX: nextX, gridY: nextY, gridZ: nextZ };
+}
 
 export function initializeParallaxFloat() {
   const g = getGlobals();
@@ -30,9 +64,11 @@ export function initializeParallaxFloat() {
   const h = canvas.height;
 
   // Grid dimensions (number of vertices in each dimension)
-  const gridX = getMobileAdjustedCount(Math.max(0, Math.min(40, Math.round(g.parallaxFloatGridX ?? g.parallaxLinearGridX ?? 14))));
-  const gridY = getMobileAdjustedCount(Math.max(0, Math.min(40, Math.round(g.parallaxFloatGridY ?? g.parallaxLinearGridY ?? 10))));
-  const gridZ = getMobileAdjustedCount(Math.max(0, Math.min(20, Math.round(g.parallaxFloatGridZ ?? g.parallaxLinearGridZ ?? 7))));
+  const baseGridX = Math.max(PARALLAX_FLOAT_GRID_MIN_X, Math.min(40, Math.round(g.parallaxFloatGridX ?? g.parallaxLinearGridX ?? 14)));
+  const baseGridY = Math.max(PARALLAX_FLOAT_GRID_MIN_Y, Math.min(40, Math.round(g.parallaxFloatGridY ?? g.parallaxLinearGridY ?? 10)));
+  const baseGridZ = Math.max(PARALLAX_FLOAT_GRID_MIN_Z, Math.min(20, Math.round(g.parallaxFloatGridZ ?? g.parallaxLinearGridZ ?? 7)));
+  const targetCount = getMobileAdjustedCount(baseGridX * baseGridY * baseGridZ);
+  const { gridX, gridY, gridZ } = reduceGridDimensionsToBudget(baseGridX, baseGridY, baseGridZ, targetCount);
   if (gridX <= 0 || gridY <= 0 || gridZ <= 0) return;
 
   // Grid span: how much of the viewport the grid occupies in world space.
@@ -52,8 +88,8 @@ export function initializeParallaxFloat() {
   // Camera/projection
   const focalLength = Math.max(80, g.parallaxFloatFocalLength ?? g.parallaxLinearFocalLength ?? 420);
 
-  const dotSizeMul = Math.max(0.1, Math.min(6.0, g.parallaxFloatDotSizeMul ?? g.parallaxLinearDotSizeMul ?? 1.8));
-  const baseR = (g.R_MED || 20) * 0.32 * 2.4 * (g.DPR || 1) * dotSizeMul;
+  const dotSizeMul = Math.max(0.1, Math.min(6.0, g.parallaxFloatDotSizeMul ?? g.parallaxLinearDotSizeMul ?? 1.1));
+  const baseR = (g.R_MED || 20) * PARALLAX_FLOAT_SIZE_BASE_MULTIPLIER * (g.DPR || 1) * dotSizeMul;
   const varFrac = getModeSizeVarianceFrac(g, MODES.PARALLAX_FLOAT);
 
   // Randomization amount (0-100 UI scale, or 0-1 legacy)
@@ -206,9 +242,9 @@ export function applyParallaxFloatForces(ball, dt) {
   const targetY = cy + (y3d + offsetY) * scale;
 
   // Update size based on depth
-  const dotSizeMul = Math.max(0.1, Math.min(6.0, g.parallaxFloatDotSizeMul ?? g.parallaxLinearDotSizeMul ?? 1.8));
+  const dotSizeMul = Math.max(0.1, Math.min(6.0, g.parallaxFloatDotSizeMul ?? g.parallaxLinearDotSizeMul ?? 1.1));
   const sizeMul = Number.isFinite(ball._parallaxSizeMul) ? ball._parallaxSizeMul : 1.0;
-  const rawR = (g.R_MED || 20) * 0.32 * 2.4 * (g.DPR || 1) * dotSizeMul * sizeMul * scale;
+  const rawR = (g.R_MED || 20) * PARALLAX_FLOAT_SIZE_BASE_MULTIPLIER * (g.DPR || 1) * dotSizeMul * sizeMul * scale;
   ball.r = clampRadiusToGlobalBounds(g, rawR);
 
   // Snap to smoothed position

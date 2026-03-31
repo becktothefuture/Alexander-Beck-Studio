@@ -165,7 +165,7 @@ export function initialize3DSphere() {
   // Scale based on shorter side (vmin) to ensure it fits/scales appropriately
   const minDim = Math.min(canvas.width, canvas.height);
   const radiusPx = Math.max(10, (radiusVw / 100) * minDim);
-  const dotSizeMul = 1.5; // Fixed size multiplier from design
+  const dotSizeMul = Math.max(0.2, g.sphere3dDotSizeMul ?? 1.0);
   const baseR = (g.R_MED || 20) * 0.30 * 2.0 * (g.DPR || 1);
 
   // Initialize rotation matrix as identity (no rotation)
@@ -219,7 +219,7 @@ export function apply3DSphereForces(ball, dt) {
   const idleSpeed = g.sphere3dIdleSpeed ?? 0.15;
   const tumbleSpeed = g.sphere3dTumbleSpeed ?? 8.0;
   const tumbleDamping = Math.max(0, Math.min(0.999, g.sphere3dTumbleDamping ?? 0.94));
-  const dotSizeMul = 1.5; // Fixed size multiplier from design
+  const dotSizeMul = Math.max(0.2, g.sphere3dDotSizeMul ?? 1.0);
 
   // Update shared rotation once per frame (first ball)
   if (ball === g.balls[0]) {

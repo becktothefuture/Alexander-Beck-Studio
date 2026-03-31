@@ -113,7 +113,7 @@ const state = {
   sphere3dRadiusVw: 60,                     // Sphere radius (vw)
   sphere3dDensity: 140,
   sphere3dFocalLength: 600,
-  sphere3dDotSizeMul: 1.5,
+  sphere3dDotSizeMul: 1.0,
   sphere3dIdleSpeed: 0.15,
   sphere3dCursorInfluence: 1.2,
   sphere3dTumbleSpeed: 2.5,
@@ -128,7 +128,7 @@ const state = {
   cube3dTumbleSpeed: 3,
   cube3dTumbleDamping: 0.95,
   cube3dFocalLength: 500,
-  cube3dDotSizeMul: 1.5,
+  cube3dDotSizeMul: 1.0,
   cube3dFogStart: 0.5,
   cube3dFogMin: 0.1,
   cube3dWarmupFrames: 10,
@@ -141,15 +141,15 @@ const state = {
   starfieldFocalLength: 500,
   starfieldParallaxStrength: 320,
   starfieldSpeed: 400,
-  starfieldDotSizeMul: 1.0,
+  starfieldDotSizeMul: 0.9,
   starfieldIdleJitter: 0,
   starfieldFadeDuration: 0.5,
   starfield3dWarmupFrames: 10,
   // Legacy (pre per-mode system) — kept for back-compat; prefer the per-mode keys above.
   sizeVariation: 0,
   // Responsive ball sizes - interpolates between min/max based on viewport width
-  ballSizeMin: 12,            // Ball radius in px at smallest viewport
-  ballSizeMax: 12,            // Ball radius in px at largest viewport
+  ballSizeMin: 9.6,            // Ball radius in px at smallest viewport
+  ballSizeMax: 9.6,            // Ball radius in px at largest viewport
   ballSizeBreakpointMin: 320, // Viewport width (px) where min size applies
   ballSizeBreakpointMax: 1920, // Viewport width (px) where max size applies
   ballSizeCurve: 1.6,         // Easing curve (1=linear, >1=stays smaller longer, <1=grows faster)
@@ -191,9 +191,11 @@ const state = {
     [MODES.WATER]: { desktop: 1800, mobile: 900 },
     [MODES.MAGNETIC]: { desktop: 220, mobile: 140 },
     [MODES.BUBBLES]: { desktop: 260, mobile: 180 },
-    [MODES.KALEIDOSCOPE]: { desktop: 180, mobile: 120 },
+    [MODES.KALEIDOSCOPE]: { desktop: 180, mobile: 72 },
     [MODES.CRITTERS]: { desktop: 140, mobile: 95 },
+    [MODES.ELASTIC_CENTER]: { desktop: 240, mobile: 150 },
     [MODES.STARFIELD_3D]: { desktop: 220, mobile: 150 },
+    [MODES.PARALLAX_FLOAT]: { desktop: 320, mobile: 160 },
     [MODES.PARTICLE_FOUNTAIN]: { desktop: 260, mobile: 180 }
   },
 
@@ -455,10 +457,11 @@ const state = {
   weightlessRepelPower: 50000,
 
   // Elastic Center mode params
-  elasticCenterRingCount: 10,
+  elasticCenterRingCount: 13,
+  elasticCenterBandRows: 5, // number of populated concentric rows that make up the outer ring
   elasticCenterMassMultiplier: 2.0,
   elasticCenterSpacingMultiplier: 2.8, // multiplier for spacing between balls (higher = larger gaps)
-  elasticCenterElasticStrength: 2000, // px/s² - force pulling dots back to center (lower = circle moves more)
+  elasticCenterElasticStrength: 200, // px/s² - force pulling dots back to center (lower = circle moves more)
   elasticCenterMouseRepelStrength: 12000, // px/s² - force pushing dots away from mouse
   elasticCenterMouseRadius: 200, // px - distance where mouse affects dots
   elasticCenterDamping: 0.94, // velocity damping for stability
@@ -488,13 +491,13 @@ const state = {
   // Normalized idle drift (0..0.05). Subtle movement when idle.
   kaleidoscopeIdleDrift: 0.012,
   // Kaleidoscope III parameters (now the only kaleidoscope mode)
-  kaleidoscope3BallCount: 150,
+  kaleidoscope3BallCount: 180,
   kaleidoscope3Wedges: 10,
   kaleidoscope3WedgesMobile: 6,  // Reduced wedges on mobile for performance (50% fewer draw calls)
   kaleidoscope3Speed: 1.2,
-  kaleidoscope3DotSizeVh: 1.05,
+  kaleidoscope3DotSizeVh: 0.75,
   kaleidoscope3DotAreaMul: 0.75,
-  kaleidoscope3SpawnAreaMul: 1.05,
+  kaleidoscope3SpawnAreaMul: 0.72,
   kaleidoscope3SizeVariance: 0.5,
 
   // Parallax modes (mouse-driven depth parallax)
@@ -524,6 +527,12 @@ const state = {
   parallaxLinearFocalLength: 420,
   parallaxLinearParallaxStrength: 260,
   parallaxLinearDotSizeMul: 1.8,
+  parallaxFloatRandomize: 0.5,
+  parallaxFloatLevitationAmp: 20,
+  parallaxFloatLevitationSpeed: 0.2,
+  parallaxFloatParallaxStrength: 120,
+  parallaxFloatMouseEasing: 4,
+  parallaxFloatDotSizeMul: 1.1,
   
   // Water mode
   waterBallCount: 300,
@@ -1799,9 +1808,10 @@ export function initState(config) {
 
   // Elastic Center mode
   if (config.elasticCenterRingCount !== undefined) state.elasticCenterRingCount = clampInt(config.elasticCenterRingCount, 2, 20, state.elasticCenterRingCount);
+  if (config.elasticCenterBandRows !== undefined) state.elasticCenterBandRows = clampInt(config.elasticCenterBandRows, 1, 12, state.elasticCenterBandRows);
   if (config.elasticCenterMassMultiplier !== undefined) state.elasticCenterMassMultiplier = clampNumber(config.elasticCenterMassMultiplier, 0.5, 5.0, state.elasticCenterMassMultiplier);
-  if (config.elasticCenterSpacingMultiplier !== undefined) state.elasticCenterSpacingMultiplier = clampNumber(config.elasticCenterSpacingMultiplier, 2.0, 4.0, state.elasticCenterSpacingMultiplier);
-  if (config.elasticCenterElasticStrength !== undefined) state.elasticCenterElasticStrength = clampInt(config.elasticCenterElasticStrength, 0, 15000, state.elasticCenterElasticStrength);
+  if (config.elasticCenterSpacingMultiplier !== undefined) state.elasticCenterSpacingMultiplier = clampNumber(config.elasticCenterSpacingMultiplier, 2.0, 5.0, state.elasticCenterSpacingMultiplier);
+  if (config.elasticCenterElasticStrength !== undefined) state.elasticCenterElasticStrength = clampInt(config.elasticCenterElasticStrength, 0, 2000, state.elasticCenterElasticStrength);
   if (config.elasticCenterMouseRepelStrength !== undefined) state.elasticCenterMouseRepelStrength = clampInt(config.elasticCenterMouseRepelStrength, 3000, 25000, state.elasticCenterMouseRepelStrength);
   if (config.elasticCenterMouseRadius !== undefined) state.elasticCenterMouseRadius = clampInt(config.elasticCenterMouseRadius, 50, 400, state.elasticCenterMouseRadius);
   if (config.elasticCenterDamping !== undefined) state.elasticCenterDamping = clampNumber(config.elasticCenterDamping, 0, 1, state.elasticCenterDamping);

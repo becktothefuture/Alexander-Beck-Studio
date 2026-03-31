@@ -510,7 +510,11 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   justify-items: center;
   text-align: center;
   color: #f5f1ea;
-  opacity: 0.001;
+  --scroll-presence-base-opacity: 0.001;
+  opacity: calc(
+    var(--scroll-presence-base-opacity) *
+    (var(--scroll-presence-min-opacity, 0) + ((1 - var(--scroll-presence-min-opacity, 0)) * var(--scroll-presence, 1)))
+  );
   transform: translateY(22px);
   transition:
     opacity 120ms linear,
@@ -518,7 +522,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
 }
 
 .portfolio-project-view.is-open .portfolio-project-view__hero-copy {
-  opacity: 1;
+  --scroll-presence-base-opacity: 1;
   transform: translateY(0);
 }
 
@@ -704,6 +708,12 @@ body.portfolio-project-open .ui-bottom {
   gap: 10px;
 }
 
+.portfolio-project-view__block-media-frame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: var(--portfolio-block-aspect-ratio, 16 / 9);
+}
+
 /* Clip subtle scroll-linked translate on media (see portfolio app.js). */
 .portfolio-project-view__block--media,
 .portfolio-project-view__block:has(> img),
@@ -726,13 +736,57 @@ body.portfolio-project-open .ui-bottom {
 .portfolio-project-view__block-media-image,
 .portfolio-project-view__block video {
   width: 100%;
+  height: 100%;
   display: block;
+  object-fit: cover;
   background: rgba(0, 0, 0, 0.08);
 }
 
 .portfolio-project-view__block figcaption {
   font-size: clamp(0.82rem, 0.96vw, 0.94rem);
   line-height: 1.5;
+  opacity: 0.72;
+}
+
+.portfolio-project-view__block--quote {
+  gap: var(--gap-xs);
+}
+
+.portfolio-project-view__block--quote blockquote {
+  margin: 0;
+  padding-left: var(--gap-md);
+  border-left: 1px solid rgba(var(--abs-rgb-black), 0.24);
+  font-size: clamp(1.06rem, 1.3vw, 1.22rem);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.portfolio-project-view__block--quote figcaption {
+  font-size: var(--text-sm);
+  opacity: 0.7;
+}
+
+.portfolio-project-view__block--stats ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--gap-sm);
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+.portfolio-project-view__block--stats li {
+  display: grid;
+  gap: 2px;
+}
+
+.portfolio-project-view__stat-value {
+  font-size: clamp(1.25rem, 2.2vw, 1.7rem);
+  line-height: 1.15;
+}
+
+.portfolio-project-view__stat-label {
+  font-size: var(--text-sm);
   opacity: 0.72;
 }
 

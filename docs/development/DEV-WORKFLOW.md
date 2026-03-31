@@ -69,6 +69,22 @@ Open `http://localhost:8013`.
 npm run clean
 ```
 
+### Literal external-site capture to Figma
+Use this for faithful first-pass reference captures of external websites where the browser-rendered result matters more than cleanup.
+
+1. In Codex/Figma MCP, request `generate_figma_design` with `outputMode: "existingFile"` or `"newFile"` to get a single-use `captureId`.
+2. Submit the rendered page with the local Playwright helper:
+
+```bash
+npm run figma:capture:external -- --url https://www.heynds.com/en --capture-id <desktop-capture-id> --width 1440 --height 900
+npm run figma:capture:external -- --url https://www.heynds.com/en --capture-id <mobile-capture-id> --device "iPhone 13"
+```
+
+Notes:
+- Default navigation strategy is `domcontentloaded` with a 4s settle delay. This is more reliable for large external pages than `networkidle`.
+- The script strips CSP via Playwright request interception, injects Figma's capture script, and submits a literal `body` capture.
+- Poll completion through the Figma MCP tool with the same `captureId` until the design is added to the file.
+
 ---
 
 ## Troubleshooting

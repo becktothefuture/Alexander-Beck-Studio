@@ -58,10 +58,12 @@ export function SiteFooter() {
               className="caption abs-meta-btn abs-hover-target abs-hover-target--index"
               aria-label="Toggle theme"
             >
-              <span>
-                <strong className="location-name">London</strong>
-                {' · '}
-                <span id="time-display">0:00:00 AM</span>
+              <span className="meta-stack">
+                <span className="meta-location">
+                  <strong className="location-name">London</strong>
+                  <span className="meta-separator" aria-hidden="true">·</span>
+                </span>
+                <time id="time-display">0:00:00 AM</time>
               </span>
             </button>
           </div>

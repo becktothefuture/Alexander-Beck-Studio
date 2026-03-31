@@ -9,6 +9,7 @@ import { initContactModal } from './contact-modal.js';
 import { initCVModal } from './cv-modal.js';
 import { initPortfolioModal } from './portfolio-modal.js';
 import { initLinkCursorHop } from './link-cursor-hop.js';
+import { initTimeDisplay } from './time-display.js';
 
 /**
  * Initialize shared chrome features across pages
@@ -69,5 +70,11 @@ export function initSharedChrome(options = {}) {
     } catch (e) {
       console.warn('Failed to initialize cursor hiding:', e);
     }
+  }
+
+  try {
+    initTimeDisplay();
+  } catch (e) {
+    console.warn('Failed to initialize time display:', e);
   }
 }

@@ -156,12 +156,11 @@ function initializeKaleidoscopeWithCount(count, mode) {
   const params = getKaleidoscopeParams(g);
   const spawnAreaMul = clamp(params.spawnAreaMul ?? 1.0, 0.2, 2.0);
 
-  // Spawn as a loose ring so the first frame is already "kaleidoscopic".
-  // SpawnAreaMul controls density: smaller = tighter/denser, larger = more spread
+  // Spawn as a ring so the first frame is already "kaleidoscopic".
+  // SpawnAreaMul controls density: smaller = tighter/denser, larger = more spread.
   const viewportSize = Math.min(w, h);
   const ringMin = viewportSize * 0.05;
-  // Base ringMax at 2.8, scaled by spawn area multiplier
-  const ringMax = viewportSize * 2.8 * spawnAreaMul;
+  const ringMax = viewportSize * 2.2 * spawnAreaMul;
 
   // Non-overlapping spawn (one-time O(n²), acceptable at init)
   const placed = [];
@@ -186,10 +185,10 @@ function initializeKaleidoscopeWithCount(count, mode) {
   function pickBiasedColor(rr) {
     const rNorm = Math.max(0, Math.min(1, rr / Math.max(ringMax, 1)));
     const bucketWeights = rNorm <= 0.4
-      ? { neutral: 70, chromatic: 27, bright: 3 }
+      ? { neutral: 42, chromatic: 43, bright: 15 }
       : rNorm <= 0.75
-        ? { neutral: 82, chromatic: 16, bright: 2 }
-        : { neutral: 92, chromatic: 7, bright: 1 };
+        ? { neutral: 54, chromatic: 34, bright: 12 }
+        : { neutral: 70, chromatic: 22, bright: 8 };
 
     const bucketPool = [];
     if (categorizedRows.neutral.length) bucketPool.push({ key: 'neutral', weight: bucketWeights.neutral });
