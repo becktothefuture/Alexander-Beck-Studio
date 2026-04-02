@@ -1,5 +1,5 @@
 /**
- * End-to-end pointer check: home → portfolio invite modal (1234) → portfolio pit →
+ * End-to-end pointer check: home → portfolio invite modal (6767) → portfolio pit →
  * click each rendered project label center with the mouse and verify the drawer opens.
  *
  * Run: npm run audit:portfolio-drawer:pointer
@@ -79,7 +79,7 @@ async function main() {
   await page.click('#portfolio-modal-trigger', { timeout: 10000 });
   await page.waitForSelector('#portfolio-modal.active', { timeout: 10000 });
   await page.evaluate(() => {
-    const code = '1234';
+    const code = '6767';
     const inputs = Array.from(document.querySelectorAll('.portfolio-digit'));
     for (let index = 0; index < Math.min(code.length, inputs.length); index += 1) {
       const element = inputs[index];

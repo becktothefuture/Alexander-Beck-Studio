@@ -1,5 +1,5 @@
 /**
- * End-to-end check: home → portfolio invite modal (1234) → portfolio pit → open and close every project drawer.
+ * End-to-end check: home → portfolio invite modal (6767) → portfolio pit → open and close every project drawer.
  * Asserts each drawer becomes visible/open, has non-empty title text, and closes cleanly.
  *
  * Run: npm run audit:portfolio-drawer
@@ -59,7 +59,7 @@ async function main() {
 
   await page.evaluate(() => {
     const inputs = Array.from(document.querySelectorAll('.portfolio-digit'));
-    const code = '1234';
+    const code = '6767';
     for (let index = 0; index < Math.min(code.length, inputs.length); index += 1) {
       const element = inputs[index];
       element.focus();

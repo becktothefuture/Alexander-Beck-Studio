@@ -27,7 +27,7 @@ export function initPortfolioModal() {
     const modalLabel = document.getElementById('portfolio-modal-label');
     
     // Invite codes add client-side friction only. They are not secure auth.
-    const INVITE_CODE = '1234';
+    const INVITE_CODE = '6767';
     
     if (!trigger || !modal || inputs.length === 0) {
         console.warn('Portfolio Gate: Missing required elements');

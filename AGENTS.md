@@ -12,7 +12,7 @@
 - `npm run certify:screens` — Screenshot certification for home, portfolio, and CV (writes to `output/playwright/screens-certification/`, gitignored)
 - `npm run audit:canvas-spa` — Playwright: **polls until** `#c` buffer matches layout×DPR after each hop (`ABS_SPA_ROUNDS`, `ABS_CANVAS_WAIT_MS`, `ABS_DEV_URL`, `ABS_AUDIT_QUIET=1` optional)
 - `npm run audit:canvas-spa:quick` — 2 round-trips, one-line PASS (POSIX env; Windows: set vars then `node scripts/audit-canvas-spa.mjs`)
-- `npm run audit:portfolio-gate` — Playwright: home → portfolio modal `1234` → pit; asserts `#c` buffer vs CSS×DPR and non-empty `.portfolio-project-label__text` (`ABS_DEV_URL` = origin e.g. `http://127.0.0.1:8013` or preview; run `npm run preview` in another shell first)
+- `npm run audit:portfolio-gate` — Playwright: home → portfolio modal `6767` → pit; asserts `#c` buffer vs CSS×DPR and non-empty `.portfolio-project-label__text` (`ABS_DEV_URL` = origin e.g. `http://127.0.0.1:8013` or preview; run `npm run preview` in another shell first)
 - `npm run audit:transition-flows` — Playwright transition audit with in-flight + settled checkpoints, screenshots, timing assertions, and optional strict cadence (`ABS_BROWSER=chromium|webkit`, `ABS_TRANSITION_STRICT_RAF=1`)
 - `npm run validate:html-fragments` — Validate partial HTML templates
 - No automated tests; manual testing required (all 20 modes, 60 FPS, mobile)

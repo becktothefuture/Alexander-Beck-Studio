@@ -488,7 +488,7 @@ async function runHomePortfolioRound(index, page) {
 
   sample = sampleFrames(page, `home-${index}-portfolio-route`);
   const portfolioNav = page.waitForURL(/portfolio/i, { timeout: WAIT_MS });
-  await enterDigits(page, '.portfolio-digit', '1234');
+  await enterDigits(page, '.portfolio-digit', '6767');
   checkpoints.push(await captureCheckpoint(page, `home-${index}-portfolio-route`, 'in-flight'));
   await portfolioNav;
   await waitForPortfolioSettled(page);
