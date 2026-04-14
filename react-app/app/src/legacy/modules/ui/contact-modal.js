@@ -44,7 +44,7 @@ async function copyToClipboard(text) {
     ta.value = text;
     ta.setAttribute('readonly', 'true');
     ta.style.position = 'fixed';
-    ta.style.left = '-9999px';
+    ta.style.left = '-var(--size-9999)';
     ta.style.top = '0';
     document.body.appendChild(ta);
     ta.select();

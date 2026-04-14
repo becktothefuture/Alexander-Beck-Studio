@@ -11,9 +11,12 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
+const GATE_MODE = String(process.env.ABS_PORTFOLIO_GATE_MODE || 'deep').trim().toLowerCase();
+const QUICK_MODE = GATE_MODE === 'quick';
 const BUFFER_WAIT_MS = Number(process.env.ABS_CANVAS_WAIT_MS || 25000);
-const FRAME_SAMPLE_MS = Number(process.env.ABS_PORTFOLIO_GATE_SAMPLE_MS || 20);
-const FRAME_DURATION_MS = Number(process.env.ABS_PORTFOLIO_GATE_DURATION_MS || 1400);
+const FRAME_SAMPLE_MS = Number(process.env.ABS_PORTFOLIO_GATE_SAMPLE_MS || (QUICK_MODE ? 40 : 20));
+const FRAME_DURATION_MS = Number(process.env.ABS_PORTFOLIO_GATE_DURATION_MS || (QUICK_MODE ? 700 : 1800));
+const FRAME_HARD_CAP_MS = Number(process.env.ABS_PORTFOLIO_GATE_HARD_CAP_MS || (QUICK_MODE ? 1400 : 3600));
 const HERO_SNAP_THRESHOLD_PX = Number(process.env.ABS_PORTFOLIO_GATE_HERO_SNAP_PX || 6);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outputRoot = resolve(__dirname, '..', 'output', 'playwright', 'portfolio-gate-audit');
@@ -53,10 +56,18 @@ function sleep(ms) {
 
 async function readDenseGateFrame(page) {
   return page.evaluate(() => {
-    const opacityOf = (el) => {
+    const effectiveOpacityOf = (el) => {
       if (!el) return 0;
-      const value = Number.parseFloat(getComputedStyle(el).opacity || '0');
-      return Number.isFinite(value) ? value : 0;
+      let current = el;
+      let opacity = 1;
+      while (current && current.nodeType === Node.ELEMENT_NODE) {
+        const styles = getComputedStyle(current);
+        if (styles.display === 'none' || styles.visibility === 'hidden') return 0;
+        const value = Number.parseFloat(styles.opacity || '1');
+        opacity *= Number.isFinite(value) ? value : 1;
+        current = current.parentElement;
+      }
+      return opacity;
     };
     const rectOf = (el) => {
       if (!el) return null;
@@ -77,12 +88,12 @@ async function readDenseGateFrame(page) {
       return (
         styles.display !== 'none'
         && styles.visibility !== 'hidden'
-        && Number.parseFloat(styles.opacity || '0') > 0.02
+        && effectiveOpacityOf(el) > 0.02
         && rect.width > 0
         && rect.height > 0
       );
     };
-    const isReadable = (el) => isVisible(el) && opacityOf(el) >= 0.35;
+    const isReadable = (el) => isVisible(el) && effectiveOpacityOf(el) >= 0.35;
 
     const wall = document.getElementById('simulations');
     const hero = document.getElementById('hero-title');
@@ -133,19 +144,71 @@ async function captureDenseGateFrames(page) {
   await mkdir(outputRoot, { recursive: true });
   const startedAt = Date.now();
   const frames = [];
+  const checkpoints = [];
   let index = 0;
+  let capturedFirstPortfolioPath = false;
+  let capturedFirstReadable = false;
+  let capturedFirstIdleReadable = false;
 
-  while ((Date.now() - startedAt) <= FRAME_DURATION_MS) {
+  const captureCheckpoint = async (name, frame) => {
+    const screenshotPath = resolve(outputRoot, `gate-checkpoint-${name}.png`);
+    await page.screenshot({ path: screenshotPath, fullPage: !QUICK_MODE });
+    checkpoints.push({
+      name,
+      timestampMs: frame.timestampMs,
+      phase: frame.phase,
+      path: frame.path,
+      screenshotPath,
+    });
+  };
+
+  while (true) {
     const frame = await readDenseGateFrame(page);
-    const screenshotPath = resolve(outputRoot, `gate-frame-${String(index).padStart(3, '0')}.png`);
-    await page.screenshot({ path: screenshotPath, fullPage: true });
-    frames.push({ ...frame, screenshotPath });
+    frames.push(frame);
+
+    if (index === 0) {
+      await captureCheckpoint('start', frame);
+    }
+
+    if (!QUICK_MODE && !capturedFirstPortfolioPath && /portfolio/i.test(frame.path || '')) {
+      capturedFirstPortfolioPath = true;
+      await captureCheckpoint('first-portfolio-path', frame);
+    }
+
+    if (!capturedFirstReadable && /portfolio/i.test(frame.path || '') && frame.primaryReadable) {
+      capturedFirstReadable = true;
+      await captureCheckpoint('first-readable', frame);
+    }
+
+    if (!capturedFirstIdleReadable
+      && /portfolio/i.test(frame.path || '')
+      && frame.phase === 'idle'
+      && frame.primaryReadable
+    ) {
+      capturedFirstIdleReadable = true;
+      await captureCheckpoint('first-idle-readable', frame);
+    }
+
+    const elapsedMs = Date.now() - startedAt;
+    const reachedSoftWindow = elapsedMs >= FRAME_DURATION_MS;
+    const hasMeaningfulPortfolioSignal = QUICK_MODE
+      ? (capturedFirstIdleReadable || capturedFirstReadable)
+      : (capturedFirstIdleReadable || (capturedFirstReadable && capturedFirstPortfolioPath));
+    if ((reachedSoftWindow && hasMeaningfulPortfolioSignal) || elapsedMs >= FRAME_HARD_CAP_MS) {
+      break;
+    }
+
     index += 1;
     await sleep(FRAME_SAMPLE_MS);
   }
 
+  if (!capturedFirstIdleReadable && frames.length > 0) {
+    await captureCheckpoint('final-frame', frames[frames.length - 1]);
+  }
+
   await writeFile(resolve(outputRoot, 'gate-frames.json'), `${JSON.stringify(frames, null, 2)}\n`, 'utf8');
-  return frames;
+  await writeFile(resolve(outputRoot, 'gate-checkpoints.json'), `${JSON.stringify(checkpoints, null, 2)}\n`, 'utf8');
+  return { frames, checkpoints };
 }
 
 function assertDenseGateFrames(frames) {
@@ -229,7 +292,8 @@ async function main() {
     }
   });
   await portfolioNav;
-  const denseFrames = await denseCapture;
+  const denseCaptureResult = await denseCapture;
+  const denseFrames = denseCaptureResult.frames;
   await page.waitForFunction(
     () => document.getElementById('portfolioProjectMount'),
     { timeout: BUFFER_WAIT_MS }
@@ -275,7 +339,13 @@ async function main() {
     'utf8'
   );
 
-  console.log(JSON.stringify({ snap, labelCheck, denseAudit }, null, 2));
+  console.log(JSON.stringify({
+    mode: QUICK_MODE ? 'quick' : 'deep',
+    snap,
+    labelCheck,
+    checkpoints: denseCaptureResult.checkpoints.length,
+    denseAudit,
+  }, null, 2));
 
   if (!labelCheck.nonEmpty) {
     console.error('FAIL: no non-empty .portfolio-project-label__text after gate navigation');

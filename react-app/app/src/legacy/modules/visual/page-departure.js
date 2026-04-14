@@ -69,8 +69,8 @@ export async function animateDeparture(options = {}) {
         },
         { 
           opacity: 0, 
-          transform: 'scale(0.95) translateZ(-30px)', 
-          filter: 'blur(4px)' 
+          transform: 'scale(0.95) translateZ(-var(--space-30))', 
+          filter: 'blur(var(--space-xs))' 
         }
       ],
       {

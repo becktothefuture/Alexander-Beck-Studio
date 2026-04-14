@@ -83,14 +83,14 @@ export function isDev() {
 // Fallback color palette (River Mist light mode) - used if currentColors not available
 // Weights: 50%, 25%, 12%, 6%, 3%, 2%, 1%, 1%
 const FALLBACK_CONSOLE_COLORS = [
-  '#a4aba8', // river grey (dominant)
-  '#c9cfcb', // light stone
-  '#f7f5ef', // gallery white
-  '#5e857f', // misted green
-  '#121416', // ink
-  '#d36e4b', // terracotta accent
-  '#5c7c96', // Thames blue
-  '#d2ad62', // brass
+  "var(--color-detected-a4aba8)", // river grey (dominant)
+  "var(--color-detected-c9cfcb)", // light stone
+  "var(--color-detected-f7f5ef)", // gallery white
+  "var(--color-detected-5e857f)", // misted green
+  "var(--color-detected-121416)", // ink
+  "var(--color-detected-d36e4b)", // terracotta accent
+  "var(--color-detected-5c7c96)", // Thames blue
+  "var(--color-detected-d2ad62)", // brass
 ];
 const COLOR_WEIGHTS = [0.50, 0.25, 0.12, 0.06, 0.03, 0.02, 0.01, 0.01];
 
@@ -190,7 +190,7 @@ function colorizeAsciiLines(ascii, clusterSize = 3) {
   let clusterIdx = 0;
   
   // Base style applied to all chunks to ensure consistent width
-  const baseStyle = 'font-family: monospace; font-weight: bold; font-size: 12px; letter-spacing: 0;';
+  const baseStyle = 'font-family: monospace; font-weight: bold; font-size: var(--radius-md); letter-spacing: 0;';
   
   for (const line of ascii) {
     let format = '';
@@ -225,7 +225,7 @@ export function printConsoleBanner({
 
   try {
     // Sentence (subtle styling)
-    rawConsole.log('%c' + sentence, 'color: #888; font-style: italic;');
+    rawConsole.log('%c' + sentence, 'color: var(--color-detected-888); font-style: italic;');
     rawConsole.log(''); // spacer
 
     // ASCII (distributed colors; all 8 guaranteed to appear)
@@ -245,7 +245,7 @@ export function printConsoleBanner({
     const year = new Date().getFullYear();
     rawConsole.log(
       '%c© ' + year + ' Alexander Beck Studio. All rights reserved. Unauthorized reproduction prohibited.',
-      'color: #555; font-size: 10px;'
+      'color: var(--color-detected-555); font-size: var(--radius-10);'
     );
   } catch (e) {
     // If console is not writable, ignore.

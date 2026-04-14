@@ -936,7 +936,7 @@ export const CONTROL_SECTIONS = {
         default: 12,
         format: v => v + 'px',
         parse: parseFloat,
-        hint: 'Ball radius at smallest viewport (320px)',
+        hint: 'Ball radius at smallest viewport (var(--size-320))',
         onChange: (g, val) => {
           g.ballSizeMin = val;
           import('../core/state.js').then(({ updateBallSizes }) => {
@@ -958,7 +958,7 @@ export const CONTROL_SECTIONS = {
         default: 12,
         format: v => v + 'px',
         parse: parseFloat,
-        hint: 'Ball radius at largest viewport (1920px)',
+        hint: 'Ball radius at largest viewport (var(--size-1920))',
         onChange: (g, val) => {
           g.ballSizeMax = val;
           import('../core/state.js').then(({ updateBallSizes }) => {
@@ -1514,7 +1514,7 @@ export const CONTROL_SECTIONS = {
         label: 'Center Color',
         stateKey: 'depthWashCenterColorLight',
         type: 'color',
-        default: '#ffffff',
+        default: "var(--color-brand-white)",
         format: v => String(v),
         parse: v => String(v)
       },
@@ -1533,7 +1533,7 @@ export const CONTROL_SECTIONS = {
         label: 'Edge Color',
         stateKey: 'depthWashEdgeColorLight',
         type: 'color',
-        default: '#142b48',
+        default: "var(--color-detected-142b48)",
         format: v => String(v),
         parse: v => String(v)
       },
@@ -1576,7 +1576,7 @@ export const CONTROL_SECTIONS = {
         label: 'Center Color',
         stateKey: 'depthWashCenterColorDark',
         type: 'color',
-        default: '#1a1e23',
+        default: "var(--color-detected-1a1e23)",
         format: v => String(v),
         parse: v => String(v)
       },
@@ -1595,7 +1595,7 @@ export const CONTROL_SECTIONS = {
         label: 'Edge Color',
         stateKey: 'depthWashEdgeColorDark',
         type: 'color',
-        default: '#05020f',
+        default: "var(--color-detected-05020f)",
         format: v => String(v),
         parse: v => String(v)
       },
@@ -2310,7 +2310,7 @@ export const CONTROL_SECTIONS = {
         default: 12,
         format: v => `${v.toFixed(1)}px`,
         parse: parseFloat,
-        hint: 'Logo blur when gate is active (12px = soft blur)',
+        hint: 'Logo blur when gate is active (var(--radius-md) = soft blur)',
         onChange: (g, val) => {
           import('./modal-overlay.js').then(({ updateLogoBlurActive }) => {
             updateLogoBlurActive(val);
@@ -2518,7 +2518,7 @@ export const CONTROL_SECTIONS = {
         label: 'Light Mode',
         stateKey: 'bgLight',
         type: 'color',
-        default: '#efefef',
+        default: "var(--color-detected-efefef)",
         hint: 'Background color for light mode',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2530,7 +2530,7 @@ export const CONTROL_SECTIONS = {
         label: 'Dark Mode',
         stateKey: 'bgDark',
         type: 'color',
-        default: '#181818',
+        default: "var(--color-detected-181818)",
         hint: 'Background color for dark mode',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2544,7 +2544,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'wallBaseLight',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#efefef',
+        default: "var(--color-detected-efefef)",
         hint: 'Inner wall color in light mode.',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2567,7 +2567,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'wallBaseDark',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#181818',
+        default: "var(--color-detected-181818)",
         hint: 'Inner wall color in dark mode.',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2590,7 +2590,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'quoteButtonColorLight',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#efefef',
+        default: "var(--color-detected-efefef)",
         puckOnly: true,
         hint: 'Puck background in light mode.',
         onChange: (g, val) => {
@@ -2612,7 +2612,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'quoteButtonColorDark',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#181818',
+        default: "var(--color-detected-181818)",
         puckOnly: true,
         hint: 'Puck background in dark mode.',
         onChange: (g, val) => {
@@ -2635,7 +2635,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'frameColorLight',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#242529',
+        default: "var(--color-detected-242529)",
         hint: 'Canonical outer wall and browser chrome in light mode.',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2656,7 +2656,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'frameColorDark',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#242529',
+        default: "var(--color-detected-242529)",
         hint: 'Canonical outer wall and browser chrome in dark mode.',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2677,7 +2677,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'safariFrameLight',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#181818',
+        default: "var(--color-detected-181818)",
         hint: 'Safari-specific outer wall color in light mode.',
         onChange: (g, val) => {
           g.safariFrameLight = val;
@@ -2693,7 +2693,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'safariFrameDark',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#181818',
+        default: "var(--color-detected-181818)",
         hint: 'Safari-specific outer wall color in dark mode.',
         onChange: (g, val) => {
           g.safariFrameDark = val;
@@ -2710,7 +2710,7 @@ export const CONTROL_SECTIONS = {
         label: 'Primary',
         stateKey: 'textColorLight',
         type: 'color',
-        default: '#161616',
+        default: "var(--color-detected-161616)",
         hint: 'Main text color in light mode',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2722,7 +2722,7 @@ export const CONTROL_SECTIONS = {
         label: 'Muted',
         stateKey: 'textColorLightMuted',
         type: 'color',
-        default: '#2f2f2f',
+        default: "var(--color-detected-2f2f2f)",
         hint: 'Secondary/muted text in light mode',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2737,7 +2737,7 @@ export const CONTROL_SECTIONS = {
         label: 'Primary',
         stateKey: 'textColorDark',
         type: 'color',
-        default: '#f0f0f0',
+        default: "var(--color-detected-f0f0f0)",
         hint: 'Main text color in dark mode',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2749,7 +2749,7 @@ export const CONTROL_SECTIONS = {
         label: 'Muted',
         stateKey: 'textColorDarkMuted',
         type: 'color',
-        default: '#c8c8c8',
+        default: "var(--color-detected-c8c8c8)",
         hint: 'Secondary/muted text in dark mode',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2764,7 +2764,7 @@ export const CONTROL_SECTIONS = {
         label: 'Hover Accent',
         stateKey: 'linkHoverColor',
         type: 'color',
-        default: '#f03030',
+        default: "var(--color-detected-f03030)",
         hint: 'Link hover color (accent)',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -3141,7 +3141,7 @@ export const CONTROL_SECTIONS = {
         label: 'Tint',
         stateKey: 'noiseColorLight',
         type: 'color',
-        default: '#2a2a2e',
+        default: "var(--color-detected-2a2a2e)",
         format: v => String(v),
         parse: v => String(v),
         group: 'Light mode',
@@ -3167,7 +3167,7 @@ export const CONTROL_SECTIONS = {
         label: 'Tint',
         stateKey: 'noiseColorDark',
         type: 'color',
-        default: '#d4d4d8',
+        default: "var(--color-detected-d4d4d8)",
         format: v => String(v),
         parse: v => String(v),
         group: 'Dark mode',

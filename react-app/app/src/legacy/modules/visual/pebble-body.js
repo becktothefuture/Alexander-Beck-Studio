@@ -248,7 +248,7 @@ export function appendPebbleBodyPath(ctx, ball, radius, globals) {
 }
 
 function getRgb(hex) {
-  const value = String(hex || '#000000').replace('#', '').trim();
+  const value = String(hex || "var(--color-detected-000000)").replace('#', '').trim();
   const normalized = value.length === 3
     ? value.split('').map((part) => part + part).join('')
     : value.padEnd(6, '0').slice(0, 6);
@@ -288,7 +288,7 @@ function getPebbleContourStyle(color, globals, radius) {
   const contourAlpha = useShadowContour ? 0.22 : 0.28;
   const dpr = globals?.DPR || 1;
   return {
-    strokeStyle: `rgba(${contourRgb.r},${contourRgb.g},${contourRgb.b},${contourAlpha})`,
+    strokeStyle: `rgba(${contourRgb.r}, ${contourRgb.g}, ${contourRgb.b}, ${contourAlpha})`,
     lineWidth: clamp(radius * 0.06, 0.8 * dpr, 2.2 * dpr, 1.2 * dpr),
     inset: 0.72,
   };

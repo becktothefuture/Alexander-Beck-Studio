@@ -320,8 +320,8 @@ function applyCssVars(cfg) {
   root.style.setProperty('--noise-opacity-dark', String(opacityDark));
   
   // Color controls (separate for light/dark)
-  const colorLight = cfg.noiseColorLight ?? '#2a2a2e';
-  const colorDark = cfg.noiseColorDark ?? '#d4d4d8';
+  const colorLight = cfg.noiseColorLight ?? "var(--color-detected-2a2a2e)";
+  const colorDark = cfg.noiseColorDark ?? "var(--color-detected-d4d4d8)";
   root.style.setProperty('--noise-color-light', colorLight);
   root.style.setProperty('--noise-color-dark', colorDark);
   
@@ -366,8 +366,8 @@ function sanitizeConfig(input = {}) {
     noiseOpacity: clampNumber(input.noiseOpacity, 0, 1, 0.04),
     noiseOpacityLight: clampNumber(input.noiseOpacityLight, 0, 1, cssOpacityLight),
     noiseOpacityDark: clampNumber(input.noiseOpacityDark, 0, 1, cssOpacityDark),
-    noiseColorLight: typeof input.noiseColorLight === 'string' ? input.noiseColorLight : '#2a2a2e',
-    noiseColorDark: typeof input.noiseColorDark === 'string' ? input.noiseColorDark : '#d4d4d8',
+    noiseColorLight: typeof input.noiseColorLight === 'string' ? input.noiseColorLight : "var(--color-detected-2a2a2e)",
+    noiseColorDark: typeof input.noiseColorDark === 'string' ? input.noiseColorDark : "var(--color-detected-d4d4d8)",
     detailNoiseOpacity: clampNumber(input.detailNoiseOpacity, 0, 1, 1),
   };
 
@@ -386,7 +386,7 @@ function buildSvgNoiseDataUri({ size, baseFrequency, octaves, seed, color }) {
   const safeFreq = Number.isFinite(baseFrequency) ? baseFrequency : 0.8;
   const safeOctaves = Math.max(1, Math.round(octaves || 2));
   const safeSeed = Math.max(0, Math.round(seed || 0));
-  const safeColor = String(color || '#ffffff');
+  const safeColor = String(color || "var(--color-brand-white)");
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<svg xmlns="http://www.w3.org/2000/svg" width="${safeSize}" height="${safeSize}" viewBox="0 0 ${safeSize} ${safeSize}" preserveAspectRatio="none">` +
@@ -407,7 +407,7 @@ function buildSvgNoiseDataUri({ size, baseFrequency, octaves, seed, color }) {
 
 function scheduleTextureRegeneration(cfg, { force = false } = {}) {
   const isDark = document.body?.classList?.contains('dark-mode');
-  const svgColor = isDark ? (cfg.noiseColorDark ?? '#d4d4d8') : (cfg.noiseColorLight ?? '#2a2a2e');
+  const svgColor = isDark ? (cfg.noiseColorDark ?? "var(--color-detected-d4d4d8)") : (cfg.noiseColorLight ?? "var(--color-detected-2a2a2e)");
 
   const textureKey = JSON.stringify({
     seed: cfg.noiseSeed,

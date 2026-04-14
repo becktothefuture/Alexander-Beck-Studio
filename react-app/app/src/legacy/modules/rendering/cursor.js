@@ -170,7 +170,7 @@ export function getCursorColor() {
   const globals = getGlobals();
   return (globals?.cursorColorHex && typeof globals.cursorColorHex === 'string') 
     ? globals.cursorColorHex 
-    : '#000000';
+    : "var(--color-detected-000000)";
 }
 
 // Legacy export name for backward compatibility

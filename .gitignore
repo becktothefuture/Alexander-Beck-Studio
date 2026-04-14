@@ -18,6 +18,7 @@ playwright-report/
 output/playwright/
 # Figma token / mapping exports (regenerate locally if needed)
 output/figma/
+studioflow/
 
 # OS files
 .DS_Store

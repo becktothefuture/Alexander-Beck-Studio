@@ -127,11 +127,11 @@ export function transitionToWallState(options = {}) {
   // Portfolio page keeps wallRadius-driven behavior. Simulation/index now uses
   // the authored CSS radius so frame fidelity stays consistent.
   const isPortfolioPage = document.body.classList.contains('portfolio-page');
-  const resolvedFrameRadius = getComputedStyle(wallContainer).borderTopLeftRadius || '44px';
+  const resolvedFrameRadius = getComputedStyle(wallContainer).borderTopLeftRadius || "var(--space-xl)";
   const finalRadius = isPortfolioPage 
     ? ((g.wallRadius && typeof g.wallRadius === 'number' && g.wallRadius > 0) 
         ? `${g.wallRadius}px` 
-        : '42px')
+        : "var(--font-size-h2)")
     : resolvedFrameRadius;
   
   // Keep the wall inside the viewport throughout the entrance animation.
@@ -522,7 +522,7 @@ function revealLogoStaggered(element, options = {}) {
         // The wrapper is absolutely positioned, logo is just a flex child
         anim = element.animate(
           [
-            { opacity: 0, filter: 'blur(8px)' },
+            { opacity: 0, filter: 'blur(var(--space-sm))' },
             { opacity: 1, filter: 'blur(0px)' }
           ],
           { duration, easing, fill: 'forwards' }

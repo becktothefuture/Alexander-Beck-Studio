@@ -17,31 +17,31 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      padding: clamp(1.5rem, 4vw, 2.5rem);
-      background: #f4f4f5;
-      color: #18181b;
+      padding: clamp(var(--space-1.5), var(--size-4), var(--space-2.5));
+      background: var(--color-detected-f4f4f5);
+      color: var(--color-detected-18181b);
       font-family: system-ui, sans-serif;
       line-height: 1.5;
     }
     .page {
-      max-width: 42rem;
+      max-width: var(--size-42);
       margin: 0 auto;
     }
     .intro {
-      font-size: 0.875rem;
-      color: #52525b;
+      font-size: var(--size-0.875);
+      color: var(--color-detected-52525b);
       margin-bottom: 2rem;
-      max-width: 38rem;
+      max-width: var(--size-38);
     }
     .intro code {
-      font-size: 0.8125em;
-      padding: 0.1em 0.35em;
-      background: rgba(0, 0, 0, 0.06);
-      border-radius: 0.25rem;
+      font-size: var(--size-0.8125);
+      padding: var(--size-0.1) var(--space-0.35);
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: var(--size-0.25);
     }
     .specimen {
-      padding: 1.25rem 0 1.75rem;
-      border-bottom: 1px solid rgba(24, 24, 27, 0.08);
+      padding: var(--size-1.25) 0 var(--size-1.75);
+      border-bottom: var(--size-border-default) solid rgba(24, 24, 27, 0.08);
     }
     .specimen:first-of-type {
       padding-top: 0;
@@ -51,39 +51,39 @@
       padding-bottom: 0;
     }
     .specimen__label {
-      font-size: 0.6875rem;
+      font-size: var(--size-0.6875);
       font-weight: 500;
-      letter-spacing: 0.06em;
+      letter-spacing: var(--size-0.06);
       text-transform: uppercase;
-      color: #71717a;
-      margin-bottom: 0.75rem;
+      color: var(--color-detected-71717a);
+      margin-bottom: var(--size-0.75);
     }
     .specimen__nav {
       display: flex;
       flex-wrap: wrap;
       align-items: baseline;
-      gap: 0.5rem 0.75rem;
-      font-size: clamp(1rem, 2.5vw, 1.125rem);
+      gap: 0.5rem var(--size-0.75);
+      font-size: clamp(1rem, var(--size-2.5), var(--size-1.125));
       font-weight: 500;
     }
     .specimen__nav a {
       color: inherit;
       text-decoration: none;
-      border-bottom: 1px solid rgba(24, 24, 27, 0.2);
-      padding-bottom: 0.05em;
+      border-bottom: var(--size-border-default) solid rgba(24, 24, 27, 0.2);
+      padding-bottom: var(--size-0.05);
       transition: border-color 0.15s ease, color 0.15s ease;
     }
     .specimen__nav a:hover {
-      color: #0a0a0a;
+      color: var(--color-detected-0a0a0a);
       border-bottom-color: rgba(24, 24, 27, 0.55);
     }
     .specimen__nav a:focus-visible {
-      outline: 2px solid #18181b;
-      outline-offset: 3px;
+      outline: var(--space-xxs) solid var(--color-detected-18181b);
+      outline-offset: var(--radius-3);
       border-bottom-color: transparent;
     }
     .specimen__sep {
-      color: #a1a1aa;
+      color: var(--color-detected-a1a1aa);
       font-weight: 400;
       user-select: none;
     }

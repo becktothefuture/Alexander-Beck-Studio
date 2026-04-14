@@ -15,8 +15,8 @@ function hexToRgba(hex, alpha) {
   const r = (bigint >> 16) & 255;
   const g = (bigint >> 8) & 255;
   const b = bigint & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  const safeAlpha = Number.isFinite(alpha) ? Math.max(0, Math.min(1, alpha)) : 1;
+  return `rgba(${r}, ${g}, ${b}, ${safeAlpha})`;
 }
-
 
 

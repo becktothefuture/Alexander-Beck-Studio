@@ -6,33 +6,33 @@
 <title>Depth Test A — Directional Rim</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #f1f3f4; overflow: hidden; font-family: system-ui, sans-serif; }
-  canvas { display: block; width: 100vw; height: 100vh; }
+  body { background: var(--color-detected-f1f3f4); overflow: hidden; font-family: system-ui, sans-serif; }
+  canvas { display: block; width: var(--size-100); height: var(--size-100); }
   .label {
-    position: fixed; top: 12px; left: 14px;
-    color: rgba(0,0,0,0.40); font-size: 11px; font-weight: 500;
-    letter-spacing: 0.04em; pointer-events: none; z-index: 1;
+    position: fixed; top: var(--radius-md); left: var(--font-size-meta);
+    color: rgba(0, 0, 0, 0.4); font-size: var(--font-size-11); font-weight: 500;
+    letter-spacing: var(--size-0.04); pointer-events: none; z-index: 1;
     text-transform: uppercase;
   }
   .perf {
-    position: fixed; top: 12px; right: 14px;
-    color: rgba(0,0,0,0.55); font-size: 11px; font-weight: 500;
+    position: fixed; top: var(--radius-md); right: var(--font-size-meta);
+    color: rgba(0, 0, 0, 0.55); font-size: var(--font-size-11); font-weight: 500;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em; pointer-events: none; z-index: 1;
+    letter-spacing: var(--size-0.02); pointer-events: none; z-index: 1;
     text-align: right; line-height: 1.6;
     font-family: 'SF Mono', 'Menlo', monospace;
   }
   #config {
-    position: fixed; bottom: 14px; left: 14px;
-    background: rgba(0,0,0,0.75); color: #ccc; padding: 14px 16px;
-    border-radius: 10px; font-size: 11px; z-index: 2;
+    position: fixed; bottom: var(--font-size-meta); left: 14px;
+    background: rgba(0, 0, 0, 0.75); color: var(--color-detected-ccc); padding: var(--font-size-meta) var(--font-size-body);
+    border-radius: var(--radius-10); font-size: var(--font-size-11); z-index: 2;
     font-family: 'SF Mono', 'Menlo', monospace;
-    display: grid; grid-template-columns: 140px 100px 36px; gap: 5px 8px;
-    align-items: center; backdrop-filter: blur(12px);
+    display: grid; grid-template-columns: var(--size-140) var(--size-100) var(--size-36); gap: 5px var(--space-sm);
+    align-items: center; backdrop-filter: blur(var(--radius-md));
   }
-  #config label { color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.03em; }
-  #config input[type=range] { width: 100%; accent-color: #5b9aff; }
-  #config .val { text-align: right; color: rgba(255,255,255,0.45); }
+  #config label { color: rgba(255, 255, 255, 0.06); text-transform: uppercase; letter-spacing: var(--size-0.03); }
+  #config input[type=range] { width: 100%; accent-color: var(--color-detected-5b9aff); }
+  #config .val { text-align: right; color: rgba(255, 255, 255, 0.045); }
 </style>
 </head>
 <body>
@@ -48,7 +48,7 @@
   'use strict';
 
   /* ── Light-mode Industrial Teal palette ── */
-  const PALETTE = ['#b5b7b6','#bbbdbd','#ffffff','#00695c','#000000','#f03030','#0d5cb6','#ffa000'];
+  const PALETTE = ['var(--color-detected-b5b7b6)','var(--color-detected-bbbdbd)','var(--color-brand-white)','var(--color-detected-00695c)','var(--color-detected-000000)','var(--color-detected-f03030)','var(--color-detected-0d5cb6)','var(--color-detected-ffa000)'];
   /* Weighted distribution matching design-system.json */
   const DISTRIBUTION = [
     { colorIndex: 0, weight: 75 },
@@ -129,7 +129,7 @@
     const v = parseInt(hex.slice(1), 16);
     return [(v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff];
   }
-  function rgba(r, g, b, a) { return `rgba(${r},${g},${b},${a})`; }
+  function rgba(r, g, b, a) { return `rgba(${r}, ${g}, ${b}, ${a})`; }
   function lighten([r, g, b], t) {
     return [r + (255 - r) * t | 0, g + (255 - g) * t | 0, b + (255 - b) * t | 0];
   }

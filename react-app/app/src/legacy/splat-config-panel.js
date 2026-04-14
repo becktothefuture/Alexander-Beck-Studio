@@ -176,10 +176,10 @@ export function createSplatConfigPanel(variant, config, onConfigUpdate) {
       panelElement.style.height = `${Math.min(savedSize.height, maxHeight)}px`;
     }
   } else {
-    panelElement.style.width = '320px';
-    panelElement.style.height = '85vh';
+    panelElement.style.width = "var(--size-320)";
+    panelElement.style.height = "var(--size-85)";
   }
-  panelElement.style.maxHeight = '90vh';
+  panelElement.style.maxHeight = "var(--size-90)";
   
   // Add range input styling
   if (!document.querySelector('#splat-panel-range-css')) {
@@ -189,20 +189,20 @@ export function createSplatConfigPanel(variant, config, onConfigUpdate) {
       #splat-config-panel input[type="range"]::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-        width: 14px;
-        height: 14px;
+        width: var(--font-size-meta);
+        height: var(--font-size-meta);
         background: var(--panel-brand, hsl(32 95% 44%));
         border-radius: 50%;
         cursor: pointer;
-        border: 2px solid var(--panel-background, #18181b);
+        border: var(--space-xxs) solid var(--panel-background, #18181b);
       }
       #splat-config-panel input[type="range"]::-moz-range-thumb {
-        width: 14px;
-        height: 14px;
+        width: var(--font-size-meta);
+        height: var(--font-size-meta);
         background: var(--panel-brand, hsl(32 95% 44%));
         border-radius: 50%;
         cursor: pointer;
-        border: 2px solid var(--panel-background, #18181b);
+        border: var(--space-xxs) solid var(--panel-background, #18181b);
       }
       #splat-config-panel input[type="range"]:hover::-webkit-slider-thumb {
         transform: scale(1.1);
@@ -234,8 +234,8 @@ export function createSplatConfigPanel(variant, config, onConfigUpdate) {
   panelElement.innerHTML = `
     <div class="panel-header" style="display: none;"></div>
     <div class="panel-content">
-      <div style="position: relative; margin-bottom: var(--panel-gap, 8px); padding-bottom: var(--panel-gap, 8px); border-bottom: 1px solid var(--panel-border, rgba(255,255,255,0.1));">
-        <div style="font-size: 13px; font-weight: 600; color: var(--panel-foreground, #fff);">
+      <div style="position: relative; margin-bottom: var(--panel-gap, 8px); padding-bottom: var(--panel-gap, 8px); border-bottom: var(--size-border-default) solid var(--panel-border, rgba(255,255,255,0.1));">
+        <div style="font-size: var(--font-size-kicker); font-weight: 600; color: var(--panel-foreground, #fff);">
           ${variant.label}
         </div>
         <button class="collapse-btn" id="splat-panel-collapse" style="
@@ -245,12 +245,12 @@ export function createSplatConfigPanel(variant, config, onConfigUpdate) {
           background: transparent;
           border: none;
           color: var(--panel-muted-foreground, #888);
-          padding: 4px 8px;
-          border-radius: 4px;
+          padding: var(--space-xs) var(--space-sm);
+          border-radius: var(--space-xs);
           cursor: pointer;
-          font-size: 12px;
-          width: 28px;
-          height: 28px;
+          font-size: var(--radius-md);
+          width: var(--radius-xl);
+          height: var(--radius-xl);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -261,7 +261,7 @@ export function createSplatConfigPanel(variant, config, onConfigUpdate) {
       ${generateSectionHTML('Secondary Parameters', params.secondary, config)}
       ${generateSectionHTML('Extra Parameters', params.extra, config)}
       
-      <div style="margin-top: var(--panel-gap, 8px); padding-top: var(--panel-gap, 8px); border-top: 1px solid var(--panel-border, rgba(255,255,255,0.1)); font-size: 11px; color: var(--panel-muted-foreground, #888);">
+      <div style="margin-top: var(--panel-gap, 8px); padding-top: var(--panel-gap, 8px); border-top: var(--size-border-default) solid var(--panel-border, rgba(255,255,255,0.1)); font-size: var(--font-size-11); color: var(--panel-muted-foreground, #888);">
         <kbd>/</kbd> toggle panel · Changes apply instantly
       </div>
     </div>
@@ -514,7 +514,7 @@ function generateSectionHTML(title, params, config) {
   return `
     <details open style="margin-bottom: var(--panel-gap, 8px);">
       <summary style="
-        font-size: 12px;
+        font-size: var(--radius-md);
         font-weight: 600;
         color: var(--panel-foreground, #fff);
         cursor: pointer;
@@ -537,10 +537,10 @@ function generateControlHTML(param, config) {
   const value = config[param.id] !== undefined ? config[param.id] : param.default;
   
   return `
-    <div style="display: flex; flex-direction: column; gap: 2px;">
+    <div style="display: flex; flex-direction: column; gap: var(--space-xxs);">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <label style="font-size: 11px; color: var(--panel-foreground, #fff);">${param.label}</label>
-        <span style="font-size: 11px; font-variant-numeric: tabular-nums; color: var(--panel-muted-foreground, #888); min-width: 60px; text-align: right;">
+        <label style="font-size: var(--font-size-11); color: var(--panel-foreground, #fff);">${param.label}</label>
+        <span style="font-size: var(--font-size-11); font-variant-numeric: tabular-nums; color: var(--panel-muted-foreground, #888); min-width: var(--size-60); text-align: right;">
           ${formatValue(value, param)}
         </span>
       </div>
@@ -553,9 +553,9 @@ function generateControlHTML(param, config) {
         value="${value}"
         style="
           width: 100%;
-          height: 6px;
+          height: var(--radius-sm);
           background: var(--panel-muted, rgba(255,255,255,0.1));
-          border-radius: 3px;
+          border-radius: var(--radius-3);
           outline: none;
           -webkit-appearance: none;
           cursor: pointer;

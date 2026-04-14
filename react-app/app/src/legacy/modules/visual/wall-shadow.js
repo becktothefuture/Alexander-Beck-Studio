@@ -7,7 +7,7 @@
 
 /**
  * Convert hex color to RGB object
- * @param {string} hex - Hex color string (e.g., '#ffffff' or '#fff')
+ * @param {string} hex - Hex color string (e.g., "var(--color-brand-white)" or "var(--color-detected-fff)")
  * @returns {{r: number, g: number, b: number}} RGB values (0-255)
  */
 export function hexToRgb(hex) {
@@ -29,7 +29,7 @@ export function hexToRgb(hex) {
 
 /**
  * Convert hex color to RGB CSS string for use in rgba()
- * @param {string} hex - Hex color string (e.g., '#ff0000')
+ * @param {string} hex - Hex color string (e.g., "var(--color-detected-ff0000)")
  * @returns {string} RGB values as comma-separated string (e.g., '255, 0, 0')
  */
 export function hexToRgbString(hex) {
@@ -86,21 +86,21 @@ export function updateWallShadowCSS(g) {
   
   // Only add edge shadows if they have non-zero opacity
   if (edgeTopOpacity > 0) {
-    shadows.push(`inset 0 1px 0 rgba(0,0,0, ${edgeTopOpacity.toFixed(3)})`);
+    shadows.push(`inset 0 var(--size-border-default) 0 rgba(0, 0, 0, ${edgeTopOpacity.toFixed(3)})`);
   }
   if (edgeLeftOpacity > 0) {
-    shadows.push(`inset 1px 0 0 rgba(0,0,0, ${edgeLeftOpacity.toFixed(3)})`);
+    shadows.push(`inset var(--size-border-default) 0 0 rgba(0, 0, 0, ${edgeLeftOpacity.toFixed(3)})`);
   }
   if (edgeBottomOpacity > 0) {
-    shadows.push(`inset 0 -1px 0 rgba(255,255,255, ${edgeBottomOpacity.toFixed(3)})`);
+    shadows.push(`inset 0 -var(--size-border-default) 0 rgba(255, 255, 255, ${edgeBottomOpacity.toFixed(3)})`);
   }
   if (edgeRightOpacity > 0) {
-    shadows.push(`inset -1px 0 0 rgba(255,255,255, ${edgeRightOpacity.toFixed(3)})`);
+    shadows.push(`inset -var(--size-border-default) 0 0 rgba(255, 255, 255, ${edgeRightOpacity.toFixed(3)})`);
   }
   
   // Ambient vignette (always add if non-zero)
   if (ambientOpacity > 0) {
-    shadows.push(`inset 2px 3px ${ambientBlur}px rgba(0,0,0, ${ambientOpacity.toFixed(3)})`);
+    shadows.push(`inset var(--space-xxs) var(--radius-3) ${ambientBlur}px rgba(0, 0, 0, ${ambientOpacity.toFixed(3)})`);
   }
   
   // ─────────────────────────────────────────────────────────────────────────────

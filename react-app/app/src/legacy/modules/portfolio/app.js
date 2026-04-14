@@ -107,7 +107,7 @@ function installPortfolioAuditBridge(app) {
 }
 
 function hexToRgb(hex) {
-  const value = String(hex || '#000000').replace('#', '').trim();
+  const value = String(hex || "var(--color-detected-000000)").replace('#', '').trim();
   const normalized = value.length === 3
     ? value.split('').map((part) => part + part).join('')
     : value.padEnd(6, '0').slice(0, 6);
@@ -128,7 +128,7 @@ function getContrastText(fill) {
       : Math.pow((normalized + 0.055) / 1.055, 2.4);
   };
   const luminance = (0.2126 * channel(r)) + (0.7152 * channel(g)) + (0.0722 * channel(b));
-  return luminance > 0.42 ? '#111111' : '#f5f1ea';
+  return luminance > 0.42 ? "var(--color-detected-111111)" : "var(--color-detected-f5f1ea)";
 }
 
 function getReadableLabelRotation(rotationRad) {
@@ -560,7 +560,7 @@ class PortfolioPitApp {
         (ball.y / dpr).toFixed(2),
         rotation.toFixed(3),
         alpha.toFixed(3),
-        ball.labelColor || '#ffffff',
+        ball.labelColor || "var(--color-brand-white)",
         gap.toFixed(2),
         titleFontSize.toFixed(2),
         titleLineHeight.toFixed(3),
@@ -579,7 +579,7 @@ class PortfolioPitApp {
       const hoverScale = ball._hoverScale ?? 1;
       const transformCss = `translate(${ball.x / dpr}px, ${ball.y / dpr}px) translate(-50%, -50%) rotate(${rotation}rad) scale(${hoverScale.toFixed(4)})`;
       const opacityCss = `${alpha}`;
-      const colorCss = ball.labelColor || '#ffffff';
+      const colorCss = ball.labelColor || "var(--color-brand-white)";
       const gapCss = `${gap}px`;
 
       if (label.style.width !== widthCss) label.style.width = widthCss;
@@ -1423,7 +1423,13 @@ export async function bootstrapPortfolio() {
   // Wait one frame so layout is stable before revealing.
   await new Promise((resolve) => requestAnimationFrame(resolve));
   settlePortfolioPresentation();
-  const presentationSettled = await waitForStablePortfolioPresentation();
+  if (shellRouteTransitionActive) {
+    // Unblock shell route-in once the portfolio route landmarks exist; keep final settling in the background.
+    signalRouteReady('portfolio');
+  }
+  const presentationSettled = await waitForStablePortfolioPresentation({
+    timeoutMs: shellRouteTransitionActive ? 900 : 2000,
+  });
   if (!presentationSettled && import.meta.env?.DEV) {
     console.warn('[portfolio] Presentation did not fully settle before reveal; using latest measured layout.');
   }
@@ -1433,9 +1439,6 @@ export async function bootstrapPortfolio() {
   // fades in already-settled content.
   if (pitCanvas) { pitCanvas.style.opacity = '1'; }
   if (pitMount) { pitMount.style.opacity = '1'; }
-  if (shellRouteTransitionActive) {
-    signalRouteReady('portfolio');
-  }
 
   const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : false;
   if (ABS_DEV) {

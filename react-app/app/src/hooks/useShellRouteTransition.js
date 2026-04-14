@@ -62,7 +62,7 @@ const FADE_OUT_MS = 220;
 const STAGGER_OFFSET_MS = 0;
 const ELEMENT_REVEAL_MS = 280;
 const EASE_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)';
-const READY_FALLBACK_MS = 1200;
+const READY_FALLBACK_MS = 900;
 const GROUPED_ROUTE_OFFSET_MS = 80;
 
 let transitionToken = 0;
@@ -345,18 +345,22 @@ function interruptTransitionForPopstate(isGate, routeId, surfaceRefs) {
 
 /* ── fade out content layers (wall stays visible) ─────────────────────────── */
 
-function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs) {
-  const { wall, hero, ui } = getContentLayers(surfaceRefs);
+function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, options = {}) {
+  const { wall, hero, ui, chrome, secondary, footer } = getContentLayers(surfaceRefs);
+  const finalOpacity = Number.isFinite(options?.finalOpacity) ? options.finalOpacity : 0;
   const anims = [];
+  const seen = new Set();
 
-  [wall, hero, ui].forEach((el) => {
+  [wall, hero, ui, chrome, secondary, footer].forEach((el) => {
     if (!el) return;
+    if (seen.has(el)) return;
+    seen.add(el);
     if (typeof el.animate !== 'function') {
-      el.style.opacity = '0';
+      el.style.opacity = String(finalOpacity);
       return;
     }
     const anim = el.animate(
-      [{ opacity: 1 }, { opacity: 0 }],
+      [{ opacity: 1 }, { opacity: finalOpacity }],
       { duration: durationMs, easing, fill: 'forwards' }
     );
     activeAnimations.push(anim);
@@ -505,7 +509,7 @@ function waitForRouteReady(routeId, timeoutMs) {
     let previousSnapshot = null;
     let stableReadyFrames = 0;
     const POLL_MS = 16;
-    const REQUIRED_STABLE_FRAMES = routeId === 'portfolio' ? 1 : 0;
+    const REQUIRED_STABLE_FRAMES = routeId === 'portfolio' ? 2 : 0;
     const maybeSettleReady = () => {
       if (!isRouteBaselineReady(routeId)) {
         stableReadyFrames = 0;
@@ -634,16 +638,16 @@ function staggeredEntrance({
     groups.forEach((group) => {
       group.items.forEach(({ el, slide }) => {
         const delay = isRouteTransition ? group.delayMs : group.delayMs;
-        const routeSlideOffset = isRouteTransition ? 'translateY(0)' : 'translateY(8px)';
+        const routeSlideOffset = isRouteTransition ? 'translateY(0)' : 'translateY(var(--space-sm))';
 
         if (hasWaapi) {
           const keyframes = slide
             ? [
-                { opacity: 0, transform: routeSlideOffset, filter: 'blur(4px)' },
+                { opacity: 0, transform: routeSlideOffset, filter: 'blur(var(--space-xs))' },
                 { opacity: 1, transform: 'translateY(0)', filter: 'blur(0)' },
               ]
             : [
-                { opacity: 0, filter: 'blur(4px)' },
+                { opacity: 0, filter: 'blur(var(--space-xs))' },
                 { opacity: 1, filter: 'blur(0)' },
               ];
 
@@ -730,7 +734,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     const nextRouteRuntime = getRouteRuntime(nextRouteId);
     const isGate = options.transitionStyle === 'gate-success';
     const readyMs = options.readyFallbackMs
-      ?? (isGate ? READY_FALLBACK_MS : (nextRouteId === 'home' ? 700 : 900));
+      ?? (isGate ? 850 : (nextRouteId === 'home' ? 500 : 700));
     const routeTimings = getRouteTransitionTimings({
       fadeMs: options.exitMs,
       staggerMs: options.staggerMs,
@@ -791,14 +795,19 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             routeReadyWaiter.cancel();
             return;
           }
-          return fadeOutContent(routeTimings.fadeOut, routeTimings.fadeEasing, surfaceRefs);
+          return fadeOutContent(routeTimings.fadeOut, routeTimings.fadeEasing, surfaceRefs, {
+            finalOpacity: isGate ? 0 : 0.08,
+          });
         })
         .then(() => {
           if (stale()) {
             routeReadyWaiter.cancel();
             return;
           }
-          setRouteLayerVisibility(false, surfaceRefs);
+          if (isGate) {
+            // Keep non-gate route handoffs perceptually present while waiting for destination readiness.
+            setRouteLayerVisibility(false, surfaceRefs);
+          }
           commit();
           return routeReady;
         })

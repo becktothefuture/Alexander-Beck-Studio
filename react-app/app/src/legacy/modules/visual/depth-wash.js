@@ -37,11 +37,11 @@ function createDepthGradient(ctx, w, h, g, isDark) {
   
   // Get colors from config
   const centerColor = isDark 
-    ? (g.depthWashCenterColorDark || '#1a1e23')
-    : (g.depthWashCenterColorLight || '#ffffff');
+    ? (g.depthWashCenterColorDark || "var(--color-detected-1a1e23)")
+    : (g.depthWashCenterColorLight || "var(--color-brand-white)");
   const edgeColor = isDark
-    ? (g.depthWashEdgeColorDark || '#05020f')
-    : (g.depthWashEdgeColorLight || '#142b48');
+    ? (g.depthWashEdgeColorDark || "var(--color-detected-05020f)")
+    : (g.depthWashEdgeColorLight || "var(--color-detected-142b48)");
   
   // Get alpha values (0-1)
   const centerAlpha = isDark

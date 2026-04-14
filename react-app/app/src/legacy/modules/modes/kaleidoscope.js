@@ -212,7 +212,7 @@ function initializeKaleidoscopeWithCount(count, mode) {
     pickedRow = pickedRow || pickWeightedRow(categorizedRows.all);
     if (!pickedRow) return pickRandomColorWithIndex();
     return {
-      color: palette[pickedRow.colorIndex] || palette[0] || '#ffffff',
+      color: palette[pickedRow.colorIndex] || palette[0] || "var(--color-brand-white)",
       distributionIndex: pickedRow.distributionIndex
     };
   }

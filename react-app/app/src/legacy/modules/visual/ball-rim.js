@@ -61,10 +61,10 @@ export function drawBallRim(ctx, x, y, r, color) {
   const shd = darken(rgb, SHADOW_STR);
   const mid = `${rgb[0]},${rgb[1]},${rgb[2]}`;
 
-  grad.addColorStop(0,          `rgba(${lit},${LIGHT_ALPHA})`);
-  grad.addColorStop(FADE_START, `rgba(${mid},0)`);
-  grad.addColorStop(FADE_END,   `rgba(${mid},0)`);
-  grad.addColorStop(1,          `rgba(${shd},${SHADOW_ALPHA})`);
+  grad.addColorStop(0,          `rgba(${lit}, ${LIGHT_ALPHA})`);
+  grad.addColorStop(FADE_START, `rgba(${mid}, 0)`);
+  grad.addColorStop(FADE_END,   `rgba(${mid}, 0)`);
+  grad.addColorStop(1,          `rgba(${shd}, ${SHADOW_ALPHA})`);
 
   ctx.strokeStyle = grad;
   ctx.lineWidth = lw;
@@ -101,10 +101,10 @@ export function drawDirectionalPathRim(ctx, x, y, r, color, drawPath, opts = {})
     x - lightX * r, y - lightY * r
   );
 
-  grad.addColorStop(0, `rgba(${lit},${lightAlpha})`);
-  grad.addColorStop(fadeStart, `rgba(${mid},0)`);
-  grad.addColorStop(fadeEnd, `rgba(${mid},0)`);
-  grad.addColorStop(1, `rgba(${shd},${shadowAlpha})`);
+  grad.addColorStop(0, `rgba(${lit}, ${lightAlpha})`);
+  grad.addColorStop(fadeStart, `rgba(${mid}, 0)`);
+  grad.addColorStop(fadeEnd, `rgba(${mid}, 0)`);
+  grad.addColorStop(1, `rgba(${shd}, ${shadowAlpha})`);
 
   ctx.save();
   ctx.translate(x, y);

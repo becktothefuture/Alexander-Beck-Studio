@@ -40,14 +40,14 @@ const CONFIG = {
   coverFallback: `${BASE_PATH}images/portfolio/folio-cover/cover-default.webp`,
 };
 const PROJECT_CIRCLE_PALETTE = [
-  '#d77a52',
-  '#2f6e63',
-  '#456cb3',
-  '#be8f3b',
-  '#7d6760',
-  '#5b7a6a',
-  '#9d5b48',
-  '#365d84',
+  "var(--color-detected-d77a52)",
+  "var(--color-detected-2f6e63)",
+  "var(--color-detected-456cb3)",
+  "var(--color-detected-be8f3b)",
+  "var(--color-detected-7d6760)",
+  "var(--color-detected-5b7a6a)",
+  "var(--color-detected-9d5b48)",
+  "var(--color-detected-365d84)",
 ];
 
 // Cache-busting: Use build timestamp in production, or generate session-based timestamp for dev
@@ -1804,7 +1804,7 @@ class PortfolioApp {
                     if (btn) btn.className = 'ti ti-player-play';
                 }
             });
-        }, { root: this.detailScroller, threshold: 0.3, rootMargin: '200px' });
+        }, { root: this.detailScroller, threshold: 0.3, rootMargin: "var(--size-200)" });
 
         videos.forEach((video) => this.detailVideoObserver.observe(video));
     } else {

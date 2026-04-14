@@ -1,43 +1,13 @@
 {
-  "name": "alexander-beck-studio-website",
-  "private": true,
-  "version": "1.3.0",
-  "description": "Alexander Beck Studio website with interactive particle physics",
-  "author": "Alexander Beck",
-  "license": "MIT",
-  "scripts": {
-    "install:all": "npm install && npm install --prefix react-app/app",
-    "dev": "npm run dev:react",
-    "dev:react": "npm run dev --prefix react-app/app -- --port 8012",
-    "flatten:design-config": "node scripts/flatten-design-config.mjs",
-    "build": "npm run flatten:design-config && npm run build --prefix react-app/app",
-    "build:dev": "npm run flatten:design-config && npm run build:dev --prefix react-app/app",
-    "validate:html-fragments": "node scripts/validate-html-fragments.mjs",
-    "preview": "npm run preview --prefix react-app/app -- --port 8013",
-    "certify:screens": "node scripts/certify-screens.mjs",
-    "audit:canvas-spa": "node scripts/audit-canvas-spa.mjs",
-    "audit:canvas-spa:quick": "ABS_SPA_ROUNDS=2 ABS_AUDIT_QUIET=1 node scripts/audit-canvas-spa.mjs",
-    "audit:portfolio-gate": "node scripts/audit-portfolio-gate-flow.mjs",
-    "audit:portfolio-pebbles": "node scripts/audit-portfolio-pebbles.mjs",
-    "audit:portfolio-drawer": "node scripts/audit-portfolio-drawer-open.mjs",
-    "audit:portfolio-drawer:pointer": "node scripts/audit-portfolio-drawer-pointer.mjs",
-    "audit:transition-flows": "node scripts/audit-transition-flows.mjs",
-    "start": "npm run preview",
-    "startup": "node scripts/dev-startup.js",
-    "precommit:check": "bash scripts/precommit-check.sh",
-    "clean": "rm -rf react-app/app/dist",
-    "figma:socket": "bunx cursor-talk-to-figma-socket",
-    "figma:setup": "npm install && echo '✅ Dependencies installed. Next: Install bun (curl -fsSL https://bun.sh/install | bash)'",
-    "figma:config": "node scripts/setup-figma-mcp-config.js",
-    "figma:capture:external": "node scripts/figma-capture-external.mjs"
+  "author" : "Alexander Beck",
+  "description" : "Alexander Beck Studio website with interactive particle physics",
+  "devDependencies" : {
+    "@tabler\/icons-webfont" : "^3.35.0",
+    "lighthouse" : "^11.7.1",
+    "playwright" : "^1.58.2",
+    "pngjs" : "^7.0.0"
   },
-  "devDependencies": {
-    "@tabler/icons-webfont": "^3.35.0",
-    "lighthouse": "^11.7.1",
-    "playwright": "^1.58.2",
-    "pngjs": "^7.0.0"
-  },
-  "keywords": [
+  "keywords" : [
     "creative",
     "portfolio",
     "physics",
@@ -45,8 +15,42 @@
     "animation",
     "interactive"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/becktothefuture/Alexander-Beck-Studio.git"
-  }
+  "license" : "MIT",
+  "name" : "alexander-beck-studio-website",
+  "private" : true,
+  "repository" : {
+    "type" : "git",
+    "url" : "https:\/\/github.com\/becktothefuture\/Alexander-Beck-Studio.git"
+  },
+  "scripts" : {
+    "audit:canvas-spa" : "node scripts\/audit-canvas-spa.mjs",
+    "audit:canvas-spa:quick" : "ABS_SPA_ROUNDS=2 ABS_AUDIT_QUIET=1 node scripts\/audit-canvas-spa.mjs",
+    "audit:portfolio-drawer" : "node scripts\/audit-portfolio-drawer-open.mjs",
+    "audit:portfolio-drawer:pointer" : "node scripts\/audit-portfolio-drawer-pointer.mjs",
+    "audit:portfolio-gate" : "node scripts\/audit-portfolio-gate-flow.mjs",
+    "audit:portfolio-gate:quick" : "ABS_PORTFOLIO_GATE_MODE=quick node scripts\/audit-portfolio-gate-flow.mjs",
+    "audit:portfolio-pebbles" : "node scripts\/audit-portfolio-pebbles.mjs",
+    "audit:transition-flows" : "node scripts\/audit-transition-flows.mjs",
+    "audit:transition-gate" : "node scripts\/audit-transition-gate-serial.mjs",
+    "build" : "npm run flatten:design-config && npm run build --prefix react-app\/app",
+    "build:dev" : "npm run flatten:design-config && npm run build:dev --prefix react-app\/app",
+    "certify:screens" : "node scripts\/certify-screens.mjs",
+    "check:malformed-tokens" : "node scripts\/check-malformed-tokens.mjs --full",
+    "check:malformed-tokens:staged" : "node scripts\/check-malformed-tokens.mjs --staged",
+    "clean" : "rm -rf react-app\/app\/dist",
+    "dev" : "npm run dev:react",
+    "dev:react" : "npm run dev --prefix react-app\/app -- --port 8012",
+    "figma:capture:external" : "node scripts\/figma-capture-external.mjs",
+    "figma:config" : "node scripts\/setup-figma-mcp-config.js",
+    "figma:setup" : "npm install && echo '✅ Dependencies installed. Next: Install bun (curl -fsSL https:\/\/bun.sh\/install | bash)'",
+    "figma:socket" : "bunx cursor-talk-to-figma-socket",
+    "flatten:design-config" : "node scripts\/flatten-design-config.mjs",
+    "install:all" : "npm install && npm install --prefix react-app\/app",
+    "precommit:check" : "bash scripts\/precommit-check.sh",
+    "preview" : "npm run preview --prefix react-app\/app -- --port 8013",
+    "start" : "npm run preview",
+    "startup" : "node scripts\/dev-startup.js",
+    "validate:html-fragments" : "node scripts\/validate-html-fragments.mjs"
+  },
+  "version" : "1.3.0"
 }

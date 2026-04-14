@@ -32,7 +32,7 @@ function isMobileNow(g) {
   if (g?.isMobile || g?.isMobileViewport) return true;
   // Fallback for edge cases (devtools emulation / early init).
   try {
-    return Boolean(window.matchMedia && window.matchMedia('(max-width: 600px)').matches);
+    return Boolean(window.matchMedia && window.matchMedia('(max-width: var(--size-600))').matches);
   } catch (e) {
     return false;
   }

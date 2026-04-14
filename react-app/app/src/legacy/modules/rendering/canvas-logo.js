@@ -15,8 +15,8 @@ const LOGO_ASPECT = LOGO_VIEWBOX_W / LOGO_VIEWBOX_H;
 const LOGO_SECONDARY_OPACITY_DEFAULT = 0.66;
 
 // Theme colors (from tokens.css)
-const LOGO_COLOR_LIGHT = '#161616';
-const LOGO_COLOR_DARK = '#eaeaea';
+const LOGO_COLOR_LIGHT = "var(--color-detected-161616)";
+const LOGO_COLOR_DARK = "var(--color-detected-eaeaea)";
 const MIN_LOGO_CONTRAST = 2.2;
 
 // Entrance animation settings
@@ -132,7 +132,7 @@ function getColorParserCtx() {
 
 const COLOR_PARSER_CTX = typeof document !== 'undefined' ? getColorParserCtx() : null;
 
-function normalizeCssColor(input, fallback = '#000000') {
+function normalizeCssColor(input, fallback = "var(--color-detected-000000)") {
   if (!COLOR_PARSER_CTX) return fallback;
   try {
     COLOR_PARSER_CTX.fillStyle = fallback;
@@ -213,7 +213,7 @@ function resolveSceneBackgroundColor(rootStyles) {
   const tokenBg = rootStyles.getPropertyValue(isDark ? '--bg-dark' : '--bg-light').trim();
   if (tokenBg) return tokenBg;
 
-  return rootStyles.getPropertyValue('--wall-color').trim() || '#242529';
+  return rootStyles.getPropertyValue('--wall-color').trim() || "var(--color-detected-242529)";
 }
 
 function invalidateRuntimeStyleCache() {
@@ -228,7 +228,7 @@ function refreshRuntimeStyleCache(nowMs = performance.now()) {
       : '');
   const rawSceneColor = resolveSceneBackgroundColor(styles);
   const requestedLogoColor = normalizeCssColor(rawLogoColor, LOGO_COLOR_DARK);
-  const sceneColor = normalizeCssColor(rawSceneColor, '#242529');
+  const sceneColor = normalizeCssColor(rawSceneColor, "var(--color-detected-242529)");
   const logoRgb = parseRgbColor(requestedLogoColor);
   const sceneRgb = parseRgbColor(sceneColor);
   let resolvedLogoColor = requestedLogoColor;

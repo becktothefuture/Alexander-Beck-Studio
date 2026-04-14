@@ -182,7 +182,7 @@ function drawGradientStroke(ctx, w, h, g, DPR, insetPx, innerW, innerH, innerR) 
     const bottomCenterY = 0;  // Top edge (flipped)
     const bottomRadius = (g.wallGradientStrokeBottomRadius ?? 1.0) * h * 0.7;  // 70% size
     const bottomOpacity = g.wallGradientStrokeBottomOpacity ?? 1.0;
-    const bottomColor = g.wallGradientStrokeBottomColor ?? '#ffffff';
+    const bottomColor = g.wallGradientStrokeBottomColor ?? "var(--color-brand-white)";
     const bottomKey = `${bottomCenterX}|${bottomCenterY}|${bottomRadius}|${bottomOpacity}|${bottomColor}`;
     if (bottomKey !== BOTTOM_GRADIENT_KEY) {
       BOTTOM_GRADIENT_KEY = bottomKey;
@@ -222,7 +222,7 @@ function drawGradientStroke(ctx, w, h, g, DPR, insetPx, innerW, innerH, innerR) 
     const topCenterY = h;  // Bottom edge (flipped)
     const topRadius = (g.wallGradientStrokeTopRadius ?? 1.0) * h * 0.7;  // 70% size
     const topOpacity = g.wallGradientStrokeTopOpacity ?? 0.5;
-    const topColor = g.wallGradientStrokeTopColor ?? '#ffffff';
+    const topColor = g.wallGradientStrokeTopColor ?? "var(--color-brand-white)";
     const topKey = `${topCenterX}|${topCenterY}|${topRadius}|${topOpacity}|${topColor}`;
     if (topKey !== TOP_GRADIENT_KEY) {
       TOP_GRADIENT_KEY = topKey;
@@ -265,7 +265,8 @@ function hexToRGBA(hex, alpha) {
     g = parseInt(hex.slice(3, 5), 16);
     b = parseInt(hex.slice(5, 7), 16);
   }
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  const safeAlpha = Number.isFinite(alpha) ? Math.max(0, Math.min(1, alpha)) : 1;
+  return `rgba(${r}, ${g}, ${b}, ${safeAlpha})`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -307,9 +308,9 @@ function getChromeColorFromCSS() {
       color = read(body, '--chrome-bg') || read(container, '--chrome-bg') || read(root, '--wall-color');
     }
     
-    return color || '#181818';
+    return color || "var(--color-detected-181818)";
   } catch {
-    return '#181818';
+    return "var(--color-detected-181818)";
   }
 }
 

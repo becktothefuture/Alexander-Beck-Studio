@@ -8,18 +8,18 @@ import {
 const DEFAULT_PORTFOLIO_CONFIG = {
   cssVars: {
     '--portfolio-nav-top': '0px',
-    '--portfolio-stage-pad': 'clamp(18px, 2.1vw, 32px)',
+    '--portfolio-stage-pad': 'clamp(var(--size-18), var(--size-2.1), var(--space-2xl))',
     '--portfolio-hero-title-max': '14ch',
     '--portfolio-image-veil-opacity': '0.14',
-    '--portfolio-hero-image-gutter': 'clamp(12px, 8px + 0.9vw, 24px)',
+    '--portfolio-hero-image-gutter': 'clamp(var(--radius-md), var(--space-sm) + var(--size-0.9), var(--space-lg))',
     '--portfolio-hero-image-radius': 'max(0px, calc(var(--portfolio-drawer-radius) - var(--portfolio-hero-image-gutter)))',
-    '--portfolio-scroll-hint-offset': 'clamp(26px, 18px + 1.2vw, 52px)',
+    '--portfolio-scroll-hint-offset': 'clamp(var(--size-26), var(--size-18) + var(--font-size-1.2), var(--size-52))',
     '--portfolio-drawer-seat-inset': '0px',
-    '--portfolio-drawer-inner-radius-shrink': '1px',
+    '--portfolio-drawer-inner-radius-shrink': "var(--size-border-default)",
     '--portfolio-drawer-insert-contact-opacity': '0.24',
     '--portfolio-drawer-insert-top-light-opacity': '0.14',
     '--portfolio-drawer-insert-lip-opacity': '0.16',
-    '--portfolio-drawer-outline-width': '1px',
+    '--portfolio-drawer-outline-width': "var(--size-border-default)",
     '--portfolio-drawer-outline-opacity': '0.28',
   },
   runtime: {

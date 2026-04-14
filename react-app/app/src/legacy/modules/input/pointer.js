@@ -9,6 +9,7 @@ import { setMode } from '../modes/mode-controller.js';
 import { updateCursorPosition, hideCursor, showCursor } from '../rendering/cursor.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
 import { sceneImpactPress, sceneImpactRelease } from '../ui/scene-impact-react.js';
+import { updateModeButtonsUI } from '../ui/controls.js';
 
 let createWaterRippleFn = null;
 let waterRippleLoadPromise = null;
@@ -55,9 +56,7 @@ function cycleMode() {
   const next = seq[(base + 1) % seq.length];
 
   setMode(next);
-  import('../ui/controls.js').then(({ updateModeButtonsUI }) => {
-    updateModeButtonsUI(next);
-  });
+  updateModeButtonsUI(next);
 }
 
 // Throttle for water ripple creation

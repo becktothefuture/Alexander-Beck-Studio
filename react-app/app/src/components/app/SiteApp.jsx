@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { BodyClassManager } from '../layout/BodyClassManager.jsx';
 import { StudioShell } from './StudioShell.jsx';
 import { getHomeRouteView, HOME_ROUTE_RUNTIME } from '../../routes/home/HomeRoute.jsx';
@@ -34,6 +34,24 @@ function getRouteRuntimeForId(routeId) {
   return ROUTE_RUNTIME_BY_ID[routeId] || ROUTE_RUNTIME_BY_ID.home;
 }
 
+function readProjectFixture(routeId) {
+  if (typeof window === 'undefined') return null;
+
+  const params = new URLSearchParams(window.location.search);
+  const fixture = params.get('fixture');
+  if (!fixture) return null;
+
+  if (routeId === 'portfolio' && fixture === 'portfolio-drawer') {
+    const projectIndex = Number.parseInt(params.get('project') || '0', 10);
+    return {
+      type: fixture,
+      projectIndex: Number.isInteger(projectIndex) && projectIndex >= 0 ? projectIndex : 0,
+    };
+  }
+
+  return null;
+}
+
 export function SiteApp() {
   const wallSurfaceRef = useRef(null);
   const heroSurfaceRef = useRef(null);
@@ -62,6 +80,45 @@ export function SiteApp() {
     exportName: routeRuntime.exportName,
     routeId: routeState.route.id
   });
+
+  useEffect(() => {
+    const fixture = readProjectFixture(routeState.route.id);
+    if (!fixture || fixture.type !== 'portfolio-drawer') {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let fallbackTimer = null;
+
+    const dispatchFixture = () => {
+      if (cancelled) return;
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          if (cancelled) return;
+          document.dispatchEvent(new CustomEvent('abs:portfolio:open-project', {
+            detail: { index: fixture.projectIndex },
+          }));
+        });
+      });
+    };
+
+    const handleRouteReady = (event) => {
+      if (event?.detail?.routeId === 'portfolio') {
+        dispatchFixture();
+      }
+    };
+
+    window.addEventListener('abs:route-ready', handleRouteReady);
+    fallbackTimer = window.setTimeout(dispatchFixture, 1500);
+
+    return () => {
+      cancelled = true;
+      if (fallbackTimer !== null) {
+        window.clearTimeout(fallbackTimer);
+      }
+      window.removeEventListener('abs:route-ready', handleRouteReady);
+    };
+  }, [routeState.route.id]);
 
   return (
     <>

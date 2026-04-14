@@ -87,7 +87,7 @@ function buildCueColor(sampleRgb, fallbackColor) {
   } else {
     lightness = clamp(lightness + 0.08, 0.44, 0.72);
   }
-  return `hsl(${Math.round(hue)}deg ${Math.round(saturation * 100)}% ${Math.round(lightness * 100)}%)`;
+  return `var(--color-detected-hslmathroundhue)}deg ${Math.round(saturation * 100)}% ${Math.round(lightness * 100)}%)`;
 }
 
 function sampleImageCueColor(image) {

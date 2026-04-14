@@ -1112,7 +1112,7 @@ export function renderCrittersWaypoints(ctx) {
     const point = journeyPoints[i];
     const x = point.x * w;
     const y = point.y * h;
-    const color = waypointColors[i] || '#ffffff';
+    const color = waypointColors[i] || "var(--color-brand-white)";
     
     // Draw waypoint ball
     ctx.beginPath();

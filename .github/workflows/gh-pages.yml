@@ -33,6 +33,24 @@ jobs:
           cd react-app/app
           if [ -f package-lock.json ]; then npm ci --ignore-scripts --no-audit --no-fund; else npm install --no-audit --no-fund; fi
 
+      - name: Guard malformed tokenized strings (full scan)
+        run: npm run check:malformed-tokens -- --full
+
+      - name: Enforce node_modules hygiene
+        run: |
+          NODE_MODULES_DIFF="$(git diff --name-only | rg '^node_modules/' || true)"
+          if [ -n "$NODE_MODULES_DIFF" ]; then
+            echo "node_modules diffs are not allowed:"
+            echo "$NODE_MODULES_DIFF"
+            exit 1
+          fi
+          NODE_MODULES_DIFF_STAGED="$(git diff --name-only --staged | rg '^node_modules/' || true)"
+          if [ -n "$NODE_MODULES_DIFF_STAGED" ]; then
+            echo "staged node_modules diffs are not allowed:"
+            echo "$NODE_MODULES_DIFF_STAGED"
+            exit 1
+          fi
+
       - name: Lint React app
         run: npm run lint --prefix react-app/app
 

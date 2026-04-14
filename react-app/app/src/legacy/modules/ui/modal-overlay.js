@@ -336,10 +336,10 @@ function applyDepthEffect(active) {
     
     if (active) {
         const scale = getComputedStyle(root).getPropertyValue('--modal-depth-scale').trim() || '0.96';
-        const ty = getComputedStyle(root).getPropertyValue('--modal-depth-translate-y').trim() || '8px';
+        const ty = getComputedStyle(root).getPropertyValue('--modal-depth-translate-y').trim() || "var(--space-sm)";
         const logoBlurActive = getComputedStyle(root).getPropertyValue('--logo-blur-active-target').trim() 
                              || root.style.getPropertyValue('--logo-blur-active-target') 
-                             || '12px';
+                             || "var(--radius-md)";
         
         root.style.setProperty('--modal-depth-scale-active', scale);
         root.style.setProperty('--modal-depth-ty-active', ty);
@@ -388,7 +388,7 @@ export function showOverlay() {
     if (cursor) {
         let isMobileViewport = false;
         try {
-            isMobileViewport = Boolean(window.matchMedia && window.matchMedia('(max-width: 600px)').matches);
+            isMobileViewport = Boolean(window.matchMedia && window.matchMedia('(max-width: var(--size-600))').matches);
         } catch (e) {}
 
         if (isMobileViewport) {

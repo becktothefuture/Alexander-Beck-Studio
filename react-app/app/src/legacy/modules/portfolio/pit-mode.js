@@ -41,7 +41,7 @@ function toNumber(value, fallback) {
 }
 
 function hexToRgb(hex) {
-  const value = String(hex || '#000000').replace('#', '').trim();
+  const value = String(hex || "var(--color-detected-000000)").replace('#', '').trim();
   const normalized = value.length === 3
     ? value.split('').map((part) => part + part).join('')
     : value.padEnd(6, '0').slice(0, 6);
@@ -62,7 +62,7 @@ function getContrastText(fill) {
       : Math.pow((normalized + 0.055) / 1.055, 2.4);
   };
   const luminance = (0.2126 * channel(r)) + (0.7152 * channel(g)) + (0.0722 * channel(b));
-  return luminance > 0.42 ? '#111111' : '#f5f1ea';
+  return luminance > 0.42 ? "var(--color-detected-111111)" : "var(--color-detected-f5f1ea)";
 }
 
 function getReadableLabelRotation(rotationRad) {
@@ -248,7 +248,7 @@ function drawPortfolioBodyRim(ctx, x, y, r, color, drawPath, rotationRad) {
   ctx.beginPath();
   drawPath(ctx, strokeRadius);
   ctx.clip();
-  ctx.strokeStyle = `rgba(${contour.r},${contour.g},${contour.b},${contour.alpha})`;
+  ctx.strokeStyle = `rgba(${contour.r}, ${contour.g}, ${contour.b}, ${contour.alpha})`;
   ctx.lineWidth = lineWidth;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
@@ -272,7 +272,7 @@ function isDocumentDarkMode() {
 
 /** First project circle: light fill on dark UI, dark fill on light UI. */
 export function getPortfolioAccentCircleFill() {
-  return isDocumentDarkMode() ? '#f5f1ea' : '#111111';
+  return isDocumentDarkMode() ? "var(--color-detected-f5f1ea)" : "var(--color-detected-111111)";
 }
 
 export function applyPortfolioAccentBallColor(ball) {

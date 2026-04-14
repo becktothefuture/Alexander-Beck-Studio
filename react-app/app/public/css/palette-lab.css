@@ -11,8 +11,8 @@ body.palette-lab-page {
   --palette-lab-muted: rgba(var(--abs-rgb-white), 0.56);
   --palette-lab-line: rgba(var(--abs-rgb-white), 0.1);
   --palette-lab-soft-line: rgba(var(--abs-rgb-white), 0.06);
-  --palette-lab-panel: rgba(255, 255, 255, 0.02);
-  --palette-lab-panel-strong: rgba(255, 255, 255, 0.05);
+  --palette-lab-panel: rgba(255, 255, 255, 0.002);
+  --palette-lab-panel-strong: rgba(255, 255, 255, 0.005);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: auto;
@@ -62,7 +62,7 @@ body.palette-lab-page .ui-layer-wrapper {
 }
 
 body.palette-lab-page .palette-lab-wall {
-  background: #0d1113;
+  background: var(--color-detected-0d1113);
 }
 
 body.palette-lab-page .palette-lab-backdrop {
@@ -101,7 +101,7 @@ body.palette-lab-page .palette-lab-card__weather {
   margin: 0;
   font-family: var(--abs-font-mono);
   font-size: var(--text-xs);
-  letter-spacing: 0.18em;
+  letter-spacing: var(--font-letter-spacing-.18em);
   text-transform: uppercase;
   color: var(--palette-lab-muted);
 }
@@ -109,22 +109,22 @@ body.palette-lab-page .palette-lab-card__weather {
 body.palette-lab-page .palette-lab-main {
   display: block;
   padding:
-    calc(var(--abs-safe-top, 0px) + clamp(74px, 8vw, 104px))
-    clamp(20px, 3vw, 44px)
-    calc(var(--abs-safe-bottom, 0px) + clamp(72px, 9vw, 120px));
+    calc(var(--abs-safe-top, 0px) + clamp(var(--size-74), var(--size-8), var(--size-104)))
+    clamp(var(--radius-lg), var(--size-3), var(--space-xl))
+    calc(var(--abs-safe-bottom, 0px) + clamp(var(--size-72), var(--size-9), var(--size-120)));
 }
 
 body.palette-lab-page .palette-lab {
-  width: min(1160px, 100%);
+  width: min(var(--size-1160), 100%);
   margin: 0 auto;
   display: grid;
-  gap: clamp(26px, 4vw, 40px);
+  gap: clamp(var(--space-26), var(--space-4), var(--space-3xl));
 }
 
 body.palette-lab-page .palette-lab__selector {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-ms);
   align-items: stretch;
 }
 
@@ -134,7 +134,7 @@ body.palette-lab-page .palette-lab-card__name {
   margin: 0;
   font-family: var(--abs-font-sans);
   font-weight: 500;
-  letter-spacing: -0.05em;
+  letter-spacing: var(--font-letter-spacing-.05em);
   color: rgba(var(--abs-rgb-white), 0.98);
 }
 
@@ -147,14 +147,14 @@ body.palette-lab-page .palette-lab__open-link {
 }
 
 body.palette-lab-page .palette-lab-card {
-  border: 1px solid var(--palette-lab-soft-line);
+  border: var(--size-border-default) solid var(--palette-lab-soft-line);
   background: var(--palette-lab-panel);
-  padding: 14px;
+  padding: var(--font-size-meta);
   text-align: left;
   display: grid;
-  gap: 10px;
+  gap: var(--radius-10);
   align-content: start;
-  min-height: 126px;
+  min-height: var(--size-126);
   transition:
     border-color var(--ui-chrome-fill-transition-duration),
     background-color var(--ui-chrome-fill-transition-duration),
@@ -166,51 +166,51 @@ body.palette-lab-page .palette-lab-card:focus-visible,
 body.palette-lab-page .palette-lab-card.is-active {
   border-color: rgba(var(--abs-rgb-white), 0.18);
   background: var(--palette-lab-panel-strong);
-  transform: translateY(-1px);
+  transform: translateY(-var(--size-border-default));
 }
 
 body.palette-lab-page .palette-lab-card__name {
-  font-size: clamp(22px, 2.2vw, 32px);
+  font-size: clamp(var(--font-size-h3), var(--font-size-2.2), var(--space-2xl));
   line-height: 0.98;
 }
 
 body.palette-lab-page .palette-lab-card__swatches {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 2px;
-  min-height: 26px;
+  gap: var(--space-xxs);
+  min-height: var(--size-26);
 }
 
 body.palette-lab-page .palette-lab-card__swatch {
   display: block;
-  min-height: 26px;
+  min-height: var(--size-26);
   background: var(--palette-lab-swatch);
 }
 
 body.palette-lab-page .palette-lab__details {
   display: grid;
-  grid-template-columns: minmax(0, 1.06fr) minmax(320px, 0.94fr);
-  gap: clamp(24px, 3vw, 40px);
+  grid-template-columns: minmax(0, 1.06fr) minmax(var(--size-320), 0.94fr);
+  gap: clamp(var(--space-lg), var(--space-3), var(--space-3xl));
   align-items: start;
-  padding-top: clamp(24px, 3vw, 34px);
-  border-top: 1px solid var(--palette-lab-line);
+  padding-top: clamp(var(--space-lg), var(--space-3), var(--space-34));
+  border-top: var(--size-border-default) solid var(--palette-lab-line);
 }
 
 body.palette-lab-page .palette-lab__active-copy {
   display: grid;
-  gap: 18px;
+  gap: var(--space-18);
 }
 
 body.palette-lab-page .palette-lab__active-header {
   display: flex;
   justify-content: space-between;
   align-items: end;
-  gap: 16px;
+  gap: var(--font-size-body);
 }
 
 body.palette-lab-page .palette-lab__active-name {
-  margin-top: 6px;
-  font-size: clamp(38px, 5vw, 62px);
+  margin-top: var(--radius-sm);
+  font-size: clamp(var(--font-size-38), var(--font-size-5), var(--font-size-62));
   line-height: 0.94;
 }
 
@@ -218,15 +218,15 @@ body.palette-lab-page .palette-lab__active-personality {
   margin: 0;
   font-family: var(--abs-font-mono);
   font-size: var(--text-xs);
-  letter-spacing: 0.08em;
+  letter-spacing: var(--font-letter-spacing-.08em);
   text-transform: uppercase;
   color: var(--palette-lab-muted);
   white-space: nowrap;
 }
 
 body.palette-lab-page .palette-lab__strapline {
-  max-width: 34rem;
-  font-size: clamp(24px, 3vw, 34px);
+  max-width: var(--size-34);
+  font-size: clamp(var(--space-lg), var(--font-size-3), var(--font-size-34));
   line-height: 1.08;
   color: rgba(var(--abs-rgb-white), 0.96);
 }
@@ -241,38 +241,38 @@ body.palette-lab-page .palette-lab__story {
 body.palette-lab-page .palette-lab__word-cloud {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 16px;
-  padding-top: 8px;
+  gap: var(--space-ms) var(--font-size-body);
+  padding-top: var(--space-sm);
 }
 
 body.palette-lab-page .palette-lab__word {
   font-family: var(--abs-font-sans);
-  font-size: clamp(18px, 2vw, 24px);
+  font-size: clamp(var(--font-size-18), var(--font-size-2), var(--space-lg));
   line-height: 1;
   color: rgba(var(--abs-rgb-white), 0.82);
 }
 
 body.palette-lab-page .palette-lab__bands {
   display: grid;
-  gap: 18px;
-  padding-top: 6px;
+  gap: var(--space-18);
+  padding-top: var(--radius-sm);
 }
 
 body.palette-lab-page .palette-lab-band {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 body.palette-lab-page .palette-lab-band__swatches {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 body.palette-lab-page .palette-lab-band__swatch {
   display: block;
   aspect-ratio: 1 / 1;
-  min-height: clamp(44px, 7vw, 82px);
+  min-height: clamp(var(--space-xl), var(--size-7), var(--size-82));
   background: var(--palette-lab-swatch);
 }
 
@@ -288,7 +288,7 @@ body.palette-lab-page .palette-lab__open-link {
   color: rgba(var(--abs-rgb-white), 0.82);
   text-decoration: underline;
   text-decoration-color: rgba(var(--abs-rgb-white), 0.28);
-  text-underline-offset: 0.28em;
+  text-underline-offset: var(--size-0.28);
   transition:
     color var(--ui-chrome-fill-transition-duration),
     text-decoration-color var(--ui-chrome-fill-transition-duration);
@@ -302,13 +302,13 @@ body.palette-lab-page .palette-lab__open-link:focus-visible {
 
 body.palette-lab-page .palette-lab__preview {
   display: grid;
-  gap: 12px;
+  gap: var(--space-ms);
 }
 
 body.palette-lab-page .palette-lab-still {
   width: 100%;
-  border: 1px solid var(--palette-lab-soft-line);
-  background: #090c0d;
+  border: var(--size-border-default) solid var(--palette-lab-soft-line);
+  background: var(--color-detected-090c0d);
 }
 
 body.palette-lab-page .palette-lab-still__image {
@@ -319,23 +319,23 @@ body.palette-lab-page .palette-lab-still__image {
 }
 
 body.palette-lab-page .palette-lab__preview-caption {
-  max-width: 30rem;
+  max-width: var(--size-30);
   line-height: 1.45;
 }
-@media (max-width: 1100px) {
+@media (max-width: var(--size-1100)) {
   body.palette-lab-page .palette-lab__details {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 680px) {
+@media (max-width: var(--size-680)) {
   body.palette-lab-page .palette-lab-main {
-    padding-top: calc(var(--abs-safe-top, 0px) + 88px);
-    padding-inline: 16px;
+    padding-top: calc(var(--abs-safe-top, 0px) + var(--space-88));
+    padding-inline: var(--font-size-body);
   }
 
   body.palette-lab-page .route-topbar {
-    padding-inline: 16px;
+    padding-inline: var(--font-size-body);
   }
 
   body.palette-lab-page .palette-lab__selector {
@@ -352,6 +352,6 @@ body.palette-lab-page .palette-lab__preview-caption {
   }
 
   body.palette-lab-page .palette-lab-band__swatch {
-    min-height: 36px;
+    min-height: var(--size-36);
   }
 }

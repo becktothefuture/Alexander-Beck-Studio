@@ -10,19 +10,19 @@
 :root {
   /* --- Wheel Layout --- */
   --slider-max-height: 100dvh;
-  --wheel-radius-x: 36vw;
-  --wheel-radius-y: 14vh;
+  --wheel-radius-x: var(--radius-36);
+  --wheel-radius-y: var(--radius-14);
   --wheel-spacing-ratio: 0.22;
-  --wheel-spacing: max(calc(var(--card-width) * var(--wheel-spacing-ratio)), 7vw);
-  --wheel-center-x: 0vw;
-  --wheel-center-y: -6vh;
+  --wheel-spacing: max(calc(var(--card-width) * var(--wheel-spacing-ratio)), var(--size-7));
+  --wheel-center-x: var(--size-0);
+  --wheel-center-y: -var(--size-6);
   --wheel-rotate: 12deg;
   --wheel-tilt: 60deg;
   --wheel-depth: 1;
-  --wheel-active-lift: 2.5vh;
+  --wheel-active-lift: var(--size-2.5);
   --wheel-scale-min: 0.82;
   --wheel-scale-max: 1;
-  --wheel-blur-max: 0vmin;
+  --wheel-blur-max: var(--size-0);
   --wheel-opacity-min: 0.2;
   --wheel-opacity-max: 1;
   --wheel-opacity-curve: 1.15;
@@ -33,43 +33,43 @@
   --wheel-snap-strength: 4;
   --wheel-bounce-strength: 16;
   --wheel-bounce-damping: 10;
-  --wheel-bounce-impulse: 2.6vmin;
+  --wheel-bounce-impulse: var(--size-2.6);
 
   /* --- Mouse Tilt --- */
-  --mouse-tilt-pivot-z: 0vmin;
+  --mouse-tilt-pivot-z: var(--size-0);
 
   /* --- Card Dimensions --- */
   --card-aspect-w: 1;
   --card-aspect-h: 1;
-  --card-height-min: 50vh;
-  --card-height-ideal: 50vh;
-  --card-height-max: 50vh;
+  --card-height-min: var(--size-50);
+  --card-height-ideal: var(--size-50);
+  --card-height-max: var(--size-50);
   --card-height: clamp(var(--card-height-min), var(--card-height-ideal), var(--card-height-max));
   --card-width: var(--card-height);
-  --card-content-inset: clamp(6px, 1vw, 12px);
+  --card-content-inset: clamp(var(--radius-sm), var(--size-1), var(--radius-md));
 
   /* --- Card Appearance --- */
   --img-saturation: 100%;
   --card-hover-scale: 1.025;
-  --card-hover-lift: 0.6vmin;
-  --card-press-lift: -0.6vmin;
+  --card-hover-lift: var(--size-0.6);
+  --card-press-lift: calc(-1 * var(--size-0.6));
   --card-hover-shadow-intensity: 0.28;
   --cursor-color-card-hover: rgba(var(--abs-rgb-white), 0.4);
 
   /* --- Typography --- */
-  --text-client-size: 1.1vw;
-  --text-title-size: 4.2vw;
-  --text-tags-size: 0.9vw;
-  --text-client-min: 12px;
-  --text-client-max: 18px;
-  --text-title-min: 36px;
-  --text-title-max: 72px;
-  --text-tags-min: 14px;
-  --text-tags-max: 18px;
-  --content-offset: 8vh;
-  --meta-lift: 0vh;
-  --meta-padding-y: clamp(60px, 8vh, 100px);
-  --meta-gap: clamp(20px, 2.7vmin, 24px);
+  --text-client-size: var(--size-1.1);
+  --text-title-size: var(--size-4.2);
+  --text-tags-size: var(--size-0.9);
+  --text-client-min: var(--radius-md);
+  --text-client-max: var(--size-18);
+  --text-title-min: var(--size-36);
+  --text-title-max: var(--size-72);
+  --text-tags-min: var(--font-size-meta);
+  --text-tags-max: var(--size-18);
+  --content-offset: var(--size-8);
+  --meta-lift: var(--size-0);
+  --meta-padding-y: clamp(var(--space-60), var(--space-8), var(--space-100));
+  --meta-gap: clamp(var(--radius-lg), var(--size-2.7), var(--space-lg));
   --meta-title-max-width: 20ch;
   --meta-summary-max-width: 36ch;
   --text-align: center;
@@ -78,18 +78,18 @@
   /* --- Motion --- */
   --transition-speed: 600ms;
   --transition-ease: var(--ease-organic);
-  --perspective: 1000px;
-  --detail-max-width: 576px;
+  --perspective: var(--size-1000);
+  --detail-max-width: var(--size-576);
   --detail-transition-ms: 700ms;
   --detail-transition-fade-ms: 240ms;
   --detail-transition-fade-delay: 60ms;
-  --detail-transition-blur: 8px;
-  --detail-transition-cross-blur: 0.9vmin;
+  --detail-transition-blur: var(--space-sm);
+  --detail-transition-cross-blur: var(--size-0.9);
   --detail-transition-ease: var(--ease-gate);
   --detail-transition-ease-in: var(--ease-hesitant);
   --detail-transition-ease-out: var(--ease-gate);
   --detail-transition-shadow-opacity: 0.18;
-  --detail-surface: #ffffff;
+  --detail-surface: var(--color-brand-white);
   --detail-content-pop-duration: 360ms;
   --detail-content-pop-delay: 80ms;
   --detail-content-pop-delay-hero: 60ms;
@@ -98,16 +98,16 @@
   --detail-content-pop-overshoot-scale: 1;
   --detail-content-pop-ease: var(--ease-bounce);
   --detail-overlay-start-scale: 0.98;
-  --detail-hero-height: 75vh;
+  --detail-hero-height: var(--size-75);
   --detail-hero-width: 100%;
   --detail-hero-offset: 0%;
   --detail-hero-top-pad: 0px;
   --close-button-top: 0px;
   --close-button-left: 0px;
   --close-button-width: 100%;
-  --close-button-height: 60px;
-  --close-button-font-size: 14px;
-  --close-button-icon-size: clamp(14px, 1.5vw, 16px);
+  --close-button-height: var(--size-60);
+  --close-button-font-size: var(--font-size-meta);
+  --close-button-icon-size: clamp(var(--font-size-meta), var(--size-1.5), var(--font-size-body));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -209,7 +209,7 @@ html.modal-active .portfolio-stage,
   width: 100%;
   height: 100%;
   max-height: var(--slider-max-height, 100dvh);
-  padding-bottom: clamp(96px, 12vh, 160px);
+  padding-bottom: clamp(var(--space-96), var(--space-12), var(--space-160));
   display: flex;
   align-items: center;
   perspective: var(--perspective);
@@ -241,8 +241,8 @@ html.modal-active .portfolio-stage,
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 1px;
-  height: 1px;
+  width: var(--size-border-default);
+  height: var(--size-border-default);
   overflow: visible;
   transform-style: preserve-3d;
   will-change: transform;
@@ -253,8 +253,8 @@ html.modal-active .portfolio-stage,
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 1px;
-  height: 1px;
+  width: var(--size-border-default);
+  height: var(--size-border-default);
   overflow: visible;
   transform-style: preserve-3d;
   pointer-events: none;
@@ -272,12 +272,12 @@ html.modal-active .portfolio-stage,
    SLIDES
    ═══════════════════════════════════════════════════════════════════════════════ */
 .slide {
-  --slide-x: 0vw;
-  --slide-y: 0vh;
-  --slide-z: 0vmin;
+  --slide-x: var(--size-0);
+  --slide-y: var(--size-0);
+  --slide-z: var(--size-0);
   --slide-scale: 1;
   --slide-rotate: 0deg;
-  --slide-blur: 0vmin;
+  --slide-blur: var(--size-0);
   --slide-opacity: 1;
   position: absolute;
   left: 0;
@@ -314,8 +314,8 @@ html.modal-active .portfolio-stage,
 }
 
 .slide:focus-visible {
-  outline: 0.3vmin solid var(--text-primary);
-  outline-offset: 0.6vmin;
+  outline: var(--size-0.3) solid var(--text-primary);
+  outline-offset: var(--size-0.6);
 }
 
 .slide.active {
@@ -379,7 +379,7 @@ body.portfolio-page.dark-mode .slide-image-container {
 
 .slide:hover {
   z-index: 12;
-  --slide-blur: 0vmin;
+  --slide-blur: var(--size-0);
   filter: none;
 }
 
@@ -413,11 +413,11 @@ body.portfolio-page.dark-mode .slide-image-container {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 80px;
-  --meta-shift: 0vh;
+  bottom: var(--size-section-gap);
+  --meta-shift: var(--size-0);
   /* Center using margin instead of transform to avoid entrance animation conflicts */
   width: 100%;
-  max-width: clamp(280px, 82vw, 600px);
+  max-width: clamp(var(--size-280), var(--size-82), var(--size-600));
   margin: 0 auto;
   transform: translateY(var(--meta-shift));
   text-align: var(--text-align);
@@ -452,8 +452,8 @@ html.entrance-complete .portfolio-meta {
 /* Only transition transform during slide switching (not during entrance) */
 .portfolio-meta.is-switching {
   opacity: 0;
-  --meta-shift: 2vh;
-  filter: blur(1.2vmin);
+  --meta-shift: var(--size-2);
+  filter: blur(var(--size-1.2));
   transition: 
     opacity var(--meta-transition-speed) var(--transition-ease),
     transform var(--meta-transition-speed) var(--transition-ease),
@@ -464,7 +464,7 @@ html.entrance-complete .portfolio-meta {
   display: block;
   font-family: var(--abs-font-sans);
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--font-size-kicker);
   text-transform: uppercase;
   letter-spacing: var(--letter-spacing-loose);
   color: var(--text-muted);
@@ -539,7 +539,7 @@ body.portfolio-page.dark-mode .project-detail {
   position: fixed;
   top: 0;
   left: 0;
-  height: 2px;
+  height: var(--space-xxs);
   width: 0%;
   background: var(--color-accent);
   opacity: 0.6;
@@ -559,7 +559,7 @@ body.portfolio-page.dark-mode .project-detail {
 /* Project detail close button - inherits from .gate-back and .abs-icon-btn */
 .project-detail__close {
   position: fixed;
-  top: clamp(16px, 2vw, 24px);
+  top: clamp(var(--font-size-body), var(--size-2), var(--space-lg));
   left: 50%;
   transform: translateX(-50%);
   z-index: 15;
@@ -601,15 +601,15 @@ body.portfolio-page .project-detail__close:active {
 .project-detail__close-inline:focus-visible,
 .project-detail__links a:focus-visible,
 .project-detail__video-toggle:focus-visible {
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
+  outline: var(--space-xxs) solid var(--accent-color);
+  outline-offset: var(--space-xxs);
 }
 
 /* Inline close button at bottom of detail */
 .project-detail__close-footer {
   display: flex;
   justify-content: center;
-  padding: 15vh 0;
+  padding: var(--space-15) 0;
 }
 
 .project-detail__close-inline {
@@ -667,7 +667,7 @@ body.portfolio-page.dark-mode .project-detail__scroller {
 
 /* Styled scrollbar for detail view (WebKit) */
 .project-detail__scroller::-webkit-scrollbar {
-  width: 6px;
+  width: var(--radius-sm);
 }
 
 .project-detail__scroller::-webkit-scrollbar-track {
@@ -676,7 +676,7 @@ body.portfolio-page.dark-mode .project-detail__scroller {
 
 .project-detail__scroller::-webkit-scrollbar-thumb {
   background: rgba(var(--abs-rgb-black), 0.15);
-  border-radius: 4px;
+  border-radius: var(--space-xs);
 }
 
 .project-detail__scroller::-webkit-scrollbar-thumb:hover {
@@ -693,7 +693,7 @@ body.portfolio-page.dark-mode .project-detail__scroller::-webkit-scrollbar-thumb
 
 .project-detail__inner {
   width: 100%;
-  padding: 0 0 120px;
+  padding: 0 0 var(--space-120);
   display: flex;
   flex-direction: column;
   gap: var(--gap-xl);
@@ -723,7 +723,7 @@ body.portfolio-page.dark-mode .project-detail__scroller::-webkit-scrollbar-thumb
 
 .project-detail__content--hero {
   padding-top: 0;
-  max-width: min(92vw, 1100px);
+  max-width: min(var(--size-92), var(--size-1100));
 }
 
 .project-detail__content--body {
@@ -732,7 +732,7 @@ body.portfolio-page.dark-mode .project-detail__scroller::-webkit-scrollbar-thumb
 
 .project-detail__hero {
   display: grid;
-  gap: clamp(20px, 4vw, 36px);
+  gap: clamp(var(--radius-lg), var(--space-4), var(--space-36));
   padding-top: var(--detail-hero-top-pad);
   opacity: 1;
   transform: none;
@@ -792,7 +792,7 @@ body.portfolio-page.dark-mode .project-detail__scroller::-webkit-scrollbar-thumb
 }
 
 .project-detail__title {
-  font-size: clamp(36px, 8vw, 80px);
+  font-size: clamp(var(--font-size-36), var(--font-size-8), var(--size-section-gap));
   line-height: var(--line-height-display);
   font-weight: 400;
   letter-spacing: var(--letter-spacing-tight);
@@ -811,7 +811,7 @@ body.portfolio-page.dark-mode .project-detail__scroller::-webkit-scrollbar-thumb
 
 .project-detail__meta {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--size-140), 1fr));
   gap: var(--gap-md);
   margin-top: var(--gap-xs);
   text-align: center;
@@ -863,7 +863,7 @@ body.portfolio-page.dark-mode .project-detail__scroller::-webkit-scrollbar-thumb
 .project-detail__links a {
   padding: var(--gap-sm) var(--gap-md);
   border-radius: var(--ui-icon-corner-radius);
-  border: 1px solid rgba(var(--abs-rgb-black), 0.1);
+  border: var(--size-border-default) solid rgba(var(--abs-rgb-black), 0.1);
   text-decoration: none;
   color: var(--text-primary);
   font-size: var(--text-xs);
@@ -899,14 +899,14 @@ body.portfolio-page.dark-mode .project-detail__links a:hover {
 
 /* External link icon */
 .project-detail__external-icon {
-  font-size: 0.75em;
+  font-size: var(--font-size-0.75);
   opacity: 0.6;
-  margin-left: 4px;
+  margin-left: var(--space-xs);
   transition: transform 0.2s var(--ease-settle);
 }
 
 .project-detail__links a:hover .project-detail__external-icon {
-  transform: translate(2px, -2px);
+  transform: translate(var(--space-xxs), -2px);
   opacity: 1;
 }
 
@@ -952,7 +952,7 @@ body.portfolio-page.dark-mode .project-detail__links a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
+  min-height: var(--size-200);
   background: rgba(var(--abs-rgb-black), 0.03);
 }
 
@@ -1004,8 +1004,8 @@ body.portfolio-page.dark-mode .project-detail__media-skeleton {
   position: absolute;
   bottom: var(--gap-md);
   right: var(--gap-md);
-  width: 36px;
-  height: 36px;
+  width: var(--size-36);
+  height: var(--size-36);
   border-radius: 50%;
   background: rgba(var(--abs-rgb-black), 0.4);
   border: none;
@@ -1107,7 +1107,7 @@ body.portfolio-page .ui-top-right {
 }
 
 .portfolio-blurb-wrapper {
-  max-width: 420px;
+  max-width: var(--size-420);
   text-align: left;
 }
 
@@ -1155,8 +1155,8 @@ body.portfolio-page #custom-cursor {
               height 0.35s var(--ease-hesitant),
               background 0.35s var(--ease-hesitant);
   will-change: transform, opacity, width, height, background;
-  width: 20px;
-  height: 20px;
+  width: var(--radius-lg);
+  height: var(--radius-lg);
   border-radius: 50%;
 }
 
@@ -1175,10 +1175,10 @@ body.portfolio-page.abs-link-hovering #custom-cursor {
 
 body.portfolio-page #custom-cursor.gate-active {
   display: block;
-  width: 48px;
-  height: 48px;
+  width: var(--size-button-height);
+  height: var(--size-button-height);
   background: rgba(var(--abs-rgb-white), 0.5);
-  border: 1.5px solid rgba(var(--abs-rgb-white), 0.8);
+  border: var(--size-border-1.5) solid rgba(var(--abs-rgb-white), 0.8);
   transform:
     translate(-50%, -50%)
     translate(var(--cursor-jitter-x, 0px), var(--cursor-jitter-y, 0px))
@@ -1190,51 +1190,51 @@ body.portfolio-page #custom-cursor.gate-active {
 
 body.portfolio-page.portfolio-card-hovering #custom-cursor {
   background: var(--cursor-color-card-hover);
-  width: 24px;
-  height: 24px;
+  width: var(--space-lg);
+  height: var(--space-lg);
   opacity: 0.6;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    MOBILE RESPONSIVE
    ═══════════════════════════════════════════════════════════════════════════════ */
-@media (max-width: 768px) {
+@media (max-width: var(--size-768)) {
   :root {
-    --card-height-min: 50vh;
-    --card-height-ideal: 50vh;
-    --card-height-max: 50vh;
-    --wheel-radius-x: 44vw;
-    --wheel-radius-y: 16vh;
+    --card-height-min: var(--size-50);
+    --card-height-ideal: var(--size-50);
+    --card-height-max: var(--size-50);
+    --wheel-radius-x: var(--radius-44);
+    --wheel-radius-y: var(--radius-16);
     --wheel-spacing-ratio: 0.18;
-    --wheel-center-y: -3vh;
+    --wheel-center-y: -var(--size-3);
     --wheel-tilt: 52deg;
     --detail-hero-width: 100%;
     --detail-hero-offset: 0%;
     --detail-hero-top-pad: 0px;
     /* Meta responsive adjustments */
-    --text-title-size: 5vw;
-    --text-title-min: 28px;
-    --text-title-max: 48px;
-    --meta-padding-y: clamp(40px, 6vh, 60px);
-    --meta-gap: clamp(16px, 2vmin, 20px);
+    --text-title-size: var(--size-5);
+    --text-title-min: var(--radius-xl);
+    --text-title-max: var(--size-button-height);
+    --meta-padding-y: clamp(var(--space-3xl), var(--space-6), var(--space-60));
+    --meta-gap: clamp(var(--font-size-body), 2vmin, var(--radius-lg));
     --meta-title-max-width: 18ch;
     --meta-summary-max-width: 32ch;
   }
 
   .portfolio-viewport {
-    padding-bottom: clamp(60px, 10vh, 120px);
+    padding-bottom: clamp(var(--space-60), var(--space-10), var(--space-120));
   }
 
   .portfolio-meta {
-    bottom: clamp(40px, 8vh, 60px);
-    max-width: clamp(280px, 90vw, 600px);
-    padding-left: clamp(16px, 4vw, 24px);
-    padding-right: clamp(16px, 4vw, 24px);
+    bottom: clamp(var(--space-3xl), var(--size-8), var(--size-60));
+    max-width: clamp(var(--size-280), var(--size-90), var(--size-600));
+    padding-left: clamp(var(--font-size-body), var(--space-4), var(--space-lg));
+    padding-right: clamp(var(--font-size-body), var(--space-4), var(--space-lg));
   }
 
   body.portfolio-page .ui-top-main {
     grid-template-columns: 1fr;
-    gap: clamp(14px, 4vw, 22px);
+    gap: clamp(var(--font-size-meta), var(--space-4), var(--font-size-h3));
   }
 
   body.portfolio-page .ui-top-right {
@@ -1247,15 +1247,15 @@ body.portfolio-page.portfolio-card-hovering #custom-cursor {
 
   .portfolio-stage {
     align-items: flex-start;
-    padding-top: clamp(32px, 8vh, 72px);
+    padding-top: clamp(var(--space-2xl), var(--space-8), var(--space-72));
   }
 
   .project-detail__inner {
-    padding: 0 0 100px;
+    padding: 0 0 var(--space-100);
   }
 
   .project-detail__content {
-    padding: 0 18px;
+    padding: 0 var(--space-18);
   }
 
   .project-detail__content--hero {
@@ -1263,7 +1263,7 @@ body.portfolio-page.portfolio-card-hovering #custom-cursor {
   }
 
   .project-detail__content--body {
-    padding-top: 18px;
+    padding-top: var(--space-18);
   }
 
   .project-detail__meta {
@@ -1271,46 +1271,46 @@ body.portfolio-page.portfolio-card-hovering #custom-cursor {
   }
 
   .project-detail__media {
-    max-height: 50vh;
+    max-height: var(--size-50);
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: var(--size-480)) {
   :root {
-    --card-height-min: 50vh;
-    --card-height-ideal: 50vh;
-    --card-height-max: 50vh;
-    --wheel-radius-x: 40vw;
-    --wheel-radius-y: 14vh;
+    --card-height-min: var(--size-50);
+    --card-height-ideal: var(--size-50);
+    --card-height-max: var(--size-50);
+    --wheel-radius-x: var(--radius-40);
+    --wheel-radius-y: var(--radius-14);
     --wheel-tilt: 48deg;
-    --wheel-center-y: -2vh;
+    --wheel-center-y: -var(--size-2);
     /* Meta mobile adjustments */
-    --text-title-size: 6vw;
-    --text-title-min: 24px;
-    --text-title-max: 40px;
-    --meta-padding-y: clamp(32px, 5vh, 48px);
-    --meta-gap: clamp(12px, 1.8vmin, 18px);
+    --text-title-size: var(--size-6);
+    --text-title-min: var(--space-lg);
+    --text-title-max: var(--space-3xl);
+    --meta-padding-y: clamp(var(--space-2xl), var(--space-5), var(--size-button-height));
+    --meta-gap: clamp(var(--radius-md), var(--size-1.8), var(--size-18));
     --meta-title-max-width: 16ch;
     --meta-summary-max-width: 28ch;
   }
 
   .portfolio-viewport {
-    padding-bottom: clamp(42px, 7vh, 84px);
+    padding-bottom: clamp(var(--font-size-h2), var(--space-7), var(--space-84));
   }
 
   .portfolio-meta {
-    bottom: clamp(44px, 7vh, 64px);
-    max-width: clamp(280px, 92vw, 600px);
-    padding-left: clamp(16px, 5vw, 20px);
-    padding-right: clamp(16px, 5vw, 20px);
+    bottom: clamp(var(--space-xl), var(--space-7), var(--space-xxl));
+    max-width: clamp(var(--size-280), var(--size-92), var(--size-600));
+    padding-left: clamp(var(--font-size-body), var(--size-5), var(--radius-lg));
+    padding-right: clamp(var(--font-size-body), var(--size-5), var(--radius-lg));
   }
 
   .portfolio-stage {
-    padding-top: clamp(30px, 7vh, 64px);
+    padding-top: clamp(var(--space-30), var(--space-7), var(--space-xxl));
   }
 
   body.portfolio-page .ui-top-left {
-    gap: 8px;
+    gap: var(--space-sm);
   }
 
   body.portfolio-page .decorative-script {
@@ -1321,10 +1321,10 @@ body.portfolio-page.portfolio-card-hovering #custom-cursor {
 /* Screen reader only */
 .sr-only {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  width: var(--size-border-default);
+  height: var(--size-border-default);
   padding: 0;
-  margin: -1px;
+  margin: -var(--size-border-default);
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;

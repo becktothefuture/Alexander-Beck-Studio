@@ -1,5 +1,21 @@
 import { SiteFooter } from '../SiteFooter.jsx';
 
+function RouteSceneMount({ routeRenderKey, children }) {
+  switch (routeRenderKey) {
+    case 'portfolio':
+      return <div data-sfid="sfid:shell/portfolio">{children}</div>;
+    case 'cv':
+      return <div data-sfid="sfid:shell/cv">{children}</div>;
+    case 'styleguide':
+      return <div data-sfid="sfid:shell/styleguide">{children}</div>;
+    case 'palette-lab':
+      return <div data-sfid="sfid:shell/palette-lab">{children}</div>;
+    case 'home':
+    default:
+      return <div data-sfid="sfid:shell/home">{children}</div>;
+  }
+}
+
 function renderDigitInputs(prefix, className, ariaPrefix) {
   return Array.from({ length: 4 }, (_, index) => (
     <input
@@ -27,79 +43,80 @@ export function StudioShell({
 }) {
   return (
     <>
-      <div id="abs-scene" className="abs-scene">
-        <div id="simulations" className={wallClassName}>
-          <div id="scene-effects" className="scene-effects" aria-hidden="true">
-            <div className="noise" />
-          </div>
-          <div className="inner-wall-gradient-edge" aria-hidden="true" />
-          <div
-            id="shell-wall-slot"
-            ref={surfaceRefs?.wall}
-            className="shell-wall-slot shell-transition-surface shell-transition-surface--wall"
-          >
-            <div key={`wall-${routeRenderKey}`} className="shell-wall-route-root">
-              {wallContent}
+      <RouteSceneMount routeRenderKey={routeRenderKey}>
+        <div id="abs-scene" className="abs-scene">
+          <div id="simulations" className={wallClassName}>
+            <div id="scene-effects" className="scene-effects" aria-hidden="true">
+              <div className="noise" />
             </div>
-          </div>
-          <div
-            id="shell-hero-slot"
-            ref={surfaceRefs?.hero}
-            className="shell-hero-slot shell-transition-surface shell-transition-surface--hero"
-          >
-            <div className="shell-hero-surface">
-              {heroTitle}
-            </div>
-          </div>
-        </div>
-        <div className="frame-vignette" aria-hidden="true" />
-
-        <div
-          ref={surfaceRefs?.ui}
-          className="fade-content page-content"
-        >
-          <div id="app-frame" className="ui-layer-wrapper">
+            <div className="inner-wall-gradient-edge" aria-hidden="true" />
             <div
-              id="shell-route-slot"
-              className="shell-route-slot"
+              id="shell-wall-slot"
+              ref={surfaceRefs?.wall}
+              className="shell-wall-slot shell-transition-surface shell-transition-surface--wall"
             >
-              <div key={`content-${routeRenderKey}`} className="shell-route-content-root">
-                <div
-                  ref={surfaceRefs?.chrome}
-                  className="shell-transition-surface shell-transition-surface--chrome"
-                >
-                  {headerContent}
-                </div>
-                <div
-                  ref={surfaceRefs?.secondary}
-                  className="shell-transition-surface shell-transition-surface--secondary"
-                >
-                  {mainContent}
-                </div>
+              <div key={`wall-${routeRenderKey}`} className="shell-wall-route-root">
+                {wallContent}
               </div>
             </div>
             <div
-              ref={surfaceRefs?.footer}
-              className="shell-transition-surface shell-transition-surface--footer"
+              id="shell-hero-slot"
+              ref={surfaceRefs?.hero}
+              className="shell-hero-slot shell-transition-surface shell-transition-surface--hero"
             >
-              <SiteFooter />
+              <div className="shell-hero-surface">
+                {heroTitle}
+              </div>
             </div>
           </div>
+          <div className="frame-vignette" aria-hidden="true" />
+
+          <div
+            ref={surfaceRefs?.ui}
+            className="fade-content page-content"
+          >
+            <div id="app-frame" className="ui-layer-wrapper">
+                <div
+                  id="shell-route-slot"
+                  className="shell-route-slot"
+                >
+                  <div key={`content-${routeRenderKey}`} className="shell-route-content-root">
+                    <div
+                      ref={surfaceRefs?.chrome}
+                      className="shell-transition-surface shell-transition-surface--chrome"
+                    >
+                      {headerContent}
+                    </div>
+                    <div
+                      ref={surfaceRefs?.secondary}
+                      className="shell-transition-surface shell-transition-surface--secondary"
+                    >
+                      {mainContent}
+                    </div>
+                  </div>
+                </div>
+                <div
+                  ref={surfaceRefs?.footer}
+                  className="shell-transition-surface shell-transition-surface--footer"
+                >
+                  <SiteFooter />
+                </div>
+              </div>
+            </div>
+          {/* Portfolio drawer: MUST stack above header/footer — see docs/reference/LAYER-STACKING.md (never mount only inside #simulations). */}
+          <div
+            id="portfolio-sheet-host"
+            className="portfolio-sheet-host"
+            aria-hidden="true"
+          />
+
+          <div
+            id="quote-viewport-host"
+            className="quote-viewport-host"
+            aria-hidden="true"
+          />
         </div>
-
-        {/* Portfolio drawer: MUST stack above header/footer — see docs/reference/LAYER-STACKING.md (never mount only inside #simulations). */}
-        <div
-          id="portfolio-sheet-host"
-          className="portfolio-sheet-host"
-          aria-hidden="true"
-        />
-
-        <div
-          id="quote-viewport-host"
-          className="quote-viewport-host"
-          aria-hidden="true"
-        />
-      </div>
+      </RouteSceneMount>
 
       <div id="modal-blur-layer" className="modal-blur-layer" aria-hidden="true" />
 

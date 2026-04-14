@@ -15,10 +15,10 @@ import {
 let _siteFrameLight = null;
 let _siteFrameDark = null;
 
-const CHROMIUM_LOCKED_LIGHT_FALLBACK = '#f1f3f4';
-const CHROMIUM_LOCKED_DARK_FALLBACK = '#202124';
-const FIREFOX_LOCKED_LIGHT_FALLBACK = '#f9f9fb';
-const FIREFOX_LOCKED_DARK_FALLBACK = '#1c1b22';
+const CHROMIUM_LOCKED_LIGHT_FALLBACK = "var(--color-detected-f1f3f4)";
+const CHROMIUM_LOCKED_DARK_FALLBACK = "var(--color-detected-202124)";
+const FIREFOX_LOCKED_LIGHT_FALLBACK = "var(--color-detected-f9f9fb)";
+const FIREFOX_LOCKED_DARK_FALLBACK = "var(--color-detected-1c1b22)";
 
 function captureSiteFrameColorsIfNeeded() {
   if (_siteFrameLight && _siteFrameDark) return;

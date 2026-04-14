@@ -42,6 +42,8 @@ import { applyExpertiseLegendColors } from './modules/ui/legend-colors.js';
 import { initLegendFilterSystem } from './modules/ui/legend-filter.js';
 import { initLinkCursorHop } from './modules/ui/link-cursor-hop.js';
 import { initTactileLayer, updateTactileLayer } from './modules/visual/tactile-layer.js';
+import { setApplyVisualCSSVars, setUpdateTactileLayer } from './modules/ui/control-registry.js';
+import { updateModeButtonsUI } from './modules/ui/controls.js';
 // Layout controls now integrated into master panel
 import { initSceneImpactReact } from './modules/ui/scene-impact-react.js';
 import { initSceneChangeSFX } from './modules/ui/scene-change-sfx.js';
@@ -300,9 +302,8 @@ export async function bootstrapHomePage() {
   // In production we ship no config panel, so the registry is not loaded.
   if (ABS_DEV) {
     try {
-      const mod = await import('./modules/ui/control-registry.js');
-      mod.setApplyVisualCSSVars?.(applyVisualCSSVars);
-      mod.setUpdateTactileLayer?.(updateTactileLayer);
+      setApplyVisualCSSVars?.(applyVisualCSSVars);
+      setUpdateTactileLayer?.(updateTactileLayer);
     } catch (e) {}
   }
   
@@ -370,8 +371,8 @@ export async function bootstrapHomePage() {
       }
       if (Number.isFinite(g?.footerNavBarGapVw)) {
         /* Convert vw to clamp() pattern: min scales with vw, max = min * 1.67 (matching --gap-xl ratio) */
-        const minPx = Math.round(g.footerNavBarGapVw * 9.6); // ~24px at 2.5vw base
-        const maxPx = Math.round(minPx * 1.67); // ~40px at 2.5vw base (maintains ratio)
+        const minPx = Math.round(g.footerNavBarGapVw * 9.6); // ~var(--space-lg) at var(--size-2.5) base
+        const maxPx = Math.round(minPx * 1.67); // ~var(--space-3xl) at var(--size-2.5) base (maintains ratio)
         root.style.setProperty('--footer-nav-bar-gap', `clamp(${minPx}px, ${g.footerNavBarGapVw}vw, ${maxPx}px)`);
       }
       if (Number.isFinite(g?.uiHitAreaMul)) {
@@ -621,8 +622,7 @@ export async function bootstrapHomePage() {
         panelDock.createPanelDock?.();
         const colors = await import('./modules/visual/colors.js');
         colors.populateColorSelect?.();
-        const ui = await import('./modules/ui/controls.js');
-        ui.updateModeButtonsUI?.(startMode);
+        updateModeButtonsUI?.(startMode);
       } catch (e) {}
     }
     mark('bb:ui');
@@ -682,7 +682,7 @@ export async function bootstrapHomePage() {
       try {
         console.error('Banner print error:', bannerError);
         // Fallback: print simple banner
-        console.log('%cCurious mind detected. Design meets engineering at 60fps.', 'color: #888; font-style: italic;');
+        console.log('%cCurious mind detected. Design meets engineering at 60fps.', 'color: var(--color-detected-888); font-style: italic;');
       } catch (e) {
         // Console completely unavailable
       }
@@ -848,7 +848,7 @@ export async function bootstrapHomePage() {
   } catch (error) {
     setBootLifecycleState('failed');
     console.error('❌ Initialization failed:', error);
-    document.body.innerHTML = `<div style="padding: 20px; color: red; background: white;">
+    document.body.innerHTML = `<div style="padding: var(--radius-lg); color: red; background: white;">
       <h2>Initialization Error</h2>
       <pre>${error.message}\n${error.stack}</pre>
     </div>`;

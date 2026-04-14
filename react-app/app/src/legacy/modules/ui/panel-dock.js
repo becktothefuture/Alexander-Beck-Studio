@@ -466,7 +466,7 @@ function createMasterPanel({
   const savedSize = loadPanelSize();
   if (savedSize) {
     // CSS defaults: width = 23rem (368px), height matches --dock-panel-height (92vh in dev)
-    const cssDefaultWidth = 368; // 23rem
+    const cssDefaultWidth = 368; // var(--size-23)
     const cssDefaultHeight = window.innerHeight * (isDev() ? 0.92 : 0.8);
     let restoreW = savedSize.width;
     let restoreH = savedSize.height;
@@ -484,7 +484,7 @@ function createMasterPanel({
       panel.style.width = `${restoreW}px`;
       const maxHeight = window.innerHeight * (isDev() ? 0.92 : 0.9);
       panel.style.height = `${Math.min(Math.max(restoreH, isDev() ? getDevPanelMinHeightPx() : 0), maxHeight)}px`;
-      panel.style.maxHeight = isDev() ? '92vh' : '90vh';
+      panel.style.maxHeight = isDev() ? "var(--size-92)" : "var(--size-90)";
     }
     // Otherwise, let CSS defaults apply
   }

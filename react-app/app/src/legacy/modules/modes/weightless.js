@@ -12,8 +12,8 @@ function clamp(value, min, max) {
 }
 
 const WEIGHTLESS_PALETTE = {
-  light: ['#91887b', '#5f564a', '#f3ede1', '#149a72', '#121212', '#3e6ff2', '#d6a21d', '#eb5b2a'],
-  dark: ['#a79d91', '#706659', '#f6efe3', '#31b78c', '#e0d8cb', '#5f86ff', '#e0b543', '#ff7442']
+  light: ["var(--color-detected-91887b)", "var(--color-detected-5f564a)", "var(--color-detected-f3ede1)", "var(--color-detected-149a72)", "var(--color-detected-121212)", "var(--color-detected-3e6ff2)", "var(--color-detected-d6a21d)", "var(--color-detected-eb5b2a)"],
+  dark: ["var(--color-detected-a79d91)", "var(--color-detected-706659)", "var(--color-detected-f6efe3)", "var(--color-detected-31b78c)", "var(--color-detected-e0d8cb)", "var(--color-detected-5f86ff)", "var(--color-detected-e0b543)", "var(--color-detected-ff7442)"]
 };
 
 const WEIGHTLESS_DISTRIBUTION = [
@@ -67,13 +67,13 @@ function resolveShapeColor(globals, shapeName) {
     if (normalizeLabel(row?.label) !== wantedLabel) continue;
     const paletteIdx = Math.max(0, Math.min(7, Number(row?.colorIndex) || 0));
     return {
-      color: colors[paletteIdx] || colors[0] || '#ffffff',
+      color: colors[paletteIdx] || colors[0] || "var(--color-brand-white)",
       distributionIndex: i
     };
   }
   const fallbackPaletteIdx = Math.max(0, Math.min(7, Number(group?.fallbackPaletteIndex) || 0));
   return {
-    color: colors[fallbackPaletteIdx] || colors[0] || '#ffffff',
+    color: colors[fallbackPaletteIdx] || colors[0] || "var(--color-brand-white)",
     distributionIndex: 0
   };
 }
@@ -90,13 +90,13 @@ function syncWeightlessPalette(globals) {
     if (!ball?._preserveColor) continue;
     const row = dist[ball.distributionIndex];
     const colorIndex = Math.max(0, Math.min(7, Number(row?.colorIndex) || 0));
-    ball.color = palette[colorIndex] || palette[0] || '#ffffff';
+    ball.color = palette[colorIndex] || palette[0] || "var(--color-brand-white)";
   }
 
   if (typeof document !== 'undefined') {
     const root = document.documentElement;
     for (let i = 0; i < 8; i++) {
-      root.style.setProperty(`--ball-${i + 1}`, palette[i] || '#ffffff');
+      root.style.setProperty(`--ball-${i + 1}`, palette[i] || "var(--color-brand-white)");
     }
   }
 

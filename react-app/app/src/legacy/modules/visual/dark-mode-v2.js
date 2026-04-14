@@ -70,8 +70,8 @@ function writeStoredThemePreference(theme) {
 function getBackgroundColors() {
   const g = getGlobals();
   return {
-    light: g?.bgLight || readTokenVar('--bg-light', '#efefef'),
-    dark: g?.bgDark || readTokenVar('--bg-dark', '#181818')
+    light: g?.bgLight || readTokenVar('--bg-light', "var(--color-detected-efefef)"),
+    dark: g?.bgDark || readTokenVar('--bg-dark', "var(--color-detected-181818)")
   };
 }
 
@@ -152,7 +152,7 @@ function updateThemeColor(isDark) {
   const cssActive = readTokenVar('--frame-color', '');
   const cssLight = readTokenVar('--frame-color-light', '');
   const cssDark = readTokenVar('--frame-color-dark', '');
-  const fallback = g?.frameColor || g?.frameColorLight || g?.frameColorDark || '#242529';
+  const fallback = g?.frameColor || g?.frameColorLight || g?.frameColorDark || "var(--color-detected-242529)";
   const activeColor = cssActive || (isDark ? (cssDark || cssLight) : (cssLight || cssDark)) || fallback;
   const lightColor = cssLight || activeColor || fallback;
   const darkColor = cssDark || activeColor || fallback;
