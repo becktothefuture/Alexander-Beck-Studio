@@ -61,5 +61,5 @@ Commit: b734c01
 - Angle addition formula (cos(a+b), sin(a+b)) avoids per-wedge Math.cos/sin calls
 - Mobile detection via isMobile || isMobileViewport is the standard pattern
 
-**Verified via dev-browser:** Kaleidoscope shows 6-wedge symmetry on 375x667 viewport
+**Verified in browser:** Kaleidoscope shows 6-wedge symmetry on 375x667 viewport
 ---

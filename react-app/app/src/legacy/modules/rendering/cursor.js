@@ -143,6 +143,11 @@ function shouldUseHomeDotCursor() {
   return false;
 }
 
+function isDevChromeCursorTarget(target) {
+  if (!target || !target.closest) return false;
+  return Boolean(target.closest('.panel-toggle-btn'));
+}
+
 function getHomeCursorDotDiameterCssPx() {
   const globals = getGlobals();
   const canvas = globals.canvas;
@@ -445,10 +450,12 @@ export function updateCursorPosition(clientX, clientY) {
   const wasInSimulation = isInSimulation;
   isInSimulation = isMouseInSimulation(clientX, clientY);
   const overlayIsActive = isOverlayActive();
+  const hoverTarget = document.elementFromPoint(clientX, clientY);
+  const useDevChromeTapRing = !overlayIsActive && isDevChromeCursorTarget(hoverTarget);
 
   const shouldUseHomeDot = shouldUseHomeDotCursor();
-  const homeDot = shouldUseHomeDot && isInSimulation && !overlayIsActive;
-  const tapRing = overlayIsActive || (!shouldUseHomeDot && isInSimulation);
+  const homeDot = shouldUseHomeDot && isInSimulation && !overlayIsActive && !useDevChromeTapRing;
+  const tapRing = overlayIsActive || useDevChromeTapRing || (!shouldUseHomeDot && isInSimulation);
 
   if (!overlayIsActive) {
     cursorElement.classList.remove('modal-active');

@@ -11,6 +11,7 @@ import { applyChromeHarmony } from './chrome-harmony.js';
 import { readTokenVar } from '../utils/tokens.js';
 import { invalidateDepthWashCache } from './depth-wash.js';
 import { applyShellLayoutVars, syncShellToDocument, syncThemeColorMeta } from './site-shell.js';
+import { forEachPanelUiDocument, resolvePanelUiDocument } from '../ui/panel-ui-context.js';
 
 const THEME_STORAGE_KEY = 'theme-preference-v2';
 const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
@@ -24,20 +25,22 @@ let isDarkModeInitialized = false;
 function syncWallPanelTabsToTheme() {
   const isDark = document.body.classList.contains('dark-mode');
   const theme = isDark ? 'dark' : 'light';
-  document.querySelectorAll('.wall-section-with-tabs').forEach((container) => {
-    const sectionKey = container.querySelector('.wall-theme-tab')?.getAttribute('data-wall-section');
-    if (!sectionKey) return;
-    const tab = container.querySelector(`.wall-theme-tab[data-theme="${theme}"]`);
-    const panel = document.getElementById(sectionKey + (theme === 'light' ? 'LightPanel' : 'DarkPanel'));
-    if (!tab || !panel) return;
-    container.querySelectorAll('.wall-theme-tab').forEach((t) => {
-      t.classList.remove('active');
-      t.setAttribute('aria-selected', 'false');
+  forEachPanelUiDocument((uiDocument) => {
+    uiDocument.querySelectorAll('.wall-section-with-tabs').forEach((container) => {
+      const sectionKey = container.querySelector('.wall-theme-tab')?.getAttribute('data-wall-section');
+      if (!sectionKey) return;
+      const tab = container.querySelector(`.wall-theme-tab[data-theme="${theme}"]`);
+      const panel = uiDocument.getElementById(sectionKey + (theme === 'light' ? 'LightPanel' : 'DarkPanel'));
+      if (!tab || !panel) return;
+      container.querySelectorAll('.wall-theme-tab').forEach((t) => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      container.querySelectorAll('.wall-tab-panel').forEach((p) => p.classList.remove('active'));
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      panel.classList.add('active');
     });
-    container.querySelectorAll('.wall-tab-panel').forEach((p) => p.classList.remove('active'));
-    tab.classList.add('active');
-    tab.setAttribute('aria-selected', 'true');
-    panel.classList.add('active');
   });
 }
 
@@ -224,36 +227,54 @@ function applyDarkModeToDOM(isDark) {
  * Update segment control UI
  */
 function updateSegmentControl() {
-  const autoBtn = document.getElementById('themeAuto');
-  const lightBtn = document.getElementById('themeLight');
-  const darkBtn = document.getElementById('themeDark');
-  
-  if (!autoBtn || !lightBtn || !darkBtn) return;
-  
-  // Remove active class from all
-  [autoBtn, lightBtn, darkBtn].forEach(btn => btn.classList.remove('active'));
-  
-  // Add active to current
-  if (currentTheme === 'auto') {
-    autoBtn.classList.add('active');
-  } else if (currentTheme === 'light') {
-    lightBtn.classList.add('active');
-  } else {
-    darkBtn.classList.add('active');
-  }
-  
-  // Update status text
-  const status = document.getElementById('themeStatus');
-  if (status) {
-    const globals = getGlobals();
+  const globals = getGlobals();
+  const nextStatusText = currentTheme === 'auto'
+    ? (globals.isDarkMode ? '🌙 Auto (Dark)' : '☀️ Auto (Light)')
+    : (currentTheme === 'light' ? '☀️ Light Mode' : '🌙 Dark Mode');
+
+  forEachPanelUiDocument((uiDocument) => {
+    const autoBtn = uiDocument.getElementById('themeAuto');
+    const lightBtn = uiDocument.getElementById('themeLight');
+    const darkBtn = uiDocument.getElementById('themeDark');
+    if (!autoBtn || !lightBtn || !darkBtn) return;
+
+    [autoBtn, lightBtn, darkBtn].forEach(btn => btn.classList.remove('active'));
+
     if (currentTheme === 'auto') {
-      status.textContent = globals.isDarkMode ? '🌙 Auto (Dark)' : '☀️ Auto (Light)';
+      autoBtn.classList.add('active');
     } else if (currentTheme === 'light') {
-      status.textContent = '☀️ Light Mode';
+      lightBtn.classList.add('active');
     } else {
-      status.textContent = '🌙 Dark Mode';
+      darkBtn.classList.add('active');
     }
+
+    const status = uiDocument.getElementById('themeStatus');
+    if (status) status.textContent = nextStatusText;
+  });
+}
+
+export function bindThemeSegmentControls(uiDocument) {
+  const panelDocument = resolvePanelUiDocument(uiDocument);
+  if (!panelDocument) return;
+
+  const autoBtn = panelDocument.getElementById('themeAuto');
+  const lightBtn = panelDocument.getElementById('themeLight');
+  const darkBtn = panelDocument.getElementById('themeDark');
+
+  if (autoBtn && autoBtn.dataset.themeBound !== 'true') {
+    autoBtn.dataset.themeBound = 'true';
+    autoBtn.addEventListener('click', () => setTheme('auto'));
   }
+  if (lightBtn && lightBtn.dataset.themeBound !== 'true') {
+    lightBtn.dataset.themeBound = 'true';
+    lightBtn.addEventListener('click', () => setTheme('light'));
+  }
+  if (darkBtn && darkBtn.dataset.themeBound !== 'true') {
+    darkBtn.dataset.themeBound = 'true';
+    darkBtn.addEventListener('click', () => setTheme('dark'));
+  }
+
+  updateSegmentControl();
 }
 
 /**
@@ -276,6 +297,15 @@ export function setTheme(theme) {
   
   // Save preference
   writeStoredThemePreference(theme);
+
+  try {
+    window.dispatchEvent(new CustomEvent('abs:theme-changed', {
+      detail: {
+        theme,
+        isDark: shouldBeDark,
+      },
+    }));
+  } catch (e) {}
   
   devLog(`🎨 Theme set to: ${theme} (rendering: ${shouldBeDark ? 'dark' : 'light'})`);
 }
@@ -315,14 +345,7 @@ export function initializeDarkMode() {
   const initial = readStoredThemePreference();
   setTheme(initial);
   
-  // Setup segment control listeners
-  const autoBtn = document.getElementById('themeAuto');
-  const lightBtn = document.getElementById('themeLight');
-  const darkBtn = document.getElementById('themeDark');
-  
-  if (autoBtn) autoBtn.addEventListener('click', () => setTheme('auto'));
-  if (lightBtn) lightBtn.addEventListener('click', () => setTheme('light'));
-  if (darkBtn) darkBtn.addEventListener('click', () => setTheme('dark'));
+  bindThemeSegmentControls(document);
   
   // Listen for system preference changes
   if (window.matchMedia) {

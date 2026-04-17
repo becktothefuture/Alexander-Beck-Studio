@@ -25,7 +25,7 @@ This feature will define a consistent cross-mode dot-size language, add a repeat
 - [ ] For each mode, record visual findings for desktop and mobile.
 - [ ] Findings distinguish hard regressions from subjective tuning opportunities.
 - [ ] Audit output is saved in a repo-local markdown artifact that can be referenced by later PRDs.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ### US-002: Define a canonical cross-mode dot-size model
 **Description:** As a designer, I want a shared size model so that all modes feel like they belong to the same material family even when their motion language differs.
@@ -35,7 +35,7 @@ This feature will define a consistent cross-mode dot-size language, add a repeat
 - [ ] Document when a mode is allowed to diverge from the baseline and by how much.
 - [ ] Document how depth-based scaling in 3D/parallax modes should relate to the canonical baseline.
 - [ ] Document whether mode-specific multipliers remain, are reduced, or are replaced by normalized tokens.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ### US-003: Normalize visual outliers without flattening mode identity
 **Description:** As a visitor, I want the dots to feel like the same material object across modes so the simulation suite feels cohesive, while still letting 3D and parallax modes retain some stylization.
@@ -46,7 +46,7 @@ This feature will define a consistent cross-mode dot-size language, add a repeat
 - [ ] `parallax-float` is reviewed for both perceived size and density overload.
 - [ ] `kaleidoscope-3` is reviewed for density/spread interactions that distort perceived size.
 - [ ] Changes preserve intended mode identity rather than forcing pixel-identical sizing everywhere.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ### US-004: Add desktop and mobile performance guardrails for the audit workflow
 **Description:** As a developer, I want performance constraints attached to visual tuning so size normalization work does not create new simulation slowdowns.
@@ -56,7 +56,7 @@ This feature will define a consistent cross-mode dot-size language, add a repeat
 - [ ] Each audited mode has a documented mobile object-count or rendering budget where applicable.
 - [ ] Any mode with custom spawn or point-cloud generation uses the repo’s existing reduction/budget path or an equivalent documented mechanism.
 - [ ] The audit explicitly calls out modes whose performance profile is already outside acceptable bounds.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ### US-005: Create a follow-up PRD pipeline for mode-specific improvements
 **Description:** As a product owner, I want the audit to produce implementation-ready follow-up work so improvements can be tackled one by one without re-discovering the same issues.

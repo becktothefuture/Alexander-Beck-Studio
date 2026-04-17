@@ -82,7 +82,7 @@ Refactor `#app-frame` from flexbox-based layout to a 6-column × 3-row CSS Grid 
 - [ ] Logo reveal animation unchanged (inline style + JS control)
 - [ ] `#brand-logo` ID unchanged
 - [ ] Typecheck/lint passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-007: Position social icons in row 3, columns 1-2
 **Description:** As a user, I want social media links in the bottom-left area.
@@ -128,7 +128,7 @@ Refactor `#app-frame` from flexbox-based layout to a 6-column × 3-row CSS Grid 
 - [ ] No visual difference in animation timing or easing
 - [ ] Modal active state (`html.modal-active #main-links`) still hides nav correctly
 - [ ] Typecheck/lint passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-011: Maintain mobile grid (no collapse)
 **Description:** As a user on mobile, I want the same 6×3 grid layout with horizontally aligned navigation.
@@ -140,7 +140,7 @@ Refactor `#app-frame` from flexbox-based layout to a 6-column × 3-row CSS Grid 
 - [ ] Touch targets remain accessible (sufficient padding)
 - [ ] No horizontal overflow on small screens
 - [ ] Typecheck/lint passes
-- [ ] Verify in browser using dev-browser skill (mobile viewport)
+- [ ] Verify in browser (mobile viewport)
 
 ### US-012: Clean up deprecated flexbox/positioning CSS
 **Description:** As a developer, I want to remove CSS rules made obsolete by the grid layout.
@@ -162,7 +162,7 @@ Refactor `#app-frame` from flexbox-based layout to a 6-column × 3-row CSS Grid 
 - [ ] Page transitions between index/portfolio/cv work correctly
 - [ ] No ghost artifacts during transitions
 - [ ] Typecheck/lint passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ## Functional Requirements
 

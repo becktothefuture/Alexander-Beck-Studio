@@ -111,7 +111,10 @@ export default defineConfig(({ mode }) => ({
         portfolio: resolve(__dirname, 'portfolio.html'),
         cv: resolve(__dirname, 'cv.html'),
         styleguide: resolve(__dirname, 'styleguide.html'),
-        'palette-lab': resolve(__dirname, 'palette-lab.html')
+        'palette-lab': resolve(__dirname, 'palette-lab.html'),
+        ...(mode === 'development'
+          ? { 'panel-host': resolve(__dirname, 'panel-host.html') }
+          : {})
       }
     }
   }

@@ -69,7 +69,7 @@ import {
 // Compile-time dev flag (Rollup `replace()` sets __DEV__ in bundled builds).
 // Preview/production on localhost must still behave like production, so only the
 // compile-time flag enables authoring UI.
-const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : false;
+const ABS_DEV = import.meta.env.DEV;
 const CONTENT_FADE_DURATION_MS = 800;
 const CONTENT_FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
@@ -618,15 +618,19 @@ export async function bootstrapHomePage() {
     // Production builds ship without the panel (config is hardcoded during build).
     if (ABS_DEV) {
       try {
-        const panelDock = await import('./modules/ui/panel-dock.js');
-        panelDock.createPanelDock?.();
+        const panelManager = await import('./modules/ui/panel-popup-manager.js');
+        panelManager.registerDevPanelRoute?.({
+          page: 'home',
+          pageLabel: 'Home',
+          productLabel: 'Alexander Beck Studio',
+        });
         const colors = await import('./modules/visual/colors.js');
         colors.populateColorSelect?.();
         updateModeButtonsUI?.(startMode);
       } catch (e) {}
     }
     mark('bb:ui');
-    log(ABS_DEV ? '✓ Panel dock created (Sound + Controls)' : '✓ UI initialized (panel disabled in production)');
+    log(ABS_DEV ? '✓ Dev panel launcher ready' : '✓ UI initialized (panel disabled in production)');
 
     // Theme segment buttons live in the panel; init runs once after the dock exists.
     initializeDarkMode();

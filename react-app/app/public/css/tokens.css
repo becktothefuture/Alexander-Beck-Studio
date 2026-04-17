@@ -474,10 +474,10 @@
   --outer-wall-top-bevel-opacity-dark: 0.35;  /* Outer wall bevel opacity (dark mode) */
   
   /* Pit interior: soft inset shadow (below rim overlay, above canvas); JS applies +20% light / stronger dark */
-  --inner-wall-pit-inset-shadow-opacity: 0.144;
-  --inner-wall-pit-inset-shadow-blur: 28px;
+  --inner-wall-pit-inset-shadow-opacity: 0.08;
+  --inner-wall-pit-inset-shadow-blur: 20px;
   --inner-wall-pit-inset-shadow-spread: -6px;
-  --inner-wall-pit-inset-shadow-offset-y: 4px;
+  --inner-wall-pit-inset-shadow-offset-y: 3px;
 
   /* Inner wall gradient edge - radial gradient light/shadow edges */
   --inner-wall-gradient-edge-width: 3px;      /* Thickness of gradient edge border (~50% above prior 2px default) */

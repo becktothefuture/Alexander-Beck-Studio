@@ -41,7 +41,7 @@ Add a configurable video overlay system that creates an atmospheric, found-foota
 - [ ] Video has `border-radius: var(--wall-radius)` (same as noise)
 - [ ] Video is sibling to `.noise` inside `.overlay-effects` container
 - [ ] No overhang on edges - perfectly contained within wall bounds
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-002: Video sits below noise in z-index stack
 **Description:** As a user, I want the noise texture to appear on top of the video so the grain effect is most prominent.
@@ -50,7 +50,7 @@ Add a configurable video overlay system that creates an atmospheric, found-foota
 - [ ] Video has lower z-index than noise (video: z:15, noise: z:25)
 - [ ] Visual stack order: canvas → video → noise → wall frame
 - [ ] Noise texture visible on top of video effect
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-003: Blend mode works correctly
 **Description:** As a user, I want to see the video blend with content below using screen mode so dark areas are transparent and light areas brighten.
@@ -62,7 +62,7 @@ Add a configurable video overlay system that creates an atmospheric, found-foota
 - [ ] Blend effect visible when video opacity is 1.0
 - [ ] No `isolation: isolate` on parent containers
 - [ ] No `transform` or `will-change` properties on video element
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-004: Config panel controls work
 **Description:** As a user, I want to adjust video opacity and blend mode in real-time via the config panel.
@@ -72,7 +72,7 @@ Add a configurable video overlay system that creates an atmospheric, found-foota
 - [ ] Video Opacity slider (0-1) updates opacity in real-time
 - [ ] Video Blend Mode dropdown changes blend mode in real-time
 - [ ] Changes persist when saving config
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ## Functional Requirements
 

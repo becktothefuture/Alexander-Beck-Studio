@@ -2305,10 +2305,9 @@ button.abs-meta-btn,
 
 /* ── Quote Puck ─────────────────────────────────────────────────────────────
    `#quote-display` = shell + hit target. `.quote-display__disk` = round fill + shadow;
-   hover scale applies only to disk. `.quote-display__content` = text (no hover scale). */
+   hover darkens the disk slightly. `.quote-display__content` = text. */
 .quote-display {
   --_size: max(244px, var(--abs-quote-button-size, 272px));
-  --quote-puck-hover-scale: 1.05;
   position: fixed;
   right: 24px;
   bottom: 10vh;
@@ -2328,7 +2327,6 @@ button.abs-meta-btn,
   -webkit-user-select: none;
   cursor: none;
   -webkit-tap-highlight-color: transparent;
-  --quote-button-outer-shadow: 0.045;
   --quote-tilt: -3deg;
 }
 
@@ -2337,36 +2335,32 @@ button.abs-meta-btn,
   inset: 0;
   border-radius: 50%;
   corner-shape: round;
+  overflow: hidden;
   z-index: 0;
   background: var(--cursor-color);
   box-shadow:
-    0 3px 10px rgba(0, 0, 0, calc(var(--quote-button-outer-shadow) * 2.2)),
-    0 10px 24px rgba(0, 0, 0, calc(var(--quote-button-outer-shadow) * 2.2)),
+    0 3px 10px rgba(0, 0, 0, calc(var(--quote-button-outer-shadow, 0.14) * 2.2)),
+    0 10px 24px rgba(0, 0, 0, calc(var(--quote-button-outer-shadow, 0.14) * 2.2)),
     inset 0 var(--puck-edge-width, 1px) 0 rgba(var(--abs-rgb-white), var(--puck-edge-light-opacity, 0.3)),
     inset 0 calc(-1 * var(--puck-edge-width, 1px)) 0 rgba(var(--abs-rgb-black), var(--puck-edge-shadow-opacity, 0.15));
-  transform: scale(1);
-  transform-origin: center center;
-  /* Same energy as chrome hover fills: fast in, smooth release out */
-  transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic));
+}
+
+.quote-display__disk::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(var(--abs-rgb-black), 0);
+  pointer-events: none;
+  transition: background-color 125ms ease-out;
 }
 
 #quote-display:hover .quote-display__disk {
-  transform: scale(var(--quote-puck-hover-scale));
-  transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
+  background: var(--cursor-color);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .quote-display__disk {
-    transition: none;
-  }
-
-  #quote-display:hover .quote-display__disk {
-    transform: scale(1);
-  }
-}
-
-.dark-mode .quote-display {
-  --quote-button-outer-shadow: 0.12;
+#quote-display:hover .quote-display__disk::after {
+  background: rgba(var(--abs-rgb-black), 0.04);
 }
 
 /* JS-driven positioning: switches from right/bottom to left/top */
@@ -2405,7 +2399,7 @@ button.abs-meta-btn,
   z-index: 1;
   pointer-events: none;
   opacity: 1;
-  transform: rotate(var(--quote-tilt, -3deg)) scale(1);
+  transform: rotate(var(--quote-tilt, -3deg));
   transform-origin: center center;
   filter: blur(0);
   transition:

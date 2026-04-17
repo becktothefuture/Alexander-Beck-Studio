@@ -97,7 +97,7 @@ The goal is to achieve stable 60 FPS on mobile by completely disabling wall defo
 **Description:** As a developer, I need to verify the optimizations achieve 60 FPS on mobile.
 
 **Acceptance Criteria:**
-- [x] Test on mobile viewport (375x667) using dev-browser skill
+- [x] Test in browser on mobile viewport (375x667)
 - [x] Switch through at least 5 different modes
 - [x] Confirm wall is rendered as static rounded rectangle (no wobble)
 - [x] No visible performance degradation after mode switches

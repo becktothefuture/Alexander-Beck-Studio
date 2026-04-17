@@ -1,0 +1,68 @@
+- generic [ref=e1]:
+  - generic [ref=e48]:
+    - generic:
+      - application "Bouncy balls" [ref=e49]
+      - generic:
+        - generic:
+          - heading "Alexander Beck — Creative Technologist" [level=1]:
+            - generic: Alexander Beck
+            - generic: Creative Technologist
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - banner:
+                - generic:
+                  - navigation "Areas of expertise" [ref=e3]:
+                    - generic [ref=e6]: Product Systems
+                    - generic [ref=e9]: Interaction Design
+                    - generic [ref=e12]: Creative Technology
+                    - generic [ref=e15]: Applied AI
+                    - generic [ref=e18]: Experience Strategy
+                    - generic [ref=e21]: Art Direction
+                    - generic [ref=e24]: Prototyping
+                  - generic:
+                    - blockquote [ref=e25]:
+                      - paragraph [ref=e26]:
+                        - text: The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI to shape clear, usable experiences that are ready to ship.
+                        - link "Let's chat." [ref=e27]:
+                          - /url: "#"
+                    - button "Sound off" [ref=e51]:
+                      - generic: 
+            - generic:
+              - main
+              - navigation "Main navigation links" [ref=e28]:
+                - button "Contact" [ref=e29]:
+                  - generic [ref=e30]: Contact
+                - button "Portfolio" [ref=e31]:
+                  - generic [ref=e32]: Portfolio
+                - button "About me" [ref=e52]:
+                  - generic [ref=e34]: About me
+        - generic:
+          - contentinfo:
+            - generic:
+              - group "Social media links" [ref=e36]:
+                - link "Apple Music" [ref=e37]:
+                  - /url: https://music.apple.com/profile/beckandeggs
+                  - generic: 
+                  - generic [ref=e38]: Apple Music
+                - link "LinkedIn" [ref=e39]:
+                  - /url: https://www.linkedin.com/in/thisisbeck/
+                  - generic: 
+                  - generic [ref=e40]: LinkedIn
+              - button "Toggle theme" [ref=e42]:
+                - generic [ref=e43]:
+                  - generic [ref=e44]:
+                    - strong [ref=e45]: London
+                    - generic [ref=e46]: ·
+                  - time [ref=e47]: 9:55:17 PM
+          - status:
+            - generic: Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable.
+            - generic: © 2026 Alexander Beck
+    - button [ref=e53]:
+      - generic:
+        - paragraph: An empty space is never empty. ⁕
+        - paragraph: John Cage
+  - button "Toggle design panel window" [active] [pressed] [ref=e55]: ⚙
+  - generic: FPS 54 / 60 | 21.00ms | throttle L0 (no, 0%) | >16.67ms 159 | >8.33ms 392

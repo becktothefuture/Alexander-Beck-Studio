@@ -1,4 +1,5 @@
 import { getGlobals } from '../core/state.js';
+import { forEachPanelUiDocument } from '../ui/panel-ui-context.js';
 import {
   DEFAULT_LONDON_WEATHER_PALETTE_ID,
   LONDON_WEATHER_PALETTES,
@@ -784,8 +785,10 @@ export function applyColorTemplate(templateName) {
     localStorage.setItem(PALETTE_ROTATION_STORAGE_KEY, String(resolvedTemplateName || ''));
   } catch (_) { /* no-op */ }
   try {
-    const select = document.getElementById('colorSelect');
-    if (select) select.value = resolvedTemplateName;
+    forEachPanelUiDocument((uiDocument) => {
+      const select = uiDocument.getElementById('colorSelect');
+      if (select) select.value = resolvedTemplateName;
+    });
   } catch (_) { /* no-op */ }
   
   // Cursor color must remain valid across template + theme changes.
@@ -846,33 +849,37 @@ function syncPaletteVars(colors) {
 function updateColorPickersUI() {
   const globals = getGlobals();
   const colors = globals.currentColors;
-  
-  for (let i = 1; i <= 8; i++) {
-    const picker = document.getElementById(`color${i}`);
-    const display = document.getElementById(`color${i}Val`);
-    if (picker && colors[i-1]) {
-      picker.value = colors[i-1];
-      if (display) display.textContent = colors[i-1].toUpperCase();
+
+  forEachPanelUiDocument((uiDocument) => {
+    for (let i = 1; i <= 8; i++) {
+      const picker = uiDocument.getElementById(`color${i}`);
+      const display = uiDocument.getElementById(`color${i}Val`);
+      if (picker && colors[i - 1]) {
+        picker.value = colors[i - 1];
+        if (display) display.textContent = colors[i - 1].toUpperCase();
+      }
     }
-  }
+  });
 }
 
 export function populateColorSelect() {
-  const select = document.getElementById('colorSelect');
-  if (!select) return;
-  
-  select.innerHTML = '';
-  for (const key of PALETTE_CHAPTER_ORDER) {
-    const template = COLOR_TEMPLATES[key];
-    if (!template) continue;
-    const option = document.createElement('option');
-    option.value = key;
-    option.textContent = template.label;
-    select.appendChild(option);
-  }
-  
   const globals = getGlobals();
-  select.value = resolveColorTemplateName(globals.currentTemplate);
+  forEachPanelUiDocument((uiDocument) => {
+    const select = uiDocument.getElementById('colorSelect');
+    if (!select) return;
+
+    select.innerHTML = '';
+    for (const key of PALETTE_CHAPTER_ORDER) {
+      const template = COLOR_TEMPLATES[key];
+      if (!template) continue;
+      const option = uiDocument.createElement('option');
+      option.value = key;
+      option.textContent = template.label;
+      select.appendChild(option);
+    }
+
+    select.value = resolveColorTemplateName(globals.currentTemplate);
+  });
 }
 
 /**

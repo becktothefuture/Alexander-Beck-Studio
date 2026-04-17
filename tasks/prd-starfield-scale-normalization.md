@@ -23,7 +23,7 @@ This feature will normalize the perceived star size so `starfield-3d` feels part
 - [ ] `starfield-3d` no longer reads as oversized relative to the shared site dots.
 - [ ] The apparent star size is visually closer to the baseline used by the core physics modes.
 - [ ] The resulting size still leaves enough contrast and presence to read as a starfield rather than dust noise.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ### US-002: Preserve depth-based scale behavior without oversized near stars
 **Description:** As a visitor, I want near and far stars to preserve a sense of depth so the mode still feels spatial, not flattened.
@@ -32,7 +32,7 @@ This feature will normalize the perceived star size so `starfield-3d` feels part
 - [ ] Near stars can still appear larger than far stars.
 - [ ] Depth scaling is rebalanced so near stars do not dominate the composition.
 - [ ] Far stars remain visible and legible enough to sustain the depth field.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ### US-003: Keep the starfield atmospheric rather than heavy
 **Description:** As a designer, I want the starfield to feel delicate and spatial so that it supports the overall site tone instead of overpowering it.
@@ -41,7 +41,7 @@ This feature will normalize the perceived star size so `starfield-3d` feels part
 - [ ] The mode retains an airy, cinematic feel after normalization.
 - [ ] The stars do not visually compete with the hero title and navigation.
 - [ ] Pointer interaction still feels responsive and intentional after the size change.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ### US-004: Validate desktop and mobile behavior
 **Description:** As a visitor, I want the mode to feel consistent across devices so the site quality holds on both large and small screens.
@@ -50,7 +50,7 @@ This feature will normalize the perceived star size so `starfield-3d` feels part
 - [ ] Visual review is completed on desktop and mobile.
 - [ ] Desktop and mobile both retain the intended atmospheric feel.
 - [ ] Mobile does not regress into oversized or cluttered star presentation.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ### US-005: Keep starfield performance within guardrails
 **Description:** As a developer, I want star size tuning to avoid performance regressions so this visual fix does not create new runtime issues.
@@ -59,7 +59,7 @@ This feature will normalize the perceived star size so `starfield-3d` feels part
 - [ ] Any count, fade, or depth adjustments required by the size rebalance stay within acceptable runtime performance.
 - [ ] Existing mobile/object-budget logic remains intact or is improved if needed.
 - [ ] No new mode-specific performance workaround is introduced without clear justification.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ## Functional Requirements
 

@@ -5,116 +5,9 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
-import { applyExpertiseLegendColors } from '../ui/legend-colors.js';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
-}
-
-const WEIGHTLESS_PALETTE = {
-  light: ["var(--color-detected-91887b)", "var(--color-detected-5f564a)", "var(--color-detected-f3ede1)", "var(--color-detected-149a72)", "var(--color-detected-121212)", "var(--color-detected-3e6ff2)", "var(--color-detected-d6a21d)", "var(--color-detected-eb5b2a)"],
-  dark: ["var(--color-detected-a79d91)", "var(--color-detected-706659)", "var(--color-detected-f6efe3)", "var(--color-detected-31b78c)", "var(--color-detected-e0d8cb)", "var(--color-detected-5f86ff)", "var(--color-detected-e0b543)", "var(--color-detected-ff7442)"]
-};
-
-const WEIGHTLESS_DISTRIBUTION = [
-  { label: 'Product Systems', colorIndex: 0, weight: 34 },
-  { label: 'Applied AI', colorIndex: 2, weight: 22 },
-  { label: 'Interaction Design', colorIndex: 1, weight: 20 },
-  { label: 'Creative Technology', colorIndex: 3, weight: 12 },
-  { label: 'Experience Strategy', colorIndex: 5, weight: 10 },
-  { label: 'Art Direction', colorIndex: 6, weight: 1 },
-  { label: 'Prototyping', colorIndex: 7, weight: 1 }
-];
-
-const SHAPE_COLOR_MAP = {
-  ring: {
-    label: 'Product Systems',
-    fallbackPaletteIndex: 0
-  },
-  pyramid: {
-    label: 'Applied AI',
-    fallbackPaletteIndex: 2
-  },
-  frame: {
-    label: 'Creative Technology',
-    fallbackPaletteIndex: 3
-  },
-  systemsMini: {
-    label: 'Interaction Design',
-    fallbackPaletteIndex: 1
-  },
-  appliedMini: {
-    label: 'Art Direction',
-    fallbackPaletteIndex: 6
-  },
-  interactionMini: {
-    label: 'Prototyping',
-    fallbackPaletteIndex: 7
-  }
-};
-
-function normalizeLabel(value) {
-  return String(value || '').trim().toLowerCase();
-}
-
-function resolveShapeColor(globals, shapeName) {
-  const colors = Array.isArray(globals.currentColors) ? globals.currentColors : [];
-  const distribution = Array.isArray(globals.colorDistribution) ? globals.colorDistribution : [];
-  const group = SHAPE_COLOR_MAP[shapeName];
-  const wantedLabel = normalizeLabel(group?.label);
-  for (let i = 0; i < distribution.length; i++) {
-    const row = distribution[i];
-    if (normalizeLabel(row?.label) !== wantedLabel) continue;
-    const paletteIdx = Math.max(0, Math.min(7, Number(row?.colorIndex) || 0));
-    return {
-      color: colors[paletteIdx] || colors[0] || "var(--color-brand-white)",
-      distributionIndex: i
-    };
-  }
-  const fallbackPaletteIdx = Math.max(0, Math.min(7, Number(group?.fallbackPaletteIndex) || 0));
-  return {
-    color: colors[fallbackPaletteIdx] || colors[0] || "var(--color-brand-white)",
-    distributionIndex: 0
-  };
-}
-
-function syncWeightlessPalette(globals) {
-  const palette = (globals.isDarkMode ? WEIGHTLESS_PALETTE.dark : WEIGHTLESS_PALETTE.light).slice();
-  globals.currentColors = palette;
-  globals.colorDistribution = WEIGHTLESS_DISTRIBUTION.map((row) => ({ ...row }));
-
-  const dist = globals.colorDistribution;
-  const balls = Array.isArray(globals.balls) ? globals.balls : [];
-  for (let i = 0; i < balls.length; i++) {
-    const ball = balls[i];
-    if (!ball?._preserveColor) continue;
-    const row = dist[ball.distributionIndex];
-    const colorIndex = Math.max(0, Math.min(7, Number(row?.colorIndex) || 0));
-    ball.color = palette[colorIndex] || palette[0] || "var(--color-brand-white)";
-  }
-
-  if (typeof document !== 'undefined') {
-    const root = document.documentElement;
-    for (let i = 0; i < 8; i++) {
-      root.style.setProperty(`--ball-${i + 1}`, palette[i] || "var(--color-brand-white)");
-    }
-  }
-
-  applyExpertiseLegendColors();
-}
-
-function ensureWeightlessPaletteSync() {
-  if (typeof window === 'undefined') return;
-  if (window.__absWeightlessPaletteSyncBound) return;
-
-  const handlePaletteDrift = () => {
-    const globals = getGlobals();
-    if (globals.currentMode !== 'weightless') return;
-    syncWeightlessPalette(globals);
-  };
-
-  window.addEventListener('bb:paletteChanged', handlePaletteDrift);
-  window.__absWeightlessPaletteSyncBound = true;
 }
 
 function pushFormationAwayFromCenter(globals, points, push = 1.2, edgePad = 0) {
@@ -139,100 +32,58 @@ function pushFormationAwayFromCenter(globals, points, push = 1.2, edgePad = 0) {
   });
 }
 
-function createRingFormation(globals, spacing) {
+function createFilledRectangle(globals, centerXRatio, centerYRatio, columns, rows, spacing, push = 1.08) {
   const canvas = globals.canvas;
   if (!canvas) return [];
 
-  const centerX = canvas.width * 0.385;
-  const centerY = canvas.height * 0.215;
-  const step = spacing * 0.98;
+  const centerX = canvas.width * centerXRatio;
+  const centerY = canvas.height * centerYRatio;
   const points = [];
+  const width = (columns - 1) * spacing;
+  const height = (rows - 1) * spacing;
 
-  for (let gy = -1.5; gy <= 1.5; gy += 1) {
-    for (let gx = -1.5; gx <= 1.5; gx += 1) {
-      const isPerimeter = Math.abs(gx) === 1.5 || Math.abs(gy) === 1.5;
-      if (!isPerimeter) continue;
-      points.push({
-        x: centerX + gx * step,
-        y: centerY + gy * step
-      });
-    }
-  }
-
-  return pushFormationAwayFromCenter(globals, points, 1.2, spacing * 1.6);
-}
-
-function createPyramidFormation(globals, spacing) {
-  const canvas = globals.canvas;
-  if (!canvas) return [];
-
-  const centerX = canvas.width * 0.22;
-  const topY = canvas.height * 0.61;
-  const step = spacing * 0.92;
-  const points = [];
-
-  for (let row = 0; row < 5; row += 1) {
-    const columns = row + 1;
-    const rowWidth = (columns - 1) * step;
-    const startX = centerX - rowWidth * 0.5;
-    const y = topY + row * step;
+  for (let row = 0; row < rows; row += 1) {
     for (let column = 0; column < columns; column += 1) {
       points.push({
-        x: startX + column * step,
-        y
+        x: centerX - width * 0.5 + column * spacing,
+        y: centerY - height * 0.5 + row * spacing
       });
     }
   }
 
-  return pushFormationAwayFromCenter(globals, points, 1.2, spacing * 1.6);
+  return pushFormationAwayFromCenter(globals, points, push, spacing * 1.6);
 }
 
-function createFrameFormation(globals, spacing) {
+function createFilledCircle(globals, centerXRatio, centerYRatio, columns, rows, spacing, push = 1.08) {
   const canvas = globals.canvas;
   if (!canvas) return [];
 
-  const centerX = canvas.width * 0.72;
-  const centerY = canvas.height * 0.675;
-  const step = spacing * 0.94;
+  const centerX = canvas.width * centerXRatio;
+  const centerY = canvas.height * centerYRatio;
   const points = [];
+  const radiusX = Math.max(0.5, (columns - 1) * 0.5);
+  const radiusY = Math.max(0.5, (rows - 1) * 0.5);
 
-  for (let gy = -1.5; gy <= 1.5; gy += 1) {
-    for (let gx = -1.5; gx <= 1.5; gx += 1) {
-      const isPerimeter = Math.abs(gx) === 1.5 || Math.abs(gy) === 1.5;
-      if (!isPerimeter) continue;
-      const x = centerX + gx * step;
-      const y = centerY + gy * step;
-      points.push({ x, y });
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      const nx = radiusX === 0 ? 0 : (column - radiusX) / radiusX;
+      const ny = radiusY === 0 ? 0 : (row - radiusY) / radiusY;
+      if ((nx * nx) + (ny * ny) > 1) continue;
+      points.push({
+        x: centerX + (column - radiusX) * spacing,
+        y: centerY + (row - radiusY) * spacing
+      });
     }
   }
 
-  return pushFormationAwayFromCenter(globals, points, 1.2, spacing * 1.6);
+  return pushFormationAwayFromCenter(globals, points, push, spacing * 1.6);
 }
 
-function createNeutralAccentFormation(globals, spacing) {
-  const canvas = globals.canvas;
-  if (!canvas) return [];
-
-  const centerX = canvas.width * 0.165;
-  const centerY = canvas.height * 0.455;
-  const step = spacing * 0.90;
-  const points = [];
-
-  points.push({ x: centerX - step * 0.5, y: centerY - step * 0.5, colorKey: 'systemsMini' });
-  points.push({ x: centerX + step * 0.5, y: centerY - step * 0.5, colorKey: 'appliedMini' });
-  points.push({ x: centerX - step * 0.5, y: centerY + step * 0.5, colorKey: 'systemsMini' });
-  points.push({ x: centerX + step * 0.5, y: centerY + step * 0.5, colorKey: 'interactionMini' });
-
-  return pushFormationAwayFromCenter(globals, points, 1.2, spacing * 1.6);
-}
-
-function spawnFormation(globals, points, shapeName) {
+function spawnFormation(globals, points) {
   let spawned = 0;
   for (let i = 0; i < points.length; i++) {
     const point = points[i];
-    const resolvedName = point.colorKey || shapeName;
-    const { color, distributionIndex } = resolveShapeColor(globals, resolvedName);
-    const ball = spawnBall(point.x, point.y, color, distributionIndex);
+    const ball = spawnBall(point.x, point.y);
 
     // Hold the illustration still until the pointer disturbs it.
     ball.vx = 0;
@@ -240,7 +91,6 @@ function spawnFormation(globals, points, shapeName) {
     ball.omega = 0;
     ball.driftAx = 0;
     ball.driftTime = 0;
-    ball._preserveColor = true;
     spawned++;
   }
   return spawned;
@@ -260,29 +110,25 @@ function arrangeBallsInComposition(globals, targetBalls) {
   if (!canvas || targetBalls <= 0) return 0;
 
   const avgRadius = ((globals.R_MIN || 15) + (globals.R_MAX || 25)) * 0.5;
-  const spacing = avgRadius * 1.86;
-  const ring = createRingFormation(globals, spacing);
-  const pyramid = createPyramidFormation(globals, spacing);
-  const frame = createFrameFormation(globals, spacing);
-  const neutralAccent = createNeutralAccentFormation(globals, spacing);
+  const spacing = avgRadius * 1.72;
+  const largeCircle = createFilledCircle(globals, 0.22, 0.26, 7, 7, spacing, 1.12);
+  const mediumRect = createFilledRectangle(globals, 0.78, 0.30, 5, 4, spacing, 1.06);
+  const smallRect = createFilledRectangle(globals, 0.22, 0.74, 3, 3, spacing, 1.04);
   const formations = trimFormationPoints([
-    { name: 'ring', points: ring },
-    { name: 'pyramid', points: pyramid },
-    { name: 'frame', points: frame },
-    { name: 'systemsMini', points: neutralAccent }
+    { name: 'largeCircle', points: largeCircle },
+    { name: 'mediumRect', points: mediumRect },
+    { name: 'smallRect', points: smallRect }
   ], targetBalls);
 
   let spawned = 0;
   for (let i = 0; i < formations.length; i++) {
-    spawned += spawnFormation(globals, formations[i].points, formations[i].name);
+    spawned += spawnFormation(globals, formations[i].points);
   }
   return spawned;
 }
 
 export function initializeWeightless() {
   const globals = getGlobals();
-  ensureWeightlessPaletteSync();
-  syncWeightlessPalette(globals);
   clearBalls();
   
   const targetBalls = getMobileAdjustedCount(globals.weightlessCount);

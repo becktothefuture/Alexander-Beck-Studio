@@ -108,7 +108,7 @@ Core intent: visitors should only pay runtime cost for the simulation that is ac
 - [ ] HUD does not affect input hit areas or accessibility focus order
 - [ ] HUD updates at a controlled frequency (not every paint if unnecessary)
 - [ ] `npm run build` completes successfully
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-003: Replace fixed 60 FPS cap with configurable target scheduler
 **Description:** As a user, I want simulations to use available device headroom so that smoothness can exceed 60 FPS where possible.
@@ -174,7 +174,7 @@ Core intent: visitors should only pay runtime cost for the simulation that is ac
 - [ ] Accessibility checks: keyboard nav, ARIA integrity, `prefers-reduced-motion`
 - [ ] Privacy check: no new external network calls, local storage usage unchanged in scope
 - [ ] `npm run build` completes successfully
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-010: Safe rollout controls and rollback strategy
 **Description:** As an owner, I want a low-risk rollout with kill switches so that regressions can be contained quickly.
@@ -288,4 +288,3 @@ Core intent: visitors should only pay runtime cost for the simulation that is ac
 - For documented but currently disabled/legacy modes, should regression coverage be full parity or smoke-level?
 - Should quality-tier controls be user-exposed in dev panel only, or fully runtime-config only?
 - Do we require a strict hard floor (e.g., 60 FPS minimum) for low-power mobile devices as a release gate?
-

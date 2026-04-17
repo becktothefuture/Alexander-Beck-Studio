@@ -100,7 +100,7 @@ The conversion must preserve compatibility with the current optimization state:
 - [ ] Each entry mounts the correct page component
 - [ ] Shared layout/frame is imported by all page entries
 - [ ] `npm run build` (React app) produces all three entries
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-004: Implement reusable shared frame component
 **Description:** As a user, I want all three pages to share the same visual frame so the UI remains consistent and modular.
@@ -110,7 +110,7 @@ The conversion must preserve compatibility with the current optimization state:
 - [ ] Shared frame preserves structure for header/center/footer/modal host layers
 - [ ] Shared frame supports page-specific slot content
 - [ ] No perceived visual drift in frame geometry/spacing
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-005: Bridge legacy Home runtime into React
 **Description:** As a user, I want the home experience to behave exactly as it does now after conversion.
@@ -120,7 +120,7 @@ The conversion must preserve compatibility with the current optimization state:
 - [ ] Existing entrance behavior and daily simulation startup are preserved
 - [ ] Main interactive links and modal triggers still work
 - [ ] No duplicate initialization during dev hot-reload
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-006: Bridge legacy Portfolio runtime into React
 **Description:** As a user, I want the portfolio carousel and detail interactions to remain unchanged.
@@ -130,7 +130,7 @@ The conversion must preserve compatibility with the current optimization state:
 - [ ] Carousel drag/wheel interactions remain equivalent
 - [ ] Detail overlay open/close behavior remains equivalent
 - [ ] Sound slot, social controls, and footer meta remain aligned
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-007: Bridge legacy CV runtime into React
 **Description:** As a user, I want CV scrolling and media behavior to remain unchanged.
@@ -140,7 +140,7 @@ The conversion must preserve compatibility with the current optimization state:
 - [ ] CV scroll typography and slideshow behavior remain equivalent
 - [ ] CV page nav links and modal triggers remain equivalent
 - [ ] No visual regressions in fixed/scroll regions
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-008: Preserve first-paint and theme/chrome behavior
 **Description:** As a mobile user, I want no white flash or theme mismatch during page load.
@@ -149,7 +149,7 @@ The conversion must preserve compatibility with the current optimization state:
 - [ ] First-paint critical wall/theme behavior is preserved
 - [ ] Theme-color meta synchronization remains correct on light/dark and page resume
 - [ ] Safari/PWA status bar behavior remains correct
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-009: Preserve locked two-layer modal blur architecture
 **Description:** As a user, I want modal presentation and blur behavior unchanged.
@@ -158,7 +158,7 @@ The conversion must preserve compatibility with the current optimization state:
 - [ ] `modal-blur-layer` and `modal-content-layer` structure is preserved
 - [ ] Existing overlay transitions remain equivalent
 - [ ] No z-index or compositing regressions
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-010: Preserve navigation transition behavior
 **Description:** As a user, I want page-to-page transitions to feel identical.
@@ -167,7 +167,7 @@ The conversion must preserve compatibility with the current optimization state:
 - [ ] Session-based nav state behavior is preserved
 - [ ] View Transitions support and fallback behavior remain equivalent
 - [ ] Back/forward cache restore behavior remains equivalent
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-011: Preserve optimization feature-flag compatibility
 **Description:** As a maintainer, I want existing optimization flags to continue controlling behavior after conversion.
@@ -195,7 +195,7 @@ The conversion must preserve compatibility with the current optimization state:
 - [ ] Landmarks/headings/ARIA labels are preserved for all three pages
 - [ ] Keyboard navigation order remains logical and complete
 - [ ] `prefers-reduced-motion` behavior remains respected
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-014: Preserve privacy and network boundaries
 **Description:** As a user, I want no new external data calls introduced by migration.
@@ -204,7 +204,7 @@ The conversion must preserve compatibility with the current optimization state:
 - [ ] No new third-party network calls are introduced
 - [ ] Existing localStorage/sessionStorage behavior remains equivalent
 - [ ] Config/data fetch paths remain local and deterministic
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-015: Add side-by-side run workflow
 **Description:** As a developer, I want one-command side-by-side execution to compare static and React apps efficiently.
@@ -213,7 +213,7 @@ The conversion must preserve compatibility with the current optimization state:
 - [ ] Scripts exist to run source app (`8001`) and React app (`8002`) together
 - [ ] Documentation shows expected startup steps and URLs
 - [ ] Workflow is repeatable on clean checkout
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-016: Add smoke test workflow for migration safety
 **Description:** As a developer, I want minimal automated checks to catch critical regressions quickly.
@@ -222,7 +222,7 @@ The conversion must preserve compatibility with the current optimization state:
 - [ ] Smoke checks validate page load and critical DOM anchors on all three pages
 - [ ] Smoke checks validate critical modal open path per page
 - [ ] Smoke checks report obvious console/runtime failures
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-017: Add visual parity diff workflow
 **Description:** As a reviewer, I want objective comparison artifacts so parity decisions are evidence-based.
@@ -233,7 +233,7 @@ The conversion must preserve compatibility with the current optimization state:
 - [ ] Diff report includes per-page breakpoint pass/fail status
 - [ ] Non-masked pixel difference threshold is defined and enforced (`<= 1.0%` per screenshot)
 - [ ] Key anchor alignment threshold is defined and enforced (`<= 2px` drift for frame/layout anchors)
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-018: Publish standalone React migration README
 **Description:** As a maintainer, I want dedicated docs for the converted app so onboarding and handoff are clear.

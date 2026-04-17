@@ -7,7 +7,6 @@ import { setMode, MODES, resetCurrentMode } from '../modes/mode-controller.js';
 import { NARRATIVE_MODE_SEQUENCE } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
 import { updateModeButtonsUI } from './controls.js';
-import { isDev } from '../utils/logger.js';
 
 let isKeyboardWired = false;
 
@@ -40,10 +39,10 @@ export function setupKeyboardShortcuts() {
       // DEV-ONLY: The config panel is a dev tool and must never ship/appear in production.
       // Avoid a static import so Rollup can drop panel-dock from production bundles.
       // Wired from home bootstrap and from `DevConfigPanelBridge` so SPA routes still get `/`.
-      if (!isDev()) return;
-      import('./panel-dock.js')
+      if (!import.meta.env.DEV) return;
+      import('./panel-popup-manager.js')
         .then((mod) => {
-          try { mod.toggleDock?.(); } catch (err) {}
+          try { mod.toggleDevPanelSurface?.(); } catch (err) {}
         })
         .catch(() => {});
       return;

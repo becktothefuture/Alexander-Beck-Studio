@@ -342,12 +342,18 @@ function generateSectionSetHTML(sections, options = {}) {
   }).join('');
 }
 
+function getShellObjectSections(options = {}) {
+  const sectionKeys = Array.isArray(options.sectionKeys) ? options.sectionKeys : null;
+  if (!sectionKeys || sectionKeys.length === 0) return SHELL_OBJECT_CONTROL_SECTIONS;
+  return SHELL_OBJECT_CONTROL_SECTIONS.filter((section) => sectionKeys.includes(section.key));
+}
+
 export function generateStudioSurfaceControlsHTML() {
   return generateSectionSetHTML(SURFACE_CONTROL_SECTIONS);
 }
 
 export function generateStudioShellControlsHTML(options = {}) {
-  return generateSectionSetHTML(SHELL_OBJECT_CONTROL_SECTIONS, options);
+  return generateSectionSetHTML(getShellObjectSections(options), options);
 }
 
 export function bindStudioSurfaceControls() {

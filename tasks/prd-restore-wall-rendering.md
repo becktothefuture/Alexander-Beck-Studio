@@ -56,7 +56,7 @@ The simulation's wall (thick rounded border frame) was suspected to have regress
 - [ ] Wall is visually thick (not a thin line)
 - [ ] Corners are visibly rounded
 - [ ] Wall renders in all simulation modes (test Ball Pit and Parallax Linear)
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ## Functional Requirements
 

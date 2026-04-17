@@ -46,7 +46,7 @@ Improve the portfolio route so the project bodies feel physically credible, carr
 - [ ] The eyebrow and title remain centered and legible inside both circle and squircle bodies.
 - [ ] Label layout responds to body size changes on resize and mobile.
 - [ ] Accessibility labels continue to expose the meaningful project name.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ### US-003: Pit-like physical behavior
 **Description:** As a portfolio visitor, I want the project bodies to feel like physical objects with believable separation, friction, and wall clearance so the simulation feels intentional rather than loose.
@@ -56,7 +56,7 @@ Improve the portfolio route so the project bodies feel physically credible, carr
 - [ ] Project bodies maintain visible clearance from the wall boundary using the same practical rules as the pit.
 - [ ] Friction/damping produces a steadier, heavier settle instead of slippery or jittery motion.
 - [ ] The behavior works for both circles and squircles in `PORTFOLIO_PIT`.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ### US-004: Stable resize and natural reflow
 **Description:** As a portfolio visitor, I want the project bodies to recalculate cleanly when the browser changes size so they do not grow uncontrollably or leave broken gaps.
@@ -66,7 +66,7 @@ Improve the portfolio route so the project bodies feel physically credible, carr
 - [ ] Body sizes are recalculated from the live available wall interior, not compounded from previous resizes.
 - [ ] The project set reflows naturally after resize with no obvious overlaps, gaps, or off-screen bodies.
 - [ ] Any resize reseed/reflow preserves project count and content mapping.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ### US-005: Correct wall masking and robust tiny-mobile chrome
 **Description:** As a mobile visitor, I want the wall to be the only scene mask and the top-row controls to stay intact on tiny screens so the route remains clean and usable.
@@ -76,7 +76,7 @@ Improve the portfolio route so the project bodies feel physically credible, carr
 - [ ] Decorative inner elements do not add redundant radius where the wall mask should already clip them.
 - [ ] The portfolio route top-row controls remain horizontally aligned on very small mobile widths.
 - [ ] The arrow container and links do not break into a broken state at the smallest viewport sizes.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ### US-006: Stronger material edge lighting
 **Description:** As a portfolio visitor, I want the project bodies to show a visible light edge and shadow edge so they feel like dimensional objects.
@@ -86,7 +86,7 @@ Improve the portfolio route so the project bodies feel physically credible, carr
 - [ ] Each project body has a noticeable bottom-right shadow rim.
 - [ ] The effect reads on both light and dark palettes without looking like a hard outline.
 - [ ] The effect applies to portfolio bodies, not only generic ball renders.
-- [ ] Verify in browser using dev-browser skill.
+- [ ] Verify in browser.
 
 ## Functional Requirements
 

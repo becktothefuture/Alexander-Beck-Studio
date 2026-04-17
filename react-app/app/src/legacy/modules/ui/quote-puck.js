@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                    QUOTE PUCK — AIR-HOCKEY PHYSICS                             ║
 // ║   Drag-to-flick · wall bounce · friction · spin on text via --quote-tilt.     ║
-// ║   Round fill (.quote-display__disk) scales on hover; text does not.            ║
+// ║   Round fill (.quote-display__disk) darkens slightly on hover; text does not.  ║
 // ║   stays aligned with the scene (rotating the surface warps high-contrast edges). ║
 // ║   Shell: left/top only — rim/shadow stay fixed. No drag/hover CSS class.     ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝

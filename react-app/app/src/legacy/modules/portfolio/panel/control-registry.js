@@ -1,3 +1,5 @@
+import { registerPanelUiDocument, resolvePanelUiDocument } from '../../ui/panel-ui-context.js';
+
 const CONTROL_SECTIONS = {
   layout: {
     title: 'Layout',
@@ -370,13 +372,16 @@ export function bindRegisteredControls(config, options = {}) {
   if (!config || typeof config !== 'object') return;
   if (!config.cssVars || typeof config.cssVars !== 'object') config.cssVars = {};
   if (!config.runtime || typeof config.runtime !== 'object') config.runtime = {};
+  const uiDocument = resolvePanelUiDocument(options.uiDocument);
+  if (!uiDocument) return;
+  registerPanelUiDocument(uiDocument);
   const root = document.documentElement;
   const computedRoot = getComputedStyle(root);
   const { onMetricsChange, onRuntimeChange } = options;
 
   for (const control of getAllControls()) {
-    const input = document.getElementById(getControlInputId(control));
-    const valueNode = document.getElementById(getControlValueId(control));
+    const input = uiDocument.getElementById(getControlInputId(control));
+    const valueNode = uiDocument.getElementById(getControlValueId(control));
     if (!input) continue;
 
     const rawValue = resolveControlValue(control, config, computedRoot);
@@ -401,7 +406,7 @@ export function bindRegisteredControls(config, options = {}) {
   }
 }
 
-export function buildConfigSnapshot(config) {
+export function buildConfigSnapshot(config, options = {}) {
   const snapshot = {
     cssVars: {},
     runtime: {
@@ -413,6 +418,8 @@ export function buildConfigSnapshot(config) {
       behavior: {},
     },
   };
+  const uiDocument = resolvePanelUiDocument(options.uiDocument);
+  if (uiDocument) registerPanelUiDocument(uiDocument);
   const computedRoot = getComputedStyle(document.documentElement);
 
   for (const control of getAllControls()) {

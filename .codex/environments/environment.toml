@@ -4,32 +4,12 @@ name = "Alexander Beck Studio"
 
 [setup]
 script = '''
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-# 1) Install deps (auto-detect package manager)
-if [ -f pnpm-lock.yaml ]; then
-  corepack enable
-  pnpm install
-elif [ -f yarn.lock ]; then
-  corepack enable
-  yarn install --frozen-lockfile
-elif [ -f bun.lockb ] || [ -f bun.lock ]; then
-  bun install
-elif [ -f package-lock.json ]; then
-  npm ci
-else
-  npm install
-fi
+node -e "const major=Number(process.versions.node.split('.')[0]); if (major !== 20) console.warn(`Warning: CI uses Node 20; current ${process.versions.node}`)"
+npm run install:all
 
-# 2) Create local env file if the project expects one
-if [ -f .env.example ] && [ ! -f .env.local ] && [ ! -f .env ]; then
-  cp .env.example .env.local 2>/dev/null || cp .env.example .env
-fi
-
-# 3) Optional: generate artefacts if your project needs it
-# (uncomment if you actually use these)
-# npm run build
-# npm run typecheck
 '''
 
 [[actions]]

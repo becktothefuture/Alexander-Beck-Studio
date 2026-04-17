@@ -35,7 +35,7 @@ Fix the Safari browser UI tinting on iOS 26 so the browser chrome (top/bottom ba
 - [ ] Colour is applied via inline critical CSS in `<head>` (before stylesheet load)
 - [ ] No white flash or colour shift on initial load
 - [ ] npm run build passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-003: Prevent noise layers from affecting Safari tint sampling
 **Description:** As a user on iOS Safari, I want the noise overlay to not interfere with the browser's colour sampling.
@@ -45,7 +45,7 @@ Fix the Safari browser UI tinting on iOS 26 so the browser chrome (top/bottom ba
 - [ ] Solution uses one of: clip noise away from sampling zones, remove blend-mode in safe-area regions, or use CSS that Safari ignores for sampling
 - [ ] Noise visual effect preserved in the main content area
 - [ ] npm run build passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-004: Paint safe-area regions with wall colour
 **Description:** As a user on iOS Safari, I want the safe-area inset regions (notch, home indicator) to be painted with the wall colour.
@@ -55,7 +55,7 @@ Fix the Safari browser UI tinting on iOS 26 so the browser chrome (top/bottom ba
 - [ ] `env(safe-area-inset-top)` and `env(safe-area-inset-bottom)` regions painted with wall colour
 - [ ] No system material or different colour visible in safe-area zones
 - [ ] npm run build passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-005: Validate fix across all states
 **Description:** As a user on iOS Safari, I want consistent chrome colour in all normal browsing states.
@@ -67,7 +67,7 @@ Fix the Safari browser UI tinting on iOS 26 so the browser chrome (top/bottom ba
 - [ ] Chrome matches wall when address bar collapses/expands
 - [ ] No seam visible in any state
 - [ ] npm run build passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ## Functional Requirements
 

@@ -1440,29 +1440,31 @@ export async function bootstrapPortfolio() {
   if (pitCanvas) { pitCanvas.style.opacity = '1'; }
   if (pitMount) { pitMount.style.opacity = '1'; }
 
-  const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : false;
+  const ABS_DEV = import.meta.env.DEV;
   if (ABS_DEV) {
     try {
-      const { createPanelDock } = await import('../ui/panel-dock.js');
+      const { registerDevPanelRoute } = await import('../ui/panel-popup-manager.js');
       const { generatePanelSectionsHTML } = await import('./panel/control-registry.js');
       const { setupControls } = await import('./panel/controls.js');
       const { setupBuildControls } = await import('./panel/build-controls.js');
 
-      createPanelDock({
+      registerDevPanelRoute({
         page: 'portfolio',
         pageLabel: 'Portfolio',
+        productLabel: 'Alexander Beck Studio',
         portfolioPanelConfig: portfolioConfig,
         pageHTML: generatePanelSectionsHTML(portfolioConfig),
         includePageSaveButton: true,
         pageSaveButtonId: 'savePortfolioConfigBtn',
         panelTitle: 'Settings',
         modeLabel: 'DEV MODE',
-        setupPageControls: () => {
+        setupPageControls: (_panel, panelOptions = {}) => {
           setupControls(portfolioConfig, {
             onMetricsChange: () => app.refreshPitBodies(),
             onRuntimeChange: (runtime) => app.applyRuntimeConfig(runtime),
+            uiDocument: panelOptions.uiDocument,
           });
-          setupBuildControls(portfolioConfig);
+          setupBuildControls(portfolioConfig, panelOptions);
         },
       });
     } catch (error) {

@@ -80,7 +80,7 @@ Following the successful Phase 1 mobile performance work (disabling wall deforma
 **Description:** As a developer, I need to verify all optimizations work correctly on mobile viewport.
 
 **Acceptance Criteria:**
-- [x] Use dev-browser skill to test on 375x667 mobile viewport
+- [x] Test in browser on 375x667 mobile viewport
 - [x] Switch through at least 3 modes including Kaleidoscope
 - [x] Verify Kaleidoscope shows 6-wedge symmetry on mobile
 - [x] No visual glitches or physics instability

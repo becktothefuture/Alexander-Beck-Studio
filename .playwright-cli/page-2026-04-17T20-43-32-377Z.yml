@@ -1,0 +1,224 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]: Config Panel for Alexander Beck Studio
+    - generic [ref=e5]: Home
+  - region "Settings" [ref=e7]:
+    - generic [ref=e8]:
+      - group [ref=e9]:
+        - generic "✨ Studio" [ref=e10] [cursor=pointer]:
+          - generic [ref=e11]: ✨
+          - generic [ref=e12]: Studio
+        - option "Ball 1 — Product Systems" [selected]
+        - option "Ball 2 — Interaction Design" [disabled]
+        - option "Ball 3 — Creative Technology" [disabled]
+        - option "Ball 4 — Applied AI" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [disabled]
+        - option "Ball 7 — Experience Strategy" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2 — Interaction Design" [selected]
+        - option "Ball 3 — Creative Technology" [disabled]
+        - option "Ball 4 — Applied AI" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [disabled]
+        - option "Ball 7 — Experience Strategy" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2 — Interaction Design" [disabled]
+        - option "Ball 3 — Creative Technology" [selected]
+        - option "Ball 4 — Applied AI" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [disabled]
+        - option "Ball 7 — Experience Strategy" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2 — Interaction Design" [disabled]
+        - option "Ball 3 — Creative Technology" [disabled]
+        - option "Ball 4 — Applied AI" [selected]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [disabled]
+        - option "Ball 7 — Experience Strategy" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2 — Interaction Design" [disabled]
+        - option "Ball 3 — Creative Technology" [disabled]
+        - option "Ball 4 — Applied AI" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [disabled]
+        - option "Ball 7 — Experience Strategy" [selected]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2 — Interaction Design" [disabled]
+        - option "Ball 3 — Creative Technology" [disabled]
+        - option "Ball 4 — Applied AI" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [selected]
+        - option "Ball 7 — Experience Strategy" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2 — Interaction Design" [disabled]
+        - option "Ball 3 — Creative Technology" [disabled]
+        - option "Ball 4 — Applied AI" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Art Direction" [disabled]
+        - option "Ball 7 — Experience Strategy" [disabled]
+        - option "Ball 8 — Prototyping" [selected]
+      - group [ref=e13]:
+        - generic "💡 Light" [ref=e14] [cursor=pointer]:
+          - generic [ref=e15]: 💡
+          - generic [ref=e16]: Light
+      - group [ref=e17]:
+        - generic "🧱 Shell" [ref=e18] [cursor=pointer]:
+          - generic [ref=e19]: 🧱
+          - generic [ref=e20]: Shell
+        - generic [ref=e59]:
+          - group [ref=e60]:
+            - generic "🖼️ Wall · Frame" [ref=e61] [cursor=pointer]:
+              - generic [ref=e62]: 🖼️
+              - generic [ref=e63]: Wall · Frame
+          - group [ref=e64]:
+            - generic "📐 Layers & Edges" [active] [ref=e65] [cursor=pointer]:
+              - generic [ref=e66]: 📐
+              - generic [ref=e67]: Layers & Edges
+            - generic [ref=e115]:
+              - generic [ref=e117]: Wall Frame
+              - generic [ref=e118]:
+                - generic [ref=e119]:
+                  - generic "Distance from viewport edge to wall outer edge (vw)" [ref=e120]: Outer Inset
+                  - generic [ref=e121]: 1.9vw
+                - slider "Outer Inset 1.9vw" [ref=e122] [cursor=pointer]: "1.9"
+              - paragraph [ref=e123]: Distance from viewport edge to wall outer edge (vw)
+              - generic [ref=e124]:
+                - generic [ref=e125]:
+                  - generic "Extra physics margin so balls stay inside the inner wall, clear of the light rim (px). Applies to pit modes and all modes using the same wall SDF." [ref=e126]: Simulation wall inset
+                  - generic [ref=e127]: 5px
+                - slider "Simulation wall inset 5px" [ref=e128] [cursor=pointer]: "5"
+              - paragraph [ref=e129]: Extra physics margin so balls stay inside the inner wall, clear of the light rim (px). Applies to pit modes and all modes using the same wall SDF.
+              - generic [ref=e130]:
+                - generic [ref=e131]:
+                  - generic "Shrinks the physics corner radius vs the wall (--simulation-padding, getCanvasCornerRadius). Use with wall inset to keep rounded corners off the rim." [ref=e132]: Corner padding (vw)
+                  - generic [ref=e133]: 0.20vw
+                - slider "Corner padding (vw) 0.20vw" [ref=e134] [cursor=pointer]: "0.2"
+              - paragraph [ref=e135]: Shrinks the physics corner radius vs the wall (--simulation-padding, getCanvasCornerRadius). Use with wall inset to keep rounded corners off the rim.
+          - group [ref=e68]:
+            - generic "🧂 Background grain" [ref=e69] [cursor=pointer]:
+              - generic [ref=e70]: 🧂
+              - generic [ref=e71]: Background grain
+            - option "Jitter (film grain)" [selected]
+            - option "Drift (slow pan)"
+            - option "Static"
+          - group [ref=e72]:
+            - generic "📏 UI Spacing" [ref=e73] [cursor=pointer]:
+              - generic [ref=e74]: 📏
+              - generic [ref=e75]: UI Spacing
+          - group [ref=e76]:
+            - generic "📐 Shell Layout" [ref=e77] [cursor=pointer]:
+              - generic [ref=e78]: 📐
+              - generic [ref=e79]: Shell Layout
+            - generic [ref=e80]:
+              - generic [ref=e81]:
+                - generic [ref=e82]:
+                  - generic [ref=e83]: Outer Wall Size
+                  - generic [ref=e84]: 2vw
+                - slider "Outer Wall Size" [ref=e85] [cursor=pointer]: "2"
+              - generic [ref=e86]:
+                - generic [ref=e87]:
+                  - generic [ref=e88]: Wall thickness
+                  - generic [ref=e89]: 0px
+                - slider "Wall thickness" [ref=e90] [cursor=pointer]: "0"
+          - group [ref=e91]:
+            - generic "💬 Shell Elements" [ref=e92] [cursor=pointer]:
+              - generic [ref=e93]: 💬
+              - generic [ref=e94]: Shell Elements
+          - group [ref=e95]:
+            - generic "🔘 Quote Puck" [ref=e96] [cursor=pointer]:
+              - generic [ref=e97]: 🔘
+              - generic [ref=e98]: Quote Puck
+            - generic [ref=e99]:
+              - generic [ref=e100]:
+                - generic [ref=e101]:
+                  - generic [ref=e102]: Size
+                  - generic [ref=e103]: 272px
+                - slider "Size" [ref=e104] [cursor=pointer]: "272"
+              - generic [ref=e105]:
+                - generic [ref=e106]:
+                  - generic [ref=e107]: Pad X
+                  - generic [ref=e108]: 28px
+                - slider "Pad X" [ref=e109] [cursor=pointer]: "28"
+              - generic [ref=e110]:
+                - generic [ref=e111]:
+                  - generic [ref=e112]: Pad Y
+                  - generic [ref=e113]: 27px
+                - slider "Pad Y" [ref=e114] [cursor=pointer]: "27"
+      - group [ref=e21]:
+        - generic "⚡ Simulations" [ref=e22] [cursor=pointer]:
+          - generic [ref=e23]: ⚡
+          - generic [ref=e24]: Simulations
+      - group [ref=e25]:
+        - generic "🎱 Balls" [ref=e26] [cursor=pointer]:
+          - generic [ref=e27]: 🎱
+          - generic [ref=e28]: Balls
+        - generic [ref=e49]:
+          - group [ref=e51]:
+            - generic "🌌 Zero-G" [ref=e52] [cursor=pointer]:
+              - generic [ref=e53]: 🌌
+              - generic [ref=e54]: Zero-G
+          - group [ref=e55]:
+            - generic "🎱 Balls" [ref=e56] [cursor=pointer]:
+              - generic [ref=e57]: 🎱
+              - generic [ref=e58]: Balls
+      - group [ref=e29]:
+        - generic "🔊 Audio" [ref=e30] [cursor=pointer]:
+          - generic [ref=e31]: 🔊
+          - generic [ref=e32]: Audio
+        - text: 
+      - group [ref=e33]:
+        - generic "🧪 Advanced" [ref=e34] [cursor=pointer]:
+          - generic [ref=e35]: 🧪
+          - generic [ref=e36]: Advanced
+        - option "Normal"
+        - option "Multiply"
+        - option "Screen"
+        - option "Overlay"
+        - option "Darken"
+        - option "Lighten"
+        - option "Color Dodge" [selected]
+        - option "Color Burn"
+        - option "Hard Light"
+        - option "Soft Light"
+        - option "Difference"
+        - option "Exclusion"
+        - option "Normal"
+        - option "Multiply" [selected]
+        - option "Screen"
+        - option "Overlay"
+        - option "Darken"
+        - option "Lighten"
+        - option "Color Dodge"
+        - option "Color Burn"
+        - option "Hard Light"
+        - option "Soft Light"
+        - option "Difference"
+        - option "Exclusion"
+        - option "Organic (default)" [selected]
+        - option "Ease Out"
+        - option "Ease In Out"
+        - option "Bounce"
+        - option "Overshoot"
+        - option "Auto (adapt only when needed)" [selected]
+        - option "Site (benchmark)"
+        - option "Browser (force adapt)"
+      - group [ref=e38]:
+        - generic "↗ Views" [ref=e39] [cursor=pointer]:
+          - generic [ref=e40]: ↗
+          - generic [ref=e41]: Views
+      - button "💾 Update JSON" [ref=e43] [cursor=pointer]
+      - generic [ref=e44]:
+        - generic [ref=e45]: R
+        - text: reset ·
+        - generic [ref=e46]: /
+        - text: panel ·
+        - generic [ref=e47]: ←
+        - generic [ref=e48]: →
+        - text: modes

@@ -822,7 +822,7 @@ const state = {
   innerWallPitInsetShadowBlurPx: 28,        // Inset shadow blur (px)
   innerWallPitInsetShadowSpreadPx: -6,      // Negative pulls shadow inward from rim
   innerWallPitInsetShadowOffsetYPx: 4,      // Slight downward bias (top light)
-  puckShadowOpacity: 0.045,                 // Puck disk drop shadow strength
+  puckShadowOpacity: 0.14,                  // Puck disk drop shadow strength
   puckEdgeWidth: 1,                         // Puck rim thickness (px)
   puckEdgeLightOpacity: 0.3,               // Puck top rim light
   puckEdgeShadowOpacity: 0.15,             // Puck bottom rim shadow
@@ -1379,7 +1379,7 @@ export function applyLayoutCSSVars() {
   );
 
   // Puck disk edge
-  root.style.setProperty('--quote-button-outer-shadow', String(state.puckShadowOpacity ?? 0.045));
+  root.style.setProperty('--quote-button-outer-shadow', String(state.puckShadowOpacity ?? 0.14));
   root.style.setProperty('--puck-edge-width', `${state.puckEdgeWidth ?? 1}px`);
   root.style.setProperty('--puck-edge-light-opacity', String(state.puckEdgeLightOpacity ?? 0.3));
   root.style.setProperty('--puck-edge-shadow-opacity', String(state.puckEdgeShadowOpacity ?? 0.15));
@@ -2334,7 +2334,7 @@ export function initState(config) {
   if (config.innerWallGradientEdgeTopShadowOpacity !== undefined) {
     state.innerWallGradientEdgeTopShadowOpacity = clampNumber(config.innerWallGradientEdgeTopShadowOpacity, 0, 1, 0.3);
   }
-  if (config.puckShadowOpacity !== undefined) state.puckShadowOpacity = clampNumber(config.puckShadowOpacity, 0, 1, 0.045);
+  if (config.puckShadowOpacity !== undefined) state.puckShadowOpacity = clampNumber(config.puckShadowOpacity, 0, 1, 0.14);
   if (config.puckEdgeWidth !== undefined) state.puckEdgeWidth = clampNumber(config.puckEdgeWidth, 0, 4, 1);
   if (config.puckEdgeLightOpacity !== undefined) state.puckEdgeLightOpacity = clampNumber(config.puckEdgeLightOpacity, 0, 1, 0.3);
   if (config.puckEdgeShadowOpacity !== undefined) state.puckEdgeShadowOpacity = clampNumber(config.puckEdgeShadowOpacity, 0, 1, 0.15);

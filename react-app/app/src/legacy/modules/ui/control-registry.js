@@ -18,6 +18,7 @@ import { updateCursorSize } from '../rendering/cursor.js';
 import { getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
 import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-shadow.js';
+import { forEachPanelUiDocument, registerPanelUiDocument, resolvePanelUiDocument } from './panel-ui-context.js';
 
 
 
@@ -31,6 +32,23 @@ export function setApplyVisualCSSVars(fn) {
 let updateTactileLayerFn = null;
 export function setUpdateTactileLayer(fn) {
   updateTactileLayerFn = fn;
+}
+
+function getUiDocument(uiDocument) {
+  return resolvePanelUiDocument(uiDocument);
+}
+
+function getUiElementById(id, uiDocument) {
+  const doc = getUiDocument(uiDocument);
+  return doc ? doc.getElementById(id) : null;
+}
+
+function forEachUiElementById(id, callback) {
+  if (!id || typeof callback !== 'function') return;
+  forEachPanelUiDocument((uiDocument) => {
+    const element = uiDocument.getElementById(id);
+    if (element) callback(element, uiDocument);
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -259,8 +277,7 @@ export const MASTER_GROUPS = [
     icon: '💡',
     sections: [
       'wallLight',
-      'buttonLight',
-      'puckLight'
+      'buttonLight'
     ]
   },
   {
@@ -275,14 +292,29 @@ export const MASTER_GROUPS = [
     ]
   },
   {
-    id: 'simulation',
-    title: 'Simulation',
+    id: 'puck',
+    title: 'Puck',
+    icon: '🔘',
+    sections: [
+      'puckLight'
+    ]
+  },
+  {
+    id: 'simulations',
+    title: 'Simulations',
     icon: '⚡',
     sections: [
       'liteMode',
       'physics',
-      'balls',
       'scene'
+    ]
+  },
+  {
+    id: 'ballsGroup',
+    title: 'Balls',
+    icon: '🎱',
+    sections: [
+      'balls'
     ]
   },
   {
@@ -1155,20 +1187,20 @@ export const CONTROL_SECTIONS = {
              applyLayoutFromVwToPx();
              applyLayoutCSSVars();
              try {
-               const el = document.getElementById('contentPaddingRatioVal');
-               if (el) {
-                 const frac = Number(valueToSync) || 0;
-                 const layoutWidth = (() => {
-                   try {
-                     const v = getComputedStyle(document.documentElement).getPropertyValue('--layout-viewport-width-px').trim();
-                     const n = parseFloat(v);
-                     return Number.isFinite(n) ? n : Math.max(1, getLayoutViewportWidthPx());
-                   } catch (e) { return Math.max(1, getLayoutViewportWidthPx()); }
-                 })();
-                 const addPx = Math.round(layoutWidth * frac);
-                 const total = Math.round(g.contentPadding || 0);
-                 el.textContent = `${(frac >= 0 ? '+' : '')}${(frac * 100).toFixed(1)}% (${addPx >= 0 ? '+' : ''}${addPx}px) → ${total}px`;
-               }
+               const frac = Number(valueToSync) || 0;
+               const layoutWidth = (() => {
+                 try {
+                   const v = getComputedStyle(document.documentElement).getPropertyValue('--layout-viewport-width-px').trim();
+                   const n = parseFloat(v);
+                   return Number.isFinite(n) ? n : Math.max(1, getLayoutViewportWidthPx());
+                 } catch (e) { return Math.max(1, getLayoutViewportWidthPx()); }
+               })();
+               const addPx = Math.round(layoutWidth * frac);
+               const total = Math.round(g.contentPadding || 0);
+               const text = `${(frac >= 0 ? '+' : '')}${(frac * 100).toFixed(1)}% (${addPx >= 0 ? '+' : ''}${addPx}px) → ${total}px`;
+               forEachUiElementById('contentPaddingRatioVal', (el) => {
+                 el.textContent = text;
+               });
              } catch (e) {}
              try { document.dispatchEvent(new CustomEvent('layout-updated')); } catch (e) {}
            }).catch(() => {});
@@ -1186,18 +1218,18 @@ export const CONTROL_SECTIONS = {
          parse: parseFloat,
          hint: 'Horizontal padding = base × ratio.',
          onChange: (g) => {
-           import('../core/state.js').then(({ applyLayoutFromVwToPx, applyLayoutCSSVars }) => {
-             applyLayoutFromVwToPx();
-             applyLayoutCSSVars();
-             try {
-               const el = document.getElementById('contentPaddingHorizontalRatioVal');
-               if (el) {
-                 const ratio = Number(g.contentPaddingHorizontalRatio || 1.0);
-                 el.textContent = `${ratio.toFixed(2)}× → ${Math.round(g.contentPaddingX || g.contentPadding)}px`;
-               }
-             } catch (e) {}
-           }).catch(() => {});
-         }
+          import('../core/state.js').then(({ applyLayoutFromVwToPx, applyLayoutCSSVars }) => {
+            applyLayoutFromVwToPx();
+            applyLayoutCSSVars();
+            try {
+              const ratio = Number(g.contentPaddingHorizontalRatio || 1.0);
+              const text = `${ratio.toFixed(2)}× → ${Math.round(g.contentPaddingX || g.contentPadding)}px`;
+              forEachUiElementById('contentPaddingHorizontalRatioVal', (el) => {
+                el.textContent = text;
+              });
+            } catch (e) {}
+          }).catch(() => {});
+        }
        },
        {
          id: 'contentPaddingBottomRatio',
@@ -1469,7 +1501,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'depthWashCenterY',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.3,
+        default: 0.14,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Vertical center of gradient (0=top, 100%=bottom)'
@@ -3049,12 +3081,12 @@ export const CONTROL_SECTIONS = {
         stateKey: 'puckShadowOpacity',
         type: 'range',
         min: 0, max: 1, step: 0.005,
-        default: 0.045,
+        default: 0.14,
         format: v => v.toFixed(3),
         parse: parseFloat,
         hint: 'Puck disk drop shadow strength',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--quote-button-outer-shadow', String(val));
+        onChange: () => {
+          applyLayoutCSSVars();
         }
       },
       {
@@ -3067,8 +3099,8 @@ export const CONTROL_SECTIONS = {
         format: v => `${v}px`,
         parse: parseFloat,
         hint: 'Thickness of the puck rim/edge',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--puck-edge-width', `${val}px`);
+        onChange: () => {
+          applyLayoutCSSVars();
         }
       },
       {
@@ -3081,8 +3113,8 @@ export const CONTROL_SECTIONS = {
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Top rim light on the puck edge',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--puck-edge-light-opacity', String(val));
+        onChange: () => {
+          applyLayoutCSSVars();
         }
       },
       {
@@ -3095,8 +3127,8 @@ export const CONTROL_SECTIONS = {
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Bottom rim shadow on the puck edge',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--puck-edge-shadow-opacity', String(val));
+        onChange: () => {
+          applyLayoutCSSVars();
         }
       },
     ]
@@ -5869,7 +5901,7 @@ export function generateBrowserTransitionSectionsHTML() {
 
 /**
  * Generate just the mode switcher buttons (no mode-specific sections).
- * Used by panel-dock.js to embed in the Simulation group.
+ * Used by panel-dock.js to embed in the Simulations group.
  */
 export function generateModeSwitcherHTML() {
   const modeIcons = {
@@ -6074,18 +6106,21 @@ export function generatePanelHTML() {
 // CONTROL BINDING (wire sliders to state)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function bindRegisteredControls() {
+export function bindRegisteredControls(options = {}) {
   const g = getGlobals();
-  
+  const uiDocument = getUiDocument(options.uiDocument);
+  if (!uiDocument) return;
+  registerPanelUiDocument(uiDocument);
+
   for (const [sectionKey, section] of Object.entries(CONTROL_SECTIONS)) {
     for (const control of section.controls) {
       const valId = control.id + 'Val';
-      const valEl = document.getElementById(valId);
+      const valEl = uiDocument.getElementById(valId);
 
       // Color distribution binding (custom)
       if (control.type === 'colorDistribution') {
         const labels = Array.isArray(control.labels) ? control.labels : [];
-        const resetBtn = document.getElementById('colorDistResetBtn');
+        const resetBtn = uiDocument.getElementById('colorDistResetBtn');
 
         function normalizeLabel(s) {
           return String(s || '').trim().toLowerCase();
@@ -6272,15 +6307,15 @@ export function bindRegisteredControls() {
           // Update each row UI.
           for (let i = 0; i < labels.length; i++) {
             const row = sanitized[i] || { colorIndex: 0, weight: 0, label: labels[i] };
-            const swatch = document.getElementById(`colorDistSwatch${i}`);
-            const select = document.getElementById(`colorDistColor${i}`);
-            const weight = document.getElementById(`colorDistWeight${i}`);
-            const weightVal = document.getElementById(`colorDistWeightVal${i}`);
+            const swatch = uiDocument.getElementById(`colorDistSwatch${i}`);
+            const select = uiDocument.getElementById(`colorDistColor${i}`);
+            const weight = uiDocument.getElementById(`colorDistWeight${i}`);
+            const weightVal = uiDocument.getElementById(`colorDistWeightVal${i}`);
             if (select) {
               // Rebuild options with disabled selections (except your own current selection).
               select.innerHTML = '';
               for (const o of options) {
-                const opt = document.createElement('option');
+                const opt = uiDocument.createElement('option');
                 opt.value = o.value;
                 opt.textContent = o.label;
                 const idx = clampIntLocal(o.value, 0, 7, 0);
@@ -6307,7 +6342,7 @@ export function bindRegisteredControls() {
           }
 
           // Total
-          const totalEl = document.getElementById('colorDistTotalVal');
+          const totalEl = uiDocument.getElementById('colorDistTotalVal');
           if (totalEl) {
             let total = 0;
             for (let i = 0; i < sanitized.length; i++) total += sanitized[i].weight;
@@ -6332,8 +6367,8 @@ export function bindRegisteredControls() {
 
         // Wire per-row events
         for (let i = 0; i < labels.length; i++) {
-          const select = document.getElementById(`colorDistColor${i}`);
-          const weight = document.getElementById(`colorDistWeight${i}`);
+          const select = uiDocument.getElementById(`colorDistColor${i}`);
+          const weight = uiDocument.getElementById(`colorDistWeight${i}`);
 
           if (select) {
             select.addEventListener('change', () => {
@@ -6365,7 +6400,7 @@ export function bindRegisteredControls() {
       // Color picker binding
       if (control.type === 'color') {
         const pickerId = control.id + 'Picker';
-        const pickerEl = document.getElementById(pickerId);
+        const pickerEl = uiDocument.getElementById(pickerId);
         
         if (!pickerEl) continue;
         
@@ -6395,7 +6430,7 @@ export function bindRegisteredControls() {
       // Select binding
       if (control.type === 'select') {
         const selectId = control.id + 'Slider';
-        const el = document.getElementById(selectId);
+        const el = uiDocument.getElementById(selectId);
         if (!el) continue;
         
         el.addEventListener('change', () => {
@@ -6421,7 +6456,7 @@ export function bindRegisteredControls() {
       // Boolean binding (checkbox / toggle alias)
       if (control.type === 'checkbox' || control.type === 'toggle') {
         const checkboxId = control.id + 'Slider';
-        const el = document.getElementById(checkboxId);
+        const el = uiDocument.getElementById(checkboxId);
         if (!el) continue;
 
         el.addEventListener('change', () => {
@@ -6453,7 +6488,7 @@ export function bindRegisteredControls() {
 
       // Default: Range slider binding
       const sliderId = control.id + 'Slider';
-      const el = document.getElementById(sliderId);
+      const el = uiDocument.getElementById(sliderId);
       
       if (!el) continue;
       
@@ -6502,25 +6537,27 @@ export function bindRegisteredControls() {
 export function syncSlidersToState(options = {}) {
   const g = getGlobals();
   const runOnChange = options.runOnChange !== false;
-  
-  for (const section of Object.values(CONTROL_SECTIONS)) {
-    for (const control of section.controls) {
-      // Custom: color distribution UI is synced in bindRegisteredControls (it needs to build options).
-      if (control.type === 'colorDistribution') {
-        // No-op here.
-        continue;
-      }
-      
-      // Color pickers use 'Picker' suffix, others use 'Slider'
-      const elementId = control.type === 'color' ? (control.id + 'Picker') : (control.id + 'Slider');
-      const valId = control.id + 'Val';
-      const el = document.getElementById(elementId);
-      const valEl = document.getElementById(valId);
-      
-      if (!el || !control.stateKey) continue;
-      
-      const stateVal = g[control.stateKey];
-      if (stateVal !== undefined) {
+
+  const syncIntoDocument = (uiDocument) => {
+    if (!uiDocument) return;
+    registerPanelUiDocument(uiDocument);
+
+    for (const section of Object.values(CONTROL_SECTIONS)) {
+      for (const control of section.controls) {
+        if (control.type === 'colorDistribution') {
+          continue;
+        }
+
+        const elementId = control.type === 'color' ? (control.id + 'Picker') : (control.id + 'Slider');
+        const valId = control.id + 'Val';
+        const el = uiDocument.getElementById(elementId);
+        const valEl = uiDocument.getElementById(valId);
+
+        if (!el || !control.stateKey) continue;
+
+        const stateVal = g[control.stateKey];
+        if (stateVal === undefined) continue;
+
         if (control.type === 'checkbox' || control.type === 'toggle') {
           el.checked = !!stateVal;
           if (valEl) valEl.textContent = stateVal ? 'On' : 'Off';
@@ -6531,15 +6568,30 @@ export function syncSlidersToState(options = {}) {
           el.value = stateVal;
           if (valEl) valEl.textContent = control.format ? control.format(stateVal) : String(stateVal);
         }
-        
-        // Call onChange handler to initialize CSS variables / apply side effects.
-        // IMPORTANT: Avoid re-entrant loops for preset selectors that themselves call `syncSlidersToState()`.
-        // (e.g. wallPreset → applyWallPreset → syncSlidersToState → wallPreset.onChange → ...)
+
         if (runOnChange && control.onChange && control.id !== 'wallPreset' && control.id !== 'entranceEnabled' && control.id !== 'contentFadeInDelay' && control.id !== 'contentFadeInDuration') {
           control.onChange(g, stateVal);
         }
       }
     }
+  };
+
+  if (options.uiDocument) {
+    const explicitDocument = getUiDocument(options.uiDocument);
+    if (explicitDocument) {
+      syncIntoDocument(explicitDocument);
+      return;
+    }
+  }
+
+  let synced = false;
+  forEachPanelUiDocument((uiDocument) => {
+    syncIntoDocument(uiDocument);
+    synced = true;
+  });
+  if (!synced) {
+    const fallbackDocument = getUiDocument();
+    if (fallbackDocument) syncIntoDocument(fallbackDocument);
   }
 }
 
@@ -6547,8 +6599,12 @@ export function syncSlidersToState(options = {}) {
 // WALL SECTION TABS (Light/Dark) – bind tab clicks and sync to page theme
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function setupWallSectionTabs() {
-  document.querySelectorAll('.wall-theme-tab').forEach(btn => {
+export function setupWallSectionTabs(uiDocument = null) {
+  const panelDocument = getUiDocument(uiDocument);
+  if (!panelDocument) return;
+  registerPanelUiDocument(panelDocument);
+
+  panelDocument.querySelectorAll('.wall-theme-tab').forEach(btn => {
     if (btn._wallTabBound) return;
     btn._wallTabBound = true;
     btn.addEventListener('click', () => {
@@ -6561,7 +6617,7 @@ export function setupWallSectionTabs() {
       container.querySelectorAll('.wall-tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       btn.setAttribute('aria-selected', 'true');
-      const panel = document.getElementById(sectionKey + (theme === 'light' ? 'LightPanel' : 'DarkPanel'));
+      const panel = panelDocument.getElementById(sectionKey + (theme === 'light' ? 'LightPanel' : 'DarkPanel'));
       if (panel) panel.classList.add('active');
     });
   });
@@ -6570,17 +6626,19 @@ export function setupWallSectionTabs() {
 export function syncWallPanelTabsToTheme() {
   const isDark = document.body.classList.contains('dark-mode');
   const theme = isDark ? 'dark' : 'light';
-  document.querySelectorAll('.wall-section-with-tabs').forEach(container => {
-    const sectionKey = container.querySelector('.wall-theme-tab')?.getAttribute('data-wall-section');
-    if (!sectionKey) return;
-    const tab = container.querySelector(`.wall-theme-tab[data-theme="${theme}"]`);
-    const panel = document.getElementById(sectionKey + (theme === 'light' ? 'LightPanel' : 'DarkPanel'));
-    if (tab && panel) {
-      container.querySelectorAll('.wall-theme-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
-      container.querySelectorAll('.wall-tab-panel').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      tab.setAttribute('aria-selected', 'true');
-      panel.classList.add('active');
-    }
+  forEachPanelUiDocument((panelDocument) => {
+    panelDocument.querySelectorAll('.wall-section-with-tabs').forEach(container => {
+      const sectionKey = container.querySelector('.wall-theme-tab')?.getAttribute('data-wall-section');
+      if (!sectionKey) return;
+      const tab = container.querySelector(`.wall-theme-tab[data-theme="${theme}"]`);
+      const panel = panelDocument.getElementById(sectionKey + (theme === 'light' ? 'LightPanel' : 'DarkPanel'));
+      if (tab && panel) {
+        container.querySelectorAll('.wall-theme-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+        container.querySelectorAll('.wall-tab-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        panel.classList.add('active');
+      }
+    });
   });
 }

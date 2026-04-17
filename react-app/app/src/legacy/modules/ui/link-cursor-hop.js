@@ -27,6 +27,10 @@ function getNearestAction(target) {
   const el = target.closest('a, button, [role="button"]');
   if (!el) return null;
 
+  // Dev launcher should keep the custom cursor visible instead of triggering the
+  // link-hover implosion path that hides it.
+  if (el.closest('.panel-toggle-btn')) return null;
+
   // Exclude portfolio carousel slides
   try {
     if (el.classList?.contains?.('slide')) return null;

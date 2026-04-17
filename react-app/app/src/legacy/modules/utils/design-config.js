@@ -189,6 +189,9 @@ const RETIRED_RUNTIME_KEYS = new Set([
   'mouseTiltRight',
   'mouseTiltUp',
   'mouseTiltDown',
+  'simulationCanvasShadowOpacity',
+  'simulationCanvasShadowBlurPx',
+  'simulationCanvasShadowOffsetYPx',
 ]);
 
 const RETIRED_SHELL_THEME_KEYS = new Set([

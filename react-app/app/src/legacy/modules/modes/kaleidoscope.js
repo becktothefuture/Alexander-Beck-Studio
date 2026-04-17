@@ -89,6 +89,29 @@ function springTo(state, target, dt, omega = 10) {
   return state.x;
 }
 
+function wrapAngleSigned(value) {
+  if (!Number.isFinite(value)) return 0;
+  const wrapped = ((value + Math.PI) % TAU + TAU) % TAU;
+  return wrapped - Math.PI;
+}
+
+function getWedgeTrigCache(g, wedges, wedgeAngle) {
+  const cache = g._kaleiWedgeCache;
+  if (cache && cache.wedges === wedges) return cache;
+
+  const cos = new Float32Array(wedges);
+  const sin = new Float32Array(wedges);
+  for (let wi = 0; wi < wedges; wi++) {
+    const baseAngle = wi * wedgeAngle;
+    cos[wi] = Math.cos(baseAngle);
+    sin[wi] = Math.sin(baseAngle);
+  }
+
+  const nextCache = { wedges, cos, sin };
+  g._kaleiWedgeCache = nextCache;
+  return nextCache;
+}
+
 export function applyKaleidoscopeBounds(ball, w, h, dt) {
   // Bounds for Kaleidoscope only:
   // - Keep balls inside the canvas
@@ -425,51 +448,47 @@ export function renderKaleidoscope(ctx) {
       phase: { x: 0, v: 0 },
       panX: { x: 0, v: 0 },
       panY: { x: 0, v: 0 },
-      lastMouseX: mx,
-      lastMouseY: my,
-      lastInCanvas: Boolean(g.mouseInCanvas)
+      pointerX: { x: 0, v: 0 },
+      pointerY: { x: 0, v: 0 },
+      influence: { x: 0, v: 0 },
+      idlePhase: 0,
     };
   }
   const morph = g._kaleiMorph;
-  const inCanvasNow = Boolean(g.mouseInCanvas);
-  const movedPx = Math.hypot(mx - morph.lastMouseX, my - morph.lastMouseY);
-  const moved = movedPx > 0.5 || inCanvasNow !== morph.lastInCanvas;
 
-  // Pan strength: how much mouse movement shifts the sampling point (creates morphing).
-  // Complexity affects morph intensity (more complex = more dramatic transformations).
-  // Increased base values for more complex movement.
   const speed = clamp(getKaleidoscopeParams(g).speed ?? 1.0, 0.2, 2.0);
   const complexity = getKaleidoscopeComplexity(g);
-  const panStrength = 0.65 * speed * complexity; // Increased from 0.35 for more complex movement
-  const panXTarget = mdx * panStrength * (g.mouseInCanvas ? 1 : 0);
-  const panYTarget = mdy * panStrength * (g.mouseInCanvas ? 1 : 0);
-  const phaseTarget = mouseAngle * (0.7 * complexity) * (g.mouseInCanvas ? 1 : 0); // Increased from 0.4 for more rotation
+  const pointerStrengthTarget = g.mouseInCanvas ? Math.pow(mDistN, 0.9) : 0;
+  const pointerXNormTarget = g.mouseInCanvas ? clamp(mdx / Math.max(1, w * 0.5), -1, 1) : 0;
+  const pointerYNormTarget = g.mouseInCanvas ? clamp(mdy / Math.max(1, h * 0.5), -1, 1) : 0;
+
+  // Smooth normalized pointer intent first so the visual fold reacts to motion as a glide
+  // instead of binding directly to raw cursor position.
+  springTo(morph.influence, pointerStrengthTarget, dt, g.mouseInCanvas ? 3.2 : 2.2);
+  springTo(morph.pointerX, pointerXNormTarget, dt, 2.8);
+  springTo(morph.pointerY, pointerYNormTarget, dt, 2.8);
+
+  const pointerStrength = clamp(morph.influence.x, 0, 1);
+  const pointerXNorm = morph.pointerX.x;
+  const pointerYNorm = morph.pointerY.x;
 
   // Idle evolution: slow continuous rotation when mouse isn't moving
   // This keeps the kaleidoscope "alive" and mesmerizing even when idle
   const idleSpeed = g.kaleidoscopeIdleSpeed ?? 0.08; // radians per second base
-  const idleSpeedScaled = idleSpeed * complexity * (g.prefersReducedMotion ? 0 : 1);
-  
-  if (moved) {
-    morph.lastMouseX = mx;
-    morph.lastMouseY = my;
-    morph.lastInCanvas = inCanvasNow;
-    springTo(morph.phase, phaseTarget, dt, 4.5); // Slow eased rotation
-    springTo(morph.panX, panXTarget, dt, 5.0);   // Slow eased pan X
-    springTo(morph.panY, panYTarget, dt, 5.0);   // Slow eased pan Y
-  } else {
-    // When idle, slowly evolve the phase for continuous gentle rotation
-    if (idleSpeedScaled > 0) {
-      morph.phase.x += idleSpeedScaled * dt;
-      // Keep phase in reasonable range to avoid floating point issues
-      const twoPi = Math.PI * 2;
-      if (morph.phase.x > twoPi) morph.phase.x -= twoPi;
-      if (morph.phase.x < -twoPi) morph.phase.x += twoPi;
-    }
-    morph.phase.v = 0;
-    morph.panX.v = 0;
-    morph.panY.v = 0;
-  }
+  const idleSpeedScaled = idleSpeed * complexity * (g.prefersReducedMotion ? 0 : 1) * (1 - pointerStrength * 0.85);
+  morph.idlePhase = wrapAngleSigned(morph.idlePhase + idleSpeedScaled * dt);
+
+  const panRangePx = Math.min(w, h) * (0.06 + 0.05 * speed);
+  const panStrength = (0.5 + 0.14 * complexity) * pointerStrength;
+  const panXTarget = pointerXNorm * panRangePx * panStrength;
+  const panYTarget = pointerYNorm * panRangePx * panStrength;
+  const phaseAmplitude = 0.24 + 0.08 * complexity;
+  const phaseOffset = (pointerXNorm * 0.22) + (pointerYNorm * 0.12);
+  const phaseTarget = morph.idlePhase + (mouseAngle * phaseAmplitude + phaseOffset) * pointerStrength;
+
+  springTo(morph.phase, phaseTarget, dt, 2.5);
+  springTo(morph.panX, panXTarget, dt, 3.0);
+  springTo(morph.panY, panYTarget, dt, 3.0);
 
   const phase = morph.phase.x;
   const panX = morph.panX.x;
@@ -480,14 +499,7 @@ export function renderKaleidoscope(ctx) {
   const zoomRange = 0.22 + 0.18 * speed01; // 0.22..0.40
   const zoom = 1 - zoomRange + (1 - mDistN) * (2 * zoomRange); // maps to [1-zoomRange, 1+zoomRange]
 
-  // Pre-compute cos/sin lookup table for wedge base angles (avoids trig in hot loop)
-  const wedgeCos = new Float32Array(wedges);
-  const wedgeSin = new Float32Array(wedges);
-  for (let wi = 0; wi < wedges; wi++) {
-    const baseAngle = wi * wedgeAngle;
-    wedgeCos[wi] = Math.cos(baseAngle);
-    wedgeSin[wi] = Math.sin(baseAngle);
-  }
+  const { cos: wedgeCos, sin: wedgeSin } = getWedgeTrigCache(g, wedges, wedgeAngle);
 
   // Draw
   for (let bi = 0; bi < balls.length; bi++) {

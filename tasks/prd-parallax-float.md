@@ -38,7 +38,7 @@ The mouse interaction (camera pan/parallax effect) must remain **identical** to 
 - [ ] Add warmup frames case in `getWarmupFramesForMode()`
 - [ ] Switching to Parallax Float mode renders dots that respond to mouse parallax
 - [ ] `npm run build` passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ### US-003: Add random position offsets
 **Description:** As a user, I want particles positioned with organic randomness rather than a perfect grid.

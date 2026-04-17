@@ -1,9 +1,11 @@
 // Canonical design-system save/export for the shared panel.
 
 import { performDesignSystemSave } from '../utils/design-system-save.js';
+import { resolvePanelUiDocument } from './panel-ui-context.js';
 
-export function setupBuildControls() {
-  const btn = document.getElementById('saveRuntimeConfigBtn');
+export function setupBuildControls(options = {}) {
+  const uiDocument = resolvePanelUiDocument(options.uiDocument);
+  const btn = uiDocument?.getElementById('saveRuntimeConfigBtn');
   if (!btn) return;
   if (btn.dataset.designSaveBound === 'true') return;
   btn.dataset.designSaveBound = 'true';
@@ -26,4 +28,3 @@ export function setupBuildControls() {
     }
   });
 }
-

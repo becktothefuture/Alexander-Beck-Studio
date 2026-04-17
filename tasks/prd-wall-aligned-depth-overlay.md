@@ -26,7 +26,7 @@ This overlay must:
 - [ ] Overlay is above canvas/noise, below UI/modals/panel (z-index tuned to existing layering)
 - [ ] No interaction regressions (canvas interactions still work)
 - [ ] Typecheck/lint passes
-- [ ] **Verify in browser using dev-browser skill**
+- [ ] **Verify in browser**
 
 ### US-002: Wall-aligned geometry
 **Description:** As a user, I want the overlay to align exactly with the wall interior so it feels "built into" the frame.
@@ -36,7 +36,7 @@ This overlay must:
 - [ ] Overlay radius matches wall interior radius (derived from wall radius and thickness)
 - [ ] Overlay remains aligned on resize/orientation change
 - [ ] Typecheck/lint passes
-- [ ] **Verify in browser using dev-browser skill**
+- [ ] **Verify in browser**
 
 ### US-003: Dark mode styling (Figma parity)
 **Description:** As a user in dark mode, I want the overlay to match the Figma dark variant.
@@ -55,7 +55,7 @@ This overlay must:
     - `rgba(255,255,255,0.50)` at 0%
     - `rgba(20,43,72,0.50)` at 100%
 - [ ] Typecheck/lint passes
-- [ ] **Verify in browser using dev-browser skill**
+- [ ] **Verify in browser**
 
 ### US-004: Light mode styling (derived opacity)
 **Description:** As a user in light mode, I want a lighter, subtler version of the overlay with the same structure.
@@ -67,7 +67,7 @@ This overlay must:
   - `0px 4px 8px 6px rgba(156,159,173,0.8)`
 - [ ] Light mode gradient uses the **same stops/geometry** as dark mode, but with **opacity × 0.1** (i.e. alpha values become 0.05 instead of 0.50)
 - [ ] Typecheck/lint passes
-- [ ] **Verify in browser using dev-browser skill**
+- [ ] **Verify in browser**
 
 ## Functional Requirements
 

@@ -104,7 +104,7 @@ The wall "flashes" briefly during navigation, but the departure/arrival animatio
 - [ ] Chrome: Entrance animation skipped if View Transition just ran (avoid double animation)
 - [ ] Safari: Entrance animation always runs (it's the only "arrival" effect)
 - [ ] npm run build passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ---
 
@@ -119,7 +119,7 @@ The wall "flashes" briefly during navigation, but the departure/arrival animatio
 - [ ] Total time from correct code to navigation start: ~500ms
 - [ ] Feels "unlocked" and earned, not abrupt
 - [ ] npm run build passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ---
 
@@ -158,7 +158,7 @@ The wall "flashes" briefly during navigation, but the departure/arrival animatio
 - [ ] Browser back button also triggers View Transition in Chrome
 - [ ] Safari browser back: No departure animation (already navigated), entrance animation plays
 - [ ] npm run build passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Verify in browser
 
 ---
 

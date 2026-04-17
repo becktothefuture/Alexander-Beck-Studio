@@ -26,6 +26,7 @@ function setCvContentVisible() {
 }
 
 export async function bootstrapCvRoute() {
+  const ABS_DEV = import.meta.env.DEV;
   forceBootVisible(['#abs-scene', '#app-frame', '#cv-scroll-container']);
   setCvContentVisible();
 
@@ -98,6 +99,20 @@ export async function bootstrapCvRoute() {
   const backLink = document.querySelector('[data-nav-transition][href*="index"]');
   if (backLink) {
     setupPrefetchOnHover(backLink, 'index.html');
+  }
+
+  if (ABS_DEV) {
+    try {
+      const { registerDevPanelRoute } = await import('../../legacy/modules/ui/panel-popup-manager.js');
+      registerDevPanelRoute({
+        page: 'cv',
+        pageLabel: 'CV',
+        productLabel: 'Alexander Beck Studio',
+        pageSectionTitle: 'CV',
+      });
+    } catch (error) {
+      console.warn('CV panel init failed', error);
+    }
   }
 
   const scrollContainer = getCvScrollContainer();

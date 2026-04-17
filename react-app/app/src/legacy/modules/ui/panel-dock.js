@@ -10,6 +10,7 @@ import {
   generateMasterSectionsHTML,
   generateModeSwitcherHTML,
   generateModeSpecificSectionsHTML,
+  getPuckColorControlsHTML,
 } from './control-registry.js';
 import {
   generateStudioShellControlsHTML,
@@ -36,12 +37,14 @@ import {
   syncSoundControlsToConfig
 } from '../audio/sound-control-registry.js';
 import { bindStudioSurfaceControls } from './studio-surface-controls.js';
-import { getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
+import { bindThemeSegmentControls, getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
 import { navigateToGatePage, navigateToHome } from '../../../lib/access-gates.js';
 import { resize } from '../rendering/renderer.js';
+import { registerPanelUiDocument } from './panel-ui-context.js';
 
 let dockElement = null;
 let masterPanelElement = null;
+let detachedPanelElement = null;
 
 // ════════════════════════════════════════════════════════════════════════════════
 // STATE PERSISTENCE
@@ -145,6 +148,68 @@ let dragStartY = 0;
 let elementStartX = 0;
 let elementStartY = 0;
 
+function ensurePanelStylesheet(uiDocument) {
+  if (!uiDocument || uiDocument.querySelector('link[href*="panel.css"]')) return;
+  const link = uiDocument.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = '/css/panel.css';
+  uiDocument.head.appendChild(link);
+}
+
+function destroyPanelElement(panel) {
+  if (!panel) return;
+  try {
+    panel.__cleanupPanel?.();
+  } catch (e) {}
+  try {
+    panel.remove();
+  } catch (e) {}
+}
+
+export function syncPanelHostDocument(uiDocument) {
+  if (!uiDocument || typeof document === 'undefined') return;
+
+  const sourceRoot = document.documentElement;
+  const sourceBody = document.body;
+  const targetRoot = uiDocument.documentElement;
+  const targetBody = uiDocument.body;
+  const computed = getComputedStyle(sourceRoot);
+
+  const syncThemeClasses = (sourceNode, targetNode, preserve = []) => {
+    if (!sourceNode || !targetNode) return;
+    const preserved = Array.from(targetNode.classList).filter((className) => preserve.includes(className));
+    targetNode.className = Array.from(new Set([...preserved, ...Array.from(sourceNode.classList)])).join(' ');
+  };
+
+  for (let i = 0; i < computed.length; i += 1) {
+    const name = computed[i];
+    if (!name || !name.startsWith('--')) continue;
+    targetRoot.style.setProperty(name, computed.getPropertyValue(name));
+  }
+
+  syncThemeClasses(sourceRoot, targetRoot, ['panel-host-html', 'fonts-loading']);
+  if (sourceBody && targetBody) {
+    syncThemeClasses(sourceBody, targetBody, ['panel-host-body']);
+  }
+
+  const transitionPhase = sourceRoot.getAttribute('data-abs-transition-phase');
+  if (transitionPhase) {
+    targetRoot.setAttribute('data-abs-transition-phase', transitionPhase);
+  } else {
+    targetRoot.removeAttribute('data-abs-transition-phase');
+  }
+
+  const isDark = document.documentElement.classList.contains('dark-mode')
+    || document.body?.classList?.contains('dark-mode');
+  targetRoot.classList.toggle('dark-mode', isDark);
+  targetBody?.classList.toggle('dark-mode', isDark);
+  targetRoot.style.colorScheme = isDark ? 'dark' : 'light';
+  const themeToggleBtn = uiDocument.querySelector('.panel-theme-toggle');
+  if (themeToggleBtn) {
+    themeToggleBtn.textContent = isDark ? '☀️' : '🌙';
+  }
+}
+
 // ════════════════════════════════════════════════════════════════════════════════
 // MASTER PANEL HTML
 // ════════════════════════════════════════════════════════════════════════════════
@@ -160,7 +225,7 @@ function getMasterPanelContent({
   pageSaveButtonId = 'saveRuntimeConfigBtn',
   pageSaveButtonLabel = '💾 Update JSON',
   footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> modes',
-  /** Portfolio-only: full panel config object for “Project pit rim” under Simulation. */
+  /** Portfolio-only: full panel config object for “Project pit rim” under Simulations. */
   portfolioPanelConfig = null,
 } = {}) {
   // Sound controls → embedded in Audio group (preset + actions only; no parameter sliders)
@@ -235,32 +300,43 @@ function getMasterPanelContent({
   // - Theme + Palette → Studio
   // - Outer / inner wall lighting → Light Group
   // - Frame geometry, layers, spacing → Shell
+  // - Puck appearance + size/padding/colors → Puck
   // - Sound → Audio
-  // - Mode switcher + mode-specific sections → Simulation
+  // - Mode switcher + simulation-system controls → Simulations
+  // - Ball sizing + mode-specific dials → Balls
   //
   // includeRegisteredSections MUST stay true — otherwise every `MASTER_GROUPS.*.sections`
   // slider block is omitted and the panel shows empty groups (only injected prepend/append).
-  const portfolioSimulationPrepend =
+  const portfolioSimulationsPrepend =
     page === 'portfolio' && portfolioPanelConfig
-      ? `${generatePortfolioPitChromePanelHTML(portfolioPanelConfig)}${generateModeSpecificSectionsHTML()}`
+      ? generatePortfolioPitChromePanelHTML(portfolioPanelConfig)
       : '';
 
   // One master panel everywhere: full `MASTER_GROUPS` + registered sections. Home adds the mode
   // switcher; portfolio adds pit chrome; CV/other routes still get the active mode’s accordion.
-  const simulationPrepend =
+  const simulationsPrepend =
     page === 'home'
-      ? `${generateModeSwitcherHTML()}${generateModeSpecificSectionsHTML({ showAllModes: true })}`
+      ? generateModeSwitcherHTML()
       : page === 'portfolio'
-        ? (portfolioSimulationPrepend || generateModeSpecificSectionsHTML())
-        : generateModeSpecificSectionsHTML();
+        ? portfolioSimulationsPrepend
+        : '';
+  const ballsPrepend =
+    page === 'home'
+      ? generateModeSpecificSectionsHTML({ showAllModes: true })
+      : generateModeSpecificSectionsHTML();
 
   const masterGroupsHTML = generateMasterSectionsHTML({
     prepend: {
-      simulation: simulationPrepend,
+      simulations: simulationsPrepend,
+      ballsGroup: ballsPrepend,
     },
     append: {
       studio: generateStudioSurfaceControlsHTML(),
-      shell: generateStudioShellControlsHTML(),
+      shell: generateStudioShellControlsHTML({ sectionKeys: ['shellLayout', 'quoteSystem'] }),
+      puck: generateStudioShellControlsHTML({
+        sectionKeys: ['puck'],
+        puckPrependHTML: getPuckColorControlsHTML(),
+      }),
       audio: soundControlsHTML,
     },
     groupIds: masterGroupIds,
@@ -306,13 +382,7 @@ function createPanelToggleButton() {
 export function createPanelDock(options = {}) {
   // DEV-only: dynamically inject panel.css if not already present
   // (Production builds don't include panel.css, so we inject it on-demand)
-  if (!document.querySelector('link[href*="panel.css"]')) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    // Detect base path (dev: css/panel.css, prod: would not reach here)
-    link.href = 'css/panel.css';
-    document.head.appendChild(link);
-  }
+  ensurePanelStylesheet(document);
 
   const page = options.page || 'home';
   const pageLabel = options.pageLabel || (page === 'portfolio' ? 'Portfolio' : 'Home');
@@ -334,6 +404,8 @@ export function createPanelDock(options = {}) {
     : null;
   const pageSectionTitle = options.pageSectionTitle || pageLabel;
   const pageSectionIcon = options.pageSectionIcon || (page === 'portfolio' ? '🗂️' : '📄');
+  const preserveLauncherButton = options.preserveLauncherButton === true;
+  const skipToggleButton = options.skipToggleButton === true;
 
   // Remove any legacy placeholders
   try {
@@ -346,8 +418,13 @@ export function createPanelDock(options = {}) {
   // SPA route changes: replace any previous dock/toggle so IDs stay unique and listeners attach cleanly.
   try {
     const prevDock = document.getElementById('panelDock');
-    if (prevDock) prevDock.remove();
-    document.querySelectorAll('.panel-toggle-btn').forEach((el) => el.remove());
+    if (prevDock) {
+      destroyPanelElement(prevDock.querySelector('#masterPanel'));
+      prevDock.remove();
+    }
+    if (!preserveLauncherButton) {
+      document.querySelectorAll('.panel-toggle-btn').forEach((el) => el.remove());
+    }
     dockElement = null;
     masterPanelElement = null;
   } catch (e) {}
@@ -395,7 +472,7 @@ export function createPanelDock(options = {}) {
   document.body.insertBefore(dockElement, document.body.firstChild);
   
   // Create gear button toggle (dev-only)
-  if (isDev()) {
+  if (isDev() && !skipToggleButton) {
     createPanelToggleButton();
   }
   
@@ -424,15 +501,20 @@ function createMasterPanel({
   footerHint,
   setupPageControls,
   portfolioPanelConfig = null,
+  targetDocument = document,
+  targetWindow = window,
+  detached = false,
 } = {}) {
-  const panel = document.createElement('div');
+  registerPanelUiDocument(targetDocument);
+
+  const panel = targetDocument.createElement('div');
   panel.id = 'masterPanel';
-  panel.className = 'panel';
+  panel.className = detached ? 'panel panel--detached' : 'panel';
   panel.setAttribute('role', 'region');
   panel.setAttribute('aria-label', 'Settings');
   
   // Header
-  const header = document.createElement('div');
+  const header = targetDocument.createElement('div');
   header.className = 'panel-header';
   const isDark = document.body.classList.contains('dark-mode');
   header.innerHTML = `
@@ -443,7 +525,7 @@ function createMasterPanel({
   `;
   
   // Content
-  const content = document.createElement('div');
+  const content = targetDocument.createElement('div');
   content.className = 'panel-content';
   content.innerHTML = getMasterPanelContent({
     page,
@@ -463,11 +545,11 @@ function createMasterPanel({
   panel.appendChild(content);
 
   // Restore size (only if user has manually resized - i.e., significantly different from CSS defaults)
-  const savedSize = loadPanelSize();
+  const savedSize = detached ? null : loadPanelSize();
   if (savedSize) {
     // CSS defaults: width = 23rem (368px), height matches --dock-panel-height (92vh in dev)
     const cssDefaultWidth = 368; // var(--size-23)
-    const cssDefaultHeight = window.innerHeight * (isDev() ? 0.92 : 0.8);
+    const cssDefaultHeight = targetWindow.innerHeight * (isDev() ? 0.92 : 0.8);
     let restoreW = savedSize.width;
     let restoreH = savedSize.height;
     if (isDev() && restoreH < getDevPanelMinHeightPx()) {
@@ -482,7 +564,7 @@ function createMasterPanel({
     // Only restore if difference is significant (> 5px) - means user manually resized
     if (widthDiff > 5 || heightDiff > 5) {
       panel.style.width = `${restoreW}px`;
-      const maxHeight = window.innerHeight * (isDev() ? 0.92 : 0.9);
+      const maxHeight = targetWindow.innerHeight * (isDev() ? 0.92 : 0.9);
       panel.style.height = `${Math.min(Math.max(restoreH, isDev() ? getDevPanelMinHeightPx() : 0), maxHeight)}px`;
       panel.style.maxHeight = isDev() ? "var(--size-92)" : "var(--size-90)";
     }
@@ -503,22 +585,25 @@ function createMasterPanel({
   }
   
   // Initialize controls
-  setTimeout(() => {
+  const cleanupFns = [];
+  targetWindow.setTimeout(() => {
     // Shared (master) controls are safe on all pages.
     if (page === 'home') {
-      setupIndexControls();
+      setupIndexControls({ uiDocument: targetDocument });
     } else {
-      setupMasterControls();
+      setupMasterControls({ uiDocument: targetDocument });
     }
 
-    setupBuildControls();
+    bindThemeSegmentControls(targetDocument);
+    setupBuildControls({ uiDocument: targetDocument });
     bindStudioSurfaceControls();
-    setupSoundControls(panel);
+    const soundCleanup = setupSoundControls(panel);
+    if (typeof soundCleanup === 'function') cleanupFns.push(soundCleanup);
     setupLayoutControls(panel);
     setupDevViewControls(panel);
 
     // Page-specific bindings (portfolio carousel, etc).
-    try { setupPageControls?.(panel); } catch (e) {}
+    try { setupPageControls?.(panel, { uiDocument: targetDocument }); } catch (e) {}
 
     // `.mode-controls` blocks stay hidden until `.active`; home toggles via mode buttons.
     // Other routes: show the accordion for the current simulation mode (incl. portfolio-pit → pit).
@@ -527,13 +612,48 @@ function createMasterPanel({
         const m = getGlobals()?.currentMode;
         if (m) {
           const modeKey = m === 'portfolio-pit' ? 'pit' : m;
-          document.getElementById(`${modeKey}Controls`)?.classList.add('active');
+          targetDocument.getElementById(`${modeKey}Controls`)?.classList.add('active');
         }
       } catch (e) {}
     }
   }, 0);
+
+  panel.__cleanupPanel = () => {
+    cleanupFns.splice(0).forEach((fn) => {
+      try {
+        fn();
+      } catch (e) {}
+    });
+  };
   
   return panel;
+}
+
+export function mountDetachedPanel({
+  targetDocument,
+  targetWindow,
+  mountRoot = null,
+  ...panelOptions
+} = {}) {
+  if (!targetDocument) return null;
+
+  const hostRoot = mountRoot || targetDocument.getElementById('panel-host-root') || targetDocument.body;
+  if (!hostRoot) return null;
+
+  registerPanelUiDocument(targetDocument);
+  ensurePanelStylesheet(targetDocument);
+  syncPanelHostDocument(targetDocument);
+
+  destroyPanelElement(detachedPanelElement);
+  detachedPanelElement = createMasterPanel({
+    ...panelOptions,
+    targetDocument,
+    targetWindow: targetWindow || window,
+    detached: true,
+  });
+
+  hostRoot.replaceChildren(detachedPanelElement);
+  return detachedPanelElement;
 }
 
 function setupDevViewControls(panel) {
@@ -806,6 +926,7 @@ function ensureDockOnscreen() {
 // ════════════════════════════════════════════════════════════════════════════════
 
 function setupSoundControls(panel) {
+  const uiDocument = panel?.ownerDocument || document;
   const enableBtn = panel.querySelector('#soundEnableBtn');
   const controlsWrapper = panel.querySelector('#soundControlsWrapper');
   const presetSelect = panel.querySelector('#soundPresetSelect');
@@ -907,7 +1028,7 @@ function setupSoundControls(panel) {
   
   if (presetSelect) {
     for (const [key, preset] of Object.entries(SOUND_PRESETS)) {
-      const option = document.createElement('option');
+      const option = uiDocument.createElement('option');
       option.value = key;
       option.textContent = preset.label;
       presetSelect.appendChild(option);
@@ -934,11 +1055,18 @@ function setupSoundControls(panel) {
   syncSoundSectionUI();
 
   // Stay in sync with external toggles (e.g. the floating sound toggle button)
+  const handleSoundStateEvent = (e) => {
+    syncSoundSectionUI(e && e.detail ? e.detail : null);
+  };
   if (typeof window !== 'undefined' && window.addEventListener) {
-    window.addEventListener(SOUND_STATE_EVENT, (e) => {
-      syncSoundSectionUI(e && e.detail ? e.detail : null);
-    });
+    window.addEventListener(SOUND_STATE_EVENT, handleSoundStateEvent);
   }
+
+  return () => {
+    if (typeof window !== 'undefined' && window.removeEventListener) {
+      window.removeEventListener(SOUND_STATE_EVENT, handleSoundStateEvent);
+    }
+  };
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
