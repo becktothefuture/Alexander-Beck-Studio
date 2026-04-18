@@ -1839,7 +1839,7 @@ body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
   justify-self: end;
   font-size: calc(var(--legend-font-size) + var(--abs-size-1px));
   margin-block-start: calc(var(--decorative-script-font-size) * -0.5);
-  padding-inline-start: calc(var(--decorative-script-padding-left) + var(--gap-md));
+  padding-inline-start: calc(var(--decorative-script-padding-left) + var(--gap-lg));
 }
 
 /* Unified hover state - handled in INTERACTIVE HOVER EFFECTS section below */

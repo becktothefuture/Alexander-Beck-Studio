@@ -40,6 +40,7 @@ export function getHomeRouteView() {
             <blockquote className="decorative-script">
               <p>
                 {homeContent.philosophy.textBeforeLink}
+                {' '}
                 <a id={philosophyLink.id} href={philosophyLink.href}>
                   {philosophyLink.text}
                 </a>

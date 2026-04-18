@@ -83,6 +83,7 @@ function applyPhilosophy() {
   if (!p) return;
 
   const before = getText('philosophy.textBeforeLink', '');
+  const beforeWithGap = before ? `${String(before).replace(/\s+$/, '')} ` : '';
   const linkId = getText('philosophy.link.id', 'contact-email-inline') || 'contact-email-inline';
   const linkHref = getText('philosophy.link.href', '#') || '#';
   const linkText = getText('philosophy.link.text', '') || '';
@@ -96,13 +97,13 @@ function applyPhilosophy() {
   link.setAttribute('href', linkHref);
   link.textContent = linkText;
 
-  // Ensure the text before the link is a single text node directly before the <a>
-  const prev = link.previousSibling;
-  if (prev && prev.nodeType === Node.TEXT_NODE) {
-    prev.nodeValue = before;
-  } else {
-    p.insertBefore(document.createTextNode(before), link);
+  // Ensure the text before the link is exactly one text node directly before the <a>.
+  for (const node of Array.from(p.childNodes)) {
+    if (node !== link && node.nodeType === Node.TEXT_NODE) {
+      p.removeChild(node);
+    }
   }
+  p.insertBefore(document.createTextNode(beforeWithGap), link);
 
   // Remove stray text nodes after link to avoid drift.
   const next = link.nextSibling;
