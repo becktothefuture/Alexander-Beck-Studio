@@ -108,6 +108,7 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       input: {
         index: resolve(__dirname, 'index.html'),
+        'explain-it-like-im': resolve(__dirname, 'explain-it-like-im.html'),
         portfolio: resolve(__dirname, 'portfolio.html'),
         cv: resolve(__dirname, 'cv.html'),
         styleguide: resolve(__dirname, 'styleguide.html'),
