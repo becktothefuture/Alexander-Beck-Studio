@@ -4,14 +4,10 @@
 // ║     With realistic behaviors: foraging, directional memory, pheromones        ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
+import { clampBallPositionToWallInterior } from '../physics/Ball.js';
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
-import {
-  getColorByIndex,
-  PALETTE_BRIGHT_ACCENT_INDICES,
-  PALETTE_CHROMATIC_INDICES,
-  pickRandomColorWithIndex,
-} from '../visual/colors.js';
+import { getColorByIndex, pickRandomColorWithIndex } from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { MODES } from '../core/constants.js';
 
@@ -20,7 +16,7 @@ import { MODES } from '../core/constants.js';
 // Critters use the shared pit-weighted palette mix.
 // Waypoints carry the clearer chromatic accents, with the brightest hues last.
 // ════════════════════════════════════════════════════════════════════════════════
-const WAYPOINT_COLOR_INDEX_FALLBACK = [...PALETTE_CHROMATIC_INDICES, ...PALETTE_BRIGHT_ACCENT_INDICES];
+const HIVE_WAYPOINT_COLOR_INDEX = 1;
 
 // ════════════════════════════════════════════════════════════════════════════════
 // SPATIAL HASH GRID (for O(1) neighbor lookups instead of O(n²))
@@ -120,33 +116,67 @@ let journeyPoints = []; // Array of {x, y} normalized coords (0-1)
 function generateJourneyPoints() {
   const globals = getGlobals();
   const count = globals.hiveJourneyPointCount || 4;
-  const margin = globals.hiveJourneyPointMargin || 0.05;
+  const margin = Math.max(globals.hiveJourneyPointMargin || 0.05, 0.15);
+  const canvasW = globals.canvas?.width || 1;
+  const canvasH = globals.canvas?.height || 1;
+  const waypointRadius = Math.max(
+    globals.R_MAX || 24,
+    ((globals.R_MIN || 8) + (globals.R_MAX || 24)) * 0.5
+  );
   
   journeyPoints = [];
   const safeRange = 1 - 2 * margin;
-  
-  // For counts 1-4, use quadrant-based placement for good distribution
-  // For counts 5-8, add additional points with random placement
-  const quadrants = [
-    { xMin: 0, xMax: 0.5, yMin: 0, yMax: 0.5 },     // top-left
-    { xMin: 0.5, xMax: 1, yMin: 0, yMax: 0.5 },     // top-right
-    { xMin: 0, xMax: 0.5, yMin: 0.5, yMax: 1 },     // bottom-left
-    { xMin: 0.5, xMax: 1, yMin: 0.5, yMax: 1 }      // bottom-right
-  ];
-  
+
+  const minSeparation = Math.min(0.28, safeRange * 0.42);
+  const maxAttemptsPerPoint = 48;
+
   for (let i = 0; i < count; i++) {
-    let x, y;
-    if (i < 4) {
-      // Use quadrant placement for first 4 points
-      const q = quadrants[i];
-      x = margin + Math.max(0, q.xMin * safeRange) + Math.random() * (q.xMax - q.xMin) * safeRange;
-      y = margin + Math.max(0, q.yMin * safeRange) + Math.random() * (q.yMax - q.yMin) * safeRange;
-    } else {
-      // Random placement for additional points
-      x = margin + Math.random() * safeRange;
-      y = margin + Math.random() * safeRange;
+    let selected = null;
+    let bestCandidate = null;
+    let bestMinDistance = -1;
+
+    for (let attempt = 0; attempt < maxAttemptsPerPoint; attempt++) {
+      const candidate = projectPointIntoCritterInterior(
+        margin + Math.random() * safeRange,
+        margin + Math.random() * safeRange,
+        canvasW,
+        canvasH,
+        waypointRadius * 1.5
+      );
+
+      let nearest = Infinity;
+      for (let j = 0; j < journeyPoints.length; j++) {
+        const existing = journeyPoints[j];
+        const dx = candidate.x - existing.x;
+        const dy = candidate.y - existing.y;
+        nearest = Math.min(nearest, Math.sqrt(dx * dx + dy * dy));
+      }
+
+      if (!Number.isFinite(nearest)) nearest = Infinity;
+      if (nearest > bestMinDistance) {
+        bestMinDistance = nearest;
+        bestCandidate = candidate;
+      }
+
+      if (journeyPoints.length >= 2) {
+        const area = triangleAreaNormalized(journeyPoints[0], journeyPoints[1], candidate);
+        if (nearest >= minSeparation && area >= 0.035) {
+          selected = candidate;
+          break;
+        }
+      } else if (nearest >= minSeparation || nearest === Infinity) {
+        selected = candidate;
+        break;
+      }
     }
-    journeyPoints.push({ x, y });
+
+    journeyPoints.push(selected || bestCandidate || projectPointIntoCritterInterior(
+      margin + Math.random() * safeRange,
+      margin + Math.random() * safeRange,
+      canvasW,
+      canvasH,
+      waypointRadius * 1.5
+    ));
   }
 }
 
@@ -260,6 +290,43 @@ function stepPulse01(phase01, sharpness) {
   return Math.pow(s, p);
 }
 
+function projectPointIntoCritterInterior(xNorm, yNorm, canvasW, canvasH, radiusPx) {
+  const safeW = Math.max(1, canvasW);
+  const safeH = Math.max(1, canvasH);
+  const probe = {
+    x: clamp(xNorm, 0, 1) * safeW,
+    y: clamp(yNorm, 0, 1) * safeH,
+    r: Math.max(1, radiusPx || 1),
+  };
+  clampBallPositionToWallInterior(probe, safeW, safeH);
+  return {
+    x: clamp(probe.x / safeW, 0, 1),
+    y: clamp(probe.y / safeH, 0, 1),
+  };
+}
+
+function sampleCritterSpawnPosition(canvasW, canvasH, radiusPx) {
+  const insetX = Math.min(canvasW * 0.35, Math.max(radiusPx * 2.4, canvasW * 0.08));
+  const insetY = Math.min(canvasH * 0.35, Math.max(radiusPx * 2.4, canvasH * 0.08));
+  const usableW = Math.max(1, canvasW - insetX * 2);
+  const usableH = Math.max(1, canvasH - insetY * 2);
+  const probe = {
+    x: insetX + Math.random() * usableW,
+    y: insetY + Math.random() * usableH,
+    r: Math.max(1, radiusPx || 1),
+  };
+  clampBallPositionToWallInterior(probe, canvasW, canvasH);
+  return probe;
+}
+
+function triangleAreaNormalized(a, b, c) {
+  return Math.abs(
+    a.x * (b.y - c.y) +
+    b.x * (c.y - a.y) +
+    c.x * (a.y - b.y)
+  ) * 0.5;
+}
+
 // Snap angle to nearest 45° increment with some randomness
 function snapToAngularGrid(angle, snapStrength) {
   const SNAP_ANGLES = [0, Math.PI / 4, Math.PI / 2, Math.PI * 3 / 4, Math.PI, -Math.PI * 3 / 4, -Math.PI / 2, -Math.PI / 4];
@@ -302,15 +369,17 @@ export function initializeCritters() {
   if (count <= 0) return;
 
   for (let i = 0; i < count; i++) {
-    const x = (Math.random() * w) | 0;
-    const y = (Math.random() * h) | 0;
     const { color, distributionIndex } = pickRandomColorWithIndex();
+    const rr = randomRadiusForMode(globals, MODES.CRITTERS);
+    const spawn = sampleCritterSpawnPosition(w, h, rr);
+    const x = spawn.x | 0;
+    const y = spawn.y | 0;
     const ball = spawnBall(x, y, color, distributionIndex);
 
-    const rr = randomRadiusForMode(globals, MODES.CRITTERS);
     ball.r = rr;
     ball.rBase = rr;
     ball.m = Math.max(1, rr * rr * 0.12);
+    clampBallPositionToWallInterior(ball, w, h);
 
     // Give initial random velocity so no critter starts frozen
     const initAngle = Math.random() * Math.PI * 2;
@@ -369,6 +438,10 @@ export function initializeCritters() {
     // Curiosity trait (0-1): high = explores new areas, low = stays familiar
     const curiosityBias = globals.critterCuriosityBias ?? 0.5;
     ball._critterCuriosity = Math.max(0, Math.min(1, curiosityBias + (Math.random() - 0.5) * 0.6));
+    ball._critterGoalHoverRadius = (48 + Math.random() * 72 + ball._critterCuriosity * 44) * (globals.DPR || 1);
+    ball._critterGoalHoverPhase = Math.random() * Math.PI * 2;
+    ball._critterGoalHoverSpeed = 0.18 + Math.random() * 0.22;
+    ball._critterGoalHoverEccentricity = 0.58 + Math.random() * 0.28;
     
     // Body animation state
     ball._critterBreathPhase = Math.random() * Math.PI * 2;
@@ -394,6 +467,14 @@ export function updateCrittersGrid(dt) {
     resetPheromoneGrid();
     resetHiveState();
     resetSpatialGrid();
+    for (let i = 0; i < balls.length; i++) {
+      const b = balls[i];
+      const next = getNextJourneyPoint(b._critterJourneyIndex ?? i % Math.max(1, journeyPoints.length));
+      b._critterGoalX = next.point.x;
+      b._critterGoalY = next.point.y;
+      b._critterJourneyIndex = next.index;
+      b._critterGoalTimer = 2 + Math.random() * 4;
+    }
   }
   
   decayPheromoneGrid(dt);
@@ -494,6 +575,10 @@ export function applyCrittersForces(ball, dt) {
   let energy = ball._critterEnergy ?? 0.7;
   const energyRate = ball._critterEnergyRate || 0.025;
   const curiosity = ball._critterCuriosity || 0.5;
+  const goalHoverRadius = ball._critterGoalHoverRadius || (64 * DPR);
+  let goalHoverPhase = ball._critterGoalHoverPhase || 0;
+  const goalHoverSpeed = ball._critterGoalHoverSpeed || 0.24;
+  const goalHoverEccentricity = ball._critterGoalHoverEccentricity || 0.68;
   let breathPhase = ball._critterBreathPhase || 0;
   let alertPulse = ball._critterAlertPulse || 0;
   
@@ -514,7 +599,7 @@ export function applyCrittersForces(ball, dt) {
   // ──────────────────────────────────────────────────────────────────────────────
   // GROUND FRICTION (makes critters feel grounded)
   // ──────────────────────────────────────────────────────────────────────────────
-  const groundFriction = 0.88;
+  const groundFriction = 0.84;
   ball.vx *= Math.pow(groundFriction, dt * 60);
   ball.vy *= Math.pow(groundFriction, dt * 60);
 
@@ -676,6 +761,7 @@ export function applyCrittersForces(ball, dt) {
   // Energy depletion (moving costs energy, panic drains slightly faster)
   const energyCost = (pause > 0 ? 0.003 : energyRate * 0.5) * (1 + panic01 * 0.5) * dt;
   energy = Math.max(0.3, energy - energyCost); // Never drop below 30%
+  goalHoverPhase = wrapAngle(goalHoverPhase + dt * goalHoverSpeed * Math.PI * 2 * (0.75 + energy * 0.45));
   
   // Energy recovery - always recovering slowly, faster when calm
   const baseRecovery = 0.02 * dt; // Always some recovery
@@ -702,23 +788,46 @@ export function applyCrittersForces(ball, dt) {
     goalTimer = goalSwitchMin + Math.random() * switchRange + (1 - energy) * 5; // Tired = longer between goals
   }
   
-  // Steer toward goal (subtle influence when calm)
-  if (panic01 < 0.15 && pause <= 0) {
+  // Steer toward goal. In Hive mode the dots should read as real attractors,
+  // so this needs to dominate the softer wandering forces when calm.
+  if (panic01 < 0.25 && pause <= 0) {
     const goalWorldX = goalX * canvasW;
     const goalWorldY = goalY * canvasH;
-    const toGoalX = goalWorldX - ball.x;
-    const toGoalY = goalWorldY - ball.y;
+    const directGoalDist = Math.hypot(goalWorldX - ball.x, goalWorldY - ball.y) + 1e-6;
+    const goalFocus = clamp(directGoalDist / (Math.min(canvasW, canvasH) * 0.38), 0.35, 1.0);
+    const orbitRadius = goalHoverRadius * (0.72 + curiosity * 0.45);
+    const orbitOffsetX = Math.cos(goalHoverPhase + (ball.pebbleSeed || 0) * 0.11) * orbitRadius;
+    const orbitOffsetY = Math.sin(goalHoverPhase * goalHoverEccentricity + (ball.pebbleSeed || 0) * 0.17) * orbitRadius * goalHoverEccentricity;
+    const orbitMix = 0.6 + (1 - goalFocus) * 0.3;
+    const targetX = goalWorldX + orbitOffsetX * orbitMix;
+    const targetY = goalWorldY + orbitOffsetY * orbitMix;
+    const toGoalX = targetX - ball.x;
+    const toGoalY = targetY - ball.y;
     const goalDist = Math.sqrt(toGoalX * toGoalX + toGoalY * toGoalY) + 1e-6;
+    const goalDirX = toGoalX / goalDist;
+    const goalDirY = toGoalY / goalDist;
+    const goalHeading = Math.atan2(toGoalY, toGoalX);
+    const lateralX = -goalDirY;
+    const lateralY = goalDirX;
+    const meanderPhase = breathPhase * (0.7 + driftRate * 0.8) + (ball.pebbleSeed || 0) * 0.63;
+    const meanderAmount = Math.sin(meanderPhase) * (0.08 + curiosity * 0.14) * (0.35 + goalFocus * 0.35);
     
     // Reached goal? Pick new one sooner
     if (goalDist < goalReachedRadius) {
       goalTimer = Math.min(goalTimer, 1 + Math.random() * 2);
     }
     
-    // Subtle goal-seeking (stronger for high-energy critters)
-    const goalStrength = goalAttractionStrength * energy * (1 - panic01 * 6);
-    steerX += (toGoalX / goalDist) * goalStrength;
-    steerY += (toGoalY / goalDist) * goalStrength;
+    // Strong dot-seeking with distance-scaled pull so the waypoints visibly organize the swarm.
+    const goalStrength = goalAttractionStrength * (1.8 + goalFocus * 2.2) * energy * (1 - panic01 * 2.5);
+    steerX += goalDirX * goalStrength;
+    steerY += goalDirY * goalStrength;
+    steerX += lateralX * goalStrength * meanderAmount;
+    steerY += lateralY * goalStrength * meanderAmount;
+
+    // Keep each critter's "preferred" heading from drifting away from its assigned dot.
+    const targetHeading = wrapAngle(goalHeading + meanderAmount * 0.35);
+    const headingCatchup = Math.min(1, dt * (0.28 + goalFocus * 0.8));
+    preferredHeading = wrapAngle(preferredHeading + wrapAngle(targetHeading - preferredHeading) * headingCatchup);
   }
   
   // Curiosity: attracted to low-pheromone (unexplored) areas
@@ -820,13 +929,14 @@ export function applyCrittersForces(ball, dt) {
     if (y < zone) steerY += (1 - y / zone) * edgeAvoid;
     else if (y > canvasH - zone) steerY -= (1 - (canvasH - y) / zone) * edgeAvoid;
   } else if (panic01 < 0.1) {
-    // Calm: subtle edge hugging (bugs feel safer at edges)
-    const edgeHugStrength = 0.3;
-    const edgeHugZone = zone * 2;
-    if (x < edgeHugZone) steerX -= (1 - x / edgeHugZone) * edgeHugStrength;
-    else if (x > canvasW - edgeHugZone) steerX += (1 - (canvasW - x) / edgeHugZone) * edgeHugStrength;
-    if (y < edgeHugZone) steerY -= (1 - y / edgeHugZone) * edgeHugStrength;
-    else if (y > canvasH - edgeHugZone) steerY += (1 - (canvasH - y) / edgeHugZone) * edgeHugStrength;
+    // Calm: gentle perimeter avoidance keeps the swarm moving through the field
+    // instead of pressing into the collision boundary.
+    const calmEdgeAvoid = Math.max(0.22, edgeAvoid * 0.45);
+    const calmZone = zone * 1.8;
+    if (x < calmZone) steerX += (1 - x / calmZone) * calmEdgeAvoid;
+    else if (x > canvasW - calmZone) steerX -= (1 - (canvasW - x) / calmZone) * calmEdgeAvoid;
+    if (y < calmZone) steerY += (1 - y / calmZone) * calmEdgeAvoid;
+    else if (y > canvasH - calmZone) steerY -= (1 - (canvasH - y) / calmZone) * calmEdgeAvoid;
   }
 
   // ──────────────────────────────────────────────────────────────────────────────
@@ -890,9 +1000,9 @@ export function applyCrittersForces(ball, dt) {
     const desired = Math.atan2(steerY, steerX);
     let delta = wrapAngle(desired - heading);
     
-    // SHARP TURN BIAS: Snap toward 45°/90° angles when changing direction significantly
-    if (Math.abs(delta) > 0.3 && panic01 < 0.5) {
-      const snappedHeading = snapToAngularGrid(desired, 0.4);
+    // Keep a small amount of directional simplification only under stress.
+    if (Math.abs(delta) > 0.45 && panic01 > 0.4) {
+      const snappedHeading = snapToAngularGrid(desired, 0.14);
       delta = wrapAngle(snappedHeading - heading);
     }
     
@@ -943,7 +1053,7 @@ export function applyCrittersForces(ball, dt) {
   const wrapped = (stepHz > 0) && (phase < lastPhase);
   if (!isPaused && wrapped) {
     const massScale = Math.max(0.25, ball.m / (g.MASS_BASELINE_KG || 129));
-    const hopBase = speed * (0.5 + 0.5 * pulse) * effectiveSpeedMul;
+    const hopBase = speed * (0.28 + 0.32 * pulse) * effectiveSpeedMul;
     const hop = hopBase * (0.85 + 0.3 * Math.random());
     const cx = Math.cos(heading);
     const cy = Math.sin(heading);
@@ -958,7 +1068,7 @@ export function applyCrittersForces(ball, dt) {
   // GRAZING THRUST
   // ──────────────────────────────────────────────────────────────────────────────
   if (!isPaused) {
-    const thrust = speed * (0.1 + 0.2 * pulse) * effectiveSpeedMul;
+    const thrust = speed * (0.06 + 0.12 * pulse) * effectiveSpeedMul;
     ball.vx += Math.cos(heading) * thrust * dt;
     ball.vy += Math.sin(heading) * thrust * dt;
   }
@@ -1043,23 +1153,6 @@ let waypointColors = [];
 let lastJourneyPointCount = 0;
 let lastPaletteTemplate = null;
 
-function getWaypointColorIndices(globals) {
-  const distribution = Array.isArray(globals?.colorDistribution) ? globals.colorDistribution : [];
-  const chromaticRows = [];
-  const brightRows = [];
-  for (let i = 0; i < distribution.length; i += 1) {
-    const row = distribution[i];
-    const colorIndex = Math.max(0, Math.min(7, Number(row?.colorIndex) || 0));
-    const entry = { colorIndex, weight: Number(row?.weight) || 0 };
-    if (PALETTE_CHROMATIC_INDICES.includes(colorIndex)) chromaticRows.push(entry);
-    else if (PALETTE_BRIGHT_ACCENT_INDICES.includes(colorIndex)) brightRows.push(entry);
-  }
-  chromaticRows.sort((a, b) => b.weight - a.weight);
-  brightRows.sort((a, b) => a.weight - b.weight);
-  const ordered = [...chromaticRows, ...brightRows].map((entry) => entry.colorIndex);
-  return ordered.length ? ordered : WAYPOINT_COLOR_INDEX_FALLBACK;
-}
-
 function ensureWaypointColors() {
   const globals = getGlobals();
   const pointCount = globals.hiveJourneyPointCount || 4;
@@ -1072,11 +1165,9 @@ function ensureWaypointColors() {
     lastPaletteTemplate !== currentTemplate;
     
   if (needsRegeneration) {
-    const orderedWaypointIndices = getWaypointColorIndices(globals);
     waypointColors = [];
     for (let i = 0; i < pointCount; i++) {
-      const colorIndex = orderedWaypointIndices[i % orderedWaypointIndices.length];
-      waypointColors.push(getColorByIndex(colorIndex));
+      waypointColors.push(getColorByIndex(HIVE_WAYPOINT_COLOR_INDEX));
     }
     lastJourneyPointCount = pointCount;
     lastPaletteTemplate = currentTemplate;

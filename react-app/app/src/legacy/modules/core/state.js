@@ -289,20 +289,20 @@ const state = {
 
   // Critters (Simulation 11) — ball-only “little creatures”
   critterCount: 90,
-  critterSpeed: 680,          // thrust scale (px/s-ish)
-  critterMaxSpeed: 1400,      // clamp
-  critterStepHz: 5.0,         // step cadence
-  critterStepSharpness: 2.4,  // higher = more staccato steps
-  critterTurnNoise: 2.2,      // wander
+  critterSpeed: 520,          // thrust scale (px/s-ish)
+  critterMaxSpeed: 980,       // clamp
+  critterStepHz: 4.8,         // step cadence
+  critterStepSharpness: 1.8,  // higher = more staccato steps
+  critterTurnNoise: 1.5,      // wander
   critterTurnDamp: 10.0,      // turning inertia damping
-  critterTurnSeek: 10.0,      // steering toward desired heading
+  critterTurnSeek: 7.5,       // steering toward desired heading
   critterAvoidRadius: 90,     // px (tighter packs; separation is now mostly near-field)
   critterAvoidForce: 9500,    // separation acceleration
   critterEdgeAvoid: 1.0,      // edge repulsion strength
   critterMousePull: 1.0,      // attraction strength inside mouse zone
   critterMouseRadiusVw: 30,   // zone radius (vw)
-  critterRestitution: 0.18,   // collision “bounciness” override while mode active
-  critterFriction: 0.018,     // drag override while mode active
+  critterRestitution: 0.08,   // collision “bounciness” override while mode active
+  critterFriction: 0.026,     // drag override while mode active
   
   // Hive behavior parameters
   critterHiveStirInterval: 5.0,   // seconds between hive stir waves
@@ -315,9 +315,9 @@ const state = {
   critterCuriosityBias: 0.5,      // avg curiosity level (0=stay put, 1=explore)
   
   // Journey points (goal-based wandering)
-  hiveJourneyPointCount: 4,       // number of journey points (1-8)
-  hiveJourneyPointMargin: 0.05,   // margin from edges (0-0.2)
-  hiveGoalAttractionStrength: 0.25, // how strongly critters steer toward goals (0-1)
+  hiveJourneyPointCount: 3,       // number of journey points (1-8)
+  hiveJourneyPointMargin: 0.15,   // margin from edges (0-0.2)
+  hiveGoalAttractionStrength: 0.55, // how strongly critters steer toward goals (0-1)
   hiveGoalSwitchMinS: 4,          // min seconds before switching goals (1-20)
   hiveGoalSwitchMaxS: 14,         // max seconds before switching goals (5-30)
   hiveGoalReachedRadius: 50,      // distance threshold to consider goal reached (10-200)

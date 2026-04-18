@@ -817,21 +817,10 @@ export function applyColorTemplate(templateName) {
 function updateExistingBallColors() {
   const globals = getGlobals();
   const balls = globals.balls;
-  
-  // For critters mode, use only grey colors (indices 0, 1)
-  // Otherwise use standard weighted distribution
-  const isCrittersMode = globals.currentMode === 'critters';
-  const critterColorIndices = [0, 1];
 
   for (let i = 0; i < balls.length; i++) {
     if (balls[i]?._preserveColor) continue;
-    if (isCrittersMode) {
-      // Critters get greys only
-      const colorIndex = critterColorIndices[Math.floor(Math.random() * critterColorIndices.length)];
-      balls[i].color = getColorByIndex(colorIndex);
-    } else {
-      balls[i].color = pickRandomColor();
-    }
+    balls[i].color = pickRandomColor();
   }
 }
 
