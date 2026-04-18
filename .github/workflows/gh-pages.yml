@@ -38,13 +38,13 @@ jobs:
 
       - name: Enforce node_modules hygiene
         run: |
-          NODE_MODULES_DIFF="$(git diff --name-only | rg '^node_modules/' || true)"
+          NODE_MODULES_DIFF="$(git diff --name-only | grep '^node_modules/' || true)"
           if [ -n "$NODE_MODULES_DIFF" ]; then
             echo "node_modules diffs are not allowed:"
             echo "$NODE_MODULES_DIFF"
             exit 1
           fi
-          NODE_MODULES_DIFF_STAGED="$(git diff --name-only --staged | rg '^node_modules/' || true)"
+          NODE_MODULES_DIFF_STAGED="$(git diff --name-only --staged | grep '^node_modules/' || true)"
           if [ -n "$NODE_MODULES_DIFF_STAGED" ]; then
             echo "staged node_modules diffs are not allowed:"
             echo "$NODE_MODULES_DIFF_STAGED"

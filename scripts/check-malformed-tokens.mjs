@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import path from 'node:path';
 
 const SEARCH_PATHS = [
   'react-app/app/src',
@@ -10,6 +12,7 @@ const SEARCH_PATHS = [
   'react-app/app/cv.html',
   'react-app/app/styleguide.html',
   'react-app/app/palette-lab.html',
+  'react-app/app/explain-it-like-im.html',
 ];
 
 const FIXED_CHECKS = [
@@ -36,6 +39,9 @@ function runSearch(argsList) {
   } catch (error) {
     if (error?.status === 1) {
       return '';
+    }
+    if (error?.code === 'ENOENT') {
+      return runNodeSearch(argsList);
     }
     throw error;
   }
@@ -90,6 +96,101 @@ function runRegexSearch(pattern, targets) {
     pattern,
     ...targets,
   ]);
+}
+
+function extractSearchTargets(argsList) {
+  const targets = [];
+  let expectPatternValue = false;
+  for (const arg of argsList) {
+    if (expectPatternValue) {
+      expectPatternValue = false;
+      continue;
+    }
+    if (arg === '--glob' || arg === '--line-number' || arg === '--no-heading' || arg === '--color=never' || arg === '--fixed-strings' || arg === '--pcre2') {
+      continue;
+    }
+    if (arg === '-e') {
+      expectPatternValue = true;
+      continue;
+    }
+    if (arg.startsWith('!')) {
+      continue;
+    }
+    targets.push(arg);
+  }
+  return targets;
+}
+
+function isExcludedPath(pathName) {
+  const normalizedPath = normalizePath(pathName);
+  return [
+    'node_modules/',
+    'dist/',
+    'output/',
+    'tmp/',
+  ].some((segment) => normalizedPath.includes(`/${segment}`) || normalizedPath.startsWith(segment));
+}
+
+function expandSearchTargets(targets) {
+  const files = [];
+  for (const target of targets) {
+    if (!target) continue;
+    let stats;
+    try {
+      stats = statSync(target);
+    } catch {
+      continue;
+    }
+    if (stats.isDirectory()) {
+      walkDirectory(target, files);
+      continue;
+    }
+    if (!isExcludedPath(target)) {
+      files.push(normalizePath(target));
+    }
+  }
+  return files;
+}
+
+function walkDirectory(dirPath, files) {
+  for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
+    const entryPath = normalizePath(path.join(dirPath, entry.name));
+    if (isExcludedPath(entryPath)) continue;
+    if (entry.isDirectory()) {
+      walkDirectory(entryPath, files);
+      continue;
+    }
+    if (entry.isFile()) {
+      files.push(entryPath);
+    }
+  }
+}
+
+function runNodeSearch(argsList) {
+  const fixedStrings = argsList.includes('--fixed-strings');
+  const patternIndex = fixedStrings ? argsList.findIndex((arg) => !arg.startsWith('--') && arg !== '!**/node_modules/**' && arg !== '!**/dist/**' && arg !== '!**/output/**' && arg !== '!**/tmp/**') : argsList.indexOf('-e') + 1;
+  const pattern = patternIndex >= 0 ? argsList[patternIndex] : '';
+  const targetStartIndex = fixedStrings ? patternIndex + 1 : patternIndex + 1;
+  const targets = extractSearchTargets(argsList.slice(targetStartIndex));
+  const files = expandSearchTargets(targets);
+  const matcher = fixedStrings
+    ? (line) => line.includes(pattern)
+    : (() => {
+        const regex = new RegExp(pattern, 'u');
+        return (line) => regex.test(line);
+      })();
+  const matches = [];
+  for (const filePath of files) {
+    const buffer = readFileSync(filePath);
+    if (buffer.includes(0)) continue;
+    const text = buffer.toString('utf8');
+    const lines = text.split(/\r?\n/u);
+    for (let index = 0; index < lines.length; index += 1) {
+      if (!matcher(lines[index])) continue;
+      matches.push(`${normalizePath(filePath)}:${index + 1}:${lines[index]}`);
+    }
+  }
+  return matches.join('\n');
 }
 
 function normalizePath(p) {
