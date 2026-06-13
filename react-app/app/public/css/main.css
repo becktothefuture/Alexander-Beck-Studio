@@ -2064,8 +2064,9 @@ p {
   letter-spacing: var(--legend-letter-spacing);
   text-decoration: none; /* No underline */
   opacity: var(--text-opacity-base);
-  /* Unified button corner radius (native CSS, no JS/inline) */
-  border-radius: var(--ui-icon-corner-radius);
+  /* Text buttons stay fully rounded at every responsive size. */
+  --hover-bg-radius: var(--abs-radius-pill);
+  border-radius: var(--abs-radius-pill);
   /* transition: filter var(--link-impact-duration) var(--ease-organic); - Removed to prevent conflict with hover blur */
   /* isolation: isolate; - Removed: breaks backdrop-filter on ::before pseudo-element */
   z-index: 15;
@@ -2075,6 +2076,13 @@ p {
   border: none;
   font-family: inherit;
   /* overflow: hidden; - Removed to allow hover blur to spill out */
+}
+
+@supports (corner-shape: round) {
+  html.abs-corner-shape-squircle .footer_link,
+  html.abs-corner-shape-squircle .footer_link::before {
+    corner-shape: round;
+  }
 }
 
 /* Hover background pseudo-element for text links (uses unified base below) */
@@ -2119,9 +2127,9 @@ p {
   opacity: 1; /* Remove opacity on hover - full strength color */
 }
 
-/* Primary buttons (Contact / Portfolio / About Me): keep radius consistent on hover */
+/* Primary buttons (Contact / Portfolio / About Me): keep pill radius consistent on hover */
 .footer_link:hover {
-  border-radius: var(--ui-icon-corner-radius);
+  border-radius: var(--abs-radius-pill);
 }
 
 /* Main link ID overrides - reset margins to 0 (only when NOT in nav bar) */
@@ -3865,6 +3873,10 @@ body.dark-mode .ui-main-nav .footer_link:active {
 .top-nav__cv:focus-visible {
   box-shadow: none;
   border-radius: var(--ui-icon-corner-radius);
+}
+
+.footer_link:focus-visible {
+  border-radius: var(--abs-radius-pill);
 }
 
 .abs-icon-btn:focus-visible {
