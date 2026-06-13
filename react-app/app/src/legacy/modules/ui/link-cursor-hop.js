@@ -43,7 +43,10 @@ function getNearestAction(target) {
 function onPointerOver(e) {
   const link = getNearestAction(e.target);
   if (!link || isEventOnPanelUI(link)) return;
-  
+
+  const from = e.relatedTarget;
+  if ((from && link.contains(from)) || currentHoveredElement === link) return;
+
   try {
     currentHoveredElement = link;
     document.body.classList.add(HOVER_CLASS);
