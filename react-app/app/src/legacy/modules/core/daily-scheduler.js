@@ -11,10 +11,10 @@ import { NARRATIVE_MODE_SEQUENCE } from './constants.js';
  * @returns {number} Day of year (0-based index)
  */
 function getDayOfYear(date = new Date()) {
-  const start = new Date(date.getFullYear(), 0, 0);
-  const diff = date - start;
   const oneDay = 1000 * 60 * 60 * 24;
-  return Math.floor(diff / oneDay);
+  const start = Date.UTC(date.getFullYear(), 0, 1);
+  const current = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  return Math.floor((current - start) / oneDay);
 }
 
 /**

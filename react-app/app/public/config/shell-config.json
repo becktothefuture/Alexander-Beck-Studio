@@ -1,14 +1,14 @@
 {
   "theme": {
     "wallBaseLight": "#efefef",
-    "wallBaseDark": "#181818",
+    "wallBaseDark": "#202020",
     "quoteButtonColorLight": "#efefef",
-    "quoteButtonColorDark": "#181818",
+    "quoteButtonColorDark": "#202020",
     "siteFrameLight": "#242529",
-    "siteFrameDark": "#242529",
+    "siteFrameDark": "#141517",
     "chromeHarmonyMode": "adaptive",
     "safariFrameLight": "#181818",
-    "safariFrameDark": "#181818",
+    "safariFrameDark": "#141517",
     "frameBorderEdgeOpacity": 0.009,
     "frameBorderMidOpacity": 0.017,
     "frameVignetteEdgeBlur": "42px",

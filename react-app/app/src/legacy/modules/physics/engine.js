@@ -179,6 +179,16 @@ function resolvePitCollisionIterations(globals, baseIterations) {
   return Math.max(minIterations, Math.min(maxIterations, next));
 }
 
+function shouldResolveBallCollisionsForMode(mode) {
+  return mode !== MODES.FLIES &&
+    mode !== MODES.CRITTERS &&
+    mode !== MODES.SPHERE_3D &&
+    mode !== MODES.CUBE_3D &&
+    mode !== MODES.PARALLAX_LINEAR &&
+    mode !== MODES.PARALLAX_FLOAT &&
+    mode !== MODES.STARFIELD_3D;
+}
+
 // ════════════════════════════════════════════════════════════════════════════════
 // PERF: Preallocated options objects to avoid per-loop/per-frame allocations
 // ════════════════════════════════════════════════════════════════════════════════
@@ -362,12 +372,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     const collisionStart = isPitMode ? performance.now() : 0;
     if (globals.currentMode === MODES.KALEIDOSCOPE) {
       collisionStats = resolveCollisions(6) || EMPTY_COLLISION_STATS; // handled by kaleidoscope early-return, kept for safety
-    } else if (globals.currentMode !== MODES.FLIES &&
-               globals.currentMode !== MODES.SPHERE_3D &&
-               globals.currentMode !== MODES.CUBE_3D &&
-               globals.currentMode !== MODES.PARALLAX_LINEAR &&
-               globals.currentMode !== MODES.PARALLAX_FLOAT &&
-               globals.currentMode !== MODES.STARFIELD_3D) {
+    } else if (shouldResolveBallCollisionsForMode(globals.currentMode)) {
       collisionStats = resolveCollisions(collisionIterations) || EMPTY_COLLISION_STATS; // configurable solver iterations
     }
     if (isPitMode) {
@@ -681,7 +686,9 @@ export function render() {
     && (Number(globals.adaptiveThrottleLevel) || 0) >= 1;
   const drawCursorExplosionEnabled = !pitFxThrottleAware && qualityProfile.drawCursorExplosion;
   const pitRenderLodEnabled = isPitMode && globals.pitRenderLodEnabled !== false;
-  const pitRenderOptions = pitRenderLodEnabled
+  const crittersRenderLodEnabled = globals.currentMode === MODES.CRITTERS
+    && qualityProfile.tier !== 'high';
+  const ballRenderOptions = pitRenderLodEnabled
     ? {
         pitRenderLodEnabled,
         pitTinyRadiusPx: Math.max(0.25, Number(globals.pitRenderLodTinyRadiusPx ?? 1.4) * dpr),
@@ -689,6 +696,13 @@ export function render() {
         canvasWidth: canvas.width,
         canvasHeight: canvas.height
       }
+    : crittersRenderLodEnabled
+      ? {
+          simpleCircleBodies: true,
+          skipRims: true,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height
+        }
     : null;
   globals.renderQualityTierResolved = qualityProfile.tier;
   
@@ -727,7 +741,7 @@ export function render() {
   if (customRenderer) {
     customRenderer(ctx);
   } else {
-    renderBallsColorBatched(ctx, balls, false, pitRenderOptions);
+    renderBallsColorBatched(ctx, balls, false, ballRenderOptions);
   }
 
   if (modeRenderer && modeRenderer.postRender) {
@@ -774,6 +788,7 @@ function renderBallsColorBatched(ctx, ballsToRender, _unused = false, renderOpti
   const canvasWidth = Number(renderOptions?.canvasWidth) || Number.POSITIVE_INFINITY;
   const canvasHeight = Number(renderOptions?.canvasHeight) || Number.POSITIVE_INFINITY;
   const cullPad = pitLodEnabled ? Math.max(1, tinyRadiusPx) : 0;
+  const simpleCircleBodies = Boolean(renderOptions?.simpleCircleBodies);
   
   // Group balls by color (O(n) pass, minimal overhead)
   // PERF: Reuse cached Map and arrays to eliminate per-frame allocations
@@ -792,6 +807,26 @@ function renderBallsColorBatched(ctx, ballsToRender, _unused = false, renderOpti
   // Draw in batches (far fewer fillStyle state changes)
   for (const [color, group] of ballsByColor) {
     ctx.fillStyle = color;
+
+    if (simpleCircleBodies) {
+      ctx.beginPath();
+      for (let i = 0; i < group.length; i++) {
+        const ball = group[i];
+        const radius = ball.getDisplayRadius();
+        if (
+          ball.x + radius < -cullPad ||
+          ball.y + radius < -cullPad ||
+          ball.x - radius > canvasWidth + cullPad ||
+          ball.y - radius > canvasHeight + cullPad
+        ) {
+          continue;
+        }
+        ctx.moveTo(ball.x + radius, ball.y);
+        ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
+      }
+      ctx.fill();
+      continue;
+    }
     
     for (let i = 0; i < group.length; i++) {
       const ball = group[i];
@@ -857,11 +892,13 @@ function renderBallsColorBatched(ctx, ballsToRender, _unused = false, renderOpti
   }
 
   // ── Rim pass: directional depth edge on all rendered balls ──
-  drawBallRims(ctx, ballsToRender, {
-    canvasWidth: canvasWidth,
-    canvasHeight: canvasHeight,
-    minRadius: pitLodEnabled ? tinyRadiusPx : 0
-  });
+  if (!renderOptions?.skipRims) {
+    drawBallRims(ctx, ballsToRender, {
+      canvasWidth: canvasWidth,
+      canvasHeight: canvasHeight,
+      minRadius: pitLodEnabled ? tinyRadiusPx : 0
+    });
+  }
 }
 
 /**

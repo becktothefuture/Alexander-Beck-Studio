@@ -4,8 +4,19 @@
 
 import { stampCursorContrastFromTheme } from '../../legacy/modules/visual/colors.js';
 import { forceBootVisible } from '../../legacy/modules/visual/page-orchestrator.js';
+import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 import { syncCornerShapeSquircleClass } from '../../legacy/modules/core/state.js';
+
+function syncRuntimeThemeVars(runtime) {
+  const root = document.documentElement;
+  if (runtime?.bgLight) {
+    root.style.setProperty('--bg-light', runtime.bgLight);
+  }
+  if (runtime?.bgDark) {
+    root.style.setProperty('--bg-dark', runtime.bgDark);
+  }
+}
 
 export async function bootstrapStyleguide() {
   // styleguide.html keeps #abs-scene / #app-frame hidden via #fade-blocking until
@@ -13,11 +24,19 @@ export async function bootstrapStyleguide() {
   forceBootVisible();
   try {
     const runtime = await loadRuntimeConfig();
+    syncRuntimeThemeVars(runtime);
     syncCornerShapeSquircleClass(runtime?.cornerShapeSquircleEnabled !== false);
   } catch {
     syncCornerShapeSquircleClass(true);
   }
-  // No palette bootstrap here — still need readable labels on solid cursor hover fills.
+  try {
+    const shellConfig = await loadShellConfig();
+    syncShellToDocument({
+      config: shellConfig,
+      isDark: document.documentElement.classList.contains('dark-mode')
+    });
+  } catch {}
+  // No simulation palette bootstrap here — still need readable labels on solid cursor hover fills.
   stampCursorContrastFromTheme();
   requestAnimationFrame(() => stampCursorContrastFromTheme());
   return undefined;

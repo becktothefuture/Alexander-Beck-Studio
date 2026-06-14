@@ -5941,10 +5941,10 @@ export function generateModeSwitcherHTML() {
   
   // Calculate which mode is the daily mode (inline to avoid async)
   function getDayOfYear(date = new Date()) {
-    const start = new Date(date.getFullYear(), 0, 0);
-    const diff = date - start;
     const oneDay = 1000 * 60 * 60 * 24;
-    return Math.floor(diff / oneDay);
+    const start = Date.UTC(date.getFullYear(), 0, 1);
+    const current = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    return Math.floor((current - start) / oneDay);
   }
   const dayOfYear = getDayOfYear();
   const modeIndex = dayOfYear % NARRATIVE_MODE_SEQUENCE.length;

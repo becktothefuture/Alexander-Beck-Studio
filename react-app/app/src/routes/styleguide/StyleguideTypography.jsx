@@ -155,8 +155,8 @@ export function StyleguideTypographySection() {
           </div>
           <div className="styleguide-type-role__sample">
             <div className="styleguide-type-hero-block">
-              <span className="styleguide-type-sample styleguide-type-sample--hero-name">Alexander Beck</span>
-              <span className="styleguide-type-sample styleguide-type-sample--hero-role">Creative Technologist</span>
+              <span className="styleguide-type-sample styleguide-type-sample--hero-name">Alexander Beck.</span>
+              <span className="styleguide-type-sample styleguide-type-sample--hero-role">Creative. Technologist.</span>
             </div>
           </div>
         </li>

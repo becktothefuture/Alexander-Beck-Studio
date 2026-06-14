@@ -54,9 +54,9 @@ export function getHomeRouteView() {
       </header>
     ),
     heroTitle: (
-      <h1 id="hero-title" className="hero-title" aria-label="Alexander Beck — Creative Technologist">
-        <span className="hero-title__name">Alexander Beck</span>
-        <span className="hero-title__role">Creative Technologist</span>
+      <h1 id="hero-title" className="hero-title" aria-label="Alexander Beck. Creative. Technologist.">
+        <span className="hero-title__name">Alexander Beck.</span>
+        <span className="hero-title__role">Creative. Technologist.</span>
       </h1>
     ),
     mainContent: (

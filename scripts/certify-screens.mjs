@@ -67,13 +67,13 @@ const matrix = [
     sessionStorage: {
       abs_cv_ok: 'certified'
     },
-    readySelectors: ['#app-frame', '.cv-scroll-container', '.cv-photo__image', '.cv-right__inner'],
+    readySelectors: ['#app-frame', '.cv-scroll-container', '.cv-photo__image', '.cv-page-inner'],
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
       { selector: '.cv-scroll-container', minArea: 80000, requiredText: [] },
       { selector: '.cv-photo__image', minArea: 40000, requiredText: [] },
-      { selector: '.cv-right__inner', minArea: 80000, requiredText: ['About', 'Experience'] }
+      { selector: '.cv-page-inner', minArea: 80000, requiredText: ['About', 'Experience'] }
     ]
   }
 ];

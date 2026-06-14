@@ -29,6 +29,7 @@ let canvas, ctx;
 // High-end: full DPR, Low-end: reduced for smooth 60fps
 // ════════════════════════════════════════════════════════════════════════════════
 let effectiveDPR = CONSTANTS.DPR;
+let lastCrittersDprCapLogKey = '';
 
 // Track previous canvas dimensions for dynamic ball repositioning on resize
 let prevCanvasWidth = 0;
@@ -182,11 +183,23 @@ export function detectOptimalDPR() {
                      navigator.hardwareConcurrency <= 4 ||
                      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const isPortfolioPage = isPortfolioSimulationPage();
+  const currentMode = getGlobals()?.currentMode;
 
   if (isPortfolioPage) {
     const portfolioCap = isLowPower ? 1.5 : 2;
     effectiveDPR = Math.min(baseDPR, portfolioCap);
     setEffectiveDPR(effectiveDPR);
+    return effectiveDPR;
+  }
+
+  if (currentMode === MODES.CRITTERS) {
+    effectiveDPR = Math.min(baseDPR, 1.25);
+    setEffectiveDPR(effectiveDPR);
+    const dprCapLogKey = `${baseDPR.toFixed(2)}:${effectiveDPR.toFixed(2)}`;
+    if (isDev() && effectiveDPR < baseDPR && dprCapLogKey !== lastCrittersDprCapLogKey) {
+      lastCrittersDprCapLogKey = dprCapLogKey;
+      console.log(`⚡ Critters DPR cap: ${baseDPR.toFixed(2)} → ${effectiveDPR.toFixed(2)} for performance`);
+    }
     return effectiveDPR;
   }
 
