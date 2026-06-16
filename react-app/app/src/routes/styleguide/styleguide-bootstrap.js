@@ -35,7 +35,10 @@ export async function bootstrapStyleguide() {
       config: shellConfig,
       isDark: document.documentElement.classList.contains('dark-mode')
     });
-  } catch {}
+  } catch (error) {
+    void error;
+    // Styleguide can render with the critical-shell defaults if shell config is unavailable.
+  }
   // No simulation palette bootstrap here — still need readable labels on solid cursor hover fills.
   stampCursorContrastFromTheme();
   requestAnimationFrame(() => stampCursorContrastFromTheme());
