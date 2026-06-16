@@ -1254,7 +1254,7 @@ body.styleguide-page .styleguide-type-sample--meta-time {
   font-weight: 400;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
-  letter-spacing: var(--abs-letter-spacing-global);
+  letter-spacing: var(--meta-time-letter-spacing);
   color: var(--text-primary);
 }
 
@@ -2544,7 +2544,7 @@ button.abs-meta-btn,
   line-height: 1;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
-  letter-spacing: var(--abs-letter-spacing-global);
+  letter-spacing: var(--meta-time-letter-spacing);
   min-width: 8.5ch; /* Reserve space so the footer chrome does not jitter as seconds tick. */
 }
 
