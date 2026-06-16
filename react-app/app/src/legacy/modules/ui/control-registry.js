@@ -2863,13 +2863,12 @@ export const CONTROL_SECTIONS = {
         type: 'colorDistribution',
         // Labels are fixed; you assign which palette slot + weight each label gets.
         labels: [
-          'Product Systems',
-          'Interaction Design',
+          'Product & Interaction Systems',
+          'AI Product Design',
           'Creative Technology',
-          'Applied AI',
           'Experience Strategy',
           'Art Direction',
-          'Prototyping'
+          'Creative Engineering'
         ],
         hint: 'Assign each discipline to a palette color, then set weights that sum to 100%. Used for all ball spawns across modes.'
       }
@@ -6152,6 +6151,9 @@ export function bindRegisteredControls(options = {}) {
           // Backward compat: label rename(s). Key is the NEW label, value is the LEGACY label.
           const legacyLabelFor = new Map([
             ['art & visual direction', 'frontend craft'],
+            ['product & interaction systems', 'product systems'],
+            ['ai product design', 'applied ai'],
+            ['creative engineering', 'prototyping'],
           ]);
           // Start from src if valid, otherwise base.
           const raw = Array.isArray(src) ? src : base;

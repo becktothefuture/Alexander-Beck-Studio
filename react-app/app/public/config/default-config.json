@@ -94,39 +94,34 @@
   "brandLogoSecondaryOpacity": 1,
   "colorDistribution": [
     {
-      "label": "Product Systems",
+      "label": "Product & Interaction Systems",
       "colorIndex": 0,
-      "weight": 34
+      "weight": 44
     },
     {
-      "label": "Interaction Design",
-      "colorIndex": 1,
-      "weight": 22
+      "label": "AI Product Design",
+      "colorIndex": 3,
+      "weight": 14
     },
     {
       "label": "Creative Technology",
       "colorIndex": 2,
-      "weight": 20
-    },
-    {
-      "label": "Applied AI",
-      "colorIndex": 3,
-      "weight": 12
+      "weight": 17
     },
     {
       "label": "Experience Strategy",
       "colorIndex": 6,
-      "weight": 10
+      "weight": 11
     },
     {
       "label": "Art Direction",
-      "colorIndex": 5,
-      "weight": 1
+      "colorIndex": 7,
+      "weight": 7
     },
     {
-      "label": "Prototyping",
-      "colorIndex": 7,
-      "weight": 1
+      "label": "Creative Engineering",
+      "colorIndex": 5,
+      "weight": 7
     }
   ],
   "wallRadiusVw": 4.5,

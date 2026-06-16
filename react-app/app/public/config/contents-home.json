@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "Alexander Beck — Product Design, User Experience, Creative Technology — London",
-    "description": "Alexander Beck designs product experiences and systems from London. Product design, experience strategy, and creative technology from concept to build."
+    "title": "Alexander Beck — Product Design, AI Product Design, Creative Technology — London",
+    "description": "Alexander Beck designs product experiences, AI workflows, interaction systems, and creative technology from London."
   },
   "edge": {
     "chapterText": "SOURCE MATERIAL",
@@ -13,43 +13,38 @@
     "items": [
       {
         "colorClass": "bg-ball-1",
-        "label": "Product Systems",
-        "tooltip": "I structure product platforms so they stay flexible and measurable as demand changes."
-      },
-      {
-        "colorClass": "bg-ball-5",
-        "label": "Interaction Design",
-        "tooltip": "I design motion and interfaces that guide behaviour on screen and in physical touchpoints."
+        "label": "Product & Interaction Systems",
+        "tooltip": "I structure product platforms, flows, and interaction patterns so teams can make clearer decisions at scale."
       },
       {
         "colorClass": "bg-ball-4",
-        "label": "Creative Technology",
-        "tooltip": "I build digital experiences with code—from the web to spatial and emerging screens—so they stay consistent and usable."
+        "label": "AI Product Design",
+        "tooltip": "I turn AI capabilities into useful product workflows, decision surfaces, and human-in-the-loop experiences."
       },
       {
         "colorClass": "bg-ball-3",
-        "label": "Applied AI",
-        "tooltip": "I use AI in the loop: new workflows, faster exploration, and clearer choices for product teams."
-      },
-      {
-        "colorClass": "bg-ball-6",
-        "label": "Experience Strategy",
-        "tooltip": "I align product, story, and platforms so the experience stays consistent and easy to ship."
+        "label": "Creative Technology",
+        "tooltip": "I shape digital experiences with code, emerging tools, and technical fluency so ideas become testable and expressive."
       },
       {
         "colorClass": "bg-ball-7",
-        "label": "Art Direction",
-        "tooltip": "I set visual direction so spatial, motion, and identity work together and the story is clear."
+        "label": "Experience Strategy",
+        "tooltip": "I connect user needs, business goals, product story, and platform choices into a coherent direction."
       },
       {
         "colorClass": "bg-ball-8",
-        "label": "Prototyping",
-        "tooltip": "I prototype fast to surface learnings, validate ideas, and align teams."
+        "label": "Art Direction",
+        "tooltip": "I set visual, spatial, and motion direction so products feel distinctive, intentional, and ownable."
+      },
+      {
+        "colorClass": "bg-ball-6",
+        "label": "Creative Engineering",
+        "tooltip": "I use AI tools, prototypes, and lightweight code to explore ideas quickly and make concepts tangible."
       }
     ]
   },
   "philosophy": {
-    "textBeforeLink": "The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI to shape clear, usable experiences that are ready to ship.",
+    "textBeforeLink": "The most interesting work happens where product judgment, systems, AI, and art direction overlap. I design strategic, usable experiences with enough technical fluency to make ideas tangible fast.",
     "link": {
       "id": "contact-email-inline",
       "href": "#",

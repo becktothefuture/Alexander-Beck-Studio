@@ -114,6 +114,9 @@ const PALETTE_ROTATION_STORAGE_KEY = 'abs_palette_chapter';
 
 // Legacy fallback weights (only used if no valid `colorDistribution` is present).
 const LEGACY_COLOR_WEIGHTS = [0.50, 0.25, 0.12, 0.06, 0.03, 0.02, 0.01, 0.01];
+let distributionCoverageKey = '';
+let distributionCoverageCursor = 0;
+let distributionCoverageOrder = [];
 
 // Shared palette roles across simulation modes:
 // neutrals dominate, chromatic accents are secondary, and the hottest accents are rare.
@@ -131,6 +134,40 @@ function clampIntFallback(v, min, max, fallback = min) {
 function getDistribution(g) {
   const dist = g?.colorDistribution;
   return Array.isArray(dist) ? dist : null;
+}
+
+function getDistributionCoverageKey(dist) {
+  let key = '';
+  for (let i = 0; i < dist.length; i++) {
+    const row = dist[i];
+    const w = Number(row?.weight);
+    if (!Number.isFinite(w) || w <= 0) continue;
+    key += `${i}:${row?.label || ''}:${row?.colorIndex}:${w}|`;
+  }
+  return key;
+}
+
+function getCoverageDistributionIndex(dist) {
+  const key = getDistributionCoverageKey(dist);
+  if (key !== distributionCoverageKey) {
+    distributionCoverageKey = key;
+    distributionCoverageCursor = 0;
+    distributionCoverageOrder = [];
+    for (let i = 0; i < dist.length; i++) {
+      const w = Number(dist[i]?.weight);
+      if (Number.isFinite(w) && w > 0) distributionCoverageOrder.push(i);
+    }
+  }
+  if (distributionCoverageCursor >= distributionCoverageOrder.length) return null;
+  const idx = distributionCoverageOrder[distributionCoverageCursor];
+  distributionCoverageCursor += 1;
+  return idx;
+}
+
+export function resetColorDistributionCoverage() {
+  distributionCoverageKey = '';
+  distributionCoverageCursor = 0;
+  distributionCoverageOrder = [];
 }
 
 export function resolveColorTemplateName(templateName) {
@@ -497,7 +534,7 @@ export function pickRandomColorWithIndex() {
     return { color: '#ffffff', distributionIndex: 0 };
   }
   
-  // Primary: use the runtime color distribution (7 labels → 7 distinct palette indices).
+  // Primary: use the runtime color distribution (legend labels → distinct palette indices).
   // Hot-path safe: O(7) work, zero allocations.
   const dist = getDistribution(globals);
   if (dist && dist.length) {
@@ -507,6 +544,12 @@ export function pickRandomColorWithIndex() {
       if (Number.isFinite(w) && w > 0) total += w;
     }
     if (total > 0) {
+      const coverageIndex = getCoverageDistributionIndex(dist);
+      if (coverageIndex != null) {
+        const row = dist[coverageIndex];
+        const idx = clampIntFallback(row?.colorIndex, 0, 7, 0);
+        return { color: colors[idx] || colors[0] || '#ffffff', distributionIndex: coverageIndex };
+      }
       let r = Math.random() * total;
       for (let i = 0; i < dist.length; i++) {
         const row = dist[i];

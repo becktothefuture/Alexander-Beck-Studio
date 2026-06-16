@@ -9,8 +9,8 @@ All user-facing copy across the website in one place. Use this to edit, translat
 
 | Key | Current copy | Source |
 |-----|--------------|--------|
-| meta.title | Alexander Beck — Product Design, User Experience, Creative Technology — London | contents-home.json |
-| meta.description | Alexander Beck designs product experiences and systems from London. Product design, experience strategy, and creative technology from concept to build. | contents-home.json |
+| meta.title | Alexander Beck — Product Design, AI Product Design, Creative Technology — London | contents-home.json |
+| meta.description | Alexander Beck designs product experiences, AI workflows, interaction systems, and creative technology from London. | contents-home.json |
 
 ---
 
@@ -29,13 +29,12 @@ All user-facing copy across the website in one place. Use this to edit, translat
 | Key | Label | Tooltip | Source |
 |-----|-------|---------|--------|
 | legend.ariaLabel | — | Areas of expertise | contents-home.json |
-| legend.items[0] | Product Systems | I structure product platforms so they stay flexible and measurable as demand changes. | contents-home.json |
-| legend.items[1] | Interaction Design | I design motion and interfaces that guide behaviour on screen and in physical touchpoints. | contents-home.json |
-| legend.items[2] | Creative Technology | I build digital experiences with code—from the web to spatial and emerging screens—so they stay consistent and usable. | contents-home.json |
-| legend.items[3] | Applied AI | I use AI in the loop: new workflows, faster exploration, and clearer choices for product teams. | contents-home.json |
-| legend.items[4] | Experience Strategy | I align product, story, and platforms so the experience stays consistent and easy to ship. | contents-home.json |
-| legend.items[5] | Art Direction | I set visual direction so spatial, motion, and identity work together and the story is clear. | contents-home.json |
-| legend.items[6] | Prototyping | I prototype fast to surface learnings, validate ideas, and align teams. | contents-home.json |
+| legend.items[0] | Product & Interaction Systems | I structure product platforms, flows, and interaction patterns so teams can make clearer decisions at scale. | contents-home.json |
+| legend.items[1] | AI Product Design | I turn AI capabilities into useful product workflows, decision surfaces, and human-in-the-loop experiences. | contents-home.json |
+| legend.items[2] | Creative Technology | I shape digital experiences with code, emerging tools, and technical fluency so ideas become testable and expressive. | contents-home.json |
+| legend.items[3] | Experience Strategy | I connect user needs, business goals, product story, and platform choices into a coherent direction. | contents-home.json |
+| legend.items[4] | Art Direction | I set visual, spatial, and motion direction so products feel distinctive, intentional, and ownable. | contents-home.json |
+| legend.items[5] | Creative Engineering | I use AI tools, prototypes, and lightweight code to explore ideas quickly and make concepts tangible. | contents-home.json |
 
 ---
 
@@ -43,7 +42,7 @@ All user-facing copy across the website in one place. Use this to edit, translat
 
 | Key | Current copy | Source |
 |-----|--------------|--------|
-| philosophy.textBeforeLink | The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI to shape clear, usable experiences that are ready to ship. | contents-home.json |
+| philosophy.textBeforeLink | The most interesting work happens where product judgment, systems, AI, and art direction overlap. I design strategic, usable experiences with enough technical fluency to make ideas tangible fast. | contents-home.json |
 | philosophy.link.text | Let's chat. | contents-home.json |
 
 ---

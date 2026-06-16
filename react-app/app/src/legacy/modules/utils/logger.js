@@ -161,7 +161,7 @@ function buildColorMap(ascii, clusterSize = 3) {
   const colorAssignments = new Array(clusters.length).fill(null);
   const shuffledVisible = shuffle([...visibleIndices]);
   
-  // Assign one of each color to the first 8 visible clusters
+  // Assign one of each active legend color to the first visible clusters
   for (let i = 0; i < Math.min(8, shuffledVisible.length); i++) {
     const colorIndex = Math.min(i, colors.length - 1);
     colorAssignments[shuffledVisible[i]] = colors[colorIndex] || FALLBACK_CONSOLE_COLORS[colorIndex];

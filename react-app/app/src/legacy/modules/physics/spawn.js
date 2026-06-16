@@ -36,8 +36,8 @@ export function spawnBall(x, y, color, distributionIndex) {
     ball.theta = Math.random() * Math.PI * 2;
   }
   
-  // Store the distribution index for legend filtering
-  // This maps to the colorDistribution array (0-6 for 7 labels)
+  // Store the distribution index for legend filtering.
+  // This maps to the active colorDistribution row.
   ball.distributionIndex = (distributionIndex !== undefined) ? distributionIndex : -1;
   
   const centerX = globals.canvas.width * 0.5;

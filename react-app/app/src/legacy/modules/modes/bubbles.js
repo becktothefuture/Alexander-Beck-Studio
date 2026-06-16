@@ -48,7 +48,7 @@ export function initializeBubbles() {
   
   // Initial distribution: spread across the entire height with staggered spawn progress
   // to avoid clumping at the bottom on first frame. Recycles still come from below.
-  // First ensure one of each color
+  // Seed the shared distribution once so each legend color appears.
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = Math.random() * w;
     const y = bandTop + Math.random() * (bandBottom - bandTop);

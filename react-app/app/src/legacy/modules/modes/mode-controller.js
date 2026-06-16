@@ -7,7 +7,7 @@ import { MODES, NARRATIVE_MODE_SEQUENCE, isPitLikeMode } from '../core/constants
 import { setMode as setModeState, getGlobals } from '../core/state.js';
 import { resize } from '../rendering/renderer.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
-import { maybeAutoPickCursorColor } from '../visual/colors.js';
+import { maybeAutoPickCursorColor, resetColorDistributionCoverage } from '../visual/colors.js';
 import { resetPhysicsAccumulator } from '../physics/engine.js';
 import { resetAdaptiveThrottle } from '../rendering/loop.js';
 
@@ -372,6 +372,7 @@ export async function setMode(inputMode) {
 
     applyModePhysicsState(mode, globals);
     applyCrittersOverridesIfNeeded(globals, mode);
+    resetColorDistributionCoverage();
     runtime.initialize();
 
     console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);

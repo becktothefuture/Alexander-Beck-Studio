@@ -33,7 +33,7 @@ export function initializeMagnetic() {
   const DPR = g.DPR || 1;
   const initSpeed = 100 * DPR;
   
-  // Ensure at least one of each color
+  // Seed the shared distribution once so each legend color appears.
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = Math.random() * w;
     const y = Math.random() * h;

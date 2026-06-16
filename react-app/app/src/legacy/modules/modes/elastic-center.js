@@ -105,7 +105,7 @@ function createCompositeCircle(globals, ringCount) {
   const finalPositions = selectEvenlySpacedPositions(ballPositions, targetBallCount);
   
   // Create balls from positions
-  // First 8 get one of each color
+  // First set covers the active legend colors.
   for (let i = 0; i < Math.min(8, finalPositions.length); i++) {
     const pos = finalPositions[i];
     const r = randomRadiusForMode(globals, MODES.ELASTIC_CENTER);

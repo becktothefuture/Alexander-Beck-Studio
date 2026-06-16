@@ -431,15 +431,14 @@ const state = {
   paletteRotateOnReload: false,
   // Color Distribution (labels ↔ palette indices ↔ weights)
   // Used by `pickRandomColor()` for ALL modes.
-  // NOTE: 7 disciplines choose 7 distinct palette indices (0..7). One palette color may remain unused.
+  // NOTE: 6 disciplines choose 6 distinct palette indices (0..7). Neutral slots stay dominant.
   colorDistribution: [
-    { label: 'Product Systems', colorIndex: 0, weight: 34 },
-    { label: 'Interaction Design', colorIndex: 1, weight: 22 },
-    { label: 'Creative Technology', colorIndex: 2, weight: 20 },
-    { label: 'Applied AI', colorIndex: 3, weight: 12 },
-    { label: 'Experience Strategy', colorIndex: 6, weight: 10 },
-    { label: 'Art Direction', colorIndex: 5, weight: 1 },
-    { label: 'Prototyping', colorIndex: 7, weight: 1 }
+    { label: 'Product & Interaction Systems', colorIndex: 0, weight: 44 },
+    { label: 'AI Product Design', colorIndex: 3, weight: 14 },
+    { label: 'Creative Technology', colorIndex: 2, weight: 17 },
+    { label: 'Experience Strategy', colorIndex: 6, weight: 11 },
+    { label: 'Art Direction', colorIndex: 7, weight: 7 },
+    { label: 'Creative Engineering', colorIndex: 5, weight: 7 }
   ],
   
   // Flies mode
