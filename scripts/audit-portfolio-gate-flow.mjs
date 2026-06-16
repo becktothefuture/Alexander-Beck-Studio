@@ -1,5 +1,5 @@
 /**
- * End-to-end check: home → portfolio invite modal (6767) → portfolio pit.
+ * End-to-end check: home → portfolio invite modal → portfolio pit.
  * Asserts HiDPI canvas backing store, visible DOM labels, and dense-frame transition integrity
  * for the gated home → portfolio SPA path.
  *
@@ -271,19 +271,19 @@ async function main() {
 
   const digits = page.locator('.portfolio-digit');
   const count = await digits.count();
-  if (count < 4) {
-    console.error('FAIL: expected 4 .portfolio-digit inputs');
+  if (count < 6) {
+    console.error('FAIL: expected 6 .portfolio-digit inputs');
     process.exitCode = 1;
     await browser.close();
     return;
   }
 
-  // Invite code is 6767 (portfolio-modal.js). Start URL wait before input so SPA navigation isn't missed.
+  // Start URL wait before input so SPA navigation isn't missed.
   const portfolioNav = page.waitForURL(/portfolio/i, { timeout: BUFFER_WAIT_MS });
   const denseCapture = captureDenseGateFrames(page);
   await page.evaluate(() => {
     const inputs = Array.from(document.querySelectorAll('.portfolio-digit'));
-    const code = '6767';
+    const code = '739284';
     for (let i = 0; i < Math.min(code.length, inputs.length); i += 1) {
       const el = inputs[i];
       el.focus();

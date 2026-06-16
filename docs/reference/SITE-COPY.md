@@ -282,7 +282,7 @@ All user-facing copy across the website in one place. Use this to edit, translat
 | Logo SVG | Alexander Beck Studio | index-body.html (aria-label) |
 | Back link | Back to home | cv-body.html, portfolio-body.html (aria-label) |
 | Theme button | Toggle theme | index/cv/portfolio (aria-label) |
-| CV/Portfolio gate inputs | CV invite code digit 1 of 4, etc. | cv-modal, portfolio-modal (aria-label, from JS) |
+| CV/Portfolio gate inputs | CV invite code digit 1 of 6, etc. | cv-modal, portfolio-modal (aria-label, from JS) |
 
 ---
 

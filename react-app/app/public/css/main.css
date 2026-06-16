@@ -1347,9 +1347,9 @@ body.styleguide-page .styleguide-type-sample--gate-desc {
   font-family: var(--abs-font-sans);
   font-size: 20px;
   margin: 0;
-  letter-spacing: 0.018ch;
+  letter-spacing: var(--modal-description-letter-spacing, 0.024em);
   line-height: var(--line-height-base);
-  color: var(--text-muted);
+  color: var(--modal-description-color, color-mix(in srgb, var(--text-primary) 78%, var(--frame-inner-surface) 22%));
 }
 
 body.styleguide-page .styleguide-type-portfolio-slab {
@@ -3477,10 +3477,10 @@ html.is-safari .noise::before {
     letter-spacing: var(--legend-letter-spacing);
   }
 
-  /* Gate body: same label size + tracking as main nav footer links on narrow viewports */
+  /* Gate body: same label size with modal description tracking on narrow viewports */
   .gate-description {
     font-size: calc((clamp(0.7rem, 1.2vw, 0.78rem) + 3px) * 0.85);
-    letter-spacing: var(--footer-links-letter-spacing);
+    letter-spacing: var(--modal-description-letter-spacing, 0.024em);
   }
 
   .gate-title {
@@ -3955,7 +3955,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    INVITE GATE MODALS — CV & PORTFOLIO ACCESS FLOW (merged from password-gate.css)
-   4-digit input that swaps position with logo, validates code
+   Digit input row that swaps position with logo, validates code
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .cv-modal,
@@ -3973,6 +3973,8 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   /* −33% vs prior clamp(1.5rem, 3vw, 2rem): label ↔ inputs + label internal stack */
   --modal-column-gap: calc(clamp(1.5rem, 3vw, 2rem) * 0.67);
   --modal-label-stack-gap: var(--modal-column-gap);
+  --modal-description-letter-spacing: 0.024em;
+  --modal-description-color: color-mix(in srgb, var(--text-primary) 78%, var(--frame-inner-surface) 22%);
   
   /* Gate overlay positioning and animation
      IMPORTANT: gates must NOT affect each other's layout during gate-to-gate switching.
@@ -4100,11 +4102,9 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .portfolio-modal .modal-description,
 .contact-modal .modal-description {
   font-size: 20px;
+  letter-spacing: var(--modal-description-letter-spacing);
+  color: var(--modal-description-color);
   margin: 0;
-}
-
-.portfolio-modal .modal-description {
-  letter-spacing: 0.018ch;
 }
 
 @media (max-width: 768px) {
@@ -4206,8 +4206,8 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   font-family: var(--abs-font-sans);
   font-size: var(--footer-links-font-size);
   font-weight: 400;
-  letter-spacing: var(--footer-links-letter-spacing);
-  color: var(--text-muted);
+  letter-spacing: var(--modal-description-letter-spacing, 0.024em);
+  color: var(--modal-description-color, color-mix(in srgb, var(--text-primary) 78%, var(--frame-inner-surface) 22%));
   margin: 0 auto;
   line-height: var(--line-height-body);
   max-width: 38ch;
@@ -4506,7 +4506,7 @@ body.dark-mode .contact-email-copy {
 
 .cv-digit,
 .portfolio-digit {
-  width: clamp(2.5rem, 5vw, 3.2rem);
+  width: clamp(2rem, 5vw, 3.2rem);
   height: clamp(3.2rem, 7vw, 4.2rem);
   padding: var(--modal-pad-md-y) var(--modal-pad-md-x);
   font-size: clamp(1.4rem, 3.5vw, 2rem);
@@ -4543,10 +4543,11 @@ body.dark-mode .contact-email-copy {
 @media (max-width: 768px) {
   .cv-modal-inputs,
   .portfolio-modal-inputs {
-    width: min(100%, 17rem);
+    width: min(100%, 22rem);
+    gap: clamp(0.2rem, 1vw, 0.35rem);
     justify-content: center;
     margin-inline: auto;
-    padding-inline: clamp(0.35rem, 2.8vw, 0.9rem);
+    padding-inline: 0;
     box-sizing: border-box;
   }
 }

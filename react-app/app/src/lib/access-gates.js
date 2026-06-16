@@ -18,6 +18,19 @@ const GATE_PAGE_PATHS = {
   cv: '/cv.html'
 };
 
+export const GATE_INVITE_CODES = Object.freeze({
+  portfolio: '739284',
+  cv: '482916'
+});
+
+export function getGateInviteCode(gateId) {
+  return GATE_INVITE_CODES[gateId] || '';
+}
+
+export function getGateCodeLength(gateId) {
+  return getGateInviteCode(gateId).length;
+}
+
 function isDevGatePreview(gateId) {
   if (!import.meta.env.DEV) return false;
 

@@ -488,7 +488,7 @@ async function runHomePortfolioRound(index, page) {
 
   sample = sampleFrames(page, `home-${index}-portfolio-route`);
   const portfolioNav = page.waitForURL(/portfolio/i, { timeout: WAIT_MS });
-  await enterDigits(page, '.portfolio-digit', '6767');
+  await enterDigits(page, '.portfolio-digit', '739284');
   checkpoints.push(await captureCheckpoint(page, `home-${index}-portfolio-route`, 'in-flight'));
   await portfolioNav;
   await waitForPortfolioSettled(page);
@@ -524,7 +524,7 @@ async function runHomeCvRound(index, page) {
 
   sample = sampleFrames(page, `home-${index}-cv-route`);
   const cvNav = page.waitForURL(/cv/i, { timeout: WAIT_MS });
-  await enterDigits(page, '.cv-digit', '1111');
+  await enterDigits(page, '.cv-digit', '482916');
   checkpoints.push(await captureCheckpoint(page, `home-${index}-cv-route`, 'in-flight'));
   await cvNav;
   await waitForCvSettled(page);
@@ -552,7 +552,7 @@ async function runCvContactRound(index, page) {
   await page.click('#cv-modal-trigger', { timeout: 10_000 });
   await page.waitForSelector('#cv-modal.active', { timeout: 10_000 });
   const cvNav = page.waitForURL(/cv/i, { timeout: WAIT_MS });
-  await enterDigits(page, '.cv-digit', '1111');
+  await enterDigits(page, '.cv-digit', '482916');
   checkpoints.push(await captureCheckpoint(page, `cv-${index}-route`, 'in-flight'));
   await cvNav;
   await waitForCvSettled(page);

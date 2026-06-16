@@ -113,6 +113,7 @@ export default defineConfig(({ mode }) => ({
         cv: resolve(__dirname, 'cv.html'),
         styleguide: resolve(__dirname, 'styleguide.html'),
         'palette-lab': resolve(__dirname, 'palette-lab.html'),
+        'lab/beach-ball-room': resolve(__dirname, 'lab/beach-ball-room.html'),
         ...(mode === 'development'
           ? { 'panel-host': resolve(__dirname, 'panel-host.html') }
           : {})

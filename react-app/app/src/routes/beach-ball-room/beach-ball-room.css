@@ -1,0 +1,235 @@
+body.beach-ball-room-page {
+  overflow: hidden;
+  color: var(--text-primary, #07111b);
+}
+
+body.beach-ball-room-page #simulations {
+  background: var(--abs-wall-base, #edf4f1);
+  border-color: var(--frame-color, #07111b);
+}
+
+body.beach-ball-room-page #simulations::before,
+body.beach-ball-room-page #simulations::after,
+body.beach-ball-room-page #simulations > .scene-effects,
+body.beach-ball-room-page .inner-wall-gradient-edge,
+body.beach-ball-room-page .frame-vignette {
+  display: none;
+}
+
+body.beach-ball-room-page .beach-ball-room-wall,
+body.beach-ball-room-page .shell-wall-route-root {
+  pointer-events: auto;
+}
+
+body.beach-ball-room-page .route-topbar {
+  --route-topbar-top: var(--gap-xs);
+  padding-top: var(--route-topbar-top);
+  padding-inline: var(--gap-lg);
+}
+
+body.beach-ball-room-page .route-topbar__left,
+body.beach-ball-room-page .route-topbar__right {
+  min-height: var(--ui-icon-frame-size);
+}
+
+body.beach-ball-room-page .route-topbar__right.ui-top-right {
+  justify-content: flex-end;
+}
+
+.beach-ball-room-simulation {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  touch-action: none;
+  pointer-events: auto;
+  background: var(--abs-wall-base, #edf4f1);
+}
+
+.beach-ball-room-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+
+.beach-ball-room-canvas:active {
+  cursor: grabbing;
+}
+
+.beach-ball-room-fallback {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 20;
+  width: min(26rem, calc(100% - var(--gap-lg)));
+  margin: 0;
+  padding: var(--gap-sm);
+  border: var(--abs-size-1px) solid rgba(7, 17, 27, 0.18);
+  border-radius: var(--abs-radius-input);
+  background: rgba(237, 244, 241, 0.94);
+  color: #07111b;
+  font-family: var(--abs-font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--line-height-body);
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.beach-ball-room-controls {
+  position: absolute;
+  right: max(var(--gap-sm), env(safe-area-inset-right, 0px));
+  top: max(var(--gap-sm), env(safe-area-inset-top, 0px));
+  z-index: 30;
+  width: min(24rem, calc(100% - var(--gap-lg)));
+  max-height: calc(100% - (var(--gap-sm) * 2));
+  overflow: auto;
+  display: grid;
+  gap: var(--gap-xs);
+  padding: var(--gap-sm);
+  border: var(--abs-size-1px) solid rgba(7, 17, 27, 0.18);
+  border-radius: var(--abs-radius-input);
+  background: rgba(237, 244, 241, 0.94);
+  color: #07111b;
+  font-family: var(--abs-font-sans);
+  pointer-events: auto;
+}
+
+.beach-ball-room-controls__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+}
+
+.beach-ball-room-controls__header h2,
+.beach-ball-room-controls__eyebrow {
+  margin: 0;
+}
+
+.beach-ball-room-controls__header h2 {
+  font-size: var(--text-base);
+  line-height: var(--line-height-tight);
+  font-weight: 600;
+}
+
+.beach-ball-room-controls__eyebrow {
+  font-family: var(--abs-font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-loose);
+  color: rgba(7, 17, 27, 0.58);
+}
+
+.beach-ball-room-controls__group {
+  border-top: var(--abs-size-1px) solid rgba(7, 17, 27, 0.12);
+  padding-top: var(--gap-xs);
+}
+
+.beach-ball-room-controls__group summary {
+  cursor: pointer;
+  font-family: var(--abs-font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-loose);
+  color: rgba(7, 17, 27, 0.68);
+}
+
+.beach-ball-room-controls__rows {
+  display: grid;
+  gap: calc(var(--gap-xs) * 0.5);
+  padding-top: var(--gap-xs);
+}
+
+.beach-ball-room-controls__row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.92fr) minmax(6rem, 1fr) 2.75rem;
+  align-items: center;
+  gap: var(--gap-xs);
+  min-height: 1.75rem;
+  font-size: var(--text-xs);
+}
+
+.beach-ball-room-controls__row--toggle {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.beach-ball-room-controls__row span {
+  color: rgba(7, 17, 27, 0.72);
+}
+
+.beach-ball-room-controls__row output {
+  text-align: right;
+  font-family: var(--abs-font-mono);
+  color: #07111b;
+}
+
+.beach-ball-room-controls input[type='range'] {
+  width: 100%;
+  accent-color: #2c96ff;
+}
+
+.beach-ball-room-controls input[type='checkbox'] {
+  width: 1.125rem;
+  height: 1.125rem;
+  accent-color: #2c96ff;
+}
+
+.beach-ball-room-controls button {
+  min-height: 2rem;
+  border: var(--abs-size-1px) solid rgba(7, 17, 27, 0.2);
+  border-radius: var(--abs-radius-input);
+  padding: 0 var(--gap-xs);
+  background: rgba(255, 255, 255, 0.62);
+  color: #07111b;
+  font: inherit;
+  cursor: pointer;
+}
+
+.beach-ball-room-controls button:hover,
+.beach-ball-room-controls button:focus-visible {
+  border-color: rgba(7, 17, 27, 0.48);
+}
+
+.beach-ball-room-controls__copy {
+  justify-self: stretch;
+}
+
+.beach-ball-room-controls__output {
+  width: 100%;
+  min-height: 7.5rem;
+  resize: vertical;
+  border: var(--abs-size-1px) solid rgba(7, 17, 27, 0.18);
+  border-radius: var(--abs-radius-input);
+  padding: var(--gap-xs);
+  background: rgba(255, 255, 255, 0.68);
+  color: #07111b;
+  font-family: var(--abs-font-mono);
+  font-size: var(--text-xs);
+  line-height: var(--line-height-body);
+}
+
+@media (max-width: 720px) {
+  .beach-ball-room-controls {
+    left: var(--gap-xs);
+    right: var(--gap-xs);
+    bottom: var(--gap-xs);
+    top: auto;
+    width: auto;
+    max-height: min(54%, 32rem);
+  }
+
+  .beach-ball-room-controls__row {
+    grid-template-columns: minmax(6.5rem, 0.92fr) minmax(5.5rem, 1fr) 2.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beach-ball-room-controls button,
+  .beach-ball-room-canvas {
+    transition: none;
+  }
+}

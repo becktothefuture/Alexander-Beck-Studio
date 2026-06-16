@@ -1,4 +1,5 @@
 import { SiteFooter } from '../SiteFooter.jsx';
+import { getGateCodeLength } from '../../lib/access-gates.js';
 
 function RouteSceneMount({ routeRenderKey, children }) {
   switch (routeRenderKey) {
@@ -10,14 +11,16 @@ function RouteSceneMount({ routeRenderKey, children }) {
       return <div data-sfid="sfid:shell/styleguide">{children}</div>;
     case 'palette-lab':
       return <div data-sfid="sfid:shell/palette-lab">{children}</div>;
+    case 'beach-ball-room':
+      return <div data-sfid="sfid:shell/beach-ball-room">{children}</div>;
     case 'home':
     default:
       return <div data-sfid="sfid:shell/home">{children}</div>;
   }
 }
 
-function renderDigitInputs(prefix, className, ariaPrefix) {
-  return Array.from({ length: 4 }, (_, index) => (
+function renderDigitInputs(prefix, className, ariaPrefix, length) {
+  return Array.from({ length }, (_, index) => (
     <input
       key={`${prefix}-${index}`}
       type="text"
@@ -26,7 +29,7 @@ function renderDigitInputs(prefix, className, ariaPrefix) {
       inputMode="numeric"
       pattern="[0-9]"
       data-index={index}
-      aria-label={`${ariaPrefix} digit ${index + 1} of 4`}
+      aria-label={`${ariaPrefix} digit ${index + 1} of ${length}`}
       autoComplete="off"
     />
   ));
@@ -152,7 +155,7 @@ export function StudioShell({
               aria-labelledby="cv-modal-title"
               aria-describedby="cv-modal-description"
             >
-              {renderDigitInputs('cv', 'cv-digit', 'CV invite code')}
+              {renderDigitInputs('cv', 'cv-digit', 'CV invite code', getGateCodeLength('cv'))}
             </div>
           </div>
 
@@ -173,7 +176,7 @@ export function StudioShell({
               aria-labelledby="portfolio-modal-title"
               aria-describedby="portfolio-modal-description"
             >
-              {renderDigitInputs('portfolio', 'portfolio-digit', 'Portfolio invite code')}
+              {renderDigitInputs('portfolio', 'portfolio-digit', 'Portfolio invite code', getGateCodeLength('portfolio'))}
             </div>
           </div>
         </div>

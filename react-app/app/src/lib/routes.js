@@ -29,6 +29,12 @@ const ROUTE_DEFS = {
     aliases: ['/palette-lab.html', '/palette-lab'],
     gated: false,
   },
+  'beach-ball-room': {
+    id: 'beach-ball-room',
+    path: '/lab/beach-ball-room.html',
+    aliases: ['/lab/beach-ball-room.html', '/lab/beach-ball-room', '/beach-ball-room.html', '/beach-ball-room'],
+    gated: false,
+  },
 };
 
 function normalizePathname(pathname = '/') {

@@ -20,7 +20,7 @@ async function enterGateCode(page) {
   const portfolioNav = page.waitForURL(/portfolio/i, { timeout: WAIT });
   await page.evaluate(() => {
     const inputs = Array.from(document.querySelectorAll('.portfolio-digit'));
-    '6767'.split('').forEach((d, i) => {
+    '739284'.split('').forEach((d, i) => {
       inputs[i].focus();
       inputs[i].value = d;
       inputs[i].dispatchEvent(new InputEvent('input', { bubbles: true, data: d, inputType: 'insertText' }));

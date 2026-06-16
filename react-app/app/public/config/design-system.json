@@ -93,37 +93,37 @@
     "textColorDark": "#f0f0f0",
     "textColorDarkMuted": "#c8c8c8",
     "linkHoverColor": "#f03030",
-    "brandLogoSecondaryOpacity": 1,
+    "brandLogoSecondaryOpacity": 0.44,
     "colorDistribution": [
       {
         "label": "Product & Interaction Systems",
         "colorIndex": 0,
-        "weight": 44
+        "weight": 31
       },
       {
         "label": "AI Product Design",
         "colorIndex": 3,
-        "weight": 14
+        "weight": 13
       },
       {
         "label": "Creative Technology",
         "colorIndex": 2,
-        "weight": 17
+        "weight": 16
       },
       {
         "label": "Experience Strategy",
         "colorIndex": 6,
-        "weight": 11
+        "weight": 20
       },
       {
         "label": "Art Direction",
         "colorIndex": 7,
-        "weight": 7
+        "weight": 10
       },
       {
         "label": "Creative Engineering",
         "colorIndex": 5,
-        "weight": 7
+        "weight": 10
       }
     ],
     "wallRadiusVw": 4.5,

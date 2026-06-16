@@ -6,6 +6,7 @@ import { getPortfolioRouteView, PORTFOLIO_ROUTE_RUNTIME } from '../../routes/por
 import { getCvRouteView, CV_ROUTE_RUNTIME } from '../../routes/cv/CvRoute.jsx';
 import { getStyleguideRouteView, STYLEGUIDE_ROUTE_RUNTIME } from '../../routes/styleguide/StyleguideRoute.jsx';
 import { getPaletteLabRouteView, PALETTE_LAB_ROUTE_RUNTIME } from '../../routes/palette-lab/PaletteLabRoute.jsx';
+import { getBeachBallRoomRouteView, BEACH_BALL_ROOM_ROUTE_RUNTIME } from '../../routes/beach-ball-room/BeachBallRoomRoute.jsx';
 import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
 import { useShellRouteTransition } from '../../hooks/useShellRouteTransition.js';
 import { DevConfigPanelBridge } from './DevConfigPanelBridge.jsx';
@@ -15,7 +16,8 @@ const ROUTE_VIEW_BY_ID = {
   portfolio: getPortfolioRouteView,
   cv: getCvRouteView,
   styleguide: getStyleguideRouteView,
-  'palette-lab': getPaletteLabRouteView
+  'palette-lab': getPaletteLabRouteView,
+  'beach-ball-room': getBeachBallRoomRouteView
 };
 
 const ROUTE_RUNTIME_BY_ID = {
@@ -23,7 +25,8 @@ const ROUTE_RUNTIME_BY_ID = {
   portfolio: PORTFOLIO_ROUTE_RUNTIME,
   cv: CV_ROUTE_RUNTIME,
   styleguide: STYLEGUIDE_ROUTE_RUNTIME,
-  'palette-lab': PALETTE_LAB_ROUTE_RUNTIME
+  'palette-lab': PALETTE_LAB_ROUTE_RUNTIME,
+  'beach-ball-room': BEACH_BALL_ROOM_ROUTE_RUNTIME
 };
 
 function getRouteViewForId(routeId) {

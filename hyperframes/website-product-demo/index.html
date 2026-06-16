@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #181818;
+        color: #f0f0f0;
+        font-family: "DM Sans", system-ui, sans-serif;
+        letter-spacing: 0;
+      }
+
+      body {
+        -webkit-font-smoothing: antialiased;
+        text-rendering: geometricPrecision;
+      }
+
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #181818;
+        isolation: isolate;
+      }
+
+      .scene {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background-color: #181818;
+      }
+
+      #scene1 {
+        z-index: 1;
+      }
+
+      #scene2 {
+        z-index: 2;
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      #scene3 {
+        z-index: 3;
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      #scene4 {
+        z-index: 4;
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      #scene5 {
+        z-index: 5;
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      .scene-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 32px;
+        width: 100%;
+        height: 100%;
+        padding: 72px 76px;
+        box-sizing: border-box;
+      }
+
+      .site-frame {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #181818;
+        transform-origin: center center;
+      }
+
+      .site-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .site-frame--soft img {
+        filter: saturate(0.82) contrast(0.96);
+      }
+
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 14% 18%, rgba(240, 48, 48, 0.12), rgba(24, 24, 24, 0) 28%),
+          radial-gradient(circle at 88% 78%, rgba(13, 92, 182, 0.12), rgba(24, 24, 24, 0) 34%),
+          linear-gradient(90deg, rgba(24, 24, 24, 0.54), rgba(24, 24, 24, 0.08) 42%, rgba(24, 24, 24, 0.42));
+        z-index: 1;
+      }
+
+      .scrim--light {
+        background:
+          linear-gradient(90deg, rgba(239, 239, 239, 0.76), rgba(239, 239, 239, 0.22) 46%, rgba(24, 24, 24, 0.32)),
+          radial-gradient(circle at 82% 18%, rgba(0, 105, 92, 0.16), rgba(239, 239, 239, 0) 32%);
+      }
+
+      .scrim--case {
+        background:
+          linear-gradient(90deg, rgba(24, 24, 24, 0.72), rgba(24, 24, 24, 0.18) 54%, rgba(24, 24, 24, 0.48)),
+          radial-gradient(circle at 72% 18%, rgba(255, 160, 0, 0.16), rgba(24, 24, 24, 0) 30%);
+      }
+
+      .scrim--about {
+        background:
+          linear-gradient(90deg, rgba(239, 239, 239, 0.72), rgba(239, 239, 239, 0.18) 48%, rgba(24, 24, 24, 0.2)),
+          radial-gradient(circle at 20% 70%, rgba(13, 92, 182, 0.1), rgba(239, 239, 239, 0) 30%);
+      }
+
+      .demo-panel {
+        position: relative;
+        z-index: 2;
+        width: min(780px, 45%);
+        padding: 38px 42px 42px;
+        border-radius: 32px;
+        background: rgba(24, 24, 24, 0.94);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.22),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+          0 24px 80px rgba(0, 0, 0, 0.28);
+      }
+
+      .demo-panel--light {
+        background: rgba(239, 239, 239, 0.94);
+        color: #161616;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.14),
+          0 24px 80px rgba(0, 0, 0, 0.16);
+      }
+
+      .demo-panel--right {
+        align-self: flex-end;
+        margin-top: 112px;
+      }
+
+      .demo-panel--bottom {
+        align-self: flex-start;
+        margin-top: auto;
+        margin-bottom: 72px;
+      }
+
+      .demo-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 22px;
+        color: #c8c8c8;
+        font-family: "DM Mono", ui-monospace, monospace;
+        font-size: 22px;
+        line-height: 1.2;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .demo-panel--light .demo-kicker {
+        color: #2f2f2f;
+      }
+
+      .demo-kicker::before {
+        content: "";
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        background: #f03030;
+        box-shadow: 0 0 0 8px rgba(240, 48, 48, 0.12);
+      }
+
+      .demo-title {
+        max-width: 720px;
+        color: #f0f0f0;
+        font-size: 86px;
+        font-weight: 700;
+        line-height: 0.92;
+        letter-spacing: 0;
+      }
+
+      .demo-panel--light .demo-title {
+        color: #161616;
+      }
+
+      .demo-copy {
+        max-width: 620px;
+        margin-top: 28px;
+        color: #f0f0f0;
+        font-size: 31px;
+        font-weight: 400;
+        line-height: 1.22;
+      }
+
+      .demo-panel--light .demo-copy {
+        color: #161616;
+      }
+
+      .demo-micro {
+        position: relative;
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: 18px;
+        width: max-content;
+        padding: 18px 22px;
+        border-radius: 999px;
+        background: rgba(239, 239, 239, 0.92);
+        color: #161616;
+        font-family: "DM Mono", ui-monospace, monospace;
+        font-size: 19px;
+        line-height: 1;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      }
+
+      .demo-dot {
+        position: relative;
+        z-index: 2;
+        width: 110px;
+        height: 110px;
+        border-radius: 999px;
+        background: #0d5cb6;
+        box-shadow:
+          inset 10px 14px 26px rgba(255, 255, 255, 0.12),
+          inset -18px -20px 38px rgba(0, 0, 0, 0.22),
+          0 24px 60px rgba(13, 92, 182, 0.22);
+      }
+
+      .demo-dot--teal {
+        background: #00695c;
+      }
+
+      .demo-dot--red {
+        background: #f03030;
+      }
+
+      .s1-lower {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      .s2-grid {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: 0.72fr 1fr;
+        gap: 54px;
+        width: 100%;
+        height: 100%;
+        align-items: center;
+      }
+
+      .s2-stage {
+        position: relative;
+        min-height: 700px;
+      }
+
+      .capability {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        width: 270px;
+        height: 270px;
+        padding: 34px;
+        border-radius: 999px;
+        color: #161616;
+        box-shadow:
+          inset 10px 12px 26px rgba(255, 255, 255, 0.2),
+          inset -18px -22px 44px rgba(0, 0, 0, 0.18),
+          0 28px 76px rgba(0, 0, 0, 0.18);
+      }
+
+      .capability-copy {
+        width: min-content;
+        min-width: 190px;
+        padding: 18px 20px 20px;
+        border-radius: 28px;
+        background: #efefef;
+        color: #050505;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.72),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+      }
+
+      .capability strong {
+        display: block;
+        font-size: 31px;
+        font-weight: 700;
+        line-height: 0.96;
+        letter-spacing: 0;
+        color: inherit;
+      }
+
+      .capability span {
+        display: block;
+        margin-bottom: 16px;
+        font-family: "DM Mono", ui-monospace, monospace;
+        font-size: 15px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: inherit;
+      }
+
+      .capability--systems {
+        top: 12px;
+        left: 84px;
+        background: #f03030;
+      }
+
+      .capability--motion {
+        top: 196px;
+        right: 16px;
+        background: #0d5cb6;
+        color: #f0f0f0;
+      }
+
+      .capability--ai {
+        bottom: 42px;
+        left: 210px;
+        background: #00695c;
+        color: #f0f0f0;
+      }
+
+      .capability--proto {
+        bottom: 84px;
+        right: 284px;
+        background: #ffa000;
+      }
+
+      .s2-copy {
+        align-self: center;
+        padding: 40px 44px 44px;
+        border-radius: 34px;
+        background: rgba(24, 24, 24, 0.95);
+        color: #f0f0f0;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.16),
+          0 24px 82px rgba(0, 0, 0, 0.24);
+      }
+
+      .s2-title {
+        max-width: 700px;
+        font-size: 102px;
+        font-weight: 700;
+        line-height: 0.9;
+        letter-spacing: 0;
+      }
+
+      .s2-body {
+        max-width: 650px;
+        margin-top: 28px;
+        color: #c8c8c8;
+        font-size: 34px;
+        line-height: 1.2;
+      }
+
+      .s2-rule {
+        width: 520px;
+        height: 2px;
+        margin-top: 42px;
+        background: #f03030;
+        transform-origin: left center;
+      }
+
+      .s2-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        max-width: 660px;
+        margin-top: 34px;
+      }
+
+      .s2-tag {
+        display: inline-flex;
+        padding: 14px 18px;
+        border-radius: 999px;
+        background: rgba(239, 239, 239, 0.16);
+        color: #f0f0f0;
+        font-family: "DM Mono", ui-monospace, monospace;
+        font-size: 19px;
+        letter-spacing: 0.02em;
+      }
+
+      .s3-callout {
+        position: relative;
+        z-index: 2;
+        align-self: flex-end;
+        display: grid;
+        grid-template-columns: auto auto auto;
+        gap: 16px;
+        align-items: center;
+        width: max-content;
+        margin-top: auto;
+        padding: 22px 26px;
+        border-radius: 999px;
+        background: rgba(24, 24, 24, 0.92);
+        color: #f0f0f0;
+        font-family: "DM Mono", ui-monospace, monospace;
+        font-size: 20px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .s3-meter {
+        display: grid;
+        grid-template-columns: repeat(6, 16px);
+        gap: 8px;
+      }
+
+      .s3-meter span {
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        background: #c8c8c8;
+      }
+
+      .s3-meter span:nth-child(2),
+      .s3-meter span:nth-child(5) {
+        background: #00695c;
+      }
+
+      .s3-meter span:nth-child(3) {
+        background: #0d5cb6;
+      }
+
+      .s4-note {
+        position: relative;
+        z-index: 2;
+        align-self: flex-start;
+        margin-top: auto;
+        margin-bottom: 84px;
+        max-width: 620px;
+        padding: 24px 28px;
+        border-radius: 28px;
+        background: rgba(24, 24, 24, 0.94);
+        color: #f0f0f0;
+        font-size: 27px;
+        font-weight: 500;
+        line-height: 1.18;
+      }
+
+      .s4-line {
+        position: relative;
+        z-index: 2;
+        width: 470px;
+        height: 3px;
+        background: #ffa000;
+        transform-origin: left center;
+      }
+
+      .final-group {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      .s5-stack {
+        width: min(860px, 48%);
+        padding: 42px 46px 48px;
+        border-radius: 34px;
+        background: rgba(24, 24, 24, 0.94);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.18),
+          0 26px 90px rgba(0, 0, 0, 0.26);
+      }
+
+      .s5-title {
+        color: #f0f0f0;
+        font-size: 92px;
+        font-weight: 700;
+        line-height: 0.9;
+        letter-spacing: 0;
+      }
+
+      .s5-copy {
+        max-width: 680px;
+        margin-top: 28px;
+        color: #f0f0f0;
+        font-size: 33px;
+        line-height: 1.2;
+      }
+
+      .s5-actions {
+        display: flex;
+        gap: 14px;
+        margin-top: 38px;
+      }
+
+      .s5-action {
+        display: inline-flex;
+        padding: 18px 22px;
+        border-radius: 999px;
+        background: #efefef;
+        color: #161616;
+        font-family: "DM Mono", ui-monospace, monospace;
+        font-size: 19px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .s5-action-text {
+        display: inline-block;
+      }
+
+      .s5-action--accent {
+        background: #f03030;
+        color: #050505;
+      }
+
+      .scene-label {
+        position: absolute;
+        right: 78px;
+        bottom: 58px;
+        z-index: 2;
+        padding: 14px 18px;
+        border-radius: 999px;
+        background: rgba(24, 24, 24, 0.94);
+        color: #f0f0f0;
+        font-family: "DM Mono", ui-monospace, monospace;
+        font-size: 18px;
+        line-height: 1;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .scene-label--dark {
+        color: #2f2f2f;
+      }
+
+      .scene-label__text {
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="20"
+      data-width="1920"
+      data-height="1080"
+    >
+      <section id="scene1" class="scene">
+        <div class="site-frame s1-screen" data-layout-allow-overflow>
+          <img src="assets/home.png" alt="" />
+        </div>
+        <div class="scrim"></div>
+        <div class="scene-content">
+          <div class="demo-panel s1-panel">
+            <div class="demo-kicker s1-kicker">Website demo</div>
+            <h1 class="demo-title s1-title">A portfolio you can feel</h1>
+            <p class="demo-copy s1-copy">
+              Alexander Beck Studio turns design work into an interactive product surface.
+            </p>
+          </div>
+          <div class="s1-lower">
+            <div class="demo-micro s1-micro">20 seconds · product systems · creative technology</div>
+            <div class="demo-dot s1-dot" aria-hidden="true"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene2" class="scene">
+        <div class="site-frame site-frame--soft s2-background" data-layout-allow-overflow>
+          <img src="assets/home-system.png" alt="" />
+        </div>
+        <div class="scrim"></div>
+        <div class="scene-content">
+          <div class="s2-grid">
+            <div class="s2-stage" aria-hidden="true">
+              <div class="capability capability--systems s2-card-1">
+                <div class="capability-copy">
+                  <span>01</span>
+                  <strong>Product systems</strong>
+                </div>
+              </div>
+              <div class="capability capability--motion s2-card-2">
+                <div class="capability-copy">
+                  <span>02</span>
+                  <strong>Interaction design</strong>
+                </div>
+              </div>
+              <div class="capability capability--ai s2-card-3">
+                <div class="capability-copy">
+                  <span>03</span>
+                  <strong>Applied AI</strong>
+                </div>
+              </div>
+              <div class="capability capability--proto s2-card-4">
+                <div class="capability-copy">
+                  <span>04</span>
+                  <strong>Prototyping</strong>
+                </div>
+              </div>
+            </div>
+            <div class="s2-copy">
+              <div class="demo-kicker s2-kicker">Studio logic</div>
+              <h2 class="s2-title">The system teaches itself</h2>
+              <p class="s2-body">
+                Skills become spatial signals, so visitors understand the practice while they explore.
+              </p>
+              <div class="s2-rule"></div>
+              <div class="s2-tags" aria-hidden="true">
+                <span class="s2-tag">Physics-led navigation</span>
+                <span class="s2-tag">Reusable chrome</span>
+                <span class="s2-tag">Context-preserving motion</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene3" class="scene">
+        <div class="site-frame s3-screen" data-layout-allow-overflow>
+          <img src="assets/portfolio.png" alt="" />
+        </div>
+        <div class="scrim scrim--light"></div>
+        <div class="scene-content" data-layout-allow-overflow>
+          <div class="demo-panel demo-panel--light demo-panel--right s3-panel">
+            <div class="demo-kicker s3-kicker">Portfolio route</div>
+            <h2 class="demo-title s3-title">Selected work drops into view</h2>
+            <p class="demo-copy s3-copy">
+              Project bodies replace a static grid with something closer to touch, gravity, and choice.
+            </p>
+          </div>
+          <div class="s3-callout">
+            <span>Live labels</span>
+            <div class="s3-meter" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <span>Spatial browsing</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene4" class="scene">
+        <div class="site-frame s4-screen" data-layout-allow-overflow>
+          <img src="assets/portfolio-open.png" alt="" />
+        </div>
+        <div class="scrim scrim--case"></div>
+        <div class="scene-content">
+          <div class="demo-panel demo-panel--bottom s4-panel">
+            <div class="demo-kicker s4-kicker">Case detail</div>
+            <h2 class="demo-title s4-title">Every case opens in context</h2>
+            <p class="demo-copy s4-copy">
+              The sheet keeps the wall language, covers route chrome, and gives the work room to breathe.
+            </p>
+          </div>
+          <div class="s4-note">The transition stays inside the product instead of sending the viewer to a separate page.</div>
+          <div class="s4-line"></div>
+        </div>
+      </section>
+
+      <section id="scene5" class="scene">
+        <div class="site-frame s5-screen" data-layout-allow-overflow>
+          <img src="assets/cv.png" alt="" />
+        </div>
+        <div class="scrim scrim--about"></div>
+        <div class="scene-content">
+          <div class="final-group">
+            <div class="s5-stack">
+              <div class="demo-kicker s5-kicker">Final frame</div>
+              <h2 class="s5-title">Clear, human, worth caring about</h2>
+              <p class="s5-copy">
+                Product design, systems thinking, and creative technology in one tactile website.
+              </p>
+              <div class="s5-actions" aria-hidden="true">
+                <span class="s5-action s5-action--accent"><span class="s5-action-text">Portfolio</span></span>
+                <span class="s5-action"><span class="s5-action-text">About me</span></span>
+                <span class="s5-action"><span class="s5-action-text">Contact</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="scene-label"><span class="scene-label__text">Alexander Beck Studio</span></div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      function blurCrossfade(oldScene, newScene, time) {
+        tl.set(newScene, { visibility: "visible" }, time);
+        tl.to(oldScene, { filter: "blur(12px)", scale: 1.03, opacity: 0, duration: 0.55, ease: "power2.inOut" }, time);
+        tl.fromTo(
+          newScene,
+          { filter: "blur(12px)", scale: 0.98, opacity: 0 },
+          { filter: "blur(0px)", scale: 1, opacity: 1, duration: 0.55, ease: "power2.inOut" },
+          time + 0.05
+        );
+        tl.set(oldScene, { visibility: "hidden", filter: "blur(0px)", scale: 1 }, time + 0.66);
+      }
+
+      function pushLeft(oldScene, newScene, time) {
+        tl.set(newScene, { visibility: "visible" }, time);
+        tl.to(oldScene, { x: -1920, duration: 0.56, ease: "power3.inOut" }, time);
+        tl.fromTo(newScene, { x: 1920, opacity: 1 }, { x: 0, duration: 0.56, ease: "power3.inOut" }, time);
+        tl.set(oldScene, { opacity: 0, x: 0, visibility: "hidden" }, time + 0.58);
+      }
+
+      function pushUp(oldScene, newScene, time) {
+        tl.set(newScene, { visibility: "visible" }, time);
+        tl.to(oldScene, { y: -1080, duration: 0.58, ease: "power3.inOut" }, time);
+        tl.fromTo(newScene, { y: 1080, opacity: 1 }, { y: 0, duration: 0.58, ease: "power3.inOut" }, time);
+        tl.set(oldScene, { opacity: 0, y: 0, visibility: "hidden" }, time + 0.6);
+      }
+
+      tl.from(".s1-screen", { scale: 1.04, opacity: 0, duration: 0.9, ease: "power3.out" }, 0.18);
+      tl.from(".s1-panel", { x: -76, opacity: 0, duration: 0.68, ease: "expo.out" }, 0.32);
+      tl.from(".s1-kicker", { y: 24, opacity: 0, duration: 0.38, ease: "back.out(1.4)" }, 0.48);
+      tl.from(".s1-title", { y: 44, opacity: 0, duration: 0.56, ease: "power4.out" }, 0.58);
+      tl.from(".s1-copy", { y: 30, opacity: 0, duration: 0.5, ease: "sine.out" }, 0.78);
+      tl.from(".s1-micro", { y: 36, opacity: 0, duration: 0.52, ease: "power2.out" }, 1.04);
+      tl.from(".s1-dot", { scale: 0.3, opacity: 0, duration: 0.62, ease: "elastic.out(1, 0.7)" }, 1.12);
+      tl.to(".s1-dot", { scale: 1.08, duration: 1.1, repeat: 2, yoyo: true, ease: "sine.inOut" }, 1.8);
+
+      blurCrossfade("#scene1", "#scene2", 3.65);
+
+      tl.from(".s2-background", { scale: 1.08, opacity: 0, duration: 0.64, ease: "power3.out" }, 4.05);
+      tl.from(".s2-kicker", { x: 40, opacity: 0, duration: 0.36, ease: "power2.out" }, 4.16);
+      tl.from(".s2-title", { x: 72, opacity: 0, duration: 0.62, ease: "expo.out" }, 4.26);
+      tl.from(".s2-body", { y: 38, opacity: 0, duration: 0.52, ease: "sine.out" }, 4.52);
+      tl.from(".s2-rule", { scaleX: 0, opacity: 0, duration: 0.45, ease: "power4.out" }, 4.72);
+      tl.from(".s2-tag", { y: 22, scale: 0.96, opacity: 0, duration: 0.4, stagger: 0.08, ease: "back.out(1.25)" }, 4.9);
+      tl.from(".s2-card-1", { x: -80, y: -40, scale: 0.72, opacity: 0, duration: 0.58, ease: "power3.out" }, 4.22);
+      tl.from(".s2-card-2", { x: 90, scale: 0.68, opacity: 0, duration: 0.62, ease: "back.out(1.4)" }, 4.38);
+      tl.from(".s2-card-3", { y: 92, scale: 0.72, opacity: 0, duration: 0.6, ease: "expo.out" }, 4.54);
+      tl.from(".s2-card-4", { x: 44, y: 84, rotation: 4, scale: 0.7, opacity: 0, duration: 0.64, ease: "power4.out" }, 4.66);
+      tl.to(".capability", { y: -18, duration: 1.4, repeat: 1, yoyo: true, stagger: 0.1, ease: "sine.inOut" }, 5.8);
+
+      pushLeft("#scene2", "#scene3", 7.65);
+
+      tl.from(".s3-screen", { scale: 1.04, opacity: 0, duration: 0.62, ease: "power3.out" }, 8.08);
+      tl.from(".s3-panel", { x: 86, opacity: 0, duration: 0.58, ease: "expo.out" }, 8.22);
+      tl.from(".s3-kicker", { y: -18, opacity: 0, duration: 0.32, ease: "power2.out" }, 8.34);
+      tl.from(".s3-title", { y: 52, opacity: 0, duration: 0.56, ease: "power4.out" }, 8.44);
+      tl.from(".s3-copy", { y: 32, opacity: 0, duration: 0.5, ease: "sine.out" }, 8.68);
+      tl.from(".s3-callout", { y: 48, scale: 0.95, opacity: 0, duration: 0.52, ease: "back.out(1.18)" }, 9.02);
+      tl.from(".s3-meter span", { scale: 0, opacity: 0, duration: 0.28, stagger: 0.05, ease: "expo.out" }, 9.18);
+      tl.to(".s3-screen", { scale: 1.025, duration: 2.4, ease: "sine.inOut" }, 9.3);
+
+      blurCrossfade("#scene3", "#scene4", 11.65);
+
+      tl.from(".s4-screen", { scale: 1.04, opacity: 0, duration: 0.64, ease: "power3.out" }, 12.04);
+      tl.from(".s4-panel", { x: -86, opacity: 0, duration: 0.58, ease: "expo.out" }, 12.18);
+      tl.from(".s4-kicker", { y: 22, opacity: 0, duration: 0.34, ease: "power2.out" }, 12.32);
+      tl.from(".s4-title", { y: 52, opacity: 0, duration: 0.56, ease: "power4.out" }, 12.44);
+      tl.from(".s4-copy", { y: 30, opacity: 0, duration: 0.48, ease: "sine.out" }, 12.68);
+      tl.from(".s4-note", { y: 52, opacity: 0, duration: 0.5, ease: "back.out(1.25)" }, 13.02);
+      tl.from(".s4-line", { scaleX: 0, opacity: 0, duration: 0.48, ease: "expo.out" }, 13.24);
+      tl.to(".s4-line", { scaleX: 1.16, duration: 1.2, repeat: 1, yoyo: true, ease: "sine.inOut" }, 13.8);
+
+      pushUp("#scene4", "#scene5", 15.65);
+
+      tl.from(".s5-screen", { scale: 1.04, opacity: 0, duration: 0.68, ease: "power3.out" }, 16.08);
+      tl.from(".s5-stack", { x: -76, opacity: 0, duration: 0.62, ease: "expo.out" }, 16.24);
+      tl.from(".s5-kicker", { y: 24, opacity: 0, duration: 0.34, ease: "back.out(1.2)" }, 16.38);
+      tl.from(".s5-title", { y: 56, opacity: 0, duration: 0.58, ease: "power4.out" }, 16.48);
+      tl.from(".s5-copy", { y: 34, opacity: 0, duration: 0.48, ease: "sine.out" }, 16.76);
+      tl.from(".s5-action", { y: 26, scale: 0.96, opacity: 0, duration: 0.38, stagger: 0.08, ease: "back.out(1.24)" }, 17.02);
+      tl.from(".scene-label", { y: 20, opacity: 0, duration: 0.36, ease: "power2.out" }, 17.22);
+      tl.to(".s5-stack", { y: -18, duration: 0.62, ease: "power2.in" }, 19.15);
+      tl.to(".s5-stack, .scene-label", { opacity: 0, duration: 0.5, ease: "sine.in" }, 19.26);
+      tl.to("#scene5", { opacity: 0, duration: 0.5, ease: "power1.in" }, 19.5);
+      tl.set("#scene5", { visibility: "hidden" }, 20);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

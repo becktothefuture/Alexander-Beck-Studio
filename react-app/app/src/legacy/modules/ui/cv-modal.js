@@ -6,7 +6,7 @@
 import { activateModalAccessibility } from './modal-accessibility.js';
 import { getText } from '../utils/text-loader.js';
 import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
-import { consumeGateRequest, markGateAccess } from '../../../lib/access-gates.js';
+import { consumeGateRequest, getGateInviteCode, markGateAccess } from '../../../lib/access-gates.js';
 import {
     closeGateModal,
     hideCompetingGateModals,
@@ -25,7 +25,7 @@ export function initCVModal() {
     const modalLabel = document.getElementById('cv-modal-label');
     
     // Invite codes add client-side friction only. They are not secure auth.
-    const INVITE_CODE = '1111';
+    const INVITE_CODE = getGateInviteCode('cv');
     
     if (!trigger || !modal || inputs.length === 0) {
         console.warn('CV Gate: Missing required elements');
@@ -147,7 +147,7 @@ export function initCVModal() {
     const checkCode = () => {
         const enteredCode = inputs.map(input => input.value).join('');
         
-        if (enteredCode.length === 4) {
+        if (enteredCode.length === INVITE_CODE.length) {
                 if (enteredCode === INVITE_CODE) {
                 // ═══════════════════════════════════════════════════════════════════
                 // GATE UNLOCK ANIMATION SEQUENCE (US-005)
