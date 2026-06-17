@@ -25,6 +25,7 @@
   "scripts" : {
     "audit:canvas-spa" : "node scripts\/audit-canvas-spa.mjs",
     "audit:canvas-spa:quick" : "ABS_SPA_ROUNDS=2 ABS_AUDIT_QUIET=1 node scripts\/audit-canvas-spa.mjs",
+    "audit:rain-prism" : "node scripts\/audit-rain-prism.mjs",
     "audit:portfolio-drawer" : "node scripts\/audit-portfolio-drawer-open.mjs",
     "audit:portfolio-drawer:pointer" : "node scripts\/audit-portfolio-drawer-pointer.mjs",
     "audit:portfolio-gate" : "node scripts\/audit-portfolio-gate-flow.mjs",

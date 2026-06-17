@@ -1,5 +1,6 @@
 import { SiteFooter } from '../SiteFooter.jsx';
 import { getGateCodeLength } from '../../lib/access-gates.js';
+import { RainPrismSiteLayer } from '../../routes/rain-prism/RainPrismSiteLayer.jsx';
 
 function RouteSceneMount({ routeRenderKey, children }) {
   switch (routeRenderKey) {
@@ -13,6 +14,8 @@ function RouteSceneMount({ routeRenderKey, children }) {
       return <div data-sfid="sfid:shell/palette-lab">{children}</div>;
     case 'beach-ball-room':
       return <div data-sfid="sfid:shell/beach-ball-room">{children}</div>;
+    case 'rain-prism':
+      return <div data-sfid="sfid:shell/rain-prism">{children}</div>;
     case 'home':
     default:
       return <div data-sfid="sfid:shell/home">{children}</div>;
@@ -106,6 +109,7 @@ export function StudioShell({
                 </div>
               </div>
             </div>
+          <RainPrismSiteLayer routeRenderKey={routeRenderKey} />
           {/* Portfolio drawer: MUST stack above header/footer — see docs/reference/LAYER-STACKING.md (never mount only inside #simulations). */}
           <div
             id="portfolio-sheet-host"

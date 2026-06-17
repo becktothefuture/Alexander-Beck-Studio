@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
@@ -8,6 +8,7 @@ import { flattenDesignConfigDir } from '../../scripts/lib/flatten-design-config.
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicConfigDir = resolve(__dirname, 'public/config');
+const rainPrismConfigPath = resolve(publicConfigDir, 'rain-prism-demo.json');
 const VIRTUAL_CONTENT_PREFIX = '\0virtual:abs-content/';
 const CONTENT_MODULES = {
   'virtual:abs-content/home': resolve(publicConfigDir, 'contents-home.json'),
@@ -18,6 +19,12 @@ async function readJsonModule(filePath) {
   const raw = await readFile(filePath, 'utf8');
   const parsed = JSON.parse(raw);
   return `export default ${JSON.stringify(parsed, null, 2)};\n`;
+}
+
+function sendJson(res, statusCode, payload) {
+  res.statusCode = statusCode;
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(payload));
 }
 
 function designSystemDevPlugin() {
@@ -40,9 +47,7 @@ function designSystemDevPlugin() {
           const payload = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
           const nextConfig = payload?.config;
           if (!nextConfig || typeof nextConfig !== 'object') {
-            res.statusCode = 400;
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ ok: false, error: 'Missing config payload' }));
+            sendJson(res, 400, { ok: false, error: 'Missing config payload' });
             return;
           }
 
@@ -52,13 +57,41 @@ function designSystemDevPlugin() {
             path: '/config/design-system.json',
           });
 
-          res.statusCode = 200;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ ok: true, version: normalized.version ?? 1 }));
+          sendJson(res, 200, { ok: true, version: normalized.version ?? 1 });
         } catch (error) {
-          res.statusCode = 500;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ ok: false, error: error?.message || 'Failed to save design system' }));
+          sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save design system' });
+        }
+      });
+
+      server.middlewares.use('/api/rain-prism/config', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        try {
+          const chunks = [];
+          for await (const chunk of req) {
+            chunks.push(Buffer.from(chunk));
+          }
+
+          const payload = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+          const nextConfig = payload?.config;
+          if (!nextConfig || typeof nextConfig !== 'object' || Array.isArray(nextConfig)) {
+            sendJson(res, 400, { ok: false, error: 'Missing rain prism config payload' });
+            return;
+          }
+
+          await writeFile(rainPrismConfigPath, `${JSON.stringify(nextConfig, null, 2)}\n`, 'utf8');
+          server.ws.send({
+            type: 'full-reload',
+            path: '/config/rain-prism-demo.json',
+          });
+
+          sendJson(res, 200, { ok: true });
+        } catch (error) {
+          sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save rain prism config' });
         }
       });
     },
@@ -114,6 +147,7 @@ export default defineConfig(({ mode }) => ({
         styleguide: resolve(__dirname, 'styleguide.html'),
         'palette-lab': resolve(__dirname, 'palette-lab.html'),
         'lab/beach-ball-room': resolve(__dirname, 'lab/beach-ball-room.html'),
+        'lab/rain-prism': resolve(__dirname, 'lab/rain-prism.html'),
         ...(mode === 'development'
           ? { 'panel-host': resolve(__dirname, 'panel-host.html') }
           : {})

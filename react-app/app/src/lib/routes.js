@@ -35,6 +35,12 @@ const ROUTE_DEFS = {
     aliases: ['/lab/beach-ball-room.html', '/lab/beach-ball-room', '/beach-ball-room.html', '/beach-ball-room'],
     gated: false,
   },
+  'rain-prism': {
+    id: 'rain-prism',
+    path: '/lab/rain-prism.html',
+    aliases: ['/lab/rain-prism.html', '/lab/rain-prism', '/rain-prism.html', '/rain-prism'],
+    gated: false,
+  },
 };
 
 function normalizePathname(pathname = '/') {
