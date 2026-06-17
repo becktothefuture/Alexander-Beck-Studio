@@ -256,12 +256,12 @@ Controls **which palette colors are used** for new balls across **all modes**, a
 ```json
 {
   "colorDistribution": [
-    { "label": "Product & Interaction Systems", "colorIndex": 0, "weight": 44 },
-    { "label": "AI Product Design", "colorIndex": 3, "weight": 14 },
-    { "label": "Creative Technology", "colorIndex": 2, "weight": 17 },
-    { "label": "Experience Strategy", "colorIndex": 6, "weight": 11 },
-    { "label": "Art Direction", "colorIndex": 7, "weight": 7 },
-    { "label": "Creative Engineering", "colorIndex": 5, "weight": 7 }
+    { "label": "Product Systems", "colorIndex": 0, "weight": 44 },
+    { "label": "Experience Design", "colorIndex": 3, "weight": 14 },
+    { "label": "Art Direction", "colorIndex": 2, "weight": 17 },
+    { "label": "Generative Design", "colorIndex": 6, "weight": 11 },
+    { "label": "Interaction Prototyping", "colorIndex": 7, "weight": 7 },
+    { "label": "Parametric Design", "colorIndex": 5, "weight": 7 }
   ]
 }
 ```

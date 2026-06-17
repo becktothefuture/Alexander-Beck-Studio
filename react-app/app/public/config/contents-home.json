@@ -13,38 +13,38 @@
     "items": [
       {
         "colorClass": "bg-ball-1",
-        "label": "Product & Interaction Systems",
-        "tooltip": "I structure product platforms, flows, and interaction patterns so teams can make clearer decisions at scale."
+        "label": "Product Systems",
+        "tooltip": "I structure product platforms, logic, and operating models so teams can make clearer decisions at scale."
       },
       {
         "colorClass": "bg-ball-4",
-        "label": "AI Product Design",
-        "tooltip": "I turn AI capabilities into useful product workflows, decision surfaces, and human-in-the-loop experiences."
+        "label": "Experience Design",
+        "tooltip": "I shape flows, behaviours, and service moments so products feel coherent from first touch to final handoff."
       },
       {
         "colorClass": "bg-ball-3",
-        "label": "Creative Technology",
-        "tooltip": "I shape digital experiences with code, emerging tools, and technical fluency so ideas become testable and expressive."
-      },
-      {
-        "colorClass": "bg-ball-7",
-        "label": "Experience Strategy",
-        "tooltip": "I connect user needs, business goals, product story, and platform choices into a coherent direction."
-      },
-      {
-        "colorClass": "bg-ball-8",
         "label": "Art Direction",
         "tooltip": "I set visual, spatial, and motion direction so products feel distinctive, intentional, and ownable."
       },
       {
+        "colorClass": "bg-ball-7",
+        "label": "Generative Design",
+        "tooltip": "I use AI and computational methods to explore directions, vary systems, and turn constraints into expressive options."
+      },
+      {
+        "colorClass": "bg-ball-8",
+        "label": "Interaction Prototyping",
+        "tooltip": "I make interface ideas tangible quickly with motion, code, and testable behaviours."
+      },
+      {
         "colorClass": "bg-ball-6",
-        "label": "Creative Engineering",
-        "tooltip": "I use AI tools, prototypes, and lightweight code to explore ideas quickly and make concepts tangible."
+        "label": "Parametric Design",
+        "tooltip": "I define rules, variables, and constraints that let design systems adapt without losing intent."
       }
     ]
   },
   "philosophy": {
-    "textBeforeLink": "The most interesting work happens where product judgment, systems, AI, and art direction overlap. I design strategic, usable experiences with enough technical fluency to make ideas tangible fast.",
+    "textBeforeLink": "Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity.",
     "link": {
       "id": "contact-email-inline",
       "href": "#",

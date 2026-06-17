@@ -167,7 +167,7 @@ export function StyleguideTypographySection() {
             <code className="styleguide-doc__code">--legend-font-*</code>
           </div>
           <div className="styleguide-type-role__sample">
-            <span className="styleguide-type-sample styleguide-type-sample--legend">Product & Interaction Systems</span>
+            <span className="styleguide-type-sample styleguide-type-sample--legend">Product Systems</span>
           </div>
         </li>
 

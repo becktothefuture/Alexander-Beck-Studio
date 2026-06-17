@@ -29,12 +29,12 @@ All user-facing copy across the website in one place. Use this to edit, translat
 | Key | Label | Tooltip | Source |
 |-----|-------|---------|--------|
 | legend.ariaLabel | — | Areas of expertise | contents-home.json |
-| legend.items[0] | Product & Interaction Systems | I structure product platforms, flows, and interaction patterns so teams can make clearer decisions at scale. | contents-home.json |
-| legend.items[1] | AI Product Design | I turn AI capabilities into useful product workflows, decision surfaces, and human-in-the-loop experiences. | contents-home.json |
-| legend.items[2] | Creative Technology | I shape digital experiences with code, emerging tools, and technical fluency so ideas become testable and expressive. | contents-home.json |
-| legend.items[3] | Experience Strategy | I connect user needs, business goals, product story, and platform choices into a coherent direction. | contents-home.json |
-| legend.items[4] | Art Direction | I set visual, spatial, and motion direction so products feel distinctive, intentional, and ownable. | contents-home.json |
-| legend.items[5] | Creative Engineering | I use AI tools, prototypes, and lightweight code to explore ideas quickly and make concepts tangible. | contents-home.json |
+| legend.items[0] | Product Systems | I structure product platforms, logic, and operating models so teams can make clearer decisions at scale. | contents-home.json |
+| legend.items[1] | Experience Design | I shape flows, behaviours, and service moments so products feel coherent from first touch to final handoff. | contents-home.json |
+| legend.items[2] | Art Direction | I set visual, spatial, and motion direction so products feel distinctive, intentional, and ownable. | contents-home.json |
+| legend.items[3] | Generative Design | I use AI and computational methods to explore directions, vary systems, and turn constraints into expressive options. | contents-home.json |
+| legend.items[4] | Interaction Prototyping | I make interface ideas tangible quickly with motion, code, and testable behaviours. | contents-home.json |
+| legend.items[5] | Parametric Design | I define rules, variables, and constraints that let design systems adapt without losing intent. | contents-home.json |
 
 ---
 
@@ -42,7 +42,7 @@ All user-facing copy across the website in one place. Use this to edit, translat
 
 | Key | Current copy | Source |
 |-----|--------------|--------|
-| philosophy.textBeforeLink | The most interesting work happens where product judgment, systems, AI, and art direction overlap. I design strategic, usable experiences with enough technical fluency to make ideas tangible fast. | contents-home.json |
+| philosophy.textBeforeLink | Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity. | contents-home.json |
 | philosophy.link.text | Let's chat. | contents-home.json |
 
 ---

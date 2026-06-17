@@ -2863,12 +2863,12 @@ export const CONTROL_SECTIONS = {
         type: 'colorDistribution',
         // Labels are fixed; you assign which palette slot + weight each label gets.
         labels: [
-          'Product & Interaction Systems',
-          'AI Product Design',
-          'Creative Technology',
-          'Experience Strategy',
+          'Product Systems',
+          'Experience Design',
           'Art Direction',
-          'Creative Engineering'
+          'Generative Design',
+          'Interaction Prototyping',
+          'Parametric Design'
         ],
         hint: 'Assign each discipline to a palette color, then set weights that sum to 100%. Used for all ball spawns across modes.'
       }
