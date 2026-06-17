@@ -16,8 +16,9 @@ const SOCIAL_LINKS = [
   },
 ];
 
-const EDGE_TAGLINE = 'BUILT WITH LOVE TO BE SATISFYING.';
+const EDGE_TAGLINE = 'A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable.';
 const EDGE_COPYRIGHT = '© 2026 Alexander Beck';
+const EDGE_CAPTION = `${EDGE_TAGLINE} ${EDGE_COPYRIGHT}`;
 
 export function SiteFooter() {
   return (
@@ -80,13 +81,7 @@ export function SiteFooter() {
           id="edge-caption-tagline"
           className="edge-caption__line edge-caption__line--tagline"
         >
-          {EDGE_TAGLINE}
-        </span>
-        <span
-          id="edge-caption-copyright"
-          className="edge-caption__line edge-caption__line--copyright"
-        >
-          {EDGE_COPYRIGHT}
+          {EDGE_CAPTION}
         </span>
       </div>
     </>

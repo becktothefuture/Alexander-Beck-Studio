@@ -19,7 +19,7 @@ All user-facing copy across the website in one place. Use this to edit, translat
 | Key | Current copy | Source |
 |-----|--------------|--------|
 | edge.chapterText | SOURCE MATERIAL | contents-home.json |
-| edge.tagline | Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable. | contents-home.json |
+| edge.tagline | A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable. | contents-home.json |
 | edge.copyright | © 2026 Alexander Beck | contents-home.json |
 
 ---

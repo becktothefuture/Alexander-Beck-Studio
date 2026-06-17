@@ -32,12 +32,16 @@ function applyMeta() {
 
 function applyEdge() {
   const taglineEl = document.getElementById('edge-caption-tagline');
-  const tagline = getText('edge.tagline', getText('edge.copyright', ''));
-  setText(taglineEl, tagline);
+  const tagline = getText('edge.tagline', '');
+  const copyright = getText('edge.copyright', '');
+  const edgeCaption = tagline
+    ? [tagline, copyright].filter(Boolean).join(' ')
+    : copyright;
+  setText(taglineEl, edgeCaption);
 
   const copyrightEl = document.getElementById('edge-caption-copyright');
   if (copyrightEl) {
-    setText(copyrightEl, getText('edge.copyright', ''));
+    setText(copyrightEl, '');
   }
 }
 
