@@ -101,7 +101,7 @@
         "weight": 31
       },
       {
-        "label": "Experience Design",
+        "label": "Experience Strategy",
         "colorIndex": 3,
         "weight": 13
       },
@@ -111,17 +111,17 @@
         "weight": 16
       },
       {
-        "label": "Generative Design",
+        "label": "Generative R&D",
         "colorIndex": 6,
         "weight": 20
       },
       {
-        "label": "Interaction Prototyping",
+        "label": "Creative Engineering",
         "colorIndex": 7,
         "weight": 10
       },
       {
-        "label": "Parametric Design",
+        "label": "Parametric Systems",
         "colorIndex": 5,
         "weight": 10
       }

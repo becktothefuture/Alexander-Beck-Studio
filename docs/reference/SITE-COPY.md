@@ -30,11 +30,11 @@ All user-facing copy across the website in one place. Use this to edit, translat
 |-----|-------|---------|--------|
 | legend.ariaLabel | — | Areas of expertise | contents-home.json |
 | legend.items[0] | Product Systems | I structure product platforms, logic, and operating models so teams can make clearer decisions at scale. | contents-home.json |
-| legend.items[1] | Experience Design | I shape flows, behaviours, and service moments so products feel coherent from first touch to final handoff. | contents-home.json |
+| legend.items[1] | Experience Strategy | I shape flows, behaviours, and service moments so products feel coherent from first touch to final handoff. | contents-home.json |
 | legend.items[2] | Art Direction | I set visual, spatial, and motion direction so products feel distinctive, intentional, and ownable. | contents-home.json |
-| legend.items[3] | Generative Design | I use AI and computational methods to explore directions, vary systems, and turn constraints into expressive options. | contents-home.json |
-| legend.items[4] | Interaction Prototyping | I make interface ideas tangible quickly with motion, code, and testable behaviours. | contents-home.json |
-| legend.items[5] | Parametric Design | I define rules, variables, and constraints that let design systems adapt without losing intent. | contents-home.json |
+| legend.items[3] | Generative R&D | I use AI and computational methods to explore directions, vary systems, and turn constraints into expressive options. | contents-home.json |
+| legend.items[4] | Creative Engineering | I make interface ideas tangible quickly with motion, code, and AI-assisted prototypes. | contents-home.json |
+| legend.items[5] | Parametric Systems | I define rules, variables, and constraints that let systems adapt without losing intent. | contents-home.json |
 
 ---
 

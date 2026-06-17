@@ -257,11 +257,11 @@ Controls **which palette colors are used** for new balls across **all modes**, a
 {
   "colorDistribution": [
     { "label": "Product Systems", "colorIndex": 0, "weight": 44 },
-    { "label": "Experience Design", "colorIndex": 3, "weight": 14 },
+    { "label": "Experience Strategy", "colorIndex": 3, "weight": 14 },
     { "label": "Art Direction", "colorIndex": 2, "weight": 17 },
-    { "label": "Generative Design", "colorIndex": 6, "weight": 11 },
-    { "label": "Interaction Prototyping", "colorIndex": 7, "weight": 7 },
-    { "label": "Parametric Design", "colorIndex": 5, "weight": 7 }
+    { "label": "Generative R&D", "colorIndex": 6, "weight": 11 },
+    { "label": "Creative Engineering", "colorIndex": 7, "weight": 7 },
+    { "label": "Parametric Systems", "colorIndex": 5, "weight": 7 }
   ]
 }
 ```

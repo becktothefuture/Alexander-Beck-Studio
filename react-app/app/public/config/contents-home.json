@@ -18,7 +18,7 @@
       },
       {
         "colorClass": "bg-ball-4",
-        "label": "Experience Design",
+        "label": "Experience Strategy",
         "tooltip": "I shape flows, behaviours, and service moments so products feel coherent from first touch to final handoff."
       },
       {
@@ -28,18 +28,18 @@
       },
       {
         "colorClass": "bg-ball-7",
-        "label": "Generative Design",
+        "label": "Generative R&D",
         "tooltip": "I use AI and computational methods to explore directions, vary systems, and turn constraints into expressive options."
       },
       {
         "colorClass": "bg-ball-8",
-        "label": "Interaction Prototyping",
-        "tooltip": "I make interface ideas tangible quickly with motion, code, and testable behaviours."
+        "label": "Creative Engineering",
+        "tooltip": "I make interface ideas tangible quickly with motion, code, and AI-assisted prototypes."
       },
       {
         "colorClass": "bg-ball-6",
-        "label": "Parametric Design",
-        "tooltip": "I define rules, variables, and constraints that let design systems adapt without losing intent."
+        "label": "Parametric Systems",
+        "tooltip": "I define rules, variables, and constraints that let systems adapt without losing intent."
       }
     ]
   },
