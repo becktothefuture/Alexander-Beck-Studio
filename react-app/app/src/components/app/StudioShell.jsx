@@ -1,6 +1,5 @@
 import { SiteFooter } from '../SiteFooter.jsx';
 import { getGateCodeLength } from '../../lib/access-gates.js';
-import { RainPrismSiteLayer } from '../../routes/rain-prism/RainPrismSiteLayer.jsx';
 
 function RouteSceneMount({ routeRenderKey, children }) {
   switch (routeRenderKey) {
@@ -109,7 +108,6 @@ export function StudioShell({
                 </div>
               </div>
             </div>
-          <RainPrismSiteLayer routeRenderKey={routeRenderKey} />
           {/* Portfolio drawer: MUST stack above header/footer — see docs/reference/LAYER-STACKING.md (never mount only inside #simulations). */}
           <div
             id="portfolio-sheet-host"

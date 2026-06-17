@@ -81,6 +81,15 @@ function resolveTargetFps(config) {
   return Math.round(clamp(Number(config.targetFps) || 30, 1, 60));
 }
 
+function resolveRenderMode(config) {
+  if (config.renderMode === 'static' || config.renderMode === 'animated') return config.renderMode;
+  return 'sparse';
+}
+
+function resolveUpdateFraction(config) {
+  return clamp(Number(config.updateFraction) || 0.18, 0.01, 1);
+}
+
 function shouldPauseForVisibility(config) {
   return config.pauseWhenHidden !== false
     && typeof document !== 'undefined'
@@ -172,6 +181,20 @@ function syncPixelList(pixels, count, seed) {
   if (pixels.length > count) pixels.length = count;
 }
 
+function getPixelBox(pixel, config, metrics) {
+  const size = Math.max(1, Math.round(config.pixelSize || 1));
+  return {
+    x: Math.round(pixel.x * Math.max(0, metrics.cssWidth - size)),
+    y: Math.round(pixel.y * Math.max(0, metrics.cssHeight - size)),
+    size,
+  };
+}
+
+function clearRgbPixel(ctx, pixel, config, metrics) {
+  const { x, y, size } = getPixelBox(pixel, config, metrics);
+  ctx.clearRect(x, y, size, size);
+}
+
 function drawRgbPixel(ctx, pixel, config, metrics, time, reducedMotion, themeColor) {
   const cycleSpread = config.cycleSpread ?? 1;
   const phaseJitter = config.phaseJitter ?? 1;
@@ -184,9 +207,7 @@ function drawRgbPixel(ctx, pixel, config, metrics, time, reducedMotion, themeCol
   const brightness = clamp(config.spectrumBoost ?? 1.15, 0.05, 5);
   const pixelAlpha = clamp(config.pixelAlpha ?? 1, 0.05, 2.5);
   const alpha = clamp((0.1 + brightness * 0.17) * pixelAlpha * themeBoost, 0.04, 1) * pixel.alpha;
-  const size = Math.max(1, Math.round(config.pixelSize || 1));
-  const x = Math.round(pixel.x * metrics.cssWidth);
-  const y = Math.round(pixel.y * metrics.cssHeight);
+  const { x, y, size } = getPixelBox(pixel, config, metrics);
 
   ctx.fillStyle = rgbString(color, alpha);
   ctx.fillRect(x, y, size, size);
@@ -209,6 +230,9 @@ export function createRainPrismRenderer({
     && typeof document.addEventListener === 'function';
   let lastPixelSignature = '';
   let lastBaseSignature = '';
+  let lastOverlaySignature = '';
+  let sparseCursor = 0;
+  let fullRedraws = 0;
   let metrics = {
     dpr: 1,
     cssWidth: 1,
@@ -216,6 +240,11 @@ export function createRainPrismRenderer({
     width: 1,
     height: 1,
     pixelCount: 0,
+    renderMode: 'sparse',
+    updateFraction: 0.18,
+    lastDrawCount: 0,
+    lastFrameMs: 0,
+    fullRedraws: 0,
   };
 
   function cancelScheduledFrame() {
@@ -226,7 +255,9 @@ export function createRainPrismRenderer({
   }
 
   function shouldAnimate(config) {
+    const renderMode = resolveRenderMode(config);
     return config.enabled !== false
+      && renderMode !== 'static'
       && !reducedMotion
       && (config.motion ?? 0) > 0.001
       && !shouldPauseForVisibility(config);
@@ -261,10 +292,14 @@ export function createRainPrismRenderer({
     if (!force && shouldPauseForVisibility(config)) return;
 
     const theme = getTheme() || DEFAULT_THEME;
+    const renderMode = resolveRenderMode(config);
+    const updateFraction = resolveUpdateFraction(config);
     const dpr = resolveRenderDpr(config);
     syncMetrics(dpr);
     const pixelCount = resolvePixelCount(config, metrics);
     metrics.pixelCount = pixelCount;
+    metrics.renderMode = renderMode;
+    metrics.updateFraction = updateFraction;
 
     const baseSignature = [
       Math.round(metrics.cssWidth),
@@ -282,22 +317,66 @@ export function createRainPrismRenderer({
       lastBaseSignature = baseSignature;
     }
 
-    overlayCtx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
     overlayCanvas.style.mixBlendMode = resolveOverlayBlendMode(config, theme);
     overlayCanvas.style.opacity = config.enabled ? '1' : '0';
 
     const pixelSignature = `${pixelCount}:${Math.round(metrics.cssWidth)}:${Math.round(metrics.cssHeight)}:${dpr}`;
+    const pixelListChanged = pixelSignature !== lastPixelSignature;
     if (pixelSignature !== lastPixelSignature) {
       syncPixelList(pixels, pixelCount, 0x5f3759df);
       lastPixelSignature = pixelSignature;
+      sparseCursor = 0;
     }
 
-    if (config.enabled) {
+    const overlaySignature = [
+      pixelSignature,
+      getThemeKey(theme),
+      config.enabled,
+      renderMode,
+      config.pixelSize,
+      config.pixelAlpha,
+      config.spectrumBoost,
+      config.lightBoost,
+      config.darkBoost,
+      config.redStrength,
+      config.greenStrength,
+      config.blueStrength,
+      config.cycleSpread,
+      config.phaseJitter,
+    ].join(':');
+
+    const frameStart = performance.now();
+    let drawCount = 0;
+
+    if (!config.enabled) {
+      if (lastOverlaySignature) {
+        overlayCtx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
+        lastOverlaySignature = '';
+      }
+    } else if (renderMode === 'animated' || force || pixelListChanged || overlaySignature !== lastOverlaySignature) {
+      overlayCtx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
       overlayCtx.globalCompositeOperation = 'source-over';
       for (let index = 0; index < pixels.length; index += 1) {
         drawRgbPixel(overlayCtx, pixels[index], config, metrics, time, reducedMotion, theme);
       }
+      drawCount = pixels.length;
+      fullRedraws += 1;
+      lastOverlaySignature = overlaySignature;
+    } else if (renderMode === 'sparse' && pixels.length > 0) {
+      const updateCount = Math.max(1, Math.ceil(pixels.length * updateFraction));
+      overlayCtx.globalCompositeOperation = 'source-over';
+      for (let index = 0; index < updateCount; index += 1) {
+        const pixel = pixels[sparseCursor % pixels.length];
+        clearRgbPixel(overlayCtx, pixel, config, metrics);
+        drawRgbPixel(overlayCtx, pixel, config, metrics, time, reducedMotion, theme);
+        sparseCursor += 1;
+      }
+      drawCount = updateCount;
     }
+
+    metrics.lastDrawCount = drawCount;
+    metrics.lastFrameMs = performance.now() - frameStart;
+    metrics.fullRedraws = fullRedraws;
 
     scheduleNextFrame(config);
   }

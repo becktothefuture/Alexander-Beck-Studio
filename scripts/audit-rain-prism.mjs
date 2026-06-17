@@ -263,110 +263,6 @@ function assert(condition, message) {
   }
 }
 
-async function inspectSiteLayer(page, origin) {
-  await page.goto(`${origin}/index.html`, { waitUntil: 'networkidle', timeout: 60000 });
-  await page.waitForSelector('.rain-prism-site-layer', { timeout: WAIT_MS });
-  await page.waitForFunction(
-    () => {
-      const canvas = document.getElementById('rain-prism-site-overlay');
-      const layer = document.querySelector('.rain-prism-site-layer');
-      return Boolean(canvas && layer && layer.getAttribute('data-ready') === 'true' && canvas.width > 0 && canvas.height > 0);
-    },
-    { timeout: WAIT_MS }
-  );
-
-  const geometry = await page.evaluate(() => {
-    const layer = document.querySelector('.rain-prism-site-layer');
-    const canvas = document.getElementById('rain-prism-site-overlay');
-    const wall = document.getElementById('simulations');
-    const fade = document.querySelector('.fade-content');
-    if (!layer || !canvas || !wall) return null;
-    const layerRect = layer.getBoundingClientRect();
-    const wallRect = wall.getBoundingClientRect();
-    const deviceDpr = window.devicePixelRatio || 1;
-    const configuredMaxDpr = Number(layer.getAttribute('data-max-dpr')) || deviceDpr;
-    const dpr = Math.max(0.75, Math.min(2.5, configuredMaxDpr, deviceDpr));
-    const layerStyle = window.getComputedStyle(layer);
-    const fadeStyle = fade ? window.getComputedStyle(fade) : null;
-    const actualDpr = canvas.width / Math.max(1, layerRect.width);
-    return {
-      dpr,
-      actualDpr,
-      ready: layer.getAttribute('data-ready'),
-      siteScope: layer.getAttribute('data-site-scope'),
-      blendMode: layer.getAttribute('data-blend-mode'),
-      canvasBlendMode: window.getComputedStyle(canvas).mixBlendMode,
-      targetFps: Number(layer.getAttribute('data-target-fps')),
-      maxDpr: Number(layer.getAttribute('data-max-dpr')),
-      adaptiveDensity: layer.getAttribute('data-adaptive-density'),
-      pauseWhenHidden: layer.getAttribute('data-pause-when-hidden'),
-      layerRect: {
-        top: layerRect.top,
-        right: layerRect.right,
-        bottom: layerRect.bottom,
-        left: layerRect.left,
-        width: layerRect.width,
-        height: layerRect.height,
-      },
-      wallRect: {
-        top: wallRect.top,
-        right: wallRect.right,
-        bottom: wallRect.bottom,
-        left: wallRect.left,
-        width: wallRect.width,
-        height: wallRect.height,
-      },
-      canvasWidth: canvas.width,
-      canvasHeight: canvas.height,
-      expectedWidth: Math.round(layerRect.width * dpr),
-      expectedHeight: Math.round(layerRect.height * dpr),
-      pointerEvents: layerStyle.pointerEvents,
-      zIndex: Number.parseInt(layerStyle.zIndex || '0', 10),
-      fadeZIndex: Number.parseInt(fadeStyle?.zIndex || '0', 10),
-    };
-  });
-  const overlayStats = await sampleCanvasStats(page, 'rain-prism-site-overlay');
-
-  return {
-    geometry,
-    overlayStats,
-  };
-}
-
-async function inspectSiteLayerDarkMode(page) {
-  await page.evaluate(() => {
-    if (document.documentElement.classList.contains('dark-mode') || document.body.classList.contains('dark-mode')) {
-      return;
-    }
-    const themeToggle = document.getElementById('site-year');
-    if (themeToggle) {
-      themeToggle.click();
-      return;
-    }
-    document.documentElement.classList.add('dark-mode');
-    document.body.classList.add('dark-mode');
-    document.dispatchEvent(new CustomEvent('abs:theme-change'));
-    window.dispatchEvent(new CustomEvent('abs:theme-changed'));
-  });
-  await page.waitForTimeout(500);
-  const geometry = await page.evaluate(() => {
-    const layer = document.querySelector('.rain-prism-site-layer');
-    const canvas = document.getElementById('rain-prism-site-overlay');
-    if (!layer || !canvas) return null;
-    return {
-      blendMode: layer.getAttribute('data-blend-mode'),
-      canvasBlendMode: window.getComputedStyle(canvas).mixBlendMode,
-      htmlDark: document.documentElement.classList.contains('dark-mode'),
-      bodyDark: document.body.classList.contains('dark-mode'),
-    };
-  });
-  const overlayStats = await sampleCanvasStats(page, 'rain-prism-site-overlay');
-  return {
-    geometry,
-    overlayStats,
-  };
-}
-
 async function hasSiteLayerOnRoute(page, origin, pathname) {
   await page.goto(`${origin}${pathname}`, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForSelector('#abs-scene', { timeout: WAIT_MS });
@@ -410,24 +306,24 @@ async function main() {
       enabled: true,
       theme: 'dark',
       blendMode: 'auto',
-      siteBlendMode: 'auto',
-      siteScope: 'home',
-      dropDensity: 6400,
+      renderMode: 'sparse',
+      dropDensity: 3600,
       pixelSize: 1,
-      pixelAlpha: 0.26,
-      spectrumBoost: 3.25,
+      pixelAlpha: 0.32,
+      spectrumBoost: 3.6,
       displayColor: 0.81,
       displayContrast: 1.63,
       lightBoost: 4.1,
-      darkBoost: 2.65,
+      darkBoost: 2.8,
       redStrength: 1.1,
       greenStrength: 1.1,
       blueStrength: 1.05,
-      motion: 3,
+      motion: 2.4,
       cycleSpread: 1.22,
       phaseJitter: 1.18,
-      targetFps: 30,
-      maxDpr: 1.5,
+      targetFps: 10,
+      updateFraction: 0.18,
+      maxDpr: 1,
       pauseWhenHidden: true,
       adaptiveDensity: true,
     });
@@ -446,8 +342,23 @@ async function main() {
     await page.waitForTimeout(1200);
     const timeDiff = await compareCanvasSnapshot(page, 'rain-prism-overlay-light', '__ABS_RAIN_PRISM_TIME_A__');
     assert(
-      timeDiff?.rgbDiffMean > 5,
+      timeDiff?.rgbDiffMean > 3,
       `RGB pixels did not smoothly change color over time: rgb diff ${timeDiff?.rgbDiffMean}`
+    );
+    const sparseMetrics = await page.evaluate(() => window.__ABS_RAIN_PRISM__?.getMetrics?.());
+    assert(
+      sparseMetrics?.light?.renderMode === 'sparse' && sparseMetrics?.dark?.renderMode === 'sparse',
+      `Expected sparse renderer mode, got ${JSON.stringify(sparseMetrics)}`
+    );
+    assert(
+      sparseMetrics.light.lastDrawCount > 0
+        && sparseMetrics.light.lastDrawCount <= Math.ceil(sparseMetrics.light.pixelCount * 0.22),
+      `Sparse light renderer redrew too many pixels: ${sparseMetrics.light.lastDrawCount} of ${sparseMetrics.light.pixelCount}`
+    );
+    assert(
+      sparseMetrics.dark.lastDrawCount > 0
+        && sparseMetrics.dark.lastDrawCount <= Math.ceil(sparseMetrics.dark.pixelCount * 0.22),
+      `Sparse dark renderer redrew too many pixels: ${sparseMetrics.dark.lastDrawCount} of ${sparseMetrics.dark.pixelCount}`
     );
 
     const lightBaseStats = await sampleCanvasStats(page, 'rain-prism-base-light');
@@ -470,8 +381,7 @@ async function main() {
       enabled: true,
       theme: 'dark',
       blendMode: 'screen',
-      siteBlendMode: 'auto',
-      siteScope: 'home',
+      renderMode: 'animated',
       dropDensity: 8000,
       pixelSize: 2,
       pixelAlpha: 2,
@@ -487,6 +397,7 @@ async function main() {
       cycleSpread: 1.8,
       phaseJitter: 1.5,
       targetFps: 60,
+      updateFraction: 1,
       maxDpr: 2,
       pauseWhenHidden: true,
       adaptiveDensity: true,
@@ -498,45 +409,13 @@ async function main() {
     );
     await page.screenshot({ path: resolve(outputRoot, 'rain-prism-high-spectrum.png'), fullPage: true });
 
-    let siteLayerStats = null;
-    let darkSiteLayerStats = null;
+    let homeLayerExists = null;
     let styleguideLayerExists = null;
     if (staticHost) {
-      siteLayerStats = await inspectSiteLayer(page, staticHost.origin);
-      const geometry = siteLayerStats.geometry;
-      assert(geometry, 'Rain prism site layer was not found on the built home page');
-      assert(geometry.ready === 'true', 'Rain prism site layer did not finish loading config');
-      assert(geometry.siteScope === 'home', `Site layer should default to the home route only: ${geometry.siteScope}`);
-      assert(geometry.blendMode === 'auto', `Site layer should use auto compositing so dark mode can switch to screen: ${geometry.blendMode}`);
-      assert(geometry.canvasBlendMode === 'normal', `Light site layer should compute to normal compositing: ${geometry.canvasBlendMode}`);
-      assert(geometry.targetFps === 30, `Site layer target FPS should be capped at 30: ${geometry.targetFps}`);
-      assert(geometry.maxDpr === 1.5, `Site layer DPR should be capped at 1.5: ${geometry.maxDpr}`);
-      assert(geometry.adaptiveDensity === 'true', 'Site layer adaptive density should be enabled');
-      assert(geometry.pauseWhenHidden === 'true', 'Site layer hidden-tab pause should be enabled');
-      assert(Math.abs(geometry.actualDpr - geometry.dpr) <= 0.03, `Site overlay DPR ${geometry.actualDpr} does not match configured cap ${geometry.dpr}`);
-      assert(Math.abs(geometry.canvasWidth - geometry.expectedWidth) <= 2, 'Site overlay canvas backing width does not match layer width x DPR');
-      assert(Math.abs(geometry.canvasHeight - geometry.expectedHeight) <= 2, 'Site overlay canvas backing height does not match layer height x DPR');
-      assert(geometry.pointerEvents === 'none', 'Site overlay must not intercept pointer input');
-      assert(geometry.zIndex > geometry.fadeZIndex, `Site overlay should stack above .fade-content: layer ${geometry.zIndex}, fade ${geometry.fadeZIndex}`);
-      assert(geometry.layerRect.left >= geometry.wallRect.left - 1, 'Site overlay escapes the left wall bound');
-      assert(geometry.layerRect.right <= geometry.wallRect.right + 1, 'Site overlay escapes the right wall bound');
-      assert(geometry.layerRect.top >= geometry.wallRect.top - 1, 'Site overlay escapes the top wall bound');
-      assert(geometry.layerRect.bottom <= geometry.wallRect.bottom + 1, 'Site overlay escapes the bottom wall bound');
-      assert(
-        siteLayerStats.overlayStats?.alphaHitRatio > 0.00045 && siteLayerStats.overlayStats?.alphaMean > 0.005,
-        `Site overlay appears blank: alpha hit ratio ${siteLayerStats.overlayStats?.alphaHitRatio}, alpha mean ${siteLayerStats.overlayStats?.alphaMean}`
-      );
-      await page.screenshot({ path: resolve(outputRoot, 'rain-prism-site-layer.png'), fullPage: true });
-      darkSiteLayerStats = await inspectSiteLayerDarkMode(page);
-      assert(darkSiteLayerStats.geometry?.htmlDark && darkSiteLayerStats.geometry?.bodyDark, 'Dark mode was not applied for the site layer check');
-      assert(darkSiteLayerStats.geometry?.canvasBlendMode === 'screen', `Dark site layer should compute to screen compositing: ${darkSiteLayerStats.geometry?.canvasBlendMode}`);
-      assert(
-        darkSiteLayerStats.overlayStats?.alphaHitRatio > 0.00045 && darkSiteLayerStats.overlayStats?.alphaMean > 0.005,
-        `Dark site overlay appears blank: alpha hit ratio ${darkSiteLayerStats.overlayStats?.alphaHitRatio}, alpha mean ${darkSiteLayerStats.overlayStats?.alphaMean}`
-      );
-      await page.screenshot({ path: resolve(outputRoot, 'rain-prism-site-layer-dark.png'), fullPage: true });
+      homeLayerExists = await hasSiteLayerOnRoute(page, staticHost.origin, '/index.html');
+      assert(!homeLayerExists, 'Rain prism site layer should not exist on the built home page');
       styleguideLayerExists = await hasSiteLayerOnRoute(page, staticHost.origin, '/styleguide.html');
-      assert(!styleguideLayerExists, 'Site layer should be route-gated off non-home routes by default');
+      assert(!styleguideLayerExists, 'Rain prism site layer should not exist on non-lab routes');
     }
 
     const result = {
@@ -549,10 +428,11 @@ async function main() {
       darkBaseStats,
       timeDiff,
       boostedOverlayStats,
-      siteLayerStats,
-      darkSiteLayerStats,
+      sparseMetrics,
+      homeLayerExists,
       styleguideLayerExists,
     };
+    await waitForRainPrismReady(page);
     await page.screenshot({ path: resolve(outputRoot, 'rain-prism-smoke.png'), fullPage: true });
     await writeFile(resolve(outputRoot, 'rain-prism-smoke.json'), `${JSON.stringify(result, null, 2)}\n`, 'utf8');
     console.log('PASS rain prism audit');
