@@ -567,13 +567,16 @@ These keys control the 3D Cube simulation (mode `3d-cube`):
 - `cube3dCursorInfluence` (number): cursor-to-rotation sensitivity
 - `cube3dTumbleSpeed` (number): impulse added from mouse movement
 - `cube3dTumbleDamping` (number): decay factor for tumble impulse
-- `cube3dFocalLength` (number, px): perspective focal length
+- `cube3dFocalLength` (number, px): perspective focal length - default: 1200
 - `cube3dDotSizeMul` (number): dot size multiplier
+- `cube3dFogStart` (number, 0..1): normalized depth where rear fog begins - default: 0.85
+- `cube3dFogMin` (number, 0..1): minimum opacity for the furthest dots - default: 0.58
 - `cube3dWarmupFrames` (number): physics warmup frames on mode init
 
 Notes:
 - Points stay camera-centered; ball-to-ball collisions are disabled.
 - Cursor offset changes yaw/pitch; mouse movement adds a tumble impulse.
+- Dots further into the scene use a bounded opacity fog; they should fade slightly, not disappear.
 
 ---
 

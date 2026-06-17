@@ -190,7 +190,7 @@ export function apply3DCubeForces(ball, dt) {
 
   const { x, y, z } = ball._cube3d;
   const rotated = rotateXYZ(x, y, z, state.rotX, state.rotY, state.rotZ);
-  const focal = Math.max(80, g.cube3dFocalLength ?? 500);
+  const focal = Math.max(80, g.cube3dFocalLength ?? 1200);
   
   // Calculate distance from viewer for correct perspective
   // rotated.z ranges from -sizePx/2 (back) to +sizePx/2 (front)
@@ -208,26 +208,17 @@ export function apply3DCubeForces(ball, dt) {
   // Map z from [-sizePx/2, +sizePx/2] to [0, 1] where 0 is back, 1 is front
   const depthFactor = (rotated.z + halfSize) / state.sizePx;
   
-  // Cube's own additional fog (fades back points more)
-  // This stacks with the engine's depth fog for a stronger atmospheric effect
-  const fadeStart = Math.max(0, Math.min(1, g.cube3dFogStart ?? 0.5));
-  const fadeMin = Math.max(0, Math.min(1, g.cube3dFogMin ?? 0.1));
-  
-  // Smooth fade using quadratic easing for gradual transition
-  // Fade increases as depthFactor DECREASES (back points fade more)
-  let fadeRamp = 0;
-  if (depthFactor < fadeStart) {
-    const t = (fadeStart - depthFactor) / fadeStart;
-    fadeRamp = t * t; // Quadratic ease-in for smooth acceleration
-  }
-  ball.alpha = 1.0 - fadeRamp * (1.0 - fadeMin);
+  const fogStart = Math.max(0, Math.min(1, g.cube3dFogStart ?? 0.85));
+  const fogMin = Math.max(0, Math.min(1, g.cube3dFogMin ?? 0.58));
 
-  // Scale size based on z-depth for perspective illusion
-  // Back balls (z=0) are smaller, front balls (z=1) are larger
-  // This enhances the 3D effect significantly
-  const perspectiveSize = 0.78 + ball.z * 0.34; // 0.78x to 1.12x scale
-  
-  ball.r = clampRadiusToGlobalBounds(g, rawR * perspectiveSize);
+  let fogAmount = 0;
+  if (fogStart > 0 && depthFactor < fogStart) {
+    const t = (fogStart - depthFactor) / fogStart;
+    fogAmount = t * t * (3 - 2 * t);
+  }
+  ball.alpha = 1.0 - fogAmount * (1.0 - fogMin);
+
+  ball.r = clampRadiusToGlobalBounds(g, rawR);
   ball.x = targetX;
   ball.y = targetY;
   ball.vx = 0;

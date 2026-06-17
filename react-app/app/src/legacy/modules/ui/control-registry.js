@@ -4906,7 +4906,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'cube3dFocalLength',
         type: 'range',
         min: 80, max: 2000, step: 10,
-        default: 500,
+        default: 1200,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10)
       },
@@ -4926,7 +4926,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'cube3dFogStart',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.5,
+        default: 0.85,
         format: v => Math.round(v * 100) + '%',
         parse: parseFloat
       },
@@ -4936,7 +4936,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'cube3dFogMin',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.1,
+        default: 0.58,
         format: v => Math.round(v * 100) + '%',
         parse: parseFloat
       },
