@@ -4732,6 +4732,139 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
+  weaveField: {
+    title: 'Weave Field',
+    icon: '🧵',
+    mode: 'weave-field',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'weaveFieldBallCount',
+        label: 'Ball Count',
+        stateKey: 'weaveFieldBallCount',
+        type: 'range',
+        min: 48, max: 260, step: 4,
+        default: 132,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true,
+        hint: 'Total woven bodies. Mobile/lite budgets can still reduce the effective count.'
+      },
+      {
+        id: 'weaveFieldLaneCount',
+        label: 'Lane Count',
+        stateKey: 'weaveFieldLaneCount',
+        type: 'range',
+        min: 3, max: 9, step: 1,
+        default: 4,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true,
+        hint: 'Number of horizontal and vertical discipline streams.'
+      },
+      {
+        id: 'weaveFieldFlowSpeed',
+        label: 'Flow Speed',
+        stateKey: 'weaveFieldFlowSpeed',
+        type: 'range',
+        min: 0, max: 180, step: 2,
+        default: 118,
+        format: v => `${Math.round(v)}px/s`,
+        parse: parseFloat,
+        hint: 'How fast balls travel along their stream paths.'
+      },
+      {
+        id: 'weaveFieldWeaveStrength',
+        label: 'Weave Strength',
+        stateKey: 'weaveFieldWeaveStrength',
+        type: 'range',
+        min: 0, max: 1.2, step: 0.02,
+        default: 0.9,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'How strongly straight streams cross into the woven lattice.'
+      },
+      {
+        id: 'weaveFieldLaneTension',
+        label: 'Lane Tension',
+        stateKey: 'weaveFieldLaneTension',
+        type: 'range',
+        min: 0, max: 18, step: 0.2,
+        default: 14,
+        format: v => v.toFixed(1),
+        parse: parseFloat,
+        hint: 'How tightly each ball follows its moving path target.'
+      },
+      {
+        id: 'weaveFieldProgressSeconds',
+        label: 'Build Time',
+        stateKey: 'weaveFieldProgressSeconds',
+        type: 'range',
+        min: 4, max: 40, step: 1,
+        default: 9,
+        format: v => `${Math.round(v)}s`,
+        parse: parseFloat,
+        hint: 'Seconds from straight streams to full weave.'
+      },
+      {
+        id: 'weaveFieldPointerRadius',
+        label: 'Pointer Radius',
+        stateKey: 'weaveFieldPointerRadius',
+        type: 'range',
+        min: 40, max: 420, step: 5,
+        default: 260,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Desktop cursor or mobile touch radius that opens space in the weave.'
+      },
+      {
+        id: 'weaveFieldPointerRepelStrength',
+        label: 'Pointer Repel',
+        stateKey: 'weaveFieldPointerRepelStrength',
+        type: 'range',
+        min: 0, max: 60000, step: 1000,
+        default: 22000,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        hint: 'Strength of the temporary opening around cursor/touch.'
+      },
+      {
+        id: 'weaveFieldDamping',
+        label: 'Damping',
+        stateKey: 'weaveFieldDamping',
+        type: 'range',
+        min: 0.7, max: 0.995, step: 0.005,
+        default: 0.965,
+        format: v => v.toFixed(3),
+        parse: parseFloat,
+        hint: 'Velocity damping. Lower values feel calmer and less elastic.'
+      },
+      {
+        id: 'weaveFieldMaxSpeed',
+        label: 'Energy Cap',
+        stateKey: 'weaveFieldMaxSpeed',
+        type: 'range',
+        min: 220, max: 2200, step: 20,
+        default: 1920,
+        format: v => `${Math.round(v)}px/s`,
+        parse: v => parseInt(v, 10),
+        hint: 'Maximum speed after path pull, collisions, pointer repulsion, and walls.'
+      },
+      {
+        id: 'weaveFieldCollisionIterations',
+        label: 'Contact Passes',
+        stateKey: 'weaveFieldCollisionIterations',
+        type: 'range',
+        min: 0, max: 6, step: 1,
+        default: 1,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        hint: 'Ball-on-ball solver passes. Lower values keep the weave fast while walls still contain it.'
+      },
+      warmupFramesControl('weaveFieldWarmupFrames')
+    ]
+  },
+
   particleFountain: {
     title: 'Particle Fountain',
     icon: '⛲',
@@ -6040,6 +6173,7 @@ export function generateModeSwitcherHTML() {
     'elastic-center': '⭕',
     'flock-of-birds': '🕊️',
     'flubber-blob': '🫠',
+    'weave-field': '🧵',
     'particle-fountain': '⛲'
   };
   const modeLabels = {
@@ -6059,6 +6193,7 @@ export function generateModeSwitcherHTML() {
     'elastic-center': 'Elastic Center',
     'flock-of-birds': 'Flock',
     'flubber-blob': 'Flubber',
+    'weave-field': 'Weave',
     'particle-fountain': 'Fountain'
   };
   
@@ -6150,6 +6285,7 @@ function generateHomeModeSectionHTML() {
               'elastic-center': '⭕',
               'flock-of-birds': '🕊️',
               'flubber-blob': '🫠',
+              'weave-field': '🧵',
               'particle-fountain': '⛲'
             };
             const modeLabels = {
@@ -6169,6 +6305,7 @@ function generateHomeModeSectionHTML() {
               'elastic-center': 'Elastic Center',
               'flock-of-birds': 'Flock',
               'flubber-blob': 'Flubber',
+              'weave-field': 'Weave',
               'particle-fountain': 'Fountain'
             };
             let buttons = '';
@@ -6395,6 +6532,7 @@ export function bindRegisteredControls(options = {}) {
             'starfield-3d': g.starfieldCount,
             'elastic-center': null,
             'flubber-blob': g.flubberBlobBallCount,
+            'weave-field': g.weaveFieldBallCount,
             'particle-fountain': g.particleFountainMaxParticles
           };
           const v = map[mode];

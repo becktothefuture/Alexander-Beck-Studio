@@ -8,8 +8,8 @@ Source of truth for mode IDs and narrative order:
 
 ## Runtime Summary
 
-- `17` mode IDs are registered in `MODES`.
-- `16` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
+- `19` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
+- `17` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
 - `parallax-linear` remains a registered mode ID for compatibility, but user mode switching redirects it to the first narrative mode.
 - `flock-of-birds` is a route-backed daily entry: it appears in the narrative sequence and opens the dedicated flock renderer instead of the legacy ball-physics mode runner.
 
@@ -20,6 +20,7 @@ Source of truth for mode IDs and narrative order:
 | Mode | ID | Runtime status |
 | --- | --- | --- |
 | Ball Pit | `pit` | Active |
+| Portfolio Pit | `portfolio-pit` | Portfolio route only |
 | Flies to Light | `flies` | Active |
 | Zero Gravity | `weightless` | Active |
 | Water Swimming | `water` | Active |
@@ -35,6 +36,7 @@ Source of truth for mode IDs and narrative order:
 | Elastic Center | `elastic-center` | Active |
 | Flock of Birds | `flock-of-birds` | Route-backed daily/lab |
 | Flubber Blob | `flubber-blob` | Active |
+| Weave Field | `weave-field` | Active |
 | Particle Fountain | `particle-fountain` | Active |
 
 ---
@@ -50,18 +52,19 @@ Source of truth for mode IDs and narrative order:
 5. `3d-sphere` — 3D SHELL
 6. `flock-of-birds` — FLIGHT FIELD
 7. `flubber-blob` — COHESION FIELD
-8. `elastic-center` — ELASTIC CENTER
-9. `kaleidoscope-3` — VOCAB BLOOM
+8. `weave-field` — WEAVE FIELD
+9. `elastic-center` — ELASTIC CENTER
+10. `kaleidoscope-3` — VOCAB BLOOM
 
 ### Extended Tier (shown after Featured)
 
-10. `bubbles` — NOISE SIGNAL
-11. `magnetic` — DESIGN FORCES
-12. `weightless` — OPEN SPACE
-13. `critters` — BEHAVIOR MODEL
-14. `starfield-3d` — DEPTH FIELD
-15. `parallax-float` — ORGANIC DRIFT
-16. `particle-fountain` — PARTICLE FLOW
+11. `bubbles` — NOISE SIGNAL
+12. `magnetic` — DESIGN FORCES
+13. `weightless` — OPEN SPACE
+14. `critters` — BEHAVIOR MODEL
+15. `starfield-3d` — DEPTH FIELD
+16. `parallax-float` — ORGANIC DRIFT
+17. `particle-fountain` — PARTICLE FLOW
 
 Loop order is `Featured -> Extended -> Featured`.
 
@@ -96,6 +99,7 @@ Loop order is `Featured -> Extended -> Featured`.
 - `elastic-center`: spring-like ring structure with cursor repulsion.
 - `flock-of-birds`: route-backed distant flock with weighted center-biased motion, no wall collisions, mouse avoidance, and a safe sky band above the ground.
 - `flubber-blob`: fixed-size hard circles simulated as embedded beads in a soft silicone-gel raft with persistent gel links, hard 2D contacts, passive hover-only cursor pressure/wake, lossy wall rebound, and no visible detach/reattach behavior.
+- `weave-field`: perpendicular discipline streams that progressively cross into a loose woven lattice, with cursor/touch repulsion opening temporary gaps, shared wall/collision containment, and a compact portrait/mobile weave with fewer lanes and softer motion.
 - `particle-fountain`: continuous emitter with gravity/drag shaping.
 
 ---

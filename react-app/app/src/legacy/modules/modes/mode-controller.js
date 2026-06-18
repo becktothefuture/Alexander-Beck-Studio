@@ -31,6 +31,7 @@ const MODE_NAMES = {
   'elastic-center': 'Elastic Center',
   'flock-of-birds': 'Flock of Birds',
   'flubber-blob': 'Flubber Blob',
+  'weave-field': 'Weave Field',
   'particle-fountain': 'Particle Fountain'
 };
 
@@ -150,6 +151,13 @@ const MODE_REGISTRY = {
       render: 'renderFlubberBlob'
     }
   },
+  [MODES.WEAVE_FIELD]: {
+    load: () => import('./weave-field.js'),
+    hooks: {
+      initialize: 'initializeWeaveField',
+      force: 'applyWeaveFieldForces'
+    }
+  },
   [MODES.PARTICLE_FOUNTAIN]: {
     load: () => import('./particle-fountain.js'),
     hooks: {
@@ -245,6 +253,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.elasticCenterWarmupFrames ?? 10;
     case MODES.FLUBBER_BLOB: return globals.flubberBlobWarmupFrames ?? 10;
+    case MODES.WEAVE_FIELD: return globals.weaveFieldWarmupFrames ?? 0;
     case MODES.PARTICLE_FOUNTAIN: return globals.particleFountainWarmupFrames ?? 0;
     default: return 10;
   }
@@ -265,7 +274,8 @@ function applyModePhysicsState(mode, globals) {
     MODES.PARALLAX_FLOAT,
     MODES.STARFIELD_3D,
     MODES.ELASTIC_CENTER,
-    MODES.FLUBBER_BLOB
+    MODES.FLUBBER_BLOB,
+    MODES.WEAVE_FIELD
   ]);
 
   if (isPitLikeMode(mode)) {

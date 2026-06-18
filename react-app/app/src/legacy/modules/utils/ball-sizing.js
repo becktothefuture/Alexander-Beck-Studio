@@ -27,6 +27,7 @@ export function getModeSizeVariation01(g, mode) {
     case MODES.CRITTERS: return g.sizeVariationCritters ?? 0;
     case MODES.PARALLAX_LINEAR: return g.sizeVariationParallaxLinear ?? 0;
     case MODES.PARALLAX_FLOAT: return g.sizeVariationParallaxFloat ?? 0;
+    case MODES.WEAVE_FIELD: return g.sizeVariationWeaveField ?? 0;
     default: return 0;
   }
 }

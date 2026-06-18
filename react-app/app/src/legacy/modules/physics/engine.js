@@ -381,6 +381,14 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     const collisionStart = isPitMode ? performance.now() : 0;
     if (globals.currentMode === MODES.KALEIDOSCOPE) {
       collisionStats = resolveCollisions(6) || EMPTY_COLLISION_STATS; // handled by kaleidoscope early-return, kept for safety
+    } else if (globals.currentMode === MODES.WEAVE_FIELD) {
+      const weaveIterations = Math.max(
+        0,
+        Math.min(6, Math.round(Number(globals.weaveFieldCollisionIterations ?? 2) || 0))
+      );
+      if (weaveIterations > 0) {
+        collisionStats = resolveCollisions(weaveIterations) || EMPTY_COLLISION_STATS;
+      }
     } else if (shouldResolveBallCollisionsForMode(globals.currentMode)) {
       collisionStats = resolveCollisions(collisionIterations) || EMPTY_COLLISION_STATS; // configurable solver iterations
     }
@@ -559,6 +567,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         mode !== MODES.PARALLAX_LINEAR &&
         mode !== MODES.PARALLAX_FLOAT &&
         mode !== MODES.KALEIDOSCOPE &&
+        mode !== MODES.WEAVE_FIELD &&
         !isPitLikeMode(mode);
 
       if (eligible) {
@@ -697,22 +706,24 @@ export function render() {
   const pitRenderLodEnabled = isPitMode && globals.pitRenderLodEnabled !== false;
   const crittersRenderLodEnabled = globals.currentMode === MODES.CRITTERS
     && qualityProfile.tier !== 'high';
-  const ballRenderOptions = pitRenderLodEnabled
-    ? {
-        pitRenderLodEnabled,
-        pitTinyRadiusPx: Math.max(0.25, Number(globals.pitRenderLodTinyRadiusPx ?? 1.4) * dpr),
-        pitSquashThreshold: Math.max(0, Math.min(1, Number(globals.pitRenderLodSquashThreshold ?? 0.06))),
-        canvasWidth: canvas.width,
-        canvasHeight: canvas.height
-      }
-    : crittersRenderLodEnabled
-      ? {
-          simpleCircleBodies: true,
-          skipRims: true,
-          canvasWidth: canvas.width,
-          canvasHeight: canvas.height
-        }
-    : null;
+  const weaveRenderLodEnabled = globals.currentMode === MODES.WEAVE_FIELD;
+  let ballRenderOptions = null;
+  if (pitRenderLodEnabled) {
+    ballRenderOptions = {
+      pitRenderLodEnabled,
+      pitTinyRadiusPx: Math.max(0.25, Number(globals.pitRenderLodTinyRadiusPx ?? 1.4) * dpr),
+      pitSquashThreshold: Math.max(0, Math.min(1, Number(globals.pitRenderLodSquashThreshold ?? 0.06))),
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height
+    };
+  } else if (crittersRenderLodEnabled || weaveRenderLodEnabled) {
+    ballRenderOptions = {
+      simpleCircleBodies: true,
+      skipRims: true,
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height
+    };
+  }
   globals.renderQualityTierResolved = qualityProfile.tier;
   
   // Clear frame (ghost trails removed per performance optimization plan)

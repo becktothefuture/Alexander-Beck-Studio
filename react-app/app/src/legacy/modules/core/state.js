@@ -95,6 +95,7 @@ const state = {
   sizeVariationCritters: 0.2,
   sizeVariationParallaxLinear: 0,
   sizeVariationParallaxFloat: 0,
+  sizeVariationWeaveField: 0,
   
   // Warmup (per simulation) — how many "startup frames" to pre-run before first render.
   // Default 10 for all modes (quick settle; avoids visible pop-in while testing).
@@ -195,6 +196,7 @@ const state = {
     [MODES.CRITTERS]: { desktop: 140, mobile: 95 },
     [MODES.ELASTIC_CENTER]: { desktop: 240, mobile: 150 },
     [MODES.FLUBBER_BLOB]: { desktop: 120, mobile: 52 },
+    [MODES.WEAVE_FIELD]: { desktop: 132, mobile: 88 },
     [MODES.STARFIELD_3D]: { desktop: 220, mobile: 150 },
     [MODES.PARALLAX_FLOAT]: { desktop: 320, mobile: 160 },
     [MODES.PARTICLE_FOUNTAIN]: { desktop: 260, mobile: 180 }
@@ -504,8 +506,20 @@ const state = {
   flubberBlobReleaseTransfer: 1,
   flubberBlobMaxSpeed: 1400,
   flubberBlobWarmupFrames: 10,
-  
 
+  // Weave Field mode
+  weaveFieldBallCount: 132,
+  weaveFieldLaneCount: 4,
+  weaveFieldFlowSpeed: 118,
+  weaveFieldWeaveStrength: 0.9,
+  weaveFieldLaneTension: 14,
+  weaveFieldProgressSeconds: 9,
+  weaveFieldPointerRepelStrength: 22000,
+  weaveFieldPointerRadius: 260,
+  weaveFieldDamping: 0.965,
+  weaveFieldMaxSpeed: 1920,
+  weaveFieldCollisionIterations: 1,
+  weaveFieldWarmupFrames: 0,
   
   // Particle Fountain mode (water-like behavior)
   particleFountainEmissionRate: 29, // particles per second
@@ -1475,6 +1489,7 @@ export function initState(config) {
   if (config.sizeVariationKaleidoscope !== undefined) state.sizeVariationKaleidoscope = clampNumber(config.sizeVariationKaleidoscope, 0, 1, state.sizeVariationKaleidoscope);
   if (config.sizeVariationCritters !== undefined) state.sizeVariationCritters = clampNumber(config.sizeVariationCritters, 0, 1, state.sizeVariationCritters);
   if (config.sizeVariationParallaxLinear !== undefined) state.sizeVariationParallaxLinear = clampNumber(config.sizeVariationParallaxLinear, 0, 1, state.sizeVariationParallaxLinear);
+  if (config.sizeVariationWeaveField !== undefined) state.sizeVariationWeaveField = clampNumber(config.sizeVariationWeaveField, 0, 1, state.sizeVariationWeaveField);
   // Legacy key (kept): does not affect per-mode sliders, but we store it.
   if (config.sizeVariation !== undefined) state.sizeVariation = config.sizeVariation;
 
@@ -1517,6 +1532,7 @@ export function initState(config) {
   if (config.parallaxLinearWarmupFrames !== undefined) state.parallaxLinearWarmupFrames = clampInt(config.parallaxLinearWarmupFrames, 0, 240, state.parallaxLinearWarmupFrames);
   if (config.elasticCenterWarmupFrames !== undefined) state.elasticCenterWarmupFrames = clampInt(config.elasticCenterWarmupFrames, 0, 240, state.elasticCenterWarmupFrames);
   if (config.flubberBlobWarmupFrames !== undefined) state.flubberBlobWarmupFrames = clampInt(config.flubberBlobWarmupFrames, 0, 240, state.flubberBlobWarmupFrames);
+  if (config.weaveFieldWarmupFrames !== undefined) state.weaveFieldWarmupFrames = clampInt(config.weaveFieldWarmupFrames, 0, 240, state.weaveFieldWarmupFrames);
 
   if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
   if (config.repelRadius !== undefined) state.repelRadius = config.repelRadius;
@@ -1892,6 +1908,17 @@ export function initState(config) {
   if (config.flubberBlobDragStrength !== undefined) state.flubberBlobDragStrength = clampNumber(config.flubberBlobDragStrength, 4, 90, state.flubberBlobDragStrength);
   if (config.flubberBlobReleaseTransfer !== undefined) state.flubberBlobReleaseTransfer = clampNumber(config.flubberBlobReleaseTransfer, 0, 1.2, state.flubberBlobReleaseTransfer);
   if (config.flubberBlobMaxSpeed !== undefined) state.flubberBlobMaxSpeed = clampInt(config.flubberBlobMaxSpeed, 360, 1800, state.flubberBlobMaxSpeed);
+  if (config.weaveFieldBallCount !== undefined) state.weaveFieldBallCount = clampInt(config.weaveFieldBallCount, 48, 260, state.weaveFieldBallCount);
+  if (config.weaveFieldLaneCount !== undefined) state.weaveFieldLaneCount = clampInt(config.weaveFieldLaneCount, 3, 9, state.weaveFieldLaneCount);
+  if (config.weaveFieldFlowSpeed !== undefined) state.weaveFieldFlowSpeed = clampNumber(config.weaveFieldFlowSpeed, 0, 180, state.weaveFieldFlowSpeed);
+  if (config.weaveFieldWeaveStrength !== undefined) state.weaveFieldWeaveStrength = clampNumber(config.weaveFieldWeaveStrength, 0, 1.2, state.weaveFieldWeaveStrength);
+  if (config.weaveFieldLaneTension !== undefined) state.weaveFieldLaneTension = clampNumber(config.weaveFieldLaneTension, 0, 18, state.weaveFieldLaneTension);
+  if (config.weaveFieldProgressSeconds !== undefined) state.weaveFieldProgressSeconds = clampNumber(config.weaveFieldProgressSeconds, 4, 40, state.weaveFieldProgressSeconds);
+  if (config.weaveFieldPointerRepelStrength !== undefined) state.weaveFieldPointerRepelStrength = clampInt(config.weaveFieldPointerRepelStrength, 0, 60000, state.weaveFieldPointerRepelStrength);
+  if (config.weaveFieldPointerRadius !== undefined) state.weaveFieldPointerRadius = clampInt(config.weaveFieldPointerRadius, 40, 420, state.weaveFieldPointerRadius);
+  if (config.weaveFieldDamping !== undefined) state.weaveFieldDamping = clampNumber(config.weaveFieldDamping, 0.7, 0.995, state.weaveFieldDamping);
+  if (config.weaveFieldMaxSpeed !== undefined) state.weaveFieldMaxSpeed = clampInt(config.weaveFieldMaxSpeed, 220, 2200, state.weaveFieldMaxSpeed);
+  if (config.weaveFieldCollisionIterations !== undefined) state.weaveFieldCollisionIterations = clampInt(config.weaveFieldCollisionIterations, 0, 6, state.weaveFieldCollisionIterations);
 
 
 
