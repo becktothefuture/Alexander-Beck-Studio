@@ -3,7 +3,7 @@
 // ║      Deterministic simulation selection based on day of year                 ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { NARRATIVE_MODE_SEQUENCE } from './constants.js';
+import { FEATURED_MODES } from './constants.js';
 
 /**
  * Calculate the day of the year (0-365/366) for a given date.
@@ -20,12 +20,14 @@ function getDayOfYear(date = new Date()) {
 /**
  * Get the daily mode based on the current date.
  * Uses local user time to ensure everyone sees the same simulation on the same day.
- * The simulation rotates through NARRATIVE_MODE_SEQUENCE deterministically.
+ * The daily simulation rotates through FEATURED_MODES only. Extended modes remain
+ * available through arrow/panel navigation, but they should not become first-run
+ * daily candidates.
  * 
  * @returns {string} The mode identifier for today
  */
 export function getDailyMode() {
   const dayOfYear = getDayOfYear();
-  const modeIndex = dayOfYear % NARRATIVE_MODE_SEQUENCE.length;
-  return NARRATIVE_MODE_SEQUENCE[modeIndex];
+  const modeIndex = dayOfYear % FEATURED_MODES.length;
+  return FEATURED_MODES[modeIndex];
 }

@@ -197,7 +197,7 @@ const state = {
     [MODES.ELASTIC_CENTER]: { desktop: 240, mobile: 150 },
     [MODES.FLUBBER_BLOB]: { desktop: 120, mobile: 52 },
     [MODES.WEAVE_FIELD]: { desktop: 132, mobile: 88 },
-    [MODES.PRESSURE_CRUCIBLE]: { desktop: 128, mobile: 88 },
+    [MODES.PRESSURE_CRUCIBLE]: { desktop: 144, mobile: 96 },
     [MODES.STARFIELD_3D]: { desktop: 220, mobile: 150 },
     [MODES.PARALLAX_FLOAT]: { desktop: 320, mobile: 160 },
     [MODES.PARTICLE_FOUNTAIN]: { desktop: 260, mobile: 180 }
@@ -522,17 +522,16 @@ const state = {
   weaveFieldCollisionIterations: 1,
   weaveFieldWarmupFrames: 0,
 
-  // Pressure Crucible mode
-  pressureCrucibleBallCount: 128,
-  pressureCrucibleCycleSeconds: 6.4,
-  pressureCrucibleCompressionStrength: 18,
-  pressureCrucibleReboundStrength: 26000,
-  pressureCruciblePointerRadius: 240,
-  pressureCruciblePointerRepelStrength: 30000,
-  pressureCrucibleDamping: 0.965,
-  pressureCrucibleMaxSpeed: 2100,
-  pressureCrucibleCollisionIterations: 3,
-  pressureCrucibleMassMultiplier: 1.8,
+  // Polarity Flux mode
+  pressureCrucibleBallCount: 144,
+  pressureCrucibleFluxStrength: 92000,
+  pressureCrucibleWakeStrength: 1,
+  pressureCruciblePolaritySeparation: 170,
+  pressureCrucibleIdleFluxStrength: 0.05,
+  pressureCrucibleParticleSize: 5.9,
+  pressureCruciblePointerRadius: 330,
+  pressureCrucibleDamping: 0.968,
+  pressureCrucibleMaxSpeed: 3800,
   pressureCrucibleWarmupFrames: 0,
   
   // Particle Fountain mode (water-like behavior)
@@ -1935,17 +1934,16 @@ export function initState(config) {
   if (config.weaveFieldMaxSpeed !== undefined) state.weaveFieldMaxSpeed = clampInt(config.weaveFieldMaxSpeed, 220, 2200, state.weaveFieldMaxSpeed);
   if (config.weaveFieldCollisionIterations !== undefined) state.weaveFieldCollisionIterations = clampInt(config.weaveFieldCollisionIterations, 0, 6, state.weaveFieldCollisionIterations);
 
-  // Pressure Crucible mode
+  // Polarity Flux mode
   if (config.pressureCrucibleBallCount !== undefined) state.pressureCrucibleBallCount = clampInt(config.pressureCrucibleBallCount, 48, 220, state.pressureCrucibleBallCount);
-  if (config.pressureCrucibleCycleSeconds !== undefined) state.pressureCrucibleCycleSeconds = clampNumber(config.pressureCrucibleCycleSeconds, 3.2, 14, state.pressureCrucibleCycleSeconds);
-  if (config.pressureCrucibleCompressionStrength !== undefined) state.pressureCrucibleCompressionStrength = clampNumber(config.pressureCrucibleCompressionStrength, 0, 32, state.pressureCrucibleCompressionStrength);
-  if (config.pressureCrucibleReboundStrength !== undefined) state.pressureCrucibleReboundStrength = clampInt(config.pressureCrucibleReboundStrength, 0, 52000, state.pressureCrucibleReboundStrength);
-  if (config.pressureCruciblePointerRadius !== undefined) state.pressureCruciblePointerRadius = clampInt(config.pressureCruciblePointerRadius, 40, 420, state.pressureCruciblePointerRadius);
-  if (config.pressureCruciblePointerRepelStrength !== undefined) state.pressureCruciblePointerRepelStrength = clampInt(config.pressureCruciblePointerRepelStrength, 0, 70000, state.pressureCruciblePointerRepelStrength);
-  if (config.pressureCrucibleDamping !== undefined) state.pressureCrucibleDamping = clampNumber(config.pressureCrucibleDamping, 0.72, 0.995, state.pressureCrucibleDamping);
-  if (config.pressureCrucibleMaxSpeed !== undefined) state.pressureCrucibleMaxSpeed = clampInt(config.pressureCrucibleMaxSpeed, 180, 2800, state.pressureCrucibleMaxSpeed);
-  if (config.pressureCrucibleCollisionIterations !== undefined) state.pressureCrucibleCollisionIterations = clampInt(config.pressureCrucibleCollisionIterations, 0, 8, state.pressureCrucibleCollisionIterations);
-  if (config.pressureCrucibleMassMultiplier !== undefined) state.pressureCrucibleMassMultiplier = clampNumber(config.pressureCrucibleMassMultiplier, 0.5, 4, state.pressureCrucibleMassMultiplier);
+  if (config.pressureCrucibleFluxStrength !== undefined) state.pressureCrucibleFluxStrength = clampInt(config.pressureCrucibleFluxStrength, 0, 180000, state.pressureCrucibleFluxStrength);
+  if (config.pressureCrucibleWakeStrength !== undefined) state.pressureCrucibleWakeStrength = clampNumber(config.pressureCrucibleWakeStrength, 0, 3, state.pressureCrucibleWakeStrength);
+  if (config.pressureCruciblePolaritySeparation !== undefined) state.pressureCruciblePolaritySeparation = clampInt(config.pressureCruciblePolaritySeparation, 40, 420, state.pressureCruciblePolaritySeparation);
+  if (config.pressureCrucibleIdleFluxStrength !== undefined) state.pressureCrucibleIdleFluxStrength = clampNumber(config.pressureCrucibleIdleFluxStrength, 0, 1, state.pressureCrucibleIdleFluxStrength);
+  if (config.pressureCrucibleParticleSize !== undefined) state.pressureCrucibleParticleSize = clampNumber(config.pressureCrucibleParticleSize, 1.5, 10, state.pressureCrucibleParticleSize);
+  if (config.pressureCruciblePointerRadius !== undefined) state.pressureCruciblePointerRadius = clampInt(config.pressureCruciblePointerRadius, 120, 760, state.pressureCruciblePointerRadius);
+  if (config.pressureCrucibleDamping !== undefined) state.pressureCrucibleDamping = clampNumber(config.pressureCrucibleDamping, 0.88, 0.996, state.pressureCrucibleDamping);
+  if (config.pressureCrucibleMaxSpeed !== undefined) state.pressureCrucibleMaxSpeed = clampInt(config.pressureCrucibleMaxSpeed, 300, 5200, state.pressureCrucibleMaxSpeed);
   if (config.pressureCrucibleWarmupFrames !== undefined) state.pressureCrucibleWarmupFrames = clampInt(config.pressureCrucibleWarmupFrames, 0, 240, state.pressureCrucibleWarmupFrames);
 
 

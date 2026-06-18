@@ -39,12 +39,12 @@ export function isPitLikeMode(mode) {
 //
 // Two-tier system ensures visitors see the most impressive work first:
 // 
-// FEATURED TIER (11 modes):
+// FEATURED TIER (10 modes):
 // - Always cycles first in the sequence
-// - Guaranteed first impression for new visitors
+// - Guaranteed first impression and daily candidates for new visitors
 // - Best work, strongest visual impact
 //
-// EXTENDED TIER (7 modes):
+// EXTENDED TIER (8 modes):
 // - Only appears after all Featured modes have cycled
 // - Additional explorations and experiments
 // - Loop order: Featured → Extended → Featured → ...
@@ -62,7 +62,6 @@ export const FEATURED_MODES = [
   MODES.FLOCK_OF_BIRDS,   // FLIGHT FIELD
   MODES.FLUBBER_BLOB,     // COHESION FIELD
   MODES.WEAVE_FIELD,      // WEAVE FIELD
-  MODES.PRESSURE_CRUCIBLE, // PRESSURE CRUCIBLE
   // PARALLAX_LINEAR intentionally excluded from narrative cycling.
   MODES.ELASTIC_CENTER,   // ELASTIC CENTER
   MODES.KALEIDOSCOPE      // VOCAB BLOOM
@@ -75,6 +74,7 @@ export const EXTENDED_MODES = [
   MODES.CRITTERS,         // BEHAVIOR MODEL
   MODES.STARFIELD_3D,     // DEPTH FIELD
   MODES.PARALLAX_FLOAT,   // ORGANIC DRIFT
+  MODES.PRESSURE_CRUCIBLE, // POLARITY FLUX
   MODES.PARTICLE_FOUNTAIN // PARTICLE FLOW
 ];
 
@@ -99,7 +99,7 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.FLOCK_OF_BIRDS]: 'FLIGHT FIELD',
   [MODES.FLUBBER_BLOB]: 'COHESION FIELD',
   [MODES.WEAVE_FIELD]: 'WEAVE FIELD',
-  [MODES.PRESSURE_CRUCIBLE]: 'PRESSURE CRUCIBLE',
+  [MODES.PRESSURE_CRUCIBLE]: 'POLARITY FLUX',
   [MODES.SPHERE_3D]: '3D SHELL',
   [MODES.CUBE_3D]: '3D FRAME',
   [MODES.KALEIDOSCOPE]: 'VOCAB BLOOM',

@@ -32,7 +32,7 @@ const MODE_NAMES = {
   'flock-of-birds': 'Flock of Birds',
   'flubber-blob': 'Flubber Blob',
   'weave-field': 'Weave Field',
-  'pressure-crucible': 'Pressure Crucible',
+  'pressure-crucible': 'Polarity Flux',
   'particle-fountain': 'Particle Fountain'
 };
 
@@ -163,7 +163,8 @@ const MODE_REGISTRY = {
     load: () => import('./pressure-crucible.js'),
     hooks: {
       initialize: 'initializePressureCrucible',
-      force: 'applyPressureCrucibleForces'
+      force: 'applyPressureCrucibleForces',
+      render: 'renderPressureCrucible'
     }
   },
   [MODES.PARTICLE_FOUNTAIN]: {

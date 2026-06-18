@@ -7,6 +7,7 @@
 import { applyLayoutCSSVars, getGlobals } from '../core/state.js';
 import {
   PARALLAX_LINEAR_PRESETS,
+  FEATURED_MODES,
   NARRATIVE_MODE_SEQUENCE,
   NARRATIVE_CHAPTER_TITLES,
   MODES,
@@ -4866,121 +4867,110 @@ export const CONTROL_SECTIONS = {
   },
 
   pressureCrucible: {
-    title: 'Pressure Crucible',
+    title: 'Polarity Flux',
     icon: '◉',
     mode: 'pressure-crucible',
     defaultOpen: false,
     controls: [
       {
         id: 'pressureCrucibleBallCount',
-        label: 'Ball Count',
+        label: 'Particle Count',
         stateKey: 'pressureCrucibleBallCount',
         type: 'range',
         min: 48, max: 220, step: 4,
-        default: 128,
+        default: 144,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true,
-        hint: 'Total pressure bodies. Mobile/lite budgets can still reduce the effective count.'
+        hint: 'Total field samples. Compact and mobile budgets reduce the effective count.'
       },
       {
-        id: 'pressureCrucibleCycleSeconds',
-        label: 'Cycle Time',
-        stateKey: 'pressureCrucibleCycleSeconds',
+        id: 'pressureCrucibleFluxStrength',
+        label: 'Flux Strength',
+        stateKey: 'pressureCrucibleFluxStrength',
         type: 'range',
-        min: 3.2, max: 14, step: 0.1,
-        default: 6.4,
-        format: v => `${Number(v).toFixed(1)}s`,
-        parse: parseFloat,
-        hint: 'Seconds for one compression, hold, and rebound cycle.'
-      },
-      {
-        id: 'pressureCrucibleCompressionStrength',
-        label: 'Compression',
-        stateKey: 'pressureCrucibleCompressionStrength',
-        type: 'range',
-        min: 0, max: 32, step: 0.5,
-        default: 18,
-        format: v => Number(v).toFixed(1),
-        parse: parseFloat,
-        hint: 'How strongly bodies are pulled into the chamber core.'
-      },
-      {
-        id: 'pressureCrucibleReboundStrength',
-        label: 'Rebound Force',
-        stateKey: 'pressureCrucibleReboundStrength',
-        type: 'range',
-        min: 0, max: 52000, step: 1000,
-        default: 26000,
+        min: 0, max: 180000, step: 4000,
+        default: 92000,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
-        hint: 'Outward pulse strength after the crush phase.'
+        hint: 'Magnetic field force that bends particles between the virtual poles.'
+      },
+      {
+        id: 'pressureCrucibleWakeStrength',
+        label: 'Mouse Wake',
+        stateKey: 'pressureCrucibleWakeStrength',
+        type: 'range',
+        min: 0, max: 3, step: 0.05,
+        default: 1,
+        format: v => Number(v).toFixed(2),
+        parse: parseFloat,
+        hint: 'Extra split energy created by fast cursor passes.'
+      },
+      {
+        id: 'pressureCruciblePolaritySeparation',
+        label: 'Pole Separation',
+        stateKey: 'pressureCruciblePolaritySeparation',
+        type: 'range',
+        min: 40, max: 420, step: 5,
+        default: 170,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Distance between the two virtual cursor poles.'
+      },
+      {
+        id: 'pressureCrucibleIdleFluxStrength',
+        label: 'Idle Flux',
+        stateKey: 'pressureCrucibleIdleFluxStrength',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.05,
+        format: v => Number(v).toFixed(2),
+        parse: parseFloat,
+        hint: 'Subtle autonomous field strength when the cursor is outside the wall.'
+      },
+      {
+        id: 'pressureCrucibleParticleSize',
+        label: 'Particle Size',
+        stateKey: 'pressureCrucibleParticleSize',
+        type: 'range',
+        min: 1.5, max: 10, step: 0.1,
+        default: 5.9,
+        format: v => `${Number(v).toFixed(1)}px`,
+        parse: parseFloat,
+        hint: 'Bead size for the flux samples.'
       },
       {
         id: 'pressureCruciblePointerRadius',
-        label: 'Pointer Radius',
+        label: 'Mouse Radius',
         stateKey: 'pressureCruciblePointerRadius',
         type: 'range',
-        min: 40, max: 420, step: 5,
-        default: 240,
+        min: 120, max: 760, step: 10,
+        default: 330,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10),
-        hint: 'Desktop cursor or mobile touch radius that bends the pressure field.'
-      },
-      {
-        id: 'pressureCruciblePointerRepelStrength',
-        label: 'Pointer Repel',
-        stateKey: 'pressureCruciblePointerRepelStrength',
-        type: 'range',
-        min: 0, max: 70000, step: 1000,
-        default: 30000,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        hint: 'Strength of local cursor/touch repulsion.'
+        hint: 'Hover radius where cursor proximity splits and energizes the field.'
       },
       {
         id: 'pressureCrucibleDamping',
         label: 'Damping',
         stateKey: 'pressureCrucibleDamping',
         type: 'range',
-        min: 0.72, max: 0.995, step: 0.005,
-        default: 0.965,
+        min: 0.88, max: 0.996, step: 0.001,
+        default: 0.968,
         format: v => Number(v).toFixed(3),
         parse: parseFloat,
-        hint: 'Velocity damping. Lower values reduce jitter and impact energy.'
+        hint: 'Velocity damping. Lower values calm particles faster after cursor passes.'
       },
       {
         id: 'pressureCrucibleMaxSpeed',
         label: 'Energy Cap',
         stateKey: 'pressureCrucibleMaxSpeed',
         type: 'range',
-        min: 180, max: 2800, step: 20,
-        default: 2100,
+        min: 300, max: 5200, step: 50,
+        default: 3800,
         format: v => `${Math.round(v)}px/s`,
         parse: v => parseInt(v, 10),
-        hint: 'Maximum body speed after compression, rebound, pointer pressure, and wall contact.'
-      },
-      {
-        id: 'pressureCrucibleCollisionIterations',
-        label: 'Contact Passes',
-        stateKey: 'pressureCrucibleCollisionIterations',
-        type: 'range',
-        min: 0, max: 8, step: 1,
-        default: 3,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        hint: 'Ball-on-ball solver passes during dense compression.'
-      },
-      {
-        id: 'pressureCrucibleMassMultiplier',
-        label: 'Mass',
-        stateKey: 'pressureCrucibleMassMultiplier',
-        type: 'range',
-        min: 0.5, max: 4, step: 0.1,
-        default: 1.8,
-        format: v => `${Number(v).toFixed(1)}x`,
-        parse: parseFloat,
-        hint: 'Mass multiplier for stronger wall pressure and squash.'
+        hint: 'Maximum particle speed after flux, wake, recentering, and walls.'
       },
       warmupFramesControl('pressureCrucibleWarmupFrames')
     ]
@@ -6316,7 +6306,7 @@ export function generateModeSwitcherHTML() {
     'flock-of-birds': 'Flock',
     'flubber-blob': 'Flubber',
     'weave-field': 'Weave',
-    'pressure-crucible': 'Crucible',
+    'pressure-crucible': 'Flux',
     'particle-fountain': 'Fountain'
   };
   
@@ -6328,8 +6318,8 @@ export function generateModeSwitcherHTML() {
     return Math.floor((current - start) / oneDay);
   }
   const dayOfYear = getDayOfYear();
-  const modeIndex = dayOfYear % NARRATIVE_MODE_SEQUENCE.length;
-  const dailyMode = NARRATIVE_MODE_SEQUENCE[modeIndex];
+  const modeIndex = dayOfYear % FEATURED_MODES.length;
+  const dailyMode = FEATURED_MODES[modeIndex];
   
   let buttons = '';
   NARRATIVE_MODE_SEQUENCE.forEach((mode, idx) => {
