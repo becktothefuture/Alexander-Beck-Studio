@@ -208,7 +208,7 @@ export function apply3DCubeForces(ball, dt) {
   // Map z from [-sizePx/2, +sizePx/2] to [0, 1] where 0 is back, 1 is front
   const depthFactor = (rotated.z + halfSize) / state.sizePx;
   
-  const fogStart = Math.max(0, Math.min(1, g.cube3dFogStart ?? 0.85));
+  const fogStart = Math.max(0, Math.min(1, g.cube3dFogStart ?? 0.95));
   const fogMin = Math.max(0, Math.min(1, g.cube3dFogMin ?? 0.58));
 
   let fogAmount = 0;

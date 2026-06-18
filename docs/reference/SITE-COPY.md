@@ -29,12 +29,12 @@ All user-facing copy across the website in one place. Use this to edit, translat
 | Key | Label | Tooltip | Source |
 |-----|-------|---------|--------|
 | legend.ariaLabel | — | Areas of expertise | contents-home.json |
-| legend.items[0] | Product Systems | I structure product platforms, logic, and operating models so teams can make clearer decisions at scale. | contents-home.json |
-| legend.items[1] | Experience Strategy | I shape flows, behaviours, and service moments so products feel coherent from first touch to final handoff. | contents-home.json |
-| legend.items[2] | Art Direction | I set visual, spatial, and motion direction so products feel distinctive, intentional, and ownable. | contents-home.json |
-| legend.items[3] | Generative R&D | I use AI and computational methods to explore directions, vary systems, and turn constraints into expressive options. | contents-home.json |
-| legend.items[4] | Creative Engineering | I make interface ideas tangible quickly with motion, code, and AI-assisted prototypes. | contents-home.json |
-| legend.items[5] | Parametric Systems | I define rules, variables, and constraints that let systems adapt without losing intent. | contents-home.json |
+| legend.items[0] | Product Systems | I turn complex platforms into clear product systems: structure, logic, governance, and decisions that scale. | contents-home.json |
+| legend.items[1] | Experience Strategy | I define the journey, priorities, and service logic behind experiences before the interface takes shape. | contents-home.json |
+| legend.items[2] | Art Direction | I set the visual, spatial, and motion language so the work feels distinctive, intentional, and unmistakably owned. | contents-home.json |
+| legend.items[3] | Generative R&D | I use AI and computational methods to pressure-test ideas, expand directions, and make emerging possibilities concrete. | contents-home.json |
+| legend.items[4] | Creative Engineering | I prototype with code, motion, and AI-assisted workflows so teams can see, test, and decide faster. | contents-home.json |
+| legend.items[5] | Parametric Systems | I define adaptable rules, variables, and constraints so systems can flex without losing their point of view. | contents-home.json |
 
 ---
 

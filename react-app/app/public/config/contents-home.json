@@ -14,32 +14,32 @@
       {
         "colorClass": "bg-ball-1",
         "label": "Product Systems",
-        "tooltip": "I structure product platforms, logic, and operating models so teams can make clearer decisions at scale."
+        "tooltip": "I turn complex platforms into clear product systems: structure, logic, governance, and decisions that scale."
       },
       {
         "colorClass": "bg-ball-4",
         "label": "Experience Strategy",
-        "tooltip": "I shape flows, behaviours, and service moments so products feel coherent from first touch to final handoff."
+        "tooltip": "I define the journey, priorities, and service logic behind experiences before the interface takes shape."
       },
       {
         "colorClass": "bg-ball-3",
         "label": "Art Direction",
-        "tooltip": "I set visual, spatial, and motion direction so products feel distinctive, intentional, and ownable."
+        "tooltip": "I set the visual, spatial, and motion language so the work feels distinctive, intentional, and unmistakably owned."
       },
       {
         "colorClass": "bg-ball-7",
         "label": "Generative R&D",
-        "tooltip": "I use AI and computational methods to explore directions, vary systems, and turn constraints into expressive options."
+        "tooltip": "I use AI and computational methods to pressure-test ideas, expand directions, and make emerging possibilities concrete."
       },
       {
         "colorClass": "bg-ball-8",
         "label": "Creative Engineering",
-        "tooltip": "I make interface ideas tangible quickly with motion, code, and AI-assisted prototypes."
+        "tooltip": "I prototype with code, motion, and AI-assisted workflows so teams can see, test, and decide faster."
       },
       {
         "colorClass": "bg-ball-6",
         "label": "Parametric Systems",
-        "tooltip": "I define rules, variables, and constraints that let systems adapt without losing intent."
+        "tooltip": "I define adaptable rules, variables, and constraints so systems can flex without losing their point of view."
       }
     ]
   },

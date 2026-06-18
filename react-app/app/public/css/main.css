@@ -1839,6 +1839,15 @@ body:not(.portfolio-page):not(.cv-page) .legend {
   padding-block-start: calc(var(--gap-xs) - (2 * var(--abs-size-1px)));
 }
 
+body:not(.portfolio-page):not(.cv-page) .legend__item {
+  gap: calc(var(--legend-item-gap) - var(--abs-size-1px));
+}
+
+body:not(.portfolio-page):not(.cv-page) .legend__item span {
+  display: inline-block;
+  transform: translateY(2px);
+}
+
 body:not(.portfolio-page):not(.cv-page) .ui-top-right {
   min-width: 0;
   gap: calc(var(--gap-lg) * 0.5);
@@ -1846,7 +1855,7 @@ body:not(.portfolio-page):not(.cv-page) .ui-top-right {
 
 body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
   width: 100%;
-  max-width: min(100%, var(--decorative-script-max-width));
+  max-width: min(100%, calc(var(--decorative-script-max-width) * 1.1));
   justify-self: end;
   font-size: calc(var(--legend-font-size) + var(--abs-size-1px));
   margin-block-start: calc(var(--decorative-script-font-size) * -0.5);
