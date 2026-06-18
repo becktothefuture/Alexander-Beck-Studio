@@ -35,6 +35,12 @@ const ROUTE_DEFS = {
     aliases: ['/lab/beach-ball-room.html', '/lab/beach-ball-room', '/beach-ball-room.html', '/beach-ball-room'],
     gated: false,
   },
+  'flock-of-birds': {
+    id: 'flock-of-birds',
+    path: '/lab/flock-of-birds.html',
+    aliases: ['/lab/flock-of-birds.html', '/lab/flock-of-birds', '/flock-of-birds.html', '/flock-of-birds'],
+    gated: false,
+  },
   'rain-prism': {
     id: 'rain-prism',
     path: '/lab/rain-prism.html',

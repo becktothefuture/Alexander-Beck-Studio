@@ -7,6 +7,7 @@ import { getCvRouteView, CV_ROUTE_RUNTIME } from '../../routes/cv/CvRoute.jsx';
 import { getStyleguideRouteView, STYLEGUIDE_ROUTE_RUNTIME } from '../../routes/styleguide/StyleguideRoute.jsx';
 import { getPaletteLabRouteView, PALETTE_LAB_ROUTE_RUNTIME } from '../../routes/palette-lab/PaletteLabRoute.jsx';
 import { getBeachBallRoomRouteView, BEACH_BALL_ROOM_ROUTE_RUNTIME } from '../../routes/beach-ball-room/BeachBallRoomRoute.jsx';
+import { getFlockOfBirdsRouteView, FLOCK_OF_BIRDS_ROUTE_RUNTIME } from '../../routes/flock-of-birds/FlockOfBirdsRoute.jsx';
 import { getRainPrismRouteView, RAIN_PRISM_ROUTE_RUNTIME } from '../../routes/rain-prism/RainPrismRoute.jsx';
 import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
 import { useShellRouteTransition } from '../../hooks/useShellRouteTransition.js';
@@ -19,6 +20,7 @@ const ROUTE_VIEW_BY_ID = {
   styleguide: getStyleguideRouteView,
   'palette-lab': getPaletteLabRouteView,
   'beach-ball-room': getBeachBallRoomRouteView,
+  'flock-of-birds': getFlockOfBirdsRouteView,
   'rain-prism': getRainPrismRouteView
 };
 
@@ -29,6 +31,7 @@ const ROUTE_RUNTIME_BY_ID = {
   styleguide: STYLEGUIDE_ROUTE_RUNTIME,
   'palette-lab': PALETTE_LAB_ROUTE_RUNTIME,
   'beach-ball-room': BEACH_BALL_ROOM_ROUTE_RUNTIME,
+  'flock-of-birds': FLOCK_OF_BIRDS_ROUTE_RUNTIME,
   'rain-prism': RAIN_PRISM_ROUTE_RUNTIME
 };
 

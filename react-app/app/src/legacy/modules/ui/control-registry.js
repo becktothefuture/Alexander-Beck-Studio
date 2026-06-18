@@ -1259,7 +1259,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'uiHitAreaMul',
         type: 'range',
         min: 0.5, max: 2.5, step: 0.05,
-        default: 0.7,
+        default: 0.9,
         format: v => `${Number(v).toFixed(2)}×`,
         parse: parseFloat,
         hint: 'Scales most UI button/link hit areas (drives --ui-hit-area-mul).',
@@ -2970,7 +2970,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'innerWallGradientEdgeWidth',
         type: 'range',
         min: 0.5, max: 6, step: 0.5,
-        default: 3,
+        default: 4,
         format: v => `${v}px`,
         parse: parseFloat,
         hint: 'Thickness of the light rim on the pit opening (home + all routes).',
@@ -4242,7 +4242,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'tiltMaxAngle',
         type: 'range',
         min: 0.5, max: 10, step: 0.5,
-        default: 2,
+        default: 4,
         format: v => v.toFixed(1) + '°',
         parse: parseFloat
       },
@@ -4292,7 +4292,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'kaleidoscope3BallCount',
         type: 'range',
         min: 12, max: 300, step: 3,
-        default: 180,
+        default: 132,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true
@@ -4365,7 +4365,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'kaleidoscope3SpawnAreaMul',
         type: 'range',
         min: 0.2, max: 2.0, step: 0.05,
-        default: 0.72,
+        default: 2.2,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat,
         reinitMode: true
@@ -4609,6 +4609,126 @@ export const CONTROL_SECTIONS = {
         hint: 'Velocity damping for stability (higher = less damping)'
       },
       warmupFramesControl('elasticCenterWarmupFrames')
+    ]
+  },
+
+  flubberBlob: {
+    title: 'Flubber Blob',
+    icon: '🫠',
+    mode: 'flubber-blob',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'flubberBlobBallCount',
+        label: 'Density',
+        stateKey: 'flubberBlobBallCount',
+        type: 'range',
+        min: 56, max: 180, step: 4,
+        default: 120,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true,
+        hint: 'How many fixed-size beads make up the gel body. Lower values are lighter on performance.'
+      },
+      {
+        id: 'flubberBlobCohesion',
+        label: 'Body Tension',
+        stateKey: 'flubberBlobCohesion',
+        type: 'range',
+        min: 0.8, max: 6, step: 0.05,
+        default: 2.35,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Overall gel-network tightness. Lower values feel looser and more deformable.'
+      },
+      {
+        id: 'flubberBlobStretch',
+        label: 'Deformation',
+        stateKey: 'flubberBlobStretch',
+        type: 'range',
+        min: 0.35, max: 1.2, step: 0.01,
+        default: 1.2,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'How far the body can elongate before the soft gel network reins it in.'
+      },
+      {
+        id: 'flubberBlobViscosity',
+        label: 'Damping',
+        stateKey: 'flubberBlobViscosity',
+        type: 'range',
+        min: 0.02, max: 2.5, step: 0.02,
+        default: 0.45,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Internal gel damping. Whole-body floor resistance stays intentionally very low.'
+      },
+      {
+        id: 'flubberBlobInternalCurrent',
+        label: 'Internal Motion',
+        stateKey: 'flubberBlobInternalCurrent',
+        type: 'range',
+        min: 0, max: 0.35, step: 0.01,
+        default: 0.1,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Idle gel circulation that keeps the body alive without forcing a round rest shape.'
+      },
+      {
+        id: 'flubberBlobInfluenceRadius',
+        label: 'Drag Radius',
+        stateKey: 'flubberBlobInfluenceRadius',
+        type: 'range',
+        min: 120, max: 420, step: 4,
+        default: 320,
+        format: v => Math.round(v) + 'px',
+        parse: v => parseInt(v, 10),
+        hint: 'How much local material is grabbed around the cursor when dragging.'
+      },
+      {
+        id: 'flubberBlobMousePush',
+        label: 'Drag Strength',
+        stateKey: 'flubberBlobMousePush',
+        type: 'range',
+        min: 0, max: 3, step: 0.01,
+        default: 2.1,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'How directly the grabbed material follows the cursor.'
+      },
+      {
+        id: 'flubberBlobClickRepulsion',
+        label: 'Release Throw',
+        stateKey: 'flubberBlobClickRepulsion',
+        type: 'range',
+        min: 0, max: 3, step: 0.01,
+        default: 1.25,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'How much cursor velocity transfers into the body when you let go.'
+      },
+      {
+        id: 'flubberBlobWallBounce',
+        label: 'Wall Bounce',
+        stateKey: 'flubberBlobWallBounce',
+        type: 'range',
+        min: 0, max: 0.75, step: 0.01,
+        default: 0.34,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Soft rebound strength when the gel body hits the inner wall.'
+      },
+      {
+        id: 'flubberBlobMaxSpeed',
+        label: 'Energy Cap',
+        stateKey: 'flubberBlobMaxSpeed',
+        type: 'range',
+        min: 360, max: 1800, step: 20,
+        default: 1400,
+        format: v => Math.round(v) + 'px/s',
+        parse: v => parseInt(v, 10),
+        hint: 'Maximum material speed after drags, release throws, and wall rebounds.'
+      }
     ]
   },
 
@@ -4926,7 +5046,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'cube3dFogStart',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.85,
+        default: 0.95,
         format: v => Math.round(v * 100) + '%',
         parse: parseFloat
       },
@@ -5918,6 +6038,8 @@ export function generateModeSwitcherHTML() {
     '3d-cube': '🧊',
     'starfield-3d': '✨',
     'elastic-center': '⭕',
+    'flock-of-birds': '🕊️',
+    'flubber-blob': '🫠',
     'particle-fountain': '⛲'
   };
   const modeLabels = {
@@ -5935,6 +6057,8 @@ export function generateModeSwitcherHTML() {
     '3d-cube': 'Cube 3D',
     'starfield-3d': 'Starfield 3D',
     'elastic-center': 'Elastic Center',
+    'flock-of-birds': 'Flock',
+    'flubber-blob': 'Flubber',
     'particle-fountain': 'Fountain'
   };
   
@@ -6024,6 +6148,8 @@ function generateHomeModeSectionHTML() {
               '3d-cube': '🧊',
               'starfield-3d': '✨',
               'elastic-center': '⭕',
+              'flock-of-birds': '🕊️',
+              'flubber-blob': '🫠',
               'particle-fountain': '⛲'
             };
             const modeLabels = {
@@ -6041,6 +6167,8 @@ function generateHomeModeSectionHTML() {
               '3d-cube': 'Cube 3D',
               'starfield-3d': 'Starfield 3D',
               'elastic-center': 'Elastic Center',
+              'flock-of-birds': 'Flock',
+              'flubber-blob': 'Flubber',
               'particle-fountain': 'Fountain'
             };
             let buttons = '';
@@ -6266,6 +6394,7 @@ export function bindRegisteredControls(options = {}) {
             '3d-cube': null,
             'starfield-3d': g.starfieldCount,
             'elastic-center': null,
+            'flubber-blob': g.flubberBlobBallCount,
             'particle-fountain': g.particleFountainMaxParticles
           };
           const v = map[mode];

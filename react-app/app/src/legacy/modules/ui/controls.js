@@ -128,6 +128,7 @@ export function updateModeButtonsUI(activeMode, options = {}) {
     '3d-cube': '3D Cube',
     'starfield-3d': '3D Starfield',
     'elastic-center': 'Elastic Center',
+    'flock-of-birds': 'Flock of Birds',
     'particle-fountain': 'Particle Fountain'
   };
 

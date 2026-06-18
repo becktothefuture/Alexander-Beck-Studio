@@ -21,6 +21,8 @@ export const MODES = {
   CUBE_3D: '3d-cube',
   STARFIELD_3D: 'starfield-3d',
   ELASTIC_CENTER: 'elastic-center',
+  FLOCK_OF_BIRDS: 'flock-of-birds',
+  FLUBBER_BLOB: 'flubber-blob',
   PARTICLE_FOUNTAIN: 'particle-fountain'
 };
 
@@ -35,7 +37,7 @@ export function isPitLikeMode(mode) {
 //
 // Two-tier system ensures visitors see the most impressive work first:
 // 
-// FEATURED TIER (7 modes):
+// FEATURED TIER (9 modes):
 // - Always cycles first in the sequence
 // - Guaranteed first impression for new visitors
 // - Best work, strongest visual impact
@@ -55,6 +57,8 @@ export const FEATURED_MODES = [
   MODES.CUBE_3D,          // 3D FRAME
   MODES.WATER,            // USER FLOW
   MODES.SPHERE_3D,        // 3D SHELL
+  MODES.FLOCK_OF_BIRDS,   // FLIGHT FIELD
+  MODES.FLUBBER_BLOB,     // COHESION FIELD
   // PARALLAX_LINEAR intentionally excluded from narrative cycling.
   MODES.ELASTIC_CENTER,   // ELASTIC CENTER
   MODES.KALEIDOSCOPE      // VOCAB BLOOM
@@ -88,6 +92,8 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.WEIGHTLESS]: 'OPEN SPACE',
   [MODES.CRITTERS]: 'BEHAVIOR MODEL',
   [MODES.ELASTIC_CENTER]: 'ELASTIC CENTER',
+  [MODES.FLOCK_OF_BIRDS]: 'FLIGHT FIELD',
+  [MODES.FLUBBER_BLOB]: 'COHESION FIELD',
   [MODES.SPHERE_3D]: '3D SHELL',
   [MODES.CUBE_3D]: '3D FRAME',
   [MODES.KALEIDOSCOPE]: 'VOCAB BLOOM',
@@ -150,6 +156,14 @@ export const NARRATIVE_QUOTES = {
   [MODES.ELASTIC_CENTER]: {
     quote: 'Having guts always works out for me.',
     author: 'Stefan Sagmeister'
+  },
+  [MODES.FLOCK_OF_BIRDS]: {
+    quote: 'The whole is other than the sum of the parts.',
+    author: 'Kurt Koffka'
+  },
+  [MODES.FLUBBER_BLOB]: {
+    quote: 'The whole is other than the sum of the parts.',
+    author: 'Kurt Koffka'
   },
   [MODES.KALEIDOSCOPE]: {
     quote: 'Creativity takes courage.',

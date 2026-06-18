@@ -13,6 +13,8 @@ function RouteSceneMount({ routeRenderKey, children }) {
       return <div data-sfid="sfid:shell/palette-lab">{children}</div>;
     case 'beach-ball-room':
       return <div data-sfid="sfid:shell/beach-ball-room">{children}</div>;
+    case 'flock-of-birds':
+      return <div data-sfid="sfid:shell/flock-of-birds">{children}</div>;
     case 'rain-prism':
       return <div data-sfid="sfid:shell/rain-prism">{children}</div>;
     case 'home':

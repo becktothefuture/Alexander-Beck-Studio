@@ -129,7 +129,7 @@ const state = {
   cube3dTumbleDamping: 0.95,
   cube3dFocalLength: 1200,
   cube3dDotSizeMul: 1.0,
-  cube3dFogStart: 0.85,
+  cube3dFogStart: 0.95,
   cube3dFogMin: 0.58,
   cube3dWarmupFrames: 10,
   // 3D Starfield (Mode 23)
@@ -194,6 +194,7 @@ const state = {
     [MODES.KALEIDOSCOPE]: { desktop: 180, mobile: 72 },
     [MODES.CRITTERS]: { desktop: 140, mobile: 95 },
     [MODES.ELASTIC_CENTER]: { desktop: 240, mobile: 150 },
+    [MODES.FLUBBER_BLOB]: { desktop: 120, mobile: 52 },
     [MODES.STARFIELD_3D]: { desktop: 220, mobile: 150 },
     [MODES.PARALLAX_FLOAT]: { desktop: 320, mobile: 160 },
     [MODES.PARTICLE_FOUNTAIN]: { desktop: 260, mobile: 180 }
@@ -465,6 +466,44 @@ const state = {
   elasticCenterMouseRadius: 200, // px - distance where mouse affects dots
   elasticCenterDamping: 0.94, // velocity damping for stability
   elasticCenterWarmupFrames: 10,
+
+  // Flubber Blob mode params
+  flubberBlobBallCount: 120,
+  flubberBlobParticleCollisions: true,
+  flubberBlobContactIterations: 5,
+  flubberBlobSurfaceTension: 0.04,
+  flubberBlobCohesion: 2.35,
+  flubberBlobViscosity: 0.45,
+  flubberBlobStretch: 1.2,
+  flubberBlobShapeMemory: 0,
+  flubberBlobMaterialFlow: 0.5,
+  flubberBlobInternalCurrent: 0.1,
+  flubberBlobConnectivityPull: 1.1,
+  flubberBlobTensionGrain: 0.9,
+  flubberBlobInfluenceRadius: 320,
+  flubberBlobInfluenceFalloff: 0.75,
+  flubberBlobMouseHandleStrength: 34,
+  flubberBlobMaterialPull: 0.75,
+  flubberBlobMousePush: 2.1,
+  flubberBlobClickRepulsion: 1.25,
+  flubberBlobClickRadius: 260,
+  flubberBlobMotionShove: 0,
+  flubberBlobBodyFollow: 0.08,
+  flubberBlobLocalDeform: 1.2,
+  flubberBlobSlimeWobble: 0.08,
+  flubberBlobShear: 0.95,
+  flubberBlobImpactRipple: 0.05,
+  flubberBlobGrabLocality: 0.38,
+  flubberBlobInitialSpeed: 520,
+  flubberBlobInitialAngleDeg: -18,
+  flubberBlobWallBounce: 0.34,
+  flubberBlobWallFriction: 0.006,
+  flubberBlobWallLocality: 0.78,
+  flubberBlobWallSquish: 0.42,
+  flubberBlobDragStrength: 44,
+  flubberBlobReleaseTransfer: 1,
+  flubberBlobMaxSpeed: 1400,
+  flubberBlobWarmupFrames: 10,
   
 
   
@@ -1477,6 +1516,7 @@ export function initState(config) {
   if (config.crittersWarmupFrames !== undefined) state.crittersWarmupFrames = clampInt(config.crittersWarmupFrames, 0, 240, state.crittersWarmupFrames);
   if (config.parallaxLinearWarmupFrames !== undefined) state.parallaxLinearWarmupFrames = clampInt(config.parallaxLinearWarmupFrames, 0, 240, state.parallaxLinearWarmupFrames);
   if (config.elasticCenterWarmupFrames !== undefined) state.elasticCenterWarmupFrames = clampInt(config.elasticCenterWarmupFrames, 0, 240, state.elasticCenterWarmupFrames);
+  if (config.flubberBlobWarmupFrames !== undefined) state.flubberBlobWarmupFrames = clampInt(config.flubberBlobWarmupFrames, 0, 240, state.flubberBlobWarmupFrames);
 
   if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
   if (config.repelRadius !== undefined) state.repelRadius = config.repelRadius;
@@ -1815,6 +1855,43 @@ export function initState(config) {
   if (config.elasticCenterMouseRadius !== undefined) state.elasticCenterMouseRadius = clampInt(config.elasticCenterMouseRadius, 50, 400, state.elasticCenterMouseRadius);
   if (config.elasticCenterDamping !== undefined) state.elasticCenterDamping = clampNumber(config.elasticCenterDamping, 0, 1, state.elasticCenterDamping);
   if (config.elasticCenterWarmupFrames !== undefined) state.elasticCenterWarmupFrames = clampInt(config.elasticCenterWarmupFrames, 0, 240, state.elasticCenterWarmupFrames);
+
+  // Flubber Blob mode
+  if (config.flubberBlobBallCount !== undefined) state.flubberBlobBallCount = clampInt(config.flubberBlobBallCount, 56, 180, state.flubberBlobBallCount);
+  state.flubberBlobParticleCollisions = true;
+  if (config.flubberBlobContactIterations !== undefined) state.flubberBlobContactIterations = clampInt(config.flubberBlobContactIterations, 1, 6, state.flubberBlobContactIterations);
+  if (config.flubberBlobSurfaceTension !== undefined) state.flubberBlobSurfaceTension = clampNumber(config.flubberBlobSurfaceTension, 0, 1.5, state.flubberBlobSurfaceTension);
+  if (config.flubberBlobCohesion !== undefined) state.flubberBlobCohesion = clampNumber(config.flubberBlobCohesion, 0.8, 6, state.flubberBlobCohesion);
+  if (config.flubberBlobViscosity !== undefined) state.flubberBlobViscosity = clampNumber(config.flubberBlobViscosity, 0.02, 2.5, state.flubberBlobViscosity);
+  if (config.flubberBlobStretch !== undefined) state.flubberBlobStretch = clampNumber(config.flubberBlobStretch, 0.35, 1.2, state.flubberBlobStretch);
+  if (config.flubberBlobShapeMemory !== undefined) state.flubberBlobShapeMemory = clampNumber(config.flubberBlobShapeMemory, 0, 1, state.flubberBlobShapeMemory);
+  if (config.flubberBlobMaterialFlow !== undefined) state.flubberBlobMaterialFlow = clampNumber(config.flubberBlobMaterialFlow, 0, 1, state.flubberBlobMaterialFlow);
+  if (config.flubberBlobInternalCurrent !== undefined) state.flubberBlobInternalCurrent = clampNumber(config.flubberBlobInternalCurrent, 0, 0.35, state.flubberBlobInternalCurrent);
+  if (config.flubberBlobConnectivityPull !== undefined) state.flubberBlobConnectivityPull = clampNumber(config.flubberBlobConnectivityPull, 0, 1.5, state.flubberBlobConnectivityPull);
+  if (config.flubberBlobTensionGrain !== undefined) state.flubberBlobTensionGrain = clampNumber(config.flubberBlobTensionGrain, 0, 1, state.flubberBlobTensionGrain);
+  if (config.flubberBlobInfluenceRadius !== undefined) state.flubberBlobInfluenceRadius = clampInt(config.flubberBlobInfluenceRadius, 120, 420, state.flubberBlobInfluenceRadius);
+  if (config.flubberBlobInfluenceFalloff !== undefined) state.flubberBlobInfluenceFalloff = clampNumber(config.flubberBlobInfluenceFalloff, 0.25, 4, state.flubberBlobInfluenceFalloff);
+  if (config.flubberBlobMouseHandleStrength !== undefined) state.flubberBlobMouseHandleStrength = clampNumber(config.flubberBlobMouseHandleStrength, 0, 80, state.flubberBlobMouseHandleStrength);
+  if (config.flubberBlobMaterialPull !== undefined) state.flubberBlobMaterialPull = clampNumber(config.flubberBlobMaterialPull, 0, 2.5, state.flubberBlobMaterialPull);
+  if (config.flubberBlobMousePush !== undefined) state.flubberBlobMousePush = clampNumber(config.flubberBlobMousePush, 0, 3, state.flubberBlobMousePush);
+  if (config.flubberBlobClickRepulsion !== undefined) state.flubberBlobClickRepulsion = clampNumber(config.flubberBlobClickRepulsion, 0, 3, state.flubberBlobClickRepulsion);
+  if (config.flubberBlobClickRadius !== undefined) state.flubberBlobClickRadius = clampInt(config.flubberBlobClickRadius, 24, 620, state.flubberBlobClickRadius);
+  if (config.flubberBlobMotionShove !== undefined) state.flubberBlobMotionShove = clampNumber(config.flubberBlobMotionShove, 0, 2, state.flubberBlobMotionShove);
+  if (config.flubberBlobBodyFollow !== undefined) state.flubberBlobBodyFollow = clampNumber(config.flubberBlobBodyFollow, 0, 1, state.flubberBlobBodyFollow);
+  if (config.flubberBlobLocalDeform !== undefined) state.flubberBlobLocalDeform = clampNumber(config.flubberBlobLocalDeform, 0, 1.2, state.flubberBlobLocalDeform);
+  if (config.flubberBlobSlimeWobble !== undefined) state.flubberBlobSlimeWobble = clampNumber(config.flubberBlobSlimeWobble, 0, 1, state.flubberBlobSlimeWobble);
+  if (config.flubberBlobShear !== undefined) state.flubberBlobShear = clampNumber(config.flubberBlobShear, 0, 1, state.flubberBlobShear);
+  if (config.flubberBlobImpactRipple !== undefined) state.flubberBlobImpactRipple = clampNumber(config.flubberBlobImpactRipple, 0, 1.4, state.flubberBlobImpactRipple);
+  if (config.flubberBlobGrabLocality !== undefined) state.flubberBlobGrabLocality = clampNumber(config.flubberBlobGrabLocality, 0, 1, state.flubberBlobGrabLocality);
+  if (config.flubberBlobInitialSpeed !== undefined) state.flubberBlobInitialSpeed = clampInt(config.flubberBlobInitialSpeed, 0, 1600, state.flubberBlobInitialSpeed);
+  if (config.flubberBlobInitialAngleDeg !== undefined) state.flubberBlobInitialAngleDeg = clampNumber(config.flubberBlobInitialAngleDeg, -180, 180, state.flubberBlobInitialAngleDeg);
+  if (config.flubberBlobWallBounce !== undefined) state.flubberBlobWallBounce = clampNumber(config.flubberBlobWallBounce, 0, 0.75, state.flubberBlobWallBounce);
+  if (config.flubberBlobWallFriction !== undefined) state.flubberBlobWallFriction = clampNumber(config.flubberBlobWallFriction, 0, 0.8, state.flubberBlobWallFriction);
+  if (config.flubberBlobWallLocality !== undefined) state.flubberBlobWallLocality = clampNumber(config.flubberBlobWallLocality, 0, 1, state.flubberBlobWallLocality);
+  if (config.flubberBlobWallSquish !== undefined) state.flubberBlobWallSquish = clampNumber(config.flubberBlobWallSquish, 0, 1.5, state.flubberBlobWallSquish);
+  if (config.flubberBlobDragStrength !== undefined) state.flubberBlobDragStrength = clampNumber(config.flubberBlobDragStrength, 4, 90, state.flubberBlobDragStrength);
+  if (config.flubberBlobReleaseTransfer !== undefined) state.flubberBlobReleaseTransfer = clampNumber(config.flubberBlobReleaseTransfer, 0, 1.2, state.flubberBlobReleaseTransfer);
+  if (config.flubberBlobMaxSpeed !== undefined) state.flubberBlobMaxSpeed = clampInt(config.flubberBlobMaxSpeed, 360, 1800, state.flubberBlobMaxSpeed);
 
 
 
@@ -2576,6 +2653,11 @@ export function detectResponsiveScale() {
   // Portfolio pit uses large per-project radii; never stomp them with the home pit size curve.
   if (state.currentMode === MODES.PORTFOLIO_PIT) {
     syncPitPortfolioRadiusStatsFromBalls();
+    return;
+  }
+
+  // Flubber deforms by moving centers only; keep spawned circle radii fixed.
+  if (state.currentMode === MODES.FLUBBER_BLOB) {
     return;
   }
 

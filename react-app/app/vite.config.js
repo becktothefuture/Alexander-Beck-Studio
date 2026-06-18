@@ -9,6 +9,7 @@ import { flattenDesignConfigDir } from '../../scripts/lib/flatten-design-config.
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicConfigDir = resolve(__dirname, 'public/config');
 const rainPrismConfigPath = resolve(publicConfigDir, 'rain-prism-demo.json');
+const flockOfBirdsConfigPath = resolve(publicConfigDir, 'flock-of-birds-demo.json');
 const VIRTUAL_CONTENT_PREFIX = '\0virtual:abs-content/';
 const CONTENT_MODULES = {
   'virtual:abs-content/home': resolve(publicConfigDir, 'contents-home.json'),
@@ -94,6 +95,38 @@ function designSystemDevPlugin() {
           sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save rain prism config' });
         }
       });
+
+      server.middlewares.use('/api/flock-of-birds/config', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        try {
+          const chunks = [];
+          for await (const chunk of req) {
+            chunks.push(Buffer.from(chunk));
+          }
+
+          const payload = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+          const nextConfig = payload?.config;
+          if (!nextConfig || typeof nextConfig !== 'object' || Array.isArray(nextConfig)) {
+            sendJson(res, 400, { ok: false, error: 'Missing flock of birds config payload' });
+            return;
+          }
+
+          await writeFile(flockOfBirdsConfigPath, `${JSON.stringify(nextConfig, null, 2)}\n`, 'utf8');
+          server.ws.send({
+            type: 'full-reload',
+            path: '/config/flock-of-birds-demo.json',
+          });
+
+          sendJson(res, 200, { ok: true });
+        } catch (error) {
+          sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save flock of birds config' });
+        }
+      });
     },
   };
 }
@@ -147,6 +180,7 @@ export default defineConfig(({ mode }) => ({
         styleguide: resolve(__dirname, 'styleguide.html'),
         'palette-lab': resolve(__dirname, 'palette-lab.html'),
         'lab/beach-ball-room': resolve(__dirname, 'lab/beach-ball-room.html'),
+        'lab/flock-of-birds': resolve(__dirname, 'lab/flock-of-birds.html'),
         'lab/rain-prism': resolve(__dirname, 'lab/rain-prism.html'),
         ...(mode === 'development'
           ? { 'panel-host': resolve(__dirname, 'panel-host.html') }

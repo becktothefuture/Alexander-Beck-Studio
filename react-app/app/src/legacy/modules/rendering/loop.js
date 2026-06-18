@@ -158,6 +158,7 @@ function shouldRunPhysicsThisFrame(globals, throttleLevel) {
   // Pit-like modes must preserve simulation time. Skipping a physics frame here
   // drops that frame's dt entirely, which reads as weak gravity / slow motion.
   if (isPitLikeMode(globals?.currentMode)) return true;
+  if (globals?.currentMode === MODES.FLUBBER_BLOB) return true;
   if (throttleLevel <= 0) return true;
   if (throttleLevel === 1) {
     // Light throttle: skip one in four physics steps.

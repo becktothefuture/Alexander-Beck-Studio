@@ -13,6 +13,7 @@ import { updateModeButtonsUI } from '../ui/controls.js';
 
 let createWaterRippleFn = null;
 let waterRippleLoadPromise = null;
+const scenePointerSubscribers = new Set();
 
 function triggerWaterRipple(x, y, velocityFactor) {
   if (typeof createWaterRippleFn === 'function') {
@@ -62,6 +63,23 @@ function cycleMode() {
 // Throttle for water ripple creation
 let lastRippleTime = 0;
 const RIPPLE_THROTTLE_MS = 80; // Create ripple every 80ms max
+
+export function subscribeScenePointer(handler) {
+  if (typeof handler !== 'function') return () => {};
+  scenePointerSubscribers.add(handler);
+  return () => {
+    scenePointerSubscribers.delete(handler);
+  };
+}
+
+function emitScenePointer(type, detail) {
+  if (scenePointerSubscribers.size === 0) return;
+  for (const handler of scenePointerSubscribers) {
+    try {
+      handler(type, detail);
+    } catch (e) {}
+  }
+}
 
 /**
  * GLOBAL UNIFIED MOUSE SYSTEM
@@ -128,7 +146,7 @@ export function setupPointer() {
    * Mobile Playwright projects may not emit `mousemove` reliably; `pointermove`
    * is the canonical cross-input signal.
    */
-  function handleMove(clientX, clientY, target, { isMouseLike } = { isMouseLike: true }) {
+  function handleMove(clientX, clientY, target, { isMouseLike, pointerId, pointerType } = { isMouseLike: true, pointerId: null, pointerType: 'mouse' }) {
     const pos = getCanvasPosition(clientX, clientY);
     
     // Calculate mouse velocity early (for cursor effects and water ripples)
@@ -185,6 +203,21 @@ export function setupPointer() {
       }
     }
 
+    emitScenePointer('move', {
+      x: pos.x,
+      y: pos.y,
+      clientX,
+      clientY,
+      inBounds: pos.inBounds,
+      target,
+      pointerId: pointerId ?? null,
+      pointerType: pointerType || (isMouseLike ? 'mouse' : 'touch'),
+      time: now,
+      velocity: mouseVelocity,
+      dirX: mouseDirX,
+      dirY: mouseDirY
+    });
+
     // Store for velocity calculation
     lastMouseX = pos.x;
     lastMouseY = pos.y;
@@ -201,12 +234,17 @@ export function setupPointer() {
     // This prevents synthetic mousemove events from touch interactions from showing the cursor
     if (window.PointerEvent) return;
     
-    handleMove(e.clientX, e.clientY, e.target, { isMouseLike: true });
+    handleMove(e.clientX, e.clientY, e.target, { isMouseLike: true, pointerId: null, pointerType: 'mouse' });
   }, { passive: true });
 
   document.addEventListener('pointermove', (e) => {
+    if (!e.isPrimary) return;
     const isMouseLike = e.pointerType === 'mouse' || e.pointerType === 'pen';
-    handleMove(e.clientX, e.clientY, e.target, { isMouseLike });
+    handleMove(e.clientX, e.clientY, e.target, {
+      isMouseLike,
+      pointerId: e.pointerId,
+      pointerType: e.pointerType || (isMouseLike ? 'mouse' : 'touch')
+    });
   }, { passive: true });
   
   /**
@@ -226,6 +264,60 @@ export function setupPointer() {
       el.closest('.legend__item--interactive')  // Interactive legend items
     );
   }
+
+  document.addEventListener('pointerdown', (e) => {
+    if (!e.isPrimary) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (isEventOnUI(e.target) || isTargetInteractive(e.target)) return;
+    if (isOverlayActive()) return;
+
+    const pos = getCanvasPosition(e.clientX, e.clientY);
+    globals.mouseX = pos.x;
+    globals.mouseY = pos.y;
+    globals.mouseInCanvas = pos.inBounds;
+    if (typeof window !== 'undefined') window.mouseInCanvas = pos.inBounds;
+
+    emitScenePointer('down', {
+      x: pos.x,
+      y: pos.y,
+      clientX: e.clientX,
+      clientY: e.clientY,
+      inBounds: pos.inBounds,
+      target: e.target,
+      pointerId: e.pointerId,
+      pointerType: e.pointerType || 'mouse',
+      time: performance.now(),
+      velocity: mouseVelocity,
+      dirX: mouseDirX,
+      dirY: mouseDirY
+    });
+  }, { passive: true });
+
+  const handlePointerEnd = (e, type) => {
+    emitScenePointer(type, {
+      x: globals.mouseX,
+      y: globals.mouseY,
+      clientX: e.clientX,
+      clientY: e.clientY,
+      inBounds: globals.mouseInCanvas,
+      target: e.target,
+      pointerId: e.pointerId,
+      pointerType: e.pointerType || 'mouse',
+      time: performance.now(),
+      velocity: mouseVelocity,
+      dirX: mouseDirX,
+      dirY: mouseDirY
+    });
+  };
+
+  document.addEventListener('pointerup', (e) => {
+    if (!e.isPrimary) return;
+    handlePointerEnd(e, 'up');
+  }, { passive: true });
+
+  document.addEventListener('pointercancel', (e) => {
+    handlePointerEnd(e, 'cancel');
+  }, { passive: true });
 
   // Click-to-cycle disabled in Daily Simulation mode
   

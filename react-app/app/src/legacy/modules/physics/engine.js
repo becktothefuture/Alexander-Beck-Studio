@@ -12,6 +12,7 @@ import {
   getModeUpdater,
   getModeRenderer,
   getModeCustomRenderer,
+  getModeCustomStep,
   getModeBoundsHandler
 } from '../modes/mode-controller.js';
 import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-explosion.js';
@@ -301,6 +302,14 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   if (!canvas) return;
 
   if (balls.length === 0) return;
+
+  const customStep = getModeCustomStep();
+  if (customStep) {
+    const dt = Math.min(0.033, Math.max(0, dtSeconds));
+    customStep(dt);
+    setAccumulator(0);
+    return;
+  }
 
   // Select physics timestep based on device type (60Hz mobile, 120Hz desktop)
   const DT = (globals.isMobile || globals.isMobileViewport) ? DT_MOBILE : DT_DESKTOP;

@@ -29,7 +29,13 @@ const MODE_NAMES = {
   '3d-cube': '3D Cube',
   'starfield-3d': '3D Starfield',
   'elastic-center': 'Elastic Center',
+  'flock-of-birds': 'Flock of Birds',
+  'flubber-blob': 'Flubber Blob',
   'particle-fountain': 'Particle Fountain'
+};
+
+const ROUTE_BACKED_MODE_HREFS = {
+  [MODES.FLOCK_OF_BIRDS]: '/lab/flock-of-birds.html?daily=1'
 };
 
 const MODE_REGISTRY = {
@@ -136,6 +142,14 @@ const MODE_REGISTRY = {
       update: 'updateElasticCenter'
     }
   },
+  [MODES.FLUBBER_BLOB]: {
+    load: () => import('./flubber-blob.js'),
+    hooks: {
+      initialize: 'initializeFlubberBlob',
+      customStep: 'stepFlubberBlob',
+      render: 'renderFlubberBlob'
+    }
+  },
   [MODES.PARTICLE_FOUNTAIN]: {
     load: () => import('./particle-fountain.js'),
     hooks: {
@@ -165,6 +179,7 @@ function buildModeRuntime(module, hooks = {}) {
     preRender: toFn(module, hooks.preRender),
     postRender: toFn(module, hooks.postRender),
     customRender: toFn(module, hooks.render),
+    customStep: toFn(module, hooks.customStep),
     bounds: toFn(module, hooks.bounds)
   };
 }
@@ -229,6 +244,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.PARALLAX_FLOAT: return globals.parallaxFloatWarmupFrames ?? 10;
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.elasticCenterWarmupFrames ?? 10;
+    case MODES.FLUBBER_BLOB: return globals.flubberBlobWarmupFrames ?? 10;
     case MODES.PARTICLE_FOUNTAIN: return globals.particleFountainWarmupFrames ?? 0;
     default: return 10;
   }
@@ -248,7 +264,8 @@ function applyModePhysicsState(mode, globals) {
     MODES.PARALLAX_LINEAR,
     MODES.PARALLAX_FLOAT,
     MODES.STARFIELD_3D,
-    MODES.ELASTIC_CENTER
+    MODES.ELASTIC_CENTER,
+    MODES.FLUBBER_BLOB
   ]);
 
   if (isPitLikeMode(mode)) {
@@ -323,6 +340,18 @@ export async function setMode(inputMode) {
   // Parallax-linear simulation disabled: redirect to first narrative mode.
   if (mode === MODES.PARALLAX_LINEAR) {
     mode = NARRATIVE_MODE_SEQUENCE[0] ?? MODES.PIT;
+  }
+
+  const routeBackedHref = ROUTE_BACKED_MODE_HREFS[mode];
+  if (routeBackedHref) {
+    announceToScreenReader(`Switched to ${MODE_NAMES[mode] || mode} mode`);
+    if (typeof window !== 'undefined') {
+      const currentHref = `${window.location.pathname}${window.location.search}`;
+      if (currentHref !== routeBackedHref) {
+        window.location.assign(routeBackedHref);
+      }
+    }
+    return true;
   }
 
   maybePreloadAllModes();
@@ -433,6 +462,11 @@ export function getModeRenderer() {
 export function getModeCustomRenderer() {
   const runtime = getRuntimeForCurrentMode();
   return runtime?.customRender || null;
+}
+
+export function getModeCustomStep() {
+  const runtime = getRuntimeForCurrentMode();
+  return runtime?.customStep || null;
 }
 
 export function getModeBoundsHandler() {

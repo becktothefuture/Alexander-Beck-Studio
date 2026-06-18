@@ -73,6 +73,16 @@ const ABS_DEV = import.meta.env.DEV;
 const CONTENT_FADE_DURATION_MS = 800;
 const CONTENT_FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
+function isLocalBuildPanelPreviewEnabled() {
+  if (ABS_DEV || typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  if (!isLocalHost) return false;
+
+  const params = new URLSearchParams(window.location.search);
+  return params.get('panel') === '1' || params.get('configPanel') === '1';
+}
+
 function setBootLifecycleState(state) {
   try {
     if (typeof document !== 'undefined') {
@@ -88,7 +98,15 @@ function signalRouteReady(routeId) {
   });
 }
 
-// Removed: pickStartupMode() - replaced with deterministic daily scheduler
+function getUrlStartupModeOverride() {
+  try {
+    const mode = String(new URLSearchParams(window.location.search).get('mode') || '').trim();
+    if (!mode) return '';
+    return NARRATIVE_MODE_SEQUENCE.includes(mode) ? mode : '';
+  } catch (e) {
+    return '';
+  }
+}
 
 /**
  * Apply two-level padding CSS variables from global state to :root
@@ -599,8 +617,9 @@ export async function bootstrapHomePage() {
 
     // Initialize starting mode. A non-empty startupMode overrides the daily rotation
     // until it is cleared again in the authored shell config.
+    const urlMode = getUrlStartupModeOverride();
     const configuredHeroMode = String(getShellConfig()?.hero?.startupMode || '').trim();
-    const startMode = configuredHeroMode || getDailyMode() || MODES.PIT;
+    const startMode = urlMode || configuredHeroMode || getDailyMode() || MODES.PIT;
 
     await setMode(startMode);
     if (isRouteTransitionPhase(getTransitionPhase())) {
@@ -614,23 +633,41 @@ export async function bootstrapHomePage() {
       };
     }
 
-    // DEV-only: panel after setMode so Simulation HTML includes the active mode’s controls.
-    // Production builds ship without the panel (config is hardcoded during build).
-    if (ABS_DEV) {
+    const localBuildPanelPreview = isLocalBuildPanelPreviewEnabled();
+
+    // Dev panel after setMode so Simulation HTML includes the active mode's controls.
+    // Production builds stay panel-free, except an explicit localhost preview hook for
+    // tuning the built bundle without exposing the panel on the live site.
+    if (ABS_DEV || localBuildPanelPreview) {
       try {
-        const panelManager = await import('./modules/ui/panel-popup-manager.js');
-        panelManager.registerDevPanelRoute?.({
-          page: 'home',
-          pageLabel: 'Home',
-          productLabel: 'Alexander Beck Studio',
-        });
+        if (ABS_DEV) {
+          const panelManager = await import('./modules/ui/panel-popup-manager.js');
+          panelManager.registerDevPanelRoute?.({
+            page: 'home',
+            pageLabel: 'Home',
+            productLabel: 'Alexander Beck Studio',
+          });
+        } else {
+          window.__PANEL_INITIALLY_VISIBLE__ = true;
+          const panelDock = await import('./modules/ui/panel-dock.js');
+          panelDock.createPanelDock?.({
+            page: 'home',
+            pageLabel: 'Home',
+            panelTitle: 'Settings',
+            modeLabel: 'BUILD MODE',
+            skipToggleButton: true,
+            footerHint: '<kbd>R</kbd> reset · local build panel',
+          });
+        }
         const colors = await import('./modules/visual/colors.js');
         colors.populateColorSelect?.();
         updateModeButtonsUI?.(startMode);
       } catch (e) {}
     }
     mark('bb:ui');
-    log(ABS_DEV ? '✓ Dev panel launcher ready' : '✓ UI initialized (panel disabled in production)');
+    log(ABS_DEV
+      ? '✓ Dev panel launcher ready'
+      : (localBuildPanelPreview ? '✓ Local build panel ready' : '✓ UI initialized (panel disabled in production)'));
 
     // Theme segment buttons live in the panel; init runs once after the dock exists.
     initializeDarkMode();
