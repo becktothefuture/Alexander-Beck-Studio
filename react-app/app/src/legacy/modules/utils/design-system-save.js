@@ -5,6 +5,26 @@ import { buildStudioShellPatch, buildStudioSurfaceSnapshot } from '../ui/studio-
 import { getShellConfig } from '../visual/site-shell.js';
 import { loadDesignSystemConfig, normalizeDesignSystemConfig } from './design-config.js';
 
+const CONFIG_ONLY_RUNTIME_KEYS = [
+  'tensionLoomBallCount',
+  'tensionLoomGridDensity',
+  'tensionLoomMassMultiplier',
+  'tensionLoomHomeStrength',
+  'tensionLoomLinkStrength',
+  'tensionLoomDragRadius',
+  'tensionLoomDragStrength',
+  'tensionLoomHoverRadius',
+  'tensionLoomHoverStrength',
+  'tensionLoomDamping',
+  'tensionLoomMaxSpeed',
+  'tensionLoomReleaseGain',
+  'tensionLoomIdleWavePx',
+  'tensionLoomPulseStrength',
+  'tensionLoomPulseSpeed',
+  'tensionLoomPulseWidth',
+  'tensionLoomWarmupFrames',
+];
+
 function clone(value) {
   if (!value || typeof value !== 'object') return {};
   return JSON.parse(JSON.stringify(value));
@@ -56,6 +76,10 @@ export function buildRuntimeConfigSnapshot() {
   config.autoDarkModeEnabled = g.autoDarkModeEnabled;
   config.cornerShapeSquircleEnabled = g.cornerShapeSquircleEnabled !== false;
   config.enableLOD = false;
+
+  for (const key of CONFIG_ONLY_RUNTIME_KEYS) {
+    if (g[key] !== undefined) config[key] = g[key];
+  }
 
   return config;
 }

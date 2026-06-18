@@ -34,7 +34,7 @@ Source of truth for mode IDs and narrative order:
 | 3D Sphere | `3d-sphere` | Active |
 | 3D Cube | `3d-cube` | Active |
 | 3D Starfield | `starfield-3d` | Active |
-| Elastic Center | `elastic-center` | Active |
+| Tension Loom | `elastic-center` | Active |
 | Flock of Birds | `flock-of-birds` | Route-backed daily/lab |
 | Flubber Blob | `flubber-blob` | Active |
 | Weave Field | `weave-field` | Active |
@@ -55,7 +55,7 @@ Source of truth for mode IDs and narrative order:
 6. `flock-of-birds` — FLIGHT FIELD
 7. `flubber-blob` — COHESION FIELD
 8. `weave-field` — WEAVE FIELD
-9. `elastic-center` — ELASTIC CENTER
+9. `elastic-center` — TENSION LOOM
 10. `kaleidoscope-3` — VOCAB BLOOM
 
 ### Extended Tier (shown after Featured)
@@ -99,7 +99,7 @@ Loop order is `Featured -> Extended -> Featured`.
 - `3d-sphere`: rotating spherical point cloud.
 - `3d-cube`: rotating/tumbling cube point cloud.
 - `starfield-3d`: depth-projected starfield with recycle.
-- `elastic-center`: spring-like ring structure with cursor repulsion.
+- `elastic-center`: Tension Loom; a palette-bead lattice with invisible spring links, single-pointer drag, release waves, subtle hover pressure, and normal wall containment.
 - `flock-of-birds`: route-backed distant flock with weighted center-biased motion, no wall collisions, mouse avoidance, and a safe sky band above the ground.
 - `flubber-blob`: fixed-size hard circles simulated as embedded beads in a soft silicone-gel raft with persistent gel links, hard 2D contacts, passive hover-only cursor pressure/wake, lossy wall rebound, and no visible detach/reattach behavior.
 - `weave-field`: perpendicular discipline streams that progressively cross into a loose woven lattice, with cursor/touch repulsion opening temporary gaps, shared wall/collision containment, and a compact portrait/mobile weave with fewer lanes and softer motion.

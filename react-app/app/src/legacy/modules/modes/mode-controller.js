@@ -28,7 +28,7 @@ const MODE_NAMES = {
   '3d-sphere': '3D Sphere',
   '3d-cube': '3D Cube',
   'starfield-3d': '3D Starfield',
-  'elastic-center': 'Elastic Center',
+  'elastic-center': 'Tension Loom',
   'flock-of-birds': 'Flock of Birds',
   'flubber-blob': 'Flubber Blob',
   'weave-field': 'Weave Field',
@@ -260,7 +260,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.PARALLAX_LINEAR: return globals.parallaxLinearWarmupFrames ?? 10;
     case MODES.PARALLAX_FLOAT: return globals.parallaxFloatWarmupFrames ?? 10;
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
-    case MODES.ELASTIC_CENTER: return globals.elasticCenterWarmupFrames ?? 10;
+    case MODES.ELASTIC_CENTER: return globals.tensionLoomWarmupFrames ?? 8;
     case MODES.FLUBBER_BLOB: return globals.flubberBlobWarmupFrames ?? 10;
     case MODES.WEAVE_FIELD: return globals.weaveFieldWarmupFrames ?? 0;
     case MODES.PRESSURE_CRUCIBLE: return globals.pressureCrucibleWarmupFrames ?? 0;

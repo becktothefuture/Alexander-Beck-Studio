@@ -409,8 +409,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         mode !== MODES.CUBE_3D &&
         mode !== MODES.PARALLAX_LINEAR &&
         mode !== MODES.PARALLAX_FLOAT &&
-        mode !== MODES.STARFIELD_3D &&
-        mode !== MODES.ELASTIC_CENTER) {
+        mode !== MODES.STARFIELD_3D) {
       const portfolioMotion = mode === MODES.PORTFOLIO_PIT
         ? getPortfolioPitMotionProfile(globals)
         : null;

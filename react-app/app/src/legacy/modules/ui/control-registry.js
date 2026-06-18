@@ -4512,107 +4512,6 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
-  elasticCenter: {
-    title: 'Elastic Center',
-    icon: '⭕',
-    mode: 'elastic-center',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'elasticCenterRingCount',
-        label: 'Outer Ring Count',
-        stateKey: 'elasticCenterRingCount',
-        type: 'range',
-        min: 2, max: 20, step: 1,
-        default: 13,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        reinitMode: true,
-        hint: 'Overall outer size of the form. Higher values increase the ring diameter and total number of dots.'
-      },
-      {
-        id: 'elasticCenterBandRows',
-        label: 'Band Rows',
-        stateKey: 'elasticCenterBandRows',
-        type: 'range',
-        min: 1, max: 12, step: 1,
-        default: 5,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        reinitMode: true,
-        hint: 'How many concentric rows of dots make up the ring itself. Lower values create a larger hollow center.'
-      },
-      {
-        id: 'elasticCenterSpacingMultiplier',
-        label: 'Dot Spacing',
-        stateKey: 'elasticCenterSpacingMultiplier',
-        type: 'range',
-        min: 2.0, max: 5.0, step: 0.1,
-        default: 2.8,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'Distance between dot centers. Higher values open the form up and make the circle feel airier.'
-      },
-      {
-        id: 'elasticCenterMassMultiplier',
-        label: 'Mass Multiplier',
-        stateKey: 'elasticCenterMassMultiplier',
-        type: 'range',
-        min: 0.5, max: 5.0, step: 0.1,
-        default: 2.0,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        hint: 'Mass of individual dots'
-      },
-      {
-        id: 'elasticCenterElasticStrength',
-        label: 'Shape Tightness',
-        stateKey: 'elasticCenterElasticStrength',
-        type: 'range',
-        min: 0, max: 2000, step: 10,
-        default: 200,
-        format: v => v.toFixed(0) + 'px/s²',
-        parse: parseFloat,
-        hint: 'How strongly the dots snap back into the round target. Lower values feel looser; higher values feel tighter and cleaner.'
-      },
-      {
-        id: 'elasticCenterMouseRepelStrength',
-        label: 'Mouse Repel Strength',
-        stateKey: 'elasticCenterMouseRepelStrength',
-        type: 'range',
-        min: 3000, max: 25000, step: 500,
-        default: 12000,
-        format: v => v.toFixed(0) + 'px/s²',
-        parse: parseFloat,
-        hint: 'Force pushing dots away from mouse cursor'
-      },
-      {
-        id: 'elasticCenterMouseRadius',
-        label: 'Mouse Influence Radius',
-        stateKey: 'elasticCenterMouseRadius',
-        type: 'range',
-        min: 50, max: 400, step: 10,
-        default: 200,
-        format: v => v.toFixed(0) + 'px',
-        parse: parseFloat,
-        hint: 'Distance from cursor where mouse affects dots'
-      },
-      {
-        id: 'elasticCenterDamping',
-        label: 'Damping',
-        stateKey: 'elasticCenterDamping',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.94,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Velocity damping for stability (higher = less damping)'
-      },
-      warmupFramesControl('elasticCenterWarmupFrames')
-    ]
-  },
-
   flubberBlob: {
     title: 'Flubber Blob',
     icon: '🫠',
@@ -6281,7 +6180,7 @@ export function generateModeSwitcherHTML() {
     '3d-sphere': '🌐',
     '3d-cube': '🧊',
     'starfield-3d': '✨',
-    'elastic-center': '⭕',
+    'elastic-center': '◇',
     'flock-of-birds': '🕊️',
     'flubber-blob': '🫠',
     'weave-field': '🧵',
@@ -6302,7 +6201,7 @@ export function generateModeSwitcherHTML() {
     '3d-sphere': 'Sphere 3D',
     '3d-cube': 'Cube 3D',
     'starfield-3d': 'Starfield 3D',
-    'elastic-center': 'Elastic Center',
+    'elastic-center': 'Tension Loom',
     'flock-of-birds': 'Flock',
     'flubber-blob': 'Flubber',
     'weave-field': 'Weave',
@@ -6395,7 +6294,7 @@ function generateHomeModeSectionHTML() {
               '3d-sphere': '🌐',
               '3d-cube': '🧊',
               'starfield-3d': '✨',
-              'elastic-center': '⭕',
+              'elastic-center': '◇',
               'flock-of-birds': '🕊️',
               'flubber-blob': '🫠',
               'weave-field': '🧵',
@@ -6415,7 +6314,7 @@ function generateHomeModeSectionHTML() {
               '3d-sphere': 'Sphere 3D',
               '3d-cube': 'Cube 3D',
               'starfield-3d': 'Starfield 3D',
-              'elastic-center': 'Elastic Center',
+              'elastic-center': 'Tension Loom',
               'flock-of-birds': 'Flock',
               'flubber-blob': 'Flubber',
               'weave-field': 'Weave',

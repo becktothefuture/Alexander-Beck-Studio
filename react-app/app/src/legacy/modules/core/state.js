@@ -459,16 +459,24 @@ const state = {
   weightlessRepelRadius: 220,
   weightlessRepelPower: 50000,
 
-  // Elastic Center mode params
-  elasticCenterRingCount: 13,
-  elasticCenterBandRows: 5, // number of populated concentric rows that make up the outer ring
-  elasticCenterMassMultiplier: 2.0,
-  elasticCenterSpacingMultiplier: 2.8, // multiplier for spacing between balls (higher = larger gaps)
-  elasticCenterElasticStrength: 200, // px/s² - force pulling dots back to center (lower = circle moves more)
-  elasticCenterMouseRepelStrength: 12000, // px/s² - force pushing dots away from mouse
-  elasticCenterMouseRadius: 200, // px - distance where mouse affects dots
-  elasticCenterDamping: 0.94, // velocity damping for stability
-  elasticCenterWarmupFrames: 10,
+  // Tension Loom mode params (`elastic-center` mode ID, preserved for compatibility)
+  tensionLoomBallCount: 132,
+  tensionLoomGridDensity: 1,
+  tensionLoomMassMultiplier: 1.35,
+  tensionLoomHomeStrength: 8.5,
+  tensionLoomLinkStrength: 34,
+  tensionLoomDragRadius: 170,
+  tensionLoomDragStrength: 64,
+  tensionLoomHoverRadius: 165,
+  tensionLoomHoverStrength: 2600,
+  tensionLoomDamping: 0.965,
+  tensionLoomMaxSpeed: 1800,
+  tensionLoomReleaseGain: 0.55,
+  tensionLoomIdleWavePx: 3.5,
+  tensionLoomPulseStrength: 0.24,
+  tensionLoomPulseSpeed: 620,
+  tensionLoomPulseWidth: 58,
+  tensionLoomWarmupFrames: 8,
 
   // Flubber Blob mode params
   flubberBlobBallCount: 120,
@@ -1543,7 +1551,7 @@ export function initState(config) {
   if (config.kaleidoscope3WarmupFrames !== undefined) state.kaleidoscope3WarmupFrames = clampInt(config.kaleidoscope3WarmupFrames, 0, 240, state.kaleidoscope3WarmupFrames);
   if (config.crittersWarmupFrames !== undefined) state.crittersWarmupFrames = clampInt(config.crittersWarmupFrames, 0, 240, state.crittersWarmupFrames);
   if (config.parallaxLinearWarmupFrames !== undefined) state.parallaxLinearWarmupFrames = clampInt(config.parallaxLinearWarmupFrames, 0, 240, state.parallaxLinearWarmupFrames);
-  if (config.elasticCenterWarmupFrames !== undefined) state.elasticCenterWarmupFrames = clampInt(config.elasticCenterWarmupFrames, 0, 240, state.elasticCenterWarmupFrames);
+  if (config.tensionLoomWarmupFrames !== undefined) state.tensionLoomWarmupFrames = clampInt(config.tensionLoomWarmupFrames, 0, 240, state.tensionLoomWarmupFrames);
   if (config.flubberBlobWarmupFrames !== undefined) state.flubberBlobWarmupFrames = clampInt(config.flubberBlobWarmupFrames, 0, 240, state.flubberBlobWarmupFrames);
   if (config.weaveFieldWarmupFrames !== undefined) state.weaveFieldWarmupFrames = clampInt(config.weaveFieldWarmupFrames, 0, 240, state.weaveFieldWarmupFrames);
   if (config.pressureCrucibleWarmupFrames !== undefined) state.pressureCrucibleWarmupFrames = clampInt(config.pressureCrucibleWarmupFrames, 0, 240, state.pressureCrucibleWarmupFrames);
@@ -1875,16 +1883,24 @@ export function initState(config) {
   if (config.starfield3dWarmupFrames !== undefined) state.starfield3dWarmupFrames = clampInt(config.starfield3dWarmupFrames, 0, 240, state.starfield3dWarmupFrames);
   
 
-  // Elastic Center mode
-  if (config.elasticCenterRingCount !== undefined) state.elasticCenterRingCount = clampInt(config.elasticCenterRingCount, 2, 20, state.elasticCenterRingCount);
-  if (config.elasticCenterBandRows !== undefined) state.elasticCenterBandRows = clampInt(config.elasticCenterBandRows, 1, 12, state.elasticCenterBandRows);
-  if (config.elasticCenterMassMultiplier !== undefined) state.elasticCenterMassMultiplier = clampNumber(config.elasticCenterMassMultiplier, 0.5, 5.0, state.elasticCenterMassMultiplier);
-  if (config.elasticCenterSpacingMultiplier !== undefined) state.elasticCenterSpacingMultiplier = clampNumber(config.elasticCenterSpacingMultiplier, 2.0, 5.0, state.elasticCenterSpacingMultiplier);
-  if (config.elasticCenterElasticStrength !== undefined) state.elasticCenterElasticStrength = clampInt(config.elasticCenterElasticStrength, 0, 2000, state.elasticCenterElasticStrength);
-  if (config.elasticCenterMouseRepelStrength !== undefined) state.elasticCenterMouseRepelStrength = clampInt(config.elasticCenterMouseRepelStrength, 3000, 25000, state.elasticCenterMouseRepelStrength);
-  if (config.elasticCenterMouseRadius !== undefined) state.elasticCenterMouseRadius = clampInt(config.elasticCenterMouseRadius, 50, 400, state.elasticCenterMouseRadius);
-  if (config.elasticCenterDamping !== undefined) state.elasticCenterDamping = clampNumber(config.elasticCenterDamping, 0, 1, state.elasticCenterDamping);
-  if (config.elasticCenterWarmupFrames !== undefined) state.elasticCenterWarmupFrames = clampInt(config.elasticCenterWarmupFrames, 0, 240, state.elasticCenterWarmupFrames);
+  // Tension Loom mode (`elastic-center` mode ID)
+  if (config.tensionLoomBallCount !== undefined) state.tensionLoomBallCount = clampInt(config.tensionLoomBallCount, 64, 180, state.tensionLoomBallCount);
+  if (config.tensionLoomGridDensity !== undefined) state.tensionLoomGridDensity = clampNumber(config.tensionLoomGridDensity, 0.7, 1.35, state.tensionLoomGridDensity);
+  if (config.tensionLoomMassMultiplier !== undefined) state.tensionLoomMassMultiplier = clampNumber(config.tensionLoomMassMultiplier, 0.5, 4, state.tensionLoomMassMultiplier);
+  if (config.tensionLoomHomeStrength !== undefined) state.tensionLoomHomeStrength = clampNumber(config.tensionLoomHomeStrength, 0, 28, state.tensionLoomHomeStrength);
+  if (config.tensionLoomLinkStrength !== undefined) state.tensionLoomLinkStrength = clampNumber(config.tensionLoomLinkStrength, 0, 90, state.tensionLoomLinkStrength);
+  if (config.tensionLoomDragRadius !== undefined) state.tensionLoomDragRadius = clampInt(config.tensionLoomDragRadius, 48, 320, state.tensionLoomDragRadius);
+  if (config.tensionLoomDragStrength !== undefined) state.tensionLoomDragStrength = clampNumber(config.tensionLoomDragStrength, 0, 140, state.tensionLoomDragStrength);
+  if (config.tensionLoomHoverRadius !== undefined) state.tensionLoomHoverRadius = clampInt(config.tensionLoomHoverRadius, 0, 340, state.tensionLoomHoverRadius);
+  if (config.tensionLoomHoverStrength !== undefined) state.tensionLoomHoverStrength = clampInt(config.tensionLoomHoverStrength, 0, 12000, state.tensionLoomHoverStrength);
+  if (config.tensionLoomDamping !== undefined) state.tensionLoomDamping = clampNumber(config.tensionLoomDamping, 0.78, 0.995, state.tensionLoomDamping);
+  if (config.tensionLoomMaxSpeed !== undefined) state.tensionLoomMaxSpeed = clampInt(config.tensionLoomMaxSpeed, 240, 2600, state.tensionLoomMaxSpeed);
+  if (config.tensionLoomReleaseGain !== undefined) state.tensionLoomReleaseGain = clampNumber(config.tensionLoomReleaseGain, 0, 1.5, state.tensionLoomReleaseGain);
+  if (config.tensionLoomIdleWavePx !== undefined) state.tensionLoomIdleWavePx = clampNumber(config.tensionLoomIdleWavePx, 0, 12, state.tensionLoomIdleWavePx);
+  if (config.tensionLoomPulseStrength !== undefined) state.tensionLoomPulseStrength = clampNumber(config.tensionLoomPulseStrength, 0, 0.8, state.tensionLoomPulseStrength);
+  if (config.tensionLoomPulseSpeed !== undefined) state.tensionLoomPulseSpeed = clampInt(config.tensionLoomPulseSpeed, 180, 1600, state.tensionLoomPulseSpeed);
+  if (config.tensionLoomPulseWidth !== undefined) state.tensionLoomPulseWidth = clampInt(config.tensionLoomPulseWidth, 18, 180, state.tensionLoomPulseWidth);
+  if (config.tensionLoomWarmupFrames !== undefined) state.tensionLoomWarmupFrames = clampInt(config.tensionLoomWarmupFrames, 0, 240, state.tensionLoomWarmupFrames);
 
   // Flubber Blob mode
   if (config.flubberBlobBallCount !== undefined) state.flubberBlobBallCount = clampInt(config.flubberBlobBallCount, 56, 180, state.flubberBlobBallCount);
