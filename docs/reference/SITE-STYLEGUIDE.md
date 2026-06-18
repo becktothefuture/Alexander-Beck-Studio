@@ -43,6 +43,7 @@ Use these as references when adding siblings:
 - **Meta:** `.abs-meta-btn`, `#site-year`
 - **Quote puck (floating):** **`.quote-display__disk`** = round solid **`var(--cursor-color)`** + shadow (hover scale); **`.quote-display__content`** = text (**`--quote-hover-fg`** / **`--cursor-hover-fg`**); **`#quote-display`** sets **`--_size: calc(var(--abs-quote-button-size) * 0.75)`**; spin is **`--quote-tilt`** on content only (see `main.css` Quote Puck block).
 - **Contact row (modal):** `.contact-email-row` hover uses the same fill + rim + `cursor-hover-fg`
+- **Supporting descriptions:** `.decorative-script`, `.portfolio-topline`, `.modal-description`, and legacy `.gate-description` share the `--supporting-description-*` type recipe so top-right blurbs and gate copy stay visually aligned.
 - **Portfolio project sheet (pit):** `.portfolio-project-view__links a` — external links in the open project use the same `::before` + `--ui-chrome-button-edge` hover treatment ([`portfolio.css`](../../react-app/app/public/css/portfolio.css))
 - **Legend active:** `.legend__item--active::before` — solid fill + rim; label uses `cursor-hover-fg`
 
@@ -66,6 +67,8 @@ Authoritative detail: [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md) (route top 
 | Concern | Where |
 |--------|--------|
 | Chrome rim, fill transition duration | [`react-app/app/public/css/tokens.css`](../../react-app/app/public/css/tokens.css) — `--ui-chrome-button-edge`, `--ui-chrome-fill-transition-duration` |
+| Route topbar resting ink | [`react-app/app/public/css/tokens.css`](../../react-app/app/public/css/tokens.css) — `--shell-chrome-ink` |
+| Supporting description typography | [`react-app/app/public/css/tokens.css`](../../react-app/app/public/css/tokens.css) — `--supporting-description-*` |
 | Portfolio pit **canvas** bodies | No disc rim or stroke — fill + optional hover image reveal only; size vs **`√(inner pit area)`** in `pit-mode.js`; see [`PORTFOLIO.md`](PORTFOLIO.md) |
 | Cursor + hover foreground CSS vars | Set from palette in [`react-app/app/src/legacy/modules/visual/colors.js`](../../react-app/app/src/legacy/modules/visual/colors.js) (`stampCursorCSSVar`, `computeSafeTextOnCursorColor`) |
 | Unified rules | [`react-app/app/public/css/main.css`](../../react-app/app/public/css/main.css) — section **“UNIFIED HOVER BACKGROUND SYSTEM”** and **“INTERACTIVE HOVER EFFECTS”** |

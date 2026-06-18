@@ -118,7 +118,7 @@ export function getStyleguideRouteView() {
           </section>
 
           <section className="styleguide-section" aria-labelledby="sg-script">
-            <h2 id="sg-script">Decorative script (intro blurb)</h2>
+            <h2 id="sg-script">Supporting description copy</h2>
             <blockquote className="decorative-script styleguide-script-demo">
               <p>
                 Sample philosophy line with a{' '}

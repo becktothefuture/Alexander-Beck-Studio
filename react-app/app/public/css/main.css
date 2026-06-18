@@ -766,11 +766,6 @@ body.cv-page .route-topbar__right.ui-top-right {
   width: auto;
 }
 
-body.portfolio-page .route-topbar__right .portfolio-topline {
-  max-width: min(34vw, var(--decorative-script-max-width));
-  padding-block-start: calc(var(--gap-xs) + var(--gap-sm));
-}
-
 /* Portfolio + CV route top chrome (main.css so CV works without portfolio.css — SPA + cv.html). */
 /* Project drawer hero h1: always white (not global h1 --text-primary / theme). Duplicated intent in portfolio.css. */
 body.portfolio-page #portfolioProjectTitle.portfolio-project-view__title {
@@ -785,6 +780,15 @@ body.cv-page .ui-top {
 body.portfolio-page .portfolio-topnav .footer_link,
 body.cv-page .portfolio-topnav .footer_link {
   white-space: nowrap;
+}
+
+body.portfolio-page .route-topbar .footer_link,
+body.portfolio-page .route-topbar .gate-back,
+body.cv-page .route-topbar .footer_link,
+body.cv-page .route-topbar .gate-back,
+body.portfolio-page .route-topbar .sound-toggle:not([data-enabled="true"]),
+body.cv-page .route-topbar .sound-toggle:not([data-enabled="true"]) {
+  color: var(--shell-chrome-ink);
 }
 
 body.portfolio-page .portfolio-sound-slot,
@@ -966,6 +970,11 @@ body.styleguide-page .styleguide-topbar-frame .portfolio-topnav .footer_link {
 
 body.styleguide-page .styleguide-topbar-frame .portfolio-topline {
   max-width: min(34vw, var(--decorative-script-max-width));
+  font-size: var(--supporting-description-font-size);
+  line-height: var(--supporting-description-line-height);
+  letter-spacing: var(--supporting-description-letter-spacing);
+  color: var(--supporting-description-color);
+  opacity: var(--supporting-description-opacity);
   padding-block-start: calc(var(--gap-xs) + var(--gap-sm));
 }
 
@@ -1224,7 +1233,7 @@ body.styleguide-page .styleguide-type-sample--legend {
 body.styleguide-page .styleguide-type-sample--main-nav {
   display: inline-flex;
   font-family: var(--abs-font-sans);
-  font-size: calc(var(--legend-font-size) * 1.5);
+  font-size: var(--ui-main-nav-link-font-size);
   letter-spacing: var(--legend-letter-spacing);
   font-weight: var(--legend-font-weight);
   color: var(--text-primary);
@@ -1234,11 +1243,12 @@ body.styleguide-page .styleguide-type-sample--decorative {
   margin: 0;
   max-width: min(48ch, 100%);
   font-family: var(--abs-font-sans);
-  font-size: var(--decorative-script-font-size);
+  font-size: var(--supporting-description-font-size);
   font-weight: 400;
-  line-height: var(--decorative-script-line-height);
-  letter-spacing: var(--decorative-script-letter-spacing);
-  color: var(--text-muted);
+  line-height: var(--supporting-description-line-height);
+  letter-spacing: var(--supporting-description-letter-spacing);
+  color: var(--supporting-description-color);
+  opacity: var(--supporting-description-opacity);
 }
 
 body.styleguide-page .styleguide-type-sample--caption-wrap.caption {
@@ -1345,11 +1355,12 @@ body.styleguide-page .styleguide-type-sample--gate-title {
 
 body.styleguide-page .styleguide-type-sample--gate-desc {
   font-family: var(--abs-font-sans);
-  font-size: 20px;
+  font-size: var(--supporting-description-font-size);
   margin: 0;
-  letter-spacing: var(--modal-description-letter-spacing, 0.024em);
-  line-height: var(--line-height-base);
-  color: var(--modal-description-color, color-mix(in srgb, var(--text-primary) 78%, var(--frame-inner-surface) 22%));
+  letter-spacing: var(--supporting-description-letter-spacing);
+  line-height: var(--supporting-description-line-height);
+  color: var(--supporting-description-color);
+  opacity: var(--supporting-description-opacity);
 }
 
 body.styleguide-page .styleguide-type-portfolio-slab {
@@ -1461,9 +1472,9 @@ body.styleguide-page .styleguide-type-sample--cv-meta {
 
 body.styleguide-page .styleguide-type-sample--cv-body {
   margin: 0;
-  font-size: var(--cv-body-size, clamp(0.75rem, 1vw, 0.9rem));
-  line-height: 1.55;
-  color: var(--text-primary);
+  font-size: var(--cv-route-body-font-size);
+  line-height: var(--cv-route-body-line-height);
+  color: var(--cv-ink, var(--text-primary));
 }
 
 /* Mobile-only row: sound toggle sits under legend + blurb, centered */
@@ -1857,7 +1868,7 @@ body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .caption,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn {
-  opacity: 0.7;
+  opacity: var(--supporting-description-opacity);
   transition: opacity 0.15s var(--ease-organic);
 }
 
@@ -2086,12 +2097,6 @@ p {
 }
 
 /* Hover background pseudo-element for text links (uses unified base below) */
-
-/* Master main nav text buttons: #main-links (home) + route top bars. Mark container with .ui-main-nav. */
-.ui-main-nav {
-  /* Primary button scale: slightly tighter than the old 1.5× legend size. */
-  --ui-main-nav-link-font-size: calc(var(--legend-font-size) * 1.35);
-}
 
 .ui-main-nav .footer_link {
   /* Nav bar buttons: substantial padding matching other page links */
@@ -3479,8 +3484,8 @@ html.is-safari .noise::before {
 
   /* Gate body: same label size with modal description tracking on narrow viewports */
   .gate-description {
-    font-size: calc((clamp(0.7rem, 1.2vw, 0.78rem) + 3px) * 0.85);
-    letter-spacing: var(--modal-description-letter-spacing, 0.024em);
+    font-size: var(--modal-description-font-size, var(--supporting-description-font-size));
+    letter-spacing: var(--modal-description-letter-spacing, var(--supporting-description-letter-spacing));
   }
 
   .gate-title {
@@ -3973,8 +3978,11 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   /* −33% vs prior clamp(1.5rem, 3vw, 2rem): label ↔ inputs + label internal stack */
   --modal-column-gap: calc(clamp(1.5rem, 3vw, 2rem) * 0.67);
   --modal-label-stack-gap: var(--modal-column-gap);
-  --modal-description-letter-spacing: 0.024em;
-  --modal-description-color: color-mix(in srgb, var(--text-primary) 78%, var(--frame-inner-surface) 22%);
+  --modal-description-font-size: var(--supporting-description-font-size);
+  --modal-description-line-height: var(--supporting-description-line-height);
+  --modal-description-letter-spacing: var(--supporting-description-letter-spacing);
+  --modal-description-color: var(--supporting-description-color);
+  --modal-description-opacity: var(--supporting-description-opacity);
   
   /* Gate overlay positioning and animation
      IMPORTANT: gates must NOT affect each other's layout during gate-to-gate switching.
@@ -4101,9 +4109,11 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .cv-modal .modal-description,
 .portfolio-modal .modal-description,
 .contact-modal .modal-description {
-  font-size: 20px;
+  font-size: var(--modal-description-font-size);
+  line-height: var(--modal-description-line-height);
   letter-spacing: var(--modal-description-letter-spacing);
   color: var(--modal-description-color);
+  opacity: var(--modal-description-opacity);
   margin: 0;
 }
 
@@ -4129,8 +4139,6 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   .cv-modal .modal-description,
   .portfolio-modal .modal-description,
   .contact-modal .modal-description {
-    font-size: clamp(0.9rem, 3.3vw, 0.95rem);
-    line-height: 1.22;
     max-width: 26ch;
   }
 }
@@ -4160,6 +4168,11 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   color: var(--text-quiet);
   transition: transform 0.15s var(--ease-organic),
               filter 0.15s var(--ease-organic);
+}
+
+body.portfolio-page .route-topbar .gate-back,
+body.cv-page .route-topbar .gate-back {
+  color: var(--shell-chrome-ink);
 }
 
 .gate-back:active {
@@ -4204,12 +4217,13 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 .gate-description {
   font-family: var(--abs-font-sans);
-  font-size: var(--footer-links-font-size);
+  font-size: var(--modal-description-font-size, var(--supporting-description-font-size));
   font-weight: 400;
-  letter-spacing: var(--modal-description-letter-spacing, 0.024em);
-  color: var(--modal-description-color, color-mix(in srgb, var(--text-primary) 78%, var(--frame-inner-surface) 22%));
+  letter-spacing: var(--modal-description-letter-spacing, var(--supporting-description-letter-spacing));
+  color: var(--modal-description-color, var(--supporting-description-color));
+  opacity: var(--modal-description-opacity, var(--supporting-description-opacity));
   margin: 0 auto;
-  line-height: var(--line-height-body);
+  line-height: var(--modal-description-line-height, var(--supporting-description-line-height));
   max-width: 38ch;
   text-wrap: pretty;
   overflow-wrap: anywhere;
@@ -5321,17 +5335,6 @@ body.dark-mode .cv-photo {
     align-self: start;
   }
 
-  body.portfolio-page .route-topbar__right .portfolio-topline {
-    grid-area: blurb;
-    max-width: min(100%, 28ch);
-    width: min(100%, 28ch);
-    margin: 0;
-    padding-block-start: 0;
-    justify-self: start;
-    font-size: clamp(0.94rem, 3.1vw, 1rem);
-    line-height: 1.28;
-  }
-
   body.portfolio-page .hero-title.hero-title--portfolio {
     width: min(82vw, 18ch);
   }
@@ -5984,8 +5987,8 @@ body.cv-page .cv-recognition,
 body.cv-page .cv-skills li,
 body.cv-page .cv-projects li,
 body.cv-page .cv-entry-meta {
-  font-size: clamp(1.08rem, 1.3vw, 1.2rem);
-  line-height: 1.88;
+  font-size: var(--cv-route-body-font-size);
+  line-height: var(--cv-route-body-line-height);
   text-wrap: pretty;
 }
 
@@ -6216,8 +6219,8 @@ body.cv-page .cv-section--signals {
   body.cv-page .cv-projects li,
   body.cv-page .cv-entry-meta,
   body.cv-page .cv-footer-prompt {
-    font-size: clamp(1.03rem, 3.8vw, 1.12rem);
-    line-height: 1.78;
+    font-size: var(--cv-route-body-font-size);
+    line-height: var(--cv-route-body-line-height);
   }
 
   body.cv-page .cv-intro > .cv-intro-text + .cv-intro-text {

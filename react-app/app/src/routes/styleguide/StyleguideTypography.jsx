@@ -173,7 +173,7 @@ export function StyleguideTypographySection() {
 
         <li className="styleguide-type-role">
           <div className="styleguide-type-role__label">
-            <code className="styleguide-doc__code">.ui-main-nav .footer_link</code> · primary buttons (slightly smaller than the old ×1.5 legend size)
+            <code className="styleguide-doc__code">.ui-main-nav .footer_link</code> · primary buttons (production nav scale)
           </div>
           <div className="styleguide-type-role__sample">
             <span className="styleguide-type-sample styleguide-type-sample--main-nav">About Me</span>
@@ -182,7 +182,7 @@ export function StyleguideTypographySection() {
 
         <li className="styleguide-type-role">
           <div className="styleguide-type-role__label">
-            <code className="styleguide-doc__code">.decorative-script</code> · intro blurb
+            <code className="styleguide-doc__code">.decorative-script</code> · supporting description copy
           </div>
           <div className="styleguide-type-role__sample">
             <p className="styleguide-type-sample styleguide-type-sample--decorative">
@@ -250,7 +250,7 @@ export function StyleguideTypographySection() {
         <li className="styleguide-type-role">
           <div className="styleguide-type-role__label">
             Gate modals · <code className="styleguide-doc__code">.modal-title</code> /{' '}
-            <code className="styleguide-doc__code">.modal-description</code>
+            <code className="styleguide-doc__code">.modal-description</code> (supporting description copy)
           </div>
           <div className="styleguide-type-role__sample">
             <div className="styleguide-type-gate-block">
@@ -291,8 +291,7 @@ export function StyleguideTypographySection() {
               <div className="styleguide-type-sample styleguide-type-sample--cv-entry">Senior designer</div>
               <p className="styleguide-type-sample styleguide-type-sample--cv-meta">2020 — Present · Berlin</p>
               <p className="styleguide-type-sample styleguide-type-sample--cv-body">
-                Paragraph text uses <code className="styleguide-doc__code">--cv-body-size</code> when set; otherwise clamp
-                from <code className="styleguide-doc__code">main.css</code>.
+                Paragraph text mirrors the live CV route body scale and relaxed reading rhythm.
               </p>
             </div>
           </div>

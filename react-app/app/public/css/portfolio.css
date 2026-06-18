@@ -149,8 +149,13 @@ body.portfolio-page .route-topbar__right .portfolio-topline {
   width: 100%;
   max-width: min(100%, var(--decorative-script-max-width));
   justify-self: end;
-  font-size: calc(var(--legend-font-size) + var(--abs-size-1px));
+  font-size: var(--supporting-description-font-size);
+  line-height: var(--supporting-description-line-height);
+  letter-spacing: var(--supporting-description-letter-spacing);
+  color: var(--supporting-description-color);
+  opacity: var(--supporting-description-opacity);
   margin-block-start: calc(var(--decorative-script-font-size) * -0.5);
+  padding-block-start: calc(var(--gap-xs) + var(--gap-sm));
   padding-inline-start: calc(var(--decorative-script-padding-left) + var(--gap-md));
 }
 
@@ -884,12 +889,8 @@ body.portfolio-project-open .ui-bottom {
     margin: 0;
     text-align: left;
     justify-self: start;
-    font-size: clamp(
-      calc(0.76rem + var(--abs-size-1px)),
-      3vw,
-      calc(0.88rem + var(--abs-size-1px))
-    );
-    line-height: 1.32;
+    font-size: var(--supporting-description-font-size);
+    line-height: var(--supporting-description-line-height);
     padding: 0;
   }
 

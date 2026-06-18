@@ -292,6 +292,7 @@
   --text-placeholder: var(--text-primary);
   --text-action: var(--text-primary);
   --text-logo: #161616;
+  --shell-chrome-ink: var(--text-logo);
   --abs-fg-primary: var(--text-primary);
   --abs-fg-secondary: var(--text-muted);
   --abs-fg-muted: var(--text-muted);
@@ -549,11 +550,21 @@
   --decorative-script-padding-left: var(--gap-md);
   --decorative-script-padding-vertical: var(--gap-sm);
 
+  --supporting-description-font-size: calc(var(--legend-font-size) + var(--abs-size-1px));
+  --supporting-description-line-height: var(--decorative-script-line-height);
+  --supporting-description-letter-spacing: var(--decorative-script-letter-spacing);
+  --supporting-description-color: var(--text-muted);
+  --supporting-description-opacity: var(--abs-opacity-muted);
+
+  --cv-route-body-font-size: clamp(1.08rem, 1.3vw, 1.2rem);
+  --cv-route-body-line-height: 1.88;
+
   --footer-icon-gap: var(--gap-lg);
   --footer-icon-size: var(--size-icon);
   --footer-links-padding: var(--tap-target);
   --footer-links-font-size: clamp(14px, 1.4vw, 15px);
   --footer-links-letter-spacing: var(--letter-spacing-normal);
+  --ui-main-nav-link-font-size: calc(var(--legend-font-size) * 1.35);
   --meta-time-letter-spacing: 0.02em;
   --footer-link-dot-size: 4px;
   --footer-link-dot-offset: 8px;
@@ -621,7 +632,7 @@
     999px
   );
 
-  /* Home header: right column (intro blurb + sound) — at least token script width + gap + icon frame */
+  /* Home header: right column (supporting description + sound) — at least token script width + gap + icon frame */
   --ui-top-right-col-min: min(
     100%,
     calc(var(--decorative-script-max-width) + var(--gap-lg) + var(--ui-icon-frame-size))
@@ -718,6 +729,13 @@
   }
 }
 
+@media (max-width: 768px) {
+  :root {
+    --cv-route-body-font-size: clamp(1.03rem, 3.8vw, 1.12rem);
+    --cv-route-body-line-height: 1.78;
+  }
+}
+
 :root.dark-mode {
   color-scheme: dark;
   /* Wall and chrome colors remain unified (#242529) in dark mode */
@@ -732,6 +750,7 @@
   --text-primary: var(--text-color-dark);
   --text-muted: var(--text-color-dark-muted);
   --text-logo: #f0f0f0;
+  --shell-chrome-ink: var(--text-primary);
 
   /* Single stroke color override for dark mode */
   --abs-stroke-medium: rgba(var(--abs-rgb-white), 0.25);
