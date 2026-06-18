@@ -389,6 +389,14 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       if (weaveIterations > 0) {
         collisionStats = resolveCollisions(weaveIterations) || EMPTY_COLLISION_STATS;
       }
+    } else if (globals.currentMode === MODES.PRESSURE_CRUCIBLE) {
+      const pressureIterations = Math.max(
+        0,
+        Math.min(8, Math.round(Number(globals.pressureCrucibleCollisionIterations ?? 3) || 0))
+      );
+      if (pressureIterations > 0) {
+        collisionStats = resolveCollisions(pressureIterations) || EMPTY_COLLISION_STATS;
+      }
     } else if (shouldResolveBallCollisionsForMode(globals.currentMode)) {
       collisionStats = resolveCollisions(collisionIterations) || EMPTY_COLLISION_STATS; // configurable solver iterations
     }

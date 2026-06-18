@@ -32,6 +32,7 @@ const MODE_NAMES = {
   'flock-of-birds': 'Flock of Birds',
   'flubber-blob': 'Flubber Blob',
   'weave-field': 'Weave Field',
+  'pressure-crucible': 'Pressure Crucible',
   'particle-fountain': 'Particle Fountain'
 };
 
@@ -158,6 +159,13 @@ const MODE_REGISTRY = {
       force: 'applyWeaveFieldForces'
     }
   },
+  [MODES.PRESSURE_CRUCIBLE]: {
+    load: () => import('./pressure-crucible.js'),
+    hooks: {
+      initialize: 'initializePressureCrucible',
+      force: 'applyPressureCrucibleForces'
+    }
+  },
   [MODES.PARTICLE_FOUNTAIN]: {
     load: () => import('./particle-fountain.js'),
     hooks: {
@@ -254,6 +262,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.ELASTIC_CENTER: return globals.elasticCenterWarmupFrames ?? 10;
     case MODES.FLUBBER_BLOB: return globals.flubberBlobWarmupFrames ?? 10;
     case MODES.WEAVE_FIELD: return globals.weaveFieldWarmupFrames ?? 0;
+    case MODES.PRESSURE_CRUCIBLE: return globals.pressureCrucibleWarmupFrames ?? 0;
     case MODES.PARTICLE_FOUNTAIN: return globals.particleFountainWarmupFrames ?? 0;
     default: return 10;
   }
@@ -275,7 +284,8 @@ function applyModePhysicsState(mode, globals) {
     MODES.STARFIELD_3D,
     MODES.ELASTIC_CENTER,
     MODES.FLUBBER_BLOB,
-    MODES.WEAVE_FIELD
+    MODES.WEAVE_FIELD,
+    MODES.PRESSURE_CRUCIBLE
   ]);
 
   if (isPitLikeMode(mode)) {

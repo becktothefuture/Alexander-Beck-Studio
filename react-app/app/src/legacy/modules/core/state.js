@@ -197,6 +197,7 @@ const state = {
     [MODES.ELASTIC_CENTER]: { desktop: 240, mobile: 150 },
     [MODES.FLUBBER_BLOB]: { desktop: 120, mobile: 52 },
     [MODES.WEAVE_FIELD]: { desktop: 132, mobile: 88 },
+    [MODES.PRESSURE_CRUCIBLE]: { desktop: 128, mobile: 88 },
     [MODES.STARFIELD_3D]: { desktop: 220, mobile: 150 },
     [MODES.PARALLAX_FLOAT]: { desktop: 320, mobile: 160 },
     [MODES.PARTICLE_FOUNTAIN]: { desktop: 260, mobile: 180 }
@@ -520,6 +521,19 @@ const state = {
   weaveFieldMaxSpeed: 1920,
   weaveFieldCollisionIterations: 1,
   weaveFieldWarmupFrames: 0,
+
+  // Pressure Crucible mode
+  pressureCrucibleBallCount: 128,
+  pressureCrucibleCycleSeconds: 6.4,
+  pressureCrucibleCompressionStrength: 18,
+  pressureCrucibleReboundStrength: 26000,
+  pressureCruciblePointerRadius: 240,
+  pressureCruciblePointerRepelStrength: 30000,
+  pressureCrucibleDamping: 0.965,
+  pressureCrucibleMaxSpeed: 2100,
+  pressureCrucibleCollisionIterations: 3,
+  pressureCrucibleMassMultiplier: 1.8,
+  pressureCrucibleWarmupFrames: 0,
   
   // Particle Fountain mode (water-like behavior)
   particleFountainEmissionRate: 29, // particles per second
@@ -1533,6 +1547,7 @@ export function initState(config) {
   if (config.elasticCenterWarmupFrames !== undefined) state.elasticCenterWarmupFrames = clampInt(config.elasticCenterWarmupFrames, 0, 240, state.elasticCenterWarmupFrames);
   if (config.flubberBlobWarmupFrames !== undefined) state.flubberBlobWarmupFrames = clampInt(config.flubberBlobWarmupFrames, 0, 240, state.flubberBlobWarmupFrames);
   if (config.weaveFieldWarmupFrames !== undefined) state.weaveFieldWarmupFrames = clampInt(config.weaveFieldWarmupFrames, 0, 240, state.weaveFieldWarmupFrames);
+  if (config.pressureCrucibleWarmupFrames !== undefined) state.pressureCrucibleWarmupFrames = clampInt(config.pressureCrucibleWarmupFrames, 0, 240, state.pressureCrucibleWarmupFrames);
 
   if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
   if (config.repelRadius !== undefined) state.repelRadius = config.repelRadius;
@@ -1919,6 +1934,19 @@ export function initState(config) {
   if (config.weaveFieldDamping !== undefined) state.weaveFieldDamping = clampNumber(config.weaveFieldDamping, 0.7, 0.995, state.weaveFieldDamping);
   if (config.weaveFieldMaxSpeed !== undefined) state.weaveFieldMaxSpeed = clampInt(config.weaveFieldMaxSpeed, 220, 2200, state.weaveFieldMaxSpeed);
   if (config.weaveFieldCollisionIterations !== undefined) state.weaveFieldCollisionIterations = clampInt(config.weaveFieldCollisionIterations, 0, 6, state.weaveFieldCollisionIterations);
+
+  // Pressure Crucible mode
+  if (config.pressureCrucibleBallCount !== undefined) state.pressureCrucibleBallCount = clampInt(config.pressureCrucibleBallCount, 48, 220, state.pressureCrucibleBallCount);
+  if (config.pressureCrucibleCycleSeconds !== undefined) state.pressureCrucibleCycleSeconds = clampNumber(config.pressureCrucibleCycleSeconds, 3.2, 14, state.pressureCrucibleCycleSeconds);
+  if (config.pressureCrucibleCompressionStrength !== undefined) state.pressureCrucibleCompressionStrength = clampNumber(config.pressureCrucibleCompressionStrength, 0, 32, state.pressureCrucibleCompressionStrength);
+  if (config.pressureCrucibleReboundStrength !== undefined) state.pressureCrucibleReboundStrength = clampInt(config.pressureCrucibleReboundStrength, 0, 52000, state.pressureCrucibleReboundStrength);
+  if (config.pressureCruciblePointerRadius !== undefined) state.pressureCruciblePointerRadius = clampInt(config.pressureCruciblePointerRadius, 40, 420, state.pressureCruciblePointerRadius);
+  if (config.pressureCruciblePointerRepelStrength !== undefined) state.pressureCruciblePointerRepelStrength = clampInt(config.pressureCruciblePointerRepelStrength, 0, 70000, state.pressureCruciblePointerRepelStrength);
+  if (config.pressureCrucibleDamping !== undefined) state.pressureCrucibleDamping = clampNumber(config.pressureCrucibleDamping, 0.72, 0.995, state.pressureCrucibleDamping);
+  if (config.pressureCrucibleMaxSpeed !== undefined) state.pressureCrucibleMaxSpeed = clampInt(config.pressureCrucibleMaxSpeed, 180, 2800, state.pressureCrucibleMaxSpeed);
+  if (config.pressureCrucibleCollisionIterations !== undefined) state.pressureCrucibleCollisionIterations = clampInt(config.pressureCrucibleCollisionIterations, 0, 8, state.pressureCrucibleCollisionIterations);
+  if (config.pressureCrucibleMassMultiplier !== undefined) state.pressureCrucibleMassMultiplier = clampNumber(config.pressureCrucibleMassMultiplier, 0.5, 4, state.pressureCrucibleMassMultiplier);
+  if (config.pressureCrucibleWarmupFrames !== undefined) state.pressureCrucibleWarmupFrames = clampInt(config.pressureCrucibleWarmupFrames, 0, 240, state.pressureCrucibleWarmupFrames);
 
 
 

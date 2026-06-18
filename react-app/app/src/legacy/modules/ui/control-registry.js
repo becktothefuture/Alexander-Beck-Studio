@@ -4865,6 +4865,127 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
+  pressureCrucible: {
+    title: 'Pressure Crucible',
+    icon: '◉',
+    mode: 'pressure-crucible',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'pressureCrucibleBallCount',
+        label: 'Ball Count',
+        stateKey: 'pressureCrucibleBallCount',
+        type: 'range',
+        min: 48, max: 220, step: 4,
+        default: 128,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true,
+        hint: 'Total pressure bodies. Mobile/lite budgets can still reduce the effective count.'
+      },
+      {
+        id: 'pressureCrucibleCycleSeconds',
+        label: 'Cycle Time',
+        stateKey: 'pressureCrucibleCycleSeconds',
+        type: 'range',
+        min: 3.2, max: 14, step: 0.1,
+        default: 6.4,
+        format: v => `${Number(v).toFixed(1)}s`,
+        parse: parseFloat,
+        hint: 'Seconds for one compression, hold, and rebound cycle.'
+      },
+      {
+        id: 'pressureCrucibleCompressionStrength',
+        label: 'Compression',
+        stateKey: 'pressureCrucibleCompressionStrength',
+        type: 'range',
+        min: 0, max: 32, step: 0.5,
+        default: 18,
+        format: v => Number(v).toFixed(1),
+        parse: parseFloat,
+        hint: 'How strongly bodies are pulled into the chamber core.'
+      },
+      {
+        id: 'pressureCrucibleReboundStrength',
+        label: 'Rebound Force',
+        stateKey: 'pressureCrucibleReboundStrength',
+        type: 'range',
+        min: 0, max: 52000, step: 1000,
+        default: 26000,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        hint: 'Outward pulse strength after the crush phase.'
+      },
+      {
+        id: 'pressureCruciblePointerRadius',
+        label: 'Pointer Radius',
+        stateKey: 'pressureCruciblePointerRadius',
+        type: 'range',
+        min: 40, max: 420, step: 5,
+        default: 240,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Desktop cursor or mobile touch radius that bends the pressure field.'
+      },
+      {
+        id: 'pressureCruciblePointerRepelStrength',
+        label: 'Pointer Repel',
+        stateKey: 'pressureCruciblePointerRepelStrength',
+        type: 'range',
+        min: 0, max: 70000, step: 1000,
+        default: 30000,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        hint: 'Strength of local cursor/touch repulsion.'
+      },
+      {
+        id: 'pressureCrucibleDamping',
+        label: 'Damping',
+        stateKey: 'pressureCrucibleDamping',
+        type: 'range',
+        min: 0.72, max: 0.995, step: 0.005,
+        default: 0.965,
+        format: v => Number(v).toFixed(3),
+        parse: parseFloat,
+        hint: 'Velocity damping. Lower values reduce jitter and impact energy.'
+      },
+      {
+        id: 'pressureCrucibleMaxSpeed',
+        label: 'Energy Cap',
+        stateKey: 'pressureCrucibleMaxSpeed',
+        type: 'range',
+        min: 180, max: 2800, step: 20,
+        default: 2100,
+        format: v => `${Math.round(v)}px/s`,
+        parse: v => parseInt(v, 10),
+        hint: 'Maximum body speed after compression, rebound, pointer pressure, and wall contact.'
+      },
+      {
+        id: 'pressureCrucibleCollisionIterations',
+        label: 'Contact Passes',
+        stateKey: 'pressureCrucibleCollisionIterations',
+        type: 'range',
+        min: 0, max: 8, step: 1,
+        default: 3,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        hint: 'Ball-on-ball solver passes during dense compression.'
+      },
+      {
+        id: 'pressureCrucibleMassMultiplier',
+        label: 'Mass',
+        stateKey: 'pressureCrucibleMassMultiplier',
+        type: 'range',
+        min: 0.5, max: 4, step: 0.1,
+        default: 1.8,
+        format: v => `${Number(v).toFixed(1)}x`,
+        parse: parseFloat,
+        hint: 'Mass multiplier for stronger wall pressure and squash.'
+      },
+      warmupFramesControl('pressureCrucibleWarmupFrames')
+    ]
+  },
+
   particleFountain: {
     title: 'Particle Fountain',
     icon: '⛲',
@@ -6174,6 +6295,7 @@ export function generateModeSwitcherHTML() {
     'flock-of-birds': '🕊️',
     'flubber-blob': '🫠',
     'weave-field': '🧵',
+    'pressure-crucible': '◉',
     'particle-fountain': '⛲'
   };
   const modeLabels = {
@@ -6194,6 +6316,7 @@ export function generateModeSwitcherHTML() {
     'flock-of-birds': 'Flock',
     'flubber-blob': 'Flubber',
     'weave-field': 'Weave',
+    'pressure-crucible': 'Crucible',
     'particle-fountain': 'Fountain'
   };
   
@@ -6533,6 +6656,7 @@ export function bindRegisteredControls(options = {}) {
             'elastic-center': null,
             'flubber-blob': g.flubberBlobBallCount,
             'weave-field': g.weaveFieldBallCount,
+            'pressure-crucible': g.pressureCrucibleBallCount,
             'particle-fountain': g.particleFountainMaxParticles
           };
           const v = map[mode];

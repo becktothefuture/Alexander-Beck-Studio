@@ -24,6 +24,7 @@ export const MODES = {
   FLOCK_OF_BIRDS: 'flock-of-birds',
   FLUBBER_BLOB: 'flubber-blob',
   WEAVE_FIELD: 'weave-field',
+  PRESSURE_CRUCIBLE: 'pressure-crucible',
   PARTICLE_FOUNTAIN: 'particle-fountain'
 };
 
@@ -38,7 +39,7 @@ export function isPitLikeMode(mode) {
 //
 // Two-tier system ensures visitors see the most impressive work first:
 // 
-// FEATURED TIER (10 modes):
+// FEATURED TIER (11 modes):
 // - Always cycles first in the sequence
 // - Guaranteed first impression for new visitors
 // - Best work, strongest visual impact
@@ -61,6 +62,7 @@ export const FEATURED_MODES = [
   MODES.FLOCK_OF_BIRDS,   // FLIGHT FIELD
   MODES.FLUBBER_BLOB,     // COHESION FIELD
   MODES.WEAVE_FIELD,      // WEAVE FIELD
+  MODES.PRESSURE_CRUCIBLE, // PRESSURE CRUCIBLE
   // PARALLAX_LINEAR intentionally excluded from narrative cycling.
   MODES.ELASTIC_CENTER,   // ELASTIC CENTER
   MODES.KALEIDOSCOPE      // VOCAB BLOOM
@@ -97,6 +99,7 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.FLOCK_OF_BIRDS]: 'FLIGHT FIELD',
   [MODES.FLUBBER_BLOB]: 'COHESION FIELD',
   [MODES.WEAVE_FIELD]: 'WEAVE FIELD',
+  [MODES.PRESSURE_CRUCIBLE]: 'PRESSURE CRUCIBLE',
   [MODES.SPHERE_3D]: '3D SHELL',
   [MODES.CUBE_3D]: '3D FRAME',
   [MODES.KALEIDOSCOPE]: 'VOCAB BLOOM',
@@ -169,6 +172,10 @@ export const NARRATIVE_QUOTES = {
     author: 'Kurt Koffka'
   },
   [MODES.WEAVE_FIELD]: {
+    quote: 'The whole is other than the sum of the parts.',
+    author: 'Kurt Koffka'
+  },
+  [MODES.PRESSURE_CRUCIBLE]: {
     quote: 'The whole is other than the sum of the parts.',
     author: 'Kurt Koffka'
   },
