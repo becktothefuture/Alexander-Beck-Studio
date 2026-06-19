@@ -6182,6 +6182,7 @@ export function generateModeSwitcherHTML() {
     'starfield-3d': '✨',
     'elastic-center': '◇',
     'flock-of-birds': '🕊️',
+    'wall-repel': '↔',
     'flubber-blob': '🫠',
     'weave-field': '🧵',
     'pressure-crucible': '◉',
@@ -6203,6 +6204,7 @@ export function generateModeSwitcherHTML() {
     'starfield-3d': 'Starfield 3D',
     'elastic-center': 'Tension Loom',
     'flock-of-birds': 'Flock',
+    'wall-repel': 'Repel',
     'flubber-blob': 'Flubber',
     'weave-field': 'Weave',
     'pressure-crucible': 'Flux',
@@ -6296,6 +6298,7 @@ function generateHomeModeSectionHTML() {
               'starfield-3d': '✨',
               'elastic-center': '◇',
               'flock-of-birds': '🕊️',
+              'wall-repel': '↔',
               'flubber-blob': '🫠',
               'weave-field': '🧵',
               'particle-fountain': '⛲'
@@ -6316,6 +6319,7 @@ function generateHomeModeSectionHTML() {
               'starfield-3d': 'Starfield 3D',
               'elastic-center': 'Tension Loom',
               'flock-of-birds': 'Flock',
+              'wall-repel': 'Repel',
               'flubber-blob': 'Flubber',
               'weave-field': 'Weave',
               'particle-fountain': 'Fountain'

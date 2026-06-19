@@ -18,6 +18,7 @@ let baseUrl = `http://${previewHost}:${previewPort}`;
 const screenshotBrowser = 'chromium';
 const acceptableBootStates = ['ready', 'content-ready', 'entered'];
 const previewMarkers = ['Alexander Beck Studio', '/css/tokens.css'];
+const routeBackedDailyCanvasSelector = '#flock-of-birds-canvas, #wall-repel-canvas';
 
 const matrix = [
   {
@@ -44,7 +45,15 @@ const matrix = [
         minArea: 12000,
         requiredTextAnyOf: [["Let's chat", "Let’s chat"]]
       }
-    ]
+    ],
+    routeBackedDaily: {
+      readySelectors: ['#app-frame', routeBackedDailyCanvasSelector],
+      minReadySelectors: 2,
+      selectors: [
+        { selector: '#app-frame', minArea: 200000, requiredText: [] },
+        { selector: routeBackedDailyCanvasSelector, minArea: 60000, requiredText: [] }
+      ]
+    }
   },
   {
     page: 'portfolio',
@@ -429,14 +438,31 @@ async function waitForEntryReadiness(page, entry, timeoutMs = 22000) {
   };
 }
 
+async function resolveActiveEntry(page, entry) {
+  if (!entry.routeBackedDaily) return entry;
+
+  const pathname = await page.evaluate(() => window.location.pathname || '').catch(() => '');
+  if (!pathname.startsWith('/lab/')) return entry;
+
+  return {
+    ...entry,
+    ...entry.routeBackedDaily,
+    path: pathname
+  };
+}
+
 async function navigateAndWait(page, entry) {
   await page.goto(`${baseUrl}${entry.path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
   await page.waitForSelector('#app-frame', { state: 'attached', timeout: 8000 }).catch(() => {});
 
-  const readiness = await waitForEntryReadiness(page, entry);
+  const activeEntry = await resolveActiveEntry(page, entry);
+  const readiness = await waitForEntryReadiness(page, activeEntry);
   await delay(readiness.ready ? 1500 : 250);
-  return readiness;
+  return {
+    readiness,
+    activeEntry
+  };
 }
 
 async function collectSelectorStats(page, requirement) {
@@ -532,7 +558,9 @@ async function certifyEntry(browser, entry, viewport, theme) {
     };
 
     try {
-      readiness = await navigateAndWait(page, entry);
+      const navigation = await navigateAndWait(page, entry);
+      readiness = navigation.readiness;
+      entry = navigation.activeEntry;
     } catch (error) {
       runtimeFailures.push(`navigation:${String(error.message || error).split('\n')[0]}`);
     }
@@ -590,7 +618,7 @@ async function certifyEntry(browser, entry, viewport, theme) {
       viewport,
       screenshot: screenshotPath,
       bootState,
-      bootStateOk: acceptableBootStates.includes(bootState),
+      bootStateOk: acceptableBootStates.includes(bootState) || readiness.ready,
       readiness,
       runtimeFailures,
       selectorResults,

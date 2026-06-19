@@ -47,6 +47,12 @@ const ROUTE_DEFS = {
     aliases: ['/lab/rain-prism.html', '/lab/rain-prism', '/rain-prism.html', '/rain-prism'],
     gated: false,
   },
+  'wall-repel': {
+    id: 'wall-repel',
+    path: '/lab/wall-repel.html',
+    aliases: ['/lab/wall-repel.html', '/lab/wall-repel', '/wall-repel.html', '/wall-repel'],
+    gated: false,
+  },
 };
 
 function normalizePathname(pathname = '/') {

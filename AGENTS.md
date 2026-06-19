@@ -15,7 +15,7 @@
 - `npm run audit:portfolio-gate` — Playwright: home → portfolio modal → pit; asserts `#c` buffer vs CSS×DPR and non-empty `.portfolio-project-label__text` (`ABS_DEV_URL` = origin e.g. `http://127.0.0.1:8013` or preview; run `npm run preview` in another shell first)
 - `npm run audit:transition-flows` — Playwright transition audit with in-flight + settled checkpoints, screenshots, timing assertions, and optional strict cadence (`ABS_BROWSER=chromium|webkit`, `ABS_TRANSITION_STRICT_RAF=1`)
 - `npm run validate:html-fragments` — Validate partial HTML templates
-- No automated tests; manual testing required (all 20 modes, 60 FPS, mobile)
+- No automated tests; manual testing required (all 21 modes, 60 FPS, mobile)
 
 ## Architecture
 - **Primary surface:** React app at `react-app/app/` (Vite, multi-entry: index, portfolio, cv, styleguide)
@@ -80,7 +80,7 @@
 - **Documentation is authoritative**: If code conflicts with `docs/`, fix the code
 
 ## Critical Constraints
-- 20 simulation modes (see `docs/reference/MODES.md`)
+- 21 simulation modes (see `docs/reference/MODES.md`)
 - Privacy-first: **No analytics or remote telemetry.** Main HTML entries load **Google Fonts** (`fonts.googleapis.com` / `fonts.gstatic.com`). Optional **tactile** layer may load **jsdelivr** when enabled (`legacy/.../tactile-layer.js`). **`localStorage` / `sessionStorage`:** settings, theme, panel/UI helpers — not canonical design truth (see Config Workflow).
 - Accessibility: ARIA labels, keyboard nav, respect `prefers-reduced-motion`
 - Modal blur uses two-layer architecture (locked, do not modify)
@@ -95,6 +95,7 @@
 
 ## Learned Workspace Facts
 - **Custom cursor contract:** `docs/reference/CUSTOM-CURSOR.md`. **Home inner wall only:** small solid palette dot (~**66%** of on-screen ball diameter from canvas mapping). **Everywhere else in-scene** (portfolio pit, CV, chrome, modals): **64px tap ring** (`#custom-cursor.abs-cursor-tap`), `position:fixed` on `body` so it is not buried under UI. Gate overlay still adds `#custom-cursor.modal-active` (same CSS as tap ring).
+- **Simulation visual no-go:** Do not add thin stroked field/cursor/helper lines to simulation canvas visuals, including pointer radius rings or nested cursor circles. Show forces through material motion, spacing, collision response, or broad tonal fields instead.
 - **Route top bar** must match the shared strip (grid + `ui-main-nav` + `MainNavLink` / `footer_link` + sound slot), same discipline as footer composition—documented in `COMPONENT-LIBRARY.md`, `SITE-STYLEGUIDE.md` §1.4, and the styleguide page. Shell chrome has two button families: **text** (`MainNavLink`) and **icon** (`.abs-icon-btn`); do not add parallel text-button classes.
 - Primary surface is `react-app/app/` only; there is no parallel static-site pipeline in this repo.
 - Inner wall corner radius is applied at 1.1× (or 1.15×) base radius to visually compensate for the second outer wall offset; document in CONFIGURATION.md if the multiplier changes.

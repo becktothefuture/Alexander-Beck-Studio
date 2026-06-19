@@ -8,11 +8,11 @@ Source of truth for mode IDs and narrative order:
 
 ## Runtime Summary
 
-- `20` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
-- `18` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
+- `21` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
+- `19` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
 - Daily mode selection uses the Featured tier only; Extended modes are optional explorations.
 - `parallax-linear` remains a registered mode ID for compatibility, but user mode switching redirects it to the first narrative mode.
-- `flock-of-birds` is a route-backed daily entry: it appears in the narrative sequence and opens the dedicated flock renderer instead of the legacy ball-physics mode runner.
+- `flock-of-birds` and `wall-repel` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 
 ---
 
@@ -36,6 +36,7 @@ Source of truth for mode IDs and narrative order:
 | 3D Starfield | `starfield-3d` | Active |
 | Tension Loom | `elastic-center` | Active |
 | Flock of Birds | `flock-of-birds` | Route-backed daily/lab |
+| Repel Room | `wall-repel` | Route-backed daily/lab |
 | Flubber Blob | `flubber-blob` | Active |
 | Weave Field | `weave-field` | Active |
 | Polarity Flux | `pressure-crucible` | Active |
@@ -51,23 +52,24 @@ Source of truth for mode IDs and narrative order:
 2. `flies` — IDEA SPARK
 3. `3d-cube` — 3D FRAME
 4. `water` — USER FLOW
-5. `3d-sphere` — 3D SHELL
-6. `flock-of-birds` — FLIGHT FIELD
-7. `flubber-blob` — COHESION FIELD
-8. `weave-field` — WEAVE FIELD
-9. `elastic-center` — TENSION LOOM
-10. `kaleidoscope-3` — VOCAB BLOOM
+5. `wall-repel` — REPEL ROOM
+6. `3d-sphere` — 3D SHELL
+7. `flock-of-birds` — FLIGHT FIELD
+8. `flubber-blob` — COHESION FIELD
+9. `weave-field` — WEAVE FIELD
+10. `elastic-center` — TENSION LOOM
+11. `kaleidoscope-3` — VOCAB BLOOM
 
 ### Extended Tier (shown after Featured)
 
-11. `bubbles` — NOISE SIGNAL
-12. `magnetic` — DESIGN FORCES
-13. `weightless` — OPEN SPACE
-14. `critters` — BEHAVIOR MODEL
-15. `starfield-3d` — DEPTH FIELD
-16. `parallax-float` — ORGANIC DRIFT
-17. `pressure-crucible` — POLARITY FLUX
-18. `particle-fountain` — PARTICLE FLOW
+12. `bubbles` — NOISE SIGNAL
+13. `magnetic` — DESIGN FORCES
+14. `weightless` — OPEN SPACE
+15. `critters` — BEHAVIOR MODEL
+16. `starfield-3d` — DEPTH FIELD
+17. `parallax-float` — ORGANIC DRIFT
+18. `pressure-crucible` — POLARITY FLUX
+19. `particle-fountain` — PARTICLE FLOW
 
 Loop order is `Featured -> Extended -> Featured`.
 
@@ -101,6 +103,7 @@ Loop order is `Featured -> Extended -> Featured`.
 - `starfield-3d`: depth-projected starfield with recycle.
 - `elastic-center`: Tension Loom; a palette-bead lattice with invisible spring links, single-pointer drag, release waves, subtle hover pressure, and normal wall containment.
 - `flock-of-birds`: route-backed distant flock with weighted center-biased motion, no wall collisions, mouse avoidance, and a safe sky band above the ground.
+- `wall-repel`: route-backed Repel Room with heavy palette balls launched through a bounded room, strong wall repulsion, mobile-bounded DPR/count, and mouse repulsion without visible cursor rings.
 - `flubber-blob`: fixed-size hard circles simulated as embedded beads in a soft silicone-gel raft with persistent gel links, hard 2D contacts, passive hover-only cursor pressure/wake, lossy wall rebound, and no visible detach/reattach behavior.
 - `weave-field`: perpendicular discipline streams that progressively cross into a loose woven lattice, with cursor/touch repulsion opening temporary gaps, shared wall/collision containment, and a compact portrait/mobile weave with fewer lanes and softer motion.
 - `pressure-crucible`: Extended-tier experiment, not a daily candidate. Custom-rendered polarity field with small palette-colored bead samples arranged as a filled swarm cloud. Cursor proximity and speed define a live dipole that bends, splits, and wakes the particles; idle motion stays subtle through local swarm drift rather than a ring orbit.
@@ -110,6 +113,7 @@ Loop order is `Featured -> Extended -> Featured`.
 
 ## Related Docs
 
+- [`SIMULATION-DESIGN-GUIDELINES.md`](./SIMULATION-DESIGN-GUIDELINES.md) — Design, material, avoid-list, and promotion gate for new simulations
 - [`CONFIGURATION.md`](./CONFIGURATION.md) — Runtime config keys and ranges
 - [`INTEGRATION.md`](./INTEGRATION.md) — Embedding and host-page integration
 - [`../development/DEV-WORKFLOW.md`](../development/DEV-WORKFLOW.md) — Dev/build workflow

@@ -22,6 +22,7 @@ export const MODES = {
   STARFIELD_3D: 'starfield-3d',
   ELASTIC_CENTER: 'elastic-center',
   FLOCK_OF_BIRDS: 'flock-of-birds',
+  WALL_REPEL: 'wall-repel',
   FLUBBER_BLOB: 'flubber-blob',
   WEAVE_FIELD: 'weave-field',
   PRESSURE_CRUCIBLE: 'pressure-crucible',
@@ -39,7 +40,7 @@ export function isPitLikeMode(mode) {
 //
 // Two-tier system ensures visitors see the most impressive work first:
 // 
-// FEATURED TIER (10 modes):
+// FEATURED TIER (11 modes):
 // - Always cycles first in the sequence
 // - Guaranteed first impression and daily candidates for new visitors
 // - Best work, strongest visual impact
@@ -58,6 +59,7 @@ export const FEATURED_MODES = [
   MODES.FLIES,            // IDEA SPARK
   MODES.CUBE_3D,          // 3D FRAME
   MODES.WATER,            // USER FLOW
+  MODES.WALL_REPEL,       // REPEL ROOM
   MODES.SPHERE_3D,        // 3D SHELL
   MODES.FLOCK_OF_BIRDS,   // FLIGHT FIELD
   MODES.FLUBBER_BLOB,     // COHESION FIELD
@@ -97,6 +99,7 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.CRITTERS]: 'BEHAVIOR MODEL',
   [MODES.ELASTIC_CENTER]: 'TENSION LOOM',
   [MODES.FLOCK_OF_BIRDS]: 'FLIGHT FIELD',
+  [MODES.WALL_REPEL]: 'REPEL ROOM',
   [MODES.FLUBBER_BLOB]: 'COHESION FIELD',
   [MODES.WEAVE_FIELD]: 'WEAVE FIELD',
   [MODES.PRESSURE_CRUCIBLE]: 'POLARITY FLUX',
@@ -164,6 +167,10 @@ export const NARRATIVE_QUOTES = {
     author: 'Stefan Sagmeister'
   },
   [MODES.FLOCK_OF_BIRDS]: {
+    quote: 'The whole is other than the sum of the parts.',
+    author: 'Kurt Koffka'
+  },
+  [MODES.WALL_REPEL]: {
     quote: 'The whole is other than the sum of the parts.',
     author: 'Kurt Koffka'
   },

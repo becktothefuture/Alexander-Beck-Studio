@@ -1,6 +1,7 @@
 /**
- * Deterministic assertion (no fixed sleeps): `#c` backing store must match layout×DPR
- * after each SPA hop. Fails fast if bitmap stays at default size on remount.
+ * Deterministic assertion (no fixed sleeps): the active simulation canvas
+ * backing store must match layout×DPR after each SPA hop. Fails fast if bitmap
+ * stays at default size on remount.
  *
  * Run: npm run audit:canvas-spa
  * Needs: Vite dev on 8012, or ABS_DEV_URL=http://host:port
@@ -8,6 +9,7 @@
 import { chromium } from 'playwright';
 
 const BUFFER_WAIT_MS = Number(process.env.ABS_CANVAS_WAIT_MS || 20000);
+const SIMULATION_CANVAS_SELECTOR = '#c, #flock-of-birds-canvas, #wall-repel-canvas';
 
 function resolveHomeEntryUrl() {
   let raw = (process.env.ABS_DEV_URL || 'http://127.0.0.1:8012').trim().replace(/\/+$/, '');
@@ -21,8 +23,8 @@ const quiet = process.env.ABS_AUDIT_QUIET === '1' || process.env.ABS_AUDIT_QUIET
 
 async function waitForSimulationCanvasBuffer(page) {
   await page.waitForFunction(
-    () => {
-      const c = document.getElementById('c');
+    (selector) => {
+      const c = document.querySelector(selector);
       if (!c) return false;
       const cssW = c.clientWidth || 0;
       const cssH = c.clientHeight || 0;
@@ -32,18 +34,20 @@ async function waitForSimulationCanvasBuffer(page) {
       const minH = Math.ceil((cssH + 2) * dpr) - 2;
       return c.width >= minW && c.height >= minH;
     },
+    SIMULATION_CANVAS_SELECTOR,
     { timeout: BUFFER_WAIT_MS }
   );
 }
 
 async function snapshot(page, label) {
-  return page.evaluate(({ label: L }) => {
-    const c = document.getElementById('c');
-    if (!c) return { label: L, error: 'no #c' };
+  return page.evaluate(({ label: L, selector }) => {
+    const c = document.querySelector(selector);
+    if (!c) return { label: L, error: `no simulation canvas (${selector})` };
     const st = getComputedStyle(c);
     return {
       label: L,
       path: location.pathname,
+      canvasId: c.id,
       canvasWidth: c.width,
       canvasHeight: c.height,
       clientWidth: c.clientWidth,
@@ -52,7 +56,7 @@ async function snapshot(page, label) {
       styleH: parseFloat(st.height) || 0,
       dpr: window.devicePixelRatio || 1,
     };
-  }, { label });
+  }, { label, selector: SIMULATION_CANVAS_SELECTOR });
 }
 
 async function main() {
@@ -60,7 +64,7 @@ async function main() {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
   await page.goto(resolveHomeEntryUrl(), { waitUntil: 'networkidle', timeout: 60000 });
-  await page.waitForSelector('#c', { timeout: 30000 });
+  await page.waitForSelector(SIMULATION_CANVAS_SELECTOR, { timeout: 30000 });
   await waitForSimulationCanvasBuffer(page);
 
   const rows = [];
@@ -88,7 +92,7 @@ async function main() {
       return;
     }
     await page.waitForURL(/portfolio/i, { timeout: BUFFER_WAIT_MS });
-    await page.waitForSelector('#c', { timeout: BUFFER_WAIT_MS });
+    await page.waitForSelector(SIMULATION_CANVAS_SELECTOR, { timeout: BUFFER_WAIT_MS });
     await waitForSimulationCanvasBuffer(page);
     rows.push({ ...(await snapshot(page, `portfolio-r${round}`)) });
 
@@ -97,9 +101,9 @@ async function main() {
     });
     await page.waitForURL((url) => {
       const path = url.pathname || '';
-      return path === '/' || /index/i.test(path);
+      return path === '/' || /index/i.test(path) || path.startsWith('/lab/');
     }, { timeout: BUFFER_WAIT_MS });
-    await page.waitForSelector('#c', { timeout: BUFFER_WAIT_MS });
+    await page.waitForSelector(SIMULATION_CANVAS_SELECTOR, { timeout: BUFFER_WAIT_MS });
     await waitForSimulationCanvasBuffer(page);
   }
 
