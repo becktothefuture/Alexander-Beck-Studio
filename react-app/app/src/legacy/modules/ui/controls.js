@@ -129,6 +129,7 @@ export function updateModeButtonsUI(activeMode, options = {}) {
     'starfield-3d': '3D Starfield',
     'elastic-center': 'Tension Loom',
     'flock-of-birds': 'Flock of Birds',
+    'mineral-growth': 'Mineral Growth',
     'weave-field': 'Weave Field',
     'particle-fountain': 'Particle Fountain'
   };

@@ -53,6 +53,12 @@ const ROUTE_DEFS = {
     aliases: ['/lab/wall-repel.html', '/lab/wall-repel', '/wall-repel.html', '/wall-repel'],
     gated: false,
   },
+  'mineral-growth': {
+    id: 'mineral-growth',
+    path: '/lab/mineral-growth.html',
+    aliases: ['/lab/mineral-growth.html', '/lab/mineral-growth', '/mineral-growth.html', '/mineral-growth'],
+    gated: false,
+  },
 };
 
 function normalizePathname(pathname = '/') {

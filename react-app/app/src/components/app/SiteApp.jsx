@@ -10,6 +10,7 @@ import { getBeachBallRoomRouteView, BEACH_BALL_ROOM_ROUTE_RUNTIME } from '../../
 import { getFlockOfBirdsRouteView, FLOCK_OF_BIRDS_ROUTE_RUNTIME } from '../../routes/flock-of-birds/FlockOfBirdsRoute.jsx';
 import { getRainPrismRouteView, RAIN_PRISM_ROUTE_RUNTIME } from '../../routes/rain-prism/RainPrismRoute.jsx';
 import { getWallRepelRouteView, WALL_REPEL_ROUTE_RUNTIME } from '../../routes/wall-repel/WallRepelRoute.jsx';
+import { getMineralGrowthRouteView, MINERAL_GROWTH_ROUTE_RUNTIME } from '../../routes/mineral-growth/MineralGrowthRoute.jsx';
 import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
 import { useShellRouteTransition } from '../../hooks/useShellRouteTransition.js';
 import { DevConfigPanelBridge } from './DevConfigPanelBridge.jsx';
@@ -23,7 +24,8 @@ const ROUTE_VIEW_BY_ID = {
   'beach-ball-room': getBeachBallRoomRouteView,
   'flock-of-birds': getFlockOfBirdsRouteView,
   'rain-prism': getRainPrismRouteView,
-  'wall-repel': getWallRepelRouteView
+  'wall-repel': getWallRepelRouteView,
+  'mineral-growth': getMineralGrowthRouteView
 };
 
 const ROUTE_RUNTIME_BY_ID = {
@@ -35,7 +37,8 @@ const ROUTE_RUNTIME_BY_ID = {
   'beach-ball-room': BEACH_BALL_ROOM_ROUTE_RUNTIME,
   'flock-of-birds': FLOCK_OF_BIRDS_ROUTE_RUNTIME,
   'rain-prism': RAIN_PRISM_ROUTE_RUNTIME,
-  'wall-repel': WALL_REPEL_ROUTE_RUNTIME
+  'wall-repel': WALL_REPEL_ROUTE_RUNTIME,
+  'mineral-growth': MINERAL_GROWTH_ROUTE_RUNTIME
 };
 
 function getRouteViewForId(routeId) {

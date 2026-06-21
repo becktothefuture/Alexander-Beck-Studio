@@ -6183,6 +6183,7 @@ export function generateModeSwitcherHTML() {
     'elastic-center': '◇',
     'flock-of-birds': '🕊️',
     'wall-repel': '↔',
+    'mineral-growth': '✺',
     'flubber-blob': '🫠',
     'weave-field': '🧵',
     'pressure-crucible': '◉',
@@ -6205,6 +6206,7 @@ export function generateModeSwitcherHTML() {
     'elastic-center': 'Tension Loom',
     'flock-of-birds': 'Flock',
     'wall-repel': 'Repel',
+    'mineral-growth': 'Growth',
     'flubber-blob': 'Flubber',
     'weave-field': 'Weave',
     'pressure-crucible': 'Flux',
@@ -6299,6 +6301,7 @@ function generateHomeModeSectionHTML() {
               'elastic-center': '◇',
               'flock-of-birds': '🕊️',
               'wall-repel': '↔',
+              'mineral-growth': '✺',
               'flubber-blob': '🫠',
               'weave-field': '🧵',
               'particle-fountain': '⛲'
@@ -6320,6 +6323,7 @@ function generateHomeModeSectionHTML() {
               'elastic-center': 'Tension Loom',
               'flock-of-birds': 'Flock',
               'wall-repel': 'Repel',
+              'mineral-growth': 'Growth',
               'flubber-blob': 'Flubber',
               'weave-field': 'Weave',
               'particle-fountain': 'Fountain'

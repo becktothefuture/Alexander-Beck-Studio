@@ -19,6 +19,8 @@ function RouteSceneMount({ routeRenderKey, children }) {
       return <div data-sfid="sfid:shell/rain-prism">{children}</div>;
     case 'wall-repel':
       return <div data-sfid="sfid:shell/wall-repel">{children}</div>;
+    case 'mineral-growth':
+      return <div data-sfid="sfid:shell/mineral-growth">{children}</div>;
     case 'home':
     default:
       return <div data-sfid="sfid:shell/home">{children}</div>;

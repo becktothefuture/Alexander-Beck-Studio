@@ -31,6 +31,7 @@ const MODE_NAMES = {
   'elastic-center': 'Tension Loom',
   'flock-of-birds': 'Flock of Birds',
   'wall-repel': 'Repel Room',
+  'mineral-growth': 'Mineral Growth',
   'flubber-blob': 'Flubber Blob',
   'weave-field': 'Weave Field',
   'pressure-crucible': 'Polarity Flux',
@@ -39,7 +40,8 @@ const MODE_NAMES = {
 
 const ROUTE_BACKED_MODE_HREFS = {
   [MODES.FLOCK_OF_BIRDS]: '/lab/flock-of-birds.html?daily=1',
-  [MODES.WALL_REPEL]: '/lab/wall-repel.html?daily=1'
+  [MODES.WALL_REPEL]: '/lab/wall-repel.html?daily=1',
+  [MODES.MINERAL_GROWTH]: '/lab/mineral-growth.html?daily=1'
 };
 
 const MODE_REGISTRY = {

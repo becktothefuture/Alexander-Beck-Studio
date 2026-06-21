@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "preset": "thicket",
+  "bodyCount": 820,
+  "bodyScale": 1,
+  "seedCount": 4,
+  "seedPlacement": "mixed",
+  "packingGap": 5.5,
+  "colorSpread": 1,
+  "enabled": true,
+  "growthDuration": 28,
+  "forkRate": 0.72,
+  "wallFollow": 0.78,
+  "openSpaceBias": 0.64,
+  "branchClearance": 0.62,
+  "curlStrength": 0.42,
+  "leafletDensity": 0.48,
+  "swayStrength": 0.32,
+  "pointerBend": 0.28,
+  "targetFps": 60,
+  "maxDpr": 1.5,
+  "pauseWhenHidden": true
+}

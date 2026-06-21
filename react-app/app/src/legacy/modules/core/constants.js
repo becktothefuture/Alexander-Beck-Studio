@@ -23,6 +23,7 @@ export const MODES = {
   ELASTIC_CENTER: 'elastic-center',
   FLOCK_OF_BIRDS: 'flock-of-birds',
   WALL_REPEL: 'wall-repel',
+  MINERAL_GROWTH: 'mineral-growth',
   FLUBBER_BLOB: 'flubber-blob',
   WEAVE_FIELD: 'weave-field',
   PRESSURE_CRUCIBLE: 'pressure-crucible',
@@ -40,7 +41,7 @@ export function isPitLikeMode(mode) {
 //
 // Two-tier system ensures visitors see the most impressive work first:
 // 
-// FEATURED TIER (11 modes):
+// FEATURED TIER (12 modes):
 // - Always cycles first in the sequence
 // - Guaranteed first impression and daily candidates for new visitors
 // - Best work, strongest visual impact
@@ -64,6 +65,7 @@ export const FEATURED_MODES = [
   MODES.FLOCK_OF_BIRDS,   // FLIGHT FIELD
   MODES.FLUBBER_BLOB,     // COHESION FIELD
   MODES.WEAVE_FIELD,      // WEAVE FIELD
+  MODES.MINERAL_GROWTH,   // LIVING SYSTEM
   // PARALLAX_LINEAR intentionally excluded from narrative cycling.
   MODES.ELASTIC_CENTER,   // TENSION LOOM
   MODES.KALEIDOSCOPE      // VOCAB BLOOM
@@ -100,6 +102,7 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.ELASTIC_CENTER]: 'TENSION LOOM',
   [MODES.FLOCK_OF_BIRDS]: 'FLIGHT FIELD',
   [MODES.WALL_REPEL]: 'REPEL ROOM',
+  [MODES.MINERAL_GROWTH]: 'LIVING SYSTEM',
   [MODES.FLUBBER_BLOB]: 'COHESION FIELD',
   [MODES.WEAVE_FIELD]: 'WEAVE FIELD',
   [MODES.PRESSURE_CRUCIBLE]: 'POLARITY FLUX',
@@ -173,6 +176,10 @@ export const NARRATIVE_QUOTES = {
   [MODES.WALL_REPEL]: {
     quote: 'The whole is other than the sum of the parts.',
     author: 'Kurt Koffka'
+  },
+  [MODES.MINERAL_GROWTH]: {
+    quote: 'Nature does not hurry, yet everything is accomplished.',
+    author: 'Lao Tzu'
   },
   [MODES.FLUBBER_BLOB]: {
     quote: 'The whole is other than the sum of the parts.',

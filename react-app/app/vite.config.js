@@ -5,12 +5,14 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { flattenDesignConfigDir } from '../../scripts/lib/flatten-design-config.mjs';
+import { normalizeMineralGrowthConfig } from './src/routes/mineral-growth/mineralGrowthControls.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicConfigDir = resolve(__dirname, 'public/config');
 const rainPrismConfigPath = resolve(publicConfigDir, 'rain-prism-demo.json');
 const flockOfBirdsConfigPath = resolve(publicConfigDir, 'flock-of-birds-demo.json');
 const wallRepelConfigPath = resolve(publicConfigDir, 'wall-repel-demo.json');
+const mineralGrowthConfigPath = resolve(publicConfigDir, 'mineral-growth-demo.json');
 const VIRTUAL_CONTENT_PREFIX = '\0virtual:abs-content/';
 const CONTENT_MODULES = {
   'virtual:abs-content/home': resolve(publicConfigDir, 'contents-home.json'),
@@ -160,6 +162,39 @@ function designSystemDevPlugin() {
           sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save wall repel config' });
         }
       });
+
+      server.middlewares.use('/api/mineral-growth/config', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        try {
+          const chunks = [];
+          for await (const chunk of req) {
+            chunks.push(Buffer.from(chunk));
+          }
+
+          const payload = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+          const nextConfig = payload?.config;
+          if (!nextConfig || typeof nextConfig !== 'object' || Array.isArray(nextConfig)) {
+            sendJson(res, 400, { ok: false, error: 'Missing mineral growth config payload' });
+            return;
+          }
+
+          const normalizedConfig = normalizeMineralGrowthConfig(nextConfig);
+          await writeFile(mineralGrowthConfigPath, `${JSON.stringify(normalizedConfig, null, 2)}\n`, 'utf8');
+          server.ws.send({
+            type: 'full-reload',
+            path: '/config/mineral-growth-demo.json',
+          });
+
+          sendJson(res, 200, { ok: true, version: normalizedConfig.version });
+        } catch (error) {
+          sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save mineral growth config' });
+        }
+      });
     },
   };
 }
@@ -216,6 +251,7 @@ export default defineConfig(({ mode }) => ({
         'lab/flock-of-birds': resolve(__dirname, 'lab/flock-of-birds.html'),
         'lab/rain-prism': resolve(__dirname, 'lab/rain-prism.html'),
         'lab/wall-repel': resolve(__dirname, 'lab/wall-repel.html'),
+        'lab/mineral-growth': resolve(__dirname, 'lab/mineral-growth.html'),
         ...(mode === 'development'
           ? { 'panel-host': resolve(__dirname, 'panel-host.html') }
           : {})
