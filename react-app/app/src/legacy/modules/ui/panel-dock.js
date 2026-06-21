@@ -36,6 +36,7 @@ import {
   bindSoundControls,
   syncSoundControlsToConfig
 } from '../audio/sound-control-registry.js';
+import { withBasePath } from '../../../lib/base-path.js';
 import { bindStudioSurfaceControls } from './studio-surface-controls.js';
 import { bindThemeSegmentControls, getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
 import { navigateToGatePage, navigateToHome } from '../../../lib/access-gates.js';
@@ -152,7 +153,7 @@ function ensurePanelStylesheet(uiDocument) {
   if (!uiDocument || uiDocument.querySelector('link[href*="panel.css"]')) return;
   const link = uiDocument.createElement('link');
   link.rel = 'stylesheet';
-  link.href = '/css/panel.css';
+  link.href = withBasePath('/css/panel.css');
   uiDocument.head.appendChild(link);
 }
 

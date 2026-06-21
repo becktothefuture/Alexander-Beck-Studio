@@ -233,6 +233,7 @@ function absContentVirtualPlugin() {
 }
 
 export default defineConfig(({ mode }) => ({
+  base: mode === 'production' ? '/Alexander-Beck-Studio/' : '/',
   plugins: [react(), absContentVirtualPlugin(), designSystemDevPlugin()],
   // Legacy bundles gate the dock + authoring UI on `__DEV__` (see main.js / portfolio app).
   define: {

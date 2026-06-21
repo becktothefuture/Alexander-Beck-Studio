@@ -14,10 +14,11 @@ import {
   getLondonWeatherPalette,
   resolveLondonWeatherPaletteId,
 } from '../../palette/londonPalettes.js';
+import { withBasePath } from '../../lib/base-path.js';
 import './flock-of-birds.css';
 
-const CONFIG_URL = '/config/flock-of-birds-demo.json';
-const DESIGN_SYSTEM_URL = '/config/design-system.json';
+const CONFIG_URL = withBasePath('/config/flock-of-birds-demo.json');
+const DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
 const DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_LONDON_WEATHER_PALETTE_ID)?.dark || [
   '#a7afb0',
   '#c6cecf',

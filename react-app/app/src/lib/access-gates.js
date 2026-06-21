@@ -1,3 +1,6 @@
+import { withBasePath } from './base-path.js';
+import { trySpaNavigate } from './spa-navigation.js';
+
 const GATE_ACCESS_KEYS = {
   portfolio: 'abs_portfolio_ok',
   cv: 'abs_cv_ok'
@@ -70,7 +73,7 @@ function isDevGatePreview(gateId) {
 
 function getHomeUrl() {
   try {
-    return new URL('./', window.location.href);
+    return new URL(withBasePath('/'), window.location.origin);
   } catch {
     return new URL('/', window.location.origin);
   }
@@ -181,7 +184,7 @@ export function navigateToGatePage(gateId, { allowDevAccess = false } = {}) {
     markGateAccess(gateId);
   }
 
-  const destination = new URL(destinationPath, window.location.href);
+  const destination = new URL(withBasePath(destinationPath), window.location.origin);
   if (trySpaNavigate(destination.toString())) {
     return;
   }
@@ -204,4 +207,3 @@ export function navigateToHome(options = {}) {
   }
   window.location.assign(destination.toString());
 }
-import { trySpaNavigate } from './spa-navigation.js';

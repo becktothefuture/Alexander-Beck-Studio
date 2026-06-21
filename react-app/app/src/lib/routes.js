@@ -1,3 +1,5 @@
+import { stripBasePath, withBasePath } from './base-path.js';
+
 const ROUTE_DEFS = {
   home: {
     id: 'home',
@@ -73,7 +75,7 @@ export function getRouteById(routeId) {
 }
 
 export function resolveRouteFromPathname(pathname = '/') {
-  const normalized = normalizePathname(pathname);
+  const normalized = normalizePathname(stripBasePath(pathname));
   const match = Object.values(ROUTE_DEFS).find((route) => route.aliases.includes(normalized));
   return match || ROUTE_DEFS.home;
 }
@@ -95,7 +97,7 @@ export function isInternalRouteHref(href, baseHref) {
 
 export function buildRouteHref(routeId, options = {}) {
   const route = getRouteById(routeId);
-  const url = new URL(route.path, window.location.origin);
+  const url = new URL(withBasePath(route.path), window.location.origin);
 
   if (options.searchParams && typeof options.searchParams === 'object') {
     Object.entries(options.searchParams).forEach(([key, value]) => {

@@ -45,14 +45,16 @@ import { setupPointer } from '../input/pointer.js';
 import { setupOverscrollLock } from '../input/overscroll-lock.js';
 import { refreshCursor, setupCustomCursor, updateCursorSize } from '../rendering/cursor.js';
 import { PortfolioProjectDrawer, getProjectContentBlocks } from './project-drawer.js';
+import { getBasePathWithTrailingSlash } from '../../../lib/base-path.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
 
 const BASE_PATH = (() => {
   try {
     const base = window.PORTFOLIO_BASE || '';
-    return base && !base.endsWith('/') ? `${base}/` : base;
+    if (base) return base.endsWith('/') ? base : `${base}/`;
+    return getBasePathWithTrailingSlash();
   } catch (error) {
-    return '';
+    return getBasePathWithTrailingSlash();
   }
 })();
 

@@ -7,10 +7,11 @@ import {
 } from './rainPrismControls.js';
 import { RAIN_PRISM_SIMULATION_REGISTRY_ENTRY } from './rainPrismRegistry.js';
 import { createRainPrismRenderer } from './rainPrismRenderer.js';
+import { withBasePath } from '../../lib/base-path.js';
 import './rain-prism.css';
 
-const CONFIG_URL = '/config/rain-prism-demo.json';
-const DESIGN_SYSTEM_URL = '/config/design-system.json';
+const CONFIG_URL = withBasePath('/config/rain-prism-demo.json');
+const DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
 
 const DEFAULT_THEME_COLORS = {
   light: '#efefef',

@@ -13,10 +13,11 @@ import {
   getLondonWeatherPalette,
   resolveLondonWeatherPaletteId,
 } from '../../palette/londonPalettes.js';
+import { withBasePath } from '../../lib/base-path.js';
 import './wall-repel.css';
 
-const CONFIG_URL = '/config/wall-repel-demo.json';
-const DESIGN_SYSTEM_URL = '/config/design-system.json';
+const CONFIG_URL = withBasePath('/config/wall-repel-demo.json');
+const DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
 const DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_LONDON_WEATHER_PALETTE_ID)?.dark || [
   '#a7afb0',
   '#c6cecf',
