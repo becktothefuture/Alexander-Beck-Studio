@@ -402,21 +402,14 @@ function isRectUsable(rect) {
   return Boolean(rect && rect.width > 0 && rect.height > 0);
 }
 
-function rectContains(innerRect, outerRect, tolerancePx = 2) {
+function rectHasUsableVisibleArea(innerRect, outerRect) {
   if (!isRectUsable(innerRect) || !isRectUsable(outerRect)) return false;
+  const visibleWidth = Math.max(0, Math.min(innerRect.right, outerRect.right) - Math.max(innerRect.left, outerRect.left));
+  const visibleHeight = Math.max(0, Math.min(innerRect.bottom, outerRect.bottom) - Math.max(innerRect.top, outerRect.top));
   return (
-    innerRect.left >= outerRect.left - tolerancePx
-    && innerRect.right <= outerRect.right + tolerancePx
-    && innerRect.top >= outerRect.top - tolerancePx
-    && innerRect.bottom <= outerRect.bottom + tolerancePx
+    visibleWidth >= Math.min(240, outerRect.width * 0.5)
+    && visibleHeight >= Math.min(96, innerRect.height * 0.5)
   );
-}
-
-function isCenteredWithin(innerRect, outerRect, tolerancePx = 12) {
-  if (!isRectUsable(innerRect) || !isRectUsable(outerRect)) return false;
-  const innerMidY = innerRect.top + (innerRect.height / 2);
-  const outerMidY = outerRect.top + (outerRect.height / 2);
-  return Math.abs(innerMidY - outerMidY) <= tolerancePx;
 }
 
 function rectsMatchWithinThreshold(previous, next, thresholdPx = 2) {
@@ -429,15 +422,19 @@ function rectsMatchWithinThreshold(previous, next, thresholdPx = 2) {
   );
 }
 
-function isHeroSettledInsideWall() {
+function isPortfolioScrollRailReady() {
   const wall = document.getElementById('simulations');
-  const hero = document.getElementById('hero-title');
-  if (!wall || !hero) return false;
+  const mount = document.getElementById('portfolioProjectMount');
+  const firstCard = mount?.querySelector('.portfolio-project-label');
+  if (!wall || !mount || !firstCard) return false;
   const wallRect = wall.getBoundingClientRect();
-  const heroRect = hero.getBoundingClientRect();
+  const cardRect = firstCard.getBoundingClientRect();
   return (
-    rectContains(heroRect, wallRect, 4)
-    && isCenteredWithin(heroRect, wallRect, Math.max(12, wallRect.height * 0.05))
+    isRectUsable(wallRect)
+    && isRectUsable(cardRect)
+    && cardRect.width >= Math.min(240, wallRect.width * 0.5)
+    && cardRect.height >= 96
+    && rectHasUsableVisibleArea(cardRect, wallRect)
   );
 }
 
@@ -446,6 +443,7 @@ function readRouteReadySnapshot(routeId) {
     return {
       wallRect: document.getElementById('simulations')?.getBoundingClientRect() || null,
       heroRect: document.getElementById('hero-title')?.getBoundingClientRect() || null,
+      cardRect: document.querySelector('.portfolio-project-label')?.getBoundingClientRect() || null,
       topbarRect: document.querySelector('.ui-top-main.route-topbar')?.getBoundingClientRect() || null,
     };
   }
@@ -458,7 +456,8 @@ function isRouteReadySnapshotStable(routeId, previous, next) {
   if (!previous || !next) return false;
   return (
     rectsMatchWithinThreshold(previous.wallRect, next.wallRect, 2)
-    && rectsMatchWithinThreshold(previous.heroRect, next.heroRect, 2)
+    && (!previous.heroRect || !next.heroRect || rectsMatchWithinThreshold(previous.heroRect, next.heroRect, 2))
+    && rectsMatchWithinThreshold(previous.cardRect, next.cardRect, 2)
     && rectsMatchWithinThreshold(previous.topbarRect, next.topbarRect, 2)
   );
 }
@@ -484,7 +483,7 @@ function isRouteBaselineReady(routeId) {
       && document.getElementById('portfolioProjectMount')
       && document.querySelector('.ui-top-main.route-topbar')
       && hasCanvasBufferReady()
-      && isHeroSettledInsideWall()
+      && isPortfolioScrollRailReady()
     );
   }
 

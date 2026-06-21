@@ -27,12 +27,15 @@ export function getPortfolioRouteView() {
       <>
         <canvas
           id="c"
-          className="portfolio-pit-canvas"
-          aria-label="Portfolio projects simulation"
-          role="img"
+          className="portfolio-pit-canvas portfolio-scroll-canvas"
+          aria-hidden="true"
           draggable="false"
         />
-        <div id="portfolioProjectMount" className="portfolio-project-mount" aria-live="polite" />
+        <div
+          id="portfolioProjectMount"
+          className="portfolio-project-mount portfolio-scroll-mount"
+          aria-label="Portfolio projects"
+        />
       </>
     ),
     heroTitle: (

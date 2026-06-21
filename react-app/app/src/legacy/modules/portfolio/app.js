@@ -1110,6 +1110,521 @@ class PortfolioPitApp {
   }
 }
 
+function getProjectAccentColor(projectIndex, projectCount) {
+  return getPortfolioProjectPaletteColor(projectIndex, Math.max(1, projectCount || 1));
+}
+
+function getProjectTags(project) {
+  return Array.isArray(project?.tags) ? project.tags.slice(0, 3) : [];
+}
+
+function getProjectImageSrc(project) {
+  if (project?.image) return project.image;
+  const imageBlock = getProjectContentBlocks(project).find((block) => {
+    const src = String(block?.src || '');
+    return block?.type === 'image' || /\.(avif|jpe?g|png|webp)$/i.test(src);
+  });
+  return imageBlock?.src || '';
+}
+
+function getProjectVideoSrc(project) {
+  if (project?.thumbnailVideo) return project.thumbnailVideo;
+  if (project?.video) return project.video;
+  const videoBlock = getProjectContentBlocks(project).find((block) => {
+    const src = String(block?.src || '');
+    return block?.type === 'video' || /\.(mp4|webm)$/i.test(src);
+  });
+  return videoBlock?.src || '';
+}
+
+function getPortfolioVideoMimeType(src) {
+  if (/\.webm(\?|#|$)/i.test(src)) return 'video/webm';
+  if (/\.mp4(\?|#|$)/i.test(src)) return 'video/mp4';
+  return '';
+}
+
+function shouldReducePortfolioMotion() {
+  return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
+}
+
+class PortfolioScrollApp {
+  constructor({ config, projects }) {
+    this.config = normalizePortfolioConfig(config);
+    this.projects = Array.isArray(projects) ? projects : [];
+    this.canvas = document.getElementById('c');
+    this.mount = document.getElementById('portfolioProjectMount');
+    this.appFrame = document.getElementById('app-frame');
+    this.cards = [];
+    this.mediaVideos = [];
+    this.isProjectOpen = false;
+    this.selectedProjectIndex = -1;
+    this.lastFocusedElement = null;
+    this.projectDrawerView = null;
+    this.videoObserver = null;
+    this.cardObserver = null;
+    this.projectOpenTimeouts = [];
+    this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
+    this.boundAuditOpenProject = (event) => {
+      const requestedId = event?.detail?.projectId || event?.detail?.id;
+      const requestedIndex = requestedId
+        ? this.projects.findIndex((project) => String(project?.id) === String(requestedId))
+        : event?.detail?.index;
+      const index = Number(requestedIndex ?? 0);
+      if (Number.isInteger(index) && index >= 0) this.openProjectByIndex(index);
+    };
+    this.boundResize = () => this.updateCardMetrics();
+    this.boundPaletteChange = () => this.applyProjectPalette();
+  }
+
+  async init() {
+    this.ensureAnnouncer();
+    this.createProjectView();
+    this.renderProjectRail();
+    this.setupVideoObserver();
+    this.setupCardObserver();
+    this.applyProjectPalette();
+    this.updateCardMetrics();
+    document.addEventListener('abs:portfolio:open-project', this.boundAuditOpenProject);
+    window.addEventListener('resize', this.boundResize, { passive: true });
+    window.addEventListener('bb:paletteChanged', this.boundPaletteChange);
+
+    const globals = getGlobals();
+    globals.portfolioProjects = this.projects;
+    globals.portfolioDomLabels = true;
+    globals.portfolioSyncLabelLayer = () => this.updateCardMetrics();
+    globals.portfolioRelayoutLabels = () => this.updateCardMetrics();
+  }
+
+  destroy() {
+    document.removeEventListener('abs:portfolio:open-project', this.boundAuditOpenProject);
+    document.removeEventListener('keydown', this.boundProjectKeydown, true);
+    window.removeEventListener('resize', this.boundResize);
+    window.removeEventListener('bb:paletteChanged', this.boundPaletteChange);
+    this.clearProjectOpenTimeouts();
+    this.videoObserver?.disconnect();
+    this.cardObserver?.disconnect();
+    this.pauseAllVideos();
+    this.projectDrawerView?.destroy();
+    this.restoreBackgroundInteractivity();
+
+    const globals = getGlobals();
+    globals.portfolioDomLabels = false;
+    globals.portfolioSyncLabelLayer = null;
+    globals.portfolioRelayoutLabels = null;
+    globals.__portfolioDrawerOpen = false;
+  }
+
+  applyRuntimeConfig(runtime) {
+    this.config.runtime = normalizePortfolioConfig({ runtime }).runtime;
+    if (this.isProjectOpen && this.selectedProjectIndex >= 0) {
+      this.syncProjectHero(this.projects[this.selectedProjectIndex], false);
+    }
+  }
+
+  refreshPitBodies() {
+    this.updateCardMetrics();
+  }
+
+  syncProjectLabels() {
+    this.updateCardMetrics();
+  }
+
+  ensureAnnouncer() {
+    if (document.getElementById('announcer')) return;
+    const announcer = document.createElement('div');
+    announcer.id = 'announcer';
+    announcer.className = 'screen-reader';
+    announcer.setAttribute('role', 'status');
+    announcer.setAttribute('aria-live', 'polite');
+    announcer.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(announcer);
+  }
+
+  createProjectView() {
+    const sheetHost = document.getElementById('portfolio-sheet-host');
+    const host = sheetHost || this.mount || this.canvas?.parentElement;
+    if (!host) return;
+    this.projectDrawerView?.destroy();
+    this.projectDrawerView = new PortfolioProjectDrawer({
+      host,
+      resolveAsset,
+      coverFallback: CONFIG.coverFallback,
+      onRequestClose: () => {
+        SoundEngine.playHoverSound?.();
+        this.closeProject();
+      },
+    });
+    this.projectView = this.projectDrawerView.mount();
+    this.projectClose = this.projectDrawerView.closeButton;
+  }
+
+  renderProjectRail() {
+    if (!this.mount) return;
+    this.mount.replaceChildren();
+    this.mount.classList.add('is-scroll-ready');
+
+    const stage = document.createElement('section');
+    stage.className = 'portfolio-scroll-stage';
+    stage.setAttribute('aria-label', 'Selected portfolio projects');
+
+    const list = document.createElement('div');
+    list.className = 'portfolio-scroll-list';
+    list.tabIndex = -1;
+
+    this.cards = this.projects.map((project, index) => {
+      const card = this.createProjectCard(project, index);
+      list.appendChild(card);
+      return card;
+    });
+
+    stage.appendChild(list);
+    this.mount.appendChild(stage);
+    this.scrollList = list;
+  }
+
+  createProjectCard(project, index) {
+    const labelContent = resolvePortfolioLabelContent(project, project?.title || `Project ${index + 1}`);
+    const accentColor = getProjectAccentColor(index, this.projects.length);
+    const spokenLabel = labelContent.eyebrow
+      ? `${labelContent.eyebrow}: ${labelContent.title}`
+      : labelContent.title;
+    const card = document.createElement('article');
+    card.className = 'portfolio-project-card portfolio-project-label';
+    card.dataset.projectIndex = String(index);
+    card.style.setProperty('--portfolio-card-accent', accentColor);
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-haspopup', 'dialog');
+    card.setAttribute('aria-controls', 'portfolioProjectView');
+    card.setAttribute('aria-expanded', 'false');
+    card.setAttribute('aria-label', `Open project ${index + 1}: ${spokenLabel}`);
+
+    const copy = document.createElement('div');
+    copy.className = 'portfolio-project-card__copy';
+
+    const client = document.createElement('p');
+    client.className = 'portfolio-project-card__client';
+    client.textContent = project?.client || project?.eyebrow || `Project ${index + 1}`;
+
+    const title = document.createElement('h3');
+    title.className = 'portfolio-project-card__title portfolio-project-label__text';
+    title.textContent = project?.displayTitle || project?.title || labelContent.title;
+
+    const summary = document.createElement('p');
+    summary.className = 'portfolio-project-card__summary';
+    summary.textContent = project?.summary || project?.overview || '';
+
+    const tags = document.createElement('ul');
+    tags.className = 'portfolio-project-card__tags';
+    tags.setAttribute('aria-label', 'Project tags');
+    getProjectTags(project).forEach((tag) => {
+      const item = document.createElement('li');
+      item.textContent = tag;
+      tags.appendChild(item);
+    });
+
+    copy.append(client, title);
+    if (summary.textContent) copy.appendChild(summary);
+    if (tags.childElementCount) copy.appendChild(tags);
+
+    const media = this.createProjectCardMedia(project, index);
+    card.append(copy, media);
+    card.addEventListener('click', () => this.openProjectByIndex(index));
+    card.addEventListener('keydown', (event) => this.handleCardKeydown(event, index));
+    card.addEventListener('focus', () => card.classList.add('is-keyboard-focused'));
+    card.addEventListener('blur', () => card.classList.remove('is-keyboard-focused'));
+    return card;
+  }
+
+  createProjectCardMedia(project, index) {
+    const frame = document.createElement('figure');
+    frame.className = 'portfolio-project-card__media';
+    frame.setAttribute('aria-hidden', 'true');
+    const imageSrc = getProjectImageSrc(project);
+    const videoSrc = getProjectVideoSrc(project);
+    const reduceMotion = shouldReducePortfolioMotion();
+
+    if (videoSrc && !reduceMotion) {
+      const video = document.createElement('video');
+      video.className = 'portfolio-project-card__video';
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.autoplay = true;
+      video.preload = index < 2 ? 'metadata' : 'none';
+      video.dataset.projectIndex = String(index);
+      if (imageSrc) video.poster = resolveAsset(imageSrc);
+      const source = document.createElement('source');
+      source.src = resolveAsset(videoSrc);
+      source.type = getPortfolioVideoMimeType(videoSrc) || 'video/mp4';
+      video.appendChild(source);
+      frame.appendChild(video);
+      this.mediaVideos.push(video);
+    } else if (imageSrc) {
+      const image = document.createElement('img');
+      image.className = 'portfolio-project-card__image';
+      image.src = resolveAsset(imageSrc);
+      image.alt = '';
+      image.loading = index < 2 ? 'eager' : 'lazy';
+      image.decoding = 'async';
+      frame.appendChild(image);
+    } else {
+      const fallback = document.createElement('div');
+      fallback.className = 'portfolio-project-card__media-fallback';
+      frame.appendChild(fallback);
+    }
+
+    const veil = document.createElement('div');
+    veil.className = 'portfolio-project-card__media-veil';
+    frame.appendChild(veil);
+    return frame;
+  }
+
+  setupVideoObserver() {
+    if (!this.scrollList || shouldReducePortfolioMotion() || !this.mediaVideos.length) return;
+    this.videoObserver?.disconnect();
+    this.videoObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const video = entry.target;
+        if (!(video instanceof HTMLVideoElement)) return;
+        if (this.isProjectOpen || !entry.isIntersecting) {
+          video.pause();
+          return;
+        }
+        video.play().catch(() => {});
+      });
+    }, {
+      root: this.scrollList,
+      threshold: 0.42,
+    });
+    this.mediaVideos.forEach((video) => this.videoObserver.observe(video));
+  }
+
+  setupCardObserver() {
+    if (!this.scrollList || !this.cards.length) return;
+    this.cardObserver?.disconnect();
+    this.cardObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        entry.target.classList.toggle('is-scroll-active', entry.isIntersecting && entry.intersectionRatio >= 0.48);
+      });
+    }, {
+      root: this.scrollList,
+      threshold: [0.24, 0.48, 0.72],
+    });
+    this.cards.forEach((card) => this.cardObserver.observe(card));
+  }
+
+  applyProjectPalette() {
+    this.cards.forEach((card, index) => {
+      card.style.setProperty('--portfolio-card-accent', getProjectAccentColor(index, this.projects.length));
+    });
+  }
+
+  updateCardMetrics() {
+    if (!this.mount) return;
+    this.mount.style.setProperty('--portfolio-project-count', String(this.projects.length));
+  }
+
+  handleCardKeydown(event, index) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.openProjectByIndex(index);
+      return;
+    }
+
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    event.preventDefault();
+    const direction = event.key === 'ArrowDown' ? 1 : -1;
+    const nextIndex = clamp(index + direction, 0, this.cards.length - 1);
+    this.cards[nextIndex]?.focus();
+    this.cards[nextIndex]?.scrollIntoView({ block: 'nearest', behavior: shouldReducePortfolioMotion() ? 'auto' : 'smooth' });
+  }
+
+  clearProjectOpenTimeouts() {
+    while (this.projectOpenTimeouts.length) {
+      window.clearTimeout(this.projectOpenTimeouts.pop());
+    }
+  }
+
+  pauseAllVideos() {
+    this.mediaVideos.forEach((video) => {
+      try {
+        video.pause();
+      } catch (_) {
+        /* ignore */
+      }
+    });
+  }
+
+  resumeVisibleVideos() {
+    if (shouldReducePortfolioMotion()) return;
+    this.mediaVideos.forEach((video) => {
+      const rect = video.getBoundingClientRect();
+      const rootRect = this.scrollList?.getBoundingClientRect();
+      const visible = rootRect
+        && rect.bottom > rootRect.top
+        && rect.top < rootRect.bottom
+        && rect.right > rootRect.left
+        && rect.left < rootRect.right;
+      if (visible) video.play().catch(() => {});
+    });
+  }
+
+  prefetchProjectAssets(project) {
+    if (!project) return;
+    [getProjectImageSrc(project), ...getProjectContentBlocks(project).map((block) => block.src)].forEach((src) => {
+      if (!src || /\.(mp4|webm)$/i.test(src)) return;
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = resolveAsset(src);
+    });
+  }
+
+  syncProjectHero(project, animate = true) {
+    if (!project || !this.projectDrawerView) return;
+    const openDuration = shouldReducePortfolioMotion()
+      ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
+      : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
+    const imageFadeMs = clamp(toNumber(this.config.runtime.motion?.imageFadeMs, 220), 0, 600);
+    const titleDelay = clamp(toNumber(this.config.runtime.motion?.titleRevealDelayMs, 280), 0, 1200);
+
+    this.projectDrawerView.syncProject(project, {
+      animate,
+      openDurationMs: openDuration,
+      imageFadeMs,
+      titleDelayMs: titleDelay,
+      accentColor: getProjectAccentColor(this.selectedProjectIndex, this.projects.length),
+      motionConfig: this.config.runtime.motion || {},
+    });
+    this.syncProjectButtonStates();
+  }
+
+  openProjectByIndex(index) {
+    if (this.isProjectOpen) return;
+    const projectIndex = clamp(index, 0, this.projects.length - 1);
+    const project = this.projects[projectIndex];
+    if (!project) return;
+    const labelContent = resolvePortfolioLabelContent(project, project?.title || `Project ${projectIndex + 1}`);
+    const spokenLabel = labelContent.eyebrow
+      ? `${labelContent.eyebrow}: ${labelContent.title}`
+      : labelContent.title;
+
+    SoundEngine.playHoverSound?.();
+    this.prefetchProjectAssets(project);
+    this.pauseAllVideos();
+    this.lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.selectedProjectIndex = projectIndex;
+    this.isProjectOpen = true;
+    getGlobals().__portfolioDrawerOpen = true;
+    this.disableBackgroundInteractivity();
+    this.syncProjectHero(project, true);
+    this.cards[projectIndex]?.classList.add('is-selected');
+    announceToScreenReader(`Opened project: ${spokenLabel}`);
+    document.addEventListener('keydown', this.boundProjectKeydown, true);
+
+    const openDuration = shouldReducePortfolioMotion()
+      ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
+      : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
+    this.projectOpenTimeouts.push(window.setTimeout(() => {
+      this.projectClose?.focus();
+    }, Math.min(900, openDuration + 80)));
+  }
+
+  finishProjectClose() {
+    const restoredIndex = this.selectedProjectIndex;
+    this.cards.forEach((card) => card.classList.remove('is-selected'));
+    this.isProjectOpen = false;
+    this.selectedProjectIndex = -1;
+    getGlobals().__portfolioDrawerOpen = false;
+    this.restoreBackgroundInteractivity();
+    this.syncProjectButtonStates();
+    this.resumeVisibleVideos();
+    announceToScreenReader('Closed project view');
+    if (this.lastFocusedElement?.focus) {
+      this.lastFocusedElement.focus();
+    } else if (restoredIndex >= 0) {
+      this.cards[restoredIndex]?.focus();
+    }
+  }
+
+  closeProject() {
+    if (!this.isProjectOpen) return;
+    if (!this.projectView) {
+      this.finishProjectClose();
+      return;
+    }
+    if (this.projectView.classList.contains('is-closing')) return;
+    this.clearProjectOpenTimeouts();
+    this.projectView.classList.remove('is-title-visible');
+    document.removeEventListener('keydown', this.boundProjectKeydown, true);
+
+    const openDuration = clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
+    this.projectDrawerView?.beginClose({
+      reducedMotion: shouldReducePortfolioMotion(),
+      durationMs: openDuration,
+      onComplete: () => this.finishProjectClose(),
+    });
+  }
+
+  syncProjectButtonStates() {
+    this.cards.forEach((card, index) => {
+      const expanded = this.isProjectOpen && index === this.selectedProjectIndex;
+      card.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    });
+  }
+
+  disableBackgroundInteractivity() {
+    document.body.classList.add('portfolio-project-open');
+    refreshCursor();
+    if (this.appFrame) {
+      this.appFrame.setAttribute('aria-hidden', 'true');
+      this.appFrame.inert = true;
+    }
+  }
+
+  restoreBackgroundInteractivity() {
+    document.body.classList.remove('portfolio-project-open');
+    refreshCursor();
+    if (this.appFrame) {
+      this.appFrame.removeAttribute('aria-hidden');
+      this.appFrame.inert = false;
+    }
+  }
+
+  getProjectFocusableElements() {
+    return this.projectDrawerView?.getFocusableElements() || [];
+  }
+
+  handleProjectKeydown(event) {
+    if (!this.isProjectOpen) return;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeProject();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+    const focusables = this.getProjectFocusableElements();
+    if (!focusables.length) return;
+
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement;
+
+    if (event.shiftKey && (active === first || !this.projectView.contains(active))) {
+      event.preventDefault();
+      last.focus();
+      return;
+    }
+
+    if (!event.shiftKey && (active === last || !this.projectView.contains(active))) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+}
+
 /**
  * Wait until `#simulations` has a real layout box (gate transitions / SPA can report 0×0
  * for several frames). Without this, `resize()` no-ops and the pit seeds against a default buffer.
@@ -1175,6 +1690,16 @@ function rectIsUsable(rect) {
   return Boolean(rect && rect.width > 0 && rect.height > 0);
 }
 
+function rectHasUsableVisibleArea(rect, outerRect) {
+  if (!rectIsUsable(rect) || !rectIsUsable(outerRect)) return false;
+  const visibleWidth = Math.max(0, Math.min(rect.right, outerRect.right) - Math.max(rect.left, outerRect.left));
+  const visibleHeight = Math.max(0, Math.min(rect.bottom, outerRect.bottom) - Math.max(rect.top, outerRect.top));
+  return (
+    visibleWidth >= Math.min(240, outerRect.width * 0.5)
+    && visibleHeight >= Math.min(96, rect.height * 0.5)
+  );
+}
+
 function rectsMatchWithinThreshold(previous, next, thresholdPx = 2) {
   if (!rectIsUsable(previous) || !rectIsUsable(next)) return false;
   return (
@@ -1190,34 +1715,42 @@ function readPortfolioPresentationSnapshot() {
   const hero = document.getElementById('hero-title');
   const topbar = document.querySelector('.ui-top-main.route-topbar');
   const labelMount = document.getElementById('portfolioProjectMount');
+  const firstLabel = labelMount?.querySelector('.portfolio-project-label');
   const canvas = document.getElementById('c');
 
   const wallRect = wall?.getBoundingClientRect() || null;
   const heroRect = hero?.getBoundingClientRect() || null;
   const topbarRect = topbar?.getBoundingClientRect() || null;
+  const firstLabelRect = firstLabel?.getBoundingClientRect() || null;
   const labelCount = labelMount?.querySelectorAll('.portfolio-project-label').length || 0;
-  const centeredTolerance = rectIsUsable(wallRect) ? Math.max(12, wallRect.height * 0.05) : 12;
-  const heroMidY = rectIsUsable(heroRect) ? heroRect.top + (heroRect.height / 2) : 0;
-  const wallMidY = rectIsUsable(wallRect) ? wallRect.top + (wallRect.height / 2) : 0;
   const heroInsideWall = rectIsUsable(heroRect) && rectIsUsable(wallRect)
     && heroRect.left >= wallRect.left - 4
     && heroRect.right <= wallRect.right + 4
     && heroRect.top >= wallRect.top - 4
     && heroRect.bottom <= wallRect.bottom + 4;
-  const heroCentered = heroInsideWall && Math.abs(heroMidY - wallMidY) <= centeredTolerance;
+  const heroReady = !hero || !rectIsUsable(heroRect) || heroInsideWall;
+  const firstLabelReady = rectIsUsable(firstLabelRect)
+    && rectIsUsable(wallRect)
+    && firstLabelRect.width >= Math.min(240, wallRect.width * 0.5)
+    && firstLabelRect.height >= 96
+    && firstLabelRect.left >= wallRect.left - 8
+    && firstLabelRect.right <= wallRect.right + 8
+    && rectHasUsableVisibleArea(firstLabelRect, wallRect);
 
   return {
     wallRect,
     heroRect,
     topbarRect,
+    firstLabelRect,
     canvasReady: isCanvasBackingStoreReady(canvas),
     labelCount,
     ready: Boolean(
       rectIsUsable(wallRect)
-      && rectIsUsable(heroRect)
       && rectIsUsable(topbarRect)
       && isCanvasBackingStoreReady(canvas)
-      && heroCentered
+      && heroReady
+      && labelCount > 0
+      && firstLabelReady
     ),
   };
 }
@@ -1236,7 +1769,8 @@ async function waitForStablePortfolioPresentation(options = {}) {
       if (snapshot.ready && previous) {
         const stable = (
           rectsMatchWithinThreshold(previous.wallRect, snapshot.wallRect, thresholdPx)
-          && rectsMatchWithinThreshold(previous.heroRect, snapshot.heroRect, thresholdPx)
+          && (!previous.heroRect || !snapshot.heroRect || rectsMatchWithinThreshold(previous.heroRect, snapshot.heroRect, thresholdPx))
+          && rectsMatchWithinThreshold(previous.firstLabelRect, snapshot.firstLabelRect, thresholdPx)
           && rectsMatchWithinThreshold(previous.topbarRect, snapshot.topbarRect, thresholdPx)
         );
         stablePasses = stable ? stablePasses + 1 : 0;
@@ -1376,40 +1910,18 @@ export async function bootstrapPortfolio() {
   const data = await fetchPortfolioData();
   const projects = Array.isArray(data?.projects) ? data.projects : [];
 
-  const app = new PortfolioPitApp({
+  const app = new PortfolioScrollApp({
     config: portfolioConfig,
     projects
   });
   await app.init();
   installPortfolioAuditBridge(app);
-  {
-    const g = getGlobals();
-    const reducedMotion = typeof window !== 'undefined'
-      && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    // Engine consumes warmupFramesRemaining on the first main-loop tick before drawing,
-    // which pre-settles the pit while #c is still opacity:0. Use 0 so pebbles are
-    // still “in the air” when the canvas is revealed; reduced motion keeps a long
-    // warmup so the layout appears stable immediately.
-    g.warmupFramesRemaining = reducedMotion ? 180 : 0;
-  }
   updateCursorSize();
 
   const settlePortfolioPresentation = () => {
     try {
       detectOptimalDPR();
       resize();
-
-      // If the initial seed was skipped because the canvas buffer was still at
-      // default 300×150 during the gate transition, re-seed now that the buffer
-      // has been corrected by the resize above.
-      const g = getGlobals();
-      if (g.canvas && g.canvas.width > 2 && g.canvas.height > 2
-          && (!g.balls || g.balls.length === 0)
-          && Array.isArray(g.portfolioProjects) && g.portfolioProjects.length > 0) {
-        setMode(MODES.PORTFOLIO_PIT);
-      }
-
-      relayoutPortfolioProjectLabels();
       app.syncProjectLabels();
       render();
     } catch (e) {
@@ -1418,11 +1930,11 @@ export async function bootstrapPortfolio() {
   };
   settlePortfolioPresentation();
 
-  startMainLoop(null, { getForcesFn: getForceApplicator });
-
   // Wait one frame so layout is stable before revealing.
   await new Promise((resolve) => requestAnimationFrame(resolve));
   settlePortfolioPresentation();
+  if (pitCanvas) { pitCanvas.style.opacity = '1'; }
+  if (pitMount) { pitMount.style.opacity = '1'; }
   if (shellRouteTransitionActive) {
     // Unblock shell route-in once the portfolio route landmarks exist; keep final settling in the background.
     signalRouteReady('portfolio');
@@ -1479,13 +1991,14 @@ export async function bootstrapPortfolio() {
     });
   });
 
-  window.addEventListener('pageshow', (event) => {
+  const handlePageShow = (event) => {
     if (event.persisted) {
       resetTransitionState();
       const appFrame = document.getElementById('app-frame');
       if (appFrame) appFrame.style.opacity = '1';
     }
-  });
+  };
+  window.addEventListener('pageshow', handlePageShow);
 
   const backLink = document.querySelector('[data-nav-transition][href*="index"]');
   if (backLink) {
@@ -1498,6 +2011,7 @@ export async function bootstrapPortfolio() {
     } catch (e) {
       /* ignore */
     }
+    window.removeEventListener('pageshow', handlePageShow);
     app.destroy();
   };
 }
