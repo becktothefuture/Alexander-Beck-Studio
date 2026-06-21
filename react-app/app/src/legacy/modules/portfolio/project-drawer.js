@@ -299,7 +299,13 @@ function createProjectDrawerMarkup() {
             />
           </svg>
         </button>
-        <div class="portfolio-project-view__scroll" data-scroll-presence-root>
+        <div
+          class="portfolio-project-view__scroll"
+          data-scroll-presence-root
+          tabindex="0"
+          role="region"
+          aria-label="Project details"
+        >
           <section class="portfolio-project-view__hero">
             <div class="portfolio-project-view__image-shell">
               <div class="portfolio-project-view__image-motion">
@@ -678,8 +684,23 @@ export class PortfolioProjectDrawer {
   getFocusableElements() {
     if (!this.root) return [];
     return Array.from(this.root.querySelectorAll(
-      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    )).filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true');
+      [
+        'button:not([disabled])',
+        'a[href]',
+        'input:not([disabled])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        'video[controls]',
+        'audio[controls]',
+        '[contenteditable="true"]',
+        '[tabindex]:not([tabindex="-1"])',
+      ].join(',')
+    )).filter((element) => {
+      if (element.hasAttribute('disabled')) return false;
+      if (element.closest('[aria-hidden="true"], [inert]')) return false;
+      const style = window.getComputedStyle(element);
+      return style.visibility !== 'hidden' && style.display !== 'none';
+    });
   }
 
   destroy() {

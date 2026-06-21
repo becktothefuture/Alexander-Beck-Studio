@@ -199,23 +199,25 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
 .portfolio-scroll-mount {
   display: block;
   pointer-events: auto;
-  --portfolio-card-gap: clamp(10px, 1.35vw, 18px);
-  --portfolio-card-height: clamp(160px, 21vh, 200px);
+  --portfolio-rail-pad-x: clamp(28px, 3.8vw, 64px);
+  --portfolio-card-gap: clamp(12px, 1.45vw, 20px);
+  --portfolio-card-height: clamp(194px, 23.4vh, 228px);
+  --portfolio-card-start-lift: 0px;
   --portfolio-card-snap-pad: max(32px, calc((100vh - var(--portfolio-card-height)) / 2));
   --portfolio-card-radius: max(
-    12px,
-    calc(var(--frame-inner-radius) - clamp(18px, 2.5vw, 34px))
+    14px,
+    calc(var(--frame-inner-radius) - clamp(16px, 2.2vw, 30px))
   );
-  --portfolio-card-pad: clamp(16px, 2vw, 28px);
-  --portfolio-card-media-width: clamp(230px, 36%, 420px);
+  --portfolio-card-pad: clamp(18px, 2.1vw, 30px);
+  --portfolio-card-media-width: clamp(250px, 33%, 420px);
   --portfolio-card-surface: rgba(246, 246, 242, 0.9);
   --portfolio-card-border: rgba(28, 28, 26, 0.12);
   --portfolio-card-shadow: rgba(28, 28, 26, 0.08);
   --portfolio-card-accent-soft: rgba(28, 28, 26, 0.08);
-  --portfolio-card-surface: color-mix(in srgb, var(--portfolio-drawer-ground) 90%, var(--portfolio-card-accent) 10%);
-  --portfolio-card-border: color-mix(in srgb, var(--portfolio-card-ink) 12%, transparent);
-  --portfolio-card-shadow: color-mix(in srgb, var(--portfolio-card-accent) 10%, transparent);
-  --portfolio-card-accent-soft: color-mix(in srgb, var(--portfolio-card-accent) 18%, transparent);
+  --portfolio-card-surface: color-mix(in srgb, var(--portfolio-drawer-ground) 82%, var(--portfolio-card-accent) 18%);
+  --portfolio-card-border: color-mix(in srgb, var(--portfolio-card-accent) 34%, var(--portfolio-card-ink) 12%);
+  --portfolio-card-shadow: color-mix(in srgb, var(--portfolio-card-accent) 18%, transparent);
+  --portfolio-card-accent-soft: color-mix(in srgb, var(--portfolio-card-accent) 24%, transparent);
   --portfolio-card-ink: var(--portfolio-drawer-ink);
   --portfolio-card-muted: rgba(35, 35, 32, 0.68);
   --portfolio-card-muted: color-mix(in srgb, var(--portfolio-card-ink) 68%, transparent);
@@ -266,6 +268,35 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   color: var(--portfolio-card-ink);
 }
 
+.portfolio-scroll-stage::before,
+.portfolio-scroll-stage::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  height: clamp(76px, 13vh, 144px);
+  pointer-events: none;
+}
+
+.portfolio-scroll-stage::before {
+  top: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--portfolio-drawer-ground) 96%, transparent),
+    transparent
+  );
+}
+
+.portfolio-scroll-stage::after {
+  bottom: 0;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--portfolio-drawer-ground) 90%, transparent),
+    transparent
+  );
+}
+
 .portfolio-scroll-list {
   position: absolute;
   inset: 0;
@@ -274,7 +305,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   align-content: start;
   gap: var(--portfolio-card-gap);
   padding:
-    var(--portfolio-card-snap-pad)
+    max(var(--portfolio-stage-pad), calc(var(--portfolio-card-snap-pad) - var(--portfolio-card-start-lift)))
     var(--portfolio-stage-pad)
     var(--portfolio-card-snap-pad);
   overflow-x: hidden;
@@ -285,6 +316,16 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   scroll-padding-block: var(--portfolio-card-snap-pad);
   scroll-behavior: smooth;
   scrollbar-width: none;
+}
+
+@media (min-width: 760px) {
+  .portfolio-scroll-mount {
+    --portfolio-card-start-lift: clamp(58px, 7vh, 72px);
+  }
+}
+
+.portfolio-scroll-list {
+  padding-inline: var(--portfolio-rail-pad-x);
 }
 
 .portfolio-scroll-list::-webkit-scrollbar {
@@ -309,15 +350,27 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   border: 1px solid var(--portfolio-card-border);
   background: var(--portfolio-card-surface);
   background:
+    radial-gradient(
+      circle at 86% 20%,
+      color-mix(in srgb, var(--portfolio-card-accent) 34%, transparent),
+      transparent 38%
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--portfolio-card-accent) 11%, transparent),
+      transparent 34%
+    ),
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--portfolio-card-surface) 94%, white 6%),
-      color-mix(in srgb, var(--portfolio-card-surface) 88%, black 12%)
+      color-mix(in srgb, var(--portfolio-card-surface) 92%, white 8%),
+      color-mix(in srgb, var(--portfolio-card-surface) 78%, black 22%)
     );
   color: var(--portfolio-card-ink);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 28%, transparent),
-    0 14px 34px var(--portfolio-card-shadow);
+    inset 0 1px 0 color-mix(in srgb, white 30%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 18%, transparent),
+    0 18px 44px color-mix(in srgb, black 16%, transparent),
+    0 8px 34px var(--portfolio-card-shadow);
   cursor: pointer;
   scroll-snap-align: center;
   scroll-snap-stop: always;
@@ -326,24 +379,39 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   transform: translateZ(0);
   transition:
     opacity 180ms ease,
-    transform 220ms var(--ease-organic),
+    transform 260ms var(--ease-organic),
     border-color 180ms ease,
-    box-shadow 220ms var(--ease-organic);
+    box-shadow 260ms var(--ease-organic),
+    background 260ms var(--ease-organic);
 }
 
 .portfolio-scroll-mount .portfolio-project-card::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: 0 auto 0 0;
+  width: clamp(5px, 0.6vw, 8px);
   pointer-events: none;
   border-radius: inherit;
   background:
+    linear-gradient(to bottom, transparent 8%, var(--portfolio-card-accent), transparent 92%);
+  opacity: 0.78;
+}
+
+.portfolio-scroll-mount .portfolio-project-card::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  pointer-events: none;
+  border-radius: calc(var(--portfolio-card-radius) - 1px);
+  background:
     linear-gradient(
-      90deg,
-      var(--portfolio-card-accent-soft),
-      transparent 34%
+      128deg,
+      color-mix(in srgb, white 14%, transparent),
+      transparent 26% 76%,
+      color-mix(in srgb, black 14%, transparent)
     );
-  opacity: 0.16;
+  mix-blend-mode: soft-light;
+  opacity: 0.62;
 }
 
 .portfolio-scroll-mount .portfolio-project-card:hover,
@@ -352,12 +420,14 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   opacity: 1;
   border-color: color-mix(in srgb, var(--portfolio-card-accent) 42%, var(--portfolio-card-ink) 12%);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 34%, transparent),
-    0 18px 46px color-mix(in srgb, var(--portfolio-card-accent) 16%, transparent);
+    inset 0 1px 0 color-mix(in srgb, white 38%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 18%, transparent),
+    0 24px 64px color-mix(in srgb, var(--portfolio-card-accent) 24%, transparent),
+    0 12px 38px color-mix(in srgb, black 18%, transparent);
 }
 
 .portfolio-scroll-mount .portfolio-project-card.is-scroll-active {
-  transform: translateZ(0) scale(1.012);
+  transform: translate3d(0, -2px, 0) scale(1.008);
 }
 
 .portfolio-scroll-mount .portfolio-project-card.is-scroll-active .portfolio-project-card__video,
@@ -404,7 +474,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   padding: 0;
   text-align: left;
   font-family: var(--abs-font-sans);
-  font-size: clamp(1.35rem, 2.5vw, 2.45rem);
+  font-size: clamp(1.36rem, 2.35vw, 2.34rem);
   font-weight: 500;
   line-height: 0.94;
   letter-spacing: 0;
@@ -416,8 +486,8 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 .portfolio-project-card__summary {
   max-width: 42ch;
   margin: 0;
-  font-size: clamp(0.9rem, 1.08vw, 1.05rem);
-  line-height: 1.42;
+  font-size: clamp(0.86rem, 1vw, 1rem);
+  line-height: 1.36;
   letter-spacing: 0;
   color: var(--portfolio-card-muted);
   overflow: hidden;
@@ -430,7 +500,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   display: flex;
   flex-wrap: wrap;
   gap: clamp(6px, 0.8vw, 10px);
-  margin: clamp(2px, 0.4vw, 6px) 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -438,11 +508,12 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 .portfolio-project-card__tags li {
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
-  padding: 0 clamp(8px, 0.9vw, 12px);
-  border-radius: var(--ui-icon-corner-radius);
-  background: color-mix(in srgb, var(--portfolio-card-ink) 9%, transparent);
-  color: color-mix(in srgb, var(--portfolio-card-ink) 78%, transparent);
+  min-height: clamp(22px, 2vw, 26px);
+  padding: 0 clamp(8px, 0.85vw, 12px);
+  border-radius: calc(var(--ui-icon-corner-radius) * 0.72);
+  border: 1px solid color-mix(in srgb, var(--portfolio-card-accent) 28%, transparent);
+  background: color-mix(in srgb, var(--portfolio-card-ink) 8%, var(--portfolio-card-accent) 9%);
+  color: color-mix(in srgb, var(--portfolio-card-ink) 82%, transparent);
   font-family: var(--abs-font-mono);
   font-size: clamp(0.68rem, 0.72vw, 0.78rem);
   line-height: 1;
@@ -457,11 +528,15 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   height: 100%;
   margin: 0;
   overflow: hidden;
-  border-radius: max(10px, calc(var(--portfolio-card-radius) - var(--portfolio-card-pad) * 0.42));
+  border-radius: max(12px, calc(var(--portfolio-card-radius) - var(--portfolio-card-pad) * 0.38));
   background: rgba(28, 28, 26, 0.12);
   background:
-    radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--portfolio-card-accent) 34%, transparent), transparent 40%),
-    color-mix(in srgb, black 12%, var(--portfolio-card-surface));
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--portfolio-card-accent) 42%, transparent), transparent 42%),
+    color-mix(in srgb, black 26%, var(--portfolio-card-surface));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 18%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--portfolio-card-ink) 12%, transparent),
+    0 10px 24px color-mix(in srgb, black 18%, transparent);
 }
 
 .portfolio-project-card__video,
@@ -472,6 +547,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   object-fit: cover;
   filter: saturate(0.92) contrast(1.02);
   transform: scale(1.02);
+  opacity: 0.92;
 }
 
 .portfolio-project-card__media-fallback {
@@ -491,8 +567,9 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.2), transparent 42%),
-    radial-gradient(circle at 85% 18%, color-mix(in srgb, var(--portfolio-card-accent) 28%, transparent), transparent 38%);
+    linear-gradient(90deg, rgba(0, 0, 0, 0.28), transparent 46%),
+    radial-gradient(circle at 85% 18%, color-mix(in srgb, var(--portfolio-card-accent) 34%, transparent), transparent 42%),
+    linear-gradient(to top, color-mix(in srgb, black 24%, transparent), transparent 38%);
 }
 
 .portfolio-label-layer {
