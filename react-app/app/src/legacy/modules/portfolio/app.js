@@ -173,7 +173,7 @@ function resolveAsset(src) {
   if (!src) return '';
   if (/^https?:\/\//.test(src)) return src;
   const trimmed = src.replace(/^\/+/, '');
-  const baseUrl = trimmed.startsWith('images/')
+  const baseUrl = /^(?:images|video)\//.test(trimmed)
     ? `${CONFIG.basePath}${trimmed}`
     : `${CONFIG.assetBasePath}${trimmed}`;
   const separator = baseUrl.includes('?') ? '&' : '?';

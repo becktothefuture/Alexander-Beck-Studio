@@ -39,7 +39,7 @@
         },
         {
           "type": "video",
-          "src": "images/portfolio/videos/shutterstock_1092679953---01---02-transcode.mp4",
+          "src": "video/video-dark.mp4",
           "caption": "Interactive prototype walkthrough.",
           "layout": { "aspect": "4:3" }
         },
@@ -98,7 +98,7 @@
       ],
       "contentBlocks": [
         { "type": "image", "src": "images/portfolio/pages/chapter-4-1.webp", "caption": "Token architecture and naming." },
-        { "type": "video", "src": "images/portfolio/videos/shutterstock_1092679953---01---02-transcode.mp4", "caption": "Component QA and release workflow." },
+        { "type": "video", "src": "video/video-dark.mp4", "caption": "Component QA and release workflow." },
         { "type": "image", "src": "images/portfolio/pages/chapter-4-8.webp", "caption": "Documentation patterns and usage notes." },
         { "type": "image", "src": "images/portfolio/pages/chapter-4-10.webp", "caption": "System adoption and onboarding flow." }
       ],
@@ -130,7 +130,7 @@
       ],
       "contentBlocks": [
         { "type": "image", "src": "images/portfolio/pages/chapter-3-1.webp", "caption": "Animation guidelines and timing rails." },
-        { "type": "video", "src": "images/portfolio/videos/shutterstock_1092679953---01---02-transcode.mp4", "caption": "Interactive states and feedback loops." },
+        { "type": "video", "src": "video/video-dark.mp4", "caption": "Interactive states and feedback loops." },
         { "type": "image", "src": "images/portfolio/pages/chapter-3-10.webp", "caption": "Motion tokens for components and transitions." },
         { "type": "image", "src": "images/portfolio/pages/chapter-3-14.webp", "caption": "Systemized micro-interactions." }
       ],
@@ -162,7 +162,7 @@
       ],
       "contentBlocks": [
         { "type": "image", "src": "images/portfolio/pages/chapter-2-1.webp", "caption": "Research scope and stakeholder alignment." },
-        { "type": "video", "src": "images/portfolio/videos/shutterstock_1092679953---01---02-transcode.mp4", "caption": "Insight synthesis and storytelling reel." },
+        { "type": "video", "src": "video/video-dark.mp4", "caption": "Insight synthesis and storytelling reel." },
         { "type": "image", "src": "images/portfolio/pages/chapter-2-9.webp", "caption": "Opportunity mapping and prioritization." },
         { "type": "image", "src": "images/portfolio/pages/chapter-2-11.webp", "caption": "Behavioral segmentation and personas." }
       ],
@@ -194,7 +194,7 @@
       ],
       "contentBlocks": [
         { "type": "image", "src": "images/portfolio/pages/chapter-5-1.webp", "caption": "Narrative framing and positioning." },
-        { "type": "video", "src": "images/portfolio/videos/shutterstock_1092679953---01---02-transcode.mp4", "caption": "Campaign motion and storytelling beats." },
+        { "type": "video", "src": "video/video-dark.mp4", "caption": "Campaign motion and storytelling beats." },
         { "type": "image", "src": "images/portfolio/pages/chapter-5-7.webp", "caption": "Team alignment and review cadence." },
         { "type": "image", "src": "images/portfolio/pages/chapter-5-10.webp", "caption": "Launch artifacts and touchpoints." }
       ],
@@ -226,7 +226,7 @@
       ],
       "contentBlocks": [
         { "type": "image", "src": "images/portfolio/pages/chapter-6-1.webp", "caption": "Speculative interface sketches." },
-        { "type": "video", "src": "images/portfolio/videos/shutterstock_1092679953---01---02-transcode.mp4", "caption": "Realtime generative motion study." },
+        { "type": "video", "src": "video/video-dark.mp4", "caption": "Realtime generative motion study." },
         { "type": "image", "src": "images/portfolio/pages/chapter-6-2.webp", "caption": "Material and shader exploration." },
         { "type": "image", "src": "images/portfolio/pages/chapter-6-3.webp", "caption": "Prototype outputs and experiments." }
       ],
