@@ -31,6 +31,31 @@ export function getGateCodeLength(gateId) {
   return getGateInviteCode(gateId).length;
 }
 
+function consumeGateAccessFromUrl(gateId) {
+  const inviteCode = getGateInviteCode(gateId);
+  if (!inviteCode) return false;
+
+  try {
+    const url = new URL(window.location.href);
+    const candidates = [
+      url.searchParams.get(gateId),
+      url.searchParams.get(`${gateId}Code`),
+      url.searchParams.get('access'),
+    ].filter(Boolean);
+    const matched = candidates.some((value) => String(value).trim() === inviteCode);
+    if (!matched) return false;
+
+    url.searchParams.delete(gateId);
+    url.searchParams.delete(`${gateId}Code`);
+    url.searchParams.delete('access');
+    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+    markGateAccess(gateId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function isDevGatePreview(gateId) {
   if (!import.meta.env.DEV) return false;
 
@@ -64,6 +89,10 @@ function getRequestKeys(gateId) {
 export function hasGateAccess(gateId) {
   const accessKey = getAccessKey(gateId);
   if (!accessKey) return false;
+
+  if (consumeGateAccessFromUrl(gateId)) {
+    return true;
+  }
 
   try {
     if (window.sessionStorage.getItem(accessKey)) {
