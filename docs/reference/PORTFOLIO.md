@@ -1,6 +1,6 @@
 # Portfolio Runtime
 
-The portfolio route is now a dedicated **project pit** rather than a slider. It reuses the shared wall frame, physics loop, and modal chrome, but swaps in a portfolio-only mode with oversized draggable project bodies and a fullscreen in-place project open transition.
+The portfolio route is a wall-contained **vertical project rail**. It reuses the shared wall frame and route chrome, but the visible project UI is DOM-driven: native vertical scrolling, center snap, project cards with media thumbnails, and a full wall-contained project detail surface.
 
 ## Entry Points
 
@@ -18,15 +18,17 @@ Hero hint copy is **`(scroll please)`** (see `createProjectView()` in `app.js`).
 
 ## Runtime Modules
 
-- `react-app/app/src/legacy/modules/portfolio/app.js` bootstraps the route, loads project data, mounts the fullscreen project view, and handles drag/open behavior.
-- `react-app/app/src/legacy/modules/portfolio/pit-mode.js` creates one body per project: alternating **circle** / **squircle** (square Lamé superellipse, same curve for fill + collision), first project = **theme accent circle** (light fill in dark mode, dark fill in light). Convex hulls match `portfolio-body-geometry.js`; ball–ball contact uses SAT in `portfolio-pit-narrow-phase.js` (see `CONFIGURATION.md`). **Body diameter** scales with **√(inner pit width×height)** (same wall inset as physics), not `min(canvas)`, so silhouettes keep similar **relative** size on phone and desktop. Pit bodies are **solid fill** on canvas (hero imagery is for the open drawer only).
+- `react-app/app/src/legacy/modules/portfolio/app.js` bootstraps the route, loads project data, mounts the full project view, renders the scroll rail, controls media autoplay/fallbacks, and handles card open/close behavior.
+- `react-app/app/src/legacy/modules/portfolio/pit-mode.js` remains for archived/compatibility physics helpers. The visible portfolio route should not expose project balls.
 - `react-app/app/src/legacy/modules/portfolio/portfolio-config.js` normalizes the authored portfolio config and applies portfolio CSS vars.
 - `react-app/app/src/legacy/modules/portfolio/panel/` exposes the dev panel for body sizing, labeling, and motion.
 
 ## Data And Assets
 
-- `react-app/app/public/config/contents-portfolio.json` remains the source of truth for projects, detail copy, links, and media.
+- `react-app/app/public/config/contents-portfolio.json` remains the source of truth for projects, detail copy, links, tags, and media.
 - `react-app/app/public/images/portfolio/` holds the hero/detail assets resolved by the portfolio runtime.
+
+Card media selection uses `thumbnailVideo` / `video` only when explicitly present. Otherwise the card falls back to the project `image`. Detail content videos inside `contentBlocks` are not reused as card thumbnails because they may be generic or too dark for the rail preview.
 
 ## Config Model
 
@@ -40,6 +42,15 @@ The active portfolio runtime groups are:
 - `runtime.labeling`: title fit bounds and block rotation range
 - `runtime.motion`: drag/open timing and neighbor impulse
 - `runtime.behavior`: passive mouse reaction toggle and reduced-motion timing
+
+## Scroll Rail Contract
+
+- Desktop should show roughly two full project cards plus a partial third.
+- Mobile should show one focused card plus a visible next-card peek.
+- Cards use explicit per-project material colors set in `portfolio/app.js` and CSS variables in `portfolio.css`; do not rely only on the global palette for card contrast.
+- Native scroll snap is required. Cards should snap to the center region of the wall.
+- Open project views mount in `#portfolio-sheet-host`, cover route chrome, and must remove the host's `aria-hidden` while open.
+
 ## Archived Slider
 
 The previous slider implementation is archived and no longer used in the live route:

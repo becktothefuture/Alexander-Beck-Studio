@@ -1,6 +1,6 @@
 /**
- * End-to-end check: home → portfolio invite modal → portfolio pit.
- * Asserts HiDPI canvas backing store, visible DOM labels, and dense-frame transition integrity
+ * End-to-end check: home → portfolio invite modal → portfolio scroll rail.
+ * Asserts HiDPI canvas backing store, visible DOM cards, and dense-frame transition integrity
  * for the gated home → portfolio SPA path.
  *
  * Run: npm run audit:portfolio-gate
@@ -103,6 +103,7 @@ async function readDenseGateFrame(page) {
     const wallRect = rectOf(wall);
     const heroRect = rectOf(hero);
     const topbarRect = rectOf(topbar);
+    const labelRect = rectOf(label);
     const heroInsideWall = Boolean(
       wallRect
       && heroRect
@@ -110,6 +111,14 @@ async function readDenseGateFrame(page) {
       && heroRect.right <= wallRect.right + 4
       && heroRect.top >= wallRect.top - 4
       && heroRect.bottom <= wallRect.bottom + 4
+    );
+    const labelInsideWall = Boolean(
+      wallRect
+      && labelRect
+      && labelRect.left >= wallRect.left - 8
+      && labelRect.right <= wallRect.right + 8
+      && labelRect.top >= wallRect.top - 8
+      && labelRect.bottom <= wallRect.bottom + Math.max(8, labelRect.height * 0.55)
     );
 
     return {
@@ -119,13 +128,15 @@ async function readDenseGateFrame(page) {
       bodyClass: document.body.className,
       wallRect,
       heroRect,
+      labelRect,
       topbarRect,
       heroReadable: isReadable(hero),
       topbarReadable: isReadable(topbar),
       footerReadable: isReadable(footer),
       labelReadable: isReadable(label),
       heroInsideWall,
-      primaryReadable: isReadable(hero) || isReadable(topbar) || isReadable(footer),
+      labelInsideWall,
+      primaryReadable: isReadable(topbar) && (isReadable(hero) || isReadable(label) || isReadable(footer)),
     };
   });
 }
@@ -231,23 +242,28 @@ function assertDenseGateFrames(frames) {
   if (!firstReadable) {
     errors.push('no readable portfolio primary frame was captured');
   } else {
-    if (!firstReadable.heroInsideWall) {
-      errors.push('hero was not fully inside the inner wall on the first readable frame');
+    const primarySurfaceInsideWall = firstReadable.heroReadable
+      ? firstReadable.heroInsideWall
+      : firstReadable.labelInsideWall;
+    if (!primarySurfaceInsideWall) {
+      errors.push('portfolio primary surface was not fully inside the inner wall on the first readable frame');
     }
-    if (!firstReadable.heroReadable || !firstReadable.topbarReadable) {
-      errors.push('hero and top chrome did not enter in the same readable band');
+    if (!(firstReadable.heroReadable || firstReadable.labelReadable) || !firstReadable.topbarReadable) {
+      errors.push('portfolio card/hero and top chrome did not enter in the same readable band');
     }
     if (frames.slice(0, firstReadableIndex).some(
-      (frame) => /portfolio/i.test(frame.path || '') && frame.labelReadable
+      (frame) => /portfolio/i.test(frame.path || '') && frame.labelReadable && !frame.topbarReadable
     )) {
-      errors.push('portfolio labels became readable before the primary hero/chrome/footer group');
+      errors.push('portfolio cards became readable before the top chrome');
     }
   }
 
   if (firstReadable && settled) {
-    const heroSnapPx = rectDiffMagnitude(firstReadable.heroRect, settled.heroRect);
-    if (heroSnapPx > HERO_SNAP_THRESHOLD_PX) {
-      errors.push(`hero geometry snapped ${heroSnapPx.toFixed(2)}px between first readable and settled frames`);
+    const firstPrimaryRect = firstReadable.heroReadable ? firstReadable.heroRect : firstReadable.labelRect;
+    const settledPrimaryRect = firstReadable.heroReadable ? settled.heroRect : settled.labelRect;
+    const primarySnapPx = rectDiffMagnitude(firstPrimaryRect, settledPrimaryRect);
+    if (primarySnapPx > HERO_SNAP_THRESHOLD_PX) {
+      errors.push(`portfolio primary geometry snapped ${primarySnapPx.toFixed(2)}px between first readable and settled frames`);
     }
   }
 

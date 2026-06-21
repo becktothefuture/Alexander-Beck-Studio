@@ -69,6 +69,50 @@ const PORTFOLIO_CLICK_DRAG_THRESHOLD_PX = 12;
 
 const DRAG_SAMPLE_LIMIT = 5;
 const DRAG_SAMPLE_MAX_AGE_MS = 140;
+const PROJECT_CARD_THEMES = [
+  {
+    ids: ['chapter-1'],
+    accent: '#25d7c2',
+    glow: '#4debd8',
+    base: '#143634',
+    deep: '#0b201f',
+  },
+  {
+    ids: ['chapter-4'],
+    accent: '#ff6447',
+    glow: '#ff8a54',
+    base: '#5a201b',
+    deep: '#220d0a',
+  },
+  {
+    ids: ['chapter-3'],
+    accent: '#78a7ff',
+    glow: '#9fc0ff',
+    base: '#142c55',
+    deep: '#081426',
+  },
+  {
+    ids: ['chapter-2'],
+    accent: '#e3b84f',
+    glow: '#f4d67a',
+    base: '#3f3420',
+    deep: '#1f190d',
+  },
+  {
+    ids: ['chapter-5'],
+    accent: '#d9c7a8',
+    glow: '#f0dfc2',
+    base: '#383833',
+    deep: '#171714',
+  },
+  {
+    ids: ['chapter-6'],
+    accent: '#b7d0ff',
+    glow: '#d8e5ff',
+    base: '#222943',
+    deep: '#0e1220',
+  },
+];
 
 let CACHE_BUST_VALUE = null;
 
@@ -141,6 +185,41 @@ function getReadableLabelRotation(rotationRad) {
   if (normalized > Math.PI * 0.5) normalized -= Math.PI;
   if (normalized < -Math.PI * 0.5) normalized += Math.PI;
   return normalized;
+}
+
+function getProjectCardTheme(project, projectIndex, projectCount) {
+  const id = String(project?.id || '').trim();
+  const theme = PROJECT_CARD_THEMES.find((item) => item.ids.includes(id))
+    || PROJECT_CARD_THEMES[projectIndex % PROJECT_CARD_THEMES.length];
+  const accent = project?.accentColor || theme?.accent || getProjectAccentColor(projectIndex, projectCount);
+  return {
+    accent,
+    glow: project?.glowColor || theme?.glow || accent,
+    base: project?.surfaceColor || theme?.base || '#20211f',
+    deep: project?.deepColor || theme?.deep || '#10110f',
+    ink: project?.inkColor || '#f8f3eb',
+  };
+}
+
+function applyProjectCardTheme(element, project, projectIndex, projectCount) {
+  if (!element) return;
+  const theme = getProjectCardTheme(project, projectIndex, projectCount);
+  element.style.setProperty('--portfolio-card-accent', theme.accent);
+  element.style.setProperty('--portfolio-card-glow', theme.glow);
+  element.style.setProperty('--portfolio-card-base', theme.base);
+  element.style.setProperty('--portfolio-card-deep', theme.deep);
+  element.style.setProperty('--portfolio-card-surface', theme.base);
+  element.style.setProperty('--portfolio-card-ink', theme.ink);
+}
+
+function setPortfolioSheetHostHidden(hidden) {
+  const host = document.getElementById('portfolio-sheet-host');
+  if (!host) return;
+  if (hidden) {
+    host.setAttribute('aria-hidden', 'true');
+  } else {
+    host.removeAttribute('aria-hidden');
+  }
 }
 
 function shouldRotatePortfolioLabels() {
@@ -1054,6 +1133,7 @@ class PortfolioPitApp {
 
   disableBackgroundInteractivity() {
     document.body.classList.add('portfolio-project-open');
+    setPortfolioSheetHostHidden(false);
     refreshCursor();
     if (this.appFrame) {
       this.appFrame.setAttribute('aria-hidden', 'true');
@@ -1067,6 +1147,7 @@ class PortfolioPitApp {
 
   restoreBackgroundInteractivity() {
     document.body.classList.remove('portfolio-project-open');
+    setPortfolioSheetHostHidden(true);
     refreshCursor();
     if (this.appFrame) {
       this.appFrame.removeAttribute('aria-hidden');
@@ -1132,11 +1213,7 @@ function getProjectImageSrc(project) {
 function getProjectVideoSrc(project) {
   if (project?.thumbnailVideo) return project.thumbnailVideo;
   if (project?.video) return project.video;
-  const videoBlock = getProjectContentBlocks(project).find((block) => {
-    const src = String(block?.src || '');
-    return block?.type === 'video' || /\.(mp4|webm)$/i.test(src);
-  });
-  return videoBlock?.src || '';
+  return '';
 }
 
 function getPortfolioVideoMimeType(src) {
@@ -1286,14 +1363,14 @@ class PortfolioScrollApp {
 
   createProjectCard(project, index) {
     const labelContent = resolvePortfolioLabelContent(project, project?.title || `Project ${index + 1}`);
-    const accentColor = getProjectAccentColor(index, this.projects.length);
     const spokenLabel = labelContent.eyebrow
       ? `${labelContent.eyebrow}: ${labelContent.title}`
       : labelContent.title;
     const card = document.createElement('article');
     card.className = 'portfolio-project-card portfolio-project-label';
     card.dataset.projectIndex = String(index);
-    card.style.setProperty('--portfolio-card-accent', accentColor);
+    card.dataset.projectId = String(project?.id || `project-${index + 1}`);
+    applyProjectCardTheme(card, project, index, this.projects.length);
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '0');
     card.setAttribute('aria-haspopup', 'dialog');
@@ -1418,7 +1495,7 @@ class PortfolioScrollApp {
 
   applyProjectPalette() {
     this.cards.forEach((card, index) => {
-      card.style.setProperty('--portfolio-card-accent', getProjectAccentColor(index, this.projects.length));
+      applyProjectCardTheme(card, this.projects[index], index, this.projects.length);
     });
   }
 
@@ -1495,7 +1572,7 @@ class PortfolioScrollApp {
       openDurationMs: openDuration,
       imageFadeMs,
       titleDelayMs: titleDelay,
-      accentColor: getProjectAccentColor(this.selectedProjectIndex, this.projects.length),
+      accentColor: getProjectCardTheme(project, this.selectedProjectIndex, this.projects.length).accent,
       motionConfig: this.config.runtime.motion || {},
     });
     this.syncProjectButtonStates();
@@ -1577,6 +1654,7 @@ class PortfolioScrollApp {
 
   disableBackgroundInteractivity() {
     document.body.classList.add('portfolio-project-open');
+    setPortfolioSheetHostHidden(false);
     refreshCursor();
     if (this.appFrame) {
       this.appFrame.setAttribute('aria-hidden', 'true');
@@ -1586,6 +1664,7 @@ class PortfolioScrollApp {
 
   restoreBackgroundInteractivity() {
     document.body.classList.remove('portfolio-project-open');
+    setPortfolioSheetHostHidden(true);
     refreshCursor();
     if (this.appFrame) {
       this.appFrame.removeAttribute('aria-hidden');
