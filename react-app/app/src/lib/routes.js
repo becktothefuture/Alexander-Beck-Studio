@@ -61,6 +61,18 @@ const ROUTE_DEFS = {
     aliases: ['/lab/mineral-growth.html', '/lab/mineral-growth', '/mineral-growth.html', '/mineral-growth'],
     gated: false,
   },
+  'aperture-bloom': {
+    id: 'aperture-bloom',
+    path: '/lab/aperture-bloom.html',
+    aliases: ['/lab/aperture-bloom.html', '/lab/aperture-bloom', '/aperture-bloom.html', '/aperture-bloom'],
+    gated: false,
+  },
+  'pressure-mosaic': {
+    id: 'pressure-mosaic',
+    path: '/lab/pressure-mosaic.html',
+    aliases: ['/lab/pressure-mosaic.html', '/lab/pressure-mosaic', '/pressure-mosaic.html', '/pressure-mosaic'],
+    gated: false,
+  },
 };
 
 function normalizePathname(pathname = '/') {

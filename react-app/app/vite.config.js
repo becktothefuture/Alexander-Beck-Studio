@@ -253,6 +253,8 @@ export default defineConfig(({ mode }) => ({
         'lab/rain-prism': resolve(__dirname, 'lab/rain-prism.html'),
         'lab/wall-repel': resolve(__dirname, 'lab/wall-repel.html'),
         'lab/mineral-growth': resolve(__dirname, 'lab/mineral-growth.html'),
+        'lab/aperture-bloom': resolve(__dirname, 'lab/aperture-bloom.html'),
+        'lab/pressure-mosaic': resolve(__dirname, 'lab/pressure-mosaic.html'),
         ...(mode === 'development'
           ? { 'panel-host': resolve(__dirname, 'panel-host.html') }
           : {})

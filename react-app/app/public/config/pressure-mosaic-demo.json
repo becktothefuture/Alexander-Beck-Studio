@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "enabled": true,
+  "bodyRadius": 14.6,
+  "mobileRadiusScale": 0.84,
+  "spacing": 3.18,
+  "pressureStrength": 62,
+  "pointerRadius": 205,
+  "breathe": 0.1,
+  "titleReserveWidth": 0.6,
+  "titleReserveHeight": 0.27,
+  "titleReserveY": 0.5,
+  "damping": 0.8,
+  "spring": 0.13,
+  "maxDpr": 1.5,
+  "pauseWhenHidden": true
+}

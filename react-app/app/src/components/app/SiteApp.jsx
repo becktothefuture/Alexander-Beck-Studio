@@ -11,6 +11,12 @@ import { getFlockOfBirdsRouteView, FLOCK_OF_BIRDS_ROUTE_RUNTIME } from '../../ro
 import { getRainPrismRouteView, RAIN_PRISM_ROUTE_RUNTIME } from '../../routes/rain-prism/RainPrismRoute.jsx';
 import { getWallRepelRouteView, WALL_REPEL_ROUTE_RUNTIME } from '../../routes/wall-repel/WallRepelRoute.jsx';
 import { getMineralGrowthRouteView, MINERAL_GROWTH_ROUTE_RUNTIME } from '../../routes/mineral-growth/MineralGrowthRoute.jsx';
+import {
+  APERTURE_BLOOM_ROUTE_RUNTIME,
+  getApertureBloomRouteView,
+  getPressureMosaicRouteView,
+  PRESSURE_MOSAIC_ROUTE_RUNTIME,
+} from '../../routes/concept-simulations/ConceptSimulationRoute.jsx';
 import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
 import { useShellRouteTransition } from '../../hooks/useShellRouteTransition.js';
 import { DevConfigPanelBridge } from './DevConfigPanelBridge.jsx';
@@ -25,7 +31,9 @@ const ROUTE_VIEW_BY_ID = {
   'flock-of-birds': getFlockOfBirdsRouteView,
   'rain-prism': getRainPrismRouteView,
   'wall-repel': getWallRepelRouteView,
-  'mineral-growth': getMineralGrowthRouteView
+  'mineral-growth': getMineralGrowthRouteView,
+  'aperture-bloom': getApertureBloomRouteView,
+  'pressure-mosaic': getPressureMosaicRouteView
 };
 
 const ROUTE_RUNTIME_BY_ID = {
@@ -38,7 +46,9 @@ const ROUTE_RUNTIME_BY_ID = {
   'flock-of-birds': FLOCK_OF_BIRDS_ROUTE_RUNTIME,
   'rain-prism': RAIN_PRISM_ROUTE_RUNTIME,
   'wall-repel': WALL_REPEL_ROUTE_RUNTIME,
-  'mineral-growth': MINERAL_GROWTH_ROUTE_RUNTIME
+  'mineral-growth': MINERAL_GROWTH_ROUTE_RUNTIME,
+  'aperture-bloom': APERTURE_BLOOM_ROUTE_RUNTIME,
+  'pressure-mosaic': PRESSURE_MOSAIC_ROUTE_RUNTIME
 };
 
 function getRouteViewForId(routeId) {

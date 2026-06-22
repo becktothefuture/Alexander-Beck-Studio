@@ -8,11 +8,11 @@ Source of truth for mode IDs and narrative order:
 
 ## Runtime Summary
 
-- `22` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
-- `20` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
+- `24` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
+- `22` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
 - Daily mode selection uses the Featured tier only; Extended modes are optional explorations.
 - `parallax-linear` remains a registered mode ID for compatibility, but user mode switching redirects it to the first narrative mode.
-- `flock-of-birds`, `wall-repel`, and `mineral-growth` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
+- `flock-of-birds`, `wall-repel`, `aperture-bloom`, `pressure-mosaic`, and `mineral-growth` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 
 ---
 
@@ -37,6 +37,8 @@ Source of truth for mode IDs and narrative order:
 | Tension Loom | `elastic-center` | Active |
 | Flock of Birds | `flock-of-birds` | Route-backed daily/lab |
 | Repel Room | `wall-repel` | Route-backed daily/lab |
+| Aperture Bloom | `aperture-bloom` | Route-backed daily/lab |
+| Pressure Mosaic | `pressure-mosaic` | Route-backed daily/lab |
 | Mineral Growth | `mineral-growth` | Route-backed daily/lab |
 | Flubber Blob | `flubber-blob` | Active |
 | Weave Field | `weave-field` | Active |
@@ -54,24 +56,26 @@ Source of truth for mode IDs and narrative order:
 3. `3d-cube` — 3D FRAME
 4. `water` — USER FLOW
 5. `wall-repel` — REPEL ROOM
-6. `3d-sphere` — 3D SHELL
-7. `flock-of-birds` — FLIGHT FIELD
-8. `flubber-blob` — COHESION FIELD
-9. `weave-field` — WEAVE FIELD
-10. `mineral-growth` — LIVING SYSTEM
-11. `elastic-center` — TENSION LOOM
-12. `kaleidoscope-3` — VOCAB BLOOM
+6. `aperture-bloom` — APERTURE BLOOM
+7. `3d-sphere` — 3D SHELL
+8. `pressure-mosaic` — PRESSURE MOSAIC
+9. `flock-of-birds` — FLIGHT FIELD
+10. `flubber-blob` — COHESION FIELD
+11. `weave-field` — WEAVE FIELD
+12. `mineral-growth` — LIVING SYSTEM
+13. `elastic-center` — TENSION LOOM
+14. `kaleidoscope-3` — VOCAB BLOOM
 
 ### Extended Tier (shown after Featured)
 
-13. `bubbles` — NOISE SIGNAL
-14. `magnetic` — DESIGN FORCES
-15. `weightless` — OPEN SPACE
-16. `critters` — BEHAVIOR MODEL
-17. `starfield-3d` — DEPTH FIELD
-18. `parallax-float` — ORGANIC DRIFT
-19. `pressure-crucible` — POLARITY FLUX
-20. `particle-fountain` — PARTICLE FLOW
+15. `bubbles` — NOISE SIGNAL
+16. `magnetic` — DESIGN FORCES
+17. `weightless` — OPEN SPACE
+18. `critters` — BEHAVIOR MODEL
+19. `starfield-3d` — DEPTH FIELD
+20. `parallax-float` — ORGANIC DRIFT
+21. `pressure-crucible` — POLARITY FLUX
+22. `particle-fountain` — PARTICLE FLOW
 
 Loop order is `Featured -> Extended -> Featured`.
 
@@ -106,6 +110,8 @@ Loop order is `Featured -> Extended -> Featured`.
 - `elastic-center`: Tension Loom; a palette-bead lattice with invisible spring links, single-pointer drag, release waves, subtle hover pressure, and normal wall containment.
 - `flock-of-birds`: route-backed distant flock with weighted center-biased motion, no wall collisions, mouse avoidance, and a safe sky band above the ground.
 - `wall-repel`: route-backed Repel Room with heavy palette balls launched through a bounded room, strong wall repulsion, mobile-bounded DPR/count, and mouse repulsion without visible cursor rings.
+- `aperture-bloom`: route-backed radial circle aperture with symmetric ring spacing, pointer-opened breathing gaps, normal round circles, and the central brand/link area reserved.
+- `pressure-mosaic`: route-backed packed circle mosaic with pointer pressure gaps, normal round circles, and the central brand/link area reserved.
 - `mineral-growth`: route-backed terrarium thicket with edge-rooted pebble branches and leaflet clusters, deterministic seed support, no visible overlap, mobile-collapsed controls, and daily mode panel hidden by `daily=1`.
 - `flubber-blob`: fixed-size hard circles simulated as embedded beads in a soft silicone-gel raft with persistent gel links, hard 2D contacts, passive hover-only cursor pressure/wake, lossy wall rebound, and no visible detach/reattach behavior.
 - `weave-field`: perpendicular discipline streams that progressively cross into a loose woven lattice, with cursor/touch repulsion opening temporary gaps, shared wall/collision containment, and a compact portrait/mobile weave with fewer lanes and softer motion.

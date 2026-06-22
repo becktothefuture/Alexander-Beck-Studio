@@ -1,0 +1,58 @@
+body.concept-simulation-page {
+  overflow: hidden;
+  color: var(--text-primary, #f0f0f0);
+}
+
+body.concept-simulation-page #simulations {
+  background: var(--abs-wall-base, #202020);
+  border-color: var(--frame-color, #141517);
+}
+
+body.concept-simulation-page #simulations::before,
+body.concept-simulation-page #simulations::after,
+body.concept-simulation-page #simulations > .scene-effects,
+body.concept-simulation-page .inner-wall-gradient-edge,
+body.concept-simulation-page .frame-vignette {
+  display: none;
+}
+
+body.concept-simulation-page .concept-simulation-wall,
+body.concept-simulation-page .shell-wall-route-root {
+  pointer-events: auto;
+}
+
+body.concept-simulation-page .route-topbar {
+  --route-topbar-top: var(--gap-xs);
+  padding-top: var(--route-topbar-top);
+  padding-inline: var(--gap-lg);
+}
+
+body.concept-simulation-page .route-topbar__left,
+body.concept-simulation-page .route-topbar__right {
+  min-height: var(--ui-icon-frame-size);
+}
+
+body.concept-simulation-page .route-topbar__right.ui-top-right {
+  justify-content: flex-end;
+}
+
+.concept-simulation-demo {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  touch-action: none;
+  pointer-events: auto;
+  background: var(--concept-simulation-surface, var(--abs-wall-base, #202020));
+}
+
+.concept-simulation-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}

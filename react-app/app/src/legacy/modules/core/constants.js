@@ -23,6 +23,8 @@ export const MODES = {
   ELASTIC_CENTER: 'elastic-center',
   FLOCK_OF_BIRDS: 'flock-of-birds',
   WALL_REPEL: 'wall-repel',
+  APERTURE_BLOOM: 'aperture-bloom',
+  PRESSURE_MOSAIC: 'pressure-mosaic',
   MINERAL_GROWTH: 'mineral-growth',
   FLUBBER_BLOB: 'flubber-blob',
   WEAVE_FIELD: 'weave-field',
@@ -41,7 +43,7 @@ export function isPitLikeMode(mode) {
 //
 // Two-tier system ensures visitors see the most impressive work first:
 // 
-// FEATURED TIER (12 modes):
+// FEATURED TIER (14 modes):
 // - Always cycles first in the sequence
 // - Guaranteed first impression and daily candidates for new visitors
 // - Best work, strongest visual impact
@@ -61,7 +63,9 @@ export const FEATURED_MODES = [
   MODES.CUBE_3D,          // 3D FRAME
   MODES.WATER,            // USER FLOW
   MODES.WALL_REPEL,       // REPEL ROOM
+  MODES.APERTURE_BLOOM,   // APERTURE BLOOM
   MODES.SPHERE_3D,        // 3D SHELL
+  MODES.PRESSURE_MOSAIC,  // PRESSURE MOSAIC
   MODES.FLOCK_OF_BIRDS,   // FLIGHT FIELD
   MODES.FLUBBER_BLOB,     // COHESION FIELD
   MODES.WEAVE_FIELD,      // WEAVE FIELD
@@ -102,6 +106,8 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.ELASTIC_CENTER]: 'TENSION LOOM',
   [MODES.FLOCK_OF_BIRDS]: 'FLIGHT FIELD',
   [MODES.WALL_REPEL]: 'REPEL ROOM',
+  [MODES.APERTURE_BLOOM]: 'APERTURE BLOOM',
+  [MODES.PRESSURE_MOSAIC]: 'PRESSURE MOSAIC',
   [MODES.MINERAL_GROWTH]: 'LIVING SYSTEM',
   [MODES.FLUBBER_BLOB]: 'COHESION FIELD',
   [MODES.WEAVE_FIELD]: 'WEAVE FIELD',
@@ -174,6 +180,14 @@ export const NARRATIVE_QUOTES = {
     author: 'Kurt Koffka'
   },
   [MODES.WALL_REPEL]: {
+    quote: 'The whole is other than the sum of the parts.',
+    author: 'Kurt Koffka'
+  },
+  [MODES.APERTURE_BLOOM]: {
+    quote: 'The whole is other than the sum of the parts.',
+    author: 'Kurt Koffka'
+  },
+  [MODES.PRESSURE_MOSAIC]: {
     quote: 'The whole is other than the sum of the parts.',
     author: 'Kurt Koffka'
   },
