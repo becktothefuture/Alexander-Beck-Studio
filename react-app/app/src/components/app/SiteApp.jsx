@@ -11,6 +11,7 @@ import { getFlockOfBirdsRouteView, FLOCK_OF_BIRDS_ROUTE_RUNTIME } from '../../ro
 import { getRainPrismRouteView, RAIN_PRISM_ROUTE_RUNTIME } from '../../routes/rain-prism/RainPrismRoute.jsx';
 import { getWallRepelRouteView, WALL_REPEL_ROUTE_RUNTIME } from '../../routes/wall-repel/WallRepelRoute.jsx';
 import { getMineralGrowthRouteView, MINERAL_GROWTH_ROUTE_RUNTIME } from '../../routes/mineral-growth/MineralGrowthRoute.jsx';
+import { getPhaseForgeRouteView, PHASE_FORGE_ROUTE_RUNTIME } from '../../routes/phase-forge/PhaseForgeRoute.jsx';
 import {
   APERTURE_BLOOM_ROUTE_RUNTIME,
   getApertureBloomRouteView,
@@ -33,7 +34,8 @@ const ROUTE_VIEW_BY_ID = {
   'wall-repel': getWallRepelRouteView,
   'mineral-growth': getMineralGrowthRouteView,
   'aperture-bloom': getApertureBloomRouteView,
-  'pressure-mosaic': getPressureMosaicRouteView
+  'pressure-mosaic': getPressureMosaicRouteView,
+  'phase-forge': getPhaseForgeRouteView
 };
 
 const ROUTE_RUNTIME_BY_ID = {
@@ -48,7 +50,8 @@ const ROUTE_RUNTIME_BY_ID = {
   'wall-repel': WALL_REPEL_ROUTE_RUNTIME,
   'mineral-growth': MINERAL_GROWTH_ROUTE_RUNTIME,
   'aperture-bloom': APERTURE_BLOOM_ROUTE_RUNTIME,
-  'pressure-mosaic': PRESSURE_MOSAIC_ROUTE_RUNTIME
+  'pressure-mosaic': PRESSURE_MOSAIC_ROUTE_RUNTIME,
+  'phase-forge': PHASE_FORGE_ROUTE_RUNTIME
 };
 
 function getRouteViewForId(routeId) {
