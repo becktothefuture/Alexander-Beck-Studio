@@ -6,6 +6,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { flattenDesignConfigDir } from '../../scripts/lib/flatten-design-config.mjs';
 import { normalizeMineralGrowthConfig } from './src/routes/mineral-growth/mineralGrowthControls.js';
+import { normalizePhaseForgeConfig } from './src/routes/phase-forge/phaseForgeControls.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicConfigDir = resolve(__dirname, 'public/config');
@@ -13,6 +14,7 @@ const rainPrismConfigPath = resolve(publicConfigDir, 'rain-prism-demo.json');
 const flockOfBirdsConfigPath = resolve(publicConfigDir, 'flock-of-birds-demo.json');
 const wallRepelConfigPath = resolve(publicConfigDir, 'wall-repel-demo.json');
 const mineralGrowthConfigPath = resolve(publicConfigDir, 'mineral-growth-demo.json');
+const phaseForgeConfigPath = resolve(publicConfigDir, 'phase-forge-demo.json');
 const VIRTUAL_CONTENT_PREFIX = '\0virtual:abs-content/';
 const CONTENT_MODULES = {
   'virtual:abs-content/home': resolve(publicConfigDir, 'contents-home.json'),
@@ -195,6 +197,39 @@ function designSystemDevPlugin() {
           sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save mineral growth config' });
         }
       });
+
+      server.middlewares.use('/api/phase-forge/config', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        try {
+          const chunks = [];
+          for await (const chunk of req) {
+            chunks.push(Buffer.from(chunk));
+          }
+
+          const payload = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+          const nextConfig = payload?.config;
+          if (!nextConfig || typeof nextConfig !== 'object' || Array.isArray(nextConfig)) {
+            sendJson(res, 400, { ok: false, error: 'Missing phase forge config payload' });
+            return;
+          }
+
+          const normalizedConfig = normalizePhaseForgeConfig(nextConfig);
+          await writeFile(phaseForgeConfigPath, `${JSON.stringify(normalizedConfig, null, 2)}\n`, 'utf8');
+          server.ws.send({
+            type: 'full-reload',
+            path: '/config/phase-forge-demo.json',
+          });
+
+          sendJson(res, 200, { ok: true, version: normalizedConfig.version });
+        } catch (error) {
+          sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save phase forge config' });
+        }
+      });
     },
   };
 }
@@ -255,6 +290,7 @@ export default defineConfig(({ mode }) => ({
         'lab/mineral-growth': resolve(__dirname, 'lab/mineral-growth.html'),
         'lab/aperture-bloom': resolve(__dirname, 'lab/aperture-bloom.html'),
         'lab/pressure-mosaic': resolve(__dirname, 'lab/pressure-mosaic.html'),
+        'lab/phase-forge': resolve(__dirname, 'lab/phase-forge.html'),
         ...(mode === 'development'
           ? { 'panel-host': resolve(__dirname, 'panel-host.html') }
           : {})
