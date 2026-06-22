@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "enabled": true,
+  "count": 360,
+  "palette": "discipline",
+  "minRadius": 4.8,
+  "maxRadius": 8.6,
+  "interactionStrength": 0.74,
+  "dragBehavior": "crystallize",
+  "dragStrength": 1.15,
+  "damping": 0.82,
+  "influenceRadius": 168,
+  "collisionRadius": 1.06,
+  "mobileDensityScale": 0.58,
+  "mobileRadiusScale": 0.9,
+  "animationSpeed": 0.86,
+  "targetFps": 60,
+  "maxDpr": 1.5,
+  "pauseWhenHidden": true
+}
