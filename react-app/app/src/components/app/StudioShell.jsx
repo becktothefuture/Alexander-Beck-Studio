@@ -25,6 +25,8 @@ function RouteSceneMount({ routeRenderKey, children }) {
       return <div data-sfid="sfid:shell/aperture-bloom">{children}</div>;
     case 'pressure-mosaic':
       return <div data-sfid="sfid:shell/pressure-mosaic">{children}</div>;
+    case 'phase-forge':
+      return <div data-sfid="sfid:shell/phase-forge">{children}</div>;
     case 'home':
     default:
       return <div data-sfid="sfid:shell/home">{children}</div>;
