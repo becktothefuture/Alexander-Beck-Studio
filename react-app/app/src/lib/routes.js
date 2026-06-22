@@ -73,6 +73,12 @@ const ROUTE_DEFS = {
     aliases: ['/lab/pressure-mosaic.html', '/lab/pressure-mosaic', '/pressure-mosaic.html', '/pressure-mosaic'],
     gated: false,
   },
+  'phase-forge': {
+    id: 'phase-forge',
+    path: '/lab/phase-forge.html',
+    aliases: ['/lab/phase-forge.html', '/lab/phase-forge', '/phase-forge.html', '/phase-forge'],
+    gated: false,
+  },
 };
 
 function normalizePathname(pathname = '/') {
