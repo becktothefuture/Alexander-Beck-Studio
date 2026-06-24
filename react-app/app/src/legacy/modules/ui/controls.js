@@ -135,7 +135,8 @@ export function updateModeButtonsUI(activeMode, options = {}) {
     'mineral-growth': 'Mineral Growth',
     'weave-field': 'Weave Field',
     'pressure-crucible': 'Polarity Flux',
-    'particle-fountain': 'Particle Fountain'
+    'particle-fountain': 'Particle Fountain',
+    'napoleon-point-cloud': 'Napoleon Point Cloud'
   };
 
   const applyModeUi = (uiDocument) => {

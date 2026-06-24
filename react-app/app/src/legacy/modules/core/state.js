@@ -117,8 +117,9 @@ const state = {
   sphere3dDotSizeMul: 1.0,
   sphere3dIdleSpeed: 0.15,
   sphere3dCursorInfluence: 1.2,
-  sphere3dTumbleSpeed: 2.5,
-  sphere3dTumbleDamping: 0.94,
+  sphere3dTumbleSpeed: 0.65,
+  sphere3dTumbleDamping: 0.9,
+  sphere3dMouseDamping: 0.08,
   sphere3dWarmupFrames: 10,
   // 3D Cube (Mode 17)
   cube3dSizeVw: 50,
@@ -1850,8 +1851,9 @@ export function initState(config) {
   if (config.sphere3dDotSizeMul !== undefined) state.sphere3dDotSizeMul = clampNumber(config.sphere3dDotSizeMul, 0.2, 4.0, state.sphere3dDotSizeMul);
   if (config.sphere3dIdleSpeed !== undefined) state.sphere3dIdleSpeed = clampNumber(config.sphere3dIdleSpeed, 0, 1, state.sphere3dIdleSpeed);
   if (config.sphere3dCursorInfluence !== undefined) state.sphere3dCursorInfluence = clampNumber(config.sphere3dCursorInfluence, 0, 4, state.sphere3dCursorInfluence);
-  if (config.sphere3dTumbleSpeed !== undefined) state.sphere3dTumbleSpeed = clampNumber(config.sphere3dTumbleSpeed, 0, 10, state.sphere3dTumbleSpeed);
+  if (config.sphere3dTumbleSpeed !== undefined) state.sphere3dTumbleSpeed = clampNumber(config.sphere3dTumbleSpeed, 0, 3, state.sphere3dTumbleSpeed);
   if (config.sphere3dTumbleDamping !== undefined) state.sphere3dTumbleDamping = clampNumber(config.sphere3dTumbleDamping, 0, 1, state.sphere3dTumbleDamping);
+  if (config.sphere3dMouseDamping !== undefined) state.sphere3dMouseDamping = clampNumber(config.sphere3dMouseDamping, 0.01, 1, state.sphere3dMouseDamping);
   if (config.sphere3dWarmupFrames !== undefined) state.sphere3dWarmupFrames = clampInt(config.sphere3dWarmupFrames, 0, 240, state.sphere3dWarmupFrames);
 
   // 3D Cube (Mode 17)

@@ -451,6 +451,10 @@ html.fonts-loading .project-detail {
   height: 100%;
 }
 
+#simulations.simulation-depth-title-layer-active .shell-wall-slot {
+  z-index: 4;
+}
+
 .shell-hero-slot {
   position: absolute;
   inset: 0;
@@ -3084,6 +3088,23 @@ html.entrance-transitioning #simulations {
   touch-action: none;
   border-radius: var(--frame-inner-radius);
   will-change: transform; /* Hint to create stacking context */
+}
+
+#simulations > .simulation-front-depth-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: none;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--frame-inner-radius);
+  pointer-events: none;
+  touch-action: none;
+  background: transparent;
+}
+
+#simulations.simulation-depth-title-layer-active > .simulation-front-depth-canvas {
+  display: block;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

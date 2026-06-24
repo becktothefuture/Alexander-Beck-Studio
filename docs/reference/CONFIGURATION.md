@@ -541,14 +541,15 @@ These keys control the 3D Sphere simulation (mode `3d-sphere`). Rotating sphere 
 - `sphere3dFocalLength` (number, px): perspective focal length — default: 600
 - `sphere3dDotSizeMul` (number): dot size multiplier — default: 1.5
 - `sphere3dIdleSpeed` (number, rad/s): idle rotation speed — default: 0.15
-- `sphere3dTumbleSpeed` (number): spin sensitivity when mouse drags over sphere — default: 2.5
-- `sphere3dTumbleDamping` (number): decay factor for spin impulse — default: 0.94
+- `sphere3dTumbleSpeed` (number): spin sensitivity when mouse moves over sphere — default: 0.65
+- `sphere3dMouseDamping` (number): mouse-follow smoothing factor; lower values feel heavier/smoother — default: 0.08
+- `sphere3dTumbleDamping` (number): decay factor for spin impulse — default: 0.9
 - `sphere3dWarmupFrames` (number): physics warmup frames on mode init — default: 10
 
 Notes:
 - Uses a Fibonacci sphere distribution (surface-only).
 - Ball-to-ball collisions are disabled; sphere is camera-locked (no movement, only rotation).
-- No physics: sphere spins when mouse drags over it (like pushing a globe with your finger).
+- No physics: sphere spins when mouse moves over it (like pushing a globe with your finger).
 - Mouse movement over the sphere surface creates rotation; movement away from sphere has no effect.
 - Rotational damping prevents endless spinning; idle rotation provides gentle drift.
 - Heavy gravity (1400 px/s²) and low restitution (0.35) for weighted, squishy feel.

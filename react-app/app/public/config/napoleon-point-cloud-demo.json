@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "enabled": true,
+  "quality": "low",
+  "mobileQuality": "low",
+  "pointDensity": 0.28,
+  "dotSize": 23.4,
+  "dotOpacity": 0.94,
+  "colourMode": "surface-bands",
+  "autoRotate": true,
+  "rotationSpeed": 0.085,
+  "interactionStrength": 0.72,
+  "spread": 0.045,
+  "focus": 1,
+  "breathingMotion": 0.42,
+  "maxDpr": 1.5,
+  "pauseWhenHidden": true
+}

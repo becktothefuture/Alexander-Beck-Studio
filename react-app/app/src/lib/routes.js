@@ -73,6 +73,12 @@ const ROUTE_DEFS = {
     aliases: ['/lab/pressure-mosaic.html', '/lab/pressure-mosaic', '/pressure-mosaic.html', '/pressure-mosaic'],
     gated: false,
   },
+  'napoleon-point-cloud': {
+    id: 'napoleon-point-cloud',
+    path: '/lab/napoleon-point-cloud.html',
+    aliases: ['/lab/napoleon-point-cloud.html', '/lab/napoleon-point-cloud', '/napoleon-point-cloud.html', '/napoleon-point-cloud'],
+    gated: false,
+  },
 };
 
 function normalizePathname(pathname = '/') {

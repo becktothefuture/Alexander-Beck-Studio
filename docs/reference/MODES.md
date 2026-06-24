@@ -8,11 +8,11 @@ Source of truth for mode IDs and narrative order:
 
 ## Runtime Summary
 
-- `24` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
-- `22` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
+- `25` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
+- `23` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
 - Daily mode selection uses the Featured tier only; Extended modes are optional explorations.
 - `parallax-linear` remains a registered mode ID for compatibility, but user mode switching redirects it to the first narrative mode.
-- `flock-of-birds`, `wall-repel`, `aperture-bloom`, `pressure-mosaic`, and `mineral-growth` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
+- `flock-of-birds`, `wall-repel`, `aperture-bloom`, `pressure-mosaic`, `mineral-growth`, and `napoleon-point-cloud` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 
 ---
 
@@ -44,6 +44,7 @@ Source of truth for mode IDs and narrative order:
 | Weave Field | `weave-field` | Active |
 | Polarity Flux | `pressure-crucible` | Active |
 | Particle Fountain | `particle-fountain` | Active |
+| Napoleon Point Cloud | `napoleon-point-cloud` | Route-backed daily/lab |
 
 ---
 
@@ -58,24 +59,25 @@ Source of truth for mode IDs and narrative order:
 5. `wall-repel` — REPEL ROOM
 6. `aperture-bloom` — APERTURE BLOOM
 7. `3d-sphere` — 3D SHELL
-8. `pressure-mosaic` — PRESSURE MOSAIC
-9. `flock-of-birds` — FLIGHT FIELD
-10. `flubber-blob` — COHESION FIELD
-11. `weave-field` — WEAVE FIELD
-12. `mineral-growth` — LIVING SYSTEM
-13. `elastic-center` — TENSION LOOM
-14. `kaleidoscope-3` — VOCAB BLOOM
+8. `napoleon-point-cloud` — POINT CLOUD
+9. `pressure-mosaic` — PRESSURE MOSAIC
+10. `flock-of-birds` — FLIGHT FIELD
+11. `flubber-blob` — COHESION FIELD
+12. `weave-field` — WEAVE FIELD
+13. `mineral-growth` — LIVING SYSTEM
+14. `elastic-center` — TENSION LOOM
+15. `kaleidoscope-3` — VOCAB BLOOM
 
 ### Extended Tier (shown after Featured)
 
-15. `bubbles` — NOISE SIGNAL
-16. `magnetic` — DESIGN FORCES
-17. `weightless` — OPEN SPACE
-18. `critters` — BEHAVIOR MODEL
-19. `starfield-3d` — DEPTH FIELD
-20. `parallax-float` — ORGANIC DRIFT
-21. `pressure-crucible` — POLARITY FLUX
-22. `particle-fountain` — PARTICLE FLOW
+16. `bubbles` — NOISE SIGNAL
+17. `magnetic` — DESIGN FORCES
+18. `weightless` — OPEN SPACE
+19. `critters` — BEHAVIOR MODEL
+20. `starfield-3d` — DEPTH FIELD
+21. `parallax-float` — ORGANIC DRIFT
+22. `pressure-crucible` — POLARITY FLUX
+23. `particle-fountain` — PARTICLE FLOW
 
 Loop order is `Featured -> Extended -> Featured`.
 
@@ -113,6 +115,7 @@ Loop order is `Featured -> Extended -> Featured`.
 - `aperture-bloom`: route-backed radial circle aperture with symmetric ring spacing, pointer-opened breathing gaps, normal round circles, and the central brand/link area reserved.
 - `pressure-mosaic`: route-backed packed circle mosaic with pointer pressure gaps, normal round circles, and the central brand/link area reserved.
 - `mineral-growth`: route-backed terrarium thicket with edge-rooted pebble branches and leaflet clusters, deterministic seed support, no visible overlap, mobile-collapsed controls, and daily mode panel hidden by `daily=1`.
+- `napoleon-point-cloud`: route-backed surface-sampled bust point cloud with the title layered through the dot field, 5k point amount, 28% density, 23.4 dot size, 0.72x mouse rotation, auto rotation on, and daily mode panel hidden by `daily=1`.
 - `flubber-blob`: fixed-size hard circles simulated as embedded beads in a soft silicone-gel raft with persistent gel links, hard 2D contacts, passive hover-only cursor pressure/wake, lossy wall rebound, and no visible detach/reattach behavior.
 - `weave-field`: perpendicular discipline streams that progressively cross into a loose woven lattice, with cursor/touch repulsion opening temporary gaps, shared wall/collision containment, and a compact portrait/mobile weave with fewer lanes and softer motion.
 - `pressure-crucible`: Extended-tier experiment, not a daily candidate. Custom-rendered polarity field with small palette-colored bead samples arranged as a filled swarm cloud. Cursor proximity and speed define a live dipole that bends, splits, and wakes the particles; idle motion stays subtle through local swarm drift rather than a ring orbit.

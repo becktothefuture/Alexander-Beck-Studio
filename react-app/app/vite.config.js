@@ -255,6 +255,7 @@ export default defineConfig(({ mode }) => ({
         'lab/mineral-growth': resolve(__dirname, 'lab/mineral-growth.html'),
         'lab/aperture-bloom': resolve(__dirname, 'lab/aperture-bloom.html'),
         'lab/pressure-mosaic': resolve(__dirname, 'lab/pressure-mosaic.html'),
+        'lab/napoleon-point-cloud': resolve(__dirname, 'lab/napoleon-point-cloud.html'),
         ...(mode === 'development'
           ? { 'panel-host': resolve(__dirname, 'panel-host.html') }
           : {})

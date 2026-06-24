@@ -35,15 +35,81 @@ const DT_DESKTOP = CONSTANTS.PHYSICS_DT;
 
 
 const DT_MOBILE = CONSTANTS.PHYSICS_DT_MOBILE;
+const TITLE_Z = 0.5;
+const DEPTH_FOG_MIN_OPACITY = 0.3;
+const DEPTH_FOG_START_Z = 0.75;
 const CORNER_RADIUS = 42; // matches rounded container corners
 const CORNER_FORCE = 1800;
 const WARMUP_FRAME_DT = 1 / 60;
 const PIT_PERF_WINDOW = 120;
+const DEPTH_TITLE_LAYER_MODES = new Set([
+  MODES.SPHERE_3D,
+  MODES.CUBE_3D,
+  MODES.PARALLAX_FLOAT
+]);
 const EMPTY_COLLISION_STATS = Object.freeze({
   pairCount: 0,
   overlapDebt: 0,
   sleepingPairSkips: 0
 });
+const zPartitionCache = {
+  behind: [],
+  inFront: []
+};
+
+function resetZPartitionCache() {
+  zPartitionCache.behind.length = 0;
+  zPartitionCache.inFront.length = 0;
+}
+
+function getDepthFogOpacity(z) {
+  if (z >= DEPTH_FOG_START_Z) return 1;
+  const t = Math.max(0, z) / DEPTH_FOG_START_Z;
+  return DEPTH_FOG_MIN_OPACITY + t * (1 - DEPTH_FOG_MIN_OPACITY);
+}
+
+function modeNeedsDepthTitleLayer(mode) {
+  return DEPTH_TITLE_LAYER_MODES.has(mode);
+}
+
+function syncDepthTitleCanvas(globals, sourceCanvas) {
+  if (!globals || !sourceCanvas) return null;
+  const container = globals.container || document.getElementById('simulations');
+  if (!container) return null;
+
+  let frontCanvas = globals.depthTitleFrontCanvas;
+  if (!frontCanvas || !frontCanvas.isConnected) {
+    frontCanvas = document.createElement('canvas');
+    frontCanvas.id = 'simulation-front-depth-canvas';
+    frontCanvas.className = 'simulation-front-depth-canvas';
+    frontCanvas.setAttribute('aria-hidden', 'true');
+    frontCanvas.setAttribute('role', 'presentation');
+    container.appendChild(frontCanvas);
+    globals.depthTitleFrontCanvas = frontCanvas;
+    globals.depthTitleFrontCtx = frontCanvas.getContext('2d', { alpha: true });
+  }
+
+  if (frontCanvas.width !== sourceCanvas.width) frontCanvas.width = sourceCanvas.width;
+  if (frontCanvas.height !== sourceCanvas.height) frontCanvas.height = sourceCanvas.height;
+
+  return globals.depthTitleFrontCtx || frontCanvas.getContext('2d', { alpha: true });
+}
+
+function setDepthTitleLayerActive(globals, active) {
+  const container = globals?.container || document.getElementById('simulations');
+  if (container) {
+    container.classList.toggle('simulation-depth-title-layer-active', Boolean(active));
+  }
+
+  const frontCanvas = globals?.depthTitleFrontCanvas;
+  if (frontCanvas) {
+    frontCanvas.dataset.active = active ? 'true' : 'false';
+    if (!active) {
+      const frontCtx = globals.depthTitleFrontCtx;
+      frontCtx?.clearRect(0, 0, frontCanvas.width, frontCanvas.height);
+    }
+  }
+}
 
 function clampNumber(value, min, max, fallback) {
   const next = Number(value);
@@ -753,14 +819,44 @@ export function render() {
     modeRenderer.preRender(ctx);
   }
   
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // BALLS RENDERING — logo is now a DOM <h1> behind the canvas (z:5 in #simulations).
-  // Canvas is alpha-transparent; heading shows through clear pixels.
-  // Z-partition removed: all balls paint on top of the heading.
-  // ═══════════════════════════════════════════════════════════════════════════════
   const customRenderer = getModeCustomRenderer();
+  const needsDepthTitleLayer = !customRenderer && modeNeedsDepthTitleLayer(globals.currentMode);
+  const frontCtx = needsDepthTitleLayer ? syncDepthTitleCanvas(globals, canvas) : null;
+  const frontCanvas = globals.depthTitleFrontCanvas;
+  setDepthTitleLayerActive(globals, Boolean(needsDepthTitleLayer && frontCtx));
+  if (frontCtx && frontCanvas) {
+    frontCtx.clearRect(0, 0, frontCanvas.width, frontCanvas.height);
+  }
+
   if (customRenderer) {
     customRenderer(ctx);
+  } else if (needsDepthTitleLayer && frontCtx) {
+    resetZPartitionCache();
+
+    for (let i = 0; i < balls.length; i++) {
+      const ball = balls[i];
+      const z = ball.z ?? 1;
+      if (z < TITLE_Z) {
+        zPartitionCache.behind.push(ball);
+      } else {
+        zPartitionCache.inFront.push(ball);
+      }
+    }
+
+    if (zPartitionCache.behind.length > 0) {
+      renderBallsColorBatched(ctx, zPartitionCache.behind, true, ballRenderOptions);
+    }
+
+    if (zPartitionCache.inFront.length > 0) {
+      if (needsClip) {
+        frontCtx.save();
+        try { frontCtx.clip(clipPath); } catch (e) {}
+      }
+      renderBallsColorBatched(frontCtx, zPartitionCache.inFront, true, ballRenderOptions);
+      if (needsClip) {
+        frontCtx.restore();
+      }
+    }
   } else {
     renderBallsColorBatched(ctx, balls, false, ballRenderOptions);
   }
@@ -798,7 +894,7 @@ export function render() {
  * @param {CanvasRenderingContext2D} ctx
  * @param {Array} ballsToRender - Array of Ball objects
  */
-function renderBallsColorBatched(ctx, ballsToRender, _unused = false, renderOptions = null) {
+function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, renderOptions = null) {
   if (!ballsToRender || ballsToRender.length === 0) return;
   const globals = getGlobals();
   const pitLodEnabled = Boolean(renderOptions?.pitRenderLodEnabled);
@@ -865,6 +961,9 @@ function renderBallsColorBatched(ctx, ballsToRender, _unused = false, renderOpti
       const hasSquash = ball.squashAmount > squashThreshold;
       const filterOpacity = ball.filterOpacity ?? 1;
       let effectiveAlpha = ball.alpha * filterOpacity;
+      if (applyDepthFog) {
+        effectiveAlpha *= getDepthFogOpacity(ball.z ?? 1);
+      }
       
       const hasAlpha = effectiveAlpha < 1.0;
       if (pitLodEnabled && !hasSquash && !hasAlpha && radius <= tinyRadiusPx) {

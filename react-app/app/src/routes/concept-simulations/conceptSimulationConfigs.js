@@ -1,6 +1,7 @@
 export const CONCEPT_SIMULATION_IDS = Object.freeze({
   APERTURE_BLOOM: 'aperture-bloom',
   PRESSURE_MOSAIC: 'pressure-mosaic',
+  NAPOLEON_POINT_CLOUD: 'napoleon-point-cloud',
 });
 
 export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
@@ -59,6 +60,33 @@ export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
       pauseWhenHidden: true,
     },
   },
+  [CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD]: {
+    id: CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD,
+    name: 'Napoleon Point Cloud',
+    chapter: 'NAPOLEON POINT CLOUD',
+    path: '/lab/napoleon-point-cloud.html',
+    configPath: '/config/napoleon-point-cloud-demo.json',
+    ariaLabel: 'A dot-only surface-sampled point cloud of The bust of Napoleon Bonaparte',
+    enabledInRotation: true,
+    defaults: {
+      version: 1,
+      enabled: true,
+      quality: 'low',
+      mobileQuality: 'low',
+      pointDensity: 0.28,
+      dotSize: 23.4,
+      dotOpacity: 0.94,
+      colourMode: 'surface-bands',
+      autoRotate: true,
+      rotationSpeed: 0.085,
+      interactionStrength: 0.72,
+      spread: 0.045,
+      focus: 1,
+      breathingMotion: 0.42,
+      maxDpr: 1.5,
+      pauseWhenHidden: true,
+    },
+  },
 });
 
 function clampNumber(value, min, max, fallback) {
@@ -111,6 +139,21 @@ export function normalizeConceptSimulationConfig(simulationId, input = {}) {
     next.titleReserveWidth = clampNumber(next.titleReserveWidth, 0.24, 0.9, defaults.titleReserveWidth);
     next.titleReserveHeight = clampNumber(next.titleReserveHeight, 0.12, 0.42, defaults.titleReserveHeight);
     next.titleReserveY = clampNumber(next.titleReserveY, 0.28, 0.68, defaults.titleReserveY);
+  }
+
+  if (simulationId === CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD) {
+    next.quality = ['low', 'medium', 'high'].includes(next.quality) ? next.quality : defaults.quality;
+    next.mobileQuality = ['low', 'medium', 'high'].includes(next.mobileQuality) ? next.mobileQuality : defaults.mobileQuality;
+    next.pointDensity = clampNumber(next.pointDensity, 0.12, 1, defaults.pointDensity);
+    next.dotSize = clampNumber(next.dotSize, 4, 50, defaults.dotSize);
+    next.dotOpacity = clampNumber(next.dotOpacity, 0.2, 1, defaults.dotOpacity);
+    next.colourMode = ['surface-bands', 'dominant'].includes(next.colourMode) ? next.colourMode : defaults.colourMode;
+    next.autoRotate = Boolean(next.autoRotate);
+    next.rotationSpeed = clampNumber(next.rotationSpeed, 0, 0.24, defaults.rotationSpeed);
+    next.interactionStrength = clampNumber(next.interactionStrength, 0, 1.4, defaults.interactionStrength);
+    next.spread = clampNumber(next.spread, 0, 0.18, defaults.spread);
+    next.focus = clampNumber(next.focus, 0.72, 1.35, defaults.focus);
+    next.breathingMotion = clampNumber(next.breathingMotion, 0, 0.9, defaults.breathingMotion);
   }
 
   return next;

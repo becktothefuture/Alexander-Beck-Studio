@@ -1,0 +1,86 @@
+.napoleon-point-cloud {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: rgba(var(--abs-rgb-black), 0.82);
+  touch-action: none;
+}
+
+.napoleon-point-cloud__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  cursor: grab;
+}
+
+body.napoleon-point-cloud-page #simulations .napoleon-point-cloud__canvas--back {
+  z-index: 1;
+  pointer-events: auto;
+}
+
+body.napoleon-point-cloud-page #simulations .napoleon-point-cloud__canvas--front {
+  z-index: 3;
+  pointer-events: none;
+}
+
+.napoleon-point-cloud[data-dragging='true'] .napoleon-point-cloud__canvas {
+  cursor: grabbing;
+}
+
+.napoleon-point-cloud__title {
+  z-index: 2;
+  color: var(--text-logo);
+}
+
+.napoleon-point-cloud__title .hero-title__name,
+.napoleon-point-cloud__title .hero-title__role {
+  opacity: 1;
+  filter: none;
+  transform: scale(1);
+  animation: none;
+}
+
+.napoleon-point-cloud__credit {
+  position: absolute;
+  left: max(var(--gap-sm), env(safe-area-inset-left));
+  bottom: max(calc(var(--gap-xl) + 64px), calc(env(safe-area-inset-bottom) + 92px));
+  z-index: 4;
+  max-width: min(56ch, calc(100% - (var(--gap-sm) * 2)));
+  color: rgba(var(--abs-rgb-white), 0.62);
+  font-family: var(--abs-font-mono);
+  font-size: clamp(9px, 1.1vw, 11px);
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-wrap: pretty;
+  pointer-events: none;
+}
+
+.napoleon-point-cloud__status {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 5;
+  width: min(32ch, calc(100% - (var(--gap-md) * 2)));
+  margin: 0;
+  color: rgba(var(--abs-rgb-white), 0.78);
+  font-family: var(--abs-font-mono);
+  font-size: var(--abs-text-xs);
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+@media (max-width: 680px) {
+  .napoleon-point-cloud__credit {
+    bottom: max(calc(var(--gap-xl) + 70px), calc(env(safe-area-inset-bottom) + 104px));
+    max-width: calc(100% - (var(--gap-sm) * 2));
+    opacity: 0.82;
+  }
+}

@@ -29,7 +29,8 @@ export const MODES = {
   FLUBBER_BLOB: 'flubber-blob',
   WEAVE_FIELD: 'weave-field',
   PRESSURE_CRUCIBLE: 'pressure-crucible',
-  PARTICLE_FOUNTAIN: 'particle-fountain'
+  PARTICLE_FOUNTAIN: 'particle-fountain',
+  NAPOLEON_POINT_CLOUD: 'napoleon-point-cloud'
 };
 
 export function isPitLikeMode(mode) {
@@ -43,7 +44,7 @@ export function isPitLikeMode(mode) {
 //
 // Two-tier system ensures visitors see the most impressive work first:
 // 
-// FEATURED TIER (14 modes):
+// FEATURED TIER (15 modes):
 // - Always cycles first in the sequence
 // - Guaranteed first impression and daily candidates for new visitors
 // - Best work, strongest visual impact
@@ -65,6 +66,7 @@ export const FEATURED_MODES = [
   MODES.WALL_REPEL,       // REPEL ROOM
   MODES.APERTURE_BLOOM,   // APERTURE BLOOM
   MODES.SPHERE_3D,        // 3D SHELL
+  MODES.NAPOLEON_POINT_CLOUD, // POINT CLOUD
   MODES.PRESSURE_MOSAIC,  // PRESSURE MOSAIC
   MODES.FLOCK_OF_BIRDS,   // FLIGHT FIELD
   MODES.FLUBBER_BLOB,     // COHESION FIELD
@@ -85,6 +87,8 @@ export const EXTENDED_MODES = [
   MODES.PRESSURE_CRUCIBLE, // POLARITY FLUX
   MODES.PARTICLE_FOUNTAIN // PARTICLE FLOW
 ];
+
+export const DEV_ONLY_MODES = [];
 
 // Combined sequence: Featured first, then Extended (loops back to Featured)
 export const NARRATIVE_MODE_SEQUENCE = [
@@ -117,7 +121,8 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.KALEIDOSCOPE]: 'VOCAB BLOOM',
   [MODES.STARFIELD_3D]: 'DEPTH FIELD',
   [MODES.PARALLAX_FLOAT]: 'ORGANIC DRIFT',
-  [MODES.PARTICLE_FOUNTAIN]: 'PARTICLE FLOW'
+  [MODES.PARTICLE_FOUNTAIN]: 'PARTICLE FLOW',
+  [MODES.NAPOLEON_POINT_CLOUD]: 'POINT CLOUD'
 };
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗

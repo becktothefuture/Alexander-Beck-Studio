@@ -9,6 +9,7 @@ const homeHref = buildRouteHref('home');
 
 export const APERTURE_BLOOM_ROUTE_RUNTIME = {};
 export const PRESSURE_MOSAIC_ROUTE_RUNTIME = {};
+export const NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME = {};
 
 function getConceptSimulationRouteView(simulationId) {
   const entry = CONCEPT_SIMULATION_REGISTRY[simulationId];
@@ -40,4 +41,8 @@ export function getApertureBloomRouteView() {
 
 export function getPressureMosaicRouteView() {
   return getConceptSimulationRouteView(CONCEPT_SIMULATION_IDS.PRESSURE_MOSAIC);
+}
+
+export function getNapoleonPointCloudRouteView() {
+  return getConceptSimulationRouteView(CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD);
 }

@@ -7,6 +7,13 @@ import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js
 import { spawnBall } from '../physics/spawn.js';
 import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
 
+const DEFAULT_TUMBLE_SPEED = 0.65;
+const DEFAULT_TUMBLE_DAMPING = 0.9;
+const DEFAULT_MOUSE_DAMPING = 0.08;
+const INPUT_VELOCITY_EASE = 10;
+const MAX_INPUT_ANGULAR_VELOCITY = 2.4;
+const INPUT_VELOCITY_THRESHOLD = 0.025;
+
 function fibonacciSphere(count) {
   const pts = [];
   const goldenRatio = (1 + Math.sqrt(5)) / 2;
@@ -40,8 +47,8 @@ function rotateXYZ(x, y, z, rx, ry, rz) {
   return { x: x3, y: y3, z: z2 };
 }
 
-function clamp01(v) {
-  return Math.max(-1, Math.min(1, v));
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
 /**
@@ -217,8 +224,8 @@ export function apply3DSphereForces(ball, dt) {
 
   // Read runtime params for real-time updates
   const idleSpeed = g.sphere3dIdleSpeed ?? 0.15;
-  const tumbleSpeed = g.sphere3dTumbleSpeed ?? 8.0;
-  const tumbleDamping = Math.max(0, Math.min(0.999, g.sphere3dTumbleDamping ?? 0.94));
+  const tumbleSpeed = clampNumber(g.sphere3dTumbleSpeed ?? DEFAULT_TUMBLE_SPEED, 0, 3);
+  const tumbleDamping = clampNumber(g.sphere3dTumbleDamping ?? DEFAULT_TUMBLE_DAMPING, 0, 0.999);
   const dotSizeMul = Math.max(0.2, g.sphere3dDotSizeMul ?? 1.0);
 
   // Update shared rotation once per frame (first ball)
@@ -240,7 +247,7 @@ export function apply3DSphereForces(ball, dt) {
     // ═══════════════════════════════════════════════════════════════════════════════
     if (g.mouseInCanvas) {
       // Smooth mouse position for fluid "weighty" feel
-      const mouseDamping = Math.max(0.01, Math.min(1, g.sphere3dMouseDamping ?? 0.15));
+      const mouseDamping = clampNumber(g.sphere3dMouseDamping ?? DEFAULT_MOUSE_DAMPING, 0.01, 1);
       
       // Initialize smoothed mouse if first frame or reset
       if (state.smoothMouseX === undefined) {
@@ -277,27 +284,15 @@ export function apply3DSphereForces(ball, dt) {
             // Calculate angular velocity (rad/s)
             const angularVel = rotation.angle / dt;
             
-            // Velocity threshold to filter jitter
-            // Lowered to 0.05 rad/s to allow slow, precise "grabbing" movements
-            const velocityThreshold = 0.05; 
-            
-            if (angularVel > velocityThreshold) {
-              // Apply rotation sensitivity
-              const sensitivity = tumbleSpeed;
-              const scaledAngle = rotation.angle * sensitivity;
-              
-              // Create rotation matrix for this frame's rotation
-              const deltaMatrix = axisAngleToMatrix(rotation.axis, scaledAngle);
-              
-              // Apply rotation to existing matrix: newMatrix = deltaMatrix * oldMatrix
-              state.rotationMatrix = multiplyMatrices(deltaMatrix, state.rotationMatrix);
-              
-              // Store angular velocity for damping
-              // Blend with existing velocity for momentum conservation
-              const momentumBlend = 0.5; // Balance between new input and existing momentum
-              state.currentAngularVelX = state.currentAngularVelX * momentumBlend + (rotation.axis.x * angularVel * sensitivity) * (1 - momentumBlend);
-              state.currentAngularVelY = state.currentAngularVelY * momentumBlend + (rotation.axis.y * angularVel * sensitivity) * (1 - momentumBlend);
-              state.currentAngularVelZ = state.currentAngularVelZ * momentumBlend + (rotation.axis.z * angularVel * sensitivity) * (1 - momentumBlend);
+            if (angularVel > INPUT_VELOCITY_THRESHOLD) {
+              const targetAngularVel = Math.min(
+                angularVel * tumbleSpeed,
+                MAX_INPUT_ANGULAR_VELOCITY
+              );
+              const follow = 1 - Math.exp(-INPUT_VELOCITY_EASE * dt);
+              state.currentAngularVelX += ((rotation.axis.x * targetAngularVel) - state.currentAngularVelX) * follow;
+              state.currentAngularVelY += ((rotation.axis.y * targetAngularVel) - state.currentAngularVelY) * follow;
+              state.currentAngularVelZ += ((rotation.axis.z * targetAngularVel) - state.currentAngularVelZ) * follow;
             }
           }
         }

@@ -56,3 +56,215 @@ body.concept-simulation-page .route-topbar__right.ui-top-right {
   touch-action: none;
   cursor: crosshair;
 }
+
+.parameterizer-panel.napoleon-point-cloud-panel {
+  --parameterizer-panel-width: 318px;
+  --parameterizer-header-height: 28px;
+  --parameterizer-folder-height: 24px;
+  --parameterizer-row-height: 28px;
+  --parameterizer-panel-bg: #191a1d;
+  --parameterizer-header-bg: #111215;
+  --parameterizer-folder-bg: #222429;
+  --parameterizer-row-bg: #191a1d;
+  --parameterizer-row-hover: #202228;
+  --parameterizer-separator: #2d3036;
+  --parameterizer-text: #eceff3;
+  --parameterizer-muted: #8d939c;
+  --parameterizer-widget-bg: #2a2d33;
+  --parameterizer-accent: #5db7ff;
+
+  position: absolute;
+  top: max(calc(var(--gap-lg) + var(--ui-icon-frame-size)), env(safe-area-inset-top, 0px));
+  right: max(var(--gap-sm), env(safe-area-inset-right, 0px));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  width: min(var(--parameterizer-panel-width), calc(100% - (var(--gap-sm) * 2)));
+  max-height: calc(100% - (var(--gap-lg) * 2) - var(--ui-icon-frame-size));
+  overflow: hidden;
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 4px;
+  background: var(--parameterizer-panel-bg);
+  color: var(--parameterizer-text);
+  font-family: var(--abs-font-sans);
+  font-size: 11px;
+  line-height: 1.25;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.24);
+  pointer-events: auto;
+}
+
+.napoleon-point-cloud-panel .parameterizer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--parameterizer-header-height);
+  padding-inline: 8px;
+  border-bottom: 1px solid var(--parameterizer-separator);
+  background: var(--parameterizer-header-bg);
+  font-weight: 600;
+}
+
+.napoleon-point-cloud-panel__status {
+  color: var(--parameterizer-muted);
+  font-family: var(--abs-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.napoleon-point-cloud-panel .parameterizer-scroll {
+  overflow: auto;
+  min-height: 0;
+}
+
+.napoleon-point-cloud-panel .parameterizer-folder {
+  border-bottom: 1px solid var(--parameterizer-separator);
+}
+
+.napoleon-point-cloud-panel .parameterizer-folder-title {
+  display: flex;
+  align-items: center;
+  min-height: var(--parameterizer-folder-height);
+  padding-inline: 8px;
+  background: var(--parameterizer-folder-bg);
+  color: var(--parameterizer-text);
+  cursor: default;
+  font-weight: 600;
+  list-style: none;
+}
+
+.napoleon-point-cloud-panel .parameterizer-folder-title::-webkit-details-marker {
+  display: none;
+}
+
+.napoleon-point-cloud-panel .parameterizer-folder-title::before {
+  content: 'v';
+  width: 12px;
+  color: var(--parameterizer-muted);
+  font-size: 9px;
+}
+
+.napoleon-point-cloud-panel .parameterizer-folder:not([open]) .parameterizer-folder-title::before {
+  content: '>';
+}
+
+.napoleon-point-cloud-panel__rows {
+  padding-block: 2px;
+}
+
+.napoleon-point-cloud-panel .parameterizer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 34%) minmax(0, 1fr) 52px;
+  align-items: center;
+  min-height: var(--parameterizer-row-height);
+  padding-inline: 8px 6px;
+  gap: 6px;
+  background: var(--parameterizer-row-bg);
+}
+
+.napoleon-point-cloud-panel .parameterizer-row:hover {
+  background: var(--parameterizer-row-hover);
+}
+
+.napoleon-point-cloud-panel .parameterizer-label {
+  overflow: hidden;
+  color: var(--parameterizer-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.napoleon-point-cloud-panel .parameterizer-control {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.napoleon-point-cloud-panel .parameterizer-control--check {
+  justify-content: flex-end;
+}
+
+.napoleon-point-cloud-panel .parameterizer-value {
+  overflow: hidden;
+  color: var(--parameterizer-muted);
+  font-family: var(--abs-font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.napoleon-point-cloud-panel input,
+.napoleon-point-cloud-panel select,
+.napoleon-point-cloud-panel button {
+  font: inherit;
+}
+
+.napoleon-point-cloud-panel input[type='range'] {
+  width: 100%;
+  accent-color: var(--parameterizer-accent);
+}
+
+.napoleon-point-cloud-panel input[type='checkbox'] {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--parameterizer-accent);
+}
+
+.napoleon-point-cloud-panel select {
+  width: 100%;
+  min-width: 0;
+  height: 20px;
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 2px;
+  background: var(--parameterizer-widget-bg);
+  color: var(--parameterizer-text);
+  font-size: 10px;
+}
+
+.napoleon-point-cloud-panel .parameterizer-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-top: 1px solid var(--parameterizer-separator);
+  background: var(--parameterizer-header-bg);
+}
+
+.napoleon-point-cloud-panel button {
+  min-height: 22px;
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 2px;
+  background: var(--parameterizer-widget-bg);
+  color: var(--parameterizer-text);
+  cursor: pointer;
+}
+
+.napoleon-point-cloud-panel button:hover,
+.napoleon-point-cloud-panel button:focus-visible,
+.napoleon-point-cloud-panel select:focus-visible,
+.napoleon-point-cloud-panel input:focus-visible {
+  outline: 1px solid var(--parameterizer-accent);
+  outline-offset: 1px;
+}
+
+@media (color-gamut: p3) {
+  .parameterizer-panel.napoleon-point-cloud-panel {
+    --parameterizer-accent: color(display-p3 0.36 0.72 1);
+  }
+}
+
+@media (max-width: 700px) {
+  .parameterizer-panel.napoleon-point-cloud-panel {
+    --parameterizer-panel-width: 282px;
+
+    top: max(calc(var(--gap-lg) + var(--ui-icon-frame-size)), env(safe-area-inset-top, 0px));
+    right: max(var(--gap-sm), env(safe-area-inset-right, 0px));
+    max-height: 46vh;
+    font-size: 12px;
+  }
+
+  .napoleon-point-cloud-panel .parameterizer-row {
+    min-height: 32px;
+  }
+}

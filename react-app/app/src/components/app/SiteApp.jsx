@@ -14,7 +14,9 @@ import { getMineralGrowthRouteView, MINERAL_GROWTH_ROUTE_RUNTIME } from '../../r
 import {
   APERTURE_BLOOM_ROUTE_RUNTIME,
   getApertureBloomRouteView,
+  getNapoleonPointCloudRouteView,
   getPressureMosaicRouteView,
+  NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME,
   PRESSURE_MOSAIC_ROUTE_RUNTIME,
 } from '../../routes/concept-simulations/ConceptSimulationRoute.jsx';
 import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
@@ -33,7 +35,8 @@ const ROUTE_VIEW_BY_ID = {
   'wall-repel': getWallRepelRouteView,
   'mineral-growth': getMineralGrowthRouteView,
   'aperture-bloom': getApertureBloomRouteView,
-  'pressure-mosaic': getPressureMosaicRouteView
+  'pressure-mosaic': getPressureMosaicRouteView,
+  'napoleon-point-cloud': getNapoleonPointCloudRouteView
 };
 
 const ROUTE_RUNTIME_BY_ID = {
@@ -48,7 +51,8 @@ const ROUTE_RUNTIME_BY_ID = {
   'wall-repel': WALL_REPEL_ROUTE_RUNTIME,
   'mineral-growth': MINERAL_GROWTH_ROUTE_RUNTIME,
   'aperture-bloom': APERTURE_BLOOM_ROUTE_RUNTIME,
-  'pressure-mosaic': PRESSURE_MOSAIC_ROUTE_RUNTIME
+  'pressure-mosaic': PRESSURE_MOSAIC_ROUTE_RUNTIME,
+  'napoleon-point-cloud': NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME
 };
 
 function getRouteViewForId(routeId) {

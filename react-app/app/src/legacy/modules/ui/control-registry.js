@@ -8,6 +8,7 @@ import { applyLayoutCSSVars, getGlobals } from '../core/state.js';
 import {
   PARALLAX_LINEAR_PRESETS,
   FEATURED_MODES,
+  DEV_ONLY_MODES,
   NARRATIVE_MODE_SEQUENCE,
   NARRATIVE_CHAPTER_TITLES,
   MODES,
@@ -5063,11 +5064,22 @@ export const CONTROL_SECTIONS = {
         label: 'Spin Sensitivity',
         stateKey: 'sphere3dTumbleSpeed',
         type: 'range',
-        min: 0, max: 10, step: 0.1,
-        default: 2.5,
-        format: v => v.toFixed(1),
+        min: 0, max: 3, step: 0.05,
+        default: 0.65,
+        format: v => v.toFixed(2),
         parse: parseFloat,
-        hint: 'How much dragging the mouse over the sphere spins it. Higher = more sensitive.'
+        hint: 'How much mouse movement over the sphere spins it. Higher = more sensitive.'
+      },
+      {
+        id: 'sphere3dMouseDamping',
+        label: 'Mouse Follow',
+        stateKey: 'sphere3dMouseDamping',
+        type: 'range',
+        min: 0.01, max: 0.35, step: 0.01,
+        default: 0.08,
+        format: v => Math.round(v * 100) + '%',
+        parse: parseFloat,
+        hint: 'How quickly the sphere follows mouse movement. Lower values feel smoother and heavier.'
       },
       {
         id: 'sphere3dTumbleDamping',
@@ -5075,7 +5087,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'sphere3dTumbleDamping',
         type: 'range',
         min: 0, max: 1, step: 0.005,
-        default: 0.94,
+        default: 0.9,
         format: v => v.toFixed(3),
         parse: parseFloat
       },
@@ -6189,7 +6201,8 @@ export function generateModeSwitcherHTML() {
     'flubber-blob': '🫠',
     'weave-field': '🧵',
     'pressure-crucible': '◉',
-    'particle-fountain': '⛲'
+    'particle-fountain': '⛲',
+    'napoleon-point-cloud': '●'
   };
   const modeLabels = {
     'pit': 'Pit',
@@ -6214,7 +6227,8 @@ export function generateModeSwitcherHTML() {
     'flubber-blob': 'Flubber',
     'weave-field': 'Weave',
     'pressure-crucible': 'Flux',
-    'particle-fountain': 'Fountain'
+    'particle-fountain': 'Fountain',
+    'napoleon-point-cloud': 'Bust'
   };
   
   // Calculate which mode is the daily mode (inline to avoid async)
@@ -6237,6 +6251,13 @@ export function generateModeSwitcherHTML() {
     const dailyBadge = isDailyMode ? '<span class="daily-badge" title="Today\'s Simulation">📅</span>' : '';
     const ariaLabel = `${number} · ${(NARRATIVE_CHAPTER_TITLES[mode] || label)} mode${isDailyMode ? ' (Today\'s Simulation)' : ''}`;
     buttons += `<button class="mode-button${isDailyMode ? ' is-daily-mode' : ''}" data-mode="${mode}" aria-label="${ariaLabel}"><span class="mode-button-number">${number}</span><span class="mode-button-label">${icon} ${label}${dailyBadge}</span></button>`;
+  });
+  DEV_ONLY_MODES.forEach((mode, idx) => {
+    const icon = modeIcons[mode] || '⚪';
+    const label = modeLabels[mode] || mode;
+    const number = `D${idx + 1}`;
+    const ariaLabel = `${number} · ${(NARRATIVE_CHAPTER_TITLES[mode] || label)} dev mode`;
+    buttons += `<button class="mode-button mode-button--dev-only" data-mode="${mode}" aria-label="${ariaLabel}"><span class="mode-button-number">${number}</span><span class="mode-button-label">${icon} ${label}</span></button>`;
   });
 
   return `
@@ -6310,7 +6331,8 @@ function generateHomeModeSectionHTML() {
               'mineral-growth': '✺',
               'flubber-blob': '🫠',
               'weave-field': '🧵',
-              'particle-fountain': '⛲'
+              'particle-fountain': '⛲',
+              'napoleon-point-cloud': '●'
             };
             const modeLabels = {
               'pit': 'Pit',
@@ -6334,7 +6356,8 @@ function generateHomeModeSectionHTML() {
               'mineral-growth': 'Growth',
               'flubber-blob': 'Flubber',
               'weave-field': 'Weave',
-              'particle-fountain': 'Fountain'
+              'particle-fountain': 'Fountain',
+              'napoleon-point-cloud': 'Bust'
             };
             let buttons = '';
             NARRATIVE_MODE_SEQUENCE.forEach((mode, idx) => {
@@ -6344,6 +6367,13 @@ function generateHomeModeSectionHTML() {
               const number = String(idx + 1).padStart(2, '0');
               const ariaLabel = `${number} · ${(NARRATIVE_CHAPTER_TITLES[mode] || label)} mode`;
               buttons += `<button class="mode-button" data-mode="${modeKey}" aria-label="${ariaLabel}"><span class="mode-button-number">${number}</span><span class="mode-button-label">${icon} ${label}</span></button>`;
+            });
+            DEV_ONLY_MODES.forEach((mode, idx) => {
+              const icon = modeIcons[mode] || '⚪';
+              const label = modeLabels[mode] || mode;
+              const number = `D${idx + 1}`;
+              const ariaLabel = `${number} · ${(NARRATIVE_CHAPTER_TITLES[mode] || label)} dev mode`;
+              buttons += `<button class="mode-button mode-button--dev-only" data-mode="${mode}" aria-label="${ariaLabel}"><span class="mode-button-number">${number}</span><span class="mode-button-label">${icon} ${label}</span></button>`;
             });
             return buttons;
           })()}

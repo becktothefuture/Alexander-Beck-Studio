@@ -37,7 +37,8 @@ const MODE_NAMES = {
   'flubber-blob': 'Flubber Blob',
   'weave-field': 'Weave Field',
   'pressure-crucible': 'Polarity Flux',
-  'particle-fountain': 'Particle Fountain'
+  'particle-fountain': 'Particle Fountain',
+  'napoleon-point-cloud': 'Napoleon Point Cloud'
 };
 
 const ROUTE_BACKED_MODE_HREFS = {
@@ -45,7 +46,8 @@ const ROUTE_BACKED_MODE_HREFS = {
   [MODES.WALL_REPEL]: '/lab/wall-repel.html?daily=1',
   [MODES.APERTURE_BLOOM]: '/lab/aperture-bloom.html?daily=1',
   [MODES.PRESSURE_MOSAIC]: '/lab/pressure-mosaic.html?daily=1',
-  [MODES.MINERAL_GROWTH]: '/lab/mineral-growth.html?daily=1'
+  [MODES.MINERAL_GROWTH]: '/lab/mineral-growth.html?daily=1',
+  [MODES.NAPOLEON_POINT_CLOUD]: '/lab/napoleon-point-cloud.html?daily=1'
 };
 
 const MODE_REGISTRY = {
