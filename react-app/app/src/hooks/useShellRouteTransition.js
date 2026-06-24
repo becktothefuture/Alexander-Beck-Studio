@@ -422,10 +422,20 @@ function rectsMatchWithinThreshold(previous, next, thresholdPx = 2) {
   );
 }
 
+function isElementVisiblyRevealed(element) {
+  if (!element) return false;
+  const styles = window.getComputedStyle(element);
+  return (
+    styles.display !== 'none'
+    && styles.visibility !== 'hidden'
+    && Number(styles.opacity) > 0.9
+  );
+}
+
 function isPortfolioScrollRailReady() {
   const wall = document.getElementById('simulations');
   const mount = document.getElementById('portfolioProjectMount');
-  const firstCard = mount?.querySelector('.portfolio-project-label');
+  const firstCard = mount?.querySelector('.portfolio-deck-card.is-active, .portfolio-project-label');
   if (!wall || !mount || !firstCard) return false;
   const wallRect = wall.getBoundingClientRect();
   const cardRect = firstCard.getBoundingClientRect();
@@ -435,6 +445,8 @@ function isPortfolioScrollRailReady() {
     && cardRect.width >= Math.min(240, wallRect.width * 0.5)
     && cardRect.height >= 96
     && rectHasUsableVisibleArea(cardRect, wallRect)
+    && isElementVisiblyRevealed(mount)
+    && isElementVisiblyRevealed(firstCard)
   );
 }
 
@@ -443,7 +455,7 @@ function readRouteReadySnapshot(routeId) {
     return {
       wallRect: document.getElementById('simulations')?.getBoundingClientRect() || null,
       heroRect: document.getElementById('hero-title')?.getBoundingClientRect() || null,
-      cardRect: document.querySelector('.portfolio-project-label')?.getBoundingClientRect() || null,
+      cardRect: document.querySelector('.portfolio-deck-card.is-active, .portfolio-project-label')?.getBoundingClientRect() || null,
       topbarRect: document.querySelector('.ui-top-main.route-topbar')?.getBoundingClientRect() || null,
     };
   }
@@ -454,10 +466,11 @@ function readRouteReadySnapshot(routeId) {
 function isRouteReadySnapshotStable(routeId, previous, next) {
   if (routeId !== 'portfolio') return true;
   if (!previous || !next) return false;
+  const deckFailed = document.body?.classList.contains('portfolio-deck-failed');
   return (
     rectsMatchWithinThreshold(previous.wallRect, next.wallRect, 2)
     && (!previous.heroRect || !next.heroRect || rectsMatchWithinThreshold(previous.heroRect, next.heroRect, 2))
-    && rectsMatchWithinThreshold(previous.cardRect, next.cardRect, 2)
+    && (deckFailed || rectsMatchWithinThreshold(previous.cardRect, next.cardRect, 2))
     && rectsMatchWithinThreshold(previous.topbarRect, next.topbarRect, 2)
   );
 }
@@ -478,12 +491,13 @@ function isRouteBaselineReady(routeId) {
   }
 
   if (routeId === 'portfolio') {
+    const deckFailed = body.classList.contains('portfolio-deck-failed');
     return Boolean(
       body.classList.contains('portfolio-page')
       && document.getElementById('portfolioProjectMount')
       && document.querySelector('.ui-top-main.route-topbar')
       && hasCanvasBufferReady()
-      && isPortfolioScrollRailReady()
+      && (deckFailed || isPortfolioScrollRailReady())
     );
   }
 

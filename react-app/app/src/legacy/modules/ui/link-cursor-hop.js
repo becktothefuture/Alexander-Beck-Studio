@@ -30,6 +30,7 @@ function getNearestAction(target) {
   // Dev launcher should keep the custom cursor visible instead of triggering the
   // link-hover implosion path that hides it.
   if (el.closest('.panel-toggle-btn')) return null;
+  if (el.closest('.portfolio-deck-card')) return null;
 
   // Exclude portfolio carousel slides
   try {

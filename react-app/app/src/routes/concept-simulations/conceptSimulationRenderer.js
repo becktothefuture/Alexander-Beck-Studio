@@ -117,6 +117,19 @@ function getScaledRadius(config, metrics) {
   return clamp(Number(config.bodyRadius || 9) * areaScale * mobileScale, minRadius, 17);
 }
 
+function getScaledRadiusRange(config, metrics) {
+  const areaScale = Math.sqrt((metrics.cssWidth * metrics.cssHeight) / REFERENCE_AREA);
+  const mobileScale = metrics.cssWidth < 680 ? Number(config.mobileRadiusScale || 0.86) : 1;
+  const minRadius = clamp(Number(config.minRadius || 6.8) * areaScale * mobileScale, 4.8, 13);
+  const maxRadius = clamp(Number(config.maxRadius || 11.8) * areaScale * mobileScale, minRadius + 0.8, 18);
+
+  return { minRadius, maxRadius };
+}
+
+function getMobileDensityScale(config, metrics) {
+  if (metrics.cssWidth >= 680) return 1;
+  return clamp(Number(config.mobileDensityScale || 0.64), 0.36, 1);
+}
 
 function getTitleReserveZone(config, metrics) {
   const width = metrics.cssWidth * clamp(Number(config.titleReserveWidth) || 0.56, 0.24, 0.9);
@@ -352,6 +365,79 @@ function buildPressureMosaicBodies(random, config, theme, metrics) {
   return bodies;
 }
 
+function buildConfluenceBridgeBodies(random, config, theme, metrics) {
+  const bodies = [];
+  const outerHubCount = Math.round(clamp(Number(config.hubCount || 5), 3, 7));
+  const densityScale = getMobileDensityScale(config, metrics);
+  const requestedCount = Math.round(clamp(Number(config.ballCount || 112), 36, 180));
+  const bridgeCount = Math.max(outerHubCount * 7, Math.round((requestedCount - outerHubCount - 1) * densityScale));
+  const { minRadius, maxRadius } = getScaledRadiusRange(config, metrics);
+  const cx = metrics.cssWidth * 0.5;
+  const cy = metrics.cssHeight * (metrics.cssWidth < 680 ? 0.49 : 0.48);
+  const isMobile = metrics.cssWidth < 680;
+  const orbitRx = metrics.cssWidth * (isMobile ? 0.29 : 0.34);
+  const orbitRy = metrics.cssHeight * (isMobile ? 0.31 : 0.28);
+  const hubRadiusBase = maxRadius * Number(config.hubRadiusScale || 1.82);
+
+  bodies.push(makeBody(random, theme, cx, cy, hubRadiusBase * 1.18, {
+    kind: 'hub',
+    hubIndex: 0,
+    isCenterHub: true,
+    baseX: cx,
+    baseY: cy,
+    weight: 1.18,
+    spin: 0.004,
+    shapeKind: 'circle',
+  }));
+
+  for (let index = 0; index < outerHubCount; index += 1) {
+    const angle = (-Math.PI / 2) + ((index / outerHubCount) * TAU);
+    const weight = 0.82 + (random() * 0.48) + (index === 0 ? 0.28 : 0);
+    const x = cx + Math.cos(angle) * orbitRx;
+    const y = cy + Math.sin(angle) * orbitRy;
+    bodies.push(makeBody(random, theme, x, y, hubRadiusBase * weight, {
+      kind: 'hub',
+      hubIndex: index + 1,
+      baseAngle: angle,
+      orbitRx,
+      orbitRy,
+      weight,
+      orbitSpeed: (index % 2 === 0 ? 1 : -1) * (0.024 + random() * 0.018),
+      spin: (index % 2 === 0 ? 1 : -1) * 0.006,
+      shapeKind: 'circle',
+    }));
+  }
+
+  const perBridge = Math.ceil(bridgeCount / outerHubCount);
+  for (let index = 0; index < bridgeCount; index += 1) {
+    const bridgeIndex = index % outerHubCount;
+    const outerIndex = bridgeIndex + 1;
+    const bridgeSlot = Math.floor(index / outerHubCount);
+    const uBase = (bridgeSlot + 1) / (perBridge + 1);
+    const u = clamp(uBase + ((random() - 0.5) * 0.018), 0.04, 0.96);
+    const maturity = smoothstep(1 - Math.abs((u * 2) - 1));
+    const r = minRadius + ((maxRadius - minRadius) * (0.18 + maturity * 0.5 + random() * 0.22));
+    const a = bodies[outerIndex];
+    const b = bodies[0];
+    const x = a.x + ((b.x - a.x) * u);
+    const y = a.y + ((b.y - a.y) * u);
+
+    bodies.push(makeBody(random, theme, x, y, r, {
+      kind: 'bridge',
+      bridgeIndex,
+      aIndex: outerIndex,
+      bIndex: 0,
+      u,
+      bow: (bridgeIndex % 2 === 0 ? 1 : -1) * (0.42 + random() * 0.38),
+      maturity,
+      spin: (random() - 0.5) * 0.012,
+      shapeKind: 'circle',
+    }));
+  }
+
+  return bodies;
+}
+
 function applySeparation(bodies, iterations = 1, scale = 1.08) {
   for (let pass = 0; pass < iterations; pass += 1) {
     for (let i = 0; i < bodies.length; i += 1) {
@@ -427,6 +513,101 @@ function updatePressureMosaic(body, config, metrics, pointer, t) {
   body.homeY = body.baseY + offsetY;
 }
 
+function updateConfluenceBridge(body, bodies, config, metrics, pointer, t) {
+  const speed = Number(config.animationSpeed || 0.72);
+  const interactionStrength = Number(config.interactionStrength || 58);
+  const influenceRadius = Math.max(1, Number(config.influenceRadius || 235));
+  const cx = metrics.cssWidth * 0.5;
+  const cy = metrics.cssHeight * 0.5;
+
+  if (body.kind === 'hub') {
+    let targetX;
+    let targetY;
+
+    if (body.isCenterHub) {
+      targetX = body.baseX + (Math.sin(t * speed * 0.38 + body.phase) * body.r * 0.42);
+      targetY = body.baseY + (Math.cos(t * speed * 0.32 + body.phase) * body.r * 0.32);
+    } else {
+      const wobble = Math.sin(t * speed * 0.34 + body.phase) * 0.035;
+      const angle = body.baseAngle + wobble + (t * body.orbitSpeed * speed);
+      targetX = cx + (Math.cos(angle) * body.orbitRx);
+      targetY = cy + (Math.sin(angle) * body.orbitRy);
+    }
+
+    if (pointer.active) {
+      const dx = targetX - pointer.x;
+      const dy = targetY - pointer.y;
+      const distance = Math.max(1, Math.hypot(dx, dy));
+      const pressure = smoothstep(1 - (distance / influenceRadius));
+      const push = pressure * interactionStrength * (body.isCenterHub ? 0.18 : 0.32);
+      targetX += (dx / distance) * push;
+      targetY += (dy / distance) * push;
+    }
+
+    if (pointer.down && pointer.dragBodyIndex === body.bodyIndex) {
+      targetX += (pointer.x - targetX) * Number(config.dragStrength || 0.38);
+      targetY += (pointer.y - targetY) * Number(config.dragStrength || 0.38);
+    }
+
+    body.homeX = targetX;
+    body.homeY = targetY;
+    return;
+  }
+
+  const a = bodies[body.aIndex];
+  const b = bodies[body.bIndex];
+  if (!a || !b) return;
+
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const length = Math.max(1, Math.hypot(dx, dy));
+  const nx = -dy / length;
+  const ny = dx / length;
+  const u = body.u;
+  const arc = Math.sin(Math.PI * u) * length * Number(config.bridgeArc || 0.28) * body.bow;
+  const pulse = Math.sin(t * speed * 1.2 + body.phase) * body.r * 0.8;
+  let targetX = a.x + (dx * u) + (nx * (arc + pulse));
+  let targetY = a.y + (dy * u) + (ny * (arc + pulse));
+
+  if (pointer.active) {
+    const pointerDx = targetX - pointer.x;
+    const pointerDy = targetY - pointer.y;
+    const distance = Math.max(1, Math.hypot(pointerDx, pointerDy));
+    const pressure = smoothstep(1 - (distance / influenceRadius));
+    const pullSign = pointer.down && pointer.dragBodyIndex < 0 ? -1 : 1;
+    const push = pressure * interactionStrength * (pointer.down ? 0.64 : 0.42) * pullSign;
+    targetX += (pointerDx / distance) * push;
+    targetY += (pointerDy / distance) * push;
+  }
+
+  body.homeX = targetX;
+  body.homeY = targetY;
+}
+
+function containBody(body, metrics) {
+  const margin = body.r + 3;
+  const minX = margin;
+  const maxX = metrics.cssWidth - margin;
+  const minY = margin;
+  const maxY = metrics.cssHeight - margin;
+
+  if (body.x < minX) {
+    body.x = minX;
+    body.vx = Math.abs(body.vx) * 0.28;
+  } else if (body.x > maxX) {
+    body.x = maxX;
+    body.vx = -Math.abs(body.vx) * 0.28;
+  }
+
+  if (body.y < minY) {
+    body.y = minY;
+    body.vy = Math.abs(body.vy) * 0.28;
+  } else if (body.y > maxY) {
+    body.y = maxY;
+    body.vy = -Math.abs(body.vy) * 0.28;
+  }
+}
+
 function updateBody(body, config, pointer, dt, reserve = null) {
   if (pointer.active) {
     const dx = body.x - pointer.x;
@@ -450,8 +631,17 @@ function updateBody(body, config, pointer, dt, reserve = null) {
   body.rotation += body.spin + (body.vx * 0.0008);
 }
 
-function renderBackground(ctx, metrics, theme) {
+function renderBackground(ctx, metrics, theme, config, pointer, simulationId) {
   ctx.fillStyle = theme?.active || DEFAULT_THEME.active;
+  ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
+
+  if (simulationId !== CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES) return;
+
+  const response = Number(config.backgroundResponse || 0);
+  if (response <= 0) return;
+
+  const pressure = pointer.active ? 1 : 0.32;
+  ctx.fillStyle = `rgba(255, 255, 255, ${clamp(response * pressure * 0.035, 0, 0.018)})`;
   ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
 }
 
@@ -494,6 +684,13 @@ export function createConceptSimulationRenderer({
       Number(config.rings || 0),
       Number(config.ringSpacing || 0).toFixed(3),
       Number(config.spacing || 0).toFixed(3),
+      Number(config.rowDensity || 0).toFixed(3),
+      Number(config.ballCount || 0),
+      Number(config.hubCount || 0),
+      Number(config.minRadius || 0).toFixed(3),
+      Number(config.maxRadius || 0).toFixed(3),
+      Number(config.mobileDensityScale || 0).toFixed(3),
+      Number(config.bridgeArc || 0).toFixed(3),
       Number(config.titleReserveWidth || 0).toFixed(3),
       Number(config.titleReserveHeight || 0).toFixed(3),
       Number(config.titleReserveY || 0).toFixed(3),
@@ -505,10 +702,13 @@ export function createConceptSimulationRenderer({
     const seedMap = {
       [CONCEPT_SIMULATION_IDS.APERTURE_BLOOM]: 11021,
       [CONCEPT_SIMULATION_IDS.PRESSURE_MOSAIC]: 31041,
+      [CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES]: 41071,
     };
     const random = mulberry32(seedMap[simulationId] || 51061);
     if (simulationId === CONCEPT_SIMULATION_IDS.APERTURE_BLOOM) {
       bodies = buildApertureBodies(random, config, theme, metrics);
+    } else if (simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES) {
+      bodies = buildConfluenceBridgeBodies(random, config, theme, metrics);
     } else {
       bodies = buildPressureMosaicBodies(random, config, theme, metrics);
     }
@@ -543,7 +743,8 @@ export function createConceptSimulationRenderer({
     const rawDt = lastTime ? (now - lastTime) / 1000 : 1 / 60;
     lastTime = now;
     const dt = clamp(rawDt, 1 / 120, 1 / 30) * (reducedMotion ? 0.45 : 1);
-    const t = (now / 1000) * (reducedMotion ? 0.45 : 1);
+    const isConfluence = simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES;
+    const t = (now / 1000) * (reducedMotion && isConfluence ? 0.45 : 1);
     const reserve = simulationId === CONCEPT_SIMULATION_IDS.APERTURE_BLOOM
       || simulationId === CONCEPT_SIMULATION_IDS.PRESSURE_MOSAIC
       ? getTitleReserveZone(config, metrics)
@@ -552,6 +753,8 @@ export function createConceptSimulationRenderer({
     for (const body of bodies) {
       if (simulationId === CONCEPT_SIMULATION_IDS.APERTURE_BLOOM) {
         updateAperture(body, config, metrics, pointer, t);
+      } else if (isConfluence) {
+        updateConfluenceBridge(body, bodies, config, metrics, pointer, t);
       } else {
         updatePressureMosaic(body, config, metrics, pointer, t);
       }
@@ -559,12 +762,20 @@ export function createConceptSimulationRenderer({
         pushHomeOutsideTitleReserve(body, reserve);
       }
       updateBody(body, config, pointer, dt, reserve);
+      if (isConfluence) {
+        containBody(body, metrics);
+      }
     }
     applySeparation(
       bodies,
-      simulationId === CONCEPT_SIMULATION_IDS.PRESSURE_MOSAIC ? 2 : 1,
-      1.08,
+      simulationId === CONCEPT_SIMULATION_IDS.PRESSURE_MOSAIC || isConfluence ? 2 : 1,
+      isConfluence ? Number(config.separationScale || 1.08) : 1.08,
     );
+    if (isConfluence) {
+      for (const body of bodies) {
+        containBody(body, metrics);
+      }
+    }
     if (reserve) {
       for (const body of bodies) {
         pushOutsideTitleReserve(body, reserve);
@@ -578,12 +789,21 @@ export function createConceptSimulationRenderer({
     const theme = getTheme() || DEFAULT_THEME;
     const config = getConfig();
     ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
-    renderBackground(ctx, metrics, theme);
+    renderBackground(ctx, metrics, theme, config, pointer, simulationId);
     ctx.shadowColor = 'rgba(0, 0, 0, 0.16)';
     ctx.shadowBlur = Math.max(5, Math.min(16, metrics.cssWidth * 0.006));
     ctx.shadowOffsetY = 1.5;
-    for (const body of bodies) {
-      drawBody(ctx, body);
+    if (simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES) {
+      for (const body of bodies) {
+        if (body.kind !== 'hub') drawBody(ctx, body);
+      }
+      for (const body of bodies) {
+        if (body.kind === 'hub') drawBody(ctx, body);
+      }
+    } else {
+      for (const body of bodies) {
+        drawBody(ctx, body);
+      }
     }
     ctx.shadowColor = 'transparent';
   }
@@ -604,6 +824,25 @@ export function createConceptSimulationRenderer({
     pointer.active = true;
   }
 
+  function findNearestDraggableBodyIndex(config) {
+    const dragRadius = Number(config.dragRadius || 185);
+    let nearestIndex = -1;
+    let nearestDistanceSq = dragRadius * dragRadius;
+
+    for (const body of bodies) {
+      if (body.kind !== 'hub') continue;
+      const dx = body.x - pointer.x;
+      const dy = body.y - pointer.y;
+      const distanceSq = (dx * dx) + (dy * dy);
+      if (distanceSq < nearestDistanceSq) {
+        nearestDistanceSq = distanceSq;
+        nearestIndex = body.bodyIndex;
+      }
+    }
+
+    return nearestIndex;
+  }
+
   function handlePointerMove(event) {
     updatePointerFromEvent(event);
     if (pointer.down) {
@@ -615,7 +854,9 @@ export function createConceptSimulationRenderer({
     updatePointerFromEvent(event);
     pointer.down = true;
     pointer.pointerId = event.pointerId;
-    pointer.dragBodyIndex = -1;
+    pointer.dragBodyIndex = simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES
+      ? findNearestDraggableBodyIndex(getConfig())
+      : -1;
     try {
       canvas.setPointerCapture?.(event.pointerId);
     } catch {

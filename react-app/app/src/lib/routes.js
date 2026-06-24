@@ -73,6 +73,12 @@ const ROUTE_DEFS = {
     aliases: ['/lab/pressure-mosaic.html', '/lab/pressure-mosaic', '/pressure-mosaic.html', '/pressure-mosaic'],
     gated: false,
   },
+  'confluence-bridges': {
+    id: 'confluence-bridges',
+    path: '/lab/confluence-bridges.html',
+    aliases: ['/lab/confluence-bridges.html', '/lab/confluence-bridges', '/confluence-bridges.html', '/confluence-bridges'],
+    gated: false,
+  },
   'napoleon-point-cloud': {
     id: 'napoleon-point-cloud',
     path: '/lab/napoleon-point-cloud.html',

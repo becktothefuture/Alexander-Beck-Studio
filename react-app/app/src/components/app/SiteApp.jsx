@@ -13,7 +13,9 @@ import { getWallRepelRouteView, WALL_REPEL_ROUTE_RUNTIME } from '../../routes/wa
 import { getMineralGrowthRouteView, MINERAL_GROWTH_ROUTE_RUNTIME } from '../../routes/mineral-growth/MineralGrowthRoute.jsx';
 import {
   APERTURE_BLOOM_ROUTE_RUNTIME,
+  CONFLUENCE_BRIDGES_ROUTE_RUNTIME,
   getApertureBloomRouteView,
+  getConfluenceBridgesRouteView,
   getNapoleonPointCloudRouteView,
   getPressureMosaicRouteView,
   NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME,
@@ -36,6 +38,7 @@ const ROUTE_VIEW_BY_ID = {
   'mineral-growth': getMineralGrowthRouteView,
   'aperture-bloom': getApertureBloomRouteView,
   'pressure-mosaic': getPressureMosaicRouteView,
+  'confluence-bridges': getConfluenceBridgesRouteView,
   'napoleon-point-cloud': getNapoleonPointCloudRouteView
 };
 
@@ -52,6 +55,7 @@ const ROUTE_RUNTIME_BY_ID = {
   'mineral-growth': MINERAL_GROWTH_ROUTE_RUNTIME,
   'aperture-bloom': APERTURE_BLOOM_ROUTE_RUNTIME,
   'pressure-mosaic': PRESSURE_MOSAIC_ROUTE_RUNTIME,
+  'confluence-bridges': CONFLUENCE_BRIDGES_ROUTE_RUNTIME,
   'napoleon-point-cloud': NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME
 };
 

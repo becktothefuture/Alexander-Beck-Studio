@@ -65,16 +65,12 @@ export function getStyleguideRouteView() {
                     <span className="gate-back abs-icon-btn styleguide-fake-icon" aria-hidden="true">
                       <i className="ti ti-arrow-left" aria-hidden="true" />
                     </span>
-                    <nav className="portfolio-topnav ui-main-nav" aria-label="Sample route top nav">
-                      <MainNavLink>About Me</MainNavLink>
-                      <MainNavLink>Contact</MainNavLink>
-                    </nav>
                   </div>
                   <div className="route-topbar__center" aria-hidden="true" />
                   <div className="route-topbar__right ui-top-right">
-                    <blockquote className="decorative-script portfolio-topline">
-                      <p>Selected work, tuned for motion.</p>
-                    </blockquote>
+                    <nav className="portfolio-topnav ui-main-nav" aria-label="Sample route top nav">
+                      <MainNavLink>About Me</MainNavLink>
+                    </nav>
                     <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample mute" disabled>
                       <i className="ti ti-volume-off" aria-hidden="true" />
                     </button>

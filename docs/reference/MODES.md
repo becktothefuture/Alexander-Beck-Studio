@@ -14,6 +14,12 @@ Source of truth for mode IDs and narrative order:
 - `parallax-linear` remains a registered mode ID for compatibility, but user mode switching redirects it to the first narrative mode.
 - `flock-of-birds`, `wall-repel`, `aperture-bloom`, `pressure-mosaic`, `mineral-growth`, and `napoleon-point-cloud` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 
+## Lab-Only Route Candidates
+
+These pages are review surfaces, not registered narrative modes. Do not add them to daily rotation or Extended rotation without explicit approval and a full promotion pass.
+
+- Confluence Bridges — `confluence-bridges`, `/lab/confluence-bridges.html`, concept-lab registry entry with `enabledInRotation: false`; weighted circle discipline hubs build and stretch circle bridges under pointer movement and drag.
+
 ---
 
 ## Registered Mode IDs

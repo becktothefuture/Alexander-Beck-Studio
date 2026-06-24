@@ -7,7 +7,6 @@ export const PORTFOLIO_ROUTE_RUNTIME = {
 
 export function getPortfolioRouteView() {
   const aboutLink = homeContent.footer.links.cv;
-  const contactLink = homeContent.footer.links.contact;
   const aboutMeLabel = 'About Me';
   const portfolioBlurb = homeContent.portfolio?.blurb
     || 'A curated selection of product projects across several industries—finance, mobility, digital ventures, and more. Each case shows how I partner with teams to clarify the proposition, shape the interaction, and carry the work through to what actually ships.';
@@ -33,8 +32,10 @@ export function getPortfolioRouteView() {
         />
         <div
           id="portfolioProjectMount"
-          className="portfolio-project-mount portfolio-scroll-mount"
+          className="portfolio-project-mount portfolio-deck-mount"
           aria-label="Portfolio projects"
+          data-intro-title={portfolioHeroLines[0]}
+          data-intro-body={portfolioBlurb}
         />
       </>
     ),
@@ -63,20 +64,14 @@ export function getPortfolioRouteView() {
             >
               <i className="ti ti-arrow-left" aria-hidden="true" />
             </a>
+          </div>
+          <div className="route-topbar__center" aria-hidden="true" />
+          <div className="route-topbar__right ui-top-right">
             <nav className="portfolio-topnav ui-main-nav" aria-label="Portfolio navigation">
               <MainNavLink id={aboutLink.id} aria-haspopup="dialog">
                 {aboutMeLabel}
               </MainNavLink>
-              <MainNavLink id={contactLink.id} aria-haspopup="dialog">
-                {contactLink.text}
-              </MainNavLink>
             </nav>
-          </div>
-          <div className="route-topbar__center" aria-hidden="true" />
-          <div className="route-topbar__right ui-top-right">
-            <blockquote className="decorative-script portfolio-topline">
-              <p>{portfolioBlurb}</p>
-            </blockquote>
             <div id="sound-toggle-slot" className="portfolio-sound-slot" />
           </div>
         </div>

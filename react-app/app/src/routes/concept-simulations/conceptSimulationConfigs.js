@@ -1,6 +1,7 @@
 export const CONCEPT_SIMULATION_IDS = Object.freeze({
   APERTURE_BLOOM: 'aperture-bloom',
   PRESSURE_MOSAIC: 'pressure-mosaic',
+  CONFLUENCE_BRIDGES: 'confluence-bridges',
   NAPOLEON_POINT_CLOUD: 'napoleon-point-cloud',
 });
 
@@ -56,6 +57,40 @@ export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
       titleReserveY: 0.5,
       damping: 0.8,
       spring: 0.13,
+      maxDpr: 1.5,
+      pauseWhenHidden: true,
+    },
+  },
+  [CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES]: {
+    id: CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES,
+    name: 'Confluence Bridges',
+    chapter: 'CONFLUENCE BRIDGES',
+    path: '/lab/confluence-bridges.html',
+    configPath: '/config/confluence-bridges-demo.json',
+    ariaLabel: 'Weighted discipline circles connected by shifting circle bridges',
+    enabledInRotation: false,
+    defaults: {
+      version: 1,
+      enabled: true,
+      ballCount: 112,
+      hubCount: 5,
+      colorPalette: 'site-weather',
+      bodyRadius: 8.8,
+      minRadius: 6.8,
+      maxRadius: 11.8,
+      mobileRadiusScale: 0.86,
+      hubRadiusScale: 1.82,
+      interactionStrength: 58,
+      dragStrength: 0.38,
+      dragRadius: 185,
+      damping: 0.84,
+      spring: 0.096,
+      influenceRadius: 235,
+      separationScale: 1.08,
+      mobileDensityScale: 0.64,
+      animationSpeed: 0.72,
+      bridgeArc: 0.28,
+      backgroundResponse: 0.1,
       maxDpr: 1.5,
       pauseWhenHidden: true,
     },
@@ -139,6 +174,24 @@ export function normalizeConceptSimulationConfig(simulationId, input = {}) {
     next.titleReserveWidth = clampNumber(next.titleReserveWidth, 0.24, 0.9, defaults.titleReserveWidth);
     next.titleReserveHeight = clampNumber(next.titleReserveHeight, 0.12, 0.42, defaults.titleReserveHeight);
     next.titleReserveY = clampNumber(next.titleReserveY, 0.28, 0.68, defaults.titleReserveY);
+  }
+
+  if (simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES) {
+    next.ballCount = Math.round(clampNumber(next.ballCount, 36, 180, defaults.ballCount));
+    next.hubCount = Math.round(clampNumber(next.hubCount, 3, 7, defaults.hubCount));
+    next.minRadius = clampNumber(next.minRadius, 4, 13, defaults.minRadius);
+    next.maxRadius = clampNumber(next.maxRadius, next.minRadius + 0.8, 18, defaults.maxRadius);
+    next.hubRadiusScale = clampNumber(next.hubRadiusScale, 1.15, 2.45, defaults.hubRadiusScale);
+    next.interactionStrength = clampNumber(next.interactionStrength, 0, 150, defaults.interactionStrength);
+    next.dragStrength = clampNumber(next.dragStrength, 0.1, 0.8, defaults.dragStrength);
+    next.dragRadius = clampNumber(next.dragRadius, 80, 360, defaults.dragRadius);
+    next.influenceRadius = clampNumber(next.influenceRadius, 90, 420, defaults.influenceRadius);
+    next.separationScale = clampNumber(next.separationScale, 0.95, 1.32, defaults.separationScale);
+    next.mobileDensityScale = clampNumber(next.mobileDensityScale, 0.36, 1, defaults.mobileDensityScale);
+    next.animationSpeed = clampNumber(next.animationSpeed, 0, 1.4, defaults.animationSpeed);
+    next.bridgeArc = clampNumber(next.bridgeArc, 0, 0.62, defaults.bridgeArc);
+    next.backgroundResponse = clampNumber(next.backgroundResponse, 0, 0.28, defaults.backgroundResponse);
+    next.colorPalette = String(next.colorPalette || defaults.colorPalette);
   }
 
   if (simulationId === CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD) {

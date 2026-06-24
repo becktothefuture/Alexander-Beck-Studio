@@ -1,6 +1,6 @@
 # Portfolio Runtime
 
-The portfolio route is a wall-contained **vertical project rail**. It reuses the shared wall frame and route chrome, but the visible project UI is DOM-driven: native vertical scrolling, center snap, project cards with media thumbnails, and a full wall-contained project detail surface.
+The portfolio route is a wall-contained **infinite project deck**. It reuses the shared wall frame and route chrome, but the visible project UI is DOM-driven: one active project card, two blurred depth cards behind it, controlled wheel/touch/keyboard snapping, and a full wall-contained project detail surface.
 
 ## Entry Points
 
@@ -18,7 +18,7 @@ Hero hint copy is **`(scroll please)`** (see `createProjectView()` in `app.js`).
 
 ## Runtime Modules
 
-- `react-app/app/src/legacy/modules/portfolio/app.js` bootstraps the route, loads project data, mounts the full project view, renders the scroll rail, controls media autoplay/fallbacks, and handles card open/close behavior.
+- `react-app/app/src/legacy/modules/portfolio/app.js` bootstraps the route, loads project data, mounts the full project view, renders the infinite deck, controls active-card media playback/fallbacks, and handles card open/close behavior.
 - `react-app/app/src/legacy/modules/portfolio/pit-mode.js` remains for archived/compatibility physics helpers. The visible portfolio route should not expose project balls.
 - `react-app/app/src/legacy/modules/portfolio/portfolio-config.js` normalizes the authored portfolio config and applies portfolio CSS vars.
 - `react-app/app/src/legacy/modules/portfolio/panel/` exposes the dev panel for body sizing, labeling, and motion.
@@ -28,7 +28,7 @@ Hero hint copy is **`(scroll please)`** (see `createProjectView()` in `app.js`).
 - `react-app/app/public/config/contents-portfolio.json` remains the source of truth for projects, detail copy, links, tags, and media.
 - `react-app/app/public/images/portfolio/` holds the hero/detail assets resolved by the portfolio runtime.
 
-Card media selection uses `thumbnailVideo` / `video` only when explicitly present. Otherwise the card falls back to the project `image`. Detail content videos inside `contentBlocks` are not reused as card thumbnails because they may be generic or too dark for the rail preview.
+Card media selection uses `thumbnailVideo` / `video` only when explicitly present. Otherwise the card falls back to the project `image`. Detail content videos inside `contentBlocks` are not reused as card thumbnails because they may be generic or too dark for the deck preview.
 
 ## Config Model
 
@@ -40,15 +40,20 @@ The active portfolio runtime groups are:
 - `runtime.layout`: spawn spacing and header offsets
 - `runtime.bodies`: min/max diameter fractions vs √(inner pit area), block geometry
 - `runtime.labeling`: title fit bounds and block rotation range
-- `runtime.motion`: drag/open timing and neighbor impulse
+- `runtime.motion`: open timing and deck snapping values
 - `runtime.behavior`: passive mouse reaction toggle and reduced-motion timing
 
-## Scroll Rail Contract
+## Infinite Deck Contract
 
-- Desktop should show roughly two full project cards plus a partial third.
-- Mobile should show one focused card plus a visible next-card peek.
-- Cards use explicit per-project material colors set in `portfolio/app.js` and CSS variables in `portfolio.css`; do not rely only on the global palette for card contrast.
-- Native scroll snap is required. Cards should snap to the center region of the wall.
+- Desktop shows one centered horizontal card and two rear depth cards behind it.
+- Mobile shows one centered vertical card with the image on top and two rear depth cards behind it.
+- Cards use unique per-project material colors from the active ball palette. `getPortfolioProjectPaletteColor()` reads `colorDistribution` first, preserves that order, dedupes resolved colors, then uses remaining unique palette slots before generated fallbacks. With the current six projects, the live deck uses palette indices `0, 3, 2, 6, 7, 5` with no repeated backgrounds.
+- Closed-card ink is computed from contrast against the assigned card background. Do not let per-project content override `--portfolio-card-ink` on closed deck cards; dark/light ink must be chosen by contrast ratio.
+- Wheel, touch, and arrow keys are controlled by the deck controller, not native document scrolling, so the project list wraps infinitely. Larger wheel/touch gestures may queue multiple soft card advances before settling.
+- Closed cards show client, title, media, and at most three tags. Detail summaries stay in the opened project surface.
+- Deck motion is a closed-loop conveyor in perspective: visible cards advance along one continuous path through the stack, the front card continues past the front edge while fading/blurring, and hidden wrap/rejoin occurs only after opacity reaches zero.
+- The outgoing card reappears from the deepest rear pose. It must not visibly reverse direction or travel backward through the stack.
+- Deck tuning lives under `runtime.deck`: `exitTravelPx`, `exitFadeStart`, `exitFadeEnd`, `wrapDepthPx`, `reappearStart`, `reappearFade`, and `exitScale` control the closed-loop exit and hidden wrap.
 - Open project views mount in `#portfolio-sheet-host`, cover route chrome, and must remove the host's `aria-hidden` while open.
 
 ## Archived Slider

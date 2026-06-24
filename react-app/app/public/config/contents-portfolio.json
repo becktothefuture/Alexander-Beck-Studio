@@ -2,238 +2,345 @@
   "projects": [
     {
       "id": "chapter-1",
-      "client": "Bentley SMP",
-      "eyebrow": "Bentley SMP",
-      "displayTitle": "A product system for workflows",
-      "title": "Product design for complex platforms",
+      "client": "S&P Global",
+      "eyebrow": "S&P Global",
+      "displayTitle": "Making financial indexes visible",
+      "title": "Making Financial Indexes Visible",
       "image": "chapter-1-1.webp",
-      "tags": ["#product design", "#UX", "#UI", "#prototyping", "#mobile app"],
-      "summary": "A product suite that turns messy workflows into clear, fast-moving action.",
-      "role": "Product Design Lead",
-      "year": "2024",
-      "overview": "Mapped workflows, defined interaction models, and shipped a modular UI system so teams could align on a multi-platform roadmap without friction.",
+      "tags": ["#product design", "#financial UX", "#workflow design", "#prototyping", "#B2B tools"],
+      "summary": "A product interface that turned index-building from emails, spreadsheets, and scripts into a visual workflow.",
+      "role": "Lead UX and Visual Designer",
+      "year": "Recent",
+      "overview": "Mapped the index-building process, shaped a modular interaction model, and designed screens that helped users build, validate, and launch strategies in days instead of weeks.",
       "gallery": [
         "images/portfolio/pages/chapter-1-2.webp",
         "images/portfolio/pages/chapter-1-4.webp"
       ],
-      "links": [
-        { "label": "Prototype", "url": "https://example.com" },
-        { "label": "Release Notes", "url": "https://example.com" }
-      ],
+      "links": [],
       "contentBlocks": [
         {
           "type": "text",
-          "body": "The team needed one workflow language across desktop and mobile so operations, field staff, and leadership could move in sync."
+          "body": "S&P Dow Jones Indexes needed a clearer way to turn a complex, rule-based financial process into a product. The work focused on making the logic visible without making the interface feel heavy."
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-1-2.webp",
+          "alt": "Case-study slide explaining the challenge behind the S&P index builder platform.",
+          "caption": "Project framing for a financial-index builder.",
+          "layout": { "aspect": "16:9" }
         },
         {
           "type": "image",
           "src": "images/portfolio/pages/chapter-1-3.webp",
-          "alt": "Journey diagram showing the core workflow from task intake to completion.",
-          "caption": "Workflow summary for the core user journey.",
+          "alt": "Case-study slide describing role, collaborators, and lessons from the index builder project.",
+          "caption": "Role, design rationale, and lessons from translating financial logic into UI.",
           "layout": { "aspect": "16:9" }
-        },
-        {
-          "type": "quote",
-          "text": "When every team saw the same sequence on screen, debates shifted from assumptions to decisions.",
-          "attribution": "Product lead, Bentley SMP"
-        },
-        {
-          "type": "video",
-          "src": "video/video-dark.mp4",
-          "caption": "Interactive prototype walkthrough.",
-          "layout": { "aspect": "4:3" }
         },
         {
           "type": "stats",
           "items": [
-            { "label": "Prototype rounds", "value": "12" },
-            { "label": "Flows unified", "value": "9" },
-            { "label": "Cycle time", "value": "-28%" }
+            { "label": "Old workflow", "value": "Email + Excel + Python" },
+            { "label": "Launch time", "value": "Weeks to days" },
+            { "label": "Core model", "value": "Modular index blocks" }
           ]
         },
         {
           "type": "image",
           "src": "images/portfolio/pages/chapter-1-6.webp",
-          "alt": "Component-driven app screens arranged in a modular grid.",
-          "caption": "Component-driven layout exploration.",
+          "alt": "Product interface screens for building and validating financial index strategies.",
+          "caption": "Interface states for building and validating index strategies.",
           "layout": { "aspect": "3:2" }
-        },
-        {
-          "type": "text",
-          "body": "A shared component model reduced handoff ambiguity and made cross-platform QA far easier."
         },
         {
           "type": "image",
           "src": "images/portfolio/pages/chapter-1-10.webp",
-          "alt": "Mobile UI states with validation, error, and recovery paths.",
-          "caption": "Mobile-first detail states and error paths.",
+          "alt": "Index builder landing screen with options to build, validate, and deploy an index.",
+          "caption": "Landing screen for building, validating, and deploying a strategic index.",
           "layout": { "aspect": "16:9" }
         }
       ],
       "takeaways": [
-        "Design with real data to keep flows honest.",
-        "Document decisions so engineering can move faster.",
-        "Small interaction details build product trust."
+        "Make abstract rules visible before asking users to act.",
+        "A strong model helps technical and non-technical users work from the same idea.",
+        "Visual design can reduce ambiguity in complex financial tools."
       ]
     },
     {
       "id": "chapter-4",
-      "client": "Swiss Re",
-      "eyebrow": "Swiss Re",
-      "displayTitle": "A design system that keeps tokens aligned",
-      "title": "Design systems architecture",
+      "client": "SunExpress",
+      "eyebrow": "SunExpress",
+      "displayTitle": "Clearer flight booking",
+      "title": "Clearer Flight Booking",
       "image": "chapter-4-1.webp",
-      "tags": ["#design systems", "#components", "#documentation", "#scalability", "#tokens"],
-      "summary": "A system that scales components, tokens, and governance across teams and brands.",
-      "role": "Design Systems Architect",
-      "year": "2024",
-      "overview": "Built token strategy, component governance, and documentation patterns that make quality repeatable across squads and product lines.",
+      "tags": ["#travel UX", "#booking flows", "#design system", "#web design", "#accessibility"],
+      "summary": "An early travel UX project that made a multilingual booking journey clearer across search, selection, and upsell moments.",
+      "role": "UX and Web Designer",
+      "year": "Archive",
+      "overview": "Mapped booking paths, audited existing interactions, restructured decision points, and built a custom design system and icon set for a large transactional airline site.",
       "gallery": [
         "images/portfolio/pages/chapter-4-3.webp",
         "images/portfolio/pages/chapter-4-5.webp"
       ],
-      "links": [
-        { "label": "System Docs", "url": "https://example.com" },
-        { "label": "Component Library", "url": "https://example.com" }
-      ],
+      "links": [],
       "contentBlocks": [
-        { "type": "image", "src": "images/portfolio/pages/chapter-4-1.webp", "caption": "Token architecture and naming." },
-        { "type": "video", "src": "video/video-dark.mp4", "caption": "Component QA and release workflow." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-4-8.webp", "caption": "Documentation patterns and usage notes." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-4-10.webp", "caption": "System adoption and onboarding flow." }
+        {
+          "type": "text",
+          "body": "This stays in the portfolio as an archive project. The visual language belongs to an earlier web era, but the work is still useful because it shows large-scale transactional UX, multilingual constraints, and design-system thinking."
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-4-3.webp",
+          "alt": "Case-study slide describing UX and web design responsibilities for SunExpress.",
+          "caption": "Role and lessons from a large-scale airline booking project.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-4-10.webp",
+          "alt": "SunExpress website screens showing homepage, destination, and booking interface explorations.",
+          "caption": "Booking and destination-page explorations for the SunExpress website.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-4-5.webp",
+          "alt": "SunExpress booking screens for outbound and inbound flight choices.",
+          "caption": "Transactional screens across outbound and inbound flight choices.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-4-8.webp",
+          "alt": "Project notes about SunExpress accessibility, language, and scalable interaction patterns.",
+          "caption": "Project notes on accessibility, language, and scalable interaction patterns.",
+          "layout": { "aspect": "16:9" }
+        }
       ],
       "takeaways": [
-        "Governance keeps systems from drifting.",
-        "Docs need to be as polished as the UI.",
-        "Tokens make multi-brand scaling possible."
+        "Structure affects confidence in transactional flows.",
+        "Small content and ordering changes can reduce confusion without a full rebuild.",
+        "A design system is useful only when tested against real booking cases."
       ]
     },
     {
       "id": "chapter-3",
       "client": "Yoti",
       "eyebrow": "Yoti",
-      "displayTitle": "Motion rules for product feedback",
-      "title": "Motion and interaction systems",
+      "displayTitle": "Designing trust flows",
+      "title": "Designing Trust Flows",
       "image": "chapter-3-1.webp",
-      "tags": ["#motion design", "#interaction", "#webgl", "#animation", "#micro-interactions"],
-      "summary": "A shared motion system so small moments feel consistent and build trust.",
-      "role": "Motion Design + Prototyping",
+      "tags": ["#identity UX", "#trust", "#mobile flows", "#verification", "#interaction design"],
+      "summary": "Product and interaction work for identity and age-verification moments where users needed to understand what was happening and why.",
+      "role": "Product and Interaction Designer",
       "year": "2023",
-      "overview": "Defined pacing, easing, and feedback patterns so product teams could ship motion with clarity and confidence.",
+      "overview": "Designed and documented verification flows across mobile and desktop, including QR handoffs, ID details, and face-scan explanations for sensitive user journeys.",
       "gallery": [
         "images/portfolio/pages/chapter-3-4.webp",
         "images/portfolio/pages/chapter-3-7.webp"
       ],
-      "links": [
-        { "label": "Motion Spec", "url": "https://example.com" },
-        { "label": "Prototype Reel", "url": "https://example.com" }
-      ],
+      "links": [],
       "contentBlocks": [
-        { "type": "image", "src": "images/portfolio/pages/chapter-3-1.webp", "caption": "Animation guidelines and timing rails." },
-        { "type": "video", "src": "video/video-dark.mp4", "caption": "Interactive states and feedback loops." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-3-10.webp", "caption": "Motion tokens for components and transitions." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-3-14.webp", "caption": "Systemized micro-interactions." }
+        {
+          "type": "text",
+          "body": "Identity products need to explain themselves at the moment of action. The work focused on trust, recovery, and clear handoffs between devices and services."
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-3-10.webp",
+          "alt": "Yoti QR-code modal implementation flow across desktop and mobile.",
+          "caption": "QR-code handoff flow between desktop, mobile, and callback states.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-3-7.webp",
+          "alt": "Yoti mobile screen explaining why a face scan is required.",
+          "caption": "A sensitive verification moment explained in plain language.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-3-4.webp",
+          "alt": "Mobile ID and age-verification screens from Yoti.",
+          "caption": "Mobile identity states for age and document verification.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-3-14.webp",
+          "alt": "Yoti brand and logo documentation page.",
+          "caption": "Brand and interface documentation for consistent implementation.",
+          "layout": { "aspect": "16:9" }
+        }
       ],
       "takeaways": [
-        "Consistency in motion builds product confidence.",
-        "Prototype early to validate pacing.",
-        "Motion tokens scale better than bespoke effects."
+        "Trust depends on explaining the reason behind a request.",
+        "Cross-device flows need clear entry, waiting, and recovery states.",
+        "Sensitive products benefit from simple language and visible system feedback."
       ]
     },
     {
       "id": "chapter-2",
-      "client": "My own project",
-      "eyebrow": "My own project",
-      "displayTitle": "Research that turns interviews into decisions",
-      "title": "UX research and insight mapping",
+      "client": "Bentley",
+      "eyebrow": "Bentley",
+      "displayTitle": "Digital calm for luxury ownership",
+      "title": "Digital Calm for Luxury Ownership",
       "image": "chapter-2-1.webp",
-      "tags": ["#user research", "#strategy", "#analytics", "#testing", "#insights"],
-      "summary": "A research program linking qualitative insight with quantitative signals for sharper bets.",
-      "role": "UX Research + Strategy",
-      "year": "2022",
-      "overview": "Synthesized interviews, surveys, and usage data into an opportunity map that prioritized roadmap decisions.",
+      "tags": ["#luxury digital", "#motion", "#3D prototyping", "#brand systems", "#product design"],
+      "summary": "Digital experience work that translated Bentley's brand tone into calm interaction flows, motion, and ownership moments.",
+      "role": "Experience and Interaction Designer",
+      "year": "Recent",
+      "overview": "Worked across concept, interaction design, storytelling, 3D, and motion. Built a digital garage in Blender, shaped interactive flows, and co-developed a visual and motion language for Bentley's digital presence.",
       "gallery": [
         "images/portfolio/pages/chapter-2-3.webp",
         "images/portfolio/pages/chapter-2-5.webp"
       ],
-      "links": [
-        { "label": "Insight Report", "url": "https://example.com" },
-        { "label": "Research Plan", "url": "https://example.com" }
-      ],
+      "links": [],
       "contentBlocks": [
-        { "type": "image", "src": "images/portfolio/pages/chapter-2-1.webp", "caption": "Research scope and stakeholder alignment." },
-        { "type": "video", "src": "video/video-dark.mp4", "caption": "Insight synthesis and storytelling reel." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-2-9.webp", "caption": "Opportunity mapping and prioritization." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-2-11.webp", "caption": "Behavioral segmentation and personas." }
+        {
+          "type": "text",
+          "body": "The work explored how a luxury digital product can feel calm, composed, and useful without losing the emotional quality of the brand."
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-2-3.webp",
+          "alt": "Case-study slide describing role and lasting insight from Bentley digital work.",
+          "caption": "Role, process, and lessons from shaping Bentley's digital presence.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-2-5.webp",
+          "alt": "Bentley car on a road at sunset.",
+          "caption": "Brand atmosphere used to guide pacing, tone, and interaction decisions.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-2-9.webp",
+          "alt": "Bentley app and ownership screens arranged in a product layout.",
+          "caption": "Ownership and service touchpoints arranged as a digital product system.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-2-11.webp",
+          "alt": "Bentley digital strategy prompts and experience principles.",
+          "caption": "Strategy prompts for a connected Bentley ownership experience.",
+          "layout": { "aspect": "16:9" }
+        }
       ],
       "takeaways": [
-        "Anchor insight delivery to roadmap timing.",
-        "Blend qual and quant for sharper decisions.",
-        "Make artifacts easy to reuse across teams."
+        "Brand tone becomes stronger when it affects interaction decisions.",
+        "Pacing is a design material in premium digital products.",
+        "Prototypes help stakeholders discuss feeling, not only screens."
       ]
     },
     {
       "id": "chapter-5",
-      "client": "Studio Flow",
-      "eyebrow": "Studio Flow",
-      "displayTitle": "Creative direction for one story across teams",
-      "title": "Creative direction and launch narratives",
+      "client": "Personal",
+      "eyebrow": "Personal Experimental Website",
+      "displayTitle": "A portfolio built as an environment",
+      "title": "Personal Experimental Website",
       "image": "chapter-5-1.webp",
-      "tags": ["#creative direction", "#team leadership", "#mentorship", "#vision", "#execution"],
-      "summary": "A sprint that aligned teams around one story and clear craft standards.",
-      "role": "Creative Direction",
-      "year": "2021",
-      "overview": "Set vision, led critique, and delivered one launch story across design and marketing teams.",
+      "tags": ["#creative technology", "#spatial design", "#web design", "#motion", "#sound"],
+      "summary": "A self-initiated website exploring how a portfolio can feel like an environment rather than a sequence of pages.",
+      "role": "Designer and Developer",
+      "year": "Ongoing",
+      "overview": "Designed and built a responsive web environment with spatial depth, dynamic interaction, motion, sound, and layered content. The project became a live system for testing browser performance, animation, and immersive navigation.",
       "gallery": [
         "images/portfolio/pages/chapter-5-2.webp",
         "images/portfolio/pages/chapter-5-4.webp"
       ],
-      "links": [
-        { "label": "Launch Story", "url": "https://example.com" },
-        { "label": "Press Kit", "url": "https://example.com" }
-      ],
+      "links": [],
       "contentBlocks": [
-        { "type": "image", "src": "images/portfolio/pages/chapter-5-1.webp", "caption": "Narrative framing and positioning." },
-        { "type": "video", "src": "video/video-dark.mp4", "caption": "Campaign motion and storytelling beats." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-5-7.webp", "caption": "Team alignment and review cadence." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-5-10.webp", "caption": "Launch artifacts and touchpoints." }
+        {
+          "type": "text",
+          "body": "This project documents the website as a design object: a personal system for testing how a portfolio can behave more like a space than a static set of pages."
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-5-2.webp",
+          "alt": "Case-study slide describing the personal experimental website and its spatial design goals.",
+          "caption": "Project framing for a personal website built as a spatial environment.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-5-7.webp",
+          "alt": "Annotated website interface showing interaction and animation details.",
+          "caption": "Annotated interaction details for navigation, overlays, and motion states.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-5-10.webp",
+          "alt": "Website design board about creating smart user experiences.",
+          "caption": "Experience framing and visual direction for the site.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-5-4.webp",
+          "alt": "Dark immersive website screen with interface and depth effects.",
+          "caption": "Interface study for depth, atmosphere, and movement.",
+          "layout": { "aspect": "16:9" }
+        }
       ],
       "takeaways": [
-        "Narrative clarity makes execution faster.",
-        "Consistency needs ownership, not consensus.",
-        "Great launches are rehearsed, not rushed."
+        "A portfolio can teach through movement and structure, not only written case studies.",
+        "Immersion needs performance discipline to stay usable.",
+        "Personal work is strongest when it exposes how you think and build."
       ]
     },
     {
       "id": "chapter-6",
-      "client": "Mind Flow",
-      "eyebrow": "Mind Flow",
-      "displayTitle": "Prototype studies for speculative interfaces",
-      "title": "Experimental lab for frontier prototypes",
-      "image": "chapter-6-1.webp",
-      "tags": ["#experimental", "#generative art", "#code", "#future tech", "#concepts"],
-      "summary": "An R&D lab exploring generative visuals, speculative interfaces, and future interaction models.",
-      "role": "R&D Lead",
-      "year": "2024",
-      "overview": "Prototyped speculative interfaces and generative systems to test new interaction patterns and technical feasibility.",
+      "client": "Pro Keyboard",
+      "eyebrow": "Pro Keyboard",
+      "displayTitle": "Touch typing refined",
+      "title": "Touch Typing Refined",
+      "image": "chapter-6-2.webp",
+      "tags": ["#learning UX", "#product concept", "#mobile design", "#interaction", "#research"],
+      "summary": "A focused product concept for making typing practice feel clearer, calmer, and easier to return to.",
+      "role": "Product Concept Designer",
+      "year": "Concept",
+      "overview": "Explored a learning product around touch typing, using simple feedback, mobile-friendly screens, and practice loops that support steady improvement instead of pressure.",
       "gallery": [
-        "images/portfolio/pages/chapter-6-2.webp",
+        "images/portfolio/pages/chapter-6-1.webp",
         "images/portfolio/pages/chapter-6-3.webp"
       ],
-      "links": [
-        { "label": "Prototype Experiments", "url": "https://example.com" },
-        { "label": "Technical Notes", "url": "https://example.com" }
-      ],
+      "links": [],
       "contentBlocks": [
-        { "type": "image", "src": "images/portfolio/pages/chapter-6-1.webp", "caption": "Speculative interface sketches." },
-        { "type": "video", "src": "video/video-dark.mp4", "caption": "Realtime generative motion study." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-6-2.webp", "caption": "Material and shader exploration." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-6-3.webp", "caption": "Prototype outputs and experiments." }
+        {
+          "type": "text",
+          "body": "This stays in the set for now as a smaller product concept. It adds a different kind of work: focused learning UX rather than enterprise, travel, or identity systems."
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-6-1.webp",
+          "alt": "Research project slide for an experimental portfolio and spatial web environment.",
+          "caption": "Early research framing for exploratory product and interface studies.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-6-2.webp",
+          "alt": "Touch Typing Refined product screens for a Pro Keyboard concept.",
+          "caption": "Mobile product screens for a touch-typing learning concept.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-6-3.webp",
+          "alt": "Minimal prototype screen with the Beck mark.",
+          "caption": "Minimal interface study for the wider concept system.",
+          "layout": { "aspect": "16:9" }
+        }
       ],
       "takeaways": [
-        "Fast experiments make the future concrete.",
-        "Build small tools to unlock big visuals.",
-        "Spec work benefits from tight storytelling."
+        "Small concepts still need a clear user problem.",
+        "Learning tools should reward progress without adding pressure.",
+        "This project needs sharper evidence if it remains in the final selection."
       ]
     }
   ]

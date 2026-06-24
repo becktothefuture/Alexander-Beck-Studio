@@ -4,8 +4,14 @@
       <div id="scene-effects" class="scene-effects" aria-hidden="true">
         <div class="noise"></div>
       </div>
-      <canvas id="c" class="portfolio-pit-canvas" aria-label="Portfolio projects simulation" role="img" draggable="false"></canvas>
-      <div id="portfolioProjectMount" class="portfolio-project-mount" aria-live="polite"></div>
+      <canvas id="c" class="portfolio-pit-canvas portfolio-scroll-canvas" aria-hidden="true" draggable="false"></canvas>
+      <div
+        id="portfolioProjectMount"
+        class="portfolio-project-mount portfolio-deck-mount"
+        aria-label="Portfolio projects"
+        data-intro-title="I design digital experiences around human response."
+        data-intro-body="A curated selection of product projects across several industries, from mobility to digital ventures."
+      ></div>
     </div>
     <div id="quote-viewport-host" class="quote-viewport-host" aria-hidden="true"></div>
   </div>
@@ -20,11 +26,11 @@
               <i class="ti ti-arrow-left" aria-hidden="true"></i>
             </a>
           </div>
-          <nav class="route-topbar__center portfolio-topnav ui-main-nav" aria-label="Portfolio navigation">
-            <button id="cv-modal-trigger" type="button" class="footer_link" aria-label="About me" aria-haspopup="dialog"><span class="footer-link-nowrap">About me</span></button>
-            <button id="contact-email" type="button" class="footer_link" aria-label="Contact" aria-haspopup="dialog"><span class="footer-link-nowrap">Contact</span></button>
-          </nav>
+          <div class="route-topbar__center" aria-hidden="true"></div>
           <div class="route-topbar__right ui-top-right">
+            <nav class="portfolio-topnav ui-main-nav" aria-label="Portfolio navigation">
+              <button id="cv-modal-trigger" type="button" class="footer_link" aria-label="About me" aria-haspopup="dialog"><span class="footer-link-nowrap">About me</span></button>
+            </nav>
             <div id="sound-toggle-slot" class="portfolio-sound-slot"></div>
           </div>
         </div>

@@ -358,7 +358,7 @@ export class PortfolioProjectDrawer {
     };
     this.boundTransitionEnd = (event) => {
       if (event.target !== this.drawer) return;
-      if (event.propertyName !== 'transform') return;
+      if (event.propertyName !== 'opacity') return;
       if (!this.root?.classList.contains('is-closing')) return;
       this.completeClose();
     };
@@ -446,6 +446,51 @@ export class PortfolioProjectDrawer {
   resetScrollTop() {
     if (!this.scroll) return;
     this.scroll.scrollTop = 0;
+  }
+
+  setOpenOrigin(originRect) {
+    if (!this.root) return;
+    if (!originRect || !(originRect.width > 0) || !(originRect.height > 0)) {
+      this.root.classList.remove('has-open-origin');
+      this.root.style.removeProperty('--portfolio-open-origin-x');
+      this.root.style.removeProperty('--portfolio-open-origin-y');
+      this.root.style.removeProperty('--portfolio-open-origin-scale-x');
+      this.root.style.removeProperty('--portfolio-open-origin-scale-y');
+      return;
+    }
+
+    const targetRect = this.root.getBoundingClientRect();
+    if (!(targetRect.width > 0) || !(targetRect.height > 0)) {
+      this.root.classList.remove('has-open-origin');
+      return;
+    }
+
+    const originCenterX = originRect.left + (originRect.width * 0.5);
+    const originCenterY = originRect.top + (originRect.height * 0.5);
+    const targetCenterX = targetRect.left + (targetRect.width * 0.5);
+    const targetCenterY = targetRect.top + (targetRect.height * 0.5);
+    const scaleX = clamp(originRect.width / targetRect.width, 0.08, 1);
+    const scaleY = clamp(originRect.height / targetRect.height, 0.08, 1);
+    this.root.style.setProperty('--portfolio-open-origin-x', `${(originCenterX - targetCenterX).toFixed(2)}px`);
+    this.root.style.setProperty('--portfolio-open-origin-y', `${(originCenterY - targetCenterY).toFixed(2)}px`);
+    this.root.style.setProperty('--portfolio-open-origin-scale-x', scaleX.toFixed(4));
+    this.root.style.setProperty('--portfolio-open-origin-scale-y', scaleY.toFixed(4));
+    this.root.classList.add('has-open-origin');
+  }
+
+  clearOpenOrigin() {
+    if (!this.root) return;
+    this.root.classList.remove('has-open-origin');
+    this.root.style.removeProperty('--portfolio-open-origin-x');
+    this.root.style.removeProperty('--portfolio-open-origin-y');
+    this.root.style.removeProperty('--portfolio-open-origin-scale-x');
+    this.root.style.removeProperty('--portfolio-open-origin-scale-y');
+  }
+
+  getDrawerRect() {
+    const rect = this.drawer?.getBoundingClientRect();
+    if (!rect || !(rect.width > 0) || !(rect.height > 0)) return null;
+    return rect;
   }
 
   applyKenBurnsMotion(project, motionConfig = {}) {
@@ -590,6 +635,7 @@ export class PortfolioProjectDrawer {
       titleDelayMs = 280,
       accentColor = '',
       motionConfig = {},
+      deferReveal = false,
     } = options;
     const labelContent = resolvePortfolioLabelContent(project, project?.title || 'Project');
     const spokenLabel = labelContent.eyebrow
@@ -624,11 +670,26 @@ export class PortfolioProjectDrawer {
     this.scheduleDrawerMediaScrollShift();
 
     this.clearOpenTimers();
-    this.root.classList.remove('is-closing');
+    this.root.classList.remove('is-closing', 'is-open', 'is-title-visible');
+    this.clearOpenOrigin();
     this.root.classList.add('is-visible');
     this.root.setAttribute('aria-hidden', 'false');
     this.resetScrollTop();
 
+    if (deferReveal) {
+      this.root.classList.add('is-preopen');
+      return;
+    }
+
+    this.reveal({
+      animate,
+      titleDelayMs,
+    });
+  }
+
+  reveal({ animate = true, titleDelayMs = 280 } = {}) {
+    if (!this.root) return;
+    this.root.classList.remove('is-preopen', 'is-closing');
     if (!animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       this.root.classList.add('is-open', 'is-title-visible');
       return;
@@ -674,8 +735,9 @@ export class PortfolioProjectDrawer {
       this.closeFallbackTimer = null;
     }
     this.drawer?.removeEventListener('transitionend', this.boundTransitionEnd);
-    this.root.classList.remove('is-visible', 'is-closing', 'is-open', 'is-title-visible');
+    this.root.classList.remove('is-visible', 'is-closing', 'is-open', 'is-title-visible', 'is-preopen');
     this.root.setAttribute('aria-hidden', 'true');
+    this.clearOpenOrigin();
     const onComplete = this.onCloseComplete;
     this.onCloseComplete = null;
     onComplete?.();

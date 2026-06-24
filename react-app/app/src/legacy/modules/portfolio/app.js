@@ -65,55 +65,55 @@ const CONFIG = {
   coverFallback: `${BASE_PATH}images/portfolio/folio-cover/cover-default.webp`,
 };
 
+let activePortfolioBootstrapRunId = 0;
+
 const PORTFOLIO_CLICK_DRAG_THRESHOLD_PX = 12;
+const PORTFOLIO_CARD_RELEASE_OPEN_DELAY_MS = 96;
+const PORTFOLIO_OPEN_GHOST_DURATION_MS = 360;
+const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
+  reducedMotionDurationMs: 1,
+  scrollSensitivity: 1,
+  scrollPixelsPerProject: 560,
+  inputCapProjects: 0.24,
+  followSmoothing: 0.16,
+  settleIdleMs: 150,
+  settleStrength: 0.13,
+  cardWidthPercent: 88,
+  cardMaxWidthPx: 1360,
+  cardHeightCqh: 43,
+  cardMaxHeightPx: 500,
+  centerYPercent: 67.5,
+  perspectivePx: 1200,
+  depthGap1Px: 44,
+  depthZ1Px: -26,
+  depthScale1: 0.952,
+  depthBlur1Px: 0.42,
+  rotateXStepDeg: -0.42,
+  exitTravelPx: 220,
+  exitFadeStart: 0.28,
+  exitFadeEnd: 0.58,
+  wrapDepthPx: 120,
+  reappearStart: 0.84,
+  reappearFade: 0.12,
+  exitScale: 1.045,
+  exitBlurPx: 3.2,
+  contactShadowOpacity: 0.12,
+});
+const PORTFOLIO_DECK_INTRO_FALLBACK = Object.freeze({
+  title: 'I design digital experiences around human response.',
+  body: 'A curated selection of product projects across product systems, interaction models, and shipped digital experiences.',
+});
+const PORTFOLIO_CARD_DARK_INK = Object.freeze({
+  css: '#111111',
+  hex: '#111111',
+});
+const PORTFOLIO_CARD_LIGHT_INK = Object.freeze({
+  css: '#f5f1ea',
+  hex: '#f5f1ea',
+});
 
 const DRAG_SAMPLE_LIMIT = 5;
 const DRAG_SAMPLE_MAX_AGE_MS = 140;
-const PROJECT_CARD_THEMES = [
-  {
-    ids: ['chapter-1'],
-    accent: '#25d7c2',
-    glow: '#4debd8',
-    base: '#143634',
-    deep: '#0b201f',
-  },
-  {
-    ids: ['chapter-4'],
-    accent: '#ff6447',
-    glow: '#ff8a54',
-    base: '#5a201b',
-    deep: '#220d0a',
-  },
-  {
-    ids: ['chapter-3'],
-    accent: '#78a7ff',
-    glow: '#9fc0ff',
-    base: '#142c55',
-    deep: '#081426',
-  },
-  {
-    ids: ['chapter-2'],
-    accent: '#e3b84f',
-    glow: '#f4d67a',
-    base: '#3f3420',
-    deep: '#1f190d',
-  },
-  {
-    ids: ['chapter-5'],
-    accent: '#d9c7a8',
-    glow: '#f0dfc2',
-    base: '#383833',
-    deep: '#171714',
-  },
-  {
-    ids: ['chapter-6'],
-    accent: '#b7d0ff',
-    glow: '#d8e5ff',
-    base: '#222943',
-    deep: '#0e1220',
-  },
-];
-
 let CACHE_BUST_VALUE = null;
 
 function getCacheBustValue() {
@@ -126,13 +126,49 @@ function getCacheBustValue() {
   return CACHE_BUST_VALUE;
 }
 
+function serializeRect(rect) {
+  if (!rect || !(rect.width > 0) || !(rect.height > 0)) return null;
+  return {
+    x: Number(rect.x.toFixed(2)),
+    y: Number(rect.y.toFixed(2)),
+    top: Number(rect.top.toFixed(2)),
+    left: Number(rect.left.toFixed(2)),
+    right: Number(rect.right.toFixed(2)),
+    bottom: Number(rect.bottom.toFixed(2)),
+    width: Number(rect.width.toFixed(2)),
+    height: Number(rect.height.toFixed(2)),
+  };
+}
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function lerp(start, end, amount) {
+  return start + ((end - start) * amount);
+}
+
+function easeInCubic(value) {
+  const t = clamp(value, 0, 1);
+  return t * t * t;
+}
+
+function smoothstep(edge0, edge1, value) {
+  if (edge0 === edge1) return value >= edge1 ? 1 : 0;
+  const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+  return t * t * (3 - (2 * t));
 }
 
 function toNumber(value, fallback) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function normalizeWheelDeltaY(event) {
+  const deltaY = Number(event?.deltaY) || 0;
+  if (event?.deltaMode === 1) return deltaY * 16;
+  if (event?.deltaMode === 2) return deltaY * (window.innerHeight || 900);
+  return deltaY;
 }
 
 function escapeHtml(value) {
@@ -152,6 +188,13 @@ function installPortfolioAuditBridge(app) {
   };
 }
 
+function removePortfolioAuditBridge(app) {
+  if (typeof window === 'undefined') return;
+  if (window.__ABS_PORTFOLIO_AUDIT__?.getApp?.() === app) {
+    delete window.__ABS_PORTFOLIO_AUDIT__;
+  }
+}
+
 function hexToRgb(hex) {
   const value = String(hex || "var(--color-detected-000000)").replace('#', '').trim();
   const normalized = value.length === 3
@@ -166,15 +209,28 @@ function hexToRgb(hex) {
 }
 
 function getContrastText(fill) {
-  const { r, g, b } = hexToRgb(fill);
-  const channel = (value) => {
+  const background = hexToRgb(fill);
+  const darkInkRatio = getContrastRatio(hexToRgb(PORTFOLIO_CARD_DARK_INK.hex), background);
+  const lightInkRatio = getContrastRatio(hexToRgb(PORTFOLIO_CARD_LIGHT_INK.hex), background);
+  return darkInkRatio >= lightInkRatio ? PORTFOLIO_CARD_DARK_INK.css : PORTFOLIO_CARD_LIGHT_INK.css;
+}
+
+function getContrastRatio(first, second) {
+  const firstLuminance = getRelativeLuminance(first);
+  const secondLuminance = getRelativeLuminance(second);
+  const high = Math.max(firstLuminance, secondLuminance);
+  const low = Math.min(firstLuminance, secondLuminance);
+  return (high + 0.05) / (low + 0.05);
+}
+
+function getRelativeLuminance({ r, g, b }) {
+  const toLinear = (value) => {
     const normalized = value / 255;
     return normalized <= 0.03928
       ? normalized / 12.92
       : Math.pow((normalized + 0.055) / 1.055, 2.4);
   };
-  const luminance = (0.2126 * channel(r)) + (0.7152 * channel(g)) + (0.0722 * channel(b));
-  return luminance > 0.42 ? "var(--color-detected-111111)" : "var(--color-detected-f5f1ea)";
+  return (0.2126 * toLinear(r)) + (0.7152 * toLinear(g)) + (0.0722 * toLinear(b));
 }
 
 function getReadableLabelRotation(rotationRad) {
@@ -188,16 +244,13 @@ function getReadableLabelRotation(rotationRad) {
 }
 
 function getProjectCardTheme(project, projectIndex, projectCount) {
-  const id = String(project?.id || '').trim();
-  const theme = PROJECT_CARD_THEMES.find((item) => item.ids.includes(id))
-    || PROJECT_CARD_THEMES[projectIndex % PROJECT_CARD_THEMES.length];
-  const accent = project?.accentColor || theme?.accent || getProjectAccentColor(projectIndex, projectCount);
+  const accent = getProjectAccentColor(projectIndex, projectCount);
   return {
     accent,
-    glow: project?.glowColor || theme?.glow || accent,
-    base: project?.surfaceColor || theme?.base || '#20211f',
-    deep: project?.deepColor || theme?.deep || '#10110f',
-    ink: project?.inkColor || '#f8f3eb',
+    glow: accent,
+    base: accent,
+    deep: accent,
+    ink: getContrastText(accent),
   };
 }
 
@@ -1235,6 +1288,31 @@ class PortfolioScrollApp {
     this.appFrame = document.getElementById('app-frame');
     this.cards = [];
     this.mediaVideos = [];
+    this.activeProjectIndex = 0;
+    this.deckTargetPosition = 0;
+    this.deckDisplayPosition = 0;
+    this.deckAnimationFrame = 0;
+    this.deckLastFrameAt = 0;
+    this.deckIsSettling = false;
+    this.deckSettleTimer = 0;
+    this.deckMotionDirection = -1;
+    this.deckOptions = { ...PORTFOLIO_DECK_DEFAULTS };
+    this.deckStage = null;
+    this.deckPin = null;
+    this.deckViewport = null;
+    this.deckStatus = null;
+    this.pendingDeckFocusIndex = -1;
+    this.pendingDeckAnnounce = false;
+    this.ignoreNextCardClick = false;
+    this.suppressNextCardClick = false;
+    this.pressedCardState = null;
+    this.pressOpenTimer = 0;
+    this.projectOpenGhost = null;
+    this.projectOpenGhostAnimation = null;
+    this.projectOpenGhostToken = 0;
+    this.projectOpenPhase = 'closed';
+    this.projectOpenDebug = null;
+    this.pointerState = null;
     this.isProjectOpen = false;
     this.selectedProjectIndex = -1;
     this.lastFocusedElement = null;
@@ -1243,6 +1321,11 @@ class PortfolioScrollApp {
     this.cardObserver = null;
     this.projectOpenTimeouts = [];
     this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
+    this.boundDeckWheel = (event) => this.handleDeckWheel(event);
+    this.boundDeckPointerDown = (event) => this.handleDeckPointerDown(event);
+    this.boundDeckPointerMove = (event) => this.handleDeckPointerMove(event);
+    this.boundDeckPointerUp = (event) => this.handleDeckPointerUp(event);
+    this.boundDeckPointerCancel = (event) => this.handleDeckPointerCancel(event);
     this.boundAuditOpenProject = (event) => {
       const requestedId = event?.detail?.projectId || event?.detail?.id;
       const requestedIndex = requestedId
@@ -1258,11 +1341,13 @@ class PortfolioScrollApp {
   async init() {
     this.ensureAnnouncer();
     this.createProjectView();
-    this.renderProjectRail();
-    this.setupVideoObserver();
-    this.setupCardObserver();
+    this.renderProjectDeck();
+    this.setupDeckEvents();
     this.applyProjectPalette();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     this.updateCardMetrics();
+    this.setActiveProject(0, { immediate: true });
+    this.setupVideoObserver();
     document.addEventListener('abs:portfolio:open-project', this.boundAuditOpenProject);
     window.addEventListener('resize', this.boundResize, { passive: true });
     window.addEventListener('bb:paletteChanged', this.boundPaletteChange);
@@ -1272,14 +1357,21 @@ class PortfolioScrollApp {
     globals.portfolioDomLabels = true;
     globals.portfolioSyncLabelLayer = () => this.updateCardMetrics();
     globals.portfolioRelayoutLabels = () => this.updateCardMetrics();
+    installPortfolioAuditBridge(this);
   }
 
   destroy() {
+    removePortfolioAuditBridge(this);
     document.removeEventListener('abs:portfolio:open-project', this.boundAuditOpenProject);
     document.removeEventListener('keydown', this.boundProjectKeydown, true);
     window.removeEventListener('resize', this.boundResize);
     window.removeEventListener('bb:paletteChanged', this.boundPaletteChange);
+    this.teardownDeckEvents();
+    this.stopDeckAnimation();
+    this.clearDeckSettleTimer();
     this.clearProjectOpenTimeouts();
+    this.clearPressedCard();
+    this.clearProjectOpenGhost();
     this.videoObserver?.disconnect();
     this.cardObserver?.disconnect();
     this.pauseAllVideos();
@@ -1295,6 +1387,8 @@ class PortfolioScrollApp {
 
   applyRuntimeConfig(runtime) {
     this.config.runtime = normalizePortfolioConfig({ runtime }).runtime;
+    this.applyDeckTuning();
+    this.updateDeckSlots({ force: true });
     if (this.isProjectOpen && this.selectedProjectIndex >= 0) {
       this.syncProjectHero(this.projects[this.selectedProjectIndex], false);
     }
@@ -1337,28 +1431,77 @@ class PortfolioScrollApp {
     this.projectClose = this.projectDrawerView.closeButton;
   }
 
-  renderProjectRail() {
+  readDeckIntroContent() {
+    const title = String(this.mount?.dataset?.introTitle || '').trim()
+      || PORTFOLIO_DECK_INTRO_FALLBACK.title;
+    const body = String(this.mount?.dataset?.introBody || '').trim()
+      || PORTFOLIO_DECK_INTRO_FALLBACK.body;
+    return { title, body };
+  }
+
+  createDeckIntro() {
+    const { title, body } = this.readDeckIntroContent();
+    const intro = document.createElement('section');
+    intro.className = 'portfolio-deck-intro';
+    intro.setAttribute('aria-labelledby', 'portfolioDeckIntroTitle');
+
+    const heading = document.createElement('h2');
+    heading.id = 'portfolioDeckIntroTitle';
+    heading.className = 'portfolio-deck-intro__title';
+    heading.textContent = title;
+
+    const copy = document.createElement('p');
+    copy.className = 'portfolio-deck-intro__body';
+    copy.textContent = body;
+
+    intro.append(heading, copy);
+    return intro;
+  }
+
+  renderProjectDeck() {
     if (!this.mount) return;
     this.mount.replaceChildren();
-    this.mount.classList.add('is-scroll-ready');
+    this.mount.classList.add('is-deck-ready');
+    this.applyDeckTuning();
 
     const stage = document.createElement('section');
-    stage.className = 'portfolio-scroll-stage';
+    stage.className = 'portfolio-deck-stage';
     stage.setAttribute('aria-label', 'Selected portfolio projects');
+    stage.setAttribute('aria-roledescription', 'carousel');
+    stage.tabIndex = -1;
 
-    const list = document.createElement('div');
-    list.className = 'portfolio-scroll-list';
-    list.tabIndex = -1;
+    const pin = document.createElement('div');
+    pin.className = 'portfolio-deck-pin';
+
+    const intro = this.createDeckIntro();
+
+    const viewport = document.createElement('div');
+    viewport.className = 'portfolio-deck-viewport';
+    viewport.setAttribute('aria-labelledby', 'portfolioDeckIntroTitle');
+
+    const mist = document.createElement('div');
+    mist.className = 'portfolio-deck-mist';
+    mist.setAttribute('aria-hidden', 'true');
 
     this.cards = this.projects.map((project, index) => {
       const card = this.createProjectCard(project, index);
-      list.appendChild(card);
+      viewport.appendChild(card);
       return card;
     });
 
-    stage.appendChild(list);
+    const status = document.createElement('div');
+    status.className = 'screen-reader portfolio-deck-status';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    status.setAttribute('aria-atomic', 'true');
+
+    pin.append(intro, viewport, mist, status);
+    stage.append(pin);
     this.mount.appendChild(stage);
-    this.scrollList = list;
+    this.deckStage = stage;
+    this.deckPin = pin;
+    this.deckViewport = viewport;
+    this.deckStatus = status;
   }
 
   createProjectCard(project, index) {
@@ -1367,12 +1510,12 @@ class PortfolioScrollApp {
       ? `${labelContent.eyebrow}: ${labelContent.title}`
       : labelContent.title;
     const card = document.createElement('article');
-    card.className = 'portfolio-project-card portfolio-project-label';
+    card.className = 'portfolio-project-card portfolio-deck-card portfolio-project-label';
     card.dataset.projectIndex = String(index);
     card.dataset.projectId = String(project?.id || `project-${index + 1}`);
     applyProjectCardTheme(card, project, index, this.projects.length);
     card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
+    card.setAttribute('tabindex', '-1');
     card.setAttribute('aria-haspopup', 'dialog');
     card.setAttribute('aria-controls', 'portfolioProjectView');
     card.setAttribute('aria-expanded', 'false');
@@ -1387,11 +1530,10 @@ class PortfolioScrollApp {
 
     const title = document.createElement('h3');
     title.className = 'portfolio-project-card__title portfolio-project-label__text';
-    title.textContent = project?.displayTitle || project?.title || labelContent.title;
-
-    const summary = document.createElement('p');
-    summary.className = 'portfolio-project-card__summary';
-    summary.textContent = project?.summary || project?.overview || '';
+    const titleText = document.createElement('span');
+    titleText.className = 'portfolio-project-card__title-text';
+    titleText.textContent = project?.displayTitle || project?.title || labelContent.title;
+    title.append(titleText);
 
     const tags = document.createElement('ul');
     tags.className = 'portfolio-project-card__tags';
@@ -1403,13 +1545,18 @@ class PortfolioScrollApp {
     });
 
     copy.append(client, title);
-    if (summary.textContent) copy.appendChild(summary);
     if (tags.childElementCount) copy.appendChild(tags);
 
     const media = this.createProjectCardMedia(project, index);
     card.append(copy, media);
-    card.addEventListener('click', () => this.openProjectByIndex(index));
+    card.addEventListener('pointerdown', (event) => this.handleCardPointerDown(event, index));
+    card.addEventListener('pointermove', (event) => this.handleCardPointerMove(event, index));
+    card.addEventListener('pointerup', (event) => this.handleCardPointerUp(event, index));
+    card.addEventListener('pointercancel', (event) => this.handleCardPointerCancel(event, index));
+    card.addEventListener('lostpointercapture', (event) => this.handleCardLostPointerCapture(event, index));
+    card.addEventListener('click', (event) => this.handleCardClick(event, index));
     card.addEventListener('keydown', (event) => this.handleCardKeydown(event, index));
+    card.addEventListener('pointerenter', () => this.prefetchProjectAssets(project));
     card.addEventListener('focus', () => card.classList.add('is-keyboard-focused'));
     card.addEventListener('blur', () => card.classList.remove('is-keyboard-focused'));
     return card;
@@ -1460,37 +1607,35 @@ class PortfolioScrollApp {
   }
 
   setupVideoObserver() {
-    if (!this.scrollList || shouldReducePortfolioMotion() || !this.mediaVideos.length) return;
+    if (shouldReducePortfolioMotion() || !this.mediaVideos.length) {
+      this.pauseAllVideos();
+      return;
+    }
     this.videoObserver?.disconnect();
-    this.videoObserver = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        const video = entry.target;
-        if (!(video instanceof HTMLVideoElement)) return;
-        if (this.isProjectOpen || !entry.isIntersecting) {
-          video.pause();
-          return;
-        }
-        video.play().catch(() => {});
-      });
-    }, {
-      root: this.scrollList,
-      threshold: 0.42,
-    });
-    this.mediaVideos.forEach((video) => this.videoObserver.observe(video));
+    this.updateVideoPlayback();
   }
 
   setupCardObserver() {
-    if (!this.scrollList || !this.cards.length) return;
-    this.cardObserver?.disconnect();
-    this.cardObserver = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        entry.target.classList.toggle('is-scroll-active', entry.isIntersecting && entry.intersectionRatio >= 0.48);
-      });
-    }, {
-      root: this.scrollList,
-      threshold: [0.24, 0.48, 0.72],
-    });
-    this.cards.forEach((card) => this.cardObserver.observe(card));
+    this.updateDeckSlots();
+  }
+
+  setupDeckEvents() {
+    if (!this.deckStage) return;
+    this.teardownDeckEvents();
+    this.deckStage.addEventListener('wheel', this.boundDeckWheel, { passive: false });
+    this.deckStage.addEventListener('pointerdown', this.boundDeckPointerDown);
+    this.deckStage.addEventListener('pointermove', this.boundDeckPointerMove);
+    this.deckStage.addEventListener('pointerup', this.boundDeckPointerUp);
+    this.deckStage.addEventListener('pointercancel', this.boundDeckPointerCancel);
+  }
+
+  teardownDeckEvents() {
+    if (!this.deckStage) return;
+    this.deckStage.removeEventListener('wheel', this.boundDeckWheel);
+    this.deckStage.removeEventListener('pointerdown', this.boundDeckPointerDown);
+    this.deckStage.removeEventListener('pointermove', this.boundDeckPointerMove);
+    this.deckStage.removeEventListener('pointerup', this.boundDeckPointerUp);
+    this.deckStage.removeEventListener('pointercancel', this.boundDeckPointerCancel);
   }
 
   applyProjectPalette() {
@@ -1502,21 +1647,893 @@ class PortfolioScrollApp {
   updateCardMetrics() {
     if (!this.mount) return;
     this.mount.style.setProperty('--portfolio-project-count', String(this.projects.length));
+    this.applyDeckTuning();
+    this.updateDeckFromScroll({ force: true });
+  }
+
+  resolveDeckOptions() {
+    const runtime = this.config?.runtime || {};
+    const deck = runtime.deck || runtime.carousel || {};
+    const motionDeck = runtime.motion?.deck || {};
+    return {
+      ...PORTFOLIO_DECK_DEFAULTS,
+      ...deck,
+      ...motionDeck,
+    };
+  }
+
+  applyDeckTuning() {
+    if (!this.mount) return;
+    this.deckOptions = this.resolveDeckOptions();
+    const cardWidthPercent = clamp(toNumber(this.deckOptions.cardWidthPercent, PORTFOLIO_DECK_DEFAULTS.cardWidthPercent), 50, 98);
+    const cardMaxWidthPx = clamp(toNumber(this.deckOptions.cardMaxWidthPx, PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx), 640, 1800);
+    const cardHeightCqh = clamp(toNumber(this.deckOptions.cardHeightCqh, PORTFOLIO_DECK_DEFAULTS.cardHeightCqh), 24, 72);
+    const cardMaxHeightPx = clamp(toNumber(this.deckOptions.cardMaxHeightPx, PORTFOLIO_DECK_DEFAULTS.cardMaxHeightPx), 260, 820);
+    const centerYPercent = clamp(toNumber(this.deckOptions.centerYPercent, PORTFOLIO_DECK_DEFAULTS.centerYPercent), 45, 85);
+    const perspectivePx = clamp(toNumber(this.deckOptions.perspectivePx, PORTFOLIO_DECK_DEFAULTS.perspectivePx), 500, 2600);
+    const depthGapPx = clamp(toNumber(this.deckOptions.depthGap1Px, PORTFOLIO_DECK_DEFAULTS.depthGap1Px), 0, 140);
+    const depthZPx = -Math.abs(clamp(toNumber(this.deckOptions.depthZ1Px, PORTFOLIO_DECK_DEFAULTS.depthZ1Px), -140, -1));
+    const depthScale1 = clamp(toNumber(this.deckOptions.depthScale1, PORTFOLIO_DECK_DEFAULTS.depthScale1), 0.78, 1);
+    const depthScaleStep = Math.max(0, 1 - depthScale1);
+    const depthBlurPx = clamp(toNumber(this.deckOptions.depthBlur1Px, PORTFOLIO_DECK_DEFAULTS.depthBlur1Px), 0, 6);
+    const contactShadowOpacity = clamp(
+      toNumber(this.deckOptions.contactShadowOpacity, PORTFOLIO_DECK_DEFAULTS.contactShadowOpacity),
+      0,
+      0.18
+    );
+
+    this.mount.style.setProperty('--portfolio-deck-card-width-fluid', `${cardWidthPercent}%`);
+    this.mount.style.setProperty('--portfolio-deck-card-width-max', `${cardMaxWidthPx}px`);
+    this.mount.style.setProperty('--portfolio-deck-card-height-fluid', `${cardHeightCqh}cqh`);
+    this.mount.style.setProperty('--portfolio-deck-card-height-max', `${cardMaxHeightPx}px`);
+    this.mount.style.setProperty('--portfolio-deck-center-y', `${centerYPercent}%`);
+    this.mount.style.setProperty('--portfolio-deck-perspective', `${perspectivePx}px`);
+    this.mount.style.setProperty('--portfolio-deck-depth-gap-1', `${depthGapPx}px`);
+    this.mount.style.setProperty('--portfolio-deck-depth-gap-2', `${depthGapPx * 2}px`);
+    this.mount.style.setProperty('--portfolio-deck-depth-z-1', `${depthZPx}px`);
+    this.mount.style.setProperty('--portfolio-deck-depth-z-2', `${depthZPx * 2}px`);
+    this.mount.style.setProperty('--portfolio-deck-depth-scale-1', String(depthScale1));
+    this.mount.style.setProperty('--portfolio-deck-depth-scale-2', String(clamp(1 - (depthScaleStep * 2), 0.72, 1)));
+    this.mount.style.setProperty('--portfolio-deck-depth-blur-1', `${depthBlurPx}px`);
+    this.mount.style.setProperty('--portfolio-deck-depth-blur-2', `${depthBlurPx * 2}px`);
+    this.mount.style.setProperty('--portfolio-card-contact-shadow-opacity', contactShadowOpacity.toFixed(3));
+  }
+
+  wrapProjectIndex(index) {
+    const count = this.projects.length;
+    if (!count) return 0;
+    return ((Math.round(index) % count) + count) % count;
+  }
+
+  wrapDeckPosition(position) {
+    const count = this.projects.length;
+    if (!count) return 0;
+    const wrapped = position % count;
+    return wrapped < 0 ? wrapped + count : wrapped;
+  }
+
+  getNearestContinuousPositionForIndex(index, referencePosition = this.deckTargetPosition) {
+    const count = this.projects.length;
+    if (!count) return 0;
+    const wrappedIndex = this.wrapProjectIndex(index);
+    return wrappedIndex + (Math.round((referencePosition - wrappedIndex) / count) * count);
+  }
+
+  getDeckConveyorPhase(index, position) {
+    if (!this.projects.length) return 0;
+    return this.wrapDeckPosition(position - index);
+  }
+
+  getDeckMotionDirectionForPosition(position = this.deckDisplayPosition) {
+    const displayDelta = this.deckTargetPosition - position;
+    if (Math.abs(displayDelta) > 0.0001) return displayDelta > 0 ? 1 : -1;
+    return this.deckMotionDirection || -1;
+  }
+
+  getDeckTransitionState(position) {
+    if (!this.projects.length) return null;
+    const direction = this.getDeckMotionDirectionForPosition(position);
+    const nearestPosition = Math.round(position);
+    const offset = position - nearestPosition;
+    const nextPosition = nearestPosition + (Math.abs(offset) > 0.0001 ? Math.sign(offset) : direction);
+
+    return {
+      direction,
+      progress: clamp(Math.abs(offset), 0, 1),
+      fromActiveIndex: this.wrapProjectIndex(nearestPosition),
+      toActiveIndex: this.wrapProjectIndex(nextPosition),
+      outgoingIndex: this.wrapProjectIndex(nearestPosition),
+    };
+  }
+
+  getNearestDisplayIndex() {
+    return this.wrapProjectIndex(this.deckDisplayPosition);
+  }
+
+  getDeckIntentIndex() {
+    return this.wrapProjectIndex(Math.round(this.deckTargetPosition));
+  }
+
+  isDeckPositionSettled(position = this.deckDisplayPosition) {
+    return Math.abs(position - Math.round(position)) < 0.003
+      && Math.abs(this.deckTargetPosition - position) < 0.003
+      && !this.deckIsSettling;
+  }
+
+  getDeckMotionMetrics() {
+    const height = this.deckStage?.clientHeight || window.innerHeight || 900;
+    const depthGap = toNumber(this.deckOptions.depthGap1Px, clamp(height * 0.044, 30, 42));
+    const depthZ = Math.abs(toNumber(this.deckOptions.depthZ1Px, -18));
+    const depthScaleStep = Math.max(0.012, 1 - clamp(toNumber(this.deckOptions.depthScale1, 0.962), 0.88, 0.99));
+    const depthBlurStep = clamp(toNumber(this.deckOptions.depthBlur1Px, 0.35), 0, 2);
+    const rotateXStepDeg = clamp(toNumber(this.deckOptions.rotateXStepDeg, PORTFOLIO_DECK_DEFAULTS.rotateXStepDeg), -2, 2);
+    return {
+      depthGap,
+      depthZ,
+      depthScaleStep,
+      depthBlurStep,
+      rotateXStepDeg,
+    };
+  }
+
+  getDeckLoopOptions() {
+    const stageHeight = this.deckStage?.clientHeight || window.innerHeight || 900;
+    const defaultExitTravel = clamp(stageHeight * 0.26, 150, 260);
+    const exitTravel = clamp(
+      toNumber(this.deckOptions.exitTravelPx, defaultExitTravel),
+      48,
+      Math.max(96, stageHeight * 0.54)
+    );
+    const exitFadeStart = clamp(
+      toNumber(this.deckOptions.exitFadeStart, PORTFOLIO_DECK_DEFAULTS.exitFadeStart),
+      0.04,
+      0.68
+    );
+    const exitFadeEnd = clamp(
+      Math.max(
+        exitFadeStart + 0.08,
+        toNumber(this.deckOptions.exitFadeEnd, PORTFOLIO_DECK_DEFAULTS.exitFadeEnd)
+      ),
+      exitFadeStart + 0.06,
+      0.82
+    );
+    const reappearStart = clamp(
+      Math.max(
+        exitFadeEnd + 0.08,
+        toNumber(this.deckOptions.reappearStart, PORTFOLIO_DECK_DEFAULTS.reappearStart)
+      ),
+      exitFadeEnd + 0.06,
+      0.96
+    );
+    const reappearFade = clamp(
+      toNumber(this.deckOptions.reappearFade, PORTFOLIO_DECK_DEFAULTS.reappearFade),
+      0.03,
+      0.24
+    );
+
+    return {
+      exitTravel,
+      exitFadeStart,
+      exitFadeEnd,
+      wrapDepth: clamp(
+        toNumber(this.deckOptions.wrapDepthPx, PORTFOLIO_DECK_DEFAULTS.wrapDepthPx),
+        16,
+        Math.max(48, stageHeight * 0.42)
+      ),
+      reappearStart,
+      reappearEnd: Math.min(1, reappearStart + reappearFade),
+      exitScale: clamp(
+        toNumber(this.deckOptions.exitScale, PORTFOLIO_DECK_DEFAULTS.exitScale),
+        0.96,
+        1.12
+      ),
+      exitBlur: clamp(
+        toNumber(this.deckOptions.exitBlurPx, PORTFOLIO_DECK_DEFAULTS.exitBlurPx),
+        0.4,
+        7
+      ),
+    };
+  }
+
+  getDeckCardPose(depth) {
+    const metrics = this.getDeckMotionMetrics();
+    const activeAmount = clamp(1 - Math.abs(depth), 0, 1);
+    if (depth <= 0.006 || activeAmount > 0.994) {
+      return {
+        slot: '0',
+        visualSlot: 'front',
+        zone: 'visible-stack',
+        depth,
+        depthLabel: '0',
+        zIndex: 700,
+        x: 0,
+        y: 0,
+        z: 0,
+        rotateX: 0,
+        scale: 1,
+        blur: 0,
+        saturate: 1,
+      opacity: 1,
+      pointerEvents: this.isProjectOpen ? 'none' : 'auto',
+    };
+  }
+
+    const visibleDepth = Math.max(0, depth);
+    const depthLabel = Math.max(1, Math.ceil(visibleDepth));
+    const deepestDepth = Math.max(1, this.projects.length - 1);
+    const rearSettle = smoothstep(
+      Math.max(0.01, deepestDepth - 1.15),
+      deepestDepth,
+      visibleDepth
+    );
+    const stackY = -(metrics.depthGap * visibleDepth) + (metrics.depthGap * 0.32 * rearSettle);
+    const stackOpacity = lerp(1, 0.68, rearSettle);
+    const stackSaturate = clamp(1 - (0.035 * visibleDepth) - (0.05 * rearSettle), 0.72, 1);
+    return {
+      slot: `-${depthLabel}`,
+      visualSlot: visibleDepth < 1 ? 'incoming' : `depth-${depthLabel}`,
+      zone: 'visible-stack',
+      depth: visibleDepth,
+      depthLabel: String(depthLabel),
+      zIndex: Math.max(2, Math.round(700 - (visibleDepth * 10))),
+      x: 0,
+      y: stackY,
+      z: -(metrics.depthZ * visibleDepth),
+      rotateX: metrics.rotateXStepDeg * visibleDepth,
+      scale: clamp(1 - (metrics.depthScaleStep * visibleDepth), 0.78, 1),
+      blur: clamp(metrics.depthBlurStep * visibleDepth, 0, 2.6),
+      saturate: stackSaturate,
+      opacity: stackOpacity,
+      pointerEvents: 'none',
+    };
+  }
+
+  getDeckLoopWrapPose(state) {
+    const metrics = this.getDeckMotionMetrics();
+    const projectCount = Math.max(1, this.projects.length);
+    const progress = clamp(state?.progress ?? 0, 0, 1);
+    const options = this.getDeckLoopOptions();
+    const deepestPose = this.getDeckCardPose(Math.max(0, projectCount - 1));
+    const exitZ = Math.max(metrics.depthZ * 2.2, options.exitTravel * 0.34);
+    const exitRotateX = -metrics.rotateXStepDeg * 1.55;
+    const moveT = smoothstep(0, options.exitFadeEnd, progress);
+    const fadeT = smoothstep(options.exitFadeStart, options.exitFadeEnd, progress);
+    const exitPose = {
+      x: 0,
+      y: options.exitTravel * moveT,
+      z: exitZ * moveT,
+      rotateX: lerp(0, exitRotateX, moveT),
+      scale: lerp(1, options.exitScale, moveT),
+      blur: lerp(0, options.exitBlur, fadeT),
+      saturate: lerp(1, 0.82, fadeT),
+      opacity: lerp(1, 0, fadeT),
+    };
+
+    if (progress < options.exitFadeEnd) {
+      return {
+        slot: 'exit',
+        visualSlot: 'exit',
+        zone: 'visible-exit',
+        depth: -1,
+        depthLabel: 'exit',
+        zIndex: 720,
+        x: exitPose.x,
+        y: exitPose.y,
+        z: exitPose.z,
+        rotateX: exitPose.rotateX,
+        scale: exitPose.scale,
+        blur: exitPose.blur,
+        saturate: exitPose.saturate,
+        opacity: exitPose.opacity,
+        visibility: exitPose.opacity <= 0.01 ? 'hidden' : 'visible',
+        pointerEvents: 'none',
+      };
+    }
+
+    if (progress < options.reappearStart) {
+      const wrapT = smoothstep(options.exitFadeEnd, options.reappearStart, progress);
+      const wrapArc = Math.sin(wrapT * Math.PI);
+      return {
+        slot: 'hidden-wrap',
+        visualSlot: 'hidden-wrap',
+        zone: 'hidden-wrap',
+        depth: projectCount,
+        depthLabel: 'wrap',
+        zIndex: 710,
+        x: 0,
+        y: lerp(exitPose.y, deepestPose.y, wrapT),
+        z: lerp(exitPose.z, deepestPose.z, wrapT) - (options.wrapDepth * wrapArc),
+        rotateX: lerp(exitPose.rotateX, deepestPose.rotateX, wrapT),
+        scale: lerp(exitPose.scale, deepestPose.scale, wrapT),
+        blur: Math.max(options.exitBlur, deepestPose.blur),
+        saturate: lerp(0.82, deepestPose.saturate, wrapT),
+        opacity: 0,
+        visibility: 'hidden',
+        pointerEvents: 'none',
+      };
+    }
+
+    const reappearT = smoothstep(options.reappearStart, options.reappearEnd, progress);
+    return {
+      slot: 'rejoin',
+      visualSlot: 'rejoin',
+      zone: 'rear-reappear',
+      depth: Math.max(1, projectCount - 1),
+      depthLabel: 'rejoin',
+      zIndex: Math.max(1, deepestPose.zIndex - 1),
+      x: 0,
+      y: deepestPose.y,
+      z: deepestPose.z,
+      rotateX: deepestPose.rotateX,
+      scale: deepestPose.scale,
+      blur: lerp(Math.max(options.exitBlur, deepestPose.blur), deepestPose.blur, reappearT),
+      saturate: lerp(0.82, deepestPose.saturate, reappearT),
+      opacity: deepestPose.opacity * reappearT,
+      visibility: reappearT <= 0.02 ? 'hidden' : 'visible',
+      pointerEvents: 'none',
+    };
+  }
+
+  getDeckLoopPoseForPhase(phase, count) {
+    const stackLimit = Math.max(0, count - 1);
+    if (phase <= stackLimit || shouldReducePortfolioMotion()) {
+      return {
+        ...this.getDeckCardPose(Math.min(phase, stackLimit)),
+        phase,
+      };
+    }
+    return {
+      ...this.getDeckLoopWrapPose({
+        progress: count - phase,
+      }),
+      phase,
+    };
+  }
+
+  getDeckPoseForPosition(index, position) {
+    const count = this.projects.length;
+    if (!count) return this.getDeckCardPose(0);
+    const renderPosition = Math.abs(position - Math.round(position)) < 0.003
+      ? Math.round(position)
+      : position;
+    const phase = this.getDeckConveyorPhase(index, renderPosition);
+    return this.getDeckLoopPoseForPhase(phase, count);
+  }
+
+  applyDeckCardPose(card, pose) {
+    card.dataset.deckSlot = pose.slot;
+    card.dataset.deckVisualSlot = pose.visualSlot || pose.slot;
+    card.dataset.deckZone = pose.zone || pose.visualSlot || pose.slot;
+    card.dataset.deckDepth = pose.depthLabel || String(Math.abs(Number(pose.slot) || 0));
+    card.style.zIndex = String(pose.zIndex);
+    const poseOpacity = Number(pose.opacity.toFixed(4));
+    card.style.setProperty('--portfolio-card-pose-opacity', String(poseOpacity));
+    card.style.setProperty('--portfolio-card-x', `${(pose.x || 0).toFixed(2)}px`);
+    card.style.setProperty('--portfolio-card-y', `${pose.y.toFixed(2)}px`);
+    card.style.setProperty('--portfolio-card-z', `${pose.z.toFixed(2)}px`);
+    card.style.setProperty('--portfolio-card-rotate-x', `${pose.rotateX.toFixed(2)}deg`);
+    card.style.setProperty('--portfolio-card-scale', pose.scale.toFixed(4));
+    card.style.setProperty('--portfolio-card-pose-blur', `${pose.blur.toFixed(2)}px`);
+    card.style.setProperty('--portfolio-card-pose-saturate', pose.saturate.toFixed(3));
+    const visualDepth = Math.max(0, Number(pose.depth) || 0);
+    const revealOrder = (pose.visualSlot || pose.slot) === 'front'
+      ? 5
+      : Math.max(0, 5 - Math.min(5, Math.round(visualDepth)));
+    card.style.setProperty('--portfolio-card-reveal-delay', `${170 + (revealOrder * 28)}ms`);
+    card.style.removeProperty('opacity');
+    card.style.removeProperty('transform');
+    card.style.removeProperty('filter');
+    card.style.visibility = pose.visibility || 'visible';
+    card.style.pointerEvents = pose.pointerEvents;
+  }
+
+  updateDeckFromScroll(options = {}) {
+    if (!this.cards.length) return;
+    const shouldCommitActive = options.force
+      || options.activeChanged
+      || this.isDeckPositionSettled();
+    const nextActiveIndex = shouldCommitActive
+      ? this.wrapProjectIndex(Math.round(this.deckDisplayPosition))
+      : this.activeProjectIndex;
+    const activeChanged = nextActiveIndex !== this.activeProjectIndex;
+    if (shouldCommitActive) this.activeProjectIndex = nextActiveIndex;
+
+    this.cards.forEach((card, index) => {
+      const isActive = index === this.activeProjectIndex;
+      const pose = this.getDeckPoseForPosition(index, this.deckDisplayPosition);
+      this.applyDeckCardPose(card, pose);
+      card.classList.toggle('is-active', isActive);
+      card.classList.toggle('is-depth-card', !isActive);
+      card.classList.toggle('is-depth-1', pose.slot === '-1');
+      card.classList.toggle('is-depth-2', pose.slot === '-2');
+      card.setAttribute('tabindex', isActive && !this.isProjectOpen ? '0' : '-1');
+      card.setAttribute('aria-hidden', 'false');
+      card.setAttribute('aria-expanded', this.isProjectOpen && index === this.selectedProjectIndex ? 'true' : 'false');
+    });
+    this.mount?.style.setProperty('--portfolio-deck-active-index', String(this.activeProjectIndex));
+    this.mount?.style.setProperty('--portfolio-deck-scroll-progress', String(this.deckDisplayPosition));
+    if (activeChanged || options.activeChanged || options.force) {
+      this.updateDeckStatus();
+      this.updateVideoPlayback();
+    }
+
+    if (this.pendingDeckFocusIndex === this.activeProjectIndex) {
+      this.cards[this.activeProjectIndex]?.focus({ preventScroll: true });
+      this.pendingDeckFocusIndex = -1;
+    }
+
+    if (this.pendingDeckAnnounce) {
+      const project = this.projects[this.activeProjectIndex];
+      const label = project?.displayTitle || project?.title || `Project ${this.activeProjectIndex + 1}`;
+      announceToScreenReader(`Selected project ${this.activeProjectIndex + 1} of ${this.projects.length}: ${label}`);
+      this.pendingDeckAnnounce = false;
+    }
+  }
+
+  getDeckDebugSnapshot() {
+    const state = this.getDeckTransitionState(this.deckDisplayPosition);
+    const drawer = this.projectDrawerView?.drawer || null;
+    const drawerStyles = drawer ? getComputedStyle(drawer) : null;
+    const deckStageStyles = this.deckStage ? getComputedStyle(this.deckStage) : null;
+    const ghostRect = this.projectOpenGhost?.getBoundingClientRect?.() || null;
+    return {
+      targetPosition: this.deckTargetPosition,
+      displayPosition: this.deckDisplayPosition,
+      activeIndex: this.activeProjectIndex,
+      intendedIndex: this.getDeckIntentIndex(),
+      settledIndex: this.wrapProjectIndex(Math.round(this.deckDisplayPosition)),
+      direction: this.deckMotionDirection,
+      transitionProgress: state?.progress ?? 0,
+      settled: this.isDeckPositionSettled(),
+      isSettled: this.isDeckPositionSettled(),
+      open: {
+        phase: this.projectOpenPhase,
+        isProjectOpen: this.isProjectOpen,
+        selectedIndex: this.selectedProjectIndex,
+        pressed: Boolean(this.pressedCardState),
+        hasGhost: Boolean(this.projectOpenGhost),
+        originRect: this.projectOpenDebug?.originRect || null,
+        ghostRect: serializeRect(ghostRect) || this.projectOpenDebug?.ghostRect || null,
+        drawerRect: serializeRect(drawer?.getBoundingClientRect?.()) || this.projectOpenDebug?.drawerRect || null,
+        drawerTransform: drawerStyles?.transform || '',
+        drawerOpacity: drawerStyles?.opacity || '',
+        deckOpacity: deckStageStyles?.opacity || '',
+        deckVisibility: deckStageStyles?.visibility || '',
+      },
+      cards: this.cards.map((card, index) => {
+        const pose = this.getDeckPoseForPosition(index, this.deckDisplayPosition);
+        const phase = this.getDeckConveyorPhase(index, this.deckDisplayPosition);
+        return {
+          index,
+          isActive: index === this.activeProjectIndex,
+          slot: pose.slot,
+          visualSlot: pose.visualSlot || pose.slot,
+          zone: pose.zone || pose.visualSlot || pose.slot,
+          phase,
+          depth: pose.depth,
+          x: pose.x || 0,
+          y: pose.y,
+          z: pose.z,
+          rotateX: pose.rotateX,
+          scale: pose.scale,
+          blur: pose.blur,
+          opacity: pose.opacity,
+          visibility: pose.visibility || 'visible',
+          zIndex: pose.zIndex,
+        };
+      }),
+    };
+  }
+
+  updateDeckSlots(options = {}) {
+    this.updateDeckFromScroll({ force: true, ...options });
+  }
+
+  getDeckFollowSmoothing() {
+    return clamp(
+      toNumber(this.deckOptions.followSmoothing, PORTFOLIO_DECK_DEFAULTS.followSmoothing),
+      0.04,
+      0.5
+    );
+  }
+
+  getDeckSettleStrength() {
+    return clamp(
+      toNumber(this.deckOptions.settleStrength, PORTFOLIO_DECK_DEFAULTS.settleStrength),
+      0.03,
+      0.45
+    );
+  }
+
+  getDeckScrollPixelsPerProject() {
+    return clamp(
+      toNumber(this.deckOptions.scrollPixelsPerProject, PORTFOLIO_DECK_DEFAULTS.scrollPixelsPerProject),
+      160,
+      1200
+    );
+  }
+
+  getDeckScrollSensitivity() {
+    return clamp(
+      toNumber(this.deckOptions.scrollSensitivity, PORTFOLIO_DECK_DEFAULTS.scrollSensitivity),
+      0.15,
+      3
+    );
+  }
+
+  getDeckInputCapProjects() {
+    return clamp(
+      toNumber(this.deckOptions.inputCapProjects, PORTFOLIO_DECK_DEFAULTS.inputCapProjects),
+      0.05,
+      0.75
+    );
+  }
+
+  startDeckAnimation() {
+    if (this.deckAnimationFrame || !this.cards.length) return;
+    this.deckLastFrameAt = 0;
+    this.deckAnimationFrame = window.requestAnimationFrame((timestamp) => this.stepDeckAnimation(timestamp));
+  }
+
+  stopDeckAnimation() {
+    if (!this.deckAnimationFrame) return;
+    window.cancelAnimationFrame(this.deckAnimationFrame);
+    this.deckAnimationFrame = 0;
+    this.deckLastFrameAt = 0;
+  }
+
+  clearDeckSettleTimer() {
+    if (!this.deckSettleTimer) return;
+    window.clearTimeout(this.deckSettleTimer);
+    this.deckSettleTimer = 0;
+  }
+
+  scheduleDeckSettle() {
+    this.clearDeckSettleTimer();
+    if (this.isProjectOpen || !this.projects.length || shouldReducePortfolioMotion()) return;
+    const delayMs = clamp(
+      toNumber(this.deckOptions.settleIdleMs, PORTFOLIO_DECK_DEFAULTS.settleIdleMs),
+      60,
+      520
+    );
+    this.deckSettleTimer = window.setTimeout(() => {
+      this.deckSettleTimer = 0;
+      this.deckIsSettling = true;
+      this.startDeckAnimation();
+    }, delayMs);
+  }
+
+  setDeckPosition(position, options = {}) {
+    if (!this.projects.length) return;
+    this.clearDeckSettleTimer();
+    const reducedMotion = shouldReducePortfolioMotion();
+    const nextPosition = Number.isFinite(position) ? position : 0;
+    const previousTargetPosition = this.deckTargetPosition;
+    this.deckTargetPosition = reducedMotion && !options.allowFractionalReducedMotion
+      ? Math.round(nextPosition)
+      : nextPosition;
+    const targetDelta = this.deckTargetPosition - previousTargetPosition;
+    if (Math.abs(targetDelta) > 0.0001) {
+      this.deckMotionDirection = targetDelta > 0 ? 1 : -1;
+    }
+    this.deckIsSettling = false;
+    if (options.immediate || reducedMotion) {
+      this.deckDisplayPosition = this.deckTargetPosition;
+      this.updateDeckSlots({ activeChanged: true, force: true });
+      return;
+    }
+    this.startDeckAnimation();
+    if (options.settle !== false) this.scheduleDeckSettle();
+  }
+
+  stepDeckAnimation(timestamp) {
+    this.deckAnimationFrame = 0;
+    if (!this.cards.length) return;
+
+    const previousTimestamp = this.deckLastFrameAt || timestamp;
+    const frameFactor = clamp((timestamp - previousTimestamp) / 16.67, 0.5, 2.5);
+    this.deckLastFrameAt = timestamp;
+
+    if (this.deckIsSettling) {
+      const targetIndex = Math.round(this.deckTargetPosition);
+      const settleAlpha = 1 - Math.pow(1 - this.getDeckSettleStrength(), frameFactor);
+      this.deckTargetPosition += (targetIndex - this.deckTargetPosition) * settleAlpha;
+      if (Math.abs(targetIndex - this.deckTargetPosition) < 0.0015) {
+        this.deckTargetPosition = targetIndex;
+        this.deckIsSettling = false;
+      }
+    }
+
+    const followAlpha = shouldReducePortfolioMotion()
+      ? 1
+      : 1 - Math.pow(1 - this.getDeckFollowSmoothing(), frameFactor);
+    const delta = this.deckTargetPosition - this.deckDisplayPosition;
+    this.deckDisplayPosition += delta * followAlpha;
+    const remainingDelta = this.deckTargetPosition - this.deckDisplayPosition;
+    if (Math.abs(remainingDelta) < 0.0015 && !this.deckIsSettling) {
+      this.deckDisplayPosition = this.deckTargetPosition;
+    }
+
+    this.updateDeckFromScroll();
+
+    if (this.deckIsSettling || Math.abs(this.deckTargetPosition - this.deckDisplayPosition) > 0.0015) {
+      this.deckAnimationFrame = window.requestAnimationFrame((nextTimestamp) => this.stepDeckAnimation(nextTimestamp));
+    } else {
+      this.deckLastFrameAt = 0;
+      this.updateDeckFromScroll({ activeChanged: true });
+    }
+  }
+
+  updateDeckStatus() {
+    const project = this.projects[this.activeProjectIndex];
+    const label = project?.displayTitle || project?.title || `Project ${this.activeProjectIndex + 1}`;
+    const client = project?.client || project?.eyebrow || '';
+    const text = client
+      ? `${client}: ${label}. Project ${this.activeProjectIndex + 1} of ${this.projects.length}.`
+      : `${label}. Project ${this.activeProjectIndex + 1} of ${this.projects.length}.`;
+    if (this.deckStatus) this.deckStatus.textContent = text;
+  }
+
+  setActiveProject(index, options = {}) {
+    if (!this.projects.length) return;
+    const nextIndex = this.wrapProjectIndex(index);
+    const changed = nextIndex !== this.getDeckIntentIndex();
+    this.pendingDeckFocusIndex = options.focus ? nextIndex : -1;
+    this.pendingDeckAnnounce = Boolean(options.announce && (changed || options.immediate));
+    const nextPosition = this.getNearestContinuousPositionForIndex(nextIndex);
+    this.setDeckPosition(nextPosition, {
+      immediate: options.immediate,
+      settle: true,
+    });
+    if (options.immediate || shouldReducePortfolioMotion()) {
+      this.activeProjectIndex = nextIndex;
+      this.updateDeckSlots({ activeChanged: changed || options.immediate, force: true });
+    }
+  }
+
+  advanceActiveProject(direction, options = {}) {
+    if (!direction || !this.projects.length) return;
+    this.setActiveProject(this.getDeckIntentIndex() + direction, options);
+  }
+
+  handleDeckWheel(event) {
+    if (this.isProjectOpen || !this.projects.length) return;
+    const deltaY = Number(event.deltaY) || 0;
+    const deltaX = Number(event.deltaX) || 0;
+    if (Math.abs(deltaY) < Math.abs(deltaX) || Math.abs(deltaY) < 1) return;
+    event.preventDefault();
+
+    const normalizedDelta = normalizeWheelDeltaY(event);
+    const pixelsPerProject = this.getDeckScrollPixelsPerProject();
+    const sensitivity = this.getDeckScrollSensitivity();
+    const inputCap = this.getDeckInputCapProjects();
+    const projectDelta = clamp((normalizedDelta / pixelsPerProject) * sensitivity, -inputCap, inputCap);
+    if (Math.abs(projectDelta) < 0.0001) return;
+    this.setDeckPosition(this.deckTargetPosition + projectDelta);
+  }
+
+  handleDeckPointerDown(event) {
+    if (this.isProjectOpen || event.pointerType === 'mouse' || !this.projects.length) return;
+    const now = performance.now();
+    this.clearDeckSettleTimer();
+    this.deckIsSettling = false;
+    this.pointerState = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      lastY: event.clientY,
+      lastTime: now,
+      startTime: now,
+      startTargetPosition: this.deckTargetPosition,
+      dragged: false,
+    };
+    this.deckStage?.setPointerCapture?.(event.pointerId);
+  }
+
+  handleDeckPointerMove(event) {
+    if (!this.pointerState || event.pointerId !== this.pointerState.pointerId) return;
+    const now = performance.now();
+    const deltaY = event.clientY - this.pointerState.startY;
+    if (Math.abs(deltaY) > PORTFOLIO_CLICK_DRAG_THRESHOLD_PX) {
+      this.pointerState.dragged = true;
+      this.ignoreNextCardClick = true;
+    }
+    if (this.pointerState.dragged) {
+      const targetPosition = this.pointerState.startTargetPosition
+        - ((deltaY / this.getDeckScrollPixelsPerProject()) * this.getDeckScrollSensitivity());
+      this.setDeckPosition(targetPosition, { settle: false });
+    }
+    this.pointerState.lastY = event.clientY;
+    this.pointerState.lastTime = now;
+  }
+
+  finishDeckPointer(event, cancelled = false) {
+    if (!this.pointerState || event.pointerId !== this.pointerState.pointerId) return;
+    const pointerState = this.pointerState;
+    this.pointerState = null;
+    this.deckStage?.releasePointerCapture?.(event.pointerId);
+    if (cancelled || !pointerState.dragged) return;
+
+    this.scheduleDeckSettle();
+  }
+
+  handleDeckPointerUp(event) {
+    this.finishDeckPointer(event, false);
+  }
+
+  handleDeckPointerCancel(event) {
+    this.finishDeckPointer(event, true);
+  }
+
+  clearPressedCard() {
+    window.clearTimeout(this.pressOpenTimer);
+    this.pressOpenTimer = 0;
+    if (!this.pressedCardState) {
+      if (!this.isProjectOpen && (this.projectOpenPhase === 'pressing' || this.projectOpenPhase === 'release')) {
+        this.projectOpenPhase = 'closed';
+      }
+      return;
+    }
+    const { index, pointerId } = this.pressedCardState;
+    const card = this.cards[index];
+    if (card) {
+      card.classList.remove('is-pressing', 'is-opening-release');
+      if (Number.isFinite(pointerId)) {
+        try {
+          if (card.hasPointerCapture?.(pointerId)) card.releasePointerCapture(pointerId);
+        } catch (error) {
+          /* ignore */
+        }
+      }
+    }
+    this.pressedCardState = null;
+    if (!this.isProjectOpen && (this.projectOpenPhase === 'pressing' || this.projectOpenPhase === 'release')) {
+      this.projectOpenPhase = 'closed';
+    }
+  }
+
+  clearProjectOpenGhost() {
+    this.projectOpenGhostToken += 1;
+    if (this.projectOpenGhostAnimation) {
+      try {
+        this.projectOpenGhostAnimation.cancel();
+      } catch (error) {
+        /* ignore */
+      }
+    }
+    this.projectOpenGhostAnimation = null;
+    this.projectOpenGhost?.remove();
+    this.projectOpenGhost = null;
+    this.projectOpenDebug = null;
+  }
+
+  canPressCard(index, event) {
+    if (this.isProjectOpen || !event?.isPrimary) return false;
+    if (event.pointerType === 'mouse' && event.button !== 0) return false;
+    if (event.pointerType === 'touch') return false;
+    const card = this.cards[index];
+    return card?.dataset?.deckVisualSlot === 'front'
+      && index === this.getDeckIntentIndex()
+      && this.isDeckPositionSettled();
+  }
+
+  handleCardPointerDown(event, index) {
+    if (!this.canPressCard(index, event)) return;
+    const card = this.cards[index];
+    if (!card) return;
+    this.clearPressedCard();
+    this.pressedCardState = {
+      index,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      cancelled: false,
+    };
+    this.projectOpenPhase = 'pressing';
+    card.classList.remove('is-opening-release');
+    card.classList.add('is-pressing');
+    try {
+      card.setPointerCapture?.(event.pointerId);
+    } catch (error) {
+      /* ignore */
+    }
+  }
+
+  handleCardPointerMove(event, index) {
+    if (!this.pressedCardState || this.pressedCardState.index !== index) return;
+    if (this.pressedCardState.pointerId !== event.pointerId) return;
+    const dx = event.clientX - this.pressedCardState.startX;
+    const dy = event.clientY - this.pressedCardState.startY;
+    if (Math.hypot(dx, dy) <= PORTFOLIO_CLICK_DRAG_THRESHOLD_PX) return;
+    this.pressedCardState.cancelled = true;
+    this.clearPressedCard();
+  }
+
+  handleCardPointerUp(event, index) {
+    if (!this.pressedCardState || this.pressedCardState.index !== index) return;
+    if (this.pressedCardState.pointerId !== event.pointerId) return;
+    const card = this.cards[index];
+    const wasCancelled = this.pressedCardState.cancelled;
+    const originRect = card?.getBoundingClientRect() || null;
+    this.pressedCardState = null;
+    if (card?.hasPointerCapture?.(event.pointerId)) {
+      try {
+        card.releasePointerCapture(event.pointerId);
+      } catch (error) {
+        /* ignore */
+      }
+    }
+    card?.classList.remove('is-pressing');
+    if (wasCancelled || !this.canPressCard(index, event)) {
+      card?.classList.remove('is-opening-release');
+      return;
+    }
+
+    event.preventDefault();
+    this.suppressNextCardClick = true;
+    this.projectOpenPhase = 'release';
+    card?.classList.add('is-opening-release');
+    window.clearTimeout(this.pressOpenTimer);
+    const openDelay = shouldReducePortfolioMotion() ? 0 : PORTFOLIO_CARD_RELEASE_OPEN_DELAY_MS;
+    this.pressOpenTimer = window.setTimeout(() => {
+      this.pressOpenTimer = 0;
+      card?.classList.remove('is-opening-release');
+      this.openProjectByIndex(index, { originRect, inputType: 'pointer' });
+    }, openDelay);
+  }
+
+  handleCardPointerCancel(event, index) {
+    if (!this.pressedCardState || this.pressedCardState.index !== index) return;
+    if (this.pressedCardState.pointerId !== event.pointerId) return;
+    this.clearPressedCard();
+  }
+
+  handleCardLostPointerCapture(event, index) {
+    if (!this.pressedCardState || this.pressedCardState.index !== index) return;
+    if (this.pressedCardState.pointerId !== event.pointerId) return;
+    if (this.pressOpenTimer) return;
+    this.clearPressedCard();
+  }
+
+  handleCardClick(event, index) {
+    if (this.suppressNextCardClick) {
+      this.suppressNextCardClick = false;
+      event.preventDefault();
+      return;
+    }
+    if (this.ignoreNextCardClick) {
+      this.ignoreNextCardClick = false;
+      event.preventDefault();
+      return;
+    }
+    const intentIndex = this.getDeckIntentIndex();
+    const isFrontCard = this.cards[index]?.dataset?.deckVisualSlot === 'front';
+    if (!isFrontCard || index !== intentIndex || !this.isDeckPositionSettled()) {
+      event.preventDefault();
+      this.setActiveProject(index, { focus: true, announce: true });
+      return;
+    }
+    event.preventDefault();
+    if (event.detail > 0) return;
+    const originRect = this.cards[index]?.getBoundingClientRect() || null;
+    this.openProjectByIndex(index, { originRect, inputType: 'synthetic-click' });
   }
 
   handleCardKeydown(event, index) {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      this.openProjectByIndex(index);
+      const intentIndex = this.getDeckIntentIndex();
+      if (index !== intentIndex || !this.isDeckPositionSettled()) {
+        this.setActiveProject(index, { focus: true, announce: true });
+        return;
+      }
+      this.openProjectByIndex(index, { inputType: 'keyboard', useGhost: false });
       return;
     }
 
-    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    if (!['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft'].includes(event.key)) return;
     event.preventDefault();
-    const direction = event.key === 'ArrowDown' ? 1 : -1;
-    const nextIndex = clamp(index + direction, 0, this.cards.length - 1);
-    this.cards[nextIndex]?.focus();
-    this.cards[nextIndex]?.scrollIntoView({ block: 'nearest', behavior: shouldReducePortfolioMotion() ? 'auto' : 'smooth' });
+    const direction = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : -1;
+    this.advanceActiveProject(direction, { focus: true, announce: true });
   }
 
   clearProjectOpenTimeouts() {
@@ -1535,18 +2552,24 @@ class PortfolioScrollApp {
     });
   }
 
-  resumeVisibleVideos() {
-    if (shouldReducePortfolioMotion()) return;
+  updateVideoPlayback() {
+    if (shouldReducePortfolioMotion() || this.isProjectOpen) {
+      this.pauseAllVideos();
+      return;
+    }
     this.mediaVideos.forEach((video) => {
-      const rect = video.getBoundingClientRect();
-      const rootRect = this.scrollList?.getBoundingClientRect();
-      const visible = rootRect
-        && rect.bottom > rootRect.top
-        && rect.top < rootRect.bottom
-        && rect.right > rootRect.left
-        && rect.left < rootRect.right;
-      if (visible) video.play().catch(() => {});
+      const index = Number(video.dataset.projectIndex);
+      const isActive = Number.isInteger(index) && index === this.activeProjectIndex;
+      if (!isActive) {
+        video.pause();
+        return;
+      }
+      video.play().catch(() => {});
     });
+  }
+
+  resumeVisibleVideos() {
+    this.updateVideoPlayback();
   }
 
   prefetchProjectAssets(project) {
@@ -1559,7 +2582,7 @@ class PortfolioScrollApp {
     });
   }
 
-  syncProjectHero(project, animate = true) {
+  syncProjectHero(project, animate = true, originRect = null, options = {}) {
     if (!project || !this.projectDrawerView) return;
     const openDuration = shouldReducePortfolioMotion()
       ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
@@ -1574,20 +2597,217 @@ class PortfolioScrollApp {
       titleDelayMs: titleDelay,
       accentColor: getProjectCardTheme(project, this.selectedProjectIndex, this.projects.length).accent,
       motionConfig: this.config.runtime.motion || {},
+      originRect,
+      deferReveal: Boolean(options.deferReveal),
     });
     this.syncProjectButtonStates();
   }
 
-  openProjectByIndex(index) {
+  getProjectOpenTimings() {
+    return {
+      openDuration: shouldReducePortfolioMotion()
+        ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
+        : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200),
+      imageFadeMs: clamp(toNumber(this.config.runtime.motion?.imageFadeMs, 220), 0, 600),
+      titleDelayMs: clamp(toNumber(this.config.runtime.motion?.titleRevealDelayMs, 280), 0, 1200),
+      ghostDurationMs: clamp(
+        toNumber(this.config.runtime.motion?.openGhostDurationMs, PORTFOLIO_OPEN_GHOST_DURATION_MS),
+        180,
+        700,
+      ),
+    };
+  }
+
+  startProjectOpenGhost(projectIndex, originRect, durationMs, onComplete) {
+    const card = this.cards[projectIndex];
+    const targetRect = this.projectDrawerView?.getDrawerRect?.();
+    if (!card || !originRect || !targetRect) {
+      onComplete?.();
+      return false;
+    }
+
+    this.clearProjectOpenGhost();
+    const token = this.projectOpenGhostToken + 1;
+    this.projectOpenGhostToken = token;
+    const ghost = card.cloneNode(true);
+    ghost.classList.add('portfolio-project-open-ghost');
+    ghost.classList.remove('is-pressing', 'is-opening-release', 'is-keyboard-focused', 'is-selected');
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.removeAttribute('role');
+    ghost.removeAttribute('tabindex');
+    ghost.removeAttribute('aria-controls');
+    ghost.removeAttribute('aria-expanded');
+    ghost.inert = true;
+
+    ghost.querySelectorAll('video').forEach((video) => {
+      try {
+        video.pause();
+      } catch (error) {
+        /* ignore */
+      }
+      video.removeAttribute('autoplay');
+      video.controls = false;
+    });
+
+    const cardStyle = getComputedStyle(card);
+    const drawerStyle = this.projectDrawerView?.drawer
+      ? getComputedStyle(this.projectDrawerView.drawer)
+      : cardStyle;
+    [
+      '--portfolio-card-media-width',
+      '--portfolio-card-pad',
+      '--portfolio-card-copy-pad-x',
+      '--portfolio-card-copy-pad-y',
+      '--portfolio-card-media-radius',
+      '--portfolio-card-contact-shadow',
+      '--portfolio-card-contact-shadow-hover',
+      '--portfolio-card-surface',
+      '--portfolio-card-base',
+      '--portfolio-card-accent',
+      '--portfolio-card-ink',
+      '--portfolio-card-muted',
+    ].forEach((name) => {
+      const value = cardStyle.getPropertyValue(name);
+      if (value) ghost.style.setProperty(name, value.trim());
+    });
+    Object.assign(ghost.style, {
+      left: `${originRect.left}px`,
+      top: `${originRect.top}px`,
+      width: `${originRect.width}px`,
+      height: `${originRect.height}px`,
+      borderRadius: cardStyle.borderRadius,
+    });
+
+    const host = document.getElementById('portfolio-sheet-host') || this.projectView?.parentElement || document.body;
+    host.appendChild(ghost);
+    this.projectOpenGhost = ghost;
+    this.projectOpenPhase = 'ghost';
+    this.projectOpenDebug = {
+      phase: 'ghost',
+      originRect: serializeRect(originRect),
+      drawerRect: serializeRect(targetRect),
+      ghostRect: serializeRect(ghost.getBoundingClientRect()),
+      inputOwnsOpen: true,
+    };
+
+    const keyframes = [
+      {
+        left: `${originRect.left}px`,
+        top: `${originRect.top}px`,
+        width: `${originRect.width}px`,
+        height: `${originRect.height}px`,
+        borderRadius: cardStyle.borderRadius,
+        opacity: 1,
+        filter: 'blur(0px) saturate(1)',
+        offset: 0,
+      },
+      {
+        left: `${targetRect.left}px`,
+        top: `${targetRect.top}px`,
+        width: `${targetRect.width}px`,
+        height: `${targetRect.height}px`,
+        borderRadius: drawerStyle.borderRadius || '0px',
+        opacity: 1,
+        filter: 'blur(0.6px) saturate(0.98)',
+        offset: 0.78,
+      },
+      {
+        left: `${targetRect.left}px`,
+        top: `${targetRect.top}px`,
+        width: `${targetRect.width}px`,
+        height: `${targetRect.height}px`,
+        borderRadius: drawerStyle.borderRadius || '0px',
+        opacity: 0,
+        filter: 'blur(5px) saturate(0.92)',
+        offset: 1,
+      },
+    ];
+
+    if (!ghost.animate) {
+      Object.assign(ghost.style, {
+        left: `${targetRect.left}px`,
+        top: `${targetRect.top}px`,
+        width: `${targetRect.width}px`,
+        height: `${targetRect.height}px`,
+        borderRadius: drawerStyle.borderRadius || '0px',
+        opacity: '0',
+        filter: 'blur(5px) saturate(0.92)',
+      });
+      window.setTimeout(() => {
+        if (this.projectOpenGhostToken !== token) return;
+        this.clearProjectOpenGhost();
+        onComplete?.();
+      }, durationMs);
+      return true;
+    }
+
+    const animation = ghost.animate(keyframes, {
+      duration: durationMs,
+      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      fill: 'forwards',
+    });
+    this.projectOpenGhostAnimation = animation;
+    animation.finished
+      .then(() => {
+        if (this.projectOpenGhostToken !== token) return;
+        this.projectOpenDebug = {
+          ...(this.projectOpenDebug || {}),
+          phase: 'ghost-complete',
+          ghostRect: serializeRect(ghost.getBoundingClientRect()),
+        };
+        this.clearProjectOpenGhost();
+        onComplete?.();
+      })
+      .catch(() => {});
+    return true;
+  }
+
+  revealPreparedProject({ animate = true, titleDelayMs = 280 } = {}) {
+    if (!this.isProjectOpen || !this.projectDrawerView) return;
+    this.projectOpenPhase = 'drawer-reveal';
+    this.projectOpenDebug = {
+      ...(this.projectOpenDebug || {}),
+      phase: 'drawer-reveal',
+      drawerRect: serializeRect(this.projectDrawerView.getDrawerRect?.()),
+    };
+    this.projectDrawerView.reveal({ animate, titleDelayMs });
+    const revealSettledDelay = shouldReducePortfolioMotion()
+      ? 0
+      : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
+    this.projectOpenTimeouts.push(window.setTimeout(() => {
+      if (!this.isProjectOpen) return;
+      this.projectOpenPhase = 'open';
+      this.projectOpenDebug = {
+        ...(this.projectOpenDebug || {}),
+        phase: 'open',
+        drawerRect: serializeRect(this.projectDrawerView?.getDrawerRect?.()),
+      };
+    }, revealSettledDelay));
+  }
+
+  openProjectByIndex(index, options = {}) {
     if (this.isProjectOpen) return;
     const projectIndex = clamp(index, 0, this.projects.length - 1);
     const project = this.projects[projectIndex];
     if (!project) return;
+    const originRect = options?.originRect || this.cards[projectIndex]?.getBoundingClientRect() || null;
+    const timings = this.getProjectOpenTimings();
+    const useGhost = options?.useGhost !== false
+      && options?.inputType !== 'keyboard'
+      && !shouldReducePortfolioMotion()
+      && Boolean(originRect && originRect.width > 0 && originRect.height > 0);
+    this.clearPressedCard();
     const labelContent = resolvePortfolioLabelContent(project, project?.title || `Project ${projectIndex + 1}`);
     const spokenLabel = labelContent.eyebrow
       ? `${labelContent.eyebrow}: ${labelContent.title}`
       : labelContent.title;
 
+    this.clearDeckSettleTimer();
+    this.stopDeckAnimation();
+    this.deckIsSettling = false;
+    this.deckTargetPosition = this.deckDisplayPosition;
+    this.pendingDeckFocusIndex = -1;
+    this.pendingDeckAnnounce = false;
     SoundEngine.playHoverSound?.();
     this.prefetchProjectAssets(project);
     this.pauseAllVideos();
@@ -1596,26 +2816,38 @@ class PortfolioScrollApp {
     this.isProjectOpen = true;
     getGlobals().__portfolioDrawerOpen = true;
     this.disableBackgroundInteractivity();
-    this.syncProjectHero(project, true);
+    this.syncProjectHero(project, true, originRect, { deferReveal: useGhost });
     this.cards[projectIndex]?.classList.add('is-selected');
+    this.updateDeckSlots();
     announceToScreenReader(`Opened project: ${spokenLabel}`);
     document.addEventListener('keydown', this.boundProjectKeydown, true);
 
-    const openDuration = shouldReducePortfolioMotion()
-      ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
-      : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
+    if (useGhost && this.startProjectOpenGhost(projectIndex, originRect, timings.ghostDurationMs, () => {
+      this.revealPreparedProject({ animate: true, titleDelayMs: timings.titleDelayMs });
+    })) {
+      this.projectOpenTimeouts.push(window.setTimeout(() => {
+        this.projectClose?.focus();
+      }, Math.min(1100, timings.ghostDurationMs + timings.openDuration + 80)));
+      return;
+    }
+
+    this.revealPreparedProject({ animate: true, titleDelayMs: timings.titleDelayMs });
     this.projectOpenTimeouts.push(window.setTimeout(() => {
       this.projectClose?.focus();
-    }, Math.min(900, openDuration + 80)));
+    }, Math.min(900, timings.openDuration + 80)));
   }
 
   finishProjectClose() {
     const restoredIndex = this.selectedProjectIndex;
+    this.clearProjectOpenGhost();
     this.cards.forEach((card) => card.classList.remove('is-selected'));
     this.isProjectOpen = false;
     this.selectedProjectIndex = -1;
+    this.projectOpenPhase = 'closed';
+    this.projectOpenDebug = null;
     getGlobals().__portfolioDrawerOpen = false;
     this.restoreBackgroundInteractivity();
+    if (restoredIndex >= 0) this.setActiveProject(restoredIndex, { focus: false, announce: false, immediate: true });
     this.syncProjectButtonStates();
     this.resumeVisibleVideos();
     announceToScreenReader('Closed project view');
@@ -1628,12 +2860,14 @@ class PortfolioScrollApp {
 
   closeProject() {
     if (!this.isProjectOpen) return;
+    this.clearProjectOpenGhost();
     if (!this.projectView) {
       this.finishProjectClose();
       return;
     }
     if (this.projectView.classList.contains('is-closing')) return;
     this.clearProjectOpenTimeouts();
+    this.projectOpenPhase = 'closing';
     this.projectView.classList.remove('is-title-visible');
     document.removeEventListener('keydown', this.boundProjectKeydown, true);
 
@@ -1650,6 +2884,7 @@ class PortfolioScrollApp {
       const expanded = this.isProjectOpen && index === this.selectedProjectIndex;
       card.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     });
+    this.updateDeckSlots();
   }
 
   disableBackgroundInteractivity() {
@@ -1796,14 +3031,14 @@ function readPortfolioPresentationSnapshot() {
   const hero = document.getElementById('hero-title');
   const topbar = document.querySelector('.ui-top-main.route-topbar');
   const labelMount = document.getElementById('portfolioProjectMount');
-  const firstLabel = labelMount?.querySelector('.portfolio-project-label');
+  const firstLabel = labelMount?.querySelector('.portfolio-deck-card.is-active, .portfolio-project-label');
   const canvas = document.getElementById('c');
 
   const wallRect = wall?.getBoundingClientRect() || null;
   const heroRect = hero?.getBoundingClientRect() || null;
   const topbarRect = topbar?.getBoundingClientRect() || null;
   const firstLabelRect = firstLabel?.getBoundingClientRect() || null;
-  const labelCount = labelMount?.querySelectorAll('.portfolio-project-label').length || 0;
+  const labelCount = labelMount?.querySelectorAll('.portfolio-deck-card, .portfolio-project-label').length || 0;
   const heroInsideWall = rectIsUsable(heroRect) && rectIsUsable(wallRect)
     && heroRect.left >= wallRect.left - 4
     && heroRect.right <= wallRect.right + 4
@@ -1887,6 +3122,13 @@ function signalRouteReady(routeId) {
 export async function bootstrapPortfolio() {
   destroyQuoteDisplay();
   const shellRouteTransitionActive = isRouteTransitionPhase(getTransitionPhase());
+  const bootstrapRunId = activePortfolioBootstrapRunId + 1;
+  activePortfolioBootstrapRunId = bootstrapRunId;
+  const isCurrentBootstrapRun = () => bootstrapRunId === activePortfolioBootstrapRunId;
+  const root = document.documentElement;
+  root.classList.add('portfolio-booting');
+  root.classList.remove('portfolio-loaded');
+  document.body.dataset.portfolioLoadState = 'booting';
 
   try {
     await loadRuntimeText();
@@ -1926,16 +3168,73 @@ export async function bootstrapPortfolio() {
     },
     minimumMs: 120
   });
-  // Reveal the page shell but keep the canvas and label mount hidden until the
-  // pit simulation is fully seeded — prevents a flash of un-positioned balls.
+  // Keep the wall frame visible while preparing the DOM deck. The deck mount
+  // stays transparent until its first measured pose is stable, avoiding a
+  // blank-page flash without exposing unpositioned cards.
   const pitCanvas = document.getElementById('c');
   const pitMount = document.getElementById('portfolioProjectMount');
-  if (pitCanvas) { pitCanvas.style.opacity = '0'; }
-  if (pitMount) { pitMount.style.opacity = '0'; }
+  let deckRevealTimer = 0;
+  let hardRevealTimer = 0;
+  let portfolioLayersRevealed = false;
+  const hideLegacyPortfolioCanvas = () => {
+    if (!pitCanvas) return;
+    pitCanvas.style.opacity = '0';
+    pitCanvas.style.visibility = 'hidden';
+    pitCanvas.style.pointerEvents = 'none';
+  };
+  const preparePortfolioLayers = () => {
+    document.body.classList.remove('portfolio-deck-failed');
+    root.classList.add('portfolio-booting');
+    root.classList.remove('portfolio-loaded');
+    document.body.dataset.portfolioLoadState = 'booting';
+    hideLegacyPortfolioCanvas();
+    if (pitMount) {
+      pitMount.classList.add('is-portfolio-boot-preparing');
+      pitMount.classList.remove('is-portfolio-deck-visible', 'is-portfolio-deck-revealing');
+      pitMount.style.opacity = '1';
+    }
+  };
+  const revealPortfolioLayers = () => {
+    if (!isCurrentBootstrapRun()) return;
+    if (portfolioLayersRevealed) return;
+    portfolioLayersRevealed = true;
+    window.clearTimeout(hardRevealTimer);
+    root.classList.remove('portfolio-booting');
+    root.classList.add('portfolio-loaded');
+    document.body.dataset.portfolioLoadState = 'loaded';
+    hideLegacyPortfolioCanvas();
+    if (pitMount) {
+      pitMount.classList.remove('is-portfolio-boot-preparing');
+      pitMount.classList.add('is-portfolio-deck-visible', 'is-portfolio-deck-revealing');
+      pitMount.style.opacity = '1';
+      window.clearTimeout(deckRevealTimer);
+      deckRevealTimer = window.setTimeout(() => {
+        pitMount.classList.remove('is-portfolio-deck-revealing');
+      }, 900);
+    }
+  };
+  const scheduleHardReveal = (timeoutMs = 1200) => {
+    window.clearTimeout(hardRevealTimer);
+    const startedAt = performance.now();
+    const tick = () => {
+      if (!isCurrentBootstrapRun()) return;
+      if (portfolioLayersRevealed) return;
+      const hasDeckCards = Boolean(pitMount?.querySelector('.portfolio-project-card'));
+      const timedOut = (performance.now() - startedAt) >= timeoutMs;
+      if (hasDeckCards || timedOut) {
+        revealPortfolioLayers();
+        return;
+      }
+      hardRevealTimer = window.setTimeout(tick, 80);
+    };
+    hardRevealTimer = window.setTimeout(tick, 180);
+  };
+  preparePortfolioLayers();
+  scheduleHardReveal(shellRouteTransitionActive ? 2400 : 2200);
   if (!shellRouteTransitionActive) {
     forceBootVisible(['#abs-scene', '#app-frame']);
   }
-  // Canvas + label mount stay invisible; revealed after startMainLoop.
+  // Deck mount stays invisible; revealed after the first stable presentation.
   const hostLaidOut = await waitForPitSimulationHostReady();
   try {
     if (!hostLaidOut && import.meta.env?.DEV) {
@@ -1995,9 +3294,41 @@ export async function bootstrapPortfolio() {
     config: portfolioConfig,
     projects
   });
-  await app.init();
+  try {
+    await app.init();
+  } catch (error) {
+    console.error('Portfolio deck initialization failed', error);
+    document.body.classList.add('portfolio-deck-failed');
+    root.classList.remove('portfolio-booting');
+    document.body.dataset.portfolioLoadState = 'loaded';
+    revealPortfolioLayers();
+    if (shellRouteTransitionActive) {
+      signalRouteReady('portfolio');
+    }
+    return () => {
+      window.clearTimeout(deckRevealTimer);
+      window.clearTimeout(hardRevealTimer);
+      if (isCurrentBootstrapRun()) {
+        root.classList.remove('portfolio-booting', 'portfolio-loaded');
+        delete document.body.dataset.portfolioLoadState;
+      }
+      if (pitMount && isCurrentBootstrapRun()) {
+        pitMount.classList.remove(
+          'is-portfolio-boot-preparing',
+          'is-portfolio-deck-visible',
+          'is-portfolio-deck-revealing'
+        );
+      }
+      try {
+        disposeRendererListeners();
+      } catch (e) {
+        /* ignore */
+      }
+    };
+  }
   installPortfolioAuditBridge(app);
   updateCursorSize();
+  scheduleHardReveal(shellRouteTransitionActive ? 900 : 520);
 
   const settlePortfolioPresentation = () => {
     try {
@@ -2011,27 +3342,24 @@ export async function bootstrapPortfolio() {
   };
   settlePortfolioPresentation();
 
-  // Wait one frame so layout is stable before revealing.
+  // Wait one frame so the first JS-computed card poses land, then reveal with
+  // CSS-level choreography. The stricter presentation check runs after the
+  // reveal because it requires visible deck geometry.
   await new Promise((resolve) => requestAnimationFrame(resolve));
   settlePortfolioPresentation();
-  if (pitCanvas) { pitCanvas.style.opacity = '1'; }
-  if (pitMount) { pitMount.style.opacity = '1'; }
-  if (shellRouteTransitionActive) {
-    // Unblock shell route-in once the portfolio route landmarks exist; keep final settling in the background.
-    signalRouteReady('portfolio');
-  }
+  revealPortfolioLayers();
   const presentationSettled = await waitForStablePortfolioPresentation({
-    timeoutMs: shellRouteTransitionActive ? 900 : 2000,
+    timeoutMs: shellRouteTransitionActive ? 700 : 520,
   });
   if (!presentationSettled && import.meta.env?.DEV) {
-    console.warn('[portfolio] Presentation did not fully settle before reveal; using latest measured layout.');
+    console.warn('[portfolio] Presentation did not fully settle after reveal; using latest measured layout.');
   }
 
-  // Reveal canvas + label mount; the parent wall-slot is still at opacity 0
-  // (pre-enter phase) so this won't cause a flash. The enter transition
-  // fades in already-settled content.
-  if (pitCanvas) { pitCanvas.style.opacity = '1'; }
-  if (pitMount) { pitMount.style.opacity = '1'; }
+  // During shell route-in, route-ready is emitted after the deck is visible and
+  // at least one post-reveal stability pass has had a chance to complete.
+  if (shellRouteTransitionActive) {
+    signalRouteReady('portfolio');
+  }
 
   const ABS_DEV = import.meta.env.DEV;
   if (ABS_DEV) {
@@ -2040,8 +3368,16 @@ export async function bootstrapPortfolio() {
       const { generatePanelSectionsHTML } = await import('./panel/control-registry.js');
       const { setupControls } = await import('./panel/controls.js');
       const { setupBuildControls } = await import('./panel/build-controls.js');
+      const panelRequested = (() => {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          return params.get('panel') === '1' || params.get('configPanel') === '1';
+        } catch (error) {
+          return false;
+        }
+      })();
 
-      registerDevPanelRoute({
+      const panelOptions = {
         page: 'portfolio',
         pageLabel: 'Portfolio',
         productLabel: 'Alexander Beck Studio',
@@ -2059,7 +3395,17 @@ export async function bootstrapPortfolio() {
           });
           setupBuildControls(portfolioConfig, panelOptions);
         },
-      });
+      };
+      registerDevPanelRoute(panelOptions);
+      if (panelRequested) {
+        const { createPanelDock } = await import('../ui/panel-dock.js');
+        window.__PANEL_INITIALLY_VISIBLE__ = true;
+        createPanelDock({
+          ...panelOptions,
+          preserveLauncherButton: false,
+          skipToggleButton: false,
+        });
+      }
     } catch (error) {
       console.warn('Portfolio panel init failed', error);
     }
@@ -2087,6 +3433,19 @@ export async function bootstrapPortfolio() {
   }
 
   return () => {
+    window.clearTimeout(deckRevealTimer);
+    window.clearTimeout(hardRevealTimer);
+    if (isCurrentBootstrapRun()) {
+      root.classList.remove('portfolio-booting', 'portfolio-loaded');
+      delete document.body.dataset.portfolioLoadState;
+    }
+    if (pitMount && isCurrentBootstrapRun()) {
+      pitMount.classList.remove(
+        'is-portfolio-boot-preparing',
+        'is-portfolio-deck-visible',
+        'is-portfolio-deck-revealing'
+      );
+    }
     try {
       disposeRendererListeners();
     } catch (e) {

@@ -20,6 +20,9 @@ let rectCacheTime = 0;
 const RECT_CACHE_MS = 100; // Cache rect for 100ms to avoid excessive layout reads
 const TAP_RING_CSS_PX = 64;
 const HOME_DOT_TO_BALL_DIAMETER = 0.66;
+const PORTFOLIO_PROJECT_CURSOR_MIN_PX = 132;
+const PORTFOLIO_PROJECT_CURSOR_MAX_PX = 152;
+const PORTFOLIO_DECK_CURSOR_Z_INDEX = 940;
 const TAP_CURSOR_Z_INDEX = 19990;
 const MODAL_CURSOR_Z_INDEX = 20000;
 let cachedFrameInsets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -30,6 +33,18 @@ let lastClientX = 0;
 let lastClientY = 0;
 let lastHoveredLink = null;
 let hasLastPointerPosition = false;
+
+function ensureCursorLabel() {
+  if (!cursorElement) return null;
+  let label = cursorElement.querySelector?.('.abs-cursor-label') ?? null;
+  if (!label) {
+    label = document.createElement('span');
+    label.className = 'abs-cursor-label';
+    label.setAttribute('aria-hidden', 'true');
+    cursorElement.appendChild(label);
+  }
+  return label;
+}
 
 function handleLinkHoverEvent(event) {
   try {
@@ -131,6 +146,17 @@ function isPortfolioDetailViewOpen() {
   }
 }
 
+function shouldElevatePortfolioDeckCursor() {
+  try {
+    return (
+      document?.body?.classList?.contains?.('portfolio-page') &&
+      !isPortfolioDetailViewOpen()
+    );
+  } catch (e) {
+    return false;
+  }
+}
+
 function shouldUseHomeDotCursor() {
   if (isHomeIndexRoute()) return true;
   try {
@@ -146,6 +172,20 @@ function shouldUseHomeDotCursor() {
 function isDevChromeCursorTarget(target) {
   if (!target || !target.closest) return false;
   return Boolean(target.closest('.panel-toggle-btn'));
+}
+
+function getPortfolioProjectCursorTarget(target) {
+  try {
+    if (!target?.closest || isPortfolioDetailViewOpen()) return null;
+    const card = target.closest('.portfolio-project-card');
+    if (!card || !card.isConnected) return null;
+    if (card.closest('#portfolioProjectView')) return null;
+    if (card.dataset?.deckZone === 'hidden-wrap') return null;
+    if (card.style?.pointerEvents === 'none') return null;
+    return card;
+  } catch (e) {
+    return null;
+  }
 }
 
 function getHomeCursorDotDiameterCssPx() {
@@ -164,6 +204,17 @@ function getHomeCursorDotDiameterCssPx() {
   const cssBallDiameter = ballDiameterCanvas * (rw / canvas.width);
   const dot = cssBallDiameter * HOME_DOT_TO_BALL_DIAMETER;
   return Math.max(8, Math.min(dot, 40));
+}
+
+function getPortfolioProjectCursorDiameterCssPx() {
+  let viewportWidth = 1280;
+  try {
+    viewportWidth = Number(window?.innerWidth) || viewportWidth;
+  } catch (e) {}
+  return Math.max(
+    PORTFOLIO_PROJECT_CURSOR_MIN_PX,
+    Math.min(viewportWidth * 0.072, PORTFOLIO_PROJECT_CURSOR_MAX_PX)
+  );
 }
 
 /**
@@ -201,6 +252,7 @@ export function setupCustomCursor() {
   if (stray?.isConnected) {
     cursorElement = stray;
     isInitialized = true;
+    ensureCursorLabel();
     wireLinkHoverListener();
     updateCursorSize();
     stray.style.opacity = '1';
@@ -213,6 +265,7 @@ export function setupCustomCursor() {
   cursorElement = document.createElement('div');
   cursorElement.id = 'custom-cursor';
   cursorElement.setAttribute('aria-hidden', 'true');
+  ensureCursorLabel();
 
   // Insert cursor inside #simulations to be in same stacking context as canvas/wall
   container.appendChild(cursorElement);
@@ -237,7 +290,13 @@ export function updateCursorSize() {
   cursorElement.style.borderRadius = '50%';
 
   if (shouldUseHomeDotCursor()) {
-    const d = getHomeCursorDotDiameterCssPx();
+    const isProjectHover = (
+      shouldElevatePortfolioDeckCursor() &&
+      cursorElement.classList.contains('abs-cursor-project-hover')
+    );
+    const d = isProjectHover
+      ? getPortfolioProjectCursorDiameterCssPx()
+      : getHomeCursorDotDiameterCssPx();
     cursorElement.style.width = `${d}px`;
     cursorElement.style.height = `${d}px`;
   } else {
@@ -269,15 +328,20 @@ function applyTapRingMount(clientX, clientY, overlayIsActive) {
   cursorElement.style.opacity = '1';
   cursorElement.style.backgroundColor = '';
   cursorElement.style.border = '';
+  cursorElement.classList.remove('abs-cursor-project-hover');
+  const label = ensureCursorLabel();
+  if (label) label.textContent = '';
 }
 
-function applyHomeDotMount(clientX, clientY) {
+function applyHomeDotMount(clientX, clientY, options = {}) {
   const container = document.getElementById('simulations');
   if (container && cursorElement.parentElement !== container) {
     container.appendChild(cursorElement);
   }
   cursorElement.style.position = 'absolute';
-  cursorElement.style.zIndex = '3';
+  cursorElement.style.zIndex = shouldElevatePortfolioDeckCursor()
+    ? String(PORTFOLIO_DECK_CURSOR_Z_INDEX)
+    : '3';
   if (container) {
     const rect = container.getBoundingClientRect();
     cursorElement.style.left = `${clientX - rect.left}px`;
@@ -285,7 +349,8 @@ function applyHomeDotMount(clientX, clientY) {
   }
   cursorElement.classList.remove('abs-cursor-tap');
   cursorElement.classList.remove('modal-active');
-  const d = getHomeCursorDotDiameterCssPx();
+  const projectHover = Boolean(options.projectHover);
+  const d = projectHover ? getPortfolioProjectCursorDiameterCssPx() : getHomeCursorDotDiameterCssPx();
   cursorElement.style.width = `${d}px`;
   cursorElement.style.height = `${d}px`;
   cursorElement.style.boxSizing = 'border-box';
@@ -293,6 +358,9 @@ function applyHomeDotMount(clientX, clientY) {
   cursorElement.style.opacity = '1';
   cursorElement.style.backgroundColor = '';
   cursorElement.style.border = 'none';
+  cursorElement.classList.toggle('abs-cursor-project-hover', projectHover);
+  const label = ensureCursorLabel();
+  if (label) label.textContent = projectHover ? 'View Project' : '';
 }
 
 /**
@@ -452,6 +520,7 @@ export function updateCursorPosition(clientX, clientY) {
   const overlayIsActive = isOverlayActive();
   const hoverTarget = document.elementFromPoint(clientX, clientY);
   const useDevChromeTapRing = !overlayIsActive && isDevChromeCursorTarget(hoverTarget);
+  const projectCursorTarget = getPortfolioProjectCursorTarget(hoverTarget);
 
   const shouldUseHomeDot = shouldUseHomeDotCursor();
   const homeDot = shouldUseHomeDot && isInSimulation && !overlayIsActive && !useDevChromeTapRing;
@@ -473,7 +542,7 @@ export function updateCursorPosition(clientX, clientY) {
     if (overlayIsActive || tapRing) {
       applyTapRingMount(clientX, clientY, overlayIsActive);
     } else if (homeDot) {
-      applyHomeDotMount(clientX, clientY);
+      applyHomeDotMount(clientX, clientY, { projectHover: false });
     } else {
       cursorElement.style.display = 'none';
       return;
@@ -496,7 +565,7 @@ export function updateCursorPosition(clientX, clientY) {
   if (overlayIsActive || tapRing) {
     applyTapRingMount(clientX, clientY, overlayIsActive);
   } else {
-    applyHomeDotMount(clientX, clientY);
+    applyHomeDotMount(clientX, clientY, { projectHover: Boolean(projectCursorTarget) });
   }
 
   cursorElement.style.display = 'block';

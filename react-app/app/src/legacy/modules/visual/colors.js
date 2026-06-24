@@ -633,49 +633,64 @@ export function getPortfolioProjectPaletteColor(index, projectCount) {
   return seq[i % seq.length] || seq[0];
 }
 
-function getPortfolioContrastNeutral() {
-  const isDark = typeof document !== 'undefined'
-    && (document.documentElement?.classList?.contains('dark-mode')
-      || document.body?.classList?.contains('dark-mode'));
-  // Accent circle is white in dark / black in light; contrast neutral is the opposite.
-  return isDark ? '#111111' : '#f5f1ea';
-}
-
 function buildPortfolioProjectColorSequence(projectCount) {
   const globals = getGlobals();
   const colors = Array.isArray(globals.currentColors) ? globals.currentColors.filter(Boolean) : [];
 
   if (!colors.length) {
-    const grey = PORTFOLIO_GREY_FALLBACKS[0] || '#6b7670';
     const out = [];
-    for (let i = 0; i < projectCount; i += 1) out.push(grey);
+    for (let i = 0; i < projectCount; i += 1) {
+      out.push(getGeneratedPortfolioFallbackColor(i));
+    }
     return out;
   }
 
-  // Extract up to 3 chromatic colours from the palette
-  const chromatic = [];
-  const greys = [];
-  for (let i = 0; i < colors.length; i += 1) {
-    const color = colors[i];
-    if (!isProjectNeutralColor(color)) {
-      if (chromatic.length < 3) chromatic.push(color);
-    } else {
-      const key = normalizeHexKey(color);
-      if (key !== '#ffffff' && key !== '#000000' && greys.length === 0) {
-        greys.push(color);
-      }
+  const out = [];
+  const seen = new Set();
+  const dist = getDistribution(globals);
+  if (dist && dist.length) {
+    for (let i = 0; i < dist.length; i += 1) {
+      const paletteIndex = clampIntFallback(dist[i]?.colorIndex, 0, colors.length - 1, 0);
+      addUniquePortfolioProjectColor(out, seen, colors[paletteIndex]);
+      if (out.length >= projectCount) return out;
     }
   }
 
-  // One grey — prefer the first palette neutral, fall back to the static grey
-  const grey = greys[0] || PORTFOLIO_GREY_FALLBACKS[0] || '#6b7670';
+  for (let i = 0; i < colors.length; i += 1) {
+    addUniquePortfolioProjectColor(out, seen, colors[i]);
+    if (out.length >= projectCount) return out;
+  }
 
-  // 5-slot cycle: 3 chromatic + 1 grey + 1 contrast neutral (black in dark, white in light)
-  const cycle = [...chromatic, grey, getPortfolioContrastNeutral()];
+  for (let i = 0; i < PORTFOLIO_GREY_FALLBACKS.length; i += 1) {
+    addUniquePortfolioProjectColor(out, seen, PORTFOLIO_GREY_FALLBACKS[i]);
+    if (out.length >= projectCount) return out;
+  }
 
-  const out = [];
-  for (let i = 0; i < projectCount; i += 1) out.push(cycle[i % cycle.length]);
+  let fallbackIndex = 0;
+  while (out.length < projectCount) {
+    addUniquePortfolioProjectColor(out, seen, getGeneratedPortfolioFallbackColor(fallbackIndex));
+    fallbackIndex += 1;
+  }
   return out;
+}
+
+function addUniquePortfolioProjectColor(out, seen, color) {
+  if (!color) return false;
+  const key = normalizeHexKey(color);
+  if (seen.has(key)) return false;
+  seen.add(key);
+  out.push(color);
+  return true;
+}
+
+function getGeneratedPortfolioFallbackColor(index) {
+  const hue = ((Math.abs(Math.floor(index)) * 137.508) + 24) % 360;
+  const rgb = hsvToRgb01({ h: hue, s: 0.58, v: 0.7 });
+  return rgb255ToHex({
+    r: Math.round(rgb.r * 255),
+    g: Math.round(rgb.g * 255),
+    b: Math.round(rgb.b * 255),
+  });
 }
 
 export function getProjectPaletteColor(index) {

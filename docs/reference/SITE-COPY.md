@@ -108,95 +108,101 @@ All user-facing copy across the website in one place. Use this to edit, translat
 
 ## 10. Portfolio projects (contents-portfolio.json)
 
-### Chapter 1 — Product
+### Chapter 1 — S&P Global
 
 | Field | Current copy |
 |-------|--------------|
-| client | Product |
-| title | Digital Product Design for Complex Platforms |
-| summary | A product suite that turns messy workflows into clear, fast-moving action. |
-| role | Product Design Lead |
-| year | 2024 |
-| overview | Mapped workflows, defined interaction models, and shipped a modular UI system so teams could align on a multi-platform roadmap without friction. |
-| tags | #product design, #UX, #UI, #prototyping, #mobile app |
-| links | Prototype, Release Notes |
-| contentBlocks captions | Workflow summary for the core user journey.; Interactive prototype walkthrough.; Component-driven layout exploration.; Mobile-first detail states and error paths. |
-| takeaways | Design with real data to keep flows honest.; Document decisions so engineering can move faster.; Small interaction details build product trust. |
+| client | S&P Global |
+| displayTitle | Making financial indexes visible |
+| title | Making Financial Indexes Visible |
+| summary | A product interface that turned index-building from emails, spreadsheets, and scripts into a visual workflow. |
+| role | Lead UX and Visual Designer |
+| year | Recent |
+| overview | Mapped the index-building process, shaped a modular interaction model, and designed screens that helped users build, validate, and launch strategies in days instead of weeks. |
+| tags | #product design, #financial UX, #workflow design, #prototyping, #B2B tools |
+| links | None |
+| contentBlocks captions | Project framing for a financial-index builder.; Role, design rationale, and lessons from translating financial logic into UI.; Interface states for building and validating index strategies.; Landing screen for building, validating, and deploying a strategic index. |
+| takeaways | Make abstract rules visible before asking users to act.; A strong model helps technical and non-technical users work from the same idea.; Visual design can reduce ambiguity in complex financial tools. |
 
-### Chapter 2 — Research
-
-| Field | Current copy |
-|-------|--------------|
-| client | Research |
-| title | Strategic UX Research + Insight Mapping |
-| summary | A research program linking qualitative insight with quantitative signals for sharper bets. |
-| role | UX Research + Strategy |
-| year | 2022 |
-| overview | Synthesized interviews, surveys, and usage data into an opportunity map that prioritized roadmap decisions. |
-| tags | #user research, #strategy, #analytics, #testing, #insights |
-| links | Insight Report, Research Plan |
-| contentBlocks captions | Research scope and stakeholder alignment.; Insight synthesis and storytelling reel.; Opportunity mapping and prioritization.; Behavioral segmentation and personas. |
-| takeaways | Anchor insight delivery to roadmap timing.; Blend qual and quant for sharper decisions.; Make artifacts easy to reuse across teams. |
-
-### Chapter 3 — Motion
+### Chapter 2 — Bentley
 
 | Field | Current copy |
 |-------|--------------|
-| client | Motion |
-| title | Motion & Interaction Systems |
-| summary | A shared motion system so small moments feel consistent and build trust. |
-| role | Motion Design + Prototyping |
+| client | Bentley |
+| displayTitle | Digital calm for luxury ownership |
+| title | Digital Calm for Luxury Ownership |
+| summary | Digital experience work that translated Bentley's brand tone into calm interaction flows, motion, and ownership moments. |
+| role | Experience and Interaction Designer |
+| year | Recent |
+| overview | Worked across concept, interaction design, storytelling, 3D, and motion. Built a digital garage in Blender, shaped interactive flows, and co-developed a visual and motion language for Bentley's digital presence. |
+| tags | #luxury digital, #motion, #3D prototyping, #brand systems, #product design |
+| links | None |
+| contentBlocks captions | Role, process, and lessons from shaping Bentley's digital presence.; Brand atmosphere used to guide pacing, tone, and interaction decisions.; Ownership and service touchpoints arranged as a digital product system.; Strategy prompts for a connected Bentley ownership experience. |
+| takeaways | Brand tone becomes stronger when it affects interaction decisions.; Pacing is a design material in premium digital products.; Prototypes help stakeholders discuss feeling, not only screens. |
+
+### Chapter 3 — Yoti
+
+| Field | Current copy |
+|-------|--------------|
+| client | Yoti |
+| displayTitle | Designing trust flows |
+| title | Designing Trust Flows |
+| summary | Product and interaction work for identity and age-verification moments where users needed to understand what was happening and why. |
+| role | Product and Interaction Designer |
 | year | 2023 |
-| overview | Defined pacing, easing, and feedback patterns so product teams could ship motion with clarity and confidence. |
-| tags | #motion design, #interaction, #webgl, #animation, #micro-interactions |
-| links | Motion Spec, Prototype Reel |
-| contentBlocks captions | Animation guidelines and timing rails.; Interactive states and feedback loops.; Motion tokens for components and transitions.; Systemized micro-interactions. |
-| takeaways | Consistency in motion builds product confidence.; Prototype early to validate pacing.; Motion tokens scale better than bespoke effects. |
+| overview | Designed and documented verification flows across mobile and desktop, including QR handoffs, ID details, and face-scan explanations for sensitive user journeys. |
+| tags | #identity UX, #trust, #mobile flows, #verification, #interaction design |
+| links | None |
+| contentBlocks captions | QR-code handoff flow between desktop, mobile, and callback states.; A sensitive verification moment explained in plain language.; Mobile identity states for age and document verification.; Brand and interface documentation for consistent implementation. |
+| takeaways | Trust depends on explaining the reason behind a request.; Cross-device flows need clear entry, waiting, and recovery states.; Sensitive products benefit from simple language and visible system feedback. |
 
-### Chapter 4 — Design Systems
-
-| Field | Current copy |
-|-------|--------------|
-| client | Design Systems |
-| title | Design Systems Architecture |
-| summary | A system that scales components, tokens, and governance across teams and brands. |
-| role | Design Systems Architect |
-| year | 2024 |
-| overview | Built token strategy, component governance, and documentation patterns that make quality repeatable across squads and product lines. |
-| tags | #design systems, #components, #documentation, #scalability, #tokens |
-| links | System Docs, Component Library |
-| contentBlocks captions | Token architecture and naming.; Component QA and release workflow.; Documentation patterns and usage notes.; System adoption and onboarding flow. |
-| takeaways | Governance keeps systems from drifting.; Docs need to be as polished as the UI.; Tokens make multi-brand scaling possible. |
-
-### Chapter 5 — Meta (Creative Direction)
+### Chapter 4 — SunExpress
 
 | Field | Current copy |
 |-------|--------------|
-| client | Meta |
-| title | Creative Direction + Launch Narratives |
-| summary | A sprint that aligned teams around one story and clear craft standards. |
-| role | Creative Direction |
-| year | 2021 |
-| overview | Set vision, led critique, and delivered one launch story across design and marketing teams. |
-| tags | #creative direction, #team leadership, #mentorship, #vision, #execution |
-| links | Launch Story, Press Kit |
-| contentBlocks captions | Narrative framing and positioning.; Campaign motion and storytelling beats.; Team alignment and review cadence.; Launch artifacts and touchpoints. |
-| takeaways | Narrative clarity makes execution faster.; Consistency needs ownership, not consensus.; Great launches are rehearsed, not rushed. |
+| client | SunExpress |
+| displayTitle | Clearer flight booking |
+| title | Clearer Flight Booking |
+| summary | An early travel UX project that made a multilingual booking journey clearer across search, selection, and upsell moments. |
+| role | UX and Web Designer |
+| year | Archive |
+| overview | Mapped booking paths, audited existing interactions, restructured decision points, and built a custom design system and icon set for a large transactional airline site. |
+| tags | #travel UX, #booking flows, #design system, #web design, #accessibility |
+| links | None |
+| contentBlocks captions | Role and lessons from a large-scale airline booking project.; Booking and destination-page explorations for the SunExpress website.; Transactional screens across outbound and inbound flight choices.; Project notes on accessibility, language, and scalable interaction patterns. |
+| takeaways | Structure affects confidence in transactional flows.; Small content and ordering changes can reduce confusion without a full rebuild.; A design system is useful only when tested against real booking cases. |
 
-### Chapter 6 — R&D
+### Chapter 5 — Personal Experimental Website
 
 | Field | Current copy |
 |-------|--------------|
-| client | R&D |
-| title | Experimental Lab for Frontier Prototypes |
-| summary | An R&D lab exploring generative visuals, speculative interfaces, and future interaction models. |
-| role | R&D Lead |
-| year | 2024 |
-| overview | Prototyped speculative interfaces and generative systems to test new interaction patterns and technical feasibility. |
-| tags | #experimental, #generative art, #code, #future tech, #concepts |
-| links | Prototype Experiments, Technical Notes |
-| contentBlocks captions | Speculative interface sketches.; Realtime generative motion study.; Material and shader exploration.; Prototype outputs and experiments. |
-| takeaways | Fast experiments make the future concrete.; Build small tools to unlock big visuals.; Spec work benefits from tight storytelling. |
+| client | Personal |
+| displayTitle | A portfolio built as an environment |
+| title | Personal Experimental Website |
+| summary | A self-initiated website exploring how a portfolio can feel like an environment rather than a sequence of pages. |
+| role | Designer and Developer |
+| year | Ongoing |
+| overview | Designed and built a responsive web environment with spatial depth, dynamic interaction, motion, sound, and layered content. The project became a live system for testing browser performance, animation, and immersive navigation. |
+| tags | #creative technology, #spatial design, #web design, #motion, #sound |
+| links | None |
+| contentBlocks captions | Project framing for a personal website built as a spatial environment.; Annotated interaction details for navigation, overlays, and motion states.; Experience framing and visual direction for the site.; Interface study for depth, atmosphere, and movement. |
+| takeaways | A portfolio can teach through movement and structure, not only written case studies.; Immersion needs performance discipline to stay usable.; Personal work is strongest when it exposes how you think and build. |
+
+### Chapter 6 — Pro Keyboard
+
+| Field | Current copy |
+|-------|--------------|
+| client | Pro Keyboard |
+| displayTitle | Touch typing refined |
+| title | Touch Typing Refined |
+| summary | A focused product concept for making typing practice feel clearer, calmer, and easier to return to. |
+| role | Product Concept Designer |
+| year | Concept |
+| overview | Explored a learning product around touch typing, using simple feedback, mobile-friendly screens, and practice loops that support steady improvement instead of pressure. |
+| tags | #learning UX, #product concept, #mobile design, #interaction, #research |
+| links | None |
+| contentBlocks captions | Early research framing for exploratory product and interface studies.; Mobile product screens for a touch-typing learning concept.; Minimal interface study for the wider concept system. |
+| takeaways | Small concepts still need a clear user problem.; Learning tools should reward progress without adding pressure.; This project needs sharper evidence if it remains in the final selection. |
 
 ---
 

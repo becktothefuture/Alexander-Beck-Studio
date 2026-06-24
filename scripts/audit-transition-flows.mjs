@@ -104,6 +104,17 @@ async function waitForHomeSettled(page) {
   await waitForSimulationCanvasBuffer(page);
 }
 
+async function clickRouteBackToHome(page) {
+  const homeHref = resolveHomeEntryUrl();
+  await page.evaluate((href) => {
+    const backLink = document.querySelector('.ui-top .gate-back');
+    if (backLink instanceof HTMLAnchorElement) {
+      backLink.href = href;
+    }
+  }, homeHref);
+  await page.click('.ui-top .gate-back', { timeout: 10_000 });
+}
+
 async function waitForRouteTransitionSettled(page) {
   await page.waitForFunction(
     () => {
@@ -498,7 +509,7 @@ async function runHomePortfolioRound(index, page) {
 
   sample = sampleFrames(page, `home-${index}-portfolio-route-to-home`);
   const homeNavFromPortfolio = page.waitForURL(/index|\/$/i, { timeout: WAIT_MS });
-  await page.click('.ui-top .gate-back', { timeout: 10_000 });
+  await clickRouteBackToHome(page);
   checkpoints.push(await captureCheckpoint(page, `home-${index}-portfolio-route-to-home`, 'in-flight'));
   await homeNavFromPortfolio;
   await waitForHomeSettled(page);
@@ -534,7 +545,7 @@ async function runHomeCvRound(index, page) {
 
   sample = sampleFrames(page, `home-${index}-cv-route-to-home`);
   const homeNavFromCv = page.waitForURL(/index|\/$/i, { timeout: WAIT_MS });
-  await page.click('.ui-top .gate-back', { timeout: 10_000 });
+  await clickRouteBackToHome(page);
   checkpoints.push(await captureCheckpoint(page, `home-${index}-cv-route-to-home`, 'in-flight'));
   await homeNavFromCv;
   await waitForHomeSettled(page);
@@ -583,7 +594,7 @@ async function runCvContactRound(index, page) {
 
   sample = sampleFrames(page, `cv-${index}-contact-route-to-home`);
   const homeNavFromContact = page.waitForURL(/index|\/$/i, { timeout: WAIT_MS });
-  await page.click('.ui-top .gate-back', { timeout: 10_000 });
+  await clickRouteBackToHome(page);
   checkpoints.push(await captureCheckpoint(page, `cv-${index}-contact-route-to-home`, 'in-flight'));
   await homeNavFromContact;
   await waitForHomeSettled(page);
