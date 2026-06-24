@@ -11,7 +11,7 @@ const DEFAULT_PORTFOLIO_CONFIG = {
     '--portfolio-stage-pad': 'clamp(var(--size-18), var(--size-2.1), var(--space-2xl))',
     '--portfolio-hero-title-max': '14ch',
     '--portfolio-image-veil-opacity': '0.14',
-    '--portfolio-hero-image-gutter': 'clamp(var(--radius-md), var(--space-sm) + var(--size-0.9), var(--space-lg))',
+    '--portfolio-hero-image-gutter': '0px',
     '--portfolio-hero-image-radius': 'max(0px, calc(var(--portfolio-drawer-radius) - var(--portfolio-hero-image-gutter)))',
     '--portfolio-scroll-hint-offset': 'clamp(var(--size-26), var(--size-18) + var(--font-size-1.2), var(--size-52))',
     '--portfolio-drawer-seat-inset': '0px',

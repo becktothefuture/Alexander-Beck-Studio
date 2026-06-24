@@ -9,6 +9,11 @@
   --portfolio-intro-title-line-height: 1.08;
   --portfolio-intro-title-letter-spacing: -0.034em;
   --portfolio-image-veil-opacity: 0.46;
+  --portfolio-hero-corner-fade-size: clamp(calc(var(--gap-xl) * 2.8), 11vw, calc(var(--gap-xl) * 5.4));
+  --portfolio-hero-corner-fade-opacity: 0.94;
+  --portfolio-hero-corner-fade-top-opacity: 0.72;
+  --portfolio-hero-edge-cover-width: 2px;
+  --portfolio-hero-edge-cover-opacity: 0.72;
   /* Sheet insets: px + vw only (no vh) so low viewport height doesn’t collapse padding */
   --portfolio-sheet-pad-x: clamp(var(--gap-lg), 7vw, calc(var(--gap-xl) * 3.6));
   --portfolio-sheet-pad-y-body: clamp(var(--gap-xl), 4vw, calc(var(--gap-xl) * 1.8));
@@ -42,7 +47,21 @@
   --portfolio-drawer-insert-lip-opacity: 0.16;
   --portfolio-drawer-outline-width: 1px;
   --portfolio-drawer-outline-opacity: 0.28;
-  --portfolio-hero-image-gutter: clamp(12px, 8px + 0.9vw, 24px);
+  --portfolio-project-close-inset-y: max(
+    0px,
+    calc(
+      var(--content-padding-y) - (var(--safari-tint-inset) + var(--frame-border-width)) -
+        var(--portfolio-drawer-seat-inset)
+    )
+  );
+  --portfolio-project-close-inset-x: max(
+    0px,
+    calc(
+      var(--content-padding-x) - (var(--safari-tint-inset) + var(--frame-border-width)) -
+        var(--portfolio-drawer-seat-inset)
+    )
+  );
+  --portfolio-hero-image-gutter: 0px;
   --portfolio-hero-image-radius: max(
     0px,
     calc(var(--portfolio-drawer-radius) - var(--portfolio-hero-image-gutter))
@@ -941,8 +960,8 @@ body.portfolio-project-open .portfolio-deck-mount .portfolio-project-card.is-sel
 /* SVG close: does not rely on subset Tabler woff2 (ti-x can render empty if glyph missing) */
 .portfolio-project-view__close.abs-icon-btn {
   position: absolute;
-  top: max(var(--gap-md), env(safe-area-inset-top, 0px));
-  right: max(var(--gap-md), env(safe-area-inset-right, 0px));
+  top: max(var(--portfolio-project-close-inset-y), env(safe-area-inset-top, 0px));
+  right: max(var(--portfolio-project-close-inset-x), env(safe-area-inset-right, 0px));
   z-index: 60;
   color: #fff;
   background: color-mix(in srgb, var(--portfolio-drawer-ground) 78%, transparent);
@@ -1016,13 +1035,14 @@ body.portfolio-project-open .portfolio-deck-mount .portfolio-project-card.is-sel
 
 .portfolio-project-view__image-shell {
   position: absolute;
-  inset: var(--portfolio-hero-image-gutter, clamp(12px, 8px + 0.9vw, 24px));
+  inset: var(--portfolio-hero-image-gutter, 0px);
   overflow: hidden;
   z-index: 0;
   border-radius: var(
     --portfolio-hero-image-radius,
-    max(0px, calc(var(--portfolio-drawer-radius) - clamp(12px, 8px + 0.9vw, 24px)))
+    max(0px, calc(var(--portfolio-drawer-radius) - var(--portfolio-hero-image-gutter, 0px)))
   );
+  background: var(--portfolio-drawer-ground);
   transform: none;
   opacity: 0.001;
   transition: opacity var(--portfolio-project-image-fade-ms) ease;
@@ -1050,9 +1070,35 @@ body.portfolio-project-open .portfolio-deck-mount .portfolio-project-card.is-sel
 
 .portfolio-project-view__image-veil {
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
+  inset: calc(-1 * var(--portfolio-hero-edge-cover-width));
+  border-radius: calc(var(--portfolio-hero-image-radius) + var(--portfolio-hero-edge-cover-width));
+  box-shadow: inset 0 0 0 var(--portfolio-hero-edge-cover-width)
+    rgba(var(--abs-rgb-black), var(--portfolio-hero-edge-cover-opacity));
   background:
+    radial-gradient(
+      var(--portfolio-hero-corner-fade-size) var(--portfolio-hero-corner-fade-size) at 0% 0%,
+      rgba(var(--abs-rgb-black), var(--portfolio-hero-corner-fade-top-opacity)) 0%,
+      rgba(var(--abs-rgb-black), calc(var(--portfolio-hero-corner-fade-top-opacity) * 0.54)) 38%,
+      transparent 72%
+    ),
+    radial-gradient(
+      var(--portfolio-hero-corner-fade-size) var(--portfolio-hero-corner-fade-size) at 100% 0%,
+      rgba(var(--abs-rgb-black), calc(var(--portfolio-hero-corner-fade-top-opacity) * 0.86)) 0%,
+      rgba(var(--abs-rgb-black), calc(var(--portfolio-hero-corner-fade-top-opacity) * 0.5)) 38%,
+      transparent 72%
+    ),
+    radial-gradient(
+      var(--portfolio-hero-corner-fade-size) var(--portfolio-hero-corner-fade-size) at 0% 100%,
+      rgba(var(--abs-rgb-black), var(--portfolio-hero-corner-fade-opacity)) 0%,
+      rgba(var(--abs-rgb-black), calc(var(--portfolio-hero-corner-fade-opacity) * 0.72)) 38%,
+      transparent 72%
+    ),
+    radial-gradient(
+      var(--portfolio-hero-corner-fade-size) var(--portfolio-hero-corner-fade-size) at 100% 100%,
+      rgba(var(--abs-rgb-black), calc(var(--portfolio-hero-corner-fade-opacity) * 0.86)) 0%,
+      rgba(var(--abs-rgb-black), calc(var(--portfolio-hero-corner-fade-opacity) * 0.58)) 38%,
+      transparent 72%
+    ),
     linear-gradient(
       90deg,
       rgba(0, 0, 0, 0.62) 0%,
