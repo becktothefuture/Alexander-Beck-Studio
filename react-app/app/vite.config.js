@@ -10,6 +10,8 @@ import { flattenDesignConfigDir } from '../../scripts/lib/flatten-design-config.
 import {
   SIMULATION_ADMIN_PATHS,
   createSimulationIssue,
+  createSimulationDeletionPlan,
+  deleteSimulation,
   getSimulationDashboardStatus,
   updateSimulationIssueStatus,
   updateSimulationReviewStatus,
@@ -51,8 +53,12 @@ async function readRequestJson(req) {
 }
 
 function runRepoNodeScript(args, { timeoutMs = 120000 } = {}) {
+  return runRepoCommand(process.execPath, args, { timeoutMs });
+}
+
+function runRepoCommand(command, args, { timeoutMs = 120000 } = {}) {
   return new Promise((resolveCommand) => {
-    const child = spawn(process.execPath, args, {
+    const child = spawn(command, args, {
       cwd: repoRoot,
       env: {
         ...process.env,
@@ -281,6 +287,42 @@ function designSystemDevPlugin() {
         }
       });
 
+      server.middlewares.use('/api/simulations/delete', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        try {
+          const payload = await readRequestJson(req);
+          const id = payload?.id;
+          if (payload?.dryRun) {
+            const plan = await createSimulationDeletionPlan({ id });
+            sendJson(res, 200, { ok: true, plan });
+            return;
+          }
+
+          const result = await deleteSimulation({
+            id,
+            confirmId: payload?.confirmId,
+          });
+
+          server.ws.send({
+            type: 'full-reload',
+            path: '/simulations.html',
+          });
+
+          sendJson(res, 200, { ok: true, ...result });
+        } catch (error) {
+          sendJson(res, error?.statusCode || 500, {
+            ok: false,
+            error: error?.message || 'Failed to delete simulation',
+            plan: error?.plan,
+          });
+        }
+      });
+
       server.middlewares.use('/api/simulations/status', async (req, res) => {
         if (req.method !== 'GET') {
           res.statusCode = 405;
@@ -304,6 +346,25 @@ function designSystemDevPlugin() {
 
         const result = await runRepoNodeScript(['scripts/validate-simulation-catalog.mjs'], {
           timeoutMs: 60000,
+        });
+        sendJson(res, result.ok ? 200 : 500, {
+          ok: result.ok,
+          stdout: result.stdout,
+          stderr: result.stderr,
+          code: result.code,
+          signal: result.signal,
+        });
+      });
+
+      server.middlewares.use('/api/simulations/build', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        const result = await runRepoCommand('npm', ['run', 'build'], {
+          timeoutMs: 240000,
         });
         sendJson(res, result.ok ? 200 : 500, {
           ok: result.ok,

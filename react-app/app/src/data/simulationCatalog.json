@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-24",
+  "updatedAt": "2026-06-25",
   "stages": {
     "daily-rotation": "Makes the live homepage daily rotation.",
     "collection": "Available to review or launch, but not part of the daily rotation.",
@@ -319,11 +319,12 @@
       "id": "beach-ball-room",
       "name": "Beach Ball Room",
       "chapter": "BEACH BALL ROOM",
-      "stage": "collection",
+      "stage": "automation-candidate",
       "surface": "lab-route",
       "origin": "lab",
       "launchPath": "/lab/beach-ball-room.html",
       "dailyHref": "/lab/beach-ball-room.html?daily=1",
+      "pitchPath": "docs/simulations/pitches/2026-06-25-beach-ball-room.md",
       "includeInNarrative": false,
       "reviewStatus": "watch",
       "capture": {
@@ -331,7 +332,8 @@
         "readySelector": ".beach-ball-room-canvas",
         "notes": "WebGL route; capture launches Chromium with SwiftShader flags."
       },
-      "summary": "Staged lab route for large beach-ball room behavior."
+      "summary": "Staged lab route for large beach-ball room behavior.",
+      "lastReviewedAt": "2026-06-25"
     },
     {
       "id": "confluence-bridges",

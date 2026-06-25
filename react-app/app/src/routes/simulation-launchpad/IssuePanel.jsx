@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { X } from 'lucide-react';
 
 export function IssuePanel({ entry, adminApi, onClose, onSaved }) {
   const [title, setTitle] = useState('');
@@ -30,8 +31,8 @@ export function IssuePanel({ entry, adminApi, onClose, onSaved }) {
             <p>Log issue</p>
             <h2 id="simulation-issue-title">{entry.name}</h2>
           </div>
-          <button type="button" className="simulation-dashboard-icon-button" onClick={onClose} aria-label="Close issue logger">
-            <i className="ti ti-x" aria-hidden="true" />
+          <button type="button" className="simulation-dashboard-icon-button" onClick={onClose} aria-label="Close issue logger" data-tooltip="Close without saving">
+            <X aria-hidden="true" size={16} strokeWidth={2} />
           </button>
         </div>
 
