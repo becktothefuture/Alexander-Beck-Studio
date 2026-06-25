@@ -9,6 +9,8 @@ function RouteSceneMount({ routeRenderKey, children }) {
       return <div data-sfid="sfid:shell/cv">{children}</div>;
     case 'styleguide':
       return <div data-sfid="sfid:shell/styleguide">{children}</div>;
+    case 'simulations':
+      return <div data-sfid="sfid:shell/simulations">{children}</div>;
     case 'palette-lab':
       return <div data-sfid="sfid:shell/palette-lab">{children}</div>;
     case 'beach-ball-room':
@@ -29,6 +31,8 @@ function RouteSceneMount({ routeRenderKey, children }) {
       return <div data-sfid="sfid:shell/confluence-bridges">{children}</div>;
     case 'napoleon-point-cloud':
       return <div data-sfid="sfid:shell/napoleon-point-cloud">{children}</div>;
+    case 'spatial-scan':
+      return <div data-sfid="sfid:shell/spatial-scan">{children}</div>;
     case 'home':
     default:
       return <div data-sfid="sfid:shell/home">{children}</div>;

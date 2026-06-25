@@ -1,8 +1,11 @@
+import { isSimulationInDailyRotation } from '../../data/simulationCatalog.js';
+
 export const CONCEPT_SIMULATION_IDS = Object.freeze({
   APERTURE_BLOOM: 'aperture-bloom',
   PRESSURE_MOSAIC: 'pressure-mosaic',
   CONFLUENCE_BRIDGES: 'confluence-bridges',
   NAPOLEON_POINT_CLOUD: 'napoleon-point-cloud',
+  SPATIAL_SCAN: 'spatial-scan',
 });
 
 export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
@@ -13,7 +16,7 @@ export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
     path: '/lab/aperture-bloom.html',
     configPath: '/config/aperture-bloom-demo.json',
     ariaLabel: 'A radial circle aperture opening and settling under pointer pressure',
-    enabledInRotation: true,
+    enabledInRotation: isSimulationInDailyRotation(CONCEPT_SIMULATION_IDS.APERTURE_BLOOM),
     defaults: {
       version: 1,
       enabled: true,
@@ -42,7 +45,7 @@ export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
     path: '/lab/pressure-mosaic.html',
     configPath: '/config/pressure-mosaic-demo.json',
     ariaLabel: 'A packed circle mosaic opening temporary pressure gaps around the pointer',
-    enabledInRotation: true,
+    enabledInRotation: isSimulationInDailyRotation(CONCEPT_SIMULATION_IDS.PRESSURE_MOSAIC),
     defaults: {
       version: 1,
       enabled: true,
@@ -68,7 +71,7 @@ export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
     path: '/lab/confluence-bridges.html',
     configPath: '/config/confluence-bridges-demo.json',
     ariaLabel: 'Weighted discipline circles connected by shifting circle bridges',
-    enabledInRotation: false,
+    enabledInRotation: isSimulationInDailyRotation(CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES),
     defaults: {
       version: 1,
       enabled: true,
@@ -102,7 +105,7 @@ export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
     path: '/lab/napoleon-point-cloud.html',
     configPath: '/config/napoleon-point-cloud-demo.json',
     ariaLabel: 'A dot-only surface-sampled point cloud of The bust of Napoleon Bonaparte',
-    enabledInRotation: true,
+    enabledInRotation: isSimulationInDailyRotation(CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD),
     defaults: {
       version: 1,
       enabled: true,
@@ -119,6 +122,34 @@ export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
       focus: 1,
       breathingMotion: 0.42,
       maxDpr: 1.5,
+      pauseWhenHidden: true,
+    },
+  },
+  [CONCEPT_SIMULATION_IDS.SPATIAL_SCAN]: {
+    id: CONCEPT_SIMULATION_IDS.SPATIAL_SCAN,
+    name: 'Spatial Scan',
+    chapter: 'SPATIAL SCAN',
+    path: '/lab/spatial-scan.html',
+    configPath: '/config/spatial-scan-demo.json',
+    ariaLabel: 'A flat-circle point-cloud scan route with a baked camera path',
+    enabledInRotation: isSimulationInDailyRotation(CONCEPT_SIMULATION_IDS.SPATIAL_SCAN),
+    defaults: {
+      version: 1,
+      enabled: true,
+      quality: 'medium',
+      mobileQuality: 'low',
+      pointDensity: 0.74,
+      dotSize: 5.8,
+      dotOpacity: 0.92,
+      colourMode: 'surface-bands',
+      cameraMode: 'loop',
+      loopDuration: 18,
+      scrollSmoothing: 0.12,
+      interactionStrength: 0.42,
+      erosionStrength: 0.04,
+      spread: 0.025,
+      breathingMotion: 0.16,
+      maxDpr: 1.4,
       pauseWhenHidden: true,
     },
   },
@@ -206,6 +237,22 @@ export function normalizeConceptSimulationConfig(simulationId, input = {}) {
     next.interactionStrength = clampNumber(next.interactionStrength, 0, 1.4, defaults.interactionStrength);
     next.spread = clampNumber(next.spread, 0, 0.18, defaults.spread);
     next.focus = clampNumber(next.focus, 0.72, 1.35, defaults.focus);
+    next.breathingMotion = clampNumber(next.breathingMotion, 0, 0.9, defaults.breathingMotion);
+  }
+
+  if (simulationId === CONCEPT_SIMULATION_IDS.SPATIAL_SCAN) {
+    next.quality = ['low', 'medium', 'high'].includes(next.quality) ? next.quality : defaults.quality;
+    next.mobileQuality = ['low', 'medium', 'high'].includes(next.mobileQuality) ? next.mobileQuality : defaults.mobileQuality;
+    next.pointDensity = clampNumber(next.pointDensity, 0.08, 1, defaults.pointDensity);
+    next.dotSize = clampNumber(next.dotSize, 3, 42, defaults.dotSize);
+    next.dotOpacity = clampNumber(next.dotOpacity, 0.18, 1, defaults.dotOpacity);
+    next.colourMode = ['surface-bands', 'dominant'].includes(next.colourMode) ? next.colourMode : defaults.colourMode;
+    next.cameraMode = ['loop', 'scroll', 'orbit'].includes(next.cameraMode) ? next.cameraMode : defaults.cameraMode;
+    next.loopDuration = clampNumber(next.loopDuration, 6, 60, defaults.loopDuration);
+    next.scrollSmoothing = clampNumber(next.scrollSmoothing, 0.02, 0.42, defaults.scrollSmoothing);
+    next.interactionStrength = clampNumber(next.interactionStrength, 0, 1.4, defaults.interactionStrength);
+    next.erosionStrength = clampNumber(next.erosionStrength, 0, 0.72, defaults.erosionStrength);
+    next.spread = clampNumber(next.spread, 0, 0.24, defaults.spread);
     next.breathingMotion = clampNumber(next.breathingMotion, 0, 0.9, defaults.breathingMotion);
   }
 

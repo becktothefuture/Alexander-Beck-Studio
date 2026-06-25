@@ -12,6 +12,7 @@ import {
 } from './conceptSimulationConfigs.js';
 import { createConceptSimulationRenderer } from './conceptSimulationRenderer.js';
 import { NapoleonPointCloud } from '../napoleon-point-cloud/NapoleonPointCloud.jsx';
+import { SpatialScanPointCloud } from '../spatial-scan/SpatialScanPointCloud.jsx';
 import './concept-simulations.css';
 
 const DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
@@ -100,6 +101,97 @@ const NAPOLEON_CONTROL_GROUPS = [
   },
 ];
 
+const SPATIAL_SCAN_AMOUNT_OPTIONS = [
+  { value: 'low', label: '40k' },
+  { value: 'medium', label: '120k' },
+  { value: 'high', label: '260k' },
+];
+
+const SPATIAL_SCAN_CAMERA_OPTIONS = [
+  { value: 'loop', label: 'Loop' },
+  { value: 'scroll', label: 'Scroll' },
+  { value: 'orbit', label: 'Orbit' },
+];
+
+const SPATIAL_SCAN_CONTROL_GROUPS = [
+  {
+    title: 'Points',
+    controls: [
+      {
+        id: 'quality',
+        type: 'select',
+        label: 'Amount',
+        options: SPATIAL_SCAN_AMOUNT_OPTIONS,
+      },
+      {
+        id: 'pointDensity',
+        type: 'range',
+        label: 'Density',
+        min: 0.08,
+        max: 1,
+        step: 0.02,
+        format: (value) => `${Math.round(Number(value) * 100)}%`,
+      },
+      {
+        id: 'dotSize',
+        type: 'range',
+        label: 'Size',
+        min: 3,
+        max: 42,
+        step: 0.2,
+        format: (value) => Number(value).toFixed(1),
+      },
+      {
+        id: 'erosionStrength',
+        type: 'range',
+        label: 'Erode',
+        min: 0,
+        max: 0.72,
+        step: 0.01,
+        format: (value) => `${Math.round(Number(value) * 100)}%`,
+      },
+    ],
+  },
+  {
+    title: 'Camera',
+    controls: [
+      {
+        id: 'cameraMode',
+        type: 'select',
+        label: 'Mode',
+        options: SPATIAL_SCAN_CAMERA_OPTIONS,
+      },
+      {
+        id: 'loopDuration',
+        type: 'range',
+        label: 'Loop',
+        min: 6,
+        max: 60,
+        step: 1,
+        format: (value) => `${Math.round(Number(value))}s`,
+      },
+      {
+        id: 'interactionStrength',
+        type: 'range',
+        label: 'Drag',
+        min: 0,
+        max: 1.4,
+        step: 0.01,
+        format: (value) => `${Number(value).toFixed(2)}x`,
+      },
+      {
+        id: 'spread',
+        type: 'range',
+        label: 'Spread',
+        min: 0,
+        max: 0.24,
+        step: 0.005,
+        format: (value) => Number(value).toFixed(3),
+      },
+    ],
+  },
+];
+
 async function loadJson(url, fallback) {
   try {
     const response = await fetch(url, { cache: 'no-store' });
@@ -160,6 +252,31 @@ function coerceNapoleonControlValue(control, value, checked) {
   if (control.type === 'checkbox') return Boolean(checked);
   if (control.type === 'range') return Number(value);
   return value;
+}
+
+function readConfigOverridesFromSearch(defaults) {
+  if (typeof window === 'undefined') return {};
+  const params = new URLSearchParams(window.location.search);
+  const overrides = {};
+
+  for (const [key, defaultValue] of Object.entries(defaults)) {
+    const value = params.get(key);
+    if (value === null) continue;
+    if (typeof defaultValue === 'boolean') {
+      overrides[key] = ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
+    } else if (typeof defaultValue === 'number') {
+      overrides[key] = Number(value);
+    } else {
+      overrides[key] = value;
+    }
+  }
+
+  const spatialMode = params.get('mode');
+  if (spatialMode !== null && Object.prototype.hasOwnProperty.call(defaults, 'cameraMode')) {
+    overrides.cameraMode = spatialMode;
+  }
+
+  return overrides;
 }
 
 function NapoleonControlRow({ control, value, onChange }) {
@@ -252,9 +369,93 @@ function NapoleonPointCloudPanel({ config, onChange, onReset }) {
   );
 }
 
+function formatSpatialScanControlValue(control, value) {
+  if (control.type === 'select') return getOptionLabel(control.options, value);
+  return control.format ? control.format(value) : Number(value).toFixed(2);
+}
+
+function coerceSpatialScanControlValue(control, value) {
+  if (control.type === 'range') return Number(value);
+  return value;
+}
+
+function SpatialScanControlRow({ control, value, onChange }) {
+  const id = `spatial-scan-control-${control.id}`;
+
+  if (control.type === 'select') {
+    return (
+      <label className="parameterizer-row napoleon-control-row" htmlFor={id}>
+        <span className="parameterizer-label" title={control.label}>{control.label}</span>
+        <span className="parameterizer-control">
+          <select
+            id={id}
+            value={value}
+            onChange={(event) => onChange(control, event.target.value)}
+          >
+            {control.options.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </span>
+        <span className="parameterizer-value">{formatSpatialScanControlValue(control, value)}</span>
+      </label>
+    );
+  }
+
+  return (
+    <label className="parameterizer-row napoleon-control-row" htmlFor={id}>
+      <span className="parameterizer-label" title={control.label}>{control.label}</span>
+      <span className="parameterizer-control">
+        <input
+          id={id}
+          type="range"
+          min={control.min}
+          max={control.max}
+          step={control.step}
+          value={value}
+          onChange={(event) => onChange(control, event.target.value)}
+        />
+      </span>
+      <span className="parameterizer-value">{formatSpatialScanControlValue(control, value)}</span>
+    </label>
+  );
+}
+
+function SpatialScanPointCloudPanel({ config, onChange, onReset }) {
+  return (
+    <aside className="parameterizer-panel napoleon-point-cloud-panel" aria-label="Spatial scan controls">
+      <div className="parameterizer-header">
+        <span>Spatial scan</span>
+        <span className="napoleon-point-cloud-panel__status">live</span>
+      </div>
+      <div className="parameterizer-scroll">
+        {SPATIAL_SCAN_CONTROL_GROUPS.map((group) => (
+          <details key={group.title} className="parameterizer-folder" open>
+            <summary className="parameterizer-folder-title">{group.title}</summary>
+            <div className="napoleon-point-cloud-panel__rows">
+              {group.controls.map((control) => (
+                <SpatialScanControlRow
+                  key={control.id}
+                  control={control}
+                  value={config[control.id]}
+                  onChange={onChange}
+                />
+              ))}
+            </div>
+          </details>
+        ))}
+      </div>
+      <div className="parameterizer-actions">
+        <button type="button" onClick={onReset}>Reset</button>
+      </div>
+    </aside>
+  );
+}
+
 export function ConceptSimulationDemo({ simulationId }) {
   const entry = CONCEPT_SIMULATION_REGISTRY[simulationId];
   const isNapoleonPointCloud = simulationId === CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD;
+  const isSpatialScanPointCloud = simulationId === CONCEPT_SIMULATION_IDS.SPATIAL_SCAN;
   const showControlPanel = shouldShowControlPanel();
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
@@ -275,6 +476,16 @@ export function ConceptSimulationDemo({ simulationId }) {
   }, []);
 
   useEffect(() => {
+    if (!isSpatialScanPointCloud) return undefined;
+    document.body.dataset.spatialScanCameraMode = config.cameraMode;
+    document.documentElement.dataset.spatialScanCameraMode = config.cameraMode;
+    return () => {
+      delete document.body.dataset.spatialScanCameraMode;
+      delete document.documentElement.dataset.spatialScanCameraMode;
+    };
+  }, [config.cameraMode, isSpatialScanPointCloud]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function loadInitialConfig() {
@@ -285,7 +496,10 @@ export function ConceptSimulationDemo({ simulationId }) {
 
       if (cancelled) return;
       const nextTheme = resolveConceptTheme(designSystem);
-      const nextConfig = normalizeConceptSimulationConfig(simulationId, demoConfig);
+      const nextConfig = normalizeConceptSimulationConfig(simulationId, {
+        ...demoConfig,
+        ...readConfigOverridesFromSearch(entry.defaults),
+      });
       themeRef.current = nextTheme;
       configRef.current = nextConfig;
       setThemeColors(nextTheme);
@@ -357,7 +571,7 @@ export function ConceptSimulationDemo({ simulationId }) {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (isNapoleonPointCloud || !canvas || !ready) return undefined;
+    if (isNapoleonPointCloud || isSpatialScanPointCloud || !canvas || !ready) return undefined;
 
     rendererRef.current = createConceptSimulationRenderer({
       canvas,
@@ -375,7 +589,7 @@ export function ConceptSimulationDemo({ simulationId }) {
       rendererRef.current?.destroy();
       rendererRef.current = null;
     };
-  }, [isNapoleonPointCloud, ready, reducedMotion, simulationId]);
+  }, [isNapoleonPointCloud, isSpatialScanPointCloud, ready, reducedMotion, simulationId]);
 
   useEffect(() => {
     window.__ABS_CONCEPT_SIMULATION__ = {
@@ -388,19 +602,27 @@ export function ConceptSimulationDemo({ simulationId }) {
       getMetrics: () => (
         isNapoleonPointCloud
           ? window.__ABS_NAPOLEON_POINT_CLOUD__?.getMetrics?.()
-          : rendererRef.current?.getMetrics()
+          : (
+            isSpatialScanPointCloud
+              ? window.__ABS_SPATIAL_SCAN_POINT_CLOUD__?.getMetrics?.()
+              : rendererRef.current?.getMetrics()
+          )
       ),
       renderOnce: () => (
         isNapoleonPointCloud
           ? window.__ABS_NAPOLEON_POINT_CLOUD__?.renderOnce?.()
-          : rendererRef.current?.renderOnce()
+          : (
+            isSpatialScanPointCloud
+              ? window.__ABS_SPATIAL_SCAN_POINT_CLOUD__?.renderOnce?.()
+              : rendererRef.current?.renderOnce()
+          )
       ),
     };
 
     return () => {
       delete window.__ABS_CONCEPT_SIMULATION__;
     };
-  }, [isNapoleonPointCloud, simulationId]);
+  }, [isNapoleonPointCloud, isSpatialScanPointCloud, simulationId]);
 
   const updateNapoleonControl = useCallback((control, value, checked) => {
     setConfig((current) => {
@@ -421,6 +643,25 @@ export function ConceptSimulationDemo({ simulationId }) {
     setConfig(normalizeConceptSimulationConfig(simulationId, entry.defaults));
   }, [entry.defaults, simulationId]);
 
+  const updateSpatialScanControl = useCallback((control, value) => {
+    setConfig((current) => {
+      const next = {
+        ...current,
+        [control.id]: coerceSpatialScanControlValue(control, value),
+      };
+
+      if (control.id === 'quality') {
+        next.mobileQuality = next.quality;
+      }
+
+      return normalizeConceptSimulationConfig(simulationId, next);
+    });
+  }, [simulationId]);
+
+  const resetSpatialScanControls = useCallback(() => {
+    setConfig(normalizeConceptSimulationConfig(simulationId, entry.defaults));
+  }, [entry.defaults, simulationId]);
+
   if (isNapoleonPointCloud) {
     return (
       <section
@@ -428,6 +669,7 @@ export function ConceptSimulationDemo({ simulationId }) {
         data-simulation-id={simulationId}
         data-enabled-in-rotation={String(entry.enabledInRotation)}
         data-panel-visible={String(showControlPanel)}
+        data-camera-mode={config.cameraMode}
         style={{ '--concept-simulation-surface': themeColors.active }}
         aria-label={`${entry.name} lab`}
       >
@@ -454,6 +696,46 @@ export function ConceptSimulationDemo({ simulationId }) {
             config={config}
             onChange={updateNapoleonControl}
             onReset={resetNapoleonControls}
+          />
+        ) : null}
+      </section>
+    );
+  }
+
+  if (isSpatialScanPointCloud) {
+    return (
+      <section
+        className="concept-simulation-demo"
+        data-simulation-id={simulationId}
+        data-enabled-in-rotation={String(entry.enabledInRotation)}
+        data-panel-visible={String(showControlPanel)}
+        style={{ '--concept-simulation-surface': themeColors.active }}
+        aria-label={`${entry.name} lab`}
+      >
+        <SpatialScanPointCloud
+          quality={config.quality}
+          mobileQuality={config.mobileQuality}
+          pointDensity={config.pointDensity}
+          dotSize={config.dotSize}
+          dotOpacity={config.dotOpacity}
+          colourMode={config.colourMode}
+          cameraMode={config.cameraMode}
+          loopDuration={config.loopDuration}
+          scrollSmoothing={config.scrollSmoothing}
+          interactionStrength={config.interactionStrength}
+          erosionStrength={config.erosionStrength}
+          spread={config.spread}
+          breathingMotion={config.breathingMotion}
+          maxDpr={config.maxDpr}
+          reducedMotion={reducedMotion}
+          theme={themeColors}
+          ariaLabel={entry.ariaLabel}
+        />
+        {showControlPanel ? (
+          <SpatialScanPointCloudPanel
+            config={config}
+            onChange={updateSpatialScanControl}
+            onReset={resetSpatialScanControls}
           />
         ) : null}
       </section>

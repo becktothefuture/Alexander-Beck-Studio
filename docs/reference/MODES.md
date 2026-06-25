@@ -19,6 +19,7 @@ Source of truth for mode IDs and narrative order:
 These pages are review surfaces, not registered narrative modes. Do not add them to daily rotation or Extended rotation without explicit approval and a full promotion pass.
 
 - Confluence Bridges — `confluence-bridges`, `/lab/confluence-bridges.html`, concept-lab registry entry with `enabledInRotation: false`; weighted circle discipline hubs build and stretch circle bridges under pointer movement and drag.
+- Spatial Scan — `spatial-scan`, `/lab/spatial-scan.html`, concept-lab registry entry with `enabledInRotation: false`; scan-derived point-cloud route with a baked Blender camera path and flat site-circle rendering.
 
 ---
 

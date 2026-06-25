@@ -5,6 +5,10 @@ import { getHomeRouteView, HOME_ROUTE_RUNTIME } from '../../routes/home/HomeRout
 import { getPortfolioRouteView, PORTFOLIO_ROUTE_RUNTIME } from '../../routes/portfolio/PortfolioRoute.jsx';
 import { getCvRouteView, CV_ROUTE_RUNTIME } from '../../routes/cv/CvRoute.jsx';
 import { getStyleguideRouteView, STYLEGUIDE_ROUTE_RUNTIME } from '../../routes/styleguide/StyleguideRoute.jsx';
+import {
+  getSimulationLaunchpadRouteView,
+  SIMULATION_LAUNCHPAD_ROUTE_RUNTIME,
+} from '../../routes/simulation-launchpad/SimulationLaunchpadRoute.jsx';
 import { getPaletteLabRouteView, PALETTE_LAB_ROUTE_RUNTIME } from '../../routes/palette-lab/PaletteLabRoute.jsx';
 import { getBeachBallRoomRouteView, BEACH_BALL_ROOM_ROUTE_RUNTIME } from '../../routes/beach-ball-room/BeachBallRoomRoute.jsx';
 import { getFlockOfBirdsRouteView, FLOCK_OF_BIRDS_ROUTE_RUNTIME } from '../../routes/flock-of-birds/FlockOfBirdsRoute.jsx';
@@ -18,8 +22,10 @@ import {
   getConfluenceBridgesRouteView,
   getNapoleonPointCloudRouteView,
   getPressureMosaicRouteView,
+  getSpatialScanRouteView,
   NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME,
   PRESSURE_MOSAIC_ROUTE_RUNTIME,
+  SPATIAL_SCAN_ROUTE_RUNTIME,
 } from '../../routes/concept-simulations/ConceptSimulationRoute.jsx';
 import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
 import { useShellRouteTransition } from '../../hooks/useShellRouteTransition.js';
@@ -30,6 +36,7 @@ const ROUTE_VIEW_BY_ID = {
   portfolio: getPortfolioRouteView,
   cv: getCvRouteView,
   styleguide: getStyleguideRouteView,
+  simulations: getSimulationLaunchpadRouteView,
   'palette-lab': getPaletteLabRouteView,
   'beach-ball-room': getBeachBallRoomRouteView,
   'flock-of-birds': getFlockOfBirdsRouteView,
@@ -39,7 +46,8 @@ const ROUTE_VIEW_BY_ID = {
   'aperture-bloom': getApertureBloomRouteView,
   'pressure-mosaic': getPressureMosaicRouteView,
   'confluence-bridges': getConfluenceBridgesRouteView,
-  'napoleon-point-cloud': getNapoleonPointCloudRouteView
+  'napoleon-point-cloud': getNapoleonPointCloudRouteView,
+  'spatial-scan': getSpatialScanRouteView
 };
 
 const ROUTE_RUNTIME_BY_ID = {
@@ -47,6 +55,7 @@ const ROUTE_RUNTIME_BY_ID = {
   portfolio: PORTFOLIO_ROUTE_RUNTIME,
   cv: CV_ROUTE_RUNTIME,
   styleguide: STYLEGUIDE_ROUTE_RUNTIME,
+  simulations: SIMULATION_LAUNCHPAD_ROUTE_RUNTIME,
   'palette-lab': PALETTE_LAB_ROUTE_RUNTIME,
   'beach-ball-room': BEACH_BALL_ROOM_ROUTE_RUNTIME,
   'flock-of-birds': FLOCK_OF_BIRDS_ROUTE_RUNTIME,
@@ -56,7 +65,8 @@ const ROUTE_RUNTIME_BY_ID = {
   'aperture-bloom': APERTURE_BLOOM_ROUTE_RUNTIME,
   'pressure-mosaic': PRESSURE_MOSAIC_ROUTE_RUNTIME,
   'confluence-bridges': CONFLUENCE_BRIDGES_ROUTE_RUNTIME,
-  'napoleon-point-cloud': NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME
+  'napoleon-point-cloud': NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME,
+  'spatial-scan': SPATIAL_SCAN_ROUTE_RUNTIME
 };
 
 function getRouteViewForId(routeId) {
@@ -106,9 +116,10 @@ export function SiteApp() {
     getRouteRuntime: getRouteRuntimeForId,
     surfaceRefs,
   });
+  const isStandaloneRoute = routeView.layout === 'standalone';
 
   useLegacyRouteRuntime({
-    active: true,
+    active: !isStandaloneRoute,
     loadModule: routeRuntime.loadModule,
     exportName: routeRuntime.exportName,
     routeId: routeState.route.id
@@ -155,17 +166,21 @@ export function SiteApp() {
 
   return (
     <>
-      <DevConfigPanelBridge />
-      <BodyClassManager className={routeView.bodyClass} />
-      <StudioShell
-        routeRenderKey={routeState.route.id}
-        wallClassName={routeView.wallClassName}
-        wallContent={routeView.wallContent}
-        headerContent={routeView.headerContent}
-        mainContent={routeView.mainContent}
-        heroTitle={routeView.heroTitle}
-        surfaceRefs={surfaceRefs}
-      />
+      {!isStandaloneRoute ? <DevConfigPanelBridge /> : null}
+      <BodyClassManager className={routeView.bodyClass} htmlClassName={routeView.htmlClassName} />
+      {isStandaloneRoute ? (
+        routeView.mainContent
+      ) : (
+        <StudioShell
+          routeRenderKey={routeState.route.id}
+          wallClassName={routeView.wallClassName}
+          wallContent={routeView.wallContent}
+          headerContent={routeView.headerContent}
+          mainContent={routeView.mainContent}
+          heroTitle={routeView.heroTitle}
+          surfaceRefs={surfaceRefs}
+        />
+      )}
     </>
   );
 }

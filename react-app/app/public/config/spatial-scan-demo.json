@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "enabled": true,
+  "quality": "medium",
+  "mobileQuality": "low",
+  "pointDensity": 0.74,
+  "dotSize": 5.8,
+  "dotOpacity": 0.92,
+  "colourMode": "surface-bands",
+  "cameraMode": "loop",
+  "loopDuration": 18,
+  "scrollSmoothing": 0.12,
+  "interactionStrength": 0.42,
+  "erosionStrength": 0.04,
+  "spread": 0.025,
+  "breathingMotion": 0.16,
+  "maxDpr": 1.4,
+  "pauseWhenHidden": true
+}

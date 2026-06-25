@@ -11,6 +11,7 @@ export const APERTURE_BLOOM_ROUTE_RUNTIME = {};
 export const PRESSURE_MOSAIC_ROUTE_RUNTIME = {};
 export const CONFLUENCE_BRIDGES_ROUTE_RUNTIME = {};
 export const NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME = {};
+export const SPATIAL_SCAN_ROUTE_RUNTIME = {};
 
 function getConceptSimulationRouteView(simulationId) {
   const entry = CONCEPT_SIMULATION_REGISTRY[simulationId];
@@ -50,4 +51,8 @@ export function getConfluenceBridgesRouteView() {
 
 export function getNapoleonPointCloudRouteView() {
   return getConceptSimulationRouteView(CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD);
+}
+
+export function getSpatialScanRouteView() {
+  return getConceptSimulationRouteView(CONCEPT_SIMULATION_IDS.SPATIAL_SCAN);
 }

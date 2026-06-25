@@ -1,10 +1,20 @@
 import { Buffer } from 'node:buffer';
+import { spawn } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { flattenDesignConfigDir } from '../../scripts/lib/flatten-design-config.mjs';
+import {
+  SIMULATION_ADMIN_PATHS,
+  createSimulationIssue,
+  getSimulationDashboardStatus,
+  updateSimulationIssueStatus,
+  updateSimulationReviewStatus,
+  updateSimulationStage,
+} from '../../scripts/lib/simulation-admin-store.mjs';
 import { normalizeMineralGrowthConfig } from './src/routes/mineral-growth/mineralGrowthControls.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -13,6 +23,7 @@ const rainPrismConfigPath = resolve(publicConfigDir, 'rain-prism-demo.json');
 const flockOfBirdsConfigPath = resolve(publicConfigDir, 'flock-of-birds-demo.json');
 const wallRepelConfigPath = resolve(publicConfigDir, 'wall-repel-demo.json');
 const mineralGrowthConfigPath = resolve(publicConfigDir, 'mineral-growth-demo.json');
+const repoRoot = SIMULATION_ADMIN_PATHS.repoRoot;
 const VIRTUAL_CONTENT_PREFIX = '\0virtual:abs-content/';
 const CONTENT_MODULES = {
   'virtual:abs-content/home': resolve(publicConfigDir, 'contents-home.json'),
@@ -29,6 +40,45 @@ function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify(payload));
+}
+
+async function readRequestJson(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+}
+
+function runRepoNodeScript(args, { timeoutMs = 120000 } = {}) {
+  return new Promise((resolveCommand) => {
+    const child = spawn(process.execPath, args, {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        FORCE_COLOR: '0',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const stdout = [];
+    const stderr = [];
+    const timer = setTimeout(() => {
+      child.kill('SIGTERM');
+    }, timeoutMs);
+
+    child.stdout.on('data', (chunk) => stdout.push(Buffer.from(chunk)));
+    child.stderr.on('data', (chunk) => stderr.push(Buffer.from(chunk)));
+    child.on('close', (code, signal) => {
+      clearTimeout(timer);
+      resolveCommand({
+        ok: code === 0,
+        code,
+        signal,
+        stdout: Buffer.concat(stdout).toString('utf8').trim(),
+        stderr: Buffer.concat(stderr).toString('utf8').trim(),
+      });
+    });
+  });
 }
 
 function designSystemDevPlugin() {
@@ -195,6 +245,157 @@ function designSystemDevPlugin() {
           sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save mineral growth config' });
         }
       });
+
+      server.middlewares.use('/api/simulations/issues/status', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        try {
+          const payload = await readRequestJson(req);
+          const result = await updateSimulationIssueStatus({
+            fileName: payload?.fileName,
+            status: payload?.status,
+          });
+          sendJson(res, 200, { ok: true, ...result });
+        } catch (error) {
+          sendJson(res, error?.statusCode || 500, { ok: false, error: error?.message || 'Failed to update simulation issue status' });
+        }
+      });
+
+      server.middlewares.use('/api/simulations/issues', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        try {
+          const payload = await readRequestJson(req);
+          const { relativePath } = await createSimulationIssue(payload);
+          sendJson(res, 200, { ok: true, relativePath });
+        } catch (error) {
+          sendJson(res, error?.statusCode || 500, { ok: false, error: error?.message || 'Failed to log simulation issue' });
+        }
+      });
+
+      server.middlewares.use('/api/simulations/status', async (req, res) => {
+        if (req.method !== 'GET') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        try {
+          sendJson(res, 200, await getSimulationDashboardStatus());
+        } catch (error) {
+          sendJson(res, error?.statusCode || 500, { ok: false, error: error?.message || 'Failed to read simulation status' });
+        }
+      });
+
+      server.middlewares.use('/api/simulations/validate', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        const result = await runRepoNodeScript(['scripts/validate-simulation-catalog.mjs'], {
+          timeoutMs: 60000,
+        });
+        sendJson(res, result.ok ? 200 : 500, {
+          ok: result.ok,
+          stdout: result.stdout,
+          stderr: result.stderr,
+          code: result.code,
+          signal: result.signal,
+        });
+      });
+
+      server.middlewares.use('/api/simulations/capture', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        try {
+          const payload = await readRequestJson(req);
+          const id = String(payload?.id || '').trim();
+          if (!id) {
+            sendJson(res, 400, { ok: false, error: 'Missing simulation id' });
+            return;
+          }
+
+          const args = [
+            'scripts/capture-simulation-previews.mjs',
+            `--ids=${id}`,
+            '--frames=4',
+          ];
+          if (payload?.baseUrl) {
+            args.push(`--base-url=${payload.baseUrl}`);
+          }
+
+          const result = await runRepoNodeScript(args, { timeoutMs: 180000 });
+          sendJson(res, result.ok ? 200 : 500, {
+            ok: result.ok,
+            stdout: result.stdout,
+            stderr: result.stderr,
+            code: result.code,
+            signal: result.signal,
+          });
+        } catch (error) {
+          sendJson(res, 500, { ok: false, error: error?.message || 'Failed to capture simulation preview' });
+        }
+      });
+
+      server.middlewares.use('/api/simulations/review-status', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        try {
+          const payload = await readRequestJson(req);
+          const { simulation, changed } = await updateSimulationReviewStatus({
+            id: payload?.id,
+            reviewStatus: payload?.reviewStatus,
+          });
+          sendJson(res, 200, { ok: true, simulation, changed });
+        } catch (error) {
+          sendJson(res, error?.statusCode || 500, { ok: false, error: error?.message || 'Failed to update simulation review status' });
+        }
+      });
+
+      server.middlewares.use('/api/simulations/stage', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        try {
+          const payload = await readRequestJson(req);
+          const { simulation, changed } = await updateSimulationStage({
+            id: payload?.id,
+            stage: payload?.stage,
+          });
+
+          if (changed) {
+            server.ws.send({
+              type: 'full-reload',
+              path: '/simulations.html',
+            });
+          }
+
+          sendJson(res, 200, { ok: true, simulation, changed });
+        } catch (error) {
+          sendJson(res, error?.statusCode || 500, { ok: false, error: error?.message || 'Failed to update simulation stage' });
+        }
+      });
     },
   };
 }
@@ -247,6 +448,7 @@ export default defineConfig(({ mode }) => ({
         portfolio: resolve(__dirname, 'portfolio.html'),
         cv: resolve(__dirname, 'cv.html'),
         styleguide: resolve(__dirname, 'styleguide.html'),
+        simulations: resolve(__dirname, 'simulations.html'),
         'palette-lab': resolve(__dirname, 'palette-lab.html'),
         'lab/beach-ball-room': resolve(__dirname, 'lab/beach-ball-room.html'),
         'lab/flock-of-birds': resolve(__dirname, 'lab/flock-of-birds.html'),
@@ -257,6 +459,7 @@ export default defineConfig(({ mode }) => ({
         'lab/pressure-mosaic': resolve(__dirname, 'lab/pressure-mosaic.html'),
         'lab/confluence-bridges': resolve(__dirname, 'lab/confluence-bridges.html'),
         'lab/napoleon-point-cloud': resolve(__dirname, 'lab/napoleon-point-cloud.html'),
+        'lab/spatial-scan': resolve(__dirname, 'lab/spatial-scan.html'),
         ...(mode === 'development'
           ? { 'panel-host': resolve(__dirname, 'panel-host.html') }
           : {})

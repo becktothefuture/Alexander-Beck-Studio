@@ -8,6 +8,7 @@ react-app/app/public/video/under consideration/
 
 # Raw third-party 3D source downloads; commit processed runtime assets only
 source-assets/napoleon-bust/
+source-assets/spatial-scan/
 react-app/app/public/models/napoleon-bust/source/
 
 # Dependencies

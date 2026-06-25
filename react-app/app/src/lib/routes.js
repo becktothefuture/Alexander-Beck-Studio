@@ -25,6 +25,12 @@ const ROUTE_DEFS = {
     aliases: ['/styleguide.html', '/styleguide'],
     gated: false,
   },
+  simulations: {
+    id: 'simulations',
+    path: '/simulations.html',
+    aliases: ['/simulations.html', '/simulations'],
+    gated: false,
+  },
   'palette-lab': {
     id: 'palette-lab',
     path: '/palette-lab.html',
@@ -83,6 +89,12 @@ const ROUTE_DEFS = {
     id: 'napoleon-point-cloud',
     path: '/lab/napoleon-point-cloud.html',
     aliases: ['/lab/napoleon-point-cloud.html', '/lab/napoleon-point-cloud', '/napoleon-point-cloud.html', '/napoleon-point-cloud'],
+    gated: false,
+  },
+  'spatial-scan': {
+    id: 'spatial-scan',
+    path: '/lab/spatial-scan.html',
+    aliases: ['/lab/spatial-scan.html', '/lab/spatial-scan', '/spatial-scan.html', '/spatial-scan'],
     gated: false,
   },
 };

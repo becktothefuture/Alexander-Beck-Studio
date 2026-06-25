@@ -7,13 +7,13 @@
 import { applyLayoutCSSVars, getGlobals } from '../core/state.js';
 import {
   PARALLAX_LINEAR_PRESETS,
-  FEATURED_MODES,
   DEV_ONLY_MODES,
   NARRATIVE_MODE_SEQUENCE,
   NARRATIVE_CHAPTER_TITLES,
   MODES,
   isPitLikeMode,
 } from '../core/constants.js';
+import { getDailySimulationId } from '../../../data/simulationCatalog.js';
 import { resetCurrentMode, setMode } from '../modes/mode-controller.js';
 import { resize } from '../rendering/renderer.js';
 import { updateCursorSize } from '../rendering/cursor.js';
@@ -6231,16 +6231,7 @@ export function generateModeSwitcherHTML() {
     'napoleon-point-cloud': 'Bust'
   };
   
-  // Calculate which mode is the daily mode (inline to avoid async)
-  function getDayOfYear(date = new Date()) {
-    const oneDay = 1000 * 60 * 60 * 24;
-    const start = Date.UTC(date.getFullYear(), 0, 1);
-    const current = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-    return Math.floor((current - start) / oneDay);
-  }
-  const dayOfYear = getDayOfYear();
-  const modeIndex = dayOfYear % FEATURED_MODES.length;
-  const dailyMode = FEATURED_MODES[modeIndex];
+  const dailyMode = getDailySimulationId();
   
   let buttons = '';
   NARRATIVE_MODE_SEQUENCE.forEach((mode, idx) => {

@@ -1,3 +1,8 @@
+import {
+  DAILY_ROTATION_SIMULATION_IDS,
+  EXTENDED_SIMULATION_IDS,
+} from '../../../data/simulationCatalog.js';
+
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                          CONSTANTS (COMPLETE)                                ║
 // ║                    Extracted from balls-source.html                          ║
@@ -59,33 +64,11 @@ export function isPitLikeMode(mode) {
 // - Ball Pit opens the story (source material)
 // - Kaleidoscope closes Featured tier (vocab bloom)
 export const FEATURED_MODES = [
-  MODES.PIT,              // SOURCE MATERIAL
-  MODES.FLIES,            // IDEA SPARK
-  MODES.CUBE_3D,          // 3D FRAME
-  MODES.WATER,            // USER FLOW
-  MODES.WALL_REPEL,       // REPEL ROOM
-  MODES.APERTURE_BLOOM,   // APERTURE BLOOM
-  MODES.SPHERE_3D,        // 3D SHELL
-  MODES.NAPOLEON_POINT_CLOUD, // POINT CLOUD
-  MODES.PRESSURE_MOSAIC,  // PRESSURE MOSAIC
-  MODES.FLOCK_OF_BIRDS,   // FLIGHT FIELD
-  MODES.FLUBBER_BLOB,     // COHESION FIELD
-  MODES.WEAVE_FIELD,      // WEAVE FIELD
-  MODES.MINERAL_GROWTH,   // LIVING SYSTEM
-  // PARALLAX_LINEAR intentionally excluded from narrative cycling.
-  MODES.ELASTIC_CENTER,   // TENSION LOOM
-  MODES.KALEIDOSCOPE      // VOCAB BLOOM
+  ...DAILY_ROTATION_SIMULATION_IDS
 ];
 
 export const EXTENDED_MODES = [
-  MODES.BUBBLES,          // NOISE SIGNAL
-  MODES.MAGNETIC,         // DESIGN FORCES
-  MODES.WEIGHTLESS,       // OPEN SPACE
-  MODES.CRITTERS,         // BEHAVIOR MODEL
-  MODES.STARFIELD_3D,     // DEPTH FIELD
-  MODES.PARALLAX_FLOAT,   // ORGANIC DRIFT
-  MODES.PRESSURE_CRUCIBLE, // POLARITY FLUX
-  MODES.PARTICLE_FOUNTAIN // PARTICLE FLOW
+  ...EXTENDED_SIMULATION_IDS
 ];
 
 export const DEV_ONLY_MODES = [];

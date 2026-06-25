@@ -49,6 +49,9 @@
     "install:all" : "npm install && npm install --prefix react-app\/app",
     "precommit:check" : "bash scripts\/precommit-check.sh",
     "preview" : "npm run preview --prefix react-app\/app -- --port 8013",
+    "sim:capture" : "node scripts\/capture-simulation-previews.mjs",
+    "sim:daily" : "bash scripts\/run-daily-simulation-automation.sh",
+    "sim:validate" : "node scripts\/validate-simulation-catalog.mjs",
     "start" : "npm run preview",
     "startup" : "node scripts\/dev-startup.js",
     "validate:html-fragments" : "node scripts\/validate-html-fragments.mjs"

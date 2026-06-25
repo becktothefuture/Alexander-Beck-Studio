@@ -1,0 +1,90 @@
+.spatial-scan-point-cloud {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+
+.spatial-scan-point-cloud[data-dragging='true'],
+.spatial-scan-point-cloud:active {
+  cursor: grabbing;
+}
+
+.spatial-scan-point-cloud__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.spatial-scan-point-cloud__credit {
+  position: absolute;
+  left: clamp(12px, 1.5vw, 20px);
+  bottom: clamp(10px, 1.35vw, 18px);
+  max-width: min(58ch, calc(100% - 32px));
+  color: var(--text-muted, rgba(255, 255, 255, 0.58));
+  font-family: var(--font-mono, 'DM Mono', monospace);
+  font-size: clamp(0.58rem, 0.75vw, 0.72rem);
+  line-height: 1.35;
+  letter-spacing: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.spatial-scan-point-cloud__status {
+  position: absolute;
+  inset: auto clamp(12px, 1.5vw, 20px) clamp(10px, 1.35vw, 18px) auto;
+  max-width: min(42ch, calc(100% - 32px));
+  margin: 0;
+  color: var(--text-muted, rgba(255, 255, 255, 0.72));
+  font-family: var(--font-mono, 'DM Mono', monospace);
+  font-size: clamp(0.62rem, 0.78vw, 0.74rem);
+  line-height: 1.35;
+  letter-spacing: 0;
+  z-index: 3;
+}
+
+body.spatial-scan-page #simulations {
+  overscroll-behavior: none;
+}
+
+html[data-spatial-scan-camera-mode='scroll'] {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+body.spatial-scan-page[data-spatial-scan-camera-mode='scroll'] {
+  min-height: 360vh;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+body.spatial-scan-page[data-spatial-scan-camera-mode='scroll']::after {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 260vh;
+  pointer-events: none;
+}
+
+body.spatial-scan-page[data-spatial-scan-camera-mode='scroll'] .concept-simulation-demo,
+body.spatial-scan-page[data-spatial-scan-camera-mode='scroll'] .spatial-scan-point-cloud,
+body.spatial-scan-page[data-spatial-scan-camera-mode='scroll'] .spatial-scan-point-cloud__canvas {
+  touch-action: pan-y;
+}
+
+body.spatial-scan-page #simulations .scene-effects,
+body.spatial-scan-page #simulations::before,
+body.spatial-scan-page #simulations::after {
+  opacity: 0;
+}
+
+@media (max-width: 680px) {
+  .spatial-scan-point-cloud__credit {
+    max-width: calc(100% - 24px);
+  }
+}

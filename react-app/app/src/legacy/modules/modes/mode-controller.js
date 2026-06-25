@@ -4,6 +4,10 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { MODES, NARRATIVE_MODE_SEQUENCE, isPitLikeMode } from '../core/constants.js';
+import {
+  ROUTE_BACKED_DAILY_HREFS,
+  getSimulationName,
+} from '../../../data/simulationCatalog.js';
 import { setMode as setModeState, getGlobals } from '../core/state.js';
 import { resize } from '../rendering/renderer.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
@@ -41,14 +45,7 @@ const MODE_NAMES = {
   'napoleon-point-cloud': 'Napoleon Point Cloud'
 };
 
-const ROUTE_BACKED_MODE_HREFS = {
-  [MODES.FLOCK_OF_BIRDS]: '/lab/flock-of-birds.html?daily=1',
-  [MODES.WALL_REPEL]: '/lab/wall-repel.html?daily=1',
-  [MODES.APERTURE_BLOOM]: '/lab/aperture-bloom.html?daily=1',
-  [MODES.PRESSURE_MOSAIC]: '/lab/pressure-mosaic.html?daily=1',
-  [MODES.MINERAL_GROWTH]: '/lab/mineral-growth.html?daily=1',
-  [MODES.NAPOLEON_POINT_CLOUD]: '/lab/napoleon-point-cloud.html?daily=1'
-};
+const ROUTE_BACKED_MODE_HREFS = ROUTE_BACKED_DAILY_HREFS;
 
 const MODE_REGISTRY = {
   [MODES.PIT]: {
@@ -375,7 +372,7 @@ export async function setMode(inputMode) {
 
   const routeBackedHref = ROUTE_BACKED_MODE_HREFS[mode];
   if (routeBackedHref) {
-    announceToScreenReader(`Switched to ${MODE_NAMES[mode] || mode} mode`);
+    announceToScreenReader(`Switched to ${MODE_NAMES[mode] || getSimulationName(mode)} mode`);
     if (typeof window !== 'undefined') {
       const currentHref = `${window.location.pathname}${window.location.search}`;
       if (currentHref !== routeBackedHref) {
