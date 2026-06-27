@@ -30,6 +30,7 @@ function withPreviewDefaults(entry) {
 export const SIMULATION_CATALOG_VERSION = catalogData.version;
 export const SIMULATION_CATALOG_UPDATED_AT = catalogData.updatedAt;
 export const SIMULATION_STAGE_DESCRIPTIONS = Object.freeze({ ...(catalogData.stages || {}) });
+export const DAILY_ROTATION_ANCHOR = Object.freeze({ ...(catalogData.dailyRotation || {}) });
 
 export const SIMULATION_CATALOG = Object.freeze(
   (catalogData.simulations || []).map(withPreviewDefaults),
@@ -66,16 +67,41 @@ export function getDayOfYear(date = new Date()) {
   return Math.floor((current - start) / oneDay);
 }
 
+function getUtcDayStamp(date = new Date()) {
+  return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / (1000 * 60 * 60 * 24));
+}
+
+function parseAnchorDayStamp(anchorDate) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(anchorDate || ''));
+  if (!match) return null;
+
+  const year = Number.parseInt(match[1], 10);
+  const month = Number.parseInt(match[2], 10) - 1;
+  const day = Number.parseInt(match[3], 10);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+
+  return Math.floor(Date.UTC(year, month, day) / (1000 * 60 * 60 * 24));
+}
+
+function getAnchoredDailyRotationIndex(date, dailySimulations) {
+  const anchorIndex = dailySimulations.findIndex((entry) => entry.id === DAILY_ROTATION_ANCHOR.anchorSimulationId);
+  const anchorDayStamp = parseAnchorDayStamp(DAILY_ROTATION_ANCHOR.anchorDate);
+  if (anchorIndex < 0 || anchorDayStamp === null) return null;
+
+  const daysSinceAnchor = getUtcDayStamp(date) - anchorDayStamp;
+  return ((anchorIndex + daysSinceAnchor) % dailySimulations.length + dailySimulations.length) % dailySimulations.length;
+}
+
 export function getDailyRotationIndex(date = new Date(), simulations = SIMULATION_CATALOG) {
   const dailySimulations = simulations.filter((entry) => entry.stage === SIMULATION_STAGES.DAILY_ROTATION);
   if (!dailySimulations.length) return -1;
-  return getDayOfYear(date) % dailySimulations.length;
+  return getAnchoredDailyRotationIndex(date, dailySimulations) ?? getDayOfYear(date) % dailySimulations.length;
 }
 
 export function getDailySimulation(date = new Date(), simulations = SIMULATION_CATALOG) {
   const dailySimulations = simulations.filter((entry) => entry.stage === SIMULATION_STAGES.DAILY_ROTATION);
   if (!dailySimulations.length) return null;
-  const index = getDayOfYear(date) % dailySimulations.length;
+  const index = getDailyRotationIndex(date, simulations);
   return index >= 0 ? dailySimulations[index] : null;
 }
 

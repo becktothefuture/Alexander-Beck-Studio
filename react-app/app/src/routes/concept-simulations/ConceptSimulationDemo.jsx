@@ -466,6 +466,7 @@ export function ConceptSimulationDemo({ simulationId }) {
   const [ready, setReady] = useState(false);
   const [themeColors, setThemeColors] = useState(DEFAULT_THEME_COLORS);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const surfaceStyle = isNapoleonPointCloud ? undefined : { '--concept-simulation-surface': themeColors.active };
 
   useEffect(() => {
     const query = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -520,6 +521,8 @@ export function ConceptSimulationDemo({ simulationId }) {
   }, [config, themeColors]);
 
   useEffect(() => {
+    if (isNapoleonPointCloud) return undefined;
+
     if (initialThemeRef.current === null) {
       initialThemeRef.current = {
         htmlDark: document.documentElement.classList.contains('dark-mode'),
@@ -540,7 +543,7 @@ export function ConceptSimulationDemo({ simulationId }) {
     root.style.setProperty('--frame-inner-surface', 'var(--abs-wall-base)');
 
     return undefined;
-  }, [themeColors]);
+  }, [isNapoleonPointCloud, themeColors]);
 
   useEffect(() => () => {
     const initial = initialThemeRef.current;
@@ -670,7 +673,7 @@ export function ConceptSimulationDemo({ simulationId }) {
         data-enabled-in-rotation={String(entry.enabledInRotation)}
         data-panel-visible={String(showControlPanel)}
         data-camera-mode={config.cameraMode}
-        style={{ '--concept-simulation-surface': themeColors.active }}
+        style={surfaceStyle}
         aria-label={`${entry.name} lab`}
       >
         <NapoleonPointCloud
@@ -709,7 +712,7 @@ export function ConceptSimulationDemo({ simulationId }) {
         data-simulation-id={simulationId}
         data-enabled-in-rotation={String(entry.enabledInRotation)}
         data-panel-visible={String(showControlPanel)}
-        style={{ '--concept-simulation-surface': themeColors.active }}
+        style={surfaceStyle}
         aria-label={`${entry.name} lab`}
       >
         <SpatialScanPointCloud
@@ -747,7 +750,7 @@ export function ConceptSimulationDemo({ simulationId }) {
       className="concept-simulation-demo"
       data-simulation-id={simulationId}
       data-enabled-in-rotation={String(entry.enabledInRotation)}
-      style={{ '--concept-simulation-surface': themeColors.active }}
+      style={surfaceStyle}
       aria-label={`${entry.name} lab`}
     >
       <canvas

@@ -7,6 +7,10 @@
     "automation-candidate": "Fresh automation/test-page candidate that needs human review.",
     "hidden": "Internal or disabled simulation surface."
   },
+  "dailyRotation": {
+    "anchorDate": "2026-06-27",
+    "anchorSimulationId": "pit"
+  },
   "simulations": [
     {
       "id": "pit",
@@ -107,13 +111,14 @@
       "dailyHref": "/lab/napoleon-point-cloud.html?daily=1",
       "configPath": "/config/napoleon-point-cloud-demo.json",
       "includeInNarrative": true,
-      "reviewStatus": "stable",
+      "reviewStatus": "candidate",
       "capture": {
         "delayMs": 4800,
         "readySelector": ".napoleon-point-cloud__canvas--front",
         "notes": "Point-cloud model route needs extra time for model assets and first render."
       },
-      "summary": "Flat circle point-cloud reading of the Napoleon bust."
+      "summary": "Flat circle point-cloud reading of the Napoleon bust.",
+      "lastReviewedAt": "2026-06-25"
     },
     {
       "id": "pressure-mosaic",
@@ -302,37 +307,23 @@
       "summary": "Fountain-like flow made from circle particles."
     },
     {
-      "id": "rain-prism",
-      "name": "Rain Prism",
-      "chapter": "RAIN PRISM",
-      "stage": "collection",
-      "surface": "lab-route",
-      "origin": "lab",
-      "launchPath": "/lab/rain-prism.html",
-      "dailyHref": "/lab/rain-prism.html?daily=1",
-      "configPath": "/config/rain-prism-demo.json",
-      "includeInNarrative": false,
-      "reviewStatus": "watch",
-      "summary": "Lab route with prism/rain material behavior, currently outside daily rotation."
-    },
-    {
       "id": "beach-ball-room",
       "name": "Beach Ball Room",
       "chapter": "BEACH BALL ROOM",
-      "stage": "automation-candidate",
+      "stage": "daily-rotation",
       "surface": "lab-route",
       "origin": "lab",
       "launchPath": "/lab/beach-ball-room.html",
       "dailyHref": "/lab/beach-ball-room.html?daily=1",
       "pitchPath": "docs/simulations/pitches/2026-06-25-beach-ball-room.md",
-      "includeInNarrative": false,
-      "reviewStatus": "watch",
+      "includeInNarrative": true,
+      "reviewStatus": "stable",
       "capture": {
         "delayMs": 4200,
         "readySelector": ".beach-ball-room-canvas",
         "notes": "WebGL route; capture launches Chromium with SwiftShader flags."
       },
-      "summary": "Staged lab route for large beach-ball room behavior.",
+      "summary": "Large circle-built beach ball with room-scale wall physics.",
       "lastReviewedAt": "2026-06-25"
     },
     {
@@ -356,7 +347,7 @@
       "id": "spatial-scan",
       "name": "Spatial Scan",
       "chapter": "SPATIAL SCAN",
-      "stage": "automation-candidate",
+      "stage": "collection",
       "surface": "lab-route",
       "origin": "user-lab",
       "introducedOn": "2026-06-24",
@@ -370,7 +361,8 @@
         "readySelector": ".spatial-scan-point-cloud__canvas",
         "notes": "Point-cloud route needs model and camera-path assets before the preview is useful."
       },
-      "summary": "Original scan-derived point-cloud route with a baked Blender camera path and flat site-circle rendering."
+      "summary": "Original scan-derived point-cloud route with a baked Blender camera path and flat site-circle rendering.",
+      "lastReviewedAt": "2026-06-25"
     },
     {
       "id": "parallax-linear",

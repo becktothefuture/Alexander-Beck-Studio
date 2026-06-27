@@ -5,7 +5,7 @@
   min-height: 100%;
   margin: 0;
   overflow: hidden;
-  background: rgba(var(--abs-rgb-black), 0.82);
+  background: transparent;
   touch-action: none;
 }
 
@@ -52,7 +52,7 @@ body.napoleon-point-cloud-page #simulations .napoleon-point-cloud__canvas--front
   bottom: max(calc(var(--gap-xl) + 64px), calc(env(safe-area-inset-bottom) + 92px));
   z-index: 4;
   max-width: min(56ch, calc(100% - (var(--gap-sm) * 2)));
-  color: rgba(var(--abs-rgb-white), 0.62);
+  color: var(--text-secondary, rgba(var(--abs-rgb-white), 0.62));
   font-family: var(--abs-font-mono);
   font-size: clamp(9px, 1.1vw, 11px);
   line-height: 1.35;
@@ -68,7 +68,7 @@ body.napoleon-point-cloud-page #simulations .napoleon-point-cloud__canvas--front
   z-index: 5;
   width: min(32ch, calc(100% - (var(--gap-md) * 2)));
   margin: 0;
-  color: rgba(var(--abs-rgb-white), 0.78);
+  color: var(--text-primary, rgba(var(--abs-rgb-white), 0.78));
   font-family: var(--abs-font-mono);
   font-size: var(--abs-text-xs);
   line-height: 1.35;

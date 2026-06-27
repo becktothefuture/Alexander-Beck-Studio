@@ -9,10 +9,10 @@ Source of truth for mode IDs and narrative order:
 ## Runtime Summary
 
 - `25` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
-- `23` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
-- Daily mode selection uses the Featured tier only; Extended modes are optional explorations.
+- `24` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
+- Daily mode selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
 - `parallax-linear` remains a registered mode ID for compatibility, but user mode switching redirects it to the first narrative mode.
-- `flock-of-birds`, `wall-repel`, `aperture-bloom`, `pressure-mosaic`, `mineral-growth`, and `napoleon-point-cloud` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
+- `flock-of-birds`, `wall-repel`, `aperture-bloom`, `pressure-mosaic`, `mineral-growth`, `napoleon-point-cloud`, and `beach-ball-room` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 
 ## Lab-Only Route Candidates
 
@@ -52,6 +52,7 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Polarity Flux | `pressure-crucible` | Active |
 | Particle Fountain | `particle-fountain` | Active |
 | Napoleon Point Cloud | `napoleon-point-cloud` | Route-backed daily/lab |
+| Beach Ball Room | `beach-ball-room` | Route-backed daily/lab |
 
 ---
 
@@ -74,17 +75,18 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 13. `mineral-growth` — LIVING SYSTEM
 14. `elastic-center` — TENSION LOOM
 15. `kaleidoscope-3` — VOCAB BLOOM
+16. `beach-ball-room` — BEACH BALL ROOM
 
 ### Extended Tier (shown after Featured)
 
-16. `bubbles` — NOISE SIGNAL
-17. `magnetic` — DESIGN FORCES
-18. `weightless` — OPEN SPACE
-19. `critters` — BEHAVIOR MODEL
-20. `starfield-3d` — DEPTH FIELD
-21. `parallax-float` — ORGANIC DRIFT
-22. `pressure-crucible` — POLARITY FLUX
-23. `particle-fountain` — PARTICLE FLOW
+17. `bubbles` — NOISE SIGNAL
+18. `magnetic` — DESIGN FORCES
+19. `weightless` — OPEN SPACE
+20. `critters` — BEHAVIOR MODEL
+21. `starfield-3d` — DEPTH FIELD
+22. `parallax-float` — ORGANIC DRIFT
+23. `pressure-crucible` — POLARITY FLUX
+24. `particle-fountain` — PARTICLE FLOW
 
 Loop order is `Featured -> Extended -> Featured`.
 
@@ -123,6 +125,7 @@ Loop order is `Featured -> Extended -> Featured`.
 - `pressure-mosaic`: route-backed packed circle mosaic with pointer pressure gaps, normal round circles, and the central brand/link area reserved.
 - `mineral-growth`: route-backed terrarium thicket with edge-rooted pebble branches and leaflet clusters, deterministic seed support, no visible overlap, mobile-collapsed controls, and daily mode panel hidden by `daily=1`.
 - `napoleon-point-cloud`: route-backed surface-sampled bust point cloud with the title layered through the dot field, 5k point amount, 28% density, 23.4 dot size, 0.72x mouse rotation, auto rotation on, and daily mode panel hidden by `daily=1`.
+- `beach-ball-room`: route-backed circle-built beach ball with room-scale wall physics, softened room-line treatment, calmer rebound, and controls hidden unless `controls=1`.
 - `flubber-blob`: fixed-size hard circles simulated as embedded beads in a soft silicone-gel raft with persistent gel links, hard 2D contacts, passive hover-only cursor pressure/wake, lossy wall rebound, and no visible detach/reattach behavior.
 - `weave-field`: perpendicular discipline streams that progressively cross into a loose woven lattice, with cursor/touch repulsion opening temporary gaps, shared wall/collision containment, and a compact portrait/mobile weave with fewer lanes and softer motion.
 - `pressure-crucible`: Extended-tier experiment, not a daily candidate. Custom-rendered polarity field with small palette-colored bead samples arranged as a filled swarm cloud. Cursor proximity and speed define a live dipole that bends, splits, and wakes the particles; idle motion stays subtle through local swarm drift rather than a ring orbit.

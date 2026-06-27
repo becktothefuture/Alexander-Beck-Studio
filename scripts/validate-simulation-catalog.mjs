@@ -142,9 +142,23 @@ async function main() {
 
   const dailyCount = simulations.filter((entry) => entry.stage === SIMULATION_STAGES.DAILY_ROTATION).length;
   const candidateCount = simulations.filter((entry) => entry.stage === SIMULATION_STAGES.AUTOMATION_CANDIDATE).length;
+  const dailyRotation = catalog.dailyRotation || {};
 
   if (!dailyCount) {
     errors.push('Catalog has no daily-rotation simulations.');
+  }
+
+  if (dailyRotation.anchorDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(dailyRotation.anchorDate))) {
+    errors.push('dailyRotation.anchorDate must use YYYY-MM-DD');
+  }
+
+  if (dailyRotation.anchorSimulationId !== undefined) {
+    const anchorEntry = simulations.find((entry) => entry.id === dailyRotation.anchorSimulationId);
+    if (!anchorEntry) {
+      errors.push(`dailyRotation.anchorSimulationId points at missing simulation "${dailyRotation.anchorSimulationId}"`);
+    } else if (anchorEntry.stage !== SIMULATION_STAGES.DAILY_ROTATION) {
+      errors.push(`dailyRotation.anchorSimulationId "${dailyRotation.anchorSimulationId}" is not in daily rotation`);
+    }
   }
 
   if (!catalog.updatedAt) {

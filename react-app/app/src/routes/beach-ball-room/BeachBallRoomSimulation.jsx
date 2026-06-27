@@ -12,11 +12,13 @@ import { BEACH_BALL_ROOM_SIMULATION_REGISTRY_ENTRY } from './beachBallRoomRegist
 import './beach-ball-room.css';
 
 const TAU = Math.PI * 2;
-const STORAGE_KEY = 'abs_beach_ball_room_controls';
+const STORAGE_KEY = 'abs_beach_ball_room_controls_v3';
 const FIXED_DT = 1 / 60;
 const MAX_SUBSTEPS = 3;
 const WALL_CONTACT_SLOP_RATIO = 0.004;
-const FRONT_WALL_SPIN_LOSS_SCALE = 0.65;
+const WALL_SPIN_LOSS_SCALE = 0.38;
+const FRONT_WALL_SPIN_LOSS_SCALE = 0.72;
+const FRONT_WALL_MIN_REBOUND_RADIUS_SCALE = 0.34;
 const IDLE_SETTLE_DELAY_SECONDS = 2.5;
 const IDLE_SETTLE_FULL_SECONDS = 8;
 const IDLE_SETTLE_LINEAR_DAMPING = 1.35;
@@ -31,38 +33,38 @@ const FALLBACK_PALETTE_COLORS = Object.freeze(['#a7afb0', '#c6cecf', '#f5f8f6', 
 
 const DEFAULT_SETTINGS = Object.freeze({
   showRoomLines: true,
-  roomLineOpacity: 0.52,
-  roomLineThickness: 0.01,
-  roomInset: 0.36,
-  roomDepth: 3.4,
+  roomLineOpacity: 0.22,
+  roomLineThickness: 0.006,
+  roomInset: 0.33,
+  roomDepth: 3.7,
   foregroundLimit: 1.85,
-  ballDiameterViewportRatio: 0.61,
+  ballDiameterViewportRatio: 0.56,
   colourStripCount: 5,
-  colourStripColumns: 3,
-  whiteStripColumns: 3,
+  colourStripColumns: 4,
+  whiteStripColumns: 4,
   stripPhase: 298,
   topCapAngleDeg: 27,
   bottomCapAngleDeg: 12,
-  latitudeRows: 18,
-  beadRadiusScale: 1,
+  latitudeRows: 24,
+  beadRadiusScale: 0.78,
   beadSurfaceOffset: 0.08,
-  mobileDensityScale: 0.7,
-  gravity: 9.81,
-  restitution: 0.52,
-  bounceBoost: 2.61,
-  backWallBounceBoost: 1.7,
-  bounceMinVelocity: 0.3,
-  linearDamping: 0.18,
-  angularDamping: 0,
-  wallFriction: 0.32,
-  collisionSpinBoost: 1.15,
-  maxLinearSpeed: 11.5,
-  maxAngularSpeed: 2,
+  mobileDensityScale: 0.92,
+  gravity: 8.8,
+  restitution: 0.56,
+  bounceBoost: 2.38,
+  backWallBounceBoost: 1.56,
+  bounceMinVelocity: 0.42,
+  linearDamping: 0.24,
+  angularDamping: 0.26,
+  wallFriction: 0.58,
+  collisionSpinBoost: 0.34,
+  maxLinearSpeed: 9.5,
+  maxAngularSpeed: 1.45,
   pointerInfluenceRadius: 1.95,
   tapPushStrength: 18.9,
-  dragFlickStrength: 54,
+  dragFlickStrength: 48,
   dragDepthPush: 2.25,
-  pointerSpinStrength: 1.25,
+  pointerSpinStrength: 0.42,
 });
 
 const CONTROL_GROUPS = [
@@ -359,7 +361,6 @@ function resolvePalette() {
     stripColors: stripeColors.length ? stripeColors : resolvedApprovedColors,
     white,
     roomLine: normalizeHexColor(theme.frameColorLight || theme.siteFrameLight || colors[4], '#07111b'),
-    background: normalizeHexColor(theme.wallBaseLight || theme.bgLight, '#edf4f1'),
   };
 }
 
@@ -400,23 +401,23 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
   container.dataset.stripColors = palette.stripColors.join(',');
   container.dataset.whiteColor = palette.white;
   container.dataset.roomLineColor = palette.roomLine;
-  container.dataset.backgroundColor = palette.background;
+  container.dataset.backgroundColor = 'shared-shell';
 
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
-    alpha: false,
+    alpha: true,
     powerPreference: 'high-performance',
   });
   renderer.shadowMap.enabled = false;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
-  renderer.setClearColor(new THREE.Color(palette.background), 1);
+  renderer.setClearColor(0x000000, 0);
   renderer.domElement.className = 'beach-ball-room-canvas';
   renderer.domElement.setAttribute('aria-label', 'Beach ball room staging simulation');
   renderer.domElement.setAttribute('role', 'img');
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(palette.background);
+  scene.background = null;
 
   const camera = new THREE.PerspectiveCamera(79, 1, 0.05, 100);
   camera.position.set(0, 0, 6);
@@ -506,7 +507,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     zMax: 1.2,
   };
   const position = new THREE.Vector3(0, 0, 0);
-  const velocity = new THREE.Vector3(0.65, latestReducedMotion ? 0.05 : 0.9, -0.55);
+  const velocity = new THREE.Vector3(0.65, latestReducedMotion ? 0.05 : 0.9, latestReducedMotion ? 0.6 : 2.35);
   const angularVelocity = new THREE.Vector3(
     latestReducedMotion ? 0.08 : 0.4,
     latestReducedMotion ? 0.12 : 0.85,
@@ -857,12 +858,17 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
         ? clamp(settings.backWallBounceBoost, 1, 5)
         : 1;
       const minRebound = clamp(settings.bounceMinVelocity, 0, 10);
+      const effectiveMinRebound = isFrontWall
+        ? Math.max(minRebound, radius * FRONT_WALL_MIN_REBOUND_RADIUS_SCALE)
+        : minRebound;
       const bouncedComponent = -component * restitution * bounceBoost * backWallBoost;
-      const shouldAbsorbIdleContact = idleSettleFactor > 0.65 && Math.abs(component) < IDLE_COLLISION_ABSORB_SPEED;
+      const shouldAbsorbIdleContact = !isFrontWall
+        && idleSettleFactor > 0.65
+        && Math.abs(component) < IDLE_COLLISION_ABSORB_SPEED;
       velocity[axis] = shouldAbsorbIdleContact
         ? 0
-        : (Math.abs(bouncedComponent) < minRebound
-        ? normal * minRebound
+        : (Math.abs(bouncedComponent) < effectiveMinRebound
+        ? normal * effectiveMinRebound
           : bouncedComponent);
       absorbedIdleContact = absorbedIdleContact || shouldAbsorbIdleContact;
       if (axis === 'z') {
@@ -897,9 +903,8 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
           .cross(tempTangentVelocity)
           .multiplyScalar((friction * spinBoost) / Math.max(0.1, radius)),
       );
-      if (isFrontWall) {
-        angularVelocity.multiplyScalar(Math.max(0, 1 - friction * FRONT_WALL_SPIN_LOSS_SCALE));
-      }
+      const spinLossScale = isFrontWall ? FRONT_WALL_SPIN_LOSS_SCALE : WALL_SPIN_LOSS_SCALE;
+      angularVelocity.multiplyScalar(Math.max(0, 1 - friction * spinLossScale));
     }
   }
 

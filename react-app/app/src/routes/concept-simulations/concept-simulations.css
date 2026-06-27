@@ -4,7 +4,7 @@ body.concept-simulation-page {
 }
 
 body.concept-simulation-page #simulations {
-  background: var(--abs-wall-base, #202020);
+  background: var(--abs-wall-base, var(--frame-inner-surface, transparent));
   border-color: var(--frame-color, #141517);
 }
 
@@ -44,7 +44,7 @@ body.concept-simulation-page .route-topbar__right.ui-top-right {
   overflow: hidden;
   touch-action: none;
   pointer-events: auto;
-  background: var(--concept-simulation-surface, var(--abs-wall-base, #202020));
+  background: var(--concept-simulation-surface, var(--abs-wall-base, transparent));
 }
 
 .concept-simulation-canvas {

@@ -1,2 +1,5 @@
 {"at":"2026-06-25T16:52:24.236Z","type":"issue-created","id":"napoleon-point-cloud","issue":"2026-06-25-napoleon-point-cloud-background.md","title":"Background","severity":"medium"}
 {"at":"2026-06-25T16:52:58.808Z","type":"stage-change","id":"beach-ball-room","from":"collection","to":"automation-candidate"}
+{"at":"2026-06-25T18:24:56.300Z","type":"stage-change","id":"spatial-scan","from":"automation-candidate","to":"collection"}
+{"at":"2026-06-25T18:35:07.576Z","type":"stage-change","id":"beach-ball-room","from":"automation-candidate","to":"daily-rotation"}
+{"at":"2026-06-25T18:56:41.479Z","type":"review-status-change","id":"napoleon-point-cloud","from":"stable","to":"candidate"}

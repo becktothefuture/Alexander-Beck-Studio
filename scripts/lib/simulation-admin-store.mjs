@@ -60,13 +60,6 @@ const DEDICATED_LAB_ROUTE_DELETION_RULES = Object.freeze({
     importPath: '../../routes/flock-of-birds/FlockOfBirdsRoute.jsx',
     hasViteConfigApi: true,
   },
-  'rain-prism': {
-    routeDir: 'rain-prism',
-    routeView: 'getRainPrismRouteView',
-    routeRuntime: 'RAIN_PRISM_ROUTE_RUNTIME',
-    importPath: '../../routes/rain-prism/RainPrismRoute.jsx',
-    hasViteConfigApi: true,
-  },
   'wall-repel': {
     routeDir: 'wall-repel',
     routeView: 'getWallRepelRouteView',
@@ -745,7 +738,6 @@ export async function getSimulationDashboardStatus({
     const issueCount = issues.filter(isOpenIssue).length;
     const activity = activityEntries
       .filter((event) => event.id === entry.id)
-      .slice(-8)
       .reverse();
     simulations[entry.id] = {
       issueCount,

@@ -21,7 +21,6 @@ import { normalizeMineralGrowthConfig } from './src/routes/mineral-growth/minera
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicConfigDir = resolve(__dirname, 'public/config');
-const rainPrismConfigPath = resolve(publicConfigDir, 'rain-prism-demo.json');
 const flockOfBirdsConfigPath = resolve(publicConfigDir, 'flock-of-birds-demo.json');
 const wallRepelConfigPath = resolve(publicConfigDir, 'wall-repel-demo.json');
 const mineralGrowthConfigPath = resolve(publicConfigDir, 'mineral-growth-demo.json');
@@ -120,38 +119,6 @@ function designSystemDevPlugin() {
           sendJson(res, 200, { ok: true, version: normalized.version ?? 1 });
         } catch (error) {
           sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save design system' });
-        }
-      });
-
-      server.middlewares.use('/api/rain-prism/config', async (req, res) => {
-        if (req.method !== 'POST') {
-          res.statusCode = 405;
-          res.end('Method Not Allowed');
-          return;
-        }
-
-        try {
-          const chunks = [];
-          for await (const chunk of req) {
-            chunks.push(Buffer.from(chunk));
-          }
-
-          const payload = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
-          const nextConfig = payload?.config;
-          if (!nextConfig || typeof nextConfig !== 'object' || Array.isArray(nextConfig)) {
-            sendJson(res, 400, { ok: false, error: 'Missing rain prism config payload' });
-            return;
-          }
-
-          await writeFile(rainPrismConfigPath, `${JSON.stringify(nextConfig, null, 2)}\n`, 'utf8');
-          server.ws.send({
-            type: 'full-reload',
-            path: '/config/rain-prism-demo.json',
-          });
-
-          sendJson(res, 200, { ok: true });
-        } catch (error) {
-          sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save rain prism config' });
         }
       });
 
@@ -513,7 +480,6 @@ export default defineConfig(({ mode }) => ({
         'palette-lab': resolve(__dirname, 'palette-lab.html'),
         'lab/beach-ball-room': resolve(__dirname, 'lab/beach-ball-room.html'),
         'lab/flock-of-birds': resolve(__dirname, 'lab/flock-of-birds.html'),
-        'lab/rain-prism': resolve(__dirname, 'lab/rain-prism.html'),
         'lab/wall-repel': resolve(__dirname, 'lab/wall-repel.html'),
         'lab/mineral-growth': resolve(__dirname, 'lab/mineral-growth.html'),
         'lab/aperture-bloom': resolve(__dirname, 'lab/aperture-bloom.html'),

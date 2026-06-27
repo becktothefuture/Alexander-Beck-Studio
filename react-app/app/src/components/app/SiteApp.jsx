@@ -12,7 +12,6 @@ import {
 import { getPaletteLabRouteView, PALETTE_LAB_ROUTE_RUNTIME } from '../../routes/palette-lab/PaletteLabRoute.jsx';
 import { getBeachBallRoomRouteView, BEACH_BALL_ROOM_ROUTE_RUNTIME } from '../../routes/beach-ball-room/BeachBallRoomRoute.jsx';
 import { getFlockOfBirdsRouteView, FLOCK_OF_BIRDS_ROUTE_RUNTIME } from '../../routes/flock-of-birds/FlockOfBirdsRoute.jsx';
-import { getRainPrismRouteView, RAIN_PRISM_ROUTE_RUNTIME } from '../../routes/rain-prism/RainPrismRoute.jsx';
 import { getWallRepelRouteView, WALL_REPEL_ROUTE_RUNTIME } from '../../routes/wall-repel/WallRepelRoute.jsx';
 import { getMineralGrowthRouteView, MINERAL_GROWTH_ROUTE_RUNTIME } from '../../routes/mineral-growth/MineralGrowthRoute.jsx';
 import {
@@ -40,7 +39,6 @@ const ROUTE_VIEW_BY_ID = {
   'palette-lab': getPaletteLabRouteView,
   'beach-ball-room': getBeachBallRoomRouteView,
   'flock-of-birds': getFlockOfBirdsRouteView,
-  'rain-prism': getRainPrismRouteView,
   'wall-repel': getWallRepelRouteView,
   'mineral-growth': getMineralGrowthRouteView,
   'aperture-bloom': getApertureBloomRouteView,
@@ -59,7 +57,6 @@ const ROUTE_RUNTIME_BY_ID = {
   'palette-lab': PALETTE_LAB_ROUTE_RUNTIME,
   'beach-ball-room': BEACH_BALL_ROOM_ROUTE_RUNTIME,
   'flock-of-birds': FLOCK_OF_BIRDS_ROUTE_RUNTIME,
-  'rain-prism': RAIN_PRISM_ROUTE_RUNTIME,
   'wall-repel': WALL_REPEL_ROUTE_RUNTIME,
   'mineral-growth': MINERAL_GROWTH_ROUTE_RUNTIME,
   'aperture-bloom': APERTURE_BLOOM_ROUTE_RUNTIME,

@@ -49,12 +49,6 @@ const ROUTE_DEFS = {
     aliases: ['/lab/flock-of-birds.html', '/lab/flock-of-birds', '/flock-of-birds.html', '/flock-of-birds'],
     gated: false,
   },
-  'rain-prism': {
-    id: 'rain-prism',
-    path: '/lab/rain-prism.html',
-    aliases: ['/lab/rain-prism.html', '/lab/rain-prism', '/rain-prism.html', '/rain-prism'],
-    gated: false,
-  },
   'wall-repel': {
     id: 'wall-repel',
     path: '/lab/wall-repel.html',

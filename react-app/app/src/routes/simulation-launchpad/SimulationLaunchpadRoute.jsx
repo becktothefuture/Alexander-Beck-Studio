@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   Box,
   CalendarDays,
-  Camera,
   Check,
   ChevronDown,
   Clipboard,
@@ -15,7 +14,6 @@ import {
   LoaderCircle,
   MessageCircle,
   PackageCheck,
-  RefreshCw,
   RotateCcw,
   Search,
   ShieldAlert,
@@ -23,7 +21,6 @@ import {
   Star,
   Trash2,
   X,
-  Zap,
 } from 'lucide-react';
 import { buildRouteHref } from '../../lib/routes.js';
 import {
@@ -41,14 +38,26 @@ const homeHref = buildRouteHref('home');
 export const SIMULATION_LAUNCHPAD_ROUTE_RUNTIME = {};
 
 const FILTERS = [
-  { id: 'review', label: 'Review Queue' },
-  { id: 'candidates', label: 'Candidates' },
-  { id: 'daily', label: 'Daily' },
-  { id: 'collection', label: 'Collection' },
-  { id: 'issues', label: 'Issues' },
-  { id: 'missing', label: 'Missing Assets' },
-  { id: 'hidden', label: 'Archive' },
-  { id: 'all', label: 'All' },
+  {
+    id: 'review',
+    label: 'Review',
+    description: 'Step 1: candidates, issues, and blockers that need a decision.',
+  },
+  {
+    id: 'collection',
+    label: 'Collection',
+    description: 'Step 2: approved simulations kept available but outside the live daily rotation.',
+  },
+  {
+    id: 'daily',
+    label: 'Daily',
+    description: 'Step 3: simulations promoted to the live daily rotation.',
+  },
+  {
+    id: 'hidden',
+    label: 'Archive',
+    description: 'Step 4: retired simulations kept in the repo but out of normal management.',
+  },
 ];
 
 const STAGE_LABELS = {
@@ -147,10 +156,7 @@ function filterSimulations(simulations, activeFilter, query) {
   const needle = query.trim().toLowerCase();
   return simulations.filter((entry) => {
     const matchesFilter = (
-      activeFilter === 'all'
-      || (activeFilter === 'review' && entry.isReviewQueue)
-      || (activeFilter === 'issues' && entry.issueCount > 0)
-      || (activeFilter === 'missing' && entry.hasMissingAssets)
+      (activeFilter === 'review' && entry.isReviewQueue)
       || STAGE_TO_FILTER[entry.stage] === activeFilter
     );
     const matchesQuery = !needle
@@ -164,10 +170,7 @@ function filterSimulations(simulations, activeFilter, query) {
 }
 
 function getFilterCount(filterId, counts) {
-  if (filterId === 'all') return counts.total;
   if (filterId === 'review') return counts.review;
-  if (filterId === 'issues') return counts.issues;
-  if (filterId === 'missing') return counts.missing;
 
   const stage = Object.keys(STAGE_TO_FILTER).find((key) => STAGE_TO_FILTER[key] === filterId);
   return stage ? counts[stage] || 0 : 0;
@@ -203,19 +206,24 @@ function StatusPill({ kind, children }) {
   );
 }
 
+function getTooltipClassName(placement) {
+  return placement ? ` simulation-dashboard-tooltip--${placement}` : '';
+}
+
 function DashboardButton({
   className = '',
   disabled = false,
   icon: Icon,
   label,
   tooltip,
+  tooltipPlacement,
   title,
   type = 'button',
   onClick,
 }) {
   return (
     <button
-      className={`simulation-dashboard-button ${className}`.trim()}
+      className={`simulation-dashboard-button ${className}${getTooltipClassName(tooltipPlacement)}`.trim()}
       type={type}
       data-tooltip={tooltip || title || label}
       aria-label={title || label}
@@ -237,6 +245,7 @@ function DashboardIconButton({
   label,
   onClick,
   target,
+  tooltipPlacement = 'above-end',
   rel,
 }) {
   const props = Component === 'a'
@@ -247,7 +256,7 @@ function DashboardIconButton({
   return (
     <Component
       {...props}
-      className={`simulation-dashboard-icon-button ${className}`.trim()}
+      className={`simulation-dashboard-icon-button ${className}${getTooltipClassName(tooltipPlacement)}`.trim()}
       data-tooltip={label}
       aria-label={label}
       onClick={onClick}
@@ -257,13 +266,14 @@ function DashboardIconButton({
   );
 }
 
-function DashboardThumbnail({ entry, size = 'compact' }) {
+function DashboardThumbnail({ entry, playAnimated = false, size = 'compact' }) {
   const [hovering, setHovering] = useState(false);
   const [animatedFailed, setAnimatedFailed] = useState(false);
   const [posterFailed, setPosterFailed] = useState(false);
   const animatedSrc = entry.preview?.animated;
   const posterSrc = entry.preview?.poster;
-  const src = hovering && animatedSrc && !animatedFailed ? animatedSrc : posterSrc;
+  const shouldPlayAnimated = playAnimated || hovering;
+  const src = shouldPlayAnimated && animatedSrc && !animatedFailed ? animatedSrc : posterSrc;
 
   return (
     <div
@@ -296,7 +306,7 @@ function HeaderActions({ onBuild, onValidate, pendingAction }) {
   return (
     <div className="simulation-dashboard-header__actions">
       <a
-        className="simulation-dashboard-button simulation-dashboard-button--ghost"
+        className="simulation-dashboard-button simulation-dashboard-button--ghost simulation-dashboard-tooltip--below-end"
         href={homeHref}
         data-tooltip="Return to the current development site"
         aria-label="Open development site"
@@ -310,6 +320,7 @@ function HeaderActions({ onBuild, onValidate, pendingAction }) {
         icon={PackageCheck}
         label={pendingAction === 'build' ? 'Building' : 'Build'}
         tooltip="Run production build"
+        tooltipPlacement="below-end"
         onClick={onBuild}
       />
       <DashboardButton
@@ -318,6 +329,7 @@ function HeaderActions({ onBuild, onValidate, pendingAction }) {
         icon={Check}
         label={pendingAction === 'validate' ? 'Running' : 'Validate'}
         tooltip="Run simulation catalog validation"
+        tooltipPlacement="below-end"
         onClick={onValidate}
       />
     </div>
@@ -328,32 +340,31 @@ function getPendingActionLabel(pendingAction) {
   if (!pendingAction) return '';
   if (pendingAction === 'validate') return 'Running catalog validation';
   if (pendingAction === 'build') return 'Updating production build';
-  if (pendingAction.startsWith('capture-')) return 'Capturing preview assets';
   if (pendingAction.startsWith('issue-')) return 'Updating issue status';
   if (pendingAction.startsWith('delete-plan-')) return 'Preparing delete plan';
   if (pendingAction.startsWith('delete-')) return 'Deleting simulation';
   return 'Working';
 }
 
-function CommandStatus({ notice, pendingAction, statusReady }) {
+function InlineNotice({ notice, pendingAction }) {
   const runningLabel = getPendingActionLabel(pendingAction);
-  const tone = pendingAction ? 'running' : notice?.tone || (statusReady ? 'success' : 'warning');
-  const title = runningLabel || notice?.title || (statusReady ? 'Local controls ready' : 'Catalog-only mode');
+  const title = runningLabel || notice?.title;
+  if (!title && !notice?.detail) return null;
+
+  const tone = pendingAction ? 'running' : notice?.tone || 'info';
   const detail = pendingAction
-    ? 'This command is running against the local dev API. Keep this page open until it finishes.'
-    : notice?.detail || (statusReady
-      ? 'Stage, review, issue, capture, validation, build, and safe delete controls are connected.'
-      : 'Run the Vite dev server to enable write controls.');
-  const Icon = pendingAction ? RefreshCw : Zap;
+    ? 'Running against the local dev API.'
+    : notice?.detail;
+  const Icon = pendingAction ? LoaderCircle : Check;
 
   return (
-    <section className={`simulation-dashboard-command-status simulation-dashboard-command-status--${tone}`} role="status">
+    <div className={`simulation-dashboard-inline-notice simulation-dashboard-inline-notice--${tone}`} role="status">
+      <Icon className={pendingAction ? 'is-spinning' : ''} aria-hidden="true" size={14} strokeWidth={2} />
       <div>
-        <Icon aria-hidden="true" size={16} strokeWidth={2} />
         <strong>{title}</strong>
-        <span>{detail}</span>
+        {detail ? <span>{detail}</span> : null}
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -381,6 +392,12 @@ function SummaryStrip({ counts, todaySimulation, statusReady }) {
   );
 }
 
+function getFilterTooltipPlacement(index) {
+  if (index < 2) return 'below-start';
+  if (index > FILTERS.length - 3) return 'below-end';
+  return 'below';
+}
+
 function FilterToolbar({ activeFilter, counts, onFilterChange, query, onQueryChange }) {
   return (
     <section className="simulation-dashboard-toolbar" aria-label="Simulation filters">
@@ -397,14 +414,15 @@ function FilterToolbar({ activeFilter, counts, onFilterChange, query, onQueryCha
       </div>
 
       <nav className="simulation-dashboard-filter-list" aria-label="Queues">
-        {FILTERS.map((filter) => {
+        {FILTERS.map((filter, index) => {
           const count = getFilterCount(filter.id, counts);
+          const tooltipPlacement = getFilterTooltipPlacement(index);
           return (
             <button
               key={filter.id}
               type="button"
-              className={activeFilter === filter.id ? 'is-active' : ''}
-              data-tooltip={`${filter.label}: ${count} simulations`}
+              className={`${activeFilter === filter.id ? 'is-active ' : ''}simulation-dashboard-tooltip--${tooltipPlacement}`.trim()}
+              data-tooltip={`${filter.description} ${count} simulations.`}
               onClick={() => onFilterChange(filter.id)}
             >
               <span>{filter.label}</span>
@@ -439,7 +457,8 @@ function IssueList({ issues, onIssueStatusChange, pendingAction }) {
             <li key={issue.fileName}>
               <div>
                 <strong>{issue.title}</strong>
-                <span>{issue.severity} · {issue.status}</span>
+                <span>{issue.severity} · {issue.status} · {formatDate(issue.reportedAt?.slice(0, 10))}</span>
+                <small>{issue.relativePath}</small>
               </div>
               <DashboardIconButton
                 disabled={Boolean(pendingAction)}
@@ -463,19 +482,33 @@ function formatActivityLabel(event) {
   return event.type || 'Activity';
 }
 
+function formatActivityDetail(event) {
+  const parts = [];
+  if (event.issue) parts.push(event.issue);
+  if (event.severity) parts.push(`severity ${event.severity}`);
+  if (event.status) parts.push(`status ${event.status}`);
+  return parts.join(' · ');
+}
+
 function ActivityList({ activity }) {
   if (!activity?.length) return null;
 
   return (
     <section className="simulation-dashboard-section simulation-dashboard-activity">
-      <h3>Activity</h3>
+      <h3>Activity Log <span>{activity.length}</span></h3>
       <ol>
-        {activity.slice(0, 5).map((event) => (
-          <li key={`${event.at}-${event.type}-${event.issue || event.to || ''}`}>
-            <span>{formatActivityLabel(event)}</span>
-            <time dateTime={event.at}>{formatDate(event.at?.slice(0, 10))}</time>
-          </li>
-        ))}
+        {activity.map((event, index) => {
+          const detail = formatActivityDetail(event);
+          return (
+            <li key={`${event.at}-${event.type}-${event.issue || event.to || index}`}>
+              <div>
+                <span>{formatActivityLabel(event)}</span>
+                {detail ? <small>{detail}</small> : null}
+              </div>
+              <time dateTime={event.at}>{formatDate(event.at?.slice(0, 10))}</time>
+            </li>
+          );
+        })}
       </ol>
     </section>
   );
@@ -485,7 +518,6 @@ function ExpandedSimulationDetails({
   activeFilter,
   adminApi,
   entry,
-  onCapture,
   onDelete,
   onIssueOpen,
   onIssueStatusChange,
@@ -515,10 +547,10 @@ function ExpandedSimulationDetails({
   return (
     <div className="simulation-dashboard-expanded" id={`simulation-details-${entry.id}`}>
       <div className="simulation-dashboard-expanded__preview">
-        <DashboardThumbnail entry={entry} size="large" />
+        <DashboardThumbnail entry={entry} playAnimated size="large" />
         <div className="simulation-dashboard-expanded__links">
           <a
-            className="simulation-dashboard-button simulation-dashboard-button--ghost"
+            className="simulation-dashboard-button simulation-dashboard-button--ghost simulation-dashboard-tooltip--below-start"
             href={entry.launchPath}
             target="_blank"
             rel="noreferrer"
@@ -529,7 +561,7 @@ function ExpandedSimulationDetails({
           </a>
           {entry.dailyHref ? (
             <a
-              className="simulation-dashboard-button simulation-dashboard-button--ghost"
+              className="simulation-dashboard-button simulation-dashboard-button--ghost simulation-dashboard-tooltip--below-start"
               href={entry.dailyHref}
               target="_blank"
               rel="noreferrer"
@@ -539,14 +571,6 @@ function ExpandedSimulationDetails({
               <span>Daily</span>
             </a>
           ) : null}
-          <DashboardButton
-            className="simulation-dashboard-button--ghost"
-            disabled={Boolean(pendingAction)}
-            icon={Camera}
-            label={pendingAction === `capture-${entry.id}` ? 'Capturing' : 'Capture'}
-            tooltip="Capture poster and hover GIF"
-            onClick={() => onCapture(entry)}
-          />
         </div>
       </div>
 
@@ -681,7 +705,6 @@ function SimulationListItem({
   adminApi,
   entry,
   expanded,
-  onCapture,
   onDelete,
   onIssueOpen,
   onIssueStatusChange,
@@ -699,7 +722,7 @@ function SimulationListItem({
           aria-controls={`simulation-details-${entry.id}`}
           onClick={() => onToggle(entry.id)}
         >
-          <DashboardThumbnail entry={entry} />
+          <DashboardThumbnail entry={entry} playAnimated={expanded} />
           <span className="simulation-dashboard-list-row__title">
             <strong>{entry.name}</strong>
             <span>{entry.id} · {entry.surface} · {entry.origin}</span>
@@ -719,14 +742,9 @@ function SimulationListItem({
         </button>
         <div className="simulation-dashboard-row-actions" aria-label={`${entry.name} quick actions`}>
           <DashboardIconButton
-            disabled={Boolean(pendingAction)}
-            icon={Camera}
-            label="Capture poster and hover GIF"
-            onClick={(event) => { event.stopPropagation(); onCapture(entry); }}
-          />
-          <DashboardIconButton
             icon={MessageCircle}
             label="Log issue"
+            tooltipPlacement="above-end"
             onClick={(event) => { event.stopPropagation(); onIssueOpen(entry); }}
           />
           <DashboardIconButton
@@ -736,6 +754,7 @@ function SimulationListItem({
             rel="noreferrer"
             icon={ExternalLink}
             label="Open in a new tab"
+            tooltipPlacement="above-end"
             onClick={(event) => event.stopPropagation()}
           />
         </div>
@@ -746,7 +765,6 @@ function SimulationListItem({
           activeFilter={activeFilter}
           adminApi={adminApi}
           entry={entry}
-          onCapture={onCapture}
           onDelete={onDelete}
           onIssueOpen={onIssueOpen}
           onIssueStatusChange={onIssueStatusChange}
@@ -762,8 +780,8 @@ function SimulationList({
   activeFilter,
   adminApi,
   expandedId,
+  notice,
   simulations,
-  onCapture,
   onDelete,
   onIssueOpen,
   onIssueStatusChange,
@@ -778,6 +796,7 @@ function SimulationList({
           <strong>{simulations.length} results</strong>
           <span>Sorted by review priority</span>
         </div>
+        <InlineNotice notice={notice} pendingAction={pendingAction} />
       </div>
 
       {simulations.length ? (
@@ -789,7 +808,6 @@ function SimulationList({
               adminApi={adminApi}
               entry={entry}
               expanded={expandedId === entry.id}
-              onCapture={onCapture}
               onDelete={onDelete}
               onIssueOpen={onIssueOpen}
               onIssueStatusChange={onIssueStatusChange}
@@ -832,7 +850,7 @@ function DeleteConfirmationModal({
             <h2 id="simulation-delete-title">{entry.name}</h2>
             <p>{entry.id}</p>
           </div>
-          <DashboardIconButton icon={X} label="Close delete dialog" onClick={onClose} />
+          <DashboardIconButton icon={X} label="Close delete dialog" tooltipPlacement="below-end" onClick={onClose} />
         </div>
 
         {blocked ? (
@@ -1023,15 +1041,6 @@ function SimulationDashboard() {
     });
   }
 
-  async function handleCapture(entry) {
-    if (!entry) return;
-    await runDashboardAction(`capture-${entry.id}`, `Capturing ${entry.name}`, async () => {
-      const ok = await adminApi.capturePreview(entry);
-      await refreshStatus();
-      return ok;
-    });
-  }
-
   async function handleDeleteRequest(entry) {
     if (!entry || entry.stage === SIMULATION_STAGES.DAILY_ROTATION) return;
     await runDashboardAction(`delete-plan-${entry.id}`, `Preparing delete plan for ${entry.name}`, async () => {
@@ -1095,7 +1104,7 @@ function SimulationDashboard() {
           <p>Catalog updated {SIMULATION_CATALOG_UPDATED_AT}</p>
         </div>
         <div className="simulation-dashboard-header__status">
-          <span>{statusReady ? 'Dev API connected' : 'Catalog-only mode'}</span>
+          <span>{pendingAction ? getPendingActionLabel(pendingAction) : statusReady ? 'Dev API connected' : 'Catalog-only mode'}</span>
           {pendingAction ? (
             <LoaderCircle className="is-spinning" aria-hidden="true" size={14} strokeWidth={2} />
           ) : (
@@ -1106,8 +1115,6 @@ function SimulationDashboard() {
       </header>
 
       <SummaryStrip counts={counts} todaySimulation={todaySimulation} statusReady={statusReady} />
-
-      <CommandStatus notice={notice} pendingAction={pendingAction} statusReady={statusReady} />
 
       <FilterToolbar
         activeFilter={activeFilter}
@@ -1121,8 +1128,8 @@ function SimulationDashboard() {
         activeFilter={activeFilter}
         adminApi={adminApi}
         expandedId={expandedId}
+        notice={notice}
         simulations={filteredSimulations}
-        onCapture={handleCapture}
         onDelete={handleDeleteRequest}
         onIssueOpen={setIssueEntry}
         onIssueStatusChange={handleIssueStatusChange}

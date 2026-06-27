@@ -24,7 +24,10 @@ const quiet = process.env.ABS_AUDIT_QUIET === '1' || process.env.ABS_AUDIT_QUIET
 async function waitForSimulationCanvasBuffer(page) {
   await page.waitForFunction(
     (selector) => {
-      const c = document.querySelector(selector);
+      const c = Array.from(document.querySelectorAll(selector)).find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return rect.width >= 64 && rect.height >= 64;
+      });
       if (!c) return false;
       const cssW = c.clientWidth || 0;
       const cssH = c.clientHeight || 0;
@@ -41,7 +44,10 @@ async function waitForSimulationCanvasBuffer(page) {
 
 async function snapshot(page, label) {
   return page.evaluate(({ label: L, selector }) => {
-    const c = document.querySelector(selector);
+    const c = Array.from(document.querySelectorAll(selector)).find((candidate) => {
+      const rect = candidate.getBoundingClientRect();
+      return rect.width >= 64 && rect.height >= 64;
+    });
     if (!c) return { label: L, error: `no simulation canvas (${selector})` };
     const st = getComputedStyle(c);
     return {
@@ -64,7 +70,7 @@ async function main() {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
   await page.goto(resolveHomeEntryUrl(), { waitUntil: 'networkidle', timeout: 60000 });
-  await page.waitForSelector(SIMULATION_CANVAS_SELECTOR, { timeout: 30000 });
+  await page.waitForSelector(SIMULATION_CANVAS_SELECTOR, { state: 'attached', timeout: 30000 });
   await waitForSimulationCanvasBuffer(page);
 
   const rows = [];
@@ -92,7 +98,7 @@ async function main() {
       return;
     }
     await page.waitForURL(/portfolio/i, { timeout: BUFFER_WAIT_MS });
-    await page.waitForSelector(SIMULATION_CANVAS_SELECTOR, { timeout: BUFFER_WAIT_MS });
+    await page.waitForSelector(SIMULATION_CANVAS_SELECTOR, { state: 'attached', timeout: BUFFER_WAIT_MS });
     await waitForSimulationCanvasBuffer(page);
     rows.push({ ...(await snapshot(page, `portfolio-r${round}`)) });
 
@@ -103,7 +109,7 @@ async function main() {
       const path = url.pathname || '';
       return path === '/' || /index/i.test(path) || path.startsWith('/lab/');
     }, { timeout: BUFFER_WAIT_MS });
-    await page.waitForSelector(SIMULATION_CANVAS_SELECTOR, { timeout: BUFFER_WAIT_MS });
+    await page.waitForSelector(SIMULATION_CANVAS_SELECTOR, { state: 'attached', timeout: BUFFER_WAIT_MS });
     await waitForSimulationCanvasBuffer(page);
   }
 
