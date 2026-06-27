@@ -7,7 +7,13 @@ import {
   setupPrefetchOnHover,
 } from '../../legacy/modules/utils/page-nav.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
-import { forceBootVisible } from '../../legacy/modules/visual/page-orchestrator.js';
+import { waitForFonts } from '../../legacy/modules/utils/font-loader.js';
+import {
+  completeDirectBoot,
+  waitForFrames,
+  waitForPageReadyBarrier,
+  waitForUsableRects,
+} from '../../legacy/modules/visual/page-orchestrator.js';
 import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
 import { applyWallFrameFromConfig, applyWallFrameLayout } from '../../legacy/modules/visual/wall-frame.js';
 import { stampCursorContrastFromTheme } from '../../legacy/modules/visual/colors.js';
@@ -27,8 +33,6 @@ function setCvContentVisible() {
 
 export async function bootstrapCvRoute() {
   const ABS_DEV = import.meta.env.DEV;
-  forceBootVisible(['#abs-scene', '#app-frame', '#cv-scroll-container']);
-  setCvContentVisible();
 
   let runtimeConfig = null;
 
@@ -126,6 +130,28 @@ export async function bootstrapCvRoute() {
   if (scrollContainer) {
     scrollContainer.scrollTop = 0;
   }
+
+  handleLayoutResize();
+  setCvContentVisible();
+  await waitForPageReadyBarrier({
+    waitForFonts: async () => {
+      try {
+        await waitForFonts();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    minimumMs: 80,
+  });
+  await waitForUsableRects(['#abs-scene', '#app-frame', '#cv-scroll-container', '.route-topbar'], {
+    timeoutMs: 2600,
+  });
+  await waitForFrames(2);
+  await completeDirectBoot({
+    selectors: ['#abs-scene', '#app-frame', '#cv-scroll-container'],
+    detail: 'cv-ready',
+  });
 
   return () => {
     scrollPresence?.destroy();

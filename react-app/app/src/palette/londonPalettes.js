@@ -100,7 +100,7 @@ export const LONDON_WEATHER_PALETTES = [
       safariFrameLight: '#181818',
       safariFrameDark: '#141517',
       lockedHeaderLight: '#f1f3f4',
-      lockedHeaderDark: '#3c3c3c',
+      lockedHeaderDark: '#141517',
       textColorLight: '#161616',
       textColorLightMuted: '#2f2f2f',
       textColorDark: '#f0f0f0',

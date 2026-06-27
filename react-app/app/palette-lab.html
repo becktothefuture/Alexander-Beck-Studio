@@ -1,18 +1,160 @@
 <!doctype html>
-<html lang="en" class="fonts-loading">
+<html lang="en" class="fonts-loading" data-abs-boot-state="booting" style="background:#141517;background-color:#141517">
   <head>
-    <style id="fade-blocking">#abs-scene,#app-frame{opacity:0;visibility:hidden}</style>
+    <style id="fade-blocking">#root,#abs-scene,#app-frame{opacity:0;visibility:hidden}</style>
     <style id="abs-critical-shell">
       html, body, #root {
         width: 100%;
         min-height: 100%;
         margin: 0;
-        background: var(--abs-browser-chrome, #181818);
-        background-color: var(--abs-browser-chrome, #181818);
+        background: var(--abs-browser-chrome, #141517);
+        background-color: var(--abs-browser-chrome, #141517);
+      }
+
+      html[data-abs-boot-state="booting"]::before,
+      html[data-abs-boot-state="booting"]::after {
+        content: "";
+        position: fixed;
+        pointer-events: none;
+      }
+
+      html[data-abs-boot-state="booting"]::before {
+        inset: 0;
+        z-index: 2147482998;
+        background: var(--abs-browser-chrome, #141517);
+      }
+
+      html[data-abs-boot-state="booting"]::after {
+        top: 50%;
+        left: 50%;
+        z-index: 2147482999;
+        width: 4.5px;
+        height: 4.5px;
+        margin: -2.25px 0 0 -2.25px;
+        border-radius: 50%;
+        background: transparent;
+        box-shadow:
+          0 -11px var(--ball-1, #b5b7b6),
+          9.5px -5.5px var(--ball-4, #00695c),
+          9.5px 5.5px var(--ball-3, #ffffff),
+          0 11px var(--ball-7, #0d5cb6),
+          -9.5px 5.5px var(--ball-8, #ffa000),
+          -9.5px -5.5px var(--ball-6, #d7ff2f);
+        animation: absCriticalBootOrbit 1200ms linear infinite;
+      }
+
+      #root[aria-hidden="true"],
+      html[data-abs-boot-state="booting"] #root {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      html[data-abs-boot-state="revealing"] #root,
+      html[data-abs-boot-state="ready"] #root,
+      html[data-abs-boot-state="failed"] #root {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      #abs-boot-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        display: grid;
+        place-items: center;
+        background: var(--abs-browser-chrome, #141517);
+        color: var(--abs-boot-spinner-color, rgba(255, 255, 255, 0.82));
+        opacity: 1;
+        pointer-events: auto;
+        transition: opacity var(--abs-boot-overlay-out-ms, 300ms) cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      #abs-boot-overlay.is-exiting {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #abs-boot-overlay.is-exiting #abs-boot-spinner {
+        opacity: 0;
+        visibility: hidden;
+        animation: none;
+        transition: none;
+      }
+
+      #abs-boot-spinner {
+        width: 32px;
+        height: 32px;
+        position: relative;
+        box-sizing: border-box;
+        animation: absBootOrbit 1200ms linear infinite;
+      }
+
+      .abs-boot-dot {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 4.5px;
+        height: 4.5px;
+        margin: -2.25px 0 0 -2.25px;
+        border-radius: 50%;
+        transform: rotate(var(--abs-dot-angle)) translateY(-11px);
+      }
+
+      .abs-boot-dot::before {
+        content: "";
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--abs-dot-color);
+        box-shadow: 0 0 8px color-mix(in srgb, var(--abs-dot-color) 30%, transparent);
+        animation: absBootDotPulse 1200ms cubic-bezier(0.16, 1, 0.3, 1) infinite;
+        animation-delay: var(--abs-dot-delay);
+      }
+
+      @keyframes absBootOrbit {
+        to { transform: rotate(360deg); }
+      }
+
+      @keyframes absCriticalBootOrbit {
+        to { transform: rotate(360deg); }
+      }
+
+      @keyframes absBootDotPulse {
+        0%, 100% {
+          opacity: 0.54;
+          transform: scale(0.82);
+        }
+        42%, 58% {
+          opacity: 1;
+          transform: scale(1.08);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #abs-boot-overlay {
+          --abs-boot-overlay-out-ms: 150ms;
+        }
+
+        #abs-boot-spinner {
+          animation: none;
+        }
+
+        html[data-abs-boot-state="booting"]::after {
+          animation: none;
+        }
+
+        .abs-boot-dot::before {
+          animation: none;
+          opacity: 0.86;
+          transform: none;
+        }
       }
     </style>
     <script>
       (function() {
+        window.__ABS_BOOT_STARTED_AT__ = (window.performance && typeof window.performance.now === 'function') ? window.performance.now() : Date.now();
         var root = document.documentElement;
         root.classList.add('palette-lab-shell');
         var DEFAULTS = {
@@ -21,11 +163,11 @@
           wallBaseLight: '#efefef',
           wallBaseDark: '#181818',
           frameColorLight: '#202124',
-          frameColorDark: '#202124',
+          frameColorDark: '#141517',
           safariFrameLight: '#181818',
-          safariFrameDark: '#181818',
+          safariFrameDark: '#141517',
           lockedHeaderLight: '#f1f3f4',
-          lockedHeaderDark: '#3c3c3c'
+          lockedHeaderDark: '#141517'
         };
 
         function detectBrowserFamily() {
@@ -82,6 +224,19 @@
           tag.content = color;
         }
 
+        function isLightHex(color) {
+          var hex = String(color || '').replace('#', '').trim();
+          if (hex.length === 3) {
+            hex = hex.split('').map(function(part) { return part + part; }).join('');
+          }
+          if (hex.length !== 6) return false;
+          var r = parseInt(hex.slice(0, 2), 16);
+          var g = parseInt(hex.slice(2, 4), 16);
+          var b = parseInt(hex.slice(4, 6), 16);
+          if ([r, g, b].some(function(value) { return Number.isNaN(value); })) return false;
+          return ((r * 299) + (g * 587) + (b * 114)) / 1000 > 186;
+        }
+
         function applyPalette(isDark) {
           var family = detectBrowserFamily();
           var useLockedPalette = !family.isSafari && !themeColorLikelyApplied(family);
@@ -122,11 +277,12 @@
           root.style.setProperty('--chrome-bg-light', frameLight);
           root.style.setProperty('--chrome-bg-dark', frameDark);
           root.style.setProperty('--chrome-bg', activeFrame);
+          root.style.setProperty('--abs-boot-spinner-color', isLightHex(activeFrame) ? 'rgba(32, 33, 36, 0.72)' : 'rgba(255, 255, 255, 0.82)');
           root.style.setProperty('--abs-safe-top', 'env(safe-area-inset-top, 0px)');
           root.style.setProperty('--abs-safe-right', 'env(safe-area-inset-right, 0px)');
           root.style.setProperty('--abs-safe-bottom', 'env(safe-area-inset-bottom, 0px)');
           root.style.setProperty('--abs-safe-left', 'env(safe-area-inset-left, 0px)');
-          root.dataset.absBootState = 'shell-visible';
+          root.dataset.absBootState = 'booting';
 
           syncMeta('theme-color', '(prefers-color-scheme: light)', frameLight);
           syncMeta('theme-color', '(prefers-color-scheme: dark)', frameDark);
@@ -149,20 +305,6 @@
 
         document.addEventListener('DOMContentLoaded', function() {
           if (document.body && isDark) document.body.classList.add('dark-mode');
-          window.requestAnimationFrame(function() {
-            var blocker = document.getElementById('fade-blocking');
-            if (blocker) blocker.remove();
-            var scene = document.getElementById('abs-scene');
-            var frame = document.getElementById('app-frame');
-            if (scene) {
-              scene.style.opacity = '1';
-              scene.style.visibility = 'visible';
-            }
-            if (frame) {
-              frame.style.opacity = '1';
-              frame.style.visibility = 'visible';
-            }
-          });
         }, { once: true });
       })();
     </script>
@@ -186,7 +328,17 @@
     <link rel="stylesheet" href="/src/styles/base.css" />
   </head>
   <body class="body">
-    <div id="root"></div>
+    <div id="abs-boot-overlay" aria-hidden="true">
+      <div id="abs-boot-spinner" aria-hidden="true">
+        <span class="abs-boot-dot" style="--abs-dot-angle:0deg;--abs-dot-delay:0ms;--abs-dot-color:var(--ball-1,#b5b7b6)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:60deg;--abs-dot-delay:80ms;--abs-dot-color:var(--ball-4,#00695c)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:120deg;--abs-dot-delay:160ms;--abs-dot-color:var(--ball-3,#ffffff)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:180deg;--abs-dot-delay:240ms;--abs-dot-color:var(--ball-7,#0d5cb6)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:240deg;--abs-dot-delay:320ms;--abs-dot-color:var(--ball-8,#ffa000)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:300deg;--abs-dot-delay:400ms;--abs-dot-color:var(--ball-6,#d7ff2f)"></span>
+      </div>
+    </div>
+    <div id="root" inert aria-hidden="true"></div>
     <script type="module" src="/src/entries/palette-lab.jsx"></script>
   </body>
 </html>

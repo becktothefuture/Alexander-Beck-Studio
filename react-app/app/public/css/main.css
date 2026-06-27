@@ -2819,6 +2819,160 @@ html[data-abs-transition-phase='modal-open'] { --ui-obscured: 1; }
 /* UI elements full opacity on all pages */
 :root { --ui-page-opacity: 1; }
 
+/* Direct document boot is covered by #abs-boot-overlay. The first readable app
+   frame should already be composed, so skip the legacy hero/nav entrance while
+   the overlay is revealing the settled page. */
+html.abs-direct-boot-ready .hero-title__name,
+html.abs-direct-boot-ready .hero-title__role,
+html.abs-direct-boot-ready .hero-title__line,
+html.abs-direct-boot-ready .hero-title__eyebrow {
+  animation: none;
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+
+html.abs-direct-boot-ready .hero-title__role,
+html.abs-direct-boot-ready .hero-title__line--secondary {
+  opacity: var(--brand-logo-secondary-opacity, 0.66);
+}
+
+html.abs-direct-boot-staging .ui-main-nav .footer_link {
+  transition: none;
+}
+
+/* Home post-boot UI entrance: starts only after #abs-boot-overlay is gone.
+   The canvas and wall stay out of scope; this is a short text/chrome reveal. */
+:root {
+  --home-post-boot-ease: var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1));
+  --home-post-boot-duration-identity: 840ms;
+  --home-post-boot-duration-support: 920ms;
+  --home-post-boot-delay-identity-name: 0ms;
+  --home-post-boot-delay-identity-role: 140ms;
+  --home-post-boot-delay-legend-start: 360ms;
+  --home-post-boot-delay-legend-step: 96ms;
+  --home-post-boot-delay-context-start: 1180ms;
+  --home-post-boot-delay-context-step: 120ms;
+  --home-post-boot-delay-action-start: 1580ms;
+  --home-post-boot-delay-action-step: 120ms;
+  --home-post-boot-delay-footer-start: 1940ms;
+  --home-post-boot-delay-footer-step: 100ms;
+  --home-post-boot-ty: 7px;
+  --home-post-boot-blur: 4px;
+  --home-post-boot-scale: 0.985;
+}
+
+html.abs-home-post-boot-pending #hero-title .hero-title__name,
+html.abs-home-post-boot-pending #hero-title .hero-title__role,
+html.abs-home-post-boot-pending #expertise-legend .legend__item,
+html.abs-home-post-boot-pending #main-links .footer_link,
+html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
+html.abs-home-post-boot-pending #app-frame .ui-top-right .sound-toggle,
+html.abs-home-post-boot-pending #social-links .footer_icon-link,
+html.abs-home-post-boot-pending #site-year.abs-meta-btn,
+html.abs-home-post-boot-pending #quote-display {
+  opacity: 0;
+  filter: blur(var(--home-post-boot-blur));
+  transform: translateY(var(--home-post-boot-ty)) scale(var(--home-post-boot-scale));
+  pointer-events: none;
+  transition: none;
+}
+
+html.abs-home-post-boot-pending #edge-caption {
+  opacity: 0;
+  filter: blur(var(--home-post-boot-blur));
+  transform: translateX(-50%) translateY(var(--home-post-boot-ty)) scale(var(--home-post-boot-scale));
+  transition: none;
+}
+
+html.abs-home-post-boot-enter #hero-title .hero-title__name,
+html.abs-home-post-boot-enter #hero-title .hero-title__role,
+html.abs-home-post-boot-enter #expertise-legend .legend__item,
+html.abs-home-post-boot-enter #main-links .footer_link,
+html.abs-home-post-boot-enter #app-frame .ui-top-right .decorative-script,
+html.abs-home-post-boot-enter #app-frame .ui-top-right .sound-toggle,
+html.abs-home-post-boot-enter #social-links .footer_icon-link,
+html.abs-home-post-boot-enter #site-year.abs-meta-btn,
+html.abs-home-post-boot-enter #quote-display {
+  transition:
+    opacity var(--home-post-boot-duration-support) var(--home-post-boot-ease),
+    filter var(--home-post-boot-duration-support) var(--home-post-boot-ease),
+    transform var(--home-post-boot-duration-support) var(--home-post-boot-ease);
+}
+
+html.abs-home-post-boot-enter #edge-caption {
+  transition:
+    opacity var(--home-post-boot-duration-support) var(--home-post-boot-ease),
+    filter var(--home-post-boot-duration-support) var(--home-post-boot-ease),
+    transform var(--home-post-boot-duration-support) var(--home-post-boot-ease);
+}
+
+html.abs-home-post-boot-enter #hero-title .hero-title__name {
+  transition-duration: var(--home-post-boot-duration-identity);
+  transition-delay: var(--home-post-boot-delay-identity-name);
+}
+
+html.abs-home-post-boot-enter #hero-title .hero-title__role {
+  transition-duration: var(--home-post-boot-duration-identity);
+  transition-delay: var(--home-post-boot-delay-identity-role);
+}
+
+html.abs-home-post-boot-enter #main-links .footer_link {
+  transition-delay: calc(var(--home-post-boot-delay-action-start) + (var(--home-post-boot-delay-action-step) * var(--i, 0)));
+}
+
+html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(1) {
+  transition-delay: var(--home-post-boot-delay-legend-start);
+}
+
+html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(2) {
+  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 1));
+}
+
+html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(3) {
+  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 2));
+}
+
+html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(4) {
+  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 3));
+}
+
+html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(5) {
+  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 4));
+}
+
+html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(6) {
+  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 5));
+}
+
+html.abs-home-post-boot-enter #app-frame .ui-top-right .decorative-script {
+  transition-delay: var(--home-post-boot-delay-context-start);
+}
+
+html.abs-home-post-boot-enter #app-frame .ui-top-right .sound-toggle {
+  transition-delay: calc(var(--home-post-boot-delay-context-start) + var(--home-post-boot-delay-context-step));
+}
+
+html.abs-home-post-boot-enter #social-links .footer_icon-link:nth-child(1) {
+  transition-delay: var(--home-post-boot-delay-footer-start);
+}
+
+html.abs-home-post-boot-enter #social-links .footer_icon-link:nth-child(2) {
+  transition-delay: calc(var(--home-post-boot-delay-footer-start) + var(--home-post-boot-delay-footer-step));
+}
+
+html.abs-home-post-boot-enter #site-year.abs-meta-btn {
+  transition-delay: calc(var(--home-post-boot-delay-footer-start) + (var(--home-post-boot-delay-footer-step) * 2));
+}
+
+html.abs-home-post-boot-enter #quote-display {
+  transition-delay: calc(var(--home-post-boot-delay-footer-start) + (var(--home-post-boot-delay-footer-step) * 3));
+}
+
+html.abs-home-post-boot-enter #edge-caption {
+  transition-delay: calc(var(--home-post-boot-delay-footer-start) + (var(--home-post-boot-delay-footer-step) * 4));
+}
+
 /* Reduced motion: instant transitions */
 @media (prefers-reduced-motion: reduce) {
   :root {
@@ -2847,6 +3001,39 @@ html[data-abs-transition-phase='modal-open'] { --ui-obscured: 1; }
   .hero-title__role,
   .hero-title__line--secondary {
     opacity: var(--brand-logo-secondary-opacity, 0.66);
+  }
+
+  html.abs-home-post-boot-pending #hero-title .hero-title__name,
+  html.abs-home-post-boot-pending #hero-title .hero-title__role,
+  html.abs-home-post-boot-pending #expertise-legend .legend__item,
+  html.abs-home-post-boot-pending #main-links .footer_link,
+  html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
+  html.abs-home-post-boot-pending #app-frame .ui-top-right .sound-toggle,
+  html.abs-home-post-boot-pending #social-links .footer_icon-link,
+  html.abs-home-post-boot-pending #site-year.abs-meta-btn,
+  html.abs-home-post-boot-pending #quote-display {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    transition: none;
+  }
+
+  html.abs-home-post-boot-pending #hero-title .hero-title__role {
+    opacity: var(--brand-logo-secondary-opacity, 0.66);
+  }
+
+  html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
+  html.abs-home-post-boot-pending #app-frame .ui-top-right .sound-toggle,
+  html.abs-home-post-boot-pending #social-links .footer_icon-link,
+  html.abs-home-post-boot-pending #site-year.abs-meta-btn {
+    opacity: var(--supporting-description-opacity);
+  }
+
+  html.abs-home-post-boot-pending #edge-caption {
+    opacity: 0.52;
+    filter: none;
+    transform: translateX(-50%);
+    transition: none;
   }
 }
 

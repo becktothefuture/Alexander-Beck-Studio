@@ -52,7 +52,15 @@ import { applyRuntimeTextToDOM } from './modules/ui/apply-text.js';
 import { loadRuntimeConfig } from './modules/utils/runtime-config.js';
 import { waitForFonts } from './modules/utils/font-loader.js';
 import { getShellConfig, loadShellConfig, syncShellToDocument } from './modules/visual/site-shell.js';
-import { forceBootVisible, getPageWarmupMs, waitForPageReadyBarrier } from './modules/visual/page-orchestrator.js';
+import {
+  completeDirectBoot,
+  failDirectBoot,
+  forceBootVisible,
+  getPageWarmupMs,
+  waitForCanvasReady,
+  waitForFrames,
+  waitForPageReadyBarrier,
+} from './modules/visual/page-orchestrator.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../lib/transition-phase.js';
 import {
   initConsolePolicy,
@@ -70,8 +78,6 @@ import {
 // Preview/production on localhost must still behave like production, so only the
 // compile-time flag enables authoring UI.
 const ABS_DEV = import.meta.env.DEV;
-const CONTENT_FADE_DURATION_MS = 800;
-const CONTENT_FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 function isLocalBuildPanelPreviewEnabled() {
   if (ABS_DEV || typeof window === 'undefined') return false;
@@ -163,80 +169,6 @@ export function applyVisualCSSVars(config) {
 }
 
 /**
- * Fade in all content (abs-scene) with a gentle ease-out.
- * Uses WAAPI when available, falling back to a CSS transition.
- * Excludes background/wall color (which remains visible throughout).
- * abs-scene contains: canvas (#simulations), UI (#app-frame), logo, edges, etc.
- */
-function fadeInContentLayer(options = {}) {
-  const fadeTarget = document.getElementById('abs-scene');
-  if (!fadeTarget) return Promise.resolve();
-
-  // During a gate-success transition the shell owns scene opacity.
-  if (isRouteTransitionPhase(getTransitionPhase())) {
-    return Promise.resolve();
-  }
-  
-  // Get config values from globals (with fallbacks)
-  const g = getGlobals();
-  const delay = options.delay ?? g?.contentFadeInDelay ?? 500;
-  const duration = options.duration ?? g?.contentFadeInDuration ?? 1000;
-  const easing = options.easing ?? CONTENT_FADE_EASING;
-  
-  return new Promise((resolve) => {
-    let finished = false;
-    const finalize = () => {
-      if (finished) return;
-      finished = true;
-      try {
-        fadeTarget.style.opacity = '1';
-        fadeTarget.style.visibility = 'visible';
-        fadeTarget.style.willChange = 'auto';
-        const blocker = document.getElementById('fade-blocking');
-        if (blocker) blocker.remove();
-      } catch (e) {}
-      resolve();
-    };
-
-    const startAnimation = () => {
-      // Remove fade-blocking style tag BEFORE starting animation to avoid conflicts
-      const blocker = document.getElementById('fade-blocking');
-      if (blocker) blocker.remove();
-      
-      fadeTarget.style.visibility = 'visible';
-      fadeTarget.style.willChange = 'opacity';
-      // Ensure initial opacity is 0 for animation
-      fadeTarget.style.opacity = '0';
-
-      if (typeof fadeTarget.animate === 'function') {
-        const anim = fadeTarget.animate(
-          [
-            { opacity: 0 },
-            { opacity: 1 }
-          ],
-          { duration, easing, fill: 'forwards' }
-        );
-        anim.addEventListener('finish', finalize);
-        anim.addEventListener('cancel', finalize);
-      } else {
-        fadeTarget.style.transition = `opacity ${duration}ms ${easing}`;
-        requestAnimationFrame(() => {
-          fadeTarget.style.opacity = '1';
-        });
-        window.setTimeout(finalize, duration + 50);
-      }
-    };
-
-    // Apply delay before starting animation
-    if (delay > 0) {
-      setTimeout(startAnimation, delay);
-    } else {
-      startAnimation();
-    }
-  });
-}
-
-/**
  * Ensure the base .noise element exists (for dev environments where the full exported HTML isn't present).
  * Secondary noise layers are intentionally removed for performance.
  */
@@ -284,6 +216,79 @@ function applyHomeHeroRuntimeConfig() {
       spawnBandWidthRatio: Number(hero.pitSpawnBandWidthRatio),
     };
   } catch (e) {}
+}
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                 HOME POST-BOOT UI ENTRANCE                                  ║
+// ║  Direct-load only. The wall/canvas compose behind the boot overlay; these   ║
+// ║  helpers reveal the non-canvas homepage UI after the overlay has gone.      ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+const HOME_POST_BOOT_ENTER_COMPLETE_MS = 3500;
+let homePostBootEntranceTimer = 0;
+let homePostBootEntranceRaf = 0;
+
+function shouldReduceMotion() {
+  return !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+}
+
+function clearHomePostBootEntranceTimer() {
+  if (homePostBootEntranceTimer) {
+    window.clearTimeout(homePostBootEntranceTimer);
+    homePostBootEntranceTimer = 0;
+  }
+
+  if (homePostBootEntranceRaf) {
+    window.cancelAnimationFrame(homePostBootEntranceRaf);
+    homePostBootEntranceRaf = 0;
+  }
+}
+
+function clearHomePostBootEntrance() {
+  clearHomePostBootEntranceTimer();
+  const root = document.documentElement;
+  root.classList.remove(
+    'abs-home-post-boot-pending',
+    'abs-home-post-boot-enter',
+    'abs-home-post-boot-complete'
+  );
+}
+
+function stageHomePostBootEntrance() {
+  clearHomePostBootEntranceTimer();
+  const root = document.documentElement;
+  root.classList.remove('abs-home-post-boot-enter', 'abs-home-post-boot-complete');
+  root.classList.add('abs-home-post-boot-pending');
+}
+
+function startHomePostBootEntrance() {
+  clearHomePostBootEntranceTimer();
+  const root = document.documentElement;
+
+  homePostBootEntranceRaf = window.requestAnimationFrame(() => {
+    homePostBootEntranceRaf = 0;
+
+    if (isRouteTransitionPhase(getTransitionPhase())) {
+      clearHomePostBootEntrance();
+      return;
+    }
+
+    if (shouldReduceMotion()) {
+      root.classList.remove('abs-home-post-boot-pending', 'abs-home-post-boot-enter');
+      root.classList.add('abs-home-post-boot-complete');
+      return;
+    }
+
+    root.classList.add('abs-home-post-boot-enter');
+    root.classList.remove('abs-home-post-boot-pending');
+
+    homePostBootEntranceTimer = window.setTimeout(() => {
+      homePostBootEntranceTimer = 0;
+      if (!root.classList.contains('abs-home-post-boot-enter')) return;
+      root.classList.remove('abs-home-post-boot-enter');
+      root.classList.add('abs-home-post-boot-complete');
+    }, HOME_POST_BOOT_ENTER_COMPLETE_MS);
+  });
 }
 
 // Global error handler for unhandled rejections and errors
@@ -730,17 +735,12 @@ export async function bootstrapHomePage() {
     }
     
     // ╔══════════════════════════════════════════════════════════════════════════════╗
-    // ║                    DRAMATIC ENTRANCE ANIMATION                               ║
-    // ║        Browser default → wall-state with 3D perspective orchestration        ║
-    // ║                                                                              ║
-    // ║  Uses unified navigation state to determine if wall animation should play:   ║
-    // ║  - Fresh session visit: Full wall grow animation                             ║
-    // ║  - Return from portfolio/CV: Quick fade-in only (skip wall animation)        ║
-    // ║  - Browser back/forward: Quick fade-in only (skip wall animation)            ║
+    // ║                         DIRECT BOOT REVEAL                                  ║
+    // ║  The page is composed behind the first-paint overlay, then revealed once     ║
+    // ║  fonts, layout, canvas sizing, and the first simulation frame are stable.    ║
     // ╚══════════════════════════════════════════════════════════════════════════════╝
     
     try {
-      const { orchestrateEntrance, revealAllLateElements } = await import('./modules/visual/entrance-animation.js');
       const { 
         getModalToAutoOpen, 
         shouldSkipWallAnimation, 
@@ -750,10 +750,8 @@ export async function bootstrapHomePage() {
         didViewTransitionRun
       } = await import('./modules/utils/page-nav.js');
       
-      const g = getGlobals();
       const shellConfig = getShellConfig();
       const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-      const revealDuration = shellConfig?.motion?.contentRevealMs ?? CONTENT_FADE_DURATION_MS;
 
       // Check navigation state BEFORE consuming it (getModalToAutoOpen reads but doesn't clear)
       const autoOpenModal = getModalToAutoOpen();
@@ -777,12 +775,21 @@ export async function bootstrapHomePage() {
           },
           minimumMs: warmupMs
         });
+        try {
+          resize();
+          render();
+        } catch (error) {
+          void error;
+        }
+        await waitForCanvasReady({ selector: '#c', timeoutMs: 3200 });
+        await waitForFrames(2);
       };
       
       // Handle bfcache restore (browser back/forward with cached page)
       window.addEventListener('pageshow', (event) => {
         if (event.persisted) {
           resetTransitionState();
+          clearHomePostBootEntrance();
           forceBootVisible(['#abs-scene', '#app-frame']);
         }
       });
@@ -793,43 +800,36 @@ export async function bootstrapHomePage() {
       if (cvTrigger) setupPrefetchOnHover(cvTrigger, 'cv.html');
       if (portfolioTrigger) setupPrefetchOnHover(portfolioTrigger, 'portfolio.html');
 
-      // Skip entrance animation if disabled or reduced motion preferred
+      // Run the home UI entrance for every direct landing/reload. Shell route
+      // transitions restore stable UI without replaying choreography.
       const shellRouteTransitionActive = isRouteTransitionPhase(getTransitionPhase());
+      const shouldRunHomePostBootEntrance = !reduceMotion && !shellRouteTransitionActive;
 
       if (shellRouteTransitionActive) {
+        clearHomePostBootEntrance();
         await waitForVisualReady();
-        const blocker = document.getElementById('fade-blocking');
-        if (blocker) blocker.remove();
         console.log('✓ Home entrance skipped (shell route transition active)');
-      } else if (!g.entranceEnabled || reduceMotion) {
-        await waitForVisualReady();
-        await fadeInContentLayer({ delay: 0, duration: revealDuration });
-        // Also reveal late elements (main links) that have inline hidden styles
-        revealAllLateElements();
-        // Film grain (.noise) only becomes visible when html.entrance-complete matches
-        // (see main.css). CV/portfolio use forcePageVisible here; index used to omit it,
-        // leaving grain invisible no matter how high opacity sliders were set.
-        document.documentElement.classList.remove('entrance-pre-transition', 'entrance-transitioning');
-        document.documentElement.classList.add('entrance-complete');
-        console.log('✓ Entrance animation skipped (disabled or reduced motion)');
       } else {
+        if (shouldRunHomePostBootEntrance) {
+          stageHomePostBootEntrance();
+        } else {
+          clearHomePostBootEntrance();
+        }
         await waitForVisualReady();
-        // Hero title entrance is CSS-driven via --ui-entered (set by orchestrateEntrance)
-        // Orchestrate entrance (wall animation conditional on navigation state)
-        await orchestrateEntrance({
-          waitForFonts: null,
-          skipWallAnimation: skipWall,
-          skipEntranceAnimation: skipEntrance,
-          contentFadeDelay: 0,
-          contentFadeDuration: revealDuration,
-          lateElementDuration: revealDuration,
-          allowScaleEntrance: shellConfig?.motion?.allowScaleEntrance
+        await completeDirectBoot({
+          selectors: ['#abs-scene', '#app-frame'],
+          detail: reduceMotion
+            ? 'home-ready-reduced-motion'
+            : skipEntrance
+              ? 'home-ready-view-transition'
+              : skipWall
+                ? 'home-ready-return'
+                : 'home-ready',
+          onOverlayHidden: shouldRunHomePostBootEntrance
+            ? startHomePostBootEntrance
+            : clearHomePostBootEntrance,
         });
-        console.log(skipEntrance 
-          ? '✓ Entrance skipped (View Transition handled it)'
-          : skipWall 
-            ? '✓ Quick entrance (returning from internal page)' 
-            : '✓ Dramatic entrance animation orchestrated');
+        console.log('✓ Home direct boot revealed from settled first frame');
       }
       
       // Auto-open modal if requested via navigation state
@@ -851,33 +851,17 @@ export async function bootstrapHomePage() {
       initSpeculativePrefetch();
       
     } catch (e) {
-      console.warn('⚠️ Entrance animation failed, falling back to simple fade:', e);
-      await fadeInContentLayer({ delay: 0, duration: getShellConfig()?.motion?.contentRevealMs ?? CONTENT_FADE_DURATION_MS });
-      // Fallback: also reveal late elements so nothing stays hidden
-      try {
-        const { revealAllLateElements } = await import('./modules/visual/entrance-animation.js');
-        revealAllLateElements();
-      } catch (err) {
-        // Manual fallback if module import fails
-        // NOTE: Do NOT clear transform - CSS may rely on it for positioning
-        // REMOVE inline opacity so CSS controls it (enables modal fade transitions)
-        ['main-links', 'hero-title'].forEach((id) => {
-          const el = document.getElementById(id);
-          if (el) {
-            el.style.removeProperty('opacity');
-            if (id === 'hero-title') {
-              el.style.removeProperty('filter');
-            }
-            el.style.visibility = 'visible';
-          }
-        });
-        const blocker = document.getElementById('fade-blocking');
-        if (blocker) blocker.remove();
-      }
-      forceBootVisible(['#abs-scene', '#app-frame']);
+      console.warn('⚠️ Direct boot reveal failed, forcing settled content visible:', e);
+      clearHomePostBootEntrance();
+      await failDirectBoot({
+        selectors: ['#abs-scene', '#app-frame'],
+        detail: 'home-reveal-failed',
+      });
     }
 
-    setBootLifecycleState('ready');
+    if (document.documentElement.dataset.absBootDetail !== 'held') {
+      setBootLifecycleState('ready');
+    }
 
     return () => {
       try {

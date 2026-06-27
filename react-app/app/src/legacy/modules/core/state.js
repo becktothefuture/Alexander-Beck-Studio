@@ -710,11 +710,11 @@ const state = {
   wallBaseDark: assessedTheme.wallBaseDark || '#181818',  // Inner wall surface in dark mode
   frameColor: assessedTheme.frameColorLight || '#242529',    // Frame color (legacy - use frameColorLight/frameColorDark)
   frameColorLight: assessedTheme.frameColorLight || '#242529',  // Frame/wall color in light mode (browser chrome + walls + border)
-  frameColorDark: assessedTheme.frameColorDark || assessedTheme.frameColorLight || '#242529',   // Frame/wall color in dark mode (browser chrome + walls + border)
+  frameColorDark: assessedTheme.frameColorDark || assessedTheme.siteFrameDark || '#141517',   // Frame/wall color in dark mode (browser chrome + walls + border)
   lockedHeaderLight: assessedTheme.lockedHeaderLight || '#f1f3f4', // Locked-header browser fallback in light mode
-  lockedHeaderDark: assessedTheme.lockedHeaderDark || '#3c3c3c',  // Locked-header browser fallback in dark mode
+  lockedHeaderDark: assessedTheme.lockedHeaderDark || '#141517',  // Locked-header browser fallback in dark mode
   safariFrameLight: assessedTheme.safariFrameLight || '#181818',  // Safari-specific outer wall fallback in light mode (dark strip)
-  safariFrameDark: assessedTheme.safariFrameDark || assessedTheme.safariFrameLight || '#181818',   // Safari-specific outer wall fallback in dark mode
+  safariFrameDark: assessedTheme.safariFrameDark || assessedTheme.siteFrameDark || '#141517',   // Safari-specific outer wall fallback in dark mode
   useSimplifiedFrame: true, // CSS-only frame (disables legacy canvas inner-wall rendering)
   // Simplified frame geometry + effects (single-wall model)
   frameBorderWidth: 20,     // Desktop visual wall thickness / frame band (px)

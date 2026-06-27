@@ -3,7 +3,13 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { stampCursorContrastFromTheme } from '../../legacy/modules/visual/colors.js';
-import { forceBootVisible } from '../../legacy/modules/visual/page-orchestrator.js';
+import { waitForFonts } from '../../legacy/modules/utils/font-loader.js';
+import {
+  completeDirectBoot,
+  waitForFrames,
+  waitForPageReadyBarrier,
+  waitForUsableRects,
+} from '../../legacy/modules/visual/page-orchestrator.js';
 import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 import { syncCornerShapeSquircleClass } from '../../legacy/modules/core/state.js';
@@ -20,16 +26,18 @@ function syncRuntimeThemeVars(runtime) {
 }
 
 export async function bootstrapStyleguide() {
-  // styleguide.html keeps #abs-scene / #app-frame hidden via #fade-blocking until
-  // legacy boot clears it; other routes do this inside main.js / entrance flow.
-  forceBootVisible();
+  let runtime = null;
   try {
-    const runtime = await loadRuntimeConfig();
+    runtime = await loadRuntimeConfig();
     syncRuntimeThemeVars(runtime);
     syncCornerShapeSquircleClass(runtime?.cornerShapeSquircleEnabled !== false);
-    initNoiseSystem(runtime || {});
   } catch {
     syncCornerShapeSquircleClass(true);
+  }
+  try {
+    initNoiseSystem(runtime || {});
+  } catch (error) {
+    void error;
   }
   try {
     const shellConfig = await loadShellConfig();
@@ -44,5 +52,24 @@ export async function bootstrapStyleguide() {
   // No simulation palette bootstrap here — still need readable labels on solid cursor hover fills.
   stampCursorContrastFromTheme();
   requestAnimationFrame(() => stampCursorContrastFromTheme());
+  await waitForPageReadyBarrier({
+    waitForFonts: async () => {
+      try {
+        await waitForFonts();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    minimumMs: 80,
+  });
+  await waitForUsableRects(['#abs-scene', '#app-frame', '.route-topbar', '.styleguide-main'], {
+    timeoutMs: 2400,
+  });
+  await waitForFrames(2);
+  await completeDirectBoot({
+    selectors: ['#abs-scene', '#app-frame'],
+    detail: 'styleguide-ready',
+  });
   return undefined;
 }

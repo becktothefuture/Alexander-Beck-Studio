@@ -3,7 +3,10 @@ import { PaletteLabExperience } from './PaletteLabExperience.jsx';
 
 const homeHref = buildRouteHref('home');
 
-export const PALETTE_LAB_ROUTE_RUNTIME = {};
+export const PALETTE_LAB_ROUTE_RUNTIME = {
+  exportName: 'bootstrapPaletteLab',
+  loadModule: () => import('./palette-lab-bootstrap.js'),
+};
 
 export function getPaletteLabRouteView() {
   return {

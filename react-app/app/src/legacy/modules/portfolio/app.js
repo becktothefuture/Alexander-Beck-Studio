@@ -20,7 +20,7 @@ import { waitForFonts } from '../utils/font-loader.js';
 import * as SoundEngine from '../audio/sound-engine.js';
 import { initSharedChrome } from '../ui/shared-chrome.js';
 import { loadShellConfig, syncShellToDocument } from '../visual/site-shell.js';
-import { forceBootVisible, waitForPageReadyBarrier } from '../visual/page-orchestrator.js';
+import { completeDirectBoot, waitForFrames, waitForPageReadyBarrier } from '../visual/page-orchestrator.js';
 import { navigateWithTransition, resetTransitionState, setupPrefetchOnHover, NAV_STATES } from '../utils/page-nav.js';
 import { MODES } from '../core/constants.js';
 import {
@@ -3231,9 +3231,6 @@ export async function bootstrapPortfolio() {
   };
   preparePortfolioLayers();
   scheduleHardReveal(shellRouteTransitionActive ? 2400 : 2200);
-  if (!shellRouteTransitionActive) {
-    forceBootVisible(['#abs-scene', '#app-frame']);
-  }
   // Deck mount stays invisible; revealed after the first stable presentation.
   const hostLaidOut = await waitForPitSimulationHostReady();
   try {
@@ -3302,6 +3299,12 @@ export async function bootstrapPortfolio() {
     root.classList.remove('portfolio-booting');
     document.body.dataset.portfolioLoadState = 'loaded';
     revealPortfolioLayers();
+    if (!shellRouteTransitionActive) {
+      await completeDirectBoot({
+        selectors: ['#abs-scene', '#app-frame'],
+        detail: 'portfolio-deck-failed',
+      });
+    }
     if (shellRouteTransitionActive) {
       signalRouteReady('portfolio');
     }
@@ -3353,6 +3356,14 @@ export async function bootstrapPortfolio() {
   });
   if (!presentationSettled && import.meta.env?.DEV) {
     console.warn('[portfolio] Presentation did not fully settle after reveal; using latest measured layout.');
+  }
+
+  if (!shellRouteTransitionActive) {
+    await waitForFrames(2);
+    await completeDirectBoot({
+      selectors: ['#abs-scene', '#app-frame'],
+      detail: presentationSettled ? 'portfolio-ready' : 'portfolio-ready-timeout',
+    });
   }
 
   // During shell route-in, route-ready is emitted after the deck is visible and
