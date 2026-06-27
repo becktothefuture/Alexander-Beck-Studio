@@ -665,11 +665,16 @@ export function createFlockOfBirdsRenderer({
       const lowBias = yi > courseSkyBottom - bottomPressureBand
         ? -smoothStep((yi - (courseSkyBottom - bottomPressureBand)) / Math.max(1, bottomPressureBand)) * 0.64
         : 0;
+      const previousLoad = state.verticalLoad[i];
       const previewVerticalTarget = resolveVerticalTarget((vyi / Math.max(1, cruiseSpeed)) + topBias + lowBias);
-      const previewLoad = state.verticalLoad[i]
-        + (previewVerticalTarget - state.verticalLoad[i]) * Math.min(1, dt * (1.3 + speedResponse));
+      const previewLoad = previousLoad
+        + (previewVerticalTarget - previousLoad) * Math.min(1, dt * (1.3 + speedResponse));
       const speedPressure = smoothStep((currentSpeed - cruiseSpeed) / Math.max(1, maxSpeed - cruiseSpeed));
-      const carryEnergy = smoothStep(Math.max(0, -previewLoad)) * speedPressure * diveAcceleration * 0.42;
+      const carryEnergy = smoothStep(Math.max(0, previousLoad))
+        * smoothStep(Math.max(0, -previewLoad))
+        * speedPressure
+        * diveAcceleration
+        * 0.26;
       const energyTargetSpeed = resolveEnergyTargetSpeed(
         cruiseSpeed,
         minSpeed,
@@ -864,7 +869,6 @@ export function createFlockOfBirdsRenderer({
       const forwardAccel = ax * forwardX + ay * forwardY;
       const rawLateralAccel = ax * lateralX + ay * lateralY;
       let lateralAccel = rawLateralAccel;
-      const previousLoad = state.verticalLoad[i];
       const ascentLoad = smoothStep(Math.max(0, -previousLoad));
       const lateralDamping = clamp(
         1 - energyWeight * (0.26 + inertiaControl * 0.62 + ascentLoad * 0.24 + speedPressure * 0.26),
@@ -969,10 +973,11 @@ export function createFlockOfBirdsRenderer({
       const rawVerticalLoad = nextVy / Math.max(1, cruiseSpeed);
       const verticalTarget = resolveVerticalTarget(rawVerticalLoad);
       state.verticalLoad[i] += (verticalTarget - state.verticalLoad[i]) * Math.min(1, dt * (1.7 + speedResponse * 1.25));
-      const finalCarryEnergy = smoothStep(Math.max(0, -state.verticalLoad[i]))
+      const finalCarryEnergy = smoothStep(Math.max(0, previousLoad))
+        * smoothStep(Math.max(0, -state.verticalLoad[i]))
         * smoothStep((speed - cruiseSpeed) / Math.max(1, maxSpeed - cruiseSpeed))
         * diveAcceleration
-        * 0.42;
+        * 0.26;
       const desiredSpeed = resolveEnergyTargetSpeed(
         cruiseSpeed,
         minSpeed,
@@ -983,11 +988,35 @@ export function createFlockOfBirdsRenderer({
         climbSlowdown,
         finalCarryEnergy,
       );
-      const responseScale = desiredSpeed > speed ? 1.15 : 0.78;
+      const responseScale = desiredSpeed > speed ? 1.08 : 1.32;
       const speedCorrection = (desiredSpeed - speed) * speedResponse * responseScale * dt;
       nextVx += (nextVx / speed) * speedCorrection;
       nextVy += (nextVy / speed) * speedCorrection;
       speed = Math.hypot(nextVx, nextVy);
+
+      const diveLoad = smoothStep(Math.max(0, state.verticalLoad[i]));
+      const recoveryPressure = Math.max(corridorPressure, homePressure);
+      const maneuverAllowance = clamp(
+        diveLoad * 0.52 + state.bankLoad[i] * 0.14 + recoveryPressure * 0.34,
+        0,
+        1,
+      );
+      const softSpeedCeiling = clamp(
+        cruiseSpeed * (0.86 + maneuverAllowance * 0.28),
+        minSpeed * 1.12,
+        maxSpeed * (0.78 + maneuverAllowance * 0.18),
+      );
+      if (speed > softSpeedCeiling) {
+        const overspeed = speed - softSpeedCeiling;
+        const overspeedPressure = smoothStep(overspeed / Math.max(1, maxSpeed - softSpeedCeiling));
+        const envelopePull = Math.min(1, dt * (1.8 + speedResponse * 1.6 + overspeedPressure * 2.8));
+        const envelopeSpeed = speed - overspeed * envelopePull;
+        const scale = envelopeSpeed / Math.max(0.0001, speed);
+        nextVx *= scale;
+        nextVy *= scale;
+        speed = envelopeSpeed;
+      }
+
       if (speed < minSpeed) {
         const scale = minSpeed / Math.max(0.0001, speed);
         nextVx *= scale;
