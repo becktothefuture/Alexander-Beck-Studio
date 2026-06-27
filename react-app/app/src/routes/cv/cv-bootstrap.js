@@ -18,6 +18,7 @@ import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visua
 import { applyWallFrameFromConfig, applyWallFrameLayout } from '../../legacy/modules/visual/wall-frame.js';
 import { stampCursorContrastFromTheme } from '../../legacy/modules/visual/colors.js';
 import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
+import { initWallShadowPlateSystem } from '../../legacy/modules/visual/wall-shadow-plate.js';
 import { createScrollPresence } from '../../legacy/modules/utils/scroll-presence.js';
 
 function getCvScrollContainer() {
@@ -60,6 +61,12 @@ export async function bootstrapCvRoute() {
     initNoiseSystem(runtimeConfig || {});
   } catch {
     // Keep the route usable even if the decorative layer fails.
+  }
+
+  try {
+    initWallShadowPlateSystem(runtimeConfig || {});
+  } catch {
+    // Keep the CSS shadow fallback if the generated plate fails.
   }
 
   initSharedChrome({

@@ -2844,18 +2844,18 @@ html.abs-direct-boot-staging .ui-main-nav .footer_link {
 /* Home post-boot UI entrance: starts only after #abs-boot-overlay is gone.
    The canvas and wall stay out of scope; this is a short text/chrome reveal. */
 :root {
-  --home-post-boot-ease: var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1));
-  --home-post-boot-duration-identity: 840ms;
-  --home-post-boot-duration-support: 920ms;
+  --home-post-boot-ease: cubic-bezier(0.22, 0, 0.16, 1);
+  --home-post-boot-duration-identity: 980ms;
+  --home-post-boot-duration-support: 1180ms;
   --home-post-boot-delay-identity-name: 0ms;
   --home-post-boot-delay-identity-role: 140ms;
   --home-post-boot-delay-legend-start: 360ms;
   --home-post-boot-delay-legend-step: 96ms;
-  --home-post-boot-delay-context-start: 1180ms;
+  --home-post-boot-delay-context-start: 1340ms;
   --home-post-boot-delay-context-step: 120ms;
-  --home-post-boot-delay-action-start: 1580ms;
+  --home-post-boot-delay-action-start: 1740ms;
   --home-post-boot-delay-action-step: 120ms;
-  --home-post-boot-delay-footer-start: 1940ms;
+  --home-post-boot-delay-footer-start: 2100ms;
   --home-post-boot-delay-footer-step: 100ms;
   --home-post-boot-ty: 7px;
   --home-post-boot-blur: 4px;
@@ -3197,7 +3197,7 @@ html.entrance-transitioning #simulations {
   display: none;
 }
 
-/* Pit inset shadow — sits above canvas (z 12) but below rim (z 170). Vars from applyLayoutCSSVars(). */
+/* Pit inset shadow fallback — replaced by the decoded wall shadow plate once ready. */
 #simulations::before {
   content: '';
   position: absolute;
@@ -3211,6 +3211,10 @@ html.entrance-transitioning #simulations {
   box-shadow: inset 0 var(--inner-wall-pit-inset-shadow-offset-y) var(--inner-wall-pit-inset-shadow-blur)
     var(--inner-wall-pit-inset-shadow-spread)
     rgba(var(--inner-wall-bottom-shadow-rgb), var(--inner-wall-pit-inset-shadow-opacity));
+}
+
+body.wall-shadow-plate-ready #simulations::before {
+  box-shadow: none;
 }
 
 .outer-wall,
@@ -3262,6 +3266,10 @@ html.entrance-transitioning #simulations {
       rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-side-shadow-opacity) * 0.3)) 60%,
       transparent 100%
     ) right center / var(--inner-wall-gradient-edge-width) 100% no-repeat;
+}
+
+body.wall-shadow-plate-ready .inner-wall-gradient-edge {
+  background: none;
 }
 
 #simulations canvas {
@@ -3333,11 +3341,18 @@ html.entrance-transitioning #simulations {
   overflow: hidden;
   pointer-events: none;
   z-index: 175;
+  background-image: var(--abs-wall-shadow-plate, none);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
   box-shadow:
     inset 0 var(--frame-vignette-edge-offset-y) var(--frame-vignette-edge-blur)
       rgba(var(--frame-vignette-edge-rgb), var(--frame-vignette-edge-opacity)),
     inset 0 0 var(--frame-vignette-ambient-blur)
       rgba(var(--frame-vignette-ambient-rgb), var(--frame-vignette-ambient-opacity));
+}
+
+body.wall-shadow-plate-ready .frame-vignette {
+  box-shadow: none;
 }
 
 .frame-vignette::after {

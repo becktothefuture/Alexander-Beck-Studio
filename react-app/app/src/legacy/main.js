@@ -9,6 +9,7 @@ import { getDailyMode } from './modules/core/daily-scheduler.js';
 import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
 import { getPaletteTemplateOverrideFromUrl, getWeatherDrivenPaletteTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './modules/visual/colors.js';
 import { initNoiseSystem } from './modules/visual/noise-system.js';
+import { initWallShadowPlateSystem } from './modules/visual/wall-shadow-plate.js';
 import {
   setupRenderer,
   getCanvas,
@@ -224,7 +225,7 @@ function applyHomeHeroRuntimeConfig() {
 // ║  helpers reveal the non-canvas homepage UI after the overlay has gone.      ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-const HOME_POST_BOOT_ENTER_COMPLETE_MS = 3500;
+const HOME_POST_BOOT_ENTER_COMPLETE_MS = 3900;
 let homePostBootEntranceTimer = 0;
 let homePostBootEntranceRaf = 0;
 
@@ -466,6 +467,10 @@ export async function bootstrapHomePage() {
     // Procedural noise texture (no GIF): generates a small texture once and animates via CSS only.
     try {
       initNoiseSystem(getGlobals());
+    } catch (e) {}
+
+    try {
+      initWallShadowPlateSystem(getGlobals());
     } catch (e) {}
     
     // Setup canvas (attaches resize listener, but doesn't resize yet)

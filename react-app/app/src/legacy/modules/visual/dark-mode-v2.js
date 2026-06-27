@@ -11,6 +11,7 @@ import { applyChromeHarmony } from './chrome-harmony.js';
 import { readTokenVar } from '../utils/tokens.js';
 import { invalidateDepthWashCache } from './depth-wash.js';
 import { applyShellLayoutVars, syncShellToDocument, syncThemeColorMeta } from './site-shell.js';
+import { applyWallShadowPlateSystem } from './wall-shadow-plate.js';
 import { forEachPanelUiDocument, resolvePanelUiDocument } from '../ui/panel-ui-context.js';
 
 const THEME_STORAGE_KEY = 'theme-preference-v2';
@@ -205,6 +206,10 @@ function applyDarkModeToDOM(isDark) {
   // Re-apply noise system so SVG noise can re-tint to the active theme.
   try {
     import('./noise-system.js').then(({ applyNoiseSystem }) => applyNoiseSystem({}));
+  } catch (e) {}
+
+  try {
+    applyWallShadowPlateSystem({});
   } catch (e) {}
   
   // Switch color palette variant

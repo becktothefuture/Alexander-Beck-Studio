@@ -14,6 +14,7 @@ import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visua
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 import { syncCornerShapeSquircleClass } from '../../legacy/modules/core/state.js';
 import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
+import { initWallShadowPlateSystem } from '../../legacy/modules/visual/wall-shadow-plate.js';
 
 function syncRuntimeThemeVars(runtime) {
   const root = document.documentElement;
@@ -48,6 +49,11 @@ export async function bootstrapStyleguide() {
   } catch (error) {
     void error;
     // Styleguide can render with the critical-shell defaults if shell config is unavailable.
+  }
+  try {
+    initWallShadowPlateSystem(runtime || {});
+  } catch (error) {
+    void error;
   }
   // No simulation palette bootstrap here — still need readable labels on solid cursor hover fills.
   stampCursorContrastFromTheme();

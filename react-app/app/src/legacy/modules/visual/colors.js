@@ -829,6 +829,9 @@ function applyPaletteTheme(templateName) {
       noiseColorDark: globals.noiseColorDark,
     }));
   } catch (_) { /* no-op */ }
+  try {
+    import('./wall-shadow-plate.js').then(({ applyWallShadowPlateSystem }) => applyWallShadowPlateSystem({}));
+  } catch (_) { /* no-op */ }
 }
 
 export function applyColorTemplate(templateName) {

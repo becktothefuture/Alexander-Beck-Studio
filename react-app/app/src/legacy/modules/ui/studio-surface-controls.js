@@ -3,6 +3,7 @@ import {
   applyLayoutFromVwToPx,
   getGlobals,
 } from '../core/state.js';
+import { applyWallShadowPlateSystem } from '../visual/wall-shadow-plate.js';
 
 export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   edgeStrength: 0.06,
@@ -278,6 +279,9 @@ export function applyStudioSurfaceConfig(config) {
   root.style.setProperty('--inner-wall-outward-shadow-opacity-dark', `${Math.min(0.65, sceneDepth * 2.3)}`);
   root.style.setProperty('--inner-wall-outward-shadow-blur', `${Math.round(3 + (sceneSoftness * 20))}px`);
   root.style.setProperty('--inner-wall-outward-shadow-spread', `${Math.round(sceneSoftness * 6)}px`);
+  try {
+    applyWallShadowPlateSystem({});
+  } catch (e) {}
   root.style.setProperty('--decorative-script-max-width', `${scriptMaxWidth}px`);
   root.style.setProperty('--decorative-script-padding-left', `${scriptPaddingX}px`);
   root.style.setProperty('--decorative-script-padding-vertical', `${scriptPaddingY}px`);

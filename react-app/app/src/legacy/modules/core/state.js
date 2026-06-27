@@ -899,6 +899,8 @@ const state = {
   innerWallPitInsetShadowBlurPx: 28,        // Inset shadow blur (px)
   innerWallPitInsetShadowSpreadPx: -6,      // Negative pulls shadow inward from rim
   innerWallPitInsetShadowOffsetYPx: 4,      // Slight downward bias (top light)
+  wallShadowPlateEnabled: true,             // Static dithered shadow texture replaces broad CSS ramps when ready
+  wallShadowDitherStrength: 1.2,            // Alpha dither strength for shadow ramps (0–3)
   puckShadowOpacity: 0.14,                  // Puck disk drop shadow strength
   puckEdgeWidth: 1,                         // Puck rim thickness (px)
   puckEdgeLightOpacity: 0.3,               // Puck top rim light
@@ -1440,6 +1442,8 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--inner-wall-pit-inset-shadow-spread', `${pitSpread}px`);
   root.style.setProperty('--inner-wall-pit-inset-shadow-offset-y', `${pitOff}px`);
   root.style.setProperty('--inner-wall-pit-inset-shadow-opacity', String(pitOpacity));
+  root.style.setProperty('--wall-shadow-plate-enabled', state.wallShadowPlateEnabled ? '1' : '0');
+  root.style.setProperty('--wall-shadow-dither-strength', String(state.wallShadowDitherStrength ?? 1.2));
 
   // Gradient edge — master drives bottom/sides light; top shadow has its own control
   const ge = state.innerWallGradientEdgeTopOpacity ?? 0.22;
@@ -2480,6 +2484,12 @@ export function initState(config) {
   }
   if (config.innerWallPitInsetShadowOffsetYPx !== undefined) {
     state.innerWallPitInsetShadowOffsetYPx = clampNumber(config.innerWallPitInsetShadowOffsetYPx, 0, 14, 4);
+  }
+  if (config.wallShadowPlateEnabled !== undefined) {
+    state.wallShadowPlateEnabled = Boolean(config.wallShadowPlateEnabled);
+  }
+  if (config.wallShadowDitherStrength !== undefined) {
+    state.wallShadowDitherStrength = clampNumber(config.wallShadowDitherStrength, 0, 3, 1.2);
   }
   if (config.innerWallGradientEdgeTopOpacity !== undefined) {
     state.innerWallGradientEdgeTopOpacity = clampNumber(config.innerWallGradientEdgeTopOpacity, 0, 1, 0.18);

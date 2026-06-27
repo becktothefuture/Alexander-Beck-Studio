@@ -130,6 +130,8 @@
   "innerWallGradientEdgeWidth": 2.5,
   "innerWallPitInsetShadowOpacity": 0.165,
   "innerWallPitInsetShadowBlurPx": 36,
+  "wallShadowPlateEnabled": true,
+  "wallShadowDitherStrength": 1.2,
   "outerWallCastShadowOpacityLight": 0,
   "quotePuckEnabled": false,
   "puckShadowOpacity": 0.09,

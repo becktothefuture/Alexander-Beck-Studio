@@ -127,7 +127,7 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
 
 ### Wall layer visualization (Light Group)
 
-The dev panel has a top-level **Light Group** master section (peer to Studio / Shell) with **Outer Wall** and **Inner Wall** accordions (border, shine, shadows, glow). Runtime values are stamped into CSS variables by `applyLayoutCSSVars()` in `state.js`: `#simulations` has **no outward cast shadow**; inward depth uses `.frame-vignette` inset shadows, and **`.inner-wall-gradient-edge`** paints a **light rim** on the bottom and sides plus a **shadow rim** on the top (`innerWallGradientEdgeTopShadowOpacity` → `--inner-wall-gradient-edge-top-shadow-opacity`, independent of the light-rim master). **`--ui-chrome-rim-*`** links footer / nav / icon button hover rims (`--ui-chrome-button-edge`) to the inner-wall top light / bottom shadow strengths. The frame border uses a **180°** linear gradient on the border ring: **edge** and **mid** opacities stay ~**1:2** so the **mid** stop still “peeks” on the **left/right** vertical rails (and top/bottom). Defaults are tuned **subtle**; Studio surface maps `sceneHighlight` to frame opacities with factors **0.029** / **0.058** (same ~1:2 ratio). The optional isometric “Wall stack” helper in `control-registry.js` mirrors z-order when present.
+The dev panel has a top-level **Light Group** master section (peer to Studio / Shell) with **Outer Wall** and **Inner Wall** accordions (border, shine, shadows, glow). Runtime values are stamped into CSS variables by `applyLayoutCSSVars()` in `state.js`: `#simulations` has **no outward cast shadow**; inward depth is generated as a decoded **wall shadow plate** on `.frame-vignette` when `wallShadowPlateEnabled` is true. Before that plate is ready, CSS falls back to `#simulations::before`, `.frame-vignette` inset shadows, and **`.inner-wall-gradient-edge`** for the light rim and top shadow rim. **`--ui-chrome-rim-*`** links footer / nav / icon button hover rims (`--ui-chrome-button-edge`) to the inner-wall top light / bottom shadow strengths. The frame border uses a **180°** linear gradient on the border ring: **edge** and **mid** opacities stay ~**1:2** so the **mid** stop still “peeks” on the **left/right** vertical rails (and top/bottom). Defaults are tuned **subtle**; Studio surface maps `sceneHighlight` to frame opacities with factors **0.029** / **0.058** (same ~1:2 ratio). The optional isometric “Wall stack” helper in `control-registry.js` mirrors z-order when present.
 
 ---
 
@@ -171,6 +171,8 @@ The dev panel has a top-level **Light Group** master section (peer to Studio / S
   "noiseStructureStrength": 0.3,
   "noiseStructureScale": 0.38,
   "noiseMotion": "jitter",
+  "wallShadowPlateEnabled": true,
+  "wallShadowDitherStrength": 1.2,
   "wallThicknessVw": 0.83,
   "wallRadiusVw": 2.92,
   "layoutMinWallRadiusPx": 28,
@@ -644,6 +646,12 @@ The following legacy keys are still accepted and will be converted to vw at star
 - `containerInnerShadowOffsetY` (number, px)
 
 Applied to CSS vars `--container-inner-shadow-*`.
+
+### Dithered wall shadow plate
+- **`wallShadowPlateEnabled`** (boolean, default `true`) generates a static decoded RGBA shadow texture for the inner wall and paints it on `.frame-vignette` via `--abs-wall-shadow-plate`.
+- **`wallShadowDitherStrength`** (0–3, default `1.2`) controls deterministic alpha dither in the generated shadow ramps. It prevents dark-mode banding without adding an animated layer.
+- The plate is generated from existing wall controls: `innerWallPitInsetShadowOpacity`, `innerWallPitInsetShadowBlurPx`, `innerWallGradientEdgeTopOpacity`, `innerWallGradientEdgeTopShadowOpacity`, `innerWallGradientEdgeWidth`, and the shared Studio surface `sceneDepth` / `sceneSoftness` values.
+- Fallback is automatic: until `body.wall-shadow-plate-ready` is present, CSS uses the existing `#simulations::before`, `.inner-wall-gradient-edge`, and `.frame-vignette` shadows. Once the decoded plate commits, those broad CSS ramps are disabled so the wall does not stack duplicate shadow systems.
 
 ---
 

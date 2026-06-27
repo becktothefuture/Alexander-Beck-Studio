@@ -19,6 +19,7 @@ import { resize } from '../rendering/renderer.js';
 import { updateCursorSize } from '../rendering/cursor.js';
 import { getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
+import { applyWallShadowPlateSystem } from '../visual/wall-shadow-plate.js';
 import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-shadow.js';
 import { initQuotePuck } from './quote-puck.js';
 import { destroyQuoteDisplay, initQuoteDisplay } from './quote-display.js';
@@ -2947,6 +2948,7 @@ export const CONTROL_SECTIONS = {
           document.documentElement.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(Number((val * 1.45 * dm).toFixed(3))));
           document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(Number((val * 0.85 * dm).toFixed(3))));
           document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-shadow-opacity', String(Number((val * 0.85 * dm).toFixed(3))));
+          applyWallShadowPlateSystem({});
         }
       },
       {
@@ -2966,6 +2968,7 @@ export const CONTROL_SECTIONS = {
             '--inner-wall-gradient-edge-top-shadow-opacity',
             String(Number(Math.min(1, val * dm).toFixed(3)))
           );
+          applyWallShadowPlateSystem({});
         }
       },
       {
@@ -2980,6 +2983,7 @@ export const CONTROL_SECTIONS = {
         hint: 'Thickness of the light rim on the pit opening (home + all routes).',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--inner-wall-gradient-edge-width', `${val}px`);
+          applyWallShadowPlateSystem({});
         }
       },
       {
@@ -2995,6 +2999,7 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           g.innerWallPitInsetShadowOpacity = val;
           applyLayoutCSSVars();
+          applyWallShadowPlateSystem({});
         }
       },
       {
@@ -3010,7 +3015,31 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           g.innerWallPitInsetShadowBlurPx = val;
           applyLayoutCSSVars();
+          applyWallShadowPlateSystem({});
         }
+      },
+      {
+        id: 'wallShadowPlateEnabled',
+        label: 'Smooth shadow plate',
+        stateKey: 'wallShadowPlateEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        hint: 'Bakes the wall depth/rim into one decoded dithered texture; off uses CSS shadow fallback.',
+        onChange: (_g, val) => applyWallShadowPlateSystem({ wallShadowPlateEnabled: val })
+      },
+      {
+        id: 'wallShadowDitherStrength',
+        label: 'Shadow dither',
+        stateKey: 'wallShadowDitherStrength',
+        type: 'range',
+        min: 0, max: 3, step: 0.1,
+        default: 1.2,
+        format: v => `${Number(v).toFixed(1)}x`,
+        parse: parseFloat,
+        hint: 'Tiny deterministic alpha dither in the generated shadow gradients to prevent dark-mode banding.',
+        onChange: (_g, val) => applyWallShadowPlateSystem({ wallShadowDitherStrength: val })
       },
       {
         id: 'outerWallCastShadowOpacityLight',
