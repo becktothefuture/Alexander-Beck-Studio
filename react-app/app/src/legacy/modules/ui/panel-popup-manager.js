@@ -2,6 +2,7 @@ import { syncWallPanelTabsToTheme } from './control-registry.js';
 import {
   createPanelDock,
   getDock,
+  getRequestedPanelSectionKey,
   hideDock,
   mountDetachedPanel,
   syncPanelHostDocument,
@@ -191,7 +192,7 @@ export function registerDevPanelRoute(options = {}) {
   ensureLauncherButton();
 
   const dock = getDock();
-  if (dock) {
+  if (dock || getRequestedPanelSectionKey()) {
     createPanelDock({
       ...currentRouteOptions,
       preserveLauncherButton: true,

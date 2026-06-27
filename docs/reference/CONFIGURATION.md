@@ -164,12 +164,13 @@ The dev panel has a top-level **Light Group** master section (peer to Studio / S
   "containerInnerShadowBlur": 80,
   "containerInnerShadowSpread": -10,
   "containerInnerShadowOffsetY": 0,
-  "noiseSizeBase": 90,
-  "noiseSizeTop": 80,
-  "noiseBackOpacity": 0.051,
-  "noiseFrontOpacity": 0.012,
-  "noiseBackOpacityDark": 0.08,
-  "noiseFrontOpacityDark": 0.05,
+  "noiseEnabled": true,
+  "noiseOpacityLight": 0.15,
+  "noiseOpacityDark": 0.48,
+  "noiseSize": 175,
+  "noiseStructureStrength": 0.3,
+  "noiseStructureScale": 0.38,
+  "noiseMotion": "jitter",
   "wallThicknessVw": 0.83,
   "wallRadiusVw": 2.92,
   "layoutMinWallRadiusPx": 28,
@@ -787,20 +788,14 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 
 ### Procedural grain (runtime / panel: Shell → Background grain)
 
-- **`noiseOpacityLight` / `noiseOpacityDark`** (0–1) → `--noise-opacity-light` / `--noise-opacity-dark`
-- **`noiseColorLight` / `noiseColorDark`** (hex) → `--noise-color-light` / `--noise-color-dark` — tints the `::after` wash; defaults skew **dark grain on light theme** and **lighter grain on dark theme** for contrast against the wall.
+- **`noiseOpacityLight` / `noiseOpacityDark`** (0–1) → `--noise-opacity-light` / `--noise-opacity-dark`; these scale a dark alpha ink texture, not an opaque bright/dark image.
+- **`noiseColorLight` / `noiseColorDark`** (hex) → `--noise-color-light` / `--noise-color-dark` — ink color inputs are clamped to dark values before texture generation so the grain cannot brighten the wall.
+- **`noiseStructureStrength`** (0–0.45, default `0.30`) blends a lower-frequency dark-alpha field into the generated tile so the wall reads less mechanically without adding another DOM/compositor layer.
+- **`noiseStructureScale`** (0.18–0.75, default `0.38`) controls the second field’s relative frequency. Lower values make broader clouding; higher values make the added structure finer.
 
 ### Noise sizing
-- `noiseSizeBase` (number, px) → `--noise-size-base`
-- `noiseSizeTop` (number, px) → `--noise-size-top`
-
-### Noise opacity (light mode)
-- `noiseBackOpacity` (number) → `--noise-back-opacity`
-- `noiseFrontOpacity` (number) → `--noise-front-opacity`
-
-### Noise opacity (dark mode)
-- `noiseBackOpacityDark` (number) → `--noise-back-opacity-dark`
-- `noiseFrontOpacityDark` (number) → `--noise-front-opacity-dark`
+- `noiseSize` (number, px) → `--noise-size`; this scales the single generated texture in CSS.
+- The second field is baked into the same texture; it has no separate opacity, animation, or stacking layer. The generated texture is transparent dark ink, is painted only by `.noise::before`, and is revealed after decode so the wall grain appears as one settled surface.
 
 ---
 

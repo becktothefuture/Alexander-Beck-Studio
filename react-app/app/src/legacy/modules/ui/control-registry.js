@@ -3182,23 +3182,23 @@ export const CONTROL_SECTIONS = {
         stateKey: 'noiseOpacityLight',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.04,
+        default: 0.15,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         group: 'Light mode',
-        hint: 'Grain strength when the site is in light theme.',
+        hint: 'Dark alpha grain strength when the site is in light theme.',
         onChange: (_g, val) => applyNoiseSystem({ noiseOpacityLight: val })
       },
       {
         id: 'noiseColorLight',
-        label: 'Tint',
+        label: 'Ink',
         stateKey: 'noiseColorLight',
         type: 'color',
-        default: "var(--color-detected-2a2a2e)",
+        default: '#202023',
         format: v => String(v),
         parse: v => String(v),
         group: 'Light mode',
-        hint: 'Use a dark tint so grain reads on light walls.',
+        hint: 'Dark ink color for the alpha grain; bright colors are clamped dark.',
         onChange: (_g, val) => applyNoiseSystem({ noiseColorLight: val })
       },
       { type: 'divider', label: 'Dark mode' },
@@ -3208,23 +3208,23 @@ export const CONTROL_SECTIONS = {
         stateKey: 'noiseOpacityDark',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.04,
+        default: 0.48,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         group: 'Dark mode',
-        hint: 'Grain strength when the site is in dark theme.',
+        hint: 'Dark alpha grain strength when the site is in dark theme.',
         onChange: (_g, val) => applyNoiseSystem({ noiseOpacityDark: val })
       },
       {
         id: 'noiseColorDark',
-        label: 'Tint',
+        label: 'Ink',
         stateKey: 'noiseColorDark',
         type: 'color',
-        default: "var(--color-detected-d4d4d8)",
+        default: '#202023',
         format: v => String(v),
         parse: v => String(v),
         group: 'Dark mode',
-        hint: 'Use a slightly lighter tint so grain reads on dark walls.',
+        hint: 'Dark ink color for the alpha grain; this will not brighten dark walls.',
         onChange: (_g, val) => applyNoiseSystem({ noiseColorDark: val })
       },
       { type: 'divider', label: 'Placement' },
@@ -3281,6 +3281,32 @@ export const CONTROL_SECTIONS = {
         group: 'Texture',
         hint: 'Bigger tiles reduce repetition but cost more memory.',
         onChange: (_g, val) => applyNoiseSystem({ noiseTextureSize: val })
+      },
+      {
+        id: 'noiseStructureStrength',
+        label: 'Structure',
+        stateKey: 'noiseStructureStrength',
+        type: 'range',
+        min: 0, max: 0.45, step: 0.01,
+        default: 0.3,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Texture',
+        hint: 'Low-frequency dark-alpha texture blended into the same grain image.',
+        onChange: (_g, val) => applyNoiseSystem({ noiseStructureStrength: val })
+      },
+      {
+        id: 'noiseStructureScale',
+        label: 'Structure scale',
+        stateKey: 'noiseStructureScale',
+        type: 'range',
+        min: 0.18, max: 0.75, step: 0.01,
+        default: 0.38,
+        format: v => `${v.toFixed(2)}x`,
+        parse: parseFloat,
+        group: 'Texture',
+        hint: 'Lower values make the second field broader; higher values make it finer.',
+        onChange: (_g, val) => applyNoiseSystem({ noiseStructureScale: val })
       },
       {
         id: 'noiseDistribution',
@@ -3419,10 +3445,11 @@ export const CONTROL_SECTIONS = {
         stateKey: 'noiseContrast',
         type: 'range',
         min: 0.25, max: 3, step: 0.05,
-        default: 1.35,
+        default: 1.45,
         format: v => `${v.toFixed(2)}x`,
         parse: parseFloat,
         group: 'Look',
+        hint: 'Raises ink texture separation without brightening the wall.',
         onChange: (_g, val) => applyNoiseSystem({ noiseContrast: val })
       },
       {
@@ -3435,6 +3462,7 @@ export const CONTROL_SECTIONS = {
         format: v => `${v.toFixed(2)}x`,
         parse: parseFloat,
         group: 'Look',
+        hint: 'Keep neutral for non-brightening grain; use opacity and contrast for strength.',
         onChange: (_g, val) => applyNoiseSystem({ noiseBrightness: val })
       },
       {
@@ -5852,7 +5880,7 @@ function generateSectionHTML(key, section) {
   if (section.mode) {
     return `
       <div id="${section.mode}Controls" class="mode-controls">
-        <details class="panel-section-accordion" ${detailsAttrs}>
+        <details class="panel-section-accordion" data-section-key="${key}" ${detailsAttrs}>
           ${header}
           ${body}
         </details>
@@ -5860,7 +5888,7 @@ function generateSectionHTML(key, section) {
   }
 
   return `
-    <details class="panel-section-accordion" ${detailsAttrs}>
+    <details class="panel-section-accordion" data-section-key="${key}" ${detailsAttrs}>
       ${header}
       ${body}
     </details>`;

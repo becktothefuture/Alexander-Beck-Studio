@@ -3154,16 +3154,8 @@ html.entrance-transitioning #simulations {
 }
 
 .frame-vignette::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background-image: var(--abs-noise-texture);
-  background-repeat: repeat;
-  background-size: var(--frame-vignette-dither-size) var(--frame-vignette-dither-size);
-  mix-blend-mode: soft-light;
-  opacity: var(--frame-vignette-dither-opacity);
+  /* Generated grain is painted only by `.noise::before` so it reveals atomically. */
+  content: none;
 }
 
 .noise {
@@ -3181,25 +3173,17 @@ html.entrance-transitioning #simulations {
   /* Note: isolation removed - it creates stacking context that breaks blend modes for sibling elements */
   /* Match simplified frame inner radius exactly. */
   border-radius: var(--frame-inner-radius);
-  /* Fade-in on load: starts hidden via visibility, revealed by .noise-ready class */
-  /* Delayed fade-in to appear after other layers have settled */
-  /* Visibility stays hidden until opacity transition is ready to prevent flash */
   visibility: hidden;
   opacity: 0;
-  /* Delay both visibility and opacity to prevent any flash during initial render */
-  /* Visibility delay matches opacity delay so both activate together */
-  transition: visibility 0s linear 500ms, opacity 2500ms cubic-bezier(0.16, 1, 0.3, 1) 500ms;
+  transition: visibility 0s linear 160ms, opacity 160ms ease-out;
 }
 
-/* Noise layer fades in AFTER entrance animation completes */
-/* Requires: html.entrance-complete (entrance done) + body.noise-ready (texture generated) */
-/* This ensures noise appears after wall/content/logo/links have settled */
+/* Reveals once the generated texture has been decoded and committed. */
 html.entrance-complete .noise-ready .noise {
   visibility: visible;
   opacity: calc(var(--noise-opacity-light) * var(--abs-noise-enabled));
   mix-blend-mode: normal;
-  /* Both transition together - visibility becomes visible as opacity starts transitioning */
-  transition: visibility 0s linear 0s, opacity 2500ms cubic-bezier(0.16, 1, 0.3, 1) 0s;
+  transition: visibility 0s linear 0s, opacity 160ms ease-out;
 }
 
 .noise::before {
@@ -3225,30 +3209,13 @@ html.entrance-complete .noise-ready .noise {
   background-size: calc(var(--noise-size) * var(--noise-size-scale)) calc(var(--noise-size) * var(--noise-size-scale));
 }
 
-/* Color overlay for tinting (separate from texture) */
 .noise::after {
-  content: '';
-  position: absolute;
-  /* Negative inset (overscan) extends beyond parent for animation padding */
-  inset: var(--abs-noise-overscan);
-  background-color: var(--noise-color-light);
-  mix-blend-mode: normal;
-  pointer-events: none;
-  opacity: 0.72; /* Slightly richer chroma variation without overpowering the texture */
-  /* Match animation from ::before */
-  animation-name: var(--abs-noise-keyframes), abs-noise-flicker;
-  animation-duration: var(--abs-noise-speed), var(--abs-noise-flicker-speed);
-  animation-timing-function: var(--abs-noise-timing), steps(1, end);
-  animation-iteration-count: infinite, infinite;
+  content: none;
 }
 
 /* Dark mode noise fade-in with correct opacities and colors */
 html.entrance-complete body.dark-mode.noise-ready .noise {
   opacity: calc(var(--noise-opacity-dark) * var(--abs-noise-enabled));
-}
-
-body.dark-mode .noise::after {
-  background-color: var(--noise-color-dark);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

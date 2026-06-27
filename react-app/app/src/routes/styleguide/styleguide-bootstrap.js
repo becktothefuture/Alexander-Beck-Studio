@@ -7,6 +7,7 @@ import { forceBootVisible } from '../../legacy/modules/visual/page-orchestrator.
 import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 import { syncCornerShapeSquircleClass } from '../../legacy/modules/core/state.js';
+import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
 
 function syncRuntimeThemeVars(runtime) {
   const root = document.documentElement;
@@ -26,6 +27,7 @@ export async function bootstrapStyleguide() {
     const runtime = await loadRuntimeConfig();
     syncRuntimeThemeVars(runtime);
     syncCornerShapeSquircleClass(runtime?.cornerShapeSquircleEnabled !== false);
+    initNoiseSystem(runtime || {});
   } catch {
     syncCornerShapeSquircleClass(true);
   }

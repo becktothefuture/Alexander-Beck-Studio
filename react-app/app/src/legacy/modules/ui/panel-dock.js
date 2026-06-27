@@ -376,6 +376,47 @@ function createPanelToggleButton() {
   document.body.appendChild(toggleBtn);
 }
 
+export function getRequestedPanelSectionKey() {
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    const sectionKey = params.get('panelSection') || params.get('panel');
+    if (!sectionKey) return '';
+    return sectionKey.trim();
+  } catch (e) {
+    return '';
+  }
+}
+
+function findPanelSection(sectionKey) {
+  if (!masterPanelElement || !sectionKey) return null;
+  const safeKey = sectionKey.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return masterPanelElement.querySelector(`[data-section-key="${safeKey}"]`);
+}
+
+function revealRequestedPanelSection() {
+  const sectionKey = getRequestedPanelSectionKey();
+  const section = findPanelSection(sectionKey);
+  if (!section || !dockElement || !masterPanelElement) return;
+
+  dockElement.classList.remove('hidden');
+  saveDockHiddenState(false);
+  expandPanel();
+
+  const group = section.closest('.panel-master-group');
+  if (group && 'open' in group) group.open = true;
+  if ('open' in section) section.open = true;
+
+  try {
+    ensureDockOnscreen();
+  } catch (e) {}
+
+  window.requestAnimationFrame(() => {
+    try {
+      section.scrollIntoView({ block: 'start', inline: 'nearest' });
+    } catch (e) {}
+  });
+}
+
 // ════════════════════════════════════════════════════════════════════════════════
 // MAIN PANEL DOCK CREATION
 // ════════════════════════════════════════════════════════════════════════════════
@@ -481,6 +522,7 @@ export function createPanelDock(options = {}) {
   setupDragging();
   setupResizePersistence();
   setupPanelHoverSounds();
+  revealRequestedPanelSection();
 
   // `/` panel toggle is centralized in `keyboard.js` (wired from React in dev for all routes).
 

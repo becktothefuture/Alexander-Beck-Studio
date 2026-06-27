@@ -380,19 +380,21 @@ const state = {
   noiseFlicker: 0.08, // Lighter flicker
   noiseFlickerSpeedMs: 180, // Faster flicker for more alive feel
   noiseBlurPx: 0,
-  noiseContrast: 1.2, // Slightly reduced for lighter look
-  noiseBrightness: 1.15, // Increased brightness for lighter look
+  noiseContrast: 1.45, // Stronger dark alpha ink without lifting wall brightness
+  noiseBrightness: 1.0, // Neutral brightness; grain strength comes from alpha/contrast
   noiseSaturation: 1.0,
   noiseHue: 0,
+  noiseStructureStrength: 0.3, // Low-frequency structure baked into the same texture
+  noiseStructureScale: 0.38, // Relative frequency for the baked structure field
   // Single layer controls
   noiseSize: 85, // Grain size (px)
   noiseOpacity: 0.04, // Overall opacity (0-1)
-  noiseOpacityLight: 0.04, // Opacity for light mode
-  noiseOpacityDark: 0.04, // Opacity for dark mode
+  noiseOpacityLight: 0.15, // Opacity for light mode
+  noiseOpacityDark: 0.48, // Opacity for dark mode
   noiseBlendMode: 'normal', // Deprecated/no-op; blend mode is fixed to normal in CSS
   // Color controls (separate for light/dark)
-  noiseColorLight: '#2a2a2e', // Dark tint — readable on light walls
-  noiseColorDark: '#d4d4d8', // Lighter tint — readable on dark walls
+  noiseColorLight: '#202023', // Dark ink — readable on light walls
+  noiseColorDark: '#202023', // Dark ink — never brightens dark walls
   detailNoiseOpacity: 1, // Overall opacity multiplier for detail page noise (0-1)
 
   // Minimum clamp targets (px)
@@ -2330,6 +2332,8 @@ export function initState(config) {
   if (config.noiseBrightness !== undefined) state.noiseBrightness = clampNumber(config.noiseBrightness, 0.25, 3, state.noiseBrightness);
   if (config.noiseSaturation !== undefined) state.noiseSaturation = clampNumber(config.noiseSaturation, 0, 3, state.noiseSaturation);
   if (config.noiseHue !== undefined) state.noiseHue = clampNumber(config.noiseHue, 0, 360, state.noiseHue);
+  if (config.noiseStructureStrength !== undefined) state.noiseStructureStrength = clampNumber(config.noiseStructureStrength, 0, 0.45, state.noiseStructureStrength);
+  if (config.noiseStructureScale !== undefined) state.noiseStructureScale = clampNumber(config.noiseStructureScale, 0.18, 0.75, state.noiseStructureScale);
   if (config.noiseSize !== undefined) state.noiseSize = clampNumber(config.noiseSize, 20, 600, state.noiseSize);
   if (config.noiseOpacity !== undefined) state.noiseOpacity = clampNumber(config.noiseOpacity, 0, 1, state.noiseOpacity);
   if (config.noiseOpacityLight !== undefined) state.noiseOpacityLight = clampNumber(config.noiseOpacityLight, 0, 1, state.noiseOpacityLight);

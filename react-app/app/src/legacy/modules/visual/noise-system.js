@@ -15,6 +15,13 @@ let pendingGenerateId = 0;
 let regenTimer = null;
 let lastTextureKey = '';
 
+const NOISE_STRUCTURE_SCALE_DEFAULT = 0.38;
+const NOISE_STRUCTURE_SEED_OFFSET = 0x6C8E9CF5;
+const NOISE_INK_COLOR_FALLBACK = '#050505';
+const NOISE_INK_MAX_LUMA = 32;
+const NOISE_INK_ALPHA_THRESHOLD = 0.68;
+const NOISE_INK_ALPHA_GAIN = 1.2;
+
 const NOISE_KEYS = [
   'noiseEnabled',
   'noiseSeed',
@@ -37,6 +44,8 @@ const NOISE_KEYS = [
   'noiseBrightness',
   'noiseSaturation',
   'noiseHue',
+  'noiseStructureStrength',
+  'noiseStructureScale',
   'noiseSize',
   'noiseOpacity',
   'noiseOpacityLight',
@@ -69,6 +78,10 @@ function clampInt(v, min, max, fallback) {
 
 function clamp01(v, fallback = 0) {
   return clampNumber(v, 0, 1, fallback);
+}
+
+function clampByte(v) {
+  return Math.max(0, Math.min(255, Math.round(v)));
 }
 
 function pickEnum(v, allowed, fallback) {
@@ -104,6 +117,118 @@ function gaussian01(rng) {
   return Math.max(0, Math.min(1, 0.5 + (v - 0.5) * 1.15));
 }
 
+function sampleNoise01(rng, useGaussian) {
+  return useGaussian ? gaussian01(rng) : rng();
+}
+
+function lerp(a, b, t) {
+  return a + ((b - a) * t);
+}
+
+function smoothstep(t) {
+  return t * t * (3 - (2 * t));
+}
+
+function getStructureBlendWeights(strength) {
+  const safeStrength = clampNumber(strength, 0, 0.45, 0.22);
+  return {
+    strength: safeStrength,
+    primaryWeight: 1 - (safeStrength * 0.35),
+    offset: 0.5 * (safeStrength * -0.65),
+  };
+}
+
+function sanitizeStructureScale(value) {
+  return clampNumber(value, 0.18, 0.75, NOISE_STRUCTURE_SCALE_DEFAULT);
+}
+
+function buildStructureField({ size, seed, useGaussian, scale }) {
+  const gridSize = Math.max(4, Math.round(size * sanitizeStructureScale(scale)));
+  const rng = mulberry32((seed ^ NOISE_STRUCTURE_SEED_OFFSET) >>> 0);
+  const values = new Float32Array(gridSize * gridSize);
+
+  for (let i = 0; i < values.length; i++) {
+    values[i] = sampleNoise01(rng, useGaussian);
+  }
+
+  return { gridSize, values };
+}
+
+function sampleStructureField(field, x, y, size) {
+  const { gridSize, values } = field;
+  const gx = (x * gridSize) / size;
+  const gy = (y * gridSize) / size;
+  const x0 = Math.floor(gx);
+  const y0 = Math.floor(gy);
+  const x1 = (x0 + 1) % gridSize;
+  const y1 = (y0 + 1) % gridSize;
+  const tx = smoothstep(gx - x0);
+  const ty = smoothstep(gy - y0);
+  const ix0 = x0 % gridSize;
+  const iy0 = y0 % gridSize;
+
+  const v00 = values[(iy0 * gridSize) + ix0];
+  const v10 = values[(iy0 * gridSize) + x1];
+  const v01 = values[(y1 * gridSize) + ix0];
+  const v11 = values[(y1 * gridSize) + x1];
+
+  return lerp(lerp(v00, v10, tx), lerp(v01, v11, tx), ty);
+}
+
+function mixStructure(primary, structure, weights) {
+  return Math.max(0, Math.min(1, (primary * weights.primaryWeight) + (structure * weights.strength) + weights.offset));
+}
+
+function parseHexColor(value) {
+  if (typeof value !== 'string') return null;
+  const raw = value.trim();
+  const shortMatch = raw.match(/^#([0-9a-f]{3})$/i);
+  if (shortMatch) {
+    const [r, g, b] = shortMatch[1].split('').map((c) => Number.parseInt(`${c}${c}`, 16));
+    return { r, g, b };
+  }
+  const longMatch = raw.match(/^#([0-9a-f]{6})$/i);
+  if (!longMatch) return null;
+  return {
+    r: Number.parseInt(longMatch[1].slice(0, 2), 16),
+    g: Number.parseInt(longMatch[1].slice(2, 4), 16),
+    b: Number.parseInt(longMatch[1].slice(4, 6), 16),
+  };
+}
+
+function rgbToHex({ r, g, b }) {
+  return `#${[r, g, b].map((v) => clampByte(v).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function getDarkInkRgb(value) {
+  const rgb = parseHexColor(value) || parseHexColor(NOISE_INK_COLOR_FALLBACK);
+  const luma = (rgb.r * 0.213) + (rgb.g * 0.715) + (rgb.b * 0.072);
+  if (luma <= NOISE_INK_MAX_LUMA) return rgb;
+  const scale = NOISE_INK_MAX_LUMA / Math.max(1, luma);
+  return {
+    r: clampByte(rgb.r * scale),
+    g: clampByte(rgb.g * scale),
+    b: clampByte(rgb.b * scale),
+  };
+}
+
+function getDarkInkHex(value) {
+  return rgbToHex(getDarkInkRgb(value));
+}
+
+function getInkAlphaConfig({ contrast = 1.35, brightness = 1 } = {}) {
+  const safeContrast = clampNumber(contrast, 0.25, 5, 1.35);
+  const safeBrightness = clampNumber(brightness, 0.25, 3, 1);
+  return {
+    threshold: NOISE_INK_ALPHA_THRESHOLD,
+    gain: clampNumber(NOISE_INK_ALPHA_GAIN * (safeContrast / 1.35) / Math.max(0.75, safeBrightness), 0.55, 3.6, NOISE_INK_ALPHA_GAIN),
+  };
+}
+
+function getInkAlpha(luma, config) {
+  return clamp01((config.threshold - clamp01(luma, 0.5)) * config.gain, 0);
+}
+
 function ensureTextureCanvas(size) {
   if (!textureCanvas) {
     textureCanvas = document.createElement('canvas');
@@ -130,9 +255,77 @@ async function canvasToBlob(canvas) {
   });
 }
 
+function waitForNextFrame() {
+  return new Promise((resolve) => {
+    try {
+      window.requestAnimationFrame(() => resolve());
+    } catch (e) {
+      resolve();
+    }
+  });
+}
+
+async function decodeTextureUrl(url) {
+  if (!url || typeof Image === 'undefined') return;
+
+  await new Promise((resolve) => {
+    const img = new Image();
+    let settled = false;
+    let timeoutId = 0;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      if (timeoutId) window.clearTimeout(timeoutId);
+      resolve();
+    };
+
+    img.onload = settle;
+    img.onerror = settle;
+    timeoutId = window.setTimeout(settle, 600);
+    img.src = url;
+
+    if (typeof img.decode === 'function') {
+      img.decode().then(settle).catch(() => {});
+    }
+  });
+}
+
+async function commitNoiseTextureUrl(url, { genId, objectUrl = false } = {}) {
+  await decodeTextureUrl(url);
+  if (genId !== pendingGenerateId) {
+    if (objectUrl && url) {
+      try { URL.revokeObjectURL(url); } catch (e) {}
+    }
+    return false;
+  }
+
+  try {
+    const root = document.documentElement;
+    const previousObjectUrl = activeObjectUrl;
+
+    root.style.setProperty('--abs-noise-texture', `url("${url}")`);
+    activeObjectUrl = objectUrl ? url : null;
+
+    if (previousObjectUrl && previousObjectUrl !== url) {
+      try { URL.revokeObjectURL(previousObjectUrl); } catch (e) {}
+    }
+
+    await waitForNextFrame();
+    if (genId !== pendingGenerateId) return false;
+    document.body?.classList.add('noise-ready');
+    return true;
+  } catch (e) {
+    if (objectUrl && url) {
+      try { URL.revokeObjectURL(url); } catch (err) {}
+    }
+    return false;
+  }
+}
+
 async function generateNoiseTextureUrl({
   size,
   seed,
+  inkColor,
   distribution,
   monochrome,
   chroma,
@@ -140,6 +333,8 @@ async function generateNoiseTextureUrl({
   brightness,
   saturation,
   hue,
+  structureStrength,
+  structureScale,
 }) {
   const ctx = ensureTextureCanvas(size);
   if (!ctx) return null;
@@ -151,8 +346,13 @@ async function generateNoiseTextureUrl({
 
   const data32 = cachedData32;
   const rng = mulberry32(seed);
+  const inkRgb = getDarkInkRgb(inkColor);
 
   const useGaussian = distribution === 'gaussian';
+  const structureWeights = getStructureBlendWeights(structureStrength);
+  const structureField = structureWeights.strength > 0
+    ? buildStructureField({ size, seed, useGaussian, scale: structureScale })
+    : null;
   const colorMix = clamp01(chroma, 0);
   const invColorMix = 1 - colorMix;
 
@@ -160,6 +360,7 @@ async function generateNoiseTextureUrl({
   const bMul = clampNumber(brightness, 0.25, 3, 1);
   const sat = clampNumber(saturation, 0, 3, 1);
   const hueDeg = clampNumber(hue, 0, 360, 0);
+  const alphaConfig = getInkAlphaConfig();
 
   const doContrastBrightness = c !== 1 || bMul !== 1;
   const doSaturation = sat !== 1;
@@ -189,53 +390,54 @@ async function generateNoiseTextureUrl({
     hr22 = lumB + cosA * (1 - lumB) + sinA * lumB;
   }
 
-  for (let i = 0; i < data32.length; i++) {
-    const base = useGaussian ? gaussian01(rng) : rng();
+  for (let y = 0, i = 0; y < size; y++) {
+    for (let x = 0; x < size; x++, i++) {
+      const structure = structureField ? sampleStructureField(structureField, x, y, size) : 0.5;
+      const base = mixStructure(sampleNoise01(rng, useGaussian), structure, structureWeights);
 
-    let r = base;
-    let g = base;
-    let b = base;
+      let r = base;
+      let g = base;
+      let b = base;
 
-    if (!monochrome) {
-      const r2 = useGaussian ? gaussian01(rng) : rng();
-      const g2 = useGaussian ? gaussian01(rng) : rng();
-      const b2 = useGaussian ? gaussian01(rng) : rng();
-      r = base * invColorMix + r2 * colorMix;
-      g = base * invColorMix + g2 * colorMix;
-      b = base * invColorMix + b2 * colorMix;
+      if (!monochrome) {
+        const r2 = mixStructure(sampleNoise01(rng, useGaussian), structure, structureWeights);
+        const g2 = mixStructure(sampleNoise01(rng, useGaussian), structure, structureWeights);
+        const b2 = mixStructure(sampleNoise01(rng, useGaussian), structure, structureWeights);
+        r = base * invColorMix + r2 * colorMix;
+        g = base * invColorMix + g2 * colorMix;
+        b = base * invColorMix + b2 * colorMix;
+      }
+
+      // Contrast + brightness (point-wise, tile-safe).
+      if (doContrastBrightness) {
+        r = (r - 0.5) * c + 0.5;
+        g = (g - 0.5) * c + 0.5;
+        b = (b - 0.5) * c + 0.5;
+        r *= bMul;
+        g *= bMul;
+        b *= bMul;
+      }
+
+      // Saturation (lerp to luma) — point-wise, tile-safe.
+      if (doSaturation) {
+        const l = r * lumR + g * lumG + b * lumB;
+        r = l * (1 - sat) + r * sat;
+        g = l * (1 - sat) + g * sat;
+        b = l * (1 - sat) + b * sat;
+      }
+
+      // Hue rotate — point-wise, tile-safe.
+      if (doHue) {
+        const nr = r * hr00 + g * hr01 + b * hr02;
+        const ng = r * hr10 + g * hr11 + b * hr12;
+        const nb = r * hr20 + g * hr21 + b * hr22;
+        r = nr; g = ng; b = nb;
+      }
+
+      const luma = r * lumR + g * lumG + b * lumB;
+      const alpha = clampByte(getInkAlpha(luma, alphaConfig) * 255);
+      data32[i] = (alpha << 24) | (inkRgb.b << 16) | (inkRgb.g << 8) | inkRgb.r;
     }
-
-    // Contrast + brightness (point-wise, tile-safe).
-    if (doContrastBrightness) {
-      r = (r - 0.5) * c + 0.5;
-      g = (g - 0.5) * c + 0.5;
-      b = (b - 0.5) * c + 0.5;
-      r *= bMul;
-      g *= bMul;
-      b *= bMul;
-    }
-
-    // Saturation (lerp to luma) — point-wise, tile-safe.
-    if (doSaturation) {
-      const l = r * lumR + g * lumG + b * lumB;
-      r = l * (1 - sat) + r * sat;
-      g = l * (1 - sat) + g * sat;
-      b = l * (1 - sat) + b * sat;
-    }
-
-    // Hue rotate — point-wise, tile-safe.
-    if (doHue) {
-      const nr = r * hr00 + g * hr01 + b * hr02;
-      const ng = r * hr10 + g * hr11 + b * hr12;
-      const nb = r * hr20 + g * hr21 + b * hr22;
-      r = nr; g = ng; b = nb;
-    }
-
-    // Clamp + pack into RGBA (uint32) for fewer writes.
-    const rr = Math.max(0, Math.min(255, Math.round(r * 255)));
-    const gg = Math.max(0, Math.min(255, Math.round(g * 255)));
-    const bb = Math.max(0, Math.min(255, Math.round(b * 255)));
-    data32[i] = (255 << 24) | (bb << 16) | (gg << 8) | rr;
   }
 
   ctx.putImageData(cachedImageData, 0, 0);
@@ -360,6 +562,8 @@ function sanitizeConfig(input = {}) {
     noiseBrightness: clampNumber(input.noiseBrightness, 0.25, 3, 1.0),
     noiseSaturation: clampNumber(input.noiseSaturation, 0, 3, 1.0),
     noiseHue: clampNumber(input.noiseHue, 0, 360, 0),
+    noiseStructureStrength: clampNumber(input.noiseStructureStrength, 0, 0.45, 0.22),
+    noiseStructureScale: sanitizeStructureScale(input.noiseStructureScale),
 
     // Single layer controls
     noiseSize: clampNumber(input.noiseSize, 20, 600, cssNoiseSize),
@@ -381,25 +585,41 @@ function encodeSvgDataUri(svg) {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
-function buildSvgNoiseDataUri({ size, baseFrequency, octaves, seed, color }) {
+function buildSvgNoiseDataUri({
+  size,
+  baseFrequency,
+  octaves,
+  seed,
+  color,
+  contrast,
+  brightness,
+  structureStrength,
+  structureScale,
+}) {
   const safeSize = Math.max(8, Math.round(size || 128));
   const safeFreq = Number.isFinite(baseFrequency) ? baseFrequency : 0.8;
   const safeOctaves = Math.max(1, Math.round(octaves || 2));
   const safeSeed = Math.max(0, Math.round(seed || 0));
-  const safeColor = String(color || "var(--color-brand-white)");
+  const safeColor = getDarkInkHex(color);
+  const weights = getStructureBlendWeights(structureStrength);
+  const alphaConfig = getInkAlphaConfig({ contrast, brightness });
+  const alphaChannel = (alphaConfig.gain / 3).toFixed(4);
+  const alphaBias = (alphaConfig.threshold * alphaConfig.gain).toFixed(4);
+  const structureFreq = Math.max(0.01, safeFreq * sanitizeStructureScale(structureScale));
+  const structureSeed = (safeSeed + (NOISE_STRUCTURE_SEED_OFFSET % 999999)) % 999999;
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<svg xmlns="http://www.w3.org/2000/svg" width="${safeSize}" height="${safeSize}" viewBox="0 0 ${safeSize} ${safeSize}" preserveAspectRatio="none">` +
     `<filter id="n" x="0" y="0" width="100%" height="100%">` +
-    `<feTurbulence type="fractalNoise" baseFrequency="${safeFreq}" numOctaves="${safeOctaves}" seed="${safeSeed}" stitchTiles="stitch" result="noise"/>` +
+    `<feTurbulence type="fractalNoise" baseFrequency="${safeFreq}" numOctaves="${safeOctaves}" seed="${safeSeed}" stitchTiles="stitch" result="primary"/>` +
+    `<feTurbulence type="fractalNoise" baseFrequency="${structureFreq.toFixed(4)}" numOctaves="${Math.max(1, safeOctaves - 1)}" seed="${structureSeed}" stitchTiles="stitch" result="structure"/>` +
+    `<feComposite in="primary" in2="structure" operator="arithmetic" k1="0" k2="${weights.primaryWeight.toFixed(4)}" k3="${weights.strength.toFixed(4)}" k4="${weights.offset.toFixed(4)}" result="noise"/>` +
     `<feColorMatrix in="noise" type="saturate" values="0" result="mono"/>` +
-    `<feComponentTransfer in="mono" result="alpha">` +
-    `<feFuncA type="gamma" amplitude="1" exponent="1" offset="0"/>` +
-    `</feComponentTransfer>` +
-    `<feFlood flood-color="${safeColor}" result="color"/>` +
-    `<feComposite in="color" in2="alpha" operator="in" result="tinted"/>` +
+    `<feColorMatrix in="mono" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -${alphaChannel} -${alphaChannel} -${alphaChannel} 0 ${alphaBias}" result="inkAlpha"/>` +
+    `<feFlood flood-color="${safeColor}" result="inkColor"/>` +
+    `<feComposite in="inkColor" in2="inkAlpha" operator="in" result="ink"/>` +
     `</filter>` +
-    `<rect width="100%" height="100%" filter="url(#n)"/>` +
+    `<rect width="100%" height="100%" fill="transparent" filter="url(#n)"/>` +
     `</svg>`;
 
   return encodeSvgDataUri(svg);
@@ -407,7 +627,7 @@ function buildSvgNoiseDataUri({ size, baseFrequency, octaves, seed, color }) {
 
 function scheduleTextureRegeneration(cfg, { force = false } = {}) {
   const isDark = document.body?.classList?.contains('dark-mode');
-  const svgColor = isDark ? (cfg.noiseColorDark ?? "var(--color-detected-d4d4d8)") : (cfg.noiseColorLight ?? "var(--color-detected-2a2a2e)");
+  const inkColor = isDark ? (cfg.noiseColorDark ?? '#050505') : (cfg.noiseColorLight ?? '#050505');
 
   const textureKey = JSON.stringify({
     seed: cfg.noiseSeed,
@@ -416,7 +636,7 @@ function scheduleTextureRegeneration(cfg, { force = false } = {}) {
     svgFrequency: cfg.noiseSvgBaseFrequency,
     svgOctaves: cfg.noiseSvgOctaves,
     svgSeed: cfg.noiseSvgSeed,
-    svgColor,
+    inkColor: getDarkInkHex(inkColor),
     distribution: cfg.noiseDistribution,
     monochrome: cfg.noiseMonochrome,
     chroma: cfg.noiseChroma,
@@ -424,6 +644,8 @@ function scheduleTextureRegeneration(cfg, { force = false } = {}) {
     brightness: Number(cfg.noiseBrightness).toFixed(3),
     saturation: Number(cfg.noiseSaturation).toFixed(3),
     hue: Number(cfg.noiseHue).toFixed(1),
+    structureStrength: Number(cfg.noiseStructureStrength).toFixed(3),
+    structureScale: Number(cfg.noiseStructureScale).toFixed(3),
   });
 
   // If disabled, skip generation and clear any existing texture to avoid work.
@@ -467,23 +689,22 @@ function scheduleTextureRegeneration(cfg, { force = false } = {}) {
         baseFrequency: cfg.noiseSvgBaseFrequency,
         octaves: cfg.noiseSvgOctaves,
         seed: cfg.noiseSvgSeed,
-        color: svgColor,
+        color: inkColor,
+        contrast: cfg.noiseContrast,
+        brightness: cfg.noiseBrightness,
+        structureStrength: cfg.noiseStructureStrength,
+        structureScale: cfg.noiseStructureScale,
       });
 
       if (genId !== pendingGenerateId) return;
-      try {
-        const root = document.documentElement;
-        root.style.setProperty('--abs-noise-texture', `url("${svgUrl}")`);
-        if (activeObjectUrl) URL.revokeObjectURL(activeObjectUrl);
-        activeObjectUrl = null;
-        document.body?.classList.add('noise-ready');
-      } catch (e) {}
+      await commitNoiseTextureUrl(svgUrl, { genId, objectUrl: false });
       return;
     }
 
     const url = await generateNoiseTextureUrl({
       size: cfg.noiseTextureSize,
       seed: cfg.noiseSeed,
+      inkColor,
       distribution: cfg.noiseDistribution,
       monochrome: cfg.noiseMonochrome,
       chroma: cfg.noiseChroma,
@@ -491,6 +712,8 @@ function scheduleTextureRegeneration(cfg, { force = false } = {}) {
       brightness: cfg.noiseBrightness,
       saturation: cfg.noiseSaturation,
       hue: cfg.noiseHue,
+      structureStrength: cfg.noiseStructureStrength,
+      structureScale: cfg.noiseStructureScale,
     });
 
     // Discard if a newer request is in-flight.
@@ -501,16 +724,7 @@ function scheduleTextureRegeneration(cfg, { force = false } = {}) {
 
     if (!url) return;
 
-    try {
-      const root = document.documentElement;
-      root.style.setProperty('--abs-noise-texture', `url("${url}")`);
-      if (activeObjectUrl) URL.revokeObjectURL(activeObjectUrl);
-      activeObjectUrl = url;
-      // Add noise-ready class to enable noise visibility
-      document.body?.classList.add('noise-ready');
-    } catch (e) {
-      URL.revokeObjectURL(url);
-    }
+    await commitNoiseTextureUrl(url, { genId, objectUrl: true });
   }, 140);
 }
 
