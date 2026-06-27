@@ -35,7 +35,7 @@ Canonical engineering contract for route and modal transitions.
 - The overlay is first-paint infrastructure, not route choreography. It may only be completed by direct-load boot helpers in `page-orchestrator.js`.
 - Direct boot completion must first compose the route to final geometry, then set `data-abs-boot-state="revealing"`, release `#root`, and fade/remove the overlay.
 - Home direct loads replay the non-canvas UI entrance one RAF after the overlay is removed; SPA route transitions do not replay that entrance.
-- Home direct-load entrance order uses named groups: identity first, all six top-left legend labels in visual order, top-right context after the labels are established, then action nav and footer/support chrome. The slow stagger settles in roughly 3.5s.
+- Home direct-load entrance order uses named groups: identity first, all six top-left legend labels in visual order, top-right context after the labels are established, then action nav and footer/support chrome. The slow stagger settles in roughly 3.9s.
 - Boot helpers must no-op during `route-out` / `route-in`; SPA route transitions remain owned by `useShellRouteTransition`.
 - The localhost-only `?absBootHold=1` hook may hold the overlay for audits, then release through `window.__ABS_RELEASE_BOOT_OVERLAY__()`.
 
