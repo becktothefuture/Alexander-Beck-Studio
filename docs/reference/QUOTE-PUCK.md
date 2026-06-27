@@ -1,6 +1,6 @@
 # Quote Puck — Air-Hockey Physics
 
-The quote button is a draggable circular element that behaves like an air-hockey puck. Users can grab it, fling it, and watch it bounce off the viewport edges with realistic physics.
+The quote button is a draggable circular element that behaves like an air-hockey puck. It is disabled by default via `runtime.quotePuckEnabled: false`; enable **Puck → Puck → Quote Puck** in the config panel to mount it on the home route.
 
 ---
 

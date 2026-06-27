@@ -20,6 +20,8 @@ import { updateCursorSize } from '../rendering/cursor.js';
 import { getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
 import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-shadow.js';
+import { initQuotePuck } from './quote-puck.js';
+import { destroyQuoteDisplay, initQuoteDisplay } from './quote-display.js';
 import { forEachPanelUiDocument, registerPanelUiDocument, resolvePanelUiDocument } from './panel-ui-context.js';
 
 
@@ -3076,6 +3078,24 @@ export const CONTROL_SECTIONS = {
     icon: '⚫',
     defaultOpen: false,
     controls: [
+      {
+        id: 'quotePuckEnabled',
+        label: 'Quote Puck',
+        stateKey: 'quotePuckEnabled',
+        type: 'toggle',
+        default: false,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        hint: 'Mounts the draggable quote puck on the home route.',
+        onChange: (_g, enabled) => {
+          if (!enabled) {
+            destroyQuoteDisplay();
+            return;
+          }
+          initQuoteDisplay();
+          initQuotePuck();
+        }
+      },
       {
         id: 'puckShadowOpacity',
         label: 'Drop Shadow',

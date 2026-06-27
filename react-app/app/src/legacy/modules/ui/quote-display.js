@@ -169,6 +169,7 @@ export function destroyQuoteDisplay() {
  */
 export function initQuoteDisplay() {
   destroyQuoteDisplay();
+  if (getState().quotePuckEnabled === false) return;
 
   createQuoteElement();
 

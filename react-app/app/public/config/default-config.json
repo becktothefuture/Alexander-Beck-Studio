@@ -131,6 +131,7 @@
   "innerWallPitInsetShadowOpacity": 0.165,
   "innerWallPitInsetShadowBlurPx": 36,
   "outerWallCastShadowOpacityLight": 0,
+  "quotePuckEnabled": false,
   "puckShadowOpacity": 0.09,
   "puckEdgeWidth": 3.5,
   "puckEdgeLightOpacity": 0.16,

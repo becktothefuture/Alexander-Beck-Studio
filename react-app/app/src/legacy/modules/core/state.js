@@ -167,6 +167,7 @@ const state = {
   // Toggleable at runtime for a low-cost simulation profile.
   liteModeEnabled: false,
   liteModeObjectReductionFactor: 0.6,
+  quotePuckEnabled: false,                  // Home quote puck visibility; panel can re-enable.
 
   // Performance rollout flags (independent rollback toggles).
   featureRenderSchedulerEnabled: true,
@@ -1587,6 +1588,7 @@ export function initState(config) {
   if (config.ballSizeDesktop !== undefined && config.ballSizeMin === undefined) state.ballSizeMax = config.ballSizeDesktop;
   if (config.ballSizeMobile !== undefined && config.ballSizeMin === undefined) state.ballSizeMin = config.ballSizeMobile;
   if (config.liteModeEnabled !== undefined) state.liteModeEnabled = Boolean(config.liteModeEnabled);
+  if (config.quotePuckEnabled !== undefined) state.quotePuckEnabled = Boolean(config.quotePuckEnabled);
   if (config.cornerShapeSquircleEnabled !== undefined) {
     state.cornerShapeSquircleEnabled = Boolean(config.cornerShapeSquircleEnabled);
   }
