@@ -42,7 +42,8 @@ const MODE_NAMES = {
   'weave-field': 'Weave Field',
   'pressure-crucible': 'Polarity Flux',
   'particle-fountain': 'Particle Fountain',
-  'napoleon-point-cloud': 'Napoleon Point Cloud'
+  'napoleon-point-cloud': 'Napoleon Point Cloud',
+  'beach-ball-room': 'Beach Ball Room'
 };
 
 const ROUTE_BACKED_MODE_HREFS = ROUTE_BACKED_DAILY_HREFS;

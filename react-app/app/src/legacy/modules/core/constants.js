@@ -35,7 +35,8 @@ export const MODES = {
   WEAVE_FIELD: 'weave-field',
   PRESSURE_CRUCIBLE: 'pressure-crucible',
   PARTICLE_FOUNTAIN: 'particle-fountain',
-  NAPOLEON_POINT_CLOUD: 'napoleon-point-cloud'
+  NAPOLEON_POINT_CLOUD: 'napoleon-point-cloud',
+  BEACH_BALL_ROOM: 'beach-ball-room'
 };
 
 export function isPitLikeMode(mode) {
@@ -105,7 +106,8 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.STARFIELD_3D]: 'DEPTH FIELD',
   [MODES.PARALLAX_FLOAT]: 'ORGANIC DRIFT',
   [MODES.PARTICLE_FOUNTAIN]: 'PARTICLE FLOW',
-  [MODES.NAPOLEON_POINT_CLOUD]: 'POINT CLOUD'
+  [MODES.NAPOLEON_POINT_CLOUD]: 'POINT CLOUD',
+  [MODES.BEACH_BALL_ROOM]: 'BEACH BALL ROOM'
 };
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗

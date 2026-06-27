@@ -6202,7 +6202,8 @@ export function generateModeSwitcherHTML() {
     'weave-field': '🧵',
     'pressure-crucible': '◉',
     'particle-fountain': '⛲',
-    'napoleon-point-cloud': '●'
+    'napoleon-point-cloud': '●',
+    'beach-ball-room': '◍'
   };
   const modeLabels = {
     'pit': 'Pit',
@@ -6228,7 +6229,8 @@ export function generateModeSwitcherHTML() {
     'weave-field': 'Weave',
     'pressure-crucible': 'Flux',
     'particle-fountain': 'Fountain',
-    'napoleon-point-cloud': 'Bust'
+    'napoleon-point-cloud': 'Bust',
+    'beach-ball-room': 'Beach Ball'
   };
   
   const dailyMode = getDailySimulationId();
@@ -6323,7 +6325,8 @@ function generateHomeModeSectionHTML() {
               'flubber-blob': '🫠',
               'weave-field': '🧵',
               'particle-fountain': '⛲',
-              'napoleon-point-cloud': '●'
+              'napoleon-point-cloud': '●',
+              'beach-ball-room': '◍'
             };
             const modeLabels = {
               'pit': 'Pit',
@@ -6348,7 +6351,8 @@ function generateHomeModeSectionHTML() {
               'flubber-blob': 'Flubber',
               'weave-field': 'Weave',
               'particle-fountain': 'Fountain',
-              'napoleon-point-cloud': 'Bust'
+              'napoleon-point-cloud': 'Bust',
+              'beach-ball-room': 'Beach Ball'
             };
             let buttons = '';
             NARRATIVE_MODE_SEQUENCE.forEach((mode, idx) => {

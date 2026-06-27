@@ -80,7 +80,13 @@ function parseAnchorDayStamp(anchorDate) {
   const day = Number.parseInt(match[3], 10);
   if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
 
-  return Math.floor(Date.UTC(year, month, day) / (1000 * 60 * 60 * 24));
+  const stamp = Math.floor(Date.UTC(year, month, day) / (1000 * 60 * 60 * 24));
+  const parsed = new Date(stamp * 1000 * 60 * 60 * 24);
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month || parsed.getUTCDate() !== day) {
+    return null;
+  }
+
+  return stamp;
 }
 
 function getAnchoredDailyRotationIndex(date, dailySimulations) {

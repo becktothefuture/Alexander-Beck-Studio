@@ -34,6 +34,20 @@ function sourceIncludes(source, value) {
   return Boolean(value && source.includes(value));
 }
 
+function isValidIsoDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+  if (!match) return false;
+
+  const year = Number.parseInt(match[1], 10);
+  const month = Number.parseInt(match[2], 10) - 1;
+  const day = Number.parseInt(match[3], 10);
+  const timestamp = Date.UTC(year, month, day);
+  const parsed = new Date(timestamp);
+  return parsed.getUTCFullYear() === year
+    && parsed.getUTCMonth() === month
+    && parsed.getUTCDate() === day;
+}
+
 async function readSource(path) {
   return readFile(path, 'utf8').catch(() => '');
 }
@@ -148,8 +162,8 @@ async function main() {
     errors.push('Catalog has no daily-rotation simulations.');
   }
 
-  if (dailyRotation.anchorDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(dailyRotation.anchorDate))) {
-    errors.push('dailyRotation.anchorDate must use YYYY-MM-DD');
+  if (dailyRotation.anchorDate !== undefined && !isValidIsoDate(dailyRotation.anchorDate)) {
+    errors.push('dailyRotation.anchorDate must be a valid YYYY-MM-DD date');
   }
 
   if (dailyRotation.anchorSimulationId !== undefined) {
