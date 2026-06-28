@@ -9,6 +9,7 @@ const browserType = browserName === 'webkit' ? webkit : chromium;
 const requestedProfile = (process.env.ABS_BOOT_AUDIT_PROFILE || 'all').trim().toLowerCase();
 const deprecatedBootChromeHex = '#3c3c3c';
 const deprecatedBootChromeRgb = 'rgb(60, 60, 60)';
+const tabletDevice = devices['iPad (gen 7)'];
 const mobileDevice = devices['iPhone 13'];
 
 const auditProfiles = [
@@ -16,6 +17,12 @@ const auditProfiles = [
     label: 'desktop',
     contextOptions: {
       viewport: { width: 1440, height: 900 },
+    },
+  },
+  {
+    label: 'tablet',
+    contextOptions: {
+      ...tabletDevice,
     },
   },
   {
@@ -66,7 +73,7 @@ function resolveAuditProfiles() {
   const profile = auditProfiles.find((candidate) => candidate.label === requestedProfile);
   assert(
     profile,
-    `unknown ABS_BOOT_AUDIT_PROFILE="${requestedProfile}" (expected all, desktop, or mobile)`
+    `unknown ABS_BOOT_AUDIT_PROFILE="${requestedProfile}" (expected all, desktop, tablet, or mobile)`
   );
   return [profile];
 }
@@ -122,9 +129,20 @@ function assertCriticalBootSource() {
     assert(source.includes('absCriticalBootColorShift'), `${file}: missing critical spinner color-shift keyframes`);
     assert(source.includes('absBootDotColorShift'), `${file}: missing body spinner color-shift keyframes`);
     assert(source.includes('--abs-dot-color-delay'), `${file}: missing body spinner color phase delays`);
+    assert(source.includes('--abs-boot-orbit-ms: 1480ms'), `${file}: boot orbit cadence drifted`);
+    assert(source.includes('--abs-boot-color-cycle-ms: 2220ms'), `${file}: boot colour cycle cadence drifted`);
+    assert(source.includes('--abs-dot-color-delay: -370ms'), `${file}: missing refined colour phase step`);
+    assert(
+      source.includes('html:not([data-abs-boot-state="booting"])::after'),
+      `${file}: missing explicit critical spinner off-state`
+    );
     assert(
       source.includes('#abs-boot-overlay.is-exiting #abs-boot-spinner'),
       `${file}: missing spinner hide rule during boot overlay exit`
+    );
+    assert(
+      source.includes('#abs-boot-overlay.is-exiting .abs-boot-dot::before'),
+      `${file}: missing dot animation stop rule during boot overlay exit`
     );
     assert(
       source.includes(`frameColorDark: '${canonicalDarkChrome}'`),

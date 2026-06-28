@@ -4,6 +4,8 @@
     <style id="fade-blocking">#root,#abs-scene,#app-frame{opacity:0;visibility:hidden}</style>
     <style id="abs-critical-shell">
       html, body, #root {
+        --abs-boot-orbit-ms: 1480ms;
+        --abs-boot-color-cycle-ms: 2220ms;
         width: 100%;
         min-height: 100%;
         margin: 0;
@@ -18,6 +20,12 @@
         pointer-events: none;
       }
 
+      html:not([data-abs-boot-state="booting"])::before,
+      html:not([data-abs-boot-state="booting"])::after {
+        content: none;
+        animation: none;
+      }
+
       html[data-abs-boot-state="booting"]::before {
         inset: 0;
         z-index: 2147482998;
@@ -28,21 +36,21 @@
         top: 50%;
         left: 50%;
         z-index: 2147482999;
-        width: 4.5px;
-        height: 4.5px;
-        margin: -2.25px 0 0 -2.25px;
+        width: 4.25px;
+        height: 4.25px;
+        margin: -2.125px 0 0 -2.125px;
         border-radius: 50%;
         background: transparent;
         box-shadow:
-          0 -11px var(--ball-1, #b5b7b6),
-          9.5px -5.5px var(--ball-4, #00695c),
-          9.5px 5.5px var(--ball-3, #ffffff),
-          0 11px var(--ball-7, #0d5cb6),
-          -9.5px 5.5px var(--ball-8, #ffa000),
-          -9.5px -5.5px var(--ball-6, #d7ff2f);
+          0 -11.5px var(--ball-1, #b5b7b6),
+          9.95px -5.75px var(--ball-4, #00695c),
+          9.95px 5.75px var(--ball-3, #ffffff),
+          0 11.5px var(--ball-7, #0d5cb6),
+          -9.95px 5.75px var(--ball-8, #ffa000),
+          -9.95px -5.75px var(--ball-6, #d7ff2f);
         animation:
-          absCriticalBootOrbit var(--abs-boot-orbit-ms, 1320ms) linear infinite,
-          absCriticalBootColorShift var(--abs-boot-color-cycle-ms, 1560ms) steps(1, end) infinite;
+          absCriticalBootOrbit var(--abs-boot-orbit-ms) linear infinite,
+          absCriticalBootColorShift var(--abs-boot-color-cycle-ms) steps(1, end) infinite;
       }
 
       #root[aria-hidden="true"],
@@ -84,31 +92,35 @@
         transition: none;
       }
 
+      #abs-boot-overlay.is-exiting .abs-boot-dot::before {
+        animation: none;
+      }
+
       #abs-boot-spinner {
         width: 32px;
         height: 32px;
         position: relative;
         box-sizing: border-box;
-        animation: absBootOrbit var(--abs-boot-orbit-ms, 1320ms) linear infinite;
+        animation: absBootOrbit var(--abs-boot-orbit-ms) linear infinite;
       }
 
       .abs-boot-dot {
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 4.5px;
-        height: 4.5px;
-        margin: -2.25px 0 0 -2.25px;
+        width: 4.25px;
+        height: 4.25px;
+        margin: -2.125px 0 0 -2.125px;
         border-radius: 50%;
-        transform: rotate(var(--abs-dot-angle)) translateY(-11px);
+        transform: rotate(var(--abs-dot-angle)) translateY(-11.5px);
       }
 
       .abs-boot-dot:nth-child(1) { --abs-dot-color-delay: 0ms; }
-      .abs-boot-dot:nth-child(2) { --abs-dot-color-delay: -260ms; }
-      .abs-boot-dot:nth-child(3) { --abs-dot-color-delay: -520ms; }
-      .abs-boot-dot:nth-child(4) { --abs-dot-color-delay: -780ms; }
-      .abs-boot-dot:nth-child(5) { --abs-dot-color-delay: -1040ms; }
-      .abs-boot-dot:nth-child(6) { --abs-dot-color-delay: -1300ms; }
+      .abs-boot-dot:nth-child(2) { --abs-dot-color-delay: -370ms; }
+      .abs-boot-dot:nth-child(3) { --abs-dot-color-delay: -740ms; }
+      .abs-boot-dot:nth-child(4) { --abs-dot-color-delay: -1110ms; }
+      .abs-boot-dot:nth-child(5) { --abs-dot-color-delay: -1480ms; }
+      .abs-boot-dot:nth-child(6) { --abs-dot-color-delay: -1850ms; }
 
       .abs-boot-dot::before {
         content: "";
@@ -117,10 +129,10 @@
         height: 100%;
         border-radius: inherit;
         background: var(--abs-dot-color);
-        box-shadow: 0 0 8px color-mix(in srgb, var(--abs-dot-color) 30%, transparent);
+        box-shadow: 0 0 7px color-mix(in srgb, var(--abs-dot-color) 24%, transparent);
         animation:
-          absBootDotPulse var(--abs-boot-orbit-ms, 1320ms) cubic-bezier(0.16, 1, 0.3, 1) infinite,
-          absBootDotColorShift var(--abs-boot-color-cycle-ms, 1560ms) steps(1, end) infinite;
+          absBootDotPulse var(--abs-boot-orbit-ms) cubic-bezier(0.22, 0, 0.16, 1) infinite,
+          absBootDotColorShift var(--abs-boot-color-cycle-ms) steps(1, end) infinite;
         animation-delay: var(--abs-dot-delay), var(--abs-dot-color-delay, 0ms);
       }
 
@@ -135,68 +147,72 @@
       @keyframes absCriticalBootColorShift {
         0%, 15.99%, 100% {
           box-shadow:
-            0 -11px var(--ball-1, #b5b7b6),
-            9.5px -5.5px var(--ball-4, #00695c),
-            9.5px 5.5px var(--ball-3, #ffffff),
-            0 11px var(--ball-7, #0d5cb6),
-            -9.5px 5.5px var(--ball-8, #ffa000),
-            -9.5px -5.5px var(--ball-6, #d7ff2f);
+            0 -11.5px var(--ball-1, #b5b7b6),
+            9.95px -5.75px var(--ball-4, #00695c),
+            9.95px 5.75px var(--ball-3, #ffffff),
+            0 11.5px var(--ball-7, #0d5cb6),
+            -9.95px 5.75px var(--ball-8, #ffa000),
+            -9.95px -5.75px var(--ball-6, #d7ff2f);
         }
         16.66%, 32.99% {
           box-shadow:
-            0 -11px var(--ball-4, #00695c),
-            9.5px -5.5px var(--ball-3, #ffffff),
-            9.5px 5.5px var(--ball-7, #0d5cb6),
-            0 11px var(--ball-8, #ffa000),
-            -9.5px 5.5px var(--ball-6, #d7ff2f),
-            -9.5px -5.5px var(--ball-1, #b5b7b6);
+            0 -11.5px var(--ball-4, #00695c),
+            9.95px -5.75px var(--ball-3, #ffffff),
+            9.95px 5.75px var(--ball-7, #0d5cb6),
+            0 11.5px var(--ball-8, #ffa000),
+            -9.95px 5.75px var(--ball-6, #d7ff2f),
+            -9.95px -5.75px var(--ball-1, #b5b7b6);
         }
         33.33%, 49.99% {
           box-shadow:
-            0 -11px var(--ball-3, #ffffff),
-            9.5px -5.5px var(--ball-7, #0d5cb6),
-            9.5px 5.5px var(--ball-8, #ffa000),
-            0 11px var(--ball-6, #d7ff2f),
-            -9.5px 5.5px var(--ball-1, #b5b7b6),
-            -9.5px -5.5px var(--ball-4, #00695c);
+            0 -11.5px var(--ball-3, #ffffff),
+            9.95px -5.75px var(--ball-7, #0d5cb6),
+            9.95px 5.75px var(--ball-8, #ffa000),
+            0 11.5px var(--ball-6, #d7ff2f),
+            -9.95px 5.75px var(--ball-1, #b5b7b6),
+            -9.95px -5.75px var(--ball-4, #00695c);
         }
         50%, 66.65% {
           box-shadow:
-            0 -11px var(--ball-7, #0d5cb6),
-            9.5px -5.5px var(--ball-8, #ffa000),
-            9.5px 5.5px var(--ball-6, #d7ff2f),
-            0 11px var(--ball-1, #b5b7b6),
-            -9.5px 5.5px var(--ball-4, #00695c),
-            -9.5px -5.5px var(--ball-3, #ffffff);
+            0 -11.5px var(--ball-7, #0d5cb6),
+            9.95px -5.75px var(--ball-8, #ffa000),
+            9.95px 5.75px var(--ball-6, #d7ff2f),
+            0 11.5px var(--ball-1, #b5b7b6),
+            -9.95px 5.75px var(--ball-4, #00695c),
+            -9.95px -5.75px var(--ball-3, #ffffff);
         }
         66.66%, 83.32% {
           box-shadow:
-            0 -11px var(--ball-8, #ffa000),
-            9.5px -5.5px var(--ball-6, #d7ff2f),
-            9.5px 5.5px var(--ball-1, #b5b7b6),
-            0 11px var(--ball-4, #00695c),
-            -9.5px 5.5px var(--ball-3, #ffffff),
-            -9.5px -5.5px var(--ball-7, #0d5cb6);
+            0 -11.5px var(--ball-8, #ffa000),
+            9.95px -5.75px var(--ball-6, #d7ff2f),
+            9.95px 5.75px var(--ball-1, #b5b7b6),
+            0 11.5px var(--ball-4, #00695c),
+            -9.95px 5.75px var(--ball-3, #ffffff),
+            -9.95px -5.75px var(--ball-7, #0d5cb6);
         }
         83.33%, 99.99% {
           box-shadow:
-            0 -11px var(--ball-6, #d7ff2f),
-            9.5px -5.5px var(--ball-1, #b5b7b6),
-            9.5px 5.5px var(--ball-4, #00695c),
-            0 11px var(--ball-3, #ffffff),
-            -9.5px 5.5px var(--ball-7, #0d5cb6),
-            -9.5px -5.5px var(--ball-8, #ffa000);
+            0 -11.5px var(--ball-6, #d7ff2f),
+            9.95px -5.75px var(--ball-1, #b5b7b6),
+            9.95px 5.75px var(--ball-4, #00695c),
+            0 11.5px var(--ball-3, #ffffff),
+            -9.95px 5.75px var(--ball-7, #0d5cb6),
+            -9.95px -5.75px var(--ball-8, #ffa000);
         }
       }
 
       @keyframes absBootDotPulse {
         0%, 100% {
-          opacity: 0.54;
-          transform: scale(0.82);
+          opacity: 0.58;
+          transform: scale(0.88);
         }
-        42%, 58% {
-          opacity: 1;
-          transform: scale(1.08);
+        42%, 56% {
+          opacity: 0.98;
+          transform: scale(1.045);
+        }
+        72% {
+          opacity: 0.72;
+          transform: scale(0.94);
         }
       }
 
