@@ -135,15 +135,16 @@ export function applyBallPitForces(ball, dt) {
   const centerX = w * 0.5;
   const centerY = (h * 0.5) - (mobileBiasCssPx * (globals.DPR || 1));
   const baseForce = clamp(toNumber(keepClear.force, 900), 0, 2400);
+  const mobileClearanceScale = isMobile ? 1.45 : 1;
   const centerWidthRatio = clamp(
-    toNumber(keepClear.centerWidthRatio, 0.58) * (isMobile ? 1.16 : 1),
+    toNumber(keepClear.centerWidthRatio, 0.58) * (isMobile ? 1.28 : 1),
     0.2,
     0.95
   );
   const centerHeightRatio = clamp(
-    toNumber(keepClear.centerHeightRatio, 0.28) * (isMobile ? 1.22 : 1),
+    toNumber(keepClear.centerHeightRatio, 0.28) * (isMobile ? 1.65 : 1),
     0.12,
-    0.6
+    0.72
   );
 
   applyKeepClearImpulse(
@@ -152,7 +153,7 @@ export function applyBallPitForces(ball, dt) {
     centerY,
     w * centerWidthRatio * 0.5,
     h * centerHeightRatio * 0.5,
-    baseForce * (isMobile ? 1.15 : 1),
+    baseForce * mobileClearanceScale,
     dt,
     globals
   );

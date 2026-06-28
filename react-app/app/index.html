@@ -40,7 +40,9 @@
           0 11px var(--ball-7, #0d5cb6),
           -9.5px 5.5px var(--ball-8, #ffa000),
           -9.5px -5.5px var(--ball-6, #d7ff2f);
-        animation: absCriticalBootOrbit 1200ms linear infinite;
+        animation:
+          absCriticalBootOrbit var(--abs-boot-orbit-ms, 1320ms) linear infinite,
+          absCriticalBootColorShift var(--abs-boot-color-cycle-ms, 1560ms) steps(1, end) infinite;
       }
 
       #root[aria-hidden="true"],
@@ -87,7 +89,7 @@
         height: 32px;
         position: relative;
         box-sizing: border-box;
-        animation: absBootOrbit 1200ms linear infinite;
+        animation: absBootOrbit var(--abs-boot-orbit-ms, 1320ms) linear infinite;
       }
 
       .abs-boot-dot {
@@ -101,6 +103,13 @@
         transform: rotate(var(--abs-dot-angle)) translateY(-11px);
       }
 
+      .abs-boot-dot:nth-child(1) { --abs-dot-color-delay: 0ms; }
+      .abs-boot-dot:nth-child(2) { --abs-dot-color-delay: -260ms; }
+      .abs-boot-dot:nth-child(3) { --abs-dot-color-delay: -520ms; }
+      .abs-boot-dot:nth-child(4) { --abs-dot-color-delay: -780ms; }
+      .abs-boot-dot:nth-child(5) { --abs-dot-color-delay: -1040ms; }
+      .abs-boot-dot:nth-child(6) { --abs-dot-color-delay: -1300ms; }
+
       .abs-boot-dot::before {
         content: "";
         display: block;
@@ -109,8 +118,10 @@
         border-radius: inherit;
         background: var(--abs-dot-color);
         box-shadow: 0 0 8px color-mix(in srgb, var(--abs-dot-color) 30%, transparent);
-        animation: absBootDotPulse 1200ms cubic-bezier(0.16, 1, 0.3, 1) infinite;
-        animation-delay: var(--abs-dot-delay);
+        animation:
+          absBootDotPulse var(--abs-boot-orbit-ms, 1320ms) cubic-bezier(0.16, 1, 0.3, 1) infinite,
+          absBootDotColorShift var(--abs-boot-color-cycle-ms, 1560ms) steps(1, end) infinite;
+        animation-delay: var(--abs-dot-delay), var(--abs-dot-color-delay, 0ms);
       }
 
       @keyframes absBootOrbit {
@@ -119,6 +130,63 @@
 
       @keyframes absCriticalBootOrbit {
         to { transform: rotate(360deg); }
+      }
+
+      @keyframes absCriticalBootColorShift {
+        0%, 15.99%, 100% {
+          box-shadow:
+            0 -11px var(--ball-1, #b5b7b6),
+            9.5px -5.5px var(--ball-4, #00695c),
+            9.5px 5.5px var(--ball-3, #ffffff),
+            0 11px var(--ball-7, #0d5cb6),
+            -9.5px 5.5px var(--ball-8, #ffa000),
+            -9.5px -5.5px var(--ball-6, #d7ff2f);
+        }
+        16.66%, 32.99% {
+          box-shadow:
+            0 -11px var(--ball-4, #00695c),
+            9.5px -5.5px var(--ball-3, #ffffff),
+            9.5px 5.5px var(--ball-7, #0d5cb6),
+            0 11px var(--ball-8, #ffa000),
+            -9.5px 5.5px var(--ball-6, #d7ff2f),
+            -9.5px -5.5px var(--ball-1, #b5b7b6);
+        }
+        33.33%, 49.99% {
+          box-shadow:
+            0 -11px var(--ball-3, #ffffff),
+            9.5px -5.5px var(--ball-7, #0d5cb6),
+            9.5px 5.5px var(--ball-8, #ffa000),
+            0 11px var(--ball-6, #d7ff2f),
+            -9.5px 5.5px var(--ball-1, #b5b7b6),
+            -9.5px -5.5px var(--ball-4, #00695c);
+        }
+        50%, 66.65% {
+          box-shadow:
+            0 -11px var(--ball-7, #0d5cb6),
+            9.5px -5.5px var(--ball-8, #ffa000),
+            9.5px 5.5px var(--ball-6, #d7ff2f),
+            0 11px var(--ball-1, #b5b7b6),
+            -9.5px 5.5px var(--ball-4, #00695c),
+            -9.5px -5.5px var(--ball-3, #ffffff);
+        }
+        66.66%, 83.32% {
+          box-shadow:
+            0 -11px var(--ball-8, #ffa000),
+            9.5px -5.5px var(--ball-6, #d7ff2f),
+            9.5px 5.5px var(--ball-1, #b5b7b6),
+            0 11px var(--ball-4, #00695c),
+            -9.5px 5.5px var(--ball-3, #ffffff),
+            -9.5px -5.5px var(--ball-7, #0d5cb6);
+        }
+        83.33%, 99.99% {
+          box-shadow:
+            0 -11px var(--ball-6, #d7ff2f),
+            9.5px -5.5px var(--ball-1, #b5b7b6),
+            9.5px 5.5px var(--ball-4, #00695c),
+            0 11px var(--ball-3, #ffffff),
+            -9.5px 5.5px var(--ball-7, #0d5cb6),
+            -9.5px -5.5px var(--ball-8, #ffa000);
+        }
       }
 
       @keyframes absBootDotPulse {
@@ -130,6 +198,15 @@
           opacity: 1;
           transform: scale(1.08);
         }
+      }
+
+      @keyframes absBootDotColorShift {
+        0%, 15.99%, 100% { background: var(--ball-1, #b5b7b6); }
+        16.66%, 32.99% { background: var(--ball-4, #00695c); }
+        33.33%, 49.99% { background: var(--ball-3, #ffffff); }
+        50%, 66.65% { background: var(--ball-7, #0d5cb6); }
+        66.66%, 83.32% { background: var(--ball-8, #ffa000); }
+        83.33%, 99.99% { background: var(--ball-6, #d7ff2f); }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -149,6 +226,7 @@
           animation: none;
           opacity: 0.86;
           transform: none;
+          background: var(--abs-dot-color);
         }
       }
     </style>

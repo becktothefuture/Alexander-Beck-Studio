@@ -1,13 +1,32 @@
 import { readFileSync } from 'node:fs';
-import { chromium, webkit } from 'playwright';
+import { chromium, devices, webkit } from 'playwright';
 
 const baseUrl = (process.env.ABS_DEV_URL || 'http://127.0.0.1:8012').trim().replace(/\/+$/, '');
 const timeoutMs = Number(process.env.ABS_BOOT_AUDIT_TIMEOUT_MS || 60000);
 const minimumVisibleMs = 750;
 const browserName = (process.env.ABS_BROWSER || 'chromium').trim().toLowerCase();
 const browserType = browserName === 'webkit' ? webkit : chromium;
+const requestedProfile = (process.env.ABS_BOOT_AUDIT_PROFILE || 'all').trim().toLowerCase();
 const deprecatedBootChromeHex = '#3c3c3c';
 const deprecatedBootChromeRgb = 'rgb(60, 60, 60)';
+const mobileDevice = devices['iPhone 13'];
+
+const auditProfiles = [
+  {
+    label: 'desktop',
+    contextOptions: {
+      viewport: { width: 1440, height: 900 },
+    },
+  },
+  {
+    label: 'mobile',
+    contextOptions: {
+      ...mobileDevice,
+    },
+    allowHiddenEdge: true,
+    allowHiddenQuote: true,
+  },
+];
 
 const routes = [
   { label: 'home', path: '/index.html', readySelector: '#app-frame' },
@@ -40,6 +59,27 @@ function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+function resolveAuditProfiles() {
+  if (requestedProfile === 'all') return auditProfiles;
+  const profile = auditProfiles.find((candidate) => candidate.label === requestedProfile);
+  assert(
+    profile,
+    `unknown ABS_BOOT_AUDIT_PROFILE="${requestedProfile}" (expected all, desktop, or mobile)`
+  );
+  return [profile];
+}
+
+function buildContextOptions(profile, overrides = {}) {
+  return {
+    ...profile.contextOptions,
+    ...overrides,
+  };
+}
+
+function labelForProfile(label, profile) {
+  return `${label}-${profile.label}`;
 }
 
 function assertNoDeprecatedBootChrome(value, label) {
@@ -78,7 +118,10 @@ function assertCriticalBootSource() {
       source.includes('html[data-abs-boot-state="booting"]::after'),
       `${file}: missing critical first-paint spinner`
     );
-    assert(source.includes('absCriticalBootOrbit'), `${file}: missing critical spinner keyframes`);
+    assert(source.includes('absCriticalBootOrbit'), `${file}: missing critical spinner orbit keyframes`);
+    assert(source.includes('absCriticalBootColorShift'), `${file}: missing critical spinner color-shift keyframes`);
+    assert(source.includes('absBootDotColorShift'), `${file}: missing body spinner color-shift keyframes`);
+    assert(source.includes('--abs-dot-color-delay'), `${file}: missing body spinner color phase delays`);
     assert(
       source.includes('#abs-boot-overlay.is-exiting #abs-boot-spinner'),
       `${file}: missing spinner hide rule during boot overlay exit`
@@ -169,6 +212,7 @@ function assertSpinnerReady(snapshot, label, { reducedMotion = false } = {}) {
   } else {
     assert(snapshot.spinnerAnimation.includes('absBootOrbit'), `${label}: spinner orbit animation was not active`);
     assert(snapshot.dotAnimation.includes('absBootDotPulse'), `${label}: spinner dot pulse animation was not active`);
+    assert(snapshot.dotAnimation.includes('absBootDotColorShift'), `${label}: spinner dot color-shift animation was not active`);
   }
 }
 
@@ -287,12 +331,18 @@ function assertHomeTargetVisible(target, label, minimumOpacity = 0.99) {
   assert(target.width > 0 && target.height > 0, `home: expected ${label} to have usable settled geometry`);
 }
 
-function assertHomeRevealHeld(snapshot) {
+function targetIsIntentionallyNonRenderable(target) {
+  return !target || target.display === 'none' || target.width <= 0 || target.height <= 0;
+}
+
+function assertHomeRevealHeld(snapshot, { allowHiddenEdge = false, allowHiddenQuote = false } = {}) {
   assert(snapshot.pending, 'home: expected post-boot reveal pending state while overlay is held');
   assert(!snapshot.entering, 'home: post-boot reveal started before overlay release');
   assert(!snapshot.complete, 'home: post-boot reveal completed before overlay release');
 
   for (const [label, target] of Object.entries(snapshot.targets)) {
+    if (label === 'edge' && allowHiddenEdge && targetIsIntentionallyNonRenderable(target)) continue;
+    if (label === 'quote' && allowHiddenQuote && targetIsIntentionallyNonRenderable(target)) continue;
     if (label === 'quote' && !target) continue;
     assertHomeTargetHidden(target, label);
   }
@@ -474,7 +524,7 @@ async function assertHomeRevealVisibleOrder(page, label) {
   assertHomeRevealUserVisibleOrder(snapshot, label);
 }
 
-function assertHomeRevealSettled(snapshot) {
+function assertHomeRevealSettled(snapshot, { allowHiddenEdge = false, allowHiddenQuote = false } = {}) {
   assert(!snapshot.pending, 'home: post-boot reveal stayed pending after settle');
   assert(!snapshot.entering, 'home: post-boot reveal entering state did not clean up');
   assert(snapshot.complete, 'home: post-boot reveal did not mark complete');
@@ -486,14 +536,17 @@ function assertHomeRevealSettled(snapshot) {
   assertHomeTargetVisible(snapshot.targets.sound, 'sound', 0.69);
   assertHomeTargetVisible(snapshot.targets.social, 'social', 0.69);
   assertHomeTargetVisible(snapshot.targets.meta, 'meta', 0.69);
-  assertHomeTargetVisible(snapshot.targets.edge, 'edge', 0.5);
-  if (snapshot.targets.quote) {
+  if (!(allowHiddenEdge && targetIsIntentionallyNonRenderable(snapshot.targets.edge))) {
+    assertHomeTargetVisible(snapshot.targets.edge, 'edge', 0.5);
+  }
+  if (snapshot.targets.quote && !(allowHiddenQuote && targetIsIntentionallyNonRenderable(snapshot.targets.quote))) {
     assertHomeTargetVisible(snapshot.targets.quote, 'quote');
   }
 }
 
-async function auditRoute(browser, route) {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+async function auditRoute(browser, route, profile) {
+  const routeLabel = labelForProfile(route.label, profile);
+  const context = await browser.newContext(buildContextOptions(profile));
   await context.addInitScript(() => {
     try {
       sessionStorage.setItem('abs_portfolio_ok', 'boot-audit');
@@ -510,28 +563,28 @@ async function auditRoute(browser, route) {
   await page.waitForFunction(() => typeof window.__ABS_RELEASE_BOOT_OVERLAY__ === 'function', null, { timeout: timeoutMs });
 
   const held = await readBootSnapshot(page);
-  assertBootSurfaceColourStable(held, route.label);
-  assert(held.bootState === 'booting', `${route.label}: expected booting state while held, got ${held.bootState}`);
-  assert(held.bootDetail === 'held', `${route.label}: expected held boot detail, got ${held.bootDetail}`);
-  assert(held.overlayVisible, `${route.label}: boot overlay was not visibly held`);
-  assert(held.rootHidden, `${route.label}: app root was not hidden/inert while held`);
-  assert(held.spinnerDotCount === 6, `${route.label}: expected six boot spinner dots while held`);
+  assertBootSurfaceColourStable(held, routeLabel);
+  assert(held.bootState === 'booting', `${routeLabel}: expected booting state while held, got ${held.bootState}`);
+  assert(held.bootDetail === 'held', `${routeLabel}: expected held boot detail, got ${held.bootDetail}`);
+  assert(held.overlayVisible, `${routeLabel}: boot overlay was not visibly held`);
+  assert(held.rootHidden, `${routeLabel}: app root was not hidden/inert while held`);
+  assert(held.spinnerDotCount === 6, `${routeLabel}: expected six boot spinner dots while held`);
   let homeRevealHeld = null;
   if (route.label === 'home') {
     homeRevealHeld = await readHomeRevealSnapshot(page);
-    assertHomeRevealHeld(homeRevealHeld);
+    assertHomeRevealHeld(homeRevealHeld, profile);
   }
 
   await page.evaluate(() => window.__ABS_RELEASE_BOOT_OVERLAY__());
-  await assertBootSpinnerHiddenDuringExit(page, route.label);
+  await assertBootSpinnerHiddenDuringExit(page, routeLabel);
   await page.waitForFunction(() => document.documentElement.dataset.absBootState === 'ready', null, { timeout: timeoutMs });
   await page.waitForSelector('#abs-boot-overlay', { state: 'detached', timeout: timeoutMs });
-  await assertMinimumVisibleElapsed(page, route.label);
+  await assertMinimumVisibleElapsed(page, routeLabel);
   await page.waitForSelector(route.readySelector, { state: 'visible', timeout: timeoutMs });
 
   const released = await readBootSnapshot(page);
-  assert(released.rootVisible, `${route.label}: app root was not visible after release`);
-  assertBootSpinnerGone(released, route.label);
+  assert(released.rootVisible, `${routeLabel}: app root was not visible after release`);
+  assertBootSpinnerGone(released, routeLabel);
   let homeRevealReleased = null;
   let homeRevealSettled = null;
   if (route.label === 'home') {
@@ -539,16 +592,17 @@ async function auditRoute(browser, route) {
     homeRevealReleased = await readHomeRevealSnapshot(page);
     assertHomeRevealStarted(homeRevealReleased);
     const homeRevealTiming = await readHomeRevealTimingSnapshot(page);
-    assertHomeRevealOrder(homeRevealTiming, route.label);
-    await assertHomeRevealVisibleOrder(page, route.label);
+    assertHomeRevealOrder(homeRevealTiming, routeLabel);
+    await assertHomeRevealVisibleOrder(page, routeLabel);
     await page.waitForFunction(() => document.documentElement.classList.contains('abs-home-post-boot-complete'), null, { timeout: timeoutMs });
     homeRevealSettled = await readHomeRevealSnapshot(page);
-    assertHomeRevealSettled(homeRevealSettled);
+    assertHomeRevealSettled(homeRevealSettled, profile);
   }
 
   await context.close();
   return {
     route: route.label,
+    profile: profile.label,
     held: `${held.bootState}/${held.bootDetail}`,
     released: released.bootState,
     selector: route.readySelector,
@@ -556,7 +610,7 @@ async function auditRoute(browser, route) {
   };
 }
 
-async function waitForHomeBootReplay(page, label) {
+async function waitForHomeBootReplay(page, label, profile) {
   await page.waitForSelector('#abs-boot-overlay', { state: 'visible', timeout: timeoutMs });
   await page.waitForFunction(() => document.documentElement.classList.contains('abs-home-post-boot-pending'), null, { timeout: timeoutMs });
   const heldBoot = await readBootSnapshot(page);
@@ -575,22 +629,24 @@ async function waitForHomeBootReplay(page, label) {
   await assertHomeRevealVisibleOrder(page, label);
   await page.waitForFunction(() => document.documentElement.classList.contains('abs-home-post-boot-complete'), null, { timeout: timeoutMs });
   const settledReveal = await readHomeRevealSnapshot(page);
-  assertHomeRevealSettled(settledReveal);
+  assertHomeRevealSettled(settledReveal, profile);
 }
 
-async function auditHomeDirectReplay(browser) {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+async function auditHomeDirectReplay(browser, profile) {
+  const routeLabel = labelForProfile('home-direct', profile);
+  const context = await browser.newContext(buildContextOptions(profile));
   const page = await context.newPage();
 
   await page.goto(buildPlainRouteUrl('/index.html'), { waitUntil: 'domcontentloaded', timeout: timeoutMs });
-  await waitForHomeBootReplay(page, 'home-direct');
+  await waitForHomeBootReplay(page, routeLabel, profile);
 
   await page.reload({ waitUntil: 'domcontentloaded', timeout: timeoutMs });
-  await waitForHomeBootReplay(page, 'home-direct-reload');
+  await waitForHomeBootReplay(page, `${routeLabel}-reload`, profile);
 
   await context.close();
   return {
     route: 'home-direct-reload',
+    profile: profile.label,
     held: 'not-held',
     released: 'ready',
     selector: '#app-frame',
@@ -598,9 +654,10 @@ async function auditHomeDirectReplay(browser) {
   };
 }
 
-async function auditHomeReducedMotion(browser) {
+async function auditHomeReducedMotion(browser, profile) {
+  const routeLabel = labelForProfile('home-reduced-motion', profile);
   const context = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
+    ...buildContextOptions(profile),
     reducedMotion: 'reduce',
   });
 
@@ -612,27 +669,27 @@ async function auditHomeReducedMotion(browser) {
 
   const held = await readBootSnapshot(page);
   const heldReveal = await readHomeRevealSnapshot(page);
-  assertBootSurfaceColourStable(held, 'home-reduced-motion');
-  assert(held.bootState === 'booting', `home-reduced-motion: expected booting state while held, got ${held.bootState}`);
-  assert(held.bootDetail === 'held', `home-reduced-motion: expected held boot detail, got ${held.bootDetail}`);
-  assert(held.overlayVisible, 'home-reduced-motion: boot overlay was not visibly held');
-  assert(held.rootHidden, 'home-reduced-motion: app root was not hidden/inert while held');
+  assertBootSurfaceColourStable(held, routeLabel);
+  assert(held.bootState === 'booting', `${routeLabel}: expected booting state while held, got ${held.bootState}`);
+  assert(held.bootDetail === 'held', `${routeLabel}: expected held boot detail, got ${held.bootDetail}`);
+  assert(held.overlayVisible, `${routeLabel}: boot overlay was not visibly held`);
+  assert(held.rootHidden, `${routeLabel}: app root was not hidden/inert while held`);
   const heldSpinner = await readSpinnerSnapshot(page);
-  assertSpinnerReady(heldSpinner, 'home-reduced-motion', { reducedMotion: true });
-  assert(!heldReveal.pending && !heldReveal.entering && !heldReveal.complete, 'home-reduced-motion: post-boot reveal state should not stage under reduced motion');
+  assertSpinnerReady(heldSpinner, routeLabel, { reducedMotion: true });
+  assert(!heldReveal.pending && !heldReveal.entering && !heldReveal.complete, `${routeLabel}: post-boot reveal state should not stage under reduced motion`);
 
   await page.evaluate(() => window.__ABS_RELEASE_BOOT_OVERLAY__());
-  await assertBootSpinnerHiddenDuringExit(page, 'home-reduced-motion');
+  await assertBootSpinnerHiddenDuringExit(page, routeLabel);
   await page.waitForFunction(() => document.documentElement.dataset.absBootState === 'ready', null, { timeout: timeoutMs });
   await page.waitForSelector('#abs-boot-overlay', { state: 'detached', timeout: timeoutMs });
-  await assertMinimumVisibleElapsed(page, 'home-reduced-motion');
+  await assertMinimumVisibleElapsed(page, routeLabel);
   await page.waitForSelector('#app-frame', { state: 'visible', timeout: timeoutMs });
 
   const released = await readBootSnapshot(page);
   const releasedReveal = await readHomeRevealSnapshot(page);
-  assert(released.rootVisible, 'home-reduced-motion: app root was not visible after release');
-  assertBootSpinnerGone(released, 'home-reduced-motion');
-  assert(!releasedReveal.pending && !releasedReveal.entering, 'home-reduced-motion: staggered reveal should not run after release');
+  assert(released.rootVisible, `${routeLabel}: app root was not visible after release`);
+  assertBootSpinnerGone(released, routeLabel);
+  assert(!releasedReveal.pending && !releasedReveal.entering, `${routeLabel}: staggered reveal should not run after release`);
   assertHomeTargetVisible(releasedReveal.targets.heroName, 'heroName');
   assertHomeTargetVisible(releasedReveal.targets.nav, 'nav');
   assertHomeTargetVisible(releasedReveal.targets.legend, 'legend');
@@ -641,6 +698,7 @@ async function auditHomeReducedMotion(browser) {
   await context.close();
   return {
     route: 'home-reduced-motion',
+    profile: profile.label,
     held: `${held.bootState}/${held.bootDetail}`,
     released: released.bootState,
     selector: '#app-frame',
@@ -650,22 +708,25 @@ async function auditHomeReducedMotion(browser) {
 
 async function main() {
   assertCriticalBootSource();
+  const profiles = resolveAuditProfiles();
 
   const browser = await browserType.launch();
   const results = [];
 
   try {
-    results.push(await auditHomeDirectReplay(browser));
-    for (const route of routes) {
-      results.push(await auditRoute(browser, route));
+    for (const profile of profiles) {
+      results.push(await auditHomeDirectReplay(browser, profile));
+      for (const route of routes) {
+        results.push(await auditRoute(browser, route, profile));
+      }
+      results.push(await auditHomeReducedMotion(browser, profile));
     }
-    results.push(await auditHomeReducedMotion(browser));
   } finally {
     await browser.close();
   }
 
   console.table(results);
-  console.log(`PASS: boot overlay verified on ${results.length} route states in ${browserName}.`);
+  console.log(`PASS: boot overlay verified on ${results.length} route states in ${browserName} (${profiles.map((profile) => profile.label).join(', ')}).`);
 }
 
 main().catch((error) => {

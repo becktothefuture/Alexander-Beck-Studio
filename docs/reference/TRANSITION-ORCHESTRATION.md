@@ -29,13 +29,14 @@ Canonical engineering contract for route and modal transitions.
 ## 4) Direct-load boot overlay
 - Direct document loads start behind `#abs-boot-overlay`, with `<html data-abs-boot-state="booting">` and `#root` hidden/inert.
 - A CSS-generated `html::before` / `html::after` bridge covers the viewport from the critical head style before the body overlay DOM exists; the first-paint browser chrome fallback is `#141517`, and `#abs-boot-overlay` remains the main release/fade layer.
-- The first-paint loader is a 32px six-dot spinner using the six canonical `colorDistribution` ball colours, with inline fallbacks so it paints before runtime palette loading.
+- The first-paint loader is a 32px six-dot spinner using the six canonical `colorDistribution` ball colours, with inline fallbacks so it paints before runtime palette loading. The dots orbit over roughly 1.32s while the colour phase steps backward every 260ms, creating a simple counter-motion without adding more shapes.
 - The overlay must remain visible for at least 750ms on every direct document load before it can begin its exit fade.
 - The spinner must disappear as the overlay exit begins; the dark overlay surface carries the soft fade by itself.
 - The overlay is first-paint infrastructure, not route choreography. It may only be completed by direct-load boot helpers in `page-orchestrator.js`.
 - Direct boot completion must first compose the route to final geometry, then set `data-abs-boot-state="revealing"`, release `#root`, and fade/remove the overlay.
 - Home direct loads replay the non-canvas UI entrance one RAF after the overlay is removed; SPA route transitions do not replay that entrance.
 - Home direct-load entrance order uses named groups: identity first, all six top-left legend labels in visual order, top-right context after the labels are established, then action nav and footer/support chrome. The slow stagger settles in roughly 3.9s.
+- `audit:boot-overlay` runs both desktop and mobile-emulated profiles by default; set `ABS_BOOT_AUDIT_PROFILE=desktop` or `ABS_BOOT_AUDIT_PROFILE=mobile` only for focused local reruns.
 - Boot helpers must no-op during `route-out` / `route-in`; SPA route transitions remain owned by `useShellRouteTransition`.
 - The localhost-only `?absBootHold=1` hook may hold the overlay for audits, then release through `window.__ABS_RELEASE_BOOT_OVERLAY__()`.
 

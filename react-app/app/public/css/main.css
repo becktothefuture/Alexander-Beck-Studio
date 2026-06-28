@@ -3556,6 +3556,16 @@ html.is-safari .noise::before {
     font-size: calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px) * var(--mobile-type-scale));
   }
 
+  body:not(.portfolio-page):not(.cv-page) .shell-hero-slot {
+    z-index: 12;
+  }
+
+  body:not(.portfolio-page):not(.cv-page) .hero-title__role,
+  body:not(.portfolio-page):not(.cv-page) .hero-title__line--secondary {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+
   body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
     font-size: calc(clamp(1.8rem, 6.12vw, 2.415rem) * var(--mobile-type-scale));
   }
