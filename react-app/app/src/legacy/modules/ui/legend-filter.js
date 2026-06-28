@@ -2,6 +2,7 @@
 // ║                           LEGEND TOOLTIP SYSTEM                              ║
 // ║  Purpose:                                                                   ║
 // ║  - Provide click-to-toggle tooltips (writes to #legend-tooltip-output)       ║
+// ║  - On mobile, route tapped legend detail into the home right-hand copy       ║
 // ║  - Expose a no-op `window.legendFilter.syncAllBalls()` for backwards compat  ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
@@ -34,9 +35,27 @@ export function initLegendFilterSystem() {
     }
 
     const legendItems = Array.from(legend.querySelectorAll('.legend__item'));
+    const mobileDetailTarget = document.querySelector('.ui-top-right .decorative-script p');
+    const originalMobileDetailNodes = mobileDetailTarget
+      ? Array.from(mobileDetailTarget.childNodes)
+      : [];
+    const mobileDetailMedia = window.matchMedia?.('(max-width: 600px)');
+    let activeMobileDetailItem = null;
     const TOOLTIP_GAP = 8;
     const TOOLTIP_MAX_WIDTH = 260;
     const VIEWPORT_PAD = 16;
+
+    function shouldUseMobileDetail() {
+      return !!mobileDetailTarget && !!mobileDetailMedia?.matches;
+    }
+
+    function setLegendActive(item) {
+      for (const legendItem of legendItems) {
+        const isActive = !!item && legendItem === item;
+        legendItem.classList.toggle('legend__item--active', isActive);
+        legendItem.classList.toggle('legend__item--dimmed', !!item && !isActive);
+      }
+    }
 
     function positionTooltip(el, item) {
       const rect = item.getBoundingClientRect();
@@ -55,6 +74,14 @@ export function initLegendFilterSystem() {
       if (tooltipOutput) tooltipOutput.classList.remove('is-visible');
     }
 
+    function hideMobileDetail() {
+      if (!mobileDetailTarget || !activeMobileDetailItem) return;
+      activeMobileDetailItem = null;
+      mobileDetailTarget.replaceChildren(...originalMobileDetailNodes);
+      mobileDetailTarget.closest('.decorative-script')?.classList.remove('is-legend-detail-active');
+      setLegendActive(null);
+    }
+
     function showTooltip(item) {
       const tooltipText = item.getAttribute('data-tooltip');
       if (!tooltipText || !tooltipOutput) return;
@@ -68,28 +95,52 @@ export function initLegendFilterSystem() {
       return tooltipOutput.textContent === item.getAttribute('data-tooltip');
     }
 
+    function showMobileDetail(item) {
+      const tooltipText = item.getAttribute('data-tooltip');
+      if (!tooltipText || !mobileDetailTarget) return;
+      hideTooltip();
+      activeMobileDetailItem = item;
+      mobileDetailTarget.textContent = tooltipText;
+      mobileDetailTarget.closest('.decorative-script')?.classList.add('is-legend-detail-active');
+      setLegendActive(item);
+    }
+
     for (const item of legendItems) {
       if (!item) continue;
 
       item.classList.add('legend__item--interactive');
 
-      if (tooltipOutput) {
-        item.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (isTooltipOpenFor(item)) {
-            hideTooltip();
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (shouldUseMobileDetail()) {
+          if (activeMobileDetailItem === item) {
+            hideMobileDetail();
           } else {
-            showTooltip(item);
+            showMobileDetail(item);
           }
-        });
-      }
+          return;
+        }
+
+        hideMobileDetail();
+        if (isTooltipOpenFor(item)) {
+          hideTooltip();
+        } else {
+          showTooltip(item);
+        }
+      });
     }
 
     document.addEventListener('click', (e) => {
-      if (!tooltipOutput) return;
       const isLegendClick = legend && legend.contains(e.target);
-      if (!isLegendClick) hideTooltip();
+      if (!isLegendClick) {
+        hideTooltip();
+        hideMobileDetail();
+      }
+    });
+
+    mobileDetailMedia?.addEventListener?.('change', () => {
+      if (!shouldUseMobileDetail()) hideMobileDetail();
     });
 
     if (tooltipOutput) {

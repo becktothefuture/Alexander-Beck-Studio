@@ -66,9 +66,9 @@ export const LONDON_WEATHER_PALETTES = [
     slug: 'portland-haze',
     label: 'High Cloud',
     weather: 'Bright Overcast',
-    personality: 'Exact parity with the original runtime.',
+    personality: 'Neutral, balanced, slightly brighter.',
     story:
-      'This is the original system untouched: the balanced industrial teal chapter that held the site together before we started changing anything. It stays here as the control specimen.',
+      'This keeps the balanced industrial teal chapter that held the site together, with a cleaner light surface for small screens. It stays here as the neutral control specimen.',
     words: [
       'original',
       'industrial teal',
@@ -87,11 +87,11 @@ export const LONDON_WEATHER_PALETTES = [
     dark: ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#d7ff2f', '#0d5cb6', '#ffa000'],
     screenshot: '/images/palette-review/portland-haze.png',
     theme: {
-      bgLight: '#efefef',
+      bgLight: '#f5f5f5',
       bgDark: '#202020',
-      wallBaseLight: '#efefef',
+      wallBaseLight: '#f5f5f5',
       wallBaseDark: '#202020',
-      quoteButtonColorLight: '#efefef',
+      quoteButtonColorLight: '#f5f5f5',
       quoteButtonColorDark: '#202020',
       frameColorLight: '#242529',
       frameColorDark: '#141517',

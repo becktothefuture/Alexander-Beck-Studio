@@ -84,7 +84,7 @@
   "containerBorderVw": 1.9,
   "wallInset": 5,
   "simulationPaddingVw": 0.2,
-  "bgLight": "#efefef",
+  "bgLight": "#f5f5f5",
   "bgDark": "#202020",
   "textColorLight": "#161616",
   "textColorLightMuted": "#2f2f2f",

@@ -86,7 +86,7 @@
     "containerBorderVw": 1.9,
     "wallInset": 5,
     "simulationPaddingVw": 0.2,
-    "bgLight": "#efefef",
+    "bgLight": "#f5f5f5",
     "bgDark": "#202020",
     "textColorLight": "#161616",
     "textColorLightMuted": "#2f2f2f",
@@ -413,9 +413,9 @@
   },
   "shell": {
     "theme": {
-      "wallBaseLight": "#efefef",
+      "wallBaseLight": "#f5f5f5",
       "wallBaseDark": "#202020",
-      "quoteButtonColorLight": "#efefef",
+      "quoteButtonColorLight": "#f5f5f5",
       "quoteButtonColorDark": "#202020",
       "siteFrameLight": "#242529",
       "siteFrameDark": "#141517",
