@@ -30,7 +30,7 @@ This serves the built React app on port `8013`.
 |------|---------|------|----------|
 | React dev | `npm run dev` | 8012 | Daily development with Vite HMR |
 | React dev | `npm run dev:react` | 8012 | Same as `npm run dev` |
-| React build | `npm run build` | — | Production build |
+| React build | `npm run build` | — | Canonical production build: flattens config, then builds |
 | React build (debug) | `npm run build:dev` | — | Unminified build with sourcemaps |
 | React preview | `npm run preview` | 8013 | Manual QA against the built app |
 
@@ -41,8 +41,12 @@ This serves the built React app on port `8013`.
 - App code: `react-app/app/src/`
 - Public assets and config: `react-app/app/public/`
 - Build output: `react-app/app/dist/`
+- Authored design/config source: `react-app/app/public/config/design-system.json`
+- Generated compatibility/runtime config: `default-config.json`, `shell-config.json`, `portfolio-config.json`, `cv-config.json`
 
 The React app is the only supported pipeline in this repository.
+
+Use the root `npm run build` for production. It runs `flatten:design-config` before the Vite app build. A direct `npm run build --prefix react-app/app` is a lower-level Vite build and can bypass generated config updates.
 
 ---
 
@@ -118,5 +122,8 @@ npm run build
 
 - [README](../../README.md)
 - [Configuration Reference](../reference/CONFIGURATION.md)
+- [System Architecture](../reference/SYSTEM-ARCHITECTURE.md)
+- [Canvas Runtime](../reference/CANVAS-RUNTIME.md)
+- [Parity Contract](../reference/PARITY-CONTRACT.md)
 - [Mode Reference](../reference/MODES.md)
 - [Integration Guide](../reference/INTEGRATION.md)

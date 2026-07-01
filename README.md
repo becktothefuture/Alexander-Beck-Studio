@@ -1,9 +1,9 @@
 <div align="center">
   <h1>Alexander Beck Studio Website</h1>
-  <p><strong>A simulation-led studio experience: React + Vite shell, Canvas 2D legacy runtime, performance-first physics.</strong></p>
+  <p><strong>A simulation-led studio experience: React + Vite shell, preserved Canvas 2D runtime, performance-first physics.</strong></p>
   <p>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-a3e635" alt="MIT License"></a>
-    <img src="https://img.shields.io/badge/modes-20-2563eb" alt="20 Modes">
+    <img src="https://img.shields.io/badge/narrative%20modes-24-2563eb" alt="24 narrative modes">
     <img src="https://img.shields.io/badge/performance-60fps%20target-22c55e" alt="60fps Target">
     <img src="https://img.shields.io/badge/privacy-local--first-0ea5e9" alt="Local-first Privacy">
     <img src="https://img.shields.io/badge/runtime-React%20%2B%20legacy%20JS-61dafb?logo=react&logoColor=111827" alt="React plus legacy JS">
@@ -19,7 +19,7 @@
 ## Overview
 This project powers an interactive homepage where motion, physics, and narrative mode transitions are part of the brand experience.
 
-- 20 simulation modes across gravity, swarm/flow, elastic, fluid, optical, parallax, and 3D families
+- 24 narrative simulation modes across gravity, swarm/flow, elastic, fluid, optical, parallax, and 3D families
 - 120Hz fixed-timestep physics with spatial hashing and optimized hot paths
 - Curated production runtime; dev: React on 8012, preview on 8013
 - Accessibility-conscious interactions and `prefers-reduced-motion` support
@@ -43,7 +43,7 @@ Open:
 | `npm run install:all` | Install all deps (root, react-app) |
 | `npm run dev` | React dev server (8012) |
 | `npm run dev:react` | React only (port 8012) |
-| `npm run build` | React production build → `react-app/app/dist/` |
+| `npm run build` | Canonical production build: flatten design config, then build → `react-app/app/dist/` |
 | `npm run build:dev` | React unminified build + sourcemaps |
 | `npm run preview` | Serve React build (port 8013) |
 | `npm run clean` | Remove `react-app/app/dist` |
@@ -63,6 +63,10 @@ docs/              # Development + reference docs
 ```
 Edit `react-app/app/src/` and `react-app/app/public/` for the main site.
 
+The current supported app pipeline is `react-app/app/`. Historical standalone embed guidance is retained only for context in [`docs/reference/INTEGRATION.md`](docs/reference/INTEGRATION.md).
+
+`react-app/app/public/config/design-system.json` is the authored design/config source. `default-config.json`, `shell-config.json`, `portfolio-config.json`, and `cv-config.json` are generated compatibility/runtime outputs. Use the root `npm run build` for production because it runs `flatten:design-config` before the Vite build.
+
 ### Engineering Constraints
 - O(1) behavior in hot paths and no allocations inside core physics loops
 - Preserve 60fps behavior across modes
@@ -72,29 +76,21 @@ Edit `react-app/app/src/` and `react-app/app/public/` for the main site.
 
 ### Manual QA Expectations
 Automated tests are currently disabled. Before shipping:
-- Verify all 20 modes run correctly
+- Verify all current narrative modes run correctly
 - Check keyboard navigation and ARIA behavior
 - Validate mobile behavior and visual clipping
 - Confirm third-party behavior matches expectations (fonts; optional tactile CDN when on)
 
-## Integration Guide (Consumers)
-Embed the runtime with:
-
-```html
-<link rel="stylesheet" href="css/styles.css">
-<link rel="modulepreload" href="js/shared.js">
-<div id="bravia-balls">
-  <canvas id="c" aria-label="Interactive bouncy balls physics simulation"></canvas>
-</div>
-<script type="module" src="js/app.js"></script>
-```
-
-For full setup and host-page constraints, see [`docs/reference/INTEGRATION.md`](docs/reference/INTEGRATION.md).
+## Integration Guide (Historical)
+[`docs/reference/INTEGRATION.md`](docs/reference/INTEGRATION.md) describes the older standalone `app.js` / `shared.js` embed model. It is retained for context around the original Canvas runtime, not as the build or deployment guide for the current React/Vite site.
 
 ## Documentation
 ### Project Docs
 - **[`docs/BACKLOG.md`](docs/BACKLOG.md)** — consolidated backlog (**BL-*** audit items, **FE-*** PRD epics, **DO-***, **XP-***); start at **Product view**
 - [`docs/development/DEV-WORKFLOW.md`](docs/development/DEV-WORKFLOW.md)
+- [`docs/reference/SYSTEM-ARCHITECTURE.md`](docs/reference/SYSTEM-ARCHITECTURE.md)
+- [`docs/reference/CANVAS-RUNTIME.md`](docs/reference/CANVAS-RUNTIME.md)
+- [`docs/reference/PARITY-CONTRACT.md`](docs/reference/PARITY-CONTRACT.md)
 - [`docs/reference/MODES.md`](docs/reference/MODES.md)
 - [`docs/reference/CONFIGURATION.md`](docs/reference/CONFIGURATION.md)
 - [`docs/reference/INTEGRATION.md`](docs/reference/INTEGRATION.md)

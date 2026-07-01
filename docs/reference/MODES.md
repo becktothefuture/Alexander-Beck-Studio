@@ -1,8 +1,9 @@
 # Mode Specifications
 
 Source of truth for mode IDs and narrative order:
-- `source/modules/core/constants.js`
-- `source/modules/modes/mode-controller.js`
+- `react-app/app/src/legacy/modules/core/constants.js`
+- `react-app/app/src/legacy/modules/modes/mode-controller.js`
+- `react-app/app/src/data/simulationCatalog.json`
 
 ---
 
@@ -137,5 +138,5 @@ Loop order is `Featured -> Extended -> Featured`.
 
 - [`SIMULATION-DESIGN-GUIDELINES.md`](./SIMULATION-DESIGN-GUIDELINES.md) — Design, material, avoid-list, and promotion gate for new simulations
 - [`CONFIGURATION.md`](./CONFIGURATION.md) — Runtime config keys and ranges
-- [`INTEGRATION.md`](./INTEGRATION.md) — Embedding and host-page integration
+- [`INTEGRATION.md`](./INTEGRATION.md) — Historical standalone embed guidance
 - [`../development/DEV-WORKFLOW.md`](../development/DEV-WORKFLOW.md) — Dev/build workflow

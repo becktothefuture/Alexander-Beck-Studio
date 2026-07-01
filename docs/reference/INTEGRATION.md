@@ -1,5 +1,7 @@
 # Integration Guide
 
+**Status: Historical / archived integration guidance.** The current supported website pipeline is the React/Vite app under `react-app/app/`. This document is retained for context around the original standalone Canvas runtime and older embed model. Do not use it as the primary build or deployment guide for the current site.
+
 **Embedding the simulation in your website**
 
 ## Quick Integration
@@ -97,6 +99,8 @@ The simulation loads with sensible defaults:
 - 60 FPS target
 
 ### Runtime Configuration
+
+Archived path note: this section describes the old standalone bundle layout, not the current React/Vite config source of truth.
 
 Settings load from `js/config.json` (copied from `source/config/default-config.json`).
 localStorage persistence is disabled by default.

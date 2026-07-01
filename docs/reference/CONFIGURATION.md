@@ -1,8 +1,8 @@
 # Configuration Reference
 
-**Primary (React app) source of truth:** `react-app/app/public/config/default-config.json`
+**Authored design/config source of truth:** `react-app/app/public/config/design-system.json`
 
-This document describes the configuration keys loaded at runtime. The React app serves config from `react-app/app/public/config/`.
+This document describes the configuration keys loaded at runtime. The React app serves config from `react-app/app/public/config/`. `default-config.json`, `shell-config.json`, `portfolio-config.json`, and `cv-config.json` are generated compatibility/runtime outputs derived from `design-system.json` by `npm run flatten:design-config`. Use the root `npm run build` for production so flattening runs before Vite builds.
 
 **Visual spec for shell buttons and on-page UI harmony:** [`SITE-STYLEGUIDE.md`](SITE-STYLEGUIDE.md).
 
@@ -108,6 +108,8 @@ At startup the app attempts to fetch (in order):
 - `../dist/js/config.json`
 
 If nothing loads, it falls back to a small in-code default.
+
+`config/default-config.json` is generated from `design-system.json`; do not hand-author it. The `js/config.json` fallbacks are historical compatibility paths for older runtime bundles.
 
 ---
 
@@ -299,7 +301,7 @@ They are only applied in **Ball Pit** (`pit`).
 
 ### Ghost Layer (Motion Trails)
 
-These keys control the **ghost trail** effect implemented in `source/modules/physics/engine.js` (it replaces the hard `clearRect` with a fade-to-transparent pass when enabled, so DOM elements behind the canvas remain visible).
+These keys control the **ghost trail** effect implemented in `react-app/app/src/legacy/modules/physics/engine.js` (it replaces the hard `clearRect` with a fade-to-transparent pass when enabled, so DOM elements behind the canvas remain visible).
 
 - **`ghostLayerEnabled`** (boolean)
   - **Meaning**: Enables/disables ghost trails.
@@ -478,7 +480,7 @@ These keys control the cursor’s **visual system** (dot + canvas trail) and its
 ## Scene (Mode Change Micro‑Interaction)
 
 These keys tune the **scene-wide** reaction that triggers **only** when the simulation/mode changes (event: `bb:modeChanged`).  
-Implementation: `source/modules/ui/scene-impact-react.js` drives CSS vars on `#abs-scene` so **all layers move together** via a single GPU transform.
+Implementation: `react-app/app/src/legacy/modules/ui/scene-impact-react.js` drives CSS vars on `#abs-scene` so **all layers move together** via a single GPU transform.
 
 ### `sceneImpactEnabled` (boolean)
 - **Meaning**: Enables/disables the scene click-in micro reaction.
@@ -501,7 +503,7 @@ Implementation: `source/modules/ui/scene-impact-react.js` drives CSS vars on `#a
 ## Scene Change Sound (SFX)
 
 These keys add a soft, non-intrusive “pebble-like” tick on simulation changes (event: `bb:modeChanged`).  
-Implementation: `source/modules/ui/scene-change-sfx.js` uses the existing collision synth so it only plays when sound is enabled/unlocked.
+Implementation: `react-app/app/src/legacy/modules/ui/scene-change-sfx.js` uses the existing collision synth so it only plays when sound is enabled/unlocked.
 
 ### `sceneChangeSoundEnabled` (boolean)
 - **Meaning**: Enables/disables the scene-change sound.

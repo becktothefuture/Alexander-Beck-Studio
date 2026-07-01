@@ -15,7 +15,7 @@
 - `npm run audit:portfolio-gate` — Playwright: home → portfolio modal → pit; asserts `#c` buffer vs CSS×DPR and non-empty `.portfolio-project-label__text` (`ABS_DEV_URL` = origin e.g. `http://127.0.0.1:8013` or preview; run `npm run preview` in another shell first)
 - `npm run audit:transition-flows` — Playwright transition audit with in-flight + settled checkpoints, screenshots, timing assertions, and optional strict cadence (`ABS_BROWSER=chromium|webkit`, `ABS_TRANSITION_STRICT_RAF=1`)
 - `npm run validate:html-fragments` — Validate partial HTML templates
-- No automated tests; manual testing required (all 21 modes, 60 FPS, mobile)
+- No automated tests; manual testing required (all current narrative modes, 60 FPS, mobile)
 
 ## Architecture
 - **Primary surface:** React app at `react-app/app/` (Vite, multi-entry: index, portfolio, cv, styleguide)
@@ -23,10 +23,13 @@
 - **Edit** `react-app/app/src/` and `react-app/app/public/` (CSS, config, images)
 - Entry: `react-app/app/src/entries/*.jsx` → pages + legacy bridge
 - Legacy runtime: `react-app/app/src/legacy/` (modules, main.js, cv-init, etc.) — no imports from repo root
+- Canvas 2D runtime is intentional. Do not rewrite the simulation engine for modernization; clarify its boundary without changing visual or physics behavior.
 - **Canonical design config:** `react-app/app/public/config/design-system.json`
 - **Generated config outputs:** `react-app/app/public/config/default-config.json`, `shell-config.json`, `portfolio-config.json`, `cv-config.json`
+- Generated config files are compatibility/runtime outputs; do not hand-author them.
 - Build flattening: root `npm run build` runs `flatten:design-config` before Vite build. A direct `react-app/app` build can bypass flattening, so prefer building from the repo root.
 - Build: Vite → `react-app/app/dist/`
+- **Architecture docs:** `docs/reference/SYSTEM-ARCHITECTURE.md`, `docs/reference/CANVAS-RUNTIME.md`, and `docs/reference/PARITY-CONTRACT.md`
 - **Site UI styleguide (chrome buttons, harmony):** `docs/reference/SITE-STYLEGUIDE.md`
 - **Material presence (site-wide motion and continuity rule):** `docs/reference/MATERIAL-PRESENCE.md` is canonical. Preserve perceptual continuity, restore primary UI quickly as whole objects/groups, and avoid decorative delay that makes controls feel absent or rebuilt.
 - **Transition orchestration (ownership + test gate):** `docs/reference/TRANSITION-ORCHESTRATION.md` is canonical. Keep one transition owner, phase contract on `<html data-abs-transition-phase>`, and enforce transition audits for any motion/routing change.
@@ -51,6 +54,7 @@
   - UI-only, by being explicitly non-persistent
 
 ## Verification
+- Frontend parity is mandatory. If a refactor touches runtime, CSS, HTML boot logic, public config, route transitions, canvas renderer, physics, modal/gate behavior, portfolio stacking, public content, or deployment, state how parity was verified.
 - `npm run certify:screens` writes to `output/playwright/screens-certification/`; the whole `output/playwright/` tree is gitignored—regenerate after visual changes. Scratch audit scripts under `tmp/*.cjs` / `output/cv_audit.js` are gitignored—do not commit.
 - For transition/motion/routing changes, run `audit:transition-flows` for both Chromium and WebKit. Also run strict mode (`ABS_TRANSITION_STRICT_RAF=1`) and attach in-flight + settled artifacts for review.
 - Run transition audits **serially** per browser when validating reliability (avoid parallel Playwright runs against the same server/output path to reduce false negatives).
@@ -80,10 +84,11 @@
 - **Documentation is authoritative**: If code conflicts with `docs/`, fix the code
 
 ## Critical Constraints
-- 21 simulation modes (see `docs/reference/MODES.md`)
+- Current mode IDs and narrative order live in `docs/reference/MODES.md`
 - Privacy-first: **No analytics or remote telemetry.** Main HTML entries load **Google Fonts** (`fonts.googleapis.com` / `fonts.gstatic.com`). Optional **tactile** layer may load **jsdelivr** when enabled (`legacy/.../tactile-layer.js`). **`localStorage` / `sessionStorage`:** settings, theme, panel/UI helpers — not canonical design truth (see Config Workflow).
 - Accessibility: ARIA labels, keyboard nav, respect `prefers-reduced-motion`
 - Modal blur uses two-layer architecture (locked, do not modify)
+- Use subagents for review, verification, log analysis, and risk assessment. Keep writes owned by the lead agent unless the user explicitly requests parallel implementation with disjoint file ownership.
 
 ## Workflow: Completion & Handoff Protocol
 **CRITICAL**: Never assume a problem is solved or a task is complete without explicit user confirmation.
