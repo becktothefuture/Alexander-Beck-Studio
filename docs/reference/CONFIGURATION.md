@@ -2,7 +2,7 @@
 
 **Authored design/config source of truth:** `react-app/app/public/config/design-system.json`
 
-This document describes the configuration keys loaded at runtime. The React app serves config from `react-app/app/public/config/`. `default-config.json`, `shell-config.json`, `portfolio-config.json`, and `cv-config.json` are generated compatibility/runtime outputs derived from `design-system.json` by `npm run flatten:design-config`. Use the root `npm run build` for production so flattening runs before Vite builds.
+This document describes the configuration keys loaded at runtime. The React app serves config from `react-app/app/public/config/`. `default-config.json`, `shell-config.json`, `portfolio-config.json`, and `cv-config.json` are generated compatibility/runtime outputs derived from `design-system.json` by `npm run flatten:design-config`. Use the root `npm run build` for production so flattening runs before Vite builds. See [`GENERATED-CONFIG.md`](GENERATED-CONFIG.md) for the generated-file contract and no-write sync check.
 
 **Visual spec for shell buttons and on-page UI harmony:** [`SITE-STYLEGUIDE.md`](SITE-STYLEGUIDE.md).
 

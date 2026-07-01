@@ -59,6 +59,8 @@ function createCancelableSet() {
 }
 
 export function createLegacyRuntimeScope() {
+  // Migration safety net for imperative route bootstraps. New runtime modules
+  // should still return explicit disposers instead of relying on global patching.
   const listeners = [];
   const timeouts = createCancelableSet();
   const intervals = createCancelableSet();

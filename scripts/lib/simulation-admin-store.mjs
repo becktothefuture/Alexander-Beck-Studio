@@ -43,6 +43,7 @@ export const SIMULATION_ADMIN_PATHS = Object.freeze({
   siteAppPath: resolve(reactAppRoot, 'src/components/app/SiteApp.jsx'),
   routeRegistryPath: resolve(reactAppRoot, 'src/lib/routes.js'),
   viteConfigPath: resolve(reactAppRoot, 'vite.config.js'),
+  viteDevAdminPluginPath: resolve(reactAppRoot, 'vite.dev-admin-plugin.js'),
   constantsPath: resolve(reactAppRoot, 'src/legacy/modules/core/constants.js'),
 });
 
@@ -58,21 +59,21 @@ const DEDICATED_LAB_ROUTE_DELETION_RULES = Object.freeze({
     routeView: 'getFlockOfBirdsRouteView',
     routeRuntime: 'FLOCK_OF_BIRDS_ROUTE_RUNTIME',
     importPath: '../../routes/flock-of-birds/FlockOfBirdsRoute.jsx',
-    hasViteConfigApi: true,
+    hasDevAdminPluginApi: true,
   },
   'wall-repel': {
     routeDir: 'wall-repel',
     routeView: 'getWallRepelRouteView',
     routeRuntime: 'WALL_REPEL_ROUTE_RUNTIME',
     importPath: '../../routes/wall-repel/WallRepelRoute.jsx',
-    hasViteConfigApi: true,
+    hasDevAdminPluginApi: true,
   },
   'mineral-growth': {
     routeDir: 'mineral-growth',
     routeView: 'getMineralGrowthRouteView',
     routeRuntime: 'MINERAL_GROWTH_ROUTE_RUNTIME',
     importPath: '../../routes/mineral-growth/MineralGrowthRoute.jsx',
-    hasViteConfigApi: true,
+    hasDevAdminPluginApi: true,
   },
 });
 
@@ -609,8 +610,8 @@ export async function createSimulationDeletionPlan({
   const routeRule = DEDICATED_LAB_ROUTE_DELETION_RULES[simulation.id];
   if (!routeRule) {
     block('No dedicated lab-route deletion rule exists for this simulation. Shared concept routes need manual cleanup.');
-  } else if (routeRule.hasViteConfigApi) {
-    block('This route has a dedicated Vite config API. Automatic deletion is blocked until that route-specific API cleanup is implemented.');
+  } else if (routeRule.hasDevAdminPluginApi) {
+    block('This route has a dedicated Vite dev/admin plugin API. Automatic deletion is blocked until that route-specific API cleanup is implemented.');
   }
 
   const routeDir = routeRule

@@ -10,6 +10,7 @@
 - `npm run preview` — Serve React build (port 8013)
 - `npm run start` — Alias for preview
 - `npm run certify:screens` — Screenshot certification for home, portfolio, and CV (writes to `output/playwright/screens-certification/`, gitignored)
+- `npm run check:design-config` — No-write check that generated config files match `design-system.json`
 - `npm run audit:canvas-spa` — Playwright: **polls until** `#c` buffer matches layout×DPR after each hop (`ABS_SPA_ROUNDS`, `ABS_CANVAS_WAIT_MS`, `ABS_DEV_URL`, `ABS_AUDIT_QUIET=1` optional)
 - `npm run audit:canvas-spa:quick` — 2 round-trips, one-line PASS (POSIX env; Windows: set vars then `node scripts/audit-canvas-spa.mjs`)
 - `npm run audit:portfolio-gate` — Playwright: home → portfolio modal → pit; asserts `#c` buffer vs CSS×DPR and non-empty `.portfolio-project-label__text` (`ABS_DEV_URL` = origin e.g. `http://127.0.0.1:8013` or preview; run `npm run preview` in another shell first)
@@ -26,7 +27,7 @@
 - Canvas 2D runtime is intentional. Do not rewrite the simulation engine for modernization; clarify its boundary without changing visual or physics behavior.
 - **Canonical design config:** `react-app/app/public/config/design-system.json`
 - **Generated config outputs:** `react-app/app/public/config/default-config.json`, `shell-config.json`, `portfolio-config.json`, `cv-config.json`
-- Generated config files are compatibility/runtime outputs; do not hand-author them.
+- Generated config files are compatibility/runtime outputs; do not hand-author them. See `docs/reference/GENERATED-CONFIG.md`.
 - Build flattening: root `npm run build` runs `flatten:design-config` before Vite build. A direct `react-app/app` build can bypass flattening, so prefer building from the repo root.
 - Build: Vite → `react-app/app/dist/`
 - **Architecture docs:** `docs/reference/SYSTEM-ARCHITECTURE.md`, `docs/reference/CANVAS-RUNTIME.md`, and `docs/reference/PARITY-CONTRACT.md`

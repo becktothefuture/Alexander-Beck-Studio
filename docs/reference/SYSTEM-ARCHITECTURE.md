@@ -55,7 +55,7 @@ Generated compatibility/runtime outputs are:
 - `react-app/app/public/config/portfolio-config.json`
 - `react-app/app/public/config/cv-config.json`
 
-`scripts/lib/flatten-design-config.mjs` derives the generated files from `design-system.json`. The root command `npm run build` is the canonical production build because it runs `flatten:design-config` before the Vite app build. Running `npm run build --prefix react-app/app` is a lower-level Vite build and can bypass config flattening.
+`scripts/lib/flatten-design-config.mjs` derives the generated files from `design-system.json`. `npm run check:design-config` verifies the generated files without writing. The root command `npm run build` is the canonical production build because it runs `flatten:design-config` before the Vite app build. Running `npm run build --prefix react-app/app` is a lower-level Vite build and can bypass config flattening. See `GENERATED-CONFIG.md` for the generated-file contract.
 
 ## Boot Flow
 

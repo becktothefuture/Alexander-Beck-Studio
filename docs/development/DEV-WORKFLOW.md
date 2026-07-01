@@ -62,6 +62,7 @@ Open `http://localhost:8012`.
 ### Pre-release verification
 ```bash
 npm run lint --prefix react-app/app
+npm run check:design-config
 npm run build
 npm run preview
 ```
@@ -122,6 +123,7 @@ npm run build
 
 - [README](../../README.md)
 - [Configuration Reference](../reference/CONFIGURATION.md)
+- [Generated Config](../reference/GENERATED-CONFIG.md)
 - [System Architecture](../reference/SYSTEM-ARCHITECTURE.md)
 - [Canvas Runtime](../reference/CANVAS-RUNTIME.md)
 - [Parity Contract](../reference/PARITY-CONTRACT.md)

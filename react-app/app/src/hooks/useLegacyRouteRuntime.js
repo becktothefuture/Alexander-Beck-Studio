@@ -29,6 +29,8 @@ export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId 
         if (cancelled) return;
         const boot = module?.[exportName];
         if (typeof boot === 'function') {
+          // Prefer explicit route cleanup from boot exports; the legacy runtime
+          // scope remains a safety net for older imperative modules.
           return Promise.resolve(boot()).then((cleanup) => {
             if (typeof cleanup === 'function') {
               legacyCleanup = cleanup;
@@ -51,6 +53,8 @@ export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId 
     return () => {
       cancelled = true;
       try {
+        // Run explicit cleanup before the scope removes listeners/timers that
+        // were registered during bootstrap.
         legacyCleanup?.();
       } catch (error) {
         console.error(`[spa] Failed to cleanup legacy route export "${exportName}"`, error);
