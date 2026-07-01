@@ -1,5 +1,7 @@
 # Portfolio pit physics
 
+**Status:** live compatibility boundary, not the visible portfolio UI. The portfolio route presents the DOM-driven infinite deck documented in `PORTFOLIO.md`; it should not expose project balls. `react-app/app/src/legacy/modules/portfolio/pit-mode.js` remains imported by the route bootstrap, so this document preserves its physics failure modes and constraints for hidden/runtime, fallback, and archive paths.
+
 ## Symptoms addressed
 
 - Bodies **pass through** each other or ignore the floor.
@@ -30,5 +32,5 @@
 
 ## Verification
 
-- Manual: portfolio route — bodies should stack, squircles rest on floor without a gap, no tunneling through each other when falling.
+- Manual: hidden/runtime or fallback pit path only — bodies should stack, squircles rest on floor without a gap, no tunneling through each other when falling.
 - After SPA/canvas resize: `npm run audit:canvas-spa` (buffer sizing).

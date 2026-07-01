@@ -9,7 +9,7 @@
 import { chromium } from 'playwright';
 
 const BUFFER_WAIT_MS = Number(process.env.ABS_CANVAS_WAIT_MS || 20000);
-const SIMULATION_CANVAS_SELECTOR = '#c, #flock-of-birds-canvas, #wall-repel-canvas';
+const SIMULATION_CANVAS_SELECTOR = '#c, #flock-of-birds-canvas, #wall-repel-canvas, canvas.concept-simulation-canvas';
 
 function resolveHomeEntryUrl() {
   let raw = (process.env.ABS_DEV_URL || 'http://127.0.0.1:8012').trim().replace(/\/+$/, '');

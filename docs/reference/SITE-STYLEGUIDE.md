@@ -69,7 +69,7 @@ Authoritative detail: [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md) (route top 
 | Chrome rim, fill transition duration | [`react-app/app/public/css/tokens.css`](../../react-app/app/public/css/tokens.css) — `--ui-chrome-button-edge`, `--ui-chrome-fill-transition-duration` |
 | Route topbar resting ink | [`react-app/app/public/css/tokens.css`](../../react-app/app/public/css/tokens.css) — `--shell-chrome-ink` |
 | Supporting description typography | [`react-app/app/public/css/tokens.css`](../../react-app/app/public/css/tokens.css) — `--supporting-description-*` |
-| Portfolio pit **canvas** bodies | No disc rim or stroke — fill + optional hover image reveal only; size vs **`√(inner pit area)`** in `pit-mode.js`; see [`PORTFOLIO.md`](PORTFOLIO.md) |
+| Portfolio pit **canvas** bodies | Hidden/runtime compatibility guidance only; no disc rim or stroke — fill + optional hover image reveal only; size vs **`√(inner pit area)`** in `pit-mode.js`; see [`PORTFOLIO.md`](PORTFOLIO.md) |
 | Cursor + hover foreground CSS vars | Set from palette in [`react-app/app/src/legacy/modules/visual/colors.js`](../../react-app/app/src/legacy/modules/visual/colors.js) (`stampCursorCSSVar`, `computeSafeTextOnCursorColor`) |
 | Unified rules | [`react-app/app/public/css/main.css`](../../react-app/app/public/css/main.css) — section **“UNIFIED HOVER BACKGROUND SYSTEM”** and **“INTERACTIVE HOVER EFFECTS”** |
 | Portfolio slot tweak | [`react-app/app/public/css/portfolio.css`](../../react-app/app/public/css/portfolio.css) — `.portfolio-sound-slot` |

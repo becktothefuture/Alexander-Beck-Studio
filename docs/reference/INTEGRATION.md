@@ -2,11 +2,11 @@
 
 **Status: Historical / archived integration guidance.** The current supported website pipeline is the React/Vite app under `react-app/app/`. This document is retained for context around the original standalone Canvas runtime and older embed model. Do not use it as the primary build or deployment guide for the current site.
 
-**Embedding the simulation in your website**
+**Archived standalone embedding notes**
 
-## Quick Integration
+## Archived Quick Integration
 
-### Minimal Setup
+### Historical Minimal Setup
 
 ```html
 <!DOCTYPE html>
@@ -25,17 +25,17 @@
 </html>
 ```
 
-**That's it!** The simulation auto-initializes.
+In the archived standalone bundle, the simulation auto-initialized from this embed.
 
-## Embedding Integration
+## Archived Embedding Integration
 
-### Step 1: Prepare Files
+### Historical Step 1: Prepare Files
 
 Upload to your host/CMS:
 - `app.js` + `shared.js` → Assets
 - `styles.css` → Custom Code or Assets
 
-### Step 2: Add HTML Structure
+### Historical Step 2: Add HTML Structure
 
 In your host/CMS, add an embed/HTML block:
 
@@ -45,7 +45,7 @@ In your host/CMS, add an embed/HTML block:
 </div>
 ```
 
-### Step 3: Link CSS
+### Historical Step 3: Link CSS
 
 In Page Settings → Custom Code → Head:
 
@@ -54,7 +54,7 @@ In Page Settings → Custom Code → Head:
 <link rel="modulepreload" href="https://your-cdn.com/shared.js">
 ```
 
-### Step 4: Link JavaScript
+### Historical Step 4: Link JavaScript
 
 In Page Settings → Custom Code → Before </body>:
 
@@ -62,7 +62,7 @@ In Page Settings → Custom Code → Before </body>:
 <script type="module" src="https://your-cdn.com/app.js"></script>
 ```
 
-### Step 5: Add Required CSS
+### Historical Step 5: Add Required CSS
 
 The simulation needs this CSS for dynamic height:
 
@@ -188,7 +188,7 @@ Uses `svh` (small viewport height) for mobile:
 
 ### Loading Strategy
 
-**Lazy Load (Recommended):**
+**Lazy Load (archived standalone pattern):**
 ```javascript
 // Load when visible
 const observer = new IntersectionObserver((entries) => {
@@ -369,7 +369,7 @@ Not recommended, but possible:
 
 ---
 
-**Next Steps:**
+**Current site references:**
 - See [CONFIGURATION.md](./CONFIGURATION.md) for detailed settings
 - See [MODES.md](./MODES.md) for mode specifications
 - See [../development/DEV-WORKFLOW.md](../development/DEV-WORKFLOW.md) for build/preview workflow

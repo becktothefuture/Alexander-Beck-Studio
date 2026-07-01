@@ -20,7 +20,7 @@ const FRAME_HARD_CAP_MS = Number(process.env.ABS_PORTFOLIO_GATE_HARD_CAP_MS || (
 const HERO_SNAP_THRESHOLD_PX = Number(process.env.ABS_PORTFOLIO_GATE_HERO_SNAP_PX || 6);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outputRoot = resolve(__dirname, '..', 'output', 'playwright', 'portfolio-gate-audit');
-const SIMULATION_CANVAS_SELECTOR = '#c, #wall-repel-canvas, canvas.wall-repel-canvas';
+const SIMULATION_CANVAS_SELECTOR = '#c, #wall-repel-canvas, canvas.wall-repel-canvas, canvas.concept-simulation-canvas';
 
 /** Normalize ABS_DEV_URL so we never do `.../index.html/` (invalid) when joining paths. */
 function resolveHomeEntryUrl() {

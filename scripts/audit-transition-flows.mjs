@@ -10,6 +10,9 @@
  *
  * Run: npm run audit:transition-flows
  * Needs: preview or dev server. Set ABS_DEV_URL to origin (e.g. http://127.0.0.1:8013).
+ * The audit pins the home entry to ?mode=pit unless ABS_DEV_URL already includes a query,
+ * because these flows assert the canonical home hero/nav surface rather than a date-based
+ * route-backed daily simulation.
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -28,6 +31,7 @@ const MAX_GAP_FRAMES = Number(process.env.ABS_TRANSITION_MAX_GAP_FRAMES || 2);
 const BRIDGE_WITHIN_MS = Number(process.env.ABS_TRANSITION_BRIDGE_WITHIN_MS || 300);
 const DESTINATION_WITHIN_MS = Number(process.env.ABS_TRANSITION_DESTINATION_WITHIN_MS || 1200);
 const STRICT_RAF = ['1', 'true', 'yes'].includes(String(process.env.ABS_TRANSITION_STRICT_RAF || '').toLowerCase());
+const SIMULATION_CANVAS_SELECTOR = '#c, #flock-of-birds-canvas, #wall-repel-canvas, canvas.wall-repel-canvas, canvas.concept-simulation-canvas';
 const SAMPLE_MS = Number(
   process.env.ABS_TRANSITION_SAMPLE_MS
   || Math.max(1200, DESTINATION_WITHIN_MS + 200)
@@ -54,7 +58,11 @@ function resolveHomeEntryUrl() {
   if (!/\.html$/i.test(pathPart)) {
     raw = `${raw}/index.html`;
   }
-  return raw;
+  const url = new URL(raw);
+  if (!url.search) {
+    url.searchParams.set('mode', 'pit');
+  }
+  return url.href;
 }
 
 function sleep(ms) {
@@ -65,8 +73,11 @@ function sleep(ms) {
 
 async function waitForSimulationCanvasBuffer(page) {
   await page.waitForFunction(
-    () => {
-      const c = document.getElementById('c');
+    (selector) => {
+      const c = Array.from(document.querySelectorAll(selector)).find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return rect.width >= 64 && rect.height >= 64;
+      });
       if (!c) return false;
       const cssW = c.clientWidth || 0;
       const cssH = c.clientHeight || 0;
@@ -76,6 +87,7 @@ async function waitForSimulationCanvasBuffer(page) {
       const minH = Math.ceil((cssH + 2) * dpr) - 2;
       return c.width >= minW && c.height >= minH;
     },
+    SIMULATION_CANVAS_SELECTOR,
     { timeout: WAIT_MS, polling: 50 }
   );
 }
@@ -689,7 +701,7 @@ async function runFlowInFreshPage(browser, name, runner) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
   await page.goto(resolveHomeEntryUrl(), { waitUntil: 'networkidle', timeout: 60000 });
-  await page.waitForSelector('#c', { timeout: 30_000 });
+  await page.waitForSelector(SIMULATION_CANVAS_SELECTOR, { timeout: 30_000 });
   await waitForHomeSettled(page);
 
   const { steps, checkpoints } = await runner(page);

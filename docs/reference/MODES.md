@@ -9,7 +9,7 @@ Source of truth for mode IDs and narrative order:
 
 ## Runtime Summary
 
-- `25` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
+- `26` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
 - `24` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
 - Daily mode selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
 - `parallax-linear` remains a registered mode ID for compatibility, but user mode switching redirects it to the first narrative mode.

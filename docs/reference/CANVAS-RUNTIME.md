@@ -66,6 +66,8 @@ runtime.destroy();
 
 That shape is guidance only. It is not a Phase 1 implementation requirement. Any adapter must preserve boot timing, route readiness, canvas sizing, physics, render output, and cleanup semantics.
 
+Current decision: do not add a live adapter until it removes real duplication or makes cleanup contracts enforceable. See `ARCHITECTURE-IMPROVEMENT-LEDGER.md` for the preservation-first classification.
+
 ## Refactor Rules
 
 - Do not rename `src/legacy/` until every import, build entry, route runtime, and browser check proves the rename is safe.

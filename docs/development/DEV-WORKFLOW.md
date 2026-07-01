@@ -127,5 +127,6 @@ npm run build
 - [System Architecture](../reference/SYSTEM-ARCHITECTURE.md)
 - [Canvas Runtime](../reference/CANVAS-RUNTIME.md)
 - [Parity Contract](../reference/PARITY-CONTRACT.md)
+- [Architecture Improvement Ledger](../reference/ARCHITECTURE-IMPROVEMENT-LEDGER.md)
 - [Mode Reference](../reference/MODES.md)
 - [Integration Guide](../reference/INTEGRATION.md)

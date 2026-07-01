@@ -149,4 +149,4 @@ These systems are parity-sensitive:
 - GitHub Pages workflow and `react-app/app/dist/` deployment;
 - public route paths and gated route behavior.
 
-If a refactor touches any of these, state how parity was verified and run the relevant checks from `PARITY-CONTRACT.md`.
+If a refactor touches any of these, state how parity was verified and run the relevant checks from `PARITY-CONTRACT.md`. For preservation-first follow-up decisions, see `ARCHITECTURE-IMPROVEMENT-LEDGER.md`.

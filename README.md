@@ -91,6 +91,7 @@ Automated tests are currently disabled. Before shipping:
 - [`docs/reference/SYSTEM-ARCHITECTURE.md`](docs/reference/SYSTEM-ARCHITECTURE.md)
 - [`docs/reference/CANVAS-RUNTIME.md`](docs/reference/CANVAS-RUNTIME.md)
 - [`docs/reference/PARITY-CONTRACT.md`](docs/reference/PARITY-CONTRACT.md)
+- [`docs/reference/ARCHITECTURE-IMPROVEMENT-LEDGER.md`](docs/reference/ARCHITECTURE-IMPROVEMENT-LEDGER.md)
 - [`docs/reference/MODES.md`](docs/reference/MODES.md)
 - [`docs/reference/CONFIGURATION.md`](docs/reference/CONFIGURATION.md)
 - [`docs/reference/INTEGRATION.md`](docs/reference/INTEGRATION.md)

@@ -31,6 +31,7 @@ Minimum command set for low-risk docs/tooling changes:
 npm run check:malformed-tokens -- --full
 npm run validate:html-fragments
 npm run lint --prefix react-app/app
+npm run check:design-config
 npm run build
 ```
 

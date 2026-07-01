@@ -13,7 +13,7 @@
 - `npm run check:design-config` — No-write check that generated config files match `design-system.json`
 - `npm run audit:canvas-spa` — Playwright: **polls until** `#c` buffer matches layout×DPR after each hop (`ABS_SPA_ROUNDS`, `ABS_CANVAS_WAIT_MS`, `ABS_DEV_URL`, `ABS_AUDIT_QUIET=1` optional)
 - `npm run audit:canvas-spa:quick` — 2 round-trips, one-line PASS (POSIX env; Windows: set vars then `node scripts/audit-canvas-spa.mjs`)
-- `npm run audit:portfolio-gate` — Playwright: home → portfolio modal → pit; asserts `#c` buffer vs CSS×DPR and non-empty `.portfolio-project-label__text` (`ABS_DEV_URL` = origin e.g. `http://127.0.0.1:8013` or preview; run `npm run preview` in another shell first)
+- `npm run audit:portfolio-gate` — Playwright: home → portfolio modal → pit; asserts `#c` buffer vs CSS×DPR and non-empty `.portfolio-project-label__text` (`ABS_DEV_URL` = origin e.g. `http://127.0.0.1:8013` or preview; run `npm run preview` in another shell first). Quick variant: `npm run audit:portfolio-gate:quick`.
 - `npm run audit:transition-flows` — Playwright transition audit with in-flight + settled checkpoints, screenshots, timing assertions, and optional strict cadence (`ABS_BROWSER=chromium|webkit`, `ABS_TRANSITION_STRICT_RAF=1`)
 - `npm run validate:html-fragments` — Validate partial HTML templates
 - No automated tests; manual testing required (all current narrative modes, 60 FPS, mobile)
@@ -30,7 +30,7 @@
 - Generated config files are compatibility/runtime outputs; do not hand-author them. See `docs/reference/GENERATED-CONFIG.md`.
 - Build flattening: root `npm run build` runs `flatten:design-config` before Vite build. A direct `react-app/app` build can bypass flattening, so prefer building from the repo root.
 - Build: Vite → `react-app/app/dist/`
-- **Architecture docs:** `docs/reference/SYSTEM-ARCHITECTURE.md`, `docs/reference/CANVAS-RUNTIME.md`, and `docs/reference/PARITY-CONTRACT.md`
+- **Architecture docs:** `docs/reference/SYSTEM-ARCHITECTURE.md`, `docs/reference/CANVAS-RUNTIME.md`, `docs/reference/PARITY-CONTRACT.md`, and `docs/reference/ARCHITECTURE-IMPROVEMENT-LEDGER.md`
 - **Site UI styleguide (chrome buttons, harmony):** `docs/reference/SITE-STYLEGUIDE.md`
 - **Material presence (site-wide motion and continuity rule):** `docs/reference/MATERIAL-PRESENCE.md` is canonical. Preserve perceptual continuity, restore primary UI quickly as whole objects/groups, and avoid decorative delay that makes controls feel absent or rebuilt.
 - **Transition orchestration (ownership + test gate):** `docs/reference/TRANSITION-ORCHESTRATION.md` is canonical. Keep one transition owner, phase contract on `<html data-abs-transition-phase>`, and enforce transition audits for any motion/routing change.
@@ -100,7 +100,7 @@
 - This ensures quality and prevents incomplete work from being considered finished
 
 ## Learned Workspace Facts
-- **Custom cursor contract:** `docs/reference/CUSTOM-CURSOR.md`. **Home inner wall only:** small solid palette dot (~**66%** of on-screen ball diameter from canvas mapping). **Everywhere else in-scene** (portfolio pit, CV, chrome, modals): **64px tap ring** (`#custom-cursor.abs-cursor-tap`), `position:fixed` on `body` so it is not buried under UI. Gate overlay still adds `#custom-cursor.modal-active` (same CSS as tap ring).
+- **Custom cursor contract:** `docs/reference/CUSTOM-CURSOR.md`. Home inner wall and the portfolio inner wall/deck background use the small solid palette dot (~**66%** of on-screen ball diameter from canvas mapping) while the detail view is closed. Portfolio detail view, CV, and modal/gate states use the **64px tap ring** (`#custom-cursor.abs-cursor-tap`), `position:fixed` on `body` so it is not buried under UI. Gate overlay still adds `#custom-cursor.modal-active` (same CSS as tap ring).
 - **Simulation visual no-go:** Do not add thin stroked field/cursor/helper lines to simulation canvas visuals, including pointer radius rings or nested cursor circles. Show forces through material motion, spacing, collision response, or broad tonal fields instead.
 - **Route top bar** must match the shared strip (grid + `ui-main-nav` + `MainNavLink` / `footer_link` + sound slot), same discipline as footer composition—documented in `COMPONENT-LIBRARY.md`, `SITE-STYLEGUIDE.md` §1.4, and the styleguide page. Shell chrome has two button families: **text** (`MainNavLink`) and **icon** (`.abs-icon-btn`); do not add parallel text-button classes.
 - Primary surface is `react-app/app/` only; there is no parallel static-site pipeline in this repo.

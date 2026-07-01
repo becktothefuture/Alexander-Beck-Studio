@@ -51,7 +51,7 @@ Future simulations must preserve cross-mode size coherence.
 
 Use the existing radius scale and count budgets as the reference:
 - home pit bodies define the baseline material family;
-- portfolio pit uses larger bodies because they are navigation objects;
+- hidden/fallback portfolio pit bodies were larger because they were navigation objects;
 - point-cloud modes can be smaller, but only when the concept is depth, flocking, or field sampling;
 - lab defaults must preserve the same readable pebble contour used by the current rotation.
 
