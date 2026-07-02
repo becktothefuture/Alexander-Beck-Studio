@@ -13,7 +13,8 @@ Source of truth for mode IDs and narrative order:
 - `24` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
 - Daily mode selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
 - `parallax-linear` remains a registered mode ID for compatibility, but user mode switching redirects it to the first narrative mode.
-- `flock-of-birds`, `wall-repel`, `aperture-bloom`, `pressure-mosaic`, `mineral-growth`, `napoleon-point-cloud`, and `beach-ball-room` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
+- `flock-of-birds`, `wall-repel`, `pressure-mosaic`, `mineral-growth`, `napoleon-point-cloud`, and `beach-ball-room` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
+- `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily rotation.
 
 ## Lab-Only Route Candidates
 
@@ -45,7 +46,7 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Tension Loom | `elastic-center` | Active |
 | Flock of Birds | `flock-of-birds` | Route-backed daily/lab |
 | Repel Room | `wall-repel` | Route-backed daily/lab |
-| Aperture Bloom | `aperture-bloom` | Route-backed daily/lab |
+| Aperture Bloom | `aperture-bloom` | Route-backed collection/lab |
 | Pressure Mosaic | `pressure-mosaic` | Route-backed daily/lab |
 | Mineral Growth | `mineral-growth` | Route-backed daily/lab |
 | Flubber Blob | `flubber-blob` | Active |

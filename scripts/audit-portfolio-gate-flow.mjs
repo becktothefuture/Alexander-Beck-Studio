@@ -160,6 +160,9 @@ async function readMobileResponsiveCheck(browser) {
     isMobile: true,
     hasTouch: true,
   });
+  await context.addInitScript(() => {
+    window.sessionStorage.setItem('abs_portfolio_ok', String(Date.now()));
+  });
   const page = await context.newPage();
   try {
     const portfolioUrl = new URL('portfolio.html', resolveHomeEntryUrl()).href;

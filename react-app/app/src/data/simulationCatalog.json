@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-25",
+  "updatedAt": "2026-07-02",
   "stages": {
     "daily-rotation": "Makes the live homepage daily rotation.",
     "collection": "Available to review or launch, but not part of the daily rotation.",
@@ -78,7 +78,7 @@
       "id": "aperture-bloom",
       "name": "Aperture Bloom",
       "chapter": "APERTURE BLOOM",
-      "stage": "daily-rotation",
+      "stage": "collection",
       "surface": "lab-route",
       "origin": "promoted-lab",
       "launchPath": "/lab/aperture-bloom.html",
