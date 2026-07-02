@@ -18,6 +18,8 @@ const STARFIELD_NEAR_SIZE_RATIO = 1.18;
 let _smoothMouseX = 0;
 let _smoothMouseY = 0;
 let _mouseInitialized = false;
+let _pointerWasValid = false;
+let _lastPointerSequence = null;
 
 function createStar(w, h, zNear, zFar, spanX, spanY) {
   return {
@@ -63,6 +65,8 @@ export function initializeStarfield3D() {
   _smoothMouseX = 0;
   _smoothMouseY = 0;
   _mouseInitialized = false;
+  _pointerWasValid = false;
+  _lastPointerSequence = null;
 }
 
 // Custom renderer - draws stars directly to canvas
@@ -98,21 +102,30 @@ export function renderStarfield3D(ctx) {
   
   // Target mouse position (normalized -1 to 1)
   let targetX = 0, targetY = 0;
-  if (g.mouseInCanvas) {
-    targetX = Math.max(-1, Math.min(1, (g.mouseX - cx) / (w * 0.5)));
-    targetY = Math.max(-1, Math.min(1, (g.mouseY - cy) / (h * 0.5)));
+  const pointerInCanvas = g.pointerInCanvas ?? g.mouseInCanvas;
+  const inputX = Number.isFinite(g.pointerX) ? g.pointerX : g.mouseX;
+  const inputY = Number.isFinite(g.pointerY) ? g.pointerY : g.mouseY;
+  const pointerSequence = g.pointerSequence || 0;
+  const pointerValid = pointerInCanvas && Number.isFinite(inputX) && Number.isFinite(inputY);
+  if (pointerValid) {
+    targetX = Math.max(-1, Math.min(1, (inputX - cx) / (w * 0.5)));
+    targetY = Math.max(-1, Math.min(1, (inputY - cy) / (h * 0.5)));
   }
   
   // Smooth mouse interpolation
   const easeFactor = 1 - Math.exp(-mouseEasing * dt);
-  if (!_mouseInitialized) {
+  const shouldSeedPointer = !_mouseInitialized
+    || (pointerValid && (!_pointerWasValid || _lastPointerSequence !== pointerSequence || g.pointerJustEnteredCanvas === true));
+  if (shouldSeedPointer) {
     _smoothMouseX = targetX;
     _smoothMouseY = targetY;
     _mouseInitialized = true;
+    _lastPointerSequence = pointerSequence;
   } else {
     _smoothMouseX += (targetX - _smoothMouseX) * easeFactor;
     _smoothMouseY += (targetY - _smoothMouseY) * easeFactor;
   }
+  _pointerWasValid = pointerValid;
 
   // Fade duration from config (in seconds)
   const fadeDuration = Math.max(0, g.starfieldFadeDuration ?? 0.5);

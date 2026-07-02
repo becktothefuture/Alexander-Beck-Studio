@@ -6,6 +6,7 @@
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { spawnBall } from '../physics/spawn.js';
 import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
+import { getHeroTitleCanvasCenter } from '../rendering/title-depth.js';
 
 function clamp01(v) {
   return Math.max(-1, Math.min(1, v));
@@ -119,9 +120,10 @@ export function initialize3DCube() {
 
   const pts = generateCubePoints(sizePx, edgeDensity, faceGrid);
 
+  const titleCenter = getHeroTitleCanvasCenter(g);
   g.cube3dState = {
-    cx: canvas.width * 0.5,
-    cy: canvas.height * 0.5,
+    cx: titleCenter.x,
+    cy: titleCenter.y,
     sizePx,
     rotX: 0,
     rotY: 0,
@@ -132,7 +134,9 @@ export function initialize3DCube() {
     tumbleY: 0,
     tumbleDamping: Math.max(0, Math.min(0.999, g.cube3dTumbleDamping ?? 0.95)),
     tumbleSpeed: g.cube3dTumbleSpeed ?? 3,
-    dotSizeMul
+    dotSizeMul,
+    pointerWasInCanvas: false,
+    lastPointerSequence: null
   };
 
   for (let i = 0; i < pts.length; i++) {
@@ -164,15 +168,29 @@ export function apply3DCubeForces(ball, dt) {
 
   // Update shared rotation once per frame
   if (ball === g.balls[0]) {
-    const cx = canvas.width * 0.5;
-    const cy = canvas.height * 0.5;
-    const nx = g.mouseInCanvas ? clamp01((g.mouseX - cx) / (canvas.width * 0.5)) : 0;
-    const ny = g.mouseInCanvas ? clamp01((g.mouseY - cy) / (canvas.height * 0.5)) : 0;
+    const titleCenter = getHeroTitleCanvasCenter(g);
+    state.cx = titleCenter.x;
+    state.cy = titleCenter.y;
+    const cx = state.cx;
+    const cy = state.cy;
+    const pointerInCanvas = g.pointerInCanvas ?? g.mouseInCanvas;
+    const inputX = Number.isFinite(g.pointerX) ? g.pointerX : g.mouseX;
+    const inputY = Number.isFinite(g.pointerY) ? g.pointerY : g.mouseY;
+    const pointerSequence = g.pointerSequence || 0;
+    const nx = pointerInCanvas ? clamp01((inputX - cx) / (canvas.width * 0.5)) : 0;
+    const ny = pointerInCanvas ? clamp01((inputY - cy) / (canvas.height * 0.5)) : 0;
 
-    const dx = nx - (state.prevNx ?? 0);
-    const dy = ny - (state.prevNy ?? 0);
+    const needsPointerSeed = pointerInCanvas && (
+      !state.pointerWasInCanvas ||
+      state.lastPointerSequence !== pointerSequence ||
+      g.pointerJustEnteredCanvas === true
+    );
+    const dx = needsPointerSeed ? 0 : nx - (state.prevNx ?? 0);
+    const dy = needsPointerSeed ? 0 : ny - (state.prevNy ?? 0);
     state.prevNx = nx;
     state.prevNy = ny;
+    state.pointerWasInCanvas = Boolean(pointerInCanvas);
+    if (pointerInCanvas) state.lastPointerSequence = pointerSequence;
 
     // Tumble impulse from mouse movement (drag-like)
     state.tumbleX += -dy * tumbleSpeed;

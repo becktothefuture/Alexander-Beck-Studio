@@ -13,6 +13,8 @@ import { getModeSizeVarianceFrac, clampRadiusToGlobalBounds } from '../utils/bal
 let _smoothMouseX = 0;
 let _smoothMouseY = 0;
 let _mouseInitialized = false;
+let _pointerWasValid = false;
+let _lastPointerSequence = null;
 
 // Global animation state for slot machine effect
 let _scrollOffset = 0;
@@ -31,6 +33,8 @@ export function initializeParallaxLinear() {
   _smoothMouseX = 0;
   _smoothMouseY = 0;
   _mouseInitialized = false;
+  _pointerWasValid = false;
+  _lastPointerSequence = null;
 
   clearBalls();
 
@@ -144,9 +148,14 @@ export function updateParallaxLinearMouse(dt) {
   
   // Target mouse position (normalized -1 to 1), or 0 if mouse outside
   let targetX = 0, targetY = 0;
-  if (g.mouseInCanvas) {
-    targetX = Math.max(-1, Math.min(1, (g.mouseX - cx) / (canvas.width * 0.5)));
-    targetY = Math.max(-1, Math.min(1, (g.mouseY - cy) / (canvas.height * 0.5)));
+  const pointerInCanvas = g.pointerInCanvas ?? g.mouseInCanvas;
+  const inputX = Number.isFinite(g.pointerX) ? g.pointerX : g.mouseX;
+  const inputY = Number.isFinite(g.pointerY) ? g.pointerY : g.mouseY;
+  const pointerSequence = g.pointerSequence || 0;
+  const pointerValid = pointerInCanvas && Number.isFinite(inputX) && Number.isFinite(inputY);
+  if (pointerValid) {
+    targetX = Math.max(-1, Math.min(1, (inputX - cx) / (canvas.width * 0.5)));
+    targetY = Math.max(-1, Math.min(1, (inputY - cy) / (canvas.height * 0.5)));
   }
 
   // Mouse easing factor (higher = snappier, lower = smoother)
@@ -155,15 +164,19 @@ export function updateParallaxLinearMouse(dt) {
   const easeFactor = 1 - Math.exp(-easing * dt);
 
   // Initialize smoothed position on first frame to avoid jump
-  if (!_mouseInitialized) {
+  const shouldSeedPointer = !_mouseInitialized
+    || (pointerValid && (!_pointerWasValid || _lastPointerSequence !== pointerSequence || g.pointerJustEnteredCanvas === true));
+  if (shouldSeedPointer) {
     _smoothMouseX = targetX;
     _smoothMouseY = targetY;
     _mouseInitialized = true;
+    _lastPointerSequence = pointerSequence;
   } else {
     // Smooth interpolation toward target
     _smoothMouseX += (targetX - _smoothMouseX) * easeFactor;
     _smoothMouseY += (targetY - _smoothMouseY) * easeFactor;
   }
+  _pointerWasValid = pointerValid;
 
   // Linear parallax animation disabled: no slot machine scroll
   const speed = 0;

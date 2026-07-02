@@ -75,3 +75,11 @@ Current decision: do not add a live adapter until it removes real duplication or
 - Do not convert Canvas 2D output to React DOM, SVG, WebGL, Three.js, or another animation library.
 - Keep hot paths allocation-conscious.
 - Treat physics constants, render timings, DPR behavior, and route boot timing as parity-sensitive.
+
+## Pointer And Title Depth Contract
+
+`modules/input/pointer.js` is the shared mouse, trackpad, pen, and touch input contract. It keeps the legacy `mouseX`, `mouseY`, and `mouseInCanvas` fields current, and also exposes normalized `pointer*` fields so modes can tell when input first becomes valid, whether it is active, and whether it came from mouse, pen, or touch.
+
+Modes that smooth pointer state, calculate pointer velocity, or derive deltas must seed their local state from the first valid pointer sample. They must not ease from `CONSTANTS.OFFSCREEN_MOUSE`, the canvas center, or an idle anchor when a pointer/touch first enters, presses, or starts a new contact sequence.
+
+`modules/rendering/title-depth.js` owns the central title scene placement contract. Depth-aware ball modes use the title as a mid-scene plane; no-depth modes keep the title behind the simulation canvas. Do not move the title's CSS x/y placement to align a scene. If a depth scene needs alignment, map the existing DOM title center into canvas coordinates and align the scene to that point.

@@ -80,6 +80,7 @@ const blob = {
   lastPointerX: 0,
   lastPointerY: 0,
   lastPointerTime: 0,
+  lastPointerSequence: null,
   pointerActive: false,
   isDragging: false,
   dragPointerId: null,
@@ -1061,16 +1062,27 @@ function integrateParticles(dt) {
 
 function updatePointerKinematics(detail, smoothing = 0.35) {
   const now = detail.time || performance.now();
-  const dt = Math.max(0.008, (now - blob.lastPointerTime) / 1000);
-  const vx = (detail.x - blob.lastPointerX) / dt;
-  const vy = (detail.y - blob.lastPointerY) / dt;
-  blob.pointerVx += (vx - blob.pointerVx) * smoothing;
-  blob.pointerVy += (vy - blob.pointerVy) * smoothing;
+  const sequence = detail.sequence ?? null;
+  const shouldSeed = !blob.pointerActive
+    || blob.lastPointerTime <= 0
+    || (sequence !== null && blob.lastPointerSequence !== sequence)
+    || detail.justEnteredCanvas === true;
+  if (shouldSeed) {
+    blob.pointerVx = 0;
+    blob.pointerVy = 0;
+  } else {
+    const dt = Math.max(0.008, (now - blob.lastPointerTime) / 1000);
+    const vx = (detail.x - blob.lastPointerX) / dt;
+    const vy = (detail.y - blob.lastPointerY) / dt;
+    blob.pointerVx += (vx - blob.pointerVx) * smoothing;
+    blob.pointerVy += (vy - blob.pointerVy) * smoothing;
+  }
   blob.pointerX = detail.x;
   blob.pointerY = detail.y;
   blob.lastPointerX = detail.x;
   blob.lastPointerY = detail.y;
   blob.lastPointerTime = now;
+  blob.lastPointerSequence = sequence;
   blob.pointerActive = detail.inBounds === true;
 }
 

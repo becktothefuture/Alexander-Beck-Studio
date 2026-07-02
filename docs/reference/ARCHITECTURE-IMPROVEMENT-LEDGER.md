@@ -85,6 +85,7 @@ Additional checks for route/runtime/visual changes:
 
 ```bash
 ABS_DEV_URL=http://127.0.0.1:8012 npm run audit:canvas-spa:quick
+ABS_DEV_URL=http://127.0.0.1:8012 npm run audit:pointer-title-depth
 ABS_DEV_URL=http://127.0.0.1:8013 npm run audit:portfolio-gate:quick
 ABS_DEV_URL=http://127.0.0.1:8013 ABS_BROWSER=chromium npm run audit:transition-flows
 ABS_DEV_URL=http://127.0.0.1:8013 ABS_BROWSER=webkit npm run audit:transition-flows

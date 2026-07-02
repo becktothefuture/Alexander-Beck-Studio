@@ -102,6 +102,8 @@ function createFluxState() {
     lastPointerX: Number.NaN,
     lastPointerY: Number.NaN,
     pointerActive: false,
+    pointerWasActive: false,
+    lastPointerSequence: null,
     positiveX: 0,
     positiveY: 0,
     negativeX: 0,
@@ -142,7 +144,15 @@ function prepareFrame(g, state, dt) {
   const compact = isCompactViewport(g);
   const reducedMotion = prefersReducedMotion();
   const anchor = getFluxAnchor(g, canvas, compact);
-  const pointerActive = Boolean(g.mouseInCanvas);
+  const pointerActive = Boolean(g.pointerInCanvas ?? g.mouseInCanvas);
+  const inputX = Number.isFinite(g.pointerX) ? g.pointerX : g.mouseX;
+  const inputY = Number.isFinite(g.pointerY) ? g.pointerY : g.mouseY;
+  const pointerSequence = g.pointerSequence || 0;
+  const pointerBecameActive = pointerActive && (
+    !state.pointerWasActive ||
+    state.lastPointerSequence !== pointerSequence ||
+    g.pointerJustEnteredCanvas === true
+  );
   const idleTime = state.time * (reducedMotion ? 0.35 : 1);
   const idleRadius = Math.min(canvas.width, canvas.height) * (compact ? 0.065 : 0.105);
   const idleDriftX = (
@@ -155,10 +165,10 @@ function prepareFrame(g, state, dt) {
     Math.sin(idleTime * 0.097 + 0.2) * 0.52 +
     Math.sin(idleTime * 0.053 + 3.6) * 0.28
   ) * idleRadius * 0.42;
-  const targetPointerX = pointerActive ? g.mouseX : anchor.x + idleDriftX;
-  const targetPointerY = pointerActive ? g.mouseY : anchor.y + idleDriftY;
-  const previousX = Number.isFinite(state.lastPointerX) ? state.lastPointerX : targetPointerX;
-  const previousY = Number.isFinite(state.lastPointerY) ? state.lastPointerY : targetPointerY;
+  const targetPointerX = pointerActive ? inputX : anchor.x + idleDriftX;
+  const targetPointerY = pointerActive ? inputY : anchor.y + idleDriftY;
+  const previousX = pointerBecameActive ? targetPointerX : (Number.isFinite(state.lastPointerX) ? state.lastPointerX : targetPointerX);
+  const previousY = pointerBecameActive ? targetPointerY : (Number.isFinite(state.lastPointerY) ? state.lastPointerY : targetPointerY);
   const pointerVx = (targetPointerX - previousX) / step;
   const pointerVy = (targetPointerY - previousY) / step;
   const pointerSpeed = Math.hypot(pointerVx, pointerVy);
@@ -206,6 +216,8 @@ function prepareFrame(g, state, dt) {
   state.lastPointerX = targetPointerX;
   state.lastPointerY = targetPointerY;
   state.pointerActive = pointerActive;
+  state.pointerWasActive = pointerActive;
+  if (pointerActive) state.lastPointerSequence = pointerSequence;
   state.anchorX = anchor.x;
   state.anchorY = anchor.y;
   state.positiveX = pointerPoint.x + axisX * separation * 0.5;

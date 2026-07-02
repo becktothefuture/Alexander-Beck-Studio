@@ -141,6 +141,56 @@ export function setupPointer() {
     };
   }
 
+  function setLegacyMousePosition(pos) {
+    globals.mouseX = pos.x;
+    globals.mouseY = pos.y;
+    globals.mouseInCanvas = pos.inBounds;
+    if (typeof window !== 'undefined') window.mouseInCanvas = pos.inBounds;
+  }
+
+  function updatePointerState(pos, {
+    pointerId = null,
+    pointerType = 'mouse',
+    active = globals.pointerActive === true,
+    eventType = 'move',
+    time = performance.now()
+  } = {}) {
+    const wasInCanvas = globals.pointerInCanvas === true;
+    const isInCanvas = pos.inBounds === true;
+    const inputBecameValid = isInCanvas && (!wasInCanvas || eventType === 'down');
+
+    setLegacyMousePosition(pos);
+    globals.pointerX = pos.x;
+    globals.pointerY = pos.y;
+    globals.pointerInCanvas = isInCanvas;
+    globals.pointerActive = Boolean(active);
+    globals.pointerType = pointerType || 'mouse';
+    globals.pointerInputId = pointerId ?? null;
+    globals.pointerLastEventMs = time;
+    globals.pointerJustEnteredCanvas = inputBecameValid;
+    if (eventType === 'down') globals.pointerLastDownMs = time;
+    if (eventType === 'move') globals.pointerLastMoveMs = time;
+    if (inputBecameValid) globals.pointerSequence = (globals.pointerSequence || 0) + 1;
+
+    return inputBecameValid;
+  }
+
+  function resetPointerState({ keepCoordinates = false, time = performance.now() } = {}) {
+    if (!keepCoordinates) {
+      globals.mouseX = CONSTANTS.OFFSCREEN_MOUSE;
+      globals.mouseY = CONSTANTS.OFFSCREEN_MOUSE;
+      globals.pointerX = CONSTANTS.OFFSCREEN_MOUSE;
+      globals.pointerY = CONSTANTS.OFFSCREEN_MOUSE;
+    }
+    globals.mouseInCanvas = false;
+    globals.pointerInCanvas = false;
+    globals.pointerActive = false;
+    globals.pointerInputId = null;
+    globals.pointerJustEnteredCanvas = false;
+    globals.pointerLastEventMs = time;
+    if (typeof window !== 'undefined') window.mouseInCanvas = false;
+  }
+
   /**
    * Shared move handler (mouse + pointer).
    * Mobile Playwright projects may not emit `mousemove` reliably; `pointermove`
@@ -174,16 +224,24 @@ export function setupPointer() {
     }
 
     // Don't track simulation interactions if the user is over the panel UI.
-    if (isEventOnUI(target)) return;
+    if (isEventOnUI(target)) {
+      resetPointerState({ keepCoordinates: true, time: now });
+      return;
+    }
     
     // Don't track simulation interactions when gates/overlay are active
-    if (isOverlayActive()) return;
+    if (isOverlayActive()) {
+      resetPointerState({ keepCoordinates: true, time: now });
+      return;
+    }
 
-    // Update globals with 1:1 mouse position
-    globals.mouseX = pos.x;
-    globals.mouseY = pos.y;
-    globals.mouseInCanvas = pos.inBounds;
-    if (typeof window !== 'undefined') window.mouseInCanvas = pos.inBounds;
+    updatePointerState(pos, {
+      pointerId,
+      pointerType: pointerType || (isMouseLike ? 'mouse' : 'touch'),
+      active: globals.pointerActive === true,
+      eventType: 'move',
+      time: now
+    });
 
     // Track real movement for “only move when mouse moves” modes (Kaleidoscope)
     // Use a small threshold to ignore subpixel jitter.
@@ -215,7 +273,10 @@ export function setupPointer() {
       time: now,
       velocity: mouseVelocity,
       dirX: mouseDirX,
-      dirY: mouseDirY
+      dirY: mouseDirY,
+      active: globals.pointerActive === true,
+      sequence: globals.pointerSequence || 0,
+      justEnteredCanvas: globals.pointerJustEnteredCanvas === true
     });
 
     // Store for velocity calculation
@@ -268,14 +329,21 @@ export function setupPointer() {
   document.addEventListener('pointerdown', (e) => {
     if (!e.isPrimary) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    if (isEventOnUI(e.target) || isTargetInteractive(e.target)) return;
-    if (isOverlayActive()) return;
+    if (isEventOnUI(e.target) || isTargetInteractive(e.target) || isOverlayActive()) {
+      resetPointerState({ keepCoordinates: true });
+      return;
+    }
 
     const pos = getCanvasPosition(e.clientX, e.clientY);
-    globals.mouseX = pos.x;
-    globals.mouseY = pos.y;
-    globals.mouseInCanvas = pos.inBounds;
-    if (typeof window !== 'undefined') window.mouseInCanvas = pos.inBounds;
+    const now = performance.now();
+    updatePointerState(pos, {
+      pointerId: e.pointerId,
+      pointerType: e.pointerType || 'mouse',
+      active: true,
+      eventType: 'down',
+      time: now
+    });
+    if (e.pointerType === 'touch') hideCursor();
 
     emitScenePointer('down', {
       x: pos.x,
@@ -286,14 +354,18 @@ export function setupPointer() {
       target: e.target,
       pointerId: e.pointerId,
       pointerType: e.pointerType || 'mouse',
-      time: performance.now(),
+      time: now,
       velocity: mouseVelocity,
       dirX: mouseDirX,
-      dirY: mouseDirY
+      dirY: mouseDirY,
+      active: true,
+      sequence: globals.pointerSequence || 0,
+      justEnteredCanvas: globals.pointerJustEnteredCanvas === true
     });
   }, { passive: true });
 
   const handlePointerEnd = (e, type) => {
+    const now = performance.now();
     emitScenePointer(type, {
       x: globals.mouseX,
       y: globals.mouseY,
@@ -303,11 +375,17 @@ export function setupPointer() {
       target: e.target,
       pointerId: e.pointerId,
       pointerType: e.pointerType || 'mouse',
-      time: performance.now(),
+      time: now,
       velocity: mouseVelocity,
       dirX: mouseDirX,
-      dirY: mouseDirY
+      dirY: mouseDirY,
+      active: false,
+      sequence: globals.pointerSequence || 0,
+      justEnteredCanvas: false
     });
+    globals.pointerActive = false;
+    globals.pointerInputId = null;
+    globals.pointerJustEnteredCanvas = false;
   };
 
   document.addEventListener('pointerup', (e) => {
@@ -325,15 +403,24 @@ export function setupPointer() {
    * Touch move tracking for mobile
    */
   document.addEventListener('touchmove', (e) => {
+    if (window.PointerEvent) return;
     // Ignore touch when gates/overlay are active
-    if (isOverlayActive()) return;
+    if (isOverlayActive() || isEventOnUI(e.target) || isTargetInteractive(e.target)) {
+      resetPointerState({ keepCoordinates: true });
+      return;
+    }
     
     if (e.touches && e.touches[0]) {
-      const pos = getCanvasPosition(e.touches[0].clientX, e.touches[0].clientY);
-      globals.mouseX = pos.x;
-      globals.mouseY = pos.y;
-      globals.mouseInCanvas = pos.inBounds;
+      const touch = e.touches[0];
+      const pos = getCanvasPosition(touch.clientX, touch.clientY);
       const now = performance.now();
+      updatePointerState(pos, {
+        pointerId: touch.identifier ?? null,
+        pointerType: 'touch',
+        active: true,
+        eventType: 'move',
+        time: now
+      });
       const movedPx = Math.hypot(pos.x - (globals.lastPointerMoveX ?? pos.x), pos.y - (globals.lastPointerMoveY ?? pos.y));
       if (movedPx > 0.5) {
         globals.lastPointerMoveMs = now;
@@ -348,6 +435,24 @@ export function setupPointer() {
           lastRippleTime = now;
         }
       }
+
+      emitScenePointer('move', {
+        x: pos.x,
+        y: pos.y,
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        inBounds: pos.inBounds,
+        target: e.target,
+        pointerId: touch.identifier ?? null,
+        pointerType: 'touch',
+        time: now,
+        velocity: mouseVelocity,
+        dirX: mouseDirX,
+        dirY: mouseDirY,
+        active: true,
+        sequence: globals.pointerSequence || 0,
+        justEnteredCanvas: globals.pointerJustEnteredCanvas === true
+      });
     }
   }, { passive: true });
   
@@ -358,27 +463,54 @@ export function setupPointer() {
    */
   document.addEventListener('touchstart', (e) => {
     if (window.PointerEvent) return; // Pointer events handle this
-    if (isEventOnUI(e.target)) return;
-    if (isOverlayActive()) return;
+    if (isEventOnUI(e.target) || isTargetInteractive(e.target) || isOverlayActive()) {
+      resetPointerState({ keepCoordinates: true });
+      return;
+    }
     
     // Hide cursor on touch
     hideCursor();
-    
-    // Touch taps will fire click events which are handled by handleModeCycleClick
-    // For touch, click events have button === 0 (left), so they'll go forward
+
+    if (e.touches && e.touches[0]) {
+      const touch = e.touches[0];
+      const pos = getCanvasPosition(touch.clientX, touch.clientY);
+      const now = performance.now();
+      updatePointerState(pos, {
+        pointerId: touch.identifier ?? null,
+        pointerType: 'touch',
+        active: true,
+        eventType: 'down',
+        time: now
+      });
+
+      emitScenePointer('down', {
+        x: pos.x,
+        y: pos.y,
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        inBounds: pos.inBounds,
+        target: e.target,
+        pointerId: touch.identifier ?? null,
+        pointerType: 'touch',
+        time: now,
+        velocity: mouseVelocity,
+        dirX: mouseDirX,
+        dirY: mouseDirY,
+        active: true,
+        sequence: globals.pointerSequence || 0,
+        justEnteredCanvas: globals.pointerJustEnteredCanvas === true
+      });
+    }
   }, { passive: true });
 
   /**
    * Reset mouse when leaving window
    */
   document.addEventListener('mouseleave', () => {
-    globals.mouseX = CONSTANTS.OFFSCREEN_MOUSE;
-    globals.mouseY = CONSTANTS.OFFSCREEN_MOUSE;
-    globals.mouseInCanvas = false;
+    resetPointerState();
     mouseVelocity = 0;
     mouseDirX = 0;
     mouseDirY = 0;
-    if (typeof window !== 'undefined') window.mouseInCanvas = false;
     hideCursor();
   }, { passive: true });
   
@@ -392,10 +524,50 @@ export function setupPointer() {
   /**
    * Touch end - reset tracking
    */
-  document.addEventListener('touchend', () => {
-    globals.mouseX = CONSTANTS.OFFSCREEN_MOUSE;
-    globals.mouseY = CONSTANTS.OFFSCREEN_MOUSE;
-    globals.mouseInCanvas = false;
+  document.addEventListener('touchend', (e) => {
+    if (window.PointerEvent) return;
+    const now = performance.now();
+    if (e.touches && e.touches.length > 0) return;
+    emitScenePointer('up', {
+      x: globals.mouseX,
+      y: globals.mouseY,
+      clientX: null,
+      clientY: null,
+      inBounds: globals.mouseInCanvas,
+      target: e.target,
+      pointerId: null,
+      pointerType: 'touch',
+      time: now,
+      velocity: mouseVelocity,
+      dirX: mouseDirX,
+      dirY: mouseDirY,
+      active: false,
+      sequence: globals.pointerSequence || 0,
+      justEnteredCanvas: false
+    });
+    resetPointerState({ time: now });
+  }, { passive: true });
+
+  document.addEventListener('touchcancel', (e) => {
+    if (window.PointerEvent) return;
+    resetPointerState();
+    emitScenePointer('cancel', {
+      x: globals.mouseX,
+      y: globals.mouseY,
+      clientX: null,
+      clientY: null,
+      inBounds: false,
+      target: e.target,
+      pointerId: null,
+      pointerType: 'touch',
+      time: performance.now(),
+      velocity: 0,
+      dirX: 0,
+      dirY: 0,
+      active: false,
+      sequence: globals.pointerSequence || 0,
+      justEnteredCanvas: false
+    });
   }, { passive: true });
   
   console.log('✓ Unified pointer system configured (document-level)');

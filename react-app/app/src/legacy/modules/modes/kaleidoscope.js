@@ -432,8 +432,13 @@ export function renderKaleidoscope(ctx) {
   const seamEps = Math.max(1e-5, wedgeAngle * 1e-4); // keep away from exact seam angles
 
   // Mouse-driven mapping offsets
-  const mx = g.mouseInCanvas ? g.mouseX : cx;
-  const my = g.mouseInCanvas ? g.mouseY : cy;
+  const pointerInCanvas = g.pointerInCanvas ?? g.mouseInCanvas;
+  const inputX = Number.isFinite(g.pointerX) ? g.pointerX : g.mouseX;
+  const inputY = Number.isFinite(g.pointerY) ? g.pointerY : g.mouseY;
+  const pointerValid = pointerInCanvas && Number.isFinite(inputX) && Number.isFinite(inputY);
+  const pointerSequence = g.pointerSequence || 0;
+  const mx = pointerValid ? inputX : cx;
+  const my = pointerValid ? inputY : cy;
   const mdx = mx - cx;
   const mdy = my - cy;
   const mouseAngle = Math.atan2(mdy, mdx);
@@ -452,19 +457,32 @@ export function renderKaleidoscope(ctx) {
       pointerY: { x: 0, v: 0 },
       influence: { x: 0, v: 0 },
       idlePhase: 0,
+      pointerWasValid: false,
+      lastPointerSequence: null
     };
   }
   const morph = g._kaleiMorph;
 
   const speed = clamp(getKaleidoscopeParams(g).speed ?? 1.0, 0.2, 2.0);
   const complexity = getKaleidoscopeComplexity(g);
-  const pointerStrengthTarget = g.mouseInCanvas ? Math.pow(mDistN, 0.9) : 0;
-  const pointerXNormTarget = g.mouseInCanvas ? clamp(mdx / Math.max(1, w * 0.5), -1, 1) : 0;
-  const pointerYNormTarget = g.mouseInCanvas ? clamp(mdy / Math.max(1, h * 0.5), -1, 1) : 0;
+  const pointerStrengthTarget = pointerValid ? Math.pow(mDistN, 0.9) : 0;
+  const pointerXNormTarget = pointerValid ? clamp(mdx / Math.max(1, w * 0.5), -1, 1) : 0;
+  const pointerYNormTarget = pointerValid ? clamp(mdy / Math.max(1, h * 0.5), -1, 1) : 0;
+
+  if (pointerValid && (!morph.pointerWasValid || morph.lastPointerSequence !== pointerSequence || g.pointerJustEnteredCanvas === true)) {
+    morph.influence.x = pointerStrengthTarget;
+    morph.influence.v = 0;
+    morph.pointerX.x = pointerXNormTarget;
+    morph.pointerX.v = 0;
+    morph.pointerY.x = pointerYNormTarget;
+    morph.pointerY.v = 0;
+    morph.lastPointerSequence = pointerSequence;
+  }
+  morph.pointerWasValid = pointerValid;
 
   // Smooth normalized pointer intent first so the visual fold reacts to motion as a glide
   // instead of binding directly to raw cursor position.
-  springTo(morph.influence, pointerStrengthTarget, dt, g.mouseInCanvas ? 3.2 : 2.2);
+  springTo(morph.influence, pointerStrengthTarget, dt, pointerValid ? 3.2 : 2.2);
   springTo(morph.pointerX, pointerXNormTarget, dt, 2.8);
   springTo(morph.pointerY, pointerYNormTarget, dt, 2.8);
 

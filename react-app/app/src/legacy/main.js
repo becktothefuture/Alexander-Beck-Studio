@@ -640,6 +640,42 @@ export async function bootstrapHomePage() {
       window.__ABS_HOME_AUDIT__ = {
         getGlobals,
         getShellConfig,
+        getRuntimeSnapshot: () => {
+          const globals = getGlobals();
+          const balls = Array.isArray(globals.balls) ? globals.balls : [];
+          let behindTitleCount = 0;
+          let inFrontOfTitleCount = 0;
+          for (let i = 0; i < balls.length; i += 1) {
+            const z = balls[i]?.z;
+            if (!Number.isFinite(z)) continue;
+            if (z < 0.5) behindTitleCount += 1;
+            else inFrontOfTitleCount += 1;
+          }
+
+          const frontCanvas = globals.depthTitleFrontCanvas || document.getElementById('simulation-front-depth-canvas');
+          const container = globals.container || document.getElementById('simulations');
+          return {
+            mode: globals.currentMode,
+            pointerX: globals.pointerX,
+            pointerY: globals.pointerY,
+            pointerInCanvas: globals.pointerInCanvas,
+            pointerActive: globals.pointerActive,
+            pointerType: globals.pointerType,
+            pointerSequence: globals.pointerSequence,
+            pointerJustEnteredCanvas: globals.pointerJustEnteredCanvas,
+            mouseX: globals.mouseX,
+            mouseY: globals.mouseY,
+            mouseInCanvas: globals.mouseInCanvas,
+            depthTitleLayerActive: container?.classList?.contains('simulation-depth-title-layer-active') === true,
+            frontDepthCanvasActive: frontCanvas?.dataset?.active === 'true',
+            behindTitleCount,
+            inFrontOfTitleCount,
+            sphereRotationMatrix: globals.sphere3dState?.rotationMatrix ? [...globals.sphere3dState.rotationMatrix] : null,
+            sphereCenter: globals.sphere3dState
+              ? { x: globals.sphere3dState.cx, y: globals.sphere3dState.cy }
+              : null
+          };
+        }
       };
     }
 

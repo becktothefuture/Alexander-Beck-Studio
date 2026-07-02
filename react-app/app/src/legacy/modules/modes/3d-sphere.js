@@ -6,6 +6,7 @@
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { spawnBall } from '../physics/spawn.js';
 import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
+import { getHeroTitleCanvasCenter } from '../rendering/title-depth.js';
 
 const DEFAULT_TUMBLE_SPEED = 0.65;
 const DEFAULT_TUMBLE_DAMPING = 0.9;
@@ -13,6 +14,7 @@ const DEFAULT_MOUSE_DAMPING = 0.08;
 const INPUT_VELOCITY_EASE = 10;
 const MAX_INPUT_ANGULAR_VELOCITY = 2.4;
 const INPUT_VELOCITY_THRESHOLD = 0.025;
+const POINTER_SENTINEL_LIMIT = 1e8;
 
 function fibonacciSphere(count) {
   const pts = [];
@@ -49,6 +51,10 @@ function rotateXYZ(x, y, z, rx, ry, rz) {
 
 function clampNumber(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function isValidPointerCoordinate(value) {
+  return Number.isFinite(value) && Math.abs(value) < POINTER_SENTINEL_LIMIT;
 }
 
 /**
@@ -182,9 +188,10 @@ export function initialize3DSphere() {
     0, 0, 1
   ];
   
-    g.sphere3dState = {
-      cx: canvas.width * 0.5,
-      cy: canvas.height * 0.5,
+  const titleCenter = getHeroTitleCanvasCenter(g);
+  g.sphere3dState = {
+      cx: titleCenter.x,
+      cy: titleCenter.y,
       radiusPx,
       rotationMatrix: rotMatrix,  // 3x3 rotation matrix (avoids gimbal lock)
       dotSizeMul,
@@ -195,10 +202,10 @@ export function initialize3DSphere() {
       currentAngularVelZ: 0,
       idleRotationTime: 0,
       // Smoothed mouse state for fluid interaction
-      smoothMouseX: g.mouseX,
-      smoothMouseY: g.mouseY,
-      lastMouseX: g.mouseX,
-      lastMouseY: g.mouseY
+      smoothMouseX: null,
+      smoothMouseY: null,
+      pointerWasInCanvas: false,
+      lastPointerSequence: null
     };
 
   const pts = fibonacciSphere(count);
@@ -231,8 +238,9 @@ export function apply3DSphereForces(ball, dt) {
   // Update shared rotation once per frame (first ball)
   if (ball === g.balls[0]) {
     // Update center and radius to handle resize dynamically
-    state.cx = canvas.width * 0.5;
-    state.cy = canvas.height * 0.5;
+    const titleCenter = getHeroTitleCanvasCenter(g);
+    state.cx = titleCenter.x;
+    state.cy = titleCenter.y;
 
     const radiusVw = g.sphere3dRadiusVw ?? 18;
     // Scale based on shorter side (vmin) to ensure it fits/scales appropriately
@@ -245,21 +253,32 @@ export function apply3DSphereForces(ball, dt) {
     // ═══════════════════════════════════════════════════════════════════════════════
     // TRACKBALL ROTATION MODEL (Matrix-based, no Euler angle drift)
     // ═══════════════════════════════════════════════════════════════════════════════
-    if (g.mouseInCanvas) {
+    const pointerInCanvas = g.pointerInCanvas ?? g.mouseInCanvas;
+    const inputX = Number.isFinite(g.pointerX) ? g.pointerX : g.mouseX;
+    const inputY = Number.isFinite(g.pointerY) ? g.pointerY : g.mouseY;
+    const pointerSequence = g.pointerSequence || 0;
+
+    if (pointerInCanvas && isValidPointerCoordinate(inputX) && isValidPointerCoordinate(inputY)) {
       // Smooth mouse position for fluid "weighty" feel
       const mouseDamping = clampNumber(g.sphere3dMouseDamping ?? DEFAULT_MOUSE_DAMPING, 0.01, 1);
-      
-      // Initialize smoothed mouse if first frame or reset
-      if (state.smoothMouseX === undefined) {
-        state.smoothMouseX = g.mouseX;
-        state.smoothMouseY = g.mouseY;
+
+      const needsPointerSeed = !state.pointerWasInCanvas
+        || state.lastPointerSequence !== pointerSequence
+        || g.pointerJustEnteredCanvas === true
+        || !isValidPointerCoordinate(state.smoothMouseX)
+        || !isValidPointerCoordinate(state.smoothMouseY);
+      if (needsPointerSeed) {
+        state.smoothMouseX = inputX;
+        state.smoothMouseY = inputY;
+        state.pointerWasInCanvas = true;
+        state.lastPointerSequence = pointerSequence;
+      } else {
+        // Lerp smoothed mouse towards current mouse. This adds "weight" to the
+        // cursor interaction after the first valid sample has been accepted.
+        state.smoothMouseX += (inputX - state.smoothMouseX) * mouseDamping;
+        state.smoothMouseY += (inputY - state.smoothMouseY) * mouseDamping;
       }
-      
-      // Lerp smoothed mouse towards current mouse
-      // This adds "weight" to the cursor interaction
-      state.smoothMouseX += (g.mouseX - state.smoothMouseX) * mouseDamping;
-      state.smoothMouseY += (g.mouseY - state.smoothMouseY) * mouseDamping;
-      
+
       // Use smoothed mouse for interaction calculations
       const interactionX = state.smoothMouseX;
       const interactionY = state.smoothMouseY;
@@ -276,7 +295,9 @@ export function apply3DSphereForces(ball, dt) {
         // Map current mouse position to trackball surface
         const currentPoint = mapToTrackball(relX, relY, state.radiusPx);
         
-        if (state.prevTrackballPoint) {
+        if (needsPointerSeed) {
+          state.prevTrackballPoint = currentPoint;
+        } else if (state.prevTrackballPoint) {
           // Calculate rotation from previous to current position
           const rotation = trackballRotation(state.prevTrackballPoint, currentPoint);
           
@@ -297,13 +318,16 @@ export function apply3DSphereForces(ball, dt) {
           }
         }
         
-        // Update previous point
-        state.prevTrackballPoint = currentPoint;
+        if (!needsPointerSeed) {
+          // Update previous point after real movement; first valid input only seeds it.
+          state.prevTrackballPoint = currentPoint;
+        }
       } else {
         state.prevTrackballPoint = null;
       }
     } else {
       state.prevTrackballPoint = null;
+      state.pointerWasInCanvas = false;
     }
 
     // Apply damping to angular velocity

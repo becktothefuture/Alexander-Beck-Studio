@@ -19,6 +19,7 @@ import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-exp
 import { getRenderQualityProfile } from '../utils/render-quality.js';
 import { appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
 import { drawBallRims } from '../visual/ball-rim.js';
+import { TITLE_DEPTH_PLANE_Z, modeUsesDepthTitlePlane } from '../rendering/title-depth.js';
 import { 
   getAccumulator, 
   setAccumulator, 
@@ -35,18 +36,12 @@ const DT_DESKTOP = CONSTANTS.PHYSICS_DT;
 
 
 const DT_MOBILE = CONSTANTS.PHYSICS_DT_MOBILE;
-const TITLE_Z = 0.5;
 const DEPTH_FOG_MIN_OPACITY = 0.3;
 const DEPTH_FOG_START_Z = 0.75;
 const CORNER_RADIUS = 42; // matches rounded container corners
 const CORNER_FORCE = 1800;
 const WARMUP_FRAME_DT = 1 / 60;
 const PIT_PERF_WINDOW = 120;
-const DEPTH_TITLE_LAYER_MODES = new Set([
-  MODES.SPHERE_3D,
-  MODES.CUBE_3D,
-  MODES.PARALLAX_FLOAT
-]);
 const EMPTY_COLLISION_STATS = Object.freeze({
   pairCount: 0,
   overlapDebt: 0,
@@ -69,7 +64,7 @@ function getDepthFogOpacity(z) {
 }
 
 function modeNeedsDepthTitleLayer(mode) {
-  return DEPTH_TITLE_LAYER_MODES.has(mode);
+  return modeUsesDepthTitlePlane(mode);
 }
 
 function syncDepthTitleCanvas(globals, sourceCanvas) {
@@ -821,6 +816,18 @@ export function render() {
   
   const customRenderer = getModeCustomRenderer();
   const needsDepthTitleLayer = !customRenderer && modeNeedsDepthTitleLayer(globals.currentMode);
+  if (
+    needsDepthTitleLayer &&
+    (globals.currentMode === MODES.SPHERE_3D || globals.currentMode === MODES.CUBE_3D)
+  ) {
+    ballRenderOptions = {
+      ...(ballRenderOptions || {}),
+      simpleCircleBodies: true,
+      skipRims: true,
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height
+    };
+  }
   const frontCtx = needsDepthTitleLayer ? syncDepthTitleCanvas(globals, canvas) : null;
   const frontCanvas = globals.depthTitleFrontCanvas;
   setDepthTitleLayerActive(globals, Boolean(needsDepthTitleLayer && frontCtx));
@@ -836,7 +843,7 @@ export function render() {
     for (let i = 0; i < balls.length; i++) {
       const ball = balls[i];
       const z = ball.z ?? 1;
-      if (z < TITLE_Z) {
+      if (z < TITLE_DEPTH_PLANE_Z) {
         zPartitionCache.behind.push(ball);
       } else {
         zPartitionCache.inFront.push(ball);

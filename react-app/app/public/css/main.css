@@ -2612,8 +2612,9 @@ button.abs-meta-btn,
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   HERO TITLE — semantic <h1> inside #simulations, behind canvas (z:5).
-   Canvas is transparent; the heading shows through clear pixels.
+   HERO TITLE — semantic <h1> inside #simulations.
+   Normal modes keep canvas material above the title; depth-title modes split
+   the canvas behind/in front of the title via .simulation-depth-title-layer-active.
    Replaces the former canvas-rendered SVG logo.
    ───────────────────────────────────────────────────────────────────────────── */
 
@@ -3556,8 +3557,8 @@ html.is-safari .noise::before {
     font-size: calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px) * var(--mobile-type-scale));
   }
 
-  body:not(.portfolio-page):not(.cv-page) .shell-hero-slot {
-    z-index: 12;
+  body:not(.portfolio-page):not(.cv-page) #simulations:not(.simulation-depth-title-layer-active) .shell-hero-slot {
+    z-index: 6;
   }
 
   body:not(.portfolio-page):not(.cv-page) .hero-title__role,

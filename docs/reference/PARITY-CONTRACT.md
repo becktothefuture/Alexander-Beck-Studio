@@ -41,6 +41,12 @@ For route, renderer, loop, or canvas remount changes:
 ABS_DEV_URL=http://127.0.0.1:8012 npm run audit:canvas-spa:quick
 ```
 
+For pointer/touch interaction or title depth layering changes:
+
+```bash
+ABS_DEV_URL=http://127.0.0.1:8012 npm run audit:pointer-title-depth
+```
+
 For portfolio gate or drawer behavior:
 
 ```bash

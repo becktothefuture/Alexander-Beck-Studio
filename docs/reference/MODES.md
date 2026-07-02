@@ -104,6 +104,12 @@ Loop order is `Featured -> Extended -> Featured`.
 | `→` | Next simulation in narrative sequence |
 | Right-click | Previous simulation (same as `←`) |
 
+## Pointer And Title Depth Rules
+
+- Shared pointer input is mouse, trackpad, pen, and touch aware. The first valid input sample inside the canvas must seed mode-local smoothing or velocity state immediately; modes must not ease from offscreen, center, or idle-anchor state.
+- Depth-plane title layering is active for `3d-sphere`, `3d-cube`, and `parallax-float`. These modes split particles around the fixed title plane at normalized z `0.5`, with some balls behind and some in front.
+- No-depth modes keep the title behind the canvas/simulation. Do not change the title's CSS x/y position to solve scene alignment; align the simulation/depth scene to the existing title center instead.
+
 ---
 
 ## Behavior Snapshot (Active Modes)
