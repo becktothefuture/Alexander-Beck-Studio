@@ -29,6 +29,11 @@ import {
 import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
 import { useShellRouteTransition } from '../../hooks/useShellRouteTransition.js';
 import { DevConfigPanelBridge } from './DevConfigPanelBridge.jsx';
+import {
+  SimulationFocusChooser,
+  SimulationFocusProvider,
+  SimulationFocusSwitcher,
+} from '../simulation-focus/SimulationFocusProvider.jsx';
 
 const ROUTE_VIEW_BY_ID = {
   home: getHomeRouteView,
@@ -108,7 +113,12 @@ export function SiteApp() {
     footer: footerSurfaceRef,
   }), []);
 
-  const { routeState, routeRuntime, routeView } = useShellRouteTransition({
+  const {
+    routeState,
+    routeRuntime,
+    routeView,
+    transitionCurrentRoute,
+  } = useShellRouteTransition({
     getRouteView: getRouteViewForId,
     getRouteRuntime: getRouteRuntimeForId,
     surfaceRefs,
@@ -168,15 +178,22 @@ export function SiteApp() {
       {isStandaloneRoute ? (
         routeView.mainContent
       ) : (
-        <StudioShell
-          routeRenderKey={routeState.route.id}
-          wallClassName={routeView.wallClassName}
-          wallContent={routeView.wallContent}
-          headerContent={routeView.headerContent}
-          mainContent={routeView.mainContent}
-          heroTitle={routeView.heroTitle}
-          surfaceRefs={surfaceRefs}
-        />
+        <SimulationFocusProvider
+          routeId={routeState.route.id}
+          transitionCurrentRoute={transitionCurrentRoute}
+        >
+          <StudioShell
+            routeRenderKey={routeState.route.id}
+            wallClassName={routeView.wallClassName}
+            wallContent={routeView.wallContent}
+            headerContent={routeView.headerContent}
+            mainContent={routeView.mainContent}
+            heroTitle={routeView.heroTitle}
+            simulationFocusControls={<SimulationFocusSwitcher />}
+            simulationFocusModal={<SimulationFocusChooser />}
+            surfaceRefs={surfaceRefs}
+          />
+        </SimulationFocusProvider>
       )}
     </>
   );

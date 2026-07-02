@@ -98,6 +98,14 @@ function setBootLifecycleState(state) {
   } catch (e) {}
 }
 
+function setHomeRouteReadyState(ready) {
+  try {
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.absHomeRouteReady = ready ? 'true' : 'false';
+    }
+  } catch (e) {}
+}
+
 function signalRouteReady(routeId) {
   if (typeof window === 'undefined' || !routeId) return;
   requestAnimationFrame(() => {
@@ -308,7 +316,9 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 export async function bootstrapHomePage() {
-  setBootLifecycleState('booting');
+  const shellRouteTransitionActiveAtStart = isRouteTransitionPhase(getTransitionPhase());
+  setBootLifecycleState(shellRouteTransitionActiveAtStart ? 'revealing' : 'booting');
+  setHomeRouteReadyState(false);
 
   // Mark JS as enabled (for CSS fallback detection)
   document.documentElement.classList.add('js-enabled');
@@ -849,6 +859,13 @@ export async function bootstrapHomePage() {
       if (shellRouteTransitionActive) {
         clearHomePostBootEntrance();
         await waitForVisualReady();
+        await completeDirectBoot({
+          selectors: ['#abs-scene', '#app-frame'],
+          detail: 'home-ready-route-transition',
+          minimumVisibleMs: 0,
+          allowDuringRouteTransition: true,
+        });
+        setHomeRouteReadyState(true);
         console.log('✓ Home entrance skipped (shell route transition active)');
       } else {
         if (shouldRunHomePostBootEntrance) {
@@ -870,6 +887,7 @@ export async function bootstrapHomePage() {
             ? startHomePostBootEntrance
             : clearHomePostBootEntrance,
         });
+        setHomeRouteReadyState(true);
         console.log('✓ Home direct boot revealed from settled first frame');
       }
       
@@ -898,6 +916,7 @@ export async function bootstrapHomePage() {
         selectors: ['#abs-scene', '#app-frame'],
         detail: 'home-reveal-failed',
       });
+      setHomeRouteReadyState(true);
     }
 
     if (document.documentElement.dataset.absBootDetail !== 'held') {

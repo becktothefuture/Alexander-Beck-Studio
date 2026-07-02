@@ -281,6 +281,7 @@ export function initModalOverlay(config) {
     }
     
     // Click on content layer dismisses active modal
+    contentLayerElement.removeEventListener('click', handleOverlayClick, true);
     contentLayerElement.addEventListener('click', handleOverlayClick, { capture: true });
     
     // Listen for layout changes to update blur
@@ -317,6 +318,8 @@ function handleOverlayClick(e) {
     const isGateContainer = target.id === 'cv-modal' || 
                            target.id === 'portfolio-modal' || 
                            target.id === 'contact-modal' ||
+                           target.id === 'simulation-focus-modal' ||
+                           target.classList.contains('simulation-focus-modal') ||
                            target.classList.contains('modal-label') ||
                            target.classList.contains('modal-description');
     

@@ -8,11 +8,14 @@ export const SIMULATION_STAGES = Object.freeze({
 });
 
 const STAGE_LABELS = Object.freeze({
-  [SIMULATION_STAGES.DAILY_ROTATION]: 'Daily rotation',
+  [SIMULATION_STAGES.DAILY_ROTATION]: 'Daily Focus',
   [SIMULATION_STAGES.COLLECTION]: 'Collection',
   [SIMULATION_STAGES.AUTOMATION_CANDIDATE]: 'Automation candidates',
   [SIMULATION_STAGES.HIDDEN]: 'Hidden',
 });
+
+export const SIMULATION_FOCUS_STORAGE_KEY = 'abs_simulation_focus_choice_v1';
+export const SIMULATION_FOCUS_STORAGE_VERSION = 1;
 
 function withPreviewDefaults(entry) {
   const previewBase = `/previews/simulations/${entry.id}`;
@@ -71,6 +74,10 @@ function getUtcDayStamp(date = new Date()) {
   return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / (1000 * 60 * 60 * 24));
 }
 
+export function getDailyFocusDayStamp(date = new Date()) {
+  return getUtcDayStamp(date);
+}
+
 function parseAnchorDayStamp(anchorDate) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(anchorDate || ''));
   if (!match) return null;
@@ -125,4 +132,161 @@ export function getSimulationName(id) {
 
 export function isSimulationInDailyRotation(id) {
   return getSimulationById(id)?.stage === SIMULATION_STAGES.DAILY_ROTATION;
+}
+
+function getSimulationFromList(id, simulations = SIMULATION_CATALOG) {
+  if (simulations === SIMULATION_CATALOG) return getSimulationById(id);
+  return simulations.find((entry) => entry.id === id) || null;
+}
+
+function isDailyFocusSimulation(id, simulations = SIMULATION_CATALOG) {
+  return getSimulationFromList(id, simulations)?.stage === SIMULATION_STAGES.DAILY_ROTATION;
+}
+
+function getFocusStorage(storage) {
+  if (storage) return storage;
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage || null;
+  } catch {
+    return null;
+  }
+}
+
+function removeFocusChoice(storage) {
+  try {
+    storage?.removeItem?.(SIMULATION_FOCUS_STORAGE_KEY);
+  } catch {
+    /* no-op */
+  }
+}
+
+function parseStoredFocusChoice(raw) {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function getDailyFocusSimulations(simulations = SIMULATION_CATALOG) {
+  return simulations.filter((entry) => entry.stage === SIMULATION_STAGES.DAILY_ROTATION);
+}
+
+export function getDailyFocusSimulationIds(simulations = SIMULATION_CATALOG) {
+  return getDailyFocusSimulations(simulations).map((entry) => entry.id);
+}
+
+export function clearManualSimulationFocus(options = {}) {
+  removeFocusChoice(getFocusStorage(options.storage));
+}
+
+export function readManualSimulationFocus(options = {}) {
+  const {
+    date = new Date(),
+    storage,
+    simulations = SIMULATION_CATALOG,
+    catalogVersion = SIMULATION_CATALOG_VERSION,
+  } = options;
+  const focusStorage = getFocusStorage(storage);
+  if (!focusStorage) return null;
+
+  let rawChoice = null;
+  try {
+    rawChoice = focusStorage.getItem(SIMULATION_FOCUS_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+
+  const stored = parseStoredFocusChoice(rawChoice);
+  const dayStamp = getDailyFocusDayStamp(date);
+  const isValid = (
+    stored
+    && stored.version === SIMULATION_FOCUS_STORAGE_VERSION
+    && stored.catalogVersion === catalogVersion
+    && stored.dayStamp === dayStamp
+    && isDailyFocusSimulation(stored.simulationId, simulations)
+  );
+
+  if (!isValid) {
+    removeFocusChoice(focusStorage);
+    return null;
+  }
+
+  return Object.freeze({
+    version: stored.version,
+    dayStamp: stored.dayStamp,
+    simulationId: stored.simulationId,
+    catalogVersion: stored.catalogVersion,
+  });
+}
+
+export function writeManualSimulationFocus(simulationId, options = {}) {
+  const {
+    date = new Date(),
+    storage,
+    simulations = SIMULATION_CATALOG,
+    catalogVersion = SIMULATION_CATALOG_VERSION,
+  } = options;
+  const focusStorage = getFocusStorage(storage);
+  if (!focusStorage || !isDailyFocusSimulation(simulationId, simulations)) return null;
+
+  const choice = {
+    version: SIMULATION_FOCUS_STORAGE_VERSION,
+    dayStamp: getDailyFocusDayStamp(date),
+    simulationId,
+    catalogVersion,
+  };
+
+  try {
+    focusStorage.setItem(SIMULATION_FOCUS_STORAGE_KEY, JSON.stringify(choice));
+  } catch {
+    return null;
+  }
+
+  return Object.freeze({ ...choice });
+}
+
+export function getResolvedSimulationFocus(options = {}) {
+  const {
+    date = new Date(),
+    storage,
+    simulations = SIMULATION_CATALOG,
+    catalogVersion = SIMULATION_CATALOG_VERSION,
+  } = options;
+  const dailySimulation = getDailySimulation(date, simulations);
+  const manualChoice = readManualSimulationFocus({ date, storage, simulations, catalogVersion });
+  const selectedSimulation = manualChoice
+    ? getSimulationFromList(manualChoice.simulationId, simulations)
+    : null;
+  const activeSimulation = selectedSimulation || dailySimulation || null;
+
+  return Object.freeze({
+    dayStamp: getDailyFocusDayStamp(date),
+    dailyId: dailySimulation?.id || null,
+    dailySimulation,
+    selectedId: selectedSimulation?.id || null,
+    selectedSimulation,
+    activeId: activeSimulation?.id || null,
+    activeSimulation,
+    isManualSelection: Boolean(selectedSimulation),
+    catalogVersion,
+  });
+}
+
+export function getSimulationLaunchTarget(id, simulations = SIMULATION_CATALOG) {
+  const entry = getSimulationFromList(id, simulations);
+  if (!entry || !isDailyFocusSimulation(id, simulations)) return null;
+
+  return Object.freeze({
+    id: entry.id,
+    name: entry.name,
+    surface: entry.surface,
+    href: entry.dailyHref || entry.launchPath || '/index.html',
+    routeBacked: entry.surface === 'lab-route',
+    mode: entry.surface === 'home-mode' ? entry.id : null,
+    entry,
+  });
 }

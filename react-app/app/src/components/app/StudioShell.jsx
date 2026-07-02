@@ -60,6 +60,8 @@ export function StudioShell({
   headerContent,
   mainContent,
   heroTitle,
+  simulationFocusControls,
+  simulationFocusModal,
   surfaceRefs,
 }) {
   return (
@@ -89,6 +91,7 @@ export function StudioShell({
                 {heroTitle}
               </div>
             </div>
+            {simulationFocusControls}
           </div>
           <div className="frame-vignette" aria-hidden="true" />
 
@@ -197,6 +200,8 @@ export function StudioShell({
               {renderDigitInputs('portfolio', 'portfolio-digit', 'Portfolio invite code', getGateCodeLength('portfolio'))}
             </div>
           </div>
+
+          {simulationFocusModal}
         </div>
       </div>
     </>

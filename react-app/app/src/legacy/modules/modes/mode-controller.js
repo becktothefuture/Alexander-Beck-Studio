@@ -8,6 +8,7 @@ import {
   ROUTE_BACKED_DAILY_HREFS,
   getSimulationName,
 } from '../../../data/simulationCatalog.js';
+import { trySpaNavigate } from '../../../lib/spa-navigation.js';
 import { setMode as setModeState, getGlobals } from '../core/state.js';
 import { resize } from '../rendering/renderer.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
@@ -377,7 +378,10 @@ export async function setMode(inputMode) {
     if (typeof window !== 'undefined') {
       const currentHref = `${window.location.pathname}${window.location.search}`;
       if (currentHref !== routeBackedHref) {
-        window.location.assign(routeBackedHref);
+        const didNavigate = trySpaNavigate(routeBackedHref, { readyFallbackMs: 1800 });
+        if (!didNavigate) {
+          window.location.assign(routeBackedHref);
+        }
       }
     }
     return true;

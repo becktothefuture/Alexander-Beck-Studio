@@ -107,8 +107,8 @@ function makeAppRootInteractive() {
   appRoot.removeAttribute('aria-hidden');
 }
 
-export function revealDirectBootSurface(selectors = DEFAULT_BOOT_SELECTORS) {
-  if (isDirectBootBlocked()) {
+export function revealDirectBootSurface(selectors = DEFAULT_BOOT_SELECTORS, options = {}) {
+  if (isDirectBootBlocked() && options.allowDuringRouteTransition !== true) {
     return false;
   }
 
@@ -147,7 +147,7 @@ function finishBootOverlay(overlay, detail, options = {}) {
 }
 
 export async function completeDirectBoot(options = {}) {
-  if (isDirectBootBlocked()) {
+  if (isDirectBootBlocked() && options.allowDuringRouteTransition !== true) {
     return false;
   }
 
@@ -166,7 +166,9 @@ export async function completeDirectBoot(options = {}) {
 
   await waitForMinimumBootVisible(options);
 
-  if (!revealDirectBootSurface(selectors)) {
+  if (!revealDirectBootSurface(selectors, {
+    allowDuringRouteTransition: options.allowDuringRouteTransition === true,
+  })) {
     return false;
   }
 
@@ -210,12 +212,12 @@ export function failDirectBoot(options = {}) {
   });
 }
 
-export function forceBootVisible(selectors = DEFAULT_BOOT_SELECTORS) {
-  if (isDirectBootBlocked()) {
+export function forceBootVisible(selectors = DEFAULT_BOOT_SELECTORS, options = {}) {
+  if (isDirectBootBlocked() && options.allowDuringRouteTransition !== true) {
     return false;
   }
 
-  revealDirectBootSurface(selectors);
+  revealDirectBootSurface(selectors, options);
   getBootOverlay()?.remove();
   getRootElement().classList.remove('abs-direct-boot-staging');
   setPageBootState('ready', 'force-visible');

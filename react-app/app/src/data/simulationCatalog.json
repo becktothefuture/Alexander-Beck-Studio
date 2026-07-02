@@ -2,8 +2,8 @@
   "version": 1,
   "updatedAt": "2026-07-02",
   "stages": {
-    "daily-rotation": "Makes the live homepage daily rotation.",
-    "collection": "Available to review or launch, but not part of the daily rotation.",
+    "daily-rotation": "Eligible for the live Daily Focus.",
+    "collection": "Available to review or launch, but not part of Daily Focus.",
     "automation-candidate": "Fresh automation/test-page candidate that needs human review.",
     "hidden": "Internal or disabled simulation surface."
   },

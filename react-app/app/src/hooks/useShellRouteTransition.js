@@ -432,6 +432,18 @@ function isElementVisiblyRevealed(element) {
   );
 }
 
+function isElementSurfaceReady(element) {
+  if (!isElementVisiblyRevealed(element)) return false;
+  const rect = element.getBoundingClientRect();
+  return rect.width >= 64 && rect.height >= 64;
+}
+
+function isCanvasSurfaceReady(selector) {
+  const canvas = document.querySelector(selector);
+  if (!isElementSurfaceReady(canvas)) return false;
+  return canvas.width >= 64 && canvas.height >= 64;
+}
+
 function isPortfolioScrollRailReady() {
   const wall = document.getElementById('simulations');
   const mount = document.getElementById('portfolioProjectMount');
@@ -448,6 +460,34 @@ function isPortfolioScrollRailReady() {
     && isElementVisiblyRevealed(mount)
     && isElementVisiblyRevealed(firstCard)
   );
+}
+
+function isDailyLabRouteReady(routeId) {
+  switch (routeId) {
+    case 'wall-repel':
+      return isCanvasSurfaceReady('#wall-repel-canvas');
+    case 'flock-of-birds':
+      return isCanvasSurfaceReady('#flock-of-birds-canvas');
+    case 'pressure-mosaic':
+      return isCanvasSurfaceReady('#pressure-mosaic-canvas');
+    case 'mineral-growth':
+      return isCanvasSurfaceReady('#mineral-growth-canvas');
+    case 'napoleon-point-cloud': {
+      const figure = document.querySelector('.napoleon-point-cloud');
+      const loadState = figure?.dataset?.pointCloudLoadState;
+      return Boolean(
+        (loadState === 'ready' && isCanvasSurfaceReady('.napoleon-point-cloud__canvas--front'))
+        || (loadState === 'error' && document.querySelector('.napoleon-point-cloud__status'))
+      );
+    }
+    case 'beach-ball-room':
+      return Boolean(
+        isCanvasSurfaceReady('.beach-ball-room-canvas')
+        || document.querySelector('.beach-ball-room-fallback[role="alert"]')
+      );
+    default:
+      return false;
+  }
 }
 
 function readRouteReadySnapshot(routeId) {
@@ -483,10 +523,17 @@ function isRouteBaselineReady(routeId) {
     const isHomeRoute = !body.classList.contains('portfolio-page') && !body.classList.contains('cv-page');
     const hero = document.getElementById('hero-title');
     const navButtons = document.querySelectorAll('#main-links .footer_link');
+    const bootOverlay = document.getElementById('abs-boot-overlay');
+    const bootState = document.documentElement.dataset.absBootState || '';
+    const homeRouteReady = document.documentElement.dataset.absHomeRouteReady === 'true';
     return Boolean(
       isHomeRoute
       && hero
       && navButtons.length >= 3
+      && hasCanvasBufferReady()
+      && !bootOverlay
+      && bootState !== 'booting'
+      && homeRouteReady
     );
   }
 
@@ -507,6 +554,10 @@ function isRouteBaselineReady(routeId) {
       && document.querySelector('.ui-top-main.route-topbar')
       && document.querySelector('.cv-scroll-container')
     );
+  }
+
+  if (isDailyLabRouteReady(routeId)) {
+    return true;
   }
 
   return Boolean(document.getElementById('app-frame'));
@@ -922,6 +973,84 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     return true;
   }, [getRouteRuntime, surfaceRefs, syncSteadyTransitionPhase]);
 
+  const transitionCurrentRoute = useCallback((task, options = {}) => {
+    if (transitionActiveRef.current) return false;
+
+    const currentRouteId = activeRouteIdRef.current;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+    const routeTimings = getRouteTransitionTimings({
+      fadeMs: options.exitMs,
+      staggerMs: options.staggerMs,
+      revealMs: options.enterMs,
+      readyMs: options.readyFallbackMs,
+      reduceMotion,
+    });
+
+    const finishTransition = () => {
+      transitionActiveRef.current = false;
+      activeGateTransitionRef.current = false;
+      finalizeTransition(false, currentRouteId, surfaceRefs);
+      syncSteadyTransitionPhase();
+      const queued = queuedNavigationRef.current;
+      if (!queued) return;
+      queuedNavigationRef.current = null;
+      if (queued.routeId === activeRouteIdRef.current) return;
+      setStableTimeout(() => {
+        if (!transitionActiveRef.current) navigate(queued.href, queued.options);
+      }, 0);
+    };
+
+    const runTask = () => Promise.resolve()
+      .then(() => (typeof task === 'function' ? task() : undefined));
+
+    if (reduceMotion) {
+      transitionActiveRef.current = true;
+      setLegacyRouteTransitionActive(true, { gate: false });
+      setTransitionPhase(TRANSITION_PHASES.ROUTE_OUT);
+      runTask()
+        .catch(() => undefined)
+        .then(finishTransition);
+      return true;
+    }
+
+    transitionActiveRef.current = true;
+    setLegacyRouteTransitionActive(true, { gate: false });
+    setTransitionPhase(TRANSITION_PHASES.ROUTE_OUT);
+
+    const token = ++transitionToken;
+    const stale = () => token !== transitionToken;
+
+    fadeOutContent(routeTimings.fadeOut, routeTimings.fadeEasing, surfaceRefs, { finalOpacity: 0.08 })
+      .then(() => {
+        if (stale()) return undefined;
+        setRouteLayerVisibility(false, surfaceRefs);
+        return runTask();
+      })
+      .catch(() => undefined)
+      .then(() => {
+        if (stale()) return undefined;
+        setTransitionPhase(TRANSITION_PHASES.ROUTE_IN);
+        return staggeredEntrance({
+          routeId: currentRouteId,
+          surfaceRefs,
+          enterMs: routeTimings.reveal,
+          revealEasing: routeTimings.revealEasing,
+        });
+      })
+      .then(() => {
+        if (!stale()) {
+          finishTransition();
+        }
+      })
+      .catch(() => {
+        if (!stale()) {
+          finishTransition();
+        }
+      });
+
+    return true;
+  }, [navigate, surfaceRefs, syncSteadyTransitionPhase]);
+
   useEffect(() => installSpaNavigationBridge(navigate), [navigate]);
 
   useEffect(() => installTransitionPhaseObserver({
@@ -1020,5 +1149,5 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   const routeView = useMemo(() => getRouteView(routeState.route.id), [getRouteView, routeState.route.id]);
   const routeRuntime = useMemo(() => getRouteRuntime(routeState.route.id), [getRouteRuntime, routeState.route.id]);
 
-  return { routeState, routeRuntime, routeView };
+  return { routeState, routeRuntime, routeView, transitionCurrentRoute };
 }
