@@ -6,6 +6,7 @@
 import { getGlobals } from '../core/state.js';
 import {
   applyFrameChromePalette,
+  applyShellPalette,
   getShellConfig,
   resolveSafariFramePalette,
   resolveBrowserFramePalette,
@@ -85,6 +86,7 @@ function detectThemeColorLikelyApplied(family) {
 function applyThemeAwareWallColor(lightHex, darkHex, isDark) {
   const active = isDark ? darkHex : lightHex;
   applyFrameChromePalette({ light: lightHex, dark: darkHex, active });
+  applyShellPalette({ light: lightHex, dark: darkHex, active });
 }
 
 function applyWallColor(hex, isDark) {

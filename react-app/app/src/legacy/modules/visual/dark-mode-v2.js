@@ -191,7 +191,10 @@ function applyDarkModeToDOM(isDark) {
 
   syncShellToDocument({ isDark });
   applyLayoutCSSVars();
-  
+
+  // Establish the authored palette before adapting the wall/frame to browser chrome.
+  applyColorTemplate(globals.currentTemplate);
+
   // 1) If the browser ignores theme-color (desktop Chrome tabs), adapt the wall to match the browser UI.
   // 2) Then update meta theme-color from the (possibly updated) CSS vars.
   applyChromeHarmony(isDark);
@@ -211,10 +214,6 @@ function applyDarkModeToDOM(isDark) {
   try {
     applyWallShadowPlateSystem({});
   } catch (e) {}
-  
-  // Switch color palette variant
-  applyColorTemplate(globals.currentTemplate);
-
   try {
     import('../portfolio/pit-mode.js').then((m) => {
       if (typeof m.syncPortfolioAccentCircleColors === 'function') {

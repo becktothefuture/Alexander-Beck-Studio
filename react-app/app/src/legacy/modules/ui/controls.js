@@ -7,6 +7,7 @@
 import { getGlobals } from '../core/state.js';
 import { setMode } from '../modes/mode-controller.js';
 import { applyColorTemplate, populateColorSelect } from '../visual/colors.js';
+import { applyChromeHarmony } from '../visual/chrome-harmony.js';
 import { autoSaveSettings } from '../utils/storage.js';
 import { bindRegisteredControls, syncSlidersToState } from './control-registry.js';
 import { isDev } from '../utils/logger.js';
@@ -43,6 +44,7 @@ export function setupMasterControls(options = {}) {
       colorSelect.dataset.panelBound = 'true';
       colorSelect.addEventListener('change', () => {
         applyColorTemplate(colorSelect.value);
+        applyChromeHarmony(Boolean(getGlobals().isDarkMode));
         autoSaveSettings();
       });
     }
