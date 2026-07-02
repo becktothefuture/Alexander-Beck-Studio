@@ -148,6 +148,18 @@ function isNightByLocalClock() {
   return h >= start || h < end;
 }
 
+function resolveShouldBeDark(theme) {
+  if (theme === 'auto') {
+    return (systemPreference === 'dark') || isNightByLocalClock();
+  }
+  return theme === 'dark';
+}
+
+function isRenderedDarkMode() {
+  return document.documentElement.classList.contains('dark-mode')
+    || document.body.classList.contains('dark-mode');
+}
+
 /**
  * Update browser chrome/theme color tags from currently-active wall CSS vars.
  */
@@ -286,16 +298,7 @@ export function bindThemeSegmentControls(uiDocument) {
  */
 export function setTheme(theme) {
   currentTheme = theme;
-  
-  let shouldBeDark = false;
-  
-  if (theme === 'auto') {
-    shouldBeDark = (systemPreference === 'dark') || isNightByLocalClock();
-  } else if (theme === 'dark') {
-    shouldBeDark = true;
-  } else {
-    shouldBeDark = false;
-  }
+  const shouldBeDark = resolveShouldBeDark(theme);
   
   applyDarkModeToDOM(shouldBeDark);
   
@@ -358,7 +361,7 @@ export function initializeDarkMode() {
       devLog(`🖥️ System preference changed to: ${systemPreference}`);
       
       // If in auto mode, update
-      if (currentTheme === 'auto') {
+      if (currentTheme === 'auto' && resolveShouldBeDark('auto') !== isRenderedDarkMode()) {
         setTheme('auto');
       }
     });
@@ -367,7 +370,9 @@ export function initializeDarkMode() {
   // Night-window re-evaluation (privacy-first heuristic; only applies in Auto mode)
   window.setInterval(() => {
     if (currentTheme !== 'auto') return;
-    setTheme('auto');
+    if (resolveShouldBeDark('auto') !== isRenderedDarkMode()) {
+      setTheme('auto');
+    }
   }, 60_000);
 
   devLog('✓ Modern dark mode initialized');
@@ -384,8 +389,7 @@ export function getCurrentTheme() {
  * Toggle between light and dark mode manually
  */
 export function toggleDarkMode() {
-  const isCurrentlyDark = document.documentElement.classList.contains('dark-mode')
-    || document.body.classList.contains('dark-mode');
+  const isCurrentlyDark = isRenderedDarkMode();
   const newTheme = isCurrentlyDark ? 'light' : 'dark';
   setTheme(newTheme);
 }
