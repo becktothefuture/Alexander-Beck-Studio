@@ -135,15 +135,15 @@ function SphereIcon() {
 function StarfieldIcon() {
   return (
     <g>
-      <circle {...DOT_PROPS} cx="24" cy="24" r="1.15" />
-      <circle {...DOT_PROPS} cx="20" cy="20" r="1.35" />
-      <circle {...DOT_PROPS} cx="29" cy="21" r="1.45" />
-      <circle {...DOT_PROPS} cx="19" cy="29" r="1.65" />
-      <circle {...DOT_PROPS} cx="31" cy="31" r="1.85" />
-      <circle {...DOT_PROPS} cx="13" cy="14" r="2.1" />
-      <circle {...DOT_PROPS} cx="37" cy="17" r="2.35" />
-      <circle {...DOT_PROPS} cx="12" cy="36" r="2.45" />
-      <circle {...DOT_PROPS} cx="39" cy="38" r="2.85" />
+      <circle {...DOT_PROPS} cx="22.15" cy="22.15" r="1.15" />
+      <circle {...DOT_PROPS} cx="16.35" cy="16.35" r="1.35" />
+      <circle {...DOT_PROPS} cx="28.45" cy="19.45" r="1.45" />
+      <circle {...DOT_PROPS} cx="17.65" cy="27.65" r="1.65" />
+      <circle {...DOT_PROPS} cx="28.85" cy="27.85" r="1.85" />
+      <circle {...DOT_PROPS} cx="10.1" cy="10.1" r="2.1" />
+      <circle {...DOT_PROPS} cx="35.35" cy="14.35" r="2.35" />
+      <circle {...DOT_PROPS} cx="10.45" cy="33.45" r="2.45" />
+      <circle {...DOT_PROPS} cx="36.85" cy="35.85" r="2.85" />
     </g>
   );
 }
