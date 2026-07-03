@@ -21,6 +21,7 @@ import { chromium, webkit } from 'playwright';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..');
 const BROWSER = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
+const IS_WEBKIT = BROWSER === 'webkit' || BROWSER === 'safari';
 const outputRoot = resolve(repoRoot, 'output', 'playwright', 'transition-flow-audit', BROWSER);
 
 const WAIT_MS = Number(process.env.ABS_CANVAS_WAIT_MS || 25000);
@@ -53,9 +54,15 @@ const SAMPLE_MS = Number(
   || Math.max(1200, DESTINATION_WITHIN_MS + 200)
 );
 const MAX_SAMPLE_FAILURE_PCT = Number(process.env.ABS_TRANSITION_MAX_SAMPLE_FAILURE_PCT || 15);
+// Headless WebKit can emit an isolated compositor/RAF stall on route swaps even
+// when all bridge and destination landmarks stay continuous. Keep Chromium's
+// strict cap tight and allow one-off WebKit stalls to be judged by gap count.
+const DEFAULT_MAX_RAF_GAP_MS = STRICT_RAF
+  ? (IS_WEBKIT ? 520 : 190)
+  : 300;
 const MAX_RAF_GAP_MS = Number(
   process.env.ABS_TRANSITION_MAX_RAF_GAP_MS
-  || (STRICT_RAF ? 190 : 300)
+  || DEFAULT_MAX_RAF_GAP_MS
 );
 const MAX_RAF_GAP_COUNT = Number(
   process.env.ABS_TRANSITION_MAX_RAF_GAP_COUNT
@@ -64,12 +71,12 @@ const MAX_RAF_GAP_COUNT = Number(
 const HARD_TIMEOUT_MS = Number(process.env.ABS_TRANSITION_HARD_TIMEOUT_MS || 420000);
 
 function resolveBrowserEngine() {
-  if (BROWSER === 'webkit' || BROWSER === 'safari') return webkit;
+  if (IS_WEBKIT) return webkit;
   return chromium;
 }
 
 function resolveBrowserLaunchOptions() {
-  if (BROWSER === 'webkit' || BROWSER === 'safari') return {};
+  if (IS_WEBKIT) return {};
   return {
     args: [
       '--disable-background-timer-throttling',

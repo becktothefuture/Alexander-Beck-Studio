@@ -3,8 +3,11 @@ import { chromium } from 'playwright';
 
 const DEFAULT_ORIGIN = 'http://127.0.0.1:8012';
 const WAIT_MS = Number(process.env.ABS_POINTER_TITLE_WAIT_MS || 30000);
-const DEPTH_MODES = ['3d-sphere', '3d-cube', 'parallax-float'];
-const NO_DEPTH_MODES = ['pit', 'water', 'flies', 'magnetic'];
+// This audit verifies the legacy home #c canvas contract. Keep these fixtures
+// to current daily home-mode entries; collection modes can route to the daily
+// shell and intentionally do not provide #c on direct startup.
+const DEPTH_MODES = ['3d-sphere', '3d-cube'];
+const NO_DEPTH_MODES = ['pit', 'water', 'flies'];
 
 function resolveModeUrl(mode) {
   const raw = String(process.env.ABS_DEV_URL || DEFAULT_ORIGIN).trim().replace(/\/+$/, '');
