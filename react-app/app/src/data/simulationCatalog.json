@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-02",
+  "updatedAt": "2026-07-03",
   "stages": {
-    "daily-rotation": "Eligible for the live Daily Focus.",
-    "collection": "Available to review or launch, but not part of Daily Focus.",
+    "daily-rotation": "Eligible for the live Daily Simulation.",
+    "collection": "Available to review or launch, but not part of Daily Simulation.",
     "automation-candidate": "Fresh automation/test-page candidate that needs human review.",
     "hidden": "Internal or disabled simulation surface."
   },
@@ -261,13 +261,13 @@
       "id": "starfield-3d",
       "name": "3D Starfield",
       "chapter": "DEPTH FIELD",
-      "stage": "collection",
+      "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
       "launchPath": "/index.html?mode=starfield-3d",
       "includeInNarrative": true,
       "reviewStatus": "stable",
-      "summary": "Depth field built from circle points."
+      "summary": "Expansive distance-fog field built from circle points."
     },
     {
       "id": "parallax-float",

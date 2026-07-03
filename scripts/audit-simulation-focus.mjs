@@ -16,11 +16,19 @@ const WAIT_MS = Number(process.env.ABS_SIMULATION_FOCUS_WAIT_MS || 30000);
 function resolveOrigin() {
   const raw = String(process.env.ABS_DEV_URL || DEFAULT_URL).trim() || DEFAULT_URL;
   const url = new URL(raw);
-  return `${url.origin}`;
+  return url.origin;
 }
 
 function resolveUrl(pathname = '/index.html') {
-  return new URL(pathname, resolveOrigin()).toString();
+  const url = new URL(pathname, resolveOrigin());
+  if (
+    (url.pathname === '/' || url.pathname.endsWith('/index.html'))
+    && !url.searchParams.has('absAudit')
+    && !url.searchParams.has('audit')
+  ) {
+    url.searchParams.set('audit', 'home-runtime');
+  }
+  return url.toString();
 }
 
 function parseIsoDate(value) {
@@ -56,6 +64,7 @@ async function waitForIdle(page) {
       const content = document.getElementById('modal-content-layer');
       return (
         (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
+        && (document.documentElement.dataset.absSimulationFocusTransition || 'idle') === 'idle'
         && !blur?.classList.contains('active')
         && !content?.classList.contains('active')
       );
@@ -66,21 +75,78 @@ async function waitForIdle(page) {
 
 async function waitForSwitcherLabel(page, label) {
   await page.waitForFunction(
-    (expected) => {
-      const button = document.querySelector('.simulation-focus-switcher');
-      return Boolean(button && button.textContent?.includes(expected));
-    },
+    (expected) => document.querySelector('.simulation-focus-switcher')?.textContent?.includes(expected),
     label,
     { timeout: WAIT_MS, polling: 50 },
   );
 }
 
-async function waitForHomeMode(page, mode) {
-  await page.waitForFunction(
-    (expectedMode) => window.__ABS_SIMULATION_FOCUS_MODE_EVENTS__?.includes(expectedMode),
-    mode,
-    { timeout: WAIT_MS, polling: 50 },
-  );
+async function waitForFocusId(page, id) {
+  const canvasSelector = [
+    '#c',
+    '#wall-repel-canvas',
+    '#flock-of-birds-canvas',
+    '#pressure-mosaic-canvas',
+    '#mineral-growth-canvas',
+    '.napoleon-point-cloud__canvas--front',
+    '.beach-ball-room-canvas',
+    '.concept-simulation-canvas',
+  ].join(',');
+
+  try {
+    await page.waitForFunction(
+      ({ expectedId, selector }) => {
+        const layer = document.querySelector('.daily-simulation-layer');
+        const canvas = Array.from(document.querySelectorAll(selector)).find((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return rect.width > 10 && rect.height > 10;
+        });
+        if (layer?.dataset.simulationId === expectedId && canvas) return true;
+
+        let homeMode = null;
+        try {
+          homeMode = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.()?.mode || null;
+        } catch {
+          homeMode = null;
+        }
+        if (homeMode === expectedId && canvas) return true;
+
+        const routeMode = new URL(window.location.href).searchParams.get('mode') || null;
+        return routeMode === expectedId && Boolean(canvas);
+      },
+      { expectedId: id, selector: canvasSelector },
+      { timeout: WAIT_MS, polling: 50 },
+    );
+  } catch (error) {
+    const diagnostics = await page.evaluate(({ selector }) => {
+      let homeMode = null;
+      try {
+        homeMode = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.()?.mode || null;
+      } catch {
+        homeMode = null;
+      }
+      return {
+        url: window.location.href,
+        switcher: document.querySelector('.simulation-focus-switcher')?.textContent?.trim() || null,
+        layerId: document.querySelector('.daily-simulation-layer')?.dataset.simulationId || null,
+        homeMode,
+        routeMode: new URL(window.location.href).searchParams.get('mode') || null,
+        canvases: Array.from(document.querySelectorAll(selector)).map((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return {
+            id: candidate.id,
+            className: candidate.className,
+            width: candidate.width,
+            height: candidate.height,
+            rectWidth: rect.width,
+            rectHeight: rect.height,
+          };
+        }),
+        storedChoice: window.localStorage.getItem('abs_simulation_focus_choice_v1'),
+      };
+    }, { selector: canvasSelector });
+    throw new Error(`Timed out waiting for focus "${id}": ${JSON.stringify(diagnostics)}`, { cause: error });
+  }
 }
 
 async function openChooser(page) {
@@ -94,9 +160,12 @@ async function closeChooserWithEscape(page) {
   await waitForIdle(page);
 }
 
-async function chooseSimulation(page, name) {
+async function chooseSimulation(page, name, id, label = name) {
   await openChooser(page);
   await page.locator('.simulation-focus-modal.active .simulation-focus-row').filter({ hasText: name }).first().click();
+  await waitForSwitcherLabel(page, label);
+  await waitForFocusId(page, id);
+  await waitForIdle(page);
 }
 
 async function getStoredChoice(page) {
@@ -116,29 +185,6 @@ async function clearStoredChoice(page) {
   await page.evaluate((key) => window.localStorage.removeItem(key), STORAGE_KEY);
 }
 
-async function assertDirectDailyLabRouteReady(page) {
-  await page.goto(resolveUrl('/lab/napoleon-point-cloud.html?daily=1'), { waitUntil: 'networkidle', timeout: 60000 });
-  await waitForSwitcherLabel(page, 'Napoleon Point Cloud');
-  await page.waitForFunction(
-    () => {
-      const root = document.documentElement;
-      const slot = document.querySelector('.simulation-focus-switcher-slot');
-      const figure = document.querySelector('.napoleon-point-cloud');
-      if (!slot || !figure) return false;
-      const styles = getComputedStyle(slot);
-      const loadState = figure.dataset.pointCloudLoadState;
-      return (
-        !root.classList.contains('fonts-loading')
-        && root.classList.contains('ui-entered')
-        && root.classList.contains('entrance-complete')
-        && Number.parseFloat(styles.opacity || '0') > 0.8
-        && (loadState === 'ready' || loadState === 'error')
-      );
-    },
-    { timeout: WAIT_MS, polling: 50 },
-  );
-}
-
 async function assertStorage(page, expectedId) {
   const stored = await getStoredChoice(page);
   if (expectedId === null) {
@@ -150,13 +196,34 @@ async function assertStorage(page, expectedId) {
   }
 }
 
+async function assertLabRouteExcluded(page, catalog) {
+  const labOnlyEntry = (catalog.simulations || []).find((entry) => (
+    entry.stage !== 'daily-rotation'
+    && entry.surface === 'lab-route'
+    && typeof entry.launchPath === 'string'
+    && entry.launchPath.startsWith('/lab/')
+  ));
+  if (!labOnlyEntry) return;
+
+  await page.goto(resolveUrl(`${labOnlyEntry.launchPath}?daily=1`), { waitUntil: 'networkidle', timeout: 60000 });
+  const result = await page.evaluate(() => ({
+    hasSwitcher: Boolean(document.querySelector('.simulation-focus-switcher')),
+    hasDailyLayer: Boolean(document.querySelector('.daily-simulation-layer')),
+    path: window.location.pathname,
+  }));
+  if (result.hasSwitcher || result.hasDailyLayer) {
+    throw new Error(`Lab route "${labOnlyEntry.id}" still participates in public Daily Simulation: ${JSON.stringify(result)}`);
+  }
+}
+
 async function main() {
   const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
   const dailyEntries = catalog.simulations.filter((entry) => entry.stage === 'daily-rotation');
+  const expectedDailyCount = dailyEntries.length;
   const dailyDefault = getAnchoredDailySimulation(catalog, TARGET_DATE);
   const targetDate = parseIsoDate(TARGET_DATE);
   if (!dailyDefault) throw new Error('Could not resolve daily default from catalog');
-  if (dailyEntries.length !== 15) throw new Error(`Expected 15 Daily Focus entries, got ${dailyEntries.length}`);
+  if (expectedDailyCount <= 0) throw new Error('Expected at least one Daily Simulation entry in the catalog');
 
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
@@ -167,10 +234,6 @@ async function main() {
       window.localStorage.removeItem(storageKey);
       window.sessionStorage.setItem('__abs_simulation_focus_audit_storage_cleared__', '1');
     }
-    window.__ABS_SIMULATION_FOCUS_MODE_EVENTS__ = [];
-    window.addEventListener('bb:modeChanged', (event) => {
-      window.__ABS_SIMULATION_FOCUS_MODE_EVENTS__.push(event?.detail?.mode || null);
-    });
     const NativeDate = Date;
     const fixed = new NativeDate(`${targetDateIso}T12:00:00`);
 
@@ -203,11 +266,21 @@ async function main() {
   try {
     await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
     await waitForSwitcherLabel(page, dailyDefault.name);
+    await waitForFocusId(page, dailyDefault.id);
     await assertStorage(page, null);
 
     await openChooser(page);
     const rowCount = await page.locator('.simulation-focus-modal.active .simulation-focus-row').count();
-    if (rowCount !== 15) throw new Error(`Expected 15 chooser rows, got ${rowCount}`);
+    if (rowCount !== expectedDailyCount) throw new Error(`Expected ${expectedDailyCount} chooser rows, got ${rowCount}`);
+    for (const entry of dailyEntries) {
+      const matches = await page.locator('.simulation-focus-modal.active .simulation-focus-row').filter({ hasText: entry.name }).count();
+      if (matches !== 1) throw new Error(`Expected one chooser row for daily simulation "${entry.name}", got ${matches}`);
+    }
+    const collectionEntry = (catalog.simulations || []).find((entry) => entry.stage === 'collection');
+    if (collectionEntry) {
+      const collectionRowCount = await page.locator('.simulation-focus-modal.active .simulation-focus-row').filter({ hasText: collectionEntry.name }).count();
+      if (collectionRowCount !== 0) throw new Error(`Expected collection simulation "${collectionEntry.name}" to be absent from chooser, got ${collectionRowCount} rows`);
+    }
     const focusedInsideModal = await page.evaluate(() => {
       const modal = document.querySelector('.simulation-focus-modal.active');
       return Boolean(modal && document.activeElement && modal.contains(document.activeElement));
@@ -219,32 +292,20 @@ async function main() {
       { timeout: WAIT_MS, polling: 50 },
     );
 
-    await chooseSimulation(page, 'Repel Room');
-    await page.waitForURL(/\/lab\/wall-repel\.html/, { timeout: WAIT_MS });
-    await waitForSwitcherLabel(page, 'Repel Room');
+    await chooseSimulation(page, 'Repel Room', 'wall-repel');
     await assertStorage(page, 'wall-repel');
 
-    await chooseSimulation(page, 'Pressure Mosaic');
-    await page.waitForURL(/\/lab\/pressure-mosaic\.html/, { timeout: WAIT_MS });
-    await waitForSwitcherLabel(page, 'Pressure Mosaic');
+    await chooseSimulation(page, 'Pressure Mosaic', 'pressure-mosaic');
     await assertStorage(page, 'pressure-mosaic');
 
-    await chooseSimulation(page, 'Flies to Light');
-    await page.waitForURL(/\/index\.html/, { timeout: WAIT_MS });
-    await waitForHomeMode(page, 'flies');
-    await waitForSwitcherLabel(page, 'Flies to Light');
+    await chooseSimulation(page, 'Flies to Light', 'flies');
     await assertStorage(page, 'flies');
 
-    await chooseSimulation(page, 'Water Swimming');
-    await waitForHomeMode(page, 'water');
-    await waitForSwitcherLabel(page, 'Water Swimming');
+    await chooseSimulation(page, 'Water Swimming', 'water');
     await assertStorage(page, 'water');
-    const sameHomeModeParam = await page.evaluate(() => new URL(window.location.href).searchParams.get('mode'));
-    if (sameHomeModeParam !== 'water') {
-      throw new Error(`Expected same-home switch URL mode=water, got ${sameHomeModeParam || '(none)'}`);
-    }
+
     await page.reload({ waitUntil: 'networkidle', timeout: 60000 });
-    await waitForHomeMode(page, 'water');
+    await waitForFocusId(page, 'water');
     await waitForSwitcherLabel(page, 'Water Swimming');
     await assertStorage(page, 'water');
 
@@ -255,6 +316,7 @@ async function main() {
       catalogVersion: catalog.version,
     });
     await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
+    await waitForFocusId(page, dailyDefault.id);
     await waitForSwitcherLabel(page, dailyDefault.name);
     await assertStorage(page, null);
 
@@ -265,12 +327,13 @@ async function main() {
       catalogVersion: catalog.version,
     });
     await page.reload({ waitUntil: 'networkidle', timeout: 60000 });
+    await waitForFocusId(page, dailyDefault.id);
     await waitForSwitcherLabel(page, dailyDefault.name);
     await assertStorage(page, null);
 
-    await assertDirectDailyLabRouteReady(page);
-
+    await assertLabRouteExcluded(page, catalog);
     await clearStoredChoice(page);
+
     console.log(JSON.stringify({
       ok: true,
       date: targetDate.iso,
@@ -279,13 +342,11 @@ async function main() {
       flows: [
         'daily-default',
         'modal-focus-escape',
-        'home-mode-to-lab-route',
-        'lab-route-to-lab-route',
-        'lab-route-to-home-mode',
-        'home-mode-to-home-mode',
+        'home-runtime-to-home-runtime',
+        'same-day-persistence',
         'stale-next-day-cleanup',
         'invalid-id-cleanup',
-        'direct-daily-lab-route',
+        'lab-route-excluded',
         'reduced-motion',
       ],
     }, null, 2));

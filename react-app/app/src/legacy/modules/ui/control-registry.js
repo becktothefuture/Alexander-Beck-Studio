@@ -4541,6 +4541,28 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat
       },
       {
+        id: 'starfieldFogStart',
+        label: 'Fog Start',
+        stateKey: 'starfieldFogStart',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.86,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Normalized depth where far-space fog begins clearing toward the viewer.'
+      },
+      {
+        id: 'starfieldFogMin',
+        label: 'Fog Floor',
+        stateKey: 'starfieldFogMin',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.16,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Minimum opacity for stars deepest in the distance fog.'
+      },
+      {
         id: 'starfieldIdleJitter',
         label: 'Idle Drift',
         stateKey: 'starfieldIdleJitter',

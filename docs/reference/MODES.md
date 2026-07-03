@@ -11,13 +11,14 @@ Source of truth for mode IDs and narrative order:
 
 - `25` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
 - `24` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
-- Daily mode selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
+- `16` simulations are in the Daily Simulation chooser and live daily selection.
+- Daily Simulation selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
 - `flock-of-birds`, `wall-repel`, `pressure-mosaic`, `mineral-growth`, `napoleon-point-cloud`, and `beach-ball-room` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
-- `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily rotation.
+- `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
 
 ## Lab-Only Route Candidates
 
-These pages are review surfaces, not registered narrative modes. Do not add them to daily rotation or Extended rotation without explicit approval and a full promotion pass.
+These pages are review surfaces, not registered narrative modes. Do not add them to Daily Simulation or Extended rotation without explicit approval and a full promotion pass.
 
 - Confluence Bridges — `confluence-bridges`, `/lab/confluence-bridges.html`, concept-lab registry entry with `enabledInRotation: false`; weighted circle discipline hubs build and stretch circle bridges under pointer movement and drag.
 - Spatial Scan — `spatial-scan`, `/lab/spatial-scan.html`, concept-lab registry entry with `enabledInRotation: false`; scan-derived point-cloud route with a baked Blender camera path and flat site-circle rendering.
@@ -74,16 +75,16 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 12. `mineral-growth` — LIVING SYSTEM
 13. `elastic-center` — TENSION LOOM
 14. `kaleidoscope-3` — VOCAB BLOOM
-15. `beach-ball-room` — BEACH BALL ROOM
+15. `starfield-3d` — DEPTH FIELD
+16. `beach-ball-room` — BEACH BALL ROOM
 
 ### Extended Tier (shown after Featured)
 
-16. `aperture-bloom` — APERTURE BLOOM
-17. `bubbles` — NOISE SIGNAL
-18. `magnetic` — DESIGN FORCES
-19. `weightless` — OPEN SPACE
-20. `critters` — BEHAVIOR MODEL
-21. `starfield-3d` — DEPTH FIELD
+17. `aperture-bloom` — APERTURE BLOOM
+18. `bubbles` — NOISE SIGNAL
+19. `magnetic` — DESIGN FORCES
+20. `weightless` — OPEN SPACE
+21. `critters` — BEHAVIOR MODEL
 22. `parallax-float` — ORGANIC DRIFT
 23. `pressure-crucible` — POLARITY FLUX
 24. `particle-fountain` — PARTICLE FLOW
@@ -123,7 +124,7 @@ Loop order is `Featured -> Extended -> Featured`.
 - `parallax-float`: layered depth field with levitation/parallax response.
 - `3d-sphere`: rotating spherical point cloud.
 - `3d-cube`: rotating/tumbling cube point cloud.
-- `starfield-3d`: depth-projected starfield with recycle.
+- `starfield-3d`: depth-projected starfield with recycle, pointer/touch camera pan, and shared distance fog.
 - `elastic-center`: Tension Loom; a palette-bead lattice with invisible spring links, single-pointer drag, release waves, subtle hover pressure, and normal wall containment.
 - `flock-of-birds`: route-backed distant flock with weighted center-biased motion, no wall collisions, mouse avoidance, and a safe sky band above the ground.
 - `wall-repel`: route-backed Repel Room with heavy palette balls launched through a bounded room, strong wall repulsion, mobile-bounded DPR/count, and mouse repulsion without visible cursor rings.

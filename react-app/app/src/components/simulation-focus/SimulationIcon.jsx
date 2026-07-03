@@ -19,6 +19,7 @@ const ICONS = {
   water: WaterIcon,
   'wall-repel': WallRepelIcon,
   '3d-sphere': SphereIcon,
+  'starfield-3d': StarfieldIcon,
   'napoleon-point-cloud': PointCloudIcon,
   'pressure-mosaic': PressureMosaicIcon,
   'flock-of-birds': FlockIcon,
@@ -127,6 +128,22 @@ function SphereIcon() {
       <ellipse {...ICON_PROPS} cx="24" cy="24" rx="5.6" ry="13" />
       <path {...ICON_PROPS} d="M12 24h24" />
       <path {...ICON_PROPS} d="M16 17c5 2 11 2 16 0M16 31c5-2 11-2 16 0" />
+    </g>
+  );
+}
+
+function StarfieldIcon() {
+  return (
+    <g>
+      <circle {...DOT_PROPS} cx="24" cy="24" r="1.15" />
+      <circle {...DOT_PROPS} cx="20" cy="20" r="1.35" />
+      <circle {...DOT_PROPS} cx="29" cy="21" r="1.45" />
+      <circle {...DOT_PROPS} cx="19" cy="29" r="1.65" />
+      <circle {...DOT_PROPS} cx="31" cy="31" r="1.85" />
+      <circle {...DOT_PROPS} cx="13" cy="14" r="2.1" />
+      <circle {...DOT_PROPS} cx="37" cy="17" r="2.35" />
+      <circle {...DOT_PROPS} cx="12" cy="36" r="2.45" />
+      <circle {...DOT_PROPS} cx="39" cy="38" r="2.85" />
     </g>
   );
 }

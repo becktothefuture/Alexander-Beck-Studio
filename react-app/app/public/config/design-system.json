@@ -229,6 +229,8 @@
     "starfieldParallaxStrength": 320,
     "starfieldSpeed": 400,
     "starfieldDotSizeMul": 0.9,
+    "starfieldFogStart": 0.86,
+    "starfieldFogMin": 0.16,
     "starfieldIdleJitter": 0,
     "starfieldFadeDuration": 0.5,
     "starfield3dWarmupFrames": 10,

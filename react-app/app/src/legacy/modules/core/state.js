@@ -153,6 +153,8 @@ const state = {
   starfieldParallaxStrength: 320,
   starfieldSpeed: 400,
   starfieldDotSizeMul: 0.9,
+  starfieldFogStart: 0.86,
+  starfieldFogMin: 0.16,
   starfieldIdleJitter: 0,
   starfieldFadeDuration: 0.5,
   starfield3dWarmupFrames: 10,
@@ -1872,6 +1874,8 @@ export function initState(config) {
   if (config.starfieldParallaxStrength !== undefined) state.starfieldParallaxStrength = clampInt(config.starfieldParallaxStrength, 0, 1200, state.starfieldParallaxStrength);
   if (config.starfieldSpeed !== undefined) state.starfieldSpeed = clampInt(config.starfieldSpeed, 10, 1600, state.starfieldSpeed);
   if (config.starfieldDotSizeMul !== undefined) state.starfieldDotSizeMul = clampNumber(config.starfieldDotSizeMul, 0.2, 4.0, state.starfieldDotSizeMul);
+  if (config.starfieldFogStart !== undefined) state.starfieldFogStart = clampNumber(config.starfieldFogStart, 0, 1, state.starfieldFogStart);
+  if (config.starfieldFogMin !== undefined) state.starfieldFogMin = clampNumber(config.starfieldFogMin, 0, 1, state.starfieldFogMin);
   if (config.starfieldIdleJitter !== undefined) state.starfieldIdleJitter = clampNumber(config.starfieldIdleJitter, 0, 20, state.starfieldIdleJitter);
   if (config.starfieldFadeDuration !== undefined) state.starfieldFadeDuration = clampNumber(config.starfieldFadeDuration, 0, 3, state.starfieldFadeDuration);
   if (config.starfield3dWarmupFrames !== undefined) state.starfield3dWarmupFrames = clampInt(config.starfield3dWarmupFrames, 0, 240, state.starfield3dWarmupFrames);

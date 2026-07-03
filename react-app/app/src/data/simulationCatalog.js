@@ -8,7 +8,7 @@ export const SIMULATION_STAGES = Object.freeze({
 });
 
 const STAGE_LABELS = Object.freeze({
-  [SIMULATION_STAGES.DAILY_ROTATION]: 'Daily Focus',
+  [SIMULATION_STAGES.DAILY_ROTATION]: 'Daily Simulation',
   [SIMULATION_STAGES.COLLECTION]: 'Collection',
   [SIMULATION_STAGES.AUTOMATION_CANDIDATE]: 'Automation candidates',
   [SIMULATION_STAGES.HIDDEN]: 'Hidden',

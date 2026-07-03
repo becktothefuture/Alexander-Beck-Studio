@@ -5,6 +5,7 @@
 
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { pickRandomColor } from '../visual/colors.js';
+import { resolveDistanceFogOpacity } from '../visual/depth-fog.js';
 
 // Module-level star array (not balls, just data)
 let _stars = [];
@@ -95,6 +96,8 @@ export function renderStarfield3D(ctx) {
   const speed = Math.max(10, g.starfieldSpeed ?? 400);
   const dotSizeMul = Math.max(0.2, Math.min(4.0, g.starfieldDotSizeMul ?? 1.0));
   const baseR = (g.R_MED || 20) * dotSizeMul * STARFIELD_BASE_SIZE_MULTIPLIER;
+  const fogStart = Math.max(0, Math.min(1, g.starfieldFogStart ?? 0.86));
+  const fogMin = Math.max(0, Math.min(1, g.starfieldFogMin ?? 0.16));
 
   // Mouse parallax panning
   const parallaxStrength = Math.max(0, g.starfieldParallaxStrength ?? 320);
@@ -199,10 +202,12 @@ export function renderStarfield3D(ctx) {
     const depthRatio = Math.max(0, Math.min(1, 1 - ((star.z - zNear) / Math.max(1, zFar - zNear))));
     const sizeRatio = STARFIELD_FAR_SIZE_RATIO + (STARFIELD_NEAR_SIZE_RATIO - STARFIELD_FAR_SIZE_RATIO) * depthRatio;
     const r = baseR * sizeRatio;
+    const fogOpacity = resolveDistanceFogOpacity(depthRatio, { fogStart, fogMin });
+    const drawAlpha = star.alpha * fogOpacity;
 
     // Draw circle with alpha
-    if (star.alpha > 0) {
-      ctx.globalAlpha = star.alpha;
+    if (drawAlpha > 0.001) {
+      ctx.globalAlpha = drawAlpha;
       ctx.beginPath();
       ctx.arc(x2d, y2d, r, 0, Math.PI * 2);
       ctx.fillStyle = star.color;

@@ -7,6 +7,7 @@ import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js
 import { spawnBall } from '../physics/spawn.js';
 import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
 import { getHeroTitleCanvasCenter } from '../rendering/title-depth.js';
+import { resolveDistanceFogOpacity } from '../visual/depth-fog.js';
 
 function clamp01(v) {
   return Math.max(-1, Math.min(1, v));
@@ -226,15 +227,10 @@ export function apply3DCubeForces(ball, dt) {
   // Map z from [-sizePx/2, +sizePx/2] to [0, 1] where 0 is back, 1 is front
   const depthFactor = (rotated.z + halfSize) / state.sizePx;
   
-  const fogStart = Math.max(0, Math.min(1, g.cube3dFogStart ?? 0.95));
-  const fogMin = Math.max(0, Math.min(1, g.cube3dFogMin ?? 0.58));
-
-  let fogAmount = 0;
-  if (fogStart > 0 && depthFactor < fogStart) {
-    const t = (fogStart - depthFactor) / fogStart;
-    fogAmount = t * t * (3 - 2 * t);
-  }
-  ball.alpha = 1.0 - fogAmount * (1.0 - fogMin);
+  ball.alpha = resolveDistanceFogOpacity(depthFactor, {
+    fogStart: g.cube3dFogStart ?? 0.95,
+    fogMin: g.cube3dFogMin ?? 0.58,
+  });
 
   ball.r = clampRadiusToGlobalBounds(g, rawR);
   ball.x = targetX;

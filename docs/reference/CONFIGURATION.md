@@ -587,6 +587,32 @@ Notes:
 
 ---
 
+## 3D Starfield
+
+These keys control the 3D Starfield simulation (mode `starfield-3d`):
+
+- `starfieldCount` (number): number of stars before mobile object reduction
+- `starfieldSpanX` (number): horizontal spread of the world field
+- `starfieldSpanY` (number): vertical spread of the world field
+- `starfieldZNear` (number, px): recycle threshold near the camera
+- `starfieldZFar` (number, px): far spawn depth
+- `starfieldFocalLength` (number, px): perspective focal length
+- `starfieldParallaxStrength` (number): pointer/touch camera pan strength
+- `starfieldSpeed` (number, px/s): forward travel speed
+- `starfieldDotSizeMul` (number): dot size multiplier
+- `starfieldFogStart` (number, 0..1): normalized depth where far-space fog begins clearing - default: 0.86
+- `starfieldFogMin` (number, 0..1): minimum opacity for stars deepest in the distance fog - default: 0.16
+- `starfieldIdleJitter` (number, px): reserved idle drift control
+- `starfieldFadeDuration` (number, seconds): fade in/out around spawn and recycle
+- `starfield3dWarmupFrames` (number): render warmup frames on mode init
+
+Notes:
+- `starfield-3d` draws directly to the canvas for performance instead of creating `Ball` instances.
+- Desktop pointer movement and mobile touch drag both drive the same camera-pan input path.
+- Distance fog is independent from `starfieldZNear` / `starfieldZFar`; tune fog feel without changing travel depth.
+
+---
+
 ## Layout (Frame & Content)
 
 Two-level padding system:
