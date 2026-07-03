@@ -349,7 +349,7 @@ html.fonts-loading .project-detail {
    DOM REWORK: FLEXBOX UI LAYOUT (FIGMA ALIGNMENT)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* Replaces old .viewport styling and .fade-content behavior */
+/* UI layer: replaces old .viewport styling and .fade-content behavior */
 .fade-content,
 .fade-content.viewport.viewport--content {
   /* Layout: Full height flex column inside the frame */
@@ -385,7 +385,7 @@ html.fonts-loading .project-detail {
   /* Visuals */
   background: transparent;
   /* No border-radius - only simulation (#simulations) has rounded corners */
-  z-index: 200; /* UI layer: above wall (z:100), below modals (z:19998+) */
+  z-index: 200; /* UI layer: above wall/veil, below overlay hosts and modals */
   pointer-events: none; /* Let clicks pass through to canvas in empty areas */
   /* Smooth layout updates (resize + config). Avoid overriding other timings by only setting this where none exists. */
   transition:
@@ -446,7 +446,7 @@ html.fonts-loading .project-detail {
 
 .shell-wall-slot {
   position: relative;
-  z-index: 10; /* Above hero-title (z:5) and scene-effects (z:1) so canvas/balls paint on top */
+  z-index: 10; /* Ball canvas layer: above semantic title source and scene effects */
   width: 100%;
   height: 100%;
 }
@@ -559,7 +559,7 @@ html[data-abs-transition-phase='modal-open'] .fade-content {
   transition-duration: var(--modal-hide-duration, 500ms);
 }
 
-/* UI Wrapper Frame - CSS Grid 3-Row Layout.
+/* UI layer wrapper - CSS Grid 3-Row Layout.
    z-index: 0; quote mounts in #quote-viewport-host (z:250) above this layer. */
 .ui-layer-wrapper {
   position: relative;
@@ -2101,7 +2101,7 @@ p {
     var(--home-main-links-below-logo-px, 96px)
   );
   transform-origin: center center;
-  z-index: 10; /* Match .ui-center z-index */
+  z-index: 18; /* Above the front depth canvas so controls stay clickable */
   /* Horizontal flexbox layout - center aligned */
   display: flex;
   flex-direction: row;
@@ -2135,7 +2135,7 @@ p {
     var(--home-simulation-switcher-above-logo-px, clamp(124px, 13vh, 136px))
   );
   transform: translateX(-50%);
-  z-index: 16;
+  z-index: 19;
   pointer-events: auto;
   opacity: calc(var(--ui-visible, 0) * var(--ui-page-opacity, 0.7));
   transition:
@@ -2202,11 +2202,15 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
       180deg,
       color-mix(in srgb, var(--frame-inner-surface) 34%, transparent),
       color-mix(in srgb, var(--frame-inner-surface) 18%, transparent)
-    );
+  );
   gap: calc(var(--gap-xs) * 0.7);
-  min-height: 32px;
-  padding: 0 clamp(12px, 1.2vw, 16px);
+  min-height: 36px;
+  max-width: calc(100vw - (var(--gap-md) * 2));
+  padding: clamp(8px, 0.9vw, 10px) clamp(18px, 1.8vw, 24px);
   font-size: clamp(12px, 1.2vw, 13px);
+  line-height: 1.2;
+  white-space: normal;
+  overflow: visible;
   box-shadow:
     inset 0 1px 0 rgba(var(--abs-rgb-white), 0.12),
     0 8px 20px rgba(var(--abs-rgb-black), 0.055);
@@ -2218,13 +2222,12 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 
 .simulation-focus-switcher .simulation-focus-pill__label {
   display: block;
-  line-height: 1;
-}
-
-@supports (text-box: trim-both cap alphabetic) {
-  .simulation-focus-switcher .simulation-focus-pill__label {
-    text-box: trim-both cap alphabetic;
-  }
+  min-width: 0;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
 }
 
 .simulation-focus-pill.simulation-focus-switcher:hover {
@@ -2236,6 +2239,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
   align-self: center;
   width: 13px;
   height: 13px;
+  flex: 0 0 auto;
   transform: none;
 }
 
@@ -2251,6 +2255,11 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 .simulation-focus-pill:focus-visible {
   outline: var(--hairline, 1px) solid color-mix(in srgb, var(--cursor-color) 72%, var(--text-logo));
   outline-offset: 4px;
+}
+
+.simulation-focus-pill.simulation-focus-switcher:focus-visible {
+  outline: none;
+  outline-offset: 0;
 }
 
 .simulation-focus-pill__label {
@@ -2765,7 +2774,8 @@ button.abs-meta-btn,
 /* ─────────────────────────────────────────────────────────────────────────────
    SCENE WRAPPER (single transform for all layers)
    ───────────────────────────────────────────────────────────────────────────── */
-#abs-scene {
+#abs-scene,
+.app-scene {
   position: fixed;
   top: 0;
   left: 0;
@@ -2796,7 +2806,8 @@ button.abs-meta-btn,
   filter: none;
 }
 
-#abs-scene.abs-scene--impact.abs-scene--animating {
+#abs-scene.abs-scene--impact.abs-scene--animating,
+.app-scene.abs-scene--impact.abs-scene--animating {
   /* Impact transition should ONLY apply during the impact pulse.
      Keeping `.abs-scene--impact` on permanently (JS) is fine, but if it defines the
      transition at rest it will override the gate depth return transition and cause
@@ -2805,21 +2816,25 @@ button.abs-meta-btn,
     transform var(--abs-scene-impact-dur, 100ms) var(--abs-scene-impact-ease, var(--ease-gate));
 }
 
-#abs-scene.abs-scene--animating {
+#abs-scene.abs-scene--animating,
+.app-scene.abs-scene--animating {
   will-change: transform;
 }
 
-#abs-scene.gate-depth-active {
+#abs-scene.gate-depth-active,
+.app-scene.gate-depth-active {
   transition:
     transform var(--modal-depth-duration, 850ms) var(--ease-gate-motion),
     filter var(--modal-depth-duration, 850ms) var(--ease-gate-motion);
 }
 
-html.simulation-focus-modal-open #abs-scene {
+html.simulation-focus-modal-open #abs-scene,
+html.simulation-focus-modal-open .app-scene {
   filter: brightness(0.54) saturate(0.82);
 }
 
-html.simulation-focus-modal-open body.dark-mode #abs-scene {
+html.simulation-focus-modal-open body.dark-mode #abs-scene,
+html.simulation-focus-modal-open body.dark-mode .app-scene {
   filter: brightness(0.72) saturate(0.9);
 }
 
@@ -2878,6 +2893,44 @@ html.simulation-focus-modal-open body.dark-mode #abs-scene {
 
   transform-origin: center center;
   backface-visibility: hidden;
+}
+
+body:not(.portfolio-page):not(.cv-page):not(.daily-focus-page) .hero-title--canvas-source {
+  --canvas-title-opacity: calc(1 - var(--ui-obscured, 0));
+  opacity: 0;
+}
+
+html[data-abs-simulation-shell-stable='true'] #shell-hero-slot,
+html[data-abs-simulation-shell-stable='true'] .fade-content,
+html[data-abs-simulation-shell-stable='true'] .shell-transition-surface--chrome,
+html[data-abs-simulation-shell-stable='true'] .shell-transition-surface--secondary,
+html[data-abs-simulation-shell-stable='true'] .shell-transition-surface--footer {
+  opacity: 1;
+  visibility: visible;
+  filter: none;
+  transform: none;
+}
+
+html[data-abs-simulation-shell-stable='true'] .hero-title--canvas-source,
+html[data-abs-simulation-title-surface='dom-handoff'] .hero-title--canvas-source {
+  opacity: calc(1 - var(--ui-obscured, 0));
+  transition: none;
+}
+
+html[data-abs-simulation-shell-stable='true'] #hero-title .hero-title__name,
+html[data-abs-simulation-title-surface='dom-handoff'] #hero-title .hero-title__name {
+  animation: none;
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+
+html[data-abs-simulation-shell-stable='true'] #hero-title .hero-title__role,
+html[data-abs-simulation-title-surface='dom-handoff'] #hero-title .hero-title__role {
+  animation: none;
+  opacity: var(--brand-logo-secondary-opacity, 0.66);
+  filter: none;
+  transform: none;
 }
 
 /* Faster exit when modal opens */
@@ -3388,6 +3441,10 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
     height var(--duration-resize) var(--ease-organic);
 }
 
+.simulation-wall-layer {
+  /* Semantic alias for the wall/simulation/effects layer; #simulations remains the compatibility hook. */
+}
+
 /* Portfolio page intentionally inherits the index wall master:
    keep #simulations border-radius at 0 (no portfolio-only override). */
 
@@ -3493,6 +3550,10 @@ body.wall-shadow-plate-ready .inner-wall-gradient-edge {
   will-change: transform; /* Hint to create stacking context */
 }
 
+#simulations canvas.ball-canvas-layer {
+  /* Semantic alias for the main ball canvas. */
+}
+
 #simulations > .simulation-front-depth-canvas {
   position: absolute;
   inset: 0;
@@ -3557,6 +3618,42 @@ body.wall-shadow-plate-ready .inner-wall-gradient-edge {
       rgba(var(--frame-vignette-edge-rgb), var(--frame-vignette-edge-opacity)),
     inset 0 0 var(--frame-vignette-ambient-blur)
       rgba(var(--frame-vignette-ambient-rgb), var(--frame-vignette-ambient-opacity));
+}
+
+.simulation-contrast-veil {
+  position: absolute;
+  top: calc(var(--safari-tint-inset) + var(--frame-border-width));
+  left: calc(var(--safari-tint-inset) + var(--frame-border-width));
+  right: calc(var(--safari-tint-inset) + var(--frame-border-width));
+  bottom: calc(var(--safari-tint-inset) + var(--frame-border-width));
+  border-radius: var(--frame-inner-radius);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: var(--z-contrast-veil, 180);
+}
+
+.simulation-contrast-veil::before {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--simulation-contrast-veil-blur, 80px));
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(var(--simulation-contrast-veil-rgb), var(--simulation-contrast-veil-opacity)) 0%,
+      rgba(var(--simulation-contrast-veil-rgb), 0) var(--simulation-contrast-veil-reach-x),
+      rgba(var(--simulation-contrast-veil-rgb), 0) calc(100% - var(--simulation-contrast-veil-reach-x)),
+      rgba(var(--simulation-contrast-veil-rgb), var(--simulation-contrast-veil-opacity)) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(var(--simulation-contrast-veil-rgb), var(--simulation-contrast-veil-opacity)) 0%,
+      rgba(var(--simulation-contrast-veil-rgb), 0) var(--simulation-contrast-veil-reach-y),
+      rgba(var(--simulation-contrast-veil-rgb), 0) calc(100% - var(--simulation-contrast-veil-reach-y)),
+      rgba(var(--simulation-contrast-veil-rgb), var(--simulation-contrast-veil-opacity)) 100%
+    );
+  filter: blur(var(--simulation-contrast-veil-blur, 80px));
 }
 
 body.wall-shadow-plate-ready .frame-vignette {
@@ -4488,25 +4585,32 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .simulation-focus-modal {
-  --simulation-focus-row-height: 64px;
+  --simulation-focus-row-height: 48px;
+  --simulation-focus-icon-size: 32px;
+  --simulation-focus-list-width: min(100%, 24rem);
+  --simulation-focus-list-gutter: clamp(12px, 4vw, 18px);
+  --simulation-focus-scroll-fade: clamp(32px, 7svh, 68px);
+  --simulation-focus-ink: var(--text-color-dark, #f0f0f0);
   position: absolute;
   inset: 0;
-  width: min(88vw, 520px);
-  max-width: min(88vw, 520px);
-  height: fit-content;
-  max-height: min(78svh, 720px);
-  margin: auto;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
   z-index: 2;
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
   align-items: stretch;
+  align-content: stretch;
+  justify-items: center;
   gap: var(--gap-md);
   padding: clamp(20px, 4vw, 32px) var(--abs-modal-mobile-pad-x, 20px);
   box-sizing: border-box;
-  color: var(--text-logo);
+  color: var(--simulation-focus-ink);
   overflow: hidden;
   transition: opacity var(--modal-overlay-transition-out-duration, var(--ui-nav-return-duration, 240ms)) var(--ease-gate-motion);
 }
@@ -4526,12 +4630,13 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   opacity: 0;
   visibility: visible;
   pointer-events: none;
-  display: flex;
+  display: grid;
 }
 
 .simulation-focus-modal__title {
+  width: var(--simulation-focus-list-width);
   margin: 0;
-  color: var(--text-logo);
+  color: var(--simulation-focus-ink);
   font-family: var(--abs-font-sans);
   font-size: clamp(1.18rem, 1.05rem + 0.45vw, 1.48rem);
   font-weight: var(--abs-weight-regular);
@@ -4540,14 +4645,44 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   text-align: center;
 }
 
+body:not(.dark-mode) .simulation-focus-modal .simulation-focus-modal__title {
+  color: var(--simulation-focus-ink);
+}
+
 .simulation-focus-list {
+  box-sizing: border-box;
   display: grid;
-  gap: var(--gap-xs);
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: calc(var(--gap-xs) * 0.5);
+  width: var(--simulation-focus-list-width);
   min-height: 0;
+  height: 100%;
+  justify-self: center;
+  overflow-x: hidden;
   overflow-y: auto;
-  padding: var(--gap-xs);
-  margin-inline: calc(-1 * var(--gap-xs));
+  overscroll-behavior: contain;
+  padding:
+    var(--simulation-focus-scroll-fade)
+    var(--simulation-focus-list-gutter)
+    var(--simulation-focus-scroll-fade);
+  margin-inline: 0;
+  scroll-padding-block: var(--simulation-focus-scroll-fade);
   scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--simulation-focus-scroll-fade),
+    #000 calc(100% - var(--simulation-focus-scroll-fade)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--simulation-focus-scroll-fade),
+    #000 calc(100% - var(--simulation-focus-scroll-fade)),
+    transparent 100%
+  );
 }
 
 .simulation-focus-list::-webkit-scrollbar {
@@ -4557,33 +4692,65 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .simulation-focus-row {
+  position: relative;
   appearance: none;
   border: var(--hairline, 1px) solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--abs-radius-pill);
   background: transparent;
-  color: var(--text-logo);
+  color: var(--simulation-focus-ink);
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-columns: var(--simulation-focus-icon-size) minmax(0, 1fr);
   align-items: center;
-  gap: var(--gap-md);
+  gap: var(--gap-sm);
   min-height: var(--simulation-focus-row-height);
   width: 100%;
-  padding: var(--gap-xs) var(--gap-md);
+  padding: calc(var(--gap-xs) * 0.5) var(--gap-sm);
   font: inherit;
   text-align: left;
   cursor: pointer;
+  isolation: isolate;
+  overflow: visible;
   -webkit-tap-highlight-color: transparent;
   transition:
-    border-color 160ms var(--ease-organic),
-    background-color 160ms var(--ease-organic),
     color 160ms var(--ease-organic),
     transform 140ms var(--ease-organic),
     filter 140ms var(--ease-organic);
 }
 
+.simulation-focus-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--cursor-color);
+  box-shadow: var(--ui-chrome-button-edge);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.72);
+  transform-origin: center;
+  transition:
+    transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
+    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+}
+
+.simulation-focus-row > * {
+  position: relative;
+  z-index: 1;
+}
+
 .simulation-focus-row:hover {
-  border-color: color-mix(in srgb, currentColor 24%, transparent);
-  background: color-mix(in srgb, var(--frame-inner-surface) 18%, transparent);
+  color: var(--cursor-hover-fg, var(--text-primary));
+}
+
+.simulation-focus-row:hover::before {
+  opacity: 1;
+  transform: scale(var(--abs-button-swell-scale, 1.06));
+  transition:
+    transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
+    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
 
 .simulation-focus-row:active {
@@ -4592,49 +4759,66 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .simulation-focus-row:focus-visible {
-  outline: var(--hairline, 1px) solid color-mix(in srgb, var(--cursor-color) 72%, currentColor);
-  outline-offset: 3px;
+  outline: none;
+  outline-offset: 0;
 }
 
 .simulation-focus-row[aria-current='true'] {
-  border-color: color-mix(in srgb, currentColor 58%, transparent);
-  background: color-mix(in srgb, var(--frame-inner-surface) 28%, transparent);
+  border-color: transparent;
+  background: transparent;
 }
 
 .simulation-focus-row__icon {
-  width: 48px;
-  height: 48px;
+  width: var(--simulation-focus-icon-size);
+  height: var(--simulation-focus-icon-size);
   color: currentColor;
-  opacity: 0.92;
 }
 
 .simulation-focus-row__copy {
   min-width: 0;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--gap-sm);
+  gap: var(--gap-xs);
 }
 
 .simulation-focus-row__name {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
   font-family: var(--abs-font-sans);
-  font-size: clamp(1rem, 0.96rem + 0.22vw, 1.18rem);
+  font-size: clamp(0.92rem, 0.9rem + 0.18vw, 1rem);
   font-weight: var(--abs-weight-regular);
-  line-height: 1.15;
+  line-height: 1.1;
   letter-spacing: 0;
 }
 
 .simulation-focus-row__meta {
   flex: 0 0 auto;
-  color: color-mix(in srgb, currentColor 62%, transparent);
+  color: currentColor;
   font-family: var(--abs-font-sans);
   font-size: var(--legend-font-size);
   line-height: 1;
   letter-spacing: 0;
+}
+
+@media (min-width: 900px) {
+  .simulation-focus-modal {
+    --simulation-focus-row-height: 48px;
+    --simulation-focus-icon-size: 32px;
+    --simulation-focus-list-width: min(100%, 24rem);
+    gap: var(--gap-md);
+    padding:
+      clamp(24px, 4svh, 48px)
+      clamp(var(--gap-xl), 5vw, calc(var(--gap-xl) * 2));
+  }
+
+  .simulation-focus-list {
+    grid-template-columns: minmax(0, 1fr);
+    width: var(--simulation-focus-list-width);
+  }
 }
 
 .modal-label {
@@ -4659,6 +4843,10 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   justify-content: center;
   align-items: center;
   margin: 0;
+}
+
+.simulation-focus-modal .gate-back {
+  color: var(--simulation-focus-ink);
 }
 
 .cv-modal.active .modal-label,

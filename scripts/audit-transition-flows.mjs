@@ -10,9 +10,9 @@
  *
  * Run: npm run audit:transition-flows
  * Needs: preview or dev server. Set ABS_DEV_URL to origin (e.g. http://127.0.0.1:8013).
- * The audit pins the home entry to ?mode=pit unless ABS_DEV_URL already includes a query,
- * because these flows assert the canonical home hero/nav surface rather than a date-based
- * route-backed daily simulation.
+ * The audit pins the home entry to ?focus=pit unless ABS_DEV_URL already includes a mode/focus,
+ * and enables the home runtime audit because the visible home title is rendered into canvas from
+ * the semantic DOM source.
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -32,6 +32,7 @@ const BRIDGE_WITHIN_MS = Number(process.env.ABS_TRANSITION_BRIDGE_WITHIN_MS || 3
 const DESTINATION_WITHIN_MS = Number(process.env.ABS_TRANSITION_DESTINATION_WITHIN_MS || 1200);
 const STRICT_RAF = ['1', 'true', 'yes'].includes(String(process.env.ABS_TRANSITION_STRICT_RAF || '').toLowerCase());
 const SIMULATION_CANVAS_SELECTOR = [
+  '.daily-focus-canvas',
   '#c',
   '#aperture-bloom-canvas',
   '#confluence-bridges-canvas',
@@ -71,9 +72,14 @@ function resolveHomeEntryUrl() {
     raw = `${raw}/index.html`;
   }
   const url = new URL(raw);
-  if (!url.search) {
-    url.searchParams.set('mode', 'pit');
+  if (
+    !url.searchParams.has('mode') &&
+    !url.searchParams.has('focus') &&
+    !url.searchParams.has('simulation')
+  ) {
+    url.searchParams.set('focus', 'pit');
   }
+  url.searchParams.set('absAudit', '1');
   return url.href;
 }
 
@@ -112,10 +118,13 @@ async function waitForHomeSettled(page) {
       const footer = document.querySelector('footer.ui-bottom');
       const blur = document.getElementById('modal-blur-layer');
       const content = document.getElementById('modal-content-layer');
+      const titleSnapshot = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
       return Boolean(
         hero &&
           nav &&
           footer &&
+          titleSnapshot?.canvasTitleVisible &&
+          titleSnapshot?.canvasTitleLineCount >= 2 &&
           !document.body.classList.contains('portfolio-page') &&
           !document.body.classList.contains('cv-page') &&
           (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle' &&
@@ -221,8 +230,13 @@ async function snapshotState(page) {
       const contactModal = qs('#contact-modal');
       const wallSlot = qs('#shell-wall-slot');
       const routeTopbar = qs('.ui-top-main.route-topbar');
+      const titleSnapshot = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.() || null;
 
       const heroVisible = visible(qs('#hero-title'));
+      const canvasTitleVisible = Boolean(
+        titleSnapshot?.canvasTitleVisible &&
+        titleSnapshot?.canvasTitleLineCount >= 2
+      );
       const homeNavVisible = visible(qs('#main-links'));
       const topbarVisible = visible(routeTopbar);
       const footerVisible = visible(qs('footer.ui-bottom'));
@@ -240,6 +254,8 @@ async function snapshotState(page) {
         gateTransition: document.documentElement.dataset.absGateTransition || '',
         wallVisible: visible(wallSlot),
         heroVisible,
+        canvasTitleVisible,
+        canvasTitleLineCount: titleSnapshot?.canvasTitleLineCount || 0,
         homeNavVisible,
         topbarVisible,
         footerVisible,
@@ -253,7 +269,7 @@ async function snapshotState(page) {
         cvModalVisible: visible(cvModal),
         contactModalVisible: visible(contactModal),
         visibleNavLinks: navLinks.filter((el) => visible(el)).length,
-        homeGroupVisible: heroVisible || homeNavVisible,
+        homeGroupVisible: heroVisible || canvasTitleVisible || homeNavVisible,
         routeGroupVisible: topbarVisible || cvVisible || portfolioMountVisible || projectViewVisible,
         overlayGroupVisible:
           visible(blurLayer) ||

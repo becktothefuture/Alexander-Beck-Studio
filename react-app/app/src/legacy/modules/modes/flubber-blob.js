@@ -1338,6 +1338,8 @@ export function renderFlubberBlob(ctx) {
     if (!ball) continue;
     const alpha = Math.max(0, Math.min(1, (ball.alpha ?? 1) * (ball.filterOpacity ?? 1)));
     if (alpha <= 0) continue;
+    const visualRadius = ball.r * Math.max(0, Math.min(1, ball.visualScale ?? 1));
+    if (visualRadius <= 0.05) continue;
     if (ball.color !== currentColor) {
       currentColor = ball.color;
       ctx.fillStyle = currentColor;
@@ -1347,7 +1349,7 @@ export function renderFlubberBlob(ctx) {
       previousAlpha = alpha;
     }
     ctx.beginPath();
-    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    ctx.arc(ball.x, ball.y, visualRadius, 0, Math.PI * 2);
     ctx.fill();
   }
   if (previousAlpha !== 1) ctx.globalAlpha = 1;

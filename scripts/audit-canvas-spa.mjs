@@ -9,7 +9,15 @@
 import { chromium } from 'playwright';
 
 const BUFFER_WAIT_MS = Number(process.env.ABS_CANVAS_WAIT_MS || 20000);
-const SIMULATION_CANVAS_SELECTOR = '#c, #flock-of-birds-canvas, #wall-repel-canvas, canvas.concept-simulation-canvas';
+const SIMULATION_CANVAS_SELECTOR = [
+  '#c',
+  '#flock-of-birds-canvas',
+  '#mineral-growth-canvas',
+  '#wall-repel-canvas',
+  '.beach-ball-room-canvas',
+  '.napoleon-point-cloud__canvas',
+  'canvas.concept-simulation-canvas',
+].join(', ');
 
 function resolveHomeEntryUrl() {
   let raw = (process.env.ABS_DEV_URL || 'http://127.0.0.1:8012').trim().replace(/\/+$/, '');
@@ -17,8 +25,8 @@ function resolveHomeEntryUrl() {
   if (!/\.html$/i.test(url.pathname)) {
     url.pathname = `${url.pathname.replace(/\/+$/, '')}/index.html`.replace(/\/{2,}/g, '/');
   }
-  if (!url.searchParams.has('mode')) {
-    url.searchParams.set('mode', 'pit');
+  if (!url.searchParams.has('focus')) {
+    url.searchParams.set('focus', 'pit');
   }
   return url.toString();
 }

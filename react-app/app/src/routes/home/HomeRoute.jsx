@@ -25,7 +25,7 @@ export function getHomeRouteView() {
     contentRenderKey: 'home-shell',
     wallClassName: 'ball-simulation w-embed',
     wallContent: (
-      <canvas id="c" aria-label="Bouncy balls" role="img" draggable="false" />
+      <canvas id="c" className="ball-canvas-layer" aria-label="Bouncy balls" role="img" draggable="false" />
     ),
     headerContent: (
       <header className="ui-top">
@@ -55,7 +55,12 @@ export function getHomeRouteView() {
       </header>
     ),
     heroTitle: (
-      <h1 id="hero-title" className="hero-title" aria-label="Alexander Beck. Creative. Technologist.">
+      <h1
+        id="hero-title"
+        className="hero-title hero-title--canvas-source"
+        data-canvas-title-source="home"
+        aria-label="Alexander Beck. Creative. Technologist."
+      >
         <span className="hero-title__name">Alexander Beck.</span>
         <span className="hero-title__role">Creative. Technologist.</span>
       </h1>

@@ -9,6 +9,11 @@ import {
   getSimulationName,
 } from '../../../data/simulationCatalog.js';
 import { trySpaNavigate } from '../../../lib/spa-navigation.js';
+import {
+  createIndexedSimulationVisualTransition,
+  getInitialSimulationVisualScale,
+  registerSimulationVisualTransition,
+} from '../../../lib/simulationVisualTransition.js';
 import { setMode as setModeState, getGlobals } from '../core/state.js';
 import { resize } from '../rendering/renderer.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
@@ -133,7 +138,9 @@ const MODE_REGISTRY = {
       initialize: 'initializeStarfield3D',
       force: 'applyStarfield3DForces',
       update: 'updateStarfield3D',
-      preRender: 'renderStarfield3D'
+      preRender: 'renderStarfield3D',
+      visualTransitionCount: 'getStarfieldVisualTransitionCount',
+      setVisualTransitionScale: 'setStarfieldVisualTransitionScale'
     }
   },
   [MODES.ELASTIC_CENTER]: {
@@ -181,6 +188,8 @@ const modeRuntimeCache = new Map();
 const modeLoadPromises = new Map();
 let preloadAllStarted = false;
 let modeChangeToken = 0;
+let legacyVisualTransition = null;
+let unregisterLegacyVisualTransition = null;
 
 function toFn(module, key) {
   if (!key) return null;
@@ -197,7 +206,9 @@ function buildModeRuntime(module, hooks = {}) {
     postRender: toFn(module, hooks.postRender),
     customRender: toFn(module, hooks.render),
     customStep: toFn(module, hooks.customStep),
-    bounds: toFn(module, hooks.bounds)
+    bounds: toFn(module, hooks.bounds),
+    visualTransitionCount: toFn(module, hooks.visualTransitionCount),
+    setVisualTransitionScale: toFn(module, hooks.setVisualTransitionScale)
   };
 }
 
@@ -348,8 +359,60 @@ function getRuntimeForCurrentMode() {
   return null;
 }
 
+function ensureLegacyVisualTransition() {
+  if (!legacyVisualTransition) {
+    legacyVisualTransition = createIndexedSimulationVisualTransition({
+      sourceId: 'home-canvas',
+      getCount: () => {
+        const globals = getGlobals();
+        const runtime = getRuntimeForCurrentMode();
+        if (typeof runtime?.visualTransitionCount === 'function') {
+          return runtime.visualTransitionCount();
+        }
+        return Array.isArray(globals.balls) ? globals.balls.length : 0;
+      },
+      setScaleAt: (index, scale) => {
+        const globals = getGlobals();
+        const runtime = getRuntimeForCurrentMode();
+        if (typeof runtime?.setVisualTransitionScale === 'function') {
+          runtime.setVisualTransitionScale(index, scale);
+          return;
+        }
+        const ball = Array.isArray(globals.balls) ? globals.balls[index] : null;
+        if (ball) ball.visualScale = scale;
+      },
+      getSeed: () => {
+        const globals = getGlobals();
+        const mode = String(globals.currentMode || '');
+        let hash = 2166136261;
+        for (let i = 0; i < mode.length; i += 1) {
+          hash ^= mode.charCodeAt(i);
+          hash = Math.imul(hash, 16777619);
+        }
+        return hash >>> 0;
+      },
+    });
+  }
+
+  if (!unregisterLegacyVisualTransition) {
+    unregisterLegacyVisualTransition = registerSimulationVisualTransition('home-canvas', legacyVisualTransition);
+  }
+
+  return legacyVisualTransition;
+}
+
 export function initModeSystem() {
+  ensureLegacyVisualTransition();
   maybePreloadAllModes();
+}
+
+export function disposeModeSystem() {
+  if (unregisterLegacyVisualTransition) {
+    unregisterLegacyVisualTransition();
+    unregisterLegacyVisualTransition = null;
+  }
+  legacyVisualTransition?.destroy?.();
+  legacyVisualTransition = null;
 }
 
 export async function setMode(inputMode) {
@@ -420,6 +483,7 @@ export async function setMode(inputMode) {
     applyCrittersOverridesIfNeeded(globals, mode);
     resetColorDistributionCoverage();
     runtime.initialize();
+    ensureLegacyVisualTransition().setVisualScale(getInitialSimulationVisualScale());
 
     console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);
 

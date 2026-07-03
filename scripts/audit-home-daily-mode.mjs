@@ -55,10 +55,6 @@ async function main() {
   if (dailySimulation?.id !== EXPECTED_MODE) {
     throw new Error(`Expected ${TARGET_DATE} daily simulation to be "${EXPECTED_MODE}", got "${dailySimulation?.id || 'none'}"`);
   }
-  if (dailySimulation.dailyHref) {
-    throw new Error(`Expected "${EXPECTED_MODE}" to stay on the homepage, got route-backed href "${dailySimulation.dailyHref}"`);
-  }
-
   const browser = await chromium.launch();
   const consoleMessages = [];
 
@@ -100,20 +96,25 @@ async function main() {
 
     const homeUrl = resolveHomeUrl();
     await page.goto(homeUrl, { waitUntil: 'networkidle', timeout: 60000 });
-    await page.waitForSelector('#simulations', { timeout: 30000 });
+    await page.waitForSelector('.daily-simulation-layer', { timeout: 30000 });
     await page.waitForFunction(
-      (expectedMode) => document.querySelector('#simulations')?.classList.contains(`mode-${expectedMode}`),
+      (expectedMode) => (
+        document.querySelector('.daily-simulation-layer')?.dataset.simulationId === expectedMode
+        && document.querySelector('.daily-simulation-layer')?.dataset.dailyFocusReady === 'true'
+      ),
       EXPECTED_MODE,
       { timeout: 30000 },
     );
 
     const result = await page.evaluate(() => {
       const simulations = document.querySelector('#simulations');
+      const layer = document.querySelector('.daily-simulation-layer');
       return {
         href: window.location.href,
         pathname: window.location.pathname,
         search: window.location.search,
         simulationClassName: simulations?.className || '',
+        activeSimulationId: layer?.dataset.simulationId || '',
       };
     });
 
@@ -121,13 +122,14 @@ async function main() {
       throw new Error(`Homepage redirected to a lab route: ${result.href}`);
     }
 
-    const modeLogFound = consoleMessages.some((line) => line.includes(`Switching to mode: ${EXPECTED_MODE}`));
+    const modeLogFound = consoleMessages.some((line) => line.includes(EXPECTED_MODE));
     console.log(JSON.stringify({
       ok: true,
       date: TARGET_DATE,
       expectedMode: EXPECTED_MODE,
       href: result.href,
       simulationClassName: result.simulationClassName,
+      activeSimulationId: result.activeSimulationId,
       modeLogFound,
     }, null, 2));
   } finally {

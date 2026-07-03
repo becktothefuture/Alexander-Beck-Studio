@@ -107,11 +107,11 @@ Loop order is `Featured -> Extended -> Featured`.
 
 - Shared pointer input is mouse, trackpad, pen, and touch aware. The first valid input sample inside the canvas must seed mode-local smoothing or velocity state immediately; modes must not ease from offscreen, center, or idle-anchor state.
 - Depth-plane title layering is active for `3d-sphere`, `3d-cube`, and `parallax-float`. These modes split particles around the fixed title plane at normalized z `0.5`, with some balls behind and some in front.
-- No-depth modes keep the title behind the canvas/simulation. Do not change the title's CSS x/y position to solve scene alignment; align the simulation/depth scene to the existing title center instead.
+- The visible home title/subtitle are canvas-rendered from the semantic `#hero-title` source. No-depth modes draw the title before the normal ball pass, preserving the old title-behind-simulation relationship. Do not change the title's CSS x/y position to solve scene alignment; align the simulation/depth scene to the existing title center instead.
 
 ---
 
-## Behavior Snapshot (Active Modes)
+## Behavior Snapshot (Runnable Modes)
 
 - `pit`: gravity + collisions + cursor repeller.
 - `flies`: swarm attractor behavior with lightweight motion.

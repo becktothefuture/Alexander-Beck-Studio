@@ -1,3 +1,8 @@
+import {
+  createIndexedSimulationVisualTransition,
+  registerSimulationVisualTransition,
+} from '../../lib/simulationVisualTransition.js';
+
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
 const DEFAULT_THEME = {
@@ -506,6 +511,7 @@ function createColorCache(theme) {
 
 function drawState(ctx, state, metrics, theme, options = {}) {
   const colors = createColorCache(theme);
+  const getVisualScaleAt = options.getVisualScaleAt || (() => 1);
   ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
@@ -523,7 +529,8 @@ function drawState(ctx, state, metrics, theme, options = {}) {
   ctx.fillStyle = colors.shadow;
   ctx.beginPath();
   for (let i = 0; i < state.count; i += 1) {
-    const radius = state.radius[i];
+    const radius = state.radius[i] * getVisualScaleAt(i);
+    if (radius <= 0.05) continue;
     ctx.moveTo(state.x[i] + radius + 1.5, state.y[i] + 2.4);
     ctx.arc(state.x[i] + 1.5, state.y[i] + 2.4, radius * 1.01, 0, TAU);
   }
@@ -534,8 +541,10 @@ function drawState(ctx, state, metrics, theme, options = {}) {
     ctx.beginPath();
     for (let i = 0; i < state.count; i += 1) {
       if (state.colorIndex[i] !== colorIndex) continue;
-      ctx.moveTo(state.x[i] + state.radius[i], state.y[i]);
-      ctx.arc(state.x[i], state.y[i], state.radius[i], 0, TAU);
+      const radius = state.radius[i] * getVisualScaleAt(i);
+      if (radius <= 0.05) continue;
+      ctx.moveTo(state.x[i] + radius, state.y[i]);
+      ctx.arc(state.x[i], state.y[i], radius, 0, TAU);
     }
     ctx.fill();
 
@@ -543,9 +552,11 @@ function drawState(ctx, state, metrics, theme, options = {}) {
     ctx.beginPath();
     for (let i = 0; i < state.count; i += 1) {
       if (state.colorIndex[i] !== colorIndex) continue;
-      const radius = state.radius[i] * 0.28;
-      ctx.moveTo(state.x[i] - state.radius[i] * 0.2 + radius, state.y[i] - state.radius[i] * 0.24);
-      ctx.arc(state.x[i] - state.radius[i] * 0.2, state.y[i] - state.radius[i] * 0.24, radius, 0, TAU);
+      const bodyRadius = state.radius[i] * getVisualScaleAt(i);
+      if (bodyRadius <= 0.05) continue;
+      const radius = bodyRadius * 0.28;
+      ctx.moveTo(state.x[i] - bodyRadius * 0.2 + radius, state.y[i] - bodyRadius * 0.24);
+      ctx.arc(state.x[i] - bodyRadius * 0.2, state.y[i] - bodyRadius * 0.24, radius, 0, TAU);
     }
     ctx.fill();
   }
@@ -577,6 +588,14 @@ export function createWallRepelRenderer({
   let lastFrameAt = 0;
   let lastUpdateAt = 0;
   let lastRenderMs = 0;
+  let unregisterVisualTransition = null;
+  const visualTransition = createIndexedSimulationVisualTransition({
+    sourceId: 'wall-repel',
+    getCount: () => state?.count || 0,
+    requestRender: () => render(performance.now()),
+    getSeed: () => 0x43f17a91,
+  });
+  unregisterVisualTransition = registerSimulationVisualTransition('wall-repel', visualTransition);
 
   function readPointer(event) {
     if (isEventOnPanel(event.target)) return;
@@ -621,7 +640,10 @@ export function createWallRepelRenderer({
 
     const startedAt = performance.now();
     updateState(state, metrics, config, pointer, now, deltaSeconds, reducedMotion);
-    drawState(ctx, state, metrics, theme, { transparentBackground });
+    drawState(ctx, state, metrics, theme, {
+      transparentBackground,
+      getVisualScaleAt: visualTransition.getScaleAt,
+    });
     lastRenderMs = performance.now() - startedAt;
   }
 
@@ -690,6 +712,9 @@ export function createWallRepelRenderer({
     start,
     destroy() {
       destroyLoop();
+      unregisterVisualTransition?.();
+      unregisterVisualTransition = null;
+      visualTransition.destroy?.();
       window.removeEventListener('pointermove', readPointer);
       window.removeEventListener('pointerdown', handlePointerDown);
       window.removeEventListener('pointerup', handlePointerUp);

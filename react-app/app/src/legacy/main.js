@@ -24,8 +24,8 @@ import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
 import { setupOverscrollLock } from './modules/input/overscroll-lock.js';
 import { setupCustomCursor } from './modules/rendering/cursor.js';
-import { setMode, getForceApplicator, initModeSystem } from './modules/modes/mode-controller.js';
-import { startMainLoop } from './modules/rendering/loop.js';
+import { setMode, getForceApplicator, initModeSystem, disposeModeSystem } from './modules/modes/mode-controller.js';
+import { startMainLoop, stopMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initCVModal } from './modules/ui/cv-modal.js';
 import { initPortfolioModal } from './modules/ui/portfolio-modal.js';
@@ -64,6 +64,10 @@ import {
 } from './modules/visual/page-orchestrator.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../lib/transition-phase.js';
 import {
+  runSimulationVisualTransition,
+  setInitialSimulationVisualScale,
+} from '../lib/simulationVisualTransition.js';
+import {
   initConsolePolicy,
   printConsoleBanner,
   group,
@@ -88,6 +92,13 @@ function isLocalBuildPanelPreviewEnabled() {
 
   const params = new URLSearchParams(window.location.search);
   return params.get('panel') === '1' || params.get('configPanel') === '1';
+}
+
+function isHomeRuntimeAuditEnabled() {
+  if (ABS_DEV) return true;
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.get('absAudit') === '1' || params.get('audit') === 'home-runtime';
 }
 
 function setBootLifecycleState(state) {
@@ -115,7 +126,13 @@ function signalRouteReady(routeId) {
 
 function getUrlStartupModeOverride() {
   try {
-    const mode = String(new URLSearchParams(window.location.search).get('mode') || '').trim();
+    const params = new URLSearchParams(window.location.search);
+    const mode = String(
+      params.get('mode')
+      || params.get('focus')
+      || params.get('simulation')
+      || ''
+    ).trim();
     if (!mode) return '';
     return NARRATIVE_MODE_SEQUENCE.includes(mode) ? mode : '';
   } catch (e) {
@@ -125,11 +142,11 @@ function getUrlStartupModeOverride() {
 
 /**
  * Apply two-level padding CSS variables from global state to :root
- * 
+ *
  * Two-level system:
  * 1. --container-border: insets #simulations from viewport (reveals body bg as outer frame)
  * 2. --simulation-padding: padding inside container around canvas (inner breathing room)
- * 
+ *
  * The canvas radius auto-calculates via CSS: calc(var(--container-radius) - var(--simulation-padding))
  */
 export function applyFramePaddingCSSVars() {
@@ -143,7 +160,7 @@ export function applyFramePaddingCSSVars() {
  */
 export function applyVisualCSSVars(config) {
   const root = document.documentElement;
-  
+
   // NOTE: Layout CSS vars (frame/padding/radius/thickness) are applied via
   // `applyLayoutCSSVars()` from state (vw-native → px derived).
 
@@ -153,12 +170,12 @@ export function applyVisualCSSVars(config) {
   }
 
   // Container inner shadow removed
-  
+
   // Noise texture sizing
   if (config.noiseSize !== undefined) {
     root.style.setProperty('--noise-size', `${config.noiseSize}px`);
   }
-  
+
   // Noise opacity
   if (config.noiseOpacityLight !== undefined) {
     root.style.setProperty('--noise-opacity-light', String(config.noiseOpacityLight));
@@ -166,7 +183,7 @@ export function applyVisualCSSVars(config) {
   if (config.noiseOpacityDark !== undefined) {
     root.style.setProperty('--noise-opacity-dark', String(config.noiseOpacityDark));
   }
-  
+
   // Noise colors
   if (config.noiseColorLight !== undefined) {
     root.style.setProperty('--noise-color-light', String(config.noiseColorLight));
@@ -174,7 +191,7 @@ export function applyVisualCSSVars(config) {
   if (config.noiseColorDark !== undefined) {
     root.style.setProperty('--noise-color-dark', String(config.noiseColorDark));
   }
-  
+
 }
 
 /**
@@ -245,7 +262,7 @@ function isSimulationFocusTransitionActive() {
   const phase = document.documentElement.dataset.absSimulationFocusTransition
     || window.__ABS_SIMULATION_FOCUS_TRANSITION__?.phase
     || 'idle';
-  return phase === 'out' || phase === 'in';
+  return phase === 'out' || phase === 'hold' || phase === 'in';
 }
 
 function clearHomePostBootEntranceTimer() {
@@ -341,7 +358,7 @@ export async function bootstrapHomePage() {
   } catch (e) {}
 
   // Console banner will be printed after colors are initialized (see below)
-  
+
   // DEV-only: wire control registry to use CSS vars function (avoids circular dependency).
   // In production we ship no config panel, so the registry is not loaded.
   if (ABS_DEV) {
@@ -350,7 +367,7 @@ export async function bootstrapHomePage() {
       setUpdateTactileLayer?.(updateTactileLayer);
     } catch (e) {}
   }
-  
+
   try {
     group('BouncyBalls bootstrap');
     mark('bb:start');
@@ -360,7 +377,7 @@ export async function bootstrapHomePage() {
     syncShellToDocument({
       isDark: document.documentElement.classList.contains('dark-mode')
     });
-    
+
     const config = await loadRuntimeConfig();
     initState(config);
     applyHomeHeroRuntimeConfig();
@@ -382,11 +399,11 @@ export async function bootstrapHomePage() {
         window.repelPower = g.repelPower;
       }
     } catch (e) {}
-    
+
     // Apply vw-native layout (frame/padding/radius) as derived px CSS vars.
     applyLayoutCSSVars();
     log('✓ Layout applied');
-    
+
     // Apply visual CSS vars (noise, inner shadow) from config
     applyVisualCSSVars(config);
     log('✓ Visual effects configured');
@@ -480,7 +497,7 @@ export async function bootstrapHomePage() {
         root.style.setProperty('--abs-hover-snap-undershoot', String(g.hoverSnapUndershoot));
       }
     } catch (e) {}
-    
+
     // Ensure base noise element exists (for modular dev environments)
     ensureNoiseElements();
 
@@ -492,19 +509,16 @@ export async function bootstrapHomePage() {
     try {
       initWallShadowPlateSystem(getGlobals());
     } catch (e) {}
-    
+
     // Setup canvas (attaches resize listener, but doesn't resize yet)
     setupRenderer();
     const canvas = getCanvas();
     const ctx = getContext();
     const container = document.getElementById('simulations');
-    
+
     if (!canvas || !ctx || !container) {
       throw new Error('Missing DOM elements');
     }
-
-    // Logo is now positioned in .ui-center flex container (inside .fade-content)
-    // No longer moved to #simulations - it stays in the UI layer for proper flex layout
 
     // Accessibility: the canvas is an interactive surface (keyboard + pointer).
     // Ensure we expose it as an application-like region for AT.
@@ -514,23 +528,23 @@ export async function bootstrapHomePage() {
         canvas.setAttribute('aria-label', 'Interactive bouncy balls physics simulation');
       }
     } catch (e) {}
-    
+
     // Set canvas reference in state (needed for container-relative sizing)
     setCanvas(canvas, ctx, container);
-    
+
     // NOW resize - container is available for container-relative sizing
     resize();
     mark('bb:renderer');
     log('✓ Canvas initialized (container-relative sizing)');
-    
+
     // Canvas logo removed — hero title is now a DOM <h1> inside #simulations
     log('✓ Hero title rendered via DOM (canvas logo removed)');
-    
+
     // Ensure initial mouseInCanvas state is false for tests
     const globals = getGlobals();
     globals.mouseInCanvas = false;
     if (typeof window !== 'undefined') window.mouseInCanvas = false;
-    
+
     // Setup pointer tracking BEFORE dark mode (needed for interactions)
     setupPointer();
     log('✓ Pointer tracking configured');
@@ -538,12 +552,12 @@ export async function bootstrapHomePage() {
     // iOS Safari: prevent page rubber-banding while still allowing UI internal scrolling.
     setupOverscrollLock();
     log('✓ Overscroll lock configured');
-    
+
     // Setup custom cursor (circular, matches ball size)
     setupCustomCursor();
     mark('bb:input');
     log('✓ Custom cursor initialized');
-    
+
     // Initialize Tactile Layer (Unicorn Studio)
     try {
       initTactileLayer(config);
@@ -557,7 +571,7 @@ export async function bootstrapHomePage() {
 
     // Scene micro-interaction: subtle "clicked-in" response on simulation changes
     initSceneImpactReact();
-    
+
     // Load any saved settings
     loadSettings();
 
@@ -585,10 +599,10 @@ export async function bootstrapHomePage() {
     // Interactive legend: hover + click filtering (shared module; must run in prod too)
     initLegendFilterSystem();
     log('✓ Legend filter system configured');
-    
+
     setupKeyboardShortcuts();
     log('✓ Keyboard shortcuts registered');
-    
+
     // Initialize modal blur overlay system
     try {
       initModalOverlay(config);
@@ -631,32 +645,34 @@ export async function bootstrapHomePage() {
 
     // Footer: mobile-friendly wrapping tweaks (keeps "About me" together)
     enhanceFooterLinksForMobile();
-    
+
     // Create quick sound toggle button (bottom-right, next to time)
     createSoundToggle();
     log('✓ Sound toggle button created');
-    
+
     // Create quick theme toggle button (bottom-left)
     createThemeToggle();
     log('✓ Theme toggle button created');
-    
+
     // Layout controls integrated into master panel
-    
-    // Initialize mode runtime (handles eager/lazy mode rollout flags)
-    initModeSystem();
 
     // Initialize starting mode. A non-empty startupMode overrides the daily rotation
     // until it is cleared again in the authored shell config.
     const urlMode = getUrlStartupModeOverride();
     const configuredHeroMode = String(getShellConfig()?.hero?.startupMode || '').trim();
     const startMode = urlMode || configuredHeroMode || getDailyMode() || MODES.PIT;
+    const startupReduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    setInitialSimulationVisualScale(startupReduceMotion ? 1 : 0);
 
+    // Initialize mode runtime (handles eager/lazy mode rollout flags)
+    initModeSystem();
     await setMode(startMode);
+
     if (isRouteTransitionPhase(getTransitionPhase())) {
       signalRouteReady('home');
     }
 
-    if (ABS_DEV && typeof window !== 'undefined') {
+    if (isHomeRuntimeAuditEnabled() && typeof window !== 'undefined') {
       window.__ABS_HOME_AUDIT__ = {
         getGlobals,
         getShellConfig,
@@ -674,6 +690,8 @@ export async function bootstrapHomePage() {
 
           const frontCanvas = globals.depthTitleFrontCanvas || document.getElementById('simulation-front-depth-canvas');
           const container = globals.container || document.getElementById('simulations');
+          const title = document.getElementById('hero-title');
+          const canvasTitleState = globals.canvasTitleRenderState || {};
           return {
             mode: globals.currentMode,
             pointerX: globals.pointerX,
@@ -688,6 +706,11 @@ export async function bootstrapHomePage() {
             mouseInCanvas: globals.mouseInCanvas,
             depthTitleLayerActive: container?.classList?.contains('simulation-depth-title-layer-active') === true,
             frontDepthCanvasActive: frontCanvas?.dataset?.active === 'true',
+            canvasTitleActive: canvasTitleState.active === true,
+            canvasTitleVisible: canvasTitleState.visible === true,
+            canvasTitleLineCount: Number(canvasTitleState.lineCount) || 0,
+            canvasTitleMaxOpacity: Number(canvasTitleState.maxOpacity) || 0,
+            semanticTitleText: title?.textContent?.replace(/\s+/g, ' ').trim() || '',
             behindTitleCount,
             inFrontOfTitleCount,
             sphereRotationMatrix: globals.sphere3dState?.rotationMatrix ? [...globals.sphere3dState.rotationMatrix] : null,
@@ -744,21 +767,21 @@ export async function bootstrapHomePage() {
 
     mark('bb:mode');
     log('✓ Mode initialized');
-    
+
     // Initialize quote display (shows curated quotes based on current mode)
     initQuoteDisplay();
     initQuotePuck();
     log('✓ Quote display initialized');
-    
+
     // Register force render callback for resize (prevents blank frames during drag-resize)
     setForceRenderCallback(render);
-    
+
     // NOTE: Scroll FX is portfolio-only (see `source/modules/portfolio/`).
 
     // Start main render loop
     // PERF: getForcesFn is resolved once per frame in the loop, not per particle
     startMainLoop(null, { getForcesFn: getForceApplicator });
-    
+
     mark('bb:end');
     log('✅ Bouncy Balls running (modular)');
 
@@ -774,7 +797,7 @@ export async function bootstrapHomePage() {
     ].filter((r) => typeof r.ms === 'number');
     if (rows.length) table(rows.map((r) => ({ ...r, ms: Number(r.ms.toFixed(2)) })));
     groupEnd();
-    
+
     // Console banner: print AFTER colors are initialized and group is closed so it's always visible
     // - DEV: show the same colored banner (but keep logs)
     // - PROD: show banner and silence non-error console output
@@ -794,33 +817,33 @@ export async function bootstrapHomePage() {
         // Console completely unavailable
       }
     }
-    
+
     // ╔══════════════════════════════════════════════════════════════════════════════╗
     // ║                         DIRECT BOOT REVEAL                                  ║
     // ║  The page is composed behind the first-paint overlay, then revealed once     ║
     // ║  fonts, layout, canvas sizing, and the first simulation frame are stable.    ║
     // ╚══════════════════════════════════════════════════════════════════════════════╝
-    
+
     try {
-      const { 
-        getModalToAutoOpen, 
-        shouldSkipWallAnimation, 
+      const {
+        getModalToAutoOpen,
+        shouldSkipWallAnimation,
         resetTransitionState,
         setupPrefetchOnHover,
         initSpeculativePrefetch,
         didViewTransitionRun
       } = await import('./modules/utils/page-nav.js');
-      
+
       const shellConfig = getShellConfig();
       const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
 
       // Check navigation state BEFORE consuming it (getModalToAutoOpen reads but doesn't clear)
       const autoOpenModal = getModalToAutoOpen();
-      
+
       // Check if we should skip wall animation (internal nav or browser back/forward)
       // Note: shouldSkipWallAnimation() consumes the navigation state
       const skipWall = shouldSkipWallAnimation();
-      
+
       // Check if View Transition just ran (Chrome) - skip entrance animation entirely
       const skipEntrance = didViewTransitionRun();
       const warmupMs = (skipWall || skipEntrance) ? 0 : getPageWarmupMs({ config: shellConfig });
@@ -845,7 +868,7 @@ export async function bootstrapHomePage() {
         await waitForCanvasReady({ selector: '#c', timeoutMs: 3200 });
         await waitForFrames(2);
       };
-      
+
       // Handle bfcache restore (browser back/forward with cached page)
       window.addEventListener('pageshow', (event) => {
         if (event.persisted) {
@@ -854,7 +877,7 @@ export async function bootstrapHomePage() {
           forceBootVisible(['#abs-scene', '#app-frame']);
         }
       });
-      
+
       // Setup prefetch on hover for gate triggers
       const cvTrigger = document.getElementById('cv-modal-trigger');
       const portfolioTrigger = document.getElementById('portfolio-modal-trigger');
@@ -868,6 +891,26 @@ export async function bootstrapHomePage() {
         || isSimulationFocusTransitionActive()
       );
       const shouldRunHomePostBootEntrance = !reduceMotion && !shellRouteTransitionActive;
+      const runHomeBootSimulationEnter = () => {
+        if (reduceMotion || shellRouteTransitionActive) {
+          setInitialSimulationVisualScale(1);
+          return;
+        }
+        void runSimulationVisualTransition('in', {
+          durationMs: 760,
+          localDurationMs: 420,
+          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          reason: 'home-direct-boot',
+        });
+      };
+      const onHomeOverlayHidden = () => {
+        if (shouldRunHomePostBootEntrance) {
+          startHomePostBootEntrance();
+        } else {
+          clearHomePostBootEntrance();
+        }
+        runHomeBootSimulationEnter();
+      };
 
       if (shellRouteTransitionActive) {
         clearHomePostBootEntrance();
@@ -896,14 +939,12 @@ export async function bootstrapHomePage() {
               : skipWall
                 ? 'home-ready-return'
                 : 'home-ready',
-          onOverlayHidden: shouldRunHomePostBootEntrance
-            ? startHomePostBootEntrance
-            : clearHomePostBootEntrance,
+          onOverlayHidden: onHomeOverlayHidden,
         });
         setHomeRouteReadyState(true);
         console.log('✓ Home direct boot revealed from settled first frame');
       }
-      
+
       // Auto-open modal if requested via navigation state
       if (autoOpenModal === 'cv') {
         // CV modal - trigger the gate open
@@ -918,10 +959,10 @@ export async function bootstrapHomePage() {
           if (contactTriggerEl) contactTriggerEl.click();
         }, 400);
       }
-      
+
       // Initialize speculative prefetch system for faster page transitions
       initSpeculativePrefetch();
-      
+
     } catch (e) {
       console.warn('⚠️ Direct boot reveal failed, forcing settled content visible:', e);
       clearHomePostBootEntrance();
@@ -929,6 +970,7 @@ export async function bootstrapHomePage() {
         selectors: ['#abs-scene', '#app-frame'],
         detail: 'home-reveal-failed',
       });
+      setInitialSimulationVisualScale(1);
       setHomeRouteReadyState(true);
     }
 
@@ -937,6 +979,16 @@ export async function bootstrapHomePage() {
     }
 
     return () => {
+      try {
+        stopMainLoop();
+      } catch (e) {
+        /* ignore */
+      }
+      try {
+        disposeModeSystem();
+      } catch (e) {
+        /* ignore */
+      }
       try {
         disposeRendererListeners();
       } catch (e) {

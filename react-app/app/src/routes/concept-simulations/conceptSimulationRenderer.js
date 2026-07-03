@@ -1,4 +1,8 @@
 import { CONCEPT_SIMULATION_IDS } from './conceptSimulationConfigs.js';
+import {
+  createIndexedSimulationVisualTransition,
+  registerSimulationVisualTransition,
+} from '../../lib/simulationVisualTransition.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -231,8 +235,10 @@ function createPebbleShape(random) {
   return points;
 }
 
-function drawPebble(ctx, body) {
+function drawPebble(ctx, body, visualScale = 1) {
   const points = body.shape;
+  const radius = body.r * visualScale;
+  if (radius <= 0.05) return;
   ctx.save();
   ctx.translate(body.x, body.y);
   ctx.rotate(body.rotation);
@@ -240,10 +246,10 @@ function drawPebble(ctx, body) {
   for (let i = 0; i < points.length; i += 1) {
     const current = points[i];
     const next = points[(i + 1) % points.length];
-    const x = Math.cos(current.angle) * current.radius * body.r;
-    const y = Math.sin(current.angle) * current.radius * body.r;
-    const nextX = Math.cos(next.angle) * next.radius * body.r;
-    const nextY = Math.sin(next.angle) * next.radius * body.r;
+    const x = Math.cos(current.angle) * current.radius * radius;
+    const y = Math.sin(current.angle) * current.radius * radius;
+    const nextX = Math.cos(next.angle) * next.radius * radius;
+    const nextY = Math.sin(next.angle) * next.radius * radius;
     if (i === 0) {
       ctx.moveTo(x, y);
     } else {
@@ -256,20 +262,22 @@ function drawPebble(ctx, body) {
   ctx.restore();
 }
 
-function drawCircle(ctx, body) {
+function drawCircle(ctx, body, visualScale = 1) {
+  const radius = body.r * visualScale;
+  if (radius <= 0.05) return;
   ctx.beginPath();
-  ctx.arc(body.x, body.y, body.r, 0, TAU);
+  ctx.arc(body.x, body.y, radius, 0, TAU);
   ctx.fillStyle = body.color;
   ctx.fill();
 }
 
-function drawBody(ctx, body) {
+function drawBody(ctx, body, visualScale = 1) {
   if (body.shapeKind === 'circle') {
-    drawCircle(ctx, body);
+    drawCircle(ctx, body, visualScale);
     return;
   }
 
-  drawPebble(ctx, body);
+  drawPebble(ctx, body, visualScale);
 }
 
 function makeBody(random, theme, x, y, r, extra = {}) {
@@ -679,6 +687,24 @@ export function createConceptSimulationRenderer({
   let lastTime = 0;
   let started = false;
   let layoutKey = '';
+  let unregisterVisualTransition = null;
+  const visualTransition = createIndexedSimulationVisualTransition({
+    sourceId: simulationId,
+    getCount: () => bodies.length,
+    requestRender: () => {
+      syncLayout();
+      render();
+    },
+    getSeed: () => {
+      const seedMap = {
+        [CONCEPT_SIMULATION_IDS.APERTURE_BLOOM]: 11021,
+        [CONCEPT_SIMULATION_IDS.PRESSURE_MOSAIC]: 31041,
+        [CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES]: 41071,
+      };
+      return seedMap[simulationId] || 51061;
+    },
+  });
+  unregisterVisualTransition = registerSimulationVisualTransition(simulationId, visualTransition);
 
   function getLayoutKey(config, theme) {
     return [
@@ -801,14 +827,14 @@ export function createConceptSimulationRenderer({
     ctx.shadowOffsetY = 1.5;
     if (simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES) {
       for (const body of bodies) {
-        if (body.kind !== 'hub') drawBody(ctx, body);
+        if (body.kind !== 'hub') drawBody(ctx, body, visualTransition.getScaleAt(body.bodyIndex));
       }
       for (const body of bodies) {
-        if (body.kind === 'hub') drawBody(ctx, body);
+        if (body.kind === 'hub') drawBody(ctx, body, visualTransition.getScaleAt(body.bodyIndex));
       }
     } else {
       for (const body of bodies) {
-        drawBody(ctx, body);
+        drawBody(ctx, body, visualTransition.getScaleAt(body.bodyIndex));
       }
     }
     ctx.shadowColor = 'transparent';
@@ -910,6 +936,9 @@ export function createConceptSimulationRenderer({
       frameId = 0;
     }
     started = false;
+    unregisterVisualTransition?.();
+    unregisterVisualTransition = null;
+    visualTransition.destroy?.();
     canvas.removeEventListener('pointermove', handlePointerMove);
     canvas.removeEventListener('pointerdown', handlePointerDown);
     canvas.removeEventListener('pointerup', handlePointerUp);

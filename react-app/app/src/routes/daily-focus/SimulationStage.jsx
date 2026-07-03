@@ -1,9 +1,14 @@
 import { DailyFocusShellBridge } from './DailyFocusShellBridge.jsx';
 
-export function SimulationStage({ simulationId, children, status = '' }) {
+export function SimulationStage({
+  simulationId,
+  children,
+  status = '',
+  includeShellBridge = true,
+}) {
   return (
     <>
-      <DailyFocusShellBridge />
+      {includeShellBridge ? <DailyFocusShellBridge /> : null}
       <div
         id="simulation-stage"
         className="daily-simulation-layer"

@@ -1,3 +1,8 @@
+import {
+  createIndexedSimulationVisualTransition,
+  registerSimulationVisualTransition,
+} from '../../lib/simulationVisualTransition.js';
+
 const TAU = Math.PI * 2;
 const SPEED_BUCKET_COUNT = 18;
 const DEFAULT_THEME = {
@@ -291,6 +296,15 @@ export function createFlockOfBirdsRenderer({
   let timeoutId = 0;
   let destroyed = false;
   let lastTime = 0;
+  let unregisterVisualTransition = null;
+  const visualTransition = createIndexedSimulationVisualTransition({
+    sourceId: 'flock-of-birds',
+    getCount: () => state.count || 0,
+    // Transition repaints must not call drawFrame; drawFrame advances physics and schedules RAF.
+    requestRender: () => drawVisualFrame(true),
+    getSeed: () => 0x7f4a9c21,
+  });
+  unregisterVisualTransition = registerSimulationVisualTransition('flock-of-birds', visualTransition);
 
   function cancelScheduledFrame() {
     if (rafId) window.cancelAnimationFrame(rafId);
@@ -1190,7 +1204,8 @@ export function createFlockOfBirdsRenderer({
 
     for (let i = 0; i < state.count; i += 1) {
       const depth = clamp(state.depth[i], -1, 1);
-      const radius = Math.max(1, baseRadius * (1 + depth * depthSize));
+      const radius = Math.max(1, baseRadius * (1 + depth * depthSize)) * visualTransition.getScaleAt(i);
+      if (radius <= 0.05) continue;
       const color = colors[state.colorIndex[i] % colors.length];
       const alpha = clamp(color.alpha * (1 + depth * depthOpacity), 0.08, 1);
 
@@ -1199,6 +1214,36 @@ export function createFlockOfBirdsRenderer({
       ctx.fillStyle = rgbString(color.rgb, alpha);
       ctx.fill();
     }
+  }
+
+  function prepareFrame(config, theme) {
+    syncMetrics(config);
+    initializeBirds(config, theme);
+    metrics.birdCount = state.count;
+    metrics.targetFps = resolveTargetFps(config, reducedMotion);
+  }
+
+  function paintFrame(config, theme) {
+    if (transparentBackground) {
+      ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
+      ctx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
+    } else {
+      drawBackground(ctx, metrics, theme, config);
+    }
+    drawBirds(config, theme);
+  }
+
+  function drawVisualFrame(force = false) {
+    if (destroyed) return;
+
+    const config = getConfig();
+    const theme = getTheme() || DEFAULT_THEME;
+    if (!force && shouldPauseForVisibility(config)) return;
+
+    const frameStart = performance.now();
+    prepareFrame(config, theme);
+    paintFrame(config, theme);
+    metrics.lastFrameMs = performance.now() - frameStart;
   }
 
   function drawFrame(now = performance.now(), force = false) {
@@ -1213,26 +1258,17 @@ export function createFlockOfBirdsRenderer({
     const dt = lastTime > 0 ? clamp((now - lastTime) / 1000, 1 / 120, 1 / 30) : 1 / 60;
     lastTime = now;
 
-    syncMetrics(config);
-    initializeBirds(config, theme);
-    metrics.birdCount = state.count;
-    metrics.targetFps = resolveTargetFps(config, reducedMotion);
+    prepareFrame(config, theme);
     const needsWarmup = config.enabled !== false && !state.warmed;
     if (needsWarmup) {
       runStartupWarmup(config, now);
       lastTime = performance.now();
     }
 
-    if (transparentBackground) {
-      ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
-      ctx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
-    } else {
-      drawBackground(ctx, metrics, theme, config);
-    }
     if (config.enabled !== false) {
       updateBirds(config, needsWarmup ? 1 / 60 : dt, now, true);
     }
-    drawBirds(config, theme);
+    paintFrame(config, theme);
     metrics.lastFrameMs = performance.now() - frameStart;
 
     if (!destroyed && config.enabled !== false && !shouldPauseForVisibility(config)) {
@@ -1309,6 +1345,9 @@ export function createFlockOfBirdsRenderer({
     destroy() {
       destroyed = true;
       cancelScheduledFrame();
+      unregisterVisualTransition?.();
+      unregisterVisualTransition = null;
+      visualTransition.destroy?.();
       canvas.removeEventListener('pointermove', handlePointerMove);
       canvas.removeEventListener('pointerenter', handlePointerEnter);
       canvas.removeEventListener('pointerleave', handlePointerLeave);

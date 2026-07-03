@@ -8,20 +8,21 @@ import { chromium } from 'playwright';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const repoRoot = resolve(__dirname, '..');
 const outputRoot = resolve(repoRoot, 'output', 'playwright', 'simulation-focus-transition-stress');
+const catalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.json');
 
 const DEFAULT_URL = 'http://127.0.0.1:8013';
 const WAIT_MS = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_WAIT_MS || 40000);
-const FRAME_COUNT = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_FRAMES || 34);
-const FRAME_INTERVAL_MS = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_INTERVAL_MS || 90);
-
-const FLOWS = [
-  { name: 'home-to-home', from: 'Ball Pit', to: 'Flies to Light', finalPath: /\/index\.html/, finalLabel: 'Flies to Light' },
-  { name: 'home-to-lab', from: 'Flies to Light', to: 'Repel Room', finalPath: /\/lab\/wall-repel\.html/, finalLabel: 'Repel Room' },
-  { name: 'lab-to-lab', from: 'Repel Room', to: 'Pressure Mosaic', finalPath: /\/lab\/pressure-mosaic\.html/, finalLabel: 'Pressure Mosaic' },
-  { name: 'lab-to-home', from: 'Pressure Mosaic', to: 'Water Swimming', finalPath: /\/index\.html/, finalLabel: 'Water Swimming' },
-  { name: 'home-to-heavy-lab', from: 'Water Swimming', to: 'Beach Ball Room', finalPath: /\/lab\/beach-ball-room\.html/, finalLabel: 'Beach Ball Room' },
-  { name: 'heavy-lab-to-home', from: 'Beach Ball Room', to: 'Ball Pit', finalPath: /\/index\.html/, finalLabel: 'Ball Pit' },
-];
+const FRAME_COUNT = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_FRAMES || 46);
+const FRAME_INTERVAL_MS = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_INTERVAL_MS || 45);
+let expectedChooserRows = 0;
+const ROUTE_BACKED_FOCUS_IDS = new Set([
+  'wall-repel',
+  'flock-of-birds',
+  'mineral-growth',
+  'pressure-mosaic',
+  'napoleon-point-cloud',
+  'beach-ball-room',
+]);
 
 function resolveOrigin() {
   const raw = String(process.env.ABS_DEV_URL || DEFAULT_URL).trim() || DEFAULT_URL;
@@ -29,8 +30,14 @@ function resolveOrigin() {
   return url.origin;
 }
 
-function resolveUrl(pathname = '/index.html?mode=pit') {
+function resolveUrl(pathname = '/index.html?focus=pit') {
   return new URL(pathname, resolveOrigin()).toString();
+}
+
+function withAuditParam(pathname) {
+  const url = new URL(pathname, resolveOrigin());
+  url.searchParams.set('absAudit', '1');
+  return `${url.pathname}${url.search}`;
 }
 
 function sleep(ms) {
@@ -45,6 +52,25 @@ function safeName(value) {
     .replace(/-+/g, '-')
     .replace(/(^-|-$)/g, '')
     .toLowerCase();
+}
+
+function buildDailyFocusFlows(dailyEntries) {
+  const startIndex = dailyEntries.findIndex((entry) => entry.id === 'pit');
+  const orderedEntries = startIndex >= 0
+    ? dailyEntries.slice(startIndex).concat(dailyEntries.slice(0, startIndex))
+    : dailyEntries;
+  return orderedEntries.map((fromEntry, index) => {
+    const toEntry = orderedEntries[(index + 1) % orderedEntries.length];
+    return {
+      name: `${safeName(fromEntry.id)}-to-${safeName(toEntry.id)}`,
+      from: fromEntry.name,
+      fromFocus: fromEntry.id,
+      to: toEntry.name,
+      finalFocus: toEntry.id,
+      finalLabel: toEntry.name,
+      finalRouteBacked: ROUTE_BACKED_FOCUS_IDS.has(toEntry.id),
+    };
+  });
 }
 
 async function waitForIdle(page) {
@@ -73,7 +99,7 @@ async function waitForSwitcherLabel(page, label) {
 async function waitForRows(page) {
   await page.waitForSelector('.simulation-focus-modal.active', { timeout: WAIT_MS });
   const count = await page.locator('.simulation-focus-modal.active .simulation-focus-row').count();
-  if (count !== 15) throw new Error(`Expected 15 chooser rows, got ${count}`);
+  if (count !== expectedChooserRows) throw new Error(`Expected ${expectedChooserRows} chooser rows, got ${count}`);
 }
 
 async function openChooser(page) {
@@ -129,11 +155,28 @@ async function getState(page, elapsedMs) {
       return Math.sqrt((values[0] * values[0]) + (values[1] * values[1]));
     };
 
-    const activeCanvas = Array.from(document.querySelectorAll('#c, #wall-repel-canvas, #pressure-mosaic-canvas, #mineral-growth-canvas, #flock-of-birds-canvas, .beach-ball-room-canvas, .napoleon-point-cloud__canvas--front'))
+    const activeCanvas = Array.from(document.querySelectorAll([
+      '#c',
+      '#wall-repel-canvas',
+      '#flock-of-birds-canvas',
+      '#pressure-mosaic-canvas',
+      '#mineral-growth-canvas',
+      '.napoleon-point-cloud__canvas--front',
+      '.beach-ball-room-canvas',
+      '.concept-simulation-canvas',
+    ].join(',')))
       .find((canvas) => {
         const rect = canvas.getBoundingClientRect();
         return rect.width >= 64 && rect.height >= 64;
       });
+    const visualTransition = window.__ABS_SIMULATION_VISUAL_TRANSITION__ || null;
+    const homeSnapshot = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.() || null;
+    const params = new URLSearchParams(window.location.search);
+    const titleCanvasVisible = Boolean(
+      homeSnapshot?.canvasTitleVisible
+      && Number(homeSnapshot?.canvasTitleMaxOpacity || 0) > 0.35
+      && Number(homeSnapshot?.canvasTitleLineCount || 0) > 0
+    );
 
     return {
       elapsed,
@@ -148,6 +191,26 @@ async function getState(page, elapsedMs) {
       simulationRect: rectFor('#simulations'),
       sceneRect: rectFor('#abs-scene'),
       wallScale: scaleFor('#shell-wall-slot'),
+      runtimeScale: Number.parseFloat(visualTransition?.maxScale ?? '1'),
+      visualTransition: visualTransition ? {
+        phase: visualTransition.phase || '',
+        sourceId: visualTransition.sourceId || '',
+        direction: visualTransition.direction || '',
+        minScale: Number(visualTransition.minScale),
+        maxScale: Number(visualTransition.maxScale),
+        visibleRatio: Number(visualTransition.visibleRatio),
+        count: Number(visualTransition.count),
+        events: Array.isArray(visualTransition.events)
+          ? visualTransition.events.slice(-80)
+          : [],
+      } : null,
+      activeFocus: (
+        document.querySelector('.daily-simulation-layer')?.dataset.simulationId
+        || homeSnapshot?.mode
+        || params.get('focus')
+        || params.get('mode')
+        || ''
+      ),
       switcherRect: rectFor('.simulation-focus-switcher'),
       modalRect: rectFor('.simulation-focus-modal'),
       titleRect: rectFor('#hero-title'),
@@ -157,6 +220,9 @@ async function getState(page, elapsedMs) {
       footerRect: rectFor('.ui-bottom'),
       edgeCaptionRect: rectFor('#edge-caption'),
       londonTimeRect: rectFor('#site-year'),
+      titleCanvasVisible,
+      titleCanvasMaxOpacity: Number(homeSnapshot?.canvasTitleMaxOpacity || 0),
+      titleCanvasLineCount: Number(homeSnapshot?.canvasTitleLineCount || 0),
       canvas: activeCanvas ? {
         id: activeCanvas.id || activeCanvas.className || 'canvas',
         width: activeCanvas.width,
@@ -238,8 +304,9 @@ function rectWithinViewport(rect, viewport, slack = 3) {
 function isShellUiStableFrame(frame) {
   const { state } = frame;
   if (state.modalActive || state.modalClosing) return false;
+  const titleVisible = Number(state.titleRect?.opacity) >= 0.9 || state.titleCanvasVisible === true;
   return (
-    Number(state.titleRect?.opacity) >= 0.9
+    titleVisible
     && Number(state.descriptionRect?.opacity) >= 0.62
     && Number(state.edgeCaptionRect?.opacity) >= 0.45
     && Number(state.londonTimeRect?.opacity) >= 0.62
@@ -279,20 +346,24 @@ function checkFrame(frame, imageStats, { enforceShellUi = true } = {}) {
   }
 
   if (!modalBusy && enforceShellUi) {
+    if (Number.isFinite(state.wallScale) && Math.abs(state.wallScale - 1) > 0.015) {
+      issues.push(`wall-scaled:${state.wallScale.toFixed(3)}`);
+    }
+
     [
-      ['title', state.titleRect],
+      ['title', state.titleRect, state.titleCanvasVisible === true],
       ['main-links', state.mainLinksRect],
       ['legend', state.legendRect],
       ['description', state.descriptionRect],
       ['footer', state.footerRect],
       ['edge-caption', state.edgeCaptionRect],
       ['london-time', state.londonTimeRect],
-    ].forEach(([name, rect]) => {
+    ].forEach(([name, rect, alternateVisible = false]) => {
       if (!rectWithinViewport(rect, state.viewport, 6)) {
         issues.push(`${name}-missing-or-clipped`);
         return;
       }
-      if (rect.opacity < 0.45 || rect.visibility === 'hidden' || rect.display === 'none') {
+      if (!alternateVisible && (rect.opacity < 0.45 || rect.visibility === 'hidden' || rect.display === 'none')) {
         issues.push(`${name}-hidden`);
       }
     });
@@ -304,6 +375,12 @@ function checkFrame(frame, imageStats, { enforceShellUi = true } = {}) {
 async function collectFrames(page, flowName, action) {
   const startedAt = Date.now();
   const frames = [];
+  frames.eventStartedWallTime = startedAt;
+  frames.eventBaseline = await page.evaluate(() => (
+    Array.isArray(window.__ABS_SIMULATION_VISUAL_TRANSITION__?.events)
+      ? window.__ABS_SIMULATION_VISUAL_TRANSITION__.events.length
+      : 0
+  ));
   const sampler = (async () => {
     for (let index = 0; index < FRAME_COUNT; index += 1) {
       frames.push(await captureFrame(page, flowName, index, startedAt));
@@ -317,14 +394,77 @@ async function collectFrames(page, flowName, action) {
   return frames;
 }
 
+async function sampleStates(page, label, count = 32, intervalMs = 45) {
+  const startedAt = Date.now();
+  const states = [];
+  for (let index = 0; index < count; index += 1) {
+    states.push({
+      index,
+      label,
+      state: await getState(page, Date.now() - startedAt),
+    });
+    await sleep(intervalMs);
+  }
+  return states;
+}
+
+function analyzeBootStates(states) {
+  const visualMinScales = states
+    .map((entry) => Number(entry.state.visualTransition?.minScale))
+    .filter(Number.isFinite);
+  const visualMaxScales = states
+    .map((entry) => Number(entry.state.visualTransition?.maxScale))
+    .filter(Number.isFinite);
+  const phases = new Set(states.map((entry) => entry.state.visualTransition?.phase || entry.state.simulationFocusPhase));
+  const events = states[states.length - 1]?.state.visualTransition?.events || [];
+  const eventTypes = new Set(events.map((event) => event.type));
+  const issues = [];
+  if (!visualMinScales.some((scale) => scale >= 0 && scale < 0.35)) {
+    issues.push('direct-reload-missing-low-scale-entry-frame');
+  }
+  if (!visualMaxScales.some((scale) => scale > 0.9)) {
+    issues.push('direct-reload-missing-scale-one-frame');
+  }
+  if (
+    !phases.has('in')
+    && !eventTypes.has('in-start')
+    && !states.some((entry) => entry.state.visualTransition?.direction === 'in')
+  ) {
+    issues.push('direct-reload-missing-scale-in-wave');
+  }
+  return {
+    states,
+    phases: Array.from(phases),
+    minScale: visualMinScales.length ? Math.min(...visualMinScales) : null,
+    maxScale: visualMaxScales.length ? Math.max(...visualMaxScales) : null,
+    issues,
+  };
+}
+
 async function chooseSimulationWithFrames(page, flow) {
   await openChooser(page);
   const rows = page.locator('.simulation-focus-modal.active .simulation-focus-row');
   const target = rows.filter({ hasText: flow.to }).first();
   const frames = await collectFrames(page, flow.name, () => target.click({ timeout: WAIT_MS }));
 
-  await page.waitForURL(flow.finalPath, { timeout: WAIT_MS });
   await waitForSwitcherLabel(page, flow.finalLabel);
+  if (flow.finalRouteBacked) {
+    await page.waitForFunction(
+      (expectedFocus) => document.querySelector('.daily-simulation-layer')?.dataset.simulationId === expectedFocus,
+      flow.finalFocus,
+      { timeout: WAIT_MS, polling: 50 },
+    );
+  } else {
+    await page.waitForFunction(
+      () => {
+        const layer = document.querySelector('.daily-simulation-layer');
+        const canvas = document.querySelector('#c');
+        const rect = canvas?.getBoundingClientRect?.();
+        return !layer && rect?.width > 64 && rect?.height > 64;
+      },
+      { timeout: WAIT_MS, polling: 50 },
+    );
+  }
   await waitForIdle(page);
   return frames;
 }
@@ -338,7 +478,7 @@ function buildReportHtml(report) {
         ${flow.frames.map((frame) => `
           <figure>
             <img src="${frame.relativeImage}" alt="${flow.name} frame ${frame.index}">
-            <figcaption>${frame.index} · ${frame.state.simulationFocusPhase} · scale ${Number(frame.state.wallScale || 0).toFixed(2)} · ${frame.state.path}</figcaption>
+            <figcaption>${frame.index} · ${frame.state.simulationFocusPhase} · scale ${Number(frame.state.visualTransition?.minScale ?? frame.state.runtimeScale ?? 0).toFixed(2)}-${Number(frame.state.visualTransition?.maxScale ?? frame.state.runtimeScale ?? 0).toFixed(2)} · ${frame.state.activeFocus}</figcaption>
           </figure>
         `).join('')}
       </div>
@@ -392,10 +532,37 @@ async function analyzeFrames(frames) {
 
   const maxMeanDelta = Math.max(0, ...deltas);
   const phases = new Set(frames.map((frame) => frame.state.simulationFocusPhase));
-  if (!phases.has('out')) issues.push('missing-simulation-scale-out-phase');
-  if (!phases.has('in')) issues.push('missing-simulation-scale-in-phase');
-  if (!frames.some((frame) => Number(frame.state.wallScale) > 0 && Number(frame.state.wallScale) < 0.2)) {
+  const latestEvents = frames[frames.length - 1]?.state.visualTransition?.events || [];
+  const flowEvents = latestEvents.filter((event) => (
+    !frames.eventStartedWallTime
+    || !Number.isFinite(event.wallTime)
+    || event.wallTime >= frames.eventStartedWallTime - 50
+  ));
+  const eventTypes = new Set(flowEvents.map((event) => event.type));
+  const visualMinScales = frames
+    .map((frame) => Number(frame.state.visualTransition?.minScale))
+    .filter(Number.isFinite);
+  const visualMaxScales = frames
+    .map((frame) => Number(frame.state.visualTransition?.maxScale))
+    .filter(Number.isFinite);
+  const visibleRatios = frames
+    .map((frame) => Number(frame.state.visualTransition?.visibleRatio))
+    .filter(Number.isFinite);
+
+  if (!phases.has('out') && !eventTypes.has('out-start')) issues.push('missing-simulation-scale-out-phase');
+  if (!eventTypes.has('hold-start')) issues.push('missing-simulation-zero-hold-phase');
+  if (!phases.has('in') && !eventTypes.has('in-start')) issues.push('missing-simulation-scale-in-phase');
+  if (!visualMinScales.some((scale) => scale >= 0 && scale < 0.16)) {
     issues.push('missing-scale-zero-near-frame');
+  }
+  if (!visualMaxScales.some((scale) => scale > 0.9)) {
+    issues.push('missing-scale-one-frame');
+  }
+  if (visibleRatios.length >= 3) {
+    const minVisibleRatio = Math.min(...visibleRatios);
+    const maxVisibleRatio = Math.max(...visibleRatios);
+    if (minVisibleRatio > 0.32) issues.push(`visible-area-did-not-decrease:${minVisibleRatio.toFixed(2)}`);
+    if (maxVisibleRatio < 0.9) issues.push(`visible-area-did-not-recover:${maxVisibleRatio.toFixed(2)}`);
   }
 
   return {
@@ -403,6 +570,7 @@ async function analyzeFrames(frames) {
     maxMeanDelta,
     deltas,
     phases: Array.from(phases),
+    events: flowEvents,
     firstShellStableIndex,
     issues,
   };
@@ -410,6 +578,13 @@ async function analyzeFrames(frames) {
 
 async function main() {
   await mkdir(outputRoot, { recursive: true });
+  const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
+  const dailyEntries = catalog.simulations.filter((entry) => entry.stage === 'daily-rotation');
+  expectedChooserRows = dailyEntries.length;
+  if (expectedChooserRows <= 0) throw new Error('Expected at least one Daily Simulation entry in the catalog');
+  const flows = buildDailyFocusFlows(dailyEntries);
+  const startFocus = flows[0]?.fromFocus || dailyEntries[0]?.id || 'pit';
+  const startLabel = flows[0]?.from || dailyEntries[0]?.name || 'Ball Pit';
 
   const browser = await chromium.launch();
   const page = await browser.newPage({
@@ -418,8 +593,9 @@ async function main() {
   });
 
   try {
-    await page.goto(resolveUrl('/index.html?mode=pit'), { waitUntil: 'networkidle', timeout: 60000 });
-    await waitForSwitcherLabel(page, 'Ball Pit');
+    await page.goto(resolveUrl(withAuditParam(`/index.html?focus=${encodeURIComponent(startFocus)}`)), { waitUntil: 'domcontentloaded', timeout: 60000 });
+    const bootReport = analyzeBootStates(await sampleStates(page, 'direct-reload', 120, 50));
+    await waitForSwitcherLabel(page, startLabel);
 
     await openChooser(page);
     await closeChooserWithClick(page);
@@ -429,7 +605,7 @@ async function main() {
     await waitForIdle(page);
 
     const flowReports = [];
-    for (const flow of FLOWS) {
+    for (const flow of flows) {
       await waitForSwitcherLabel(page, flow.from);
       const frames = await chooseSimulationWithFrames(page, flow);
       const analyzed = await analyzeFrames(frames);
@@ -442,10 +618,16 @@ async function main() {
     }
 
     const report = {
-      ok: flowReports.every((flow) => flow.issues.length === 0),
+      ok: bootReport.issues.length === 0 && flowReports.every((flow) => flow.issues.length === 0),
       outputRoot,
       frameCount: FRAME_COUNT,
       frameIntervalMs: FRAME_INTERVAL_MS,
+      boot: {
+        issues: bootReport.issues,
+        phases: bootReport.phases,
+        minScale: bootReport.minScale,
+        maxScale: bootReport.maxScale,
+      },
       flows: flowReports,
     };
 
@@ -456,6 +638,7 @@ async function main() {
       console.error(JSON.stringify({
         ok: false,
         outputRoot,
+        boot: bootReport.issues.length ? bootReport : undefined,
         failures: flowReports
           .filter((flow) => flow.issues.length)
           .map((flow) => ({ name: flow.name, issues: flow.issues, maxMeanDelta: flow.maxMeanDelta })),

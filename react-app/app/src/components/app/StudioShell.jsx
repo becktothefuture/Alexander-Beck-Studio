@@ -65,11 +65,13 @@ export function StudioShell({
   simulationFocusModal,
   surfaceRefs,
 }) {
+  const wallLayerClassName = ['simulation-wall-layer', wallClassName].filter(Boolean).join(' ');
+
   return (
     <>
       <RouteSceneMount routeRenderKey={routeRenderKey}>
-        <div id="abs-scene" className="abs-scene">
-          <div id="simulations" className={wallClassName}>
+        <div id="abs-scene" className="app-scene abs-scene">
+          <div id="simulations" className={wallLayerClassName}>
             <div id="scene-effects" className="scene-effects" aria-hidden="true">
               <div className="noise" />
             </div>
@@ -95,10 +97,11 @@ export function StudioShell({
             {simulationFocusControls}
           </div>
           <div className="frame-vignette" aria-hidden="true" />
+          <div className="simulation-contrast-veil" aria-hidden="true" />
 
           <div
             ref={surfaceRefs?.ui}
-            className="fade-content page-content"
+            className="fade-content page-content ui-layer"
           >
             <div id="app-frame" className="ui-layer-wrapper">
                 <div
@@ -143,9 +146,9 @@ export function StudioShell({
         </div>
       </RouteSceneMount>
 
-      <div id="modal-blur-layer" className="modal-blur-layer" aria-hidden="true" />
+      <div id="modal-blur-layer" className="modal-layer modal-blur-layer" aria-hidden="true" />
 
-      <div id="modal-content-layer" className="modal-content-layer" aria-hidden="true">
+      <div id="modal-content-layer" className="modal-layer modal-content-layer" aria-hidden="true">
         <div id="modal-modal-host" className="modal-modal-host">
           <div
             id="contact-modal"

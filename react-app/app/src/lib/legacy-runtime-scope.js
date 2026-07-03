@@ -77,11 +77,35 @@ export function createLegacyRuntimeScope() {
   const originalCancelAnimationFrame = window.cancelAnimationFrame?.bind(window) || null;
   const originalRequestIdleCallback = window.requestIdleCallback?.bind(window) || null;
   const originalCancelIdleCallback = window.cancelIdleCallback?.bind(window) || null;
+  let capturing = true;
+  let restored = false;
 
   ensureNativeTimerRefs();
 
+  const restoreGlobals = () => {
+    if (restored) return;
+    restored = true;
+    capturing = false;
+    EventTarget.prototype.addEventListener = originalAddEventListener;
+    EventTarget.prototype.removeEventListener = originalRemoveEventListener;
+    window.setTimeout = originalSetTimeout;
+    window.clearTimeout = originalClearTimeout;
+    window.setInterval = originalSetInterval;
+    window.clearInterval = originalClearInterval;
+
+    if (originalRequestAnimationFrame && originalCancelAnimationFrame) {
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+      window.cancelAnimationFrame = originalCancelAnimationFrame;
+    }
+
+    if (originalRequestIdleCallback && originalCancelIdleCallback) {
+      window.requestIdleCallback = originalRequestIdleCallback;
+      window.cancelIdleCallback = originalCancelIdleCallback;
+    }
+  };
+
   EventTarget.prototype.addEventListener = function patchedAddEventListener(type, listener, options) {
-    if (listener) {
+    if (capturing && listener) {
       listeners.push([this, type, listener, options]);
     }
     return originalAddEventListener.call(this, type, listener, options);
@@ -93,7 +117,7 @@ export function createLegacyRuntimeScope() {
 
   window.setTimeout = function patchedSetTimeout(handler, timeout, ...args) {
     const id = originalSetTimeout(handler, timeout, ...args);
-    return timeouts.add(id);
+    return capturing ? timeouts.add(id) : id;
   };
 
   window.clearTimeout = function patchedClearTimeout(id) {
@@ -103,7 +127,7 @@ export function createLegacyRuntimeScope() {
 
   window.setInterval = function patchedSetInterval(handler, timeout, ...args) {
     const id = originalSetInterval(handler, timeout, ...args);
-    return intervals.add(id);
+    return capturing ? intervals.add(id) : id;
   };
 
   window.clearInterval = function patchedClearInterval(id) {
@@ -114,7 +138,7 @@ export function createLegacyRuntimeScope() {
   if (originalRequestAnimationFrame && originalCancelAnimationFrame) {
     window.requestAnimationFrame = function patchedRequestAnimationFrame(callback) {
       const id = originalRequestAnimationFrame(callback);
-      return animationFrames.add(id);
+      return capturing ? animationFrames.add(id) : id;
     };
 
     window.cancelAnimationFrame = function patchedCancelAnimationFrame(id) {
@@ -126,7 +150,7 @@ export function createLegacyRuntimeScope() {
   if (originalRequestIdleCallback && originalCancelIdleCallback) {
     window.requestIdleCallback = function patchedRequestIdleCallback(callback, options) {
       const id = originalRequestIdleCallback(callback, options);
-      return idleCallbacks.add(id);
+      return capturing ? idleCallbacks.add(id) : id;
     };
 
     window.cancelIdleCallback = function patchedCancelIdleCallback(id) {
@@ -136,23 +160,12 @@ export function createLegacyRuntimeScope() {
   }
 
   return {
+    stopCapturing() {
+      restoreGlobals();
+    },
+
     cleanup() {
-      EventTarget.prototype.addEventListener = originalAddEventListener;
-      EventTarget.prototype.removeEventListener = originalRemoveEventListener;
-      window.setTimeout = originalSetTimeout;
-      window.clearTimeout = originalClearTimeout;
-      window.setInterval = originalSetInterval;
-      window.clearInterval = originalClearInterval;
-
-      if (originalRequestAnimationFrame && originalCancelAnimationFrame) {
-        window.requestAnimationFrame = originalRequestAnimationFrame;
-        window.cancelAnimationFrame = originalCancelAnimationFrame;
-      }
-
-      if (originalRequestIdleCallback && originalCancelIdleCallback) {
-        window.requestIdleCallback = originalRequestIdleCallback;
-        window.cancelIdleCallback = originalCancelIdleCallback;
-      }
+      restoreGlobals();
 
       for (let index = listeners.length - 1; index >= 0; index -= 1) {
         const [target, type, listener, options] = listeners[index];

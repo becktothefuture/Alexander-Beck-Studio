@@ -1,3 +1,8 @@
+import {
+  createIndexedSimulationVisualTransition,
+  registerSimulationVisualTransition,
+} from '../../lib/simulationVisualTransition.js';
+
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
 const DEFAULT_THEME = {
@@ -1143,6 +1148,7 @@ function renderState(ctx, state, metrics, theme, now, activeCount, elapsed, dura
   const surfaceColor = parseHexColor(surface);
   const lightColor = parseHexColor('#f5f8f6');
   const shadowColor = parseHexColor('#050606');
+  const getVisualScaleAt = options.getVisualScaleAt || (() => 1);
   ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
   ctx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
   if (!options.transparentBackground) {
@@ -1162,7 +1168,8 @@ function renderState(ctx, state, metrics, theme, now, activeCount, elapsed, dura
       ? mixColor(color, lightColor, 0.30)
       : mixColor(color, shadowColor, 0.18);
     const rim = mixColor(rimBase, surfaceColor, 0.12);
-    const radius = state.radius[i] * (0.38 + grow * 0.62);
+    const radius = state.radius[i] * (0.38 + grow * 0.62) * getVisualScaleAt(i);
+    if (radius <= 0.05) continue;
     drawPebble(ctx, state, i, radius, color, rim, 0.26 + grow * 0.74);
   }
 
@@ -1254,6 +1261,14 @@ export function createMineralGrowthRenderer({
     lastAt: -Infinity,
     inside: false,
   };
+  let unregisterVisualTransition = null;
+  const visualTransition = createIndexedSimulationVisualTransition({
+    sourceId: 'mineral-growth',
+    getCount: () => state?.count || 0,
+    requestRender: () => draw(performance.now()),
+    getSeed: () => currentSeed,
+  });
+  unregisterVisualTransition = registerSimulationVisualTransition('mineral-growth', visualTransition);
 
   function updatePointer(event) {
     const rect = canvas.getBoundingClientRect();
@@ -1306,6 +1321,7 @@ export function createMineralGrowthRenderer({
     updateSway(state, config, metrics, pointer, now, dt, activeCount, growthProgress, reducedMotion);
     const rendered = renderState(ctx, state, metrics, theme, now, activeCount, elapsed, duration, {
       transparentBackground,
+      getVisualScaleAt: visualTransition.getScaleAt,
     });
     frameMs = frameMs ? frameMs * 0.86 + (performance.now() - started) * 0.14 : performance.now() - started;
     lastMetrics = {
@@ -1360,6 +1376,9 @@ export function createMineralGrowthRenderer({
     running = false;
     if (rafId) window.cancelAnimationFrame(rafId);
     rafId = 0;
+    unregisterVisualTransition?.();
+    unregisterVisualTransition = null;
+    visualTransition.destroy?.();
     canvas.removeEventListener('pointerenter', updatePointer);
     canvas.removeEventListener('pointermove', updatePointer);
     canvas.removeEventListener('pointerleave', handlePointerLeave);

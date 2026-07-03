@@ -1,11 +1,38 @@
 import { MODES } from '../core/constants.js';
 
 export const TITLE_DEPTH_PLANE_Z = 0.5;
+const TITLE_RENDER_REFRESH_MS = 500;
+const TITLE_RENDER_MAX_LINES = 4;
 export const TITLE_SCENE_PLACEMENT = Object.freeze({
   BEHIND: 'behind',
   DEPTH_PLANE: 'depth-plane',
   HIDDEN: 'hidden'
 });
+
+const titleRenderCache = {
+  signature: '',
+  lastRefreshMs: 0,
+  active: false,
+  visible: false,
+  lineCount: 0,
+  maxOpacity: 0,
+  lines: Array.from({ length: TITLE_RENDER_MAX_LINES }, () => ({
+    text: '',
+    x: 0,
+    y: 0,
+    font: '',
+    color: '',
+    opacity: 0,
+    letterSpacingPx: 0
+  })),
+  state: {
+    active: false,
+    visible: false,
+    lineCount: 0,
+    maxOpacity: 0,
+    sourceId: 'hero-title'
+  }
+};
 
 const DEPTH_PLANE_TITLE_MODES = new Set([
   MODES.SPHERE_3D,
@@ -54,4 +81,180 @@ export function getHeroTitleCanvasCenter(globals) {
     x: ((titleRect.left + titleRect.width * 0.5) - canvasRect.left) * (canvas.width / canvasRect.width),
     y: ((titleRect.top + titleRect.height * 0.5) - canvasRect.top) * (canvas.height / canvasRect.height)
   };
+}
+
+function parseCssPx(value, fallback = 0) {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clamp01(value) {
+  if (!Number.isFinite(value)) return 0;
+  if (value <= 0) return 0;
+  if (value >= 1) return 1;
+  return value;
+}
+
+function markCanvasTitleInactive(globals) {
+  titleRenderCache.active = false;
+  titleRenderCache.visible = false;
+  titleRenderCache.lineCount = 0;
+  titleRenderCache.maxOpacity = 0;
+  titleRenderCache.state.active = false;
+  titleRenderCache.state.visible = false;
+  titleRenderCache.state.lineCount = 0;
+  titleRenderCache.state.maxOpacity = 0;
+  if (globals) globals.canvasTitleRenderState = titleRenderCache.state;
+  return titleRenderCache;
+}
+
+function shouldRefreshEveryFrame(root, scene) {
+  if (!root?.classList) return Boolean(scene?.classList?.contains('abs-scene--animating'));
+  return root.classList.contains('entrance-transitioning')
+    || root.classList.contains('abs-home-post-boot-enter')
+    || root.classList.contains('abs-home-post-boot-pending')
+    || scene?.classList?.contains('abs-scene--animating');
+}
+
+function isCanvasTitleSource(title) {
+  if (!title || title.classList?.contains('hero-title--portfolio')) return false;
+  if (title.dataset?.canvasTitleSource !== 'home') return false;
+  const body = document.body;
+  return !body?.classList.contains('portfolio-page') && !body?.classList.contains('cv-page');
+}
+
+function buildTitleRenderSignature(canvas, title, root, body, scene) {
+  return [
+    canvas.width,
+    canvas.height,
+    title.textContent,
+    root?.className || '',
+    root?.dataset?.absTransitionPhase || '',
+    root?.dataset?.absBootState || '',
+    body?.className || '',
+    scene?.className || '',
+    scene?.style?.getPropertyValue('--abs-scene-impact-logo-scale') || '',
+    document.fonts?.status || ''
+  ].join('|');
+}
+
+function refreshCanvasTitleCache(ctx, globals) {
+  const canvas = globals?.canvas;
+  if (!ctx || !canvas || typeof document === 'undefined') return markCanvasTitleInactive(globals);
+
+  const title = document.getElementById('hero-title');
+  if (!isCanvasTitleSource(title)) return markCanvasTitleInactive(globals);
+
+  const canvasRect = canvas.getBoundingClientRect();
+  const titleRect = title.getBoundingClientRect();
+  if (
+    !canvasRect ||
+    !titleRect ||
+    canvasRect.width <= 0 ||
+    canvasRect.height <= 0 ||
+    titleRect.width <= 0 ||
+    titleRect.height <= 0
+  ) {
+    return markCanvasTitleInactive(globals);
+  }
+
+  const now = typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now();
+  const root = document.documentElement;
+  const body = document.body;
+  const scene = document.getElementById('abs-scene');
+  const signature = buildTitleRenderSignature(canvas, title, root, body, scene);
+  const needsRefresh = titleRenderCache.signature !== signature
+    || shouldRefreshEveryFrame(root, scene)
+    || now - titleRenderCache.lastRefreshMs > TITLE_RENDER_REFRESH_MS;
+
+  if (!needsRefresh) return titleRenderCache;
+
+  const scaleX = canvas.width / canvasRect.width;
+  const scaleY = canvas.height / canvasRect.height;
+  const titleStyle = getComputedStyle(title);
+  const rootStyle = root ? getComputedStyle(root) : null;
+  const uiObscured = clamp01(parseCssPx(rootStyle?.getPropertyValue('--ui-obscured'), 0));
+  const canvasTitleOpacity = clamp01(
+    parseCssPx(titleStyle.getPropertyValue('--canvas-title-opacity'), 1 - uiObscured)
+  );
+  const lineNodes = title.querySelectorAll(
+    '.hero-title__name, .hero-title__role, .hero-title__line, .hero-title__eyebrow'
+  );
+
+  titleRenderCache.signature = signature;
+  titleRenderCache.lastRefreshMs = now;
+  titleRenderCache.active = true;
+  titleRenderCache.visible = false;
+  titleRenderCache.lineCount = 0;
+  titleRenderCache.maxOpacity = 0;
+
+  const sourceLines = lineNodes.length ? lineNodes : [title];
+  for (let i = 0; i < titleRenderCache.lines.length; i += 1) {
+    const target = titleRenderCache.lines[i];
+    const source = sourceLines[i];
+    target.text = '';
+    target.opacity = 0;
+    if (!source) continue;
+
+    const text = source.textContent?.trim() || '';
+    const lineRect = source.getBoundingClientRect();
+    if (!text || !lineRect || lineRect.width <= 0 || lineRect.height <= 0) continue;
+
+    const style = getComputedStyle(source);
+    const cssFontSize = parseCssPx(style.fontSize, 16);
+    const cssLineHeight = parseCssPx(style.lineHeight, cssFontSize * 1.1);
+    const transformScale = cssLineHeight > 0 ? lineRect.height / cssLineHeight : 1;
+    const fontPx = Math.max(1, cssFontSize * scaleY * transformScale);
+    const opacity = clamp01(parseCssPx(style.opacity, 1) * canvasTitleOpacity);
+    const letterSpacingPx = parseCssPx(style.letterSpacing, 0) * scaleX;
+    const fontStyle = style.fontStyle && style.fontStyle !== 'normal' ? `${style.fontStyle} ` : '';
+    const fontWeight = style.fontWeight || '400';
+
+    target.text = text;
+    target.x = ((lineRect.left + lineRect.width * 0.5) - canvasRect.left) * scaleX;
+    target.y = ((lineRect.top + lineRect.height * 0.5) - canvasRect.top) * scaleY;
+    target.font = `${fontStyle}${fontWeight} ${fontPx.toFixed(3)}px ${style.fontFamily || 'sans-serif'}`;
+    target.color = style.color || titleStyle.color || '#000';
+    target.opacity = opacity;
+    target.letterSpacingPx = Number.isFinite(letterSpacingPx) ? letterSpacingPx : 0;
+
+    titleRenderCache.lineCount += 1;
+    titleRenderCache.maxOpacity = Math.max(titleRenderCache.maxOpacity, opacity);
+    if (opacity > 0.01) titleRenderCache.visible = true;
+  }
+
+  titleRenderCache.state.active = titleRenderCache.active;
+  titleRenderCache.state.visible = titleRenderCache.visible;
+  titleRenderCache.state.lineCount = titleRenderCache.lineCount;
+  titleRenderCache.state.maxOpacity = titleRenderCache.maxOpacity;
+  globals.canvasTitleRenderState = titleRenderCache.state;
+
+  return titleRenderCache;
+}
+
+export function drawHomepageCanvasTitle(ctx, globals) {
+  const cache = refreshCanvasTitleCache(ctx, globals);
+  if (!cache.active || cache.lineCount <= 0) return false;
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  if ('fontKerning' in ctx) ctx.fontKerning = 'normal';
+  if ('textRendering' in ctx) ctx.textRendering = 'geometricPrecision';
+
+  for (let i = 0; i < cache.lines.length; i += 1) {
+    const line = cache.lines[i];
+    if (!line.text || line.opacity <= 0.01) continue;
+    ctx.globalAlpha = line.opacity;
+    ctx.fillStyle = line.color;
+    ctx.font = line.font;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = `${line.letterSpacingPx.toFixed(3)}px`;
+    ctx.fillText(line.text, line.x, line.y);
+  }
+
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  ctx.restore();
+  return cache.visible;
 }

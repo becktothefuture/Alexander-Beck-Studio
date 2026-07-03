@@ -19,7 +19,7 @@ import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-exp
 import { getRenderQualityProfile } from '../utils/render-quality.js';
 import { appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
 import { drawBallRims } from '../visual/ball-rim.js';
-import { TITLE_DEPTH_PLANE_Z, modeUsesDepthTitlePlane } from '../rendering/title-depth.js';
+import { TITLE_DEPTH_PLANE_Z, drawHomepageCanvasTitle, modeUsesDepthTitlePlane } from '../rendering/title-depth.js';
 import { 
   getAccumulator, 
   setAccumulator, 
@@ -833,6 +833,7 @@ export function render() {
   }
 
   if (customRenderer) {
+    drawHomepageCanvasTitle(ctx, globals);
     customRenderer(ctx);
   } else if (needsDepthTitleLayer && frontCtx) {
     resetZPartitionCache();
@@ -851,6 +852,8 @@ export function render() {
       renderBallsColorBatched(ctx, zPartitionCache.behind, true, ballRenderOptions);
     }
 
+    drawHomepageCanvasTitle(ctx, globals);
+
     if (zPartitionCache.inFront.length > 0) {
       if (needsClip) {
         frontCtx.save();
@@ -862,6 +865,7 @@ export function render() {
       }
     }
   } else {
+    drawHomepageCanvasTitle(ctx, globals);
     renderBallsColorBatched(ctx, balls, false, ballRenderOptions);
   }
 
@@ -934,6 +938,7 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
       for (let i = 0; i < group.length; i++) {
         const ball = group[i];
         const radius = ball.getDisplayRadius();
+        if (radius <= 0.05) continue;
         if (
           ball.x + radius < -cullPad ||
           ball.y + radius < -cullPad ||
@@ -952,6 +957,7 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
     for (let i = 0; i < group.length; i++) {
       const ball = group[i];
       const radius = ball.getDisplayRadius();
+      if (radius <= 0.05) continue;
       if (
         ball.x + radius < -cullPad ||
         ball.y + radius < -cullPad ||

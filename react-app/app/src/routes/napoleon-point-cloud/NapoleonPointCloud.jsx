@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { withBasePath } from '../../lib/base-path.js';
+import {
+  easeSimulationVisualProgress,
+  publishSimulationVisualTransitionSnapshot,
+  registerSimulationVisualTransition,
+} from '../../lib/simulationVisualTransition.js';
 import './napoleon-point-cloud.css';
 
 const POINT_CLOUD_META_URL = withBasePath('/models/napoleon-bust/meta.json');
+const NAPOLEON_POINT_CLOUD_TRANSITION_ID = 'napoleon-point-cloud';
 const INITIAL_ROTATION = Object.freeze({ x: -0.05, y: -0.42, z: 0.02 });
 const DRAG_ROTATION_X_FACTOR = 0.0038;
 const DRAG_ROTATION_Y_FACTOR = 0.0062;
@@ -162,6 +168,11 @@ function makePointMaterial(depthLayer) {
       uFocus: { value: 1 },
       uBreathing: { value: 0.02 },
       uDepthLayer: { value: depthLayer },
+      uVisualStaticScale: { value: 1 },
+      uVisualDirection: { value: 0 },
+      uVisualElapsedMs: { value: 0 },
+      uVisualWaveMs: { value: 1 },
+      uVisualLocalMs: { value: 1 },
     },
     vertexShader: `
       attribute vec3 color;
@@ -176,6 +187,11 @@ function makePointMaterial(depthLayer) {
       uniform float uSpread;
       uniform float uFocus;
       uniform float uBreathing;
+      uniform float uVisualStaticScale;
+      uniform float uVisualDirection;
+      uniform float uVisualElapsedMs;
+      uniform float uVisualWaveMs;
+      uniform float uVisualLocalMs;
 
       void main() {
         vColor = color;
@@ -189,7 +205,18 @@ function makePointMaterial(depthLayer) {
         gl_Position = projectionMatrix * mvPosition;
 
         float perspectiveScale = 1.35 / max(0.38, -mvPosition.z);
-        gl_PointSize = max(1.0, uPointSize * uPixelRatio * perspectiveScale * uFocus);
+        float basePointSize = max(1.0, uPointSize * uPixelRatio * perspectiveScale * uFocus);
+        float visualScale = uVisualStaticScale;
+        if (uVisualDirection > 0.5) {
+          float stagger = max(0.0, uVisualWaveMs - uVisualLocalMs);
+          float delay = fract(sin((pointSeed + 0.17) * 43758.5453) * 43758.5453) * stagger;
+          float localT = clamp((uVisualElapsedMs - delay) / max(1.0, uVisualLocalMs), 0.0, 1.0);
+          float eased = uVisualDirection < 1.5
+            ? localT * localT * localT
+            : 1.0 - pow(1.0 - localT, 3.0);
+          visualScale = uVisualDirection < 1.5 ? 1.0 - eased : eased;
+        }
+        gl_PointSize = max(0.0, basePointSize * visualScale);
       }
     `,
     fragmentShader: `
@@ -427,6 +454,9 @@ export function NapoleonPointCloud({
       visiblePointCount: 0,
       quality: resolvedQuality,
       loadState: 'initializing',
+      visualTransitionUnregister: null,
+      visualTransitionFrame: 0,
+      visualTransitionToken: 0,
     };
     runtimeRef.current = runtime;
 
@@ -457,6 +487,129 @@ export function NapoleonPointCloud({
     }
 
     publishMetricsHook();
+
+    function writeVisualTransitionUniforms({
+      staticScale,
+      direction = 'idle',
+      elapsedMs = 0,
+      durationMs = 1,
+      localDurationMs = 1,
+    }) {
+      const directionValue = direction === 'out' ? 1 : (direction === 'in' ? 2 : 0);
+      forEachPointCloudMaterial(runtime, (material) => {
+        material.uniforms.uVisualStaticScale.value = staticScale;
+        material.uniforms.uVisualDirection.value = directionValue;
+        material.uniforms.uVisualElapsedMs.value = elapsedMs;
+        material.uniforms.uVisualWaveMs.value = Math.max(1, durationMs);
+        material.uniforms.uVisualLocalMs.value = Math.max(1, localDurationMs);
+      });
+      renderPointCloudLayers(runtime);
+    }
+
+    function publishVisualSnapshot(direction, elapsedMs, durationMs, localDurationMs, easing) {
+      const stagger = Math.max(0, durationMs - localDurationMs);
+      const leading = easeSimulationVisualProgress(easing, elapsedMs / Math.max(1, localDurationMs), direction);
+      const trailing = easeSimulationVisualProgress(easing, (elapsedMs - stagger) / Math.max(1, localDurationMs), direction);
+      const minScale = direction === 'out' ? 1 - leading : trailing;
+      const maxScale = direction === 'out' ? 1 - trailing : leading;
+      publishSimulationVisualTransitionSnapshot(NAPOLEON_POINT_CLOUD_TRANSITION_ID, {
+        count: runtime.visiblePointCount,
+        minScale: clamp(minScale, 0, 1),
+        maxScale: clamp(maxScale, 0, 1),
+        visibleRatio: clamp(direction === 'out' ? maxScale : maxScale, 0, 1),
+        direction,
+      });
+    }
+
+    function runPointVisualTransition(direction, timings = {}) {
+      if (!runtime.pointCount && runtime.loadState !== 'ready') {
+        writeVisualTransitionUniforms({
+          staticScale: direction === 'out' ? 0 : 1,
+          direction: 'idle',
+        });
+        return Promise.resolve();
+      }
+
+      if (runtime.visualTransitionFrame) {
+        window.cancelAnimationFrame(runtime.visualTransitionFrame);
+        runtime.visualTransitionFrame = 0;
+      }
+      const token = ++runtime.visualTransitionToken;
+      const durationMs = Math.max(0, Number(timings.durationMs) || (direction === 'out' ? 800 : 760));
+      const localDurationMs = Math.max(1, Number(timings.localDurationMs) || (direction === 'out' ? 360 : 420));
+      const easing = timings.easing || (direction === 'out'
+        ? 'cubic-bezier(0.72, 0, 0.86, 0.32)'
+        : 'cubic-bezier(0.16, 1, 0.3, 1)');
+
+      return new Promise((resolve) => {
+        if (durationMs <= 0) {
+          const scale = direction === 'out' ? 0 : 1;
+          writeVisualTransitionUniforms({ staticScale: scale, direction: 'idle' });
+          publishSimulationVisualTransitionSnapshot(NAPOLEON_POINT_CLOUD_TRANSITION_ID, {
+            count: runtime.visiblePointCount,
+            minScale: scale,
+            maxScale: scale,
+            visibleRatio: scale > 0.02 ? 1 : 0,
+            direction,
+          });
+          resolve();
+          return;
+        }
+
+        const startedAt = performance.now();
+        const step = () => {
+          if (token !== runtime.visualTransitionToken) {
+            resolve();
+            return;
+          }
+          const elapsedMs = performance.now() - startedAt;
+          writeVisualTransitionUniforms({
+            staticScale: direction === 'out' ? 1 : 0,
+            direction,
+            elapsedMs,
+            durationMs,
+            localDurationMs,
+          });
+          publishVisualSnapshot(direction, elapsedMs, durationMs, localDurationMs, easing);
+          if (elapsedMs >= durationMs + 32) {
+            const scale = direction === 'out' ? 0 : 1;
+            writeVisualTransitionUniforms({ staticScale: scale, direction: 'idle' });
+            publishSimulationVisualTransitionSnapshot(NAPOLEON_POINT_CLOUD_TRANSITION_ID, {
+              count: runtime.visiblePointCount,
+              minScale: scale,
+              maxScale: scale,
+              visibleRatio: scale > 0.02 ? 1 : 0,
+              direction,
+            });
+            resolve();
+            return;
+          }
+          runtime.visualTransitionFrame = window.requestAnimationFrame(step);
+        };
+        runtime.visualTransitionFrame = window.requestAnimationFrame(step);
+      });
+    }
+
+    function ensureVisualTransitionRegistered() {
+      if (runtime.visualTransitionUnregister) return;
+      runtime.visualTransitionUnregister = registerSimulationVisualTransition(
+        NAPOLEON_POINT_CLOUD_TRANSITION_ID,
+        {
+          setVisualScale: (scale) => {
+            if (runtime.visualTransitionFrame) {
+              window.cancelAnimationFrame(runtime.visualTransitionFrame);
+              runtime.visualTransitionFrame = 0;
+            }
+            writeVisualTransitionUniforms({
+              staticScale: clamp(Number(scale), 0, 1),
+              direction: 'idle',
+            });
+          },
+          transitionOut: (timings) => runPointVisualTransition('out', timings),
+          transitionIn: (timings) => runPointVisualTransition('in', timings),
+        },
+      );
+    }
 
     function resize() {
       const rect = root.getBoundingClientRect();
@@ -557,6 +710,7 @@ export function NapoleonPointCloud({
         runtime.pointCount = parsed.pointCount;
         runtime.pointDensity = resolvePointDensity(settingsRef.current.pointDensity);
         runtime.visiblePointCount = visiblePointCount;
+        ensureVisualTransitionRegistered();
         runtime.loadState = 'ready';
         publishMetricsHook();
         setError('');
@@ -648,6 +802,12 @@ export function NapoleonPointCloud({
       resizeObserver?.disconnect();
       intersectionObserver?.disconnect();
       delete window.__ABS_NAPOLEON_POINT_CLOUD__;
+      runtime.visualTransitionUnregister?.();
+      runtime.visualTransitionUnregister = null;
+      if (runtime.visualTransitionFrame) {
+        window.cancelAnimationFrame(runtime.visualTransitionFrame);
+        runtime.visualTransitionFrame = 0;
+      }
       disposePointCloudRuntime(runtime);
       runtimeRef.current = null;
     };

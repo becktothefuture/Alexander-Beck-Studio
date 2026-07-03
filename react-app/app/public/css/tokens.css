@@ -78,6 +78,11 @@
   --frame-vignette-ambient-opacity: 0.12;
   --frame-vignette-dither-size: 72px;
   --frame-vignette-dither-opacity: 0.08;
+  --simulation-contrast-veil-rgb: var(--inner-wall-bottom-shadow-rgb);
+  --simulation-contrast-veil-opacity: 0.36;
+  --simulation-contrast-veil-reach-x: 25vw;
+  --simulation-contrast-veil-reach-y: 25vh;
+  --simulation-contrast-veil-blur: clamp(42px, 7vmax, 120px);
 
   /* Single stroke color (keep this token; override in :root.dark-mode) */
   --abs-stroke-medium: rgba(var(--abs-rgb-black), 0.18);
@@ -647,20 +652,22 @@
      Z-INDEX STACKING ORDER (bottom to top)
      ═══════════════════════════════════════════════════════════════════════════════
      
-     All visual layers are inside #abs-scene for unified transform (depth effects).
+     All visual layers are inside #abs-scene / .app-scene for unified transform.
      
      INSIDE #abs-scene (scene stacking context):
      ─────────────────────────────────────────────────────────────────────────────
-     Wall (container)         100        #simulations
+     Wall + scene effects     100        #simulations / .simulation-wall-layer
      Video Overlays           150        .grunge-video-overlay (above wall, below UI)
-     UI Layer                 200        .fade-content (contains logo + nav + header + footer)
+     Frame vignette           175        .frame-vignette
+     Contrast veil            180        .simulation-contrast-veil
+     UI Layer                 200        .fade-content.ui-layer (header + nav + footer)
      Portfolio sheet          220 / 260  #portfolio-sheet-host (260 when body.portfolio-project-open; above chrome)
      Quote host               250        #quote-viewport-host
      
      INSIDE #simulations (wall interior stacking context):
      ─────────────────────────────────────────────────────────────────────────────
      Scene / noise            1          #simulations > .scene-effects (under simulation)
-     Wall route + canvas      2+        .shell-wall-slot (z:2), then #c (z:10)
+     Wall route + canvas      2+         .shell-wall-slot, then #c / .ball-canvas-layer
      CV scroll surface        10        .cv-scroll-container (above in-wall noise)
      CV wall ring canvas      15        .cv-wall-canvas
      
@@ -673,6 +680,7 @@
      Canonical prose + rules: docs/reference/LAYER-STACKING.md */
   --z-text-content: 200;
   --z-wall: 100;
+  --z-contrast-veil: 180;
   --z-canvas: 10;
   --z-noise: 25;
   --z-wall-edge: 30;
@@ -746,6 +754,7 @@
   --frame-vignette-ambient-rgb: 10, 10, 10;
   --frame-vignette-edge-opacity: 0.66;
   --frame-vignette-ambient-opacity: 0.4;
+  --simulation-contrast-veil-opacity: 0.58;
 
   /* Text — Dark mode overrides (JS may override --text-color-dark* from config) */
   --text-primary: var(--text-color-dark);

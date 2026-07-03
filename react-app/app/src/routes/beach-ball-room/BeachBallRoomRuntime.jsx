@@ -9,6 +9,10 @@ import {
   resolveColorTemplateName,
 } from '../../legacy/modules/visual/colors.js';
 import {
+  createIndexedSimulationVisualTransition,
+  registerSimulationVisualTransition,
+} from '../../lib/simulationVisualTransition.js';
+import {
   BEACH_BALL_ROOM_DEFAULT_SETTINGS,
   clampBeachBallRoomInteger,
   clampBeachBallRoomNumber,
@@ -297,6 +301,8 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
 
   const beadGeometry = new THREE.SphereGeometry(1, 8, 6);
   let beadMeshes = [];
+  let beadInstanceRanges = [];
+  let visualBeadCount = 0;
 
   const lineMaterial = new THREE.MeshBasicMaterial({
     color: new THREE.Color(palette.roomLine),
@@ -344,12 +350,24 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
   let absorbedIdleContact = false;
   let isAtRest = false;
   let motionDebugFrame = 0;
+  let unregisterVisualTransition = null;
   let roomBounds = {
     frontZ: 1.2,
     backZ: -3,
     zMin: -3,
     zMax: 1.2,
   };
+  const visualTransition = createIndexedSimulationVisualTransition({
+    sourceId: BEACH_BALL_ROOM_SIMULATION_REGISTRY_ENTRY.id,
+    getCount: () => visualBeadCount,
+    setScaleAt: (index, scale) => applyBeadVisualScaleAt(index, scale),
+    requestRender: () => renderer.render(scene, camera),
+    getSeed: () => beadRebuildCount + 0x5bead,
+  });
+  unregisterVisualTransition = registerSimulationVisualTransition(
+    BEACH_BALL_ROOM_SIMULATION_REGISTRY_ENTRY.id,
+    visualTransition,
+  );
   const position = new THREE.Vector3(0, 0, 0);
   const velocity = new THREE.Vector3(0.65, latestReducedMotion ? 0.05 : 0.9, latestReducedMotion ? 0.6 : 2.35);
   const angularVelocity = new THREE.Vector3(
@@ -393,7 +411,30 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
       mesh.material?.dispose?.();
     }
     beadMeshes = [];
+    beadInstanceRanges = [];
+    visualBeadCount = 0;
     container.dataset.renderedBeadColors = '';
+  }
+
+  function applyBeadVisualScaleAt(index, scale) {
+    if (index < 0 || index >= visualBeadCount) return;
+    for (let rangeIndex = 0; rangeIndex < beadInstanceRanges.length; rangeIndex += 1) {
+      const range = beadInstanceRanges[rangeIndex];
+      if (index < range.start || index >= range.start + range.count) continue;
+      const localIndex = index - range.start;
+      const matrixOffset = localIndex * 16;
+      tempPosition.set(
+        range.baseMatrices[matrixOffset + 12],
+        range.baseMatrices[matrixOffset + 13],
+        range.baseMatrices[matrixOffset + 14],
+      );
+      tempQuaternion.identity();
+      tempScale.setScalar(beadRadius * Math.max(0, scale));
+      tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+      range.mesh.setMatrixAt(localIndex, tempMatrix);
+      range.mesh.instanceMatrix.needsUpdate = true;
+      return;
+    }
   }
 
   function wakeMotion(now = performance.now()) {
@@ -566,6 +607,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     const meshesByColor = new Map();
     const writeIndices = new Map();
     let beadCount = 0;
+    let beadOffset = 0;
 
     for (let row = 1; row <= latitudeRows; row += 1) {
       const theta = (row / (latitudeRows + 1)) * Math.PI;
@@ -599,11 +641,21 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
       mesh.renderOrder = 1;
       mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
       mesh.userData.color = color;
+      mesh.userData.visualStart = beadOffset;
+      mesh.userData.baseMatrices = new Float32Array(count * 16);
+      beadInstanceRanges.push({
+        start: beadOffset,
+        count,
+        mesh,
+        baseMatrices: mesh.userData.baseMatrices,
+      });
+      beadOffset += count;
       meshesByColor.set(color, mesh);
       writeIndices.set(color, 0);
       beadMeshes.push(mesh);
       ballGroup.add(mesh);
     }
+    visualBeadCount = beadOffset;
 
     container.dataset.renderedBeadColors = beadMeshes.map((mesh) => mesh.userData.color).join(',');
 
@@ -630,12 +682,15 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
         const mesh = meshesByColor.get(color);
         if (!mesh) continue;
         const instanceIndex = writeIndices.get(color) || 0;
+        const visualIndex = (mesh.userData.visualStart || 0) + instanceIndex;
+        const visualScale = visualTransition.getScaleAt(visualIndex);
 
         tempPosition.set(x, y, z);
         tempQuaternion.identity();
-        tempScale.setScalar(beadRadius);
+        tempScale.setScalar(beadRadius * visualScale);
         tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
         mesh.setMatrixAt(instanceIndex, tempMatrix);
+        tempMatrix.toArray(mesh.userData.baseMatrices, instanceIndex * 16);
         writeIndices.set(color, instanceIndex + 1);
       }
     }
@@ -957,6 +1012,9 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
       window.cancelAnimationFrame(frameId);
       window.clearTimeout(rebuildTimer);
       window.clearTimeout(resizeTimer);
+      unregisterVisualTransition?.();
+      unregisterVisualTransition = null;
+      visualTransition.destroy?.();
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
       renderer.domElement.removeEventListener('pointermove', onPointerMove);
       renderer.domElement.removeEventListener('pointerup', onPointerUp);

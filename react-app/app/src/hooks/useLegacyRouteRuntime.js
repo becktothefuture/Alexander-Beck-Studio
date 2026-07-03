@@ -40,11 +40,13 @@ export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId 
         throw new Error(`Legacy module is missing export "${exportName}"`);
       })
       .then(() => {
+        scope.stopCapturing?.();
         if (!cancelled) {
           markReady();
         }
       })
       .catch((error) => {
+        scope.stopCapturing?.();
         if (!cancelled) {
           console.error(`[spa] Failed to bootstrap legacy route export "${exportName}"`, error);
         }

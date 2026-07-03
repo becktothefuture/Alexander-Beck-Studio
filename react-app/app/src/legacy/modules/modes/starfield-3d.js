@@ -28,9 +28,20 @@ function createStar(w, h, zNear, zFar, spanX, spanY) {
     y: (Math.random() * 2 - 1) * h * spanY * 0.5,
     z: zNear + Math.random() * (zFar - zNear),
     color: pickRandomColor(),
+    visualScale: 1,
     alpha: 0, // Start invisible for fade-in
     fadeState: 'fadingIn' // 'fadingIn', 'visible', 'fadingOut'
   };
+}
+
+export function getStarfieldVisualTransitionCount() {
+  return _stars.length;
+}
+
+export function setStarfieldVisualTransitionScale(index, scale) {
+  const star = _stars[index];
+  if (!star) return;
+  star.visualScale = Math.max(0, Math.min(1, Number(scale) || 0));
 }
 
 export function initializeStarfield3D() {
@@ -201,12 +212,13 @@ export function renderStarfield3D(ctx) {
     const y2d = cy + (star.y + offsetY) * scale;
     const depthRatio = Math.max(0, Math.min(1, 1 - ((star.z - zNear) / Math.max(1, zFar - zNear))));
     const sizeRatio = STARFIELD_FAR_SIZE_RATIO + (STARFIELD_NEAR_SIZE_RATIO - STARFIELD_FAR_SIZE_RATIO) * depthRatio;
-    const r = baseR * sizeRatio;
+    const visualScale = Math.max(0, Math.min(1, star.visualScale ?? 1));
+    const r = baseR * sizeRatio * visualScale;
     const fogOpacity = resolveDistanceFogOpacity(depthRatio, { fogStart, fogMin });
     const drawAlpha = star.alpha * fogOpacity;
 
     // Draw circle with alpha
-    if (drawAlpha > 0.001) {
+    if (r > 0.05 && drawAlpha > 0.001) {
       ctx.globalAlpha = drawAlpha;
       ctx.beginPath();
       ctx.arc(x2d, y2d, r, 0, Math.PI * 2);

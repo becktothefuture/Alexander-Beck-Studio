@@ -559,9 +559,11 @@ export function renderKaleidoscope(ctx) {
 
       const x = cx + outCos * r;
       const y = cy + outSin * r;
+      const visualRadius = ball.r * Math.max(0, Math.min(1, ball.visualScale ?? 1));
+      if (visualRadius <= 0.05) continue;
 
       // Draw the shared pebble silhouette in the mirrored wedge.
-      drawPebbleBody(ctx, ball, x, y, ball.r, ball.color, g, {
+      drawPebbleBody(ctx, ball, x, y, visualRadius, ball.color, g, {
         alpha: ball.alpha < 1 ? ball.alpha : 1,
         rotationRad: ball.theta || 0,
       });

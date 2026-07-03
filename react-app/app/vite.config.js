@@ -53,7 +53,7 @@ function absContentVirtualPlugin() {
 }
 
 export default defineConfig(({ mode }) => ({
-  base: mode === 'production' ? './' : '/',
+  base: '/',
   plugins: [react(), absContentVirtualPlugin(), createDevAdminPlugin({ publicConfigDir })],
   // Legacy bundles gate the dock + authoring UI on `__DEV__` (see main.js / portfolio app).
   define: {

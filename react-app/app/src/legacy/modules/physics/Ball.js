@@ -526,7 +526,8 @@ export class Ball {
    */
   getDisplayRadius() {
     const filterSizeMul = this.filterSizeMultiplier ?? 1;
-    return this.r * filterSizeMul;
+    const visualScale = this.visualScale ?? 1;
+    return this.r * filterSizeMul * visualScale;
   }
 
   draw(ctx) {
@@ -545,6 +546,7 @@ export class Ball {
     
     // Get display radius (may be scaled by legend filter)
     const displayRadius = this.getDisplayRadius();
+    if (displayRadius <= 0.05) return;
 
     if (hasSquash) {
       ctx.save();

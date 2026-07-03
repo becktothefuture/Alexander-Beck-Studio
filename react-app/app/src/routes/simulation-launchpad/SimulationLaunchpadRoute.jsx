@@ -46,12 +46,12 @@ const FILTERS = [
   {
     id: 'collection',
     label: 'Collection',
-    description: 'Step 2: approved simulations kept available but outside Daily Focus.',
+    description: 'Step 2: approved simulations kept available but outside Daily Simulation.',
   },
   {
     id: 'daily',
-    label: 'Daily Focus',
-    description: 'Step 3: simulations promoted to Daily Focus.',
+    label: 'Daily Simulation',
+    description: 'Step 3: simulations promoted to the daily-selected homepage set.',
   },
   {
     id: 'hidden',
@@ -61,7 +61,7 @@ const FILTERS = [
 ];
 
 const STAGE_LABELS = {
-  [SIMULATION_STAGES.DAILY_ROTATION]: 'Daily Focus',
+  [SIMULATION_STAGES.DAILY_ROTATION]: 'Daily Simulation',
   [SIMULATION_STAGES.COLLECTION]: 'Collection',
   [SIMULATION_STAGES.AUTOMATION_CANDIDATE]: 'Automation Candidate',
   [SIMULATION_STAGES.HIDDEN]: 'Archive',
@@ -637,7 +637,7 @@ function ExpandedSimulationDetails({
                 disabled={Boolean(pendingAction)}
                 icon={Sparkles}
                 label="Promote"
-                tooltip="Promote to Daily Focus"
+                tooltip="Promote to Daily Simulation"
                 onClick={() => changeStage(SIMULATION_STAGES.DAILY_ROTATION)}
               />
             ) : null}
@@ -647,7 +647,7 @@ function ExpandedSimulationDetails({
                 disabled={Boolean(pendingAction)}
                 icon={Folder}
                 label="Collection"
-                tooltip="Move out of Daily Focus but keep available for review"
+                tooltip="Move out of Daily Simulation but keep available for review"
                 onClick={() => changeStage(SIMULATION_STAGES.COLLECTION)}
               />
             ) : null}

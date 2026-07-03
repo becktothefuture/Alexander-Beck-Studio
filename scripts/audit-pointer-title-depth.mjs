@@ -10,6 +10,7 @@ function resolveModeUrl(mode) {
   const raw = String(process.env.ABS_DEV_URL || DEFAULT_ORIGIN).trim().replace(/\/+$/, '');
   const url = new URL(/\.html$/i.test(raw) ? raw : `${raw}/index.html`);
   url.searchParams.set('mode', mode);
+  url.searchParams.set('absAudit', '1');
   return url.toString();
 }
 
@@ -139,6 +140,9 @@ async function auditDepthModes(page) {
       const snap = window.__ABS_HOME_AUDIT__.getRuntimeSnapshot();
       return snap.depthTitleLayerActive === true &&
         snap.frontDepthCanvasActive === true &&
+        snap.canvasTitleActive === true &&
+        snap.canvasTitleVisible === true &&
+        snap.canvasTitleLineCount >= 2 &&
         snap.behindTitleCount > 0 &&
         snap.inFrontOfTitleCount > 0;
     }, { timeout: WAIT_MS });
@@ -146,7 +150,8 @@ async function auditDepthModes(page) {
     results.push({
       mode,
       behindTitleCount: snap.behindTitleCount,
-      inFrontOfTitleCount: snap.inFrontOfTitleCount
+      inFrontOfTitleCount: snap.inFrontOfTitleCount,
+      canvasTitleLineCount: snap.canvasTitleLineCount
     });
   }
   return results;
@@ -158,10 +163,18 @@ async function auditNoDepthModes(page) {
     await gotoMode(page, mode);
     await page.waitForFunction(() => {
       const snap = window.__ABS_HOME_AUDIT__.getRuntimeSnapshot();
-      return snap.depthTitleLayerActive === false && snap.frontDepthCanvasActive !== true;
+      return snap.depthTitleLayerActive === false &&
+        snap.frontDepthCanvasActive !== true &&
+        snap.canvasTitleActive === true &&
+        snap.canvasTitleVisible === true &&
+        snap.canvasTitleLineCount >= 2;
     }, { timeout: WAIT_MS });
     const snap = await snapshot(page);
-    results.push({ mode, depthTitleLayerActive: snap.depthTitleLayerActive });
+    results.push({
+      mode,
+      depthTitleLayerActive: snap.depthTitleLayerActive,
+      canvasTitleLineCount: snap.canvasTitleLineCount
+    });
   }
   return results;
 }

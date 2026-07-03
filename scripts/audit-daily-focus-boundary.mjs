@@ -5,28 +5,19 @@ import { chromium } from 'playwright';
 
 const repoRoot = resolve(import.meta.dirname, '..');
 const catalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.json');
-const dailyFocusSourceChecks = [
-  resolve(repoRoot, 'react-app/app/src/routes/daily-focus/DailyFocusRoute.jsx'),
-  resolve(repoRoot, 'react-app/app/src/routes/daily-focus/dailyFocusRuntimes.jsx'),
-];
-const runtimeSourceChecks = [
-  resolve(repoRoot, 'react-app/app/src/routes/wall-repel/WallRepelRuntime.jsx'),
-  resolve(repoRoot, 'react-app/app/src/routes/flock-of-birds/FlockOfBirdsRuntime.jsx'),
-  resolve(repoRoot, 'react-app/app/src/routes/mineral-growth/MineralGrowthRuntime.jsx'),
-  resolve(repoRoot, 'react-app/app/src/routes/beach-ball-room/BeachBallRoomRuntime.jsx'),
-  resolve(repoRoot, 'react-app/app/src/routes/concept-simulations/NapoleonPointCloudRuntime.jsx'),
-  resolve(repoRoot, 'react-app/app/src/routes/concept-simulations/PressureMosaicRuntime.jsx'),
-];
-const runtimeCssChecks = [
-  resolve(repoRoot, 'react-app/app/src/routes/wall-repel/wall-repel-runtime.css'),
-  resolve(repoRoot, 'react-app/app/src/routes/flock-of-birds/flock-of-birds-runtime.css'),
-  resolve(repoRoot, 'react-app/app/src/routes/mineral-growth/mineral-growth-runtime.css'),
-  resolve(repoRoot, 'react-app/app/src/routes/beach-ball-room/beach-ball-room-runtime.css'),
-  resolve(repoRoot, 'react-app/app/src/routes/concept-simulations/concept-simulations-runtime.css'),
-];
+const homeRoutePath = resolve(repoRoot, 'react-app/app/src/routes/home/HomeRoute.jsx');
+const providerPath = resolve(repoRoot, 'react-app/app/src/components/simulation-focus/SimulationFocusProvider.jsx');
+const runtimePath = resolve(repoRoot, 'react-app/app/src/routes/daily-focus/DailyFocusCanvasRuntime.jsx');
 
 const baseUrl = process.env.ABS_DEV_URL || 'http://localhost:8013';
-const failFast = process.env.ABS_AUDIT_FAIL_FAST !== '0';
+const waitMs = Number(process.env.ABS_DAILY_FOCUS_WAIT_MS || 30000);
+const viewport = {
+  width: Number(process.env.ABS_DAILY_FOCUS_WIDTH || 390),
+  height: Number(process.env.ABS_DAILY_FOCUS_HEIGHT || 844),
+};
+const palette = process.env.ABS_DAILY_FOCUS_PALETTE || '';
+const theme = process.env.ABS_DAILY_FOCUS_THEME || '';
+const expectedDailyFocusCount = Number(process.env.ABS_DAILY_FOCUS_EXPECTED_COUNT || 15);
 
 function pageUrl(path) {
   return new URL(path, baseUrl).toString();
@@ -36,282 +27,276 @@ async function readCatalog() {
   return JSON.parse(await readFile(catalogPath, 'utf8'));
 }
 
-async function runStaticChecks(dailyRouteIds) {
+function focusPath(id) {
+  const params = new URLSearchParams({ focus: id });
+  if (palette) params.set('palette', palette);
+  return `/index.html?${params.toString()}`;
+}
+
+async function runStaticChecks(dailyEntries) {
   const failures = [];
-  const dailyFocusRouteSource = await readFile(dailyFocusSourceChecks[0], 'utf8');
-  if (/Demo\s+dailyFocus|dailyFocus\s*\/?>/.test(dailyFocusRouteSource)) {
-    failures.push('DailyFocusRoute still renders demo components with dailyFocus flags.');
-  }
-  if (/from ['"].*\bDemo\.jsx['"]/.test(dailyFocusRouteSource)) {
-    failures.push('DailyFocusRoute imports lab demo modules.');
-  }
+  const homeRouteSource = await readFile(homeRoutePath, 'utf8');
+  const providerSource = await readFile(providerPath, 'utf8');
+  const runtimeSource = await readFile(runtimePath, 'utf8');
 
-  const runtimeRegistry = await readFile(dailyFocusSourceChecks[1], 'utf8');
-  for (const routeId of dailyRouteIds) {
-    if (!runtimeRegistry.includes(routeId)) {
-      failures.push(`dailyFocusRuntimes is missing enabled route-backed simulation "${routeId}".`);
-    }
+  if (!homeRouteSource.includes('DailyFocusRuntimeHost')) {
+    failures.push('HomeRoute does not mount DailyFocusRuntimeHost.');
   }
-
-  const forbiddenMutation = /document\.(?:body|documentElement)\.(?:classList|style|dataset|setAttribute|removeAttribute)|document\.body\.appendChild|document\.body\.removeChild/;
-  const forbiddenLabCssImport = /import\s+['"]\.\/(?:wall-repel|flock-of-birds|mineral-growth|beach-ball-room|concept-simulations)\.css['"]/;
-  for (const path of runtimeSourceChecks) {
-    const source = await readFile(path, 'utf8');
-    if (forbiddenMutation.test(source)) {
-      failures.push(`${path.replace(`${repoRoot}/`, '')} mutates body/html or appends global DOM from a Daily Focus runtime.`);
-    }
-    if (forbiddenLabCssImport.test(source)) {
-      failures.push(`${path.replace(`${repoRoot}/`, '')} imports lab/page CSS instead of runtime-only CSS.`);
-    }
+  if (homeRouteSource.includes('<canvas id="c"')) {
+    failures.push('HomeRoute still mounts the legacy #c canvas.');
   }
-
-  const forbiddenRuntimeCss = /\bbody\.|#simulations|route-topbar|inner-wall|frame-vignette|parameterizer|panel|controls|fallback|\bground\b/;
-  for (const path of runtimeCssChecks) {
-    const source = await readFile(path, 'utf8');
-    if (forbiddenRuntimeCss.test(source)) {
-      failures.push(`${path.replace(`${repoRoot}/`, '')} contains lab/page selectors in runtime CSS.`);
+  if (/trySpaNavigate|buildRouteHref|mode-controller/.test(providerSource)) {
+    failures.push('SimulationFocusProvider still contains route or legacy mode switching.');
+  }
+  if (/document\.(?:body|documentElement)\.(?:classList|style)/.test(runtimeSource)) {
+    failures.push('Daily Simulation runtime mutates body/html classList or style.');
+  }
+  for (const entry of dailyEntries) {
+    if (!runtimeSource.includes(entry.id)) {
+      failures.push(`Daily Simulation runtime is missing a dedicated pattern for "${entry.id}".`);
     }
   }
 
   return failures;
 }
 
-async function waitForDailyFocusRoute(page, id) {
-  await page.waitForSelector('.daily-simulation-layer', { timeout: 15000 });
+async function waitForFocusRuntime(page, id) {
+  await page.waitForSelector('.daily-simulation-layer', { timeout: waitMs });
   await page.waitForFunction((simulationId) => {
     const layer = document.querySelector('.daily-simulation-layer');
-    if (!layer || layer.dataset.simulationId !== simulationId) return false;
-
-    if (simulationId === 'napoleon-point-cloud') {
-      const figure = layer.querySelector('.napoleon-point-cloud');
-      const loadState = figure?.dataset.pointCloudLoadState;
-      if (loadState === 'error') return true;
-      const canvases = Array.from(layer.querySelectorAll('canvas'));
-      const canvasesSized = canvases.length > 0 && canvases.every((canvas) => {
-        const rect = canvas.getBoundingClientRect();
-        return rect.width > 10 && rect.height > 10;
-      });
-      return loadState === 'ready' && canvasesSized;
-    }
-
-    if (simulationId === 'beach-ball-room') {
-      const container = layer.querySelector('.beach-ball-room-simulation');
-      if (container?.dataset.beachBallRoomLoadState === 'error') return true;
-    }
-
-    const canvases = Array.from(layer.querySelectorAll('canvas'));
-    if (!canvases.length) return false;
-    const canvasesSized = canvases.every((canvas) => {
-      const rect = canvas.getBoundingClientRect();
-      return rect.width > 10 && rect.height > 10;
-    });
-    return canvasesSized;
-  }, id, { timeout: 20000 });
+    const canvas = document.querySelector('.daily-focus-canvas');
+    const rect = canvas?.getBoundingClientRect?.();
+    return (
+      layer?.dataset.simulationId === simulationId
+      && layer?.dataset.dailyFocusReady === 'true'
+      && !document.documentElement.classList.contains('abs-direct-boot-staging')
+      && rect
+      && rect.width > 10
+      && rect.height > 10
+      && !document.querySelector('#c')
+    );
+  }, id, { timeout: waitMs, polling: 50 });
 }
 
-async function inspectDailyLayer(page) {
-  return page.evaluate(async () => {
-    const layer = document.querySelector('.daily-simulation-layer');
-    if (!layer) {
-      return { ok: false, errors: ['Missing .daily-simulation-layer.'] };
-    }
-
+async function inspectPage(page, id, baseline) {
+  return page.evaluate(({ simulationId, baselineSnapshot }) => {
     const errors = [];
-    const panelSelector = [
-      'aside',
-      'header',
-      'footer',
-      'nav',
-      'h1',
-      'h2',
-      'h3',
-      'p:not(.screen-reader)',
-      'figcaption',
-      'label',
-      'input',
-      'button',
-      'textarea',
-      'select',
-      '[role="alert"]',
-      '[role="status"]:not(.screen-reader)',
-      '.parameterizer-panel',
-      '.beach-ball-room-controls',
-      '.flock-of-birds-ground',
-      '.napoleon-point-cloud__credit',
-      '.napoleon-point-cloud__title',
-      '.napoleon-point-cloud__status',
-    ].join(',');
+    const visibleRect = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return {
+        display: style.display,
+        visibility: style.visibility,
+        opacity: Number.parseFloat(style.opacity || '1'),
+        top: Math.round(rect.top),
+        left: Math.round(rect.left),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      };
+    };
+    const snapshot = {
+      htmlClass: document.documentElement.className,
+      bodyClass: document.body.className,
+      wallBackground: getComputedStyle(document.getElementById('simulations')).backgroundColor,
+      textLogo: getComputedStyle(document.documentElement).getPropertyValue('--text-logo').trim(),
+      textMuted: getComputedStyle(document.documentElement).getPropertyValue('--text-color-dark-muted').trim(),
+      shell: {
+        title: visibleRect('#hero-title'),
+        links: visibleRect('#main-links'),
+        legend: visibleRect('#expertise-legend'),
+        description: visibleRect('.decorative-script'),
+        footer: visibleRect('.ui-bottom'),
+        edgeCaption: visibleRect('#edge-caption'),
+        londonTime: visibleRect('#site-year'),
+      },
+    };
 
-    const panels = Array.from(layer.querySelectorAll(panelSelector))
-      .filter((element) => {
-        const style = window.getComputedStyle(element);
-        const rect = element.getBoundingClientRect();
-        return style.display !== 'none'
-          && style.visibility !== 'hidden'
-          && Number(style.opacity) !== 0
-          && rect.width > 0
-          && rect.height > 0;
-      })
-      .map((element) => element.className || element.tagName.toLowerCase());
-    if (panels.length) {
-      errors.push(`Visible non-runtime UI found in simulation layer: ${panels.join(', ')}`);
+    const layer = document.querySelector('.daily-simulation-layer');
+    const canvas = document.querySelector('.daily-focus-canvas');
+    const wall = document.querySelector('#shell-wall-slot');
+    const hero = document.querySelector('#shell-hero-slot');
+    if (!layer) errors.push('Missing .daily-simulation-layer.');
+    if (!canvas) errors.push('Missing .daily-focus-canvas.');
+    if (document.querySelector('#c')) errors.push('Legacy #c canvas is present on Daily Simulation homepage.');
+    if (layer?.dataset.simulationId !== simulationId) {
+      errors.push(`Expected active simulation "${simulationId}", got "${layer?.dataset.simulationId || 'none'}".`);
+    }
+    if (getComputedStyle(layer).pointerEvents !== 'none') {
+      errors.push('Daily simulation layer intercepts pointer events.');
+    }
+    if (Number.parseInt(getComputedStyle(wall).zIndex || '0', 10) >= Number.parseInt(getComputedStyle(hero).zIndex || '0', 10)) {
+      errors.push('Daily simulation wall is not visually behind the hero/title layer.');
     }
 
     const textWalker = document.createTreeWalker(layer, NodeFilter.SHOW_TEXT);
     const textNodes = [];
     while (textWalker.nextNode()) {
-      const node = textWalker.currentNode;
-      const text = node.nodeValue.replace(/\s+/g, ' ').trim();
-      if (!text) continue;
-      const parent = node.parentElement;
-      if (!parent) continue;
-      const style = window.getComputedStyle(parent);
-      const rect = parent.getBoundingClientRect();
-      if (
-        style.display === 'none'
-        || style.visibility === 'hidden'
-        || Number(style.opacity) === 0
-        || rect.width <= 0
-        || rect.height <= 0
-      ) {
-        continue;
-      }
-      textNodes.push(text);
+      const text = textWalker.currentNode.nodeValue.replace(/\s+/g, ' ').trim();
+      if (text) textNodes.push(text);
     }
     if (textNodes.length) {
-      errors.push(`Visible text found in simulation layer: ${textNodes.slice(0, 6).join(' | ')}`);
+      errors.push(`Visible/text DOM found in simulation layer: ${textNodes.slice(0, 6).join(' | ')}`);
+    }
+
+    const forbiddenUi = layer.querySelector('aside, header, footer, nav, h1, h2, h3, p:not(.screen-reader), button, input, textarea, select, label, [role="alert"], [role="status"]:not(.screen-reader)');
+    if (forbiddenUi) {
+      errors.push(`Non-runtime UI element found in simulation layer: ${forbiddenUi.tagName.toLowerCase()}.`);
     }
 
     const backgroundOffenders = Array.from(layer.querySelectorAll('*'))
       .filter((element) => {
         if (element instanceof HTMLCanvasElement || element instanceof SVGElement) return false;
-        const style = window.getComputedStyle(element);
+        const style = getComputedStyle(element);
         const color = style.backgroundColor;
-        const hasBackgroundColor = color
+        return color
           && color !== 'transparent'
           && color !== 'rgba(0, 0, 0, 0)'
           && !color.endsWith(', 0)');
-        const hasImage = style.backgroundImage && style.backgroundImage !== 'none';
-        return hasBackgroundColor || hasImage;
       })
       .map((element) => element.className || element.tagName.toLowerCase());
     if (backgroundOffenders.length) {
-      errors.push(`Non-transparent DOM background found in simulation layer: ${backgroundOffenders.join(', ')}`);
+      errors.push(`Non-transparent DOM background in simulation layer: ${backgroundOffenders.join(', ')}.`);
     }
 
-    async function waitForSettledChrome() {
-      let previous = '';
-      let stableStartedAt = performance.now();
-      const deadline = performance.now() + 5000;
-
-      while (performance.now() < deadline) {
-        const current = JSON.stringify({
-          htmlClass: document.documentElement.className,
-          htmlStyle: document.documentElement.getAttribute('style') || '',
-          bodyClass: document.body.className,
-          bodyStyle: document.body.getAttribute('style') || '',
-        });
-
-        if (current !== previous) {
-          previous = current;
-          stableStartedAt = performance.now();
+    const protectedSelectors = {
+      title: '#hero-title',
+      links: '#main-links',
+      legend: '#expertise-legend',
+      description: '.decorative-script',
+      footer: '.ui-bottom',
+      edgeCaption: '#edge-caption',
+      londonTime: '#site-year',
+      switcher: '.simulation-focus-switcher',
+    };
+    const canvasRect = canvas?.getBoundingClientRect();
+    const canvasContext = canvas?.getContext?.('2d', { willReadFrequently: true });
+    if (canvas && canvasRect?.width > 0 && canvasRect?.height > 0 && canvasContext) {
+      const scaleX = canvas.width / canvasRect.width;
+      const scaleY = canvas.height / canvasRect.height;
+      Object.entries(protectedSelectors).forEach(([name, selector]) => {
+        const element = document.querySelector(selector);
+        if (!element) return;
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        if (
+          rect.width <= 0
+          || rect.height <= 0
+          || style.display === 'none'
+          || style.visibility === 'hidden'
+          || Number.parseFloat(style.opacity || '1') <= 0.02
+        ) {
+          return;
         }
+        const left = Math.max(0, Math.floor((rect.left - canvasRect.left) * scaleX));
+        const top = Math.max(0, Math.floor((rect.top - canvasRect.top) * scaleY));
+        const right = Math.min(canvas.width, Math.ceil((rect.right - canvasRect.left) * scaleX));
+        const bottom = Math.min(canvas.height, Math.ceil((rect.bottom - canvasRect.top) * scaleY));
+        const width = right - left;
+        const height = bottom - top;
+        if (width <= 0 || height <= 0) return;
+        const pixels = canvasContext.getImageData(left, top, width, height).data;
+        let alphaPixels = 0;
+        for (let i = 3; i < pixels.length; i += 4) {
+          if (pixels[i] > 8) {
+            alphaPixels += 1;
+            if (alphaPixels > 0) break;
+          }
+        }
+        if (alphaPixels > 0) {
+          errors.push(`Simulation canvas draws under protected shell element: ${name}.`);
+        }
+      });
+    }
 
-        if (performance.now() - stableStartedAt >= 750) return;
-        await new Promise((resolveTimer) => window.setTimeout(resolveTimer, 100));
+    Object.entries(snapshot.shell).forEach(([name, rect]) => {
+      if (!rect || rect.width <= 0 || rect.height <= 0) {
+        errors.push(`${name} missing or zero-size.`);
+        return;
       }
+      if (rect.display === 'none' || rect.visibility === 'hidden' || rect.opacity < 0.45) {
+        errors.push(`${name} hidden or too transparent.`);
+      }
+    });
+
+    if (baselineSnapshot) {
+      const compareKeys = ['htmlClass', 'bodyClass', 'wallBackground', 'textLogo', 'textMuted'];
+      compareKeys.forEach((key) => {
+        if (snapshot[key] !== baselineSnapshot[key]) {
+          errors.push(`${key} changed across simulations: "${baselineSnapshot[key]}" -> "${snapshot[key]}".`);
+        }
+      });
+      Object.entries(snapshot.shell).forEach(([name, rect]) => {
+        const base = baselineSnapshot.shell?.[name];
+        if (!base || !rect) return;
+        const drift = Math.abs(rect.top - base.top)
+          + Math.abs(rect.left - base.left)
+          + Math.abs(rect.width - base.width)
+          + Math.abs(rect.height - base.height);
+        if (drift > 8) {
+          errors.push(`${name} layout drifted by ${drift}px across simulations.`);
+        }
+      });
     }
 
-    await waitForSettledChrome();
-
-    const before = {
-      htmlClass: document.documentElement.className,
-      htmlStyle: document.documentElement.getAttribute('style') || '',
-      bodyClass: document.body.className,
-      bodyStyle: document.body.getAttribute('style') || '',
-    };
-    await new Promise((resolveTimer) => window.setTimeout(resolveTimer, 1200));
-    const after = {
-      htmlClass: document.documentElement.className,
-      htmlStyle: document.documentElement.getAttribute('style') || '',
-      bodyClass: document.body.className,
-      bodyStyle: document.body.getAttribute('style') || '',
-    };
-    if (JSON.stringify(before) !== JSON.stringify(after)) {
-      errors.push(`html/body class or style changed after Daily Focus settled: ${JSON.stringify({ before, after })}`);
-    }
-
-    return { ok: errors.length === 0, errors };
-  });
-}
-
-async function inspectHomeMode(page, id, launchPath) {
-  await page.goto(pageUrl(launchPath), { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('#c', { timeout: 15000 });
-  await page.waitForSelector('#hero-title', { timeout: 15000 });
-  return page.evaluate((simulationId) => {
-    const errors = [];
-    const canvas = document.querySelector('#c');
-    const simulationMount = document.querySelector('#shell-wall-slot') || document.querySelector('#simulations');
-    const rect = canvas?.getBoundingClientRect();
-    if (!rect || rect.width <= 10 || rect.height <= 10) {
-      errors.push(`${simulationId}: home canvas is not mounted with a visible size.`);
-    }
-    if (simulationMount?.querySelector('aside, header, footer, nav, h1, h2, p')) {
-      errors.push(`${simulationId}: visible UI was mounted inside the home simulation wall.`);
-    }
-    return { ok: errors.length === 0, errors };
-  }, id);
+    return { ok: errors.length === 0, errors, snapshot };
+  }, { simulationId: id, baselineSnapshot: baseline });
 }
 
 async function main() {
   const catalog = await readCatalog();
   const dailyEntries = catalog.simulations.filter((entry) => entry.stage === 'daily-rotation');
-  const routeEntries = dailyEntries.filter((entry) => entry.surface === 'lab-route');
-  const homeEntries = dailyEntries.filter((entry) => entry.surface === 'home-mode');
-  const failures = await runStaticChecks(routeEntries.map((entry) => entry.id));
-
-  if (failures.length && failFast) {
-    throw new Error(failures.join('\n'));
+  const failures = await runStaticChecks(dailyEntries);
+  if (dailyEntries.length <= 0) {
+    failures.push('Expected at least one Daily Simulation entry in the catalog.');
   }
-
+  if (Number.isFinite(expectedDailyFocusCount) && dailyEntries.length !== expectedDailyFocusCount) {
+    failures.push(`Expected ${expectedDailyFocusCount} Daily Simulation entries, found ${dailyEntries.length}.`);
+  }
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  const page = await browser.newPage({
+    viewport,
+    deviceScaleFactor: Number(process.env.ABS_DAILY_FOCUS_DPR || 1),
+  });
+  if (theme === 'light' || theme === 'dark' || theme === 'auto') {
+    await page.emulateMedia({ colorScheme: theme === 'dark' ? 'dark' : 'light' });
+    await page.addInitScript((themePreference) => {
+      window.localStorage.setItem('theme-preference-v2', themePreference);
+    }, theme);
+  }
+  let baseline = null;
 
   try {
-    for (const entry of routeEntries) {
-      await page.goto(pageUrl(entry.dailyHref), { waitUntil: 'domcontentloaded' });
-      await waitForDailyFocusRoute(page, entry.id);
-      const result = await inspectDailyLayer(page);
+    for (const entry of dailyEntries) {
+      await page.goto(pageUrl(focusPath(entry.id)), { waitUntil: 'networkidle', timeout: 60000 });
+      await waitForFocusRuntime(page, entry.id);
+      const result = await inspectPage(page, entry.id, baseline);
       if (!result.ok) {
         failures.push(`${entry.id}: ${result.errors.join('; ')}`);
-        if (failFast) break;
       }
-    }
-
-    if (!failures.length) {
-      for (const entry of homeEntries) {
-        const result = await inspectHomeMode(page, entry.id, entry.launchPath);
-        if (!result.ok) {
-          failures.push(...result.errors);
-          if (failFast) break;
-        }
-      }
+      baseline = baseline || result.snapshot;
     }
   } finally {
     await browser.close();
   }
 
   if (failures.length) {
-    console.error('Daily Focus boundary audit failed:');
+    console.error('Daily Simulation boundary audit failed:');
     failures.forEach((failure) => console.error(`- ${failure}`));
     process.exit(1);
   }
 
-  console.log(`Daily Focus boundary audit passed (${routeEntries.length} route runtimes, ${homeEntries.length} home modes).`);
+  console.log(JSON.stringify({
+    ok: true,
+    dailyFocusCount: dailyEntries.length,
+    viewport,
+    palette: palette || 'default',
+    theme: theme || 'default',
+  }, null, 2));
 }
 
 main().catch((error) => {
-  console.error(error);
+  console.error(error?.stack || error?.message || error);
   process.exit(1);
 });

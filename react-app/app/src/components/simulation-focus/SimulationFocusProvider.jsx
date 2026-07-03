@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -12,13 +10,14 @@ import {
   getDailyFocusSimulations,
   getResolvedSimulationFocus,
   getSimulationLaunchTarget,
+  SIMULATION_FOCUS_STORAGE_KEY,
   writeManualSimulationFocus,
 } from '../../data/simulationCatalog.js';
 import { buildRouteHref } from '../../lib/routes.js';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
+import { SimulationFocusContext, useSimulationFocus } from './SimulationFocusContext.js';
 import { SimulationIcon } from './SimulationIcon.jsx';
 
-const SimulationFocusContext = createContext(null);
 const FOCUS_MODAL_ID = 'simulation-focus-modal';
 const CHOOSER_TITLE_ID = 'simulation-focus-modal-title';
 const CHOOSER_CLOSE_SETTLE_MS = 420;
@@ -37,7 +36,8 @@ function getModalOverlayModule() {
 function readUrlMode() {
   if (typeof window === 'undefined') return null;
   try {
-    return new URLSearchParams(window.location.search).get('mode');
+    const params = new URLSearchParams(window.location.search);
+    return params.get('mode') || params.get('focus') || params.get('simulation');
   } catch {
     return null;
   }
@@ -95,7 +95,7 @@ export function SimulationFocusProvider({ routeId, transitionCurrentRoute, child
       refreshFocusState();
     };
     const handleStorage = (event) => {
-      if (!event || event.key === 'abs_simulation_focus_choice_v1') {
+      if (!event || event.key === SIMULATION_FOCUS_STORAGE_KEY) {
         refreshFocusState();
       }
     };
@@ -257,14 +257,6 @@ export function SimulationFocusProvider({ routeId, transitionCurrentRoute, child
   );
 }
 
-function useSimulationFocus() {
-  const context = useContext(SimulationFocusContext);
-  if (!context) {
-    throw new Error('Simulation focus components must be rendered inside SimulationFocusProvider.');
-  }
-  return context;
-}
-
 export function SimulationFocusSwitcher() {
   const {
     activeSimulation,
@@ -298,7 +290,6 @@ export function SimulationFocusChooser() {
   const {
     activeId,
     closeChooser,
-    dailyId,
     dailySimulations,
     isChooserClosing,
     isChooserMounted,
@@ -435,7 +426,6 @@ export function SimulationFocusChooser() {
       <div className="simulation-focus-list" role="list">
         {dailySimulations.map((entry) => {
           const isActive = entry.id === activeId;
-          const isDaily = entry.id === dailyId;
           return (
             <button
               key={entry.id}
@@ -447,7 +437,7 @@ export function SimulationFocusChooser() {
               <SimulationIcon id={entry.id} className="simulation-focus-row__icon" />
               <span className="simulation-focus-row__copy">
                 <span className="simulation-focus-row__name">{entry.name}</span>
-                {isDaily ? <span className="simulation-focus-row__meta">Today</span> : null}
+                {isActive ? <span className="simulation-focus-row__meta">Active</span> : null}
               </span>
             </button>
           );

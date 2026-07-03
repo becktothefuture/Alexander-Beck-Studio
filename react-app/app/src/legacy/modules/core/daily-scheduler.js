@@ -8,7 +8,7 @@ import { getResolvedSimulationFocus } from '../../../data/simulationCatalog.js';
 /**
  * Get the daily mode based on the current date.
  * Uses local user time to ensure everyone sees the same simulation on the same day.
- * The daily focus rotates through catalog entries marked daily-rotation.
+ * Daily Simulation rotates through catalog entries marked daily-rotation.
  * Extended modes remain available through arrow/panel navigation, but they should
  * not become first-run daily candidates.
  * 

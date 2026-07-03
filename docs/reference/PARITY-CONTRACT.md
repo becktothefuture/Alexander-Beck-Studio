@@ -17,6 +17,8 @@ Preserve:
 - same modal/gate behavior;
 - same portfolio drawer stacking above route chrome;
 - same CSS, typography, spacing, colors, radius, shadows, blur, and z-index semantics;
+- same semantic homepage layer order: Base Frame → App Scene Transform Group → Simulation Wall + Scene Effects → Ball Canvas → Contrast Inner-Shadow Veil → UI Layer → Overlay Layer → Modal Layer;
+- same accessible home title source, even when the visible title/subtitle are canvas-rendered through the title-depth path;
 - same public config values;
 - same generated build output semantics;
 - same GitHub Pages deployment target.
@@ -45,6 +47,13 @@ For pointer/touch interaction or title depth layering changes:
 
 ```bash
 ABS_DEV_URL=http://127.0.0.1:8012 npm run audit:pointer-title-depth
+```
+
+For homepage semantic layer, veil, or canvas-title changes, also verify:
+
+```bash
+ABS_DEV_URL=http://127.0.0.1:8012 npm run audit:canvas-spa:quick
+ABS_DEV_URL=http://127.0.0.1:8013 npm run audit:portfolio-gate:quick
 ```
 
 For portfolio gate or drawer behavior:
