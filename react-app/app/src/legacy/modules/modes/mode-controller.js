@@ -3,7 +3,7 @@
 // ║     Daily-mode-first runtime with lazy-loaded simulation modules             ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { MODES, NARRATIVE_MODE_SEQUENCE, isPitLikeMode } from '../core/constants.js';
+import { MODES, isPitLikeMode } from '../core/constants.js';
 import {
   ROUTE_BACKED_DAILY_HREFS,
   getSimulationName,
@@ -28,7 +28,6 @@ const MODE_NAMES = {
   bubbles: 'Carbonated Bubbles',
   'kaleidoscope-3': 'Kaleidoscope',
   critters: 'Hive',
-  'parallax-linear': 'Parallax (Linear)',
   'parallax-float': 'Parallax (Float)',
   '3d-sphere': '3D Sphere',
   '3d-cube': '3D Cube',
@@ -110,14 +109,6 @@ const MODE_REGISTRY = {
       force: 'applyCrittersForces',
       update: 'updateCrittersGrid',
       preRender: 'renderCrittersWaypoints'
-    }
-  },
-  [MODES.PARALLAX_LINEAR]: {
-    load: () => import('./parallax-linear.js'),
-    hooks: {
-      initialize: 'initializeParallaxLinear',
-      force: 'applyParallaxLinearForces',
-      update: 'updateParallaxLinearMouse'
     }
   },
   [MODES.PARALLAX_FLOAT]: {
@@ -266,7 +257,6 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.CRITTERS: return globals.crittersWarmupFrames ?? 10;
     case MODES.SPHERE_3D: return globals.sphere3dWarmupFrames ?? 10;
     case MODES.CUBE_3D: return globals.cube3dWarmupFrames ?? 10;
-    case MODES.PARALLAX_LINEAR: return globals.parallaxLinearWarmupFrames ?? 10;
     case MODES.PARALLAX_FLOAT: return globals.parallaxFloatWarmupFrames ?? 10;
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.tensionLoomWarmupFrames ?? 8;
@@ -289,7 +279,6 @@ function applyModePhysicsState(mode, globals) {
     MODES.SPHERE_3D,
     MODES.CUBE_3D,
     MODES.CRITTERS,
-    MODES.PARALLAX_LINEAR,
     MODES.PARALLAX_FLOAT,
     MODES.STARFIELD_3D,
     MODES.ELASTIC_CENTER,
@@ -366,11 +355,6 @@ export function initModeSystem() {
 export async function setMode(inputMode) {
   const globals = getGlobals();
   let mode = inputMode;
-
-  // Parallax-linear simulation disabled: redirect to first narrative mode.
-  if (mode === MODES.PARALLAX_LINEAR) {
-    mode = NARRATIVE_MODE_SEQUENCE[0] ?? MODES.PIT;
-  }
 
   const routeBackedHref = ROUTE_BACKED_MODE_HREFS[mode];
   if (routeBackedHref) {

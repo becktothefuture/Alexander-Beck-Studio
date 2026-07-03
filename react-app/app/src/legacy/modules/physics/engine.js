@@ -246,7 +246,6 @@ function shouldResolveBallCollisionsForMode(mode) {
     mode !== MODES.CRITTERS &&
     mode !== MODES.SPHERE_3D &&
     mode !== MODES.CUBE_3D &&
-    mode !== MODES.PARALLAX_LINEAR &&
     mode !== MODES.PARALLAX_FLOAT &&
     mode !== MODES.STARFIELD_3D &&
     mode !== MODES.PRESSURE_CRUCIBLE;
@@ -468,7 +467,6 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     const mode = globals.currentMode;
     if (mode !== MODES.SPHERE_3D &&
         mode !== MODES.CUBE_3D &&
-        mode !== MODES.PARALLAX_LINEAR &&
         mode !== MODES.PARALLAX_FLOAT &&
         mode !== MODES.STARFIELD_3D) {
       const portfolioMotion = mode === MODES.PORTFOLIO_PIT
@@ -625,7 +623,6 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         mode !== MODES.FLIES &&
         mode !== MODES.SPHERE_3D &&
         mode !== MODES.CUBE_3D &&
-        mode !== MODES.PARALLAX_LINEAR &&
         mode !== MODES.PARALLAX_FLOAT &&
         mode !== MODES.KALEIDOSCOPE &&
         mode !== MODES.WEAVE_FIELD &&

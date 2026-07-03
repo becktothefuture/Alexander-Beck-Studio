@@ -124,7 +124,6 @@ export function updateModeButtonsUI(activeMode, options = {}) {
     'magnetic': 'Magnetic',
     'bubbles': 'Carbonated Bubbles',
     'kaleidoscope-3': 'Kaleidoscope',
-    'parallax-linear': 'Parallax (Linear)',
     'parallax-float': 'Parallax (Float)',
     '3d-sphere': '3D Sphere',
     '3d-cube': '3D Cube',

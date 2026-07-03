@@ -3,7 +3,7 @@
 // ║               All global state - extracted from balls-source.html            ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { CONSTANTS, MODES, WALL_PRESETS } from './constants.js';
+import { CONSTANTS, MODES } from './constants.js';
 import { readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
 import { getLondonWeatherPaletteFromAssessment } from '../../../weather/londonWeatherAssessment.js';
 import { getLondonWeatherPaletteTheme } from '../../../palette/londonPalettes.js';
@@ -104,7 +104,6 @@ const state = {
   sizeVariationBubbles: 0.2,
   sizeVariationKaleidoscope: 0,
   sizeVariationCritters: 0.2,
-  sizeVariationParallaxLinear: 0,
   sizeVariationParallaxFloat: 0,
   sizeVariationWeaveField: 0,
   
@@ -119,7 +118,6 @@ const state = {
   bubblesWarmupFrames: 10,
   kaleidoscope3WarmupFrames: 65,
   crittersWarmupFrames: 10,
-  parallaxLinearWarmupFrames: 10,
   parallaxFloatWarmupFrames: 10,
   // 3D Sphere (Mode 16)
   sphere3dRadiusVw: 60,                     // Sphere radius (vw)
@@ -588,33 +586,17 @@ const state = {
   kaleidoscope3SpawnAreaMul: 0.72,
   kaleidoscope3SizeVariance: 0.5,
 
-  // Parallax modes (mouse-driven depth parallax)
-  // NOTE: Older parallax parameters are kept for compatibility with older presets/UI,
-  // but the current Parallax implementations use the 3D grid keys below.
-  parallaxLinearDotCount: 95,
-  parallaxLinearRowPattern: 'thirds',
-  parallaxLinearSpacingPattern: 'even',
-  parallaxLinearFarPct: 0.42,
-  parallaxLinearMidPct: 0.32,
-  parallaxLinearFarSpeed: 0.15,
-  parallaxLinearMidSpeed: 0.5,
-  parallaxLinearNearSpeed: 1.0,
-  parallaxLinearFollowStrength: 16.0,
-  parallaxLinearDamping: 12.0,
-  // Parallax (3D grid) — fills the viewport and responds to mouse like a camera pan.
-  // These are the canonical knobs for the rebuilt Parallax simulations.
-  parallaxLinearGridX: 14,
-  parallaxLinearGridY: 10,
-  parallaxLinearGridZ: 7,
+  // Parallax Float (mouse-driven depth parallax)
+  parallaxFloatGridX: 14,
+  parallaxFloatGridY: 10,
+  parallaxFloatGridZ: 7,
   // Grid span in viewport units (multipliers applied to canvas width/height).
-  // 1.0 ≈ edge-to-edge in the grid's *world* space; use >1 to counter perspective shrink.
-  parallaxLinearSpanX: 5.0,
-  parallaxLinearSpanY: 2.6,
-  parallaxLinearZNear: 50,
-  parallaxLinearZFar: 900,
-  parallaxLinearFocalLength: 420,
-  parallaxLinearParallaxStrength: 260,
-  parallaxLinearDotSizeMul: 1.8,
+  // 1.0 ~= edge-to-edge in the grid's world space; use >1 to counter perspective shrink.
+  parallaxFloatSpanX: 5.0,
+  parallaxFloatSpanY: 2.6,
+  parallaxFloatZNear: 50,
+  parallaxFloatZFar: 900,
+  parallaxFloatFocalLength: 420,
   parallaxFloatRandomize: 0.5,
   parallaxFloatLevitationAmp: 20,
   parallaxFloatLevitationSpeed: 0.2,
@@ -1528,7 +1510,7 @@ export function initState(config) {
   if (config.sizeVariationBubbles !== undefined) state.sizeVariationBubbles = clampNumber(config.sizeVariationBubbles, 0, 1, state.sizeVariationBubbles);
   if (config.sizeVariationKaleidoscope !== undefined) state.sizeVariationKaleidoscope = clampNumber(config.sizeVariationKaleidoscope, 0, 1, state.sizeVariationKaleidoscope);
   if (config.sizeVariationCritters !== undefined) state.sizeVariationCritters = clampNumber(config.sizeVariationCritters, 0, 1, state.sizeVariationCritters);
-  if (config.sizeVariationParallaxLinear !== undefined) state.sizeVariationParallaxLinear = clampNumber(config.sizeVariationParallaxLinear, 0, 1, state.sizeVariationParallaxLinear);
+  if (config.sizeVariationParallaxFloat !== undefined) state.sizeVariationParallaxFloat = clampNumber(config.sizeVariationParallaxFloat, 0, 1, state.sizeVariationParallaxFloat);
   if (config.sizeVariationWeaveField !== undefined) state.sizeVariationWeaveField = clampNumber(config.sizeVariationWeaveField, 0, 1, state.sizeVariationWeaveField);
   // Legacy key (kept): does not affect per-mode sliders, but we store it.
   if (config.sizeVariation !== undefined) state.sizeVariation = config.sizeVariation;
@@ -1569,7 +1551,7 @@ export function initState(config) {
   if (config.bubblesWarmupFrames !== undefined) state.bubblesWarmupFrames = clampInt(config.bubblesWarmupFrames, 0, 240, state.bubblesWarmupFrames);
   if (config.kaleidoscope3WarmupFrames !== undefined) state.kaleidoscope3WarmupFrames = clampInt(config.kaleidoscope3WarmupFrames, 0, 240, state.kaleidoscope3WarmupFrames);
   if (config.crittersWarmupFrames !== undefined) state.crittersWarmupFrames = clampInt(config.crittersWarmupFrames, 0, 240, state.crittersWarmupFrames);
-  if (config.parallaxLinearWarmupFrames !== undefined) state.parallaxLinearWarmupFrames = clampInt(config.parallaxLinearWarmupFrames, 0, 240, state.parallaxLinearWarmupFrames);
+  if (config.parallaxFloatWarmupFrames !== undefined) state.parallaxFloatWarmupFrames = clampInt(config.parallaxFloatWarmupFrames, 0, 240, state.parallaxFloatWarmupFrames);
   if (config.tensionLoomWarmupFrames !== undefined) state.tensionLoomWarmupFrames = clampInt(config.tensionLoomWarmupFrames, 0, 240, state.tensionLoomWarmupFrames);
   if (config.flubberBlobWarmupFrames !== undefined) state.flubberBlobWarmupFrames = clampInt(config.flubberBlobWarmupFrames, 0, 240, state.flubberBlobWarmupFrames);
   if (config.weaveFieldWarmupFrames !== undefined) state.weaveFieldWarmupFrames = clampInt(config.weaveFieldWarmupFrames, 0, 240, state.weaveFieldWarmupFrames);
@@ -1822,24 +1804,15 @@ export function initState(config) {
 
   // Lattice (config overrides)
 
-  // Parallax (config overrides)
-  if (config.parallaxLinearDotCount !== undefined) state.parallaxLinearDotCount = clampNumber(config.parallaxLinearDotCount, 20, 220, state.parallaxLinearDotCount);
-  if (config.parallaxLinearGridJitter !== undefined) state.parallaxLinearGridJitter = clampNumber(config.parallaxLinearGridJitter, 0, 1, state.parallaxLinearGridJitter);
-  if (config.parallaxLinearFarSpeed !== undefined) state.parallaxLinearFarSpeed = clampNumber(config.parallaxLinearFarSpeed, 0, 1.5, state.parallaxLinearFarSpeed);
-  if (config.parallaxLinearMidSpeed !== undefined) state.parallaxLinearMidSpeed = clampNumber(config.parallaxLinearMidSpeed, 0, 1.5, state.parallaxLinearMidSpeed);
-  if (config.parallaxLinearNearSpeed !== undefined) state.parallaxLinearNearSpeed = clampNumber(config.parallaxLinearNearSpeed, 0, 1.5, state.parallaxLinearNearSpeed);
-  if (config.parallaxLinearGridX !== undefined) state.parallaxLinearGridX = clampInt(config.parallaxLinearGridX, 3, 40, state.parallaxLinearGridX);
-  if (config.parallaxLinearGridY !== undefined) state.parallaxLinearGridY = clampInt(config.parallaxLinearGridY, 3, 40, state.parallaxLinearGridY);
-  if (config.parallaxLinearGridZ !== undefined) state.parallaxLinearGridZ = clampInt(config.parallaxLinearGridZ, 2, 20, state.parallaxLinearGridZ);
-  if (config.parallaxLinearSpanX !== undefined) state.parallaxLinearSpanX = clampNumber(config.parallaxLinearSpanX, 0.2, 3.0, state.parallaxLinearSpanX);
-  if (config.parallaxLinearSpanY !== undefined) state.parallaxLinearSpanY = clampNumber(config.parallaxLinearSpanY, 0.2, 3.0, state.parallaxLinearSpanY);
-  if (config.parallaxLinearZNear !== undefined) state.parallaxLinearZNear = clampNumber(config.parallaxLinearZNear, 10, 1200, state.parallaxLinearZNear);
-  if (config.parallaxLinearZFar !== undefined) state.parallaxLinearZFar = clampNumber(config.parallaxLinearZFar, 50, 3000, state.parallaxLinearZFar);
-  if (config.parallaxLinearFocalLength !== undefined) state.parallaxLinearFocalLength = clampNumber(config.parallaxLinearFocalLength, 80, 2000, state.parallaxLinearFocalLength);
-  if (config.parallaxLinearParallaxStrength !== undefined) state.parallaxLinearParallaxStrength = clampNumber(config.parallaxLinearParallaxStrength, 0, 2000, state.parallaxLinearParallaxStrength);
-  if (config.parallaxLinearDotSizeMul !== undefined) state.parallaxLinearDotSizeMul = clampNumber(config.parallaxLinearDotSizeMul, 0.1, 6.0, state.parallaxLinearDotSizeMul);
-  if (config.parallaxLinearFollowStrength !== undefined) state.parallaxLinearFollowStrength = clampNumber(config.parallaxLinearFollowStrength, 1, 80, state.parallaxLinearFollowStrength);
-  if (config.parallaxLinearDamping !== undefined) state.parallaxLinearDamping = clampNumber(config.parallaxLinearDamping, 1, 80, state.parallaxLinearDamping);
+  // Parallax Float (config overrides)
+  if (config.parallaxFloatGridX !== undefined) state.parallaxFloatGridX = clampInt(config.parallaxFloatGridX, 3, 40, state.parallaxFloatGridX);
+  if (config.parallaxFloatGridY !== undefined) state.parallaxFloatGridY = clampInt(config.parallaxFloatGridY, 3, 40, state.parallaxFloatGridY);
+  if (config.parallaxFloatGridZ !== undefined) state.parallaxFloatGridZ = clampInt(config.parallaxFloatGridZ, 2, 20, state.parallaxFloatGridZ);
+  if (config.parallaxFloatSpanX !== undefined) state.parallaxFloatSpanX = clampNumber(config.parallaxFloatSpanX, 0.2, 12.0, state.parallaxFloatSpanX);
+  if (config.parallaxFloatSpanY !== undefined) state.parallaxFloatSpanY = clampNumber(config.parallaxFloatSpanY, 0.2, 12.0, state.parallaxFloatSpanY);
+  if (config.parallaxFloatZNear !== undefined) state.parallaxFloatZNear = clampNumber(config.parallaxFloatZNear, 10, 1200, state.parallaxFloatZNear);
+  if (config.parallaxFloatZFar !== undefined) state.parallaxFloatZFar = clampNumber(config.parallaxFloatZFar, 50, 3000, state.parallaxFloatZFar);
+  if (config.parallaxFloatFocalLength !== undefined) state.parallaxFloatFocalLength = clampNumber(config.parallaxFloatFocalLength, 80, 2000, state.parallaxFloatFocalLength);
 
   // Generic "apply like-for-like" config keys to state
   // This ensures panel-exported config round-trips cleanly across modes.
@@ -2375,17 +2348,6 @@ export function initState(config) {
   // Ball spacing (collision padding)
   if (config.ballSpacing !== undefined) state.ballSpacing = config.ballSpacing;
   if (config.ballBallSurfaceGapPx !== undefined) state.ballBallSurfaceGapPx = config.ballBallSurfaceGapPx;
-
-  // Rubber wall wobble tuning
-  if (config.wallPreset !== undefined) state.wallPreset = config.wallPreset;
-
-  // If a preset is specified, apply it as a baseline BEFORE reading any explicit low-level keys.
-  // This ensures presets actually do something from config/load (and per-key overrides still win).
-  if (state.wallPreset) {
-    const preset = WALL_PRESETS?.[state.wallPreset];
-    const values = preset?.values ? preset.values : preset;
-    if (values) Object.assign(state, values);
-  }
 
   // Wall colors: use frameColorLight/frameColorDark (all wall colors point to frameColor via CSS)
   // Legacy config support: if wallColorLight/wallColorDark are set, update frame colors

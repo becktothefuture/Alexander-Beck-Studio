@@ -20,7 +20,6 @@ export const MODES = {
   // Ball-only "critters" mode.
   CRITTERS: 'critters',
   // Parallax (depth perception) simulations
-  PARALLAX_LINEAR: 'parallax-linear',
   PARALLAX_FLOAT: 'parallax-float',
   SPHERE_3D: '3d-sphere',
   CUBE_3D: '3d-cube',
@@ -55,7 +54,7 @@ export function isPitLikeMode(mode) {
 // - Guaranteed first impression and daily candidates for new visitors
 // - Best work, strongest visual impact
 //
-// EXTENDED TIER (8 modes):
+// EXTENDED TIER (9 modes):
 // - Only appears after all Featured modes have cycled
 // - Additional explorations and experiments
 // - Loop order: Featured → Extended → Featured → ...
@@ -247,88 +246,3 @@ export const CONSTANTS = {
   PHYSICS_DT_MOBILE: 1/60,  // Lower physics Hz on mobile (60Hz vs 120Hz)
   GE: 1960
 };
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// WALL PRESETS (REMOVED - Deformation system deprecated, replaced by rumble)
-// Empty export for backward compatibility
-// ═══════════════════════════════════════════════════════════════════════════════
-export const WALL_PRESETS = {};
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// MODE PRESETS - Curated configurations for each simulation
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// Parallax Linear (3D grid)
-export const PARALLAX_LINEAR_PRESETS = {
-  default: {
-    label: 'Default (Full View Grid)',
-    parallaxLinearDotSizeMul: 1.8,
-    sizeVariationParallaxLinear: 0,
-    parallaxLinearGridX: 14,
-    parallaxLinearGridY: 10,
-    parallaxLinearGridZ: 7,
-    parallaxLinearSpanX: 1.35,
-    parallaxLinearSpanY: 1.35,
-    parallaxLinearZNear: 50,
-    parallaxLinearZFar: 900,
-    parallaxLinearFocalLength: 420,
-    parallaxLinearParallaxStrength: 260,
-  },
-  dense: {
-    label: 'Dense (More Vertices)',
-    parallaxLinearDotSizeMul: 1.6,
-    sizeVariationParallaxLinear: 0.1,
-    parallaxLinearGridX: 18,
-    parallaxLinearGridY: 13,
-    parallaxLinearGridZ: 9,
-    parallaxLinearSpanX: 1.25,
-    parallaxLinearSpanY: 1.25,
-    parallaxLinearZNear: 45,
-    parallaxLinearZFar: 1000,
-    parallaxLinearFocalLength: 420,
-    parallaxLinearParallaxStrength: 240
-  },
-  deep: {
-    label: 'Deep Field (Stronger Depth)',
-    parallaxLinearDotSizeMul: 1.7,
-    sizeVariationParallaxLinear: 0.08,
-    parallaxLinearGridX: 14,
-    parallaxLinearGridY: 10,
-    parallaxLinearGridZ: 10,
-    parallaxLinearSpanX: 2.2,
-    parallaxLinearSpanY: 2.2,
-    parallaxLinearZNear: 30,
-    parallaxLinearZFar: 1500,
-    parallaxLinearFocalLength: 520,
-    parallaxLinearParallaxStrength: 320
-  },
-  calm: {
-    label: 'Calm (Slow Camera)',
-    parallaxLinearDotSizeMul: 1.8,
-    sizeVariationParallaxLinear: 0.05,
-    parallaxLinearGridX: 12,
-    parallaxLinearGridY: 9,
-    parallaxLinearGridZ: 6,
-    parallaxLinearSpanX: 2.0,
-    parallaxLinearSpanY: 2.0,
-    parallaxLinearZNear: 60,
-    parallaxLinearZFar: 900,
-    parallaxLinearFocalLength: 420,
-    parallaxLinearParallaxStrength: 160
-  },
-  minimal: {
-    label: 'Minimal (Big Dots)',
-    parallaxLinearDotSizeMul: 2.4,
-    sizeVariationParallaxLinear: 0.15,
-    parallaxLinearGridX: 10,
-    parallaxLinearGridY: 7,
-    parallaxLinearGridZ: 4,
-    parallaxLinearSpanX: 2.6,
-    parallaxLinearSpanY: 2.6,
-    parallaxLinearZNear: 70,
-    parallaxLinearZFar: 800,
-    parallaxLinearFocalLength: 380,
-    parallaxLinearParallaxStrength: 220
-  }
-};
-// with configurable orbital rings, rotation, and tumble via control panel

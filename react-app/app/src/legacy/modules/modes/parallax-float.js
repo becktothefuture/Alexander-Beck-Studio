@@ -68,31 +68,31 @@ export function initializeParallaxFloat() {
   const h = canvas.height;
 
   // Grid dimensions (number of vertices in each dimension)
-  const baseGridX = Math.max(PARALLAX_FLOAT_GRID_MIN_X, Math.min(40, Math.round(g.parallaxFloatGridX ?? g.parallaxLinearGridX ?? 14)));
-  const baseGridY = Math.max(PARALLAX_FLOAT_GRID_MIN_Y, Math.min(40, Math.round(g.parallaxFloatGridY ?? g.parallaxLinearGridY ?? 10)));
-  const baseGridZ = Math.max(PARALLAX_FLOAT_GRID_MIN_Z, Math.min(20, Math.round(g.parallaxFloatGridZ ?? g.parallaxLinearGridZ ?? 7)));
+  const baseGridX = Math.max(PARALLAX_FLOAT_GRID_MIN_X, Math.min(40, Math.round(g.parallaxFloatGridX ?? 14)));
+  const baseGridY = Math.max(PARALLAX_FLOAT_GRID_MIN_Y, Math.min(40, Math.round(g.parallaxFloatGridY ?? 10)));
+  const baseGridZ = Math.max(PARALLAX_FLOAT_GRID_MIN_Z, Math.min(20, Math.round(g.parallaxFloatGridZ ?? 7)));
   const targetCount = getMobileAdjustedCount(baseGridX * baseGridY * baseGridZ);
   const { gridX, gridY, gridZ } = reduceGridDimensionsToBudget(baseGridX, baseGridY, baseGridZ, targetCount);
   if (gridX <= 0 || gridY <= 0 || gridZ <= 0) return;
 
   // Grid span: how much of the viewport the grid occupies in world space.
   // Default 10 = 10x viewport spread
-  const spanX = Math.max(0, Math.min(10.0, g.parallaxFloatSpanX ?? g.parallaxLinearSpanX ?? 3));
-  const spanY = Math.max(0, Math.min(10.0, g.parallaxFloatSpanY ?? g.parallaxLinearSpanY ?? 3));
+  const spanX = Math.max(0, Math.min(10.0, g.parallaxFloatSpanX ?? 5.0));
+  const spanY = Math.max(0, Math.min(10.0, g.parallaxFloatSpanY ?? 2.6));
   const xMin = -0.5 * w * spanX;
   const yMin = -0.5 * h * spanY;
   const xStep = (w * spanX) / Math.max(1, gridX - 1);
   const yStep = (h * spanY) / Math.max(1, gridY - 1);
 
   // Z-depth range (how far back the grid extends)
-  const zNear = Math.max(10, g.parallaxFloatZNear ?? g.parallaxLinearZNear ?? 50);
-  const zFar = Math.max(zNear + 100, g.parallaxFloatZFar ?? g.parallaxLinearZFar ?? 800);
+  const zNear = Math.max(10, g.parallaxFloatZNear ?? 50);
+  const zFar = Math.max(zNear + 100, g.parallaxFloatZFar ?? 900);
   const zStep = (zFar - zNear) / Math.max(1, gridZ - 1);
 
   // Camera/projection
-  const focalLength = Math.max(80, g.parallaxFloatFocalLength ?? g.parallaxLinearFocalLength ?? 420);
+  const focalLength = Math.max(80, g.parallaxFloatFocalLength ?? 420);
 
-  const dotSizeMul = Math.max(0.1, Math.min(6.0, g.parallaxFloatDotSizeMul ?? g.parallaxLinearDotSizeMul ?? 1.1));
+  const dotSizeMul = Math.max(0.1, Math.min(6.0, g.parallaxFloatDotSizeMul ?? 1.1));
   const baseR = (g.R_MED || 20) * PARALLAX_FLOAT_SIZE_BASE_MULTIPLIER * (g.DPR || 1) * dotSizeMul;
   const varFrac = getModeSizeVarianceFrac(g, MODES.PARALLAX_FLOAT);
 
@@ -193,7 +193,7 @@ export function updateParallaxFloatMouse(dt) {
   }
 
   // Mouse easing factor (higher = snappier, lower = smoother)
-  const easing = Math.max(0.5, Math.min(20, g.parallaxFloatMouseEasing ?? g.parallaxLinearMouseEasing ?? 4));
+  const easing = Math.max(0.5, Math.min(20, g.parallaxFloatMouseEasing ?? 4));
   const easeFactor = 1 - Math.exp(-easing * dt);
 
   // Initialize smoothed position on first frame to avoid jump
@@ -241,9 +241,8 @@ export function applyParallaxFloatForces(ball, dt) {
   const mx = _smoothMouseX;
   const my = _smoothMouseY;
 
-  // Camera parameters (fall back to linear params if float-specific not set)
-  const focalLength = Math.max(100, g.parallaxFloatFocalLength ?? g.parallaxLinearFocalLength ?? 400);
-  const parallaxStrength = Math.max(0, g.parallaxFloatParallaxStrength ?? g.parallaxLinearParallaxStrength ?? 120);
+  const focalLength = Math.max(100, g.parallaxFloatFocalLength ?? 420);
+  const parallaxStrength = Math.max(0, g.parallaxFloatParallaxStrength ?? 120);
 
   // Parallax offset (simulates camera pan)
   const offsetX = mx * parallaxStrength;
@@ -255,7 +254,7 @@ export function applyParallaxFloatForces(ball, dt) {
   const targetY = cy + (y3d + offsetY) * scale;
 
   // Update size based on depth
-  const dotSizeMul = Math.max(0.1, Math.min(6.0, g.parallaxFloatDotSizeMul ?? g.parallaxLinearDotSizeMul ?? 1.1));
+  const dotSizeMul = Math.max(0.1, Math.min(6.0, g.parallaxFloatDotSizeMul ?? 1.1));
   const sizeMul = Number.isFinite(ball._parallaxSizeMul) ? ball._parallaxSizeMul : 1.0;
   const rawR = (g.R_MED || 20) * PARALLAX_FLOAT_SIZE_BASE_MULTIPLIER * (g.DPR || 1) * dotSizeMul * sizeMul * scale;
   ball.r = clampRadiusToGlobalBounds(g, rawR);

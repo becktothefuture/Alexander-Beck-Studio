@@ -189,7 +189,6 @@ Findings below **merge** all three passes. Where agents disagreed (e.g. one agen
 | ID | Title | Tags | Notes |
 |----|--------|------|--------|
 | **BL-P3-01** | Unknown paths → home | `[web]` | `routes.js` |
-| **BL-P3-02** | Unused `main.jsx` / stock `App.jsx` | `[web]` | |
 | **BL-P3-03** | Placeholder `repository.url` | `[ops]` | Root `package.json` |
 | **BL-P3-04** | Double `;;` in `tokens.css` | `[web]` | |
 | **BL-P3-05** | POSIX env in `audit:canvas-spa:quick` | `[web]` | |

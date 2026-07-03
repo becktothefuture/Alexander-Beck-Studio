@@ -99,7 +99,6 @@ function shouldShowControlPanel() {
     return !['0', 'false', 'hide', 'off'].includes(panelParam.toLowerCase());
   }
 
-  if (params.get('daily') === '1') return false;
   return import.meta.env.DEV;
 }
 

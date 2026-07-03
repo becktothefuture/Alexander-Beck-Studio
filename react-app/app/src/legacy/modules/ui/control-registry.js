@@ -6,7 +6,6 @@
 
 import { applyLayoutCSSVars, getGlobals } from '../core/state.js';
 import {
-  PARALLAX_LINEAR_PRESETS,
   DEV_ONLY_MODES,
   NARRATIVE_MODE_SEQUENCE,
   NARRATIVE_CHAPTER_TITLES,
@@ -383,29 +382,6 @@ const SECTION_CATEGORIES = {
   'entrance': 'ENTRANCE',
   'environment': 'BROWSER'
 };
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PRESET APPLIERS (avoid circular dependencies by keeping them here)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export function applyParallaxLinearPreset(presetName, reinit = true) {
-  const preset = PARALLAX_LINEAR_PRESETS[presetName];
-  if (!preset) return;
-
-  const g = getGlobals();
-  for (const [key, val] of Object.entries(preset)) {
-    if (key === 'label') continue;
-    if (g[key] !== undefined) g[key] = val;
-  }
-  g.parallaxLinearPreset = presetName;
-
-  if (reinit) {
-    resetCurrentMode();
-  }
-
-  try { syncSlidersToState(); } catch (e) {}
-  console.log(`Applied parallax linear preset: ${preset.label}`);
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // WALL SHADOW PRESETS - Realistic shadow configurations
@@ -5297,143 +5273,6 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // PARALLAX LINEAR — 3D grid with mouse-driven camera pan
-  // ═══════════════════════════════════════════════════════════════════════════
-  parallaxLinear: {
-    title: 'Parallax (Linear)',
-    icon: '📐',
-    mode: 'parallax-linear',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'parallaxLinearGridX',
-        label: 'Grid X',
-        stateKey: 'parallaxLinearGridX',
-        type: 'range',
-        min: 4, max: 30, step: 1,
-        default: 14,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxLinearGridY',
-        label: 'Grid Y',
-        stateKey: 'parallaxLinearGridY',
-        type: 'range',
-        min: 4, max: 30, step: 1,
-        default: 10,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxLinearGridZ',
-        label: 'Grid Z (Depth)',
-        stateKey: 'parallaxLinearGridZ',
-        type: 'range',
-        min: 2, max: 15, step: 1,
-        default: 7,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      { type: 'divider', label: 'Spread & Depth' },
-      {
-        id: 'parallaxLinearSpanX',
-        label: 'Span X',
-        stateKey: 'parallaxLinearSpanX',
-        type: 'range',
-        min: 1.0, max: 12.0, step: 0.1,
-        default: 5.4,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'How far the grid extends horizontally'
-      },
-      {
-        id: 'parallaxLinearSpanY',
-        label: 'Span Y',
-        stateKey: 'parallaxLinearSpanY',
-        type: 'range',
-        min: 1.0, max: 12.0, step: 0.1,
-        default: 5.4,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'How far the grid extends vertically'
-      },
-      {
-        id: 'parallaxLinearZNear',
-        label: 'Z Near',
-        stateKey: 'parallaxLinearZNear',
-        type: 'range',
-        min: 10, max: 200, step: 5,
-        default: 50,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxLinearZFar',
-        label: 'Z Far',
-        stateKey: 'parallaxLinearZFar',
-        type: 'range',
-        min: 200, max: 2000, step: 50,
-        default: 800,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      { type: 'divider', label: 'Camera & Mouse' },
-      {
-        id: 'parallaxLinearFocalLength',
-        label: 'Focal Length',
-        stateKey: 'parallaxLinearFocalLength',
-        type: 'range',
-        min: 100, max: 1000, step: 10,
-        default: 420,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'parallaxLinearParallaxStrength',
-        label: 'Parallax Strength',
-        stateKey: 'parallaxLinearParallaxStrength',
-        type: 'range',
-        min: 0, max: 500, step: 10,
-        default: 120,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'How much the view shifts with mouse movement'
-      },
-      {
-        id: 'parallaxLinearMouseEasing',
-        label: 'Mouse Smoothing',
-        stateKey: 'parallaxLinearMouseEasing',
-        type: 'range',
-        min: 0.5, max: 15, step: 0.5,
-        default: 4,
-        format: v => v.toFixed(1),
-        parse: parseFloat,
-        hint: 'Lower = smoother/slower, higher = snappier'
-      },
-      { type: 'divider', label: 'Appearance' },
-      {
-        id: 'parallaxLinearDotSizeMul',
-        label: 'Dot Size',
-        stateKey: 'parallaxLinearDotSizeMul',
-        type: 'range',
-        min: 0.5, max: 4.0, step: 0.1,
-        default: 1.8,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat
-      },
-      warmupFramesControl('parallaxLinearWarmupFrames')
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // PARALLAX FLOAT — Organic variant with random positions + levitation
   // ═══════════════════════════════════════════════════════════════════════════
   parallaxFloat: {
@@ -5453,6 +5292,98 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         reinitMode: true,
         hint: '0 = perfect grid, 1 = fully scattered'
+      },
+      { type: 'divider', label: 'Grid' },
+      {
+        id: 'parallaxFloatGridX',
+        label: 'Grid X',
+        stateKey: 'parallaxFloatGridX',
+        type: 'range',
+        min: 4, max: 30, step: 1,
+        default: 14,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxFloatGridY',
+        label: 'Grid Y',
+        stateKey: 'parallaxFloatGridY',
+        type: 'range',
+        min: 4, max: 30, step: 1,
+        default: 10,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxFloatGridZ',
+        label: 'Grid Z (Depth)',
+        stateKey: 'parallaxFloatGridZ',
+        type: 'range',
+        min: 2, max: 15, step: 1,
+        default: 7,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      { type: 'divider', label: 'Spread & Depth' },
+      {
+        id: 'parallaxFloatSpanX',
+        label: 'Span X',
+        stateKey: 'parallaxFloatSpanX',
+        type: 'range',
+        min: 1.0, max: 12.0, step: 0.1,
+        default: 5.0,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'How far the grid extends horizontally'
+      },
+      {
+        id: 'parallaxFloatSpanY',
+        label: 'Span Y',
+        stateKey: 'parallaxFloatSpanY',
+        type: 'range',
+        min: 1.0, max: 12.0, step: 0.1,
+        default: 2.6,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'How far the grid extends vertically'
+      },
+      {
+        id: 'parallaxFloatZNear',
+        label: 'Z Near',
+        stateKey: 'parallaxFloatZNear',
+        type: 'range',
+        min: 10, max: 200, step: 5,
+        default: 50,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxFloatZFar',
+        label: 'Z Far',
+        stateKey: 'parallaxFloatZFar',
+        type: 'range',
+        min: 200, max: 2000, step: 50,
+        default: 900,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      { type: 'divider', label: 'Camera' },
+      {
+        id: 'parallaxFloatFocalLength',
+        label: 'Focal Length',
+        stateKey: 'parallaxFloatFocalLength',
+        type: 'range',
+        min: 100, max: 1000, step: 10,
+        default: 420,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10)
       },
       { type: 'divider', label: 'Levitation' },
       {
@@ -6264,7 +6195,6 @@ export function generateModeSwitcherHTML() {
     'magnetic': '🧲',
     'weightless': '🌌',
     'kaleidoscope-3': '🪞',
-    'parallax-linear': '🎚️',
     'parallax-float': '🌫️',
     '3d-sphere': '🌐',
     '3d-cube': '🧊',
@@ -6291,7 +6221,6 @@ export function generateModeSwitcherHTML() {
     'magnetic': 'Magnet',
     'weightless': 'Zero-G',
     'kaleidoscope-3': 'Kalei',
-    'parallax-linear': 'Parallax Lin',
     'parallax-float': 'Parallax Float',
     '3d-sphere': 'Sphere 3D',
     '3d-cube': 'Cube 3D',
@@ -6346,7 +6275,7 @@ export function generateModeSwitcherHTML() {
 
 /**
  * Generate mode-specific sections HTML (only modes in narrative sequence).
- * Disabled simulations (e.g. parallax-linear) are excluded.
+ * Only narrative-sequence simulations are included.
  */
 export function generateModeSpecificSectionsHTML(options = {}) {
   const showAllModes = options.showAllModes === true;
@@ -6388,7 +6317,6 @@ function generateHomeModeSectionHTML() {
               'magnetic': '🧲',
               'weightless': '🌌',
               'kaleidoscope-3': '🪞',
-              'parallax-linear': '🎚️',
               'parallax-float': '🌫️',
               '3d-sphere': '🌐',
               '3d-cube': '🧊',
@@ -6414,7 +6342,6 @@ function generateHomeModeSectionHTML() {
               'magnetic': 'Magnet',
               'weightless': 'Zero-G',
               'kaleidoscope-3': 'Kalei',
-              'parallax-linear': 'Parallax Lin',
               'parallax-float': 'Parallax Float',
               '3d-sphere': 'Sphere 3D',
               '3d-cube': 'Cube 3D',
@@ -6634,16 +6561,12 @@ export function bindRegisteredControls(options = {}) {
         function getModeBallCountApprox() {
           // Best-effort: show an approximate per-mode ball count for “≈N balls” readouts.
           const mode = g.currentMode;
-          const parallaxLinearCount = Math.max(
-            0,
-            Math.round((g.parallaxLinearGridX ?? 0) * (g.parallaxLinearGridY ?? 0) * (g.parallaxLinearGridZ ?? 0))
-          );
           const parallaxFloatCount = Math.max(
             0,
             Math.round(
-              (g.parallaxFloatGridX ?? g.parallaxLinearGridX ?? 0) *
-              (g.parallaxFloatGridY ?? g.parallaxLinearGridY ?? 0) *
-              (g.parallaxFloatGridZ ?? g.parallaxLinearGridZ ?? 0)
+              (g.parallaxFloatGridX ?? 0) *
+              (g.parallaxFloatGridY ?? 0) *
+              (g.parallaxFloatGridZ ?? 0)
             )
           );
           const map = {
@@ -6655,7 +6578,6 @@ export function bindRegisteredControls(options = {}) {
             bubbles: g.bubblesMaxCount,
             'kaleidoscope-3': g.kaleidoscope3BallCount,
             critters: g.critterCount,
-            'parallax-linear': parallaxLinearCount,
             'parallax-float': parallaxFloatCount,
             '3d-sphere': g.sphere3dDensity,
             '3d-cube': null,
@@ -6969,7 +6891,7 @@ export function syncSlidersToState(options = {}) {
           if (valEl) valEl.textContent = control.format ? control.format(stateVal) : String(stateVal);
         }
 
-        if (runOnChange && control.onChange && control.id !== 'wallPreset' && control.id !== 'entranceEnabled' && control.id !== 'contentFadeInDelay' && control.id !== 'contentFadeInDuration') {
+        if (runOnChange && control.onChange && control.id !== 'entranceEnabled' && control.id !== 'contentFadeInDelay' && control.id !== 'contentFadeInDuration') {
           control.onChange(g, stateVal);
         }
       }

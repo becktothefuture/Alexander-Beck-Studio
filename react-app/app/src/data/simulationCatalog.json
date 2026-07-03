@@ -82,7 +82,6 @@
       "surface": "lab-route",
       "origin": "promoted-lab",
       "launchPath": "/lab/aperture-bloom.html",
-      "dailyHref": "/lab/aperture-bloom.html?daily=1",
       "configPath": "/config/aperture-bloom-demo.json",
       "includeInNarrative": true,
       "reviewStatus": "stable",
@@ -335,7 +334,6 @@
       "origin": "daily-automation",
       "introducedOn": "2026-06-24",
       "launchPath": "/lab/confluence-bridges.html",
-      "dailyHref": "/lab/confluence-bridges.html?daily=1",
       "configPath": "/config/confluence-bridges-demo.json",
       "includeInNarrative": false,
       "reviewStatus": "candidate",
@@ -363,18 +361,6 @@
       },
       "summary": "Original scan-derived point-cloud route with a baked Blender camera path and flat site-circle rendering.",
       "lastReviewedAt": "2026-06-25"
-    },
-    {
-      "id": "parallax-linear",
-      "name": "Parallax Linear",
-      "chapter": "PARALLAX LINEAR",
-      "stage": "hidden",
-      "surface": "home-mode",
-      "origin": "core-site",
-      "launchPath": "/index.html?mode=parallax-linear",
-      "includeInNarrative": false,
-      "reviewStatus": "disabled",
-      "summary": "Legacy disabled parallax mode; runtime redirects to the first narrative mode."
     },
     {
       "id": "portfolio-pit",
