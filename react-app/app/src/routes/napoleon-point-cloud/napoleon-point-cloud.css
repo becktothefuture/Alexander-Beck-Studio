@@ -19,12 +19,12 @@
   cursor: grab;
 }
 
-body.napoleon-point-cloud-page #simulations .napoleon-point-cloud__canvas--back {
+#simulations .napoleon-point-cloud__canvas--back {
   z-index: 1;
   pointer-events: auto;
 }
 
-body.napoleon-point-cloud-page #simulations .napoleon-point-cloud__canvas--front {
+#simulations .napoleon-point-cloud__canvas--front {
   z-index: 3;
   pointer-events: none;
 }

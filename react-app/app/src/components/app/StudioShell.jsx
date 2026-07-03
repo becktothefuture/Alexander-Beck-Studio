@@ -55,6 +55,7 @@ function renderDigitInputs(prefix, className, ariaPrefix, length) {
 
 export function StudioShell({
   routeRenderKey,
+  contentRenderKey = routeRenderKey,
   wallClassName,
   wallContent,
   headerContent,
@@ -104,7 +105,7 @@ export function StudioShell({
                   id="shell-route-slot"
                   className="shell-route-slot"
                 >
-                  <div key={`content-${routeRenderKey}`} className="shell-route-content-root">
+                  <div key={`content-${contentRenderKey}`} className="shell-route-content-root">
                     <div
                       ref={surfaceRefs?.chrome}
                       className="shell-transition-surface shell-transition-surface--chrome"

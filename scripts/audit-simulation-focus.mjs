@@ -116,6 +116,29 @@ async function clearStoredChoice(page) {
   await page.evaluate((key) => window.localStorage.removeItem(key), STORAGE_KEY);
 }
 
+async function assertDirectDailyLabRouteReady(page) {
+  await page.goto(resolveUrl('/lab/napoleon-point-cloud.html?daily=1'), { waitUntil: 'networkidle', timeout: 60000 });
+  await waitForSwitcherLabel(page, 'Napoleon Point Cloud');
+  await page.waitForFunction(
+    () => {
+      const root = document.documentElement;
+      const slot = document.querySelector('.simulation-focus-switcher-slot');
+      const figure = document.querySelector('.napoleon-point-cloud');
+      if (!slot || !figure) return false;
+      const styles = getComputedStyle(slot);
+      const loadState = figure.dataset.pointCloudLoadState;
+      return (
+        !root.classList.contains('fonts-loading')
+        && root.classList.contains('ui-entered')
+        && root.classList.contains('entrance-complete')
+        && Number.parseFloat(styles.opacity || '0') > 0.8
+        && (loadState === 'ready' || loadState === 'error')
+      );
+    },
+    { timeout: WAIT_MS, polling: 50 },
+  );
+}
+
 async function assertStorage(page, expectedId) {
   const stored = await getStoredChoice(page);
   if (expectedId === null) {
@@ -245,6 +268,8 @@ async function main() {
     await waitForSwitcherLabel(page, dailyDefault.name);
     await assertStorage(page, null);
 
+    await assertDirectDailyLabRouteReady(page);
+
     await clearStoredChoice(page);
     console.log(JSON.stringify({
       ok: true,
@@ -260,6 +285,7 @@ async function main() {
         'home-mode-to-home-mode',
         'stale-next-day-cleanup',
         'invalid-id-cleanup',
+        'direct-daily-lab-route',
         'reduced-motion',
       ],
     }, null, 2));

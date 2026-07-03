@@ -1,11 +1,14 @@
+import { Suspense, lazy } from 'react';
 import { buildRouteHref } from '../../lib/routes.js';
-import { ConceptSimulationDemo } from './ConceptSimulationDemo.jsx';
 import {
   CONCEPT_SIMULATION_IDS,
   CONCEPT_SIMULATION_REGISTRY,
 } from './conceptSimulationConfigs.js';
 
 const homeHref = buildRouteHref('home');
+const ConceptSimulationDemo = lazy(() => (
+  import('./ConceptSimulationDemo.jsx').then((module) => ({ default: module.ConceptSimulationDemo }))
+));
 
 export const APERTURE_BLOOM_ROUTE_RUNTIME = {};
 export const PRESSURE_MOSAIC_ROUTE_RUNTIME = {};
@@ -19,7 +22,11 @@ function getConceptSimulationRouteView(simulationId) {
   return {
     bodyClass: `body concept-simulation-page ${simulationId}-page`,
     wallClassName: `w-embed concept-simulation-wall ${simulationId}-wall`,
-    wallContent: <ConceptSimulationDemo simulationId={simulationId} />,
+    wallContent: (
+      <Suspense fallback={null}>
+        <ConceptSimulationDemo simulationId={simulationId} />
+      </Suspense>
+    ),
     headerContent: (
       <header className="ui-top">
         <div className="ui-top-main route-topbar">

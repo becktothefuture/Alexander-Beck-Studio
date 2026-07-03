@@ -251,6 +251,7 @@ export function NapoleonPointCloud({
   ariaLabel = 'Surface-sampled point cloud of The bust of Napoleon Bonaparte',
   decorative = false,
   theme = DEFAULT_THEME,
+  showDiagnostics = false,
 }) {
   const figureRef = useRef(null);
   const backCanvasRef = useRef(null);
@@ -309,7 +310,10 @@ export function NapoleonPointCloud({
         const nextMeta = await response.json();
         if (!cancelled) setMeta(nextMeta);
       } catch (loadError) {
-        if (!cancelled) setError(loadError?.message || 'Point metadata failed to load');
+        if (!cancelled) {
+          figureRef.current?.setAttribute('data-point-cloud-load-state', 'error');
+          setError(loadError?.message || 'Point metadata failed to load');
+        }
       }
     }
 
@@ -352,6 +356,7 @@ export function NapoleonPointCloud({
 
     const asset = meta.lods?.[resolvedQuality] || meta.lods?.medium || meta.lods?.low;
     if (!asset?.file) {
+      root.dataset.pointCloudLoadState = 'error';
       setError(`No ${resolvedQuality} point-cloud asset is defined`);
       return undefined;
     }
@@ -382,6 +387,7 @@ export function NapoleonPointCloud({
     } catch {
       backRenderer?.dispose();
       frontRenderer?.dispose();
+      root.dataset.pointCloudLoadState = 'error';
       setError('WebGL is unavailable, so the Napoleon point cloud cannot render in this browser.');
       return undefined;
     }
@@ -653,10 +659,6 @@ export function NapoleonPointCloud({
     reducedMotion,
   ]);
 
-  const attribution = meta?.source?.status === 'mesh-sampled'
-    ? 'The bust of Napoleon Bonaparte, Virtual Museums of Małopolska / National Museum in Kraków, CC BY 4.0. Transformed into a surface-sampled point cloud for beck.fyi.'
-    : 'Preview point cloud for The bust of Napoleon Bonaparte, Virtual Museums of Małopolska / National Museum in Kraków, CC BY 4.0. Regenerate from the Sketchfab source before production use.';
-
   return (
     <figure ref={figureRef} className={`napoleon-point-cloud ${className}`.trim()}>
       <canvas
@@ -666,19 +668,12 @@ export function NapoleonPointCloud({
         aria-hidden={decorative ? 'true' : undefined}
         aria-label={decorative ? undefined : ariaLabel}
       />
-      <h1 className="hero-title napoleon-point-cloud__title" aria-label="Alexander Beck. Creative. Technologist.">
-        <span className="hero-title__name">Alexander Beck.</span>
-        <span className="hero-title__role">Creative. Technologist.</span>
-      </h1>
       <canvas
         ref={frontCanvasRef}
         className="napoleon-point-cloud__canvas napoleon-point-cloud__canvas--front"
         aria-hidden="true"
       />
-      <figcaption className="napoleon-point-cloud__credit">
-        {attribution}
-      </figcaption>
-      {error ? (
+      {error && showDiagnostics ? (
         <p className="napoleon-point-cloud__status" role="status">
           {error}
         </p>

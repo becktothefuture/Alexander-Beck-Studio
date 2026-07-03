@@ -13,6 +13,7 @@ import {
 import { createConceptSimulationRenderer } from './conceptSimulationRenderer.js';
 import { NapoleonPointCloud } from '../napoleon-point-cloud/NapoleonPointCloud.jsx';
 import { SpatialScanPointCloud } from '../spatial-scan/SpatialScanPointCloud.jsx';
+import './concept-simulations-runtime.css';
 import './concept-simulations.css';
 
 const DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
@@ -466,7 +467,9 @@ export function ConceptSimulationDemo({ simulationId }) {
   const [ready, setReady] = useState(false);
   const [themeColors, setThemeColors] = useState(DEFAULT_THEME_COLORS);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const surfaceStyle = isNapoleonPointCloud ? undefined : { '--concept-simulation-surface': themeColors.active };
+  const surfaceStyle = isNapoleonPointCloud
+    ? undefined
+    : { '--concept-simulation-surface': themeColors.active };
 
   useEffect(() => {
     const query = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -693,6 +696,7 @@ export function ConceptSimulationDemo({ simulationId }) {
           reducedMotion={reducedMotion}
           theme={themeColors}
           ariaLabel={entry.ariaLabel}
+          showDiagnostics={showControlPanel}
         />
         {showControlPanel ? (
           <NapoleonPointCloudPanel
@@ -750,6 +754,7 @@ export function ConceptSimulationDemo({ simulationId }) {
       className="concept-simulation-demo"
       data-simulation-id={simulationId}
       data-enabled-in-rotation={String(entry.enabledInRotation)}
+      data-panel-visible={String(showControlPanel)}
       style={surfaceStyle}
       aria-label={`${entry.name} lab`}
     >

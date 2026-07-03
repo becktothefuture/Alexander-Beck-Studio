@@ -18,7 +18,16 @@ let baseUrl = `http://${previewHost}:${previewPort}`;
 const screenshotBrowser = 'chromium';
 const acceptableBootStates = ['ready', 'content-ready', 'entered'];
 const previewMarkers = ['Alexander Beck Studio', '/css/tokens.css'];
-const routeBackedDailyCanvasSelector = '#flock-of-birds-canvas, #wall-repel-canvas';
+const routeBackedDailyCanvasSelector = [
+  '#aperture-bloom-canvas',
+  '#confluence-bridges-canvas',
+  '#flock-of-birds-canvas',
+  '#mineral-growth-canvas',
+  '#pressure-mosaic-canvas',
+  '#wall-repel-canvas',
+  '.beach-ball-room-canvas',
+  '.napoleon-point-cloud__canvas--front'
+].join(', ');
 
 const matrix = [
   {
@@ -47,10 +56,28 @@ const matrix = [
       }
     ],
     routeBackedDaily: {
-      readySelectors: ['#app-frame', routeBackedDailyCanvasSelector],
-      minReadySelectors: 2,
+      allowNearBlank: true,
+      readySelectors: ['#app-frame', '#main-links button', '#expertise-legend .legend__item', routeBackedDailyCanvasSelector],
+      minReadySelectors: 3,
       selectors: [
         { selector: '#app-frame', minArea: 200000, requiredText: [] },
+        {
+          selector: '#main-links button',
+          minCount: 3,
+          minArea: 400,
+          requiredText: ['About me', 'Contact', 'Portfolio']
+        },
+        {
+          selector: '#expertise-legend .legend__item',
+          minCount: 5,
+          minArea: 100,
+          requiredTextAnyOf: [['Product Systems', 'Experience Design', 'Art Direction']]
+        },
+        {
+          selector: '.decorative-script p',
+          minArea: 12000,
+          requiredTextAnyOf: [["Let's chat", "Let’s chat"]]
+        },
         { selector: routeBackedDailyCanvasSelector, minArea: 60000, requiredText: [] }
       ]
     }
@@ -609,8 +636,10 @@ async function certifyEntry(browser, entry, viewport, theme) {
 
     const imageMetrics = analyzeScreenshot(screenshotPath);
     imageMetrics.isNearBlank =
-      imageMetrics.topColorShare >= 0.965 ||
-      (imageMetrics.uniqueColors <= 12 && imageMetrics.stddev <= 2.5);
+      !entry.allowNearBlank && (
+        imageMetrics.topColorShare >= 0.965 ||
+        (imageMetrics.uniqueColors <= 12 && imageMetrics.stddev <= 2.5)
+      );
 
     const result = {
       page: entry.page,

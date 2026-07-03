@@ -14,6 +14,7 @@ import {
   resolveLondonWeatherPaletteId,
 } from '../../palette/londonPalettes.js';
 import { withBasePath } from '../../lib/base-path.js';
+import './mineral-growth-runtime.css';
 import './mineral-growth.css';
 
 const CONFIG_URL = withBasePath('/config/mineral-growth-demo.json');

@@ -504,17 +504,21 @@ function createColorCache(theme) {
   };
 }
 
-function drawState(ctx, state, metrics, theme) {
+function drawState(ctx, state, metrics, theme, options = {}) {
   const colors = createColorCache(theme);
   ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
-  const gradient = ctx.createLinearGradient(0, 0, metrics.cssWidth, metrics.cssHeight);
-  gradient.addColorStop(0, rgbString(colors.backgroundTop, 1));
-  gradient.addColorStop(0.55, rgbString(colors.active, 1));
-  gradient.addColorStop(1, rgbString(colors.backgroundBottom, 1));
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
+  if (options.transparentBackground) {
+    ctx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
+  } else {
+    const gradient = ctx.createLinearGradient(0, 0, metrics.cssWidth, metrics.cssHeight);
+    gradient.addColorStop(0, rgbString(colors.backgroundTop, 1));
+    gradient.addColorStop(0.55, rgbString(colors.active, 1));
+    gradient.addColorStop(1, rgbString(colors.backgroundBottom, 1));
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
+  }
 
   ctx.fillStyle = colors.shadow;
   ctx.beginPath();
@@ -556,8 +560,9 @@ export function createWallRepelRenderer({
   reducedMotion = false,
   getConfig,
   getTheme,
+  transparentBackground = false,
 }) {
-  const ctx = canvas.getContext('2d', { alpha: false });
+  const ctx = canvas.getContext('2d', { alpha: Boolean(transparentBackground) });
   const pointer = {
     x: 0,
     y: 0,
@@ -616,7 +621,7 @@ export function createWallRepelRenderer({
 
     const startedAt = performance.now();
     updateState(state, metrics, config, pointer, now, deltaSeconds, reducedMotion);
-    drawState(ctx, state, metrics, theme);
+    drawState(ctx, state, metrics, theme, { transparentBackground });
     lastRenderMs = performance.now() - startedAt;
   }
 

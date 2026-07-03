@@ -18,10 +18,11 @@ function renderLegendItem(item) {
 export function getHomeRouteView() {
   const footerLinks = homeContent.footer.links;
   const philosophyLink = homeContent.philosophy.link;
-  const aboutMeLabel = 'About Me';
+  const aboutMeLabel = 'About me';
 
   return {
     bodyClass: 'body',
+    contentRenderKey: 'home-shell',
     wallClassName: 'ball-simulation w-embed',
     wallContent: (
       <canvas id="c" aria-label="Bouncy balls" role="img" draggable="false" />

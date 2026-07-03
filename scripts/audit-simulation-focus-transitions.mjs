@@ -11,9 +11,8 @@ const outputRoot = resolve(repoRoot, 'output', 'playwright', 'simulation-focus-t
 
 const DEFAULT_URL = 'http://127.0.0.1:8013';
 const WAIT_MS = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_WAIT_MS || 40000);
-const FRAME_COUNT = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_FRAMES || 18);
+const FRAME_COUNT = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_FRAMES || 34);
 const FRAME_INTERVAL_MS = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_INTERVAL_MS || 90);
-const MAX_MEAN_DELTA = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_MAX_MEAN_DELTA || 95);
 
 const FLOWS = [
   { name: 'home-to-home', from: 'Ball Pit', to: 'Flies to Light', finalPath: /\/index\.html/, finalLabel: 'Flies to Light' },
@@ -83,7 +82,7 @@ async function openChooser(page) {
 }
 
 async function closeChooserWithClick(page) {
-  await page.locator('.simulation-focus-pill--close').click({ timeout: WAIT_MS });
+  await page.locator('.simulation-focus-modal.active [data-modal-back]').click({ timeout: WAIT_MS });
   await page.waitForSelector('.simulation-focus-modal.active', { state: 'hidden', timeout: WAIT_MS });
   await waitForIdle(page);
 }
@@ -119,6 +118,16 @@ async function getState(page, elapsedMs) {
         && rect.height > 0
       );
     };
+    const scaleFor = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const styles = getComputedStyle(element);
+      const transform = styles.transform;
+      if (!transform || transform === 'none') return 1;
+      const values = transform.match(/matrix\(([^)]+)\)/)?.[1]?.split(',').map((value) => Number.parseFloat(value.trim()));
+      if (!values || values.length < 4) return 1;
+      return Math.sqrt((values[0] * values[0]) + (values[1] * values[1]));
+    };
 
     const activeCanvas = Array.from(document.querySelectorAll('#c, #wall-repel-canvas, #pressure-mosaic-canvas, #mineral-growth-canvas, #flock-of-birds-canvas, .beach-ball-room-canvas, .napoleon-point-cloud__canvas--front'))
       .find((canvas) => {
@@ -131,15 +140,23 @@ async function getState(page, elapsedMs) {
       href: window.location.href,
       path: window.location.pathname,
       phase: document.documentElement.dataset.absTransitionPhase || 'idle',
+      simulationFocusPhase: document.documentElement.dataset.absSimulationFocusTransition || 'idle',
       htmlClass: document.documentElement.className,
       modalActive: visible('.simulation-focus-modal.active'),
       modalClosing: visible('.simulation-focus-modal.closing'),
       switcherText: document.querySelector('.simulation-focus-switcher')?.textContent?.trim() || '',
       simulationRect: rectFor('#simulations'),
       sceneRect: rectFor('#abs-scene'),
+      wallScale: scaleFor('#shell-wall-slot'),
       switcherRect: rectFor('.simulation-focus-switcher'),
       modalRect: rectFor('.simulation-focus-modal'),
       titleRect: rectFor('#hero-title'),
+      mainLinksRect: rectFor('#main-links'),
+      legendRect: rectFor('#expertise-legend'),
+      descriptionRect: rectFor('.decorative-script'),
+      footerRect: rectFor('.ui-bottom'),
+      edgeCaptionRect: rectFor('#edge-caption'),
+      londonTimeRect: rectFor('#site-year'),
       canvas: activeCanvas ? {
         id: activeCanvas.id || activeCanvas.className || 'canvas',
         width: activeCanvas.width,
@@ -218,11 +235,30 @@ function rectWithinViewport(rect, viewport, slack = 3) {
   );
 }
 
-function checkFrame(frame, imageStats) {
+function isShellUiStableFrame(frame) {
+  const { state } = frame;
+  if (state.modalActive || state.modalClosing) return false;
+  return (
+    Number(state.titleRect?.opacity) >= 0.9
+    && Number(state.descriptionRect?.opacity) >= 0.62
+    && Number(state.edgeCaptionRect?.opacity) >= 0.45
+    && Number(state.londonTimeRect?.opacity) >= 0.62
+    && rectWithinViewport(state.titleRect, state.viewport, 6)
+    && rectWithinViewport(state.mainLinksRect, state.viewport, 6)
+    && rectWithinViewport(state.legendRect, state.viewport, 6)
+    && rectWithinViewport(state.descriptionRect, state.viewport, 6)
+    && rectWithinViewport(state.footerRect, state.viewport, 6)
+    && rectWithinViewport(state.edgeCaptionRect, state.viewport, 6)
+    && rectWithinViewport(state.londonTimeRect, state.viewport, 6)
+  );
+}
+
+function checkFrame(frame, imageStats, { enforceShellUi = true } = {}) {
   const issues = [];
   const { state } = frame;
+  const modalBusy = state.modalActive || state.modalClosing;
 
-  if (imageStats.stdev < 2 || imageStats.mean < 2 || imageStats.mean > 253) {
+  if (!modalBusy && state.simulationFocusPhase === 'idle' && (imageStats.stdev < 2 || imageStats.mean < 2 || imageStats.mean > 253)) {
     issues.push('blank-or-flat-frame');
   }
 
@@ -240,6 +276,26 @@ function checkFrame(frame, imageStats) {
 
   if (state.switcherRect && state.switcherRect.width > state.viewport.width - 24) {
     issues.push('switcher-overwide');
+  }
+
+  if (!modalBusy && enforceShellUi) {
+    [
+      ['title', state.titleRect],
+      ['main-links', state.mainLinksRect],
+      ['legend', state.legendRect],
+      ['description', state.descriptionRect],
+      ['footer', state.footerRect],
+      ['edge-caption', state.edgeCaptionRect],
+      ['london-time', state.londonTimeRect],
+    ].forEach(([name, rect]) => {
+      if (!rectWithinViewport(rect, state.viewport, 6)) {
+        issues.push(`${name}-missing-or-clipped`);
+        return;
+      }
+      if (rect.opacity < 0.45 || rect.visibility === 'hidden' || rect.display === 'none') {
+        issues.push(`${name}-hidden`);
+      }
+    });
   }
 
   return issues;
@@ -282,7 +338,7 @@ function buildReportHtml(report) {
         ${flow.frames.map((frame) => `
           <figure>
             <img src="${frame.relativeImage}" alt="${flow.name} frame ${frame.index}">
-            <figcaption>${frame.index} · ${frame.state.phase} · ${frame.state.path}</figcaption>
+            <figcaption>${frame.index} · ${frame.state.simulationFocusPhase} · scale ${Number(frame.state.wallScale || 0).toFixed(2)} · ${frame.state.path}</figcaption>
           </figure>
         `).join('')}
       </div>
@@ -317,26 +373,37 @@ async function analyzeFrames(frames) {
   }
 
   const analyzed = frames.map((frame) => ({ frame, stats: analyzeImage(frame.image) }));
+  const firstShellStableIndex = frames.findIndex(isShellUiStableFrame);
   const deltas = analyzed.map((entry, index) => (
     index === 0 ? 0 : meanDelta(analyzed[index - 1].stats, entry.stats)
   ));
   const issues = [];
 
   analyzed.forEach(({ frame, stats }, index) => {
-    checkFrame(frame, stats).forEach((issue) => {
+    checkFrame(frame, stats, {
+      enforceShellUi: firstShellStableIndex >= 0 && index >= firstShellStableIndex,
+    }).forEach((issue) => {
       issues.push(`frame-${index}:${issue}`);
     });
   });
+  if (firstShellStableIndex < 0) {
+    issues.push('shell-ui-never-stable-after-modal-close');
+  }
 
   const maxMeanDelta = Math.max(0, ...deltas);
-  if (maxMeanDelta > MAX_MEAN_DELTA) {
-    issues.push(`mean-delta-too-high:${maxMeanDelta.toFixed(2)}`);
+  const phases = new Set(frames.map((frame) => frame.state.simulationFocusPhase));
+  if (!phases.has('out')) issues.push('missing-simulation-scale-out-phase');
+  if (!phases.has('in')) issues.push('missing-simulation-scale-in-phase');
+  if (!frames.some((frame) => Number(frame.state.wallScale) > 0 && Number(frame.state.wallScale) < 0.2)) {
+    issues.push('missing-scale-zero-near-frame');
   }
 
   return {
     frames,
     maxMeanDelta,
     deltas,
+    phases: Array.from(phases),
+    firstShellStableIndex,
     issues,
   };
 }
@@ -379,7 +446,6 @@ async function main() {
       outputRoot,
       frameCount: FRAME_COUNT,
       frameIntervalMs: FRAME_INTERVAL_MS,
-      maxAllowedMeanDelta: MAX_MEAN_DELTA,
       flows: flowReports,
     };
 
@@ -406,6 +472,7 @@ async function main() {
         from: flow.from,
         to: flow.to,
         maxMeanDelta: Number(flow.maxMeanDelta.toFixed(2)),
+        phases: flow.phases,
       })),
     }, null, 2));
   } finally {

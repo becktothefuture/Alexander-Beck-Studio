@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { ChevronsUpDown, X } from 'lucide-react';
+import { ChevronsUpDown } from 'lucide-react';
 import {
   getDailyFocusSimulations,
   getResolvedSimulationFocus,
@@ -21,6 +21,7 @@ import { SimulationIcon } from './SimulationIcon.jsx';
 const SimulationFocusContext = createContext(null);
 const FOCUS_MODAL_ID = 'simulation-focus-modal';
 const CHOOSER_TITLE_ID = 'simulation-focus-modal-title';
+const CHOOSER_CLOSE_SETTLE_MS = 420;
 const DAILY_FOCUS_SIMULATIONS = Object.freeze(getDailyFocusSimulations());
 const DAILY_FOCUS_ID_SET = new Set(DAILY_FOCUS_SIMULATIONS.map((entry) => entry.id));
 
@@ -191,6 +192,7 @@ export function SimulationFocusProvider({ routeId, transitionCurrentRoute, child
               return applied;
             });
           const didTransition = transitionCurrentRoute?.(applyMode, {
+            transitionStyle: 'simulation-focus',
             readyFallbackMs: 700,
           });
           if (!didTransition) {
@@ -199,21 +201,21 @@ export function SimulationFocusProvider({ routeId, transitionCurrentRoute, child
           return;
         }
 
-        if (!trySpaNavigate(homeHref, { readyFallbackMs: 1100 })) {
+        if (!trySpaNavigate(homeHref, { transitionStyle: 'simulation-focus', readyFallbackMs: 1100 })) {
           window.location.assign(homeHref);
         }
         return;
       }
 
       if (routeIdRef.current === target.id) {
-        trySpaNavigate(target.href, { replace: true, readyFallbackMs: 1800 });
+        trySpaNavigate(target.href, { replace: true, transitionStyle: 'simulation-focus', readyFallbackMs: 1800 });
         return;
       }
 
-      if (!trySpaNavigate(target.href, { readyFallbackMs: 2400 })) {
+      if (!trySpaNavigate(target.href, { transitionStyle: 'simulation-focus', readyFallbackMs: 2400 })) {
         window.location.assign(target.href);
       }
-    }, 120);
+    }, CHOOSER_CLOSE_SETTLE_MS);
 
     return true;
   }, [closeChooser, refreshFocusState, transitionCurrentRoute]);
@@ -295,7 +297,6 @@ export function SimulationFocusSwitcher() {
 export function SimulationFocusChooser() {
   const {
     activeId,
-    activeSimulation,
     closeChooser,
     dailyId,
     dailySimulations,
@@ -404,17 +405,30 @@ export function SimulationFocusChooser() {
       aria-labelledby={CHOOSER_TITLE_ID}
       onKeyDown={handleKeyDown}
     >
-      <button
-        type="button"
-        className="simulation-focus-pill simulation-focus-pill--close"
-        aria-label="Close simulation chooser"
-        onClick={() => closeChooser()}
-      >
-        <span className="simulation-focus-pill__label">{activeSimulation?.name || 'Close'}</span>
-        <span className="simulation-focus-pill__divider" aria-hidden="true" />
-        <span className="simulation-focus-pill__close-text">Close</span>
-        <X className="simulation-focus-pill__icon" aria-hidden="true" strokeWidth={1.8} />
-      </button>
+      <div className="modal-nav simulation-focus-modal__nav">
+        <button
+          type="button"
+          className="gate-back abs-icon-btn"
+          data-modal-back
+          aria-label="Close simulation chooser"
+          onClick={() => closeChooser()}
+        >
+          <svg
+            className="portfolio-project-view__close-icon"
+            viewBox="0 0 24 24"
+            width="24"
+            height="24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              fill="currentColor"
+              d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z"
+            />
+          </svg>
+          <span>BACK</span>
+        </button>
+      </div>
 
       <h2 id={CHOOSER_TITLE_ID} className="simulation-focus-modal__title">Choose a simulation</h2>
 

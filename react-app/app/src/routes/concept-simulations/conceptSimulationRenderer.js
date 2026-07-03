@@ -631,7 +631,12 @@ function updateBody(body, config, pointer, dt, reserve = null) {
   body.rotation += body.spin + (body.vx * 0.0008);
 }
 
-function renderBackground(ctx, metrics, theme, config, pointer, simulationId) {
+function renderBackground(ctx, metrics, theme, config, pointer, simulationId, options = {}) {
+  if (options.transparentBackground) {
+    ctx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
+    return;
+  }
+
   ctx.fillStyle = theme?.active || DEFAULT_THEME.active;
   ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
 
@@ -657,6 +662,7 @@ export function createConceptSimulationRenderer({
   reducedMotion = false,
   getConfig,
   getTheme,
+  transparentBackground = false,
 }) {
   const ctx = canvas.getContext('2d', { alpha: true });
   const pointer = {
@@ -789,7 +795,7 @@ export function createConceptSimulationRenderer({
     const theme = getTheme() || DEFAULT_THEME;
     const config = getConfig();
     ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
-    renderBackground(ctx, metrics, theme, config, pointer, simulationId);
+    renderBackground(ctx, metrics, theme, config, pointer, simulationId, { transparentBackground });
     ctx.shadowColor = 'rgba(0, 0, 0, 0.16)';
     ctx.shadowBlur = Math.max(5, Math.min(16, metrics.cssWidth * 0.006));
     ctx.shadowOffsetY = 1.5;

@@ -64,6 +64,11 @@ const ELEMENT_REVEAL_MS = 280;
 const EASE_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)';
 const READY_FALLBACK_MS = 900;
 const GROUPED_ROUTE_OFFSET_MS = 80;
+const SIMULATION_FOCUS_EXIT_MS = 1600;
+const SIMULATION_FOCUS_ENTER_MS = 1400;
+const SIMULATION_FOCUS_ZERO_HOLD_MS = 180;
+const SIMULATION_FOCUS_EASE_OUT = 'cubic-bezier(0.72, 0, 0.86, 0.32)';
+const SIMULATION_FOCUS_EASE_IN = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 let transitionToken = 0;
 let activeAnimations = [];
@@ -384,6 +389,114 @@ function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, options = {}
   );
 }
 
+function setSimulationFocusTransitionState(state) {
+  const root = document.documentElement;
+  if (state) {
+    root.dataset.absSimulationFocusTransition = state;
+    window.__ABS_SIMULATION_FOCUS_TRANSITION__ = {
+      phase: state,
+      startedAt: performance.now(),
+    };
+    return;
+  }
+
+  delete root.dataset.absSimulationFocusTransition;
+  window.__ABS_SIMULATION_FOCUS_TRANSITION__ = {
+    phase: 'idle',
+    startedAt: performance.now(),
+  };
+}
+
+function getSimulationFocusLayer(surfaceRefs) {
+  return getContentLayers(surfaceRefs).wall;
+}
+
+function cleanupSimulationFocusLayer(surfaceRefs) {
+  const layer = getSimulationFocusLayer(surfaceRefs);
+  if (!layer) return;
+  layer.style.removeProperty('transform');
+  layer.style.removeProperty('transform-origin');
+  layer.style.removeProperty('will-change');
+  layer.style.removeProperty('opacity');
+  layer.style.removeProperty('filter');
+  layer.style.removeProperty('pointer-events');
+}
+
+function animateSimulationFocusLayer(surfaceRefs, {
+  direction,
+  durationMs,
+  easing,
+}) {
+  const layer = getSimulationFocusLayer(surfaceRefs);
+  if (!layer) return Promise.resolve();
+
+  const fromScale = direction === 'out' ? 1 : 0.001;
+  const toScale = direction === 'out' ? 0.001 : 1;
+
+  layer.style.opacity = '1';
+  layer.style.filter = 'none';
+  layer.style.transformOrigin = '50% 50%';
+  layer.style.willChange = 'transform';
+  layer.style.pointerEvents = direction === 'out' ? 'none' : '';
+  layer.style.transform = `scale(${fromScale})`;
+
+  if (typeof layer.animate !== 'function') {
+    layer.style.transform = `scale(${toScale})`;
+    return new Promise((resolve) => setStableTimeout(resolve, durationMs));
+  }
+
+  const anim = layer.animate(
+    [
+      { transform: `scale(${fromScale})` },
+      { transform: `scale(${toScale})` },
+    ],
+    {
+      duration: durationMs,
+      easing,
+      fill: 'forwards',
+    },
+  );
+  activeAnimations.push(anim);
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      layer.style.transform = `scale(${toScale})`;
+      resolve();
+    };
+    anim.onfinish = finish;
+    anim.oncancel = finish;
+    setStableTimeout(finish, durationMs + 80);
+  });
+}
+
+function getSimulationFocusTimings(options, reduceMotion) {
+  if (reduceMotion) {
+    return {
+      exit: 80,
+      enter: 80,
+      hold: 0,
+      exitEasing: SIMULATION_FOCUS_EASE_OUT,
+      enterEasing: SIMULATION_FOCUS_EASE_IN,
+    };
+  }
+
+  return {
+    exit: parseTransitionMs(options.exitMs, SIMULATION_FOCUS_EXIT_MS),
+    enter: parseTransitionMs(options.enterMs, SIMULATION_FOCUS_ENTER_MS),
+    hold: parseTransitionMs(options.holdMs, SIMULATION_FOCUS_ZERO_HOLD_MS),
+    exitEasing: options.exitEasing || SIMULATION_FOCUS_EASE_OUT,
+    enterEasing: options.enterEasing || SIMULATION_FOCUS_EASE_IN,
+  };
+}
+
+function waitForSimulationFocusHold(durationMs) {
+  if (!durationMs) return Promise.resolve();
+  return new Promise((resolve) => setStableTimeout(resolve, durationMs));
+}
+
 /* ── route ready ──────────────────────────────────────────────────────────── */
 
 function hasCanvasBufferReady() {
@@ -477,14 +590,17 @@ function isDailyLabRouteReady(routeId) {
       const loadState = figure?.dataset?.pointCloudLoadState;
       return Boolean(
         (loadState === 'ready' && isCanvasSurfaceReady('.napoleon-point-cloud__canvas--front'))
-        || (loadState === 'error' && document.querySelector('.napoleon-point-cloud__status'))
+        || loadState === 'error'
       );
     }
-    case 'beach-ball-room':
+    case 'beach-ball-room': {
+      const container = document.querySelector('.beach-ball-room-simulation');
+      const loadState = container?.dataset?.beachBallRoomLoadState;
       return Boolean(
         isCanvasSurfaceReady('.beach-ball-room-canvas')
-        || document.querySelector('.beach-ball-room-fallback[role="alert"]')
+        || loadState === 'error'
       );
+    }
     default:
       return false;
   }
@@ -797,6 +913,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
     const nextRouteRuntime = getRouteRuntime(nextRouteId);
     const isGate = options.transitionStyle === 'gate-success';
+    const isSimulationFocus = options.transitionStyle === 'simulation-focus';
     const readyMs = options.readyFallbackMs
       ?? (isGate ? 850 : (nextRouteId === 'home' ? 500 : 700));
     const routeTimings = getRouteTransitionTimings({
@@ -829,9 +946,82 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         suppressReturnAnimation: isGateTransition,
         gateBackdropDismissed,
       });
+      cleanupSimulationFocusLayer(surfaceRefs);
+      setSimulationFocusTransitionState(null);
       syncSteadyTransitionPhase();
       processQueuedNavigation();
     };
+
+    if (isSimulationFocus) {
+      transitionActiveRef.current = true;
+      activeGateTransitionRef.current = false;
+      setLegacyRouteTransitionActive(true, { gate: false });
+
+      const token = ++transitionToken;
+      const stale = () => token !== transitionToken;
+      const simulationTimings = getSimulationFocusTimings(options, reduceMotion);
+      const routeReadyWaiter = !isSameRoute
+        ? waitForRouteReady(nextState.route.id, routeTimings.ready)
+        : null;
+      const routeReady = routeReadyWaiter?.promise || Promise.resolve();
+      activeRouteReadyCancelRef.current = routeReadyWaiter?.cancel || null;
+
+      Promise.resolve()
+        .then(() => nextRouteRuntime?.loadModule?.()).catch(() => undefined)
+        .then(() => {
+          if (stale()) {
+            routeReadyWaiter?.cancel();
+            return undefined;
+          }
+          setSimulationFocusTransitionState('out');
+          return animateSimulationFocusLayer(surfaceRefs, {
+            direction: 'out',
+            durationMs: simulationTimings.exit,
+            easing: simulationTimings.exitEasing,
+          });
+        })
+        .then(() => {
+          if (stale()) {
+            routeReadyWaiter?.cancel();
+            return undefined;
+          }
+          setSimulationFocusTransitionState('hold');
+          return waitForSimulationFocusHold(simulationTimings.hold);
+        })
+        .then(() => {
+          if (stale()) {
+            routeReadyWaiter?.cancel();
+            return undefined;
+          }
+          commit();
+          return routeReady;
+        })
+        .then(() => {
+          if (stale()) {
+            routeReadyWaiter?.cancel();
+            return undefined;
+          }
+          setSimulationFocusTransitionState('in');
+          return animateSimulationFocusLayer(surfaceRefs, {
+            direction: 'in',
+            durationMs: simulationTimings.enter,
+            easing: simulationTimings.enterEasing,
+          });
+        })
+        .then(() => {
+          if (!stale()) {
+            finishTransition(false);
+          }
+        })
+        .catch(() => {
+          routeReadyWaiter?.cancel();
+          if (!stale()) {
+            finishTransition(false);
+          }
+        });
+
+      return true;
+    }
 
     /* ── smooth transition (gate-success OR any SPA route change) ────────── */
     if (!isSameRoute && !reduceMotion) {
@@ -985,11 +1175,14 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       readyMs: options.readyFallbackMs,
       reduceMotion,
     });
+    const isSimulationFocus = options.transitionStyle === 'simulation-focus';
 
     const finishTransition = () => {
       transitionActiveRef.current = false;
       activeGateTransitionRef.current = false;
       finalizeTransition(false, currentRouteId, surfaceRefs);
+      cleanupSimulationFocusLayer(surfaceRefs);
+      setSimulationFocusTransitionState(null);
       syncSteadyTransitionPhase();
       const queued = queuedNavigationRef.current;
       if (!queued) return;
@@ -1002,6 +1195,52 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
 
     const runTask = () => Promise.resolve()
       .then(() => (typeof task === 'function' ? task() : undefined));
+
+    if (isSimulationFocus) {
+      transitionActiveRef.current = true;
+      setLegacyRouteTransitionActive(true, { gate: false });
+      const token = ++transitionToken;
+      const stale = () => token !== transitionToken;
+      const simulationTimings = getSimulationFocusTimings(options, reduceMotion);
+
+      setSimulationFocusTransitionState('out');
+      animateSimulationFocusLayer(surfaceRefs, {
+        direction: 'out',
+        durationMs: simulationTimings.exit,
+        easing: simulationTimings.exitEasing,
+      })
+        .then(() => {
+          if (stale()) return undefined;
+          setSimulationFocusTransitionState('hold');
+          return waitForSimulationFocusHold(simulationTimings.hold);
+        })
+        .then(() => {
+          if (stale()) return undefined;
+          return runTask();
+        })
+        .catch(() => undefined)
+        .then(() => {
+          if (stale()) return undefined;
+          setSimulationFocusTransitionState('in');
+          return animateSimulationFocusLayer(surfaceRefs, {
+            direction: 'in',
+            durationMs: simulationTimings.enter,
+            easing: simulationTimings.enterEasing,
+          });
+        })
+        .then(() => {
+          if (!stale()) {
+            finishTransition();
+          }
+        })
+        .catch(() => {
+          if (!stale()) {
+            finishTransition();
+          }
+        });
+
+      return true;
+    }
 
     if (reduceMotion) {
       transitionActiveRef.current = true;
@@ -1146,7 +1385,11 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     window.history.replaceState({}, '', routeState.canonicalHref);
   }, [routeState.canonicalHref, routeState.redirectGateId]);
 
-  const routeView = useMemo(() => getRouteView(routeState.route.id), [getRouteView, routeState.route.id]);
+  const routeView = useMemo(() => getRouteView(routeState.route.id, routeState.canonicalHref), [
+    getRouteView,
+    routeState.canonicalHref,
+    routeState.route.id,
+  ]);
   const routeRuntime = useMemo(() => getRouteRuntime(routeState.route.id), [getRouteRuntime, routeState.route.id]);
 
   return { routeState, routeRuntime, routeView, transitionCurrentRoute };

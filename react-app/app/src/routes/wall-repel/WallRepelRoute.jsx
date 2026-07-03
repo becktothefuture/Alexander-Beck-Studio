@@ -1,7 +1,10 @@
+import { Suspense, lazy } from 'react';
 import { buildRouteHref } from '../../lib/routes.js';
-import { WallRepelDemo } from './WallRepelDemo.jsx';
 
 const homeHref = buildRouteHref('home');
+const WallRepelDemo = lazy(() => (
+  import('./WallRepelDemo.jsx').then((module) => ({ default: module.WallRepelDemo }))
+));
 
 export const WALL_REPEL_ROUTE_RUNTIME = {};
 
@@ -9,7 +12,11 @@ export function getWallRepelRouteView() {
   return {
     bodyClass: 'body wall-repel-page',
     wallClassName: 'w-embed wall-repel-wall',
-    wallContent: <WallRepelDemo />,
+    wallContent: (
+      <Suspense fallback={null}>
+        <WallRepelDemo />
+      </Suspense>
+    ),
     headerContent: (
       <header className="ui-top">
         <div className="ui-top-main route-topbar">

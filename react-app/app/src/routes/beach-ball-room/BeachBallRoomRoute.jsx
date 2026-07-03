@@ -1,7 +1,10 @@
+import { Suspense, lazy } from 'react';
 import { buildRouteHref } from '../../lib/routes.js';
-import { BeachBallRoomSimulation } from './BeachBallRoomSimulation.jsx';
 
 const homeHref = buildRouteHref('home');
+const BeachBallRoomSimulation = lazy(() => (
+  import('./BeachBallRoomSimulation.jsx').then((module) => ({ default: module.BeachBallRoomSimulation }))
+));
 
 export const BEACH_BALL_ROOM_ROUTE_RUNTIME = {};
 
@@ -9,7 +12,11 @@ export function getBeachBallRoomRouteView() {
   return {
     bodyClass: 'body beach-ball-room-page',
     wallClassName: 'w-embed beach-ball-room-wall',
-    wallContent: <BeachBallRoomSimulation />,
+    wallContent: (
+      <Suspense fallback={null}>
+        <BeachBallRoomSimulation />
+      </Suspense>
+    ),
     headerContent: (
       <header className="ui-top">
         <div className="ui-top-main route-topbar">

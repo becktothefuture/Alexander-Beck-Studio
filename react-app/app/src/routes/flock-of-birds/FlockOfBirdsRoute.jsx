@@ -1,7 +1,10 @@
+import { Suspense, lazy } from 'react';
 import { buildRouteHref } from '../../lib/routes.js';
-import { FlockOfBirdsDemo } from './FlockOfBirdsDemo.jsx';
 
 const homeHref = buildRouteHref('home');
+const FlockOfBirdsDemo = lazy(() => (
+  import('./FlockOfBirdsDemo.jsx').then((module) => ({ default: module.FlockOfBirdsDemo }))
+));
 
 export const FLOCK_OF_BIRDS_ROUTE_RUNTIME = {};
 
@@ -9,7 +12,11 @@ export function getFlockOfBirdsRouteView() {
   return {
     bodyClass: 'body flock-of-birds-page',
     wallClassName: 'w-embed flock-of-birds-wall',
-    wallContent: <FlockOfBirdsDemo />,
+    wallContent: (
+      <Suspense fallback={null}>
+        <FlockOfBirdsDemo />
+      </Suspense>
+    ),
     headerContent: (
       <header className="ui-top">
         <div className="ui-top-main route-topbar">

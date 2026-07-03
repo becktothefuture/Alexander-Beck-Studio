@@ -1137,7 +1137,7 @@ function updateSway(state, config, metrics, pointer, now, dt, activeCount, growt
   }
 }
 
-function renderState(ctx, state, metrics, theme, now, activeCount, elapsed, duration) {
+function renderState(ctx, state, metrics, theme, now, activeCount, elapsed, duration, options = {}) {
   const palette = resolvePalette(theme).map((color) => parseHexColor(color));
   const surface = isHexColor(theme?.active) ? theme.active : DEFAULT_THEME.active;
   const surfaceColor = parseHexColor(surface);
@@ -1145,8 +1145,10 @@ function renderState(ctx, state, metrics, theme, now, activeCount, elapsed, dura
   const shadowColor = parseHexColor('#050606');
   ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
   ctx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
-  ctx.fillStyle = surface;
-  ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
+  if (!options.transparentBackground) {
+    ctx.fillStyle = surface;
+    ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
+  }
 
   for (let i = 0; i < activeCount; i += 1) {
     const birthTime = state.birth[i] * duration;
@@ -1200,8 +1202,14 @@ function renderState(ctx, state, metrics, theme, now, activeCount, elapsed, dura
   };
 }
 
-export function createMineralGrowthRenderer({ canvas, reducedMotion = false, getConfig, getTheme }) {
-  const ctx = canvas.getContext('2d', { alpha: false });
+export function createMineralGrowthRenderer({
+  canvas,
+  reducedMotion = false,
+  getConfig,
+  getTheme,
+  transparentBackground = false,
+}) {
+  const ctx = canvas.getContext('2d', { alpha: Boolean(transparentBackground) });
   let rafId = 0;
   let state = null;
   let metrics = null;
@@ -1296,7 +1304,9 @@ export function createMineralGrowthRenderer({ canvas, reducedMotion = false, get
     lastFrameAt = now;
 
     updateSway(state, config, metrics, pointer, now, dt, activeCount, growthProgress, reducedMotion);
-    const rendered = renderState(ctx, state, metrics, theme, now, activeCount, elapsed, duration);
+    const rendered = renderState(ctx, state, metrics, theme, now, activeCount, elapsed, duration, {
+      transparentBackground,
+    });
     frameMs = frameMs ? frameMs * 0.86 + (performance.now() - started) * 0.14 : performance.now() - started;
     lastMetrics = {
       activeCount: rendered.activeCount,

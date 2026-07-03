@@ -241,6 +241,13 @@ function shouldReduceMotion() {
   return !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
 }
 
+function isSimulationFocusTransitionActive() {
+  const phase = document.documentElement.dataset.absSimulationFocusTransition
+    || window.__ABS_SIMULATION_FOCUS_TRANSITION__?.phase
+    || 'idle';
+  return phase === 'out' || phase === 'in';
+}
+
 function clearHomePostBootEntranceTimer() {
   if (homePostBootEntranceTimer) {
     window.clearTimeout(homePostBootEntranceTimer);
@@ -277,7 +284,7 @@ function startHomePostBootEntrance() {
   homePostBootEntranceRaf = window.requestAnimationFrame(() => {
     homePostBootEntranceRaf = 0;
 
-    if (isRouteTransitionPhase(getTransitionPhase())) {
+    if (isRouteTransitionPhase(getTransitionPhase()) || isSimulationFocusTransitionActive()) {
       clearHomePostBootEntrance();
       return;
     }
@@ -316,7 +323,10 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 export async function bootstrapHomePage() {
-  const shellRouteTransitionActiveAtStart = isRouteTransitionPhase(getTransitionPhase());
+  const shellRouteTransitionActiveAtStart = (
+    isRouteTransitionPhase(getTransitionPhase())
+    || isSimulationFocusTransitionActive()
+  );
   setBootLifecycleState(shellRouteTransitionActiveAtStart ? 'revealing' : 'booting');
   setHomeRouteReadyState(false);
 
@@ -853,7 +863,10 @@ export async function bootstrapHomePage() {
 
       // Run the home UI entrance for every direct landing/reload. Shell route
       // transitions restore stable UI without replaying choreography.
-      const shellRouteTransitionActive = isRouteTransitionPhase(getTransitionPhase());
+      const shellRouteTransitionActive = (
+        isRouteTransitionPhase(getTransitionPhase())
+        || isSimulationFocusTransitionActive()
+      );
       const shouldRunHomePostBootEntrance = !reduceMotion && !shellRouteTransitionActive;
 
       if (shellRouteTransitionActive) {

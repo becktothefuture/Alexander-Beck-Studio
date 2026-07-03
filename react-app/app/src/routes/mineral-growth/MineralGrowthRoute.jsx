@@ -1,7 +1,10 @@
+import { Suspense, lazy } from 'react';
 import { buildRouteHref } from '../../lib/routes.js';
-import { MineralGrowthDemo } from './MineralGrowthDemo.jsx';
 
 const homeHref = buildRouteHref('home');
+const MineralGrowthDemo = lazy(() => (
+  import('./MineralGrowthDemo.jsx').then((module) => ({ default: module.MineralGrowthDemo }))
+));
 
 export const MINERAL_GROWTH_ROUTE_RUNTIME = {};
 
@@ -9,7 +12,11 @@ export function getMineralGrowthRouteView() {
   return {
     bodyClass: 'body mineral-growth-page',
     wallClassName: 'w-embed mineral-growth-wall',
-    wallContent: <MineralGrowthDemo />,
+    wallContent: (
+      <Suspense fallback={null}>
+        <MineralGrowthDemo />
+      </Suspense>
+    ),
     headerContent: (
       <header className="ui-top">
         <div className="ui-top-main route-topbar">

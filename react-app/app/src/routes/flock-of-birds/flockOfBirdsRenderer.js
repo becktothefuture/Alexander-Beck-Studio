@@ -218,8 +218,9 @@ export function createFlockOfBirdsRenderer({
   getConfig,
   getTheme,
   reducedMotion = false,
+  transparentBackground = false,
 } = {}) {
-  const ctx = canvas.getContext('2d', { alpha: false });
+  const ctx = canvas.getContext('2d', { alpha: Boolean(transparentBackground) });
   const rand = mulberry32(0x7f4a9c21);
   const pointer = {
     x: 0,
@@ -1222,7 +1223,12 @@ export function createFlockOfBirdsRenderer({
       lastTime = performance.now();
     }
 
-    drawBackground(ctx, metrics, theme, config);
+    if (transparentBackground) {
+      ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
+      ctx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
+    } else {
+      drawBackground(ctx, metrics, theme, config);
+    }
     if (config.enabled !== false) {
       updateBirds(config, needsWarmup ? 1 / 60 : dt, now, true);
     }

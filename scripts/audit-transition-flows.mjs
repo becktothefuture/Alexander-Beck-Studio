@@ -31,7 +31,19 @@ const MAX_GAP_FRAMES = Number(process.env.ABS_TRANSITION_MAX_GAP_FRAMES || 2);
 const BRIDGE_WITHIN_MS = Number(process.env.ABS_TRANSITION_BRIDGE_WITHIN_MS || 300);
 const DESTINATION_WITHIN_MS = Number(process.env.ABS_TRANSITION_DESTINATION_WITHIN_MS || 1200);
 const STRICT_RAF = ['1', 'true', 'yes'].includes(String(process.env.ABS_TRANSITION_STRICT_RAF || '').toLowerCase());
-const SIMULATION_CANVAS_SELECTOR = '#c, #flock-of-birds-canvas, #wall-repel-canvas, canvas.wall-repel-canvas, canvas.concept-simulation-canvas';
+const SIMULATION_CANVAS_SELECTOR = [
+  '#c',
+  '#aperture-bloom-canvas',
+  '#confluence-bridges-canvas',
+  '#flock-of-birds-canvas',
+  '#mineral-growth-canvas',
+  '#pressure-mosaic-canvas',
+  '#wall-repel-canvas',
+  '.beach-ball-room-canvas',
+  '.napoleon-point-cloud__canvas--front',
+  'canvas.wall-repel-canvas',
+  'canvas.concept-simulation-canvas',
+].join(', ');
 const SAMPLE_MS = Number(
   process.env.ABS_TRANSITION_SAMPLE_MS
   || Math.max(1200, DESTINATION_WITHIN_MS + 200)

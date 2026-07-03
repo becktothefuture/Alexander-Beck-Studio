@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { BodyClassManager } from '../layout/BodyClassManager.jsx';
 import { StudioShell } from './StudioShell.jsx';
 import { getHomeRouteView, HOME_ROUTE_RUNTIME } from '../../routes/home/HomeRoute.jsx';
@@ -15,6 +15,10 @@ import { getFlockOfBirdsRouteView, FLOCK_OF_BIRDS_ROUTE_RUNTIME } from '../../ro
 import { getWallRepelRouteView, WALL_REPEL_ROUTE_RUNTIME } from '../../routes/wall-repel/WallRepelRoute.jsx';
 import { getMineralGrowthRouteView, MINERAL_GROWTH_ROUTE_RUNTIME } from '../../routes/mineral-growth/MineralGrowthRoute.jsx';
 import { getLoaderPlaygroundRouteView, LOADER_PLAYGROUND_ROUTE_RUNTIME } from '../../routes/loader-playground/LoaderPlaygroundRoute.jsx';
+import {
+  getDailyFocusRouteView,
+  isDailyFocusRouteRequest,
+} from '../../routes/daily-focus/DailyFocusRoute.jsx';
 import {
   APERTURE_BLOOM_ROUTE_RUNTIME,
   CONFLUENCE_BRIDGES_ROUTE_RUNTIME,
@@ -74,7 +78,19 @@ const ROUTE_RUNTIME_BY_ID = {
   'loader-playground': LOADER_PLAYGROUND_ROUTE_RUNTIME
 };
 
-function getRouteViewForId(routeId) {
+function getSearchFromHref(href) {
+  if (!href) return '';
+  try {
+    return new URL(href, window.location.origin).search;
+  } catch {
+    return window.location.search;
+  }
+}
+
+function getRouteViewForId(routeId, canonicalHref) {
+  if (isDailyFocusRouteRequest(routeId, getSearchFromHref(canonicalHref))) {
+    return getDailyFocusRouteView(routeId);
+  }
   return (ROUTE_VIEW_BY_ID[routeId] || ROUTE_VIEW_BY_ID.home)();
 }
 
@@ -98,6 +114,28 @@ function readProjectFixture(routeId) {
   }
 
   return null;
+}
+
+function markDirectShellRouteReady(routeId, isStandaloneRoute) {
+  if (typeof document === 'undefined') return;
+  if (isStandaloneRoute || routeId === 'home') return;
+
+  const root = document.documentElement;
+  root.classList.remove(
+    'fonts-loading',
+    'entrance-pre-transition',
+    'entrance-transitioning',
+    'abs-home-post-boot-pending',
+    'abs-home-post-boot-enter',
+  );
+  root.classList.add('abs-direct-boot-ready', 'entrance-complete', 'ui-entered');
+
+  if (!root.dataset.absBootState || root.dataset.absBootState === 'booting') {
+    root.dataset.absBootState = 'ready';
+  }
+  if (!root.dataset.absBootDetail || root.dataset.absBootDetail === 'held') {
+    root.dataset.absBootDetail = 'shell-route-ready';
+  }
 }
 
 export function SiteApp() {
@@ -127,6 +165,10 @@ export function SiteApp() {
     surfaceRefs,
   });
   const isStandaloneRoute = routeView.layout === 'standalone';
+
+  useLayoutEffect(() => {
+    markDirectShellRouteReady(routeState.route.id, isStandaloneRoute);
+  }, [isStandaloneRoute, routeState.route.id]);
 
   useLegacyRouteRuntime({
     active: !isStandaloneRoute,
@@ -187,6 +229,7 @@ export function SiteApp() {
         >
           <StudioShell
             routeRenderKey={routeState.route.id}
+            contentRenderKey={routeView.contentRenderKey || routeState.route.id}
             wallClassName={routeView.wallClassName}
             wallContent={routeView.wallContent}
             headerContent={routeView.headerContent}

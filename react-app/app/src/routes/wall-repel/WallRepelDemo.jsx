@@ -14,6 +14,7 @@ import {
   resolveLondonWeatherPaletteId,
 } from '../../palette/londonPalettes.js';
 import { withBasePath } from '../../lib/base-path.js';
+import './wall-repel-runtime.css';
 import './wall-repel.css';
 
 const CONFIG_URL = withBasePath('/config/wall-repel-demo.json');

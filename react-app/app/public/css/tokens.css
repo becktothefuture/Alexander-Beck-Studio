@@ -696,7 +696,8 @@
   --abs-brand-logo-height: calc(var(--abs-brand-logo-width) * 101 / 511);
 
   /* Index: primary (main) links positioned under logo. */
-  --home-main-links-below-logo-px: 40;
+  --home-main-links-below-logo-px: 96px;
+  --home-simulation-switcher-above-logo-px: clamp(124px, 13vh, 136px);
 
   /* Main Links Navigation Bar - Full-width nav bar positioning */
   --footer-nav-bar-top: 50vh;

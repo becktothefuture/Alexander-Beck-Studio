@@ -15,6 +15,7 @@ import {
   resolveLondonWeatherPaletteId,
 } from '../../palette/londonPalettes.js';
 import { withBasePath } from '../../lib/base-path.js';
+import './flock-of-birds-runtime.css';
 import './flock-of-birds.css';
 
 const CONFIG_URL = withBasePath('/config/flock-of-birds-demo.json');

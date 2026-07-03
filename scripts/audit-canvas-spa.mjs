@@ -13,11 +13,14 @@ const SIMULATION_CANVAS_SELECTOR = '#c, #flock-of-birds-canvas, #wall-repel-canv
 
 function resolveHomeEntryUrl() {
   let raw = (process.env.ABS_DEV_URL || 'http://127.0.0.1:8012').trim().replace(/\/+$/, '');
-  const pathPart = raw.split('?')[0].split('#')[0];
-  if (!/\.html$/i.test(pathPart)) {
-    raw = `${raw}/index.html`;
+  const url = new URL(raw);
+  if (!/\.html$/i.test(url.pathname)) {
+    url.pathname = `${url.pathname.replace(/\/+$/, '')}/index.html`.replace(/\/{2,}/g, '/');
   }
-  return raw;
+  if (!url.searchParams.has('mode')) {
+    url.searchParams.set('mode', 'pit');
+  }
+  return url.toString();
 }
 const quiet = process.env.ABS_AUDIT_QUIET === '1' || process.env.ABS_AUDIT_QUIET === 'true';
 
