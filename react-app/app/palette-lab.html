@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="fonts-loading" data-abs-boot-state="booting" style="background:#141517;background-color:#141517">
+<html lang="en" class="fonts-loading" data-abs-boot-state="booting" style="background:#202020;background-color:#202020">
   <head>
     <style id="fade-blocking">#root,#abs-scene,#app-frame{opacity:0;visibility:hidden}</style>
     <style id="abs-critical-shell">
@@ -11,8 +11,8 @@
         width: 100%;
         min-height: 100%;
         margin: 0;
-        background: var(--abs-browser-chrome, #141517);
-        background-color: var(--abs-browser-chrome, #141517);
+        background: var(--abs-browser-chrome, #202020);
+        background-color: var(--abs-browser-chrome, #202020);
       }
 
       html[data-abs-boot-state="booting"]::before,
@@ -31,7 +31,7 @@
       html[data-abs-boot-state="booting"]::before {
         inset: 0;
         z-index: 2147482998;
-        background: var(--abs-browser-chrome, #141517);
+        background: var(--abs-browser-chrome, #202020);
       }
 
       html[data-abs-boot-state="booting"]::after {
@@ -76,7 +76,7 @@
         z-index: 2147483000;
         display: grid;
         place-items: center;
-        background: var(--abs-browser-chrome, #141517);
+        background: var(--abs-browser-chrome, #202020);
         color: var(--abs-boot-spinner-color, rgba(255, 255, 255, 0.82));
         opacity: 1;
         pointer-events: auto;
@@ -250,15 +250,15 @@
         root.classList.add('palette-lab-shell');
         var DEFAULTS = {
           bgLight: '#efefef',
-          bgDark: '#181818',
-          wallBaseLight: '#efefef',
-          wallBaseDark: '#181818',
-          frameColorLight: '#202124',
-          frameColorDark: '#141517',
-          safariFrameLight: '#181818',
-          safariFrameDark: '#141517',
-          lockedHeaderLight: '#f1f3f4',
-          lockedHeaderDark: '#141517'
+          bgDark: '#202020',
+          wallBaseLight: '#202020',
+          wallBaseDark: '#202020',
+          frameColorLight: '#202020',
+          frameColorDark: '#202020',
+          safariFrameLight: '#202020',
+          safariFrameDark: '#202020',
+          lockedHeaderLight: '#202020',
+          lockedHeaderDark: '#202020'
         };
 
         function detectBrowserFamily() {
