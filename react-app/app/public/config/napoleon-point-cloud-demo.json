@@ -13,6 +13,8 @@
   "spread": 0.045,
   "focus": 1,
   "breathingMotion": 0.42,
+  "depthFogStart": 0.86,
+  "depthFogMin": 0.18,
   "maxDpr": 1.5,
   "pauseWhenHidden": true
 }

@@ -4,7 +4,6 @@ import {
   Archive,
   ArrowLeft,
   Box,
-  CalendarDays,
   Check,
   ChevronDown,
   Clipboard,
@@ -559,18 +558,6 @@ function ExpandedSimulationDetails({
             <ExternalLink aria-hidden="true" size={16} strokeWidth={2} />
             <span>Open</span>
           </a>
-          {entry.dailyHref ? (
-            <a
-              className="simulation-dashboard-button simulation-dashboard-button--ghost simulation-dashboard-tooltip--below-start"
-              href={entry.dailyHref}
-              target="_blank"
-              rel="noreferrer"
-              data-tooltip="Open the daily-route version in a new tab"
-            >
-              <CalendarDays aria-hidden="true" size={16} strokeWidth={2} />
-              <span>Daily</span>
-            </a>
-          ) : null}
         </div>
       </div>
 

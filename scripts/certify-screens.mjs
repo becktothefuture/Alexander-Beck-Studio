@@ -18,15 +18,15 @@ let baseUrl = `http://${previewHost}:${previewPort}`;
 const screenshotBrowser = 'chromium';
 const acceptableBootStates = ['ready', 'content-ready', 'entered'];
 const previewMarkers = ['Alexander Beck Studio', '/css/tokens.css'];
-const routeBackedDailyCanvasSelector = [
-  '#aperture-bloom-canvas',
-  '#confluence-bridges-canvas',
+const routeBackedDailySurfaceSelector = [
   '#flock-of-birds-canvas',
   '#mineral-growth-canvas',
   '#pressure-mosaic-canvas',
   '#wall-repel-canvas',
-  '.beach-ball-room-canvas',
-  '.napoleon-point-cloud__canvas--front'
+  'canvas.concept-simulation-canvas',
+  '.beach-ball-room-simulation[data-beach-ball-room-load-state="ready"] .beach-ball-room-canvas',
+  '.napoleon-point-cloud[data-point-cloud-load-state="ready"] .napoleon-point-cloud__canvas--front',
+  '.napoleon-point-cloud[data-point-cloud-load-state="error"]'
 ].join(', ');
 
 const matrix = [
@@ -57,8 +57,10 @@ const matrix = [
     ],
     routeBackedDaily: {
       allowNearBlank: true,
-      readySelectors: ['#app-frame', '#main-links button', '#expertise-legend .legend__item', routeBackedDailyCanvasSelector],
-      minReadySelectors: 3,
+      readySelectors: [routeBackedDailySurfaceSelector],
+      minReadySelectors: 1,
+      requireReadySelectors: true,
+      readySettleMs: 500,
       selectors: [
         { selector: '#app-frame', minArea: 200000, requiredText: [] },
         {
@@ -78,7 +80,7 @@ const matrix = [
           minArea: 12000,
           requiredTextAnyOf: [["Let's chat", "Let’s chat"]]
         },
-        { selector: routeBackedDailyCanvasSelector, minArea: 60000, requiredText: [] }
+        { selector: routeBackedDailySurfaceSelector, minArea: 60000, requiredText: [] }
       ]
     }
   },
@@ -440,7 +442,10 @@ async function waitForEntryReadiness(page, entry, timeoutMs = 22000) {
   while (Date.now() - startedAt < timeoutMs) {
     lastSample = await sampleReadiness(page, entry);
 
-    if (acceptableBootStates.includes(lastSample.bootState)) {
+    if (
+      !entry.requireReadySelectors &&
+      acceptableBootStates.includes(lastSample.bootState)
+    ) {
       return {
         ready: true,
         source: `boot-state:${lastSample.bootState}`,
@@ -469,13 +474,16 @@ async function waitForEntryReadiness(page, entry, timeoutMs = 22000) {
 async function resolveActiveEntry(page, entry) {
   if (!entry.routeBackedDaily) return entry;
 
-  const pathname = await page.evaluate(() => window.location.pathname || '').catch(() => '');
-  if (!pathname.startsWith('/lab/')) return entry;
+  const snapshot = await page.evaluate(() => ({
+    pathname: window.location.pathname || '',
+    hasRouteBackedDailyLayer: Boolean(document.querySelector('.daily-simulation-layer')),
+  })).catch(() => ({ pathname: '', hasRouteBackedDailyLayer: false }));
+  if (!snapshot.pathname.startsWith('/lab/') && !snapshot.hasRouteBackedDailyLayer) return entry;
 
   return {
     ...entry,
     ...entry.routeBackedDaily,
-    path: pathname
+    path: snapshot.pathname
   };
 }
 
@@ -486,7 +494,7 @@ async function navigateAndWait(page, entry) {
 
   const activeEntry = await resolveActiveEntry(page, entry);
   const readiness = await waitForEntryReadiness(page, activeEntry);
-  await delay(readiness.ready ? 1500 : 250);
+  await delay(readiness.ready ? (activeEntry.readySettleMs || 1500) : 250);
   return {
     readiness,
     activeEntry

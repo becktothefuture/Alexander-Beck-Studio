@@ -691,6 +691,8 @@ export function ConceptSimulationDemo({ simulationId }) {
           spread={config.spread}
           focus={config.focus}
           breathingMotion={config.breathingMotion}
+          depthFogStart={config.depthFogStart}
+          depthFogMin={config.depthFogMin}
           maxDpr={config.maxDpr}
           reducedMotion={reducedMotion}
           theme={themeColors}

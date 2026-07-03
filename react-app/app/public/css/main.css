@@ -2149,21 +2149,24 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   opacity: 0;
   pointer-events: none;
   filter: blur(var(--space-xs));
-  transform: translateX(-50%) translateY(calc(-1 * var(--space-xs)));
   transition-duration: var(--ui-duration-out, 455ms);
   transition-timing-function: var(--ui-ease-out, cubic-bezier(0.4, 0, 1, 1));
 }
 
+html[data-abs-transition-phase='modal-open'] .simulation-focus-switcher-slot {
+  transform: translateX(-50%);
+}
+
+html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
+  transform: translateX(-50%) translateY(calc(-1 * var(--space-xs)));
+}
+
 .simulation-focus-pill {
+  position: relative;
   appearance: none;
   border: var(--hairline, 1px) solid color-mix(in srgb, var(--text-logo) 36%, transparent);
   border-radius: 999px;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--frame-inner-surface) 46%, transparent),
-      color-mix(in srgb, var(--frame-inner-surface) 24%, transparent)
-    );
+  background: color-mix(in srgb, var(--frame-inner-surface) 54%, transparent);
   color: var(--text-logo);
   display: inline-flex;
   align-items: center;
@@ -2180,7 +2183,11 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   letter-spacing: 0;
   white-space: nowrap;
   cursor: pointer;
+  isolation: isolate;
+  overflow: hidden;
   pointer-events: auto;
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+  backdrop-filter: blur(18px) saturate(1.08);
   -webkit-tap-highlight-color: transparent;
   box-shadow:
     inset 0 1px 0 rgba(var(--abs-rgb-white), 0.16),
@@ -2193,16 +2200,34 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
     filter 140ms var(--ease-organic);
 }
 
+.simulation-focus-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: var(--cursor-color);
+  box-shadow: var(--ui-chrome-button-edge);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.72);
+  transform-origin: center;
+  transition:
+    transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
+    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+}
+
+.simulation-focus-pill > * {
+  position: relative;
+  z-index: 1;
+}
+
 .simulation-focus-switcher {
   align-items: center;
   border-color: color-mix(in srgb, var(--text-logo) 28%, transparent);
   border-radius: var(--abs-radius-pill);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--frame-inner-surface) 34%, transparent),
-      color-mix(in srgb, var(--frame-inner-surface) 18%, transparent)
-  );
+  background: color-mix(in srgb, var(--frame-inner-surface) 48%, transparent);
   gap: calc(var(--gap-xs) * 0.7);
   min-height: 36px;
   max-width: calc(100vw - (var(--gap-md) * 2));
@@ -2231,7 +2256,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 }
 
 .simulation-focus-pill.simulation-focus-switcher:hover {
-  border-color: color-mix(in srgb, var(--text-logo) 46%, transparent);
+  border-color: color-mix(in srgb, var(--cursor-color) 52%, var(--text-logo));
 }
 
 .simulation-focus-switcher .simulation-focus-pill__icon {
@@ -2243,8 +2268,22 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
   transform: none;
 }
 
-.simulation-focus-pill:hover {
-  border-color: color-mix(in srgb, var(--text-logo) 58%, transparent);
+.simulation-focus-pill:hover,
+.simulation-focus-pill:focus-visible,
+.simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill {
+  border-color: color-mix(in srgb, var(--cursor-color) 58%, var(--text-logo));
+  color: var(--cursor-hover-fg, var(--text-primary));
+}
+
+.simulation-focus-pill:hover::before,
+.simulation-focus-pill:focus-visible::before,
+.simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill::before {
+  opacity: 1;
+  transform: scale(var(--abs-button-swell-scale, 1.06));
+  transition:
+    transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
+    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
 
 .simulation-focus-pill:active {
@@ -2828,16 +2867,6 @@ button.abs-meta-btn,
     filter var(--modal-depth-duration, 850ms) var(--ease-gate-motion);
 }
 
-html.simulation-focus-modal-open #abs-scene,
-html.simulation-focus-modal-open .app-scene {
-  filter: brightness(0.54) saturate(0.82);
-}
-
-html.simulation-focus-modal-open body.dark-mode #abs-scene,
-html.simulation-focus-modal-open body.dark-mode .app-scene {
-  filter: brightness(0.72) saturate(0.9);
-}
-
 /* ─────────────────────────────────────────────────────────────────────────────
    HERO TITLE — semantic <h1> inside #simulations.
    Normal modes keep canvas material above the title; depth-title modes split
@@ -3380,9 +3409,15 @@ html[data-abs-transition-phase='route-in'] body.cv-page #abs-scene {
 
 /* Exit stagger: reverse order (right to left) when modal opens */
 html[data-abs-transition-phase='modal-open'] .ui-main-nav .footer_link {
+  transform: translateY(0) scale(1);
   transition-duration: var(--ui-duration-out);
   transition-timing-function: var(--ui-ease-out);
   transition-delay: calc(var(--ui-stagger) * var(--ri, 0));
+}
+
+html[data-abs-transition-phase='modal-open'] .ui-main-nav .footer_link:focus-visible,
+html[data-abs-transition-phase='modal-open'] .ui-main-nav .footer_link:active {
+  transform: translateY(0) scale(1);
 }
 
 /* On modal close, restore the row as one unit instead of replaying the full entrance stagger. */
@@ -4585,6 +4620,8 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .simulation-focus-modal {
+  --simulation-focus-row-enter-duration: 220ms;
+  --simulation-focus-row-enter-stagger: 26ms;
   --simulation-focus-row-height: 48px;
   --simulation-focus-icon-size: 32px;
   --simulation-focus-list-width: min(100%, 24rem);
@@ -4636,13 +4673,22 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .simulation-focus-modal__title {
   width: var(--simulation-focus-list-width);
   margin: 0;
+  border: var(--hairline, 1px) solid color-mix(in srgb, var(--simulation-focus-ink) 14%, transparent);
+  border-radius: var(--abs-radius-pill);
+  background: color-mix(in srgb, var(--frame-inner-surface) 38%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.04);
+  backdrop-filter: blur(18px) saturate(1.04);
   color: var(--simulation-focus-ink);
   font-family: var(--abs-font-sans);
   font-size: clamp(1.18rem, 1.05rem + 0.45vw, 1.48rem);
   font-weight: var(--abs-weight-regular);
   line-height: 1.1;
   letter-spacing: 0;
+  padding: calc(var(--gap-xs) * 0.75) var(--gap-md);
   text-align: center;
+  box-shadow:
+    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.1),
+    0 14px 36px rgba(var(--abs-rgb-black), 0.08);
 }
 
 body:not(.dark-mode) .simulation-focus-modal .simulation-focus-modal__title {
@@ -4658,6 +4704,14 @@ body:not(.dark-mode) .simulation-focus-modal .simulation-focus-modal__title {
   width: var(--simulation-focus-list-width);
   min-height: 0;
   height: 100%;
+  border: var(--hairline, 1px) solid color-mix(in srgb, var(--simulation-focus-ink) 12%, transparent);
+  border-radius: calc(var(--abs-radius-lg, 16px) * 1.15);
+  background: color-mix(in srgb, var(--frame-inner-surface) 28%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(1.06);
+  backdrop-filter: blur(22px) saturate(1.06);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.08),
+    0 18px 48px rgba(var(--abs-rgb-black), 0.08);
   justify-self: center;
   overflow-x: hidden;
   overflow-y: auto;
@@ -4740,11 +4794,15 @@ body:not(.dark-mode) .simulation-focus-modal .simulation-focus-modal__title {
   z-index: 1;
 }
 
-.simulation-focus-row:hover {
+.simulation-focus-row:hover,
+.simulation-focus-row:focus-visible,
+.simulation-focus-row[aria-current='true'] {
   color: var(--cursor-hover-fg, var(--text-primary));
 }
 
-.simulation-focus-row:hover::before {
+.simulation-focus-row:hover::before,
+.simulation-focus-row:focus-visible::before,
+.simulation-focus-row[aria-current='true']::before {
   opacity: 1;
   transform: scale(var(--abs-button-swell-scale, 1.06));
   transition:
@@ -4764,7 +4822,7 @@ body:not(.dark-mode) .simulation-focus-modal .simulation-focus-modal__title {
 }
 
 .simulation-focus-row[aria-current='true'] {
-  border-color: transparent;
+  border-color: color-mix(in srgb, var(--cursor-color) 52%, transparent);
   background: transparent;
 }
 
@@ -4804,6 +4862,25 @@ body:not(.dark-mode) .simulation-focus-modal .simulation-focus-modal__title {
   letter-spacing: 0;
 }
 
+@keyframes simulationFocusRowEnter {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--gap-xs)));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.simulation-focus-modal.active .simulation-focus-row {
+  animation: simulationFocusRowEnter var(--simulation-focus-row-enter-duration) var(--ease-gate-motion) both;
+  animation-delay: calc(
+    var(--modal-content-delay, 150ms) +
+    (var(--simulation-focus-row-index, 0) * var(--simulation-focus-row-enter-stagger))
+  );
+}
+
 @media (min-width: 900px) {
   .simulation-focus-modal {
     --simulation-focus-row-height: 48px;
@@ -4818,6 +4895,17 @@ body:not(.dark-mode) .simulation-focus-modal .simulation-focus-modal__title {
   .simulation-focus-list {
     grid-template-columns: minmax(0, 1fr);
     width: var(--simulation-focus-list-width);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .simulation-focus-pill::before,
+  .simulation-focus-row::before {
+    transition: none;
+  }
+
+  .simulation-focus-modal.active .simulation-focus-row {
+    animation: none;
   }
 }
 

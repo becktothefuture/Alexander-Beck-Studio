@@ -11,8 +11,7 @@
  * Run: npm run audit:transition-flows
  * Needs: preview or dev server. Set ABS_DEV_URL to origin (e.g. http://127.0.0.1:8013).
  * The audit pins the home entry to ?focus=pit unless ABS_DEV_URL already includes a mode/focus,
- * and enables the home runtime audit because the visible home title is rendered into canvas from
- * the semantic DOM source.
+ * and enables the home runtime audit because these flows assert the canonical home surface.
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -31,6 +30,10 @@ const MAX_GAP_FRAMES = Number(process.env.ABS_TRANSITION_MAX_GAP_FRAMES || 2);
 const BRIDGE_WITHIN_MS = Number(process.env.ABS_TRANSITION_BRIDGE_WITHIN_MS || 300);
 const DESTINATION_WITHIN_MS = Number(process.env.ABS_TRANSITION_DESTINATION_WITHIN_MS || 1200);
 const STRICT_RAF = ['1', 'true', 'yes'].includes(String(process.env.ABS_TRANSITION_STRICT_RAF || '').toLowerCase());
+const EFFECTIVE_SAMPLE_INTERVAL_MS = STRICT_RAF
+  ? Math.max(SAMPLE_INTERVAL_MS, Number(process.env.ABS_TRANSITION_STRICT_SAMPLE_INTERVAL_MS || 50))
+  : SAMPLE_INTERVAL_MS;
+const CAPTURE_CHECKPOINT_IMAGES = !STRICT_RAF && BROWSER !== 'webkit' && BROWSER !== 'safari';
 const SIMULATION_CANVAS_SELECTOR = [
   '.daily-focus-canvas',
   '#c',
@@ -63,6 +66,19 @@ const HARD_TIMEOUT_MS = Number(process.env.ABS_TRANSITION_HARD_TIMEOUT_MS || 420
 function resolveBrowserEngine() {
   if (BROWSER === 'webkit' || BROWSER === 'safari') return webkit;
   return chromium;
+}
+
+function resolveBrowserLaunchOptions() {
+  if (BROWSER === 'webkit' || BROWSER === 'safari') return {};
+  return {
+    args: [
+      '--disable-background-timer-throttling',
+      '--disable-renderer-backgrounding',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-frame-rate-limit',
+      '--disable-gpu-vsync',
+    ],
+  };
 }
 
 function resolveHomeEntryUrl() {
@@ -191,8 +207,18 @@ async function captureCheckpoint(page, label, phase) {
   const snapshot = await snapshotState(page);
   await writeFile(jsonPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
 
+  if (!CAPTURE_CHECKPOINT_IMAGES) {
+    return {
+      label: safeLabel,
+      phase: safePhase,
+      imagePath: null,
+      jsonPath,
+      skippedImage: STRICT_RAF ? 'strict-raf' : 'webkit-cadence',
+    };
+  }
+
   try {
-    await page.screenshot({ path: imagePath, fullPage: true });
+    await page.screenshot({ path: imagePath, fullPage: false });
     return { label: safeLabel, phase: safePhase, imagePath, jsonPath };
   } catch (error) {
     return {
@@ -351,7 +377,7 @@ async function sampleFrames(page, label, durationMs = SAMPLE_MS) {
       frames.push({ ...snapshot, t });
     }
 
-    const nextWait = Math.max(0, SAMPLE_INTERVAL_MS - (Date.now() - (start + t)));
+    const nextWait = Math.max(0, EFFECTIVE_SAMPLE_INTERVAL_MS - (Date.now() - (start + t)));
     if (nextWait > 0) {
       await sleep(nextWait);
     }
@@ -786,7 +812,7 @@ async function main() {
 
   await mkdir(outputRoot, { recursive: true });
 
-  const browser = await resolveBrowserEngine().launch();
+  const browser = await resolveBrowserEngine().launch(resolveBrowserLaunchOptions());
   const flows = await runAllFlows(browser);
 
   const failedFlows = flows.filter((flow) => flow.failures.length > 0);
@@ -797,6 +823,7 @@ async function main() {
     strictRaf: STRICT_RAF,
     sampleMs: SAMPLE_MS,
     sampleIntervalMs: SAMPLE_INTERVAL_MS,
+    effectiveSampleIntervalMs: EFFECTIVE_SAMPLE_INTERVAL_MS,
     ok: failedFlows.length === 0,
     flows,
   };
@@ -807,6 +834,7 @@ async function main() {
     `baseUrl: ${report.baseUrl}`,
     `sampleMs: ${report.sampleMs}`,
     `sampleIntervalMs: ${report.sampleIntervalMs}`,
+    `effectiveSampleIntervalMs: ${report.effectiveSampleIntervalMs}`,
     `strictRaf: ${report.strictRaf ? 'on' : 'off'}`,
     `loops: ${LOOP_REPEAT}`,
     '',

@@ -10,6 +10,7 @@ import {
   getDailyFocusSimulations,
   getResolvedSimulationFocus,
   getSimulationLaunchTarget,
+  SIMULATION_FOCUS_CHANGED_EVENT,
   SIMULATION_FOCUS_STORAGE_KEY,
   writeManualSimulationFocus,
 } from '../../data/simulationCatalog.js';
@@ -66,7 +67,11 @@ function getFocusableElements(container) {
   });
 }
 
-export function SimulationFocusProvider({ routeId, transitionCurrentRoute, children }) {
+export function SimulationFocusProvider({
+  routeId,
+  surfaceRouteId = routeId,
+  children,
+}) {
   const routeIdRef = useRef(routeId);
   const returnFocusRef = useRef(null);
   const closeTimerRef = useRef(null);
@@ -85,7 +90,7 @@ export function SimulationFocusProvider({ routeId, transitionCurrentRoute, child
     setHomeMode(readUrlMode());
     setOptimisticActiveId(null);
     refreshFocusState();
-  }, [refreshFocusState, routeId]);
+  }, [refreshFocusState, routeId, surfaceRouteId]);
 
   useEffect(() => {
     const handleModeChanged = (event) => {
@@ -99,18 +104,25 @@ export function SimulationFocusProvider({ routeId, transitionCurrentRoute, child
         refreshFocusState();
       }
     };
+    const handleFocusChanged = () => {
+      setHomeMode(readUrlMode());
+      setOptimisticActiveId(null);
+      refreshFocusState();
+    };
 
     window.addEventListener('bb:modeChanged', handleModeChanged);
+    window.addEventListener(SIMULATION_FOCUS_CHANGED_EVENT, handleFocusChanged);
     window.addEventListener('storage', handleStorage);
     return () => {
       window.removeEventListener('bb:modeChanged', handleModeChanged);
+      window.removeEventListener(SIMULATION_FOCUS_CHANGED_EVENT, handleFocusChanged);
       window.removeEventListener('storage', handleStorage);
     };
   }, [refreshFocusState]);
 
-  const routeIsDailyFocus = DAILY_FOCUS_ID_SET.has(routeId);
+  const routeIsDailyFocus = DAILY_FOCUS_ID_SET.has(surfaceRouteId);
   const activeId = optimisticActiveId
-    || (routeIsDailyFocus ? routeId : null)
+    || (routeIsDailyFocus ? surfaceRouteId : null)
     || (routeId === 'home' && DAILY_FOCUS_ID_SET.has(homeMode) ? homeMode : null)
     || focusState.activeId;
   const activeSimulation = DAILY_FOCUS_SIMULATIONS.find((entry) => entry.id === activeId)
@@ -172,53 +184,49 @@ export function SimulationFocusProvider({ routeId, transitionCurrentRoute, child
     const target = getSimulationLaunchTarget(simulationId);
     if (!target) return false;
 
-    writeManualSimulationFocus(simulationId);
-    refreshFocusState();
     setOptimisticActiveId(simulationId);
     closeChooser({ restoreFocus: false });
 
     window.setTimeout(() => {
+      const cleanHomeHref = buildRouteHref('home');
+      const commitFocusChoice = () => {
+        writeManualSimulationFocus(simulationId);
+        refreshFocusState();
+      };
+
       if (target.surface === 'home-mode') {
-        const homeHref = buildRouteHref('home', {
-          searchParams: { mode: target.mode },
-        });
-        if (routeIdRef.current === 'home') {
-          const applyMode = () => import('../../legacy/modules/modes/mode-controller.js')
-            .then((module) => module.setMode(target.mode))
-            .then((applied) => {
-              if (applied !== false) {
-                replaceCurrentUrl(homeHref);
-              }
-              return applied;
-            });
-          const didTransition = transitionCurrentRoute?.(applyMode, {
-            transitionStyle: 'simulation-focus',
-            readyFallbackMs: 700,
-          });
-          if (!didTransition) {
-            void applyMode();
-          }
+        commitFocusChoice();
+
+        if (routeIsDailyFocus) {
+          setHomeMode(target.mode);
+          replaceCurrentUrl(cleanHomeHref);
           return;
         }
 
-        if (!trySpaNavigate(homeHref, { transitionStyle: 'simulation-focus', readyFallbackMs: 1100 })) {
-          window.location.assign(homeHref);
+        if (routeIdRef.current === 'home') {
+          void import('../../legacy/modules/modes/mode-controller.js')
+            .then((module) => module.setMode(target.mode))
+            .then((applied) => {
+              if (applied !== false) {
+                replaceCurrentUrl(cleanHomeHref);
+              }
+            });
+          return;
+        }
+
+        if (!trySpaNavigate(cleanHomeHref, { transitionStyle: 'simulation-focus', readyFallbackMs: 1100 })) {
+          window.location.assign(cleanHomeHref);
         }
         return;
       }
 
-      if (routeIdRef.current === target.id) {
-        trySpaNavigate(target.href, { replace: true, transitionStyle: 'simulation-focus', readyFallbackMs: 1800 });
-        return;
-      }
-
-      if (!trySpaNavigate(target.href, { transitionStyle: 'simulation-focus', readyFallbackMs: 2400 })) {
-        window.location.assign(target.href);
-      }
+      commitFocusChoice();
+      setHomeMode(null);
+      replaceCurrentUrl(cleanHomeHref);
     }, CHOOSER_CLOSE_SETTLE_MS);
 
     return true;
-  }, [closeChooser, refreshFocusState, transitionCurrentRoute]);
+  }, [closeChooser, refreshFocusState, routeIsDailyFocus]);
 
   const value = useMemo(() => ({
     activeId,
@@ -231,6 +239,7 @@ export function SimulationFocusProvider({ routeId, transitionCurrentRoute, child
     isChooserOpen,
     openChooser,
     routeId,
+    surfaceRouteId,
     selectedId: focusState.selectedId,
     selectSimulation,
     shouldShowSwitcher,
@@ -245,6 +254,7 @@ export function SimulationFocusProvider({ routeId, transitionCurrentRoute, child
     isChooserOpen,
     openChooser,
     routeId,
+    surfaceRouteId,
     selectSimulation,
     shouldShowSwitcher,
     toggleChooser,
@@ -424,13 +434,14 @@ export function SimulationFocusChooser() {
       <h2 id={CHOOSER_TITLE_ID} className="simulation-focus-modal__title">Choose a simulation</h2>
 
       <div className="simulation-focus-list" role="list">
-        {dailySimulations.map((entry) => {
+        {dailySimulations.map((entry, index) => {
           const isActive = entry.id === activeId;
           return (
             <button
               key={entry.id}
               type="button"
               className="simulation-focus-row"
+              style={{ '--simulation-focus-row-index': index }}
               aria-current={isActive ? 'true' : undefined}
               onClick={() => selectSimulation(entry.id)}
             >

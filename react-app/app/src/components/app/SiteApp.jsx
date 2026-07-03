@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { BodyClassManager } from '../layout/BodyClassManager.jsx';
 import { StudioShell } from './StudioShell.jsx';
 import { getHomeRouteView, HOME_ROUTE_RUNTIME } from '../../routes/home/HomeRoute.jsx';
@@ -39,6 +39,12 @@ import {
   SimulationFocusProvider,
   SimulationFocusSwitcher,
 } from '../simulation-focus/SimulationFocusProvider.jsx';
+import {
+  getResolvedSimulationFocus,
+  getSimulationLaunchTarget,
+  SIMULATION_FOCUS_CHANGED_EVENT,
+  SIMULATION_FOCUS_STORAGE_KEY,
+} from '../../data/simulationCatalog.js';
 
 const ROUTE_VIEW_BY_ID = {
   home: getHomeRouteView,
@@ -87,14 +93,50 @@ function getSearchFromHref(href) {
   }
 }
 
-function getRouteViewForId(routeId, canonicalHref) {
+function getRequestedFocusIdFromHref(href) {
+  const search = getSearchFromHref(href);
+  if (!search) return null;
+  const params = new URLSearchParams(search);
+  return params.get('mode') || params.get('focus') || params.get('simulation') || null;
+}
+
+function getHomeDailyFocusRouteId(canonicalHref, routeState) {
+  if (routeState?.dailyFocusRouteId) return routeState.dailyFocusRouteId;
+
+  const routeFocusId = routeState?.focusSimulationId || null;
+  const routeFocusTarget = routeFocusId ? getSimulationLaunchTarget(routeFocusId) : null;
+  if (routeFocusTarget) return routeFocusTarget.routeBacked ? routeFocusTarget.id : null;
+
+  const requestedFocusId = getRequestedFocusIdFromHref(canonicalHref);
+  const requestedTarget = requestedFocusId ? getSimulationLaunchTarget(requestedFocusId) : null;
+  if (requestedTarget?.routeBacked) return requestedTarget.id;
+
+  const focusState = getResolvedSimulationFocus();
+  const activeTarget = focusState.activeId ? getSimulationLaunchTarget(focusState.activeId) : null;
+  return activeTarget?.routeBacked ? activeTarget.id : null;
+}
+
+function getRouteViewForId(routeId, canonicalHref, routeState, focusRevision = 0) {
+  Number(focusRevision);
   if (isDailyFocusRouteRequest(routeId, getSearchFromHref(canonicalHref))) {
     return getDailyFocusRouteView(routeId);
+  }
+  if (routeId === 'home') {
+    const dailyFocusRouteId = getHomeDailyFocusRouteId(canonicalHref, routeState);
+    if (dailyFocusRouteId) return getDailyFocusRouteView(dailyFocusRouteId);
   }
   return (ROUTE_VIEW_BY_ID[routeId] || ROUTE_VIEW_BY_ID.home)();
 }
 
-function getRouteRuntimeForId(routeId) {
+function getRouteRuntimeForId(routeId, canonicalHref, routeState, focusRevision = 0) {
+  Number(focusRevision);
+  if (
+    routeState?.dailyFocusRouteId
+    || isDailyFocusRouteRequest(routeId, getSearchFromHref(canonicalHref))
+    || (routeId === 'home' && getHomeDailyFocusRouteId(canonicalHref, routeState))
+  ) {
+    return {};
+  }
   return ROUTE_RUNTIME_BY_ID[routeId] || ROUTE_RUNTIME_BY_ID.home;
 }
 
@@ -116,7 +158,7 @@ function readProjectFixture(routeId) {
   return null;
 }
 
-function markDirectShellRouteReady(routeId, isStandaloneRoute) {
+function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {}) {
   if (typeof document === 'undefined') return;
   if (isStandaloneRoute || routeId === 'home') return;
 
@@ -130,6 +172,8 @@ function markDirectShellRouteReady(routeId, isStandaloneRoute) {
   );
   root.classList.add('abs-direct-boot-ready', 'entrance-complete', 'ui-entered');
 
+  if (options.deferBootState === true) return;
+
   if (!root.dataset.absBootState || root.dataset.absBootState === 'booting') {
     root.dataset.absBootState = 'ready';
   }
@@ -139,6 +183,7 @@ function markDirectShellRouteReady(routeId, isStandaloneRoute) {
 }
 
 export function SiteApp() {
+  const [simulationFocusRevision, setSimulationFocusRevision] = useState(0);
   const wallSurfaceRef = useRef(null);
   const heroSurfaceRef = useRef(null);
   const uiSurfaceRef = useRef(null);
@@ -154,27 +199,61 @@ export function SiteApp() {
     footer: footerSurfaceRef,
   }), []);
 
+  useEffect(() => {
+    const refreshSimulationFocus = () => {
+      setSimulationFocusRevision((revision) => revision + 1);
+    };
+    const handleStorage = (event) => {
+      if (!event || event.key === SIMULATION_FOCUS_STORAGE_KEY) {
+        refreshSimulationFocus();
+      }
+    };
+
+    window.addEventListener(SIMULATION_FOCUS_CHANGED_EVENT, refreshSimulationFocus);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener(SIMULATION_FOCUS_CHANGED_EVENT, refreshSimulationFocus);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
+
+  const getRouteView = useCallback((routeId, canonicalHref, routeStateSnapshot) => (
+    getRouteViewForId(routeId, canonicalHref, routeStateSnapshot, simulationFocusRevision)
+  ), [simulationFocusRevision]);
+
+  const getRouteRuntime = useCallback((routeId, canonicalHref, routeStateSnapshot) => (
+    getRouteRuntimeForId(routeId, canonicalHref, routeStateSnapshot, simulationFocusRevision)
+  ), [simulationFocusRevision]);
+
   const {
     routeState,
     routeRuntime,
     routeView,
     transitionCurrentRoute,
   } = useShellRouteTransition({
-    getRouteView: getRouteViewForId,
-    getRouteRuntime: getRouteRuntimeForId,
+    getRouteView,
+    getRouteRuntime,
     surfaceRefs,
   });
   const isStandaloneRoute = routeView.layout === 'standalone';
+  const routeRuntimeActive = !isStandaloneRoute && routeView.legacyRuntime !== false;
+  const routeRuntimeId = routeView.runtimeRouteId || routeState.route.id;
+  const isDailyFocusRoute = isDailyFocusRouteRequest(
+    routeState.route.id,
+    getSearchFromHref(routeState.canonicalHref),
+  );
 
   useLayoutEffect(() => {
-    markDirectShellRouteReady(routeState.route.id, isStandaloneRoute);
-  }, [isStandaloneRoute, routeState.route.id]);
+    markDirectShellRouteReady(routeState.route.id, isStandaloneRoute, {
+      deferBootState: isDailyFocusRoute,
+    });
+  }, [isDailyFocusRoute, isStandaloneRoute, routeState.route.id]);
 
   useLegacyRouteRuntime({
-    active: !isStandaloneRoute,
+    active: routeRuntimeActive,
     loadModule: routeRuntime.loadModule,
     exportName: routeRuntime.exportName,
-    routeId: routeState.route.id
+    routeId: routeRuntimeId
   });
 
   useEffect(() => {
@@ -225,10 +304,11 @@ export function SiteApp() {
       ) : (
         <SimulationFocusProvider
           routeId={routeState.route.id}
+          surfaceRouteId={routeView.surfaceRouteId || routeState.route.id}
           transitionCurrentRoute={transitionCurrentRoute}
         >
           <StudioShell
-            routeRenderKey={routeState.route.id}
+            routeRenderKey={routeView.routeRenderKey || routeState.route.id}
             contentRenderKey={routeView.contentRenderKey || routeState.route.id}
             wallClassName={routeView.wallClassName}
             wallContent={routeView.wallContent}

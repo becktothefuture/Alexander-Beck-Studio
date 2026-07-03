@@ -5,6 +5,8 @@
  *
  * Run: npm run audit:canvas-spa
  * Needs: Vite dev on 8012, or ABS_DEV_URL=http://host:port
+ * Defaults to ?mode=pit because this audit verifies the legacy #c canvas
+ * remount/buffer contract, not today's potentially route-backed simulation.
  */
 import { chromium } from 'playwright';
 
@@ -25,8 +27,12 @@ function resolveHomeEntryUrl() {
   if (!/\.html$/i.test(url.pathname)) {
     url.pathname = `${url.pathname.replace(/\/+$/, '')}/index.html`.replace(/\/{2,}/g, '/');
   }
-  if (!url.searchParams.has('focus')) {
-    url.searchParams.set('focus', 'pit');
+  if (
+    !url.searchParams.has('mode')
+    && !url.searchParams.has('focus')
+    && !url.searchParams.has('simulation')
+  ) {
+    url.searchParams.set('mode', 'pit');
   }
   return url.toString();
 }

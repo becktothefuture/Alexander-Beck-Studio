@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { hasGateAccess, requestGateOpen } from '../lib/access-gates.js';
 import { buildRouteHref, getRouteById, resolveRouteFromHref, resolveRouteFromPathname } from '../lib/routes.js';
 import { installSpaNavigationBridge } from '../lib/spa-navigation.js';
+import { writeManualSimulationFocus } from '../data/simulationCatalog.js';
 import { clearStableTimeout, setStableTimeout } from '../lib/legacy-runtime-scope.js';
 import {
   isSimulationVisualTransitionSourceActive,
@@ -25,9 +26,48 @@ import {
    ROUTE STATE
    ═══════════════════════════════════════════════════════════════════════════════ */
 
+function readHomeFocusSimulationId(searchParams) {
+  return searchParams.get('mode') || searchParams.get('focus') || searchParams.get('simulation') || null;
+}
+
+const SIMULATION_URL_STATE_PARAMS = new Set(['daily', 'focus', 'mode', 'simulation']);
+
+function buildCleanHomeHref(url) {
+  const cleanUrl = new URL(buildRouteHref('home'), window.location.origin);
+  url.searchParams.forEach((value, key) => {
+    if (!SIMULATION_URL_STATE_PARAMS.has(key)) {
+      cleanUrl.searchParams.append(key, value);
+    }
+  });
+  cleanUrl.hash = url.hash;
+  return `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`;
+}
+
 function computeRouteState(href) {
   const url = new URL(href, window.location.href);
   const requestedRoute = resolveRouteFromPathname(url.pathname);
+  const homeFocusSimulationId = requestedRoute.id === 'home'
+    ? readHomeFocusSimulationId(url.searchParams)
+    : null;
+  const homeRouteBackedFocusId = DAILY_LAB_ROUTE_IDS.has(homeFocusSimulationId)
+    ? homeFocusSimulationId
+    : null;
+  const labDailyFocusRouteId = DAILY_LAB_ROUTE_IDS.has(requestedRoute.id)
+    && url.searchParams.get('daily') === '1'
+    ? requestedRoute.id
+    : null;
+  const dailyFocusRouteId = homeRouteBackedFocusId || labDailyFocusRouteId;
+
+  if (homeFocusSimulationId || dailyFocusRouteId) {
+    return {
+      route: getRouteById('home'),
+      requestedRouteId: requestedRoute.id,
+      canonicalHref: buildCleanHomeHref(url),
+      redirectGateId: null,
+      dailyFocusRouteId,
+      focusSimulationId: homeFocusSimulationId || dailyFocusRouteId,
+    };
+  }
 
   if (requestedRoute.gated && !hasGateAccess(requestedRoute.id)) {
     const homeHref = buildRouteHref('home', {
@@ -38,6 +78,8 @@ function computeRouteState(href) {
       requestedRouteId: requestedRoute.id,
       canonicalHref: homeHref,
       redirectGateId: requestedRoute.id,
+      dailyFocusRouteId: null,
+      focusSimulationId: null,
     };
   }
 
@@ -46,6 +88,8 @@ function computeRouteState(href) {
     requestedRouteId: requestedRoute.id,
     canonicalHref: `${url.pathname}${url.search}${url.hash}`,
     redirectGateId: null,
+    dailyFocusRouteId: null,
+    focusSimulationId: null,
   };
 }
 
@@ -958,7 +1002,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     }
 
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
-    const nextRouteRuntime = getRouteRuntime(nextRouteId);
+    const nextRouteRuntime = getRouteRuntime(nextRouteId, nextState.canonicalHref, nextState);
     const isGate = options.transitionStyle === 'gate-success';
     const isSimulationFocus = options.transitionStyle === 'simulation-focus';
     const readyMs = options.readyFallbackMs
@@ -1012,17 +1056,73 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       const token = ++transitionToken;
       const stale = () => token !== transitionToken;
       const simulationTimings = getSimulationFocusTimings(options, reduceMotion);
-      const routeReadyWaiter = !isSameRoute
-        ? waitForRouteReady(nextState.route.id, routeTimings.ready)
+      const readinessRouteId = nextState.dailyFocusRouteId || nextState.route.id;
+      const shouldWaitForRouteReady = !isSameRoute || Boolean(nextState.dailyFocusRouteId);
+      const routeReadyWaiter = shouldWaitForRouteReady
+        ? waitForRouteReady(readinessRouteId, routeTimings.ready)
         : null;
       const routeReady = routeReadyWaiter?.promise || Promise.resolve();
       activeRouteReadyCancelRef.current = routeReadyWaiter?.cancel || null;
+      let routeCommitted = false;
+      let enterStarted = false;
+      let committedFallbackTimer = 0;
+      let transitionFinished = false;
+      const finishSimulationFocusTransition = () => {
+        if (transitionFinished) return;
+        transitionFinished = true;
+        if (committedFallbackTimer) {
+          clearStableTimeout(committedFallbackTimer);
+          committedFallbackTimer = 0;
+        }
+        finishTransition(false);
+      };
+      const runSimulationFocusEnter = () => {
+        enterStarted = true;
+        if (committedFallbackTimer) {
+          clearStableTimeout(committedFallbackTimer);
+          committedFallbackTimer = 0;
+        }
+        setSimulationFocusTransitionState('in');
+        return animateSimulationFocusLayer(surfaceRefs, {
+          direction: 'in',
+          durationMs: simulationTimings.enter,
+          localDurationMs: simulationTimings.enterLocal,
+          easing: simulationTimings.enterEasing,
+        }).finally(() => {
+          if (transitionActiveRef.current && activeRouteIdRef.current === nextRouteId) {
+            finishSimulationFocusTransition();
+          }
+        });
+      };
+      const scheduleCommittedFallback = () => {
+        if (committedFallbackTimer) clearStableTimeout(committedFallbackTimer);
+        committedFallbackTimer = setStableTimeout(() => {
+          committedFallbackTimer = 0;
+          if (
+            transitionFinished
+            || enterStarted
+            || !routeCommitted
+            || !transitionActiveRef.current
+            || activeRouteIdRef.current !== nextRouteId
+          ) {
+            return;
+          }
+          recordSimulationVisualTransitionEvent('runtime-ready-fallback', { routeId: nextState.route.id });
+          void runSimulationFocusEnter();
+        }, Math.max(0, routeTimings.ready) + 120);
+      };
+      const cancelStaleSimulationFocus = () => {
+        routeReadyWaiter?.cancel();
+        if (routeCommitted && transitionActiveRef.current && activeRouteIdRef.current === nextRouteId) {
+          finishSimulationFocusTransition();
+        }
+      };
 
       Promise.resolve()
         .then(() => nextRouteRuntime?.loadModule?.()).catch(() => undefined)
         .then(() => {
           if (stale()) {
-            routeReadyWaiter?.cancel();
+            cancelStaleSimulationFocus();
             return undefined;
           }
           setSimulationShellStability(true, surfaceRefs, {
@@ -1038,7 +1138,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         })
         .then(() => {
           if (stale()) {
-            routeReadyWaiter?.cancel();
+            cancelStaleSimulationFocus();
             return undefined;
           }
           setSimulationFocusTransitionState('hold');
@@ -1046,11 +1146,13 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         })
         .then(() => {
           if (stale()) {
-            routeReadyWaiter?.cancel();
+            cancelStaleSimulationFocus();
             return undefined;
           }
           recordSimulationVisualTransitionEvent('commit', { routeId: nextState.route.id });
           commit();
+          routeCommitted = true;
+          scheduleCommittedFallback();
           setSimulationShellStability(true, surfaceRefs, {
             titleSurface: simulationTitleSurface,
           });
@@ -1058,31 +1160,29 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         })
         .then(() => {
           if (stale()) {
-            routeReadyWaiter?.cancel();
+            cancelStaleSimulationFocus();
             return undefined;
           }
           setSimulationShellStability(true, surfaceRefs, {
             titleSurface: simulationTitleSurface,
           });
           recordSimulationVisualTransitionEvent('runtime-ready', { routeId: nextState.route.id });
-          setSimulationFocusTransitionState('in');
-          return animateSimulationFocusLayer(surfaceRefs, {
-            direction: 'in',
-            durationMs: simulationTimings.enter,
-            localDurationMs: simulationTimings.enterLocal,
-            easing: simulationTimings.enterEasing,
-          });
+          return runSimulationFocusEnter();
         })
         .then(() => {
-          if (!stale()) {
-            finishTransition(false);
+          if (stale()) {
+            cancelStaleSimulationFocus();
+            return;
           }
+          finishSimulationFocusTransition();
         })
         .catch(() => {
           routeReadyWaiter?.cancel();
-          if (!stale()) {
-            finishTransition(false);
+          if (stale()) {
+            cancelStaleSimulationFocus();
+            return;
           }
+          finishSimulationFocusTransition();
         });
 
       return true;
@@ -1457,12 +1557,24 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     window.history.replaceState({}, '', routeState.canonicalHref);
   }, [routeState.canonicalHref, routeState.redirectGateId]);
 
-  const routeView = useMemo(() => getRouteView(routeState.route.id, routeState.canonicalHref), [
+  useLayoutEffect(() => {
+    const simulationId = routeState.focusSimulationId || routeState.dailyFocusRouteId || '';
+    if (!simulationId) return;
+    writeManualSimulationFocus(simulationId);
+    const currentHref = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (currentHref !== routeState.canonicalHref) {
+      window.history.replaceState(window.history.state || {}, '', routeState.canonicalHref);
+    }
+  }, [routeState.canonicalHref, routeState.dailyFocusRouteId, routeState.focusSimulationId]);
+
+  const routeView = useMemo(() => getRouteView(routeState.route.id, routeState.canonicalHref, routeState), [
     getRouteView,
-    routeState.canonicalHref,
-    routeState.route.id,
+    routeState,
   ]);
-  const routeRuntime = useMemo(() => getRouteRuntime(routeState.route.id), [getRouteRuntime, routeState.route.id]);
+  const routeRuntime = useMemo(() => getRouteRuntime(routeState.route.id, routeState.canonicalHref, routeState), [
+    getRouteRuntime,
+    routeState,
+  ]);
 
   return { routeState, routeRuntime, routeView, transitionCurrentRoute };
 }

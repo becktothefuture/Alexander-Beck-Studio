@@ -33,6 +33,10 @@ export function getDailyFocusRouteView(routeId) {
     ...homeView,
     bodyClass: 'body daily-focus-page noise-ready wall-shadow-plate-ready',
     htmlClassName: 'js-enabled abs-home-post-boot-complete',
+    legacyRuntime: false,
+    routeRenderKey: routeId,
+    runtimeRouteId: routeId,
+    surfaceRouteId: routeId,
     wallClassName: 'ball-simulation w-embed daily-focus-wall',
     wallContent: (
       <SimulationStage simulationId={routeId}>

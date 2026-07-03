@@ -7,6 +7,7 @@ import { MODES, isPitLikeMode } from '../core/constants.js';
 import {
   ROUTE_BACKED_DAILY_HREFS,
   getSimulationName,
+  writeManualSimulationFocus,
 } from '../../../data/simulationCatalog.js';
 import { trySpaNavigate } from '../../../lib/spa-navigation.js';
 import {
@@ -422,10 +423,11 @@ export async function setMode(inputMode) {
   const routeBackedHref = ROUTE_BACKED_MODE_HREFS[mode];
   if (routeBackedHref) {
     announceToScreenReader(`Switched to ${MODE_NAMES[mode] || getSimulationName(mode)} mode`);
+    writeManualSimulationFocus(mode);
     if (typeof window !== 'undefined') {
       const currentHref = `${window.location.pathname}${window.location.search}`;
       if (currentHref !== routeBackedHref) {
-        const didNavigate = trySpaNavigate(routeBackedHref, { readyFallbackMs: 1800 });
+        const didNavigate = trySpaNavigate(routeBackedHref, { replace: true, readyFallbackMs: 1800 });
         if (!didNavigate) {
           window.location.assign(routeBackedHref);
         }

@@ -16,6 +16,17 @@ const STAGE_LABELS = Object.freeze({
 
 export const SIMULATION_FOCUS_STORAGE_KEY = 'abs_simulation_focus_choice_v1';
 export const SIMULATION_FOCUS_STORAGE_VERSION = 1;
+export const SIMULATION_FOCUS_CHANGED_EVENT = 'abs:simulation-focus-changed';
+
+function dispatchSimulationFocusChanged(detail = {}) {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
+  window.dispatchEvent(new CustomEvent(SIMULATION_FOCUS_CHANGED_EVENT, {
+    detail: {
+      storageKey: SIMULATION_FOCUS_STORAGE_KEY,
+      ...detail,
+    },
+  }));
+}
 
 function withPreviewDefaults(entry) {
   const previewBase = `/previews/simulations/${entry.id}`;
@@ -181,6 +192,7 @@ export function getDailyFocusSimulationIds(simulations = SIMULATION_CATALOG) {
 
 export function clearManualSimulationFocus(options = {}) {
   removeFocusChoice(getFocusStorage(options.storage));
+  dispatchSimulationFocusChanged({ simulationId: null, source: 'clear' });
 }
 
 export function readManualSimulationFocus(options = {}) {
@@ -246,6 +258,7 @@ export function writeManualSimulationFocus(simulationId, options = {}) {
     return null;
   }
 
+  dispatchSimulationFocusChanged({ simulationId, source: 'manual' });
   return Object.freeze({ ...choice });
 }
 

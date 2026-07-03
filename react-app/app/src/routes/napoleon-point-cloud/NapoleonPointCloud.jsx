@@ -167,6 +167,9 @@ function makePointMaterial(depthLayer) {
       uSpread: { value: 0 },
       uFocus: { value: 1 },
       uBreathing: { value: 0.02 },
+      uDepthFogStart: { value: 0.86 },
+      uDepthFogMin: { value: 0.18 },
+      uDepthFogRange: { value: 1 },
       uDepthLayer: { value: depthLayer },
       uVisualStaticScale: { value: 1 },
       uVisualDirection: { value: 0 },
@@ -180,6 +183,7 @@ function makePointMaterial(depthLayer) {
       attribute float pointSeed;
       varying vec3 vColor;
       varying float vDepthDelta;
+      varying float vDepthFactor;
 
       uniform float uTime;
       uniform float uPointSize;
@@ -187,6 +191,7 @@ function makePointMaterial(depthLayer) {
       uniform float uSpread;
       uniform float uFocus;
       uniform float uBreathing;
+      uniform float uDepthFogRange;
       uniform float uVisualStaticScale;
       uniform float uVisualDirection;
       uniform float uVisualElapsedMs;
@@ -202,6 +207,7 @@ function makePointMaterial(depthLayer) {
         vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
         vec4 centerPosition = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);
         vDepthDelta = mvPosition.z - centerPosition.z;
+        vDepthFactor = clamp(0.5 + (vDepthDelta / max(0.001, uDepthFogRange * 2.0)), 0.0, 1.0);
         gl_Position = projectionMatrix * mvPosition;
 
         float perspectiveScale = 1.35 / max(0.38, -mvPosition.z);
@@ -223,8 +229,11 @@ function makePointMaterial(depthLayer) {
       precision mediump float;
       varying vec3 vColor;
       varying float vDepthDelta;
+      varying float vDepthFactor;
       uniform float uOpacity;
       uniform float uDepthLayer;
+      uniform float uDepthFogStart;
+      uniform float uDepthFogMin;
 
       void main() {
         if (uDepthLayer < 0.5 && vDepthDelta > 0.0) discard;
@@ -233,7 +242,15 @@ function makePointMaterial(depthLayer) {
         float distanceFromCenter = length(coord);
         if (distanceFromCenter > 0.5) discard;
         float edgeAlpha = 1.0 - smoothstep(0.46, 0.5, distanceFromCenter);
-        gl_FragColor = vec4(vColor, edgeAlpha * uOpacity);
+        float fogStart = clamp(uDepthFogStart, 0.0, 1.0);
+        float fogMin = clamp(uDepthFogMin, 0.0, 1.0);
+        float fogOpacity = 1.0;
+        if (fogStart > 0.0 && vDepthFactor < fogStart) {
+          float fogT = clamp((fogStart - vDepthFactor) / fogStart, 0.0, 1.0);
+          float fogAmount = fogT * fogT * (3.0 - (2.0 * fogT));
+          fogOpacity = 1.0 - (fogAmount * (1.0 - fogMin));
+        }
+        gl_FragColor = vec4(vColor, edgeAlpha * uOpacity * fogOpacity);
       }
     `,
   });
@@ -272,6 +289,8 @@ export function NapoleonPointCloud({
   spread = 0.045,
   focus = 1,
   breathingMotion = 0.42,
+  depthFogStart = 0.86,
+  depthFogMin = 0.18,
   maxDpr = 1.5,
   reducedMotion = false,
   className = '',
@@ -290,6 +309,8 @@ export function NapoleonPointCloud({
   const settingsRef = useRef({
     autoRotate,
     breathingMotion,
+    depthFogMin,
+    depthFogStart,
     dotOpacity,
     dotSize,
     focus,
@@ -307,6 +328,8 @@ export function NapoleonPointCloud({
     settingsRef.current = {
       autoRotate,
       breathingMotion,
+      depthFogMin,
+      depthFogStart,
       dotOpacity,
       dotSize,
       focus,
@@ -318,6 +341,8 @@ export function NapoleonPointCloud({
   }, [
     autoRotate,
     breathingMotion,
+    depthFogMin,
+    depthFogStart,
     dotOpacity,
     dotSize,
     focus,
@@ -457,6 +482,9 @@ export function NapoleonPointCloud({
       visualTransitionUnregister: null,
       visualTransitionFrame: 0,
       visualTransitionToken: 0,
+      depthFogStart: clamp(settingsRef.current.depthFogStart, 0, 1),
+      depthFogMin: clamp(settingsRef.current.depthFogMin, 0, 1),
+      depthFogRange: 1,
     };
     runtimeRef.current = runtime;
 
@@ -471,6 +499,9 @@ export function NapoleonPointCloud({
           pointCount: runtime.pointCount,
           visiblePointCount: runtime.visiblePointCount,
           pointDensity: runtime.pointDensity,
+          depthFogStart: runtime.depthFogStart,
+          depthFogMin: runtime.depthFogMin,
+          depthFogRange: runtime.depthFogRange,
           renderedFrames: runtime.renderedFrames,
           dpr: backRenderer.getPixelRatio(),
           canvasWidth: backCanvas.width,
@@ -652,7 +683,11 @@ export function NapoleonPointCloud({
         material.uniforms.uSpread.value = reducedMotion ? 0 : settings.spread;
         material.uniforms.uFocus.value = clamp(settings.focus, 0.72, 1.35);
         material.uniforms.uBreathing.value = reducedMotion ? 0 : settings.breathingMotion;
+        material.uniforms.uDepthFogStart.value = clamp(settings.depthFogStart, 0, 1);
+        material.uniforms.uDepthFogMin.value = clamp(settings.depthFogMin, 0, 1);
       });
+      runtime.depthFogStart = clamp(settings.depthFogStart, 0, 1);
+      runtime.depthFogMin = clamp(settings.depthFogMin, 0, 1);
 
       if (settings.autoRotate && !reducedMotion && !dragRef.current.active) {
         targetRotationRef.current.y += settings.rotationSpeed * AUTO_ROTATION_SECONDS_FACTOR * deltaSeconds;
@@ -705,6 +740,10 @@ export function NapoleonPointCloud({
         const visiblePointCount = getVisiblePointCount(parsed.pointCount, settingsRef.current.pointDensity);
         geometry.setDrawRange(0, visiblePointCount);
         geometry.computeBoundingSphere();
+        runtime.depthFogRange = Math.max(0.001, geometry.boundingSphere?.radius || 1);
+        forEachPointCloudMaterial(runtime, (material) => {
+          material.uniforms.uDepthFogRange.value = runtime.depthFogRange;
+        });
 
         runtime.groups = parsed.groups;
         runtime.pointCount = parsed.pointCount;

@@ -68,6 +68,8 @@ export function NapoleonPointCloudRuntime() {
           spread={runtimeConfig.spread}
           focus={runtimeConfig.focus}
           breathingMotion={runtimeConfig.breathingMotion}
+          depthFogStart={runtimeConfig.depthFogStart}
+          depthFogMin={runtimeConfig.depthFogMin}
           maxDpr={runtimeConfig.maxDpr}
           reducedMotion={reducedMotion}
           theme={theme}

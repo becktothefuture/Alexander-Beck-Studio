@@ -537,8 +537,8 @@ export async function bootstrapHomePage() {
     mark('bb:renderer');
     log('✓ Canvas initialized (container-relative sizing)');
 
-    // Canvas logo removed — hero title is now a DOM <h1> inside #simulations
-    log('✓ Hero title rendered via DOM (canvas logo removed)');
+    // Canvas logo removed; the DOM title now feeds the canvas title renderer.
+    log('✓ Hero title source mounted for canvas rendering');
 
     // Ensure initial mouseInCanvas state is false for tests
     const globals = getGlobals();

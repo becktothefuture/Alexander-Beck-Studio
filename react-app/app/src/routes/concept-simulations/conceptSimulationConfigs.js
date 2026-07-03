@@ -121,6 +121,8 @@ export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
       spread: 0.045,
       focus: 1,
       breathingMotion: 0.42,
+      depthFogStart: 0.86,
+      depthFogMin: 0.18,
       maxDpr: 1.5,
       pauseWhenHidden: true,
     },
@@ -238,6 +240,8 @@ export function normalizeConceptSimulationConfig(simulationId, input = {}) {
     next.spread = clampNumber(next.spread, 0, 0.18, defaults.spread);
     next.focus = clampNumber(next.focus, 0.72, 1.35, defaults.focus);
     next.breathingMotion = clampNumber(next.breathingMotion, 0, 0.9, defaults.breathingMotion);
+    next.depthFogStart = clampNumber(next.depthFogStart, 0, 1, defaults.depthFogStart);
+    next.depthFogMin = clampNumber(next.depthFogMin, 0, 1, defaults.depthFogMin);
   }
 
   if (simulationId === CONCEPT_SIMULATION_IDS.SPATIAL_SCAN) {

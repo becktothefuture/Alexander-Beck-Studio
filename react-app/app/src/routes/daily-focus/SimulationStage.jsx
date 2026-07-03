@@ -8,7 +8,7 @@ export function SimulationStage({
 }) {
   return (
     <>
-      {includeShellBridge ? <DailyFocusShellBridge /> : null}
+      {includeShellBridge ? <DailyFocusShellBridge simulationId={simulationId} /> : null}
       <div
         id="simulation-stage"
         className="daily-simulation-layer"
