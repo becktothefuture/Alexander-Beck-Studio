@@ -15,6 +15,7 @@ import {
   updateSimulationStage,
 } from '../../scripts/lib/simulation-admin-store.mjs';
 import { normalizeMineralGrowthConfig } from './src/routes/mineral-growth/mineralGrowthControls.js';
+import { normalizeLoaderPlaygroundConfig } from './src/routes/loader-playground/loaderPlaygroundControls.js';
 
 const repoRoot = SIMULATION_ADMIN_PATHS.repoRoot;
 
@@ -71,6 +72,7 @@ export function createDevAdminPlugin({ publicConfigDir }) {
   const flockOfBirdsConfigPath = resolve(publicConfigDir, 'flock-of-birds-demo.json');
   const wallRepelConfigPath = resolve(publicConfigDir, 'wall-repel-demo.json');
   const mineralGrowthConfigPath = resolve(publicConfigDir, 'mineral-growth-demo.json');
+  const loaderPlaygroundConfigPath = resolve(publicConfigDir, 'loader-playground-demo.json');
 
   return {
     name: 'design-system-dev-plugin',
@@ -181,6 +183,34 @@ export function createDevAdminPlugin({ publicConfigDir }) {
           sendJson(res, 200, { ok: true, version: normalizedConfig.version });
         } catch (error) {
           sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save mineral growth config' });
+        }
+      });
+
+      server.middlewares.use('/api/loader-playground/config', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        try {
+          const payload = await readRequestJson(req);
+          const nextConfig = payload?.config;
+          if (!nextConfig || typeof nextConfig !== 'object' || Array.isArray(nextConfig)) {
+            sendJson(res, 400, { ok: false, error: 'Missing loader playground config payload' });
+            return;
+          }
+
+          const normalizedConfig = normalizeLoaderPlaygroundConfig(nextConfig);
+          await writeFile(loaderPlaygroundConfigPath, `${JSON.stringify(normalizedConfig, null, 2)}\n`, 'utf8');
+          server.ws.send({
+            type: 'full-reload',
+            path: '/config/loader-playground-demo.json',
+          });
+
+          sendJson(res, 200, { ok: true, version: normalizedConfig.version });
+        } catch (error) {
+          sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save loader playground config' });
         }
       });
 

@@ -91,6 +91,12 @@ const ROUTE_DEFS = {
     aliases: ['/lab/spatial-scan.html', '/lab/spatial-scan', '/spatial-scan.html', '/spatial-scan'],
     gated: false,
   },
+  'loader-playground': {
+    id: 'loader-playground',
+    path: '/lab/loader-playground.html',
+    aliases: ['/lab/loader-playground.html', '/lab/loader-playground', '/loader-playground.html', '/loader-playground'],
+    gated: false,
+  },
 };
 
 function normalizePathname(pathname = '/') {

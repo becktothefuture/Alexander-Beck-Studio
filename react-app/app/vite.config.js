@@ -78,6 +78,7 @@ export default defineConfig(({ mode }) => ({
         'lab/confluence-bridges': resolve(__dirname, 'lab/confluence-bridges.html'),
         'lab/napoleon-point-cloud': resolve(__dirname, 'lab/napoleon-point-cloud.html'),
         'lab/spatial-scan': resolve(__dirname, 'lab/spatial-scan.html'),
+        'lab/loader-playground': resolve(__dirname, 'lab/loader-playground.html'),
         ...(mode === 'development'
           ? { 'panel-host': resolve(__dirname, 'panel-host.html') }
           : {})

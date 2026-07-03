@@ -14,6 +14,7 @@ import { getBeachBallRoomRouteView, BEACH_BALL_ROOM_ROUTE_RUNTIME } from '../../
 import { getFlockOfBirdsRouteView, FLOCK_OF_BIRDS_ROUTE_RUNTIME } from '../../routes/flock-of-birds/FlockOfBirdsRoute.jsx';
 import { getWallRepelRouteView, WALL_REPEL_ROUTE_RUNTIME } from '../../routes/wall-repel/WallRepelRoute.jsx';
 import { getMineralGrowthRouteView, MINERAL_GROWTH_ROUTE_RUNTIME } from '../../routes/mineral-growth/MineralGrowthRoute.jsx';
+import { getLoaderPlaygroundRouteView, LOADER_PLAYGROUND_ROUTE_RUNTIME } from '../../routes/loader-playground/LoaderPlaygroundRoute.jsx';
 import {
   APERTURE_BLOOM_ROUTE_RUNTIME,
   CONFLUENCE_BRIDGES_ROUTE_RUNTIME,
@@ -50,7 +51,8 @@ const ROUTE_VIEW_BY_ID = {
   'pressure-mosaic': getPressureMosaicRouteView,
   'confluence-bridges': getConfluenceBridgesRouteView,
   'napoleon-point-cloud': getNapoleonPointCloudRouteView,
-  'spatial-scan': getSpatialScanRouteView
+  'spatial-scan': getSpatialScanRouteView,
+  'loader-playground': getLoaderPlaygroundRouteView
 };
 
 const ROUTE_RUNTIME_BY_ID = {
@@ -68,7 +70,8 @@ const ROUTE_RUNTIME_BY_ID = {
   'pressure-mosaic': PRESSURE_MOSAIC_ROUTE_RUNTIME,
   'confluence-bridges': CONFLUENCE_BRIDGES_ROUTE_RUNTIME,
   'napoleon-point-cloud': NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME,
-  'spatial-scan': SPATIAL_SCAN_ROUTE_RUNTIME
+  'spatial-scan': SPATIAL_SCAN_ROUTE_RUNTIME,
+  'loader-playground': LOADER_PLAYGROUND_ROUTE_RUNTIME
 };
 
 function getRouteViewForId(routeId) {

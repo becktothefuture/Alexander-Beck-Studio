@@ -4,8 +4,10 @@
     <style id="fade-blocking">#root,#abs-scene,#app-frame{opacity:0;visibility:hidden}</style>
     <style id="abs-critical-shell">
       html, body, #root {
-        --abs-boot-orbit-ms: 1480ms;
-        --abs-boot-color-cycle-ms: 2220ms;
+        --abs-boot-orbit-ms: 2510ms;
+        --abs-boot-color-cycle-ms: 2510ms;
+        --abs-boot-color-step-ms: 420ms;
+        --abs-boot-color-sync-ms: 80ms;
         width: 100%;
         min-height: 100%;
         margin: 0;
@@ -51,6 +53,7 @@
         animation:
           absCriticalBootOrbit var(--abs-boot-orbit-ms) linear infinite,
           absCriticalBootColorShift var(--abs-boot-color-cycle-ms) steps(1, end) infinite;
+        animation-delay: 0ms, var(--abs-boot-color-sync-ms);
       }
 
       #root[aria-hidden="true"],
@@ -115,12 +118,12 @@
         transform: rotate(var(--abs-dot-angle)) translateY(-11.5px);
       }
 
-      .abs-boot-dot:nth-child(1) { --abs-dot-color-delay: 0ms; }
-      .abs-boot-dot:nth-child(2) { --abs-dot-color-delay: -370ms; }
-      .abs-boot-dot:nth-child(3) { --abs-dot-color-delay: -740ms; }
-      .abs-boot-dot:nth-child(4) { --abs-dot-color-delay: -1110ms; }
-      .abs-boot-dot:nth-child(5) { --abs-dot-color-delay: -1480ms; }
-      .abs-boot-dot:nth-child(6) { --abs-dot-color-delay: -1850ms; }
+      .abs-boot-dot:nth-child(1) { --abs-dot-color-delay: var(--abs-boot-color-sync-ms); }
+      .abs-boot-dot:nth-child(2) { --abs-dot-color-delay: calc(var(--abs-boot-color-sync-ms) + var(--abs-boot-color-step-ms)); }
+      .abs-boot-dot:nth-child(3) { --abs-dot-color-delay: calc(var(--abs-boot-color-sync-ms) + (var(--abs-boot-color-step-ms) * 2)); }
+      .abs-boot-dot:nth-child(4) { --abs-dot-color-delay: calc(var(--abs-boot-color-sync-ms) + (var(--abs-boot-color-step-ms) * 3)); }
+      .abs-boot-dot:nth-child(5) { --abs-dot-color-delay: calc(var(--abs-boot-color-sync-ms) + (var(--abs-boot-color-step-ms) * 4)); }
+      .abs-boot-dot:nth-child(6) { --abs-dot-color-delay: calc(var(--abs-boot-color-sync-ms) + (var(--abs-boot-color-step-ms) * 5)); }
 
       .abs-boot-dot::before {
         content: "";
@@ -129,19 +132,28 @@
         height: 100%;
         border-radius: inherit;
         background: var(--abs-dot-color);
-        box-shadow: 0 0 7px color-mix(in srgb, var(--abs-dot-color) 24%, transparent);
-        animation:
-          absBootDotPulse var(--abs-boot-orbit-ms) cubic-bezier(0.22, 0, 0.16, 1) infinite,
-          absBootDotColorShift var(--abs-boot-color-cycle-ms) steps(1, end) infinite;
-        animation-delay: var(--abs-dot-delay), var(--abs-dot-color-delay, 0ms);
+        animation: absBootDotColorShift var(--abs-boot-color-cycle-ms) steps(1, end) infinite;
+        animation-delay: var(--abs-dot-color-delay, var(--abs-boot-color-sync-ms));
       }
 
       @keyframes absBootOrbit {
-        to { transform: rotate(360deg); }
+        0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.12, 0, 0.18, 1); }
+        12% { transform: rotate(54deg); animation-timing-function: cubic-bezier(0.58, 0, 0.42, 1); }
+        24% { transform: rotate(88deg); animation-timing-function: cubic-bezier(0.16, 0, 0.16, 1); }
+        39% { transform: rotate(162deg); animation-timing-function: cubic-bezier(0.55, 0, 0.38, 1); }
+        55% { transform: rotate(208deg); animation-timing-function: cubic-bezier(0.16, 0, 0.18, 1); }
+        73% { transform: rotate(302deg); animation-timing-function: cubic-bezier(0.5, 0, 0.36, 1); }
+        100% { transform: rotate(360deg); }
       }
 
       @keyframes absCriticalBootOrbit {
-        to { transform: rotate(360deg); }
+        0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.12, 0, 0.18, 1); }
+        12% { transform: rotate(54deg); animation-timing-function: cubic-bezier(0.58, 0, 0.42, 1); }
+        24% { transform: rotate(88deg); animation-timing-function: cubic-bezier(0.16, 0, 0.16, 1); }
+        39% { transform: rotate(162deg); animation-timing-function: cubic-bezier(0.55, 0, 0.38, 1); }
+        55% { transform: rotate(208deg); animation-timing-function: cubic-bezier(0.16, 0, 0.18, 1); }
+        73% { transform: rotate(302deg); animation-timing-function: cubic-bezier(0.5, 0, 0.36, 1); }
+        100% { transform: rotate(360deg); }
       }
 
       @keyframes absCriticalBootColorShift {
@@ -198,21 +210,6 @@
             0 11.5px var(--ball-3, #ffffff),
             -9.95px 5.75px var(--ball-7, #0d5cb6),
             -9.95px -5.75px var(--ball-8, #ffa000);
-        }
-      }
-
-      @keyframes absBootDotPulse {
-        0%, 100% {
-          opacity: 0.58;
-          transform: scale(0.88);
-        }
-        42%, 56% {
-          opacity: 0.98;
-          transform: scale(1.045);
-        }
-        72% {
-          opacity: 0.72;
-          transform: scale(0.94);
         }
       }
 
@@ -423,12 +420,12 @@
   <body class="body cv-page">
     <div id="abs-boot-overlay" aria-hidden="true">
       <div id="abs-boot-spinner" aria-hidden="true">
-        <span class="abs-boot-dot" style="--abs-dot-angle:0deg;--abs-dot-delay:0ms;--abs-dot-color:var(--ball-1,#b5b7b6)"></span>
-        <span class="abs-boot-dot" style="--abs-dot-angle:60deg;--abs-dot-delay:80ms;--abs-dot-color:var(--ball-4,#00695c)"></span>
-        <span class="abs-boot-dot" style="--abs-dot-angle:120deg;--abs-dot-delay:160ms;--abs-dot-color:var(--ball-3,#ffffff)"></span>
-        <span class="abs-boot-dot" style="--abs-dot-angle:180deg;--abs-dot-delay:240ms;--abs-dot-color:var(--ball-7,#0d5cb6)"></span>
-        <span class="abs-boot-dot" style="--abs-dot-angle:240deg;--abs-dot-delay:320ms;--abs-dot-color:var(--ball-8,#ffa000)"></span>
-        <span class="abs-boot-dot" style="--abs-dot-angle:300deg;--abs-dot-delay:400ms;--abs-dot-color:var(--ball-6,#d7ff2f)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:0deg;--abs-dot-color:var(--ball-1,#b5b7b6)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:60deg;--abs-dot-color:var(--ball-4,#00695c)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:120deg;--abs-dot-color:var(--ball-3,#ffffff)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:180deg;--abs-dot-color:var(--ball-7,#0d5cb6)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:240deg;--abs-dot-color:var(--ball-8,#ffa000)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:300deg;--abs-dot-color:var(--ball-6,#d7ff2f)"></span>
       </div>
     </div>
     <div id="root" inert aria-hidden="true"></div>
