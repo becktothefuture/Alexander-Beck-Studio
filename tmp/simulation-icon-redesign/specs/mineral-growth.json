@@ -1,0 +1,68 @@
+{
+  "canvas": {
+    "width": 48,
+    "height": 48,
+    "viewBox": "0 0 48 48",
+    "units": "px"
+  },
+  "metadata": {
+    "title": "mineral-growth",
+    "desc": "Simulation focus modal icon draft."
+  },
+  "elements": [
+    {
+      "type": "path",
+      "d": "M14 34l6-16 8-5 8 14-6 9H18z",
+      "style": {
+        "fill": "none",
+        "stroke": "currentColor",
+        "strokeWidth": 2.4,
+        "strokeLinecap": "round",
+        "strokeLinejoin": "round",
+        "vectorEffect": "non-scaling-stroke"
+      }
+    },
+    {
+      "type": "path",
+      "d": "M20 18l4 18M28 13l-4 23M36 27l-12 9",
+      "style": {
+        "fill": "none",
+        "stroke": "currentColor",
+        "strokeWidth": 2.4,
+        "strokeLinecap": "round",
+        "strokeLinejoin": "round",
+        "vectorEffect": "non-scaling-stroke"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 20,
+      "cy": 18,
+      "r": 1.9,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 28,
+      "cy": 13,
+      "r": 2,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 36,
+      "cy": 27,
+      "r": 1.9,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    }
+  ]
+}

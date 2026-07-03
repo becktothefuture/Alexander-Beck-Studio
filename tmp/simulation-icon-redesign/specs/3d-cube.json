@@ -1,0 +1,78 @@
+{
+  "canvas": {
+    "width": 48,
+    "height": 48,
+    "viewBox": "0 0 48 48",
+    "units": "px"
+  },
+  "metadata": {
+    "title": "3d-cube",
+    "desc": "Simulation focus modal icon draft."
+  },
+  "elements": [
+    {
+      "type": "path",
+      "d": "M14 18l10-6 10 6v12l-10 6-10-6z",
+      "style": {
+        "fill": "none",
+        "stroke": "currentColor",
+        "strokeWidth": 2.4,
+        "strokeLinecap": "round",
+        "strokeLinejoin": "round",
+        "vectorEffect": "non-scaling-stroke"
+      }
+    },
+    {
+      "type": "path",
+      "d": "M14 18l10 6 10-6M24 24v12",
+      "style": {
+        "fill": "none",
+        "stroke": "currentColor",
+        "strokeWidth": 2.4,
+        "strokeLinecap": "round",
+        "strokeLinejoin": "round",
+        "vectorEffect": "non-scaling-stroke"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 14,
+      "cy": 18,
+      "r": 1.8,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 24,
+      "cy": 12,
+      "r": 1.8,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 34,
+      "cy": 18,
+      "r": 1.8,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 24,
+      "cy": 36,
+      "r": 1.8,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    }
+  ]
+}

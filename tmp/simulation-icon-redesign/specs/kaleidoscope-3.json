@@ -1,0 +1,88 @@
+{
+  "canvas": {
+    "width": 48,
+    "height": 48,
+    "viewBox": "0 0 48 48",
+    "units": "px"
+  },
+  "metadata": {
+    "title": "kaleidoscope-3",
+    "desc": "Simulation focus modal icon draft."
+  },
+  "elements": [
+    {
+      "type": "path",
+      "d": "M24 10l7 14-7 14-7-14z",
+      "style": {
+        "fill": "none",
+        "stroke": "currentColor",
+        "strokeWidth": 2.4,
+        "strokeLinecap": "round",
+        "strokeLinejoin": "round",
+        "vectorEffect": "non-scaling-stroke"
+      }
+    },
+    {
+      "type": "path",
+      "d": "M10 24l14-7 14 7-14 7z",
+      "style": {
+        "fill": "none",
+        "stroke": "currentColor",
+        "strokeWidth": 2.4,
+        "strokeLinecap": "round",
+        "strokeLinejoin": "round",
+        "vectorEffect": "non-scaling-stroke"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 24,
+      "cy": 24,
+      "r": 2.8,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 24,
+      "cy": 10,
+      "r": 1.8,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 38,
+      "cy": 24,
+      "r": 1.8,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 24,
+      "cy": 38,
+      "r": 1.8,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 10,
+      "cy": 24,
+      "r": 1.8,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    }
+  ]
+}

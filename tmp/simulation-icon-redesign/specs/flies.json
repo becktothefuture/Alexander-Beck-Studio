@@ -1,0 +1,90 @@
+{
+  "canvas": {
+    "width": 48,
+    "height": 48,
+    "viewBox": "0 0 48 48",
+    "units": "px"
+  },
+  "metadata": {
+    "title": "flies",
+    "desc": "Simulation focus modal icon draft."
+  },
+  "elements": [
+    {
+      "type": "circle",
+      "cx": 34,
+      "cy": 17,
+      "r": 4.6,
+      "style": {
+        "fill": "none",
+        "stroke": "currentColor",
+        "strokeWidth": 2.4,
+        "strokeLinecap": "round",
+        "strokeLinejoin": "round",
+        "vectorEffect": "non-scaling-stroke"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 34,
+      "cy": 17,
+      "r": 2.2,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "path",
+      "d": "M34 8v3M25 17h3M40 17h3M29 23l-2 2",
+      "style": {
+        "fill": "none",
+        "stroke": "currentColor",
+        "strokeWidth": 2.4,
+        "strokeLinecap": "round",
+        "strokeLinejoin": "round",
+        "vectorEffect": "non-scaling-stroke"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 20,
+      "cy": 29,
+      "r": 2.2,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 15,
+      "cy": 34,
+      "r": 1.9,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 25,
+      "cy": 25,
+      "r": 1.8,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 18,
+      "cy": 20,
+      "r": 1.6,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "canvas": {
+    "width": 48,
+    "height": 48,
+    "viewBox": "0 0 48 48",
+    "units": "px"
+  },
+  "metadata": {
+    "title": "beach-ball-room",
+    "desc": "Simulation focus modal icon draft."
+  },
+  "elements": [
+    {
+      "type": "rect",
+      "x": 11,
+      "y": 13,
+      "width": 26,
+      "height": 22,
+      "rx": 2,
+      "ry": 2,
+      "style": {
+        "fill": "none",
+        "stroke": "currentColor",
+        "strokeWidth": 2.4,
+        "strokeLinecap": "round",
+        "strokeLinejoin": "round",
+        "vectorEffect": "non-scaling-stroke"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 24,
+      "cy": 24,
+      "r": 8.5,
+      "style": {
+        "fill": "none",
+        "stroke": "currentColor",
+        "strokeWidth": 2.4,
+        "strokeLinecap": "round",
+        "strokeLinejoin": "round",
+        "vectorEffect": "non-scaling-stroke"
+      }
+    },
+    {
+      "type": "path",
+      "d": "M23 15.5c4 3 5 11 2 17M16 25c5 3 11 3 16 0M18.5 19c4 2 7 2 11 0",
+      "style": {
+        "fill": "none",
+        "stroke": "currentColor",
+        "strokeWidth": 2.4,
+        "strokeLinecap": "round",
+        "strokeLinejoin": "round",
+        "vectorEffect": "non-scaling-stroke"
+      }
+    }
+  ]
+}

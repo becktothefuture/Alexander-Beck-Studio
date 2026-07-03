@@ -1,0 +1,136 @@
+{
+  "canvas": {
+    "width": 48,
+    "height": 48,
+    "viewBox": "0 0 48 48",
+    "units": "px"
+  },
+  "metadata": {
+    "title": "napoleon-point-cloud",
+    "desc": "Simulation focus modal icon draft."
+  },
+  "elements": [
+    {
+      "type": "path",
+      "d": "M21 13c6 1 10 5 10 10 0 2-2 3-4 3 2 3 1 6-2 8M21 35c-4 0-8 1-11 3",
+      "style": {
+        "fill": "none",
+        "stroke": "currentColor",
+        "strokeWidth": 2.4,
+        "strokeLinecap": "round",
+        "strokeLinejoin": "round",
+        "vectorEffect": "non-scaling-stroke"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 22,
+      "cy": 12,
+      "r": 2.2,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 28,
+      "cy": 15,
+      "r": 1.9,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 32,
+      "cy": 21,
+      "r": 2.1,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 29,
+      "cy": 26,
+      "r": 1.8,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 25,
+      "cy": 31,
+      "r": 2.1,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 21,
+      "cy": 36,
+      "r": 2.3,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 14,
+      "cy": 37,
+      "r": 1.9,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 17,
+      "cy": 28,
+      "r": 2,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 17,
+      "cy": 20,
+      "r": 1.9,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 23,
+      "cy": 21,
+      "r": 1.8,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    },
+    {
+      "type": "circle",
+      "cx": 29,
+      "cy": 36,
+      "r": 1.7,
+      "style": {
+        "fill": "currentColor",
+        "stroke": "none"
+      }
+    }
+  ]
+}
