@@ -151,7 +151,7 @@ function getKaleidoscopeParams(g) {
     count: g.kaleidoscope3BallCount ?? g.kaleidoscopeBallCount ?? 150,
     wedges: g.kaleidoscope3Wedges ?? g.kaleidoscopeWedges ?? 10,
     speed: g.kaleidoscope3Speed ?? g.kaleidoscopeSpeed ?? 1.2,
-    complexity: 1.35,
+    complexity: 1.55,
     spawnAreaMul: g.kaleidoscope3SpawnAreaMul ?? g.kaleidoscopeSpawnAreaMul ?? 1.05,
     sizeVariance: g.kaleidoscope3SizeVariance ?? g.kaleidoscopeSizeVariance ?? 0.5
   };
@@ -336,6 +336,7 @@ export function applyKaleidoscopeForces(ball, dt) {
   const cy = canvas.height * 0.5;
   const unit = getViewportUnit(g);
   const speed = clamp(getKaleidoscopeParams(g).speed ?? 1.0, 0.2, 2.0);
+  const mobileResponseScale = (g.isMobile || g.isMobileViewport) ? 0.78 : 1;
 
   // ───────────────────────────────────────────────────────────────────────────
   // Activity envelope: ramps up when mouse moves, decays to zero when idle.
@@ -343,12 +344,12 @@ export function applyKaleidoscopeForces(ball, dt) {
   // ───────────────────────────────────────────────────────────────────────────
   const nowMs = performance.now();
   const sinceMoveMs = nowMs - (g.lastPointerMoveMs || 0);
-  const movingRecently = sinceMoveMs < 120; // grace window for smooth release
+  const movingRecently = sinceMoveMs < 180; // grace window for smooth release
 
   if (g._kaleiActivity === undefined) g._kaleiActivity = 0;
   const targetActivity = movingRecently ? 1 : 0;
-  const tauIn = 0.45;   // ramp-up time constant (seconds) - much smoother eased start
-  const tauOut = 0.65;  // decay time constant (seconds) - very gentle stop
+  const tauIn = 0.22;   // ramp-up time constant (seconds)
+  const tauOut = 0.55;  // decay time constant (seconds)
   const tau = targetActivity > g._kaleiActivity ? tauIn : tauOut;
   const k = 1 - Math.exp(-dt / Math.max(1e-4, tau));
   g._kaleiActivity += (targetActivity - g._kaleiActivity) * k;
@@ -379,15 +380,14 @@ export function applyKaleidoscopeForces(ball, dt) {
   const tx = -ny;
   const ty = nx;
 
-  // Tangential swirl accel (px/s²). 6x slower than before (30 vs 180).
-  // The `unit` keeps it consistent across viewports.
-  const swirlA = (30 * unit) * speed * activity;
+  // Tangential swirl accel (px/s²). The `unit` keeps it consistent across viewports.
+  const swirlA = (52 * unit) * speed * activity * mobileResponseScale;
 
   // Radial band stabilizer: each ball keeps its own orbit radius (seeded at spawn)
   // so the pattern remains distributed (no single "ring lock").
   const targetR = (ball._kaleiR0 !== undefined) ? ball._kaleiR0 : dist;
   const radialError = dist - targetR;
-  const radialA = -(radialError * (2.5 * speed * activity)); // gentler spring
+  const radialA = -(radialError * (3.4 * speed * activity * mobileResponseScale));
 
   // Apply accelerations
   ball.vx += (tx * swirlA + nx * radialA) * dt;
@@ -465,7 +465,18 @@ export function renderKaleidoscope(ctx) {
 
   const speed = clamp(getKaleidoscopeParams(g).speed ?? 1.0, 0.2, 2.0);
   const complexity = getKaleidoscopeComplexity(g);
-  const pointerStrengthTarget = pointerValid ? Math.pow(mDistN, 0.9) : 0;
+  const movementActivity = clamp(g._kaleiActivity ?? 0, 0, 1);
+  const mobileMorphScale = isMobile ? 0.78 : 1;
+  const pointerStrengthTarget = pointerValid
+    ? clamp(
+      Math.max(
+        Math.pow(mDistN, 0.85) * mobileMorphScale,
+        movementActivity * 0.42 * mobileMorphScale
+      ),
+      0,
+      1
+    )
+    : 0;
   const pointerXNormTarget = pointerValid ? clamp(mdx / Math.max(1, w * 0.5), -1, 1) : 0;
   const pointerYNormTarget = pointerValid ? clamp(mdy / Math.max(1, h * 0.5), -1, 1) : 0;
 
@@ -482,9 +493,9 @@ export function renderKaleidoscope(ctx) {
 
   // Smooth normalized pointer intent first so the visual fold reacts to motion as a glide
   // instead of binding directly to raw cursor position.
-  springTo(morph.influence, pointerStrengthTarget, dt, pointerValid ? 3.2 : 2.2);
-  springTo(morph.pointerX, pointerXNormTarget, dt, 2.8);
-  springTo(morph.pointerY, pointerYNormTarget, dt, 2.8);
+  springTo(morph.influence, pointerStrengthTarget, dt, pointerValid ? 5.2 : 2.4);
+  springTo(morph.pointerX, pointerXNormTarget, dt, 4.4);
+  springTo(morph.pointerY, pointerYNormTarget, dt, 4.4);
 
   const pointerStrength = clamp(morph.influence.x, 0, 1);
   const pointerXNorm = morph.pointerX.x;
@@ -496,17 +507,17 @@ export function renderKaleidoscope(ctx) {
   const idleSpeedScaled = idleSpeed * complexity * (g.prefersReducedMotion ? 0 : 1) * (1 - pointerStrength * 0.85);
   morph.idlePhase = wrapAngleSigned(morph.idlePhase + idleSpeedScaled * dt);
 
-  const panRangePx = Math.min(w, h) * (0.06 + 0.05 * speed);
-  const panStrength = (0.5 + 0.14 * complexity) * pointerStrength;
+  const panRangePx = Math.min(w, h) * (0.085 + 0.07 * speed) * mobileMorphScale;
+  const panStrength = (0.72 + 0.2 * complexity) * pointerStrength;
   const panXTarget = pointerXNorm * panRangePx * panStrength;
   const panYTarget = pointerYNorm * panRangePx * panStrength;
-  const phaseAmplitude = 0.24 + 0.08 * complexity;
-  const phaseOffset = (pointerXNorm * 0.22) + (pointerYNorm * 0.12);
+  const phaseAmplitude = (0.34 + 0.11 * complexity) * mobileMorphScale;
+  const phaseOffset = ((pointerXNorm * 0.32) + (pointerYNorm * 0.18)) * mobileMorphScale;
   const phaseTarget = morph.idlePhase + (mouseAngle * phaseAmplitude + phaseOffset) * pointerStrength;
 
-  springTo(morph.phase, phaseTarget, dt, 2.5);
-  springTo(morph.panX, panXTarget, dt, 3.0);
-  springTo(morph.panY, panYTarget, dt, 3.0);
+  springTo(morph.phase, phaseTarget, dt, 4.2);
+  springTo(morph.panX, panXTarget, dt, 4.8);
+  springTo(morph.panY, panYTarget, dt, 4.8);
 
   const phase = morph.phase.x;
   const panX = morph.panX.x;
@@ -514,7 +525,7 @@ export function renderKaleidoscope(ctx) {
 
   // "Breathing" depth: as you move the mouse outward/inward, the rings zoom.
   const speed01 = clamp((speed - 0.2) / 1.8, 0, 1);
-  const zoomRange = 0.22 + 0.18 * speed01; // 0.22..0.40
+  const zoomRange = (0.3 + 0.2 * speed01) * (isMobile ? 0.74 : 1); // desktop 0.30..0.50
   const zoom = 1 - zoomRange + (1 - mDistN) * (2 * zoomRange); // maps to [1-zoomRange, 1+zoomRange]
 
   const { cos: wedgeCos, sin: wedgeSin } = getWedgeTrigCache(g, wedges, wedgeAngle);
@@ -522,13 +533,16 @@ export function renderKaleidoscope(ctx) {
   // Draw
   for (let bi = 0; bi < balls.length; bi++) {
     const ball = balls[bi];
+    const visualRadius = ball.r * Math.max(0, Math.min(1, ball.visualScale ?? 1));
+    if (visualRadius <= 0.05) continue;
+    const cullMargin = visualRadius + 4 * (g.DPR || 1);
 
     // Center-relative coords WITH pan offset. Pan shifts which part gets sampled = morphing.
     const rx = (ball.x - cx) + panX;
     const ry = (ball.y - cy) + panY;
-    // Scale radius to fill entire screen. Increased from 1.8 to 3.5 to cover full viewport
+    // Scale radius to fill entire screen. Increased from 1.8 to 3.7 to cover full viewport
     // and beyond (accounts for expanded spawn area and ensures no empty edges).
-    const fillScale = 3.5 * unit;
+    const fillScale = (isMobile ? 3.45 : 3.7) * unit;
     const r = Math.hypot(rx, ry) * fillScale * zoom;
     if (r < EPS) continue;
 
@@ -559,8 +573,7 @@ export function renderKaleidoscope(ctx) {
 
       const x = cx + outCos * r;
       const y = cy + outSin * r;
-      const visualRadius = ball.r * Math.max(0, Math.min(1, ball.visualScale ?? 1));
-      if (visualRadius <= 0.05) continue;
+      if (x < -cullMargin || x > w + cullMargin || y < -cullMargin || y > h + cullMargin) continue;
 
       // Draw the shared pebble silhouette in the mirrored wedge.
       drawPebbleBody(ctx, ball, x, y, visualRadius, ball.color, g, {

@@ -4347,7 +4347,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'kaleidoscope3BallCount',
         type: 'range',
         min: 12, max: 300, step: 3,
-        default: 132,
+        default: 240,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true
@@ -4377,7 +4377,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'kaleidoscope3Speed',
         type: 'range',
         min: 0.2, max: 2.0, step: 0.05,
-        default: 1.2,
+        default: 1.45,
         format: v => v.toFixed(2),
         parse: parseFloat
       },
@@ -4398,7 +4398,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'kaleidoscope3DotSizeVh',
         type: 'range',
         min: 0.2, max: 2.5, step: 0.05,
-        default: 0.75,
+        default: 0.82,
         format: v => v.toFixed(2) + 'vh',
         parse: parseFloat,
         reinitMode: true
@@ -4409,7 +4409,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'kaleidoscope3DotAreaMul',
         type: 'range',
         min: 0.3, max: 1.5, step: 0.05,
-        default: 0.75,
+        default: 0.9,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat,
         reinitMode: true
@@ -4420,7 +4420,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'kaleidoscope3SpawnAreaMul',
         type: 'range',
         min: 0.2, max: 2.0, step: 0.05,
-        default: 2.2,
+        default: 0.6,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat,
         reinitMode: true
@@ -4431,7 +4431,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'kaleidoscope3SizeVariance',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.5,
+        default: 0.45,
         format: v => (v * 100).toFixed(0) + '%',
         parse: parseFloat,
         reinitMode: true

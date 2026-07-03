@@ -205,7 +205,7 @@ const state = {
     [MODES.WATER]: { desktop: 1800, mobile: 900 },
     [MODES.MAGNETIC]: { desktop: 220, mobile: 140 },
     [MODES.BUBBLES]: { desktop: 260, mobile: 180 },
-    [MODES.KALEIDOSCOPE]: { desktop: 180, mobile: 72 },
+    [MODES.KALEIDOSCOPE]: { desktop: 240, mobile: 96 },
     [MODES.CRITTERS]: { desktop: 140, mobile: 95 },
     [MODES.ELASTIC_CENTER]: { desktop: 240, mobile: 150 },
     [MODES.FLUBBER_BLOB]: { desktop: 120, mobile: 52 },
@@ -579,14 +579,14 @@ const state = {
   // Normalized idle drift (0..0.05). Subtle movement when idle.
   kaleidoscopeIdleDrift: 0.012,
   // Kaleidoscope III parameters (now the only kaleidoscope mode)
-  kaleidoscope3BallCount: 180,
+  kaleidoscope3BallCount: 240,
   kaleidoscope3Wedges: 10,
   kaleidoscope3WedgesMobile: 6,  // Reduced wedges on mobile for performance (50% fewer draw calls)
-  kaleidoscope3Speed: 1.2,
-  kaleidoscope3DotSizeVh: 0.75,
-  kaleidoscope3DotAreaMul: 0.75,
-  kaleidoscope3SpawnAreaMul: 0.72,
-  kaleidoscope3SizeVariance: 0.5,
+  kaleidoscope3Speed: 1.45,
+  kaleidoscope3DotSizeVh: 0.82,
+  kaleidoscope3DotAreaMul: 0.9,
+  kaleidoscope3SpawnAreaMul: 0.6,
+  kaleidoscope3SizeVariance: 0.45,
 
   // Parallax Float (mouse-driven depth parallax)
   parallaxFloatGridX: 14,
