@@ -3577,7 +3577,26 @@ body.wall-shadow-plate-ready #simulations::before {
 }
 
 body.wall-shadow-plate-ready .inner-wall-gradient-edge {
-  background: none;
+  /* The decoded plate owns broad depth and the top shadow lip; keep the dedicated light rim visible. */
+  background:
+    radial-gradient(
+      50% 100% at 50% 100%,
+      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-bottom-opacity)) 0%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-bottom-opacity) * 0.3)) 60%,
+      transparent 100%
+    ) bottom center / 100% var(--inner-wall-gradient-edge-width) no-repeat,
+    radial-gradient(
+      100% 50% at 0% 50%,
+      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-side-opacity)) 0%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-side-opacity) * 0.3)) 60%,
+      transparent 100%
+    ) left center / var(--inner-wall-gradient-edge-width) 100% no-repeat,
+    radial-gradient(
+      100% 50% at 100% 50%,
+      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-side-shadow-opacity)) 0%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-side-shadow-opacity) * 0.3)) 60%,
+      transparent 100%
+    ) right center / var(--inner-wall-gradient-edge-width) 100% no-repeat;
 }
 
 #simulations canvas {

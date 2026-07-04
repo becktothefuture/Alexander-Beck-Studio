@@ -74,7 +74,6 @@ export default defineConfig(({ mode }) => ({
         'lab/wall-repel': resolve(__dirname, 'lab/wall-repel.html'),
         'lab/mineral-growth': resolve(__dirname, 'lab/mineral-growth.html'),
         'lab/aperture-bloom': resolve(__dirname, 'lab/aperture-bloom.html'),
-        'lab/pressure-mosaic': resolve(__dirname, 'lab/pressure-mosaic.html'),
         'lab/confluence-bridges': resolve(__dirname, 'lab/confluence-bridges.html'),
         'lab/napoleon-point-cloud': resolve(__dirname, 'lab/napoleon-point-cloud.html'),
         'lab/spatial-scan': resolve(__dirname, 'lab/spatial-scan.html'),

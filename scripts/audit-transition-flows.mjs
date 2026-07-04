@@ -42,7 +42,6 @@ const SIMULATION_CANVAS_SELECTOR = [
   '#confluence-bridges-canvas',
   '#flock-of-birds-canvas',
   '#mineral-growth-canvas',
-  '#pressure-mosaic-canvas',
   '#wall-repel-canvas',
   '.beach-ball-room-canvas',
   '.napoleon-point-cloud__canvas--front',

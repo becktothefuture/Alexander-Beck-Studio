@@ -204,10 +204,10 @@ function applyDarkModeToDOM(isDark) {
   syncShellToDocument({ isDark });
   applyLayoutCSSVars();
 
-  // Establish the authored palette before adapting the wall/frame to browser chrome.
+  // Establish the authored palette before adapting frame chrome.
   applyColorTemplate(globals.currentTemplate);
 
-  // 1) If the browser ignores theme-color (desktop Chrome tabs), adapt the wall to match the browser UI.
+  // 1) If the browser ignores theme-color (desktop Chrome tabs), adapt the frame to match the browser UI.
   // 2) Then update meta theme-color from the (possibly updated) CSS vars.
   applyChromeHarmony(isDark);
   updateThemeColor(isDark);

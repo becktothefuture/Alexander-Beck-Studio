@@ -86,7 +86,6 @@ async function waitForFocusId(page, id) {
     '#c',
     '#wall-repel-canvas',
     '#flock-of-birds-canvas',
-    '#pressure-mosaic-canvas',
     '#mineral-growth-canvas',
     '.napoleon-point-cloud__canvas--front',
     '.beach-ball-room-canvas',
@@ -295,16 +294,13 @@ async function main() {
     await chooseSimulation(page, 'Repel Room', 'wall-repel');
     await assertStorage(page, 'wall-repel');
 
-    await chooseSimulation(page, 'Pressure Mosaic', 'pressure-mosaic');
-    await assertStorage(page, 'pressure-mosaic');
-
     await chooseSimulation(page, 'Flies to Light', 'flies');
     await assertStorage(page, 'flies');
 
     await chooseSimulation(page, 'Water Swimming', 'water');
     await assertStorage(page, 'water');
 
-    await page.reload({ waitUntil: 'networkidle', timeout: 60000 });
+    await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
     await waitForFocusId(page, 'water');
     await waitForSwitcherLabel(page, 'Water Swimming');
     await assertStorage(page, 'water');
@@ -326,7 +322,7 @@ async function main() {
       simulationId: 'not-a-real-simulation',
       catalogVersion: catalog.version,
     });
-    await page.reload({ waitUntil: 'networkidle', timeout: 60000 });
+    await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
     await waitForFocusId(page, dailyDefault.id);
     await waitForSwitcherLabel(page, dailyDefault.name);
     await assertStorage(page, null);

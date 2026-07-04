@@ -8,7 +8,7 @@ import {
 } from '../../../palette/londonPalettes.js';
 import { getLondonWeatherPaletteIdFromAssessment } from '../../../weather/londonWeatherAssessment.js';
 import { invalidateDepthWashCache } from './depth-wash.js';
-import { patchShellTheme, syncShellToDocument } from './site-shell.js';
+import { syncShellToDocument } from './site-shell.js';
 
 function clamp01(t) {
   const n = Number(t);
@@ -726,41 +726,8 @@ function applyPaletteTheme(templateName) {
   const theme = getLondonWeatherPaletteTheme(templateName);
   if (!theme || !root) return;
 
-  globals.bgLight = theme.bgLight || globals.bgLight;
-  globals.bgDark = theme.bgDark || globals.bgDark;
-  globals.wallBaseLight = theme.wallBaseLight || globals.wallBaseLight;
-  globals.wallBaseDark = theme.wallBaseDark || globals.wallBaseDark;
-  globals.quoteButtonColorLight = theme.quoteButtonColorLight || globals.quoteButtonColorLight || globals.wallBaseLight;
-  globals.quoteButtonColorDark = theme.quoteButtonColorDark || globals.quoteButtonColorDark || globals.wallBaseDark;
-  globals.frameColorLight = theme.frameColorLight || theme.siteFrameLight || globals.frameColorLight;
-  globals.frameColorDark = theme.frameColorDark || theme.siteFrameDark || globals.frameColorDark;
   globals.frameColor = isDark ? globals.frameColorDark : globals.frameColorLight;
-  globals.lockedHeaderLight = theme.lockedHeaderLight || theme.siteFrameLight || globals.lockedHeaderLight;
-  globals.lockedHeaderDark = theme.lockedHeaderDark || theme.siteFrameDark || globals.lockedHeaderDark;
-  globals.safariFrameLight = theme.safariFrameLight || theme.siteFrameLight || globals.safariFrameLight;
-  globals.safariFrameDark = theme.safariFrameDark || theme.siteFrameDark || globals.safariFrameDark;
-  globals.textColorLight = theme.textColorLight || globals.textColorLight;
-  globals.textColorLightMuted = theme.textColorLightMuted || globals.textColorLightMuted;
-  globals.textColorDark = theme.textColorDark || globals.textColorDark;
-  globals.textColorDarkMuted = theme.textColorDarkMuted || globals.textColorDarkMuted;
   globals.linkHoverColor = theme.linkHoverColor || globals.linkHoverColor;
-  globals.noiseColorLight = theme.noiseColorLight || globals.noiseColorLight;
-  globals.noiseColorDark = theme.noiseColorDark || globals.noiseColorDark;
-  globals.depthWashCenterColorLight = theme.depthWashCenterColorLight || globals.depthWashCenterColorLight;
-  globals.depthWashEdgeColorLight = theme.depthWashEdgeColorLight || globals.depthWashEdgeColorLight;
-  globals.depthWashCenterColorDark = theme.depthWashCenterColorDark || globals.depthWashCenterColorDark;
-  globals.depthWashEdgeColorDark = theme.depthWashEdgeColorDark || globals.depthWashEdgeColorDark;
-
-  patchShellTheme({
-    wallBaseLight: globals.wallBaseLight,
-    wallBaseDark: globals.wallBaseDark,
-    quoteButtonColorLight: globals.quoteButtonColorLight,
-    quoteButtonColorDark: globals.quoteButtonColorDark,
-    siteFrameLight: theme.siteFrameLight || globals.frameColorLight,
-    siteFrameDark: theme.siteFrameDark || globals.frameColorDark,
-    safariFrameLight: globals.safariFrameLight,
-    safariFrameDark: globals.safariFrameDark,
-  });
   syncShellToDocument({ isDark });
 
   root.style.setProperty('--bg-light', globals.bgLight);
@@ -777,14 +744,14 @@ function applyPaletteTheme(templateName) {
   root.style.setProperty('--noise-color-dark', globals.noiseColorDark);
 
   const activePrimary = isDark
-    ? (theme.absFgPrimaryDark || globals.textColorDark)
-    : (theme.absFgPrimaryLight || globals.textColorLight);
+    ? globals.textColorDark
+    : globals.textColorLight;
   const activeSecondary = isDark
-    ? (theme.absFgSecondaryDark || globals.textColorDarkMuted)
-    : (theme.absFgSecondaryLight || globals.textColorLightMuted);
+    ? globals.textColorDarkMuted
+    : globals.textColorLightMuted;
   const activeMuted = isDark
-    ? (theme.absFgMutedDark || theme.absFgSecondaryDark || globals.textColorDarkMuted)
-    : (theme.absFgMutedLight || theme.absFgSecondaryLight || globals.textColorLightMuted);
+    ? globals.textColorDarkMuted
+    : globals.textColorLightMuted;
 
   root.style.setProperty('--abs-fg-primary', activePrimary);
   root.style.setProperty('--abs-fg-secondary', activeSecondary);
@@ -824,10 +791,7 @@ function applyPaletteTheme(templateName) {
   invalidateDepthWashCache();
 
   try {
-    import('./noise-system.js').then(({ applyNoiseSystem }) => applyNoiseSystem({
-      noiseColorLight: globals.noiseColorLight,
-      noiseColorDark: globals.noiseColorDark,
-    }));
+    import('./noise-system.js').then(({ applyNoiseSystem }) => applyNoiseSystem({}));
   } catch (_) { /* no-op */ }
   try {
     import('./wall-shadow-plate.js').then(({ applyWallShadowPlateSystem }) => applyWallShadowPlateSystem({}));

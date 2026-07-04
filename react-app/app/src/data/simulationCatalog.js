@@ -18,6 +18,8 @@ export const SIMULATION_FOCUS_STORAGE_KEY = 'abs_simulation_focus_choice_v1';
 export const SIMULATION_FOCUS_STORAGE_VERSION = 1;
 export const SIMULATION_FOCUS_CHANGED_EVENT = 'abs:simulation-focus-changed';
 
+let volatileFocusChoice = null;
+
 function dispatchSimulationFocusChanged(detail = {}) {
   if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
   window.dispatchEvent(new CustomEvent(SIMULATION_FOCUS_CHANGED_EVENT, {
@@ -165,6 +167,7 @@ function getFocusStorage(storage) {
 }
 
 function removeFocusChoice(storage) {
+  volatileFocusChoice = null;
   try {
     storage?.removeItem?.(SIMULATION_FOCUS_STORAGE_KEY);
   } catch {
@@ -203,16 +206,17 @@ export function readManualSimulationFocus(options = {}) {
     catalogVersion = SIMULATION_CATALOG_VERSION,
   } = options;
   const focusStorage = getFocusStorage(storage);
-  if (!focusStorage) return null;
 
   let rawChoice = null;
-  try {
-    rawChoice = focusStorage.getItem(SIMULATION_FOCUS_STORAGE_KEY);
-  } catch {
-    return null;
+  if (focusStorage) {
+    try {
+      rawChoice = focusStorage.getItem(SIMULATION_FOCUS_STORAGE_KEY);
+    } catch {
+      rawChoice = null;
+    }
   }
 
-  const stored = parseStoredFocusChoice(rawChoice);
+  const stored = parseStoredFocusChoice(rawChoice) || volatileFocusChoice;
   const dayStamp = getDailyFocusDayStamp(date);
   const isValid = (
     stored
@@ -243,7 +247,7 @@ export function writeManualSimulationFocus(simulationId, options = {}) {
     catalogVersion = SIMULATION_CATALOG_VERSION,
   } = options;
   const focusStorage = getFocusStorage(storage);
-  if (!focusStorage || !isDailyFocusSimulation(simulationId, simulations)) return null;
+  if (!isDailyFocusSimulation(simulationId, simulations)) return null;
 
   const choice = {
     version: SIMULATION_FOCUS_STORAGE_VERSION,
@@ -251,15 +255,19 @@ export function writeManualSimulationFocus(simulationId, options = {}) {
     simulationId,
     catalogVersion,
   };
+  const savedChoice = Object.freeze({ ...choice });
+  volatileFocusChoice = savedChoice;
 
-  try {
-    focusStorage.setItem(SIMULATION_FOCUS_STORAGE_KEY, JSON.stringify(choice));
-  } catch {
-    return null;
+  if (focusStorage) {
+    try {
+      focusStorage.setItem(SIMULATION_FOCUS_STORAGE_KEY, JSON.stringify(choice));
+    } catch {
+      /* The volatile fallback keeps the current page session usable. */
+    }
   }
 
   dispatchSimulationFocusChanged({ simulationId, source: 'manual' });
-  return Object.freeze({ ...choice });
+  return savedChoice;
 }
 
 export function getResolvedSimulationFocus(options = {}) {

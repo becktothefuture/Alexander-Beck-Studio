@@ -28,7 +28,6 @@ export const MODES = {
   FLOCK_OF_BIRDS: 'flock-of-birds',
   WALL_REPEL: 'wall-repel',
   APERTURE_BLOOM: 'aperture-bloom',
-  PRESSURE_MOSAIC: 'pressure-mosaic',
   MINERAL_GROWTH: 'mineral-growth',
   FLUBBER_BLOB: 'flubber-blob',
   WEAVE_FIELD: 'weave-field',
@@ -54,7 +53,7 @@ export function isPitLikeMode(mode) {
 // - Guaranteed first impression and daily candidates for new visitors
 // - Best work, strongest visual impact
 //
-// EXTENDED TIER (9 modes):
+// EXTENDED TIER (8 modes):
 // - Only appears after all Featured modes have cycled
 // - Additional explorations and experiments
 // - Loop order: Featured → Extended → Featured → ...
@@ -94,7 +93,6 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.FLOCK_OF_BIRDS]: 'FLIGHT FIELD',
   [MODES.WALL_REPEL]: 'REPEL ROOM',
   [MODES.APERTURE_BLOOM]: 'APERTURE BLOOM',
-  [MODES.PRESSURE_MOSAIC]: 'PRESSURE MOSAIC',
   [MODES.MINERAL_GROWTH]: 'LIVING SYSTEM',
   [MODES.FLUBBER_BLOB]: 'COHESION FIELD',
   [MODES.WEAVE_FIELD]: 'WEAVE FIELD',
@@ -173,10 +171,6 @@ export const NARRATIVE_QUOTES = {
     author: 'Kurt Koffka'
   },
   [MODES.APERTURE_BLOOM]: {
-    quote: 'The whole is other than the sum of the parts.',
-    author: 'Kurt Koffka'
-  },
-  [MODES.PRESSURE_MOSAIC]: {
     quote: 'The whole is other than the sum of the parts.',
     author: 'Kurt Koffka'
   },

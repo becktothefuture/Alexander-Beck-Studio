@@ -156,14 +156,6 @@ function isInsideTitleReserve(x, y, radius, reserve) {
   return (nx * nx) + (ny * ny) < 1;
 }
 
-function isInsideEllipseBoundary(x, y, radius, zone) {
-  const safeRx = Math.max(1, zone.rx - radius);
-  const safeRy = Math.max(1, zone.ry - radius);
-  const nx = (x - zone.cx) / safeRx;
-  const ny = (y - zone.cy) / safeRy;
-  return (nx * nx) + (ny * ny) <= 1;
-}
-
 function getOuterSimulationZone(metrics, reserve) {
   return {
     cx: reserve.cx,
@@ -337,42 +329,6 @@ function buildApertureBodies(random, config, theme, metrics) {
   return bodies;
 }
 
-function buildPressureMosaicBodies(random, config, theme, metrics) {
-  const bodies = [];
-  const r = getScaledRadius(config, metrics);
-  const reserve = getTitleReserveZone(config, metrics);
-  const outer = getOuterSimulationZone(metrics, reserve);
-  const spacing = r * Number(config.spacing || 2.68);
-  const rowGap = spacing * 0.86;
-  const fieldWidth = outer.rx * 2;
-  const fieldHeight = outer.ry * 2;
-  const rows = Math.ceil(fieldHeight / rowGap);
-  const columns = Math.max(6, Math.ceil(fieldWidth / spacing));
-  const startX = outer.cx - (((columns - 1) * spacing) * 0.5);
-  const startY = outer.cy - (((rows - 1) * rowGap) * 0.5);
-
-  for (let row = 0; row < rows; row += 1) {
-    const y = startY + (row * rowGap);
-    const isOffsetRow = row % 2 === 1;
-    const rowColumns = isOffsetRow ? columns - 1 : columns;
-    const rowOffset = isOffsetRow ? spacing * 0.5 : 0;
-    for (let col = 0; col < rowColumns; col += 1) {
-      const x = startX + rowOffset + (col * spacing);
-      if (!isInsideEllipseBoundary(x, y, r * 0.6, outer)) continue;
-      if (isInsideTitleReserve(x, y, r * 1.15, reserve)) continue;
-      bodies.push(makeBody(random, theme, x, y, r, {
-        row,
-        col,
-        baseX: x,
-        baseY: y,
-        shapeKind: 'circle',
-      }));
-    }
-  }
-
-  return bodies;
-}
-
 function buildConfluenceBridgeBodies(random, config, theme, metrics) {
   const bodies = [];
   const outerHubCount = Math.round(clamp(Number(config.hubCount || 5), 3, 7));
@@ -495,30 +451,6 @@ function updateAperture(body, config, metrics, pointer, t) {
 
   body.homeX = cx + Math.cos(angle) * radiusX;
   body.homeY = cy + Math.sin(angle) * radiusY;
-}
-
-function updatePressureMosaic(body, config, metrics, pointer, t) {
-  const centerX = metrics.cssWidth * 0.5;
-  const centerY = metrics.cssHeight * 0.5;
-  const centerDx = body.baseX - centerX;
-  const centerDy = body.baseY - centerY;
-  const centerDist = Math.max(1, Math.hypot(centerDx, centerDy));
-  const breathe = Math.sin(t * 0.42 + body.phase) * Number(config.breathe || 0.1) * body.r;
-  let offsetX = (centerDx / centerDist) * breathe;
-  let offsetY = (centerDy / centerDist) * breathe;
-
-  if (pointer.active) {
-    const dx = body.baseX - pointer.x;
-    const dy = body.baseY - pointer.y;
-    const distance = Math.max(1, Math.hypot(dx, dy));
-    const pressure = smoothstep(1 - (distance / Math.max(1, Number(config.pointerRadius || 230))));
-    const push = pressure * Number(config.pressureStrength || 96);
-    offsetX += (dx / distance) * push;
-    offsetY += (dy / distance) * push;
-  }
-
-  body.homeX = body.baseX + offsetX;
-  body.homeY = body.baseY + offsetY;
 }
 
 function updateConfluenceBridge(body, bodies, config, metrics, pointer, t) {
@@ -698,7 +630,6 @@ export function createConceptSimulationRenderer({
     getSeed: () => {
       const seedMap = {
         [CONCEPT_SIMULATION_IDS.APERTURE_BLOOM]: 11021,
-        [CONCEPT_SIMULATION_IDS.PRESSURE_MOSAIC]: 31041,
         [CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES]: 41071,
       };
       return seedMap[simulationId] || 51061;
@@ -733,7 +664,6 @@ export function createConceptSimulationRenderer({
   function rebuildBodies(config, theme) {
     const seedMap = {
       [CONCEPT_SIMULATION_IDS.APERTURE_BLOOM]: 11021,
-      [CONCEPT_SIMULATION_IDS.PRESSURE_MOSAIC]: 31041,
       [CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES]: 41071,
     };
     const random = mulberry32(seedMap[simulationId] || 51061);
@@ -742,7 +672,7 @@ export function createConceptSimulationRenderer({
     } else if (simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES) {
       bodies = buildConfluenceBridgeBodies(random, config, theme, metrics);
     } else {
-      bodies = buildPressureMosaicBodies(random, config, theme, metrics);
+      bodies = [];
     }
     bodies.forEach((body, index) => {
       body.bodyIndex = index;
@@ -778,7 +708,6 @@ export function createConceptSimulationRenderer({
     const isConfluence = simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES;
     const t = (now / 1000) * (reducedMotion && isConfluence ? 0.45 : 1);
     const reserve = simulationId === CONCEPT_SIMULATION_IDS.APERTURE_BLOOM
-      || simulationId === CONCEPT_SIMULATION_IDS.PRESSURE_MOSAIC
       ? getTitleReserveZone(config, metrics)
       : null;
 
@@ -787,8 +716,6 @@ export function createConceptSimulationRenderer({
         updateAperture(body, config, metrics, pointer, t);
       } else if (isConfluence) {
         updateConfluenceBridge(body, bodies, config, metrics, pointer, t);
-      } else {
-        updatePressureMosaic(body, config, metrics, pointer, t);
       }
       if (reserve) {
         pushHomeOutsideTitleReserve(body, reserve);
@@ -800,7 +727,7 @@ export function createConceptSimulationRenderer({
     }
     applySeparation(
       bodies,
-      simulationId === CONCEPT_SIMULATION_IDS.PRESSURE_MOSAIC || isConfluence ? 2 : 1,
+      isConfluence ? 2 : 1,
       isConfluence ? Number(config.separationScale || 1.08) : 1.08,
     );
     if (isConfluence) {

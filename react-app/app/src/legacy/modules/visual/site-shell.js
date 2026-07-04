@@ -298,6 +298,29 @@ export function applyFrameChromePalette({ light, dark, active }) {
   root.style.setProperty('--chrome-bg', nextActive);
 }
 
+function colorToRgbString(color, fallback = '0, 0, 0') {
+  const value = String(color || '').trim();
+  if (!value) return fallback;
+
+  const hex = value[0] === '#' ? value.slice(1) : value;
+  if (hex.length === 3 || hex.length === 6) {
+    const full = hex.length === 3
+      ? hex.split('').map((c) => c + c).join('')
+      : hex;
+    const n = parseInt(full, 16);
+    if (Number.isFinite(n)) {
+      return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+    }
+  }
+
+  const rgb = value.match(/^rgba?\(\s*([\d.]+)(?:,|\s+)\s*([\d.]+)(?:,|\s+)\s*([\d.]+)/i);
+  if (rgb) {
+    return `${Math.round(Number(rgb[1]))}, ${Math.round(Number(rgb[2]))}, ${Math.round(Number(rgb[3]))}`;
+  }
+
+  return fallback;
+}
+
 export function applyShellPalette({ light, dark, active }) {
   const root = document.documentElement;
   const nextActive = active || dark || light || DEFAULT_SHELL_CONFIG.theme.wallBaseDark;
@@ -307,6 +330,7 @@ export function applyShellPalette({ light, dark, active }) {
   root.style.setProperty('--abs-wall-base-light', nextLight);
   root.style.setProperty('--abs-wall-base-dark', nextDark);
   root.style.setProperty('--abs-wall-base', nextActive);
+  root.style.setProperty('--simulation-contrast-veil-rgb', colorToRgbString(nextActive));
 }
 
 export function applyShellLayoutVars(config = currentShellConfig) {

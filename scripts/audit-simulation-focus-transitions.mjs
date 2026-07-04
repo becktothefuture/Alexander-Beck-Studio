@@ -19,7 +19,6 @@ const ROUTE_BACKED_FOCUS_IDS = new Set([
   'wall-repel',
   'flock-of-birds',
   'mineral-growth',
-  'pressure-mosaic',
   'napoleon-point-cloud',
   'beach-ball-room',
 ]);
@@ -159,7 +158,6 @@ async function getState(page, elapsedMs) {
       '#c',
       '#wall-repel-canvas',
       '#flock-of-birds-canvas',
-      '#pressure-mosaic-canvas',
       '#mineral-growth-canvas',
       '.napoleon-point-cloud__canvas--front',
       '.beach-ball-room-canvas',

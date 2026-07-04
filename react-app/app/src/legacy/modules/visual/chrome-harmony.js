@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                  BROWSER ↔ WALL CHROME HARMONY                               ║
-// ║     When desktop browsers ignore theme-color, adapt the wall to the UI       ║
+// ║                  BROWSER ↔ FRAME CHROME HARMONY                              ║
+// ║     When desktop browsers ignore theme-color, adapt the frame to the UI      ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
@@ -10,23 +10,14 @@ import {
   getShellConfig,
   resolveSafariFramePalette,
   resolveBrowserFramePalette,
+  resolveShellPalette,
   resolveSiteFramePalette,
 } from './site-shell.js';
-
-let _siteFrameLight = null;
-let _siteFrameDark = null;
 
 const CHROMIUM_LOCKED_LIGHT_FALLBACK = "var(--color-detected-f1f3f4)";
 const CHROMIUM_LOCKED_DARK_FALLBACK = "var(--color-detected-202124)";
 const FIREFOX_LOCKED_LIGHT_FALLBACK = "var(--color-detected-f9f9fb)";
 const FIREFOX_LOCKED_DARK_FALLBACK = "var(--color-detected-1c1b22)";
-
-function captureSiteFrameColorsIfNeeded() {
-  if (_siteFrameLight && _siteFrameDark) return;
-  const palette = resolveSiteFramePalette(false);
-  _siteFrameLight = palette.light || CHROMIUM_LOCKED_DARK_FALLBACK;
-  _siteFrameDark = palette.dark || CHROMIUM_LOCKED_DARK_FALLBACK;
-}
 
 function detectBrowserFamily() {
   const ua = navigator.userAgent || '';
@@ -83,83 +74,78 @@ function detectThemeColorLikelyApplied(family) {
   return isAndroid || isIOS;
 }
 
-function applyThemeAwareWallColor(lightHex, darkHex, isDark) {
+function applyThemeAwareFrameColor(lightHex, darkHex, isDark) {
   const active = isDark ? darkHex : lightHex;
   applyFrameChromePalette({ light: lightHex, dark: darkHex, active });
-  applyShellPalette({ light: lightHex, dark: darkHex, active });
 }
 
-function applyWallColor(hex, isDark) {
-  applyThemeAwareWallColor(hex, hex, isDark);
+function applyFrameColor(hex, isDark) {
+  applyThemeAwareFrameColor(hex, hex, isDark);
 }
 
-function restoreSiteWallColor(isDark) {
-  // If we've previously adapted the wall/frame, restore to the captured site values.
-  if (_siteFrameLight && _siteFrameDark) {
-    applyThemeAwareWallColor(_siteFrameLight, _siteFrameDark, isDark);
-    return;
-  }
+function restoreSiteFrameColor(isDark) {
   const palette = resolveSiteFramePalette(isDark);
-  applyThemeAwareWallColor(palette.light, palette.dark, isDark);
+  applyThemeAwareFrameColor(palette.light, palette.dark, isDark);
 }
 
-function applyBrowserWallColor(isDark, family) {
-  captureSiteFrameColorsIfNeeded();
+function applyBrowserFrameColor(isDark, family) {
   if (family.isFirefox) {
     const palette = resolveBrowserFramePalette(getShellConfig(), isDark);
-    applyWallColor(isDark ? (palette.dark || FIREFOX_LOCKED_DARK_FALLBACK) : (palette.light || FIREFOX_LOCKED_LIGHT_FALLBACK), isDark);
+    applyFrameColor(isDark ? (palette.dark || FIREFOX_LOCKED_DARK_FALLBACK) : (palette.light || FIREFOX_LOCKED_LIGHT_FALLBACK), isDark);
     return;
   }
 
   const palette = resolveBrowserFramePalette(getShellConfig(), isDark);
-  applyWallColor(isDark ? (palette.dark || CHROMIUM_LOCKED_DARK_FALLBACK) : (palette.light || CHROMIUM_LOCKED_LIGHT_FALLBACK), isDark);
+  applyFrameColor(isDark ? (palette.dark || CHROMIUM_LOCKED_DARK_FALLBACK) : (palette.light || CHROMIUM_LOCKED_LIGHT_FALLBACK), isDark);
 }
 
-function applySafariWallColor(isDark) {
-  captureSiteFrameColorsIfNeeded();
+function applySafariFrameColor(isDark) {
   const palette = resolveSafariFramePalette(getShellConfig(), isDark);
-  applyThemeAwareWallColor(palette.light, palette.dark, isDark);
+  applyThemeAwareFrameColor(palette.light, palette.dark, isDark);
 }
 
 /**
- * Decide whether to adapt the wall color to browser UI defaults.
- * This is the "clever approach": when we can't tint chrome, we tint the wall.
+ * Decide whether to adapt the frame color to browser UI defaults.
+ * The shell wall palette is restored separately so UI contrast stays stable.
  */
 export function applyChromeHarmony(isDark) {
   const g = getGlobals();
+  const shellConfig = getShellConfig();
   const mode = String(g.chromeHarmonyMode || 'auto');
   const family = detectBrowserFamily();
   const themeColorLikelyApplied = detectThemeColorLikelyApplied(family);
 
+  applyShellPalette(resolveShellPalette(shellConfig, isDark));
+
   if (mode === 'site') {
-    restoreSiteWallColor(isDark);
+    restoreSiteFrameColor(isDark);
     return { mode, family, themeColorLikelyApplied };
   }
 
   if (mode === 'browser') {
     if (family.isSafari) {
-      applySafariWallColor(isDark);
+      applySafariFrameColor(isDark);
       return { mode, family, themeColorLikelyApplied };
     }
-    applyBrowserWallColor(isDark, family);
+    applyBrowserFrameColor(isDark, family);
     return { mode, family, themeColorLikelyApplied };
   }
 
   // auto
   if (family.isSafari) {
-    applySafariWallColor(isDark);
+    applySafariFrameColor(isDark);
     return { mode, family, themeColorLikelyApplied };
   }
 
   // Locked-header browsers: if the browser chrome likely won't respect theme-color,
-  // adapt the wall to the browser's native UI palette.
+  // adapt only the frame to the browser's native UI palette.
   const isLockedHeaderFamily = family.isChromium || family.isFirefox;
   if (isLockedHeaderFamily && !themeColorLikelyApplied) {
-    applyBrowserWallColor(isDark, family);
+    applyBrowserFrameColor(isDark, family);
     return { mode, family, themeColorLikelyApplied };
   }
 
-  // Firefox + others: stay on site wall unless explicitly forced.
-  restoreSiteWallColor(isDark);
+  // Firefox + others: stay on site frame unless explicitly forced.
+  restoreSiteFrameColor(isDark);
   return { mode, family, themeColorLikelyApplied };
 }

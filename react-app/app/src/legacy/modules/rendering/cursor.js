@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                          CUSTOM CURSOR RENDERER                              ║
-// ║  Home inner wall: small solid dot (66% on-screen ball). Tap ring only for     ║
+// ║  Home inner wall: small solid dot (88% on-screen ball). Tap ring only for     ║
 // ║  drawer/modal states that need the larger affordance — see CUSTOM-CURSOR.      ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
@@ -19,7 +19,10 @@ let cachedContainerRect = null;
 let rectCacheTime = 0;
 const RECT_CACHE_MS = 100; // Cache rect for 100ms to avoid excessive layout reads
 const TAP_RING_CSS_PX = 64;
-const HOME_DOT_TO_BALL_DIAMETER = 0.66;
+const HOME_DOT_TO_BALL_DIAMETER = 0.88;
+const HOME_DOT_FALLBACK_CSS_PX = 24;
+const HOME_DOT_MIN_CSS_PX = 11;
+const HOME_DOT_MAX_CSS_PX = 53;
 const PORTFOLIO_PROJECT_CURSOR_MIN_PX = 132;
 const PORTFOLIO_PROJECT_CURSOR_MAX_PX = 152;
 const PORTFOLIO_DECK_CURSOR_Z_INDEX = 940;
@@ -191,19 +194,19 @@ function getPortfolioProjectCursorTarget(target) {
 function getHomeCursorDotDiameterCssPx() {
   const globals = getGlobals();
   const canvas = globals.canvas;
-  if (!canvas || !(canvas.width > 0)) return 18;
+  if (!canvas || !(canvas.width > 0)) return HOME_DOT_FALLBACK_CSS_PX;
   let rect;
   try {
     rect = canvas.getBoundingClientRect();
   } catch (e) {
-    return 18;
+    return HOME_DOT_FALLBACK_CSS_PX;
   }
   const rw = rect.width || 1;
   const avgR = (globals.R_MIN + globals.R_MAX) * 0.5;
   const ballDiameterCanvas = avgR * 2;
   const cssBallDiameter = ballDiameterCanvas * (rw / canvas.width);
   const dot = cssBallDiameter * HOME_DOT_TO_BALL_DIAMETER;
-  return Math.max(8, Math.min(dot, 40));
+  return Math.max(HOME_DOT_MIN_CSS_PX, Math.min(dot, HOME_DOT_MAX_CSS_PX));
 }
 
 function getPortfolioProjectCursorDiameterCssPx() {

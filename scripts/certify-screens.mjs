@@ -21,7 +21,6 @@ const previewMarkers = ['Alexander Beck Studio', '/css/tokens.css'];
 const routeBackedDailySurfaceSelector = [
   '#flock-of-birds-canvas',
   '#mineral-growth-canvas',
-  '#pressure-mosaic-canvas',
   '#wall-repel-canvas',
   'canvas.concept-simulation-canvas',
   '.beach-ball-room-simulation[data-beach-ball-room-load-state="ready"] .beach-ball-room-canvas',

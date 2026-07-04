@@ -78,7 +78,7 @@
   --frame-vignette-ambient-opacity: 0.12;
   --frame-vignette-dither-size: 72px;
   --frame-vignette-dither-opacity: 0.08;
-  --simulation-contrast-veil-rgb: var(--inner-wall-bottom-shadow-rgb);
+  --simulation-contrast-veil-rgb: 245, 245, 245; /* JS stamps this from the active inner-wall background. */
   --simulation-contrast-veil-opacity: 0.36;
   --simulation-contrast-veil-reach-x: 25vw;
   --simulation-contrast-veil-reach-y: 25vh;
@@ -754,6 +754,7 @@
   --frame-vignette-ambient-rgb: 10, 10, 10;
   --frame-vignette-edge-opacity: 0.66;
   --frame-vignette-ambient-opacity: 0.4;
+  --simulation-contrast-veil-rgb: 32, 32, 32;
   --simulation-contrast-veil-opacity: 0.58;
 
   /* Text — Dark mode overrides (JS may override --text-color-dark* from config) */

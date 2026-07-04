@@ -9,11 +9,11 @@ Source of truth for mode IDs and narrative order:
 
 ## Runtime Summary
 
-- `25` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
-- `24` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
-- `16` simulations are in the Daily Simulation chooser and live daily selection.
+- `24` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
+- `23` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
+- `15` simulations are in the Daily Simulation chooser and live daily selection.
 - Daily Simulation selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
-- `flock-of-birds`, `wall-repel`, `pressure-mosaic`, `mineral-growth`, `napoleon-point-cloud`, and `beach-ball-room` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
+- `flock-of-birds`, `wall-repel`, `mineral-growth`, `napoleon-point-cloud`, and `beach-ball-room` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 - `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
 
 ## Lab-Only Route Candidates
@@ -46,7 +46,6 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Flock of Birds | `flock-of-birds` | Route-backed daily/lab |
 | Repel Room | `wall-repel` | Route-backed daily/lab |
 | Aperture Bloom | `aperture-bloom` | Route-backed collection/lab |
-| Pressure Mosaic | `pressure-mosaic` | Route-backed daily/lab |
 | Mineral Growth | `mineral-growth` | Route-backed daily/lab |
 | Flubber Blob | `flubber-blob` | Active |
 | Weave Field | `weave-field` | Active |
@@ -68,26 +67,25 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 5. `wall-repel` — REPEL ROOM
 6. `3d-sphere` — 3D SHELL
 7. `napoleon-point-cloud` — POINT CLOUD
-8. `pressure-mosaic` — PRESSURE MOSAIC
-9. `flock-of-birds` — FLIGHT FIELD
-10. `flubber-blob` — COHESION FIELD
-11. `weave-field` — WEAVE FIELD
-12. `mineral-growth` — LIVING SYSTEM
-13. `elastic-center` — TENSION LOOM
-14. `kaleidoscope-3` — VOCAB BLOOM
-15. `starfield-3d` — DEPTH FIELD
-16. `beach-ball-room` — BEACH BALL ROOM
+8. `flock-of-birds` — FLIGHT FIELD
+9. `flubber-blob` — COHESION FIELD
+10. `weave-field` — WEAVE FIELD
+11. `mineral-growth` — LIVING SYSTEM
+12. `elastic-center` — TENSION LOOM
+13. `kaleidoscope-3` — VOCAB BLOOM
+14. `starfield-3d` — DEPTH FIELD
+15. `beach-ball-room` — BEACH BALL ROOM
 
 ### Extended Tier (shown after Featured)
 
-17. `aperture-bloom` — APERTURE BLOOM
-18. `bubbles` — NOISE SIGNAL
-19. `magnetic` — DESIGN FORCES
-20. `weightless` — OPEN SPACE
-21. `critters` — BEHAVIOR MODEL
-22. `parallax-float` — ORGANIC DRIFT
-23. `pressure-crucible` — POLARITY FLUX
-24. `particle-fountain` — PARTICLE FLOW
+16. `aperture-bloom` — APERTURE BLOOM
+17. `bubbles` — NOISE SIGNAL
+18. `magnetic` — DESIGN FORCES
+19. `weightless` — OPEN SPACE
+20. `critters` — BEHAVIOR MODEL
+21. `parallax-float` — ORGANIC DRIFT
+22. `pressure-crucible` — POLARITY FLUX
+23. `particle-fountain` — PARTICLE FLOW
 
 Loop order is `Featured -> Extended -> Featured`.
 
@@ -129,7 +127,6 @@ Loop order is `Featured -> Extended -> Featured`.
 - `flock-of-birds`: route-backed distant flock with weighted center-biased motion, no wall collisions, mouse avoidance, and a safe sky band above the ground.
 - `wall-repel`: route-backed Repel Room with heavy palette balls launched through a bounded room, strong wall repulsion, mobile-bounded DPR/count, and mouse repulsion without visible cursor rings.
 - `aperture-bloom`: route-backed radial circle aperture with symmetric ring spacing, pointer-opened breathing gaps, normal round circles, and the central brand/link area reserved.
-- `pressure-mosaic`: route-backed packed circle mosaic with pointer pressure gaps, normal round circles, and the central brand/link area reserved.
 - `mineral-growth`: route-backed terrarium thicket with edge-rooted pebble branches and leaflet clusters, deterministic seed support, no visible overlap, and mobile-collapsed controls.
 - `napoleon-point-cloud`: route-backed surface-sampled bust point cloud with the title layered through the dot field, 5k point amount, 28% density, 23.4 dot size, 0.72x mouse rotation, and auto rotation on.
 - `beach-ball-room`: route-backed circle-built beach ball with room-scale wall physics, softened room-line treatment, calmer rebound, and controls hidden unless `controls=1`.

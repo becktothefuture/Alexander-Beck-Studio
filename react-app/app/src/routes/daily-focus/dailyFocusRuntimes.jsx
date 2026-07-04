@@ -8,10 +8,6 @@ const NapoleonPointCloudRuntime = lazy(() => (
   import('../concept-simulations/NapoleonPointCloudRuntime.jsx')
     .then((module) => ({ default: module.NapoleonPointCloudRuntime }))
 ));
-const PressureMosaicRuntime = lazy(() => (
-  import('../concept-simulations/PressureMosaicRuntime.jsx')
-    .then((module) => ({ default: module.PressureMosaicRuntime }))
-));
 const FlockOfBirdsRuntime = lazy(() => (
   import('../flock-of-birds/FlockOfBirdsRuntime.jsx')
     .then((module) => ({ default: module.FlockOfBirdsRuntime }))
@@ -43,8 +39,6 @@ export function getDailyFocusPureRuntime(routeId) {
       return runtimeElement(<MineralGrowthRuntime />);
     case 'beach-ball-room':
       return runtimeElement(<BeachBallRoomRuntime />);
-    case 'pressure-mosaic':
-      return runtimeElement(<PressureMosaicRuntime />);
     case 'napoleon-point-cloud':
       return runtimeElement(<NapoleonPointCloudRuntime />);
     default:

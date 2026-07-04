@@ -184,9 +184,6 @@ function isDailyFocusRuntimeReady(simulationId) {
     case 'flock-of-birds':
       return isCanvasSurfaceReady('#flock-of-birds-canvas')
         && isSimulationVisualTransitionSourceActive(id);
-    case 'pressure-mosaic':
-      return isCanvasSurfaceReady('#pressure-mosaic-canvas')
-        && isSimulationVisualTransitionSourceActive(id);
     case 'mineral-growth':
       return isCanvasSurfaceReady('#mineral-growth-canvas')
         && isSimulationVisualTransitionSourceActive(id);

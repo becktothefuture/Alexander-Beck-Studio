@@ -123,7 +123,6 @@ const SIMULATION_FOCUS_EASE_IN = 'cubic-bezier(0.16, 1, 0.3, 1)';
 const DAILY_LAB_ROUTE_IDS = new Set([
   'wall-repel',
   'flock-of-birds',
-  'pressure-mosaic',
   'mineral-growth',
   'napoleon-point-cloud',
   'beach-ball-room',
@@ -662,9 +661,6 @@ function isDailyLabRouteReady(routeId) {
         && isSimulationVisualTransitionSourceActive(routeId);
     case 'flock-of-birds':
       return isCanvasSurfaceReady('#flock-of-birds-canvas')
-        && isSimulationVisualTransitionSourceActive(routeId);
-    case 'pressure-mosaic':
-      return isCanvasSurfaceReady('#pressure-mosaic-canvas')
         && isSimulationVisualTransitionSourceActive(routeId);
     case 'mineral-growth':
       return isCanvasSurfaceReady('#mineral-growth-canvas')

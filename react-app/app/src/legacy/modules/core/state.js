@@ -636,11 +636,11 @@ const state = {
   autoDarkModeEnabled: true,
   isDarkMode: false,
 
-  // Browser ↔ Wall harmony (when browsers ignore theme-color on desktop)
+  // Browser ↔ Frame harmony (when browsers ignore theme-color on desktop)
   // - 'auto': only adapt on browsers where theme-color is typically ignored
-  // - 'site': always keep site wall (benchmark / Safari look)
-  // - 'browser': always adapt wall to browser UI palette (artful extension)
-  // Default uses Auto so locked-header browsers (desktop Chromium/Firefox) can blend wall + browser chrome.
+  // - 'site': always keep site frame (benchmark / Safari look)
+  // - 'browser': always adapt frame to browser UI palette (artful extension)
+  // Default uses Auto so locked-header browsers (desktop Chromium/Firefox) can blend frame + browser chrome.
   chromeHarmonyMode: 'auto',
   // Night window heuristic (local clock): if enabled and theme is Auto, prefer Dark during this window.
   // Default: 18:00–06:00 (privacy-first; no geolocation).
@@ -699,17 +699,18 @@ const state = {
   // Container inner shadow removed
   
   // Unified Color System (backgrounds, frame, walls)
-  bgLight: assessedTheme.bgLight || '#efefef',       // Light mode background color
-  bgDark: assessedTheme.bgDark || '#181818',        // Dark mode background color
-  wallBaseLight: assessedTheme.wallBaseLight || '#efefef', // Inner wall surface in light mode
-  wallBaseDark: assessedTheme.wallBaseDark || '#181818',  // Inner wall surface in dark mode
-  frameColor: assessedTheme.frameColorLight || '#242529',    // Frame color (legacy - use frameColorLight/frameColorDark)
-  frameColorLight: assessedTheme.frameColorLight || '#242529',  // Frame/wall color in light mode (browser chrome + walls + border)
-  frameColorDark: assessedTheme.frameColorDark || assessedTheme.siteFrameDark || '#141517',   // Frame/wall color in dark mode (browser chrome + walls + border)
-  lockedHeaderLight: assessedTheme.lockedHeaderLight || '#f1f3f4', // Locked-header browser fallback in light mode
-  lockedHeaderDark: assessedTheme.lockedHeaderDark || '#141517',  // Locked-header browser fallback in dark mode
-  safariFrameLight: assessedTheme.safariFrameLight || '#181818',  // Safari-specific outer wall fallback in light mode (dark strip)
-  safariFrameDark: assessedTheme.safariFrameDark || assessedTheme.siteFrameDark || '#141517',   // Safari-specific outer wall fallback in dark mode
+  // Palette/weather chapters must not change these surfaces; design config owns them.
+  bgLight: '#f5f5f5',       // Light mode background color
+  bgDark: '#202020',        // Dark mode background color
+  wallBaseLight: '#f5f5f5', // Inner wall surface in light mode
+  wallBaseDark: '#202020',  // Inner wall surface in dark mode
+  frameColor: '#242529',    // Frame color (legacy - use frameColorLight/frameColorDark)
+  frameColorLight: '#242529',  // Frame/wall color in light mode (browser chrome + walls + border)
+  frameColorDark: '#141517',   // Frame/wall color in dark mode (browser chrome + walls + border)
+  lockedHeaderLight: '#f1f3f4', // Locked-header browser fallback in light mode
+  lockedHeaderDark: '#141517',  // Locked-header browser fallback in dark mode
+  safariFrameLight: '#181818',  // Safari-specific outer wall fallback in light mode (dark strip)
+  safariFrameDark: '#141517',   // Safari-specific outer wall fallback in dark mode
   useSimplifiedFrame: true, // CSS-only frame (disables legacy canvas inner-wall rendering)
   // Simplified frame geometry + effects (single-wall model)
   frameBorderWidth: 20,     // Desktop visual wall thickness / frame band (px)
@@ -727,10 +728,10 @@ const state = {
   frameVignetteAmbientOpacity: 0.08, // Ambient vignette opacity
   
   // Text Colors
-  textColorLight: assessedTheme.textColorLight || '#161616',          // Primary text (light mode)
-  textColorLightMuted: assessedTheme.textColorLightMuted || '#2f2f2f',     // Secondary/muted text (light mode)
-  textColorDark: assessedTheme.textColorDark || '#f0f0f0', // Primary text (dark mode)
-  textColorDarkMuted: assessedTheme.textColorDarkMuted || '#c8c8c8', // Secondary/muted (dark mode)
+  textColorLight: '#161616',          // Primary text (light mode)
+  textColorLightMuted: '#2f2f2f',     // Secondary/muted text (light mode)
+  textColorDark: '#f0f0f0', // Primary text (dark mode)
+  textColorDarkMuted: '#c8c8c8', // Secondary/muted (dark mode)
   // Edge labels now derive from `--text-muted` in CSS (not independently tunable).
   edgeLabelInsetAdjustPx: 0,
   // Page caption: clamp(min, 2vh, max) for bottom distance (universal: index, portfolio, cv).
@@ -745,13 +746,13 @@ const state = {
   depthWashCenterY: 0.3, // Center position (0=top, 1=bottom)
   depthWashRadiusScale: 1.0, // Radius multiplier
   // Light mode gradient
-  depthWashCenterColorLight: assessedTheme.depthWashCenterColorLight || '#ffffff',
-  depthWashEdgeColorLight: assessedTheme.depthWashEdgeColorLight || '#142b48',
+  depthWashCenterColorLight: '#ffffff',
+  depthWashEdgeColorLight: '#142b48',
   depthWashCenterAlphaLight: 0.3,
   depthWashEdgeAlphaLight: 0.4,
   // Dark mode gradient
-  depthWashCenterColorDark: assessedTheme.depthWashCenterColorDark || '#1a1e23',
-  depthWashEdgeColorDark: assessedTheme.depthWashEdgeColorDark || '#05020f',
+  depthWashCenterColorDark: '#1a1e23',
+  depthWashEdgeColorDark: '#05020f',
   depthWashCenterAlphaDark: 0,
   depthWashEdgeAlphaDark: 0.8,
   

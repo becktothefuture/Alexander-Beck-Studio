@@ -9,7 +9,6 @@ import {
   getSimulationName,
   writeManualSimulationFocus,
 } from '../../../data/simulationCatalog.js';
-import { trySpaNavigate } from '../../../lib/spa-navigation.js';
 import {
   createIndexedSimulationVisualTransition,
   getInitialSimulationVisualScale,
@@ -42,7 +41,6 @@ const MODE_NAMES = {
   'flock-of-birds': 'Flock of Birds',
   'wall-repel': 'Repel Room',
   'aperture-bloom': 'Aperture Bloom',
-  'pressure-mosaic': 'Pressure Mosaic',
   'mineral-growth': 'Mineral Growth',
   'flubber-blob': 'Flubber Blob',
   'weave-field': 'Weave Field',
@@ -424,15 +422,6 @@ export async function setMode(inputMode) {
   if (routeBackedHref) {
     announceToScreenReader(`Switched to ${MODE_NAMES[mode] || getSimulationName(mode)} mode`);
     writeManualSimulationFocus(mode);
-    if (typeof window !== 'undefined') {
-      const currentHref = `${window.location.pathname}${window.location.search}`;
-      if (currentHref !== routeBackedHref) {
-        const didNavigate = trySpaNavigate(routeBackedHref, { replace: true, readyFallbackMs: 1800 });
-        if (!didNavigate) {
-          window.location.assign(routeBackedHref);
-        }
-      }
-    }
     return true;
   }
 

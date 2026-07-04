@@ -418,6 +418,15 @@ function clearPlate({ disableFallback = false } = {}) {
   activeObjectUrl = null;
 }
 
+function clearStaleReadyClassWithoutPlate() {
+  try {
+    const plate = readRootVar('--abs-wall-shadow-plate');
+    if (!plate || plate === 'none') {
+      document.body?.classList.remove('wall-shadow-plate-ready');
+    }
+  } catch {}
+}
+
 function schedulePlateRegeneration(cfg, { force = false } = {}) {
   if (!cfg.wallShadowPlateEnabled) {
     clearPlate({ disableFallback: true });
@@ -458,6 +467,7 @@ function bindResizeListeners() {
 }
 
 export function initWallShadowPlateSystem(initialConfig = {}) {
+  clearStaleReadyClassWithoutPlate();
   current = mergeConfig(initialConfig);
   initialized = true;
   bindResizeListeners();

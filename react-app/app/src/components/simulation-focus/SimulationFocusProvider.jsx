@@ -57,6 +57,41 @@ function replaceCurrentUrl(href) {
   }
 }
 
+function applyHomeMode(mode) {
+  return import('../../legacy/modules/modes/mode-controller.js')
+    .then((module) => module.setMode(mode));
+}
+
+function applyHomeModeWhenReady(mode) {
+  if (typeof window === 'undefined') {
+    return applyHomeMode(mode);
+  }
+
+  let settled = false;
+  let fallbackTimer = 0;
+
+  const cleanup = () => {
+    window.removeEventListener('abs:route-ready', handleRouteReady);
+    if (fallbackTimer) {
+      window.clearTimeout(fallbackTimer);
+      fallbackTimer = 0;
+    }
+  };
+  const applyOnce = () => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    void applyHomeMode(mode);
+  };
+  function handleRouteReady(event) {
+    if (event?.detail?.routeId !== 'home') return;
+    applyOnce();
+  }
+
+  window.addEventListener('abs:route-ready', handleRouteReady);
+  fallbackTimer = window.setTimeout(applyOnce, 1400);
+}
+
 function getFocusableElements(container) {
   if (!container) return [];
   return Array.from(container.querySelectorAll(
@@ -87,9 +122,14 @@ export function SimulationFocusProvider({
 
   useEffect(() => {
     routeIdRef.current = routeId;
-    setHomeMode(readUrlMode());
-    setOptimisticActiveId(null);
-    refreshFocusState();
+    const syncTimer = window.setTimeout(() => {
+      setHomeMode(readUrlMode());
+      setOptimisticActiveId(null);
+      refreshFocusState();
+    }, 0);
+    return () => {
+      window.clearTimeout(syncTimer);
+    };
   }, [refreshFocusState, routeId, surfaceRouteId]);
 
   useEffect(() => {
@@ -120,7 +160,7 @@ export function SimulationFocusProvider({
     };
   }, [refreshFocusState]);
 
-  const routeIsDailyFocus = DAILY_FOCUS_ID_SET.has(surfaceRouteId);
+  const routeIsDailyFocus = routeId === 'home' && DAILY_FOCUS_ID_SET.has(surfaceRouteId);
   const activeId = optimisticActiveId
     || (routeIsDailyFocus ? surfaceRouteId : null)
     || (routeId === 'home' && DAILY_FOCUS_ID_SET.has(homeMode) ? homeMode : null)
@@ -130,6 +170,14 @@ export function SimulationFocusProvider({
     || DAILY_FOCUS_SIMULATIONS[0]
     || null;
   const shouldShowSwitcher = routeId === 'home' || routeIsDailyFocus;
+
+  useEffect(() => {
+    if (!routeIsDailyFocus) return;
+    const target = getSimulationLaunchTarget(surfaceRouteId);
+    if (target?.routeBacked) {
+      replaceCurrentUrl(buildRouteHref('home'));
+    }
+  }, [routeIsDailyFocus, surfaceRouteId]);
 
   const closeChooser = useCallback((options = {}) => {
     const { restoreFocus = true } = options;
@@ -199,13 +247,17 @@ export function SimulationFocusProvider({
 
         if (routeIsDailyFocus) {
           setHomeMode(target.mode);
-          replaceCurrentUrl(cleanHomeHref);
+          const didNavigate = trySpaNavigate(cleanHomeHref, { replace: true });
+          if (!didNavigate) {
+            window.location.assign(cleanHomeHref);
+            return;
+          }
+          applyHomeModeWhenReady(target.mode);
           return;
         }
 
         if (routeIdRef.current === 'home') {
-          void import('../../legacy/modules/modes/mode-controller.js')
-            .then((module) => module.setMode(target.mode))
+          void applyHomeMode(target.mode)
             .then((applied) => {
               if (applied !== false) {
                 replaceCurrentUrl(cleanHomeHref);
@@ -222,7 +274,9 @@ export function SimulationFocusProvider({
 
       commitFocusChoice();
       setHomeMode(null);
-      replaceCurrentUrl(cleanHomeHref);
+      if (!trySpaNavigate(target.href)) {
+        window.location.assign(target.href);
+      }
     }, CHOOSER_CLOSE_SETTLE_MS);
 
     return true;

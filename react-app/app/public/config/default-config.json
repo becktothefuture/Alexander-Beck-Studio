@@ -1,6 +1,6 @@
 {
   "liteModeEnabled": false,
-  "chromeHarmonyMode": "site",
+  "chromeHarmonyMode": "auto",
   "autoDarkModeEnabled": true,
   "cornerShapeSquircleEnabled": true,
   "ballMassKg": 240,
@@ -86,8 +86,8 @@
   "simulationPaddingVw": 0.2,
   "bgLight": "#f5f5f5",
   "bgDark": "#202020",
-  "textColorLight": "#f0f0f0",
-  "textColorLightMuted": "#c8c8c8",
+  "textColorLight": "#161616",
+  "textColorLightMuted": "#2f2f2f",
   "textColorDark": "#f0f0f0",
   "textColorDarkMuted": "#c8c8c8",
   "linkHoverColor": "#f03030",

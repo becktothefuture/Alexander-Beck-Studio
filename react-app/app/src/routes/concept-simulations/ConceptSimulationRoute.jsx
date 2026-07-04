@@ -11,7 +11,6 @@ const ConceptSimulationDemo = lazy(() => (
 ));
 
 export const APERTURE_BLOOM_ROUTE_RUNTIME = {};
-export const PRESSURE_MOSAIC_ROUTE_RUNTIME = {};
 export const CONFLUENCE_BRIDGES_ROUTE_RUNTIME = {};
 export const NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME = {};
 export const SPATIAL_SCAN_ROUTE_RUNTIME = {};
@@ -46,10 +45,6 @@ function getConceptSimulationRouteView(simulationId) {
 
 export function getApertureBloomRouteView() {
   return getConceptSimulationRouteView(CONCEPT_SIMULATION_IDS.APERTURE_BLOOM);
-}
-
-export function getPressureMosaicRouteView() {
-  return getConceptSimulationRouteView(CONCEPT_SIMULATION_IDS.PRESSURE_MOSAIC);
 }
 
 export function getConfluenceBridgesRouteView() {

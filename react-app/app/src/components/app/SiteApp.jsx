@@ -25,10 +25,8 @@ import {
   getApertureBloomRouteView,
   getConfluenceBridgesRouteView,
   getNapoleonPointCloudRouteView,
-  getPressureMosaicRouteView,
   getSpatialScanRouteView,
   NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME,
-  PRESSURE_MOSAIC_ROUTE_RUNTIME,
   SPATIAL_SCAN_ROUTE_RUNTIME,
 } from '../../routes/concept-simulations/ConceptSimulationRoute.jsx';
 import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
@@ -58,7 +56,6 @@ const ROUTE_VIEW_BY_ID = {
   'wall-repel': getWallRepelRouteView,
   'mineral-growth': getMineralGrowthRouteView,
   'aperture-bloom': getApertureBloomRouteView,
-  'pressure-mosaic': getPressureMosaicRouteView,
   'confluence-bridges': getConfluenceBridgesRouteView,
   'napoleon-point-cloud': getNapoleonPointCloudRouteView,
   'spatial-scan': getSpatialScanRouteView,
@@ -77,7 +74,6 @@ const ROUTE_RUNTIME_BY_ID = {
   'wall-repel': WALL_REPEL_ROUTE_RUNTIME,
   'mineral-growth': MINERAL_GROWTH_ROUTE_RUNTIME,
   'aperture-bloom': APERTURE_BLOOM_ROUTE_RUNTIME,
-  'pressure-mosaic': PRESSURE_MOSAIC_ROUTE_RUNTIME,
   'confluence-bridges': CONFLUENCE_BRIDGES_ROUTE_RUNTIME,
   'napoleon-point-cloud': NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME,
   'spatial-scan': SPATIAL_SCAN_ROUTE_RUNTIME,

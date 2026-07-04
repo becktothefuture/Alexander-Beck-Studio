@@ -31,7 +31,7 @@ export function getDailyFocusRouteView(routeId) {
 
   return {
     ...homeView,
-    bodyClass: 'body daily-focus-page noise-ready wall-shadow-plate-ready',
+    bodyClass: 'body daily-focus-page noise-ready',
     htmlClassName: 'js-enabled abs-home-post-boot-complete',
     legacyRuntime: false,
     routeRenderKey: routeId,
