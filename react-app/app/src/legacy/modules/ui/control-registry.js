@@ -270,6 +270,9 @@ export const MASTER_GROUPS = [
     id: 'studio',
     title: 'Studio',
     icon: '✨',
+    layer: '01',
+    layerName: 'Base Finish',
+    layerRole: 'Theme, palette, surface material',
     sections: [
       'colors',
       'colorDistribution'
@@ -279,6 +282,9 @@ export const MASTER_GROUPS = [
     id: 'lightGroup',
     title: 'Light',
     icon: '💡',
+    layer: '02',
+    layerName: 'Lighting',
+    layerRole: 'Wall light and control highlights',
     sections: [
       'wallLight',
       'buttonLight'
@@ -288,6 +294,9 @@ export const MASTER_GROUPS = [
     id: 'shell',
     title: 'Shell',
     icon: '🧱',
+    layer: '03',
+    layerName: 'Frame',
+    layerRole: 'Wall geometry, stack, noise, spacing',
     sections: [
       'wallGeometry',
       'layers',
@@ -299,6 +308,9 @@ export const MASTER_GROUPS = [
     id: 'puck',
     title: 'Puck',
     icon: '🔘',
+    layer: '04',
+    layerName: 'Quote Object',
+    layerRole: 'Quote button shape and material',
     sections: [
       'puckLight'
     ]
@@ -307,6 +319,9 @@ export const MASTER_GROUPS = [
     id: 'simulations',
     title: 'Simulations',
     icon: '⚡',
+    layer: '05',
+    layerName: 'Simulation Wall',
+    layerRole: 'Mode, performance, physics, scene',
     sections: [
       'liteMode',
       'physics',
@@ -317,6 +332,9 @@ export const MASTER_GROUPS = [
     id: 'ballsGroup',
     title: 'Balls',
     icon: '🎱',
+    layer: '06',
+    layerName: 'Canvas Objects',
+    layerRole: 'Ball appearance and mode dials',
     sections: [
       'balls'
     ]
@@ -325,12 +343,19 @@ export const MASTER_GROUPS = [
     id: 'audio',
     title: 'Audio',
     icon: '🔊',
+    layer: '07',
+    layerName: 'Sound',
+    layerRole: 'Audio controls',
+    categories: ['SOUND'],
     sections: []
   },
   {
     id: 'advanced',
     title: 'Advanced',
     icon: '🧪',
+    layer: '08',
+    layerName: 'Overlay Runtime',
+    layerRole: 'Cursor, links, overlays, entrance',
     sections: [
       'cursor',
       'links',
@@ -382,6 +407,62 @@ const SECTION_CATEGORIES = {
   'entrance': 'ENTRANCE',
   'environment': 'BROWSER'
 };
+
+function uniqueItems(items) {
+  return Array.from(new Set(items.filter(Boolean)));
+}
+
+function getSectionCategory(sectionKey) {
+  return SECTION_CATEGORIES[sectionKey] || '';
+}
+
+function getGroupCategories(group) {
+  return uniqueItems([...(group.categories || []), ...(group.sections || []).map(getSectionCategory)]);
+}
+
+function renderCategoryChips(categories) {
+  if (!categories.length) return '';
+  return `<div class="panel-layer-categories" aria-label="Layer categories">
+    ${categories.map((category) => `<span class="panel-layer-category">${escapeAttr(category)}</span>`).join('')}
+  </div>`;
+}
+
+function renderLayerMap(groups) {
+  if (!groups.length) return '';
+  return `
+    <div class="panel-layer-map" aria-label="Configuration layers">
+      <div class="panel-layer-map__header">
+        <span class="panel-layer-map__eyebrow">Layered Config</span>
+        <span class="panel-layer-map__count">${groups.length} layers</span>
+      </div>
+      <div class="panel-layer-map__list">
+        ${groups.map((group) => `
+          <a class="panel-layer-map__item" href="#panel-layer-${escapeAttr(group.id)}">
+            <span class="panel-layer-map__index">${escapeAttr(group.layer || '')}</span>
+            <span class="panel-layer-map__name">${escapeAttr(group.title)}</span>
+          </a>
+        `).join('')}
+      </div>
+    </div>`;
+}
+
+function renderMasterGroupSummary(group) {
+  const categories = getGroupCategories(group);
+  const categoryChips = renderCategoryChips(categories);
+  return `
+    <summary class="panel-master-group-header">
+      <span class="panel-master-layer-index">${escapeAttr(group.layer || '')}</span>
+      <span class="panel-master-group-main">
+        <span class="panel-master-group-title-row">
+          ${group.icon ? `<span class="panel-master-group-icon">${group.icon}</span>` : ''}
+          <span class="panel-master-group-title">${escapeAttr(group.title)}</span>
+          ${group.layerName ? `<span class="panel-master-layer-name">${escapeAttr(group.layerName)}</span>` : ''}
+        </span>
+        ${group.layerRole ? `<span class="panel-master-layer-role">${escapeAttr(group.layerRole)}</span>` : ''}
+        ${categoryChips}
+      </span>
+    </summary>`;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // WALL SHADOW PRESETS - Realistic shadow configurations
@@ -5852,10 +5933,12 @@ function generateSectionHTML(key, section) {
   // Wrap in the unified accordion style used by the master panel
   // (single scroll container in `.panel-content`, no nested overflow traps)
   const detailsAttrs = `${section.defaultOpen ? 'open' : ''}`;
+  const category = getSectionCategory(key);
   const header = `
     <summary class="panel-section-header">
       ${section.icon ? `<span class="section-icon">${section.icon}</span>` : ''}
       <span class="section-label">${section.title}</span>
+      ${category ? `<span class="section-category">${escapeAttr(category)}</span>` : ''}
     </summary>`;
   const body = `<div class="panel-section-content">${html}</div>`;
 
@@ -5972,10 +6055,12 @@ function generateWallSectionHTML(sectionKey, section) {
   </div>`;
 
   const detailsAttrs = `${section.defaultOpen ? 'open' : ''}`;
+  const category = getSectionCategory(sectionKey);
   const header = `
     <summary class="panel-section-header">
       ${section.icon ? `<span class="section-icon">${section.icon}</span>` : ''}
       <span class="section-label">${section.title}</span>
+      ${category ? `<span class="section-category">${escapeAttr(category)}</span>` : ''}
     </summary>`;
 
   return `
@@ -6106,7 +6191,7 @@ export function generateMasterSectionsHTML(options = {}) {
   const groups = Array.isArray(groupIds) && groupIds.length > 0
     ? MASTER_GROUPS.filter((group) => groupIds.includes(group.id))
     : MASTER_GROUPS;
-  let html = '';
+  let html = renderLayerMap(groups);
 
   for (const group of groups) {
     const openAttr = group.defaultOpen ? 'open' : '';
@@ -6114,11 +6199,8 @@ export function generateMasterSectionsHTML(options = {}) {
     // Check if this group has replacement content
     if (replace[group.id]) {
       html += `
-      <details class="panel-master-group" data-group-id="${group.id}" ${openAttr}>
-        <summary class="panel-master-group-header">
-          ${group.icon ? `<span class="panel-master-group-icon">${group.icon}</span>` : ''}
-          <span class="panel-master-group-title">${group.title}</span>
-        </summary>
+      <details id="panel-layer-${escapeAttr(group.id)}" class="panel-master-group" data-group-id="${escapeAttr(group.id)}" data-panel-layer="${escapeAttr(group.layer || '')}" ${openAttr}>
+        ${renderMasterGroupSummary(group)}
         <div class="panel-master-group-content">
           ${replace[group.id]}
         </div>
@@ -6150,11 +6232,8 @@ export function generateMasterSectionsHTML(options = {}) {
     if (!groupContent) continue;
 
     html += `
-      <details class="panel-master-group" data-group-id="${group.id}" ${openAttr}>
-        <summary class="panel-master-group-header">
-          ${group.icon ? `<span class="panel-master-group-icon">${group.icon}</span>` : ''}
-          <span class="panel-master-group-title">${group.title}</span>
-        </summary>
+      <details id="panel-layer-${escapeAttr(group.id)}" class="panel-master-group" data-group-id="${escapeAttr(group.id)}" data-panel-layer="${escapeAttr(group.layer || '')}" ${openAttr}>
+        ${renderMasterGroupSummary(group)}
         <div class="panel-master-group-content">
           ${groupContent}
         </div>
