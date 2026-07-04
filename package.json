@@ -27,6 +27,7 @@
     "audit:canvas-spa:quick" : "ABS_SPA_ROUNDS=2 ABS_AUDIT_QUIET=1 node scripts\/audit-canvas-spa.mjs",
     "audit:boot-overlay" : "node scripts\/audit-boot-overlay.mjs",
     "audit:home-daily" : "node scripts\/audit-home-daily-mode.mjs",
+    "audit:palette-surface-contract" : "node scripts\/audit-palette-surface-contract.mjs",
     "audit:daily-simulation-boundary" : "node scripts\/audit-daily-focus-boundary.mjs",
     "audit:daily-simulation-shell-matrix" : "node scripts\/audit-daily-focus-shell-matrix.mjs",
     "audit:daily-simulation-color-matrix" : "node scripts\/audit-daily-focus-color-matrix.mjs",

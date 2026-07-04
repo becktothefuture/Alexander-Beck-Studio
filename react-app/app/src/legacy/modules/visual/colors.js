@@ -3,12 +3,11 @@ import { forEachPanelUiDocument } from '../ui/panel-ui-context.js';
 import {
   DEFAULT_LONDON_WEATHER_PALETTE_ID,
   LONDON_WEATHER_PALETTES,
-  getLondonWeatherPaletteTheme,
+  getLondonWeatherPaletteAccents,
   resolveLondonWeatherPaletteId,
 } from '../../../palette/londonPalettes.js';
 import { getLondonWeatherPaletteIdFromAssessment } from '../../../weather/londonWeatherAssessment.js';
 import { invalidateDepthWashCache } from './depth-wash.js';
-import { syncShellToDocument } from './site-shell.js';
 
 function clamp01(t) {
   const n = Number(t);
@@ -721,61 +720,25 @@ export function getProjectPaletteColor(index) {
 function applyPaletteTheme(templateName) {
   const globals = getGlobals();
   const root = document.documentElement;
-  const body = document.body;
   const isDark = Boolean(globals.isDarkMode);
-  const theme = getLondonWeatherPaletteTheme(templateName);
-  if (!theme || !root) return;
+  const accents = getLondonWeatherPaletteAccents(templateName);
+  if (!accents || !root) return;
 
   globals.frameColor = isDark ? globals.frameColorDark : globals.frameColorLight;
-  globals.linkHoverColor = theme.linkHoverColor || globals.linkHoverColor;
-  syncShellToDocument({ isDark });
+  globals.linkHoverColor = accents.linkHoverColor || globals.linkHoverColor;
 
-  root.style.setProperty('--bg-light', globals.bgLight);
-  root.style.setProperty('--bg-dark', globals.bgDark);
-  root.style.setProperty('--text-color-light', globals.textColorLight);
-  root.style.setProperty('--text-color-light-muted', globals.textColorLightMuted);
-  root.style.setProperty('--text-color-dark', globals.textColorDark);
-  root.style.setProperty('--text-color-dark-muted', globals.textColorDarkMuted);
   root.style.setProperty('--link-hover-color', globals.linkHoverColor);
-  root.style.setProperty('--color-accent', theme.colorAccent || globals.linkHoverColor);
-  root.style.setProperty('--text-logo', isDark ? globals.textColorDark : globals.textColorLight);
-  root.style.setProperty('--hero-role-accent', theme.heroRoleAccent || globals.linkHoverColor);
-  root.style.setProperty('--noise-color-light', globals.noiseColorLight);
-  root.style.setProperty('--noise-color-dark', globals.noiseColorDark);
+  root.style.setProperty('--color-accent', accents.colorAccent || globals.linkHoverColor);
+  root.style.setProperty('--hero-role-accent', accents.heroRoleAccent || globals.linkHoverColor);
 
-  const activePrimary = isDark
-    ? globals.textColorDark
-    : globals.textColorLight;
-  const activeSecondary = isDark
-    ? globals.textColorDarkMuted
-    : globals.textColorLightMuted;
-  const activeMuted = isDark
-    ? globals.textColorDarkMuted
-    : globals.textColorLightMuted;
-
-  root.style.setProperty('--abs-fg-primary', activePrimary);
-  root.style.setProperty('--abs-fg-secondary', activeSecondary);
-  root.style.setProperty('--abs-fg-muted', activeMuted);
-
-  const panelBg = isDark ? globals.bgDark : globals.bgLight;
-  const panelCard = isDark ? globals.frameColorDark : globals.wallBaseLight;
   const panelFg = isDark ? globals.textColorDark : globals.textColorLight;
-  const panelMutedFg = isDark ? globals.textColorDarkMuted : globals.textColorLightMuted;
-  const panelBrand = theme.panelBrand || theme.colorAccent || globals.linkHoverColor;
+  const panelBrand = accents.panelBrand || accents.colorAccent || globals.linkHoverColor;
   const panelAccent = globals.linkHoverColor;
   const panelActionFg = computeSafeTextOnCursorColor(panelBrand) || panelFg;
 
   const panelVars = {
-    '--panel-background': hexToRgbaString(panelBg, isDark ? 0.84 : 0.82),
-    '--panel-foreground': panelFg,
-    '--panel-card': hexToRgbaString(panelCard, isDark ? 0.96 : 0.98),
-    '--panel-card-foreground': panelFg,
-    '--panel-muted': hexToRgbaString(panelFg, isDark ? 0.09 : 0.06),
-    '--panel-muted-foreground': panelMutedFg,
     '--panel-accent': hexToRgbaString(panelAccent, isDark ? 0.2 : 0.14),
     '--panel-accent-foreground': panelFg,
-    '--panel-border': hexToRgbaString(panelFg, isDark ? 0.18 : 0.12),
-    '--panel-input': hexToRgbaString(panelFg, isDark ? 0.16 : 0.1),
     '--panel-ring': panelAccent,
     '--panel-primary': panelAccent,
     '--panel-primary-foreground': computeSafeTextOnCursorColor(panelAccent) || panelFg,
@@ -785,17 +748,10 @@ function applyPaletteTheme(templateName) {
 
   Object.entries(panelVars).forEach(([name, value]) => {
     root.style.setProperty(name, value);
-    if (body) body.style.setProperty(name, value);
+    if (document.body) document.body.style.setProperty(name, value);
   });
 
   invalidateDepthWashCache();
-
-  try {
-    import('./noise-system.js').then(({ applyNoiseSystem }) => applyNoiseSystem({}));
-  } catch (_) { /* no-op */ }
-  try {
-    import('./wall-shadow-plate.js').then(({ applyWallShadowPlateSystem }) => applyWallShadowPlateSystem({}));
-  } catch (_) { /* no-op */ }
 }
 
 export function applyColorTemplate(templateName) {

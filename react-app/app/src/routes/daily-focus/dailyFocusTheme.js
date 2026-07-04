@@ -59,9 +59,9 @@ export function resolveDailyFocusTheme(designSystem) {
   const palette = getLondonWeatherPalette(paletteId);
 
   return {
-    light: runtime.bgLight || shellTheme.wallBaseLight || palette?.theme?.wallBaseLight || DEFAULT_DAILY_FOCUS_THEME.light,
-    dark: runtime.bgDark || shellTheme.wallBaseDark || palette?.theme?.wallBaseDark || DEFAULT_DAILY_FOCUS_THEME.dark,
-    active: runtime.bgDark || shellTheme.wallBaseDark || palette?.theme?.wallBaseDark || DEFAULT_DAILY_FOCUS_THEME.active,
+    light: runtime.bgLight || shellTheme.wallBaseLight || DEFAULT_DAILY_FOCUS_THEME.light,
+    dark: runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_DAILY_FOCUS_THEME.dark,
+    active: runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_DAILY_FOCUS_THEME.active,
     palette: Array.isArray(palette?.dark) ? palette.dark : DEFAULT_DAILY_FOCUS_THEME.palette,
     colorDistribution: Array.isArray(runtime.colorDistribution)
       ? runtime.colorDistribution

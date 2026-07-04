@@ -6,10 +6,10 @@
 import { CONSTANTS, MODES } from './constants.js';
 import { readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
 import { getLondonWeatherPaletteFromAssessment } from '../../../weather/londonWeatherAssessment.js';
-import { getLondonWeatherPaletteTheme } from '../../../palette/londonPalettes.js';
+import { getLondonWeatherPaletteAccents } from '../../../palette/londonPalettes.js';
 
 const assessedPalette = getLondonWeatherPaletteFromAssessment();
-const assessedTheme = getLondonWeatherPaletteTheme(assessedPalette?.id) || {};
+const assessedAccents = getLondonWeatherPaletteAccents(assessedPalette?.id) || {};
 
 // Helper: Convert hex color to "r, g, b" string for CSS rgba()
 function hexToRgbString(hex) {
@@ -757,7 +757,7 @@ const state = {
   depthWashEdgeAlphaDark: 0.8,
   
   // Link Colors
-  linkHoverColor: assessedTheme.linkHoverColor || '#f03030',          // Link hover accent (shared)
+  linkHoverColor: assessedAccents.linkHoverColor || '#f03030',          // Link hover accent (shared)
 
   // Logo colors now derive from `--text-primary` in CSS (same for index + portfolio).
   // Logo sizing + index main link placement (CSS vars)

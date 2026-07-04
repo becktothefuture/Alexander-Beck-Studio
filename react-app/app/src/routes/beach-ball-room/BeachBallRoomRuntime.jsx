@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { getLondonWeatherPaletteTheme } from '../../palette/londonPalettes.js';
 import { getGlobals } from '../../legacy/modules/core/state.js';
 import {
   getCurrentPalette,
@@ -205,8 +204,6 @@ function resolvePalette() {
   const white = normalizeHexColor(colors[2], null) || resolvedApprovedColors[0];
   const blackAllowed = approvedIndices.includes(4);
   const stripeColors = buildStripColorSequence(resolvedApprovedColors, white, blackAllowed);
-  const theme = getLondonWeatherPaletteTheme(templateId) || {};
-
   return {
     id: templateId,
     approvedIndices,
@@ -214,7 +211,7 @@ function resolvePalette() {
     blackAllowed,
     stripColors: stripeColors.length ? stripeColors : resolvedApprovedColors,
     white,
-    roomLine: normalizeHexColor(theme.frameColorLight || theme.siteFrameLight || colors[4], '#07111b'),
+    roomLine: normalizeHexColor(colors[4], '#07111b'),
   };
 }
 

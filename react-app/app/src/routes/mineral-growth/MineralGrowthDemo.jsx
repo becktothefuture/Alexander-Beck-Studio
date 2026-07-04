@@ -80,9 +80,9 @@ function resolveMineralGrowthTheme(designSystem) {
   const palette = getLondonWeatherPalette(paletteId);
 
   return {
-    light: runtime.bgLight || shellTheme.wallBaseLight || palette?.theme?.wallBaseLight || DEFAULT_THEME_COLORS.light,
-    dark: runtime.bgDark || shellTheme.wallBaseDark || palette?.theme?.wallBaseDark || DEFAULT_THEME_COLORS.dark,
-    active: runtime.bgDark || shellTheme.wallBaseDark || palette?.theme?.wallBaseDark || DEFAULT_THEME_COLORS.active,
+    light: runtime.bgLight || shellTheme.wallBaseLight || DEFAULT_THEME_COLORS.light,
+    dark: runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_THEME_COLORS.dark,
+    active: runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_THEME_COLORS.active,
     palette: Array.isArray(palette?.dark) ? palette.dark : DEFAULT_THEME_COLORS.palette,
     colorDistribution: Array.isArray(runtime.colorDistribution)
       ? runtime.colorDistribution
