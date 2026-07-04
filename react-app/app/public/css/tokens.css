@@ -552,8 +552,8 @@
   --decorative-script-font-size: calc(var(--text-sm) + var(--abs-size-1px));
   --decorative-script-line-height: var(--line-height-base);
   --decorative-script-letter-spacing: var(--letter-spacing-normal);
-  --decorative-script-padding-left: var(--gap-md);
-  --decorative-script-padding-vertical: var(--gap-sm);
+  --decorative-script-padding-left: 0px;
+  --decorative-script-padding-vertical: 0px;
 
   --supporting-description-font-size: calc(var(--legend-font-size) + var(--abs-size-1px));
   --supporting-description-line-height: var(--decorative-script-line-height);

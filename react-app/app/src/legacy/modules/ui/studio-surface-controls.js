@@ -14,8 +14,8 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   sceneDepth: 0.14,
   sceneSoftness: 0.45,
   scriptMaxWidth: 431,
-  scriptPaddingX: 16,
-  scriptPaddingY: 10,
+  scriptPaddingX: 0,
+  scriptPaddingY: 0,
   quoteButtonSize: 224,
   quotePaddingX: 28,
   quotePaddingY: 24,
@@ -69,8 +69,8 @@ const SHELL_OBJECT_CONTROL_SECTIONS = [
     defaultOpen: false,
     controls: [
       { id: 'scriptMaxWidth', label: 'Script Width', min: 240, max: 520, step: 4, unit: 'px' },
-      { id: 'scriptPaddingX', label: 'Script Pad X', min: 8, max: 32, step: 1, unit: 'px' },
-      { id: 'scriptPaddingY', label: 'Script Pad Y', min: 4, max: 24, step: 1, unit: 'px' },
+      { id: 'scriptPaddingX', label: 'Script Pad X', min: 0, max: 32, step: 1, unit: 'px' },
+      { id: 'scriptPaddingY', label: 'Script Pad Y', min: 0, max: 24, step: 1, unit: 'px' },
       { id: 'edgeCaptionDistanceMin', label: 'Caption Near', min: 0, max: 24, step: 1, unit: 'px' },
       { id: 'edgeCaptionDistanceMax', label: 'Caption Far', min: 24, max: 80, step: 1, unit: 'px' },
     ],
@@ -197,8 +197,8 @@ export function applyStudioSurfaceConfig(config) {
   const sceneDepth = clamp(config.sceneDepth, 0, 0.28, DEFAULT_STUDIO_SURFACE_CONFIG.sceneDepth);
   const sceneSoftness = clamp(config.sceneSoftness, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.sceneSoftness);
   const scriptMaxWidth = clamp(config.scriptMaxWidth, 240, 520, DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth);
-  const scriptPaddingX = clamp(config.scriptPaddingX, 8, 32, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX);
-  const scriptPaddingY = clamp(config.scriptPaddingY, 4, 24, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingY);
+  const scriptPaddingX = clamp(config.scriptPaddingX, 0, 32, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX);
+  const scriptPaddingY = clamp(config.scriptPaddingY, 0, 24, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingY);
   const quoteButtonSize = clamp(config.quoteButtonSize, 120, 400, DEFAULT_STUDIO_SURFACE_CONFIG.quoteButtonSize);
   const quotePaddingX = clamp(config.quotePaddingX, 8, 48, DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingX);
   const quotePaddingY = clamp(config.quotePaddingY, 6, 40, DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingY);
