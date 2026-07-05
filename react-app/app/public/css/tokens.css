@@ -79,7 +79,7 @@
   --frame-vignette-dither-size: 72px;
   --frame-vignette-dither-opacity: 0.08;
   --simulation-contrast-veil-rgb: 245, 245, 245; /* JS stamps this from the active inner-wall background. */
-  --simulation-contrast-veil-opacity: 0.36;
+  --simulation-contrast-veil-opacity: 0.216;
   --simulation-contrast-veil-reach-x: 25vw;
   --simulation-contrast-veil-reach-y: 25vh;
   --simulation-contrast-veil-blur: clamp(42px, 7vmax, 120px);
@@ -225,12 +225,6 @@
   --abs-hover-snap-overshoot: 0.88;      /* Peak scale */
   --abs-hover-snap-undershoot: 0.78;     /* Small recoil before settling */
   --ease-soft-bounce: cubic-bezier(0.34, 1.38, 0.64, 1); /* Overshoot + soft settle */
-
-  /* Hover Pseudoelement Background Bounce (fade + scale on ::before backgrounds) */
-  --abs-hover-bg-bounce-enabled: 1;      /* 1 = on, 0 = off */
-  --abs-hover-bg-bounce-duration: 450ms; /* Total bounce duration */
-  --abs-hover-bg-bounce-overshoot: 0.92; /* Peak scale (more pronounced than button scale) */
-  --abs-hover-bg-bounce-end-size: 0.8;   /* Final settled scale */
 
   /* Typography Aliases */
   --text-xs: var(--abs-text-xs);
@@ -516,7 +510,8 @@
   --modal-overlay-transition-duration: 800ms;
   --modal-overlay-transition-out-duration: 600ms;
   --modal-content-delay: 200ms;
-  --modal-overlay-blur: 8px;
+  --modal-overlay-blur: 6.6px;
+  --modal-overlay-mobile-blur: 12px;
   --modal-depth-scale: 0.96;
   --modal-depth-translate-y: 8px;
   --modal-depth-duration: 800ms;
@@ -755,7 +750,7 @@
   --frame-vignette-edge-opacity: 0.66;
   --frame-vignette-ambient-opacity: 0.4;
   --simulation-contrast-veil-rgb: 32, 32, 32;
-  --simulation-contrast-veil-opacity: 0.58;
+  --simulation-contrast-veil-opacity: 0.348;
 
   /* Text — Dark mode overrides (JS may override --text-color-dark* from config) */
   --text-primary: var(--text-color-dark);

@@ -503,9 +503,7 @@ function createColorCache(theme) {
     active,
     backgroundTop: mixColor(active, lift, 0.025),
     backgroundBottom: mixColor(active, lift, 0.07),
-    shadow: rgbString(black, theme?.active === theme?.light ? 0.13 : 0.2),
     body: palette.map((color) => parseHexColor(color)),
-    highlight: palette.map((color) => mixColor(parseHexColor(color), white, 0.3)),
   };
 }
 
@@ -526,16 +524,6 @@ function drawState(ctx, state, metrics, theme, options = {}) {
     ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
   }
 
-  ctx.fillStyle = colors.shadow;
-  ctx.beginPath();
-  for (let i = 0; i < state.count; i += 1) {
-    const radius = state.radius[i] * getVisualScaleAt(i);
-    if (radius <= 0.05) continue;
-    ctx.moveTo(state.x[i] + radius + 1.5, state.y[i] + 2.4);
-    ctx.arc(state.x[i] + 1.5, state.y[i] + 2.4, radius * 1.01, 0, TAU);
-  }
-  ctx.fill();
-
   for (let colorIndex = 0; colorIndex < colors.body.length; colorIndex += 1) {
     ctx.fillStyle = rgbString(colors.body[colorIndex], 0.92);
     ctx.beginPath();
@@ -545,18 +533,6 @@ function drawState(ctx, state, metrics, theme, options = {}) {
       if (radius <= 0.05) continue;
       ctx.moveTo(state.x[i] + radius, state.y[i]);
       ctx.arc(state.x[i], state.y[i], radius, 0, TAU);
-    }
-    ctx.fill();
-
-    ctx.fillStyle = rgbString(colors.highlight[colorIndex], 0.12);
-    ctx.beginPath();
-    for (let i = 0; i < state.count; i += 1) {
-      if (state.colorIndex[i] !== colorIndex) continue;
-      const bodyRadius = state.radius[i] * getVisualScaleAt(i);
-      if (bodyRadius <= 0.05) continue;
-      const radius = bodyRadius * 0.28;
-      ctx.moveTo(state.x[i] - bodyRadius * 0.2 + radius, state.y[i] - bodyRadius * 0.24);
-      ctx.arc(state.x[i] - bodyRadius * 0.2, state.y[i] - bodyRadius * 0.24, radius, 0, TAU);
     }
     ctx.fill();
   }
@@ -592,7 +568,7 @@ export function createWallRepelRenderer({
   const visualTransition = createIndexedSimulationVisualTransition({
     sourceId: 'wall-repel',
     getCount: () => state?.count || 0,
-    requestRender: () => render(performance.now()),
+    requestRender: () => paintCurrentState(),
     getSeed: () => 0x43f17a91,
   });
   unregisterVisualTransition = registerSimulationVisualTransition('wall-repel', visualTransition);
@@ -626,13 +602,27 @@ export function createWallRepelRenderer({
     }
   }
 
-  function render(now = performance.now()) {
+  function syncFrameState() {
     const config = getConfig();
     const theme = getTheme();
     const dpr = resolveDpr(config);
     metrics = resizeCanvasToDisplaySize(canvas, dpr);
     ensureState(config, theme);
+    return { config, theme };
+  }
 
+  function paintCurrentState() {
+    const startedAt = performance.now();
+    const { theme } = syncFrameState();
+    drawState(ctx, state, metrics, theme, {
+      transparentBackground,
+      getVisualScaleAt: visualTransition.getScaleAt,
+    });
+    lastRenderMs = performance.now() - startedAt;
+  }
+
+  function render(now = performance.now()) {
+    const { config, theme } = syncFrameState();
     const deltaSeconds = lastUpdateAt > 0
       ? clamp((now - lastUpdateAt) / 1000, 0.001, 0.045)
       : 1 / 60;

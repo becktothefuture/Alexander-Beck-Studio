@@ -32,7 +32,7 @@ export function setupMasterControls(options = {}) {
   // ═══════════════════════════════════════════════════════════════════════════
   bindRegisteredControls({ uiDocument });
   // Match the panel UI to the live runtime state before the user saves/export.
-  syncSlidersToState({ uiDocument });
+  syncSlidersToState({ uiDocument, runOnChange: options.runOnChange });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // COLOR TEMPLATE SELECT — Special handling (not in registry)
@@ -78,7 +78,7 @@ export function setupMasterControls(options = {}) {
  */
 export function setupIndexControls(options = {}) {
   const uiDocument = getUiDocument(options.uiDocument);
-  setupMasterControls({ uiDocument });
+  setupMasterControls({ uiDocument, runOnChange: options.runOnChange });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MODE BUTTONS — Dev-only override for testing
@@ -116,27 +116,27 @@ export function setupControls() {
  */
 export function updateModeButtonsUI(activeMode, options = {}) {
   const modeNames = {
-    'critters': 'Critters',
-    'pit': 'Ball Pit',
-    'flies': 'Flies to Light',
-    'weightless': 'Zero-G',
-    'water': 'Water Swimming',
-    'magnetic': 'Magnetic',
-    'bubbles': 'Carbonated Bubbles',
-    'kaleidoscope-3': 'Kaleidoscope',
-    'parallax-float': 'Parallax (Float)',
-    '3d-sphere': '3D Sphere',
-    '3d-cube': '3D Cube',
-    'starfield-3d': '3D Starfield',
-    'elastic-center': 'Tension Loom',
-    'flock-of-birds': 'Flock of Birds',
+    'critters': 'Critter Swarm',
+    'pit': 'Ball Field',
+    'flies': 'Light Swarm',
+    'weightless': 'Weightless Drift',
+    'water': 'Water Flow',
+    'magnetic': 'Magnetic Field',
+    'bubbles': 'Bubble Lift',
+    'kaleidoscope-3': 'Kaleido Bloom',
+    'parallax-float': 'Parallax Drift',
+    '3d-sphere': 'Sphere Orbit',
+    '3d-cube': 'Cube Frame',
+    'starfield-3d': 'Star Field',
+    'elastic-center': 'Elastic Loom',
+    'flock-of-birds': 'Flock Drift',
     'wall-repel': 'Repel Room',
     'aperture-bloom': 'Aperture Bloom',
-    'mineral-growth': 'Mineral Growth',
+    'mineral-growth': 'Mineral Bloom',
     'weave-field': 'Weave Field',
-    'pressure-crucible': 'Polarity Flux',
+    'pressure-crucible': 'Pressure Field',
     'particle-fountain': 'Particle Fountain',
-    'napoleon-point-cloud': 'Napoleon Point Cloud'
+    'napoleon-point-cloud': 'Bust Cloud'
   };
 
   const applyModeUi = (uiDocument) => {

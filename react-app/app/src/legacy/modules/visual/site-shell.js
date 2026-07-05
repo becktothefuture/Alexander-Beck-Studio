@@ -80,7 +80,8 @@ const DEFAULT_SHELL_CONFIG = {
     simulationWarmupFrames: 90,
     allowScaleEntrance: false,
     modalOverlayOpacity: 0,
-    modalOverlayBlurPx: 5.5,
+    modalOverlayBlurPx: 6.6,
+    modalOverlayMobileBlurPx: 12,
     modalOverlayTransitionMs: 700,
     modalOverlayTransitionOutMs: 500,
     modalOverlayContentDelayMs: 200,
@@ -360,6 +361,7 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--abs-content-reveal-ms', `${motion.contentRevealMs}ms`);
   root.style.setProperty('--modal-overlay-opacity', String(motion.modalOverlayOpacity));
   root.style.setProperty('--modal-overlay-blur', `${motion.modalOverlayBlurPx}px`);
+  root.style.setProperty('--modal-overlay-mobile-blur', `${motion.modalOverlayMobileBlurPx ?? motion.modalOverlayBlurPx}px`);
   root.style.setProperty('--modal-overlay-transition-duration', `${motion.modalOverlayTransitionMs}ms`);
   root.style.setProperty('--modal-overlay-transition-out-duration', `${motion.modalOverlayTransitionOutMs}ms`);
   root.style.setProperty('--modal-content-delay', `${motion.modalOverlayContentDelayMs}ms`);
@@ -544,6 +546,7 @@ export function getModalChromeConfig(config = currentShellConfig) {
   return {
     modalOverlayOpacity: motion.modalOverlayOpacity,
     modalOverlayBlurPx: motion.modalOverlayBlurPx,
+    modalOverlayMobileBlurPx: motion.modalOverlayMobileBlurPx,
     modalOverlayTransitionMs: motion.modalOverlayTransitionMs,
     modalOverlayTransitionOutMs: motion.modalOverlayTransitionOutMs,
     modalOverlayContentDelayMs: motion.modalOverlayContentDelayMs,

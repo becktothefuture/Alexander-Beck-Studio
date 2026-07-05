@@ -4234,22 +4234,6 @@ body.abs-link-hovering #custom-cursor {
   100% { transform: scale(1); }
 }
 
-/* Pseudoelement background bounce: fade in + scale bounce */
-@keyframes absHoverBgBounce {
-  0%   { 
-    opacity: 0; 
-    transform: scale(0.72); 
-  }
-  40%  { 
-    opacity: 1; 
-    transform: scale(var(--abs-hover-bg-bounce-overshoot, 0.92)); 
-  }
-  100% { 
-    opacity: 1; 
-    transform: scale(var(--abs-hover-bg-bounce-end-size, 0.8)); 
-  }
-}
-
 /* Power Transfer: transition-only, prominent hover-out (no “disappear”) */
 :is(.footer_link, .abs-icon-btn, .abs-meta-btn, #site-year) {
   transform: translateZ(0);
@@ -4676,7 +4660,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   --simulation-focus-list-width: min(100%, 24rem);
   --simulation-focus-list-gutter: clamp(12px, 4vw, 18px);
   --simulation-focus-scroll-fade: clamp(32px, 7svh, 68px);
-  --simulation-focus-ink: var(--text-color-dark, #f0f0f0);
+  --simulation-focus-ink: var(--text-primary);
   position: absolute;
   inset: 0;
   width: 100%;
@@ -4730,10 +4714,6 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   letter-spacing: 0;
   padding: 0;
   text-align: center;
-}
-
-body:not(.dark-mode) .simulation-focus-modal .simulation-focus-modal__title {
-  color: var(--simulation-focus-ink);
 }
 
 .simulation-focus-list {
@@ -4827,21 +4807,34 @@ body:not(.dark-mode) .simulation-focus-modal .simulation-focus-modal__title {
   z-index: 1;
 }
 
-.simulation-focus-row:hover,
 .simulation-focus-row:focus-visible,
-.simulation-focus-row[aria-current='true'] {
+.simulation-focus-row:active {
   color: var(--cursor-hover-fg, var(--text-primary));
 }
 
-.simulation-focus-row:hover::before,
 .simulation-focus-row:focus-visible::before,
-.simulation-focus-row[aria-current='true']::before {
+.simulation-focus-row:active::before {
   opacity: 1;
   transform: scale(1);
   transition:
     transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
     opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
     background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .simulation-focus-row:hover {
+    color: var(--cursor-hover-fg, var(--text-primary));
+  }
+
+  .simulation-focus-row:hover::before {
+    opacity: 1;
+    transform: scale(1);
+    transition:
+      transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
+      opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+      background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+  }
 }
 
 .simulation-focus-row:active {
@@ -4855,7 +4848,7 @@ body:not(.dark-mode) .simulation-focus-modal .simulation-focus-modal__title {
 }
 
 .simulation-focus-row[aria-current='true'] {
-  border-color: color-mix(in srgb, var(--cursor-color) 52%, transparent);
+  border-color: transparent;
   background: transparent;
 }
 
@@ -5652,6 +5645,14 @@ body.page-transitioning {
   transition: -webkit-backdrop-filter var(--modal-overlay-transition-duration, 850ms) var(--ease-gate-motion),
               backdrop-filter var(--modal-overlay-transition-duration, 850ms) var(--ease-gate-motion),
               background-color var(--modal-overlay-transition-duration, 850ms) var(--ease-gate-motion);
+}
+
+@media (max-width: 600px), (hover: none) and (pointer: coarse) {
+  #modal-blur-layer.active,
+  .modal-blur-layer.active {
+    -webkit-backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 12px)));
+    backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 12px)));
+  }
 }
 
 /* Layer 2: Content only - holds gates, centers them vertically */

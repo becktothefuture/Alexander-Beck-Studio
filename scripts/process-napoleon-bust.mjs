@@ -26,7 +26,7 @@ const DEFAULT_OUTPUT = resolve(ROOT_DIR, 'react-app/app/public/models/napoleon-b
 const DEFAULT_COUNTS = Object.freeze({ low: 5000, medium: 12000, high: 24000 });
 const MODEL_EXTENSIONS = new Set(['.glb', '.gltf', '.obj']);
 const SOURCE_ATTRIBUTION = Object.freeze({
-  title: 'The bust of Napoleon Bonaparte',
+  title: 'Classical bust face',
   creator: 'Virtual Museums of Małopolska',
   institution: 'National Museum in Kraków',
   license: 'Creative Commons Attribution 4.0 International',
@@ -779,7 +779,7 @@ async function main() {
     };
 
     await writeFile(join(args.output, 'meta.json'), `${JSON.stringify(meta, null, 2)}\n`, 'utf8');
-    console.log(`Wrote Napoleon point-cloud assets to ${args.output}`);
+    console.log(`Wrote bust point-cloud assets to ${args.output}`);
     console.log(`Source status: ${sourceStatus}`);
   } finally {
     if (cleanupDir && existsSync(cleanupDir)) {

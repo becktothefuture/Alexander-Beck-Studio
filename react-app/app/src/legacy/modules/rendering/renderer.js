@@ -464,7 +464,7 @@ export function resize() {
   const canvasHeight = containerHeight + CSS_EDGE_OVERFLOW + (canvasBleedCssPx * 2);
   
   // Canvas fills container - CSS handles mode-specific heights
-  // Ball Pit: CSS sets 150vh, Other modes: CSS sets 100%
+  // Ball Field: CSS sets 150vh, Other modes: CSS sets 100%
   const simHeight = canvasHeight;
   
   // Use adaptive DPR for performance (may be lower than device DPR on weak hardware)

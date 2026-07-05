@@ -1,4 +1,4 @@
-// Tension Loom: a draggable bead lattice that keeps the legacy `elastic-center`
+// Elastic Loom: a draggable bead lattice that keeps the legacy `elastic-center`
 // mode ID for compatibility.
 
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';

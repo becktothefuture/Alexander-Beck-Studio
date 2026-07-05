@@ -16,23 +16,20 @@ import {
 } from '../../data/simulationCatalog.js';
 import { buildRouteHref } from '../../lib/routes.js';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
+import {
+  dismissGateBackdrop,
+  ensureGateModalOverlay,
+  getGateModalCloseDurationMs,
+  prepareGateModalOpen,
+} from '../../legacy/modules/ui/gate-modal-shared.js';
 import { SimulationFocusContext, useSimulationFocus } from './SimulationFocusContext.js';
 import { SimulationIcon } from './SimulationIcon.jsx';
 
 const FOCUS_MODAL_ID = 'simulation-focus-modal';
 const CHOOSER_TITLE_ID = 'simulation-focus-modal-title';
-const CHOOSER_CLOSE_SETTLE_MS = 420;
+const SIMULATION_FOCUS_READY_FALLBACK_MS = 850;
 const DAILY_FOCUS_SIMULATIONS = Object.freeze(getDailyFocusSimulations());
 const DAILY_FOCUS_ID_SET = new Set(DAILY_FOCUS_SIMULATIONS.map((entry) => entry.id));
-
-let modalOverlayModulePromise = null;
-
-function getModalOverlayModule() {
-  if (!modalOverlayModulePromise) {
-    modalOverlayModulePromise = import('../../legacy/modules/ui/modal-overlay.js');
-  }
-  return modalOverlayModulePromise;
-}
 
 function readUrlMode() {
   if (typeof window === 'undefined') return null;
@@ -62,34 +59,26 @@ function applyHomeMode(mode) {
     .then((module) => module.setMode(mode));
 }
 
-function applyHomeModeWhenReady(mode) {
+function waitForHomeModeSurface(timeoutMs = 700) {
   if (typeof window === 'undefined') {
-    return applyHomeMode(mode);
+    return Promise.resolve();
   }
 
-  let settled = false;
-  let fallbackTimer = 0;
+  return new Promise((resolve) => {
+    const startedAt = performance.now();
+    const tick = () => {
+      const canvas = document.getElementById('c');
+      const hasDailyStage = Boolean(document.querySelector('.daily-simulation-layer'));
+      const canvasReady = Boolean(canvas && canvas.width >= 64 && canvas.height >= 64);
+      if ((canvasReady && !hasDailyStage) || performance.now() - startedAt >= timeoutMs) {
+        resolve();
+        return;
+      }
+      window.requestAnimationFrame(tick);
+    };
 
-  const cleanup = () => {
-    window.removeEventListener('abs:route-ready', handleRouteReady);
-    if (fallbackTimer) {
-      window.clearTimeout(fallbackTimer);
-      fallbackTimer = 0;
-    }
-  };
-  const applyOnce = () => {
-    if (settled) return;
-    settled = true;
-    cleanup();
-    void applyHomeMode(mode);
-  };
-  function handleRouteReady(event) {
-    if (event?.detail?.routeId !== 'home') return;
-    applyOnce();
-  }
-
-  window.addEventListener('abs:route-ready', handleRouteReady);
-  fallbackTimer = window.setTimeout(applyOnce, 1400);
+    window.requestAnimationFrame(tick);
+  });
 }
 
 function getFocusableElements(container) {
@@ -105,6 +94,7 @@ function getFocusableElements(container) {
 export function SimulationFocusProvider({
   routeId,
   surfaceRouteId = routeId,
+  transitionCurrentRoute = null,
   children,
 }) {
   const routeIdRef = useRef(routeId);
@@ -115,6 +105,7 @@ export function SimulationFocusProvider({
   const [optimisticActiveId, setOptimisticActiveId] = useState(null);
   const [isChooserOpen, setChooserOpen] = useState(false);
   const [isChooserClosing, setChooserClosing] = useState(false);
+  const [isChooserActive, setChooserActive] = useState(false);
 
   const refreshFocusState = useCallback(() => {
     setFocusState(getResolvedSimulationFocus());
@@ -185,12 +176,15 @@ export function SimulationFocusProvider({
       window.clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
+    const closeDurationMs = getGateModalCloseDurationMs();
+    setChooserActive(false);
     setChooserClosing(true);
     setChooserOpen(false);
+    dismissGateBackdrop();
     closeTimerRef.current = window.setTimeout(() => {
       setChooserClosing(false);
       closeTimerRef.current = null;
-    }, 360);
+    }, closeDurationMs);
     if (!restoreFocus) return;
 
     const restoreTriggerFocus = () => {
@@ -210,8 +204,13 @@ export function SimulationFocusProvider({
       closeTimerRef.current = null;
     }
     setChooserClosing(false);
+    setChooserActive(false);
     returnFocusRef.current = triggerElement;
     setChooserOpen(true);
+  }, []);
+
+  const markChooserOverlayReady = useCallback(() => {
+    setChooserActive(true);
   }, []);
 
   useEffect(() => () => {
@@ -232,8 +231,15 @@ export function SimulationFocusProvider({
     const target = getSimulationLaunchTarget(simulationId);
     if (!target) return false;
 
+    if (simulationId === activeId) {
+      closeChooser({ restoreFocus: false });
+      return true;
+    }
+
     setOptimisticActiveId(simulationId);
     closeChooser({ restoreFocus: false });
+
+    const closeSettleMs = getGateModalCloseDurationMs();
 
     window.setTimeout(() => {
       const cleanHomeHref = buildRouteHref('home');
@@ -243,44 +249,80 @@ export function SimulationFocusProvider({
       };
 
       if (target.surface === 'home-mode') {
-        commitFocusChoice();
-
-        if (routeIsDailyFocus) {
-          setHomeMode(target.mode);
-          const didNavigate = trySpaNavigate(cleanHomeHref, { replace: true });
-          if (!didNavigate) {
-            window.location.assign(cleanHomeHref);
-            return;
-          }
-          applyHomeModeWhenReady(target.mode);
-          return;
-        }
-
-        if (routeIdRef.current === 'home') {
-          void applyHomeMode(target.mode)
+        const applySelectedHomeMode = () => {
+          return waitForHomeModeSurface()
+            .then(() => {
+              setHomeMode(target.mode);
+              return applyHomeMode(target.mode);
+            })
             .then((applied) => {
               if (applied !== false) {
                 replaceCurrentUrl(cleanHomeHref);
               }
+              return applied;
             });
+        };
+
+        if (routeIsDailyFocus) {
+          const didNavigate = trySpaNavigate(cleanHomeHref, {
+            replace: true,
+            transitionStyle: 'simulation-focus',
+            readyFallbackMs: SIMULATION_FOCUS_READY_FALLBACK_MS,
+            onCommit: () => {
+              commitFocusChoice();
+              setHomeMode(target.mode);
+            },
+            afterRouteReady: applySelectedHomeMode,
+          });
+          if (!didNavigate) {
+            commitFocusChoice();
+            window.location.assign(cleanHomeHref);
+          }
           return;
         }
 
-        if (!trySpaNavigate(cleanHomeHref, { transitionStyle: 'simulation-focus', readyFallbackMs: 1100 })) {
+        if (routeIdRef.current === 'home') {
+          if (typeof transitionCurrentRoute === 'function'
+            && transitionCurrentRoute(() => {
+              commitFocusChoice();
+              return applySelectedHomeMode();
+            }, { transitionStyle: 'simulation-focus', readyFallbackMs: SIMULATION_FOCUS_READY_FALLBACK_MS })) {
+            return;
+          }
+
+          commitFocusChoice();
+          void applySelectedHomeMode();
+          return;
+        }
+
+        if (!trySpaNavigate(cleanHomeHref, {
+          transitionStyle: 'simulation-focus',
+          readyFallbackMs: SIMULATION_FOCUS_READY_FALLBACK_MS,
+          onCommit: () => {
+            commitFocusChoice();
+            setHomeMode(target.mode);
+          },
+          afterRouteReady: applySelectedHomeMode,
+        })) {
+          commitFocusChoice();
           window.location.assign(cleanHomeHref);
         }
         return;
       }
 
-      commitFocusChoice();
       setHomeMode(null);
-      if (!trySpaNavigate(target.href)) {
+      if (!trySpaNavigate(target.href, {
+        transitionStyle: 'simulation-focus',
+        readyFallbackMs: SIMULATION_FOCUS_READY_FALLBACK_MS,
+        onCommit: commitFocusChoice,
+      })) {
+        commitFocusChoice();
         window.location.assign(target.href);
       }
-    }, CHOOSER_CLOSE_SETTLE_MS);
+    }, closeSettleMs);
 
     return true;
-  }, [closeChooser, refreshFocusState, routeIsDailyFocus]);
+  }, [activeId, closeChooser, refreshFocusState, routeIsDailyFocus, transitionCurrentRoute]);
 
   const value = useMemo(() => ({
     activeId,
@@ -288,9 +330,11 @@ export function SimulationFocusProvider({
     closeChooser,
     dailyId: focusState.dailyId,
     dailySimulations: DAILY_FOCUS_SIMULATIONS,
+    isChooserActive,
     isChooserClosing,
     isChooserMounted: isChooserOpen || isChooserClosing,
     isChooserOpen,
+    markChooserOverlayReady,
     openChooser,
     routeId,
     surfaceRouteId,
@@ -304,8 +348,10 @@ export function SimulationFocusProvider({
     closeChooser,
     focusState.dailyId,
     focusState.selectedId,
+    isChooserActive,
     isChooserClosing,
     isChooserOpen,
+    markChooserOverlayReady,
     openChooser,
     routeId,
     surfaceRouteId,
@@ -355,46 +401,58 @@ export function SimulationFocusChooser() {
     activeId,
     closeChooser,
     dailySimulations,
+    isChooserActive,
     isChooserClosing,
     isChooserMounted,
     isChooserOpen,
+    markChooserOverlayReady,
     selectSimulation,
   } = useSimulationFocus();
   const modalRef = useRef(null);
-  const overlayInitializedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isChooserMounted) return undefined;
+    document.documentElement.classList.add('simulation-focus-modal-open');
+    return () => {
+      document.documentElement.classList.remove('simulation-focus-modal-open');
+    };
+  }, [isChooserMounted]);
 
   useEffect(() => {
     if (!isChooserOpen) return undefined;
     let cancelled = false;
-    document.documentElement.classList.add('simulation-focus-modal-open');
 
-    getModalOverlayModule()
-      .then((module) => {
-        if (cancelled) return;
-        if (!overlayInitializedRef.current) {
-          module.initModalOverlay({});
-          overlayInitializedRef.current = true;
+    try {
+      ensureGateModalOverlay();
+      prepareGateModalOpen(modalRef.current, {
+        mount: false,
+        onReady: () => {
+          if (!cancelled) {
+            markChooserOverlayReady();
+          }
+        },
+      });
+    } catch {
+      window.requestAnimationFrame(() => {
+        if (!cancelled) {
+          markChooserOverlayReady();
         }
-        module.showOverlay();
-      })
-      .catch(() => undefined);
+      });
+    }
 
     return () => {
       cancelled = true;
-      document.documentElement.classList.remove('simulation-focus-modal-open');
-      getModalOverlayModule()
-        .then((module) => module.hideOverlay())
-        .catch(() => undefined);
     };
-  }, [isChooserOpen]);
+  }, [isChooserOpen, markChooserOverlayReady]);
 
   useEffect(() => {
-    if (!isChooserOpen) return undefined;
+    if (!isChooserActive) return undefined;
 
     const focusFrame = window.requestAnimationFrame(() => {
-      const selected = modalRef.current?.querySelector('[aria-current="true"]');
+      const coarsePointer = window.matchMedia?.('(hover: none) and (pointer: coarse)')?.matches;
+      const selected = coarsePointer ? null : modalRef.current?.querySelector('[aria-current="true"]');
       const firstButton = modalRef.current?.querySelector('button');
-      (selected || firstButton)?.focus({ preventScroll: true });
+      (selected || (coarsePointer ? modalRef.current : firstButton))?.focus({ preventScroll: true });
     });
 
     const handleDismiss = () => closeChooser();
@@ -403,10 +461,10 @@ export function SimulationFocusChooser() {
       window.cancelAnimationFrame(focusFrame);
       document.removeEventListener('modal-overlay-dismiss', handleDismiss);
     };
-  }, [closeChooser, isChooserOpen]);
+  }, [closeChooser, isChooserActive]);
 
   useEffect(() => {
-    if (!isChooserOpen) return undefined;
+    if (!isChooserActive) return undefined;
 
     const handleDocumentKeyDown = (event) => {
       if (event.key !== 'Escape') return;
@@ -418,7 +476,7 @@ export function SimulationFocusChooser() {
     return () => {
       document.removeEventListener('keydown', handleDocumentKeyDown);
     };
-  }, [closeChooser, isChooserOpen]);
+  }, [closeChooser, isChooserActive]);
 
   const handleKeyDown = (event) => {
     if (event.key === 'Escape') {
@@ -444,7 +502,7 @@ export function SimulationFocusChooser() {
 
   const modalClassName = [
     'simulation-focus-modal',
-    isChooserOpen ? 'active' : '',
+    isChooserActive ? 'active' : '',
     isChooserClosing ? 'closing' : '',
     !isChooserMounted ? 'hidden' : '',
   ].filter(Boolean).join(' ');
@@ -454,10 +512,11 @@ export function SimulationFocusChooser() {
       ref={modalRef}
       id={FOCUS_MODAL_ID}
       className={modalClassName}
-      aria-hidden={isChooserOpen ? 'false' : 'true'}
+      aria-hidden={isChooserActive ? 'false' : 'true'}
       role="dialog"
       aria-modal="true"
       aria-labelledby={CHOOSER_TITLE_ID}
+      tabIndex={-1}
       onKeyDown={handleKeyDown}
     >
       <div className="modal-nav simulation-focus-modal__nav">

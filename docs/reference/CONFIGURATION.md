@@ -125,7 +125,7 @@ To enable it, set `LOCALSTORAGE_ENABLED = true` in `react-app/app/src/legacy/mod
 
 Panel position / dock visibility / collapsed state is persisted (best-effort) via `panel-dock.js` localStorage keys.
 
-**Dev config panel (single dock):** One implementation in `panel-dock.js` + `control-registry.js` on every route that mounts it (home, portfolio, CV). Default is the **full** master panel (all groups + **`includeRegisteredSections: true`**). Home prepends the mode switcher; portfolio prepends pit chrome; all routes prepend the **active mode** accordion so Ball Pit / etc. sliders are visible. `DevConfigPanelBridge` only registers **`/`** in the React shell — it is not a second panel. Home: **`createPanelDock` after `setMode`**. CV: **`initCvPanel` before `initializeDarkMode`** (theme segment binds). **Styleguide** has no dock.
+**Dev config panel (single dock):** One implementation in `panel-dock.js` + `control-registry.js` on every route that mounts it (home, portfolio, CV). Default is the **full** master panel (all groups + **`includeRegisteredSections: true`**). Home prepends the mode switcher; portfolio prepends pit chrome; all routes prepend the **active mode** accordion so Ball Field / etc. sliders are visible. `DevConfigPanelBridge` only registers **`/`** in the React shell — it is not a second panel. Home: **`createPanelDock` after `setMode`**. CV: **`initCvPanel` before `initializeDarkMode`** (theme segment binds). **Styleguide** has no dock.
 
 ### Wall layer visualization (Light Group)
 
@@ -282,10 +282,10 @@ Controls **which palette colors are used** for new balls across **all modes**, a
   - **Representation**: Mode resets seed one pass through all positive-weight labels before weighted random spawning, so the full legend stays visible even in smaller simulations.
   - **Portfolio deck**: Closed project cards consume this distribution in order before any fallback colors. With the current 6 projects, this means each project gets one unique distribution color and no card background repeats.
 
-### Sleep / Settling (Ball Pit modes)
+### Sleep / Settling (Ball Field modes)
 
 These keys tune the **sleep** behavior used to stop micro-jiggle when balls are fully at rest (billiard-ball feel).  
-They are only applied in **Ball Pit** (`pit`).
+They are only applied in **Ball Field** (`pit`).
 
 - **`sleepVelocityThreshold`** (number, px/s)
   - **Meaning**: Linear speed below which a grounded ball can begin sleeping.
@@ -379,7 +379,7 @@ These keys are all **0..1**:
 ---
 
 ### `gravityMultiplier` (number)
-- **Meaning**: Ball Pit gravity multiplier (applied to base gravity \(G_E = 1960\)).
+- **Meaning**: Ball Field gravity multiplier (applied to base gravity \(G_E = 1960\)).
 - **Applied to**: `state.gravityMultiplierPit`
 
 ---
@@ -542,9 +542,9 @@ These keys control the ball-only Critters simulation (mode `critters`).
 
 ---
 
-## 3D Sphere (Mode 16)
+## Sphere Orbit (Mode 16)
 
-These keys control the 3D Sphere simulation (mode `3d-sphere`). Rotating sphere point cloud, camera-locked like 3D Cube.
+These keys control the Sphere Orbit simulation (mode `3d-sphere`). Rotating sphere point cloud, camera-locked like Cube Frame.
 
 - `sphere3dRadiusVw` (number, vmin): sphere radius (percent of shorter side → px) — default: 18
 - `sphere3dDensity` (number): number of surface points (re-init on change) — default: 140
@@ -567,9 +567,9 @@ Notes:
 
 ---
 
-## 3D Cube (Mode 17)
+## Cube Frame (Mode 17)
 
-These keys control the 3D Cube simulation (mode `3d-cube`):
+These keys control the Cube Frame simulation (mode `3d-cube`):
 
 - `cube3dSizeVw` (number, vw): cube edge length (vw → px at init)
 - `cube3dEdgeDensity` (number): points per edge (re-init on change)
@@ -591,9 +591,9 @@ Notes:
 
 ---
 
-## 3D Starfield
+## Star Field
 
-These keys control the 3D Starfield simulation (mode `starfield-3d`):
+These keys control the Star Field simulation (mode `starfield-3d`):
 
 - `starfieldCount` (number): number of stars before mobile object reduction
 - `starfieldSpanX` (number): horizontal spread of the world field

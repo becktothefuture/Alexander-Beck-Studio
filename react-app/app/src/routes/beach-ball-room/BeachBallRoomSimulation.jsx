@@ -127,7 +127,7 @@ function BeachBallRoomControls({ settings, onChange, onReset }) {
   };
 
   return (
-    <aside className="beach-ball-room-controls" aria-label="Beach ball room design controls">
+    <aside className="beach-ball-room-controls" aria-label="Beach Ball Room design controls">
       <div className="beach-ball-room-controls__header">
         <div>
           <p className="beach-ball-room-controls__eyebrow">Lab controls</p>

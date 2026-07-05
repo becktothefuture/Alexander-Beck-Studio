@@ -12,6 +12,7 @@ const STORAGE_KEY = 'abs_simulation_focus_choice_v1';
 const TARGET_DATE = process.env.ABS_SIMULATION_FOCUS_DATE || '2026-06-27';
 const DEFAULT_URL = 'http://127.0.0.1:8013';
 const WAIT_MS = Number(process.env.ABS_SIMULATION_FOCUS_WAIT_MS || 30000);
+const SIMULATION_URL_STATE_PARAMS = ['daily', 'focus', 'mode', 'simulation'];
 
 function resolveOrigin() {
   const raw = String(process.env.ABS_DEV_URL || DEFAULT_URL).trim() || DEFAULT_URL;
@@ -165,6 +166,35 @@ async function chooseSimulation(page, name, id, label = name) {
   await waitForSwitcherLabel(page, label);
   await waitForFocusId(page, id);
   await waitForIdle(page);
+  await assertChooserSwitchSettled(page, label);
+}
+
+async function assertChooserSwitchSettled(page, label) {
+  const result = await page.evaluate((blockedParams) => {
+    const url = new URL(window.location.href);
+    const blur = document.getElementById('modal-blur-layer');
+    const content = document.getElementById('modal-content-layer');
+    return {
+      href: window.location.href,
+      pathname: url.pathname,
+      blockedParams: blockedParams.filter((param) => url.searchParams.has(param)),
+      bootOverlayPresent: Boolean(document.getElementById('abs-boot-overlay')),
+      bootState: document.documentElement.dataset.absBootState || '',
+      transitionPhase: document.documentElement.dataset.absTransitionPhase || 'idle',
+      simulationFocusPhase: document.documentElement.dataset.absSimulationFocusTransition || 'idle',
+      modalOverlayActive: Boolean(blur?.classList.contains('active') || content?.classList.contains('active')),
+    };
+  }, SIMULATION_URL_STATE_PARAMS);
+
+  if (result.bootOverlayPresent || result.bootState === 'booting') {
+    throw new Error(`Boot overlay/state reset during chooser switch to "${label}": ${JSON.stringify(result)}`);
+  }
+  if (result.transitionPhase !== 'idle' || result.simulationFocusPhase !== 'idle' || result.modalOverlayActive) {
+    throw new Error(`Chooser switch to "${label}" did not settle idle: ${JSON.stringify(result)}`);
+  }
+  if (result.pathname.startsWith('/lab/') || result.blockedParams.length > 0) {
+    throw new Error(`Chooser switch to "${label}" left a non-canonical simulation URL: ${JSON.stringify(result)}`);
+  }
 }
 
 async function getStoredChoice(page) {
@@ -294,15 +324,15 @@ async function main() {
     await chooseSimulation(page, 'Repel Room', 'wall-repel');
     await assertStorage(page, 'wall-repel');
 
-    await chooseSimulation(page, 'Flies to Light', 'flies');
+    await chooseSimulation(page, 'Light Swarm', 'flies');
     await assertStorage(page, 'flies');
 
-    await chooseSimulation(page, 'Water Swimming', 'water');
+    await chooseSimulation(page, 'Water Flow', 'water');
     await assertStorage(page, 'water');
 
     await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
     await waitForFocusId(page, 'water');
-    await waitForSwitcherLabel(page, 'Water Swimming');
+    await waitForSwitcherLabel(page, 'Water Flow');
     await assertStorage(page, 'water');
 
     await setStoredChoice(page, {

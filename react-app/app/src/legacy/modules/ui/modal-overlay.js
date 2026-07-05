@@ -24,6 +24,34 @@ let isEnabled = true;
 let isInitialized = false;
 const modalOriginalPlacement = new WeakMap();
 let blurExplicitlySet = false; // Track if blur was set from config
+let configuredOverlayBlurPx = null;
+let configuredOverlayMobileBlurPx = null;
+
+function normalizeBlurPx(value, fallback = null) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && numeric >= 0 ? numeric : fallback;
+}
+
+function isMobileOverlayBlurViewport() {
+    try {
+        return Boolean(
+            window.matchMedia?.('(max-width: 600px)')?.matches
+            || window.matchMedia?.('(hover: none) and (pointer: coarse)')?.matches
+        );
+    } catch (e) {
+        return false;
+    }
+}
+
+function resolveOverlayBlurPx() {
+    if (isMobileOverlayBlurViewport() && configuredOverlayMobileBlurPx !== null) {
+        return configuredOverlayMobileBlurPx;
+    }
+    if (configuredOverlayBlurPx !== null) {
+        return configuredOverlayBlurPx;
+    }
+    return null;
+}
 
 function ensureModalHost() {
     if (!contentLayerElement) return null;
@@ -148,10 +176,17 @@ function getWallThickness() {
 
 /**
  * Calculate and update blur based on wall thickness
- * Only updates if modalOverlayBlurPx is not explicitly set in config
+ * Only falls back to wall thickness if configured desktop/mobile blur is absent.
  */
 export function updateBlurFromWallThickness(reason = 'direct') {
     if (!blurLayerElement) return;
+
+    const configuredBlurPx = resolveOverlayBlurPx();
+    if (configuredBlurPx !== null) {
+        blurExplicitlySet = true;
+        blurLayerElement.style.setProperty('--modal-overlay-blur', `${configuredBlurPx}px`);
+        return;
+    }
     
     // Only auto-calculate if blur was not explicitly set in config
     if (!blurExplicitlySet) {
@@ -173,6 +208,10 @@ function detectSafari() {
     // iOS browsers all use WebKit (including Chrome on iOS)
     const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     return isSafari || isIOS;
+}
+
+function handleOverlayBlurRefresh() {
+    updateBlurFromWallThickness('viewport-change');
 }
 
 /**
@@ -238,14 +277,12 @@ export function initModalOverlay(config) {
     root.style.setProperty('--logo-blur-active-target', `${logoBlurActive}px`);
     root.style.setProperty('--logo-blur-active', `${logoBlurInactive}px`);
     
-    // Set blur: use config value if provided, otherwise calculate from wall thickness
-    if (config.modalOverlayBlurPx !== undefined) {
-        blurExplicitlySet = true;
-        blurLayerElement.style.setProperty('--modal-overlay-blur', `${config.modalOverlayBlurPx}px`);
-    } else {
-        blurExplicitlySet = false;
-        updateBlurFromWallThickness('init');
-    }
+    const tokenBlurPx = readTokenNumber('--modal-overlay-blur', 6.6);
+    const tokenMobileBlurPx = readTokenNumber('--modal-overlay-mobile-blur', tokenBlurPx);
+    configuredOverlayBlurPx = normalizeBlurPx(config.modalOverlayBlurPx, tokenBlurPx);
+    configuredOverlayMobileBlurPx = normalizeBlurPx(config.modalOverlayMobileBlurPx, tokenMobileBlurPx);
+    blurExplicitlySet = configuredOverlayBlurPx !== null || configuredOverlayMobileBlurPx !== null;
+    updateBlurFromWallThickness('init');
 
     // SPA: `createLegacyRuntimeScope` removes ALL listeners added during the
     // previous route's bootstrap — including handlers on persistent overlay DOM.
@@ -254,6 +291,12 @@ export function initModalOverlay(config) {
 
     // Set CSS variables on root for global access (modals, blur layer, etc.)
     root.style.setProperty('--modal-overlay-opacity', opacity);
+    if (configuredOverlayBlurPx !== null) {
+        root.style.setProperty('--modal-overlay-blur', `${configuredOverlayBlurPx}px`);
+    }
+    if (configuredOverlayMobileBlurPx !== null) {
+        root.style.setProperty('--modal-overlay-mobile-blur', `${configuredOverlayMobileBlurPx}px`);
+    }
     root.style.setProperty('--modal-overlay-transition-duration', `${transitionMs}ms`);
     root.style.setProperty('--modal-overlay-transition-out-duration', `${transitionOutMs}ms`);
     
@@ -284,13 +327,15 @@ export function initModalOverlay(config) {
     contentLayerElement.removeEventListener('click', handleOverlayClick, true);
     contentLayerElement.addEventListener('click', handleOverlayClick, { capture: true });
     
-    // Listen for layout changes to update blur
-    window.addEventListener('resize', () => updateBlurFromWallThickness('resize'));
+    // Listen for layout changes to update desktop/mobile blur.
+    window.removeEventListener('resize', handleOverlayBlurRefresh);
+    window.addEventListener('resize', handleOverlayBlurRefresh);
     
     // Also listen for custom layout update events if they exist
-    document.addEventListener('layout-updated', () => updateBlurFromWallThickness('layout-updated'));
+    document.removeEventListener('layout-updated', handleOverlayBlurRefresh);
+    document.addEventListener('layout-updated', handleOverlayBlurRefresh);
     
-    const blurPx = getWallThickness() / 2;
+    const blurPx = resolveOverlayBlurPx() ?? (getWallThickness() / 4);
     console.log(`Modal Overlay: Initialized (two-layer architecture, blur: ${blurPx}px, transition: ${transitionMs}ms)`);
 }
 
@@ -464,11 +509,33 @@ export function updateOverlayBlur(blurPx) {
     if (!blurLayerElement) return;
     
     if (blurPx !== undefined) {
+        configuredOverlayBlurPx = normalizeBlurPx(blurPx, configuredOverlayBlurPx);
         blurExplicitlySet = true;
-        blurLayerElement.style.setProperty('--modal-overlay-blur', `${blurPx}px`);
+        if (configuredOverlayBlurPx !== null) {
+            document.documentElement.style.setProperty('--modal-overlay-blur', `${configuredOverlayBlurPx}px`);
+        }
+        updateBlurFromWallThickness('updateOverlayBlur');
     } else {
+        configuredOverlayBlurPx = null;
+        blurExplicitlySet = configuredOverlayMobileBlurPx !== null;
         updateBlurFromWallThickness();
     }
+}
+
+export function updateOverlayMobileBlur(blurPx) {
+    if (!blurLayerElement) return;
+
+    if (blurPx !== undefined) {
+        configuredOverlayMobileBlurPx = normalizeBlurPx(blurPx, configuredOverlayMobileBlurPx);
+        blurExplicitlySet = true;
+        if (configuredOverlayMobileBlurPx !== null) {
+            document.documentElement.style.setProperty('--modal-overlay-mobile-blur', `${configuredOverlayMobileBlurPx}px`);
+        }
+    } else {
+        configuredOverlayMobileBlurPx = null;
+        blurExplicitlySet = configuredOverlayBlurPx !== null;
+    }
+    updateBlurFromWallThickness('updateOverlayMobileBlur');
 }
 
 /**

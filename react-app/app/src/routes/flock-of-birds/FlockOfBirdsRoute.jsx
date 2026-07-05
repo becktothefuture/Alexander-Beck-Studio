@@ -30,6 +30,6 @@ export function getFlockOfBirdsRouteView() {
         </div>
       </header>
     ),
-    mainContent: <main className="ui-center-spacer" aria-label="Flock of birds lab" />,
+    mainContent: <main className="ui-center-spacer" aria-label="Flock Drift lab" />,
   };
 }

@@ -145,7 +145,7 @@ export function applyWeightlessForces(ball, dt) {
   const power = globals.weightlessRepelPower ?? 0;
   if (radius <= 0 || power <= 0) return;
 
-  // Treat as “CSS px” and scale into canvas units via DPR (matches Ball Pit repeller behavior).
+  // Treat as “CSS px” and scale into canvas units via DPR (matches Ball Field repeller behavior).
   const rPx = radius * (globals.DPR || 1);
   const dx = ball.x - globals.mouseX;
   const dy = ball.y - globals.mouseY;

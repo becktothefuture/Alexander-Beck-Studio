@@ -135,15 +135,6 @@ function rgbString(color, alpha = 1) {
   return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
 }
 
-function mixColor(a, b, amount) {
-  const t = clamp(amount, 0, 1);
-  return {
-    r: Math.round(a.r + (b.r - a.r) * t),
-    g: Math.round(a.g + (b.g - a.g) * t),
-    b: Math.round(a.b + (b.b - a.b) * t),
-  };
-}
-
 function relativeLuminance(color) {
   return color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
 }
@@ -1055,7 +1046,7 @@ function resolveActiveCount(state, elapsed, duration) {
   return active;
 }
 
-function drawPebble(ctx, state, index, radius, color, rimColor, alpha) {
+function drawPebble(ctx, state, index, radius, color, alpha) {
   const x = state.x[index] + state.offsetX[index];
   const y = state.y[index] + state.offsetY[index];
   const rx = radius * state.stretchX[index];
@@ -1067,10 +1058,6 @@ function drawPebble(ctx, state, index, radius, color, rimColor, alpha) {
   ctx.ellipse(x, y, rx, ry, rotation, 0, TAU);
   ctx.fillStyle = rgbString(color, 1);
   ctx.fill();
-
-  ctx.lineWidth = Math.max(0.7, radius * 0.065);
-  ctx.strokeStyle = rgbString(rimColor, state.kind[index] === BODY_KIND_LEAFLET ? 0.48 : 0.38);
-  ctx.stroke();
   ctx.globalAlpha = 1;
 }
 
@@ -1145,9 +1132,6 @@ function updateSway(state, config, metrics, pointer, now, dt, activeCount, growt
 function renderState(ctx, state, metrics, theme, now, activeCount, elapsed, duration, options = {}) {
   const palette = resolvePalette(theme).map((color) => parseHexColor(color));
   const surface = isHexColor(theme?.active) ? theme.active : DEFAULT_THEME.active;
-  const surfaceColor = parseHexColor(surface);
-  const lightColor = parseHexColor('#f5f8f6');
-  const shadowColor = parseHexColor('#050606');
   const getVisualScaleAt = options.getVisualScaleAt || (() => 1);
   ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
   ctx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
@@ -1161,16 +1145,9 @@ function renderState(ctx, state, metrics, theme, now, activeCount, elapsed, dura
     const grow = duration <= 0 ? 1 : smoothstep(0, 0.95, elapsed - birthTime);
     if (grow <= 0) continue;
     const color = palette[state.colorIndex[i] % palette.length] || parseHexColor(DEFAULT_THEME.palette[0]);
-    const luminance = relativeLuminance(color);
-    const rimBase = luminance < 54
-      ? mixColor(color, lightColor, 0.62)
-      : state.kind[i] === BODY_KIND_LEAFLET
-      ? mixColor(color, lightColor, 0.30)
-      : mixColor(color, shadowColor, 0.18);
-    const rim = mixColor(rimBase, surfaceColor, 0.12);
     const radius = state.radius[i] * (0.38 + grow * 0.62) * getVisualScaleAt(i);
     if (radius <= 0.05) continue;
-    drawPebble(ctx, state, i, radius, color, rim, 0.26 + grow * 0.74);
+    drawPebble(ctx, state, i, radius, color, 0.26 + grow * 0.74);
   }
 
   ctx.globalAlpha = 1;
@@ -1265,7 +1242,7 @@ export function createMineralGrowthRenderer({
   const visualTransition = createIndexedSimulationVisualTransition({
     sourceId: 'mineral-growth',
     getCount: () => state?.count || 0,
-    requestRender: () => draw(performance.now()),
+    requestRender: () => paintCurrentState(performance.now()),
     getSeed: () => currentSeed,
   });
   unregisterVisualTransition = registerSimulationVisualTransition('mineral-growth', visualTransition);
@@ -1308,21 +1285,16 @@ export function createMineralGrowthRenderer({
     return { config, theme };
   }
 
-  function draw(now = performance.now()) {
-    const started = performance.now();
+  function resolveRenderFrame(now = performance.now()) {
     const { config, theme } = ensureState();
     const duration = resolveGrowthDuration(config, reducedMotion);
     const elapsed = duration <= 0 ? duration + 2 : (now - startedAt) / 1000;
     const activeCount = resolveActiveCount(state, elapsed, duration);
     const growthProgress = duration <= 0 ? 1 : clamp(elapsed / duration, 0, 1);
-    const dt = lastFrameAt ? clamp((now - lastFrameAt) / 1000, 0.001, 0.05) : 0.016;
-    lastFrameAt = now;
+    return { config, theme, duration, elapsed, activeCount, growthProgress };
+  }
 
-    updateSway(state, config, metrics, pointer, now, dt, activeCount, growthProgress, reducedMotion);
-    const rendered = renderState(ctx, state, metrics, theme, now, activeCount, elapsed, duration, {
-      transparentBackground,
-      getVisualScaleAt: visualTransition.getScaleAt,
-    });
+  function writeRenderMetrics(rendered, started) {
     frameMs = frameMs ? frameMs * 0.86 + (performance.now() - started) * 0.14 : performance.now() - started;
     lastMetrics = {
       activeCount: rendered.activeCount,
@@ -1352,6 +1324,30 @@ export function createMineralGrowthRenderer({
       paletteSize: rendered.paletteSize,
     };
     return lastMetrics;
+  }
+
+  function paintCurrentState(now = performance.now()) {
+    const started = performance.now();
+    const { theme, duration, elapsed, activeCount } = resolveRenderFrame(now);
+    const rendered = renderState(ctx, state, metrics, theme, now, activeCount, elapsed, duration, {
+      transparentBackground,
+      getVisualScaleAt: visualTransition.getScaleAt,
+    });
+    return writeRenderMetrics(rendered, started);
+  }
+
+  function draw(now = performance.now()) {
+    const started = performance.now();
+    const { config, theme, duration, elapsed, activeCount, growthProgress } = resolveRenderFrame(now);
+    const dt = lastFrameAt ? clamp((now - lastFrameAt) / 1000, 0.001, 0.05) : 0.016;
+    lastFrameAt = now;
+
+    updateSway(state, config, metrics, pointer, now, dt, activeCount, growthProgress, reducedMotion);
+    const rendered = renderState(ctx, state, metrics, theme, now, activeCount, elapsed, duration, {
+      transparentBackground,
+      getVisualScaleAt: visualTransition.getScaleAt,
+    });
+    return writeRenderMetrics(rendered, started);
   }
 
   function frame(now) {

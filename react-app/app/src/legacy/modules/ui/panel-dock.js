@@ -544,11 +544,25 @@ function createMasterPanel({
   footerHint,
   setupPageControls,
   portfolioPanelConfig = null,
+  syncInitialControlSideEffects = true,
   targetDocument = document,
   targetWindow = window,
   detached = false,
 } = {}) {
   registerPanelUiDocument(targetDocument);
+
+  page = page || 'home';
+  pageLabel = pageLabel || (page === 'portfolio' ? 'Portfolio' : 'Home');
+  panelTitle = panelTitle || 'Settings';
+  modeLabel = modeLabel || (isDev() ? 'DEV MODE' : 'BUILD MODE');
+  pageSectionTitle = pageSectionTitle || pageLabel;
+  pageSectionIcon = pageSectionIcon || (page === 'portfolio' ? '🗂️' : '📄');
+  includePageSaveButton = includePageSaveButton !== false;
+  pageSaveButtonId = pageSaveButtonId || 'saveRuntimeConfigBtn';
+  pageSaveButtonLabel = pageSaveButtonLabel || '💾 Save Design JSON';
+  footerHint = footerHint || (page === 'portfolio'
+    ? '<kbd>/</kbd> panel'
+    : '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> modes');
 
   const panel = targetDocument.createElement('div');
   panel.id = 'masterPanel';
@@ -631,15 +645,19 @@ function createMasterPanel({
   const cleanupFns = [];
   targetWindow.setTimeout(() => {
     // Shared (master) controls are safe on all pages.
+    const controlSetupOptions = {
+      uiDocument: targetDocument,
+      runOnChange: syncInitialControlSideEffects,
+    };
     if (page === 'home') {
-      setupIndexControls({ uiDocument: targetDocument });
+      setupIndexControls(controlSetupOptions);
     } else {
-      setupMasterControls({ uiDocument: targetDocument });
+      setupMasterControls(controlSetupOptions);
     }
 
     bindThemeSegmentControls(targetDocument);
     setupBuildControls({ uiDocument: targetDocument });
-    bindStudioSurfaceControls();
+    bindStudioSurfaceControls({ uiDocument: targetDocument });
     const soundCleanup = setupSoundControls(panel);
     if (typeof soundCleanup === 'function') cleanupFns.push(soundCleanup);
     setupLayoutControls(panel);

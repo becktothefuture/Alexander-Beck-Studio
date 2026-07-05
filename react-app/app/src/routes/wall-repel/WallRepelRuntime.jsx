@@ -80,7 +80,7 @@ export function WallRepelRuntime() {
         id="wall-repel-canvas"
         className="wall-repel-canvas"
         role="img"
-        aria-label="Wall and pointer repelled ball simulation"
+        aria-label="Repel Room flat ball simulation"
       />
     </section>
   );

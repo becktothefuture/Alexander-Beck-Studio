@@ -1,6 +1,6 @@
 # Background
 
-- Simulation: Napoleon Point Cloud
+- Simulation: Bust Cloud
 - ID: `napoleon-point-cloud`
 - Severity: medium
 - Status: open

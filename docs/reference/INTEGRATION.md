@@ -77,7 +77,7 @@ The simulation needs this CSS for dynamic height:
 }
 
 #simulations.mode-pit {
-  height: 150vh; /* Ball Pit override */
+  height: 150vh; /* Ball Field override */
 }
 
 #simulations canvas {
@@ -92,7 +92,7 @@ The simulation needs this CSS for dynamic height:
 ### Default Settings
 
 The simulation loads with sensible defaults:
-- Mode: Ball Pit
+- Mode: Ball Field
 - Color Palette: London weather chapter system (privacy-first London weather assessment, nearest chapter fallback)
 - Ball Size: 0.7 (70% of base)
 - Gravity: 1.1× Earth
@@ -136,7 +136,7 @@ if (window.SIMULATIONS) {
 
 | Key | Action |
 |-----|--------|
-| `1` | Switch to Ball Pit mode |
+| `1` | Switch to Ball Field mode |
 | `2` | Switch to Flies mode |
 | `3` | Switch to Zero-G mode |
 | `R` | Reset simulation |

@@ -255,7 +255,73 @@ Do not promote a lab into the main rotation until it passes the acceptance gate 
 
 ---
 
-## 9. Promotion Gate
+## 9. Daily Simulation Contract
+
+Daily simulations are the live homepage system. They must behave as one product surface even when some entries use custom route-backed renderers.
+
+### Source Of Truth
+
+- `react-app/app/src/data/simulationCatalog.json` owns the public name, stage, launch target, and Daily chooser membership.
+- IDs, routes, storage keys, and file names stay stable when display names change.
+- User-facing labels, ARIA labels, panels, audit expectations, and docs should use the catalog display name.
+- Historical concept names can appear only as explanatory source-object text, not as the simulation name in live UI.
+
+### Visual Material
+
+Daily visuals use the site ball/pebble language:
+- flat palette fills from `design-system.json` / `colorDistribution`;
+- no cast shadows, drop shadows, local lights, highlights, bevels, rim strokes, glows, or 3D material shading;
+- no helper scaffolding such as guide lines, field lines, construction strokes, underlay blobs, tubes, silhouettes, or trails carrying the concept;
+- point clouds and tiny field particles may use perfect circles when pebble contours would be unreadable, but they still stay flat and palette-driven;
+- custom renderers may use shape variation only when it reads as the same flat material family.
+
+Route-backed daily runtimes must render with transparent canvas/background in Daily Focus mode so the shared wall, vignette, noise, title layering, chrome, and modal system remain in charge of the surface.
+
+### Motion And Switching
+
+All Daily chooser selections use the shared `simulation-focus` transition:
+- existing active simulation scales/renders `out`;
+- shell holds at the handoff point;
+- next simulation scales/renders `in`;
+- the boot preloader must not appear during chooser-driven switches.
+
+Renderer rules:
+- home-mode simulations participate through the shared `home-canvas` visual transition registry;
+- route-backed daily simulations register their own `registerSimulationVisualTransition(<simulation-id>, ...)` handler;
+- transition repaint callbacks must be draw-only: they may redraw current geometry at the current visual scale, but must not advance physics, sway, growth, flocking, timers, seeds, or pointer state;
+- normal animation frames own physics/time updates;
+- route-backed daily selections must settle back to clean `/` or `/index.html`, not `/lab/<id>.html?daily=1`, `?focus=`, `?mode=`, or `?simulation=`.
+
+### Route-Backed Daily Runtime Shape
+
+A promoted route-backed Daily simulation should use:
+- `SimulationStage` from `routes/daily-focus`;
+- `.daily-focus-runtime` on the mounted runtime root;
+- `data-simulation-id` matching the catalog ID;
+- `transparentBackground: true` or equivalent;
+- theme/palette loading through `dailyFocusTheme`;
+- bounded `targetFps`, `maxDpr`, visibility pause, and reduced-motion behavior;
+- current catalog display name in runtime/panel/route ARIA labels.
+
+Standalone lab routes may keep Parameterizer controls and review-only affordances, but Daily Focus mode should hide controls unless explicitly requested by a debug query.
+
+### Daily Verification
+
+For any Daily simulation renderer, label, route, or switch behavior change, run:
+- `npm run sim:validate`
+- `npm run check:site`
+- `ABS_DEV_URL=http://127.0.0.1:8013 npm run audit:simulation-focus`
+- `ABS_DEV_URL=http://127.0.0.1:8013 npm run audit:simulation-focus:stress`
+
+When route ownership, modal ownership, or shell transition timing changes, also run:
+- `ABS_DEV_URL=http://127.0.0.1:8013 ABS_BROWSER=chromium npm run audit:transition-flows`
+- `ABS_DEV_URL=http://127.0.0.1:8013 ABS_BROWSER=webkit npm run audit:transition-flows`
+
+Browser QA should directly check at least one home-mode to route-backed switch and one route-backed to home-mode switch.
+
+---
+
+## 10. Promotion Gate
 
 A simulation can be considered for the main narrative only when all are true:
 

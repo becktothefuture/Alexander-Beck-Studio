@@ -375,7 +375,7 @@ export function WallRepelDemo() {
         id="wall-repel-canvas"
         className="wall-repel-canvas"
         role="img"
-        aria-label="Wall and mouse repelled ball simulation"
+        aria-label="Repel Room flat ball simulation"
       />
       {showControlPanel ? (
         <WallRepelPanel

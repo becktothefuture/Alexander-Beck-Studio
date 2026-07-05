@@ -1,10 +1,10 @@
-# Napoleon Bust Point-Cloud Asset Pipeline
+# Bust Face Point-Cloud Asset Pipeline
 
 This pipeline creates lightweight runtime point-cloud assets for `/lab/napoleon-point-cloud.html`.
 
 ## Source To Verify
 
-- Title: The bust of Napoleon Bonaparte
+- Title: Classical bust face
 - Creator/source: Virtual Museums of Małopolska
 - Institution: National Museum in Kraków
 - Inventory number: MNK XII-A-810
@@ -66,7 +66,7 @@ Manual steps:
 
 1. Open Blender.
 2. Import the downloaded model with `File > Import` using the matching format.
-3. Confirm the visible object is The bust of Napoleon Bonaparte.
+3. Confirm the visible object is a classical bust face.
 4. Delete cameras, lights, hidden helper objects, and any unrelated scene objects.
 5. Select only the bust mesh or joined bust mesh objects.
 6. Apply transforms with `Object > Apply > All Transforms`.

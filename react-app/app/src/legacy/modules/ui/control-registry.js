@@ -286,8 +286,7 @@ export const MASTER_GROUPS = [
     layerName: 'Lighting',
     layerRole: 'Wall light and control highlights',
     sections: [
-      'wallLight',
-      'buttonLight'
+      'wallLight'
     ]
   },
   {
@@ -384,7 +383,6 @@ const SECTION_CATEGORIES = {
 
   // Light
   'wallLight': 'WALL',
-  'buttonLight': 'BUTTONS',
   'puckLight': 'PUCK',
 
 
@@ -762,6 +760,56 @@ function escapeAttr(value) {
     .replaceAll("'", '&#39;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;');
+}
+
+function normalizeHexColor(value) {
+  const raw = String(value ?? '').trim();
+  const longHex = raw.match(/^#([0-9a-f]{6})$/i);
+  if (longHex) return `#${longHex[1]}`;
+
+  const shortHex = raw.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i);
+  if (shortHex) {
+    return `#${shortHex[1]}${shortHex[1]}${shortHex[2]}${shortHex[2]}${shortHex[3]}${shortHex[3]}`;
+  }
+
+  const rgb = raw.match(/^rgba?\(\s*(\d{1,3})[\s,]+(\d{1,3})[\s,]+(\d{1,3})/i);
+  if (rgb) {
+    const toHex = (channel) => Math.max(0, Math.min(255, Number(channel) || 0))
+      .toString(16)
+      .padStart(2, '0');
+    return `#${toHex(rgb[1])}${toHex(rgb[2])}${toHex(rgb[3])}`;
+  }
+
+  return null;
+}
+
+function getColorInputValue(value, uiDocument = null) {
+  const raw = String(value ?? '').trim();
+  const direct = normalizeHexColor(raw);
+  if (direct) return direct;
+
+  const detected = raw.match(/^var\(--color-detected-([0-9a-f]{6})\)$/i);
+  if (detected) return `#${detected[1]}`;
+
+  const cssVar = raw.match(/^var\((--[^,\s)]+)(?:,\s*([^)]+))?\)$/);
+  if (cssVar) {
+    const [, varName, fallback] = cssVar;
+    try {
+      const doc = uiDocument || document;
+      const view = doc.defaultView || window;
+      const resolved = view.getComputedStyle(doc.documentElement).getPropertyValue(varName).trim();
+      const resolvedHex = normalizeHexColor(resolved);
+      if (resolvedHex) return resolvedHex;
+    } catch (e) {}
+
+    const fallbackHex = normalizeHexColor(fallback);
+    if (fallbackHex) return fallbackHex;
+
+    if (varName === '--color-brand-white') return '#ffffff';
+    if (varName === '--color-brand-black') return '#000000';
+  }
+
+  return '#000000';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1524,28 +1572,13 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SIMULATION OVERLAY - Gradient on top of the simulation (viewport ::before + depth-wash)
+  // CANVAS DEPTH WASH - Radial gradient drawn by the legacy canvas renderer
   // ═══════════════════════════════════════════════════════════════════════════
   simulationOverlay: {
-    title: 'Simulation Overlay',
+    title: 'Canvas Depth Wash',
     icon: '🔆',
     defaultOpen: false,
     controls: [
-      {
-        id: 'simulationOverlayIntensity',
-        label: 'CSS Gradient',
-        stateKey: 'simulationOverlayIntensity',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 1,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Intensity of the soft gradient overlay on the simulation (viewport ::before).',
-        onChange: () => {
-          import('../core/state.js').then(mod => { mod.applyLayoutCSSVars(); }).catch(() => {});
-        }
-      },
-      { type: 'divider', label: 'Depth Wash (Canvas)' },
       {
         id: 'depthWashOpacity',
         label: 'Opacity',
@@ -1836,60 +1869,6 @@ export const CONTROL_SECTIONS = {
         hint: 'Vertical translation applied to hover/focus/active states for corner links.',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--link-nudge', `${val}px`);
-        }
-      },
-      { type: 'divider', label: 'Hover Background Bounce', group: 'Motion' },
-      {
-        id: 'hoverBgBounceEnabled',
-        label: 'BG Bounce',
-        stateKey: 'hoverBgBounceEnabled',
-        type: 'checkbox',
-        default: true,
-        hint: 'Enable bouncy fade-in animation for hover pseudoelement backgrounds.',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--abs-hover-bg-bounce-enabled', val ? '1' : '0');
-        }
-      },
-      {
-        id: 'hoverBgBounceDuration',
-        label: 'BG Duration',
-        stateKey: 'hoverBgBounceDuration',
-        type: 'range',
-        min: 0, max: 1200, step: 10,
-        default: 450,
-        format: v => `${Math.round(v)}ms`,
-        parse: parseFloat,
-        hint: 'Total duration of the hover background bounce (ms).',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--abs-hover-bg-bounce-duration', `${Math.max(0, Math.round(val))}ms`);
-        }
-      },
-      {
-        id: 'hoverBgBounceOvershoot',
-        label: 'BG Overshoot',
-        stateKey: 'hoverBgBounceOvershoot',
-        type: 'range',
-        min: 1.0, max: 1.5, step: 0.005,
-        default: 1.12,
-        format: v => v.toFixed(3),
-        parse: parseFloat,
-        hint: 'Peak scale during hover background bounce (>= 1.0).',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--abs-hover-bg-bounce-overshoot', String(val));
-        }
-      },
-      {
-        id: 'hoverBgBounceEndSize',
-        label: 'BG End Size',
-        stateKey: 'hoverBgBounceEndSize',
-        type: 'range',
-        min: 0.8, max: 1.2, step: 0.005,
-        default: 1.0,
-        format: v => v.toFixed(3),
-        parse: parseFloat,
-        hint: 'Final settled scale for hover background (typically 1.0).',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--abs-hover-bg-bounce-end-size', String(val));
         }
       },
       { type: 'divider', label: 'Hover Color', group: 'Color' },
@@ -2289,13 +2268,29 @@ export const CONTROL_SECTIONS = {
         stateKey: 'modalOverlayBlurPx',
         type: 'range',
         min: 0, max: 30, step: 0.5,
-        default: 8,
+        default: 6.6,
         format: v => `${v.toFixed(1)}px`,
         parse: parseFloat,
-        hint: 'Backdrop blur strength (0 = off)',
+        hint: 'Desktop backdrop blur strength (0 = off)',
         onChange: (g, val) => {
           import('./modal-overlay.js').then(({ updateOverlayBlur }) => {
             updateOverlayBlur(val);
+          });
+        }
+      },
+      {
+        id: 'modalOverlayMobileBlurPx',
+        label: 'Mobile Blur',
+        stateKey: 'modalOverlayMobileBlurPx',
+        type: 'range',
+        min: 0, max: 30, step: 0.5,
+        default: 12,
+        format: v => `${v.toFixed(1)}px`,
+        parse: parseFloat,
+        hint: 'Touch/mobile backdrop blur strength (0 = off)',
+        onChange: (g, val) => {
+          import('./modal-overlay.js').then(({ updateOverlayMobileBlur }) => {
+            updateOverlayMobileBlur(val);
           });
         }
       },
@@ -3118,45 +3113,6 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // BUTTON LIGHT — chrome button rim/bevel lighting
-  // ═══════════════════════════════════════════════════════════════════════════
-  buttonLight: {
-    title: 'Buttons',
-    icon: '🔘',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'uiChromeRimLightOpacity',
-        label: 'Top Rim Light',
-        stateKey: 'uiChromeRimLightOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.02,
-        default: 0.55,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Light rim on top edge of chrome buttons (follows wall light direction)',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--ui-chrome-rim-light-opacity', String(val));
-        }
-      },
-      {
-        id: 'uiChromeRimDarkOpacity',
-        label: 'Bottom Rim Shadow',
-        stateKey: 'uiChromeRimDarkOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.02,
-        default: 0.2,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Shadow rim on bottom edge of chrome buttons',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--ui-chrome-rim-dark-opacity', String(val));
-        }
-      },
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // PUCK LIGHT — quote button disk shadow, rim, and edge
   // ═══════════════════════════════════════════════════════════════════════════
   puckLight: {
@@ -3325,9 +3281,7 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         group: 'Placement',
         hint: 'Move grain up (negative) or down (positive).',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--abs-noise-offset-y', `${val}px`);
-        }
+        onChange: (_g, val) => applyNoiseSystem({ noiseOffsetY: val })
       },
       {
         id: 'noiseSize',
@@ -3582,7 +3536,7 @@ export const CONTROL_SECTIONS = {
   // MODE-SPECIFIC CONTROLS
   // ═══════════════════════════════════════════════════════════════════════════
   critters: {
-    title: 'Hive',
+    title: 'Critter Swarm',
     icon: '🐝',
     mode: 'critters',
     defaultOpen: false,
@@ -3770,12 +3724,12 @@ export const CONTROL_SECTIONS = {
         }
       },
       // ─────────────────────────────────────────────────────────────────────────
-      // HIVE BEHAVIOR
+      // CRITTER SWARM PARAMETERS
       // ─────────────────────────────────────────────────────────────────────────
-      { type: 'divider', label: 'Hive Behavior' },
+      { type: 'divider', label: 'Critter Swarm Parameters' },
       {
         id: 'critterHiveStirInterval',
-        label: 'Hive Stir Interval',
+        label: 'Stir Interval',
         stateKey: 'critterHiveStirInterval',
         type: 'range',
         min: 1, max: 15, step: 0.5,
@@ -3786,7 +3740,7 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'critterHiveStirStrength',
-        label: 'Hive Stir Strength',
+        label: 'Stir Strength',
         stateKey: 'critterHiveStirStrength',
         type: 'range',
         min: 0, max: 6, step: 0.1,
@@ -3797,7 +3751,7 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'critterHiveWaveSpeed',
-        label: 'Hive Wave Speed',
+        label: 'Wave Speed',
         stateKey: 'critterHiveWaveSpeed',
         type: 'range',
         min: 0.1, max: 1.0, step: 0.05,
@@ -3963,24 +3917,12 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Opacity of waypoint balls'
       },
-      {
-        id: 'hiveCritterSaturation',
-        label: 'Critter Saturation',
-        stateKey: 'hiveCritterSaturation',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.3,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Color saturation for critters (low = faint, high = vibrant)',
-        reinitMode: true
-      },
       warmupFramesControl('crittersWarmupFrames')
     ]
   },
 
   pit: {
-    title: 'Ball Pit',
+    title: 'Ball Field',
     icon: '🎯',
     mode: 'pit',
     defaultOpen: false,
@@ -4053,7 +3995,7 @@ export const CONTROL_SECTIONS = {
   },
 
   flies: {
-    title: 'Flies',
+    title: 'Light Swarm',
     icon: '🕊️',
     mode: 'flies',
     defaultOpen: false,
@@ -4104,7 +4046,7 @@ export const CONTROL_SECTIONS = {
   },
 
   weightless: {
-    title: 'Zero-G',
+    title: 'Weightless Drift',
     icon: '🌌',
     mode: 'weightless',
     defaultOpen: false,
@@ -4166,7 +4108,7 @@ export const CONTROL_SECTIONS = {
   },
 
   water: {
-    title: 'Water',
+    title: 'Water Flow',
     icon: '🌊',
     mode: 'water',
     defaultOpen: false,
@@ -4221,7 +4163,7 @@ export const CONTROL_SECTIONS = {
   },
 
   magnetic: {
-    title: 'Magnetic',
+    title: 'Magnetic Field',
     icon: '🧲',
     mode: 'magnetic',
     defaultOpen: false,
@@ -4284,21 +4226,11 @@ export const CONTROL_SECTIONS = {
   },
 
   bubbles: {
-    title: 'Bubbles',
+    title: 'Bubble Lift',
     icon: '🫧',
     mode: 'bubbles',
     defaultOpen: false,
     controls: [
-      {
-        id: 'bubblesRate',
-        label: 'Bubble Rate',
-        stateKey: 'bubblesSpawnRate',
-        type: 'range',
-        min: 1, max: 20, step: 1,
-        default: 16,
-        format: v => String(v),
-        parse: v => parseInt(v, 10)
-      },
       {
         id: 'bubblesSpeed',
         label: 'Rise Speed',
@@ -4355,69 +4287,8 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
-  tilt: {
-    title: 'Tilt',
-    icon: '⚖️',
-    mode: 'tilt',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'tiltBallCount',
-        label: 'Particle Count',
-        stateKey: 'tiltBallCount',
-        type: 'range',
-        min: 100, max: 500, step: 10,
-        default: 300,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'tiltMaxAngle',
-        label: 'Max Angle',
-        stateKey: 'tiltMaxAngle',
-        type: 'range',
-        min: 0.5, max: 10, step: 0.5,
-        default: 4,
-        format: v => v.toFixed(1) + '°',
-        parse: parseFloat
-      },
-      {
-        id: 'tiltLerpSpeed',
-        label: 'Smoothness',
-        stateKey: 'tiltLerpSpeed',
-        type: 'range',
-        min: 0.01, max: 1, step: 0.01,
-        default: 0.08,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'tiltGlassMass',
-        label: 'Particle Mass',
-        stateKey: 'tiltGlassBallMass',
-        type: 'range',
-        min: 0.02, max: 1, step: 0.01,
-        default: 0.08,
-        format: v => v.toFixed(2) + 'x',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'tiltFriction',
-        label: 'Friction',
-        stateKey: 'tiltFriction',
-        type: 'range',
-        min: 0.002, max: 1, step: 0.001,
-        default: 0.008,
-        format: v => v.toFixed(3),
-        parse: parseFloat
-      }
-    ]
-  },
-
   kaleidoscope: {
-    title: 'Kaleidoscope',
+    title: 'Kaleido Bloom',
     icon: '🪞',
     mode: 'kaleidoscope-3',
     defaultOpen: false,
@@ -4521,7 +4392,7 @@ export const CONTROL_SECTIONS = {
     ]
   },
   starfield3d: {
-    title: '3D Starfield',
+    title: 'Star Field',
     icon: '✨',
     mode: 'starfield-3d',
     defaultOpen: false,
@@ -4670,7 +4541,7 @@ export const CONTROL_SECTIONS = {
   },
 
   flubberBlob: {
-    title: 'Flubber Blob',
+    title: 'Soft Blob',
     icon: '🫠',
     mode: 'flubber-blob',
     defaultOpen: false,
@@ -4923,7 +4794,7 @@ export const CONTROL_SECTIONS = {
   },
 
   pressureCrucible: {
-    title: 'Polarity Flux',
+    title: 'Pressure Field',
     icon: '◉',
     mode: 'pressure-crucible',
     defaultOpen: false,
@@ -5158,7 +5029,7 @@ export const CONTROL_SECTIONS = {
   },
 
   sphere3d: {
-    title: '3D Sphere',
+    title: 'Sphere Orbit',
     icon: '🌐',
     mode: '3d-sphere',
     defaultOpen: false,
@@ -5252,7 +5123,7 @@ export const CONTROL_SECTIONS = {
   },
 
   cube3d: {
-    title: '3D Cube',
+    title: 'Cube Frame',
     icon: '🧊',
     mode: '3d-cube',
     defaultOpen: false,
@@ -5705,23 +5576,6 @@ export const CONTROL_SECTIONS = {
         }
       },
       {
-        id: 'contentFadeInDelay',
-        label: 'Content Fade-In Delay',
-        stateKey: 'contentFadeInDelay',
-        type: 'range',
-        min: 0, max: 2000, step: 50,
-        default: 500,
-        format: v => `${Math.round(v)}ms`,
-        parse: v => parseInt(v, 10),
-        hint: 'Delay before content fade-in animation starts (excludes background/wall color)',
-        onChange: () => {
-          // Reload page to apply changes
-          if (typeof window !== 'undefined') {
-            setTimeout(() => window.location.reload(), 300);
-          }
-        }
-      },
-      {
         id: 'contentFadeInDuration',
         label: 'Content Fade-In Duration',
         stateKey: 'contentFadeInDuration',
@@ -5830,13 +5684,14 @@ function generateControlHTML(control) {
   
   // Color picker type
   if (control.type === 'color') {
+    const colorInputValue = getColorInputValue(control.default);
     return `
       <label class="${rowClass}" data-control-id="${control.id}">
         <div class="control-row-header">
           <span class="control-label"${hintTitleAttr}>${control.label}</span>
           <span class="control-value" id="${valId}">${control.default}</span>
         </div>
-        <input type="color" id="${pickerId}" value="${control.default}" aria-label="${control.label}" />
+        <input type="color" id="${pickerId}" value="${escapeAttr(colorInputValue)}" aria-label="${control.label}" />
       </label>
       ${control.hint ? `<p class="control-hint">${control.hint}</p>` : ''}`;
   }
@@ -6313,29 +6168,29 @@ export function generateModeSwitcherHTML() {
     'beach-ball-room': '◍'
   };
   const modeLabels = {
-    'pit': 'Pit',
-    'bubbles': 'Bubbles',
-    'critters': 'Hive',
-    'flies': 'Flies',
-    'water': 'Water',
-    'magnetic': 'Magnet',
-    'weightless': 'Zero-G',
-    'kaleidoscope-3': 'Kalei',
-    'parallax-float': 'Parallax Float',
-    '3d-sphere': 'Sphere 3D',
-    '3d-cube': 'Cube 3D',
-    'starfield-3d': 'Starfield 3D',
-    'elastic-center': 'Tension Loom',
-    'flock-of-birds': 'Flock',
-    'wall-repel': 'Repel',
-    'aperture-bloom': 'Aperture',
-    'mineral-growth': 'Growth',
-    'flubber-blob': 'Flubber',
-    'weave-field': 'Weave',
+    'pit': 'Ball Field',
+    'bubbles': 'Bubble Lift',
+    'critters': 'Critter Swarm',
+    'flies': 'Light Swarm',
+    'water': 'Water Flow',
+    'magnetic': 'Magnetic Field',
+    'weightless': 'Weightless Drift',
+    'kaleidoscope-3': 'Kaleido Bloom',
+    'parallax-float': 'Parallax Drift',
+    '3d-sphere': 'Sphere Orbit',
+    '3d-cube': 'Cube Frame',
+    'starfield-3d': 'Star Field',
+    'elastic-center': 'Elastic Loom',
+    'flock-of-birds': 'Flock Drift',
+    'wall-repel': 'Repel Room',
+    'aperture-bloom': 'Aperture Bloom',
+    'mineral-growth': 'Mineral Bloom',
+    'flubber-blob': 'Soft Blob',
+    'weave-field': 'Weave Field',
     'pressure-crucible': 'Flux',
-    'particle-fountain': 'Fountain',
-    'napoleon-point-cloud': 'Bust',
-    'beach-ball-room': 'Beach Ball'
+    'particle-fountain': 'Particle Fountain',
+    'napoleon-point-cloud': 'Bust Cloud',
+    'beach-ball-room': 'Beach Ball Room'
   };
   
   const dailyMode = getDailySimulationId();
@@ -6432,28 +6287,28 @@ function generateHomeModeSectionHTML() {
               'beach-ball-room': '◍'
             };
             const modeLabels = {
-              'pit': 'Pit',
-              'bubbles': 'Bubbles',
-              'critters': 'Hive',
-              'flies': 'Flies',
-              'water': 'Water',
-              'magnetic': 'Magnet',
-              'weightless': 'Zero-G',
-              'kaleidoscope-3': 'Kalei',
-              'parallax-float': 'Parallax Float',
-              '3d-sphere': 'Sphere 3D',
-              '3d-cube': 'Cube 3D',
-              'starfield-3d': 'Starfield 3D',
-              'elastic-center': 'Tension Loom',
-              'flock-of-birds': 'Flock',
-              'wall-repel': 'Repel',
-              'aperture-bloom': 'Aperture',
-              'mineral-growth': 'Growth',
-              'flubber-blob': 'Flubber',
-              'weave-field': 'Weave',
-              'particle-fountain': 'Fountain',
-              'napoleon-point-cloud': 'Bust',
-              'beach-ball-room': 'Beach Ball'
+              'pit': 'Ball Field',
+              'bubbles': 'Bubble Lift',
+              'critters': 'Critter Swarm',
+              'flies': 'Light Swarm',
+              'water': 'Water Flow',
+              'magnetic': 'Magnetic Field',
+              'weightless': 'Weightless Drift',
+              'kaleidoscope-3': 'Kaleido Bloom',
+              'parallax-float': 'Parallax Drift',
+              '3d-sphere': 'Sphere Orbit',
+              '3d-cube': 'Cube Frame',
+              'starfield-3d': 'Star Field',
+              'elastic-center': 'Elastic Loom',
+              'flock-of-birds': 'Flock Drift',
+              'wall-repel': 'Repel Room',
+              'aperture-bloom': 'Aperture Bloom',
+              'mineral-growth': 'Mineral Bloom',
+              'flubber-blob': 'Soft Blob',
+              'weave-field': 'Weave Field',
+              'particle-fountain': 'Particle Fountain',
+              'napoleon-point-cloud': 'Bust Cloud',
+              'beach-ball-room': 'Beach Ball Room'
             };
             let buttons = '';
             NARRATIVE_MODE_SEQUENCE.forEach((mode, idx) => {
@@ -6981,14 +6836,14 @@ export function syncSlidersToState(options = {}) {
           el.checked = !!stateVal;
           if (valEl) valEl.textContent = stateVal ? 'On' : 'Off';
         } else if (control.type === 'color') {
-          el.value = stateVal;
+          el.value = getColorInputValue(stateVal, uiDocument);
           if (valEl) valEl.textContent = stateVal;
         } else {
           el.value = stateVal;
           if (valEl) valEl.textContent = control.format ? control.format(stateVal) : String(stateVal);
         }
 
-        if (runOnChange && control.onChange && control.id !== 'entranceEnabled' && control.id !== 'contentFadeInDelay' && control.id !== 'contentFadeInDuration') {
+        if (runOnChange && control.onChange && control.id !== 'entranceEnabled' && control.id !== 'contentFadeInDuration') {
           control.onChange(g, stateVal);
         }
       }

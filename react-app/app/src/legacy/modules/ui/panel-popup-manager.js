@@ -105,8 +105,6 @@ function syncPopupWindowMetadata(uiDocument, options = {}) {
   if (titleNode) titleNode.textContent = title;
   const subtitleNode = uiDocument.getElementById('panel-host-window-subtitle');
   if (subtitleNode) subtitleNode.textContent = subtitle;
-  const routeNode = uiDocument.getElementById('panel-host-preview-route');
-  if (routeNode) routeNode.textContent = subtitle;
 }
 
 function renderCurrentRoutePanelInPopup() {
@@ -189,6 +187,9 @@ function openDetachedPanelWindow() {
 
 export function registerDevPanelRoute(options = {}) {
   currentRouteOptions = { ...options };
+  bindPopupReadyHandler();
+  bindPopupCloseListener();
+  bindPopupSyncListeners();
   ensureLauncherButton();
 
   const dock = getDock();

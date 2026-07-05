@@ -3,6 +3,7 @@ import {
   getGateHandoffDurationMs,
   getModalCloseDurationMs,
   hideOverlay,
+  initModalOverlay,
   mountModalIntoOverlay,
   showOverlay,
   unmountModalFromOverlay
@@ -33,6 +34,30 @@ export function showGateBackdrop({ hadActiveGate = false } = {}) {
   if (!hadActiveGate) {
     showOverlay();
   }
+}
+
+export function ensureGateModalOverlay(config = {}) {
+  initModalOverlay(config);
+}
+
+export function getGateModalCloseDurationMs({ keepBackdrop = false } = {}) {
+  return keepBackdrop
+    ? getGateHandoffDurationMs()
+    : getModalCloseDurationMs();
+}
+
+export function prepareGateModalOpen(modal, {
+  hadActiveGate = false,
+  mount = true,
+  onReady = null
+} = {}) {
+  showGateBackdrop({ hadActiveGate });
+  requestAnimationFrame(() => {
+    if (mount) {
+      mountModalIntoOverlay(modal);
+    }
+    onReady?.();
+  });
 }
 
 export function openGateModal(modal) {

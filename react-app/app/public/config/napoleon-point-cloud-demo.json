@@ -3,7 +3,7 @@
   "enabled": true,
   "quality": "low",
   "mobileQuality": "low",
-  "pointDensity": 0.28,
+  "pointDensity": 0.14,
   "dotSize": 23.4,
   "dotOpacity": 0.94,
   "colourMode": "surface-bands",

@@ -1,12 +1,11 @@
-# Beach Ball Room Daily Route
+# Beach Ball Room Lab Route
 
-Beach Ball Room is promoted into the catalog-backed daily rotation. The route is built as:
+Beach Ball Room is currently a collection-only lab route. The route is built as:
 
 - `/lab/beach-ball-room.html`
-- `/lab/beach-ball-room.html?daily=1`
 - SPA alias in dev/build fallback: `/lab/beach-ball-room`
 
-The simulation registry entry is `beach-ball-room`; `enabledInRotation` is derived from `react-app/app/src/data/simulationCatalog.json`, so it follows the `daily-rotation` stage automatically.
+The simulation registry entry is `beach-ball-room`; `enabledInRotation` is derived from `react-app/app/src/data/simulationCatalog.json`, so it is false while the catalog stage is `collection`.
 
 ## GitHub Pages
 
@@ -20,7 +19,6 @@ To review on the current Pages domain, use:
 
 ```text
 https://beck.fyi/lab/beach-ball-room.html
-https://beck.fyi/lab/beach-ball-room.html?daily=1
 ```
 
 ## Staging Subdomain

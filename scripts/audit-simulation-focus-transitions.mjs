@@ -14,13 +14,13 @@ const DEFAULT_URL = 'http://127.0.0.1:8013';
 const WAIT_MS = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_WAIT_MS || 40000);
 const FRAME_COUNT = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_FRAMES || 46);
 const FRAME_INTERVAL_MS = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_INTERVAL_MS || 45);
+const SIMULATION_URL_STATE_PARAMS = ['daily', 'focus', 'mode', 'simulation'];
 let expectedChooserRows = 0;
 const ROUTE_BACKED_FOCUS_IDS = new Set([
   'wall-repel',
   'flock-of-birds',
   'mineral-growth',
   'napoleon-point-cloud',
-  'beach-ball-room',
 ]);
 
 function resolveOrigin() {
@@ -79,6 +79,7 @@ async function waitForIdle(page) {
       const content = document.getElementById('modal-content-layer');
       return (
         (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
+        && (document.documentElement.dataset.absSimulationFocusTransition || 'idle') === 'idle'
         && !blur?.classList.contains('active')
         && !content?.classList.contains('active')
       );
@@ -110,6 +111,32 @@ async function closeChooserWithClick(page) {
   await page.locator('.simulation-focus-modal.active [data-modal-back]').click({ timeout: WAIT_MS });
   await page.waitForSelector('.simulation-focus-modal.active', { state: 'hidden', timeout: WAIT_MS });
   await waitForIdle(page);
+}
+
+async function installSimulationFocusPhaseRecorder(page) {
+  await page.evaluate(() => {
+    if (window.__ABS_SIMULATION_FOCUS_PHASE_AUDIT_INSTALLED__) return;
+    window.__ABS_SIMULATION_FOCUS_PHASE_AUDIT_INSTALLED__ = true;
+    window.__ABS_SIMULATION_FOCUS_PHASE_AUDIT__ = [];
+    const root = document.documentElement;
+    let previousPhase = '';
+    const record = () => {
+      const phase = root.dataset.absSimulationFocusTransition || 'idle';
+      if (phase === previousPhase) return;
+      previousPhase = phase;
+      window.__ABS_SIMULATION_FOCUS_PHASE_AUDIT__.push({
+        phase,
+        at: performance.now(),
+        wallTime: Date.now(),
+      });
+    };
+    record();
+    const observer = new MutationObserver(record);
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ['data-abs-simulation-focus-transition'],
+    });
+  });
 }
 
 async function getState(page, elapsedMs) {
@@ -170,6 +197,7 @@ async function getState(page, elapsedMs) {
     const visualTransition = window.__ABS_SIMULATION_VISUAL_TRANSITION__ || null;
     const homeSnapshot = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.() || null;
     const params = new URLSearchParams(window.location.search);
+    const bootState = document.documentElement.dataset.absBootState || '';
     const titleCanvasVisible = Boolean(
       homeSnapshot?.canvasTitleVisible
       && Number(homeSnapshot?.canvasTitleMaxOpacity || 0) > 0.35
@@ -180,6 +208,11 @@ async function getState(page, elapsedMs) {
       elapsed,
       href: window.location.href,
       path: window.location.pathname,
+      bootOverlayPresent: Boolean(document.getElementById('abs-boot-overlay')),
+      bootState,
+      blockedSimulationUrlParams: Array.from(params.keys()).filter((key) => (
+        key === 'daily' || key === 'focus' || key === 'mode' || key === 'simulation'
+      )),
       phase: document.documentElement.dataset.absTransitionPhase || 'idle',
       simulationFocusPhase: document.documentElement.dataset.absSimulationFocusTransition || 'idle',
       htmlClass: document.documentElement.className,
@@ -301,7 +334,7 @@ function rectWithinViewport(rect, viewport, slack = 3) {
 
 function isShellUiStableFrame(frame) {
   const { state } = frame;
-  if (state.modalActive || state.modalClosing) return false;
+  if (state.phase === 'modal-open' || state.modalActive || state.modalClosing) return false;
   const titleVisible = Number(state.titleRect?.opacity) >= 0.9 || state.titleCanvasVisible === true;
   return (
     titleVisible
@@ -321,7 +354,15 @@ function isShellUiStableFrame(frame) {
 function checkFrame(frame, imageStats, { enforceShellUi = true } = {}) {
   const issues = [];
   const { state } = frame;
-  const modalBusy = state.modalActive || state.modalClosing;
+  const modalBusy = state.phase === 'modal-open' || state.modalActive || state.modalClosing;
+
+  if (state.bootOverlayPresent) {
+    issues.push('boot-overlay-visible-during-switch');
+  }
+
+  if (state.bootState === 'booting') {
+    issues.push('boot-state-reset-during-switch');
+  }
 
   if (!modalBusy && state.simulationFocusPhase === 'idle' && (imageStats.stdev < 2 || imageStats.mean < 2 || imageStats.mean > 253)) {
     issues.push('blank-or-flat-frame');
@@ -379,6 +420,11 @@ async function collectFrames(page, flowName, action) {
       ? window.__ABS_SIMULATION_VISUAL_TRANSITION__.events.length
       : 0
   ));
+  frames.phaseAuditBaseline = await page.evaluate(() => (
+    Array.isArray(window.__ABS_SIMULATION_FOCUS_PHASE_AUDIT__)
+      ? window.__ABS_SIMULATION_FOCUS_PHASE_AUDIT__.length
+      : 0
+  ));
   const sampler = (async () => {
     for (let index = 0; index < FRAME_COUNT; index += 1) {
       frames.push(await captureFrame(page, flowName, index, startedAt));
@@ -389,6 +435,11 @@ async function collectFrames(page, flowName, action) {
   await sleep(20);
   await action();
   await sampler;
+  frames.phaseAudit = await page.evaluate((baseline) => (
+    Array.isArray(window.__ABS_SIMULATION_FOCUS_PHASE_AUDIT__)
+      ? window.__ABS_SIMULATION_FOCUS_PHASE_AUDIT__.slice(baseline)
+      : []
+  ), frames.phaseAuditBaseline);
   return frames;
 }
 
@@ -464,7 +515,39 @@ async function chooseSimulationWithFrames(page, flow) {
     );
   }
   await waitForIdle(page);
+  await assertChooserSwitchSettled(page, flow);
   return frames;
+}
+
+async function assertChooserSwitchSettled(page, flow) {
+  const result = await page.evaluate((blockedParams) => {
+    const url = new URL(window.location.href);
+    const blur = document.getElementById('modal-blur-layer');
+    const content = document.getElementById('modal-content-layer');
+    return {
+      href: window.location.href,
+      pathname: url.pathname,
+      blockedParams: blockedParams.filter((param) => url.searchParams.has(param)),
+      bootOverlayPresent: Boolean(document.getElementById('abs-boot-overlay')),
+      bootState: document.documentElement.dataset.absBootState || '',
+      transitionPhase: document.documentElement.dataset.absTransitionPhase || 'idle',
+      simulationFocusPhase: document.documentElement.dataset.absSimulationFocusTransition || 'idle',
+      modalOverlayActive: Boolean(blur?.classList.contains('active') || content?.classList.contains('active')),
+    };
+  }, SIMULATION_URL_STATE_PARAMS);
+
+  const issues = [];
+  if (result.bootOverlayPresent) issues.push('boot-overlay-present-after-switch');
+  if (result.bootState === 'booting') issues.push('boot-state-booting-after-switch');
+  if (result.transitionPhase !== 'idle') issues.push(`transition-phase:${result.transitionPhase}`);
+  if (result.simulationFocusPhase !== 'idle') issues.push(`simulation-focus-phase:${result.simulationFocusPhase}`);
+  if (result.modalOverlayActive) issues.push('modal-overlay-active-after-switch');
+  if (result.pathname.startsWith('/lab/')) issues.push(`lab-path:${result.pathname}`);
+  if (result.blockedParams.length > 0) issues.push(`simulation-url-params:${result.blockedParams.join(',')}`);
+
+  if (issues.length) {
+    throw new Error(`Chooser switch "${flow.name}" did not settle correctly: ${issues.join('; ')} ${JSON.stringify(result)}`);
+  }
 }
 
 function buildReportHtml(report) {
@@ -530,6 +613,8 @@ async function analyzeFrames(frames) {
 
   const maxMeanDelta = Math.max(0, ...deltas);
   const phases = new Set(frames.map((frame) => frame.state.simulationFocusPhase));
+  const auditedPhases = new Set((frames.phaseAudit || []).map((entry) => entry.phase));
+  const observedPhases = new Set([...phases, ...auditedPhases]);
   const latestEvents = frames[frames.length - 1]?.state.visualTransition?.events || [];
   const flowEvents = latestEvents.filter((event) => (
     !frames.eventStartedWallTime
@@ -547,9 +632,9 @@ async function analyzeFrames(frames) {
     .map((frame) => Number(frame.state.visualTransition?.visibleRatio))
     .filter(Number.isFinite);
 
-  if (!phases.has('out') && !eventTypes.has('out-start')) issues.push('missing-simulation-scale-out-phase');
-  if (!eventTypes.has('hold-start')) issues.push('missing-simulation-zero-hold-phase');
-  if (!phases.has('in') && !eventTypes.has('in-start')) issues.push('missing-simulation-scale-in-phase');
+  if (!observedPhases.has('out') && !eventTypes.has('out-start')) issues.push('missing-simulation-scale-out-phase');
+  if (!observedPhases.has('hold') && !eventTypes.has('hold-start')) issues.push('missing-simulation-zero-hold-phase');
+  if (!observedPhases.has('in') && !eventTypes.has('in-start')) issues.push('missing-simulation-scale-in-phase');
   if (!visualMinScales.some((scale) => scale >= 0 && scale < 0.16)) {
     issues.push('missing-scale-zero-near-frame');
   }
@@ -567,8 +652,9 @@ async function analyzeFrames(frames) {
     frames,
     maxMeanDelta,
     deltas,
-    phases: Array.from(phases),
+    phases: Array.from(observedPhases),
     events: flowEvents,
+    phaseAudit: frames.phaseAudit || [],
     firstShellStableIndex,
     issues,
   };
@@ -582,7 +668,7 @@ async function main() {
   if (expectedChooserRows <= 0) throw new Error('Expected at least one Daily Simulation entry in the catalog');
   const flows = buildDailyFocusFlows(dailyEntries);
   const startFocus = flows[0]?.fromFocus || dailyEntries[0]?.id || 'pit';
-  const startLabel = flows[0]?.from || dailyEntries[0]?.name || 'Ball Pit';
+  const startLabel = flows[0]?.from || dailyEntries[0]?.name || 'Ball Field';
 
   const browser = await chromium.launch();
   const page = await browser.newPage({
@@ -592,6 +678,7 @@ async function main() {
 
   try {
     await page.goto(resolveUrl(withAuditParam(`/index.html?focus=${encodeURIComponent(startFocus)}`)), { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await installSimulationFocusPhaseRecorder(page);
     const bootReport = analyzeBootStates(await sampleStates(page, 'direct-reload', 120, 50));
     await waitForSwitcherLabel(page, startLabel);
 

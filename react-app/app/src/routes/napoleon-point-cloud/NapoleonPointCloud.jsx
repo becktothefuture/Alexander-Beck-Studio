@@ -279,7 +279,7 @@ function forEachPointCloudMaterial(runtime, callback) {
 export function NapoleonPointCloud({
   quality = 'low',
   mobileQuality = 'low',
-  pointDensity = 0.28,
+  pointDensity = 0.14,
   dotSize = 23.4,
   dotOpacity = 0.94,
   colourMode = 'surface-bands',
@@ -294,7 +294,7 @@ export function NapoleonPointCloud({
   maxDpr = 1.5,
   reducedMotion = false,
   className = '',
-  ariaLabel = 'Surface-sampled point cloud of The bust of Napoleon Bonaparte',
+  ariaLabel = 'Bust Cloud flat point-cloud simulation',
   decorative = false,
   theme = DEFAULT_THEME,
   showDiagnostics = false,
@@ -440,7 +440,7 @@ export function NapoleonPointCloud({
       backRenderer?.dispose();
       frontRenderer?.dispose();
       root.dataset.pointCloudLoadState = 'error';
-      setError('WebGL is unavailable, so the Napoleon point cloud cannot render in this browser.');
+      setError('WebGL is unavailable, so Bust Cloud cannot render in this browser.');
       return undefined;
     }
     backRenderer.setClearColor(0x000000, 0);

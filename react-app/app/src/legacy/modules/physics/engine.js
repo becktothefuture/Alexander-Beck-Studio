@@ -489,7 +489,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         // Pointer-dragged balls are positioned by the UI; walls() would fight the cursor.
         if (ball.isPointerLocked) continue;
 
-        // Ball Pit has explicit rounded-corner arc clamping in Ball.walls().
+        // Ball Field has explicit rounded-corner arc clamping in Ball.walls().
         // Avoid an additional velocity-based corner repeller there, which can
         // create local compressions in dense corner stacks.
         if (!isPitLike) applyCornerRepellers(ball, canvasW, canvasH, DT, isMobile);
@@ -497,7 +497,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       }
     }
 
-    // Ball Pit stabilization:
+    // Ball Field stabilization:
     // Wall/corner clamping can re-introduce overlaps in dense stacks (especially near the floor).
     // Run a small post-wall collision pass for Pit-like modes only.
     if (isPitLikeMode(mode)) {

@@ -252,6 +252,23 @@ function signalDailyFocusRouteReady(simulationId) {
   });
 }
 
+async function registerDailyFocusDevPanelRoute() {
+  if (!import.meta.env.DEV) return;
+
+  try {
+    const { registerDevPanelRoute } = await import('../../legacy/modules/ui/panel-popup-manager.js');
+    registerDevPanelRoute({
+      page: 'home',
+      pageLabel: 'Home',
+      productLabel: 'Alexander Beck Studio',
+      pageSectionTitle: 'Home',
+      syncInitialControlSideEffects: false,
+    });
+  } catch (error) {
+    console.warn('Daily focus panel init failed', error);
+  }
+}
+
 export function DailyFocusShellBridge({ simulationId = '' }) {
   useLayoutEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -291,6 +308,9 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
         /* Text fallbacks are handled by the modal modules. */
       }
       applyShellVars();
+      // Daily focus bypasses the legacy home bootstrap, so register the dev panel
+      // after the shared config has initialized the legacy globals.
+      registerDailyFocusDevPanelRoute();
       if (!modalSystemsInitialized) {
         modalSystemsInitialized = true;
         initializeSharedHomeModals(config);

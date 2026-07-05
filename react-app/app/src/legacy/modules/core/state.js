@@ -119,7 +119,7 @@ const state = {
   kaleidoscope3WarmupFrames: 65,
   crittersWarmupFrames: 10,
   parallaxFloatWarmupFrames: 10,
-  // 3D Sphere (Mode 16)
+  // Sphere Orbit (Mode 16)
   sphere3dRadiusVw: 60,                     // Sphere radius (vw)
   sphere3dDensity: 140,
   sphere3dFocalLength: 600,
@@ -130,7 +130,7 @@ const state = {
   sphere3dTumbleDamping: 0.9,
   sphere3dMouseDamping: 0.08,
   sphere3dWarmupFrames: 10,
-  // 3D Cube (Mode 17)
+  // Cube Frame (Mode 17)
   cube3dSizeVw: 50,
   cube3dEdgeDensity: 8,
   cube3dFaceGrid: 0,
@@ -143,7 +143,7 @@ const state = {
   cube3dFogStart: 0.95,
   cube3dFogMin: 0.58,
   cube3dWarmupFrames: 10,
-  // 3D Starfield (Mode 23)
+  // Star Field (Mode 23)
   starfieldCount: 200,
   starfieldSpanX: 1.5,
   starfieldSpanY: 1.2,
@@ -258,7 +258,7 @@ const state = {
   /** null → positional slop 0.5*DPR in collision solver; number = explicit buffer px */
   collisionPairSlopPx: null,
 
-  // Sleep tuning (Ball Pit modes only)
+  // Sleep tuning (Ball Field modes only)
   // Higher thresholds = balls settle/sleep sooner (less idle jiggle).
   sleepVelocityThreshold: 12.0, // px/s
   sleepAngularThreshold: 0.18,  // rad/s
@@ -402,6 +402,7 @@ const state = {
   noiseOpacity: 0.04, // Overall opacity (0-1)
   noiseOpacityLight: 0.15, // Opacity for light mode
   noiseOpacityDark: 0.48, // Opacity for dark mode
+  noiseOffsetY: 0, // Vertical offset for the noise layer (px)
   noiseBlendMode: 'normal', // Deprecated/no-op; blend mode is fixed to normal in CSS
   // Color controls (separate for light/dark)
   noiseColorLight: '#202023', // Dark ink — readable on light walls
@@ -427,7 +428,6 @@ const state = {
   magneticExplosionInterval: 5,
   
   // Bubbles mode params
-  bubblesSpawnRate: 16,
   bubblesRiseSpeed: 650,
   bubblesWobble: 65,
   bubblesMaxCount: 200,
@@ -474,7 +474,7 @@ const state = {
   weightlessRepelRadius: 220,
   weightlessRepelPower: 50000,
 
-  // Tension Loom mode params (`elastic-center` mode ID, preserved for compatibility)
+  // Elastic Loom mode params (`elastic-center` mode ID, preserved for compatibility)
   tensionLoomBallCount: 132,
   tensionLoomGridDensity: 1,
   tensionLoomMassMultiplier: 1.35,
@@ -493,7 +493,7 @@ const state = {
   tensionLoomPulseWidth: 58,
   tensionLoomWarmupFrames: 8,
 
-  // Flubber Blob mode params
+  // Soft Blob mode params
   flubberBlobBallCount: 120,
   flubberBlobParticleCollisions: true,
   flubberBlobContactIterations: 5,
@@ -545,7 +545,7 @@ const state = {
   weaveFieldCollisionIterations: 1,
   weaveFieldWarmupFrames: 0,
 
-  // Polarity Flux mode
+  // Pressure Field mode
   pressureCrucibleBallCount: 144,
   pressureCrucibleFluxStrength: 92000,
   pressureCrucibleWakeStrength: 1,
@@ -588,7 +588,7 @@ const state = {
   kaleidoscope3SpawnAreaMul: 0.6,
   kaleidoscope3SizeVariance: 0.45,
 
-  // Parallax Float (mouse-driven depth parallax)
+  // Parallax Drift (mouse-driven depth parallax)
   parallaxFloatGridX: 14,
   parallaxFloatGridY: 10,
   parallaxFloatGridZ: 7,
@@ -737,8 +737,6 @@ const state = {
   // Page caption: clamp(min, 2vh, max) for bottom distance (universal: index, portfolio, cv).
   edgeCaptionDistanceMinPx: 8,
   edgeCaptionDistanceMaxPx: 48,
-  // Simulation overlays: CSS ::before gradient (0–1) and canvas depth-wash.
-  simulationOverlayIntensity: 1,
   // Depth wash: radial gradient overlay between balls and wall
   depthWashOpacity: 0,
   depthWashBlendModeLight: 'color-dodge',
@@ -918,7 +916,8 @@ const state = {
   wallLightFluctuationEnabled: false,       // Toggle ambient fluctuation animation
   modalOverlayEnabled: true,         // Enable/disable overlay
   modalOverlayOpacity: 0.01,          // White wash opacity (0-1)
-  modalOverlayBlurPx: 8,             // Backdrop blur amount (px)
+  modalOverlayBlurPx: 6.6,           // Desktop backdrop blur amount (px)
+  modalOverlayMobileBlurPx: 12,      // Touch/mobile backdrop blur amount (px)
   modalOverlayTransitionMs: 800,     // Blur-in transition duration (ms)
   modalOverlayTransitionOutMs: 600,  // Blur-out transition duration (ms)
   modalOverlayContentDelayMs: 200,   // Delay before dialog content appears (ms)
@@ -942,7 +941,6 @@ const state = {
   entranceElementDuration: 800,     // Individual element fade duration (ms)
   entranceElementScaleStart: 0.95,  // Initial scale for elements (0-1)
   entranceElementTranslateZStart: -20, // Initial z-axis position (px, negative = back)
-  contentFadeInDelay: 500,          // Delay before content fade-in starts (ms)
   contentFadeInDuration: 1000,       // Duration of content fade-in animation (ms)
   entranceElementEasing: 'cubic-bezier(0.16, 1, 0.3, 1)', // Easing function for element animations
   entranceLateElementDuration: 600, // Duration for late elements (logo + links) animation (ms)
@@ -1286,10 +1284,6 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--edge-caption-distance-min', `${Math.max(0, capMin)}px`);
   root.style.setProperty('--edge-caption-distance-max', `${Math.max(capMin, capMax)}px`);
 
-  // Simulation overlay: CSS ::before gradient intensity (0–1).
-  const simOverlay = Number.isFinite(state.simulationOverlayIntensity) ? Math.max(0, Math.min(1, state.simulationOverlayIntensity)) : 1;
-  root.style.setProperty('--simulation-overlay-intensity', String(simOverlay));
-
   // True inner offset: wall thickness + content padding (for edge-inset CSS var)
   const edgeInset = state.wallThickness + state.contentPadding;
   root.style.setProperty('--edge-inset', `${edgeInset}px`);
@@ -1487,7 +1481,7 @@ export function initState(config) {
     state.layoutViewportWidthPx = clampNumber(config.layoutViewportWidthPx, 0, 4096, 0);
   }
   if (config.ballMass) state.ballMassKg = config.ballMass;
-  // Treat config.gravityMultiplier as the Ball Pit gravity multiplier (historical naming)
+  // Treat config.gravityMultiplier as the Ball Field gravity multiplier (historical naming)
   if (config.gravityMultiplier !== undefined) {
     state.gravityMultiplier = config.gravityMultiplier;
     state.gravityMultiplierPit = config.gravityMultiplier;
@@ -1807,7 +1801,7 @@ export function initState(config) {
 
   // Lattice (config overrides)
 
-  // Parallax Float (config overrides)
+  // Parallax Drift (config overrides)
   if (config.parallaxFloatGridX !== undefined) state.parallaxFloatGridX = clampInt(config.parallaxFloatGridX, 3, 40, state.parallaxFloatGridX);
   if (config.parallaxFloatGridY !== undefined) state.parallaxFloatGridY = clampInt(config.parallaxFloatGridY, 3, 40, state.parallaxFloatGridY);
   if (config.parallaxFloatGridZ !== undefined) state.parallaxFloatGridZ = clampInt(config.parallaxFloatGridZ, 2, 20, state.parallaxFloatGridZ);
@@ -1839,7 +1833,7 @@ export function initState(config) {
     state.bubblesDepthSpan = clampNumber(config.bubblesDepthSpan, 0.1, 1, state.bubblesDepthSpan);
   }
 
-  // 3D Sphere (Mode 16)
+  // Sphere Orbit (Mode 16)
   if (config.sphere3dRadiusVw !== undefined) state.sphere3dRadiusVw = clampNumber(config.sphere3dRadiusVw, 5, 60, state.sphere3dRadiusVw);
   if (config.sphere3dDensity !== undefined) state.sphere3dDensity = clampInt(config.sphere3dDensity, 30, 600, state.sphere3dDensity);
   if (config.sphere3dFocalLength !== undefined) state.sphere3dFocalLength = clampInt(config.sphere3dFocalLength, 80, 2000, state.sphere3dFocalLength);
@@ -1851,7 +1845,7 @@ export function initState(config) {
   if (config.sphere3dMouseDamping !== undefined) state.sphere3dMouseDamping = clampNumber(config.sphere3dMouseDamping, 0.01, 1, state.sphere3dMouseDamping);
   if (config.sphere3dWarmupFrames !== undefined) state.sphere3dWarmupFrames = clampInt(config.sphere3dWarmupFrames, 0, 240, state.sphere3dWarmupFrames);
 
-  // 3D Cube (Mode 17)
+  // Cube Frame (Mode 17)
   if (config.cube3dSizeVw !== undefined) state.cube3dSizeVw = clampNumber(config.cube3dSizeVw, 10, 50, state.cube3dSizeVw);
   if (config.cube3dEdgeDensity !== undefined) state.cube3dEdgeDensity = clampInt(config.cube3dEdgeDensity, 2, 30, state.cube3dEdgeDensity);
   if (config.cube3dFaceGrid !== undefined) state.cube3dFaceGrid = clampInt(config.cube3dFaceGrid, 0, 10, state.cube3dFaceGrid);
@@ -1865,7 +1859,7 @@ export function initState(config) {
   if (config.cube3dFogMin !== undefined) state.cube3dFogMin = clampNumber(config.cube3dFogMin, 0, 1, state.cube3dFogMin);
   if (config.cube3dWarmupFrames !== undefined) state.cube3dWarmupFrames = clampInt(config.cube3dWarmupFrames, 0, 240, state.cube3dWarmupFrames);
 
-  // 3D Starfield (Mode 23)
+  // Star Field (Mode 23)
   if (config.starfieldCount !== undefined) state.starfieldCount = clampInt(config.starfieldCount, 20, 500, state.starfieldCount);
   if (config.starfieldSpanX !== undefined) state.starfieldSpanX = clampNumber(config.starfieldSpanX, 0.4, 4.0, state.starfieldSpanX);
   if (config.starfieldSpanY !== undefined) state.starfieldSpanY = clampNumber(config.starfieldSpanY, 0.4, 4.0, state.starfieldSpanY);
@@ -1882,7 +1876,7 @@ export function initState(config) {
   if (config.starfield3dWarmupFrames !== undefined) state.starfield3dWarmupFrames = clampInt(config.starfield3dWarmupFrames, 0, 240, state.starfield3dWarmupFrames);
   
 
-  // Tension Loom mode (`elastic-center` mode ID)
+  // Elastic Loom mode (`elastic-center` mode ID)
   if (config.tensionLoomBallCount !== undefined) state.tensionLoomBallCount = clampInt(config.tensionLoomBallCount, 64, 180, state.tensionLoomBallCount);
   if (config.tensionLoomGridDensity !== undefined) state.tensionLoomGridDensity = clampNumber(config.tensionLoomGridDensity, 0.7, 1.35, state.tensionLoomGridDensity);
   if (config.tensionLoomMassMultiplier !== undefined) state.tensionLoomMassMultiplier = clampNumber(config.tensionLoomMassMultiplier, 0.5, 4, state.tensionLoomMassMultiplier);
@@ -1901,7 +1895,7 @@ export function initState(config) {
   if (config.tensionLoomPulseWidth !== undefined) state.tensionLoomPulseWidth = clampInt(config.tensionLoomPulseWidth, 18, 180, state.tensionLoomPulseWidth);
   if (config.tensionLoomWarmupFrames !== undefined) state.tensionLoomWarmupFrames = clampInt(config.tensionLoomWarmupFrames, 0, 240, state.tensionLoomWarmupFrames);
 
-  // Flubber Blob mode
+  // Soft Blob mode
   if (config.flubberBlobBallCount !== undefined) state.flubberBlobBallCount = clampInt(config.flubberBlobBallCount, 56, 180, state.flubberBlobBallCount);
   state.flubberBlobParticleCollisions = true;
   if (config.flubberBlobContactIterations !== undefined) state.flubberBlobContactIterations = clampInt(config.flubberBlobContactIterations, 1, 6, state.flubberBlobContactIterations);
@@ -1949,7 +1943,7 @@ export function initState(config) {
   if (config.weaveFieldMaxSpeed !== undefined) state.weaveFieldMaxSpeed = clampInt(config.weaveFieldMaxSpeed, 220, 2200, state.weaveFieldMaxSpeed);
   if (config.weaveFieldCollisionIterations !== undefined) state.weaveFieldCollisionIterations = clampInt(config.weaveFieldCollisionIterations, 0, 6, state.weaveFieldCollisionIterations);
 
-  // Polarity Flux mode
+  // Pressure Field mode
   if (config.pressureCrucibleBallCount !== undefined) state.pressureCrucibleBallCount = clampInt(config.pressureCrucibleBallCount, 48, 220, state.pressureCrucibleBallCount);
   if (config.pressureCrucibleFluxStrength !== undefined) state.pressureCrucibleFluxStrength = clampInt(config.pressureCrucibleFluxStrength, 0, 180000, state.pressureCrucibleFluxStrength);
   if (config.pressureCrucibleWakeStrength !== undefined) state.pressureCrucibleWakeStrength = clampNumber(config.pressureCrucibleWakeStrength, 0, 3, state.pressureCrucibleWakeStrength);
@@ -2178,9 +2172,6 @@ export function initState(config) {
   if (config.edgeCaptionDistanceMaxPx !== undefined) {
     state.edgeCaptionDistanceMaxPx = clampInt(config.edgeCaptionDistanceMaxPx, 0, 400, state.edgeCaptionDistanceMaxPx);
   }
-  if (config.simulationOverlayIntensity !== undefined) {
-    state.simulationOverlayIntensity = clampNumber(config.simulationOverlayIntensity, 0, 1, state.simulationOverlayIntensity);
-  }
   // Depth wash configuration
   if (config.depthWashOpacity !== undefined) {
     state.depthWashOpacity = clampNumber(config.depthWashOpacity, 0, 1, state.depthWashOpacity);
@@ -2331,6 +2322,7 @@ export function initState(config) {
   if (config.noiseOpacity !== undefined) state.noiseOpacity = clampNumber(config.noiseOpacity, 0, 1, state.noiseOpacity);
   if (config.noiseOpacityLight !== undefined) state.noiseOpacityLight = clampNumber(config.noiseOpacityLight, 0, 1, state.noiseOpacityLight);
   if (config.noiseOpacityDark !== undefined) state.noiseOpacityDark = clampNumber(config.noiseOpacityDark, 0, 1, state.noiseOpacityDark);
+  if (config.noiseOffsetY !== undefined) state.noiseOffsetY = clampNumber(config.noiseOffsetY, -50, 50, state.noiseOffsetY);
   if (config.noiseBlendMode !== undefined) {
     // Deprecated/no-op: keep parsing the key for backwards compatibility,
     // but rendering now always uses normal compositing.
@@ -2374,6 +2366,7 @@ export function initState(config) {
     state.modalOverlayOpacity = clampNumber(config.modalOverlayOpacity, 0, 1, state.modalOverlayOpacity);
   }
   if (config.modalOverlayBlurPx !== undefined) state.modalOverlayBlurPx = config.modalOverlayBlurPx;
+  if (config.modalOverlayMobileBlurPx !== undefined) state.modalOverlayMobileBlurPx = config.modalOverlayMobileBlurPx;
   if (config.modalOverlayTransitionMs !== undefined) state.modalOverlayTransitionMs = config.modalOverlayTransitionMs;
   if (config.modalOverlayTransitionOutMs !== undefined) state.modalOverlayTransitionOutMs = config.modalOverlayTransitionOutMs;
   

@@ -46,6 +46,7 @@
     "audit:portfolio-pebbles" : "node scripts\/audit-portfolio-pebbles.mjs",
     "audit:transition-flows" : "node scripts\/audit-transition-flows.mjs",
     "audit:transition-gate" : "node scripts\/audit-transition-gate-serial.mjs",
+    "audit:modal-unified" : "node scripts\/audit-modal-unified-behavior.mjs",
     "build" : "npm run flatten:design-config && npm run build --prefix react-app\/app",
     "build:dev" : "npm run flatten:design-config && npm run build:dev --prefix react-app\/app",
     "build:site" : "npm run build",

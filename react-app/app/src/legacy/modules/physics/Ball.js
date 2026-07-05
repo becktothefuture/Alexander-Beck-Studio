@@ -325,7 +325,7 @@ export class Ball {
       this.squash = 1;
     }
     
-    // Sleep detection (Ball Pit mode only, Box2D-style)
+    // Sleep detection (Ball Field mode only, Box2D-style)
     // NOTE: Sleep evaluation is done after constraints (collisions + walls) in the engine.
   }
   

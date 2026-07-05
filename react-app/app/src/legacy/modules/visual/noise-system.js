@@ -50,6 +50,7 @@ const NOISE_KEYS = [
   'noiseOpacity',
   'noiseOpacityLight',
   'noiseOpacityDark',
+  'noiseOffsetY',
   'noiseColorLight',
   'noiseColorDark',
   'detailNoiseOpacity',
@@ -520,6 +521,7 @@ function applyCssVars(cfg) {
   const opacityDark = clampNumber(cfg.noiseOpacityDark ?? cfg.noiseOpacity ?? 0.04, 0, 1, 0.04);
   root.style.setProperty('--noise-opacity-light', String(opacityLight));
   root.style.setProperty('--noise-opacity-dark', String(opacityDark));
+  root.style.setProperty('--abs-noise-offset-y', `${Math.round(cfg.noiseOffsetY ?? 0)}px`);
   
   // Color controls (separate for light/dark)
   const colorLight = cfg.noiseColorLight ?? "var(--color-detected-2a2a2e)";
@@ -570,6 +572,7 @@ function sanitizeConfig(input = {}) {
     noiseOpacity: clampNumber(input.noiseOpacity, 0, 1, 0.04),
     noiseOpacityLight: clampNumber(input.noiseOpacityLight, 0, 1, cssOpacityLight),
     noiseOpacityDark: clampNumber(input.noiseOpacityDark, 0, 1, cssOpacityDark),
+    noiseOffsetY: clampNumber(input.noiseOffsetY, -50, 50, 0),
     noiseColorLight: typeof input.noiseColorLight === 'string' ? input.noiseColorLight : "var(--color-detected-2a2a2e)",
     noiseColorDark: typeof input.noiseColorDark === 'string' ? input.noiseColorDark : "var(--color-detected-d4d4d8)",
     detailNoiseOpacity: clampNumber(input.detailNoiseOpacity, 0, 1, 1),

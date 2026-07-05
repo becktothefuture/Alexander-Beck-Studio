@@ -360,7 +360,8 @@ export function generateStudioShellControlsHTML(options = {}) {
   return generateSectionSetHTML(getShellObjectSections(options), options);
 }
 
-export function bindStudioSurfaceControls() {
+export function bindStudioSurfaceControls(options = {}) {
+  const uiDocument = options.uiDocument || document;
   const config = {
     ...DEFAULT_STUDIO_SURFACE_CONFIG,
     ...readCurrentConfig(),
@@ -369,8 +370,8 @@ export function bindStudioSurfaceControls() {
 
   for (const section of ALL_CONTROL_SECTIONS) {
     for (const control of section.controls) {
-      const input = document.getElementById(`studioSurface_${control.id}Slider`);
-      const output = document.getElementById(`studioSurface_${control.id}Val`);
+      const input = uiDocument.getElementById(`studioSurface_${control.id}Slider`);
+      const output = uiDocument.getElementById(`studioSurface_${control.id}Val`);
       if (!input || input.dataset.boundStudioSurface === 'true') continue;
 
       input.dataset.boundStudioSurface = 'true';
