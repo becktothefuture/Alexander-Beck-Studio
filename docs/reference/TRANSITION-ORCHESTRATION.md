@@ -53,9 +53,10 @@ Canonical engineering contract for route and modal transitions.
 - Do not mutate `entrance-pre-transition`, `entrance-transitioning`, `entrance-complete`, or `ui-entered` during SPA route transitions.
 
 ## 6) Surface grouping contract
-- The shell owns explicit transition surfaces: wall, hero, chrome, footer, and route secondary content.
+- Route view ownership is intentionally two-slot: `simulationLayer` for page-owned wall/content, and `uiLayer` for page-owned chrome/actions. Optional `heroLayer` belongs to the route simulation/content side.
+- The stable shell preserves explicit transition surfaces as implementation details: wall, hero, chrome, footer, and route secondary content.
 - Route-in restores readable groups, not selector sweeps.
-- Portfolio route-in must restore hero + top chrome + footer together before labels / pit accents become readable.
+- Portfolio route-in must restore hero + route UI + footer together before slider labels / pit accents become readable.
 - First readable route-in frame must already have final geometry for the hero surface inside the inner wall.
 
 ## 7) Validation gate for transition changes

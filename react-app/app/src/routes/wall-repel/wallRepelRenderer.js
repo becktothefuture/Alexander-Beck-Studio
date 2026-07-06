@@ -525,7 +525,7 @@ function drawState(ctx, state, metrics, theme, options = {}) {
   }
 
   for (let colorIndex = 0; colorIndex < colors.body.length; colorIndex += 1) {
-    ctx.fillStyle = rgbString(colors.body[colorIndex], 0.92);
+    ctx.fillStyle = rgbString(colors.body[colorIndex], 1);
     ctx.beginPath();
     for (let i = 0; i < state.count; i += 1) {
       if (state.colorIndex[i] !== colorIndex) continue;

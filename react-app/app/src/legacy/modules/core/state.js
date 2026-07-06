@@ -726,6 +726,13 @@ const state = {
   frameVignetteEdgeOpacity: 0.12, // Inset vignette edge opacity
   frameVignetteAmbientBlur: 250,  // Ambient vignette blur in px
   frameVignetteAmbientOpacity: 0.08, // Ambient vignette opacity
+  simulationContrastVeilOpacityLight: 0.216,
+  simulationContrastVeilOpacityDark: 0.348,
+  simulationContrastVeilReachX: 25,
+  simulationContrastVeilReachY: 25,
+  simulationContrastVeilBlurVmax: 7,
+  simulationContrastVeilDitherOpacity: 0.035,
+  simulationContrastVeilDitherSize: 96,
   
   // Text Colors
   textColorLight: '#161616',          // Primary text (light mode)
@@ -737,23 +744,6 @@ const state = {
   // Page caption: clamp(min, 2vh, max) for bottom distance (universal: index, portfolio, cv).
   edgeCaptionDistanceMinPx: 8,
   edgeCaptionDistanceMaxPx: 48,
-  // Depth wash: radial gradient overlay between balls and wall
-  depthWashOpacity: 0,
-  depthWashBlendModeLight: 'color-dodge',
-  depthWashBlendModeDark: 'multiply',
-  depthWashCenterY: 0.3, // Center position (0=top, 1=bottom)
-  depthWashRadiusScale: 1.0, // Radius multiplier
-  // Light mode gradient
-  depthWashCenterColorLight: '#ffffff',
-  depthWashEdgeColorLight: '#142b48',
-  depthWashCenterAlphaLight: 0.3,
-  depthWashEdgeAlphaLight: 0.4,
-  // Dark mode gradient
-  depthWashCenterColorDark: '#1a1e23',
-  depthWashEdgeColorDark: '#05020f',
-  depthWashCenterAlphaDark: 0,
-  depthWashEdgeAlphaDark: 0.8,
-  
   // Link Colors
   linkHoverColor: assessedAccents.linkHoverColor || '#f03030',          // Link hover accent (shared)
 
@@ -893,8 +883,6 @@ const state = {
   innerWallPitInsetShadowBlurPx: 28,        // Inset shadow blur (px)
   innerWallPitInsetShadowSpreadPx: -6,      // Negative pulls shadow inward from rim
   innerWallPitInsetShadowOffsetYPx: 4,      // Slight downward bias (top light)
-  wallShadowPlateEnabled: true,             // Static dithered shadow texture replaces broad CSS ramps when ready
-  wallShadowDitherStrength: 1.2,            // Alpha dither strength for shadow ramps (0–3)
   puckShadowOpacity: 0.14,                  // Puck disk drop shadow strength
   puckEdgeWidth: 1,                         // Puck rim thickness (px)
   puckEdgeLightOpacity: 0.3,               // Puck top rim light
@@ -1246,6 +1234,28 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--frame-vignette-edge-opacity', String(frameVignetteEdgeOpacity));
   root.style.setProperty('--frame-vignette-ambient-blur', `${frameVignetteAmbientBlur}px`);
   root.style.setProperty('--frame-vignette-ambient-opacity', String(frameVignetteAmbientOpacity));
+  const contrastVeilOpacityLight = clampNumber(state.simulationContrastVeilOpacityLight, 0, 0.6, 0.216);
+  const contrastVeilOpacityDark = clampNumber(state.simulationContrastVeilOpacityDark, 0, 0.6, 0.348);
+  const contrastVeilReachX = clampNumber(state.simulationContrastVeilReachX, 0, 50, 25);
+  const contrastVeilReachY = clampNumber(state.simulationContrastVeilReachY, 0, 50, 25);
+  const contrastVeilBlurVmax = clampNumber(state.simulationContrastVeilBlurVmax, 2, 16, 7);
+  const contrastVeilDitherOpacity = clampNumber(state.simulationContrastVeilDitherOpacity, 0, 0.12, 0.035);
+  const contrastVeilDitherSize = clampNumber(state.simulationContrastVeilDitherSize, 24, 240, 96);
+  const contrastVeilIsDark = document.body.classList.contains('dark-mode');
+  state.simulationContrastVeilOpacityLight = contrastVeilOpacityLight;
+  state.simulationContrastVeilOpacityDark = contrastVeilOpacityDark;
+  state.simulationContrastVeilReachX = contrastVeilReachX;
+  state.simulationContrastVeilReachY = contrastVeilReachY;
+  state.simulationContrastVeilBlurVmax = contrastVeilBlurVmax;
+  state.simulationContrastVeilDitherOpacity = contrastVeilDitherOpacity;
+  state.simulationContrastVeilDitherSize = contrastVeilDitherSize;
+  root.style.setProperty('--simulation-contrast-veil-opacity', String(contrastVeilIsDark ? contrastVeilOpacityDark : contrastVeilOpacityLight));
+  root.style.setProperty('--simulation-contrast-veil-reach-x', `${contrastVeilReachX}vw`);
+  root.style.setProperty('--simulation-contrast-veil-reach-y', `${contrastVeilReachY}vh`);
+  root.style.setProperty('--simulation-contrast-veil-blur-vmax', String(contrastVeilBlurVmax));
+  root.style.setProperty('--simulation-contrast-veil-blur', `clamp(42px, ${contrastVeilBlurVmax}vmax, 120px)`);
+  root.style.setProperty('--simulation-contrast-veil-dither-opacity', String(contrastVeilDitherOpacity));
+  root.style.setProperty('--simulation-contrast-veil-dither-size', `${contrastVeilDitherSize}px`);
 
   // Viewport metrics (used for debugging + CSS-only sizing when needed)
   try {
@@ -1415,31 +1425,16 @@ export function applyLayoutCSSVars() {
   let pitBlur = state.innerWallPitInsetShadowBlurPx ?? 28;
   const pitSpread = state.innerWallPitInsetShadowSpreadPx ?? -6;
   const pitOff = state.innerWallPitInsetShadowOffsetYPx ?? 4;
-  try {
-    const studio = typeof window !== 'undefined' ? window.__ABS_STUDIO_SURFACE_CONFIG__ : null;
-    if (studio && typeof studio.sceneDepth === 'number' && Number.isFinite(studio.sceneDepth)) {
-      const depthK = 0.88 + Math.min(0.42, studio.sceneDepth * 1.5);
-      const pitDepthCap = isDarkMode ? 0.52 : 0.4;
-      pitOpacity = Number(Math.min(pitDepthCap, pitOpacity * depthK).toFixed(3));
-    }
-    if (studio && typeof studio.sceneSoftness === 'number' && Number.isFinite(studio.sceneSoftness)) {
-      pitBlur = Math.round(pitBlur * (0.85 + studio.sceneSoftness * 0.22));
-    }
-  } catch (e) {
-    /* ignore */
-  }
   root.style.setProperty('--inner-wall-pit-inset-shadow-blur', `${pitBlur}px`);
   root.style.setProperty('--inner-wall-pit-inset-shadow-spread', `${pitSpread}px`);
   root.style.setProperty('--inner-wall-pit-inset-shadow-offset-y', `${pitOff}px`);
   root.style.setProperty('--inner-wall-pit-inset-shadow-opacity', String(pitOpacity));
-  root.style.setProperty('--wall-shadow-plate-enabled', state.wallShadowPlateEnabled ? '1' : '0');
-  root.style.setProperty('--wall-shadow-dither-strength', String(state.wallShadowDitherStrength ?? 1.2));
 
   // Gradient edge — master drives bottom/sides light; top shadow has its own control
   const ge = state.innerWallGradientEdgeTopOpacity ?? 0.22;
   const dm = isDarkMode ? 0.75 : 1;
   const topShadow = state.innerWallGradientEdgeTopShadowOpacity ?? 0.3;
-  const topShadowDm = isDarkMode ? 1.15 : 1;
+  const topShadowDm = isDarkMode ? 1.15 : 0.56;
   root.style.setProperty('--inner-wall-gradient-edge-width', `${state.innerWallGradientEdgeWidth ?? 3}px`);
   root.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(Number((ge * 1.45 * dm).toFixed(3))));
   root.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(Number((ge * 0.85 * dm).toFixed(3))));
@@ -2153,6 +2148,27 @@ export function initState(config) {
       state.frameVignetteAmbientOpacity
     );
   }
+  if (config.simulationContrastVeilOpacityLight !== undefined) {
+    state.simulationContrastVeilOpacityLight = clampNumber(config.simulationContrastVeilOpacityLight, 0, 0.6, state.simulationContrastVeilOpacityLight);
+  }
+  if (config.simulationContrastVeilOpacityDark !== undefined) {
+    state.simulationContrastVeilOpacityDark = clampNumber(config.simulationContrastVeilOpacityDark, 0, 0.6, state.simulationContrastVeilOpacityDark);
+  }
+  if (config.simulationContrastVeilReachX !== undefined) {
+    state.simulationContrastVeilReachX = clampNumber(config.simulationContrastVeilReachX, 0, 50, state.simulationContrastVeilReachX);
+  }
+  if (config.simulationContrastVeilReachY !== undefined) {
+    state.simulationContrastVeilReachY = clampNumber(config.simulationContrastVeilReachY, 0, 50, state.simulationContrastVeilReachY);
+  }
+  if (config.simulationContrastVeilBlurVmax !== undefined) {
+    state.simulationContrastVeilBlurVmax = clampNumber(config.simulationContrastVeilBlurVmax, 2, 16, state.simulationContrastVeilBlurVmax);
+  }
+  if (config.simulationContrastVeilDitherOpacity !== undefined) {
+    state.simulationContrastVeilDitherOpacity = clampNumber(config.simulationContrastVeilDitherOpacity, 0, 0.12, state.simulationContrastVeilDitherOpacity);
+  }
+  if (config.simulationContrastVeilDitherSize !== undefined) {
+    state.simulationContrastVeilDitherSize = clampNumber(config.simulationContrastVeilDitherSize, 24, 240, state.simulationContrastVeilDitherSize);
+  }
   
   // Text colors
   if (config.textColorLight !== undefined) state.textColorLight = config.textColorLight;
@@ -2172,30 +2188,6 @@ export function initState(config) {
   if (config.edgeCaptionDistanceMaxPx !== undefined) {
     state.edgeCaptionDistanceMaxPx = clampInt(config.edgeCaptionDistanceMaxPx, 0, 400, state.edgeCaptionDistanceMaxPx);
   }
-  // Depth wash configuration
-  if (config.depthWashOpacity !== undefined) {
-    state.depthWashOpacity = clampNumber(config.depthWashOpacity, 0, 1, state.depthWashOpacity);
-  }
-  const validCanvasBlendModes = ['source-over', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion'];
-  if (config.depthWashBlendModeLight !== undefined) {
-    const v = String(config.depthWashBlendModeLight);
-    state.depthWashBlendModeLight = validCanvasBlendModes.includes(v) ? v : state.depthWashBlendModeLight;
-  }
-  if (config.depthWashBlendModeDark !== undefined) {
-    const v = String(config.depthWashBlendModeDark);
-    state.depthWashBlendModeDark = validCanvasBlendModes.includes(v) ? v : state.depthWashBlendModeDark;
-  }
-  if (config.depthWashCenterY !== undefined) state.depthWashCenterY = clampNumber(config.depthWashCenterY, 0, 1, state.depthWashCenterY);
-  if (config.depthWashRadiusScale !== undefined) state.depthWashRadiusScale = clampNumber(config.depthWashRadiusScale, 0.2, 3, state.depthWashRadiusScale);
-  if (config.depthWashCenterColorLight !== undefined) state.depthWashCenterColorLight = String(config.depthWashCenterColorLight);
-  if (config.depthWashEdgeColorLight !== undefined) state.depthWashEdgeColorLight = String(config.depthWashEdgeColorLight);
-  if (config.depthWashCenterAlphaLight !== undefined) state.depthWashCenterAlphaLight = clampNumber(config.depthWashCenterAlphaLight, 0, 1, state.depthWashCenterAlphaLight);
-  if (config.depthWashEdgeAlphaLight !== undefined) state.depthWashEdgeAlphaLight = clampNumber(config.depthWashEdgeAlphaLight, 0, 1, state.depthWashEdgeAlphaLight);
-  if (config.depthWashCenterColorDark !== undefined) state.depthWashCenterColorDark = String(config.depthWashCenterColorDark);
-  if (config.depthWashEdgeColorDark !== undefined) state.depthWashEdgeColorDark = String(config.depthWashEdgeColorDark);
-  if (config.depthWashCenterAlphaDark !== undefined) state.depthWashCenterAlphaDark = clampNumber(config.depthWashCenterAlphaDark, 0, 1, state.depthWashCenterAlphaDark);
-  if (config.depthWashEdgeAlphaDark !== undefined) state.depthWashEdgeAlphaDark = clampNumber(config.depthWashEdgeAlphaDark, 0, 1, state.depthWashEdgeAlphaDark);
-
   // UI layout knobs (CSS var driven)
   if (config.topLogoWidthVw !== undefined) {
     state.topLogoWidthVw = clampNumber(config.topLogoWidthVw, 0, 120, state.topLogoWidthVw);
@@ -2455,12 +2447,6 @@ export function initState(config) {
   }
   if (config.innerWallPitInsetShadowOffsetYPx !== undefined) {
     state.innerWallPitInsetShadowOffsetYPx = clampNumber(config.innerWallPitInsetShadowOffsetYPx, 0, 14, 4);
-  }
-  if (config.wallShadowPlateEnabled !== undefined) {
-    state.wallShadowPlateEnabled = Boolean(config.wallShadowPlateEnabled);
-  }
-  if (config.wallShadowDitherStrength !== undefined) {
-    state.wallShadowDitherStrength = clampNumber(config.wallShadowDitherStrength, 0, 3, 1.2);
   }
   if (config.innerWallGradientEdgeTopOpacity !== undefined) {
     state.innerWallGradientEdgeTopOpacity = clampNumber(config.innerWallGradientEdgeTopOpacity, 0, 1, 0.18);

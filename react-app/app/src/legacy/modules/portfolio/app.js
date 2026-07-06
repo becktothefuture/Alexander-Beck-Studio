@@ -12,7 +12,6 @@ import { initializeDarkMode } from '../visual/dark-mode-v2.js';
 import { getPaletteTemplateOverrideFromUrl, getPortfolioProjectPaletteColor, getWeatherDrivenPaletteTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
 import { getGlobals } from '../core/state.js';
 import { initNoiseSystem } from '../visual/noise-system.js';
-import { initWallShadowPlateSystem } from '../visual/wall-shadow-plate.js';
 import { initTimeDisplay } from '../ui/time-display.js';
 import { upgradeSocialIcons } from '../ui/social-icons.js';
 import { loadRuntimeText } from '../utils/text-loader.js';
@@ -3257,11 +3256,6 @@ export async function bootstrapPortfolio() {
     noiseFlicker: 0,
     noiseBlurPx: 0,
   });
-  try {
-    initWallShadowPlateSystem(globals);
-  } catch (error) {
-    void error;
-  }
 
   const globalsForPointer = getGlobals();
   globalsForPointer.mouseInCanvas = false;

@@ -22,8 +22,8 @@ export function getPortfolioRouteView() {
   return {
     bodyClass: 'body portfolio-page',
     wallClassName: 'portfolio-simulation w-embed',
-    wallContent: (
-      <>
+    simulationLayer: (
+      <div className="portfolio-slider-layer">
         <canvas
           id="c"
           className="portfolio-pit-canvas portfolio-scroll-canvas"
@@ -37,9 +37,9 @@ export function getPortfolioRouteView() {
           data-intro-title={portfolioHeroLines[0]}
           data-intro-body={portfolioBlurb}
         />
-      </>
+      </div>
     ),
-    heroTitle: (
+    heroLayer: (
       <h2
         id="hero-title"
         className="hero-title hero-title--portfolio"
@@ -52,33 +52,35 @@ export function getPortfolioRouteView() {
         ) : null}
       </h2>
     ),
-    headerContent: (
-      <header className="ui-top" data-portfolio-ui>
-        <div className="ui-top-main route-topbar portfolio-topbar">
-          <div className="route-topbar__left">
-            <a
-              href="index.html"
-              className="gate-back abs-icon-btn"
-              data-nav-transition
-              aria-label="Back to home"
-            >
-              <i className="ti ti-arrow-left" aria-hidden="true" />
-            </a>
+    uiLayer: {
+      chrome: (
+        <header className="ui-top" data-portfolio-ui>
+          <div className="ui-top-main route-topbar portfolio-topbar">
+            <div className="route-topbar__left">
+              <a
+                href="index.html"
+                className="gate-back abs-icon-btn"
+                data-nav-transition
+                aria-label="Back to home"
+              >
+                <i className="ti ti-arrow-left" aria-hidden="true" />
+              </a>
+            </div>
+            <div className="route-topbar__center" aria-hidden="true" />
+            <div className="route-topbar__right ui-top-right">
+              <nav className="portfolio-topnav ui-main-nav" aria-label="Portfolio navigation">
+                <MainNavLink id={aboutLink.id} aria-haspopup="dialog">
+                  {aboutMeLabel}
+                </MainNavLink>
+              </nav>
+              <div id="sound-toggle-slot" className="portfolio-sound-slot" />
+            </div>
           </div>
-          <div className="route-topbar__center" aria-hidden="true" />
-          <div className="route-topbar__right ui-top-right">
-            <nav className="portfolio-topnav ui-main-nav" aria-label="Portfolio navigation">
-              <MainNavLink id={aboutLink.id} aria-haspopup="dialog">
-                {aboutMeLabel}
-              </MainNavLink>
-            </nav>
-            <div id="sound-toggle-slot" className="portfolio-sound-slot" />
-          </div>
-        </div>
 
-        <div id="top-elements-soundRow" className="ui-top-soundRow" />
-      </header>
-    ),
-    mainContent: <main className="ui-center-spacer" aria-hidden="true" />
+          <div id="top-elements-soundRow" className="ui-top-soundRow" />
+        </header>
+      ),
+      secondary: <main className="ui-center-spacer" aria-hidden="true" />
+    }
   };
 }

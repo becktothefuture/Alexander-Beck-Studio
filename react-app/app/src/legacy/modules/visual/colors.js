@@ -7,7 +7,6 @@ import {
   resolveLondonWeatherPaletteId,
 } from '../../../palette/londonPalettes.js';
 import { getLondonWeatherPaletteIdFromAssessment } from '../../../weather/londonWeatherAssessment.js';
-import { invalidateDepthWashCache } from './depth-wash.js';
 
 function clamp01(t) {
   const n = Number(t);
@@ -751,7 +750,6 @@ function applyPaletteTheme(templateName) {
     if (document.body) document.body.style.setProperty(name, value);
   });
 
-  invalidateDepthWashCache();
 }
 
 export function applyColorTemplate(templateName) {

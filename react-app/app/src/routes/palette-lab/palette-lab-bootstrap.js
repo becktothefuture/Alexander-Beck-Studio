@@ -9,7 +9,6 @@ import {
 import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
 import { waitForFonts } from '../../legacy/modules/utils/font-loader.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
-import { initWallShadowPlateSystem } from '../../legacy/modules/visual/wall-shadow-plate.js';
 
 export async function bootstrapPaletteLab() {
   let runtime = null;
@@ -30,12 +29,6 @@ export async function bootstrapPaletteLab() {
     syncShellToDocument({
       isDark: document.documentElement.classList.contains('dark-mode'),
     });
-  }
-
-  try {
-    initWallShadowPlateSystem(runtime || {});
-  } catch {
-    // Keep the CSS shadow fallback if the generated plate fails.
   }
 
   stampCursorContrastFromTheme();

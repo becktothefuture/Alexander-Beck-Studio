@@ -9,9 +9,7 @@ import { syncChromeColor } from '../physics/engine.js';
 import { log as devLog } from '../utils/logger.js';
 import { applyChromeHarmony } from './chrome-harmony.js';
 import { readTokenVar } from '../utils/tokens.js';
-import { invalidateDepthWashCache } from './depth-wash.js';
 import { applyShellLayoutVars, syncShellToDocument, syncThemeColorMeta } from './site-shell.js';
-import { applyWallShadowPlateSystem } from './wall-shadow-plate.js';
 import { forEachPanelUiDocument, resolvePanelUiDocument } from '../ui/panel-ui-context.js';
 
 const THEME_STORAGE_KEY = 'theme-preference-v2';
@@ -215,17 +213,11 @@ function applyDarkModeToDOM(isDark) {
   // Sync chrome color for rubbery walls
   syncChromeColor();
   
-  // Invalidate depth wash cache on theme change
-  invalidateDepthWashCache();
-
   // Re-apply noise system so SVG noise can re-tint to the active theme.
   try {
     import('./noise-system.js').then(({ applyNoiseSystem }) => applyNoiseSystem({}));
   } catch (e) {}
 
-  try {
-    applyWallShadowPlateSystem({});
-  } catch (e) {}
   try {
     import('../portfolio/pit-mode.js').then((m) => {
       if (typeof m.syncPortfolioAccentCircleColors === 'function') {

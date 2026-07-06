@@ -39,7 +39,6 @@ export function getRenderQualityProfile(globals = getGlobals()) {
   if (tier === QUALITY_LOW) {
     return {
       tier,
-      depthWashOpacityScale: 0.55,
       wallGradientStrokeEnabled: false,
       drawMouseTrail: false,
       drawCursorExplosion: false
@@ -49,7 +48,6 @@ export function getRenderQualityProfile(globals = getGlobals()) {
   if (tier === QUALITY_BALANCED) {
     return {
       tier,
-      depthWashOpacityScale: 0.85,
       wallGradientStrokeEnabled: true,
       drawMouseTrail: !portfolioPriority,
       drawCursorExplosion: !portfolioPriority
@@ -58,7 +56,6 @@ export function getRenderQualityProfile(globals = getGlobals()) {
 
   return {
     tier: QUALITY_HIGH,
-    depthWashOpacityScale: 1,
     wallGradientStrokeEnabled: true,
     drawMouseTrail: !portfolioPriority,
     drawCursorExplosion: !portfolioPriority

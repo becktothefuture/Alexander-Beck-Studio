@@ -5,7 +5,6 @@ import {
   shouldUseCanonicalDesignConfig,
 } from '../utils/design-config.js';
 import { getGlobals } from '../core/state.js';
-import { updateWallShadowCSS } from './wall-shadow.js';
 
 const DEFAULT_SHELL_CONFIG = {
   theme: {
@@ -19,10 +18,7 @@ const DEFAULT_SHELL_CONFIG = {
     safariFrameLight: '#181818',
     safariFrameDark: '#141517',
     frameBorderEdgeOpacity: 0.03,
-    frameBorderMidOpacity: 0.06,
-    frameVignetteEdgeBlur: '30px',
-    frameVignetteEdgeOpacity: 0.18,
-    frameVignetteAmbientOpacity: 0.12
+    frameBorderMidOpacity: 0.06
   },
   layout: {
     frameInsetDesktop: '16px',
@@ -48,8 +44,13 @@ const DEFAULT_SHELL_CONFIG = {
     blur: '8px',
     saturation: 1.12,
     sceneHighlight: 0.3,
-    sceneDepth: 0.14,
-    sceneSoftness: 0.45,
+    contrastVeilOpacityLight: 0.216,
+    contrastVeilOpacityDark: 0.348,
+    contrastVeilReachX: 25,
+    contrastVeilReachY: 25,
+    contrastVeilBlurVmax: 7,
+    contrastVeilDitherOpacity: 0.035,
+    contrastVeilDitherSize: 96,
     edgeWidth: '0.5px',
     fillOpacityLight: 0.018,
     fillOpacityDark: 0.028,
@@ -322,6 +323,12 @@ function colorToRgbString(color, fallback = '0, 0, 0') {
   return fallback;
 }
 
+function numberInRange(value, min, max, fallback) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.min(max, Math.max(min, numeric));
+}
+
 export function applyShellPalette({ light, dark, active }) {
   const root = document.documentElement;
   const nextActive = active || dark || light || DEFAULT_SHELL_CONFIG.theme.wallBaseDark;
@@ -387,12 +394,48 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = document.do
   const sceneHighlight = Number.isFinite(Number(surface.sceneHighlight))
     ? Number(surface.sceneHighlight)
     : DEFAULT_SHELL_CONFIG.surface.sceneHighlight;
-  const sceneDepth = Number.isFinite(Number(surface.sceneDepth))
-    ? Number(surface.sceneDepth)
-    : DEFAULT_SHELL_CONFIG.surface.sceneDepth;
-  const sceneSoftness = Number.isFinite(Number(surface.sceneSoftness))
-    ? Number(surface.sceneSoftness)
-    : DEFAULT_SHELL_CONFIG.surface.sceneSoftness;
+  const contrastVeilOpacityLight = numberInRange(
+    surface.contrastVeilOpacityLight,
+    0,
+    0.6,
+    DEFAULT_SHELL_CONFIG.surface.contrastVeilOpacityLight
+  );
+  const contrastVeilOpacityDark = numberInRange(
+    surface.contrastVeilOpacityDark,
+    0,
+    0.6,
+    DEFAULT_SHELL_CONFIG.surface.contrastVeilOpacityDark
+  );
+  const contrastVeilReachX = numberInRange(
+    surface.contrastVeilReachX,
+    0,
+    50,
+    DEFAULT_SHELL_CONFIG.surface.contrastVeilReachX
+  );
+  const contrastVeilReachY = numberInRange(
+    surface.contrastVeilReachY,
+    0,
+    50,
+    DEFAULT_SHELL_CONFIG.surface.contrastVeilReachY
+  );
+  const contrastVeilBlurVmax = numberInRange(
+    surface.contrastVeilBlurVmax,
+    2,
+    16,
+    DEFAULT_SHELL_CONFIG.surface.contrastVeilBlurVmax
+  );
+  const contrastVeilDitherOpacity = numberInRange(
+    surface.contrastVeilDitherOpacity,
+    0,
+    0.12,
+    DEFAULT_SHELL_CONFIG.surface.contrastVeilDitherOpacity
+  );
+  const contrastVeilDitherSize = numberInRange(
+    surface.contrastVeilDitherSize,
+    24,
+    240,
+    DEFAULT_SHELL_CONFIG.surface.contrastVeilDitherSize
+  );
 
   const fillOpacity = isDark ? surface.fillOpacityDark : surface.fillOpacityLight;
   const sheenTopOpacity = isDark ? surface.sheenTopOpacityDark : surface.sheenTopOpacityLight;
@@ -425,9 +468,6 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = document.do
   root.style.setProperty('--frame-color-site-dark', theme.siteFrameDark || theme.siteFrameLight || getDefaultFrameColor());
   root.style.setProperty('--frame-border-gradient-edge-opacity', String(theme.frameBorderEdgeOpacity));
   root.style.setProperty('--frame-border-gradient-mid-opacity', String(theme.frameBorderMidOpacity));
-  root.style.setProperty('--frame-vignette-edge-blur', theme.frameVignetteEdgeBlur);
-  root.style.setProperty('--frame-vignette-edge-opacity', String(theme.frameVignetteEdgeOpacity));
-  root.style.setProperty('--frame-vignette-ambient-opacity', String(theme.frameVignetteAmbientOpacity));
 
   root.style.setProperty('--abs-surface-radius', surface.radius);
   root.style.setProperty('--abs-surface-blur', surface.blur);
@@ -463,30 +503,27 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = document.do
   root.style.setProperty('--quote-glass-bottom-edge-opacity', String(Math.max(bottomEdgeOpacity, edgeOpacity * 0.28)));
 
   root.style.setProperty('--abs-scene-highlight', String(sceneHighlight));
-  root.style.setProperty('--abs-scene-depth', String(sceneDepth));
-  root.style.setProperty('--abs-scene-softness', String(sceneSoftness));
+  root.style.setProperty('--simulation-contrast-veil-opacity', String(isDark ? contrastVeilOpacityDark : contrastVeilOpacityLight));
+  root.style.setProperty('--simulation-contrast-veil-reach-x', `${contrastVeilReachX}vw`);
+  root.style.setProperty('--simulation-contrast-veil-reach-y', `${contrastVeilReachY}vh`);
+  root.style.setProperty('--simulation-contrast-veil-blur-vmax', String(contrastVeilBlurVmax));
+  root.style.setProperty('--simulation-contrast-veil-blur', `clamp(42px, ${contrastVeilBlurVmax}vmax, 120px)`);
+  root.style.setProperty('--simulation-contrast-veil-dither-opacity', String(contrastVeilDitherOpacity));
+  root.style.setProperty('--simulation-contrast-veil-dither-size', `${contrastVeilDitherSize}px`);
   root.style.setProperty('--inner-wall-top-light-opacity', String(isDark
     ? Math.min(0.82, Number((sceneHighlight * 1.33).toFixed(3)))
     : sceneHighlight));
   root.style.setProperty('--inner-wall-top-light-opacity-dark', String(Math.min(0.82, Number((sceneHighlight * 1.33).toFixed(3)))));
-  root.style.setProperty('--inner-wall-outward-shadow-opacity', String(isDark
-    ? Math.min(0.65, Number((sceneDepth * 2.3).toFixed(3)))
-    : Math.min(0.45, Number((sceneDepth * 1.45).toFixed(3)))));
-  root.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(Math.min(0.65, Number((sceneDepth * 2.3).toFixed(3)))));
-  root.style.setProperty('--inner-wall-outward-shadow-blur', `${Math.round(3 + (sceneSoftness * 20))}px`);
-  root.style.setProperty('--inner-wall-outward-shadow-spread', `${Math.round(sceneSoftness * 6)}px`);
 
   try {
     const globals = getGlobals();
-    globals.wallShadowAmbientBlur = Math.round(14 + (sceneSoftness * 22));
-    globals.wallShadowAmbientOpacityLight = Number(Math.min(0.16, sceneDepth * 0.28).toFixed(3));
-    globals.wallShadowAmbientOpacityDark = Number(Math.min(0.32, sceneDepth * 0.86).toFixed(3));
-    globals.wallInnerShadowEnabled = sceneDepth > 0;
-    globals.wallInnerShadowOpacityLightV2 = Number(Math.min(1, sceneDepth * 4.8).toFixed(3));
-    globals.wallInnerShadowOpacityDarkV2 = Number(Math.min(1, sceneDepth * 6.2).toFixed(3));
-    globals.wallInnerShadowBlurVh = Math.round(6 + (sceneSoftness * 20));
-    globals.wallInnerShadowSpreadVh = Math.round(4 + (sceneSoftness * 24));
-    updateWallShadowCSS(globals);
+    globals.simulationContrastVeilOpacityLight = contrastVeilOpacityLight;
+    globals.simulationContrastVeilOpacityDark = contrastVeilOpacityDark;
+    globals.simulationContrastVeilReachX = contrastVeilReachX;
+    globals.simulationContrastVeilReachY = contrastVeilReachY;
+    globals.simulationContrastVeilBlurVmax = contrastVeilBlurVmax;
+    globals.simulationContrastVeilDitherOpacity = contrastVeilDitherOpacity;
+    globals.simulationContrastVeilDitherSize = contrastVeilDitherSize;
   } catch (e) {}
 }
 

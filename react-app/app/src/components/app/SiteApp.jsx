@@ -307,7 +307,10 @@ export function SiteApp() {
             routeRenderKey={routeView.routeRenderKey || routeState.route.id}
             contentRenderKey={routeView.contentRenderKey || routeState.route.id}
             wallClassName={routeView.wallClassName}
+            simulationLayer={routeView.simulationLayer}
             wallContent={routeView.wallContent}
+            heroLayer={routeView.heroLayer}
+            uiLayer={routeView.uiLayer}
             headerContent={routeView.headerContent}
             mainContent={routeView.mainContent}
             heroTitle={routeView.heroTitle}

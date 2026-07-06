@@ -275,7 +275,7 @@ Daily visuals use the site ball/pebble language:
 - point clouds and tiny field particles may use perfect circles when pebble contours would be unreadable, but they still stay flat and palette-driven;
 - custom renderers may use shape variation only when it reads as the same flat material family.
 
-Route-backed daily runtimes must render with transparent canvas/background in Daily Focus mode so the shared wall, vignette, noise, title layering, chrome, and modal system remain in charge of the surface.
+Route-backed daily runtimes must render with transparent canvas/background in Daily Focus mode so the shared wall, narrow rim, noise, title layering, chrome, and modal system remain in charge of the surface.
 
 ### Motion And Switching
 

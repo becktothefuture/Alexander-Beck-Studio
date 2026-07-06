@@ -51,11 +51,43 @@ function renderDigitInputs(prefix, className, ariaPrefix, length) {
   ));
 }
 
+function normalizeRouteUiLayer(uiLayer, headerContent, mainContent) {
+  const isStructuredLayer = uiLayer
+    && typeof uiLayer === 'object'
+    && !Array.isArray(uiLayer)
+    && (
+      Object.prototype.hasOwnProperty.call(uiLayer, 'chrome')
+      || Object.prototype.hasOwnProperty.call(uiLayer, 'secondary')
+    );
+
+  if (isStructuredLayer) {
+    return {
+      chrome: uiLayer.chrome ?? null,
+      secondary: uiLayer.secondary ?? null,
+    };
+  }
+
+  if (uiLayer !== undefined) {
+    return {
+      chrome: uiLayer,
+      secondary: null,
+    };
+  }
+
+  return {
+    chrome: headerContent,
+    secondary: mainContent,
+  };
+}
+
 export function StudioShell({
   routeRenderKey,
   contentRenderKey = routeRenderKey,
   wallClassName,
+  simulationLayer,
   wallContent,
+  heroLayer,
+  uiLayer,
   headerContent,
   mainContent,
   heroTitle,
@@ -64,6 +96,9 @@ export function StudioShell({
   surfaceRefs,
 }) {
   const wallLayerClassName = ['simulation-wall-layer', wallClassName].filter(Boolean).join(' ');
+  const routeSimulationLayer = simulationLayer ?? wallContent;
+  const routeHeroLayer = heroLayer ?? heroTitle;
+  const routeUiLayer = normalizeRouteUiLayer(uiLayer, headerContent, mainContent);
 
   return (
     <>
@@ -79,8 +114,8 @@ export function StudioShell({
               ref={surfaceRefs?.wall}
               className="shell-wall-slot shell-transition-surface shell-transition-surface--wall"
             >
-              <div key={`wall-${routeRenderKey}`} className="shell-wall-route-root">
-                {wallContent}
+              <div key={`wall-${routeRenderKey}`} className="shell-wall-route-root route-simulation-layer">
+                {routeSimulationLayer}
               </div>
             </div>
             <div
@@ -89,7 +124,7 @@ export function StudioShell({
               className="shell-hero-slot shell-transition-surface shell-transition-surface--hero"
             >
               <div className="shell-hero-surface">
-                {heroTitle}
+                {routeHeroLayer}
               </div>
             </div>
             {simulationFocusControls}
@@ -106,18 +141,18 @@ export function StudioShell({
                   id="shell-route-slot"
                   className="shell-route-slot"
                 >
-                  <div key={`content-${contentRenderKey}`} className="shell-route-content-root">
+                  <div key={`content-${contentRenderKey}`} className="shell-route-content-root route-ui-layer">
                     <div
                       ref={surfaceRefs?.chrome}
                       className="shell-transition-surface shell-transition-surface--chrome"
                     >
-                      {headerContent}
+                      {routeUiLayer.chrome}
                     </div>
                     <div
                       ref={surfaceRefs?.secondary}
                       className="shell-transition-surface shell-transition-surface--secondary"
                     >
-                      {mainContent}
+                      {routeUiLayer.secondary}
                     </div>
                   </div>
                 </div>

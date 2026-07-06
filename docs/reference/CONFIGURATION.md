@@ -129,9 +129,11 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
 
 ### Wall layer visualization (Light Group)
 
-The dev panel has a top-level **Light Group** master section (peer to Studio / Shell) with **Outer Wall** and **Inner Wall** accordions (border, shine, shadows, glow). Runtime values are stamped into CSS variables by `applyLayoutCSSVars()` in `state.js`: `#simulations.simulation-wall-layer` has **no outward cast shadow**; inward depth is generated as a decoded **wall shadow plate** on `.frame-vignette` when `wallShadowPlateEnabled` is true. Before that plate is ready, CSS falls back to `#simulations::before`, `.frame-vignette` inset shadows, and **`.inner-wall-gradient-edge`** for the light rim and top shadow rim. Once the plate commits, the broad fallback shadows are disabled, but `.inner-wall-gradient-edge` keeps the bottom and side light rim visible.
+The dev panel has a top-level **Light Group** master section (peer to Studio / Shell) with **Wall Rim** and **Ball Contrast Veil** accordions. The wall is deliberately simple: base colour, fine texture/noise, a narrow `#simulations::before` inset, and the thin `.inner-wall-gradient-edge` rim. There is no generated wall shadow plate, no broad `.frame-vignette` shadow, and no canvas depth wash.
 
-The **Contrast Inner-Shadow Veil** is a separate named layer, `.simulation-contrast-veil`, after `.frame-vignette` and before `.fade-content.ui-layer`. It uses `--simulation-contrast-veil-rgb` stamped from the active inner-wall background color, plus `--simulation-contrast-veil-opacity`, `--simulation-contrast-veil-reach-x`, `--simulation-contrast-veil-reach-y`, and `--simulation-contrast-veil-blur` from `tokens.css`. The veil is pointer-transparent, respects `--frame-inner-radius`, and its authored edge opacity must stay at or below 60%. It is not a second frame border, not a modal blur, and not a portfolio drawer overlay.
+`#simulations::before` owns the narrow inset shadow only. `innerWallPitInsetShadowOpacity` and `innerWallPitInsetShadowBlurPx` still exist, but the rendered reach is capped in CSS so the wall centre stays neutral. The shared Studio surface **Scene Light** only maps `sceneHighlight` to frame/rim highlight strength; `sceneDepth` and `sceneSoftness` are retired and must not drive wall shadows.
+
+The **Ball Contrast Veil** uses the existing `simulationContrastVeil*` runtime keys, but it is rendered inside the ball canvas by `drawBallContrastVeil()`. It tints only visible ball/pebble bodies toward the active wall background colour and adds deterministic dither per ball to avoid quantized edge bands. The compatibility DOM node `.simulation-contrast-veil` remains in the stack for z-order stability, but its pseudo-elements do not paint during the home ball-canvas experience.
 
 **`--ui-chrome-rim-*`** links footer / nav / icon button hover rims (`--ui-chrome-button-edge`) to the inner-wall top light / bottom shadow strengths. The frame border uses a **180°** linear gradient on the border ring: **edge** and **mid** opacities stay ~**1:2** so the **mid** stop still “peeks” on the **left/right** vertical rails (and top/bottom). Defaults are tuned **subtle**; Studio surface maps `sceneHighlight` to frame opacities with factors **0.029** / **0.058** (same ~1:2 ratio). The optional isometric “Wall stack” helper in `control-registry.js` mirrors z-order when present.
 
@@ -177,8 +179,6 @@ The **Contrast Inner-Shadow Veil** is a separate named layer, `.simulation-contr
   "noiseStructureStrength": 0.3,
   "noiseStructureScale": 0.38,
   "noiseMotion": "jitter",
-  "wallShadowPlateEnabled": true,
-  "wallShadowDitherStrength": 1.2,
   "wallThicknessVw": 0.83,
   "wallRadiusVw": 2.92,
   "layoutMinWallRadiusPx": 28,
@@ -679,11 +679,10 @@ The following legacy keys are still accepted and will be converted to vw at star
 
 Applied to CSS vars `--container-inner-shadow-*`.
 
-### Dithered wall shadow plate
-- **`wallShadowPlateEnabled`** (boolean, default `true`) generates a static decoded RGBA shadow texture for the inner wall and paints it on `.frame-vignette` via `--abs-wall-shadow-plate`.
-- **`wallShadowDitherStrength`** (0–3, default `1.2`) controls deterministic alpha dither in the generated shadow ramps. It prevents dark-mode banding without adding an animated layer.
-- The plate is generated from existing wall controls: `innerWallPitInsetShadowOpacity`, `innerWallPitInsetShadowBlurPx`, `innerWallGradientEdgeTopOpacity`, `innerWallGradientEdgeTopShadowOpacity`, `innerWallGradientEdgeWidth`, and the shared Studio surface `sceneDepth` / `sceneSoftness` values.
-- Fallback is automatic: until `body.wall-shadow-plate-ready` is present, CSS uses the existing `#simulations::before`, `.inner-wall-gradient-edge`, and `.frame-vignette` shadows. Once the decoded plate commits, the broad CSS shadow ramps are disabled so the wall does not stack duplicate shadow systems, while `.inner-wall-gradient-edge` preserves the dedicated bottom/side light rim.
+### Deprecated wall/depth keys
+- **`wallShadowPlateEnabled`** and **`wallShadowDitherStrength`** are retired. Generated config flattening prunes them, and no runtime module generates `--abs-wall-shadow-plate` or `body.wall-shadow-plate-ready`.
+- **`depthWash*`** runtime keys are retired. The canvas depth wash module was removed so these keys no longer affect rendering.
+- **`sceneDepth`** and **`sceneSoftness`** in `shell.surface` are retired. They are pruned during flattening and must not be reintroduced as wall-shadow controls.
 
 ---
 

@@ -7,7 +7,6 @@ import { CONSTANTS, MODES, isPitLikeMode } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
 import { resolveCollisions, resolveCollisionsCustom } from './collision.js';
 import { drawWalls, updateChromeColor } from './wall-state.js';
-import { drawDepthWash } from '../visual/depth-wash.js';
 import {
   getModeUpdater,
   getModeRenderer,
@@ -18,6 +17,7 @@ import {
 import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-explosion.js';
 import { getRenderQualityProfile } from '../utils/render-quality.js';
 import { appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
+import { drawBallContrastVeil } from '../visual/ball-contrast-veil.js';
 import { drawBallRims } from '../visual/ball-rim.js';
 import { TITLE_DEPTH_PLANE_Z, drawHomepageCanvasTitle, modeUsesDepthTitlePlane } from '../rendering/title-depth.js';
 import { 
@@ -881,11 +881,6 @@ export function render() {
   const postFxStart = isPitMode ? performance.now() : 0;
   if (drawCursorExplosionEnabled) drawCursorExplosion(ctx);
 
-  // Depth wash: gradient overlay between balls/trail and wall
-  drawDepthWash(ctx, canvas.width, canvas.height, {
-    opacityScale: qualityProfile.depthWashOpacityScale
-  });
-  
   // Draw rubber walls LAST (in front of balls, outside clip path)
   drawWalls(ctx, canvas.width, canvas.height, {
     wallGradientStrokeEnabled: qualityProfile.wallGradientStrokeEnabled
@@ -1020,6 +1015,16 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
       }
     }
   }
+
+  drawBallContrastVeil(ctx, ballsToRender, {
+    ...(renderOptions || {}),
+    applyDepthFog,
+    canvasWidth,
+    canvasHeight,
+    pitRenderLodEnabled: pitLodEnabled,
+    pitTinyRadiusPx: tinyRadiusPx,
+    simpleCircleBodies
+  });
 
   // ── Rim pass: directional depth edge on all rendered balls ──
   if (!renderOptions?.skipRims) {

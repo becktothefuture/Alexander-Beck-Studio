@@ -18,7 +18,6 @@ import { resize } from '../rendering/renderer.js';
 import { updateCursorSize } from '../rendering/cursor.js';
 import { getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
-import { applyWallShadowPlateSystem } from '../visual/wall-shadow-plate.js';
 import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-shadow.js';
 import { initQuotePuck } from './quote-puck.js';
 import { destroyQuoteDisplay, initQuoteDisplay } from './quote-display.js';
@@ -284,9 +283,10 @@ export const MASTER_GROUPS = [
     icon: '💡',
     layer: '02',
     layerName: 'Lighting',
-    layerRole: 'Wall light and control highlights',
+    layerRole: 'Wall rim and ball-only contrast',
     sections: [
-      'wallLight'
+      'wallLight',
+      'contrastVeil'
     ]
   },
   {
@@ -295,7 +295,7 @@ export const MASTER_GROUPS = [
     icon: '🧱',
     layer: '03',
     layerName: 'Frame',
-    layerRole: 'Wall geometry, stack, noise, spacing',
+    layerRole: 'Wall geometry, stack, texture, spacing',
     sections: [
       'wallGeometry',
       'layers',
@@ -358,7 +358,6 @@ export const MASTER_GROUPS = [
     sections: [
       'cursor',
       'links',
-      'simulationOverlay',
       'overlay',
       'entrance',
       'environment'
@@ -383,11 +382,11 @@ const SECTION_CATEGORIES = {
 
   // Light
   'wallLight': 'WALL',
+  'contrastVeil': 'BALL VEIL',
   'puckLight': 'PUCK',
 
 
   // Effects
-  'simulationOverlay': 'OVERLAYS',
   'overlay': 'DEPTH',
 
   // Interaction
@@ -1567,174 +1566,6 @@ export const CONTROL_SECTIONS = {
         onChange: () => {
           import('../core/state.js').then(mod => { mod.applyLayoutCSSVars(); }).catch(() => {});
         }
-      }
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CANVAS DEPTH WASH - Radial gradient drawn by the legacy canvas renderer
-  // ═══════════════════════════════════════════════════════════════════════════
-  simulationOverlay: {
-    title: 'Canvas Depth Wash',
-    icon: '🔆',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'depthWashOpacity',
-        label: 'Opacity',
-        stateKey: 'depthWashOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Master opacity of the radial depth overlay'
-      },
-      {
-        id: 'depthWashCenterY',
-        label: 'Center Y',
-        stateKey: 'depthWashCenterY',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.14,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Vertical center of gradient (0=top, 100%=bottom)'
-      },
-      {
-        id: 'depthWashRadiusScale',
-        label: 'Radius',
-        stateKey: 'depthWashRadiusScale',
-        type: 'range',
-        min: 0.2, max: 3, step: 0.1,
-        default: 1.0,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        hint: 'Size of the gradient'
-      },
-      { type: 'divider', label: 'Light Mode' },
-      {
-        id: 'depthWashBlendModeLight',
-        label: 'Blend Mode',
-        stateKey: 'depthWashBlendModeLight',
-        type: 'select',
-        options: [
-          { value: 'source-over', label: 'Normal' },
-          { value: 'multiply', label: 'Multiply' },
-          { value: 'screen', label: 'Screen' },
-          { value: 'overlay', label: 'Overlay' },
-          { value: 'darken', label: 'Darken' },
-          { value: 'lighten', label: 'Lighten' },
-          { value: 'color-dodge', label: 'Color Dodge' },
-          { value: 'color-burn', label: 'Color Burn' },
-          { value: 'hard-light', label: 'Hard Light' },
-          { value: 'soft-light', label: 'Soft Light' },
-          { value: 'difference', label: 'Difference' },
-          { value: 'exclusion', label: 'Exclusion' }
-        ],
-        default: 'color-dodge',
-        format: v => String(v),
-        parse: v => String(v)
-      },
-      {
-        id: 'depthWashCenterColorLight',
-        label: 'Center Color',
-        stateKey: 'depthWashCenterColorLight',
-        type: 'color',
-        default: "var(--color-brand-white)",
-        format: v => String(v),
-        parse: v => String(v)
-      },
-      {
-        id: 'depthWashCenterAlphaLight',
-        label: 'Center Alpha',
-        stateKey: 'depthWashCenterAlphaLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.3,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat
-      },
-      {
-        id: 'depthWashEdgeColorLight',
-        label: 'Edge Color',
-        stateKey: 'depthWashEdgeColorLight',
-        type: 'color',
-        default: "var(--color-detected-142b48)",
-        format: v => String(v),
-        parse: v => String(v)
-      },
-      {
-        id: 'depthWashEdgeAlphaLight',
-        label: 'Edge Alpha',
-        stateKey: 'depthWashEdgeAlphaLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.4,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat
-      },
-      { type: 'divider', label: 'Dark Mode' },
-      {
-        id: 'depthWashBlendModeDark',
-        label: 'Blend Mode',
-        stateKey: 'depthWashBlendModeDark',
-        type: 'select',
-        options: [
-          { value: 'source-over', label: 'Normal' },
-          { value: 'multiply', label: 'Multiply' },
-          { value: 'screen', label: 'Screen' },
-          { value: 'overlay', label: 'Overlay' },
-          { value: 'darken', label: 'Darken' },
-          { value: 'lighten', label: 'Lighten' },
-          { value: 'color-dodge', label: 'Color Dodge' },
-          { value: 'color-burn', label: 'Color Burn' },
-          { value: 'hard-light', label: 'Hard Light' },
-          { value: 'soft-light', label: 'Soft Light' },
-          { value: 'difference', label: 'Difference' },
-          { value: 'exclusion', label: 'Exclusion' }
-        ],
-        default: 'multiply',
-        format: v => String(v),
-        parse: v => String(v)
-      },
-      {
-        id: 'depthWashCenterColorDark',
-        label: 'Center Color',
-        stateKey: 'depthWashCenterColorDark',
-        type: 'color',
-        default: "var(--color-detected-1a1e23)",
-        format: v => String(v),
-        parse: v => String(v)
-      },
-      {
-        id: 'depthWashCenterAlphaDark',
-        label: 'Center Alpha',
-        stateKey: 'depthWashCenterAlphaDark',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat
-      },
-      {
-        id: 'depthWashEdgeColorDark',
-        label: 'Edge Color',
-        stateKey: 'depthWashEdgeColorDark',
-        type: 'color',
-        default: "var(--color-detected-05020f)",
-        format: v => String(v),
-        parse: v => String(v)
-      },
-      {
-        id: 'depthWashEdgeAlphaDark',
-        label: 'Edge Alpha',
-        stateKey: 'depthWashEdgeAlphaDark',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.8,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat
       }
     ]
   },
@@ -2977,13 +2808,14 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // WALL LIGHT — Wall rim: bottom + sides light. Top shadow rim: separate slider.
+  // WALL LIGHT — narrow inset wall rim. Top shadow rim: separate slider.
   // Ratios: bottom 145%, sides 85% of rim master. Dark mode softens light edges only.
   // ═══════════════════════════════════════════════════════════════════════════
   wallLight: {
-    title: 'Wall',
+    title: 'Wall Rim',
     icon: '🏠',
     controls: [
+      { type: 'divider', label: 'Edge Rim' },
       {
         id: 'innerWallGradientEdgeTopOpacity',
         label: 'Wall rim',
@@ -3000,7 +2832,6 @@ export const CONTROL_SECTIONS = {
           document.documentElement.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(Number((val * 1.45 * dm).toFixed(3))));
           document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(Number((val * 0.85 * dm).toFixed(3))));
           document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-shadow-opacity', String(Number((val * 0.85 * dm).toFixed(3))));
-          applyWallShadowPlateSystem({});
         }
       },
       {
@@ -3015,12 +2846,11 @@ export const CONTROL_SECTIONS = {
         hint: 'Dark inset lip along the top inner edge only. Slightly stronger in dark mode automatically (capped at 100% in CSS).',
         onChange: (_g, val) => {
           const isDark = document.body.classList.contains('dark-mode');
-          const dm = isDark ? 1.15 : 1;
+          const dm = isDark ? 1.15 : 0.56;
           document.documentElement.style.setProperty(
             '--inner-wall-gradient-edge-top-shadow-opacity',
             String(Number(Math.min(1, val * dm).toFixed(3)))
           );
-          applyWallShadowPlateSystem({});
         }
       },
       {
@@ -3035,78 +2865,170 @@ export const CONTROL_SECTIONS = {
         hint: 'Thickness of the light rim on the pit opening (home + all routes).',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--inner-wall-gradient-edge-width', `${val}px`);
-          applyWallShadowPlateSystem({});
         }
       },
+      { type: 'divider', label: 'Narrow Inner Shadow' },
       {
         id: 'innerWallPitInsetShadowOpacity',
-        label: 'Pit inset shadow',
+        label: 'Inner shadow opacity',
         stateKey: 'innerWallPitInsetShadowOpacity',
         type: 'range',
         min: 0, max: 0.28, step: 0.005,
         default: 0.12,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Soft interior shadow inside the pit (below the rim overlay). Scene Light Depth/Softness in the dock scales this on top.',
+        hint: 'Narrow inset shadow at the inner wall edge. It is capped so it cannot create a wide centre wash.',
         onChange: (g, val) => {
           g.innerWallPitInsetShadowOpacity = val;
           applyLayoutCSSVars();
-          applyWallShadowPlateSystem({});
         }
       },
       {
         id: 'innerWallPitInsetShadowBlurPx',
-        label: 'Pit shadow blur',
+        label: 'Inner shadow reach',
         stateKey: 'innerWallPitInsetShadowBlurPx',
         type: 'range',
         min: 8, max: 56, step: 1,
         default: 28,
         format: v => `${Math.round(v)}px`,
         parse: parseFloat,
-        hint: 'How far the pit inset shadow feathers inward.',
+        hint: 'How far the edge shadow feathers. CSS caps the rendered reach to keep the wall centre neutral.',
         onChange: (g, val) => {
           g.innerWallPitInsetShadowBlurPx = val;
           applyLayoutCSSVars();
-          applyWallShadowPlateSystem({});
         }
       },
-      {
-        id: 'wallShadowPlateEnabled',
-        label: 'Smooth shadow plate',
-        stateKey: 'wallShadowPlateEnabled',
-        type: 'checkbox',
-        default: true,
-        format: v => (v ? 'On' : 'Off'),
-        parse: v => !!v,
-        hint: 'Bakes the wall depth/rim into one decoded dithered texture; off uses CSS shadow fallback.',
-        onChange: (_g, val) => applyWallShadowPlateSystem({ wallShadowPlateEnabled: val })
-      },
-      {
-        id: 'wallShadowDitherStrength',
-        label: 'Shadow dither',
-        stateKey: 'wallShadowDitherStrength',
-        type: 'range',
-        min: 0, max: 3, step: 0.1,
-        default: 1.2,
-        format: v => `${Number(v).toFixed(1)}x`,
-        parse: parseFloat,
-        hint: 'Tiny deterministic alpha dither in the generated shadow gradients to prevent dark-mode banding.',
-        onChange: (_g, val) => applyWallShadowPlateSystem({ wallShadowDitherStrength: val })
-      },
+      { type: 'divider', label: 'Outer Frame Shadow' },
       {
         id: 'outerWallCastShadowOpacityLight',
-        label: 'Cast Shadow',
+        label: 'Outer cast shadow',
         stateKey: 'outerWallCastShadowOpacityLight',
         type: 'range',
         min: 0, max: 1, step: 0.005,
         default: 0.06,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Subtle depth shadow behind the frame',
+        hint: 'Subtle depth shadow behind the frame, not the inward wall shadow.',
         onChange: (g, val) => {
           g.outerWallCastShadowOpacityDark = Math.min(1, Number((val * 1.2).toFixed(3)));
           const isDark = document.body.classList.contains('dark-mode');
           document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(isDark ? g.outerWallCastShadowOpacityDark : val));
+        }
+      },
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BALL CONTRAST VEIL — edge tint drawn only into ball bodies.
+  // ═══════════════════════════════════════════════════════════════════════════
+  contrastVeil: {
+    title: 'Ball Contrast Veil',
+    icon: '◐',
+    defaultOpen: true,
+    controls: [
+      {
+        id: 'simulationContrastVeilOpacityLight',
+        label: 'Light opacity',
+        stateKey: 'simulationContrastVeilOpacityLight',
+        type: 'range',
+        min: 0, max: 0.6, step: 0.01,
+        default: 0.216,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Opacity of the edge tint drawn only into ball bodies in light mode. The wall background is not painted by this layer.',
+        onChange: (g, val) => {
+          g.simulationContrastVeilOpacityLight = val;
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'simulationContrastVeilOpacityDark',
+        label: 'Dark opacity',
+        stateKey: 'simulationContrastVeilOpacityDark',
+        type: 'range',
+        min: 0, max: 0.6, step: 0.01,
+        default: 0.348,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Opacity of the same ball-only edge tint in dark mode.',
+        onChange: (g, val) => {
+          g.simulationContrastVeilOpacityDark = val;
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'simulationContrastVeilReachX',
+        label: 'Reach X',
+        stateKey: 'simulationContrastVeilReachX',
+        type: 'range',
+        min: 0, max: 50, step: 1,
+        default: 25,
+        format: v => `${Math.round(v)}vw`,
+        parse: parseFloat,
+        hint: 'How far the left and right ball tint extends toward the centre.',
+        onChange: (g, val) => {
+          g.simulationContrastVeilReachX = val;
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'simulationContrastVeilReachY',
+        label: 'Reach Y',
+        stateKey: 'simulationContrastVeilReachY',
+        type: 'range',
+        min: 0, max: 50, step: 1,
+        default: 25,
+        format: v => `${Math.round(v)}vh`,
+        parse: parseFloat,
+        hint: 'How far the top and bottom ball tint extends toward the centre.',
+        onChange: (g, val) => {
+          g.simulationContrastVeilReachY = val;
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'simulationContrastVeilBlurVmax',
+        label: 'Blur',
+        stateKey: 'simulationContrastVeilBlurVmax',
+        type: 'range',
+        min: 2, max: 16, step: 0.5,
+        default: 7,
+        format: v => `${Number(v).toFixed(1).replace(/\.0$/, '')}vmax`,
+        parse: parseFloat,
+        hint: 'Softness of the ball tint edge. Higher values make the tint broader and smoother.',
+        onChange: (g, val) => {
+          g.simulationContrastVeilBlurVmax = val;
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'simulationContrastVeilDitherOpacity',
+        label: 'Dither',
+        stateKey: 'simulationContrastVeilDitherOpacity',
+        type: 'range',
+        min: 0, max: 0.12, step: 0.005,
+        default: 0.035,
+        format: v => `${Math.round(v * 1000) / 10}%`,
+        parse: parseFloat,
+        hint: 'Subtle deterministic grain in the ball tint that prevents visible gradient bands.',
+        onChange: (g, val) => {
+          g.simulationContrastVeilDitherOpacity = val;
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'simulationContrastVeilDitherSize',
+        label: 'Dither size',
+        stateKey: 'simulationContrastVeilDitherSize',
+        type: 'range',
+        min: 24, max: 240, step: 4,
+        default: 96,
+        format: v => `${Math.round(v)}px`,
+        parse: parseFloat,
+        hint: 'Scale of the dither tile. Smaller values are finer; larger values are softer and less busy.',
+        onChange: (g, val) => {
+          g.simulationContrastVeilDitherSize = val;
+          applyLayoutCSSVars();
         }
       },
     ]
@@ -6111,7 +6033,7 @@ export function generateGlobalSectionsHTML() {
 
 // Generate sections for SIMULATIONS group only
 export function generateSimulationsSectionsHTML() {
-  const simSections = ['liteMode', 'physics', 'balls', 'simulationOverlay'];
+  const simSections = ['liteMode', 'physics', 'balls'];
   let html = '';
   for (const key of simSections) {
     if (!CONTROL_SECTIONS[key]) continue;

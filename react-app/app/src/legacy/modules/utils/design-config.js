@@ -62,8 +62,13 @@ const DEFAULT_STUDIO_SURFACE_CONFIG = {
   fillOpacity: 0.018,
   glowOpacity: 0.18,
   sceneHighlight: 0.3,
-  sceneDepth: 0.14,
-  sceneSoftness: 0.45,
+  contrastVeilOpacityLight: 0.216,
+  contrastVeilOpacityDark: 0.348,
+  contrastVeilReachX: 25,
+  contrastVeilReachY: 25,
+  contrastVeilBlurVmax: 7,
+  contrastVeilDitherOpacity: 0.035,
+  contrastVeilDitherSize: 96,
   edgeCaptionDistanceMin: 8,
   edgeCaptionDistanceMax: 48,
 };
@@ -89,6 +94,21 @@ const RETIRED_RUNTIME_KEYS = new Set([
   'frameVignetteEdgeOpacity',
   'frameVignetteAmbientBlur',
   'frameVignetteAmbientOpacity',
+  'depthWashOpacity',
+  'depthWashCenterY',
+  'depthWashRadiusScale',
+  'depthWashBlendModeLight',
+  'depthWashCenterColorLight',
+  'depthWashCenterAlphaLight',
+  'depthWashEdgeColorLight',
+  'depthWashEdgeAlphaLight',
+  'depthWashBlendModeDark',
+  'depthWashCenterColorDark',
+  'depthWashCenterAlphaDark',
+  'depthWashEdgeColorDark',
+  'depthWashEdgeAlphaDark',
+  'wallShadowPlateEnabled',
+  'wallShadowDitherStrength',
   'edgeCaptionDistanceMinPx',
   'edgeCaptionDistanceMaxPx',
   'elasticCenterRingCount',
@@ -206,6 +226,9 @@ const RETIRED_RUNTIME_KEYS = new Set([
 const RETIRED_SHELL_THEME_KEYS = new Set([
   'lockedHeaderLight',
   'lockedHeaderDark',
+  'frameVignetteEdgeBlur',
+  'frameVignetteEdgeOpacity',
+  'frameVignetteAmbientOpacity',
 ]);
 
 const RETIRED_SHELL_LAYOUT_KEYS = new Set([
@@ -214,6 +237,8 @@ const RETIRED_SHELL_LAYOUT_KEYS = new Set([
 
 const RETIRED_SHELL_SURFACE_KEYS = new Set([
   'quoteButtonFillOpacity',
+  'sceneDepth',
+  'sceneSoftness',
 ]);
 
 const RETIRED_SHELL_MOTION_KEYS = new Set([
@@ -282,7 +307,6 @@ function deriveStudioSurfaceFromShell(shell = {}) {
   const theme = isPlainObject(shell.theme) ? shell.theme : {};
   const layout = isPlainObject(shell.layout) ? shell.layout : {};
   const surface = isPlainObject(shell.surface) ? shell.surface : {};
-  const edgeBlur = parseNumericToken(theme.frameVignetteEdgeBlur, 30);
 
   return {
     edgeStrength: clamp(surface.edgeOpacityLight, 0, 0.45, DEFAULT_STUDIO_SURFACE_CONFIG.edgeStrength),
@@ -290,8 +314,13 @@ function deriveStudioSurfaceFromShell(shell = {}) {
     fillOpacity: clamp(surface.fillOpacityLight, 0, 0.12, DEFAULT_STUDIO_SURFACE_CONFIG.fillOpacity),
     glowOpacity: clamp(surface.glowOpacityDark ?? surface.shadowOpacityDark, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.glowOpacity),
     sceneHighlight: clamp(surface.sceneHighlight, 0, 0.6, clamp(parseNumericToken(theme.frameBorderMidOpacity, 0.054) / 0.18, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.sceneHighlight)),
-    sceneDepth: clamp(surface.sceneDepth, 0, 0.28, clamp(parseNumericToken(theme.frameVignetteEdgeOpacity, 0.14), 0, 0.28, DEFAULT_STUDIO_SURFACE_CONFIG.sceneDepth)),
-    sceneSoftness: clamp(surface.sceneSoftness, 0, 1, clamp((edgeBlur - 10) / 70, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.sceneSoftness)),
+    contrastVeilOpacityLight: clamp(surface.contrastVeilOpacityLight, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilOpacityLight),
+    contrastVeilOpacityDark: clamp(surface.contrastVeilOpacityDark, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilOpacityDark),
+    contrastVeilReachX: clamp(surface.contrastVeilReachX, 0, 50, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilReachX),
+    contrastVeilReachY: clamp(surface.contrastVeilReachY, 0, 50, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilReachY),
+    contrastVeilBlurVmax: clamp(surface.contrastVeilBlurVmax, 2, 16, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilBlurVmax),
+    contrastVeilDitherOpacity: clamp(surface.contrastVeilDitherOpacity, 0, 0.12, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilDitherOpacity),
+    contrastVeilDitherSize: clamp(surface.contrastVeilDitherSize, 24, 240, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilDitherSize),
     edgeCaptionDistanceMin: clamp(parseNumericToken(layout.edgeCaptionDistanceMin, 8), 0, 24, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMin),
     edgeCaptionDistanceMax: clamp(parseNumericToken(layout.edgeCaptionDistanceMax, 48), 24, 80, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax),
   };
@@ -309,10 +338,13 @@ function applyDerivedStudioRuntime(runtime = {}, shell = {}) {
   nextRuntime.hoverEdgeTopOpacity = Number((studio.edgeStrength * 0.46).toFixed(3));
   nextRuntime.frameBorderGradientEdgeOpacity = Number((studio.sceneHighlight * 0.029).toFixed(3));
   nextRuntime.frameBorderGradientMidOpacity = Number((studio.sceneHighlight * 0.058).toFixed(3));
-  nextRuntime.frameVignetteEdgeOpacity = studio.sceneDepth;
-  nextRuntime.frameVignetteAmbientOpacity = Number((studio.sceneDepth * 0.64).toFixed(3));
-  nextRuntime.frameVignetteEdgeBlur = Math.round(10 + (studio.sceneSoftness * 70));
-  nextRuntime.frameVignetteAmbientBlur = Math.round(80 + (studio.sceneSoftness * 260));
+  nextRuntime.simulationContrastVeilOpacityLight = studio.contrastVeilOpacityLight;
+  nextRuntime.simulationContrastVeilOpacityDark = studio.contrastVeilOpacityDark;
+  nextRuntime.simulationContrastVeilReachX = studio.contrastVeilReachX;
+  nextRuntime.simulationContrastVeilReachY = studio.contrastVeilReachY;
+  nextRuntime.simulationContrastVeilBlurVmax = studio.contrastVeilBlurVmax;
+  nextRuntime.simulationContrastVeilDitherOpacity = studio.contrastVeilDitherOpacity;
+  nextRuntime.simulationContrastVeilDitherSize = studio.contrastVeilDitherSize;
   nextRuntime.edgeCaptionDistanceMinPx = Math.round(studio.edgeCaptionDistanceMin);
   nextRuntime.edgeCaptionDistanceMaxPx = Math.round(studio.edgeCaptionDistanceMax);
 

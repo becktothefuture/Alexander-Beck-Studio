@@ -7,7 +7,6 @@ import {
   applyLayoutFromVwToPx,
   detectResponsiveScale,
 } from '../core/state.js';
-import { applyWallShadowPlateSystem } from './wall-shadow-plate.js';
 
 export function syncWallFrameColors(config) {
   const root = document.documentElement;
@@ -55,5 +54,4 @@ export function applyWallFrameLayout() {
   try { detectResponsiveScale(); } catch (e) {}
   try { applyLayoutFromVwToPx(); } catch (e) {}
   try { applyLayoutCSSVars(); } catch (e) {}
-  try { applyWallShadowPlateSystem({}); } catch (e) {}
 }
