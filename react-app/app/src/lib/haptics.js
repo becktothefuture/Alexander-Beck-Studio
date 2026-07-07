@@ -21,7 +21,9 @@ function hasWindow() {
   return typeof window !== 'undefined' && typeof document !== 'undefined';
 }
 
-function isSupported() {
+function isVibrationApiSupported() {
+  // Intentional browser boundary: web haptics are Vibration API based, so this
+  // targets Android/compatible browsers and silently no-ops on iOS Safari.
   return hasWindow() && WebHaptics.isSupported === true;
 }
 
@@ -43,7 +45,7 @@ function prefersReducedMotion() {
 }
 
 function getHapticsInstance() {
-  if (!isSupported() || isOptedOut()) return null;
+  if (!isVibrationApiSupported() || isOptedOut()) return null;
   if (!hapticsInstance) {
     hapticsInstance = new WebHaptics({
       debug: false,
@@ -89,5 +91,5 @@ export function destroyHaptics() {
 }
 
 export function areHapticsAvailable() {
-  return isSupported() && !isOptedOut();
+  return isVibrationApiSupported() && !isOptedOut();
 }
