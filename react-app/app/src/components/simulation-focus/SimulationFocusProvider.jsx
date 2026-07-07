@@ -16,6 +16,7 @@ import {
 } from '../../data/simulationCatalog.js';
 import { buildRouteHref } from '../../lib/routes.js';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
+import { triggerHaptic } from '../../lib/haptics.js';
 import {
   dismissGateBackdrop,
   ensureGateModalOverlay,
@@ -171,7 +172,7 @@ export function SimulationFocusProvider({
   }, [routeIsDailyFocus, surfaceRouteId]);
 
   const closeChooser = useCallback((options = {}) => {
-    const { restoreFocus = true } = options;
+    const { haptic = true, restoreFocus = true } = options;
     if (closeTimerRef.current !== null) {
       window.clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
@@ -180,6 +181,7 @@ export function SimulationFocusProvider({
     setChooserActive(false);
     setChooserClosing(true);
     setChooserOpen(false);
+    if (haptic) triggerHaptic('close');
     dismissGateBackdrop();
     closeTimerRef.current = window.setTimeout(() => {
       setChooserClosing(false);
@@ -207,6 +209,7 @@ export function SimulationFocusProvider({
     setChooserActive(false);
     returnFocusRef.current = triggerElement;
     setChooserOpen(true);
+    triggerHaptic('open');
   }, []);
 
   const markChooserOverlayReady = useCallback(() => {
@@ -236,8 +239,9 @@ export function SimulationFocusProvider({
       return true;
     }
 
+    triggerHaptic('step');
     setOptimisticActiveId(simulationId);
-    closeChooser({ restoreFocus: false });
+    closeChooser({ haptic: false, restoreFocus: false });
 
     const closeSettleMs = getGateModalCloseDurationMs();
 

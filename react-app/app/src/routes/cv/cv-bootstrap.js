@@ -19,6 +19,7 @@ import { applyWallFrameFromConfig, applyWallFrameLayout } from '../../legacy/mod
 import { stampCursorContrastFromTheme } from '../../legacy/modules/visual/colors.js';
 import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
 import { createScrollPresence } from '../../legacy/modules/utils/scroll-presence.js';
+import { triggerHaptic } from '../../lib/haptics.js';
 
 function getCvScrollContainer() {
   return document.getElementById('cv-scroll-container');
@@ -120,11 +121,16 @@ export async function bootstrapCvRoute() {
   }
 
   const scrollContainer = getCvScrollContainer();
+  let cvScrollHapticsReady = false;
   const scrollPresence = scrollContainer
     ? createScrollPresence(scrollContainer, {
         defaultSpanRatio: 0.2,
         minSpanPx: 92,
         maxSpanPx: 220,
+        onActiveItemChange: () => {
+          if (!cvScrollHapticsReady) return;
+          triggerHaptic('step', { minIntervalMs: 260 });
+        },
       })
     : null;
   if (scrollContainer) {
@@ -152,6 +158,7 @@ export async function bootstrapCvRoute() {
     selectors: ['#abs-scene', '#app-frame', '#cv-scroll-container'],
     detail: 'cv-ready',
   });
+  cvScrollHapticsReady = true;
 
   return () => {
     scrollPresence?.destroy();

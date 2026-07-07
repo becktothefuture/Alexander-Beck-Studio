@@ -31,6 +31,7 @@ import {
 } from '../../routes/concept-simulations/ConceptSimulationRoute.jsx';
 import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
 import { useShellRouteTransition } from '../../hooks/useShellRouteTransition.js';
+import { useSiteHaptics } from '../../hooks/useSiteHaptics.js';
 import { DevConfigPanelBridge } from './DevConfigPanelBridge.jsx';
 import {
   SimulationFocusChooser,
@@ -238,6 +239,8 @@ export function SiteApp() {
     routeState.route.id,
     getSearchFromHref(routeState.canonicalHref),
   );
+
+  useSiteHaptics({ routeId: routeState.route.id });
 
   useLayoutEffect(() => {
     markDirectShellRouteReady(routeState.route.id, isStandaloneRoute, {

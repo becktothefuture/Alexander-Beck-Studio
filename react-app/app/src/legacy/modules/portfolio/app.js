@@ -46,6 +46,7 @@ import { setupOverscrollLock } from '../input/overscroll-lock.js';
 import { refreshCursor, setupCustomCursor, updateCursorSize } from '../rendering/cursor.js';
 import { PortfolioProjectDrawer, getProjectContentBlocks } from './project-drawer.js';
 import { getBasePathWithTrailingSlash } from '../../../lib/base-path.js';
+import { triggerHaptic } from '../../../lib/haptics.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
 
 const BASE_PATH = (() => {
@@ -2056,6 +2057,9 @@ class PortfolioScrollApp {
       this.updateDeckStatus();
       this.updateVideoPlayback();
     }
+    if (activeChanged && !this.isProjectOpen) {
+      triggerHaptic('step', { minIntervalMs: 180 });
+    }
 
     if (this.pendingDeckFocusIndex === this.activeProjectIndex) {
       this.cards[this.activeProjectIndex]?.focus({ preventScroll: true });
@@ -2809,6 +2813,7 @@ class PortfolioScrollApp {
     this.pendingDeckFocusIndex = -1;
     this.pendingDeckAnnounce = false;
     SoundEngine.playHoverSound?.();
+    triggerHaptic('open');
     this.prefetchProjectAssets(project);
     this.pauseAllVideos();
     this.lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -2868,6 +2873,7 @@ class PortfolioScrollApp {
     if (this.projectView.classList.contains('is-closing')) return;
     this.clearProjectOpenTimeouts();
     this.projectOpenPhase = 'closing';
+    triggerHaptic('close');
     this.projectView.classList.remove('is-title-visible');
     document.removeEventListener('keydown', this.boundProjectKeydown, true);
 

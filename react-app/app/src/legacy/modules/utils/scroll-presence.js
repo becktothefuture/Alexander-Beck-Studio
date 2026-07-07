@@ -38,9 +38,13 @@ export function createScrollPresence(root, options = {}) {
     defaultSpanRatio = 0.18,
     minSpanPx = 96,
     maxSpanPx = 220,
+    onActiveItemChange = null,
+    notifyInitialActiveItem = false,
   } = options;
 
   let items = [];
+  let activeItem = null;
+  let hasReportedActiveItem = false;
   let rafId = null;
   let destroyed = false;
   const resizeObserver = typeof ResizeObserver === 'function'
@@ -61,6 +65,9 @@ export function createScrollPresence(root, options = {}) {
     const rootRect = root.getBoundingClientRect();
     if (!(rootRect.height > 0)) return;
 
+    let strongestItem = null;
+    let strongestPresence = 0;
+
     items.forEach((item) => {
       const itemRect = item.getBoundingClientRect();
       const fadeSpan = clamp(
@@ -69,11 +76,24 @@ export function createScrollPresence(root, options = {}) {
         maxSpanPx,
       );
       const presence = computePresence(itemRect, rootRect, fadeSpan);
+      if (presence > strongestPresence) {
+        strongestPresence = presence;
+        strongestItem = item;
+      }
       const nextValue = presence.toFixed(3);
       if (item.style.getPropertyValue('--scroll-presence') !== nextValue) {
         item.style.setProperty('--scroll-presence', nextValue);
       }
     });
+
+    if (typeof onActiveItemChange === 'function' && strongestItem && strongestItem !== activeItem) {
+      const previousItem = activeItem;
+      activeItem = strongestItem;
+      if (hasReportedActiveItem || notifyInitialActiveItem) {
+        onActiveItemChange(strongestItem, previousItem);
+      }
+      hasReportedActiveItem = true;
+    }
   };
 
   const schedule = () => {
@@ -115,6 +135,7 @@ export function createScrollPresence(root, options = {}) {
       window.visualViewport?.removeEventListener('resize', handleResize);
       items.forEach((item) => item.style.removeProperty('--scroll-presence'));
       items = [];
+      activeItem = null;
     },
   };
 }

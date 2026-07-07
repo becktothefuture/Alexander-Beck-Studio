@@ -7,6 +7,7 @@ import { activateModalAccessibility } from './modal-accessibility.js';
 import { getText } from '../utils/text-loader.js';
 import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
 import { consumeGateRequest, getGateInviteCode, markGateAccess } from '../../../lib/access-gates.js';
+import { triggerHaptic } from '../../../lib/haptics.js';
 import {
     closeGateModal,
     hideCompetingGateModals,
@@ -165,6 +166,7 @@ export function initCVModal() {
                     void inputsContainer.offsetWidth;
                     inputsContainer.classList.add('pulse-energy');
                 }
+                triggerHaptic('success');
                 
                 markGateAccess('cv');
 
@@ -176,6 +178,7 @@ export function initCVModal() {
                 });
                 
             } else {
+                triggerHaptic('error');
                 // Failure - clear inputs
                 setTimeout(() => {
                     inputs.forEach(input => input.value = '');
@@ -234,6 +237,7 @@ export function initCVModal() {
             }
 
             if (val.length === 1) {
+                triggerHaptic('tap');
                 if (index < inputs.length - 1) {
                     inputs[index + 1].focus();
                 } else {

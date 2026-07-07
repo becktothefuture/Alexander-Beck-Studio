@@ -16,6 +16,7 @@
 import { activateModalAccessibility } from './modal-accessibility.js';
 import { getText } from '../utils/text-loader.js';
 import { setStableTimeout } from '../../../lib/legacy-runtime-scope.js';
+import { triggerHaptic } from '../../../lib/haptics.js';
 import {
   closeGateModal,
   hideCompetingGateModals,
@@ -237,6 +238,7 @@ export function initContactModal() {
     const ok = await copyToClipboard(CONTACT_EMAIL);
     
     if (ok) {
+      triggerHaptic('success');
       // Trigger pulse animation
       emailRowBtn.classList.remove('pulse-energy');
       void emailRowBtn.offsetWidth; // Force reflow
@@ -246,6 +248,9 @@ export function initContactModal() {
       setTimeout(() => {
         emailRowBtn.classList.remove('pulse-energy');
       }, 800);
+    }
+    if (!ok) {
+      triggerHaptic('error');
     }
     
     setCopyUI(ok ? 'copied' : 'error');
