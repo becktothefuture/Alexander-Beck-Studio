@@ -563,6 +563,7 @@ function createMasterPanel({
   footerHint = footerHint || (page === 'portfolio'
     ? '<kbd>/</kbd> panel'
     : '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> modes');
+  const cleanupFns = [];
 
   const panel = targetDocument.createElement('div');
   panel.id = 'masterPanel';
@@ -600,6 +601,8 @@ function createMasterPanel({
   
   panel.appendChild(header);
   panel.appendChild(content);
+  const accordionCleanup = setupParentAccordionBehavior(panel);
+  if (typeof accordionCleanup === 'function') cleanupFns.push(accordionCleanup);
 
   // Restore size (only if user has manually resized - i.e., significantly different from CSS defaults)
   const savedSize = detached ? null : loadPanelSize();
@@ -642,7 +645,6 @@ function createMasterPanel({
   }
   
   // Initialize controls
-  const cleanupFns = [];
   targetWindow.setTimeout(() => {
     // Shared (master) controls are safe on all pages.
     const controlSetupOptions = {
@@ -688,6 +690,54 @@ function createMasterPanel({
   };
   
   return panel;
+}
+
+function setupParentAccordionBehavior(panel) {
+  if (!panel) return null;
+
+  const parentGroups = Array.from(panel.querySelectorAll('.panel-content > .panel-master-group'));
+  if (!parentGroups.length) return null;
+
+  const closePeerGroups = (activeGroup) => {
+    parentGroups.forEach((group) => {
+      if (group !== activeGroup && group.open) group.open = false;
+    });
+  };
+
+  const handleToggle = (event) => {
+    const group = event.currentTarget;
+    if (!group?.open) return;
+
+    closePeerGroups(group);
+
+    const content = panel.querySelector('.panel-content');
+    if (!content) return;
+
+    requestAnimationFrame(() => {
+      try {
+        const contentRect = content.getBoundingClientRect();
+        const groupRect = group.getBoundingClientRect();
+        if (groupRect.top < contentRect.top || groupRect.bottom > contentRect.bottom) {
+          group.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
+      } catch (e) {}
+    });
+  };
+
+  parentGroups.forEach((group) => {
+    group.addEventListener('toggle', handleToggle);
+  });
+
+  const initiallyOpen = parentGroups.filter((group) => group.open);
+  initiallyOpen.slice(1).forEach((group) => {
+    group.open = false;
+  });
+
+  return () => {
+    parentGroups.forEach((group) => {
+      group.removeEventListener('toggle', handleToggle);
+    });
+  };
 }
 
 export function mountDetachedPanel({
