@@ -5,8 +5,14 @@ The portfolio route is a wall-contained **infinite project deck**. It reuses the
 ## Entry Points
 
 - `react-app/app/src/routes/portfolio/PortfolioRoute.jsx`
-- `react-app/app/src/templates/portfolio-body.html`
 - `react-app/app/src/legacy/modules/portfolio/app.js`
+
+Retained parity surface:
+
+- `react-app/app/src/pages/PortfolioPage.jsx`
+- `react-app/app/src/templates/portfolio-body.html`
+
+`PortfolioPage.jsx` is not wired into the active `SiteApp` route entries today. It imports `templates/portfolio-body.html?raw` for a possible future standalone split and for fragment validation coverage. Keep the retained template aligned with the route topbar contract and canonical copy, but do not treat it as an active production entry point unless routing is deliberately changed.
 
 ## Layer stacking (drawer above chrome)
 

@@ -6,8 +6,8 @@ import { hasGateAccess, redirectToGateHome } from '../lib/access-gates.js';
 import templateHtml from '../templates/portfolio-body.html?raw';
 
 /**
- * Standalone portfolio page shell (not wired into `SiteApp` today — all entries use SiteApp).
- * Kept for parity with templates and possible future routing splits.
+ * Retained standalone portfolio page shell (not wired into `SiteApp` today — all entries use SiteApp).
+ * Kept for template validation parity and possible future routing splits.
  * Legacy bootstrap runs only via `useLegacyRouteRuntime` + `bootstrapPortfolio` in SiteApp.
  */
 export function PortfolioPage() {

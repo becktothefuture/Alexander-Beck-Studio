@@ -40,7 +40,7 @@ const matrix = [
         selector: '#main-links button',
         minCount: 3,
         minArea: 400,
-        requiredText: ['About me', 'Contact', 'Portfolio']
+        requiredText: ['About Me', 'Contact', 'Portfolio']
       },
       {
         selector: '#expertise-legend .legend__item',
@@ -66,7 +66,7 @@ const matrix = [
           selector: '#main-links button',
           minCount: 3,
           minArea: 400,
-          requiredText: ['About me', 'Contact', 'Portfolio']
+          requiredText: ['About Me', 'Contact', 'Portfolio']
         },
         {
           selector: '#expertise-legend .legend__item',
@@ -96,7 +96,7 @@ const matrix = [
       { selector: '#c', minArea: 60000, requiredText: [] },
       { selector: '#portfolioProjectMount', minArea: 60000, requiredText: [] },
       { selector: '.portfolio-deck-card.is-active', minCount: 1, minArea: 60000, requiredText: [] },
-      { selector: '.portfolio-topnav .footer_link', minCount: 1, minArea: 120, requiredText: ['About me'] }
+      { selector: '.portfolio-topnav .footer_link', minCount: 1, minArea: 120, requiredText: ['About Me'] }
     ]
   },
   {
