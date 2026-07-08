@@ -26,6 +26,8 @@ This project powers an interactive homepage where motion, physics, and narrative
 - Privacy-conscious defaults: **no analytics**; fonts load from **Google Fonts** on shipped HTML; optional tactile layer may use **jsdelivr** when enabled
 
 ## Quick Start
+Requires Node `>=20.19.0` and npm `>=10`.
+
 ```bash
 npm run install:all   # first-time: root + react-app/app
 npm run dev           # React dev server (8012)

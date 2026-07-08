@@ -26,7 +26,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20.19.0'
 
       - name: Install deps (React)
         run: |
@@ -34,7 +34,7 @@ jobs:
           if [ -f package-lock.json ]; then npm ci --ignore-scripts --no-audit --no-fund; else npm install --no-audit --no-fund; fi
 
       - name: Guard malformed tokenized strings (full scan)
-        run: npm run check:malformed-tokens -- --full
+        run: npm run check:malformed-tokens
 
       - name: Enforce node_modules hygiene
         run: |
@@ -57,12 +57,11 @@ jobs:
       - name: Validate HTML fragments
         run: npm run validate:html-fragments
 
-      # Parity with root `npm run build`: regenerate legacy JSON shards from design-system.json
-      - name: Flatten design config
-        run: node scripts/flatten-design-config.mjs
+      - name: Validate simulation catalog
+        run: npm run sim:validate
 
-      - name: Build React app
-        run: cd react-app/app && npm run build
+      - name: Build site
+        run: npm run build
 
       - name: Verify build output
         run: |

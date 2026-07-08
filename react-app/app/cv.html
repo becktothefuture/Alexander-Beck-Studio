@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="en" class="fonts-loading" data-abs-boot-state="booting" style="background:#202020;background-color:#202020">
+<html lang="en" class="fonts-loading" data-abs-boot-state="booting" style="background:#141517;background-color:#141517">
   <head>
     <style id="fade-blocking">#root,#abs-scene,#app-frame{opacity:0;visibility:hidden}</style>
     <style id="abs-critical-shell">
       html, body, #root {
-        --abs-boot-orbit-ms: 2510ms;
-        --abs-boot-color-cycle-ms: 2510ms;
-        --abs-boot-color-step-ms: 420ms;
-        --abs-boot-color-sync-ms: 80ms;
+        --abs-boot-orbit-ms: 1480ms;
+        --abs-boot-color-cycle-ms: 2220ms;
+        --abs-boot-color-step-ms: 370ms;
+        --abs-boot-color-sync-ms: 0ms;
         width: 100%;
         min-height: 100%;
         margin: 0;
@@ -118,12 +118,12 @@
         transform: rotate(var(--abs-dot-angle)) translateY(-11.5px);
       }
 
-      .abs-boot-dot:nth-child(1) { --abs-dot-color-delay: var(--abs-boot-color-sync-ms); }
-      .abs-boot-dot:nth-child(2) { --abs-dot-color-delay: calc(var(--abs-boot-color-sync-ms) + var(--abs-boot-color-step-ms)); }
-      .abs-boot-dot:nth-child(3) { --abs-dot-color-delay: calc(var(--abs-boot-color-sync-ms) + (var(--abs-boot-color-step-ms) * 2)); }
-      .abs-boot-dot:nth-child(4) { --abs-dot-color-delay: calc(var(--abs-boot-color-sync-ms) + (var(--abs-boot-color-step-ms) * 3)); }
-      .abs-boot-dot:nth-child(5) { --abs-dot-color-delay: calc(var(--abs-boot-color-sync-ms) + (var(--abs-boot-color-step-ms) * 4)); }
-      .abs-boot-dot:nth-child(6) { --abs-dot-color-delay: calc(var(--abs-boot-color-sync-ms) + (var(--abs-boot-color-step-ms) * 5)); }
+      .abs-boot-dot:nth-child(1) { --abs-dot-color-delay: 0ms; }
+      .abs-boot-dot:nth-child(2) { --abs-dot-color-delay: -370ms; }
+      .abs-boot-dot:nth-child(3) { --abs-dot-color-delay: -740ms; }
+      .abs-boot-dot:nth-child(4) { --abs-dot-color-delay: -1110ms; }
+      .abs-boot-dot:nth-child(5) { --abs-dot-color-delay: -1480ms; }
+      .abs-boot-dot:nth-child(6) { --abs-dot-color-delay: -1850ms; }
 
       .abs-boot-dot::before {
         content: "";
@@ -132,8 +132,10 @@
         height: 100%;
         border-radius: inherit;
         background: var(--abs-dot-color);
-        animation: absBootDotColorShift var(--abs-boot-color-cycle-ms) steps(1, end) infinite;
-        animation-delay: var(--abs-dot-color-delay, var(--abs-boot-color-sync-ms));
+        animation:
+          absBootDotPulse var(--abs-boot-orbit-ms) ease-in-out infinite,
+          absBootDotColorShift var(--abs-boot-color-cycle-ms) steps(1, end) infinite;
+        animation-delay: 0ms, var(--abs-dot-color-delay, var(--abs-boot-color-sync-ms));
       }
 
       @keyframes absBootOrbit {
@@ -222,6 +224,11 @@
         83.33%, 99.99% { background: var(--ball-6, #d7ff2f); }
       }
 
+      @keyframes absBootDotPulse {
+        0%, 100% { transform: scale(0.86); opacity: 0.72; }
+        50% { transform: scale(1); opacity: 1; }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         #abs-boot-overlay {
           --abs-boot-overlay-out-ms: 150ms;
@@ -253,11 +260,11 @@
           wallBaseLight: '#202020',
           wallBaseDark: '#202020',
           frameColorLight: '#202020',
-          frameColorDark: '#202020',
+          frameColorDark: '#141517',
           safariFrameLight: '#202020',
-          safariFrameDark: '#202020',
+          safariFrameDark: '#141517',
           lockedHeaderLight: '#202020',
-          lockedHeaderDark: '#202020'
+          lockedHeaderDark: '#141517'
         };
 
         function detectBrowserFamily() {

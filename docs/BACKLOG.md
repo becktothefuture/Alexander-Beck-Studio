@@ -5,12 +5,12 @@
 ## Audit status (work stream closed)
 
 - **Status:** Audit **complete**; backlog items are **tracked** below. **Fixes are intentionally deferred** while other work is in flight — this file is the parking lot, not an active sprint.
-- **Already shipped from the audit stream:** ESLint runs in **GitHub Pages** CI (`.github/workflows/gh-pages.yml`) so `main` cannot deploy with lint regressions.
-- **Not done yet:** P0/P1 issues (docs vs network, focus visibility, `portfolio.css` on all entries, `MODES.DVD_LOGO`, lockfile policy, sound vs reduced motion, etc.) — tackle when you return to this lane.
+- **Already shipped from the audit stream:** ESLint, HTML fragment validation, simulation catalog validation, canonical root `npm run build`, and app-lockfile `npm ci` run in **GitHub Pages** CI (`.github/workflows/gh-pages.yml`) so `main` cannot deploy with those regressions.
+- **Not done yet:** P0/P1 issues (docs vs network, focus visibility, sound vs reduced motion, root-relative deploy assumptions, etc.) — tackle when you return to this lane.
 - **When to re-open / refresh:** Before a release you care about, or after **shell/routing**, **multi-page HTML**, **global CSS**, or **privacy/docs** edits — re-run [`repo-audit-executable-swarm.md`](prompts/repo-audit-executable-swarm.md) and replace [`audit-run-latest.md`](prompts/audit-run-latest.md). Quick spot-check: `portfolio.css` in every shipped entry + `rg "FOCUS STYLES"` in `main.css`.
 - **How to use the backlog when you resume:** Split mentally into **trust** (docs, privacy copy, a11y focus) vs **product/perf** (CSS parity across entries, physics allocations, lockfiles) and pick one lane first.
 
-**Shipped after audit closeout (engineering follow-up):** `portfolio.css` linked on **`cv.html`**, **`styleguide.html`**, **`palette-lab.html`**; removed dead **`MODES.DVD_LOGO`** branch in `engine.js`; **`tokens.css`** double-semicolon fix; **`package.json`** repository URL from `origin`; **`AGENTS.md`** privacy line aligned with fonts/tactile/storage; **`.gitignore`** no longer ignores `package-lock.json`; **`react-app/app/package-lock.json`** added for **`npm ci`** in CI; **GitHub Pages** workflow runs **`validate:html-fragments`**; **`README`** backlog link + QA wording. Remaining **BL-*** rows still apply unless noted above.
+**Shipped after audit closeout (engineering follow-up):** `portfolio.css` linked on **`cv.html`**, **`styleguide.html`**, **`palette-lab.html`**; removed dead **`MODES.DVD_LOGO`** branch in `engine.js`; **`tokens.css`** double-semicolon fix; **`package.json`** repository URL from `origin`; **`AGENTS.md`** privacy line aligned with fonts/tactile/storage; **`.gitignore`** no longer ignores `package-lock.json`; **`react-app/app/package-lock.json`** added for **`npm ci`** in CI; **GitHub Pages** workflow runs **`validate:html-fragments`**, **`sim:validate`**, and root **`npm run build`**; package metadata declares Node/npm engines; app placeholder scripts were removed; **`README`** backlog link + QA wording. Remaining **BL-*** rows apply unless marked closed.
 
 ---
 
@@ -72,7 +72,7 @@
 
 **Pass 1 (2026-03-21):** Five areas × two lenses (implementation vs systemic / native readiness), merged manually.
 
-**Pass 2:** Mechanical grep, adversarial re-read of focus CSS, and a **verification gate**: `npm run build` (root) **passed**; `npm run lint` (`react-app/app`) **passed**; `npm run validate:html-fragments` **passed** (3 fragment files only). `dist/cv.html` after build **still omits** `/css/portfolio.css`.
+**Pass 2:** Mechanical grep, adversarial re-read of focus CSS, and a **verification gate**: `npm run build` (root) **passed**; `npm run lint` (`react-app/app`) **passed**; `npm run validate:html-fragments` **passed** (3 fragment files only). At the time of the audit, `dist/cv.html` after build still omitted `/css/portfolio.css`; that specific entry-CSS gap was later closed.
 
 **Pass 3 (same day):** **Ten parallel `explore` subagents** — **five areas × two roles**:
 | Area | Senior agent | Mentor agent |
@@ -83,7 +83,7 @@
 | 4 CSS / motion / a11y | A4-S | A4-M |
 | 5 Docs / privacy / QA | A5-S | A5-M |
 
-Findings below **merge** all three passes. Where agents disagreed (e.g. one agent’s empty `dist/` vs built artifacts), **machine checks win** (this workspace: `react-app/app/dist/*.html` exist after `npm run build`; portfolio gap reproduces in `dist/cv.html`).
+Findings below **merge** all three passes. Where agents disagreed (e.g. one agent’s empty `dist/` vs built artifacts), **machine checks win**. Closed rows are retained as audit history but should not be treated as active work.
 
 **Launch bar:** Trustworthy, smooth, professional — including credibility for a **first-class macOS experience** when judged against Apple [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) (menu bar, keyboard, windows, visible focus, accessibility settings).
 
@@ -95,15 +95,15 @@ Findings below **merge** all three passes. Where agents disagreed (e.g. one agen
 
 ### Area 1 — Build, CI, config
 
-**Merged themes:** **`.gitignore` line 11 ignores `package-lock.json` repo-wide** — stronger than “missing app lockfile”: even a generated `react-app/app/package-lock.json` would be ignored unless the rule changes or the file is force-added. CI uses `npm install` when no lockfile is present; **`npm ci` uses `--ignore-scripts` when lockfile exists**. Root `npm run build` and CI **do not share one script invocation** (CI runs flatten + `cd react-app/app && build` vs root `package.json` `build`) — drift risk. **Two flatten writers:** CLI `scripts/flatten-design-config.mjs` and Vite dev `POST` (`vite.config.js`). Duplicate dev/preview `--port` in root + app `package.json`. No `engines` field; GHA uses floating `@v4` tags. Root holds Playwright; Pages job only installs `react-app/app`.
+**Merged themes:** Original audit findings included ignored/missing lockfiles, app `npm install` fallback in CI, separate CI flatten/build commands, duplicate flatten writers, duplicate dev/preview `--port`, no `engines` field, floating GHA action tags, and root-only Playwright dependencies. Current status: lockfiles are tracked, the app lockfile supports `npm ci`, package metadata declares engines, CI calls root `npm run build`, and the remaining active release-engineering questions are broader release gating, flatten writer ownership, action pinning policy, and whether Playwright audits belong in CI.
 
-**Actions:** Fix lockfile policy (stop ignoring lockfiles or adopt workspaces + one committed lock); align CI with `npm run build` from root; unify flatten implementation; **ESLint in CI** (done); add optional **fragment validate** / **Playwright** steps; add `engines`; document dev POST.
+**Actions:** Keep CI aligned with root `npm run build`; decide whether to expand deployment CI to `npm run check:site`; unify flatten implementation if drift appears; decide whether Playwright audits belong in CI; document dev POST.
 
 ### Area 2 — Shell, entries, SPA, stacking
 
-**Merged themes:** **`portfolio.css` only on `index.html` + `portfolio.html`**; CV / styleguide / palette-lab omit it; SPA does not inject stylesheets — **first HTML wins**. **Verified in `dist/cv.html`.** **Mentor:** absolute `/css/...` URLs and no explicit Vite `base` → **subpath deploys** (e.g. GitHub Pages project site) can 404 assets; `routes.js` pathname matching **ignores base path**. **fade-blocking** differs: home `#abs-scene` only vs others `#abs-scene,#app-frame`. **popstate** may bypass the same pipeline as `pushState` navigations. **Gated routes + `sessionStorage`** brittle in webviews. Drawer host contract (React + legacy) remains high-risk if refactored.
+**Merged themes:** Original audit found `portfolio.css` only on `index.html` + `portfolio.html`; that gap is closed for CV/styleguide/palette-lab. Remaining shell/routing themes: absolute `/css/...` URLs and no explicit Vite `base` can affect subpath deploys; route matching base-path behavior needs care; critical boot CSS and `fade-blocking` are compatibility-sensitive; `popstate` parity, gated routes with `sessionStorage`, and drawer host ownership remain high-risk if refactored.
 
-**Actions:** Add `portfolio.css` to every shell entry; consider `base` + route normalization; unify critical CSS; review `popstate` vs transition/gate cleanup.
+**Actions:** Consider `base` + route normalization; keep critical boot CSS unified; review `popstate` vs transition/gate cleanup.
 
 ### Area 3 — Legacy physics / loop
 
@@ -135,15 +135,15 @@ Findings below **merge** all three passes. Where agents disagreed (e.g. one agen
 | **BL-P0-02** | Keyboard focus effectively suppressed globally; “WCAG” overrides still omit visible ring | `[web]` `[wrapper]` | `main.css` (~3424–3432, ~3719–3730); `panel.css` form controls |
 | **BL-P0-03** | Legacy sim/render coupled via singleton globals | `[native]` | `state.js`, `engine.js` |
 | **BL-P0-04** | **`MODES.DVD_LOGO` used in `engine.js` but not defined on `MODES`** | `[web]` | `constants.js`, `engine.js` |
-| **BL-P0-05** | **`.gitignore` ignores `package-lock.json` everywhere** — reproducible installs blocked by policy | `[web]` `[ops]` | `.gitignore` L11; cannot commit app lockfile without rule change |
+| **BL-P0-05** | **Closed:** lockfiles are no longer ignored repo-wide | `[web]` `[ops]` | `.gitignore` now allows tracked lockfiles; `react-app/app/package-lock.json` exists |
 
 ### P1
 
 | ID | Title | Tags | Notes |
 |----|--------|------|--------|
-| **BL-P1-01** | No lockfile under `react-app/app`; CI uses `npm install` | `[web]` | Root `package-lock.json` may still be **tracked** in git despite `.gitignore` (pre-ignore commit); app subtree has no lock; new app lock needs ignore rule change or `git add -f` |
-| **BL-P1-02** | CI does not run **HTML fragment validate** or **Playwright** audits (**ESLint** added to `gh-pages.yml` after audit) | `[web]` | `gh-pages.yml`; local `npm run lint` still recommended pre-push |
-| **BL-P1-03** | `portfolio.css` missing on CV / styleguide / palette-lab — **confirmed in `dist/`** | `[web]` | Source + `dist/cv.html` |
+| **BL-P1-01** | **Closed:** `react-app/app` lockfile exists and CI uses `npm ci` when present | `[web]` | Keep lockfiles tracked; use `npm run install:all` for local setup |
+| **BL-P1-02** | CI still omits Playwright audits | `[web]` | Lint, HTML fragments, simulation catalog validation, and root build now run in `gh-pages.yml`; Playwright remains local/manual |
+| **BL-P1-03** | **Closed:** `portfolio.css` is linked on CV / styleguide / palette-lab | `[web]` | Keep all full shell entries aligned when CSS ownership changes |
 | **BL-P1-04** | Pit perf telemetry: `percentile()` sorts | `[web]` | `engine.js` |
 | **BL-P1-05** | Physics tied to display throttle + accumulator caps | `[web]` `[native]` | `loop.js`, `engine.js` |
 | **BL-P1-06** | Reduced motion disables **sound engine paths**, not only the toggle UI | `[web]` | `sound-engine.js` (`prefersReducedMotion` guards); `sound-toggle.js` |
@@ -169,14 +169,14 @@ Findings below **merge** all three passes. Where agents disagreed (e.g. one agen
 | **BL-P2-10** | Root vs app install split; CI skips root | `[web]` | |
 | **BL-P2-11** | No dependabot config | `[web]` | |
 | **BL-P2-12** | INTEGRATION paths / mode count / bundle stats stale | `[web]` | |
-| **BL-P2-13** | App `smoke` / `parity:capture` are echo placeholders | `[web]` | `react-app/app/package.json` |
+| **BL-P2-13** | **Closed:** app `smoke` / `parity:capture` echo placeholders removed | `[web]` | Use root verification commands and Playwright audits instead |
 | **BL-P2-14** | AGENTS omits some root scripts (portfolio audits, figma, precommit, clean) | `[web]` | |
 | **BL-P2-15** | Design save dev vs static — document | `[web]` | |
 | **BL-P2-16** | Portfolio drawer mount fallback if host missing | `[web]` | |
 | **BL-P2-17** | `Math.random` / unstable pair order — non-deterministic sim | `[web]` `[native]` | |
 | **BL-P2-18** | Motion policy split (CSS vs canvas vs routes) | `[web]` | |
 | **BL-P2-19** | `validate:html-fragments` scope tiny | `[web]` | |
-| **BL-P2-20** | CI recipe ≠ single `npm run build` entrypoint | `[web]` | Root `package.json` vs `gh-pages.yml` steps |
+| **BL-P2-20** | **Closed:** CI uses root `npm run build` entrypoint | `[web]` | Broader `npm run check:site` CI adoption remains a separate decision |
 | **BL-P2-21** | Duplicate flatten logic (CLI + Vite plugin) | `[web]` | Drift risk |
 | **BL-P2-22** | `popstate` vs `pushState` transition / gate parity | `[web]` | `useShellRouteTransition.js` |
 | **BL-P2-23** | Gated routes + `sessionStorage` fragile in restricted webviews | `[web]` `[wrapper]` | `access-gates.js` |

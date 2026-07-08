@@ -34,6 +34,13 @@ function sourceIncludes(source, value) {
   return Boolean(value && source.includes(value));
 }
 
+const DAILY_FOCUS_RUNTIME_COMPATIBILITY_CASES = new Map([
+  [
+    'beach-ball-room',
+    'Collection-only lab route keeps Daily Focus shell runtime compatibility but is not in public Daily rotation.',
+  ],
+]);
+
 function isValidIsoDate(value) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
   if (!match) return false;
@@ -50,6 +57,64 @@ function isValidIsoDate(value) {
 
 async function readSource(path) {
   return readFile(path, 'utf8').catch(() => '');
+}
+
+function extractSwitchCases(source) {
+  return Array.from(source.matchAll(/case\s+['"]([^'"]+)['"]\s*:/g))
+    .map((match) => match[1]);
+}
+
+function extractStringObjectMaps(source, constName) {
+  const pattern = new RegExp(`const\\s+${constName}\\s*=\\s*\\{([\\s\\S]*?)\\n\\s*\\};`, 'g');
+  return Array.from(source.matchAll(pattern)).map((match) => {
+    const entries = new Map();
+    Array.from(match[1].matchAll(/['"]([^'"]+)['"]\s*:\s*['"]([^'"]+)['"]/g))
+      .forEach((entryMatch) => entries.set(entryMatch[1], entryMatch[2]));
+    return entries;
+  });
+}
+
+function addDailyFocusRuntimeCoverageErrors(errors, simulations, source, label) {
+  const routeBackedDailyIds = simulations
+    .filter((entry) => entry.stage === SIMULATION_STAGES.DAILY_ROTATION)
+    .filter((entry) => entry.surface === 'lab-route')
+    .filter((entry) => entry.dailyHref)
+    .map((entry) => entry.id);
+  const routeBackedDailyIdSet = new Set(routeBackedDailyIds);
+  const runtimeCases = extractSwitchCases(source);
+  const runtimeCaseSet = new Set(runtimeCases);
+
+  routeBackedDailyIds.forEach((id) => {
+    if (!runtimeCaseSet.has(id)) {
+      errors.push(`${id}: missing Daily Focus runtime coverage in ${label}`);
+    }
+  });
+
+  runtimeCases
+    .filter((id) => !routeBackedDailyIdSet.has(id))
+    .filter((id) => !DAILY_FOCUS_RUNTIME_COMPATIBILITY_CASES.has(id))
+    .forEach((id) => {
+      errors.push(`${id}: extra Daily Focus runtime case in ${label}`);
+    });
+
+  DAILY_FOCUS_RUNTIME_COMPATIBILITY_CASES.forEach((reason, id) => {
+    const entry = simulations.find((simulation) => simulation.id === id);
+    if (!entry) {
+      errors.push(`${id}: Daily Focus compatibility allowlist points at a missing catalog entry (${reason})`);
+    } else if (entry.stage === SIMULATION_STAGES.DAILY_ROTATION) {
+      errors.push(`${id}: Daily Focus compatibility allowlist should be removed now that this entry is in Daily rotation`);
+    }
+  });
+}
+
+function addLabelDriftErrors(errors, simulations, maps, label) {
+  maps.forEach((map, index) => {
+    map.forEach((name, id) => {
+      const entry = simulations.find((simulation) => simulation.id === id);
+      if (!entry || entry.name === name) return;
+      errors.push(`${id}: ${label}#${index + 1} label "${name}" does not match catalog name "${entry.name}"`);
+    });
+  });
 }
 
 function addRequiredFieldErrors(errors, entry, fields) {
@@ -69,6 +134,26 @@ async function main() {
   const routesSource = await readSource(SIMULATION_ADMIN_PATHS.routeRegistryPath);
   const viteSource = await readSource(SIMULATION_ADMIN_PATHS.viteConfigPath);
   const constantsSource = await readSource(SIMULATION_ADMIN_PATHS.constantsPath);
+  const dailyFocusRuntimesSource = await readSource(resolve(
+    SIMULATION_ADMIN_PATHS.reactAppRoot,
+    'src/routes/daily-focus/dailyFocusRuntimes.jsx',
+  ));
+  const dailyFocusShellBridgeSource = await readSource(resolve(
+    SIMULATION_ADMIN_PATHS.reactAppRoot,
+    'src/routes/daily-focus/DailyFocusShellBridge.jsx',
+  ));
+  const modeControllerSource = await readSource(resolve(
+    SIMULATION_ADMIN_PATHS.reactAppRoot,
+    'src/legacy/modules/modes/mode-controller.js',
+  ));
+  const controlsSource = await readSource(resolve(
+    SIMULATION_ADMIN_PATHS.reactAppRoot,
+    'src/legacy/modules/ui/controls.js',
+  ));
+  const controlRegistrySource = await readSource(resolve(
+    SIMULATION_ADMIN_PATHS.reactAppRoot,
+    'src/legacy/modules/ui/control-registry.js',
+  ));
 
   if (!simulations.length) {
     errors.push('Catalog has no simulations.');
@@ -174,6 +259,37 @@ async function main() {
       errors.push(`dailyRotation.anchorSimulationId "${dailyRotation.anchorSimulationId}" is not in daily rotation`);
     }
   }
+
+  addDailyFocusRuntimeCoverageErrors(
+    errors,
+    simulations,
+    dailyFocusRuntimesSource,
+    'dailyFocusRuntimes.jsx',
+  );
+  addDailyFocusRuntimeCoverageErrors(
+    errors,
+    simulations,
+    dailyFocusShellBridgeSource,
+    'DailyFocusShellBridge.jsx',
+  );
+  addLabelDriftErrors(
+    errors,
+    simulations,
+    extractStringObjectMaps(modeControllerSource, 'MODE_NAMES'),
+    'mode-controller MODE_NAMES',
+  );
+  addLabelDriftErrors(
+    errors,
+    simulations,
+    extractStringObjectMaps(controlsSource, 'modeNames'),
+    'controls modeNames',
+  );
+  addLabelDriftErrors(
+    errors,
+    simulations,
+    extractStringObjectMaps(controlRegistrySource, 'modeLabels'),
+    'control-registry modeLabels',
+  );
 
   if (!catalog.updatedAt) {
     warnings.push('Catalog is missing updatedAt.');

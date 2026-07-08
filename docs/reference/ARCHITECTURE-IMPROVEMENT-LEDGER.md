@@ -17,7 +17,8 @@ This ledger records the preservation-first architecture streamlining work and th
 
 - Vite build inputs, virtual content loading, and dev/admin middleware are easier to scan after extracting the local dev/admin middleware into `react-app/app/vite.dev-admin-plugin.js`.
 - `npm run check:design-config` now verifies generated config files against `design-system.json` without writing files.
-- `npm run check:site` provides a single local command for malformed-token guard, HTML fragment validation, React lint, generated-config sync, and production build.
+- `npm run check:site` provides a single local command for malformed-token guard, HTML fragment validation, simulation catalog validation, React lint, generated-config sync, and production build.
+- GitHub Pages calls the canonical root `npm run build`, so CI and local production builds share the same flatten-then-build entrypoint.
 - Runtime cleanup comments now state the preferred direction: explicit boot disposers first, legacy runtime scope as a safety net.
 
 ## Intentionally Unchanged
@@ -56,19 +57,20 @@ Classification: Too risky for this workstream.
 
 The visible portfolio route is DOM-deck driven, but `pit-mode.js` still provides live helper exports plus hidden/runtime, fallback, and archive behavior. Removing it requires import tracing, route testing, and portfolio audits. Leave the code until a dedicated cleanup proves no interaction, helper export, or fallback depends on it.
 
-### Moving GitHub Pages to `npm run build:site`
+### Moving GitHub Pages to a broader release gate
 
 Classification: Safe later with CI validation.
 
-The workflow currently performs the same flatten-then-build sequence as the root build. Switching the workflow to call `npm run build:site` would reduce drift risk, but deployment changes should be isolated and validated in CI.
+The workflow now calls the root `npm run build`. Expanding deployment CI to call the full local `npm run check:site` gate would add generated-config sync checks and local build parity, but that broader deployment change should be isolated and validated in CI.
 
 ## Checks Protecting Parity
 
 Baseline checks:
 
 ```bash
-npm run check:malformed-tokens -- --full
+npm run check:malformed-tokens
 npm run validate:html-fragments
+npm run sim:validate
 npm run lint --prefix react-app/app
 npm run check:design-config
 npm run build
@@ -99,8 +101,8 @@ Phase 3 was documentation-only. Browser and visual audits were not rerun for tha
 
 - Add a dedicated runtime adapter only when it removes real route-runtime duplication or makes cleanup contracts enforceable.
 - Split dev/admin middleware into smaller ownership plugins if endpoint groups grow further.
-- Align GitHub Pages with the root canonical build entrypoint in a CI-focused change.
-- Extend simulation catalog validation only when a concrete drift case appears; `npm run sim:validate` already checks route registry, Vite inputs, daily hrefs, configs, and previews.
+- Keep GitHub Pages validation aligned with the root canonical gate vocabulary.
+- Extend simulation catalog validation when concrete drift cases appear; `npm run sim:validate` checks route registry, Vite inputs, daily hrefs, configs, previews, and Daily Focus runtime coverage.
 - Build visual regression coverage before moving renderer, transition, portfolio drawer, or physics code.
 
 ## How Future Agents Should Proceed

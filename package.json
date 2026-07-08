@@ -1,6 +1,10 @@
 {
   "author" : "Alexander Beck",
   "description" : "Alexander Beck Studio website with interactive particle physics",
+  "engines" : {
+    "node" : ">=20.19.0",
+    "npm" : ">=10"
+  },
   "devDependencies" : {
     "@tabler\/icons-webfont" : "^3.35.0",
     "lighthouse" : "^11.7.1",
@@ -55,7 +59,7 @@
     "check:design-config" : "node scripts\/check-design-config.mjs",
     "check:malformed-tokens" : "node scripts\/check-malformed-tokens.mjs --full",
     "check:malformed-tokens:staged" : "node scripts\/check-malformed-tokens.mjs --staged",
-    "check:site" : "npm run check:malformed-tokens && npm run validate:html-fragments && npm run lint --prefix react-app\/app && npm run check:design-config && npm run build",
+    "check:site" : "npm run check:malformed-tokens && npm run validate:html-fragments && npm run sim:validate && npm run lint --prefix react-app\/app && npm run check:design-config && npm run build",
     "clean" : "rm -rf react-app\/app\/dist",
     "dev" : "npm run dev:react",
     "dev:react" : "npm run dev --prefix react-app\/app -- --port 8012",

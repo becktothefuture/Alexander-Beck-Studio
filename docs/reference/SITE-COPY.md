@@ -1,7 +1,7 @@
 # Site copy — single reference
 
 All user-facing copy across the website in one place. Use this to edit, translate, or audit tone.  
-**Source of truth for runtime:** [contents-home.json](react-app/app/public/config/contents-home.json) and [contents-portfolio.json](react-app/app/public/config/contents-portfolio.json). CV body copy lives in [cv-body.html](react-app/app/src/templates/cv-body.html) (inline).
+**Source of truth for runtime:** [contents-home.json](../../react-app/app/public/config/contents-home.json), [contents-cv.json](../../react-app/app/public/config/contents-cv.json), and [contents-portfolio.json](../../react-app/app/public/config/contents-portfolio.json).
 
 ---
 
@@ -206,87 +206,29 @@ All user-facing copy across the website in one place. Use this to edit, translat
 
 ---
 
-## 11. CV page (cv-body.html — inline only)
+## 11. CV page
 
-*CV body copy is not loaded from JSON; it lives in the template. To centralise it, you could move these into a contents-cv.json and inject at build time or via apply-text.*
+Runtime source: [contents-cv.json](../../react-app/app/public/config/contents-cv.json), imported through `virtual:abs-content/cv` in [CvRoute.jsx](../../react-app/app/src/routes/cv/CvRoute.jsx).
 
-### Intro (left column)
-
-| Element | Current copy |
-|---------|--------------|
-| cv-name | Alexander Beck |
-| cv-title | Product Design · Creative Technology · Experience Direction |
-| cv-intro-text | For more than fifteen years, I've worked where product design, technology, and human behaviour meet. I help teams make complex things clearer through systems, interfaces, and prototypes that are thoughtful to use and realistic to build. |
-| img alt | Alexander Beck |
-
-### About
-
-| Element | Current copy |
-|---------|--------------|
-| section title | About |
-| body | I work across product design, systems thinking, interaction, and prototyping. Most of my projects involve untangling complexity: aligning teams, clarifying priorities, and giving products a stronger behavioural point of view. |
-| body | My background spans enterprise platforms, brand-led digital experiences, and experimental builds. I use code when fidelity matters, and AI when it helps a team think faster, test ideas earlier, or explore new directions without losing judgement. |
-
-### Experience
-
-| Entry | Title | Meta | Body |
-|-------|-------|------|------|
-| 1 | Independent Practice | Founder & Principal · 2019 – Present · London | Independent consultant and creative partner for product teams, founders, and agencies. I help define product direction, shape interaction models, prototype difficult ideas, and turn ambitious concepts into systems that can actually ship. |
-| 2 | Senior Product Designer | Global Financial Services · 2016 – 2019 · London & New York | Led design systems and workflow redesign for enterprise finance products used by global teams. Worked closely with product, engineering, and research to simplify dense interfaces, improve decision-making, and bring more consistency to complex operational tools. |
-| 3 | Design Lead | Digital Agency · 2012 – 2016 · Berlin & Amsterdam | Led multidisciplinary teams across digital campaigns, brand experiences, and interactive launches. Built a stronger prototyping culture so ideas could be tested earlier, discussed with more precision, and presented with less hand-waving. |
-| 4 | Interactive Designer | Boutique Studio · 2008 – 2012 · San Francisco | Started in motion design and interactive development, building browser-based experiences and real-time visuals. That technical foundation still shapes how I think about behaviour, pacing, and performance. |
-
-### Expertise
-
-| Section title | List items |
-|---------------|------------|
-| Expertise | Product Strategy & Systems Thinking; Interaction Design & Motion; Design Systems & Component Architecture; Frontend Development (React, Vue, Canvas, WebGL); AI/ML Product Integration; Design Operations & Team Leadership; Prototyping & Experimental Technology; Workshop Facilitation & Stakeholder Alignment |
-
-### Selected Projects
-
-| Section title | Intro | Items |
-|---------------|-------|--------|
-| Selected Projects | A few representative projects: | Enterprise Trading Platform Redesign — Reframed a dense institutional product around clearer workflows, a shared component system, and tighter collaboration between design and engineering.; Luxury Retail Experience — Developed spatial and interactive concepts for a premium retail environment, blending digital storytelling with tactile product discovery.; AI-Assisted Creative Tool — Shaped early product direction and interface behaviour for a generative tool designed to expand concept exploration without removing creative control.; Interactive Brand Installation — Designed a physical and digital experience powered by real-time motion systems, turning a brand story into something people could move through and manipulate. |
-
-### Education
-
-| Entry | Title | Meta |
-|-------|-------|------|
-| 1 | MA Interactive Design | Royal College of Art · London · 2008 |
-| 2 | BA Graphic Design | California College of the Arts · San Francisco · 2006 |
-
-### Philosophy
-
-| Section title | Body |
-|---------------|------|
-| Philosophy | I like work that is both rigorous and expressive. Clear structure creates room for stronger feeling, and better tools create room for better judgement. |
-| | The best digital products do not perform intelligence for the user. They remove friction, reveal intent, and make complex systems feel usable without becoming bland. |
-| | Based in London and available for select collaborations. |
-
-### Recognition
-
-| Section title | Body |
-|---------------|------|
-| Recognition | Selected work has been recognised by D&AD, Awwwards, FWA, and Red Dot, and featured in design publications and talks. |
-
-### CV footer
-
-| Element | Current copy |
-|---------|--------------|
-| cv-contact | hello@alexanderbeck.studio |
-| cv-copyright | © 2026 Alexander Beck. All rights reserved. |
+| Area | Source |
+|------|--------|
+| Intro name/title/paragraphs/photo | `contents-cv.json` → `intro` |
+| Body sections | `contents-cv.json` → `sections` |
+| Footer prompt/contact/copyright | `contents-cv.json` → `footer` |
+| Route-local UI labels | `CvRoute.jsx` (`About me`, `Back to top`, route topbar ARIA labels) |
 
 ---
 
-## 12. Hardcoded UI strings (templates / JS)
+## 12. Hardcoded UI strings (route code / JS)
 
-*These appear in HTML or JS with fallbacks; not in contents-home. Consider moving to contents-home if you want them in this doc as source of truth.*
+*These appear in route modules or JS with fallbacks; not all are in runtime JSON. Consider moving them to the relevant content JSON if they need editorial control.*
 
 | Context | String | Location |
 |---------|--------|----------|
-| Canvas | Bouncy balls | index-body.html (aria-label) |
-| Logo SVG | Alexander Beck Studio | index-body.html (aria-label) |
-| Back link | Back to home | cv-body.html, portfolio-body.html (aria-label) |
+| Canvas | Bouncy balls | `HomeRoute.jsx` (aria-label) |
+| CV heading | About me | `CvRoute.jsx` |
+| CV button | Back to top | `CvRoute.jsx` |
+| Back link | Back to home | route modules (aria-label) |
 | Theme button | Toggle theme | index/cv/portfolio (aria-label) |
 | CV/Portfolio gate inputs | CV invite code digit 1 of 6, etc. | cv-modal, portfolio-modal (aria-label, from JS) |
 
@@ -294,7 +236,7 @@ All user-facing copy across the website in one place. Use this to edit, translat
 
 ## How to use this doc
 
-- **Edit runtime copy:** Change [contents-home.json](react-app/app/public/config/contents-home.json) or [contents-portfolio.json](react-app/app/public/config/contents-portfolio.json); keep this file in sync for reference.
-- **Edit CV copy:** Change [cv-body.html](react-app/app/src/templates/cv-body.html); update the “CV page” section above when you do.
+- **Edit runtime copy:** Change [contents-home.json](../../react-app/app/public/config/contents-home.json), [contents-cv.json](../../react-app/app/public/config/contents-cv.json), or [contents-portfolio.json](../../react-app/app/public/config/contents-portfolio.json); keep this file in sync for reference.
+- **Edit route-local labels:** Change the owning route/component module, then update the hardcoded strings table above.
 - **Tone:** Align with [TONE-OF-VOICE.md](TONE-OF-VOICE.md).
-- **Adding a new string:** Add it to the right JSON (or CV template), then add a row/section here with key and current copy.
+- **Adding a new string:** Add it to the right JSON when it is editorial copy; otherwise add a row/section here with key, current copy, and owning module.

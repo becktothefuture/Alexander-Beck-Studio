@@ -21,7 +21,7 @@ import * as SoundEngine from '../audio/sound-engine.js';
 import { initSharedChrome } from '../ui/shared-chrome.js';
 import { loadShellConfig, syncShellToDocument } from '../visual/site-shell.js';
 import { completeDirectBoot, waitForFrames, waitForPageReadyBarrier } from '../visual/page-orchestrator.js';
-import { navigateWithTransition, resetTransitionState, setupPrefetchOnHover, NAV_STATES } from '../utils/page-nav.js';
+import { resetTransitionState, setupPrefetchOnHover, setupTransitionNavigationLinks } from '../utils/page-nav.js';
 import { MODES } from '../core/constants.js';
 import {
   setupRenderer,
@@ -283,6 +283,8 @@ function shouldRotatePortfolioLabels() {
 }
 
 async function fetchPortfolioData() {
+  // Portfolio remains runtime-fetched because the legacy deck/drawer runtime
+  // consumes project data outside the Vite virtual content path.
   const paths = [
     CONFIG.dataPath,
     `${CONFIG.basePath}js/contents-portfolio.json`,
@@ -3428,12 +3430,7 @@ export async function bootstrapPortfolio() {
     }
   }
 
-  document.querySelectorAll('[data-nav-transition]').forEach((link) => {
-    link.addEventListener('click', (event) => {
-      event.preventDefault();
-      navigateWithTransition(link.href, NAV_STATES.INTERNAL);
-    });
-  });
+  const cleanupTransitionNavigationLinks = setupTransitionNavigationLinks();
 
   const handlePageShow = (event) => {
     if (event.persisted) {
@@ -3468,6 +3465,7 @@ export async function bootstrapPortfolio() {
     } catch (e) {
       /* ignore */
     }
+    cleanupTransitionNavigationLinks();
     window.removeEventListener('pageshow', handlePageShow);
     app.destroy();
   };

@@ -74,6 +74,12 @@ Authoritative detail: [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md) (route top 
 | Unified rules | [`react-app/app/public/css/main.css`](../../react-app/app/public/css/main.css) — section **“UNIFIED HOVER BACKGROUND SYSTEM”** and **“INTERACTIVE HOVER EFFECTS”** |
 | Portfolio slot tweak | [`react-app/app/public/css/portfolio.css`](../../react-app/app/public/css/portfolio.css) — `.portfolio-sound-slot` |
 
+CSS ownership:
+
+- `main.css` owns shared shell chrome, route topbar structure, CV/About route styling, modals, cursor contracts, and home/shared text treatment.
+- `portfolio.css` owns portfolio deck, portfolio drawer, portfolio-specific project typography, portfolio route load states, and portfolio-only media/detail motion.
+- `src/index.css` is not part of the active app surface; do not recreate Vite starter CSS there.
+
 **Do not** reintroduce multi-layer white gradients + heavy `box-shadow` “glass” on these chrome controls; that contradicts this guide.
 
 ---

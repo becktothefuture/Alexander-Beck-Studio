@@ -1223,6 +1223,7 @@ body.portfolio-project-open .portfolio-deck-mount .portfolio-project-card.is-sel
   color: var(--portfolio-drawer-ink);
 }
 
+body.portfolio-project-open .ui-top,
 body.portfolio-project-open .ui-bottom {
   visibility: hidden;
 }
@@ -1242,6 +1243,17 @@ body.portfolio-page #edge-caption {
   margin: 0;
   font-size: clamp(1rem, 1.3vw, 1.16rem);
   line-height: 1.62;
+  widows: 2;
+  orphans: 2;
+}
+
+@supports (text-wrap: pretty) {
+  .portfolio-project-view__summary p,
+  .portfolio-project-view__overview p,
+  .portfolio-project-view__block--text p,
+  .portfolio-project-view__takeaways li {
+    text-wrap: pretty;
+  }
 }
 
 .portfolio-project-view__overview,

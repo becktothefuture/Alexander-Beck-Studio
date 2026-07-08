@@ -371,6 +371,27 @@ export function resetTransitionState() {
   document.body.classList.remove('page-transitioning');
 }
 
+export function setupTransitionNavigationLinks(root = document, options = {}) {
+  const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
+  const links = Array.from(scope.querySelectorAll('[data-nav-transition]'));
+  const state = options.state || NAV_STATES.INTERNAL;
+  const navigationOptions = options.navigationOptions || {};
+  const handleTransitionClick = (event) => {
+    event.preventDefault();
+    navigateWithTransition(event.currentTarget.href, state, navigationOptions);
+  };
+
+  links.forEach((link) => {
+    link.addEventListener('click', handleTransitionClick);
+  });
+
+  return () => {
+    links.forEach((link) => {
+      link.removeEventListener('click', handleTransitionClick);
+    });
+  };
+}
+
 /**
  * Add prefetch link for a page (once per session).
  * Improves navigation speed by preloading destination.

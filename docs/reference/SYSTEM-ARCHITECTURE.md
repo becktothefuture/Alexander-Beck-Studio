@@ -130,7 +130,7 @@ Do not change mode IDs, mode order, launch paths, daily rotation behavior, or pr
 
 GitHub Pages deployment is defined in `.github/workflows/gh-pages.yml`.
 
-The workflow installs dependencies for `react-app/app`, runs token and lint checks, validates HTML fragments, flattens the design config, builds the React app, verifies `react-app/app/dist/`, uploads that dist folder as a Pages artifact, and deploys it.
+The workflow installs dependencies for `react-app/app`, runs token, lint, HTML fragment, and simulation catalog checks, calls the root `npm run build`, verifies `react-app/app/dist/`, uploads that dist folder as a Pages artifact, and deploys it.
 
 The deployment target remains GitHub Pages. Do not change the target or publish a different output directory without an explicit deployment migration.
 

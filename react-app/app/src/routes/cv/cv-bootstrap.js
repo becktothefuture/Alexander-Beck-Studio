@@ -1,10 +1,9 @@
 import { syncCornerShapeSquircleClass } from '../../legacy/modules/core/state.js';
 import { initSharedChrome } from '../../legacy/modules/ui/shared-chrome.js';
 import {
-  NAV_STATES,
-  navigateWithTransition,
   resetTransitionState,
   setupPrefetchOnHover,
+  setupTransitionNavigationLinks,
 } from '../../legacy/modules/utils/page-nav.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 import { waitForFonts } from '../../legacy/modules/utils/font-loader.js';
@@ -81,15 +80,7 @@ export async function bootstrapCvRoute() {
   window.addEventListener('resize', handleLayoutResize, { passive: true });
   window.visualViewport?.addEventListener('resize', handleLayoutResize, { passive: true });
 
-  const transitionLinks = Array.from(document.querySelectorAll('[data-nav-transition]'));
-  const handleTransitionClick = (event) => {
-    event.preventDefault();
-    navigateWithTransition(event.currentTarget.href, NAV_STATES.INTERNAL);
-  };
-
-  transitionLinks.forEach((link) => {
-    link.addEventListener('click', handleTransitionClick);
-  });
+  const cleanupTransitionNavigationLinks = setupTransitionNavigationLinks();
 
   const handlePageShow = (event) => {
     if (!event.persisted) return;
@@ -165,8 +156,6 @@ export async function bootstrapCvRoute() {
     window.removeEventListener('resize', handleLayoutResize);
     window.visualViewport?.removeEventListener('resize', handleLayoutResize);
     window.removeEventListener('pageshow', handlePageShow);
-    transitionLinks.forEach((link) => {
-      link.removeEventListener('click', handleTransitionClick);
-    });
+    cleanupTransitionNavigationLinks();
   };
 }

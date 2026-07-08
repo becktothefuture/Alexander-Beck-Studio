@@ -55,7 +55,7 @@ export function getStyleguideRouteView() {
           <section className="styleguide-section" aria-labelledby="sg-route-topbar">
             <h2 id="sg-route-topbar">Route top bar (full strip — canonical)</h2>
             <p className="styleguide-section__hint">
-              Same contract as portfolio/CV: treat this like the footer—copy the structure, do not restyle. Optional inset: portfolio uses{' '}
+              Same contract as portfolio/CV: treat this like the footer—copy the structure, do not restyle. Portfolio keeps text actions on the right; CV keeps primary text actions in the center. Optional inset uses{' '}
               <code className="styleguide-doc__code">--portfolio-nav-top</code> on top of <code className="styleguide-doc__code">--gap-xs</code>.
             </p>
             <div className="styleguide-topbar-frame">
@@ -71,6 +71,26 @@ export function getStyleguideRouteView() {
                     <nav className="portfolio-topnav ui-main-nav" aria-label="Sample route top nav">
                       <MainNavLink>About Me</MainNavLink>
                     </nav>
+                    <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample mute" disabled>
+                      <i className="ti ti-volume-off" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+              </header>
+            </div>
+            <div className="styleguide-topbar-frame">
+              <header className="ui-top">
+                <div className="ui-top-main route-topbar portfolio-topbar">
+                  <div className="route-topbar__left">
+                    <span className="gate-back abs-icon-btn styleguide-fake-icon" aria-hidden="true">
+                      <i className="ti ti-arrow-left" aria-hidden="true" />
+                    </span>
+                  </div>
+                  <nav className="route-topbar__center portfolio-topnav ui-main-nav" aria-label="Sample CV route top nav">
+                    <MainNavLink>Portfolio</MainNavLink>
+                    <MainNavLink>Contact</MainNavLink>
+                  </nav>
+                  <div className="route-topbar__right ui-top-right">
                     <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample mute" disabled>
                       <i className="ti ti-volume-off" aria-hidden="true" />
                     </button>

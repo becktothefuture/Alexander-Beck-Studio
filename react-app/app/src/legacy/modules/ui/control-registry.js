@@ -5994,7 +5994,7 @@ export function generateModeSwitcherHTML() {
     'mineral-growth': 'Mineral Bloom',
     'flubber-blob': 'Soft Blob',
     'weave-field': 'Weave Field',
-    'pressure-crucible': 'Flux',
+    'pressure-crucible': 'Pressure Field',
     'particle-fountain': 'Particle Fountain',
     'napoleon-point-cloud': 'Bust Cloud',
     'beach-ball-room': 'Beach Ball Room'

@@ -7,6 +7,8 @@
 npm run install:all
 ```
 
+Requires Node `>=20.19.0` and npm `>=10`.
+
 **Daily development:**
 ```bash
 npm run dev
@@ -111,9 +113,8 @@ lsof -ti:8013 | xargs kill -9
 ### Build fails
 
 ```bash
-rm -rf node_modules package-lock.json
-npm install
-npm install --prefix react-app/app
+rm -rf node_modules react-app/app/node_modules
+npm run install:all
 npm run build
 ```
 

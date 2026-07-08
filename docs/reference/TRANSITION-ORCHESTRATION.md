@@ -28,7 +28,7 @@ Canonical engineering contract for route and modal transitions.
 
 ## 4) Direct-load boot overlay
 - Direct document loads start behind `#abs-boot-overlay`, with `<html data-abs-boot-state="booting">` and `#root` hidden/inert.
-- A CSS-generated `html::before` / `html::after` bridge covers the viewport from the critical head style before the body overlay DOM exists; the first-paint browser chrome fallback is `#202020`, and `#abs-boot-overlay` remains the main release/fade layer.
+- A CSS-generated `html::before` / `html::after` bridge covers the viewport from the critical head style before the body overlay DOM exists; the first-paint browser chrome fallback mirrors `shell.theme.siteFrameDark` in `design-system.json`, and `#abs-boot-overlay` remains the main release/fade layer.
 - The first-paint loader is a 32px six-dot spinner using the six canonical `colorDistribution` ball colours, with inline fallbacks so it paints before runtime palette loading. The dots orbit over roughly 1.48s while the colour phase steps backward every 370ms, creating calm counter-motion without adding more shapes.
 - The overlay must remain visible for at least 750ms on every direct document load before it can begin its exit fade.
 - The spinner must disappear as the overlay exit begins; the dark overlay surface carries the soft fade by itself.

@@ -155,6 +155,19 @@ function readProjectFixture(routeId) {
   return null;
 }
 
+function shouldDeferBootStateForHold() {
+  if (typeof window === 'undefined') return false;
+
+  const host = window.location.hostname;
+  if (host !== 'localhost' && host !== '127.0.0.1' && host !== '::1') return false;
+
+  try {
+    return new URLSearchParams(window.location.search).get('absBootHold') === '1';
+  } catch {
+    return false;
+  }
+}
+
 function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {}) {
   if (typeof document === 'undefined') return;
   if (isStandaloneRoute || routeId === 'home') return;
@@ -169,7 +182,7 @@ function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {}) {
   );
   root.classList.add('abs-direct-boot-ready', 'entrance-complete', 'ui-entered');
 
-  if (options.deferBootState === true) return;
+  if (options.deferBootState === true || shouldDeferBootStateForHold()) return;
 
   if (!root.dataset.absBootState || root.dataset.absBootState === 'booting') {
     root.dataset.absBootState = 'ready';

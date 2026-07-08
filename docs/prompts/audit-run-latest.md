@@ -5,6 +5,8 @@
 
 **Audit status:** This run is **complete** and **frozen** as a snapshot. Remediation is **deferred**; full prioritized backlog lives in [`../BACKLOG.md`](../BACKLOG.md) under **Audit status (work stream closed)**. Refresh this file after the next deliberate audit pass.
 
+**Current-state note (2026-07-08):** Several proof rows below have since been remediated, including the app lockfile, package-lock ignore policy, HTML fragment validation in CI, and `portfolio.css` shell-entry coverage. Treat this file as historical evidence only; use [`../BACKLOG.md`](../BACKLOG.md), [`../../tasks/project-streamline-2026-07/progress-log.md`](../../tasks/project-streamline-2026-07/progress-log.md), and current repo checks for active status.
+
 ## Preflight (machine proof)
 
 | Step | Command | Result |

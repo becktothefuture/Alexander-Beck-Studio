@@ -30,7 +30,7 @@ Any future refactor touching runtime, CSS, HTML boot logic, public config, route
 Minimum command set for low-risk docs/tooling changes:
 
 ```bash
-npm run check:malformed-tokens -- --full
+npm run check:malformed-tokens
 npm run validate:html-fragments
 npm run lint --prefix react-app/app
 npm run check:design-config

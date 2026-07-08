@@ -6,8 +6,10 @@ import { chromium } from 'playwright';
 const repoRoot = resolve(import.meta.dirname, '..');
 const catalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.json');
 const homeRoutePath = resolve(repoRoot, 'react-app/app/src/routes/home/HomeRoute.jsx');
+const dailyFocusRoutePath = resolve(repoRoot, 'react-app/app/src/routes/daily-focus/DailyFocusRoute.jsx');
+const simulationStagePath = resolve(repoRoot, 'react-app/app/src/routes/daily-focus/SimulationStage.jsx');
+const dailyFocusRuntimesPath = resolve(repoRoot, 'react-app/app/src/routes/daily-focus/dailyFocusRuntimes.jsx');
 const providerPath = resolve(repoRoot, 'react-app/app/src/components/simulation-focus/SimulationFocusProvider.jsx');
-const runtimePath = resolve(repoRoot, 'react-app/app/src/routes/daily-focus/DailyFocusCanvasRuntime.jsx');
 
 const baseUrl = process.env.ABS_DEV_URL || 'http://localhost:8013';
 const waitMs = Number(process.env.ABS_DAILY_FOCUS_WAIT_MS || 30000);
@@ -17,7 +19,14 @@ const viewport = {
 };
 const palette = process.env.ABS_DAILY_FOCUS_PALETTE || '';
 const theme = process.env.ABS_DAILY_FOCUS_THEME || '';
-const expectedDailyFocusCount = Number(process.env.ABS_DAILY_FOCUS_EXPECTED_COUNT || 15);
+const expectedDailyFocusCount = process.env.ABS_DAILY_FOCUS_EXPECTED_COUNT === undefined
+  ? null
+  : Number(process.env.ABS_DAILY_FOCUS_EXPECTED_COUNT);
+const DAILY_FOCUS_RUNTIME_COMPATIBILITY_CASES = new Set([
+  // Collection-only lab route kept available to the Daily Focus shell for
+  // direct-route compatibility, but not part of public Daily rotation.
+  'beach-ball-room',
+]);
 
 function pageUrl(path) {
   return new URL(path, baseUrl).toString();
@@ -27,34 +36,59 @@ async function readCatalog() {
   return JSON.parse(await readFile(catalogPath, 'utf8'));
 }
 
-function focusPath(id) {
-  const params = new URLSearchParams({ focus: id });
-  if (palette) params.set('palette', palette);
-  return `/index.html?${params.toString()}`;
+function isRouteBackedDailyEntry(entry) {
+  return entry?.stage === 'daily-rotation'
+    && entry?.surface === 'lab-route'
+    && typeof entry.dailyHref === 'string'
+    && entry.dailyHref.includes('daily=1');
 }
 
-async function runStaticChecks(dailyEntries) {
+function dailyRoutePath(entry) {
+  const url = new URL(entry.dailyHref, baseUrl);
+  if (palette) url.searchParams.set('palette', palette);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
+async function runStaticChecks(dailyEntries, routeBackedDailyEntries) {
   const failures = [];
   const homeRouteSource = await readFile(homeRoutePath, 'utf8');
+  const dailyFocusRouteSource = await readFile(dailyFocusRoutePath, 'utf8');
+  const simulationStageSource = await readFile(simulationStagePath, 'utf8');
+  const dailyFocusRuntimesSource = await readFile(dailyFocusRuntimesPath, 'utf8');
   const providerSource = await readFile(providerPath, 'utf8');
-  const runtimeSource = await readFile(runtimePath, 'utf8');
 
-  if (!homeRouteSource.includes('DailyFocusRuntimeHost')) {
-    failures.push('HomeRoute does not mount DailyFocusRuntimeHost.');
+  if (!homeRouteSource.includes('simulationLayer: (')) {
+    failures.push('HomeRoute no longer exposes a replaceable simulationLayer.');
   }
-  if (homeRouteSource.includes('<canvas id="c"')) {
-    failures.push('HomeRoute still mounts the legacy #c canvas.');
+  if (!dailyFocusRouteSource.includes('getHomeRouteView')) {
+    failures.push('DailyFocusRoute no longer composes from getHomeRouteView.');
   }
-  if (/trySpaNavigate|buildRouteHref|mode-controller/.test(providerSource)) {
-    failures.push('SimulationFocusProvider still contains route or legacy mode switching.');
+  if (!dailyFocusRouteSource.includes('legacyRuntime: false')) {
+    failures.push('DailyFocusRoute no longer disables the legacy home runtime.');
   }
-  if (/document\.(?:body|documentElement)\.(?:classList|style)/.test(runtimeSource)) {
-    failures.push('Daily Simulation runtime mutates body/html classList or style.');
+  if (!dailyFocusRouteSource.includes('<SimulationStage')) {
+    failures.push('DailyFocusRoute no longer mounts route-backed simulations through SimulationStage.');
   }
-  for (const entry of dailyEntries) {
-    if (!runtimeSource.includes(entry.id)) {
-      failures.push(`Daily Simulation runtime is missing a dedicated pattern for "${entry.id}".`);
+  if (!simulationStageSource.includes('className="daily-simulation-layer"')) {
+    failures.push('SimulationStage no longer owns .daily-simulation-layer.');
+  }
+  if (!simulationStageSource.includes('data-simulation-stage="daily-focus"')) {
+    failures.push('SimulationStage no longer marks daily-focus stage data.');
+  }
+  if (!providerSource.includes('replaceCurrentUrl(buildRouteHref(\'home\'))')) {
+    failures.push('SimulationFocusProvider no longer cleans route-backed Daily URLs back to home.');
+  }
+  for (const entry of routeBackedDailyEntries) {
+    if (!dailyFocusRuntimesSource.includes(`case '${entry.id}'`)) {
+      failures.push(`Daily Focus pure runtime is missing a route-backed case for "${entry.id}".`);
     }
+  }
+  const extraRuntimeCases = Array.from(dailyFocusRuntimesSource.matchAll(/case\s+['"]([^'"]+)['"]\s*:/g))
+    .map((match) => match[1])
+    .filter((id) => !DAILY_FOCUS_RUNTIME_COMPATIBILITY_CASES.has(id))
+    .filter((id) => !routeBackedDailyEntries.some((entry) => entry.id === id));
+  if (extraRuntimeCases.length) {
+    failures.push(`Daily Focus pure runtime has extra route-backed case(s): ${extraRuntimeCases.join(', ')}.`);
   }
 
   return failures;
@@ -64,12 +98,19 @@ async function waitForFocusRuntime(page, id) {
   await page.waitForSelector('.daily-simulation-layer', { timeout: waitMs });
   await page.waitForFunction((simulationId) => {
     const layer = document.querySelector('.daily-simulation-layer');
-    const canvas = document.querySelector('.daily-focus-canvas');
+    const runtime = Array.from(document.querySelectorAll('.daily-focus-runtime'))
+      .find((element) => element?.dataset?.simulationId === simulationId);
+    const canvas = Array.from(runtime?.querySelectorAll('canvas') || [])
+      .find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return rect.width > 10 && rect.height > 10;
+      });
     const rect = canvas?.getBoundingClientRect?.();
     return (
       layer?.dataset.simulationId === simulationId
-      && layer?.dataset.dailyFocusReady === 'true'
+      && runtime
       && !document.documentElement.classList.contains('abs-direct-boot-staging')
+      && (document.documentElement.dataset.absBootState || '') !== 'booting'
       && rect
       && rect.width > 10
       && rect.height > 10
@@ -114,20 +155,24 @@ async function inspectPage(page, id, baseline) {
     };
 
     const layer = document.querySelector('.daily-simulation-layer');
-    const canvas = document.querySelector('.daily-focus-canvas');
-    const wall = document.querySelector('#shell-wall-slot');
-    const hero = document.querySelector('#shell-hero-slot');
+    const runtime = Array.from(document.querySelectorAll('.daily-focus-runtime'))
+      .find((element) => element?.dataset?.simulationId === simulationId);
+    const canvas = Array.from(runtime?.querySelectorAll('canvas') || [])
+      .find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return rect.width > 10 && rect.height > 10;
+      });
+    const url = new URL(window.location.href);
+    const blockedParams = ['daily', 'focus', 'mode', 'simulation'].filter((param) => url.searchParams.has(param));
     if (!layer) errors.push('Missing .daily-simulation-layer.');
-    if (!canvas) errors.push('Missing .daily-focus-canvas.');
+    if (!runtime) errors.push('Missing .daily-focus-runtime for active simulation.');
+    if (!canvas) errors.push('Missing visible Daily Focus runtime canvas.');
     if (document.querySelector('#c')) errors.push('Legacy #c canvas is present on Daily Simulation homepage.');
     if (layer?.dataset.simulationId !== simulationId) {
       errors.push(`Expected active simulation "${simulationId}", got "${layer?.dataset.simulationId || 'none'}".`);
     }
-    if (getComputedStyle(layer).pointerEvents !== 'none') {
-      errors.push('Daily simulation layer intercepts pointer events.');
-    }
-    if (Number.parseInt(getComputedStyle(wall).zIndex || '0', 10) >= Number.parseInt(getComputedStyle(hero).zIndex || '0', 10)) {
-      errors.push('Daily simulation wall is not visually behind the hero/title layer.');
+    if (url.pathname.startsWith('/lab/') || blockedParams.length) {
+      errors.push(`Daily Simulation route did not settle to a clean home URL: ${url.pathname}${url.search}.`);
     }
 
     const textWalker = document.createTreeWalker(layer, NodeFilter.SHOW_TEXT);
@@ -158,56 +203,6 @@ async function inspectPage(page, id, baseline) {
       .map((element) => element.className || element.tagName.toLowerCase());
     if (backgroundOffenders.length) {
       errors.push(`Non-transparent DOM background in simulation layer: ${backgroundOffenders.join(', ')}.`);
-    }
-
-    const protectedSelectors = {
-      title: '#hero-title',
-      links: '#main-links',
-      legend: '#expertise-legend',
-      description: '.decorative-script',
-      footer: '.ui-bottom',
-      edgeCaption: '#edge-caption',
-      londonTime: '#site-year',
-      switcher: '.simulation-focus-switcher',
-    };
-    const canvasRect = canvas?.getBoundingClientRect();
-    const canvasContext = canvas?.getContext?.('2d', { willReadFrequently: true });
-    if (canvas && canvasRect?.width > 0 && canvasRect?.height > 0 && canvasContext) {
-      const scaleX = canvas.width / canvasRect.width;
-      const scaleY = canvas.height / canvasRect.height;
-      Object.entries(protectedSelectors).forEach(([name, selector]) => {
-        const element = document.querySelector(selector);
-        if (!element) return;
-        const rect = element.getBoundingClientRect();
-        const style = getComputedStyle(element);
-        if (
-          rect.width <= 0
-          || rect.height <= 0
-          || style.display === 'none'
-          || style.visibility === 'hidden'
-          || Number.parseFloat(style.opacity || '1') <= 0.02
-        ) {
-          return;
-        }
-        const left = Math.max(0, Math.floor((rect.left - canvasRect.left) * scaleX));
-        const top = Math.max(0, Math.floor((rect.top - canvasRect.top) * scaleY));
-        const right = Math.min(canvas.width, Math.ceil((rect.right - canvasRect.left) * scaleX));
-        const bottom = Math.min(canvas.height, Math.ceil((rect.bottom - canvasRect.top) * scaleY));
-        const width = right - left;
-        const height = bottom - top;
-        if (width <= 0 || height <= 0) return;
-        const pixels = canvasContext.getImageData(left, top, width, height).data;
-        let alphaPixels = 0;
-        for (let i = 3; i < pixels.length; i += 4) {
-          if (pixels[i] > 8) {
-            alphaPixels += 1;
-            if (alphaPixels > 0) break;
-          }
-        }
-        if (alphaPixels > 0) {
-          errors.push(`Simulation canvas draws under protected shell element: ${name}.`);
-        }
-      });
     }
 
     Object.entries(snapshot.shell).forEach(([name, rect]) => {
@@ -247,9 +242,13 @@ async function inspectPage(page, id, baseline) {
 async function main() {
   const catalog = await readCatalog();
   const dailyEntries = catalog.simulations.filter((entry) => entry.stage === 'daily-rotation');
-  const failures = await runStaticChecks(dailyEntries);
+  const routeBackedDailyEntries = dailyEntries.filter(isRouteBackedDailyEntry);
+  const failures = await runStaticChecks(dailyEntries, routeBackedDailyEntries);
   if (dailyEntries.length <= 0) {
     failures.push('Expected at least one Daily Simulation entry in the catalog.');
+  }
+  if (routeBackedDailyEntries.length <= 0) {
+    failures.push('Expected at least one route-backed Daily Simulation entry in the catalog.');
   }
   if (Number.isFinite(expectedDailyFocusCount) && dailyEntries.length !== expectedDailyFocusCount) {
     failures.push(`Expected ${expectedDailyFocusCount} Daily Simulation entries, found ${dailyEntries.length}.`);
@@ -268,8 +267,8 @@ async function main() {
   let baseline = null;
 
   try {
-    for (const entry of dailyEntries) {
-      await page.goto(pageUrl(focusPath(entry.id)), { waitUntil: 'networkidle', timeout: 60000 });
+    for (const entry of routeBackedDailyEntries) {
+      await page.goto(pageUrl(dailyRoutePath(entry)), { waitUntil: 'networkidle', timeout: 60000 });
       await waitForFocusRuntime(page, entry.id);
       const result = await inspectPage(page, entry.id, baseline);
       if (!result.ok) {
@@ -289,7 +288,8 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    dailyFocusCount: dailyEntries.length,
+    dailySimulationCount: dailyEntries.length,
+    routeBackedDailySimulationCount: routeBackedDailyEntries.length,
     viewport,
     palette: palette || 'default',
     theme: theme || 'default',

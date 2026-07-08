@@ -11,7 +11,7 @@ Source of truth for mode IDs and narrative order:
 
 - `24` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
 - `21` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
-- `13` simulations are in the Daily Simulation chooser and live daily selection.
+- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `13` Daily simulations.
 - Daily Simulation selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
 - `flock-of-birds`, `wall-repel`, `mineral-growth`, and `napoleon-point-cloud` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 - `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
