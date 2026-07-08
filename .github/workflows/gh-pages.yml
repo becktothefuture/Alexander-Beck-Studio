@@ -60,6 +60,9 @@ jobs:
       - name: Validate simulation catalog
         run: npm run sim:validate
 
+      - name: Check generated config parity
+        run: npm run check:design-config
+
       - name: Build site
         run: npm run build
 

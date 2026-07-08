@@ -6,24 +6,24 @@ name = "Alexander Beck Studio"
 [setup]
 # Runs in repository root when worktree is created.
 script = """
-npm install
+npm run install:all
 npm run build
 """
 
 [[actions]]
 name = "Startup Menu"
 command = "npm run startup"
-description = "Interactive launcher for dev/build/watch flows"
+description = "Interactive launcher for dev, install, and build flows"
 
 [[actions]]
-name = "Dev Server (8001)"
+name = "Dev Server (8012)"
 command = "npm run dev"
-description = "Serve source/ directly with instant refresh workflow"
+description = "Run the React/Vite dev server with HMR on port 8012"
 
 [[actions]]
-name = "Preview (build + serve 8000)"
+name = "Preview (8013)"
 command = "npm run preview"
-description = "Build production bundle and serve dist/"
+description = "Serve the built React app on port 8013"
 
 [[actions]]
 name = "Build"
@@ -31,9 +31,9 @@ command = "npm run build"
 description = "Generate production dist output"
 
 [[actions]]
-name = "Watch Rebuild"
-command = "npm run watch"
-description = "Background rebuild loop while editing source/"
+name = "Check Site"
+command = "npm run check:site"
+description = "Run the full local site gate: token scan, HTML validation, simulation validation, lint, config parity, and build"
 
 [[actions]]
 name = "Clean"
@@ -41,9 +41,9 @@ command = "npm run clean"
 description = "Remove build artifacts"
 
 [[actions]]
-name = "Help"
-command = "npm run help"
-description = "Print quick command reference"
+name = "Precommit Checklist"
+command = "npm run precommit:check"
+description = "Run the lightweight precommit inspection checklist; use Check Site for the full gate"
 
 [[actions]]
 name = "Figma MCP Config"
@@ -57,13 +57,13 @@ description = "Start Figma socket bridge (optional)"
 
 [platform_overrides.macos]
 script = """
-npm install
+npm run install:all
 npm run build
 """
 
 [platform_overrides.linux]
 script = """
-npm install
+npm run install:all
 npm run build
 """
 
@@ -71,6 +71,6 @@ npm run build
 # repo scripts invoke `python3` for local servers. Prefer WSL or ensure python3 is available.
 [platform_overrides.windows]
 script = """
-npm install
+npm run install:all
 npm run build
 """

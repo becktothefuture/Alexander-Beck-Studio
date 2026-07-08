@@ -2,6 +2,7 @@
 set -euo pipefail
 
 echo "== Pre-commit checklist =="
+echo "Lightweight inspection only; run npm run check:site for the full local gate."
 echo
 
 echo "1) Git status"

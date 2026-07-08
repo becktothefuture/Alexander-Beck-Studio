@@ -32,10 +32,13 @@ Minimum command set for low-risk docs/tooling changes:
 ```bash
 npm run check:malformed-tokens
 npm run validate:html-fragments
+npm run sim:validate
 npm run lint --prefix react-app/app
 npm run check:design-config
 npm run build
 ```
+
+`npm run precommit:check` is a lightweight inspection checklist. It does not replace the full local gate, which is `npm run check:site`.
 
 For route, renderer, loop, or canvas remount changes:
 
