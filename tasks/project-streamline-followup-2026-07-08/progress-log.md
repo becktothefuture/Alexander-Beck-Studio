@@ -26,7 +26,7 @@ Created: 2026-07-08
 | 7 | `prd-content-label-source-alignment.md` | complete | Codex lead | 2026-07-08 | `About Me` is canonical; active home, portfolio, CV, and styleguide surfaces read or display the aligned label. |
 | 8 | `prd-portfolio-legacy-template-retirement.md` | complete | Codex lead | 2026-07-08 | Legacy portfolio page/template are retained as documented parity surfaces; template copy/topbar markup and certification labels are aligned. |
 | 9 | `prd-route-topbar-css-ownership.md` | complete | Codex lead | 2026-07-08 | Shared route-topbar layout/responsive fit now lives in `main.css`; `portfolio.css` keeps portfolio-only reveal timing. |
-| 10 | `prd-backlog-historical-docs-triage.md` | review-needed | Lead planning agent | 2026-07-08 | Covers historical backlog/docs severity cleanup. |
+| 10 | `prd-backlog-historical-docs-triage.md` | complete | Codex lead | 2026-07-08 | Backlog now separates closed audit history from active rows; archived integration docs point to current sources and mark old APIs/CSP/bundle figures as historical. |
 
 ## Review Log
 
@@ -59,6 +59,7 @@ Add one row per PRD completion attempt.
 | 2026-07-08 | `prd-content-label-source-alignment.md` | `rg -n "About me" react-app/app/src react-app/app/public/config docs`; `git diff --check`; `npm run check:site`; dev-browser route label inspection; `npm run certify:screens` | pass | `output/playwright/screens-certification/report.json`; dev-browser JSON in command output | Codex lead | Home, portfolio, CV, and styleguide rendered `About Me`; exact-case rendered DOM check found zero `About me` matches on those routes. |
 | 2026-07-08 | `prd-portfolio-legacy-template-retirement.md` | import graph `rg`; `rg -n "About me" react-app/app/src react-app/app/public/config docs scripts`; `git diff --check`; `npm run validate:html-fragments`; `npm run check:site`; `npm run certify:screens`; `ABS_DEV_URL=http://localhost:8013 npm run audit:portfolio-gate` | pass | `output/playwright/screens-certification/report.json`; portfolio audit JSON in command output | Codex lead | `PortfolioPage.jsx` is not imported by active routes; `portfolio-body.html` is consumed by `PortfolioPage.jsx` and `validate-html-fragments`, so it was retained and aligned rather than deleted. |
 | 2026-07-08 | `prd-route-topbar-css-ownership.md` | `git diff --check`; `npm run check:site`; dev-browser desktop/mobile topbar bounds check; `npm run certify:screens`; `ABS_DEV_URL=http://localhost:8013 npm run audit:portfolio-gate` | pass | `output/playwright/screens-certification/report.json`; dev-browser bounds JSON; portfolio audit JSON in command output | Codex lead | Home nav, portfolio, CV, and styleguide topbars had no horizontal overflow or column overlaps at desktop and mobile sizes. |
+| 2026-07-08 | `prd-backlog-historical-docs-triage.md` | `rg` privacy/integration checks; manual diff review; `git diff --check`; `npm run check:site` | pass | n/a | Codex lead | Closed stale backlog rows that current repo evidence contradicts and marked old integration globals/CSP/bundle figures as archived-only. |
 
 ## Decision Evidence
 
@@ -84,4 +85,5 @@ YYYY-MM-DD - PRD - status - summary - verification
 2026-07-08 - prd-content-label-source-alignment.md - complete - Made About Me the canonical shared label in contents-home.json and removed active route-level casing overrides - check:site, dev-browser route label inspection, and certify:screens passed
 2026-07-08 - prd-portfolio-legacy-template-retirement.md - complete - Retained the standalone portfolio page/template as documented parity surfaces, aligned template copy/topbar markup, and updated screen certification expectations - validate:html-fragments, check:site, certify:screens, and portfolio-gate passed
 2026-07-08 - prd-route-topbar-css-ownership.md - complete - Moved shared portfolio route-topbar layout and responsive fit rules into main.css while keeping portfolio-only reveal timing in portfolio.css - check:site, dev-browser desktop/mobile bounds checks, certify:screens, and portfolio-gate passed
+2026-07-08 - prd-backlog-historical-docs-triage.md - complete - Marked stale backlog rows closed where current repo evidence resolves them and clarified archived integration guidance - manual diff review and check:site passed
 ```

@@ -10,7 +10,7 @@
 - **When to re-open / refresh:** Before a release you care about, or after **shell/routing**, **multi-page HTML**, **global CSS**, or **privacy/docs** edits — re-run [`repo-audit-executable-swarm.md`](prompts/repo-audit-executable-swarm.md) and replace [`audit-run-latest.md`](prompts/audit-run-latest.md). Quick spot-check: `portfolio.css` in every shipped entry + `rg "FOCUS STYLES"` in `main.css`.
 - **How to use the backlog when you resume:** Split mentally into **trust** (docs, privacy copy, a11y focus) vs **product/perf** (CSS parity across entries, physics allocations, lockfiles) and pick one lane first.
 
-**Shipped after audit closeout (engineering follow-up):** `portfolio.css` linked on **`cv.html`**, **`styleguide.html`**, **`palette-lab.html`**; removed dead **`MODES.DVD_LOGO`** branch in `engine.js`; **`tokens.css`** double-semicolon fix; **`package.json`** repository URL from `origin`; **`AGENTS.md`** privacy line aligned with fonts/tactile/storage; **`.gitignore`** no longer ignores `package-lock.json`; **`react-app/app/package-lock.json`** added for **`npm ci`** in CI; **GitHub Pages** workflow runs **`validate:html-fragments`**, **`sim:validate`**, and root **`npm run build`**; package metadata declares Node/npm engines; app placeholder scripts were removed; **`README`** backlog link + QA wording. Remaining **BL-*** rows apply unless marked closed.
+**Shipped after audit closeout (engineering follow-up):** `portfolio.css` linked on **`cv.html`**, **`styleguide.html`**, **`palette-lab.html`**; removed dead **`MODES.DVD_LOGO`** branch in `engine.js`; **`tokens.css`** double-semicolon fix; **`package.json`** repository URL from `origin`; **`AGENTS.md`** privacy line aligned with fonts/tactile/storage; **`.gitignore`** no longer ignores `package-lock.json`; **`react-app/app/package-lock.json`** added for **`npm ci`** in CI; **GitHub Pages** workflow runs **`check:design-config`**, **`validate:html-fragments`**, **`sim:validate`**, and root **`npm run build`**; package metadata declares Node/npm engines; app placeholder scripts were removed; **`README`** backlog link + QA wording. Rows marked **Closed** are retained as audit history, not active work.
 
 ---
 
@@ -27,13 +27,13 @@
 
 | Theme | Business outcome | Primary IDs |
 |-------|------------------|-------------|
-| Trust & accessibility | Privacy story matches behavior; keyboard users can see focus | BL-P0-01, BL-P0-02, BL-P1-06–08, BL-P1-11, BL-P2-12 + DO-01, DO-03 |
-| Release engineering | Reproducible installs and stronger CI gates | BL-P0-05, BL-P1-01–02, BL-P2-01, BL-P2-13, BL-P2-19–21 |
-| Correctness & performance | Fewer latent bugs; smoother simulation | BL-P0-03, BL-P0-04, BL-P1-04–05, BL-P1-10, BL-P2-04, BL-P2-17, BL-P2-24 |
-| Shell & routing | Consistent UX from any HTML entry or deploy shape | BL-P1-03, BL-P1-09, BL-P2-03, BL-P2-22–23 |
+| Trust & accessibility | Privacy story matches behavior; keyboard users can see focus | BL-P0-02, BL-P1-06–07 |
+| Release engineering | Reproducible installs and stronger CI gates | BL-P1-02, BL-P2-19, BL-P2-21 |
+| Correctness & performance | Fewer latent bugs; smoother simulation | BL-P0-03, BL-P1-04–05, BL-P1-10, BL-P2-04, BL-P2-17, BL-P2-24 |
+| Shell & routing | Consistent UX from any HTML entry or deploy shape | BL-P1-09, BL-P2-03, BL-P2-22–23 |
 | Native macOS (future) | Credible desktop app / wrapper story | BL-NATIVE-01–03 |
 | New simulation capability | 21st mode (Gaussian splat) | **FE-01** → PRD below |
-| Docs hygiene | Fewer stale embed guides; single narrative for integrators | DO-01–04 |
+| Docs hygiene | Fewer stale embed guides; single narrative for integrators | DO-04 |
 
 ### FE — Feature epics (PRD is canonical)
 
@@ -45,9 +45,9 @@
 
 | ID | Work | Suggested priority | Overlap / note |
 |----|------|-------------------|----------------|
-| **DO-01** | **Rewrite or clearly label** [`INTEGRATION.md`](reference/INTEGRATION.md) for the **current Vite/React** pipeline: remove or implement documented globals (`window.SIMULATIONS`, `initBouncyBalls`, …), fix CSP example, refresh paths to `public/config`, align mode/keyboard story with [`MODES.md`](reference/MODES.md) | P1 | **Closes or narrows** BL-P0-01, BL-P1-08, BL-P1-11, BL-P2-12 in one pass if done well |
-| **DO-02** | **Regenerate or remove** fixed KB figures in INTEGRATION **Performance** section; tie to real `dist` + Vite output | P3 | BL-P2-12 |
-| **DO-03** | **Align README** “network / privacy” wording with actual fonts + optional tactile (same bar as AGENTS) | P2 | BL-P0-01 (trust) |
+| **DO-01** | **Closed:** [`INTEGRATION.md`](reference/INTEGRATION.md) is clearly marked historical, points to current React/Vite docs, and flags old globals/CSP/bundle figures as archived-only | Closed | Closes BL-P0-01, BL-P1-08, BL-P1-11, and BL-P2-12 as active misleading-doc rows |
+| **DO-02** | **Closed:** fixed KB figures in INTEGRATION are retained only as archived standalone figures and no longer presented as current Vite output | Closed | BL-P2-12 |
+| **DO-03** | **Closed:** README/AGENTS privacy wording now matches Google Fonts + optional tactile jsdelivr + storage helper reality | Closed | BL-P0-01 (trust) |
 | **DO-04** | **SITE-COPY:** optionally move strings that still live only in HTML/JS into copy source of truth (per [`SITE-COPY.md`](reference/SITE-COPY.md) footnote) | P3 | Content ops; no BL duplicate |
 
 ### XP — Experimental / optional (docs only until approved)
@@ -131,10 +131,10 @@ Findings below **merge** all three passes. Where agents disagreed (e.g. one agen
 
 | ID | Title | Tags | Notes |
 |----|--------|------|--------|
-| **BL-P0-01** | Docs claim no external calls; shipped HTML loads Google Fonts; tactile can load jsdelivr | `[web]` | `AGENTS.md`, `INTEGRATION.md`, `*.html`, `tactile-layer.js` |
+| **BL-P0-01** | **Closed:** current docs no longer claim the active site makes no external requests; Google Fonts and optional tactile jsdelivr are documented | `[web]` | `AGENTS.md`, `README.md`, `docs/reference/INTEGRATION.md`, `*.html`, `tactile-layer.js` |
 | **BL-P0-02** | Keyboard focus effectively suppressed globally; “WCAG” overrides still omit visible ring | `[web]` `[wrapper]` | `main.css` (~3424–3432, ~3719–3730); `panel.css` form controls |
 | **BL-P0-03** | Legacy sim/render coupled via singleton globals | `[native]` | `state.js`, `engine.js` |
-| **BL-P0-04** | **`MODES.DVD_LOGO` used in `engine.js` but not defined on `MODES`** | `[web]` | `constants.js`, `engine.js` |
+| **BL-P0-04** | **Closed:** dead `MODES.DVD_LOGO` branch removed from `engine.js` | `[web]` | `constants.js`, `engine.js` |
 | **BL-P0-05** | **Closed:** lockfiles are no longer ignored repo-wide | `[web]` `[ops]` | `.gitignore` now allows tracked lockfiles; `react-app/app/package-lock.json` exists |
 
 ### P1
@@ -148,16 +148,16 @@ Findings below **merge** all three passes. Where agents disagreed (e.g. one agen
 | **BL-P1-05** | Physics tied to display throttle + accumulator caps | `[web]` `[native]` | `loop.js`, `engine.js` |
 | **BL-P1-06** | Reduced motion disables **sound engine paths**, not only the toggle UI | `[web]` | `sound-engine.js` (`prefersReducedMotion` guards); `sound-toggle.js` |
 | **BL-P1-07** | AGENTS “localStorage settings only” vs panel/palette persistence | `[web]` | `panel-dock.js`, `colors.js`, `control-registry.js`; contrast `storage.js` |
-| **BL-P1-08** | INTEGRATION CSP + privacy bullets incompatible with real origins | `[web]` | `INTEGRATION.md` |
+| **BL-P1-08** | **Closed:** INTEGRATION CSP + privacy bullets are explicitly archived-only and point to current Google Fonts / optional tactile origins | `[web]` | `INTEGRATION.md` |
 | **BL-P1-09** | **Root-relative asset URLs + no `base`** — subpath / some webview deploys break | `[web]` `[wrapper]` | HTML `/css/...`, `vite.config.js`, `routes.js` |
 | **BL-P1-10** | **`resolveCollisions` allocates a new return object** (hot loop) | `[web]` | `collision.js` (~422–426) per senior agent |
-| **BL-P1-11** | **`INTEGRATION.md` embed APIs absent from codebase** (`SIMULATIONS`, `initBouncyBalls`, …) | `[web]` `[docs]` | Grep hits only `INTEGRATION.md` |
+| **BL-P1-11** | **Closed:** absent embed APIs are marked archived-only, not current React/Vite contract | `[web]` `[docs]` | `SIMULATIONS`, `bouncyBallsModeChange`, and `initBouncyBalls` remain historical examples in `INTEGRATION.md` |
 
 ### P2
 
 | ID | Title | Tags | Notes |
 |----|--------|------|--------|
-| **BL-P2-01** | No CI check for flatten vs generated JSON drift | `[web]` | |
+| **BL-P2-01** | **Closed:** CI runs `npm run check:design-config` before build | `[web]` | `.github/workflows/gh-pages.yml` |
 | **BL-P2-02** | Dev `POST /api/design-system/config` unauthenticated | `[web]` | `vite.config.js` |
 | **BL-P2-03** | Reduced-motion SPA path vs legacy preload parity | `[web]` | `useShellRouteTransition.js` |
 | **BL-P2-04** | Other per-frame / per-call allocations (mode renderer wrapper, pit profile, cursor explosion, option literals, rim `opts`, …) | `[web]` | `mode-controller.js`, `collision.js`, `cursor-explosion.js`, `ball-rim.js`, `engine.js` |
@@ -168,7 +168,7 @@ Findings below **merge** all three passes. Where agents disagreed (e.g. one agen
 | **BL-P2-09** | CV smooth scroll without reduced-motion guard | `[web]` | |
 | **BL-P2-10** | Root vs app install split; CI skips root | `[web]` | |
 | **BL-P2-11** | No dependabot config | `[web]` | |
-| **BL-P2-12** | INTEGRATION paths / mode count / bundle stats stale | `[web]` | |
+| **BL-P2-12** | **Closed:** INTEGRATION paths, archived globals, and bundle stats are historical-only and point to current React/Vite docs | `[web]` | `docs/reference/INTEGRATION.md` |
 | **BL-P2-13** | **Closed:** app `smoke` / `parity:capture` echo placeholders removed | `[web]` | Use root verification commands and Playwright audits instead |
 | **BL-P2-14** | AGENTS omits some root scripts (portfolio audits, figma, precommit, clean) | `[web]` | |
 | **BL-P2-15** | Design save dev vs static — document | `[web]` | |
@@ -189,8 +189,8 @@ Findings below **merge** all three passes. Where agents disagreed (e.g. one agen
 | ID | Title | Tags | Notes |
 |----|--------|------|--------|
 | **BL-P3-01** | Unknown paths → home | `[web]` | `routes.js` |
-| **BL-P3-03** | Placeholder `repository.url` | `[ops]` | Root `package.json` |
-| **BL-P3-04** | Double `;;` in `tokens.css` | `[web]` | |
+| **BL-P3-03** | **Closed:** placeholder `repository.url` replaced with origin URL | `[ops]` | Root `package.json` |
+| **BL-P3-04** | **Closed:** double `;;` in `tokens.css` fixed | `[web]` | |
 | **BL-P3-05** | POSIX env in `audit:canvas-spa:quick` | `[web]` | |
 | **BL-P3-06** | Certify default port vs preview | `[web]` | |
 | **BL-P3-07** | `test-gate-roundtrip.mjs` unwired | `[web]` | |
@@ -202,7 +202,7 @@ Findings below **merge** all three passes. Where agents disagreed (e.g. one agen
 | **BL-P3-13** | Vite dynamic+static import warnings | `[web]` | Build reporter |
 | **BL-P3-14** | Duplicate `--port` in root + app npm scripts | `[web]` | |
 | **BL-P3-15** | `sound-toggle.js` stale hover docs / console.log on reduced-motion branch | `[web]` | |
-| **BL-P3-16** | No `engines` in package.json | `[web]` | |
+| **BL-P3-16** | **Closed:** package metadata declares Node/npm engines | `[web]` | `package.json` |
 | **BL-P3-17** | `ctx.clip` errors swallowed | `[web]` | `engine.js` |
 | **BL-P3-18** | `loop.js` FPS sample uses `shift` on array | `[web]` | |
 

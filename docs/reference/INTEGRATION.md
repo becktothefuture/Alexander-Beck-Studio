@@ -2,6 +2,13 @@
 
 **Status: Historical / archived integration guidance.** The current supported website pipeline is the React/Vite app under `react-app/app/`. This document is retained for context around the original standalone Canvas runtime and older embed model. Do not use it as the primary build or deployment guide for the current site.
 
+Current authoritative docs:
+
+- [`SYSTEM-ARCHITECTURE.md`](SYSTEM-ARCHITECTURE.md) for the React/Vite shell and runtime boundaries.
+- [`CONFIGURATION.md`](CONFIGURATION.md) for current public config paths and generated config outputs.
+- [`MODES.md`](MODES.md) for current mode IDs and ordering.
+- [`../development/DEV-WORKFLOW.md`](../development/DEV-WORKFLOW.md) for build and preview commands.
+
 **Archived standalone embedding notes**
 
 ## Archived Quick Integration
@@ -100,12 +107,14 @@ The simulation loads with sensible defaults:
 
 ### Runtime Configuration
 
-Archived path note: this section describes the old standalone bundle layout, not the current React/Vite config source of truth.
+Archived path note: this section describes the old standalone bundle layout, not the current React/Vite config source of truth. Current authored design config lives at `react-app/app/public/config/design-system.json` and is flattened into generated compatibility outputs during the root `npm run build`.
 
 Settings load from `js/config.json` (copied from `source/config/default-config.json`).
 localStorage persistence is disabled by default.
 
 ### Programmatic Control
+
+Archived API note: the globals below belonged to the old standalone embed model. They are not part of the current React/Vite site contract.
 
 Access global interface:
 
@@ -182,6 +191,9 @@ Uses `svh` (small viewport height) for mobile:
 ## Performance Considerations
 
 ### Bundle Size
+
+Archived standalone figures only. Do not use these numbers for the current React/Vite build; run the root `npm run build` and inspect the Vite output for current asset sizes.
+
 - JavaScript: 45.5 KB minified
 - CSS: 9.9 KB
 - Total: ~55 KB (~18 KB gzipped)
@@ -281,6 +293,8 @@ If conflicts occur:
 
 ### Content Security Policy (CSP)
 
+Archived standalone CSP example only. The current shipped HTML shells load Google Fonts from `fonts.googleapis.com` / `fonts.gstatic.com`; the optional tactile layer may load `cdn.jsdelivr.net` when enabled. Write deployment CSP from the current HTML entries and enabled runtime features, not from the old standalone snippet.
+
 Allow inline scripts and styles:
 ```html
 <meta http-equiv="Content-Security-Policy" 
@@ -290,15 +304,16 @@ Allow inline scripts and styles:
 
 ### Privacy
 
-- No external API calls
-- No tracking or analytics
-- localStorage only for settings
-- No cookies
-- No user data collection
+- Current site: no analytics or remote telemetry.
+- Current external origins: Google Fonts in main HTML shells; optional jsdelivr for the tactile layer when enabled.
+- Current local storage/session storage: settings, theme, panel/UI helpers, and gate/session helpers only. These are not canonical design truth.
+- Archived standalone note: the old embed model had no tracking, cookies, or user-data collection.
 
 ## Advanced Integration
 
 ### Custom Event Listeners
+
+Archived API note: `bouncyBallsModeChange` is not a current React/Vite site contract.
 
 Listen to mode changes:
 ```javascript
@@ -318,6 +333,8 @@ Override CSS variables:
 ```
 
 ### Multiple Instances
+
+Archived API note: `initBouncyBalls` is not a current React/Vite site contract.
 
 Not recommended, but possible:
 ```html
