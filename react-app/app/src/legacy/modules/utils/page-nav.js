@@ -39,9 +39,17 @@ function isGateRouteTransitionCompatActive() {
     && document.documentElement.dataset.absGateTransition === 'active';
 }
 
+function isShellRouteTransitionCompatActive() {
+  return isRouteTransitionPhase(getTransitionPhase())
+    && document.documentElement.dataset.absRouteTransition === 'active';
+}
+
 // Listen for pagereveal event to detect View Transition arrival (backup)
 if (typeof window !== 'undefined') {
+  // Hard-navigation/View Transition compatibility only. SPA route transitions
+  // are owned by useShellRouteTransition and must not be normalized here.
   window.addEventListener('pagereveal', (event) => {
+    if (isShellRouteTransitionCompatActive()) return;
     if (event.viewTransition) {
       _viewTransitionDetected = true;
       console.log('✓ View Transition detected on pagereveal');
@@ -99,6 +107,8 @@ if (typeof window !== 'undefined') {
  * Prevents ghost UI artifacts in View Transitions.
  */
 function closeOverlaysBeforeNavigation({ preserveBackdrop = false } = {}) {
+  const preserveTransitionPhase = preserveBackdrop || isShellRouteTransitionCompatActive();
+
   // Close modals
   const modals = document.querySelectorAll(
     '.modal.active, [data-modal].active, #contact-modal:not(.hidden), #cv-modal:not(.hidden), #portfolio-modal:not(.hidden)'
@@ -150,6 +160,9 @@ function closeOverlaysBeforeNavigation({ preserveBackdrop = false } = {}) {
     if (scene) {
       scene.classList.remove('gate-depth-active');
     }
+  }
+
+  if (!preserveTransitionPhase) {
     clearTransitionReturningState();
     setTransitionPhase(TRANSITION_PHASES.IDLE);
   }

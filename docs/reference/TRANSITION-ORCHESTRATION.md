@@ -51,6 +51,7 @@ Canonical engineering contract for route and modal transitions.
 - These may exist for compatibility, but must not be the source of truth for sequencing.
 - Do not call `forceBootVisible()` / legacy reveal helpers from SPA bootstraps while the phase is `route-out` or `route-in`.
 - Do not mutate `entrance-pre-transition`, `entrance-transitioning`, `entrance-complete`, or `ui-entered` during SPA route transitions.
+- `legacy/modules/utils/page-nav.js` is fallback-only compatibility for hard document navigation, View Transitions API arrival/departure, bfcache restore, and pre-SPA modal routing state. It may close stale overlays before `pageswap` / `pagehide`, reveal content after a browser View Transition on `pagereveal`, and clear old session navigation flags. It must no-op phase normalization while `useShellRouteTransition` owns `data-abs-route-transition="active"`.
 
 ## 6) Surface grouping contract
 - Route view ownership is intentionally two-slot: `simulationLayer` for page-owned wall/content, and `uiLayer` for page-owned chrome/actions. Optional `heroLayer` belongs to the route simulation/content side.
