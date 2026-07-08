@@ -50,6 +50,14 @@ The React app is the only supported pipeline in this repository.
 
 Use the root `npm run build` for production. It runs `flatten:design-config` before the Vite app build. A direct `npm run build --prefix react-app/app` is a lower-level Vite build and can bypass generated config updates.
 
+## Build Warning Policy
+
+Lab HTML entries under `react-app/app/lab/` are lightweight direct lab surfaces. They link shared public CSS from the app root (`%BASE_URL%css/...`) and intentionally do not use the full shell boot overlay unless loaded through the shared shell as route-backed Daily Focus.
+
+Current accepted large-chunk warning:
+
+- `three.module-*.js` at roughly 502 kB minified: owned by Three.js-dependent lab/point-cloud routes. This is intentional for the current route set; create a follow-up before broad code splitting if another route-owned chunk crosses the warning threshold or this vendor chunk grows materially.
+
 ---
 
 ## Common Workflows
