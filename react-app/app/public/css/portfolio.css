@@ -118,6 +118,7 @@ body.portfolio-project-open .portfolio-project-mount .portfolio-deck-stage {
   transition: none;
 }
 
+/* Portfolio-only route topbar reveal timing; shared topbar layout lives in main.css. */
 body.portfolio-page .route-topbar__left,
 body.portfolio-page .route-topbar__right .portfolio-topnav,
 body.portfolio-page .portfolio-sound-slot {
@@ -211,51 +212,6 @@ body.portfolio-page #custom-cursor.abs-cursor-project-hover .abs-cursor-label {
 
 body.portfolio-page .ui-center-spacer {
   min-height: 0;
-}
-
-body.portfolio-page .route-topbar {
-  align-items: flex-start;
-}
-
-body.portfolio-page .route-topbar__left,
-body.portfolio-page .route-topbar__right {
-  align-items: center;
-}
-
-body.portfolio-page .route-topbar__left {
-  flex-wrap: nowrap;
-  gap: clamp(8px, 1.2vw, 14px);
-  min-width: 0;
-}
-
-body.portfolio-page .route-topbar__left > .gate-back {
-  flex: 0 0 auto;
-}
-
-body.portfolio-page .route-topbar__right .portfolio-topnav {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: clamp(4px, 1vw, 12px);
-  min-width: 0;
-  overflow: visible;
-  pointer-events: auto;
-}
-
-body.portfolio-page .route-topbar__right .portfolio-topnav .footer_link {
-  flex: 0 1 auto;
-  min-width: 0;
-  white-space: nowrap;
-}
-
-body.portfolio-page .route-topbar__right.ui-top-right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: auto;
-  min-width: 0;
-  gap: clamp(8px, 1.2vw, 14px);
 }
 
 /*
@@ -1544,22 +1500,6 @@ body.portfolio-page #edge-caption {
     --portfolio-card-pad: clamp(14px, 4.4vw, 24px);
   }
 
-  body.portfolio-page .route-topbar__right .portfolio-topnav .footer_link {
-    padding-inline: 10px;
-  }
-
-  body.portfolio-page .route-topbar__right.ui-top-right {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    width: auto;
-    gap: 8px;
-  }
-
-  body.portfolio-page .portfolio-sound-slot {
-    justify-self: end;
-  }
-
   .portfolio-project-card__client,
   .portfolio-project-card__tags li {
     font-size: 0.62rem;
@@ -1579,50 +1519,6 @@ body.portfolio-page #edge-caption {
 }
 
 @media (max-width: 420px) {
-  body.portfolio-page .ui-top-main.route-topbar.portfolio-topbar {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "left right";
-    gap: 8px;
-    align-items: start;
-  }
-
-  body.portfolio-page .ui-top-main.route-topbar.portfolio-topbar > .route-topbar__left {
-    grid-area: left;
-  }
-
-  body.portfolio-page .ui-top-main.route-topbar.portfolio-topbar > .route-topbar__center {
-    display: none;
-  }
-
-  body.portfolio-page .ui-top-main.route-topbar.portfolio-topbar > .route-topbar__right {
-    display: flex;
-    grid-area: right;
-  }
-
-  body.portfolio-page .route-topbar__left {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    gap: clamp(6px, 1.4vw, 10px);
-    min-width: 0;
-    overflow: visible;
-  }
-
-  body.portfolio-page .route-topbar__left > .gate-back {
-    flex: 0 0 auto;
-  }
-
-  body.portfolio-page .portfolio-sound-slot {
-    grid-area: right;
-    justify-self: end;
-    align-self: start;
-  }
-
-  body.portfolio-page .route-topbar__right.ui-top-right {
-    display: flex;
-    grid-area: right;
-    justify-content: flex-end;
-  }
-
   body.portfolio-page .hero-title.hero-title--portfolio {
     width: min(82vw, 18ch);
   }

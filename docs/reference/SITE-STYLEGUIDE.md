@@ -72,12 +72,12 @@ Authoritative detail: [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md) (route top 
 | Portfolio pit **canvas** bodies | Hidden/runtime compatibility guidance only; no disc rim or stroke — fill + optional hover image reveal only; size vs **`√(inner pit area)`** in `pit-mode.js`; see [`PORTFOLIO.md`](PORTFOLIO.md) |
 | Cursor + hover foreground CSS vars | Set from palette in [`react-app/app/src/legacy/modules/visual/colors.js`](../../react-app/app/src/legacy/modules/visual/colors.js) (`stampCursorCSSVar`, `computeSafeTextOnCursorColor`) |
 | Unified rules | [`react-app/app/public/css/main.css`](../../react-app/app/public/css/main.css) — section **“UNIFIED HOVER BACKGROUND SYSTEM”** and **“INTERACTIVE HOVER EFFECTS”** |
-| Portfolio slot tweak | [`react-app/app/public/css/portfolio.css`](../../react-app/app/public/css/portfolio.css) — `.portfolio-sound-slot` |
+| Route topbar layout + sound slot fit | [`react-app/app/public/css/main.css`](../../react-app/app/public/css/main.css) — `body.*-page .route-topbar`, `.portfolio-topnav`, `.portfolio-sound-slot` |
 
 CSS ownership:
 
 - `main.css` owns shared shell chrome, route topbar structure, CV/About route styling, modals, cursor contracts, and home/shared text treatment.
-- `portfolio.css` owns portfolio deck, portfolio drawer, portfolio-specific project typography, portfolio route load states, and portfolio-only media/detail motion.
+- `portfolio.css` owns portfolio deck, portfolio drawer, portfolio-specific project typography, portfolio route load-state reveal timing, and portfolio-only media/detail motion.
 - `src/index.css` is not part of the active app surface; do not recreate Vite starter CSS there.
 
 **Do not** reintroduce multi-layer white gradients + heavy `box-shadow` “glass” on these chrome controls; that contradicts this guide.
