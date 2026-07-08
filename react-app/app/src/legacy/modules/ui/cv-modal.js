@@ -43,7 +43,7 @@ export function initCVModal() {
     
     const BACK_TEXT = getText('gates.common.backText', 'BACK');
     const CLOSE_ARIA = getText('gates.common.closeAriaLabel', 'Close');
-    const TITLE = getText('gates.cv.title', 'About me');
+    const TITLE = getText('gates.cv.title', 'About Me');
     const DESC = getText(
         'gates.cv.description',
         "Bots don't deserve nice things; that's why I put this gate up. If I gave you a code, enter it here—otherwise get in touch and I'll send access."

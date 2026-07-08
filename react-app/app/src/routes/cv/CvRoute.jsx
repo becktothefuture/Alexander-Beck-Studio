@@ -68,6 +68,7 @@ function getSectionPresenceSpan(section) {
 }
 
 export function getCvRouteView() {
+  const aboutLink = homeContent.footer.links.cv;
   const portfolioLink = homeContent.footer.links.portfolio;
   const contactLink = homeContent.footer.links.contact;
 
@@ -77,7 +78,7 @@ export function getCvRouteView() {
     simulationLayer: (
       <div className="about-content-layer">
         <div id="cv-scroll-container" className="cv-scroll-container" data-scroll-presence-root>
-          <main className="cv-page-content" aria-label="About Me">
+          <main className="cv-page-content" aria-label={aboutLink.text}>
             <article className="cv-page-inner">
               <header className="cv-hero" aria-label="Profile" data-scroll-presence data-scroll-presence-span="0.28">
                 <div className="cv-photo">
@@ -88,7 +89,7 @@ export function getCvRouteView() {
                   />
                 </div>
                 <div className="cv-intro">
-                  <h1 className="cv-hero-label">About me</h1>
+                  <h1 className="cv-hero-label">{aboutLink.text}</h1>
                   <p className="cv-name">{cvContent.intro.name}</p>
                   <p className="cv-title">{cvContent.intro.title}</p>
                   {renderIntroParagraphs(cvContent.intro)}

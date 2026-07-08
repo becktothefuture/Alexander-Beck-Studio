@@ -63,8 +63,8 @@ Guide for all user-facing copy on the site. Single source of truth for how the s
 - **Overview:** What you did, in past tense. Verbs first: “Mapped …”, “Shipped …”, “Defined …”. One outcome per sentence.
 - **Takeaways:** Short lessons. Principle + consequence. Educational. “Design with real data to keep flows honest” is on-tone; “Governance keeps systems from drifting” is on-tone.
 
-**Gates (About me, Portfolio, Contact)**  
-- **Title:** What the gate is. “About me”, “View Portfolio”, “Contact”.
+**Gates (About Me, Portfolio, Contact)**
+- **Title:** What the gate is. “About Me”, “View Portfolio”, “Contact”.
 - **Description:** Human, direct—why the gate exists (bots, NDAs), what to do with a code if you have one, or how to reach out. Contact modal: open invite for collaborations and hiring; no generic “product design / AI prototyping” filler. Plain, helpful.
 - **Buttons:** “Back”, “Submit”, etc. Functional only.
 

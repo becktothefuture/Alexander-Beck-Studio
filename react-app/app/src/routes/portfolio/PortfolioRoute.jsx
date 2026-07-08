@@ -7,7 +7,6 @@ export const PORTFOLIO_ROUTE_RUNTIME = {
 
 export function getPortfolioRouteView() {
   const aboutLink = homeContent.footer.links.cv;
-  const aboutMeLabel = 'About Me';
   const portfolioBlurb = homeContent.portfolio?.blurb
     || 'A curated selection of product projects across several industries—finance, mobility, digital ventures, and more. Each case shows how I partner with teams to clarify the proposition, shape the interaction, and carry the work through to what actually ships.';
   const portfolioHeroEyebrow = homeContent.portfolio?.heroEyebrow || 'Alexander Beck';
@@ -70,7 +69,7 @@ export function getPortfolioRouteView() {
             <div className="route-topbar__right ui-top-right">
               <nav className="portfolio-topnav ui-main-nav" aria-label="Portfolio navigation">
                 <MainNavLink id={aboutLink.id} aria-haspopup="dialog">
-                  {aboutMeLabel}
+                  {aboutLink.text}
                 </MainNavLink>
               </nav>
               <div id="sound-toggle-slot" className="portfolio-sound-slot" />

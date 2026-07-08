@@ -3,6 +3,8 @@
 All user-facing copy across the website in one place. Use this to edit, translate, or audit tone.  
 **Source of truth for runtime:** [contents-home.json](../../react-app/app/public/config/contents-home.json), [contents-cv.json](../../react-app/app/public/config/contents-cv.json), and [contents-portfolio.json](../../react-app/app/public/config/contents-portfolio.json).
 
+Canonical About/CV navigation label: `About Me`. Shared navigation and gate titles are owned by `contents-home.json`; active React routes should read `footer.links.cv.text` instead of hard-coding their own casing.
+
 ---
 
 ## 1. Meta (global)
@@ -54,7 +56,7 @@ All user-facing copy across the website in one place. Use this to edit, translat
 | footer.navAriaLabel | Main navigation links | contents-home.json |
 | footer.links.contact.text | Contact | contents-home.json |
 | footer.links.portfolio.text | Portfolio | contents-home.json |
-| footer.links.cv.text | About me | contents-home.json |
+| footer.links.cv.text | About Me | contents-home.json |
 | footer.metaLocationPrefix | London, UK ·  | contents-home.json |
 
 ---
@@ -97,7 +99,7 @@ All user-facing copy across the website in one place. Use this to edit, translat
 | gates.common.backText | BACK | contents-home.json |
 | gates.common.backAriaLabel | Back | contents-home.json |
 | gates.common.closeAriaLabel | Close | contents-home.json |
-| gates.cv.title | About me | contents-home.json |
+| gates.cv.title | About Me | contents-home.json |
 | gates.cv.description | Bots don't deserve nice things; that's why I put this gate up. If I gave you a code, enter it here—otherwise get in touch and I'll send access. | contents-home.json |
 | gates.portfolio.title | View Portfolio | contents-home.json |
 | gates.portfolio.description | Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated. | contents-home.json |
@@ -215,7 +217,7 @@ Runtime source: [contents-cv.json](../../react-app/app/public/config/contents-cv
 | Intro name/title/paragraphs/photo | `contents-cv.json` → `intro` |
 | Body sections | `contents-cv.json` → `sections` |
 | Footer prompt/contact/copyright | `contents-cv.json` → `footer` |
-| Route-local UI labels | `CvRoute.jsx` (`About me`, `Back to top`, route topbar ARIA labels) |
+| Route-local UI labels | `CvRoute.jsx` (`footer.links.cv.text`, `Back to top`, route topbar ARIA labels) |
 
 ---
 
@@ -226,7 +228,7 @@ Runtime source: [contents-cv.json](../../react-app/app/public/config/contents-cv
 | Context | String | Location |
 |---------|--------|----------|
 | Canvas | Bouncy balls | `HomeRoute.jsx` (aria-label) |
-| CV heading | About me | `CvRoute.jsx` |
+| CV heading | About Me | `contents-home.json` → `footer.links.cv.text` |
 | CV button | Back to top | `CvRoute.jsx` |
 | Back link | Back to home | route modules (aria-label) |
 | Theme button | Toggle theme | index/cv/portfolio (aria-label) |

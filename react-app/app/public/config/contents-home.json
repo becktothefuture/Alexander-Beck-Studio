@@ -67,7 +67,7 @@
       "cv": {
         "id": "cv-modal-trigger",
         "href": "#",
-        "text": "About me"
+        "text": "About Me"
       }
     },
     "metaLocationPrefix": "London, UK \u00b7 "
@@ -110,7 +110,7 @@
       "closeAriaLabel": "Close"
     },
     "cv": {
-      "title": "About me",
+      "title": "About Me",
       "description": "Bots don't deserve nice things; that's why I put this gate up. If I gave you a code, enter it here—otherwise get in touch and I'll send access."
     },
     "portfolio": {

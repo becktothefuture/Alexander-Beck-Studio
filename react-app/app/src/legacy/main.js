@@ -217,7 +217,7 @@ function enhanceFooterLinksForMobile() {
       const expected = String(getText('footer.links.cv.text', '') || '').trim();
       const raw = (cv.textContent || '').trim().replace(/\s+/g, ' ');
       const txt = expected || raw;
-      // Keep short compound labels together on mobile (e.g. "About me").
+      // Keep short compound labels together on mobile (e.g. "About Me").
       if (txt && txt.includes('/') && raw === txt) {
         cv.innerHTML = `<span class="footer-link-nowrap">${txt}</span>`;
       }
@@ -638,7 +638,7 @@ export async function bootstrapHomePage() {
     // Initialize time display (London time)
     initTimeDisplay();
 
-    // Footer: mobile-friendly wrapping tweaks (keeps "About me" together)
+    // Footer: mobile-friendly wrapping tweaks (keeps "About Me" together)
     enhanceFooterLinksForMobile();
 
     // Create quick sound toggle button (bottom-right, next to time)
