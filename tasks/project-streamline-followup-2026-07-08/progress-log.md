@@ -16,7 +16,7 @@ Created: 2026-07-08
 
 | Order | PRD | Status | Owner | Last update | Notes |
 | ---: | --- | --- | --- | --- | --- |
-| 0 | `prd-followup-streamline-program.md` | review-needed | Lead planning agent | 2026-07-08 | Programme PRD created; awaiting senior review. |
+| 0 | `prd-followup-streamline-program.md` | complete | Codex lead | 2026-07-08 | Programme actioned; all PRDs have evidence, commits, and archived PRD documents under `archive/actioned/`. |
 | 1 | `prd-setup-environment-and-ci-parity.md` | complete | Codex lead | 2026-07-08 | CI now checks generated-config parity before build; environment template and parity/precommit wording use current commands. |
 | 2 | `prd-simulation-validation-hardening.md` | complete | Codex lead | 2026-07-08 | Validator now checks Daily route ID coverage, required legacy label keys, surface enum, and reviewStatus enum. |
 | 3 | `prd-route-source-validation.md` | complete | Codex lead | 2026-07-08 | Route source validation now checks routes.js, Vite inputs, SiteApp maps, and documented future descriptor fields. |
@@ -34,6 +34,7 @@ Created: 2026-07-08
 | --- | --- | --- | --- | --- |
 | 2026-07-08 | Senior developer subagent | Initial follow-up PRD packet | changes-requested | Requested route/boot split, copy-pasteable preview gates, and stronger evidence log. |
 | 2026-07-08 | Senior developer subagent | Revised follow-up PRD packet | approved | Approved after required revisions; optional route negative-proof criterion promoted into `prd-route-source-validation.md`. |
+| 2026-07-08 | Read-only reviewer subagent | Final PRD closeout diff and archive state | changes-addressed | Found closeout progress-log inconsistency and untracked archive docs; final gate result was recorded and all archive docs are staged for closeout. |
 
 ## Baseline Evidence
 
@@ -60,6 +61,7 @@ Add one row per PRD completion attempt.
 | 2026-07-08 | `prd-portfolio-legacy-template-retirement.md` | import graph `rg`; `rg -n "About me" react-app/app/src react-app/app/public/config docs scripts`; `git diff --check`; `npm run validate:html-fragments`; `npm run check:site`; `npm run certify:screens`; `ABS_DEV_URL=http://localhost:8013 npm run audit:portfolio-gate` | pass | `output/playwright/screens-certification/report.json`; portfolio audit JSON in command output | Codex lead | `PortfolioPage.jsx` is not imported by active routes; `portfolio-body.html` is consumed by `PortfolioPage.jsx` and `validate-html-fragments`, so it was retained and aligned rather than deleted. |
 | 2026-07-08 | `prd-route-topbar-css-ownership.md` | `git diff --check`; `npm run check:site`; dev-browser desktop/mobile topbar bounds check; `npm run certify:screens`; `ABS_DEV_URL=http://localhost:8013 npm run audit:portfolio-gate` | pass | `output/playwright/screens-certification/report.json`; dev-browser bounds JSON; portfolio audit JSON in command output | Codex lead | Home nav, portfolio, CV, and styleguide topbars had no horizontal overflow or column overlaps at desktop and mobile sizes. |
 | 2026-07-08 | `prd-backlog-historical-docs-triage.md` | `rg` privacy/integration checks; manual diff review; `git diff --check`; `npm run check:site` | pass | n/a | Codex lead | Closed stale backlog rows that current repo evidence contradicts and marked old integration globals/CSP/bundle figures as archived-only. |
+| 2026-07-08 | `prd-followup-streamline-program.md` | archive move; read-only reviewer check; `git diff --check`; `npm run check:site`; `npm run sim:validate`; `npm run certify:screens`; `ABS_DEV_URL=http://localhost:8013 npm run audit:boot-overlay`; `ABS_DEV_URL=http://localhost:8013 npm run audit:canvas-spa`; `ABS_DEV_URL=http://localhost:8013 npm run audit:daily-focus-boundary`; `ABS_DEV_URL=http://localhost:8013 npm run audit:simulation-focus`; `ABS_DEV_URL=http://localhost:8013 npm run audit:portfolio-gate`; `ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium npm run audit:transition-flows`; `ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=webkit npm run audit:transition-flows`; `ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium ABS_TRANSITION_STRICT_RAF=1 npm run audit:transition-flows`; `ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=webkit ABS_TRANSITION_STRICT_RAF=1 ABS_TRANSITION_HARD_TIMEOUT_MS=300000 npm run audit:transition-flows` | pass | `tasks/project-streamline-followup-2026-07-08/archive/actioned/`; `output/playwright/screens-certification/report.json`; preview audit JSON in command output | Codex lead | All actioned PRD markdown files moved to `archive/actioned`; final full gate passed, including normal and strict Chromium/WebKit transition audits. |
 
 ## Decision Evidence
 
@@ -86,4 +88,5 @@ YYYY-MM-DD - PRD - status - summary - verification
 2026-07-08 - prd-portfolio-legacy-template-retirement.md - complete - Retained the standalone portfolio page/template as documented parity surfaces, aligned template copy/topbar markup, and updated screen certification expectations - validate:html-fragments, check:site, certify:screens, and portfolio-gate passed
 2026-07-08 - prd-route-topbar-css-ownership.md - complete - Moved shared portfolio route-topbar layout and responsive fit rules into main.css while keeping portfolio-only reveal timing in portfolio.css - check:site, dev-browser desktop/mobile bounds checks, certify:screens, and portfolio-gate passed
 2026-07-08 - prd-backlog-historical-docs-triage.md - complete - Marked stale backlog rows closed where current repo evidence resolves them and clarified archived integration guidance - manual diff review and check:site passed
+2026-07-08 - prd-followup-streamline-program.md - complete - Archived all actioned PRD documents under archive/actioned and closed the programme evidence log - final full gate, reviewer check, and normal/strict Chromium/WebKit transition audits passed
 ```
