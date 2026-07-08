@@ -6089,6 +6089,7 @@ function generateHomeModeSectionHTML() {
               'mineral-growth': '✺',
               'flubber-blob': '🫠',
               'weave-field': '🧵',
+              'pressure-crucible': '◉',
               'particle-fountain': '⛲',
               'napoleon-point-cloud': '●',
               'beach-ball-room': '◍'
@@ -6113,6 +6114,7 @@ function generateHomeModeSectionHTML() {
               'mineral-growth': 'Mineral Bloom',
               'flubber-blob': 'Soft Blob',
               'weave-field': 'Weave Field',
+              'pressure-crucible': 'Pressure Field',
               'particle-fountain': 'Particle Fountain',
               'napoleon-point-cloud': 'Bust Cloud',
               'beach-ball-room': 'Beach Ball Room'

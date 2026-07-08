@@ -6,6 +6,7 @@ import {
   SIMULATION_ADMIN_PATHS,
   SIMULATION_STAGES,
   getSimulationPreviewPaths,
+  isAllowedSimulationReviewStatus,
   isAllowedSimulationStage,
   readSimulationCatalog,
 } from './lib/simulation-admin-store.mjs';
@@ -41,6 +42,12 @@ const DAILY_FOCUS_RUNTIME_COMPATIBILITY_CASES = new Map([
   ],
 ]);
 
+const ALLOWED_SIMULATION_SURFACES = new Set([
+  'home-mode',
+  'lab-route',
+  'route-runtime',
+]);
+
 function isValidIsoDate(value) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
   if (!match) return false;
@@ -68,18 +75,41 @@ function extractStringObjectMaps(source, constName) {
   const pattern = new RegExp(`const\\s+${constName}\\s*=\\s*\\{([\\s\\S]*?)\\n\\s*\\};`, 'g');
   return Array.from(source.matchAll(pattern)).map((match) => {
     const entries = new Map();
-    Array.from(match[1].matchAll(/['"]([^'"]+)['"]\s*:\s*['"]([^'"]+)['"]/g))
-      .forEach((entryMatch) => entries.set(entryMatch[1], entryMatch[2]));
+    Array.from(match[1].matchAll(/(?:['"]([^'"]+)['"]|([A-Za-z_$][\w$]*))\s*:\s*['"]([^'"]+)['"]/g))
+      .forEach((entryMatch) => entries.set(entryMatch[1] || entryMatch[2], entryMatch[3]));
     return entries;
   });
 }
 
-function addDailyFocusRuntimeCoverageErrors(errors, simulations, source, label) {
-  const routeBackedDailyIds = simulations
+function extractStringSet(source, constName) {
+  const pattern = new RegExp(`const\\s+${constName}\\s*=\\s*new\\s+Set\\s*\\(\\s*\\[([\\s\\S]*?)\\]\\s*\\)`, 'm');
+  const match = pattern.exec(source);
+  if (!match) return null;
+  return new Set(
+    Array.from(match[1].matchAll(/['"]([^'"]+)['"]/g))
+      .map((entryMatch) => entryMatch[1]),
+  );
+}
+
+function getRouteBackedDailyIds(simulations) {
+  return simulations
     .filter((entry) => entry.stage === SIMULATION_STAGES.DAILY_ROTATION)
     .filter((entry) => entry.surface === 'lab-route')
     .filter((entry) => entry.dailyHref)
     .map((entry) => entry.id);
+}
+
+function getRequiredLegacyLabelIds(simulations) {
+  return simulations
+    .filter((entry) => (
+      entry.stage === SIMULATION_STAGES.DAILY_ROTATION
+      || (entry.stage === SIMULATION_STAGES.COLLECTION && entry.includeInNarrative)
+    ))
+    .map((entry) => entry.id);
+}
+
+function addDailyFocusRuntimeCoverageErrors(errors, simulations, source, label) {
+  const routeBackedDailyIds = getRouteBackedDailyIds(simulations);
   const routeBackedDailyIdSet = new Set(routeBackedDailyIds);
   const runtimeCases = extractSwitchCases(source);
   const runtimeCaseSet = new Set(runtimeCases);
@@ -107,8 +137,44 @@ function addDailyFocusRuntimeCoverageErrors(errors, simulations, source, label) 
   });
 }
 
+function addDailyLabRouteIdCoverageErrors(errors, simulations, source, label) {
+  const routeBackedDailyIds = getRouteBackedDailyIds(simulations);
+  const routeBackedDailyIdSet = new Set(routeBackedDailyIds);
+  const dailyLabRouteIds = extractStringSet(source, 'DAILY_LAB_ROUTE_IDS');
+
+  if (!dailyLabRouteIds) {
+    errors.push(`${label}: missing DAILY_LAB_ROUTE_IDS set`);
+    return;
+  }
+
+  routeBackedDailyIds.forEach((id) => {
+    if (!dailyLabRouteIds.has(id)) {
+      errors.push(`${id}: missing DAILY_LAB_ROUTE_IDS coverage in ${label}`);
+    }
+  });
+
+  dailyLabRouteIds.forEach((id) => {
+    if (!routeBackedDailyIdSet.has(id)) {
+      errors.push(`${id}: extra DAILY_LAB_ROUTE_IDS entry in ${label}`);
+    }
+  });
+}
+
 function addLabelDriftErrors(errors, simulations, maps, label) {
+  const requiredLabelIds = getRequiredLegacyLabelIds(simulations);
+
+  if (!maps.length) {
+    errors.push(`${label}: no string label maps found`);
+    return;
+  }
+
   maps.forEach((map, index) => {
+    requiredLabelIds.forEach((id) => {
+      if (!map.has(id)) {
+        errors.push(`${id}: missing ${label}#${index + 1} label`);
+      }
+    });
+
     map.forEach((name, id) => {
       const entry = simulations.find((simulation) => simulation.id === id);
       if (!entry || entry.name === name) return;
@@ -170,6 +236,14 @@ async function main() {
 
     if (!isAllowedSimulationStage(entry.stage)) {
       errors.push(`${entry.id}: invalid stage "${entry.stage}"`);
+    }
+
+    if (!ALLOWED_SIMULATION_SURFACES.has(entry.surface)) {
+      errors.push(`${entry.id}: invalid surface "${entry.surface}"`);
+    }
+
+    if (!isAllowedSimulationReviewStatus(entry.reviewStatus)) {
+      errors.push(`${entry.id}: invalid reviewStatus "${entry.reviewStatus}"`);
     }
 
     if (entry.stage === SIMULATION_STAGES.DAILY_ROTATION && entry.surface === 'lab-route' && !entry.dailyHref) {
@@ -271,6 +345,15 @@ async function main() {
     simulations,
     dailyFocusShellBridgeSource,
     'DailyFocusShellBridge.jsx',
+  );
+  addDailyLabRouteIdCoverageErrors(
+    errors,
+    simulations,
+    await readSource(resolve(
+      SIMULATION_ADMIN_PATHS.reactAppRoot,
+      'src/hooks/useShellRouteTransition.js',
+    )),
+    'useShellRouteTransition.js',
   );
   addLabelDriftErrors(
     errors,

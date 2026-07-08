@@ -133,6 +133,7 @@ export function updateModeButtonsUI(activeMode, options = {}) {
     'wall-repel': 'Repel Room',
     'aperture-bloom': 'Aperture Bloom',
     'mineral-growth': 'Mineral Bloom',
+    'flubber-blob': 'Soft Blob',
     'weave-field': 'Weave Field',
     'pressure-crucible': 'Pressure Field',
     'particle-fountain': 'Particle Fountain',

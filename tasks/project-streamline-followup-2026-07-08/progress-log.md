@@ -18,7 +18,7 @@ Created: 2026-07-08
 | ---: | --- | --- | --- | --- | --- |
 | 0 | `prd-followup-streamline-program.md` | review-needed | Lead planning agent | 2026-07-08 | Programme PRD created; awaiting senior review. |
 | 1 | `prd-setup-environment-and-ci-parity.md` | complete | Codex lead | 2026-07-08 | CI now checks generated-config parity before build; environment template and parity/precommit wording use current commands. |
-| 2 | `prd-simulation-validation-hardening.md` | review-needed | Lead planning agent | 2026-07-08 | Covers daily route maps, labels, schema enums, and validator robustness. |
+| 2 | `prd-simulation-validation-hardening.md` | complete | Codex lead | 2026-07-08 | Validator now checks Daily route ID coverage, required legacy label keys, surface enum, and reviewStatus enum. |
 | 3 | `prd-route-source-validation.md` | review-needed | Lead planning agent | 2026-07-08 | Covers route identity drift validation without behavior refactor. |
 | 4 | `prd-direct-boot-readiness-ownership.md` | review-needed | Lead planning agent | 2026-07-08 | Covers direct route boot readiness ownership after route validation is stronger. |
 | 5 | `prd-transition-compatibility-boundary.md` | review-needed | Lead planning agent | 2026-07-08 | Covers page-nav compatibility mutations and SPA owner boundary. |
@@ -51,6 +51,7 @@ Add one row per PRD completion attempt.
 | Date | PRD | Commands run | Result | Artifacts | Reviewer/signoff | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-07-08 | `prd-setup-environment-and-ci-parity.md` | `git diff --check`; `npm run sim:validate`; `npm run check:site` | pass | n/a | Codex lead | `check:site` passed; known Vite public CSS and chunk warnings remained baseline warnings for PRD 6. |
+| 2026-07-08 | `prd-simulation-validation-hardening.md` | `git diff --check`; `npm run sim:validate`; `npm run check:site`; `ABS_DEV_URL=http://localhost:8013 npm run audit:daily-focus-boundary`; `ABS_DEV_URL=http://localhost:8013 npm run audit:simulation-focus` | pass | preview audit JSON in command output | Codex lead | Negative proofs passed for missing `DAILY_LAB_ROUTE_IDS`, missing legacy label key, and invalid `reviewStatus`; files restored before final validation. |
 
 ## Decision Evidence
 
@@ -66,4 +67,5 @@ Add entries here as PRDs are actioned.
 ```text
 YYYY-MM-DD - PRD - status - summary - verification
 2026-07-08 - prd-setup-environment-and-ci-parity.md - complete - Added CI generated-config parity before build, refreshed Codex environment setup actions, and clarified parity/precommit gate wording - git diff --check, sim:validate, check:site passed
+2026-07-08 - prd-simulation-validation-hardening.md - complete - Added stricter Daily route, label, surface, and reviewStatus validation plus missing legacy labels exposed by the new rule - negative proofs, git diff --check, sim:validate, check:site, daily-focus-boundary, and simulation-focus passed
 ```
