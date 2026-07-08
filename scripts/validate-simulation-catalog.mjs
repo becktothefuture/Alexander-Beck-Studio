@@ -48,6 +48,15 @@ const ALLOWED_SIMULATION_SURFACES = new Set([
   'route-runtime',
 ]);
 
+const BASE_SHELL_ROUTE_PATHS = new Map([
+  ['home', '/index.html'],
+  ['portfolio', '/portfolio.html'],
+  ['cv', '/cv.html'],
+  ['styleguide', '/styleguide.html'],
+  ['simulations', '/simulations.html'],
+  ['palette-lab', '/palette-lab.html'],
+]);
+
 function isValidIsoDate(value) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
   if (!match) return false;
@@ -91,6 +100,38 @@ function extractStringSet(source, constName) {
   );
 }
 
+function extractRouteRegistryEntries(source) {
+  const entries = new Map();
+  Array.from(source.matchAll(/\n\s{2}['"]?([a-z0-9-]+)['"]?\s*:\s*\{[\s\S]*?\n\s{4}path:\s*['"]([^'"]+)['"]/g))
+    .forEach((match) => entries.set(match[1], match[2]));
+  return entries;
+}
+
+function extractViteInputHtmlPaths(source) {
+  return new Set(
+    Array.from(source.matchAll(/(?:['"]([^'"]+)['"]|([A-Za-z_$][\w$]*))\s*:\s*resolve\(__dirname,\s*['"]([^'"]+\.html)['"]\)/g))
+      .map((match) => `/${match[3]}`),
+  );
+}
+
+function extractObjectKeys(source, constName) {
+  const pattern = new RegExp(`const\\s+${constName}\\s*=\\s*\\{([\\s\\S]*?)\\n\\};`, 'm');
+  const match = pattern.exec(source);
+  if (!match) return null;
+  return new Set(
+    Array.from(match[1].matchAll(/^\s{2}(?:['"]([^'"]+)['"]|([A-Za-z_$][\w$]*))\s*:/gm))
+      .map((entryMatch) => entryMatch[1] || entryMatch[2]),
+  );
+}
+
+function getExpectedShellRoutePaths(simulations) {
+  const expected = new Map(BASE_SHELL_ROUTE_PATHS);
+  simulations
+    .filter((entry) => entry.surface === 'lab-route')
+    .forEach((entry) => expected.set(entry.id, stripQuery(entry.launchPath)));
+  return expected;
+}
+
 function getRouteBackedDailyIds(simulations) {
   return simulations
     .filter((entry) => entry.stage === SIMULATION_STAGES.DAILY_ROTATION)
@@ -106,6 +147,46 @@ function getRequiredLegacyLabelIds(simulations) {
       || (entry.stage === SIMULATION_STAGES.COLLECTION && entry.includeInNarrative)
     ))
     .map((entry) => entry.id);
+}
+
+function addRouteSourceValidationErrors(errors, simulations, {
+  routesSource,
+  viteSource,
+  siteAppSource,
+}) {
+  const expectedRoutes = getExpectedShellRoutePaths(simulations);
+  const routeRegistryEntries = extractRouteRegistryEntries(routesSource);
+  const viteInputPaths = extractViteInputHtmlPaths(viteSource);
+  const routeViewIds = extractObjectKeys(siteAppSource, 'ROUTE_VIEW_BY_ID');
+  const routeRuntimeIds = extractObjectKeys(siteAppSource, 'ROUTE_RUNTIME_BY_ID');
+
+  if (!routeViewIds) {
+    errors.push('SiteApp.jsx: missing ROUTE_VIEW_BY_ID map');
+  }
+  if (!routeRuntimeIds) {
+    errors.push('SiteApp.jsx: missing ROUTE_RUNTIME_BY_ID map');
+  }
+
+  expectedRoutes.forEach((expectedPath, id) => {
+    const registryPath = routeRegistryEntries.get(id);
+    if (!registryPath) {
+      errors.push(`${id}: missing route registry entry in routes.js`);
+    } else if (registryPath !== expectedPath) {
+      errors.push(`${id}: route registry path "${registryPath}" does not match expected "${expectedPath}"`);
+    }
+
+    if (!viteInputPaths.has(expectedPath)) {
+      errors.push(`${id}: expected route path "${expectedPath}" is missing from Vite inputs`);
+    }
+
+    if (routeViewIds && !routeViewIds.has(id)) {
+      errors.push(`${id}: missing ROUTE_VIEW_BY_ID coverage in SiteApp.jsx`);
+    }
+
+    if (routeRuntimeIds && !routeRuntimeIds.has(id)) {
+      errors.push(`${id}: missing ROUTE_RUNTIME_BY_ID coverage in SiteApp.jsx`);
+    }
+  });
 }
 
 function addDailyFocusRuntimeCoverageErrors(errors, simulations, source, label) {
@@ -220,6 +301,7 @@ async function main() {
     SIMULATION_ADMIN_PATHS.reactAppRoot,
     'src/legacy/modules/ui/control-registry.js',
   ));
+  const siteAppSource = await readSource(SIMULATION_ADMIN_PATHS.siteAppPath);
 
   if (!simulations.length) {
     errors.push('Catalog has no simulations.');
@@ -346,6 +428,11 @@ async function main() {
     dailyFocusShellBridgeSource,
     'DailyFocusShellBridge.jsx',
   );
+  addRouteSourceValidationErrors(errors, simulations, {
+    routesSource,
+    viteSource,
+    siteAppSource,
+  });
   addDailyLabRouteIdCoverageErrors(
     errors,
     simulations,

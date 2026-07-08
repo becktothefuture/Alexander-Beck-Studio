@@ -84,6 +84,8 @@ The boot overlay and early theme/chrome script are first-paint infrastructure. T
 - a React route view function;
 - a runtime descriptor containing `loadModule` and `exportName`.
 
+Route metadata is still authored in today's separate sources: `routes.js`, `SiteApp.jsx`, Vite HTML inputs, and the simulation catalog. `npm run sim:validate` checks those sources for drift. A future route descriptor should be a separate decision and would need, at minimum, `id`, canonical `path`, `aliases`, `gated`, Vite input ownership, route view ownership, runtime descriptor ownership, boot-contract family, and simulation catalog linkage for lab routes.
+
 `useShellRouteTransition` is the only owner of SPA route transition sequencing. It resolves route state, handles gated redirects, manages transition phases on `<html data-abs-transition-phase>`, and waits for route readiness before reveal.
 
 `StudioShell.jsx` provides the shared scene:
