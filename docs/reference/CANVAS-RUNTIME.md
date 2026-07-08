@@ -29,7 +29,14 @@ export const HOME_ROUTE_RUNTIME = {
 };
 ```
 
-`useLegacyRouteRuntime` receives the descriptor, imports the module, calls the named boot export, stores an optional cleanup function, and dispatches `abs:route-ready` after boot completes.
+`useLegacyRouteRuntime` receives the descriptor, imports the module, calls the named boot export, stores an optional cleanup function, and dispatches `abs:route-ready` after boot completes. That event is a route-runtime readiness signal; it does not itself own final direct-load boot overlay release.
+
+Direct-load boot completion has one active owner per route family:
+
+- home canvas direct loads: `legacy/modules/visual/page-orchestrator.js`;
+- non-home shell routes such as portfolio, CV, styleguide, simulations, and palette-lab: `SiteApp.jsx`;
+- route-backed Daily Focus direct loads: `routes/daily-focus/DailyFocusShellBridge.jsx`;
+- standalone lab/dashboard entries: their lightweight page bootstrap, without the full shell boot overlay.
 
 Runtime boot functions may return a cleanup/disposer function. New runtime work should prefer explicit cleanup because it is easier to audit and safer during SPA route changes.
 

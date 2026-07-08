@@ -33,7 +33,7 @@ Canonical engineering contract for route and modal transitions.
 - The overlay must remain visible for at least 750ms on every direct document load before it can begin its exit fade.
 - The spinner must disappear as the overlay exit begins; the dark overlay surface carries the soft fade by itself.
 - Loaded simulations must not reuse the loader's tight centre-orbit silhouette. If the current home mode uses coloured balls near the title, seed and attract them as an organic page composition so the boot spinner reads as a separate temporary object.
-- The overlay is first-paint infrastructure, not route choreography. It may only be completed by direct-load boot helpers in `page-orchestrator.js`.
+- The overlay is first-paint infrastructure, not route choreography. Final direct-load completion is owned by the active route family: `page-orchestrator.js` for the home canvas route, `SiteApp.jsx` for non-home shell routes, and `DailyFocusShellBridge.jsx` for route-backed Daily Focus direct loads.
 - Direct boot completion must first compose the route to final geometry, then set `data-abs-boot-state="revealing"`, release `#root`, and fade/remove the overlay.
 - Home direct loads replay the non-canvas UI entrance one RAF after the overlay is removed; SPA route transitions do not replay that entrance.
 - Home direct-load entrance order uses named groups: identity first, all six top-left legend labels in visual order, top-right context after the labels are established, then action nav and footer/support chrome. The slow stagger settles in roughly 3.9s.

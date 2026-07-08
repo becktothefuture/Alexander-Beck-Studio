@@ -68,10 +68,10 @@ The boot-overlay shell entries (`index.html`, `portfolio.html`, `cv.html`, `styl
 3. The entry module, such as `src/entries/index.jsx`, mounts `SiteApp` into `#root`.
 4. React renders the selected route view into `StudioShell` unless the route is standalone.
 5. `useLegacyRouteRuntime` imports the route runtime module and calls its boot export.
-6. The runtime composes the canvas/DOM behavior and dispatches `abs:route-ready` after the route is ready enough to reveal.
-7. Direct-load boot helpers in the runtime complete the boot overlay release.
+6. The runtime composes the canvas/DOM behavior and dispatches `abs:route-ready` after the route is ready enough for SPA transitions and route-specific listeners.
+7. Direct-load boot completion is owned by the route family: home canvas direct loads complete through `page-orchestrator.js`; non-home shell routes mark final readiness in `SiteApp.jsx`; route-backed Daily Focus direct loads complete through `DailyFocusShellBridge.jsx`.
 
-Simpler standalone/dashboard/lab entries such as `simulations.html`, `explain-it-like-im.html`, and `/lab/*.html` mount React into a plain `#root` without the heavy boot overlay. Their simpler boot shape is also intentional; do not add the boot overlay there unless the route is being deliberately migrated into the full shell contract and parity is verified.
+Simpler standalone/dashboard/lab entries such as `simulations.html`, `explain-it-like-im.html`, and `/lab/*.html` mount React into a plain `#root` without the heavy boot overlay. Their simpler boot shape is intentional; they are direct lab surfaces, not full shell boot-overlay routes, unless they are loaded through the shared shell as route-backed Daily Focus.
 
 The boot overlay and early theme/chrome script are first-paint infrastructure. Treat them as parity-sensitive.
 
@@ -87,6 +87,8 @@ The boot overlay and early theme/chrome script are first-paint infrastructure. T
 Route metadata is still authored in today's separate sources: `routes.js`, `SiteApp.jsx`, Vite HTML inputs, and the simulation catalog. `npm run sim:validate` checks those sources for drift. A future route descriptor should be a separate decision and would need, at minimum, `id`, canonical `path`, `aliases`, `gated`, Vite input ownership, route view ownership, runtime descriptor ownership, boot-contract family, and simulation catalog linkage for lab routes.
 
 `useShellRouteTransition` is the only owner of SPA route transition sequencing. It resolves route state, handles gated redirects, manages transition phases on `<html data-abs-transition-phase>`, and waits for route readiness before reveal.
+
+Readiness ownership is intentionally split by concern, not duplicated: `abs:route-ready` is the runtime readiness signal consumed by SPA transitions; final direct-load `data-abs-boot-state="ready"` is set only by the active direct boot owner for the route family.
 
 `StudioShell.jsx` provides the shared scene:
 
