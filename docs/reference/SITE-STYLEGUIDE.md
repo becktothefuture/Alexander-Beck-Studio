@@ -60,6 +60,10 @@ Any page that shows a **top chrome strip** (portfolio, CV, future gated routes) 
 
 Authoritative detail: [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md) (route top bar section).
 
+### 1.5 Bottom route dock
+
+The public route dock is shell-owned chrome mounted in the footer transition surface, but visually sits in the expanded bottom shell band outside the inner wall. Geometry is controlled by `--shell-bottom-dock-band`, `--shell-route-dock-bottom`, and the directional `--shell-wall-inset-*` / `--shell-inner-window-*` variables. Do not position dock tabs inside `#simulations`; the inner wall must move up to make room for them.
+
 ---
 
 ## 2. Tokens & code locations (source of truth)
