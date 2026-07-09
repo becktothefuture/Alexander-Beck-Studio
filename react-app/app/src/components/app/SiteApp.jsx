@@ -36,6 +36,7 @@ import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
 import { useShellRouteTransition } from '../../hooks/useShellRouteTransition.js';
 import { useSiteHaptics } from '../../hooks/useSiteHaptics.js';
 import { DevConfigPanelBridge } from './DevConfigPanelBridge.jsx';
+import { SHELL_GATE_EVENTS } from '../../lib/shell-route-tabs.js';
 import {
   SimulationFocusChooser,
   SimulationFocusProvider,
@@ -205,6 +206,7 @@ function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {}) {
 
 export function SiteApp() {
   const [simulationFocusRevision, setSimulationFocusRevision] = useState(0);
+  const [pendingGateId, setPendingGateId] = useState(null);
   const wallSurfaceRef = useRef(null);
   const heroSurfaceRef = useRef(null);
   const uiSurfaceRef = useRef(null);
@@ -265,6 +267,27 @@ export function SiteApp() {
   );
 
   useSiteHaptics({ routeId: routeState.route.id });
+
+  useEffect(() => {
+    const setPendingFromEvent = (event) => {
+      const gateId = event?.detail?.gateId || null;
+      setPendingGateId(gateId);
+    };
+    const clearPending = () => {
+      setPendingGateId(null);
+    };
+
+    document.addEventListener(SHELL_GATE_EVENTS.open, setPendingFromEvent);
+    document.addEventListener(SHELL_GATE_EVENTS.dismiss, clearPending);
+    document.addEventListener(SHELL_GATE_EVENTS.success, clearPending);
+    window.addEventListener('popstate', clearPending);
+    return () => {
+      document.removeEventListener(SHELL_GATE_EVENTS.open, setPendingFromEvent);
+      document.removeEventListener(SHELL_GATE_EVENTS.dismiss, clearPending);
+      document.removeEventListener(SHELL_GATE_EVENTS.success, clearPending);
+      window.removeEventListener('popstate', clearPending);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     markDirectShellRouteReady(routeState.route.id, isStandaloneRoute, {
@@ -344,6 +367,9 @@ export function SiteApp() {
             simulationFocusControls={<SimulationFocusSwitcher />}
             simulationFocusModal={<SimulationFocusChooser />}
             surfaceRefs={surfaceRefs}
+            routeId={routeState.route.id}
+            pendingGateId={pendingGateId}
+            onPendingGateChange={setPendingGateId}
           />
         </SimulationFocusProvider>
       )}

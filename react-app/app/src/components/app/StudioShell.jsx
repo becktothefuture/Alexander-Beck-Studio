@@ -1,4 +1,5 @@
 import { SiteFooter } from '../SiteFooter.jsx';
+import { ShellRouteDock } from '../ShellRouteDock.jsx';
 import { getGateCodeLength } from '../../lib/access-gates.js';
 
 function RouteSceneMount({ routeRenderKey, children }) {
@@ -96,6 +97,9 @@ export function StudioShell({
   simulationFocusControls,
   simulationFocusModal,
   surfaceRefs,
+  routeId,
+  pendingGateId,
+  onPendingGateChange,
 }) {
   const wallLayerClassName = ['simulation-wall-layer', wallClassName].filter(Boolean).join(' ');
   const routeSimulationLayer = simulationLayer ?? wallContent;
@@ -162,6 +166,11 @@ export function StudioShell({
                   ref={surfaceRefs?.footer}
                   className="shell-transition-surface shell-transition-surface--footer"
                 >
+                  <ShellRouteDock
+                    routeId={routeId}
+                    pendingGateId={pendingGateId}
+                    onPendingGateChange={onPendingGateChange}
+                  />
                   <SiteFooter />
                 </div>
               </div>
