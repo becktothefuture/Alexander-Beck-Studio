@@ -12,7 +12,8 @@ import {
   getModeRenderer,
   getModeCustomRenderer,
   getModeCustomStep,
-  getModeBoundsHandler
+  getModeBoundsHandler,
+  getModeDepthRenderer
 } from '../modes/mode-controller.js';
 import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-explosion.js';
 import { getRenderQualityProfile } from '../utils/render-quality.js';
@@ -813,6 +814,7 @@ export function render() {
   }
   
   const customRenderer = getModeCustomRenderer();
+  const depthRenderer = getModeDepthRenderer();
   const needsDepthTitleLayer = !customRenderer && modeNeedsDepthTitleLayer(globals.currentMode);
   if (
     needsDepthTitleLayer &&
@@ -836,6 +838,29 @@ export function render() {
   if (customRenderer) {
     drawHomepageCanvasTitle(ctx, globals);
     customRenderer(ctx);
+  } else if (needsDepthTitleLayer && frontCtx && depthRenderer) {
+    depthRenderer(ctx, {
+      layer: 'behind',
+      depthPlane: TITLE_DEPTH_PLANE_Z,
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height
+    });
+
+    drawHomepageCanvasTitle(ctx, globals);
+
+    if (needsClip) {
+      frontCtx.save();
+      try { frontCtx.clip(clipPath); } catch (e) {}
+    }
+    depthRenderer(frontCtx, {
+      layer: 'front',
+      depthPlane: TITLE_DEPTH_PLANE_Z,
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height
+    });
+    if (needsClip) {
+      frontCtx.restore();
+    }
   } else if (needsDepthTitleLayer && frontCtx) {
     resetZPartitionCache();
 
@@ -931,6 +956,7 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
 
     if (simpleCircleBodies) {
       ctx.beginPath();
+      let hasOpaqueCircles = false;
       for (let i = 0; i < group.length; i++) {
         const ball = group[i];
         const radius = ball.getDisplayRadius();
@@ -943,10 +969,29 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
         ) {
           continue;
         }
+        const filterOpacity = ball.filterOpacity ?? 1;
+        let effectiveAlpha = (ball.alpha ?? 1) * filterOpacity;
+        if (applyDepthFog) {
+          effectiveAlpha *= getDepthFogOpacity(ball.z ?? 1);
+        }
+        if (effectiveAlpha <= 0.001) continue;
+        if (effectiveAlpha < 0.999) {
+          ctx.save();
+          ctx.globalAlpha = effectiveAlpha;
+          ctx.beginPath();
+          ctx.moveTo(ball.x + radius, ball.y);
+          ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          continue;
+        }
         ctx.moveTo(ball.x + radius, ball.y);
         ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
+        hasOpaqueCircles = true;
       }
-      ctx.fill();
+      if (hasOpaqueCircles) {
+        ctx.fill();
+      }
       continue;
     }
     

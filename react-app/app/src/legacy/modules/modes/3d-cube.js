@@ -37,6 +37,12 @@ function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
+function clampCanvasAlpha(value) {
+  const next = Number(value);
+  if (!Number.isFinite(next)) return 1;
+  return Math.max(0, Math.min(1, next));
+}
+
 function generateCubePoints(size, edgeDensity, faceGrid) {
   const pts = [];
   const half = size * 0.5;
@@ -260,4 +266,47 @@ export function apply3DCubeForces(ball, dt) {
   // Back points: depthFactor=0 (behind logo, dark, small)
   // Front points: depthFactor=1 (in front of logo, bright, large)
   ball.z = depthFactor;
+}
+
+export function render3DCubeDepthLayer(ctx, options = {}) {
+  const g = getGlobals();
+  const balls = g.balls;
+  if (!ctx || !Array.isArray(balls) || balls.length === 0) return;
+
+  const layer = options.layer === 'front' ? 'front' : 'behind';
+  const depthPlane = Number.isFinite(options.depthPlane) ? options.depthPlane : 0.5;
+  const canvasWidth = Number(options.canvasWidth) || Number.POSITIVE_INFINITY;
+  const canvasHeight = Number(options.canvasHeight) || Number.POSITIVE_INFINITY;
+
+  ctx.save();
+  for (let i = 0; i < balls.length; i += 1) {
+    const ball = balls[i];
+    if (!ball || ball._cloudMode !== 'cube') continue;
+
+    const z = Number.isFinite(ball.z) ? ball.z : 1;
+    if (layer === 'behind' ? z >= depthPlane : z < depthPlane) continue;
+
+    const radius = typeof ball.getDisplayRadius === 'function'
+      ? ball.getDisplayRadius()
+      : (Number(ball.r) || 0);
+    if (radius <= 0.05) continue;
+    if (
+      ball.x + radius < 0 ||
+      ball.y + radius < 0 ||
+      ball.x - radius > canvasWidth ||
+      ball.y - radius > canvasHeight
+    ) {
+      continue;
+    }
+
+    const alpha = clampCanvasAlpha((ball.alpha ?? 1) * (ball.filterOpacity ?? 1));
+    if (alpha <= 0.001) continue;
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = ball.color;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }

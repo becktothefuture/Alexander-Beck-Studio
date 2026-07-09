@@ -5060,9 +5060,10 @@ export const CONTROL_SECTIONS = {
         stateKey: 'cube3dFogStart',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.95,
+        default: 0.86,
         format: v => Math.round(v * 100) + '%',
-        parse: parseFloat
+        parse: parseFloat,
+        hint: 'Normalized cube depth where rear fog starts; higher values pull fog forward through more circles.'
       },
       {
         id: 'cube3dFogMin',
@@ -5070,9 +5071,10 @@ export const CONTROL_SECTIONS = {
         stateKey: 'cube3dFogMin',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.58,
+        default: 0.18,
         format: v => Math.round(v * 100) + '%',
-        parse: parseFloat
+        parse: parseFloat,
+        hint: 'Minimum opacity for the furthest cube circles in the background fog.'
       },
       warmupFramesControl('cube3dWarmupFrames')
     ]

@@ -140,7 +140,11 @@ const MODE_REGISTRY = {
   },
   [MODES.CUBE_3D]: {
     load: () => import('./3d-cube.js'),
-    hooks: { initialize: 'initialize3DCube', force: 'apply3DCubeForces' }
+    hooks: {
+      initialize: 'initialize3DCube',
+      force: 'apply3DCubeForces',
+      depthRender: 'render3DCubeDepthLayer'
+    }
   },
   [MODES.STARFIELD_3D]: {
     load: () => import('./starfield-3d.js'),
@@ -215,6 +219,7 @@ function buildModeRuntime(module, hooks = {}) {
     preRender: toFn(module, hooks.preRender),
     postRender: toFn(module, hooks.postRender),
     customRender: toFn(module, hooks.render),
+    depthRender: toFn(module, hooks.depthRender),
     customStep: toFn(module, hooks.customStep),
     bounds: toFn(module, hooks.bounds),
     visualTransitionCount: toFn(module, hooks.visualTransitionCount),
@@ -547,6 +552,11 @@ export function getModeRenderer() {
 export function getModeCustomRenderer() {
   const runtime = getRuntimeForCurrentMode();
   return runtime?.customRender || null;
+}
+
+export function getModeDepthRenderer() {
+  const runtime = getRuntimeForCurrentMode();
+  return runtime?.depthRender || null;
 }
 
 export function getModeCustomStep() {

@@ -582,8 +582,8 @@ These keys control the Cube Frame simulation (mode `3d-cube`):
 - `cube3dTumbleDamping` (number): decay factor for tumble impulse
 - `cube3dFocalLength` (number, px): perspective focal length - default: 1200
 - `cube3dDotSizeMul` (number): dot size multiplier
-- `cube3dFogStart` (number, 0..1): normalized depth where rear fog begins - default: 0.95
-- `cube3dFogMin` (number, 0..1): minimum opacity for the furthest dots - default: 0.58
+- `cube3dFogStart` (number, 0..1): normalized depth where rear fog begins - default: 0.86
+- `cube3dFogMin` (number, 0..1): minimum opacity for the furthest dots - default: 0.18
 - `cube3dWarmupFrames` (number): physics warmup frames on mode init
 
 Notes:
