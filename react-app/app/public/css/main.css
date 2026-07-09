@@ -1732,11 +1732,14 @@ body.styleguide-page .styleguide-type-sample--cv-body {
 .decorative-script::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: -18px -28px;
   z-index: -1;
   border-radius: var(--abs-radius-card);
   pointer-events: none;
+  background: var(--home-text-hover-field-fill, transparent);
+  filter: blur(var(--home-text-hover-field-blur, 28px));
   opacity: 0;
+  transition: opacity var(--home-text-hover-field-duration, 360ms) var(--ease-organic);
 }
 
 /* Interactive legend items (hover effects for tooltip display) */
@@ -1755,6 +1758,26 @@ body.styleguide-page .styleguide-type-sample--cv-body {
   max-width: 100%;
   justify-self: start;
   box-sizing: border-box;
+  z-index: 0;
+}
+
+.legend__item--interactive::after {
+  content: '';
+  position: absolute;
+  inset: -10px -16px;
+  z-index: 0;
+  border-radius: var(--legend-item-radius);
+  pointer-events: none;
+  background: var(--home-text-hover-field-fill, transparent);
+  filter: blur(var(--home-text-hover-field-blur, 28px));
+  opacity: 0;
+  transition: opacity var(--home-text-hover-field-duration, 360ms) var(--ease-organic);
+}
+
+.legend__item .circle,
+.legend__item span {
+  position: relative;
+  z-index: 1;
 }
 
 /* Unified hover state - handled in INTERACTIVE HOVER EFFECTS section below */
@@ -2004,6 +2027,13 @@ body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
 
 /* Index page: reduce default text saturation/opacity (except logo).
    Legend dots stay full opacity — only the label span is muted. */
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) {
+  --home-text-hover-field-fill: var(--frame-inner-surface);
+  --home-text-hover-field-opacity: 0.8;
+  --home-text-hover-field-blur: 28px;
+  --home-text-hover-field-duration: 360ms;
+}
+
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item span {
   opacity: 0.7;
   transition: opacity 0.15s var(--ease-organic);
@@ -2019,11 +2049,18 @@ body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn {
   transition: opacity 0.15s var(--ease-organic);
 }
 
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script {
+  transition:
+    opacity 0.15s var(--ease-organic),
+    filter 0.15s var(--ease-organic);
+}
+
 /* Restore full opacity on hover/focus */
 /* Note: #main-links .footer_link excluded - controlled by entrance animation state */
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:hover span,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:focus-visible span,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:hover,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:focus-within,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link:hover,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle:hover,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn:hover,
@@ -2032,6 +2069,27 @@ body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link:focu
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle:focus-visible,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn:focus-visible {
   opacity: 1;
+}
+
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:hover::after,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:hover::before,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:focus-within::before {
+  opacity: var(--home-text-hover-field-opacity);
+}
+
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:hover,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:focus-within {
+  transition-delay: 0s;
+}
+
+@media (max-width: 600px) {
+  body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script::before {
+    inset: -18px 0;
+  }
+
+  body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item--interactive::after {
+    inset: -10px -8px;
+  }
 }
 
 /* Logo opacity is now controlled by entrance animation state variables */
@@ -3334,6 +3392,11 @@ html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(6) {
 
 html.abs-home-post-boot-enter #app-frame .ui-top-right .decorative-script {
   transition-delay: var(--home-post-boot-delay-context-start);
+}
+
+html.abs-home-post-boot-enter body:not(.portfolio-page):not(.cv-page):not(.detail-open) #app-frame .ui-top-right .decorative-script:hover,
+html.abs-home-post-boot-enter body:not(.portfolio-page):not(.cv-page):not(.detail-open) #app-frame .ui-top-right .decorative-script:focus-within {
+  transition-delay: 0s;
 }
 
 html.abs-home-post-boot-enter #app-frame .ui-top-right .sound-toggle {
