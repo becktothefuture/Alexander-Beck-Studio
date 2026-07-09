@@ -3615,6 +3615,12 @@ html.entrance-transitioning #simulations {
     rgba(var(--inner-wall-bottom-shadow-rgb), var(--inner-wall-pit-inset-shadow-opacity));
 }
 
+@media (max-width: 767px) {
+  html.is-safari #simulations::before {
+    box-shadow: none;
+  }
+}
+
 .outer-wall,
 .outer-wall__shine,
 .inner-wall,
