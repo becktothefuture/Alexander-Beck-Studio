@@ -3627,7 +3627,7 @@ html.entrance-transitioning #simulations {
 }
 
 @media (max-width: 767px) {
-  html.is-safari #simulations::before {
+  body:not(.portfolio-page):not(.cv-page) #simulations::before {
     box-shadow: none;
   }
 }
