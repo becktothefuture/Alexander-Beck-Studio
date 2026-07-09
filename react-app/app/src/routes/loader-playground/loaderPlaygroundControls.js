@@ -1,7 +1,7 @@
 export const LOADER_DOT_COLORS = [
   'var(--ball-1, #b5b7b6)',
   'var(--ball-4, #00695c)',
-  'var(--ball-3, #ffffff)',
+  'var(--ball-2, #bbbdbd)',
   'var(--ball-7, #0d5cb6)',
   'var(--ball-8, #ffa000)',
   'var(--ball-6, #d7ff2f)',

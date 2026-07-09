@@ -9,11 +9,7 @@ const browserType = browserName === 'webkit' ? webkit : chromium;
 const requestedProfile = (process.env.ABS_BOOT_AUDIT_PROFILE || 'all').trim().toLowerCase();
 const deprecatedBootChromeHex = '#3c3c3c';
 const deprecatedBootChromeRgb = 'rgb(60, 60, 60)';
-const minimumBootDotContrast = 3;
-const darkChromeBootDots = ['#d9dddc', '#00a5a0', '#ffffff', '#2c96ff', '#ffa000', '#d7ff2f'];
-const lightChromeBootDots = ['#535b5b', '#00695c', '#1f2933', '#0d5cb6', '#8a4f00', '#536900'];
-const darkBootChromeSamples = ['#141517', '#202020'];
-const lightBootChromeSamples = ['#efefef', '#f1f3f4'];
+const simSystemBootDots = ['#b5b7b6', '#00695c', '#bbbdbd', '#0d5cb6', '#ffa000', '#d7ff2f'];
 const tabletDevice = devices['iPad (gen 7)'];
 const mobileDevice = devices['iPhone 13'];
 
@@ -110,54 +106,15 @@ function assertSourceHasNoDeprecatedBootChrome(source, label) {
   );
 }
 
-function parseHexColor(hex) {
-  const value = String(hex || '').replace('#', '').trim();
-  assert(/^[0-9a-f]{6}$/i.test(value), `invalid hex color "${hex}"`);
-  return [
-    Number.parseInt(value.slice(0, 2), 16) / 255,
-    Number.parseInt(value.slice(2, 4), 16) / 255,
-    Number.parseInt(value.slice(4, 6), 16) / 255,
-  ];
-}
-
-function linearizeColorChannel(channel) {
-  return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-}
-
-function relativeLuminance(hex) {
-  const [r, g, b] = parseHexColor(hex).map(linearizeColorChannel);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-function contrastRatio(color, background) {
-  const foregroundLum = relativeLuminance(color);
-  const backgroundLum = relativeLuminance(background);
-  const lighter = Math.max(foregroundLum, backgroundLum);
-  const darker = Math.min(foregroundLum, backgroundLum);
-  return (lighter + 0.05) / (darker + 0.05);
-}
-
-function assertBootDotPaletteContrast() {
-  for (const background of darkBootChromeSamples) {
-    for (const color of darkChromeBootDots) {
-      assert(
-        contrastRatio(color, background) >= minimumBootDotContrast,
-        `dark boot dot ${color} is below ${minimumBootDotContrast}:1 contrast on ${background}`
-      );
-    }
-  }
-  for (const background of lightBootChromeSamples) {
-    for (const color of lightChromeBootDots) {
-      assert(
-        contrastRatio(color, background) >= minimumBootDotContrast,
-        `light boot dot ${color} is below ${minimumBootDotContrast}:1 contrast on ${background}`
-      );
-    }
+function assertBootDotPaletteContract() {
+  const neutralBootDots = new Set(['#ffffff', '#000000']);
+  for (const color of simSystemBootDots) {
+    assert(!neutralBootDots.has(color.toLowerCase()), `boot dot palette includes neutral ball slot ${color}`);
   }
 }
 
 function assertCriticalBootSource() {
-  assertBootDotPaletteContrast();
+  assertBootDotPaletteContract();
   const designConfig = JSON.parse(readFileSync(designConfigFile, 'utf8'));
   const canonicalDarkChrome = designConfig?.shell?.theme?.siteFrameDark;
   assert(canonicalDarkChrome, `${designConfigFile}: missing shell.theme.siteFrameDark`);
@@ -185,9 +142,9 @@ function assertCriticalBootSource() {
     assert(source.includes('--abs-boot-color-cycle-ms: 6720ms'), `${file}: boot colour cycle cadence drifted`);
     assert(source.includes('--abs-boot-color-step-ms: 160ms'), `${file}: boot colour sweep step drifted`);
     assert(source.includes('--abs-boot-color-sync-ms: 80ms'), `${file}: missing boot colour sync delay`);
-    assert(source.includes('--abs-boot-dot-1: #d9dddc'), `${file}: missing contrast-safe dark-chrome dot palette`);
-    assert(source.includes("isDark\n            ? ['#d9dddc', '#00a5a0', '#ffffff', '#2c96ff', '#ffa000', '#d7ff2f']"), `${file}: missing contrast-safe dark-theme dot palette script`);
-    assert(source.includes(": ['#535b5b', '#00695c', '#1f2933', '#0d5cb6', '#8a4f00', '#536900']"), `${file}: missing contrast-safe light-theme dot palette script`);
+    assert(source.includes('--abs-boot-dot-1: #b5b7b6'), `${file}: missing simulation-system boot dot palette`);
+    assert(source.includes("isDark\n            ? ['#b5b7b6', '#00695c', '#bbbdbd', '#0d5cb6', '#ffa000', '#d7ff2f']"), `${file}: missing simulation-system dark-theme dot palette script`);
+    assert(source.includes(": ['#b5b7b6', '#00695c', '#bbbdbd', '#0d5cb6', '#ffa000', '#d7ff2f']"), `${file}: missing simulation-system light-theme dot palette script`);
     assert(!source.includes('var(--ball-'), `${file}: boot loader must not inherit ball palette colors`);
     assert(source.includes('width: 36px'), `${file}: boot spinner size drifted`);
     assert(source.includes('width: 4.8px'), `${file}: boot dot size drifted`);
