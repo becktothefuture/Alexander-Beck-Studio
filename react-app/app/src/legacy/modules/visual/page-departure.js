@@ -47,7 +47,7 @@ export async function animateDeparture(options = {}) {
     '.cv-scroll-container',
     '.ui-top',
     '.ui-bottom',
-    '#main-links'
+    '.shell-route-dock'
   ];
   
   const elements = contentSelectors

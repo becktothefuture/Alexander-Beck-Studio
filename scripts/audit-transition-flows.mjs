@@ -136,7 +136,7 @@ async function waitForHomeSettled(page) {
   await page.waitForFunction(
     () => {
       const hero = document.getElementById('hero-title');
-      const nav = document.getElementById('main-links');
+      const nav = document.querySelector('.shell-route-tab[data-route-tab="home"][aria-current="page"]');
       const footer = document.querySelector('footer.ui-bottom');
       const blur = document.getElementById('modal-blur-layer');
       const content = document.getElementById('modal-content-layer');
@@ -194,6 +194,13 @@ async function waitForPortfolioSettled(page) {
 
 async function waitForCvSettled(page) {
   await page.waitForSelector('.cv-scroll-container', { timeout: WAIT_MS });
+  await page.waitForSelector('.ui-top-main.route-topbar', { timeout: WAIT_MS });
+  await waitForRouteTransitionSettled(page);
+}
+
+async function waitForContactSettled(page) {
+  await page.waitForSelector('#contact-route-main', { timeout: WAIT_MS });
+  await page.waitForSelector('.contact-route-email__button', { timeout: WAIT_MS });
   await page.waitForSelector('.ui-top-main.route-topbar', { timeout: WAIT_MS });
   await waitForRouteTransitionSettled(page);
 }
@@ -269,11 +276,12 @@ async function snapshotState(page) {
         titleSnapshot?.canvasTitleVisible &&
         titleSnapshot?.canvasTitleLineCount >= 2
       );
-      const homeNavVisible = visible(qs('#main-links'));
+      const homeNavVisible = visible(qs('.shell-transition-surface--footer .shell-route-dock'));
       const topbarVisible = visible(routeTopbar);
       const footerVisible = visible(qs('footer.ui-bottom'));
       const edgeVisible = visible(qs('#edge-caption'));
       const cvVisible = visible(qs('.cv-scroll-container'));
+      const contactVisible = visible(qs('#contact-route-main'));
       const portfolioMountVisible = visible(qs('#portfolioProjectMount'));
       const projectViewVisible = visible(qs('#portfolioProjectView'));
 
@@ -293,6 +301,7 @@ async function snapshotState(page) {
         footerVisible,
         edgeVisible,
         cvVisible,
+        contactVisible,
         portfolioMountVisible,
         projectViewVisible,
         blurLayerActive: Boolean(blurLayer?.classList.contains('active')),
@@ -302,7 +311,7 @@ async function snapshotState(page) {
         contactModalVisible: visible(contactModal),
         visibleNavLinks: navLinks.filter((el) => visible(el)).length,
         homeGroupVisible: heroVisible || canvasTitleVisible || homeNavVisible,
-        routeGroupVisible: topbarVisible || cvVisible || portfolioMountVisible || projectViewVisible,
+        routeGroupVisible: topbarVisible || cvVisible || contactVisible || portfolioMountVisible || projectViewVisible,
         overlayGroupVisible:
           visible(blurLayer) ||
           visible(contentLayer) ||
@@ -562,7 +571,7 @@ async function runHomePortfolioRound(index, page) {
   await waitForHomeSettled(page);
 
   let sample = sampleFrames(page, `home-${index}-portfolio-modal-open`);
-  await page.click('#portfolio-modal-trigger', { timeout: 10_000 });
+  await page.click('.shell-route-tab[data-route-tab="portfolio"]', { timeout: 10_000 });
   checkpoints.push(await captureCheckpoint(page, `home-${index}-portfolio-modal-open`, 'in-flight'));
   await page.waitForSelector('#portfolio-modal.active', { timeout: 10_000 });
   sample = await sample;
@@ -598,7 +607,7 @@ async function runHomeCvRound(index, page) {
   await waitForHomeSettled(page);
 
   let sample = sampleFrames(page, `home-${index}-cv-modal-open`);
-  await page.click('#cv-modal-trigger', { timeout: 10_000 });
+  await page.click('.shell-route-tab[data-route-tab="cv"]', { timeout: 10_000 });
   checkpoints.push(await captureCheckpoint(page, `home-${index}-cv-modal-open`, 'in-flight'));
   await page.waitForSelector('#cv-modal.active', { timeout: 10_000 });
   sample = await sample;
@@ -632,7 +641,7 @@ async function runCvContactRound(index, page) {
   const report = [];
   const checkpoints = [];
 
-  await page.click('#cv-modal-trigger', { timeout: 10_000 });
+  await page.click('.shell-route-tab[data-route-tab="cv"]', { timeout: 10_000 });
   await page.waitForSelector('#cv-modal.active', { timeout: 10_000 });
   const cvNav = page.waitForURL(/cv/i, { timeout: WAIT_MS });
   await enterDigits(page, '.cv-digit', '482916');
@@ -641,27 +650,14 @@ async function runCvContactRound(index, page) {
   await waitForCvSettled(page);
   checkpoints.push(await captureCheckpoint(page, `cv-${index}-route`, 'settled'));
 
-  let sample = sampleFrames(page, `cv-${index}-contact-open`);
-  await page.click('#contact-email', { timeout: 10_000 });
-  checkpoints.push(await captureCheckpoint(page, `cv-${index}-contact-open`, 'in-flight'));
-  await page.waitForSelector('#contact-modal.active', { timeout: 10_000 });
+  let sample = sampleFrames(page, `cv-${index}-contact-route`);
+  const contactNav = page.waitForURL(/contact/i, { timeout: WAIT_MS });
+  await page.click('.shell-route-tab[data-route-tab="contact"]', { timeout: 10_000 });
+  checkpoints.push(await captureCheckpoint(page, `cv-${index}-contact-route`, 'in-flight'));
+  await contactNav;
+  await waitForContactSettled(page);
   sample = await sample;
-  checkpoints.push(await captureCheckpoint(page, `cv-${index}-contact-open`, 'settled'));
-  report.push(sample);
-
-  sample = sampleFrames(page, `cv-${index}-contact-close`);
-  await page.click('#contact-modal [data-modal-back]', { timeout: 10_000 });
-  checkpoints.push(await captureCheckpoint(page, `cv-${index}-contact-close`, 'in-flight'));
-  await page.waitForFunction(
-    () => {
-      const modal = document.getElementById('contact-modal');
-      return modal && !modal.classList.contains('active') && modal.classList.contains('hidden');
-    },
-    { timeout: WAIT_MS, polling: 50 }
-  );
-  await waitForCvSettled(page);
-  sample = await sample;
-  checkpoints.push(await captureCheckpoint(page, `cv-${index}-contact-close`, 'settled'));
+  checkpoints.push(await captureCheckpoint(page, `cv-${index}-contact-route`, 'settled'));
   report.push(sample);
 
   sample = sampleFrames(page, `cv-${index}-contact-route-to-home`);
@@ -723,21 +719,19 @@ function collectFailures(steps) {
         ...commonChecks('cvModalVisible', (frame) => frame.cvModalVisible, (frame) => frame.routeGroupVisible, (frame) => frame.overlayGroupVisible),
         requireInitial: 'cvModalVisible',
       });
-    } else if (label.includes('contact-open')) {
-      push(step, {
-        ...commonChecks('routeGroupVisible', (frame) => frame.routeGroupVisible, (frame) => frame.contactModalVisible, (frame) => frame.overlayGroupVisible),
-        requireInitial: 'routeGroupVisible',
-      });
-    } else if (label.includes('contact-close')) {
-      push(step, {
-        ...commonChecks('contactModalVisible', (frame) => frame.contactModalVisible, (frame) => frame.routeGroupVisible, (frame) => frame.overlayGroupVisible),
-        requireInitial: 'contactModalVisible',
-      });
     } else if (label.includes('contact-route-to-home')) {
       push(step, {
         ...commonChecks('routeGroupVisible', (frame) => frame.routeGroupVisible, (frame) => frame.homeGroupVisible, () => false),
         requireInitial: 'routeGroupVisible',
         requireDestination: (frame) => frame.homeGroupVisible,
+        mustBridgeWithinMs: null,
+        bridge: () => false,
+      });
+    } else if (label.includes('contact-route')) {
+      push(step, {
+        ...commonChecks('routeGroupVisible', (frame) => frame.routeGroupVisible, (frame) => frame.routeGroupVisible, () => false),
+        requireInitial: 'routeGroupVisible',
+        requireDestination: (frame) => frame.routeGroupVisible,
         mustBridgeWithinMs: null,
         bridge: () => false,
       });

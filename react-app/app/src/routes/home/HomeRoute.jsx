@@ -1,5 +1,4 @@
 import homeContent from 'virtual:abs-content/home';
-import { MainNavLink } from '../../components/MainNavLink.jsx';
 import { buildRouteHref } from '../../lib/routes.js';
 
 export const HOME_ROUTE_RUNTIME = {
@@ -17,7 +16,6 @@ function renderLegendItem(item) {
 }
 
 export function getHomeRouteView() {
-  const footerLinks = homeContent.footer.links;
   const philosophyLink = homeContent.philosophy.link;
   const contactHref = buildRouteHref('contact');
 
@@ -68,22 +66,7 @@ export function getHomeRouteView() {
         </header>
       ),
       secondary: (
-        <>
-          <main className="ui-center">
-          </main>
-
-          <nav id="main-links" className="ui-nav-row ui-main-nav" aria-label={homeContent.footer.navAriaLabel}>
-            <a
-              id={footerLinks.contact.id}
-              href={contactHref}
-              className="footer_link"
-            >
-              <span className="footer-link-nowrap">{footerLinks.contact.text}</span>
-            </a>
-            <MainNavLink id={footerLinks.portfolio.id}>{footerLinks.portfolio.text}</MainNavLink>
-            <MainNavLink id={footerLinks.cv.id}>{footerLinks.cv.text}</MainNavLink>
-          </nav>
-        </>
+        <main className="ui-center" aria-hidden="true" />
       )
     }
   };

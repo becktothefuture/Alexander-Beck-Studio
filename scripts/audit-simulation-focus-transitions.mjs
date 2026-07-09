@@ -245,7 +245,7 @@ async function getState(page, elapsedMs) {
       switcherRect: rectFor('.simulation-focus-switcher'),
       modalRect: rectFor('.simulation-focus-modal'),
       titleRect: rectFor('#hero-title'),
-      mainLinksRect: rectFor('#main-links'),
+      routeDockRect: rectFor('.shell-route-dock'),
       legendRect: rectFor('#expertise-legend'),
       descriptionRect: rectFor('.decorative-script'),
       footerRect: rectFor('.ui-bottom'),
@@ -391,7 +391,7 @@ function checkFrame(frame, imageStats, { enforceShellUi = true } = {}) {
 
     [
       ['title', state.titleRect, state.titleCanvasVisible === true],
-      ['main-links', state.mainLinksRect],
+      ['route-dock', state.routeDockRect],
       ['legend', state.legendRect],
       ['description', state.descriptionRect],
       ['footer', state.footerRect],

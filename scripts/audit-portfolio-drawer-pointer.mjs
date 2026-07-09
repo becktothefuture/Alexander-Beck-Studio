@@ -76,7 +76,7 @@ async function main() {
   await page.waitForSelector('#c', { timeout: WAIT_MS });
   await waitForSimulationCanvasBuffer(page);
 
-  await page.click('#portfolio-modal-trigger', { timeout: 10000 });
+  await page.click('.shell-route-tab[data-route-tab="portfolio"]', { timeout: 10000 });
   await page.waitForSelector('#portfolio-modal.active', { timeout: 10000 });
   await page.evaluate(() => {
     const code = '739284';

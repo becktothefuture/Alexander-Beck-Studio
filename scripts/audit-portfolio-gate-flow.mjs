@@ -384,7 +384,7 @@ async function main() {
   await waitForSimulationCanvasBuffer(page);
 
   let denseCaptureResult;
-  const portfolioTrigger = page.locator('#portfolio-modal-trigger');
+  const portfolioTrigger = page.locator('.shell-route-tab[data-route-tab="portfolio"]');
   if (await portfolioTrigger.count()) {
     await portfolioTrigger.click({ timeout: 10000 });
     await page.waitForSelector('#portfolio-modal.active', { timeout: 10000 });
@@ -414,7 +414,7 @@ async function main() {
     await portfolioNav;
     denseCaptureResult = await denseCapture;
   } else {
-    console.warn('WARN: #portfolio-modal-trigger not present; auditing portfolio deck via direct route fallback.');
+    console.warn('WARN: Portfolio shell route tab not present; auditing portfolio deck via direct route fallback.');
     const portfolioUrl = new URL('portfolio.html', resolveHomeEntryUrl()).href;
     await page.goto(portfolioUrl, { waitUntil: 'networkidle', timeout: 60000 });
     denseCaptureResult = await captureDenseGateFrames(page);

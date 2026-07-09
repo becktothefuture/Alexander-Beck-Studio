@@ -16,16 +16,16 @@ Treat the **route top bar** with the same rigidity as the **footer**: one shared
 
 **Do not:** absolutely position the center column (breaks column 3 / mute alignment). **Do not** invent alternate text-button classes—only `MainNavLink` / `.footer_link` inside `.ui-main-nav` (plus `.abs-icon-btn` for glyphs).
 
-**References:** `main.css` (`body.*-page .route-topbar`, `.ui-main-nav .footer_link`), `MainNavLink.jsx`, `PortfolioRoute.jsx`, `CvRoute.jsx`, `HomeRoute.jsx` (home still uses `ui-main-nav` on `#main-links`; portfolio uses the right cluster for the About Me/CV action).
+**References:** `main.css` (`body.*-page .route-topbar`, `.ui-main-nav .footer_link`), `MainNavLink.jsx`, `PortfolioRoute.jsx`, `CvRoute.jsx`, `HomeRoute.jsx`, and `ShellRouteDock.jsx`. Primary public route navigation now lives in the bottom route dock; route top bars keep local utility controls.
 
 ## Primary buttons (two families)
 
 | Family | Markup | Notes |
 |--------|--------|-------|
-| **Text** | `<nav class="ui-main-nav">` + `<MainNavLink id="…">` (`react-app/app/src/components/MainNavLink.jsx`) | Renders `button.footer_link` + `span.footer-link-nowrap`. Home `#main-links` and the portfolio/CV route top bars use this family. Labels should be title case in the UI, including `About Me`. For a vertical stack, same nav + links; add a layout class (styleguide: `styleguide-main-nav--stack`). |
+| **Text** | `<nav class="ui-main-nav">` + `<MainNavLink id="…">` (`react-app/app/src/components/MainNavLink.jsx`) | Renders `button.footer_link` + `span.footer-link-nowrap`. Use for local route utility clusters and styleguide specimens, not the public primary route dock. Labels should be title case in the UI, including `About Me`. For a vertical stack, same nav + links; add a layout class (styleguide: `styleguide-main-nav--stack`). |
 | **Icon** | `.abs-icon-btn` (+ `gate-back`, `sound-toggle`, `footer_icon-link` as needed) | Square glyph frame; sound from `sound-toggle.js`. |
 
-CSS: `.ui-main-nav .footer_link` in `main.css`. **Do not** add `#contact-email:hover` / `#portfolio-modal-trigger:hover` to the generic `footer_link:hover` `color-mix` block: those IDs only exist on `.ui-main-nav` triggers, and an extra ID in that block can override the nav-specific hover ink in dark mode. Nav labels use `var(--cursor-hover-fg, …)` on hover/focus/active. **`--cursor-hover-fg` is stamped by the palette runtime** (`stampCursorCSSVar` / `maybeAutoPickCursorColor`). The styleguide bootstraps **`stampCursorContrastFromTheme()`** so the resolved theme `var(--cursor-color)` gets a WCAG-safe hover ink without running the full simulation.
+CSS: `.ui-main-nav .footer_link` in `main.css`. Keep hover/focus ink on text nav controls driven by `var(--cursor-hover-fg, …)` rather than route-specific ID selectors; IDs can override the nav-specific hover ink in dark mode. **`--cursor-hover-fg` is stamped by the palette runtime** (`stampCursorCSSVar` / `maybeAutoPickCursorColor`). The styleguide bootstraps **`stampCursorContrastFromTheme()`** so the resolved theme `var(--cursor-color)` gets a WCAG-safe hover ink without running the full simulation.
 
 ## Bottom route dock
 
