@@ -1679,6 +1679,8 @@ body.styleguide-page .styleguide-type-sample--cv-body {
 
 .legend__item span {
   color: inherit;
+  position: relative;
+  top: var(--legend-label-offset-y, var(--abs-size-1px));
   transition: color 0.15s var(--ease-organic);
   /* Fallback */
   line-height: 1;
