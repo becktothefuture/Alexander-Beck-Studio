@@ -4027,6 +4027,13 @@ html.is-safari .noise::before {
   }
 }
 
+@media (min-width: 601px) and (max-width: 1024px) {
+  body:not(.portfolio-page):not(.cv-page):not(.daily-focus-page) .hero-title__name,
+  body:not(.portfolio-page):not(.cv-page):not(.daily-focus-page) .hero-title__role {
+    font-size: clamp(21px, calc(var(--abs-home-logo-width-vw, 52) * 0.11625 * 1vw), 39px);
+  }
+}
+
 @media (max-width: 600px) { /* Mobile */
   :root {
     /* Horizontal ratio is now handled by JS (contentPaddingHorizontalRatio).
