@@ -591,7 +591,7 @@ const state = {
   kaleidoscope3SpawnAreaMul: 0.9,
   kaleidoscope3SizeVariance: 0.38,
   kaleidoscopeRiftBallCount: 28,
-  kaleidoscopeRiftSpokes: 6,
+  kaleidoscopeRiftSpokes: 8,
   kaleidoscopeRiftSpokesMobile: 4,
   kaleidoscopeRiftRings: 4,
   kaleidoscopeRiftSpeed: 1.2,
