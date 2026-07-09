@@ -76,6 +76,7 @@ export default defineConfig(({ mode }) => ({
         'lab/aperture-bloom': resolve(__dirname, 'lab/aperture-bloom.html'),
         'lab/confluence-bridges': resolve(__dirname, 'lab/confluence-bridges.html'),
         'lab/napoleon-point-cloud': resolve(__dirname, 'lab/napoleon-point-cloud.html'),
+        'lab/rift-rings': resolve(__dirname, 'lab/rift-rings.html'),
         'lab/spatial-scan': resolve(__dirname, 'lab/spatial-scan.html'),
         'lab/loader-playground': resolve(__dirname, 'lab/loader-playground.html'),
         ...(mode === 'development'

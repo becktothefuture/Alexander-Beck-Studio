@@ -236,6 +236,10 @@ function drawPebble(ctx, body, visualScale = 1) {
   const points = body.shape;
   const radius = body.r * visualScale;
   if (radius <= 0.05) return;
+  const previousAlpha = ctx.globalAlpha;
+  const opacity = clamp(Number(body.opacity ?? 1), 0, 1);
+  if (opacity <= 0.001) return;
+  if (opacity < 1) ctx.globalAlpha = previousAlpha * opacity;
   ctx.save();
   ctx.translate(body.x, body.y);
   ctx.rotate(body.rotation);
@@ -257,15 +261,21 @@ function drawPebble(ctx, body, visualScale = 1) {
   ctx.fillStyle = body.color;
   ctx.fill();
   ctx.restore();
+  ctx.globalAlpha = previousAlpha;
 }
 
 function drawCircle(ctx, body, visualScale = 1) {
   const radius = body.r * visualScale;
   if (radius <= 0.05) return;
+  const previousAlpha = ctx.globalAlpha;
+  const opacity = clamp(Number(body.opacity ?? 1), 0, 1);
+  if (opacity <= 0.001) return;
+  if (opacity < 1) ctx.globalAlpha = previousAlpha * opacity;
   ctx.beginPath();
   ctx.arc(body.x, body.y, radius, 0, TAU);
   ctx.fillStyle = body.color;
   ctx.fill();
+  ctx.globalAlpha = previousAlpha;
 }
 
 function drawBody(ctx, body, visualScale = 1) {
@@ -407,6 +417,68 @@ function buildConfluenceBridgeBodies(random, config, theme, metrics) {
   return bodies;
 }
 
+function buildRiftRingBodies(random, config, theme, metrics) {
+  const bodies = [];
+  const ringCount = Math.round(clamp(Number(config.rings || 11), 6, 18));
+  const density = clamp(Number(config.ringDensity || 0.82), 0.32, 1.2);
+  const densityScale = metrics.cssWidth < 680
+    ? clamp(Number(config.mobileDensityScale || 0.58), 0.32, 0.9)
+    : 1;
+  const cx = metrics.cssWidth * 0.5;
+  const cy = metrics.cssHeight * 0.5;
+  const baseRadius = getScaledRadius(config, metrics);
+  const minDim = Math.min(metrics.cssWidth, metrics.cssHeight);
+  const diagonal = Math.hypot(metrics.cssWidth, metrics.cssHeight);
+  const innerRadius = minDim * (metrics.cssWidth < 680 ? 0.18 : 0.14);
+  const outerRadius = diagonal * 0.5 * clamp(Number(config.outerRadiusScale || 1.62), 1.25, 1.95);
+  const ringSpacing = clamp(Number(config.ringSpacing || 1.42), 0.9, 2.1);
+  const centerRadiusScale = clamp(Number(config.centerRadiusScale ?? 0.46), 0.24, 0.9);
+  const centerFogMin = clamp(Number(config.centerFogMin ?? 0.24), 0.08, 1);
+  const centerFogStart = clamp(Number(config.centerFogStart ?? 0.82), 0, 1);
+  const centerFogRingCount = Math.round(clamp(Number(config.centerFogRingCount ?? 2), 0, 4));
+
+  for (let ring = 0; ring < ringCount; ring += 1) {
+    const ringT = ringCount <= 1 ? 0 : ring / (ringCount - 1);
+    const easedT = Math.pow(ringT, 0.86);
+    const depthT = smoothstep(ringT);
+    const depthRadius = baseRadius * (centerRadiusScale + ((1 - centerRadiusScale) * depthT));
+    const fogT = centerFogRingCount <= 0 ? 1 : ring / Math.max(1, centerFogRingCount);
+    const depthOpacity = ring < centerFogRingCount
+      ? centerFogMin + ((1 - centerFogMin) * smoothstep(fogT * centerFogStart))
+      : 1;
+    const radiusBase = innerRadius + ((outerRadius - innerRadius) * easedT);
+    const circumference = Math.max(1, TAU * radiusBase);
+    const bodySpacing = baseRadius * 2 * ringSpacing * 1.86;
+    let count = Math.max(14, Math.round(circumference / Math.max(1, bodySpacing) * density * densityScale));
+    if (count % 2 !== 0) count += 1;
+    count = Math.min(metrics.cssWidth < 680 ? 96 : 164, count);
+    const ringOffset = ring % 2 === 0 ? 0 : TAU / (count * 2);
+    const direction = ring % 2 === 0 ? 1 : -1;
+    const ringPhase = ring * 0.73;
+
+    for (let index = 0; index < count; index += 1) {
+      const angle = (index / count) * TAU + ringOffset;
+      const x = cx + Math.cos(angle) * radiusBase;
+      const y = cy + Math.sin(angle) * radiusBase;
+      bodies.push(makeBody(random, theme, x, y, depthRadius, {
+        kind: 'rift-ring',
+        r: depthRadius,
+        ring,
+        ringT,
+        ringDirection: direction,
+        ringAngle: angle,
+        ringRadiusBase: radiusBase,
+        ringPhase,
+        opacity: depthOpacity,
+        spin: direction * 0.004,
+        shapeKind: 'circle',
+      }));
+    }
+  }
+
+  return bodies;
+}
+
 function applySeparation(bodies, iterations = 1, scale = 1.08) {
   for (let pass = 0; pass < iterations; pass += 1) {
     for (let i = 0; i < bodies.length; i += 1) {
@@ -529,6 +601,79 @@ function updateConfluenceBridge(body, bodies, config, metrics, pointer, t) {
   body.homeY = targetY;
 }
 
+function updateRiftRingMotionState(state, config, metrics, pointer, dt) {
+  const now = performance.now();
+  const pointerFresh = pointer.active && now - pointer.lastAt < 680;
+  const pointerXNorm = pointerFresh
+    ? clamp(((pointer.x / Math.max(1, metrics.cssWidth)) - 0.5) * 2, -1, 1)
+    : 0;
+  const pointerYNorm = pointerFresh
+    ? clamp(((pointer.y / Math.max(1, metrics.cssHeight)) - 0.5) * 2, -1, 1)
+    : 0;
+  const pointerVelocityX = pointerFresh
+    ? clamp(pointer.vx / Math.max(520, metrics.cssWidth * 1.2), -0.9, 0.9)
+    : 0;
+  const dragBoost = pointer.down ? 1.12 : 1;
+  const pointerStrength = Number(config.pointerStrength || 0.78);
+  const verticalTravel = pointerYNorm < 0
+    ? pointerYNorm * 1.18
+    : pointerYNorm * 1.06;
+  const targetShear = (pointerXNorm * 0.66 + pointerVelocityX * 0.34)
+    * Number(config.shearStrength || 0.58)
+    * pointerStrength
+    * dragBoost;
+  const targetExpansion = verticalTravel
+    * Number(config.expansionStrength || 0.34)
+    * pointerStrength
+    * dragBoost;
+  const response = pointerFresh
+    ? (pointer.down ? 5.2 : 4.2)
+    : 1.65;
+  const expansionResponse = pointerFresh
+    ? (pointer.down ? 4.2 : 3.35)
+    : 1.45;
+  const shearAlpha = 1 - Math.exp(-dt * response);
+  const expansionAlpha = 1 - Math.exp(-dt * expansionResponse);
+  const previousShear = state.shear || 0;
+  const previousExpansion = state.expansion || 0;
+
+  state.shear += (targetShear - state.shear) * shearAlpha;
+  state.expansion += (targetExpansion - state.expansion) * expansionAlpha;
+  state.shearVelocity = (state.shear - previousShear) / Math.max(0.001, dt);
+  state.expansionVelocity = (state.expansion - previousExpansion) / Math.max(0.001, dt);
+  state.audioAngle = (state.audioAngle || 0)
+    + (Math.abs(state.shearVelocity) * 0.018)
+    + (Math.abs(state.expansionVelocity) * 0.012)
+    + (Math.abs(pointerVelocityX) * 0.08);
+  return state;
+}
+
+function updateRiftRing(body, config, metrics, motion, t) {
+  const cx = metrics.cssWidth * 0.5;
+  const cy = metrics.cssHeight * 0.5;
+  const ringT = clamp(Number(body.ringT || 0), 0, 1);
+  const direction = body.ringDirection || 1;
+  const drift = Number(config.driftSpeed || 0.46);
+  const idle = Number(config.idleMotion || 0.32);
+  const shear = motion?.shear || 0;
+  const expansion = motion?.expansion || 0;
+  const idleBreathe = Math.sin(t * (0.34 + ringT * 0.14) + body.ringPhase) * idle * 0.046;
+  const ringShear = shear * direction * (0.24 + ringT * 1.35);
+  const angle = body.ringAngle
+    + direction * t * drift * (0.09 + ringT * 0.13)
+    + ringShear;
+  const baseRadius = Number(body.ringRadiusBase || 0);
+  const radiusScale = 1
+    + (expansion * (0.3 + ringT * 0.98))
+    + idleBreathe;
+  const radius = Math.max(1, baseRadius * radiusScale);
+  const ringShiftX = shear * direction * metrics.cssWidth * (0.012 + ringT * 0.03);
+  const ringShiftY = shear * metrics.cssHeight * 0.006 * Math.sin(body.ringPhase);
+
+  body.homeX = cx + Math.cos(angle) * radius + ringShiftX;
+  body.homeY = cy + Math.sin(angle) * radius + ringShiftY;
+}
+
 function containBody(body, metrics) {
   const margin = body.r + 3;
   const minX = margin;
@@ -629,6 +774,13 @@ export function createConceptSimulationRenderer({
   let lastTime = 0;
   let started = false;
   let layoutKey = '';
+  let riftMotionState = {
+    shear: 0,
+    expansion: 0,
+    shearVelocity: 0,
+    expansionVelocity: 0,
+    audioAngle: 0,
+  };
   let unregisterVisualTransition = null;
   const visualTransition = createIndexedSimulationVisualTransition({
     sourceId: simulationId,
@@ -641,6 +793,7 @@ export function createConceptSimulationRenderer({
       const seedMap = {
         [CONCEPT_SIMULATION_IDS.APERTURE_BLOOM]: 11021,
         [CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES]: 41071,
+        [CONCEPT_SIMULATION_IDS.RIFT_RINGS]: 53087,
       };
       return seedMap[simulationId] || 51061;
     },
@@ -655,7 +808,13 @@ export function createConceptSimulationRenderer({
       Number(config.bodyRadius).toFixed(3),
       Number(config.mobileRadiusScale).toFixed(3),
       Number(config.rings || 0),
+      Number(config.ringDensity || 0).toFixed(3),
       Number(config.ringSpacing || 0).toFixed(3),
+      Number(config.outerRadiusScale || 0).toFixed(3),
+      Number(config.centerRadiusScale || 0).toFixed(3),
+      Number(config.centerFogMin || 0).toFixed(3),
+      Number(config.centerFogStart || 0).toFixed(3),
+      Number(config.centerFogRingCount || 0),
       Number(config.spacing || 0).toFixed(3),
       Number(config.rowDensity || 0).toFixed(3),
       Number(config.ballCount || 0),
@@ -675,12 +834,15 @@ export function createConceptSimulationRenderer({
     const seedMap = {
       [CONCEPT_SIMULATION_IDS.APERTURE_BLOOM]: 11021,
       [CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES]: 41071,
+      [CONCEPT_SIMULATION_IDS.RIFT_RINGS]: 53087,
     };
     const random = mulberry32(seedMap[simulationId] || 51061);
     if (simulationId === CONCEPT_SIMULATION_IDS.APERTURE_BLOOM) {
       bodies = buildApertureBodies(random, config, theme, metrics);
     } else if (simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES) {
       bodies = buildConfluenceBridgeBodies(random, config, theme, metrics);
+    } else if (simulationId === CONCEPT_SIMULATION_IDS.RIFT_RINGS) {
+      bodies = buildRiftRingBodies(random, config, theme, metrics);
     } else {
       bodies = [];
     }
@@ -716,9 +878,13 @@ export function createConceptSimulationRenderer({
     lastTime = now;
     const dt = clamp(rawDt, 1 / 120, 1 / 30) * (reducedMotion ? 0.45 : 1);
     const isConfluence = simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES;
-    const t = (now / 1000) * (reducedMotion && isConfluence ? 0.45 : 1);
+    const isRiftRings = simulationId === CONCEPT_SIMULATION_IDS.RIFT_RINGS;
+    const t = (now / 1000) * (reducedMotion && (isConfluence || isRiftRings) ? 0.45 : 1);
     const reserve = simulationId === CONCEPT_SIMULATION_IDS.APERTURE_BLOOM
       ? getTitleReserveZone(config, metrics)
+      : null;
+    const riftMotion = isRiftRings
+      ? updateRiftRingMotionState(riftMotionState, config, metrics, pointer, dt)
       : null;
 
     for (const body of bodies) {
@@ -726,6 +892,8 @@ export function createConceptSimulationRenderer({
         updateAperture(body, config, metrics, pointer, t);
       } else if (isConfluence) {
         updateConfluenceBridge(body, bodies, config, metrics, pointer, t);
+      } else if (isRiftRings) {
+        updateRiftRing(body, config, metrics, riftMotion, t);
       }
       if (reserve) {
         pushHomeOutsideTitleReserve(body, reserve);
@@ -737,7 +905,7 @@ export function createConceptSimulationRenderer({
     }
     applySeparation(
       bodies,
-      isConfluence ? 2 : 1,
+      isRiftRings ? 0 : (isConfluence ? 2 : 1),
       isConfluence ? Number(config.separationScale || 1.08) : 1.08,
     );
     if (isConfluence) {
@@ -756,12 +924,12 @@ export function createConceptSimulationRenderer({
       triggerDetent({
         id: 'aperture-bloom:lens-ring',
         value: (t * Number(config.speed || 0.58)) + (pointer.x * 0.006),
-        step: Math.PI / 16,
+        step: Math.PI / 22,
         velocity: pointerSpeed / 480,
-        minVelocity: 0.16,
-        minIntervalMs: 58,
-        gain: 0.052,
-        filterHz: 2150,
+        minVelocity: 0.13,
+        minIntervalMs: 34,
+        gain: 0.046,
+        filterHz: 3350,
       });
     } else if (isConfluence && pointerFresh && pointerSpeed > 260) {
       triggerPressure({
@@ -771,6 +939,29 @@ export function createConceptSimulationRenderer({
         radius: 22,
         minIntervalMs: 160,
       });
+    } else if (isRiftRings && pointerFresh) {
+      const shearVelocity = Math.abs(riftMotion?.shearVelocity || 0);
+      const expansionVelocity = Math.abs(riftMotion?.expansionVelocity || 0);
+      const motionVelocity = shearVelocity + (expansionVelocity * 0.82) + (pointerSpeed / 900);
+      triggerDetent({
+        id: 'rift-rings:orbit',
+        value: riftMotion?.audioAngle || 0,
+        step: Math.PI / 24,
+        velocity: motionVelocity,
+        minVelocity: 0.12,
+        minIntervalMs: 32,
+        gain: 0.046,
+        filterHz: 3300,
+      });
+      if (expansionVelocity > 0.85 && pointerSpeed > 260) {
+        triggerPressure({
+          id: 'rift-rings:radial-travel',
+          intensity: clamp(expansionVelocity / 3.2, 0.56, 0.78),
+          x: clamp(pointer.x / Math.max(1, metrics.cssWidth), 0, 1),
+          radius: 21,
+          minIntervalMs: 280,
+        });
+      }
     }
     render();
   }
@@ -781,9 +972,15 @@ export function createConceptSimulationRenderer({
     const config = getConfig();
     ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
     renderBackground(ctx, metrics, theme, config, pointer, simulationId, { transparentBackground });
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.16)';
-    ctx.shadowBlur = Math.max(5, Math.min(16, metrics.cssWidth * 0.006));
-    ctx.shadowOffsetY = 1.5;
+    if (simulationId === CONCEPT_SIMULATION_IDS.RIFT_RINGS) {
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+    } else {
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.16)';
+      ctx.shadowBlur = Math.max(5, Math.min(16, metrics.cssWidth * 0.006));
+      ctx.shadowOffsetY = 1.5;
+    }
     if (simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES) {
       for (const body of bodies) {
         if (body.kind !== 'hub') drawBody(ctx, body, visualTransition.getScaleAt(body.bodyIndex));

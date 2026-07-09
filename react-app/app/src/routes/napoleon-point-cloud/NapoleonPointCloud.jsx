@@ -804,12 +804,12 @@ export function NapoleonPointCloud({
       triggerDetent({
         id: 'napoleon-point-cloud:rotate',
         value: targetRotation.y,
-        step: Math.PI / 18,
+        step: Math.PI / 24,
         velocity: totalDeltaY,
         minVelocity: 0.018,
-        minIntervalMs: 42,
-        gain: 0.058,
-        filterHz: 2050,
+        minIntervalMs: 30,
+        gain: 0.05,
+        filterHz: 3400,
       });
 
       drag.x = nextX;

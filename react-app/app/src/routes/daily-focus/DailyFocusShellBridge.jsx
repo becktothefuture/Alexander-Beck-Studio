@@ -187,6 +187,9 @@ function isDailyFocusRuntimeReady(simulationId) {
     case 'mineral-growth':
       return isCanvasSurfaceReady('#mineral-growth-canvas')
         && isSimulationVisualTransitionSourceActive(id);
+    case 'rift-rings':
+      return isCanvasSurfaceReady('#rift-rings-canvas')
+        && isSimulationVisualTransitionSourceActive(id);
     case 'napoleon-point-cloud': {
       const figure = runtime.querySelector('.napoleon-point-cloud');
       const loadState = figure?.dataset?.pointCloudLoadState;

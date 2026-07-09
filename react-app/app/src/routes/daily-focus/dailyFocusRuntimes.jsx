@@ -8,6 +8,10 @@ const NapoleonPointCloudRuntime = lazy(() => (
   import('../concept-simulations/NapoleonPointCloudRuntime.jsx')
     .then((module) => ({ default: module.NapoleonPointCloudRuntime }))
 ));
+const RiftRingsRuntime = lazy(() => (
+  import('../concept-simulations/RiftRingsRuntime.jsx')
+    .then((module) => ({ default: module.RiftRingsRuntime }))
+));
 const FlockOfBirdsRuntime = lazy(() => (
   import('../flock-of-birds/FlockOfBirdsRuntime.jsx')
     .then((module) => ({ default: module.FlockOfBirdsRuntime }))
@@ -41,6 +45,8 @@ export function getDailyFocusPureRuntime(routeId) {
       return runtimeElement(<BeachBallRoomRuntime />);
     case 'napoleon-point-cloud':
       return runtimeElement(<NapoleonPointCloudRuntime />);
+    case 'rift-rings':
+      return runtimeElement(<RiftRingsRuntime />);
     default:
       return null;
   }

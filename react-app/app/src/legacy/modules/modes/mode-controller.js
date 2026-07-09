@@ -33,6 +33,7 @@ const MODE_NAMES = {
   bubbles: 'Bubble Lift',
   'kaleidoscope-3': 'Kaleido Bloom',
   'kaleidoscope-rift': 'Kaleido Rift',
+  'rift-rings': 'Depth Rings',
   critters: 'Critter Swarm',
   'parallax-float': 'Parallax Drift',
   '3d-sphere': 'Sphere Orbit',

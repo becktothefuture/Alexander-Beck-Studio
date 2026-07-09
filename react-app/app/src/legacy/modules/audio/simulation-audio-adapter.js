@@ -1,9 +1,9 @@
 import { playCollisionSound, playDetentClick } from './sound-engine.js';
 
 const DEFAULT_MIN_INTERVAL_MS = 90;
-const DEFAULT_DETENT_INTERVAL_MS = 45;
-const DEFAULT_DETENT_STEP = Math.PI / 14;
-const DEFAULT_MIN_DETENT_VELOCITY = 0.08;
+const DEFAULT_DETENT_INTERVAL_MS = 32;
+const DEFAULT_DETENT_STEP = Math.PI / 20;
+const DEFAULT_MIN_DETENT_VELOCITY = 0.055;
 
 const lastTriggerById = new Map();
 const lastDetentById = new Map();
@@ -105,8 +105,8 @@ export function triggerDetent({
   velocity = 0,
   minVelocity = DEFAULT_MIN_DETENT_VELOCITY,
   minIntervalMs = DEFAULT_DETENT_INTERVAL_MS,
-  gain = 0.055,
-  filterHz = 1900,
+  gain = 0.05,
+  filterHz = 3200,
 } = {}) {
   const safeStep = Math.max(0.001, Math.abs(Number(step) || DEFAULT_DETENT_STEP));
   const safeVelocity = Number(velocity) || 0;
@@ -123,8 +123,8 @@ export function triggerDetent({
     velocity: safeVelocity,
   });
   playDetentClick({
-    gain: clamp(Number(gain) || 0.055, 0, 0.14),
-    filterHz: clamp(Number(filterHz) || 1900, 500, 4200),
+    gain: clamp(Number(gain) || 0.05, 0, 0.12),
+    filterHz: clamp(Number(filterHz) || 3200, 700, 5200),
   });
   return true;
 }

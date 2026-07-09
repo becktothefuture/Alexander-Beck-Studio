@@ -4,6 +4,7 @@ export const CONCEPT_SIMULATION_IDS = Object.freeze({
   APERTURE_BLOOM: 'aperture-bloom',
   CONFLUENCE_BRIDGES: 'confluence-bridges',
   NAPOLEON_POINT_CLOUD: 'napoleon-point-cloud',
+  RIFT_RINGS: 'rift-rings',
   SPATIAL_SCAN: 'spatial-scan',
 });
 
@@ -100,6 +101,39 @@ export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
       pauseWhenHidden: true,
     },
   },
+  [CONCEPT_SIMULATION_IDS.RIFT_RINGS]: {
+    id: CONCEPT_SIMULATION_IDS.RIFT_RINGS,
+    name: 'Depth Rings',
+    chapter: 'DEPTH RINGS',
+    path: '/lab/rift-rings.html',
+    configPath: '/config/rift-rings-demo.json',
+    ariaLabel: 'Expansive concentric depth rings that shear and breathe under mouse or touch movement',
+    enabledInRotation: isSimulationInDailyRotation(CONCEPT_SIMULATION_IDS.RIFT_RINGS),
+    defaults: {
+      version: 1,
+      enabled: true,
+      rings: 13,
+      ringDensity: 0.92,
+      ringSpacing: 1.42,
+      outerRadiusScale: 1.5,
+      bodyRadius: 9.2,
+      mobileRadiusScale: 0.9,
+      mobileDensityScale: 0.72,
+      driftSpeed: 0.46,
+      shearStrength: 0.58,
+      expansionStrength: 0.72,
+      idleMotion: 0.38,
+      pointerStrength: 0.78,
+      centerRadiusScale: 0.38,
+      centerFogMin: 0.12,
+      centerFogStart: 0.68,
+      centerFogRingCount: 3,
+      damping: 0.9,
+      spring: 0.075,
+      maxDpr: 1.5,
+      pauseWhenHidden: true,
+    },
+  },
   [CONCEPT_SIMULATION_IDS.SPATIAL_SCAN]: {
     id: CONCEPT_SIMULATION_IDS.SPATIAL_SCAN,
     name: 'Spatial Scan',
@@ -189,6 +223,23 @@ export function normalizeConceptSimulationConfig(simulationId, input = {}) {
     next.bridgeArc = clampNumber(next.bridgeArc, 0, 0.62, defaults.bridgeArc);
     next.backgroundResponse = clampNumber(next.backgroundResponse, 0, 0.28, defaults.backgroundResponse);
     next.colorPalette = String(next.colorPalette || defaults.colorPalette);
+  }
+
+  if (simulationId === CONCEPT_SIMULATION_IDS.RIFT_RINGS) {
+    next.rings = Math.round(clampNumber(next.rings, 6, 18, defaults.rings));
+    next.ringDensity = clampNumber(next.ringDensity, 0.32, 1.2, defaults.ringDensity);
+    next.ringSpacing = clampNumber(next.ringSpacing, 0.9, 2.1, defaults.ringSpacing);
+    next.outerRadiusScale = clampNumber(next.outerRadiusScale, 1.25, 1.95, defaults.outerRadiusScale);
+    next.mobileDensityScale = clampNumber(next.mobileDensityScale, 0.32, 0.9, defaults.mobileDensityScale);
+    next.driftSpeed = clampNumber(next.driftSpeed, 0.05, 1.25, defaults.driftSpeed);
+    next.shearStrength = clampNumber(next.shearStrength, 0, 1.2, defaults.shearStrength);
+    next.expansionStrength = clampNumber(next.expansionStrength, 0, 1, defaults.expansionStrength);
+    next.idleMotion = clampNumber(next.idleMotion, 0, 0.8, defaults.idleMotion);
+    next.pointerStrength = clampNumber(next.pointerStrength, 0, 1.4, defaults.pointerStrength);
+    next.centerRadiusScale = clampNumber(next.centerRadiusScale, 0.24, 0.9, defaults.centerRadiusScale);
+    next.centerFogMin = clampNumber(next.centerFogMin, 0.08, 1, defaults.centerFogMin);
+    next.centerFogStart = clampNumber(next.centerFogStart, 0, 1, defaults.centerFogStart);
+    next.centerFogRingCount = Math.round(clampNumber(next.centerFogRingCount, 0, 4, defaults.centerFogRingCount));
   }
 
   if (simulationId === CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD) {

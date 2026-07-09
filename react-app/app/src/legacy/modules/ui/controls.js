@@ -125,6 +125,7 @@ export function updateModeButtonsUI(activeMode, options = {}) {
     'bubbles': 'Bubble Lift',
     'kaleidoscope-3': 'Kaleido Bloom',
     'kaleidoscope-rift': 'Kaleido Rift',
+    'rift-rings': 'Depth Rings',
     'parallax-float': 'Parallax Drift',
     '3d-sphere': 'Sphere Orbit',
     '3d-cube': 'Cube Frame',

@@ -129,6 +129,7 @@ const DAILY_LAB_ROUTE_IDS = new Set([
   'flock-of-birds',
   'mineral-growth',
   'napoleon-point-cloud',
+  'rift-rings',
 ]);
 
 let transitionToken = 0;
@@ -363,6 +364,7 @@ function finalizeTransition(
   {
     suppressReturnAnimation = false,
     gateBackdropDismissed = false,
+    preserveTransitionPhase = false,
   } = {}
 ) {
   cancelActiveAnimations();
@@ -372,7 +374,9 @@ function finalizeTransition(
     dismissGateBackdrop({ suppressReturnAnimation });
   }
   clearLegacyRouteTransitionFlags();
-  setTransitionPhase(TRANSITION_PHASES.IDLE);
+  if (!preserveTransitionPhase) {
+    setTransitionPhase(TRANSITION_PHASES.IDLE);
+  }
 
   // Restore content layers.
   const { wall, hero, ui } = getContentLayers(surfaceRefs);
@@ -472,17 +476,17 @@ function setSimulationShellStability(active, surfaceRefs, options = {}) {
   const root = document.documentElement;
   const { hero, ui, chrome, secondary, footer } = getContentLayers(surfaceRefs);
   const titleSurface = options.titleSurface || '';
+  const stableSurfaces = [hero, ui, chrome, secondary, footer];
 
   if (!active) {
     delete root.dataset.absSimulationShellStable;
     delete root.dataset.absSimulationTitleSurface;
-    [hero, ui, chrome, secondary, footer].forEach((el) => {
+    stableSurfaces.forEach((el) => {
       if (!el) return;
       el.style.removeProperty('opacity');
       el.style.removeProperty('visibility');
       el.style.removeProperty('pointer-events');
       el.style.removeProperty('filter');
-      el.style.removeProperty('transform');
       el.style.willChange = 'auto';
     });
     return;
@@ -495,13 +499,12 @@ function setSimulationShellStability(active, surfaceRefs, options = {}) {
     delete root.dataset.absSimulationTitleSurface;
   }
 
-  [hero, ui, chrome, secondary, footer].forEach((el) => {
+  stableSurfaces.forEach((el) => {
     if (!el) return;
     el.style.opacity = '1';
     el.style.removeProperty('visibility');
     el.style.removeProperty('pointer-events');
     el.style.removeProperty('filter');
-    el.style.removeProperty('transform');
     el.style.willChange = 'auto';
   });
 }
@@ -667,6 +670,9 @@ function isDailyLabRouteReady(routeId) {
         && isSimulationVisualTransitionSourceActive(routeId);
     case 'mineral-growth':
       return isCanvasSurfaceReady('#mineral-growth-canvas')
+        && isSimulationVisualTransitionSourceActive(routeId);
+    case 'rift-rings':
+      return isCanvasSurfaceReady('#rift-rings-canvas')
         && isSimulationVisualTransitionSourceActive(routeId);
     case 'napoleon-point-cloud': {
       const figure = document.querySelector('.napoleon-point-cloud');
@@ -1041,14 +1047,20 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       activeGateTransitionRef.current = false;
       activeRouteReadyCancelRef.current?.();
       activeRouteReadyCancelRef.current = null;
+      const releaseGateBackdrop = Boolean(options.releaseGateBackdropOnComplete);
       finalizeTransition(isGateTransition, activeRouteIdRef.current, surfaceRefs, {
         suppressReturnAnimation: isGateTransition,
         gateBackdropDismissed,
+        preserveTransitionPhase: releaseGateBackdrop,
       });
       cleanupSimulationFocusLayer(surfaceRefs);
       setSimulationShellStability(false, surfaceRefs);
       setSimulationFocusTransitionState(null);
-      syncSteadyTransitionPhase();
+      if (releaseGateBackdrop) {
+        dismissGateBackdrop();
+      } else {
+        syncSteadyTransitionPhase();
+      }
       processQueuedNavigation();
     };
 
@@ -1379,11 +1391,18 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     const finishTransition = () => {
       transitionActiveRef.current = false;
       activeGateTransitionRef.current = false;
-      finalizeTransition(false, currentRouteId, surfaceRefs);
+      const releaseGateBackdrop = Boolean(options.releaseGateBackdropOnComplete);
+      finalizeTransition(false, currentRouteId, surfaceRefs, {
+        preserveTransitionPhase: releaseGateBackdrop,
+      });
       cleanupSimulationFocusLayer(surfaceRefs);
       setSimulationShellStability(false, surfaceRefs);
       setSimulationFocusTransitionState(null);
-      syncSteadyTransitionPhase();
+      if (releaseGateBackdrop) {
+        dismissGateBackdrop();
+      } else {
+        syncSteadyTransitionPhase();
+      }
       const queued = queuedNavigationRef.current;
       if (!queued) return;
       queuedNavigationRef.current = null;

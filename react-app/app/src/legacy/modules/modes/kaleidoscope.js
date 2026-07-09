@@ -464,12 +464,12 @@ export function applyKaleidoscopeForces(ball, dt) {
     triggerDetent({
       id: 'kaleidoscope-3:phase',
       value: g._kaleiAudioPhase,
-      step: Math.PI / 12,
+      step: Math.PI / 18,
       velocity: angularVelocity,
-      minVelocity: 0.18,
-      minIntervalMs: 58,
-      gain: 0.048,
-      filterHz: 2100,
+      minVelocity: 0.14,
+      minIntervalMs: 34,
+      gain: 0.046,
+      filterHz: 3350,
     });
   }
 

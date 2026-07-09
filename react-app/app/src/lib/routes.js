@@ -79,6 +79,12 @@ const ROUTE_DEFS = {
     aliases: ['/lab/napoleon-point-cloud.html', '/lab/napoleon-point-cloud', '/napoleon-point-cloud.html', '/napoleon-point-cloud'],
     gated: false,
   },
+  'rift-rings': {
+    id: 'rift-rings',
+    path: '/lab/rift-rings.html',
+    aliases: ['/lab/rift-rings.html', '/lab/rift-rings', '/rift-rings.html', '/rift-rings'],
+    gated: false,
+  },
   'spatial-scan': {
     id: 'spatial-scan',
     path: '/lab/spatial-scan.html',

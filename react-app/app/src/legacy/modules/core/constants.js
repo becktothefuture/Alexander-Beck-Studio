@@ -18,6 +18,7 @@ export const MODES = {
   BUBBLES: 'bubbles',
   KALEIDOSCOPE: 'kaleidoscope-3', // Glorious: 40-50 balls, complex morph
   KALEIDOSCOPE_RIFT: 'kaleidoscope-rift',
+  RIFT_RINGS: 'rift-rings',
   // Ball-only "critters" mode.
   CRITTERS: 'critters',
   // Parallax (depth perception) simulations
@@ -102,6 +103,7 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.CUBE_3D]: 'CUBE FRAME',
   [MODES.KALEIDOSCOPE]: 'KALEIDO BLOOM',
   [MODES.KALEIDOSCOPE_RIFT]: 'KALEIDO RIFT',
+  [MODES.RIFT_RINGS]: 'DEPTH RINGS',
   [MODES.STARFIELD_3D]: 'STAR FIELD',
   [MODES.PARALLAX_FLOAT]: 'PARALLAX DRIFT',
   [MODES.PARTICLE_FOUNTAIN]: 'PARTICLE FOUNTAIN',
@@ -199,6 +201,10 @@ export const NARRATIVE_QUOTES = {
   [MODES.KALEIDOSCOPE_RIFT]: {
     quote: 'Creativity takes courage.',
     author: 'Henri Matisse'
+  },
+  [MODES.RIFT_RINGS]: {
+    quote: 'An empty space is never empty.',
+    author: 'John Cage'
   },
   [MODES.STARFIELD_3D]: {
     quote: 'The cosmos is within us. We are made of star-stuff.',

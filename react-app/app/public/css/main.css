@@ -549,6 +549,10 @@ html.fonts-loading .project-detail {
   position: relative;
 }
 
+body.daily-focus-page .shell-wall-slot {
+  z-index: 4;
+}
+
 .daily-simulation-layer {
   position: absolute;
   inset: 0;
@@ -3012,7 +3016,13 @@ body:not(.portfolio-page):not(.cv-page):not(.daily-focus-page) .hero-title--canv
   opacity: 0;
 }
 
-html[data-abs-simulation-shell-stable='true'] #shell-hero-slot,
+html[data-abs-simulation-shell-stable='true'] #shell-hero-slot {
+  opacity: 1;
+  visibility: visible;
+  filter: none;
+  transform: none;
+}
+
 html[data-abs-simulation-shell-stable='true'] .fade-content,
 html[data-abs-simulation-shell-stable='true'] .shell-transition-surface--chrome,
 html[data-abs-simulation-shell-stable='true'] .shell-transition-surface--secondary,
@@ -3020,7 +3030,6 @@ html[data-abs-simulation-shell-stable='true'] .shell-transition-surface--footer 
   opacity: 1;
   visibility: visible;
   filter: none;
-  transform: none;
 }
 
 html[data-abs-simulation-shell-stable='true'] .hero-title--canvas-source,

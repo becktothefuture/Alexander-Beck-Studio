@@ -9,11 +9,11 @@ Source of truth for mode IDs and narrative order:
 
 ## Runtime Summary
 
-- `25` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
-- `22` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
-- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `15` Daily simulations.
+- `26` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
+- `23` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
+- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `16` Daily simulations.
 - Daily Simulation selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
-- `flock-of-birds`, `wall-repel`, `mineral-growth`, and `napoleon-point-cloud` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
+- `flock-of-birds`, `wall-repel`, `mineral-growth`, `napoleon-point-cloud`, and `rift-rings` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 - `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
 - `elastic-center` and `beach-ball-room` are collection entries with `includeInNarrative: false`; they are not in the Daily Simulation chooser or live narrative cycle.
 
@@ -39,6 +39,7 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Bubble Lift | `bubbles` | Active |
 | Kaleido Bloom | `kaleidoscope-3` | Active |
 | Kaleido Rift | `kaleidoscope-rift` | Active |
+| Depth Rings | `rift-rings` | Route-backed daily/lab |
 | Critter Swarm | `critters` | Active |
 | Parallax Drift | `parallax-float` | Active |
 | Sphere Orbit | `3d-sphere` | Active |
@@ -77,16 +78,17 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 13. `bubbles` — BUBBLE LIFT
 14. `starfield-3d` — STAR FIELD
 15. `kaleidoscope-rift` — KALEIDO RIFT
+16. `rift-rings` — DEPTH RINGS
 
 ### Extended Tier (shown after Featured)
 
-16. `aperture-bloom` — APERTURE BLOOM
-17. `magnetic` — MAGNETIC FIELD
-18. `weightless` — WEIGHTLESS DRIFT
-19. `critters` — CRITTER SWARM
-20. `parallax-float` — PARALLAX DRIFT
-21. `pressure-crucible` — PRESSURE FIELD
-22. `particle-fountain` — PARTICLE FOUNTAIN
+17. `aperture-bloom` — APERTURE BLOOM
+18. `magnetic` — MAGNETIC FIELD
+19. `weightless` — WEIGHTLESS DRIFT
+20. `critters` — CRITTER SWARM
+21. `parallax-float` — PARALLAX DRIFT
+22. `pressure-crucible` — PRESSURE FIELD
+23. `particle-fountain` — PARTICLE FOUNTAIN
 
 Loop order is `Featured -> Extended -> Featured`.
 
@@ -120,6 +122,7 @@ Loop order is `Featured -> Extended -> Featured`.
 - `bubbles`: full-height drink-like nucleation from lower sources, terminal rise, pointer/touch wake deflection, surface dissolve, and recycle.
 - `kaleidoscope-3`: mirrored wedge render with center-pointer fill, edge-pointer opening, and mode-local bounds/render path.
 - `kaleidoscope-rift`: one-wedge polar lattice mirrored into counter-rotating petals; pointer/touch movement shears rings and opens a radial rift instead of folding the full source field.
+- `rift-rings`: route-backed Depth Rings concentric-circle field with symmetric ring bands, whole-ring counter-rotation, stronger pointer/touch radial travel, and center-depth fog that makes the innermost ring almost disappear.
 - `critters`: locomotion-based critter behavior and local separation.
 - `parallax-float`: layered depth field with levitation/parallax response.
 - `3d-sphere`: rotating spherical point cloud.

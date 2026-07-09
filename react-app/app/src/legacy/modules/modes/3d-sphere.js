@@ -361,12 +361,12 @@ export function apply3DSphereForces(ball, dt) {
       triggerDetent({
         id: '3d-sphere:orbit',
         value: state.audioAngle,
-        step: Math.PI / 13,
+        step: Math.PI / 18,
         velocity: totalAngularVel,
-        minVelocity: 0.16,
-        minIntervalMs: 52,
-        gain: 0.046,
-        filterHz: 1850,
+        minVelocity: 0.11,
+        minIntervalMs: 34,
+        gain: 0.048,
+        filterHz: 3200,
       });
     }
   } else {

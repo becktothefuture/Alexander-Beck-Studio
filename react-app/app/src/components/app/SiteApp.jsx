@@ -25,8 +25,10 @@ import {
   getApertureBloomRouteView,
   getConfluenceBridgesRouteView,
   getNapoleonPointCloudRouteView,
+  getRiftRingsRouteView,
   getSpatialScanRouteView,
   NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME,
+  RIFT_RINGS_ROUTE_RUNTIME,
   SPATIAL_SCAN_ROUTE_RUNTIME,
 } from '../../routes/concept-simulations/ConceptSimulationRoute.jsx';
 import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
@@ -59,6 +61,7 @@ const ROUTE_VIEW_BY_ID = {
   'aperture-bloom': getApertureBloomRouteView,
   'confluence-bridges': getConfluenceBridgesRouteView,
   'napoleon-point-cloud': getNapoleonPointCloudRouteView,
+  'rift-rings': getRiftRingsRouteView,
   'spatial-scan': getSpatialScanRouteView,
   'loader-playground': getLoaderPlaygroundRouteView
 };
@@ -77,6 +80,7 @@ const ROUTE_RUNTIME_BY_ID = {
   'aperture-bloom': APERTURE_BLOOM_ROUTE_RUNTIME,
   'confluence-bridges': CONFLUENCE_BRIDGES_ROUTE_RUNTIME,
   'napoleon-point-cloud': NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME,
+  'rift-rings': RIFT_RINGS_ROUTE_RUNTIME,
   'spatial-scan': SPATIAL_SCAN_ROUTE_RUNTIME,
   'loader-playground': LOADER_PLAYGROUND_ROUTE_RUNTIME
 };

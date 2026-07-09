@@ -13,6 +13,7 @@ const ConceptSimulationDemo = lazy(() => (
 export const APERTURE_BLOOM_ROUTE_RUNTIME = {};
 export const CONFLUENCE_BRIDGES_ROUTE_RUNTIME = {};
 export const NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME = {};
+export const RIFT_RINGS_ROUTE_RUNTIME = {};
 export const SPATIAL_SCAN_ROUTE_RUNTIME = {};
 
 function getConceptSimulationRouteView(simulationId) {
@@ -53,6 +54,10 @@ export function getConfluenceBridgesRouteView() {
 
 export function getNapoleonPointCloudRouteView() {
   return getConceptSimulationRouteView(CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD);
+}
+
+export function getRiftRingsRouteView() {
+  return getConceptSimulationRouteView(CONCEPT_SIMULATION_IDS.RIFT_RINGS);
 }
 
 export function getSpatialScanRouteView() {

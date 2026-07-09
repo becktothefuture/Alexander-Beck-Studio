@@ -172,17 +172,19 @@ export function SimulationFocusProvider({
   }, [routeIsDailyFocus, surfaceRouteId]);
 
   const closeChooser = useCallback((options = {}) => {
-    const { haptic = true, restoreFocus = true } = options;
+    const { haptic = true, restoreFocus = true, keepBackdrop = false } = options;
     if (closeTimerRef.current !== null) {
       window.clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
-    const closeDurationMs = getGateModalCloseDurationMs();
+    const closeDurationMs = getGateModalCloseDurationMs({ keepBackdrop });
     setChooserActive(false);
     setChooserClosing(true);
     setChooserOpen(false);
     if (haptic) triggerHaptic('close');
-    dismissGateBackdrop();
+    if (!keepBackdrop) {
+      dismissGateBackdrop();
+    }
     closeTimerRef.current = window.setTimeout(() => {
       setChooserClosing(false);
       closeTimerRef.current = null;
@@ -241,9 +243,14 @@ export function SimulationFocusProvider({
 
     triggerHaptic('step');
     setOptimisticActiveId(simulationId);
-    closeChooser({ haptic: false, restoreFocus: false });
+    closeChooser({ haptic: false, restoreFocus: false, keepBackdrop: true });
 
-    const closeSettleMs = getGateModalCloseDurationMs();
+    const closeSettleMs = getGateModalCloseDurationMs({ keepBackdrop: true });
+    const transitionOptions = {
+      transitionStyle: 'simulation-focus',
+      readyFallbackMs: SIMULATION_FOCUS_READY_FALLBACK_MS,
+      releaseGateBackdropOnComplete: true,
+    };
 
     window.setTimeout(() => {
       const cleanHomeHref = buildRouteHref('home');
@@ -270,8 +277,7 @@ export function SimulationFocusProvider({
         if (routeIsDailyFocus) {
           const didNavigate = trySpaNavigate(cleanHomeHref, {
             replace: true,
-            transitionStyle: 'simulation-focus',
-            readyFallbackMs: SIMULATION_FOCUS_READY_FALLBACK_MS,
+            ...transitionOptions,
             onCommit: () => {
               commitFocusChoice();
               setHomeMode(target.mode);
@@ -290,18 +296,19 @@ export function SimulationFocusProvider({
             && transitionCurrentRoute(() => {
               commitFocusChoice();
               return applySelectedHomeMode();
-            }, { transitionStyle: 'simulation-focus', readyFallbackMs: SIMULATION_FOCUS_READY_FALLBACK_MS })) {
+            }, transitionOptions)) {
             return;
           }
 
           commitFocusChoice();
-          void applySelectedHomeMode();
+          void applySelectedHomeMode()
+            .finally(() => dismissGateBackdrop())
+            .catch(() => undefined);
           return;
         }
 
         if (!trySpaNavigate(cleanHomeHref, {
-          transitionStyle: 'simulation-focus',
-          readyFallbackMs: SIMULATION_FOCUS_READY_FALLBACK_MS,
+          ...transitionOptions,
           onCommit: () => {
             commitFocusChoice();
             setHomeMode(target.mode);
@@ -316,8 +323,7 @@ export function SimulationFocusProvider({
 
       setHomeMode(null);
       if (!trySpaNavigate(target.href, {
-        transitionStyle: 'simulation-focus',
-        readyFallbackMs: SIMULATION_FOCUS_READY_FALLBACK_MS,
+        ...transitionOptions,
         onCommit: commitFocusChoice,
       })) {
         commitFocusChoice();

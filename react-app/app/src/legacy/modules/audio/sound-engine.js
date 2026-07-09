@@ -627,20 +627,20 @@ function ensureWheelBus() {
 function createWheelTickBuffer() {
   if (wheelTickBuffer || !audioContext) return;
   const sampleRate = audioContext.sampleRate;
-  const duration = 0.045;
+  const duration = 0.018;
   const length = Math.floor(sampleRate * duration);
   wheelTickBuffer = audioContext.createBuffer(1, length, sampleRate);
   const data = wheelTickBuffer.getChannelData(0);
-  const noiseEnd = Math.floor(sampleRate * 0.003);
-  const sineEnd = Math.floor(sampleRate * 0.010);
+  const noiseEnd = Math.max(1, Math.floor(sampleRate * 0.0018));
+  const sineEnd = Math.max(noiseEnd + 1, Math.floor(sampleRate * 0.0065));
   for (let i = 0; i < noiseEnd; i++) {
-    const decay = Math.exp(-i / noiseEnd * 6);
+    const decay = Math.exp(-i / noiseEnd * 7.5);
     data[i] = (Math.random() * 2 - 1) * decay;
   }
-  const freq = 880;
+  const freq = 1480;
   for (let i = noiseEnd; i < sineEnd; i++) {
     const t = i / sampleRate;
-    const env = 0.65 * (1 - (i - noiseEnd) / (sineEnd - noiseEnd));
+    const env = 0.42 * (1 - (i - noiseEnd) / (sineEnd - noiseEnd));
     data[i] = Math.sin(2 * Math.PI * freq * t) * env;
   }
 }
@@ -731,14 +731,17 @@ function playWheelClick(gain, filterHz) {
   src.buffer = wheelTickBuffer;
   const g = audioContext.createGain();
   g.gain.value = gain;
+  const hp = audioContext.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 650;
   const lp = audioContext.createBiquadFilter();
   lp.type = 'lowpass';
   lp.frequency.value = filterHz;
-  src.connect(lp).connect(g).connect(wheelBus);
+  src.connect(hp).connect(lp).connect(g).connect(wheelBus);
   src.start();
 }
 
-export function playDetentClick({ gain = 0.055, filterHz = 1900 } = {}) {
+export function playDetentClick({ gain = 0.05, filterHz = 3200 } = {}) {
   recordSoundDebugEvent('detent-playback', 'sound-engine:detent', { gain, filterHz });
   playWheelClick(gain, filterHz);
 }

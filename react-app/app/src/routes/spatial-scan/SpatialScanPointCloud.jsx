@@ -672,12 +672,12 @@ export function SpatialScanPointCloud({
       triggerDetent({
         id: 'spatial-scan:orbit',
         value: targetRotation.y,
-        step: Math.PI / 16,
+        step: Math.PI / 22,
         velocity: dx * 0.0048 * influence,
         minVelocity: 0.014,
-        minIntervalMs: 54,
-        gain: 0.045,
-        filterHz: 1900,
+        minIntervalMs: 32,
+        gain: 0.044,
+        filterHz: 3300,
       });
       drag.x = event.clientX;
       drag.y = event.clientY;

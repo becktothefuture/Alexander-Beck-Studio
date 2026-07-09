@@ -213,12 +213,12 @@ export function apply3DCubeForces(ball, dt) {
       triggerDetent({
         id: '3d-cube:edge',
         value: state.audioAngle,
-        step: Math.PI / 10,
+        step: Math.PI / 16,
         velocity: manualAngularVelocity,
-        minVelocity: 0.22,
-        minIntervalMs: 56,
-        gain: 0.06,
-        filterHz: 1750,
+        minVelocity: 0.16,
+        minIntervalMs: 34,
+        gain: 0.052,
+        filterHz: 3300,
       });
     }
   }
