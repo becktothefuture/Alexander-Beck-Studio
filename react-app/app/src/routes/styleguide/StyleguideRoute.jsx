@@ -1,5 +1,6 @@
 import { MainNavLink } from '../../components/MainNavLink.jsx';
 import { buildRouteHref } from '../../lib/routes.js';
+import { SHELL_ROUTE_TABS } from '../../lib/shell-route-tabs.js';
 import { StyleguideTypographySection } from './StyleguideTypography.jsx';
 
 export const STYLEGUIDE_ROUTE_RUNTIME = {
@@ -19,7 +20,40 @@ function renderSoundOnIcon() {
   );
 }
 
+function renderShellRouteTab(tab, stateClass = '') {
+  const className = [
+    'footer_link',
+    'shell-route-tab',
+    tab.iconOnly ? 'shell-route-tab--icon-only' : '',
+    stateClass,
+  ].filter(Boolean).join(' ');
+
+  return (
+    <a
+      key={`${tab.id}-${stateClass || 'resting'}`}
+      href={tab.href()}
+      className={className}
+      aria-label={tab.iconOnly ? tab.label : undefined}
+      aria-current={stateClass === 'is-active' ? 'page' : undefined}
+      data-route-tab={tab.routeId}
+      data-gate-id={tab.gateId || undefined}
+      data-pending={stateClass === 'is-pending' ? 'true' : undefined}
+    >
+      {tab.icon ? <i className={`ti ${tab.icon}`} aria-hidden="true" /> : null}
+      {tab.iconOnly ? (
+        <span className="screen-reader">{tab.label}</span>
+      ) : (
+        <span className="shell-route-tab__label">{tab.label}</span>
+      )}
+      {stateClass === 'is-active' ? <span className="screen-reader">Current page</span> : null}
+      {stateClass === 'is-pending' ? <span className="screen-reader">Access gate open</span> : null}
+    </a>
+  );
+}
+
 export function getStyleguideRouteView() {
+  const [homeTab, contactTab, portfolioTab, aboutTab] = SHELL_ROUTE_TABS;
+
   return {
     bodyClass: 'body styleguide-page',
     wallClassName: 'styleguide-wall w-embed',
@@ -110,6 +144,23 @@ export function getStyleguideRouteView() {
                   </div>
                 </div>
               </header>
+            </div>
+          </section>
+
+          <section className="styleguide-section" aria-labelledby="sg-shell-tabs">
+            <h2 id="sg-shell-tabs">Bottom route dock tabs</h2>
+            <p className="styleguide-section__hint">
+              Shell-owned route tabs use <code className="styleguide-doc__code">.footer_link.shell-route-tab</code>. Home is icon-only; active and pending states are seated, not separate button families.
+            </p>
+            <div className="styleguide-shell-dock-frame">
+              <nav className="shell-route-dock styleguide-shell-route-dock" aria-label="Sample bottom route dock">
+                <div className="shell-route-dock__track">
+                  {renderShellRouteTab(homeTab, 'is-active')}
+                  {renderShellRouteTab(contactTab)}
+                  {renderShellRouteTab(portfolioTab, 'is-pending')}
+                  {renderShellRouteTab(aboutTab)}
+                </div>
+              </nav>
             </div>
           </section>
 

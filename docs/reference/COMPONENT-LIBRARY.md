@@ -27,6 +27,12 @@ Treat the **route top bar** with the same rigidity as the **footer**: one shared
 
 CSS: `.ui-main-nav .footer_link` in `main.css`. **Do not** add `#contact-email:hover` / `#portfolio-modal-trigger:hover` to the generic `footer_link:hover` `color-mix` block: those IDs only exist on `.ui-main-nav` triggers, and an extra ID in that block can override the nav-specific hover ink in dark mode. Nav labels use `var(--cursor-hover-fg, …)` on hover/focus/active. **`--cursor-hover-fg` is stamped by the palette runtime** (`stampCursorCSSVar` / `maybeAutoPickCursorColor`). The styleguide bootstraps **`stampCursorContrastFromTheme()`** so the resolved theme `var(--cursor-color)` gets a WCAG-safe hover ink without running the full simulation.
 
+## Bottom route dock
+
+The public route tabs are shell chrome, not page content. Production markup is `nav.shell-route-dock` → `.shell-route-dock__track` → `a.footer_link.shell-route-tab`; icon-only Home additionally uses `.shell-route-tab--icon-only` with a screen-reader label. The route descriptors live in `react-app/app/src/lib/shell-route-tabs.js`; keep visual order, labels, route IDs, and gated route metadata there rather than duplicating them.
+
+Active tabs use `.is-active` plus `aria-current="page"`. Pending gated tabs use `.is-pending` and `data-pending="true"` while a portfolio/About gate is open, but they must not set `aria-current` until the route actually resolves. Styling stays inside the existing `.footer_link` material system: restrained filled plate, seated rim/lip, existing cursor-color hover foreground, stable dimensions, and no extra overlay layer above the portfolio sheet.
+
 ## Icon frame
 
 - `.abs-icon-btn` — square glyph frame (sound, gate back, social icons).
