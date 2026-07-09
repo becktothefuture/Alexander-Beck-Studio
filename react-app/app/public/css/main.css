@@ -1949,7 +1949,7 @@ body.dark-mode .legend-tooltip-output {
 
 /* Home: align blurb first line with legend first line (match legend top inset: container + first item padding) */
 body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
-  padding: 0;
+  padding: var(--home-description-top-inset, 0) 0 0;
   line-height: 1.4;
 }
 
@@ -1988,7 +1988,7 @@ body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
   justify-self: end;
   font-size: calc(var(--legend-font-size) + var(--abs-size-1px));
   margin-block-start: 0;
-  padding: 0;
+  padding: var(--home-description-top-inset, 0) 0 0;
 }
 
 /* Unified hover state - handled in INTERACTIVE HOVER EFFECTS section below */
@@ -3980,6 +3980,7 @@ html.is-safari .noise::before {
 
   body:not(.portfolio-page):not(.cv-page) .ui-top-main {
     gap: 40px;
+    --home-description-top-inset: clamp(4px, 0.8vw, 7px);
   }
 
   body:not(.portfolio-page):not(.cv-page) .legend__item {
@@ -4082,6 +4083,7 @@ html.is-safari .noise::before {
     grid-template-rows: auto;
     align-items: flex-start;
     gap: 20px;
+    --home-description-top-inset: clamp(4px, 1.4vw, 6px);
   }
 
   body:not(.portfolio-page):not(.cv-page) .ui-top-left,
@@ -4098,7 +4100,7 @@ html.is-safari .noise::before {
   }
 
   body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
-    padding: 0;
+    padding: var(--home-description-top-inset, 0) 0 0;
   }
   
   .legend {
@@ -6201,7 +6203,7 @@ body.dark-mode .cv-photo {
 /* CV Page Responsive: Stack vertically on mobile */
 @media (max-width: 768px) {
   body.cv-page .ui-top {
-    padding-top: clamp(12px, 3vh, 18px);
+    padding-top: clamp(4px, 1.4vh, 8px);
   }
 
   body.cv-page .ui-top-main {
@@ -6242,6 +6244,7 @@ body.dark-mode .cv-photo {
     --route-topbar-top: var(--gap-xs);
     gap: clamp(8px, 2vw, 12px);
     min-height: 44px;
+    align-items: center;
   }
 
   body.portfolio-page .route-topbar__center,
@@ -6323,7 +6326,7 @@ body.dark-mode .cv-photo {
       calc(0.94rem + var(--abs-size-1px) - 4px)
     );
     line-height: 1.3;
-    padding: 0;
+    padding: var(--home-description-top-inset, 0) 0 0;
   }
 
   body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
@@ -7190,7 +7193,26 @@ body.cv-page .cv-section--signals {
   }
 }
 
+@media (min-width: 641px) and (max-width: 900px) {
+  body.cv-page .cv-hero {
+    max-width: 39rem;
+  }
+
+  body.cv-page .cv-photo {
+    max-width: min(15.5rem, 72vw);
+    height: clamp(13rem, 36vw, 16rem);
+  }
+
+  body.cv-page .cv-intro {
+    max-width: var(--cv-measure);
+  }
+}
+
 @media (max-width: 768px) {
+  body.cv-page {
+    --cv-route-body-line-height: 1.66;
+  }
+
   body.cv-page .cv-scroll-container {
     top: calc(var(--wall-thickness) + var(--cv-header-clearance-mobile, clamp(74px, 11vh, 94px)));
     bottom: calc(var(--wall-thickness) + var(--cv-footer-clearance-mobile, clamp(172px, 24vh, 220px)));

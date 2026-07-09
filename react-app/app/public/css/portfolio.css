@@ -1410,8 +1410,8 @@ body.portfolio-page #edge-caption {
   .portfolio-deck-mount {
     --portfolio-deck-card-width: min(86%, 520px);
     --portfolio-deck-card-aspect: auto;
-    --portfolio-deck-card-height: min(62svh, 620px);
-    --portfolio-deck-center-y: 66.8%;
+    --portfolio-deck-card-height: min(60svh, 596px);
+    --portfolio-deck-center-y: 65.8%;
     --portfolio-deck-depth-gap-1: clamp(38px, 4.1vh, 46px);
     --portfolio-deck-depth-gap-2: clamp(72px, 7.6vh, 88px);
     --portfolio-deck-depth-gap-1: clamp(38px, 4.1svh, 46px);
@@ -1450,7 +1450,7 @@ body.portfolio-page #edge-caption {
   .portfolio-deck-mount .portfolio-project-label.portfolio-project-card {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
-    gap: clamp(18px, 4.2vw, 28px);
+    gap: clamp(20px, 4.4vw, 30px);
   }
 
   .portfolio-project-card__copy {
@@ -1476,9 +1476,9 @@ body.portfolio-page #edge-caption {
 
   .portfolio-deck-mount .portfolio-project-label__text,
   .portfolio-project-card__title {
-    max-width: min(12ch, 100%);
-    font-size: clamp(1.56rem, 6.6vw, 2.76rem);
-    line-height: 1.1;
+    max-width: min(12.5ch, 100%);
+    font-size: clamp(1.5rem, 6.2vw, 2.58rem);
+    line-height: 1.13;
   }
 
   .portfolio-project-card__tags {
@@ -1495,14 +1495,29 @@ body.portfolio-page #edge-caption {
 @media (max-width: 640px) {
   .portfolio-deck-mount {
     --portfolio-deck-card-width: min(86%, 520px);
-    --portfolio-deck-card-height: min(60svh, 560px);
-    --portfolio-deck-center-y: 66%;
+    --portfolio-deck-card-height: min(58svh, 540px);
+    --portfolio-deck-center-y: 65.6%;
     --portfolio-card-pad: clamp(14px, 4.4vw, 24px);
   }
 
   .portfolio-project-card__client,
   .portfolio-project-card__tags li {
-    font-size: 0.62rem;
+    font-size: 0.59rem;
+  }
+
+  .portfolio-project-card__tags {
+    gap: clamp(7px, 2vw, 10px);
+  }
+
+  .portfolio-project-card__tags li {
+    min-height: 22px;
+    padding-inline: 8px;
+  }
+
+  .portfolio-deck-mount .portfolio-project-label__text,
+  .portfolio-project-card__title {
+    font-size: clamp(1.46rem, 6vw, 2.34rem);
+    line-height: 1.14;
   }
 
   .portfolio-project-view__title {
