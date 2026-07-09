@@ -314,6 +314,32 @@ function emitSoundStateChange() {
   } catch (e) {}
 }
 
+function recordSoundDebugEvent(type, id, detail = {}) {
+  if (typeof window === 'undefined') return;
+  const key = String(id || type);
+  const store = window.__ABS_SIMULATION_AUDIO__ || {
+    total: 0,
+    byType: {},
+    byId: {},
+    events: [],
+  };
+  store.total += 1;
+  store.byType[type] = (store.byType[type] || 0) + 1;
+  store.byId[key] = (store.byId[key] || 0) + 1;
+  store.lastEvent = {
+    type,
+    id: key,
+    at: typeof performance !== 'undefined' ? performance.now() : Date.now(),
+    ...detail,
+  };
+  if (store.events.length < 80) {
+    store.events.push(store.lastEvent);
+  } else {
+    store.events[store.total % store.events.length] = store.lastEvent;
+  }
+  window.__ABS_SIMULATION_AUDIO__ = store;
+}
+
 // Voice pool for efficient sound playback (reusable nodes)
 const VOICE_POOL_SIZE = 8;
 let voicePool = [];
@@ -712,6 +738,11 @@ function playWheelClick(gain, filterHz) {
   src.start();
 }
 
+export function playDetentClick({ gain = 0.055, filterHz = 1900 } = {}) {
+  recordSoundDebugEvent('detent-playback', 'sound-engine:detent', { gain, filterHz });
+  playWheelClick(gain, filterHz);
+}
+
 function playWheelWhoosh(gain, filterHz) {
   if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
   ensureWheelBus();
@@ -892,6 +923,10 @@ export function playCollisionSound(ballRadius, intensity, xPosition = 0.5, ballI
   
   const frequency = radiusToFrequency(ballRadius);
   const clampedIntensity = Math.max(0, Math.min(1, intensity));
+  recordSoundDebugEvent('collision-playback', ballId || 'collision', {
+    intensity: clampedIntensity,
+    x: xPosition,
+  });
   
   playVoice(voice, frequency, clampedIntensity, xPosition, now);
 }

@@ -6,6 +6,7 @@ import {
   publishSimulationVisualTransitionSnapshot,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
+import { triggerDetent } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import './napoleon-point-cloud.css';
 
 const POINT_CLOUD_META_URL = withBasePath('/models/napoleon-bust/meta.json');
@@ -788,15 +789,28 @@ export function NapoleonPointCloud({
       const targetRotation = targetRotationRef.current;
       let nextX = drag.x;
       let nextY = drag.y;
+      let totalDeltaY = 0;
 
       for (const move of moves) {
         const dx = move.clientX - nextX;
         const dy = move.clientY - nextY;
         targetRotation.y += dx * DRAG_ROTATION_Y_FACTOR * influence;
         targetRotation.x = clamp(targetRotation.x + (dy * DRAG_ROTATION_X_FACTOR * influence), -0.78, 0.78);
+        totalDeltaY += dx * DRAG_ROTATION_Y_FACTOR * influence;
         nextX = move.clientX;
         nextY = move.clientY;
       }
+
+      triggerDetent({
+        id: 'napoleon-point-cloud:rotate',
+        value: targetRotation.y,
+        step: Math.PI / 18,
+        velocity: totalDeltaY,
+        minVelocity: 0.018,
+        minIntervalMs: 42,
+        gain: 0.058,
+        filterHz: 2050,
+      });
 
       drag.x = nextX;
       drag.y = nextY;

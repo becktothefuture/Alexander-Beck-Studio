@@ -14,6 +14,7 @@ import {
 } from '../visual/colors.js';
 import { randomRadiusForKaleidoscopeVh } from '../utils/ball-sizing.js';
 import { drawPebbleBody } from '../visual/pebble-body.js';
+import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 
 const TAU = Math.PI * 2;
 const EPS = 1e-6;
@@ -356,6 +357,21 @@ export function applyKaleidoscopeForces(ball, dt) {
 
   const activity = g._kaleiActivity;
   const complexity = getKaleidoscopeComplexity(g);
+
+  if (ball === g.balls[0] && activity > 0.14) {
+    const angularVelocity = speed * activity * complexity;
+    g._kaleiAudioPhase = (g._kaleiAudioPhase || 0) + angularVelocity * dt;
+    triggerDetent({
+      id: 'kaleidoscope-3:phase',
+      value: g._kaleiAudioPhase,
+      step: Math.PI / 12,
+      velocity: angularVelocity,
+      minVelocity: 0.18,
+      minIntervalMs: 58,
+      gain: 0.048,
+      filterHz: 2100,
+    });
+  }
 
   // Very subtle idle movement: gentle drift keeps scene alive when pointer rests.
   const idleBase = Math.max(0, g.kaleidoscopeIdleDrift ?? 0.012);

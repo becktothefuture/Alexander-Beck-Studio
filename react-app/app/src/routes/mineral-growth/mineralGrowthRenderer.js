@@ -2,6 +2,10 @@ import {
   createIndexedSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
+import {
+  triggerDetent,
+  triggerPressure,
+} from '../../legacy/modules/audio/simulation-audio-adapter.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -1202,6 +1206,7 @@ export function createMineralGrowthRenderer({
   let startedAt = 0;
   let running = false;
   let frameMs = 0;
+  let lastAudioActiveCount = 0;
   let lastMetrics = {
     activeCount: 0,
     targetCount: 0,
@@ -1281,6 +1286,7 @@ export function createMineralGrowthRenderer({
       startedAt = performance.now();
       lastFrameAt = 0;
       lastRenderAt = 0;
+      lastAudioActiveCount = 0;
     }
     return { config, theme };
   }
@@ -1343,6 +1349,29 @@ export function createMineralGrowthRenderer({
     lastFrameAt = now;
 
     updateSway(state, config, metrics, pointer, now, dt, activeCount, growthProgress, reducedMotion);
+    if (activeCount > lastAudioActiveCount) {
+      triggerDetent({
+        id: 'mineral-growth:accretion',
+        value: activeCount,
+        step: 18,
+        velocity: activeCount - lastAudioActiveCount,
+        minVelocity: 1,
+        minIntervalMs: 90,
+        gain: 0.05,
+        filterHz: 2400,
+      });
+      lastAudioActiveCount = activeCount;
+    }
+    const pointerSpeed = Math.hypot(pointer.vx, pointer.vy);
+    if (pointer.inside && pointerSpeed > 300) {
+      triggerPressure({
+        id: 'mineral-growth:pointer-bend',
+        intensity: clamp(pointerSpeed / 1200, 0.58, 0.82),
+        x: clamp(pointer.x / Math.max(1, metrics.cssWidth), 0, 1),
+        radius: 16,
+        minIntervalMs: 220,
+      });
+    }
     const rendered = renderState(ctx, state, metrics, theme, now, activeCount, elapsed, duration, {
       transparentBackground,
       getVisualScaleAt: visualTransition.getScaleAt,

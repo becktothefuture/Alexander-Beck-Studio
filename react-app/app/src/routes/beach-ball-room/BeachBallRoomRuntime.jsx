@@ -12,6 +12,10 @@ import {
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
 import {
+  triggerImpact,
+  triggerRelease,
+} from '../../legacy/modules/audio/simulation-audio-adapter.js';
+import {
   BEACH_BALL_ROOM_DEFAULT_SETTINGS,
   clampBeachBallRoomInteger,
   clampBeachBallRoomNumber,
@@ -778,6 +782,13 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
           container.dataset.lastWallHit = 'back';
         }
       }
+      triggerImpact({
+        id: `beach-ball-room:${axis}-wall`,
+        radius: 34,
+        intensity: Math.min(1, Math.max(0.58, Math.abs(component) / 3.6)),
+        x: 0.5,
+        minIntervalMs: axis === 'z' ? 160 : 120,
+      });
 
       const friction = clampBeachBallRoomNumber(settings.wallFriction, 0, 1);
       const spinBoost = clampBeachBallRoomNumber(settings.collisionSpinBoost, 0, 8);
@@ -925,6 +936,13 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     tempAngularAxis.copy(pointerState.normal).cross(ray.direction);
     angularVelocity.add(tempAngularAxis.multiplyScalar(spinStrength * impulseScale));
     capMotion();
+    triggerImpact({
+      id: 'beach-ball-room:tap',
+      radius: 32,
+      intensity: 0.72,
+      x: 0.5,
+      minIntervalMs: 120,
+    });
   }
 
   function onPointerMove(event) {
@@ -966,6 +984,13 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     pointerState.active = false;
     pointerState.pointerId = null;
     renderer.domElement.releasePointerCapture?.(event.pointerId);
+    triggerRelease({
+      id: 'beach-ball-room:release',
+      intensity: Math.min(1, Math.max(0.62, velocity.length() / 5)),
+      x: 0.5,
+      radius: 34,
+      minIntervalMs: 160,
+    });
   }
 
   function updateSettings(nextSettings, nextReducedMotion, options = {}) {

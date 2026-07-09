@@ -2,6 +2,7 @@ import {
   createIndexedSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
+import { triggerPressure } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -553,6 +554,10 @@ export function createWallRepelRenderer({
   const pointer = {
     x: 0,
     y: 0,
+    px: 0,
+    py: 0,
+    vx: 0,
+    vy: 0,
     active: false,
     inBounds: false,
     lastAt: -Infinity,
@@ -588,10 +593,26 @@ export function createWallRepelRenderer({
       pointer.inBounds = false;
       return;
     }
+    const now = performance.now();
+    const dt = Math.max(16, now - pointer.lastAt);
+    pointer.px = pointer.x;
+    pointer.py = pointer.y;
     pointer.x = nextX;
     pointer.y = nextY;
+    pointer.vx = (nextX - pointer.px) / dt * 1000;
+    pointer.vy = (nextY - pointer.py) / dt * 1000;
     pointer.inBounds = true;
-    pointer.lastAt = performance.now();
+    pointer.lastAt = now;
+    const speed = Math.hypot(pointer.vx, pointer.vy);
+    if (speed > 360) {
+      triggerPressure({
+        id: 'wall-repel:pointer-burst',
+        intensity: clamp(speed / 1400, 0.62, 0.94),
+        x: clamp(nextX / Math.max(1, rect.width), 0, 1),
+        radius: 28,
+        minIntervalMs: 150,
+      });
+    }
   }
 
   function ensureState(config, theme) {

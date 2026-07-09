@@ -7,6 +7,7 @@ import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js
 import { spawnBall } from '../physics/spawn.js';
 import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
 import { getHeroTitleCanvasCenter } from '../rendering/title-depth.js';
+import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 
 const DEFAULT_TUMBLE_SPEED = 0.65;
 const DEFAULT_TUMBLE_DAMPING = 0.9;
@@ -205,7 +206,8 @@ export function initialize3DSphere() {
       smoothMouseX: null,
       smoothMouseY: null,
       pointerWasInCanvas: false,
-      lastPointerSequence: null
+      lastPointerSequence: null,
+      audioAngle: 0
     };
 
   const pts = fibonacciSphere(count);
@@ -354,6 +356,19 @@ export function apply3DSphereForces(ball, dt) {
     // Apply coasting rotation
     const coastMatrix = axisAngleToMatrix({ x: axisX, y: axisY, z: axisZ }, coastAngle);
     state.rotationMatrix = multiplyMatrices(coastMatrix, state.rotationMatrix);
+    if (pointerInCanvas && totalAngularVel > 0.08) {
+      state.audioAngle += coastAngle;
+      triggerDetent({
+        id: '3d-sphere:orbit',
+        value: state.audioAngle,
+        step: Math.PI / 13,
+        velocity: totalAngularVel,
+        minVelocity: 0.16,
+        minIntervalMs: 52,
+        gain: 0.046,
+        filterHz: 1850,
+      });
+    }
   } else {
     // Zero out velocity when stopped to prevent micro-drift
     state.currentAngularVelX = 0;

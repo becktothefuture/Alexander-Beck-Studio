@@ -3,6 +3,11 @@ import {
   createIndexedSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
+import {
+  triggerDetent,
+  triggerPressure,
+  triggerRelease,
+} from '../../legacy/modules/audio/simulation-audio-adapter.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -608,10 +613,15 @@ export function createConceptSimulationRenderer({
   const pointer = {
     x: 0,
     y: 0,
+    px: 0,
+    py: 0,
+    vx: 0,
+    vy: 0,
     active: false,
     down: false,
     pointerId: null,
     dragBodyIndex: -1,
+    lastAt: -Infinity,
   };
   let metrics = null;
   let bodies = [];
@@ -740,6 +750,28 @@ export function createConceptSimulationRenderer({
         pushOutsideTitleReserve(body, reserve);
       }
     }
+    const pointerSpeed = Math.hypot(pointer.vx, pointer.vy);
+    const pointerFresh = pointer.active && now - pointer.lastAt < 180;
+    if (simulationId === CONCEPT_SIMULATION_IDS.APERTURE_BLOOM && pointerFresh) {
+      triggerDetent({
+        id: 'aperture-bloom:lens-ring',
+        value: (t * Number(config.speed || 0.58)) + (pointer.x * 0.006),
+        step: Math.PI / 16,
+        velocity: pointerSpeed / 480,
+        minVelocity: 0.16,
+        minIntervalMs: 58,
+        gain: 0.052,
+        filterHz: 2150,
+      });
+    } else if (isConfluence && pointerFresh && pointerSpeed > 260) {
+      triggerPressure({
+        id: 'confluence-bridges:tension',
+        intensity: clamp(pointerSpeed / 1200, 0.62, 0.9),
+        x: clamp(pointer.x / Math.max(1, metrics.cssWidth), 0, 1),
+        radius: 22,
+        minIntervalMs: 160,
+      });
+    }
     render();
   }
 
@@ -778,9 +810,18 @@ export function createConceptSimulationRenderer({
 
   function updatePointerFromEvent(event) {
     const rect = canvas.getBoundingClientRect();
-    pointer.x = event.clientX - rect.left;
-    pointer.y = event.clientY - rect.top;
+    const now = performance.now();
+    const nextX = event.clientX - rect.left;
+    const nextY = event.clientY - rect.top;
+    const dt = Math.max(16, now - pointer.lastAt);
+    pointer.px = pointer.x;
+    pointer.py = pointer.y;
+    pointer.vx = (nextX - pointer.px) / dt * 1000;
+    pointer.vy = (nextY - pointer.py) / dt * 1000;
+    pointer.x = nextX;
+    pointer.y = nextY;
     pointer.active = true;
+    pointer.lastAt = now;
   }
 
   function findNearestDraggableBodyIndex(config) {
@@ -816,6 +857,15 @@ export function createConceptSimulationRenderer({
     pointer.dragBodyIndex = simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES
       ? findNearestDraggableBodyIndex(getConfig())
       : -1;
+    if (simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES && pointer.dragBodyIndex >= 0) {
+      triggerPressure({
+        id: 'confluence-bridges:hub-grab',
+        intensity: 0.76,
+        x: clamp(pointer.x / Math.max(1, metrics.cssWidth), 0, 1),
+        radius: 24,
+        minIntervalMs: 120,
+      });
+    }
     try {
       canvas.setPointerCapture?.(event.pointerId);
     } catch {
@@ -826,6 +876,15 @@ export function createConceptSimulationRenderer({
 
   function handlePointerUp(event) {
     updatePointerFromEvent(event);
+    if (simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES && pointer.dragBodyIndex >= 0) {
+      triggerRelease({
+        id: 'confluence-bridges:release',
+        intensity: clamp(Math.hypot(pointer.vx, pointer.vy) / 1000, 0.64, 0.9),
+        x: clamp(pointer.x / Math.max(1, metrics.cssWidth), 0, 1),
+        radius: 26,
+        minIntervalMs: 140,
+      });
+    }
     pointer.down = false;
     pointer.pointerId = null;
     pointer.dragBodyIndex = -1;

@@ -2,6 +2,7 @@ import {
   createIndexedSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
+import { triggerPressure } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 
 const TAU = Math.PI * 2;
 const SPEED_BUCKET_COUNT = 18;
@@ -1267,6 +1268,16 @@ export function createFlockOfBirdsRenderer({
 
     if (config.enabled !== false) {
       updateBirds(config, needsWarmup ? 1 / 60 : dt, now, true);
+      const pointerSpeed = Math.hypot(pointer.vx, pointer.vy);
+      if (pointer.active && pointerSpeed > 320) {
+        triggerPressure({
+          id: 'flock-of-birds:avoidance-split',
+          intensity: clamp(pointerSpeed / 1300, 0.58, 0.86),
+          x: clamp(pointer.x / Math.max(1, metrics.cssWidth), 0, 1),
+          radius: 18,
+          minIntervalMs: 180,
+        });
+      }
     }
     paintFrame(config, theme);
     metrics.lastFrameMs = performance.now() - frameStart;

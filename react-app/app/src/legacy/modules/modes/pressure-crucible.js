@@ -2,6 +2,7 @@ import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js
 import { Ball, clampBallPositionToWallInterior } from '../physics/Ball.js';
 import { MODES } from '../core/constants.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
+import { triggerPressure } from '../audio/simulation-audio-adapter.js';
 
 const TAU = Math.PI * 2;
 
@@ -218,6 +219,16 @@ function prepareFrame(g, state, dt) {
   state.pointerActive = pointerActive;
   state.pointerWasActive = pointerActive;
   if (pointerActive) state.lastPointerSequence = pointerSequence;
+
+  if (pointerActive && pointerSpeed01 > 0.16) {
+    triggerPressure({
+      id: 'pressure-crucible:dipole-wake',
+      intensity: clamp(0.58 + pointerSpeed01 * 0.34, 0.58, 0.92),
+      x: clamp(pointerPoint.x / Math.max(1, canvas.width), 0, 1),
+      radius: state.particleSize * 3.2,
+      minIntervalMs: 170,
+    });
+  }
   state.anchorX = anchor.x;
   state.anchorY = anchor.y;
   state.positiveX = pointerPoint.x + axisX * separation * 0.5;

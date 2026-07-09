@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { withBasePath } from '../../lib/base-path.js';
+import { triggerDetent } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import './spatial-scan.css';
 
 const ASSET_BASE_URL = withBasePath('/models/spatial-scan');
@@ -668,6 +669,16 @@ export function SpatialScanPointCloud({
       const dy = event.clientY - drag.y;
       targetRotation.y += dx * 0.0048 * influence;
       targetRotation.x = clamp(targetRotation.x + (dy * 0.0032 * influence), -0.58, 0.58);
+      triggerDetent({
+        id: 'spatial-scan:orbit',
+        value: targetRotation.y,
+        step: Math.PI / 16,
+        velocity: dx * 0.0048 * influence,
+        minVelocity: 0.014,
+        minIntervalMs: 54,
+        gain: 0.045,
+        filterHz: 1900,
+      });
       drag.x = event.clientX;
       drag.y = event.clientY;
       event.preventDefault();

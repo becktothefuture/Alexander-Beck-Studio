@@ -9,6 +9,7 @@ import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { getSimulationVisibleInsetPx } from '../utils/frame-geometry.js';
+import { triggerPressure } from '../audio/simulation-audio-adapter.js';
 
 // Emission timer for continuous particle spawning
 let emissionTimer = 0;
@@ -40,6 +41,13 @@ export function initializeParticleFountain() {
   
   // Reset emission timer to start continuous emission
   emissionTimer = 0;
+  triggerPressure({
+    id: 'particle-fountain:emission-start',
+    intensity: 0.66,
+    x: 0.5,
+    radius: 16,
+    minIntervalMs: 180,
+  });
 }
 
 /**
@@ -97,6 +105,13 @@ function createParticle() {
   ball.vx = velocity * Math.sin(angle);
   
   g.balls.push(ball);
+  triggerPressure({
+    id: 'particle-fountain:emission',
+    intensity: 0.6,
+    x: 0.5,
+    radius: targetRadius,
+    minIntervalMs: 220,
+  });
   return ball;
 }
 
