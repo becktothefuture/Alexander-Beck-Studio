@@ -4,10 +4,16 @@
     <style id="fade-blocking">#root,#abs-scene,#app-frame{opacity:0;visibility:hidden}</style>
     <style id="abs-critical-shell">
       html, body, #root {
-        --abs-boot-orbit-ms: 1480ms;
-        --abs-boot-color-cycle-ms: 2220ms;
-        --abs-boot-color-step-ms: 370ms;
-        --abs-boot-color-sync-ms: 0ms;
+        --abs-boot-orbit-ms: 2240ms;
+        --abs-boot-color-cycle-ms: 6720ms;
+        --abs-boot-color-step-ms: 160ms;
+        --abs-boot-color-sync-ms: 80ms;
+        --abs-boot-dot-1: #d9dddc;
+        --abs-boot-dot-2: #00a5a0;
+        --abs-boot-dot-3: #ffffff;
+        --abs-boot-dot-4: #2c96ff;
+        --abs-boot-dot-5: #ffa000;
+        --abs-boot-dot-6: #d7ff2f;
         width: 100%;
         min-height: 100%;
         margin: 0;
@@ -38,18 +44,18 @@
         top: 50%;
         left: 50%;
         z-index: 2147482999;
-        width: 4.25px;
-        height: 4.25px;
-        margin: -2.125px 0 0 -2.125px;
+        width: 4.8px;
+        height: 4.8px;
+        margin: -2.4px 0 0 -2.4px;
         border-radius: 50%;
         background: transparent;
         box-shadow:
-          0 -11.5px var(--ball-1, #b5b7b6),
-          9.95px -5.75px var(--ball-4, #00695c),
-          9.95px 5.75px var(--ball-3, #ffffff),
-          0 11.5px var(--ball-7, #0d5cb6),
-          -9.95px 5.75px var(--ball-8, #ffa000),
-          -9.95px -5.75px var(--ball-6, #d7ff2f);
+          0 -14.25px var(--abs-boot-dot-1, #d9dddc),
+          12.34px -7.125px var(--abs-boot-dot-2, #00a5a0),
+          12.34px 7.125px var(--abs-boot-dot-3, #ffffff),
+          0 14.25px var(--abs-boot-dot-4, #2c96ff),
+          -12.34px 7.125px var(--abs-boot-dot-5, #ffa000),
+          -12.34px -7.125px var(--abs-boot-dot-6, #d7ff2f);
         animation:
           absCriticalBootOrbit var(--abs-boot-orbit-ms) linear infinite,
           absCriticalBootColorShift var(--abs-boot-color-cycle-ms) steps(1, end) infinite;
@@ -100,8 +106,8 @@
       }
 
       #abs-boot-spinner {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
         position: relative;
         box-sizing: border-box;
         animation: absBootOrbit var(--abs-boot-orbit-ms) linear infinite;
@@ -111,19 +117,19 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 4.25px;
-        height: 4.25px;
-        margin: -2.125px 0 0 -2.125px;
+        width: 4.8px;
+        height: 4.8px;
+        margin: -2.4px 0 0 -2.4px;
         border-radius: 50%;
-        transform: rotate(var(--abs-dot-angle)) translateY(-11.5px);
+        transform: rotate(var(--abs-dot-angle)) translateY(-14.25px);
       }
 
-      .abs-boot-dot:nth-child(1) { --abs-dot-color-delay: 0ms; }
-      .abs-boot-dot:nth-child(2) { --abs-dot-color-delay: -370ms; }
-      .abs-boot-dot:nth-child(3) { --abs-dot-color-delay: -740ms; }
-      .abs-boot-dot:nth-child(4) { --abs-dot-color-delay: -1110ms; }
-      .abs-boot-dot:nth-child(5) { --abs-dot-color-delay: -1480ms; }
-      .abs-boot-dot:nth-child(6) { --abs-dot-color-delay: -1850ms; }
+      .abs-boot-dot:nth-child(1) { --abs-dot-color-delay: -80ms; }
+      .abs-boot-dot:nth-child(2) { --abs-dot-color-delay: -240ms; }
+      .abs-boot-dot:nth-child(3) { --abs-dot-color-delay: -400ms; }
+      .abs-boot-dot:nth-child(4) { --abs-dot-color-delay: -560ms; }
+      .abs-boot-dot:nth-child(5) { --abs-dot-color-delay: -720ms; }
+      .abs-boot-dot:nth-child(6) { --abs-dot-color-delay: -880ms; }
 
       .abs-boot-dot::before {
         content: "";
@@ -139,94 +145,93 @@
       }
 
       @keyframes absBootOrbit {
-        0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.12, 0, 0.18, 1); }
-        12% { transform: rotate(54deg); animation-timing-function: cubic-bezier(0.58, 0, 0.42, 1); }
-        24% { transform: rotate(88deg); animation-timing-function: cubic-bezier(0.16, 0, 0.16, 1); }
-        39% { transform: rotate(162deg); animation-timing-function: cubic-bezier(0.55, 0, 0.38, 1); }
-        55% { transform: rotate(208deg); animation-timing-function: cubic-bezier(0.16, 0, 0.18, 1); }
-        73% { transform: rotate(302deg); animation-timing-function: cubic-bezier(0.5, 0, 0.36, 1); }
+        0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.42, 0, 0.28, 1); }
+        18% { transform: rotate(56deg); animation-timing-function: cubic-bezier(0.25, 0, 0.22, 1); }
+        36% { transform: rotate(132deg); animation-timing-function: cubic-bezier(0.42, 0, 0.32, 1); }
+        58% { transform: rotate(210deg); animation-timing-function: cubic-bezier(0.2, 0, 0.2, 1); }
+        78% { transform: rotate(300deg); animation-timing-function: cubic-bezier(0.46, 0, 0.36, 1); }
         100% { transform: rotate(360deg); }
       }
 
       @keyframes absCriticalBootOrbit {
-        0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.12, 0, 0.18, 1); }
-        12% { transform: rotate(54deg); animation-timing-function: cubic-bezier(0.58, 0, 0.42, 1); }
-        24% { transform: rotate(88deg); animation-timing-function: cubic-bezier(0.16, 0, 0.16, 1); }
-        39% { transform: rotate(162deg); animation-timing-function: cubic-bezier(0.55, 0, 0.38, 1); }
-        55% { transform: rotate(208deg); animation-timing-function: cubic-bezier(0.16, 0, 0.18, 1); }
-        73% { transform: rotate(302deg); animation-timing-function: cubic-bezier(0.5, 0, 0.36, 1); }
+        0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.42, 0, 0.28, 1); }
+        18% { transform: rotate(56deg); animation-timing-function: cubic-bezier(0.25, 0, 0.22, 1); }
+        36% { transform: rotate(132deg); animation-timing-function: cubic-bezier(0.42, 0, 0.32, 1); }
+        58% { transform: rotate(210deg); animation-timing-function: cubic-bezier(0.2, 0, 0.2, 1); }
+        78% { transform: rotate(300deg); animation-timing-function: cubic-bezier(0.46, 0, 0.36, 1); }
         100% { transform: rotate(360deg); }
       }
 
       @keyframes absCriticalBootColorShift {
-        0%, 15.99%, 100% {
+        0%, 63.99%, 82%, 100% {
           box-shadow:
-            0 -11.5px var(--ball-1, #b5b7b6),
-            9.95px -5.75px var(--ball-4, #00695c),
-            9.95px 5.75px var(--ball-3, #ffffff),
-            0 11.5px var(--ball-7, #0d5cb6),
-            -9.95px 5.75px var(--ball-8, #ffa000),
-            -9.95px -5.75px var(--ball-6, #d7ff2f);
+            0 -14.25px var(--abs-boot-dot-1, #d9dddc),
+            12.34px -7.125px var(--abs-boot-dot-2, #00a5a0),
+            12.34px 7.125px var(--abs-boot-dot-3, #ffffff),
+            0 14.25px var(--abs-boot-dot-4, #2c96ff),
+            -12.34px 7.125px var(--abs-boot-dot-5, #ffa000),
+            -12.34px -7.125px var(--abs-boot-dot-6, #d7ff2f);
         }
-        16.66%, 32.99% {
+        67% {
           box-shadow:
-            0 -11.5px var(--ball-4, #00695c),
-            9.95px -5.75px var(--ball-3, #ffffff),
-            9.95px 5.75px var(--ball-7, #0d5cb6),
-            0 11.5px var(--ball-8, #ffa000),
-            -9.95px 5.75px var(--ball-6, #d7ff2f),
-            -9.95px -5.75px var(--ball-1, #b5b7b6);
+            0 -14.25px var(--abs-boot-dot-2, #00a5a0),
+            12.34px -7.125px var(--abs-boot-dot-3, #ffffff),
+            12.34px 7.125px var(--abs-boot-dot-4, #2c96ff),
+            0 14.25px var(--abs-boot-dot-5, #ffa000),
+            -12.34px 7.125px var(--abs-boot-dot-6, #d7ff2f),
+            -12.34px -7.125px var(--abs-boot-dot-1, #d9dddc);
         }
-        33.33%, 49.99% {
+        70% {
           box-shadow:
-            0 -11.5px var(--ball-3, #ffffff),
-            9.95px -5.75px var(--ball-7, #0d5cb6),
-            9.95px 5.75px var(--ball-8, #ffa000),
-            0 11.5px var(--ball-6, #d7ff2f),
-            -9.95px 5.75px var(--ball-1, #b5b7b6),
-            -9.95px -5.75px var(--ball-4, #00695c);
+            0 -14.25px var(--abs-boot-dot-3, #ffffff),
+            12.34px -7.125px var(--abs-boot-dot-4, #2c96ff),
+            12.34px 7.125px var(--abs-boot-dot-5, #ffa000),
+            0 14.25px var(--abs-boot-dot-6, #d7ff2f),
+            -12.34px 7.125px var(--abs-boot-dot-1, #d9dddc),
+            -12.34px -7.125px var(--abs-boot-dot-2, #00a5a0);
         }
-        50%, 66.65% {
+        73% {
           box-shadow:
-            0 -11.5px var(--ball-7, #0d5cb6),
-            9.95px -5.75px var(--ball-8, #ffa000),
-            9.95px 5.75px var(--ball-6, #d7ff2f),
-            0 11.5px var(--ball-1, #b5b7b6),
-            -9.95px 5.75px var(--ball-4, #00695c),
-            -9.95px -5.75px var(--ball-3, #ffffff);
+            0 -14.25px var(--abs-boot-dot-4, #2c96ff),
+            12.34px -7.125px var(--abs-boot-dot-5, #ffa000),
+            12.34px 7.125px var(--abs-boot-dot-6, #d7ff2f),
+            0 14.25px var(--abs-boot-dot-1, #d9dddc),
+            -12.34px 7.125px var(--abs-boot-dot-2, #00a5a0),
+            -12.34px -7.125px var(--abs-boot-dot-3, #ffffff);
         }
-        66.66%, 83.32% {
+        76% {
           box-shadow:
-            0 -11.5px var(--ball-8, #ffa000),
-            9.95px -5.75px var(--ball-6, #d7ff2f),
-            9.95px 5.75px var(--ball-1, #b5b7b6),
-            0 11.5px var(--ball-4, #00695c),
-            -9.95px 5.75px var(--ball-3, #ffffff),
-            -9.95px -5.75px var(--ball-7, #0d5cb6);
+            0 -14.25px var(--abs-boot-dot-5, #ffa000),
+            12.34px -7.125px var(--abs-boot-dot-6, #d7ff2f),
+            12.34px 7.125px var(--abs-boot-dot-1, #d9dddc),
+            0 14.25px var(--abs-boot-dot-2, #00a5a0),
+            -12.34px 7.125px var(--abs-boot-dot-3, #ffffff),
+            -12.34px -7.125px var(--abs-boot-dot-4, #2c96ff);
         }
-        83.33%, 99.99% {
+        79% {
           box-shadow:
-            0 -11.5px var(--ball-6, #d7ff2f),
-            9.95px -5.75px var(--ball-1, #b5b7b6),
-            9.95px 5.75px var(--ball-4, #00695c),
-            0 11.5px var(--ball-3, #ffffff),
-            -9.95px 5.75px var(--ball-7, #0d5cb6),
-            -9.95px -5.75px var(--ball-8, #ffa000);
+            0 -14.25px var(--abs-boot-dot-6, #d7ff2f),
+            12.34px -7.125px var(--abs-boot-dot-1, #d9dddc),
+            12.34px 7.125px var(--abs-boot-dot-2, #00a5a0),
+            0 14.25px var(--abs-boot-dot-3, #ffffff),
+            -12.34px 7.125px var(--abs-boot-dot-4, #2c96ff),
+            -12.34px -7.125px var(--abs-boot-dot-5, #ffa000);
         }
       }
 
       @keyframes absBootDotColorShift {
-        0%, 15.99%, 100% { background: var(--ball-1, #b5b7b6); }
-        16.66%, 32.99% { background: var(--ball-4, #00695c); }
-        33.33%, 49.99% { background: var(--ball-3, #ffffff); }
-        50%, 66.65% { background: var(--ball-7, #0d5cb6); }
-        66.66%, 83.32% { background: var(--ball-8, #ffa000); }
-        83.33%, 99.99% { background: var(--ball-6, #d7ff2f); }
+        0%, 63.99%, 82%, 100% { background: var(--abs-dot-color); }
+        67% { background: var(--abs-boot-dot-2, #00a5a0); }
+        70% { background: var(--abs-boot-dot-3, #ffffff); }
+        73% { background: var(--abs-boot-dot-4, #2c96ff); }
+        76% { background: var(--abs-boot-dot-5, #ffa000); }
+        79% { background: var(--abs-boot-dot-6, #d7ff2f); }
       }
 
       @keyframes absBootDotPulse {
-        0%, 100% { transform: scale(0.86); opacity: 0.72; }
-        50% { transform: scale(1); opacity: 1; }
+        0%, 100% { transform: scale(0.82); opacity: 0.68; }
+        42% { transform: scale(1.08); opacity: 1; }
+        68% { transform: scale(0.94); opacity: 0.86; }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -244,7 +249,7 @@
 
         .abs-boot-dot::before {
           animation: none;
-          opacity: 0.86;
+          opacity: 0.9;
           transform: none;
           background: var(--abs-dot-color);
         }
@@ -375,7 +380,14 @@
           root.style.setProperty('--chrome-bg-light', frameLight);
           root.style.setProperty('--chrome-bg-dark', frameDark);
           root.style.setProperty('--chrome-bg', activeFrame);
-          root.style.setProperty('--abs-boot-spinner-color', isLightHex(activeFrame) ? 'rgba(32, 33, 36, 0.72)' : 'rgba(255, 255, 255, 0.82)');
+          var activeFrameIsLight = isLightHex(activeFrame);
+          var bootDotColors = isDark
+            ? ['#d9dddc', '#00a5a0', '#ffffff', '#2c96ff', '#ffa000', '#d7ff2f']
+            : ['#535b5b', '#00695c', '#1f2933', '#0d5cb6', '#8a4f00', '#536900'];
+          for (var dotIndex = 0; dotIndex < bootDotColors.length; dotIndex += 1) {
+            root.style.setProperty('--abs-boot-dot-' + (dotIndex + 1), bootDotColors[dotIndex]);
+          }
+          root.style.setProperty('--abs-boot-spinner-color', activeFrameIsLight ? 'rgba(32, 33, 36, 0.72)' : 'rgba(255, 255, 255, 0.82)');
           root.style.setProperty('--abs-safe-top', 'env(safe-area-inset-top, 0px)');
           root.style.setProperty('--abs-safe-right', 'env(safe-area-inset-right, 0px)');
           root.style.setProperty('--abs-safe-bottom', 'env(safe-area-inset-bottom, 0px)');
@@ -428,12 +440,12 @@
   <body class="body">
     <div id="abs-boot-overlay" aria-hidden="true">
       <div id="abs-boot-spinner" aria-hidden="true">
-        <span class="abs-boot-dot" style="--abs-dot-angle:0deg;--abs-dot-color:var(--ball-1,#b5b7b6)"></span>
-        <span class="abs-boot-dot" style="--abs-dot-angle:60deg;--abs-dot-color:var(--ball-4,#00695c)"></span>
-        <span class="abs-boot-dot" style="--abs-dot-angle:120deg;--abs-dot-color:var(--ball-3,#ffffff)"></span>
-        <span class="abs-boot-dot" style="--abs-dot-angle:180deg;--abs-dot-color:var(--ball-7,#0d5cb6)"></span>
-        <span class="abs-boot-dot" style="--abs-dot-angle:240deg;--abs-dot-color:var(--ball-8,#ffa000)"></span>
-        <span class="abs-boot-dot" style="--abs-dot-angle:300deg;--abs-dot-color:var(--ball-6,#d7ff2f)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:0deg;--abs-dot-color:var(--abs-boot-dot-1,#d9dddc)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:60deg;--abs-dot-color:var(--abs-boot-dot-2,#00a5a0)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:120deg;--abs-dot-color:var(--abs-boot-dot-3,#ffffff)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:180deg;--abs-dot-color:var(--abs-boot-dot-4,#2c96ff)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:240deg;--abs-dot-color:var(--abs-boot-dot-5,#ffa000)"></span>
+        <span class="abs-boot-dot" style="--abs-dot-angle:300deg;--abs-dot-color:var(--abs-boot-dot-6,#d7ff2f)"></span>
       </div>
     </div>
     <div id="root" inert aria-hidden="true"></div>
