@@ -1,6 +1,6 @@
 {
   "liteModeEnabled": false,
-  "chromeHarmonyMode": "auto",
+  "chromeHarmonyMode": "site",
   "autoDarkModeEnabled": true,
   "cornerShapeSquircleEnabled": true,
   "ballMassKg": 240,

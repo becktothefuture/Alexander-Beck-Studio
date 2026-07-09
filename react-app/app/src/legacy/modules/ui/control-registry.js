@@ -761,14 +761,14 @@ export const CONTROL_SECTIONS = {
         stateKey: 'chromeHarmonyMode',
         type: 'select',
         options: [
-          { value: 'auto', label: 'Auto (adapt only when needed)' },
-          { value: 'site', label: 'Site (benchmark)' },
-          { value: 'browser', label: 'Browser (force adapt)' }
+          { value: 'site', label: 'Site frame' },
+          { value: 'auto', label: 'Auto (site-safe)' },
+          { value: 'browser', label: 'Browser frame (force)' }
         ],
-        default: 'auto',
+        default: 'site',
         format: v => String(v),
         parse: v => String(v),
-        hint: 'If desktop browsers ignore theme-color, the wall adapts to match the browser UI palette.',
+        hint: 'Visible wall uses the authored site frame unless Browser frame is explicitly forced.',
         onChange: (g) => {
           setTheme(getCurrentTheme());
         }

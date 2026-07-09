@@ -2,7 +2,7 @@
   "version": 1,
   "runtime": {
     "liteModeEnabled": false,
-    "chromeHarmonyMode": "auto",
+    "chromeHarmonyMode": "site",
     "autoDarkModeEnabled": true,
     "cornerShapeSquircleEnabled": true,
     "ballMassKg": 240,
@@ -414,7 +414,7 @@
       "quoteButtonColorDark": "#202020",
       "siteFrameLight": "#242529",
       "siteFrameDark": "#141517",
-      "chromeHarmonyMode": "adaptive",
+      "chromeHarmonyMode": "site",
       "safariFrameLight": "#181818",
       "safariFrameDark": "#141517",
       "frameBorderEdgeOpacity": 0.009,

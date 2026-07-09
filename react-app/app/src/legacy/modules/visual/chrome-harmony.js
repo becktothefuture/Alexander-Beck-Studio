@@ -83,6 +83,22 @@ function applyFrameColor(hex, isDark) {
   applyThemeAwareFrameColor(hex, hex, isDark);
 }
 
+function normalizeHarmonyMode(value) {
+  const mode = String(value || '').trim().toLowerCase();
+  if (mode === 'browser') return 'browser';
+  if (mode === 'site' || mode === 'adaptive') return 'site';
+  if (mode === 'auto') return 'auto';
+  return '';
+}
+
+function resolveHarmonyMode(globals, shellConfig) {
+  const runtimeMode = normalizeHarmonyMode(globals?.chromeHarmonyMode);
+  const shellMode = normalizeHarmonyMode(shellConfig?.theme?.chromeHarmonyMode);
+  if (runtimeMode === 'browser' || runtimeMode === 'site') return runtimeMode;
+  if (shellMode === 'browser' || shellMode === 'site') return shellMode;
+  return 'site';
+}
+
 function restoreSiteFrameColor(isDark) {
   const palette = resolveSiteFramePalette(isDark);
   applyThemeAwareFrameColor(palette.light, palette.dark, isDark);
@@ -111,7 +127,7 @@ function applySafariFrameColor(isDark) {
 export function applyChromeHarmony(isDark) {
   const g = getGlobals();
   const shellConfig = getShellConfig();
-  const mode = String(g.chromeHarmonyMode || 'auto');
+  const mode = resolveHarmonyMode(g, shellConfig);
   const family = detectBrowserFamily();
   const themeColorLikelyApplied = detectThemeColorLikelyApplied(family);
 
