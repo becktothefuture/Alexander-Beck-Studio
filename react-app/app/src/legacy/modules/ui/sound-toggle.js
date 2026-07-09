@@ -14,7 +14,13 @@ import {
 
 // Icon font glyphs (Tabler Icons Outline)
 const ICON_SOUND_OFF = '<i class="ti ti-volume-off" aria-hidden="true"></i>';
-const ICON_SOUND_ON = '<i class="ti ti-volume-2" aria-hidden="true"></i>';
+const ICON_SOUND_ON = `
+  <svg class="sound-toggle__icon sound-toggle__icon--on" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M5 9.25v5.5h3.6l4.6 3.55V5.7L8.6 9.25H5z" />
+    <path d="M16.15 8.6c1.4 1.55 1.4 5.25 0 6.8" />
+    <path d="M18.75 6.2c2.25 2.65 2.25 8.95 0 11.6" />
+  </svg>
+`;
 
 let buttonElement = null;
 let soundStateListenerBound = false;

@@ -9,6 +9,16 @@ export const STYLEGUIDE_ROUTE_RUNTIME = {
 
 const homeHref = buildRouteHref('home');
 
+function renderSoundOnIcon() {
+  return (
+    <svg className="sound-toggle__icon sound-toggle__icon--on" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M5 9.25v5.5h3.6l4.6 3.55V5.7L8.6 9.25H5z" />
+      <path d="M16.15 8.6c1.4 1.55 1.4 5.25 0 6.8" />
+      <path d="M18.75 6.2c2.25 2.65 2.25 8.95 0 11.6" />
+    </svg>
+  );
+}
+
 export function getStyleguideRouteView() {
   return {
     bodyClass: 'body styleguide-page',
@@ -74,6 +84,9 @@ export function getStyleguideRouteView() {
                     <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample mute" disabled>
                       <i className="ti ti-volume-off" aria-hidden="true" />
                     </button>
+                    <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample sound on" data-enabled="true" aria-pressed="true" disabled>
+                      {renderSoundOnIcon()}
+                    </button>
                   </div>
                 </div>
               </header>
@@ -91,8 +104,8 @@ export function getStyleguideRouteView() {
                     <MainNavLink>Contact</MainNavLink>
                   </nav>
                   <div className="route-topbar__right ui-top-right">
-                    <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample mute" disabled>
-                      <i className="ti ti-volume-off" aria-hidden="true" />
+                    <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample sound on" data-enabled="true" aria-pressed="true" disabled>
+                      {renderSoundOnIcon()}
                     </button>
                   </div>
                 </div>
@@ -108,6 +121,9 @@ export function getStyleguideRouteView() {
             <div className="styleguide-sample-row">
               <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample mute" disabled>
                 <i className="ti ti-volume-off" aria-hidden="true" />
+              </button>
+              <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample sound on" data-enabled="true" aria-pressed="true" disabled>
+                {renderSoundOnIcon()}
               </button>
               <a href={homeHref} className="gate-back abs-icon-btn" aria-label="Sample back">
                 <i className="ti ti-arrow-left" aria-hidden="true" />

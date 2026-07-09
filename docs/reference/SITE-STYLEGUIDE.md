@@ -47,7 +47,7 @@ Use these as references when adding siblings:
 - **Portfolio project sheet (pit):** `.portfolio-project-view__links a` — external links in the open project use the same `::before` + `--ui-chrome-button-edge` hover treatment ([`portfolio.css`](../../react-app/app/public/css/portfolio.css))
 - **Legend active:** `.legend__item--active::before` — solid fill + rim; label uses `cursor-hover-fg`
 
-**Sound toggle specifics:** When the control sits in `#sound-toggle-slot` or `.portfolio-sound-slot`, the **slot** must allow hits if a parent uses `pointer-events: none` (set **`pointer-events: auto`** on the slot). Hover/focus color should not lose to `[data-enabled="true"]` resting color—use explicit `.sound-toggle.abs-icon-btn:hover` / `:focus-visible` rules if needed.
+**Sound toggle specifics:** When the control sits in `#sound-toggle-slot` or `.portfolio-sound-slot`, the **slot** must allow hits if a parent uses `pointer-events: none` (set **`pointer-events: auto`** on the slot). Hover/focus color should not lose to `[data-enabled="true"]` resting color—use explicit `.sound-toggle.abs-icon-btn:hover` / `:focus-visible` rules if needed. Active sound uses persistent `cursor-color` plus a colored outline and a contained `sound-toggle__icon--on` SVG.
 
 ### 1.4 Route top bar (shell strip — same discipline as the footer)
 

@@ -2793,9 +2793,11 @@ button.abs-meta-btn,
   pointer-events: auto;
   background: none;
   border: none;
+  box-shadow: none;
   transition:
     transform 0.15s var(--ease-organic),
-    filter 0.15s var(--ease-organic);
+    filter 0.15s var(--ease-organic),
+    box-shadow var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
 
 .sound-toggle:active {
@@ -2806,6 +2808,17 @@ button.abs-meta-btn,
 .sound-toggle[data-enabled="true"] {
   /* Persistent "sound ON" signal — uses current cursor color */
   color: var(--cursor-color, var(--link-hover-color));
+  box-shadow:
+    0 0 0 var(--abs-size-1px) color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 76%, transparent),
+    inset 0 0 0 var(--abs-size-1px) color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 42%, transparent);
+}
+
+.sound-toggle__icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* No hover dot for sound toggle (two-state only) */
