@@ -25,6 +25,19 @@
       "summary": "Original circle-material field and baseline for the site language."
     },
     {
+      "id": "shapes",
+      "name": "Shapes",
+      "chapter": "SHAPES",
+      "stage": "daily-rotation",
+      "surface": "home-mode",
+      "origin": "core-site",
+      "introducedOn": "2026-07-09",
+      "launchPath": "/index.html?mode=shapes",
+      "includeInNarrative": true,
+      "reviewStatus": "candidate",
+      "summary": "Graphic design primitives and BECK letterforms drop in from above as mixed-size thick rubber dot bodies with grab and sweep interactions."
+    },
+    {
       "id": "flies",
       "name": "Light Swarm",
       "chapter": "LIGHT SWARM",

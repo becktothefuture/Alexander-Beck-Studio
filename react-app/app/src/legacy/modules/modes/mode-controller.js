@@ -46,6 +46,7 @@ const MODE_NAMES = {
   'mineral-growth': 'Mineral Bloom',
   'flubber-blob': 'Soft Blob',
   'weave-field': 'Weave Field',
+  shapes: 'Shapes',
   'pressure-crucible': 'Pressure Field',
   'particle-fountain': 'Particle Fountain',
   'napoleon-point-cloud': 'Bust Cloud',
@@ -180,6 +181,14 @@ const MODE_REGISTRY = {
       force: 'applyWeaveFieldForces'
     }
   },
+  [MODES.SHAPES]: {
+    load: () => import('./shapes.js'),
+    hooks: {
+      initialize: 'initializeShapes',
+      force: 'applyShapesForces',
+      customStep: 'stepShapes'
+    }
+  },
   [MODES.PRESSURE_CRUCIBLE]: {
     load: () => import('./pressure-crucible.js'),
     hooks: {
@@ -289,6 +298,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.ELASTIC_CENTER: return globals.tensionLoomWarmupFrames ?? 8;
     case MODES.FLUBBER_BLOB: return globals.flubberBlobWarmupFrames ?? 10;
     case MODES.WEAVE_FIELD: return globals.weaveFieldWarmupFrames ?? 0;
+    case MODES.SHAPES: return globals.shapesWarmupFrames ?? 0;
     case MODES.PRESSURE_CRUCIBLE: return globals.pressureCrucibleWarmupFrames ?? 0;
     case MODES.PARTICLE_FOUNTAIN: return globals.particleFountainWarmupFrames ?? 0;
     default: return 10;
@@ -312,6 +322,7 @@ function applyModePhysicsState(mode, globals) {
     MODES.ELASTIC_CENTER,
     MODES.FLUBBER_BLOB,
     MODES.WEAVE_FIELD,
+    MODES.SHAPES,
     MODES.PRESSURE_CRUCIBLE
   ]);
 

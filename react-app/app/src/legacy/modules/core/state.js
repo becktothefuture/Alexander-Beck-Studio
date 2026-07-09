@@ -211,6 +211,7 @@ const state = {
     [MODES.ELASTIC_CENTER]: { desktop: 240, mobile: 150 },
     [MODES.FLUBBER_BLOB]: { desktop: 120, mobile: 52 },
     [MODES.WEAVE_FIELD]: { desktop: 132, mobile: 88 },
+    [MODES.SHAPES]: { desktop: 150, mobile: 96 },
     [MODES.PRESSURE_CRUCIBLE]: { desktop: 144, mobile: 96 },
     [MODES.STARFIELD_3D]: { desktop: 220, mobile: 150 },
     [MODES.PARALLAX_FLOAT]: { desktop: 320, mobile: 160 },
@@ -547,6 +548,19 @@ const state = {
   weaveFieldMaxSpeed: 1920,
   weaveFieldCollisionIterations: 1,
   weaveFieldWarmupFrames: 0,
+
+  // Shapes mode
+  shapesBallCount: 150,
+  shapesDotSizeMul: 1,
+  shapesDotSpacingMul: 2.08,
+  shapesGravityScale: 0.92,
+  shapesWallRestitution: 0.18,
+  shapesBodyCollisionEnabled: 1,
+  shapesPointerStrength: 21000,
+  shapesPointerRadius: 220,
+  shapesDamping: 0.978,
+  shapesMaxSpeed: 1250,
+  shapesWarmupFrames: 0,
 
   // Pressure Field mode
   pressureCrucibleBallCount: 144,
@@ -1563,6 +1577,7 @@ export function initState(config) {
   if (config.tensionLoomWarmupFrames !== undefined) state.tensionLoomWarmupFrames = clampInt(config.tensionLoomWarmupFrames, 0, 240, state.tensionLoomWarmupFrames);
   if (config.flubberBlobWarmupFrames !== undefined) state.flubberBlobWarmupFrames = clampInt(config.flubberBlobWarmupFrames, 0, 240, state.flubberBlobWarmupFrames);
   if (config.weaveFieldWarmupFrames !== undefined) state.weaveFieldWarmupFrames = clampInt(config.weaveFieldWarmupFrames, 0, 240, state.weaveFieldWarmupFrames);
+  if (config.shapesWarmupFrames !== undefined) state.shapesWarmupFrames = clampInt(config.shapesWarmupFrames, 0, 240, state.shapesWarmupFrames);
   if (config.pressureCrucibleWarmupFrames !== undefined) state.pressureCrucibleWarmupFrames = clampInt(config.pressureCrucibleWarmupFrames, 0, 240, state.pressureCrucibleWarmupFrames);
 
   if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
@@ -1968,6 +1983,18 @@ export function initState(config) {
   if (config.weaveFieldDamping !== undefined) state.weaveFieldDamping = clampNumber(config.weaveFieldDamping, 0.7, 0.995, state.weaveFieldDamping);
   if (config.weaveFieldMaxSpeed !== undefined) state.weaveFieldMaxSpeed = clampInt(config.weaveFieldMaxSpeed, 220, 2200, state.weaveFieldMaxSpeed);
   if (config.weaveFieldCollisionIterations !== undefined) state.weaveFieldCollisionIterations = clampInt(config.weaveFieldCollisionIterations, 0, 6, state.weaveFieldCollisionIterations);
+
+  // Shapes mode
+  if (config.shapesBallCount !== undefined) state.shapesBallCount = clampInt(config.shapesBallCount, 72, 240, state.shapesBallCount);
+  if (config.shapesDotSizeMul !== undefined) state.shapesDotSizeMul = clampNumber(config.shapesDotSizeMul, 0.5, 1.2, state.shapesDotSizeMul);
+  if (config.shapesDotSpacingMul !== undefined) state.shapesDotSpacingMul = clampNumber(config.shapesDotSpacingMul, 1.85, 2.5, state.shapesDotSpacingMul);
+  if (config.shapesGravityScale !== undefined) state.shapesGravityScale = clampNumber(config.shapesGravityScale, 0, 1.4, state.shapesGravityScale);
+  if (config.shapesWallRestitution !== undefined) state.shapesWallRestitution = clampNumber(config.shapesWallRestitution, 0.05, 0.95, state.shapesWallRestitution);
+  if (config.shapesBodyCollisionEnabled !== undefined) state.shapesBodyCollisionEnabled = clampInt(config.shapesBodyCollisionEnabled, 0, 1, state.shapesBodyCollisionEnabled);
+  if (config.shapesPointerStrength !== undefined) state.shapesPointerStrength = clampInt(config.shapesPointerStrength, 0, 60000, state.shapesPointerStrength);
+  if (config.shapesPointerRadius !== undefined) state.shapesPointerRadius = clampInt(config.shapesPointerRadius, 60, 420, state.shapesPointerRadius);
+  if (config.shapesDamping !== undefined) state.shapesDamping = clampNumber(config.shapesDamping, 0.86, 0.999, state.shapesDamping);
+  if (config.shapesMaxSpeed !== undefined) state.shapesMaxSpeed = clampInt(config.shapesMaxSpeed, 80, 2400, state.shapesMaxSpeed);
 
   // Pressure Field mode
   if (config.pressureCrucibleBallCount !== undefined) state.pressureCrucibleBallCount = clampInt(config.pressureCrucibleBallCount, 48, 220, state.pressureCrucibleBallCount);

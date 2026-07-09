@@ -9,9 +9,9 @@ Source of truth for mode IDs and narrative order:
 
 ## Runtime Summary
 
-- `26` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
-- `23` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
-- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `16` Daily simulations.
+- `27` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
+- `24` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
+- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `17` Daily simulations.
 - Daily Simulation selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
 - `flock-of-birds`, `wall-repel`, `mineral-growth`, `napoleon-point-cloud`, and `rift-rings` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 - `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
@@ -31,6 +31,7 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Mode | ID | Runtime status |
 | --- | --- | --- |
 | Ball Field | `pit` | Active |
+| Shapes | `shapes` | Active |
 | Portfolio Pit | `portfolio-pit` | Portfolio route only |
 | Light Swarm | `flies` | Active |
 | Weightless Drift | `weightless` | Active |
@@ -64,31 +65,32 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 ### Featured Tier (shown first)
 
 1. `pit` — BALL FIELD
-2. `flies` — LIGHT SWARM
-3. `3d-cube` — CUBE FRAME
-4. `water` — WATER FLOW
-5. `wall-repel` — REPEL ROOM
-6. `3d-sphere` — SPHERE ORBIT
-7. `napoleon-point-cloud` — BUST CLOUD
-8. `flock-of-birds` — FLOCK DRIFT
-9. `flubber-blob` — SOFT BLOB
-10. `weave-field` — WEAVE FIELD
-11. `mineral-growth` — MINERAL BLOOM
-12. `kaleidoscope-3` — KALEIDO BLOOM
-13. `bubbles` — BUBBLE LIFT
-14. `starfield-3d` — STAR FIELD
-15. `kaleidoscope-rift` — KALEIDO RIFT
-16. `rift-rings` — DEPTH RINGS
+2. `shapes` — SHAPES
+3. `flies` — LIGHT SWARM
+4. `3d-cube` — CUBE FRAME
+5. `water` — WATER FLOW
+6. `wall-repel` — REPEL ROOM
+7. `3d-sphere` — SPHERE ORBIT
+8. `napoleon-point-cloud` — BUST CLOUD
+9. `flock-of-birds` — FLOCK DRIFT
+10. `flubber-blob` — SOFT BLOB
+11. `weave-field` — WEAVE FIELD
+12. `mineral-growth` — MINERAL BLOOM
+13. `kaleidoscope-3` — KALEIDO BLOOM
+14. `bubbles` — BUBBLE LIFT
+15. `starfield-3d` — STAR FIELD
+16. `kaleidoscope-rift` — KALEIDO RIFT
+17. `rift-rings` — DEPTH RINGS
 
 ### Extended Tier (shown after Featured)
 
-17. `aperture-bloom` — APERTURE BLOOM
-18. `magnetic` — MAGNETIC FIELD
-19. `weightless` — WEIGHTLESS DRIFT
-20. `critters` — CRITTER SWARM
-21. `parallax-float` — PARALLAX DRIFT
-22. `pressure-crucible` — PRESSURE FIELD
-23. `particle-fountain` — PARTICLE FOUNTAIN
+18. `aperture-bloom` — APERTURE BLOOM
+19. `magnetic` — MAGNETIC FIELD
+20. `weightless` — WEIGHTLESS DRIFT
+21. `critters` — CRITTER SWARM
+22. `parallax-float` — PARALLAX DRIFT
+23. `pressure-crucible` — PRESSURE FIELD
+24. `particle-fountain` — PARTICLE FOUNTAIN
 
 Loop order is `Featured -> Extended -> Featured`.
 
@@ -115,6 +117,7 @@ Loop order is `Featured -> Extended -> Featured`.
 ## Behavior Snapshot (Runnable Modes)
 
 - `pit`: gravity + collisions + cursor repeller.
+- `shapes`: graphic design primitives plus `BECK` letterforms as solid multicolored thick-rubber dot-cluster bodies with crisp row-based outlines and large square/circle/plus contrast made from more same-size dots at the same spacing; shapes release from above the visible wall in ordered pairs, then fall under gravity with heavy wall/body collisions. Press a dot to pin and drag the body from that grabbed point, or drag empty wall space to sweep-push them.
 - `flies`: swarm attractor behavior with lightweight motion.
 - `weightless`: zero-gravity bounce with cursor blast-style interaction.
 - `water`: dense drag/ripple motion field.

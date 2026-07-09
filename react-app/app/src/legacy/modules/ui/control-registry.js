@@ -4625,6 +4625,117 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
+  shapes: {
+    title: 'Shapes',
+    icon: '▣',
+    mode: 'shapes',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'shapesBallCount',
+        label: 'Dot Count',
+        stateKey: 'shapesBallCount',
+        type: 'range',
+        min: 72, max: 240, step: 6,
+        default: 150,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true,
+        hint: 'Approximate dot budget used to choose crisp row patterns for the mixed-size primitives.'
+      },
+      {
+        id: 'shapesDotSizeMul',
+        label: 'Dot Size',
+        stateKey: 'shapesDotSizeMul',
+        type: 'range',
+        min: 0.5, max: 1.2, step: 0.01,
+        default: 1,
+        format: v => Number(v).toFixed(2),
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'Circle radius as a multiplier of the shared ball size.'
+      },
+      {
+        id: 'shapesDotSpacingMul',
+        label: 'Dot Spacing',
+        stateKey: 'shapesDotSpacingMul',
+        type: 'range',
+        min: 1.85, max: 2.5, step: 0.01,
+        default: 2.08,
+        format: v => Number(v).toFixed(2),
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'Consistent center spacing between circles inside each shape.'
+      },
+      {
+        id: 'shapesGravityScale',
+        label: 'Gravity',
+        stateKey: 'shapesGravityScale',
+        type: 'range',
+        min: 0, max: 1.4, step: 0.01,
+        default: 0.92,
+        format: v => Number(v).toFixed(2),
+        parse: parseFloat,
+        hint: 'Gravity applied to each compound shape body.'
+      },
+      {
+        id: 'shapesWallRestitution',
+        label: 'Wall Bounce',
+        stateKey: 'shapesWallRestitution',
+        type: 'range',
+        min: 0.05, max: 0.95, step: 0.01,
+        default: 0.18,
+        format: v => Number(v).toFixed(2),
+        parse: parseFloat,
+        hint: 'How much velocity each dot-body keeps after bouncing off the wall.'
+      },
+      {
+        id: 'shapesBodyCollisionEnabled',
+        label: 'Body Collisions',
+        stateKey: 'shapesBodyCollisionEnabled',
+        type: 'toggle',
+        default: 1,
+        format: v => Number(v) !== 0 ? 'On' : 'Off',
+        parse: v => (v ? 1 : 0),
+        hint: 'Keep the eight compound shapes from passing through each other.'
+      },
+      {
+        id: 'shapesPointerRadius',
+        label: 'Pointer Radius',
+        stateKey: 'shapesPointerRadius',
+        type: 'range',
+        min: 60, max: 420, step: 5,
+        default: 220,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Empty-space drag radius that sweeps into the dot shapes.'
+      },
+      {
+        id: 'shapesPointerStrength',
+        label: 'Sweep Strength',
+        stateKey: 'shapesPointerStrength',
+        type: 'range',
+        min: 0, max: 60000, step: 1000,
+        default: 21000,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        hint: 'Strength of the empty-space drag sweep.'
+      },
+      {
+        id: 'shapesDamping',
+        label: 'Air Damping',
+        stateKey: 'shapesDamping',
+        type: 'range',
+        min: 0.86, max: 0.999, step: 0.001,
+        default: 0.978,
+        format: v => Number(v).toFixed(3),
+        parse: parseFloat,
+        hint: 'Velocity damping for the moving shape bodies.'
+      },
+      warmupFramesControl('shapesWarmupFrames')
+    ]
+  },
+
   pressureCrucible: {
     title: 'Pressure Field',
     icon: '◉',
@@ -5994,6 +6105,7 @@ export function generateModeSwitcherHTML() {
     'mineral-growth': '✺',
     'flubber-blob': '🫠',
     'weave-field': '🧵',
+    'shapes': '▣',
     'pressure-crucible': '◉',
     'particle-fountain': '⛲',
     'napoleon-point-cloud': '●',
@@ -6021,6 +6133,7 @@ export function generateModeSwitcherHTML() {
     'mineral-growth': 'Mineral Bloom',
     'flubber-blob': 'Soft Blob',
     'weave-field': 'Weave Field',
+    'shapes': 'Shapes',
     'pressure-crucible': 'Pressure Field',
     'particle-fountain': 'Particle Fountain',
     'napoleon-point-cloud': 'Bust Cloud',
@@ -6118,6 +6231,7 @@ function generateHomeModeSectionHTML() {
               'mineral-growth': '✺',
               'flubber-blob': '🫠',
               'weave-field': '🧵',
+              'shapes': '▣',
               'pressure-crucible': '◉',
               'particle-fountain': '⛲',
               'napoleon-point-cloud': '●',
@@ -6145,6 +6259,7 @@ function generateHomeModeSectionHTML() {
               'mineral-growth': 'Mineral Bloom',
               'flubber-blob': 'Soft Blob',
               'weave-field': 'Weave Field',
+              'shapes': 'Shapes',
               'pressure-crucible': 'Pressure Field',
               'particle-fountain': 'Particle Fountain',
               'napoleon-point-cloud': 'Bust Cloud',

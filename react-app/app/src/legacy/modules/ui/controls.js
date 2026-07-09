@@ -137,6 +137,7 @@ export function updateModeButtonsUI(activeMode, options = {}) {
     'mineral-growth': 'Mineral Bloom',
     'flubber-blob': 'Soft Blob',
     'weave-field': 'Weave Field',
+    'shapes': 'Shapes',
     'pressure-crucible': 'Pressure Field',
     'particle-fountain': 'Particle Fountain',
     'napoleon-point-cloud': 'Bust Cloud'

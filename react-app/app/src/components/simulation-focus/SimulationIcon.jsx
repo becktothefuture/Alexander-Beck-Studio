@@ -24,6 +24,7 @@ const ICONS = {
   'flock-of-birds': FlockIcon,
   'flubber-blob': FlubberBlobIcon,
   'weave-field': WeaveFieldIcon,
+  shapes: ShapesIcon,
   'mineral-growth': MineralGrowthIcon,
   'kaleidoscope-3': KaleidoscopeIcon,
   'kaleidoscope-rift': KaleidoscopeRiftIcon,
@@ -196,6 +197,30 @@ function WeaveFieldIcon() {
       <path {...ICON_PROPS} d="M31 10V29M31 35V38" />
       <path {...DOT_PROPS} d="M17 20C18.1046 20 19 19.1046 19 18C19 16.8954 18.1046 16 17 16C15.8954 16 15 16.8954 15 18C15 19.1046 15.8954 20 17 20Z" />
       <path {...DOT_PROPS} d="M31 32C32.1046 32 33 31.1046 33 30C33 28.8954 32.1046 28 31 28C29.8954 28 29 28.8954 29 30C29 31.1046 29.8954 32 31 32Z" />
+    </g>
+  );
+}
+
+function ShapesIcon() {
+  return (
+    <g>
+      <circle {...DOT_PROPS} cx="14" cy="16" r="2" />
+      <circle {...DOT_PROPS} cx="14" cy="22" r="2" />
+      <circle {...DOT_PROPS} cx="20" cy="22" r="2" />
+      <circle {...DOT_PROPS} cx="14" cy="28" r="2" />
+      <circle {...DOT_PROPS} cx="20" cy="28" r="2" />
+      <circle {...DOT_PROPS} cx="26" cy="28" r="2" />
+
+      <circle {...DOT_PROPS} cx="30" cy="14" r="2" />
+      <circle {...DOT_PROPS} cx="36" cy="14" r="2" />
+      <circle {...DOT_PROPS} cx="30" cy="20" r="2" />
+      <circle {...DOT_PROPS} cx="36" cy="20" r="2" />
+
+      <circle {...DOT_PROPS} cx="28" cy="33" r="2" />
+      <circle {...DOT_PROPS} cx="34" cy="31" r="2" />
+      <circle {...DOT_PROPS} cx="38" cy="26" r="2" />
+      <circle {...DOT_PROPS} cx="34" cy="37" r="2" />
+      <circle {...DOT_PROPS} cx="40" cy="35" r="2" />
     </g>
   );
 }

@@ -33,6 +33,7 @@ export const MODES = {
   MINERAL_GROWTH: 'mineral-growth',
   FLUBBER_BLOB: 'flubber-blob',
   WEAVE_FIELD: 'weave-field',
+  SHAPES: 'shapes',
   PRESSURE_CRUCIBLE: 'pressure-crucible',
   PARTICLE_FOUNTAIN: 'particle-fountain',
   NAPOLEON_POINT_CLOUD: 'napoleon-point-cloud',
@@ -98,6 +99,7 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.MINERAL_GROWTH]: 'MINERAL BLOOM',
   [MODES.FLUBBER_BLOB]: 'SOFT BLOB',
   [MODES.WEAVE_FIELD]: 'WEAVE FIELD',
+  [MODES.SHAPES]: 'SHAPES',
   [MODES.PRESSURE_CRUCIBLE]: 'PRESSURE FIELD',
   [MODES.SPHERE_3D]: 'SPHERE ORBIT',
   [MODES.CUBE_3D]: 'CUBE FRAME',
@@ -189,6 +191,10 @@ export const NARRATIVE_QUOTES = {
   [MODES.WEAVE_FIELD]: {
     quote: 'The whole is other than the sum of the parts.',
     author: 'Kurt Koffka'
+  },
+  [MODES.SHAPES]: {
+    quote: 'Less, but better.',
+    author: 'Dieter Rams'
   },
   [MODES.PRESSURE_CRUCIBLE]: {
     quote: 'The whole is other than the sum of the parts.',

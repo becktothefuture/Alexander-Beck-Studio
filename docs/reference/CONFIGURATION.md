@@ -359,6 +359,18 @@ These keys shape the shared pebble visual language used by the ball system. They
 - **`pebbleBulge`** (number, 0..1)
   - **Meaning**: Fullness versus pinch, which controls how thick or soft the body feels.
 
+### Shapes Mode
+
+These keys tune the `shapes` Daily Simulation. The mode builds basic graphic-design primitives plus four `BECK` letterforms from solid, evenly spaced, multicolored palette dots. Square, circle, and plus bodies use more same-size dots at the same spacing for size contrast and carry proportionally higher mass. Shapes and letterforms enter from above the visible wall in ordered two-body drops.
+
+- `shapesBallCount`: approximate dot budget used to choose crisp row patterns across the primitives. The `BECK` letterforms use fixed dot-matrix rows so they stay legible.
+- `shapesDotSizeMul`: circle radius multiplier against the shared ball size. `1.0` matches the baseline Pit/Water material size for every shape.
+- `shapesDotSpacingMul`: consistent center spacing between circles inside every primitive, including larger shapes.
+- `shapesGravityScale`, `shapesWallRestitution`, `shapesBodyCollisionEnabled`: compound-body gravity, low rubber bounce, and body-to-body collision behavior.
+- `shapesDamping`, `shapesMaxSpeed`: air damping and speed limits for the thick rubber shape bodies.
+- `shapesPointerRadius`, `shapesPointerStrength`: empty-space drag sweep influence; pressing a dot pins the body at that grabbed point for anchored dragging.
+- `shapesWarmupFrames`: render-frame warmup count on mode init.
+
 ---
 
 ## Balls (Per Simulation)
