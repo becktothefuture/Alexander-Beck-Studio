@@ -380,7 +380,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   // - Collisions on (prevents overlap)
   // - NO rubber wall deformation / impacts
   // - Simple bounds handling (no corner repellers, no wall wobble)
-  if (globals.currentMode === MODES.KALEIDOSCOPE) {
+  if (globals.currentMode === MODES.KALEIDOSCOPE || globals.currentMode === MODES.KALEIDOSCOPE_RIFT) {
     const kaleidoBoundsHandler = getModeBoundsHandler();
     const dt = Math.min(0.033, Math.max(0, dtSeconds));
     const len = balls.length;
@@ -440,7 +440,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     // - Standard for remaining physics modes
     let collisionStats = EMPTY_COLLISION_STATS;
     const collisionStart = isPitMode ? performance.now() : 0;
-    if (globals.currentMode === MODES.KALEIDOSCOPE) {
+    if (globals.currentMode === MODES.KALEIDOSCOPE || globals.currentMode === MODES.KALEIDOSCOPE_RIFT) {
       collisionStats = resolveCollisions(6) || EMPTY_COLLISION_STATS; // handled by kaleidoscope early-return, kept for safety
     } else if (globals.currentMode === MODES.WEAVE_FIELD) {
       const weaveIterations = Math.max(
@@ -625,6 +625,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         mode !== MODES.CUBE_3D &&
         mode !== MODES.PARALLAX_FLOAT &&
         mode !== MODES.KALEIDOSCOPE &&
+        mode !== MODES.KALEIDOSCOPE_RIFT &&
         mode !== MODES.WEAVE_FIELD &&
         mode !== MODES.PRESSURE_CRUCIBLE &&
         !isPitLikeMode(mode);

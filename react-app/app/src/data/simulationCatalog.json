@@ -256,6 +256,18 @@
       "summary": "Expansive distance-fog field built from circle points."
     },
     {
+      "id": "kaleidoscope-rift",
+      "name": "Kaleido Rift",
+      "chapter": "KALEIDO RIFT",
+      "stage": "daily-rotation",
+      "surface": "home-mode",
+      "origin": "core-site",
+      "launchPath": "/index.html?mode=kaleidoscope-rift",
+      "includeInNarrative": true,
+      "reviewStatus": "stable",
+      "summary": "Counter-rotating polar kaleidoscope with ring shear and petal-like mirrored motion."
+    },
+    {
       "id": "parallax-float",
       "name": "Parallax Drift",
       "chapter": "PARALLAX DRIFT",

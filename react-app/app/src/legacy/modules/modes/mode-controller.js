@@ -32,6 +32,7 @@ const MODE_NAMES = {
   magnetic: 'Magnetic Field',
   bubbles: 'Bubble Lift',
   'kaleidoscope-3': 'Kaleido Bloom',
+  'kaleidoscope-rift': 'Kaleido Rift',
   critters: 'Critter Swarm',
   'parallax-float': 'Parallax Drift',
   '3d-sphere': 'Sphere Orbit',
@@ -103,6 +104,15 @@ const MODE_REGISTRY = {
       initialize: 'initializeKaleidoscope',
       force: 'applyKaleidoscopeForces',
       render: 'renderKaleidoscope',
+      bounds: 'applyKaleidoscopeBounds'
+    }
+  },
+  [MODES.KALEIDOSCOPE_RIFT]: {
+    load: () => import('./kaleidoscope.js'),
+    hooks: {
+      initialize: 'initializeKaleidoscopeRift',
+      force: 'applyKaleidoscopeRiftForces',
+      render: 'renderKaleidoscopeRift',
       bounds: 'applyKaleidoscopeBounds'
     }
   },
@@ -264,6 +274,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.MAGNETIC: return globals.magneticWarmupFrames ?? 10;
     case MODES.BUBBLES: return globals.bubblesWarmupFrames ?? 10;
     case MODES.KALEIDOSCOPE: return globals.kaleidoscope3WarmupFrames ?? globals.kaleidoscopeWarmupFrames ?? 10;
+    case MODES.KALEIDOSCOPE_RIFT: return globals.kaleidoscopeRiftWarmupFrames ?? 45;
     case MODES.CRITTERS: return globals.crittersWarmupFrames ?? 10;
     case MODES.SPHERE_3D: return globals.sphere3dWarmupFrames ?? 10;
     case MODES.CUBE_3D: return globals.cube3dWarmupFrames ?? 10;
@@ -286,6 +297,7 @@ function applyModePhysicsState(mode, globals) {
     MODES.MAGNETIC,
     MODES.BUBBLES,
     MODES.KALEIDOSCOPE,
+    MODES.KALEIDOSCOPE_RIFT,
     MODES.SPHERE_3D,
     MODES.CUBE_3D,
     MODES.CRITTERS,

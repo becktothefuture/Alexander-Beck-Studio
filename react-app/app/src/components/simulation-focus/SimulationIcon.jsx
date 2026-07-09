@@ -26,6 +26,7 @@ const ICONS = {
   'weave-field': WeaveFieldIcon,
   'mineral-growth': MineralGrowthIcon,
   'kaleidoscope-3': KaleidoscopeIcon,
+  'kaleidoscope-rift': KaleidoscopeIcon,
   'beach-ball-room': BeachBallRoomIcon,
 };
 

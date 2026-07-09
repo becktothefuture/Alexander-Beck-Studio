@@ -17,6 +17,7 @@ export const MODES = {
   MAGNETIC: 'magnetic',
   BUBBLES: 'bubbles',
   KALEIDOSCOPE: 'kaleidoscope-3', // Glorious: 40-50 balls, complex morph
+  KALEIDOSCOPE_RIFT: 'kaleidoscope-rift',
   // Ball-only "critters" mode.
   CRITTERS: 'critters',
   // Parallax (depth perception) simulations
@@ -100,6 +101,7 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.SPHERE_3D]: 'SPHERE ORBIT',
   [MODES.CUBE_3D]: 'CUBE FRAME',
   [MODES.KALEIDOSCOPE]: 'KALEIDO BLOOM',
+  [MODES.KALEIDOSCOPE_RIFT]: 'KALEIDO RIFT',
   [MODES.STARFIELD_3D]: 'STAR FIELD',
   [MODES.PARALLAX_FLOAT]: 'PARALLAX DRIFT',
   [MODES.PARTICLE_FOUNTAIN]: 'PARTICLE FOUNTAIN',
@@ -191,6 +193,10 @@ export const NARRATIVE_QUOTES = {
     author: 'Kurt Koffka'
   },
   [MODES.KALEIDOSCOPE]: {
+    quote: 'Creativity takes courage.',
+    author: 'Henri Matisse'
+  },
+  [MODES.KALEIDOSCOPE_RIFT]: {
     quote: 'Creativity takes courage.',
     author: 'Henri Matisse'
   },

@@ -9,9 +9,9 @@ Source of truth for mode IDs and narrative order:
 
 ## Runtime Summary
 
-- `24` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
-- `21` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
-- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `13` Daily simulations.
+- `25` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
+- `22` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
+- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `14` Daily simulations.
 - Daily Simulation selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
 - `flock-of-birds`, `wall-repel`, `mineral-growth`, and `napoleon-point-cloud` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 - `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
@@ -38,6 +38,7 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Magnetic Field | `magnetic` | Active |
 | Bubble Lift | `bubbles` | Active |
 | Kaleido Bloom | `kaleidoscope-3` | Active |
+| Kaleido Rift | `kaleidoscope-rift` | Active |
 | Critter Swarm | `critters` | Active |
 | Parallax Drift | `parallax-float` | Active |
 | Sphere Orbit | `3d-sphere` | Active |
@@ -74,17 +75,18 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 11. `mineral-growth` — MINERAL BLOOM
 12. `kaleidoscope-3` — KALEIDO BLOOM
 13. `starfield-3d` — STAR FIELD
+14. `kaleidoscope-rift` — KALEIDO RIFT
 
 ### Extended Tier (shown after Featured)
 
-14. `aperture-bloom` — APERTURE BLOOM
-15. `bubbles` — BUBBLE LIFT
-16. `magnetic` — MAGNETIC FIELD
-17. `weightless` — WEIGHTLESS DRIFT
-18. `critters` — CRITTER SWARM
-19. `parallax-float` — PARALLAX DRIFT
-20. `pressure-crucible` — PRESSURE FIELD
-21. `particle-fountain` — PARTICLE FOUNTAIN
+15. `aperture-bloom` — APERTURE BLOOM
+16. `bubbles` — BUBBLE LIFT
+17. `magnetic` — MAGNETIC FIELD
+18. `weightless` — WEIGHTLESS DRIFT
+19. `critters` — CRITTER SWARM
+20. `parallax-float` — PARALLAX DRIFT
+21. `pressure-crucible` — PRESSURE FIELD
+22. `particle-fountain` — PARTICLE FOUNTAIN
 
 Loop order is `Featured -> Extended -> Featured`.
 
@@ -117,6 +119,7 @@ Loop order is `Featured -> Extended -> Featured`.
 - `magnetic`: attraction/repel dynamics with velocity limiting.
 - `bubbles`: buoyant rise + wobble + recycle.
 - `kaleidoscope-3`: mirrored wedge render with mode-local bounds/render path.
+- `kaleidoscope-rift`: one-wedge polar lattice mirrored into counter-rotating petals; pointer/touch movement shears rings and opens a radial rift instead of folding the full source field.
 - `critters`: locomotion-based critter behavior and local separation.
 - `parallax-float`: layered depth field with levitation/parallax response.
 - `3d-sphere`: rotating spherical point cloud.

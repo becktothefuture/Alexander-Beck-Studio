@@ -206,6 +206,7 @@ const state = {
     [MODES.MAGNETIC]: { desktop: 220, mobile: 140 },
     [MODES.BUBBLES]: { desktop: 260, mobile: 180 },
     [MODES.KALEIDOSCOPE]: { desktop: 240, mobile: 96 },
+    [MODES.KALEIDOSCOPE_RIFT]: { desktop: 64, mobile: 36 },
     [MODES.CRITTERS]: { desktop: 140, mobile: 95 },
     [MODES.ELASTIC_CENTER]: { desktop: 240, mobile: 150 },
     [MODES.FLUBBER_BLOB]: { desktop: 120, mobile: 52 },
@@ -581,12 +582,22 @@ const state = {
   // Kaleidoscope III parameters (now the only kaleidoscope mode)
   kaleidoscope3BallCount: 240,
   kaleidoscope3Wedges: 10,
-  kaleidoscope3WedgesMobile: 6,  // Reduced wedges on mobile for performance (50% fewer draw calls)
+  kaleidoscope3WedgesMobile: 5,  // Mobile uses fewer mirrored copies so touch motion reads with more space.
   kaleidoscope3Speed: 1.45,
   kaleidoscope3DotSizeVh: 0.82,
   kaleidoscope3DotAreaMul: 0.9,
   kaleidoscope3SpawnAreaMul: 0.6,
   kaleidoscope3SizeVariance: 0.45,
+  kaleidoscopeRiftBallCount: 48,
+  kaleidoscopeRiftSpokes: 8,
+  kaleidoscopeRiftSpokesMobile: 5,
+  kaleidoscopeRiftRings: 5,
+  kaleidoscopeRiftSpeed: 1.15,
+  kaleidoscopeRiftShear: 0.72,
+  kaleidoscopeRiftDotSizeVh: 1.05,
+  kaleidoscopeRiftDotAreaMul: 1.05,
+  kaleidoscopeRiftSizeVariance: 0.24,
+  kaleidoscopeRiftWarmupFrames: 45,
 
   // Parallax Drift (mouse-driven depth parallax)
   parallaxFloatGridX: 14,
@@ -1542,6 +1553,7 @@ export function initState(config) {
   if (config.magneticWarmupFrames !== undefined) state.magneticWarmupFrames = clampInt(config.magneticWarmupFrames, 0, 240, state.magneticWarmupFrames);
   if (config.bubblesWarmupFrames !== undefined) state.bubblesWarmupFrames = clampInt(config.bubblesWarmupFrames, 0, 240, state.bubblesWarmupFrames);
   if (config.kaleidoscope3WarmupFrames !== undefined) state.kaleidoscope3WarmupFrames = clampInt(config.kaleidoscope3WarmupFrames, 0, 240, state.kaleidoscope3WarmupFrames);
+  if (config.kaleidoscopeRiftWarmupFrames !== undefined) state.kaleidoscopeRiftWarmupFrames = clampInt(config.kaleidoscopeRiftWarmupFrames, 0, 240, state.kaleidoscopeRiftWarmupFrames);
   if (config.crittersWarmupFrames !== undefined) state.crittersWarmupFrames = clampInt(config.crittersWarmupFrames, 0, 240, state.crittersWarmupFrames);
   if (config.parallaxFloatWarmupFrames !== undefined) state.parallaxFloatWarmupFrames = clampInt(config.parallaxFloatWarmupFrames, 0, 240, state.parallaxFloatWarmupFrames);
   if (config.tensionLoomWarmupFrames !== undefined) state.tensionLoomWarmupFrames = clampInt(config.tensionLoomWarmupFrames, 0, 240, state.tensionLoomWarmupFrames);
@@ -1741,6 +1753,15 @@ export function initState(config) {
   if (config.kaleidoscope3DotAreaMul !== undefined) state.kaleidoscope3DotAreaMul = clampNumber(config.kaleidoscope3DotAreaMul, 0.1, 2.0, state.kaleidoscope3DotAreaMul);
   if (config.kaleidoscope3SpawnAreaMul !== undefined) state.kaleidoscope3SpawnAreaMul = clampNumber(config.kaleidoscope3SpawnAreaMul, 0.2, 2.0, state.kaleidoscope3SpawnAreaMul);
   if (config.kaleidoscope3SizeVariance !== undefined) state.kaleidoscope3SizeVariance = clampNumber(config.kaleidoscope3SizeVariance, 0, 1, state.kaleidoscope3SizeVariance);
+  if (config.kaleidoscopeRiftBallCount !== undefined) state.kaleidoscopeRiftBallCount = clampNumber(config.kaleidoscopeRiftBallCount, 8, 120, state.kaleidoscopeRiftBallCount);
+  if (config.kaleidoscopeRiftSpokes !== undefined) state.kaleidoscopeRiftSpokes = clampNumber(config.kaleidoscopeRiftSpokes, 3, 16, state.kaleidoscopeRiftSpokes);
+  if (config.kaleidoscopeRiftSpokesMobile !== undefined) state.kaleidoscopeRiftSpokesMobile = clampNumber(config.kaleidoscopeRiftSpokesMobile, 3, 10, state.kaleidoscopeRiftSpokesMobile);
+  if (config.kaleidoscopeRiftRings !== undefined) state.kaleidoscopeRiftRings = clampNumber(config.kaleidoscopeRiftRings, 2, 9, state.kaleidoscopeRiftRings);
+  if (config.kaleidoscopeRiftSpeed !== undefined) state.kaleidoscopeRiftSpeed = clampNumber(config.kaleidoscopeRiftSpeed, 0.2, 2.4, state.kaleidoscopeRiftSpeed);
+  if (config.kaleidoscopeRiftShear !== undefined) state.kaleidoscopeRiftShear = clampNumber(config.kaleidoscopeRiftShear, 0, 2, state.kaleidoscopeRiftShear);
+  if (config.kaleidoscopeRiftDotSizeVh !== undefined) state.kaleidoscopeRiftDotSizeVh = clampNumber(config.kaleidoscopeRiftDotSizeVh, 0.1, 4.0, state.kaleidoscopeRiftDotSizeVh);
+  if (config.kaleidoscopeRiftDotAreaMul !== undefined) state.kaleidoscopeRiftDotAreaMul = clampNumber(config.kaleidoscopeRiftDotAreaMul, 0.1, 2.0, state.kaleidoscopeRiftDotAreaMul);
+  if (config.kaleidoscopeRiftSizeVariance !== undefined) state.kaleidoscopeRiftSizeVariance = clampNumber(config.kaleidoscopeRiftSizeVariance, 0, 1, state.kaleidoscopeRiftSizeVariance);
   // New key: kaleidoscopeWedges (preferred). Back-compat: kaleidoscopeSegments.
   if (config.kaleidoscopeWedges !== undefined) {
     state.kaleidoscopeWedges = clampNumber(config.kaleidoscopeWedges, 3, 24, state.kaleidoscopeWedges);

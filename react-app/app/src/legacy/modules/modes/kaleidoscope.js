@@ -18,6 +18,12 @@ import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 
 const TAU = Math.PI * 2;
 const EPS = 1e-6;
+const MOBILE_SOURCE_COUNT_FACTOR = 0.46;
+const MOBILE_SOURCE_SPREAD_MUL = 1.38;
+const MOBILE_FORCE_RESPONSE_SCALE = 1.22;
+const MOBILE_MORPH_SCALE = 1.16;
+const MOBILE_TOUCH_MORPH_SCALE = 1.32;
+const RIFT_MOBILE_COUNT_FACTOR = 0.82;
 
 // Render-time smoothing state (mouse-driven rotation should ease-in/out)
 let _lastRenderMs = 0;
@@ -158,6 +164,43 @@ function getKaleidoscopeParams(g) {
   };
 }
 
+function getKaleidoscopeRiftParams(g) {
+  return {
+    count: g.kaleidoscopeRiftBallCount ?? 48,
+    spokes: g.kaleidoscopeRiftSpokes ?? 8,
+    mobileSpokes: g.kaleidoscopeRiftSpokesMobile ?? 5,
+    rings: g.kaleidoscopeRiftRings ?? 5,
+    speed: g.kaleidoscopeRiftSpeed ?? 1.15,
+    shear: g.kaleidoscopeRiftShear ?? 0.72,
+    dotSizeVh: g.kaleidoscopeRiftDotSizeVh ?? 1.05,
+    dotAreaMul: g.kaleidoscopeRiftDotAreaMul ?? 1.05,
+    sizeVariance: g.kaleidoscopeRiftSizeVariance ?? 0.24
+  };
+}
+
+function getKaleidoscopeAdjustedCount(g, baseCount) {
+  const count = getMobileAdjustedCount(baseCount);
+  if (!(g.isMobile || g.isMobileViewport)) return count;
+  return Math.max(0, Math.round(count * MOBILE_SOURCE_COUNT_FACTOR));
+}
+
+function getKaleidoscopeRiftAdjustedCount(g, baseCount) {
+  const count = getMobileAdjustedCount(baseCount);
+  if (!(g.isMobile || g.isMobileViewport)) return count;
+  return Math.max(0, Math.round(count * RIFT_MOBILE_COUNT_FACTOR));
+}
+
+function randomRadiusForKaleidoscopeRift(g) {
+  const canvas = g?.canvas;
+  const h = canvas?.height || 0;
+  const params = getKaleidoscopeRiftParams(g);
+  const vh = clamp(Number(params.dotSizeVh), 0.1, 4.0);
+  const areaMul = clamp(Number(params.dotAreaMul), 0.1, 2.0);
+  const base = Math.max(1, (vh * 0.01) * h * Math.sqrt(areaMul));
+  const variance = clamp(Number(params.sizeVariance) * 0.5, 0, 0.2);
+  return base * (1 - variance + Math.random() * variance * 2);
+}
+
 // Initialize with specific ball count (used by all kaleidoscope variants)
 function initializeKaleidoscopeWithCount(count, mode) {
   const g = getGlobals();
@@ -178,7 +221,8 @@ function initializeKaleidoscopeWithCount(count, mode) {
 
   // Get mode-specific params including spawn area multiplier
   const params = getKaleidoscopeParams(g);
-  const spawnAreaMul = clamp(params.spawnAreaMul ?? 1.0, 0.2, 2.0);
+  const isMobile = g.isMobile || g.isMobileViewport;
+  const spawnAreaMul = clamp(params.spawnAreaMul ?? 1.0, 0.2, 2.0) * (isMobile ? MOBILE_SOURCE_SPREAD_MUL : 1);
 
   // Spawn as a ring so the first frame is already "kaleidoscopic".
   // SpawnAreaMul controls density: smaller = tighter/denser, larger = more spread.
@@ -306,13 +350,67 @@ function initializeKaleidoscopeWithCount(count, mode) {
 
 export function initializeKaleidoscope() {
   const g = getGlobals();
-  const count = getMobileAdjustedCount(g.kaleidoscope3BallCount ?? g.kaleidoscopeBallCount ?? 150);
+  const count = getKaleidoscopeAdjustedCount(g, g.kaleidoscope3BallCount ?? g.kaleidoscopeBallCount ?? 150);
   initializeKaleidoscopeWithCount(count, MODES.KALEIDOSCOPE);
+}
+
+export function initializeKaleidoscopeRift() {
+  const g = getGlobals();
+  clearBalls();
+
+  const canvas = g.canvas;
+  if (!canvas) return;
+
+  const params = getKaleidoscopeRiftParams(g);
+  const count = getKaleidoscopeRiftAdjustedCount(g, params.count);
+  const clampedCount = clamp(Math.max(0, count | 0), 0, g.maxBalls || 300);
+  if (clampedCount <= 0) return;
+
+  const w = canvas.width;
+  const h = canvas.height;
+  const cx = w * 0.5;
+  const cy = h * 0.5;
+  const minDim = Math.min(w, h);
+  const isMobile = g.isMobile || g.isMobileViewport;
+  const spokes = clamp(Math.round(isMobile ? params.mobileSpokes : params.spokes), 3, 16);
+  const wedgeAngle = TAU / spokes;
+  const ringCount = clamp(Math.round(params.rings), 2, 9);
+  const slotsPerRing = Math.max(2, Math.ceil(clampedCount / ringCount));
+  const inner = minDim * (isMobile ? 0.11 : 0.09);
+  const outer = minDim * (isMobile ? 0.46 : 0.43);
+
+  g._kaleidoRift = null;
+
+  for (let i = 0; i < clampedCount; i += 1) {
+    const ring = i % ringCount;
+    const slot = Math.floor(i / ringCount);
+    const ringT = ringCount <= 1 ? 0.5 : ring / (ringCount - 1);
+    const slotOffset = (slot + 0.5 + (ring % 2) * 0.48) / slotsPerRing;
+    const theta0 = wedgeAngle * (0.13 + 0.74 * (slotOffset % 1));
+    const radiusBase = inner + (outer - inner) * Math.pow(ringT, 0.82);
+    const radius = randomRadiusForKaleidoscopeRift(g);
+    const { color, distributionIndex } = pickRandomColorWithIndex();
+    const b = new Ball(cx + Math.cos(theta0) * radiusBase, cy + Math.sin(theta0) * radiusBase, radius, color);
+    b.distributionIndex = distributionIndex;
+    b._riftRing = ring;
+    b._riftRingT = ringT;
+    b._riftTheta0 = theta0;
+    b._riftRadiusBase = radiusBase;
+    b._riftSeed = (i * 0.61803398875 + Math.random() * 0.2) * TAU;
+    b._kaleiSeed = b._riftSeed;
+    b.vx = 0;
+    b.vy = 0;
+    g.balls.push(b);
+  }
 }
 
 // Helper to check if we're in kaleidoscope mode
 function isKaleidoscopeMode(mode) {
   return mode === MODES.KALEIDOSCOPE;
+}
+
+function isKaleidoscopeRiftMode(mode) {
+  return mode === MODES.KALEIDOSCOPE_RIFT;
 }
 
 // Get complexity level for current mode (affects morph intensity)
@@ -337,7 +435,7 @@ export function applyKaleidoscopeForces(ball, dt) {
   const cy = canvas.height * 0.5;
   const unit = getViewportUnit(g);
   const speed = clamp(getKaleidoscopeParams(g).speed ?? 1.0, 0.2, 2.0);
-  const mobileResponseScale = (g.isMobile || g.isMobileViewport) ? 0.78 : 1;
+  const mobileResponseScale = (g.isMobile || g.isMobileViewport) ? MOBILE_FORCE_RESPONSE_SCALE : 1;
 
   // ───────────────────────────────────────────────────────────────────────────
   // Activity envelope: ramps up when mouse moves, decays to zero when idle.
@@ -415,6 +513,97 @@ export function applyKaleidoscopeForces(ball, dt) {
   ball.vy *= damp;
 }
 
+function updateKaleidoscopeRiftMotion(g, dt) {
+  if (!g._kaleidoRift) {
+    g._kaleidoRift = {
+      activity: { x: 0, v: 0 },
+      shear: { x: 0, v: 0 },
+      open: { x: 0, v: 0 },
+      phase: 0,
+      pointerAngle: 0,
+      lastUpdateMs: 0
+    };
+  }
+
+  const state = g._kaleidoRift;
+  const nowMs = performance.now();
+  if (state.lastUpdateMs && nowMs - state.lastUpdateMs < 1) return state;
+  const updateDt = state.lastUpdateMs
+    ? clamp((nowMs - state.lastUpdateMs) / 1000, 0, 0.05)
+    : clamp(dt, 0, 0.05);
+  state.lastUpdateMs = nowMs;
+
+  const canvas = g.canvas;
+  if (!canvas) return state;
+
+  const cx = canvas.width * 0.5;
+  const cy = canvas.height * 0.5;
+  const pointerInCanvas = g.pointerInCanvas ?? g.mouseInCanvas;
+  const inputX = Number.isFinite(g.pointerX) ? g.pointerX : g.mouseX;
+  const inputY = Number.isFinite(g.pointerY) ? g.pointerY : g.mouseY;
+  const pointerValid = pointerInCanvas && Number.isFinite(inputX) && Number.isFinite(inputY);
+  const dx = pointerValid ? inputX - cx : 0;
+  const dy = pointerValid ? inputY - cy : 0;
+  const mDistN = pointerValid
+    ? clamp(Math.hypot(dx, dy) / Math.max(1, Math.min(canvas.width, canvas.height) * 0.5), 0, 1)
+    : 0;
+  const isTouchDrag = pointerValid && g.pointerActive === true && (g.pointerType === 'touch' || g.pointerType === 'pen');
+  const recentWindowMs = isTouchDrag ? 420 : 220;
+  const movingRecently = nowMs - (g.lastPointerMoveMs || 0) < recentWindowMs;
+  const motionTarget = pointerValid
+    ? clamp(Math.max(Math.pow(mDistN, 0.75), movingRecently ? (isTouchDrag ? 0.92 : 0.74) : 0.18), 0, 1)
+    : 0;
+  const reducedMul = g.prefersReducedMotion ? 0.28 : 1;
+  const activityTarget = motionTarget * reducedMul;
+  const shearTarget = pointerValid
+    ? clamp(((dx / Math.max(1, canvas.width * 0.5)) * 0.72) + ((dy / Math.max(1, canvas.height * 0.5)) * 0.38), -1, 1) * reducedMul
+    : 0;
+
+  springTo(state.activity, activityTarget, updateDt, isTouchDrag ? 7.2 : 5.4);
+  springTo(state.shear, shearTarget, updateDt, isTouchDrag ? 6.4 : 4.8);
+  springTo(state.open, mDistN * activityTarget, updateDt, isTouchDrag ? 5.8 : 4.2);
+  if (pointerValid) state.pointerAngle = Math.atan2(dy, dx);
+
+  const params = getKaleidoscopeRiftParams(g);
+  const speed = clamp(params.speed, 0.2, 2.4);
+  const idleRate = g.prefersReducedMotion ? 0.025 : 0.12;
+  const activeRate = state.activity.x * speed * 0.34;
+  state.phase = wrapAngleSigned(state.phase + (idleRate + activeRate) * updateDt);
+
+  return state;
+}
+
+export function applyKaleidoscopeRiftForces(ball, dt) {
+  const g = getGlobals();
+  if (!isKaleidoscopeRiftMode(g.currentMode)) return;
+
+  const canvas = g.canvas;
+  if (!canvas || !ball) return;
+
+  const params = getKaleidoscopeRiftParams(g);
+  const state = updateKaleidoscopeRiftMotion(g, dt);
+  const cx = canvas.width * 0.5;
+  const cy = canvas.height * 0.5;
+  const ringT = clamp(ball._riftRingT ?? 0.5, 0, 1);
+  const ringDir = (ball._riftRing || 0) % 2 === 0 ? 1 : -1;
+  const seed = ball._riftSeed ?? 0;
+  const shear = state.shear.x * params.shear * ringDir * (0.36 + ringT * 0.9);
+  const wave = Math.sin(state.phase * 2.4 + seed + ringT * TAU) * state.open.x * 0.16;
+  const theta = (ball._riftTheta0 ?? 0) + shear + wave;
+  const radialWave = Math.cos((state.pointerAngle - theta) * 2 + seed) * state.open.x * (0.08 + ringT * 0.12);
+  const targetR = (ball._riftRadiusBase ?? Math.min(canvas.width, canvas.height) * 0.25) * (1 + radialWave);
+  const targetX = cx + Math.cos(theta) * targetR;
+  const targetY = cy + Math.sin(theta) * targetR;
+  const speed = clamp(params.speed, 0.2, 2.4);
+  const spring = 16 + speed * 16;
+  const damp = 7.5 + speed * 3.5;
+
+  ball.vx += ((targetX - ball.x) * spring - ball.vx * damp) * dt;
+  ball.vy += ((targetY - ball.y) * spring - ball.vy * damp) * dt;
+  ball.vx *= 0.996;
+  ball.vy *= 0.996;
+}
+
 export function renderKaleidoscope(ctx) {
   const g = getGlobals();
   if (!isKaleidoscopeMode(g.currentMode)) return;
@@ -432,7 +621,7 @@ export function renderKaleidoscope(ctx) {
   // Use reduced wedge count on mobile for performance (50% fewer draw calls)
   const isMobile = g.isMobile || g.isMobileViewport;
   const wedgesRaw = isMobile
-    ? (g.kaleidoscope3WedgesMobile ?? 6)
+    ? (g.kaleidoscope3WedgesMobile ?? 5)
     : (getKaleidoscopeParams(g).wedges ?? 12);
   const wedges = clamp(Math.round(wedgesRaw), 3, 24);
   const mirror = Boolean(g.kaleidoscopeMirror ?? true);
@@ -482,12 +671,16 @@ export function renderKaleidoscope(ctx) {
   const speed = clamp(getKaleidoscopeParams(g).speed ?? 1.0, 0.2, 2.0);
   const complexity = getKaleidoscopeComplexity(g);
   const movementActivity = clamp(g._kaleiActivity ?? 0, 0, 1);
-  const mobileMorphScale = isMobile ? 0.78 : 1;
+  const touchDragActive = Boolean(isMobile && pointerValid && g.pointerActive === true && (g.pointerType === 'touch' || g.pointerType === 'pen'));
+  const mobileMorphScale = isMobile
+    ? (touchDragActive ? MOBILE_TOUCH_MORPH_SCALE : MOBILE_MORPH_SCALE)
+    : 1;
+  const activityFloor = movementActivity * (touchDragActive ? 0.68 : 0.5);
   const pointerStrengthTarget = pointerValid
     ? clamp(
       Math.max(
         Math.pow(mDistN, 0.85) * mobileMorphScale,
-        movementActivity * 0.42 * mobileMorphScale
+        activityFloor * mobileMorphScale
       ),
       0,
       1
@@ -541,7 +734,7 @@ export function renderKaleidoscope(ctx) {
 
   // "Breathing" depth: as you move the mouse outward/inward, the rings zoom.
   const speed01 = clamp((speed - 0.2) / 1.8, 0, 1);
-  const zoomRange = (0.3 + 0.2 * speed01) * (isMobile ? 0.74 : 1); // desktop 0.30..0.50
+  const zoomRange = (0.3 + 0.2 * speed01) * (isMobile ? 0.94 : 1); // desktop 0.30..0.50
   const zoom = 1 - zoomRange + (1 - mDistN) * (2 * zoomRange); // maps to [1-zoomRange, 1+zoomRange]
 
   const { cos: wedgeCos, sin: wedgeSin } = getWedgeTrigCache(g, wedges, wedgeAngle);
@@ -558,7 +751,7 @@ export function renderKaleidoscope(ctx) {
     const ry = (ball.y - cy) + panY;
     // Scale radius to fill entire screen. Increased from 1.8 to 3.7 to cover full viewport
     // and beyond (accounts for expanded spawn area and ensures no empty edges).
-    const fillScale = (isMobile ? 3.45 : 3.7) * unit;
+    const fillScale = (isMobile ? 4.05 : 3.7) * unit;
     const r = Math.hypot(rx, ry) * fillScale * zoom;
     if (r < EPS) continue;
 
@@ -595,6 +788,65 @@ export function renderKaleidoscope(ctx) {
       drawPebbleBody(ctx, ball, x, y, visualRadius, ball.color, g, {
         alpha: ball.alpha < 1 ? ball.alpha : 1,
         rotationRad: ball.theta || 0,
+      });
+    }
+  }
+}
+
+export function renderKaleidoscopeRift(ctx) {
+  const g = getGlobals();
+  if (!isKaleidoscopeRiftMode(g.currentMode)) return;
+
+  const canvas = g.canvas;
+  if (!canvas) return;
+
+  const balls = g.balls;
+  const w = canvas.width;
+  const h = canvas.height;
+  const isMobile = g.isMobile || g.isMobileViewport;
+  const params = getKaleidoscopeRiftParams(g);
+  const spokesRaw = isMobile ? params.mobileSpokes : params.spokes;
+  const spokes = clamp(Math.round(spokesRaw), 3, 16);
+  const wedgeAngle = TAU / spokes;
+  const cx = getLensCenterX(canvas);
+  const cy = getLensCenterY(canvas);
+  const dt = getRenderDtSeconds();
+  const state = updateKaleidoscopeRiftMotion(g, dt);
+  const cullPad = 18 * (g.DPR || 1);
+  const period = 2 * wedgeAngle;
+  const phase = state.phase * 0.18;
+  const open = clamp(state.open.x, 0, 1);
+
+  for (let bi = 0; bi < balls.length; bi += 1) {
+    const ball = balls[bi];
+    const visualRadius = ball.r * Math.max(0, Math.min(1, ball.visualScale ?? 1));
+    if (visualRadius <= 0.05) continue;
+
+    const rx = ball.x - cx;
+    const ry = ball.y - cy;
+    let local = Math.atan2(ry, rx);
+    local = ((local % period) + period) % period;
+    if (local > wedgeAngle) local = period - local;
+    const baseR = Math.max(EPS, Math.hypot(rx, ry));
+    const ringT = clamp(ball._riftRingT ?? 0.5, 0, 1);
+    const seed = ball._riftSeed ?? 0;
+    const radiusPulse = 1 + Math.sin(state.phase * 3 + seed) * open * 0.045;
+    const drawRadius = visualRadius * (0.9 + ringT * 0.18);
+    const alpha = ball.alpha < 1 ? ball.alpha : 1;
+
+    for (let wi = 0; wi < spokes; wi += 1) {
+      const mirroredLocal = wi % 2 === 0 ? local : wedgeAngle - local;
+      const ringDrift = phase * (wi % 2 === 0 ? 1 : -1) * (0.35 + ringT);
+      const outA = wi * wedgeAngle + mirroredLocal + ringDrift;
+      const outR = baseR * radiusPulse * (1 + Math.sin(wi * 1.7 + seed + state.phase) * open * 0.025);
+      const x = cx + Math.cos(outA) * outR;
+      const y = cy + Math.sin(outA) * outR;
+
+      if (x < -cullPad || x > w + cullPad || y < -cullPad || y > h + cullPad) continue;
+
+      drawPebbleBody(ctx, ball, x, y, drawRadius, ball.color, g, {
+        alpha,
+        rotationRad: (ball.theta || 0) + outA * 0.12,
       });
     }
   }
