@@ -18,12 +18,12 @@ import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 
 const TAU = Math.PI * 2;
 const EPS = 1e-6;
-const MOBILE_SOURCE_COUNT_FACTOR = 0.46;
-const MOBILE_SOURCE_SPREAD_MUL = 1.38;
-const MOBILE_FORCE_RESPONSE_SCALE = 1.22;
-const MOBILE_MORPH_SCALE = 1.16;
-const MOBILE_TOUCH_MORPH_SCALE = 1.32;
-const RIFT_MOBILE_COUNT_FACTOR = 0.82;
+const MOBILE_SOURCE_COUNT_FACTOR = 0.44;
+const MOBILE_SOURCE_SPREAD_MUL = 1.18;
+const MOBILE_FORCE_RESPONSE_SCALE = 0.84;
+const MOBILE_MORPH_SCALE = 0.92;
+const MOBILE_TOUCH_MORPH_SCALE = 1.04;
+const RIFT_MOBILE_COUNT_FACTOR = 0.68;
 
 // Render-time smoothing state (mouse-driven rotation should ease-in/out)
 let _lastRenderMs = 0;
@@ -376,8 +376,8 @@ export function initializeKaleidoscopeRift() {
   const wedgeAngle = TAU / spokes;
   const ringCount = clamp(Math.round(params.rings), 2, 9);
   const slotsPerRing = Math.max(2, Math.ceil(clampedCount / ringCount));
-  const inner = minDim * (isMobile ? 0.11 : 0.09);
-  const outer = minDim * (isMobile ? 0.46 : 0.43);
+  const inner = minDim * (isMobile ? 0.26 : 0.22);
+  const outer = minDim * (isMobile ? 0.68 : 0.66);
 
   g._kaleidoRift = null;
 
@@ -386,8 +386,10 @@ export function initializeKaleidoscopeRift() {
     const slot = Math.floor(i / ringCount);
     const ringT = ringCount <= 1 ? 0.5 : ring / (ringCount - 1);
     const slotOffset = (slot + 0.5 + (ring % 2) * 0.48) / slotsPerRing;
-    const theta0 = wedgeAngle * (0.13 + 0.74 * (slotOffset % 1));
-    const radiusBase = inner + (outer - inner) * Math.pow(ringT, 0.82);
+    const angularJitter = (Math.random() - 0.5) * wedgeAngle * (isMobile ? 0.07 : 0.05);
+    const theta0 = wedgeAngle * (0.05 + 0.9 * (slotOffset % 1)) + angularJitter;
+    const radialJitter = (Math.random() - 0.5) * minDim * (isMobile ? 0.034 : 0.026);
+    const radiusBase = clamp(inner + (outer - inner) * Math.pow(ringT, 0.78) + radialJitter, inner, outer);
     const radius = randomRadiusForKaleidoscopeRift(g);
     const { color, distributionIndex } = pickRandomColorWithIndex();
     const b = new Ball(cx + Math.cos(theta0) * radiusBase, cy + Math.sin(theta0) * radiusBase, radius, color);
@@ -495,13 +497,13 @@ export function applyKaleidoscopeForces(ball, dt) {
   const ty = nx;
 
   // Tangential swirl accel (px/s²). The `unit` keeps it consistent across viewports.
-  const swirlA = (52 * unit) * speed * activity * mobileResponseScale;
+  const swirlA = (34 * unit) * speed * activity * mobileResponseScale;
 
   // Radial band stabilizer: each ball keeps its own orbit radius (seeded at spawn)
   // so the pattern remains distributed (no single "ring lock").
   const targetR = (ball._kaleiR0 !== undefined) ? ball._kaleiR0 : dist;
   const radialError = dist - targetR;
-  const radialA = -(radialError * (3.4 * speed * activity * mobileResponseScale));
+  const radialA = -(radialError * (2.15 * speed * activity * mobileResponseScale));
 
   // Apply accelerations
   ball.vx += (tx * swirlA + nx * radialA) * dt;
@@ -551,23 +553,24 @@ function updateKaleidoscopeRiftMotion(g, dt) {
   const recentWindowMs = isTouchDrag ? 420 : 220;
   const movingRecently = nowMs - (g.lastPointerMoveMs || 0) < recentWindowMs;
   const motionTarget = pointerValid
-    ? clamp(Math.max(Math.pow(mDistN, 0.75), movingRecently ? (isTouchDrag ? 0.92 : 0.74) : 0.18), 0, 1)
+    ? clamp(Math.max(Math.pow(mDistN, 0.82), movingRecently ? (isTouchDrag ? 0.9 : 0.72) : 0.16), 0, 1)
     : 0;
   const reducedMul = g.prefersReducedMotion ? 0.28 : 1;
   const activityTarget = motionTarget * reducedMul;
+  const openFloor = movingRecently ? (isTouchDrag ? 0.34 : 0.24) : 0;
   const shearTarget = pointerValid
     ? clamp(((dx / Math.max(1, canvas.width * 0.5)) * 0.72) + ((dy / Math.max(1, canvas.height * 0.5)) * 0.38), -1, 1) * reducedMul
     : 0;
 
-  springTo(state.activity, activityTarget, updateDt, isTouchDrag ? 7.2 : 5.4);
-  springTo(state.shear, shearTarget, updateDt, isTouchDrag ? 6.4 : 4.8);
-  springTo(state.open, mDistN * activityTarget, updateDt, isTouchDrag ? 5.8 : 4.2);
+  springTo(state.activity, activityTarget, updateDt, isTouchDrag ? 7.2 : 5.8);
+  springTo(state.shear, shearTarget, updateDt, isTouchDrag ? 6.4 : 5.2);
+  springTo(state.open, Math.max(mDistN, openFloor) * activityTarget, updateDt, isTouchDrag ? 6.2 : 5.0);
   if (pointerValid) state.pointerAngle = Math.atan2(dy, dx);
 
   const params = getKaleidoscopeRiftParams(g);
   const speed = clamp(params.speed, 0.2, 2.4);
   const idleRate = g.prefersReducedMotion ? 0.025 : 0.12;
-  const activeRate = state.activity.x * speed * 0.34;
+  const activeRate = state.activity.x * speed * 0.48;
   state.phase = wrapAngleSigned(state.phase + (idleRate + activeRate) * updateDt);
 
   return state;
@@ -587,11 +590,12 @@ export function applyKaleidoscopeRiftForces(ball, dt) {
   const ringT = clamp(ball._riftRingT ?? 0.5, 0, 1);
   const ringDir = (ball._riftRing || 0) % 2 === 0 ? 1 : -1;
   const seed = ball._riftSeed ?? 0;
-  const shear = state.shear.x * params.shear * ringDir * (0.36 + ringT * 0.9);
-  const wave = Math.sin(state.phase * 2.4 + seed + ringT * TAU) * state.open.x * 0.16;
+  const shear = state.shear.x * params.shear * ringDir * (0.52 + ringT * 1.18);
+  const wave = Math.sin(state.phase * 2.4 + seed + ringT * TAU) * state.open.x * 0.22;
   const theta = (ball._riftTheta0 ?? 0) + shear + wave;
-  const radialWave = Math.cos((state.pointerAngle - theta) * 2 + seed) * state.open.x * (0.08 + ringT * 0.12);
-  const targetR = (ball._riftRadiusBase ?? Math.min(canvas.width, canvas.height) * 0.25) * (1 + radialWave);
+  const radialWave = Math.cos((state.pointerAngle - theta) * 2 + seed) * state.open.x * (0.16 + ringT * 0.24);
+  const openExpansion = 1 + state.open.x * (0.12 + ringT * 0.2);
+  const targetR = (ball._riftRadiusBase ?? Math.min(canvas.width, canvas.height) * 0.25) * openExpansion * (1 + radialWave);
   const targetX = cx + Math.cos(theta) * targetR;
   const targetY = cy + Math.sin(theta) * targetR;
   const speed = clamp(params.speed, 0.2, 2.4);
@@ -675,7 +679,7 @@ export function renderKaleidoscope(ctx) {
   const mobileMorphScale = isMobile
     ? (touchDragActive ? MOBILE_TOUCH_MORPH_SCALE : MOBILE_MORPH_SCALE)
     : 1;
-  const activityFloor = movementActivity * (touchDragActive ? 0.68 : 0.5);
+  const activityFloor = movementActivity * (touchDragActive ? 0.4 : 0.28);
   const pointerStrengthTarget = pointerValid
     ? clamp(
       Math.max(
@@ -702,9 +706,9 @@ export function renderKaleidoscope(ctx) {
 
   // Smooth normalized pointer intent first so the visual fold reacts to motion as a glide
   // instead of binding directly to raw cursor position.
-  springTo(morph.influence, pointerStrengthTarget, dt, pointerValid ? 5.2 : 2.4);
-  springTo(morph.pointerX, pointerXNormTarget, dt, 4.4);
-  springTo(morph.pointerY, pointerYNormTarget, dt, 4.4);
+  springTo(morph.influence, pointerStrengthTarget, dt, pointerValid ? 3.8 : 2.2);
+  springTo(morph.pointerX, pointerXNormTarget, dt, 3.5);
+  springTo(morph.pointerY, pointerYNormTarget, dt, 3.5);
 
   const pointerStrength = clamp(morph.influence.x, 0, 1);
   const pointerXNorm = morph.pointerX.x;
@@ -716,12 +720,12 @@ export function renderKaleidoscope(ctx) {
   const idleSpeedScaled = idleSpeed * complexity * (g.prefersReducedMotion ? 0 : 1) * (1 - pointerStrength * 0.85);
   morph.idlePhase = wrapAngleSigned(morph.idlePhase + idleSpeedScaled * dt);
 
-  const panRangePx = Math.min(w, h) * (0.085 + 0.07 * speed) * mobileMorphScale;
-  const panStrength = (0.72 + 0.2 * complexity) * pointerStrength;
+  const panRangePx = Math.min(w, h) * (0.052 + 0.045 * speed) * mobileMorphScale;
+  const panStrength = (0.48 + 0.14 * complexity) * pointerStrength;
   const panXTarget = pointerXNorm * panRangePx * panStrength;
   const panYTarget = pointerYNorm * panRangePx * panStrength;
-  const phaseAmplitude = (0.34 + 0.11 * complexity) * mobileMorphScale;
-  const phaseOffset = ((pointerXNorm * 0.32) + (pointerYNorm * 0.18)) * mobileMorphScale;
+  const phaseAmplitude = (0.22 + 0.08 * complexity) * mobileMorphScale;
+  const phaseOffset = ((pointerXNorm * 0.2) + (pointerYNorm * 0.12)) * mobileMorphScale;
   const phaseTarget = morph.idlePhase + (mouseAngle * phaseAmplitude + phaseOffset) * pointerStrength;
 
   springTo(morph.phase, phaseTarget, dt, 4.2);
@@ -732,12 +736,12 @@ export function renderKaleidoscope(ctx) {
   const panX = morph.panX.x;
   const panY = morph.panY.x;
 
-  // "Breathing" depth: center pointer pulls material inward for the richest fill;
-  // outward pointer opens the pattern.
+  // "Breathing" depth: center pointer opens the pattern so the title stays legible;
+  // outward pointer can still tighten the fold without creating a center pile-up.
   const speed01 = clamp((speed - 0.2) / 1.8, 0, 1);
-  const zoomRange = (0.3 + 0.2 * speed01) * (isMobile ? 0.94 : 1); // desktop 0.30..0.50
+  const zoomRange = (0.16 + 0.1 * speed01) * (isMobile ? 0.86 : 1);
   const centerFill = pointerValid ? (1 - mDistN) : 0;
-  const zoom = 1 - zoomRange + mDistN * (2 * zoomRange); // center = filled, edge = open
+  const zoom = 1 + zoomRange * centerFill - zoomRange * 0.35 * mDistN;
 
   const { cos: wedgeCos, sin: wedgeSin } = getWedgeTrigCache(g, wedges, wedgeAngle);
 
@@ -746,7 +750,7 @@ export function renderKaleidoscope(ctx) {
     const ball = balls[bi];
     const visualRadius = ball.r
       * Math.max(0, Math.min(1, ball.visualScale ?? 1))
-      * (1 + centerFill * 0.18);
+      * (1 - centerFill * 0.18);
     if (visualRadius <= 0.05) continue;
     const cullMargin = visualRadius + 4 * (g.DPR || 1);
 
@@ -755,7 +759,7 @@ export function renderKaleidoscope(ctx) {
     const ry = (ball.y - cy) + panY;
     // Scale radius to fill entire screen. Increased from 1.8 to 3.7 to cover full viewport
     // and beyond (accounts for expanded spawn area and ensures no empty edges).
-    const fillScale = (isMobile ? 4.05 : 3.7) * unit * (1 - centerFill * 0.12);
+    const fillScale = (isMobile ? 3.55 : 3.35) * unit * (1 + centerFill * 0.08);
     const r = Math.hypot(rx, ry) * fillScale * zoom;
     if (r < EPS) continue;
 
@@ -818,7 +822,7 @@ export function renderKaleidoscopeRift(ctx) {
   const state = updateKaleidoscopeRiftMotion(g, dt);
   const cullPad = 18 * (g.DPR || 1);
   const period = 2 * wedgeAngle;
-  const phase = state.phase * 0.18;
+  const phase = state.phase * 0.38;
   const open = clamp(state.open.x, 0, 1);
 
   for (let bi = 0; bi < balls.length; bi += 1) {
@@ -834,15 +838,17 @@ export function renderKaleidoscopeRift(ctx) {
     const baseR = Math.max(EPS, Math.hypot(rx, ry));
     const ringT = clamp(ball._riftRingT ?? 0.5, 0, 1);
     const seed = ball._riftSeed ?? 0;
-    const radiusPulse = 1 + Math.sin(state.phase * 3 + seed) * open * 0.045;
-    const drawRadius = visualRadius * (0.9 + ringT * 0.18);
+    const radiusPulse = 1 + Math.sin(state.phase * 3 + seed) * open * 0.095;
+    const drawRadius = visualRadius * (0.76 + ringT * 0.1);
     const alpha = ball.alpha < 1 ? ball.alpha : 1;
 
     for (let wi = 0; wi < spokes; wi += 1) {
       const mirroredLocal = wi % 2 === 0 ? local : wedgeAngle - local;
       const ringDrift = phase * (wi % 2 === 0 ? 1 : -1) * (0.35 + ringT);
       const outA = wi * wedgeAngle + mirroredLocal + ringDrift;
-      const outR = baseR * radiusPulse * (1 + Math.sin(wi * 1.7 + seed + state.phase) * open * 0.025);
+      const outR = baseR * radiusPulse
+        * (1 + open * (0.12 + ringT * 0.18))
+        * (1 + Math.sin(wi * 1.7 + seed + state.phase) * open * 0.05);
       const x = cx + Math.cos(outA) * outR;
       const y = cy + Math.sin(outA) * outR;
 

@@ -26,7 +26,7 @@ const ICONS = {
   'weave-field': WeaveFieldIcon,
   'mineral-growth': MineralGrowthIcon,
   'kaleidoscope-3': KaleidoscopeIcon,
-  'kaleidoscope-rift': KaleidoscopeIcon,
+  'kaleidoscope-rift': KaleidoscopeRiftIcon,
   bubbles: BubblesIcon,
   'beach-ball-room': BeachBallRoomIcon,
 };
@@ -218,6 +218,22 @@ function KaleidoscopeIcon() {
       <path {...DOT_PROPS} d="M35 16C36.1046 16 37 15.1046 37 14C37 12.8954 36.1046 12 35 12C33.8954 12 33 12.8954 33 14C33 15.1046 33.8954 16 35 16Z" />
       <path {...DOT_PROPS} d="M35 37C36.1046 37 37 36.1046 37 35C37 33.8954 36.1046 33 35 33C33.8954 33 33 33.8954 33 35C33 36.1046 33.8954 37 35 37Z" />
       <path {...DOT_PROPS} d="M14 37C15.1046 37 16 36.1046 16 35C16 33.8954 15.1046 33 14 33C12.8954 33 12 33.8954 12 35C12 36.1046 12.8954 37 14 37Z" />
+    </g>
+  );
+}
+
+function KaleidoscopeRiftIcon() {
+  return (
+    <g>
+      <path {...ICON_PROPS} d="M24 9L30 20L24 25L18 20L24 9Z" />
+      <path {...ICON_PROPS} d="M24 39L18 28L24 23L30 28L24 39Z" />
+      <path {...ICON_PROPS} d="M9 24L20 18L25 24L20 30L9 24Z" />
+      <path {...ICON_PROPS} d="M39 24L28 30L23 24L28 18L39 24Z" />
+      <path {...DOT_PROPS} d="M24 26C25.1046 26 26 25.1046 26 24C26 22.8954 25.1046 22 24 22C22.8954 22 22 22.8954 22 24C22 25.1046 22.8954 26 24 26Z" />
+      <path {...DOT_PROPS} d="M16 14C17.1046 14 18 13.1046 18 12C18 10.8954 17.1046 10 16 10C14.8954 10 14 10.8954 14 12C14 13.1046 14.8954 14 16 14Z" />
+      <path {...DOT_PROPS} d="M36 20C37.1046 20 38 19.1046 38 18C38 16.8954 37.1046 16 36 16C34.8954 16 34 16.8954 34 18C34 19.1046 34.8954 20 36 20Z" />
+      <path {...DOT_PROPS} d="M31 38C32.1046 38 33 37.1046 33 36C33 34.8954 32.1046 34 31 34C29.8954 34 29 34.8954 29 36C29 37.1046 29.8954 38 31 38Z" />
+      <path {...DOT_PROPS} d="M12 33C13.1046 33 14 32.1046 14 31C14 29.8954 13.1046 29 12 29C10.8954 29 10 29.8954 10 31C10 32.1046 10.8954 33 12 33Z" />
     </g>
   );
 }
