@@ -31,12 +31,12 @@ Canonical About/CV navigation label: `About Me`. Shared navigation and gate titl
 | Key | Label | Tooltip | Source |
 |-----|-------|---------|--------|
 | legend.ariaLabel | — | Areas of expertise | contents-home.json |
-| legend.items[0] | Product Design | I turn loose product thinking into interfaces people can actually work with. | contents-home.json |
-| legend.items[1] | Experience Design | I find the snags, missing steps, and moments where the product loses people. | contents-home.json |
-| legend.items[2] | Art Direction | I give the work a visual spine, not just a nicer surface. | contents-home.json |
-| legend.items[3] | Motion & 3D | I use movement and space to test what flat screens can't explain. | contents-home.json |
-| legend.items[4] | Creative Engineering | I build working sketches so ideas can be argued with properly. | contents-home.json |
-| legend.items[5] | Parametric Systems | I make rules and tools that keep variation from becoming mush. | contents-home.json |
+| legend.items[0] | Product Design | I turn ambiguous product problems into interfaces teams can build, test, and improve. | contents-home.json |
+| legend.items[1] | Experience Design | I connect user needs, product priorities, and the decisions that shape the journey. | contents-home.json |
+| legend.items[2] | Art Direction | I define the visual point of view that gives the work character, clarity, and intent. | contents-home.json |
+| legend.items[3] | Motion & 3D | I use motion and spatial prototypes to clarify ideas, interactions, and product stories. | contents-home.json |
+| legend.items[4] | Creative Engineering | I prototype with code and AI to move decisions from discussion into working form. | contents-home.json |
+| legend.items[5] | Parametric Systems | I build systems of tokens, rules, and patterns that scale without losing character. | contents-home.json |
 
 ---
 

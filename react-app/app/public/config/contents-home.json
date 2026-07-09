@@ -14,32 +14,32 @@
       {
         "colorClass": "bg-ball-1",
         "label": "Product Design",
-        "tooltip": "I turn loose product thinking into interfaces people can actually work with."
+        "tooltip": "I turn ambiguous product problems into interfaces teams can build, test, and improve."
       },
       {
         "colorClass": "bg-ball-4",
         "label": "Experience Design",
-        "tooltip": "I find the snags, missing steps, and moments where the product loses people."
+        "tooltip": "I connect user needs, product priorities, and the decisions that shape the journey."
       },
       {
         "colorClass": "bg-ball-3",
         "label": "Art Direction",
-        "tooltip": "I give the work a visual spine, not just a nicer surface."
+        "tooltip": "I define the visual point of view that gives the work character, clarity, and intent."
       },
       {
         "colorClass": "bg-ball-7",
         "label": "Motion & 3D",
-        "tooltip": "I use movement and space to test what flat screens can't explain."
+        "tooltip": "I use motion and spatial prototypes to clarify ideas, interactions, and product stories."
       },
       {
         "colorClass": "bg-ball-8",
         "label": "Creative Engineering",
-        "tooltip": "I build working sketches so ideas can be argued with properly."
+        "tooltip": "I prototype with code and AI to move decisions from discussion into working form."
       },
       {
         "colorClass": "bg-ball-6",
         "label": "Parametric Systems",
-        "tooltip": "I make rules and tools that keep variation from becoming mush."
+        "tooltip": "I build systems of tokens, rules, and patterns that scale without losing character."
       }
     ]
   },
