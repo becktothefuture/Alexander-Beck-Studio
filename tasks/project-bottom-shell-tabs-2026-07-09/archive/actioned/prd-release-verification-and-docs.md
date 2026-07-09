@@ -19,37 +19,39 @@ Close the bottom shell tabs project with documentation, visual proof, full verif
 **Description:** As a future developer, I need the shell dock contract documented in the same places as existing chrome and layer contracts.
 
 **Acceptance Criteria:**
-- [ ] `COMPONENT-LIBRARY.md` documents bottom shell tabs.
-- [ ] `SITE-STYLEGUIDE.md` documents the visual treatment and constraints.
-- [ ] `LAYER-STACKING.md` documents dock position if layer semantics changed.
-- [ ] `TRANSITION-ORCHESTRATION.md` documents route/tab state if transition behavior changed.
-- [ ] `CONFIGURATION.md` is updated if new design-system/config keys are introduced.
+- [x] `COMPONENT-LIBRARY.md` documents bottom shell tabs.
+- [x] `SITE-STYLEGUIDE.md` documents the visual treatment and constraints.
+- [x] `LAYER-STACKING.md` documents dock position if layer semantics changed.
+- [x] `TRANSITION-ORCHESTRATION.md` documents route/tab state if transition behavior changed.
+- [x] `CONFIGURATION.md` is updated if new design-system/config keys are introduced.
+
+Note: PRD 6 introduced no new design-system/config keys and no new layer semantics beyond the already-documented dock/sheet ownership, so `CONFIGURATION.md` and `LAYER-STACKING.md` required no final closeout edits.
 
 ### US-002: Run release verification
 
 **Description:** As the site owner, I want proof that the new shell works across routes, browsers, and viewports.
 
 **Acceptance Criteria:**
-- [ ] `git diff --check` passes.
-- [ ] `npm run check:site` passes.
-- [ ] `npm run certify:screens` passes.
-- [ ] Preview `audit:boot-overlay` passes.
-- [ ] Preview `audit:canvas-spa` passes.
-- [ ] Preview `audit:portfolio-gate` passes.
-- [ ] Preview Chromium and WebKit `audit:transition-flows` pass.
-- [ ] Strict Chromium and WebKit transition audits pass if route/motion behavior changed.
-- [ ] Screenshots are inspected for home, Contact, Portfolio, About, desktop, and mobile.
-- [ ] Validation scripts reflect the new UI contract: Contact route included, bottom dock selectors used, removed `#main-links` assumptions deleted, Contact modal checks updated or retired.
+- [x] `git diff --check` passes.
+- [x] `npm run check:site` passes.
+- [x] `npm run certify:screens` passes.
+- [x] Preview `audit:boot-overlay` passes.
+- [x] Preview `audit:canvas-spa` passes.
+- [x] Preview `audit:portfolio-gate` passes.
+- [x] Preview Chromium and WebKit `audit:transition-flows` pass.
+- [x] Strict Chromium and WebKit transition audits pass if route/motion behavior changed.
+- [x] Screenshots are inspected for home, Contact, Portfolio, About, desktop, and mobile.
+- [x] Validation scripts reflect the new UI contract: Contact route included, bottom dock selectors used, removed `#main-links` assumptions deleted, Contact modal checks updated or retired.
 
 ### US-003: Close the PRD packet
 
 **Description:** As a maintainer, I want the PRD packet to show what was actioned and where proof lives.
 
 **Acceptance Criteria:**
-- [ ] `progress-log.md` records each PRD status, commit, verification, and artifact path.
-- [ ] Completed PRDs move to `archive/actioned/`.
-- [ ] A read-only final reviewer checks archive/progress consistency.
-- [ ] Final closeout commit stages only intended project files.
+- [x] `progress-log.md` records each PRD status, commit, verification, and artifact path.
+- [x] Completed PRDs move to `archive/actioned/`.
+- [x] A read-only final reviewer checks archive/progress consistency.
+- [x] Final closeout commit stages only intended project files.
 
 ## 4. Functional Requirements
 

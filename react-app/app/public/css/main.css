@@ -283,8 +283,7 @@ body.body.dark-mode {
    ───────────────────────────────────────────────────────────────────────────── */
 .edge-caption {
   position: absolute;
-  /* Distance from bottom: clamps between min and max; 2vh scales with viewport, max caps at largest breakpoints */
-  bottom: clamp(var(--edge-caption-distance-min, 8px), 2vh, var(--edge-caption-distance-max, 48px));
+  bottom: calc(var(--shell-inner-window-bottom) + var(--gap-sm));
   left: 50%;
   transform: translateX(-50%);
   z-index: 3; /* Within .fade-content stacking context */
@@ -628,14 +627,14 @@ html.fonts-loading .project-detail {
 }
 
 @media (max-width: 600px) {
-  body:not(.portfolio-page):not(.cv-page) .edge-caption {
-    bottom: calc(var(--shell-route-dock-bottom) + var(--shell-route-tab-size) + var(--gap-md));
+  .edge-caption {
+    bottom: calc(var(--shell-inner-window-bottom) + var(--gap-xs));
     transform: translateX(-50%);
   }
 }
 
 @media (max-width: 475px) {
-  body:not(.portfolio-page):not(.cv-page) .edge-caption {
+  .edge-caption {
     display: none;
   }
 }
@@ -6736,9 +6735,9 @@ body.dark-mode .cv-photo {
     min-width: 8ch;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .edge-caption {
-    bottom: calc(var(--abs-safe-bottom) + (var(--ui-icon-frame-size) * 0.375));
-    transform: translate(-50%, 50%);
+  .edge-caption {
+    bottom: calc(var(--shell-inner-window-bottom) + var(--gap-xs));
+    transform: translateX(-50%);
   }
 }
 
@@ -6923,7 +6922,7 @@ body.dark-mode .cv-photo {
     padding-inline: 10px;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .edge-caption {
+  .edge-caption {
     display: none;
   }
 }

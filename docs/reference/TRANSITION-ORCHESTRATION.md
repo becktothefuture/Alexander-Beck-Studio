@@ -36,7 +36,7 @@ Canonical engineering contract for route and modal transitions.
 - The overlay is first-paint infrastructure, not route choreography. Final direct-load completion is owned by the active route family: `page-orchestrator.js` for the home canvas route, `SiteApp.jsx` for non-home shell routes, and `DailyFocusShellBridge.jsx` for route-backed Daily Focus direct loads.
 - Direct boot completion must first compose the route to final geometry, then set `data-abs-boot-state="revealing"`, release `#root`, and fade/remove the overlay.
 - Home direct loads replay the non-canvas UI entrance one RAF after the overlay is removed; SPA route transitions do not replay that entrance.
-- Home direct-load entrance order uses named groups: identity first, all six top-left legend labels in visual order, top-right context after the labels are established, then action nav and footer/support chrome. The slow stagger settles in roughly 3.9s.
+- Home direct-load entrance order uses named groups: identity first, all six top-left legend labels in visual order, top-right context after the labels are established, then footer/support chrome. The bottom route dock is persistent shell chrome and does not participate in the hidden staged home-content reveal.
 - `audit:boot-overlay` runs desktop, tablet-emulated, and mobile-emulated profiles by default; set `ABS_BOOT_AUDIT_PROFILE=desktop`, `tablet`, or `mobile` only for focused local reruns.
 - Boot helpers must no-op during `route-out` / `route-in`; SPA route transitions remain owned by `useShellRouteTransition`.
 - The localhost-only `?absBootHold=1` hook may hold the overlay for audits, then release through `window.__ABS_RELEASE_BOOT_OVERLAY__()`.
@@ -57,6 +57,7 @@ Canonical engineering contract for route and modal transitions.
 - Route view ownership is intentionally two-slot: `simulationLayer` for page-owned wall/content, and `uiLayer` for page-owned chrome/actions. Optional `heroLayer` belongs to the route simulation/content side.
 - The stable shell preserves explicit transition surfaces as implementation details: wall, hero, chrome, footer, and route secondary content.
 - Route-in restores readable groups, not selector sweeps.
+- Public route state is represented by `ShellRouteDock`: resolved route tabs set `aria-current="page"`; pending gated Portfolio/About requests use `.is-pending` / `data-pending="true"` without `aria-current` until the destination route resolves.
 - Portfolio route-in must restore hero + route UI + footer together before slider labels / pit accents become readable.
 - First readable route-in frame must already have final geometry for the hero surface inside the inner wall.
 
