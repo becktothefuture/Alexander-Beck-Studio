@@ -3,7 +3,7 @@ import {
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
 import {
-  triggerDetent,
+  triggerImpact,
   triggerPressure,
 } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 
@@ -30,6 +30,20 @@ const BODY_KIND_LEAFLET = 1;
 const SOURCE_BOTTOM = 0;
 const SOURCE_LEFT = 1;
 const SOURCE_RIGHT = 2;
+
+const ELIXIR_POINTER_MAX_AGE_MS = 700;
+const ELIXIR_GROWTH_STRENGTH = 5.6;
+const ELIXIR_MAX_DURATION_SHARE = 0.34;
+const ELIXIR_MIN_PARENT_GROWTH = 0.12;
+const ELIXIR_CONTACT_GROWTH = 0.18;
+const ELIXIR_ACTIVATION_SCALE = 1.42;
+const ELIXIR_IMPACT_INTERVAL_MS = 180;
+const ELIXIR_IMPACT_DURATION_SHARE = 0.052;
+const ELIXIR_FALLOFF_FLOOR = 0.38;
+const ELIXIR_JOLT_DECAY = 8.5;
+const GROWTH_SOUND_THRESHOLD = 0.18;
+const GROWTH_SOUND_MIN_INTERVAL_MS = 310;
+const GROWTH_SOUND_COMPANION_INTERVAL_MS = 620;
 
 const PRESET_PROFILES = {
   thicket: {
@@ -178,46 +192,44 @@ function resolveColorDistribution(theme, paletteLength) {
     : Array.from({ length: Math.max(1, paletteLength) }, (_, colorIndex) => ({ colorIndex, weight: 1 }));
 }
 
-function pickWeightedPaletteIndex(random, theme) {
+function isLightNeutralPaletteIndex(theme, index) {
+  const palette = resolvePalette(theme);
+  const color = parseHexColor(palette[index]);
+  return relativeLuminance(color) > 218 && colorSaturation(color) < 38;
+}
+
+function pickWeightedPaletteIndex(random, theme, lightNeutralScale = 1) {
   const palette = resolvePalette(theme);
   const distribution = resolveColorDistribution(theme, palette.length);
   let total = 0;
 
-  for (const row of distribution) total += row.weight;
+  for (const row of distribution) {
+    const scale = isLightNeutralPaletteIndex(theme, row.colorIndex)
+      ? clamp(lightNeutralScale, 0, 1)
+      : 1;
+    total += row.weight * scale;
+  }
   if (total <= 0) return 0;
 
   let sample = random() * total;
   for (const row of distribution) {
-    sample -= row.weight;
+    const scale = isLightNeutralPaletteIndex(theme, row.colorIndex)
+      ? clamp(lightNeutralScale, 0, 1)
+      : 1;
+    sample -= row.weight * scale;
     if (sample <= 0) return row.colorIndex;
   }
   return distribution[distribution.length - 1]?.colorIndex || 0;
 }
 
-function resolveStemPaletteIndices(theme) {
-  const palette = resolvePalette(theme).map((color) => parseHexColor(color));
-  const stemIndices = [];
-  for (let index = 0; index < palette.length; index += 1) {
-    const color = palette[index];
-    const luminance = relativeLuminance(color);
-    const saturation = colorSaturation(color);
-    if (luminance < 130 || saturation < 42) stemIndices.push(index);
-  }
-  return stemIndices.length ? stemIndices : palette.map((_, index) => index);
+function pickStemPaletteIndex(random, theme) {
+  return pickWeightedPaletteIndex(random, theme, 0.24);
 }
 
-function pickStemPaletteIndex(random, theme, stemIndices, rootIndex, depth) {
-  if (random() < 0.18) return pickWeightedPaletteIndex(random, theme);
-  const offset = Math.floor(random() * stemIndices.length);
-  return stemIndices[(rootIndex + depth + offset) % stemIndices.length] || 0;
-}
-
-function pickLeafletPaletteIndex(random, theme, config, cursor, paletteLength) {
+function pickLeafletPaletteIndex(random, theme, config) {
   const spread = clamp(Number(config.colorSpread ?? 1), 0, 1);
-  if (spread >= 0.995) return cursor % paletteLength;
-  return random() < spread
-    ? cursor % paletteLength
-    : pickWeightedPaletteIndex(random, theme);
+  const lightNeutralScale = 0.18 + (1 - spread) * 0.18;
+  return pickWeightedPaletteIndex(random, theme, lightNeutralScale);
 }
 
 function getThemeKey(theme) {
@@ -458,6 +470,32 @@ function boundaryInfo(x, y, metrics) {
   return info;
 }
 
+function centralReserve(metrics) {
+  const width = metrics.cssWidth;
+  const height = metrics.cssHeight;
+  const minSide = Math.min(width, height);
+  return {
+    cx: width * 0.5,
+    cy: height * 0.54,
+    rx: clamp(width * (width < 640 ? 0.42 : 0.26), 152, 382),
+    ry: clamp(height * (width < 640 ? 0.27 : 0.22), 150, 238),
+    margin: clamp(minSide * 0.035, 24, 46),
+  };
+}
+
+function reserveNormalizedDistance(x, y, reserve, padding = 0) {
+  const rx = Math.max(1, reserve.rx + padding);
+  const ry = Math.max(1, reserve.ry + padding);
+  const dx = (x - reserve.cx) / rx;
+  const dy = (y - reserve.cy) / ry;
+  return Math.hypot(dx, dy);
+}
+
+function isOutsideCentralReserve(x, y, radius, reserve) {
+  const envelope = drawEnvelopeRadius(radius) + reserve.margin;
+  return reserveNormalizedDistance(x, y, reserve, envelope) >= 1;
+}
+
 function branchBaseAngle(source, slot, total, profile, random) {
   const center = (total - 1) * 0.5;
   const spreadT = total <= 1 ? 0 : (slot - center) / center;
@@ -486,12 +524,12 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     ? clamp(numberOr(config.leafletDensity, 0.48), 0, 0.34)
     : clamp(numberOr(config.leafletDensity, 0.48), 0, 1);
   const paletteLength = resolvePalette(theme).length;
-  const stemPaletteIndices = resolveStemPaletteIndices(theme);
   const maxRadius = drawEnvelopeRadius(8.7 * clamp(numberOr(config.bodyScale, 1), 0.8, 1.8));
   const cellSize = Math.max(28, maxRadius * 2 + gap + 16);
   const gridCols = Math.max(1, Math.ceil(metrics.cssWidth / cellSize));
   const gridRows = Math.max(1, Math.ceil(metrics.cssHeight / cellSize));
   const wallGap = Math.max(9, gap * 1.45);
+  const textReserve = centralReserve(metrics);
   const minCoverageCount = Math.min(countLimit, Math.max(rootLimit + 16, Math.round(countLimit * 0.84)));
   const state = {
     count: 0,
@@ -501,6 +539,8 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     y: new Float32Array(countLimit),
     radius: new Float32Array(countLimit),
     birth: new Float32Array(countLimit),
+    growthBoost: new Float32Array(countLimit),
+    growthScale: new Float32Array(countLimit),
     phase: new Float32Array(countLimit),
     angle: new Float32Array(countLimit),
     stiffness: new Float32Array(countLimit),
@@ -508,10 +548,12 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     offsetY: new Float32Array(countLimit),
     velocityX: new Float32Array(countLimit),
     velocityY: new Float32Array(countLimit),
+    impactJolt: new Float32Array(countLimit),
     stretchX: new Float32Array(countLimit),
     stretchY: new Float32Array(countLimit),
     rotation: new Float32Array(countLimit),
     colorIndex: new Uint8Array(countLimit),
+    soundPlayed: new Uint8Array(countLimit),
     kind: new Uint8Array(countLimit),
     root: new Uint16Array(countLimit),
     parent: new Int32Array(countLimit),
@@ -541,12 +583,15 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     peakActiveTips: 0,
     retiredTips: 0,
     minCoverageCount,
+    lastElixirImpactAt: -Infinity,
+    lastElixirImpactRoot: -1,
+    lastOrganicCompanionSoundAt: -Infinity,
+    growthSoundSlot: 0,
     configKey: getFormationKey(config, theme, metrics, seed, reducedMotion),
   };
   const tips = [];
   const retiredEndpoints = [];
   let branchIdCursor = 1;
-  let leafletColorCursor = Math.floor(hash01(seed + 311) * Math.max(1, paletteLength));
 
   state.head.fill(-1);
   state.parent.fill(-1);
@@ -570,6 +615,7 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
 
   function clearanceAt(x, y, radius, candidateBranchId, candidateKind, parentIndex = -1) {
     if (!isInsideTerrarium(x, y, radius)) return -1;
+    if (!isOutsideCentralReserve(x, y, radius, textReserve)) return -1;
 
     let minGap = Infinity;
     const range = Math.ceil((radius + state.maxRadius + gap + branchClearance * 10) / state.cellSize);
@@ -645,8 +691,8 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     state.stretchY[index] = 0.95 + hash01(pebbleSeed + 31) * 0.09;
     state.rotation[index] = hash01(pebbleSeed + 47) * TAU;
     state.colorIndex[index] = kind === BODY_KIND_LEAFLET
-      ? pickLeafletPaletteIndex(random, theme, config, leafletColorCursor += 1, paletteLength)
-      : pickStemPaletteIndex(random, theme, stemPaletteIndices, rootIndex, depth);
+      ? pickLeafletPaletteIndex(random, theme, config)
+      : pickStemPaletteIndex(random, theme, rootIndex, depth);
     markColorUsed(index);
 
     state.formationMinX = Math.min(state.formationMinX, x);
@@ -735,6 +781,11 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     if (rightGap) score += (x / metrics.cssWidth) * 0.42;
     if (topGap) score += (1 - y / metrics.cssHeight) * 0.58;
     score += Math.max(0, Math.cos(angle + Math.PI * 0.5)) * 0.12;
+    const reserveDistance = reserveNormalizedDistance(x, y, textReserve, textReserve.margin);
+    if (reserveDistance < 1.58) {
+      score += smoothstep(1, 1.42, reserveDistance) * 0.22;
+      score -= (1 - smoothstep(1.18, 1.58, reserveDistance)) * 0.18;
+    }
     return score * openSpaceBias;
   }
 
@@ -1042,30 +1093,175 @@ function resolveGrowthDuration(config, reducedMotion) {
   return clamp(numberOr(config.growthDuration, 28), 20, 48);
 }
 
-function resolveActiveCount(state, elapsed, duration) {
+function updateGrowthScales(state, elapsed, duration) {
   if (!state) return 0;
-  if (duration <= 0) return state.count;
-  let active = 0;
-  while (active < state.count && state.birth[active] * duration <= elapsed) active += 1;
-  return active;
+  let visibleCount = 0;
+  for (let i = 0; i < state.count; i += 1) {
+    const grow = duration <= 0
+      ? 1
+      : smoothstep(0, 0.95, elapsed + state.growthBoost[i] - state.birth[i] * duration);
+    state.growthScale[i] = grow;
+    if (grow > 0.002) visibleCount += 1;
+  }
+  return visibleCount;
 }
 
-function drawPebble(ctx, state, index, radius, color, alpha) {
+function isGrowthConnected(state, index) {
+  const parentIndex = state.parent[index];
+  if (parentIndex < 0) return true;
+  if (state.growthScale[parentIndex] >= ELIXIR_MIN_PARENT_GROWTH) return true;
+  const rootIndex = state.root[index];
+  return rootIndex >= 0 && state.growthScale[rootIndex] >= ELIXIR_MIN_PARENT_GROWTH;
+}
+
+function applyElixirGrowth(state, metrics, pointer, now, dt, elapsed, duration, reducedMotion) {
+  if (!state || duration <= 0 || reducedMotion) return 0;
+  const pointerAge = now - pointer.lastAt;
+  if (!pointer.inside || pointerAge < 0 || pointerAge > ELIXIR_POINTER_MAX_AGE_MS) return 0;
+
+  const minSide = Math.min(metrics.cssWidth, metrics.cssHeight);
+  const contactRadius = clamp(124 + minSide * 0.06, 142, 230);
+  let contactStrength = 0;
+  let contactRoot = -1;
+
+  for (let i = 0; i < state.count; i += 1) {
+    const grow = state.growthScale[i];
+    if (grow < ELIXIR_CONTACT_GROWTH) continue;
+    const dx = state.x[i] - pointer.x;
+    const dy = state.y[i] - pointer.y;
+    const distance = Math.hypot(dx, dy);
+    const contactReach = contactRadius + drawEnvelopeRadius(state.radius[i]) * grow;
+    if (distance >= contactReach) continue;
+    const proximity = 1 - distance / contactReach;
+    const nextStrength = proximity * proximity * grow;
+    if (nextStrength > contactStrength) {
+      contactStrength = nextStrength;
+      contactRoot = state.root[i];
+    }
+  }
+
+  if (contactStrength <= 0 || contactRoot < 0) return 0;
+
+  const maxBoost = duration * ELIXIR_MAX_DURATION_SHARE;
+  const sustainBoost = dt * ELIXIR_GROWTH_STRENGTH * contactStrength;
+  const canPulse = now - state.lastElixirImpactAt >= ELIXIR_IMPACT_INTERVAL_MS
+    || state.lastElixirImpactRoot !== contactRoot;
+  const impactBoost = canPulse
+    ? duration * ELIXIR_IMPACT_DURATION_SHARE * (0.64 + contactStrength * 0.36)
+    : 0;
+  const activationRadius = contactRadius * ELIXIR_ACTIVATION_SCALE;
+  let affectedCount = 0;
+
+  for (let i = 0; i < state.count; i += 1) {
+    if (state.growthScale[i] >= 0.995) continue;
+    if (state.root[i] !== contactRoot && i !== contactRoot) continue;
+    if (!isGrowthConnected(state, i)) continue;
+    const dx = state.x[i] - pointer.x;
+    const dy = state.y[i] - pointer.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance >= activationRadius) continue;
+    const proximity = 1 - distance / activationRadius;
+    const falloff = ELIXIR_FALLOFF_FLOOR + (1 - ELIXIR_FALLOFF_FLOOR) * proximity;
+    const nextBoost = Math.min(maxBoost, state.growthBoost[i] + (sustainBoost + impactBoost) * falloff);
+    if (nextBoost <= state.growthBoost[i]) continue;
+    state.growthBoost[i] = nextBoost;
+    if (impactBoost > 0 && state.growthScale[i] > 0.08) {
+      state.impactJolt[i] = Math.max(state.impactJolt[i], falloff * (0.65 + contactStrength * 0.35));
+    }
+    affectedCount += 1;
+  }
+
+  if (affectedCount > 0) {
+    if (impactBoost > 0) {
+      state.lastElixirImpactAt = now;
+      state.lastElixirImpactRoot = contactRoot;
+    }
+    updateGrowthScales(state, elapsed, duration);
+  }
+  return affectedCount;
+}
+
+function drawPebble(ctx, state, index, radius, color) {
   const x = state.x[index] + state.offsetX[index];
   const y = state.y[index] + state.offsetY[index];
   const rx = radius * state.stretchX[index];
   const ry = radius * state.stretchY[index];
   const rotation = state.rotation[index] + state.offsetX[index] * 0.006;
 
-  ctx.globalAlpha = alpha;
   ctx.beginPath();
   ctx.ellipse(x, y, rx, ry, rotation, 0, TAU);
   ctx.fillStyle = rgbString(color, 1);
   ctx.fill();
-  ctx.globalAlpha = 1;
 }
 
-function updateSway(state, config, metrics, pointer, now, dt, activeCount, growthProgress, reducedMotion) {
+function playGrowthAccretionSound(state, metrics) {
+  let newCount = 0;
+  let xTotal = 0;
+  let radiusTotal = 0;
+  let strongestGrow = 0;
+  let widestX = -Infinity;
+  let narrowestX = Infinity;
+  let seedMix = state.seed >>> 0;
+
+  for (let i = 0; i < state.count; i += 1) {
+    const grow = state.growthScale[i];
+    if (grow < GROWTH_SOUND_THRESHOLD || state.soundPlayed[i]) continue;
+    state.soundPlayed[i] = 1;
+    newCount += 1;
+    xTotal += state.x[i];
+    radiusTotal += state.radius[i];
+    strongestGrow = Math.max(strongestGrow, grow);
+    widestX = Math.max(widestX, state.x[i]);
+    narrowestX = Math.min(narrowestX, state.x[i]);
+    seedMix = (seedMix ^ Math.imul(i + 1, 2654435761)) >>> 0;
+  }
+
+  if (newCount <= 0) return false;
+
+  state.growthSoundSlot = (state.growthSoundSlot + 1) >>> 0;
+  const avgRadius = radiusTotal / newCount;
+  const organicA = hash01((seedMix + state.growthSoundSlot * 1013904223) | 0);
+  const organicB = hash01((seedMix ^ (state.growthSoundSlot * 1664525)) | 0);
+  const clusterWidth = Math.max(0, widestX - narrowestX);
+  const batchEnergy = clamp(newCount / 18, 0, 1);
+  const panDrift = (organicA - 0.5) * clamp(clusterWidth / Math.max(1, metrics.cssWidth), 0.015, 0.12);
+  const pan = clamp(xTotal / newCount / Math.max(1, metrics.cssWidth) + panDrift, 0, 1);
+  const radius = clamp(9 + avgRadius * (1.15 + organicA * 2.3), 10, 38);
+  const intensity = clamp(0.735 + batchEnergy * 0.105 + strongestGrow * 0.035 + organicB * 0.025, 0.72, 0.88);
+  const didPlayMain = triggerImpact({
+    id: 'mineral-growth:organic-accretion',
+    radius,
+    intensity,
+    x: pan,
+    minIntervalMs: GROWTH_SOUND_MIN_INTERVAL_MS,
+  });
+
+  const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  const shouldPlayCompanion = didPlayMain
+    && newCount >= 2
+    && (organicA > 0.18 || state.growthSoundSlot % 3 === 0)
+    && now - state.lastOrganicCompanionSoundAt >= GROWTH_SOUND_COMPANION_INTERVAL_MS;
+  if (shouldPlayCompanion) {
+    state.lastOrganicCompanionSoundAt = now;
+    const companionPayload = {
+      id: 'mineral-growth:organic-accretion-companion',
+      radius: clamp(radius * (0.56 + organicB * 0.28), 7, 24),
+      intensity: clamp(intensity - 0.055 - organicA * 0.045, 0.705, 0.78),
+      x: clamp(pan + (organicB - 0.5) * 0.18, 0, 1),
+      minIntervalMs: GROWTH_SOUND_COMPANION_INTERVAL_MS,
+    };
+    const companionDelayMs = 26 + organicA * 54;
+    if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
+      window.setTimeout(() => triggerImpact(companionPayload), companionDelayMs);
+    } else {
+      triggerImpact(companionPayload);
+    }
+  }
+
+  return didPlayMain;
+}
+
+function updateSway(state, config, metrics, pointer, now, dt, growthProgress, reducedMotion) {
   const pointerBend = reducedMotion ? 0.08 : clamp(numberOr(config.pointerBend, 0), 0, 1);
   const swayStrength = reducedMotion ? 0.06 : clamp(numberOr(config.swayStrength, 0), 0, 1);
   const pointerAge = now - pointer.lastAt;
@@ -1081,13 +1277,16 @@ function updateSway(state, config, metrics, pointer, now, dt, activeCount, growt
   pointer.vx *= Math.exp(-dt * 4.2);
   pointer.vy *= Math.exp(-dt * 4.2);
 
-  for (let i = 0; i < activeCount; i += 1) {
+  for (let i = 0; i < state.count; i += 1) {
+    const grow = state.growthScale[i];
+    if (grow <= 0.002) continue;
     const depthFlex = clamp(state.depth[i] / 16, 0, 1);
     const rootFlex = state.parent[i] < 0 ? 0.05 : 0.24 + depthFlex * 0.86;
     const kindFlex = state.kind[i] === BODY_KIND_LEAFLET ? 1.36 : 1;
     const normal = state.angle[i] + Math.PI * 0.5;
-    let targetX = Math.cos(normal) * Math.sin(now * 0.0015 + state.phase[i]) * idleAmount * state.radius[i] * rootFlex * kindFlex;
-    let targetY = Math.sin(normal) * Math.sin(now * 0.0015 + state.phase[i]) * idleAmount * state.radius[i] * rootFlex * kindFlex;
+    const impactJolt = state.impactJolt[i];
+    let targetX = Math.cos(normal) * Math.sin(now * 0.0015 + state.phase[i]) * idleAmount * state.radius[i] * rootFlex * kindFlex * grow;
+    let targetY = Math.sin(normal) * Math.sin(now * 0.0015 + state.phase[i]) * idleAmount * state.radius[i] * rootFlex * kindFlex * grow;
 
     if (pointerLive) {
       const dx = state.x[i] - pointer.x;
@@ -1103,6 +1302,17 @@ function updateSway(state, config, metrics, pointer, now, dt, activeCount, growt
         targetX += directionX * amplitude;
         targetY += directionY * amplitude;
       }
+
+      if (impactJolt > 0.001) {
+        const dx = state.x[i] - pointer.x;
+        const dy = state.y[i] - pointer.y;
+        const distance = Math.hypot(dx, dy);
+        const radialX = distance > 0.001 ? dx / distance : 0;
+        const radialY = distance > 0.001 ? dy / distance : -1;
+        const joltAmplitude = impactJolt * (2.6 + state.radius[i] * 0.32) * rootFlex * kindFlex;
+        targetX += radialX * joltAmplitude;
+        targetY += radialY * joltAmplitude;
+      }
     }
 
     const stiffness = 17 + state.stiffness[i] * 25;
@@ -1112,9 +1322,10 @@ function updateSway(state, config, metrics, pointer, now, dt, activeCount, growt
     const decay = Math.exp(-damping * dt);
     state.velocityX[i] *= decay;
     state.velocityY[i] *= decay;
+    state.impactJolt[i] *= Math.exp(-dt * ELIXIR_JOLT_DECAY);
     state.offsetX[i] += state.velocityX[i] * dt;
     state.offsetY[i] += state.velocityY[i] * dt;
-    const maxOffset = reducedMotion ? 0.6 : clamp(state.minGapPx * 0.22, 0.8, 2.2);
+    const maxOffset = reducedMotion ? 0.6 : clamp(state.minGapPx * (0.22 + impactJolt * 0.24), 0.8, 3.4);
     const offsetLength = Math.hypot(state.offsetX[i], state.offsetY[i]);
     if (offsetLength > maxOffset) {
       const scale = maxOffset / offsetLength;
@@ -1133,10 +1344,11 @@ function updateSway(state, config, metrics, pointer, now, dt, activeCount, growt
   }
 }
 
-function renderState(ctx, state, metrics, theme, now, activeCount, elapsed, duration, options = {}) {
+function renderState(ctx, state, metrics, theme, now, elapsed, duration, options = {}) {
   const palette = resolvePalette(theme).map((color) => parseHexColor(color));
   const surface = isHexColor(theme?.active) ? theme.active : DEFAULT_THEME.active;
   const getVisualScaleAt = options.getVisualScaleAt || (() => 1);
+  let visibleCount = 0;
   ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
   ctx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
   if (!options.transparentBackground) {
@@ -1144,25 +1356,25 @@ function renderState(ctx, state, metrics, theme, now, activeCount, elapsed, dura
     ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
   }
 
-  for (let i = 0; i < activeCount; i += 1) {
-    const birthTime = state.birth[i] * duration;
-    const grow = duration <= 0 ? 1 : smoothstep(0, 0.95, elapsed - birthTime);
+  for (let i = 0; i < state.count; i += 1) {
+    const grow = state.growthScale[i];
     if (grow <= 0) continue;
+    visibleCount += 1;
     const color = palette[state.colorIndex[i] % palette.length] || parseHexColor(DEFAULT_THEME.palette[0]);
     const radius = state.radius[i] * (0.38 + grow * 0.62) * getVisualScaleAt(i);
     if (radius <= 0.05) continue;
-    drawPebble(ctx, state, i, radius, color, 0.26 + grow * 0.74);
+    drawPebble(ctx, state, i, radius, color);
   }
 
   ctx.globalAlpha = 1;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 
   const growthProgress = duration <= 0 ? 1 : clamp(elapsed / duration, 0, 1);
-  const settled = activeCount >= state.count && elapsed >= duration + 1.2;
+  const settled = visibleCount >= state.count && elapsed >= duration + 1.2;
   const coverageWidth = (state.formationMaxX - state.formationMinX) / Math.max(1, metrics.cssWidth);
   const coverageHeight = (state.formationMaxY - state.formationMinY) / Math.max(1, metrics.cssHeight);
   return {
-    activeCount,
+    activeCount: visibleCount,
     targetCount: state.count,
     resolvedSeedCount: state.rootCount,
     growthProgress,
@@ -1206,7 +1418,6 @@ export function createMineralGrowthRenderer({
   let startedAt = 0;
   let running = false;
   let frameMs = 0;
-  let lastAudioActiveCount = 0;
   let lastMetrics = {
     activeCount: 0,
     targetCount: 0,
@@ -1286,7 +1497,6 @@ export function createMineralGrowthRenderer({
       startedAt = performance.now();
       lastFrameAt = 0;
       lastRenderAt = 0;
-      lastAudioActiveCount = 0;
     }
     return { config, theme };
   }
@@ -1295,7 +1505,7 @@ export function createMineralGrowthRenderer({
     const { config, theme } = ensureState();
     const duration = resolveGrowthDuration(config, reducedMotion);
     const elapsed = duration <= 0 ? duration + 2 : (now - startedAt) / 1000;
-    const activeCount = resolveActiveCount(state, elapsed, duration);
+    const activeCount = updateGrowthScales(state, elapsed, duration);
     const growthProgress = duration <= 0 ? 1 : clamp(elapsed / duration, 0, 1);
     return { config, theme, duration, elapsed, activeCount, growthProgress };
   }
@@ -1334,8 +1544,8 @@ export function createMineralGrowthRenderer({
 
   function paintCurrentState(now = performance.now()) {
     const started = performance.now();
-    const { theme, duration, elapsed, activeCount } = resolveRenderFrame(now);
-    const rendered = renderState(ctx, state, metrics, theme, now, activeCount, elapsed, duration, {
+    const { theme, duration, elapsed } = resolveRenderFrame(now);
+    const rendered = renderState(ctx, state, metrics, theme, now, elapsed, duration, {
       transparentBackground,
       getVisualScaleAt: visualTransition.getScaleAt,
     });
@@ -1344,24 +1554,14 @@ export function createMineralGrowthRenderer({
 
   function draw(now = performance.now()) {
     const started = performance.now();
-    const { config, theme, duration, elapsed, activeCount, growthProgress } = resolveRenderFrame(now);
+    const { config, theme, duration, elapsed, growthProgress } = resolveRenderFrame(now);
     const dt = lastFrameAt ? clamp((now - lastFrameAt) / 1000, 0.001, 0.05) : 0.016;
     lastFrameAt = now;
 
-    updateSway(state, config, metrics, pointer, now, dt, activeCount, growthProgress, reducedMotion);
-    if (activeCount > lastAudioActiveCount) {
-      triggerDetent({
-        id: 'mineral-growth:accretion',
-        value: activeCount,
-        step: 18,
-        velocity: activeCount - lastAudioActiveCount,
-        minVelocity: 1,
-        minIntervalMs: 90,
-        gain: 0.05,
-        filterHz: 2400,
-      });
-      lastAudioActiveCount = activeCount;
-    }
+    applyElixirGrowth(state, metrics, pointer, now, dt, elapsed, duration, reducedMotion);
+
+    updateSway(state, config, metrics, pointer, now, dt, growthProgress, reducedMotion);
+    playGrowthAccretionSound(state, metrics);
     const pointerSpeed = Math.hypot(pointer.vx, pointer.vy);
     if (pointer.inside && pointerSpeed > 300) {
       triggerPressure({
@@ -1372,7 +1572,7 @@ export function createMineralGrowthRenderer({
         minIntervalMs: 220,
       });
     }
-    const rendered = renderState(ctx, state, metrics, theme, now, activeCount, elapsed, duration, {
+    const rendered = renderState(ctx, state, metrics, theme, now, elapsed, duration, {
       transparentBackground,
       getVisualScaleAt: visualTransition.getScaleAt,
     });

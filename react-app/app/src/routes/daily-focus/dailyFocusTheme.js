@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
 import {
-  DEFAULT_LONDON_WEATHER_PALETTE_ID,
   getLondonWeatherPalette,
   resolveLondonWeatherPaletteId,
 } from '../../palette/londonPalettes.js';
+import { desaturateGreysToBackground } from '../../palette/paletteTransforms.js';
+import { getLondonWeatherPaletteIdFromAssessment } from '../../weather/londonWeatherAssessment.js';
 import { withBasePath } from '../../lib/base-path.js';
 
 export const DAILY_FOCUS_DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
 
-const DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_LONDON_WEATHER_PALETTE_ID)?.dark || [
+const DEFAULT_DAILY_FOCUS_PALETTE_ID = getLondonWeatherPaletteIdFromAssessment();
+
+const RAW_DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_DAILY_FOCUS_PALETTE_ID)?.dark || [
   '#a7afb0',
   '#c6cecf',
   '#f5f8f6',
@@ -18,6 +21,7 @@ const DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_LONDON_WEATHER_PALETTE_I
   '#2c96ff',
   '#ff7e4a',
 ];
+const DEFAULT_PALETTE = desaturateGreysToBackground(RAW_DEFAULT_PALETTE, '#f5f5f5', false);
 
 const DEFAULT_COLOR_DISTRIBUTION = [
   { label: 'Product Design', colorIndex: 0, weight: 31 },
@@ -49,20 +53,28 @@ export async function loadDailyFocusJson(url, fallback) {
 export function resolveDailyFocusTheme(designSystem) {
   const runtime = designSystem?.runtime || {};
   const shellTheme = designSystem?.shell?.theme || {};
+  const isDarkMode = typeof document !== 'undefined'
+    && document.body?.classList?.contains('dark-mode');
   const paletteId = resolveLondonWeatherPaletteId(
     runtime.paletteId
       || runtime.palette
       || runtime.paletteTemplate
       || runtime.paletteSlug
-      || DEFAULT_LONDON_WEATHER_PALETTE_ID,
-  ) || DEFAULT_LONDON_WEATHER_PALETTE_ID;
+      || DEFAULT_DAILY_FOCUS_PALETTE_ID,
+  ) || DEFAULT_DAILY_FOCUS_PALETTE_ID;
   const palette = getLondonWeatherPalette(paletteId);
+  const bgLight = runtime.bgLight || shellTheme.wallBaseLight || DEFAULT_DAILY_FOCUS_THEME.light;
+  const bgDark = runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_DAILY_FOCUS_THEME.dark;
+  const activeBg = isDarkMode ? bgDark : bgLight;
+  const rawPalette = Array.isArray(isDarkMode ? palette?.dark : palette?.light)
+    ? (isDarkMode ? palette.dark : palette.light)
+    : DEFAULT_DAILY_FOCUS_THEME.palette;
 
   return {
-    light: runtime.bgLight || shellTheme.wallBaseLight || DEFAULT_DAILY_FOCUS_THEME.light,
-    dark: runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_DAILY_FOCUS_THEME.dark,
-    active: runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_DAILY_FOCUS_THEME.active,
-    palette: Array.isArray(palette?.dark) ? palette.dark : DEFAULT_DAILY_FOCUS_THEME.palette,
+    light: bgLight,
+    dark: bgDark,
+    active: activeBg,
+    palette: desaturateGreysToBackground(rawPalette, activeBg, isDarkMode),
     colorDistribution: Array.isArray(runtime.colorDistribution)
       ? runtime.colorDistribution
       : DEFAULT_DAILY_FOCUS_THEME.colorDistribution,
