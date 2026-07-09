@@ -6318,6 +6318,11 @@ body.dark-mode .cv-photo {
     gap: 20px;
   }
 
+  body:not(.portfolio-page):not(.cv-page) .ui-top-main:not(.route-topbar) {
+    box-sizing: border-box;
+    padding-inline: clamp(10px, 3vw, 14px);
+  }
+
   body.portfolio-page .route-topbar {
     --route-topbar-top: calc(var(--gap-xs) + var(--portfolio-nav-top, 0px));
     grid-template-columns: minmax(0, 1fr) auto;
