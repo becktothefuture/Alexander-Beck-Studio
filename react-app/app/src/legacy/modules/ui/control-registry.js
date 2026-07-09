@@ -2640,10 +2640,10 @@ export const CONTROL_SECTIONS = {
         type: 'colorDistribution',
         // Labels are fixed; you assign which palette slot + weight each label gets.
         labels: [
-          'Product Systems',
-          'Experience Strategy',
+          'Product Design',
+          'User Experience Design',
           'Art Direction',
-          'Generative R&D',
+          'Motion & 3D',
           'Creative Engineering',
           'Parametric Systems'
         ],
@@ -4048,7 +4048,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'bubblesRiseSpeed',
         type: 'range',
         min: 50, max: 900, step: 25,
-        default: 650,
+        default: 360,
         format: v => v.toFixed(0),
         parse: parseFloat
       },
@@ -4068,10 +4068,10 @@ export const CONTROL_SECTIONS = {
         stateKey: 'bubblesVerticalExtent',
         type: 'range',
         min: 0.15, max: 1, step: 0.05,
-        default: 0.7,
+        default: 1,
         format: v => v.toFixed(2),
         parse: parseFloat,
-        hint: 'Height of the bubble band around the logo (1 = full screen).'
+        hint: 'Height of the bubble band inside the wall (1 = full height).'
       },
       {
         id: 'bubblesDepthSpan',
@@ -4090,9 +4090,30 @@ export const CONTROL_SECTIONS = {
         stateKey: 'bubblesMaxCount',
         type: 'range',
         min: 50, max: 300, step: 10,
-        default: 150,
+        default: 200,
         format: v => String(v),
         parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'bubblesDensity',
+        label: 'Density',
+        stateKey: 'bubblesDensity',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.8,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'bubblesMobileDensity',
+        label: 'Mobile Density',
+        stateKey: 'bubblesMobileDensityMul',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.75,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Extra mobile-only multiplier applied before the shared mobile performance reduction.'
       },
       warmupFramesControl('bubblesWarmupFrames')
     ]

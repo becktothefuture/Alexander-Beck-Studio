@@ -11,7 +11,7 @@ Source of truth for mode IDs and narrative order:
 
 - `25` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
 - `22` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
-- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `14` Daily simulations.
+- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `15` Daily simulations.
 - Daily Simulation selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
 - `flock-of-birds`, `wall-repel`, `mineral-growth`, and `napoleon-point-cloud` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 - `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
@@ -74,13 +74,13 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 10. `weave-field` — WEAVE FIELD
 11. `mineral-growth` — MINERAL BLOOM
 12. `kaleidoscope-3` — KALEIDO BLOOM
-13. `starfield-3d` — STAR FIELD
-14. `kaleidoscope-rift` — KALEIDO RIFT
+13. `bubbles` — BUBBLE LIFT
+14. `starfield-3d` — STAR FIELD
+15. `kaleidoscope-rift` — KALEIDO RIFT
 
 ### Extended Tier (shown after Featured)
 
-15. `aperture-bloom` — APERTURE BLOOM
-16. `bubbles` — BUBBLE LIFT
+16. `aperture-bloom` — APERTURE BLOOM
 17. `magnetic` — MAGNETIC FIELD
 18. `weightless` — WEIGHTLESS DRIFT
 19. `critters` — CRITTER SWARM
@@ -117,8 +117,8 @@ Loop order is `Featured -> Extended -> Featured`.
 - `weightless`: zero-gravity bounce with cursor blast-style interaction.
 - `water`: dense drag/ripple motion field.
 - `magnetic`: attraction/repel dynamics with velocity limiting.
-- `bubbles`: buoyant rise + wobble + recycle.
-- `kaleidoscope-3`: mirrored wedge render with mode-local bounds/render path.
+- `bubbles`: full-height drink-like nucleation from lower sources, terminal rise, pointer/touch wake deflection, surface dissolve, and recycle.
+- `kaleidoscope-3`: mirrored wedge render with center-pointer fill, edge-pointer opening, and mode-local bounds/render path.
 - `kaleidoscope-rift`: one-wedge polar lattice mirrored into counter-rotating petals; pointer/touch movement shears rings and opens a radial rift instead of folding the full source field.
 - `critters`: locomotion-based critter behavior and local separation.
 - `parallax-float`: layered depth field with levitation/parallax response.

@@ -101,7 +101,7 @@ const state = {
   sizeVariationWeightless: 0,
   sizeVariationWater: 0,
   sizeVariationMagnetic: 0,
-  sizeVariationBubbles: 0.2,
+  sizeVariationBubbles: 0,
   sizeVariationKaleidoscope: 0,
   sizeVariationCritters: 0.2,
   sizeVariationParallaxFloat: 0,
@@ -429,10 +429,12 @@ const state = {
   magneticExplosionInterval: 5,
   
   // Bubbles mode params
-  bubblesRiseSpeed: 650,
+  bubblesRiseSpeed: 360,
   bubblesWobble: 65,
   bubblesMaxCount: 200,
-  bubblesVerticalExtent: 0.7,
+  bubblesDensity: 0.8,
+  bubblesMobileDensityMul: 0.75,
+  bubblesVerticalExtent: 1,
   bubblesDepthSpan: 0.8,
   // Derived (px): set in `applyLayoutFromVwToPx()` from `cursorInfluenceRadiusVw`.
   bubblesDeflectRadius: 0,
@@ -1846,6 +1848,12 @@ export function initState(config) {
 
   if (config.bubblesVerticalExtent !== undefined) {
     state.bubblesVerticalExtent = clampNumber(config.bubblesVerticalExtent, 0.15, 1, state.bubblesVerticalExtent);
+  }
+  if (config.bubblesDensity !== undefined) {
+    state.bubblesDensity = clampNumber(config.bubblesDensity, 0, 1, state.bubblesDensity);
+  }
+  if (config.bubblesMobileDensityMul !== undefined) {
+    state.bubblesMobileDensityMul = clampNumber(config.bubblesMobileDensityMul, 0, 1, state.bubblesMobileDensityMul);
   }
   if (config.bubblesDepthSpan !== undefined) {
     state.bubblesDepthSpan = clampNumber(config.bubblesDepthSpan, 0.1, 1, state.bubblesDepthSpan);

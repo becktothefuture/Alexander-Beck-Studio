@@ -732,17 +732,21 @@ export function renderKaleidoscope(ctx) {
   const panX = morph.panX.x;
   const panY = morph.panY.x;
 
-  // "Breathing" depth: as you move the mouse outward/inward, the rings zoom.
+  // "Breathing" depth: center pointer pulls material inward for the richest fill;
+  // outward pointer opens the pattern.
   const speed01 = clamp((speed - 0.2) / 1.8, 0, 1);
   const zoomRange = (0.3 + 0.2 * speed01) * (isMobile ? 0.94 : 1); // desktop 0.30..0.50
-  const zoom = 1 - zoomRange + (1 - mDistN) * (2 * zoomRange); // maps to [1-zoomRange, 1+zoomRange]
+  const centerFill = pointerValid ? (1 - mDistN) : 0;
+  const zoom = 1 - zoomRange + mDistN * (2 * zoomRange); // center = filled, edge = open
 
   const { cos: wedgeCos, sin: wedgeSin } = getWedgeTrigCache(g, wedges, wedgeAngle);
 
   // Draw
   for (let bi = 0; bi < balls.length; bi++) {
     const ball = balls[bi];
-    const visualRadius = ball.r * Math.max(0, Math.min(1, ball.visualScale ?? 1));
+    const visualRadius = ball.r
+      * Math.max(0, Math.min(1, ball.visualScale ?? 1))
+      * (1 + centerFill * 0.18);
     if (visualRadius <= 0.05) continue;
     const cullMargin = visualRadius + 4 * (g.DPR || 1);
 
@@ -751,7 +755,7 @@ export function renderKaleidoscope(ctx) {
     const ry = (ball.y - cy) + panY;
     // Scale radius to fill entire screen. Increased from 1.8 to 3.7 to cover full viewport
     // and beyond (accounts for expanded spawn area and ensures no empty edges).
-    const fillScale = (isMobile ? 4.05 : 3.7) * unit;
+    const fillScale = (isMobile ? 4.05 : 3.7) * unit * (1 - centerFill * 0.12);
     const r = Math.hypot(rx, ry) * fillScale * zoom;
     if (r < EPS) continue;
 

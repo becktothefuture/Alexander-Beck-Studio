@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-04",
+  "updatedAt": "2026-07-09",
   "stages": {
     "daily-rotation": "Eligible for the live Daily Simulation.",
     "collection": "Available to review or launch, but not part of Daily Simulation.",
@@ -199,13 +199,13 @@
       "id": "bubbles",
       "name": "Bubble Lift",
       "chapter": "BUBBLE LIFT",
-      "stage": "collection",
+      "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
       "launchPath": "/index.html?mode=bubbles",
       "includeInNarrative": true,
       "reviewStatus": "stable",
-      "summary": "Carbonation-like circle lift and noise."
+      "summary": "Drink-like bubble nucleation with terminal rise, pointer wake, touch deflection, and recycled surface pops."
     },
     {
       "id": "magnetic",

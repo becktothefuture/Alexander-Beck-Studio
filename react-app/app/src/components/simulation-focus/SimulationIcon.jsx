@@ -27,6 +27,7 @@ const ICONS = {
   'mineral-growth': MineralGrowthIcon,
   'kaleidoscope-3': KaleidoscopeIcon,
   'kaleidoscope-rift': KaleidoscopeIcon,
+  bubbles: BubblesIcon,
   'beach-ball-room': BeachBallRoomIcon,
 };
 
@@ -217,6 +218,21 @@ function KaleidoscopeIcon() {
       <path {...DOT_PROPS} d="M35 16C36.1046 16 37 15.1046 37 14C37 12.8954 36.1046 12 35 12C33.8954 12 33 12.8954 33 14C33 15.1046 33.8954 16 35 16Z" />
       <path {...DOT_PROPS} d="M35 37C36.1046 37 37 36.1046 37 35C37 33.8954 36.1046 33 35 33C33.8954 33 33 33.8954 33 35C33 36.1046 33.8954 37 35 37Z" />
       <path {...DOT_PROPS} d="M14 37C15.1046 37 16 36.1046 16 35C16 33.8954 15.1046 33 14 33C12.8954 33 12 33.8954 12 35C12 36.1046 12.8954 37 14 37Z" />
+    </g>
+  );
+}
+
+function BubblesIcon() {
+  return (
+    <g>
+      <circle {...DOT_PROPS} cx="18" cy="36" r="2.2" />
+      <circle {...DOT_PROPS} cx="29" cy="35" r="1.8" />
+      <circle {...DOT_PROPS} cx="23" cy="30" r="2.7" />
+      <circle {...DOT_PROPS} cx="33" cy="27" r="2.1" />
+      <circle {...DOT_PROPS} cx="16" cy="25" r="1.7" />
+      <circle {...DOT_PROPS} cx="26" cy="20" r="2.4" />
+      <circle {...DOT_PROPS} cx="34" cy="16" r="1.6" />
+      <circle {...DOT_PROPS} cx="20" cy="12" r="2" />
     </g>
   );
 }
