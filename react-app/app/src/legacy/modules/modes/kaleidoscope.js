@@ -18,11 +18,15 @@ import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 
 const TAU = Math.PI * 2;
 const EPS = 1e-6;
-const MOBILE_SOURCE_COUNT_FACTOR = 0.44;
-const MOBILE_SOURCE_SPREAD_MUL = 1.18;
-const MOBILE_FORCE_RESPONSE_SCALE = 0.84;
-const MOBILE_MORPH_SCALE = 0.92;
-const MOBILE_TOUCH_MORPH_SCALE = 1.04;
+const MOBILE_SOURCE_COUNT_FACTOR = 0.52;
+const MOBILE_SOURCE_SPREAD_MUL = 1.08;
+const MOBILE_FORCE_RESPONSE_SCALE = 1.06;
+const MOBILE_MORPH_SCALE = 1.08;
+const MOBILE_TOUCH_MORPH_SCALE = 1.18;
+const MOBILE_IDLE_DRIFT_SCALE = 1.45;
+const MOBILE_IDLE_PHASE_SCALE = 1.72;
+const MOBILE_RENDER_FILL_SCALE = 2.15;
+const DESKTOP_RENDER_FILL_SCALE = 3.35;
 const RIFT_MOBILE_COUNT_FACTOR = 0.68;
 
 // Render-time smoothing state (mouse-driven rotation should ease-in/out)
@@ -475,7 +479,8 @@ export function applyKaleidoscopeForces(ball, dt) {
 
   // Very subtle idle movement: gentle drift keeps scene alive when pointer rests.
   const idleBase = Math.max(0, g.kaleidoscopeIdleDrift ?? 0.012);
-  const idleStrength = g.prefersReducedMotion ? 0 : idleBase * complexity * (1 - Math.min(1, activity * 0.7));
+  const idleScale = (g.isMobile || g.isMobileViewport) ? MOBILE_IDLE_DRIFT_SCALE : 1;
+  const idleStrength = g.prefersReducedMotion ? 0 : idleBase * idleScale * complexity * (1 - Math.min(1, activity * 0.7));
 
   if (idleStrength > 0) {
     const t = nowMs * 0.00035;
@@ -717,7 +722,8 @@ export function renderKaleidoscope(ctx) {
   // Idle evolution: slow continuous rotation when mouse isn't moving
   // This keeps the kaleidoscope "alive" and mesmerizing even when idle
   const idleSpeed = g.kaleidoscopeIdleSpeed ?? 0.08; // radians per second base
-  const idleSpeedScaled = idleSpeed * complexity * (g.prefersReducedMotion ? 0 : 1) * (1 - pointerStrength * 0.85);
+  const mobileIdleScale = isMobile ? MOBILE_IDLE_PHASE_SCALE : 1;
+  const idleSpeedScaled = idleSpeed * mobileIdleScale * complexity * (g.prefersReducedMotion ? 0 : 1) * (1 - pointerStrength * 0.85);
   morph.idlePhase = wrapAngleSigned(morph.idlePhase + idleSpeedScaled * dt);
 
   const panRangePx = Math.min(w, h) * (0.052 + 0.045 * speed) * mobileMorphScale;
@@ -757,9 +763,9 @@ export function renderKaleidoscope(ctx) {
     // Center-relative coords WITH pan offset. Pan shifts which part gets sampled = morphing.
     const rx = (ball.x - cx) + panX;
     const ry = (ball.y - cy) + panY;
-    // Scale radius to fill entire screen. Increased from 1.8 to 3.7 to cover full viewport
-    // and beyond (accounts for expanded spawn area and ensures no empty edges).
-    const fillScale = (isMobile ? 3.55 : 3.35) * unit * (1 + centerFill * 0.08);
+    // Mobile needs a wider view into the source field; using the desktop fill scale
+    // there culls too much of the pattern and reads as a cropped close-up.
+    const fillScale = (isMobile ? MOBILE_RENDER_FILL_SCALE : DESKTOP_RENDER_FILL_SCALE) * unit * (1 + centerFill * 0.08);
     const r = Math.hypot(rx, ry) * fillScale * zoom;
     if (r < EPS) continue;
 

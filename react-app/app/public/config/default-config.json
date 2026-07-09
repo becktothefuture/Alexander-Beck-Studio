@@ -198,6 +198,7 @@
   "bubblesWarmupFrames": 10,
   "kaleidoscope3BallCount": 170,
   "kaleidoscope3Wedges": 8,
+  "kaleidoscope3WedgesMobile": 5,
   "kaleidoscope3Speed": 1.45,
   "kaleidoscopeIdleDrift": 0.012,
   "kaleidoscope3DotSizeVh": 0.72,

@@ -598,7 +598,7 @@ const state = {
   // Kaleidoscope III parameters (now the only kaleidoscope mode)
   kaleidoscope3BallCount: 170,
   kaleidoscope3Wedges: 8,
-  kaleidoscope3WedgesMobile: 4,  // Mobile uses fewer mirrored copies so touch motion reads with more space.
+  kaleidoscope3WedgesMobile: 5,  // Mobile keeps enough mirrored copies for the bloom to read in portrait.
   kaleidoscope3Speed: 1.45,
   kaleidoscope3DotSizeVh: 0.72,
   kaleidoscope3DotAreaMul: 0.68,
@@ -1767,6 +1767,7 @@ export function initState(config) {
   // Kaleidoscope III parameters (now the only kaleidoscope mode)
   if (config.kaleidoscope3BallCount !== undefined) state.kaleidoscope3BallCount = clampNumber(config.kaleidoscope3BallCount, 3, 300, state.kaleidoscope3BallCount);
   if (config.kaleidoscope3Wedges !== undefined) state.kaleidoscope3Wedges = clampNumber(config.kaleidoscope3Wedges, 3, 24, state.kaleidoscope3Wedges);
+  if (config.kaleidoscope3WedgesMobile !== undefined) state.kaleidoscope3WedgesMobile = clampNumber(config.kaleidoscope3WedgesMobile, 3, 12, state.kaleidoscope3WedgesMobile);
   if (config.kaleidoscope3Speed !== undefined) state.kaleidoscope3Speed = clampNumber(config.kaleidoscope3Speed, 0.2, 2.0, state.kaleidoscope3Speed);
   if (config.kaleidoscope3DotSizeVh !== undefined) state.kaleidoscope3DotSizeVh = clampNumber(config.kaleidoscope3DotSizeVh, 0.1, 6.0, state.kaleidoscope3DotSizeVh);
   if (config.kaleidoscope3DotAreaMul !== undefined) state.kaleidoscope3DotAreaMul = clampNumber(config.kaleidoscope3DotAreaMul, 0.1, 2.0, state.kaleidoscope3DotAreaMul);
