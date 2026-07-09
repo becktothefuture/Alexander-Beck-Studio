@@ -31,10 +31,10 @@ const DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_LONDON_WEATHER_PALETTE_I
   '#ff7e4a',
 ];
 const DEFAULT_COLOR_DISTRIBUTION = [
-  { label: 'Product Systems', colorIndex: 0, weight: 31 },
-  { label: 'Experience Strategy', colorIndex: 3, weight: 13 },
+  { label: 'Product Design', colorIndex: 0, weight: 31 },
+  { label: 'Experience Design', colorIndex: 3, weight: 13 },
   { label: 'Art Direction', colorIndex: 2, weight: 16 },
-  { label: 'Generative R&D', colorIndex: 6, weight: 20 },
+  { label: 'Motion & 3D', colorIndex: 6, weight: 20 },
   { label: 'Creative Engineering', colorIndex: 7, weight: 10 },
   { label: 'Parametric Systems', colorIndex: 5, weight: 10 },
 ];

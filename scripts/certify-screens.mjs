@@ -46,7 +46,7 @@ const matrix = [
         selector: '#expertise-legend .legend__item',
         minCount: 5,
         minArea: 100,
-        requiredTextAnyOf: [['Product Systems', 'Experience Design', 'Art Direction']]
+        requiredTextAnyOf: [['Product Design', 'Experience Design', 'Art Direction']]
       },
       {
         selector: '.decorative-script p',
@@ -72,7 +72,7 @@ const matrix = [
           selector: '#expertise-legend .legend__item',
           minCount: 5,
           minArea: 100,
-          requiredTextAnyOf: [['Product Systems', 'Experience Design', 'Art Direction']]
+          requiredTextAnyOf: [['Product Design', 'Experience Design', 'Art Direction']]
         },
         {
           selector: '.decorative-script p',

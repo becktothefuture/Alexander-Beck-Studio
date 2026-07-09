@@ -2641,7 +2641,7 @@ export const CONTROL_SECTIONS = {
         // Labels are fixed; you assign which palette slot + weight each label gets.
         labels: [
           'Product Design',
-          'User Experience Design',
+          'Experience Design',
           'Art Direction',
           'Motion & 3D',
           'Creative Engineering',

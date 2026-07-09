@@ -18,10 +18,10 @@ const DEFAULT_CAMERA_FRAME = Object.freeze({
 const DEFAULT_THEME = {
   palette: ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#d7ff2f', '#0d5cb6', '#ffa000'],
   colorDistribution: [
-    { label: 'Product Systems', colorIndex: 0, weight: 44 },
-    { label: 'Experience Strategy', colorIndex: 3, weight: 14 },
+    { label: 'Product Design', colorIndex: 0, weight: 44 },
+    { label: 'Experience Design', colorIndex: 3, weight: 14 },
     { label: 'Art Direction', colorIndex: 2, weight: 17 },
-    { label: 'Generative R&D', colorIndex: 6, weight: 11 },
+    { label: 'Motion & 3D', colorIndex: 6, weight: 11 },
     { label: 'Creative Engineering', colorIndex: 7, weight: 7 },
     { label: 'Parametric Systems', colorIndex: 5, weight: 7 },
   ],

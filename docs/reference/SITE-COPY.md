@@ -31,12 +31,12 @@ Canonical About/CV navigation label: `About Me`. Shared navigation and gate titl
 | Key | Label | Tooltip | Source |
 |-----|-------|---------|--------|
 | legend.ariaLabel | — | Areas of expertise | contents-home.json |
-| legend.items[0] | Product Systems | I turn complex platforms into clear product systems: structure, logic, governance, and decisions that scale. | contents-home.json |
-| legend.items[1] | Experience Strategy | I define the journey, priorities, and service logic behind experiences before the interface takes shape. | contents-home.json |
-| legend.items[2] | Art Direction | I set the visual, spatial, and motion language so the work feels distinctive, intentional, and unmistakably owned. | contents-home.json |
-| legend.items[3] | Generative R&D | I use AI and computational methods to pressure-test ideas, expand directions, and make emerging possibilities concrete. | contents-home.json |
-| legend.items[4] | Creative Engineering | I prototype with code, motion, and AI-assisted workflows so teams can see, test, and decide faster. | contents-home.json |
-| legend.items[5] | Parametric Systems | I define adaptable rules, variables, and constraints so systems can flex without losing their point of view. | contents-home.json |
+| legend.items[0] | Product Design | I turn loose product thinking into interfaces people can actually work with. | contents-home.json |
+| legend.items[1] | Experience Design | I find the snags, missing steps, and moments where the product loses people. | contents-home.json |
+| legend.items[2] | Art Direction | I give the work a visual spine, not just a nicer surface. | contents-home.json |
+| legend.items[3] | Motion & 3D | I use movement and space to test what flat screens can't explain. | contents-home.json |
+| legend.items[4] | Creative Engineering | I build working sketches so ideas can be argued with properly. | contents-home.json |
+| legend.items[5] | Parametric Systems | I make rules and tools that keep variation from becoming mush. | contents-home.json |
 
 ---
 

@@ -83,12 +83,12 @@
     "brandLogoSecondaryOpacity": 0.44,
     "colorDistribution": [
       {
-        "label": "Product Systems",
+        "label": "Product Design",
         "colorIndex": 0,
         "weight": 31
       },
       {
-        "label": "Experience Strategy",
+        "label": "Experience Design",
         "colorIndex": 3,
         "weight": 13
       },
@@ -98,7 +98,7 @@
         "weight": 16
       },
       {
-        "label": "Generative R&D",
+        "label": "Motion & 3D",
         "colorIndex": 6,
         "weight": 20
       },

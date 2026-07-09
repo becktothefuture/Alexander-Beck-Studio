@@ -13,33 +13,33 @@
     "items": [
       {
         "colorClass": "bg-ball-1",
-        "label": "Product Systems",
-        "tooltip": "I turn complex platforms into clear product systems: structure, logic, governance, and decisions that scale."
+        "label": "Product Design",
+        "tooltip": "I turn loose product thinking into interfaces people can actually work with."
       },
       {
         "colorClass": "bg-ball-4",
-        "label": "Experience Strategy",
-        "tooltip": "I define the journey, priorities, and service logic behind experiences before the interface takes shape."
+        "label": "Experience Design",
+        "tooltip": "I find the snags, missing steps, and moments where the product loses people."
       },
       {
         "colorClass": "bg-ball-3",
         "label": "Art Direction",
-        "tooltip": "I set the visual, spatial, and motion language so the work feels distinctive, intentional, and unmistakably owned."
+        "tooltip": "I give the work a visual spine, not just a nicer surface."
       },
       {
         "colorClass": "bg-ball-7",
-        "label": "Generative R&D",
-        "tooltip": "I use AI and computational methods to pressure-test ideas, expand directions, and make emerging possibilities concrete."
+        "label": "Motion & 3D",
+        "tooltip": "I use movement and space to test what flat screens can't explain."
       },
       {
         "colorClass": "bg-ball-8",
         "label": "Creative Engineering",
-        "tooltip": "I prototype with code, motion, and AI-assisted workflows so teams can see, test, and decide faster."
+        "tooltip": "I build working sketches so ideas can be argued with properly."
       },
       {
         "colorClass": "bg-ball-6",
         "label": "Parametric Systems",
-        "tooltip": "I define adaptable rules, variables, and constraints so systems can flex without losing their point of view."
+        "tooltip": "I make rules and tools that keep variation from becoming mush."
       }
     ]
   },
