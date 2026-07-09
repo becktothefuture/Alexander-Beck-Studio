@@ -28,7 +28,7 @@ The semantic names are additive. Do not replace compatibility hooks such as `#ab
 | **Above route chrome** | When a project is open, the drawer and its **backdrop** MUST paint **above** the **header row** (`.ui-top` / `.route-topbar`) **and** the **footer** (`SiteFooter` / `.ui-bottom`). Those live in **`.fade-content`** (`z-index: 200` in `main.css`). |
 | **Do not mount only in `#simulations`** | `#simulations` is `z-index: 100`. Anything that stays **only** inside that subtree cannot stack above `.fade-content` (200). The drawer host must be a **sibling** of `.fade-content` **inside `#abs-scene.app-scene`**, with a **higher `z-index`**. |
 | **DOM + CSS** | **`#portfolio-sheet-host`** comes **after** **`.fade-content`** in `#abs-scene` (`StudioShell.jsx`). `portfolio.css`: host `z-index: 220` (idle), **`body.portfolio-project-open`** raises host to **`z-index: 260`** so the sheet is also above **`#quote-viewport-host`** (250). |
-| **Geometry** | Host uses the **same inner-wall rectangle** as `#simulations canvas`: `position: fixed` inset `calc(var(--safari-tint-inset) + var(--frame-border-width))` on all sides, **`border-radius: var(--frame-inner-radius)`**, **`overflow: hidden`**. Same **corner-shape** inheritance as canvas (e.g. squircle when `html.abs-corner-shape-squircle`). |
+| **Geometry** | Host uses the **same inner-wall rectangle** as `#simulations canvas`: `position: fixed` with directional inset aliases (`--safari-tint-inset-x` for left/right, `--safari-tint-inset-y` for top/bottom) plus `var(--frame-border-width)`, **`border-radius: var(--frame-inner-radius)`**, **`overflow: hidden`**. Same **corner-shape** inheritance as canvas (e.g. squircle when `html.abs-corner-shape-squircle`). |
 
 ---
 

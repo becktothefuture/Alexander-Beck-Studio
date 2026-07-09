@@ -1194,7 +1194,9 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--container-border', `${state.containerBorder}px`); // Y (top/bottom)
   root.style.setProperty('--container-border-x', `${state.containerBorderX}px`); // X (left/right)
   root.style.setProperty('--container-border-y', `${state.containerBorder}px`); // alias for clarity
-  root.style.setProperty('--safari-tint-inset', `${state.containerBorder}px`);
+  root.style.setProperty('--safari-tint-inset', `${state.containerBorder}px`); // legacy Y alias
+  root.style.setProperty('--safari-tint-inset-x', `${state.containerBorderX}px`);
+  root.style.setProperty('--safari-tint-inset-y', `${state.containerBorder}px`);
   root.style.setProperty('--simulation-padding', `${state.simulationPadding}px`);
   const contentPaddingBottomRatio = Math.max(0.5, Number(state.contentPaddingBottomRatio) || 1.3);
   const contentPaddingBottom = Math.round(Math.max(0, state.contentPaddingY) * contentPaddingBottomRatio);

@@ -361,6 +361,8 @@
 
   /* Wall Frame Inset (space between viewport edge and wall outer edge) */
   --safari-tint-inset: var(--container-border);
+  --safari-tint-inset-x: var(--container-border);
+  --safari-tint-inset-y: var(--container-border);
 
   --shadow-input-dark: 0 2px 8px rgba(var(--abs-rgb-black), 0.4);
 
