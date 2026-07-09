@@ -39,6 +39,7 @@ const auditProfiles = [
 const routes = [
   { label: 'home', path: '/index.html', readySelector: '#app-frame' },
   { label: 'portfolio', path: '/portfolio.html', readySelector: '.portfolio-deck-card.is-active' },
+  { label: 'contact', path: '/contact.html', readySelector: '#contact-route-main' },
   { label: 'cv', path: '/cv.html', readySelector: '#cv-scroll-container' },
   { label: 'styleguide', path: '/styleguide.html', readySelector: '.styleguide-main' },
   { label: 'palette-lab', path: '/palette-lab.html', readySelector: '.palette-lab-main' },
@@ -47,6 +48,7 @@ const routes = [
 const htmlEntryFiles = [
   'react-app/app/index.html',
   'react-app/app/portfolio.html',
+  'react-app/app/contact.html',
   'react-app/app/cv.html',
   'react-app/app/styleguide.html',
   'react-app/app/palette-lab.html',

@@ -32,12 +32,12 @@ const matrix = [
   {
     page: 'home',
     path: '/',
-    readySelectors: ['#app-frame', '#main-links button', '#expertise-legend .legend__item', '.decorative-script p'],
+    readySelectors: ['#app-frame', '#main-links .footer_link', '#expertise-legend .legend__item', '.decorative-script p'],
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
       {
-        selector: '#main-links button',
+        selector: '#main-links .footer_link',
         minCount: 3,
         minArea: 400,
         requiredText: ['About Me', 'Contact', 'Portfolio']
@@ -63,7 +63,7 @@ const matrix = [
       selectors: [
         { selector: '#app-frame', minArea: 200000, requiredText: [] },
         {
-          selector: '#main-links button',
+          selector: '#main-links .footer_link',
           minCount: 3,
           minArea: 400,
           requiredText: ['About Me', 'Contact', 'Portfolio']
@@ -97,6 +97,18 @@ const matrix = [
       { selector: '#portfolioProjectMount', minArea: 60000, requiredText: [] },
       { selector: '.portfolio-deck-card.is-active', minCount: 1, minArea: 60000, requiredText: [] },
       { selector: '.portfolio-topnav .footer_link', minCount: 1, minArea: 120, requiredText: ['About Me'] }
+    ]
+  },
+  {
+    page: 'contact',
+    path: '/contact.html',
+    readySelectors: ['#app-frame', '#contact-route-main', '.contact-route-email__button', '.route-topbar'],
+    minReadySelectors: 3,
+    selectors: [
+      { selector: '#app-frame', minArea: 200000, requiredText: [] },
+      { selector: '#contact-route-main', minArea: 30000, requiredText: ['Contact'] },
+      { selector: '.contact-route-email__button', minCount: 1, minArea: 1200, requiredText: ['alexander@beck.fyi'] },
+      { selector: '.route-topbar', minCount: 1, minArea: 1000, requiredText: [] }
     ]
   },
   {

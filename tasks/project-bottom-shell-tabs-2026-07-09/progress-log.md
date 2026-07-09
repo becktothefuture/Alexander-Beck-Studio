@@ -38,7 +38,7 @@ Created: 2026-07-09
 
 | Order | PRD | Status | Owner | Last update | Notes |
 | ---: | --- | --- | --- | --- | --- |
-| 1 | `prd-contact-route-promotion.md` | review-needed | Codex lead | 2026-07-09 | Revised to run before shell tabs so `/contact.html` exists before the dock targets it. |
+| 1 | `prd-contact-route-promotion.md` | complete | Codex lead | 2026-07-09 | Contact is route-backed at `/contact.html`; direct-load, home Contact, inline Let's chat, copy feedback, screen certification, and boot overlay verified. |
 | 2 | `prd-route-and-tab-state-foundation.md` | review-needed | Codex lead | 2026-07-09 | Revised to depend on Contact and define explicit pending gate state. |
 | 3 | `prd-bottom-frame-geometry.md` | review-needed | Codex lead | 2026-07-09 | Drafted after subagent feedback. |
 | 4 | `prd-shell-tab-visual-system.md` | review-needed | Codex lead | 2026-07-09 | Drafted after subagent feedback. |
@@ -49,14 +49,17 @@ Created: 2026-07-09
 
 | Date | Commands | Result | Artifacts | Notes |
 | --- | --- | --- | --- | --- |
+| 2026-07-09 | `git diff --check`; `npm run check:site`; `npm run certify:screens`; `ABS_DEV_URL=http://localhost:8014 npm run audit:boot-overlay`; focused Playwright Contact route smoke | pass | `output/playwright/screens-certification/report.json` | PRD 1 Contact route promotion baseline. Preview used port 8014 because 8013 was already occupied. |
 
 ## Exit Gate Evidence
 
 | Date | PRD | Commands run | Result | Artifacts | Reviewer/signoff | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| 2026-07-09 | `prd-contact-route-promotion.md` | `git diff --check`; `npm run check:site`; `npm run certify:screens`; `ABS_DEV_URL=http://localhost:8014 npm run audit:boot-overlay`; focused Playwright smoke for `/contact.html`, home Contact link, inline Let's chat, copy feedback | pass | `output/playwright/screens-certification/report.json` | Codex lead | Contact added to route registry, Vite input, SiteApp, direct boot audit, and screen certification. |
 
 ## Implementation Log
 
 ```text
 YYYY-MM-DD - PRD - status - summary - verification
+2026-07-09 - prd-contact-route-promotion.md - complete - Added `/contact.html` direct route, shell-native Contact page, copy email interaction, Contact link routing, legacy modal compatibility migration, and Contact audit/certification coverage - git diff --check, check:site, certify:screens, boot-overlay, and focused Playwright smoke passed
 ```

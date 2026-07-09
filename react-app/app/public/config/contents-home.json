@@ -47,7 +47,7 @@
     "textBeforeLink": "Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity.",
     "link": {
       "id": "contact-email-inline",
-      "href": "#",
+      "href": "/contact.html",
       "text": "Let's chat."
     }
   },
@@ -56,7 +56,7 @@
     "links": {
       "contact": {
         "id": "contact-email",
-        "href": "#",
+        "href": "/contact.html",
         "text": "Contact"
       },
       "portfolio": {

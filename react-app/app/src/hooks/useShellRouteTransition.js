@@ -768,6 +768,14 @@ function isRouteBaselineReady(routeId) {
     );
   }
 
+  if (routeId === 'contact') {
+    return Boolean(
+      body.classList.contains('contact-page')
+      && document.querySelector('.ui-top-main.route-topbar')
+      && document.getElementById('contact-route-main')
+    );
+  }
+
   if (isDailyLabRouteId(routeId)) {
     return isDailyLabRouteReady(routeId);
   }

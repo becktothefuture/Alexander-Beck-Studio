@@ -65,6 +65,7 @@ export default defineConfig(({ mode }) => ({
         index: resolve(__dirname, 'index.html'),
         'explain-it-like-im': resolve(__dirname, 'explain-it-like-im.html'),
         portfolio: resolve(__dirname, 'portfolio.html'),
+        contact: resolve(__dirname, 'contact.html'),
         cv: resolve(__dirname, 'cv.html'),
         styleguide: resolve(__dirname, 'styleguide.html'),
         simulations: resolve(__dirname, 'simulations.html'),

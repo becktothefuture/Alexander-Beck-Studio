@@ -13,6 +13,12 @@ const ROUTE_DEFS = {
     aliases: ['/portfolio.html', '/portfolio'],
     gated: true,
   },
+  contact: {
+    id: 'contact',
+    path: '/contact.html',
+    aliases: ['/contact.html', '/contact'],
+    gated: false,
+  },
   cv: {
     id: 'cv',
     path: '/cv.html',
