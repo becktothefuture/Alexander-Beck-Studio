@@ -550,11 +550,11 @@ const state = {
   weaveFieldWarmupFrames: 0,
 
   // Shapes mode
-  shapesBallCount: 150,
+  shapesBallCount: 168,
   shapesDotSizeMul: 1,
-  shapesDotSpacingMul: 2.08,
+  shapesDotSpacingMul: 2.34,
   shapesGravityScale: 0.92,
-  shapesWallRestitution: 0.18,
+  shapesWallRestitution: 0.48,
   shapesBodyCollisionEnabled: 1,
   shapesPointerStrength: 21000,
   shapesPointerRadius: 220,
@@ -1986,9 +1986,9 @@ export function initState(config) {
   if (config.weaveFieldCollisionIterations !== undefined) state.weaveFieldCollisionIterations = clampInt(config.weaveFieldCollisionIterations, 0, 6, state.weaveFieldCollisionIterations);
 
   // Shapes mode
-  if (config.shapesBallCount !== undefined) state.shapesBallCount = clampInt(config.shapesBallCount, 72, 240, state.shapesBallCount);
+  if (config.shapesBallCount !== undefined) state.shapesBallCount = clampInt(config.shapesBallCount, 72, 320, state.shapesBallCount);
   if (config.shapesDotSizeMul !== undefined) state.shapesDotSizeMul = clampNumber(config.shapesDotSizeMul, 0.5, 1.2, state.shapesDotSizeMul);
-  if (config.shapesDotSpacingMul !== undefined) state.shapesDotSpacingMul = clampNumber(config.shapesDotSpacingMul, 1.85, 2.5, state.shapesDotSpacingMul);
+  if (config.shapesDotSpacingMul !== undefined) state.shapesDotSpacingMul = clampNumber(config.shapesDotSpacingMul, 1.95, 2.8, state.shapesDotSpacingMul);
   if (config.shapesGravityScale !== undefined) state.shapesGravityScale = clampNumber(config.shapesGravityScale, 0, 1.4, state.shapesGravityScale);
   if (config.shapesWallRestitution !== undefined) state.shapesWallRestitution = clampNumber(config.shapesWallRestitution, 0.05, 0.95, state.shapesWallRestitution);
   if (config.shapesBodyCollisionEnabled !== undefined) state.shapesBodyCollisionEnabled = clampInt(config.shapesBodyCollisionEnabled, 0, 1, state.shapesBodyCollisionEnabled);

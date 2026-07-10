@@ -4636,8 +4636,8 @@ export const CONTROL_SECTIONS = {
         label: 'Dot Count',
         stateKey: 'shapesBallCount',
         type: 'range',
-        min: 72, max: 240, step: 6,
-        default: 150,
+        min: 72, max: 320, step: 8,
+        default: 168,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true,
@@ -4660,12 +4660,12 @@ export const CONTROL_SECTIONS = {
         label: 'Dot Spacing',
         stateKey: 'shapesDotSpacingMul',
         type: 'range',
-        min: 1.85, max: 2.5, step: 0.01,
-        default: 2.08,
+        min: 1.95, max: 2.8, step: 0.01,
+        default: 2.34,
         format: v => Number(v).toFixed(2),
         parse: parseFloat,
         reinitMode: true,
-        hint: 'Consistent center spacing between circles inside each shape.'
+        hint: 'Consistent center spacing between circles inside each shape, leaving visible air between dots.'
       },
       {
         id: 'shapesGravityScale',
@@ -4684,7 +4684,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'shapesWallRestitution',
         type: 'range',
         min: 0.05, max: 0.95, step: 0.01,
-        default: 0.18,
+        default: 0.48,
         format: v => Number(v).toFixed(2),
         parse: parseFloat,
         hint: 'How much velocity each dot-body keeps after bouncing off the wall.'
@@ -4697,7 +4697,7 @@ export const CONTROL_SECTIONS = {
         default: 1,
         format: v => Number(v) !== 0 ? 'On' : 'Off',
         parse: v => (v ? 1 : 0),
-        hint: 'Keep the eight compound shapes from passing through each other.'
+        hint: 'Keep the five compound shapes from passing through each other.'
       },
       {
         id: 'shapesPointerRadius',

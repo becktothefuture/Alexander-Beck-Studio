@@ -9,19 +9,15 @@ const SHAPE_TYPES = [
   'right-triangle',
   'square',
   'circle',
-  'diamond',
-  'semicircle',
-  'letter-b',
-  'letter-e',
-  'letter-c',
-  'letter-k',
   'plus',
+  'hexagon',
 ];
 
-const LARGE_SHAPE_TYPES = new Set(['square', 'circle', 'plus']);
-const LARGE_SHAPE_SCALE = 1.5;
+const EXTRA_LARGE_SHAPE_TYPES = new Set(['square', 'circle', 'plus']);
+const EXTRA_LARGE_SHAPE_SCALE = 2.05;
 const DROP_INITIAL_HOLD_SECONDS = 0.75;
-const DROP_PAIR_DELAY_SECONDS = 0.85;
+const DROP_SHAPE_DELAY_SECONDS = 0.62;
+const DROP_X_RATIOS = [0.28, 0.62, 0.42, 0.76, 0.52];
 
 let unsubscribePointer = null;
 
@@ -122,7 +118,7 @@ function makeCenteredRows(counts, align = 'center') {
 }
 
 function makeCircleRows(desiredCount) {
-  const diameter = clampInt(Math.round(Math.sqrt((desiredCount * 4) / Math.PI)), 5, 8, 6);
+  const diameter = clampInt(Math.round(Math.sqrt((desiredCount * 4) / Math.PI)), 5, 12, 7);
   const mid = (diameter - 1) * 0.5;
   const rows = [];
   for (let r = 0; r < diameter; r += 1) {
@@ -133,30 +129,8 @@ function makeCircleRows(desiredCount) {
   return makeCenteredRows(rows);
 }
 
-function makeDiamondRows(desiredCount) {
-  const maxOdd = clampInt(Math.round(Math.sqrt(desiredCount * 2)), 5, 9, 7) | 1;
-  const rows = [];
-  for (let c = 1; c <= maxOdd; c += 2) rows.push(c);
-  for (let c = maxOdd - 2; c >= 1; c -= 2) rows.push(c);
-  return makeCenteredRows(rows);
-}
-
-function makeSemicircleRows(desiredCount) {
-  const width = clampInt(Math.round(Math.sqrt(desiredCount * 2.2)), 6, 10, 8);
-  const rowsCount = Math.max(5, Math.ceil(width * 0.58));
-  const mid = (width - 1) * 0.5;
-  const rows = [];
-  for (let r = 0; r < rowsCount; r += 1) {
-    const progress = r / Math.max(1, rowsCount - 1);
-    const half = Math.sqrt(Math.max(0, 1 - (1 - progress) * (1 - progress))) * mid;
-    rows.push(Math.max(3, Math.round(half * 2) + 1));
-  }
-  rows[rows.length - 1] = width;
-  return makeCenteredRows(rows);
-}
-
 function makePlusRows(desiredCount) {
-  const span = clampInt(Math.round(Math.sqrt(desiredCount * 1.9)), 6, 9, 6);
+  const span = clampInt(Math.round(Math.sqrt(desiredCount * 1.9)), 6, 13, 7);
   const arm = Math.max(2, Math.round(span / 3));
   const sideRows = Math.max(2, Math.floor((span - arm) / 2));
   const rows = [];
@@ -168,113 +142,45 @@ function makePlusRows(desiredCount) {
   return makeCenteredRows(rows);
 }
 
-function makeHexagonRows(desiredCount) {
-  const width = clampInt(Math.round(Math.sqrt(desiredCount * 1.5)), 5, 8, 6);
+function makeHexagonRows(desiredCount, reduced = false) {
+  const maxWidth = reduced ? 7 : 10;
+  const fallbackWidth = reduced ? 7 : 6;
+  const width = clampInt(Math.round(Math.sqrt(desiredCount * 1.5)), 5, maxWidth, fallbackWidth);
   const top = Math.max(3, width - 2);
-  return makeCenteredRows([top, width - 1, width, width, width - 1, top]);
-}
-
-function makePatternRows(pattern) {
-  const width = pattern.reduce((max, row) => Math.max(max, row.length), 0);
-  return pattern.map((row) => {
-    const cols = [];
-    for (let col = 0; col < row.length; col += 1) {
-      if (row[col] === '1') cols.push(col);
-    }
-    return { cols, width };
-  });
-}
-
-function makeLetterRows(type) {
-  switch (type) {
-    case 'letter-b':
-      return makePatternRows([
-        '11110',
-        '10001',
-        '10001',
-        '11110',
-        '10001',
-        '10001',
-        '11110',
-      ]);
-    case 'letter-e':
-      return makePatternRows([
-        '11111',
-        '10000',
-        '10000',
-        '11110',
-        '10000',
-        '10000',
-        '11111',
-      ]);
-    case 'letter-c':
-      return makePatternRows([
-        '01111',
-        '10000',
-        '10000',
-        '10000',
-        '10000',
-        '10000',
-        '01111',
-      ]);
-    case 'letter-k':
-      return makePatternRows([
-        '10001',
-        '10010',
-        '10100',
-        '11000',
-        '10100',
-        '10010',
-        '10001',
-      ]);
-    default:
-      return makeCenteredRows([5, 5, 5, 5, 5]);
-  }
+  const middleRows = Math.max(1, Math.round(width * 0.42));
+  const rows = [top, width - 1];
+  for (let i = 0; i < middleRows; i += 1) rows.push(width);
+  rows.push(width - 1, top);
+  return makeCenteredRows(rows);
 }
 
 function getShapeScale(type) {
-  return LARGE_SHAPE_TYPES.has(type) ? LARGE_SHAPE_SCALE : 1;
+  if (EXTRA_LARGE_SHAPE_TYPES.has(type)) return EXTRA_LARGE_SHAPE_SCALE;
+  return 1;
 }
 
-function getDropPairSlot(index) {
-  return index % 2 === 0 ? -1 : 1;
+function getDropXRatio(index) {
+  return DROP_X_RATIOS[index % DROP_X_RATIOS.length];
 }
 
 function buildShapeRows(type, desiredCount) {
   switch (type) {
     case 'right-triangle': {
-      const side = clampInt(Math.round((Math.sqrt(8 * desiredCount + 1) - 1) / 2), 5, 8, 6);
+      const side = clampInt(Math.round((Math.sqrt(8 * desiredCount + 1) - 1) / 2), 5, 7, 6);
       const rows = [];
       for (let count = 1; count <= side; count += 1) rows.push({ count, align: 'left' });
       return rows;
     }
     case 'square': {
-      const side = clampInt(Math.round(Math.sqrt(desiredCount)), 5, 8, 6);
+      const side = clampInt(Math.round(Math.sqrt(desiredCount)), 5, 11, 7);
       return makeCenteredRows(Array.from({ length: side }, () => side));
-    }
-    case 'trapezoid': {
-      const height = clampInt(Math.round(Math.sqrt(desiredCount * 0.82)), 4, 7, 5);
-      const top = Math.max(4, height - 2);
-      const bottom = top + Math.max(3, Math.round(height * 0.75));
-      return makeCenteredRows(Array.from({ length: height }, (_, row) => (
-        Math.round(top + ((bottom - top) * row) / Math.max(1, height - 1))
-      )));
     }
     case 'circle':
       return makeCircleRows(desiredCount);
-    case 'diamond':
-      return makeDiamondRows(desiredCount);
-    case 'semicircle':
-      return makeSemicircleRows(desiredCount);
-    case 'letter-b':
-    case 'letter-e':
-    case 'letter-c':
-    case 'letter-k':
-      return makeLetterRows(type);
     case 'plus':
       return makePlusRows(desiredCount);
     case 'hexagon':
-      return makeHexagonRows(desiredCount);
+      return makeHexagonRows(desiredCount, true);
     default:
       return makeCenteredRows([5, 5, 5, 5, 5]);
   }
@@ -412,8 +318,8 @@ function constrainBodyInsideWalls(body, g) {
 
 function createShapeBodies(g, count, dotRadius) {
   const canvas = g.canvas;
-  const centers = getShapeCenters(g, canvas, dotRadius * LARGE_SHAPE_SCALE, SHAPE_TYPES.length);
-  const spacingMul = clamp(Number(g.shapesDotSpacingMul ?? 2.08), 1.85, 2.5);
+  const centers = getShapeCenters(g, canvas, dotRadius * EXTRA_LARGE_SHAPE_SCALE, SHAPE_TYPES.length);
+  const spacingMul = clamp(Number(g.shapesDotSpacingMul ?? 2.34), 1.95, 2.8);
   const basePerShape = Math.max(8, Math.floor(count / SHAPE_TYPES.length));
   const remainder = count - basePerShape * SHAPE_TYPES.length;
   const dpr = g.DPR || 1;
@@ -432,13 +338,13 @@ function createShapeBodies(g, count, dotRadius) {
     const measured = measureBody(points, bodyDotRadius);
     const center = centers[i];
     const mass = Math.max(1, points.length * shapeScale * shapeScale * 1.2);
-    const pairIndex = Math.floor(i / 2);
-    const pairSlot = getDropPairSlot(i);
-    const dropDelay = reduced ? 0 : DROP_INITIAL_HOLD_SECONDS + pairIndex * DROP_PAIR_DELAY_SECONDS;
-    const dropOffset = Math.min(canvas.width * 0.052, Math.max(bodyDotRadius * 1.6, measured.radius * 0.48));
-    const spawnX = canvas.width * 0.5 + pairSlot * dropOffset;
-    const spawnY = -measured.extentY - bodyDotRadius * (2 + pairIndex * 0.25);
+    const dropDelay = reduced ? 0 : DROP_INITIAL_HOLD_SECONDS + i * DROP_SHAPE_DELAY_SECONDS;
+    const spawnMargin = Math.max(getInteriorMargin(g, bodyDotRadius), measured.extentX + bodyDotRadius * 2);
+    const spawnSpan = Math.max(1, canvas.width - spawnMargin * 2);
+    const spawnX = spawnMargin + spawnSpan * getDropXRatio(i);
+    const spawnY = -measured.extentY - bodyDotRadius * (2 + i * 0.18);
     const outwardVx = reduced ? 0 : clamp((center.x - spawnX) * 1.45, -520 * dpr, 520 * dpr);
+    const dropSpinDirection = spawnX <= center.x ? 1 : -1;
     const body = {
       index: i,
       type,
@@ -456,13 +362,14 @@ function createShapeBodies(g, count, dotRadius) {
       spawnX,
       spawnY,
       targetX: center.x,
+      dropSpinDirection,
       dropDelay,
       isPending: dropDelay > 0,
       hasDropped: dropDelay <= 0,
       vx: dropDelay > 0 ? 0 : outwardVx,
       vy: dropDelay > 0 ? 0 : (reduced ? 20 : 80) * dpr,
       angle: (positiveHash01(i * 59 + 3) - 0.5) * 0.28,
-      omega: dropDelay > 0 || reduced ? 0 : pairSlot * (0.18 + positiveHash01(i * 97 + 13) * 0.24),
+      omega: dropDelay > 0 || reduced ? 0 : dropSpinDirection * (0.22 + positiveHash01(i * 97 + 13) * 0.26),
       isDragged: false,
       enteringFromTop: true,
       rubberSquash: 0,
@@ -491,8 +398,8 @@ function collideBodyWithWalls(body, g) {
   const canvas = g.canvas;
   const dpr = g.DPR || 1;
   const margin = Math.max(0, Number(g.wallInset) || 0) * dpr;
-  const rest = clamp(Number(g.shapesWallRestitution ?? 0.18), 0.05, 0.95);
-  const friction = 0.92;
+  const rest = clamp(Number(g.shapesWallRestitution ?? 0.48), 0.05, 0.95);
+  const friction = 1.28;
   const minX = margin;
   const maxX = canvas.width - margin;
   const minY = margin;
@@ -560,15 +467,15 @@ function resolveBodyWallContact(body, rx, ry, nx, ny, penetration, rest, frictio
     applyBodyImpulse(body, rx, ry, tx * clamped, ty * clamped);
   }
 
-  if (ny < -0.5 && Math.abs(body.vy) < 30) {
+  if (ny < -0.5 && Math.abs(body.vy) < 14) {
     body.vy = 0;
-    body.vx *= 0.88;
-    body.omega *= 0.74;
+    body.vx *= 0.94;
+    body.omega *= 0.86;
   }
 }
 
 function resolveBodyCollisions(bodies) {
-  const rest = 0.055;
+  const rest = 0.18;
   for (let i = 0; i < bodies.length; i += 1) {
     const a = bodies[i];
     if (a.isPending) continue;
@@ -597,7 +504,7 @@ function resolveBodyDotContacts(a, b, rest) {
   const invMassSum = invMassA + invMassB;
   const minDistance = a.dotRadius + b.dotRadius;
   const minDistanceSq = minDistance * minDistance;
-  const friction = 0.62;
+  const friction = 0.95;
 
   for (let i = 0; i < a.points.length; i += 1) {
     const pa = a.points[i];
@@ -940,7 +847,6 @@ function ensurePointerSubscription() {
 function releaseBodyFromSequence(body, g) {
   if (!body || !body.isPending) return;
   const dpr = g.DPR || 1;
-  const pairSlot = getDropPairSlot(body.index);
   body.isPending = false;
   body.hasDropped = true;
   body.enteringFromTop = true;
@@ -948,7 +854,7 @@ function releaseBodyFromSequence(body, g) {
   body.y = body.spawnY;
   body.vx = clamp((body.targetX - body.spawnX) * 1.45, -520 * dpr, 520 * dpr);
   body.vy = 80 * dpr;
-  body.omega = pairSlot * (0.18 + positiveHash01(body.index * 97 + 13) * 0.24);
+  body.omega = body.dropSpinDirection * (0.22 + positiveHash01(body.index * 97 + 13) * 0.26);
   body.rubberSquash = 0;
 }
 
@@ -990,7 +896,7 @@ export function initializeShapes() {
 
   const dotSizeMul = clamp(Number(g.shapesDotSizeMul ?? 1), 0.5, 1.2);
   const dotRadius = randomRadiusForMode(g, MODES.PIT) * dotSizeMul;
-  const baseCount = clampInt(g.shapesBallCount ?? 150, 72, 240, 150);
+  const baseCount = clampInt(g.shapesBallCount ?? 168, 72, 320, 168);
   const count = getMobileAdjustedCount(baseCount);
   const { bodies, targets } = createShapeBodies(g, count, dotRadius);
 

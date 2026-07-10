@@ -117,7 +117,7 @@ Loop order is `Featured -> Extended -> Featured`.
 ## Behavior Snapshot (Runnable Modes)
 
 - `pit`: gravity + collisions + cursor repeller.
-- `shapes`: graphic design primitives plus `BECK` letterforms as solid multicolored thick-rubber dot-cluster bodies with crisp row-based outlines and large square/circle/plus contrast made from more same-size dots at the same spacing; shapes release from above the visible wall in ordered pairs, then fall under gravity with heavy wall/body collisions. Press a dot to pin and drag the body from that grabbed point, or drag empty wall space to sweep-push them.
+- `shapes`: clear graphic design primitives as solid multicolored thick-rubber dot-cluster bodies with crisp row-based outlines, extra-large square/circle/plus contrast, and smaller right-triangle/hexagon bodies made from fewer same-size dots at the same spacing; shapes release one by one from different x-axis positions above the visible wall, then fall under gravity with heavier-friction, very bouncy wall/body collisions. Press a dot to pin and drag the body from that grabbed point, or drag empty wall space to sweep-push them.
 - `flies`: swarm attractor behavior with lightweight motion.
 - `weightless`: zero-gravity bounce with cursor blast-style interaction.
 - `water`: dense drag/ripple motion field.
