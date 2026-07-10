@@ -115,7 +115,7 @@
   "innerWallGradientEdgeTopOpacity": 0.31,
   "innerWallGradientEdgeTopShadowOpacity": 0.57,
   "innerWallGradientEdgeWidth": 2.5,
-  "innerWallPitInsetShadowOpacity": 0.165,
+  "innerWallPitInsetShadowOpacity": 0.215,
   "innerWallPitInsetShadowBlurPx": 36,
   "outerWallCastShadowOpacityLight": 0,
   "quotePuckEnabled": false,

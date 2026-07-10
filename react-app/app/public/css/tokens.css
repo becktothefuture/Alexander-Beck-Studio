@@ -559,6 +559,9 @@
   --inner-wall-pit-inset-shadow-blur: 20px;
   --inner-wall-pit-inset-shadow-spread: -6px;
   --inner-wall-pit-inset-shadow-offset-y: 3px;
+  --inner-wall-recess-side-shadow-opacity: 0.1;
+  --inner-wall-recess-corner-shadow-opacity: 0.12;
+  --inner-wall-recess-lower-light-opacity: 0.045;
 
   /* Inner wall gradient edge - radial gradient light/shadow edges */
   --inner-wall-gradient-edge-width: 3px;      /* Thickness of gradient edge border (~50% above prior 2px default) */
@@ -866,6 +869,9 @@ body[data-abs-theme='dark'] {
   --quote-glass-inner-shadow-opacity: 0.15;
   --quote-glass-shadow-opacity: 0.44;
   --quote-glass-bottom-edge-opacity: 0.22;
+  --inner-wall-recess-side-shadow-opacity: 0.24;
+  --inner-wall-recess-corner-shadow-opacity: 0.28;
+  --inner-wall-recess-lower-light-opacity: 0.07;
   
   --inner-wall-shine-color: var(--bg-dark);
 

@@ -912,7 +912,7 @@ const state = {
   innerWallGradientEdgeWidth: 3,            // Gradient edge rim thickness (px) — ~50% above legacy 2px
   innerWallGradientEdgeTopOpacity: 0.18,    // Master — bottom + sides light rim only
   innerWallGradientEdgeTopShadowOpacity: 0.3, // Top inner edge shadow rim (0–1, CSS-clamped in apply)
-  innerWallPitInsetShadowOpacity: 0.12,     // Pit interior inset shadow (theme-invariant)
+  innerWallPitInsetShadowOpacity: 0.18,     // Pit interior inset shadow (theme-invariant)
   innerWallPitInsetShadowBlurPx: 28,        // Inset shadow blur (px)
   innerWallPitInsetShadowSpreadPx: -6,      // Negative pulls shadow inward from rim
   innerWallPitInsetShadowOffsetYPx: 4,      // Slight downward bias (top light)
