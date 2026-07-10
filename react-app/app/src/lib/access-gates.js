@@ -192,16 +192,15 @@ export function navigateToGatePage(gateId, { allowDevAccess = false } = {}) {
 }
 
 export function navigateToHome(options = {}) {
-  if (options.openContact) {
-    const contactDestination = new URL(withBasePath('/contact.html'), window.location.origin);
-    if (trySpaNavigate(contactDestination.toString())) {
-      return;
-    }
-    window.location.assign(contactDestination.toString());
-    return;
-  }
-
   const destination = getHomeUrl();
+
+  if (options.openContact) {
+    try {
+      window.sessionStorage.setItem('abs_open_contact_modal', '1');
+    } catch {
+      // Storage can be unavailable in hardened/private browser modes.
+    }
+  }
 
   if (trySpaNavigate(destination.toString())) {
     return;

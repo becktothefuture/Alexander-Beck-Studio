@@ -5,8 +5,6 @@ function RouteSceneMount({ routeRenderKey, children }) {
   switch (routeRenderKey) {
     case 'portfolio':
       return <div data-sfid="sfid:shell/portfolio">{children}</div>;
-    case 'contact':
-      return <div data-sfid="sfid:shell/contact">{children}</div>;
     case 'cv':
       return <div data-sfid="sfid:shell/cv">{children}</div>;
     case 'styleguide':

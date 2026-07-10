@@ -1,6 +1,5 @@
 import homeContent from 'virtual:abs-content/home';
 import { MainNavLink } from '../../components/MainNavLink.jsx';
-import { buildRouteHref } from '../../lib/routes.js';
 
 export const HOME_ROUTE_RUNTIME = {
   exportName: 'bootstrapHomePage',
@@ -19,7 +18,6 @@ function renderLegendItem(item) {
 export function getHomeRouteView() {
   const footerLinks = homeContent.footer.links;
   const philosophyLink = homeContent.philosophy.link;
-  const contactHref = buildRouteHref('contact');
 
   return {
     bodyClass: 'body',
@@ -55,7 +53,7 @@ export function getHomeRouteView() {
                 <p>
                   {homeContent.philosophy.textBeforeLink}
                   {' '}
-                  <a id={philosophyLink.id} href={contactHref}>
+                  <a id={philosophyLink.id} href={philosophyLink.href}>
                     {philosophyLink.text}
                   </a>
                 </p>
@@ -73,13 +71,7 @@ export function getHomeRouteView() {
           </main>
 
           <nav id="main-links" className="ui-nav-row ui-main-nav" aria-label={homeContent.footer.navAriaLabel}>
-            <a
-              id={footerLinks.contact.id}
-              href={contactHref}
-              className="footer_link"
-            >
-              <span className="footer-link-nowrap">{footerLinks.contact.text}</span>
-            </a>
+            <MainNavLink id={footerLinks.contact.id}>{footerLinks.contact.text}</MainNavLink>
             <MainNavLink id={footerLinks.portfolio.id}>{footerLinks.portfolio.text}</MainNavLink>
             <MainNavLink id={footerLinks.cv.id}>{footerLinks.cv.text}</MainNavLink>
           </nav>

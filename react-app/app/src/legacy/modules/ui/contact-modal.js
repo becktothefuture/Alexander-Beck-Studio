@@ -14,9 +14,8 @@
 // - No user text stored (clipboard copy is a single fixed string)
 
 import { activateModalAccessibility } from './modal-accessibility.js';
-import { buildRouteHref } from '../../../lib/routes.js';
-import { trySpaNavigate } from '../../../lib/spa-navigation.js';
 import { getText } from '../utils/text-loader.js';
+import { setStableTimeout } from '../../../lib/legacy-runtime-scope.js';
 import { triggerHaptic } from '../../../lib/haptics.js';
 import {
   closeGateModal,
@@ -25,19 +24,9 @@ import {
   openGateModal,
   showGateBackdrop
 } from './gate-modal-shared.js';
+import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
 
 const COPY_FEEDBACK_MS = 3000;
-
-function routeToContact() {
-  const href = buildRouteHref('contact');
-  if (trySpaNavigate(href)) return;
-  window.location.assign(href);
-}
-
-function isModalContactTrigger(trigger) {
-  const href = trigger?.getAttribute?.('href') || '';
-  return href === '' || href === '#';
-}
 
 async function copyToClipboard(text) {
   // Preferred API (secure contexts)
@@ -84,7 +73,7 @@ export function initContactModal() {
   const triggers = [
     document.getElementById('contact-email'),
     document.getElementById('contact-email-inline')
-  ].filter(Boolean).filter(isModalContactTrigger);
+  ].filter(Boolean);
 
   const modal = document.getElementById('contact-modal');
   const modalLabel = document.getElementById('contact-modal-label');
@@ -93,20 +82,8 @@ export function initContactModal() {
   const cvGate = document.getElementById('cv-modal');
   const portfolioGate = document.getElementById('portfolio-modal');
 
-  try {
-    if (sessionStorage.getItem('abs_open_contact_modal')) {
-      sessionStorage.removeItem('abs_open_contact_modal');
-      routeToContact();
-      return;
-    }
-  } catch (e) {}
-
-  if (!modal || !modalLabel || !modalInputs) {
+  if (!triggers.length || !modal || !modalLabel || !modalInputs) {
     console.warn('Contact Gate: Missing required elements');
-    return;
-  }
-
-  if (!triggers.length) {
     return;
   }
   
@@ -293,6 +270,21 @@ export function initContactModal() {
     }
   });
 
-  // Contact is route-backed now. Legacy session requests are consumed above
-  // and routed to /contact.html before modal trigger binding.
+  // Allow other pages (e.g. portfolio) to route via index and auto-open Contact modal.
+  try {
+    if (sessionStorage.getItem('abs_open_contact_modal')) {
+      sessionStorage.removeItem('abs_open_contact_modal');
+      // Defer until the shell route transition has yielded ownership.
+      const startedAt = performance.now();
+      const waitForRouteSettleThenOpen = () => {
+        const shellBusy = isRouteTransitionPhase(getTransitionPhase());
+        if (shellBusy && (performance.now() - startedAt) < 2000) {
+          setStableTimeout(waitForRouteSettleThenOpen, 16);
+          return;
+        }
+        openGate();
+      };
+      setStableTimeout(waitForRouteSettleThenOpen, 0);
+    }
+  } catch (e) {}
 }

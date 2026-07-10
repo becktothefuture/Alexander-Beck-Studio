@@ -3,7 +3,6 @@ import { BodyClassManager } from '../layout/BodyClassManager.jsx';
 import { StudioShell } from './StudioShell.jsx';
 import { getHomeRouteView, HOME_ROUTE_RUNTIME } from '../../routes/home/HomeRoute.jsx';
 import { getPortfolioRouteView, PORTFOLIO_ROUTE_RUNTIME } from '../../routes/portfolio/PortfolioRoute.jsx';
-import { getContactRouteView, CONTACT_ROUTE_RUNTIME } from '../../routes/contact/ContactRoute.jsx';
 import { getCvRouteView, CV_ROUTE_RUNTIME } from '../../routes/cv/CvRoute.jsx';
 import { getStyleguideRouteView, STYLEGUIDE_ROUTE_RUNTIME } from '../../routes/styleguide/StyleguideRoute.jsx';
 import {
@@ -51,7 +50,6 @@ import {
 const ROUTE_VIEW_BY_ID = {
   home: getHomeRouteView,
   portfolio: getPortfolioRouteView,
-  contact: getContactRouteView,
   cv: getCvRouteView,
   styleguide: getStyleguideRouteView,
   simulations: getSimulationLaunchpadRouteView,
@@ -71,7 +69,6 @@ const ROUTE_VIEW_BY_ID = {
 const ROUTE_RUNTIME_BY_ID = {
   home: HOME_ROUTE_RUNTIME,
   portfolio: PORTFOLIO_ROUTE_RUNTIME,
-  contact: CONTACT_ROUTE_RUNTIME,
   cv: CV_ROUTE_RUNTIME,
   styleguide: STYLEGUIDE_ROUTE_RUNTIME,
   simulations: SIMULATION_LAUNCHPAD_ROUTE_RUNTIME,
