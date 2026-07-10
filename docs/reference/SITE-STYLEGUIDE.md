@@ -54,7 +54,7 @@ Use these as references when adding siblings:
 Any page that shows a **top chrome strip** (portfolio, CV, future gated routes) must reuse the **same DOM + CSS contract** as the current implementation—**not** a one-off flex row or alternate text-button class.
 
 - **Structure:** `header.ui-top` → `div.ui-top-main.route-topbar` → **`route-topbar__left` | `route-topbar__center` | `route-topbar__right`** (grid `auto 1fr auto`, full width). Center is **in-flow** (no `position: absolute` on the nav).
-- **Text actions:** Primary public route navigation belongs to the bottom route dock, not route top bars. Use `MainNavLink` / `.footer_link` only for route-local utility clusters or documented styleguide specimens.
+- **Text actions:** `MainNavLink` renders the **primary buttons** (`footer_link`). Portfolio keeps the About Me/CV action in `route-topbar__right`; CV keeps its primary actions in `route-topbar__center`. Hover foreground is unified via `.ui-main-nav` + trigger id overrides in `main.css`.
 - **Icons:** Back uses **`gate-back abs-icon-btn`**; sound uses **`#sound-toggle-slot`** (see 1.3). Portfolio intro copy belongs inside the wall deck, not in the chrome strip.
 - **When adding a new route with a top bar:** copy the relevant strip from `PortfolioRoute.jsx` / `CvRoute.jsx`, swap copy and ids only; extend `COMPONENT-LIBRARY.md` and `/styleguide.html` if the pattern changes.
 
@@ -62,7 +62,7 @@ Authoritative detail: [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md) (route top 
 
 ### 1.5 Bottom route dock
 
-The public route dock is shell-owned chrome mounted in the footer transition surface, but visually sits in the expanded bottom shell band outside the inner wall. Geometry is controlled by `--shell-bottom-dock-band`, `--shell-route-dock-bottom`, and the directional `--shell-wall-inset-*` / `--shell-inner-window-*` variables. Do not position dock tabs inside `#simulations`; the inner wall must move up to make room for them. Active tabs use a seated filled plate and bottom lip; pending gated tabs may look selected but must not set `aria-current` until the gated route resolves.
+The public route dock is shell-owned chrome mounted in the footer transition surface, but visually sits in the expanded bottom shell band outside the inner wall. Geometry is controlled by `--shell-bottom-dock-band`, `--shell-route-dock-bottom`, and the directional `--shell-wall-inset-*` / `--shell-inner-window-*` variables. Do not position dock tabs inside `#simulations`; the inner wall must move up to make room for them.
 
 ---
 
