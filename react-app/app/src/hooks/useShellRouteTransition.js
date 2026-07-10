@@ -184,36 +184,36 @@ const EASE_OUT = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 const READY_FALLBACK_MS = 900;
 const GROUPED_ROUTE_OFFSET_MS = 80;
 const ROUTE_ENTER_SELECTOR = '[data-route-enter]';
-const ROUTE_ENTER_TOTAL_MS = 3900;
+const ROUTE_ENTER_TOTAL_MS = 720;
 const ROUTE_ENTER_GROUPS = {
   identity: {
     startMs: 0,
-    stepMs: 140,
-    durationMs: 980,
+    stepMs: 58,
+    durationMs: 420,
     slide: true,
   },
   legend: {
-    startMs: 360,
-    stepMs: 96,
-    durationMs: 1180,
+    startMs: 90,
+    stepMs: 36,
+    durationMs: 460,
     slide: true,
   },
   context: {
-    startMs: 1340,
-    stepMs: 120,
-    durationMs: 1180,
+    startMs: 210,
+    stepMs: 54,
+    durationMs: 480,
     slide: true,
   },
   action: {
-    startMs: 1740,
-    stepMs: 120,
-    durationMs: 1180,
+    startMs: 300,
+    stepMs: 54,
+    durationMs: 440,
     slide: false,
   },
   footer: {
-    startMs: 2100,
-    stepMs: 100,
-    durationMs: 1180,
+    startMs: 360,
+    stepMs: 48,
+    durationMs: 420,
     slide: true,
   },
 };
@@ -349,6 +349,30 @@ function setRouteLayerVisibility(visible, surfaceRefs) {
   });
 }
 
+function pinRouteSurfacesForCommit(surfaceRefs) {
+  const { wall, hero, chrome, secondary } = getContentLayers(surfaceRefs);
+
+  [wall, hero, chrome, secondary].forEach((el) => {
+    if (!el) return;
+    el.style.opacity = '0';
+    el.style.removeProperty('visibility');
+    el.style.pointerEvents = 'none';
+    el.style.willChange = 'opacity, transform, filter';
+  });
+
+  cancelActiveAnimations();
+}
+
+function holdPinnedRouteSurfacesUntilRouteIn(surfaceRefs, shouldContinue) {
+  const tick = () => {
+    if (!shouldContinue()) return;
+    pinRouteSurfacesForCommit(surfaceRefs);
+    window.requestAnimationFrame(tick);
+  };
+
+  window.requestAnimationFrame(tick);
+}
+
 function buildRouteTransitionGroups(routeId, surfaceRefs) {
   const surfaces = getContentLayers(surfaceRefs);
   const addGroup = (delayMs, items) => ({
@@ -410,10 +434,10 @@ function getGroupedTransitionItems(routeId, surfaceRefs) {
 
 function readRouteEnterMotion() {
   return {
-    y: getComputedStyle(document.documentElement).getPropertyValue('--home-post-boot-ty').trim() || '7px',
-    blur: getComputedStyle(document.documentElement).getPropertyValue('--home-post-boot-blur').trim() || '4px',
-    scale: getComputedStyle(document.documentElement).getPropertyValue('--home-post-boot-scale').trim() || '0.985',
-    easing: readRootEasing('--home-post-boot-ease', 'cubic-bezier(0.22, 0, 0.16, 1)'),
+    y: getComputedStyle(document.documentElement).getPropertyValue('--route-enter-ty').trim() || '3px',
+    blur: getComputedStyle(document.documentElement).getPropertyValue('--route-enter-blur').trim() || '1.5px',
+    scale: getComputedStyle(document.documentElement).getPropertyValue('--route-enter-scale').trim() || '0.994',
+    easing: readRootEasing('--route-enter-ease', 'cubic-bezier(0.22, 0, 0.16, 1)'),
   };
 }
 
@@ -448,12 +472,14 @@ function getRouteEnterTargets(surfaceRefs) {
       const order = parseRouteEnterOrder(el, fallbackOrder);
       groupCounts.set(group, Math.max(fallbackOrder + 1, order + 1));
       const config = getRouteEnterGroupConfig(group);
+      const finalOpacity = getComputedStyle(el).opacity || '1';
       targets.push({
         el,
         group,
         order,
         delayMs: config.startMs + (config.stepMs * order),
         durationMs: config.durationMs,
+        finalOpacity,
         slide: el.dataset.routeEnterSlide === 'false' ? false : config.slide,
       });
     });
@@ -464,6 +490,41 @@ function getRouteEnterTargets(surfaceRefs) {
     || a.group.localeCompare(b.group)
     || a.order - b.order
   ));
+}
+
+function setRouteEnterInitialState(targets, routeEnterMotion) {
+  targets.forEach(({ el, slide }) => {
+    el.style.transition = 'none';
+    el.style.opacity = '0';
+    el.style.filter = `blur(${routeEnterMotion.blur})`;
+    el.style.transform = slide
+      ? `translateY(${routeEnterMotion.y}) scale(${routeEnterMotion.scale})`
+      : 'translateY(0) scale(1)';
+    el.style.pointerEvents = 'none';
+    el.style.willChange = 'opacity, transform, filter';
+  });
+}
+
+function playRouteEnterTargets(targets, routeEnterMotion) {
+  targets.forEach(({ el, delayMs, durationMs, finalOpacity }) => {
+    el.style.transition = [
+      `opacity ${durationMs}ms ${routeEnterMotion.easing} ${delayMs}ms`,
+      `transform ${durationMs}ms ${routeEnterMotion.easing} ${delayMs}ms`,
+      `filter ${durationMs}ms ${routeEnterMotion.easing} ${delayMs}ms`,
+    ].join(', ');
+    el.style.opacity = finalOpacity || '1';
+    el.style.filter = 'blur(0)';
+    el.style.transform = 'translateY(0) scale(1)';
+    setStableTimeout(() => {
+      el.style.opacity = '';
+      el.style.transform = '';
+      el.style.filter = '';
+      el.style.transition = '';
+      el.style.transitionDelay = '';
+      el.style.pointerEvents = '';
+      el.style.willChange = '';
+    }, delayMs + durationMs + 80);
+  });
 }
 
 /* ── backdrop cleanup (with direct-DOM fallback) ─────────────────────────── */
@@ -765,6 +826,25 @@ function waitForSimulationFocusHold(durationMs) {
   return new Promise((resolve) => setStableTimeout(resolve, durationMs));
 }
 
+function waitForRoutePaintFrames(count = 2) {
+  if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    let remaining = Math.max(1, count);
+    const tick = () => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        resolve();
+        return;
+      }
+      window.requestAnimationFrame(tick);
+    };
+    window.requestAnimationFrame(tick);
+  });
+}
+
 /* ── route ready ──────────────────────────────────────────────────────────── */
 
 function hasCanvasBufferReady() {
@@ -921,7 +1001,6 @@ function isRouteBaselineReady(routeId, options = {}) {
     const routeTabs = document.querySelectorAll('[data-route-tab]');
     const bootOverlay = document.getElementById('abs-boot-overlay');
     const bootState = document.documentElement.dataset.absBootState || '';
-    const homeRouteReady = document.documentElement.dataset.absHomeRouteReady === 'true';
     return Boolean(
       isHomeRoute
       && hero
@@ -929,7 +1008,6 @@ function isRouteBaselineReady(routeId, options = {}) {
       && hasCanvasBufferReady()
       && !bootOverlay
       && bootState !== 'booting'
-      && homeRouteReady
     );
   }
 
@@ -1092,16 +1170,7 @@ function staggeredEntrance({
       el.style.opacity = '0';
       el.style.willChange = 'opacity, transform';
     });
-    routeEnterTargets.forEach(({ el, slide }) => {
-      el.style.transition = 'none';
-      el.style.opacity = '0';
-      el.style.filter = `blur(${routeEnterMotion.blur})`;
-      el.style.transform = slide
-        ? `translateY(${routeEnterMotion.y}) scale(${routeEnterMotion.scale})`
-        : 'translateY(0) scale(1)';
-      el.style.pointerEvents = 'none';
-      el.style.willChange = 'opacity, transform, filter';
-    });
+    setRouteEnterInitialState(routeEnterTargets, routeEnterMotion);
 
     // Pin window content layers to opacity 0 via inline style BEFORE cancelling WAAPI.
     // This prevents a single-frame flash where the WAAPI fill:forwards is removed
@@ -1119,8 +1188,9 @@ function staggeredEntrance({
       ui.style.opacity = '1';
       ui.style.willChange = 'auto';
     }
-    // Force reflow so children start at opacity 0 before WAAPI begins.
-    void ui?.offsetHeight;
+    // Force reflow so route-owned children are paint-committed at opacity 0
+    // before their compact homepage-style entrance begins.
+    void document.documentElement.offsetHeight;
 
     const hasWaapi = typeof document.documentElement.animate === 'function';
     if (typeof onPrepared === 'function') onPrepared();
@@ -1174,58 +1244,8 @@ function staggeredEntrance({
       });
     });
 
-    routeEnterTargets.forEach(({ el, delayMs, durationMs, slide }) => {
-      const keyframes = slide
-        ? [
-            {
-              opacity: 0,
-              filter: `blur(${routeEnterMotion.blur})`,
-              transform: `translateY(${routeEnterMotion.y}) scale(${routeEnterMotion.scale})`,
-            },
-            { opacity: 1, filter: 'blur(0)', transform: 'translateY(0) scale(1)' },
-          ]
-        : [
-            { opacity: 0, filter: `blur(${routeEnterMotion.blur})` },
-            { opacity: 1, filter: 'blur(0)' },
-          ];
-
-      if (hasWaapi) {
-        const anim = el.animate(keyframes, {
-          duration: durationMs,
-          delay: delayMs,
-          easing: routeEnterMotion.easing,
-          fill: 'forwards',
-        });
-        activeAnimations.push(anim);
-        anim.onfinish = () => {
-          el.style.opacity = '';
-          el.style.transform = '';
-          el.style.filter = '';
-          el.style.transition = '';
-          el.style.transitionDelay = '';
-          el.style.pointerEvents = '';
-          el.style.willChange = '';
-        };
-        anim.oncancel = anim.onfinish;
-        return;
-      }
-
-      setStableTimeout(() => {
-        el.style.transition = [
-          `opacity ${durationMs}ms ${routeEnterMotion.easing}`,
-          `transform ${durationMs}ms ${routeEnterMotion.easing}`,
-          `filter ${durationMs}ms ${routeEnterMotion.easing}`,
-        ].join(', ');
-        el.style.opacity = '1';
-        el.style.transform = '';
-        el.style.filter = '';
-        setStableTimeout(() => {
-          el.style.transition = '';
-          el.style.transitionDelay = '';
-          el.style.pointerEvents = '';
-          el.style.willChange = '';
-        }, durationMs + 50);
-      }, delayMs);
+    window.requestAnimationFrame(() => {
+      playRouteEnterTargets(routeEnterTargets, routeEnterMotion);
     });
 
     const surfaceTotal = Math.max(0, ...groups.map((group) => group.delayMs)) + enterMs;
@@ -1249,6 +1269,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   const activeRouteContentSignatureRef = useRef(readRouteContentSignature(routeState));
   const activeFocusSimulationIdRef = useRef(readRouteStateSimulationFocusId(routeState));
   const activeGateTransitionRef = useRef(false);
+  const activeTransitionCommittedRef = useRef(false);
   const activeRouteReadyCancelRef = useRef(null);
   const getRouteRuntimeRef = useRef(getRouteRuntime);
   const syncSteadyTransitionPhase = useCallback(() => {
@@ -1268,15 +1289,45 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     const hasRouteContentChange = nextRouteContentSignature !== activeRouteContentSignatureRef.current;
     const hasSimulationFocusChange = nextFocusSimulationId !== activeFocusSimulationIdRef.current;
     const method = options.replace ? 'replaceState' : 'pushState';
+    let historyCommitted = false;
+    const commitHistory = (historyMethod = method) => {
+      window.history[historyMethod](options.state || {}, '', nextState.canonicalHref);
+      historyCommitted = true;
+      activeTransitionCommittedRef.current = true;
+    };
     const commit = () => {
-      window.history[method](options.state || {}, '', nextState.canonicalHref);
+      if (!historyCommitted) {
+        commitHistory();
+      }
       setRouteState(nextState);
       activeRouteIdRef.current = nextRouteId;
       activeRouteContentSignatureRef.current = nextRouteContentSignature;
       activeFocusSimulationIdRef.current = nextFocusSimulationId;
     };
+    const canPreemptActiveTransition = Boolean(
+      options.preemptTransition
+      && !activeGateTransitionRef.current
+      && isRouteTransitionPhase(getTransitionPhase())
+    );
+    const preemptActiveTransition = () => {
+      ++transitionToken;
+      queuedNavigationRef.current = null;
+      activeRouteReadyCancelRef.current?.();
+      activeRouteReadyCancelRef.current = null;
+      transitionActiveRef.current = false;
+      activeGateTransitionRef.current = false;
+      finalizeTransition(false, activeRouteIdRef.current, surfaceRefs);
+      cleanupSimulationFocusLayer(surfaceRefs);
+      setSimulationShellStability(false, surfaceRefs);
+      setSimulationFocusTransitionState(null);
+      setPendingActiveRouteId(null);
+      syncSteadyTransitionPhase();
+      commitHistory(activeTransitionCommittedRef.current ? 'replaceState' : method);
+    };
 
-    if (transitionActiveRef.current) {
+    if (transitionActiveRef.current && canPreemptActiveTransition) {
+      preemptActiveTransition();
+    } else if (transitionActiveRef.current) {
       if (!isSameRoute || hasRouteContentChange || hasSimulationFocusChange) {
         queuedNavigationRef.current = {
           href: targetUrl.toString(),
@@ -1346,6 +1397,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     if (isSimulationFocus) {
       transitionActiveRef.current = true;
       activeGateTransitionRef.current = false;
+      activeTransitionCommittedRef.current = historyCommitted;
       setLegacyRouteTransitionActive(true, { gate: false });
       const simulationTitleSurface = getSimulationTitleSurfaceForRouteChange(activeRouteIdRef.current, nextRouteId);
       setSimulationShellStability(true, surfaceRefs, {
@@ -1519,6 +1571,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     if ((!isSameRoute || hasRouteContentChange) && !reduceMotion) {
       transitionActiveRef.current = true;
       activeGateTransitionRef.current = isGate;
+      activeTransitionCommittedRef.current = historyCommitted;
       setPendingActiveRouteId(nextRouteId);
       setLegacyRouteTransitionActive(true, { gate: isGate });
       setTransitionPhase(TRANSITION_PHASES.ROUTE_OUT);
@@ -1556,9 +1609,24 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           if (isGate) {
             // Gate-success handoffs stay hidden while the destination settles.
             setRouteLayerVisibility(false, surfaceRefs);
+          } else {
+            pinRouteSurfacesForCommit(surfaceRefs);
           }
           commit();
+          if (!isGate) {
+            holdPinnedRouteSurfacesUntilRouteIn(
+              surfaceRefs,
+              () => !stale() && getTransitionPhase() === TRANSITION_PHASES.ROUTE_OUT
+            );
+          }
           return routeReady;
+        })
+        .then(() => {
+          if (stale()) {
+            routeReadyWaiter.cancel();
+            return;
+          }
+          return waitForRoutePaintFrames(2);
         })
         .then(() => {
           if (stale()) {
@@ -1598,6 +1666,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     if (isGate) {
       transitionActiveRef.current = true;
       activeGateTransitionRef.current = true;
+      activeTransitionCommittedRef.current = historyCommitted;
       setPendingActiveRouteId(nextRouteId);
       setLegacyRouteTransitionActive(true, { gate: true });
       setTransitionPhase(TRANSITION_PHASES.ROUTE_OUT);
@@ -1709,6 +1778,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
 
     if (isSimulationFocus) {
       transitionActiveRef.current = true;
+      activeTransitionCommittedRef.current = false;
       setLegacyRouteTransitionActive(true, { gate: false });
       setSimulationShellStability(true, surfaceRefs);
       const token = ++transitionToken;
@@ -1761,6 +1831,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
 
     if (reduceMotion) {
       transitionActiveRef.current = true;
+      activeTransitionCommittedRef.current = false;
       setLegacyRouteTransitionActive(true, { gate: false });
       setTransitionPhase(TRANSITION_PHASES.ROUTE_OUT);
       runTask()
@@ -1770,6 +1841,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     }
 
     transitionActiveRef.current = true;
+    activeTransitionCommittedRef.current = false;
     setLegacyRouteTransitionActive(true, { gate: false });
     setTransitionPhase(TRANSITION_PHASES.ROUTE_OUT);
 

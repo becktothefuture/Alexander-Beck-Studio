@@ -157,7 +157,7 @@ export function StudioShell({
             </div>
           <ShellButtonBar
             activeRouteId={activeRouteId || routeRenderKey}
-            onRouteNavigate={(href) => trySpaNavigate(href)}
+            onRouteNavigate={(href, tab, options) => trySpaNavigate(href, options)}
           />
           {/* Portfolio drawer: MUST stack above header/footer — see docs/reference/LAYER-STACKING.md (never mount only inside #simulations). */}
           <div

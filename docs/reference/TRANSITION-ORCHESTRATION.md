@@ -60,6 +60,7 @@ Canonical engineering contract for route and modal transitions.
 - The stable shell preserves explicit transition surfaces as implementation details: wall, hero, chrome, and route secondary content.
 - Route-in restores readable groups first, then animates route-owned children marked with `[data-route-enter]`.
 - `[data-route-enter]` accepts the named groups `identity`, `legend`, `context`, `action`, and `footer`; `data-route-enter-order` controls order inside a group. Add these markers to route content instead of adding new shell selectors when a view needs child-level entrance motion.
+- After `abs:route-ready`, route-in must wait for a short paint barrier before preparing child entrances so destination refs, layout, and `[data-route-enter]` markers belong to the new route.
 - Portfolio route-in must restore hero + route UI together before slider labels / pit accents become readable.
 - First readable route-in frame must already have final geometry for the hero surface inside the inner wall.
 
@@ -67,8 +68,8 @@ Canonical engineering contract for route and modal transitions.
 - Bottom-tab route switches use the named Instrument Wake transition inside `useShellRouteTransition`; this remains part of the single route owner, not a second state machine.
 - `<html data-abs-instrument-wake="out|in">` is an effect marker only. The canonical route phase remains `data-abs-transition-phase="route-out|route-in|idle"`.
 - Instrument Wake targets route-owned window content surfaces: studio window, hero, chrome, and route secondary content. It must not target `.fade-content` as a whole, `.button-bar` / legacy `.shell-bottom-band`, `#portfolio-sheet-host`, or modal layers.
-- Timing is intentionally fast: outgoing content is roughly 110ms; incoming content is roughly 165ms; the masked window pass is roughly 245ms.
-- Child route entrances may continue after the fast surface wake using the same grouped cadence as the home post-boot entrance; persistent shell controls remain stable while the route's own elements animate in.
+- Timing is intentionally fast: outgoing content is roughly 110ms; incoming content is roughly 165ms. The former masked gradient sweep is intentionally disabled; `data-abs-instrument-wake` remains an internal marker only.
+- Child route entrances use the same named groups as the home post-boot entrance, but with a compact route cadence so bottom-tab clicks remain responsive; persistent shell controls remain stable while the route's own elements animate in.
 - Reduced motion disables blur, depth scaling, and the window pass while preserving the route phase cleanup back to `idle`.
 
 ## 8) Validation gate for transition changes

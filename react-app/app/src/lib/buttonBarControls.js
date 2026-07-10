@@ -8,20 +8,17 @@ export const BUTTON_BAR_DEFAULTS = Object.freeze({
   buttonBarButtonPaddingXPx: 16,
   buttonBarButtonRadiusPx: 14,
   buttonBarFontSizeRem: 1.032,
-  buttonBarButtonBgWindowMixPct: 96,
-  buttonBarButtonBgWhiteMixPct: 3,
-  buttonBarButtonHoverWhiteMixPct: 3,
-  buttonBarButtonActiveWindowMixPct: 90,
-  buttonBarButtonActiveWhiteMixPct: 6,
+  buttonBarButtonBgWindowMixPct: 100,
+  buttonBarButtonBgWhiteMixPct: 0,
+  buttonBarButtonHoverWhiteMixPct: 2,
+  buttonBarButtonActiveWindowMixPct: 100,
+  buttonBarButtonActiveWhiteMixPct: 0,
   buttonBarIndicatorOpacity: 0.5,
   buttonBarShadowOpacity: 0.12,
   buttonBarActiveGlowPx: 6,
   buttonBarActiveDropPx: 0,
   buttonBarTransitionMs: 140,
-  buttonBarPerspectivePx: 2000,
-  buttonBarPerspectiveOriginYVh: -50,
-  buttonBarRestZPx: 0,
-  buttonBarPressZTravelPx: 9,
+  buttonBarPressZTravelPx: 2,
 });
 
 const LEGACY_BUTTON_BAR_KEYS = Object.freeze({
@@ -203,51 +200,18 @@ export const BUTTON_BAR_CONTROL_GROUPS = Object.freeze([
     ],
   },
   {
-    title: 'Depth',
-    initiallyOpen: true,
-    controls: [
-      {
-        id: 'buttonBarPerspectivePx',
-        label: 'Perspective',
-        type: 'range',
-        min: 900,
-        max: 3600,
-        step: 50,
-        display: 'px',
-      },
-      {
-        id: 'buttonBarPerspectiveOriginYVh',
-        label: 'Origin Y',
-        type: 'range',
-        min: -120,
-        max: 40,
-        step: 2,
-        display: 'vh',
-      },
-      {
-        id: 'buttonBarRestZPx',
-        label: 'Bar Z',
-        type: 'range',
-        min: 0,
-        max: 28,
-        step: 1,
-        display: 'px',
-      },
-      {
-        id: 'buttonBarPressZTravelPx',
-        label: 'Press Z Travel',
-        type: 'range',
-        min: 0,
-        max: 22,
-        step: 1,
-        display: 'px',
-      },
-    ],
-  },
-  {
     title: 'Motion',
     initiallyOpen: true,
     controls: [
+      {
+        id: 'buttonBarPressZTravelPx',
+        label: 'Press Travel',
+        type: 'range',
+        min: 0,
+        max: 4,
+        step: 0.25,
+        display: 'px',
+      },
       {
         id: 'buttonBarActiveGlowPx',
         label: 'Active Glow',
@@ -333,12 +297,7 @@ export function applyButtonBarCssVars(source = {}, root = null) {
   targetRoot.style.setProperty('--button-bar-active-glow', `${config.buttonBarActiveGlowPx}px`);
   targetRoot.style.setProperty('--button-bar-active-drop', `${config.buttonBarActiveDropPx}px`);
   targetRoot.style.setProperty('--button-bar-transition-ms', `${config.buttonBarTransitionMs}ms`);
-  targetRoot.style.setProperty('--button-bar-perspective', `${config.buttonBarPerspectivePx}px`);
-  targetRoot.style.setProperty('--button-bar-perspective-origin-y', `${config.buttonBarPerspectiveOriginYVh}vh`);
-  targetRoot.style.setProperty('--button-bar-rest-z', `${config.buttonBarRestZPx}px`);
-  targetRoot.style.setProperty('--button-bar-press-z-travel', `${config.buttonBarPressZTravelPx}px`);
-  targetRoot.style.setProperty('--button-bar-press-z', `${config.buttonBarPressZTravelPx * -1}px`);
-  targetRoot.style.setProperty('--shell-tab-press-projection-y', `${Math.max(0, config.buttonBarPressZTravelPx * 0.99).toFixed(2)}px`);
+  targetRoot.style.setProperty('--shell-tab-press-projection-y', `${Math.min(1.5, Math.max(0, config.buttonBarPressZTravelPx * 0.5)).toFixed(2)}px`);
 
   targetRoot.style.setProperty('--shell-bottom-band-height', 'var(--button-bar-height)');
   targetRoot.style.setProperty('--shell-bottom-tabs-gap', 'var(--button-bar-inset)');

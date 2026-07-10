@@ -341,7 +341,11 @@ export async function bootstrapHomePage() {
     isRouteTransitionPhase(getTransitionPhase())
     || isSimulationFocusTransitionActive()
   );
-  setBootLifecycleState(shellRouteTransitionActiveAtStart ? 'revealing' : 'booting');
+  if (shellRouteTransitionActiveAtStart) {
+    setBootLifecycleState('ready');
+  } else {
+    setBootLifecycleState('booting');
+  }
   setHomeRouteReadyState(false);
 
   // Mark JS as enabled (for CSS fallback detection)
@@ -883,12 +887,8 @@ export async function bootstrapHomePage() {
       if (shellRouteTransitionActive) {
         clearHomePostBootEntrance();
         await waitForVisualReady();
-        await completeDirectBoot({
-          selectors: ['#abs-scene', '#app-frame'],
-          detail: 'home-ready-route-transition',
-          minimumVisibleMs: 0,
-          allowDuringRouteTransition: true,
-        });
+        setInitialSimulationVisualScale(1);
+        setBootLifecycleState('ready');
         setHomeRouteReadyState(true);
         console.log('✓ Home entrance skipped (shell route transition active)');
       } else {

@@ -358,8 +358,15 @@ function deriveStudioSurfaceFromShell(shell = {}) {
 
 function applyDerivedStudioRuntime(runtime = {}, shell = {}) {
   const studio = deriveStudioSurfaceFromShell(shell);
+  const theme = isPlainObject(shell.theme) ? shell.theme : {};
   const nextRuntime = clone(runtime);
 
+  if (theme.wallBaseLight !== undefined && nextRuntime.wallBaseLight === undefined) {
+    nextRuntime.wallBaseLight = theme.wallBaseLight;
+  }
+  if (theme.wallBaseDark !== undefined && nextRuntime.wallBaseDark === undefined) {
+    nextRuntime.wallBaseDark = theme.wallBaseDark;
+  }
   nextRuntime.hoverEdgeEnabled = studio.edgeStrength > 0;
   nextRuntime.hoverEdgeWidth = studio.edgeWidth;
   nextRuntime.hoverEdgeBottomEnabled = studio.edgeStrength > 0;

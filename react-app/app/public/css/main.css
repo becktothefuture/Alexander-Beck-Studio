@@ -117,8 +117,8 @@ html {
   /* Default cursor outside inner wall area; custom cursor only inside inner wall */
   cursor: default;
   /* Outer shell wall stays dark; the window/content surface handles theme changes. */
-  background: var(--shell-wall-bg, #202020);
-  background-color: var(--shell-wall-bg, #202020);
+  background: var(--shell-wall-bg, #141414);
+  background-color: var(--shell-wall-bg, #141414);
   /* 3D perspective for entrance animations */
   perspective: var(--entrance-perspective, 1000px);
   perspective-origin: center center;
@@ -156,15 +156,15 @@ html.aspect-portrait {
 /* Initial browser-default state (before entrance animation) */
 /* Unified wall color fallback: #242529 (consistent across all modes) */
 html.entrance-pre-transition {
-  background: var(--shell-wall-bg, #202020);
-  background-color: var(--shell-wall-bg, #202020);
+  background: var(--shell-wall-bg, #141414);
+  background-color: var(--shell-wall-bg, #141414);
 }
 
 /* Dark mode override: prevent white flash on load */
 /* Unified wall color (same as light mode) */
 html.entrance-pre-transition.dark-mode {
-  background: var(--shell-wall-bg, #202020);
-  background-color: var(--shell-wall-bg, #202020);
+  background: var(--shell-wall-bg, #141414);
+  background-color: var(--shell-wall-bg, #141414);
 }
 
 /* Background elements are visible immediately (no fade-in) */
@@ -223,8 +223,8 @@ body.body {
   letter-spacing: var(--abs-letter-spacing-global);
   /* iOS Safari can reveal the body background during rubber-band/viewport UI changes.
      Keep body aligned to the wall color so no browser-white edges appear. */
-  background: var(--shell-wall-bg, #202020);
-  background-color: var(--shell-wall-bg, #202020);
+  background: var(--shell-wall-bg, #141414);
+  background-color: var(--shell-wall-bg, #141414);
   color: var(--text-primary);
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: auto;
@@ -287,8 +287,8 @@ body.abs-in-simulation .panel a {
 
 body.dark-mode,
 body.body.dark-mode { 
-  background: var(--shell-wall-bg, #202020);
-  background-color: var(--shell-wall-bg, #202020);
+  background: var(--shell-wall-bg, #141414);
+  background-color: var(--shell-wall-bg, #141414);
   color: var(--text-primary);
   /* Inner shadow removed */
 }
@@ -3321,6 +3321,10 @@ html.abs-direct-boot-staging .ui-main-nav .footer_link {
   --home-post-boot-ty: 7px;
   --home-post-boot-blur: 4px;
   --home-post-boot-scale: 0.985;
+  --route-enter-ty: 3px;
+  --route-enter-blur: 1.5px;
+  --route-enter-scale: 0.994;
+  --route-enter-ease: var(--home-post-boot-ease);
 }
 
 html.abs-home-post-boot-pending #hero-title .hero-title__name,
@@ -3592,6 +3596,15 @@ html[data-abs-transition-phase='route-in'] body.cv-page #abs-scene {
   transition: none;
 }
 
+html[data-abs-transition-phase='route-out'] [data-shell-bottom-band],
+html[data-abs-transition-phase='route-in'] [data-shell-bottom-band],
+html[data-abs-transition-phase='route-out'] [data-button-bar],
+html[data-abs-transition-phase='route-in'] [data-button-bar],
+html[data-abs-transition-phase='route-out'] [data-button-bar] :is(a, button, [role='button']),
+html[data-abs-transition-phase='route-in'] [data-button-bar] :is(a, button, [role='button']) {
+  pointer-events: auto;
+}
+
 /* Exit stagger: reverse order (right to left) when modal opens */
 html[data-abs-transition-phase='modal-open'] .ui-main-nav .footer_link {
   transform: translateY(0) scale(1);
@@ -3697,9 +3710,6 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   border-top: 0;
   box-shadow: none;
   pointer-events: none;
-  perspective: var(--button-bar-perspective, 2000px);
-  perspective-origin: 50% var(--button-bar-perspective-origin-y, -50vh);
-  transform-style: preserve-3d;
   z-index: 205;
 }
 
@@ -3714,8 +3724,6 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   width: min(100%, var(--button-bar-width, 2400px));
   max-width: var(--button-bar-max-width, 2400px);
   pointer-events: auto;
-  transform: translateZ(var(--button-bar-rest-z, 10px));
-  transform-style: preserve-3d;
 }
 
 .button-bar.shell-bottom-band {
@@ -3732,7 +3740,6 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   min-height: var(--shell-tab-height, 48px);
   box-sizing: border-box;
   pointer-events: auto;
-  transform-style: preserve-3d;
 }
 
 .button-bar__primary-buttons.shell-tab-nav {
@@ -3778,7 +3785,6 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   gap: var(--shell-tab-gap, 12px);
   min-height: var(--shell-tab-height, 48px);
   pointer-events: auto;
-  transform-style: preserve-3d;
 }
 
 .button-bar__secondary-button.shell-tab {
@@ -3799,7 +3805,6 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 .button-bar__theme-toggle.shell-tab {
   --shell-tab-motion-y: 0px;
   --shell-tab-motion-scale: 1;
-  --shell-tab-motion-z: 0px;
   --button-bar-switch-height: var(--shell-tab-height, 48px);
   --button-bar-switch-padding: 4px;
   --button-bar-switch-thumb-size: calc(var(--button-bar-switch-height) - (var(--button-bar-switch-padding) * 2));
@@ -3828,8 +3833,8 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   color: var(--shell-tab-text-rest);
   border-radius: var(--button-bar-switch-thumb-radius);
   background:
-    linear-gradient(180deg, rgba(var(--abs-rgb-white), 0.035) 0%, rgba(var(--abs-rgb-white), 0.012) 44%, rgba(var(--abs-rgb-black), 0.055) 100%),
-    color-mix(in srgb, var(--shell-tab-surface-hover) 88%, rgba(var(--abs-rgb-white), 1) 12%);
+    linear-gradient(180deg, rgba(var(--abs-rgb-white), 0.014) 0%, rgba(var(--abs-rgb-white), 0.004) 44%, rgba(var(--abs-rgb-black), 0.022) 100%),
+    color-mix(in srgb, var(--shell-tab-surface-hover) 96%, rgba(var(--abs-rgb-white), 1) 4%);
   box-shadow:
     inset 0 1px 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.26),
     inset 0 -1px 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.2),
@@ -3874,7 +3879,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   --shell-tab-motion-scale: 0.998;
   color: var(--shell-tab-text-active);
   background:
-    linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.08) 0%, rgba(var(--abs-rgb-white), 0.01) 56%, rgba(var(--abs-rgb-black), 0.035) 100%),
+    linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.038) 0%, rgba(var(--abs-rgb-white), 0.004) 56%, rgba(var(--abs-rgb-black), 0.018) 100%),
     var(--shell-tab-surface-active);
   box-shadow:
     inset 0 1px 1px -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.36),
@@ -3885,7 +3890,6 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 }
 
 .button-bar__sound-toggle[data-enabled='true']:active {
-  --shell-tab-motion-z: 0px;
   transition-duration: 0ms;
 }
 
@@ -3911,18 +3915,18 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 
 .shell-tab {
   --shell-tab-motion-y: 0px;
-  --shell-tab-motion-z: 0px;
   --shell-tab-motion-scale: 1;
-  --shell-tab-press-projection-y: 8.9px;
-  --shell-tab-press-z: var(--button-bar-press-z, -9px);
+  --shell-tab-press-projection-y: 1.5px;
   --shell-tab-route-accent: var(--shell-tab-ink, rgba(var(--abs-rgb-white), 0.92));
   --shell-tab-motion-ease: cubic-bezier(0.2, 0.82, 0.2, 1);
   --shell-tab-text-rest: rgba(var(--abs-rgb-white), 0.73);
   --shell-tab-text-hover: rgba(var(--abs-rgb-white), 0.8);
   --shell-tab-text-active: var(--shell-tab-route-accent);
-  --shell-tab-surface-rest: color-mix(in srgb, var(--shell-wall-bg, var(--studio-window-bg)) 96%, rgba(var(--abs-rgb-white), 1) 4%);
-  --shell-tab-surface-hover: color-mix(in srgb, var(--shell-wall-bg, var(--studio-window-bg)) 93%, rgba(var(--abs-rgb-white), 1) 7%);
-  --shell-tab-surface-active: color-mix(in srgb, var(--shell-wall-bg, var(--studio-window-bg)) 98%, rgba(var(--abs-rgb-black), 1) 2%);
+  --shell-tab-surface-base: var(--shell-wall-bg, var(--studio-window-bg));
+  --shell-tab-surface-rest: var(--shell-tab-surface-base);
+  --shell-tab-surface-hover: color-mix(in srgb, var(--shell-tab-surface-base) 98%, rgba(var(--abs-rgb-white), 1) 2%);
+  --shell-tab-surface-active: color-mix(in srgb, var(--shell-tab-surface-base) 90%, rgba(var(--abs-rgb-black), 1) 10%);
+  --shell-tab-surface-pressed: color-mix(in srgb, var(--shell-tab-surface-base) 10%, rgba(var(--abs-rgb-black), 1) 90%);
   --shell-tab-edge-light: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.22);
   --shell-tab-edge-light-side: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.095);
   --shell-tab-edge-dark: rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.22);
@@ -3950,7 +3954,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   border: 0;
   cursor: pointer;
   background:
-    linear-gradient(180deg, rgba(var(--abs-rgb-white), 0.018) 0%, rgba(var(--abs-rgb-white), 0.006) 34%, rgba(var(--abs-rgb-black), 0.045) 100%),
+    linear-gradient(180deg, rgba(var(--abs-rgb-white), 0.006) 0%, rgba(var(--abs-rgb-white), 0.002) 34%, rgba(var(--abs-rgb-black), 0.018) 100%),
     var(--shell-tab-surface-rest);
   overflow: visible;
   box-shadow:
@@ -3960,9 +3964,8 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
     inset -1px 0 0 -0.5px var(--shell-tab-edge-dark-side),
     0 6px 14px -13px var(--shell-tab-drop-shadow);
   -webkit-tap-highlight-color: transparent;
-  transform: translate3d(0, var(--shell-tab-motion-y), var(--shell-tab-motion-z)) scale(var(--shell-tab-motion-scale));
+  transform: translateY(var(--shell-tab-motion-y)) scale(var(--shell-tab-motion-scale));
   transform-origin: 50% 50%;
-  transform-style: preserve-3d;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -3984,7 +3987,6 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 
 .button-bar__theme-toggle.shell-tab:is(:hover, :focus-visible, :active) {
   --shell-tab-motion-y: 0px;
-  --shell-tab-motion-z: 0px;
   --shell-tab-motion-scale: 1;
   border-radius: var(--button-bar-switch-radius);
 }
@@ -3995,21 +3997,18 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 
 .button-bar__primary-buttons .shell-tab {
   --shell-tab-motion-y: 0px;
-  --shell-tab-motion-z: 0px;
   --shell-tab-motion-scale: 1;
   border-radius: var(--abs-radius-pill);
 }
 
 .button-bar__primary-buttons .shell-tab:is(:hover, :focus-visible, [aria-current='page']) {
   --shell-tab-motion-y: 0px;
-  --shell-tab-motion-z: 0px;
   --shell-tab-motion-scale: 1;
 }
 
 .button-bar__primary-buttons .shell-tab:active:not([aria-current='page']) {
   --shell-tab-motion-y: var(--shell-tab-press-projection-y);
-  --shell-tab-motion-z: var(--shell-tab-press-z, -9px);
-  --shell-tab-motion-scale: 0.992;
+  --shell-tab-motion-scale: 0.997;
 }
 
 .button-bar__primary-buttons .shell-tab[data-route-tab='home'] {
@@ -4125,10 +4124,9 @@ svg.shell-tab__icon {
 .shell-tab:hover,
 .shell-tab:focus-visible {
   --shell-tab-motion-y: 0px;
-  --shell-tab-motion-z: 0px;
   --shell-tab-motion-scale: 1;
   background:
-    linear-gradient(180deg, rgba(var(--abs-rgb-white), 0.028) 0%, rgba(var(--abs-rgb-white), 0.009) 38%, rgba(var(--abs-rgb-black), 0.04) 100%),
+    linear-gradient(180deg, rgba(var(--abs-rgb-white), 0.012) 0%, rgba(var(--abs-rgb-white), 0.004) 38%, rgba(var(--abs-rgb-black), 0.018) 100%),
     var(--shell-tab-surface-hover);
   box-shadow:
     inset 0 1px 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.26),
@@ -4154,18 +4152,17 @@ svg.shell-tab__icon {
 
 .shell-tab:active {
   --shell-tab-motion-y: var(--shell-tab-press-projection-y);
-  --shell-tab-motion-z: var(--shell-tab-press-z, -9px);
-  --shell-tab-motion-scale: 0.992;
+  --shell-tab-motion-scale: 0.997;
   background:
-    linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.11) 0%, rgba(var(--abs-rgb-white), 0.006) 58%, rgba(var(--abs-rgb-black), 0.035) 100%),
-    var(--shell-tab-surface-active);
+    linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.065) 0%, rgba(var(--abs-rgb-white), 0.001) 58%, rgba(var(--abs-rgb-black), 0.024) 100%),
+    var(--shell-tab-surface-pressed);
   box-shadow:
     inset 0 1px 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.19),
     inset 1px 0 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.08),
     inset 0 -1px 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.18),
     inset -1px 0 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.08),
     0 2px 8px -12px rgba(var(--abs-rgb-black), 0.12);
-  transition-duration: 70ms, 70ms, 70ms, 70ms;
+  transition-duration: 0ms, 70ms, 70ms, 70ms;
   transition-timing-function: cubic-bezier(0.34, 0, 0.66, 1);
 }
 
@@ -4189,11 +4186,10 @@ svg.shell-tab__icon {
 
 .shell-tab[aria-current='page'] {
   --shell-tab-motion-y: 0.35px;
-  --shell-tab-motion-z: 0px;
   --shell-tab-motion-scale: 0.998;
   cursor: default;
   background:
-    linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.09) 0%, rgba(var(--abs-rgb-white), 0.01) 56%, rgba(var(--abs-rgb-black), 0.035) 100%),
+    linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.04) 0%, rgba(var(--abs-rgb-white), 0.004) 56%, rgba(var(--abs-rgb-black), 0.018) 100%),
     var(--shell-tab-surface-active);
   color: var(--shell-tab-text-active);
   box-shadow:
@@ -4208,11 +4204,10 @@ svg.shell-tab__icon {
 .shell-tab[aria-current='page']:focus-visible,
 .shell-tab[aria-current='page']:active {
   --shell-tab-motion-y: 0.35px;
-  --shell-tab-motion-z: 0px;
   --shell-tab-motion-scale: 0.998;
   cursor: default;
   background:
-    linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.09) 0%, rgba(var(--abs-rgb-white), 0.01) 56%, rgba(var(--abs-rgb-black), 0.035) 100%),
+    linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.04) 0%, rgba(var(--abs-rgb-white), 0.004) 56%, rgba(var(--abs-rgb-black), 0.018) 100%),
     var(--shell-tab-surface-active);
   box-shadow:
     inset 0 1px 2px -0.75px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.42),
@@ -4245,14 +4240,20 @@ svg.shell-tab__icon {
 .button-bar__primary-buttons .shell-tab,
 .button-bar__primary-buttons .shell-tab:is(:hover, :focus-visible, [aria-current='page']) {
   --shell-tab-motion-y: 0px;
-  --shell-tab-motion-z: 0px;
   --shell-tab-motion-scale: 1;
+}
+
+.button-bar__primary-buttons .shell-tab[aria-current='page'],
+.button-bar__primary-buttons .shell-tab[aria-current='page']:hover,
+.button-bar__primary-buttons .shell-tab[aria-current='page']:focus-visible,
+.button-bar__primary-buttons .shell-tab[aria-current='page']:active {
+  --shell-tab-motion-y: 0.6px;
+  --shell-tab-motion-scale: 0.998;
 }
 
 .button-bar__primary-buttons .shell-tab:active:not([aria-current='page']) {
   --shell-tab-motion-y: var(--shell-tab-press-projection-y);
-  --shell-tab-motion-z: var(--shell-tab-press-z, -9px);
-  --shell-tab-motion-scale: 0.992;
+  --shell-tab-motion-scale: 0.997;
 }
 
 @media (max-width: 600px) {
@@ -4437,30 +4438,13 @@ html.entrance-transitioning #simulations {
     height var(--duration-resize) var(--ease-organic);
 }
 
-/* Instrument Wake pass: clipped by the window mask and owned by route transitions. */
+/* Instrument Wake state is owned by route transitions; the visible sweep was removed. */
 #simulations::after {
-  content: '';
-  position: absolute;
-  inset: var(--frame-border-width);
-  z-index: 13;
-  pointer-events: none;
-  border-radius: var(--frame-inner-radius);
-  opacity: 0;
-  background:
-    linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(var(--abs-rgb-white), 0.02) 30%,
-      rgba(var(--abs-rgb-white), 0.18) 48%,
-      rgba(var(--abs-rgb-black), 0.13) 56%,
-      transparent 76%
-    );
-  mix-blend-mode: screen;
-  transform: translate3d(-145%, 0, 0) skewX(-12deg);
+  content: none;
 }
 
 html[data-abs-instrument-wake] #simulations::after {
-  animation: instrumentWakePass var(--instrument-wake-duration-pass) var(--instrument-wake-ease) both;
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5383,7 +5367,7 @@ a.shell-tab,
 button.shell-tab:not(:active),
 a.shell-tab:not(:active) {
   filter: none;
-  transform: translate3d(0, var(--shell-tab-motion-y), var(--shell-tab-motion-z)) scale(var(--shell-tab-motion-scale));
+  transform: translateY(var(--shell-tab-motion-y)) scale(var(--shell-tab-motion-scale));
   transition:
     background 160ms var(--shell-tab-motion-ease),
     box-shadow 160ms var(--shell-tab-motion-ease),
@@ -5406,8 +5390,8 @@ a.shell-tab:focus-visible {
 button.shell-tab:active,
 a.shell-tab:active {
   filter: none;
-  transform: translate3d(0, var(--shell-tab-motion-y), var(--shell-tab-motion-z)) scale(var(--shell-tab-motion-scale));
-  transition-duration: 70ms, 70ms, 70ms, 70ms;
+  transform: translateY(var(--shell-tab-motion-y)) scale(var(--shell-tab-motion-scale));
+  transition-duration: 0ms, 70ms, 70ms, 70ms;
   transition-timing-function: cubic-bezier(0.34, 0, 0.66, 1);
 }
 
@@ -7010,7 +6994,7 @@ body.cv-page.abs-link-hovering #custom-cursor {
 }
 
 body.dark-mode .cv-photo {
-  background: var(--bg-dark, #181818);
+  background: var(--bg-dark, #141414);
 }
 
 .cv-photo__image {
@@ -7084,9 +7068,9 @@ body.dark-mode .cv-photo {
   width: clamp(3rem, 5vmin, 4rem);
   height: clamp(3rem, 5vmin, 4rem);
   border-radius: 50%;
-  background: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 94%, var(--shell-wall-bg, #202020) 6%);
+  background: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 94%, var(--shell-wall-bg, #141414) 6%);
   border: 1px solid var(--panel-border, var(--abs-border-primary));
-  color: color-mix(in srgb, var(--shell-wall-bg, #202020) 84%, rgba(var(--abs-rgb-black), 1) 16%);
+  color: color-mix(in srgb, var(--shell-wall-bg, #141414) 84%, rgba(var(--abs-rgb-black), 1) 16%);
   font-size: clamp(1.2rem, 2vmin, 1.6rem);
   cursor: pointer;
   z-index: 9999;
@@ -7115,7 +7099,7 @@ body.dark-mode .cv-photo {
 
 .panel-toggle-btn.active {
   color: rgba(var(--abs-rgb-white), 0.92);
-  background: color-mix(in srgb, var(--shell-wall-bg, #202020) 78%, rgba(var(--abs-rgb-white), 1) 22%);
+  background: color-mix(in srgb, var(--shell-wall-bg, #141414) 78%, rgba(var(--abs-rgb-white), 1) 22%);
 }
 
 @media (max-width: 600px) {

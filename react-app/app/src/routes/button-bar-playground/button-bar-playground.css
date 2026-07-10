@@ -32,9 +32,6 @@ body.button-bar-playground-page #root {
     clamp(28px, 7vw, 120px)
     calc(var(--shell-bottom-tabs-padding-y, 15px) + var(--abs-safe-bottom, 0px));
   box-sizing: border-box;
-  perspective: var(--button-bar-perspective, 2000px);
-  perspective-origin: 50% var(--button-bar-perspective-origin-y, -50vh);
-  transform-style: preserve-3d;
 }
 
 .button-bar-playground__bar {
@@ -45,8 +42,6 @@ body.button-bar-playground-page #root {
   min-height: var(--shell-tab-height, 48px);
   padding: var(--button-bar-playground-group-padding);
   box-sizing: border-box;
-  transform: translateZ(var(--button-bar-rest-z, 10px));
-  transform-style: preserve-3d;
 }
 
 .button-bar-playground__tabs {

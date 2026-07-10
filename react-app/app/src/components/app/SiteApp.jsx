@@ -94,6 +94,14 @@ const ROUTE_RUNTIME_BY_ID = {
   'loader-playground': LOADER_PLAYGROUND_ROUTE_RUNTIME
 };
 
+const PAGE_TITLE_BY_ROUTE_ID = {
+  home: 'Alexander Beck Studio',
+  contact: 'Contact - Alexander Beck Studio',
+  portfolio: 'Portfolio - Alexander Beck',
+  about: 'About Me - Alexander Beck Studio',
+  cv: 'About Me - Alexander Beck Studio',
+};
+
 let sharedShellRuntimeSyncPromise = null;
 
 function syncSharedShellRuntimeState() {
@@ -315,6 +323,13 @@ export function SiteApp() {
       cancelled = true;
     };
   }, [isStandaloneRoute]);
+
+  useEffect(() => {
+    const nextTitle = PAGE_TITLE_BY_ROUTE_ID[routeState.route.id];
+    if (nextTitle && document.title !== nextTitle) {
+      document.title = nextTitle;
+    }
+  }, [routeState.route.id]);
 
   useLayoutEffect(() => {
     markDirectShellRouteReady(routeState.route.id, isStandaloneRoute, {

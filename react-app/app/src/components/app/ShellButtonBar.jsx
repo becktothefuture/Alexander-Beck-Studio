@@ -325,7 +325,7 @@ function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect }) {
     event.preventDefault();
     if (isActive) return;
 
-    if (!onRouteNavigate?.(tab.href, tab)) {
+    if (!onRouteNavigate?.(tab.href, tab, { source: 'button-bar', preemptTransition: true })) {
       window.location.assign(tab.href);
     }
   };

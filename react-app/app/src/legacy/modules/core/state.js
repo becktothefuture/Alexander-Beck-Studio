@@ -733,9 +733,9 @@ const state = {
   // Unified Color System (backgrounds, frame, walls)
   // Palette/weather chapters must not change these surfaces; design config owns them.
   bgLight: '#f5f5f5',       // Light mode background color
-  bgDark: '#202020',        // Dark mode background color
+  bgDark: '#141414',        // Dark mode background color
   wallBaseLight: '#f5f5f5', // Inner wall surface in light mode
-  wallBaseDark: '#202020',  // Inner wall surface in dark mode
+  wallBaseDark: '#141414',  // Inner wall surface in dark mode
   frameColor: '#242529',    // Frame color (legacy - use frameColorLight/frameColorDark)
   frameColorLight: '#242529',  // Frame/wall color in light mode (browser chrome + walls + border)
   frameColorDark: '#141517',   // Frame/wall color in dark mode (browser chrome + walls + border)
@@ -1230,7 +1230,7 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
   root.style.setProperty('--abs-wall-base-light', state.wallBaseLight || '#efefef');
-  root.style.setProperty('--abs-wall-base-dark', state.wallBaseDark || '#181818');
+  root.style.setProperty('--abs-wall-base-dark', state.wallBaseDark || '#141414');
   // Simplified frame geometry/effects CSS vars.
   const frameBorderWidthDesktop = clampInt(state.frameBorderWidth, 0, 40, 0);
   const frameBorderWidthMobile = clampInt(state.frameBorderWidthMobile, 0, 40, frameBorderWidthDesktop);
