@@ -512,55 +512,6 @@ html.fonts-loading .project-detail {
   min-height: 0;
 }
 
-.shell-route-dock {
-  position: absolute;
-  inset-inline: 0;
-  bottom: calc(100% + var(--gap-sm));
-  z-index: 25;
-  display: flex;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.shell-route-dock__track {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--gap-sm);
-  pointer-events: auto;
-}
-
-.shell-route-tab {
-  min-inline-size: calc(var(--ui-icon-frame-size) * 2.5);
-}
-
-.shell-route-tab--icon-only {
-  inline-size: var(--ui-icon-frame-size);
-  min-inline-size: var(--ui-icon-frame-size);
-  padding-inline: 0;
-}
-
-.shell-route-tab > i {
-  font-size: var(--text-md);
-  line-height: 1;
-}
-
-.shell-route-tab.is-active,
-.shell-route-tab.is-pending {
-  opacity: 1;
-  color: var(--text-logo);
-}
-
-.shell-route-tab.is-active::before,
-.shell-route-tab.is-pending::before {
-  opacity: 1;
-  transform: translateZ(0) scale(1);
-}
-
-.shell-route-tab.is-pending {
-  filter: saturate(1.08);
-}
-
 .shell-route-slot {
   position: relative;
   grid-column: 1;
@@ -3654,7 +3605,6 @@ html[data-abs-transition-returning='active'] .ui-main-nav .footer_link {
 
 /* Disable pointer events when hidden */
 html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none; }
-html[data-abs-transition-phase='modal-open'] .shell-route-dock { pointer-events: none; }
 
 /* Legacy .brand-logo-svg sizing removed — replaced by shared .hero-title__* font-size */
 

@@ -8,7 +8,6 @@ import { getText } from '../utils/text-loader.js';
 import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
 import { consumeGateRequest, getGateInviteCode, markGateAccess } from '../../../lib/access-gates.js';
 import { triggerHaptic } from '../../../lib/haptics.js';
-import { dispatchShellGateEvent, SHELL_GATE_EVENTS } from '../../../lib/shell-route-tabs.js';
 import {
     closeGateModal,
     hideCompetingGateModals,
@@ -18,7 +17,6 @@ import {
 } from './gate-modal-shared.js';
 
 export function initCVModal() {
-    const GATE_ID = 'cv';
     const trigger = document.getElementById('cv-modal-trigger');
     const modal = document.getElementById('cv-modal');
     const portfolioGate = document.getElementById('portfolio-modal'); // Get portfolio modal to check/close if open
@@ -28,7 +26,7 @@ export function initCVModal() {
     const modalLabel = document.getElementById('cv-modal-label');
     
     // Invite codes add client-side friction only. They are not secure auth.
-    const INVITE_CODE = getGateInviteCode(GATE_ID);
+    const INVITE_CODE = getGateInviteCode('cv');
     
     if (!trigger || !modal || inputs.length === 0) {
         console.warn('CV Gate: Missing required elements');
@@ -110,7 +108,6 @@ export function initCVModal() {
             initialFocus: () => inputs[0]
         });
 
-        dispatchShellGateEvent('open', GATE_ID);
         openGateModal(modal);
     };
 
@@ -119,9 +116,6 @@ export function initCVModal() {
         isOpen = false;
         deactivateModalA11y?.({ restoreFocus: options.restoreFocus !== false });
         deactivateModalA11y = null;
-        if (options.emitDismiss !== false) {
-            dispatchShellGateEvent('dismiss', GATE_ID);
-        }
         
         // Clear inputs
         inputs.forEach(input => input.value = '');
@@ -174,11 +168,10 @@ export function initCVModal() {
                 }
                 triggerHaptic('success');
                 
-                markGateAccess(GATE_ID);
-                dispatchShellGateEvent('success', GATE_ID);
+                markGateAccess('cv');
 
                 requestAnimationFrame(() => {
-                    closeGate(false, { restoreFocus: false, keepBackdrop: true, emitDismiss: false });
+                    closeGate(false, { restoreFocus: false, keepBackdrop: true });
                     navigateWithTransition('cv.html', NAV_STATES.INTERNAL, {
                         transitionStyle: 'gate-success',
                     });
@@ -198,12 +191,6 @@ export function initCVModal() {
     // --- Event Listeners ---
 
     trigger.addEventListener('click', openGate);
-
-    document.addEventListener(SHELL_GATE_EVENTS.request, (event) => {
-        if (event?.detail?.gateId === GATE_ID) {
-            openGate(event);
-        }
-    });
 
     // Auto-open check (e.g. navimodald from portfolio page)
     if (consumeGateRequest('cv')) {

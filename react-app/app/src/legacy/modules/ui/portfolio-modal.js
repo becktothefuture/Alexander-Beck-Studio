@@ -9,7 +9,6 @@ import { isDev } from '../utils/logger.js';
 import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
 import { consumeGateRequest, getGateInviteCode, markGateAccess } from '../../../lib/access-gates.js';
 import { triggerHaptic } from '../../../lib/haptics.js';
-import { dispatchShellGateEvent, SHELL_GATE_EVENTS } from '../../../lib/shell-route-tabs.js';
 import {
     closeGateModal,
     hideCompetingGateModals,
@@ -19,7 +18,6 @@ import {
 } from './gate-modal-shared.js';
 
 export function initPortfolioModal() {
-    const GATE_ID = 'portfolio';
     const trigger = document.getElementById('portfolio-modal-trigger');
     const modal = document.getElementById('portfolio-modal');
     // Brand logo is optional (some layouts remove it); modal should still function without it.
@@ -30,7 +28,7 @@ export function initPortfolioModal() {
     const modalLabel = document.getElementById('portfolio-modal-label');
     
     // Invite codes add client-side friction only. They are not secure auth.
-    const INVITE_CODE = getGateInviteCode(GATE_ID);
+    const INVITE_CODE = getGateInviteCode('portfolio');
     
     if (!trigger || !modal || inputs.length === 0) {
         console.warn('Portfolio Gate: Missing required elements');
@@ -135,7 +133,6 @@ export function initPortfolioModal() {
             initialFocus: () => inputs[0]
         });
 
-        dispatchShellGateEvent('open', GATE_ID);
         openGateModal(modal);
     };
 
@@ -144,9 +141,6 @@ export function initPortfolioModal() {
         isOpen = false;
         deactivateModalA11y?.({ restoreFocus: options.restoreFocus !== false });
         deactivateModalA11y = null;
-        if (options.emitDismiss !== false) {
-            dispatchShellGateEvent('dismiss', GATE_ID);
-        }
         
         // Clear inputs
         inputs.forEach(input => input.value = '');
@@ -199,14 +193,13 @@ export function initPortfolioModal() {
                 }
                 triggerHaptic('success');
                 
-                markGateAccess(GATE_ID);
-                dispatchShellGateEvent('success', GATE_ID);
+                markGateAccess('portfolio');
                 
                 // Hide the modal card but keep the backdrop/overlay frozen so the
                 // shell transition can animate over a stable visual state.
                 // The shell will call dismissGateBackdrop() after the new route enters.
                 requestAnimationFrame(() => {
-                    closeGate(false, { restoreFocus: false, keepBackdrop: true, emitDismiss: false });
+                    closeGate(false, { restoreFocus: false, keepBackdrop: true });
                     navigateWithTransition('portfolio.html', NAV_STATES.INTERNAL, {
                         transitionStyle: 'gate-success',
                     });
@@ -232,12 +225,6 @@ export function initPortfolioModal() {
     }
 
     trigger.addEventListener('click', openGate);
-
-    document.addEventListener(SHELL_GATE_EVENTS.request, (event) => {
-        if (event?.detail?.gateId === GATE_ID) {
-            openGate(event);
-        }
-    });
 
     // Close on Escape
     document.addEventListener('keydown', (e) => {

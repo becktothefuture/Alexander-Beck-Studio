@@ -39,7 +39,7 @@ Created: 2026-07-09
 | Order | PRD | Status | Owner | Last update | Notes |
 | ---: | --- | --- | --- | --- | --- |
 | 1 | `prd-contact-route-promotion.md` | complete | Codex lead | 2026-07-09 | Contact is route-backed at `/contact.html`; direct-load, home Contact, inline Let's chat, copy feedback, screen certification, and boot overlay verified. |
-| 2 | `prd-route-and-tab-state-foundation.md` | complete | Codex lead | 2026-07-09 | Added shell-owned route dock, canonical tab descriptors, explicit gated pending state, gate lifecycle events, and accessibility state rules; active/pending/browser smoke, certification, boot overlay, and site checks passed. |
+| 2 | `prd-route-and-tab-state-foundation.md` | review-needed | Codex lead | 2026-07-09 | Revised to depend on Contact and define explicit pending gate state. |
 | 3 | `prd-bottom-frame-geometry.md` | review-needed | Codex lead | 2026-07-09 | Drafted after subagent feedback. |
 | 4 | `prd-shell-tab-visual-system.md` | review-needed | Codex lead | 2026-07-09 | Drafted after subagent feedback. |
 | 5 | `prd-route-chrome-cleanup-and-legacy-compat.md` | review-needed | Codex lead | 2026-07-09 | Drafted after subagent feedback. |
@@ -56,12 +56,10 @@ Created: 2026-07-09
 | Date | PRD | Commands run | Result | Artifacts | Reviewer/signoff | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-07-09 | `prd-contact-route-promotion.md` | `git diff --check`; `npm run check:site`; `npm run certify:screens`; `ABS_DEV_URL=http://localhost:8014 npm run audit:boot-overlay`; focused Playwright smoke for `/contact.html`, home Contact link, inline Let's chat, copy feedback | pass | `output/playwright/screens-certification/report.json` | Codex lead | Contact added to route registry, Vite input, SiteApp, direct boot audit, and screen certification. |
-| 2026-07-09 | `prd-route-and-tab-state-foundation.md` | `git diff --check`; `npm run check:site`; focused Playwright shell dock active/pending smoke; `npm run certify:screens`; `ABS_DEV_URL=http://localhost:8014 npm run audit:boot-overlay` | pass | `output/playwright/screens-certification/report.json` | Codex lead | Home/Contact active tabs, Portfolio pending gate state without `aria-current`, dismiss reset, successful unlock to Portfolio, and browser back one-active-tab invariant verified. |
 
 ## Implementation Log
 
 ```text
 YYYY-MM-DD - PRD - status - summary - verification
 2026-07-09 - prd-contact-route-promotion.md - complete - Added `/contact.html` direct route, shell-native Contact page, copy email interaction, Contact link routing, legacy modal compatibility migration, and Contact audit/certification coverage - git diff --check, check:site, certify:screens, boot-overlay, and focused Playwright smoke passed
-2026-07-09 - prd-route-and-tab-state-foundation.md - complete - Added shell route dock descriptors, dock mount in the footer transition surface, explicit pending gate lifecycle events, and dock accessibility state rules - git diff --check, check:site, focused dock active/pending smoke, certify:screens, and boot-overlay passed
 ```
