@@ -78,6 +78,9 @@
   --frame-vignette-ambient-opacity: 0.12;
   --frame-vignette-dither-size: 72px;
   --frame-vignette-dither-opacity: 0.08;
+  --frame-soft-border-light-opacity: 0.14;
+  --frame-soft-border-shadow-opacity: 0.2;
+  --frame-soft-border-ring-opacity: 0.12;
   --simulation-contrast-veil-rgb: 245, 245, 245; /* JS stamps this from the active inner-wall background. */
   --simulation-contrast-veil-opacity: 0.216;
   --simulation-contrast-veil-reach-x: 25vw;
