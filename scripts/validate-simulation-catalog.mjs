@@ -51,7 +51,7 @@ const ALLOWED_SIMULATION_SURFACES = new Set([
 const BASE_SHELL_ROUTE_PATHS = new Map([
   ['home', '/index.html'],
   ['portfolio', '/portfolio.html'],
-  ['cv', '/cv.html'],
+  ['about', '/about.html'],
   ['styleguide', '/styleguide.html'],
   ['simulations', '/simulations.html'],
   ['palette-lab', '/palette-lab.html'],

@@ -540,10 +540,10 @@ function drawState(ctx, state, metrics, theme, options = {}) {
 }
 
 function isEventOnPanel(target) {
-  return Boolean(target?.closest?.('.wall-repel-panel'));
+  return Boolean(target?.closest?.('.repel-room-panel'));
 }
 
-export function createWallRepelRenderer({
+export function createRepelRoomRenderer({
   canvas,
   reducedMotion = false,
   getConfig,
@@ -571,12 +571,12 @@ export function createWallRepelRenderer({
   let lastRenderMs = 0;
   let unregisterVisualTransition = null;
   const visualTransition = createIndexedSimulationVisualTransition({
-    sourceId: 'wall-repel',
+    sourceId: 'repel-room',
     getCount: () => state?.count || 0,
     requestRender: () => paintCurrentState(),
     getSeed: () => 0x43f17a91,
   });
-  unregisterVisualTransition = registerSimulationVisualTransition('wall-repel', visualTransition);
+  unregisterVisualTransition = registerSimulationVisualTransition('repel-room', visualTransition);
 
   function readPointer(event) {
     if (isEventOnPanel(event.target)) return;
@@ -606,7 +606,7 @@ export function createWallRepelRenderer({
     const speed = Math.hypot(pointer.vx, pointer.vy);
     if (speed > 360) {
       triggerPressure({
-        id: 'wall-repel:pointer-burst',
+        id: 'repel-room:pointer-burst',
         intensity: clamp(speed / 1400, 0.62, 0.94),
         x: clamp(nextX / Math.max(1, rect.width), 0, 1),
         radius: 28,

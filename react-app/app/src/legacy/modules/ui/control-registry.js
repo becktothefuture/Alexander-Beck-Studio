@@ -22,6 +22,12 @@ import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-sh
 import { initQuotePuck } from './quote-puck.js';
 import { destroyQuoteDisplay, initQuoteDisplay } from './quote-display.js';
 import { forEachPanelUiDocument, registerPanelUiDocument, resolvePanelUiDocument } from './panel-ui-context.js';
+import {
+  BUTTON_BAR_CONTROL_GROUPS,
+  BUTTON_BAR_DEFAULTS,
+  applyButtonBarCssVars,
+  formatButtonBarControlValue,
+} from '../../../lib/buttonBarControls.js';
 
 
 
@@ -722,6 +728,28 @@ function getColorInputValue(value, uiDocument = null) {
  * }
  */
 
+function createButtonBarControls() {
+  return BUTTON_BAR_CONTROL_GROUPS.flatMap((group) => [
+    { type: 'divider', label: `Button Bar · ${group.title}` },
+    ...group.controls.map((control) => ({
+      id: control.id,
+      label: control.label,
+      stateKey: control.id,
+      type: 'range',
+      min: control.min,
+      max: control.max,
+      step: control.step,
+      default: BUTTON_BAR_DEFAULTS[control.id],
+      format: (value) => formatButtonBarControlValue(value, control),
+      parse: parseFloat,
+      hint: `Button Bar: ${control.label.toLowerCase()}.`,
+      onChange: (g) => {
+        applyButtonBarCssVars(g);
+      },
+    })),
+  ]);
+}
+
 export const CONTROL_SECTIONS = {
   // ═══════════════════════════════════════════════════════════════════════════
   // LITE MODE — Global performance toggle
@@ -762,13 +790,13 @@ export const CONTROL_SECTIONS = {
         type: 'select',
         options: [
           { value: 'site', label: 'Site frame' },
-          { value: 'auto', label: 'Auto (site-safe)' },
+          { value: 'auto', label: 'Auto (browser-aware)' },
           { value: 'browser', label: 'Browser frame (force)' }
         ],
-        default: 'site',
+        default: 'auto',
         format: v => String(v),
         parse: v => String(v),
-        hint: 'Visible wall uses the authored site frame unless Browser frame is explicitly forced.',
+        hint: 'Safari/theme-color browsers use the site frame; locked-header browsers adapt the outer frame to native browser chrome.',
         onChange: (g) => {
           setTheme(getCurrentTheme());
         }
@@ -1075,7 +1103,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'pebbleOrganic',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.34,
+        default: 0.24,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Asymmetry and contour drift. Higher values feel less geometric.'
@@ -1398,6 +1426,7 @@ export const CONTROL_SECTIONS = {
           document.documentElement.style.setProperty('--footer-nav-bar-gap', `clamp(${minPx}px, ${vw}vw, ${maxPx}px)`);
         }
       },
+      ...createButtonBarControls(),
       {
         id: 'homeMainLinksBelowLogoPx',
         label: 'Links Offset',
@@ -4473,7 +4502,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'flubberBlobWallBounce',
         type: 'range',
         min: 0, max: 0.75, step: 0.01,
-        default: 0.34,
+        default: 0.24,
         format: v => v.toFixed(2),
         parse: parseFloat,
         hint: 'Soft rebound strength when the gel body hits the inner wall.'
@@ -6100,6 +6129,7 @@ export function generateModeSwitcherHTML() {
     'starfield-3d': '✨',
     'elastic-center': '◇',
     'flock-of-birds': '🕊️',
+    'repel-room': '↔',
     'wall-repel': '↔',
     'aperture-bloom': '◎',
     'mineral-growth': '✺',
@@ -6128,6 +6158,7 @@ export function generateModeSwitcherHTML() {
     'starfield-3d': 'Star Field',
     'elastic-center': 'Elastic Loom',
     'flock-of-birds': 'Flock Drift',
+    'repel-room': 'Repel Room',
     'wall-repel': 'Repel Room',
     'aperture-bloom': 'Aperture Bloom',
     'mineral-growth': 'Mineral Bloom',
@@ -6226,6 +6257,7 @@ function generateHomeModeSectionHTML() {
               'starfield-3d': '✨',
               'elastic-center': '◇',
               'flock-of-birds': '🕊️',
+              'repel-room': '↔',
               'wall-repel': '↔',
               'aperture-bloom': '◎',
               'mineral-growth': '✺',
@@ -6254,6 +6286,7 @@ function generateHomeModeSectionHTML() {
               'starfield-3d': 'Star Field',
               'elastic-center': 'Elastic Loom',
               'flock-of-birds': 'Flock Drift',
+              'repel-room': 'Repel Room',
               'wall-repel': 'Repel Room',
               'aperture-bloom': 'Aperture Bloom',
               'mineral-growth': 'Mineral Bloom',

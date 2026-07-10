@@ -11,8 +11,8 @@ export const PALETTE_LAB_ROUTE_RUNTIME = {
 export function getPaletteLabRouteView() {
   return {
     bodyClass: 'body palette-lab-page',
-    wallClassName: 'w-embed palette-lab-wall',
-    wallContent: (
+    studioWindowClassName: 'w-embed palette-lab-wall',
+    studioWindowContent: (
       <div className="palette-lab-backdrop" aria-hidden="true">
         <div className="palette-lab-backdrop__layer palette-lab-backdrop__layer--a" />
         <div className="palette-lab-backdrop__layer palette-lab-backdrop__layer--b" />

@@ -3,7 +3,8 @@ import { BodyClassManager } from '../layout/BodyClassManager.jsx';
 import { StudioShell } from './StudioShell.jsx';
 import { getHomeRouteView, HOME_ROUTE_RUNTIME } from '../../routes/home/HomeRoute.jsx';
 import { getPortfolioRouteView, PORTFOLIO_ROUTE_RUNTIME } from '../../routes/portfolio/PortfolioRoute.jsx';
-import { getCvRouteView, CV_ROUTE_RUNTIME } from '../../routes/cv/CvRoute.jsx';
+import { ABOUT_ROUTE_RUNTIME, getAboutRouteView } from '../../routes/about/AboutRoute.jsx';
+import { CONTACT_ROUTE_RUNTIME, getContactRouteView } from '../../routes/contact/ContactRoute.jsx';
 import { getStyleguideRouteView, STYLEGUIDE_ROUTE_RUNTIME } from '../../routes/styleguide/StyleguideRoute.jsx';
 import {
   getSimulationLaunchpadRouteView,
@@ -12,7 +13,7 @@ import {
 import { getPaletteLabRouteView, PALETTE_LAB_ROUTE_RUNTIME } from '../../routes/palette-lab/PaletteLabRoute.jsx';
 import { getBeachBallRoomRouteView, BEACH_BALL_ROOM_ROUTE_RUNTIME } from '../../routes/beach-ball-room/BeachBallRoomRoute.jsx';
 import { getFlockOfBirdsRouteView, FLOCK_OF_BIRDS_ROUTE_RUNTIME } from '../../routes/flock-of-birds/FlockOfBirdsRoute.jsx';
-import { getWallRepelRouteView, WALL_REPEL_ROUTE_RUNTIME } from '../../routes/wall-repel/WallRepelRoute.jsx';
+import { getRepelRoomRouteView, REPEL_ROOM_ROUTE_RUNTIME } from '../../routes/repel-room/RepelRoomRoute.jsx';
 import { getMineralGrowthRouteView, MINERAL_GROWTH_ROUTE_RUNTIME } from '../../routes/mineral-growth/MineralGrowthRoute.jsx';
 import { getLoaderPlaygroundRouteView, LOADER_PLAYGROUND_ROUTE_RUNTIME } from '../../routes/loader-playground/LoaderPlaygroundRoute.jsx';
 import {
@@ -42,21 +43,24 @@ import {
 } from '../simulation-focus/SimulationFocusProvider.jsx';
 import {
   getResolvedSimulationFocus,
+  normalizeSimulationId,
   getSimulationLaunchTarget,
   SIMULATION_FOCUS_CHANGED_EVENT,
   SIMULATION_FOCUS_STORAGE_KEY,
 } from '../../data/simulationCatalog.js';
+import { completeDirectBoot } from '../../legacy/modules/visual/page-orchestrator.js';
 
 const ROUTE_VIEW_BY_ID = {
   home: getHomeRouteView,
+  contact: getContactRouteView,
   portfolio: getPortfolioRouteView,
-  cv: getCvRouteView,
+  about: getAboutRouteView,
   styleguide: getStyleguideRouteView,
   simulations: getSimulationLaunchpadRouteView,
   'palette-lab': getPaletteLabRouteView,
   'beach-ball-room': getBeachBallRoomRouteView,
   'flock-of-birds': getFlockOfBirdsRouteView,
-  'wall-repel': getWallRepelRouteView,
+  'repel-room': getRepelRoomRouteView,
   'mineral-growth': getMineralGrowthRouteView,
   'aperture-bloom': getApertureBloomRouteView,
   'confluence-bridges': getConfluenceBridgesRouteView,
@@ -68,14 +72,15 @@ const ROUTE_VIEW_BY_ID = {
 
 const ROUTE_RUNTIME_BY_ID = {
   home: HOME_ROUTE_RUNTIME,
+  contact: CONTACT_ROUTE_RUNTIME,
   portfolio: PORTFOLIO_ROUTE_RUNTIME,
-  cv: CV_ROUTE_RUNTIME,
+  about: ABOUT_ROUTE_RUNTIME,
   styleguide: STYLEGUIDE_ROUTE_RUNTIME,
   simulations: SIMULATION_LAUNCHPAD_ROUTE_RUNTIME,
   'palette-lab': PALETTE_LAB_ROUTE_RUNTIME,
   'beach-ball-room': BEACH_BALL_ROOM_ROUTE_RUNTIME,
   'flock-of-birds': FLOCK_OF_BIRDS_ROUTE_RUNTIME,
-  'wall-repel': WALL_REPEL_ROUTE_RUNTIME,
+  'repel-room': REPEL_ROOM_ROUTE_RUNTIME,
   'mineral-growth': MINERAL_GROWTH_ROUTE_RUNTIME,
   'aperture-bloom': APERTURE_BLOOM_ROUTE_RUNTIME,
   'confluence-bridges': CONFLUENCE_BRIDGES_ROUTE_RUNTIME,
@@ -98,7 +103,8 @@ function getRequestedFocusIdFromHref(href) {
   const search = getSearchFromHref(href);
   if (!search) return null;
   const params = new URLSearchParams(search);
-  return params.get('mode') || params.get('focus') || params.get('simulation') || null;
+  const requestedId = params.get('mode') || params.get('focus') || params.get('simulation') || null;
+  return requestedId ? normalizeSimulationId(requestedId) : null;
 }
 
 function getHomeDailyFocusRouteId(canonicalHref, routeState) {
@@ -126,13 +132,15 @@ function getRouteViewForId(routeId, canonicalHref, routeState, focusRevision = 0
     const dailyFocusRouteId = getHomeDailyFocusRouteId(canonicalHref, routeState);
     if (dailyFocusRouteId) return getDailyFocusRouteView(dailyFocusRouteId);
   }
-  return (ROUTE_VIEW_BY_ID[routeId] || ROUTE_VIEW_BY_ID.home)();
+  return (ROUTE_VIEW_BY_ID[routeId] || ROUTE_VIEW_BY_ID.home)(canonicalHref, routeState);
 }
 
 function getRouteRuntimeForId(routeId, canonicalHref, routeState, focusRevision = 0) {
   Number(focusRevision);
   if (
-    routeState?.dailyFocusRouteId
+    routeState?.lockedGateId
+    || routeState?.routeLocked
+    || routeState?.dailyFocusRouteId
     || isDailyFocusRouteRequest(routeId, getSearchFromHref(canonicalHref))
     || (routeId === 'home' && getHomeDailyFocusRouteId(canonicalHref, routeState))
   ) {
@@ -190,7 +198,7 @@ function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {}) {
   );
   root.classList.add('abs-direct-boot-ready', 'entrance-complete', 'ui-entered');
 
-  if (options.deferBootState === true || shouldDeferBootStateForHold()) return;
+  if (options.deferBootState === true) return;
 
   if (!root.dataset.absBootState || root.dataset.absBootState === 'booting') {
     root.dataset.absBootState = 'ready';
@@ -198,6 +206,10 @@ function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {}) {
   if (!root.dataset.absBootDetail || root.dataset.absBootDetail === 'held') {
     root.dataset.absBootDetail = 'shell-route-ready';
   }
+  void completeDirectBoot({
+    detail: shouldDeferBootStateForHold() ? 'held' : 'shell-route-ready',
+    selectors: ['#abs-scene', '#app-frame'],
+  });
 }
 
 export function SiteApp() {
@@ -245,6 +257,7 @@ export function SiteApp() {
 
   const {
     routeState,
+    activeRouteId,
     routeRuntime,
     routeView,
     transitionCurrentRoute,
@@ -328,11 +341,12 @@ export function SiteApp() {
           transitionCurrentRoute={transitionCurrentRoute}
         >
           <StudioShell
+            activeRouteId={activeRouteId}
             routeRenderKey={routeView.routeRenderKey || routeState.route.id}
             contentRenderKey={routeView.contentRenderKey || routeState.route.id}
-            wallClassName={routeView.wallClassName}
+            studioWindowClassName={routeView.studioWindowClassName || routeView.wallClassName}
             simulationLayer={routeView.simulationLayer}
-            wallContent={routeView.wallContent}
+            studioWindowContent={routeView.studioWindowContent || routeView.wallContent}
             heroLayer={routeView.heroLayer}
             uiLayer={routeView.uiLayer}
             headerContent={routeView.headerContent}

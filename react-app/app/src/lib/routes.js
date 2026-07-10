@@ -7,17 +7,23 @@ const ROUTE_DEFS = {
     aliases: ['/', '/index.html', '/index'],
     gated: false,
   },
+  contact: {
+    id: 'contact',
+    path: '/contact.html',
+    aliases: ['/contact.html', '/contact'],
+    gated: false,
+  },
   portfolio: {
     id: 'portfolio',
     path: '/portfolio.html',
     aliases: ['/portfolio.html', '/portfolio'],
     gated: true,
   },
-  cv: {
-    id: 'cv',
-    path: '/cv.html',
-    aliases: ['/cv.html', '/cv'],
-    gated: true,
+  about: {
+    id: 'about',
+    path: '/about.html',
+    aliases: ['/about.html', '/about', '/cv.html', '/cv'],
+    gated: false,
   },
   styleguide: {
     id: 'styleguide',
@@ -49,10 +55,19 @@ const ROUTE_DEFS = {
     aliases: ['/lab/flock-of-birds.html', '/lab/flock-of-birds', '/flock-of-birds.html', '/flock-of-birds'],
     gated: false,
   },
-  'wall-repel': {
-    id: 'wall-repel',
-    path: '/lab/wall-repel.html',
-    aliases: ['/lab/wall-repel.html', '/lab/wall-repel', '/wall-repel.html', '/wall-repel'],
+  'repel-room': {
+    id: 'repel-room',
+    path: '/lab/repel-room.html',
+    aliases: [
+      '/lab/repel-room.html',
+      '/lab/repel-room',
+      '/repel-room.html',
+      '/repel-room',
+      '/lab/wall-repel.html',
+      '/lab/wall-repel',
+      '/wall-repel.html',
+      '/wall-repel',
+    ],
     gated: false,
   },
   'mineral-growth': {
@@ -98,6 +113,41 @@ const ROUTE_DEFS = {
     gated: false,
   },
 };
+
+export const SHELL_ROUTE_TABS = Object.freeze([
+  {
+    routeId: 'home',
+    href: '/index.html',
+    label: 'Home',
+    ariaLabel: 'Home',
+    icon: 'ti-home',
+    iconOnly: true,
+  },
+  {
+    routeId: 'portfolio',
+    href: '/portfolio.html',
+    label: 'Portfolio',
+    ariaLabel: 'Portfolio',
+    icon: 'ti-briefcase',
+    iconOnly: false,
+  },
+  {
+    routeId: 'about',
+    href: '/about.html',
+    label: 'About Me',
+    ariaLabel: 'About Me',
+    icon: 'ti-user',
+    iconOnly: false,
+  },
+  {
+    routeId: 'contact',
+    href: '/contact.html',
+    label: 'Contact',
+    ariaLabel: 'Contact',
+    icon: 'ti-mail',
+    iconOnly: false,
+  },
+]);
 
 function normalizePathname(pathname = '/') {
   const raw = String(pathname || '/').trim();

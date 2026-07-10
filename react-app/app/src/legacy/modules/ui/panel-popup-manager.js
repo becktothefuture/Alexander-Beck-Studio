@@ -13,6 +13,12 @@ import { unregisterPanelUiDocument } from './panel-ui-context.js';
 const POPUP_NAME = 'AlexanderBeckConfigPanel';
 const POPUP_URL = '/panel-host.html';
 const DEFAULT_PRODUCT_LABEL = 'Alexander Beck Studio';
+const CONFIG_ICON_SVG = `
+  <svg class="panel-toggle-btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M12 8.25a3.75 3.75 0 1 1 0 7.5 3.75 3.75 0 0 1 0-7.5Z" />
+    <path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.02-.66-.07-.98l2.08-1.62-2-3.46-2.45.98a7.54 7.54 0 0 0-1.7-.98L15 3.3h-4l-.36 2.64c-.6.24-1.17.57-1.7.98l-2.45-.98-2 3.46 2.08 1.62c-.04.32-.07.65-.07.98s.02.66.07.98L4.49 14.6l2 3.46 2.45-.98c.53.41 1.1.74 1.7.98L11 20.7h4l.36-2.64c.6-.24 1.17-.57 1.7-.98l2.45.98 2-3.46-2.08-1.62Z" />
+  </svg>
+`;
 
 let currentRouteOptions = null;
 let popupWindowRef = null;
@@ -61,7 +67,7 @@ function setLauncherActive(active) {
   if (!button) return;
   button.classList.toggle('active', !!active);
   button.setAttribute('aria-pressed', active ? 'true' : 'false');
-  button.title = active ? 'Close design panel window' : 'Open design panel window';
+  button.title = active ? 'Close design panel' : 'Open design panel';
 }
 
 function ensureLauncherButton() {
@@ -70,19 +76,22 @@ function ensureLauncherButton() {
     button = document.createElement('button');
     button.className = 'panel-toggle-btn';
     button.type = 'button';
-    button.innerHTML = '⚙';
+    button.innerHTML = CONFIG_ICON_SVG;
     document.body.appendChild(button);
+  } else if (!button.querySelector('.panel-toggle-btn__icon')) {
+    button.innerHTML = CONFIG_ICON_SVG;
   }
 
   if (button.dataset.panelPopupBound !== 'true') {
     button.dataset.panelPopupBound = 'true';
-    button.setAttribute('aria-label', 'Toggle design panel window');
+    button.setAttribute('aria-label', 'Toggle design panel');
     button.addEventListener('click', () => {
       toggleDevPanelSurface();
     });
   }
 
-  setLauncherActive(isPopupOpen());
+  const dock = getDock();
+  setLauncherActive(Boolean(dock && !dock.classList.contains('hidden')));
 }
 
 function syncPopupHostAppearance() {
@@ -209,24 +218,29 @@ export function registerDevPanelRoute(options = {}) {
 export function toggleDevPanelSurface() {
   ensureLauncherButton();
 
-  if (isPopupOpen()) {
-    try {
-      popupWindowRef.close();
-    } catch (error) {}
-    return;
-  }
-
   const dock = getDock();
-  if (dock && !dock.classList.contains('hidden')) {
+  if (dock) {
     toggleDock();
-    setLauncherActive(false);
+    const updatedDock = getDock();
+    setLauncherActive(Boolean(updatedDock && !updatedDock.classList.contains('hidden')));
     return;
   }
 
-  const popupWindow = openDetachedPanelWindow();
-  if (!popupWindow) {
-    setLauncherActive(false);
+  if (currentRouteOptions) {
+    createPanelDock({
+      ...currentRouteOptions,
+      preserveLauncherButton: true,
+      skipToggleButton: true,
+      initiallyVisible: true,
+    });
+  } else {
+    createPanelDock({
+      preserveLauncherButton: true,
+      skipToggleButton: true,
+      initiallyVisible: true,
+    });
   }
+  setLauncherActive(true);
 }
 
 export function closeDetachedPanelWindow() {

@@ -34,6 +34,9 @@ function resolveHomeUrl() {
   if (!url.pathname || url.pathname === '/') {
     url.pathname = '/';
   }
+  if ((url.pathname === '/' || url.pathname.endsWith('/index.html')) && !url.searchParams.has('audit')) {
+    url.searchParams.set('audit', 'home-runtime');
+  }
   return url.toString();
 }
 
@@ -96,25 +99,58 @@ async function main() {
 
     const homeUrl = resolveHomeUrl();
     await page.goto(homeUrl, { waitUntil: 'networkidle', timeout: 60000 });
-    await page.waitForSelector('.daily-simulation-layer', { timeout: 30000 });
-    await page.waitForFunction(
-      (expectedMode) => (
-        document.querySelector('.daily-simulation-layer')?.dataset.simulationId === expectedMode
-        && document.querySelector('.daily-simulation-layer')?.dataset.dailyFocusReady === 'true'
-      ),
-      EXPECTED_MODE,
-      { timeout: 30000 },
-    );
+
+    if (dailySimulation.surface === 'home-mode') {
+      await page.waitForSelector('#c', { timeout: 30000 });
+      await page.waitForFunction(
+        ({ expectedMode, expectedName }) => {
+          const canvas = document.querySelector('#c');
+          const rect = canvas?.getBoundingClientRect?.();
+          let homeMode = null;
+          try {
+            homeMode = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.()?.mode || null;
+          } catch {
+            homeMode = null;
+          }
+          const switcherLabel = document.querySelector('.simulation-focus-switcher')?.textContent?.trim() || '';
+          return Boolean(
+            rect
+            && rect.width > 10
+            && rect.height > 10
+            && !document.querySelector('.daily-simulation-layer')
+            && (homeMode === expectedMode || switcherLabel.includes(expectedName))
+          );
+        },
+        { expectedMode: EXPECTED_MODE, expectedName: dailySimulation.name },
+        { timeout: 30000 },
+      );
+    } else {
+      await page.waitForSelector('.daily-simulation-layer', { timeout: 30000 });
+      await page.waitForFunction(
+        (expectedMode) => (
+          document.querySelector('.daily-simulation-layer')?.dataset.simulationId === expectedMode
+          && document.querySelector('.daily-simulation-layer')?.dataset.dailyFocusReady === 'true'
+        ),
+        EXPECTED_MODE,
+        { timeout: 30000 },
+      );
+    }
 
     const result = await page.evaluate(() => {
       const simulations = document.querySelector('#simulations');
       const layer = document.querySelector('.daily-simulation-layer');
+      let homeMode = null;
+      try {
+        homeMode = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.()?.mode || null;
+      } catch {
+        homeMode = null;
+      }
       return {
         href: window.location.href,
         pathname: window.location.pathname,
         search: window.location.search,
         simulationClassName: simulations?.className || '',
-        activeSimulationId: layer?.dataset.simulationId || '',
+        activeSimulationId: layer?.dataset.simulationId || homeMode || '',
       };
     });
 

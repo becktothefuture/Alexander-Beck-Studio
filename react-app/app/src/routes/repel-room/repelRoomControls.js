@@ -1,4 +1,4 @@
-export const DEFAULT_WALL_REPEL_CONFIG = {
+export const DEFAULT_REPEL_ROOM_CONFIG = {
   version: 1,
   enabled: true,
   ballCount: 220,
@@ -27,7 +27,7 @@ export const DEFAULT_WALL_REPEL_CONFIG = {
   pauseWhenHidden: true,
 };
 
-export const WALL_REPEL_CONTROL_GROUPS = [
+export const REPEL_ROOM_CONTROL_GROUPS = [
   {
     title: 'Material',
     initiallyOpen: true,
@@ -281,16 +281,16 @@ function normalizeControlValue(source, control, fallback) {
   return clampNumber(source[control.id], control.min, control.max, fallback);
 }
 
-export function normalizeWallRepelConfig(input = {}) {
+export function normalizeRepelRoomConfig(input = {}) {
   const source = input && typeof input === 'object' ? input : {};
   const next = { version: 1 };
 
-  for (const group of WALL_REPEL_CONTROL_GROUPS) {
+  for (const group of REPEL_ROOM_CONTROL_GROUPS) {
     for (const control of group.controls) {
       next[control.id] = normalizeControlValue(
         source,
         control,
-        DEFAULT_WALL_REPEL_CONFIG[control.id],
+        DEFAULT_REPEL_ROOM_CONFIG[control.id],
       );
     }
   }
@@ -298,12 +298,12 @@ export function normalizeWallRepelConfig(input = {}) {
   return next;
 }
 
-export function resolveWallRepelControlPatch(control, value, checked) {
+export function resolveRepelRoomControlPatch(control, value, checked) {
   if (control.type === 'checkbox') return { [control.id]: Boolean(checked) };
   return { [control.id]: Number(value) };
 }
 
-export function formatWallRepelControlValue(value, control = {}) {
+export function formatRepelRoomControlValue(value, control = {}) {
   if (typeof value === 'boolean') return value ? 'on' : 'off';
   if (typeof value === 'number') {
     if (control.display === 'integer' || control.step === 1) return String(Math.round(value));

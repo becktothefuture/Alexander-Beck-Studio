@@ -53,11 +53,10 @@ export function SiteFooter() {
 
           <div className="ui-meta-right">
             {/* Sound toggle injected here by legacy JS on home */}
-            <button
+            <div
               id="site-year"
-              type="button"
-              className="caption abs-meta-btn abs-hover-target abs-hover-target--index"
-              aria-label="Toggle theme"
+              className="caption meta-caption abs-meta-btn"
+              aria-label="London local time"
             >
               <span className="meta-stack">
                 <span className="meta-location">
@@ -66,7 +65,7 @@ export function SiteFooter() {
                 </span>
                 <time id="time-display">0:00:00 AM</time>
               </span>
-            </button>
+            </div>
           </div>
         </div>
       </footer>

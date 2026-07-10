@@ -11,6 +11,7 @@ import { applyChromeHarmony } from './chrome-harmony.js';
 import { readTokenVar } from '../utils/tokens.js';
 import { applyShellLayoutVars, syncShellToDocument, syncThemeColorMeta } from './site-shell.js';
 import { forEachPanelUiDocument, resolvePanelUiDocument } from '../ui/panel-ui-context.js';
+import { applyThemeState, isDarkThemeDocument } from '../../../lib/theme-state.js';
 
 const THEME_STORAGE_KEY = 'theme-preference-v2';
 const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
@@ -154,8 +155,7 @@ function resolveShouldBeDark(theme) {
 }
 
 function isRenderedDarkMode() {
-  return document.documentElement.classList.contains('dark-mode')
-    || document.body.classList.contains('dark-mode');
+  return isDarkThemeDocument();
 }
 
 /**
@@ -185,19 +185,7 @@ function applyDarkModeToDOM(isDark) {
   const globals = getGlobals();
   globals.isDarkMode = isDark;
   
-  // Set color-scheme for native form controls (Safari)
-  document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
-  
-  // Apply dark-mode class
-  if (isDark) {
-    globals.container?.classList.add('dark-mode');
-    document.body.classList.add('dark-mode');
-    document.documentElement.classList.add('dark-mode');
-  } else {
-    globals.container?.classList.remove('dark-mode');
-    document.body.classList.remove('dark-mode');
-    document.documentElement.classList.remove('dark-mode');
-  }
+  applyThemeState(isDark, { container: globals.container });
 
   syncShellToDocument({ isDark });
   applyLayoutCSSVars();

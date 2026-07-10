@@ -855,7 +855,7 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 ## Rubber Wall System (Visual + Collision Alignment)
 
 ### `frameColor` (string, hex)
-- **Meaning**: Unified frame color (border + walls + browser chrome meta tags).
+- **Meaning**: Authored site frame color. In `chromeHarmonyMode: "auto"`, Safari/theme-color browsers use the site frame for browser chrome continuity, while locked-header browsers adapt only the exposed outer frame to the browser's native chrome palette.
 
 ### Geometry
 - `wallThicknessVw` (number, vw) → `--wall-thickness` (derived px)

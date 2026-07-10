@@ -2,19 +2,19 @@ import { Suspense, lazy } from 'react';
 import { buildRouteHref } from '../../lib/routes.js';
 
 const homeHref = buildRouteHref('home');
-const WallRepelDemo = lazy(() => (
-  import('./WallRepelDemo.jsx').then((module) => ({ default: module.WallRepelDemo }))
+const RepelRoomDemo = lazy(() => (
+  import('./RepelRoomDemo.jsx').then((module) => ({ default: module.RepelRoomDemo }))
 ));
 
-export const WALL_REPEL_ROUTE_RUNTIME = {};
+export const REPEL_ROOM_ROUTE_RUNTIME = {};
 
-export function getWallRepelRouteView() {
+export function getRepelRoomRouteView() {
   return {
-    bodyClass: 'body wall-repel-page',
-    wallClassName: 'w-embed wall-repel-wall',
-    wallContent: (
+    bodyClass: 'body repel-room-page',
+    studioWindowClassName: 'w-embed repel-room-wall',
+    studioWindowContent: (
       <Suspense fallback={null}>
-        <WallRepelDemo />
+        <RepelRoomDemo />
       </Suspense>
     ),
     headerContent: (

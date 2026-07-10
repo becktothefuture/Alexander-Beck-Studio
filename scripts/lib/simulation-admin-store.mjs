@@ -61,11 +61,18 @@ const DEDICATED_LAB_ROUTE_DELETION_RULES = Object.freeze({
     importPath: '../../routes/flock-of-birds/FlockOfBirdsRoute.jsx',
     hasDevAdminPluginApi: true,
   },
+  'repel-room': {
+    routeDir: 'repel-room',
+    routeView: 'getRepelRoomRouteView',
+    routeRuntime: 'REPEL_ROOM_ROUTE_RUNTIME',
+    importPath: '../../routes/repel-room/RepelRoomRoute.jsx',
+    hasDevAdminPluginApi: true,
+  },
   'wall-repel': {
-    routeDir: 'wall-repel',
-    routeView: 'getWallRepelRouteView',
-    routeRuntime: 'WALL_REPEL_ROUTE_RUNTIME',
-    importPath: '../../routes/wall-repel/WallRepelRoute.jsx',
+    routeDir: 'repel-room',
+    routeView: 'getRepelRoomRouteView',
+    routeRuntime: 'REPEL_ROOM_ROUTE_RUNTIME',
+    importPath: '../../routes/repel-room/RepelRoomRoute.jsx',
     hasDevAdminPluginApi: true,
   },
   'mineral-growth': {
@@ -350,7 +357,7 @@ export async function createSimulationIssue({
 }
 
 export function getSimulationPreviewPaths(entry) {
-  const previewBase = resolve(SIMULATION_ADMIN_PATHS.simulationPreviewsDir, entry.id);
+  const previewBase = resolve(SIMULATION_ADMIN_PATHS.simulationPreviewsDir, entry.previewId || entry.id);
   return {
     posterPath: resolve(previewBase, 'poster.png'),
     gifPath: resolve(previewBase, 'preview.gif'),

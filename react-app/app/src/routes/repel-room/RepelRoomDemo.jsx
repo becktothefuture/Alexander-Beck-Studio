@@ -1,23 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  DEFAULT_WALL_REPEL_CONFIG,
-  WALL_REPEL_CONTROL_GROUPS,
-  formatWallRepelControlValue,
-  normalizeWallRepelConfig,
-  resolveWallRepelControlPatch,
-} from './wallRepelControls.js';
-import { WALL_REPEL_SIMULATION_REGISTRY_ENTRY } from './wallRepelRegistry.js';
-import { createWallRepelRenderer } from './wallRepelRenderer.js';
+  DEFAULT_REPEL_ROOM_CONFIG,
+  REPEL_ROOM_CONTROL_GROUPS,
+  formatRepelRoomControlValue,
+  normalizeRepelRoomConfig,
+  resolveRepelRoomControlPatch,
+} from './repelRoomControls.js';
+import { REPEL_ROOM_SIMULATION_REGISTRY_ENTRY } from './repelRoomRegistry.js';
+import { createRepelRoomRenderer } from './repelRoomRenderer.js';
 import {
   DEFAULT_LONDON_WEATHER_PALETTE_ID,
   getLondonWeatherPalette,
   resolveLondonWeatherPaletteId,
 } from '../../palette/londonPalettes.js';
 import { withBasePath } from '../../lib/base-path.js';
-import './wall-repel-runtime.css';
-import './wall-repel.css';
+import './repel-room-runtime.css';
+import './repel-room.css';
 
-const CONFIG_URL = withBasePath('/config/wall-repel-demo.json');
+const CONFIG_URL = withBasePath('/config/repel-room-demo.json');
 const DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
 const DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_LONDON_WEATHER_PALETTE_ID)?.dark || [
   '#a7afb0',
@@ -60,14 +60,14 @@ function downloadConfig(config) {
   const blob = new Blob([`${JSON.stringify(config, null, 2)}\n`], { type: 'application/json' });
   const anchor = document.createElement('a');
   anchor.href = URL.createObjectURL(blob);
-  anchor.download = 'wall-repel-demo.json';
+  anchor.download = 'repel-room-demo.json';
   document.body.appendChild(anchor);
   anchor.click();
   document.body.removeChild(anchor);
   URL.revokeObjectURL(anchor.href);
 }
 
-function resolveWallRepelTheme(designSystem) {
+function resolveRepelRoomTheme(designSystem) {
   const runtime = designSystem?.runtime || {};
   const shellTheme = designSystem?.shell?.theme || {};
   const paletteId = resolveLondonWeatherPaletteId(
@@ -102,15 +102,15 @@ function shouldShowControlPanel() {
   return import.meta.env.DEV;
 }
 
-function WallRepelControlRow({ control, value, onChange }) {
-  const id = `wall-repel-control-${control.id}`;
+function RepelRoomControlRow({ control, value, onChange }) {
+  const id = `repel-room-control-${control.id}`;
   const rangeValue = Number.isFinite(Number(value))
     ? Number(value)
     : Number(control.min || 0);
 
   if (control.type === 'checkbox') {
     return (
-      <label className="parameterizer-row wall-repel-control-row" htmlFor={id}>
+      <label className="parameterizer-row repel-room-control-row" htmlFor={id}>
         <span className="parameterizer-label" title={control.label}>{control.label}</span>
         <span className="parameterizer-control parameterizer-control--check">
           <input
@@ -120,13 +120,13 @@ function WallRepelControlRow({ control, value, onChange }) {
             onChange={(event) => onChange(control, event.target.value, event.target.checked)}
           />
         </span>
-        <span className="parameterizer-value">{formatWallRepelControlValue(value, control)}</span>
+        <span className="parameterizer-value">{formatRepelRoomControlValue(value, control)}</span>
       </label>
     );
   }
 
   return (
-    <label className="parameterizer-row wall-repel-control-row" htmlFor={id}>
+    <label className="parameterizer-row repel-room-control-row" htmlFor={id}>
       <span className="parameterizer-label" title={control.label}>{control.label}</span>
       <span className="parameterizer-control">
         <input
@@ -139,24 +139,24 @@ function WallRepelControlRow({ control, value, onChange }) {
           onChange={(event) => onChange(control, event.target.value, event.target.checked)}
         />
       </span>
-      <span className="parameterizer-value">{formatWallRepelControlValue(value, control)}</span>
+      <span className="parameterizer-value">{formatRepelRoomControlValue(value, control)}</span>
     </label>
   );
 }
 
-function WallRepelPanel({ config, saveStatus, onChange, onReset, onSave }) {
+function RepelRoomPanel({ config, saveStatus, onChange, onReset, onSave }) {
   const [openGroups, setOpenGroups] = useState(() => Object.fromEntries(
-    WALL_REPEL_CONTROL_GROUPS.map((group) => [group.title, group.initiallyOpen !== false]),
+    REPEL_ROOM_CONTROL_GROUPS.map((group) => [group.title, group.initiallyOpen !== false]),
   ));
 
   return (
-    <aside className="parameterizer-panel wall-repel-panel" aria-label="Repel Room controls">
+    <aside className="parameterizer-panel repel-room-panel" aria-label="Repel Room controls">
       <div className="parameterizer-header">
         <span>Repel Room</span>
-        <span className="wall-repel-panel__status">{saveStatus}</span>
+        <span className="repel-room-panel__status">{saveStatus}</span>
       </div>
       <div className="parameterizer-scroll">
-        {WALL_REPEL_CONTROL_GROUPS.map((group) => (
+        {REPEL_ROOM_CONTROL_GROUPS.map((group) => (
           <details
             key={group.title}
             className="parameterizer-folder"
@@ -171,9 +171,9 @@ function WallRepelPanel({ config, saveStatus, onChange, onReset, onSave }) {
             }}
           >
             <summary className="parameterizer-folder-title">{group.title}</summary>
-            <div className="wall-repel-panel__rows">
+            <div className="repel-room-panel__rows">
               {group.controls.map((control) => (
-                <WallRepelControlRow
+                <RepelRoomControlRow
                   key={control.id}
                   control={control}
                   value={config[control.id]}
@@ -192,13 +192,13 @@ function WallRepelPanel({ config, saveStatus, onChange, onReset, onSave }) {
   );
 }
 
-export function WallRepelDemo() {
+export function RepelRoomDemo() {
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
-  const configRef = useRef(DEFAULT_WALL_REPEL_CONFIG);
+  const configRef = useRef(DEFAULT_REPEL_ROOM_CONFIG);
   const colorsRef = useRef(DEFAULT_THEME_COLORS);
   const initialThemeRef = useRef(null);
-  const [config, setConfig] = useState(DEFAULT_WALL_REPEL_CONFIG);
+  const [config, setConfig] = useState(DEFAULT_REPEL_ROOM_CONFIG);
   const [themeColors, setThemeColors] = useState(DEFAULT_THEME_COLORS);
   const [saveStatus, setSaveStatus] = useState('loaded');
   const [configReady, setConfigReady] = useState(false);
@@ -215,15 +215,15 @@ export function WallRepelDemo() {
 
     async function loadInitialConfig() {
       const [demoConfig, designSystem] = await Promise.all([
-        loadJson(CONFIG_URL, DEFAULT_WALL_REPEL_CONFIG),
+        loadJson(CONFIG_URL, DEFAULT_REPEL_ROOM_CONFIG),
         loadJson(DESIGN_SYSTEM_URL, null),
       ]);
 
       if (cancelled) return;
-      const nextColors = resolveWallRepelTheme(designSystem);
+      const nextColors = resolveRepelRoomTheme(designSystem);
 
       setThemeColors(nextColors);
-      setConfig(normalizeWallRepelConfig(demoConfig));
+      setConfig(normalizeRepelRoomConfig(demoConfig));
       setSaveStatus('loaded');
       setConfigReady(true);
     }
@@ -294,7 +294,7 @@ export function WallRepelDemo() {
     const canvas = canvasRef.current;
     if (!canvas || !configReady) return undefined;
 
-    rendererRef.current = createWallRepelRenderer({
+    rendererRef.current = createRepelRoomRenderer({
       canvas,
       reducedMotion,
       getConfig: () => configRef.current,
@@ -313,22 +313,22 @@ export function WallRepelDemo() {
 
   const updateControl = useCallback((control, value, checked) => {
     setSaveStatus('edited');
-    setConfig((current) => normalizeWallRepelConfig({
+    setConfig((current) => normalizeRepelRoomConfig({
       ...current,
-      ...resolveWallRepelControlPatch(control, value, checked),
+      ...resolveRepelRoomControlPatch(control, value, checked),
     }));
   }, []);
 
   const resetConfig = useCallback(() => {
     setSaveStatus('reset');
-    setConfig(normalizeWallRepelConfig(DEFAULT_WALL_REPEL_CONFIG));
+    setConfig(normalizeRepelRoomConfig(DEFAULT_REPEL_ROOM_CONFIG));
   }, []);
 
   const saveConfig = useCallback(async (configToSave = configRef.current) => {
-    const normalized = normalizeWallRepelConfig(configToSave);
+    const normalized = normalizeRepelRoomConfig(configToSave);
     setSaveStatus('saving');
     try {
-      const response = await fetch('/api/wall-repel/config', {
+      const response = await fetch('/api/repel-room/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config: normalized }),
@@ -345,9 +345,9 @@ export function WallRepelDemo() {
   }, []);
 
   useEffect(() => {
-    window.__ABS_WALL_REPEL__ = {
+    const debugApi = {
       setConfigPatch: (patch) => {
-        setConfig((current) => normalizeWallRepelConfig({ ...current, ...patch }));
+        setConfig((current) => normalizeRepelRoomConfig({ ...current, ...patch }));
       },
       getConfig: () => configRef.current,
       getThemeColors: () => colorsRef.current,
@@ -355,30 +355,35 @@ export function WallRepelDemo() {
       renderOnce: () => rendererRef.current?.renderOnce(),
       save: () => saveConfig(configRef.current),
     };
+    window.__STUDIO_REPEL_ROOM__ = debugApi;
+    window.__ABS_REPEL_ROOM__ = debugApi;
+    window.__ABS_WALL_REPEL__ = debugApi;
 
     return () => {
+      delete window.__STUDIO_REPEL_ROOM__;
+      delete window.__ABS_REPEL_ROOM__;
       delete window.__ABS_WALL_REPEL__;
     };
   }, [saveConfig]);
 
   return (
     <section
-      className="wall-repel-demo"
-      data-simulation-id={WALL_REPEL_SIMULATION_REGISTRY_ENTRY.id}
-      data-enabled-in-rotation={String(WALL_REPEL_SIMULATION_REGISTRY_ENTRY.enabledInRotation)}
+      className="repel-room-demo"
+      data-simulation-id={REPEL_ROOM_SIMULATION_REGISTRY_ENTRY.id}
+      data-enabled-in-rotation={String(REPEL_ROOM_SIMULATION_REGISTRY_ENTRY.enabledInRotation)}
       data-panel-visible={String(showControlPanel)}
-      style={{ '--wall-repel-surface': themeColors.active }}
+      style={{ '--repel-room-surface': themeColors.active }}
       aria-label="Repel Room lab"
     >
       <canvas
         ref={canvasRef}
-        id="wall-repel-canvas"
-        className="wall-repel-canvas"
+        id="repel-room-canvas"
+        className="repel-room-canvas"
         role="img"
         aria-label="Repel Room flat ball simulation"
       />
       {showControlPanel ? (
-        <WallRepelPanel
+        <RepelRoomPanel
           config={config}
           saveStatus={saveStatus}
           onChange={updateControl}

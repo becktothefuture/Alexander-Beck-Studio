@@ -25,6 +25,8 @@
   --abs-wall-base-light: #efefef;
   --abs-wall-base-dark: #181818;
   --abs-wall-base: var(--abs-wall-base-dark);
+  --shell-wall-bg: #202020;
+  --studio-window-bg: var(--shell-wall-bg);
   --frame-color-site-light: #202124;
   --frame-color-site-dark: #202124;
   --frame-color-light: #202124;
@@ -265,6 +267,82 @@
   --content-padding-x: var(--abs-content-padding);
   --content-padding-y: var(--abs-content-padding);
   --content-padding-y-bottom: calc(var(--abs-content-padding) * var(--abs-content-pad-mul-bottom));
+  --button-bar-inset: 10px;
+  --button-bar-padding-y: calc(var(--button-bar-inset) * 1.5);
+  --button-bar-width: 2400px;
+  --button-bar-gap: 16px;
+  --button-bar-button-height: 48px;
+  --button-bar-height: calc(var(--button-bar-button-height) + (var(--button-bar-padding-y) * 2));
+  --button-bar-button-padding-x: 16px;
+  --button-bar-button-radius: 14px;
+  --button-bar-font-size: 1.032rem;
+  --button-bar-max-width: 2400px;
+  --button-bar-perspective: 2000px;
+  --button-bar-perspective-origin-y: -50vh;
+  --button-bar-rest-z: 0px;
+  --button-bar-press-z-travel: 9px;
+  --button-bar-press-z: calc(var(--button-bar-press-z-travel) * -1);
+  --button-bar-bg: color-mix(in srgb, var(--abs-browser-chrome) 88%, rgba(var(--abs-rgb-black), 1) 12%);
+  --button-bar-shadow:
+    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.08),
+    inset 0 14px 30px rgba(var(--abs-rgb-black), 0.18);
+  --button-bar-top-bevel: rgba(var(--abs-rgb-white), 0.1);
+  --button-bar-ink: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 88%, var(--cursor-color) 12%);
+  --button-bar-ink-muted: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 62%, var(--studio-window-bg) 38%);
+  --button-bar-button-bg-window-mix: 96%;
+  --button-bar-button-bg-white-mix: 3%;
+  --button-bar-button-hover-white-mix: 3%;
+  --button-bar-button-active-window-mix: 90%;
+  --button-bar-button-active-white-mix: 6%;
+  --button-bar-button-bg: color-mix(in srgb, var(--studio-window-bg) var(--button-bar-button-bg-window-mix), rgba(var(--abs-rgb-white), 1) var(--button-bar-button-bg-white-mix));
+  --button-bar-button-bg-hover: color-mix(in srgb, var(--button-bar-button-bg) calc(100% - var(--button-bar-button-hover-white-mix)), rgba(var(--abs-rgb-white), 1) var(--button-bar-button-hover-white-mix));
+  --button-bar-button-bg-active: color-mix(in srgb, var(--studio-window-bg) var(--button-bar-button-active-window-mix), rgba(var(--abs-rgb-white), 1) var(--button-bar-button-active-white-mix));
+  --button-bar-button-inner-shine: rgba(var(--abs-rgb-white), 0.12);
+  --button-bar-button-inner-shadow: rgba(var(--abs-rgb-black), 0.24);
+  --button-bar-button-light-color: color-mix(in srgb, var(--cursor-color) 72%, rgba(var(--abs-rgb-white), 1) 28%);
+  --button-bar-indicator-opacity: 0.5;
+  --button-bar-shadow-opacity: 0.12;
+  --button-bar-active-glow: 6px;
+  --button-bar-active-drop: 0px;
+  --button-bar-transition-ms: 140ms;
+  --shell-bottom-tabs-gap: var(--button-bar-inset);
+  --shell-bottom-tabs-padding-y: var(--button-bar-padding-y);
+  --shell-tab-nav-width: var(--button-bar-width);
+  --shell-tab-gap: var(--button-bar-gap);
+  --shell-tab-height: var(--button-bar-button-height);
+  --shell-bottom-band-height: var(--button-bar-height);
+  --shell-tab-padding-x: var(--button-bar-button-padding-x);
+  --shell-tab-radius: var(--button-bar-button-radius);
+  --shell-tab-font-size: var(--button-bar-font-size);
+  --shell-bottom-band-bg: var(--button-bar-bg);
+  --shell-bottom-band-shadow: var(--button-bar-shadow);
+  --shell-bottom-band-top-bevel: var(--button-bar-top-bevel);
+  --shell-tab-ink: var(--button-bar-ink);
+  --shell-tab-ink-muted: var(--button-bar-ink-muted);
+  --shell-tab-bg-wall-mix: var(--button-bar-button-bg-window-mix);
+  --shell-tab-bg-white-mix: var(--button-bar-button-bg-white-mix);
+  --shell-tab-hover-white-mix: var(--button-bar-button-hover-white-mix);
+  --shell-tab-active-wall-mix: var(--button-bar-button-active-window-mix);
+  --shell-tab-active-white-mix: var(--button-bar-button-active-white-mix);
+  --shell-tab-bg: var(--button-bar-button-bg);
+  --shell-tab-bg-hover: var(--button-bar-button-bg-hover);
+  --shell-tab-bg-active: var(--button-bar-button-bg-active);
+  --shell-tab-inner-shine: var(--button-bar-button-inner-shine);
+  --shell-tab-inner-shadow: var(--button-bar-button-inner-shadow);
+  --shell-tab-light-color: var(--button-bar-button-light-color);
+  --shell-tab-indicator-opacity: var(--button-bar-indicator-opacity);
+  --shell-tab-shadow-opacity: var(--button-bar-shadow-opacity);
+  --shell-tab-active-glow: var(--button-bar-active-glow);
+  --shell-tab-active-drop: var(--button-bar-active-drop);
+  --shell-tab-transition-ms: var(--button-bar-transition-ms);
+  --instrument-wake-duration-out: 110ms;
+  --instrument-wake-duration-in: 165ms;
+  --instrument-wake-duration-pass: 245ms;
+  --instrument-wake-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --instrument-wake-blur: 2px;
+  --instrument-wake-recede-scale: 0.992;
+  --instrument-wake-resolve-scale: 0.996;
+  --instrument-wake-pass-opacity: 0.58;
   /* Edge inset: wall thickness + content padding (set via JS in applyLayoutCSSVars) */
   --edge-inset: 0px;
   --edge-inset-lg: 0px;
@@ -749,7 +827,10 @@
   }
 }
 
-:root.dark-mode {
+:root.dark-mode,
+:root[data-abs-theme='dark'],
+body.dark-mode,
+body[data-abs-theme='dark'] {
   color-scheme: dark;
   /* Wall and chrome colors remain unified (#242529) in dark mode */
   /* Scene interior uses --bg-dark for dark mode */
@@ -766,6 +847,13 @@
   --text-muted: var(--text-color-dark-muted);
   --text-logo: #f0f0f0;
   --shell-chrome-ink: var(--text-primary);
+  --button-bar-ink: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 88%, var(--cursor-color) 12%);
+  --button-bar-ink-muted: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 62%, var(--studio-window-bg) 38%);
+  --button-bar-button-bg-window-mix: 96%;
+  --button-bar-button-bg-white-mix: 3%;
+  --button-bar-button-hover-white-mix: 3%;
+  --button-bar-button-active-window-mix: 90%;
+  --button-bar-button-active-white-mix: 6%;
 
   /* Single stroke color override for dark mode */
   --abs-stroke-medium: rgba(var(--abs-rgb-white), 0.25);

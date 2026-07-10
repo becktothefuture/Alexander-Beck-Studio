@@ -20,9 +20,9 @@ const MineralGrowthRuntime = lazy(() => (
   import('../mineral-growth/MineralGrowthRuntime.jsx')
     .then((module) => ({ default: module.MineralGrowthRuntime }))
 ));
-const WallRepelRuntime = lazy(() => (
-  import('../wall-repel/WallRepelRuntime.jsx')
-    .then((module) => ({ default: module.WallRepelRuntime }))
+const RepelRoomRuntime = lazy(() => (
+  import('../repel-room/RepelRoomRuntime.jsx')
+    .then((module) => ({ default: module.RepelRoomRuntime }))
 ));
 
 function runtimeElement(element) {
@@ -35,8 +35,8 @@ function runtimeElement(element) {
 
 export function getDailyFocusPureRuntime(routeId) {
   switch (routeId) {
-    case 'wall-repel':
-      return runtimeElement(<WallRepelRuntime />);
+    case 'repel-room':
+      return runtimeElement(<RepelRoomRuntime />);
     case 'flock-of-birds':
       return runtimeElement(<FlockOfBirdsRuntime />);
     case 'mineral-growth':

@@ -18,7 +18,16 @@ export const SIMULATION_FOCUS_STORAGE_KEY = 'abs_simulation_focus_choice_v1';
 export const SIMULATION_FOCUS_STORAGE_VERSION = 1;
 export const SIMULATION_FOCUS_CHANGED_EVENT = 'abs:simulation-focus-changed';
 
+export const SIMULATION_ID_ALIASES = Object.freeze({
+  'wall-repel': 'repel-room',
+});
+
 let volatileFocusChoice = null;
+
+export function normalizeSimulationId(id) {
+  const value = String(id || '').trim();
+  return SIMULATION_ID_ALIASES[value] || value;
+}
 
 function dispatchSimulationFocusChanged(detail = {}) {
   if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
@@ -31,7 +40,7 @@ function dispatchSimulationFocusChanged(detail = {}) {
 }
 
 function withPreviewDefaults(entry) {
-  const previewBase = `/previews/simulations/${entry.id}`;
+  const previewBase = `/previews/simulations/${entry.previewId || entry.id}`;
   return Object.freeze({
     ...entry,
     stageLabel: STAGE_LABELS[entry.stage] || entry.stage,
@@ -53,7 +62,18 @@ export const SIMULATION_CATALOG = Object.freeze(
 );
 
 export const SIMULATION_BY_ID = Object.freeze(
-  Object.fromEntries(SIMULATION_CATALOG.map((entry) => [entry.id, entry])),
+  Object.fromEntries(
+    SIMULATION_CATALOG.flatMap((entry) => {
+      const ids = new Set([
+        entry.id,
+        ...(Array.isArray(entry.legacyIds) ? entry.legacyIds : []),
+      ]);
+      Object.entries(SIMULATION_ID_ALIASES).forEach(([alias, canonical]) => {
+        if (canonical === entry.id) ids.add(alias);
+      });
+      return Array.from(ids).map((id) => [id, entry]);
+    }),
+  ),
 );
 
 export const DAILY_ROTATION_SIMULATION_IDS = Object.freeze(
@@ -136,7 +156,7 @@ export function getDailySimulationId(date = new Date(), simulations = SIMULATION
 }
 
 export function getSimulationById(id) {
-  return SIMULATION_BY_ID[id] || null;
+  return SIMULATION_BY_ID[normalizeSimulationId(id)] || SIMULATION_BY_ID[id] || null;
 }
 
 export function getSimulationName(id) {
@@ -148,8 +168,12 @@ export function isSimulationInDailyRotation(id) {
 }
 
 function getSimulationFromList(id, simulations = SIMULATION_CATALOG) {
-  if (simulations === SIMULATION_CATALOG) return getSimulationById(id);
-  return simulations.find((entry) => entry.id === id) || null;
+  const canonicalId = normalizeSimulationId(id);
+  if (simulations === SIMULATION_CATALOG) return getSimulationById(canonicalId);
+  return simulations.find((entry) => (
+    entry.id === canonicalId
+    || (Array.isArray(entry.legacyIds) && entry.legacyIds.includes(String(id || '').trim()))
+  )) || null;
 }
 
 function isDailyFocusSimulation(id, simulations = SIMULATION_CATALOG) {
@@ -223,7 +247,7 @@ export function readManualSimulationFocus(options = {}) {
     && stored.version === SIMULATION_FOCUS_STORAGE_VERSION
     && stored.catalogVersion === catalogVersion
     && stored.dayStamp === dayStamp
-    && isDailyFocusSimulation(stored.simulationId, simulations)
+    && isDailyFocusSimulation(normalizeSimulationId(stored.simulationId), simulations)
   );
 
   if (!isValid) {
@@ -234,7 +258,7 @@ export function readManualSimulationFocus(options = {}) {
   return Object.freeze({
     version: stored.version,
     dayStamp: stored.dayStamp,
-    simulationId: stored.simulationId,
+    simulationId: normalizeSimulationId(stored.simulationId),
     catalogVersion: stored.catalogVersion,
   });
 }
@@ -247,12 +271,13 @@ export function writeManualSimulationFocus(simulationId, options = {}) {
     catalogVersion = SIMULATION_CATALOG_VERSION,
   } = options;
   const focusStorage = getFocusStorage(storage);
-  if (!isDailyFocusSimulation(simulationId, simulations)) return null;
+  const canonicalSimulationId = normalizeSimulationId(simulationId);
+  if (!isDailyFocusSimulation(canonicalSimulationId, simulations)) return null;
 
   const choice = {
     version: SIMULATION_FOCUS_STORAGE_VERSION,
     dayStamp: getDailyFocusDayStamp(date),
-    simulationId,
+    simulationId: canonicalSimulationId,
     catalogVersion,
   };
   const savedChoice = Object.freeze({ ...choice });
@@ -266,7 +291,7 @@ export function writeManualSimulationFocus(simulationId, options = {}) {
     }
   }
 
-  dispatchSimulationFocusChanged({ simulationId, source: 'manual' });
+  dispatchSimulationFocusChanged({ simulationId: canonicalSimulationId, source: 'manual' });
   return savedChoice;
 }
 
@@ -298,8 +323,9 @@ export function getResolvedSimulationFocus(options = {}) {
 }
 
 export function getSimulationLaunchTarget(id, simulations = SIMULATION_CATALOG) {
-  const entry = getSimulationFromList(id, simulations);
-  if (!entry || !isDailyFocusSimulation(id, simulations)) return null;
+  const canonicalId = normalizeSimulationId(id);
+  const entry = getSimulationFromList(canonicalId, simulations);
+  if (!entry || !isDailyFocusSimulation(canonicalId, simulations)) return null;
 
   return Object.freeze({
     id: entry.id,

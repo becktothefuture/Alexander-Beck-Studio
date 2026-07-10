@@ -82,9 +82,10 @@ async function waitForSwitcherLabel(page, label) {
   );
 }
 
-async function waitForFocusId(page, id) {
+async function waitForFocusId(page, id, label = '') {
   const canvasSelector = [
     '#c',
+    '#repel-room-canvas',
     '#wall-repel-canvas',
     '#flock-of-birds-canvas',
     '#mineral-growth-canvas',
@@ -95,7 +96,7 @@ async function waitForFocusId(page, id) {
 
   try {
     await page.waitForFunction(
-      ({ expectedId, selector }) => {
+      ({ expectedId, expectedLabel, selector }) => {
         const layer = document.querySelector('.daily-simulation-layer');
         const canvas = Array.from(document.querySelectorAll(selector)).find((candidate) => {
           const rect = candidate.getBoundingClientRect();
@@ -112,9 +113,20 @@ async function waitForFocusId(page, id) {
         if (homeMode === expectedId && canvas) return true;
 
         const routeMode = new URL(window.location.href).searchParams.get('mode') || null;
+        const switcherLabel = document.querySelector('.simulation-focus-switcher')?.textContent || '';
+        if (
+          expectedLabel
+          && canvas?.id === 'c'
+          && !layer
+          && !routeMode
+          && switcherLabel.includes(expectedLabel)
+        ) {
+          return true;
+        }
+
         return routeMode === expectedId && Boolean(canvas);
       },
-      { expectedId: id, selector: canvasSelector },
+      { expectedId: id, expectedLabel: label, selector: canvasSelector },
       { timeout: WAIT_MS, polling: 50 },
     );
   } catch (error) {
@@ -164,7 +176,7 @@ async function chooseSimulation(page, name, id, label = name) {
   await openChooser(page);
   await page.locator('.simulation-focus-modal.active .simulation-focus-row').filter({ hasText: name }).first().click();
   await waitForSwitcherLabel(page, label);
-  await waitForFocusId(page, id);
+  await waitForFocusId(page, id, label);
   await waitForIdle(page);
   await assertChooserSwitchSettled(page, label);
 }
@@ -295,7 +307,7 @@ async function main() {
   try {
     await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
     await waitForSwitcherLabel(page, dailyDefault.name);
-    await waitForFocusId(page, dailyDefault.id);
+    await waitForFocusId(page, dailyDefault.id, dailyDefault.name);
     await assertStorage(page, null);
 
     await openChooser(page);
@@ -321,8 +333,8 @@ async function main() {
       { timeout: WAIT_MS, polling: 50 },
     );
 
-    await chooseSimulation(page, 'Repel Room', 'wall-repel');
-    await assertStorage(page, 'wall-repel');
+    await chooseSimulation(page, 'Repel Room', 'repel-room');
+    await assertStorage(page, 'repel-room');
 
     await chooseSimulation(page, 'Light Swarm', 'flies');
     await assertStorage(page, 'flies');
@@ -331,7 +343,7 @@ async function main() {
     await assertStorage(page, 'water');
 
     await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
-    await waitForFocusId(page, 'water');
+    await waitForFocusId(page, 'water', 'Water Flow');
     await waitForSwitcherLabel(page, 'Water Flow');
     await assertStorage(page, 'water');
 
@@ -342,7 +354,7 @@ async function main() {
       catalogVersion: catalog.version,
     });
     await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
-    await waitForFocusId(page, dailyDefault.id);
+    await waitForFocusId(page, dailyDefault.id, dailyDefault.name);
     await waitForSwitcherLabel(page, dailyDefault.name);
     await assertStorage(page, null);
 
@@ -353,7 +365,7 @@ async function main() {
       catalogVersion: catalog.version,
     });
     await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
-    await waitForFocusId(page, dailyDefault.id);
+    await waitForFocusId(page, dailyDefault.id, dailyDefault.name);
     await waitForSwitcherLabel(page, dailyDefault.name);
     await assertStorage(page, null);
 

@@ -11,8 +11,8 @@ export const MINERAL_GROWTH_ROUTE_RUNTIME = {};
 export function getMineralGrowthRouteView() {
   return {
     bodyClass: 'body mineral-growth-page',
-    wallClassName: 'w-embed mineral-growth-wall',
-    wallContent: (
+    studioWindowClassName: 'w-embed mineral-growth-wall',
+    studioWindowContent: (
       <Suspense fallback={null}>
         <MineralGrowthDemo />
       </Suspense>

@@ -2,28 +2,23 @@ import { withBasePath } from './base-path.js';
 import { trySpaNavigate } from './spa-navigation.js';
 
 const GATE_ACCESS_KEYS = {
-  portfolio: 'abs_portfolio_ok',
-  cv: 'abs_cv_ok'
+  portfolio: 'abs_portfolio_ok'
 };
 
 const GATE_REQUEST_KEYS = {
-  portfolio: 'abs_open_portfolio_gate',
-  cv: 'abs_open_cv_gate'
+  portfolio: 'abs_open_portfolio_gate'
 };
 
 const LEGACY_GATE_REQUEST_KEYS = {
-  portfolio: ['abs_open_portfolio_modal'],
-  cv: ['abs_open_cv_modal']
+  portfolio: ['abs_open_portfolio_modal']
 };
 
 const GATE_PAGE_PATHS = {
-  portfolio: '/portfolio.html',
-  cv: '/cv.html'
+  portfolio: '/portfolio.html'
 };
 
 export const GATE_INVITE_CODES = Object.freeze({
-  portfolio: '739284',
-  cv: '482916'
+  portfolio: '739284'
 });
 
 export function getGateInviteCode(gateId) {
@@ -83,6 +78,28 @@ function getAccessKey(gateId) {
   return GATE_ACCESS_KEYS[gateId] || '';
 }
 
+function readCookie(name) {
+  try {
+    const cookieName = `${encodeURIComponent(name)}=`;
+    return document.cookie
+      .split(';')
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(cookieName))
+      ?.slice(cookieName.length) || '';
+  } catch {
+    return '';
+  }
+}
+
+function writeAccessCookie(name) {
+  try {
+    document.cookie = `${encodeURIComponent(name)}=${Date.now()}; Path=/; SameSite=Lax; Max-Age=31536000`;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function getRequestKeys(gateId) {
   const currentKey = GATE_REQUEST_KEYS[gateId];
   const legacyKeys = LEGACY_GATE_REQUEST_KEYS[gateId] || [];
@@ -98,7 +115,7 @@ export function hasGateAccess(gateId) {
   }
 
   try {
-    if (window.sessionStorage.getItem(accessKey)) {
+    if (readCookie(accessKey) || window.sessionStorage.getItem(accessKey)) {
       return true;
     }
   } catch {
@@ -119,6 +136,7 @@ export function markGateAccess(gateId) {
   if (!accessKey) return false;
 
   try {
+    writeAccessCookie(accessKey);
     window.sessionStorage.setItem(accessKey, String(Date.now()));
     return true;
   } catch {
@@ -177,7 +195,7 @@ export function redirectToGateHome(gateId) {
 }
 
 export function navigateToGatePage(gateId, { allowDevAccess = false } = {}) {
-  const destinationPath = GATE_PAGE_PATHS[gateId];
+  const destinationPath = gateId === 'cv' ? '/about.html' : GATE_PAGE_PATHS[gateId];
   if (!destinationPath) return;
 
   if (allowDevAccess && import.meta.env.DEV) {
@@ -192,11 +210,11 @@ export function navigateToGatePage(gateId, { allowDevAccess = false } = {}) {
 }
 
 export function navigateToHome(options = {}) {
-  const destination = getHomeUrl();
+  const destination = new URL(withBasePath(options.openContact ? '/contact.html' : '/'), window.location.origin);
 
   if (options.openContact) {
     try {
-      window.sessionStorage.setItem('abs_open_contact_modal', '1');
+      window.sessionStorage.removeItem('abs_open_contact_modal');
     } catch {
       // Storage can be unavailable in hardened/private browser modes.
     }

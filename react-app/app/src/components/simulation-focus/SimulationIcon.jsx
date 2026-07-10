@@ -17,7 +17,8 @@ const ICONS = {
   flies: FliesIcon,
   '3d-cube': CubeIcon,
   water: WaterIcon,
-  'wall-repel': WallRepelIcon,
+  'repel-room': RepelRoomIcon,
+  'wall-repel': RepelRoomIcon,
   '3d-sphere': SphereIcon,
   'starfield-3d': StarfieldIcon,
   'napoleon-point-cloud': PointCloudIcon,
@@ -110,7 +111,7 @@ function WaterIcon() {
   );
 }
 
-function WallRepelIcon() {
+function RepelRoomIcon() {
   return (
     <g>
       <path {...ICON_PROPS} d="M16 12V36" />

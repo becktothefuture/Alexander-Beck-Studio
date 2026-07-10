@@ -74,7 +74,7 @@ export function getCvRouteView() {
 
   return {
     bodyClass: 'body cv-page',
-    wallClassName: 'cv-simulation w-embed',
+    studioWindowClassName: 'cv-simulation w-embed',
     simulationLayer: (
       <div className="about-content-layer">
         <div id="cv-scroll-container" className="cv-scroll-container" data-scroll-presence-root>

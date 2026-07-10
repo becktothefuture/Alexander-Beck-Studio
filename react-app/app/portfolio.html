@@ -260,15 +260,15 @@
         window.__ABS_BOOT_STARTED_AT__ = (window.performance && typeof window.performance.now === 'function') ? window.performance.now() : Date.now();
         var root = document.documentElement;
         var DEFAULTS = {
-          bgLight: '#efefef',
+          bgLight: '#f5f5f5',
           bgDark: '#202020',
-          wallBaseLight: '#202020',
+          wallBaseLight: '#f5f5f5',
           wallBaseDark: '#202020',
-          frameColorLight: '#202020',
+          frameColorLight: '#242529',
           frameColorDark: '#141517',
-          safariFrameLight: '#202020',
+          safariFrameLight: '#181818',
           safariFrameDark: '#141517',
-          lockedHeaderLight: '#202020',
+          lockedHeaderLight: '#242529',
           lockedHeaderDark: '#141517'
         };
 
@@ -358,8 +358,10 @@
           }
           var activeInner = isDark ? innerDark : innerLight;
           var activeFrame = isDark ? frameDark : frameLight;
+          var activeTheme = isDark ? 'dark' : 'light';
 
-          root.style.colorScheme = isDark ? 'dark' : 'light';
+          root.style.colorScheme = activeTheme;
+          root.setAttribute('data-abs-theme', activeTheme);
           root.style.setProperty('--color-bg-light', DEFAULTS.bgLight);
           root.style.setProperty('--color-bg-dark', DEFAULTS.bgDark);
           root.style.setProperty('--bg-light', DEFAULTS.bgLight);
@@ -413,7 +415,9 @@
         applyPalette(isDark);
 
         document.addEventListener('DOMContentLoaded', function() {
-          if (document.body && isDark) document.body.classList.add('dark-mode');
+          if (!document.body) return;
+          document.body.setAttribute('data-abs-theme', isDark ? 'dark' : 'light');
+          if (isDark) document.body.classList.add('dark-mode');
         }, { once: true });
       })();
     </script>

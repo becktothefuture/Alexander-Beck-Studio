@@ -366,11 +366,21 @@ function createPanelToggleButton() {
   const toggleBtn = document.createElement('button');
   toggleBtn.className = 'panel-toggle-btn';
   toggleBtn.setAttribute('aria-label', 'Toggle config panel');
-  toggleBtn.innerHTML = '⚙';
+  toggleBtn.setAttribute('aria-pressed', 'false');
+  toggleBtn.innerHTML = `
+    <svg class="panel-toggle-btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 8.25a3.75 3.75 0 1 1 0 7.5 3.75 3.75 0 0 1 0-7.5Z" />
+      <path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.02-.66-.07-.98l2.08-1.62-2-3.46-2.45.98a7.54 7.54 0 0 0-1.7-.98L15 3.3h-4l-.36 2.64c-.6.24-1.17.57-1.7.98l-2.45-.98-2 3.46 2.08 1.62c-.04.32-.07.65-.07.98s.02.66.07.98L4.49 14.6l2 3.46 2.45-.98c.53.41 1.1.74 1.7.98L11 20.7h4l.36-2.64c.6-.24 1.17-.57 1.7-.98l2.45.98 2-3.46-2.08-1.62Z" />
+    </svg>
+  `;
   toggleBtn.style.display = 'flex';
   
   toggleBtn.addEventListener('click', () => {
     toggleDock();
+    const dock = getDock();
+    const isVisible = Boolean(dock && !dock.classList.contains('hidden'));
+    toggleBtn.classList.toggle('active', isVisible);
+    toggleBtn.setAttribute('aria-pressed', isVisible ? 'true' : 'false');
   });
   
   document.body.appendChild(toggleBtn);
@@ -487,6 +497,9 @@ export function createPanelDock(options = {}) {
   try {
     if (typeof __PANEL_INITIALLY_VISIBLE__ === 'boolean') isHidden = !__PANEL_INITIALLY_VISIBLE__;
   } catch (e) {}
+  if (typeof options.initiallyVisible === 'boolean') {
+    isHidden = !options.initiallyVisible;
+  }
 
   dockElement.classList.toggle('hidden', !!isHidden);
   saveDockHiddenState(!!isHidden);
@@ -977,6 +990,10 @@ export function toggleDock() {
 
   const isHidden = dockElement.classList.toggle('hidden');
   saveDockHiddenState(isHidden);
+  document.querySelectorAll('.panel-toggle-btn').forEach((button) => {
+    button.classList.toggle('active', !isHidden);
+    button.setAttribute('aria-pressed', isHidden ? 'false' : 'true');
+  });
 
   // If we're showing, ensure it isn't off-screen due to a stale saved position.
   if (!isHidden) {

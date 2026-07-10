@@ -21,6 +21,7 @@ const previewMarkers = ['Alexander Beck Studio', '/css/tokens.css'];
 const routeBackedDailySurfaceSelector = [
   '#flock-of-birds-canvas',
   '#mineral-growth-canvas',
+  '#repel-room-canvas',
   '#wall-repel-canvas',
   'canvas.concept-simulation-canvas',
   '.beach-ball-room-simulation[data-beach-ball-room-load-state="ready"] .beach-ball-room-canvas',
@@ -32,15 +33,15 @@ const matrix = [
   {
     page: 'home',
     path: '/',
-    readySelectors: ['#app-frame', '#main-links button', '#expertise-legend .legend__item', '.decorative-script p'],
+    readySelectors: ['#app-frame', '[data-route-tab]', '#expertise-legend .legend__item', '.decorative-script p'],
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
       {
-        selector: '#main-links button',
-        minCount: 3,
+        selector: '[data-route-tab]',
+        minCount: 4,
         minArea: 400,
-        requiredText: ['About Me', 'Contact', 'Portfolio']
+        requiredText: ['Home', 'About Me', 'Contact', 'Portfolio']
       },
       {
         selector: '#expertise-legend .legend__item',
@@ -63,10 +64,10 @@ const matrix = [
       selectors: [
         { selector: '#app-frame', minArea: 200000, requiredText: [] },
         {
-          selector: '#main-links button',
-          minCount: 3,
+          selector: '[data-route-tab]',
+          minCount: 4,
           minArea: 400,
-          requiredText: ['About Me', 'Contact', 'Portfolio']
+          requiredText: ['Home', 'About Me', 'Contact', 'Portfolio']
         },
         {
           selector: '#expertise-legend .legend__item',
@@ -89,29 +90,25 @@ const matrix = [
     sessionStorage: {
       abs_portfolio_ok: 'certified'
     },
-    readySelectors: ['#app-frame', '#c', '.portfolio-topnav .footer_link', '#portfolioProjectMount', '.portfolio-deck-card.is-active'],
+    readySelectors: ['#app-frame', '#c', '[data-route-tab="portfolio"]', '#portfolioProjectMount', '.portfolio-deck-card.is-active'],
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
       { selector: '#c', minArea: 60000, requiredText: [] },
       { selector: '#portfolioProjectMount', minArea: 60000, requiredText: [] },
       { selector: '.portfolio-deck-card.is-active', minCount: 1, minArea: 60000, requiredText: [] },
-      { selector: '.portfolio-topnav .footer_link', minCount: 1, minArea: 120, requiredText: ['About Me'] }
+      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Portfolio'] }
     ]
   },
   {
-    page: 'cv',
-    path: '/cv.html',
-    sessionStorage: {
-      abs_cv_ok: 'certified'
-    },
-    readySelectors: ['#app-frame', '.cv-scroll-container', '.cv-photo__image', '.cv-page-inner'],
+    page: 'about',
+    path: '/about.html',
+    readySelectors: ['#app-frame', '[data-route-tab="about"]', '[data-route-content="about"]'],
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '.cv-scroll-container', minArea: 80000, requiredText: [] },
-      { selector: '.cv-photo__image', minArea: 40000, requiredText: [] },
-      { selector: '.cv-page-inner', minArea: 80000, requiredText: ['About', 'Experience'] }
+      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Portfolio'] },
+      { selector: '[data-route-content="about"]', minArea: 60000, requiredText: ['Coming soon'] }
     ]
   }
 ];

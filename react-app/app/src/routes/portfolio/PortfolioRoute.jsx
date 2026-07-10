@@ -1,12 +1,26 @@
-import { MainNavLink } from '../../components/MainNavLink.jsx';
 import homeContent from 'virtual:abs-content/home';
+import { PortfolioGateRoute } from './PortfolioGateRoute.jsx';
+
 export const PORTFOLIO_ROUTE_RUNTIME = {
   exportName: 'bootstrapPortfolio',
   loadModule: () => import('../../legacy/modules/portfolio/app.js')
 };
 
-export function getPortfolioRouteView() {
-  const aboutLink = homeContent.footer.links.cv;
+export function getPortfolioRouteView(canonicalHref, routeState = {}) {
+  void canonicalHref;
+  if (routeState.lockedGateId === 'portfolio') {
+    return {
+      bodyClass: 'body portfolio-page portfolio-page--locked',
+      legacyRuntime: false,
+      studioWindowClassName: 'portfolio-simulation portfolio-simulation--locked route-page-window w-embed',
+      simulationLayer: <PortfolioGateRoute />,
+      uiLayer: {
+        chrome: null,
+        secondary: null,
+      },
+    };
+  }
+
   const portfolioBlurb = homeContent.portfolio?.blurb
     || 'A curated selection of product projects across several industries—finance, mobility, digital ventures, and more. Each case shows how I partner with teams to clarify the proposition, shape the interaction, and carry the work through to what actually ships.';
   const portfolioHeroEyebrow = homeContent.portfolio?.heroEyebrow || 'Alexander Beck';
@@ -20,7 +34,7 @@ export function getPortfolioRouteView() {
 
   return {
     bodyClass: 'body portfolio-page',
-    wallClassName: 'portfolio-simulation w-embed',
+    studioWindowClassName: 'portfolio-simulation w-embed',
     simulationLayer: (
       <div className="portfolio-slider-layer">
         <canvas
@@ -35,6 +49,7 @@ export function getPortfolioRouteView() {
           aria-label="Portfolio projects"
           data-intro-title={portfolioHeroLines[0]}
           data-intro-body={portfolioBlurb}
+          data-route-enter="context"
         />
       </div>
     ),
@@ -44,34 +59,20 @@ export function getPortfolioRouteView() {
         className="hero-title hero-title--portfolio"
         aria-label={portfolioHeroAria}
       >
-        <span className="hero-title__eyebrow">{portfolioHeroEyebrow}</span>
-        <span className="hero-title__line">{portfolioHeroLines[0]}</span>
+        <span className="hero-title__eyebrow" data-route-enter="identity" data-route-enter-order="0">{portfolioHeroEyebrow}</span>
+        <span className="hero-title__line" data-route-enter="identity" data-route-enter-order="1">{portfolioHeroLines[0]}</span>
         {portfolioHeroSecondary ? (
-          <span className="hero-title__line hero-title__line--secondary">{portfolioHeroSecondary}</span>
+          <span className="hero-title__line hero-title__line--secondary" data-route-enter="identity" data-route-enter-order="2">{portfolioHeroSecondary}</span>
         ) : null}
       </h2>
     ),
     uiLayer: {
       chrome: (
         <header className="ui-top" data-portfolio-ui>
-          <div className="ui-top-main route-topbar portfolio-topbar">
-            <div className="route-topbar__left">
-              <a
-                href="index.html"
-                className="gate-back abs-icon-btn"
-                data-nav-transition
-                aria-label="Back to home"
-              >
-                <i className="ti ti-arrow-left" aria-hidden="true" />
-              </a>
-            </div>
+            <div className="ui-top-main route-topbar portfolio-topbar">
+            <div className="route-topbar__left" aria-hidden="true" />
             <div className="route-topbar__center" aria-hidden="true" />
             <div className="route-topbar__right ui-top-right">
-              <nav className="portfolio-topnav ui-main-nav" aria-label="Portfolio navigation">
-                <MainNavLink id={aboutLink.id} aria-haspopup="dialog">
-                  {aboutLink.text}
-                </MainNavLink>
-              </nav>
               <div id="sound-toggle-slot" className="portfolio-sound-slot" />
             </div>
           </div>

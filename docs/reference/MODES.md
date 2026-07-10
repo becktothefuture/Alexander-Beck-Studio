@@ -13,7 +13,7 @@ Source of truth for mode IDs and narrative order:
 - `24` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
 - The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `17` Daily simulations.
 - Daily Simulation selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
-- `flock-of-birds`, `wall-repel`, `mineral-growth`, `napoleon-point-cloud`, and `rift-rings` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
+- `flock-of-birds`, `repel-room`, `mineral-growth`, `napoleon-point-cloud`, and `rift-rings` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 - `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
 - `elastic-center` and `beach-ball-room` are collection entries with `includeInNarrative: false`; they are not in the Daily Simulation chooser or live narrative cycle.
 
@@ -48,7 +48,7 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Star Field | `starfield-3d` | Active |
 | Elastic Loom | `elastic-center` | Collection only |
 | Flock Drift | `flock-of-birds` | Route-backed daily/lab |
-| Repel Room | `wall-repel` | Route-backed daily/lab |
+| Repel Room | `repel-room` | Route-backed daily/lab (`wall-repel` remains a legacy URL/config alias) |
 | Aperture Bloom | `aperture-bloom` | Route-backed collection/lab |
 | Mineral Bloom | `mineral-growth` | Route-backed daily/lab |
 | Soft Blob | `flubber-blob` | Active |
@@ -69,7 +69,7 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 3. `flies` — LIGHT SWARM
 4. `3d-cube` — CUBE FRAME
 5. `water` — WATER FLOW
-6. `wall-repel` — REPEL ROOM
+6. `repel-room` — REPEL ROOM
 7. `3d-sphere` — SPHERE ORBIT
 8. `napoleon-point-cloud` — BUST CLOUD
 9. `flock-of-birds` — FLOCK DRIFT
@@ -133,7 +133,7 @@ Loop order is `Featured -> Extended -> Featured`.
 - `starfield-3d`: depth-projected starfield with recycle, pointer/touch camera pan, and shared distance fog.
 - `elastic-center`: Collection-only Elastic Loom; a palette-bead lattice with invisible spring links, single-pointer drag, release waves, subtle hover pressure, and normal wall containment.
 - `flock-of-birds`: route-backed distant flock with weighted center-biased motion, no wall collisions, mouse avoidance, and a safe sky band above the ground.
-- `wall-repel`: route-backed Repel Room with heavy palette balls launched through a bounded room, strong wall repulsion, mobile-bounded DPR/count, and mouse repulsion without visible cursor rings.
+- `repel-room`: route-backed Repel Room with heavy palette balls launched through a bounded room, strong room-edge repulsion, mobile-bounded DPR/count, and mouse repulsion without visible cursor rings. Legacy `wall-repel` links resolve to this canonical mode.
 - `aperture-bloom`: route-backed radial circle aperture with symmetric ring spacing, pointer-opened breathing gaps, normal round circles, and the central brand/link area reserved.
 - `mineral-growth`: route-backed terrarium thicket with edge-rooted pebble branches and leaflet clusters, deterministic seed support, no visible overlap, and mobile-collapsed controls.
 - `napoleon-point-cloud`: route-backed Bust Cloud surface-sampled classical bust-face point cloud with the title layered through the dot field, 5k point amount, 14% density, 23.4 dot size, 0.72x mouse rotation, and auto rotation on.

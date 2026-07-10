@@ -72,6 +72,7 @@
 }
 
 html.dark-mode,
+html[data-abs-theme='dark'],
 html.is-safari {
   --portfolio-drawer-ink: #f5f1ea;
   --portfolio-drawer-muted: rgba(245, 241, 234, 0.72);
@@ -224,7 +225,7 @@ body.portfolio-page .ui-center-spacer {
   top: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
   left: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
   right: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
-  bottom: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
+  bottom: calc(var(--frame-border-width) + var(--shell-bottom-band-height) + var(--abs-safe-bottom));
   margin: 0;
   padding: 0;
   box-sizing: border-box;

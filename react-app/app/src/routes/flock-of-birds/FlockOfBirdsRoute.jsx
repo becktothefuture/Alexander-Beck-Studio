@@ -11,8 +11,8 @@ export const FLOCK_OF_BIRDS_ROUTE_RUNTIME = {};
 export function getFlockOfBirdsRouteView() {
   return {
     bodyClass: 'body flock-of-birds-page',
-    wallClassName: 'w-embed flock-of-birds-wall',
-    wallContent: (
+    studioWindowClassName: 'w-embed flock-of-birds-wall',
+    studioWindowContent: (
       <Suspense fallback={null}>
         <FlockOfBirdsDemo />
       </Suspense>

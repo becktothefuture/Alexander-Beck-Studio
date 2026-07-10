@@ -86,17 +86,17 @@ function applyFrameColor(hex, isDark) {
 function normalizeHarmonyMode(value) {
   const mode = String(value || '').trim().toLowerCase();
   if (mode === 'browser') return 'browser';
-  if (mode === 'site' || mode === 'adaptive') return 'site';
-  if (mode === 'auto') return 'auto';
+  if (mode === 'site') return 'site';
+  if (mode === 'auto' || mode === 'adaptive') return 'auto';
   return '';
 }
 
 function resolveHarmonyMode(globals, shellConfig) {
   const runtimeMode = normalizeHarmonyMode(globals?.chromeHarmonyMode);
   const shellMode = normalizeHarmonyMode(shellConfig?.theme?.chromeHarmonyMode);
-  if (runtimeMode === 'browser' || runtimeMode === 'site') return runtimeMode;
-  if (shellMode === 'browser' || shellMode === 'site') return shellMode;
-  return 'site';
+  if (runtimeMode === 'browser' || runtimeMode === 'site' || runtimeMode === 'auto') return runtimeMode;
+  if (shellMode === 'browser' || shellMode === 'site' || shellMode === 'auto') return shellMode;
+  return 'auto';
 }
 
 function restoreSiteFrameColor(isDark) {

@@ -41,6 +41,7 @@ const MODE_NAMES = {
   'starfield-3d': 'Star Field',
   'elastic-center': 'Elastic Loom',
   'flock-of-birds': 'Flock Drift',
+  'repel-room': 'Repel Room',
   'wall-repel': 'Repel Room',
   'aperture-bloom': 'Aperture Bloom',
   'mineral-growth': 'Mineral Bloom',

@@ -1,0 +1,390 @@
+import { useEffect, useState } from 'react';
+import {
+  SOUND_STATE_EVENT,
+  getSoundState,
+  initSoundEngine,
+  playButtonPressSound,
+  playHoverSound,
+  playSoundEnabledMotif,
+  toggleSound,
+  unlockAudio,
+} from '../../legacy/modules/audio/sound-engine.js';
+import { setTheme } from '../../legacy/modules/visual/dark-mode-v2.js';
+import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
+import { isDarkThemeDocument } from '../../lib/theme-state.js';
+
+function readRenderedThemeIsDark() {
+  if (typeof document === 'undefined') return false;
+  return isDarkThemeDocument(document);
+}
+
+function readSoundButtonState() {
+  try {
+    const soundState = getSoundState();
+    return {
+      isUnlocked: Boolean(soundState?.isUnlocked),
+      isEnabled: Boolean(soundState?.isUnlocked && soundState?.isEnabled),
+    };
+  } catch {
+    return {
+      isUnlocked: false,
+      isEnabled: false,
+    };
+  }
+}
+
+function getNormalizedActiveRouteId(activeRouteId) {
+  return activeRouteId === 'cv' ? 'about' : activeRouteId;
+}
+
+function playButtonBarHoverSound() {
+  playHoverSound();
+}
+
+function playButtonBarPressSound() {
+  playButtonPressSound();
+}
+
+function isPrimaryPointerPress(event) {
+  return event.pointerType === 'touch' || event.pointerType === 'pen' || event.button === 0;
+}
+
+function beginCapturedPointerPress(event) {
+  if (!isPrimaryPointerPress(event)) return false;
+  event.currentTarget.dataset.buttonBarPointerPress = 'true';
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+  return true;
+}
+
+function completeCapturedPointerPress(event) {
+  if (!isPrimaryPointerPress(event)) return false;
+  const didBeginOnControl = event.currentTarget.dataset.buttonBarPointerPress === 'true';
+  delete event.currentTarget.dataset.buttonBarPointerPress;
+  event.currentTarget.releasePointerCapture?.(event.pointerId);
+  return didBeginOnControl;
+}
+
+function markPointerActivated(event) {
+  event.currentTarget.dataset.buttonBarPointerActivated = 'true';
+}
+
+function consumePointerActivated(event) {
+  if (event.currentTarget.dataset.buttonBarPointerActivated !== 'true') return false;
+  delete event.currentTarget.dataset.buttonBarPointerActivated;
+  return true;
+}
+
+function isKeyboardPress(event) {
+  return !event.repeat && (event.key === 'Enter' || event.key === ' ');
+}
+
+function getRouteButtonClassName(tab) {
+  return [
+    'button-bar__button',
+    'shell-tab',
+    tab.iconOnly ? 'button-bar__button--icon-only shell-tab--icon-only' : '',
+  ].filter(Boolean).join(' ');
+}
+
+function ButtonBarIcon({ tab, className = 'button-bar__icon shell-tab__icon' }) {
+  if (tab.routeId === 'home') {
+    return (
+      <svg
+        className={`${className} button-bar__icon--home-minimal`}
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M5.75 11.1 12 5.85l6.25 5.25" />
+        <path d="M7.9 10.45v7.45h8.2v-7.45" />
+      </svg>
+    );
+  }
+
+  return <i className={`ti ${tab.icon} ${className}`} aria-hidden="true" />;
+}
+
+function RouteButtonContent({ tab }) {
+  return (
+    <>
+      <ButtonBarIcon tab={tab} />
+      {tab.iconOnly ? (
+        <>
+          <span className="screen-reader">{tab.label}</span>
+          <span className="button-bar__label button-bar__label--mobile-only shell-tab__label" aria-hidden="true">{tab.label}</span>
+        </>
+      ) : (
+        <span className="button-bar__label shell-tab__label">{tab.label}</span>
+      )}
+    </>
+  );
+}
+
+function SunIcon() {
+  return (
+    <svg className="button-bar__secondary-svg" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2.2M12 19.8V22M4.93 4.93l1.56 1.56M17.51 17.51l1.56 1.56M2 12h2.2M19.8 12H22M4.93 19.07l1.56-1.56M17.51 6.49l1.56-1.56" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg className="button-bar__secondary-svg" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M20.35 14.64A8.7 8.7 0 0 1 9.36 3.65a8.7 8.7 0 1 0 10.99 10.99Z" />
+    </svg>
+  );
+}
+
+function BottomThemeToggle() {
+  const [isDark, setIsDark] = useState(readRenderedThemeIsDark);
+
+  useEffect(() => {
+    const syncTheme = (event) => {
+      setIsDark(Boolean(event?.detail?.isDark ?? readRenderedThemeIsDark()));
+    };
+
+    syncTheme();
+    window.addEventListener('abs:theme-changed', syncTheme);
+    return () => {
+      window.removeEventListener('abs:theme-changed', syncTheme);
+    };
+  }, []);
+
+  const nextTheme = isDark ? 'light' : 'dark';
+  const activateTheme = () => setTheme(nextTheme);
+
+  return (
+    <button
+      type="button"
+      className="button-bar__secondary-button button-bar__theme-toggle shell-tab shell-tab--icon-only"
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-pressed={isDark ? 'true' : 'false'}
+      data-state={isDark ? 'dark' : 'light'}
+      onPointerEnter={playButtonBarHoverSound}
+      onPointerDown={(event) => {
+        if (beginCapturedPointerPress(event)) playButtonBarPressSound();
+      }}
+      onPointerUp={(event) => {
+        if (!completeCapturedPointerPress(event)) return;
+        markPointerActivated(event);
+        activateTheme();
+      }}
+      onKeyDown={(event) => {
+        if (isKeyboardPress(event)) playButtonBarPressSound();
+      }}
+      onClick={(event) => {
+        if (consumePointerActivated(event)) return;
+        activateTheme();
+      }}
+    >
+      <span className="button-bar__theme-thumb" aria-hidden="true">
+        {isDark ? <MoonIcon /> : <SunIcon />}
+      </span>
+      <span className="screen-reader">{isDark ? 'Switch to light mode' : 'Switch to dark mode'}</span>
+    </button>
+  );
+}
+
+function BottomSoundToggle() {
+  const [soundState, setSoundState] = useState(readSoundButtonState);
+  const isEnabled = soundState.isUnlocked && soundState.isEnabled;
+
+  useEffect(() => {
+    initSoundEngine();
+
+    const syncSoundState = (event) => {
+      if (event?.detail) {
+        setSoundState({
+          isUnlocked: Boolean(event.detail.isUnlocked),
+          isEnabled: Boolean(event.detail.isUnlocked && event.detail.isEnabled),
+        });
+        return;
+      }
+
+      setSoundState(readSoundButtonState());
+    };
+
+    syncSoundState();
+    window.addEventListener(SOUND_STATE_EVENT, syncSoundState);
+    return () => {
+      window.removeEventListener(SOUND_STATE_EVENT, syncSoundState);
+    };
+  }, []);
+
+  const handleClick = async () => {
+    const currentState = readSoundButtonState();
+
+    if (!currentState.isUnlocked) {
+      const didUnlock = await unlockAudio();
+      setSoundState(readSoundButtonState());
+      if (didUnlock && readSoundButtonState().isEnabled) {
+        playSoundEnabledMotif();
+      }
+      return;
+    }
+
+    const isNowEnabled = toggleSound();
+    setSoundState(readSoundButtonState());
+    if (isNowEnabled) {
+      playSoundEnabledMotif();
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      className="button-bar__secondary-button button-bar__sound-toggle shell-tab shell-tab--icon-only"
+      aria-label={isEnabled ? 'Sound on' : 'Sound off'}
+      aria-pressed={isEnabled ? 'true' : 'false'}
+      data-enabled={isEnabled ? 'true' : 'false'}
+      onPointerEnter={playButtonBarHoverSound}
+      onPointerDown={(event) => {
+        if (beginCapturedPointerPress(event)) playButtonBarPressSound();
+      }}
+      onPointerUp={(event) => {
+        if (!completeCapturedPointerPress(event)) return;
+        markPointerActivated(event);
+        handleClick();
+      }}
+      onKeyDown={(event) => {
+        if (isKeyboardPress(event)) playButtonBarPressSound();
+      }}
+      onClick={(event) => {
+        if (consumePointerActivated(event)) return;
+        handleClick();
+      }}
+    >
+      <i className={`ti ${isEnabled ? 'ti-volume-2' : 'ti-volume-off'} button-bar__secondary-icon shell-tab__icon`} aria-hidden="true" />
+      <span className="screen-reader">{isEnabled ? 'Sound on' : 'Sound off'}</span>
+    </button>
+  );
+}
+
+function SecondaryButtons() {
+  return (
+    <div className="button-bar__secondary-buttons" role="group" aria-label="Secondary buttons" data-button-group="secondary-buttons">
+      <BottomSoundToggle />
+      <BottomThemeToggle />
+    </div>
+  );
+}
+
+function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect }) {
+  const commonProps = {
+    className: getRouteButtonClassName(tab),
+    'data-button-bar-item': tab.routeId,
+    'data-route-tab': tab.routeId,
+    'data-state': isActive ? 'active' : 'idle',
+    'aria-label': tab.ariaLabel,
+    'aria-current': isActive ? 'page' : undefined,
+    onPointerEnter: () => {
+      if (!isActive) playButtonBarHoverSound();
+    },
+    onPointerDown: (event) => {
+      if (!isActive && beginCapturedPointerPress(event)) {
+        playButtonBarPressSound();
+      }
+    },
+    onPointerUp: (event) => {
+      completeCapturedPointerPress(event);
+    },
+    onKeyDown: (event) => {
+      if (!isActive && isKeyboardPress(event)) playButtonBarPressSound();
+    },
+  };
+
+  if (onRouteSelect) {
+    return (
+      <button
+        key={tab.routeId}
+        type="button"
+        {...commonProps}
+        onClick={() => {
+          if (!isActive) onRouteSelect(tab.routeId, tab);
+        }}
+      >
+        <RouteButtonContent tab={tab} />
+      </button>
+    );
+  }
+
+  const handleClick = (event) => {
+    if (
+      event.defaultPrevented
+      || event.button !== 0
+      || event.metaKey
+      || event.altKey
+      || event.ctrlKey
+      || event.shiftKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    if (isActive) return;
+
+    if (!onRouteNavigate?.(tab.href, tab)) {
+      window.location.assign(tab.href);
+    }
+  };
+
+  return (
+    <a
+      key={tab.routeId}
+      href={tab.href}
+      {...commonProps}
+      onClick={handleClick}
+    >
+      <RouteButtonContent tab={tab} />
+    </a>
+  );
+}
+
+export function ShellButtonBar({
+  activeRouteId,
+  className = 'shell-bottom-band',
+  navClassName = '',
+  onRouteNavigate,
+  onRouteSelect,
+  preview = false,
+}) {
+  const normalizedActiveRouteId = getNormalizedActiveRouteId(activeRouteId);
+  const barClassName = ['button-bar', className].filter(Boolean).join(' ');
+  const primaryNavClassName = [
+    'button-bar__primary-buttons',
+    'button-bar__nav',
+    'shell-tab-nav',
+    navClassName,
+  ].filter(Boolean).join(' ');
+
+  return (
+    <div
+      className={barClassName}
+      data-button-bar
+      data-shell-bottom-band={!preview ? '' : undefined}
+      data-button-bar-preview={preview ? '' : undefined}
+    >
+      <nav
+        className={primaryNavClassName}
+        aria-label={preview ? 'Playground route buttons' : 'Primary buttons'}
+        data-button-group="primary-buttons"
+        data-button-bar-nav
+        data-route-tabs
+      >
+        {SHELL_ROUTE_TABS.map((tab) => (
+          <RouteButton
+            key={tab.routeId}
+            tab={tab}
+            isActive={tab.routeId === normalizedActiveRouteId}
+            onRouteNavigate={onRouteNavigate}
+            onRouteSelect={onRouteSelect}
+          />
+        ))}
+      </nav>
+      <div className="button-bar__divider" aria-hidden="true" />
+      <SecondaryButtons />
+    </div>
+  );
+}

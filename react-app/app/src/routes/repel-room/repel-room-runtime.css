@@ -1,4 +1,4 @@
-.wall-repel-demo {
+.repel-room-demo {
   position: relative;
   width: 100%;
   height: 100%;
@@ -6,14 +6,14 @@
   overflow: hidden;
   isolation: isolate;
   pointer-events: auto;
-  background: var(--wall-repel-surface, var(--abs-wall-base, #202020));
+  background: var(--repel-room-surface, var(--abs-wall-base, #202020));
 }
 
-.wall-repel-demo--daily-focus {
+.repel-room-demo--daily-focus {
   background: transparent;
 }
 
-.wall-repel-canvas {
+.repel-room-canvas {
   position: absolute;
   inset: 0;
   z-index: 1;

@@ -70,6 +70,7 @@ function runRepoCommand(command, args, { timeoutMs = 120000 } = {}) {
 
 export function createDevAdminPlugin({ publicConfigDir }) {
   const flockOfBirdsConfigPath = resolve(publicConfigDir, 'flock-of-birds-demo.json');
+  const repelRoomConfigPath = resolve(publicConfigDir, 'repel-room-demo.json');
   const wallRepelConfigPath = resolve(publicConfigDir, 'wall-repel-demo.json');
   const mineralGrowthConfigPath = resolve(publicConfigDir, 'mineral-growth-demo.json');
   const loaderPlaygroundConfigPath = resolve(publicConfigDir, 'loader-playground-demo.json');
@@ -131,7 +132,7 @@ export function createDevAdminPlugin({ publicConfigDir }) {
         }
       });
 
-      server.middlewares.use('/api/wall-repel/config', async (req, res) => {
+      const handleRepelRoomConfigSave = async (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405;
           res.end('Method Not Allowed');
@@ -142,21 +143,28 @@ export function createDevAdminPlugin({ publicConfigDir }) {
           const payload = await readRequestJson(req);
           const nextConfig = payload?.config;
           if (!nextConfig || typeof nextConfig !== 'object' || Array.isArray(nextConfig)) {
-            sendJson(res, 400, { ok: false, error: 'Missing wall repel config payload' });
+            sendJson(res, 400, { ok: false, error: 'Missing repel room config payload' });
             return;
           }
 
-          await writeFile(wallRepelConfigPath, `${JSON.stringify(nextConfig, null, 2)}\n`, 'utf8');
+          const serializedConfig = `${JSON.stringify(nextConfig, null, 2)}\n`;
+          await Promise.all([
+            writeFile(repelRoomConfigPath, serializedConfig, 'utf8'),
+            writeFile(wallRepelConfigPath, serializedConfig, 'utf8'),
+          ]);
           server.ws.send({
             type: 'full-reload',
-            path: '/config/wall-repel-demo.json',
+            path: '/config/repel-room-demo.json',
           });
 
           sendJson(res, 200, { ok: true });
         } catch (error) {
-          sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save wall repel config' });
+          sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save repel room config' });
         }
-      });
+      };
+
+      server.middlewares.use('/api/repel-room/config', handleRepelRoomConfigSave);
+      server.middlewares.use('/api/wall-repel/config', handleRepelRoomConfigSave);
 
       server.middlewares.use('/api/mineral-growth/config', async (req, res) => {
         if (req.method !== 'POST') {

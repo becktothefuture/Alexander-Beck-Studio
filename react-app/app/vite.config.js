@@ -64,6 +64,8 @@ export default defineConfig(({ mode }) => ({
       input: {
         index: resolve(__dirname, 'index.html'),
         'explain-it-like-im': resolve(__dirname, 'explain-it-like-im.html'),
+        contact: resolve(__dirname, 'contact.html'),
+        about: resolve(__dirname, 'about.html'),
         portfolio: resolve(__dirname, 'portfolio.html'),
         cv: resolve(__dirname, 'cv.html'),
         styleguide: resolve(__dirname, 'styleguide.html'),
@@ -71,6 +73,8 @@ export default defineConfig(({ mode }) => ({
         'palette-lab': resolve(__dirname, 'palette-lab.html'),
         'lab/beach-ball-room': resolve(__dirname, 'lab/beach-ball-room.html'),
         'lab/flock-of-birds': resolve(__dirname, 'lab/flock-of-birds.html'),
+        'lab/button-bar-playground': resolve(__dirname, 'lab/button-bar-playground.html'),
+        'lab/repel-room': resolve(__dirname, 'lab/repel-room.html'),
         'lab/wall-repel': resolve(__dirname, 'lab/wall-repel.html'),
         'lab/mineral-growth': resolve(__dirname, 'lab/mineral-growth.html'),
         'lab/aperture-bloom': resolve(__dirname, 'lab/aperture-bloom.html'),

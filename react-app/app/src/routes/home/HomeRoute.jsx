@@ -1,5 +1,5 @@
 import homeContent from 'virtual:abs-content/home';
-import { MainNavLink } from '../../components/MainNavLink.jsx';
+import { trySpaNavigate } from '../../lib/spa-navigation.js';
 
 export const HOME_ROUTE_RUNTIME = {
   exportName: 'bootstrapHomePage',
@@ -8,7 +8,7 @@ export const HOME_ROUTE_RUNTIME = {
 
 function renderLegendItem(item) {
   return (
-    <div key={item.label} className="w-layout-hflex legend__item" data-tooltip={item.tooltip}>
+    <div key={item.label} className="w-layout-hflex legend__item" data-tooltip={item.tooltip} data-route-enter="legend">
       <div className={`circle ${item.colorClass}`} aria-hidden="true" />
       <span>{item.label}</span>
     </div>
@@ -16,13 +16,28 @@ function renderLegendItem(item) {
 }
 
 export function getHomeRouteView() {
-  const footerLinks = homeContent.footer.links;
   const philosophyLink = homeContent.philosophy.link;
+  const handleContactClick = (event) => {
+    if (
+      event.defaultPrevented
+      || event.button !== 0
+      || event.metaKey
+      || event.altKey
+      || event.ctrlKey
+      || event.shiftKey
+    ) {
+      return;
+    }
+    event.preventDefault();
+    if (!trySpaNavigate('/contact.html')) {
+      window.location.assign('/contact.html');
+    }
+  };
 
   return {
     bodyClass: 'body',
     contentRenderKey: 'home-shell',
-    wallClassName: 'ball-simulation w-embed',
+    studioWindowClassName: 'ball-simulation w-embed',
     simulationLayer: (
       <canvas id="c" className="ball-canvas-layer" aria-label="Bouncy balls" role="img" draggable="false" />
     ),
@@ -33,8 +48,8 @@ export function getHomeRouteView() {
         data-canvas-title-source="home"
         aria-label="Alexander Beck. Creative. Technologist."
       >
-        <span className="hero-title__name">Alexander Beck.</span>
-        <span className="hero-title__role">Creative. Technologist.</span>
+        <span className="hero-title__name" data-route-enter="identity" data-route-enter-order="0">Alexander Beck.</span>
+        <span className="hero-title__role" data-route-enter="identity" data-route-enter-order="1">Creative. Technologist.</span>
       </h1>
     ),
     uiLayer: {
@@ -49,11 +64,15 @@ export function getHomeRouteView() {
             </div>
 
             <div className="ui-top-right">
-              <blockquote className="decorative-script">
+              <blockquote className="decorative-script" data-route-enter="context">
                 <p>
                   {homeContent.philosophy.textBeforeLink}
                   {' '}
-                  <a id={philosophyLink.id} href={philosophyLink.href}>
+                  <a
+                    id="contact-route-inline"
+                    href="/contact.html"
+                    onClick={handleContactClick}
+                  >
                     {philosophyLink.text}
                   </a>
                 </p>
@@ -69,12 +88,6 @@ export function getHomeRouteView() {
         <>
           <main className="ui-center">
           </main>
-
-          <nav id="main-links" className="ui-nav-row ui-main-nav" aria-label={homeContent.footer.navAriaLabel}>
-            <MainNavLink id={footerLinks.contact.id}>{footerLinks.contact.text}</MainNavLink>
-            <MainNavLink id={footerLinks.portfolio.id}>{footerLinks.portfolio.text}</MainNavLink>
-            <MainNavLink id={footerLinks.cv.id}>{footerLinks.cv.text}</MainNavLink>
-          </nav>
         </>
       )
     }

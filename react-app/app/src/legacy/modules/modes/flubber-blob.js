@@ -8,6 +8,7 @@ import { MODES } from '../core/constants.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { subscribeScenePointer } from '../input/pointer.js';
+import { triggerPressure } from '../audio/simulation-audio-adapter.js';
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const TWO_PI = Math.PI * 2;
@@ -16,6 +17,7 @@ const MAX_DT = 1 / 30;
 const OVERLAP_EPS = 1e-6;
 const GEL_TARGET_NEIGHBORS = 7;
 const GEL_MAX_NEIGHBORS = 10;
+const WALL_SOUND_MIN_INTERVAL_MS = 58;
 
 let spawnX = new Float32Array(0);
 let spawnY = new Float32Array(0);
@@ -84,7 +86,8 @@ const blob = {
   pointerActive: false,
   isDragging: false,
   dragPointerId: null,
-  dragWeightTotal: 0
+  dragWeightTotal: 0,
+  lastWallSoundFrame: -1
 };
 
 let unsubscribePointer = null;
@@ -900,6 +903,8 @@ function resolveWalls(dt, wallBounce, wallFriction, wallLocality, wallSquish, im
   const impulseScale = (0.025 + wallSquish * 0.035) * (1 - wallLocality * 0.48);
   const contactBand = blob.ballRadius * (0.9 + wallSquish * 0.14);
   const maxWallImpulse = blob.ballRadius * (2.8 + wallBounce * 4.6);
+  let strongestSoundIntensity = 0;
+  let strongestSoundX = 0.5;
 
   for (let iter = 0; iter < 2; iter++) {
     let anyContact = false;
@@ -940,6 +945,12 @@ function resolveWalls(dt, wallBounce, wallFriction, wallLocality, wallSquish, im
         ball.vy -= ty * vt * wallFriction * (0.62 + contactWeight * 0.38);
 
         const impact = clamp(inwardSpeed / Math.max(180, blob.spawnRadius * 1.2), 0, 1.2);
+        const soundIntensity = clamp(0.68 + impact * 0.38 + contactWeight * 0.12, 0, 1);
+        if (soundIntensity > strongestSoundIntensity) {
+          strongestSoundIntensity = soundIntensity;
+          strongestSoundX = clamp(ball.x / Math.max(1, w), 0, 1);
+        }
+
         const ripple = impact * impactRipple * blob.ballRadius * 3.2 * (0.35 + contactWeight * 0.65);
         if (ripple > 0) {
           ball.vx += tx * Math.sin(blob.time * 7 + phase[i]) * ripple * (0.35 + shear * 0.35) * dt;
@@ -961,6 +972,17 @@ function resolveWalls(dt, wallBounce, wallFriction, wallLocality, wallSquish, im
       }
     }
     if (!anyContact) break;
+  }
+
+  if (strongestSoundIntensity > 0 && blob.lastWallSoundFrame !== blob.frame) {
+    blob.lastWallSoundFrame = blob.frame;
+    triggerPressure({
+      id: 'flubber-blob-wall',
+      radius: blob.ballRadius * 1.45,
+      intensity: strongestSoundIntensity,
+      x: strongestSoundX,
+      minIntervalMs: WALL_SOUND_MIN_INTERVAL_MS
+    });
   }
 }
 
@@ -1210,6 +1232,7 @@ export function initializeFlubberBlob() {
   blob.isDragging = false;
   blob.dragPointerId = null;
   blob.dragWeightTotal = 0;
+  blob.lastWallSoundFrame = -1;
 
   const start = getInitialCenter(w, h, blob.spawnRadius + blob.ballRadius);
   const speed = Math.max(0, Number(g.flubberBlobInitialSpeed ?? 520)) * (g.DPR || 1);

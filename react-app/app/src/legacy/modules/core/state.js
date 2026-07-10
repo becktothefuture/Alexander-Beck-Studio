@@ -7,6 +7,11 @@ import { CONSTANTS, MODES } from './constants.js';
 import { readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
 import { getLondonWeatherPaletteFromAssessment } from '../../../weather/londonWeatherAssessment.js';
 import { getLondonWeatherPaletteAccents } from '../../../palette/londonPalettes.js';
+import {
+  BUTTON_BAR_DEFAULTS,
+  applyButtonBarCssVars,
+  normalizeButtonBarConfig,
+} from '../../../lib/buttonBarControls.js';
 
 const assessedPalette = getLondonWeatherPaletteFromAssessment();
 const assessedAccents = getLondonWeatherPaletteAccents(assessedPalette?.id) || {};
@@ -781,6 +786,7 @@ const state = {
   homeMainLinksBelowLogoPx: 96,      // Sets `--home-main-links-below-logo-px` (index only)
   footerNavBarTopVh: 50,              // Sets `--footer-nav-bar-top-*` (viewport units)
   footerNavBarGapVw: 2.5,             // Sets `--footer-nav-bar-gap` (viewport units)
+  ...BUTTON_BAR_DEFAULTS,
   wallThickness: 12,        // Unified: wall tubes + body border (px)
   wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
 
@@ -1310,6 +1316,7 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--top-logo-width-vw', String(state.topLogoWidthVw ?? 35));
       root.style.setProperty('--brand-logo-secondary-opacity', String(clampNumber(state.brandLogoSecondaryOpacity, 0, 1, 1)));
   root.style.setProperty('--home-main-links-below-logo-px', `${Math.round(state.homeMainLinksBelowLogoPx ?? 40)}px`);
+  applyButtonBarCssVars(state, root);
   
   // Edge label inset: CSS handles calculation via --wall-thickness + --edge-label-inset-gap + --edge-label-inset-adjust
   // Just set the adjust variable if needed (CSS will calculate the rest)
@@ -2263,6 +2270,11 @@ export function initState(config) {
   if (config.footerNavBarGapVw !== undefined) {
     state.footerNavBarGapVw = clampNumber(config.footerNavBarGapVw, 0, 30, state.footerNavBarGapVw);
   }
+  Object.assign(state, normalizeButtonBarConfig({
+    ...BUTTON_BAR_DEFAULTS,
+    ...state,
+    ...config,
+  }));
 
   // Link colors
   if (config.linkHoverColor !== undefined) state.linkHoverColor = config.linkHoverColor;

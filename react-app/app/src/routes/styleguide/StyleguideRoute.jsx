@@ -22,8 +22,8 @@ function renderSoundOnIcon() {
 export function getStyleguideRouteView() {
   return {
     bodyClass: 'body styleguide-page',
-    wallClassName: 'styleguide-wall w-embed',
-    wallContent: <div className="styleguide-backdrop" aria-hidden="true" />,
+    studioWindowClassName: 'styleguide-wall w-embed',
+    studioWindowContent: <div className="styleguide-backdrop" aria-hidden="true" />,
     headerContent: (
       <header className="ui-top">
         <div className="ui-top-main route-topbar">

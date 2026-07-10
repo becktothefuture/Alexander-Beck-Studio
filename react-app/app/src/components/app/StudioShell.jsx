@@ -1,12 +1,15 @@
 import { SiteFooter } from '../SiteFooter.jsx';
-import { getGateCodeLength } from '../../lib/access-gates.js';
+import { ShellButtonBar } from './ShellButtonBar.jsx';
+import { trySpaNavigate } from '../../lib/spa-navigation.js';
 
 function RouteSceneMount({ routeRenderKey, children }) {
   switch (routeRenderKey) {
     case 'portfolio':
       return <div data-sfid="sfid:shell/portfolio">{children}</div>;
-    case 'cv':
-      return <div data-sfid="sfid:shell/cv">{children}</div>;
+    case 'contact':
+      return <div data-sfid="sfid:shell/contact">{children}</div>;
+    case 'about':
+      return <div data-sfid="sfid:shell/about">{children}</div>;
     case 'styleguide':
       return <div data-sfid="sfid:shell/styleguide">{children}</div>;
     case 'simulations':
@@ -17,8 +20,8 @@ function RouteSceneMount({ routeRenderKey, children }) {
       return <div data-sfid="sfid:shell/beach-ball-room">{children}</div>;
     case 'flock-of-birds':
       return <div data-sfid="sfid:shell/flock-of-birds">{children}</div>;
-    case 'wall-repel':
-      return <div data-sfid="sfid:shell/wall-repel">{children}</div>;
+    case 'repel-room':
+      return <div data-sfid="sfid:shell/repel-room">{children}</div>;
     case 'mineral-growth':
       return <div data-sfid="sfid:shell/mineral-growth">{children}</div>;
     case 'aperture-bloom':
@@ -33,22 +36,6 @@ function RouteSceneMount({ routeRenderKey, children }) {
     default:
       return <div data-sfid="sfid:shell/home">{children}</div>;
   }
-}
-
-function renderDigitInputs(prefix, className, ariaPrefix, length) {
-  return Array.from({ length }, (_, index) => (
-    <input
-      key={`${prefix}-${index}`}
-      type="text"
-      maxLength="1"
-      className={className}
-      inputMode="numeric"
-      pattern="[0-9]"
-      data-index={index}
-      aria-label={`${ariaPrefix} digit ${index + 1} of ${length}`}
-      autoComplete="off"
-    />
-  ));
 }
 
 function normalizeRouteUiLayer(uiLayer, headerContent, mainContent) {
@@ -81,10 +68,13 @@ function normalizeRouteUiLayer(uiLayer, headerContent, mainContent) {
 }
 
 export function StudioShell({
+  activeRouteId,
   routeRenderKey,
   contentRenderKey = routeRenderKey,
+  studioWindowClassName,
   wallClassName,
   simulationLayer,
+  studioWindowContent,
   wallContent,
   heroLayer,
   uiLayer,
@@ -95,8 +85,9 @@ export function StudioShell({
   simulationFocusModal,
   surfaceRefs,
 }) {
-  const wallLayerClassName = ['simulation-wall-layer', wallClassName].filter(Boolean).join(' ');
-  const routeSimulationLayer = simulationLayer ?? wallContent;
+  const routeWindowClassName = studioWindowClassName ?? wallClassName;
+  const windowLayerClassName = ['studio-window-layer', 'simulation-wall-layer', routeWindowClassName].filter(Boolean).join(' ');
+  const routeSimulationLayer = simulationLayer ?? studioWindowContent ?? wallContent;
   const routeHeroLayer = heroLayer ?? heroTitle;
   const routeUiLayer = normalizeRouteUiLayer(uiLayer, headerContent, mainContent);
 
@@ -104,7 +95,7 @@ export function StudioShell({
     <>
       <RouteSceneMount routeRenderKey={routeRenderKey}>
         <div id="abs-scene" className="app-scene abs-scene">
-          <div id="simulations" className={wallLayerClassName}>
+          <div id="simulations" className={windowLayerClassName}>
             <div id="scene-effects" className="scene-effects" aria-hidden="true">
               <div className="noise" />
             </div>
@@ -112,9 +103,9 @@ export function StudioShell({
             <div
               id="shell-wall-slot"
               ref={surfaceRefs?.wall}
-              className="shell-wall-slot shell-transition-surface shell-transition-surface--wall"
+              className="studio-window-slot shell-wall-slot shell-transition-surface shell-transition-surface--wall"
             >
-              <div key={`wall-${routeRenderKey}`} className="shell-wall-route-root route-simulation-layer">
+              <div key={`window-${routeRenderKey}`} className="studio-window-route-root shell-wall-route-root route-simulation-layer">
                 {routeSimulationLayer}
               </div>
             </div>
@@ -164,6 +155,10 @@ export function StudioShell({
                 </div>
               </div>
             </div>
+          <ShellButtonBar
+            activeRouteId={activeRouteId || routeRenderKey}
+            onRouteNavigate={(href) => trySpaNavigate(href)}
+          />
           {/* Portfolio drawer: MUST stack above header/footer — see docs/reference/LAYER-STACKING.md (never mount only inside #simulations). */}
           <div
             id="portfolio-sheet-host"
@@ -183,61 +178,6 @@ export function StudioShell({
 
       <div id="modal-content-layer" className="modal-layer modal-content-layer" aria-hidden="true">
         <div id="modal-modal-host" className="modal-modal-host">
-          <div
-            id="contact-modal"
-            className="contact-modal hidden"
-            aria-hidden="true"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="contact-modal-title"
-            aria-describedby="contact-modal-description"
-          >
-            <div id="contact-modal-label" className="modal-label" />
-            <div id="contact-modal-inputs" className="contact-modal-inputs" />
-          </div>
-
-          <div
-            id="cv-modal"
-            className="cv-modal hidden"
-            aria-hidden="true"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="cv-modal-title"
-            aria-describedby="cv-modal-description"
-          >
-            <div id="cv-modal-label" className="modal-label" />
-            <div
-              id="cv-modal-inputs"
-              className="cv-modal-inputs"
-              role="group"
-              aria-labelledby="cv-modal-title"
-              aria-describedby="cv-modal-description"
-            >
-              {renderDigitInputs('cv', 'cv-digit', 'CV invite code', getGateCodeLength('cv'))}
-            </div>
-          </div>
-
-          <div
-            id="portfolio-modal"
-            className="portfolio-modal hidden"
-            aria-hidden="true"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="portfolio-modal-title"
-            aria-describedby="portfolio-modal-description"
-          >
-            <div id="portfolio-modal-label" className="modal-label" />
-            <div
-              id="portfolio-modal-inputs"
-              className="portfolio-modal-inputs"
-              role="group"
-              aria-labelledby="portfolio-modal-title"
-              aria-describedby="portfolio-modal-description"
-            >
-              {renderDigitInputs('portfolio', 'portfolio-digit', 'Portfolio invite code', getGateCodeLength('portfolio'))}
-            </div>
-          </div>
-
           {simulationFocusModal}
         </div>
       </div>

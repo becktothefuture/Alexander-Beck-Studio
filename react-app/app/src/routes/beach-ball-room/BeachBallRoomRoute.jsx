@@ -11,8 +11,8 @@ export const BEACH_BALL_ROOM_ROUTE_RUNTIME = {};
 export function getBeachBallRoomRouteView() {
   return {
     bodyClass: 'body beach-ball-room-page',
-    wallClassName: 'w-embed beach-ball-room-wall',
-    wallContent: (
+    studioWindowClassName: 'w-embed beach-ball-room-wall',
+    studioWindowContent: (
       <Suspense fallback={null}>
         <BeachBallRoomSimulation />
       </Suspense>

@@ -25,9 +25,9 @@ export function isDailyFocusRouteRequest(routeId, search = getCurrentSearch()) {
 
 export function getDailyFocusRouteView(routeId) {
   const homeView = getHomeRouteView();
-  const wallContent = getDailyFocusPureRuntime(routeId);
+  const studioWindowContent = getDailyFocusPureRuntime(routeId);
 
-  if (!wallContent) return homeView;
+  if (!studioWindowContent) return homeView;
 
   return {
     ...homeView,
@@ -37,10 +37,10 @@ export function getDailyFocusRouteView(routeId) {
     routeRenderKey: routeId,
     runtimeRouteId: routeId,
     surfaceRouteId: routeId,
-    wallClassName: 'ball-simulation w-embed daily-focus-wall',
+    studioWindowClassName: 'ball-simulation w-embed daily-focus-wall',
     simulationLayer: (
       <SimulationStage simulationId={routeId}>
-        {wallContent}
+        {studioWindowContent}
       </SimulationStage>
     ),
   };

@@ -21,8 +21,8 @@ function getConceptSimulationRouteView(simulationId) {
 
   return {
     bodyClass: `body concept-simulation-page ${simulationId}-page`,
-    wallClassName: `w-embed concept-simulation-wall ${simulationId}-wall`,
-    wallContent: (
+    studioWindowClassName: `w-embed concept-simulation-wall ${simulationId}-wall`,
+    studioWindowContent: (
       <Suspense fallback={null}>
         <ConceptSimulationDemo simulationId={simulationId} />
       </Suspense>

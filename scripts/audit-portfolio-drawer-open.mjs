@@ -1,5 +1,5 @@
 /**
- * End-to-end check: home → portfolio invite modal → portfolio pit → open and close every project drawer.
+ * End-to-end check: unlocked portfolio route → portfolio pit → open and close every project drawer.
  * Asserts each drawer becomes visible/open, has non-empty title text, and closes cleanly.
  *
  * Run: npm run audit:portfolio-drawer
@@ -16,6 +16,10 @@ function resolveHomeEntryUrl() {
     raw = `${raw}/index.html`;
   }
   return raw;
+}
+
+function resolvePortfolioUrl() {
+  return new URL('portfolio.html', resolveHomeEntryUrl()).toString();
 }
 
 async function waitForSimulationCanvasBuffer(page) {
@@ -50,25 +54,11 @@ async function main() {
     }
   });
 
-  await page.goto(resolveHomeEntryUrl(), { waitUntil: 'networkidle', timeout: 60000 });
-  await page.waitForSelector('#c', { timeout: WAIT_MS });
-  await waitForSimulationCanvasBuffer(page);
-
-  await page.click('#portfolio-modal-trigger', { timeout: 10000 });
-  await page.waitForSelector('#portfolio-modal.active', { timeout: 10000 });
-
-  await page.evaluate(() => {
-    const inputs = Array.from(document.querySelectorAll('.portfolio-digit'));
-    const code = '739284';
-    for (let index = 0; index < Math.min(code.length, inputs.length); index += 1) {
-      const element = inputs[index];
-      element.focus();
-      element.value = code[index];
-      element.dispatchEvent(new InputEvent('input', { bubbles: true, data: code[index], inputType: 'insertText' }));
-    }
+  await page.addInitScript(() => {
+    document.cookie = 'abs_portfolio_ok=1; Path=/; SameSite=Lax; Max-Age=31536000';
+    window.sessionStorage.setItem('abs_portfolio_ok', String(Date.now()));
   });
-
-  await page.waitForURL(/portfolio/i, { timeout: WAIT_MS });
+  await page.goto(resolvePortfolioUrl(), { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForSelector('.portfolio-project-label', { timeout: WAIT_MS, state: 'attached' });
   await waitForSimulationCanvasBuffer(page);
 

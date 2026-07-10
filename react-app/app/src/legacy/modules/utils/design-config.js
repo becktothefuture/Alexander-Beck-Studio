@@ -223,6 +223,27 @@ const RETIRED_RUNTIME_KEYS = new Set([
   'simulationCanvasShadowOffsetYPx',
 ]);
 
+const BUTTON_BAR_RUNTIME_KEY_ALIASES = Object.freeze({
+  shellBottomBandHeightPx: 'buttonBarHeightPx',
+  shellBottomTabsGapPx: 'buttonBarInsetPx',
+  shellTabNavWidthPx: 'buttonBarWidthPx',
+  shellTabGapPx: 'buttonBarGapPx',
+  shellTabHeightPx: 'buttonBarButtonHeightPx',
+  shellTabPaddingXPx: 'buttonBarButtonPaddingXPx',
+  shellTabRadiusPx: 'buttonBarButtonRadiusPx',
+  shellTabFontSizeRem: 'buttonBarFontSizeRem',
+  shellTabBgWallMixPct: 'buttonBarButtonBgWindowMixPct',
+  shellTabBgWhiteMixPct: 'buttonBarButtonBgWhiteMixPct',
+  shellTabHoverWhiteMixPct: 'buttonBarButtonHoverWhiteMixPct',
+  shellTabActiveWallMixPct: 'buttonBarButtonActiveWindowMixPct',
+  shellTabActiveWhiteMixPct: 'buttonBarButtonActiveWhiteMixPct',
+  shellTabIndicatorOpacity: 'buttonBarIndicatorOpacity',
+  shellTabShadowOpacity: 'buttonBarShadowOpacity',
+  shellTabActiveGlowPx: 'buttonBarActiveGlowPx',
+  shellTabActiveDropPx: 'buttonBarActiveDropPx',
+  shellTabTransitionMs: 'buttonBarTransitionMs',
+});
+
 const RETIRED_SHELL_THEME_KEYS = new Set([
   'lockedHeaderLight',
   'lockedHeaderDark',
@@ -262,6 +283,15 @@ function clone(value) {
 
 function pruneRuntimeConfig(runtime = {}) {
   const nextRuntime = clone(runtime);
+  Object.entries(BUTTON_BAR_RUNTIME_KEY_ALIASES).forEach(([legacyKey, canonicalKey]) => {
+    if (
+      Object.prototype.hasOwnProperty.call(nextRuntime, legacyKey)
+      && !Object.prototype.hasOwnProperty.call(nextRuntime, canonicalKey)
+    ) {
+      nextRuntime[canonicalKey] = nextRuntime[legacyKey];
+    }
+    delete nextRuntime[legacyKey];
+  });
   for (const key of RETIRED_RUNTIME_KEYS) {
     delete nextRuntime[key];
   }

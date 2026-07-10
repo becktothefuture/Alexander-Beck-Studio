@@ -358,8 +358,10 @@
           }
           var activeInner = isDark ? innerDark : innerLight;
           var activeFrame = isDark ? frameDark : frameLight;
+          var activeTheme = isDark ? 'dark' : 'light';
 
-          root.style.colorScheme = isDark ? 'dark' : 'light';
+          root.style.colorScheme = activeTheme;
+          root.setAttribute('data-abs-theme', activeTheme);
           root.style.setProperty('--color-bg-light', DEFAULTS.bgLight);
           root.style.setProperty('--color-bg-dark', DEFAULTS.bgDark);
           root.style.setProperty('--bg-light', DEFAULTS.bgLight);
@@ -413,7 +415,9 @@
         applyPalette(isDark);
 
         document.addEventListener('DOMContentLoaded', function() {
-          if (document.body && isDark) document.body.classList.add('dark-mode');
+          if (!document.body) return;
+          document.body.setAttribute('data-abs-theme', isDark ? 'dark' : 'light');
+          if (isDark) document.body.classList.add('dark-mode');
         }, { once: true });
       })();
     </script>

@@ -15,6 +15,7 @@ const SIMULATION_CANVAS_SELECTOR = [
   '#c',
   '#flock-of-birds-canvas',
   '#mineral-growth-canvas',
+  '#repel-room-canvas',
   '#wall-repel-canvas',
   '.beach-ball-room-canvas',
   '.napoleon-point-cloud__canvas',

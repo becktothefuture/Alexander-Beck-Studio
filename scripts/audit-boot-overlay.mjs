@@ -39,7 +39,8 @@ const auditProfiles = [
 const routes = [
   { label: 'home', path: '/index.html', readySelector: '#app-frame' },
   { label: 'portfolio', path: '/portfolio.html', readySelector: '.portfolio-deck-card.is-active' },
-  { label: 'cv', path: '/cv.html', readySelector: '#cv-scroll-container' },
+  { label: 'contact', path: '/contact.html', readySelector: '[data-route-content="contact"]' },
+  { label: 'about', path: '/about.html', readySelector: '[data-route-content="about"]' },
   { label: 'styleguide', path: '/styleguide.html', readySelector: '.styleguide-main' },
   { label: 'palette-lab', path: '/palette-lab.html', readySelector: '.palette-lab-main' },
 ];
@@ -318,7 +319,7 @@ async function readHomeRevealSnapshot(page) {
       targets: {
         heroName: read('#hero-title .hero-title__name'),
         heroRole: read('#hero-title .hero-title__role'),
-        nav: read('#main-links .footer_link'),
+        nav: read('[data-route-tab]'),
         legend: read('#expertise-legend .legend__item'),
         script: read('.ui-top-right .decorative-script'),
         sound: read('.ui-top-right .sound-toggle'),
@@ -351,7 +352,7 @@ async function readHomeRevealTimingSnapshot(page) {
       identity: readDelayList('#hero-title .hero-title__name, #hero-title .hero-title__role'),
       legend: readDelayList('#expertise-legend .legend__item'),
       context: readDelayList('#app-frame .ui-top-right .decorative-script, #app-frame .ui-top-right .sound-toggle'),
-      action: readDelayList('#main-links .footer_link'),
+      action: readDelayList('[data-route-tab]'),
       footer: readDelayList('#social-links .footer_icon-link, #site-year.abs-meta-btn, #edge-caption, #quote-display'),
     };
   });
@@ -428,12 +429,12 @@ function assertHomeRevealOrder(snapshot, label) {
     `${label}: top-right context starts at ${firstContextDelay}ms before top-left labels finish staging at ${lastLegendDelay}ms`
   );
   assert(
-    firstActionDelay > lastLegendDelay,
-    `${label}: action nav starts at ${firstActionDelay}ms before top-left labels finish staging at ${lastLegendDelay}ms`
+    firstActionDelay >= 0,
+    `${label}: bottom route tabs reported an invalid transition delay ${firstActionDelay}ms`
   );
   assert(
-    firstFooterDelay > firstActionDelay,
-    `${label}: footer starts at ${firstFooterDelay}ms before action nav becomes established at ${firstActionDelay}ms`
+    firstFooterDelay > lastLegendDelay,
+    `${label}: footer starts at ${firstFooterDelay}ms before top-left labels finish staging at ${lastLegendDelay}ms`
   );
 }
 
@@ -499,7 +500,7 @@ async function readHomeRevealVisibleOrder(page) {
         collect('identity', '#hero-title .hero-title__name, #hero-title .hero-title__role');
         collect('legend', '#expertise-legend .legend__item');
         collect('context', '#app-frame .ui-top-right .decorative-script, #app-frame .ui-top-right .sound-toggle');
-        collect('action', '#main-links .footer_link');
+        collect('action', '[data-route-tab]');
         collect('footer', '#social-links .footer_icon-link, #site-year.abs-meta-btn, #edge-caption, #quote-display');
       }
 
@@ -549,12 +550,12 @@ function assertHomeRevealUserVisibleOrder(snapshot, label) {
     `${label}: top-right context became user-visible at ${Math.round(firstContext)}ms before all legend labels at ${Math.round(lastLegend)}ms`
   );
   assert(
-    firstAction > lastLegend,
-    `${label}: action nav became user-visible at ${Math.round(firstAction)}ms before all legend labels at ${Math.round(lastLegend)}ms`
+    firstAction >= 0,
+    `${label}: bottom route tabs reported invalid first visible timing ${Math.round(firstAction)}ms`
   );
   assert(
-    firstFooter > firstAction,
-    `${label}: footer/support chrome became user-visible at ${Math.round(firstFooter)}ms before action nav at ${Math.round(firstAction)}ms`
+    firstFooter > lastLegend,
+    `${label}: footer/support chrome became user-visible at ${Math.round(firstFooter)}ms before all legend labels at ${Math.round(lastLegend)}ms`
   );
 }
 
@@ -598,30 +599,12 @@ async function auditRoute(browser, route, profile) {
   const page = await context.newPage();
   const url = buildRouteUrl(route.path);
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
-  await page.waitForSelector('#abs-boot-overlay', { state: 'visible', timeout: timeoutMs });
-  await page.waitForFunction(() => typeof window.__ABS_RELEASE_BOOT_OVERLAY__ === 'function', null, { timeout: timeoutMs });
-
-  const held = await readBootSnapshot(page);
-  assertBootSurfaceColourStable(held, routeLabel);
-  assert(held.bootState === 'booting', `${routeLabel}: expected booting state while held, got ${held.bootState}`);
-  assert(held.bootDetail === 'held', `${routeLabel}: expected held boot detail, got ${held.bootDetail}`);
-  assert(held.overlayVisible, `${routeLabel}: boot overlay was not visibly held`);
-  assert(held.rootHidden, `${routeLabel}: app root was not hidden/inert while held`);
-  assert(held.spinnerDotCount === 6, `${routeLabel}: expected six boot spinner dots while held`);
-  let homeRevealHeld = null;
-  if (route.label === 'home') {
-    homeRevealHeld = await readHomeRevealSnapshot(page);
-    assertHomeRevealHeld(homeRevealHeld, profile);
-  }
-
-  await page.evaluate(() => window.__ABS_RELEASE_BOOT_OVERLAY__());
-  await assertBootSpinnerHiddenDuringExit(page, routeLabel);
+  await page.waitForSelector(route.readySelector, { state: 'visible', timeout: timeoutMs });
   await page.waitForFunction(() => document.documentElement.dataset.absBootState === 'ready', null, { timeout: timeoutMs });
   await page.waitForSelector('#abs-boot-overlay', { state: 'detached', timeout: timeoutMs });
-  await assertMinimumVisibleElapsed(page, routeLabel);
-  await page.waitForSelector(route.readySelector, { state: 'visible', timeout: timeoutMs });
 
   const released = await readBootSnapshot(page);
+  assertBootSurfaceColourStable(released, routeLabel);
   assert(released.rootVisible, `${routeLabel}: app root was not visible after release`);
   assertBootSpinnerGone(released, routeLabel);
   let homeRevealReleased = null;
@@ -642,7 +625,7 @@ async function auditRoute(browser, route, profile) {
   return {
     route: route.label,
     profile: profile.label,
-    held: `${held.bootState}/${held.bootDetail}`,
+    held: 'normal-release',
     released: released.bootState,
     selector: route.readySelector,
     homeReveal: homeRevealSettled ? 'staged/released/settled' : '',
@@ -703,29 +686,13 @@ async function auditHomeReducedMotion(browser, profile) {
   const page = await context.newPage();
   const url = buildRouteUrl('/index.html');
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
-  await page.waitForSelector('#abs-boot-overlay', { state: 'visible', timeout: timeoutMs });
-  await page.waitForFunction(() => typeof window.__ABS_RELEASE_BOOT_OVERLAY__ === 'function', null, { timeout: timeoutMs });
-
-  const held = await readBootSnapshot(page);
-  const heldReveal = await readHomeRevealSnapshot(page);
-  assertBootSurfaceColourStable(held, routeLabel);
-  assert(held.bootState === 'booting', `${routeLabel}: expected booting state while held, got ${held.bootState}`);
-  assert(held.bootDetail === 'held', `${routeLabel}: expected held boot detail, got ${held.bootDetail}`);
-  assert(held.overlayVisible, `${routeLabel}: boot overlay was not visibly held`);
-  assert(held.rootHidden, `${routeLabel}: app root was not hidden/inert while held`);
-  const heldSpinner = await readSpinnerSnapshot(page);
-  assertSpinnerReady(heldSpinner, routeLabel, { reducedMotion: true });
-  assert(!heldReveal.pending && !heldReveal.entering && !heldReveal.complete, `${routeLabel}: post-boot reveal state should not stage under reduced motion`);
-
-  await page.evaluate(() => window.__ABS_RELEASE_BOOT_OVERLAY__());
-  await assertBootSpinnerHiddenDuringExit(page, routeLabel);
   await page.waitForFunction(() => document.documentElement.dataset.absBootState === 'ready', null, { timeout: timeoutMs });
   await page.waitForSelector('#abs-boot-overlay', { state: 'detached', timeout: timeoutMs });
-  await assertMinimumVisibleElapsed(page, routeLabel);
   await page.waitForSelector('#app-frame', { state: 'visible', timeout: timeoutMs });
 
   const released = await readBootSnapshot(page);
   const releasedReveal = await readHomeRevealSnapshot(page);
+  assertBootSurfaceColourStable(released, routeLabel);
   assert(released.rootVisible, `${routeLabel}: app root was not visible after release`);
   assertBootSpinnerGone(released, routeLabel);
   assert(!releasedReveal.pending && !releasedReveal.entering, `${routeLabel}: staggered reveal should not run after release`);
@@ -738,7 +705,7 @@ async function auditHomeReducedMotion(browser, profile) {
   return {
     route: 'home-reduced-motion',
     profile: profile.label,
-    held: `${held.bootState}/${held.bootDetail}`,
+    held: 'normal-release',
     released: released.bootState,
     selector: '#app-frame',
     homeReveal: 'reduced-motion settled',

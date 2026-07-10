@@ -17,10 +17,11 @@ const FRAME_INTERVAL_MS = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_INTERVA
 const SIMULATION_URL_STATE_PARAMS = ['daily', 'focus', 'mode', 'simulation'];
 let expectedChooserRows = 0;
 const ROUTE_BACKED_FOCUS_IDS = new Set([
-  'wall-repel',
+  'repel-room',
   'flock-of-birds',
   'mineral-growth',
   'napoleon-point-cloud',
+  'rift-rings',
 ]);
 
 function resolveOrigin() {
@@ -89,11 +90,24 @@ async function waitForIdle(page) {
 }
 
 async function waitForSwitcherLabel(page, label) {
-  await page.waitForFunction(
-    (expected) => document.querySelector('.simulation-focus-switcher')?.textContent?.includes(expected),
-    label,
-    { timeout: WAIT_MS, polling: 50 },
-  );
+  try {
+    await page.waitForFunction(
+      (expected) => document.querySelector('.simulation-focus-switcher')?.textContent?.includes(expected),
+      label,
+      { timeout: WAIT_MS, polling: 50 },
+    );
+  } catch (error) {
+    const diagnostics = await page.evaluate(() => ({
+      href: window.location.href,
+      switcher: document.querySelector('.simulation-focus-switcher')?.textContent?.trim() || null,
+      layerId: document.querySelector('.daily-simulation-layer')?.dataset.simulationId || null,
+      routePhase: document.documentElement.dataset.absTransitionPhase || '',
+      focusPhase: document.documentElement.dataset.absSimulationFocusTransition || '',
+      modalActive: Boolean(document.querySelector('.simulation-focus-modal.active')),
+      rows: Array.from(document.querySelectorAll('.simulation-focus-row__name')).map((node) => node.textContent?.trim()).filter(Boolean),
+    }));
+    throw new Error(`Timed out waiting for switcher label "${label}": ${JSON.stringify(diagnostics)}`, { cause: error });
+  }
 }
 
 async function waitForRows(page) {
@@ -183,6 +197,7 @@ async function getState(page, elapsedMs) {
 
     const activeCanvas = Array.from(document.querySelectorAll([
       '#c',
+      '#repel-room-canvas',
       '#wall-repel-canvas',
       '#flock-of-birds-canvas',
       '#mineral-growth-canvas',
@@ -245,7 +260,7 @@ async function getState(page, elapsedMs) {
       switcherRect: rectFor('.simulation-focus-switcher'),
       modalRect: rectFor('.simulation-focus-modal'),
       titleRect: rectFor('#hero-title'),
-      mainLinksRect: rectFor('#main-links'),
+      buttonBarRect: rectFor('[data-button-bar]'),
       legendRect: rectFor('#expertise-legend'),
       descriptionRect: rectFor('.decorative-script'),
       footerRect: rectFor('.ui-bottom'),
@@ -342,7 +357,7 @@ function isShellUiStableFrame(frame) {
     && Number(state.edgeCaptionRect?.opacity) >= 0.45
     && Number(state.londonTimeRect?.opacity) >= 0.62
     && rectWithinViewport(state.titleRect, state.viewport, 6)
-    && rectWithinViewport(state.mainLinksRect, state.viewport, 6)
+    && rectWithinViewport(state.buttonBarRect, state.viewport, 6)
     && rectWithinViewport(state.legendRect, state.viewport, 6)
     && rectWithinViewport(state.descriptionRect, state.viewport, 6)
     && rectWithinViewport(state.footerRect, state.viewport, 6)
@@ -391,7 +406,7 @@ function checkFrame(frame, imageStats, { enforceShellUi = true } = {}) {
 
     [
       ['title', state.titleRect, state.titleCanvasVisible === true],
-      ['main-links', state.mainLinksRect],
+      ['button-bar', state.buttonBarRect],
       ['legend', state.legendRect],
       ['description', state.descriptionRect],
       ['footer', state.footerRect],
@@ -493,7 +508,11 @@ function analyzeBootStates(states) {
 async function chooseSimulationWithFrames(page, flow) {
   await openChooser(page);
   const rows = page.locator('.simulation-focus-modal.active .simulation-focus-row');
-  const target = rows.filter({ hasText: flow.to }).first();
+  const target = rows.filter({ hasText: flow.to });
+  const targetCount = await target.count();
+  if (targetCount !== 1) {
+    throw new Error(`Expected one chooser row for "${flow.to}" in "${flow.name}", got ${targetCount}`);
+  }
   const frames = await collectFrames(page, flow.name, () => target.click({ timeout: WAIT_MS }));
 
   await waitForSwitcherLabel(page, flow.finalLabel);

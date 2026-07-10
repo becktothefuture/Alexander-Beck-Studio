@@ -35,7 +35,8 @@ Canonical engineering contract for route and modal transitions.
 - Loaded simulations must not reuse the loader's tight centre-orbit silhouette. If the current home mode uses coloured balls near the title, seed and attract them as an organic page composition so the boot spinner reads as a separate temporary object.
 - The overlay is first-paint infrastructure, not route choreography. Final direct-load completion is owned by the active route family: `page-orchestrator.js` for the home canvas route, `SiteApp.jsx` for non-home shell routes, and `DailyFocusShellBridge.jsx` for route-backed Daily Focus direct loads.
 - Direct boot completion must first compose the route to final geometry, then set `data-abs-boot-state="revealing"`, release `#root`, and fade/remove the overlay.
-- Home direct loads replay the non-canvas UI entrance one RAF after the overlay is removed; SPA route transitions do not replay that entrance.
+- Home direct loads replay the non-canvas UI entrance one RAF after the overlay is removed.
+- Bottom-tab SPA route transitions replay route-owned child entrances through `[data-route-enter]` markers after the destination route is layout-ready. This is the reusable route entrance system, not legacy boot ownership.
 - Home direct-load entrance order uses named groups: identity first, all six top-left legend labels in visual order, top-right context after the labels are established, then action nav and footer/support chrome. The slow stagger settles in roughly 3.9s.
 - `audit:boot-overlay` runs desktop, tablet-emulated, and mobile-emulated profiles by default; set `ABS_BOOT_AUDIT_PROFILE=desktop`, `tablet`, or `mobile` only for focused local reruns.
 - Boot helpers must no-op during `route-out` / `route-in`; SPA route transitions remain owned by `useShellRouteTransition`.
@@ -55,12 +56,22 @@ Canonical engineering contract for route and modal transitions.
 
 ## 6) Surface grouping contract
 - Route view ownership is intentionally two-slot: `simulationLayer` for page-owned wall/content, and `uiLayer` for page-owned chrome/actions. Optional `heroLayer` belongs to the route simulation/content side.
-- The stable shell preserves explicit transition surfaces as implementation details: wall, hero, chrome, footer, and route secondary content.
-- Route-in restores readable groups, not selector sweeps.
-- Portfolio route-in must restore hero + route UI + footer together before slider labels / pit accents become readable.
+- Button Bar and the footer are stable shell controls; route transitions must not animate or hide them.
+- The stable shell preserves explicit transition surfaces as implementation details: wall, hero, chrome, and route secondary content.
+- Route-in restores readable groups first, then animates route-owned children marked with `[data-route-enter]`.
+- `[data-route-enter]` accepts the named groups `identity`, `legend`, `context`, `action`, and `footer`; `data-route-enter-order` controls order inside a group. Add these markers to route content instead of adding new shell selectors when a view needs child-level entrance motion.
+- Portfolio route-in must restore hero + route UI together before slider labels / pit accents become readable.
 - First readable route-in frame must already have final geometry for the hero surface inside the inner wall.
 
-## 7) Validation gate for transition changes
+## 7) Instrument Wake
+- Bottom-tab route switches use the named Instrument Wake transition inside `useShellRouteTransition`; this remains part of the single route owner, not a second state machine.
+- `<html data-abs-instrument-wake="out|in">` is an effect marker only. The canonical route phase remains `data-abs-transition-phase="route-out|route-in|idle"`.
+- Instrument Wake targets route-owned window content surfaces: studio window, hero, chrome, and route secondary content. It must not target `.fade-content` as a whole, `.button-bar` / legacy `.shell-bottom-band`, `#portfolio-sheet-host`, or modal layers.
+- Timing is intentionally fast: outgoing content is roughly 110ms; incoming content is roughly 165ms; the masked window pass is roughly 245ms.
+- Child route entrances may continue after the fast surface wake using the same grouped cadence as the home post-boot entrance; persistent shell controls remain stable while the route's own elements animate in.
+- Reduced motion disables blur, depth scaling, and the window pass while preserving the route phase cleanup back to `idle`.
+
+## 8) Validation gate for transition changes
 Run on preview or dev server (serially, not in parallel):
 
 ```bash
@@ -73,7 +84,7 @@ ABS_DEV_URL=http://localhost:8013 npm run audit:portfolio-gate
 ABS_DEV_URL=http://localhost:8013 npm run certify:screens
 ```
 
-## 8) PR acceptance checklist (transition-related work)
+## 9) PR acceptance checklist (transition-related work)
 - [ ] Transition owner remains centralized in shell hook/FSM.
 - [ ] No new direct orchestration class/dataset toggles in legacy modules.
 - [ ] SPA bootstraps do not call boot-only reveal helpers during active route phases.

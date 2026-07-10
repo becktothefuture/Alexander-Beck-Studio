@@ -746,7 +746,7 @@ export async function orchestrateEntrance(options = {}) {
   
   // ═══════════════════════════════════════════════════════════════════════════════
   // STAGED ELEMENT REVEAL SEQUENCE
-  // Order: #abs-scene fade → #brand-logo → #main-links (buttons sequentially)
+  // Order: #abs-scene fade → title surface → route controls.
   // ═══════════════════════════════════════════════════════════════════════════════
   
   const elementEasing = g.entranceElementEasing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';

@@ -14,10 +14,6 @@ const INTERACTIVE_SELECTOR = [
 
 const OPEN_SELECTOR = [
   '[aria-haspopup="dialog"]',
-  '#portfolio-modal-trigger',
-  '#cv-modal-trigger',
-  '#contact-email',
-  '#contact-email-inline',
   '.simulation-focus-switcher',
 ].join(',');
 

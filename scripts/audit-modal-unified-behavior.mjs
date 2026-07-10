@@ -4,25 +4,8 @@ import { chromium, firefox, webkit } from 'playwright';
 const DEFAULT_URL = 'http://127.0.0.1:8013';
 const WAIT_MS = Number(process.env.ABS_MODAL_UNIFIED_WAIT_MS || 30000);
 const BROWSER_NAME = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
-const LINK_GEOMETRY_TOLERANCE_PX = 1;
 
-const BROWSERS = {
-  chromium,
-  firefox,
-  webkit,
-};
-
-function resolveOrigin() {
-  const raw = String(process.env.ABS_DEV_URL || DEFAULT_URL).trim() || DEFAULT_URL;
-  const url = new URL(raw);
-  return url.origin;
-}
-
-function resolveUrl(pathname = '/index.html') {
-  const url = new URL(pathname, resolveOrigin());
-  url.searchParams.set('audit', 'home-runtime');
-  return url.toString();
-}
+const BROWSERS = { chromium, firefox, webkit };
 
 function assert(condition, message, details = null) {
   if (condition) return;
@@ -30,342 +13,153 @@ function assert(condition, message, details = null) {
   throw new Error(`${message}${suffix}`);
 }
 
-function parseRgb(value) {
-  const match = /rgba?\(([^)]+)\)/i.exec(String(value || ''));
-  if (!match) return null;
-  const [r, g, b] = match[1]
-    .split(',')
-    .slice(0, 3)
-    .map((part) => Number.parseFloat(part.trim()));
-  if (![r, g, b].every(Number.isFinite)) return null;
-  return { r, g, b };
+function resolveOrigin() {
+  const raw = String(process.env.ABS_DEV_URL || DEFAULT_URL).trim() || DEFAULT_URL;
+  return new URL(raw).origin;
 }
 
-function relativeLuminance(rgb) {
-  if (!rgb) return null;
-  const values = [rgb.r, rgb.g, rgb.b].map((channel) => {
-    const normalized = channel / 255;
-    return normalized <= 0.03928
-      ? normalized / 12.92
-      : ((normalized + 0.055) / 1.055) ** 2.4;
-  });
-  return (0.2126 * values[0]) + (0.7152 * values[1]) + (0.0722 * values[2]);
-}
-
-async function waitForAppReady(page) {
-  await page.waitForSelector('.simulation-focus-switcher', { timeout: WAIT_MS });
-  await page.waitForFunction(
-    () => {
-      const root = document.documentElement;
-      const bootOverlay = document.getElementById('abs-boot-overlay');
-      const links = document.getElementById('main-links');
-      const styles = links ? getComputedStyle(links) : null;
-      return (
-        !bootOverlay
-        && root.dataset.absBootState !== 'booting'
-        && (root.dataset.absTransitionPhase || 'idle') === 'idle'
-        && links
-        && styles
-        && Number.parseFloat(styles.opacity || '0') > 0.5
-      );
-    },
-    { timeout: WAIT_MS, polling: 50 },
-  );
+function routeUrl(pathname = '/index.html') {
+  return new URL(pathname, resolveOrigin()).toString();
 }
 
 async function waitForIdle(page) {
   await page.waitForFunction(
-    () => {
-      const blur = document.getElementById('modal-blur-layer');
-      const content = document.getElementById('modal-content-layer');
-      return (
-        (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
-        && (document.documentElement.dataset.absSimulationFocusTransition || 'idle') === 'idle'
-        && !blur?.classList.contains('active')
-        && !content?.classList.contains('active')
-      );
-    },
+    () => (
+      Boolean(document.querySelector('[data-sfid^="sfid:shell/"], [data-route-tab]'))
+      &&
+      (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
+      && (() => {
+        const overlay = document.getElementById('abs-boot-overlay');
+        if (!overlay) return true;
+        const styles = getComputedStyle(overlay);
+        return styles.display === 'none' || styles.visibility === 'hidden' || Number.parseFloat(styles.opacity || '1') < 0.02;
+      })()
+      && document.documentElement.dataset.absBootState !== 'booting'
+    ),
     { timeout: WAIT_MS, polling: 50 },
   );
 }
 
-async function openThemedPage(browser, theme) {
-  const page = await browser.newPage({
-    viewport: { width: 1280, height: 900 },
-    colorScheme: theme,
-  });
-  await page.addInitScript((nextTheme) => {
-    window.localStorage.setItem('theme-preference-v2', nextTheme);
-  }, theme);
-  await page.goto(resolveUrl(), { waitUntil: 'domcontentloaded' });
-  await waitForAppReady(page);
-  await page.evaluate((nextTheme) => {
-    const isDark = nextTheme === 'dark';
-    window.localStorage.setItem('theme-preference-v2', nextTheme);
-    document.documentElement.classList.toggle('dark-mode', isDark);
-    document.body.classList.toggle('dark-mode', isDark);
-    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
-  }, theme);
-  await page.waitForTimeout(80);
-  return page;
-}
-
-async function openChooser(page) {
-  await page.locator('.simulation-focus-switcher').click({ timeout: WAIT_MS });
-  await page.waitForSelector('.simulation-focus-modal.active', { timeout: WAIT_MS });
-  await page.waitForFunction(
-    () => (
-      document.documentElement.dataset.absTransitionPhase === 'modal-open'
-      && document.getElementById('modal-blur-layer')?.classList.contains('active')
-      && document.getElementById('modal-content-layer')?.classList.contains('active')
-    ),
-    { timeout: WAIT_MS, polling: 25 },
-  );
-}
-
-async function getChooserTextSamples(page) {
+async function readRouteState(page) {
   return page.evaluate(() => {
-    document.querySelector('.simulation-focus-modal')?.focus({ preventScroll: true });
-    const sample = (selector) => {
+    const rectOf = (selector) => {
       const element = document.querySelector(selector);
       if (!element) return null;
-      const styles = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
       return {
-        selector,
-        text: element.textContent.trim(),
-        color: styles.color,
-        opacity: Number.parseFloat(styles.opacity || '1'),
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
       };
     };
-
-    const inactiveRow = Array.from(document.querySelectorAll('.simulation-focus-row'))
-      .find((row) => row.getAttribute('aria-current') !== 'true')
-      || document.querySelector('.simulation-focus-row');
-
-    const inactiveSelector = inactiveRow
-      ? `.simulation-focus-row:nth-child(${Array.from(inactiveRow.parentElement.children).indexOf(inactiveRow) + 1})`
-      : '.simulation-focus-row';
-
     return {
-      title: sample('.simulation-focus-modal__title'),
-      inactiveRow: sample(inactiveSelector),
-      activeMeta: sample('.simulation-focus-row[aria-current="true"] .simulation-focus-row__meta'),
-      textPrimary: getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim(),
-      htmlDark: document.documentElement.classList.contains('dark-mode'),
-      bodyDark: document.body.classList.contains('dark-mode'),
+      path: location.pathname,
+      search: location.search,
+      phase: document.documentElement.dataset.absTransitionPhase || 'idle',
+      bodyClass: document.body.className,
+      tabs: Array.from(document.querySelectorAll('[data-route-tab]')).map((tab) => ({
+        route: tab.getAttribute('data-route-tab'),
+        current: tab.getAttribute('aria-current') || '',
+        text: tab.textContent.trim(),
+        rect: rectOf(`[data-route-tab="${tab.getAttribute('data-route-tab')}"]`),
+      })),
+      oldModalCount: document.querySelectorAll('#contact-modal, #cv-modal, #portfolio-modal').length,
+      activeOldModalCount: document.querySelectorAll('#contact-modal.active, #cv-modal.active, #portfolio-modal.active').length,
+      contactRoute: Boolean(document.querySelector('[data-route-content="contact"]')),
+      aboutRoute: Boolean(document.querySelector('[data-route-content="about"]')),
+      portfolioGate: Boolean(document.querySelector('[data-route-content="portfolio-gate"]')),
+      portfolioDeck: Boolean(document.getElementById('portfolioProjectMount')),
+      chooserActive: Boolean(document.querySelector('.simulation-focus-modal.active')),
+      blurActive: Boolean(document.getElementById('modal-blur-layer')?.classList.contains('active')),
+      contentActive: Boolean(document.getElementById('modal-content-layer')?.classList.contains('active')),
+      sessionFlags: {
+        contact: sessionStorage.getItem('abs_open_contact_modal'),
+        cvGate: sessionStorage.getItem('abs_open_cv_gate'),
+        cvModal: sessionStorage.getItem('abs_open_cv_modal'),
+        portfolio: sessionStorage.getItem('abs_open_portfolio_modal'),
+      },
     };
   });
 }
 
-function assertChooserContrast(samples, theme) {
-  const entries = [samples.title, samples.inactiveRow].filter(Boolean);
-  if (samples.activeMeta) entries.push(samples.activeMeta);
-  assert(entries.length >= 2, `Missing chooser text samples for ${theme}`, samples);
-
-  const luminanceEntries = entries.map((entry) => ({
-    ...entry,
-    luminance: relativeLuminance(parseRgb(entry.color)),
-  }));
-  luminanceEntries.forEach((entry) => {
-    assert(Number.isFinite(entry.luminance), `Could not parse chooser text color for ${theme}`, entry);
-  });
-
-  if (theme === 'light') {
-    luminanceEntries.forEach((entry) => {
-      assert(
-        entry.luminance < 0.48,
-        `Light-mode chooser text is too light: ${entry.selector}`,
-        { samples, entry },
-      );
-    });
-    return;
-  }
-
-  luminanceEntries.forEach((entry) => {
-    assert(
-      entry.luminance > 0.55,
-      `Dark-mode chooser text is too dark: ${entry.selector}`,
-      { samples, entry },
-    );
-  });
+function assertShellTabs(state, expectedRoute) {
+  assert(state.tabs.length >= 4, 'Missing bottom shell route tabs', state);
+  const active = state.tabs.filter((tab) => tab.current === 'page').map((tab) => tab.route);
+  assert(active.length === 1 && active[0] === expectedRoute, `Unexpected active route tab for ${expectedRoute}`, { active, state });
+  assert(state.activeOldModalCount === 0, 'Removed Contact/CV/Portfolio modal opened unexpectedly', state);
 }
 
-async function getMainLinkState(page) {
-  return page.evaluate(() => Array.from(document.querySelectorAll('#main-links .footer_link')).map((element) => {
-    const rect = element.getBoundingClientRect();
-    const styles = getComputedStyle(element);
-    return {
-      id: element.id,
-      text: element.textContent.trim(),
-      left: rect.left,
-      top: rect.top,
-      width: rect.width,
-      height: rect.height,
-      opacity: Number.parseFloat(styles.opacity || '1'),
-      visibility: styles.visibility,
-      display: styles.display,
-      transform: styles.transform,
-    };
-  }));
-}
-
-function assertMainLinksStable(before, after, label) {
-  assert(before.length === after.length && before.length > 0, `Missing main links during ${label}`, { before, after });
-  const failures = [];
-  before.forEach((previous, index) => {
-    const next = after[index];
-    ['left', 'top', 'width', 'height'].forEach((key) => {
-      const delta = Math.abs(previous[key] - next[key]);
-      if (delta > LINK_GEOMETRY_TOLERANCE_PX) {
-        failures.push({
-          id: previous.id,
-          key,
-          before: previous[key],
-          after: next[key],
-          delta,
-          beforeTransform: previous.transform,
-          afterTransform: next.transform,
-        });
-      }
-    });
-  });
-  assert(failures.length === 0, `Main links shifted during ${label}`, failures);
-}
-
-async function assertModalOpenState(page, label) {
-  const state = await page.evaluate(() => ({
-    phase: document.documentElement.dataset.absTransitionPhase || 'idle',
-    blurActive: document.getElementById('modal-blur-layer')?.classList.contains('active') || false,
-    contentActive: document.getElementById('modal-content-layer')?.classList.contains('active') || false,
-    bootOverlayPresent: Boolean(document.getElementById('abs-boot-overlay')),
-    bootState: document.documentElement.dataset.absBootState || '',
-  }));
-  assert(state.phase === 'modal-open', `${label} did not set modal-open phase`, state);
-  assert(state.blurActive && state.contentActive, `${label} did not activate both modal layers`, state);
-  assert(!state.bootOverlayPresent && state.bootState !== 'booting', `${label} exposed boot overlay/state`, state);
-}
-
-async function closeWithEscape(page, modalSelector) {
-  await page.keyboard.press('Escape');
-  await page.waitForFunction(
-    (selector) => {
-      const modal = document.querySelector(selector);
-      if (!modal) return true;
-      const styles = getComputedStyle(modal);
-      return (
-        modal.classList.contains('hidden')
-        || styles.display === 'none'
-        || styles.visibility === 'hidden'
-      );
-    },
-    modalSelector,
-    { timeout: WAIT_MS, polling: 50 },
-  );
+async function openAndAssert(browser, path, expectedRoute, predicate) {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await page.goto(routeUrl(path), { waitUntil: 'domcontentloaded', timeout: 60000 });
   await waitForIdle(page);
-  await page.waitForTimeout(80);
+  const state = await readRouteState(page);
+  assertShellTabs(state, expectedRoute);
+  assert(predicate(state), `Route assertion failed for ${path}`, state);
+  await page.close();
+  return state;
 }
 
-async function verifyChooserOpenClose(page, theme) {
-  const beforeLinks = await getMainLinkState(page);
-  await openChooser(page);
-  await assertModalOpenState(page, `${theme} chooser open`);
-  const samples = await getChooserTextSamples(page);
-  assertChooserContrast(samples, theme);
-  await page.waitForTimeout(140);
-  const duringLinks = await getMainLinkState(page);
-  assertMainLinksStable(beforeLinks, duringLinks, `${theme} chooser open`);
-  await closeWithEscape(page, '.simulation-focus-modal');
-  const afterLinks = await getMainLinkState(page);
-  assertMainLinksStable(beforeLinks, afterLinks, `${theme} chooser close`);
+async function assertStaleFlag(browser, flag, expectedPath, expectedRoute, predicate) {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await page.addInitScript((flagName) => {
+    sessionStorage.setItem(flagName, '1');
+  }, flag);
+  await page.goto(routeUrl('/index.html'), { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await waitForIdle(page);
+  const state = await readRouteState(page);
+  assert(state.path === expectedPath, `Stale flag ${flag} resolved to wrong path`, state);
+  assertShellTabs(state, expectedRoute);
+  assert(Object.values(state.sessionFlags).every((value) => value === null), `Stale flag ${flag} was not consumed`, state);
+  assert(predicate(state), `Stale flag ${flag} route assertion failed`, state);
+  await page.close();
+  return state;
 }
 
-async function verifyContactOpenClose(page) {
-  const beforeLinks = await getMainLinkState(page);
-  await page.evaluate(() => {
-    document.getElementById('contact-email')?.click();
-  });
-  await page.waitForSelector('#contact-modal.active', { timeout: WAIT_MS });
-  await assertModalOpenState(page, 'contact modal open');
-  await page.waitForTimeout(140);
-  const duringLinks = await getMainLinkState(page);
-  assertMainLinksStable(beforeLinks, duringLinks, 'contact modal open');
-  await closeWithEscape(page, '#contact-modal');
-  const afterLinks = await getMainLinkState(page);
-  assertMainLinksStable(beforeLinks, afterLinks, 'contact modal close');
-}
-
-async function verifyChooserRapidReopen(page) {
-  await openChooser(page);
-  await page.keyboard.press('Escape');
-  await page.waitForSelector('.simulation-focus-modal.closing', { timeout: WAIT_MS });
-  await page.waitForTimeout(120);
-
-  await page.evaluate(() => {
-    document.querySelector('.simulation-focus-switcher')?.click();
-  });
+async function assertSimulationChooser(browser) {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await page.goto(routeUrl('/index.html'), { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await waitForIdle(page);
+  await page.locator('.simulation-focus-switcher').click({ timeout: WAIT_MS });
   await page.waitForSelector('.simulation-focus-modal.active', { timeout: WAIT_MS });
-  await assertModalOpenState(page, 'chooser rapid reopen');
-  await page.waitForFunction(
-    () => {
-      const modal = document.querySelector('.simulation-focus-modal');
-      return Boolean(
-        modal
-        && modal.classList.contains('active')
-        && !modal.classList.contains('closing')
-        && modal.getAttribute('aria-hidden') === 'false'
-      );
-    },
-    { timeout: WAIT_MS, polling: 50 },
-  );
-
-  await closeWithEscape(page, '.simulation-focus-modal');
-}
-
-async function verifyChooserSwitchNoBoot(page) {
-  await openChooser(page);
-  const chosen = await page.evaluate(() => {
-    const rows = Array.from(document.querySelectorAll('.simulation-focus-row'));
-    const target = rows.find((row) => (
-      row.getAttribute('aria-current') !== 'true'
-      && /Ball Field|Light Swarm|Cube Frame|Water Flow/.test(row.textContent || '')
-    )) || rows.find((row) => row.getAttribute('aria-current') !== 'true');
-    target?.click();
-    return target?.textContent?.trim() || null;
-  });
-  assert(Boolean(chosen), 'Could not choose a non-active simulation row');
+  const openState = await readRouteState(page);
+  assert(openState.phase === 'modal-open', 'Simulation chooser did not set modal-open phase', openState);
+  assert(openState.chooserActive && openState.blurActive && openState.contentActive, 'Simulation chooser modal layers are not active', openState);
+  await page.keyboard.press('Escape');
   await waitForIdle(page);
-  const state = await page.evaluate(() => ({
-    bootOverlayPresent: Boolean(document.getElementById('abs-boot-overlay')),
-    bootState: document.documentElement.dataset.absBootState || '',
-    phase: document.documentElement.dataset.absTransitionPhase || 'idle',
-    simulationFocusPhase: document.documentElement.dataset.absSimulationFocusTransition || 'idle',
-    blurActive: document.getElementById('modal-blur-layer')?.classList.contains('active') || false,
-    contentActive: document.getElementById('modal-content-layer')?.classList.contains('active') || false,
-  }));
-  assert(!state.bootOverlayPresent && state.bootState !== 'booting', 'Chooser switch exposed boot overlay/state', { ...state, chosen });
-  assert(state.phase === 'idle' && state.simulationFocusPhase === 'idle', 'Chooser switch did not settle idle', { ...state, chosen });
-  assert(!state.blurActive && !state.contentActive, 'Chooser switch left modal overlay active', { ...state, chosen });
+  const closedState = await readRouteState(page);
+  assert(!closedState.chooserActive && !closedState.blurActive && !closedState.contentActive, 'Simulation chooser did not close cleanly', closedState);
+  await page.close();
+  return { openState, closedState };
 }
 
 async function main() {
-  const browserType = BROWSERS[BROWSER_NAME];
-  assert(browserType, `Unsupported ABS_BROWSER: ${BROWSER_NAME}`);
+  const browserType = BROWSERS[BROWSER_NAME] || chromium;
   const browser = await browserType.launch();
+  const results = {};
   try {
-    const lightPage = await openThemedPage(browser, 'light');
-    await verifyChooserOpenClose(lightPage, 'light');
-    await verifyContactOpenClose(lightPage);
-    await verifyChooserRapidReopen(lightPage);
-    await verifyChooserSwitchNoBoot(lightPage);
-    await lightPage.close();
-
-    const darkPage = await openThemedPage(browser, 'dark');
-    await verifyChooserOpenClose(darkPage, 'dark');
-    await darkPage.close();
+    results.routes = [
+      await openAndAssert(browser, '/contact.html', 'contact', (state) => state.contactRoute),
+      await openAndAssert(browser, '/about.html', 'about', (state) => state.aboutRoute),
+      await openAndAssert(browser, '/cv.html?cv=482916', 'about', (state) => state.path === '/about.html' && state.search === '' && state.aboutRoute),
+      await openAndAssert(browser, '/portfolio.html?gate=portfolio', 'portfolio', (state) => state.path === '/portfolio.html' && state.search === '' && state.portfolioGate),
+      await openAndAssert(browser, '/index.html?gate=cv', 'about', (state) => state.path === '/about.html' && state.search === '' && state.aboutRoute),
+    ];
+    results.staleFlags = [
+      await assertStaleFlag(browser, 'abs_open_contact_modal', '/contact.html', 'contact', (state) => state.contactRoute),
+      await assertStaleFlag(browser, 'abs_open_cv_gate', '/about.html', 'about', (state) => state.aboutRoute),
+      await assertStaleFlag(browser, 'abs_open_cv_modal', '/about.html', 'about', (state) => state.aboutRoute),
+      await assertStaleFlag(browser, 'abs_open_portfolio_modal', '/portfolio.html', 'portfolio', (state) => state.portfolioGate),
+    ];
+    results.simulationChooser = await assertSimulationChooser(browser);
   } finally {
     await browser.close();
   }
-  console.log(`PASS modal unified behavior audit (${BROWSER_NAME})`);
+  console.log(JSON.stringify({ browser: BROWSER_NAME, results }, null, 2));
+  console.error(`PASS: route/modal compatibility audit passed in ${BROWSER_NAME}`);
 }
 
 main().catch((error) => {

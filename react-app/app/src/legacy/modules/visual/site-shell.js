@@ -5,6 +5,7 @@ import {
   shouldUseCanonicalDesignConfig,
 } from '../utils/design-config.js';
 import { getGlobals } from '../core/state.js';
+import { isDarkThemeDocument } from '../../../lib/theme-state.js';
 
 const DEFAULT_SHELL_CONFIG = {
   theme: {
@@ -204,7 +205,7 @@ export function detectThemeColorLikelyApplied(family = detectBrowserFamily()) {
   return isAndroid || isIOS;
 }
 
-export function resolveShellPalette(config = currentShellConfig, isDark = document.documentElement.classList.contains('dark-mode')) {
+export function resolveShellPalette(config = currentShellConfig, isDark = isDarkThemeDocument()) {
   const family = detectBrowserFamily();
   const themeColorLikelyApplied = detectThemeColorLikelyApplied(family);
 
@@ -234,7 +235,7 @@ function readCssVar(name) {
   return styles.getPropertyValue(name).trim();
 }
 
-export function resolveSiteFramePalette(isDark = document.documentElement.classList.contains('dark-mode')) {
+export function resolveSiteFramePalette(isDark = isDarkThemeDocument()) {
   const light = readCssVar('--frame-color-site-light')
     || readCssVar('--frame-color-light')
     || getDefaultFrameColor();
@@ -247,7 +248,7 @@ export function resolveSiteFramePalette(isDark = document.documentElement.classL
   return { light, dark, active };
 }
 
-export function resolveBrowserFramePalette(config = currentShellConfig, isDark = document.documentElement.classList.contains('dark-mode')) {
+export function resolveBrowserFramePalette(config = currentShellConfig, isDark = isDarkThemeDocument()) {
   const family = detectBrowserFamily();
   let light = DEFAULT_SHELL_CONFIG.theme.siteFrameLight;
   let dark = DEFAULT_SHELL_CONFIG.theme.siteFrameDark;
@@ -265,7 +266,7 @@ export function resolveBrowserFramePalette(config = currentShellConfig, isDark =
   return { light, dark, active };
 }
 
-export function resolveSafariFramePalette(config = currentShellConfig, isDark = document.documentElement.classList.contains('dark-mode')) {
+export function resolveSafariFramePalette(config = currentShellConfig, isDark = isDarkThemeDocument()) {
   const light = config?.theme?.safariFrameLight || config?.theme?.siteFrameLight || DEFAULT_SHELL_CONFIG.theme.safariFrameLight;
   const dark = config?.theme?.safariFrameDark || config?.theme?.siteFrameDark || DEFAULT_SHELL_CONFIG.theme.safariFrameDark;
   const active = isDark ? dark : light;
@@ -387,7 +388,7 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--abs-safe-left', 'env(safe-area-inset-left, 0px)');
 }
 
-function applyShellSurfaceVars(config = currentShellConfig, isDark = document.documentElement.classList.contains('dark-mode')) {
+function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkThemeDocument()) {
   const root = document.documentElement;
   const theme = config?.theme || DEFAULT_SHELL_CONFIG.theme;
   const surface = config?.surface || DEFAULT_SHELL_CONFIG.surface;
@@ -554,7 +555,7 @@ export function syncThemeColorMeta() {
   fallback.content = active || dark || light;
 }
 
-function applyFramePaletteReadback(isDark = document.documentElement.classList.contains('dark-mode')) {
+function applyFramePaletteReadback(isDark = isDarkThemeDocument()) {
   const light = readCssVar('--frame-color-light') || getDefaultFrameColor();
   const dark = readCssVar('--frame-color-dark') || light || getDefaultFrameColor();
   const active = readCssVar('--frame-color') || (isDark ? dark : light);
@@ -564,7 +565,7 @@ function applyFramePaletteReadback(isDark = document.documentElement.classList.c
 
 export function syncShellToDocument(options = {}) {
   const config = options.config || currentShellConfig;
-  const isDark = options.isDark ?? document.documentElement.classList.contains('dark-mode');
+  const isDark = options.isDark ?? isDarkThemeDocument();
   const innerPalette = resolveShellPalette(config, isDark);
 
   applyShellLayoutVars(config);

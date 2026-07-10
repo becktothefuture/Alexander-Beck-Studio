@@ -18,6 +18,7 @@ import {
   disposeRendererListeners,
 } from './modules/rendering/renderer.js';
 import { render } from './modules/physics/engine.js';
+import { applyButtonBarCssVars } from '../lib/buttonBarControls.js';
 
 import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
@@ -26,9 +27,6 @@ import { setupCustomCursor } from './modules/rendering/cursor.js';
 import { setMode, getForceApplicator, initModeSystem, disposeModeSystem } from './modules/modes/mode-controller.js';
 import { startMainLoop, stopMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
-import { initCVModal } from './modules/ui/cv-modal.js';
-import { initPortfolioModal } from './modules/ui/portfolio-modal.js';
-import { initContactModal } from './modules/ui/contact-modal.js';
 import { initModalOverlay } from './modules/ui/modal-overlay.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { createThemeToggle } from './modules/ui/theme-toggle.js';
@@ -435,6 +433,7 @@ export async function bootstrapHomePage() {
         const maxPx = Math.round(minPx * 1.67); // ~var(--space-3xl) at var(--size-2.5) base (maintains ratio)
         root.style.setProperty('--footer-nav-bar-gap', `clamp(${minPx}px, ${g.footerNavBarGapVw}vw, ${maxPx}px)`);
       }
+      applyButtonBarCssVars(g, root);
       if (Number.isFinite(g?.uiHitAreaMul)) {
         root.style.setProperty('--ui-hit-area-mul', String(g.uiHitAreaMul));
       }
@@ -604,28 +603,6 @@ export async function bootstrapHomePage() {
       log('✓ Modal overlay system initialized');
     } catch (e) {
       console.warn('Modal overlay initialization error:', e?.message);
-    }
-
-    // Initialize invite gates (CV and Portfolio access flow)
-    try {
-      initCVModal();
-      log('✓ CV invite gate initialized');
-    } catch (e) {
-      console.warn('CV gate initialization error:', e?.message);
-    }
-
-    try {
-      initPortfolioModal();
-      log('✓ Portfolio invite gate initialized');
-    } catch (e) {
-      console.warn('Portfolio gate initialization error:', e?.message);
-    }
-
-    try {
-      initContactModal();
-      log('✓ Contact gate initialized');
-    } catch (e) {
-      console.warn('Contact gate initialization error:', e?.message);
     }
 
     // Compose the top UI (LEGACY FUNCTION REMOVED - NOW IN DOM)
@@ -821,7 +798,6 @@ export async function bootstrapHomePage() {
 
     try {
       const {
-        getModalToAutoOpen,
         shouldSkipWallAnimation,
         resetTransitionState,
         setupPrefetchOnHover,
@@ -831,9 +807,6 @@ export async function bootstrapHomePage() {
 
       const shellConfig = getShellConfig();
       const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-
-      // Check navigation state BEFORE consuming it (getModalToAutoOpen reads but doesn't clear)
-      const autoOpenModal = getModalToAutoOpen();
 
       // Check if we should skip wall animation (internal nav or browser back/forward)
       // Note: shouldSkipWallAnimation() consumes the navigation state
@@ -874,10 +847,10 @@ export async function bootstrapHomePage() {
       });
 
       // Setup prefetch on hover for gate triggers
-      const cvTrigger = document.getElementById('cv-modal-trigger');
-      const portfolioTrigger = document.getElementById('portfolio-modal-trigger');
-      if (cvTrigger) setupPrefetchOnHover(cvTrigger, 'cv.html');
-      if (portfolioTrigger) setupPrefetchOnHover(portfolioTrigger, 'portfolio.html');
+      document.querySelectorAll('[data-route-tab]').forEach((tab) => {
+        const href = tab.getAttribute('href');
+        if (href) setupPrefetchOnHover(tab, href);
+      });
 
       // Run the home UI entrance for every direct landing/reload. Shell route
       // transitions restore stable UI without replaying choreography.
@@ -938,21 +911,6 @@ export async function bootstrapHomePage() {
         });
         setHomeRouteReadyState(true);
         console.log('✓ Home direct boot revealed from settled first frame');
-      }
-
-      // Auto-open modal if requested via navigation state
-      if (autoOpenModal === 'cv') {
-        // CV modal - trigger the gate open
-        setTimeout(() => {
-          const cvTriggerEl = document.getElementById('cv-modal-trigger');
-          if (cvTriggerEl) cvTriggerEl.click();
-        }, 400);
-      } else if (autoOpenModal === 'contact') {
-        // Contact modal - trigger the gate open
-        setTimeout(() => {
-          const contactTriggerEl = document.getElementById('contact-email');
-          if (contactTriggerEl) contactTriggerEl.click();
-        }, 400);
       }
 
       // Initialize speculative prefetch system for faster page transitions

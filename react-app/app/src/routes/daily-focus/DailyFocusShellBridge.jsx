@@ -1,8 +1,6 @@
 import { useLayoutEffect } from 'react';
 import { initState, applyLayoutCSSVars, getGlobals } from '../../legacy/modules/core/state.js';
 import { applyRuntimeTextToDOM } from '../../legacy/modules/ui/apply-text.js';
-import { initContactModal } from '../../legacy/modules/ui/contact-modal.js';
-import { initCVModal } from '../../legacy/modules/ui/cv-modal.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 import { loadRuntimeText } from '../../legacy/modules/utils/text-loader.js';
 import {
@@ -16,9 +14,9 @@ import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visua
 import { applyExpertiseLegendColors } from '../../legacy/modules/ui/legend-colors.js';
 import { initLegendFilterSystem } from '../../legacy/modules/ui/legend-filter.js';
 import { initModalOverlay } from '../../legacy/modules/ui/modal-overlay.js';
-import { initPortfolioModal } from '../../legacy/modules/ui/portfolio-modal.js';
 import { createSoundToggle } from '../../legacy/modules/ui/sound-toggle.js';
 import { initTimeDisplay } from '../../legacy/modules/ui/time-display.js';
+import { applyButtonBarCssVars } from '../../lib/buttonBarControls.js';
 import { isSimulationVisualTransitionSourceActive } from '../../lib/simulationVisualTransition.js';
 
 let runtimeConfigPromise = null;
@@ -69,6 +67,7 @@ function applyHomeUiConfigVars() {
     const maxPx = Math.round(minPx * 1.67);
     root.style.setProperty('--footer-nav-bar-gap', `clamp(${minPx}px, ${globals.footerNavBarGapVw}vw, ${maxPx}px)`);
   }
+  applyButtonBarCssVars(globals, root);
   if (Number.isFinite(globals?.uiHitAreaMul)) {
     root.style.setProperty('--ui-hit-area-mul', String(globals.uiHitAreaMul));
   }
@@ -126,24 +125,6 @@ function initializeSharedHomeModals(config) {
   } catch {
     /* Daily focus should still reveal if a modal helper fails. */
   }
-
-  try {
-    initCVModal();
-  } catch {
-    /* no-op */
-  }
-
-  try {
-    initPortfolioModal();
-  } catch {
-    /* no-op */
-  }
-
-  try {
-    initContactModal();
-  } catch {
-    /* no-op */
-  }
 }
 
 function isRectUsable(rect) {
@@ -178,8 +159,8 @@ function isDailyFocusRuntimeReady(simulationId) {
   if (!isElementSurfaceReady(runtime)) return false;
 
   switch (id) {
-    case 'wall-repel':
-      return isCanvasSurfaceReady('#wall-repel-canvas')
+    case 'repel-room':
+      return isCanvasSurfaceReady('#repel-room-canvas')
         && isSimulationVisualTransitionSourceActive(id);
     case 'flock-of-birds':
       return isCanvasSurfaceReady('#flock-of-birds-canvas')

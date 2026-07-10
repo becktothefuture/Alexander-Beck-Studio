@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { hasGateAccess, requestGateOpen } from '../lib/access-gates.js';
+import { hasGateAccess } from '../lib/access-gates.js';
 import { buildRouteHref, getRouteById, resolveRouteFromHref, resolveRouteFromPathname } from '../lib/routes.js';
 import { installSpaNavigationBridge } from '../lib/spa-navigation.js';
-import { writeManualSimulationFocus } from '../data/simulationCatalog.js';
+import { normalizeSimulationId, writeManualSimulationFocus } from '../data/simulationCatalog.js';
 import { clearStableTimeout, setStableTimeout } from '../lib/legacy-runtime-scope.js';
 import {
   isSimulationVisualTransitionSourceActive,
@@ -27,7 +27,8 @@ import {
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 function readHomeFocusSimulationId(searchParams) {
-  return searchParams.get('mode') || searchParams.get('focus') || searchParams.get('simulation') || null;
+  const requestedId = searchParams.get('mode') || searchParams.get('focus') || searchParams.get('simulation') || null;
+  return requestedId ? normalizeSimulationId(requestedId) : null;
 }
 
 const SIMULATION_URL_STATE_PARAMS = new Set(['daily', 'focus', 'mode', 'simulation']);
@@ -45,6 +46,11 @@ function buildCleanHomeHref(url) {
 
 function computeRouteState(href) {
   const url = new URL(href, window.location.href);
+  const staleRouteTarget = consumeStaleRouteRequests(url);
+  if (staleRouteTarget) {
+    return computeRouteState(new URL(staleRouteTarget, window.location.origin).toString());
+  }
+
   const requestedRoute = resolveRouteFromPathname(url.pathname);
   const homeFocusSimulationId = requestedRoute.id === 'home'
     ? readHomeFocusSimulationId(url.searchParams)
@@ -69,32 +75,92 @@ function computeRouteState(href) {
     };
   }
 
-  if (requestedRoute.gated && !hasGateAccess(requestedRoute.id)) {
-    const homeHref = buildRouteHref('home', {
-      searchParams: { gate: requestedRoute.id },
-    });
-    return {
-      route: getRouteById('home'),
-      requestedRouteId: requestedRoute.id,
-      canonicalHref: homeHref,
-      redirectGateId: requestedRoute.id,
-      dailyFocusRouteId: null,
-      focusSimulationId: null,
-    };
+  const lockedGateId = requestedRoute.gated && !hasGateAccess(requestedRoute.id) ? requestedRoute.id : null;
+  if (!lockedGateId && requestedRoute.id === 'portfolio') {
+    ['portfolio', 'portfolioCode', 'access'].forEach((key) => url.searchParams.delete(key));
   }
 
   return {
     route: requestedRoute,
     requestedRouteId: requestedRoute.id,
-    canonicalHref: `${url.pathname}${url.search}${url.hash}`,
+    canonicalHref: buildCanonicalRouteHref(requestedRoute, url),
     redirectGateId: null,
     dailyFocusRouteId: null,
     focusSimulationId: null,
+    lockedGateId,
   };
+}
+
+function consumeStaleRouteRequests(url) {
+  try {
+    const gate = url.searchParams.get('gate');
+    if (gate === 'portfolio') {
+      url.searchParams.delete('gate');
+      return `${getRouteById('portfolio').path}${url.search}${url.hash}`;
+    }
+    if (gate === 'cv') {
+      url.searchParams.delete('gate');
+      return `${getRouteById('about').path}${url.search}${url.hash}`;
+    }
+
+    const isAboutAlias = resolveRouteFromPathname(url.pathname).id === 'about';
+    if (isAboutAlias) {
+      ['cv', 'cvCode', 'access'].forEach((key) => url.searchParams.delete(key));
+      if (url.pathname !== getRouteById('about').path || url.searchParams.has('gate')) {
+        url.searchParams.delete('gate');
+        return `${getRouteById('about').path}${url.search}${url.hash}`;
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  try {
+    const routeRequestKeys = [
+      ['abs_open_contact_modal', 'contact'],
+      ['abs_open_cv_gate', 'about'],
+      ['abs_open_cv_modal', 'about'],
+      ['abs_open_portfolio_modal', 'portfolio'],
+      ['abs_open_portfolio_gate', 'portfolio'],
+    ];
+    const requested = routeRequestKeys.find(([key]) => {
+      if (!window.sessionStorage.getItem(key)) return false;
+      window.sessionStorage.removeItem(key);
+      return true;
+    });
+    if (requested) {
+      return getRouteById(requested[1]).path;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function buildCanonicalRouteHref(route, url) {
+  const canonical = new URL(buildRouteHref(route.id), window.location.origin);
+  if (route.id === 'portfolio') {
+    ['portfolio', 'portfolioCode', 'access'].forEach((key) => {
+      const value = url.searchParams.get(key);
+      if (value) canonical.searchParams.set(key, value);
+    });
+  }
+  canonical.hash = url.hash;
+  return `${canonical.pathname}${canonical.search}${canonical.hash}`;
 }
 
 function readRouteStateSimulationFocusId(routeState) {
   return routeState?.focusSimulationId || routeState?.dailyFocusRouteId || '';
+}
+
+function readRouteContentSignature(routeState) {
+  return [
+    routeState?.route?.id || '',
+    routeState?.lockedGateId || '',
+    routeState?.dailyFocusRouteId || '',
+    routeState?.focusSimulationId || '',
+  ].join(':');
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -111,12 +177,46 @@ function readRouteStateSimulationFocusId(routeState) {
    - Rapid route requests are queued while a transition is active and flushed afterward.
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-const FADE_OUT_MS = 220;
+const FADE_OUT_MS = 110;
 const STAGGER_OFFSET_MS = 0;
-const ELEMENT_REVEAL_MS = 280;
-const EASE_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)';
+const ELEMENT_REVEAL_MS = 165;
+const EASE_OUT = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 const READY_FALLBACK_MS = 900;
 const GROUPED_ROUTE_OFFSET_MS = 80;
+const ROUTE_ENTER_SELECTOR = '[data-route-enter]';
+const ROUTE_ENTER_TOTAL_MS = 3900;
+const ROUTE_ENTER_GROUPS = {
+  identity: {
+    startMs: 0,
+    stepMs: 140,
+    durationMs: 980,
+    slide: true,
+  },
+  legend: {
+    startMs: 360,
+    stepMs: 96,
+    durationMs: 1180,
+    slide: true,
+  },
+  context: {
+    startMs: 1340,
+    stepMs: 120,
+    durationMs: 1180,
+    slide: true,
+  },
+  action: {
+    startMs: 1740,
+    stepMs: 120,
+    durationMs: 1180,
+    slide: false,
+  },
+  footer: {
+    startMs: 2100,
+    stepMs: 100,
+    durationMs: 1180,
+    slide: true,
+  },
+};
 const SIMULATION_FOCUS_EXIT_MS = 520;
 const SIMULATION_FOCUS_ENTER_MS = 500;
 const SIMULATION_FOCUS_ZERO_HOLD_MS = 48;
@@ -125,7 +225,7 @@ const SIMULATION_FOCUS_ENTER_LOCAL_MS = 280;
 const SIMULATION_FOCUS_EASE_OUT = 'cubic-bezier(0.72, 0, 0.86, 0.32)';
 const SIMULATION_FOCUS_EASE_IN = 'cubic-bezier(0.16, 1, 0.3, 1)';
 const DAILY_LAB_ROUTE_IDS = new Set([
-  'wall-repel',
+  'repel-room',
   'flock-of-birds',
   'mineral-growth',
   'napoleon-point-cloud',
@@ -219,14 +319,23 @@ function getContentLayers(surfaceRefs) {
   };
 }
 
+function setInstrumentWakeState(state) {
+  const root = document.documentElement;
+  if (state) {
+    root.dataset.absInstrumentWake = state;
+    return;
+  }
+  delete root.dataset.absInstrumentWake;
+}
+
 function setRouteLayerVisibility(visible, surfaceRefs) {
-  const { wall, hero, ui } = getContentLayers(surfaceRefs);
+  const { wall, hero, chrome, secondary } = getContentLayers(surfaceRefs);
   const hidden = !visible;
   const opacity = hidden ? '0' : '';
   const visibility = hidden ? 'hidden' : '';
   const pointerEvents = hidden ? 'none' : '';
 
-  [wall, hero, ui].forEach((el) => {
+  [wall, hero, chrome, secondary].forEach((el) => {
     if (!el) return;
     if (hidden) {
       el.style.opacity = opacity;
@@ -252,7 +361,6 @@ function buildRouteTransitionGroups(routeId, surfaceRefs) {
       addGroup(0, [
         { el: surfaces.hero, slide: true },
         { el: surfaces.chrome, slide: true },
-        { el: surfaces.footer, slide: false },
       ]),
       addGroup(GROUPED_ROUTE_OFFSET_MS, [
         { el: surfaces.wall, slide: false },
@@ -267,7 +375,6 @@ function buildRouteTransitionGroups(routeId, surfaceRefs) {
         { el: surfaces.hero, slide: true },
         { el: surfaces.chrome, slide: true },
         { el: surfaces.secondary, slide: true },
-        { el: surfaces.footer, slide: false },
       ]),
       addGroup(GROUPED_ROUTE_OFFSET_MS, [
         { el: surfaces.wall, slide: false },
@@ -279,7 +386,6 @@ function buildRouteTransitionGroups(routeId, surfaceRefs) {
     addGroup(0, [
       { el: surfaces.chrome, slide: true },
       { el: surfaces.secondary, slide: true },
-      { el: surfaces.footer, slide: false },
     ]),
     addGroup(GROUPED_ROUTE_OFFSET_MS, [
       { el: surfaces.wall, slide: false },
@@ -300,6 +406,64 @@ function getGroupedTransitionItems(routeId, surfaceRefs) {
     });
   });
   return items;
+}
+
+function readRouteEnterMotion() {
+  return {
+    y: getComputedStyle(document.documentElement).getPropertyValue('--home-post-boot-ty').trim() || '7px',
+    blur: getComputedStyle(document.documentElement).getPropertyValue('--home-post-boot-blur').trim() || '4px',
+    scale: getComputedStyle(document.documentElement).getPropertyValue('--home-post-boot-scale').trim() || '0.985',
+    easing: readRootEasing('--home-post-boot-ease', 'cubic-bezier(0.22, 0, 0.16, 1)'),
+  };
+}
+
+function getRouteEnterGroupConfig(groupName) {
+  return ROUTE_ENTER_GROUPS[groupName] || ROUTE_ENTER_GROUPS.context;
+}
+
+function parseRouteEnterOrder(el, fallback) {
+  const raw = el?.dataset?.routeEnterOrder ?? el?.style?.getPropertyValue('--i') ?? '';
+  const parsed = Number.parseInt(String(raw), 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function getRouteEnterTargets(surfaceRefs) {
+  const { wall, hero, chrome, secondary } = getContentLayers(surfaceRefs);
+  const scopeNodes = [wall, hero, chrome, secondary].filter(Boolean);
+  const seen = new Set();
+  const targets = [];
+  const groupCounts = new Map();
+
+  scopeNodes.forEach((scope) => {
+    const candidates = [
+      ...(scope.matches?.(ROUTE_ENTER_SELECTOR) ? [scope] : []),
+      ...Array.from(scope.querySelectorAll?.(ROUTE_ENTER_SELECTOR) || []),
+    ];
+
+    candidates.forEach((el) => {
+      if (!el || seen.has(el)) return;
+      seen.add(el);
+      const group = el.dataset.routeEnter || 'context';
+      const fallbackOrder = groupCounts.get(group) || 0;
+      const order = parseRouteEnterOrder(el, fallbackOrder);
+      groupCounts.set(group, Math.max(fallbackOrder + 1, order + 1));
+      const config = getRouteEnterGroupConfig(group);
+      targets.push({
+        el,
+        group,
+        order,
+        delayMs: config.startMs + (config.stepMs * order),
+        durationMs: config.durationMs,
+        slide: el.dataset.routeEnterSlide === 'false' ? false : config.slide,
+      });
+    });
+  });
+
+  return targets.sort((a, b) => (
+    a.delayMs - b.delayMs
+    || a.group.localeCompare(b.group)
+    || a.order - b.order
+  ));
 }
 
 /* ── backdrop cleanup (with direct-DOM fallback) ─────────────────────────── */
@@ -353,6 +517,15 @@ function commitStaggerStyles(routeId, surfaceRefs) {
     }
     el.style.willChange = 'auto';
   });
+  getRouteEnterTargets(surfaceRefs).forEach(({ el }) => {
+    el.style.opacity = '';
+    el.style.transform = '';
+    el.style.filter = '';
+    el.style.transition = '';
+    el.style.transitionDelay = '';
+    el.style.pointerEvents = '';
+    el.style.willChange = '';
+  });
 }
 
 /* ── single cleanup path (idempotent, always safe to call) ───────────────── */
@@ -377,24 +550,22 @@ function finalizeTransition(
   if (!preserveTransitionPhase) {
     setTransitionPhase(TRANSITION_PHASES.IDLE);
   }
+  setInstrumentWakeState(null);
 
   // Restore content layers.
-  const { wall, hero, ui } = getContentLayers(surfaceRefs);
+  const { wall, hero, ui, chrome, secondary } = getContentLayers(surfaceRefs);
   if (wall) { wall.style.opacity = '1'; wall.style.willChange = 'auto'; }
   if (hero) { hero.style.opacity = '1'; hero.style.willChange = 'auto'; }
   if (ui) { ui.style.opacity = '1'; ui.style.willChange = 'auto'; }
-  if (wall) {
-    wall.style.removeProperty('visibility');
-    wall.style.removeProperty('pointer-events');
-  }
-  if (hero) {
-    hero.style.removeProperty('visibility');
-    hero.style.removeProperty('pointer-events');
-  }
-  if (ui) {
-    ui.style.removeProperty('visibility');
-    ui.style.removeProperty('pointer-events');
-  }
+  if (chrome) { chrome.style.opacity = '1'; chrome.style.willChange = 'auto'; }
+  if (secondary) { secondary.style.opacity = '1'; secondary.style.willChange = 'auto'; }
+  [wall, hero, ui, chrome, secondary].forEach((el) => {
+    if (!el) return;
+    el.style.removeProperty('visibility');
+    el.style.removeProperty('pointer-events');
+    el.style.removeProperty('transform');
+    el.style.removeProperty('filter');
+  });
 }
 
 function interruptTransitionForPopstate(isGate, routeId, surfaceRefs) {
@@ -411,26 +582,38 @@ function interruptTransitionForPopstate(isGate, routeId, surfaceRefs) {
   if (wall) wall.style.willChange = 'auto';
   if (hero) hero.style.willChange = 'auto';
   if (ui) ui.style.willChange = 'auto';
+  setInstrumentWakeState(null);
 }
 
 /* ── fade out content layers (wall stays visible) ─────────────────────────── */
 
 function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, options = {}) {
-  const { wall, hero, ui, chrome, secondary, footer } = getContentLayers(surfaceRefs);
+  const { wall, hero, chrome, secondary } = getContentLayers(surfaceRefs);
   const finalOpacity = Number.isFinite(options?.finalOpacity) ? options.finalOpacity : 0;
   const anims = [];
   const seen = new Set();
 
-  [wall, hero, ui, chrome, secondary, footer].forEach((el) => {
+  setInstrumentWakeState('out');
+
+  [wall, hero, chrome, secondary].forEach((el) => {
     if (!el) return;
     if (seen.has(el)) return;
     seen.add(el);
     if (typeof el.animate !== 'function') {
       el.style.opacity = String(finalOpacity);
+      el.style.filter = 'blur(var(--instrument-wake-blur))';
+      el.style.transform = 'scale(var(--instrument-wake-recede-scale))';
       return;
     }
     const anim = el.animate(
-      [{ opacity: 1 }, { opacity: finalOpacity }],
+      [
+        { opacity: 1, filter: 'blur(0)', transform: 'scale(1)' },
+        {
+          opacity: finalOpacity,
+          filter: 'blur(var(--instrument-wake-blur))',
+          transform: 'scale(var(--instrument-wake-recede-scale))',
+        },
+      ],
       { duration: durationMs, easing, fill: 'forwards' }
     );
     activeAnimations.push(anim);
@@ -662,8 +845,8 @@ function isPortfolioScrollRailReady() {
 
 function isDailyLabRouteReady(routeId) {
   switch (routeId) {
-    case 'wall-repel':
-      return isCanvasSurfaceReady('#wall-repel-canvas')
+    case 'repel-room':
+      return isCanvasSurfaceReady('#repel-room-canvas')
         && isSimulationVisualTransitionSourceActive(routeId);
     case 'flock-of-birds':
       return isCanvasSurfaceReady('#flock-of-birds-canvas')
@@ -715,8 +898,9 @@ function readRouteReadySnapshot(routeId) {
   return null;
 }
 
-function isRouteReadySnapshotStable(routeId, previous, next) {
+function isRouteReadySnapshotStable(routeId, previous, next, options = {}) {
   if (routeId !== 'portfolio') return true;
+  if (options.lockedGateId === 'portfolio') return true;
   if (!previous || !next) return false;
   const deckFailed = document.body?.classList.contains('portfolio-deck-failed');
   return (
@@ -727,21 +911,21 @@ function isRouteReadySnapshotStable(routeId, previous, next) {
   );
 }
 
-function isRouteBaselineReady(routeId) {
+function isRouteBaselineReady(routeId, options = {}) {
   const body = document.body;
   if (!body) return false;
 
   if (routeId === 'home') {
     const isHomeRoute = !body.classList.contains('portfolio-page') && !body.classList.contains('cv-page');
     const hero = document.getElementById('hero-title');
-    const navButtons = document.querySelectorAll('#main-links .footer_link');
+    const routeTabs = document.querySelectorAll('[data-route-tab]');
     const bootOverlay = document.getElementById('abs-boot-overlay');
     const bootState = document.documentElement.dataset.absBootState || '';
     const homeRouteReady = document.documentElement.dataset.absHomeRouteReady === 'true';
     return Boolean(
       isHomeRoute
       && hero
-      && navButtons.length >= 3
+      && routeTabs.length >= 4
       && hasCanvasBufferReady()
       && !bootOverlay
       && bootState !== 'booting'
@@ -751,20 +935,39 @@ function isRouteBaselineReady(routeId) {
 
   if (routeId === 'portfolio') {
     const deckFailed = body.classList.contains('portfolio-deck-failed');
+    const lockedGate = document.querySelector('[data-route-content="portfolio-gate"]');
+    if (options.lockedGateId === 'portfolio') {
+      return Boolean(body.classList.contains('portfolio-page') && lockedGate);
+    }
+    if (options.lockedGateId === null && lockedGate) {
+      return false;
+    }
     return Boolean(
       body.classList.contains('portfolio-page')
-      && document.getElementById('portfolioProjectMount')
-      && document.querySelector('.ui-top-main.route-topbar')
-      && hasCanvasBufferReady()
-      && (deckFailed || isPortfolioScrollRailReady())
+      && (
+        lockedGate
+        || (
+          hasCanvasBufferReady()
+          && (
+          document.getElementById('portfolioProjectMount')
+          && (deckFailed || isPortfolioScrollRailReady())
+          )
+        )
+      )
     );
   }
 
-  if (routeId === 'cv') {
+  if (routeId === 'about') {
     return Boolean(
-      body.classList.contains('cv-page')
-      && document.querySelector('.ui-top-main.route-topbar')
-      && document.querySelector('.cv-scroll-container')
+      body.classList.contains('about-page')
+      && document.querySelector('[data-route-content="about"]')
+    );
+  }
+
+  if (routeId === 'contact') {
+    return Boolean(
+      body.classList.contains('contact-page')
+      && document.querySelector('[data-route-content="contact"]')
     );
   }
 
@@ -775,7 +978,7 @@ function isRouteBaselineReady(routeId) {
   return Boolean(document.getElementById('app-frame'));
 }
 
-function waitForRouteReady(routeId, timeoutMs) {
+function waitForRouteReady(routeId, timeoutMs, options = {}) {
   let settle = () => {};
   const promise = new Promise((resolve) => {
     let settled = false;
@@ -787,7 +990,7 @@ function waitForRouteReady(routeId, timeoutMs) {
     const POLL_MS = 16;
     const REQUIRED_STABLE_FRAMES = routeId === 'portfolio' ? 2 : 0;
     const maybeSettleReady = () => {
-      if (!isRouteBaselineReady(routeId)) {
+      if (!isRouteBaselineReady(routeId, options)) {
         stableReadyFrames = 0;
         previousSnapshot = null;
         return false;
@@ -798,7 +1001,7 @@ function waitForRouteReady(routeId, timeoutMs) {
       }
 
       const snapshot = readRouteReadySnapshot(routeId);
-      if (snapshot && previousSnapshot && isRouteReadySnapshotStable(routeId, previousSnapshot, snapshot)) {
+      if (snapshot && previousSnapshot && isRouteReadySnapshotStable(routeId, previousSnapshot, snapshot, options)) {
         stableReadyFrames += 1;
       } else {
         stableReadyFrames = 0;
@@ -862,8 +1065,10 @@ function staggeredEntrance({
   return new Promise((resolve) => {
     const groups = buildRouteTransitionGroups(routeId, surfaceRefs);
     const targets = getGroupedTransitionItems(routeId, surfaceRefs);
+    const routeEnterTargets = getRouteEnterTargets(surfaceRefs);
     const { wall, hero, ui } = getContentLayers(surfaceRefs);
     const isRouteTransition = isRouteTransitionPhase(getTransitionPhase());
+    const routeEnterMotion = readRouteEnterMotion();
 
     // Safety: if DOM is unexpectedly empty, just restore layers.
     if (targets.length === 0) {
@@ -876,7 +1081,9 @@ function staggeredEntrance({
       return;
     }
 
-    // Hide every target before making the UI layer visible.
+    setInstrumentWakeState('in');
+
+    // Hide every owned transition target before making it visible.
     targets.forEach(({ el }) => {
       if (isShellManagedRouteNavButton(el)) {
         el.style.transition = 'none';
@@ -885,22 +1092,29 @@ function staggeredEntrance({
       el.style.opacity = '0';
       el.style.willChange = 'opacity, transform';
     });
+    routeEnterTargets.forEach(({ el, slide }) => {
+      el.style.transition = 'none';
+      el.style.opacity = '0';
+      el.style.filter = `blur(${routeEnterMotion.blur})`;
+      el.style.transform = slide
+        ? `translateY(${routeEnterMotion.y}) scale(${routeEnterMotion.scale})`
+        : 'translateY(0) scale(1)';
+      el.style.pointerEvents = 'none';
+      el.style.willChange = 'opacity, transform, filter';
+    });
 
-    // Pin content layers to opacity 0 via inline style BEFORE cancelling WAAPI.
+    // Pin window content layers to opacity 0 via inline style BEFORE cancelling WAAPI.
     // This prevents a single-frame flash where the WAAPI fill:forwards is removed
     // and the element reverts to CSS opacity 1 before the new inline value applies.
     if (wall) wall.style.opacity = '0';
     if (hero) hero.style.opacity = '0';
-    if (ui) ui.style.opacity = '0';
     if (wall) wall.style.removeProperty('visibility');
     if (hero) hero.style.removeProperty('visibility');
-    if (ui) ui.style.removeProperty('visibility');
     if (wall) wall.style.removeProperty('pointer-events');
     if (hero) hero.style.removeProperty('pointer-events');
-    if (ui) ui.style.removeProperty('pointer-events');
     cancelActiveAnimations();
 
-    // Now restore the .fade-content container (transparent — children are hidden individually).
+    // Keep the .fade-content container visible: footer and bottom tabs live inside it.
     if (ui) {
       ui.style.opacity = '1';
       ui.style.willChange = 'auto';
@@ -914,16 +1128,16 @@ function staggeredEntrance({
     groups.forEach((group) => {
       group.items.forEach(({ el, slide }) => {
         const delay = isRouteTransition ? group.delayMs : group.delayMs;
-        const routeSlideOffset = isRouteTransition ? 'translateY(0)' : 'translateY(var(--space-sm))';
+        const routeSlideOffset = isRouteTransition ? 'scale(var(--instrument-wake-resolve-scale))' : 'translateY(var(--space-sm))';
 
         if (hasWaapi) {
           const keyframes = slide
             ? [
-                { opacity: 0, transform: routeSlideOffset, filter: 'blur(var(--space-xs))' },
-                { opacity: 1, transform: 'translateY(0)', filter: 'blur(0)' },
+                { opacity: 0, transform: routeSlideOffset, filter: 'blur(var(--instrument-wake-blur))' },
+                { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0)' },
               ]
             : [
-                { opacity: 0, filter: 'blur(var(--space-xs))' },
+                { opacity: 0, filter: 'blur(var(--instrument-wake-blur))' },
                 { opacity: 1, filter: 'blur(0)' },
               ];
 
@@ -960,8 +1174,65 @@ function staggeredEntrance({
       });
     });
 
-    const total = Math.max(0, ...groups.map((group) => group.delayMs)) + enterMs;
-    setStableTimeout(resolve, total + 50);
+    routeEnterTargets.forEach(({ el, delayMs, durationMs, slide }) => {
+      const keyframes = slide
+        ? [
+            {
+              opacity: 0,
+              filter: `blur(${routeEnterMotion.blur})`,
+              transform: `translateY(${routeEnterMotion.y}) scale(${routeEnterMotion.scale})`,
+            },
+            { opacity: 1, filter: 'blur(0)', transform: 'translateY(0) scale(1)' },
+          ]
+        : [
+            { opacity: 0, filter: `blur(${routeEnterMotion.blur})` },
+            { opacity: 1, filter: 'blur(0)' },
+          ];
+
+      if (hasWaapi) {
+        const anim = el.animate(keyframes, {
+          duration: durationMs,
+          delay: delayMs,
+          easing: routeEnterMotion.easing,
+          fill: 'forwards',
+        });
+        activeAnimations.push(anim);
+        anim.onfinish = () => {
+          el.style.opacity = '';
+          el.style.transform = '';
+          el.style.filter = '';
+          el.style.transition = '';
+          el.style.transitionDelay = '';
+          el.style.pointerEvents = '';
+          el.style.willChange = '';
+        };
+        anim.oncancel = anim.onfinish;
+        return;
+      }
+
+      setStableTimeout(() => {
+        el.style.transition = [
+          `opacity ${durationMs}ms ${routeEnterMotion.easing}`,
+          `transform ${durationMs}ms ${routeEnterMotion.easing}`,
+          `filter ${durationMs}ms ${routeEnterMotion.easing}`,
+        ].join(', ');
+        el.style.opacity = '1';
+        el.style.transform = '';
+        el.style.filter = '';
+        setStableTimeout(() => {
+          el.style.transition = '';
+          el.style.transitionDelay = '';
+          el.style.pointerEvents = '';
+          el.style.willChange = '';
+        }, durationMs + 50);
+      }, delayMs);
+    });
+
+    const surfaceTotal = Math.max(0, ...groups.map((group) => group.delayMs)) + enterMs;
+    const routeEnterTotal = routeEnterTargets.length > 0
+      ? Math.max(ROUTE_ENTER_TOTAL_MS, ...routeEnterTargets.map((target) => target.delayMs + target.durationMs))
+      : 0;
+    setStableTimeout(resolve, Math.max(surfaceTotal, routeEnterTotal) + 50);
   });
 }
 
@@ -971,9 +1242,11 @@ function staggeredEntrance({
 
 export function useShellRouteTransition({ getRouteView, getRouteRuntime, surfaceRefs }) {
   const [routeState, setRouteState] = useState(() => computeRouteState(window.location.href));
+  const [pendingActiveRouteId, setPendingActiveRouteId] = useState(null);
   const transitionActiveRef = useRef(false);
   const queuedNavigationRef = useRef(null);
   const activeRouteIdRef = useRef(routeState.route.id);
+  const activeRouteContentSignatureRef = useRef(readRouteContentSignature(routeState));
   const activeFocusSimulationIdRef = useRef(readRouteStateSimulationFocusId(routeState));
   const activeGateTransitionRef = useRef(false);
   const activeRouteReadyCancelRef = useRef(null);
@@ -989,23 +1262,27 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     const targetUrl = new URL(href, window.location.href);
     const nextState = computeRouteState(targetUrl.toString());
     const nextRouteId = nextState.route.id;
+    const nextRouteContentSignature = readRouteContentSignature(nextState);
     const nextFocusSimulationId = readRouteStateSimulationFocusId(nextState);
     const isSameRoute = nextRouteId === activeRouteIdRef.current;
+    const hasRouteContentChange = nextRouteContentSignature !== activeRouteContentSignatureRef.current;
     const hasSimulationFocusChange = nextFocusSimulationId !== activeFocusSimulationIdRef.current;
     const method = options.replace ? 'replaceState' : 'pushState';
     const commit = () => {
       window.history[method](options.state || {}, '', nextState.canonicalHref);
       setRouteState(nextState);
       activeRouteIdRef.current = nextRouteId;
+      activeRouteContentSignatureRef.current = nextRouteContentSignature;
       activeFocusSimulationIdRef.current = nextFocusSimulationId;
     };
 
     if (transitionActiveRef.current) {
-      if (!isSameRoute || hasSimulationFocusChange) {
+      if (!isSameRoute || hasRouteContentChange || hasSimulationFocusChange) {
         queuedNavigationRef.current = {
           href: targetUrl.toString(),
           options,
           routeId: nextRouteId,
+          routeContentSignature: nextRouteContentSignature,
           focusSimulationId: nextFocusSimulationId,
         };
       }
@@ -1031,6 +1308,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       if (!queued || transitionActiveRef.current) return;
       if (
         queued.routeId === activeRouteIdRef.current
+        && queued.routeContentSignature === activeRouteContentSignatureRef.current
         && (queued.focusSimulationId || '') === activeFocusSimulationIdRef.current
       ) {
         queuedNavigationRef.current = null;
@@ -1045,6 +1323,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     const finishTransition = (isGateTransition, gateBackdropDismissed = false) => {
       transitionActiveRef.current = false;
       activeGateTransitionRef.current = false;
+      setPendingActiveRouteId(null);
       activeRouteReadyCancelRef.current?.();
       activeRouteReadyCancelRef.current = null;
       const releaseGateBackdrop = Boolean(options.releaseGateBackdropOnComplete);
@@ -1084,7 +1363,9 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       let routeReadyWaiter = null;
       const waitForCommittedRouteReady = () => {
         if (!shouldWaitForRouteReady) return Promise.resolve();
-        routeReadyWaiter = waitForRouteReady(readinessRouteId, routeTimings.ready);
+        routeReadyWaiter = waitForRouteReady(readinessRouteId, routeTimings.ready, {
+          lockedGateId: nextState.lockedGateId || null,
+        });
         activeRouteReadyCancelRef.current = routeReadyWaiter.cancel;
         return routeReadyWaiter.promise;
       };
@@ -1235,15 +1516,18 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     }
 
     /* ── smooth transition (gate-success OR any SPA route change) ────────── */
-    if (!isSameRoute && !reduceMotion) {
+    if ((!isSameRoute || hasRouteContentChange) && !reduceMotion) {
       transitionActiveRef.current = true;
       activeGateTransitionRef.current = isGate;
+      setPendingActiveRouteId(nextRouteId);
       setLegacyRouteTransitionActive(true, { gate: isGate });
       setTransitionPhase(TRANSITION_PHASES.ROUTE_OUT);
 
       const token = ++transitionToken;
       const stale = () => token !== transitionToken;
-      const routeReadyWaiter = waitForRouteReady(nextState.route.id, routeTimings.ready);
+      const routeReadyWaiter = waitForRouteReady(nextState.route.id, routeTimings.ready, {
+        lockedGateId: nextState.lockedGateId || null,
+      });
       const routeReady = routeReadyWaiter.promise;
       activeRouteReadyCancelRef.current = routeReadyWaiter.cancel;
       let gateBackdropDismissed = false;
@@ -1270,7 +1554,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             return;
           }
           if (isGate) {
-            // Keep non-gate route handoffs perceptually present while waiting for destination readiness.
+            // Gate-success handoffs stay hidden while the destination settles.
             setRouteLayerVisibility(false, surfaceRefs);
           }
           commit();
@@ -1314,11 +1598,14 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     if (isGate) {
       transitionActiveRef.current = true;
       activeGateTransitionRef.current = true;
+      setPendingActiveRouteId(nextRouteId);
       setLegacyRouteTransitionActive(true, { gate: true });
       setTransitionPhase(TRANSITION_PHASES.ROUTE_OUT);
       const token = ++transitionToken;
       const stale = () => token !== transitionToken;
-      const routeReadyWaiter = waitForRouteReady(nextState.route.id, routeTimings.ready);
+      const routeReadyWaiter = waitForRouteReady(nextState.route.id, routeTimings.ready, {
+        lockedGateId: nextState.lockedGateId || null,
+      });
       const routeReady = routeReadyWaiter.promise;
       activeRouteReadyCancelRef.current = routeReadyWaiter.cancel;
       let gateBackdropDismissed = false;
@@ -1370,6 +1657,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
 
     /* ── same-route or reduced-motion non-gate: instant commit ────────────── */
     commit();
+    setPendingActiveRouteId(null);
     syncSteadyTransitionPhase();
     return true;
   }, [surfaceRefs, syncSteadyTransitionPhase]);
@@ -1408,6 +1696,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       queuedNavigationRef.current = null;
       if (
         queued.routeId === activeRouteIdRef.current
+        && queued.routeContentSignature === activeRouteContentSignatureRef.current
         && (queued.focusSimulationId || '') === activeFocusSimulationIdRef.current
       ) return;
       setStableTimeout(() => {
@@ -1569,10 +1858,12 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       activeRouteReadyCancelRef.current = null;
       transitionActiveRef.current = false;
       activeGateTransitionRef.current = false;
+      setPendingActiveRouteId(null);
       if (isSameRoute) {
         setRouteLayerVisibility(true, surfaceRefs);
         setRouteState(nextState);
         activeRouteIdRef.current = nextState.route.id;
+        activeRouteContentSignatureRef.current = readRouteContentSignature(nextState);
         activeFocusSimulationIdRef.current = readRouteStateSimulationFocusId(nextState);
         syncSteadyTransitionPhase();
         return;
@@ -1595,6 +1886,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         setSimulationFocusTransitionState(null);
         transitionActiveRef.current = false;
         activeGateTransitionRef.current = false;
+        setPendingActiveRouteId(null);
         syncSteadyTransitionPhase();
       }
     };
@@ -1606,6 +1898,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
 
   useLayoutEffect(() => {
     activeRouteIdRef.current = routeState.route.id;
+    activeRouteContentSignatureRef.current = readRouteContentSignature(routeState);
     activeFocusSimulationIdRef.current = readRouteStateSimulationFocusId(routeState);
   }, [routeState]);
 
@@ -1616,20 +1909,13 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   }, [routeState.route.id, syncSteadyTransitionPhase]);
 
   useLayoutEffect(() => {
-    const gateId = routeState.redirectGateId || '';
-    if (!gateId) return;
-    requestGateOpen(gateId);
-    window.history.replaceState({}, '', routeState.canonicalHref);
-  }, [routeState.canonicalHref, routeState.redirectGateId]);
-
-  useLayoutEffect(() => {
     const simulationId = routeState.focusSimulationId || routeState.dailyFocusRouteId || '';
-    if (!simulationId) return;
-    writeManualSimulationFocus(simulationId);
     const currentHref = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (currentHref !== routeState.canonicalHref) {
       window.history.replaceState(window.history.state || {}, '', routeState.canonicalHref);
     }
+    if (!simulationId) return;
+    writeManualSimulationFocus(simulationId);
   }, [routeState.canonicalHref, routeState.dailyFocusRouteId, routeState.focusSimulationId]);
 
   const routeView = useMemo(() => getRouteView(routeState.route.id, routeState.canonicalHref, routeState), [
@@ -1641,5 +1927,11 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     routeState,
   ]);
 
-  return { routeState, routeRuntime, routeView, transitionCurrentRoute };
+  return {
+    routeState,
+    activeRouteId: pendingActiveRouteId || routeState.route.id,
+    routeRuntime,
+    routeView,
+    transitionCurrentRoute,
+  };
 }

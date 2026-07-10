@@ -1,21 +1,10 @@
-import { toggleDarkMode } from '../visual/dark-mode-v2.js';
-
 let activeIntervalId = null;
-let activeThemeToggleTarget = null;
-let activeThemeToggleHandler = null;
 
 function cleanupTimeDisplay() {
   if (activeIntervalId !== null) {
     clearInterval(activeIntervalId);
     activeIntervalId = null;
   }
-
-  if (activeThemeToggleTarget && activeThemeToggleHandler) {
-    activeThemeToggleTarget.removeEventListener('click', activeThemeToggleHandler);
-  }
-
-  activeThemeToggleTarget = null;
-  activeThemeToggleHandler = null;
 }
 
 const formatTime = new Intl.DateTimeFormat('en-GB', {
@@ -28,11 +17,9 @@ const formatTime = new Intl.DateTimeFormat('en-GB', {
 
 /**
  * Updates the footer time display to show current London time.
- * Clicking the time toggles between light/dark mode.
  */
 export function initTimeDisplay() {
   const timeDisplay = document.getElementById('time-display');
-  const siteYear = document.getElementById('site-year');
   cleanupTimeDisplay();
   if (!timeDisplay) return;
 
@@ -46,13 +33,4 @@ export function initTimeDisplay() {
 
   // Update every second to keep display current without extra work.
   activeIntervalId = setInterval(updateTime, 1000);
-
-  // Click on time element toggles dark/light mode
-  if (siteYear) {
-    activeThemeToggleTarget = siteYear;
-    activeThemeToggleHandler = () => {
-      toggleDarkMode();
-    };
-    siteYear.addEventListener('click', activeThemeToggleHandler);
-  }
 }

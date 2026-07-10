@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  DEFAULT_WALL_REPEL_CONFIG,
-  normalizeWallRepelConfig,
-} from './wallRepelControls.js';
-import { WALL_REPEL_SIMULATION_REGISTRY_ENTRY } from './wallRepelRegistry.js';
-import { createWallRepelRenderer } from './wallRepelRenderer.js';
+  DEFAULT_REPEL_ROOM_CONFIG,
+  normalizeRepelRoomConfig,
+} from './repelRoomControls.js';
+import { REPEL_ROOM_SIMULATION_REGISTRY_ENTRY } from './repelRoomRegistry.js';
+import { createRepelRoomRenderer } from './repelRoomRenderer.js';
 import { withBasePath } from '../../lib/base-path.js';
 import {
   DAILY_FOCUS_DESIGN_SYSTEM_URL,
@@ -13,14 +13,14 @@ import {
   resolveDailyFocusTheme,
   useDailyFocusReducedMotion,
 } from '../daily-focus/dailyFocusTheme.js';
-import './wall-repel-runtime.css';
+import './repel-room-runtime.css';
 
-const CONFIG_URL = withBasePath('/config/wall-repel-demo.json');
+const CONFIG_URL = withBasePath('/config/repel-room-demo.json');
 
-export function WallRepelRuntime() {
+export function RepelRoomRuntime() {
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
-  const configRef = useRef(DEFAULT_WALL_REPEL_CONFIG);
+  const configRef = useRef(DEFAULT_REPEL_ROOM_CONFIG);
   const themeRef = useRef(DEFAULT_DAILY_FOCUS_THEME);
   const [ready, setReady] = useState(false);
   const reducedMotion = useDailyFocusReducedMotion();
@@ -30,12 +30,12 @@ export function WallRepelRuntime() {
 
     async function loadRuntimeConfig() {
       const [demoConfig, designSystem] = await Promise.all([
-        loadDailyFocusJson(CONFIG_URL, DEFAULT_WALL_REPEL_CONFIG),
+        loadDailyFocusJson(CONFIG_URL, DEFAULT_REPEL_ROOM_CONFIG),
         loadDailyFocusJson(DAILY_FOCUS_DESIGN_SYSTEM_URL, null),
       ]);
 
       if (cancelled) return;
-      configRef.current = normalizeWallRepelConfig(demoConfig);
+      configRef.current = normalizeRepelRoomConfig(demoConfig);
       themeRef.current = resolveDailyFocusTheme(designSystem);
       setReady(true);
     }
@@ -50,7 +50,7 @@ export function WallRepelRuntime() {
     const canvas = canvasRef.current;
     if (!canvas || !ready) return undefined;
 
-    rendererRef.current = createWallRepelRenderer({
+    rendererRef.current = createRepelRoomRenderer({
       canvas,
       reducedMotion,
       transparentBackground: true,
@@ -70,15 +70,15 @@ export function WallRepelRuntime() {
 
   return (
     <section
-      className="wall-repel-demo wall-repel-demo--daily-focus daily-focus-runtime"
-      data-simulation-id={WALL_REPEL_SIMULATION_REGISTRY_ENTRY.id}
-      data-enabled-in-rotation={String(WALL_REPEL_SIMULATION_REGISTRY_ENTRY.enabledInRotation)}
+      className="repel-room-demo repel-room-demo--daily-focus daily-focus-runtime"
+      data-simulation-id={REPEL_ROOM_SIMULATION_REGISTRY_ENTRY.id}
+      data-enabled-in-rotation={String(REPEL_ROOM_SIMULATION_REGISTRY_ENTRY.enabledInRotation)}
       aria-label="Repel Room simulation"
     >
       <canvas
         ref={canvasRef}
-        id="wall-repel-canvas"
-        className="wall-repel-canvas"
+        id="repel-room-canvas"
+        className="repel-room-canvas"
         role="img"
         aria-label="Repel Room flat ball simulation"
       />

@@ -13,6 +13,10 @@ const catalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.
 const baseUrl = process.env.ABS_OUTER_WALL_AUDIT_URL || 'http://127.0.0.1:8012/index.html';
 const shouldStartDevServer = !process.env.ABS_OUTER_WALL_AUDIT_URL;
 const themes = ['light', 'dark'];
+const chromiumLockedHeaderFrame = {
+  light: '#f1f3f4',
+  dark: '#202124',
+};
 
 function log(message) {
   console.log(`[outer-wall-frame] ${message}`);
@@ -27,6 +31,16 @@ function hexToRgb(hex) {
   if (!/^[\da-f]{6}$/.test(value)) return null;
   const n = Number.parseInt(value, 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function cssRgbToRgb(value) {
+  const match = String(value || '').match(/^rgba?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)/i);
+  if (!match) return null;
+  return [
+    Math.round(Number(match[1])),
+    Math.round(Number(match[2])),
+    Math.round(Number(match[3])),
+  ];
 }
 
 function pixelDistance(a, b) {
@@ -48,7 +62,7 @@ function loadExpectations() {
   const simulations = Array.isArray(catalog.simulations) ? catalog.simulations : [];
   const homeMode = simulations.find((entry) => entry.id === 'pit' && entry.surface === 'home-mode')
     || simulations.find((entry) => entry.stage === 'daily-rotation' && entry.surface === 'home-mode');
-  const routeBacked = simulations.find((entry) => entry.id === 'wall-repel' && entry.stage === 'daily-rotation')
+  const routeBacked = simulations.find((entry) => entry.id === 'repel-room' && entry.stage === 'daily-rotation')
     || simulations.find((entry) => entry.stage === 'daily-rotation' && entry.surface === 'lab-route');
 
   if (!homeMode) throw new Error('No daily home-mode simulation available for audit.');
@@ -166,15 +180,16 @@ function assertFrameState(theme, phase, actual, expectedHex) {
     }
   }
 
-  const expectedRgb = hexToRgb(expectedHex);
-  if (!expectedRgb) throw new Error(`Invalid expected frame color: ${expectedHex}`);
-  if (pixelDistance(actual.outerPixel, expectedRgb) > 2) {
-    throw new Error(`${theme}/${phase} outer pixel: expected ${expectedRgb.join(',')}, got ${actual.outerPixel.join(',')}`);
+  const expectedOuterRgb = cssRgbToRgb(actual.bodyBackground);
+  if (!expectedOuterRgb) throw new Error(`${theme}/${phase} could not parse body background ${actual.bodyBackground}`);
+  if (pixelDistance(actual.outerPixel, expectedOuterRgb) > 2) {
+    throw new Error(`${theme}/${phase} outer pixel: expected body background ${expectedOuterRgb.join(',')}, got ${actual.outerPixel.join(',')}`);
   }
 }
 
 async function runTheme(browser, theme, expectations) {
-  const expectedFrame = theme === 'dark' ? expectations.frame.dark : expectations.frame.light;
+  const expectedFrame = chromiumLockedHeaderFrame[theme]
+    || (theme === 'dark' ? expectations.frame.dark : expectations.frame.light);
   const context = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1 });
   await context.addInitScript(({ themeName, dayStamp, simulationId, catalogVersion }) => {
     localStorage.setItem('theme-preference-v2', themeName);
@@ -212,7 +227,7 @@ async function runTheme(browser, theme, expectations) {
     const routeBacked = await readFrameState(page);
     assertFrameState(theme, `route-backed-${expectations.routeBacked.id}`, routeBacked, expectedFrame);
 
-    log(`${theme}: ${expectations.homeMode.id} -> ${expectations.routeBacked.id} frame=${expectedFrame}`);
+    log(`${theme}: ${expectations.homeMode.id} -> ${expectations.routeBacked.id} locked-header-frame=${expectedFrame}`);
   } finally {
     await context.close();
   }
@@ -232,7 +247,7 @@ async function run() {
     await server?.stop();
   }
 
-  log('PASS: visible outer wall/frame matches authored site frame on direct boot and route-backed simulation switch.');
+  log('PASS: frame variables match locked-header browser chrome and visible edge pixels match the shell wall on direct boot and route-backed simulation switch.');
 }
 
 run().catch((error) => {

@@ -5,18 +5,15 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { initModalOverlay } from './modal-overlay.js';
-import { initContactModal } from './contact-modal.js';
-import { initCVModal } from './cv-modal.js';
-import { initPortfolioModal } from './portfolio-modal.js';
 import { initLinkCursorHop } from './link-cursor-hop.js';
 import { initTimeDisplay } from './time-display.js';
 
 /**
  * Initialize shared chrome features across pages
  * @param {Object} options - Configuration object
- * @param {boolean} options.contactModal - Initialize contact modal
- * @param {boolean} options.cvModal - Initialize CV modal
- * @param {boolean} options.portfolioModal - Initialize portfolio modal
+ * @param {boolean} options.contactModal - Legacy no-op; Contact is a route.
+ * @param {boolean} options.cvModal - Legacy no-op; About is a route.
+ * @param {boolean} options.portfolioModal - Legacy no-op; Portfolio gate is in-window.
  * @param {boolean} options.cursorHiding - Initialize cursor hiding system
  * @param {Object} options.modalOverlayConfig - Config object for modal overlay
  */
@@ -29,37 +26,12 @@ export function initSharedChrome(options = {}) {
     modalOverlayConfig = {}
   } = options;
 
-  // Modal overlay (required for any modal)
+  // Modal overlay (still used by the simulation chooser).
   if (contactModal || cvModal || portfolioModal) {
     try {
       initModalOverlay(modalOverlayConfig);
     } catch (e) {
       console.warn('Failed to initialize modal overlay:', e);
-    }
-  }
-
-  // Individual modals
-  if (contactModal) {
-    try {
-      initContactModal();
-    } catch (e) {
-      console.warn('Failed to initialize contact modal:', e);
-    }
-  }
-
-  if (cvModal) {
-    try {
-      initCVModal();
-    } catch (e) {
-      console.warn('Failed to initialize CV modal:', e);
-    }
-  }
-
-  if (portfolioModal) {
-    try {
-      initPortfolioModal();
-    } catch (e) {
-      console.warn('Failed to initialize portfolio modal:', e);
     }
   }
 

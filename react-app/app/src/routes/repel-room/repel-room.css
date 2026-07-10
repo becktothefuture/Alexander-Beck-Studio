@@ -1,42 +1,42 @@
-body.wall-repel-page {
+body.repel-room-page {
   overflow: hidden;
   color: var(--text-primary, #f0f0f0);
 }
 
-body.wall-repel-page #simulations {
+body.repel-room-page #simulations {
   background: var(--abs-wall-base, #202020);
   border-color: var(--frame-color, #141517);
 }
 
-body.wall-repel-page #simulations::before,
-body.wall-repel-page #simulations::after,
-body.wall-repel-page #simulations > .scene-effects,
-body.wall-repel-page .inner-wall-gradient-edge,
-body.wall-repel-page .frame-vignette {
+body.repel-room-page #simulations::before,
+body.repel-room-page #simulations::after,
+body.repel-room-page #simulations > .scene-effects,
+body.repel-room-page .inner-wall-gradient-edge,
+body.repel-room-page .frame-vignette {
   display: none;
 }
 
-body.wall-repel-page .wall-repel-wall,
-body.wall-repel-page .shell-wall-route-root {
+body.repel-room-page .repel-room-wall,
+body.repel-room-page .shell-wall-route-root {
   pointer-events: auto;
 }
 
-body.wall-repel-page .route-topbar {
+body.repel-room-page .route-topbar {
   --route-topbar-top: var(--gap-xs);
   padding-top: var(--route-topbar-top);
   padding-inline: var(--gap-lg);
 }
 
-body.wall-repel-page .route-topbar__left,
-body.wall-repel-page .route-topbar__right {
+body.repel-room-page .route-topbar__left,
+body.repel-room-page .route-topbar__right {
   min-height: var(--ui-icon-frame-size);
 }
 
-body.wall-repel-page .route-topbar__right.ui-top-right {
+body.repel-room-page .route-topbar__right.ui-top-right {
   justify-content: flex-end;
 }
 
-.parameterizer-panel.wall-repel-panel {
+.parameterizer-panel.repel-room-panel {
   --parameterizer-panel-width: 360px;
   --parameterizer-header-height: 28px;
   --parameterizer-folder-height: 24px;
@@ -72,7 +72,7 @@ body.wall-repel-page .route-topbar__right.ui-top-right {
   pointer-events: auto;
 }
 
-.wall-repel-panel .parameterizer-header {
+.repel-room-panel .parameterizer-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -83,23 +83,23 @@ body.wall-repel-page .route-topbar__right.ui-top-right {
   font-weight: 600;
 }
 
-.wall-repel-panel__status {
+.repel-room-panel__status {
   color: var(--parameterizer-muted);
   font-family: var(--abs-font-mono);
   font-size: 10px;
   font-weight: 500;
 }
 
-.wall-repel-panel .parameterizer-scroll {
+.repel-room-panel .parameterizer-scroll {
   overflow: auto;
   min-height: 0;
 }
 
-.wall-repel-panel .parameterizer-folder {
+.repel-room-panel .parameterizer-folder {
   border-bottom: 1px solid var(--parameterizer-separator);
 }
 
-.wall-repel-panel .parameterizer-folder-title {
+.repel-room-panel .parameterizer-folder-title {
   display: flex;
   align-items: center;
   min-height: var(--parameterizer-folder-height);
@@ -111,11 +111,11 @@ body.wall-repel-page .route-topbar__right.ui-top-right {
   list-style: none;
 }
 
-.wall-repel-panel .parameterizer-folder-title::-webkit-details-marker {
+.repel-room-panel .parameterizer-folder-title::-webkit-details-marker {
   display: none;
 }
 
-.wall-repel-panel .parameterizer-folder-title::before {
+.repel-room-panel .parameterizer-folder-title::before {
   width: 12px;
   color: var(--parameterizer-muted);
   content: 'v';
@@ -123,15 +123,15 @@ body.wall-repel-page .route-topbar__right.ui-top-right {
   font-size: 9px;
 }
 
-.wall-repel-panel .parameterizer-folder:not([open]) .parameterizer-folder-title::before {
+.repel-room-panel .parameterizer-folder:not([open]) .parameterizer-folder-title::before {
   content: '>';
 }
 
-.wall-repel-panel__rows {
+.repel-room-panel__rows {
   padding-block: 2px;
 }
 
-.wall-repel-panel .parameterizer-row {
+.repel-room-panel .parameterizer-row {
   display: grid;
   grid-template-columns: minmax(0, 34%) minmax(0, 1fr) 56px;
   align-items: center;
@@ -141,28 +141,28 @@ body.wall-repel-page .route-topbar__right.ui-top-right {
   background: var(--parameterizer-row-bg);
 }
 
-.wall-repel-panel .parameterizer-row:hover {
+.repel-room-panel .parameterizer-row:hover {
   background: var(--parameterizer-row-hover);
 }
 
-.wall-repel-panel .parameterizer-label {
+.repel-room-panel .parameterizer-label {
   overflow: hidden;
   color: var(--parameterizer-text);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.wall-repel-panel .parameterizer-control {
+.repel-room-panel .parameterizer-control {
   display: flex;
   align-items: center;
   min-width: 0;
 }
 
-.wall-repel-panel .parameterizer-control--check {
+.repel-room-panel .parameterizer-control--check {
   justify-content: flex-end;
 }
 
-.wall-repel-panel .parameterizer-value {
+.repel-room-panel .parameterizer-value {
   overflow: hidden;
   color: var(--parameterizer-muted);
   font-family: var(--abs-font-mono);
@@ -173,24 +173,24 @@ body.wall-repel-page .route-topbar__right.ui-top-right {
   white-space: nowrap;
 }
 
-.wall-repel-panel input,
-.wall-repel-panel button {
+.repel-room-panel input,
+.repel-room-panel button {
   font: inherit;
 }
 
-.wall-repel-panel input[type='range'] {
+.repel-room-panel input[type='range'] {
   width: 100%;
   accent-color: var(--parameterizer-accent);
 }
 
-.wall-repel-panel input[type='checkbox'] {
+.repel-room-panel input[type='checkbox'] {
   width: 13px;
   height: 13px;
   margin: 0;
   accent-color: var(--parameterizer-accent);
 }
 
-.wall-repel-panel .parameterizer-actions {
+.repel-room-panel .parameterizer-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
@@ -199,7 +199,7 @@ body.wall-repel-page .route-topbar__right.ui-top-right {
   background: var(--parameterizer-header-bg);
 }
 
-.wall-repel-panel button {
+.repel-room-panel button {
   min-height: 22px;
   border: 1px solid var(--parameterizer-separator);
   border-radius: 2px;
@@ -208,21 +208,21 @@ body.wall-repel-page .route-topbar__right.ui-top-right {
   cursor: pointer;
 }
 
-.wall-repel-panel button:hover,
-.wall-repel-panel button:focus-visible,
-.wall-repel-panel input:focus-visible {
+.repel-room-panel button:hover,
+.repel-room-panel button:focus-visible,
+.repel-room-panel input:focus-visible {
   outline: 1px solid var(--parameterizer-accent);
   outline-offset: 1px;
 }
 
 @media (color-gamut: p3) {
-  .parameterizer-panel.wall-repel-panel {
+  .parameterizer-panel.repel-room-panel {
     --parameterizer-accent: color(display-p3 0.36 0.72 1);
   }
 }
 
 @media (max-width: 700px) {
-  .parameterizer-panel.wall-repel-panel {
+  .parameterizer-panel.repel-room-panel {
     top: auto;
     right: max(8px, env(safe-area-inset-right, 0px));
     bottom: max(8px, env(safe-area-inset-bottom, 0px));
@@ -231,7 +231,7 @@ body.wall-repel-page .route-topbar__right.ui-top-right {
     max-height: min(48vh, 320px);
   }
 
-  .wall-repel-panel .parameterizer-row {
+  .repel-room-panel .parameterizer-row {
     grid-template-columns: minmax(0, 33%) minmax(0, 1fr) 52px;
   }
 }

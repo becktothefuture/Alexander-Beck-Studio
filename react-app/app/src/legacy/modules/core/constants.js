@@ -28,7 +28,8 @@ export const MODES = {
   STARFIELD_3D: 'starfield-3d',
   ELASTIC_CENTER: 'elastic-center',
   FLOCK_OF_BIRDS: 'flock-of-birds',
-  WALL_REPEL: 'wall-repel',
+  REPEL_ROOM: 'repel-room',
+  WALL_REPEL: 'repel-room',
   APERTURE_BLOOM: 'aperture-bloom',
   MINERAL_GROWTH: 'mineral-growth',
   FLUBBER_BLOB: 'flubber-blob',
@@ -94,7 +95,7 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.CRITTERS]: 'CRITTER SWARM',
   [MODES.ELASTIC_CENTER]: 'ELASTIC LOOM',
   [MODES.FLOCK_OF_BIRDS]: 'FLOCK DRIFT',
-  [MODES.WALL_REPEL]: 'REPEL ROOM',
+  [MODES.REPEL_ROOM]: 'REPEL ROOM',
   [MODES.APERTURE_BLOOM]: 'APERTURE BLOOM',
   [MODES.MINERAL_GROWTH]: 'MINERAL BLOOM',
   [MODES.FLUBBER_BLOB]: 'SOFT BLOB',
@@ -172,7 +173,7 @@ export const NARRATIVE_QUOTES = {
     quote: 'The whole is other than the sum of the parts.',
     author: 'Kurt Koffka'
   },
-  [MODES.WALL_REPEL]: {
+  [MODES.REPEL_ROOM]: {
     quote: 'The whole is other than the sum of the parts.',
     author: 'Kurt Koffka'
   },

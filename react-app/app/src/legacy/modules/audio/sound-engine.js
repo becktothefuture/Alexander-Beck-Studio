@@ -849,7 +849,61 @@ export function playWheelClose() {
 
 export function playHoverSound() {
   if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
+  recordSoundDebugEvent('hover-playback', 'sound-engine:hover', { gain: 0.064, filterHz: 1450 });
+  playWheelClick(0.064, 1450);
+}
+
+export function playButtonPressSound() {
+  if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
+  recordSoundDebugEvent('button-press-playback', 'sound-engine:button-press', { gain: 0.099, filterHz: 2200 });
   playWheelClick(0.099, 2200);
+}
+
+export function playSoundEnabledMotif() {
+  if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
+  ensureWheelBus();
+
+  const now = audioContext.currentTime;
+  const notes = [
+    { frequency: 523.25, offset: 0.000, gain: 0.028 },
+    { frequency: 659.25, offset: 0.075, gain: 0.024 },
+    { frequency: 783.99, offset: 0.150, gain: 0.021 },
+  ];
+
+  recordSoundDebugEvent('sound-enabled-motif', 'sound-engine:sound-enabled-motif', {
+    noteCount: notes.length,
+    frequencies: notes.map((note) => note.frequency),
+  });
+
+  for (const note of notes) {
+    const start = now + note.offset;
+    const duration = 0.155;
+    const stop = start + duration + 0.03;
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(note.frequency, start);
+    osc.detune.setValueAtTime((Math.random() - 0.5) * 8, start);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2800, start);
+    filter.Q.setValueAtTime(0.45, start);
+
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(note.gain, start + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+    osc.connect(filter).connect(gain).connect(wheelBus);
+    osc.onended = () => {
+      try { osc.disconnect(); } catch (e) {}
+      try { filter.disconnect(); } catch (e) {}
+      try { gain.disconnect(); } catch (e) {}
+    };
+    osc.start(start);
+    osc.stop(stop);
+  }
 }
 
 /** Create a short noise burst for transient "snap" */
