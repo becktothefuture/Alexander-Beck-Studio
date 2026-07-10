@@ -34,6 +34,7 @@
     "audit:home-daily" : "node scripts\/audit-home-daily-mode.mjs",
     "audit:outer-wall-frame" : "node scripts\/audit-outer-wall-frame.mjs",
     "audit:palette-surface-contract" : "node scripts\/audit-palette-surface-contract.mjs",
+    "audit:theme-wall-invariance" : "node scripts\/audit-theme-wall-invariance.mjs",
     "audit:daily-simulation-boundary" : "node scripts\/audit-daily-focus-boundary.mjs",
     "audit:daily-simulation-shell-matrix" : "node scripts\/audit-daily-focus-shell-matrix.mjs",
     "audit:daily-simulation-color-matrix" : "node scripts\/audit-daily-focus-color-matrix.mjs",

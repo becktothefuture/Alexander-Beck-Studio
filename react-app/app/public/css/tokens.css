@@ -874,12 +874,6 @@ body[data-abs-theme='dark'] {
   
   --inner-wall-shine-color: var(--bg-dark);
 
-  --inner-wall-gradient-edge-top-shadow-opacity: 0.34;
-  --inner-wall-gradient-edge-bottom-opacity: 0.24;
-  --inner-wall-gradient-edge-side-opacity: 0.14;
-  --inner-wall-gradient-edge-side-shadow-opacity: 0.14;
-
-  --inner-wall-pit-inset-shadow-opacity: 0.24;
 }
 
 /* ╔══════════════════════════════════════════════════════════════════════════════╗

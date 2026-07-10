@@ -2727,7 +2727,7 @@ export const CONTROL_SECTIONS = {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // WALL LIGHT — narrow inset wall rim. Top shadow rim: separate slider.
-  // Ratios: bottom 145%, sides 85% of rim master. Dark mode softens light edges only.
+  // Ratios: bottom 145%, sides 85% of rim master. Theme toggles do not alter wall contour.
   // ═══════════════════════════════════════════════════════════════════════════
   wallLight: {
     title: 'Wall Rim',
@@ -2743,13 +2743,11 @@ export const CONTROL_SECTIONS = {
         default: 0.22,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Light rim on bottom and sides only (center peak, corners fade). Top edge uses Top shadow rim.',
+        hint: 'Light rim on bottom and sides only (center peak, corners fade). Top edge uses Top shadow rim. Theme toggles do not alter this contour.',
         onChange: (_g, val) => {
-          const isDark = document.body.classList.contains('dark-mode');
-          const dm = isDark ? 0.75 : 1;
-          document.documentElement.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(Number((val * 1.45 * dm).toFixed(3))));
-          document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(Number((val * 0.85 * dm).toFixed(3))));
-          document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-shadow-opacity', String(Number((val * 0.85 * dm).toFixed(3))));
+          document.documentElement.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(Number((val * 1.45).toFixed(3))));
+          document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(Number((val * 0.85).toFixed(3))));
+          document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-shadow-opacity', String(Number((val * 0.85).toFixed(3))));
         }
       },
       {
@@ -2761,13 +2759,11 @@ export const CONTROL_SECTIONS = {
         default: 0.3,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Dark inset lip along the top inner edge only. Slightly stronger in dark mode automatically (capped at 100% in CSS).',
+        hint: 'Dark inset lip along the top inner edge only. Theme toggles do not alter this contour.',
         onChange: (_g, val) => {
-          const isDark = document.body.classList.contains('dark-mode');
-          const dm = isDark ? 1.15 : 0.56;
           document.documentElement.style.setProperty(
             '--inner-wall-gradient-edge-top-shadow-opacity',
-            String(Number(Math.min(1, val * dm).toFixed(3)))
+            String(Number(Math.min(1, val * 0.56).toFixed(3)))
           );
         }
       },

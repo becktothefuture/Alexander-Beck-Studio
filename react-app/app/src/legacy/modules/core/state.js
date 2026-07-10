@@ -912,7 +912,7 @@ const state = {
   innerWallGradientEdgeWidth: 3,            // Gradient edge rim thickness (px) — ~50% above legacy 2px
   innerWallGradientEdgeTopOpacity: 0.18,    // Master — bottom + sides light rim only
   innerWallGradientEdgeTopShadowOpacity: 0.3, // Top inner edge shadow rim (0–1, CSS-clamped in apply)
-  innerWallPitInsetShadowOpacity: 0.12,     // Pit interior inset shadow (light mode; dark ×1.45 in apply)
+  innerWallPitInsetShadowOpacity: 0.12,     // Pit interior inset shadow (theme-invariant)
   innerWallPitInsetShadowBlurPx: 28,        // Inset shadow blur (px)
   innerWallPitInsetShadowSpreadPx: -6,      // Negative pulls shadow inward from rim
   innerWallPitInsetShadowOffsetYPx: 4,      // Slight downward bias (top light)
@@ -1449,14 +1449,12 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--inner-wall-shine-opacity', '0');
 
   // Pit inset shadow (#simulations::before — above canvas, below rim overlay).
-  // Light: ~20% stronger than raw slider. Dark: extra lift — black on charcoal needs higher α to read.
+  // Keep edge treatment theme-invariant so light/dark toggles cannot redraw the wall contour.
   const pitOp = state.innerWallPitInsetShadowOpacity ?? 0.12;
-  const pitLightMul = 1.2;
-  const pitDarkMul = 1.88; // ~1.45 × 1.3 vs previous dark tuning
-  const pitCapLight = 0.36;
-  const pitCapDark = 0.46;
+  const pitOpacityMul = 1.2;
+  const pitCap = 0.36;
   let pitOpacity = Number(
-    Math.min(isDarkMode ? pitCapDark : pitCapLight, pitOp * (isDarkMode ? pitDarkMul : pitLightMul)).toFixed(3)
+    Math.min(pitCap, pitOp * pitOpacityMul).toFixed(3)
   );
   let pitBlur = state.innerWallPitInsetShadowBlurPx ?? 28;
   const pitSpread = state.innerWallPitInsetShadowSpreadPx ?? -6;
@@ -1466,18 +1464,18 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--inner-wall-pit-inset-shadow-offset-y', `${pitOff}px`);
   root.style.setProperty('--inner-wall-pit-inset-shadow-opacity', String(pitOpacity));
 
-  // Gradient edge — master drives bottom/sides light; top shadow has its own control
+  // Gradient edge — master drives bottom/sides light; top shadow has its own control.
+  // Ratios intentionally match the approved light-mode contour in every theme.
   const ge = state.innerWallGradientEdgeTopOpacity ?? 0.22;
-  const dm = isDarkMode ? 0.75 : 1;
   const topShadow = state.innerWallGradientEdgeTopShadowOpacity ?? 0.3;
-  const topShadowDm = isDarkMode ? 1.15 : 0.56;
+  const topShadowMul = 0.56;
   root.style.setProperty('--inner-wall-gradient-edge-width', `${state.innerWallGradientEdgeWidth ?? 3}px`);
-  root.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(Number((ge * 1.45 * dm).toFixed(3))));
-  root.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(Number((ge * 0.85 * dm).toFixed(3))));
-  root.style.setProperty('--inner-wall-gradient-edge-side-shadow-opacity', String(Number((ge * 0.85 * dm).toFixed(3))));
+  root.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(Number((ge * 1.45).toFixed(3))));
+  root.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(Number((ge * 0.85).toFixed(3))));
+  root.style.setProperty('--inner-wall-gradient-edge-side-shadow-opacity', String(Number((ge * 0.85).toFixed(3))));
   root.style.setProperty(
     '--inner-wall-gradient-edge-top-shadow-opacity',
-    String(Number(Math.min(1, topShadow * topShadowDm).toFixed(3)))
+    String(Number(Math.min(1, topShadow * topShadowMul).toFixed(3)))
   );
 
   // Puck disk edge

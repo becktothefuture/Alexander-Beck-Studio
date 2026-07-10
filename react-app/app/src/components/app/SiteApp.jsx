@@ -49,6 +49,10 @@ import {
   SIMULATION_FOCUS_STORAGE_KEY,
 } from '../../data/simulationCatalog.js';
 import { completeDirectBoot } from '../../legacy/modules/visual/page-orchestrator.js';
+import { applyLayoutCSSVars, initState } from '../../legacy/modules/core/state.js';
+import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
+import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
+import { isDarkThemeDocument } from '../../lib/theme-state.js';
 
 const ROUTE_VIEW_BY_ID = {
   home: getHomeRouteView,
@@ -89,6 +93,25 @@ const ROUTE_RUNTIME_BY_ID = {
   'spatial-scan': SPATIAL_SCAN_ROUTE_RUNTIME,
   'loader-playground': LOADER_PLAYGROUND_ROUTE_RUNTIME
 };
+
+let sharedShellRuntimeSyncPromise = null;
+
+function syncSharedShellRuntimeState() {
+  if (!sharedShellRuntimeSyncPromise) {
+    sharedShellRuntimeSyncPromise = Promise.all([
+      loadRuntimeConfig(),
+      loadShellConfig(),
+    ]).then(([runtimeConfig, shellConfig]) => {
+      initState(runtimeConfig);
+      applyLayoutCSSVars();
+      syncShellToDocument({
+        config: shellConfig,
+        isDark: isDarkThemeDocument(),
+      });
+    });
+  }
+  return sharedShellRuntimeSyncPromise;
+}
 
 function getSearchFromHref(href) {
   if (!href) return '';
@@ -275,6 +298,23 @@ export function SiteApp() {
   );
 
   useSiteHaptics({ routeId: routeState.route.id });
+
+  useLayoutEffect(() => {
+    if (isStandaloneRoute) return undefined;
+    let cancelled = false;
+    syncSharedShellRuntimeState()
+      .then(() => {
+        if (!cancelled) {
+          applyLayoutCSSVars();
+        }
+      })
+      .catch((error) => {
+        console.error('[shell] Failed to sync shared runtime layout', error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isStandaloneRoute]);
 
   useLayoutEffect(() => {
     markDirectShellRouteReady(routeState.route.id, isStandaloneRoute, {
