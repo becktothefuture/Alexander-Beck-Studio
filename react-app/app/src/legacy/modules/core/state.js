@@ -186,7 +186,7 @@ const state = {
   featureQualityTieringEnabled: true,
   featureCrittersNeighborCacheEnabled: true,
   performanceModeEnabled: false,
-  performanceHudEnabled: true,
+  performanceHudEnabled: false,
 
   // Configurable render scheduler targets.
   renderTargetFpsDesktop: 60,
