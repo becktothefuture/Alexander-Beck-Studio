@@ -62,8 +62,15 @@
           <div id="top-elements-soundRow" class="ui-top-soundRow"></div>
         </header>
         
-        <!-- CENTER SECTION: semantic spacer; primary route navigation lives in the shell route dock. -->
-        <main class="ui-center" aria-hidden="true"></main>
+        <!-- CENTER SECTION: Logo + Nav (nav is absolute below logo so --home-main-links-below-logo-px works) -->
+        <main class="ui-center">
+        </main>
+          <!-- Main Links Navigation - absolute below logo, gap from --home-main-links-below-logo-px -->
+          <nav id="main-links" class="ui-nav-row ui-main-nav" aria-label="Main navigation links">
+            <button id="contact-email" type="button" class="footer_link"><span class="footer-link-nowrap">Contact</span></button>
+            <button id="portfolio-modal-trigger" type="button" class="footer_link"><span class="footer-link-nowrap">Portfolio</span></button>
+            <button id="cv-modal-trigger" type="button" class="footer_link"><span class="footer-link-nowrap">About Me</span></button>
+          </nav>
         
         <!-- BOTTOM SECTION: shared footer mounted here via React (SharedFrame footer slot) -->
         <div id="footer-mount"></div>

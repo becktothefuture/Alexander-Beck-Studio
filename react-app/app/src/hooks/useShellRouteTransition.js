@@ -734,14 +734,14 @@ function isRouteBaselineReady(routeId) {
   if (routeId === 'home') {
     const isHomeRoute = !body.classList.contains('portfolio-page') && !body.classList.contains('cv-page');
     const hero = document.getElementById('hero-title');
-    const homeTab = document.querySelector('.shell-route-tab[data-route-tab="home"][aria-current="page"]');
+    const navButtons = document.querySelectorAll('#main-links .footer_link');
     const bootOverlay = document.getElementById('abs-boot-overlay');
     const bootState = document.documentElement.dataset.absBootState || '';
     const homeRouteReady = document.documentElement.dataset.absHomeRouteReady === 'true';
     return Boolean(
       isHomeRoute
       && hero
-      && homeTab
+      && navButtons.length >= 3
       && hasCanvasBufferReady()
       && !bootOverlay
       && bootState !== 'booting'

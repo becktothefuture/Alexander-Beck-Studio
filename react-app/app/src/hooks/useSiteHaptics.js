@@ -14,8 +14,6 @@ const INTERACTIVE_SELECTOR = [
 
 const OPEN_SELECTOR = [
   '[aria-haspopup="dialog"]',
-  '.shell-route-tab[data-gate-id]',
-  '.shell-route-tab[data-route-tab="contact"]',
   '#portfolio-modal-trigger',
   '#cv-modal-trigger',
   '#contact-email',

@@ -32,13 +32,13 @@ const matrix = [
   {
     page: 'home',
     path: '/',
-    readySelectors: ['#app-frame', '.shell-transition-surface--footer .shell-route-tab', '#expertise-legend .legend__item', '.decorative-script p'],
+    readySelectors: ['#app-frame', '#main-links .footer_link', '#expertise-legend .legend__item', '.decorative-script p'],
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
       {
-        selector: '.shell-transition-surface--footer .shell-route-tab',
-        minCount: 4,
+        selector: '#main-links .footer_link',
+        minCount: 3,
         minArea: 400,
         requiredText: ['About Me', 'Contact', 'Portfolio']
       },
@@ -63,8 +63,8 @@ const matrix = [
       selectors: [
         { selector: '#app-frame', minArea: 200000, requiredText: [] },
         {
-          selector: '.shell-transition-surface--footer .shell-route-tab',
-          minCount: 4,
+          selector: '#main-links .footer_link',
+          minCount: 3,
           minArea: 400,
           requiredText: ['About Me', 'Contact', 'Portfolio']
         },
@@ -89,14 +89,14 @@ const matrix = [
     sessionStorage: {
       abs_portfolio_ok: 'certified'
     },
-    readySelectors: ['#app-frame', '#c', '.shell-transition-surface--footer .shell-route-tab[aria-current="page"]', '#portfolioProjectMount', '.portfolio-deck-card.is-active'],
+    readySelectors: ['#app-frame', '#c', '.portfolio-topnav .footer_link', '#portfolioProjectMount', '.portfolio-deck-card.is-active'],
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
       { selector: '#c', minArea: 60000, requiredText: [] },
       { selector: '#portfolioProjectMount', minArea: 60000, requiredText: [] },
       { selector: '.portfolio-deck-card.is-active', minCount: 1, minArea: 60000, requiredText: [] },
-      { selector: '.shell-transition-surface--footer .shell-route-tab[aria-current="page"]', minCount: 1, minArea: 400, requiredText: ['Portfolio'] }
+      { selector: '.portfolio-topnav .footer_link', minCount: 1, minArea: 120, requiredText: ['About Me'] }
     ]
   },
   {

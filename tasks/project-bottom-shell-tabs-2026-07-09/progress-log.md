@@ -22,7 +22,7 @@ Created: 2026-07-09
 | Development review | complete | Subagent | 2026-07-09 | Requested route/gate display state, Contact build entry, `#main-links` migration, geometry consumer coverage. |
 | Business analysis / PRD drafting | complete | Subagent + Codex lead | 2026-07-09 | PRD split revised and six PRDs drafted. |
 | Independent PRD review | complete | Subagent | 2026-07-09 | Requested Contact-first sequencing, explicit gate state machine, validation-script migration, dock layer ownership, and resolved implementation decisions. |
-| Implementation | in-progress | Codex lead | 2026-07-09 | Contact route, route/tab foundation, bottom frame geometry, shell tab visual system, and route chrome cleanup completed. |
+| Implementation | in-progress | Codex lead | 2026-07-09 | Contact route, route/tab foundation, bottom frame geometry, and shell tab visual system completed. |
 
 ## Review Log
 
@@ -42,7 +42,7 @@ Created: 2026-07-09
 | 2 | `prd-route-and-tab-state-foundation.md` | complete | Codex lead | 2026-07-09 | Added shell-owned route dock, canonical tab descriptors, explicit gated pending state, gate lifecycle events, and accessibility state rules; active/pending/browser smoke, certification, boot overlay, and site checks passed. |
 | 3 | `prd-bottom-frame-geometry.md` | complete | Codex lead | 2026-07-09 | Added directional shell wall/window insets, enlarged bottom dock band, dock-outside-wall positioning, and updated geometry consumers/docs; bottom shell geometry, canvas SPA, portfolio gate, certification, and site checks passed. |
 | 4 | `prd-shell-tab-visual-system.md` | complete | Codex lead | 2026-07-09 | Added seated active/pending tab treatment, Home icon-only state, styleguide specimen, component-library docs, and mobile caption/dock collision guard; site checks, focused visual smoke, and screen certification passed. |
-| 5 | `prd-route-chrome-cleanup-and-legacy-compat.md` | complete | Codex lead | 2026-07-09 | Removed duplicate Home/Contact/Portfolio/CV primary text nav, kept route topbars as back/sound utility chrome, migrated audits and legacy selectors to shell route tabs, and verified dock-driven gates/routes. |
+| 5 | `prd-route-chrome-cleanup-and-legacy-compat.md` | review-needed | Codex lead | 2026-07-09 | Drafted after subagent feedback. |
 | 6 | `prd-release-verification-and-docs.md` | review-needed | Codex lead | 2026-07-09 | Drafted after subagent feedback. |
 
 ## Baseline Evidence
@@ -59,7 +59,6 @@ Created: 2026-07-09
 | 2026-07-09 | `prd-route-and-tab-state-foundation.md` | `git diff --check`; `npm run check:site`; focused Playwright shell dock active/pending smoke; `npm run certify:screens`; `ABS_DEV_URL=http://localhost:8014 npm run audit:boot-overlay` | pass | `output/playwright/screens-certification/report.json` | Codex lead | Home/Contact active tabs, Portfolio pending gate state without `aria-current`, dismiss reset, successful unlock to Portfolio, and browser back one-active-tab invariant verified. |
 | 2026-07-09 | `prd-bottom-frame-geometry.md` | `git diff --check`; `npm run check:site`; focused Playwright bottom shell geometry measurement; `ABS_DEV_URL=http://localhost:8014 npm run audit:canvas-spa`; `ABS_DEV_URL=http://localhost:8014 npm run audit:portfolio-gate`; `npm run certify:screens` | pass | `output/playwright/screens-certification/report.json` | Codex lead | Dock sits outside the inner wall on mobile and desktop, footer remains inside the wall, route tabs do not overlap, canvas buffer survives route round-trips, and portfolio drawer still owns the inner-window geometry. |
 | 2026-07-09 | `prd-shell-tab-visual-system.md` | `git diff --check`; `npm run check:site`; focused Playwright shell tab visual smoke for home/contact/styleguide; `npm run certify:screens` | pass | `output/playwright/shell-tab-visual-prd4/`; `output/playwright/screens-certification/report.json` | Codex lead | Active tab uses filled seated plate and lip, pending gated state is visually present without `aria-current`, Home is icon-only with accessible label, styleguide specimen uses production tab descriptors, and mobile edge caption no longer intersects the dock. |
-| 2026-07-09 | `prd-route-chrome-cleanup-and-legacy-compat.md` | `git diff --check`; `npm run check:site`; focused Playwright route chrome cleanup smoke; `npm run certify:screens`; `ABS_DEV_URL=http://localhost:8014 npm run audit:boot-overlay`; `ABS_DEV_URL=http://localhost:8014 npm run audit:modal-unified`; `ABS_DEV_URL=http://localhost:8014 npm run audit:transition-flows` | pass | `output/playwright/screens-certification/report.json`; transition audit console PASS | Codex lead | Home has no `#main-links`, Contact/Portfolio/CV topbars have no duplicate text nav, dock opens gated Portfolio/About states, Contact navigates as a route, and legacy/audit selectors use shell route tabs. |
 
 ## Implementation Log
 
@@ -69,5 +68,4 @@ YYYY-MM-DD - PRD - status - summary - verification
 2026-07-09 - prd-route-and-tab-state-foundation.md - complete - Added shell route dock descriptors, dock mount in the footer transition surface, explicit pending gate lifecycle events, and dock accessibility state rules - git diff --check, check:site, focused dock active/pending smoke, certify:screens, and boot-overlay passed
 2026-07-09 - prd-bottom-frame-geometry.md - complete - Added route dock bottom band, directional shell wall/window geometry tokens, fixed dock placement outside the wall, and updated portfolio inner-window consumers/docs - git diff --check, check:site, bottom geometry smoke, canvas SPA audit, portfolio gate audit, and certify:screens passed
 2026-07-09 - prd-shell-tab-visual-system.md - complete - Added seated active/pending tab treatment, styleguide dock specimen, component-library docs, and mobile caption/dock collision guard - git diff --check, check:site, focused visual smoke, and certify:screens passed
-2026-07-09 - prd-route-chrome-cleanup-and-legacy-compat.md - complete - Removed duplicate route text nav, kept topbars as utility chrome, migrated audits/scripts to shell route tabs, and made legacy gate trigger bindings optional - git diff --check, check:site, focused cleanup smoke, certify:screens, boot-overlay, modal-unified, and transition-flows passed
 ```

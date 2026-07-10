@@ -32,7 +32,7 @@ export function initPortfolioModal() {
     // Invite codes add client-side friction only. They are not secure auth.
     const INVITE_CODE = getGateInviteCode(GATE_ID);
     
-    if (!modal || inputs.length === 0) {
+    if (!trigger || !modal || inputs.length === 0) {
         console.warn('Portfolio Gate: Missing required elements');
         return;
     }
@@ -231,7 +231,7 @@ export function initPortfolioModal() {
         setTimeout(() => openGate(), 300);
     }
 
-    trigger?.addEventListener('click', openGate);
+    trigger.addEventListener('click', openGate);
 
     document.addEventListener(SHELL_GATE_EVENTS.request, (event) => {
         if (event?.detail?.gateId === GATE_ID) {

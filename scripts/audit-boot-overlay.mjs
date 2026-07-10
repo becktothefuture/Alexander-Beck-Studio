@@ -320,7 +320,7 @@ async function readHomeRevealSnapshot(page) {
       targets: {
         heroName: read('#hero-title .hero-title__name'),
         heroRole: read('#hero-title .hero-title__role'),
-        nav: read('.shell-transition-surface--footer .shell-route-tab[data-route-tab="home"]'),
+        nav: read('#main-links .footer_link'),
         legend: read('#expertise-legend .legend__item'),
         script: read('.ui-top-right .decorative-script'),
         sound: read('.ui-top-right .sound-toggle'),
@@ -353,6 +353,7 @@ async function readHomeRevealTimingSnapshot(page) {
       identity: readDelayList('#hero-title .hero-title__name, #hero-title .hero-title__role'),
       legend: readDelayList('#expertise-legend .legend__item'),
       context: readDelayList('#app-frame .ui-top-right .decorative-script, #app-frame .ui-top-right .sound-toggle'),
+      action: readDelayList('#main-links .footer_link'),
       footer: readDelayList('#social-links .footer_icon-link, #site-year.abs-meta-btn, #edge-caption, #quote-display'),
     };
   });
@@ -381,7 +382,6 @@ function assertHomeRevealHeld(snapshot, { allowHiddenEdge = false, allowHiddenQu
   assert(!snapshot.complete, 'home: post-boot reveal completed before overlay release');
 
   for (const [label, target] of Object.entries(snapshot.targets)) {
-    if (label === 'nav') continue;
     if (label === 'edge' && allowHiddenEdge && targetIsIntentionallyNonRenderable(target)) continue;
     if (label === 'quote' && allowHiddenQuote && targetIsIntentionallyNonRenderable(target)) continue;
     if (label === 'quote' && !target) continue;
@@ -411,12 +411,14 @@ function assertHomeRevealOrder(snapshot, label) {
   }
 
   assert(snapshot.context.length > 0, `${label}: expected top-right context transition delays`);
+  assert(snapshot.action.length > 0, `${label}: expected action nav transition delays`);
   assert(snapshot.footer.length > 0, `${label}: expected footer transition delays`);
 
   const firstLegendDelay = Math.min(...snapshot.legend.slice(0, 6));
   const lastLegendDelay = Math.max(...snapshot.legend.slice(0, 6));
   const lastIdentityDelay = Math.max(...snapshot.identity);
   const firstContextDelay = Math.min(...snapshot.context);
+  const firstActionDelay = Math.min(...snapshot.action);
   const firstFooterDelay = Math.min(...snapshot.footer);
 
   assert(
@@ -428,8 +430,12 @@ function assertHomeRevealOrder(snapshot, label) {
     `${label}: top-right context starts at ${firstContextDelay}ms before top-left labels finish staging at ${lastLegendDelay}ms`
   );
   assert(
-    firstFooterDelay > firstContextDelay,
-    `${label}: footer starts at ${firstFooterDelay}ms before top-right context becomes established at ${firstContextDelay}ms`
+    firstActionDelay > lastLegendDelay,
+    `${label}: action nav starts at ${firstActionDelay}ms before top-left labels finish staging at ${lastLegendDelay}ms`
+  );
+  assert(
+    firstFooterDelay > firstActionDelay,
+    `${label}: footer starts at ${firstFooterDelay}ms before action nav becomes established at ${firstActionDelay}ms`
   );
 }
 
@@ -442,6 +448,7 @@ async function readHomeRevealVisibleOrder(page) {
       identity: [],
       legend: [],
       context: [],
+      action: [],
       footer: [],
     };
 
@@ -494,6 +501,7 @@ async function readHomeRevealVisibleOrder(page) {
         collect('identity', '#hero-title .hero-title__name, #hero-title .hero-title__role');
         collect('legend', '#expertise-legend .legend__item');
         collect('context', '#app-frame .ui-top-right .decorative-script, #app-frame .ui-top-right .sound-toggle');
+        collect('action', '#main-links .footer_link');
         collect('footer', '#social-links .footer_icon-link, #site-year.abs-meta-btn, #edge-caption, #quote-display');
       }
 
@@ -524,12 +532,14 @@ function assertHomeRevealUserVisibleOrder(snapshot, label) {
   assert(snapshot.identity.length >= 2, `${label}: expected identity group to become visible to the user`);
   assert(snapshot.legend.length >= 6, `${label}: expected all six legend labels to become visible to the user`);
   assert(snapshot.context.length > 0, `${label}: expected top-right context to become visible to the user`);
+  assert(snapshot.action.length > 0, `${label}: expected action nav to become visible to the user`);
   assert(snapshot.footer.length > 0, `${label}: expected footer/support chrome to become visible to the user`);
 
   const firstIdentity = firstSeenAt(snapshot.identity);
   const firstLegend = firstSeenAt(snapshot.legend);
   const lastLegend = lastSeenAt(snapshot.legend.slice(0, 6));
   const firstContext = firstSeenAt(snapshot.context);
+  const firstAction = firstSeenAt(snapshot.action);
   const firstFooter = firstSeenAt(snapshot.footer);
 
   assert(
@@ -541,8 +551,12 @@ function assertHomeRevealUserVisibleOrder(snapshot, label) {
     `${label}: top-right context became user-visible at ${Math.round(firstContext)}ms before all legend labels at ${Math.round(lastLegend)}ms`
   );
   assert(
-    firstFooter > firstContext,
-    `${label}: footer/support chrome became user-visible at ${Math.round(firstFooter)}ms before top-right context at ${Math.round(firstContext)}ms`
+    firstAction > lastLegend,
+    `${label}: action nav became user-visible at ${Math.round(firstAction)}ms before all legend labels at ${Math.round(lastLegend)}ms`
+  );
+  assert(
+    firstFooter > firstAction,
+    `${label}: footer/support chrome became user-visible at ${Math.round(firstFooter)}ms before action nav at ${Math.round(firstAction)}ms`
   );
 }
 

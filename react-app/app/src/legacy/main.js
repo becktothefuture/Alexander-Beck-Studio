@@ -62,7 +62,6 @@ import {
   waitForPageReadyBarrier,
 } from './modules/visual/page-orchestrator.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../lib/transition-phase.js';
-import { dispatchShellGateEvent } from '../lib/shell-route-tabs.js';
 import {
   runSimulationVisualTransition,
   setInitialSimulationVisualScale,
@@ -875,8 +874,8 @@ export async function bootstrapHomePage() {
       });
 
       // Setup prefetch on hover for gate triggers
-      const cvTrigger = document.querySelector('.shell-route-tab[data-gate-id="cv"], #cv-modal-trigger');
-      const portfolioTrigger = document.querySelector('.shell-route-tab[data-gate-id="portfolio"], #portfolio-modal-trigger');
+      const cvTrigger = document.getElementById('cv-modal-trigger');
+      const portfolioTrigger = document.getElementById('portfolio-modal-trigger');
       if (cvTrigger) setupPrefetchOnHover(cvTrigger, 'cv.html');
       if (portfolioTrigger) setupPrefetchOnHover(portfolioTrigger, 'portfolio.html');
 
@@ -943,13 +942,16 @@ export async function bootstrapHomePage() {
 
       // Auto-open modal if requested via navigation state
       if (autoOpenModal === 'cv') {
+        // CV modal - trigger the gate open
         setTimeout(() => {
-          dispatchShellGateEvent('request', 'cv');
+          const cvTriggerEl = document.getElementById('cv-modal-trigger');
+          if (cvTriggerEl) cvTriggerEl.click();
         }, 400);
       } else if (autoOpenModal === 'contact') {
+        // Contact modal - trigger the gate open
         setTimeout(() => {
-          const contactTab = document.querySelector('.shell-route-tab[data-route-tab="contact"]');
-          if (contactTab instanceof HTMLElement) contactTab.click();
+          const contactTriggerEl = document.getElementById('contact-email');
+          if (contactTriggerEl) contactTriggerEl.click();
         }, 400);
       }
 

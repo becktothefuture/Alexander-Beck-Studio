@@ -86,8 +86,8 @@ export async function bootstrapContactRoute() {
   window.addEventListener('pageshow', handlePageShow);
 
   const backLink = document.querySelector('[data-nav-transition][href*="index"]');
-  const cvTrigger = document.querySelector('.shell-route-tab[data-gate-id="cv"]');
-  const portfolioTrigger = document.querySelector('.shell-route-tab[data-gate-id="portfolio"]');
+  const cvTrigger = document.getElementById('cv-modal-trigger');
+  const portfolioTrigger = document.getElementById('portfolio-modal-trigger');
   if (backLink) setupPrefetchOnHover(backLink, 'index.html');
   if (cvTrigger) setupPrefetchOnHover(cvTrigger, 'cv.html');
   if (portfolioTrigger) setupPrefetchOnHover(portfolioTrigger, 'portfolio.html');

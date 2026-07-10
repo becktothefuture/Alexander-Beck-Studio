@@ -58,13 +58,13 @@ async function waitForAppReady(page) {
     () => {
       const root = document.documentElement;
       const bootOverlay = document.getElementById('abs-boot-overlay');
-      const dock = document.querySelector('.shell-route-dock');
-      const styles = dock ? getComputedStyle(dock) : null;
+      const links = document.getElementById('main-links');
+      const styles = links ? getComputedStyle(links) : null;
       return (
         !bootOverlay
         && root.dataset.absBootState !== 'booting'
         && (root.dataset.absTransitionPhase || 'idle') === 'idle'
-        && dock
+        && links
         && styles
         && Number.parseFloat(styles.opacity || '0') > 0.5
       );
@@ -190,8 +190,8 @@ function assertChooserContrast(samples, theme) {
   });
 }
 
-async function getShellTabState(page) {
-  return page.evaluate(() => Array.from(document.querySelectorAll('.shell-transition-surface--footer .shell-route-tab')).map((element) => {
+async function getMainLinkState(page) {
+  return page.evaluate(() => Array.from(document.querySelectorAll('#main-links .footer_link')).map((element) => {
     const rect = element.getBoundingClientRect();
     const styles = getComputedStyle(element);
     return {
@@ -209,8 +209,8 @@ async function getShellTabState(page) {
   }));
 }
 
-function assertShellTabsStable(before, after, label) {
-  assert(before.length === after.length && before.length > 0, `Missing shell route tabs during ${label}`, { before, after });
+function assertMainLinksStable(before, after, label) {
+  assert(before.length === after.length && before.length > 0, `Missing main links during ${label}`, { before, after });
   const failures = [];
   before.forEach((previous, index) => {
     const next = after[index];
@@ -229,7 +229,7 @@ function assertShellTabsStable(before, after, label) {
       }
     });
   });
-  assert(failures.length === 0, `Shell route tabs shifted during ${label}`, failures);
+  assert(failures.length === 0, `Main links shifted during ${label}`, failures);
 }
 
 async function assertModalOpenState(page, label) {
@@ -266,36 +266,32 @@ async function closeWithEscape(page, modalSelector) {
 }
 
 async function verifyChooserOpenClose(page, theme) {
-  const beforeLinks = await getShellTabState(page);
+  const beforeLinks = await getMainLinkState(page);
   await openChooser(page);
   await assertModalOpenState(page, `${theme} chooser open`);
   const samples = await getChooserTextSamples(page);
   assertChooserContrast(samples, theme);
   await page.waitForTimeout(140);
-  const duringLinks = await getShellTabState(page);
-  assertShellTabsStable(beforeLinks, duringLinks, `${theme} chooser open`);
+  const duringLinks = await getMainLinkState(page);
+  assertMainLinksStable(beforeLinks, duringLinks, `${theme} chooser open`);
   await closeWithEscape(page, '.simulation-focus-modal');
-  const afterLinks = await getShellTabState(page);
-  assertShellTabsStable(beforeLinks, afterLinks, `${theme} chooser close`);
+  const afterLinks = await getMainLinkState(page);
+  assertMainLinksStable(beforeLinks, afterLinks, `${theme} chooser close`);
 }
 
-async function verifyContactRouteNavigation(page) {
-  await page.click('.shell-route-tab[data-route-tab="contact"]', { timeout: WAIT_MS });
-  await page.waitForURL(/contact/i, { timeout: WAIT_MS });
-  await page.waitForSelector('#contact-route-main', { timeout: WAIT_MS });
-  await waitForIdle(page);
-  const state = await page.evaluate(() => ({
-    phase: document.documentElement.dataset.absTransitionPhase || 'idle',
-    activeRoute: document.querySelector('.shell-route-tab[aria-current="page"]')?.dataset.routeTab || '',
-    contactModalActive: document.getElementById('contact-modal')?.classList.contains('active') || false,
-    bootOverlayPresent: Boolean(document.getElementById('abs-boot-overlay')),
-  }));
-  assert(state.phase === 'idle', 'Contact route did not settle idle', state);
-  assert(state.activeRoute === 'contact', 'Contact route did not activate shell tab', state);
-  assert(!state.contactModalActive, 'Contact route unexpectedly opened legacy modal', state);
-  assert(!state.bootOverlayPresent, 'Contact route exposed boot overlay', state);
-  await page.goto(resolveUrl(), { waitUntil: 'domcontentloaded' });
-  await waitForAppReady(page);
+async function verifyContactOpenClose(page) {
+  const beforeLinks = await getMainLinkState(page);
+  await page.evaluate(() => {
+    document.getElementById('contact-email')?.click();
+  });
+  await page.waitForSelector('#contact-modal.active', { timeout: WAIT_MS });
+  await assertModalOpenState(page, 'contact modal open');
+  await page.waitForTimeout(140);
+  const duringLinks = await getMainLinkState(page);
+  assertMainLinksStable(beforeLinks, duringLinks, 'contact modal open');
+  await closeWithEscape(page, '#contact-modal');
+  const afterLinks = await getMainLinkState(page);
+  assertMainLinksStable(beforeLinks, afterLinks, 'contact modal close');
 }
 
 async function verifyChooserRapidReopen(page) {
@@ -358,7 +354,7 @@ async function main() {
   try {
     const lightPage = await openThemedPage(browser, 'light');
     await verifyChooserOpenClose(lightPage, 'light');
-    await verifyContactRouteNavigation(lightPage);
+    await verifyContactOpenClose(lightPage);
     await verifyChooserRapidReopen(lightPage);
     await verifyChooserSwitchNoBoot(lightPage);
     await lightPage.close();

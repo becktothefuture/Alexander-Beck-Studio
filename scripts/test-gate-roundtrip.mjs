@@ -15,7 +15,7 @@ async function waitForSimCanvasBuffer(page) {
 }
 
 async function enterGateCode(page) {
-  await page.click('.shell-route-tab[data-route-tab="portfolio"]', { timeout: 10000 });
+  await page.click('#portfolio-modal-trigger', { timeout: 10000 });
   await page.waitForSelector('#portfolio-modal.active', { timeout: 10000 });
   const portfolioNav = page.waitForURL(/portfolio/i, { timeout: WAIT });
   await page.evaluate(() => {

@@ -1,6 +1,6 @@
 /**
- * MainNavLink — shared implementation for route-local `.ui-main-nav` text buttons.
- * Keeps `footer_link` + `footer-link-nowrap` structure for shared chrome styling.
+ * MainNavLink — single implementation for home `#main-links` and portfolio/CV `.ui-main-nav` strips.
+ * Preserves `footer_link` + stable ids for legacy modal/prefetch code.
  */
 
 export function MainNavLink({ id, children, className = '', ...rest }) {

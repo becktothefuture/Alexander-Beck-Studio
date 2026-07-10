@@ -1,4 +1,5 @@
 import homeContent from 'virtual:abs-content/home';
+import { MainNavLink } from '../../components/MainNavLink.jsx';
 import { buildRouteHref } from '../../lib/routes.js';
 import { ContactEmailButton } from './ContactEmailButton.jsx';
 
@@ -21,6 +22,9 @@ function getContactCopy() {
 }
 
 export function getContactRouteView() {
+  const footerLinks = homeContent.footer.links;
+  const portfolioLink = footerLinks.portfolio;
+  const aboutLink = footerLinks.cv;
   const contact = getContactCopy();
   const homeHref = buildRouteHref('home');
 
@@ -56,7 +60,22 @@ export function getContactRouteView() {
                 <i className="ti ti-arrow-left" aria-hidden="true" />
               </a>
             </div>
-            <div className="route-topbar__center" aria-hidden="true" />
+            <nav className="route-topbar__center portfolio-topnav ui-main-nav" aria-label="Contact navigation">
+              <MainNavLink
+                id={portfolioLink.id}
+                aria-label={portfolioLink.text}
+                aria-haspopup="dialog"
+              >
+                {portfolioLink.text}
+              </MainNavLink>
+              <MainNavLink
+                id={aboutLink.id}
+                aria-label={aboutLink.text}
+                aria-haspopup="dialog"
+              >
+                {aboutLink.text}
+              </MainNavLink>
+            </nav>
             <div className="route-topbar__right ui-top-right">
               <div id="sound-toggle-slot" className="portfolio-sound-slot" />
             </div>

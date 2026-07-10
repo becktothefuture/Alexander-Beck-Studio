@@ -1,3 +1,4 @@
+import { MainNavLink } from '../../components/MainNavLink.jsx';
 import homeContent from 'virtual:abs-content/home';
 import cvContent from 'virtual:abs-content/cv';
 
@@ -68,6 +69,8 @@ function getSectionPresenceSpan(section) {
 
 export function getCvRouteView() {
   const aboutLink = homeContent.footer.links.cv;
+  const portfolioLink = homeContent.footer.links.portfolio;
+  const contactLink = homeContent.footer.links.contact;
 
   return {
     bodyClass: 'body cv-page',
@@ -150,7 +153,22 @@ export function getCvRouteView() {
                 <i className="ti ti-arrow-left" aria-hidden="true" />
               </a>
             </div>
-            <div className="route-topbar__center" aria-hidden="true" />
+            <nav className="route-topbar__center portfolio-topnav ui-main-nav" aria-label="CV navigation">
+              <MainNavLink
+                id={portfolioLink.id}
+                aria-label={portfolioLink.text}
+                aria-haspopup="dialog"
+              >
+                {portfolioLink.text}
+              </MainNavLink>
+              <MainNavLink
+                id={contactLink.id}
+                aria-label={contactLink.text}
+                aria-haspopup="dialog"
+              >
+                {contactLink.text}
+              </MainNavLink>
+            </nav>
             <div className="route-topbar__right ui-top-right">
               <div id="sound-toggle-slot" className="portfolio-sound-slot" />
             </div>

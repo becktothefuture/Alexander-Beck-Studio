@@ -145,7 +145,7 @@ async function inspectPage(page, id, baseline) {
       textMuted: getComputedStyle(document.documentElement).getPropertyValue('--text-color-dark-muted').trim(),
       shell: {
         title: visibleRect('#hero-title'),
-        routeDock: visibleRect('.shell-route-dock'),
+        links: visibleRect('#main-links'),
         legend: visibleRect('#expertise-legend'),
         description: visibleRect('.decorative-script'),
         footer: visibleRect('.ui-bottom'),
