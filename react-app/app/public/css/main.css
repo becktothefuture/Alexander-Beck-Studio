@@ -3925,8 +3925,8 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   --shell-tab-surface-base: var(--shell-wall-bg, var(--studio-window-bg));
   --shell-tab-surface-rest: var(--shell-tab-surface-base);
   --shell-tab-surface-hover: color-mix(in srgb, var(--shell-tab-surface-base) 98%, rgba(var(--abs-rgb-white), 1) 2%);
-  --shell-tab-surface-active: color-mix(in srgb, var(--shell-tab-surface-base) 90%, rgba(var(--abs-rgb-black), 1) 10%);
   --shell-tab-surface-pressed: color-mix(in srgb, var(--shell-tab-surface-base) 10%, rgba(var(--abs-rgb-black), 1) 90%);
+  --shell-tab-surface-active: var(--shell-tab-surface-pressed);
   --shell-tab-edge-light: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.22);
   --shell-tab-edge-light-side: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.095);
   --shell-tab-edge-dark: rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.22);
@@ -4007,8 +4007,8 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 }
 
 .button-bar__primary-buttons .shell-tab:active:not([aria-current='page']) {
-  --shell-tab-motion-y: var(--shell-tab-press-projection-y);
-  --shell-tab-motion-scale: 0.997;
+  --shell-tab-motion-y: 0px;
+  --shell-tab-motion-scale: 1;
 }
 
 .button-bar__primary-buttons .shell-tab[data-route-tab='home'] {
@@ -4151,26 +4151,13 @@ svg.shell-tab__icon {
 }
 
 .shell-tab:active {
-  --shell-tab-motion-y: var(--shell-tab-press-projection-y);
-  --shell-tab-motion-scale: 0.997;
-  background:
-    linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.065) 0%, rgba(var(--abs-rgb-white), 0.001) 58%, rgba(var(--abs-rgb-black), 0.024) 100%),
-    var(--shell-tab-surface-pressed);
-  box-shadow:
-    inset 0 1px 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.19),
-    inset 1px 0 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.08),
-    inset 0 -1px 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.18),
-    inset -1px 0 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.08),
-    0 2px 8px -12px rgba(var(--abs-rgb-black), 0.12);
-  transition-duration: 0ms, 70ms, 70ms, 70ms;
-  transition-timing-function: cubic-bezier(0.34, 0, 0.66, 1);
+  --shell-tab-motion-y: 0px;
+  --shell-tab-motion-scale: 1;
 }
 
 .shell-tab:active .shell-tab__icon,
 .shell-tab:active .shell-tab__label {
   transform: none;
-  transition-duration: 72ms;
-  transition-timing-function: cubic-bezier(0.34, 0, 0.66, 1);
 }
 
 .shell-tab:focus-visible {
@@ -4189,7 +4176,7 @@ svg.shell-tab__icon {
   --shell-tab-motion-scale: 0.998;
   cursor: default;
   background:
-    linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.04) 0%, rgba(var(--abs-rgb-white), 0.004) 56%, rgba(var(--abs-rgb-black), 0.018) 100%),
+    linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.065) 0%, rgba(var(--abs-rgb-white), 0.001) 58%, rgba(var(--abs-rgb-black), 0.024) 100%),
     var(--shell-tab-surface-active);
   color: var(--shell-tab-text-active);
   box-shadow:
@@ -4207,7 +4194,7 @@ svg.shell-tab__icon {
   --shell-tab-motion-scale: 0.998;
   cursor: default;
   background:
-    linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.04) 0%, rgba(var(--abs-rgb-white), 0.004) 56%, rgba(var(--abs-rgb-black), 0.018) 100%),
+    linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.065) 0%, rgba(var(--abs-rgb-white), 0.001) 58%, rgba(var(--abs-rgb-black), 0.024) 100%),
     var(--shell-tab-surface-active);
   box-shadow:
     inset 0 1px 2px -0.75px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.42),
@@ -4252,8 +4239,8 @@ svg.shell-tab__icon {
 }
 
 .button-bar__primary-buttons .shell-tab:active:not([aria-current='page']) {
-  --shell-tab-motion-y: var(--shell-tab-press-projection-y);
-  --shell-tab-motion-scale: 0.997;
+  --shell-tab-motion-y: 0px;
+  --shell-tab-motion-scale: 1;
 }
 
 @media (max-width: 600px) {
@@ -5391,8 +5378,6 @@ button.shell-tab:active,
 a.shell-tab:active {
   filter: none;
   transform: translateY(var(--shell-tab-motion-y)) scale(var(--shell-tab-motion-scale));
-  transition-duration: 0ms, 70ms, 70ms, 70ms;
-  transition-timing-function: cubic-bezier(0.34, 0, 0.66, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {

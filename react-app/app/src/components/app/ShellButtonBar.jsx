@@ -78,6 +78,10 @@ function isKeyboardPress(event) {
   return !event.repeat && (event.key === 'Enter' || event.key === ' ');
 }
 
+function isModifiedRouteEvent(event) {
+  return event.metaKey || event.altKey || event.ctrlKey || event.shiftKey;
+}
+
 function getRouteButtonClassName(tab) {
   return [
     'button-bar__button',
@@ -272,6 +276,18 @@ function SecondaryButtons() {
 }
 
 function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect }) {
+  const selectRoute = () => {
+    if (isActive) return;
+    onRouteSelect?.(tab.routeId, tab);
+  };
+
+  const navigateRoute = () => {
+    if (isActive) return;
+    if (!onRouteNavigate?.(tab.href, tab, { source: 'button-bar', preemptTransition: true })) {
+      window.location.assign(tab.href);
+    }
+  };
+
   const commonProps = {
     className: getRouteButtonClassName(tab),
     'data-button-bar-item': tab.routeId,
@@ -283,8 +299,16 @@ function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect }) {
       if (!isActive) playButtonBarHoverSound();
     },
     onPointerDown: (event) => {
-      if (!isActive && beginCapturedPointerPress(event)) {
+      if (isActive || isModifiedRouteEvent(event)) return;
+      if (beginCapturedPointerPress(event)) {
         playButtonBarPressSound();
+        markPointerActivated(event);
+        if (onRouteSelect) {
+          selectRoute();
+        } else {
+          event.preventDefault();
+          navigateRoute();
+        }
       }
     },
     onPointerUp: (event) => {
@@ -301,8 +325,9 @@ function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect }) {
         key={tab.routeId}
         type="button"
         {...commonProps}
-        onClick={() => {
-          if (!isActive) onRouteSelect(tab.routeId, tab);
+        onClick={(event) => {
+          if (consumePointerActivated(event)) return;
+          selectRoute();
         }}
       >
         <RouteButtonContent tab={tab} />
@@ -311,6 +336,11 @@ function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect }) {
   }
 
   const handleClick = (event) => {
+    if (consumePointerActivated(event)) {
+      event.preventDefault();
+      return;
+    }
+
     if (
       event.defaultPrevented
       || event.button !== 0
@@ -323,11 +353,7 @@ function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect }) {
     }
 
     event.preventDefault();
-    if (isActive) return;
-
-    if (!onRouteNavigate?.(tab.href, tab, { source: 'button-bar', preemptTransition: true })) {
-      window.location.assign(tab.href);
-    }
+    navigateRoute();
   };
 
   return (
