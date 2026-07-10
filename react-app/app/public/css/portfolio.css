@@ -50,14 +50,14 @@
   --portfolio-project-close-inset-y: max(
     0px,
     calc(
-      var(--content-padding-y) - var(--shell-inner-window-top) -
+      var(--content-padding-y) - (var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width)) -
         var(--portfolio-drawer-seat-inset)
     )
   );
   --portfolio-project-close-inset-x: max(
     0px,
     calc(
-      var(--content-padding-x) - var(--shell-inner-window-left) -
+      var(--content-padding-x) - (var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width)) -
         var(--portfolio-drawer-seat-inset)
     )
   );
@@ -221,10 +221,10 @@ body.portfolio-page .ui-center-spacer {
 */
 #portfolio-sheet-host.portfolio-sheet-host {
   position: fixed;
-  top: var(--shell-inner-window-top);
-  left: var(--shell-inner-window-left);
-  right: var(--shell-inner-window-right);
-  bottom: var(--shell-inner-window-bottom);
+  top: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
+  left: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
+  right: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
+  bottom: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
   margin: 0;
   padding: 0;
   box-sizing: border-box;

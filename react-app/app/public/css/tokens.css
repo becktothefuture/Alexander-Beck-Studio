@@ -363,21 +363,6 @@
   --safari-tint-inset: var(--container-border);
   --safari-tint-inset-x: var(--container-border);
   --safari-tint-inset-y: var(--container-border);
-  --shell-bottom-dock-band: clamp(
-    calc(var(--ui-icon-frame-size) + var(--gap-md)),
-    10vh,
-    calc(var(--ui-icon-frame-size) + var(--gap-xl) + var(--gap-lg))
-  );
-  --shell-route-dock-bottom: max(var(--abs-safe-bottom), var(--gap-md));
-  --shell-route-tab-size: calc(var(--gap-xl) + var(--gap-md));
-  --shell-wall-inset-top: var(--safari-tint-inset-y, var(--safari-tint-inset));
-  --shell-wall-inset-right: var(--safari-tint-inset-x, var(--safari-tint-inset));
-  --shell-wall-inset-bottom: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--shell-bottom-dock-band));
-  --shell-wall-inset-left: var(--safari-tint-inset-x, var(--safari-tint-inset));
-  --shell-inner-window-top: calc(var(--shell-wall-inset-top) + var(--frame-border-width));
-  --shell-inner-window-right: calc(var(--shell-wall-inset-right) + var(--frame-border-width));
-  --shell-inner-window-bottom: calc(var(--shell-wall-inset-bottom) + var(--frame-border-width));
-  --shell-inner-window-left: calc(var(--shell-wall-inset-left) + var(--frame-border-width));
 
   --shadow-input-dark: 0 2px 8px rgba(var(--abs-rgb-black), 0.4);
 

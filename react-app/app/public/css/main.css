@@ -75,7 +75,6 @@
 .ti-brand-linkedin:before { content: "\ec8c"; }
 .ti-brand-x:before { content: "\fc0f"; }
 .ti-arrow-left:before { content: "\ea19"; }
-.ti-home:before { content: "\eac1"; }
 .ti-x:before { content: "\eb55"; }
 .ti-copy:before { content: "\ea7a"; }
 .ti-check:before { content: "\ea5e"; }
@@ -514,9 +513,9 @@ html.fonts-loading .project-detail {
 }
 
 .shell-route-dock {
-  position: fixed;
+  position: absolute;
   inset-inline: 0;
-  bottom: var(--shell-route-dock-bottom);
+  bottom: calc(100% + var(--gap-sm));
   z-index: 25;
   display: flex;
   justify-content: center;
@@ -527,43 +526,23 @@ html.fonts-loading .project-detail {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(var(--gap-xs), 1.8vw, var(--gap-sm));
-  max-inline-size: calc(100vw - (var(--gap-md) * 2));
+  gap: var(--gap-sm);
   pointer-events: auto;
 }
 
-.footer_link.shell-route-tab {
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  margin: 0;
-  min-block-size: var(--shell-route-tab-size);
-  min-inline-size: auto;
-  padding-block: var(--gap-xs);
-  padding-inline: clamp(var(--gap-sm), 3vw, var(--gap-lg));
+.shell-route-tab {
+  min-inline-size: calc(var(--ui-icon-frame-size) * 2.5);
 }
 
-.footer_link.shell-route-tab--icon-only {
-  inline-size: var(--shell-route-tab-size);
-  min-inline-size: var(--shell-route-tab-size);
-  block-size: var(--shell-route-tab-size);
-  min-block-size: var(--shell-route-tab-size);
-  padding-block: 0;
+.shell-route-tab--icon-only {
+  inline-size: var(--ui-icon-frame-size);
+  min-inline-size: var(--ui-icon-frame-size);
   padding-inline: 0;
 }
 
 .shell-route-tab > i {
-  position: relative;
-  z-index: 1;
   font-size: var(--text-md);
   line-height: 1;
-}
-
-.shell-route-tab__label {
-  position: relative;
-  z-index: 1;
 }
 
 .shell-route-tab.is-active,
@@ -2255,7 +2234,6 @@ p {
   flex-direction: column;
   width: 100%;
   gap: var(--gap-24); /* Spacing between Links Row and Meta Row */
-  margin-bottom: var(--shell-bottom-dock-band);
   z-index: 3; /* Within .fade-content (z:200) stacking context */
   pointer-events: none;
 }
@@ -3687,13 +3665,12 @@ html[data-abs-transition-phase='modal-open'] .shell-route-dock { pointer-events:
 
 #simulations {
   position: fixed;
-  /* Wall inset from viewport edges; directional aliases preserve old Safari tint
-     inputs while reserving a larger bottom shell band for the route dock.
+  /* Wall inset from viewport edges (--safari-tint-inset defined in tokens.css).
      This gap exposes wall colour (html/body bg) so Safari samples correct chrome tint. */
-  top: var(--shell-wall-inset-top);
-  left: var(--shell-wall-inset-left);
-  right: var(--shell-wall-inset-right);
-  bottom: var(--shell-wall-inset-bottom);
+  top: var(--safari-tint-inset-y, var(--safari-tint-inset));
+  left: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  right: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  bottom: var(--safari-tint-inset-y, var(--safari-tint-inset));
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -3722,7 +3699,7 @@ html[data-abs-transition-phase='modal-open'] .shell-route-dock { pointer-events:
     top var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic),
     right var(--duration-resize) var(--ease-organic),
-    bottom var(--duration-resize) var(--ease-organic);
+    height var(--duration-resize) var(--ease-organic);
 }
 
 .simulation-wall-layer {
@@ -3738,7 +3715,7 @@ html.entrance-transitioning #simulations {
     top var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic),
     right var(--duration-resize) var(--ease-organic),
-    bottom var(--duration-resize) var(--ease-organic);
+    height var(--duration-resize) var(--ease-organic);
 }
 
 /* Simplified frame: legacy inner/outer wall layers are removed. */
@@ -3861,10 +3838,10 @@ html.entrance-transitioning #simulations {
    ───────────────────────────────────────────────────────────────────────────── */
 .scene-effects {
   position: absolute;
-  top: var(--shell-inner-window-top);
-  left: var(--shell-inner-window-left);
-  right: var(--shell-inner-window-right);
-  bottom: var(--shell-inner-window-bottom);
+  top: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
+  left: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
+  right: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
+  bottom: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
   /* Default when misplaced; in-wall placement uses #simulations > .scene-effects below */
   z-index: 150;
   pointer-events: none;
@@ -3884,10 +3861,10 @@ html.entrance-transitioning #simulations {
 
 .frame-vignette {
   position: absolute;
-  top: var(--shell-inner-window-top);
-  left: var(--shell-inner-window-left);
-  right: var(--shell-inner-window-right);
-  bottom: var(--shell-inner-window-bottom);
+  top: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
+  left: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
+  right: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
+  bottom: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
   border-radius: var(--frame-inner-radius);
   overflow: hidden;
   pointer-events: none;
@@ -3898,10 +3875,10 @@ html.entrance-transitioning #simulations {
 
 .simulation-contrast-veil {
   position: absolute;
-  top: var(--shell-inner-window-top);
-  left: var(--shell-inner-window-left);
-  right: var(--shell-inner-window-right);
-  bottom: var(--shell-inner-window-bottom);
+  top: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
+  left: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
+  right: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
+  bottom: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
   border-radius: var(--frame-inner-radius);
   overflow: hidden;
   pointer-events: none;
