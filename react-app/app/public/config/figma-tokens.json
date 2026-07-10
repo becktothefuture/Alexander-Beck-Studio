@@ -30,9 +30,9 @@
     },
 
     "typographyTokens": {
-      "abs-font-sans": { "value": "'DM Sans', sans-serif", "type": "fontFamilies" },
-      "abs-font-mono": { "value": "'DM Mono', monospace", "type": "fontFamilies" },
-      "abs-font-display": { "value": "'Sarina', cursive", "type": "fontFamilies" },
+      "abs-font-sans": { "value": "'Geist', sans-serif", "type": "fontFamilies" },
+      "abs-font-mono": { "value": "'Geist Mono', monospace", "type": "fontFamilies" },
+      "abs-font-display": { "value": "'Snell Roundhand', 'Apple Chancery', 'Segoe Script', 'Bradley Hand', cursive", "type": "fontFamilies" },
       "abs-weight-regular": { "value": "400", "type": "fontWeights" },
       "abs-weight-medium": { "value": "600", "type": "fontWeights" },
       "abs-weight-semibold": { "value": "700", "type": "fontWeights" },
@@ -420,4 +420,3 @@
     "tokenSetOrder": ["global", "light", "dark"]
   }
 }
-

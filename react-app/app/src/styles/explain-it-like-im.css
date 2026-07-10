@@ -10,7 +10,7 @@ body {
   margin: 0;
   overflow: hidden;
   color: #1f2a36;
-  font-family: 'IBM Plex Sans', var(--abs-font-sans);
+  font-family: var(--abs-font-sans);
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.88), transparent 30%),
     radial-gradient(circle at right 20%, rgba(210, 118, 90, 0.16), transparent 25%),
@@ -34,7 +34,7 @@ a {
 }
 
 code {
-  font-family: 'IBM Plex Mono', var(--abs-font-mono);
+  font-family: var(--abs-font-mono);
 }
 
 .eli5-site {
@@ -123,7 +123,7 @@ code {
 
 .eli5-brand__eyebrow {
   font-size: clamp(0.64rem, 1vw, 0.78rem);
-  font-family: 'IBM Plex Mono', var(--abs-font-mono);
+  font-family: var(--abs-font-mono);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--eli5-ink-soft);
@@ -254,7 +254,7 @@ code {
   border: var(--abs-size-1px) solid rgba(31, 42, 54, 0.1);
   background: rgba(255, 255, 255, 0.72);
   font-size: clamp(0.74rem, 1vw, 0.86rem);
-  font-family: 'IBM Plex Mono', var(--abs-font-mono);
+  font-family: var(--abs-font-mono);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--eli5-ink-soft);
@@ -267,7 +267,7 @@ code {
 
 .eli5-kicker {
   margin: 0 0 calc(var(--abs-gap-xs) * 0.85);
-  font-family: 'IBM Plex Mono', var(--abs-font-mono);
+  font-family: var(--abs-font-mono);
   font-size: clamp(0.72rem, 0.95vw, 0.82rem);
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -277,7 +277,7 @@ code {
 .eli5-section-title,
 .eli5-download-card__title {
   margin: 0;
-  font-family: 'Fraunces', serif;
+  font-family: var(--abs-font-sans);
   font-size: clamp(2rem, 5vw, 4.6rem);
   line-height: 0.96;
   letter-spacing: -0.03em;
@@ -293,7 +293,7 @@ code {
 
 .eli5-hero__title {
   margin: 0;
-  font-family: 'Fraunces', serif;
+  font-family: var(--abs-font-sans);
   font-size: clamp(3rem, 8vw, 6.75rem);
   line-height: 0.88;
   letter-spacing: -0.05em;
@@ -374,7 +374,7 @@ code {
 }
 
 .eli5-quote-note__line {
-  font-family: 'Fraunces', serif;
+  font-family: var(--abs-font-sans);
   font-size: clamp(1.1rem, 2vw, 1.45rem);
   line-height: 1.25;
   color: var(--eli5-ink);
@@ -433,7 +433,7 @@ code {
 .eli5-step-card__age,
 .eli5-demo-band__age {
   margin: 0 0 calc(var(--abs-gap-xs) * 0.7);
-  font-family: 'IBM Plex Mono', var(--abs-font-mono);
+  font-family: var(--abs-font-mono);
   font-size: clamp(0.82rem, 1vw, 0.95rem);
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -483,7 +483,7 @@ code {
 
 .eli5-format-note__label {
   margin-bottom: calc(var(--abs-gap-xs) * 0.6);
-  font-family: 'IBM Plex Mono', var(--abs-font-mono);
+  font-family: var(--abs-font-mono);
   font-size: clamp(0.74rem, 0.95vw, 0.86rem);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -527,7 +527,7 @@ code {
 
 .eli5-rubric-card__label,
 .eli5-scorecard__label {
-  font-family: 'IBM Plex Mono', var(--abs-font-mono);
+  font-family: var(--abs-font-mono);
   font-size: clamp(0.74rem, 0.95vw, 0.86rem);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -576,7 +576,7 @@ code {
   padding: calc(var(--abs-gap-xs) * 0.8) var(--abs-gap-sm);
   border: calc(var(--abs-size-1px) * 2) solid rgba(179, 59, 47, 0.72);
   border-radius: calc(var(--abs-radius-pill) * 0.78);
-  font-family: 'IBM Plex Mono', var(--abs-font-mono);
+  font-family: var(--abs-font-mono);
   font-size: clamp(0.84rem, 1vw, 0.96rem);
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -639,7 +639,7 @@ code {
   border-radius: var(--abs-radius-pill);
   border: var(--abs-size-1px) solid rgba(31, 42, 54, 0.12);
   background: rgba(255, 255, 255, 0.76);
-  font-family: 'IBM Plex Mono', var(--abs-font-mono);
+  font-family: var(--abs-font-mono);
   font-size: clamp(0.72rem, 0.95vw, 0.84rem);
   letter-spacing: 0.12em;
   text-transform: uppercase;

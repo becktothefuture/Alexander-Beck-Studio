@@ -27,7 +27,7 @@
   bottom: clamp(10px, 1.35vw, 18px);
   max-width: min(58ch, calc(100% - 32px));
   color: var(--text-muted, rgba(255, 255, 255, 0.58));
-  font-family: var(--font-mono, 'DM Mono', monospace);
+  font-family: var(--font-mono, 'Geist Mono', monospace);
   font-size: clamp(0.58rem, 0.75vw, 0.72rem);
   line-height: 1.35;
   letter-spacing: 0;
@@ -41,7 +41,7 @@
   max-width: min(42ch, calc(100% - 32px));
   margin: 0;
   color: var(--text-muted, rgba(255, 255, 255, 0.72));
-  font-family: var(--font-mono, 'DM Mono', monospace);
+  font-family: var(--font-mono, 'Geist Mono', monospace);
   font-size: clamp(0.62rem, 0.78vw, 0.74rem);
   line-height: 1.35;
   letter-spacing: 0;

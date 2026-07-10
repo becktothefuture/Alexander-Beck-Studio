@@ -2002,7 +2002,7 @@ body:not(.dark-mode) .panel-dock .panel-mode-pill {
 
 .panel-host-window-title,
 .panel-host-window-subtitle {
-  font-family: var(--panel-font-mono, "DM Mono", monospace);
+  font-family: var(--panel-font-mono, "Geist Mono", monospace);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -2033,7 +2033,7 @@ body:not(.dark-mode) .panel-dock .panel-mode-pill {
   width: 100%;
   height: 100%;
   color: var(--panel-muted-foreground, rgba(255, 255, 255, 0.6));
-  font: 500 12px/1.4 "DM Mono", monospace;
+  font: 500 12px/1.4 "Geist Mono", monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }

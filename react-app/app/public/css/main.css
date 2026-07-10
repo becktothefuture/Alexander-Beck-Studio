@@ -2924,17 +2924,17 @@ button.abs-meta-btn,
   margin: 0;
   padding: 0;
   height: auto;
-  font-family: var(--abs-font-display);
-  font-style: normal; /* Sarina ships in regular only */
-  font-size: calc(var(--caption-font-size) * var(--abs-font-display-scale, 1));
-  font-weight: var(--abs-weight-regular); /* Sarina only has one weight */
+  font-family: var(--abs-font-sans);
+  font-style: normal;
+  font-size: var(--caption-font-size);
+  font-weight: var(--abs-weight-regular);
   line-height: 1;
   opacity: var(--text-opacity-base);
   color: var(--text-muted);
 }
 
 /* Meta (London · time) is a button using `.abs-meta-btn` while keeping `.caption` text styling. */
-/* Location name (London) - Sarina (script font), 150% larger */
+/* Location name (London) keeps the script/display face; the rest of the caption uses Geist. */
 .location-name {
   font-family: var(--abs-font-display);
   font-style: normal;
@@ -2962,7 +2962,7 @@ button.abs-meta-btn,
   line-height: 1;
 }
 
-/* Time Display - DM Sans, 80% size; min-width keeps layout stable before/without JS */
+/* Time Display - Geist, 80% size; min-width keeps layout stable before/without JS */
 #time-display {
   display: inline-block;
   font-family: var(--abs-font-sans);
@@ -3719,6 +3719,11 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   --button-bar-accent-about: var(--ball-7, #0d5cb6);
   --button-bar-accent-contact: var(--ball-8, #ffa000);
   --button-bar-accent-sound: var(--button-bar-accent-home);
+  --button-bar-figma-selected-ink: #ff4013;
+  --button-bar-figma-muted-ink: rgba(191, 186, 177, 0.6);
+  --button-bar-figma-hover-fill: #000;
+  --button-bar-figma-selected-top: #1a1a1a;
+  --button-bar-figma-selected-bottom: #101010;
   display: flex;
   align-items: stretch;
   width: min(100%, var(--button-bar-width, 2400px));
@@ -3998,12 +4003,22 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 .button-bar__primary-buttons .shell-tab {
   --shell-tab-motion-y: 0px;
   --shell-tab-motion-scale: 1;
+  --shell-tab-text-rest: var(--button-bar-figma-muted-ink);
+  --shell-tab-text-hover: var(--button-bar-figma-muted-ink);
+  --shell-tab-text-active: var(--shell-tab-route-accent);
   border-radius: var(--abs-radius-pill);
+  color: var(--shell-tab-text-rest);
+  font-size: 16px;
+  background: transparent;
+  box-shadow: none;
 }
 
-.button-bar__primary-buttons .shell-tab:is(:hover, :focus-visible, [aria-current='page']) {
+.button-bar__primary-buttons .shell-tab:is(:hover, :focus-visible) {
   --shell-tab-motion-y: 0px;
   --shell-tab-motion-scale: 1;
+  background: var(--button-bar-figma-hover-fill);
+  box-shadow: none;
+  color: var(--shell-tab-text-hover);
 }
 
 .button-bar__primary-buttons .shell-tab:active:not([aria-current='page']) {
@@ -4225,7 +4240,7 @@ svg.shell-tab__icon {
 }
 
 .button-bar__primary-buttons .shell-tab,
-.button-bar__primary-buttons .shell-tab:is(:hover, :focus-visible, [aria-current='page']) {
+.button-bar__primary-buttons .shell-tab:is(:hover, :focus-visible) {
   --shell-tab-motion-y: 0px;
   --shell-tab-motion-scale: 1;
 }
@@ -4234,8 +4249,18 @@ svg.shell-tab__icon {
 .button-bar__primary-buttons .shell-tab[aria-current='page']:hover,
 .button-bar__primary-buttons .shell-tab[aria-current='page']:focus-visible,
 .button-bar__primary-buttons .shell-tab[aria-current='page']:active {
-  --shell-tab-motion-y: 0.6px;
-  --shell-tab-motion-scale: 0.998;
+  --shell-tab-motion-y: 0px;
+  --shell-tab-motion-scale: 1;
+  background:
+    linear-gradient(
+      180deg,
+      var(--button-bar-figma-selected-top) 0%,
+      var(--button-bar-figma-selected-bottom) 100%
+    );
+  box-shadow:
+    inset 0 1px 1px 0 rgba(var(--abs-rgb-white), 0.15),
+    inset 0 -2px 2px 0 rgba(var(--abs-rgb-black), 1);
+  color: var(--shell-tab-text-active);
 }
 
 .button-bar__primary-buttons .shell-tab:active:not([aria-current='page']) {

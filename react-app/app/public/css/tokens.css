@@ -106,8 +106,8 @@
   --ball-8: #ffa000;
 
   /* Typography Tokens */
-  --abs-font-sans: "DM Sans", system-ui, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --abs-font-mono: "DM Mono", ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace;
+  --abs-font-sans: "Geist", system-ui, sans-serif;
+  --abs-font-mono: "Geist Mono", ui-monospace, monospace;
   --abs-font-display: "Snell Roundhand", "Apple Chancery", "Segoe Script", "Bradley Hand", cursive;
   --abs-font-display-scale: 1.22;
   --abs-weight-regular: 400;

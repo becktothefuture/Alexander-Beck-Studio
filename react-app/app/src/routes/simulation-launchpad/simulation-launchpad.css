@@ -56,8 +56,8 @@ html.simulation-dashboard-document #root {
   --dashboard-red: #ed7b73;
   --dashboard-radius: 8px;
   --dashboard-radius-sm: 6px;
-  --dashboard-font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --dashboard-font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --dashboard-font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --dashboard-font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   display: grid;
   align-content: start;
   gap: 14px;

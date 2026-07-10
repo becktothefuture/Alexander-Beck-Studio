@@ -11,8 +11,8 @@ export function StyleguideTypographySection() {
         <code className="styleguide-doc__code">--abs-font-*</code>, <code className="styleguide-doc__code">--text-*</code>,{' '}
         <code className="styleguide-doc__code">--line-height-*</code>, <code className="styleguide-doc__code">--letter-spacing-*</code>
         ). Fonts load via Google Fonts on each HTML shell (
-        <code className="styleguide-doc__code">DM Sans</code>, <code className="styleguide-doc__code">DM Mono</code>
-        ); display script uses system cursive stack (<code className="styleguide-doc__code">--abs-font-display</code>).
+        <code className="styleguide-doc__code">Geist</code>, <code className="styleguide-doc__code">Geist Mono</code>
+        ); only the visible London word uses the display script stack (<code className="styleguide-doc__code">--abs-font-display</code>).
       </p>
 
       <h3 className="styleguide-type-subhd" id="sg-type-families">
@@ -22,13 +22,13 @@ export function StyleguideTypographySection() {
         <div className="styleguide-type-card styleguide-type-card--sans" role="group" aria-label="Sans UI">
           <div className="styleguide-type-card__meta">--abs-font-sans</div>
           <p className="styleguide-type-card__sample" lang="en">
-            DM Sans — UI sans · 0123456789
+            Geist — UI sans · 0123456789
           </p>
         </div>
         <div className="styleguide-type-card styleguide-type-card--mono" role="group" aria-label="Monospace">
           <div className="styleguide-type-card__meta">--abs-font-mono</div>
           <p className="styleguide-type-card__sample" lang="en">
-            DM Mono — edge caption / mono · 01:23:45
+            Geist Mono — edge caption / mono · 01:23:45
           </p>
         </div>
         <div className="styleguide-type-card styleguide-type-card--display" role="group" aria-label="Display script">
@@ -193,7 +193,7 @@ export function StyleguideTypographySection() {
 
         <li className="styleguide-type-role">
           <div className="styleguide-type-role__label">
-            <code className="styleguide-doc__code">.caption</code> · corner Sarina block
+            <code className="styleguide-doc__code">.caption</code> · corner meta wrapper
           </div>
           <div className="styleguide-type-role__sample">
             <div className="caption styleguide-type-sample--caption-wrap">Studio</div>
