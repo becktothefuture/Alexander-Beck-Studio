@@ -63,7 +63,7 @@
   --frame-border-width: var(--frame-border-width-desktop);
   --frame-outer-radius: clamp(36px, 4.5vw, 65px);
   --frame-inner-radius: max(0px, calc(var(--frame-outer-radius) - var(--frame-border-width)));
-  --frame-inner-surface: var(--abs-wall-base-light);
+  --frame-inner-surface: var(--abs-wall-base);
   --frame-border-gradient-rgb-dark: 153, 153, 153;
   --frame-border-gradient-rgb-light: 255, 255, 255;
   --frame-border-gradient-edge-opacity: 0.012;
@@ -83,7 +83,7 @@
   --frame-soft-border-light-opacity: 0.14;
   --frame-soft-border-shadow-opacity: 0.2;
   --frame-soft-border-ring-opacity: 0.12;
-  --simulation-contrast-veil-rgb: 245, 245, 245; /* JS stamps this from the active inner-wall background. */
+  --simulation-contrast-veil-rgb: 20, 20, 20; /* JS stamps this from the active inner-wall background. */
   --simulation-contrast-veil-opacity: 0.216;
   --simulation-contrast-veil-reach-x: 25vw;
   --simulation-contrast-veil-reach-y: 25vh;
@@ -839,14 +839,13 @@
 body.dark-mode,
 body[data-abs-theme='dark'] {
   color-scheme: dark;
-  /* Wall and chrome colors remain unified (#242529) in dark mode */
-  /* Scene interior uses --bg-dark for dark mode */
-  --frame-inner-surface: var(--abs-wall-base-dark);
+  /* Theme must not recolor the wall base; JS keeps --abs-wall-base stable. */
+  --frame-inner-surface: var(--abs-wall-base);
   --frame-vignette-edge-rgb: 16, 17, 19;
   --frame-vignette-ambient-rgb: 10, 10, 10;
   --frame-vignette-edge-opacity: 0.66;
   --frame-vignette-ambient-opacity: 0.4;
-  --simulation-contrast-veil-rgb: 32, 32, 32;
+  --simulation-contrast-veil-rgb: 20, 20, 20;
   --simulation-contrast-veil-opacity: 0.348;
 
   /* Text — Dark mode overrides (JS may override --text-color-dark* from config) */

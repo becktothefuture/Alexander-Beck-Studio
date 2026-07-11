@@ -209,11 +209,13 @@ export function resolveShellPalette(config = currentShellConfig, isDark = isDark
   const family = detectBrowserFamily();
   const themeColorLikelyApplied = detectThemeColorLikelyApplied(family);
 
-  const siteLight = config?.theme?.wallBaseLight || DEFAULT_SHELL_CONFIG.theme.wallBaseLight;
-  const siteDark = config?.theme?.wallBaseDark || DEFAULT_SHELL_CONFIG.theme.wallBaseDark;
-  const light = siteLight;
-  const dark = siteDark;
-  const active = isDark ? dark : light;
+  const stableWallBase = config?.theme?.wallBase
+    || config?.theme?.wallBaseDark
+    || config?.theme?.wallBaseLight
+    || DEFAULT_SHELL_CONFIG.theme.wallBaseDark;
+  const light = stableWallBase;
+  const dark = stableWallBase;
+  const active = stableWallBase;
 
   return {
     light,

@@ -8,13 +8,16 @@ import { chromium } from 'playwright';
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const baseUrl = process.env.ABS_THEME_WALL_AUDIT_URL || 'http://127.0.0.1:8012';
 const shouldStartDevServer = !process.env.ABS_THEME_WALL_AUDIT_URL;
-const routes = ['/about.html', '/contact.html'];
+const routes = ['/', '/about.html', '/contact.html'];
 const viewports = [
   { name: 'desktop', width: 1440, height: 960, deviceScaleFactor: 1, isMobile: false },
   { name: 'mobile', width: 390, height: 844, deviceScaleFactor: 2, isMobile: true },
 ];
 
 const invariantRootVars = [
+  '--abs-wall-base',
+  '--frame-inner-surface',
+  '--simulation-contrast-veil-rgb',
   '--frame-inner-radius',
   '--frame-outer-radius',
   '--frame-border-width',
@@ -117,7 +120,21 @@ async function waitForWallReady(page) {
       && rootStyle.getPropertyValue('--container-border').trim().endsWith('px')
     );
   }, null, { timeout: 15000 });
-  await page.waitForTimeout(200);
+  await page.waitForFunction(() => {
+    const wall = document.querySelector('#simulations');
+    if (!wall) return false;
+    const rect = wall.getBoundingClientRect();
+    const next = [
+      Math.round(rect.x * 100) / 100,
+      Math.round(rect.y * 100) / 100,
+      Math.round(rect.width * 100) / 100,
+      Math.round(rect.height * 100) / 100,
+    ].join(',');
+    const previous = window.__absThemeWallAuditRect || '';
+    window.__absThemeWallAuditRect = next;
+    return previous === next;
+  }, null, { timeout: 15000, polling: 100 });
+  await page.waitForTimeout(120);
 }
 
 async function readInvariantState(page) {
@@ -140,6 +157,7 @@ async function readInvariantState(page) {
       wallHeight: Math.round(rect.height * 100) / 100,
       wallBorderRadius: wallStyle.borderRadius,
       wallOverflow: wallStyle.overflow,
+      wallBackgroundImage: wallStyle.backgroundImage,
       wallBeforeBorderRadius: wallBeforeStyle.borderRadius,
       rimBorderRadius: rimStyle?.borderRadius || '',
     };

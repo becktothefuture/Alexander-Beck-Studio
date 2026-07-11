@@ -32,6 +32,10 @@ The early inline script in each boot-overlay HTML entry is a first-paint mirror,
 
 Theme choice and browser-chrome harmony are separate. After the theme resolves, `chrome-harmony.js` adapts the exposed frame for Safari/theme-color browsers versus locked Chromium/Firefox chrome. Do not merge that browser-specific frame policy into theme preference resolution.
 
+## Wall Surface
+
+Theme choice must not recolor the studio wall base. `site-shell.js` resolves `--abs-wall-base`, `--frame-inner-surface`, and the wall contrast color from one stable wall base so the wall remains visually continuous when switching between light and dark mode. Light/dark theme may still adjust text, controls, chrome harmonization, and wall finish opacity, but not the underlying wall color.
+
 ## Portfolio Gate
 
 Gate teaser assets are theme-specific: light/dark multiplied by mobile/tablet/desktop. `PortfolioGateTeaser` selects from the resolved DOM theme, not from a media query alone. The capture script must force and assert each theme before writing public assets; the gate audit captures and validates both modes.
