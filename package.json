@@ -52,6 +52,7 @@
     "audit:portfolio-gate" : "node scripts\/audit-portfolio-gate-flow.mjs",
     "audit:portfolio-gate:quick" : "ABS_PORTFOLIO_GATE_MODE=quick node scripts\/audit-portfolio-gate-flow.mjs",
     "audit:portfolio-pebbles" : "node scripts\/audit-portfolio-pebbles.mjs",
+    "audit:portfolio-transition" : "node scripts\/audit-portfolio-project-transition.mjs",
     "audit:runtime-performance" : "node scripts\/audit-runtime-performance.mjs",
     "audit:transition-flows" : "node scripts\/audit-transition-flows.mjs",
     "audit:transition-gate" : "node scripts\/audit-transition-gate-serial.mjs",

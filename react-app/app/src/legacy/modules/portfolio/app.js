@@ -69,7 +69,7 @@ const CONFIG = {
 let activePortfolioBootstrapRunId = 0;
 
 const PORTFOLIO_CLICK_DRAG_THRESHOLD_PX = 12;
-const PORTFOLIO_OPEN_GHOST_DURATION_MS = 360;
+const PORTFOLIO_OPEN_GHOST_DURATION_MS = 420;
 const PORTFOLIO_HOVER_SOUND_MIN_INTERVAL_MS = 180;
 const PORTFOLIO_HOVER_SOUND_REPEAT_INTERVAL_MS = 650;
 const PORTFOLIO_ACTION_SOUND_MIN_INTERVAL_MS = 90;
@@ -1383,6 +1383,7 @@ class PortfolioScrollApp {
     this.pressOpenTimer = 0;
     this.projectOpenGhost = null;
     this.projectOpenGhostAnimation = null;
+    this.projectOpenGhostHandoffTimer = 0;
     this.projectOpenGhostToken = 0;
     this.projectOpenPhase = 'closed';
     this.projectOpenDebug = null;
@@ -3030,6 +3031,8 @@ class PortfolioScrollApp {
 
   clearProjectOpenGhost() {
     this.projectOpenGhostToken += 1;
+    window.clearTimeout(this.projectOpenGhostHandoffTimer);
+    this.projectOpenGhostHandoffTimer = 0;
     if (this.projectOpenGhostAnimation) {
       try {
         this.projectOpenGhostAnimation.cancel();
@@ -3146,11 +3149,19 @@ class PortfolioScrollApp {
       : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
     const imageFadeMs = clamp(toNumber(this.config.runtime.motion?.imageFadeMs, 220), 0, 600);
     const titleDelay = clamp(toNumber(this.config.runtime.motion?.titleRevealDelayMs, 280), 0, 1200);
+    const imageHandoffDelayMs = options.deferReveal
+      ? Math.round(clamp(
+          toNumber(this.config.runtime.motion?.openGhostDurationMs, PORTFOLIO_OPEN_GHOST_DURATION_MS) * 0.42,
+          90,
+          300,
+        ))
+      : 0;
 
     this.projectDrawerView.syncProject(project, {
       animate,
       openDurationMs: openDuration,
       imageFadeMs,
+      imageHandoffDelayMs,
       titleDelayMs: titleDelay,
       accentColor: getProjectCardTheme(project, this.selectedProjectIndex, this.projects.length).accent,
       motionConfig: this.config.runtime.motion || {},
@@ -3175,26 +3186,35 @@ class PortfolioScrollApp {
     };
   }
 
-  startProjectOpenGhost(projectIndex, originRect, durationMs, onComplete) {
+  startProjectOpenGhost(projectIndex, originRect, durationMs, onHandoff, onComplete) {
     const card = this.getActiveProjectCard(projectIndex)
       || this.cards.find((candidate) => this.getCardProjectIndex(candidate) === this.wrapProjectIndex(projectIndex));
-    const targetRect = this.projectDrawerView?.getDrawerRect?.();
-    if (!card || !originRect || !targetRect) {
-      onComplete?.();
-      return false;
-    }
+    const sourceMedia = card?.querySelector('.portfolio-project-card__media');
+    const sourceRect = sourceMedia?.getBoundingClientRect?.() || originRect;
+    const targetRect = this.projectDrawerView?.getHeroImageRect?.();
+    if (!card || !sourceMedia || !sourceRect || !targetRect) return false;
 
     this.clearProjectOpenGhost();
     const token = this.projectOpenGhostToken + 1;
     this.projectOpenGhostToken = token;
-    const ghost = card.cloneNode(true);
-    ghost.classList.add('portfolio-project-open-ghost');
-    ghost.classList.remove('is-pressing', 'is-opening-release', 'is-keyboard-focused', 'is-selected');
+    const ghost = document.createElement('div');
+    ghost.className = 'portfolio-project-media-bridge';
+    const mediaClone = sourceMedia.cloneNode(true);
+    mediaClone.classList.add('portfolio-project-media-bridge__media');
+    ghost.appendChild(mediaClone);
+    const heroMotion = this.projectDrawerView?.imageMotion;
+    const heroMotionClone = heroMotion?.cloneNode(true) || null;
+    if (heroMotionClone) {
+      heroMotionClone.classList.add('portfolio-project-media-bridge__hero-motion');
+      ghost.appendChild(heroMotionClone);
+    }
+    const heroVeil = this.projectDrawerView?.root?.querySelector('.portfolio-project-view__image-veil');
+    const heroVeilClone = heroVeil?.cloneNode(true) || null;
+    if (heroVeilClone) {
+      heroVeilClone.classList.add('portfolio-project-media-bridge__hero-veil');
+      ghost.appendChild(heroVeilClone);
+    }
     ghost.setAttribute('aria-hidden', 'true');
-    ghost.removeAttribute('role');
-    ghost.removeAttribute('tabindex');
-    ghost.removeAttribute('aria-controls');
-    ghost.removeAttribute('aria-expanded');
     ghost.inert = true;
 
     ghost.querySelectorAll('video').forEach((video) => {
@@ -3207,85 +3227,124 @@ class PortfolioScrollApp {
       video.controls = false;
     });
 
+    const sourceStyle = getComputedStyle(sourceMedia);
     const cardStyle = getComputedStyle(card);
-    const drawerStyle = this.projectDrawerView?.drawer
-      ? getComputedStyle(this.projectDrawerView.drawer)
-      : cardStyle;
+    const targetImageShell = this.projectDrawerView?.root?.querySelector('.portfolio-project-view__image-shell');
+    const targetStyle = targetImageShell ? getComputedStyle(targetImageShell) : sourceStyle;
     [
-      '--portfolio-card-media-width',
-      '--portfolio-card-pad',
-      '--portfolio-card-copy-pad-x',
-      '--portfolio-card-copy-pad-y',
       '--portfolio-card-media-radius',
-      '--portfolio-card-contact-shadow',
       '--portfolio-card-contact-shadow-hover',
       '--portfolio-card-surface',
       '--portfolio-card-base',
+      '--portfolio-card-deep',
       '--portfolio-card-accent',
-      '--portfolio-card-ink',
-      '--portfolio-card-muted',
+      '--portfolio-card-accent-mix',
+      '--portfolio-card-overlay-height',
     ].forEach((name) => {
       const value = cardStyle.getPropertyValue(name);
       if (value) ghost.style.setProperty(name, value.trim());
     });
     Object.assign(ghost.style, {
-      left: `${originRect.left}px`,
-      top: `${originRect.top}px`,
-      width: `${originRect.width}px`,
-      height: `${originRect.height}px`,
-      borderRadius: cardStyle.borderRadius,
-      transform: 'translate3d(0, 0, 0) scale(1, 1)',
+      left: `${sourceRect.left}px`,
+      top: `${sourceRect.top}px`,
+      width: `${sourceRect.width}px`,
+      height: `${sourceRect.height}px`,
+      borderRadius: sourceStyle.borderRadius,
     });
 
     const host = document.getElementById('portfolio-sheet-host') || this.projectView?.parentElement || document.body;
     host.appendChild(ghost);
     this.projectOpenGhost = ghost;
-    this.projectOpenPhase = 'ghost';
+    this.projectOpenPhase = 'media-bridge';
     this.projectOpenDebug = {
-      phase: 'ghost',
-      originRect: serializeRect(originRect),
-      drawerRect: serializeRect(targetRect),
-      ghostRect: serializeRect(ghost.getBoundingClientRect()),
+      phase: 'media-bridge',
+      originRect: serializeRect(sourceRect),
+      heroRect: serializeRect(targetRect),
+      bridgeRect: serializeRect(ghost.getBoundingClientRect()),
+      transformPolicy: 'box-geometry-object-fit-cover',
       inputOwnsOpen: true,
     };
-    const deltaX = targetRect.left - originRect.left;
-    const deltaY = targetRect.top - originRect.top;
-    const scaleX = targetRect.width / originRect.width;
-    const scaleY = targetRect.height / originRect.height;
+    const approachScale = 1.035;
+    const sourceCenterX = sourceRect.left + (sourceRect.width * 0.5);
+    const sourceCenterY = sourceRect.top + (sourceRect.height * 0.5);
+    const targetCenterX = targetRect.left + (targetRect.width * 0.5);
+    const targetCenterY = targetRect.top + (targetRect.height * 0.5);
+    const approachWidth = sourceRect.width * approachScale;
+    const approachHeight = sourceRect.height * approachScale;
+    const approachCenterX = sourceCenterX + ((targetCenterX - sourceCenterX) * 0.08);
+    const approachCenterY = sourceCenterY + ((targetCenterY - sourceCenterY) * 0.08);
+    const approachLeft = approachCenterX - (approachWidth * 0.5);
+    const approachTop = approachCenterY - (approachHeight * 0.5);
 
     const keyframes = [
       {
-        borderRadius: cardStyle.borderRadius,
-        transform: 'translate3d(0, 0, 0) scale(1, 1)',
+        left: `${sourceRect.left}px`,
+        top: `${sourceRect.top}px`,
+        width: `${sourceRect.width}px`,
+        height: `${sourceRect.height}px`,
+        borderRadius: sourceStyle.borderRadius,
         opacity: 1,
         filter: 'blur(0px) saturate(1)',
         offset: 0,
       },
       {
-        borderRadius: drawerStyle.borderRadius || '0px',
-        transform: `translate3d(${deltaX.toFixed(2)}px, ${deltaY.toFixed(2)}px, 0) scale(${scaleX.toFixed(5)}, ${scaleY.toFixed(5)})`,
+        left: `${approachLeft.toFixed(2)}px`,
+        top: `${approachTop.toFixed(2)}px`,
+        width: `${approachWidth.toFixed(2)}px`,
+        height: `${approachHeight.toFixed(2)}px`,
+        borderRadius: sourceStyle.borderRadius,
         opacity: 1,
-        filter: 'blur(0.6px) saturate(0.98)',
-        offset: 0.78,
+        filter: 'blur(0px) saturate(1)',
+        offset: 0.16,
       },
       {
-        borderRadius: drawerStyle.borderRadius || '0px',
-        transform: `translate3d(${deltaX.toFixed(2)}px, ${deltaY.toFixed(2)}px, 0) scale(${scaleX.toFixed(5)}, ${scaleY.toFixed(5)})`,
-        opacity: 0,
-        filter: 'blur(5px) saturate(0.92)',
+        left: `${targetRect.left}px`,
+        top: `${targetRect.top}px`,
+        width: `${targetRect.width}px`,
+        height: `${targetRect.height}px`,
+        borderRadius: targetStyle.borderRadius || '0px',
+        opacity: 1,
+        filter: 'blur(0px) saturate(1)',
+        offset: 0.72,
+      },
+      {
+        left: `${targetRect.left}px`,
+        top: `${targetRect.top}px`,
+        width: `${targetRect.width}px`,
+        height: `${targetRect.height}px`,
+        borderRadius: targetStyle.borderRadius || '0px',
+        opacity: 1,
+        filter: 'blur(0px) saturate(1)',
         offset: 1,
       },
     ];
 
+    let handoffStarted = false;
+    const beginHandoff = () => {
+      if (handoffStarted || this.projectOpenGhostToken !== token) return;
+      handoffStarted = true;
+      this.projectOpenDebug = {
+        ...(this.projectOpenDebug || {}),
+        phase: 'hero-handoff',
+        bridgeRect: serializeRect(ghost.getBoundingClientRect()),
+      };
+      onHandoff?.();
+    };
+    this.projectOpenGhostHandoffTimer = window.setTimeout(beginHandoff, durationMs * 0.46);
+
     if (!ghost.animate) {
       Object.assign(ghost.style, {
-        borderRadius: drawerStyle.borderRadius || '0px',
-        transform: `translate3d(${deltaX.toFixed(2)}px, ${deltaY.toFixed(2)}px, 0) scale(${scaleX.toFixed(5)}, ${scaleY.toFixed(5)})`,
-        opacity: '0',
-        filter: 'blur(5px) saturate(0.92)',
+        left: `${targetRect.left}px`,
+        top: `${targetRect.top}px`,
+        width: `${targetRect.width}px`,
+        height: `${targetRect.height}px`,
+        borderRadius: targetStyle.borderRadius || '0px',
+        opacity: '1',
+        filter: 'blur(0px) saturate(1)',
       });
       window.setTimeout(() => {
         if (this.projectOpenGhostToken !== token) return;
+        beginHandoff();
         this.clearProjectOpenGhost();
         onComplete?.();
       }, durationMs);
@@ -3297,14 +3356,61 @@ class PortfolioScrollApp {
       easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
       fill: 'forwards',
     });
+    const bridgeVisual = ghost.querySelector('.portfolio-project-card__image, .portfolio-project-card__video');
+    const heroVisual = this.projectDrawerView?.image;
+    if (bridgeVisual) {
+      const sourceObjectPosition = getComputedStyle(bridgeVisual).objectPosition || '50% 50%';
+      const sourceFilter = getComputedStyle(bridgeVisual).filter || 'none';
+      const targetObjectPosition = heroVisual
+        ? (getComputedStyle(heroVisual).objectPosition || '50% 50%')
+        : '50% 50%';
+      const targetFilter = heroVisual ? (getComputedStyle(heroVisual).filter || 'none') : sourceFilter;
+      bridgeVisual.animate([
+        { objectPosition: sourceObjectPosition, filter: sourceFilter, offset: 0 },
+        { objectPosition: sourceObjectPosition, filter: sourceFilter, offset: 0.72 },
+        { objectPosition: targetObjectPosition, filter: targetFilter, offset: 1 },
+      ], {
+        duration: durationMs,
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        fill: 'forwards',
+      });
+    }
+    mediaClone.animate([
+      { opacity: 1, offset: 0 },
+      { opacity: 1, offset: 0.72 },
+      { opacity: 0, offset: 1 },
+    ], {
+      duration: durationMs,
+      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      fill: 'forwards',
+    });
+    heroMotionClone?.animate([
+      { opacity: 0, offset: 0 },
+      { opacity: 0, offset: 0.72 },
+      { opacity: 1, offset: 1 },
+    ], {
+      duration: durationMs,
+      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      fill: 'forwards',
+    });
+    heroVeilClone?.animate([
+      { opacity: 0, offset: 0 },
+      { opacity: 0, offset: 0.72 },
+      { opacity: 1, offset: 1 },
+    ], {
+      duration: durationMs,
+      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      fill: 'forwards',
+    });
     this.projectOpenGhostAnimation = animation;
     animation.finished
       .then(() => {
         if (this.projectOpenGhostToken !== token) return;
+        beginHandoff();
         this.projectOpenDebug = {
           ...(this.projectOpenDebug || {}),
-          phase: 'ghost-complete',
-          ghostRect: serializeRect(ghost.getBoundingClientRect()),
+          phase: 'media-bridge-complete',
+          bridgeRect: serializeRect(ghost.getBoundingClientRect()),
         };
         this.clearProjectOpenGhost();
         onComplete?.();
@@ -3313,7 +3419,13 @@ class PortfolioScrollApp {
     return true;
   }
 
-  revealPreparedProject({ animate = true, titleDelayMs = 280 } = {}) {
+  revealPreparedProject({
+    animate = true,
+    titleDelayMs = 280,
+    activateHeroMotion = true,
+    heroMotionDelayMs = 0,
+    immediateStart = false,
+  } = {}) {
     if (!this.isProjectOpen || !this.projectDrawerView) return;
     this.projectOpenPhase = 'drawer-reveal';
     this.projectOpenDebug = {
@@ -3321,7 +3433,12 @@ class PortfolioScrollApp {
       phase: 'drawer-reveal',
       drawerRect: serializeRect(this.projectDrawerView.getDrawerRect?.()),
     };
-    this.projectDrawerView.reveal({ animate, titleDelayMs });
+    this.projectDrawerView.reveal({ animate, titleDelayMs, immediateStart });
+    if (activateHeroMotion) {
+      this.projectOpenTimeouts.push(window.setTimeout(() => {
+        if (this.isProjectOpen) this.projectDrawerView?.activateHeroMotion?.();
+      }, shouldReducePortfolioMotion() ? 0 : Math.max(0, heroMotionDelayMs)));
+    }
     this.focusProjectCloseButton();
     const revealSettledDelay = shouldReducePortfolioMotion()
       ? 0
@@ -3398,13 +3515,40 @@ class PortfolioScrollApp {
     announceToScreenReader(`Opened project: ${spokenLabel}`);
     document.addEventListener('keydown', this.boundProjectKeydown, true);
 
-    if (useGhost && this.startProjectOpenGhost(projectIndex, originRect, timings.ghostDurationMs, () => {
-      this.revealPreparedProject({ animate: true, titleDelayMs: timings.titleDelayMs });
-    })) {
-      return;
+    let hasRevealedProject = false;
+    const revealProjectAtHandoff = () => {
+      if (hasRevealedProject || !this.isProjectOpen) return;
+      hasRevealedProject = true;
+      this.revealPreparedProject({
+        animate: true,
+        titleDelayMs: timings.titleDelayMs,
+        activateHeroMotion: false,
+        immediateStart: true,
+      });
+    };
+    if (useGhost) {
+      // Compose the final hero underneath the opaque media bridge immediately.
+      // This keeps continuity intact even if the main thread delays a timer or frame.
+      revealProjectAtHandoff();
+      if (this.startProjectOpenGhost(
+        projectIndex,
+        originRect,
+        timings.ghostDurationMs,
+        revealProjectAtHandoff,
+        () => {
+          revealProjectAtHandoff();
+          this.projectDrawerView?.activateHeroMotion?.();
+        },
+      )) {
+        return;
+      }
     }
 
-    this.revealPreparedProject({ animate: true, titleDelayMs: timings.titleDelayMs });
+    this.revealPreparedProject({
+      animate: true,
+      titleDelayMs: timings.titleDelayMs,
+      heroMotionDelayMs: timings.imageFadeMs,
+    });
   }
 
   finishProjectClose() {
@@ -3440,15 +3584,25 @@ class PortfolioScrollApp {
     if (this.projectView.classList.contains('is-closing')) return;
     this.clearProjectOpenTimeouts();
     this.projectOpenPhase = 'closing';
+    document.body.classList.add('portfolio-project-closing');
     SoundEngine.playWheelClose?.();
     triggerHaptic('close');
     this.projectView.classList.remove('is-title-visible');
     document.removeEventListener('keydown', this.boundProjectKeydown, true);
 
+    if (!this.projectView.classList.contains('is-open')) {
+      this.projectDrawerView?.beginClose({
+        reducedMotion: true,
+        onComplete: () => this.finishProjectClose(),
+      });
+      return;
+    }
+
     const openDuration = clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
+    const closeDuration = clamp(Math.round(openDuration * 0.55), 160, 260);
     this.projectDrawerView?.beginClose({
       reducedMotion: shouldReducePortfolioMotion(),
-      durationMs: openDuration,
+      durationMs: closeDuration,
       onComplete: () => this.finishProjectClose(),
     });
   }
@@ -3470,7 +3624,7 @@ class PortfolioScrollApp {
   }
 
   restoreBackgroundInteractivity() {
-    document.body.classList.remove('portfolio-project-open');
+    document.body.classList.remove('portfolio-project-open', 'portfolio-project-closing');
     setPortfolioSheetHostHidden(true);
     refreshCursor();
     this.deckStage?.removeAttribute('aria-hidden');

@@ -448,49 +448,20 @@ export class PortfolioProjectDrawer {
     this.scroll.scrollTop = 0;
   }
 
-  setOpenOrigin(originRect) {
-    if (!this.root) return;
-    if (!originRect || !(originRect.width > 0) || !(originRect.height > 0)) {
-      this.root.classList.remove('has-open-origin');
-      this.root.style.removeProperty('--portfolio-open-origin-x');
-      this.root.style.removeProperty('--portfolio-open-origin-y');
-      this.root.style.removeProperty('--portfolio-open-origin-scale-x');
-      this.root.style.removeProperty('--portfolio-open-origin-scale-y');
-      return;
-    }
-
-    const targetRect = this.root.getBoundingClientRect();
-    if (!(targetRect.width > 0) || !(targetRect.height > 0)) {
-      this.root.classList.remove('has-open-origin');
-      return;
-    }
-
-    const originCenterX = originRect.left + (originRect.width * 0.5);
-    const originCenterY = originRect.top + (originRect.height * 0.5);
-    const targetCenterX = targetRect.left + (targetRect.width * 0.5);
-    const targetCenterY = targetRect.top + (targetRect.height * 0.5);
-    const scaleX = clamp(originRect.width / targetRect.width, 0.08, 1);
-    const scaleY = clamp(originRect.height / targetRect.height, 0.08, 1);
-    this.root.style.setProperty('--portfolio-open-origin-x', `${(originCenterX - targetCenterX).toFixed(2)}px`);
-    this.root.style.setProperty('--portfolio-open-origin-y', `${(originCenterY - targetCenterY).toFixed(2)}px`);
-    this.root.style.setProperty('--portfolio-open-origin-scale-x', scaleX.toFixed(4));
-    this.root.style.setProperty('--portfolio-open-origin-scale-y', scaleY.toFixed(4));
-    this.root.classList.add('has-open-origin');
-  }
-
-  clearOpenOrigin() {
-    if (!this.root) return;
-    this.root.classList.remove('has-open-origin');
-    this.root.style.removeProperty('--portfolio-open-origin-x');
-    this.root.style.removeProperty('--portfolio-open-origin-y');
-    this.root.style.removeProperty('--portfolio-open-origin-scale-x');
-    this.root.style.removeProperty('--portfolio-open-origin-scale-y');
-  }
-
   getDrawerRect() {
     const rect = this.drawer?.getBoundingClientRect();
     if (!rect || !(rect.width > 0) || !(rect.height > 0)) return null;
     return rect;
+  }
+
+  getHeroImageRect() {
+    const rect = this.root?.querySelector('.portfolio-project-view__image-shell')?.getBoundingClientRect();
+    if (!rect || !(rect.width > 0) || !(rect.height > 0)) return null;
+    return rect;
+  }
+
+  activateHeroMotion() {
+    this.root?.classList.add('is-hero-motion-active');
   }
 
   applyKenBurnsMotion(project, motionConfig = {}) {
@@ -632,6 +603,7 @@ export class PortfolioProjectDrawer {
       animate = true,
       openDurationMs = 420,
       imageFadeMs = 220,
+      imageHandoffDelayMs = 0,
       titleDelayMs = 280,
       accentColor = '',
       motionConfig = {},
@@ -644,6 +616,7 @@ export class PortfolioProjectDrawer {
 
     this.root.style.setProperty('--portfolio-project-open-ms', `${openDurationMs}ms`);
     this.root.style.setProperty('--portfolio-project-image-fade-ms', `${imageFadeMs}ms`);
+    this.root.style.setProperty('--portfolio-project-handoff-delay-ms', `${imageHandoffDelayMs}ms`);
     this.root.style.setProperty('--portfolio-project-title-delay-ms', `${titleDelayMs}ms`);
 
     if (this.image) {
@@ -670,8 +643,7 @@ export class PortfolioProjectDrawer {
     this.scheduleDrawerMediaScrollShift();
 
     this.clearOpenTimers();
-    this.root.classList.remove('is-closing', 'is-open', 'is-title-visible');
-    this.clearOpenOrigin();
+    this.root.classList.remove('is-closing', 'is-open', 'is-title-visible', 'is-hero-motion-active');
     this.root.classList.add('is-visible');
     this.root.setAttribute('aria-hidden', 'false');
     this.resetScrollTop();
@@ -687,20 +659,28 @@ export class PortfolioProjectDrawer {
     });
   }
 
-  reveal({ animate = true, titleDelayMs = 280 } = {}) {
+  reveal({ animate = true, titleDelayMs = 280, immediateStart = false } = {}) {
     if (!this.root) return;
     this.root.classList.remove('is-preopen', 'is-closing');
     if (!animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      this.root.classList.add('is-open', 'is-title-visible');
+      this.root.classList.add('is-open', 'is-title-visible', 'is-hero-motion-active');
       return;
     }
 
     this.root.classList.remove('is-open', 'is-title-visible');
-    requestAnimationFrame(() => {
+    if (immediateStart) {
+      // Flush the hidden composition before the media bridge is appended in the
+      // same task. The bridge covers this local fade, so no intermediate sheet
+      // frame is exposed and the handoff does not depend on a future RAF.
+      void this.root.offsetWidth;
+      this.root.classList.add('is-open');
+    } else {
       requestAnimationFrame(() => {
-        this.root?.classList.add('is-open');
+        requestAnimationFrame(() => {
+          this.root?.classList.add('is-open');
+        });
       });
-    });
+    }
     this.openTimers.push(window.setTimeout(() => {
       this.root?.classList.add('is-title-visible');
     }, titleDelayMs));
@@ -709,9 +689,11 @@ export class PortfolioProjectDrawer {
   beginClose({ reducedMotion = false, durationMs = 420, onComplete } = {}) {
     if (!this.root) return;
     this.clearOpenTimers();
+    this.root.style.setProperty('--portfolio-project-close-ms', `${durationMs}ms`);
     this.drawer?.removeEventListener('transitionend', this.boundTransitionEnd);
     this.drawer?.addEventListener('transitionend', this.boundTransitionEnd);
     this.root.classList.remove('is-title-visible');
+    this.root.classList.remove('is-hero-motion-active');
     this.onCloseComplete = onComplete;
 
     if (reducedMotion || !this.drawer) {
@@ -735,9 +717,15 @@ export class PortfolioProjectDrawer {
       this.closeFallbackTimer = null;
     }
     this.drawer?.removeEventListener('transitionend', this.boundTransitionEnd);
-    this.root.classList.remove('is-visible', 'is-closing', 'is-open', 'is-title-visible', 'is-preopen');
+    this.root.classList.remove(
+      'is-visible',
+      'is-closing',
+      'is-open',
+      'is-title-visible',
+      'is-preopen',
+      'is-hero-motion-active',
+    );
     this.root.setAttribute('aria-hidden', 'true');
-    this.clearOpenOrigin();
     const onComplete = this.onCloseComplete;
     this.onCloseComplete = null;
     onComplete?.();
