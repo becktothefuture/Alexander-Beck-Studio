@@ -2054,6 +2054,10 @@ body.dark-mode .legend-tooltip-output {
   isolation: isolate;
 }
 
+.home-philosophy-copy--mobile {
+  display: none;
+}
+
 /* Home: align blurb first line with legend first line (match legend top inset: container + first item padding) */
 body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
   padding: var(--home-description-top-inset, 0) 0 0;
@@ -2738,6 +2742,13 @@ button.abs-meta-btn,
   position: relative;
   /* overflow: hidden; - Removed to allow hover blur to spill out */
   /* No border-radius on link element - only hover background (::before) has rounded corners */
+}
+
+#social-links .abs-icon-btn > i,
+#social-links .abs-icon-btn > svg {
+  width: var(--shell-control-icon-size);
+  height: var(--shell-control-icon-size);
+  font-size: var(--shell-control-icon-size);
 }
 
 
@@ -3976,8 +3987,8 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 .button-bar__secondary-svg {
   position: relative;
   z-index: 1;
-  width: 1.28em;
-  height: 1.28em;
+  width: var(--shell-control-icon-size);
+  height: var(--shell-control-icon-size);
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -4130,7 +4141,9 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 
 .shell-tab__icon {
   flex: 0 0 auto;
-  font-size: 1.08em;
+  width: var(--shell-control-icon-size);
+  height: var(--shell-control-icon-size);
+  font-size: var(--shell-control-icon-size);
   transition:
     color 160ms var(--shell-tab-motion-ease),
     transform 160ms var(--shell-tab-motion-ease);
@@ -4151,9 +4164,9 @@ svg.shell-tab__icon {
 }
 
 .shell-tab--icon-only .shell-tab__icon {
-  width: 1.35em;
-  height: 1.35em;
-  font-size: 1.35em;
+  width: var(--shell-control-icon-size);
+  height: var(--shell-control-icon-size);
+  font-size: var(--shell-control-icon-size);
 }
 
 .shell-tab__label {
@@ -4336,10 +4349,18 @@ svg.shell-tab__icon {
 }
 
 @media (max-width: 600px) {
-  .button-bar {
+  :root {
     --button-bar-mobile-secondary-height: 34px;
     --button-bar-mobile-row-gap: 10px;
     --button-bar-mobile-divider-size: 1px;
+    --button-bar-responsive-height: calc(
+      var(--shell-tab-height, 48px)
+      + var(--button-bar-mobile-secondary-height)
+      + (var(--button-bar-mobile-row-gap) * 2)
+      + var(--button-bar-mobile-divider-size)
+      + (var(--shell-bottom-tabs-padding-y) * 2)
+    );
+    --shell-control-icon-size: 20px;
   }
 
   .shell-bottom-band {
@@ -4431,7 +4452,7 @@ svg.shell-tab__icon {
   .shell-tab {
     min-height: max(44px, calc(var(--shell-tab-height, 48px) - 2px));
     padding-inline: 8px;
-    font-size: min(var(--shell-tab-font-size, 1.032rem), 0.936rem);
+    font-size: min(calc(var(--shell-tab-font-size, 1.032rem) + 1px), 1rem);
   }
 
   .button-bar__primary-buttons .shell-tab__icon {
@@ -5061,6 +5082,14 @@ html.is-safari .noise::before {
   body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
     padding: var(--home-description-top-inset, 0) 0 0;
   }
+
+  .home-philosophy-copy--full {
+    display: none;
+  }
+
+  .home-philosophy-copy--mobile {
+    display: inline;
+  }
   
   .legend {
     max-width: 100%;
@@ -5139,6 +5168,10 @@ html.is-safari .noise::before {
   
   .ui-meta-row {
     align-items: center;
+  }
+
+  .caption {
+    font-size: calc(var(--caption-font-size) - 1px);
   }
   
   .ui-meta-right {

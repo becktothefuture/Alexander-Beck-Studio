@@ -273,6 +273,7 @@
   --button-bar-gap: 16px;
   --button-bar-button-height: 48px;
   --button-bar-height: calc(var(--button-bar-button-height) + (var(--button-bar-padding-y) * 2));
+  --button-bar-responsive-height: var(--button-bar-height);
   --button-bar-button-padding-x: 16px;
   --button-bar-button-radius: 14px;
   --button-bar-font-size: 1.032rem;
@@ -305,7 +306,7 @@
   --shell-tab-nav-width: var(--button-bar-width);
   --shell-tab-gap: var(--button-bar-gap);
   --shell-tab-height: var(--button-bar-button-height);
-  --shell-bottom-band-height: var(--button-bar-height);
+  --shell-bottom-band-height: var(--button-bar-responsive-height);
   --shell-tab-padding-x: var(--button-bar-button-padding-x);
   --shell-tab-radius: var(--button-bar-button-radius);
   --shell-tab-font-size: var(--button-bar-font-size);
@@ -708,6 +709,7 @@
   /* Unified icon button geometry (used across header/footer/dialogs). */
   --ui-icon-frame-size: calc(var(--abs-size-icon-lg) + (var(--link-icon-padding) * 2));
   --ui-icon-glyph-size: var(--abs-size-icon-lg);
+  --shell-control-icon-size: clamp(20px, 1.4vw, 24px);
   --ui-icon-corner-radius-mul: 0.5; /* fraction of wall radius; buttons track wall roundness */
   /* Directly correlated to wall: radius = wall-radius × mul. 4px min avoids degenerate when wall is tiny. */
   --ui-icon-corner-radius: clamp(

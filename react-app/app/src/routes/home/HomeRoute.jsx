@@ -66,7 +66,12 @@ export function getHomeRouteView() {
             <div className="ui-top-right">
               <blockquote className="decorative-script" data-route-enter="context">
                 <p>
-                  {homeContent.philosophy.textBeforeLink}
+                  <span className="home-philosophy-copy home-philosophy-copy--full">
+                    {homeContent.philosophy.textBeforeLink}
+                  </span>
+                  <span className="home-philosophy-copy home-philosophy-copy--mobile">
+                    {homeContent.philosophy.mobileTextBeforeLink || homeContent.philosophy.textBeforeLink}
+                  </span>
                   {' '}
                   <a
                     id="contact-route-inline"

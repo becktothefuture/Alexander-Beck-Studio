@@ -299,7 +299,7 @@ export function applyButtonBarCssVars(source = {}, root = null) {
   targetRoot.style.setProperty('--button-bar-transition-ms', `${config.buttonBarTransitionMs}ms`);
   targetRoot.style.setProperty('--shell-tab-press-projection-y', `${Math.min(1.5, Math.max(0, config.buttonBarPressZTravelPx * 0.5)).toFixed(2)}px`);
 
-  targetRoot.style.setProperty('--shell-bottom-band-height', 'var(--button-bar-height)');
+  targetRoot.style.setProperty('--shell-bottom-band-height', 'var(--button-bar-responsive-height)');
   targetRoot.style.setProperty('--shell-bottom-tabs-gap', 'var(--button-bar-inset)');
   targetRoot.style.setProperty('--shell-bottom-tabs-padding-y', 'var(--button-bar-padding-y)');
   targetRoot.style.setProperty('--shell-tab-nav-width', 'var(--button-bar-width)');

@@ -87,6 +87,7 @@ function applyPhilosophy() {
   if (!p) return;
 
   const before = getText('philosophy.textBeforeLink', '');
+  const mobileBefore = getText('philosophy.mobileTextBeforeLink', before) || before;
   const beforeWithGap = before ? `${String(before).replace(/\s+$/, '')} ` : '';
   const linkId = getText('philosophy.link.id', 'contact-email-inline') || 'contact-email-inline';
   const linkHref = getText('philosophy.link.href', '#') || '#';
@@ -100,6 +101,18 @@ function applyPhilosophy() {
   link.id = linkId;
   link.setAttribute('href', linkHref);
   link.textContent = linkText;
+
+  const fullCopy = p.querySelector('.home-philosophy-copy--full');
+  const mobileCopy = p.querySelector('.home-philosophy-copy--mobile');
+  if (fullCopy && mobileCopy) {
+    setText(fullCopy, before);
+    setText(mobileCopy, mobileBefore);
+    for (const node of Array.from(p.childNodes)) {
+      if (node.nodeType === Node.TEXT_NODE) p.removeChild(node);
+    }
+    p.insertBefore(document.createTextNode(' '), link);
+    return;
+  }
 
   // Ensure the text before the link is exactly one text node directly before the <a>.
   for (const node of Array.from(p.childNodes)) {
