@@ -4160,24 +4160,11 @@ svg.shell-tab__icon {
   overflow: hidden;
   text-overflow: ellipsis;
   letter-spacing: 0.02em;
-  line-height: 1;
+  line-height: 1.15;
   white-space: nowrap;
   transition:
     color 160ms var(--shell-tab-motion-ease),
     transform 160ms var(--shell-tab-motion-ease);
-}
-
-@supports (text-box: trim-both cap alphabetic) {
-  .shell-tab__label {
-    text-box: trim-both cap alphabetic;
-  }
-}
-
-@supports (height: 1cap) {
-  .shell-tab__label {
-    block-size: 1cap;
-    line-height: 1cap;
-  }
 }
 
 .button-bar__label--mobile-only {

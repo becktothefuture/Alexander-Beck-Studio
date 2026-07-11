@@ -38,6 +38,7 @@ import { setupPointer } from '../input/pointer.js';
 import { setupOverscrollLock } from '../input/overscroll-lock.js';
 import { refreshCursor, setupCustomCursor, updateCursorSize } from '../rendering/cursor.js';
 import { PortfolioProjectDrawer, getProjectContentBlocks } from './project-drawer.js';
+import { PortfolioProjectHandoff } from './project-handoff.js';
 import { getBasePathWithTrailingSlash } from '../../../lib/base-path.js';
 import { triggerHaptic } from '../../../lib/haptics.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
@@ -62,7 +63,6 @@ const CONFIG = {
 let activePortfolioBootstrapRunId = 0;
 
 const PORTFOLIO_CLICK_DRAG_THRESHOLD_PX = 12;
-const PORTFOLIO_OPEN_GHOST_DURATION_MS = 420;
 const PORTFOLIO_HOVER_SOUND_MIN_INTERVAL_MS = 180;
 const PORTFOLIO_HOVER_SOUND_REPEAT_INTERVAL_MS = 650;
 const PORTFOLIO_ACTION_SOUND_MIN_INTERVAL_MS = 90;
@@ -74,6 +74,7 @@ const PORTFOLIO_CAROUSEL_DETENT_FILTER_HZ = 3300;
 const PORTFOLIO_RING_MAX_VISIBLE_OFFSET = 3;
 const PORTFOLIO_RING_GUARD_SLOTS = 2;
 const PORTFOLIO_THUMBNAIL_READY_TIMEOUT_MS = 1800;
+const PORTFOLIO_CARD_EDGE_MIN_OPACITY = 0.8;
 const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   reducedMotionDurationMs: 1,
   scrollSensitivity: 1,
@@ -1387,10 +1388,7 @@ class PortfolioScrollApp {
     this.suppressNextCardClick = false;
     this.pressedCardState = null;
     this.pressOpenTimer = 0;
-    this.projectOpenGhost = null;
-    this.projectOpenGhostAnimation = null;
-    this.projectOpenGhostHandoffTimer = 0;
-    this.projectOpenGhostToken = 0;
+    this.projectHandoff = null;
     this.projectOpenPhase = 'closed';
     this.projectOpenDebug = null;
     this.pointerState = null;
@@ -1398,9 +1396,9 @@ class PortfolioScrollApp {
     this.selectedProjectIndex = -1;
     this.lastFocusedElement = null;
     this.projectDrawerView = null;
+    this.projectFocusTimeouts = [];
     this.videoObserver = null;
     this.cardObserver = null;
-    this.projectOpenTimeouts = [];
     this.portfolioWheelSfxPreviousConfig = null;
     this.portfolioWheelSfxConfigured = false;
     this.portfolioSfxLastFrameAt = 0;
@@ -1423,7 +1421,14 @@ class PortfolioScrollApp {
       const index = Number(requestedIndex ?? 0);
       if (Number.isInteger(index) && index >= 0) this.openProjectByIndex(index);
     };
-    this.boundResize = () => this.updateCardMetrics();
+    this.boundResize = () => {
+      if (this.projectHandoff?.state === 'opening' || this.projectHandoff?.state === 'preparing') {
+        this.projectHandoff.abort({ settle: 'open', reason: 'resize-settle-open' });
+      } else if (this.projectHandoff?.state === 'closing') {
+        this.projectHandoff.abort({ settle: 'closed', reason: 'resize-settle-closed' });
+      }
+      this.updateCardMetrics();
+    };
     this.boundPaletteChange = () => this.applyProjectPalette();
   }
 
@@ -1460,9 +1465,9 @@ class PortfolioScrollApp {
     this.teardownDeckEvents();
     this.stopDeckAnimation();
     this.clearDeckSettleTimer();
-    this.clearProjectOpenTimeouts();
     this.clearPressedCard();
-    this.clearProjectOpenGhost();
+    this.clearProjectFocusTimeouts();
+    this.projectHandoff?.destroy();
     this.restorePortfolioSfxConfig();
     this.videoObserver?.disconnect();
     this.cardObserver?.disconnect();
@@ -1485,7 +1490,7 @@ class PortfolioScrollApp {
     this.config.runtime = normalizePortfolioConfig({ runtime }).runtime;
     this.applyDeckTuning();
     this.updateDeckSlots({ force: true });
-    if (this.isProjectOpen && this.selectedProjectIndex >= 0) {
+    if (this.isProjectOpen && this.selectedProjectIndex >= 0 && this.projectHandoff?.state === 'open') {
       this.syncProjectHero(this.projects[this.selectedProjectIndex], false);
     }
   }
@@ -1623,6 +1628,25 @@ class PortfolioScrollApp {
     });
     this.projectView = this.projectDrawerView.mount();
     this.projectBack = this.projectDrawerView.backButton;
+    this.projectHandoff?.destroy();
+    this.projectHandoff = new PortfolioProjectHandoff({
+      host,
+      drawerView: this.projectDrawerView,
+      getDeckStage: () => this.deckStage,
+      shouldReduceMotion: shouldReducePortfolioMotion,
+      onStateChange: (snapshot) => {
+        this.projectOpenPhase = snapshot.state;
+        this.projectOpenDebug = snapshot;
+      },
+      onOpened: () => {
+        if (!this.isProjectOpen) return;
+        this.projectOpenPhase = 'open';
+        this.focusProjectBackButton();
+      },
+      onClosed: () => {
+        if (this.isProjectOpen) this.finishProjectClose();
+      },
+    });
   }
 
   readDeckIntroContent() {
@@ -2472,7 +2496,8 @@ class PortfolioScrollApp {
     const edgePenetration = stageHalfWidth - (Math.abs(x) - (projectedCardWidth * 0.5));
     const entryFadeDistance = clamp(projectedCardWidth * 0.42, 48, 180);
     const edgeOpacity = smoothstep(0, entryFadeDistance, edgePenetration);
-    const opacity = orbitOpacity * edgeOpacity;
+    const edgePresence = lerp(PORTFOLIO_CARD_EDGE_MIN_OPACITY, 1, edgeOpacity);
+    const opacity = orbitOpacity * edgePresence;
     const activeAmount = clamp(1 - absOffset, 0, 1);
     const slot = Math.abs(orbitOffset) < 0.52 ? '0' : String(Math.round(orbitOffset));
     return {
@@ -2622,7 +2647,7 @@ class PortfolioScrollApp {
     const drawer = this.projectDrawerView?.drawer || null;
     const drawerStyles = drawer ? getComputedStyle(drawer) : null;
     const deckStageStyles = this.deckStage ? getComputedStyle(this.deckStage) : null;
-    const ghostRect = this.projectOpenGhost?.getBoundingClientRect?.() || null;
+    const handoffSnapshot = this.projectHandoff?.getSnapshot?.() || null;
     return {
       targetPosition: this.deckTargetPosition,
       displayPosition: this.deckDisplayPosition,
@@ -2639,9 +2664,14 @@ class PortfolioScrollApp {
         isProjectOpen: this.isProjectOpen,
         selectedIndex: this.selectedProjectIndex,
         pressed: Boolean(this.pressedCardState),
-        hasGhost: Boolean(this.projectOpenGhost),
-        originRect: this.projectOpenDebug?.originRect || null,
-        ghostRect: serializeRect(ghostRect) || this.projectOpenDebug?.ghostRect || null,
+        hasGhost: Boolean(handoffSnapshot?.mediaNodeCount),
+        handoffState: handoffSnapshot?.state || this.projectOpenPhase,
+        handoffProgress: handoffSnapshot?.progress ?? 0,
+        handoffReason: handoffSnapshot?.reason || '',
+        handoffMediaNodeCount: handoffSnapshot?.mediaNodeCount || 0,
+        originRect: handoffSnapshot?.sourceRect || this.projectOpenDebug?.sourceRect || null,
+        heroRect: handoffSnapshot?.targetRect || this.projectOpenDebug?.targetRect || null,
+        ghostRect: handoffSnapshot?.bridgeRect || null,
         drawerRect: serializeRect(drawer?.getBoundingClientRect?.()) || this.projectOpenDebug?.drawerRect || null,
         drawerTransform: drawerStyles?.transform || '',
         drawerOpacity: drawerStyles?.opacity || '',
@@ -3115,23 +3145,6 @@ class PortfolioScrollApp {
     }
   }
 
-  clearProjectOpenGhost() {
-    this.projectOpenGhostToken += 1;
-    window.clearTimeout(this.projectOpenGhostHandoffTimer);
-    this.projectOpenGhostHandoffTimer = 0;
-    if (this.projectOpenGhostAnimation) {
-      try {
-        this.projectOpenGhostAnimation.cancel();
-      } catch (error) {
-        /* ignore */
-      }
-    }
-    this.projectOpenGhostAnimation = null;
-    this.projectOpenGhost?.remove();
-    this.projectOpenGhost = null;
-    this.projectOpenDebug = null;
-  }
-
   canPressCard(card, event) {
     if (this.isProjectOpen || !event?.isPrimary) return false;
     if (event.pointerType === 'mouse' && event.button !== 0) return false;
@@ -3171,7 +3184,7 @@ class PortfolioScrollApp {
         return;
       }
       this.playPortfolioActionSound();
-      this.openProjectByIndex(index, { inputType: 'keyboard', useGhost: false });
+      this.openProjectByIndex(index, { inputType: 'keyboard' });
       return;
     }
 
@@ -3179,12 +3192,6 @@ class PortfolioScrollApp {
     event.preventDefault();
     const direction = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : -1;
     this.advanceActiveProject(direction, { focus: true, announce: true });
-  }
-
-  clearProjectOpenTimeouts() {
-    while (this.projectOpenTimeouts.length) {
-      window.clearTimeout(this.projectOpenTimeouts.pop());
-    }
   }
 
   pauseAllVideos() {
@@ -3235,23 +3242,11 @@ class PortfolioScrollApp {
     if (!project || !this.projectDrawerView) return;
     const openDuration = shouldReducePortfolioMotion()
       ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
-      : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
-    const imageFadeMs = clamp(toNumber(this.config.runtime.motion?.imageFadeMs, 220), 0, 600);
-    const titleDelay = clamp(toNumber(this.config.runtime.motion?.titleRevealDelayMs, 280), 0, 1200);
-    const imageHandoffDelayMs = options.deferReveal
-      ? Math.round(clamp(
-          toNumber(this.config.runtime.motion?.openGhostDurationMs, PORTFOLIO_OPEN_GHOST_DURATION_MS) * 0.42,
-          90,
-          300,
-        ))
-      : 0;
+      : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 700), 200, 1500);
 
     this.projectDrawerView.syncProject(project, {
       animate,
       openDurationMs: openDuration,
-      imageFadeMs,
-      imageHandoffDelayMs,
-      titleDelayMs: titleDelay,
       accentColor: getProjectCardTheme(project, this.selectedProjectIndex, this.projects.length).accent,
       motionConfig: this.config.runtime.motion || {},
       originRect,
@@ -3264,286 +3259,13 @@ class PortfolioScrollApp {
     return {
       openDuration: shouldReducePortfolioMotion()
         ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
-        : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200),
-      imageFadeMs: clamp(toNumber(this.config.runtime.motion?.imageFadeMs, 220), 0, 600),
-      titleDelayMs: clamp(toNumber(this.config.runtime.motion?.titleRevealDelayMs, 280), 0, 1200),
-      ghostDurationMs: clamp(
-        toNumber(this.config.runtime.motion?.openGhostDurationMs, PORTFOLIO_OPEN_GHOST_DURATION_MS),
-        180,
-        700,
-      ),
+        : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 700), 200, 1500),
+      closeDuration: clamp(toNumber(this.config.runtime.motion?.closeDurationMs, 520), 160, 1000),
     };
-  }
-
-  startProjectOpenGhost(projectIndex, originRect, durationMs, onHandoff, onComplete) {
-    const card = this.getActiveProjectCard(projectIndex)
-      || this.cards.find((candidate) => this.getCardProjectIndex(candidate) === this.wrapProjectIndex(projectIndex));
-    const sourceMedia = card?.querySelector('.portfolio-project-card__media');
-    const sourceRect = sourceMedia?.getBoundingClientRect?.() || originRect;
-    const targetRect = this.projectDrawerView?.getHeroImageRect?.();
-    if (!card || !sourceMedia || !sourceRect || !targetRect) return false;
-
-    this.clearProjectOpenGhost();
-    const token = this.projectOpenGhostToken + 1;
-    this.projectOpenGhostToken = token;
-    const ghost = document.createElement('div');
-    ghost.className = 'portfolio-project-media-bridge';
-    const mediaClone = sourceMedia.cloneNode(true);
-    mediaClone.classList.add('portfolio-project-media-bridge__media');
-    ghost.appendChild(mediaClone);
-    const heroMotion = this.projectDrawerView?.imageMotion;
-    const heroMotionClone = heroMotion?.cloneNode(true) || null;
-    if (heroMotionClone) {
-      heroMotionClone.classList.add('portfolio-project-media-bridge__hero-motion');
-      ghost.appendChild(heroMotionClone);
-    }
-    const heroVeil = this.projectDrawerView?.root?.querySelector('.portfolio-project-view__image-veil');
-    const heroVeilClone = heroVeil?.cloneNode(true) || null;
-    if (heroVeilClone) {
-      heroVeilClone.classList.add('portfolio-project-media-bridge__hero-veil');
-      ghost.appendChild(heroVeilClone);
-    }
-    ghost.setAttribute('aria-hidden', 'true');
-    ghost.inert = true;
-
-    ghost.querySelectorAll('video').forEach((video) => {
-      try {
-        video.pause();
-      } catch (error) {
-        /* ignore */
-      }
-      video.removeAttribute('autoplay');
-      video.controls = false;
-    });
-
-    const sourceStyle = getComputedStyle(sourceMedia);
-    const cardStyle = getComputedStyle(card);
-    const targetImageShell = this.projectDrawerView?.root?.querySelector('.portfolio-project-view__image-shell');
-    const targetStyle = targetImageShell ? getComputedStyle(targetImageShell) : sourceStyle;
-    [
-      '--portfolio-card-media-radius',
-      '--portfolio-card-contact-shadow-hover',
-      '--portfolio-card-surface',
-      '--portfolio-card-base',
-      '--portfolio-card-deep',
-      '--portfolio-card-accent',
-      '--portfolio-card-accent-mix',
-      '--portfolio-card-overlay-height',
-    ].forEach((name) => {
-      const value = cardStyle.getPropertyValue(name);
-      if (value) ghost.style.setProperty(name, value.trim());
-    });
-    Object.assign(ghost.style, {
-      left: `${sourceRect.left}px`,
-      top: `${sourceRect.top}px`,
-      width: `${sourceRect.width}px`,
-      height: `${sourceRect.height}px`,
-      borderRadius: sourceStyle.borderRadius,
-    });
-
-    const host = document.getElementById('portfolio-sheet-host') || this.projectView?.parentElement || document.body;
-    host.appendChild(ghost);
-    this.projectOpenGhost = ghost;
-    this.projectOpenPhase = 'media-bridge';
-    this.projectOpenDebug = {
-      phase: 'media-bridge',
-      originRect: serializeRect(sourceRect),
-      heroRect: serializeRect(targetRect),
-      bridgeRect: serializeRect(ghost.getBoundingClientRect()),
-      transformPolicy: 'box-geometry-object-fit-cover',
-      inputOwnsOpen: true,
-    };
-    const approachScale = 1.035;
-    const sourceCenterX = sourceRect.left + (sourceRect.width * 0.5);
-    const sourceCenterY = sourceRect.top + (sourceRect.height * 0.5);
-    const targetCenterX = targetRect.left + (targetRect.width * 0.5);
-    const targetCenterY = targetRect.top + (targetRect.height * 0.5);
-    const approachWidth = sourceRect.width * approachScale;
-    const approachHeight = sourceRect.height * approachScale;
-    const approachCenterX = sourceCenterX + ((targetCenterX - sourceCenterX) * 0.08);
-    const approachCenterY = sourceCenterY + ((targetCenterY - sourceCenterY) * 0.08);
-    const approachLeft = approachCenterX - (approachWidth * 0.5);
-    const approachTop = approachCenterY - (approachHeight * 0.5);
-
-    const keyframes = [
-      {
-        left: `${sourceRect.left}px`,
-        top: `${sourceRect.top}px`,
-        width: `${sourceRect.width}px`,
-        height: `${sourceRect.height}px`,
-        borderRadius: sourceStyle.borderRadius,
-        opacity: 1,
-        filter: 'blur(0px) saturate(1)',
-        offset: 0,
-      },
-      {
-        left: `${approachLeft.toFixed(2)}px`,
-        top: `${approachTop.toFixed(2)}px`,
-        width: `${approachWidth.toFixed(2)}px`,
-        height: `${approachHeight.toFixed(2)}px`,
-        borderRadius: sourceStyle.borderRadius,
-        opacity: 1,
-        filter: 'blur(0px) saturate(1)',
-        offset: 0.16,
-      },
-      {
-        left: `${targetRect.left}px`,
-        top: `${targetRect.top}px`,
-        width: `${targetRect.width}px`,
-        height: `${targetRect.height}px`,
-        borderRadius: targetStyle.borderRadius || '0px',
-        opacity: 1,
-        filter: 'blur(0px) saturate(1)',
-        offset: 0.72,
-      },
-      {
-        left: `${targetRect.left}px`,
-        top: `${targetRect.top}px`,
-        width: `${targetRect.width}px`,
-        height: `${targetRect.height}px`,
-        borderRadius: targetStyle.borderRadius || '0px',
-        opacity: 1,
-        filter: 'blur(0px) saturate(1)',
-        offset: 1,
-      },
-    ];
-
-    let handoffStarted = false;
-    const beginHandoff = () => {
-      if (handoffStarted || this.projectOpenGhostToken !== token) return;
-      handoffStarted = true;
-      this.projectOpenDebug = {
-        ...(this.projectOpenDebug || {}),
-        phase: 'hero-handoff',
-        bridgeRect: serializeRect(ghost.getBoundingClientRect()),
-      };
-      onHandoff?.();
-    };
-    this.projectOpenGhostHandoffTimer = window.setTimeout(beginHandoff, durationMs * 0.46);
-
-    if (!ghost.animate) {
-      Object.assign(ghost.style, {
-        left: `${targetRect.left}px`,
-        top: `${targetRect.top}px`,
-        width: `${targetRect.width}px`,
-        height: `${targetRect.height}px`,
-        borderRadius: targetStyle.borderRadius || '0px',
-        opacity: '1',
-        filter: 'blur(0px) saturate(1)',
-      });
-      window.setTimeout(() => {
-        if (this.projectOpenGhostToken !== token) return;
-        beginHandoff();
-        this.clearProjectOpenGhost();
-        onComplete?.();
-      }, durationMs);
-      return true;
-    }
-
-    const animation = ghost.animate(keyframes, {
-      duration: durationMs,
-      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-      fill: 'forwards',
-    });
-    const bridgeVisual = ghost.querySelector('.portfolio-project-card__image, .portfolio-project-card__video');
-    const heroVisual = this.projectDrawerView?.image;
-    if (bridgeVisual) {
-      const sourceObjectPosition = getComputedStyle(bridgeVisual).objectPosition || '50% 50%';
-      const sourceFilter = getComputedStyle(bridgeVisual).filter || 'none';
-      const targetObjectPosition = heroVisual
-        ? (getComputedStyle(heroVisual).objectPosition || '50% 50%')
-        : '50% 50%';
-      const targetFilter = heroVisual ? (getComputedStyle(heroVisual).filter || 'none') : sourceFilter;
-      bridgeVisual.animate([
-        { objectPosition: sourceObjectPosition, filter: sourceFilter, offset: 0 },
-        { objectPosition: sourceObjectPosition, filter: sourceFilter, offset: 0.72 },
-        { objectPosition: targetObjectPosition, filter: targetFilter, offset: 1 },
-      ], {
-        duration: durationMs,
-        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-        fill: 'forwards',
-      });
-    }
-    mediaClone.animate([
-      { opacity: 1, offset: 0 },
-      { opacity: 1, offset: 0.72 },
-      { opacity: 0, offset: 1 },
-    ], {
-      duration: durationMs,
-      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-      fill: 'forwards',
-    });
-    heroMotionClone?.animate([
-      { opacity: 0, offset: 0 },
-      { opacity: 0, offset: 0.72 },
-      { opacity: 1, offset: 1 },
-    ], {
-      duration: durationMs,
-      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-      fill: 'forwards',
-    });
-    heroVeilClone?.animate([
-      { opacity: 0, offset: 0 },
-      { opacity: 0, offset: 0.72 },
-      { opacity: 1, offset: 1 },
-    ], {
-      duration: durationMs,
-      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-      fill: 'forwards',
-    });
-    this.projectOpenGhostAnimation = animation;
-    animation.finished
-      .then(() => {
-        if (this.projectOpenGhostToken !== token) return;
-        beginHandoff();
-        this.projectOpenDebug = {
-          ...(this.projectOpenDebug || {}),
-          phase: 'media-bridge-complete',
-          bridgeRect: serializeRect(ghost.getBoundingClientRect()),
-        };
-        this.clearProjectOpenGhost();
-        onComplete?.();
-      })
-      .catch(() => {});
-    return true;
-  }
-
-  revealPreparedProject({
-    animate = true,
-    titleDelayMs = 280,
-    activateHeroMotion = true,
-    heroMotionDelayMs = 0,
-    immediateStart = false,
-  } = {}) {
-    if (!this.isProjectOpen || !this.projectDrawerView) return;
-    this.projectOpenPhase = 'drawer-reveal';
-    this.projectOpenDebug = {
-      ...(this.projectOpenDebug || {}),
-      phase: 'drawer-reveal',
-      drawerRect: serializeRect(this.projectDrawerView.getDrawerRect?.()),
-    };
-    this.projectDrawerView.reveal({ animate, titleDelayMs, immediateStart });
-    if (activateHeroMotion) {
-      this.projectOpenTimeouts.push(window.setTimeout(() => {
-        if (this.isProjectOpen) this.projectDrawerView?.activateHeroMotion?.();
-      }, shouldReducePortfolioMotion() ? 0 : Math.max(0, heroMotionDelayMs)));
-    }
-    this.focusProjectBackButton();
-    const revealSettledDelay = shouldReducePortfolioMotion()
-      ? 0
-      : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
-    this.projectOpenTimeouts.push(window.setTimeout(() => {
-      if (!this.isProjectOpen) return;
-      this.projectOpenPhase = 'open';
-      this.projectOpenDebug = {
-        ...(this.projectOpenDebug || {}),
-        phase: 'open',
-        drawerRect: serializeRect(this.projectDrawerView?.getDrawerRect?.()),
-      };
-    }, revealSettledDelay));
   }
 
   focusProjectBackButton() {
+    this.clearProjectFocusTimeouts();
     const focusBack = () => {
       if (!this.isProjectOpen) return;
       const root = this.projectView || this.projectDrawerView?.root || null;
@@ -3559,8 +3281,14 @@ class PortfolioScrollApp {
     focusBack();
     window.requestAnimationFrame(focusBack);
     [80, 220].forEach((delay) => {
-      this.projectOpenTimeouts.push(window.setTimeout(focusBack, delay));
+      this.projectFocusTimeouts.push(window.setTimeout(focusBack, delay));
     });
+  }
+
+  clearProjectFocusTimeouts() {
+    while (this.projectFocusTimeouts.length) {
+      window.clearTimeout(this.projectFocusTimeouts.pop());
+    }
   }
 
   openProjectByIndex(index, options = {}) {
@@ -3571,10 +3299,6 @@ class PortfolioScrollApp {
     const originCard = this.getActiveProjectCard(projectIndex);
     const originRect = options?.originRect || originCard?.getBoundingClientRect() || null;
     const timings = this.getProjectOpenTimings();
-    const useGhost = options?.useGhost !== false
-      && options?.inputType !== 'keyboard'
-      && !shouldReducePortfolioMotion()
-      && Boolean(originRect && originRect.width > 0 && originRect.height > 0);
     this.clearPressedCard();
     const labelContent = resolvePortfolioLabelContent(project, project?.title || `Project ${projectIndex + 1}`);
     const spokenLabel = labelContent.eyebrow
@@ -3598,52 +3322,30 @@ class PortfolioScrollApp {
     this.setDeckInputState('drawer-open');
     getGlobals().__portfolioDrawerOpen = true;
     this.disableBackgroundInteractivity();
-    this.syncProjectHero(project, true, originRect, { deferReveal: useGhost });
+    this.syncProjectHero(project, true, originRect, { deferReveal: true });
     originCard?.classList.add('is-selected');
     this.updateDeckSlots();
     announceToScreenReader(`Opened project: ${spokenLabel}`);
     document.addEventListener('keydown', this.boundProjectKeydown, true);
 
-    let hasRevealedProject = false;
-    const revealProjectAtHandoff = () => {
-      if (hasRevealedProject || !this.isProjectOpen) return;
-      hasRevealedProject = true;
-      this.revealPreparedProject({
-        animate: true,
-        titleDelayMs: timings.titleDelayMs,
-        activateHeroMotion: false,
-        immediateStart: true,
+    this.projectHandoff?.open({
+      sourceCard: originCard,
+      project,
+      openDurationMs: timings.openDuration,
+      closeDurationMs: timings.closeDuration,
+    }).then((started) => {
+      if (started || !this.isProjectOpen) return;
+      this.projectDrawerView?.commitSharedOpen?.(this.projectDrawerView?.imageMotion, {
+        activateHeroMotion: !shouldReducePortfolioMotion(),
       });
-    };
-    if (useGhost) {
-      // Compose the final hero underneath the opaque media bridge immediately.
-      // This keeps continuity intact even if the main thread delays a timer or frame.
-      revealProjectAtHandoff();
-      if (this.startProjectOpenGhost(
-        projectIndex,
-        originRect,
-        timings.ghostDurationMs,
-        revealProjectAtHandoff,
-        () => {
-          revealProjectAtHandoff();
-          this.projectDrawerView?.activateHeroMotion?.();
-        },
-      )) {
-        return;
-      }
-    }
-
-    this.revealPreparedProject({
-      animate: true,
-      titleDelayMs: timings.titleDelayMs,
-      heroMotionDelayMs: timings.imageFadeMs,
+      this.projectOpenPhase = 'open';
+      this.focusProjectBackButton();
     });
   }
 
   finishProjectClose() {
     const restoredIndex = this.selectedProjectIndex;
-    this.clearProjectOpenGhost();
-    this.cards.forEach((card) => card.classList.remove('is-selected'));
+    this.cards.forEach((card) => card.classList.remove('is-selected', 'is-handoff-source-hidden'));
     this.isProjectOpen = false;
     this.selectedProjectIndex = -1;
     this.projectOpenPhase = 'closed';
@@ -3664,36 +3366,26 @@ class PortfolioScrollApp {
 
   closeProject() {
     if (!this.isProjectOpen) return;
-    this.clearProjectOpenGhost();
     if (!this.projectView) {
       SoundEngine.playWheelClose?.();
       this.finishProjectClose();
       return;
     }
-    if (this.projectView.classList.contains('is-closing')) return;
-    this.clearProjectOpenTimeouts();
+    if (this.projectHandoff?.state === 'closing') return;
     this.projectOpenPhase = 'closing';
+    this.clearProjectFocusTimeouts();
     document.body.classList.add('portfolio-project-closing');
     SoundEngine.playWheelClose?.();
     triggerHaptic('close');
-    this.projectView.classList.remove('is-title-visible');
     document.removeEventListener('keydown', this.boundProjectKeydown, true);
-
-    if (!this.projectView.classList.contains('is-open')) {
-      this.projectDrawerView?.beginClose({
-        reducedMotion: true,
-        onComplete: () => this.finishProjectClose(),
-      });
-      return;
+    const sourceCard = this.getActiveProjectCard(this.selectedProjectIndex)
+      || this.cards.find((card) => this.getCardProjectIndex(card) === this.selectedProjectIndex);
+    const closeDuration = clamp(toNumber(this.config.runtime.motion?.closeDurationMs, 520), 160, 1000);
+    const started = this.projectHandoff?.close({ sourceCard, closeDurationMs: closeDuration });
+    if (!started) {
+      this.projectDrawerView?.commitSharedClosed?.(this.projectDrawerView?.imageMotion);
+      this.finishProjectClose();
     }
-
-    const openDuration = clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
-    const closeDuration = clamp(Math.round(openDuration * 0.55), 160, 260);
-    this.projectDrawerView?.beginClose({
-      reducedMotion: shouldReducePortfolioMotion(),
-      durationMs: closeDuration,
-      onComplete: () => this.finishProjectClose(),
-    });
   }
 
   syncProjectButtonStates() {

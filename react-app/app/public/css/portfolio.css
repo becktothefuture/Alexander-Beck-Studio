@@ -18,8 +18,8 @@
   --portfolio-sheet-pad-x: clamp(var(--gap-lg), 7vw, calc(var(--gap-xl) * 3.6));
   --portfolio-sheet-pad-y-body: clamp(var(--gap-xl), 4vw, calc(var(--gap-xl) * 1.8));
   --portfolio-scroll-hint-offset: clamp(26px, 18px + 1.2vw, 52px);
-  --portfolio-project-open-ms: 420ms;
-  --portfolio-project-image-fade-ms: 220ms;
+  --portfolio-project-open-ms: 700ms;
+  --portfolio-project-close-ms: 520ms;
   --portfolio-sheet-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --portfolio-sheet-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   /* Drawer stack: same corner radius token as `#simulations canvas` (inner wall). */
@@ -88,12 +88,23 @@ body.portfolio-page #simulations {
   overflow: hidden;
 }
 
-/* Route-level material veil: the shared hook stays inert on Home because ball
-   contrast is canvas-rendered there, but Portfolio cards need the shell overlay
-   to blend continuously into the inner-wall colour at the clipped edges. */
+/* Portfolio keeps the wall flat: edge cards blend through their existing pose
+   opacity, while the shared full-window veil remains inert to avoid banding. */
 body.portfolio-page .simulation-contrast-veil::before,
 body.portfolio-page .simulation-contrast-veil::after {
-  content: '';
+  content: none;
+  background: none;
+  filter: none;
+  opacity: 0;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* Preserve the thin live rim, but remove the recessed inset shadow from the
+   Portfolio wall so the card-opacity blend sits over one neutral surface. */
+body.portfolio-page #simulations::before {
+  content: none;
+  box-shadow: none;
 }
 
 .portfolio-gate-teaser,
@@ -151,13 +162,7 @@ body.portfolio-project-open .portfolio-project-mount {
 }
 
 body.portfolio-project-open .portfolio-project-mount .portfolio-deck-stage {
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 180ms var(--home-post-boot-ease, ease);
-}
-
-body.portfolio-project-open.portfolio-project-closing .portfolio-project-mount .portfolio-deck-stage {
-  opacity: 1;
 }
 
 /* Portfolio-only route topbar reveal timing; shared topbar layout lives in main.css. */
@@ -548,14 +553,14 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-project-media-bridge {
   position: fixed;
-  z-index: 1020;
+  z-index: 999;
   display: block;
   box-sizing: border-box;
   min-width: 0;
   min-height: 0;
   margin: 0;
   padding: 0;
-  background: var(--portfolio-drawer-ground);
+  background: transparent;
   border: 0;
   box-shadow: var(--portfolio-card-contact-shadow-hover);
   pointer-events: none;
@@ -565,33 +570,33 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   filter: none;
   cursor: default;
   contain: layout paint style;
-  will-change: left, top, width, height, border-radius, opacity, filter;
+  will-change: left, top, width, height, border-radius;
 }
 
-.portfolio-project-media-bridge__media.portfolio-project-card__media {
+.portfolio-project-media-bridge > .portfolio-project-view__image-motion {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   border-radius: inherit;
-  transform: none;
+  overflow: hidden;
+  transform-origin: 50% 50%;
 }
 
-.portfolio-project-media-bridge .portfolio-project-card__image,
-.portfolio-project-media-bridge .portfolio-project-card__video {
+.portfolio-project-media-bridge .portfolio-project-view__image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: none;
 }
 
-.portfolio-project-media-bridge__hero-veil {
+.portfolio-project-media-bridge__source-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
   border-radius: inherit;
-  opacity: 0;
-}
-
-.portfolio-project-media-bridge__hero-motion {
-  opacity: 0;
+  pointer-events: none;
 }
 
 .portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-project-card {
@@ -621,12 +626,16 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   text-decoration-color: color-mix(in srgb, var(--portfolio-card-ink) 42%, transparent);
 }
 
-body.portfolio-project-open .portfolio-deck-mount .portfolio-project-card.is-selected {
+.portfolio-deck-mount .portfolio-project-card.is-handoff-source-hidden {
   --portfolio-card-reveal-opacity: 0.001;
   --portfolio-card-reveal-blur: 2px;
 }
 
-body.portfolio-project-open.portfolio-project-closing .portfolio-deck-mount .portfolio-project-card.is-selected {
+.portfolio-deck-mount .portfolio-project-card.is-handoff-source-hidden::before {
+  opacity: 0.001;
+}
+
+.portfolio-deck-mount .portfolio-project-card.is-selected:not(.is-handoff-source-hidden) {
   --portfolio-card-reveal-opacity: 1;
   --portfolio-card-reveal-blur: 0px;
 }
@@ -921,6 +930,31 @@ body.portfolio-project-open.portfolio-project-closing .portfolio-deck-mount .por
   visibility: visible;
 }
 
+.portfolio-project-view.is-shared-handoff {
+  pointer-events: none;
+}
+
+.portfolio-project-view.is-shared-handoff .portfolio-project-view__drawer {
+  opacity: 1;
+  background: transparent;
+  transition: none;
+}
+
+.portfolio-project-view.is-shared-handoff .portfolio-project-view__drawer::before,
+.portfolio-project-view.is-shared-handoff .portfolio-project-view__drawer::after {
+  opacity: 0;
+}
+
+.portfolio-project-view.is-shared-handoff .portfolio-project-view__image-shell {
+  opacity: 1;
+  background: transparent;
+  transition: none;
+}
+
+.portfolio-project-view.is-shared-handoff .portfolio-project-view__scroll {
+  pointer-events: none;
+}
+
 .portfolio-project-view__backdrop {
   position: absolute;
   inset: var(--portfolio-drawer-seat-inset);
@@ -1166,7 +1200,7 @@ body.portfolio-project-open.portfolio-project-closing .portfolio-deck-mount .por
 
 .portfolio-project-view__image-motion {
   position: absolute;
-  inset: calc(-1 * var(--portfolio-kb-bleed));
+  inset: 0;
   animation: portfolioHeroKenBurns var(--portfolio-kb-duration) cubic-bezier(0.32, 0, 0.12, 1) infinite alternate;
   animation-play-state: paused;
   will-change: transform;
@@ -1708,9 +1742,10 @@ body.portfolio-project-open .ui-bottom {
   opacity: 0.82;
 }
 
-.portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__title {
+.portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__title,
+#portfolioProjectView[data-project-id='chapter-7'] #portfolioProjectTitle.portfolio-project-view__title {
   max-width: 16ch;
-  font-size: clamp(2.4rem, 5.6vw, 5rem);
+  font-size: clamp(2.4rem, 7.61vw, 5rem);
   font-weight: 400;
   line-height: 0.98;
   letter-spacing: -0.038em;
@@ -1776,7 +1811,7 @@ body.portfolio-project-open .ui-bottom {
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__summary p {
-  font-size: clamp(1.28rem, 1.7vw, 1.52rem);
+  font-size: clamp(1.5rem, 3.81vw, 2rem);
   line-height: 1.5;
 }
 

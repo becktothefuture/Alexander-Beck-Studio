@@ -14,7 +14,7 @@ const DEFAULT_PORTFOLIO_CONFIG = {
     '--portfolio-hero-image-gutter': '0px',
     '--portfolio-hero-image-radius': 'max(0px, calc(var(--portfolio-drawer-radius) - var(--portfolio-hero-image-gutter)))',
     '--portfolio-scroll-hint-offset': 'clamp(var(--size-26), var(--size-18) + var(--font-size-1.2), var(--size-52))',
-    '--portfolio-drawer-seat-inset': '0px',
+    '--portfolio-drawer-seat-inset': '3px',
     '--portfolio-drawer-inner-radius-shrink': "var(--size-border-default)",
     '--portfolio-drawer-insert-contact-opacity': '0.24',
     '--portfolio-drawer-insert-top-light-opacity': '0.14',
@@ -73,10 +73,9 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       timeToSleep: 0.14,
       neighborImpulse: 0,
       dragThrowMultiplier: 1.05,
-      openDurationMs: 546,
+      openDurationMs: 700,
+      closeDurationMs: 520,
       colorFloodHoldMs: 120,
-      imageFadeMs: 220,
-      titleRevealDelayMs: 480,
       heroKenBurnsDurationMs: 28000,
       heroKenBurnsPanPx: 18,
       heroKenBurnsZoomPct: 18,
@@ -166,6 +165,11 @@ export function normalizePortfolioConfig(rawConfig) {
   }
   if (runtime?.motion && runtime.motion.gravityScale === undefined && Number.isFinite(Number(runtime.motion.settleGravityScale))) {
     runtime.motion.gravityScale = Number(runtime.motion.settleGravityScale);
+  }
+  if (runtime?.motion) {
+    delete runtime.motion.imageFadeMs;
+    delete runtime.motion.titleRevealDelayMs;
+    delete runtime.motion.openGhostDurationMs;
   }
   return {
     cssVars: isObject(merged.cssVars) ? { ...merged.cssVars } : { ...DEFAULT_PORTFOLIO_CONFIG.cssVars },

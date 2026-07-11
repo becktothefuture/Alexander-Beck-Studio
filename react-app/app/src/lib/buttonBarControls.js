@@ -1,10 +1,10 @@
 export const BUTTON_BAR_DEFAULTS = Object.freeze({
-  buttonBarHeightPx: 78,
+  buttonBarHeightPx: 60.8,
   buttonBarInsetPx: 10,
   buttonBarWidthPx: 2400,
   buttonBarMaxWidthPx: 1100,
   buttonBarGapPx: 16,
-  buttonBarButtonHeightPx: 48,
+  buttonBarButtonHeightPx: 40.8,
   buttonBarButtonPaddingXPx: 16,
   buttonBarButtonRadiusPx: 14,
   buttonBarFontSizeRem: 1.032,
@@ -51,9 +51,9 @@ export const BUTTON_BAR_CONTROL_GROUPS = Object.freeze([
         id: 'buttonBarHeightPx',
         label: 'Bar Height',
         type: 'range',
-        min: 64,
+        min: 56,
         max: 140,
-        step: 1,
+        step: 0.1,
         display: 'px',
       },
       {
@@ -96,9 +96,9 @@ export const BUTTON_BAR_CONTROL_GROUPS = Object.freeze([
         id: 'buttonBarButtonHeightPx',
         label: 'Button Height',
         type: 'range',
-        min: 42,
+        min: 36,
         max: 64,
-        step: 1,
+        step: 0.1,
         display: 'px',
       },
       {
@@ -279,7 +279,7 @@ export function applyButtonBarCssVars(source = {}, root = null) {
 
   targetRoot.style.setProperty('--button-bar-height', `${config.buttonBarHeightPx}px`);
   targetRoot.style.setProperty('--button-bar-inset', `${config.buttonBarInsetPx}px`);
-  targetRoot.style.setProperty('--button-bar-padding-y', `${config.buttonBarInsetPx * 1.5}px`);
+  targetRoot.style.setProperty('--button-bar-padding-y', `${config.buttonBarInsetPx}px`);
   targetRoot.style.setProperty('--button-bar-width', `${config.buttonBarWidthPx}px`);
   targetRoot.style.setProperty('--button-bar-max-width', `${config.buttonBarMaxWidthPx}px`);
   targetRoot.style.setProperty('--button-bar-gap', `${config.buttonBarGapPx}px`);

@@ -22,8 +22,8 @@ const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900, cycles: CYCLES },
   { name: 'mobile', width: 390, height: 844, cycles: Math.max(1, Math.min(CYCLES, 2)) },
 ];
-const OPEN_CAPTURE_MS = [0, 60, 120, 180, 240, 320, 420, 600];
-const CLOSE_CAPTURE_MS = [0, 60, 120, 180, 260, 400];
+const OPEN_CAPTURE_MS = [0, 80, 180, 320, 500, 700, 850];
+const CLOSE_CAPTURE_MS = [0, 80, 180, 320, 520, 650];
 
 function resolvePortfolioUrl() {
   const raw = (process.env.ABS_DEV_URL || 'http://localhost:8013').trim().replace(/\/+$/, '');
@@ -77,9 +77,9 @@ async function startFrameSampler(page, durationMs = 1200) {
     window.__ABS_PORTFOLIO_TRANSITION_SAMPLES__ = [];
     const sample = (now) => {
       const bridge = document.querySelector('.portfolio-project-media-bridge');
-      const bridgeVisual = bridge?.querySelector('.portfolio-project-card__image, .portfolio-project-card__video');
-      const bridgeMedia = bridge?.querySelector('.portfolio-project-card__media');
-      const bridgeVeil = bridge?.querySelector('.portfolio-project-card__media-veil');
+      const bridgeVisual = bridge?.querySelector('.portfolio-project-view__image');
+      const bridgeMedia = bridge?.querySelector('.portfolio-project-view__image-motion');
+      const bridgeVeil = bridge?.querySelector('.portfolio-project-media-bridge__source-veil');
       const drawer = document.querySelector('.portfolio-project-view__drawer');
       const hero = document.querySelector('.portfolio-project-view__image-shell');
       const deck = document.querySelector('.portfolio-deck-stage');
@@ -96,7 +96,7 @@ async function startFrameSampler(page, durationMs = 1200) {
         bridgeOpacity: bridgeStyle ? Number(bridgeStyle.opacity) : 0,
         bridgeTransform: bridgeStyle?.transform || 'none',
         bridgeObjectPosition: bridgeVisual ? getComputedStyle(bridgeVisual).objectPosition : '',
-        bridgeMediaMode: bridgeMedia?.dataset?.mediaMode || 'image',
+        bridgeMediaMode: bridge?.dataset?.mediaMode || 'image',
         bridgeMediaBackground: bridgeMedia ? getComputedStyle(bridgeMedia).backgroundColor : 'transparent',
         heroObjectPosition: document.querySelector('.portfolio-project-view__image')
           ? getComputedStyle(document.querySelector('.portfolio-project-view__image')).objectPosition
@@ -105,6 +105,8 @@ async function startFrameSampler(page, durationMs = 1200) {
         bridgeBoxShadow: bridgeStyle?.boxShadow || 'none',
         bridgeZIndex: bridgeStyle ? Number(bridgeStyle.zIndex) : 0,
         rootZIndex: rootStyle ? Number(rootStyle.zIndex) : 0,
+        rootHandoffActive: Boolean(root?.classList.contains('is-shared-handoff')),
+        handoffMediaCount: document.querySelectorAll('.portfolio-project-view__image-motion').length,
         drawerOpacity: drawerStyle ? Number(drawerStyle.opacity) : 0,
         heroOpacity: heroStyle ? Number(heroStyle.opacity) : 0,
         deckOpacity: deckStyle ? Number(deckStyle.opacity) : 0,
@@ -142,8 +144,11 @@ function validateOpenSamples(samples, label, failures, requireFrameDensity = tru
     if (sample.heroMotionActive) {
       failures.push(`${label}: hero parallax started before the bridge handoff completed`);
     }
-    if (!(sample.bridgeZIndex > sample.rootZIndex)) {
-      failures.push(`${label}: media bridge did not stack above the project view`);
+    if (!(sample.bridgeZIndex < sample.rootZIndex) || !sample.rootHandoffActive) {
+      failures.push(`${label}: shared media was not layered beneath the transparent project handoff surface`);
+    }
+    if (sample.handoffMediaCount !== 1) {
+      failures.push(`${label}: expected one shared hero-media node, found ${sample.handoffMediaCount}`);
     }
   });
   const firstBridge = bridgeSamples[0];
@@ -180,6 +185,27 @@ function validateOpenSamples(samples, label, failures, requireFrameDensity = tru
     const final = samples.at(-1);
     if (!final || final.phase !== 'open' || !final.heroMotionActive || final.heroOpacity < 0.95) {
       failures.push(`${label}: final open state did not settle with the hero and parallax active`);
+    }
+  }
+}
+
+function validateCloseSamples(samples, label, failures) {
+  const bridgeSamples = samples.filter((sample) => sample.bridgeRect && sample.bridgeOpacity > 0.01);
+  if (bridgeSamples.length < 3) failures.push(`${label}: reverse handoff was not sampled across enough frames`);
+  bridgeSamples.forEach((sample) => {
+    if (sample.handoffMediaCount !== 1) {
+      failures.push(`${label}: reverse handoff duplicated the hero-media node`);
+    }
+    if (sample.heroMotionActive) {
+      failures.push(`${label}: hero parallax remained active during reverse handoff`);
+    }
+  });
+  for (let index = 1; index < bridgeSamples.length; index += 1) {
+    const previous = bridgeSamples[index - 1].bridgeRect;
+    const current = bridgeSamples[index].bridgeRect;
+    if (current.width > previous.width + 2 || current.height > previous.height + 2) {
+      failures.push(`${label}: reverse handoff geometry moved away from the card target`);
+      break;
     }
   }
 }
@@ -321,6 +347,7 @@ async function main() {
         );
 
         const closeMethod = ['button', 'escape', 'backdrop'][(cycle + projectIndex) % 3];
+        await startFrameSampler(page, 900);
         let closeCaptures = [];
         if (CAPTURE_STILLS && cycle === 0 && projectIndex === 0) {
           const closePromise = captureTimedFrames(page, `${viewport.name}-close`, CLOSE_CAPTURE_MS);
@@ -330,8 +357,18 @@ async function main() {
         } else {
           await closeProject(page, closeMethod);
         }
+        await page.waitForTimeout(80);
+        const closeSamples = await page.evaluate(() => window.__ABS_PORTFOLIO_TRANSITION_SAMPLES__ || []);
+        validateCloseSamples(closeSamples, `${label}/close`, failures);
         const closedState = await assertCleanClosedState(page, label, failures);
-        viewportSummary.cycles.push({ cycle, projectIndex, closeMethod, sampleCount: openSamples.length, closedState });
+        viewportSummary.cycles.push({
+          cycle,
+          projectIndex,
+          closeMethod,
+          sampleCount: openSamples.length,
+          closeSampleCount: closeSamples.length,
+          closedState,
+        });
       }
     }
 
@@ -349,6 +386,63 @@ async function main() {
       `${viewport.name}/close-during-open`,
       failures,
     );
+
+    await selectProject(page, Math.min(1, projectCount - 1));
+    await startFrameSampler(page);
+    await page.locator('.portfolio-project-card.is-active').focus();
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(
+      () => window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.projectOpenPhase === 'open',
+      null,
+      { timeout: WAIT_MS },
+    );
+    const keyboardSamples = await page.evaluate(() => window.__ABS_PORTFOLIO_TRANSITION_SAMPLES__ || []);
+    if (keyboardSamples.filter((sample) => sample.bridgeRect).length < 3) {
+      failures.push(`${viewport.name}/keyboard: shared-media handoff did not run`);
+    }
+    await closeProject(page, 'escape');
+    await assertCleanClosedState(page, `${viewport.name}/keyboard`, failures);
+
+    await selectProject(page, Math.min(1, projectCount - 1));
+    await page.locator('.portfolio-project-card.is-active').click({ timeout: WAIT_MS });
+    await page.waitForFunction(
+      () => window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.projectOpenPhase === 'open',
+      null,
+      { timeout: WAIT_MS },
+    );
+    await page.evaluate(() => {
+      const scroll = document.querySelector('.portfolio-project-view__scroll');
+      const hero = document.querySelector('.portfolio-project-view__hero');
+      if (scroll && hero) scroll.scrollTop = hero.getBoundingClientRect().height * 0.65;
+    });
+    await startFrameSampler(page, 500);
+    await closeProject(page, 'button');
+    await page.waitForTimeout(80);
+    const scrolledCloseSamples = await page.evaluate(() => window.__ABS_PORTFOLIO_TRANSITION_SAMPLES__ || []);
+    if (scrolledCloseSamples.some((sample) => sample.bridgeRect)) {
+      failures.push(`${viewport.name}/scrolled-close: direct close unexpectedly created a media bridge`);
+    }
+    await assertCleanClosedState(page, `${viewport.name}/scrolled-close`, failures);
+
+    await selectProject(page, 0);
+    await page.locator('.portfolio-project-card.is-active').click({ timeout: WAIT_MS });
+    await page.waitForTimeout(100);
+    await page.setViewportSize({ width: Math.max(320, viewport.width - 1), height: viewport.height });
+    await page.waitForFunction(
+      () => window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.projectOpenPhase === 'open',
+      null,
+      { timeout: WAIT_MS },
+    );
+    const resizeState = await page.evaluate(() => ({
+      bridgeCount: document.querySelectorAll('.portfolio-project-media-bridge').length,
+      mediaCount: document.querySelectorAll('.portfolio-project-view__image-motion').length,
+    }));
+    if (resizeState.bridgeCount !== 0 || resizeState.mediaCount !== 1) {
+      failures.push(`${viewport.name}/resize: handoff did not settle to one clean hero-media node`);
+    }
+    await closeProject(page, 'escape');
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await waitForCarousel(page);
 
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(portfolioUrl, { waitUntil: 'networkidle', timeout: 60000 });

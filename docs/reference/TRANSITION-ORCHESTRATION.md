@@ -74,6 +74,9 @@ Canonical engineering contract for route and modal transitions.
 - Reduced motion disables blur, depth scaling, and the window pass while preserving the route phase cleanup back to `idle`.
 
 ## 8) Validation gate for transition changes
+
+The portfolio card/project handoff is a local overlay state machine, not a route-transition owner. It may coordinate the deck, project drawer, and temporary media bridge, but it must not mutate `<html data-abs-transition-phase>` or compete with `useShellRouteTransition`. Route change or unmount must abort the local handoff and remove its temporary bridge.
+
 Run on preview or dev server (serially, not in parallel):
 
 ```bash

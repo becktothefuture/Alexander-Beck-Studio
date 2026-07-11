@@ -14,7 +14,7 @@
 | 4 | **Route Simulation / Content Layer** | `.route-simulation-layer` inside `#shell-wall-slot`; home owns `#c.ball-canvas-layer`, portfolio owns `.portfolio-slider-layer`, and About/CV owns `.about-content-layer`. The home title/subtitle are visually drawn through the canvas/title-depth renderer. Home ball contrast is rendered inside this canvas, clipped to ball bodies only. |
 | 6 | **Window Overlay Hook** | The simulation chooser and persistent Portfolio gate are clipped to the studio window, but mount as `#abs-scene` siblings above route UI; see the scene-child stack below. |
 | 7 | **Live Wall Finish** | `#simulations::before` (`165`) and `.inner-wall-gradient-edge` (`170`) preserve the canonical resting inset shadow and rim/light edge. `.studio-window-finish-layer` (`290`) mirrors that same finish above active in-window modal/gate overlays without changing normal route rendering. |
-| 8 | **Contrast Veil Hook** | `.simulation-contrast-veil`, pointer-transparent, `z-index: 180`; inert on Home because ball contrast is canvas-rendered, active on Portfolio above cards and below UI. |
+| 8 | **Contrast Veil Hook** | `.simulation-contrast-veil`, pointer-transparent, `z-index: 180`; the DOM hook remains inert. Home renders contrast inside ball bodies; Portfolio uses its geometry-aware card pose opacity. |
 | 9 | **UI Layer** | `.fade-content.ui-layer`, `z-index: 200`; the stable shell contains `.route-ui-layer` for route-owned chrome/actions plus the shared footer mount. |
 | 10 | **Overlay Layer** | `#portfolio-sheet-host` (`220` / `260` when open), `#quote-viewport-host` (`250`), in-window modal layers (`270` / `280`), and the pointer-transparent active window finish (`290`). |
 | 11 | **Viewport Modal Layer** | `#modal-blur-layer.modal-layer` and `#modal-content-layer.modal-layer`, outside `#abs-scene`, remain reserved for genuinely viewport-wide dialogs. |
@@ -42,7 +42,7 @@ The semantic names are additive. Do not replace compatibility hooks such as `#ab
 |--------------------|--------:|-------|
 | 1 | 100 | `#simulations.simulation-wall-layer` |
 | 2 | 175 | `.frame-vignette` |
-| 3 | **180** | **`.simulation-contrast-veil`** (inert during home ball-canvas rendering) |
+| 3 | **180** | **`.simulation-contrast-veil`** (inert compatibility hook; contrast is route-rendered) |
 | 4 | **200** | **`.fade-content.ui-layer`** (`.route-ui-layer` plus shared footer) |
 | 5 | **205** | `.shell-bottom-band` / Button Bar, outside the studio-window rectangle |
 | 6 | **220** / **260** when open | **`#portfolio-sheet-host`** |
@@ -106,4 +106,4 @@ Dev panel and genuinely viewport-wide modal blur/content use the higher global z
 
 - Open a project from **home** and **portfolio**: dimmer + sheet cover **header and footer**; backdrop click still closes where implemented.
 - With quote host on home: open project → sheet above quote puck (`260` > `250`).
-- Inspect home desktop/mobile: veil improves edge contrast without dimming the center, does not intercept pointer events, and remains below UI.
+- Inspect Home desktop/mobile: ball-only contrast improves edge readability without repainting the wall. Inspect Portfolio: the wall remains flat, edge cards approach the `0.8` opacity floor, and offscreen copies still fade fully before rebasing.

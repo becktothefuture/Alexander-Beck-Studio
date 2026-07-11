@@ -41,13 +41,14 @@ The homepage direct-load values are the upper bound for depth emergence: about `
 
 The project card and project hero share an image, not a common aspect ratio. Their continuity bridge is therefore the media crop, not the whole card box.
 
-- Let the selected thumbnail come slightly closer with uniform scale.
-- Animate one isolated media box from the thumbnail bounds to the hero bounds using measured `left`, `top`, `width`, `height`, and `border-radius`.
+- Move the drawer's real hero-media node into one isolated bridge and animate it from the thumbnail bounds to the hero bounds using measured `left`, `top`, `width`, `height`, and `border-radius`.
 - Keep the image inside that box at `object-fit: cover`; changing the box changes the crop without stretching pixels.
-- Crossfade to the mounted hero near the end of the geometry move.
+- Reattach that same media node to the hero shell at settlement; do not crossfade between duplicate images.
 - Start hero parallax only after the media handoff completes.
 - Bring hero identity and actions into readable form using the homepage depth-emergence vocabulary.
-- Close more directly: recess the drawer, reveal the deck underneath, restore focus to the originating card, and clean up every temporary bridge.
+- At the hero, close by reversing the media handoff into the freshly measured originating card using the shorter close duration.
+- If the reader has scrolled beyond the visible hero, close directly without snapping the article back to the top.
+- Reduced motion uses opacity only: no media travel, crop animation, blur, or ambient motion.
 
 ## 5. Shipping checklist
 

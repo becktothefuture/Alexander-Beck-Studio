@@ -361,6 +361,7 @@ async function collectPermanentRingSample(page) {
     const identities = [];
     const visibleProjects = {};
     const mediaFailures = [];
+    const edgeOpacitySamples = [];
     const cards = Array.from(document.querySelectorAll('.portfolio-project-card'));
     cards.forEach((card) => {
       const style = getComputedStyle(card);
@@ -384,6 +385,10 @@ async function collectPermanentRingSample(page) {
       const opacity = Number.parseFloat(style.opacity || '0');
       const intersects = clippedWidth > 2 && clippedHeight > 2 && style.visibility !== 'hidden';
       if (!intersects) return;
+      const clippedRatio = rect.width > 0 ? clippedWidth / rect.width : 0;
+      if (clippedRatio > 0.02 && clippedRatio < 0.45 && opacity > 0.5) {
+        edgeOpacitySamples.push(opacity);
+      }
       const mediaReady = Boolean(
         fallback
         || (image && image.complete && image.naturalWidth > 0)
@@ -397,6 +402,7 @@ async function collectPermanentRingSample(page) {
         visibleProjects[projectId] = {
           instanceKey,
           opacity,
+          clippedRatio,
           left: rect.left,
           right: rect.right,
         };
@@ -407,6 +413,7 @@ async function collectPermanentRingSample(page) {
       identities,
       visibleProjects,
       mediaFailures,
+      edgeOpacitySamples,
     };
   });
 }
@@ -432,6 +439,7 @@ async function auditPermanentRing(page) {
   const duplicateInstanceKeys = initial.identities.length - baselineIdentities.size;
   const abruptEntries = [];
   const mediaFailures = [...initial.mediaFailures];
+  const edgeOpacitySamples = [...initial.edgeOpacitySamples];
   let maxOpacityJump = 0;
   const stepsPerProject = 20;
 
@@ -447,11 +455,13 @@ async function auditPermanentRing(page) {
       await advancePermanentRingFrame(page, direction, 1 / stepsPerProject);
       const current = await collectPermanentRingSample(page);
       mediaFailures.push(...current.mediaFailures);
+      edgeOpacitySamples.push(...current.edgeOpacitySamples);
       for (const [projectId, state] of Object.entries(current.visibleProjects)) {
-        const previousOpacity = previous.visibleProjects[projectId]?.opacity || 0;
+        const previousState = previous.visibleProjects[projectId];
+        const previousOpacity = previousState?.opacity || 0;
         const opacityJump = state.opacity - previousOpacity;
-        maxOpacityJump = Math.max(maxOpacityJump, opacityJump);
-        if (previousOpacity <= 0.03 && state.opacity > 0.35) {
+        if (previousState) maxOpacityJump = Math.max(maxOpacityJump, opacityJump);
+        if (previousOpacity <= 0.03 && state.opacity > 0.95 && state.clippedRatio > 0.2) {
           abruptEntries.push({ direction, stepIndex, projectId, previousOpacity, opacity: state.opacity });
         }
       }
@@ -471,6 +481,9 @@ async function auditPermanentRing(page) {
     abruptEntries,
     mediaFailures,
     maxOpacityJump: Number(maxOpacityJump.toFixed(4)),
+    minEdgeOpacity: edgeOpacitySamples.length
+      ? Number(Math.min(...edgeOpacitySamples).toFixed(4))
+      : null,
   };
 }
 
@@ -485,6 +498,7 @@ async function readPortfolioVeil(page) {
     const before = veil ? getComputedStyle(veil, '::before') : null;
     const after = veil ? getComputedStyle(veil, '::after') : null;
     const veilStyle = veil ? getComputedStyle(veil) : null;
+    const wallInset = getComputedStyle(document.getElementById('simulations'), '::before');
     const rootStyle = getComputedStyle(document.documentElement);
     return {
       theme: document.querySelector('.button-bar__theme-toggle')?.dataset.state || '',
@@ -499,6 +513,8 @@ async function readPortfolioVeil(page) {
       beforeBackground: before?.backgroundImage || '',
       afterContent: after?.content || '',
       afterBackground: after?.backgroundImage || '',
+      wallInsetContent: wallInset?.content || '',
+      wallInsetShadow: wallInset?.boxShadow || '',
       wallRgb: rootStyle.getPropertyValue('--simulation-contrast-veil-rgb').trim(),
       opacity: rootStyle.getPropertyValue('--simulation-contrast-veil-opacity').trim(),
     };
@@ -683,12 +699,16 @@ async function main() {
     if (summary.permanentRing?.abruptEntries?.length) failures.push('permanent ring produced an abrupt edge-opacity entry');
     if (summary.permanentRing?.mediaFailures?.length) failures.push('permanent ring exposed an undecoded thumbnail without fallback');
     if ((summary.permanentRing?.maxOpacityJump ?? Infinity) > 0.35) failures.push('permanent ring opacity changed too sharply between sampled frames');
+    if (summary.permanentRing?.minEdgeOpacity == null) failures.push('permanent ring did not expose an edge-opacity sample');
+    if ((summary.permanentRing?.minEdgeOpacity ?? 0) < 0.78) failures.push('permanent ring edge opacity fell below the 0.8 floor');
+    if ((summary.permanentRing?.minEdgeOpacity ?? 1) > 0.9) failures.push('permanent ring edge opacity did not soften toward the 0.8 floor');
     for (const [theme, veil] of Object.entries(summary.veil || {})) {
       if (JSON.stringify(veil.rect) !== JSON.stringify(veil.overlayRect)) failures.push(`${theme}: portfolio veil does not match the inner-window rectangle`);
       if (!(veil.wallZ < veil.zIndex && veil.zIndex < veil.uiZ && veil.zIndex < veil.sheetZ)) failures.push(`${theme}: portfolio veil stacking order is incorrect`);
       if (veil.pointerEvents !== 'none') failures.push(`${theme}: portfolio veil intercepts pointer input`);
-      if (veil.beforeContent === 'none' || veil.beforeBackground === 'none') failures.push(`${theme}: portfolio edge gradient is not active`);
-      if (veil.afterContent === 'none' || veil.afterBackground === 'none') failures.push(`${theme}: portfolio veil dither is not active`);
+      if (veil.beforeContent !== 'none' || veil.beforeBackground !== 'none') failures.push(`${theme}: portfolio full-window edge gradient is still active`);
+      if (veil.afterContent !== 'none' || veil.afterBackground !== 'none') failures.push(`${theme}: portfolio full-window dither is still active`);
+      if (veil.wallInsetContent !== 'none' || veil.wallInsetShadow !== 'none') failures.push(`${theme}: portfolio wall inset shadow is still active`);
       if (!veil.wallRgb || !veil.opacity) failures.push(`${theme}: portfolio veil is not using shared wall tokens`);
     }
     const accentCount = summary.accents?.length || 0;

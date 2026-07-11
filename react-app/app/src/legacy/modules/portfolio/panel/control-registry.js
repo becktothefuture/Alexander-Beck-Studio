@@ -90,10 +90,9 @@ const CONTROL_SECTIONS = {
       { id: 'massMultiplier', label: 'Mass', configKey: 'runtime.motion.massMultiplier', type: 'range', min: 0.5, max: 2, step: 0.05, unit: '', default: 1, refresh: true },
       { id: 'neighborImpulse', label: 'Neighbor Impulse', configKey: 'runtime.motion.neighborImpulse', type: 'range', min: 0, max: 1200, step: 10, unit: '', default: 0 },
       { id: 'dragThrowMultiplier', label: 'Throw Multiplier', configKey: 'runtime.motion.dragThrowMultiplier', type: 'range', min: 0.2, max: 2, step: 0.05, unit: '', default: 1.05 },
-      { id: 'openDurationMs', label: 'Open Duration', configKey: 'runtime.motion.openDurationMs', type: 'range', min: 200, max: 1500, step: 10, unit: 'ms', default: 546 },
+      { id: 'openDurationMs', label: 'Open Handoff', configKey: 'runtime.motion.openDurationMs', type: 'range', min: 200, max: 1500, step: 10, unit: 'ms', default: 700 },
+      { id: 'closeDurationMs', label: 'Close Handoff', configKey: 'runtime.motion.closeDurationMs', type: 'range', min: 160, max: 1000, step: 10, unit: 'ms', default: 520 },
       { id: 'colorFloodHoldMs', label: 'Color Hold', configKey: 'runtime.motion.colorFloodHoldMs', type: 'range', min: 0, max: 600, step: 10, unit: 'ms', default: 120 },
-      { id: 'imageFadeMs', label: 'Image Fade', configKey: 'runtime.motion.imageFadeMs', type: 'range', min: 0, max: 600, step: 10, unit: 'ms', default: 220 },
-      { id: 'titleRevealDelayMs', label: 'Title Delay', configKey: 'runtime.motion.titleRevealDelayMs', type: 'range', min: 200, max: 1500, step: 10, unit: 'ms', default: 480 },
     ],
   },
   carousel: {
@@ -241,7 +240,7 @@ const CONTROL_SECTIONS = {
         max: 28,
         step: 1,
         unit: 'px',
-        default: 0,
+        default: 3,
         hint: 'Positive: margin around the sheet so the real pit wall + rim lights show through. Negative: sheet extends toward the host edge (clipped). Drawer shading is insert-only; wall lights stay on the pit.',
       },
       {

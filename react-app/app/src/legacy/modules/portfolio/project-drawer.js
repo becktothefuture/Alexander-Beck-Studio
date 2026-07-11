@@ -203,8 +203,9 @@ function createKenBurnsSequence(project, motionConfig = {}) {
   const spanVariance = 2 + ((seed >>> 4) % 5);
   const spanX = clamp(basePanPx - 2 + spanVariance, 6, 40);
   const spanY = clamp(Math.round(basePanPx * (0.55 + (((seed >>> 7) % 4) * 0.06))), 4, 32);
-  const startScale = 1.06 + (((seed >>> 10) % 4) * 0.02);
-  const endScale = startScale + (zoomPct / 100);
+  const baseScale = 1.06 + (((seed >>> 10) % 4) * 0.02);
+  const startScale = 1;
+  const endScale = baseScale + (zoomPct / 100);
   const midScale = startScale + ((endScale - startScale) * 0.42);
   const settleScale = startScale + ((endScale - startScale) * 0.74);
   const durationMs = baseDurationMs + ((seed >>> 21) % 2501);
@@ -212,8 +213,8 @@ function createKenBurnsSequence(project, motionConfig = {}) {
     durationMs,
     points: [
       {
-        x: directionX * -spanX,
-        y: directionY * -spanY,
+        x: 0,
+        y: 0,
         scale: Number(startScale.toFixed(3)),
       },
       {
@@ -340,6 +341,7 @@ export class PortfolioProjectDrawer {
     this.backdrop = null;
     this.drawer = null;
     this.scroll = null;
+    this.imageShell = null;
     this.imageMotion = null;
     this.image = null;
     this.eyebrow = null;
@@ -378,6 +380,7 @@ export class PortfolioProjectDrawer {
     this.backdrop = this.root?.querySelector('.portfolio-project-view__backdrop') || null;
     this.drawer = this.root?.querySelector('.portfolio-project-view__drawer') || null;
     this.scroll = this.root?.querySelector('.portfolio-project-view__scroll') || null;
+    this.imageShell = this.root?.querySelector('.portfolio-project-view__image-shell') || null;
     this.imageMotion = this.root?.querySelector('.portfolio-project-view__image-motion') || null;
     this.image = this.root?.querySelector('.portfolio-project-view__image') || null;
     this.eyebrow = this.root?.querySelector('.portfolio-project-view__eyebrow') || null;
@@ -466,9 +469,96 @@ export class PortfolioProjectDrawer {
   }
 
   getHeroImageRect() {
-    const rect = this.root?.querySelector('.portfolio-project-view__image-shell')?.getBoundingClientRect();
+    const rect = this.imageShell?.getBoundingClientRect();
     if (!rect || !(rect.width > 0) || !(rect.height > 0)) return null;
     return rect;
+  }
+
+  getHeroImageShell() {
+    return this.imageShell;
+  }
+
+  getTransitionMedia() {
+    return {
+      motion: this.imageMotion,
+      image: this.image,
+    };
+  }
+
+  getHeroVeil() {
+    return this.root?.querySelector('.portfolio-project-view__image-veil') || null;
+  }
+
+  getHeroCopy() {
+    return this.root?.querySelector('.portfolio-project-view__hero-copy') || null;
+  }
+
+  getScrollCue() {
+    return this.root?.querySelector('.portfolio-project-view__scroll-cue') || null;
+  }
+
+  usesColorMedia() {
+    return this.root?.dataset?.mediaMode === 'colour';
+  }
+
+  getHeroColor() {
+    if (!this.root) return '';
+    return getComputedStyle(this.root).getPropertyValue('--portfolio-project-hero-colour').trim();
+  }
+
+  isHeroAtTop() {
+    if (!this.scroll) return true;
+    const heroHeight = this.root?.querySelector('.portfolio-project-view__hero')?.getBoundingClientRect?.().height || 0;
+    return this.scroll.scrollTop <= Math.max(16, heroHeight * 0.4);
+  }
+
+  beginSharedHandoff(direction = 'open') {
+    if (!this.root) return;
+    this.root.classList.add('is-visible', 'is-shared-handoff');
+    this.root.classList.toggle('is-shared-handoff-closing', direction !== 'open');
+    this.root.classList.remove('is-hero-motion-active', 'is-closing');
+    this.root.setAttribute('aria-hidden', 'false');
+  }
+
+  restoreTransitionMedia(mediaMotion = this.imageMotion) {
+    if (!mediaMotion || !this.imageShell) return;
+    const veil = this.getHeroVeil();
+    this.imageShell.insertBefore(mediaMotion, veil || this.imageShell.firstChild);
+    this.imageMotion = mediaMotion;
+    this.image = mediaMotion.querySelector('.portfolio-project-view__image') || this.image;
+  }
+
+  commitSharedOpen(mediaMotion = this.imageMotion, { activateHeroMotion = true } = {}) {
+    if (!this.root) return;
+    this.restoreTransitionMedia(mediaMotion);
+    this.root.classList.remove(
+      'is-preopen',
+      'is-closing',
+      'is-shared-handoff',
+      'is-shared-handoff-closing',
+    );
+    this.root.classList.add('is-visible', 'is-open', 'is-title-visible');
+    this.root.classList.toggle('is-hero-motion-active', Boolean(activateHeroMotion));
+    this.root.setAttribute('aria-hidden', 'false');
+  }
+
+  commitSharedClosed(mediaMotion = this.imageMotion) {
+    if (!this.root) return;
+    this.restoreTransitionMedia(mediaMotion);
+    this.resetMediaTransforms();
+    this.root.classList.remove(
+      'is-visible',
+      'is-closing',
+      'is-open',
+      'is-title-visible',
+      'is-preopen',
+      'is-hero-motion-active',
+      'is-shared-handoff',
+      'is-shared-handoff-closing',
+    );
+    this.root.setAttribute('aria-hidden', 'true');
+    this.resetScrollTop();
+    this.updateScrollState();
   }
 
   activateHeroMotion() {
@@ -853,6 +943,7 @@ export class PortfolioProjectDrawer {
     this.backdrop = null;
     this.drawer = null;
     this.scroll = null;
+    this.imageShell = null;
     this.imageMotion = null;
     this.image = null;
     this.eyebrow = null;
