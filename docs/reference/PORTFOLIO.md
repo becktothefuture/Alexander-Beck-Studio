@@ -24,6 +24,10 @@ Project detail opens inside the portfolio window and must leave the bottom dock/
 
 Hero hint copy is **`(scroll please)`** (see `createProjectView()` in `app.js`). The drawer body scrolls with **native overflow** on **`.portfolio-project-view__scroll`** (no Lenis).
 
+## Sound
+
+Portfolio SFX reuse `sound-engine.js`; the route does not mount its own sound toggle. Sounds only play after the existing global sound engine is enabled/unlocked. Carousel wheel, trackpad, mouse-drag, and touch-drag motion use low-gain simulation-style detents, active project changes play a matching center detent, card hover/focus plays the shared hover tick, card activation plays the shared button press, and drawer open/close use the wheel open/close cues.
+
 ## Runtime Modules
 
 - `react-app/app/src/legacy/modules/portfolio/app.js` bootstraps the route, loads project data, mounts the full project view, renders the bounded orbital carousel, controls active-card media playback/fallbacks, and handles card open/close behavior.

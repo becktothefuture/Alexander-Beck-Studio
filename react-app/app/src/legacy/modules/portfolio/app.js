@@ -17,6 +17,7 @@ import { loadRuntimeText } from '../utils/text-loader.js';
 import { applyRuntimeTextToDOM } from '../ui/apply-text.js';
 import { waitForFonts } from '../utils/font-loader.js';
 import * as SoundEngine from '../audio/sound-engine.js';
+import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 import { initSharedChrome } from '../ui/shared-chrome.js';
 import { loadShellConfig, syncShellToDocument } from '../visual/site-shell.js';
 import { completeDirectBoot, waitForFrames, waitForPageReadyBarrier } from '../visual/page-orchestrator.js';
@@ -69,6 +70,14 @@ let activePortfolioBootstrapRunId = 0;
 
 const PORTFOLIO_CLICK_DRAG_THRESHOLD_PX = 12;
 const PORTFOLIO_OPEN_GHOST_DURATION_MS = 360;
+const PORTFOLIO_HOVER_SOUND_MIN_INTERVAL_MS = 180;
+const PORTFOLIO_HOVER_SOUND_REPEAT_INTERVAL_MS = 650;
+const PORTFOLIO_ACTION_SOUND_MIN_INTERVAL_MS = 90;
+const PORTFOLIO_CENTER_SOUND_MIN_INTERVAL_MS = 120;
+const PORTFOLIO_CAROUSEL_DETENT_STEP = 0.33;
+const PORTFOLIO_CAROUSEL_DETENT_MIN_VELOCITY = 0.18;
+const PORTFOLIO_CAROUSEL_DETENT_GAIN = 0.032;
+const PORTFOLIO_CAROUSEL_DETENT_FILTER_HZ = 3300;
 const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   reducedMotionDurationMs: 1,
   scrollSensitivity: 1,
@@ -1385,6 +1394,14 @@ class PortfolioScrollApp {
     this.videoObserver = null;
     this.cardObserver = null;
     this.projectOpenTimeouts = [];
+    this.portfolioWheelSfxPreviousConfig = null;
+    this.portfolioWheelSfxConfigured = false;
+    this.portfolioSfxLastFrameAt = 0;
+    this.portfolioSfxLastPosition = 0;
+    this.lastPortfolioHoverSoundAt = -Infinity;
+    this.lastPortfolioHoverSoundKey = '';
+    this.lastPortfolioActionSoundAt = -Infinity;
+    this.lastPortfolioCenterSoundAt = -Infinity;
     this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
     this.boundDeckWheel = (event) => this.handleDeckWheel(event);
     this.boundDeckPointerDown = (event) => this.handleDeckPointerDown(event);
@@ -1405,6 +1422,7 @@ class PortfolioScrollApp {
 
   async init() {
     this.ensureAnnouncer();
+    this.configurePortfolioSfx();
     this.createProjectView();
     this.renderProjectDeck();
     this.setupDeckEvents();
@@ -1437,6 +1455,7 @@ class PortfolioScrollApp {
     this.clearProjectOpenTimeouts();
     this.clearPressedCard();
     this.clearProjectOpenGhost();
+    this.restorePortfolioSfxConfig();
     this.videoObserver?.disconnect();
     this.cardObserver?.disconnect();
     this.pauseAllVideos();
@@ -1478,6 +1497,105 @@ class PortfolioScrollApp {
     document.body.appendChild(announcer);
   }
 
+  configurePortfolioSfx() {
+    if (this.portfolioWheelSfxConfigured) return;
+    this.portfolioWheelSfxPreviousConfig = typeof SoundEngine.getWheelSfxConfig === 'function'
+      ? SoundEngine.getWheelSfxConfig()
+      : null;
+    SoundEngine.updateWheelSfxConfig?.({
+      continuousEnabled: false,
+      tickGainMul: 0.28,
+      swishGainMul: 0,
+    });
+    this.portfolioWheelSfxConfigured = true;
+  }
+
+  restorePortfolioSfxConfig() {
+    this.stopPortfolioCarouselSfx();
+    if (this.portfolioWheelSfxConfigured && this.portfolioWheelSfxPreviousConfig) {
+      SoundEngine.updateWheelSfxConfig?.(this.portfolioWheelSfxPreviousConfig);
+    }
+    this.portfolioWheelSfxPreviousConfig = null;
+    this.portfolioWheelSfxConfigured = false;
+  }
+
+  resetPortfolioCarouselSfxSample() {
+    this.portfolioSfxLastFrameAt = 0;
+    this.portfolioSfxLastPosition = this.deckDisplayPosition;
+  }
+
+  stopPortfolioCarouselSfx() {
+    this.resetPortfolioCarouselSfxSample();
+    SoundEngine.updateWheelSfx?.(0);
+  }
+
+  updatePortfolioCarouselSfx(timestamp) {
+    if (this.isProjectOpen || shouldReducePortfolioMotion()) {
+      this.stopPortfolioCarouselSfx();
+      return;
+    }
+
+    const now = Number.isFinite(timestamp) ? timestamp : performance.now();
+    if (!this.portfolioSfxLastFrameAt) {
+      this.portfolioSfxLastFrameAt = now;
+      this.portfolioSfxLastPosition = this.deckDisplayPosition;
+      return;
+    }
+
+    const elapsedSeconds = Math.max(0.001, (now - this.portfolioSfxLastFrameAt) / 1000);
+    const projectDelta = this.deckDisplayPosition - this.portfolioSfxLastPosition;
+    const projectVelocity = projectDelta / elapsedSeconds;
+    this.portfolioSfxLastFrameAt = now;
+    this.portfolioSfxLastPosition = this.deckDisplayPosition;
+    SoundEngine.updateWheelSfx?.(0);
+    triggerDetent({
+      id: 'portfolio-carousel-scroll',
+      value: this.deckDisplayPosition,
+      step: PORTFOLIO_CAROUSEL_DETENT_STEP,
+      velocity: projectVelocity,
+      minVelocity: PORTFOLIO_CAROUSEL_DETENT_MIN_VELOCITY,
+      minIntervalMs: 64,
+      gain: PORTFOLIO_CAROUSEL_DETENT_GAIN,
+      filterHz: PORTFOLIO_CAROUSEL_DETENT_FILTER_HZ,
+    });
+  }
+
+  playPortfolioHoverSound(card, source = 'pointer') {
+    if (this.isProjectOpen || !card) return;
+    if (card.dataset.deckVisualSlot !== 'front') return;
+    if (this.getCardProjectIndex(card) !== this.getDeckIntentIndex()) return;
+    if (!this.isDeckPositionSettled()) return;
+
+    const now = performance.now();
+    const key = `${source}:${this.getCardProjectIndex(card)}`;
+    if (now - this.lastPortfolioHoverSoundAt < PORTFOLIO_HOVER_SOUND_MIN_INTERVAL_MS) return;
+    if (key === this.lastPortfolioHoverSoundKey
+      && now - this.lastPortfolioHoverSoundAt < PORTFOLIO_HOVER_SOUND_REPEAT_INTERVAL_MS) {
+      return;
+    }
+
+    this.lastPortfolioHoverSoundAt = now;
+    this.lastPortfolioHoverSoundKey = key;
+    SoundEngine.playHoverSound?.();
+  }
+
+  playPortfolioActionSound() {
+    const now = performance.now();
+    if (now - this.lastPortfolioActionSoundAt < PORTFOLIO_ACTION_SOUND_MIN_INTERVAL_MS) return;
+    this.lastPortfolioActionSoundAt = now;
+    SoundEngine.playButtonPressSound?.();
+  }
+
+  playPortfolioCenterSound() {
+    const now = performance.now();
+    if (now - this.lastPortfolioCenterSoundAt < PORTFOLIO_CENTER_SOUND_MIN_INTERVAL_MS) return;
+    this.lastPortfolioCenterSoundAt = now;
+    SoundEngine.playDetentClick?.({
+      gain: PORTFOLIO_CAROUSEL_DETENT_GAIN,
+      filterHz: PORTFOLIO_CAROUSEL_DETENT_FILTER_HZ,
+    });
+  }
+
   createProjectView() {
     const sheetHost = document.getElementById('portfolio-sheet-host');
     const host = sheetHost || this.mount || this.canvas?.parentElement;
@@ -1488,7 +1606,6 @@ class PortfolioScrollApp {
       resolveAsset,
       coverFallback: CONFIG.coverFallback,
       onRequestClose: () => {
-        SoundEngine.playHoverSound?.();
         this.closeProject();
       },
     });
@@ -1640,8 +1757,12 @@ class PortfolioScrollApp {
     card.addEventListener('pointerenter', () => {
       const currentProject = this.projects[this.getCardProjectIndex(card)];
       this.prefetchProjectAssets(currentProject);
+      this.playPortfolioHoverSound(card, 'pointer');
     });
-    card.addEventListener('focus', () => card.classList.add('is-keyboard-focused'));
+    card.addEventListener('focus', () => {
+      card.classList.add('is-keyboard-focused');
+      this.playPortfolioHoverSound(card, 'focus');
+    });
     card.addEventListener('blur', () => card.classList.remove('is-keyboard-focused'));
     return card;
   }
@@ -2389,6 +2510,7 @@ class PortfolioScrollApp {
     }
     if (activeChanged && !this.isProjectOpen) {
       triggerHaptic('step', { minIntervalMs: 180 });
+      this.playPortfolioCenterSound();
     }
 
     if (this.pendingDeckFocusIndex === this.activeProjectIndex) {
@@ -2568,14 +2690,17 @@ class PortfolioScrollApp {
   startDeckAnimation() {
     if (this.deckAnimationFrame || !this.cards.length) return;
     this.deckLastFrameAt = 0;
+    this.resetPortfolioCarouselSfxSample();
     this.deckAnimationFrame = window.requestAnimationFrame((timestamp) => this.stepDeckAnimation(timestamp));
   }
 
   stopDeckAnimation() {
-    if (!this.deckAnimationFrame) return;
-    window.cancelAnimationFrame(this.deckAnimationFrame);
+    if (this.deckAnimationFrame) {
+      window.cancelAnimationFrame(this.deckAnimationFrame);
+    }
     this.deckAnimationFrame = 0;
     this.deckLastFrameAt = 0;
+    this.stopPortfolioCarouselSfx();
   }
 
   clearDeckSettleTimer() {
@@ -2599,6 +2724,7 @@ class PortfolioScrollApp {
       this.deckIsSettling = false;
       this.setDeckInputState('idle');
       this.updateDeckSlots({ activeChanged: true, force: true });
+      this.stopPortfolioCarouselSfx();
       return;
     }
     this.startDeckAnimation();
@@ -2636,6 +2762,7 @@ class PortfolioScrollApp {
       this.deckDisplayPosition = this.deckTargetPosition;
       this.setDeckInputState(this.isProjectOpen ? 'drawer-open' : 'idle');
       this.updateDeckSlots({ activeChanged: true, force: true });
+      this.stopPortfolioCarouselSfx();
       return;
     }
     this.startDeckAnimation();
@@ -2671,6 +2798,7 @@ class PortfolioScrollApp {
     }
 
     this.updateDeckFromScroll();
+    this.updatePortfolioCarouselSfx(timestamp);
 
     if (this.deckIsSettling || Math.abs(this.deckTargetPosition - this.deckDisplayPosition) > 0.0015) {
       this.deckAnimationFrame = window.requestAnimationFrame((nextTimestamp) => this.stepDeckAnimation(nextTimestamp));
@@ -2678,6 +2806,7 @@ class PortfolioScrollApp {
       this.deckLastFrameAt = 0;
       this.setDeckInputState(this.isProjectOpen ? 'drawer-open' : 'idle');
       this.updateDeckFromScroll({ activeChanged: true });
+      this.stopPortfolioCarouselSfx();
     }
   }
 
@@ -2705,6 +2834,9 @@ class PortfolioScrollApp {
     if (options.immediate || shouldReducePortfolioMotion()) {
       this.activeProjectIndex = nextIndex;
       this.updateDeckSlots({ activeChanged: changed || options.immediate, force: true });
+      if (changed && !this.isProjectOpen && (options.focus || options.announce)) {
+        this.playPortfolioCenterSound();
+      }
     }
   }
 
@@ -2846,6 +2978,7 @@ class PortfolioScrollApp {
     this.clearPressedCard();
     if (!pointerState.dragged) {
       this.setDeckInputState(this.isProjectOpen ? 'drawer-open' : 'idle');
+      this.stopPortfolioCarouselSfx();
       return;
     }
 
@@ -2934,6 +3067,7 @@ class PortfolioScrollApp {
       return;
     }
     event.preventDefault();
+    this.playPortfolioActionSound();
     const originRect = card?.getBoundingClientRect() || null;
     this.openProjectByIndex(index, { originRect, inputType: 'synthetic-click' });
   }
@@ -2947,6 +3081,7 @@ class PortfolioScrollApp {
         this.setActiveProject(index, { focus: true, announce: true });
         return;
       }
+      this.playPortfolioActionSound();
       this.openProjectByIndex(index, { inputType: 'keyboard', useGhost: false });
       return;
     }
@@ -3246,7 +3381,8 @@ class PortfolioScrollApp {
     this.deckTargetPosition = this.deckDisplayPosition;
     this.pendingDeckFocusIndex = -1;
     this.pendingDeckAnnounce = false;
-    SoundEngine.playHoverSound?.();
+    this.stopPortfolioCarouselSfx();
+    SoundEngine.playWheelOpen?.();
     triggerHaptic('open');
     this.prefetchProjectAssets(project);
     this.pauseAllVideos();
@@ -3297,12 +3433,14 @@ class PortfolioScrollApp {
     if (!this.isProjectOpen) return;
     this.clearProjectOpenGhost();
     if (!this.projectView) {
+      SoundEngine.playWheelClose?.();
       this.finishProjectClose();
       return;
     }
     if (this.projectView.classList.contains('is-closing')) return;
     this.clearProjectOpenTimeouts();
     this.projectOpenPhase = 'closing';
+    SoundEngine.playWheelClose?.();
     triggerHaptic('close');
     this.projectView.classList.remove('is-title-visible');
     document.removeEventListener('keydown', this.boundProjectKeydown, true);
