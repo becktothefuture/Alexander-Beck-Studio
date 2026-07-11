@@ -241,7 +241,7 @@
     "starfieldFocalLength": 500,
     "starfieldParallaxStrength": 320,
     "starfieldSpeed": 400,
-    "starfieldDotSizeMul": 0.9,
+    "starfieldDotSizeMul": 1.35,
     "starfieldFogStart": 0.86,
     "starfieldFogMin": 0.16,
     "starfieldIdleJitter": 0,
