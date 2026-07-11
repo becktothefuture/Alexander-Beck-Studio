@@ -20,6 +20,7 @@ import { getRenderQualityProfile } from '../utils/render-quality.js';
 import { appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
 import { drawBallContrastVeil } from '../visual/ball-contrast-veil.js';
 import { drawBallRims } from '../visual/ball-rim.js';
+import { drawCanvasLightFilm } from '../visual/canvas-light-film.js';
 import { TITLE_DEPTH_PLANE_Z, drawHomepageCanvasTitle, modeUsesDepthTitlePlane } from '../rendering/title-depth.js';
 import { 
   getAccumulator, 
@@ -828,6 +829,10 @@ export function render() {
   if (modeRenderer && modeRenderer.preRender) {
     modeRenderer.preRender(ctx);
   }
+
+  // Fixed, content-informed pools belong to the same clipped canvas pass as the
+  // simulation: above the wall surface and below title/body rendering.
+  drawCanvasLightFilm(ctx, globals);
   
   const customRenderer = getModeCustomRenderer();
   const depthRenderer = getModeDepthRenderer();

@@ -81,7 +81,6 @@ export function StudioShell({
   headerContent,
   mainContent,
   heroTitle,
-  studioLightFilmEnabled = false,
   simulationFocusControls,
   simulationFocusModal,
   surfaceRefs,
@@ -119,9 +118,6 @@ export function StudioShell({
                 {routeHeroLayer}
               </div>
             </div>
-            {studioLightFilmEnabled ? (
-              <div className="studio-light-film-layer" aria-hidden="true" />
-            ) : null}
             {simulationFocusControls}
           </div>
           <div className="frame-vignette" aria-hidden="true" />

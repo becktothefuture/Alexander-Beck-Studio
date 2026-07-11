@@ -4771,63 +4771,9 @@ html[data-abs-instrument-wake] #simulations::after {
   display: block;
 }
 
-/* Static treated-glass light film. Home/Daily only; mounted by StudioShell.
-   Geometry is owned by the inner window and remains fixed under pointer/route motion. */
-.studio-light-film-layer {
-  position: absolute;
-  inset: 0;
-  z-index: var(--z-studio-light-film, 16);
-  overflow: hidden;
-  contain: paint;
-  border-radius: var(--frame-inner-radius);
-  opacity: var(--studio-light-film-opacity, 0.18);
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23fff'%3E%3Ccircle cx='3' cy='5' r='.45'/%3E%3Ccircle cx='17' cy='2' r='.32'/%3E%3Ccircle cx='29' cy='8' r='.4'/%3E%3Ccircle cx='10' cy='15' r='.35'/%3E%3Ccircle cx='23' cy='18' r='.5'/%3E%3Ccircle cx='5' cy='27' r='.38'/%3E%3Ccircle cx='19' cy='29' r='.3'/%3E%3Ccircle cx='31' cy='24' r='.42'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 2rem 2rem;
-  mix-blend-mode: normal;
-}
-
-.studio-light-film-layer::before,
-.studio-light-film-layer::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-}
-
-.studio-light-film-layer::before {
-  inset: -35%;
-  background: radial-gradient(
-    ellipse at 68% 28%,
-    rgba(var(--abs-rgb-white), 0.72) 0%,
-    rgba(216, 255, 56, 0.25) 12%,
-    rgba(13, 92, 182, 0.18) 27%,
-    rgba(255, 122, 18, 0.14) 39%,
-    transparent 61%
-  );
-  mix-blend-mode: soft-light;
-  transform: translate3d(-2%, -1%, 0) rotate(-4deg) scale(1.08);
-}
-
-.studio-light-film-layer::after {
-  inset: -45%;
-  background: conic-gradient(
-    from 205deg at 68% 28%,
-    transparent 0deg,
-    rgba(83, 185, 255, 0.16) 28deg,
-    rgba(216, 255, 56, 0.12) 48deg,
-    transparent 75deg,
-    transparent 245deg,
-    rgba(255, 106, 0, 0.14) 286deg,
-    transparent 322deg
-  );
-  mix-blend-mode: screen;
-  transform: translate3d(2%, 0, 0) rotate(3deg) scale(1.04);
-}
-
 /* Mobile performance contract: the live canvas owns the frame budget. Avoid
-   full-window blend surfaces and continuously repainted grain on touch devices. */
+   continuously repainted grain on touch devices. */
 @media (max-width: 767px), (hover: none) and (pointer: coarse) {
-  .studio-light-film-layer,
   .noise {
     display: none;
   }

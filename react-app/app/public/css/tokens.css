@@ -751,7 +751,6 @@
      Wall route + canvas      2+         .shell-wall-slot, then #c / .ball-canvas-layer
      CV scroll surface        10        .cv-scroll-container (above in-wall noise)
      CV wall ring canvas      15        .cv-wall-canvas
-     Studio light film        16        .studio-light-film-layer (Home/Daily only)
      
      OUTSIDE #abs-scene (modal layer):
      ─────────────────────────────────────────────────────────────────────────────
@@ -764,7 +763,6 @@
   --z-wall: 100;
   --z-contrast-veil: 180;
   --z-canvas: 10;
-  --z-studio-light-film: 16;
   --z-noise: 25;
   --z-wall-edge: 30;
   --z-wall-stroke: 40;

@@ -12,7 +12,7 @@
 | 2 | **App Scene Transform Group** | `#abs-scene.app-scene` — `#abs-scene` remains the compatibility ID; `.app-scene` is the semantic alias. |
 | 3 | **Simulation Wall + Scene Effects** | `#simulations.simulation-wall-layer` plus `#scene-effects`, `.noise`, `.inner-wall-gradient-edge`, and visually empty `.frame-vignette` compatibility layer. |
 | 4 | **Route Simulation / Content Layer** | `.route-simulation-layer` inside `#shell-wall-slot`; home owns `#c.ball-canvas-layer`, portfolio owns `.portfolio-slider-layer`, and About/CV owns `.about-content-layer`. The home title/subtitle are visually drawn through the canvas/title-depth renderer. Home ball contrast is rendered inside this canvas, clipped to ball bodies only. |
-| 5 | **Studio Light Film** | `.studio-light-film-layer`, a stationary Home/Daily-only material layer inside `#simulations`, above route visuals and below wall/UI layers. |
+| 5 | **Canvas Studio Light** | `drawCanvasLightFilm()` in the home canvas pass: fixed, content-informed pools below title and simulation bodies. |
 | 6 | **Ball Contrast Veil Hook** | `.simulation-contrast-veil`, pointer-transparent, `z-index: 180`, retained as an inert compatibility hook above wall/canvas material and below UI. |
 | 7 | **UI Layer** | `.fade-content.ui-layer`, `z-index: 200`; the stable shell contains `.route-ui-layer` for route-owned chrome/actions plus the shared footer mount. |
 | 8 | **Overlay Layer** | `#portfolio-sheet-host` and `#quote-viewport-host`; no extra wrapper is used. |
@@ -59,7 +59,7 @@ The semantic names are additive. Do not replace compatibility hooks such as `#ab
 | `.shell-wall-slot` / `.route-simulation-layer` | 2+ | Route-owned simulation/content layer. |
 | `#c.ball-canvas-layer` | 10 | Home ball canvas layer. The home title/subtitle are visually drawn into this canvas path. |
 | `#simulation-front-depth-canvas` | 8 | Compatibility front-pass canvas for title-depth modes. |
-| `.studio-light-film-layer` | 16 | Stationary Home/Daily-only treated-glass layer; clipped to the inner window and pointer-transparent. |
+| Canvas studio light pools | canvas pass | Home-only cached sprites, clipped with the simulation canvas and disabled on touch/low-power paths. |
 | `.portfolio-slider-layer` / `#portfolioProjectMount` | — | Portfolio deck/slider layer and labels overlay. |
 | `.about-content-layer` / `#cv-scroll-container` | 10 | About/CV content layer and scroll surface. |
 

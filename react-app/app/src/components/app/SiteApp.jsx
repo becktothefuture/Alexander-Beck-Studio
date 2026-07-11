@@ -407,7 +407,6 @@ export function SiteApp() {
             headerContent={routeView.headerContent}
             mainContent={routeView.mainContent}
             heroTitle={routeView.heroTitle}
-            studioLightFilmEnabled={routeView.studioLightFilmEnabled === true}
             simulationFocusControls={<SimulationFocusSwitcher />}
             simulationFocusModal={<SimulationFocusChooser />}
             surfaceRefs={surfaceRefs}

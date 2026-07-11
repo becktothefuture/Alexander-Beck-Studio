@@ -512,6 +512,8 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
 
   root.style.setProperty('--abs-scene-highlight', String(sceneHighlight));
   root.style.setProperty('--studio-light-film-opacity', String(lightFilmOpacity));
+  const globals = getGlobals();
+  if (globals) globals.studioLightFilmOpacity = lightFilmOpacity;
   root.style.setProperty('--simulation-contrast-veil-opacity', String(isDark ? contrastVeilOpacityDark : contrastVeilOpacityLight));
   root.style.setProperty('--simulation-contrast-veil-reach-x', `${contrastVeilReachX}vw`);
   root.style.setProperty('--simulation-contrast-veil-reach-y', `${contrastVeilReachY}vh`);

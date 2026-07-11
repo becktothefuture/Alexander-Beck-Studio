@@ -36,7 +36,6 @@ export function getHomeRouteView() {
 
   return {
     bodyClass: 'body',
-    studioLightFilmEnabled: true,
     contentRenderKey: 'home-shell',
     studioWindowClassName: 'ball-simulation w-embed',
     simulationLayer: (

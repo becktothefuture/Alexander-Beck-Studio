@@ -209,6 +209,7 @@ function syncStudioRuntimeState(config) {
     globals.hoverEdgeTopOpacity = Number((config.edgeStrength * 0.46).toFixed(3));
     globals.frameBorderGradientEdgeOpacity = Number((config.sceneHighlight * 0.029).toFixed(3));
     globals.frameBorderGradientMidOpacity = Number((config.sceneHighlight * 0.058).toFixed(3));
+    globals.studioLightFilmOpacity = config.lightFilmOpacity;
     if (Number.isFinite(config.contrastVeilOpacityLight)) globals.simulationContrastVeilOpacityLight = config.contrastVeilOpacityLight;
     if (Number.isFinite(config.contrastVeilOpacityDark)) globals.simulationContrastVeilOpacityDark = config.contrastVeilOpacityDark;
     if (Number.isFinite(config.contrastVeilReachX)) globals.simulationContrastVeilReachX = config.contrastVeilReachX;
