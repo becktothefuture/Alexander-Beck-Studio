@@ -59,7 +59,7 @@ The semantic names are additive. Do not replace compatibility hooks such as `#ab
 | `.shell-wall-slot` / `.route-simulation-layer` | 2+ | Route-owned simulation/content layer. |
 | `#c.ball-canvas-layer` | 10 | Home ball canvas layer. The home title/subtitle are visually drawn into this canvas path. |
 | `#simulation-front-depth-canvas` | 8 | Compatibility front-pass canvas for title-depth modes. |
-| Canvas studio light pools | canvas pass | Home-only cached sprites, clipped with the simulation canvas and disabled on touch/low-power paths. |
+| Canvas studio light pools | canvas pass | Home-only cached sprites, clipped with the simulation canvas; touch uses one pool and lite mode disables it. |
 | `.portfolio-slider-layer` / `#portfolioProjectMount` | — | Portfolio deck/slider layer and labels overlay. |
 | `.about-content-layer` / `#cv-scroll-container` | 10 | About/CV content layer and scroll surface. |
 

@@ -19,6 +19,10 @@ let frameId = null;
 let frameCounter = 0;
 let visibilityListenerBound = false;
 let cachedTargetFPS = 60;
+// A real 60 Hz display commonly reports frame intervals just below 16.667 ms.
+// Without this tolerance, the scheduler can reject every other frame and turn a
+// healthy mobile 60 Hz cadence into a visibly sluggish 30 FPS cadence.
+const FRAME_INTERVAL_TOLERANCE_MS = 0.75;
 /** When true, visibility resume must not restart the loop (SPA left sim route). */
 let mainLoopStopped = false;
 /** Latest `frame` callback from `startMainLoop` (visibility handler registers only once). */
@@ -239,7 +243,7 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
     const minFrameInterval = 1000 / targetFPS;
     
     const elapsed = nowMs - lastFrameTime;
-    if (elapsed < minFrameInterval) {
+    if (elapsed + FRAME_INTERVAL_TOLERANCE_MS < minFrameInterval) {
       frameId = requestAnimationFrame(frame);
       return;
     }
