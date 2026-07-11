@@ -20,7 +20,9 @@ const EDGE_TAGLINE = 'A London-based design practice shaping products, interface
 const EDGE_COPYRIGHT = '© 2026 Alexander Beck';
 const EDGE_CAPTION = `${EDGE_TAGLINE} ${EDGE_COPYRIGHT}`;
 
-export function SiteFooter() {
+export function SiteFooter({ variant = 'standard' }) {
+  const showsEdgeCaption = variant !== 'portfolio';
+
   return (
     <>
       <footer
@@ -69,20 +71,22 @@ export function SiteFooter() {
           </div>
         </div>
       </footer>
-      <div
-        id="edge-caption"
-        className="edge-caption"
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        <span
-          id="edge-caption-tagline"
-          className="edge-caption__line edge-caption__line--tagline"
+      {showsEdgeCaption ? (
+        <div
+          id="edge-caption"
+          className="edge-caption"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
         >
-          {EDGE_CAPTION}
-        </span>
-      </div>
+          <span
+            id="edge-caption-tagline"
+            className="edge-caption__line edge-caption__line--tagline"
+          >
+            {EDGE_CAPTION}
+          </span>
+        </div>
+      ) : null}
     </>
   );
 }

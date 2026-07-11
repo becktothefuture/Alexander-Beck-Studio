@@ -1,5 +1,6 @@
 import { SiteFooter } from '../SiteFooter.jsx';
 import { ShellButtonBar } from './ShellButtonBar.jsx';
+import { ShellWindowOverlay } from './ShellWindowOverlay.jsx';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
 
 function RouteSceneMount({ routeRenderKey, children }) {
@@ -81,6 +82,8 @@ export function StudioShell({
   headerContent,
   mainContent,
   heroTitle,
+  footerVariant = 'standard',
+  windowOverlayContent,
   simulationFocusControls,
   simulationFocusModal,
   surfaceRefs,
@@ -119,6 +122,9 @@ export function StudioShell({
               </div>
             </div>
             {simulationFocusControls}
+            <ShellWindowOverlay>
+              {windowOverlayContent ?? simulationFocusModal}
+            </ShellWindowOverlay>
           </div>
           <div className="frame-vignette" aria-hidden="true" />
           <div className="simulation-contrast-veil" aria-hidden="true" />
@@ -151,7 +157,7 @@ export function StudioShell({
                   ref={surfaceRefs?.footer}
                   className="shell-transition-surface shell-transition-surface--footer"
                 >
-                  <SiteFooter />
+                  <SiteFooter variant={footerVariant} />
                 </div>
               </div>
             </div>
@@ -177,9 +183,7 @@ export function StudioShell({
       <div id="modal-blur-layer" className="modal-layer modal-blur-layer" aria-hidden="true" />
 
       <div id="modal-content-layer" className="modal-layer modal-content-layer" aria-hidden="true">
-        <div id="modal-modal-host" className="modal-modal-host">
-          {simulationFocusModal}
-        </div>
+        <div id="modal-modal-host" className="modal-modal-host" />
       </div>
     </>
   );

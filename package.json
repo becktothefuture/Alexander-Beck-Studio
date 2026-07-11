@@ -62,6 +62,7 @@
     "build:dev" : "npm run flatten:design-config && npm run build:dev --prefix react-app\/app",
     "build:site" : "npm run build",
     "certify:screens" : "node scripts\/certify-screens.mjs",
+    "capture:portfolio-gate-teasers" : "node scripts\/capture-portfolio-gate-teasers.mjs",
     "check:design-config" : "node scripts\/check-design-config.mjs",
     "check:malformed-tokens" : "node scripts\/check-malformed-tokens.mjs --full",
     "check:malformed-tokens:staged" : "node scripts\/check-malformed-tokens.mjs --staged",

@@ -56,6 +56,17 @@ async function waitForCanvasBuffer(page) {
 
 async function readState(page) {
   return page.evaluate(() => {
+    const styleOf = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const styles = getComputedStyle(element);
+      return {
+        zIndex: Number.parseInt(styles.zIndex || '0', 10) || 0,
+        opacity: Number.parseFloat(styles.opacity || '0'),
+        visibility: styles.visibility,
+        pointerEvents: styles.pointerEvents,
+      };
+    };
     const rectOf = (selector) => {
       const element = document.querySelector(selector);
       if (!element) return null;
@@ -80,6 +91,8 @@ async function readState(page) {
       bodyClass: document.body.className,
       activeTab: document.querySelector('[data-route-tab][aria-current="page"]')?.getAttribute('data-route-tab') || '',
       lockedGate: Boolean(document.querySelector('[data-route-content="portfolio-gate"]')),
+      teaser: Boolean(document.querySelector('[data-portfolio-gate-teaser]')),
+      teaserFocusableCount: document.querySelectorAll('[data-portfolio-gate-teaser] a, [data-portfolio-gate-teaser] button, [data-portfolio-gate-teaser] input, [data-portfolio-gate-teaser] [tabindex]').length,
       deck: Boolean(document.getElementById('portfolioProjectMount')),
       labels: document.querySelectorAll('.portfolio-project-label, .portfolio-deck-card').length,
       oldPortfolioModal: Boolean(document.querySelector('#portfolio-modal.active')),
@@ -88,6 +101,9 @@ async function readState(page) {
       sim,
       band,
       host,
+      windowBlur: styleOf('#window-overlay-blur-layer'),
+      windowContent: styleOf('#window-overlay-content-layer'),
+      wallEdge: styleOf('.inner-wall-gradient-edge'),
       geometryOk: Boolean(
         sim
         && band
@@ -124,9 +140,26 @@ async function main() {
     results.lockedInitial = await readState(page);
     assert(results.lockedInitial.path === '/portfolio.html' && results.lockedInitial.search === '', 'Portfolio gate URL was not normalized', results.lockedInitial);
     assert(results.lockedInitial.activeTab === 'portfolio' && results.lockedInitial.lockedGate, 'Locked Portfolio route did not show in-window gate', results.lockedInitial);
+    assert(results.lockedInitial.teaser && !results.lockedInitial.deck && results.lockedInitial.labels === 0, 'Locked Portfolio did not use the static teaser-only route', results.lockedInitial);
+    assert(results.lockedInitial.teaserFocusableCount === 0, 'Portfolio teaser exposed focusable content', results.lockedInitial);
+    assert(
+      results.lockedInitial.windowContent?.zIndex < results.lockedInitial.wallEdge?.zIndex
+        && results.lockedInitial.windowBlur?.zIndex < results.lockedInitial.wallEdge?.zIndex,
+      'Portfolio gate is not stacked below the live wall edge',
+      results.lockedInitial,
+    );
     assert(results.lockedInitial.geometryOk, 'Locked Portfolio window geometry does not align with bottom shell band', results.lockedInitial);
 
     await page.screenshot({ path: resolve(outputRoot, 'portfolio-locked.png'), fullPage: false });
+    await page.evaluate(() => {
+      document.getElementById('window-overlay-blur-layer')?.remove();
+      document.getElementById('window-overlay-content-layer')?.remove();
+    });
+    const uncovered = await readState(page);
+    assert(uncovered.teaser && !uncovered.deck && uncovered.labels === 0, 'Removing the gate overlay exposed live Portfolio content', uncovered);
+
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
+    await waitForIdle(page);
     await fillGate(page);
     await page.waitForSelector('#portfolioProjectMount', { timeout: WAIT_MS });
     await waitForCanvasBuffer(page);

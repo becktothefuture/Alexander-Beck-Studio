@@ -13,10 +13,12 @@
 | 3 | **Simulation Wall + Scene Effects** | `#simulations.simulation-wall-layer` plus `#scene-effects`, `.noise`, `.inner-wall-gradient-edge`, and visually empty `.frame-vignette` compatibility layer. |
 | 4 | **Route Simulation / Content Layer** | `.route-simulation-layer` inside `#shell-wall-slot`; home owns `#c.ball-canvas-layer`, portfolio owns `.portfolio-slider-layer`, and About/CV owns `.about-content-layer`. The home title/subtitle are visually drawn through the canvas/title-depth renderer. Home ball contrast is rendered inside this canvas, clipped to ball bodies only. |
 | 5 | **Canvas Studio Light** | `drawCanvasLightFilm()` in the home canvas pass: fixed, content-informed pools below title and simulation bodies. |
-| 6 | **Ball Contrast Veil Hook** | `.simulation-contrast-veil`, pointer-transparent, `z-index: 180`, retained as an inert compatibility hook above wall/canvas material and below UI. |
-| 7 | **UI Layer** | `.fade-content.ui-layer`, `z-index: 200`; the stable shell contains `.route-ui-layer` for route-owned chrome/actions plus the shared footer mount. |
-| 8 | **Overlay Layer** | `#portfolio-sheet-host` and `#quote-viewport-host`; no extra wrapper is used. |
-| 9 | **Modal Layer** | `#modal-blur-layer.modal-layer` and `#modal-content-layer.modal-layer`, outside `#abs-scene`. |
+| 6 | **Window Overlay** | `#window-overlay-blur-layer` (`150`) and `#window-overlay-content-layer` (`160`) hold the simulation chooser and persistent Portfolio gate above route content but below the live wall finish. |
+| 7 | **Live Wall Finish** | `#simulations::before` (`165`) and `.inner-wall-gradient-edge` (`170`) preserve the canonical inset shadow and rim/light edge above in-window blur and modal content. |
+| 8 | **Ball Contrast Veil Hook** | `.simulation-contrast-veil`, pointer-transparent, `z-index: 180`, retained as an inert compatibility hook above wall/canvas material and below UI. |
+| 9 | **UI Layer** | `.fade-content.ui-layer`, `z-index: 200`; the stable shell contains `.route-ui-layer` for route-owned chrome/actions plus the shared footer mount. |
+| 10 | **Overlay Layer** | `#portfolio-sheet-host` and `#quote-viewport-host`; no extra wrapper is used. |
+| 11 | **Viewport Modal Layer** | `#modal-blur-layer.modal-layer` and `#modal-content-layer.modal-layer`, outside `#abs-scene`, remain reserved for genuinely viewport-wide dialogs. |
 
 The semantic names are additive. Do not replace compatibility hooks such as `#abs-scene`, `#simulations`, `.fade-content`, `#hero-title`, `data-abs-*`, `abs:*`, `__ABS_*`, `ABS_*`, `.abs-*`, or `--abs-*` unless every consumer is deliberately migrated and verified.
 
@@ -60,6 +62,10 @@ The semantic names are additive. Do not replace compatibility hooks such as `#ab
 | `#c.ball-canvas-layer` | 10 | Home ball canvas layer. The home title/subtitle are visually drawn into this canvas path. |
 | `#simulation-front-depth-canvas` | 8 | Compatibility front-pass canvas for title-depth modes. |
 | Canvas studio light pools | canvas pass | Home-only cached sprites, clipped with the simulation canvas; touch uses one pool and lite mode disables it. |
+| `#window-overlay-blur-layer` | 150 | Backdrop blur for in-window chooser/gate surfaces. |
+| `#window-overlay-content-layer` | 160 | In-window modal content and interaction layer. |
+| `#simulations::before` | 165 | Live inner-wall inset shadow; must remain above the window overlay. |
+| `.inner-wall-gradient-edge` | 170 | Live rim/light edge; must remain above the window overlay. |
 | `.portfolio-slider-layer` / `#portfolioProjectMount` | — | Portfolio deck/slider layer and labels overlay. |
 | `.about-content-layer` / `#cv-scroll-container` | 10 | About/CV content layer and scroll surface. |
 
@@ -67,7 +73,7 @@ The semantic names are additive. Do not replace compatibility hooks such as `#ab
 
 ## Outside `#abs-scene`
 
-Gate/contact/CV modals, dev panel, modal blur/content — higher z-index (`tokens.css`, e.g. `--z-modal-content`). Do not move the portfolio drawer into modal layers unless the product intent is a full app-modal.
+Dev panel and genuinely viewport-wide modal blur/content use the higher global z-indexes (`tokens.css`, e.g. `--z-modal-content`). The simulation chooser and Portfolio gate use the in-window overlay instead. Do not move the portfolio drawer into modal layers unless the product intent is a full app-modal.
 
 ---
 

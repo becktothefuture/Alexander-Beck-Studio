@@ -52,6 +52,8 @@ import { completeDirectBoot } from '../../legacy/modules/visual/page-orchestrato
 import { applyLayoutCSSVars, initState } from '../../legacy/modules/core/state.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
+import { initializeDarkMode } from '../../legacy/modules/visual/dark-mode-v2.js';
+import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
 import { isDarkThemeDocument } from '../../lib/theme-state.js';
 
 const ROUTE_VIEW_BY_ID = {
@@ -116,6 +118,8 @@ function syncSharedShellRuntimeState() {
         config: shellConfig,
         isDark: isDarkThemeDocument(),
       });
+      initNoiseSystem(runtimeConfig);
+      initializeDarkMode();
     });
   }
   return sharedShellRuntimeSyncPromise;
@@ -407,6 +411,8 @@ export function SiteApp() {
             headerContent={routeView.headerContent}
             mainContent={routeView.mainContent}
             heroTitle={routeView.heroTitle}
+            footerVariant={routeView.footerVariant}
+            windowOverlayContent={routeView.windowOverlayContent}
             simulationFocusControls={<SimulationFocusSwitcher />}
             simulationFocusModal={<SimulationFocusChooser />}
             surfaceRefs={surfaceRefs}

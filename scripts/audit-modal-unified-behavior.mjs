@@ -42,6 +42,18 @@ async function waitForIdle(page) {
 
 async function readRouteState(page) {
   return page.evaluate(() => {
+    const styleOf = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const styles = getComputedStyle(element);
+      return {
+        zIndex: Number.parseInt(styles.zIndex || '0', 10) || 0,
+        opacity: Number.parseFloat(styles.opacity || '0'),
+        visibility: styles.visibility,
+        pointerEvents: styles.pointerEvents,
+        backdropFilter: styles.backdropFilter || styles.webkitBackdropFilter || 'none',
+      };
+    };
     const rectOf = (selector) => {
       const element = document.querySelector(selector);
       if (!element) return null;
@@ -75,6 +87,16 @@ async function readRouteState(page) {
       chooserActive: Boolean(document.querySelector('.simulation-focus-modal.active')),
       blurActive: Boolean(document.getElementById('modal-blur-layer')?.classList.contains('active')),
       contentActive: Boolean(document.getElementById('modal-content-layer')?.classList.contains('active')),
+      windowBlur: styleOf('#window-overlay-blur-layer'),
+      windowContent: styleOf('#window-overlay-content-layer'),
+      wallInsetShadow: (() => {
+        const simulations = document.getElementById('simulations');
+        if (!simulations) return null;
+        const styles = getComputedStyle(simulations, '::before');
+        return { zIndex: Number.parseInt(styles.zIndex || '0', 10) || 0 };
+      })(),
+      wallEdge: styleOf('.inner-wall-gradient-edge'),
+      globalBlur: styleOf('#modal-blur-layer'),
       sessionFlags: {
         contact: sessionStorage.getItem('abs_open_contact_modal'),
         cvGate: sessionStorage.getItem('abs_open_cv_gate'),
@@ -125,9 +147,33 @@ async function assertSimulationChooser(browser) {
   await waitForIdle(page);
   await page.locator('.simulation-focus-switcher').click({ timeout: WAIT_MS });
   await page.waitForSelector('.simulation-focus-modal.active', { timeout: WAIT_MS });
+  await page.waitForFunction(
+    () => Number.parseFloat(getComputedStyle(document.getElementById('window-overlay-blur-layer')).opacity || '0') > 0.9,
+    { timeout: WAIT_MS, polling: 50 },
+  );
   const openState = await readRouteState(page);
   assert(openState.phase === 'modal-open', 'Simulation chooser did not set modal-open phase', openState);
   assert(openState.chooserActive && openState.blurActive && openState.contentActive, 'Simulation chooser modal layers are not active', openState);
+  assert(openState.windowBlur?.opacity > 0.9 && openState.windowContent?.pointerEvents === 'auto', 'Simulation chooser did not activate the in-window overlay', openState);
+  assert(
+    openState.windowBlur.zIndex < openState.wallEdge.zIndex
+      && openState.windowContent.zIndex < openState.wallEdge.zIndex,
+    'Simulation chooser is not stacked below the live wall edge',
+    openState,
+  );
+  assert(
+    openState.windowBlur.zIndex < openState.wallInsetShadow?.zIndex
+      && openState.windowContent.zIndex < openState.wallInsetShadow?.zIndex,
+    'Simulation chooser is not stacked below the live wall inset shadow',
+    openState,
+  );
+  assert(
+    openState.globalBlur?.visibility === 'hidden'
+      && openState.globalBlur?.opacity === 0
+      && openState.globalBlur?.pointerEvents === 'none',
+    'Viewport modal blur still paints above the studio window',
+    openState,
+  );
   await page.keyboard.press('Escape');
   await waitForIdle(page);
   const closedState = await readRouteState(page);
