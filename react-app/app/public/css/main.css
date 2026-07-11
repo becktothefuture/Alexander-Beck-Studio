@@ -4733,6 +4733,25 @@ html[data-abs-instrument-wake] #simulations::after {
   transform: translate3d(2%, 0, 0) rotate(3deg) scale(1.04);
 }
 
+/* Mobile performance contract: the live canvas owns the frame budget. Avoid
+   full-window blend surfaces and continuously repainted grain on touch devices. */
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .studio-light-film-layer,
+  .noise {
+    display: none;
+  }
+
+  .noise::before {
+    animation: none;
+  }
+
+  .simulation-focus-pill {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--frame-inner-surface) 88%, transparent);
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    SCENE EFFECTS CONTAINER
    Film grain: child of #simulations (see #simulations > .scene-effects) so it
