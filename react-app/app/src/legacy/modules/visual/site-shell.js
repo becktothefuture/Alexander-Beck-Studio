@@ -45,6 +45,7 @@ const DEFAULT_SHELL_CONFIG = {
     blur: '8px',
     saturation: 1.12,
     sceneHighlight: 0.3,
+    lightFilmOpacity: 0.24,
     contrastVeilOpacityLight: 0.216,
     contrastVeilOpacityDark: 0.348,
     contrastVeilReachX: 25,
@@ -395,6 +396,12 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
   const sceneHighlight = Number.isFinite(Number(surface.sceneHighlight))
     ? Number(surface.sceneHighlight)
     : DEFAULT_SHELL_CONFIG.surface.sceneHighlight;
+  const lightFilmOpacity = numberInRange(
+    surface.lightFilmOpacity,
+    0,
+    0.4,
+    DEFAULT_SHELL_CONFIG.surface.lightFilmOpacity
+  );
   const contrastVeilOpacityLight = numberInRange(
     surface.contrastVeilOpacityLight,
     0,
@@ -504,6 +511,7 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
   root.style.setProperty('--quote-glass-bottom-edge-opacity', String(Math.max(bottomEdgeOpacity, edgeOpacity * 0.28)));
 
   root.style.setProperty('--abs-scene-highlight', String(sceneHighlight));
+  root.style.setProperty('--studio-light-film-opacity', String(lightFilmOpacity));
   root.style.setProperty('--simulation-contrast-veil-opacity', String(isDark ? contrastVeilOpacityDark : contrastVeilOpacityLight));
   root.style.setProperty('--simulation-contrast-veil-reach-x', `${contrastVeilReachX}vw`);
   root.style.setProperty('--simulation-contrast-veil-reach-y', `${contrastVeilReachY}vh`);
