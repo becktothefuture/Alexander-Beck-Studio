@@ -15,12 +15,11 @@ function normalizeQualityTier(tier) {
 
 function getAutoQualityTier(globals) {
   const throttleLevel = Math.max(0, Number(globals?.adaptiveThrottleLevel) || 0);
-  const perfMode = globals?.performanceModeEnabled === true;
   const mobile = globals?.isMobile || globals?.isMobileViewport;
 
   if (throttleLevel >= 2) return QUALITY_LOW;
   if (throttleLevel >= 1) return QUALITY_BALANCED;
-  if (perfMode && mobile) return QUALITY_BALANCED;
+  if (mobile) return QUALITY_BALANCED;
   return QUALITY_HIGH;
 }
 

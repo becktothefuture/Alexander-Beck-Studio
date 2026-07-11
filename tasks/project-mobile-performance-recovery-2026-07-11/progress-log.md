@@ -21,7 +21,10 @@
 
 ## PRD 02
 
-- Status: pending
+- Status: verified
+- Proof 1: settled Sphere title layout reads fell from 720 to 24 over three seconds (96.7% reduction); Ball Field records 12 reads. Mobile resolves the balanced tier and confirms the contrast veil is skipped.
+- Proof 2: 17/17 WebKit/iPhone simulations passed with 0 errors, 71.67–72.07 rAF FPS, p95 16 ms. Sphere retained 84 points, DPR 1.25, and an even behind/front title partition; settled screenshot preserves title depth and circular body visuals.
+- Canonical gate: `npm run check:site` passed before the final cache-condition correction; scoped lint and build rerun after it.
 
 ## PRD 03
 

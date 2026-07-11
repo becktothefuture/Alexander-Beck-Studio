@@ -34,6 +34,13 @@ const titleRenderCache = {
   }
 };
 
+const titleCenterCache = {
+  signature: '',
+  lastRefreshMs: 0,
+  x: 0,
+  y: 0
+};
+
 const DEPTH_PLANE_TITLE_MODES = new Set([
   MODES.SPHERE_3D,
   MODES.CUBE_3D,
@@ -64,8 +71,23 @@ export function getHeroTitleCanvasCenter(globals) {
   const title = document.getElementById('hero-title');
   if (!title) return getCanvasCenter(canvas);
 
+  const now = typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now();
+  const root = document.documentElement;
+  const scene = document.getElementById('abs-scene');
+  const signature = `${canvas.width}|${canvas.height}|${title.textContent}|${root?.className || ''}`;
+  if (
+    titleCenterCache.signature === signature
+    && !shouldRefreshEveryFrame(root, scene)
+    && now - titleCenterCache.lastRefreshMs <= TITLE_RENDER_REFRESH_MS
+  ) {
+    return { x: titleCenterCache.x, y: titleCenterCache.y };
+  }
+
   const canvasRect = canvas.getBoundingClientRect();
   const titleRect = title.getBoundingClientRect();
+  globals.titleLayoutReadCount = (Number(globals.titleLayoutReadCount) || 0) + 2;
   if (
     !canvasRect ||
     !titleRect ||
@@ -77,10 +99,11 @@ export function getHeroTitleCanvasCenter(globals) {
     return getCanvasCenter(canvas);
   }
 
-  return {
-    x: ((titleRect.left + titleRect.width * 0.5) - canvasRect.left) * (canvas.width / canvasRect.width),
-    y: ((titleRect.top + titleRect.height * 0.5) - canvasRect.top) * (canvas.height / canvasRect.height)
-  };
+  titleCenterCache.signature = signature;
+  titleCenterCache.lastRefreshMs = now;
+  titleCenterCache.x = ((titleRect.left + titleRect.width * 0.5) - canvasRect.left) * (canvas.width / canvasRect.width);
+  titleCenterCache.y = ((titleRect.top + titleRect.height * 0.5) - canvasRect.top) * (canvas.height / canvasRect.height);
+  return { x: titleCenterCache.x, y: titleCenterCache.y };
 }
 
 function parseCssPx(value, fallback = 0) {
@@ -109,12 +132,18 @@ function markCanvasTitleInactive(globals) {
 }
 
 function shouldRefreshEveryFrame(root, scene) {
-  if (!root?.classList) return Boolean(scene?.classList?.contains('abs-scene--animating'));
+  const sceneAnimationRunning = scene?.classList?.contains('abs-scene--animating')
+    && scene.getAnimations?.({ subtree: true })?.some((animation) => animation.playState === 'running');
+  if (!root?.classList) return Boolean(sceneAnimationRunning);
+  const bootEntranceActive = !root.classList.contains('entrance-complete')
+    && (
+      root.classList.contains('abs-home-post-boot-enter')
+      || root.classList.contains('abs-home-post-boot-pending')
+    );
   return root.classList.contains('entrance-transitioning')
-    || root.classList.contains('abs-home-post-boot-enter')
-    || root.classList.contains('abs-home-post-boot-pending')
+    || bootEntranceActive
     || root.dataset?.absTransitionPhase === 'route-in'
-    || scene?.classList?.contains('abs-scene--animating');
+    || sceneAnimationRunning;
 }
 
 function isCanvasTitleSource(title) {
@@ -146,19 +175,6 @@ function refreshCanvasTitleCache(ctx, globals) {
   const title = document.getElementById('hero-title');
   if (!isCanvasTitleSource(title)) return markCanvasTitleInactive(globals);
 
-  const canvasRect = canvas.getBoundingClientRect();
-  const titleRect = title.getBoundingClientRect();
-  if (
-    !canvasRect ||
-    !titleRect ||
-    canvasRect.width <= 0 ||
-    canvasRect.height <= 0 ||
-    titleRect.width <= 0 ||
-    titleRect.height <= 0
-  ) {
-    return markCanvasTitleInactive(globals);
-  }
-
   const now = typeof performance !== 'undefined' && typeof performance.now === 'function'
     ? performance.now()
     : Date.now();
@@ -171,6 +187,20 @@ function refreshCanvasTitleCache(ctx, globals) {
     || now - titleRenderCache.lastRefreshMs > TITLE_RENDER_REFRESH_MS;
 
   if (!needsRefresh) return titleRenderCache;
+
+  const canvasRect = canvas.getBoundingClientRect();
+  const titleRect = title.getBoundingClientRect();
+  globals.titleLayoutReadCount = (Number(globals.titleLayoutReadCount) || 0) + 2;
+  if (
+    !canvasRect ||
+    !titleRect ||
+    canvasRect.width <= 0 ||
+    canvasRect.height <= 0 ||
+    titleRect.width <= 0 ||
+    titleRect.height <= 0
+  ) {
+    return markCanvasTitleInactive(globals);
+  }
 
   const scaleX = canvas.width / canvasRect.width;
   const scaleY = canvas.height / canvasRect.height;

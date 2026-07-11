@@ -771,6 +771,8 @@ export function render() {
     && qualityProfile.tier !== 'high';
   const weaveRenderLodEnabled = globals.currentMode === MODES.WEAVE_FIELD;
   const shapesRenderEnabled = globals.currentMode === MODES.SHAPES;
+  const mobileCircleFastPath = Boolean(globals.isMobile || globals.isMobileViewport)
+    && Number(globals.pebbleBlend ?? 0) <= 0.02;
   let ballRenderOptions = null;
   if (pitRenderLodEnabled) {
     ballRenderOptions = {
@@ -784,6 +786,14 @@ export function render() {
     ballRenderOptions = {
       simpleCircleBodies: true,
       skipRims: true,
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height
+    };
+  }
+  if (mobileCircleFastPath) {
+    ballRenderOptions = {
+      ...(ballRenderOptions || {}),
+      simpleCircleBodies: true,
       canvasWidth: canvas.width,
       canvasHeight: canvas.height
     };

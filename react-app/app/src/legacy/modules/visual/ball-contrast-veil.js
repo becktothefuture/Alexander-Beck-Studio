@@ -120,6 +120,12 @@ function appendBallPath(ctx, ball, radius, globals, simpleCircleBodies) {
 export function drawBallContrastVeil(ctx, ballsToRender, renderOptions = {}) {
   if (!ctx || !ballsToRender || ballsToRender.length === 0) return;
 
+  const globals = getGlobals();
+  if (globals?.isMobile || globals?.isMobileViewport) {
+    globals.mobileContrastVeilSkipped = true;
+    return;
+  }
+
   const rootStyle = getRootStyle();
   const opacity = parseNumberVar(rootStyle, '--simulation-contrast-veil-opacity', 0, 0, 0.6);
   if (opacity <= 0.0005) return;
@@ -128,7 +134,6 @@ export function drawBallContrastVeil(ctx, ballsToRender, renderOptions = {}) {
   const canvasHeight = Number(renderOptions.canvasHeight) || ctx.canvas?.height || 0;
   if (canvasWidth <= 0 || canvasHeight <= 0) return;
 
-  const globals = getGlobals();
   const dpr = Math.max(0.5, Number(globals?.DPR) || 1);
   const wallRgb = parseRgbVar(rootStyle, '--simulation-contrast-veil-rgb', { r: 245, g: 245, b: 245 });
   const reachX = parseCssLengthToCanvasPx(rootStyle, '--simulation-contrast-veil-reach-x', canvasWidth, dpr, 0.25);
