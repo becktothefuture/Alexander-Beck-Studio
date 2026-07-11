@@ -4095,7 +4095,6 @@ svg.shell-tab__icon {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-transform: uppercase;
   letter-spacing: 0.02em;
   line-height: 1;
   white-space: nowrap;

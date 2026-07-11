@@ -134,8 +134,8 @@ export const SHELL_ROUTE_TABS = Object.freeze([
   {
     routeId: 'about',
     href: '/about.html',
-    label: 'About Me',
-    ariaLabel: 'About Me',
+    label: 'About me',
+    ariaLabel: 'About me',
     icon: 'ti-user',
     iconOnly: false,
   },
