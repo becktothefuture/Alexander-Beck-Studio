@@ -5095,7 +5095,7 @@ html.is-safari .noise::before {
   .hero-title__name,
   .hero-title__role,
   .hero-title__line {
-    font-size: calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px) * var(--mobile-type-scale) * var(--home-hero-title-scale, 1));
+    font-size: calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px) * 0.85 * var(--mobile-type-scale) * var(--home-hero-title-scale, 1));
   }
 
   body:not(.portfolio-page):not(.cv-page) #simulations:not(.simulation-depth-title-layer-active) .shell-hero-slot {
