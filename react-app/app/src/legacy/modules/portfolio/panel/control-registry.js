@@ -96,35 +96,34 @@ const CONTROL_SECTIONS = {
       { id: 'titleRevealDelayMs', label: 'Title Delay', configKey: 'runtime.motion.titleRevealDelayMs', type: 'range', min: 200, max: 1500, step: 10, unit: 'ms', default: 480 },
     ],
   },
-  deck: {
-    title: 'Deck',
-    icon: 'DECK',
+  carousel: {
+    title: 'Carousel',
+    icon: 'CAR',
     defaultOpen: true,
     controls: [
-      { id: 'deckCardWidthPercent', label: 'Card Width', configKey: 'runtime.deck.cardWidthPercent', type: 'range', min: 58, max: 96, step: 1, unit: '%', default: 88, refresh: true },
-      { id: 'deckCardMaxWidthPx', label: 'Max Width', configKey: 'runtime.deck.cardMaxWidthPx', type: 'range', min: 760, max: 1600, step: 10, unit: 'px', default: 1360, refresh: true },
-      { id: 'deckCardHeightCqh', label: 'Card Height', configKey: 'runtime.deck.cardHeightCqh', type: 'range', min: 32, max: 62, step: 1, unit: 'cqh', default: 43, refresh: true },
-      { id: 'deckCardMaxHeightPx', label: 'Max Height', configKey: 'runtime.deck.cardMaxHeightPx', type: 'range', min: 300, max: 720, step: 10, unit: 'px', default: 500, refresh: true },
-      { id: 'deckCenterYPercent', label: 'Deck Y', configKey: 'runtime.deck.centerYPercent', type: 'range', min: 52, max: 78, step: 0.5, unit: '%', default: 67.5, refresh: true },
-      { id: 'deckScrollSensitivity', label: 'Scroll Sensitivity', configKey: 'runtime.deck.scrollSensitivity', type: 'range', min: 0.25, max: 2, step: 0.05, unit: '', default: 1, refresh: true },
-      { id: 'deckScrollPixelsPerProject', label: 'Pixels Per Project', configKey: 'runtime.deck.scrollPixelsPerProject', type: 'range', min: 220, max: 900, step: 10, unit: 'px', default: 560, refresh: true },
-      { id: 'deckInputCapProjects', label: 'Input Cap', configKey: 'runtime.deck.inputCapProjects', type: 'range', min: 0.08, max: 0.5, step: 0.01, unit: '', default: 0.24, refresh: true },
-      { id: 'deckFollowSmoothing', label: 'Follow Smoothness', configKey: 'runtime.deck.followSmoothing', type: 'range', min: 0.04, max: 0.38, step: 0.01, unit: '', default: 0.16, refresh: true },
-      { id: 'deckSettleIdleMs', label: 'Settle Delay', configKey: 'runtime.deck.settleIdleMs', type: 'range', min: 80, max: 420, step: 10, unit: 'ms', default: 150, refresh: true },
-      { id: 'deckSettleStrength', label: 'Settle Strength', configKey: 'runtime.deck.settleStrength', type: 'range', min: 0.04, max: 0.32, step: 0.01, unit: '', default: 0.13, refresh: true },
-      { id: 'deckPerspectivePx', label: 'Perspective', configKey: 'runtime.deck.perspectivePx', type: 'range', min: 700, max: 2200, step: 20, unit: 'px', default: 1200, refresh: true },
-      { id: 'deckDepthGapPx', label: 'Depth Gap', configKey: 'runtime.deck.depthGap1Px', type: 'range', min: 16, max: 96, step: 1, unit: 'px', default: 44, refresh: true },
-      { id: 'deckDepthZPx', label: 'Depth Z', configKey: 'runtime.deck.depthZ1Px', type: 'range', min: -110, max: -4, step: 1, unit: 'px', default: -26, refresh: true },
-      { id: 'deckDepthScale', label: 'Depth Scale', configKey: 'runtime.deck.depthScale1', type: 'range', min: 0.88, max: 0.99, step: 0.001, unit: '', default: 0.952, refresh: true },
-      { id: 'deckRotateXStepDeg', label: 'Tilt Step', configKey: 'runtime.deck.rotateXStepDeg', type: 'range', min: -1.5, max: 1.5, step: 0.05, unit: 'deg', default: -0.42, refresh: true },
-      { id: 'deckExitTravelPx', label: 'Exit Travel', configKey: 'runtime.deck.exitTravelPx', type: 'range', min: 80, max: 420, step: 5, unit: 'px', default: 220, refresh: true },
-      { id: 'deckExitFadeStart', label: 'Exit Fade Start', configKey: 'runtime.deck.exitFadeStart', type: 'range', min: 0.08, max: 0.55, step: 0.01, unit: '', default: 0.28, refresh: true },
-      { id: 'deckExitFadeEnd', label: 'Exit Fade End', configKey: 'runtime.deck.exitFadeEnd', type: 'range', min: 0.32, max: 0.78, step: 0.01, unit: '', default: 0.58, refresh: true },
-      { id: 'deckWrapDepthPx', label: 'Wrap Depth', configKey: 'runtime.deck.wrapDepthPx', type: 'range', min: 40, max: 280, step: 5, unit: 'px', default: 120, refresh: true },
-      { id: 'deckReappearStart', label: 'Reappear Start', configKey: 'runtime.deck.reappearStart', type: 'range', min: 0.68, max: 0.95, step: 0.01, unit: '', default: 0.84, refresh: true },
-      { id: 'deckReappearFade', label: 'Reappear Fade', configKey: 'runtime.deck.reappearFade', type: 'range', min: 0.04, max: 0.24, step: 0.01, unit: '', default: 0.12, refresh: true },
-      { id: 'deckExitScale', label: 'Exit Scale', configKey: 'runtime.deck.exitScale', type: 'range', min: 0.96, max: 1.12, step: 0.002, unit: '', default: 1.045, refresh: true },
-      { id: 'deckContactShadowOpacity', label: 'Contact Shadow', configKey: 'runtime.deck.contactShadowOpacity', type: 'range', min: 0, max: 0.2, step: 0.005, unit: '', default: 0.12, refresh: true },
+      { id: 'carouselCardWidthPercent', label: 'Desktop width', configKey: 'runtime.carousel.cardWidthPercent', type: 'range', min: 16, max: 42, step: 0.5, unit: '%', default: 24, refresh: true },
+      { id: 'carouselCardMaxWidthPx', label: 'Desktop max width', configKey: 'runtime.carousel.cardMaxWidthPx', type: 'range', min: 220, max: 620, step: 2, unit: 'px', default: 316, refresh: true },
+      { id: 'carouselCardHeightCqh', label: 'Desktop height', configKey: 'runtime.carousel.cardHeightCqh', type: 'range', min: 36, max: 68, step: 0.5, unit: 'cqh', default: 58, refresh: true },
+      { id: 'carouselCardMaxHeightPx', label: 'Desktop max height', configKey: 'runtime.carousel.cardMaxHeightPx', type: 'range', min: 340, max: 620, step: 2, unit: 'px', default: 461, refresh: true },
+      { id: 'carouselMobileCardWidthPercent', label: 'Mobile width', configKey: 'runtime.carousel.mobileCardWidthPercent', type: 'range', min: 60, max: 92, step: 0.5, unit: '%', default: 73, refresh: true },
+      { id: 'carouselMobileCardMaxWidthPx', label: 'Mobile max width', configKey: 'runtime.carousel.mobileCardMaxWidthPx', type: 'range', min: 240, max: 520, step: 2, unit: 'px', default: 342, refresh: true },
+      { id: 'carouselCenterYPercent', label: 'Orbit Y', configKey: 'runtime.carousel.centerYPercent', type: 'range', min: 54, max: 74, step: 0.25, unit: '%', default: 66, refresh: true },
+      { id: 'carouselMobileCenterYPercent', label: 'Mobile orbit Y', configKey: 'runtime.carousel.mobileCenterYPercent', type: 'range', min: 52, max: 72, step: 0.25, unit: '%', default: 63.6, refresh: true },
+      { id: 'carouselPathRadiusPx', label: 'Desktop radius', configKey: 'runtime.carousel.pathRadiusPx', type: 'range', min: 900, max: 3200, step: 10, unit: 'px', default: 1820, refresh: true },
+      { id: 'carouselMobilePathRadiusPx', label: 'Mobile radius', configKey: 'runtime.carousel.mobilePathRadiusPx', type: 'range', min: 420, max: 1400, step: 10, unit: 'px', default: 820, refresh: true },
+      { id: 'carouselAngleStepDeg', label: 'Desktop spacing', configKey: 'runtime.carousel.angleStepDeg', type: 'range', min: 6, max: 18, step: 0.25, unit: 'deg', default: 10.25, refresh: true },
+      { id: 'carouselMobileAngleStepDeg', label: 'Mobile spacing', configKey: 'runtime.carousel.mobileAngleStepDeg', type: 'range', min: 7, max: 24, step: 0.25, unit: 'deg', default: 13.5, refresh: true },
+      { id: 'carouselSideRotationDeg', label: 'Side rotation', configKey: 'runtime.carousel.sideRotationDeg', type: 'range', min: 0, max: 24, step: 0.25, unit: 'deg', default: 10, refresh: true },
+      { id: 'carouselFarRotationDeg', label: 'Far rotation', configKey: 'runtime.carousel.farRotationDeg', type: 'range', min: 10, max: 34, step: 0.25, unit: 'deg', default: 22, refresh: true },
+      { id: 'carouselDotDialRadiusPx', label: 'Dot radius', configKey: 'runtime.carousel.dotDialRadiusPx', type: 'range', min: 900, max: 3600, step: 10, unit: 'px', default: 2050, refresh: true },
+      { id: 'carouselMobileDotDialRadiusPx', label: 'Mobile dot radius', configKey: 'runtime.carousel.mobileDotDialRadiusPx', type: 'range', min: 520, max: 1600, step: 10, unit: 'px', default: 900, refresh: true },
+      { id: 'carouselDotDensity', label: 'Dot density', configKey: 'runtime.carousel.dotDensity', type: 'range', min: 18, max: 72, step: 1, unit: '', default: 42, refresh: true },
+      { id: 'carouselVirtualInstanceCount', label: 'Visible pool', configKey: 'runtime.carousel.virtualInstanceCount', type: 'range', min: 5, max: 15, step: 2, unit: '', default: 11, refresh: true },
+      { id: 'carouselScrollSensitivity', label: 'Input sensitivity', configKey: 'runtime.carousel.scrollSensitivity', type: 'range', min: 0.25, max: 2, step: 0.05, unit: '', default: 1, refresh: true },
+      { id: 'carouselScrollPixelsPerProject', label: 'Pixels per project', configKey: 'runtime.carousel.scrollPixelsPerProject', type: 'range', min: 220, max: 900, step: 10, unit: 'px', default: 520, refresh: true },
+      { id: 'carouselSettleStrength', label: 'Snap strength', configKey: 'runtime.carousel.settleStrength', type: 'range', min: 0.04, max: 0.32, step: 0.01, unit: '', default: 0.15, refresh: true },
+      { id: 'carouselFollowSmoothing', label: 'Follow smoothness', configKey: 'runtime.carousel.followSmoothing', type: 'range', min: 0.04, max: 0.38, step: 0.01, unit: '', default: 0.18, refresh: true },
+      { id: 'carouselContactShadowOpacity', label: 'Contact shadow', configKey: 'runtime.carousel.contactShadowOpacity', type: 'range', min: 0, max: 0.2, step: 0.005, unit: '', default: 0.12, refresh: true },
     ],
   },
   hero: {
@@ -268,10 +267,10 @@ const CONTROL_SECTIONS = {
 };
 
 /** All sections whose controls participate in bind + save snapshot. */
-const ACTIVE_SECTION_KEYS = ['layout', 'bodies', 'labeling', 'motion', 'deck', 'hero', 'drawer'];
+const ACTIVE_SECTION_KEYS = ['layout', 'bodies', 'labeling', 'motion', 'carousel', 'hero', 'drawer'];
 
 /** Page master-group only: pit rim is injected under Simulation (see panel-dock). */
-const PORTFOLIO_PAGE_SECTION_KEYS = ['deck'];
+const PORTFOLIO_PAGE_SECTION_KEYS = ['carousel'];
 
 function getControlInputId(control) {
   return `${control.id}Slider`;
@@ -445,6 +444,7 @@ export function buildConfigSnapshot(config, options = {}) {
       bodies: {},
       labeling: {},
       motion: {},
+      carousel: {},
       openHero: {},
       behavior: {},
     },

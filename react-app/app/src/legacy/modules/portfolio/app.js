@@ -74,22 +74,42 @@ const PORTFOLIO_OPEN_GHOST_DURATION_MS = 360;
 const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   reducedMotionDurationMs: 1,
   scrollSensitivity: 1,
-  scrollPixelsPerProject: 560,
-  inputCapProjects: 0.24,
-  followSmoothing: 0.16,
+  scrollPixelsPerProject: 520,
+  inputCapProjects: 0.32,
+  followSmoothing: 0.18,
   settleIdleMs: 150,
-  settleStrength: 0.13,
-  cardWidthPercent: 88,
-  cardMaxWidthPx: 1360,
-  cardHeightCqh: 43,
-  cardMaxHeightPx: 500,
-  centerYPercent: 67.5,
-  perspectivePx: 1200,
-  depthGap1Px: 44,
-  depthZ1Px: -26,
-  depthScale1: 0.952,
-  depthBlur1Px: 0.42,
-  rotateXStepDeg: -0.42,
+  settleStrength: 0.15,
+  cardWidthPercent: 24,
+  cardMaxWidthPx: 316,
+  cardHeightCqh: 58,
+  cardMaxHeightPx: 461,
+  mobileCardWidthPercent: 76,
+  mobileCardMaxWidthPx: 342,
+  mobileCardHeightCqh: 58,
+  mobileCardMaxHeightPx: 500,
+  centerYPercent: 66,
+  mobileCenterYPercent: 63.6,
+  perspectivePx: 1600,
+  virtualInstanceCount: 11,
+  mobileVirtualInstanceCount: 7,
+  pathRadiusPx: 1820,
+  mobilePathRadiusPx: 820,
+  angleStepDeg: 10.25,
+  mobileAngleStepDeg: 13.5,
+  sideRotationDeg: 10,
+  farRotationDeg: 22,
+  sideScale: 0.985,
+  farScale: 0.9,
+  dotDialRadiusPx: 2050,
+  mobileDotDialRadiusPx: 900,
+  dotDensity: 42,
+  dotActiveScale: 1.9,
+  dotArcOffsetDeg: 0,
+  depthGap1Px: 0,
+  depthZ1Px: -18,
+  depthScale1: 0.985,
+  depthBlur1Px: 0,
+  rotateXStepDeg: 0,
   exitTravelPx: 220,
   exitFadeStart: 0.28,
   exitFadeEnd: 0.58,
@@ -172,6 +192,16 @@ function normalizeWheelDeltaY(event) {
   return deltaY;
 }
 
+function normalizeWheelDelta(event) {
+  const multiplier = event?.deltaMode === 1
+    ? 16
+    : (event?.deltaMode === 2 ? (window.innerHeight || 900) : 1);
+  const deltaX = (Number(event?.deltaX) || 0) * multiplier;
+  const deltaY = (Number(event?.deltaY) || 0) * multiplier;
+  if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) return 0;
+  return Math.abs(deltaX) > Math.abs(deltaY) ? deltaX : deltaY;
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -245,7 +275,7 @@ function getReadableLabelRotation(rotationRad) {
 }
 
 function getProjectCardTheme(project, projectIndex, projectCount) {
-  const accent = getProjectAccentColor(projectIndex, projectCount);
+  const accent = resolveThumbnailAccent(project, projectIndex, projectCount);
   return {
     accent,
     glow: accent,
@@ -264,6 +294,17 @@ function applyProjectCardTheme(element, project, projectIndex, projectCount) {
   element.style.setProperty('--portfolio-card-deep', theme.deep);
   element.style.setProperty('--portfolio-card-surface', theme.base);
   element.style.setProperty('--portfolio-card-ink', theme.ink);
+}
+
+function resolveThumbnailAccent(project, projectIndex, projectCount) {
+  const authored = String(
+    project?.thumbnailAccent
+      || project?.thumbnailAccentColor
+      || project?.accent
+      || ''
+  ).trim();
+  if (/^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(authored) || /^rgba?\(/i.test(authored)) return authored;
+  return getProjectAccentColor(projectIndex, projectCount);
 }
 
 function setPortfolioSheetHostHidden(hidden) {
@@ -1303,6 +1344,19 @@ class PortfolioScrollApp {
     this.deckStage = null;
     this.deckPin = null;
     this.deckViewport = null;
+    this.deckMetrics = {
+      stageWidth: 0,
+      stageHeight: 0,
+      pathRadius: PORTFOLIO_DECK_DEFAULTS.pathRadiusPx,
+      angleStepDeg: PORTFOLIO_DECK_DEFAULTS.angleStepDeg,
+      sideRotationDeg: PORTFOLIO_DECK_DEFAULTS.sideRotationDeg,
+      farRotationDeg: PORTFOLIO_DECK_DEFAULTS.farRotationDeg,
+      sideScale: PORTFOLIO_DECK_DEFAULTS.sideScale,
+      farScale: PORTFOLIO_DECK_DEFAULTS.farScale,
+      maxVisibleOffset: 5,
+    };
+    this.dotDial = null;
+    this.dotDialDots = [];
     this.deckStatus = null;
     this.pendingDeckFocusIndex = -1;
     this.pendingDeckAnnounce = false;
@@ -1466,6 +1520,8 @@ class PortfolioScrollApp {
     this.mount.replaceChildren();
     this.mount.classList.add('is-deck-ready');
     this.applyDeckTuning();
+    const virtualCount = this.getVirtualCardCount();
+    const centerOffset = Math.floor(virtualCount / 2);
 
     const stage = document.createElement('section');
     stage.className = 'portfolio-deck-stage';
@@ -1486,11 +1542,15 @@ class PortfolioScrollApp {
     mist.className = 'portfolio-deck-mist';
     mist.setAttribute('aria-hidden', 'true');
 
-    this.cards = this.projects.map((project, index) => {
-      const card = this.createProjectCard(project, index);
+    this.cards = Array.from({ length: virtualCount }, (_, virtualIndex) => {
+      const slotOffset = virtualIndex - centerOffset;
+      const projectIndex = this.wrapProjectIndex(slotOffset);
+      const card = this.createProjectCard(projectIndex, virtualIndex, slotOffset);
       viewport.appendChild(card);
       return card;
     });
+
+    const dotDial = this.createDotDial();
 
     const status = document.createElement('div');
     status.className = 'screen-reader portfolio-deck-status';
@@ -1498,38 +1558,42 @@ class PortfolioScrollApp {
     status.setAttribute('aria-live', 'polite');
     status.setAttribute('aria-atomic', 'true');
 
-    pin.append(intro, viewport, mist, status);
+    pin.append(intro, viewport, dotDial, mist, status);
     stage.append(pin);
     this.mount.appendChild(stage);
     this.deckStage = stage;
     this.deckPin = pin;
     this.deckViewport = viewport;
+    this.dotDial = dotDial;
     this.deckStatus = status;
   }
 
-  createProjectCard(project, index) {
-    const labelContent = resolvePortfolioLabelContent(project, project?.title || `Project ${index + 1}`);
+  createProjectCard(projectIndex, virtualIndex, slotOffset) {
+    const project = this.projects[projectIndex];
+    const labelContent = resolvePortfolioLabelContent(project, project?.title || `Project ${projectIndex + 1}`);
     const spokenLabel = labelContent.eyebrow
       ? `${labelContent.eyebrow}: ${labelContent.title}`
       : labelContent.title;
     const card = document.createElement('article');
     card.className = 'portfolio-project-card portfolio-deck-card portfolio-project-label';
-    card.dataset.projectIndex = String(index);
-    card.dataset.projectId = String(project?.id || `project-${index + 1}`);
-    applyProjectCardTheme(card, project, index, this.projects.length);
+    card.dataset.virtualIndex = String(virtualIndex);
+    card.dataset.virtualSlotOffset = String(slotOffset);
+    card.dataset.projectIndex = String(projectIndex);
+    card.dataset.projectId = String(project?.id || `project-${projectIndex + 1}`);
+    applyProjectCardTheme(card, project, projectIndex, this.projects.length);
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '-1');
     card.setAttribute('aria-haspopup', 'dialog');
     card.setAttribute('aria-controls', 'portfolioProjectView');
     card.setAttribute('aria-expanded', 'false');
-    card.setAttribute('aria-label', `Open project ${index + 1}: ${spokenLabel}`);
+    card.setAttribute('aria-label', `Open project ${projectIndex + 1}: ${spokenLabel}`);
 
     const copy = document.createElement('div');
     copy.className = 'portfolio-project-card__copy';
 
     const client = document.createElement('p');
     client.className = 'portfolio-project-card__client';
-    client.textContent = project?.client || project?.eyebrow || `Project ${index + 1}`;
+    client.textContent = project?.client || project?.eyebrow || `Project ${projectIndex + 1}`;
 
     const title = document.createElement('h3');
     title.className = 'portfolio-project-card__title portfolio-project-label__text';
@@ -1541,6 +1605,7 @@ class PortfolioScrollApp {
     const tags = document.createElement('ul');
     tags.className = 'portfolio-project-card__tags';
     tags.setAttribute('aria-label', 'Project tags');
+    tags.hidden = true;
     getProjectTags(project).forEach((tag) => {
       const item = document.createElement('li');
       item.textContent = tag;
@@ -1550,27 +1615,101 @@ class PortfolioScrollApp {
     copy.append(client, title);
     if (tags.childElementCount) copy.appendChild(tags);
 
-    const media = this.createProjectCardMedia(project, index);
+    const cta = document.createElement('div');
+    cta.className = 'portfolio-project-card__cta';
+    cta.setAttribute('aria-hidden', 'true');
+    cta.textContent = 'View';
+
+    const media = this.createProjectCardMedia(project, projectIndex, { eager: Math.abs(slotOffset) <= 1 });
     card.append(copy, media);
-    card.addEventListener('pointerdown', (event) => this.handleCardPointerDown(event, index));
-    card.addEventListener('pointermove', (event) => this.handleCardPointerMove(event, index));
-    card.addEventListener('pointerup', (event) => this.handleCardPointerUp(event, index));
-    card.addEventListener('pointercancel', (event) => this.handleCardPointerCancel(event, index));
-    card.addEventListener('lostpointercapture', (event) => this.handleCardLostPointerCapture(event, index));
-    card.addEventListener('click', (event) => this.handleCardClick(event, index));
-    card.addEventListener('keydown', (event) => this.handleCardKeydown(event, index));
-    card.addEventListener('pointerenter', () => this.prefetchProjectAssets(project));
+    card.appendChild(cta);
+    card._portfolioElements = { client, titleText, tags, media, cta };
+    card._portfolioProjectIndex = projectIndex;
+    card._portfolioThumbnailVideoActive = false;
+    card.addEventListener('pointerdown', (event) => this.handleCardPointerDown(event, card));
+    card.addEventListener('pointermove', (event) => this.handleCardPointerMove(event, card));
+    card.addEventListener('pointerup', (event) => this.handleCardPointerUp(event, card));
+    card.addEventListener('pointercancel', (event) => this.handleCardPointerCancel(event, card));
+    card.addEventListener('lostpointercapture', (event) => this.handleCardLostPointerCapture(event, card));
+    card.addEventListener('click', (event) => this.handleCardClick(event, card));
+    card.addEventListener('keydown', (event) => this.handleCardKeydown(event, card));
+    card.addEventListener('pointerenter', () => {
+      const currentProject = this.projects[this.getCardProjectIndex(card)];
+      this.prefetchProjectAssets(currentProject);
+    });
     card.addEventListener('focus', () => card.classList.add('is-keyboard-focused'));
     card.addEventListener('blur', () => card.classList.remove('is-keyboard-focused'));
     return card;
   }
 
-  createProjectCardMedia(project, index) {
+  syncProjectCard(card, projectIndex, options = {}) {
+    if (!card || !this.projects.length) return;
+    const nextIndex = this.wrapProjectIndex(projectIndex);
+    const project = this.projects[nextIndex];
+    if (!project) return;
+    const shouldAttachVideo = Boolean(options.active && getProjectVideoSrc(project) && !shouldReducePortfolioMotion());
+    const mediaModeChanged = Boolean(card._portfolioThumbnailVideoActive) !== shouldAttachVideo;
+    if (card._portfolioProjectIndex === nextIndex && !mediaModeChanged) return;
+
+    const labelContent = resolvePortfolioLabelContent(project, project?.title || `Project ${nextIndex + 1}`);
+    const spokenLabel = labelContent.eyebrow
+      ? `${labelContent.eyebrow}: ${labelContent.title}`
+      : labelContent.title;
+    card.dataset.projectIndex = String(nextIndex);
+    card.dataset.projectId = String(project?.id || `project-${nextIndex + 1}`);
+    card.setAttribute('aria-label', `Open project ${nextIndex + 1}: ${spokenLabel}`);
+    applyProjectCardTheme(card, project, nextIndex, this.projects.length);
+
+    const elements = card._portfolioElements || {};
+    if (elements.client) {
+      elements.client.textContent = project?.client || project?.eyebrow || `Project ${nextIndex + 1}`;
+    }
+    if (elements.titleText) {
+      elements.titleText.textContent = project?.displayTitle || project?.title || labelContent.title;
+    }
+    if (elements.tags) {
+      elements.tags.replaceChildren();
+      getProjectTags(project).forEach((tag) => {
+        const item = document.createElement('li');
+        item.textContent = tag;
+        elements.tags.appendChild(item);
+      });
+      elements.tags.hidden = true;
+    }
+    if (elements.media) {
+      const nextMedia = this.createProjectCardMedia(project, nextIndex, {
+        attachVideo: shouldAttachVideo,
+        eager: Boolean(options.eager || options.active),
+      });
+      elements.media.replaceWith(nextMedia);
+      elements.media = nextMedia;
+      card._portfolioElements = elements;
+    }
+    card._portfolioProjectIndex = nextIndex;
+    card._portfolioThumbnailVideoActive = shouldAttachVideo;
+  }
+
+  createDotDial() {
+    const dotDial = document.createElement('div');
+    dotDial.className = 'portfolio-carousel-dot-dial';
+    dotDial.setAttribute('aria-hidden', 'true');
+    const dotCount = Math.max(1, Math.round(toNumber(this.deckOptions.dotDensity, PORTFOLIO_DECK_DEFAULTS.dotDensity)));
+    this.dotDialDots = Array.from({ length: dotCount }, (_, index) => {
+      const dot = document.createElement('span');
+      dot.className = 'portfolio-carousel-dot';
+      dot.dataset.dotIndex = String(index);
+      dotDial.appendChild(dot);
+      return dot;
+    });
+    return dotDial;
+  }
+
+  createProjectCardMedia(project, index, options = {}) {
     const frame = document.createElement('figure');
     frame.className = 'portfolio-project-card__media';
     frame.setAttribute('aria-hidden', 'true');
     const imageSrc = getProjectImageSrc(project);
-    const videoSrc = getProjectVideoSrc(project);
+    const videoSrc = options.attachVideo ? getProjectVideoSrc(project) : '';
     const reduceMotion = shouldReducePortfolioMotion();
 
     if (videoSrc && !reduceMotion) {
@@ -1580,7 +1719,7 @@ class PortfolioScrollApp {
       video.loop = true;
       video.playsInline = true;
       video.autoplay = true;
-      video.preload = index < 2 ? 'metadata' : 'none';
+      video.preload = 'metadata';
       video.dataset.projectIndex = String(index);
       if (imageSrc) video.poster = resolveAsset(imageSrc);
       const source = document.createElement('source');
@@ -1594,8 +1733,10 @@ class PortfolioScrollApp {
       image.className = 'portfolio-project-card__image';
       image.src = resolveAsset(imageSrc);
       image.alt = '';
-      image.loading = index < 2 ? 'eager' : 'lazy';
+      image.loading = options.eager ? 'eager' : 'lazy';
       image.decoding = 'async';
+      const thumbnailPosition = project?.thumbnailPosition || project?.thumbnailFocalPoint || '';
+      if (thumbnailPosition) image.style.objectPosition = String(thumbnailPosition);
       frame.appendChild(image);
     } else {
       const fallback = document.createElement('div');
@@ -1642,7 +1783,8 @@ class PortfolioScrollApp {
   }
 
   applyProjectPalette() {
-    this.cards.forEach((card, index) => {
+    this.cards.forEach((card) => {
+      const index = this.getCardProjectIndex(card);
       applyProjectCardTheme(card, this.projects[index], index, this.projects.length);
     });
   }
@@ -1656,7 +1798,7 @@ class PortfolioScrollApp {
 
   resolveDeckOptions() {
     const runtime = this.config?.runtime || {};
-    const deck = runtime.deck || runtime.carousel || {};
+    const deck = runtime.carousel || runtime.deck || {};
     const motionDeck = runtime.motion?.deck || {};
     return {
       ...PORTFOLIO_DECK_DEFAULTS,
@@ -1665,25 +1807,89 @@ class PortfolioScrollApp {
     };
   }
 
+  getVirtualCardCount() {
+    const rawCount = toNumber(this.deckOptions.virtualInstanceCount, PORTFOLIO_DECK_DEFAULTS.virtualInstanceCount);
+    const clamped = clamp(Math.round(rawCount), 5, 15);
+    return clamped % 2 === 0 ? clamped + 1 : clamped;
+  }
+
+  getCardProjectIndex(card) {
+    const index = Number(card?.dataset?.projectIndex);
+    return Number.isInteger(index) ? this.wrapProjectIndex(index) : 0;
+  }
+
+  getCardSlotOffset(card) {
+    const offset = Number(card?.dataset?.virtualSlotOffset);
+    return Number.isFinite(offset) ? offset : 0;
+  }
+
+  getActiveProjectCard(projectIndex = this.activeProjectIndex) {
+    return this.cards.find((card) => {
+      return this.getCardProjectIndex(card) === this.wrapProjectIndex(projectIndex)
+        && card.classList.contains('is-active');
+    }) || null;
+  }
+
   applyDeckTuning() {
     if (!this.mount) return;
     this.deckOptions = this.resolveDeckOptions();
-    const cardWidthPercent = clamp(toNumber(this.deckOptions.cardWidthPercent, PORTFOLIO_DECK_DEFAULTS.cardWidthPercent), 50, 98);
-    const cardMaxWidthPx = clamp(toNumber(this.deckOptions.cardMaxWidthPx, PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx), 640, 1800);
-    const cardHeightCqh = clamp(toNumber(this.deckOptions.cardHeightCqh, PORTFOLIO_DECK_DEFAULTS.cardHeightCqh), 24, 72);
-    const cardMaxHeightPx = clamp(toNumber(this.deckOptions.cardMaxHeightPx, PORTFOLIO_DECK_DEFAULTS.cardMaxHeightPx), 260, 820);
-    const centerYPercent = clamp(toNumber(this.deckOptions.centerYPercent, PORTFOLIO_DECK_DEFAULTS.centerYPercent), 45, 85);
+    const stageWidth = this.deckStage?.clientWidth || this.mount.clientWidth || window.innerWidth || 1440;
+    const stageHeight = this.deckStage?.clientHeight || this.mount.clientHeight || window.innerHeight || 900;
+    const responsiveT = clamp((stageWidth - 390) / (1180 - 390), 0, 1);
+    const desktopCardWidthPercent = clamp(toNumber(this.deckOptions.cardWidthPercent, PORTFOLIO_DECK_DEFAULTS.cardWidthPercent), 16, 42);
+    const mobileCardWidthPercent = clamp(toNumber(this.deckOptions.mobileCardWidthPercent, PORTFOLIO_DECK_DEFAULTS.mobileCardWidthPercent), 60, 92);
+    const cardWidthPercent = lerp(mobileCardWidthPercent, desktopCardWidthPercent, responsiveT);
+    const desktopCardMaxWidthPx = clamp(toNumber(this.deckOptions.cardMaxWidthPx, PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx), 220, 620);
+    const mobileCardMaxWidthPx = clamp(toNumber(this.deckOptions.mobileCardMaxWidthPx, PORTFOLIO_DECK_DEFAULTS.mobileCardMaxWidthPx), 240, 520);
+    const cardMaxWidthPx = lerp(mobileCardMaxWidthPx, desktopCardMaxWidthPx, responsiveT);
+    const desktopCardHeightCqh = clamp(toNumber(this.deckOptions.cardHeightCqh, PORTFOLIO_DECK_DEFAULTS.cardHeightCqh), 36, 68);
+    const mobileCardHeightCqh = clamp(toNumber(this.deckOptions.mobileCardHeightCqh, PORTFOLIO_DECK_DEFAULTS.mobileCardHeightCqh), 42, 72);
+    const cardHeightCqh = lerp(mobileCardHeightCqh, desktopCardHeightCqh, responsiveT);
+    const desktopCardMaxHeightPx = clamp(toNumber(this.deckOptions.cardMaxHeightPx, PORTFOLIO_DECK_DEFAULTS.cardMaxHeightPx), 340, 620);
+    const mobileCardMaxHeightPx = clamp(toNumber(this.deckOptions.mobileCardMaxHeightPx, PORTFOLIO_DECK_DEFAULTS.mobileCardMaxHeightPx), 380, 620);
+    const cardMaxHeightPx = lerp(mobileCardMaxHeightPx, desktopCardMaxHeightPx, responsiveT);
+    const desktopCenterYPercent = clamp(toNumber(this.deckOptions.centerYPercent, PORTFOLIO_DECK_DEFAULTS.centerYPercent), 45, 85);
+    const mobileCenterYPercent = clamp(toNumber(this.deckOptions.mobileCenterYPercent, PORTFOLIO_DECK_DEFAULTS.mobileCenterYPercent), 48, 78);
+    const centerYPercent = lerp(mobileCenterYPercent, desktopCenterYPercent, responsiveT);
     const perspectivePx = clamp(toNumber(this.deckOptions.perspectivePx, PORTFOLIO_DECK_DEFAULTS.perspectivePx), 500, 2600);
-    const depthGapPx = clamp(toNumber(this.deckOptions.depthGap1Px, PORTFOLIO_DECK_DEFAULTS.depthGap1Px), 0, 140);
-    const depthZPx = -Math.abs(clamp(toNumber(this.deckOptions.depthZ1Px, PORTFOLIO_DECK_DEFAULTS.depthZ1Px), -140, -1));
-    const depthScale1 = clamp(toNumber(this.deckOptions.depthScale1, PORTFOLIO_DECK_DEFAULTS.depthScale1), 0.78, 1);
-    const depthScaleStep = Math.max(0, 1 - depthScale1);
-    const depthBlurPx = clamp(toNumber(this.deckOptions.depthBlur1Px, PORTFOLIO_DECK_DEFAULTS.depthBlur1Px), 0, 6);
+    const pathRadius = lerp(
+      clamp(toNumber(this.deckOptions.mobilePathRadiusPx, PORTFOLIO_DECK_DEFAULTS.mobilePathRadiusPx), 420, 1400),
+      clamp(toNumber(this.deckOptions.pathRadiusPx, PORTFOLIO_DECK_DEFAULTS.pathRadiusPx), 900, 3200),
+      responsiveT
+    );
+    const angleStepDeg = lerp(
+      clamp(toNumber(this.deckOptions.mobileAngleStepDeg, PORTFOLIO_DECK_DEFAULTS.mobileAngleStepDeg), 7, 24),
+      clamp(toNumber(this.deckOptions.angleStepDeg, PORTFOLIO_DECK_DEFAULTS.angleStepDeg), 6, 18),
+      responsiveT
+    );
+    const sideRotationDeg = clamp(toNumber(this.deckOptions.sideRotationDeg, PORTFOLIO_DECK_DEFAULTS.sideRotationDeg), 0, 24);
+    const farRotationDeg = clamp(toNumber(this.deckOptions.farRotationDeg, PORTFOLIO_DECK_DEFAULTS.farRotationDeg), sideRotationDeg, 34);
+    const sideScale = clamp(toNumber(this.deckOptions.sideScale, PORTFOLIO_DECK_DEFAULTS.sideScale), 0.82, 1.08);
+    const farScale = clamp(toNumber(this.deckOptions.farScale, PORTFOLIO_DECK_DEFAULTS.farScale), 0.68, 1);
+    const dotDialRadius = lerp(
+      clamp(toNumber(this.deckOptions.mobileDotDialRadiusPx, PORTFOLIO_DECK_DEFAULTS.mobileDotDialRadiusPx), 520, 1600),
+      clamp(toNumber(this.deckOptions.dotDialRadiusPx, PORTFOLIO_DECK_DEFAULTS.dotDialRadiusPx), 900, 3600),
+      responsiveT
+    );
     const contactShadowOpacity = clamp(
       toNumber(this.deckOptions.contactShadowOpacity, PORTFOLIO_DECK_DEFAULTS.contactShadowOpacity),
       0,
       0.18
     );
+    const virtualCount = this.getVirtualCardCount();
+    this.deckMetrics = {
+      stageWidth,
+      stageHeight,
+      pathRadius,
+      angleStepDeg,
+      sideRotationDeg,
+      farRotationDeg,
+      sideScale,
+      farScale,
+      dotDialRadius,
+      dotArcOffsetDeg: clamp(toNumber(this.deckOptions.dotArcOffsetDeg, PORTFOLIO_DECK_DEFAULTS.dotArcOffsetDeg), -60, 60),
+      maxVisibleOffset: Math.floor(virtualCount / 2),
+    };
 
     this.mount.style.setProperty('--portfolio-deck-card-width-fluid', `${cardWidthPercent}%`);
     this.mount.style.setProperty('--portfolio-deck-card-width-max', `${cardMaxWidthPx}px`);
@@ -1691,14 +1897,9 @@ class PortfolioScrollApp {
     this.mount.style.setProperty('--portfolio-deck-card-height-max', `${cardMaxHeightPx}px`);
     this.mount.style.setProperty('--portfolio-deck-center-y', `${centerYPercent}%`);
     this.mount.style.setProperty('--portfolio-deck-perspective', `${perspectivePx}px`);
-    this.mount.style.setProperty('--portfolio-deck-depth-gap-1', `${depthGapPx}px`);
-    this.mount.style.setProperty('--portfolio-deck-depth-gap-2', `${depthGapPx * 2}px`);
-    this.mount.style.setProperty('--portfolio-deck-depth-z-1', `${depthZPx}px`);
-    this.mount.style.setProperty('--portfolio-deck-depth-z-2', `${depthZPx * 2}px`);
-    this.mount.style.setProperty('--portfolio-deck-depth-scale-1', String(depthScale1));
-    this.mount.style.setProperty('--portfolio-deck-depth-scale-2', String(clamp(1 - (depthScaleStep * 2), 0.72, 1)));
-    this.mount.style.setProperty('--portfolio-deck-depth-blur-1', `${depthBlurPx}px`);
-    this.mount.style.setProperty('--portfolio-deck-depth-blur-2', `${depthBlurPx * 2}px`);
+    this.mount.style.setProperty('--portfolio-carousel-path-radius', `${pathRadius}px`);
+    this.mount.style.setProperty('--portfolio-carousel-dot-radius', `${dotDialRadius}px`);
+    this.mount.style.setProperty('--portfolio-carousel-dot-count', String(Math.round(toNumber(this.deckOptions.dotDensity, PORTFOLIO_DECK_DEFAULTS.dotDensity))));
     this.mount.style.setProperty('--portfolio-card-contact-shadow-opacity', contactShadowOpacity.toFixed(3));
   }
 
@@ -1995,12 +2196,53 @@ class PortfolioScrollApp {
 
   getDeckPoseForPosition(index, position) {
     const count = this.projects.length;
-    if (!count) return this.getDeckCardPose(0);
-    const renderPosition = Math.abs(position - Math.round(position)) < 0.003
-      ? Math.round(position)
-      : position;
-    const phase = this.getDeckConveyorPhase(index, renderPosition);
-    return this.getDeckLoopPoseForPhase(phase, count);
+    if (!count) return this.getDeckPoseForOffset(0);
+    const continuousIndex = this.getNearestContinuousPositionForIndex(index, position);
+    return this.getDeckPoseForOffset(continuousIndex - position);
+  }
+
+  getDeckPoseForOffset(offset) {
+    const metrics = this.deckMetrics || {};
+    const clampedOffset = clamp(offset, -metrics.maxVisibleOffset, metrics.maxVisibleOffset);
+    const absOffset = Math.abs(clampedOffset);
+    const sideProgress = clamp(absOffset / Math.max(1, metrics.maxVisibleOffset || 5), 0, 1);
+    const angleDeg = clampedOffset * (metrics.angleStepDeg || PORTFOLIO_DECK_DEFAULTS.angleStepDeg);
+    const angleRad = (angleDeg * Math.PI) / 180;
+    const radius = metrics.pathRadius || PORTFOLIO_DECK_DEFAULTS.pathRadiusPx;
+    const x = Math.sin(angleRad) * radius;
+    const y = radius * (1 - Math.cos(angleRad)) * 0.88;
+    const rotateZ = Math.sign(clampedOffset)
+      * lerp(
+        metrics.sideRotationDeg || PORTFOLIO_DECK_DEFAULTS.sideRotationDeg,
+        metrics.farRotationDeg || PORTFOLIO_DECK_DEFAULTS.farRotationDeg,
+        clamp((absOffset - 1) / Math.max(1, (metrics.maxVisibleOffset || 5) - 1), 0, 1)
+      )
+      * Math.min(1, absOffset);
+    const scale = lerp(1, metrics.farScale || PORTFOLIO_DECK_DEFAULTS.farScale, sideProgress);
+    const opacity = absOffset > (metrics.maxVisibleOffset || 5) - 0.35
+      ? lerp(1, 0.22, smoothstep((metrics.maxVisibleOffset || 5) - 0.35, metrics.maxVisibleOffset || 5, absOffset))
+      : 1;
+    const activeAmount = clamp(1 - absOffset, 0, 1);
+    const slot = Math.abs(clampedOffset) < 0.52 ? '0' : String(Math.round(clampedOffset));
+    return {
+      slot,
+      visualSlot: activeAmount > 0.48 ? 'front' : (clampedOffset < 0 ? 'left' : 'right'),
+      zone: activeAmount > 0.48 ? 'active-orbit' : 'side-orbit',
+      depth: absOffset,
+      depthLabel: String(Math.round(absOffset)),
+      zIndex: Math.max(1, Math.round(700 - (absOffset * 22))),
+      x,
+      y,
+      z: -Math.abs(clampedOffset) * 18,
+      rotateX: 0,
+      rotateZ,
+      scale,
+      blur: absOffset > 4 ? 0.25 : 0,
+      saturate: lerp(1, 0.88, sideProgress),
+      opacity,
+      visibility: opacity <= 0.03 ? 'hidden' : 'visible',
+      pointerEvents: this.isProjectOpen ? 'none' : 'auto',
+    };
   }
 
   applyDeckCardPose(card, pose) {
@@ -2015,6 +2257,7 @@ class PortfolioScrollApp {
     card.style.setProperty('--portfolio-card-y', `${pose.y.toFixed(2)}px`);
     card.style.setProperty('--portfolio-card-z', `${pose.z.toFixed(2)}px`);
     card.style.setProperty('--portfolio-card-rotate-x', `${pose.rotateX.toFixed(2)}deg`);
+    card.style.setProperty('--portfolio-card-rotate-z', `${(pose.rotateZ || 0).toFixed(2)}deg`);
     card.style.setProperty('--portfolio-card-scale', pose.scale.toFixed(4));
     card.style.setProperty('--portfolio-card-pose-blur', `${pose.blur.toFixed(2)}px`);
     card.style.setProperty('--portfolio-card-pose-saturate', pose.saturate.toFixed(3));
@@ -2041,20 +2284,33 @@ class PortfolioScrollApp {
     const activeChanged = nextActiveIndex !== this.activeProjectIndex;
     if (shouldCommitActive) this.activeProjectIndex = nextActiveIndex;
 
-    this.cards.forEach((card, index) => {
-      const isActive = index === this.activeProjectIndex;
-      const pose = this.getDeckPoseForPosition(index, this.deckDisplayPosition);
+    const nearestPosition = Math.round(this.deckDisplayPosition);
+    this.cards.forEach((card) => {
+      const slotOffset = this.getCardSlotOffset(card);
+      const continuousIndex = nearestPosition + slotOffset;
+      const projectIndex = this.wrapProjectIndex(continuousIndex);
+      const offset = continuousIndex - this.deckDisplayPosition;
+      const isActive = slotOffset === 0 && projectIndex === this.activeProjectIndex;
+      this.syncProjectCard(card, projectIndex, {
+        active: isActive,
+        eager: Math.abs(slotOffset) <= 1,
+      });
+      const pose = this.getDeckPoseForOffset(offset);
       this.applyDeckCardPose(card, pose);
+      card.dataset.orbitOffset = offset.toFixed(4);
       card.classList.toggle('is-active', isActive);
       card.classList.toggle('is-depth-card', !isActive);
-      card.classList.toggle('is-depth-1', pose.slot === '-1');
-      card.classList.toggle('is-depth-2', pose.slot === '-2');
-      card.setAttribute('tabindex', isActive && !this.isProjectOpen ? '0' : '-1');
-      card.setAttribute('aria-hidden', 'false');
-      card.setAttribute('aria-expanded', this.isProjectOpen && index === this.selectedProjectIndex ? 'true' : 'false');
+      card.classList.toggle('is-depth-1', Math.abs(slotOffset) === 1);
+      card.classList.toggle('is-depth-2', Math.abs(slotOffset) === 2);
+      card.classList.toggle('is-left-card', offset < -0.5);
+      card.classList.toggle('is-right-card', offset > 0.5);
+      card.setAttribute('tabindex', isActive && !this.isProjectOpen && this.isDeckPositionSettled() ? '0' : '-1');
+      card.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+      card.setAttribute('aria-expanded', this.isProjectOpen && projectIndex === this.selectedProjectIndex ? 'true' : 'false');
     });
     this.mount?.style.setProperty('--portfolio-deck-active-index', String(this.activeProjectIndex));
     this.mount?.style.setProperty('--portfolio-deck-scroll-progress', String(this.deckDisplayPosition));
+    this.updateDotDial();
     if (activeChanged || options.activeChanged || options.force) {
       this.updateDeckStatus();
       this.updateVideoPlayback();
@@ -2064,7 +2320,7 @@ class PortfolioScrollApp {
     }
 
     if (this.pendingDeckFocusIndex === this.activeProjectIndex) {
-      this.cards[this.activeProjectIndex]?.focus({ preventScroll: true });
+      this.getActiveProjectCard(this.activeProjectIndex)?.focus({ preventScroll: true });
       this.pendingDeckFocusIndex = -1;
     }
 
@@ -2074,6 +2330,34 @@ class PortfolioScrollApp {
       announceToScreenReader(`Selected project ${this.activeProjectIndex + 1} of ${this.projects.length}: ${label}`);
       this.pendingDeckAnnounce = false;
     }
+  }
+
+  updateDotDial() {
+    if (!this.dotDial || !this.dotDialDots.length) return;
+    const dotCount = this.dotDialDots.length;
+    const radius = this.deckMetrics?.dotDialRadius || PORTFOLIO_DECK_DEFAULTS.dotDialRadiusPx;
+    const progress = this.projects.length
+      ? this.wrapDeckPosition(this.deckDisplayPosition) / this.projects.length
+      : 0;
+    const activeDot = progress * dotCount;
+    this.dotDial.style.setProperty('--portfolio-carousel-dot-progress', String(progress));
+    this.dotDialDots.forEach((dot, index) => {
+      const normalized = (index / dotCount) - 0.5;
+      const angleDeg = (normalized * 76) + (this.deckMetrics?.dotArcOffsetDeg || 0);
+      const angleRad = (angleDeg * Math.PI) / 180;
+      const x = Math.sin(angleRad) * radius;
+      const y = -radius * (1 - Math.cos(angleRad));
+      const wrappedDistance = Math.min(
+        Math.abs(index - activeDot),
+        Math.abs(index + dotCount - activeDot),
+        Math.abs(index - dotCount - activeDot)
+      );
+      const activeAmount = clamp(1 - (wrappedDistance / 2.5), 0, 1);
+      dot.style.setProperty('--portfolio-dot-x', `${x.toFixed(2)}px`);
+      dot.style.setProperty('--portfolio-dot-y', `${y.toFixed(2)}px`);
+      dot.style.setProperty('--portfolio-dot-scale', lerp(0.72, toNumber(this.deckOptions.dotActiveScale, PORTFOLIO_DECK_DEFAULTS.dotActiveScale), activeAmount).toFixed(3));
+      dot.style.setProperty('--portfolio-dot-opacity', lerp(0.38, 0.96, activeAmount).toFixed(3));
+    });
   }
 
   getDeckDebugSnapshot() {
@@ -2107,15 +2391,17 @@ class PortfolioScrollApp {
         deckVisibility: deckStageStyles?.visibility || '',
       },
       cards: this.cards.map((card, index) => {
-        const pose = this.getDeckPoseForPosition(index, this.deckDisplayPosition);
-        const phase = this.getDeckConveyorPhase(index, this.deckDisplayPosition);
+        const projectIndex = this.getCardProjectIndex(card);
+        const offset = Number(card.dataset.orbitOffset) || 0;
+        const pose = this.getDeckPoseForOffset(offset);
         return {
-          index,
-          isActive: index === this.activeProjectIndex,
+          index: projectIndex,
+          virtualIndex: index,
+          isActive: projectIndex === this.activeProjectIndex && card.classList.contains('is-active'),
           slot: pose.slot,
           visualSlot: pose.visualSlot || pose.slot,
           zone: pose.zone || pose.visualSlot || pose.slot,
-          phase,
+          phase: this.getDeckConveyorPhase(projectIndex, this.deckDisplayPosition),
           depth: pose.depth,
           x: pose.x || 0,
           y: pose.y,
@@ -2304,12 +2590,10 @@ class PortfolioScrollApp {
 
   handleDeckWheel(event) {
     if (this.isProjectOpen || !this.projects.length) return;
-    const deltaY = Number(event.deltaY) || 0;
-    const deltaX = Number(event.deltaX) || 0;
-    if (Math.abs(deltaY) < Math.abs(deltaX) || Math.abs(deltaY) < 1) return;
+    const normalizedDelta = normalizeWheelDelta(event);
+    if (Math.abs(normalizedDelta) < 1) return;
     event.preventDefault();
 
-    const normalizedDelta = normalizeWheelDeltaY(event);
     const pixelsPerProject = this.getDeckScrollPixelsPerProject();
     const sensitivity = this.getDeckScrollSensitivity();
     const inputCap = this.getDeckInputCapProjects();
@@ -2319,13 +2603,17 @@ class PortfolioScrollApp {
   }
 
   handleDeckPointerDown(event) {
-    if (this.isProjectOpen || event.pointerType === 'mouse' || !this.projects.length) return;
+    if (this.isProjectOpen || !event.isPrimary || !this.projects.length) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
     const now = performance.now();
     this.clearDeckSettleTimer();
     this.deckIsSettling = false;
     this.pointerState = {
       pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      startX: event.clientX,
       startY: event.clientY,
+      lastX: event.clientX,
       lastY: event.clientY,
       lastTime: now,
       startTime: now,
@@ -2338,16 +2626,20 @@ class PortfolioScrollApp {
   handleDeckPointerMove(event) {
     if (!this.pointerState || event.pointerId !== this.pointerState.pointerId) return;
     const now = performance.now();
+    const deltaX = event.clientX - this.pointerState.startX;
     const deltaY = event.clientY - this.pointerState.startY;
-    if (Math.abs(deltaY) > PORTFOLIO_CLICK_DRAG_THRESHOLD_PX) {
+    const primaryDelta = Math.abs(deltaX) > Math.abs(deltaY) ? deltaX : deltaY;
+    if (Math.hypot(deltaX, deltaY) > PORTFOLIO_CLICK_DRAG_THRESHOLD_PX) {
       this.pointerState.dragged = true;
       this.ignoreNextCardClick = true;
+      event.preventDefault();
     }
     if (this.pointerState.dragged) {
       const targetPosition = this.pointerState.startTargetPosition
-        - ((deltaY / this.getDeckScrollPixelsPerProject()) * this.getDeckScrollSensitivity());
+        - ((primaryDelta / this.getDeckScrollPixelsPerProject()) * this.getDeckScrollSensitivity());
       this.setDeckPosition(targetPosition, { settle: false });
     }
+    this.pointerState.lastX = event.clientX;
     this.pointerState.lastY = event.clientY;
     this.pointerState.lastTime = now;
   }
@@ -2379,8 +2671,8 @@ class PortfolioScrollApp {
       }
       return;
     }
-    const { index, pointerId } = this.pressedCardState;
-    const card = this.cards[index];
+    const { pointerId } = this.pressedCardState;
+    const card = this.pressedCardState.card || this.getActiveProjectCard(this.pressedCardState.index);
     if (card) {
       card.classList.remove('is-pressing', 'is-opening-release');
       if (Number.isFinite(pointerId)) {
@@ -2412,23 +2704,24 @@ class PortfolioScrollApp {
     this.projectOpenDebug = null;
   }
 
-  canPressCard(index, event) {
+  canPressCard(card, event) {
     if (this.isProjectOpen || !event?.isPrimary) return false;
     if (event.pointerType === 'mouse' && event.button !== 0) return false;
-    if (event.pointerType === 'touch') return false;
-    const card = this.cards[index];
+    const index = this.getCardProjectIndex(card);
     return card?.dataset?.deckVisualSlot === 'front'
       && index === this.getDeckIntentIndex()
       && this.isDeckPositionSettled();
   }
 
-  handleCardPointerDown(event, index) {
-    if (!this.canPressCard(index, event)) return;
-    const card = this.cards[index];
+  handleCardPointerDown(event, card) {
+    if (!this.canPressCard(card, event)) return;
     if (!card) return;
+    event.stopPropagation();
+    const index = this.getCardProjectIndex(card);
     this.clearPressedCard();
     this.pressedCardState = {
       index,
+      card,
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
@@ -2444,9 +2737,10 @@ class PortfolioScrollApp {
     }
   }
 
-  handleCardPointerMove(event, index) {
-    if (!this.pressedCardState || this.pressedCardState.index !== index) return;
+  handleCardPointerMove(event, card) {
+    if (!this.pressedCardState || this.pressedCardState.card !== card) return;
     if (this.pressedCardState.pointerId !== event.pointerId) return;
+    event.stopPropagation();
     const dx = event.clientX - this.pressedCardState.startX;
     const dy = event.clientY - this.pressedCardState.startY;
     if (Math.hypot(dx, dy) <= PORTFOLIO_CLICK_DRAG_THRESHOLD_PX) return;
@@ -2454,10 +2748,11 @@ class PortfolioScrollApp {
     this.clearPressedCard();
   }
 
-  handleCardPointerUp(event, index) {
-    if (!this.pressedCardState || this.pressedCardState.index !== index) return;
+  handleCardPointerUp(event, card) {
+    if (!this.pressedCardState || this.pressedCardState.card !== card) return;
     if (this.pressedCardState.pointerId !== event.pointerId) return;
-    const card = this.cards[index];
+    event.stopPropagation();
+    const index = this.getCardProjectIndex(card);
     const wasCancelled = this.pressedCardState.cancelled;
     const originRect = card?.getBoundingClientRect() || null;
     this.pressedCardState = null;
@@ -2469,7 +2764,7 @@ class PortfolioScrollApp {
       }
     }
     card?.classList.remove('is-pressing');
-    if (wasCancelled || !this.canPressCard(index, event)) {
+    if (wasCancelled || !this.canPressCard(card, event)) {
       card?.classList.remove('is-opening-release');
       return;
     }
@@ -2487,20 +2782,20 @@ class PortfolioScrollApp {
     }, openDelay);
   }
 
-  handleCardPointerCancel(event, index) {
-    if (!this.pressedCardState || this.pressedCardState.index !== index) return;
+  handleCardPointerCancel(event, card) {
+    if (!this.pressedCardState || this.pressedCardState.card !== card) return;
     if (this.pressedCardState.pointerId !== event.pointerId) return;
     this.clearPressedCard();
   }
 
-  handleCardLostPointerCapture(event, index) {
-    if (!this.pressedCardState || this.pressedCardState.index !== index) return;
+  handleCardLostPointerCapture(event, card) {
+    if (!this.pressedCardState || this.pressedCardState.card !== card) return;
     if (this.pressedCardState.pointerId !== event.pointerId) return;
     if (this.pressOpenTimer) return;
     this.clearPressedCard();
   }
 
-  handleCardClick(event, index) {
+  handleCardClick(event, card) {
     if (this.suppressNextCardClick) {
       this.suppressNextCardClick = false;
       event.preventDefault();
@@ -2511,20 +2806,21 @@ class PortfolioScrollApp {
       event.preventDefault();
       return;
     }
+    const index = this.getCardProjectIndex(card);
     const intentIndex = this.getDeckIntentIndex();
-    const isFrontCard = this.cards[index]?.dataset?.deckVisualSlot === 'front';
+    const isFrontCard = card?.dataset?.deckVisualSlot === 'front';
     if (!isFrontCard || index !== intentIndex || !this.isDeckPositionSettled()) {
       event.preventDefault();
       this.setActiveProject(index, { focus: true, announce: true });
       return;
     }
     event.preventDefault();
-    if (event.detail > 0) return;
-    const originRect = this.cards[index]?.getBoundingClientRect() || null;
+    const originRect = card?.getBoundingClientRect() || null;
     this.openProjectByIndex(index, { originRect, inputType: 'synthetic-click' });
   }
 
-  handleCardKeydown(event, index) {
+  handleCardKeydown(event, card) {
+    const index = this.getCardProjectIndex(card);
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       const intentIndex = this.getDeckIntentIndex();
@@ -2559,6 +2855,7 @@ class PortfolioScrollApp {
   }
 
   updateVideoPlayback() {
+    this.mediaVideos = this.mediaVideos.filter((video) => video?.isConnected);
     if (shouldReducePortfolioMotion() || this.isProjectOpen) {
       this.pauseAllVideos();
       return;
@@ -2625,7 +2922,8 @@ class PortfolioScrollApp {
   }
 
   startProjectOpenGhost(projectIndex, originRect, durationMs, onComplete) {
-    const card = this.cards[projectIndex];
+    const card = this.getActiveProjectCard(projectIndex)
+      || this.cards.find((candidate) => this.getCardProjectIndex(candidate) === this.wrapProjectIndex(projectIndex));
     const targetRect = this.projectDrawerView?.getDrawerRect?.();
     if (!card || !originRect || !targetRect) {
       onComplete?.();
@@ -2682,6 +2980,7 @@ class PortfolioScrollApp {
       width: `${originRect.width}px`,
       height: `${originRect.height}px`,
       borderRadius: cardStyle.borderRadius,
+      transform: 'translate3d(0, 0, 0) scale(1, 1)',
     });
 
     const host = document.getElementById('portfolio-sheet-host') || this.projectView?.parentElement || document.body;
@@ -2695,34 +2994,29 @@ class PortfolioScrollApp {
       ghostRect: serializeRect(ghost.getBoundingClientRect()),
       inputOwnsOpen: true,
     };
+    const deltaX = targetRect.left - originRect.left;
+    const deltaY = targetRect.top - originRect.top;
+    const scaleX = targetRect.width / originRect.width;
+    const scaleY = targetRect.height / originRect.height;
 
     const keyframes = [
       {
-        left: `${originRect.left}px`,
-        top: `${originRect.top}px`,
-        width: `${originRect.width}px`,
-        height: `${originRect.height}px`,
         borderRadius: cardStyle.borderRadius,
+        transform: 'translate3d(0, 0, 0) scale(1, 1)',
         opacity: 1,
         filter: 'blur(0px) saturate(1)',
         offset: 0,
       },
       {
-        left: `${targetRect.left}px`,
-        top: `${targetRect.top}px`,
-        width: `${targetRect.width}px`,
-        height: `${targetRect.height}px`,
         borderRadius: drawerStyle.borderRadius || '0px',
+        transform: `translate3d(${deltaX.toFixed(2)}px, ${deltaY.toFixed(2)}px, 0) scale(${scaleX.toFixed(5)}, ${scaleY.toFixed(5)})`,
         opacity: 1,
         filter: 'blur(0.6px) saturate(0.98)',
         offset: 0.78,
       },
       {
-        left: `${targetRect.left}px`,
-        top: `${targetRect.top}px`,
-        width: `${targetRect.width}px`,
-        height: `${targetRect.height}px`,
         borderRadius: drawerStyle.borderRadius || '0px',
+        transform: `translate3d(${deltaX.toFixed(2)}px, ${deltaY.toFixed(2)}px, 0) scale(${scaleX.toFixed(5)}, ${scaleY.toFixed(5)})`,
         opacity: 0,
         filter: 'blur(5px) saturate(0.92)',
         offset: 1,
@@ -2731,11 +3025,8 @@ class PortfolioScrollApp {
 
     if (!ghost.animate) {
       Object.assign(ghost.style, {
-        left: `${targetRect.left}px`,
-        top: `${targetRect.top}px`,
-        width: `${targetRect.width}px`,
-        height: `${targetRect.height}px`,
         borderRadius: drawerStyle.borderRadius || '0px',
+        transform: `translate3d(${deltaX.toFixed(2)}px, ${deltaY.toFixed(2)}px, 0) scale(${scaleX.toFixed(5)}, ${scaleY.toFixed(5)})`,
         opacity: '0',
         filter: 'blur(5px) saturate(0.92)',
       });
@@ -2777,6 +3068,7 @@ class PortfolioScrollApp {
       drawerRect: serializeRect(this.projectDrawerView.getDrawerRect?.()),
     };
     this.projectDrawerView.reveal({ animate, titleDelayMs });
+    this.focusProjectCloseButton();
     const revealSettledDelay = shouldReducePortfolioMotion()
       ? 0
       : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
@@ -2791,12 +3083,33 @@ class PortfolioScrollApp {
     }, revealSettledDelay));
   }
 
+  focusProjectCloseButton() {
+    const focusClose = () => {
+      if (!this.isProjectOpen) return;
+      const root = this.projectView || this.projectDrawerView?.root || null;
+      if (!root || root.getAttribute('aria-hidden') === 'true') return;
+      if (root.contains(document.activeElement) && document.activeElement !== document.body) return;
+      const closeButton = this.projectDrawerView?.closeButton
+        || this.projectClose
+        || root.querySelector?.('.portfolio-project-view__close');
+      if (!(closeButton instanceof HTMLElement) || !closeButton.isConnected) return;
+      closeButton.focus({ preventScroll: true });
+    };
+
+    focusClose();
+    window.requestAnimationFrame(focusClose);
+    [80, 220].forEach((delay) => {
+      this.projectOpenTimeouts.push(window.setTimeout(focusClose, delay));
+    });
+  }
+
   openProjectByIndex(index, options = {}) {
     if (this.isProjectOpen) return;
     const projectIndex = clamp(index, 0, this.projects.length - 1);
     const project = this.projects[projectIndex];
     if (!project) return;
-    const originRect = options?.originRect || this.cards[projectIndex]?.getBoundingClientRect() || null;
+    const originCard = this.getActiveProjectCard(projectIndex);
+    const originRect = options?.originRect || originCard?.getBoundingClientRect() || null;
     const timings = this.getProjectOpenTimings();
     const useGhost = options?.useGhost !== false
       && options?.inputType !== 'keyboard'
@@ -2824,7 +3137,7 @@ class PortfolioScrollApp {
     getGlobals().__portfolioDrawerOpen = true;
     this.disableBackgroundInteractivity();
     this.syncProjectHero(project, true, originRect, { deferReveal: useGhost });
-    this.cards[projectIndex]?.classList.add('is-selected');
+    originCard?.classList.add('is-selected');
     this.updateDeckSlots();
     announceToScreenReader(`Opened project: ${spokenLabel}`);
     document.addEventListener('keydown', this.boundProjectKeydown, true);
@@ -2832,16 +3145,10 @@ class PortfolioScrollApp {
     if (useGhost && this.startProjectOpenGhost(projectIndex, originRect, timings.ghostDurationMs, () => {
       this.revealPreparedProject({ animate: true, titleDelayMs: timings.titleDelayMs });
     })) {
-      this.projectOpenTimeouts.push(window.setTimeout(() => {
-        this.projectClose?.focus();
-      }, Math.min(1100, timings.ghostDurationMs + timings.openDuration + 80)));
       return;
     }
 
     this.revealPreparedProject({ animate: true, titleDelayMs: timings.titleDelayMs });
-    this.projectOpenTimeouts.push(window.setTimeout(() => {
-      this.projectClose?.focus();
-    }, Math.min(900, timings.openDuration + 80)));
   }
 
   finishProjectClose() {
@@ -2861,7 +3168,7 @@ class PortfolioScrollApp {
     if (this.lastFocusedElement?.focus) {
       this.lastFocusedElement.focus();
     } else if (restoredIndex >= 0) {
-      this.cards[restoredIndex]?.focus();
+      this.getActiveProjectCard(restoredIndex)?.focus();
     }
   }
 
@@ -2888,8 +3195,8 @@ class PortfolioScrollApp {
   }
 
   syncProjectButtonStates() {
-    this.cards.forEach((card, index) => {
-      const expanded = this.isProjectOpen && index === this.selectedProjectIndex;
+    this.cards.forEach((card) => {
+      const expanded = this.isProjectOpen && this.getCardProjectIndex(card) === this.selectedProjectIndex;
       card.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     });
     this.updateDeckSlots();
@@ -2899,20 +3206,16 @@ class PortfolioScrollApp {
     document.body.classList.add('portfolio-project-open');
     setPortfolioSheetHostHidden(false);
     refreshCursor();
-    if (this.appFrame) {
-      this.appFrame.setAttribute('aria-hidden', 'true');
-      this.appFrame.inert = true;
-    }
+    this.deckStage?.setAttribute('aria-hidden', 'true');
+    if (this.deckStage) this.deckStage.inert = true;
   }
 
   restoreBackgroundInteractivity() {
     document.body.classList.remove('portfolio-project-open');
     setPortfolioSheetHostHidden(true);
     refreshCursor();
-    if (this.appFrame) {
-      this.appFrame.removeAttribute('aria-hidden');
-      this.appFrame.inert = false;
-    }
+    this.deckStage?.removeAttribute('aria-hidden');
+    if (this.deckStage) this.deckStage.inert = false;
   }
 
   getProjectFocusableElements() {
