@@ -62,7 +62,7 @@ const DEFAULT_STUDIO_SURFACE_CONFIG = {
   fillOpacity: 0.018,
   glowOpacity: 0.18,
   sceneHighlight: 0.3,
-  lightFilmOpacity: 0.24,
+  lightFilmOpacity: 0.18,
   contrastVeilOpacityLight: 0.216,
   contrastVeilOpacityDark: 0.348,
   contrastVeilReachX: 25,

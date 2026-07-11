@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                      OVERSCROLL LOCK (iOS RUBBER-BAND FIX)                   ║
 // ║   Prevents page rubber-banding / scroll bounce while allowing internal       ║
-// ║   scrolling for UI containers (gates + panel).                               ║
+// ║   scrolling for UI containers (modal lists + panel).                         ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 /**
@@ -12,7 +12,7 @@
  *
  * IMPORTANT:
  * - We only preventDefault on touchmove, not touchstart, so taps/clicks still work.
- * - We allow scrolling only inside dedicated scroll containers (panel). Gates are NOT scrollable.
+ * - We allow scrolling only inside dedicated scroll containers.
  */
 export function setupOverscrollLock() {
   if (typeof document === 'undefined') return;
@@ -20,9 +20,10 @@ export function setupOverscrollLock() {
   const isAllowedScrollTarget = (target) => {
     if (!(target instanceof Element)) return false;
 
-    // Allow scroll inside the panel content (dock + legacy panel)
+    // Allow scroll inside dedicated UI scroll containers.
     if (target.closest('.panel-dock .panel .panel-content')) return true;
     if (target.closest('#controlPanel')) return true;
+    if (target.closest('.simulation-focus-list')) return true;
 
     return false;
   };
@@ -36,5 +37,4 @@ export function setupOverscrollLock() {
     e.preventDefault();
   }, { passive: false, capture: true });
 }
-
 

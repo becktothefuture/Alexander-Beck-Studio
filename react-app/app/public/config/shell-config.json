@@ -36,7 +36,7 @@
     "blur": "8px",
     "saturation": 1.12,
     "sceneHighlight": 0.3,
-    "lightFilmOpacity": 0.24,
+    "lightFilmOpacity": 0.18,
     "contrastVeilOpacityLight": 0.216,
     "contrastVeilOpacityDark": 0.348,
     "contrastVeilReachX": 25,
