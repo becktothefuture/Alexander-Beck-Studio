@@ -242,6 +242,7 @@ function BottomSoundToggle() {
       className="button-bar__secondary-button button-bar__sound-toggle shell-tab shell-tab--icon-only"
       aria-label={isEnabled ? 'Sound on' : 'Sound off'}
       aria-pressed={isEnabled ? 'true' : 'false'}
+      data-state={isEnabled ? 'active' : 'idle'}
       data-enabled={isEnabled ? 'true' : 'false'}
       onPointerEnter={playButtonBarHoverSound}
       onPointerDown={(event) => {
