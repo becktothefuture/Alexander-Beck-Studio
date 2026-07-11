@@ -83,6 +83,7 @@ async function readState(page) {
     const sim = rectOf('#simulations');
     const band = rectOf('[data-button-bar]') || rectOf('[data-shell-bottom-band]');
     const host = rectOf('#portfolio-sheet-host');
+    const finish = rectOf('.studio-window-finish-layer');
     const root = document.documentElement;
     const body = document.body;
     const teaser = document.querySelector('[data-portfolio-gate-teaser]');
@@ -142,6 +143,7 @@ async function readState(page) {
       host,
       windowBlur: styleOf('#window-overlay-blur-layer'),
       windowContent: styleOf('#window-overlay-content-layer'),
+      windowFinish: styleOf('.studio-window-finish-layer'),
       wallEdge: styleOf('.inner-wall-gradient-edge'),
       geometryOk: Boolean(
         sim
@@ -152,6 +154,11 @@ async function readState(page) {
         && host.left >= sim.left - 1
         && host.right <= sim.right + 1
         && host.bottom <= sim.bottom + 1
+        && finish
+        && Math.abs(finish.top - host.top) <= 1
+        && Math.abs(finish.left - host.left) <= 1
+        && Math.abs(finish.right - host.right) <= 1
+        && Math.abs(finish.bottom - host.bottom) <= 1
       ),
     };
   });
@@ -257,9 +264,11 @@ async function auditTheme(browser, theme) {
     assert(results.lockedInitial.teaser && !results.lockedInitial.deck && results.lockedInitial.labels === 0, 'Locked Portfolio did not use the static teaser-only route', results.lockedInitial);
     assert(results.lockedInitial.teaserFocusableCount === 0, 'Portfolio teaser exposed focusable content', results.lockedInitial);
     assert(
-      results.lockedInitial.windowContent?.zIndex < results.lockedInitial.wallEdge?.zIndex
-        && results.lockedInitial.windowBlur?.zIndex < results.lockedInitial.wallEdge?.zIndex,
-      'Portfolio gate is not stacked below the live wall edge',
+      results.lockedInitial.windowContent?.zIndex < results.lockedInitial.windowFinish?.zIndex
+        && results.lockedInitial.windowBlur?.zIndex < results.lockedInitial.windowFinish?.zIndex
+        && results.lockedInitial.windowFinish?.opacity > 0.9
+        && results.lockedInitial.windowFinish?.pointerEvents === 'none',
+      'Portfolio gate is not stacked below the active window finish',
       results.lockedInitial,
     );
     assert(results.lockedInitial.geometryOk, 'Locked Portfolio window geometry does not align with bottom shell band', results.lockedInitial);

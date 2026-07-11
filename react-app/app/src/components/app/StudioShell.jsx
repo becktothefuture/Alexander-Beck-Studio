@@ -122,9 +122,6 @@ export function StudioShell({
               </div>
             </div>
             {simulationFocusControls}
-            <ShellWindowOverlay>
-              {windowOverlayContent ?? simulationFocusModal}
-            </ShellWindowOverlay>
           </div>
           <div className="frame-vignette" aria-hidden="true" />
           <div className="simulation-contrast-veil" aria-hidden="true" />
@@ -161,6 +158,13 @@ export function StudioShell({
                 </div>
               </div>
             </div>
+          <ShellWindowOverlay>
+            {windowOverlayContent ?? simulationFocusModal}
+          </ShellWindowOverlay>
+          <div
+            className="window-overlay-layer studio-window-finish-layer"
+            aria-hidden="true"
+          />
           <ShellButtonBar
             activeRouteId={activeRouteId || routeRenderKey}
             onRouteNavigate={(href, tab, options) => trySpaNavigate(href, options)}

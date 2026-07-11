@@ -218,6 +218,27 @@ export function SimulationFocusProvider({
     setChooserActive(true);
   }, []);
 
+  useEffect(() => {
+    if (shouldShowSwitcher || (!isChooserOpen && !isChooserClosing && !isChooserActive)) {
+      return undefined;
+    }
+
+    const routeResetTimer = window.setTimeout(() => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      setChooserActive(false);
+      setChooserClosing(false);
+      setChooserOpen(false);
+      dismissGateBackdrop();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(routeResetTimer);
+    };
+  }, [isChooserActive, isChooserClosing, isChooserOpen, shouldShowSwitcher]);
+
   useEffect(() => () => {
     if (closeTimerRef.current !== null) {
       window.clearTimeout(closeTimerRef.current);

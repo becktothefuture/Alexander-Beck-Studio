@@ -4630,16 +4630,12 @@ html[data-abs-instrument-wake] #simulations::after {
 }
 
 /* Narrow inner-wall inset only; broad atmospheric shadows belong to ball contrast, not the wall. */
-#simulations::before {
+#simulations::before,
+.studio-window-finish-layer::before {
   content: '';
   position: absolute;
-  top: var(--frame-border-width);
-  left: var(--frame-border-width);
-  right: var(--frame-border-width);
-  bottom: var(--frame-border-width);
   border-radius: var(--frame-inner-radius);
   pointer-events: none;
-  z-index: var(--z-live-wall-inset-shadow, 165);
   box-shadow:
     inset 0 var(--inner-wall-pit-inset-shadow-offset-y) min(var(--inner-wall-pit-inset-shadow-blur), 20px)
       max(var(--inner-wall-pit-inset-shadow-spread), -8px)
@@ -4648,6 +4644,14 @@ html[data-abs-instrument-wake] #simulations::after {
     inset -10px 0 28px -28px rgba(var(--inner-wall-bottom-shadow-rgb), var(--inner-wall-recess-side-shadow-opacity)),
     inset 0 0 34px -28px rgba(var(--inner-wall-bottom-shadow-rgb), var(--inner-wall-recess-corner-shadow-opacity)),
     inset 0 -8px 22px -24px rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-recess-lower-light-opacity));
+}
+
+#simulations::before {
+  top: var(--frame-border-width);
+  left: var(--frame-border-width);
+  right: var(--frame-border-width);
+  bottom: var(--frame-border-width);
+  z-index: var(--z-live-wall-inset-shadow, 165);
 }
 
 .outer-wall,
@@ -4664,12 +4668,8 @@ html[data-abs-instrument-wake] #simulations::after {
    Portfolio sheet (portfolio.css): positive seat inset reveals this rim from the real pit
    under the transparent margin; the drawer face uses insert-only shading (no wall lights).
    ───────────────────────────────────────────────────────────────────────────── */
-.inner-wall-gradient-edge {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 170;
+.inner-wall-gradient-edge,
+.studio-window-finish-layer {
   box-shadow:
     inset 0 0 1px 1px rgba(var(--abs-rgb-white), var(--frame-soft-border-ring-opacity)),
     inset 0 1px 1px rgba(var(--abs-rgb-white), var(--frame-soft-border-light-opacity)),
@@ -4705,10 +4705,21 @@ html[data-abs-instrument-wake] #simulations::after {
     ) right center / var(--inner-wall-gradient-edge-width) 100% no-repeat;
 }
 
-/* In-window modal system: route content < blur < modal UI < live wall finish. */
+.inner-wall-gradient-edge {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 170;
+}
+
+/* In-window modal system: route/UI content < blur < modal UI, clipped to the studio window. */
 .window-overlay-layer {
   position: absolute;
-  inset: var(--frame-border-width);
+  top: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
+  left: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
+  right: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
+  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom) + var(--frame-border-width));
   border-radius: var(--frame-inner-radius);
   overflow: hidden;
   opacity: 0;
@@ -4734,6 +4745,21 @@ html[data-abs-instrument-wake] #simulations::after {
   transition:
     opacity var(--modal-overlay-transition-out-duration, 600ms) var(--ease-gate-motion),
     visibility 0s linear var(--modal-overlay-transition-out-duration, 600ms);
+}
+
+/* Repaint only the physical window finish above active in-window overlays.
+   It stays hidden at rest so normal route rendering remains pixel-identical. */
+.studio-window-finish-layer {
+  z-index: var(--z-window-finish, 290);
+  border-radius: var(--frame-inner-radius);
+  overflow: hidden;
+  transition:
+    opacity var(--modal-overlay-transition-out-duration, 600ms) var(--ease-gate-motion),
+    visibility 0s linear var(--modal-overlay-transition-out-duration, 600ms);
+}
+
+.studio-window-finish-layer::before {
+  inset: 0;
 }
 
 .window-overlay-modal-host {

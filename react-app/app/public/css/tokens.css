@@ -742,8 +742,12 @@
      Frame vignette           175        .frame-vignette
      Contrast veil            180        .simulation-contrast-veil
      UI Layer                 200        .fade-content.ui-layer (header + nav + footer)
+     Button Bar               205        .shell-bottom-band (outside window bounds)
      Portfolio sheet          220 / 260  #portfolio-sheet-host (260 when body.portfolio-project-open; above chrome)
      Quote host               250        #quote-viewport-host
+     Window modal blur        270        #window-overlay-blur-layer
+     Window modal content     280        #window-overlay-content-layer
+     Active window finish     290        .studio-window-finish-layer (modal/gate states only)
      
      INSIDE #simulations (wall interior stacking context):
      ─────────────────────────────────────────────────────────────────────────────
@@ -751,8 +755,6 @@
      Wall route + canvas      2+         .shell-wall-slot, then #c / .ball-canvas-layer
      CV scroll surface        10        .cv-scroll-container (above in-wall noise)
      CV wall ring canvas      15        .cv-wall-canvas
-     Window modal blur        150       #window-overlay-blur-layer
-     Window modal content     160       #window-overlay-content-layer
      Live wall inset shadow   165       #simulations::before
      Live wall edge           170       .inner-wall-gradient-edge
      
@@ -767,8 +769,9 @@
   --z-wall: 100;
   --z-contrast-veil: 180;
   --z-canvas: 10;
-  --z-window-overlay-blur: 150;
-  --z-window-overlay-content: 160;
+  --z-window-overlay-blur: 270;
+  --z-window-overlay-content: 280;
+  --z-window-finish: 290;
   --z-live-wall-inset-shadow: 165;
   --z-noise: 25;
   --z-wall-edge: 30;

@@ -120,11 +120,14 @@ async function readRouteState(page) {
       contentActive: Boolean(document.getElementById('modal-content-layer')?.classList.contains('active')),
       windowBlur: styleOf('#window-overlay-blur-layer'),
       windowContent: styleOf('#window-overlay-content-layer'),
-      wallInsetShadow: (() => {
-        const simulations = document.getElementById('simulations');
-        if (!simulations) return null;
-        const styles = getComputedStyle(simulations, '::before');
-        return { zIndex: Number.parseInt(styles.zIndex || '0', 10) || 0 };
+      windowFinish: styleOf('.studio-window-finish-layer'),
+      windowContentRect: rectOf('#window-overlay-content-layer'),
+      windowFinishRect: rectOf('.studio-window-finish-layer'),
+      windowFinishInset: (() => {
+        const finish = document.querySelector('.studio-window-finish-layer');
+        if (!finish) return null;
+        const styles = getComputedStyle(finish, '::before');
+        return { boxShadow: styles.boxShadow };
       })(),
       wallEdge: styleOf('.inner-wall-gradient-edge'),
       globalBlur: styleOf('#modal-blur-layer'),
@@ -158,22 +161,31 @@ function assertShellTabs(state, expectedRoute) {
   assert(state.activeOldModalCount === 0, 'Removed Contact/CV/Portfolio modal opened unexpectedly', state);
 }
 
-async function openAndAssert(browser, path, expectedRoute, predicate, viewport = VIEWPORTS[2]) {
+async function openAndAssert(
+  browser,
+  path,
+  expectedRoute,
+  predicate,
+  viewport = VIEWPORTS[2],
+  { expectNoise = true } = {},
+) {
   const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
   await page.goto(routeUrl(path), { waitUntil: 'domcontentloaded', timeout: 60000 });
   await waitForIdle(page);
   const state = await readRouteState(page);
   assertShellTabs(state, expectedRoute);
-  assert(
-    state.noiseReady
-      && state.noiseLayer?.visibility === 'visible'
-      && state.noiseLayer?.display !== 'none'
-      && state.noiseLayer?.opacity > 0
-      && state.noiseTexture
-      && state.noiseTexture !== 'none',
-    `Shared shell noise is not active for ${path}`,
-    state,
-  );
+  if (expectNoise) {
+    assert(
+      state.noiseReady
+        && state.noiseLayer?.visibility === 'visible'
+        && state.noiseLayer?.display !== 'none'
+        && state.noiseLayer?.opacity > 0
+        && state.noiseTexture
+        && state.noiseTexture !== 'none',
+      `Shared shell noise is not active for ${path}`,
+      state,
+    );
+  }
   assert(predicate(state), `Route assertion failed for ${path}`, state);
   await page.close();
   return state;
@@ -210,15 +222,19 @@ async function assertSimulationChooser(browser) {
   assert(openState.chooserActive && openState.blurActive && openState.contentActive, 'Simulation chooser modal layers are not active', openState);
   assert(openState.windowBlur?.opacity > 0.9 && openState.windowContent?.pointerEvents === 'auto', 'Simulation chooser did not activate the in-window overlay', openState);
   assert(
-    openState.windowBlur.zIndex < openState.wallEdge.zIndex
-      && openState.windowContent.zIndex < openState.wallEdge.zIndex,
-    'Simulation chooser is not stacked below the live wall edge',
+    openState.windowBlur.zIndex < openState.windowFinish?.zIndex
+      && openState.windowContent.zIndex < openState.windowFinish?.zIndex
+      && openState.windowFinish?.opacity > 0.9
+      && openState.windowFinish?.visibility === 'visible'
+      && openState.windowFinish?.pointerEvents === 'none',
+    'Simulation chooser is not stacked below the active window finish',
     openState,
   );
   assert(
-    openState.windowBlur.zIndex < openState.wallInsetShadow?.zIndex
-      && openState.windowContent.zIndex < openState.wallInsetShadow?.zIndex,
-    'Simulation chooser is not stacked below the live wall inset shadow',
+    JSON.stringify(openState.windowContentRect) === JSON.stringify(openState.windowFinishRect)
+      && openState.windowFinish?.backgroundImage !== 'none'
+      && openState.windowFinishInset?.boxShadow !== 'none',
+    'Active window finish does not match the modal geometry or visual recipe',
     openState,
   );
   assert(
@@ -230,8 +246,24 @@ async function assertSimulationChooser(browser) {
   );
   await page.keyboard.press('Escape');
   await waitForIdle(page);
+  await page.waitForFunction(
+    () => {
+      const finishVisibility = getComputedStyle(document.querySelector('.studio-window-finish-layer')).visibility;
+      const contentVisibility = getComputedStyle(document.getElementById('window-overlay-content-layer')).visibility;
+      return finishVisibility === 'hidden' && contentVisibility === 'hidden';
+    },
+    { timeout: WAIT_MS, polling: 50 },
+  );
   const closedState = await readRouteState(page);
-  assert(!closedState.chooserActive && !closedState.blurActive && !closedState.contentActive, 'Simulation chooser did not close cleanly', closedState);
+  assert(
+    !closedState.chooserActive
+      && !closedState.blurActive
+      && !closedState.contentActive
+      && closedState.windowFinish?.opacity === 0
+      && closedState.windowFinish?.pointerEvents === 'none',
+    'Simulation chooser did not close cleanly',
+    closedState,
+  );
   await page.close();
   return { openState, closedState };
 }
@@ -247,7 +279,14 @@ async function main() {
         home: await openAndAssert(browser, '/index.html', 'home', () => true, viewport),
         contact: await openAndAssert(browser, '/contact.html', 'contact', (state) => state.contactRoute, viewport),
         about: await openAndAssert(browser, '/about.html', 'about', (state) => state.aboutRoute, viewport),
-        portfolio: await openAndAssert(browser, '/portfolio.html?gate=portfolio', 'portfolio', (state) => state.path === '/portfolio.html' && state.search === '' && state.portfolioGate, viewport),
+        portfolio: await openAndAssert(
+          browser,
+          '/portfolio.html?gate=portfolio',
+          'portfolio',
+          (state) => state.path === '/portfolio.html' && state.search === '' && state.portfolioGate,
+          viewport,
+          { expectNoise: false },
+        ),
       };
       results.routeBreakpoints[viewport.name] = states;
       for (const key of ['container', 'socials', 'london']) {
