@@ -5366,6 +5366,10 @@ html.is-safari .noise::before {
   #social-links {
     gap: 0;
   }
+
+  #social-links .footer_icon-link + .footer_icon-link {
+    margin-inline-start: calc(var(--gap-sm) * -1);
+  }
   
   /* Ensure sound toggle doesn't overlap time on mobile */
   .ui-meta-right .sound-toggle {
