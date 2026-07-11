@@ -170,6 +170,62 @@ body.button-bar-playground-page {
   border-top: var(--abs-size-1px) solid var(--button-bar-playground-line);
 }
 
+.button-bar-playground__variant-group {
+  min-width: 0;
+}
+
+.button-bar-playground__group-header {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: var(--gap-sm);
+  padding: calc(var(--gap-xl) * 1.25) calc(var(--gap-sm) + var(--shell-bottom-tabs-gap)) var(--gap-lg);
+  border-bottom: var(--abs-size-1px) solid var(--button-bar-playground-line);
+  background: color-mix(
+    in srgb,
+    var(--abs-browser-chrome, #141517) 96%,
+    rgba(var(--abs-rgb-white), 1) 4%
+  );
+}
+
+.button-bar-playground__group-anchor {
+  padding-top: calc(var(--abs-size-1px) * 3);
+  color: rgba(var(--abs-rgb-white), 0.34);
+  font-family: var(--abs-font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--abs-weight-medium);
+  letter-spacing: 0.04em;
+  line-height: var(--line-height-tight);
+}
+
+.button-bar-playground__group-copy {
+  display: grid;
+  grid-template-columns: minmax(9rem, 0.36fr) minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--gap-md);
+}
+
+.button-bar-playground__group-copy h2,
+.button-bar-playground__group-copy p {
+  margin: 0;
+}
+
+.button-bar-playground__group-copy h2 {
+  color: rgba(var(--abs-rgb-white), 0.94);
+  font-size: calc(var(--text-lg) * 1.08);
+  font-weight: var(--abs-weight-medium);
+  letter-spacing: -0.035em;
+  line-height: var(--line-height-tight);
+}
+
+.button-bar-playground__group-copy p {
+  max-width: 52rem;
+  color: rgba(var(--abs-rgb-white), 0.46);
+  font-size: var(--text-sm);
+  line-height: var(--line-height-relaxed);
+  text-wrap: pretty;
+}
+
 .button-bar-playground__sample {
   --button-bar-playground-active-color: var(--ball-7);
   --button-bar-playground-active-ink: rgba(var(--abs-rgb-white), 1);
@@ -202,12 +258,12 @@ body.button-bar-playground-page {
   gap: var(--gap-md);
 }
 
-.button-bar-playground__sample h2,
+.button-bar-playground__sample :is(h2, h3),
 .button-bar-playground__sample p {
   margin: 0;
 }
 
-.button-bar-playground__sample h2 {
+.button-bar-playground__sample :is(h2, h3) {
   color: rgba(var(--abs-rgb-white), 0.92);
   font-size: calc(var(--text-md) * 1.15);
   font-weight: var(--abs-weight-medium);
@@ -286,12 +342,9 @@ body.button-bar-playground-page {
   --button-bar-playground-active-veil: rgba(var(--abs-rgb-white), 0.05);
 }
 
-:is(
-  .button-bar-playground__sample--contrast-plate,
-  .button-bar-playground__sample--kinetic-shader,
-  .button-bar-playground__sample--flat-colour,
-  .button-bar-playground__sample--selection-lamp
-) .button-bar__primary-buttons .shell-tab[data-route-tab] {
+.button-bar-playground__sample[data-route-accent='true']
+  .button-bar__primary-buttons
+  .shell-tab[data-route-tab] {
   --shell-tab-route-accent: var(--button-bar-playground-active-color);
 }
 
@@ -510,14 +563,73 @@ body.button-bar-playground-page {
   color: inherit;
 }
 
-/* 05 — the lamp is the only route-coloured selected-state element. */
-.button-bar-playground__sample--selection-lamp {
+/* 06 — the solid colour steps inward without shrinking the hit target. */
+.button-bar-playground__sample--inset-colour
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--inset-colour
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  color: var(--button-bar-playground-active-ink);
+  background: transparent;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.button-bar-playground__sample--inset-colour
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--abs-size-1px) * 3);
+  z-index: 0;
+  display: block;
+  border-radius: inherit;
+  background: var(--button-bar-playground-active-color);
+  pointer-events: none;
+}
+
+.button-bar-playground__sample--inset-colour
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']
+  :is(.shell-tab__icon, .shell-tab__label) {
+  color: inherit;
+}
+
+/* 07 — a lower-volume route fill that keeps one reliable white foreground. */
+.button-bar-playground__sample--deep-colour
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--deep-colour
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  color: rgba(var(--abs-rgb-white), 0.96);
+  background: color-mix(
+    in srgb,
+    var(--button-bar-playground-active-color) 44%,
+    rgba(var(--abs-rgb-black), 1) 56%
+  );
+  box-shadow: none;
+}
+
+.button-bar-playground__sample--deep-colour
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']
+  :is(.shell-tab__icon, .shell-tab__label) {
+  color: inherit;
+}
+
+/* 05 / 08–11 — route colour belongs to the selected-state signal, not the type. */
+.button-bar-playground__sample[data-variant-family='lamp'] {
   --button-bar-playground-lamp-width: 10px;
   --button-bar-playground-lamp-height: 2px;
   --button-bar-playground-lamp-bottom: 5px;
+  --button-bar-playground-lamp-glow: calc(var(--button-bar-playground-lamp-height) * 3);
 }
 
-.button-bar-playground__sample--selection-lamp .button-bar__primary-buttons .shell-tab {
+.button-bar-playground__sample[data-variant-family='lamp']
+  .button-bar__primary-buttons
+  .shell-tab {
   --button-bar-figma-hover-fill: color-mix(
     in srgb,
     var(--shell-tab-surface-base) 96%,
@@ -526,10 +638,10 @@ body.button-bar-playground-page {
   --shell-tab-text-hover: rgba(var(--abs-rgb-white), 0.72);
 }
 
-.button-bar-playground__sample--selection-lamp
+.button-bar-playground__sample[data-variant-family='lamp']
   .button-bar__primary-buttons
   .shell-tab[aria-current='page'],
-.button-bar-playground__sample--selection-lamp
+.button-bar-playground__sample[data-variant-family='lamp']
   .button-bar__primary-buttons
   .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
   color: var(--button-bar-playground-active-type);
@@ -538,14 +650,14 @@ body.button-bar-playground-page {
   overflow: hidden;
 }
 
-.button-bar-playground__sample--selection-lamp
+.button-bar-playground__sample[data-variant-family='lamp']
   .button-bar__primary-buttons
   .shell-tab[aria-current='page']
   :is(.shell-tab__icon, .shell-tab__label) {
   color: inherit;
 }
 
-.button-bar-playground__sample--selection-lamp
+.button-bar-playground__sample[data-variant-family='lamp']
   .button-bar__primary-buttons
   .shell-tab[aria-current='page']::after {
   content: '';
@@ -559,10 +671,46 @@ body.button-bar-playground-page {
   height: var(--button-bar-playground-lamp-height);
   border-radius: var(--abs-radius-pill);
   background: var(--button-bar-playground-active-color);
-  box-shadow: 0 0 calc(var(--button-bar-playground-lamp-height) * 3)
+  box-shadow: 0 0 var(--button-bar-playground-lamp-glow)
     color-mix(in srgb, var(--button-bar-playground-active-color) 78%, transparent);
   transform: translateX(-50%);
   pointer-events: none;
+}
+
+/* 08 — more reach, with the same quiet vertical footprint. */
+.button-bar-playground__sample--long-lamp[data-variant-family='lamp'] {
+  --button-bar-playground-lamp-width: 28px;
+  --button-bar-playground-lamp-glow: 7px;
+}
+
+/* 09 — a single composited breath, never a travelling loading indicator. */
+.button-bar-playground__sample--breathing-lamp
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']::after {
+  will-change: opacity, transform;
+  animation: buttonBarLampBreathe 2.8s ease-in-out infinite;
+}
+
+/* 10 — the lamp stays decisive while a restrained colour tint supports it. */
+.button-bar-playground__sample--tint-lamp[data-variant-family='lamp']
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--tint-lamp[data-variant-family='lamp']
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  background: color-mix(
+    in srgb,
+    var(--shell-tab-surface-base) 92%,
+    var(--button-bar-playground-active-color) 8%
+  );
+}
+
+/* 11 — the indicator returns to the site’s smallest circle language. */
+.button-bar-playground__sample--signal-dot[data-variant-family='lamp'] {
+  --button-bar-playground-lamp-width: 5px;
+  --button-bar-playground-lamp-height: 5px;
+  --button-bar-playground-lamp-bottom: 4px;
+  --button-bar-playground-lamp-glow: 8px;
 }
 
 @keyframes buttonBarHomeField {
@@ -619,6 +767,18 @@ body.button-bar-playground-page {
   }
 }
 
+@keyframes buttonBarLampBreathe {
+  0%,
+  100% {
+    opacity: 0.62;
+    transform: translateX(-50%) scaleX(0.82);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scaleX(1.16);
+  }
+}
+
 @media (max-width: 760px) {
   .button-bar-playground {
     padding-right: max(0px, var(--abs-safe-right));
@@ -655,6 +815,19 @@ body.button-bar-playground-page {
     padding-inline: var(--gap-md);
   }
 
+  .button-bar-playground__group-header {
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    padding:
+      calc(var(--gap-xl) * 1.15)
+      var(--gap-md)
+      var(--gap-lg);
+  }
+
+  .button-bar-playground__group-copy {
+    grid-template-columns: 1fr;
+    gap: calc(var(--gap-xs) * 0.5);
+  }
+
   .button-bar-playground__sample-copy {
     grid-template-columns: 1fr;
     gap: calc(var(--gap-xs) * 0.5);
@@ -671,11 +844,13 @@ body.button-bar-playground-page {
 
 @media (max-width: 340px) {
   .button-bar-playground__header,
-  .button-bar-playground__sample-header {
+  .button-bar-playground__sample-header,
+  .button-bar-playground__group-header {
     padding-inline: var(--gap-sm);
   }
 
-  .button-bar-playground__sample-header {
+  .button-bar-playground__sample-header,
+  .button-bar-playground__group-header {
     grid-template-columns: 2rem minmax(0, 1fr);
   }
 }
@@ -686,5 +861,13 @@ body.button-bar-playground-page {
     .shell-tab[data-route-tab][aria-current='page']::before {
     animation: none;
     transform: none;
+  }
+
+  .button-bar-playground__sample--breathing-lamp
+    .button-bar__primary-buttons
+    .shell-tab[data-route-tab][aria-current='page']::after {
+    opacity: 1;
+    animation: none;
+    transform: translateX(-50%);
   }
 }
