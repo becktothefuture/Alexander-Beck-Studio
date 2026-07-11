@@ -115,7 +115,10 @@ function extractViteInputHtmlPaths(source) {
 }
 
 function extractObjectKeys(source, constName) {
-  const pattern = new RegExp(`const\\s+${constName}\\s*=\\s*\\{([\\s\\S]*?)\\n\\};`, 'm');
+  const pattern = new RegExp(
+    `const\\s+${constName}\\s*=\\s*(?:Object\\.freeze\\(\\s*)?\\{([\\s\\S]*?)\\n\\}(?:\\))?;`,
+    'm',
+  );
   const match = pattern.exec(source);
   if (!match) return null;
   return new Set(
@@ -157,14 +160,10 @@ function addRouteSourceValidationErrors(errors, simulations, {
   const expectedRoutes = getExpectedShellRoutePaths(simulations);
   const routeRegistryEntries = extractRouteRegistryEntries(routesSource);
   const viteInputPaths = extractViteInputHtmlPaths(viteSource);
-  const routeViewIds = extractObjectKeys(siteAppSource, 'ROUTE_VIEW_BY_ID');
-  const routeRuntimeIds = extractObjectKeys(siteAppSource, 'ROUTE_RUNTIME_BY_ID');
+  const routeDescriptorIds = extractObjectKeys(siteAppSource, 'ROUTE_DESCRIPTORS');
 
-  if (!routeViewIds) {
-    errors.push('SiteApp.jsx: missing ROUTE_VIEW_BY_ID map');
-  }
-  if (!routeRuntimeIds) {
-    errors.push('SiteApp.jsx: missing ROUTE_RUNTIME_BY_ID map');
+  if (!routeDescriptorIds) {
+    errors.push('SiteApp.jsx: missing ROUTE_DESCRIPTORS map');
   }
 
   expectedRoutes.forEach((expectedPath, id) => {
@@ -179,12 +178,8 @@ function addRouteSourceValidationErrors(errors, simulations, {
       errors.push(`${id}: expected route path "${expectedPath}" is missing from Vite inputs`);
     }
 
-    if (routeViewIds && !routeViewIds.has(id)) {
-      errors.push(`${id}: missing ROUTE_VIEW_BY_ID coverage in SiteApp.jsx`);
-    }
-
-    if (routeRuntimeIds && !routeRuntimeIds.has(id)) {
-      errors.push(`${id}: missing ROUTE_RUNTIME_BY_ID coverage in SiteApp.jsx`);
+    if (routeDescriptorIds && !routeDescriptorIds.has(id)) {
+      errors.push(`${id}: missing ROUTE_DESCRIPTORS coverage in SiteApp.jsx`);
     }
   });
 }

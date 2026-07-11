@@ -137,9 +137,10 @@ async function inspectPage(page, id, baseline) {
         height: Math.round(rect.height),
       };
     };
+    const normalizedClassName = (element) => Array.from(element.classList).sort().join(' ');
     const snapshot = {
-      htmlClass: document.documentElement.className,
-      bodyClass: document.body.className,
+      htmlClass: normalizedClassName(document.documentElement),
+      bodyClass: normalizedClassName(document.body),
       wallBackground: getComputedStyle(document.getElementById('simulations')).backgroundColor,
       textLogo: getComputedStyle(document.documentElement).getPropertyValue('--text-logo').trim(),
       textMuted: getComputedStyle(document.documentElement).getPropertyValue('--text-color-dark-muted').trim(),

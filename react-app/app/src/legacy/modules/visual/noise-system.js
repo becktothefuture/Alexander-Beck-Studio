@@ -22,6 +22,11 @@ const NOISE_INK_MAX_LUMA = 32;
 const NOISE_INK_ALPHA_THRESHOLD = 0.68;
 const NOISE_INK_ALPHA_GAIN = 1.2;
 
+function setNoiseReady(ready) {
+  document.documentElement.classList.toggle('noise-ready', ready);
+  document.body?.classList.toggle('noise-ready', ready);
+}
+
 const NOISE_KEYS = [
   'noiseEnabled',
   'noiseSeed',
@@ -313,7 +318,7 @@ async function commitNoiseTextureUrl(url, { genId, objectUrl = false } = {}) {
 
     await waitForNextFrame();
     if (genId !== pendingGenerateId) return false;
-    document.body?.classList.add('noise-ready');
+    setNoiseReady(true);
     return true;
   } catch (e) {
     if (objectUrl && url) {
@@ -661,7 +666,7 @@ function scheduleTextureRegeneration(cfg, { force = false } = {}) {
       const root = document.documentElement;
       root.style.setProperty('--abs-noise-texture', 'none');
       // Remove noise-ready class when disabled
-      document.body?.classList.remove('noise-ready');
+      setNoiseReady(false);
     } catch (e) {}
     if (activeObjectUrl) {
       try { URL.revokeObjectURL(activeObjectUrl); } catch (e) {}
@@ -673,7 +678,7 @@ function scheduleTextureRegeneration(cfg, { force = false } = {}) {
   if (!force && textureKey === lastTextureKey) {
     // Texture already exists, ensure noise-ready class is present
     if ((activeObjectUrl || cfg.noiseSvgEnabled) && cfg.noiseEnabled) {
-      document.body?.classList.add('noise-ready');
+      setNoiseReady(true);
     }
     return;
   }
@@ -747,7 +752,7 @@ export function initNoiseSystem(initialConfig = {}) {
   
   // If noise is enabled and texture already exists, ensure noise-ready class is present
   if (current.noiseEnabled && (activeObjectUrl || current.noiseSvgEnabled)) {
-    document.body?.classList.add('noise-ready');
+    setNoiseReady(true);
   }
 }
 
@@ -782,7 +787,7 @@ export function destroyNoiseSystem() {
   }
 
   activeObjectUrl = null;
-  document.body?.classList.remove('noise-ready');
+  setNoiseReady(false);
   current = null;
   initialized = false;
   lastTextureKey = '';

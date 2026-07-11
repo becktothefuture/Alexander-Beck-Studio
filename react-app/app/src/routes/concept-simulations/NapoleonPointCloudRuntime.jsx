@@ -8,10 +8,9 @@ import { NapoleonPointCloud } from '../napoleon-point-cloud/NapoleonPointCloud.j
 import { withBasePath } from '../../lib/base-path.js';
 import {
   DAILY_FOCUS_DESIGN_SYSTEM_URL,
-  DEFAULT_DAILY_FOCUS_THEME,
   loadDailyFocusJson,
-  resolveDailyFocusTheme,
   useDailyFocusReducedMotion,
+  useDailyFocusTheme,
 } from '../daily-focus/dailyFocusTheme.js';
 import './concept-simulations-runtime.css';
 
@@ -22,7 +21,8 @@ export function NapoleonPointCloudRuntime() {
   const [runtimeConfig, setRuntimeConfig] = useState(() => (
     normalizeConceptSimulationConfig(SIMULATION_ID, ENTRY.defaults)
   ));
-  const [theme, setTheme] = useState(DEFAULT_DAILY_FOCUS_THEME);
+  const [designSystem, setDesignSystem] = useState(null);
+  const theme = useDailyFocusTheme(designSystem);
   const [ready, setReady] = useState(false);
   const reducedMotion = useDailyFocusReducedMotion();
 
@@ -37,7 +37,7 @@ export function NapoleonPointCloudRuntime() {
 
       if (cancelled) return;
       setRuntimeConfig(normalizeConceptSimulationConfig(SIMULATION_ID, demoConfig));
-      setTheme(resolveDailyFocusTheme(designSystem));
+      setDesignSystem(designSystem);
       setReady(true);
     }
 

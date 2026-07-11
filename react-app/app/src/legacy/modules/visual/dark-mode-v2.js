@@ -11,14 +11,19 @@ import { applyChromeHarmony } from './chrome-harmony.js';
 import { readTokenVar } from '../utils/tokens.js';
 import { applyShellLayoutVars, syncShellToDocument, syncThemeColorMeta } from './site-shell.js';
 import { forEachPanelUiDocument, resolvePanelUiDocument } from '../ui/panel-ui-context.js';
-import { applyThemeState, isDarkThemeDocument } from '../../../lib/theme-state.js';
-
-const THEME_STORAGE_KEY = 'theme-preference-v2';
-const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
-const MOBILE_SYSTEM_THEME_QUERY = '(max-width: 600px)';
+import {
+  THEME_CHANGE_EVENT,
+  THEME_STORAGE_KEY,
+  applyThemeState,
+  isDarkThemeDocument,
+  normalizeThemePreference,
+  readThemePreference,
+  resolveThemeIsDark,
+  writeThemePreference,
+} from '../../../lib/theme-state.js';
 
 // Theme states: 'auto', 'light', 'dark'
-let currentTheme = 'auto'; // Default to auto (system + night heuristic)
+let currentTheme = 'auto';
 let systemPreference = 'light';
 
 let isDarkModeInitialized = false;
@@ -43,40 +48,6 @@ function syncWallPanelTabsToTheme() {
       panel.classList.add('active');
     });
   });
-}
-
-function readStoredThemePreference() {
-  try {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (saved === 'auto' || saved === 'light' || saved === 'dark') return saved;
-    // Legacy key: treat any stored value as stale and migrate to auto.
-    const legacy = localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
-    if (legacy === 'auto' || legacy === 'light' || legacy === 'dark') {
-      localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
-      localStorage.setItem(THEME_STORAGE_KEY, 'auto');
-    }
-  } catch (e) {}
-  return 'auto';
-}
-
-function writeStoredThemePreference(theme) {
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-    localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
-  } catch (e) {
-    // localStorage unavailable
-  }
-}
-
-/**
- * Get background colors from globals (config-driven) with CSS fallback
- */
-function getBackgroundColors() {
-  const g = getGlobals();
-  return {
-    light: g?.bgLight || readTokenVar('--bg-light', "var(--color-detected-efefef)"),
-    dark: g?.bgDark || readTokenVar('--bg-dark', "var(--color-detected-181818)")
-  };
 }
 
 /**
@@ -136,28 +107,8 @@ function detectSystemPreference() {
   return 'light';
 }
 
-function isMobileSystemThemeViewport() {
-  return Boolean(window.matchMedia?.(MOBILE_SYSTEM_THEME_QUERY)?.matches);
-}
-
-function isNightByLocalClock() {
-  const g = getGlobals();
-  if (!g.autoDarkModeEnabled) return false;
-  const start = Number.isFinite(g.autoDarkNightStartHour) ? g.autoDarkNightStartHour : 18;
-  const end = Number.isFinite(g.autoDarkNightEndHour) ? g.autoDarkNightEndHour : 6;
-  const h = new Date().getHours();
-  // Handles windows that cross midnight (e.g., 18 → 6).
-  if (start === end) return false;
-  if (start < end) return h >= start && h < end;
-  return h >= start || h < end;
-}
-
 function resolveShouldBeDark(theme) {
-  if (theme === 'auto') {
-    if (isMobileSystemThemeViewport()) return systemPreference === 'dark';
-    return (systemPreference === 'dark') || isNightByLocalClock();
-  }
-  return theme === 'dark';
+  return resolveThemeIsDark(theme, systemPreference === 'dark');
 }
 
 function isRenderedDarkMode() {
@@ -235,6 +186,12 @@ function updateSegmentControl() {
     : (currentTheme === 'light' ? '☀️ Light Mode' : '🌙 Dark Mode');
 
   forEachPanelUiDocument((uiDocument) => {
+    const panelThemeToggle = uiDocument.querySelector('.panel-theme-toggle');
+    if (panelThemeToggle) {
+      panelThemeToggle.textContent = globals.isDarkMode ? '☀️' : '🌙';
+      panelThemeToggle.dataset.state = globals.isDarkMode ? 'dark' : 'light';
+    }
+
     const autoBtn = uiDocument.getElementById('themeAuto');
     const lightBtn = uiDocument.getElementById('themeLight');
     const darkBtn = uiDocument.getElementById('themeDark');
@@ -283,24 +240,24 @@ export function bindThemeSegmentControls(uiDocument) {
  * Set theme (auto, light, or dark)
  */
 function applyTheme(theme, { persist = true } = {}) {
-  currentTheme = theme;
-  const shouldBeDark = resolveShouldBeDark(theme);
+  currentTheme = normalizeThemePreference(theme);
+  const shouldBeDark = resolveShouldBeDark(currentTheme);
   
   applyDarkModeToDOM(shouldBeDark);
   
   // Save preference
-  if (persist) writeStoredThemePreference(theme);
+  if (persist) writeThemePreference(currentTheme);
 
   try {
-    window.dispatchEvent(new CustomEvent('abs:theme-changed', {
+    window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, {
       detail: {
-        theme,
+        theme: currentTheme,
         isDark: shouldBeDark,
       },
     }));
   } catch (e) {}
   
-  devLog(`🎨 Theme set to: ${theme} (rendering: ${shouldBeDark ? 'dark' : 'light'})`);
+  devLog(`🎨 Theme set to: ${currentTheme} (rendering: ${shouldBeDark ? 'dark' : 'light'})`);
 }
 
 export function setTheme(theme) {
@@ -325,7 +282,15 @@ function clearColorCache() {
  * Initialize dark mode system
  */
 export function initializeDarkMode() {
-  if (isDarkModeInitialized) return;
+  if (isDarkModeInitialized) {
+    // Other route runtimes may restamp shell variables after the shared shell has
+    // initialized. Re-project the canonical preference without binding listeners
+    // a second time so theme and browser-frame state cannot drift during boot.
+    systemPreference = detectSystemPreference();
+    applyTheme(readThemePreference(), { persist: false });
+    bindThemeSegmentControls(document);
+    return;
+  }
   isDarkModeInitialized = true;
 
   // Clear color cache to prevent stale wall color values
@@ -338,9 +303,8 @@ export function initializeDarkMode() {
   systemPreference = detectSystemPreference();
   devLog(`🖥️ System prefers: ${systemPreference}`);
   
-  // Restore saved preference if available; otherwise default to Auto.
-  const initial = isMobileSystemThemeViewport() ? 'auto' : readStoredThemePreference();
-  applyTheme(initial, { persist: !isMobileSystemThemeViewport() });
+  // Restore the same preference at every viewport width.
+  applyTheme(readThemePreference(), { persist: false });
   
   bindThemeSegmentControls(document);
   
@@ -352,23 +316,25 @@ export function initializeDarkMode() {
       
       // If in auto mode, update
       if (currentTheme === 'auto' && resolveShouldBeDark('auto') !== isRenderedDarkMode()) {
-        applyTheme('auto', { persist: !isMobileSystemThemeViewport() });
+        applyTheme('auto', { persist: false });
       }
-    });
-
-    window.matchMedia(MOBILE_SYSTEM_THEME_QUERY).addEventListener('change', (event) => {
-      const nextTheme = event.matches ? 'auto' : readStoredThemePreference();
-      applyTheme(nextTheme, { persist: false });
     });
   }
 
-  // Night-window re-evaluation (privacy-first heuristic; only applies in Auto mode)
-  window.setInterval(() => {
-    if (currentTheme !== 'auto') return;
-    if (resolveShouldBeDark('auto') !== isRenderedDarkMode()) {
-      applyTheme('auto', { persist: !isMobileSystemThemeViewport() });
-    }
-  }, 60_000);
+  // localStorage events fire in the other tab, keeping all open tabs in sync.
+  window.addEventListener('storage', (event) => {
+    if (event.key !== THEME_STORAGE_KEY && event.key !== null) return;
+    const nextTheme = readThemePreference();
+    if (nextTheme === currentTheme && resolveShouldBeDark(nextTheme) === isRenderedDarkMode()) return;
+    applyTheme(nextTheme, { persist: false });
+  });
+
+  // Re-check restored BFCache tabs before they become visible again.
+  window.addEventListener('pageshow', (event) => {
+    if (!event.persisted) return;
+    systemPreference = detectSystemPreference();
+    applyTheme(readThemePreference(), { persist: false });
+  });
 
   devLog('✓ Modern dark mode initialized');
 }

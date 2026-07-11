@@ -95,8 +95,8 @@
       "minCardGapPx": 18,
       "dotDialRadiusPx": 2050,
       "mobileDotDialRadiusPx": 900,
-      "dotDensity": 42,
-      "dotActiveScale": 1.9,
+      "dotDensity": 18,
+      "dotActiveScale": 1,
       "dotParallaxRatio": 1,
       "dotArcSpanDeg": 18,
       "contactShadowOpacity": 0.12

@@ -403,16 +403,17 @@
 
         var savedTheme = 'auto';
         try {
-          savedTheme = localStorage.getItem('theme-preference-v2') || 'auto';
+          var storedTheme = localStorage.getItem('theme-preference-v2');
+          var legacyTheme = localStorage.getItem('theme-preference');
+          if (storedTheme === 'auto' || storedTheme === 'light' || storedTheme === 'dark') {
+            savedTheme = storedTheme;
+          } else if (legacyTheme === 'auto' || legacyTheme === 'light' || legacyTheme === 'dark') {
+            savedTheme = legacyTheme;
+          }
         } catch (_error) {}
 
         var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        var usesMobileSystemTheme = window.matchMedia && window.matchMedia('(max-width: 600px)').matches;
-        var hour = new Date().getHours();
-        var isNight = hour >= 18 || hour < 6;
-        var isDark = usesMobileSystemTheme
-          ? prefersDark
-          : savedTheme === 'dark' || (savedTheme !== 'light' && (prefersDark || isNight));
+        var isDark = savedTheme === 'dark' || (savedTheme === 'auto' && prefersDark);
 
         if (isDark) root.classList.add('dark-mode');
         applyPalette(isDark);

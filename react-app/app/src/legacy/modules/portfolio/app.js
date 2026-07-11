@@ -1,5 +1,4 @@
 import { loadRuntimeConfig } from '../utils/runtime-config.js';
-import { applyWallFrameFromConfig, applyWallFrameLayout } from '../visual/wall-frame.js';
 import { applyPortfolioConfig, loadPortfolioConfig, normalizePortfolioConfig } from './portfolio-config.js';
 import {
   relayoutPortfolioProjectLabels,
@@ -7,19 +6,13 @@ import {
   applyPortfolioAccentBallColor,
   resolvePortfolioLabelContent,
 } from './pit-mode.js';
-import { initializeDarkMode } from '../visual/dark-mode-v2.js';
 import { getPaletteTemplateOverrideFromUrl, getPortfolioProjectPaletteColor, getWeatherDrivenPaletteTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
 import { getGlobals } from '../core/state.js';
-import { initNoiseSystem } from '../visual/noise-system.js';
-import { initTimeDisplay } from '../ui/time-display.js';
-import { upgradeSocialIcons } from '../ui/social-icons.js';
 import { loadRuntimeText } from '../utils/text-loader.js';
 import { applyRuntimeTextToDOM } from '../ui/apply-text.js';
 import { waitForFonts } from '../utils/font-loader.js';
 import * as SoundEngine from '../audio/sound-engine.js';
 import { triggerDetent } from '../audio/simulation-audio-adapter.js';
-import { initSharedChrome } from '../ui/shared-chrome.js';
-import { loadShellConfig, syncShellToDocument } from '../visual/site-shell.js';
 import { completeDirectBoot, waitForFrames, waitForPageReadyBarrier } from '../visual/page-orchestrator.js';
 import { resetTransitionState, setupPrefetchOnHover, setupTransitionNavigationLinks } from '../utils/page-nav.js';
 import { MODES } from '../core/constants.js';
@@ -113,8 +106,8 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   minCardGapPx: 18,
   dotDialRadiusPx: 2050,
   mobileDotDialRadiusPx: 900,
-  dotDensity: 42,
-  dotActiveScale: 1.9,
+  dotDensity: 18,
+  dotActiveScale: 1,
   dotParallaxRatio: 1,
   dotArcSpanDeg: 18,
   dotArcOffsetDeg: 0,
@@ -133,6 +126,17 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   exitBlurPx: 3.2,
   contactShadowOpacity: 0.12,
 });
+
+const PORTFOLIO_DOT_COLORS = Object.freeze([
+  'var(--ball-1)',
+  'var(--ball-2)',
+  'var(--ball-3)',
+  'var(--ball-4)',
+  'var(--ball-5)',
+  'var(--ball-6)',
+  'var(--ball-7)',
+  'var(--ball-8)',
+]);
 const PORTFOLIO_DECK_INTRO_FALLBACK = Object.freeze({
   title: 'I design digital experiences around human response.',
   body: 'A curated selection of product projects across product systems, interaction models, and shipped digital experiences.',
@@ -1824,6 +1828,10 @@ class PortfolioScrollApp {
       const dot = document.createElement('span');
       dot.className = 'portfolio-carousel-dot';
       dot.dataset.dotIndex = String(index);
+      dot.style.setProperty(
+        '--portfolio-dot-color',
+        PORTFOLIO_DOT_COLORS[index % PORTFOLIO_DOT_COLORS.length]
+      );
       dotDial.appendChild(dot);
       return dot;
     });
@@ -2554,11 +2562,10 @@ class PortfolioScrollApp {
       const y = radius * (1 - Math.cos(angleRad));
       const wrappedDistance = Math.abs(normalized) * dotCount;
       const activeAmount = clamp(1 - (wrappedDistance / 2.5), 0, 1);
-      const edgeFade = 1 - smoothstep(0.42, 0.5, Math.abs(normalized));
       dot.style.setProperty('--portfolio-dot-x', `${x.toFixed(2)}px`);
       dot.style.setProperty('--portfolio-dot-y', `${y.toFixed(2)}px`);
-      dot.style.setProperty('--portfolio-dot-scale', lerp(0.72, toNumber(this.deckOptions.dotActiveScale, PORTFOLIO_DECK_DEFAULTS.dotActiveScale), activeAmount).toFixed(3));
-      dot.style.setProperty('--portfolio-dot-opacity', (edgeFade * lerp(0.38, 0.96, activeAmount)).toFixed(3));
+      dot.style.setProperty('--portfolio-dot-scale', lerp(1, toNumber(this.deckOptions.dotActiveScale, PORTFOLIO_DECK_DEFAULTS.dotActiveScale), activeAmount).toFixed(3));
+      dot.style.setProperty('--portfolio-dot-opacity', '1');
     });
   }
 
@@ -3861,20 +3868,10 @@ export async function bootstrapPortfolio() {
     console.warn('Portfolio text load failed', error);
   }
 
-  await loadShellConfig();
-  syncShellToDocument({
-    isDark: document.documentElement.classList.contains('dark-mode')
-  });
-
   const runtimeConfig = await loadRuntimeConfig();
-  applyWallFrameFromConfig(runtimeConfig);
   const globals = getGlobals();
   globals.performanceHudEnabled = false;
   globals.portfolioPerformancePriority = true;
-  syncShellToDocument({
-    isDark: document.documentElement.classList.contains('dark-mode')
-  });
-  applyWallFrameLayout();
 
   setupRenderer();
   setCanvas(getCanvas(), getContext(), document.getElementById('simulations'));
@@ -3973,13 +3970,6 @@ export async function bootstrapPortfolio() {
 
   SoundEngine.initSoundEngine();
   SoundEngine.applySoundConfigFromRuntimeConfig(runtimeConfig);
-  initNoiseSystem({
-    ...globals,
-    noiseMotion: 'static',
-    noiseFlicker: 0,
-    noiseBlurPx: 0,
-  });
-
   const globalsForPointer = getGlobals();
   globalsForPointer.mouseInCanvas = false;
   if (typeof window !== 'undefined') window.mouseInCanvas = false;
@@ -3987,24 +3977,13 @@ export async function bootstrapPortfolio() {
   setupOverscrollLock();
   setupCustomCursor();
 
-  initSharedChrome({
-    contactModal: true,
-    cvModal: true,
-    portfolioModal: false,
-    cursorHiding: true,
-    modalOverlayConfig: runtimeConfig || {}
-  });
-
   const paletteOverride = getPaletteTemplateOverrideFromUrl();
   if (paletteOverride) {
     getGlobals().currentTemplate = paletteOverride;
   } else {
     getGlobals().currentTemplate = getWeatherDrivenPaletteTemplate() || rotatePaletteChapterOnReload();
   }
-  initializeDarkMode();
   maybeAutoPickCursorColor('startup');
-  initTimeDisplay();
-  upgradeSocialIcons();
 
   const portfolioConfig = applyPortfolioConfig(await loadPortfolioConfig());
   const data = await fetchPortfolioData();

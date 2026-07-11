@@ -76,6 +76,9 @@ const DEFAULT_STUDIO_SURFACE_CONFIG = {
 let designSystemPromise = null;
 
 const RETIRED_RUNTIME_KEYS = new Set([
+  'autoDarkModeEnabled',
+  'autoDarkNightStartHour',
+  'autoDarkNightEndHour',
   'hoverEdgeEnabled',
   'hoverEdgeWidth',
   'hoverEdgeInset',

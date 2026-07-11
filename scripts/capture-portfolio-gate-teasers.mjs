@@ -18,6 +18,7 @@ const captures = [
   { label: 'tablet', width: 768, height: 1024 },
   { label: 'desktop', width: 1440, height: 900 },
 ];
+const themes = ['light', 'dark'];
 
 function startPreview() {
   return spawn(
@@ -49,16 +50,19 @@ async function waitForPreview(child) {
   throw lastError || new Error('Preview did not become ready');
 }
 
-async function captureTeaser(browser, capture) {
+async function captureTeaser(browser, capture, theme) {
   const context = await browser.newContext({
     viewport: { width: capture.width, height: capture.height },
     deviceScaleFactor: 1,
     reducedMotion: 'reduce',
+    colorScheme: theme,
   });
   const page = await context.newPage();
-  await page.addInitScript(() => {
+  await page.addInitScript((themePreference) => {
+    localStorage.setItem('theme-preference-v2', themePreference);
+    localStorage.removeItem('theme-preference');
     sessionStorage.setItem('abs_portfolio_ok', 'gate-teaser-capture');
-  });
+  }, theme);
   await page.goto(`${baseUrl}/portfolio.html`, {
     waitUntil: 'domcontentloaded',
     timeout: 60_000,
@@ -72,6 +76,10 @@ async function captureTeaser(browser, capture) {
     const phase = root.dataset.absTransitionPhase || 'idle';
     return phase === 'idle' && Boolean(activeCard?.getBoundingClientRect().width);
   }, { timeout: 30_000 });
+  await page.waitForFunction((expectedTheme) => (
+    document.documentElement.getAttribute('data-abs-theme') === expectedTheme
+    && document.body?.getAttribute('data-abs-theme') === expectedTheme
+  ), theme, { timeout: 30_000 });
   await page.addStyleTag({
     content: `
       *, *::before, *::after {
@@ -99,7 +107,7 @@ async function captureTeaser(browser, capture) {
   });
   await page.waitForTimeout(250);
 
-  const outputPath = resolve(outputDir, `portfolio-gate-${capture.label}.jpg`);
+  const outputPath = resolve(outputDir, `portfolio-gate-${capture.label}-${theme}.jpg`);
   const clip = await page.locator('#simulations').evaluate((element) => {
     const rect = element.getBoundingClientRect();
     const border = Number.parseFloat(getComputedStyle(element).borderTopWidth) || 0;
@@ -117,7 +125,7 @@ async function captureTeaser(browser, capture) {
     clip,
   });
   await context.close();
-  console.log(`[portfolio-gate] ${capture.label}: ${outputPath}`);
+  console.log(`[portfolio-gate] ${capture.label}/${theme}: ${outputPath}`);
 }
 
 async function main() {
@@ -132,8 +140,10 @@ async function main() {
   try {
     await waitForPreview(preview);
     browser = await chromium.launch();
-    for (const capture of captures) {
-      await captureTeaser(browser, capture);
+    for (const theme of themes) {
+      for (const capture of captures) {
+        await captureTeaser(browser, capture, theme);
+      }
     }
   } catch (error) {
     if (stderr.trim()) console.error(stderr.trim());

@@ -4,6 +4,11 @@ import { chromium, firefox, webkit } from 'playwright';
 const DEFAULT_URL = 'http://127.0.0.1:8013';
 const WAIT_MS = Number(process.env.ABS_MODAL_UNIFIED_WAIT_MS || 30000);
 const BROWSER_NAME = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
+const VIEWPORTS = Object.freeze([
+  { name: 'mobile', width: 390, height: 844 },
+  { name: 'tablet', width: 768, height: 1024 },
+  { name: 'desktop', width: 1280, height: 900 },
+]);
 
 const BROWSERS = { chromium, firefox, webkit };
 
@@ -47,11 +52,32 @@ async function readRouteState(page) {
       if (!element) return null;
       const styles = getComputedStyle(element);
       return {
+        display: styles.display,
         zIndex: Number.parseInt(styles.zIndex || '0', 10) || 0,
         opacity: Number.parseFloat(styles.opacity || '0'),
         visibility: styles.visibility,
         pointerEvents: styles.pointerEvents,
         backdropFilter: styles.backdropFilter || styles.webkitBackdropFilter || 'none',
+        backgroundImage: styles.backgroundImage,
+      };
+    };
+    const footerStyleOf = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const styles = getComputedStyle(element);
+      return {
+        display: styles.display,
+        position: styles.position,
+        paddingBlock: styles.paddingBlock,
+        paddingInline: styles.paddingInline,
+        marginBlock: styles.marginBlock,
+        marginInline: styles.marginInline,
+        gap: styles.gap,
+        fontFamily: styles.fontFamily,
+        fontSize: styles.fontSize,
+        lineHeight: styles.lineHeight,
+        alignItems: styles.alignItems,
+        justifyContent: styles.justifyContent,
       };
     };
     const rectOf = (selector) => {
@@ -71,6 +97,7 @@ async function readRouteState(page) {
       path: location.pathname,
       search: location.search,
       phase: document.documentElement.dataset.absTransitionPhase || 'idle',
+      shellRoute: document.documentElement.dataset.shellRoute || '',
       bodyClass: document.body.className,
       tabs: Array.from(document.querySelectorAll('[data-route-tab]')).map((tab) => ({
         route: tab.getAttribute('data-route-tab'),
@@ -84,6 +111,10 @@ async function readRouteState(page) {
       aboutRoute: Boolean(document.querySelector('[data-route-content="about"]')),
       portfolioGate: Boolean(document.querySelector('[data-route-content="portfolio-gate"]')),
       portfolioDeck: Boolean(document.getElementById('portfolioProjectMount')),
+      noiseReady: document.documentElement.classList.contains('noise-ready')
+        || document.body.classList.contains('noise-ready'),
+      noiseLayer: styleOf('.noise'),
+      noiseTexture: getComputedStyle(document.documentElement).getPropertyValue('--abs-noise-texture').trim(),
       chooserActive: Boolean(document.querySelector('.simulation-focus-modal.active')),
       blurActive: Boolean(document.getElementById('modal-blur-layer')?.classList.contains('active')),
       contentActive: Boolean(document.getElementById('modal-content-layer')?.classList.contains('active')),
@@ -97,6 +128,18 @@ async function readRouteState(page) {
       })(),
       wallEdge: styleOf('.inner-wall-gradient-edge'),
       globalBlur: styleOf('#modal-blur-layer'),
+      footer: {
+        container: rectOf('.ui-bottom'),
+        socials: rectOf('#social-links'),
+        london: rectOf('#site-year'),
+        middle: rectOf('#edge-caption'),
+        styles: {
+          container: footerStyleOf('.ui-bottom'),
+          socials: footerStyleOf('#social-links'),
+          london: footerStyleOf('#site-year'),
+          middle: footerStyleOf('#edge-caption'),
+        },
+      },
       sessionFlags: {
         contact: sessionStorage.getItem('abs_open_contact_modal'),
         cvGate: sessionStorage.getItem('abs_open_cv_gate'),
@@ -111,15 +154,26 @@ function assertShellTabs(state, expectedRoute) {
   assert(state.tabs.length >= 4, 'Missing bottom shell route tabs', state);
   const active = state.tabs.filter((tab) => tab.current === 'page').map((tab) => tab.route);
   assert(active.length === 1 && active[0] === expectedRoute, `Unexpected active route tab for ${expectedRoute}`, { active, state });
+  assert(state.shellRoute === expectedRoute, `Unexpected shell route identity for ${expectedRoute}`, state);
   assert(state.activeOldModalCount === 0, 'Removed Contact/CV/Portfolio modal opened unexpectedly', state);
 }
 
-async function openAndAssert(browser, path, expectedRoute, predicate) {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+async function openAndAssert(browser, path, expectedRoute, predicate, viewport = VIEWPORTS[2]) {
+  const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
   await page.goto(routeUrl(path), { waitUntil: 'domcontentloaded', timeout: 60000 });
   await waitForIdle(page);
   const state = await readRouteState(page);
   assertShellTabs(state, expectedRoute);
+  assert(
+    state.noiseReady
+      && state.noiseLayer?.visibility === 'visible'
+      && state.noiseLayer?.display !== 'none'
+      && state.noiseLayer?.opacity > 0
+      && state.noiseTexture
+      && state.noiseTexture !== 'none',
+    `Shared shell noise is not active for ${path}`,
+    state,
+  );
   assert(predicate(state), `Route assertion failed for ${path}`, state);
   await page.close();
   return state;
@@ -187,11 +241,36 @@ async function main() {
   const browser = await browserType.launch();
   const results = {};
   try {
-    results.routes = [
-      await openAndAssert(browser, '/contact.html', 'contact', (state) => state.contactRoute),
-      await openAndAssert(browser, '/about.html', 'about', (state) => state.aboutRoute),
+    results.routeBreakpoints = {};
+    for (const viewport of VIEWPORTS) {
+      const states = {
+        home: await openAndAssert(browser, '/index.html', 'home', () => true, viewport),
+        contact: await openAndAssert(browser, '/contact.html', 'contact', (state) => state.contactRoute, viewport),
+        about: await openAndAssert(browser, '/about.html', 'about', (state) => state.aboutRoute, viewport),
+        portfolio: await openAndAssert(browser, '/portfolio.html?gate=portfolio', 'portfolio', (state) => state.path === '/portfolio.html' && state.search === '' && state.portfolioGate, viewport),
+      };
+      results.routeBreakpoints[viewport.name] = states;
+      for (const key of ['container', 'socials', 'london']) {
+        const baselineRect = JSON.stringify(states.home.footer[key]);
+        const baselineStyle = JSON.stringify(states.home.footer.styles[key]);
+        for (const routeId of ['contact', 'about', 'portfolio']) {
+          assert(
+            JSON.stringify(states[routeId].footer[key]) === baselineRect,
+            `Shared footer ${key} geometry differs on ${viewport.name}`,
+            states,
+          );
+          assert(
+            JSON.stringify(states[routeId].footer.styles[key]) === baselineStyle,
+            `Shared footer ${key} styles differ on ${viewport.name}`,
+            states,
+          );
+        }
+      }
+      assert(states.home.footer.middle && states.contact.footer.middle && states.about.footer.middle, `Standard footer middle caption is missing on ${viewport.name}`, states);
+      assert(states.portfolio.footer.middle === null, `Portfolio footer unexpectedly renders the middle caption on ${viewport.name}`, states.portfolio);
+    }
+    results.aliases = [
       await openAndAssert(browser, '/cv.html?cv=482916', 'about', (state) => state.path === '/about.html' && state.search === '' && state.aboutRoute),
-      await openAndAssert(browser, '/portfolio.html?gate=portfolio', 'portfolio', (state) => state.path === '/portfolio.html' && state.search === '' && state.portfolioGate),
       await openAndAssert(browser, '/index.html?gate=cv', 'about', (state) => state.path === '/about.html' && state.search === '' && state.aboutRoute),
     ];
     results.staleFlags = [

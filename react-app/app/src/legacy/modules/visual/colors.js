@@ -505,13 +505,15 @@ export function maybeAutoPickCursorColor(reason = 'auto') {
   return true;
 }
 
-export function getCurrentPalette(templateName) {
+export function getCurrentPalette(templateName, isDarkOverride) {
   const globals = getGlobals();
   const template = COLOR_TEMPLATES[resolveColorTemplateName(templateName)];
   if (!template) return COLOR_TEMPLATES[DEFAULT_LONDON_WEATHER_PALETTE_ID].light;
-  
-  const rawPalette = globals.isDarkMode ? template.dark : template.light;
-  const isDarkMode = globals.isDarkMode || false;
+
+  const isDarkMode = typeof isDarkOverride === 'boolean'
+    ? isDarkOverride
+    : Boolean(globals.isDarkMode);
+  const rawPalette = isDarkMode ? template.dark : template.light;
   
   // Desaturate greys to align with background hue (all palettes)
   // In dark mode, also darken the greys for better contrast

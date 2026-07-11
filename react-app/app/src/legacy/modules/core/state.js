@@ -665,8 +665,7 @@ const state = {
   // Emitter
   emitterTimer: 0,
   
-  // Dark mode
-  autoDarkModeEnabled: true,
+  // Resolved theme state (preference is owned by dark-mode-v2.js)
   isDarkMode: false,
 
   // Browser ↔ Frame harmony (when browsers ignore theme-color on desktop)
@@ -675,11 +674,6 @@ const state = {
   // - 'browser': always adapt frame to browser UI palette (artful extension)
   // Default uses Auto so locked-header browsers (desktop Chromium/Firefox) can blend frame + browser chrome.
   chromeHarmonyMode: 'auto',
-  // Night window heuristic (local clock): if enabled and theme is Auto, prefer Dark during this window.
-  // Default: 18:00–06:00 (privacy-first; no geolocation).
-  autoDarkNightStartHour: 18,
-  autoDarkNightEndHour: 6,
-
   // CSS `corner-shape: squircle` (iOS-like) where the browser supports it; class on <html>.
   cornerShapeSquircleEnabled: true,
   
@@ -1318,6 +1312,16 @@ export function applyLayoutCSSVars() {
       root.style.setProperty('--brand-logo-secondary-opacity', String(clampNumber(state.brandLogoSecondaryOpacity, 0, 1, 1)));
   root.style.setProperty('--home-main-links-below-logo-px', `${Math.round(state.homeMainLinksBelowLogoPx ?? 40)}px`);
   applyButtonBarCssVars(state, root);
+  if (Number.isFinite(state.footerNavBarTopVh)) {
+    root.style.setProperty('--footer-nav-bar-top', `${state.footerNavBarTopVh}vh`);
+    root.style.setProperty('--footer-nav-bar-top-svh', `${state.footerNavBarTopVh}svh`);
+    root.style.setProperty('--footer-nav-bar-top-dvh', `${state.footerNavBarTopVh}dvh`);
+  }
+  if (Number.isFinite(state.footerNavBarGapVw)) {
+    const minPx = Math.round(state.footerNavBarGapVw * 9.6);
+    const maxPx = Math.round(minPx * 1.67);
+    root.style.setProperty('--footer-nav-bar-gap', `clamp(${minPx}px, ${state.footerNavBarGapVw}vw, ${maxPx}px)`);
+  }
   
   // Edge label inset: CSS handles calculation via --wall-thickness + --edge-label-inset-gap + --edge-label-inset-adjust
   // Just set the adjust variable if needed (CSS will calculate the rest)
@@ -1359,6 +1363,28 @@ export function applyLayoutCSSVars() {
   } else {
     root.style.removeProperty('--ui-icon-glyph-size');
   }
+
+  if (Number.isFinite(state.linkTextPadding)) {
+    root.style.setProperty('--link-text-padding', `${Math.round(state.linkTextPadding)}px`);
+    root.style.setProperty('--link-text-margin', `${-Math.round(state.linkTextPadding)}px`);
+  }
+  if (Number.isFinite(state.linkIconPadding)) {
+    root.style.setProperty('--link-icon-padding', `${Math.round(state.linkIconPadding)}px`);
+    root.style.setProperty('--link-icon-margin', `${-Math.round(state.linkIconPadding)}px`);
+  }
+  if (Number.isFinite(state.linkColorInfluence)) root.style.setProperty('--link-color-influence', String(state.linkColorInfluence));
+  if (Number.isFinite(state.linkImpactScale)) root.style.setProperty('--link-impact-scale', String(state.linkImpactScale));
+  if (Number.isFinite(state.linkImpactBlur)) root.style.setProperty('--link-impact-blur', `${state.linkImpactBlur}px`);
+  if (Number.isFinite(state.linkImpactDuration)) root.style.setProperty('--link-impact-duration', `${Math.round(state.linkImpactDuration)}ms`);
+  if (Number.isFinite(state.linkHoverNudge)) root.style.setProperty('--link-nudge', `${state.linkHoverNudge}px`);
+  const toHoverPercent = (value) => `${(Math.max(0, Math.min(1, Number(value))) * 100).toFixed(1)}%`;
+  if (Number.isFinite(state.linkHoverIntensityLight)) root.style.setProperty('--abs-hover-intensity-light', toHoverPercent(state.linkHoverIntensityLight));
+  if (Number.isFinite(state.linkHoverIntensityDark)) root.style.setProperty('--abs-hover-intensity-dark', toHoverPercent(state.linkHoverIntensityDark));
+  if (Number.isFinite(state.linkHoverIntensityActive)) root.style.setProperty('--abs-hover-intensity-active', toHoverPercent(state.linkHoverIntensityActive));
+  root.style.setProperty('--abs-hover-snap-enabled', state.hoverSnapEnabled ? '1' : '0');
+  if (Number.isFinite(state.hoverSnapDuration)) root.style.setProperty('--abs-hover-snap-duration', `${Math.max(0, Math.round(state.hoverSnapDuration))}ms`);
+  if (Number.isFinite(state.hoverSnapOvershoot)) root.style.setProperty('--abs-hover-snap-overshoot', String(state.hoverSnapOvershoot));
+  if (Number.isFinite(state.hoverSnapUndershoot)) root.style.setProperty('--abs-hover-snap-undershoot', String(state.hoverSnapUndershoot));
 
   // Social icon group margin (allows negative to push outward)
   if (Number.isFinite(state.uiIconGroupMarginPx) && state.uiIconGroupMarginPx !== 0) {

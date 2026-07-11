@@ -10,7 +10,6 @@ import {
   waitForPageReadyBarrier,
   waitForUsableRects,
 } from '../../legacy/modules/visual/page-orchestrator.js';
-import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 import { syncCornerShapeSquircleClass } from '../../legacy/modules/core/state.js';
 import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
@@ -38,16 +37,6 @@ export async function bootstrapStyleguide() {
     initNoiseSystem(runtime || {});
   } catch (error) {
     void error;
-  }
-  try {
-    const shellConfig = await loadShellConfig();
-    syncShellToDocument({
-      config: shellConfig,
-      isDark: document.documentElement.classList.contains('dark-mode')
-    });
-  } catch (error) {
-    void error;
-    // Styleguide can render with the critical-shell defaults if shell config is unavailable.
   }
   // No simulation palette bootstrap here — still need readable labels on solid cursor hover fills.
   stampCursorContrastFromTheme();

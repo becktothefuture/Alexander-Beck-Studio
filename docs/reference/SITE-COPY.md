@@ -208,16 +208,9 @@ Canonical About/CV navigation label: `About Me`. Shared navigation and gate titl
 
 ---
 
-## 11. CV page
+## 11. About page
 
-Runtime source: [contents-cv.json](../../react-app/app/public/config/contents-cv.json), imported through `virtual:abs-content/cv` in [CvRoute.jsx](../../react-app/app/src/routes/cv/CvRoute.jsx).
-
-| Area | Source |
-|------|--------|
-| Intro name/title/paragraphs/photo | `contents-cv.json` → `intro` |
-| Body sections | `contents-cv.json` → `sections` |
-| Footer prompt/contact/copyright | `contents-cv.json` → `footer` |
-| Route-local UI labels | `CvRoute.jsx` (`footer.links.cv.text`, `Back to top`, route topbar ARIA labels) |
+Runtime source: [AboutRoute.jsx](../../react-app/app/src/routes/about/AboutRoute.jsx). The public `/cv.html` entry is an alias to this route. `contents-cv.json` is retained as archived content and is not loaded by the production route.
 
 ---
 
@@ -229,10 +222,9 @@ Runtime source: [contents-cv.json](../../react-app/app/public/config/contents-cv
 |---------|--------|----------|
 | Canvas | Bouncy balls | `HomeRoute.jsx` (aria-label) |
 | CV heading | About Me | `contents-home.json` → `footer.links.cv.text` |
-| CV button | Back to top | `CvRoute.jsx` |
 | Back link | Back to home | route modules (aria-label) |
-| Theme button | Toggle theme | index/cv/portfolio (aria-label) |
-| CV/Portfolio gate inputs | CV invite code digit 1 of 6, etc. | cv-modal, portfolio-modal (aria-label, from JS) |
+| Theme button | Toggle theme | shared `ShellButtonBar.jsx` |
+| Portfolio gate inputs | Portfolio invite code digit 1 of 6, etc. | `PortfolioGateRoute.jsx` |
 
 ---
 

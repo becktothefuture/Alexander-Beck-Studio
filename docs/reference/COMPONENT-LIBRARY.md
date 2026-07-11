@@ -9,14 +9,14 @@ Treat the **route top bar** with the same rigidity as the **footer**: one shared
 | Piece | Markup / class | Rule |
 |--------|-----------------|------|
 | Wrapper | `header.ui-top` | Same as other routes. |
-| Row | `div.ui-top-main.route-topbar` (+ `portfolio-topbar` on portfolio **and** CV for shared spacing) | **CSS grid** `auto 1fr auto`, full width; top inset uses `calc(var(--gap-xs) + var(--portfolio-nav-top, 0px))` on those routes. |
+| Row | `div.ui-top-main.route-topbar` (+ `portfolio-topbar` on Portfolio) | **CSS grid** `auto 1fr auto`, full width. |
 | Left | `div.route-topbar__left` | Gate / back: `a.gate-back.abs-icon-btn`. |
-| Center | `div.route-topbar__center` or `nav.route-topbar__center.ui-main-nav` | Portfolio leaves this as a spacer. CV still uses it for primary text actions. |
-| Right | `div.route-topbar__right.ui-top-right` | Portfolio: reserved for its optional `nav.portfolio-topnav.ui-main-nav`; it does not mount a route-level sound control. CV: `div#sound-toggle-slot.portfolio-sound-slot` only. CV sound mounts via `sound-toggle.js`. |
+| Center | `div.route-topbar__center` or `nav.route-topbar__center.ui-main-nav` | Portfolio leaves this as a spacer. |
+| Right | `div.route-topbar__right.ui-top-right` | Portfolio reserves this for optional route actions; shared sound/theme controls live in the Button Bar. |
 
 **Do not:** absolutely position the center column (breaks column 3 / mute alignment). **Do not** invent alternate text-button classes—only `MainNavLink` / `.footer_link` inside `.ui-main-nav` (plus `.abs-icon-btn` for glyphs).
 
-**References:** `main.css` (`body.*-page .route-topbar`, `.ui-main-nav .footer_link`), `MainNavLink.jsx`, `PortfolioRoute.jsx`, `CvRoute.jsx`, `HomeRoute.jsx` (home primary route controls live in the Button Bar; portfolio uses the right cluster for the About Me/CV action).
+**References:** `main.css`, `MainNavLink.jsx`, `PortfolioRoute.jsx`, and `HomeRoute.jsx`.
 
 ## Primary buttons (two families)
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   getLondonWeatherPalette,
   resolveLondonWeatherPaletteId,
@@ -6,6 +6,7 @@ import {
 import { desaturateGreysToBackground } from '../../palette/paletteTransforms.js';
 import { getLondonWeatherPaletteIdFromAssessment } from '../../weather/londonWeatherAssessment.js';
 import { withBasePath } from '../../lib/base-path.js';
+import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 
 export const DAILY_FOCUS_DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
 
@@ -50,11 +51,9 @@ export async function loadDailyFocusJson(url, fallback) {
   }
 }
 
-export function resolveDailyFocusTheme(designSystem) {
+export function resolveDailyFocusTheme(designSystem, isDarkMode = false) {
   const runtime = designSystem?.runtime || {};
   const shellTheme = designSystem?.shell?.theme || {};
-  const isDarkMode = typeof document !== 'undefined'
-    && document.body?.classList?.contains('dark-mode');
   const paletteId = resolveLondonWeatherPaletteId(
     runtime.paletteId
       || runtime.palette
@@ -79,6 +78,14 @@ export function resolveDailyFocusTheme(designSystem) {
       ? runtime.colorDistribution
       : DEFAULT_DAILY_FOCUS_THEME.colorDistribution,
   };
+}
+
+export function useDailyFocusTheme(designSystem) {
+  const isDark = useRenderedThemeIsDark();
+  return useMemo(
+    () => resolveDailyFocusTheme(designSystem, isDark),
+    [designSystem, isDark],
+  );
 }
 
 export function useDailyFocusReducedMotion() {

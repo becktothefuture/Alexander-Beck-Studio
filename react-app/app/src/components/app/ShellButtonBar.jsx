@@ -11,12 +11,7 @@ import {
 } from '../../legacy/modules/audio/sound-engine.js';
 import { setTheme } from '../../legacy/modules/visual/dark-mode-v2.js';
 import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
-import { isDarkThemeDocument } from '../../lib/theme-state.js';
-
-function readRenderedThemeIsDark() {
-  if (typeof document === 'undefined') return false;
-  return isDarkThemeDocument(document);
-}
+import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 
 function readSoundButtonState() {
   try {
@@ -142,19 +137,7 @@ function MoonIcon() {
 }
 
 function BottomThemeToggle() {
-  const [isDark, setIsDark] = useState(readRenderedThemeIsDark);
-
-  useEffect(() => {
-    const syncTheme = (event) => {
-      setIsDark(Boolean(event?.detail?.isDark ?? readRenderedThemeIsDark()));
-    };
-
-    syncTheme();
-    window.addEventListener('abs:theme-changed', syncTheme);
-    return () => {
-      window.removeEventListener('abs:theme-changed', syncTheme);
-    };
-  }, []);
+  const isDark = useRenderedThemeIsDark();
 
   const nextTheme = isDark ? 'light' : 'dark';
   const activateTheme = () => setTheme(nextTheme);

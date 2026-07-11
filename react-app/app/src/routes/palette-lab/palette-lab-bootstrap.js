@@ -6,7 +6,6 @@ import {
   waitForPageReadyBarrier,
   waitForUsableRects,
 } from '../../legacy/modules/visual/page-orchestrator.js';
-import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
 import { waitForFonts } from '../../legacy/modules/utils/font-loader.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 
@@ -17,18 +16,6 @@ export async function bootstrapPaletteLab() {
     syncCornerShapeSquircleClass(runtime?.cornerShapeSquircleEnabled !== false);
   } catch {
     syncCornerShapeSquircleClass(true);
-  }
-
-  try {
-    const shellConfig = await loadShellConfig();
-    syncShellToDocument({
-      config: shellConfig,
-      isDark: document.documentElement.classList.contains('dark-mode'),
-    });
-  } catch {
-    syncShellToDocument({
-      isDark: document.documentElement.classList.contains('dark-mode'),
-    });
   }
 
   stampCursorContrastFromTheme();

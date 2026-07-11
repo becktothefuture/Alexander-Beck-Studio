@@ -54,55 +54,33 @@ import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js'
 import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
 import { initializeDarkMode } from '../../legacy/modules/visual/dark-mode-v2.js';
 import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
+import { initLinkCursorHop } from '../../legacy/modules/ui/link-cursor-hop.js';
 import { isDarkThemeDocument } from '../../lib/theme-state.js';
+import { getRouteById } from '../../lib/routes.js';
 
-const ROUTE_VIEW_BY_ID = {
-  home: getHomeRouteView,
-  contact: getContactRouteView,
-  portfolio: getPortfolioRouteView,
-  about: getAboutRouteView,
-  styleguide: getStyleguideRouteView,
-  simulations: getSimulationLaunchpadRouteView,
-  'palette-lab': getPaletteLabRouteView,
-  'beach-ball-room': getBeachBallRoomRouteView,
-  'flock-of-birds': getFlockOfBirdsRouteView,
-  'repel-room': getRepelRoomRouteView,
-  'mineral-growth': getMineralGrowthRouteView,
-  'aperture-bloom': getApertureBloomRouteView,
-  'confluence-bridges': getConfluenceBridgesRouteView,
-  'napoleon-point-cloud': getNapoleonPointCloudRouteView,
-  'rift-rings': getRiftRingsRouteView,
-  'spatial-scan': getSpatialScanRouteView,
-  'loader-playground': getLoaderPlaygroundRouteView
-};
+function defineRouteDescriptor(routeId, definition) {
+  return Object.freeze({ ...getRouteById(routeId), ...definition });
+}
 
-const ROUTE_RUNTIME_BY_ID = {
-  home: HOME_ROUTE_RUNTIME,
-  contact: CONTACT_ROUTE_RUNTIME,
-  portfolio: PORTFOLIO_ROUTE_RUNTIME,
-  about: ABOUT_ROUTE_RUNTIME,
-  styleguide: STYLEGUIDE_ROUTE_RUNTIME,
-  simulations: SIMULATION_LAUNCHPAD_ROUTE_RUNTIME,
-  'palette-lab': PALETTE_LAB_ROUTE_RUNTIME,
-  'beach-ball-room': BEACH_BALL_ROOM_ROUTE_RUNTIME,
-  'flock-of-birds': FLOCK_OF_BIRDS_ROUTE_RUNTIME,
-  'repel-room': REPEL_ROOM_ROUTE_RUNTIME,
-  'mineral-growth': MINERAL_GROWTH_ROUTE_RUNTIME,
-  'aperture-bloom': APERTURE_BLOOM_ROUTE_RUNTIME,
-  'confluence-bridges': CONFLUENCE_BRIDGES_ROUTE_RUNTIME,
-  'napoleon-point-cloud': NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME,
-  'rift-rings': RIFT_RINGS_ROUTE_RUNTIME,
-  'spatial-scan': SPATIAL_SCAN_ROUTE_RUNTIME,
-  'loader-playground': LOADER_PLAYGROUND_ROUTE_RUNTIME
-};
-
-const PAGE_TITLE_BY_ROUTE_ID = {
-  home: 'Alexander Beck Studio',
-  contact: 'Contact - Alexander Beck Studio',
-  portfolio: 'Portfolio - Alexander Beck',
-  about: 'About Me - Alexander Beck Studio',
-  cv: 'About Me - Alexander Beck Studio',
-};
+const ROUTE_DESCRIPTORS = Object.freeze({
+  home: defineRouteDescriptor('home', { title: 'Alexander Beck Studio', getView: getHomeRouteView, runtime: HOME_ROUTE_RUNTIME }),
+  contact: defineRouteDescriptor('contact', { title: 'Contact - Alexander Beck Studio', getView: getContactRouteView, runtime: CONTACT_ROUTE_RUNTIME }),
+  portfolio: defineRouteDescriptor('portfolio', { title: 'Portfolio - Alexander Beck', getView: getPortfolioRouteView, runtime: PORTFOLIO_ROUTE_RUNTIME }),
+  about: defineRouteDescriptor('about', { title: 'About Me - Alexander Beck Studio', getView: getAboutRouteView, runtime: ABOUT_ROUTE_RUNTIME }),
+  styleguide: defineRouteDescriptor('styleguide', { getView: getStyleguideRouteView, runtime: STYLEGUIDE_ROUTE_RUNTIME }),
+  simulations: defineRouteDescriptor('simulations', { getView: getSimulationLaunchpadRouteView, runtime: SIMULATION_LAUNCHPAD_ROUTE_RUNTIME }),
+  'palette-lab': defineRouteDescriptor('palette-lab', { getView: getPaletteLabRouteView, runtime: PALETTE_LAB_ROUTE_RUNTIME }),
+  'beach-ball-room': defineRouteDescriptor('beach-ball-room', { getView: getBeachBallRoomRouteView, runtime: BEACH_BALL_ROOM_ROUTE_RUNTIME }),
+  'flock-of-birds': defineRouteDescriptor('flock-of-birds', { getView: getFlockOfBirdsRouteView, runtime: FLOCK_OF_BIRDS_ROUTE_RUNTIME }),
+  'repel-room': defineRouteDescriptor('repel-room', { getView: getRepelRoomRouteView, runtime: REPEL_ROOM_ROUTE_RUNTIME }),
+  'mineral-growth': defineRouteDescriptor('mineral-growth', { getView: getMineralGrowthRouteView, runtime: MINERAL_GROWTH_ROUTE_RUNTIME }),
+  'aperture-bloom': defineRouteDescriptor('aperture-bloom', { getView: getApertureBloomRouteView, runtime: APERTURE_BLOOM_ROUTE_RUNTIME }),
+  'confluence-bridges': defineRouteDescriptor('confluence-bridges', { getView: getConfluenceBridgesRouteView, runtime: CONFLUENCE_BRIDGES_ROUTE_RUNTIME }),
+  'napoleon-point-cloud': defineRouteDescriptor('napoleon-point-cloud', { getView: getNapoleonPointCloudRouteView, runtime: NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME }),
+  'rift-rings': defineRouteDescriptor('rift-rings', { getView: getRiftRingsRouteView, runtime: RIFT_RINGS_ROUTE_RUNTIME }),
+  'spatial-scan': defineRouteDescriptor('spatial-scan', { getView: getSpatialScanRouteView, runtime: SPATIAL_SCAN_ROUTE_RUNTIME }),
+  'loader-playground': defineRouteDescriptor('loader-playground', { getView: getLoaderPlaygroundRouteView, runtime: LOADER_PLAYGROUND_ROUTE_RUNTIME }),
+});
 
 let sharedShellRuntimeSyncPromise = null;
 
@@ -120,6 +98,7 @@ function syncSharedShellRuntimeState() {
       });
       initNoiseSystem(runtimeConfig);
       initializeDarkMode();
+      initLinkCursorHop();
     });
   }
   return sharedShellRuntimeSyncPromise;
@@ -167,7 +146,7 @@ function getRouteViewForId(routeId, canonicalHref, routeState, focusRevision = 0
     const dailyFocusRouteId = getHomeDailyFocusRouteId(canonicalHref, routeState);
     if (dailyFocusRouteId) return getDailyFocusRouteView(dailyFocusRouteId);
   }
-  return (ROUTE_VIEW_BY_ID[routeId] || ROUTE_VIEW_BY_ID.home)(canonicalHref, routeState);
+  return (ROUTE_DESCRIPTORS[routeId] || ROUTE_DESCRIPTORS.home).getView(canonicalHref, routeState);
 }
 
 function getRouteRuntimeForId(routeId, canonicalHref, routeState, focusRevision = 0) {
@@ -181,7 +160,7 @@ function getRouteRuntimeForId(routeId, canonicalHref, routeState, focusRevision 
   ) {
     return {};
   }
-  return ROUTE_RUNTIME_BY_ID[routeId] || ROUTE_RUNTIME_BY_ID.home;
+  return (ROUTE_DESCRIPTORS[routeId] || ROUTE_DESCRIPTORS.home).runtime;
 }
 
 function readProjectFixture(routeId) {
@@ -249,6 +228,7 @@ function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {}) {
 
 export function SiteApp() {
   const [simulationFocusRevision, setSimulationFocusRevision] = useState(0);
+  const [shellRuntimeReady, setShellRuntimeReady] = useState(false);
   const wallSurfaceRef = useRef(null);
   const heroSurfaceRef = useRef(null);
   const uiSurfaceRef = useRef(null);
@@ -302,7 +282,9 @@ export function SiteApp() {
     surfaceRefs,
   });
   const isStandaloneRoute = routeView.layout === 'standalone';
-  const routeRuntimeActive = !isStandaloneRoute && routeView.legacyRuntime !== false;
+  const routeRuntimeActive = shellRuntimeReady
+    && !isStandaloneRoute
+    && routeView.legacyRuntime !== false;
   const routeRuntimeId = routeView.runtimeRouteId || routeState.route.id;
   const isDailyFocusRoute = isDailyFocusRouteRequest(
     routeState.route.id,
@@ -317,7 +299,7 @@ export function SiteApp() {
     syncSharedShellRuntimeState()
       .then(() => {
         if (!cancelled) {
-          applyLayoutCSSVars();
+          setShellRuntimeReady(true);
         }
       })
       .catch((error) => {
@@ -329,7 +311,7 @@ export function SiteApp() {
   }, [isStandaloneRoute]);
 
   useEffect(() => {
-    const nextTitle = PAGE_TITLE_BY_ROUTE_ID[routeState.route.id];
+    const nextTitle = ROUTE_DESCRIPTORS[routeState.route.id]?.title;
     if (nextTitle && document.title !== nextTitle) {
       document.title = nextTitle;
     }
@@ -390,7 +372,11 @@ export function SiteApp() {
   return (
     <>
       {!isStandaloneRoute ? <DevConfigPanelBridge /> : null}
-      <BodyClassManager className={routeView.bodyClass} htmlClassName={routeView.htmlClassName} />
+      <BodyClassManager
+        className={routeView.bodyClass}
+        htmlClassName={routeView.htmlClassName}
+        routeId={routeState.route.id}
+      />
       {isStandaloneRoute ? (
         routeView.mainContent
       ) : (

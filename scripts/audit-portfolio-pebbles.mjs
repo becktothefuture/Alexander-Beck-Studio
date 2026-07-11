@@ -181,7 +181,8 @@ async function collectMetrics(page) {
         throttleShare: null,
         throttleLevel: null,
         renderQualityTier: null,
-        noiseReady: document.body.classList.contains('noise-ready'),
+        noiseReady: document.documentElement.classList.contains('noise-ready')
+          || document.body.classList.contains('noise-ready'),
         quoteDisplayVisible: Boolean(document.getElementById('quote-display')),
       };
     }
@@ -209,7 +210,8 @@ async function collectMetrics(page) {
       throttleShare: globals.pitPerfSummary?.throttleShare ?? null,
       throttleLevel: globals.adaptiveThrottleLevel ?? null,
       renderQualityTier: globals.renderQualityTierResolved ?? null,
-      noiseReady: document.body.classList.contains('noise-ready'),
+      noiseReady: document.documentElement.classList.contains('noise-ready')
+        || document.body.classList.contains('noise-ready'),
       quoteDisplayVisible: Boolean(document.getElementById('quote-display')),
     };
     return metrics;
@@ -223,7 +225,7 @@ function evaluateScenario(result) {
 
   if (!metrics.allFinite) failures.push('non-finite state');
   if (!metrics.inBounds) failures.push('body escaped bounds');
-  if (metrics.noiseReady) failures.push('noise system still active');
+  if (!metrics.noiseReady) failures.push('shared noise system not ready');
   if (metrics.quoteDisplayVisible) failures.push('quote display still mounted');
   if (metrics.ballCount < 6) failures.push(`expected 6 bodies, saw ${metrics.ballCount}`);
   if (metrics.sleepingCount < expectation.minSleepingCount) {

@@ -1,0 +1,49 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e12]:
+    - region "Contact" [ref=f2e124]:
+      - paragraph: Alexander Beck Studio
+      - heading "Contact" [level=1]
+      - paragraph: Hit me up for collaborations and job opportunities. If you need innovative thinking and a creative mind to tackle complex aesthetic, visual, and system problems, get in touch.
+      - generic:
+        - button "Copy email address":
+          - generic: alexander@beck.fyi
+          - generic: 
+    - generic:
+      - generic:
+        - generic:
+          - contentinfo:
+            - generic:
+              - group "Social media links" [ref=f2e43]:
+                - link "Apple Music" [ref=f2e44] [cursor=pointer]:
+                  - /url: https://music.apple.com/profile/beckandeggs
+                  - generic: 
+                - link "LinkedIn" [ref=f2e46] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/in/thisisbeck/
+                  - generic: 
+              - generic [ref=f2e48]:
+                - generic "London local time":
+                  - generic:
+                    - generic:
+                      - strong: London
+                      - generic: ·
+                    - time: 6:44:45 PM
+          - status:
+            - generic: A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable. © 2026 Alexander Beck
+    - generic [ref=f2e49]:
+      - navigation "Primary buttons" [ref=f2e50]:
+        - link "Home" [ref=f2e51] [cursor=pointer]:
+          - /url: /index.html
+        - link "Portfolio" [ref=f2e56] [cursor=pointer]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About me" [ref=f2e58] [cursor=pointer]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=f2e60]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=f2e62]:
+        - button "Sound off" [ref=f2e63] [cursor=pointer]:
+          - generic: 
+        - button "Switch to dark mode" [ref=f2e117] [cursor=pointer]
+  - button "Toggle design panel" [ref=f2e10] [cursor=pointer]

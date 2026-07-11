@@ -4,11 +4,9 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { CONSTANTS, MODES, NARRATIVE_MODE_SEQUENCE } from './modules/core/constants.js';
-import { initState, setCanvas, getGlobals, applyLayoutCSSVars } from './modules/core/state.js';
+import { setCanvas, getGlobals } from './modules/core/state.js';
 import { getDailyMode } from './modules/core/daily-scheduler.js';
-import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
 import { getPaletteTemplateOverrideFromUrl, getWeatherDrivenPaletteTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './modules/visual/colors.js';
-import { initNoiseSystem } from './modules/visual/noise-system.js';
 import {
   setupRenderer,
   getCanvas,
@@ -18,7 +16,6 @@ import {
   disposeRendererListeners,
 } from './modules/rendering/renderer.js';
 import { render } from './modules/physics/engine.js';
-import { applyButtonBarCssVars } from '../lib/buttonBarControls.js';
 
 import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
@@ -27,28 +24,22 @@ import { setupCustomCursor } from './modules/rendering/cursor.js';
 import { setMode, getForceApplicator, initModeSystem, disposeModeSystem } from './modules/modes/mode-controller.js';
 import { startMainLoop, stopMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
-import { initModalOverlay } from './modules/ui/modal-overlay.js';
-import { createThemeToggle } from './modules/ui/theme-toggle.js';
 import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/audio/sound-engine.js';
-import { upgradeSocialIcons } from './modules/ui/social-icons.js';
-import { initTimeDisplay } from './modules/ui/time-display.js';
 import { initQuoteDisplay } from './modules/ui/quote-display.js';
 import { initQuotePuck } from './modules/ui/quote-puck.js';
 import { applyExpertiseLegendColors } from './modules/ui/legend-colors.js';
 // Note: Legend interactivity is now inlined in main.js for reliability
 import { initLegendFilterSystem } from './modules/ui/legend-filter.js';
-import { initLinkCursorHop } from './modules/ui/link-cursor-hop.js';
 import { initTactileLayer, updateTactileLayer } from './modules/visual/tactile-layer.js';
 import { setApplyVisualCSSVars, setUpdateTactileLayer } from './modules/ui/control-registry.js';
 import { updateModeButtonsUI } from './modules/ui/controls.js';
 // Layout controls now integrated into master panel
 import { initSceneImpactReact } from './modules/ui/scene-impact-react.js';
 import { initSceneChangeSFX } from './modules/ui/scene-change-sfx.js';
-import { loadRuntimeText, getText } from './modules/utils/text-loader.js';
+import { loadRuntimeText } from './modules/utils/text-loader.js';
 import { applyRuntimeTextToDOM } from './modules/ui/apply-text.js';
-import { loadRuntimeConfig } from './modules/utils/runtime-config.js';
 import { waitForFonts } from './modules/utils/font-loader.js';
-import { getShellConfig, loadShellConfig, syncShellToDocument } from './modules/visual/site-shell.js';
+import { getShellConfig } from './modules/visual/site-shell.js';
 import {
   completeDirectBoot,
   failDirectBoot,
@@ -147,20 +138,13 @@ function getUrlStartupModeOverride() {
  *
  * The canvas radius auto-calculates via CSS: calc(var(--container-radius) - var(--simulation-padding))
  */
-export function applyFramePaddingCSSVars() {
-  // Back-compat export: this project previously applied only frame padding here.
-  // Layout is now vw-native in config/state, with px derived and stamped centrally.
-  applyLayoutCSSVars();
-}
-
 /**
  * Apply visual CSS variables (noise opacity/size, walls) from config to :root
  */
 export function applyVisualCSSVars(config) {
   const root = document.documentElement;
 
-  // NOTE: Layout CSS vars (frame/padding/radius/thickness) are applied via
-  // `applyLayoutCSSVars()` from state (vw-native → px derived).
+  // Layout CSS vars are owned by the shared React shell runtime.
 
   // Brand logo sizing (shared token; driven by runtime config + dev panel slider).
   if (config.topLogoWidthVw !== undefined) {
@@ -190,38 +174,6 @@ export function applyVisualCSSVars(config) {
     root.style.setProperty('--noise-color-dark', String(config.noiseColorDark));
   }
 
-}
-
-/**
- * Ensure the base .noise element exists (for dev environments where the full exported HTML isn't present).
- * Secondary noise layers are intentionally removed for performance.
- */
-function ensureNoiseElements() {
-  // Check if we have a noise texture image to use
-  const existingNoise = document.querySelector('.noise');
-  if (!existingNoise) {
-    // No noise system present (minimal dev markup) - skip
-    return;
-  }
-}
-
-// ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                    MAIN LINKS — MOBILE WRAP ENHANCEMENTS                    ║
-// ╚══════════════════════════════════════════════════════════════════════════════╝
-// We avoid editing exported HTML directly by enhancing at runtime.
-function enhanceFooterLinksForMobile() {
-  try {
-    const cv = document.getElementById('cv-modal-trigger');
-    if (cv && !cv.querySelector('.footer-link-nowrap')) {
-      const expected = String(getText('footer.links.cv.text', '') || '').trim();
-      const raw = (cv.textContent || '').trim().replace(/\s+/g, ' ');
-      const txt = expected || raw;
-      // Keep short compound labels together on mobile (e.g. "About Me").
-      if (txt && txt.includes('/') && raw === txt) {
-        cv.innerHTML = `<span class="footer-link-nowrap">${txt}</span>`;
-      }
-    }
-  } catch (e) {}
 }
 
 function applyHomeHeroRuntimeConfig() {
@@ -375,17 +327,8 @@ export async function bootstrapHomePage() {
     mark('bb:start');
     log('🚀 Initializing modular bouncy balls...');
 
-    await loadShellConfig();
-    syncShellToDocument({
-      isDark: document.documentElement.classList.contains('dark-mode')
-    });
-
-    const config = await loadRuntimeConfig();
-    initState(config);
+    const config = getGlobals().config || {};
     applyHomeHeroRuntimeConfig();
-    syncShellToDocument({
-      isDark: document.documentElement.classList.contains('dark-mode')
-    });
     mark('bb:config');
     log('✓ Config loaded');
 
@@ -402,112 +345,9 @@ export async function bootstrapHomePage() {
       }
     } catch (e) {}
 
-    // Apply vw-native layout (frame/padding/radius) as derived px CSS vars.
-    applyLayoutCSSVars();
-    log('✓ Layout applied');
-
     // Apply visual CSS vars (noise, inner shadow) from config
     applyVisualCSSVars(config);
     log('✓ Visual effects configured');
-
-    // Apply config-driven UI CSS vars that aren't part of layout/colors stamping.
-    // (Production ships without the panel, so config must fully drive these.)
-    try {
-      const g = getGlobals();
-      const root = document.documentElement;
-      const clampHoverPercent = (value) => {
-        const normalized = Number(value);
-        if (!Number.isFinite(normalized)) return '0%';
-        const clamped = Math.max(0, Math.min(1, normalized));
-        return `${(clamped * 100).toFixed(1)}%`;
-      };
-      if (Number.isFinite(g?.topLogoWidthVw)) {
-        root.style.setProperty('--top-logo-width-vw', String(g.topLogoWidthVw));
-      }
-      if (Number.isFinite(g?.homeMainLinksBelowLogoPx)) {
-        root.style.setProperty('--home-main-links-below-logo-px', g.homeMainLinksBelowLogoPx + 'px');
-      }
-      if (Number.isFinite(g?.footerNavBarTopVh)) {
-        root.style.setProperty('--footer-nav-bar-top', `${g.footerNavBarTopVh}vh`);
-        root.style.setProperty('--footer-nav-bar-top-svh', `${g.footerNavBarTopVh}svh`);
-        root.style.setProperty('--footer-nav-bar-top-dvh', `${g.footerNavBarTopVh}dvh`);
-      }
-      if (Number.isFinite(g?.footerNavBarGapVw)) {
-        /* Convert vw to clamp() pattern: min scales with vw, max = min * 1.67 (matching --gap-xl ratio) */
-        const minPx = Math.round(g.footerNavBarGapVw * 9.6); // ~var(--space-lg) at var(--size-2.5) base
-        const maxPx = Math.round(minPx * 1.67); // ~var(--space-3xl) at var(--size-2.5) base (maintains ratio)
-        root.style.setProperty('--footer-nav-bar-gap', `clamp(${minPx}px, ${g.footerNavBarGapVw}vw, ${maxPx}px)`);
-      }
-      applyButtonBarCssVars(g, root);
-      if (Number.isFinite(g?.uiHitAreaMul)) {
-        root.style.setProperty('--ui-hit-area-mul', String(g.uiHitAreaMul));
-      }
-      if (Number.isFinite(g?.uiIconCornerRadiusMul)) {
-        root.style.setProperty('--ui-icon-corner-radius-mul', String(g.uiIconCornerRadiusMul));
-      }
-      // Unified icon button geometry: frame size + glyph size (px)
-      // 0 = use token-derived defaults (do not override CSS).
-      if (Number.isFinite(g?.uiIconFramePx) && Math.round(g.uiIconFramePx) > 0) {
-        root.style.setProperty('--ui-icon-frame-size', `${Math.round(g.uiIconFramePx)}px`);
-      }
-      if (Number.isFinite(g?.uiIconGlyphPx) && Math.round(g.uiIconGlyphPx) > 0) {
-        root.style.setProperty('--ui-icon-glyph-size', `${Math.round(g.uiIconGlyphPx)}px`);
-      }
-      if (Number.isFinite(g?.linkTextPadding)) {
-        root.style.setProperty('--link-text-padding', `${Math.round(g.linkTextPadding)}px`);
-        root.style.setProperty('--link-text-margin', `${-Math.round(g.linkTextPadding)}px`);
-      }
-      if (Number.isFinite(g?.linkIconPadding)) {
-        root.style.setProperty('--link-icon-padding', `${Math.round(g.linkIconPadding)}px`);
-        root.style.setProperty('--link-icon-margin', `${-Math.round(g.linkIconPadding)}px`);
-      }
-      if (Number.isFinite(g?.linkColorInfluence)) {
-        root.style.setProperty('--link-color-influence', String(g.linkColorInfluence));
-      }
-      if (Number.isFinite(g?.linkImpactScale)) {
-        root.style.setProperty('--link-impact-scale', String(g.linkImpactScale));
-      }
-      if (Number.isFinite(g?.linkImpactBlur)) {
-        root.style.setProperty('--link-impact-blur', `${g.linkImpactBlur}px`);
-      }
-      if (Number.isFinite(g?.linkImpactDuration)) {
-        root.style.setProperty('--link-impact-duration', `${Math.round(g.linkImpactDuration)}ms`);
-      }
-      if (Number.isFinite(g?.linkHoverNudge)) {
-        root.style.setProperty('--link-nudge', `${g.linkHoverNudge}px`);
-      }
-      if (Number.isFinite(g?.linkHoverIntensityLight)) {
-        root.style.setProperty('--abs-hover-intensity-light', clampHoverPercent(g.linkHoverIntensityLight));
-      }
-      if (Number.isFinite(g?.linkHoverIntensityDark)) {
-        root.style.setProperty('--abs-hover-intensity-dark', clampHoverPercent(g.linkHoverIntensityDark));
-      }
-      if (Number.isFinite(g?.linkHoverIntensityActive)) {
-        root.style.setProperty('--abs-hover-intensity-active', clampHoverPercent(g.linkHoverIntensityActive));
-      }
-
-      // Hover target "snap" bounce (scale-only; color stays instant)
-      if (g?.hoverSnapEnabled !== undefined) {
-        root.style.setProperty('--abs-hover-snap-enabled', g.hoverSnapEnabled ? '1' : '0');
-      }
-      if (Number.isFinite(g?.hoverSnapDuration)) {
-        root.style.setProperty('--abs-hover-snap-duration', `${Math.max(0, Math.round(g.hoverSnapDuration))}ms`);
-      }
-      if (Number.isFinite(g?.hoverSnapOvershoot)) {
-        root.style.setProperty('--abs-hover-snap-overshoot', String(g.hoverSnapOvershoot));
-      }
-      if (Number.isFinite(g?.hoverSnapUndershoot)) {
-        root.style.setProperty('--abs-hover-snap-undershoot', String(g.hoverSnapUndershoot));
-      }
-    } catch (e) {}
-
-    // Ensure base noise element exists (for modular dev environments)
-    ensureNoiseElements();
-
-    // Procedural noise texture (no GIF): generates a small texture once and animates via CSS only.
-    try {
-      initNoiseSystem(getGlobals());
-    } catch (e) {}
 
     // Setup canvas (attaches resize listener, but doesn't resize yet)
     setupRenderer();
@@ -565,9 +405,6 @@ export async function bootstrapHomePage() {
       console.warn('Tactile layer init failed:', e);
     }
 
-    // Link hover: hide cursor + trail; let hover dot “become” the cursor.
-    initLinkCursorHop();
-
     // Scene micro-interaction: subtle "clicked-in" response on simulation changes
     initSceneImpactReact();
 
@@ -601,31 +438,6 @@ export async function bootstrapHomePage() {
 
     setupKeyboardShortcuts();
     log('✓ Keyboard shortcuts registered');
-
-    // Initialize modal blur overlay system
-    try {
-      initModalOverlay(config);
-      log('✓ Modal overlay system initialized');
-    } catch (e) {
-      console.warn('Modal overlay initialization error:', e?.message);
-    }
-
-    // Compose the top UI (LEGACY FUNCTION REMOVED - NOW IN DOM)
-    // setupTopElementsLayout();
-
-    // Normalize social icons (line SVGs) across dev + build.
-    // (Build uses the exported HTML; we patch at runtime for consistency.)
-    upgradeSocialIcons();
-
-    // Initialize time display (London time)
-    initTimeDisplay();
-
-    // Footer: mobile-friendly wrapping tweaks (keeps "About Me" together)
-    enhanceFooterLinksForMobile();
-
-    // Create quick theme toggle button (bottom-left)
-    createThemeToggle();
-    log('✓ Theme toggle button created');
 
     // Layout controls integrated into master panel
 
@@ -739,11 +551,10 @@ export async function bootstrapHomePage() {
       ? '✓ Dev panel launcher ready'
       : (localBuildPanelPreview ? '✓ Local build panel ready' : '✓ UI initialized (panel disabled in production)'));
 
-    // Theme segment buttons live in the panel; init runs once after the dock exists.
-    initializeDarkMode();
+    // Theme is initialized by the shared React shell before this runtime starts.
     mark('bb:theme');
 
-    // Cursor color: auto-pick after dark mode + palette (initializeDarkMode → applyColorTemplate).
+    // Cursor color: auto-pick after the shared theme has been applied.
     maybeAutoPickCursorColor?.('startup');
 
     mark('bb:mode');

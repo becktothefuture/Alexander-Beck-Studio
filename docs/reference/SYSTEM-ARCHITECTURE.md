@@ -59,9 +59,9 @@ Generated compatibility/runtime outputs are:
 
 ## Boot Flow
 
-The public HTML entries are Vite inputs under `react-app/app/`. The production inputs include the main shell pages (`index.html`, `portfolio.html`, `cv.html`, `styleguide.html`, `palette-lab.html`), `simulations.html`, `explain-it-like-im.html`, and the `/lab/*.html` simulation entries.
+The public HTML entries are Vite inputs under `react-app/app/`. The production inputs include the main shell pages (`index.html`, `portfolio.html`, `about.html`, `contact.html`, `cv.html`, `styleguide.html`, `palette-lab.html`), `simulations.html`, `explain-it-like-im.html`, and the `/lab/*.html` simulation entries.
 
-The boot-overlay shell entries (`index.html`, `portfolio.html`, `cv.html`, `styleguide.html`, and `palette-lab.html`) use the full first-paint boot contract:
+The boot-overlay shell entries use the full first-paint boot contract. `index.html` is the canonical production boot and shared-stylesheet source for Home, Portfolio, About, Contact, and the CV alias; `npm run sync:entry-shell:check` rejects drift before a production build.
 
 1. The HTML document starts with `data-abs-boot-state="booting"` and hides `#root`.
 2. Critical inline CSS and the early theme/chrome script paint the browser chrome and boot overlay before React loads.
@@ -73,18 +73,15 @@ The boot-overlay shell entries (`index.html`, `portfolio.html`, `cv.html`, `styl
 
 Simpler standalone/dashboard/lab entries such as `simulations.html`, `explain-it-like-im.html`, and `/lab/*.html` mount React into a plain `#root` without the heavy boot overlay. Their simpler boot shape is intentional; they are direct lab surfaces, not full shell boot-overlay routes, unless they are loaded through the shared shell as route-backed Daily Focus.
 
-The boot overlay and early theme/chrome script are first-paint infrastructure. Treat them as parity-sensitive.
+The boot overlay and early theme/chrome script are first-paint infrastructure. Treat them as parity-sensitive. The early script mirrors the runtime preference resolver; the authoritative preference, DOM projection, cross-tab, and browser-preference contract is documented in [`THEME-STATE.md`](THEME-STATE.md).
 
 ## Routing And Shell Composition
 
-`react-app/app/src/lib/routes.js` defines route IDs, canonical paths, aliases, and gated routes. Portfolio and CV are gated through `access-gates.js`.
+`react-app/app/src/lib/routes.js` defines route IDs, canonical paths, aliases, and gated routes. Portfolio is gated through `access-gates.js`; `/cv` and `/cv.html` resolve to About.
 
-`SiteApp.jsx` maps each route ID to:
+`SiteApp.jsx` joins each canonical route definition to one route descriptor containing its ID, path, aliases, gate state, title, React view factory, and runtime descriptor. `npm run sim:validate` checks descriptor coverage, Vite inputs, route definitions, and the simulation catalog for drift.
 
-- a React route view function;
-- a runtime descriptor containing `loadModule` and `exportName`.
-
-Route metadata is still authored in today's separate sources: `routes.js`, `SiteApp.jsx`, Vite HTML inputs, and the simulation catalog. `npm run sim:validate` checks those sources for drift. A future route descriptor should be a separate decision and would need, at minimum, `id`, canonical `path`, `aliases`, `gated`, Vite input ownership, route view ownership, runtime descriptor ownership, boot-contract family, and simulation catalog linkage for lab routes.
+The React shell owns shared route identity, layout variables, Button Bar variables, theme state, noise, footer content, the London clock, and shared link behavior. Legacy route runtimes own only route content, canvas/physics behavior, and route-specific interactions; they must not mutate shared React chrome.
 
 `useShellRouteTransition` is the only owner of SPA route transition sequencing. It resolves route state, handles gated redirects, manages transition phases on `<html data-abs-transition-phase>`, and waits for route readiness before reveal.
 
@@ -105,7 +102,8 @@ The portfolio drawer must remain mounted through `#portfolio-sheet-host` so it c
 
 - Home (`/`, `/index.html`) uses the shared shell with the main Canvas 2D runtime from `legacy/main.js`.
 - Portfolio (`/portfolio.html`) uses the shared shell, portfolio route view, invite gate, deck/detail DOM, and portfolio runtime module.
-- CV (`/cv.html`) uses the shared shell, invite gate, CV content route, and CV bootstrap.
+- About (`/about.html`) uses the shared shell and About content route; `/cv.html` is a compatibility alias to About.
+- Contact (`/contact.html`) uses the shared shell and Contact content route.
 - Styleguide (`/styleguide.html`) is a shell-managed component-library route without the dev panel dock.
 - Simulations (`/simulations.html`) is the catalog/admin launchpad for simulation review and promotion.
 - Lab routes (`/lab/*.html`) are shell-managed simulation surfaces. Some are promoted into daily rotation; others remain lab-only with `enabledInRotation: false` or catalog stage boundaries.

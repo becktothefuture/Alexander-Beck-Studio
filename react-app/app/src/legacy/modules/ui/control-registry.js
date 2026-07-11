@@ -195,8 +195,6 @@ const RETIRED_CONTROL_IDS = new Set([
   'logoBlurActive',
   'lockedHeaderLight',
   'lockedHeaderDark',
-  'autoDarkNightStartHour',
-  'autoDarkNightEndHour',
   'tactileEnabled',
   'tactileProjectId',
   'tactileScale',
@@ -802,19 +800,6 @@ export const CONTROL_SECTIONS = {
         }
       },
       {
-        id: 'autoDarkModeEnabled',
-        label: 'Auto Dark (Night)',
-        stateKey: 'autoDarkModeEnabled',
-        type: 'checkbox',
-        default: true,
-        format: v => (v ? 'On' : 'Off'),
-        parse: v => !!v,
-        hint: 'In Auto theme, prefer Dark during the night window (privacy-first: local clock only).',
-        onChange: () => {
-          if (getCurrentTheme() === 'auto') setTheme('auto');
-        }
-      },
-      {
         id: 'cornerShapeSquircleEnabled',
         label: 'Squircle corners',
         stateKey: 'cornerShapeSquircleEnabled',
@@ -825,32 +810,6 @@ export const CONTROL_SECTIONS = {
         hint: 'iOS-style continuous corner curves via CSS corner-shape (supported browsers only). Applied site-wide from <html> class; matches design-system runtime.cornerShapeSquircleEnabled.',
         onChange: () => {
           applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'autoDarkNightStartHour',
-        label: 'Night Starts',
-        stateKey: 'autoDarkNightStartHour',
-        type: 'range',
-        min: 0, max: 23, step: 1,
-        default: 18,
-        format: v => `${Math.round(v)}:00`,
-        parse: v => parseInt(v, 10),
-        onChange: () => {
-          if (getCurrentTheme() === 'auto') setTheme('auto');
-        }
-      },
-      {
-        id: 'autoDarkNightEndHour',
-        label: 'Night Ends',
-        stateKey: 'autoDarkNightEndHour',
-        type: 'range',
-        min: 0, max: 23, step: 1,
-        default: 6,
-        format: v => `${Math.round(v)}:00`,
-        parse: v => parseInt(v, 10),
-        onChange: () => {
-          if (getCurrentTheme() === 'auto') setTheme('auto');
         }
       }
     ]

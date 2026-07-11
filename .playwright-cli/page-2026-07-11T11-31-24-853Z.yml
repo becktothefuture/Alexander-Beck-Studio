@@ -1,0 +1,40 @@
+- generic [ref=e11]:
+  - region [ref=e66]:
+    - paragraph [ref=e67]: About Me
+    - heading "Coming soon" [level=1] [ref=e68]
+  - generic:
+    - generic:
+      - generic:
+        - contentinfo:
+          - generic:
+            - group "Social media links" [ref=e42]:
+              - link "Apple Music" [ref=e43] [cursor=pointer]:
+                - /url: https://music.apple.com/profile/beckandeggs
+                - generic: 
+              - link "LinkedIn" [ref=e45] [cursor=pointer]:
+                - /url: https://www.linkedin.com/in/thisisbeck/
+                - generic: 
+            - generic [ref=e47]:
+              - generic "London local time":
+                - generic:
+                  - generic:
+                    - strong: London
+                  - time: 12:31:23 PM
+        - status:
+          - generic: A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable. © 2026 Alexander Beck
+  - generic [ref=e48]:
+    - navigation "Primary buttons" [ref=e49]:
+      - link "Home" [ref=e50] [cursor=pointer]:
+        - /url: /index.html
+      - link "Portfolio" [ref=e55] [cursor=pointer]:
+        - /url: /portfolio.html
+        - text: 
+      - link "About me" [ref=e57]:
+        - /url: /about.html
+        - text: 
+      - link "Contact" [ref=e59] [cursor=pointer]:
+        - /url: /contact.html
+        - text: 
+    - group "Secondary buttons" [ref=e61]:
+      - button "Sound off" [ref=e62] [cursor=pointer]:
+        - generic: 

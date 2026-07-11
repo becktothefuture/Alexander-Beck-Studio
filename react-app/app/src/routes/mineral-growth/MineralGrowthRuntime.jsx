@@ -8,10 +8,9 @@ import { createMineralGrowthRenderer } from './mineralGrowthRenderer.js';
 import { withBasePath } from '../../lib/base-path.js';
 import {
   DAILY_FOCUS_DESIGN_SYSTEM_URL,
-  DEFAULT_DAILY_FOCUS_THEME,
   loadDailyFocusJson,
-  resolveDailyFocusTheme,
   useDailyFocusReducedMotion,
+  useDailyFocusTheme,
 } from '../daily-focus/dailyFocusTheme.js';
 import './mineral-growth-runtime.css';
 
@@ -21,9 +20,16 @@ export function MineralGrowthRuntime() {
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
   const configRef = useRef(DEFAULT_MINERAL_GROWTH_CONFIG);
-  const themeRef = useRef(DEFAULT_DAILY_FOCUS_THEME);
+  const [designSystem, setDesignSystem] = useState(null);
+  const theme = useDailyFocusTheme(designSystem);
+  const themeRef = useRef(theme);
   const [ready, setReady] = useState(false);
   const reducedMotion = useDailyFocusReducedMotion();
+
+  useEffect(() => {
+    themeRef.current = theme;
+    rendererRef.current?.start();
+  }, [theme]);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,7 +42,7 @@ export function MineralGrowthRuntime() {
 
       if (cancelled) return;
       configRef.current = normalizeMineralGrowthConfig(demoConfig);
-      themeRef.current = resolveDailyFocusTheme(designSystem);
+      setDesignSystem(designSystem);
       setReady(true);
     }
 

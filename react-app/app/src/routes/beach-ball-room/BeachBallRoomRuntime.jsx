@@ -15,6 +15,7 @@ import {
   triggerImpact,
   triggerRelease,
 } from '../../legacy/modules/audio/simulation-audio-adapter.js';
+import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 import {
   BEACH_BALL_ROOM_DEFAULT_SETTINGS,
   clampBeachBallRoomInteger,
@@ -183,14 +184,14 @@ function buildStripColorSequence(approvedColors, white, allowBlack) {
   return sequence.length ? sequence : candidates;
 }
 
-function resolvePalette() {
+function resolvePalette(isDarkMode) {
   const globals = getGlobals();
   const templateId = resolveColorTemplateName(
     getPaletteTemplateOverrideFromUrl()
       || globals.currentTemplate
       || getWeatherDrivenPaletteTemplate(),
   );
-  const colors = getCurrentPalette(templateId)
+  const colors = getCurrentPalette(templateId, isDarkMode)
     .map((hex) => normalizeHexColor(hex, null))
     .filter(Boolean);
   const distribution = Array.isArray(globals.colorDistribution) ? globals.colorDistribution : [];
@@ -1069,7 +1070,8 @@ export function BeachBallRoomRuntime({
   const containerRef = useRef(null);
   const engineRef = useRef(null);
   const reducedMotion = usePrefersReducedMotion();
-  const palette = useMemo(() => resolvePalette(), []);
+  const isDark = useRenderedThemeIsDark();
+  const palette = useMemo(() => resolvePalette(isDark), [isDark]);
   const initialSettingsRef = useRef(settings);
   const previousSettingsRef = useRef(settings);
   const previousReducedMotionRef = useRef(reducedMotion);

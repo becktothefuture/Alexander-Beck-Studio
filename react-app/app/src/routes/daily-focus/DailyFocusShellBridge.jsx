@@ -1,5 +1,4 @@
 import { useLayoutEffect } from 'react';
-import { initState, applyLayoutCSSVars, getGlobals } from '../../legacy/modules/core/state.js';
 import { applyRuntimeTextToDOM } from '../../legacy/modules/ui/apply-text.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 import { loadRuntimeText } from '../../legacy/modules/utils/text-loader.js';
@@ -9,18 +8,12 @@ import {
   waitForPageReadyBarrier,
   waitForUsableRects,
 } from '../../legacy/modules/visual/page-orchestrator.js';
-import { initializeDarkMode } from '../../legacy/modules/visual/dark-mode-v2.js';
-import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
 import { applyExpertiseLegendColors } from '../../legacy/modules/ui/legend-colors.js';
 import { initLegendFilterSystem } from '../../legacy/modules/ui/legend-filter.js';
 import { initModalOverlay } from '../../legacy/modules/ui/modal-overlay.js';
-import { createSoundToggle } from '../../legacy/modules/ui/sound-toggle.js';
-import { initTimeDisplay } from '../../legacy/modules/ui/time-display.js';
-import { applyButtonBarCssVars } from '../../lib/buttonBarControls.js';
 import { isSimulationVisualTransitionSourceActive } from '../../lib/simulationVisualTransition.js';
 
 let runtimeConfigPromise = null;
-let shellConfigPromise = null;
 let runtimeTextPromise = null;
 const DAILY_FOCUS_READY_TIMEOUT_MS = 3600;
 const DAILY_FOCUS_READY_POLL_MS = 50;
@@ -33,13 +26,6 @@ function loadDailyFocusRuntimeConfig() {
   return runtimeConfigPromise;
 }
 
-function loadDailyFocusShellConfig() {
-  if (!shellConfigPromise) {
-    shellConfigPromise = loadShellConfig();
-  }
-  return shellConfigPromise;
-}
-
 function loadDailyFocusRuntimeText() {
   if (!runtimeTextPromise) {
     runtimeTextPromise = loadRuntimeText();
@@ -47,68 +33,7 @@ function loadDailyFocusRuntimeText() {
   return runtimeTextPromise;
 }
 
-function applyHomeUiConfigVars() {
-  const globals = getGlobals();
-  const root = document.documentElement;
-
-  if (Number.isFinite(globals?.topLogoWidthVw)) {
-    root.style.setProperty('--top-logo-width-vw', String(globals.topLogoWidthVw));
-  }
-  if (Number.isFinite(globals?.homeMainLinksBelowLogoPx)) {
-    root.style.setProperty('--home-main-links-below-logo-px', `${Math.round(globals.homeMainLinksBelowLogoPx)}px`);
-  }
-  if (Number.isFinite(globals?.footerNavBarTopVh)) {
-    root.style.setProperty('--footer-nav-bar-top', `${globals.footerNavBarTopVh}vh`);
-    root.style.setProperty('--footer-nav-bar-top-svh', `${globals.footerNavBarTopVh}svh`);
-    root.style.setProperty('--footer-nav-bar-top-dvh', `${globals.footerNavBarTopVh}dvh`);
-  }
-  if (Number.isFinite(globals?.footerNavBarGapVw)) {
-    const minPx = Math.round(globals.footerNavBarGapVw * 9.6);
-    const maxPx = Math.round(minPx * 1.67);
-    root.style.setProperty('--footer-nav-bar-gap', `clamp(${minPx}px, ${globals.footerNavBarGapVw}vw, ${maxPx}px)`);
-  }
-  applyButtonBarCssVars(globals, root);
-  if (Number.isFinite(globals?.uiHitAreaMul)) {
-    root.style.setProperty('--ui-hit-area-mul', String(globals.uiHitAreaMul));
-  }
-  if (Number.isFinite(globals?.uiIconCornerRadiusMul)) {
-    root.style.setProperty('--ui-icon-corner-radius-mul', String(globals.uiIconCornerRadiusMul));
-  }
-  if (Number.isFinite(globals?.uiIconFramePx) && Math.round(globals.uiIconFramePx) > 0) {
-    root.style.setProperty('--ui-icon-frame-size', `${Math.round(globals.uiIconFramePx)}px`);
-  }
-  if (Number.isFinite(globals?.uiIconGlyphPx) && Math.round(globals.uiIconGlyphPx) > 0) {
-    root.style.setProperty('--ui-icon-glyph-size', `${Math.round(globals.uiIconGlyphPx)}px`);
-  }
-  if (Number.isFinite(globals?.linkTextPadding)) {
-    const padding = Math.round(globals.linkTextPadding);
-    root.style.setProperty('--link-text-padding', `${padding}px`);
-    root.style.setProperty('--link-text-margin', `${-padding}px`);
-  }
-  if (Number.isFinite(globals?.linkIconPadding)) {
-    const padding = Math.round(globals.linkIconPadding);
-    root.style.setProperty('--link-icon-padding', `${padding}px`);
-    root.style.setProperty('--link-icon-margin', `${-padding}px`);
-  }
-  if (Number.isFinite(globals?.linkColorInfluence)) {
-    root.style.setProperty('--link-color-influence', String(globals.linkColorInfluence));
-  }
-  if (Number.isFinite(globals?.linkImpactScale)) {
-    root.style.setProperty('--link-impact-scale', String(globals.linkImpactScale));
-  }
-  if (Number.isFinite(globals?.linkImpactBlur)) {
-    root.style.setProperty('--link-impact-blur', `${globals.linkImpactBlur}px`);
-  }
-  if (Number.isFinite(globals?.linkImpactDuration)) {
-    root.style.setProperty('--link-impact-duration', `${Math.round(globals.linkImpactDuration)}ms`);
-  }
-  if (Number.isFinite(globals?.linkHoverNudge)) {
-    root.style.setProperty('--link-nudge', `${globals.linkHoverNudge}px`);
-  }
-}
-
 function initializeSharedHomeChrome() {
-  initTimeDisplay();
   applyExpertiseLegendColors();
 
   const legendAlreadyInteractive = !!document.querySelector('#expertise-legend .legend__item--interactive');
@@ -116,7 +41,6 @@ function initializeSharedHomeChrome() {
     initLegendFilterSystem();
   }
 
-  createSoundToggle();
 }
 
 function initializeSharedHomeModals(config) {
@@ -259,39 +183,25 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
 
     let cancelled = false;
     let runtimeConfig = null;
-    let shellConfig = null;
     let modalSystemsInitialized = false;
 
-    const applyShellVars = () => {
-      if (cancelled || !runtimeConfig || !shellConfig) return;
-      initState(runtimeConfig);
-      syncShellToDocument({
-        config: shellConfig,
-        isDark: document.documentElement.classList.contains('dark-mode'),
-      });
-      applyLayoutCSSVars();
-      applyHomeUiConfigVars();
-      initializeDarkMode();
-      applyHomeUiConfigVars();
+    const initializeRouteChrome = () => {
+      if (cancelled || !runtimeConfig) return;
       initializeSharedHomeChrome();
       document.documentElement.classList.add('js-enabled');
     };
 
     async function revealDailyFocusRoute() {
-      const [config, loadedShellConfig] = await Promise.all([
-        loadDailyFocusRuntimeConfig(),
-        loadDailyFocusShellConfig(),
-      ]);
+      const config = await loadDailyFocusRuntimeConfig();
       if (cancelled) return;
       runtimeConfig = config;
-      shellConfig = loadedShellConfig;
       try {
         await loadDailyFocusRuntimeText();
         applyRuntimeTextToDOM();
       } catch {
         /* Text fallbacks are handled by the modal modules. */
       }
-      applyShellVars();
+      initializeRouteChrome();
       // Daily focus bypasses the legacy home bootstrap, so register the dev panel
       // after the shared config has initialized the legacy globals.
       registerDailyFocusDevPanelRoute();
@@ -329,10 +239,8 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
 
     revealDailyFocusRoute().catch(() => undefined);
 
-    window.addEventListener('resize', applyShellVars);
     return () => {
       cancelled = true;
-      window.removeEventListener('resize', applyShellVars);
     };
   }, [simulationId]);
 

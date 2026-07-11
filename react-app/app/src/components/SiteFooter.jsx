@@ -1,27 +1,48 @@
+import { useEffect, useState } from 'react';
+import homeContent from 'virtual:abs-content/home';
+
 /**
  * SiteFooter – shared footer + edge caption for home, portfolio, and CV.
  * Mounted as a real React component via SharedFrame’s footer slot (createPortal into #footer-mount).
  */
 
-const SOCIAL_LINKS = [
-  {
-    href: 'https://music.apple.com/profile/beckandeggs',
-    label: 'Apple Music',
-    icon: 'ti-brand-apple',
-  },
-  {
-    href: 'https://www.linkedin.com/in/thisisbeck/',
-    label: 'LinkedIn',
-    icon: 'ti-brand-linkedin',
-  },
-];
+const SOCIAL_ICON_BY_KEY = Object.freeze({
+  appleMusic: 'ti-brand-apple',
+  linkedin: 'ti-brand-linkedin',
+});
+const SOCIAL_LINKS = Object.entries(homeContent.socials.items)
+  .filter(([key, item]) => SOCIAL_ICON_BY_KEY[key] && item?.url)
+  .map(([key, item]) => ({
+    href: item.url,
+    label: item.ariaLabel || item.screenReaderText || key,
+    screenReaderText: item.screenReaderText || item.ariaLabel || key,
+    icon: SOCIAL_ICON_BY_KEY[key],
+  }));
+const EDGE_CAPTION = [homeContent.edge.tagline, homeContent.edge.copyright]
+  .filter(Boolean)
+  .join(' ');
+const LONDON_TIME_FORMAT = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Europe/London',
+  hour: 'numeric',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: true,
+});
 
-const EDGE_TAGLINE = 'A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable.';
-const EDGE_COPYRIGHT = '© 2026 Alexander Beck';
-const EDGE_CAPTION = `${EDGE_TAGLINE} ${EDGE_COPYRIGHT}`;
+function getLondonTime() {
+  return LONDON_TIME_FORMAT.format(new Date()).toUpperCase();
+}
 
 export function SiteFooter({ variant = 'standard' }) {
   const showsEdgeCaption = variant !== 'portfolio';
+  const [londonTime, setLondonTime] = useState(getLondonTime);
+
+  useEffect(() => {
+    const update = () => setLondonTime(getLondonTime());
+    update();
+    const intervalId = window.setInterval(update, 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   return (
     <>
@@ -35,9 +56,9 @@ export function SiteFooter({ variant = 'standard' }) {
               id="social-links"
               className="footer_icon-group"
               role="group"
-              aria-label="Social media links"
+              aria-label={homeContent.socials.ariaLabel}
             >
-              {SOCIAL_LINKS.map(({ href, label, icon }) => (
+              {SOCIAL_LINKS.map(({ href, label, screenReaderText, icon }) => (
                 <a
                   key={label}
                   href={href}
@@ -47,14 +68,13 @@ export function SiteFooter({ variant = 'standard' }) {
                   aria-label={label}
                 >
                   <i className={`ti ${icon}`} aria-hidden="true" />
-                  <span className="screen-reader">{label}</span>
+                  <span className="screen-reader">{screenReaderText}</span>
                 </a>
               ))}
             </div>
           </div>
 
           <div className="ui-meta-right">
-            {/* Sound toggle injected here by legacy JS on home */}
             <div
               id="site-year"
               className="caption meta-caption abs-meta-btn"
@@ -65,7 +85,7 @@ export function SiteFooter({ variant = 'standard' }) {
                   <strong className="location-name">London</strong>
                   <span className="meta-separator" aria-hidden="true">·</span>
                 </span>
-                <time id="time-display">0:00:00 AM</time>
+                <time id="time-display">{londonTime}</time>
               </span>
             </div>
           </div>

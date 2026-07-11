@@ -1,0 +1,89 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e11]:
+    - generic [ref=f1e12]:
+      - generic:
+        - application "Bouncy balls" [ref=f1e13]
+        - generic:
+          - generic:
+            - heading "Alexander Beck. Creative. Technologist." [level=1]:
+              - generic: Alexander Beck.
+              - generic: Creative. Technologist.
+        - button "Star Field" [expanded] [ref=f1e15] [cursor=pointer]
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - banner:
+                  - generic:
+                    - navigation "Areas of expertise" [ref=f1e20]:
+                      - generic [ref=f1e21]: Product Design
+                      - generic [ref=f1e24]: Experience Design
+                      - generic [ref=f1e27]: Art Direction
+                      - generic [ref=f1e30]: Motion & 3D
+                      - generic [ref=f1e33]: Creative Engineering
+                      - generic [ref=f1e36]: Parametric Systems
+                    - blockquote [ref=f1e39]:
+                      - paragraph [ref=f1e40]:
+                        - text: Innovation happens when different creative disciplines collide. I bring together design, technology, and storytelling to create experiences that feel familiar and entirely new.
+                        - link "Let's chat." [ref=f1e41]:
+                          - /url: "#"
+          - generic:
+            - contentinfo:
+              - generic:
+                - group "Social media links" [ref=f1e43]:
+                  - link "Apple Music" [ref=f1e44] [cursor=pointer]:
+                    - /url: https://music.apple.com/profile/beckandeggs
+                    - generic: 
+                  - link "LinkedIn" [ref=f1e46] [cursor=pointer]:
+                    - /url: https://www.linkedin.com/in/thisisbeck/
+                    - generic: 
+                - generic [ref=f1e48]:
+                  - generic "London local time":
+                    - generic:
+                      - generic:
+                        - strong: London
+                      - time: 3:09:24 PM
+            - status:
+              - generic: A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable. © 2026 Alexander Beck
+      - generic [ref=f1e49]:
+        - navigation "Primary buttons" [ref=f1e50]:
+          - link "Home" [ref=f1e51]:
+            - /url: /index.html
+          - link "Portfolio" [ref=f1e56]:
+            - /url: /portfolio.html
+            - text: 
+          - link "About me" [ref=f1e58]:
+            - /url: /about.html
+            - text: 
+          - link "Contact" [ref=f1e60]:
+            - /url: /contact.html
+            - text: 
+        - group "Secondary buttons" [ref=f1e62]:
+          - button "Sound off" [ref=f1e63]:
+            - generic: 
+    - dialog [active] [ref=f1e68]:
+      - button "Close simulation chooser" [ref=f1e70] [cursor=pointer]
+      - heading "Choose a simulation" [level=2] [ref=f1e71]
+      - list [ref=f1e72]:
+        - button "Ball Field" [ref=f1e73] [cursor=pointer]
+        - button "Shapes" [ref=f1e85] [cursor=pointer]
+        - button "Light Swarm" [ref=f1e105] [cursor=pointer]
+        - button "Cube Frame" [ref=f1e117] [cursor=pointer]
+        - button "Water Flow" [ref=f1e130] [cursor=pointer]
+        - button "Repel Room" [ref=f1e140] [cursor=pointer]
+        - button "Sphere Orbit" [ref=f1e148] [cursor=pointer]
+        - button "Bust Cloud" [ref=f1e156] [cursor=pointer]
+        - button "Flock Drift" [ref=f1e166] [cursor=pointer]
+        - button "Soft Blob" [ref=f1e181] [cursor=pointer]
+        - button "Weave Field" [ref=f1e191] [cursor=pointer]
+        - button "Mineral Bloom" [ref=f1e198] [cursor=pointer]
+        - button "Kaleido Bloom" [ref=f1e205] [cursor=pointer]
+        - button "Bubble Lift" [ref=f1e217] [cursor=pointer]
+        - button "Star Field Active" [ref=f1e230] [cursor=pointer]:
+          - generic [ref=f1e242]:
+            - generic [ref=f1e243]: Star Field
+            - generic [ref=f1e244]: Active
+        - button "Kaleido Rift" [ref=f1e245] [cursor=pointer]
+        - button "Depth Rings" [ref=f1e259] [cursor=pointer]
+  - button "Toggle design panel" [ref=f1e10]

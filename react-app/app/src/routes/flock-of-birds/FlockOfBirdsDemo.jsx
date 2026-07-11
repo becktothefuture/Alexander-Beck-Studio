@@ -15,6 +15,7 @@ import {
   resolveLondonWeatherPaletteId,
 } from '../../palette/londonPalettes.js';
 import { withBasePath } from '../../lib/base-path.js';
+import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 import './flock-of-birds-runtime.css';
 import './flock-of-birds.css';
 
@@ -68,7 +69,7 @@ function downloadConfig(config) {
   URL.revokeObjectURL(anchor.href);
 }
 
-function resolveFlockTheme(designSystem) {
+function resolveFlockTheme(designSystem, isDark) {
   const runtime = designSystem?.runtime || {};
   const shellTheme = designSystem?.shell?.theme || {};
   const paletteId = resolveLondonWeatherPaletteId(
@@ -80,11 +81,15 @@ function resolveFlockTheme(designSystem) {
   ) || DEFAULT_LONDON_WEATHER_PALETTE_ID;
   const palette = getLondonWeatherPalette(paletteId);
 
+  const light = runtime.bgLight || shellTheme.wallBaseLight || DEFAULT_THEME_COLORS.light;
+  const dark = runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_THEME_COLORS.dark;
+  const activePalette = isDark ? palette?.dark : palette?.light;
+
   return {
-    light: runtime.bgLight || shellTheme.wallBaseLight || DEFAULT_THEME_COLORS.light,
-    dark: runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_THEME_COLORS.dark,
-    active: runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_THEME_COLORS.active,
-    palette: Array.isArray(palette?.dark) ? palette.dark : DEFAULT_THEME_COLORS.palette,
+    light,
+    dark,
+    active: isDark ? dark : light,
+    palette: Array.isArray(activePalette) ? activePalette : DEFAULT_THEME_COLORS.palette,
     colorDistribution: Array.isArray(runtime.colorDistribution)
       ? runtime.colorDistribution
       : DEFAULT_THEME_COLORS.colorDistribution,
@@ -194,13 +199,14 @@ function FlockOfBirdsPanel({ config, saveStatus, onChange, onReset, onSave }) {
 }
 
 export function FlockOfBirdsDemo() {
+  const isDark = useRenderedThemeIsDark();
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
   const configRef = useRef(DEFAULT_FLOCK_OF_BIRDS_CONFIG);
   const colorsRef = useRef(DEFAULT_THEME_COLORS);
-  const initialThemeRef = useRef(null);
   const [config, setConfig] = useState(DEFAULT_FLOCK_OF_BIRDS_CONFIG);
-  const [themeColors, setThemeColors] = useState(DEFAULT_THEME_COLORS);
+  const [designSystem, setDesignSystem] = useState(null);
+  const [themeColors, setThemeColors] = useState(() => resolveFlockTheme(null, isDark));
   const [saveStatus, setSaveStatus] = useState('loaded');
   const [configReady, setConfigReady] = useState(false);
   const showControlPanel = useMemo(() => shouldShowControlPanel(), []);
@@ -221,9 +227,7 @@ export function FlockOfBirdsDemo() {
       ]);
 
       if (cancelled) return;
-      const nextColors = resolveFlockTheme(designSystem);
-
-      setThemeColors(nextColors);
+      setDesignSystem(designSystem);
       setConfig(normalizeFlockOfBirdsConfig(demoConfig));
       setSaveStatus('loaded');
       setConfigReady(true);
@@ -236,60 +240,14 @@ export function FlockOfBirdsDemo() {
   }, []);
 
   useEffect(() => {
+    setThemeColors(resolveFlockTheme(designSystem, isDark));
+  }, [designSystem, isDark]);
+
+  useEffect(() => {
     configRef.current = config;
     colorsRef.current = themeColors;
     rendererRef.current?.start();
   }, [config, themeColors]);
-
-  useEffect(() => {
-    if (initialThemeRef.current === null) {
-      initialThemeRef.current = {
-        htmlDark: document.documentElement.classList.contains('dark-mode'),
-        bodyDark: document.body.classList.contains('dark-mode'),
-        wallBaseLight: document.documentElement.style.getPropertyValue('--abs-wall-base-light'),
-        wallBaseDark: document.documentElement.style.getPropertyValue('--abs-wall-base-dark'),
-        wallBase: document.documentElement.style.getPropertyValue('--abs-wall-base'),
-        frameInner: document.documentElement.style.getPropertyValue('--frame-inner-surface'),
-      };
-    }
-
-    const root = document.documentElement;
-    root.classList.add('dark-mode');
-    document.body.classList.add('dark-mode');
-    root.style.setProperty('--abs-wall-base-light', themeColors.light);
-    root.style.setProperty('--abs-wall-base-dark', themeColors.dark);
-    root.style.setProperty('--abs-wall-base', themeColors.active);
-    root.style.setProperty('--frame-inner-surface', 'var(--abs-wall-base)');
-
-    return undefined;
-  }, [themeColors]);
-
-  useEffect(() => () => {
-    const initial = initialThemeRef.current;
-    if (!initial) return;
-    document.documentElement.classList.toggle('dark-mode', initial.htmlDark);
-    document.body.classList.toggle('dark-mode', initial.bodyDark);
-    if (initial.wallBaseLight) {
-      document.documentElement.style.setProperty('--abs-wall-base-light', initial.wallBaseLight);
-    } else {
-      document.documentElement.style.removeProperty('--abs-wall-base-light');
-    }
-    if (initial.wallBaseDark) {
-      document.documentElement.style.setProperty('--abs-wall-base-dark', initial.wallBaseDark);
-    } else {
-      document.documentElement.style.removeProperty('--abs-wall-base-dark');
-    }
-    if (initial.wallBase) {
-      document.documentElement.style.setProperty('--abs-wall-base', initial.wallBase);
-    } else {
-      document.documentElement.style.removeProperty('--abs-wall-base');
-    }
-    if (initial.frameInner) {
-      document.documentElement.style.setProperty('--frame-inner-surface', initial.frameInner);
-    } else {
-      document.documentElement.style.removeProperty('--frame-inner-surface');
-    }
-  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;

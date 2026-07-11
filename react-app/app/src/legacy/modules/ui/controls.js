@@ -50,25 +50,6 @@ export function setupMasterControls(options = {}) {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // THEME BUTTONS — Manual binding (not in registry)
-  // ═══════════════════════════════════════════════════════════════════════════
-  const themeAuto = uiDocument.getElementById('themeAuto');
-  const themeLight = uiDocument.getElementById('themeLight');
-  const themeDark = uiDocument.getElementById('themeDark');
-  
-  // Theme buttons are handled by dark-mode-v2.js, just add visual feedback here
-  [themeAuto, themeLight, themeDark].forEach(btn => {
-    if (btn) {
-      if (btn.dataset.panelBound === 'true') return;
-      btn.dataset.panelBound = 'true';
-      btn.addEventListener('click', () => {
-        // Remove active from all, add to clicked
-        [themeAuto, themeLight, themeDark].forEach(b => b?.classList.remove('active'));
-        btn.classList.add('active');
-      });
-    }
-  });
 }
 
 /**

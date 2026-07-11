@@ -5,6 +5,7 @@ import {
   resolveLondonWeatherPaletteId,
 } from '../../palette/londonPalettes.js';
 import { withBasePath } from '../../lib/base-path.js';
+import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 import {
   CONCEPT_SIMULATION_IDS,
   CONCEPT_SIMULATION_REGISTRY,
@@ -203,7 +204,7 @@ async function loadJson(url, fallback) {
   }
 }
 
-function resolveConceptTheme(designSystem) {
+function resolveConceptTheme(designSystem, isDark) {
   const runtime = designSystem?.runtime || {};
   const shellTheme = designSystem?.shell?.theme || {};
   const paletteId = resolveLondonWeatherPaletteId(
@@ -215,11 +216,15 @@ function resolveConceptTheme(designSystem) {
   ) || DEFAULT_LONDON_WEATHER_PALETTE_ID;
   const palette = getLondonWeatherPalette(paletteId);
 
+  const light = runtime.bgLight || shellTheme.wallBaseLight || DEFAULT_THEME_COLORS.light;
+  const dark = runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_THEME_COLORS.dark;
+  const activePalette = isDark ? palette?.dark : palette?.light;
+
   return {
-    light: runtime.bgLight || shellTheme.wallBaseLight || DEFAULT_THEME_COLORS.light,
-    dark: runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_THEME_COLORS.dark,
-    active: runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_THEME_COLORS.active,
-    palette: Array.isArray(palette?.dark) ? palette.dark : DEFAULT_THEME_COLORS.palette,
+    light,
+    dark,
+    active: isDark ? dark : light,
+    palette: Array.isArray(activePalette) ? activePalette : DEFAULT_THEME_COLORS.palette,
     colorDistribution: Array.isArray(runtime.colorDistribution)
       ? runtime.colorDistribution
       : DEFAULT_THEME_COLORS.colorDistribution,
@@ -453,6 +458,7 @@ function SpatialScanPointCloudPanel({ config, onChange, onReset }) {
 }
 
 export function ConceptSimulationDemo({ simulationId }) {
+  const isDark = useRenderedThemeIsDark();
   const entry = CONCEPT_SIMULATION_REGISTRY[simulationId];
   const isNapoleonPointCloud = simulationId === CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD;
   const isSpatialScanPointCloud = simulationId === CONCEPT_SIMULATION_IDS.SPATIAL_SCAN;
@@ -462,9 +468,9 @@ export function ConceptSimulationDemo({ simulationId }) {
   const [config, setConfig] = useState(() => normalizeConceptSimulationConfig(simulationId, entry.defaults));
   const configRef = useRef(config);
   const themeRef = useRef(DEFAULT_THEME_COLORS);
-  const initialThemeRef = useRef(null);
   const [ready, setReady] = useState(false);
-  const [themeColors, setThemeColors] = useState(DEFAULT_THEME_COLORS);
+  const [designSystem, setDesignSystem] = useState(null);
+  const [themeColors, setThemeColors] = useState(() => resolveConceptTheme(null, isDark));
   const [reducedMotion, setReducedMotion] = useState(false);
   const surfaceStyle = isNapoleonPointCloud
     ? undefined
@@ -498,14 +504,12 @@ export function ConceptSimulationDemo({ simulationId }) {
       ]);
 
       if (cancelled) return;
-      const nextTheme = resolveConceptTheme(designSystem);
       const nextConfig = normalizeConceptSimulationConfig(simulationId, {
         ...demoConfig,
         ...readConfigOverridesFromSearch(entry.defaults),
       });
-      themeRef.current = nextTheme;
       configRef.current = nextConfig;
-      setThemeColors(nextTheme);
+      setDesignSystem(designSystem);
       setConfig(nextConfig);
       setReady(true);
     }
@@ -517,62 +521,14 @@ export function ConceptSimulationDemo({ simulationId }) {
   }, [entry.configPath, entry.defaults, simulationId]);
 
   useEffect(() => {
+    setThemeColors(resolveConceptTheme(designSystem, isDark));
+  }, [designSystem, isDark]);
+
+  useEffect(() => {
     configRef.current = config;
     themeRef.current = themeColors;
     rendererRef.current?.start();
   }, [config, themeColors]);
-
-  useEffect(() => {
-    if (isNapoleonPointCloud) return undefined;
-
-    if (initialThemeRef.current === null) {
-      initialThemeRef.current = {
-        htmlDark: document.documentElement.classList.contains('dark-mode'),
-        bodyDark: document.body.classList.contains('dark-mode'),
-        wallBaseLight: document.documentElement.style.getPropertyValue('--abs-wall-base-light'),
-        wallBaseDark: document.documentElement.style.getPropertyValue('--abs-wall-base-dark'),
-        wallBase: document.documentElement.style.getPropertyValue('--abs-wall-base'),
-        frameInner: document.documentElement.style.getPropertyValue('--frame-inner-surface'),
-      };
-    }
-
-    const root = document.documentElement;
-    root.classList.add('dark-mode');
-    document.body.classList.add('dark-mode');
-    root.style.setProperty('--abs-wall-base-light', themeColors.light);
-    root.style.setProperty('--abs-wall-base-dark', themeColors.dark);
-    root.style.setProperty('--abs-wall-base', themeColors.active);
-    root.style.setProperty('--frame-inner-surface', 'var(--abs-wall-base)');
-
-    return undefined;
-  }, [isNapoleonPointCloud, themeColors]);
-
-  useEffect(() => () => {
-    const initial = initialThemeRef.current;
-    if (!initial) return;
-    document.documentElement.classList.toggle('dark-mode', initial.htmlDark);
-    document.body.classList.toggle('dark-mode', initial.bodyDark);
-    if (initial.wallBaseLight) {
-      document.documentElement.style.setProperty('--abs-wall-base-light', initial.wallBaseLight);
-    } else {
-      document.documentElement.style.removeProperty('--abs-wall-base-light');
-    }
-    if (initial.wallBaseDark) {
-      document.documentElement.style.setProperty('--abs-wall-base-dark', initial.wallBaseDark);
-    } else {
-      document.documentElement.style.removeProperty('--abs-wall-base-dark');
-    }
-    if (initial.wallBase) {
-      document.documentElement.style.setProperty('--abs-wall-base', initial.wallBase);
-    } else {
-      document.documentElement.style.removeProperty('--abs-wall-base');
-    }
-    if (initial.frameInner) {
-      document.documentElement.style.setProperty('--frame-inner-surface', initial.frameInner);
-    } else {
-      document.documentElement.style.removeProperty('--frame-inner-surface');
-    }
-  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;

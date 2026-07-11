@@ -65,6 +65,23 @@ For portfolio gate or drawer behavior:
 ABS_DEV_URL=http://127.0.0.1:8013 npm run audit:portfolio-gate:quick
 ```
 
+For theme preference, route, reload, mobile, or gate-background changes:
+
+```bash
+ABS_DEV_URL=http://127.0.0.1:8013 ABS_BROWSER=chromium npm run audit:theme-consistency
+ABS_DEV_URL=http://127.0.0.1:8013 ABS_BROWSER=webkit npm run audit:theme-consistency
+ABS_DEV_URL=http://127.0.0.1:8013 npm run audit:portfolio-gate
+```
+
+For shared shell, footer, noise, modal stacking, or route-identity changes:
+
+```bash
+ABS_DEV_URL=http://127.0.0.1:8013 ABS_BROWSER=chromium npm run audit:modal-unified
+ABS_DEV_URL=http://127.0.0.1:8013 ABS_BROWSER=webkit ABS_MODAL_UNIFIED_WAIT_MS=60000 npm run audit:modal-unified
+```
+
+This audit compares Home, Portfolio, About, and Contact footer geometry and computed styles at 390×844, 768×1024, and 1280×900. Portfolio must differ only by omitting the middle caption. It also verifies visible shared noise and the modal/light-edge stacking contract.
+
 For transition, motion, or routing choreography:
 
 ```bash

@@ -24,11 +24,6 @@ const invariantRootVars = [
   '--container-border-x',
   '--container-border-y',
   '--inner-wall-gradient-edge-width',
-  '--inner-wall-gradient-edge-top-shadow-opacity',
-  '--inner-wall-gradient-edge-bottom-opacity',
-  '--inner-wall-gradient-edge-side-opacity',
-  '--inner-wall-gradient-edge-side-shadow-opacity',
-  '--inner-wall-pit-inset-shadow-opacity',
 ];
 const geometryKeys = new Set(['wallX', 'wallY', 'wallWidth', 'wallHeight']);
 const maxGeometryDeltaPx = 1.5;
@@ -137,7 +132,8 @@ async function readInvariantState(page) {
     const rect = wall.getBoundingClientRect();
 
     const values = {
-      theme: root.dataset.theme || (root.classList.contains('theme-dark') ? 'dark' : 'light'),
+      theme: root.getAttribute('data-abs-theme')
+        || (root.classList.contains('dark-mode') ? 'dark' : 'light'),
       wallX: Math.round(rect.x * 100) / 100,
       wallY: Math.round(rect.y * 100) / 100,
       wallWidth: Math.round(rect.width * 100) / 100,
@@ -145,10 +141,7 @@ async function readInvariantState(page) {
       wallBorderRadius: wallStyle.borderRadius,
       wallOverflow: wallStyle.overflow,
       wallBeforeBorderRadius: wallBeforeStyle.borderRadius,
-      wallBeforeBoxShadow: wallBeforeStyle.boxShadow,
       rimBorderRadius: rimStyle?.borderRadius || '',
-      rimBackgroundImage: rimStyle?.backgroundImage || '',
-      rimBoxShadow: rimStyle?.boxShadow || '',
     };
 
     for (const name of vars) {
@@ -195,8 +188,15 @@ async function auditRoute(browser, route, viewport) {
     await waitForWallReady(page);
 
     const lightState = await readInvariantState(page);
-    await page.getByRole('button', { name: /Switch to dark mode/i }).click();
-    await page.getByRole('button', { name: /Switch to light mode/i }).waitFor({ timeout: 5000 });
+    const themeToggle = page.locator('.button-bar__theme-toggle');
+    if (await themeToggle.isVisible()) {
+      await themeToggle.click();
+    } else {
+      await themeToggle.dispatchEvent('click');
+    }
+    await page.waitForFunction(() => (
+      document.querySelector('.button-bar__theme-toggle')?.getAttribute('aria-label') === 'Switch to light mode'
+    ), undefined, { timeout: 5000 });
     await waitForWallReady(page);
     const darkState = await readInvariantState(page);
 

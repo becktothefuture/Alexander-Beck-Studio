@@ -8,10 +8,9 @@ import { createConceptSimulationRenderer } from './conceptSimulationRenderer.js'
 import { withBasePath } from '../../lib/base-path.js';
 import {
   DAILY_FOCUS_DESIGN_SYSTEM_URL,
-  DEFAULT_DAILY_FOCUS_THEME,
   loadDailyFocusJson,
-  resolveDailyFocusTheme,
   useDailyFocusReducedMotion,
+  useDailyFocusTheme,
 } from '../daily-focus/dailyFocusTheme.js';
 import './concept-simulations-runtime.css';
 
@@ -22,9 +21,16 @@ export function RiftRingsRuntime() {
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
   const configRef = useRef(normalizeConceptSimulationConfig(SIMULATION_ID, ENTRY.defaults));
-  const themeRef = useRef(DEFAULT_DAILY_FOCUS_THEME);
+  const [designSystem, setDesignSystem] = useState(null);
+  const theme = useDailyFocusTheme(designSystem);
+  const themeRef = useRef(theme);
   const [ready, setReady] = useState(false);
   const reducedMotion = useDailyFocusReducedMotion();
+
+  useEffect(() => {
+    themeRef.current = theme;
+    rendererRef.current?.start();
+  }, [theme]);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,7 +43,7 @@ export function RiftRingsRuntime() {
 
       if (cancelled) return;
       configRef.current = normalizeConceptSimulationConfig(SIMULATION_ID, demoConfig);
-      themeRef.current = resolveDailyFocusTheme(designSystem);
+      setDesignSystem(designSystem);
       setReady(true);
     }
 

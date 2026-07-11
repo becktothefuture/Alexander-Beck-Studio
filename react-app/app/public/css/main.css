@@ -812,7 +812,7 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   pointer-events: none;
 }
 
-body:not(.portfolio-page):not(.cv-page) .ui-top-main.route-topbar {
+html[data-shell-route='home'] body .ui-top-main.route-topbar {
   --route-topbar-top: var(--gap-xs);
   position: relative;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -826,8 +826,8 @@ body:not(.portfolio-page):not(.cv-page) .ui-top-main.route-topbar {
   padding-inline: 0;
 }
 
-body:not(.portfolio-page):not(.cv-page) .route-topbar__left,
-body:not(.portfolio-page):not(.cv-page) .route-topbar__right {
+html[data-shell-route='home'] body .route-topbar__left,
+html[data-shell-route='home'] body .route-topbar__right {
   display: flex;
   align-items: center;
   min-height: var(--ui-icon-frame-size);
@@ -835,17 +835,17 @@ body:not(.portfolio-page):not(.cv-page) .route-topbar__right {
   pointer-events: auto;
 }
 
-body:not(.portfolio-page):not(.cv-page) .route-topbar__left {
+html[data-shell-route='home'] body .route-topbar__left {
   justify-self: start;
   justify-content: flex-start;
 }
 
-body:not(.portfolio-page):not(.cv-page) .route-topbar__center {
+html[data-shell-route='home'] body .route-topbar__center {
   min-width: 0;
 }
 
-body:not(.portfolio-page):not(.cv-page) .route-topbar__right,
-body:not(.portfolio-page):not(.cv-page) .route-topbar__right.ui-top-right {
+html[data-shell-route='home'] body .route-topbar__right,
+html[data-shell-route='home'] body .route-topbar__right.ui-top-right {
   display: flex;
   grid-template-columns: none;
   justify-self: end;
@@ -1896,13 +1896,13 @@ body.dark-mode .legend .legend__item--interactive:hover span {
 
 /* Dimmed state (when another filter is active): fade label only; dots stay full strength.
    `.legend__item.legend__item--dimmed` beats default index span opacity; dimmed:hover beats plain :hover span. */
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item.legend__item--dimmed span {
+html[data-shell-route='home'] body:not(.detail-open) .legend__item.legend__item--dimmed span {
   color: inherit;
   opacity: 0.35;
   transition: opacity 0.25s var(--ease-organic);
 }
 
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item.legend__item--dimmed:hover span {
+html[data-shell-route='home'] body:not(.detail-open) .legend__item.legend__item--dimmed:hover span {
   opacity: 0.6;
 }
 
@@ -2059,43 +2059,43 @@ body.dark-mode .legend-tooltip-output {
 }
 
 /* Home: align blurb first line with legend first line (match legend top inset: container + first item padding) */
-body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
+html[data-shell-route='home'] body .ui-top-right .decorative-script {
   padding: var(--home-description-top-inset, 0) 0 0;
   line-height: 1.4;
 }
 
 /* Home desktop/tablet: keep the legend in the 2-column arrangement and let the intro text
    elastically yield to the available space instead of reserving a fixed right-column minimum. */
-body:not(.portfolio-page):not(.cv-page) .ui-top-main {
+html[data-shell-route='home'] body .ui-top-main {
   grid-template-columns: max-content minmax(0, 1fr);
   gap: clamp(calc(var(--gap-lg) - var(--abs-size-1px)), 3.6vw, calc(var(--gap-24) + var(--gap-sm)));
 }
 
-body:not(.portfolio-page):not(.cv-page) .ui-top-left {
+html[data-shell-route='home'] body .ui-top-left {
   width: auto;
   min-width: 0;
   flex-shrink: 1;
 }
 
-body:not(.portfolio-page):not(.cv-page) .legend {
+html[data-shell-route='home'] body .legend {
   grid-template-columns: repeat(2, minmax(0, max-content));
   width: fit-content;
   max-width: min(100%, 34rem);
   padding: 0 0 0 10px;
 }
 
-body:not(.portfolio-page):not(.cv-page) .legend__item {
+html[data-shell-route='home'] body .legend__item {
   gap: calc(var(--legend-item-gap) - var(--abs-size-1px));
 }
 
-body:not(.portfolio-page):not(.cv-page) .ui-top-right {
+html[data-shell-route='home'] body .ui-top-right {
   grid-template-columns: minmax(0, 1fr);
   justify-items: end;
   min-width: 0;
   gap: 0;
 }
 
-body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
+html[data-shell-route='home'] body .ui-top-right .decorative-script {
   width: 100%;
   max-width: min(100%, calc(var(--decorative-script-max-width) * 1.1));
   justify-self: end;
@@ -2108,27 +2108,27 @@ body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
 
 /* Index page: reduce default text saturation/opacity (except logo).
    Legend dots stay full opacity — only the label span is muted. */
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) {
+html[data-shell-route='home'] body:not(.detail-open) {
   --home-text-hover-field-fill: var(--frame-inner-surface);
   --home-text-hover-field-opacity: 0.8;
   --home-text-hover-field-blur: 28px;
   --home-text-hover-field-duration: 360ms;
 }
 
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item span {
+html[data-shell-route='home'] body:not(.detail-open) .legend__item span {
   opacity: 0.7;
   transition: opacity 0.15s var(--ease-organic);
 }
 
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script,
+html[data-shell-route='home'] body:not(.detail-open) .decorative-script,
 /* #main-links .footer_link excluded - entrance animation controls opacity */
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .caption:not(#site-year) {
+html[data-shell-route='home'] body:not(.detail-open) .sound-toggle,
+html[data-shell-route='home'] body:not(.detail-open) .caption:not(#site-year) {
   opacity: var(--supporting-description-opacity);
   transition: opacity 0.15s var(--ease-organic);
 }
 
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script {
+html[data-shell-route='home'] body:not(.detail-open) .decorative-script {
   transition:
     opacity 0.15s var(--ease-organic),
     filter 0.15s var(--ease-organic);
@@ -2136,33 +2136,33 @@ body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script {
 
 /* Restore full opacity on hover/focus */
 /* Note: #main-links .footer_link excluded - controlled by entrance animation state */
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:hover span,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:focus-visible span,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:hover,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:focus-within,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle:hover,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:focus-visible,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle:focus-visible {
+html[data-shell-route='home'] body:not(.detail-open) .legend__item:hover span,
+html[data-shell-route='home'] body:not(.detail-open) .legend__item:focus-visible span,
+html[data-shell-route='home'] body:not(.detail-open) .decorative-script:hover,
+html[data-shell-route='home'] body:not(.detail-open) .decorative-script:focus-within,
+html[data-shell-route='home'] body:not(.detail-open) .sound-toggle:hover,
+html[data-shell-route='home'] body:not(.detail-open) .decorative-script:focus-visible,
+html[data-shell-route='home'] body:not(.detail-open) .sound-toggle:focus-visible {
   opacity: 1;
 }
 
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:hover::after,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:hover::before,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:focus-within::before {
+html[data-shell-route='home'] body:not(.detail-open) .legend__item:hover::after,
+html[data-shell-route='home'] body:not(.detail-open) .decorative-script:hover::before,
+html[data-shell-route='home'] body:not(.detail-open) .decorative-script:focus-within::before {
   opacity: var(--home-text-hover-field-opacity);
 }
 
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:hover,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:focus-within {
+html[data-shell-route='home'] body:not(.detail-open) .decorative-script:hover,
+html[data-shell-route='home'] body:not(.detail-open) .decorative-script:focus-within {
   transition-delay: 0s;
 }
 
 @media (max-width: 600px) {
-  body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script::before {
+  html[data-shell-route='home'] body:not(.detail-open) .decorative-script::before {
     inset: -18px 0;
   }
 
-  body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item--interactive::after {
+  html[data-shell-route='home'] body:not(.detail-open) .legend__item--interactive::after {
     inset: -10px -8px;
   }
 }
@@ -3159,7 +3159,7 @@ button.abs-meta-btn,
   backface-visibility: hidden;
 }
 
-body:not(.portfolio-page):not(.cv-page):not(.daily-focus-page) .hero-title--canvas-source {
+html[data-shell-route='home'] body:not(.daily-focus-page) .hero-title--canvas-source {
   --home-hero-title-scale: 1.2;
   /* Compensate for the right-hand full stop so the wordmark reads centred. */
   --home-hero-title-optical-offset-x: clamp(1px, 0.15vw, 2px);
@@ -3405,8 +3405,6 @@ html.abs-home-post-boot-pending #expertise-legend .legend__item,
 html.abs-home-post-boot-pending #main-links .footer_link,
 html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
 html.abs-home-post-boot-pending #app-frame .ui-top-right .sound-toggle,
-html.abs-home-post-boot-pending #social-links .footer_icon-link,
-html.abs-home-post-boot-pending #site-year.abs-meta-btn,
 html.abs-home-post-boot-pending #quote-display {
   opacity: 0;
   filter: blur(var(--home-post-boot-blur));
@@ -3419,29 +3417,13 @@ html.abs-home-post-boot-pending #main-links .footer_link {
   transform: translateY(0) scale(1);
 }
 
-html.abs-home-post-boot-pending #edge-caption {
-  opacity: 0;
-  filter: blur(var(--home-post-boot-blur));
-  transform: translateX(-50%) translateY(var(--home-post-boot-ty)) scale(var(--home-post-boot-scale));
-  transition: none;
-}
-
 html.abs-home-post-boot-enter #hero-title .hero-title__name,
 html.abs-home-post-boot-enter #hero-title .hero-title__role,
 html.abs-home-post-boot-enter #expertise-legend .legend__item,
 html.abs-home-post-boot-enter #main-links .footer_link,
 html.abs-home-post-boot-enter #app-frame .ui-top-right .decorative-script,
 html.abs-home-post-boot-enter #app-frame .ui-top-right .sound-toggle,
-html.abs-home-post-boot-enter #social-links .footer_icon-link,
-html.abs-home-post-boot-enter #site-year.abs-meta-btn,
 html.abs-home-post-boot-enter #quote-display {
-  transition:
-    opacity var(--home-post-boot-duration-support) var(--home-post-boot-ease),
-    filter var(--home-post-boot-duration-support) var(--home-post-boot-ease),
-    transform var(--home-post-boot-duration-support) var(--home-post-boot-ease);
-}
-
-html.abs-home-post-boot-enter #edge-caption {
   transition:
     opacity var(--home-post-boot-duration-support) var(--home-post-boot-ease),
     filter var(--home-post-boot-duration-support) var(--home-post-boot-ease),
@@ -3491,8 +3473,8 @@ html.abs-home-post-boot-enter #app-frame .ui-top-right .decorative-script {
   transition-delay: var(--home-post-boot-delay-context-start);
 }
 
-html.abs-home-post-boot-enter body:not(.portfolio-page):not(.cv-page):not(.detail-open) #app-frame .ui-top-right .decorative-script:hover,
-html.abs-home-post-boot-enter body:not(.portfolio-page):not(.cv-page):not(.detail-open) #app-frame .ui-top-right .decorative-script:focus-within {
+html.abs-home-post-boot-enter[data-shell-route='home'] body:not(.detail-open) #app-frame .ui-top-right .decorative-script:hover,
+html.abs-home-post-boot-enter[data-shell-route='home'] body:not(.detail-open) #app-frame .ui-top-right .decorative-script:focus-within {
   transition-delay: 0s;
 }
 
@@ -3500,24 +3482,8 @@ html.abs-home-post-boot-enter #app-frame .ui-top-right .sound-toggle {
   transition-delay: calc(var(--home-post-boot-delay-context-start) + var(--home-post-boot-delay-context-step));
 }
 
-html.abs-home-post-boot-enter #social-links .footer_icon-link:nth-child(1) {
-  transition-delay: var(--home-post-boot-delay-footer-start);
-}
-
-html.abs-home-post-boot-enter #social-links .footer_icon-link:nth-child(2) {
-  transition-delay: calc(var(--home-post-boot-delay-footer-start) + var(--home-post-boot-delay-footer-step));
-}
-
-html.abs-home-post-boot-enter #site-year.abs-meta-btn {
-  transition-delay: calc(var(--home-post-boot-delay-footer-start) + (var(--home-post-boot-delay-footer-step) * 2));
-}
-
 html.abs-home-post-boot-enter #quote-display {
   transition-delay: calc(var(--home-post-boot-delay-footer-start) + (var(--home-post-boot-delay-footer-step) * 3));
-}
-
-html.abs-home-post-boot-enter #edge-caption {
-  transition-delay: calc(var(--home-post-boot-delay-footer-start) + (var(--home-post-boot-delay-footer-step) * 4));
 }
 
 /* Reduced motion: instant transitions */
@@ -3560,8 +3526,6 @@ html.abs-home-post-boot-enter #edge-caption {
   html.abs-home-post-boot-pending #main-links .footer_link,
   html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
   html.abs-home-post-boot-pending #app-frame .ui-top-right .sound-toggle,
-  html.abs-home-post-boot-pending #social-links .footer_icon-link,
-  html.abs-home-post-boot-pending #site-year.abs-meta-btn,
   html.abs-home-post-boot-pending #quote-display {
     opacity: 1;
     filter: none;
@@ -3574,17 +3538,8 @@ html.abs-home-post-boot-enter #edge-caption {
   }
 
   html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
-  html.abs-home-post-boot-pending #app-frame .ui-top-right .sound-toggle,
-  html.abs-home-post-boot-pending #social-links .footer_icon-link,
-  html.abs-home-post-boot-pending #site-year.abs-meta-btn {
+  html.abs-home-post-boot-pending #app-frame .ui-top-right .sound-toggle {
     opacity: var(--supporting-description-opacity);
-  }
-
-  html.abs-home-post-boot-pending #edge-caption {
-    opacity: 0.52;
-    filter: none;
-    transform: translateX(-50%);
-    transition: none;
   }
 }
 
@@ -4699,12 +4654,6 @@ html[data-abs-instrument-wake] #simulations::after {
     inset 0 -8px 22px -24px rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-recess-lower-light-opacity));
 }
 
-@media (max-width: 767px) {
-  body:not(.portfolio-page):not(.cv-page) #simulations::before {
-    box-shadow: none;
-  }
-}
-
 .outer-wall,
 .outer-wall__shine,
 .inner-wall,
@@ -4814,6 +4763,12 @@ body.portfolio-page--locked .window-overlay-blur-layer {
 }
 
 body.portfolio-page--locked .window-overlay-blur-layer {
+  background-color: rgba(var(--abs-rgb-white), 0.18);
+}
+
+body.portfolio-page--locked.dark-mode .window-overlay-blur-layer,
+body.portfolio-page--locked[data-abs-theme='dark'] .window-overlay-blur-layer,
+html[data-abs-theme='dark'] body.portfolio-page--locked .window-overlay-blur-layer {
   background-color: rgba(var(--abs-rgb-black), 0.2);
 }
 
@@ -4876,10 +4831,6 @@ html.simulation-focus-modal-open #modal-content-layer {
 /* Mobile performance contract: the live canvas owns the frame budget. Avoid
    continuously repainted grain on touch devices. */
 @media (max-width: 767px), (hover: none) and (pointer: coarse) {
-  .noise {
-    display: none;
-  }
-
   .noise::before {
     animation: none;
   }
@@ -5027,6 +4978,7 @@ html.simulation-focus-modal-open #modal-content-layer {
 }
 
 /* Reveals once the generated texture has been decoded and committed. */
+html.entrance-complete.noise-ready .noise,
 html.entrance-complete .noise-ready .noise {
   visibility: visible;
   opacity: calc(var(--noise-opacity-light) * var(--abs-noise-enabled));
@@ -5062,6 +5014,7 @@ html.entrance-complete .noise-ready .noise {
 }
 
 /* Dark mode noise fade-in with correct opacities and colors */
+html.entrance-complete.noise-ready body.dark-mode .noise,
 html.entrance-complete body.dark-mode.noise-ready .noise {
   opacity: calc(var(--noise-opacity-dark) * var(--abs-noise-enabled));
 }
@@ -5167,25 +5120,25 @@ html.is-safari .noise::before {
     row-gap: 0;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .legend {
+  html[data-shell-route='home'] body .legend {
     grid-template-columns: 1fr;
     padding: 0 0 0 4px;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-main {
+  html[data-shell-route='home'] body .ui-top-main {
     gap: 40px;
     --home-description-top-inset: clamp(4px, 0.8vw, 7px);
   }
 
-  body:not(.portfolio-page):not(.cv-page) .legend__item {
+  html[data-shell-route='home'] body .legend__item {
     font-size: 13px;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right {
+  html[data-shell-route='home'] body .ui-top-right {
     gap: 0;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
+  html[data-shell-route='home'] body .ui-top-right .decorative-script {
     font-size: 14px;
     line-height: 1.3;
   }
@@ -5202,8 +5155,8 @@ html.is-safari .noise::before {
 }
 
 @media (min-width: 601px) and (max-width: 1024px) {
-  body:not(.portfolio-page):not(.cv-page):not(.daily-focus-page) .hero-title__name,
-  body:not(.portfolio-page):not(.cv-page):not(.daily-focus-page) .hero-title__role {
+  html[data-shell-route='home'] body:not(.daily-focus-page) .hero-title__name,
+  html[data-shell-route='home'] body:not(.daily-focus-page) .hero-title__role {
     font-size: calc(clamp(21px, calc(var(--abs-home-logo-width-vw, 52) * 0.11625 * 1vw), 39px) * var(--home-hero-title-scale, 1));
   }
 }
@@ -5237,18 +5190,14 @@ html.is-safari .noise::before {
     font-size: calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px) * 0.85 * var(--mobile-type-scale) * var(--home-hero-title-scale, 1));
   }
 
-  body:not(.portfolio-page):not(.cv-page) #simulations:not(.simulation-depth-title-layer-active) .shell-hero-slot {
+  html[data-shell-route='home'] body #simulations:not(.simulation-depth-title-layer-active) .shell-hero-slot {
     z-index: 6;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .hero-title__role,
-  body:not(.portfolio-page):not(.cv-page) .hero-title__line--secondary {
+  html[data-shell-route='home'] body .hero-title__role,
+  html[data-shell-route='home'] body .hero-title__line--secondary {
     color: var(--text-muted);
     opacity: 1;
-  }
-
-  body.contact-page .edge-caption {
-    display: none;
   }
 
   body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
@@ -5283,7 +5232,7 @@ html.is-safari .noise::before {
   }
 
   /* Index: keep legend + intro split side-by-side */
-  body:not(.portfolio-page):not(.cv-page) .ui-top-main {
+  html[data-shell-route='home'] body .ui-top-main {
     grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
     grid-template-rows: auto;
     align-items: flex-start;
@@ -5291,8 +5240,8 @@ html.is-safari .noise::before {
     --home-description-top-inset: clamp(4px, 1.4vw, 6px);
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-left,
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right {
+  html[data-shell-route='home'] body .ui-top-left,
+  html[data-shell-route='home'] body .ui-top-right {
     width: 100%;
     min-width: 0;
   }
@@ -5304,7 +5253,7 @@ html.is-safari .noise::before {
     text-align: right;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
+  html[data-shell-route='home'] body .ui-top-right .decorative-script {
     padding: var(--home-description-top-inset, 0) 0 0;
   }
 
@@ -6513,24 +6462,22 @@ body.cv-page .route-topbar .gate-back {
   transform: none;
 }
 
-/* IMPORTANT: The index page has a global hover snap on `body:not(.portfolio-page):not(.detail-open) button:hover`.
-   That selector is more specific than `.contact-email-row.pulse-energy`, so it can override our green pulse
-   while the mouse is over the field. We counter it using the same prefix for higher specificity. */
-body:not(.portfolio-page):not(.detail-open) .contact-email-row:not(.pulse-energy):hover,
-body:not(.portfolio-page):not(.detail-open) .contact-email-row:not(.pulse-energy):focus,
-body:not(.portfolio-page):not(.detail-open) .contact-email-row:not(.pulse-energy):focus-visible,
-body:not(.portfolio-page):not(.detail-open) .contact-email-row:not(.pulse-energy):focus-within {
+/* Keep Contact's copy feedback isolated from generic button hover motion. */
+html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row:not(.pulse-energy):hover,
+html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row:not(.pulse-energy):focus,
+html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row:not(.pulse-energy):focus-visible,
+html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row:not(.pulse-energy):focus-within {
   animation-name: none;
   animation-duration: 0s;
   transform: none;
   will-change: auto;
 }
 
-body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy,
-body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:hover,
-body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focus,
-body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focus-visible,
-body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focus-within {
+html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse-energy,
+html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse-energy:hover,
+html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse-energy:focus,
+html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse-energy:focus-visible,
+html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse-energy:focus-within {
   animation: contactPulseField 0.8s ease-out both;
 }
 
@@ -6814,7 +6761,9 @@ body.dark-mode .contact-email-copy {
 }
 
 body.dark-mode .cv-digit,
-body.dark-mode .portfolio-digit {
+body.dark-mode .portfolio-digit,
+body[data-abs-theme='dark'] .cv-digit,
+body[data-abs-theme='dark'] .portfolio-digit {
   background: rgba(var(--abs-rgb-white), 0.12);
   border-color: var(--abs-stroke-medium);
   color: var(--text-input);
@@ -6823,7 +6772,9 @@ body.dark-mode .portfolio-digit {
 }
 
 body.dark-mode .cv-digit:focus,
-body.dark-mode .portfolio-digit:focus {
+body.dark-mode .portfolio-digit:focus,
+body[data-abs-theme='dark'] .cv-digit:focus,
+body[data-abs-theme='dark'] .portfolio-digit:focus {
   border-color: var(--abs-stroke-medium);
   background: rgba(var(--abs-rgb-white), 0.12);
 }
@@ -7647,12 +7598,12 @@ body.dark-mode .cv-photo {
 }
 
 @media (max-width: 767px) {
-  body:not(.portfolio-page):not(.cv-page) .ui-top-main {
+  html[data-shell-route='home'] body .ui-top-main {
     grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
     gap: 20px;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-main:not(.route-topbar) {
+  html[data-shell-route='home'] body .ui-top-main:not(.route-topbar) {
     box-sizing: border-box;
     padding-inline: clamp(10px, 3vw, 14px);
   }
@@ -7718,12 +7669,12 @@ body.dark-mode .cv-photo {
     line-height: 1.04;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-left,
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right {
+  html[data-shell-route='home'] body .ui-top-left,
+  html[data-shell-route='home'] body .ui-top-right {
     width: 100%;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right {
+  html[data-shell-route='home'] body .ui-top-right {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: flex-start;
@@ -7731,12 +7682,12 @@ body.dark-mode .cv-photo {
     gap: clamp(8px, 2.8vw, 12px);
   }
 
-  body:not(.portfolio-page):not(.cv-page) .legend {
+  html[data-shell-route='home'] body .legend {
     grid-template-columns: 1fr;
     gap: 0;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .legend__item {
+  html[data-shell-route='home'] body .legend__item {
     min-height: 28px;
     padding: 4px 0;
     font-size: clamp(
@@ -7746,7 +7697,7 @@ body.dark-mode .cv-photo {
     );
   }
 
-  body:not(.portfolio-page):not(.cv-page) .decorative-script {
+  html[data-shell-route='home'] body .decorative-script {
     max-width: min(100%, 30ch);
     text-align: left;
     font-size: clamp(
@@ -7758,12 +7709,12 @@ body.dark-mode .cv-photo {
     padding: var(--home-description-top-inset, 0) 0 0;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
+  html[data-shell-route='home'] body .ui-top-right .decorative-script {
     font-size: 12px;
     line-height: 1.3;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-center {
+  html[data-shell-route='home'] body .ui-center {
     position: static;
     top: auto;
     left: auto;
@@ -7773,11 +7724,11 @@ body.dark-mode .cv-photo {
     gap: 0;
   }
 
-  body:not(.portfolio-page):not(.cv-page) #brand-logo .brand-logo-svg {
+  html[data-shell-route='home'] body #brand-logo .brand-logo-svg {
     width: min(56vw, 240px);
   }
 
-  body:not(.portfolio-page):not(.cv-page) #main-links {
+  html[data-shell-route='home'] body #main-links {
     position: absolute;
     left: 50%;
     top: auto;
@@ -7791,28 +7742,28 @@ body.dark-mode .cv-photo {
     gap: 10px 12px;
   }
 
-  body:not(.portfolio-page):not(.cv-page) #main-links::before {
+  html[data-shell-route='home'] body #main-links::before {
     content: none;
   }
 
-  body:not(.portfolio-page):not(.cv-page) #main-links .footer_link {
+  html[data-shell-route='home'] body #main-links .footer_link {
     min-width: 0;
     font-size: calc(var(--ui-main-nav-link-font-size) - 1px);
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-meta-row {
+  .ui-meta-row {
     gap: clamp(12px, 4vw, 18px);
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-meta-right {
+  .ui-meta-right {
     align-items: center;
   }
 
-  body:not(.portfolio-page):not(.cv-page) #site-year .meta-stack {
+  #site-year .meta-stack {
     gap: 4px;
   }
 
-  body:not(.portfolio-page):not(.cv-page) #site-year {
+  #site-year {
     box-sizing: border-box;
     block-size: calc(var(--ui-icon-frame-size) * 0.75);
     height: calc(var(--ui-icon-frame-size) * 0.75);
@@ -7821,55 +7772,55 @@ body.dark-mode .cv-photo {
     font-size: max(calc(var(--text-sm) * 1.08), 14px);
   }
 
-  body:not(.portfolio-page):not(.cv-page) #time-display {
+  #time-display {
     font-size: 0.9em;
     min-width: 8ch;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .edge-caption {
+  .edge-caption {
     bottom: calc(var(--abs-safe-bottom) + (var(--ui-icon-frame-size) * 0.375));
     transform: translate(-50%, 50%);
   }
 }
 
 @media (max-width: 475px) {
-  body:not(.portfolio-page):not(.cv-page) .legend {
+  html[data-shell-route='home'] body .legend {
     grid-template-columns: 1fr;
     column-gap: 0;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right {
+  html[data-shell-route='home'] body .ui-top-right {
     grid-template-columns: 1fr;
     justify-items: stretch;
     gap: 0;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
+  html[data-shell-route='home'] body .ui-top-right .decorative-script {
     text-align: right;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-center {
+  html[data-shell-route='home'] body .ui-center {
     width: 100%;
   }
 
-  body:not(.portfolio-page):not(.cv-page) #brand-logo .brand-logo-svg {
+  html[data-shell-route='home'] body #brand-logo .brand-logo-svg {
     width: min(70.2vw, 286px);
   }
 
-  body:not(.portfolio-page):not(.cv-page) .decorative-script {
+  html[data-shell-route='home'] body .decorative-script {
     max-width: min(100%, 26ch);
   }
 
-  body:not(.portfolio-page):not(.cv-page) #main-links {
+  html[data-shell-route='home'] body #main-links {
     bottom: calc(max(var(--abs-safe-bottom), 16px) + 120px);
   }
 
-  body:not(.portfolio-page):not(.cv-page) #main-links .footer_link {
+  html[data-shell-route='home'] body #main-links .footer_link {
     min-width: 0;
     padding-inline: 12px;
   }
 
-  body:not(.portfolio-page):not(.cv-page) #main-links::before {
+  html[data-shell-route='home'] body #main-links::before {
     inset: -8px -4px;
   }
 }
@@ -7939,12 +7890,12 @@ body.dark-mode .cv-photo {
 }
 
 @media (max-width: 767px) and (max-height: 700px) {
-  body:not(.portfolio-page):not(.cv-page) .ui-top {
+  html[data-shell-route='home'] body .ui-top {
     position: relative;
     isolation: isolate;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top::before {
+  html[data-shell-route='home'] body .ui-top::before {
     content: '';
     position: absolute;
     inset: -8px -6px -48px;
@@ -7958,7 +7909,7 @@ body.dark-mode .cv-photo {
     );
   }
 
-  body.dark-mode:not(.portfolio-page):not(.cv-page) .ui-top::before {
+  html[data-shell-route='home'] body.dark-mode .ui-top::before {
     background: linear-gradient(
       180deg,
       rgba(var(--abs-rgb-black), 0.44) 0%,
@@ -7967,11 +7918,11 @@ body.dark-mode .cv-photo {
     );
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-main {
+  html[data-shell-route='home'] body .ui-top-main {
     gap: clamp(10px, 2.6vw, 14px);
   }
 
-  body:not(.portfolio-page):not(.cv-page) .legend__item {
+  html[data-shell-route='home'] body .legend__item {
     min-height: 24px;
     padding-block: 2px;
     font-size: clamp(
@@ -7981,7 +7932,7 @@ body.dark-mode .cv-photo {
     );
   }
 
-  body:not(.portfolio-page):not(.cv-page) .decorative-script {
+  html[data-shell-route='home'] body .decorative-script {
     max-width: min(100%, 24ch);
     font-size: clamp(
       calc(0.76rem + var(--abs-size-1px) - 4px),
@@ -7991,31 +7942,31 @@ body.dark-mode .cv-photo {
     line-height: 1.3;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
+  html[data-shell-route='home'] body .ui-top-right .decorative-script {
     font-size: 11px;
     line-height: 1.3;
   }
 
-  body:not(.portfolio-page):not(.cv-page) #main-links {
+  html[data-shell-route='home'] body #main-links {
     bottom: calc(max(var(--abs-safe-bottom), 8px) + 88px);
     width: fit-content;
     max-width: calc(100% - (var(--gap-md) * 2));
     gap: 8px 10px;
   }
 
-  body:not(.portfolio-page):not(.cv-page) #main-links .footer_link {
+  html[data-shell-route='home'] body #main-links .footer_link {
     min-width: 0;
     padding-block: 9px;
     padding-inline: 10px;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .edge-caption {
+  .edge-caption {
     display: none;
   }
 }
 
 @media (max-width: 359px) and (max-height: 640px) {
-  body:not(.portfolio-page):not(.cv-page) .ui-top::before {
+  html[data-shell-route='home'] body .ui-top::before {
     inset: -8px -6px -110px;
     background: linear-gradient(
       180deg,
@@ -8026,7 +7977,7 @@ body.dark-mode .cv-photo {
     );
   }
 
-  body.dark-mode:not(.portfolio-page):not(.cv-page) .ui-top::before {
+  html[data-shell-route='home'] body.dark-mode .ui-top::before {
     background: linear-gradient(
       180deg,
       rgba(var(--abs-rgb-black), 0.52) 0%,
@@ -8036,13 +7987,13 @@ body.dark-mode .cv-photo {
     );
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-main {
+  html[data-shell-route='home'] body .ui-top-main {
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
     grid-template-rows: auto;
     gap: clamp(8px, 2.8vw, 12px);
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right {
+  html[data-shell-route='home'] body .ui-top-right {
     display: grid;
     grid-template-columns: 1fr;
     align-items: flex-start;
@@ -8051,11 +8002,11 @@ body.dark-mode .cv-photo {
     gap: 8px;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .legend {
+  html[data-shell-route='home'] body .legend {
     grid-template-columns: 1fr;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .decorative-script {
+  html[data-shell-route='home'] body .decorative-script {
     max-width: 100%;
     font-size: clamp(
       calc(0.72rem + var(--abs-size-1px) - 4px),
@@ -8065,18 +8016,18 @@ body.dark-mode .cv-photo {
     line-height: 1.3;
   }
 
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
+  html[data-shell-route='home'] body .ui-top-right .decorative-script {
     font-size: 11px;
     line-height: 1.3;
   }
 
-  body:not(.portfolio-page):not(.cv-page) #main-links {
+  html[data-shell-route='home'] body #main-links {
     bottom: calc(max(var(--abs-safe-bottom), 8px) + 72px);
     width: fit-content;
     max-width: calc(100% - (var(--gap-sm) * 2));
   }
 
-  body:not(.portfolio-page):not(.cv-page) #main-links .footer_link {
+  html[data-shell-route='home'] body #main-links .footer_link {
     min-width: 0;
     padding-block: 8px;
     padding-inline: 10px;

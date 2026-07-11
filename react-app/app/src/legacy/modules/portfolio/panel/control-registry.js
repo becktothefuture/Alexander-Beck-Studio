@@ -144,7 +144,7 @@ const CONTROL_SECTIONS = {
         controls: [
           { id: 'carouselDotDialRadiusPx', label: 'Dot radius', configKey: 'runtime.carousel.dotDialRadiusPx', type: 'range', min: 900, max: 3600, step: 10, unit: 'px', default: 2050, refresh: true },
           { id: 'carouselMobileDotDialRadiusPx', label: 'Mobile dot radius', configKey: 'runtime.carousel.mobileDotDialRadiusPx', type: 'range', min: 520, max: 1600, step: 10, unit: 'px', default: 900, refresh: true },
-          { id: 'carouselDotDensity', label: 'Dot density', configKey: 'runtime.carousel.dotDensity', type: 'range', min: 18, max: 72, step: 1, unit: '', default: 42, refresh: true },
+          { id: 'carouselDotDensity', label: 'Dot density', configKey: 'runtime.carousel.dotDensity', type: 'range', min: 12, max: 48, step: 1, unit: '', default: 18, refresh: true },
           { id: 'carouselDotParallaxRatio', label: 'Dot parallax', configKey: 'runtime.carousel.dotParallaxRatio', type: 'range', min: -2, max: 2, step: 0.05, unit: '', default: 1, refresh: true },
           { id: 'carouselDotArcSpanDeg', label: 'Dot arc span', configKey: 'runtime.carousel.dotArcSpanDeg', type: 'range', min: 8, max: 34, step: 0.5, unit: 'deg', default: 18, refresh: true },
         ],

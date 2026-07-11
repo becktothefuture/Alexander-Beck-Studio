@@ -19,32 +19,6 @@ function setAttr(el, name, value) {
   } catch (e) {}
 }
 
-function applyMeta() {
-  const title = getText('meta.title', '');
-  if (title) document.title = title;
-
-  const description = getText('meta.description', '');
-  if (description) {
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', description);
-  }
-}
-
-function applyEdge() {
-  const taglineEl = document.getElementById('edge-caption-tagline');
-  const tagline = getText('edge.tagline', '');
-  const copyright = getText('edge.copyright', '');
-  const edgeCaption = tagline
-    ? [tagline, copyright].filter(Boolean).join(' ')
-    : copyright;
-  setText(taglineEl, edgeCaption);
-
-  const copyrightEl = document.getElementById('edge-caption-copyright');
-  if (copyrightEl) {
-    setText(copyrightEl, '');
-  }
-}
-
 function applyLegend() {
   const nav = document.getElementById('expertise-legend');
   setAttr(nav, 'aria-label', getText('legend.ariaLabel', ''));
@@ -129,56 +103,6 @@ function applyPhilosophy() {
   }
 }
 
-function applyFooter() {
-  const nav = document.getElementById('main-links');
-  setAttr(nav, 'aria-label', getText('footer.navAriaLabel', ''));
-
-  const links = getText('footer.links', null);
-  if (!links || typeof links !== 'object') return;
-
-  for (const key of ['contact', 'portfolio', 'cv']) {
-    const entry = links?.[key];
-    if (!entry) continue;
-    const el = document.getElementById(entry.id || '');
-    if (!el) continue;
-    if (entry.href) el.setAttribute('href', entry.href);
-    if (entry.text) {
-      const nowrap = el.querySelector('.footer-link-nowrap');
-      if (nowrap) nowrap.textContent = entry.text;
-      else el.textContent = entry.text;
-    }
-  }
-}
-
-function applySocials() {
-  const ul = document.getElementById('social-links');
-  setAttr(ul, 'aria-label', getText('socials.ariaLabel', ''));
-
-  const items = getText('socials.items', null);
-  if (!ul || !items || typeof items !== 'object') return;
-
-  const order = ['appleMusic', 'x', 'linkedin'];
-  const buttons = ul.querySelectorAll('.footer_icon-link');
-
-  for (let i = 0; i < buttons.length && i < order.length; i++) {
-    const btn = buttons[i];
-    const cfg = items?.[order[i]];
-    if (!cfg) continue;
-    // Handle both <a> (href) and <button> (onclick) elements
-    if (cfg.url) {
-      if (btn.tagName === 'A') {
-        btn.setAttribute('href', cfg.url);
-      } else {
-        btn.onclick = () => window.open(cfg.url, '_blank', 'noopener,noreferrer');
-      }
-    }
-    if (cfg.ariaLabel) btn.setAttribute('aria-label', cfg.ariaLabel);
-
-    const sr = btn.querySelector('.screen-reader');
-    if (sr && cfg.screenReaderText) sr.textContent = cfg.screenReaderText;
-  }
-}
-
 function applyPortfolioBlurb() {
   // Only applies on portfolio UI pages.
   const p = document.querySelector('[data-portfolio-ui] .decorative-script p');
@@ -195,12 +119,8 @@ function applyPortfolioBlurb() {
  */
 export function applyRuntimeTextToDOM() {
   try {
-    applyMeta();
-    applyEdge();
     applyLegend();
     applyPhilosophy();
-    applyFooter();
-    applySocials();
     applyPortfolioBlurb();
   } catch (e) {
     // Never allow copy application to crash boot.

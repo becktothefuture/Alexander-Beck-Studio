@@ -653,7 +653,6 @@ function createMasterPanel({
       const current = getCurrentTheme();
       const next = (current === 'dark' || (current === 'auto' && document.body.classList.contains('dark-mode'))) ? 'light' : 'dark';
       setTheme(next);
-      themeToggleBtn.textContent = next === 'dark' ? '☀️' : '🌙';
     });
   }
   

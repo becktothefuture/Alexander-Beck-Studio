@@ -114,7 +114,7 @@ body.portfolio-page #simulations {
 
 body.portfolio-page--locked .portfolio-gate-route {
   z-index: 1;
-  color: rgba(var(--abs-rgb-white), 0.96);
+  color: var(--text-primary);
 }
 
 body.portfolio-page--locked .portfolio-gate-route .route-kicker,
@@ -319,7 +319,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-card-overlay-height: 221.589px;
   --portfolio-card-accent-mix: 58%;
   --portfolio-carousel-dot-radius: 2050px;
-  --portfolio-carousel-dot-size: 7px;
+  --portfolio-carousel-dot-size: var(--legend-circle-size);
 }
 
 body.portfolio-page .shell-hero-slot {
@@ -791,7 +791,7 @@ body.portfolio-project-open.portfolio-project-closing .portfolio-deck-mount .por
 
 .portfolio-carousel-dot-dial {
   position: absolute;
-  z-index: 4;
+  z-index: 9;
   left: 50%;
   top: calc(100% - clamp(30px, 4cqh, 42px));
   width: 0;
@@ -805,9 +805,8 @@ body.portfolio-project-open.portfolio-project-closing .portfolio-deck-mount .por
   top: 0;
   width: var(--portfolio-carousel-dot-size);
   height: var(--portfolio-carousel-dot-size);
-  border-radius: 999px;
-  background: currentColor;
-  color: color-mix(in srgb, var(--text-primary) 90%, transparent);
+  border-radius: 50%;
+  background: var(--portfolio-dot-color, var(--cursor-color));
   opacity: var(--portfolio-dot-opacity, 0.28);
   transform:
     translate3d(
@@ -1572,6 +1571,10 @@ body.portfolio-project-open .ui-bottom {
     display: none;
   }
 
+  .portfolio-carousel-dot-dial {
+    top: calc(100% - clamp(68px, 9cqh, 80px));
+  }
+
   .portfolio-deck-mount .portfolio-project-label.portfolio-project-card {
     display: block;
   }
@@ -1674,6 +1677,10 @@ body.portfolio-project-open .ui-bottom {
     display: none;
   }
 
+  .portfolio-carousel-dot-dial {
+    top: calc(100% - 18px);
+  }
+
   .portfolio-deck-mount .portfolio-project-label__text,
   .portfolio-project-card__title {
     max-width: 100%;
@@ -1683,6 +1690,21 @@ body.portfolio-project-open .ui-bottom {
 
   .portfolio-project-card__tags {
     display: none;
+  }
+}
+
+@media (max-width: 600px) and (max-height: 700px) and (orientation: portrait) {
+  .portfolio-deck-intro {
+    top: clamp(24px, 4svh, 30px);
+    width: min(82vw, 30ch);
+  }
+
+  .portfolio-deck-intro__title {
+    font-size: 0.875rem;
+  }
+
+  .portfolio-carousel-dot-dial {
+    top: calc(100% - 54px);
   }
 }
 

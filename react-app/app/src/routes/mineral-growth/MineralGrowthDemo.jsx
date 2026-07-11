@@ -15,6 +15,7 @@ import {
 import { desaturateGreysToBackground } from '../../palette/paletteTransforms.js';
 import { getLondonWeatherPaletteIdFromAssessment } from '../../weather/londonWeatherAssessment.js';
 import { withBasePath } from '../../lib/base-path.js';
+import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 import './mineral-growth-runtime.css';
 import './mineral-growth.css';
 
@@ -70,11 +71,9 @@ function downloadConfig(config) {
   URL.revokeObjectURL(anchor.href);
 }
 
-function resolveMineralGrowthTheme(designSystem) {
+function resolveMineralGrowthTheme(designSystem, isDarkMode) {
   const runtime = designSystem?.runtime || {};
   const shellTheme = designSystem?.shell?.theme || {};
-  const isDarkMode = typeof document !== 'undefined'
-    && document.body?.classList?.contains('dark-mode');
   const paletteId = resolveLondonWeatherPaletteId(
     runtime.paletteId
       || runtime.palette
@@ -258,13 +257,14 @@ function MineralGrowthPanel({ config, saveStatus, onChange, onReset, onSave }) {
 }
 
 export function MineralGrowthDemo() {
+  const isDark = useRenderedThemeIsDark();
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
   const configRef = useRef(DEFAULT_MINERAL_GROWTH_CONFIG);
   const colorsRef = useRef(DEFAULT_THEME_COLORS);
-  const initialThemeRef = useRef(null);
   const [config, setConfig] = useState(DEFAULT_MINERAL_GROWTH_CONFIG);
-  const [themeColors, setThemeColors] = useState(DEFAULT_THEME_COLORS);
+  const [designSystem, setDesignSystem] = useState(null);
+  const [themeColors, setThemeColors] = useState(() => resolveMineralGrowthTheme(null, isDark));
   const [saveStatus, setSaveStatus] = useState('loaded');
   const [configReady, setConfigReady] = useState(false);
   const showControlPanel = useMemo(() => shouldShowControlPanel(), []);
@@ -285,9 +285,7 @@ export function MineralGrowthDemo() {
       ]);
 
       if (cancelled) return;
-      const nextColors = resolveMineralGrowthTheme(designSystem);
-
-      setThemeColors(nextColors);
+      setDesignSystem(designSystem);
       setConfig(normalizeMineralGrowthConfig(demoConfig));
       setSaveStatus('loaded');
       setConfigReady(true);
@@ -300,60 +298,14 @@ export function MineralGrowthDemo() {
   }, []);
 
   useEffect(() => {
+    setThemeColors(resolveMineralGrowthTheme(designSystem, isDark));
+  }, [designSystem, isDark]);
+
+  useEffect(() => {
     configRef.current = config;
     colorsRef.current = themeColors;
     rendererRef.current?.start();
   }, [config, themeColors]);
-
-  useEffect(() => {
-    if (initialThemeRef.current === null) {
-      initialThemeRef.current = {
-        htmlDark: document.documentElement.classList.contains('dark-mode'),
-        bodyDark: document.body.classList.contains('dark-mode'),
-        wallBaseLight: document.documentElement.style.getPropertyValue('--abs-wall-base-light'),
-        wallBaseDark: document.documentElement.style.getPropertyValue('--abs-wall-base-dark'),
-        wallBase: document.documentElement.style.getPropertyValue('--abs-wall-base'),
-        frameInner: document.documentElement.style.getPropertyValue('--frame-inner-surface'),
-      };
-    }
-
-    const root = document.documentElement;
-    root.classList.add('dark-mode');
-    document.body.classList.add('dark-mode');
-    root.style.setProperty('--abs-wall-base-light', themeColors.light);
-    root.style.setProperty('--abs-wall-base-dark', themeColors.dark);
-    root.style.setProperty('--abs-wall-base', themeColors.active);
-    root.style.setProperty('--frame-inner-surface', 'var(--abs-wall-base)');
-
-    return undefined;
-  }, [themeColors]);
-
-  useEffect(() => () => {
-    const initial = initialThemeRef.current;
-    if (!initial) return;
-    document.documentElement.classList.toggle('dark-mode', initial.htmlDark);
-    document.body.classList.toggle('dark-mode', initial.bodyDark);
-    if (initial.wallBaseLight) {
-      document.documentElement.style.setProperty('--abs-wall-base-light', initial.wallBaseLight);
-    } else {
-      document.documentElement.style.removeProperty('--abs-wall-base-light');
-    }
-    if (initial.wallBaseDark) {
-      document.documentElement.style.setProperty('--abs-wall-base-dark', initial.wallBaseDark);
-    } else {
-      document.documentElement.style.removeProperty('--abs-wall-base-dark');
-    }
-    if (initial.wallBase) {
-      document.documentElement.style.setProperty('--abs-wall-base', initial.wallBase);
-    } else {
-      document.documentElement.style.removeProperty('--abs-wall-base');
-    }
-    if (initial.frameInner) {
-      document.documentElement.style.setProperty('--frame-inner-surface', initial.frameInner);
-    } else {
-      document.documentElement.style.removeProperty('--frame-inner-surface');
-    }
-  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;

@@ -103,6 +103,9 @@ const matrix = [
   {
     page: 'about',
     path: '/about.html',
+    // The intentional Coming soon composition is mostly one surface color,
+    // especially in dark mode; selector/text checks remain the validity gate.
+    allowNearBlank: true,
     readySelectors: ['#app-frame', '[data-route-tab="about"]', '[data-route-content="about"]'],
     minReadySelectors: 3,
     selectors: [

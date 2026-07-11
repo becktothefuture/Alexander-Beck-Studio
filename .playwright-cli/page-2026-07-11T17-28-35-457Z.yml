@@ -1,0 +1,88 @@
+- generic [ref=e11]:
+  - generic:
+    - application "Bouncy balls" [ref=e12]
+    - generic:
+      - generic:
+        - heading "Alexander Beck. Creative. Technologist." [level=1]:
+          - generic: Alexander Beck.
+          - generic: Creative. Technologist.
+    - button "Star Field" [expanded] [ref=e13] [cursor=pointer]
+    - dialog [ref=e19]:
+      - button "Close simulation chooser" [ref=e21] [cursor=pointer]
+      - heading "Choose a simulation" [level=2] [ref=e22]
+      - list [ref=e23]:
+        - button "Ball Field" [ref=e24] [cursor=pointer]
+        - button "Shapes" [ref=e36] [cursor=pointer]
+        - button "Light Swarm" [ref=e56] [cursor=pointer]
+        - button "Cube Frame" [ref=e68] [cursor=pointer]
+        - button "Water Flow" [ref=e81] [cursor=pointer]
+        - button "Repel Room" [ref=e91] [cursor=pointer]
+        - button "Sphere Orbit" [ref=e99] [cursor=pointer]
+        - button "Bust Cloud" [ref=e107] [cursor=pointer]
+        - button "Flock Drift" [ref=e117] [cursor=pointer]
+        - button "Soft Blob" [ref=e132] [cursor=pointer]
+        - button "Weave Field" [ref=e142] [cursor=pointer]
+        - button "Mineral Bloom" [ref=e149] [cursor=pointer]
+        - button "Kaleido Bloom" [ref=e156] [cursor=pointer]
+        - button "Bubble Lift" [ref=e168] [cursor=pointer]
+        - button "Star Field Active" [active] [ref=e181] [cursor=pointer]:
+          - generic [ref=e193]:
+            - generic [ref=e194]: Star Field
+            - generic [ref=e195]: Active
+        - button "Kaleido Rift" [ref=e196] [cursor=pointer]
+        - button "Depth Rings" [ref=e210] [cursor=pointer]
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - banner:
+              - generic:
+                - navigation "Areas of expertise" [ref=e218]:
+                  - generic [ref=e219]: Product Design
+                  - generic [ref=e222]: Experience Design
+                  - generic [ref=e225]: Art Direction
+                  - generic [ref=e228]: Motion & 3D
+                  - generic [ref=e231]: Creative Engineering
+                  - generic [ref=e234]: Parametric Systems
+                - blockquote [ref=e237]:
+                  - paragraph [ref=e238]:
+                    - text: Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity.
+                    - link "Let's chat." [ref=e239]:
+                      - /url: "#"
+      - generic:
+        - contentinfo:
+          - generic:
+            - group "Social media links" [ref=e241]:
+              - link "Apple Music" [ref=e242] [cursor=pointer]:
+                - /url: https://music.apple.com/profile/beckandeggs
+                - generic: 
+              - link "LinkedIn" [ref=e244] [cursor=pointer]:
+                - /url: https://www.linkedin.com/in/thisisbeck/
+                - generic: 
+            - generic [ref=e246]:
+              - generic "London local time":
+                - generic:
+                  - generic:
+                    - strong: London
+                    - generic: ·
+                  - time: 6:28:35 PM
+        - status:
+          - generic: A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable. © 2026 Alexander Beck
+  - generic [ref=e247]:
+    - navigation "Primary buttons" [ref=e248]:
+      - link "Home" [ref=e249]:
+        - /url: /index.html
+      - link "Portfolio" [ref=e254]:
+        - /url: /portfolio.html
+        - text: 
+      - link "About me" [ref=e256]:
+        - /url: /about.html
+        - text: 
+      - link "Contact" [ref=e258]:
+        - /url: /contact.html
+        - text: 
+    - group "Secondary buttons" [ref=e260]:
+      - button "Sound off" [ref=e261]:
+        - generic: 
+      - button "Switch to light mode" [pressed] [ref=e263]

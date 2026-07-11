@@ -37,8 +37,7 @@ export function saveSettings() {
     weightlessRepelRadius: globals.weightlessRepelRadius,
     weightlessRepelPower: globals.weightlessRepelPower,
     weightlessRepelSoft: globals.weightlessRepelSoft,
-    currentTemplate: globals.currentTemplate,
-    autoDarkModeEnabled: globals.autoDarkModeEnabled
+    currentTemplate: globals.currentTemplate
   };
   
   try {
@@ -79,7 +78,6 @@ export function loadSettings() {
       if (settings.weightlessRepelPower !== undefined) globals.weightlessRepelPower = settings.weightlessRepelPower;
       if (settings.weightlessRepelSoft !== undefined) globals.weightlessRepelSoft = settings.weightlessRepelSoft;
       if (settings.currentTemplate) globals.currentTemplate = settings.currentTemplate;
-      if (settings.autoDarkModeEnabled !== undefined) globals.autoDarkModeEnabled = settings.autoDarkModeEnabled;
       
       console.log('✓ Settings loaded');
       return true;
@@ -94,5 +92,4 @@ export function autoSaveSettings() {
   clearTimeout(window.settingsSaveTimeout);
   window.settingsSaveTimeout = setTimeout(saveSettings, 500);
 }
-
 

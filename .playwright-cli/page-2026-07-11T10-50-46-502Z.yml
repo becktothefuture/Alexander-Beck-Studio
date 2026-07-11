@@ -1,0 +1,52 @@
+- generic [ref=e1]:
+  - generic [ref=e11]:
+    - generic "Portfolio projects" [ref=e12]:
+      - region "Selected portfolio projects" [ref=e13]:
+        - generic:
+          - region "I design digital experiences around human response.":
+            - heading "I design digital experiences around human response." [level=2]
+          - generic "I design digital experiences around human response.":
+            - button [ref=e14]:
+              - generic:
+                - paragraph: Pro Keyboard
+                - heading [level=3]: Touch typing refined
+              - figure [ref=e15]
+              - generic: View
+            - 'button "Open project 1: S&P Global: Making financial indexes visible" [active] [ref=e16]':
+              - generic:
+                - paragraph: S&P Global
+                - heading "Making financial indexes visible" [level=3]
+              - figure [ref=e17]
+              - generic: View
+            - button [ref=e18]:
+              - generic:
+                - paragraph: SunExpress
+                - heading [level=3]: Clearer flight booking
+              - figure [ref=e19]
+              - generic: View
+          - status: "S&P Global: Making financial indexes visible. Project 1 of 6."
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - banner
+    - generic [ref=e20]:
+      - navigation "Primary buttons" [ref=e21]:
+        - link "Home" [ref=e22]:
+          - /url: /index.html
+        - link "Portfolio" [ref=e27]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About me" [ref=e29]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=e31]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=e33]:
+        - button "Sound off" [ref=e34]:
+          - generic: 
+        - button "Switch to dark mode" [ref=e36]
+  - status [ref=e42]: Closed project view
+  - button "Toggle design panel" [ref=e43]

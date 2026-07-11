@@ -18,7 +18,10 @@ const VIEWPORTS = [
   { name: 'desktop-wide', width: 2048, height: 1152 },
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'tablet', width: 1024, height: 768 },
+  { name: 'mobile-landscape', width: 844, height: 390 },
+  { name: 'mobile-small', width: 360, height: 640 },
   { name: 'mobile', width: 390, height: 844 },
+  { name: 'mobile-large', width: 430, height: 932 },
 ];
 
 function resolvePortfolioUrl() {
@@ -126,6 +129,10 @@ async function collectGeometry(page) {
       }
     }
     const activeCardRect = document.querySelector('.portfolio-project-card.is-active')?.getBoundingClientRect?.();
+    const intro = document.querySelector('.portfolio-deck-intro');
+    const introRect = intro instanceof HTMLElement && getComputedStyle(intro).display !== 'none'
+      ? intro.getBoundingClientRect()
+      : null;
     const activeCenterDeltaY = activeCardRect
       ? Math.abs(
         (activeCardRect.top + (activeCardRect.height / 2))
@@ -136,6 +143,58 @@ async function collectGeometry(page) {
       cards,
       overlaps,
       activeCenterDeltaY: activeCenterDeltaY === null ? null : Number(activeCenterDeltaY.toFixed(3)),
+      introCardGap: activeCardRect && introRect
+        ? Number((activeCardRect.top - introRect.bottom).toFixed(3))
+        : null,
+    };
+  });
+}
+
+async function collectDotAppearance(page) {
+  return page.evaluate(() => {
+    const dots = Array.from(document.querySelectorAll('.portfolio-carousel-dot'));
+    const samples = dots.map((dot) => {
+      const style = getComputedStyle(dot);
+      const rect = dot.getBoundingClientRect();
+      return {
+        color: style.backgroundColor,
+        opacity: Number.parseFloat(style.opacity),
+        width: Number.parseFloat(style.width),
+        height: Number.parseFloat(style.height),
+        borderRadius: Number.parseFloat(style.borderRadius),
+        cornerShape: style.cornerShape || '',
+        centerX: rect.left + (rect.width / 2),
+        centerY: rect.top + (rect.height / 2),
+      };
+    });
+    const centerGaps = samples
+      .slice(1)
+      .map((sample, index) => Math.hypot(
+        sample.centerX - samples[index].centerX,
+        sample.centerY - samples[index].centerY
+      ));
+    const activeCardRect = document.querySelector('.portfolio-project-card.is-active')?.getBoundingClientRect?.();
+    const activeCardOverlaps = activeCardRect
+      ? dots.filter((dot) => {
+        const rect = dot.getBoundingClientRect();
+        return Math.min(rect.right, activeCardRect.right) - Math.max(rect.left, activeCardRect.left) > 0
+          && Math.min(rect.bottom, activeCardRect.bottom) - Math.max(rect.top, activeCardRect.top) > 0;
+      }).length
+      : null;
+    return {
+      count: samples.length,
+      uniqueColors: new Set(samples.map((sample) => sample.color)).size,
+      minOpacity: samples.length ? Math.min(...samples.map((sample) => sample.opacity)) : null,
+      cornerShapes: Array.from(new Set(samples.map((sample) => sample.cornerShape).filter(Boolean))),
+      maxAspectDelta: samples.length
+        ? Math.max(...samples.map((sample) => Math.abs(sample.width - sample.height)))
+        : null,
+      minRadiusRatio: samples.length
+        ? Math.min(...samples.map((sample) => sample.borderRadius / Math.max(1, sample.width)))
+        : null,
+      minCenterGap: centerGaps.length ? Math.min(...centerGaps) : null,
+      dotSize: samples[0]?.width ?? null,
+      activeCardOverlaps,
     };
   });
 }
@@ -324,8 +383,12 @@ async function captureAccents(page) {
 }
 
 async function captureDrawer(page) {
-  await page.evaluate(() => window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.setActiveProject?.(0, { immediate: true }));
-  await page.evaluate(() => document.querySelector('.portfolio-project-card.is-active')?.click());
+  await page.evaluate(() => {
+    const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
+    app?.setActiveProject?.(0, { immediate: true });
+    if (app) app.suppressNextCardClick = false;
+  });
+  await page.locator('.portfolio-project-card.is-active').click();
   await page.waitForSelector('#portfolioProjectView.is-visible.is-open', { state: 'visible', timeout: WAIT_MS });
   await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-drawer-open.png') });
   const state = await page.evaluate(() => ({
@@ -369,7 +432,10 @@ async function main() {
       await openViewport(page, viewport);
       const geometry = await collectGeometry(page);
       await page.screenshot({ path: path.join(ARTIFACT_ROOT, `${viewport.name}-closed.png`) });
-      summary.viewports[viewport.name] = { geometry };
+      summary.viewports[viewport.name] = {
+        geometry,
+        dots: await collectDotAppearance(page),
+      };
 
       if (viewport.name === 'desktop') {
         summary.viewports.desktop.cursor = await auditCursor(page);
@@ -397,6 +463,21 @@ async function main() {
       if (result.geometry.overlaps.length) failures.push(`${name}: ${result.geometry.overlaps.length} visible overlap(s)`);
       if (result.geometry.activeCenterDeltaY === null || result.geometry.activeCenterDeltaY > 1) {
         failures.push(`${name}: active card is not vertically centered in the stage`);
+      }
+      if (result.geometry.introCardGap !== null && result.geometry.introCardGap < 8) {
+        failures.push(`${name}: intro overlaps or crowds the active card`);
+      }
+      if (result.dots.count < 12 || result.dots.count > 24) failures.push(`${name}: dot track is not sparse`);
+      if (result.dots.uniqueColors < 8) failures.push(`${name}: dot track does not use the homepage palette`);
+      if (result.dots.minOpacity === null || result.dots.minOpacity < 0.99) failures.push(`${name}: dot colors are faded`);
+      if (result.dots.cornerShapes.includes('squircle')) failures.push(`${name}: dots use squircle corners`);
+      if (result.dots.maxAspectDelta === null || result.dots.maxAspectDelta > 0.5) failures.push(`${name}: dots are not square before rounding`);
+      if (result.dots.minRadiusRatio === null || result.dots.minRadiusRatio < 0.49) failures.push(`${name}: dots are not circular`);
+      if (result.dots.minCenterGap === null || result.dots.minCenterGap < result.dots.dotSize * 1.35) {
+        failures.push(`${name}: dots are not spaced clearly apart`);
+      }
+      if (result.dots.activeCardOverlaps === null || result.dots.activeCardOverlaps > 0) {
+        failures.push(`${name}: dot track overlaps the active card`);
       }
     }
     if ((summary.viewports.desktop.press?.delta ?? Infinity) > 2) failures.push('desktop: pointer-down center delta exceeded 2px');
