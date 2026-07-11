@@ -3132,7 +3132,7 @@ button.abs-meta-btn,
 .hero-title {
   position: absolute;
   top: 50%;
-  left: 50%;
+  left: calc(50% + var(--home-hero-title-optical-offset-x, 0px));
   /* Slightly above geometric center: −4vh + existing downward bias clamp */
   transform:
     translate(-50%, -50%)
@@ -3167,6 +3167,8 @@ button.abs-meta-btn,
 
 body:not(.portfolio-page):not(.cv-page):not(.daily-focus-page) .hero-title--canvas-source {
   --home-hero-title-scale: 1.2;
+  /* Compensate for the right-hand full stop so the wordmark reads centred. */
+  --home-hero-title-optical-offset-x: clamp(1px, 0.15vw, 2px);
   --canvas-title-opacity: calc(1 - var(--ui-obscured, 0));
   opacity: 0;
 }
