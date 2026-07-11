@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ShellButtonBar } from '../../components/app/ShellButtonBar.jsx';
 import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
 import './button-bar-playground.css';
@@ -43,14 +43,20 @@ const BUTTON_BAR_VARIANTS = Object.freeze([
 ]);
 
 function ButtonBarVariant({ variant, activeRouteId, onSelectRoute }) {
+  const sampleRef = useRef(null);
   const headingId = 'button-bar-variant-' + variant.id;
   const sampleClassName = [
     'button-bar-playground__sample',
     'button-bar-playground__sample--' + variant.id,
   ].join(' ');
 
+  useEffect(() => {
+    const nav = sampleRef.current?.querySelector('[data-button-bar-nav]');
+    nav?.setAttribute('aria-label', variant.title + ' button bar preview');
+  }, [activeRouteId, variant.title]);
+
   return (
-    <article className={sampleClassName} aria-labelledby={headingId}>
+    <article ref={sampleRef} className={sampleClassName} aria-labelledby={headingId}>
       <header className="button-bar-playground__sample-header">
         <span className="button-bar-playground__sample-number" aria-hidden="true">
           {variant.number}
