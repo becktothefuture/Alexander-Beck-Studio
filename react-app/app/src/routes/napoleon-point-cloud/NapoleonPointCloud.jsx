@@ -270,6 +270,10 @@ function disposePointCloudRuntime(runtime) {
 function renderPointCloudLayers(runtime) {
   runtime.backRenderer.render(runtime.backScene, runtime.camera);
   runtime.frontRenderer.render(runtime.frontScene, runtime.camera);
+  if (globalThis.__ABS_ROUTE_PERF_AUDIT__ === true) {
+    const canvas = runtime.backRenderer.domElement;
+    canvas.__absAuditFrameCount = (Number(canvas.__absAuditFrameCount) || 0) + 1;
+  }
 }
 
 function forEachPointCloudMaterial(runtime, callback) {

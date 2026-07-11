@@ -10,6 +10,8 @@ const SETTLE_MS = Math.max(500, Number(process.env.ABS_PERF_SETTLE_MS || 2000));
 const READY_TIMEOUT_MS = Math.max(3000, Number(process.env.ABS_PERF_READY_TIMEOUT_MS || 15_000));
 const BROWSER_NAME = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
 const DEVICE_NAME = String(process.env.ABS_DEVICE || 'iPhone 13');
+const ORIENTATION = String(process.env.ABS_ORIENTATION || 'portrait').toLowerCase();
+const MIN_FPS = Math.max(1, Number(process.env.ABS_PERF_MIN_FPS || 55));
 const OUTPUT_PATH = resolve(process.env.ABS_PERF_OUTPUT || `output/playwright/runtime-performance-${BROWSER_NAME}.json`);
 const browserType = BROWSER_NAME === 'webkit' ? webkit : chromium;
 
@@ -18,6 +20,21 @@ if (!['chromium', 'webkit'].includes(BROWSER_NAME)) {
 }
 if (!devices[DEVICE_NAME]) {
   throw new Error(`Unknown Playwright device profile: ${DEVICE_NAME}`);
+}
+if (!['portrait', 'landscape'].includes(ORIENTATION)) {
+  throw new Error(`Unsupported ABS_ORIENTATION=${ORIENTATION}; use portrait or landscape.`);
+}
+
+const deviceProfile = { ...devices[DEVICE_NAME] };
+if (ORIENTATION === 'landscape') {
+  deviceProfile.viewport = {
+    width: devices[DEVICE_NAME].viewport.height,
+    height: devices[DEVICE_NAME].viewport.width,
+  };
+  deviceProfile.screen = {
+    width: devices[DEVICE_NAME].screen.height,
+    height: devices[DEVICE_NAME].screen.width,
+  };
 }
 
 const catalogPath = resolve('react-app/app/src/data/simulationCatalog.json');
@@ -39,6 +56,7 @@ function percentile(values, ratio) {
 }
 
 function round(value, digits = 2) {
+  if (value === null || value === undefined || value === '') return null;
   return Number.isFinite(Number(value)) ? Number(Number(value).toFixed(digits)) : null;
 }
 
@@ -58,11 +76,14 @@ let deviceEvidence = null;
 try {
   for (const entry of entries) {
     const context = await browser.newContext({
-      ...devices[DEVICE_NAME],
+      ...deviceProfile,
       reducedMotion: 'no-preference',
       colorScheme: process.env.ABS_COLOR_SCHEME === 'dark' ? 'dark' : 'light',
     });
     const page = await context.newPage();
+    await page.addInitScript(() => {
+      window.__ABS_ROUTE_PERF_AUDIT__ = true;
+    });
     const consoleErrors = [];
     const pageErrors = [];
     page.on('console', (message) => {
@@ -93,6 +114,12 @@ try {
       const sample = await page.evaluate(async (durationMs) => {
         const intervals = [];
         const start = performance.now();
+        const auditCanvas = Array.from(document.querySelectorAll('canvas')).find((canvas) => (
+          Number.isFinite(Number(canvas.__absAuditFrameCount))
+          && canvas.getBoundingClientRect().width > 0
+          && canvas.getBoundingClientRect().height > 0
+        ));
+        const startRenderedFrameCount = Number(auditCanvas?.__absAuditFrameCount) || 0;
         let previous = 0;
         await new Promise((resolveSample) => {
           const tick = (now) => {
@@ -104,6 +131,9 @@ try {
           requestAnimationFrame(tick);
         });
         const runtime = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.() || null;
+        const renderedFrameCount = auditCanvas
+          ? Math.max(0, (Number(auditCanvas.__absAuditFrameCount) || 0) - startRenderedFrameCount)
+          : null;
         const canvases = Array.from(document.querySelectorAll('canvas')).map((canvas) => {
           const rect = canvas.getBoundingClientRect();
           return {
@@ -123,6 +153,8 @@ try {
         return {
           intervals,
           runtime,
+          renderedFrameCount,
+          renderedFps: renderedFrameCount === null ? null : renderedFrameCount * 1000 / durationMs,
           visualCount: Number(window.__ABS_SIMULATION_VISUAL_TRANSITION__?.count) || null,
           device: {
             userAgent: navigator.userAgent,
@@ -158,6 +190,8 @@ try {
         gapsOver25: intervals.filter((value) => value > 25).length,
         gapsOver50: intervals.filter((value) => value > 50).length,
         runtimeFps: round(sample.runtime?.adaptiveFps),
+        renderedFrameCount: sample.renderedFrameCount,
+        renderedFps: round(sample.renderedFps),
         targetFps: round(sample.runtime?.targetFps),
         throttleLevel: sample.runtime?.throttleLevel ?? null,
         objectOrPointCount: Number(sample.runtime?.ballCount)
@@ -169,8 +203,10 @@ try {
         consoleErrors,
         pageErrors,
       };
+      result.measuredFps = result.renderedFps ?? result.runtimeFps ?? result.rafFps;
+      result.performanceGatePassed = result.measuredFps >= MIN_FPS;
       results.push(result);
-      console.log(`${result.rafFps} rAF FPS, runtime ${result.runtimeFps ?? 'n/a'}, p95 ${result.rafP95Ms}ms`);
+      console.log(`${result.rafFps} rAF FPS, rendered ${result.renderedFps ?? 'n/a'}, runtime ${result.runtimeFps ?? 'n/a'}, gate ${result.performanceGatePassed ? 'PASS' : 'FAIL'}`);
     } catch (error) {
       results.push({ id: entry.id, name: entry.name, surface: entry.surface, error: error?.stack || String(error), consoleErrors, pageErrors });
       console.log(`ERROR: ${error?.message || error}`);
@@ -183,7 +219,8 @@ try {
 }
 
 const successful = results.filter((result) => !result.error);
-const ranked = [...successful].sort((a, b) => a.rafFps - b.rafFps);
+const ranked = [...successful].sort((a, b) => a.measuredFps - b.measuredFps);
+const gateFailures = successful.filter((result) => !result.performanceGatePassed);
 const output = {
   schemaVersion: 2,
   generatedAt: new Date().toISOString(),
@@ -191,6 +228,8 @@ const output = {
   origin: ORIGIN,
   browser: `Playwright ${BROWSER_NAME}`,
   deviceProfile: DEVICE_NAME,
+  orientation: ORIENTATION,
+  minimumAcceptedFps: MIN_FPS,
   sampleMs: SAMPLE_MS,
   settleMs: SETTLE_MS,
   catalogSha256: createHash('sha256').update(catalogText).digest('hex'),
@@ -200,8 +239,9 @@ const output = {
     simulationsExpected: entries.length,
     simulationsMeasured: successful.length,
     errors: results.length - successful.length,
-    lowest: ranked[0] ? { id: ranked[0].id, rafFps: ranked[0].rafFps, p95Ms: ranked[0].rafP95Ms } : null,
-    highest: ranked.at(-1) ? { id: ranked.at(-1).id, rafFps: ranked.at(-1).rafFps, p95Ms: ranked.at(-1).rafP95Ms } : null,
+    performanceGateFailures: gateFailures.map((result) => ({ id: result.id, measuredFps: result.measuredFps })),
+    lowest: ranked[0] ? { id: ranked[0].id, measuredFps: ranked[0].measuredFps, p95Ms: ranked[0].rafP95Ms } : null,
+    highest: ranked.at(-1) ? { id: ranked.at(-1).id, measuredFps: ranked.at(-1).measuredFps, p95Ms: ranked.at(-1).rafP95Ms } : null,
   },
   results,
 };
@@ -211,4 +251,4 @@ await writeFile(OUTPUT_PATH, `${JSON.stringify(output, null, 2)}\n`);
 console.log(JSON.stringify(output.summary, null, 2));
 console.log(`Wrote ${OUTPUT_PATH}`);
 
-if (output.summary.errors > 0) process.exitCode = 1;
+if (output.summary.errors > 0 || gateFailures.length > 0) process.exitCode = 1;

@@ -25,6 +25,11 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function markAuditFrame(canvas) {
+  if (!canvas || globalThis.__ABS_ROUTE_PERF_AUDIT__ !== true) return;
+  canvas.__absAuditFrameCount = (Number(canvas.__absAuditFrameCount) || 0) + 1;
+}
+
 function mulberry32(seed) {
   let state = seed >>> 0;
   return () => {
@@ -537,6 +542,7 @@ function drawState(ctx, state, metrics, theme, options = {}) {
     }
     ctx.fill();
   }
+  markAuditFrame(ctx.canvas);
 }
 
 function isEventOnPanel(target) {
@@ -667,7 +673,9 @@ export function createRepelRoomRenderer({
       const targetFps = resolveTargetFps(config, reducedMotion);
       const frameInterval = 1000 / targetFps;
       if (!lastFrameAt || now - lastFrameAt >= frameInterval - 1) {
-        lastFrameAt = now;
+        lastFrameAt = lastFrameAt
+          ? Math.min(now, lastFrameAt + frameInterval)
+          : now;
         render(now);
       }
     }

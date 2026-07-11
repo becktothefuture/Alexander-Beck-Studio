@@ -11,8 +11,10 @@ This packet restores sustained mobile simulation performance with the smallest v
 
 ## Action order
 
-1. `prd-01-mobile-compositor-budget.md`
-2. `prd-02-shared-canvas-fast-path.md`
-3. `prd-03-heavy-simulation-mobile-budgets.md`
+1. `archive/actioned/prd-01-mobile-compositor-budget.md`
+2. `archive/actioned/prd-02-shared-canvas-fast-path.md`
+3. `archive/actioned/prd-03-heavy-simulation-mobile-budgets.md`
 
 Each PRD requires two proof points, a focused commit, a push to `main`, and production verification before the next begins.
+
+All three PRDs are actioned and archived.

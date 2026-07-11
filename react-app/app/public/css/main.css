@@ -4367,7 +4367,7 @@ svg.shell-tab__icon {
   --shell-tab-motion-scale: 1;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
   :root {
     --button-bar-mobile-secondary-height: var(--shell-tab-height, 48px);
     --button-bar-mobile-row-gap: clamp(8px, 2.5vw, 12px);

@@ -247,10 +247,19 @@ function getPresetProfile(config) {
 
 function resolveDpr(config) {
   const deviceDpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
-  const mobileCap = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 600px)').matches
-    ? 1.15
-    : 2;
+  const mobileCap = isMobileRuntime() ? 1.15 : 2;
   return clamp(Math.min(deviceDpr, numberOr(config.maxDpr, 1.5), mobileCap), 0.75, 2);
+}
+
+function isMobileRuntime() {
+  if (typeof window === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(window.navigator?.userAgent || '')
+    || window.matchMedia?.('(hover: none) and (pointer: coarse)').matches === true;
+}
+
+function markAuditFrame(canvas) {
+  if (!canvas || globalThis.__ABS_ROUTE_PERF_AUDIT__ !== true) return;
+  canvas.__absAuditFrameCount = (Number(canvas.__absAuditFrameCount) || 0) + 1;
 }
 
 function resolveTargetFps(config, reducedMotion) {
@@ -1354,6 +1363,7 @@ function renderState(ctx, state, metrics, theme, now, elapsed, duration, options
   let visibleCount = 0;
   ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
   ctx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
+  markAuditFrame(ctx.canvas);
   if (!options.transparentBackground) {
     ctx.fillStyle = surface;
     ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
@@ -1588,7 +1598,9 @@ export function createMineralGrowthRenderer({
     const targetFps = resolveTargetFps(config, reducedMotion);
     const minFrameMs = 1000 / targetFps;
     if (!shouldPauseForVisibility(config) && (!lastRenderAt || now - lastRenderAt >= minFrameMs * 0.94)) {
-      lastRenderAt = now;
+      lastRenderAt = lastRenderAt
+        ? Math.min(now, lastRenderAt + minFrameMs)
+        : now;
       draw(now);
     }
     rafId = window.requestAnimationFrame(frame);

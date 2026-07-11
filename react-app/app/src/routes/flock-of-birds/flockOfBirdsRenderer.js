@@ -25,6 +25,17 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function isMobileRuntime() {
+  if (typeof window === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(window.navigator?.userAgent || '')
+    || window.matchMedia?.('(hover: none) and (pointer: coarse)').matches === true;
+}
+
+function markAuditFrame(canvas) {
+  if (!canvas || globalThis.__ABS_ROUTE_PERF_AUDIT__ !== true) return;
+  canvas.__absAuditFrameCount = (Number(canvas.__absAuditFrameCount) || 0) + 1;
+}
+
 function smoothStep(value) {
   const t = clamp(value, 0, 1);
   return t * t * (3 - 2 * t);
@@ -150,9 +161,7 @@ function pickWeightedPaletteIndex(random, theme) {
 
 function resolveDpr(config) {
   const deviceDpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
-  const mobileCap = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 600px)').matches
-    ? 1.15
-    : 2;
+  const mobileCap = isMobileRuntime() ? 1.15 : 2;
   return clamp(Math.min(deviceDpr, Number(config.maxDpr) || 1.5, mobileCap), 0.75, 2);
 }
 
@@ -186,7 +195,9 @@ function resolveTargetFps(config, reducedMotion) {
 
 function resolveBirdCount(config, metrics, reducedMotion) {
   const baseCount = clamp(Math.round(Number(config.birdCount) || 180), 40, 360);
-  const mobileScale = metrics.cssWidth < 720 ? clamp(Number(config.mobileCountScale) || 0.72, 0.35, 1) : 1;
+  const mobileScale = isMobileRuntime() || metrics.cssWidth < 720
+    ? clamp(Number(config.mobileCountScale) || 0.72, 0.35, 1)
+    : 1;
   const motionScale = reducedMotion ? 0.74 : 1;
   return Math.max(24, Math.round(baseCount * mobileScale * motionScale));
 }
@@ -1189,7 +1200,7 @@ export function createFlockOfBirdsRenderer({
     }
 
     const requestedFrames = Math.round(clamp(Number(config.startupWarmupFrames) || 0, 0, 240));
-    const frames = metrics.cssWidth <= 600 ? 0 : requestedFrames;
+    const frames = isMobileRuntime() ? 0 : requestedFrames;
     metrics.warmupFrames = frames;
     canvas.dataset.warmupFrames = String(frames);
     if (frames <= 0) {
@@ -1243,6 +1254,7 @@ export function createFlockOfBirdsRenderer({
       drawBackground(ctx, metrics, theme, config);
     }
     drawBirds(config, theme);
+    markAuditFrame(canvas);
   }
 
   function drawVisualFrame(force = false) {

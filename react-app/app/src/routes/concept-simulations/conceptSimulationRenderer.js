@@ -28,6 +28,11 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function markAuditFrame(canvas) {
+  if (!canvas || globalThis.__ABS_ROUTE_PERF_AUDIT__ !== true) return;
+  canvas.__absAuditFrameCount = (Number(canvas.__absAuditFrameCount) || 0) + 1;
+}
+
 function smoothstep(value) {
   const t = clamp(value, 0, 1);
   return t * t * (3 - (2 * t));
@@ -994,6 +999,7 @@ export function createConceptSimulationRenderer({
       }
     }
     ctx.shadowColor = 'transparent';
+    markAuditFrame(canvas);
   }
 
   function start() {
