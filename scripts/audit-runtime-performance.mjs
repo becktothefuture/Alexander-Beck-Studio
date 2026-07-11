@@ -7,11 +7,16 @@ import { chromium, devices, webkit } from 'playwright';
 const ORIGIN = String(process.env.ABS_DEV_URL || 'http://127.0.0.1:8012').replace(/\/+$/, '');
 const SAMPLE_MS = Math.max(500, Number(process.env.ABS_PERF_SAMPLE_MS || 3000));
 const SETTLE_MS = Math.max(500, Number(process.env.ABS_PERF_SETTLE_MS || 2000));
+const WINDOW_STARTS_SECONDS = String(process.env.ABS_PERF_WINDOW_STARTS_SECONDS || '5,30,60')
+  .split(',')
+  .map((value) => Number(value.trim()))
+  .filter((value) => Number.isFinite(value) && value >= 0)
+  .sort((a, b) => a - b);
 const READY_TIMEOUT_MS = Math.max(3000, Number(process.env.ABS_PERF_READY_TIMEOUT_MS || 15_000));
 const BROWSER_NAME = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
 const DEVICE_NAME = String(process.env.ABS_DEVICE || 'iPhone 13');
 const ORIENTATION = String(process.env.ABS_ORIENTATION || 'portrait').toLowerCase();
-const MIN_FPS = Math.max(1, Number(process.env.ABS_PERF_MIN_FPS || 55));
+const MIN_FPS = Math.max(1, Number(process.env.ABS_PERF_MIN_FPS || 58));
 const OUTPUT_PATH = resolve(process.env.ABS_PERF_OUTPUT || `output/playwright/runtime-performance-${BROWSER_NAME}.json`);
 const browserType = BROWSER_NAME === 'webkit' ? webkit : chromium;
 
@@ -44,10 +49,14 @@ const requestedIds = String(process.env.ABS_PERF_MODES || '')
   .split(',')
   .map((id) => id.trim())
   .filter(Boolean);
-const dailyEntries = catalog.simulations.filter((entry) => entry.stage === 'daily-rotation');
+const catalogEntries = catalog.simulations.filter((entry) => entry.launchPath || entry.dailyHref);
 const entries = requestedIds.length
-  ? requestedIds.map((id) => dailyEntries.find((entry) => entry.id === id)).filter(Boolean)
-  : dailyEntries;
+  ? requestedIds.map((id) => catalogEntries.find((entry) => entry.id === id)).filter(Boolean)
+  : catalogEntries;
+const missingRequestedIds = requestedIds.filter((id) => !entries.some((entry) => entry.id === id));
+if (missingRequestedIds.length) {
+  throw new Error(`Unknown ABS_PERF_MODES simulation IDs: ${missingRequestedIds.join(', ')}`);
+}
 
 function percentile(values, ratio) {
   if (!values.length) return null;
@@ -61,10 +70,12 @@ function round(value, digits = 2) {
 }
 
 function entryUrl(entry) {
-  const path = entry.surface === 'home-mode' ? '/index.html' : (entry.dailyHref || entry.launchPath);
+  const path = entry.surface === 'home-mode'
+    ? '/index.html'
+    : (entry.stage === 'daily-rotation' ? (entry.dailyHref || entry.launchPath) : entry.launchPath);
   const url = new URL(path, `${ORIGIN}/`);
   if (entry.surface === 'home-mode') url.searchParams.set('mode', entry.id);
-  else url.searchParams.set('daily', '1');
+  else if (entry.stage === 'daily-rotation') url.searchParams.set('daily', '1');
   url.searchParams.set('absAudit', '1');
   return url.toString();
 }
@@ -83,6 +94,7 @@ try {
     const page = await context.newPage();
     await page.addInitScript(() => {
       window.__ABS_ROUTE_PERF_AUDIT__ = true;
+      sessionStorage.setItem('abs_portfolio_ok', 'runtime-performance-audit');
     });
     const consoleErrors = [];
     const pageErrors = [];
@@ -101,18 +113,35 @@ try {
           entry.id,
           { timeout: READY_TIMEOUT_MS },
         );
+      } else if (entry.surface === 'route-runtime') {
+        await page.waitForFunction(
+          () => document.body.classList.contains('portfolio-page')
+            && Number(document.getElementById('c')?.width) > 1
+            && Number(document.getElementById('c')?.height) > 1
+            && Number(document.getElementById('c')?.__absAuditFrameCount) > 0,
+          undefined,
+          { timeout: READY_TIMEOUT_MS },
+        );
       } else {
         await page.waitForFunction(
-          (id) => window.__ABS_SIMULATION_VISUAL_TRANSITION__?.sourceId === id
-            && Array.from(document.querySelectorAll('canvas')).some((canvas) => canvas.width > 1 && canvas.height > 1),
+          () => Array.from(document.querySelectorAll('canvas')).some((canvas) => (
+            canvas.width > 1
+            && canvas.height > 1
+            && Number(canvas.__absAuditFrameCount) > 0
+          )),
           entry.id,
           { timeout: READY_TIMEOUT_MS },
         );
       }
-      await page.waitForTimeout(SETTLE_MS);
+      const measurementStartedAt = Date.now();
+      const windowSamples = [];
+      for (const windowStartSeconds of (WINDOW_STARTS_SECONDS.length ? WINDOW_STARTS_SECONDS : [SETTLE_MS / 1000])) {
+        const waitMs = Math.max(0, windowStartSeconds * 1000 - (Date.now() - measurementStartedAt));
+        if (waitMs > 0) await page.waitForTimeout(waitMs);
 
-      const sample = await page.evaluate(async (durationMs) => {
+        const windowSample = await page.evaluate(async (durationMs) => {
         const intervals = [];
+        const renderedIntervals = [];
         const start = performance.now();
         const auditCanvas = Array.from(document.querySelectorAll('canvas')).find((canvas) => (
           Number.isFinite(Number(canvas.__absAuditFrameCount))
@@ -120,11 +149,19 @@ try {
           && canvas.getBoundingClientRect().height > 0
         ));
         const startRenderedFrameCount = Number(auditCanvas?.__absAuditFrameCount) || 0;
+        let previousObservedRenderedFrameCount = startRenderedFrameCount;
+        let previousRenderedAt = 0;
         let previous = 0;
         await new Promise((resolveSample) => {
           const tick = (now) => {
             if (previous > 0) intervals.push(now - previous);
             previous = now;
+            const observedRenderedFrameCount = Number(auditCanvas?.__absAuditFrameCount) || 0;
+            if (observedRenderedFrameCount > previousObservedRenderedFrameCount) {
+              if (previousRenderedAt > 0) renderedIntervals.push(now - previousRenderedAt);
+              previousRenderedAt = now;
+              previousObservedRenderedFrameCount = observedRenderedFrameCount;
+            }
             if (now - start >= durationMs) resolveSample();
             else requestAnimationFrame(tick);
           };
@@ -147,11 +184,11 @@ try {
             dataset: { ...canvas.dataset },
           };
         });
-        const film = document.querySelector('.studio-light-film-layer');
         const noise = document.querySelector('.noise');
         const chooser = document.querySelector('.simulation-focus-pill');
         return {
           intervals,
+          renderedIntervals,
           runtime,
           renderedFrameCount,
           renderedFps: renderedFrameCount === null ? null : renderedFrameCount * 1000 / durationMs,
@@ -164,13 +201,15 @@ try {
           },
           canvases,
           effects: {
-            filmDisplay: film ? getComputedStyle(film).display : null,
             noiseDisplay: noise ? getComputedStyle(noise).display : null,
             noiseAnimation: noise ? getComputedStyle(noise, '::before').animationName : null,
             chooserBackdrop: chooser ? getComputedStyle(chooser).backdropFilter : null,
           },
         };
-      }, SAMPLE_MS);
+        }, SAMPLE_MS);
+        windowSamples.push({ windowStartSeconds, sample: windowSample });
+      }
+      const sample = windowSamples.at(-1).sample;
 
       deviceEvidence ||= sample.device;
       const intervals = sample.intervals.filter(Number.isFinite);
@@ -202,9 +241,49 @@ try {
         canvases: sample.canvases,
         consoleErrors,
         pageErrors,
+        windows: windowSamples.map(({ windowStartSeconds, sample: windowSample }) => {
+          const windowIntervals = windowSample.intervals.filter(Number.isFinite);
+          const windowRenderedIntervals = windowSample.renderedIntervals.filter(Number.isFinite);
+          const windowElapsed = windowIntervals.reduce((sum, value) => sum + value, 0);
+          const renderedFps = windowSample.renderedFrameCount === null
+            ? null
+            : windowSample.renderedFrameCount * 1000 / SAMPLE_MS;
+          return {
+            startSeconds: windowStartSeconds,
+            rafFps: round(windowIntervals.length * 1000 / Math.max(1, windowElapsed)),
+            p95Ms: round(percentile(windowIntervals, 0.95)),
+            p99Ms: round(percentile(windowIntervals, 0.99)),
+            longestGapMs: round(Math.max(...windowIntervals, 0)),
+            renderedP95Ms: round(percentile(windowRenderedIntervals, 0.95)),
+            renderedP99Ms: round(percentile(windowRenderedIntervals, 0.99)),
+            renderedFps: round(renderedFps),
+            runtimeFps: round(windowSample.runtime?.adaptiveFps),
+            throttleLevel: windowSample.runtime?.throttleLevel ?? null,
+          };
+        }),
       };
-      result.measuredFps = result.renderedFps ?? result.runtimeFps ?? result.rafFps;
-      result.performanceGatePassed = result.measuredFps >= MIN_FPS;
+      const requiresContinuousFrames = entry.surface !== 'route-runtime';
+      result.measurementKind = requiresContinuousFrames ? 'continuous-renderer' : 'interaction-driven-route';
+      result.measuredFps = requiresContinuousFrames
+        ? (result.renderedFps ?? result.runtimeFps ?? result.rafFps)
+        : result.rafFps;
+      const measuredWindows = result.windows.map((windowResult) => (
+        requiresContinuousFrames
+          ? (windowResult.renderedFps ?? windowResult.runtimeFps ?? windowResult.rafFps)
+          : windowResult.rafFps
+      ));
+      const firstWindowFps = measuredWindows[0] ?? result.measuredFps;
+      const lastWindowFps = measuredWindows.at(-1) ?? result.measuredFps;
+      result.performanceDecayPercent = firstWindowFps > 0
+        ? round(Math.max(0, (firstWindowFps - lastWindowFps) / firstWindowFps * 100))
+        : null;
+      result.performanceGatePassed = measuredWindows.every((fps) => fps >= MIN_FPS)
+        && result.windows.every((windowResult) => windowResult.p95Ms <= 20 && windowResult.p99Ms <= 33.4)
+        && (result.performanceDecayPercent === null || result.performanceDecayPercent <= 5)
+        && result.windows.every((windowResult) => !windowResult.throttleLevel)
+        && (!requiresContinuousFrames || result.windows.every((windowResult) => windowResult.renderedFps !== null))
+        && consoleErrors.length === 0
+        && pageErrors.length === 0;
       results.push(result);
       console.log(`${result.rafFps} rAF FPS, rendered ${result.renderedFps ?? 'n/a'}, runtime ${result.runtimeFps ?? 'n/a'}, gate ${result.performanceGatePassed ? 'PASS' : 'FAIL'}`);
     } catch (error) {
@@ -232,6 +311,7 @@ const output = {
   minimumAcceptedFps: MIN_FPS,
   sampleMs: SAMPLE_MS,
   settleMs: SETTLE_MS,
+  windowStartsSeconds: WINDOW_STARTS_SECONDS,
   catalogSha256: createHash('sha256').update(catalogText).digest('hex'),
   caveat: 'Desktop-hosted browser emulation does not reproduce physical iPhone GPU, thermal, memory, or power constraints.',
   deviceEvidence,

@@ -893,6 +893,9 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     writeMotionDebug();
 
     renderer.render(scene, camera);
+    if (globalThis.__ABS_ROUTE_PERF_AUDIT__ === true) {
+      renderer.domElement.__absAuditFrameCount = (Number(renderer.domElement.__absAuditFrameCount) || 0) + 1;
+    }
   }
 
   function onResize() {

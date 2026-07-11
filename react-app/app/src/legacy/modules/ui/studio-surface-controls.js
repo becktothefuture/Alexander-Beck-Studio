@@ -10,7 +10,6 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   fillOpacity: 0.018,
   glowOpacity: 0.18,
   sceneHighlight: 0.3,
-  lightFilmOpacity: 0.18,
   contrastVeilOpacityLight: 0.216,
   contrastVeilOpacityDark: 0.348,
   contrastVeilReachX: 25,
@@ -50,15 +49,6 @@ const SURFACE_CONTROL_SECTIONS = [
     defaultOpen: false,
     controls: [
       { id: 'sceneHighlight', label: 'Highlight', min: 0, max: 0.6, step: 0.01, unit: '' },
-      {
-        id: 'lightFilmOpacity',
-        label: 'Light Film',
-        min: 0,
-        max: 0.4,
-        step: 0.01,
-        unit: '',
-        format: value => `${Math.round(value * 100)}%`,
-      },
     ],
   },
 ];
@@ -131,7 +121,6 @@ function readCurrentConfig() {
     fillOpacity: readNumber(rootStyle, '--abs-surface-fill-opacity', readNumber(rootStyle, '--quote-glass-fill-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.fillOpacity)),
     glowOpacity: readNumber(rootStyle, '--abs-surface-glow-opacity', readNumber(rootStyle, '--quote-glass-shadow-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.glowOpacity)),
     sceneHighlight: readNumber(rootStyle, '--abs-scene-highlight', readNumber(rootStyle, '--inner-wall-top-light-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.sceneHighlight)),
-    lightFilmOpacity: readNumber(rootStyle, '--studio-light-film-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.lightFilmOpacity),
     contrastVeilOpacityLight: (() => {
       const g = getGlobals();
       const v = g?.simulationContrastVeilOpacityLight;
@@ -209,7 +198,6 @@ function syncStudioRuntimeState(config) {
     globals.hoverEdgeTopOpacity = Number((config.edgeStrength * 0.46).toFixed(3));
     globals.frameBorderGradientEdgeOpacity = Number((config.sceneHighlight * 0.029).toFixed(3));
     globals.frameBorderGradientMidOpacity = Number((config.sceneHighlight * 0.058).toFixed(3));
-    globals.studioLightFilmOpacity = config.lightFilmOpacity;
     if (Number.isFinite(config.contrastVeilOpacityLight)) globals.simulationContrastVeilOpacityLight = config.contrastVeilOpacityLight;
     if (Number.isFinite(config.contrastVeilOpacityDark)) globals.simulationContrastVeilOpacityDark = config.contrastVeilOpacityDark;
     if (Number.isFinite(config.contrastVeilReachX)) globals.simulationContrastVeilReachX = config.contrastVeilReachX;
@@ -233,7 +221,6 @@ export function applyStudioSurfaceConfig(config) {
   const fillOpacity = clamp(config.fillOpacity, 0, 0.12, DEFAULT_STUDIO_SURFACE_CONFIG.fillOpacity);
   const glowOpacity = clamp(config.glowOpacity, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.glowOpacity);
   const sceneHighlight = clamp(config.sceneHighlight, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.sceneHighlight);
-  const lightFilmOpacity = clamp(config.lightFilmOpacity, 0, 0.4, DEFAULT_STUDIO_SURFACE_CONFIG.lightFilmOpacity);
   const contrastVeilOpacityLight = clamp(config.contrastVeilOpacityLight, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilOpacityLight);
   const contrastVeilOpacityDark = clamp(config.contrastVeilOpacityDark, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilOpacityDark);
   const contrastVeilReachX = clamp(config.contrastVeilReachX, 0, 50, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilReachX);
@@ -257,7 +244,6 @@ export function applyStudioSurfaceConfig(config) {
     edgeStrength,
     edgeWidth,
     sceneHighlight,
-    lightFilmOpacity,
     contrastVeilOpacityLight,
     contrastVeilOpacityDark,
     contrastVeilReachX,
@@ -275,7 +261,6 @@ export function applyStudioSurfaceConfig(config) {
     fillOpacity,
     glowOpacity,
     sceneHighlight,
-    lightFilmOpacity,
     contrastVeilOpacityLight,
     contrastVeilOpacityDark,
     contrastVeilReachX,
@@ -322,7 +307,6 @@ export function applyStudioSurfaceConfig(config) {
   root.style.setProperty('--hover-edge-top-opacity', `${Math.max(0, edgeStrength * 0.46)}`);
 
   root.style.setProperty('--abs-scene-highlight', `${sceneHighlight}`);
-  root.style.setProperty('--studio-light-film-opacity', `${lightFilmOpacity}`);
   root.style.setProperty('--frame-border-gradient-edge-opacity', `${Math.max(0, sceneHighlight * 0.029)}`);
   root.style.setProperty('--frame-border-gradient-mid-opacity', `${Math.max(0, sceneHighlight * 0.058)}`);
   root.style.setProperty('--simulation-contrast-veil-opacity', `${document.body.classList.contains('dark-mode') ? contrastVeilOpacityDark : contrastVeilOpacityLight}`);
@@ -482,7 +466,6 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   nextShell.surface.lightEdgeBottomOpacityDark = Number((config.edgeStrength * 0.2).toFixed(3));
 
   nextShell.surface.sceneHighlight = config.sceneHighlight;
-  nextShell.surface.lightFilmOpacity = config.lightFilmOpacity;
   nextShell.surface.contrastVeilOpacityLight = config.contrastVeilOpacityLight;
   nextShell.surface.contrastVeilOpacityDark = config.contrastVeilOpacityDark;
   nextShell.surface.contrastVeilReachX = config.contrastVeilReachX;

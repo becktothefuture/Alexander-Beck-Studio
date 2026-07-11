@@ -1447,6 +1447,10 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           committedFallbackTimer = 0;
         }
         setSimulationFocusTransitionState('in');
+        if (nextRouteId === 'home') {
+          finishSimulationFocusTransition();
+          return Promise.resolve();
+        }
         return animateSimulationFocusLayer(surfaceRefs, {
           direction: 'in',
           durationMs: simulationTimings.enter,
@@ -1981,6 +1985,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   }, [routeState.route.id, syncSteadyTransitionPhase]);
 
   useLayoutEffect(() => {
+    if (globalThis.__ABS_ROUTE_PERF_AUDIT__ === true) return;
     const simulationId = routeState.focusSimulationId || routeState.dailyFocusRouteId || '';
     const currentHref = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (currentHref !== routeState.canonicalHref) {

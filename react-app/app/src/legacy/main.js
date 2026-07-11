@@ -130,7 +130,9 @@ function getUrlStartupModeOverride() {
       || ''
     ).trim();
     if (!mode) return '';
-    return NARRATIVE_MODE_SEQUENCE.includes(mode) ? mode : '';
+    const auditAllowsMode = globalThis.__ABS_ROUTE_PERF_AUDIT__ === true
+      && Object.values(MODES).includes(mode);
+    return (NARRATIVE_MODE_SEQUENCE.includes(mode) || auditAllowsMode) ? mode : '';
   } catch (e) {
     return '';
   }
@@ -890,10 +892,19 @@ export async function bootstrapHomePage() {
       if (shellRouteTransitionActive) {
         clearHomePostBootEntrance();
         await waitForVisualReady();
-        setInitialSimulationVisualScale(1);
         setBootLifecycleState('ready');
+        if (reduceMotion) {
+          setInitialSimulationVisualScale(1);
+        } else {
+          await runSimulationVisualTransition('in', {
+            durationMs: 520,
+            localDurationMs: 320,
+            easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+            reason: 'home-route-return',
+          });
+        }
         setHomeRouteReadyState(true);
-        console.log('✓ Home entrance skipped (shell route transition active)');
+        console.log('✓ Home simulation route-return entrance completed');
       } else {
         if (shouldRunHomePostBootEntrance) {
           stageHomePostBootEntrance();

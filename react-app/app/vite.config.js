@@ -83,7 +83,6 @@ export default defineConfig(({ mode }) => ({
         'lab/rift-rings': resolve(__dirname, 'lab/rift-rings.html'),
         'lab/spatial-scan': resolve(__dirname, 'lab/spatial-scan.html'),
         'lab/loader-playground': resolve(__dirname, 'lab/loader-playground.html'),
-        'lab/studio-light-film': resolve(__dirname, 'lab/studio-light-film.html'),
         ...(mode === 'development'
           ? { 'panel-host': resolve(__dirname, 'panel-host.html') }
           : {})

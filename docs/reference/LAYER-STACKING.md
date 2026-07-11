@@ -12,7 +12,6 @@
 | 2 | **App Scene Transform Group** | `#abs-scene.app-scene` — `#abs-scene` remains the compatibility ID; `.app-scene` is the semantic alias. |
 | 3 | **Simulation Wall + Scene Effects** | `#simulations.simulation-wall-layer` plus `#scene-effects`, `.noise`, `.inner-wall-gradient-edge`, and visually empty `.frame-vignette` compatibility layer. |
 | 4 | **Route Simulation / Content Layer** | `.route-simulation-layer` inside `#shell-wall-slot`; home owns `#c.ball-canvas-layer`, portfolio owns `.portfolio-slider-layer`, and About/CV owns `.about-content-layer`. The home title/subtitle are visually drawn through the canvas/title-depth renderer. Home ball contrast is rendered inside this canvas, clipped to ball bodies only. |
-| 5 | **Canvas Studio Light** | `drawCanvasLightFilm()` in the home canvas pass: fixed, content-informed pools below title and simulation bodies. |
 | 6 | **Window Overlay** | `#window-overlay-blur-layer` (`150`) and `#window-overlay-content-layer` (`160`) hold the simulation chooser and persistent Portfolio gate above route content but below the live wall finish. |
 | 7 | **Live Wall Finish** | `#simulations::before` (`165`) and `.inner-wall-gradient-edge` (`170`) preserve the canonical inset shadow and rim/light edge above in-window blur and modal content. |
 | 8 | **Ball Contrast Veil Hook** | `.simulation-contrast-veil`, pointer-transparent, `z-index: 180`, retained as an inert compatibility hook above wall/canvas material and below UI. |
@@ -61,7 +60,6 @@ The semantic names are additive. Do not replace compatibility hooks such as `#ab
 | `.shell-wall-slot` / `.route-simulation-layer` | 2+ | Route-owned simulation/content layer. |
 | `#c.ball-canvas-layer` | 10 | Home ball canvas layer. The home title/subtitle are visually drawn into this canvas path. |
 | `#simulation-front-depth-canvas` | 8 | Compatibility front-pass canvas for title-depth modes. |
-| Canvas studio light pools | canvas pass | Home-only cached sprites, clipped with the simulation canvas; touch uses one pool and lite mode disables it. |
 | `#window-overlay-blur-layer` | 150 | Backdrop blur for in-window chooser/gate surfaces. |
 | `#window-overlay-content-layer` | 160 | In-window modal content and interaction layer. |
 | `#simulations::before` | 165 | Live inner-wall inset shadow; must remain above the window overlay. |

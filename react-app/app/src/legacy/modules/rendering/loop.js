@@ -127,19 +127,26 @@ function updateAdaptiveThrottle(frameTime, targetFPS) {
     const avgFPS = 1000 / Math.max(1, avgFrameTime);
     adaptiveAverageFps = avgFPS;
 
-    const lowThreshold = Math.max(22, targetFPS * 0.5);
-    const highThreshold = Math.max(30, targetFPS * 0.8);
-    
-    // Adjust throttle level based on sustained performance
-    if (avgFPS < lowThreshold && adaptiveThrottleLevel < 2) {
-      adaptiveThrottleLevel++;
+    const balancedThreshold = targetFPS * (57 / 60);
+    const heavyThreshold = targetFPS * (50 / 60);
+    const balancedRecoveryThreshold = targetFPS * (58 / 60);
+    const heavyRecoveryThreshold = targetFPS * (55 / 60);
+    let nextThrottleLevel = adaptiveThrottleLevel;
+
+    if (avgFPS < heavyThreshold) {
+      nextThrottleLevel = 2;
+    } else if (avgFPS < balancedThreshold) {
+      nextThrottleLevel = Math.max(nextThrottleLevel, 1);
+    } else if (nextThrottleLevel === 2 && avgFPS > heavyRecoveryThreshold) {
+      nextThrottleLevel = 1;
+    } else if (nextThrottleLevel === 1 && avgFPS > balancedRecoveryThreshold) {
+      nextThrottleLevel = 0;
+    }
+
+    if (nextThrottleLevel !== adaptiveThrottleLevel) {
+      adaptiveThrottleLevel = nextThrottleLevel;
       if (isDevRuntime()) {
-        console.log(`⚡ Adaptive throttle increased to level ${adaptiveThrottleLevel} (avg FPS: ${avgFPS.toFixed(1)})`);
-      }
-    } else if (avgFPS > highThreshold && adaptiveThrottleLevel > 0) {
-      adaptiveThrottleLevel--;
-      if (isDevRuntime()) {
-        console.log(`⚡ Adaptive throttle decreased to level ${adaptiveThrottleLevel} (avg FPS: ${avgFPS.toFixed(1)})`);
+        console.log(`⚡ Adaptive throttle changed to level ${adaptiveThrottleLevel} (avg FPS: ${avgFPS.toFixed(1)})`);
       }
     }
   }

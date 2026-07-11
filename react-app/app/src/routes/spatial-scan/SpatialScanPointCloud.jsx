@@ -594,6 +594,9 @@ export function SpatialScanPointCloud({
       group.rotation.set(rotation.x, rotation.y, rotation.z);
 
       renderer.render(scene, camera);
+      if (globalThis.__ABS_ROUTE_PERF_AUDIT__ === true) {
+        canvas.__absAuditFrameCount = (Number(canvas.__absAuditFrameCount) || 0) + 1;
+      }
       runtime.renderedFrames += 1;
       frame = window.requestAnimationFrame(renderFrame);
     }

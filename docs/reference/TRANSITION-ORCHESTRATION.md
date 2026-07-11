@@ -37,6 +37,7 @@ Canonical engineering contract for route and modal transitions.
 - Direct boot completion must first compose the route to final geometry, then set `data-abs-boot-state="revealing"`, release `#root`, and fade/remove the overlay.
 - Home direct loads replay the non-canvas UI entrance one RAF after the overlay is removed.
 - Bottom-tab SPA route transitions replay route-owned child entrances through `[data-route-enter]` markers after the destination route is layout-ready. This is the reusable route entrance system, not legacy boot ownership.
+- Returning to Home through the SPA runs a compact `home-route-return` simulation-material grow after the new canvas is visually ready. It does not replay the direct-load Home UI choreography; reduced motion settles the simulation immediately.
 - Home direct-load entrance order uses named groups: identity first, all six top-left legend labels in visual order, top-right context after the labels are established, then action nav and footer/support chrome. The slow stagger settles in roughly 3.9s.
 - `audit:boot-overlay` runs desktop, tablet-emulated, and mobile-emulated profiles by default; set `ABS_BOOT_AUDIT_PROFILE=desktop`, `tablet`, or `mobile` only for focused local reruns.
 - Boot helpers must no-op during `route-out` / `route-in`; SPA route transitions remain owned by `useShellRouteTransition`.
