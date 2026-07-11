@@ -219,6 +219,7 @@ const state = {
     [MODES.SHAPES]: { desktop: 150, mobile: 96 },
     [MODES.PRESSURE_CRUCIBLE]: { desktop: 144, mobile: 96 },
     [MODES.STARFIELD_3D]: { desktop: 220, mobile: 150 },
+    [MODES.SPHERE_3D]: { desktop: 140, mobile: 84 },
     [MODES.PARALLAX_FLOAT]: { desktop: 320, mobile: 160 },
     [MODES.PARTICLE_FOUNTAIN]: { desktop: 260, mobile: 180 }
   },

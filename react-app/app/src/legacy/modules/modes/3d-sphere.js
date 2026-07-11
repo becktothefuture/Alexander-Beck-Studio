@@ -23,7 +23,12 @@ function fibonacciSphere(count) {
   for (let i = 0; i < count; i++) {
     const theta = 2 * Math.PI * i / goldenRatio;
     const phi = Math.acos(1 - 2 * (i + 0.5) / count);
-    pts.push({ theta, phi });
+    const sinPhi = Math.sin(phi);
+    pts.push({
+      x: sinPhi * Math.cos(theta),
+      y: Math.cos(phi),
+      z: sinPhi * Math.sin(theta),
+    });
   }
   return pts;
 }
@@ -117,14 +122,6 @@ function trackballRotation(p1, p2) {
  * Apply 3x3 rotation matrix to a point
  * Matrix stored as flat array: [m00, m01, m02, m10, m11, m12, m20, m21, m22]
  */
-function applyMatrix(point, matrix) {
-  return {
-    x: matrix[0] * point.x + matrix[1] * point.y + matrix[2] * point.z,
-    y: matrix[3] * point.x + matrix[4] * point.y + matrix[5] * point.z,
-    z: matrix[6] * point.x + matrix[7] * point.y + matrix[8] * point.z
-  };
-}
-
 /**
  * Create rotation matrix from axis and angle
  * Using Rodrigues' rotation formula
@@ -219,7 +216,7 @@ export function initialize3DSphere() {
     ball.omega = 0;
     ball.r = clampRadiusToGlobalBounds(g, baseR * dotSizeMul);
     ball._cloudBaseR = baseR;
-    ball._sphere3d = { theta: pts[i].theta, phi: pts[i].phi };
+    ball._sphere3d = pts[i];
     ball._cloudMode = 'sphere';
     ball.isSleeping = false;
   }
@@ -386,36 +383,36 @@ export function apply3DSphereForces(ball, dt) {
   }
   }
 
-  const { theta, phi } = ball._sphere3d;
+  const point = ball._sphere3d;
   const r = state.radiusPx;
-
-  // Local sphere coordinates (spherical to Cartesian)
-  const localPoint = {
-    x: r * Math.sin(phi) * Math.cos(theta),
-    y: r * Math.cos(phi),
-    z: r * Math.sin(phi) * Math.sin(theta)
-  };
-
-  // Apply rotation matrix (trackball rotation)
-  const rotated = applyMatrix(localPoint, state.rotationMatrix);
+  const matrix = state.rotationMatrix;
+  const localX = r * point.x;
+  const localY = r * point.y;
+  const localZ = r * point.z;
+  // Keep the per-particle hot path allocation-free. The sphere's local
+  // coordinates are precomputed once during initialization.
+  const rotatedX = matrix[0] * localX + matrix[1] * localY + matrix[2] * localZ;
+  const rotatedY = matrix[3] * localX + matrix[4] * localY + matrix[5] * localZ;
+  const rotatedZ = matrix[6] * localX + matrix[7] * localY + matrix[8] * localZ;
   const focal = Math.max(80, g.sphere3dFocalLength ?? 600);
   
   // Calculate distance from viewer for correct perspective
   // rotated.z ranges from -r (back, away from viewer) to +r (front, toward viewer)
   // zDist: back=-r gives 2r (far), front=+r gives 0 (close)
-  const zDist = r - rotated.z;
+  const zDist = r - rotatedZ;
   const scale = focal / (focal + zDist);
   // Now: back balls get smaller scale (more distant), front balls get larger scale (closer)
 
-  const targetX = state.cx + rotated.x * scale;
-  const targetY = state.cy + rotated.y * scale;
+  const targetX = state.cx + rotatedX * scale;
+  const targetY = state.cy + rotatedY * scale;
 
   const rawR = ball._cloudBaseR * dotSizeMul * scale;
+  const depth = (rotatedZ + r) / (2 * r);
 
   // Scale size based on z-depth for perspective illusion
   // Back balls (z=0) are smaller, front balls (z=1) are larger
   // This enhances the 3D effect significantly
-  const perspectiveSize = 0.6 + ball.z * 0.8; // 0.6x to 1.4x scale
+  const perspectiveSize = 0.6 + depth * 0.8; // 0.6x to 1.4x scale
   
   ball.r = clampRadiusToGlobalBounds(g, rawR * perspectiveSize);
   ball.x = targetX;
@@ -428,5 +425,5 @@ export function apply3DSphereForces(ball, dt) {
   // Normalize z-depth to 0-1 range for logo layering
   // rotated.z ranges from -r to +r, so zShift (rotated.z + r) ranges from 0 to 2r
   // ball.z = 0 means BACK (fogged), ball.z = 1 means FRONT (clear)
-  ball.z = (rotated.z + r) / (2 * r);
+  ball.z = depth;
 }

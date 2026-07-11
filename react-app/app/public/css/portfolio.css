@@ -198,9 +198,6 @@ body.portfolio-page .ui-center-spacer {
   #portfolio-sheet-host.portfolio-sheet-host {
     --portfolio-host-bottom-reserve: calc(
       var(--shell-tab-height, 48px)
-      + var(--button-bar-mobile-secondary-height, 34px)
-      + (var(--button-bar-mobile-row-gap, 10px) * 2)
-      + var(--button-bar-mobile-divider-size, 1px)
       + (var(--shell-bottom-tabs-padding-y) * 2)
       + var(--abs-safe-bottom)
     );

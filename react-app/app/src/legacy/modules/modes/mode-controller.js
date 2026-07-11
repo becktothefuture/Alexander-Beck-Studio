@@ -281,7 +281,8 @@ function maybePreloadAllModes() {
 function getWarmupFramesForMode(mode, globals) {
   // Per-simulation warmup frames (render-frame units).
   // Default is 10 everywhere unless overridden via config/panel.
-  switch (mode) {
+  const configuredFrames = (() => {
+    switch (mode) {
     case MODES.PIT: return globals.pitWarmupFrames ?? 10;
     case MODES.PORTFOLIO_PIT: return globals.portfolioPitWarmupFrames ?? 0;
     case MODES.FLIES: return globals.fliesWarmupFrames ?? 10;
@@ -303,7 +304,15 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.PRESSURE_CRUCIBLE: return globals.pressureCrucibleWarmupFrames ?? 0;
     case MODES.PARTICLE_FOUNTAIN: return globals.particleFountainWarmupFrames ?? 0;
     default: return 10;
+    }
+  })();
+
+  // Warmup runs synchronously before the first visible frame. Keep a tiny
+  // settling allowance on mobile without blocking the route/title entrance.
+  if (globals.isMobile || globals.isMobileViewport) {
+    return Math.min(configuredFrames, 2);
   }
+  return configuredFrames;
 }
 
 function applyModePhysicsState(mode, globals) {

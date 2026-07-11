@@ -113,6 +113,7 @@ function shouldRefreshEveryFrame(root, scene) {
   return root.classList.contains('entrance-transitioning')
     || root.classList.contains('abs-home-post-boot-enter')
     || root.classList.contains('abs-home-post-boot-pending')
+    || root.dataset?.absTransitionPhase === 'route-in'
     || scene?.classList?.contains('abs-scene--animating');
 }
 

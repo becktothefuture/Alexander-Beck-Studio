@@ -13,6 +13,7 @@ import { isPitLikeMode, MODES } from '../core/constants.js';
 // ════════════════════════════════════════════════════════════════════════════════
 let last = performance.now() / 1000;
 let lastFrameTime = 0;
+let lastAcceptedFrameTime = 0;
 let isPageVisible = true;
 let frameId = null;
 let frameCounter = 0;
@@ -108,6 +109,7 @@ export function resetAdaptiveThrottle() {
   adaptiveThrottleLevel = 0;
   adaptiveAverageFps = 60;
   frameCounter = 0;
+  lastAcceptedFrameTime = 0;
 }
 
 function updateAdaptiveThrottle(frameTime, targetFPS) {
@@ -122,7 +124,7 @@ function updateAdaptiveThrottle(frameTime, targetFPS) {
     adaptiveAverageFps = avgFPS;
 
     const lowThreshold = Math.max(22, targetFPS * 0.5);
-    const highThreshold = Math.max(45, targetFPS * 0.8);
+    const highThreshold = Math.max(30, targetFPS * 0.8);
     
     // Adjust throttle level based on sustained performance
     if (avgFPS < lowThreshold && adaptiveThrottleLevel < 2) {
@@ -202,6 +204,7 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
         // Reset timing to prevent huge dt spike when resuming
         last = performance.now() / 1000;
         lastFrameTime = performance.now();
+        lastAcceptedFrameTime = 0;
         if (isDevRuntime()) console.log('▶️ Animation resumed');
         if (!frameId && !mainLoopStopped && typeof runFrameRef === 'function') {
           frameId = requestAnimationFrame(runFrameRef);
@@ -243,8 +246,14 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
     // Maintain timing accuracy without drift while allowing dynamic target FPS.
     lastFrameTime = nowMs - (elapsed % minFrameInterval);
     
-    // Track frame time for adaptive throttling
-    updateAdaptiveThrottle(elapsed, targetFPS);
+    // Measure accepted render frames, not the scheduler's drift-corrected gate.
+    // Using `elapsed` here makes a healthy 60 Hz loop look artificially slow
+    // whenever the gate carries a small remainder into the next rAF callback.
+    const acceptedFrameTime = lastAcceptedFrameTime > 0
+      ? nowMs - lastAcceptedFrameTime
+      : minFrameInterval;
+    lastAcceptedFrameTime = nowMs;
+    updateAdaptiveThrottle(acceptedFrameTime, targetFPS);
     const effectiveThrottleLevel = getEffectiveAdaptiveThrottleLevel(globals);
     globals.adaptiveThrottleLevel = effectiveThrottleLevel;
     globals.adaptiveAverageFps = adaptiveAverageFps;
@@ -291,6 +300,7 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
   }
 
   runFrameRef = frame;
+  lastAcceptedFrameTime = 0;
   frameId = requestAnimationFrame(frame);
   if (isDevRuntime()) {
     console.log('✓ Render loop started (adaptive target FPS, visibility-aware)');

@@ -15,6 +15,7 @@ import { applyThemeState, isDarkThemeDocument } from '../../../lib/theme-state.j
 
 const THEME_STORAGE_KEY = 'theme-preference-v2';
 const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
+const MOBILE_SYSTEM_THEME_QUERY = '(max-width: 600px)';
 
 // Theme states: 'auto', 'light', 'dark'
 let currentTheme = 'auto'; // Default to auto (system + night heuristic)
@@ -135,6 +136,10 @@ function detectSystemPreference() {
   return 'light';
 }
 
+function isMobileSystemThemeViewport() {
+  return Boolean(window.matchMedia?.(MOBILE_SYSTEM_THEME_QUERY)?.matches);
+}
+
 function isNightByLocalClock() {
   const g = getGlobals();
   if (!g.autoDarkModeEnabled) return false;
@@ -149,6 +154,7 @@ function isNightByLocalClock() {
 
 function resolveShouldBeDark(theme) {
   if (theme === 'auto') {
+    if (isMobileSystemThemeViewport()) return systemPreference === 'dark';
     return (systemPreference === 'dark') || isNightByLocalClock();
   }
   return theme === 'dark';
@@ -276,14 +282,14 @@ export function bindThemeSegmentControls(uiDocument) {
 /**
  * Set theme (auto, light, or dark)
  */
-export function setTheme(theme) {
+function applyTheme(theme, { persist = true } = {}) {
   currentTheme = theme;
   const shouldBeDark = resolveShouldBeDark(theme);
   
   applyDarkModeToDOM(shouldBeDark);
   
   // Save preference
-  writeStoredThemePreference(theme);
+  if (persist) writeStoredThemePreference(theme);
 
   try {
     window.dispatchEvent(new CustomEvent('abs:theme-changed', {
@@ -295,6 +301,10 @@ export function setTheme(theme) {
   } catch (e) {}
   
   devLog(`🎨 Theme set to: ${theme} (rendering: ${shouldBeDark ? 'dark' : 'light'})`);
+}
+
+export function setTheme(theme) {
+  applyTheme(theme);
 }
 
 /**
@@ -329,8 +339,8 @@ export function initializeDarkMode() {
   devLog(`🖥️ System prefers: ${systemPreference}`);
   
   // Restore saved preference if available; otherwise default to Auto.
-  const initial = readStoredThemePreference();
-  setTheme(initial);
+  const initial = isMobileSystemThemeViewport() ? 'auto' : readStoredThemePreference();
+  applyTheme(initial, { persist: !isMobileSystemThemeViewport() });
   
   bindThemeSegmentControls(document);
   
@@ -342,8 +352,13 @@ export function initializeDarkMode() {
       
       // If in auto mode, update
       if (currentTheme === 'auto' && resolveShouldBeDark('auto') !== isRenderedDarkMode()) {
-        setTheme('auto');
+        applyTheme('auto', { persist: !isMobileSystemThemeViewport() });
       }
+    });
+
+    window.matchMedia(MOBILE_SYSTEM_THEME_QUERY).addEventListener('change', (event) => {
+      const nextTheme = event.matches ? 'auto' : readStoredThemePreference();
+      applyTheme(nextTheme, { persist: false });
     });
   }
 
@@ -351,7 +366,7 @@ export function initializeDarkMode() {
   window.setInterval(() => {
     if (currentTheme !== 'auto') return;
     if (resolveShouldBeDark('auto') !== isRenderedDarkMode()) {
-      setTheme('auto');
+      applyTheme('auto', { persist: !isMobileSystemThemeViewport() });
     }
   }, 60_000);
 

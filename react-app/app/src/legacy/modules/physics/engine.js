@@ -713,7 +713,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   }
 }
 
-export async function updatePhysics(dtSeconds, applyForcesFunc) {
+export function updatePhysics(dtSeconds, applyForcesFunc) {
   const globals = getGlobals();
   const canvas = globals.canvas;
   const balls = globals.balls;
