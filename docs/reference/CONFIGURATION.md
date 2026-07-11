@@ -800,7 +800,7 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 
 ### `linkHoverIntensityLight` (number, 0..1)
 - **Meaning**: Legacy tuning value; still written to CSS var `--abs-hover-intensity-light` at runtime for saved-config compatibility.
-- **Applied to**: `--abs-hover-intensity-light` (currently **not** consumed by site chrome — nav/icon/meta hovers use solid `var(--cursor-color)`).
+- **Applied to**: `--abs-hover-intensity-light` (currently **not** consumed by public hover fields — in-window hover shadows use the window surface colour, and the bottom Button Bar has its own tab hover contract).
 
 ### `linkHoverIntensityDark` (number, 0..1)
 - **Meaning**: Legacy tuning value; still written to `--abs-hover-intensity-dark`.

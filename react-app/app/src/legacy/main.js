@@ -28,7 +28,6 @@ import { setMode, getForceApplicator, initModeSystem, disposeModeSystem } from '
 import { startMainLoop, stopMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initModalOverlay } from './modules/ui/modal-overlay.js';
-import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { createThemeToggle } from './modules/ui/theme-toggle.js';
 import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/audio/sound-engine.js';
 import { upgradeSocialIcons } from './modules/ui/social-icons.js';
@@ -621,10 +620,6 @@ export async function bootstrapHomePage() {
 
     // Footer: mobile-friendly wrapping tweaks (keeps "About Me" together)
     enhanceFooterLinksForMobile();
-
-    // Create quick sound toggle button (bottom-right, next to time)
-    createSoundToggle();
-    log('✓ Sound toggle button created');
 
     // Create quick theme toggle button (bottom-left)
     createThemeToggle();

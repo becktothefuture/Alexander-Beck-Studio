@@ -77,7 +77,6 @@ export function getHomeRouteView() {
                   </a>
                 </p>
               </blockquote>
-              <div id="sound-toggle-slot" />
             </div>
           </div>
 

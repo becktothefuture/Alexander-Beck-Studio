@@ -14,42 +14,47 @@ This document is the **authoritative visual spec** for **new interactive UI** th
 
 ---
 
-## 1. Chrome buttons & links (the default)
+## 1. Interactive links and chrome split
 
-These are the **solid cursor-colored** hovers: same hue family as the **custom cursor dot**, not a translucent “glass” wash over the page.
+Default hover is **not** a cursor-coloured fill. Links and fields **inside the framed window** use the same quiet language as the home legend: foreground lifts to normal text strength and a soft shadow/field appears behind the target in the **window background colour**. Shell chrome and the bottom Button Bar are intentionally separate and keep their own hover/selected behaviour.
 
 ### 1.1 Appearance
 
 | Aspect | Rule |
 |--------|------|
-| **Fill** | **Opaque** `var(--cursor-color)` on hover (and for “on” states that use the same language, e.g. active legend chip). No `color-mix(…, transparent)` for the primary fill. |
-| **Rim** | **Subtle inset highlight**, not a frosted stack: `var(--ui-chrome-button-edge)` — light top edge + soft dark bottom edge so the pill reads on any cursor luminance. Dark mode overrides live under `:root.dark-mode` in tokens. |
-| **Glyph / label** | On hover, use **`var(--cursor-hover-fg)`** for text and icons so contrast is safe on the solid fill. This is computed in JS from the cursor color (WCAG-oriented), not guessed in CSS. **Do not** put `color` in `transition` on these chrome controls—foreground should snap instantly; motion stays on the `::before` fill and transforms. |
+| **Hover field** | In-window hover shadow/field uses **`var(--frame-inner-surface)`** only. Never tint this shadow with `--cursor-color`, route accents, or arbitrary palette colours. |
+| **Persistent states** | Selected/on states may still use their existing active language, e.g. active legend chip, enabled sound, active route tab. Do not confuse those with hover-only feedback. |
+| **Glyph / label** | On hover, foreground lifts to the normal surface ink (`--text-primary` or the local drawer ink), not `--cursor-hover-fg`. |
 | **Shape** | Corner radius tracks the wall via **`var(--ui-icon-corner-radius)`** (and link hovers use the same). Icon hits are square frames sized with **`--ui-icon-frame-size`** / **`--ui-icon-glyph-size`**. |
 
 ### 1.2 Implementation pattern
 
-- **Fill lives on `::before`:** The element stays `background: transparent`; the colored surface is a positioned `::before` with `opacity: 0` at rest and **`opacity: 1` + `transform: scale(var(--abs-button-swell-scale))`** on hover where applicable.
+- **In-window shadow lives on `::before`:** The element stays on its resting surface; the shadow field is a positioned `::before` using `var(--frame-inner-surface)`, blurred, with `opacity: 0` at rest and visible on hover/focus.
 - **Stacking:** Children (`i`, `svg`) need **`position: relative; z-index: 1`** so glyphs sit **above** the `::before` layer (same idea as social icon links).
-- **Motion:** Fill appearance uses **`var(--ui-chrome-fill-transition-duration)`** (default **120ms**) for background, opacity, and box-shadow. Swell timing uses **`--abs-button-swell-in-duration`** / **`--abs-button-swell-out-duration`** so release still reads clearly.
-- **`prefers-reduced-motion: reduce`:** Existing rules remove transform swell on hovers but keep the solid fill visible—do not add new motion-only affordances.
+- **Motion:** The field fades softly, following the home legend timing. Avoid hover-only transforms on text where they cause jitter.
+- **`prefers-reduced-motion: reduce`:** Keep the affordance visible without relying on motion.
 
-### 1.3 Selectors already on this system
+### 1.3 Selectors on the in-window field system
 
 Use these as references when adding siblings:
 
-- **Icon buttons:** `.abs-icon-btn` (e.g. social links, sound toggle with `.sound-toggle.abs-icon-btn`)
-- **Primary buttons:** `.footer_link` inside `.ui-main-nav` (author with `MainNavLink` in React). Labels should be title case in the UI, including `About Me`.
-- **Meta:** `.abs-meta-btn`, `#site-year`
+- **Legend hover:** `.legend__item--interactive::after` — reference behaviour for the soft local field.
+- **Simulation switcher:** `.simulation-focus-pill` and `.simulation-focus-row` — in-window chooser controls.
+- **Contact row (modal):** `.contact-email-row` uses field styling; hover shadow uses `--frame-inner-surface`, not cursor colour.
+- **Portfolio project sheet (pit):** `.portfolio-project-view__links a` — external links in the open project use the in-window `::before` shadow field in `--frame-inner-surface` ([`portfolio.css`](../../react-app/app/public/css/portfolio.css))
+
+### 1.4 Selectors on separate hover systems
+
+- **Bottom Button Bar:** `.button-bar__primary-buttons .shell-tab` keeps its tab hover/selected contract. Do not apply the in-window field to it.
+- **Route/top/footer text chrome:** `.footer_link` inside `.ui-main-nav` lifts to normal readable ink on hover/focus/active but does not get the in-window shadow field.
+- **Icon/meta chrome:** `.abs-icon-btn`, `.abs-meta-btn`, `#site-year` may lift foreground or keep persistent active state, but do not get the in-window shadow field by default.
 - **Quote puck (floating):** **`.quote-display__disk`** = round solid **`var(--cursor-color)`** + shadow (hover scale); **`.quote-display__content`** = text (**`--quote-hover-fg`** / **`--cursor-hover-fg`**); **`#quote-display`** sets **`--_size: calc(var(--abs-quote-button-size) * 0.75)`**; spin is **`--quote-tilt`** on content only (see `main.css` Quote Puck block).
-- **Contact row (modal):** `.contact-email-row` hover uses the same fill + rim + `cursor-hover-fg`
 - **Supporting descriptions:** `.decorative-script`, `.modal-description`, and legacy `.gate-description` share the `--supporting-description-*` type recipe so gate copy stays visually aligned. Portfolio intro copy now lives inside the wall deck rather than in the top-right chrome.
-- **Portfolio project sheet (pit):** `.portfolio-project-view__links a` — external links in the open project use the same `::before` + `--ui-chrome-button-edge` hover treatment ([`portfolio.css`](../../react-app/app/public/css/portfolio.css))
 - **Legend active:** `.legend__item--active::before` — solid fill + rim; label uses `cursor-hover-fg`
 
 **Sound toggle specifics:** When the control sits in `#sound-toggle-slot` or `.portfolio-sound-slot`, the **slot** must allow hits if a parent uses `pointer-events: none` (set **`pointer-events: auto`** on the slot). Hover/focus color should not lose to `[data-enabled="true"]` resting color—use explicit `.sound-toggle.abs-icon-btn:hover` / `:focus-visible` rules if needed. Active sound uses persistent `cursor-color` plus a colored outline and a contained `sound-toggle__icon--on` SVG.
 
-### 1.4 Route top bar (shell strip — same discipline as the footer)
+### 1.5 Route top bar (shell strip — same discipline as the footer)
 
 Any page that shows a **top chrome strip** (portfolio, CV, future gated routes) must reuse the **same DOM + CSS contract** as the current implementation—**not** a one-off flex row or alternate text-button class.
 
@@ -66,12 +71,12 @@ Authoritative detail: [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md) (route top 
 
 | Concern | Where |
 |--------|--------|
-| Chrome rim, fill transition duration | [`react-app/app/public/css/tokens.css`](../../react-app/app/public/css/tokens.css) — `--ui-chrome-button-edge`, `--ui-chrome-fill-transition-duration` |
+| In-window hover field | [`react-app/app/public/css/main.css`](../../react-app/app/public/css/main.css) and [`portfolio.css`](../../react-app/app/public/css/portfolio.css) — `--frame-inner-surface` shadow fields |
 | Route topbar resting ink | [`react-app/app/public/css/tokens.css`](../../react-app/app/public/css/tokens.css) — `--shell-chrome-ink` |
 | Supporting description typography | [`react-app/app/public/css/tokens.css`](../../react-app/app/public/css/tokens.css) — `--supporting-description-*` |
 | Portfolio pit **canvas** bodies | Hidden/runtime compatibility guidance only; no disc rim or stroke — fill + optional hover image reveal only; size vs **`√(inner pit area)`** in `pit-mode.js`; see [`PORTFOLIO.md`](PORTFOLIO.md) |
-| Cursor + hover foreground CSS vars | Set from palette in [`react-app/app/src/legacy/modules/visual/colors.js`](../../react-app/app/src/legacy/modules/visual/colors.js) (`stampCursorCSSVar`, `computeSafeTextOnCursorColor`) |
-| Unified rules | [`react-app/app/public/css/main.css`](../../react-app/app/public/css/main.css) — section **“UNIFIED HOVER BACKGROUND SYSTEM”** and **“INTERACTIVE HOVER EFFECTS”** |
+| Cursor + active foreground CSS vars | Set from palette in [`react-app/app/src/legacy/modules/visual/colors.js`](../../react-app/app/src/legacy/modules/visual/colors.js) (`stampCursorCSSVar`, `computeSafeTextOnCursorColor`) |
+| Unified rules | [`react-app/app/public/css/main.css`](../../react-app/app/public/css/main.css) — section **“IN-WINDOW SOFT HOVER FIELD”** and **“INTERACTIVE HOVER EFFECTS”** |
 | Route topbar layout + sound slot fit | [`react-app/app/public/css/main.css`](../../react-app/app/public/css/main.css) — `body.*-page .route-topbar`, `.portfolio-topnav`, `.portfolio-sound-slot` |
 
 CSS ownership:
@@ -86,21 +91,21 @@ CSS ownership:
 
 ## 3. Visual harmony principles (new work)
 
-1. **One cursor story** — Cursor dot, chrome hovers, and active filters that use the accent should all read as the **same palette decision**, driven by `--cursor-color` and shared tokens.
+1. **Separate hover from cursor** — Cursor dot and selected/on states can use `--cursor-color`; hover-only shadows should not.
 2. **Shell vs page** — Walls, frame, and shared atmosphere come from **shell** config/CSS once; page routes compose layout but should not redefine the wall language or brand tokens (see [`AGENTS.md`](../../AGENTS.md) Config Workflow).
 3. **Tokens over literals** — Spacing, radii, type scale: use **`var(--gap-*)`**, **`var(--text-*)`**, **`var(--abs-*)`** aliases from `tokens.css`; avoid raw pixels except where tokens encode `1px` hairlines.
 4. **Accessibility** — Respect **`prefers-reduced-motion`**. Global focus outlines are intentionally minimal in places; when adding new primary actions, follow existing focus-visible patterns for that surface (see `main.css` focus blocks for chrome).
-5. **Contrast** — Any new solid “cursor-colored” surface must pair with a computed or verified foreground (pattern: `cursor-hover-fg` or equivalent), not only `currentColor` on `var(--cursor-color)`.
+5. **Button Bar exception** — The bottom Button Bar is a tab system with its own hover/selected contract. Do not apply the in-window shadow field to it.
 
 ---
 
 ## 4. Checklist: adding a new chrome control
 
-- [ ] Uses **`var(--cursor-color)`** for the opaque hover/active fill (or a documented exception).
-- [ ] Uses **`var(--ui-chrome-button-edge)`** for the rim (or extends tokens with a PR note).
-- [ ] Foreground on that fill uses **`var(--cursor-hover-fg)`** (or passes WCAG with a documented alternative).
-- [ ] Fill implemented via **`::before`** (or the same stacking model) with **icons above** the fill (`z-index`).
-- [ ] Transitions use **`--ui-chrome-fill-transition-duration`** for fill-related properties.
+- [ ] If the control is inside the window, hover shadow uses **`var(--frame-inner-surface)`**.
+- [ ] Hover foreground lifts to normal readable ink, not `--cursor-hover-fg`.
+- [ ] Selected/on states remain distinct from hover-only states.
+- [ ] The bottom Button Bar keeps its tab hover system.
+- [ ] Field implemented via **`::before`** only where a soft in-window shadow is required, with content above it (`z-index`).
 - [ ] Parent **`pointer-events`** checked if the control sits in a `pointer-events: none` wrapper.
 - [ ] Verified on **home, portfolio, CV** in **light and dark** (and mobile width if applicable).
 
@@ -108,8 +113,8 @@ CSS ownership:
 
 ## 5. Legacy / config note
 
-`linkHoverIntensityLight` / `Dark` / `Active` are still written to CSS variables for saved configs but **do not drive** the current solid chrome hovers. See [`CONFIGURATION.md`](CONFIGURATION.md). If you reintroduce tunable hover strength, prefer **mixing cursor with an opaque surface color** rather than transparency into the canvas.
+`linkHoverIntensityLight` / `Dark` / `Active` are still written to CSS variables for saved configs but **do not drive** current public hover fields. See [`CONFIGURATION.md`](CONFIGURATION.md). Do not reintroduce cursor-coloured hover fills as the default.
 
 ---
 
-*Last aligned with implementation in `main.css` / `tokens.css` / `colors.js` (solid chrome + sound slot parity). Update this doc when those patterns change.*
+*Last aligned with implementation in `main.css` / `portfolio.css` (window-colour hover fields + separate Button Bar tabs). Update this doc when those patterns change.*

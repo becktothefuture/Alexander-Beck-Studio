@@ -278,11 +278,80 @@ body.abs-in-simulation .panel a {
   cursor: pointer !important;
 }
 
+/* Footer social icons keep the native pointer while the custom cursor implodes on hover. */
+body.abs-in-simulation #social-links .footer_icon-link,
+body.abs-in-simulation #social-links .footer_icon-link *,
+body.abs-in-simulation #social-links .footer_icon-link:hover,
+body.abs-in-simulation #social-links .footer_icon-link:focus,
+body.abs-in-simulation #social-links .footer_icon-link:active {
+  cursor: pointer !important;
+}
+
+/* Simulation focus controls keep the native cursor while sitting inside the custom-cursor wall. */
+body.abs-in-simulation .simulation-focus-switcher-slot,
+body.abs-in-simulation .simulation-focus-switcher-slot *,
+body.abs-in-simulation .simulation-focus-switcher-slot:hover,
+body.abs-in-simulation .simulation-focus-switcher-slot:focus,
+body.abs-in-simulation .simulation-focus-switcher-slot:active {
+  cursor: pointer !important;
+}
+
 /* Modal overlays also use custom cursor */
 .modal-overlay,
 .modal-overlay *,
 .modal-overlay *:hover {
   cursor: none !important;
+}
+
+/* The simulation chooser modal is a native-pointer surface. */
+body.abs-in-simulation .simulation-focus-modal,
+body.abs-in-simulation .simulation-focus-modal *,
+body.abs-in-simulation .simulation-focus-modal:hover,
+body.abs-in-simulation .simulation-focus-modal *:hover,
+body.abs-in-simulation .simulation-focus-modal:focus,
+body.abs-in-simulation .simulation-focus-modal *:focus,
+body.abs-in-simulation .simulation-focus-modal:active,
+body.abs-in-simulation .simulation-focus-modal *:active,
+.modal-overlay .simulation-focus-modal,
+.modal-overlay .simulation-focus-modal *,
+.modal-overlay .simulation-focus-modal:hover,
+.modal-overlay .simulation-focus-modal *:hover,
+.modal-overlay .simulation-focus-modal:focus,
+.modal-overlay .simulation-focus-modal *:focus,
+.modal-overlay .simulation-focus-modal:active,
+.modal-overlay .simulation-focus-modal *:active {
+  cursor: default !important;
+}
+
+body.abs-in-simulation .simulation-focus-modal button,
+body.abs-in-simulation .simulation-focus-modal a,
+body.abs-in-simulation .simulation-focus-modal [role="button"],
+body.abs-in-simulation .simulation-focus-modal [tabindex],
+body.abs-in-simulation .simulation-focus-row,
+body.abs-in-simulation .simulation-focus-row *,
+body.abs-in-simulation .simulation-focus-modal .simulation-focus-row:hover,
+body.abs-in-simulation .simulation-focus-modal .simulation-focus-row:hover *,
+body.abs-in-simulation .simulation-focus-modal .simulation-focus-row:focus,
+body.abs-in-simulation .simulation-focus-modal .simulation-focus-row:focus *,
+body.abs-in-simulation .simulation-focus-modal .simulation-focus-row:active,
+body.abs-in-simulation .simulation-focus-modal .simulation-focus-row:active *,
+body.abs-in-simulation .simulation-focus-modal .gate-back,
+body.abs-in-simulation .simulation-focus-modal .gate-back *,
+.modal-overlay .simulation-focus-modal button,
+.modal-overlay .simulation-focus-modal a,
+.modal-overlay .simulation-focus-modal [role="button"],
+.modal-overlay .simulation-focus-modal [tabindex],
+.modal-overlay .simulation-focus-row,
+.modal-overlay .simulation-focus-row *,
+.modal-overlay .simulation-focus-modal .simulation-focus-row:hover,
+.modal-overlay .simulation-focus-modal .simulation-focus-row:hover *,
+.modal-overlay .simulation-focus-modal .simulation-focus-row:focus,
+.modal-overlay .simulation-focus-modal .simulation-focus-row:focus *,
+.modal-overlay .simulation-focus-modal .simulation-focus-row:active,
+.modal-overlay .simulation-focus-modal .simulation-focus-row:active *,
+.modal-overlay .simulation-focus-modal .gate-back,
+.modal-overlay .simulation-focus-modal .gate-back * {
+  cursor: pointer !important;
 }
 
 body.dark-mode,
@@ -313,6 +382,7 @@ body.body.dark-mode {
   gap: 0;
   text-align: center;
   padding: 8px;
+  max-width: min(800px, calc(100% - (var(--content-padding-x) * 2)));
   font-size: min(calc(var(--text-xs) * 0.95), 8px);
   opacity: 0.52;
 }
@@ -324,6 +394,7 @@ body.body.dark-mode {
   line-height: 1.3;
   letter-spacing: var(--letter-spacing-loose);
   text-transform: uppercase;
+  max-width: 100%;
   white-space: normal; /* Allow wrapping */
   /* Same colour and opacity (on parent) in light and dark; no overrides */
   color: #6f6f6f;
@@ -399,7 +470,7 @@ html.fonts-loading .project-detail {
      (incl. ≤600px 1.5× + bottom ratio); tokens provide --content-padding-y-bottom fallback. */
   padding-top: max(var(--abs-safe-top), var(--content-padding-y));
   padding-right: max(var(--abs-safe-right), var(--content-padding-x));
-  padding-bottom: max(calc(var(--abs-safe-bottom) + 6px), var(--content-padding-y-bottom));
+  padding-bottom: max(calc(var(--abs-safe-bottom) + 12px), min(var(--content-padding-y-bottom), 2dvh));
   padding-left: max(var(--abs-safe-left), var(--content-padding-x));
   
   /* Visuals */
@@ -1719,34 +1790,17 @@ body.styleguide-page .styleguide-type-sample--cv-body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   UNIFIED HOVER BACKGROUND SYSTEM
-   Chrome controls: opaque cursor-colored ::before + subtle inset light rim (no glass stack)
+   IN-WINDOW SOFT HOVER FIELD
+   Only controls that live inside the framed window use the legend-style blurred
+   field. Shell chrome and the bottom Button Bar keep their own hover contracts.
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.abs-icon-btn::before,
-.footer_link::before,
-.abs-meta-btn::before,
-#site-year::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: var(--hover-bg-z, -1);
-  border-radius: var(--hover-bg-radius, var(--ui-icon-corner-radius));
-  background: var(--cursor-color);
-  box-shadow: var(--ui-chrome-button-edge);
-  opacity: 0;
-  pointer-events: none;
-  transform: scale(0.72);
-  transform-origin: center;
-  transition:
-    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
-    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
-    transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
-    box-shadow var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
-}
-
-.abs-icon-btn::before {
-  --hover-bg-z: 0;
+:root {
+  --abs-soft-hover-field-fill: var(--frame-inner-surface);
+  --abs-soft-hover-field-inset: -10px -16px;
+  --abs-soft-hover-field-blur: var(--home-text-hover-field-blur, 28px);
+  --abs-soft-hover-field-opacity: var(--home-text-hover-field-opacity, 0.8);
+  --abs-soft-hover-field-duration: var(--home-text-hover-field-duration, 360ms);
 }
 
 /* Blurb block: no chrome hover fill (not in hover ::before group below) */
@@ -2031,8 +2085,10 @@ body:not(.portfolio-page):not(.cv-page) .legend__item {
 }
 
 body:not(.portfolio-page):not(.cv-page) .ui-top-right {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: end;
   min-width: 0;
-  gap: 28px;
+  gap: 0;
 }
 
 body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
@@ -2330,7 +2386,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   white-space: nowrap;
   cursor: pointer;
   isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
   pointer-events: auto;
   -webkit-backdrop-filter: blur(18px) saturate(1.08);
   backdrop-filter: blur(18px) saturate(1.08);
@@ -2349,19 +2405,20 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 .simulation-focus-pill::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: var(--abs-soft-hover-field-inset);
   z-index: 0;
   border-radius: inherit;
-  background: var(--cursor-color);
-  box-shadow: var(--ui-chrome-button-edge);
+  background: var(--abs-soft-hover-field-fill);
+  filter: blur(var(--abs-soft-hover-field-blur));
+  box-shadow: none;
   opacity: 0;
   pointer-events: none;
-  transform: scale(0.72);
+  transform: none;
   transform-origin: center;
   transition:
-    transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
-    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
-    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+    opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
+    background var(--abs-soft-hover-field-duration) var(--ease-organic),
+    filter var(--abs-soft-hover-field-duration) var(--ease-organic);
 }
 
 .simulation-focus-pill > * {
@@ -2381,7 +2438,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   font-size: clamp(12px, 1.2vw, 13px);
   line-height: 1.2;
   white-space: normal;
-  overflow: hidden;
+  overflow: visible;
   box-shadow:
     inset 0 1px 0 rgba(var(--abs-rgb-white), 0.12),
     0 8px 20px rgba(var(--abs-rgb-black), 0.055);
@@ -2402,7 +2459,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 }
 
 .simulation-focus-pill.simulation-focus-switcher:hover {
-  border-color: color-mix(in srgb, var(--cursor-color) 52%, var(--text-logo));
+  border-color: color-mix(in srgb, var(--text-logo) 36%, transparent);
 }
 
 .simulation-focus-switcher .simulation-focus-pill__icon {
@@ -2417,8 +2474,8 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 .simulation-focus-pill:hover,
 .simulation-focus-pill:focus-visible,
 .simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill {
-  border-color: color-mix(in srgb, var(--cursor-color) 58%, var(--text-logo));
-  color: var(--cursor-hover-fg, var(--text-primary));
+  border-color: color-mix(in srgb, var(--text-logo) 42%, transparent);
+  color: var(--text-primary);
 }
 
 .simulation-focus-pill.simulation-focus-switcher,
@@ -2431,12 +2488,12 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 .simulation-focus-pill:hover::before,
 .simulation-focus-pill:focus-visible::before,
 .simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill::before {
-  opacity: 1;
-  transform: scale(1);
+  opacity: var(--abs-soft-hover-field-opacity);
+  transform: none;
   transition:
-    transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
-    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
-    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+    opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
+    background var(--abs-soft-hover-field-duration) var(--ease-organic),
+    filter var(--abs-soft-hover-field-duration) var(--ease-organic);
 }
 
 .simulation-focus-pill:active {
@@ -2445,7 +2502,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 }
 
 .simulation-focus-pill:focus-visible {
-  outline: var(--hairline, 1px) solid color-mix(in srgb, var(--cursor-color) 72%, var(--text-logo));
+  outline: var(--hairline, 1px) solid color-mix(in srgb, var(--text-logo) 62%, transparent);
   outline-offset: 4px;
 }
 
@@ -2602,7 +2659,7 @@ button.abs-meta-btn,
 /* Meta button hover */
 .abs-meta-btn:hover,
 #site-year:hover {
-  color: var(--cursor-hover-fg, var(--cursor-color));
+  color: var(--text-primary);
 }
 
 /* Unified hover state - handled in INTERACTIVE HOVER EFFECTS section below */
@@ -2685,7 +2742,7 @@ button.abs-meta-btn,
 
 
 .footer_icon-link:hover {
-  color: var(--cursor-color, var(--link-hover-color));
+  color: var(--text-primary);
   opacity: 1;
 }
 
@@ -3732,8 +3789,18 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 }
 
 .button-bar.shell-bottom-band {
-  width: auto;
-  max-width: none;
+  left: 50%;
+  right: auto;
+  width: min(
+    calc(
+      100%
+      - var(--safari-tint-inset-x, var(--safari-tint-inset))
+      - var(--safari-tint-inset-x, var(--safari-tint-inset))
+    ),
+    var(--button-bar-max-width, 1280px)
+  );
+  max-width: var(--button-bar-max-width, 1280px);
+  transform: translateX(-50%);
 }
 
 .shell-tab-nav {
@@ -4616,7 +4683,7 @@ html[data-abs-instrument-wake] #simulations::after {
   top: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
   left: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
   right: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
-  bottom: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
+  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom) + var(--frame-border-width));
   border-radius: var(--frame-inner-radius);
   overflow: hidden;
   pointer-events: none;
@@ -4630,7 +4697,7 @@ html[data-abs-instrument-wake] #simulations::after {
   top: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
   left: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
   right: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
-  bottom: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
+  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom) + var(--frame-border-width));
   border-radius: var(--frame-inner-radius);
   overflow: hidden;
   pointer-events: none;
@@ -4873,7 +4940,7 @@ html.is-safari .noise::before {
   }
 
   body:not(.portfolio-page):not(.cv-page) .ui-top-right {
-    gap: 24px;
+    gap: 0;
   }
 
   body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
@@ -4959,14 +5026,14 @@ html.is-safari .noise::before {
     min-width: 0;
   }
 
-  /* Keep intro text and volume control sharing the right column on mobile */
+  /* Keep intro text in the right column on mobile */
   .ui-top-right {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     align-items: flex-start;
     justify-content: flex-end;
     width: 100%;
-    gap: clamp(12px, 3.2vw, 18px);
+    gap: 0;
   }
 
   /* Index: keep legend + intro split side-by-side */
@@ -5134,7 +5201,7 @@ html.is-safari .noise::before {
    ═══════════════════════════════════════════════════════════════════════════════ */
 /* Base transition for all buttons and links */
 button:not(:active),
-[role="button"]:not(#quote-display):not(:active),
+[role="button"]:not(#quote-display):not(.portfolio-project-card):not(:active),
 a:not(:active) {
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic);
@@ -5142,7 +5209,7 @@ a:not(:active) {
 
 /* Press effect: scale down and blur — quote puck excluded (drag-only, no key press) */
 button:active,
-[role="button"]:not(#quote-display):active,
+[role="button"]:not(#quote-display):not(.portfolio-project-card):active,
 a:active {
   transform: scale(var(--link-impact-scale));
   filter: blur(var(--link-impact-blur));
@@ -5238,54 +5305,34 @@ button:hover {
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    INTERACTIVE HOVER EFFECTS
-   Unified hover styling for all clickable UI elements:
+   Shared foreground and motion treatment for public clickable UI elements:
    - Text buttons: .footer_link (via MainNavLink + .ui-main-nav)
    - Icon buttons: .abs-icon-btn (social links, sound toggle)
-   - Legend items: .legend__item--interactive
+   - In-window field controls: legend, simulation switcher, contact row
    - Meta elements: .abs-meta-btn, #site-year
    - Quote puck: excluded — no hover fill (glass stays constant)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* ─── Hover State: Color & Background ─── */
+/* ─── Hover State: Foreground Lift ─── */
 :is(.footer_link, .abs-icon-btn):hover {
-  color: var(--cursor-hover-fg, var(--cursor-color));
+  color: var(--text-primary);
   opacity: 1;
   position: relative;
 }
 
-/* Sound button: [data-enabled] resting color must not win over solid hover fill + contrast fg */
+/* Sound button: hover lifts only inactive sound; active sound keeps its persistent accent. */
 .sound-toggle.abs-icon-btn:hover,
 .sound-toggle.abs-icon-btn:focus-visible {
-  color: var(--cursor-hover-fg, var(--cursor-color));
+  color: var(--text-primary);
+}
+
+.sound-toggle.abs-icon-btn[data-enabled="true"]:hover,
+.sound-toggle.abs-icon-btn[data-enabled="true"]:focus-visible {
+  color: var(--cursor-color, var(--link-hover-color));
 }
 
 .abs-icon-btn:hover {
   background: transparent;
-  /* No border-radius - only ::before has rounded corners */
-}
-
-/* ─── Unified Hover Background (::before) — transition only, no animation ─── */
-.abs-icon-btn::before,
-.footer_link::before,
-.abs-meta-btn::before,
-#site-year::before {
-  transition:
-    transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
-    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
-    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
-}
-
-.abs-icon-btn:hover::before,
-.footer_link:hover::before,
-.abs-meta-btn:hover::before,
-#site-year:hover::before {
-  background: var(--cursor-color);
-  opacity: 1;
-  transform: scale(var(--abs-button-swell-scale, 1.06));
-  transition:
-    transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
-    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
-    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
 
 .ui-main-nav .footer_link .footer-link-nowrap {
@@ -5301,7 +5348,7 @@ button:hover {
   opacity: 1;
 }
 
-/* Edge lighting removed from buttons/links - keeping only simple hover background (::before) for cleaner rendering */
+/* Edge lighting removed from buttons/links; hover fields are limited to in-window selectors above. */
 
 /* ─────────────────────────────────────────────────────────────────────────────
    CORNER LINK NUDGE — Intentional 1px downward shift on interaction
@@ -5321,7 +5368,7 @@ button:hover {
 .abs-meta-btn:hover,
 .sound-toggle:hover,
 .ui-main-nav .footer_link:hover {
-  /* animation-name: absHoverSnapNudge; - Disabled: content stays static, only background moves */
+  /* animation-name: absHoverSnapNudge; - Disabled: content stays static */
 }
 
 /* Focus-visible and active states get static nudge without bounce */
@@ -5337,11 +5384,6 @@ button:hover {
 }
 
 /* Footer only: no focus/active nudge (no 1px shift); ::before swell optional—disabled for minimal look */
-.ui-bottom .abs-icon-btn:hover::before,
-.ui-bottom .abs-meta-btn:hover::before,
-.ui-bottom #site-year:hover::before {
-  transform: none;
-}
 .ui-bottom .footer_icon-link.abs-icon-btn:focus-visible,
 .ui-bottom .footer_icon-link.abs-icon-btn:active,
 .ui-bottom .abs-meta-btn:focus-visible,
@@ -5435,37 +5477,35 @@ a.shell-tab:active {
   transform: translate3d(-50%, 0, 0) scaleY(0);
 }
 
-/* Text link hover — light mode (background via ::before, not direct).
+/* Text link hover — light mode (foreground only for shell chrome; no cursor fill).
    Do not target #contact-email / #portfolio-modal-trigger here: those ids only exist on `.ui-main-nav`
    triggers, and an ID + :hover rule beats `.ui-main-nav .footer_link:hover` in dark mode — which
    made Contact/Portfolio hover ink differ from About Me (`#cv-modal-trigger` was never listed). */
 .footer_link:hover,
 .decorative-script p a:hover {
-  color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-black), 1) 60%);
+  color: var(--text-primary);
   opacity: 1;
 }
 
-/* Text link hover — dark mode (background via ::before, not direct). Same note as light mode. */
+/* Text link hover — dark mode (foreground only for shell chrome; no cursor fill). Same note as light mode. */
 body.dark-mode .footer_link:hover,
 body.dark-mode .decorative-script p a:hover {
-  color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-white), 1) 60%);
+  color: var(--text-primary);
   opacity: 1;
 }
 
-/* Master nav strip (#main-links, portfolio/CV top bar, styleguide): label must stay readable on solid
-   cursor ::before. Generic .footer_link:hover color-mix can land too close to the fill; prefer
-   stamped --cursor-hover-fg, else body text — never raw --cursor-color (same as fill). */
+/* Master nav strip (#main-links, portfolio/CV top bar, styleguide): label lifts to normal text. */
 .ui-main-nav .footer_link:hover,
 .ui-main-nav .footer_link:focus-visible,
 .ui-main-nav .footer_link:active {
-  color: var(--cursor-hover-fg, var(--text-primary));
+  color: var(--text-primary);
   opacity: 1;
 }
 
 body.dark-mode .ui-main-nav .footer_link:hover,
 body.dark-mode .ui-main-nav .footer_link:focus-visible,
 body.dark-mode .ui-main-nav .footer_link:active {
-  color: var(--cursor-hover-fg, var(--text-primary));
+  color: var(--text-primary);
   opacity: 1;
 }
 
@@ -5473,7 +5513,7 @@ body.dark-mode .ui-main-nav .footer_link:active {
 .ui-main-nav #contact-email:hover,
 .ui-main-nav #portfolio-modal-trigger:hover,
 .ui-main-nav #cv-modal-trigger:hover {
-  color: var(--cursor-hover-fg, var(--text-primary));
+  color: var(--text-primary);
   opacity: 1;
 }
 
@@ -5509,15 +5549,6 @@ body.dark-mode .ui-main-nav .footer_link:active {
   }
 
   :is(.footer_link, .abs-icon-btn, .abs-meta-btn, #site-year):hover {
-    transform: none;
-  }
-  
-  .abs-icon-btn:hover::before,
-  .footer_link:hover::before,
-  .abs-meta-btn:hover::before,
-  #site-year:hover::before {
-    animation: none;
-    opacity: 1;
     transform: none;
   }
 }
@@ -5837,7 +5868,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   text-align: left;
   cursor: pointer;
   isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
   -webkit-tap-highlight-color: transparent;
   transition:
     color 160ms var(--ease-organic),
@@ -5848,19 +5879,20 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .simulation-focus-row::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: var(--abs-soft-hover-field-inset);
   z-index: -1;
   border-radius: inherit;
-  background: var(--cursor-color);
-  box-shadow: var(--ui-chrome-button-edge);
+  background: var(--abs-soft-hover-field-fill);
+  filter: blur(var(--abs-soft-hover-field-blur));
+  box-shadow: none;
   opacity: 0;
   pointer-events: none;
-  transform: scale(0.72);
+  transform: none;
   transform-origin: center;
   transition:
-    transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
-    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
-    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+    opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
+    background var(--abs-soft-hover-field-duration) var(--ease-organic),
+    filter var(--abs-soft-hover-field-duration) var(--ease-organic);
 }
 
 .simulation-focus-row > * {
@@ -5870,31 +5902,31 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 .simulation-focus-row:focus-visible,
 .simulation-focus-row:active {
-  color: var(--cursor-hover-fg, var(--text-primary));
+  color: var(--text-primary);
 }
 
 .simulation-focus-row:focus-visible::before,
 .simulation-focus-row:active::before {
-  opacity: 1;
-  transform: scale(1);
+  opacity: var(--abs-soft-hover-field-opacity);
+  transform: none;
   transition:
-    transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
-    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
-    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+    opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
+    background var(--abs-soft-hover-field-duration) var(--ease-organic),
+    filter var(--abs-soft-hover-field-duration) var(--ease-organic);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .simulation-focus-row:hover {
-    color: var(--cursor-hover-fg, var(--text-primary));
+    color: var(--text-primary);
   }
 
   .simulation-focus-row:hover::before {
-    opacity: 1;
-    transform: scale(1);
+    opacity: var(--abs-soft-hover-field-opacity);
+    transform: none;
     transition:
-      transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
-      opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
-      background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+      opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
+      background var(--abs-soft-hover-field-duration) var(--ease-organic),
+      filter var(--abs-soft-hover-field-duration) var(--ease-organic);
   }
 }
 
@@ -6182,6 +6214,24 @@ body.cv-page .route-topbar .gate-back {
     transform 0.15s var(--ease-organic);
 }
 
+.contact-email-row::before {
+  content: '';
+  position: absolute;
+  inset: var(--abs-soft-hover-field-inset);
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--abs-soft-hover-field-fill);
+  filter: blur(var(--abs-soft-hover-field-blur));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--abs-soft-hover-field-duration) var(--ease-organic);
+}
+
+.contact-email-row > * {
+  position: relative;
+  z-index: 1;
+}
+
 /* Global UI hover system applies `button:hover { will-change: transform; animation: absHoverSnap; }`.
    Explicitly opt this control out to prevent bounce + 1px text jitter.
    IMPORTANT: Do NOT cancel `.pulse-energy` (click) animations while hovered. */
@@ -6223,11 +6273,17 @@ body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focu
 }
 
 .contact-email-row:not(.pulse-energy):hover {
-  color: var(--cursor-hover-fg, var(--text-primary));
+  color: var(--text-primary);
   border-color: var(--abs-stroke-medium);
-  background: var(--cursor-color, var(--link-hover-color));
-  background-color: var(--cursor-color, var(--link-hover-color));
-  box-shadow: var(--ui-chrome-button-edge);
+  background: #ffffff;
+  background-color: #ffffff;
+  box-shadow: none;
+}
+
+.contact-email-row:not(.pulse-energy):hover::before,
+.contact-email-row:not(.pulse-energy):focus-visible::before,
+.contact-email-row:not(.pulse-energy):focus-within::before {
+  opacity: var(--abs-soft-hover-field-opacity);
 }
 
 .contact-email-row:active {
@@ -6345,11 +6401,11 @@ body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-e
 }
 
 body.dark-mode .contact-email-row:not(.pulse-energy):hover {
-  color: var(--cursor-hover-fg, var(--text-primary));
+  color: var(--text-primary);
   border-color: rgba(var(--abs-rgb-white), 0.34);
-  background: var(--cursor-color, var(--link-hover-color));
-  background-color: var(--cursor-color, var(--link-hover-color));
-  box-shadow: var(--ui-chrome-button-edge);
+  background: #161616;
+  background-color: #161616;
+  box-shadow: none;
 }
 
 body.dark-mode .contact-email-copy {
@@ -6725,6 +6781,18 @@ body.page-transitioning {
 #modal-content-layer.active,
 .modal-content-layer.active {
   pointer-events: auto;
+}
+
+html.simulation-focus-modal-open #modal-blur-layer,
+html.simulation-focus-modal-open .modal-blur-layer,
+html.simulation-focus-modal-open #modal-content-layer,
+html.simulation-focus-modal-open .modal-content-layer {
+  top: var(--safari-tint-inset-y, var(--safari-tint-inset));
+  right: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom));
+  left: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  border-radius: var(--frame-outer-radius);
+  overflow: hidden;
 }
 
 /* Modal host centers gate content */
@@ -7497,15 +7565,11 @@ body.dark-mode .cv-photo {
   body:not(.portfolio-page):not(.cv-page) .ui-top-right {
     grid-template-columns: 1fr;
     justify-items: stretch;
-    gap: 24px;
+    gap: 0;
   }
 
   body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
     text-align: right;
-  }
-
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right #sound-toggle-slot {
-    justify-self: end;
   }
 
   body:not(.portfolio-page):not(.cv-page) .ui-center {

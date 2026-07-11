@@ -2,7 +2,7 @@ export const BUTTON_BAR_DEFAULTS = Object.freeze({
   buttonBarHeightPx: 78,
   buttonBarInsetPx: 10,
   buttonBarWidthPx: 2400,
-  buttonBarMaxWidthPx: 2400,
+  buttonBarMaxWidthPx: 1280,
   buttonBarGapPx: 16,
   buttonBarButtonHeightPx: 48,
   buttonBarButtonPaddingXPx: 16,
