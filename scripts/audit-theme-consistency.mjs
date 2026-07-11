@@ -87,6 +87,16 @@ async function readThemeState(page) {
   return page.evaluate(() => {
     const root = document.documentElement;
     const body = document.body;
+    const normalizeColor = (value) => {
+      const probe = document.createElement('span');
+      probe.style.color = value;
+      probe.style.display = 'none';
+      document.body.appendChild(probe);
+      const normalized = getComputedStyle(probe).color;
+      probe.remove();
+      return normalized;
+    };
+    const browserChrome = getComputedStyle(root).getPropertyValue('--abs-browser-chrome').trim();
     const teaser = document.querySelector('[data-portfolio-gate-teaser]');
     const teaserImage = teaser?.querySelector('img');
     return {
@@ -97,8 +107,12 @@ async function readThemeState(page) {
       rootDark: root.classList.contains('dark-mode'),
       bodyDark: body?.classList.contains('dark-mode') || false,
       colorScheme: getComputedStyle(root).colorScheme,
-      browserChrome: getComputedStyle(root).getPropertyValue('--abs-browser-chrome').trim(),
+      browserChrome,
+      browserChromeResolved: normalizeColor(browserChrome),
       frameColor: getComputedStyle(root).getPropertyValue('--frame-color').trim(),
+      rootBackground: getComputedStyle(root).backgroundColor,
+      bodyBackground: getComputedStyle(body).backgroundColor,
+      themeColor: normalizeColor(document.querySelector('meta[name="theme-color"]:not([media])')?.content || ''),
       storedPreference: localStorage.getItem('theme-preference-v2'),
       activeRoute: document.querySelector('[data-route-tab][aria-current="page"]')?.getAttribute('data-route-tab') || '',
       teaserTheme: teaser?.getAttribute('data-portfolio-gate-theme') || '',
@@ -135,6 +149,9 @@ async function assertTheme(page, expectedTheme, label) {
   assert(state.rootDark === expectedDark && state.bodyDark === expectedDark, `${label}: theme classes drifted`, state);
   assert(state.colorScheme.includes(expectedTheme), `${label}: color-scheme drifted`, state);
   assert(state.browserChrome && state.frameColor === state.browserChrome, `${label}: frame/browser chrome drifted`, state);
+  assert(state.rootBackground === state.browserChromeResolved, `${label}: page background/browser chrome drifted`, state);
+  assert(state.bodyBackground === state.browserChromeResolved, `${label}: body background/browser chrome drifted`, state);
+  assert(state.themeColor === state.browserChromeResolved, `${label}: theme-color/browser chrome drifted`, state);
   return state;
 }
 

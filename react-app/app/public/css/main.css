@@ -116,9 +116,9 @@ html {
   height: 100%;
   /* Default cursor outside inner wall area; custom cursor only inside inner wall */
   cursor: default;
-  /* Outer shell wall stays dark; the window/content surface handles theme changes. */
-  background: var(--shell-wall-bg, #141414);
-  background-color: var(--shell-wall-bg, #141414);
+  /* The exposed page band must match the resolved browser chrome exactly. */
+  background: var(--abs-browser-chrome, #141414);
+  background-color: var(--abs-browser-chrome, #141414);
   /* 3D perspective for entrance animations */
   perspective: var(--entrance-perspective, 1000px);
   perspective-origin: center center;
@@ -126,8 +126,6 @@ html {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: auto;
   -moz-osx-font-smoothing: auto;
-  transition: background var(--entrance-wall-duration, 800ms) cubic-bezier(0.16, 1, 0.3, 1),
-              background-color var(--entrance-wall-duration, 800ms) cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body,
@@ -156,15 +154,15 @@ html.aspect-portrait {
 /* Initial browser-default state (before entrance animation) */
 /* Unified wall color fallback: #242529 (consistent across all modes) */
 html.entrance-pre-transition {
-  background: var(--shell-wall-bg, #141414);
-  background-color: var(--shell-wall-bg, #141414);
+  background: var(--abs-browser-chrome, #141414);
+  background-color: var(--abs-browser-chrome, #141414);
 }
 
 /* Dark mode override: prevent white flash on load */
 /* Unified wall color (same as light mode) */
 html.entrance-pre-transition.dark-mode {
-  background: var(--shell-wall-bg, #141414);
-  background-color: var(--shell-wall-bg, #141414);
+  background: var(--abs-browser-chrome, #141414);
+  background-color: var(--abs-browser-chrome, #141414);
 }
 
 /* Background elements are visible immediately (no fade-in) */
@@ -223,15 +221,13 @@ body.body {
   letter-spacing: var(--abs-letter-spacing-global);
   /* iOS Safari can reveal the body background during rubber-band/viewport UI changes.
      Keep body aligned to the wall color so no browser-white edges appear. */
-  background: var(--shell-wall-bg, #141414);
-  background-color: var(--shell-wall-bg, #141414);
+  background: var(--abs-browser-chrome, #141414);
+  background-color: var(--abs-browser-chrome, #141414);
   color: var(--text-primary);
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: auto;
   text-rendering: optimizeLegibility;
-  transition: 
-    background-color var(--duration-settle) var(--ease-settle),
-    padding var(--duration-resize, 600ms) var(--ease-organic, ease);
+  transition: padding var(--duration-resize, 600ms) var(--ease-organic, ease);
   /* Create stacking context for mix-blend-mode to work across all page content */
   isolation: isolate;
 }
@@ -356,8 +352,8 @@ body.abs-in-simulation .simulation-focus-modal .gate-back *,
 
 body.dark-mode,
 body.body.dark-mode { 
-  background: var(--shell-wall-bg, #141414);
-  background-color: var(--shell-wall-bg, #141414);
+  background: var(--abs-browser-chrome, #141414);
+  background-color: var(--abs-browser-chrome, #141414);
   color: var(--text-primary);
   /* Inner shadow removed */
 }
