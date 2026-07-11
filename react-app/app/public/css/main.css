@@ -2122,10 +2122,8 @@ body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item span {
 
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script,
 /* #main-links .footer_link excluded - entrance animation controls opacity */
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .caption,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn {
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .caption:not(#site-year) {
   opacity: var(--supporting-description-opacity);
   transition: opacity 0.15s var(--ease-organic);
 }
@@ -2142,13 +2140,9 @@ body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:hover sp
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:focus-visible span,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:hover,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:focus-within,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link:hover,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle:hover,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn:hover,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:focus-visible,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link:focus-visible,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle:focus-visible,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn:focus-visible {
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle:focus-visible {
   opacity: 1;
 }
 
