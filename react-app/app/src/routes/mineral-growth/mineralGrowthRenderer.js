@@ -247,7 +247,10 @@ function getPresetProfile(config) {
 
 function resolveDpr(config) {
   const deviceDpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
-  return clamp(Math.min(deviceDpr, numberOr(config.maxDpr, 1.5)), 0.75, 2);
+  const mobileCap = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 600px)').matches
+    ? 1.15
+    : 2;
+  return clamp(Math.min(deviceDpr, numberOr(config.maxDpr, 1.5), mobileCap), 0.75, 2);
 }
 
 function resolveTargetFps(config, reducedMotion) {

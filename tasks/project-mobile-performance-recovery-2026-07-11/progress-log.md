@@ -28,4 +28,7 @@
 
 ## PRD 03
 
-- Status: pending
+- Status: verified
+- Proof 1: deterministic mobile cost reductions: Flock warmup 168 → 0 frames and resize-owned layout sync; Flock/Mineral DPR 1.50 → 1.15; Soft Blob contact work 18 → 3 passes; Bubble Lift generic collision passes 4 → 0. Desktop branches are unchanged.
+- Proof 2: 17/17 WebKit/iPhone simulations passed with 0 errors, 71.67–72.07 rAF FPS, p95 15–16 ms. Visual/touch checks preserved 77 birds, 62 Mineral bodies during growth, 52 connected Blob beads, 120 rising bubbles, title composition, and Button Bar clearance.
+- Canonical gate: `npm run check:site` passed.

@@ -150,7 +150,10 @@ function pickWeightedPaletteIndex(random, theme) {
 
 function resolveDpr(config) {
   const deviceDpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
-  return clamp(Math.min(deviceDpr, Number(config.maxDpr) || 1.5), 0.75, 2);
+  const mobileCap = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 600px)').matches
+    ? 1.15
+    : 2;
+  return clamp(Math.min(deviceDpr, Number(config.maxDpr) || 1.5, mobileCap), 0.75, 2);
 }
 
 function resizeCanvasToDisplaySize(canvas, dpr) {
@@ -297,6 +300,8 @@ export function createFlockOfBirdsRenderer({
   let timeoutId = 0;
   let destroyed = false;
   let lastTime = 0;
+  let metricsDirty = true;
+  let metricsSyncCount = 0;
   let unregisterVisualTransition = null;
   const visualTransition = createIndexedSimulationVisualTransition({
     sourceId: 'flock-of-birds',
@@ -315,10 +320,13 @@ export function createFlockOfBirdsRenderer({
   }
 
   function syncMetrics(config) {
-    metrics = {
-      ...metrics,
-      ...resizeCanvasToDisplaySize(canvas, resolveDpr(config)),
-    };
+    const nextDpr = resolveDpr(config);
+    if (!metricsDirty && Math.abs(nextDpr - metrics.dpr) < 0.001) return;
+    Object.assign(metrics, resizeCanvasToDisplaySize(canvas, nextDpr));
+    metricsDirty = false;
+    metricsSyncCount += 1;
+    canvas.dataset.layoutSyncCount = String(metricsSyncCount);
+    canvas.dataset.renderedDpr = String(metrics.dpr);
     ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
   }
 
@@ -1180,9 +1188,12 @@ export function createFlockOfBirdsRenderer({
       return;
     }
 
-    const frames = Math.round(clamp(Number(config.startupWarmupFrames) || 0, 0, 240));
+    const requestedFrames = Math.round(clamp(Number(config.startupWarmupFrames) || 0, 0, 240));
+    const frames = metrics.cssWidth <= 600 ? 0 : requestedFrames;
     metrics.warmupFrames = frames;
+    canvas.dataset.warmupFrames = String(frames);
     if (frames <= 0) {
+      frameWarmFlockForFirstDraw(config);
       state.warmed = true;
       return;
     }
@@ -1339,11 +1350,18 @@ export function createFlockOfBirdsRenderer({
   canvas.addEventListener('pointerenter', handlePointerEnter, { passive: true });
   canvas.addEventListener('pointerleave', handlePointerLeave, { passive: true });
   document.addEventListener('visibilitychange', handleVisibilityChange);
+  const resizeObserver = typeof ResizeObserver === 'function'
+    ? new ResizeObserver(() => {
+      metricsDirty = true;
+    })
+    : null;
+  resizeObserver?.observe(canvas);
 
   return {
     start() {
       if (destroyed) return;
       cancelScheduledFrame();
+      metricsDirty = true;
       lastTime = 0;
       drawFrame(performance.now(), true);
     },
@@ -1363,6 +1381,7 @@ export function createFlockOfBirdsRenderer({
       canvas.removeEventListener('pointerenter', handlePointerEnter);
       canvas.removeEventListener('pointerleave', handlePointerLeave);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      resizeObserver?.disconnect();
     },
   };
 }

@@ -1280,13 +1280,15 @@ export function stepFlubberBlob(dtSeconds) {
   const isMobile = Boolean(g.isMobile || g.isMobileViewport);
   const particleCollisions = true;
   const configuredContactIterations = Number(g.flubberBlobContactIterations);
-  const defaultContactIterations = isMobile ? 4 : 5;
+  const defaultContactIterations = isMobile ? 2 : 5;
   const configuredIterations = clampInt(
     Number.isFinite(configuredContactIterations) ? configuredContactIterations : defaultContactIterations,
     1,
     6
   );
-  const contactIterations = Math.max(defaultContactIterations, configuredIterations);
+  const contactIterations = isMobile
+    ? Math.min(defaultContactIterations, configuredIterations)
+    : Math.max(defaultContactIterations, configuredIterations);
   const viscosity = clamp(Number(g.flubberBlobViscosity ?? 0.45), 0.02, 2.5);
   const cohesionGain = clamp(Number(g.flubberBlobCohesion ?? 2.35), 0.8, 6);
   const surfaceTension = clamp(Number(g.flubberBlobSurfaceTension ?? 0.04), 0, 1.5);
@@ -1334,8 +1336,11 @@ export function stepFlubberBlob(dtSeconds) {
   }
 
   if (particleCollisions) {
-    const finalContactIterations = contactIterations + (blob.isDragging ? 4 : 3);
-    for (let pass = 0; pass < 2; pass++) {
+    const finalContactIterations = isMobile
+      ? contactIterations
+      : contactIterations + (blob.isDragging ? 4 : 3);
+    const finalContactPasses = isMobile ? 1 : 2;
+    for (let pass = 0; pass < finalContactPasses; pass++) {
       resolveWalls(dt, wallBounce, wallFriction, wallLocality, wallSquish, impactRipple, shear);
       prepareGrid(contactRadius);
       buildGrid();

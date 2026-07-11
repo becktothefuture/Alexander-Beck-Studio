@@ -452,7 +452,10 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       if (weaveIterations > 0) {
         collisionStats = resolveCollisions(weaveIterations) || EMPTY_COLLISION_STATS;
       }
-    } else if (shouldResolveBallCollisionsForMode(globals.currentMode)) {
+    } else if (
+      shouldResolveBallCollisionsForMode(globals.currentMode)
+      && !(Boolean(globals.isMobile || globals.isMobileViewport) && globals.currentMode === MODES.BUBBLES)
+    ) {
       collisionStats = resolveCollisions(collisionIterations) || EMPTY_COLLISION_STATS; // configurable solver iterations
     }
     if (isPitMode) {

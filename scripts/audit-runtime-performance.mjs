@@ -114,6 +114,7 @@ try {
             width: canvas.width,
             height: canvas.height,
             backingDpr: rect.width > 0 ? canvas.width / rect.width : null,
+            dataset: { ...canvas.dataset },
           };
         });
         const film = document.querySelector('.studio-light-film-layer');
