@@ -7,7 +7,6 @@ import {
   applyPortfolioAccentBallColor,
   resolvePortfolioLabelContent,
 } from './pit-mode.js';
-import { createSoundToggle } from '../ui/sound-toggle.js';
 import { initializeDarkMode } from '../visual/dark-mode-v2.js';
 import { getPaletteTemplateOverrideFromUrl, getPortfolioProjectPaletteColor, getWeatherDrivenPaletteTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
 import { getGlobals } from '../core/state.js';
@@ -69,13 +68,14 @@ const CONFIG = {
 let activePortfolioBootstrapRunId = 0;
 
 const PORTFOLIO_CLICK_DRAG_THRESHOLD_PX = 12;
-const PORTFOLIO_CARD_RELEASE_OPEN_DELAY_MS = 96;
 const PORTFOLIO_OPEN_GHOST_DURATION_MS = 360;
 const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   reducedMotionDurationMs: 1,
   scrollSensitivity: 1,
   scrollPixelsPerProject: 520,
   inputCapProjects: 0.32,
+  inputCommitThresholdProjects: 0.18,
+  inputIntentWindowMs: 180,
   followSmoothing: 0.18,
   settleIdleMs: 150,
   settleStrength: 0.15,
@@ -99,11 +99,15 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   sideRotationDeg: 10,
   farRotationDeg: 22,
   sideScale: 0.985,
+  mobileSideScale: 0.78,
   farScale: 0.9,
+  minCardGapPx: 18,
   dotDialRadiusPx: 2050,
   mobileDotDialRadiusPx: 900,
   dotDensity: 42,
   dotActiveScale: 1.9,
+  dotParallaxRatio: 1,
+  dotArcSpanDeg: 18,
   dotArcOffsetDeg: 0,
   depthGap1Px: 0,
   depthZ1Px: -18,
@@ -1339,6 +1343,8 @@ class PortfolioScrollApp {
     this.deckLastFrameAt = 0;
     this.deckIsSettling = false;
     this.deckSettleTimer = 0;
+    this.deckInputState = 'idle';
+    this.wheelGesture = null;
     this.deckMotionDirection = -1;
     this.deckOptions = { ...PORTFOLIO_DECK_DEFAULTS };
     this.deckStage = null;
@@ -1353,6 +1359,9 @@ class PortfolioScrollApp {
       farRotationDeg: PORTFOLIO_DECK_DEFAULTS.farRotationDeg,
       sideScale: PORTFOLIO_DECK_DEFAULTS.sideScale,
       farScale: PORTFOLIO_DECK_DEFAULTS.farScale,
+      cardWidth: PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx,
+      cardHeight: PORTFOLIO_DECK_DEFAULTS.cardMaxHeightPx,
+      minCardGap: PORTFOLIO_DECK_DEFAULTS.minCardGapPx,
       maxVisibleOffset: 5,
     };
     this.dotDial = null;
@@ -1360,7 +1369,6 @@ class PortfolioScrollApp {
     this.deckStatus = null;
     this.pendingDeckFocusIndex = -1;
     this.pendingDeckAnnounce = false;
-    this.ignoreNextCardClick = false;
     this.suppressNextCardClick = false;
     this.pressedCardState = null;
     this.pressOpenTimer = 0;
@@ -1587,6 +1595,7 @@ class PortfolioScrollApp {
     card.setAttribute('aria-controls', 'portfolioProjectView');
     card.setAttribute('aria-expanded', 'false');
     card.setAttribute('aria-label', `Open project ${projectIndex + 1}: ${spokenLabel}`);
+    card.draggable = false;
 
     const copy = document.createElement('div');
     copy.className = 'portfolio-project-card__copy';
@@ -1626,11 +1635,6 @@ class PortfolioScrollApp {
     card._portfolioElements = { client, titleText, tags, media, cta };
     card._portfolioProjectIndex = projectIndex;
     card._portfolioThumbnailVideoActive = false;
-    card.addEventListener('pointerdown', (event) => this.handleCardPointerDown(event, card));
-    card.addEventListener('pointermove', (event) => this.handleCardPointerMove(event, card));
-    card.addEventListener('pointerup', (event) => this.handleCardPointerUp(event, card));
-    card.addEventListener('pointercancel', (event) => this.handleCardPointerCancel(event, card));
-    card.addEventListener('lostpointercapture', (event) => this.handleCardLostPointerCapture(event, card));
     card.addEventListener('click', (event) => this.handleCardClick(event, card));
     card.addEventListener('keydown', (event) => this.handleCardKeydown(event, card));
     card.addEventListener('pointerenter', () => {
@@ -1733,6 +1737,7 @@ class PortfolioScrollApp {
       image.className = 'portfolio-project-card__image';
       image.src = resolveAsset(imageSrc);
       image.alt = '';
+      image.draggable = false;
       image.loading = options.eager ? 'eager' : 'lazy';
       image.decoding = 'async';
       const thumbnailPosition = project?.thumbnailPosition || project?.thumbnailFocalPoint || '';
@@ -1852,7 +1857,7 @@ class PortfolioScrollApp {
     const mobileCenterYPercent = clamp(toNumber(this.deckOptions.mobileCenterYPercent, PORTFOLIO_DECK_DEFAULTS.mobileCenterYPercent), 48, 78);
     const centerYPercent = lerp(mobileCenterYPercent, desktopCenterYPercent, responsiveT);
     const perspectivePx = clamp(toNumber(this.deckOptions.perspectivePx, PORTFOLIO_DECK_DEFAULTS.perspectivePx), 500, 2600);
-    const pathRadius = lerp(
+    const configuredPathRadius = lerp(
       clamp(toNumber(this.deckOptions.mobilePathRadiusPx, PORTFOLIO_DECK_DEFAULTS.mobilePathRadiusPx), 420, 1400),
       clamp(toNumber(this.deckOptions.pathRadiusPx, PORTFOLIO_DECK_DEFAULTS.pathRadiusPx), 900, 3200),
       responsiveT
@@ -1864,8 +1869,18 @@ class PortfolioScrollApp {
     );
     const sideRotationDeg = clamp(toNumber(this.deckOptions.sideRotationDeg, PORTFOLIO_DECK_DEFAULTS.sideRotationDeg), 0, 24);
     const farRotationDeg = clamp(toNumber(this.deckOptions.farRotationDeg, PORTFOLIO_DECK_DEFAULTS.farRotationDeg), sideRotationDeg, 34);
-    const sideScale = clamp(toNumber(this.deckOptions.sideScale, PORTFOLIO_DECK_DEFAULTS.sideScale), 0.82, 1.08);
-    const farScale = clamp(toNumber(this.deckOptions.farScale, PORTFOLIO_DECK_DEFAULTS.farScale), 0.68, 1);
+    const desktopSideScale = clamp(toNumber(this.deckOptions.sideScale, PORTFOLIO_DECK_DEFAULTS.sideScale), 0.82, 1.08);
+    const mobileSideScale = clamp(toNumber(this.deckOptions.mobileSideScale, PORTFOLIO_DECK_DEFAULTS.mobileSideScale), 0.62, 0.92);
+    const sideScale = lerp(mobileSideScale, desktopSideScale, responsiveT);
+    const farScale = Math.min(
+      sideScale,
+      clamp(toNumber(this.deckOptions.farScale, PORTFOLIO_DECK_DEFAULTS.farScale), 0.68, 1)
+    );
+    const minCardGap = lerp(
+      12,
+      clamp(toNumber(this.deckOptions.minCardGapPx, PORTFOLIO_DECK_DEFAULTS.minCardGapPx), 8, 48),
+      responsiveT
+    );
     const dotDialRadius = lerp(
       clamp(toNumber(this.deckOptions.mobileDotDialRadiusPx, PORTFOLIO_DECK_DEFAULTS.mobileDotDialRadiusPx), 520, 1600),
       clamp(toNumber(this.deckOptions.dotDialRadiusPx, PORTFOLIO_DECK_DEFAULTS.dotDialRadiusPx), 900, 3600),
@@ -1877,6 +1892,53 @@ class PortfolioScrollApp {
       0.18
     );
     const virtualCount = this.getVirtualCardCount();
+    const maxVisibleOffset = Math.min(
+      Math.floor(virtualCount / 2),
+      stageWidth >= 1700 ? 3 : (stageWidth >= 1180 ? 2 : 1)
+    );
+    const cardWidth = Math.min(stageWidth * cardWidthPercent / 100, cardMaxWidthPx);
+    const cardHeight = stageWidth <= 900
+      ? cardWidth * (461 / 316)
+      : clamp(stageHeight * cardHeightCqh / 100, 260, cardMaxHeightPx);
+    const angleStepRad = (angleStepDeg * Math.PI) / 180;
+    const getScaleAtOffset = (offset) => {
+      const absOffset = Math.abs(offset);
+      if (absOffset <= 1) return lerp(1, sideScale, absOffset);
+      return lerp(
+        sideScale,
+        farScale,
+        clamp((absOffset - 1) / Math.max(1, maxVisibleOffset - 1), 0, 1)
+      );
+    };
+    const getRotationAtOffset = (offset) => lerp(
+      sideRotationDeg,
+      farRotationDeg,
+      clamp((Math.abs(offset) - 1) / Math.max(1, maxVisibleOffset - 1), 0, 1)
+    ) * Math.min(1, Math.abs(offset));
+    const getProjectedCardWidth = (offset) => {
+      const rotationRad = (getRotationAtOffset(offset) * Math.PI) / 180;
+      return getScaleAtOffset(offset) * (
+        (cardWidth * Math.abs(Math.cos(rotationRad)))
+        + (cardHeight * Math.abs(Math.sin(rotationRad)))
+      );
+    };
+    let solvedPathRadius = configuredPathRadius;
+    const halfStepSeparation = 2 * Math.sin(angleStepRad * 0.5);
+    if (halfStepSeparation > 0.001) {
+      solvedPathRadius = Math.max(
+        solvedPathRadius,
+        (getProjectedCardWidth(0.5) + minCardGap) / halfStepSeparation
+      );
+    }
+    for (let offset = 1; offset <= maxVisibleOffset; offset += 1) {
+      const orbitStep = Math.sin(offset * angleStepRad) - Math.sin((offset - 1) * angleStepRad);
+      if (orbitStep <= 0.001) continue;
+      const requiredGap = (
+        (getProjectedCardWidth(offset - 1) + getProjectedCardWidth(offset)) * 0.5
+      ) + minCardGap;
+      solvedPathRadius = Math.max(solvedPathRadius, requiredGap / orbitStep);
+    }
+    const pathRadius = Math.min(solvedPathRadius, 4200);
     this.deckMetrics = {
       stageWidth,
       stageHeight,
@@ -1886,9 +1948,12 @@ class PortfolioScrollApp {
       farRotationDeg,
       sideScale,
       farScale,
+      cardWidth,
+      cardHeight,
+      minCardGap,
       dotDialRadius,
       dotArcOffsetDeg: clamp(toNumber(this.deckOptions.dotArcOffsetDeg, PORTFOLIO_DECK_DEFAULTS.dotArcOffsetDeg), -60, 60),
-      maxVisibleOffset: Math.floor(virtualCount / 2),
+      maxVisibleOffset,
     };
 
     this.mount.style.setProperty('--portfolio-deck-card-width-fluid', `${cardWidthPercent}%`);
@@ -1961,7 +2026,8 @@ class PortfolioScrollApp {
   isDeckPositionSettled(position = this.deckDisplayPosition) {
     return Math.abs(position - Math.round(position)) < 0.003
       && Math.abs(this.deckTargetPosition - position) < 0.003
-      && !this.deckIsSettling;
+      && !this.deckIsSettling
+      && this.deckInputState === 'idle';
   }
 
   getDeckMotionMetrics() {
@@ -2203,45 +2269,51 @@ class PortfolioScrollApp {
 
   getDeckPoseForOffset(offset) {
     const metrics = this.deckMetrics || {};
-    const clampedOffset = clamp(offset, -metrics.maxVisibleOffset, metrics.maxVisibleOffset);
-    const absOffset = Math.abs(clampedOffset);
-    const sideProgress = clamp(absOffset / Math.max(1, metrics.maxVisibleOffset || 5), 0, 1);
-    const angleDeg = clampedOffset * (metrics.angleStepDeg || PORTFOLIO_DECK_DEFAULTS.angleStepDeg);
+    const maxVisibleOffset = Math.max(1, metrics.maxVisibleOffset || 1);
+    const rawAbsOffset = Math.abs(offset);
+    const orbitOffset = clamp(offset, -(maxVisibleOffset + 1), maxVisibleOffset + 1);
+    const absOffset = Math.abs(orbitOffset);
+    const sideProgress = clamp(absOffset / maxVisibleOffset, 0, 1);
+    const angleDeg = orbitOffset * (metrics.angleStepDeg || PORTFOLIO_DECK_DEFAULTS.angleStepDeg);
     const angleRad = (angleDeg * Math.PI) / 180;
     const radius = metrics.pathRadius || PORTFOLIO_DECK_DEFAULTS.pathRadiusPx;
     const x = Math.sin(angleRad) * radius;
     const y = radius * (1 - Math.cos(angleRad)) * 0.88;
-    const rotateZ = Math.sign(clampedOffset)
+    const rotateZ = Math.sign(orbitOffset)
       * lerp(
         metrics.sideRotationDeg || PORTFOLIO_DECK_DEFAULTS.sideRotationDeg,
         metrics.farRotationDeg || PORTFOLIO_DECK_DEFAULTS.farRotationDeg,
-        clamp((absOffset - 1) / Math.max(1, (metrics.maxVisibleOffset || 5) - 1), 0, 1)
+        clamp((absOffset - 1) / Math.max(1, maxVisibleOffset - 1), 0, 1)
       )
       * Math.min(1, absOffset);
-    const scale = lerp(1, metrics.farScale || PORTFOLIO_DECK_DEFAULTS.farScale, sideProgress);
-    const opacity = absOffset > (metrics.maxVisibleOffset || 5) - 0.35
-      ? lerp(1, 0.22, smoothstep((metrics.maxVisibleOffset || 5) - 0.35, metrics.maxVisibleOffset || 5, absOffset))
-      : 1;
+    const scale = absOffset <= 1
+      ? lerp(1, metrics.sideScale || PORTFOLIO_DECK_DEFAULTS.sideScale, absOffset)
+      : lerp(
+        metrics.sideScale || PORTFOLIO_DECK_DEFAULTS.sideScale,
+        metrics.farScale || PORTFOLIO_DECK_DEFAULTS.farScale,
+        clamp((absOffset - 1) / Math.max(1, maxVisibleOffset - 1), 0, 1)
+      );
+    const opacity = 1 - smoothstep(maxVisibleOffset + 0.12, maxVisibleOffset + 0.62, rawAbsOffset);
     const activeAmount = clamp(1 - absOffset, 0, 1);
-    const slot = Math.abs(clampedOffset) < 0.52 ? '0' : String(Math.round(clampedOffset));
+    const slot = Math.abs(orbitOffset) < 0.52 ? '0' : String(Math.round(orbitOffset));
     return {
       slot,
-      visualSlot: activeAmount > 0.48 ? 'front' : (clampedOffset < 0 ? 'left' : 'right'),
+      visualSlot: activeAmount > 0.48 ? 'front' : (orbitOffset < 0 ? 'left' : 'right'),
       zone: activeAmount > 0.48 ? 'active-orbit' : 'side-orbit',
-      depth: absOffset,
-      depthLabel: String(Math.round(absOffset)),
-      zIndex: Math.max(1, Math.round(700 - (absOffset * 22))),
+      depth: rawAbsOffset,
+      depthLabel: String(Math.round(rawAbsOffset)),
+      zIndex: Math.max(1, Math.round(700 - (rawAbsOffset * 22))),
       x,
       y,
-      z: -Math.abs(clampedOffset) * 18,
+      z: -rawAbsOffset * 18,
       rotateX: 0,
       rotateZ,
       scale,
-      blur: absOffset > 4 ? 0.25 : 0,
+      blur: rawAbsOffset > maxVisibleOffset ? 0.25 : 0,
       saturate: lerp(1, 0.88, sideProgress),
       opacity,
       visibility: opacity <= 0.03 ? 'hidden' : 'visible',
-      pointerEvents: this.isProjectOpen ? 'none' : 'auto',
+      pointerEvents: this.isProjectOpen || rawAbsOffset > maxVisibleOffset + 0.01 ? 'none' : 'auto',
     };
   }
 
@@ -2336,27 +2408,34 @@ class PortfolioScrollApp {
     if (!this.dotDial || !this.dotDialDots.length) return;
     const dotCount = this.dotDialDots.length;
     const radius = this.deckMetrics?.dotDialRadius || PORTFOLIO_DECK_DEFAULTS.dotDialRadiusPx;
-    const progress = this.projects.length
-      ? this.wrapDeckPosition(this.deckDisplayPosition) / this.projects.length
-      : 0;
-    const activeDot = progress * dotCount;
+    const projectCount = Math.max(1, this.projects.length);
+    const parallaxRatio = clamp(
+      toNumber(this.deckOptions.dotParallaxRatio, PORTFOLIO_DECK_DEFAULTS.dotParallaxRatio),
+      -2,
+      2
+    );
+    const progress = this.deckDisplayPosition * parallaxRatio;
+    const phaseDots = (progress / projectCount) * dotCount;
+    const arcSpanDeg = clamp(
+      toNumber(this.deckOptions.dotArcSpanDeg, PORTFOLIO_DECK_DEFAULTS.dotArcSpanDeg),
+      8,
+      34
+    );
     this.dotDial.style.setProperty('--portfolio-carousel-dot-progress', String(progress));
     this.dotDialDots.forEach((dot, index) => {
-      const normalized = (index / dotCount) - 0.5;
-      const angleDeg = (normalized * 76) + (this.deckMetrics?.dotArcOffsetDeg || 0);
+      const rawPhase = (index - phaseDots) / dotCount;
+      const normalized = ((((rawPhase + 0.5) % 1) + 1) % 1) - 0.5;
+      const angleDeg = (normalized * arcSpanDeg) + (this.deckMetrics?.dotArcOffsetDeg || 0);
       const angleRad = (angleDeg * Math.PI) / 180;
       const x = Math.sin(angleRad) * radius;
-      const y = -radius * (1 - Math.cos(angleRad));
-      const wrappedDistance = Math.min(
-        Math.abs(index - activeDot),
-        Math.abs(index + dotCount - activeDot),
-        Math.abs(index - dotCount - activeDot)
-      );
+      const y = radius * (1 - Math.cos(angleRad));
+      const wrappedDistance = Math.abs(normalized) * dotCount;
       const activeAmount = clamp(1 - (wrappedDistance / 2.5), 0, 1);
+      const edgeFade = 1 - smoothstep(0.42, 0.5, Math.abs(normalized));
       dot.style.setProperty('--portfolio-dot-x', `${x.toFixed(2)}px`);
       dot.style.setProperty('--portfolio-dot-y', `${y.toFixed(2)}px`);
       dot.style.setProperty('--portfolio-dot-scale', lerp(0.72, toNumber(this.deckOptions.dotActiveScale, PORTFOLIO_DECK_DEFAULTS.dotActiveScale), activeAmount).toFixed(3));
-      dot.style.setProperty('--portfolio-dot-opacity', lerp(0.38, 0.96, activeAmount).toFixed(3));
+      dot.style.setProperty('--portfolio-dot-opacity', (edgeFade * lerp(0.38, 0.96, activeAmount)).toFixed(3));
     });
   }
 
@@ -2376,6 +2455,7 @@ class PortfolioScrollApp {
       transitionProgress: state?.progress ?? 0,
       settled: this.isDeckPositionSettled(),
       isSettled: this.isDeckPositionSettled(),
+      inputState: this.deckInputState,
       open: {
         phase: this.projectOpenPhase,
         isProjectOpen: this.isProjectOpen,
@@ -2461,6 +2541,30 @@ class PortfolioScrollApp {
     );
   }
 
+  getDeckInputCommitThreshold() {
+    return clamp(
+      toNumber(
+        this.deckOptions.inputCommitThresholdProjects,
+        PORTFOLIO_DECK_DEFAULTS.inputCommitThresholdProjects
+      ),
+      0.08,
+      0.45
+    );
+  }
+
+  getDeckInputIntentWindowMs() {
+    return clamp(
+      toNumber(this.deckOptions.inputIntentWindowMs, PORTFOLIO_DECK_DEFAULTS.inputIntentWindowMs),
+      80,
+      360
+    );
+  }
+
+  setDeckInputState(state) {
+    this.deckInputState = state;
+    if (this.mount) this.mount.dataset.carouselInputState = state;
+  }
+
   startDeckAnimation() {
     if (this.deckAnimationFrame || !this.cards.length) return;
     this.deckLastFrameAt = 0;
@@ -2480,6 +2584,26 @@ class PortfolioScrollApp {
     this.deckSettleTimer = 0;
   }
 
+  beginDeckSettle(targetPosition = Math.round(this.deckTargetPosition)) {
+    this.clearDeckSettleTimer();
+    this.wheelGesture = null;
+    if (this.isProjectOpen || !this.projects.length) return;
+    const target = Math.round(targetPosition);
+    const targetDelta = target - this.deckTargetPosition;
+    this.deckTargetPosition = target;
+    if (Math.abs(targetDelta) > 0.0001) this.deckMotionDirection = targetDelta > 0 ? 1 : -1;
+    this.deckIsSettling = true;
+    this.setDeckInputState('settling');
+    if (shouldReducePortfolioMotion()) {
+      this.deckDisplayPosition = target;
+      this.deckIsSettling = false;
+      this.setDeckInputState('idle');
+      this.updateDeckSlots({ activeChanged: true, force: true });
+      return;
+    }
+    this.startDeckAnimation();
+  }
+
   scheduleDeckSettle() {
     this.clearDeckSettleTimer();
     if (this.isProjectOpen || !this.projects.length || shouldReducePortfolioMotion()) return;
@@ -2490,8 +2614,7 @@ class PortfolioScrollApp {
     );
     this.deckSettleTimer = window.setTimeout(() => {
       this.deckSettleTimer = 0;
-      this.deckIsSettling = true;
-      this.startDeckAnimation();
+      this.beginDeckSettle();
     }, delayMs);
   }
 
@@ -2511,6 +2634,7 @@ class PortfolioScrollApp {
     this.deckIsSettling = false;
     if (options.immediate || reducedMotion) {
       this.deckDisplayPosition = this.deckTargetPosition;
+      this.setDeckInputState(this.isProjectOpen ? 'drawer-open' : 'idle');
       this.updateDeckSlots({ activeChanged: true, force: true });
       return;
     }
@@ -2552,6 +2676,7 @@ class PortfolioScrollApp {
       this.deckAnimationFrame = window.requestAnimationFrame((nextTimestamp) => this.stepDeckAnimation(nextTimestamp));
     } else {
       this.deckLastFrameAt = 0;
+      this.setDeckInputState(this.isProjectOpen ? 'drawer-open' : 'idle');
       this.updateDeckFromScroll({ activeChanged: true });
     }
   }
@@ -2589,7 +2714,7 @@ class PortfolioScrollApp {
   }
 
   handleDeckWheel(event) {
-    if (this.isProjectOpen || !this.projects.length) return;
+    if (this.isProjectOpen || this.deckInputState === 'drag-active' || !this.projects.length) return;
     const normalizedDelta = normalizeWheelDelta(event);
     if (Math.abs(normalizedDelta) < 1) return;
     event.preventDefault();
@@ -2599,7 +2724,47 @@ class PortfolioScrollApp {
     const inputCap = this.getDeckInputCapProjects();
     const projectDelta = clamp((normalizedDelta / pixelsPerProject) * sensitivity, -inputCap, inputCap);
     if (Math.abs(projectDelta) < 0.0001) return;
-    this.setDeckPosition(this.deckTargetPosition + projectDelta);
+    const now = performance.now();
+    const direction = projectDelta > 0 ? 1 : -1;
+    const intentWindowMs = this.getDeckInputIntentWindowMs();
+    const startsNewGesture = !this.wheelGesture
+      || now - this.wheelGesture.lastAt > intentWindowMs
+      || direction !== this.wheelGesture.direction;
+    if (startsNewGesture) {
+      this.wheelGesture = {
+        origin: Math.round(this.deckTargetPosition),
+        accumulated: 0,
+        committed: false,
+        direction,
+        lastAt: now,
+      };
+    }
+    const gesture = this.wheelGesture;
+    gesture.accumulated += projectDelta;
+    gesture.lastAt = now;
+    const commitThreshold = this.getDeckInputCommitThreshold();
+    if (!gesture.committed && Math.abs(gesture.accumulated) >= commitThreshold) {
+      gesture.committed = true;
+    }
+    const previewDelta = gesture.committed
+      ? gesture.direction
+      : clamp(gesture.accumulated, -commitThreshold * 0.92, commitThreshold * 0.92);
+    this.setDeckInputState('wheel-active');
+    this.setDeckPosition(gesture.origin + previewDelta, { settle: false });
+    this.clearDeckSettleTimer();
+    const settleDelay = clamp(
+      toNumber(this.deckOptions.settleIdleMs, PORTFOLIO_DECK_DEFAULTS.settleIdleMs),
+      60,
+      520
+    );
+    this.deckSettleTimer = window.setTimeout(() => {
+      const currentGesture = this.wheelGesture;
+      if (!currentGesture) return;
+      const target = currentGesture.committed
+        ? currentGesture.origin + currentGesture.direction
+        : currentGesture.origin;
+      this.beginDeckSettle(target);
+    }, settleDelay);
   }
 
   handleDeckPointerDown(event) {
@@ -2607,7 +2772,22 @@ class PortfolioScrollApp {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     const now = performance.now();
     this.clearDeckSettleTimer();
+    this.wheelGesture = null;
     this.deckIsSettling = false;
+    const pressedCard = event.target?.closest?.('.portfolio-project-card') || null;
+    if (pressedCard && this.canPressCard(pressedCard, event)) {
+      this.clearPressedCard();
+      this.pressedCardState = {
+        index: this.getCardProjectIndex(pressedCard),
+        card: pressedCard,
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        cancelled: false,
+      };
+      this.projectOpenPhase = 'pressing';
+      pressedCard.classList.add('is-pressing');
+    }
     this.pointerState = {
       pointerId: event.pointerId,
       pointerType: event.pointerType,
@@ -2618,9 +2798,12 @@ class PortfolioScrollApp {
       lastTime: now,
       startTime: now,
       startTargetPosition: this.deckTargetPosition,
+      projectDelta: 0,
       dragged: false,
     };
-    this.deckStage?.setPointerCapture?.(event.pointerId);
+    if (event.pointerType !== 'mouse') {
+      this.deckStage?.setPointerCapture?.(event.pointerId);
+    }
   }
 
   handleDeckPointerMove(event) {
@@ -2631,12 +2814,15 @@ class PortfolioScrollApp {
     const primaryDelta = Math.abs(deltaX) > Math.abs(deltaY) ? deltaX : deltaY;
     if (Math.hypot(deltaX, deltaY) > PORTFOLIO_CLICK_DRAG_THRESHOLD_PX) {
       this.pointerState.dragged = true;
-      this.ignoreNextCardClick = true;
+      this.suppressNextCardClick = true;
+      this.clearPressedCard();
+      this.setDeckInputState('drag-active');
       event.preventDefault();
     }
     if (this.pointerState.dragged) {
       const targetPosition = this.pointerState.startTargetPosition
         - ((primaryDelta / this.getDeckScrollPixelsPerProject()) * this.getDeckScrollSensitivity());
+      this.pointerState.projectDelta = targetPosition - this.pointerState.startTargetPosition;
       this.setDeckPosition(targetPosition, { settle: false });
     }
     this.pointerState.lastX = event.clientX;
@@ -2648,10 +2834,28 @@ class PortfolioScrollApp {
     if (!this.pointerState || event.pointerId !== this.pointerState.pointerId) return;
     const pointerState = this.pointerState;
     this.pointerState = null;
-    this.deckStage?.releasePointerCapture?.(event.pointerId);
-    if (cancelled || !pointerState.dragged) return;
+    try {
+      if (this.deckStage?.hasPointerCapture?.(event.pointerId)) {
+        this.deckStage.releasePointerCapture(event.pointerId);
+      }
+    } catch (error) {
+      /* ignore */
+    }
+    this.clearPressedCard();
+    if (!pointerState.dragged) {
+      this.setDeckInputState(this.isProjectOpen ? 'drawer-open' : 'idle');
+      return;
+    }
 
-    this.scheduleDeckSettle();
+    const projectDelta = pointerState.projectDelta || 0;
+    const commitThreshold = this.getDeckInputCommitThreshold();
+    const target = !cancelled && Math.abs(projectDelta) >= commitThreshold
+      ? Math.round(pointerState.startTargetPosition) + Math.sign(projectDelta)
+      : Math.round(pointerState.startTargetPosition);
+    this.beginDeckSettle(target);
+    window.setTimeout(() => {
+      this.suppressNextCardClick = false;
+    }, 0);
   }
 
   handleDeckPointerUp(event) {
@@ -2713,96 +2917,9 @@ class PortfolioScrollApp {
       && this.isDeckPositionSettled();
   }
 
-  handleCardPointerDown(event, card) {
-    if (!this.canPressCard(card, event)) return;
-    if (!card) return;
-    event.stopPropagation();
-    const index = this.getCardProjectIndex(card);
-    this.clearPressedCard();
-    this.pressedCardState = {
-      index,
-      card,
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      cancelled: false,
-    };
-    this.projectOpenPhase = 'pressing';
-    card.classList.remove('is-opening-release');
-    card.classList.add('is-pressing');
-    try {
-      card.setPointerCapture?.(event.pointerId);
-    } catch (error) {
-      /* ignore */
-    }
-  }
-
-  handleCardPointerMove(event, card) {
-    if (!this.pressedCardState || this.pressedCardState.card !== card) return;
-    if (this.pressedCardState.pointerId !== event.pointerId) return;
-    event.stopPropagation();
-    const dx = event.clientX - this.pressedCardState.startX;
-    const dy = event.clientY - this.pressedCardState.startY;
-    if (Math.hypot(dx, dy) <= PORTFOLIO_CLICK_DRAG_THRESHOLD_PX) return;
-    this.pressedCardState.cancelled = true;
-    this.clearPressedCard();
-  }
-
-  handleCardPointerUp(event, card) {
-    if (!this.pressedCardState || this.pressedCardState.card !== card) return;
-    if (this.pressedCardState.pointerId !== event.pointerId) return;
-    event.stopPropagation();
-    const index = this.getCardProjectIndex(card);
-    const wasCancelled = this.pressedCardState.cancelled;
-    const originRect = card?.getBoundingClientRect() || null;
-    this.pressedCardState = null;
-    if (card?.hasPointerCapture?.(event.pointerId)) {
-      try {
-        card.releasePointerCapture(event.pointerId);
-      } catch (error) {
-        /* ignore */
-      }
-    }
-    card?.classList.remove('is-pressing');
-    if (wasCancelled || !this.canPressCard(card, event)) {
-      card?.classList.remove('is-opening-release');
-      return;
-    }
-
-    event.preventDefault();
-    this.suppressNextCardClick = true;
-    this.projectOpenPhase = 'release';
-    card?.classList.add('is-opening-release');
-    window.clearTimeout(this.pressOpenTimer);
-    const openDelay = shouldReducePortfolioMotion() ? 0 : PORTFOLIO_CARD_RELEASE_OPEN_DELAY_MS;
-    this.pressOpenTimer = window.setTimeout(() => {
-      this.pressOpenTimer = 0;
-      card?.classList.remove('is-opening-release');
-      this.openProjectByIndex(index, { originRect, inputType: 'pointer' });
-    }, openDelay);
-  }
-
-  handleCardPointerCancel(event, card) {
-    if (!this.pressedCardState || this.pressedCardState.card !== card) return;
-    if (this.pressedCardState.pointerId !== event.pointerId) return;
-    this.clearPressedCard();
-  }
-
-  handleCardLostPointerCapture(event, card) {
-    if (!this.pressedCardState || this.pressedCardState.card !== card) return;
-    if (this.pressedCardState.pointerId !== event.pointerId) return;
-    if (this.pressOpenTimer) return;
-    this.clearPressedCard();
-  }
-
   handleCardClick(event, card) {
     if (this.suppressNextCardClick) {
       this.suppressNextCardClick = false;
-      event.preventDefault();
-      return;
-    }
-    if (this.ignoreNextCardClick) {
-      this.ignoreNextCardClick = false;
       event.preventDefault();
       return;
     }
@@ -3134,6 +3251,7 @@ class PortfolioScrollApp {
     this.lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.selectedProjectIndex = projectIndex;
     this.isProjectOpen = true;
+    this.setDeckInputState('drawer-open');
     getGlobals().__portfolioDrawerOpen = true;
     this.disableBackgroundInteractivity();
     this.syncProjectHero(project, true, originRect, { deferReveal: useGhost });
@@ -3158,6 +3276,7 @@ class PortfolioScrollApp {
     this.isProjectOpen = false;
     this.selectedProjectIndex = -1;
     this.projectOpenPhase = 'closed';
+    this.setDeckInputState('idle');
     this.projectOpenDebug = null;
     getGlobals().__portfolioDrawerOpen = false;
     this.restoreBackgroundInteractivity();
@@ -3560,7 +3679,6 @@ export async function bootstrapPortfolio() {
 
   SoundEngine.initSoundEngine();
   SoundEngine.applySoundConfigFromRuntimeConfig(runtimeConfig);
-  createSoundToggle();
   initNoiseSystem({
     ...globals,
     noiseMotion: 'static',

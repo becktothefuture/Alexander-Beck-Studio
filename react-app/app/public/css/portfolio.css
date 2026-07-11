@@ -121,8 +121,7 @@ body.portfolio-project-open .portfolio-project-mount .portfolio-deck-stage {
 
 /* Portfolio-only route topbar reveal timing; shared topbar layout lives in main.css. */
 body.portfolio-page .route-topbar__left,
-body.portfolio-page .route-topbar__right .portfolio-topnav,
-body.portfolio-page .portfolio-sound-slot {
+body.portfolio-page .route-topbar__right .portfolio-topnav {
   transition:
     opacity 420ms var(--ease-organic, ease),
     transform 520ms var(--ease-organic, ease),
@@ -130,8 +129,7 @@ body.portfolio-page .portfolio-sound-slot {
 }
 
 body.portfolio-page:not([data-portfolio-load-state="loaded"]) .route-topbar__left,
-body.portfolio-page:not([data-portfolio-load-state="loaded"]) .route-topbar__right .portfolio-topnav,
-body.portfolio-page:not([data-portfolio-load-state="loaded"]) .portfolio-sound-slot {
+body.portfolio-page:not([data-portfolio-load-state="loaded"]) .route-topbar__right .portfolio-topnav {
   opacity: 0;
   transform: translate3d(0, -6px, 0);
   filter: blur(3px);
@@ -143,10 +141,6 @@ body.portfolio-page[data-portfolio-load-state="loaded"] .route-topbar__left {
 
 body.portfolio-page[data-portfolio-load-state="loaded"] .route-topbar__right .portfolio-topnav {
   transition-delay: 100ms;
-}
-
-body.portfolio-page[data-portfolio-load-state="loaded"] .portfolio-sound-slot {
-  transition-delay: 140ms;
 }
 
 body.portfolio-project-open {
@@ -170,43 +164,6 @@ body.portfolio-page.abs-in-simulation #c:active {
 
 body.portfolio-page.abs-in-simulation .portfolio-deck-mount .portfolio-project-card {
   cursor: none;
-}
-
-body.portfolio-page #custom-cursor .abs-cursor-label {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding-inline: 8px;
-  box-sizing: border-box;
-  color: var(--cursor-hover-fg, #111);
-  font-family: var(--abs-font-sans);
-  font-size: clamp(0.92rem, 1.05vw, 1.05rem);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0;
-  text-align: center;
-  white-space: nowrap;
-  opacity: 0;
-  transform: translate3d(0, 0.04em, 0) scale(0.94);
-  transition:
-    opacity 150ms var(--ease-organic, ease),
-    transform 190ms var(--ease-organic, ease);
-  will-change: opacity, transform;
-}
-
-body.portfolio-page #custom-cursor.abs-cursor-project-hover {
-  overflow: hidden;
-  background: var(--cursor-color);
-  box-shadow:
-    var(--ui-chrome-button-edge),
-    0 12px 28px color-mix(in srgb, black 24%, transparent),
-    0 2px 8px color-mix(in srgb, black 18%, transparent);
-}
-
-body.portfolio-page #custom-cursor.abs-cursor-project-hover .abs-cursor-label {
-  opacity: 1;
-  transform: translate3d(0, -0.02em, 0) scale(1);
 }
 
 /* Route top chrome z-index / nav nowrap / sound slot: shared with CV in main.css */
@@ -330,6 +287,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-card-ink: #f8f3eb;
   --portfolio-card-muted: color-mix(in srgb, var(--portfolio-card-ink) 72%, var(--portfolio-card-base));
   --portfolio-card-overlay-height: 221.589px;
+  --portfolio-card-accent-mix: 58%;
   --portfolio-carousel-dot-radius: 2050px;
   --portfolio-carousel-dot-size: 7px;
 }
@@ -520,9 +478,6 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-deck-mount .portfolio-project-card.is-pressing {
-  --portfolio-card-press-y: 4px;
-  --portfolio-card-press-z: -24px;
-  --portfolio-card-press-scale: 0.985;
   box-shadow:
     0 clamp(-15px, -1.05vw, -9px) clamp(20px, 2vw, 34px) -8px
       rgba(0, 0, 0, calc(var(--portfolio-card-contact-shadow-opacity) * 0.9)),
@@ -531,7 +486,6 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
     inset 0 1px 0 color-mix(in srgb, white 34%, transparent),
     inset 0 -1px 0 color-mix(in srgb, black 22%, transparent);
   transition:
-    transform 115ms cubic-bezier(0.34, 0, 0.2, 1),
     box-shadow 115ms cubic-bezier(0.34, 0, 0.2, 1),
     opacity 160ms ease;
 }
@@ -705,6 +659,7 @@ body.portfolio-project-open .portfolio-deck-mount .portfolio-project-card.is-sel
   filter: saturate(0.86) contrast(1.05) brightness(1.03);
   transform: none;
   opacity: 1;
+  -webkit-user-drag: none;
 }
 
 .portfolio-project-card__media-fallback {
@@ -726,12 +681,17 @@ body.portfolio-project-open .portfolio-deck-mount .portfolio-project-card.is-sel
   background:
     linear-gradient(
       to bottom,
-      color-mix(in srgb, var(--portfolio-card-accent) 18%, #010813) 0%,
-      rgba(1, 8, 19, 0.78) 20%,
+      color-mix(in srgb, var(--portfolio-card-accent) var(--portfolio-card-accent-mix), #010813) 0%,
+      color-mix(in srgb, var(--portfolio-card-accent) 42%, rgba(1, 8, 19, 0.84)) 24%,
+      rgba(1, 8, 19, 0.58) 43%,
       rgba(1, 8, 19, 0) var(--portfolio-card-overlay-height)
     ),
-    linear-gradient(to top, rgba(0, 0, 0, 0.18), transparent 44%);
+    linear-gradient(to top, rgba(0, 0, 0, 0.24), transparent 48%);
   opacity: 1;
+}
+
+.portfolio-deck-mount .portfolio-project-card.is-active {
+  --portfolio-card-accent-mix: 74%;
 }
 
 .portfolio-project-card__cta {
@@ -779,7 +739,7 @@ body.portfolio-project-open .portfolio-deck-mount .portfolio-project-card.is-sel
   position: absolute;
   z-index: 4;
   left: 50%;
-  bottom: clamp(10px, 2cqh, 18px);
+  top: calc(100% - clamp(30px, 4cqh, 42px));
   width: 0;
   height: 0;
   pointer-events: none;
@@ -1653,7 +1613,6 @@ body.portfolio-page #edge-caption {
   .portfolio-project-view__close,
   body.portfolio-page .route-topbar__left,
   body.portfolio-page .route-topbar__right .portfolio-topnav,
-  body.portfolio-page .portfolio-sound-slot,
   .portfolio-deck-intro,
   .portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-project-card,
   .portfolio-deck-mount .portfolio-project-card {
@@ -1662,8 +1621,7 @@ body.portfolio-page #edge-caption {
   }
 
   body.portfolio-page:not([data-portfolio-load-state="loaded"]) .route-topbar__left,
-  body.portfolio-page:not([data-portfolio-load-state="loaded"]) .route-topbar__right .portfolio-topnav,
-  body.portfolio-page:not([data-portfolio-load-state="loaded"]) .portfolio-sound-slot {
+  body.portfolio-page:not([data-portfolio-load-state="loaded"]) .route-topbar__right .portfolio-topnav {
     transform: none;
     filter: none;
   }

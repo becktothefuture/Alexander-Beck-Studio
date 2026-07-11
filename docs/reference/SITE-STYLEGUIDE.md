@@ -55,7 +55,7 @@ Any page that shows a **top chrome strip** (portfolio, CV, future gated routes) 
 
 - **Structure:** `header.ui-top` → `div.ui-top-main.route-topbar` → **`route-topbar__left` | `route-topbar__center` | `route-topbar__right`** (grid `auto 1fr auto`, full width). Center is **in-flow** (no `position: absolute` on the nav).
 - **Text actions:** `MainNavLink` renders the **primary buttons** (`footer_link`). Portfolio keeps the About Me/CV action in `route-topbar__right`; CV keeps its primary actions in `route-topbar__center`. Hover foreground is unified via `.ui-main-nav` + trigger id overrides in `main.css`.
-- **Icons:** Back uses **`gate-back abs-icon-btn`**; sound uses **`#sound-toggle-slot`** (see 1.3). Portfolio intro copy belongs inside the wall deck, not in the chrome strip.
+- **Icons:** Back uses **`gate-back abs-icon-btn`**. CV sound uses **`#sound-toggle-slot`** (see 1.3); portfolio does not mount a route-level sound control. Portfolio intro copy belongs inside the wall deck, not in the chrome strip.
 - **When adding a new route with a top bar:** copy the relevant strip from `PortfolioRoute.jsx` / `CvRoute.jsx`, swap copy and ids only; extend `COMPONENT-LIBRARY.md` and `/styleguide.html` if the pattern changes.
 
 Authoritative detail: [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md) (route top bar section).

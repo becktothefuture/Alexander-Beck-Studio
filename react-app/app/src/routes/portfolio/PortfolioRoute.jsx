@@ -72,9 +72,7 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
             <div className="ui-top-main route-topbar portfolio-topbar">
             <div className="route-topbar__left" aria-hidden="true" />
             <div className="route-topbar__center" aria-hidden="true" />
-            <div className="route-topbar__right ui-top-right">
-              <div id="sound-toggle-slot" className="portfolio-sound-slot" />
-            </div>
+            <div className="route-topbar__right ui-top-right" aria-hidden="true" />
           </div>
 
           <div id="top-elements-soundRow" className="ui-top-soundRow" />
