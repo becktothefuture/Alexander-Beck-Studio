@@ -100,36 +100,73 @@ const CONTROL_SECTIONS = {
     title: 'Carousel',
     icon: 'CAR',
     defaultOpen: true,
-    controls: [
-      { id: 'carouselCardWidthPercent', label: 'Desktop width', configKey: 'runtime.carousel.cardWidthPercent', type: 'range', min: 16, max: 42, step: 0.5, unit: '%', default: 24, refresh: true },
-      { id: 'carouselCardMaxWidthPx', label: 'Desktop max width', configKey: 'runtime.carousel.cardMaxWidthPx', type: 'range', min: 220, max: 620, step: 2, unit: 'px', default: 316, refresh: true },
-      { id: 'carouselCardHeightCqh', label: 'Desktop height', configKey: 'runtime.carousel.cardHeightCqh', type: 'range', min: 36, max: 68, step: 0.5, unit: 'cqh', default: 58, refresh: true },
-      { id: 'carouselCardMaxHeightPx', label: 'Desktop max height', configKey: 'runtime.carousel.cardMaxHeightPx', type: 'range', min: 340, max: 620, step: 2, unit: 'px', default: 461, refresh: true },
-      { id: 'carouselMobileCardWidthPercent', label: 'Mobile width', configKey: 'runtime.carousel.mobileCardWidthPercent', type: 'range', min: 60, max: 92, step: 0.5, unit: '%', default: 73, refresh: true },
-      { id: 'carouselMobileCardMaxWidthPx', label: 'Mobile max width', configKey: 'runtime.carousel.mobileCardMaxWidthPx', type: 'range', min: 240, max: 520, step: 2, unit: 'px', default: 342, refresh: true },
-      { id: 'carouselCenterYPercent', label: 'Orbit Y', configKey: 'runtime.carousel.centerYPercent', type: 'range', min: 54, max: 74, step: 0.25, unit: '%', default: 66, refresh: true },
-      { id: 'carouselMobileCenterYPercent', label: 'Mobile orbit Y', configKey: 'runtime.carousel.mobileCenterYPercent', type: 'range', min: 52, max: 72, step: 0.25, unit: '%', default: 63.6, refresh: true },
-      { id: 'carouselPathRadiusPx', label: 'Desktop radius', configKey: 'runtime.carousel.pathRadiusPx', type: 'range', min: 900, max: 3200, step: 10, unit: 'px', default: 1820, refresh: true },
-      { id: 'carouselMobilePathRadiusPx', label: 'Mobile radius', configKey: 'runtime.carousel.mobilePathRadiusPx', type: 'range', min: 420, max: 1400, step: 10, unit: 'px', default: 820, refresh: true },
-      { id: 'carouselAngleStepDeg', label: 'Desktop spacing', configKey: 'runtime.carousel.angleStepDeg', type: 'range', min: 6, max: 18, step: 0.25, unit: 'deg', default: 10.25, refresh: true },
-      { id: 'carouselMobileAngleStepDeg', label: 'Mobile spacing', configKey: 'runtime.carousel.mobileAngleStepDeg', type: 'range', min: 7, max: 24, step: 0.25, unit: 'deg', default: 13.5, refresh: true },
-      { id: 'carouselSideRotationDeg', label: 'Side rotation', configKey: 'runtime.carousel.sideRotationDeg', type: 'range', min: 0, max: 24, step: 0.25, unit: 'deg', default: 10, refresh: true },
-      { id: 'carouselFarRotationDeg', label: 'Far rotation', configKey: 'runtime.carousel.farRotationDeg', type: 'range', min: 10, max: 34, step: 0.25, unit: 'deg', default: 22, refresh: true },
-      { id: 'carouselMobileSideScale', label: 'Mobile side scale', configKey: 'runtime.carousel.mobileSideScale', type: 'range', min: 0.62, max: 0.92, step: 0.01, unit: '', default: 0.78, refresh: true },
-      { id: 'carouselMinCardGapPx', label: 'Minimum card gap', configKey: 'runtime.carousel.minCardGapPx', type: 'range', min: 8, max: 48, step: 1, unit: 'px', default: 18, refresh: true },
-      { id: 'carouselDotDialRadiusPx', label: 'Dot radius', configKey: 'runtime.carousel.dotDialRadiusPx', type: 'range', min: 900, max: 3600, step: 10, unit: 'px', default: 2050, refresh: true },
-      { id: 'carouselMobileDotDialRadiusPx', label: 'Mobile dot radius', configKey: 'runtime.carousel.mobileDotDialRadiusPx', type: 'range', min: 520, max: 1600, step: 10, unit: 'px', default: 900, refresh: true },
-      { id: 'carouselDotDensity', label: 'Dot density', configKey: 'runtime.carousel.dotDensity', type: 'range', min: 18, max: 72, step: 1, unit: '', default: 42, refresh: true },
-      { id: 'carouselDotParallaxRatio', label: 'Dot parallax', configKey: 'runtime.carousel.dotParallaxRatio', type: 'range', min: -2, max: 2, step: 0.05, unit: '', default: 1, refresh: true },
-      { id: 'carouselDotArcSpanDeg', label: 'Dot arc span', configKey: 'runtime.carousel.dotArcSpanDeg', type: 'range', min: 8, max: 34, step: 0.5, unit: 'deg', default: 18, refresh: true },
-      { id: 'carouselVirtualInstanceCount', label: 'Visible pool', configKey: 'runtime.carousel.virtualInstanceCount', type: 'range', min: 5, max: 15, step: 2, unit: '', default: 11, refresh: true },
-      { id: 'carouselScrollSensitivity', label: 'Input sensitivity', configKey: 'runtime.carousel.scrollSensitivity', type: 'range', min: 0.25, max: 2, step: 0.05, unit: '', default: 1, refresh: true },
-      { id: 'carouselScrollPixelsPerProject', label: 'Pixels per project', configKey: 'runtime.carousel.scrollPixelsPerProject', type: 'range', min: 220, max: 900, step: 10, unit: 'px', default: 520, refresh: true },
-      { id: 'carouselInputCommitThreshold', label: 'Commit threshold', configKey: 'runtime.carousel.inputCommitThresholdProjects', type: 'range', min: 0.08, max: 0.45, step: 0.01, unit: '', default: 0.18, refresh: true },
-      { id: 'carouselInputIntentWindow', label: 'Intent window', configKey: 'runtime.carousel.inputIntentWindowMs', type: 'range', min: 80, max: 360, step: 10, unit: 'ms', default: 180, refresh: true },
-      { id: 'carouselSettleStrength', label: 'Snap strength', configKey: 'runtime.carousel.settleStrength', type: 'range', min: 0.04, max: 0.32, step: 0.01, unit: '', default: 0.15, refresh: true },
-      { id: 'carouselFollowSmoothing', label: 'Follow smoothness', configKey: 'runtime.carousel.followSmoothing', type: 'range', min: 0.04, max: 0.38, step: 0.01, unit: '', default: 0.18, refresh: true },
-      { id: 'carouselContactShadowOpacity', label: 'Contact shadow', configKey: 'runtime.carousel.contactShadowOpacity', type: 'range', min: 0, max: 0.2, step: 0.005, unit: '', default: 0.12, refresh: true },
+    groups: [
+      {
+        key: 'card-size',
+        title: 'Card Size',
+        controls: [
+          { id: 'carouselCardWidthPercent', label: 'Desktop width', configKey: 'runtime.carousel.cardWidthPercent', type: 'range', min: 16, max: 42, step: 0.5, unit: '%', default: 24, refresh: true },
+          { id: 'carouselCardMaxWidthPx', label: 'Desktop max width', configKey: 'runtime.carousel.cardMaxWidthPx', type: 'range', min: 220, max: 620, step: 2, unit: 'px', default: 316, refresh: true },
+          { id: 'carouselCardHeightCqh', label: 'Desktop height', configKey: 'runtime.carousel.cardHeightCqh', type: 'range', min: 36, max: 68, step: 0.5, unit: 'cqh', default: 58, refresh: true },
+          { id: 'carouselCardMaxHeightPx', label: 'Desktop max height', configKey: 'runtime.carousel.cardMaxHeightPx', type: 'range', min: 340, max: 620, step: 2, unit: 'px', default: 461, refresh: true },
+          { id: 'carouselMobileCardWidthPercent', label: 'Mobile width', configKey: 'runtime.carousel.mobileCardWidthPercent', type: 'range', min: 60, max: 92, step: 0.5, unit: '%', default: 73, refresh: true },
+          { id: 'carouselMobileCardMaxWidthPx', label: 'Mobile max width', configKey: 'runtime.carousel.mobileCardMaxWidthPx', type: 'range', min: 240, max: 520, step: 2, unit: 'px', default: 342, refresh: true },
+        ],
+      },
+      {
+        key: 'orbit-layout',
+        title: 'Orbit Layout',
+        defaultOpen: true,
+        controls: [
+          { id: 'carouselCenterYPercent', label: 'Orbit Y', configKey: 'runtime.carousel.centerYPercent', type: 'range', min: 45, max: 74, step: 0.25, unit: '%', default: 50, refresh: true },
+          { id: 'carouselMobileCenterYPercent', label: 'Mobile orbit Y', configKey: 'runtime.carousel.mobileCenterYPercent', type: 'range', min: 48, max: 72, step: 0.25, unit: '%', default: 50, refresh: true },
+          { id: 'carouselPathRadiusPx', label: 'Desktop radius', configKey: 'runtime.carousel.pathRadiusPx', type: 'range', min: 900, max: 3200, step: 10, unit: 'px', default: 1820, refresh: true },
+          { id: 'carouselMobilePathRadiusPx', label: 'Mobile radius', configKey: 'runtime.carousel.mobilePathRadiusPx', type: 'range', min: 420, max: 1400, step: 10, unit: 'px', default: 820, refresh: true },
+          { id: 'carouselAngleStepDeg', label: 'Desktop spacing', configKey: 'runtime.carousel.angleStepDeg', type: 'range', min: 6, max: 18, step: 0.25, unit: 'deg', default: 10.25, refresh: true },
+          { id: 'carouselMobileAngleStepDeg', label: 'Mobile spacing', configKey: 'runtime.carousel.mobileAngleStepDeg', type: 'range', min: 7, max: 24, step: 0.25, unit: 'deg', default: 13.5, refresh: true },
+          { id: 'carouselMinCardGapPx', label: 'Minimum card gap', configKey: 'runtime.carousel.minCardGapPx', type: 'range', min: 8, max: 48, step: 1, unit: 'px', default: 18, refresh: true },
+          { id: 'carouselVirtualInstanceCount', label: 'Visible pool', configKey: 'runtime.carousel.virtualInstanceCount', type: 'range', min: 5, max: 15, step: 2, unit: '', default: 11, refresh: true },
+        ],
+      },
+      {
+        key: 'depth-tilt',
+        title: 'Depth & Tilt',
+        controls: [
+          { id: 'carouselSideRotationDeg', label: 'Side rotation', configKey: 'runtime.carousel.sideRotationDeg', type: 'range', min: 0, max: 24, step: 0.25, unit: 'deg', default: 10, refresh: true },
+          { id: 'carouselFarRotationDeg', label: 'Far rotation', configKey: 'runtime.carousel.farRotationDeg', type: 'range', min: 10, max: 34, step: 0.25, unit: 'deg', default: 22, refresh: true },
+          { id: 'carouselMobileSideScale', label: 'Mobile side scale', configKey: 'runtime.carousel.mobileSideScale', type: 'range', min: 0.62, max: 0.92, step: 0.01, unit: '', default: 0.78, refresh: true },
+          { id: 'carouselContactShadowOpacity', label: 'Contact shadow', configKey: 'runtime.carousel.contactShadowOpacity', type: 'range', min: 0, max: 0.2, step: 0.005, unit: '', default: 0.12, refresh: true },
+        ],
+      },
+      {
+        key: 'dot-track',
+        title: 'Dot Track',
+        controls: [
+          { id: 'carouselDotDialRadiusPx', label: 'Dot radius', configKey: 'runtime.carousel.dotDialRadiusPx', type: 'range', min: 900, max: 3600, step: 10, unit: 'px', default: 2050, refresh: true },
+          { id: 'carouselMobileDotDialRadiusPx', label: 'Mobile dot radius', configKey: 'runtime.carousel.mobileDotDialRadiusPx', type: 'range', min: 520, max: 1600, step: 10, unit: 'px', default: 900, refresh: true },
+          { id: 'carouselDotDensity', label: 'Dot density', configKey: 'runtime.carousel.dotDensity', type: 'range', min: 18, max: 72, step: 1, unit: '', default: 42, refresh: true },
+          { id: 'carouselDotParallaxRatio', label: 'Dot parallax', configKey: 'runtime.carousel.dotParallaxRatio', type: 'range', min: -2, max: 2, step: 0.05, unit: '', default: 1, refresh: true },
+          { id: 'carouselDotArcSpanDeg', label: 'Dot arc span', configKey: 'runtime.carousel.dotArcSpanDeg', type: 'range', min: 8, max: 34, step: 0.5, unit: 'deg', default: 18, refresh: true },
+        ],
+      },
+      {
+        key: 'gesture-input',
+        title: 'Gesture Input',
+        controls: [
+          { id: 'carouselScrollSensitivity', label: 'Input sensitivity', configKey: 'runtime.carousel.scrollSensitivity', type: 'range', min: 0.25, max: 2, step: 0.05, unit: '', default: 1, refresh: true },
+          { id: 'carouselScrollPixelsPerProject', label: 'Pixels per project', configKey: 'runtime.carousel.scrollPixelsPerProject', type: 'range', min: 220, max: 900, step: 10, unit: 'px', default: 520, refresh: true },
+          { id: 'carouselInputCommitThreshold', label: 'Commit threshold', configKey: 'runtime.carousel.inputCommitThresholdProjects', type: 'range', min: 0.08, max: 0.45, step: 0.01, unit: '', default: 0.18, refresh: true },
+          { id: 'carouselInputIntentWindow', label: 'Intent window', configKey: 'runtime.carousel.inputIntentWindowMs', type: 'range', min: 80, max: 360, step: 10, unit: 'ms', default: 180, refresh: true },
+        ],
+      },
+      {
+        key: 'settle-motion',
+        title: 'Settle Motion',
+        controls: [
+          { id: 'carouselSettleStrength', label: 'Snap strength', configKey: 'runtime.carousel.settleStrength', type: 'range', min: 0.04, max: 0.32, step: 0.01, unit: '', default: 0.15, refresh: true },
+          { id: 'carouselFollowSmoothing', label: 'Follow smoothness', configKey: 'runtime.carousel.followSmoothing', type: 'range', min: 0.04, max: 0.38, step: 0.01, unit: '', default: 0.18, refresh: true },
+        ],
+      },
     ],
   },
   hero: {
@@ -326,7 +363,16 @@ function formatCssValue(control, numericValue) {
 }
 
 function getAllControls() {
-  return ACTIVE_SECTION_KEYS.flatMap((sectionKey) => CONTROL_SECTIONS[sectionKey]?.controls || []);
+  return ACTIVE_SECTION_KEYS.flatMap((sectionKey) => getSectionControls(CONTROL_SECTIONS[sectionKey]));
+}
+
+function getSectionControls(section) {
+  if (!section) return [];
+  const controls = Array.isArray(section.controls) ? section.controls : [];
+  const groupedControls = Array.isArray(section.groups)
+    ? section.groups.flatMap((group) => group?.controls || [])
+    : [];
+  return [...controls, ...groupedControls];
 }
 
 function resolveControlValue(control, config, computedRoot) {
@@ -369,10 +415,27 @@ function generatePortfolioControlRow(control, config, computedRoot) {
       ${hintHtml}`;
 }
 
+function generatePortfolioSubgroupHTML(group, config, computedRoot) {
+  if (!group?.controls?.length) return '';
+  const body = group.controls.map((control) => generatePortfolioControlRow(control, config, computedRoot)).join('');
+  const openAttr = group.defaultOpen ? ' open' : '';
+  return `
+      <details class="panel-subgroup" data-panel-subgroup="${escapeAttr(group.key || group.title)}"${openAttr}>
+        <summary>${escapeAttr(group.title)}</summary>
+        <div class="group">${body}</div>
+      </details>`;
+}
+
 function generatePortfolioSectionHTML(sectionKey, config, computedRoot) {
   const section = CONTROL_SECTIONS[sectionKey];
-  if (!section?.controls?.length) return '';
-  const body = section.controls.map((c) => generatePortfolioControlRow(c, config, computedRoot)).join('');
+  if (!getSectionControls(section).length) return '';
+  const directControls = (section.controls || [])
+    .map((control) => generatePortfolioControlRow(control, config, computedRoot))
+    .join('');
+  const groupedControls = (section.groups || [])
+    .map((group) => generatePortfolioSubgroupHTML(group, config, computedRoot))
+    .join('');
+  const body = `${directControls}${groupedControls}`;
   const openAttr = section.defaultOpen ? ' open' : '';
   const iconHtml = section.icon ? `<span class="section-icon">${section.icon}</span>` : '';
   return `

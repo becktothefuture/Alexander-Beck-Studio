@@ -87,8 +87,8 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   mobileCardMaxWidthPx: 342,
   mobileCardHeightCqh: 58,
   mobileCardMaxHeightPx: 500,
-  centerYPercent: 66,
-  mobileCenterYPercent: 63.6,
+  centerYPercent: 50,
+  mobileCenterYPercent: 50,
   perspectivePx: 1600,
   virtualInstanceCount: 11,
   mobileVirtualInstanceCount: 7,
@@ -2725,17 +2725,14 @@ class PortfolioScrollApp {
     const projectDelta = clamp((normalizedDelta / pixelsPerProject) * sensitivity, -inputCap, inputCap);
     if (Math.abs(projectDelta) < 0.0001) return;
     const now = performance.now();
-    const direction = projectDelta > 0 ? 1 : -1;
     const intentWindowMs = this.getDeckInputIntentWindowMs();
     const startsNewGesture = !this.wheelGesture
-      || now - this.wheelGesture.lastAt > intentWindowMs
-      || direction !== this.wheelGesture.direction;
+      || now - this.wheelGesture.lastAt > intentWindowMs;
     if (startsNewGesture) {
       this.wheelGesture = {
         origin: Math.round(this.deckTargetPosition),
         accumulated: 0,
         committed: false,
-        direction,
         lastAt: now,
       };
     }
@@ -2747,10 +2744,13 @@ class PortfolioScrollApp {
       gesture.committed = true;
     }
     const previewDelta = gesture.committed
-      ? gesture.direction
+      ? gesture.accumulated
       : clamp(gesture.accumulated, -commitThreshold * 0.92, commitThreshold * 0.92);
     this.setDeckInputState('wheel-active');
-    this.setDeckPosition(gesture.origin + previewDelta, { settle: false });
+    this.setDeckPosition(gesture.origin + previewDelta, {
+      settle: false,
+      allowFractionalReducedMotion: true,
+    });
     this.clearDeckSettleTimer();
     const settleDelay = clamp(
       toNumber(this.deckOptions.settleIdleMs, PORTFOLIO_DECK_DEFAULTS.settleIdleMs),
@@ -2760,9 +2760,11 @@ class PortfolioScrollApp {
     this.deckSettleTimer = window.setTimeout(() => {
       const currentGesture = this.wheelGesture;
       if (!currentGesture) return;
-      const target = currentGesture.committed
-        ? currentGesture.origin + currentGesture.direction
-        : currentGesture.origin;
+      const accumulatedDirection = Math.sign(currentGesture.accumulated);
+      const committedSteps = currentGesture.committed
+        ? accumulatedDirection * Math.max(1, Math.round(Math.abs(currentGesture.accumulated)))
+        : 0;
+      const target = currentGesture.origin + committedSteps;
       this.beginDeckSettle(target);
     }, settleDelay);
   }

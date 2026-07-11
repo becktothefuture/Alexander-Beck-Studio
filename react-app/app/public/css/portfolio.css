@@ -262,7 +262,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
     0 clamp(3px, 0.4vw, 6px) clamp(9px, 0.9vw, 16px) -7px
       rgba(0, 0, 0, calc(var(--portfolio-card-contact-shadow-opacity) * 0.18)),
     var(--ui-chrome-button-edge);
-  --portfolio-deck-center-y: 67.5%;
+  --portfolio-deck-center-y: 50%;
   --portfolio-deck-depth-gap-1: clamp(34px, 4.1vh, 42px);
   --portfolio-deck-depth-gap-2: clamp(68px, 8vh, 82px);
   --portfolio-deck-depth-scale-1: 0.945;
@@ -1460,7 +1460,7 @@ body.portfolio-page #edge-caption {
     );
     --portfolio-deck-card-aspect: 316 / 461;
     --portfolio-deck-card-height: auto;
-    --portfolio-deck-center-y: 63.8%;
+    --portfolio-deck-center-y: 50%;
     --portfolio-card-pad: 0px;
     --portfolio-card-copy-pad-x: 20px;
     --portfolio-card-copy-pad-y: 23px;
@@ -1530,7 +1530,7 @@ body.portfolio-page #edge-caption {
       var(--portfolio-deck-card-width-max)
     );
     --portfolio-deck-card-height: auto;
-    --portfolio-deck-center-y: 63.6%;
+    --portfolio-deck-center-y: 50%;
     --portfolio-card-pad: 0px;
   }
 
@@ -1578,7 +1578,7 @@ body.portfolio-page #edge-caption {
     --portfolio-deck-card-width: min(34%, 270px);
     --portfolio-deck-card-aspect: 316 / 461;
     --portfolio-deck-card-height: clamp(220px, 58vh, 330px);
-    --portfolio-deck-center-y: 64%;
+    --portfolio-deck-center-y: 50%;
     --portfolio-card-pad: 0px;
     --portfolio-card-copy-pad-x: 18px;
     --portfolio-card-copy-pad-y: 18px;

@@ -82,7 +82,7 @@ async function getActiveCardCenter(page) {
 async function collectGeometry(page) {
   return page.evaluate(() => {
     const stage = document.querySelector('.portfolio-deck-stage');
-    if (!(stage instanceof HTMLElement)) return { cards: [], overlaps: [] };
+    if (!(stage instanceof HTMLElement)) return { cards: [], overlaps: [], activeCenterDeltaY: null };
     const stageRect = stage.getBoundingClientRect();
     const cards = Array.from(document.querySelectorAll('.portfolio-project-card'))
       .map((card) => {
@@ -125,7 +125,18 @@ async function collectGeometry(page) {
         }
       }
     }
-    return { cards, overlaps };
+    const activeCardRect = document.querySelector('.portfolio-project-card.is-active')?.getBoundingClientRect?.();
+    const activeCenterDeltaY = activeCardRect
+      ? Math.abs(
+        (activeCardRect.top + (activeCardRect.height / 2))
+        - (stageRect.top + (stageRect.height / 2))
+      )
+      : null;
+    return {
+      cards,
+      overlaps,
+      activeCenterDeltaY: activeCenterDeltaY === null ? null : Number(activeCenterDeltaY.toFixed(3)),
+    };
   });
 }
 
@@ -236,6 +247,35 @@ async function auditWheel(page) {
   };
 }
 
+async function auditContinuousWheel(page) {
+  const before = await getMotionSample(page);
+  const center = await getActiveCardCenter(page);
+  await page.mouse.move(center.x, center.y);
+  const samples = [before];
+  for (let index = 0; index < 8; index += 1) {
+    await page.mouse.wheel(0, 260);
+    await page.waitForTimeout(30);
+    samples.push(await getMotionSample(page));
+  }
+  await page.waitForFunction(
+    () => {
+      const snapshot = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
+      return snapshot?.isSettled && snapshot?.inputState === 'idle';
+    },
+    null,
+    { timeout: Math.min(WAIT_MS, 5000) }
+  );
+  const after = await getMotionSample(page);
+  samples.push(after);
+  return {
+    before,
+    after,
+    samples,
+    distance: Number(Math.abs(after.targetPosition - before.targetPosition).toFixed(3)),
+    reversals: findMotionReversals(samples),
+  };
+}
+
 async function auditDrag(page, distancePx) {
   const before = await getMotionSample(page);
   const center = await getActiveCardCenter(page);
@@ -339,6 +379,8 @@ async function main() {
         await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-after-wheel.png') });
         summary.viewports.desktop.drag = await auditDrag(page, 220);
         await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-after-drag.png') });
+        summary.viewports.desktop.continuousWheel = await auditContinuousWheel(page);
+        await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-after-continuous-wheel.png') });
         summary.accents = await captureAccents(page);
         summary.drawer = await captureDrawer(page);
       }
@@ -353,6 +395,9 @@ async function main() {
     const failures = [];
     for (const [name, result] of Object.entries(summary.viewports)) {
       if (result.geometry.overlaps.length) failures.push(`${name}: ${result.geometry.overlaps.length} visible overlap(s)`);
+      if (result.geometry.activeCenterDeltaY === null || result.geometry.activeCenterDeltaY > 1) {
+        failures.push(`${name}: active card is not vertically centered in the stage`);
+      }
     }
     if ((summary.viewports.desktop.press?.delta ?? Infinity) > 2) failures.push('desktop: pointer-down center delta exceeded 2px');
     if (/view project/i.test(summary.viewports.desktop.cursor?.text || '')) failures.push('desktop: cursor still contains View Project');
@@ -360,6 +405,8 @@ async function main() {
     if (summary.viewports.desktop.wheel?.before.activeIndex === summary.viewports.desktop.wheel?.after.activeIndex) failures.push('desktop: wheel did not advance');
     if ((summary.viewports.desktop.wheel?.dotDelta ?? 0) <= 0.5) failures.push('desktop: dot coordinates did not move');
     if (summary.viewports.desktop.wheel?.reversals.length) failures.push('desktop: wheel trace reversed after committed input');
+    if ((summary.viewports.desktop.continuousWheel?.distance ?? 0) < 2) failures.push('desktop: continuous wheel did not advance multiple projects');
+    if (summary.viewports.desktop.continuousWheel?.reversals.length) failures.push('desktop: continuous wheel trace reversed');
     if (summary.viewports.desktop.drag?.before.activeIndex === summary.viewports.desktop.drag?.after.activeIndex) failures.push('desktop: drag did not advance');
     if (summary.viewports.mobile.drag?.before.activeIndex === summary.viewports.mobile.drag?.after.activeIndex) failures.push('mobile: drag did not advance');
     if (summary.viewports.desktop.drag?.drawerOpen || summary.viewports.mobile.drag?.drawerOpen) failures.push('drag opened the project drawer');
