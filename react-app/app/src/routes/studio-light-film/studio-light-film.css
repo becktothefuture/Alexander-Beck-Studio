@@ -37,7 +37,7 @@ a {
 }
 
 .light-film-demo {
-  --film-strength: 0.42;
+  --film-strength: 0.24;
   width: 100%;
   min-height: 100dvh;
   padding: clamp(0.625rem, 1.15vw, 1.125rem);
@@ -45,18 +45,16 @@ a {
 }
 
 .light-film-stage {
-  --film-x: 68%;
-  --film-y: 28%;
   position: relative;
   width: 100%;
   height: calc(100dvh - clamp(1.25rem, 2.3vw, 2.25rem));
   overflow: hidden;
   isolation: isolate;
+  contain: paint;
   border: clamp(0.5rem, 1.2vw, 1rem) solid var(--light-film-wall);
   border-radius: clamp(1.5rem, 3vw, 3.75rem);
   background: var(--light-film-surface);
   color: var(--light-film-ink);
-  cursor: crosshair;
 }
 
 @supports (corner-shape: squircle) {
@@ -197,6 +195,8 @@ a {
 }
 
 .light-film-effect {
+  --film-x: 68%;
+  --film-y: 28%;
   z-index: 4;
   overflow: hidden;
   opacity: var(--film-strength);
@@ -217,7 +217,6 @@ a {
     );
   mix-blend-mode: soft-light;
   transform: translate3d(-2%, -1%, 0) rotate(-4deg) scale(1.08);
-  animation: lightFilmDrift 28s ease-in-out infinite alternate;
 }
 
 .light-film-effect__prism {
@@ -235,7 +234,6 @@ a {
     );
   mix-blend-mode: screen;
   transform: translate3d(2%, 0, 0) rotate(3deg) scale(1.04);
-  animation: lightFilmPrism 36s ease-in-out infinite alternate;
 }
 
 .light-film-effect__grain {
@@ -303,6 +301,14 @@ a {
   cursor: pointer;
 }
 
+.light-film-controls__status {
+  min-height: 2.25rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 999rem;
+  color: var(--light-film-ink);
+  background: rgba(7, 17, 15, 0.08);
+}
+
 .light-film-controls button:hover,
 .light-film-controls button:focus-visible,
 .light-film-controls button.is-active {
@@ -335,36 +341,6 @@ a {
   left: clamp(1rem, 2vw, 2rem);
   justify-content: space-between;
   opacity: 0.72;
-}
-
-.is-still .light-film-effect__wash,
-.is-still .light-film-effect__prism,
-.is-still .light-film-ball {
-  animation-play-state: paused;
-}
-
-@keyframes lightFilmDrift {
-  0% {
-    transform: translate3d(-4%, -2%, 0) rotate(-5deg) scale(1.08);
-  }
-  48% {
-    transform: translate3d(2%, 3%, 0) rotate(1deg) scale(1.13);
-  }
-  100% {
-    transform: translate3d(5%, -1%, 0) rotate(5deg) scale(1.06);
-  }
-}
-
-@keyframes lightFilmPrism {
-  0% {
-    transform: translate3d(3%, -3%, 0) rotate(2deg) scale(1.04);
-  }
-  52% {
-    transform: translate3d(-3%, 2%, 0) rotate(-4deg) scale(1.1);
-  }
-  100% {
-    transform: translate3d(1%, 4%, 0) rotate(6deg) scale(1.06);
-  }
 }
 
 @keyframes lightFilmBallFloat {
@@ -432,8 +408,6 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .light-film-effect__wash,
-  .light-film-effect__prism,
   .light-film-ball {
     animation: none;
   }

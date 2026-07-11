@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import './studio-light-film.css';
 
 const BALLS = [
@@ -11,55 +11,17 @@ const BALLS = [
 ];
 
 export function StudioLightFilmDemo() {
-  const stageRef = useRef(null);
-  const frameRef = useRef(null);
-  const [intensity, setIntensity] = useState(42);
+  const [intensity, setIntensity] = useState(24);
   const [enabled, setEnabled] = useState(true);
-  const [drifting, setDrifting] = useState(true);
-
-  useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return undefined;
-
-    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    let pointerFrame = 0;
-
-    function applyPointer(event) {
-      if (reducedMotion) return;
-      const rect = stage.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 100;
-      const y = ((event.clientY - rect.top) / Math.max(rect.height, 1)) * 100;
-      cancelAnimationFrame(pointerFrame);
-      pointerFrame = requestAnimationFrame(() => {
-        stage.style.setProperty('--film-x', `${Math.max(0, Math.min(100, x))}%`);
-        stage.style.setProperty('--film-y', `${Math.max(0, Math.min(100, y))}%`);
-      });
-    }
-
-    function resetPointer() {
-      stage.style.setProperty('--film-x', '68%');
-      stage.style.setProperty('--film-y', '28%');
-    }
-
-    stage.addEventListener('pointermove', applyPointer, { passive: true });
-    stage.addEventListener('pointerleave', resetPointer, { passive: true });
-
-    return () => {
-      cancelAnimationFrame(pointerFrame);
-      stage.removeEventListener('pointermove', applyPointer);
-      stage.removeEventListener('pointerleave', resetPointer);
-    };
-  }, []);
 
   const filmOpacity = enabled ? intensity / 100 : 0;
 
   return (
     <main
-      ref={frameRef}
-      className={`light-film-demo${drifting ? '' : ' is-still'}`}
+      className="light-film-demo"
       style={{ '--film-strength': filmOpacity }}
     >
-      <section ref={stageRef} className="light-film-stage" aria-labelledby="light-film-title">
+      <section className="light-film-stage" aria-labelledby="light-film-title">
         <div className="light-film-stage__surface" aria-hidden="true" />
 
         <div className="light-film-balls" aria-hidden="true">
@@ -94,7 +56,7 @@ export function StudioLightFilmDemo() {
             <span aria-hidden="true">←</span>
             <span>Studio</span>
           </a>
-          <p>Move through the light</p>
+          <p>Anchored light field</p>
           <span>CSS · No shader</span>
         </header>
 
@@ -122,20 +84,13 @@ export function StudioLightFilmDemo() {
             <output>{intensity}%</output>
           </label>
 
-          <button
-            type="button"
-            className={drifting ? 'is-active' : ''}
-            aria-pressed={drifting}
-            onClick={() => setDrifting((current) => !current)}
-          >
-            {drifting ? 'Drifting' : 'Still'}
-          </button>
+          <span className="light-film-controls__status">Anchored</span>
         </aside>
 
         <footer className="light-film-footer">
           <span>Transparent</span>
           <span>Pointer-safe</span>
-          <span>Compositor-only motion</span>
+          <span>Window-anchored</span>
         </footer>
       </section>
     </main>
