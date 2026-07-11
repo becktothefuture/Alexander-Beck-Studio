@@ -188,6 +188,7 @@
   --abs-hover-intensity-light: 42%;
   --abs-hover-intensity-dark: 48%;
   --abs-hover-intensity-active: 27%;
+  --abs-button-hover-darken-mix: 10%;
 
   /* Chrome buttons: inset rim — strengths follow Light Group via --ui-chrome-rim-* (applyLayoutCSSVars) */
   --ui-chrome-rim-light-opacity: 0.55;
@@ -291,7 +292,7 @@
   --button-bar-button-active-window-mix: 100%;
   --button-bar-button-active-white-mix: 0%;
   --button-bar-button-bg: color-mix(in srgb, var(--studio-window-bg) var(--button-bar-button-bg-window-mix), rgba(var(--abs-rgb-white), 1) var(--button-bar-button-bg-white-mix));
-  --button-bar-button-bg-hover: color-mix(in srgb, var(--button-bar-button-bg) calc(100% - var(--button-bar-button-hover-white-mix)), rgba(var(--abs-rgb-white), 1) var(--button-bar-button-hover-white-mix));
+  --button-bar-button-bg-hover: color-mix(in srgb, var(--button-bar-button-bg) calc(100% - var(--abs-button-hover-darken-mix)), rgba(var(--abs-rgb-black), 1) var(--abs-button-hover-darken-mix));
   --button-bar-button-bg-active: color-mix(in srgb, var(--studio-window-bg) var(--button-bar-button-active-window-mix), rgba(var(--abs-rgb-white), 1) var(--button-bar-button-active-white-mix));
   --button-bar-button-inner-shine: rgba(var(--abs-rgb-white), 0.12);
   --button-bar-button-inner-shadow: rgba(var(--abs-rgb-black), 0.24);

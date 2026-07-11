@@ -557,7 +557,10 @@ body.loader-playground-page {
   cursor: pointer;
 }
 
-.loader-playground-panel button:hover,
+.loader-playground-panel button:hover {
+  background: color-mix(in srgb, var(--parameterizer-widget-bg) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
+}
+
 .loader-playground-panel button:focus-visible,
 .loader-playground-panel input:focus-visible,
 .loader-playground-panel select:focus-visible {

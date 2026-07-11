@@ -208,7 +208,10 @@ body.repel-room-page .route-topbar__right.ui-top-right {
   cursor: pointer;
 }
 
-.repel-room-panel button:hover,
+.repel-room-panel button:hover {
+  background: color-mix(in srgb, var(--parameterizer-widget-bg) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
+}
+
 .repel-room-panel button:focus-visible,
 .repel-room-panel input:focus-visible {
   outline: 1px solid var(--parameterizer-accent);

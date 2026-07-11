@@ -175,7 +175,7 @@ body:not(.dark-mode) {
 }
 
 .panel .panel-header .collapse-btn:hover {
-  background: var(--panel-accent);
+  background: color-mix(in srgb, transparent calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
   color: var(--panel-foreground);
 }
 
@@ -585,7 +585,7 @@ body:not(.dark-mode) {
 }
 
 .panel-master-group-header:hover {
-  background: var(--panel-accent);
+  background: color-mix(in srgb, transparent calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
 }
 
 .panel-master-group-icon {
@@ -663,7 +663,7 @@ body:not(.dark-mode) {
 }
 
 .panel details:not(.panel-section-accordion):not(.panel-master-group) summary:hover {
-  background: var(--panel-accent);
+  background: color-mix(in srgb, transparent calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
 }
 
 .panel details:not(.panel-section-accordion):not(.panel-master-group)[open] summary {
@@ -789,8 +789,8 @@ body:not(.dark-mode) {
 }
 
 .panel button:hover {
-  background: var(--panel-accent);
-  border-color: var(--panel-accent-foreground);
+  background: color-mix(in srgb, var(--panel-muted) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
+  border-color: var(--panel-border);
 }
 
 .panel button:active {
@@ -810,8 +810,7 @@ body:not(.dark-mode) {
 }
 
 .panel button.primary:hover {
-  background: var(--panel-primary);
-  opacity: 0.9;
+  background: color-mix(in srgb, var(--panel-primary) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -895,9 +894,9 @@ body:not(.dark-mode) {
 }
 
 .mode-button:hover {
-  background: var(--panel-accent);
+  background: color-mix(in srgb, var(--panel-muted) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
   color: var(--panel-foreground);
-  border-color: var(--panel-muted-foreground);
+  border-color: var(--panel-border);
 }
 
 .mode-button.active {
@@ -908,7 +907,7 @@ body:not(.dark-mode) {
 }
 
 .mode-button.active:hover {
-  opacity: 0.9;
+  background: color-mix(in srgb, var(--panel-foreground) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
 }
 
 .mode-button:active {
@@ -984,7 +983,7 @@ body:not(.dark-mode) {
 
 .theme-segment-btn:hover {
   color: var(--panel-foreground);
-  background: var(--panel-accent);
+  background: color-mix(in srgb, var(--panel-muted) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
 }
 
 .theme-segment-btn.active {
@@ -1069,7 +1068,7 @@ body:not(.dark-mode) {
 
 .wall-theme-tab:hover {
   color: var(--panel-foreground);
-  background: var(--panel-accent);
+  background: color-mix(in srgb, var(--panel-muted) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
 }
 
 .wall-theme-tab.active {
@@ -1251,8 +1250,8 @@ body:not(.dark-mode) .panel-section--action {
 }
 
 .sound-enable-btn:hover {
-  background: var(--panel-accent);
-  border-color: var(--panel-muted-foreground);
+  background: color-mix(in srgb, var(--panel-muted) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
+  border-color: var(--panel-border);
 }
 
 .sound-enable-btn.enabled {
@@ -1262,7 +1261,7 @@ body:not(.dark-mode) .panel-section--action {
 }
 
 .sound-enable-btn.enabled:hover {
-  background: hsl(142 70% 40%);
+  background: color-mix(in srgb, hsl(142 70% 35%) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
 }
 
 .sound-controls {
@@ -1640,8 +1639,8 @@ body:not(.dark-mode) .panel-section--action {
 }
 
 .sound-perf__btn:hover {
-  background: var(--panel-accent);
-  border-color: var(--panel-muted-foreground);
+  background: color-mix(in srgb, var(--panel-muted) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
+  border-color: var(--panel-border);
 }
 
 .sound-perf__btn:active {
@@ -1835,7 +1834,7 @@ body:not(.dark-mode) .panel-dock .panel {
 
 .panel-dock .panel-close-btn:hover,
 .panel-dock .panel-close-btn:focus-visible {
-  background: var(--panel-accent);
+  background: color-mix(in srgb, transparent calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
   color: var(--panel-foreground);
 }
 
@@ -1914,7 +1913,7 @@ body:not(.dark-mode) .panel-dock .panel {
 }
 
 .panel-dock .panel-save-btn:hover {
-  opacity: 0.9;
+  background: color-mix(in srgb, var(--panel-brand) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
 }
 
 .panel-dock .panel-save-btn:disabled {

@@ -219,7 +219,10 @@ body.concept-simulation-page .route-topbar__right.ui-top-right {
   cursor: pointer;
 }
 
-.napoleon-point-cloud-panel button:hover,
+.napoleon-point-cloud-panel button:hover {
+  background: color-mix(in srgb, var(--parameterizer-widget-bg) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
+}
+
 .napoleon-point-cloud-panel button:focus-visible,
 .napoleon-point-cloud-panel select:focus-visible,
 .napoleon-point-cloud-panel input:focus-visible {

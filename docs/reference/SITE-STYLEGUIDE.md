@@ -16,14 +16,14 @@ This document is the **authoritative visual spec** for **new interactive UI** th
 
 ## 1. Interactive links and chrome split
 
-Default hover is **not** a cursor-coloured fill. Links and fields **inside the framed window** use the same quiet language as the home legend: foreground lifts to normal text strength and a soft shadow/field appears behind the target in the **window background colour**. Shell chrome and the bottom Button Bar are intentionally separate and keep their own hover/selected behaviour.
+Default hover is **not** a cursor-coloured or route-coloured fill. Links and fields **inside the framed window** use the same quiet language as the home legend: foreground lifts to normal text strength and a soft shadow/field appears behind the target in the **window background colour**. Button-like chrome, including the bottom Button Bar and panel buttons, uses neutral hover feedback: darken the resting surface by **10% black** via `--abs-button-hover-darken-mix`.
 
 ### 1.1 Appearance
 
 | Aspect | Rule |
 |--------|------|
 | **Hover field** | In-window hover shadow/field uses **`var(--frame-inner-surface)`** only. Never tint this shadow with `--cursor-color`, route accents, or arbitrary palette colours. |
-| **Persistent states** | Selected/on states may still use their existing active language, e.g. active legend chip, enabled sound, active route tab. Do not confuse those with hover-only feedback. |
+| **Persistent states** | Selected/on states may still use their existing active language, e.g. active legend chip, enabled sound, active route tab. Do not confuse those with hover-only feedback; hovering a button should not add route/cursor colour. |
 | **Glyph / label** | On hover, foreground lifts to the normal surface ink (`--text-primary` or the local drawer ink), not `--cursor-hover-fg`. |
 | **Shape** | Corner radius tracks the wall via **`var(--ui-icon-corner-radius)`** (and link hovers use the same). Icon hits are square frames sized with **`--ui-icon-frame-size`** / **`--ui-icon-glyph-size`**. |
 
@@ -45,7 +45,7 @@ Use these as references when adding siblings:
 
 ### 1.4 Selectors on separate hover systems
 
-- **Bottom Button Bar:** `.button-bar__primary-buttons .shell-tab` keeps its tab hover/selected contract. Do not apply the in-window field to it.
+- **Bottom Button Bar:** `.button-bar__primary-buttons .shell-tab` keeps selected/current route states separate, but hover-only feedback is neutral 10% darkening. Do not apply the in-window field to it.
 - **Route/top/footer text chrome:** `.footer_link` inside `.ui-main-nav` lifts to normal readable ink on hover/focus/active but does not get the in-window shadow field.
 - **Icon/meta chrome:** `.abs-icon-btn`, `.abs-meta-btn`, `#site-year` may lift foreground or keep persistent active state, but do not get the in-window shadow field by default.
 - **Quote puck (floating):** **`.quote-display__disk`** = round solid **`var(--cursor-color)`** + shadow (hover scale); **`.quote-display__content`** = text (**`--quote-hover-fg`** / **`--cursor-hover-fg`**); **`#quote-display`** sets **`--_size: calc(var(--abs-quote-button-size) * 0.75)`**; spin is **`--quote-tilt`** on content only (see `main.css` Quote Puck block).

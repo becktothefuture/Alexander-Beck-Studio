@@ -632,10 +632,10 @@ body.button-bar-playground-page {
   .shell-tab {
   --button-bar-figma-hover-fill: color-mix(
     in srgb,
-    var(--shell-tab-surface-base) 96%,
-    rgba(var(--abs-rgb-white), 1) 4%
+    var(--shell-tab-surface-base) calc(100% - var(--abs-button-hover-darken-mix, 10%)),
+    rgba(var(--abs-rgb-black), 1) var(--abs-button-hover-darken-mix, 10%)
   );
-  --shell-tab-text-hover: rgba(var(--abs-rgb-white), 0.72);
+  --shell-tab-text-hover: var(--shell-tab-text-rest);
 }
 
 .button-bar-playground__sample[data-variant-family='lamp']

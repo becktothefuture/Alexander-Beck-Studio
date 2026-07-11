@@ -304,8 +304,8 @@ html.simulation-dashboard-document #root {
 .simulation-dashboard-icon-button:hover,
 .simulation-dashboard-icon-button:focus-visible {
   border-color: rgba(244, 241, 234, 0.36);
-  background: var(--dashboard-panel-strong);
-  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--dashboard-panel-soft) calc(100% - var(--abs-button-hover-darken-mix, 10%)), #000 var(--abs-button-hover-darken-mix, 10%));
+  transform: none;
 }
 
 .simulation-dashboard-button:disabled,
@@ -455,10 +455,15 @@ html.simulation-dashboard-document #root {
   font-weight: 700;
 }
 
-.simulation-dashboard-filter-list button:hover,
 .simulation-dashboard-filter-list button.is-active {
   border-color: var(--dashboard-line-strong);
   background: var(--dashboard-panel-strong);
+  color: var(--dashboard-text);
+}
+
+.simulation-dashboard-filter-list button:hover {
+  border-color: var(--dashboard-line-strong);
+  background: rgba(0, 0, 0, 0.1);
   color: var(--dashboard-text);
 }
 
@@ -576,7 +581,7 @@ html.simulation-dashboard-document #root {
 .simulation-dashboard-list-row__main:hover,
 .simulation-dashboard-list-row__main:focus-visible {
   border-color: var(--dashboard-line);
-  background: rgba(244, 241, 234, 0.035);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .simulation-dashboard-list-row__toggle {
@@ -606,7 +611,7 @@ html.simulation-dashboard-document #root {
 .simulation-dashboard-list-row__main:focus-visible .simulation-dashboard-list-row__toggle,
 .simulation-dashboard-list-item.is-expanded .simulation-dashboard-list-row__toggle {
   border-color: var(--dashboard-line-strong);
-  background: rgba(244, 241, 234, 0.06);
+  background: rgba(0, 0, 0, 0.1);
   color: var(--dashboard-text);
 }
 
