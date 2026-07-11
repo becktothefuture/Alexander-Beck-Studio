@@ -291,13 +291,13 @@ function createProjectDrawerMarkup() {
     >
       <div class="portfolio-project-view__backdrop" aria-hidden="true"></div>
       <div class="portfolio-project-view__drawer">
-        <button class="portfolio-project-view__close abs-icon-btn" type="button" aria-label="Close project">
-          <svg class="portfolio-project-view__close-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
-            <path
-              fill="currentColor"
-              d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z"
-            />
-          </svg>
+        <button
+          class="portfolio-project-view__back portfolio-project-view__back--top gate-back abs-icon-btn"
+          type="button"
+          aria-label="Back to portfolio projects"
+          data-portfolio-project-back
+        >
+          <i class="ti ti-arrow-left" aria-hidden="true"></i>
         </button>
         <div
           class="portfolio-project-view__scroll"
@@ -345,16 +345,21 @@ export class PortfolioProjectDrawer {
     this.eyebrow = null;
     this.title = null;
     this.content = null;
-    this.closeButton = null;
+    this.backButton = null;
     this.scrollPresence = null;
     this.openTimers = [];
     this.closeFallbackTimer = null;
     this.mediaShiftRaf = null;
     this.boundScheduleDrawerMediaScrollShift = () => this.scheduleDrawerMediaScrollShift();
+    this.boundUpdateScrollState = () => this.updateScrollState();
     this.boundRequestClose = (event) => {
       if (event?.type === 'pointerdown' && event.target !== this.backdrop) return;
       event?.stopPropagation?.();
       this.onRequestClose?.(event);
+    };
+    this.boundBackClick = (event) => {
+      if (!event.target?.closest?.('[data-portfolio-project-back]')) return;
+      this.boundRequestClose(event);
     };
     this.boundTransitionEnd = (event) => {
       if (event.target !== this.drawer) return;
@@ -378,9 +383,10 @@ export class PortfolioProjectDrawer {
     this.eyebrow = this.root?.querySelector('.portfolio-project-view__eyebrow') || null;
     this.title = this.root?.querySelector('.portfolio-project-view__title') || null;
     this.content = this.root?.querySelector('#portfolioProjectContent') || null;
-    this.closeButton = this.root?.querySelector('.portfolio-project-view__close') || null;
-    this.closeButton?.addEventListener('click', this.boundRequestClose);
+    this.backButton = this.root?.querySelector('.portfolio-project-view__back--top') || null;
+    this.root?.addEventListener('click', this.boundBackClick);
     this.backdrop?.addEventListener('pointerdown', this.boundRequestClose);
+    this.scroll?.addEventListener('scroll', this.boundUpdateScrollState, { passive: true });
     this.scrollPresence = this.scroll
       ? createScrollPresence(this.scroll, {
           defaultSpanRatio: 0.18,
@@ -389,7 +395,12 @@ export class PortfolioProjectDrawer {
         })
       : null;
     this.setupMediaScrollShift();
+    this.updateScrollState();
     return this.root;
+  }
+
+  updateScrollState() {
+    this.root?.classList.toggle('is-scrolled', (this.scroll?.scrollTop || 0) > 16);
   }
 
   setupMediaScrollShift() {
@@ -485,8 +496,24 @@ export class PortfolioProjectDrawer {
   buildProjectContent(project) {
     const blocks = getProjectContentBlocks(project);
     const links = Array.isArray(project?.links) ? project.links : [];
+    const metadata = Array.isArray(project?.metadata)
+      ? project.metadata.filter((item) => item?.label && item?.value)
+      : [];
     const takeaways = Array.isArray(project?.takeaways) ? project.takeaways : [];
     let stillImageOrdinal = 1;
+
+    const metadataHtml = metadata.length
+      ? `
+        <dl class="portfolio-project-view__metadata" aria-label="Project details" data-scroll-presence data-scroll-presence-span="0.16">
+          ${metadata.map((item) => `
+            <div class="portfolio-project-view__metadata-item">
+              <dt>${escapeHtml(item.label)}</dt>
+              <dd>${escapeHtml(item.value)}</dd>
+            </div>
+          `).join('')}
+        </dl>
+      `
+      : '';
 
     const linksHtml = links.length
       ? `
@@ -524,6 +551,43 @@ export class PortfolioProjectDrawer {
       if (block.type === 'text') {
         const text = block.body || block.text || '';
         return `<div class="portfolio-project-view__block portfolio-project-view__block--text" data-scroll-presence data-scroll-presence-span="0.16"><p>${escapeHtml(text)}</p></div>`;
+      }
+      if (block.type === 'chapter') {
+        const number = block.number || '';
+        const label = block.label || '';
+        const title = block.title || '';
+        const body = block.body || block.text || '';
+        return `
+          <section class="portfolio-project-view__block portfolio-project-view__block--chapter" data-scroll-presence data-scroll-presence-span="0.2">
+            ${number ? `<span class="portfolio-project-view__chapter-number" aria-hidden="true">${escapeHtml(number)}</span>` : ''}
+            <div class="portfolio-project-view__chapter-copy">
+              ${label ? `<p class="portfolio-project-view__chapter-label">${escapeHtml(label)}</p>` : ''}
+              ${title ? `<h2>${escapeHtml(title)}</h2>` : ''}
+              ${body ? `<p>${escapeHtml(body)}</p>` : ''}
+            </div>
+          </section>
+        `;
+      }
+      if (block.type === 'note') {
+        const label = block.label || 'Note';
+        const text = block.body || block.text || '';
+        return `
+          <aside class="portfolio-project-view__block portfolio-project-view__block--note" data-scroll-presence data-scroll-presence-span="0.16">
+            <span>${escapeHtml(label)}</span>
+            <p>${escapeHtml(text)}</p>
+          </aside>
+        `;
+      }
+      if (block.type === 'colour') {
+        const colour = block.color || '#d8d4cf';
+        return `
+          <figure class="portfolio-project-view__block portfolio-project-view__block--colour" data-scroll-presence data-scroll-presence-span="0.16">
+            <div class="portfolio-project-view__block-media-frame"${mediaFrameStyle} aria-hidden="true">
+              <div class="portfolio-project-view__colour-field" style="--portfolio-block-colour:${escapeHtml(colour)}"></div>
+            </div>
+            ${block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : ''}
+          </figure>
+        `;
       }
       if (block.type === 'quote') {
         const text = block.text || '';
@@ -573,7 +637,7 @@ export class PortfolioProjectDrawer {
     const takeawayHtml = takeaways.length
       ? `
         <section class="portfolio-project-view__takeaways" data-scroll-presence data-scroll-presence-span="0.18">
-          <h2>Personal takeaways</h2>
+          <h2>${escapeHtml(project?.takeawaysTitle || 'Personal takeaways')}</h2>
           <ul>${takeaways.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
         </section>
       `
@@ -583,6 +647,7 @@ export class PortfolioProjectDrawer {
       <div class="portfolio-project-view__summary" data-scroll-presence data-scroll-presence-span="0.18">
         <p>${escapeHtml(project?.summary || '')}</p>
       </div>
+      ${metadataHtml}
       ${project?.overview ? `
         <section class="portfolio-project-view__overview" data-scroll-presence data-scroll-presence-span="0.18">
           <h2>Overview</h2>
@@ -618,15 +683,31 @@ export class PortfolioProjectDrawer {
     this.root.style.setProperty('--portfolio-project-image-fade-ms', `${imageFadeMs}ms`);
     this.root.style.setProperty('--portfolio-project-handoff-delay-ms', `${imageHandoffDelayMs}ms`);
     this.root.style.setProperty('--portfolio-project-title-delay-ms', `${titleDelayMs}ms`);
+    this.root.style.setProperty('--portfolio-project-accent', accentColor || 'var(--cursor-color)');
+    this.root.style.setProperty(
+      '--portfolio-project-hero-colour',
+      project.heroColor || project.thumbnailColor || accentColor || 'var(--cursor-color)'
+    );
+    this.root.dataset.projectId = String(project.id || '');
+    this.root.dataset.mediaMode = project.mediaMode === 'colour' ? 'colour' : 'image';
 
     if (this.image) {
-      this.image.src = this.resolveAsset(project.image || this.coverFallback);
-      this.image.alt = spokenLabel ? `${spokenLabel} cover` : 'Project cover';
-      this.image.addEventListener('load', () => {
-        this.updateScrollCueColor(accentColor);
-        this.scheduleDrawerMediaScrollShift();
-        this.scrollPresence?.refresh();
-      }, { once: true });
+      const usesColourPlaceholder = project.mediaMode === 'colour';
+      this.image.hidden = usesColourPlaceholder;
+      if (usesColourPlaceholder) {
+        this.image.removeAttribute('src');
+        this.image.alt = '';
+        this.image.style.objectPosition = '';
+      } else {
+        this.image.src = this.resolveAsset(project.image || this.coverFallback);
+        this.image.alt = spokenLabel ? `${spokenLabel} cover` : 'Project cover';
+        this.image.style.objectPosition = project.heroPosition || '';
+        this.image.addEventListener('load', () => {
+          this.updateScrollCueColor(accentColor);
+          this.scheduleDrawerMediaScrollShift();
+          this.scrollPresence?.refresh();
+        }, { once: true });
+      }
     }
     this.updateScrollCueColor(accentColor);
     this.applyKenBurnsMotion(project, motionConfig);
@@ -647,6 +728,7 @@ export class PortfolioProjectDrawer {
     this.root.classList.add('is-visible');
     this.root.setAttribute('aria-hidden', 'false');
     this.resetScrollTop();
+    this.updateScrollState();
 
     if (deferReveal) {
       this.root.classList.add('is-preopen');
@@ -762,8 +844,9 @@ export class PortfolioProjectDrawer {
       window.clearTimeout(this.closeFallbackTimer);
       this.closeFallbackTimer = null;
     }
-    this.closeButton?.removeEventListener('click', this.boundRequestClose);
+    this.root?.removeEventListener('click', this.boundBackClick);
     this.backdrop?.removeEventListener('pointerdown', this.boundRequestClose);
+    this.scroll?.removeEventListener('scroll', this.boundUpdateScrollState);
     this.drawer?.removeEventListener('transitionend', this.boundTransitionEnd);
     this.root?.remove();
     this.root = null;
@@ -775,6 +858,6 @@ export class PortfolioProjectDrawer {
     this.eyebrow = null;
     this.title = null;
     this.content = null;
-    this.closeButton = null;
+    this.backButton = null;
   }
 }

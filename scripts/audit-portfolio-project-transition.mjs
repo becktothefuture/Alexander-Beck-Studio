@@ -78,6 +78,7 @@ async function startFrameSampler(page, durationMs = 1200) {
     const sample = (now) => {
       const bridge = document.querySelector('.portfolio-project-media-bridge');
       const bridgeVisual = bridge?.querySelector('.portfolio-project-card__image, .portfolio-project-card__video');
+      const bridgeMedia = bridge?.querySelector('.portfolio-project-card__media');
       const bridgeVeil = bridge?.querySelector('.portfolio-project-card__media-veil');
       const drawer = document.querySelector('.portfolio-project-view__drawer');
       const hero = document.querySelector('.portfolio-project-view__image-shell');
@@ -95,6 +96,8 @@ async function startFrameSampler(page, durationMs = 1200) {
         bridgeOpacity: bridgeStyle ? Number(bridgeStyle.opacity) : 0,
         bridgeTransform: bridgeStyle?.transform || 'none',
         bridgeObjectPosition: bridgeVisual ? getComputedStyle(bridgeVisual).objectPosition : '',
+        bridgeMediaMode: bridgeMedia?.dataset?.mediaMode || 'image',
+        bridgeMediaBackground: bridgeMedia ? getComputedStyle(bridgeMedia).backgroundColor : 'transparent',
         heroObjectPosition: document.querySelector('.portfolio-project-view__image')
           ? getComputedStyle(document.querySelector('.portfolio-project-view__image')).objectPosition
           : '',
@@ -144,7 +147,12 @@ function validateOpenSamples(samples, label, failures, requireFrameDensity = tru
     }
   });
   const firstBridge = bridgeSamples[0];
-  if (firstBridge?.bridgeVeilBackground === 'none') {
+  if (
+    firstBridge?.bridgeMediaMode === 'colour'
+    && ['transparent', 'rgba(0, 0, 0, 0)'].includes(firstBridge.bridgeMediaBackground)
+  ) {
+    failures.push(`${label}: colour media bridge lost its solid fill`);
+  } else if (firstBridge?.bridgeMediaMode !== 'colour' && firstBridge?.bridgeVeilBackground === 'none') {
     failures.push(`${label}: media bridge lost the thumbnail veil`);
   }
   if (firstBridge?.bridgeBoxShadow === 'none') {
@@ -204,7 +212,7 @@ async function closeProject(page, method) {
   } else if (method === 'backdrop') {
     await page.locator('.portfolio-project-view__backdrop').dispatchEvent('pointerdown');
   } else {
-    await page.locator('.portfolio-project-view__close').click({ timeout: WAIT_MS });
+    await page.locator('.portfolio-project-view__back--top').click({ timeout: WAIT_MS });
   }
   await page.waitForFunction(
     () => !document.body.classList.contains('portfolio-project-open'),

@@ -164,7 +164,7 @@ async function main() {
     results.push({ point: target, openState });
     openedIndexes.add(target.index);
 
-    await page.click('.portfolio-project-view__close', { timeout: 10000 });
+    await page.click('.portfolio-project-view__back--top', { timeout: 10000 });
     await page.waitForFunction(
       () => !document.body.classList.contains('portfolio-project-open'),
       { timeout: WAIT_MS }

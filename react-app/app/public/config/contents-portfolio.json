@@ -1,6 +1,131 @@
 {
   "projects": [
     {
+      "id": "chapter-7",
+      "client": "American Heart Association",
+      "eyebrow": "American Heart Association",
+      "displayTitle": "Heart.org redesign",
+      "title": "Heart.org Redesign",
+      "image": null,
+      "mediaMode": "colour",
+      "thumbnailColor": "#c8102e",
+      "heroColor": "#c8102e",
+      "thumbnailAccent": "#c8102e",
+      "thumbnailVideo": null,
+      "tags": ["#design direction", "#information architecture", "#design systems", "#prototyping"],
+      "summary": "The project connects how people move through heart.org with how the interface behaves. One information structure is shared across devices and supported by one component system.",
+      "role": "Design direction, UX and prototyping",
+      "year": "2026 · Ongoing",
+      "overview": null,
+      "metadata": [
+        { "label": "Status", "value": "Ongoing" },
+        { "label": "Role", "value": "Design direction and UX" },
+        { "label": "Scope", "value": "heart.org" },
+        { "label": "Team", "value": "MRM and AHA" },
+        { "label": "Work", "value": "IA, systems and prototypes" },
+        { "label": "Year", "value": "2026" }
+      ],
+      "gallery": [],
+      "links": [],
+      "contentBlocks": [
+        {
+          "type": "chapter",
+          "label": "Context",
+          "title": "Content at scale",
+          "body": "Heart.org combines condition guidance, tools, professional resources, fundraising and news. The redesign must simplify access without weakening clinical authority."
+        },
+        {
+          "type": "colour",
+          "color": "#deddd8",
+          "caption": "Existing content network",
+          "layout": { "aspect": "2:3" }
+        },
+        {
+          "type": "colour",
+          "color": "#deddd8",
+          "caption": "Early hub structures",
+          "layout": { "aspect": "3:2" }
+        },
+        {
+          "type": "chapter",
+          "label": "Information architecture",
+          "title": "Condition guides",
+          "body": "High blood pressure is the test case. Content is grouped into stable sections shared by desktop and mobile; only the navigation changes."
+        },
+        {
+          "type": "colour",
+          "color": "#deddd8",
+          "caption": "Desktop condition guide",
+          "layout": { "ratio": 1.83 }
+        },
+        {
+          "type": "colour",
+          "color": "#deddd8",
+          "caption": "Mobile condition guide",
+          "layout": { "ratio": 1.29 }
+        },
+        {
+          "type": "colour",
+          "color": "#deddd8",
+          "caption": "Desktop navigation studies",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "colour",
+          "color": "#deddd8",
+          "caption": "Mobile navigation studies",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "text",
+          "body": "The structure stays constant. The navigation adapts."
+        },
+        {
+          "type": "chapter",
+          "label": "Interface system",
+          "title": "Components",
+          "body": "Cards, tabs, buttons, fields, illustration and motion are tested as one system through working prototypes."
+        },
+        {
+          "type": "colour",
+          "color": "#deddd8",
+          "caption": "Card studies",
+          "layout": { "ratio": 2.09 }
+        },
+        {
+          "type": "colour",
+          "color": "#deddd8",
+          "caption": "Tab studies",
+          "layout": { "ratio": 6.49 }
+        },
+        {
+          "type": "colour",
+          "color": "#deddd8",
+          "caption": "Motion study",
+          "layout": { "aspect": "2:3" }
+        },
+        {
+          "type": "colour",
+          "color": "#deddd8",
+          "caption": "Illustration study",
+          "layout": { "aspect": "1:1" }
+        },
+        {
+          "type": "colour",
+          "color": "#deddd8",
+          "caption": "Icon study",
+          "layout": { "aspect": "2:3" }
+        },
+        {
+          "type": "chapter",
+          "label": "Status",
+          "title": "Current state",
+          "body": "Two routes remain: editorial and system-led. The final case study will add my specific decisions, one collaboration challenge and the observable result once confirmed."
+        }
+      ],
+      "takeaways": []
+    },
+    {
       "id": "chapter-1",
       "client": "S&P Global",
       "eyebrow": "S&P Global",
@@ -38,6 +163,12 @@
           "src": "images/portfolio/pages/chapter-1-3.webp",
           "alt": "Case-study slide describing role, collaborators, and lessons from the index builder project.",
           "caption": "Role, design rationale, and lessons from translating financial logic into UI.",
+          "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "image",
+          "src": "images/portfolio/pages/chapter-1-4.webp",
+          "alt": "Python development environment showing the legacy index-building workflow.",
           "layout": { "aspect": "16:9" }
         },
         {

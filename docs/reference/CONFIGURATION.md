@@ -12,7 +12,7 @@ This document describes the configuration keys loaded at runtime. The React app 
 
 ## Portfolio Page Configuration (Separate Runtime)
 
-The portfolio route now uses a dedicated **vertical project rail** runtime instead of the archived slider/carousel and legacy project-pit surface.
+The portfolio route uses a dedicated **orbital infinite carousel** runtime instead of the archived slider and legacy project-pit surface.
 
 - **Authored source**: `react-app/app/public/config/design-system.json -> portfolio`
 - **Generated compatibility file**: `react-app/app/public/config/portfolio-config.json`
@@ -21,6 +21,8 @@ The portfolio route now uses a dedicated **vertical project rail** runtime inste
 - **Stylesheet**: `react-app/app/public/css/portfolio.css` is linked from **`index.html`** and **`portfolio.html`**. Deck, detail surface, and portfolio chrome rules use **`body.portfolio-page`**.
 
 Portfolio config applies to the portfolio **infinite deck** and the **wall-contained project detail surface**. `runtime.motion.openDurationMs` drives detail slide in/out; `colorFloodHoldMs` is unused in this layout but remains in generated JSON for compatibility. The project dialog (`#portfolioProjectView`) is inserted by `portfolio/app.js` **`createProjectView()`** into **`#portfolio-sheet-host`**. **Stacking (non-negotiable):** the host is a **sibling of `.fade-content` inside `#abs-scene`**, **after** `.fade-content` in the DOM (`StudioShell.jsx`), with **`z-index: 220`** and **`z-index: 260`** when `body.portfolio-project-open` — **above** route header/footer (**200**) and above **`#quote-viewport-host` (250)** when open. **Do not** mount the host only inside **`#simulations`** (that cannot stack above chrome). Authoritative table: **`docs/reference/LAYER-STACKING.md`**. The host uses the **same fixed inset** as the inner canvas and **`border-radius: var(--frame-inner-radius)`** + **`overflow: hidden`**; inherits **`corner-shape`** like **`#c`**. **`.portfolio-project-view__drawer`** has no duplicate frame border. **`--portfolio-drawer-radius`** is **`--frame-inner-radius`** for hero inset math. Close uses an **inline SVG**. The deck lives in `#portfolioProjectMount`. Without the host, the dialog falls back to the mount. **`.portfolio-project-view__scroll`**: **`overflow-y: auto`**, **`line-height: var(--line-height-body)`**, hidden scrollbars. Hero uses **`--portfolio-hero-image-gutter`** and **`--portfolio-hero-image-radius`**. Hero height: **`100cqh`** / `min(100dvh, 100svh)` fallback.
+
+**Carousel continuity:** The live deck renders a permanent repeated ring derived from project count. Every card instance keeps a stable project identity and media subtree for its lifetime; scroll updates transforms, opacity, and active state only. Unique thumbnails are decoded before the deck reveal, and failed thumbnails settle on the existing fallback surface. `runtime.carousel.virtualInstanceCount` and `mobileVirtualInstanceCount` are retired and ignored when found in older saved config.
 
 - **Legacy `bodies.*` config**: retained for compatibility with the archived physics implementation; the live route uses DOM cards.
 - **Pebble render language:** [`PEBBLE-BODIES.md`](PEBBLE-BODIES.md) documents the archived portfolio physics direction. The live portfolio route should not expose project balls.
@@ -135,7 +137,7 @@ The dev panel has a top-level **Light Group** master section (peer to Studio / S
 
 On mobile home/daily surfaces, the `#simulations::before` inset shadow is suppressed so the 4px mobile frame does not read as a second inner contour. The `.inner-wall-gradient-edge` rim remains active to preserve the light edge. Portfolio and CV keep their route-specific wall behavior.
 
-The **Ball Contrast Veil** uses the existing `simulationContrastVeil*` runtime keys, but it is rendered inside the ball canvas by `drawBallContrastVeil()`. It tints only visible ball/pebble bodies toward the active wall background colour and adds deterministic dither per ball to avoid quantized edge bands. The compatibility DOM node `.simulation-contrast-veil` remains in the stack for z-order stability, but its pseudo-elements do not paint during the home ball-canvas experience.
+The **Ball Contrast Veil** uses the existing `simulationContrastVeil*` runtime keys. On Home it is rendered inside the ball canvas by `drawBallContrastVeil()`, tinting only visible ball/pebble bodies toward the active wall background colour with deterministic dither. The DOM hook `.simulation-contrast-veil` stays inert on Home, but Portfolio activates its pseudo-elements above the card deck and below route UI so edge cards blend into the same inner-wall colour.
 
 **`--ui-chrome-rim-*`** links footer / nav / icon button hover rims (`--ui-chrome-button-edge`) to the inner-wall top light / bottom shadow strengths. The frame border uses a **180°** linear gradient on the border ring: **edge** and **mid** opacities stay ~**1:2** so the **mid** stop still “peeks” on the **left/right** vertical rails (and top/bottom). Defaults are tuned **subtle**; Studio surface maps `sceneHighlight` to frame opacities with factors **0.029** / **0.058** (same ~1:2 ratio). The optional isometric “Wall stack” helper in `control-registry.js` mirrors z-order when present.
 
@@ -282,7 +284,7 @@ Controls **which palette colors are used** for new balls across **all modes**, a
   - **`weight`** (integer, 0–100): Relative weight for spawning. The panel enforces the weights sum to **100**.
   - **Uniqueness**: The panel enforces each label uses a **unique** `colorIndex`, so 6 labels will select 6 distinct palette slots (two of the 8 palette colors may remain unused).
   - **Representation**: Mode resets seed one pass through all positive-weight labels before weighted random spawning, so the full legend stays visible even in smaller simulations.
-  - **Portfolio deck**: Closed project cards consume this distribution in order before any fallback colors. With the current 6 projects, this means each project gets one unique distribution color and no card background repeats.
+  - **Portfolio deck**: Closed project cards consume this distribution in order before any fallback colors. Project-count assertions must be data-driven; the deck must not assume a fixed six-project catalogue.
 
 ### Sleep / Settling (Ball Field modes)
 

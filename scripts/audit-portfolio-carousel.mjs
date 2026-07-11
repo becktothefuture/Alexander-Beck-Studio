@@ -42,6 +42,7 @@ async function waitForCarousel(page) {
         && snapshot?.isSettled
         && snapshot?.inputState === 'idle'
         && document.body.dataset.portfolioLoadState === 'loaded'
+        && document.getElementById('portfolioProjectMount')?.dataset.portfolioMediaReady === 'true'
       );
     },
     null,
@@ -326,12 +327,17 @@ async function auditContinuousWheel(page) {
   );
   const after = await getMotionSample(page);
   samples.push(after);
+  const inFlightSamples = samples.slice(0, -1);
+  const distance = inFlightSamples.reduce((maximum, sample) => Math.max(
+    maximum,
+    Math.abs(sample.displayPosition - before.displayPosition)
+  ), 0);
   return {
     before,
     after,
     samples,
-    distance: Number(Math.abs(after.targetPosition - before.targetPosition).toFixed(3)),
-    reversals: findMotionReversals(samples),
+    distance: Number(distance.toFixed(3)),
+    reversals: findMotionReversals(inFlightSamples),
   };
 }
 
@@ -346,6 +352,184 @@ async function auditDrag(page, distancePx) {
   const after = await getMotionSample(page);
   const drawerOpen = await page.evaluate(() => document.body.classList.contains('portfolio-project-open'));
   return { before, after, committed, drawerOpen };
+}
+
+async function collectPermanentRingSample(page) {
+  return page.evaluate(() => {
+    const stage = document.querySelector('.portfolio-deck-stage');
+    const stageRect = stage?.getBoundingClientRect?.();
+    const identities = [];
+    const visibleProjects = {};
+    const mediaFailures = [];
+    const cards = Array.from(document.querySelectorAll('.portfolio-project-card'));
+    cards.forEach((card) => {
+      const style = getComputedStyle(card);
+      const rect = card.getBoundingClientRect();
+      const instanceKey = card.dataset.cardInstanceKey || '';
+      const projectId = card.dataset.projectId || '';
+      const media = card.querySelector('.portfolio-project-card__media');
+      const image = media?.querySelector('img');
+      const video = media?.querySelector('video');
+      const fallback = media?.querySelector('.portfolio-project-card__media-fallback');
+      identities.push({
+        instanceKey,
+        projectId,
+        mediaSrc: media?.dataset.mediaSrc || '',
+        client: card.querySelector('.portfolio-project-card__client')?.textContent || '',
+        title: card.querySelector('.portfolio-project-card__title-text')?.textContent || '',
+      });
+      if (!stageRect) return;
+      const clippedWidth = Math.max(0, Math.min(rect.right, stageRect.right) - Math.max(rect.left, stageRect.left));
+      const clippedHeight = Math.max(0, Math.min(rect.bottom, stageRect.bottom) - Math.max(rect.top, stageRect.top));
+      const opacity = Number.parseFloat(style.opacity || '0');
+      const intersects = clippedWidth > 2 && clippedHeight > 2 && style.visibility !== 'hidden';
+      if (!intersects) return;
+      const mediaReady = Boolean(
+        fallback
+        || (image && image.complete && image.naturalWidth > 0)
+        || (video && (video.readyState >= 2 || video.poster))
+      );
+      if (opacity > 0.02 && !mediaReady) {
+        mediaFailures.push({ instanceKey, projectId, opacity });
+      }
+      const previous = visibleProjects[projectId];
+      if (!previous || opacity > previous.opacity) {
+        visibleProjects[projectId] = {
+          instanceKey,
+          opacity,
+          left: rect.left,
+          right: rect.right,
+        };
+      }
+    });
+    return {
+      projectCount: window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.projects?.length || 0,
+      identities,
+      visibleProjects,
+      mediaFailures,
+    };
+  });
+}
+
+async function advancePermanentRingFrame(page, direction, step) {
+  await page.evaluate(({ direction: deltaDirection, step: deltaStep }) => {
+    const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
+    if (!app) return;
+    app.setDeckPosition(app.deckDisplayPosition + (deltaDirection * deltaStep), {
+      immediate: true,
+      settle: false,
+      allowFractionalReducedMotion: true,
+    });
+  }, { direction, step });
+  await page.evaluate(() => new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  }));
+}
+
+async function auditPermanentRing(page) {
+  const initial = await collectPermanentRingSample(page);
+  const baselineIdentities = new Map(initial.identities.map((entry) => [entry.instanceKey, JSON.stringify(entry)]));
+  const duplicateInstanceKeys = initial.identities.length - baselineIdentities.size;
+  const abruptEntries = [];
+  const mediaFailures = [...initial.mediaFailures];
+  let maxOpacityJump = 0;
+  const stepsPerProject = 20;
+
+  for (const direction of [1, -1]) {
+    await page.evaluate(() => {
+      const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
+      app?.setActiveProject?.(0, { immediate: true });
+    });
+    await page.waitForTimeout(180);
+    let previous = await collectPermanentRingSample(page);
+    const stepCount = initial.projectCount * 2 * stepsPerProject;
+    for (let stepIndex = 0; stepIndex < stepCount; stepIndex += 1) {
+      await advancePermanentRingFrame(page, direction, 1 / stepsPerProject);
+      const current = await collectPermanentRingSample(page);
+      mediaFailures.push(...current.mediaFailures);
+      for (const [projectId, state] of Object.entries(current.visibleProjects)) {
+        const previousOpacity = previous.visibleProjects[projectId]?.opacity || 0;
+        const opacityJump = state.opacity - previousOpacity;
+        maxOpacityJump = Math.max(maxOpacityJump, opacityJump);
+        if (previousOpacity <= 0.03 && state.opacity > 0.35) {
+          abruptEntries.push({ direction, stepIndex, projectId, previousOpacity, opacity: state.opacity });
+        }
+      }
+      previous = current;
+    }
+  }
+
+  const final = await collectPermanentRingSample(page);
+  const identityMutations = final.identities.filter((entry) => {
+    return baselineIdentities.get(entry.instanceKey) !== JSON.stringify(entry);
+  });
+  return {
+    projectCount: initial.projectCount,
+    instanceCount: initial.identities.length,
+    duplicateInstanceKeys,
+    identityMutations,
+    abruptEntries,
+    mediaFailures,
+    maxOpacityJump: Number(maxOpacityJump.toFixed(4)),
+  };
+}
+
+async function readPortfolioVeil(page) {
+  return page.evaluate(() => {
+    const rectOf = (element) => {
+      if (!element) return null;
+      const rect = element.getBoundingClientRect();
+      return [rect.x, rect.y, rect.width, rect.height].map((value) => Number(value.toFixed(2)));
+    };
+    const veil = document.querySelector('.simulation-contrast-veil');
+    const before = veil ? getComputedStyle(veil, '::before') : null;
+    const after = veil ? getComputedStyle(veil, '::after') : null;
+    const veilStyle = veil ? getComputedStyle(veil) : null;
+    const rootStyle = getComputedStyle(document.documentElement);
+    return {
+      theme: document.querySelector('.button-bar__theme-toggle')?.dataset.state || '',
+      rect: rectOf(veil),
+      overlayRect: rectOf(document.getElementById('window-overlay-content-layer')),
+      pointerEvents: veilStyle?.pointerEvents || '',
+      zIndex: Number.parseInt(veilStyle?.zIndex || '0', 10) || 0,
+      wallZ: Number.parseInt(getComputedStyle(document.getElementById('simulations')).zIndex || '0', 10) || 0,
+      uiZ: Number.parseInt(getComputedStyle(document.querySelector('.fade-content')).zIndex || '0', 10) || 0,
+      sheetZ: Number.parseInt(getComputedStyle(document.getElementById('portfolio-sheet-host')).zIndex || '0', 10) || 0,
+      beforeContent: before?.content || '',
+      beforeBackground: before?.backgroundImage || '',
+      afterContent: after?.content || '',
+      afterBackground: after?.backgroundImage || '',
+      wallRgb: rootStyle.getPropertyValue('--simulation-contrast-veil-rgb').trim(),
+      opacity: rootStyle.getPropertyValue('--simulation-contrast-veil-opacity').trim(),
+    };
+  });
+}
+
+async function setPortfolioTheme(page, theme) {
+  const toggle = page.locator('.button-bar__theme-toggle');
+  if (await toggle.getAttribute('data-state') !== theme) await toggle.click();
+  await page.waitForFunction(
+    (expectedTheme) => document.querySelector('.button-bar__theme-toggle')?.dataset.state === expectedTheme,
+    theme,
+    { timeout: WAIT_MS }
+  );
+  await page.waitForTimeout(180);
+}
+
+async function captureVeilThemes(page) {
+  await page.evaluate(() => {
+    const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
+    app?.setActiveProject?.(0, { immediate: true });
+  });
+  await page.waitForTimeout(320);
+  await setPortfolioTheme(page, 'light');
+  const light = await readPortfolioVeil(page);
+  await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-veil-light.png') });
+  await setPortfolioTheme(page, 'dark');
+  const dark = await readPortfolioVeil(page);
+  await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-veil-dark.png') });
+  await setPortfolioTheme(page, 'light');
+  return { light, dark };
 }
 
 async function captureAccents(page) {
@@ -395,7 +579,7 @@ async function captureDrawer(page) {
     bodyOpen: document.body.classList.contains('portfolio-project-open'),
     drawerVisible: document.getElementById('portfolioProjectView')?.classList.contains('is-open') || false,
   }));
-  await page.locator('.portfolio-project-view__close').click();
+  await page.locator('.portfolio-project-view__back--top').click();
   await page.waitForFunction(() => !document.body.classList.contains('portfolio-project-open'), null, { timeout: WAIT_MS });
   return state;
 }
@@ -409,7 +593,7 @@ async function auditReducedMotion(page) {
   await page.waitForSelector('#portfolioProjectView.is-visible.is-open', { state: 'visible', timeout: WAIT_MS });
   await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-reduced-motion-drawer-open.png') });
   const drawerOpen = await page.evaluate(() => document.body.classList.contains('portfolio-project-open'));
-  await page.locator('.portfolio-project-view__close').click();
+  await page.locator('.portfolio-project-view__back--top').click();
   await page.waitForFunction(() => !document.body.classList.contains('portfolio-project-open'), null, { timeout: WAIT_MS });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   return { press, wheel, drawerOpen };
@@ -438,6 +622,8 @@ async function main() {
       };
 
       if (viewport.name === 'desktop') {
+        summary.permanentRing = await auditPermanentRing(page);
+        summary.veil = await captureVeilThemes(page);
         summary.viewports.desktop.cursor = await auditCursor(page);
         await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-hover.png') });
         summary.viewports.desktop.press = await auditPointerPress(page, 'desktop-pointer-down.png');
@@ -491,7 +677,23 @@ async function main() {
     if (summary.viewports.desktop.drag?.before.activeIndex === summary.viewports.desktop.drag?.after.activeIndex) failures.push('desktop: drag did not advance');
     if (summary.viewports.mobile.drag?.before.activeIndex === summary.viewports.mobile.drag?.after.activeIndex) failures.push('mobile: drag did not advance');
     if (summary.viewports.desktop.drag?.drawerOpen || summary.viewports.mobile.drag?.drawerOpen) failures.push('drag opened the project drawer');
-    if (summary.accents?.length !== 6 || new Set(summary.accents?.map((entry) => entry.accent)).size !== 6) failures.push('accent audit did not resolve six distinct project accents');
+    if ((summary.permanentRing?.instanceCount || 0) <= (summary.permanentRing?.projectCount || 0)) failures.push('permanent ring did not render repeated project-bound instances');
+    if (summary.permanentRing?.duplicateInstanceKeys) failures.push('permanent ring contains duplicate instance keys');
+    if (summary.permanentRing?.identityMutations?.length) failures.push('permanent ring changed project content on an existing card instance');
+    if (summary.permanentRing?.abruptEntries?.length) failures.push('permanent ring produced an abrupt edge-opacity entry');
+    if (summary.permanentRing?.mediaFailures?.length) failures.push('permanent ring exposed an undecoded thumbnail without fallback');
+    if ((summary.permanentRing?.maxOpacityJump ?? Infinity) > 0.35) failures.push('permanent ring opacity changed too sharply between sampled frames');
+    for (const [theme, veil] of Object.entries(summary.veil || {})) {
+      if (JSON.stringify(veil.rect) !== JSON.stringify(veil.overlayRect)) failures.push(`${theme}: portfolio veil does not match the inner-window rectangle`);
+      if (!(veil.wallZ < veil.zIndex && veil.zIndex < veil.uiZ && veil.zIndex < veil.sheetZ)) failures.push(`${theme}: portfolio veil stacking order is incorrect`);
+      if (veil.pointerEvents !== 'none') failures.push(`${theme}: portfolio veil intercepts pointer input`);
+      if (veil.beforeContent === 'none' || veil.beforeBackground === 'none') failures.push(`${theme}: portfolio edge gradient is not active`);
+      if (veil.afterContent === 'none' || veil.afterBackground === 'none') failures.push(`${theme}: portfolio veil dither is not active`);
+      if (!veil.wallRgb || !veil.opacity) failures.push(`${theme}: portfolio veil is not using shared wall tokens`);
+    }
+    const accentCount = summary.accents?.length || 0;
+    const distinctAccentCount = new Set(summary.accents?.map((entry) => entry.accent)).size;
+    if (!accentCount || distinctAccentCount !== accentCount) failures.push('accent audit did not resolve one distinct accent per project');
     if (!summary.drawer?.bodyOpen || !summary.drawer?.drawerVisible) failures.push('project drawer did not open after carousel checks');
     if ((summary.reducedMotion?.press?.delta ?? Infinity) > 2) failures.push('reduced motion: pointer-down center delta exceeded 2px');
     if (summary.reducedMotion?.wheel?.before.activeIndex === summary.reducedMotion?.wheel?.after.activeIndex) failures.push('reduced motion: wheel did not advance');

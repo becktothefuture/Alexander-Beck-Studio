@@ -101,8 +101,6 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       centerYPercent: 50,
       mobileCenterYPercent: 50,
       perspectivePx: 1600,
-      virtualInstanceCount: 11,
-      mobileVirtualInstanceCount: 7,
       pathRadiusPx: 1820,
       mobilePathRadiusPx: 820,
       angleStepDeg: 10.25,

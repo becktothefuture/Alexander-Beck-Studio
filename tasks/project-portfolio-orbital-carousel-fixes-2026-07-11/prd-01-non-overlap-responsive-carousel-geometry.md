@@ -60,7 +60,7 @@ The portfolio carousel currently overlaps cards at desktop, tablet, and mobile s
 ## 7. Technical Considerations
 
 - Likely files: `react-app/app/src/legacy/modules/portfolio/app.js`, `react-app/app/public/css/portfolio.css`, `react-app/app/public/config/design-system.json`, generated portfolio config after flattening.
-- Existing relevant settings: `pathRadiusPx`, `mobilePathRadiusPx`, `angleStepDeg`, `mobileAngleStepDeg`, `sideScale`, `farScale`, `virtualInstanceCount`, `mobileVirtualInstanceCount`, card width/height settings.
+- Existing relevant settings: `pathRadiusPx`, `mobilePathRadiusPx`, `angleStepDeg`, `mobileAngleStepDeg`, `sideScale`, `farScale`, and card width/height settings. Card instances are a permanent project-bound ring; pool-size controls are intentionally retired.
 
 ## 8. Success Metrics
 
@@ -71,4 +71,3 @@ The portfolio carousel currently overlaps cards at desktop, tablet, and mobile s
 ## 9. Open Questions
 
 - Should mobile prefer a larger active card with tiny peeks, or a slightly smaller active card with clearer neighbors? Recommended default: larger active card with tiny peeks.
-

@@ -71,6 +71,9 @@ const PORTFOLIO_CAROUSEL_DETENT_STEP = 0.33;
 const PORTFOLIO_CAROUSEL_DETENT_MIN_VELOCITY = 0.18;
 const PORTFOLIO_CAROUSEL_DETENT_GAIN = 0.032;
 const PORTFOLIO_CAROUSEL_DETENT_FILTER_HZ = 3300;
+const PORTFOLIO_RING_MAX_VISIBLE_OFFSET = 3;
+const PORTFOLIO_RING_GUARD_SLOTS = 2;
+const PORTFOLIO_THUMBNAIL_READY_TIMEOUT_MS = 1800;
 const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   reducedMotionDurationMs: 1,
   scrollSensitivity: 1,
@@ -92,8 +95,6 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   centerYPercent: 50,
   mobileCenterYPercent: 50,
   perspectivePx: 1600,
-  virtualInstanceCount: 11,
-  mobileVirtualInstanceCount: 7,
   pathRadiusPx: 1820,
   mobilePathRadiusPx: 820,
   angleStepDeg: 10.25,
@@ -574,7 +575,7 @@ class PortfolioPitApp {
     this.projectEyebrow = this.projectDrawerView.eyebrow;
     this.projectTitle = this.projectDrawerView.title;
     this.projectContent = this.projectDrawerView.content;
-    this.projectClose = this.projectDrawerView.closeButton;
+    this.projectBack = this.projectDrawerView.backButton;
   }
 
   bindProjectOverlay() {}
@@ -1180,7 +1181,7 @@ class PortfolioPitApp {
       ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
       : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
     this.projectOpenTimeouts.push(window.setTimeout(() => {
-      this.projectClose?.focus();
+      this.projectBack?.focus();
     }, Math.min(900, openDuration + 80)));
   }
 
@@ -1360,6 +1361,7 @@ class PortfolioScrollApp {
     this.wheelGesture = null;
     this.deckMotionDirection = -1;
     this.deckOptions = { ...PORTFOLIO_DECK_DEFAULTS };
+    this.ringCopyRadius = 1;
     this.deckStage = null;
     this.deckPin = null;
     this.deckViewport = null;
@@ -1430,6 +1432,7 @@ class PortfolioScrollApp {
     this.configurePortfolioSfx();
     this.createProjectView();
     this.renderProjectDeck();
+    await this.prepareProjectThumbnails();
     this.setupDeckEvents();
     this.applyProjectPalette();
     await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -1466,6 +1469,10 @@ class PortfolioScrollApp {
     this.pauseAllVideos();
     this.projectDrawerView?.destroy();
     this.restoreBackgroundInteractivity();
+    if (this.mount) {
+      delete this.mount.dataset.portfolioMediaReady;
+      this.mount.classList.remove('is-ring-rebasing');
+    }
 
     const globals = getGlobals();
     globals.portfolioDomLabels = false;
@@ -1615,7 +1622,7 @@ class PortfolioScrollApp {
       },
     });
     this.projectView = this.projectDrawerView.mount();
-    this.projectClose = this.projectDrawerView.closeButton;
+    this.projectBack = this.projectDrawerView.backButton;
   }
 
   readDeckIntroContent() {
@@ -1650,8 +1657,7 @@ class PortfolioScrollApp {
     this.mount.replaceChildren();
     this.mount.classList.add('is-deck-ready');
     this.applyDeckTuning();
-    const virtualCount = this.getVirtualCardCount();
-    const centerOffset = Math.floor(virtualCount / 2);
+    this.ringCopyRadius = this.getRingCopyRadius();
 
     const stage = document.createElement('section');
     stage.className = 'portfolio-deck-stage';
@@ -1672,13 +1678,21 @@ class PortfolioScrollApp {
     mist.className = 'portfolio-deck-mist';
     mist.setAttribute('aria-hidden', 'true');
 
-    this.cards = Array.from({ length: virtualCount }, (_, virtualIndex) => {
-      const slotOffset = virtualIndex - centerOffset;
-      const projectIndex = this.wrapProjectIndex(slotOffset);
-      const card = this.createProjectCard(projectIndex, virtualIndex, slotOffset);
-      viewport.appendChild(card);
-      return card;
-    });
+    this.cards = [];
+    let instanceIndex = 0;
+    for (let cycleIndex = -this.ringCopyRadius; cycleIndex <= this.ringCopyRadius; cycleIndex += 1) {
+      for (let projectIndex = 0; projectIndex < this.projects.length; projectIndex += 1) {
+        const continuousIndex = (cycleIndex * this.projects.length) + projectIndex;
+        const card = this.createProjectCard(projectIndex, {
+          instanceIndex,
+          cycleIndex,
+          continuousIndex,
+        });
+        viewport.appendChild(card);
+        this.cards.push(card);
+        instanceIndex += 1;
+      }
+    }
 
     const dotDial = this.createDotDial();
 
@@ -1698,7 +1712,7 @@ class PortfolioScrollApp {
     this.deckStatus = status;
   }
 
-  createProjectCard(projectIndex, virtualIndex, slotOffset) {
+  createProjectCard(projectIndex, { instanceIndex, cycleIndex, continuousIndex }) {
     const project = this.projects[projectIndex];
     const labelContent = resolvePortfolioLabelContent(project, project?.title || `Project ${projectIndex + 1}`);
     const spokenLabel = labelContent.eyebrow
@@ -1706,8 +1720,10 @@ class PortfolioScrollApp {
       : labelContent.title;
     const card = document.createElement('article');
     card.className = 'portfolio-project-card portfolio-deck-card portfolio-project-label';
-    card.dataset.virtualIndex = String(virtualIndex);
-    card.dataset.virtualSlotOffset = String(slotOffset);
+    card.dataset.cardInstanceKey = `${String(project?.id || `project-${projectIndex + 1}`)}:${cycleIndex}`;
+    card.dataset.instanceIndex = String(instanceIndex);
+    card.dataset.ringCycle = String(cycleIndex);
+    card.dataset.continuousIndex = String(continuousIndex);
     card.dataset.projectIndex = String(projectIndex);
     card.dataset.projectId = String(project?.id || `project-${projectIndex + 1}`);
     applyProjectCardTheme(card, project, projectIndex, this.projects.length);
@@ -1751,12 +1767,12 @@ class PortfolioScrollApp {
     cta.setAttribute('aria-hidden', 'true');
     cta.textContent = 'View';
 
-    const media = this.createProjectCardMedia(project, projectIndex, { eager: Math.abs(slotOffset) <= 1 });
+    const media = this.createProjectCardMedia(project, projectIndex, {
+      attachVideo: Boolean(getProjectVideoSrc(project) && !shouldReducePortfolioMotion()),
+      eager: true,
+    });
     card.append(copy, media);
     card.appendChild(cta);
-    card._portfolioElements = { client, titleText, tags, media, cta };
-    card._portfolioProjectIndex = projectIndex;
-    card._portfolioThumbnailVideoActive = false;
     card.addEventListener('click', (event) => this.handleCardClick(event, card));
     card.addEventListener('keydown', (event) => this.handleCardKeydown(event, card));
     card.addEventListener('pointerenter', () => {
@@ -1770,53 +1786,6 @@ class PortfolioScrollApp {
     });
     card.addEventListener('blur', () => card.classList.remove('is-keyboard-focused'));
     return card;
-  }
-
-  syncProjectCard(card, projectIndex, options = {}) {
-    if (!card || !this.projects.length) return;
-    const nextIndex = this.wrapProjectIndex(projectIndex);
-    const project = this.projects[nextIndex];
-    if (!project) return;
-    const shouldAttachVideo = Boolean(options.active && getProjectVideoSrc(project) && !shouldReducePortfolioMotion());
-    const mediaModeChanged = Boolean(card._portfolioThumbnailVideoActive) !== shouldAttachVideo;
-    if (card._portfolioProjectIndex === nextIndex && !mediaModeChanged) return;
-
-    const labelContent = resolvePortfolioLabelContent(project, project?.title || `Project ${nextIndex + 1}`);
-    const spokenLabel = labelContent.eyebrow
-      ? `${labelContent.eyebrow}: ${labelContent.title}`
-      : labelContent.title;
-    card.dataset.projectIndex = String(nextIndex);
-    card.dataset.projectId = String(project?.id || `project-${nextIndex + 1}`);
-    card.setAttribute('aria-label', `Open project ${nextIndex + 1}: ${spokenLabel}`);
-    applyProjectCardTheme(card, project, nextIndex, this.projects.length);
-
-    const elements = card._portfolioElements || {};
-    if (elements.client) {
-      elements.client.textContent = project?.client || project?.eyebrow || `Project ${nextIndex + 1}`;
-    }
-    if (elements.titleText) {
-      elements.titleText.textContent = project?.displayTitle || project?.title || labelContent.title;
-    }
-    if (elements.tags) {
-      elements.tags.replaceChildren();
-      getProjectTags(project).forEach((tag) => {
-        const item = document.createElement('li');
-        item.textContent = tag;
-        elements.tags.appendChild(item);
-      });
-      elements.tags.hidden = true;
-    }
-    if (elements.media) {
-      const nextMedia = this.createProjectCardMedia(project, nextIndex, {
-        attachVideo: shouldAttachVideo,
-        eager: Boolean(options.eager || options.active),
-      });
-      elements.media.replaceWith(nextMedia);
-      elements.media = nextMedia;
-      card._portfolioElements = elements;
-    }
-    card._portfolioProjectIndex = nextIndex;
-    card._portfolioThumbnailVideoActive = shouldAttachVideo;
   }
 
   createDotDial() {
@@ -1842,9 +1811,18 @@ class PortfolioScrollApp {
     const frame = document.createElement('figure');
     frame.className = 'portfolio-project-card__media';
     frame.setAttribute('aria-hidden', 'true');
+    const usesColourPlaceholder = project?.mediaMode === 'colour';
+    if (usesColourPlaceholder) {
+      frame.dataset.mediaMode = 'colour';
+      frame.style.setProperty(
+        '--portfolio-card-placeholder-colour',
+        String(project?.thumbnailColor || project?.heroColor || project?.thumbnailAccent || '#c8102e')
+      );
+    }
     const imageSrc = getProjectImageSrc(project);
     const videoSrc = options.attachVideo ? getProjectVideoSrc(project) : '';
     const reduceMotion = shouldReducePortfolioMotion();
+    if (imageSrc) frame.dataset.mediaSrc = resolveAsset(imageSrc);
 
     if (videoSrc && !reduceMotion) {
       const video = document.createElement('video');
@@ -1852,7 +1830,7 @@ class PortfolioScrollApp {
       video.muted = true;
       video.loop = true;
       video.playsInline = true;
-      video.autoplay = true;
+      video.autoplay = false;
       video.preload = 'metadata';
       video.dataset.projectIndex = String(index);
       if (imageSrc) video.poster = resolveAsset(imageSrc);
@@ -1868,7 +1846,7 @@ class PortfolioScrollApp {
       image.src = resolveAsset(imageSrc);
       image.alt = '';
       image.draggable = false;
-      image.loading = options.eager ? 'eager' : 'lazy';
+      image.loading = 'eager';
       image.decoding = 'async';
       const thumbnailPosition = project?.thumbnailPosition || project?.thumbnailFocalPoint || '';
       if (thumbnailPosition) image.style.objectPosition = String(thumbnailPosition);
@@ -1883,6 +1861,72 @@ class PortfolioScrollApp {
     veil.className = 'portfolio-project-card__media-veil';
     frame.appendChild(veil);
     return frame;
+  }
+
+  getRingCopyRadius() {
+    const projectCount = Math.max(1, this.projects.length);
+    const requiredRadius = PORTFOLIO_RING_MAX_VISIBLE_OFFSET + PORTFOLIO_RING_GUARD_SLOTS;
+    return Math.max(1, Math.ceil(requiredRadius / projectCount));
+  }
+
+  waitForThumbnailSource(src) {
+    return new Promise((resolve) => {
+      const image = new Image();
+      let settled = false;
+      const finish = (ready) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeoutId);
+        image.onload = null;
+        image.onerror = null;
+        resolve({ src, ready });
+      };
+      const decode = async () => {
+        try {
+          if (typeof image.decode === 'function') await image.decode();
+          finish(image.naturalWidth > 0);
+        } catch (error) {
+          finish(image.naturalWidth > 0);
+        }
+      };
+      const timeoutId = window.setTimeout(() => finish(false), PORTFOLIO_THUMBNAIL_READY_TIMEOUT_MS);
+      image.onload = decode;
+      image.onerror = () => finish(false);
+      image.decoding = 'async';
+      image.src = src;
+      if (image.complete) {
+        if (image.naturalWidth > 0) decode();
+        else finish(false);
+      }
+    });
+  }
+
+  replaceFailedThumbnail(frame) {
+    if (!frame || frame.querySelector('video')) return;
+    const image = frame.querySelector('.portfolio-project-card__image');
+    if (!image) return;
+    const fallback = document.createElement('div');
+    fallback.className = 'portfolio-project-card__media-fallback';
+    image.replaceWith(fallback);
+  }
+
+  async prepareProjectThumbnails() {
+    if (!this.mount) return;
+    const sources = Array.from(new Set(
+      this.projects
+        .map((project) => getProjectImageSrc(project))
+        .filter(Boolean)
+        .map((src) => resolveAsset(src))
+    ));
+    const results = await Promise.all(sources.map((src) => this.waitForThumbnailSource(src)));
+    const failedSources = new Set(results.filter((result) => !result.ready).map((result) => result.src));
+    if (failedSources.size) {
+      this.cards.forEach((card) => {
+        const frame = card.querySelector('.portfolio-project-card__media');
+        if (frame && failedSources.has(frame.dataset.mediaSrc || '')) this.replaceFailedThumbnail(frame);
+      });
+    }
+    this.mount.dataset.portfolioMediaReady = 'true';
   }
 
   setupVideoObserver() {
@@ -1942,20 +1986,14 @@ class PortfolioScrollApp {
     };
   }
 
-  getVirtualCardCount() {
-    const rawCount = toNumber(this.deckOptions.virtualInstanceCount, PORTFOLIO_DECK_DEFAULTS.virtualInstanceCount);
-    const clamped = clamp(Math.round(rawCount), 5, 15);
-    return clamped % 2 === 0 ? clamped + 1 : clamped;
-  }
-
   getCardProjectIndex(card) {
     const index = Number(card?.dataset?.projectIndex);
     return Number.isInteger(index) ? this.wrapProjectIndex(index) : 0;
   }
 
-  getCardSlotOffset(card) {
-    const offset = Number(card?.dataset?.virtualSlotOffset);
-    return Number.isFinite(offset) ? offset : 0;
+  getCardContinuousIndex(card) {
+    const index = Number(card?.dataset?.continuousIndex);
+    return Number.isFinite(index) ? index : 0;
   }
 
   getActiveProjectCard(projectIndex = this.activeProjectIndex) {
@@ -2021,9 +2059,8 @@ class PortfolioScrollApp {
       0,
       0.18
     );
-    const virtualCount = this.getVirtualCardCount();
     const maxVisibleOffset = Math.min(
-      Math.floor(virtualCount / 2),
+      PORTFOLIO_RING_MAX_VISIBLE_OFFSET,
       stageWidth >= 1700 ? 3 : (stageWidth >= 1180 ? 2 : 1)
     );
     const cardWidth = Math.min(stageWidth * cardWidthPercent / 100, cardMaxWidthPx);
@@ -2423,7 +2460,19 @@ class PortfolioScrollApp {
         metrics.farScale || PORTFOLIO_DECK_DEFAULTS.farScale,
         clamp((absOffset - 1) / Math.max(1, maxVisibleOffset - 1), 0, 1)
       );
-    const opacity = 1 - smoothstep(maxVisibleOffset + 0.12, maxVisibleOffset + 0.62, rawAbsOffset);
+    const fadeStart = maxVisibleOffset + 0.1;
+    const fadeEnd = maxVisibleOffset + 0.9;
+    const orbitOpacity = 1 - smoothstep(fadeStart, fadeEnd, rawAbsOffset);
+    const rotationRad = (rotateZ * Math.PI) / 180;
+    const projectedCardWidth = scale * (
+      ((metrics.cardWidth || PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx) * Math.abs(Math.cos(rotationRad)))
+      + ((metrics.cardHeight || PORTFOLIO_DECK_DEFAULTS.cardMaxHeightPx) * Math.abs(Math.sin(rotationRad)))
+    );
+    const stageHalfWidth = Math.max(1, (metrics.stageWidth || window.innerWidth || 1440) * 0.5);
+    const edgePenetration = stageHalfWidth - (Math.abs(x) - (projectedCardWidth * 0.5));
+    const entryFadeDistance = clamp(projectedCardWidth * 0.42, 48, 180);
+    const edgeOpacity = smoothstep(0, entryFadeDistance, edgePenetration);
+    const opacity = orbitOpacity * edgeOpacity;
     const activeAmount = clamp(1 - absOffset, 0, 1);
     const slot = Math.abs(orbitOffset) < 0.52 ? '0' : String(Math.round(orbitOffset));
     return {
@@ -2442,8 +2491,8 @@ class PortfolioScrollApp {
       blur: rawAbsOffset > maxVisibleOffset ? 0.25 : 0,
       saturate: lerp(1, 0.88, sideProgress),
       opacity,
-      visibility: opacity <= 0.03 ? 'hidden' : 'visible',
-      pointerEvents: this.isProjectOpen || rawAbsOffset > maxVisibleOffset + 0.01 ? 'none' : 'auto',
+      visibility: rawAbsOffset > fadeEnd + 0.05 ? 'hidden' : 'visible',
+      pointerEvents: this.isProjectOpen || rawAbsOffset > maxVisibleOffset + 0.01 || opacity <= 0.15 ? 'none' : 'auto',
     };
   }
 
@@ -2488,27 +2537,26 @@ class PortfolioScrollApp {
 
     const nearestPosition = Math.round(this.deckDisplayPosition);
     this.cards.forEach((card) => {
-      const slotOffset = this.getCardSlotOffset(card);
-      const continuousIndex = nearestPosition + slotOffset;
-      const projectIndex = this.wrapProjectIndex(continuousIndex);
+      const continuousIndex = this.getCardContinuousIndex(card);
+      const projectIndex = this.getCardProjectIndex(card);
       const offset = continuousIndex - this.deckDisplayPosition;
-      const isActive = slotOffset === 0 && projectIndex === this.activeProjectIndex;
-      this.syncProjectCard(card, projectIndex, {
-        active: isActive,
-        eager: Math.abs(slotOffset) <= 1,
-      });
+      const isActive = continuousIndex === nearestPosition && projectIndex === this.activeProjectIndex;
+      const nearestProjectPosition = this.getNearestContinuousPositionForIndex(projectIndex, this.deckDisplayPosition);
+      const isNearestProjectInstance = continuousIndex === nearestProjectPosition;
       const pose = this.getDeckPoseForOffset(offset);
+      if (!isNearestProjectInstance) pose.pointerEvents = 'none';
       this.applyDeckCardPose(card, pose);
       card.dataset.orbitOffset = offset.toFixed(4);
+      card.dataset.ringNearest = isNearestProjectInstance ? 'true' : 'false';
       card.classList.toggle('is-active', isActive);
       card.classList.toggle('is-depth-card', !isActive);
-      card.classList.toggle('is-depth-1', Math.abs(slotOffset) === 1);
-      card.classList.toggle('is-depth-2', Math.abs(slotOffset) === 2);
+      card.classList.toggle('is-depth-1', Math.round(Math.abs(offset)) === 1);
+      card.classList.toggle('is-depth-2', Math.round(Math.abs(offset)) === 2);
       card.classList.toggle('is-left-card', offset < -0.5);
       card.classList.toggle('is-right-card', offset > 0.5);
       card.setAttribute('tabindex', isActive && !this.isProjectOpen && this.isDeckPositionSettled() ? '0' : '-1');
       card.setAttribute('aria-hidden', isActive ? 'false' : 'true');
-      card.setAttribute('aria-expanded', this.isProjectOpen && projectIndex === this.selectedProjectIndex ? 'true' : 'false');
+      card.setAttribute('aria-expanded', this.isProjectOpen && isActive && projectIndex === this.selectedProjectIndex ? 'true' : 'false');
     });
     this.mount?.style.setProperty('--portfolio-deck-active-index', String(this.activeProjectIndex));
     this.mount?.style.setProperty('--portfolio-deck-scroll-progress', String(this.deckDisplayPosition));
@@ -2606,7 +2654,11 @@ class PortfolioScrollApp {
         const pose = this.getDeckPoseForOffset(offset);
         return {
           index: projectIndex,
-          virtualIndex: index,
+          instanceIndex: index,
+          instanceKey: card.dataset.cardInstanceKey || '',
+          ringCycle: Number(card.dataset.ringCycle) || 0,
+          continuousIndex: this.getCardContinuousIndex(card),
+          nearestProjectInstance: card.dataset.ringNearest === 'true',
           isActive: projectIndex === this.activeProjectIndex && card.classList.contains('is-active'),
           slot: pose.slot,
           visualSlot: pose.visualSlot || pose.slot,
@@ -2695,6 +2747,27 @@ class PortfolioScrollApp {
     if (this.mount) this.mount.dataset.carouselInputState = state;
   }
 
+  rebaseSettledDeckPosition() {
+    const projectCount = this.projects.length;
+    if (!projectCount) return false;
+    if (Math.abs(this.deckDisplayPosition - Math.round(this.deckDisplayPosition)) >= 0.003) return false;
+    if (Math.abs(this.deckTargetPosition - this.deckDisplayPosition) >= 0.003) return false;
+    const settledPosition = Math.round(this.deckDisplayPosition);
+    const normalizedPosition = this.wrapDeckPosition(settledPosition);
+    const shift = settledPosition - normalizedPosition;
+    if (!shift) return false;
+    this.deckDisplayPosition -= shift;
+    this.deckTargetPosition -= shift;
+    if (this.wheelGesture) this.wheelGesture.origin -= shift;
+    if (this.pointerState) this.pointerState.startTargetPosition -= shift;
+    this.mount?.classList.add('is-ring-rebasing');
+    window.requestAnimationFrame(() => {
+      this.mount?.getBoundingClientRect();
+      window.requestAnimationFrame(() => this.mount?.classList.remove('is-ring-rebasing'));
+    });
+    return true;
+  }
+
   startDeckAnimation() {
     if (this.deckAnimationFrame || !this.cards.length) return;
     this.deckLastFrameAt = 0;
@@ -2731,6 +2804,7 @@ class PortfolioScrollApp {
       this.deckDisplayPosition = target;
       this.deckIsSettling = false;
       this.setDeckInputState('idle');
+      this.rebaseSettledDeckPosition();
       this.updateDeckSlots({ activeChanged: true, force: true });
       this.stopPortfolioCarouselSfx();
       return;
@@ -2769,6 +2843,7 @@ class PortfolioScrollApp {
     if (options.immediate || reducedMotion) {
       this.deckDisplayPosition = this.deckTargetPosition;
       this.setDeckInputState(this.isProjectOpen ? 'drawer-open' : 'idle');
+      this.rebaseSettledDeckPosition();
       this.updateDeckSlots({ activeChanged: true, force: true });
       this.stopPortfolioCarouselSfx();
       return;
@@ -2813,6 +2888,7 @@ class PortfolioScrollApp {
     } else {
       this.deckLastFrameAt = 0;
       this.setDeckInputState(this.isProjectOpen ? 'drawer-open' : 'idle');
+      this.rebaseSettledDeckPosition();
       this.updateDeckFromScroll({ activeChanged: true });
       this.stopPortfolioCarouselSfx();
     }
@@ -2902,7 +2978,10 @@ class PortfolioScrollApp {
       if (!currentGesture) return;
       const accumulatedDirection = Math.sign(currentGesture.accumulated);
       const committedSteps = currentGesture.committed
-        ? accumulatedDirection * Math.max(1, Math.round(Math.abs(currentGesture.accumulated)))
+        ? accumulatedDirection * Math.min(
+            this.projects.length,
+            Math.max(1, Math.round(Math.abs(currentGesture.accumulated)))
+          )
         : 0;
       const target = currentGesture.origin + committedSteps;
       this.beginDeckSettle(target);
@@ -3126,7 +3205,10 @@ class PortfolioScrollApp {
     }
     this.mediaVideos.forEach((video) => {
       const index = Number(video.dataset.projectIndex);
-      const isActive = Number.isInteger(index) && index === this.activeProjectIndex;
+      const card = video.closest('.portfolio-project-card');
+      const isActive = Number.isInteger(index)
+        && index === this.activeProjectIndex
+        && card?.classList.contains('is-active');
       if (!isActive) {
         video.pause();
         return;
@@ -3446,7 +3528,7 @@ class PortfolioScrollApp {
         if (this.isProjectOpen) this.projectDrawerView?.activateHeroMotion?.();
       }, shouldReducePortfolioMotion() ? 0 : Math.max(0, heroMotionDelayMs)));
     }
-    this.focusProjectCloseButton();
+    this.focusProjectBackButton();
     const revealSettledDelay = shouldReducePortfolioMotion()
       ? 0
       : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
@@ -3461,23 +3543,23 @@ class PortfolioScrollApp {
     }, revealSettledDelay));
   }
 
-  focusProjectCloseButton() {
-    const focusClose = () => {
+  focusProjectBackButton() {
+    const focusBack = () => {
       if (!this.isProjectOpen) return;
       const root = this.projectView || this.projectDrawerView?.root || null;
       if (!root || root.getAttribute('aria-hidden') === 'true') return;
       if (root.contains(document.activeElement) && document.activeElement !== document.body) return;
-      const closeButton = this.projectDrawerView?.closeButton
-        || this.projectClose
-        || root.querySelector?.('.portfolio-project-view__close');
-      if (!(closeButton instanceof HTMLElement) || !closeButton.isConnected) return;
-      closeButton.focus({ preventScroll: true });
+      const backButton = this.projectDrawerView?.backButton
+        || this.projectBack
+        || root.querySelector?.('.portfolio-project-view__back--top');
+      if (!(backButton instanceof HTMLElement) || !backButton.isConnected) return;
+      backButton.focus({ preventScroll: true });
     };
 
-    focusClose();
-    window.requestAnimationFrame(focusClose);
+    focusBack();
+    window.requestAnimationFrame(focusBack);
     [80, 220].forEach((delay) => {
-      this.projectOpenTimeouts.push(window.setTimeout(focusClose, delay));
+      this.projectOpenTimeouts.push(window.setTimeout(focusBack, delay));
     });
   }
 
@@ -3940,9 +4022,9 @@ export async function bootstrapPortfolio() {
     const tick = () => {
       if (!isCurrentBootstrapRun()) return;
       if (portfolioLayersRevealed) return;
-      const hasDeckCards = Boolean(pitMount?.querySelector('.portfolio-project-card'));
+      const deckMediaReady = pitMount?.dataset.portfolioMediaReady === 'true';
       const timedOut = (performance.now() - startedAt) >= timeoutMs;
-      if (hasDeckCards || timedOut) {
+      if (deckMediaReady || timedOut) {
         revealPortfolioLayers();
         return;
       }
@@ -4018,6 +4100,7 @@ export async function bootstrapPortfolio() {
         delete document.body.dataset.portfolioLoadState;
       }
       if (pitMount && isCurrentBootstrapRun()) {
+        delete pitMount.dataset.portfolioMediaReady;
         pitMount.classList.remove(
           'is-portfolio-boot-preparing',
           'is-portfolio-deck-visible',
@@ -4148,6 +4231,7 @@ export async function bootstrapPortfolio() {
       delete document.body.dataset.portfolioLoadState;
     }
     if (pitMount && isCurrentBootstrapRun()) {
+      delete pitMount.dataset.portfolioMediaReady;
       pitMount.classList.remove(
         'is-portfolio-boot-preparing',
         'is-portfolio-deck-visible',

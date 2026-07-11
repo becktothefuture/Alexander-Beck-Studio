@@ -125,7 +125,6 @@ const CONTROL_SECTIONS = {
           { id: 'carouselAngleStepDeg', label: 'Desktop spacing', configKey: 'runtime.carousel.angleStepDeg', type: 'range', min: 6, max: 18, step: 0.25, unit: 'deg', default: 10.25, refresh: true },
           { id: 'carouselMobileAngleStepDeg', label: 'Mobile spacing', configKey: 'runtime.carousel.mobileAngleStepDeg', type: 'range', min: 7, max: 24, step: 0.25, unit: 'deg', default: 13.5, refresh: true },
           { id: 'carouselMinCardGapPx', label: 'Minimum card gap', configKey: 'runtime.carousel.minCardGapPx', type: 'range', min: 8, max: 48, step: 1, unit: 'px', default: 18, refresh: true },
-          { id: 'carouselVirtualInstanceCount', label: 'Visible pool', configKey: 'runtime.carousel.virtualInstanceCount', type: 'range', min: 5, max: 15, step: 2, unit: '', default: 11, refresh: true },
         ],
       },
       {

@@ -64,12 +64,13 @@ async function main() {
 
   const initialState = await page.evaluate(() => ({
     drawerClass: document.getElementById('portfolioProjectView')?.className || '',
-    labelCount: document.querySelectorAll('.portfolio-project-label').length,
+    projectCount: window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.projects?.length || 0,
+    cardInstanceCount: document.querySelectorAll('.portfolio-project-label').length,
   }));
 
   const projectResults = [];
 
-  for (let index = 0; index < initialState.labelCount; index += 1) {
+  for (let index = 0; index < initialState.projectCount; index += 1) {
     await page.evaluate((projectIndex) => {
       document.dispatchEvent(new CustomEvent('abs:portfolio:open-project', {
         detail: { index: projectIndex },
@@ -91,7 +92,8 @@ async function main() {
         drawerClass: document.getElementById('portfolioProjectView')?.className || '',
         bodyOpen: document.body.classList.contains('portfolio-project-open'),
         title: (document.getElementById('portfolioProjectTitle')?.textContent || '').trim(),
-        labelCount: document.querySelectorAll('.portfolio-project-label').length,
+        projectCount: window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.projects?.length || 0,
+        cardInstanceCount: document.querySelectorAll('.portfolio-project-label').length,
       }));
       console.error(JSON.stringify({ failureState, pageErrors, consoleErrors, failedIndex: index }, null, 2));
       throw error;
@@ -106,7 +108,7 @@ async function main() {
 
     projectResults.push(openState);
 
-    await page.click('.portfolio-project-view__close', { timeout: 10000 });
+    await page.click('.portfolio-project-view__back--top', { timeout: 10000 });
     await page.waitForFunction(
       () => !document.body.classList.contains('portfolio-project-open'),
       { timeout: WAIT_MS }

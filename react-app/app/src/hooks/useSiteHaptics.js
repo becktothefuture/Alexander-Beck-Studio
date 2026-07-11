@@ -19,7 +19,7 @@ const OPEN_SELECTOR = [
 
 const CLOSE_SELECTOR = [
   '[data-modal-back]',
-  '.portfolio-project-view__close',
+  '[data-portfolio-project-back]',
 ].join(',');
 
 function getHapticTarget(target) {
