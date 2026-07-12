@@ -152,6 +152,8 @@ async function readState(page) {
       sceneBridge: Boolean(document.querySelector('[data-portfolio-gate-scene-bridge]')),
       sceneFocusableCount: document.querySelectorAll('[data-portfolio-gate-scene] a, [data-portfolio-gate-scene] button, [data-portfolio-gate-scene] input, [data-portfolio-gate-scene] [tabindex]').length,
       sceneImageCount: scene?.querySelectorAll('img, picture, source').length || 0,
+      sceneCardCopyCount: scene?.querySelectorAll('.portfolio-gate-scene__card-copy').length || 0,
+      sceneAnimationName: scene ? getComputedStyle(scene).animationName : '',
       sceneText: scene?.textContent?.trim() || '',
       deck: Boolean(deck),
       deckPrepared: deck?.classList.contains('is-portfolio-boot-preparing') || false,
@@ -164,12 +166,13 @@ async function readState(page) {
       oldPortfolioModal: Boolean(document.querySelector('#portfolio-modal.active')),
       cookie: document.cookie,
       sessionAccess: sessionStorage.getItem('abs_portfolio_ok'),
-      storedTheme: localStorage.getItem('theme-preference-v2'),
+      storedTheme: localStorage.getItem('theme-preference-v3'),
       rootTheme: root.getAttribute('data-abs-theme'),
       bodyTheme: body.getAttribute('data-abs-theme'),
       rootDark: root.classList.contains('dark-mode'),
       bodyDark: body.classList.contains('dark-mode'),
       colorScheme: getComputedStyle(root).colorScheme,
+      reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
       gatePulse: document.querySelector('.portfolio-gate-inputs')?.classList.contains('pulse-energy') || false,
       canvasReady,
       gateColors: {
@@ -253,10 +256,18 @@ function assertThemeState(
     assert(state.scene, `${label}: fictional gate scene did not mount`, state);
     assert(state.sceneImageCount === 0, `${label}: fictional gate scene must not use image assets`, state);
     assert(
-      state.sceneText === 'Cheeky. You found the scenery, not the work.',
-      `${label}: gate scene Easter egg drifted`,
+      state.sceneText === "Ah, ah, ah. You didn't say the magic word.",
+      `${label}: gate scene intercept copy drifted`,
       state,
     );
+    assert(state.sceneCardCopyCount === 0, `${label}: locked cards must not render titles`, state);
+    if (!state.reducedMotion) {
+      assert(
+        state.sceneAnimationName.includes('portfolio-gate-scene-enter'),
+        `${label}: gate scene must fade in rather than pop in`,
+        state,
+      );
+    }
     assert(
       Math.abs(state.sceneSurface.opacity - GATE_SCENE_OPACITY) <= 0.01,
       `${label}: scene opacity did not resolve to ${GATE_SCENE_OPACITY}`,
@@ -363,7 +374,7 @@ async function captureUnlockRevealReplay(browser, profile, checkpointId) {
     hasTouch: profile.mobile,
   });
   await context.addInitScript((themePreference) => {
-    localStorage.setItem('theme-preference-v2', themePreference);
+    localStorage.setItem('theme-preference-v3', themePreference);
     localStorage.removeItem('theme-preference');
     sessionStorage.removeItem('abs_portfolio_ok');
     localStorage.removeItem('abs_portfolio_ok');
@@ -412,7 +423,7 @@ async function auditUnlockSequence(browser, profile) {
     hasTouch: profile.mobile,
   });
   await context.addInitScript((themePreference) => {
-    localStorage.setItem('theme-preference-v2', themePreference);
+    localStorage.setItem('theme-preference-v3', themePreference);
     localStorage.removeItem('theme-preference');
     sessionStorage.removeItem('abs_portfolio_ok');
     localStorage.removeItem('abs_portfolio_ok');
@@ -551,7 +562,7 @@ async function auditResponsiveGateBreakpoint(browser, profile) {
     hasTouch: profile.mobile,
   });
   await context.addInitScript((themePreference) => {
-    localStorage.setItem('theme-preference-v2', themePreference);
+    localStorage.setItem('theme-preference-v3', themePreference);
     localStorage.removeItem('theme-preference');
     sessionStorage.removeItem('abs_portfolio_ok');
     localStorage.removeItem('abs_portfolio_ok');
@@ -588,7 +599,7 @@ async function auditTheme(browser, theme) {
   });
   await context.addInitScript((themePreference) => {
     if (sessionStorage.getItem('abs_portfolio_gate_theme_seeded') === '1') return;
-    localStorage.setItem('theme-preference-v2', themePreference);
+    localStorage.setItem('theme-preference-v3', themePreference);
     localStorage.removeItem('theme-preference');
     sessionStorage.removeItem('abs_portfolio_ok');
     localStorage.removeItem('abs_portfolio_ok');

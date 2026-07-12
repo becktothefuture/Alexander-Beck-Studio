@@ -108,7 +108,6 @@ body.portfolio-page #simulations::before {
 }
 
 .portfolio-gate-scene {
-  --portfolio-gate-scene-ink: color-mix(in srgb, var(--text-primary) 78%, transparent);
   --portfolio-gate-scene-shadow: rgb(0 0 0 / 0.24);
   --portfolio-gate-scene-card-width: min(304px, 23.7vw);
   --portfolio-gate-scene-card-height: min(444px, 58vh);
@@ -120,16 +119,29 @@ body.portfolio-page #simulations::before {
   inset: -4%;
   overflow: hidden;
   border-radius: calc(var(--frame-inner-radius) * 1.04);
-  opacity: 0.5;
+  opacity: 0;
   pointer-events: none;
   user-select: none;
   transform: scale(1.04);
   transform-origin: center;
 }
 
+html:not([data-abs-boot-state='booting']) .portfolio-gate-scene {
+  animation: portfolio-gate-scene-enter 560ms var(--ease-organic, ease) both;
+}
+
 .portfolio-gate-scene--transition-bridge {
   z-index: 160;
   will-change: opacity;
+  animation: none;
+  opacity: 0.5;
+}
+
+.portfolio-gate-scene--transition-bridge .portfolio-gate-scene__card,
+.portfolio-gate-scene--transition-bridge .portfolio-gate-scene__intercept,
+.portfolio-gate-scene--transition-bridge .portfolio-gate-scene__dot-dial {
+  animation: none;
+  opacity: 1;
 }
 
 .portfolio-gate-scene__field {
@@ -140,32 +152,25 @@ body.portfolio-page #simulations::before {
     var(--studio-window-bg);
 }
 
-.portfolio-gate-scene__intro {
+.portfolio-gate-scene__intercept {
   position: absolute;
   z-index: 4;
   top: clamp(134px, 12.6svh, 164px);
   left: 50%;
-  display: grid;
-  gap: clamp(8px, 1.4cqh, 14px);
   width: min(76%, 38rem);
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--abs-font-sans);
+  font-size: clamp(1.7rem, 2.43vw, 2.1875rem);
+  font-weight: 500;
+  line-height: 1.114;
+  text-align: center;
+  text-wrap: balance;
   transform: translateX(-50%);
 }
 
-.portfolio-gate-scene__intro-line {
-  display: block;
-  height: clamp(9px, 1.35vw, 18px);
-  margin-inline: auto;
-  border-radius: 999px;
-  background: var(--portfolio-gate-scene-ink);
-}
-
-.portfolio-gate-scene__intro-line--long {
-  width: min(100%, 27rem);
-}
-
-.portfolio-gate-scene__intro-line--short {
-  width: min(58%, 15rem);
-  opacity: 0.62;
+html:not([data-abs-boot-state='booting']) .portfolio-gate-scene__intercept {
+  animation: portfolio-gate-scene-intercept-enter 520ms var(--ease-organic, ease) 80ms both;
 }
 
 .portfolio-gate-scene__deck {
@@ -196,6 +201,11 @@ body.portfolio-page #simulations::before {
     rotateZ(var(--portfolio-gate-scene-card-rotate, 0deg))
     scale(var(--portfolio-gate-scene-card-scale, 1));
   transform-origin: 50% 50%;
+  opacity: 0;
+}
+
+html:not([data-abs-boot-state='booting']) .portfolio-gate-scene__card {
+  animation: portfolio-gate-scene-card-enter 640ms var(--ease-organic, ease) var(--portfolio-gate-scene-card-delay, 0ms) both;
 }
 
 .portfolio-gate-scene__card--left {
@@ -204,10 +214,12 @@ body.portfolio-page #simulations::before {
   --portfolio-gate-scene-card-y: var(--portfolio-gate-scene-side-y);
   --portfolio-gate-scene-card-rotate: -10deg;
   --portfolio-gate-scene-card-scale: var(--portfolio-gate-scene-side-scale);
+  --portfolio-gate-scene-card-delay: 70ms;
 }
 
 .portfolio-gate-scene__card--center {
   z-index: 3;
+  --portfolio-gate-scene-card-delay: 110ms;
 }
 
 .portfolio-gate-scene__card--right {
@@ -216,6 +228,7 @@ body.portfolio-page #simulations::before {
   --portfolio-gate-scene-card-y: var(--portfolio-gate-scene-side-y);
   --portfolio-gate-scene-card-rotate: 10deg;
   --portfolio-gate-scene-card-scale: var(--portfolio-gate-scene-side-scale);
+  --portfolio-gate-scene-card-delay: 150ms;
 }
 
 .portfolio-gate-scene__card--far-left,
@@ -259,43 +272,6 @@ body.portfolio-page #simulations::before {
   background: linear-gradient(180deg, rgb(8 10 14 / 0.06), rgb(8 10 14 / 0.26));
 }
 
-.portfolio-gate-scene__card-copy {
-  position: absolute;
-  z-index: 1;
-  top: clamp(18px, 2vw, 23px);
-  left: clamp(16px, 1.8vw, 20px);
-  display: grid;
-  gap: clamp(9px, 1vw, 12px);
-  width: calc(100% - clamp(32px, 3.6vw, 40px));
-}
-
-.portfolio-gate-scene__eyebrow,
-.portfolio-gate-scene__line {
-  display: block;
-  border-radius: 999px;
-  background: rgb(245 241 234 / 0.84);
-}
-
-.portfolio-gate-scene__eyebrow {
-  width: 31%;
-  height: clamp(7px, 0.8vw, 9px);
-  opacity: 0.68;
-}
-
-.portfolio-gate-scene__line {
-  width: 82%;
-  height: clamp(12px, 1.36vw, 16px);
-  opacity: 0.84;
-}
-
-.portfolio-gate-scene__line--short {
-  width: 56%;
-}
-
-.portfolio-gate-scene__line--medium {
-  width: 66%;
-}
-
 .portfolio-gate-scene__dot-dial {
   position: absolute;
   z-index: 4;
@@ -304,6 +280,23 @@ body.portfolio-page #simulations::before {
   width: min(54vw, 680px);
   height: 24px;
   transform: translateX(-50%);
+  opacity: 0;
+}
+
+html:not([data-abs-boot-state='booting']) .portfolio-gate-scene__dot-dial {
+  animation: portfolio-gate-scene-intercept-enter 480ms var(--ease-organic, ease) 160ms both;
+}
+
+html:not([data-abs-boot-state='booting']) .portfolio-gate-scene--transition-bridge {
+  animation: none;
+  opacity: 0.5;
+}
+
+html:not([data-abs-boot-state='booting']) .portfolio-gate-scene--transition-bridge .portfolio-gate-scene__card,
+html:not([data-abs-boot-state='booting']) .portfolio-gate-scene--transition-bridge .portfolio-gate-scene__intercept,
+html:not([data-abs-boot-state='booting']) .portfolio-gate-scene--transition-bridge .portfolio-gate-scene__dot-dial {
+  animation: none;
+  opacity: 1;
 }
 
 .portfolio-gate-scene__dot {
@@ -331,22 +324,54 @@ body.portfolio-page #simulations::before {
 .portfolio-gate-scene__dot:nth-child(12) { left: 93%; --portfolio-gate-scene-dot-y: 14px; opacity: 0.10; }
 .portfolio-gate-scene__dot:nth-child(13) { display: none; }
 
+@keyframes portfolio-gate-scene-enter {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    transform: scale(1.012);
+  }
+  to {
+    opacity: 0.5;
+    filter: blur(0);
+    transform: scale(1.04);
+  }
+}
+
+@keyframes portfolio-gate-scene-card-enter {
+  from {
+    opacity: 0;
+    transform:
+      translate3d(-50%, -50%, 0)
+      translateX(var(--portfolio-gate-scene-card-x, 0px))
+      translateY(calc(var(--portfolio-gate-scene-card-y, 0px) + 18px))
+      rotateZ(var(--portfolio-gate-scene-card-rotate, 0deg))
+      scale(var(--portfolio-gate-scene-card-scale, 1));
+  }
+  to {
+    opacity: 1;
+    transform:
+      translate3d(-50%, -50%, 0)
+      translateX(var(--portfolio-gate-scene-card-x, 0px))
+      translateY(var(--portfolio-gate-scene-card-y, 0px))
+      rotateZ(var(--portfolio-gate-scene-card-rotate, 0deg))
+      scale(var(--portfolio-gate-scene-card-scale, 1));
+  }
+}
+
+@keyframes portfolio-gate-scene-intercept-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+}
+
 .portfolio-gate-scene__card--left,
 .portfolio-gate-scene__card--right {
   filter: saturate(0.88);
-}
-
-.portfolio-gate-scene__easter-egg {
-  position: absolute;
-  right: clamp(24px, 4vw, 62px);
-  bottom: clamp(24px, 4vw, 58px);
-  z-index: 3;
-  margin: 0;
-  color: var(--text-primary);
-  font-size: clamp(0.58rem, 0.72vw, 0.74rem);
-  letter-spacing: 0.11em;
-  opacity: 0.54;
-  text-transform: uppercase;
 }
 
 @media (max-width: 900px) {
@@ -362,13 +387,10 @@ body.portfolio-page #simulations::before {
     aspect-ratio: 316 / 461;
   }
 
-  .portfolio-gate-scene__intro {
+  .portfolio-gate-scene__intercept {
     top: clamp(140px, 16svh, 188px);
     width: min(78vw, 28ch);
-  }
-
-  .portfolio-gate-scene__intro-line {
-    height: clamp(7px, 1.7vw, 12px);
+    font-size: clamp(1.1rem, 5vw, 1.44rem);
   }
 }
 
@@ -381,9 +403,10 @@ body.portfolio-page #simulations::before {
     --portfolio-gate-scene-side-scale: 0.78;
   }
 
-  .portfolio-gate-scene__intro {
+  .portfolio-gate-scene__intercept {
     top: clamp(128px, 14svh, 156px);
     width: min(78vw, 28ch);
+    font-size: clamp(1.1rem, 5vw, 1.44rem);
   }
 
   .portfolio-gate-scene__dot-dial {
@@ -395,14 +418,6 @@ body.portfolio-page #simulations::before {
     display: block;
   }
 
-  .portfolio-gate-scene__easter-egg {
-    right: 18px;
-    bottom: 18px;
-    max-width: 22ch;
-    font-size: 0.52rem;
-    line-height: 1.35;
-    text-align: right;
-  }
 }
 
 @media (min-width: 1280px) {
@@ -430,7 +445,7 @@ body.portfolio-page #simulations::before {
 }
 
 @media (min-width: 1280px) and (max-height: 1000px) {
-  .portfolio-gate-scene__intro {
+  .portfolio-gate-scene__intercept {
     top: clamp(110px, 10.5svh, 134px);
   }
 }
@@ -457,7 +472,7 @@ body.portfolio-page #simulations::before {
     --portfolio-gate-scene-side-y: 12px;
   }
 
-  .portfolio-gate-scene__intro {
+  .portfolio-gate-scene__intercept {
     display: none;
   }
 
@@ -2450,6 +2465,32 @@ body.portfolio-project-open .ui-bottom {
 @media (prefers-reduced-motion: reduce) {
   .portfolio-deck-stage {
     scroll-behavior: auto;
+  }
+
+  .portfolio-gate-scene,
+  html:not([data-abs-boot-state='booting']) .portfolio-gate-scene,
+  .portfolio-gate-scene__card,
+  html:not([data-abs-boot-state='booting']) .portfolio-gate-scene__card,
+  .portfolio-gate-scene__intercept,
+  html:not([data-abs-boot-state='booting']) .portfolio-gate-scene__intercept,
+  .portfolio-gate-scene__dot-dial,
+  html:not([data-abs-boot-state='booting']) .portfolio-gate-scene__dot-dial {
+    animation: none;
+  }
+
+  .portfolio-gate-scene {
+    opacity: 0.5;
+    filter: none;
+    transform: scale(1.04);
+  }
+
+  .portfolio-gate-scene__card,
+  .portfolio-gate-scene__intercept,
+  .portfolio-gate-scene__dot-dial,
+  html:not([data-abs-boot-state='booting']) .portfolio-gate-scene__card,
+  html:not([data-abs-boot-state='booting']) .portfolio-gate-scene__intercept,
+  html:not([data-abs-boot-state='booting']) .portfolio-gate-scene__dot-dial {
+    opacity: 1;
   }
 
   .portfolio-project-view__backdrop,

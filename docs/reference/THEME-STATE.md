@@ -61,7 +61,7 @@ The Button Bar sits outside the studio window and is stable shell chrome. Its ta
 
 The locked Portfolio route uses one token-driven CSS/DOM ghost scene rather than theme or viewport image assets. Its abstract card planes adapt through responsive CSS and resolved theme tokens, so theme switching does not request a second preview asset.
 
-The ghost scene contains no project media, project text, or client information. Removing CSS blur reveals only the fictional scene and its harmless Easter egg. The locked Portfolio overlay adds a gate-only 30% backdrop-blur increase (8.58px desktop, 15.6px touch/mobile) without changing the shared modal or simulation-focus blur contract.
+The ghost scene contains no project media, project text, or client information. It fades in as a non-interactive set of fictional static thumbnails with no per-card titles; removing CSS blur reveals only the harmless intercept: “Ah, ah, ah. You didn’t say the magic word.” The locked Portfolio overlay adds a gate-only 30% backdrop-blur increase (8.58px desktop, 15.6px touch/mobile) without changing the shared modal or simulation-focus blur contract.
 
 ## Verification
 
