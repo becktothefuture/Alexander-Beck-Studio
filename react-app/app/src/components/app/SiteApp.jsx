@@ -130,7 +130,7 @@ function getHomeDailyFocusRouteId(canonicalHref, routeState) {
 
   const requestedFocusId = getRequestedFocusIdFromHref(canonicalHref);
   const requestedTarget = requestedFocusId ? getSimulationLaunchTarget(requestedFocusId) : null;
-  if (requestedTarget?.routeBacked) return requestedTarget.id;
+  if (requestedTarget) return requestedTarget.routeBacked ? requestedTarget.id : null;
 
   const focusState = getResolvedSimulationFocus();
   const activeTarget = focusState.activeId ? getSimulationLaunchTarget(focusState.activeId) : null;

@@ -12,7 +12,7 @@ Source of truth for mode IDs and narrative order:
 - Public simulation IDs and narrative ordering are defined by the mode constants and catalog together.
 - `24` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
 - The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `17` Daily simulations.
-- Daily Simulation selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
+- Daily Simulation selection uses the catalog `daily-rotation` stage as an eligibility pool. Each full page reload randomly selects an entry other than the last visible simulation, so the simulation always changes instead of following a calendar rotation.
 - `flock-of-birds`, `repel-room`, `mineral-growth`, `napoleon-point-cloud`, and `rift-rings` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 - `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
 - `elastic-center` and `beach-ball-room` are collection entries with `includeInNarrative: false`; they are not in the Daily Simulation chooser or live narrative cycle.

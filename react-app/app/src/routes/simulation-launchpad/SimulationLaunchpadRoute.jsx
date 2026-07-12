@@ -26,7 +26,7 @@ import {
   SIMULATION_CATALOG,
   SIMULATION_CATALOG_UPDATED_AT,
   SIMULATION_STAGES,
-  getDailySimulation,
+  getReloadSimulation,
 } from '../../data/simulationCatalog.js';
 import { IssuePanel } from './IssuePanel.jsx';
 import { useSimulationAdminApi } from './useSimulationAdminApi.js';
@@ -367,11 +367,11 @@ function InlineNotice({ notice, pendingAction }) {
   );
 }
 
-function SummaryStrip({ counts, todaySimulation, statusReady }) {
+function SummaryStrip({ counts, reloadSimulation, statusReady }) {
   const validationPercent = counts.total ? Math.round((counts.passing / counts.total) * 100) : 0;
   const summary = [
     { label: 'Total', value: counts.total, detail: 'catalog' },
-    { label: 'Daily', value: counts[SIMULATION_STAGES.DAILY_ROTATION] || 0, detail: todaySimulation?.name || 'none' },
+    { label: 'Daily', value: counts[SIMULATION_STAGES.DAILY_ROTATION] || 0, detail: reloadSimulation?.name || 'none' },
     { label: 'Candidates', value: counts[SIMULATION_STAGES.AUTOMATION_CANDIDATE] || 0, detail: 'review' },
     { label: 'Issues', value: counts.issues, detail: 'open' },
     { label: 'Missing', value: counts.missing, detail: statusReady ? 'assets' : 'status off' },
@@ -973,7 +973,7 @@ function SimulationDashboard() {
     [simulations, statusById, statusReady],
   );
   const counts = getSimulationCounts(viewModels);
-  const todaySimulation = getDailySimulation(new Date(), simulations);
+  const reloadSimulation = getReloadSimulation(simulations);
   const filteredSimulations = useMemo(
     () => sortSimulationsByPriority(filterSimulations(viewModels, activeFilter, query)),
     [viewModels, activeFilter, query],
@@ -1101,7 +1101,7 @@ function SimulationDashboard() {
         <HeaderActions onBuild={handleBuild} onValidate={handleValidate} pendingAction={pendingAction} />
       </header>
 
-      <SummaryStrip counts={counts} todaySimulation={todaySimulation} statusReady={statusReady} />
+      <SummaryStrip counts={counts} reloadSimulation={reloadSimulation} statusReady={statusReady} />
 
       <FilterToolbar
         activeFilter={activeFilter}

@@ -45,13 +45,13 @@ Loaders and normalizers live under `src/legacy/modules/utils/` and route-specifi
 
 | Contract | Tokens/config | Required behavior |
 | --- | --- | --- |
-| Browser-aware exposed frame | `runtime.chromeHarmonyMode`, `shell.theme.siteFrame*`, `shell.theme.safariFrame*`, `--abs-browser-chrome`, `--frame-color`, `--wall-color` | Browser family and browser/OS scheme select the active palette; manual site theme does not. |
+| Browser-aware exposed frame | `runtime.chromeHarmonyMode`, `shell.theme.siteFrame*`, `shell.theme.safariFrame*`, `--abs-browser-chrome`, `--frame-color`, `--wall-color` | Theme-color-capable browsers use the fixed dark authored wall colour in both browser schemes. Locked Chromium/Firefox adapt to browser-native chrome. Manual site theme does not affect either path. |
 | Stable outer shell | `shell.theme.wallBase*`, `--shell-wall-bg`, `--abs-wall-base` | Remains stable across manual site-theme changes. |
 | Themeable studio window | `runtime.bgLight`, `runtime.bgDark`, `--studio-window-bg`, `--frame-inner-surface` | Follows the resolved site theme and contains all route content. |
 | Themeable in-window finish | `--simulation-contrast-veil-rgb` and light/dark finish opacities | Follows the active studio-window surface. |
 | Stable Button Bar | `--button-bar-outer-ink*` and shell material tokens | Does not inherit window text tokens or recolor on manual theme changes. |
 
-`syncShellToDocument()` owns stable shell and window projection. `applyChromeHarmony()` separately owns the active outer-frame variables and derives its active light/dark choice from `prefers-color-scheme`. Preserve the Safari/theme-color versus locked Chromium/Firefox split. Do not make `--studio-window-bg` or `--frame-inner-surface` aliases of `--abs-wall-base`, and do not pass the resolved site theme into browser harmony.
+`syncShellToDocument()` owns stable shell and window projection. `applyChromeHarmony()` separately owns the active outer-frame variables. Preserve the fixed-dark Safari/theme-color path versus the browser-scheme-aware locked Chromium/Firefox path. The Button Bar material must derive from the resolved outer-frame colour so its rest, hover, and pressed states keep the same subtle contrast in both native light and dark chrome. Do not make `--studio-window-bg` or `--frame-inner-surface` aliases of `--abs-wall-base`, and do not pass the resolved site theme into browser harmony.
 
 ## Behavioral invariants
 

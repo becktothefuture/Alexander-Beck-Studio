@@ -10,14 +10,14 @@ import { isDarkThemeDocument } from '../../../lib/theme-state.js';
 const DEFAULT_SHELL_CONFIG = {
   theme: {
     wallBaseLight: '#efefef',
-    wallBaseDark: '#181818',
+    wallBaseDark: '#141414',
     quoteButtonColorLight: '#efefef',
-    quoteButtonColorDark: '#181818',
-    siteFrameLight: '#202124',
-    siteFrameDark: '#141517',
+    quoteButtonColorDark: '#141414',
+    siteFrameLight: '#141414',
+    siteFrameDark: '#141414',
     chromeHarmonyMode: 'adaptive',
-    safariFrameLight: '#181818',
-    safariFrameDark: '#141517',
+    safariFrameLight: '#141414',
+    safariFrameDark: '#141414',
     frameBorderEdgeOpacity: 0.03,
     frameBorderMidOpacity: 0.06
   },

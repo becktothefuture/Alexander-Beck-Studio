@@ -124,11 +124,33 @@ body.portfolio-page #simulations::before {
   user-select: none;
 }
 
+.portfolio-gate-teaser--transition-bridge {
+  z-index: 160;
+  opacity: 1;
+  will-change: opacity;
+}
+
 .portfolio-gate-teaser__image {
   object-fit: cover;
   object-position: center;
   pointer-events: none;
   user-select: none;
+}
+
+/* Gate teaser JPGs are already baked with a 12px blur. Keep the runtime image
+   filter-free so the public asset itself, rather than removable CSS, owns the
+   first concealment layer. The in-window gate adds 30% more backdrop blur on
+   top without changing the shared modal/simulation-focus blur contract. */
+body.portfolio-page--locked .window-overlay-blur-layer {
+  -webkit-backdrop-filter: blur(8.58px);
+  backdrop-filter: blur(8.58px);
+}
+
+@media (max-width: 600px), (hover: none) and (pointer: coarse) {
+  body.portfolio-page--locked .window-overlay-blur-layer {
+    -webkit-backdrop-filter: blur(15.6px);
+    backdrop-filter: blur(15.6px);
+  }
 }
 
 body.portfolio-page--locked .portfolio-gate-route {

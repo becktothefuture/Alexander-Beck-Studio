@@ -12,7 +12,7 @@ import {
   MODES,
   isPitLikeMode,
 } from '../core/constants.js';
-import { getDailySimulationId } from '../../../data/simulationCatalog.js';
+import { getReloadSimulationId } from '../../../data/simulationCatalog.js';
 import { resetCurrentMode, setMode } from '../modes/mode-controller.js';
 import { resize } from '../rendering/renderer.js';
 import { updateCursorSize } from '../rendering/cursor.js';
@@ -6126,7 +6126,7 @@ export function generateModeSwitcherHTML() {
     'beach-ball-room': 'Beach Ball Room'
   };
   
-  const dailyMode = getDailySimulationId();
+  const dailyMode = getReloadSimulationId();
   
   let buttons = '';
   NARRATIVE_MODE_SEQUENCE.forEach((mode, idx) => {
@@ -6134,8 +6134,8 @@ export function generateModeSwitcherHTML() {
     const label = modeLabels[mode] || mode;
     const number = String(idx + 1).padStart(2, '0');
     const isDailyMode = mode === dailyMode;
-    const dailyBadge = isDailyMode ? '<span class="daily-badge" title="Today\'s Simulation">📅</span>' : '';
-    const ariaLabel = `${number} · ${(NARRATIVE_CHAPTER_TITLES[mode] || label)} mode${isDailyMode ? ' (Today\'s Simulation)' : ''}`;
+    const dailyBadge = isDailyMode ? '<span class="daily-badge" title="Current Daily Simulation">↻</span>' : '';
+    const ariaLabel = `${number} · ${(NARRATIVE_CHAPTER_TITLES[mode] || label)} mode${isDailyMode ? ' (Current Daily Simulation)' : ''}`;
     buttons += `<button class="mode-button${isDailyMode ? ' is-daily-mode' : ''}" data-mode="${mode}" aria-label="${ariaLabel}"><span class="mode-button-number">${number}</span><span class="mode-button-label">${icon} ${label}${dailyBadge}</span></button>`;
   });
   DEV_ONLY_MODES.forEach((mode, idx) => {

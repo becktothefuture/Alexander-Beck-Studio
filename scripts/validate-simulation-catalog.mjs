@@ -57,20 +57,6 @@ const BASE_SHELL_ROUTE_PATHS = new Map([
   ['palette-lab', '/palette-lab.html'],
 ]);
 
-function isValidIsoDate(value) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
-  if (!match) return false;
-
-  const year = Number.parseInt(match[1], 10);
-  const month = Number.parseInt(match[2], 10) - 1;
-  const day = Number.parseInt(match[3], 10);
-  const timestamp = Date.UTC(year, month, day);
-  const parsed = new Date(timestamp);
-  return parsed.getUTCFullYear() === year
-    && parsed.getUTCMonth() === month
-    && parsed.getUTCDate() === day;
-}
-
 async function readSource(path) {
   return readFile(path, 'utf8').catch(() => '');
 }
@@ -392,23 +378,8 @@ async function main() {
 
   const dailyCount = simulations.filter((entry) => entry.stage === SIMULATION_STAGES.DAILY_ROTATION).length;
   const candidateCount = simulations.filter((entry) => entry.stage === SIMULATION_STAGES.AUTOMATION_CANDIDATE).length;
-  const dailyRotation = catalog.dailyRotation || {};
-
   if (!dailyCount) {
     errors.push('Catalog has no daily-rotation simulations.');
-  }
-
-  if (dailyRotation.anchorDate !== undefined && !isValidIsoDate(dailyRotation.anchorDate)) {
-    errors.push('dailyRotation.anchorDate must be a valid YYYY-MM-DD date');
-  }
-
-  if (dailyRotation.anchorSimulationId !== undefined) {
-    const anchorEntry = simulations.find((entry) => entry.id === dailyRotation.anchorSimulationId);
-    if (!anchorEntry) {
-      errors.push(`dailyRotation.anchorSimulationId points at missing simulation "${dailyRotation.anchorSimulationId}"`);
-    } else if (anchorEntry.stage !== SIMULATION_STAGES.DAILY_ROTATION) {
-      errors.push(`dailyRotation.anchorSimulationId "${dailyRotation.anchorSimulationId}" is not in daily rotation`);
-    }
   }
 
   addDailyFocusRuntimeCoverageErrors(

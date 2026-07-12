@@ -12,6 +12,8 @@ const outputDir = resolve(repoRoot, 'react-app/app/public/images/portfolio/gate-
 const host = process.env.ABS_GATE_CAPTURE_HOST || '127.0.0.1';
 const port = Number(process.env.ABS_GATE_CAPTURE_PORT || 8014);
 const baseUrl = `http://${host}:${port}`;
+const BAKED_BLUR_PX = 12;
+const BLUR_OVERSCAN_SCALE = 1.08;
 
 const captures = [
   { label: 'mobile', width: 390, height: 844 },
@@ -96,6 +98,12 @@ async function captureTeaser(browser, capture, theme) {
       }
       #simulations::before { content: none !important; }
       #custom-cursor { display: none !important; }
+      #shell-wall-slot,
+      #shell-hero-slot {
+        filter: blur(${BAKED_BLUR_PX}px) !important;
+        transform: scale(${BLUR_OVERSCAN_SCALE}) !important;
+        transform-origin: 50% 50% !important;
+      }
     `,
   });
   await page.evaluate(() => {

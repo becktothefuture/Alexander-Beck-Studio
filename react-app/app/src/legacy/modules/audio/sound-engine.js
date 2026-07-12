@@ -303,6 +303,7 @@ let wheelBus = null;
 
 let isEnabled = false;
 let isUnlocked = false;
+const contactMotifVoices = new Set();
 
 // Broadcast state changes so UI stays in sync
 export const SOUND_STATE_EVENT = 'simulations:sound-state';
@@ -910,6 +911,106 @@ export function playSoundEnabledMotif() {
   }
 }
 
+function stopContactRippleMotif() {
+  for (const voice of contactMotifVoices) {
+    for (const oscillator of voice.oscillators) {
+      try { oscillator.stop(); } catch (e) {}
+    }
+    for (const node of voice.nodes) {
+      try { node.disconnect(); } catch (e) {}
+    }
+  }
+  contactMotifVoices.clear();
+}
+
+function scheduleContactMotifNote({ frequency, offset, duration, gain: peakGain, pan, type }) {
+  const start = audioContext.currentTime + offset;
+  const stop = start + duration + 0.04;
+  const oscillator = audioContext.createOscillator();
+  const overtone = audioContext.createOscillator();
+  const filter = audioContext.createBiquadFilter();
+  const envelope = audioContext.createGain();
+  const overtoneGain = audioContext.createGain();
+  const panner = typeof audioContext.createStereoPanner === 'function'
+    ? audioContext.createStereoPanner()
+    : null;
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, start);
+  oscillator.detune.setValueAtTime((Math.random() - 0.5) * 5, start);
+  overtone.type = 'sine';
+  overtone.frequency.setValueAtTime(frequency * 2.01, start);
+  overtoneGain.gain.setValueAtTime(0.16, start);
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(3600, start);
+  filter.frequency.exponentialRampToValueAtTime(2100, start + duration);
+  filter.Q.setValueAtTime(0.42, start);
+
+  envelope.gain.setValueAtTime(0.0001, start);
+  envelope.gain.exponentialRampToValueAtTime(peakGain, start + 0.018);
+  envelope.gain.exponentialRampToValueAtTime(peakGain * 0.48, start + Math.min(0.22, duration * 0.42));
+  envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  if (panner) panner.pan.setValueAtTime(pan, start);
+
+  oscillator.connect(filter);
+  overtone.connect(overtoneGain).connect(filter);
+  filter.connect(envelope);
+  const output = panner ? envelope.connect(panner) : envelope;
+  output.connect(dryGain);
+  output.connect(wetGain);
+
+  const voice = {
+    oscillators: [oscillator, overtone],
+    nodes: [oscillator, overtone, overtoneGain, filter, envelope, ...(panner ? [panner] : [])],
+  };
+  contactMotifVoices.add(voice);
+
+  oscillator.onended = () => {
+    if (!contactMotifVoices.delete(voice)) return;
+    for (const node of voice.nodes) {
+      try { node.disconnect(); } catch (e) {}
+    }
+  };
+  oscillator.start(start);
+  overtone.start(start);
+  oscillator.stop(stop);
+  overtone.stop(stop);
+}
+
+/**
+ * Contact activation motif: two interleaved D-major melodic strands over a low anchor.
+ * The first Contact click may unlock audio; an explicitly muted engine stays silent.
+ */
+export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
+  if (!isUnlocked && unlockIfNeeded) {
+    const didUnlock = await unlockAudio();
+    if (!didUnlock) return false;
+  }
+  if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return false;
+
+  stopContactRippleMotif();
+  const voices = [
+    { frequency: 293.66, offset: 0.000, duration: 1.05, gain: 0.030, pan: 0.00, type: 'sine' },
+    { frequency: 587.33, offset: 0.015, duration: 0.64, gain: 0.025, pan: -0.18, type: 'triangle' },
+    { frequency: 440.00, offset: 0.055, duration: 0.78, gain: 0.021, pan: 0.18, type: 'sine' },
+    { frequency: 739.99, offset: 0.130, duration: 0.66, gain: 0.022, pan: -0.12, type: 'triangle' },
+    { frequency: 554.37, offset: 0.185, duration: 0.76, gain: 0.019, pan: 0.13, type: 'sine' },
+    { frequency: 880.00, offset: 0.265, duration: 0.72, gain: 0.019, pan: -0.06, type: 'triangle' },
+    { frequency: 659.25, offset: 0.325, duration: 0.80, gain: 0.017, pan: 0.16, type: 'sine' },
+    { frequency: 1318.51, offset: 0.430, duration: 0.88, gain: 0.013, pan: 0.05, type: 'sine' },
+    { frequency: 987.77, offset: 0.455, duration: 0.92, gain: 0.014, pan: 0.20, type: 'sine' },
+  ];
+
+  recordSoundDebugEvent('contact-ripple-motif', 'sound-engine:contact-ripple-motif', {
+    character: 'ethereal-serious-dual-melody',
+    noteCount: voices.length,
+    frequencies: voices.map((voice) => voice.frequency),
+  });
+  for (const voice of voices) scheduleContactMotifNote(voice);
+  return true;
+}
+
 /** Create a short noise burst for transient "snap" */
 function createTransientNoise() {
   if (!sharedNoiseBuffer) {
@@ -1274,7 +1375,10 @@ function radiusToFrequency(radius) {
 export function toggleSound() {
   if (!isUnlocked) return false;
   isEnabled = !isEnabled;
-  if (!isEnabled) stopWheelLoops();
+  if (!isEnabled) {
+    stopWheelLoops();
+    stopContactRippleMotif();
+  }
   emitSoundStateChange();
   return isEnabled;
 }
@@ -1283,7 +1387,10 @@ export function toggleSound() {
 export function setSoundEnabled(enabled) {
   if (!isUnlocked) return;
   isEnabled = !!enabled;
-  if (!isEnabled) stopWheelLoops();
+  if (!isEnabled) {
+    stopWheelLoops();
+    stopContactRippleMotif();
+  }
   emitSoundStateChange();
 }
 
@@ -1306,6 +1413,7 @@ export function setMasterVolume(volume) {
 
 /** Clean up resources */
 export function disposeSoundEngine() {
+  stopContactRippleMotif();
   if (audioContext) {
     audioContext.close();
     audioContext = null;

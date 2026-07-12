@@ -9,7 +9,7 @@ const repoRoot = resolve(__dirname, '..');
 const catalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.json');
 
 const STORAGE_KEY = 'abs_simulation_focus_choice_v1';
-const TARGET_DATE = process.env.ABS_SIMULATION_FOCUS_DATE || '2026-06-27';
+const RELOAD_STORAGE_KEY = 'abs_simulation_reload_choice_v1';
 const DEFAULT_URL = 'http://127.0.0.1:8013';
 const WAIT_MS = Number(process.env.ABS_SIMULATION_FOCUS_WAIT_MS || 30000);
 const SIMULATION_URL_STATE_PARAMS = ['daily', 'focus', 'mode', 'simulation'];
@@ -30,32 +30,6 @@ function resolveUrl(pathname = '/index.html') {
     url.searchParams.set('audit', 'home-runtime');
   }
   return url.toString();
-}
-
-function parseIsoDate(value) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
-  if (!match) throw new Error(`Invalid ABS_SIMULATION_FOCUS_DATE: ${value}`);
-  const year = Number.parseInt(match[1], 10);
-  const month = Number.parseInt(match[2], 10) - 1;
-  const day = Number.parseInt(match[3], 10);
-  const timestamp = Date.UTC(year, month, day);
-  return {
-    iso: `${match[1]}-${match[2]}-${match[3]}`,
-    timestamp,
-    dayStamp: Math.floor(timestamp / 86400000),
-  };
-}
-
-function getAnchoredDailySimulation(catalog, targetDate) {
-  const dailySimulations = (catalog.simulations || []).filter((entry) => entry.stage === 'daily-rotation');
-  const anchor = catalog.dailyRotation || {};
-  const anchorDate = parseIsoDate(anchor.anchorDate);
-  const date = parseIsoDate(targetDate);
-  const anchorIndex = dailySimulations.findIndex((entry) => entry.id === anchor.anchorSimulationId);
-  if (!dailySimulations.length || anchorIndex < 0) return null;
-
-  const index = ((anchorIndex + date.dayStamp - anchorDate.dayStamp) % dailySimulations.length + dailySimulations.length) % dailySimulations.length;
-  return dailySimulations[index] || null;
 }
 
 async function waitForIdle(page) {
@@ -154,7 +128,7 @@ async function waitForFocusId(page, id, label = '') {
             rectHeight: rect.height,
           };
         }),
-        storedChoice: window.localStorage.getItem('abs_simulation_focus_choice_v1'),
+        storedChoice: window.sessionStorage.getItem('abs_simulation_focus_choice_v1'),
       };
     }, { selector: canvasSelector });
     throw new Error(`Timed out waiting for focus "${id}": ${JSON.stringify(diagnostics)}`, { cause: error });
@@ -211,19 +185,16 @@ async function assertChooserSwitchSettled(page, label) {
 
 async function getStoredChoice(page) {
   return page.evaluate((key) => {
-    const raw = window.localStorage.getItem(key);
+    const raw = window.sessionStorage.getItem(key);
     return raw ? JSON.parse(raw) : null;
   }, STORAGE_KEY);
 }
 
-async function setStoredChoice(page, choice) {
-  await page.evaluate(({ key, value }) => {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  }, { key: STORAGE_KEY, value: choice });
-}
-
 async function clearStoredChoice(page) {
-  await page.evaluate((key) => window.localStorage.removeItem(key), STORAGE_KEY);
+  await page.evaluate((keys) => keys.forEach((key) => window.sessionStorage.removeItem(key)), [
+    STORAGE_KEY,
+    RELOAD_STORAGE_KEY,
+  ]);
 }
 
 async function assertStorage(page, expectedId) {
@@ -261,53 +232,33 @@ async function main() {
   const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
   const dailyEntries = catalog.simulations.filter((entry) => entry.stage === 'daily-rotation');
   const expectedDailyCount = dailyEntries.length;
-  const dailyDefault = getAnchoredDailySimulation(catalog, TARGET_DATE);
-  const targetDate = parseIsoDate(TARGET_DATE);
-  if (!dailyDefault) throw new Error('Could not resolve daily default from catalog');
-  if (expectedDailyCount <= 0) throw new Error('Expected at least one Daily Simulation entry in the catalog');
+  const dailyIds = dailyEntries.map((entry) => entry.id);
+  if (expectedDailyCount <= 1) throw new Error('Expected at least two Daily Simulation entries in the catalog');
 
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.addInitScript(({ targetDateIso, storageKey }) => {
+  await page.addInitScript(({ reloadStorageKey, storageKey }) => {
     if (!window.sessionStorage.getItem('__abs_simulation_focus_audit_storage_cleared__')) {
-      window.localStorage.removeItem(storageKey);
+      window.sessionStorage.removeItem(storageKey);
+      window.sessionStorage.removeItem(reloadStorageKey);
       window.sessionStorage.setItem('__abs_simulation_focus_audit_storage_cleared__', '1');
     }
-    const NativeDate = Date;
-    const fixed = new NativeDate(`${targetDateIso}T12:00:00`);
-
-    class MockDate extends NativeDate {
-      constructor(...args) {
-        if (args.length === 0) {
-          super(fixed.getTime());
-          return;
-        }
-        super(...args);
-      }
-
-      static now() {
-        return fixed.getTime();
-      }
-
-      static parse(value) {
-        return NativeDate.parse(value);
-      }
-
-      static UTC(...args) {
-        return NativeDate.UTC(...args);
-      }
-    }
-
-    Object.setPrototypeOf(MockDate, NativeDate);
-    window.Date = MockDate;
-  }, { targetDateIso: targetDate.iso, storageKey: STORAGE_KEY });
+  }, { reloadStorageKey: RELOAD_STORAGE_KEY, storageKey: STORAGE_KEY });
 
   try {
     await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
-    await waitForSwitcherLabel(page, dailyDefault.name);
-    await waitForFocusId(page, dailyDefault.id, dailyDefault.name);
+    await page.waitForFunction(
+      (ids) => ids.includes(document.querySelector('.simulation-focus-switcher')?.dataset.simulationId),
+      dailyIds,
+      { timeout: WAIT_MS, polling: 50 },
+    );
+    const initialId = await page.locator('.simulation-focus-switcher').getAttribute('data-simulation-id');
+    const initialSimulation = dailyEntries.find((entry) => entry.id === initialId);
+    if (!initialSimulation) throw new Error(`Initial reload selection is not eligible: ${initialId || 'none'}`);
+    await waitForSwitcherLabel(page, initialSimulation.name);
+    await waitForFocusId(page, initialSimulation.id, initialSimulation.name);
     await assertStorage(page, null);
 
     await openChooser(page);
@@ -334,39 +285,25 @@ async function main() {
     );
 
     await chooseSimulation(page, 'Repel Room', 'repel-room');
-    await assertStorage(page, 'repel-room');
 
     await chooseSimulation(page, 'Light Swarm', 'flies');
-    await assertStorage(page, 'flies');
 
     await chooseSimulation(page, 'Water Flow', 'water');
-    await assertStorage(page, 'water');
 
     await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
-    await waitForFocusId(page, 'water', 'Water Flow');
-    await waitForSwitcherLabel(page, 'Water Flow');
-    await assertStorage(page, 'water');
-
-    await setStoredChoice(page, {
-      version: 1,
-      dayStamp: targetDate.dayStamp - 1,
-      simulationId: 'water',
-      catalogVersion: catalog.version,
-    });
-    await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
-    await waitForFocusId(page, dailyDefault.id, dailyDefault.name);
-    await waitForSwitcherLabel(page, dailyDefault.name);
-    await assertStorage(page, null);
-
-    await setStoredChoice(page, {
-      version: 1,
-      dayStamp: targetDate.dayStamp,
-      simulationId: 'not-a-real-simulation',
-      catalogVersion: catalog.version,
-    });
-    await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
-    await waitForFocusId(page, dailyDefault.id, dailyDefault.name);
-    await waitForSwitcherLabel(page, dailyDefault.name);
+    await page.waitForFunction(
+      ({ ids, previousId }) => {
+        const activeId = document.querySelector('.simulation-focus-switcher')?.dataset.simulationId;
+        return ids.includes(activeId) && activeId !== previousId;
+      },
+      { ids: dailyIds, previousId: 'water' },
+      { timeout: WAIT_MS, polling: 50 },
+    );
+    const reloadId = await page.locator('.simulation-focus-switcher').getAttribute('data-simulation-id');
+    const reloadSimulation = dailyEntries.find((entry) => entry.id === reloadId);
+    if (!reloadSimulation) throw new Error(`Reload selection is not eligible: ${reloadId || 'none'}`);
+    await waitForFocusId(page, reloadSimulation.id, reloadSimulation.name);
+    await waitForSwitcherLabel(page, reloadSimulation.name);
     await assertStorage(page, null);
 
     await assertLabRouteExcluded(page, catalog);
@@ -374,16 +311,16 @@ async function main() {
 
     console.log(JSON.stringify({
       ok: true,
-      date: targetDate.iso,
-      dailyDefault: dailyDefault.id,
+      initialSelection: initialSimulation.id,
+      selectionAfterManualReload: reloadSimulation.id,
       dailyFocusCount: rowCount,
       flows: [
-        'daily-default',
+        'reload-selected-default',
         'modal-focus-escape',
         'home-runtime-to-home-runtime',
-        'same-day-persistence',
-        'stale-next-day-cleanup',
-        'invalid-id-cleanup',
+        'manual-selection-current-page',
+        'manual-selection-cleared-on-reload',
+        'different-simulation-on-reload',
         'lab-route-excluded',
         'reduced-motion',
       ],

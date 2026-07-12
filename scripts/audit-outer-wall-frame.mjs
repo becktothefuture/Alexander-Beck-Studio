@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
-import { chromium, webkit } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 import { PNG } from 'pngjs';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -13,13 +13,62 @@ const catalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.
 const baseUrl = process.env.ABS_OUTER_WALL_AUDIT_URL || 'http://127.0.0.1:8012/index.html';
 const shouldStartDevServer = !process.env.ABS_OUTER_WALL_AUDIT_URL;
 const browserName = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
-const browserType = browserName === 'webkit' ? webkit : chromium;
+const browserType = { chromium, firefox, webkit }[browserName] || chromium;
 const siteThemes = ['light', 'dark'];
 const browserSchemes = ['light', 'dark'];
-const chromiumLockedHeaderFrame = {
-  light: '#f1f3f4',
-  dark: '#202124',
+const lockedHeaderFrames = {
+  chromium: {
+    light: '#f1f3f4',
+    dark: '#202124',
+  },
+  firefox: {
+    light: '#f9f9fb',
+    dark: '#1c1b22',
+  },
 };
+const browserProfiles = browserName === 'chromium'
+  ? [
+      {
+        name: 'desktop-locked',
+        usesAuthoredFrame: false,
+        context: {
+          viewport: { width: 1400, height: 900 },
+          deviceScaleFactor: 1,
+        },
+      },
+      {
+        name: 'android-theme-color',
+        usesAuthoredFrame: true,
+        context: {
+          viewport: { width: 390, height: 844 },
+          deviceScaleFactor: 2,
+          isMobile: true,
+          hasTouch: true,
+          userAgent: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Mobile Safari/537.36',
+        },
+      },
+    ]
+  : browserName === 'firefox'
+    ? [
+        {
+          name: 'desktop-locked',
+          usesAuthoredFrame: false,
+          context: {
+            viewport: { width: 1400, height: 900 },
+            deviceScaleFactor: 1,
+          },
+        },
+      ]
+    : [
+      {
+        name: 'theme-color-capable',
+        usesAuthoredFrame: true,
+        context: {
+          viewport: { width: 1400, height: 900 },
+          deviceScaleFactor: 1,
+        },
+      },
+    ];
 
 function log(message) {
   console.log(`[outer-wall-frame] ${message}`);
@@ -46,17 +95,62 @@ function cssRgbToRgb(value) {
   ];
 }
 
+function cssColorToRgba(value) {
+  const input = String(value || '').trim();
+  const rgb = input.match(/^rgba?\(\s*([\d.]+)(?:\s*,\s*|\s+)([\d.]+)(?:\s*,\s*|\s+)([\d.]+)(?:\s*(?:,|\/)\s*([\d.]+))?\s*\)$/i);
+  if (rgb) {
+    return [
+      Math.round(Number(rgb[1])),
+      Math.round(Number(rgb[2])),
+      Math.round(Number(rgb[3])),
+      rgb[4] === undefined ? 1 : Number(rgb[4]),
+    ];
+  }
+
+  const srgb = input.match(/^color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+))?\s*\)$/i);
+  if (srgb) {
+    return [
+      Math.round(Number(srgb[1]) * 255),
+      Math.round(Number(srgb[2]) * 255),
+      Math.round(Number(srgb[3]) * 255),
+      srgb[4] === undefined ? 1 : Number(srgb[4]),
+    ];
+  }
+
+  return null;
+}
+
+function compositeRgba(foreground, background) {
+  const alpha = Math.min(1, Math.max(0, foreground[3]));
+  return [
+    Math.round((foreground[0] * alpha) + (background[0] * (1 - alpha))),
+    Math.round((foreground[1] * alpha) + (background[1] * (1 - alpha))),
+    Math.round((foreground[2] * alpha) + (background[2] * (1 - alpha))),
+  ];
+}
+
+function relativeLuminance(rgb) {
+  const channels = rgb.map((channel) => {
+    const value = channel / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return (channels[0] * 0.2126) + (channels[1] * 0.7152) + (channels[2] * 0.0722);
+}
+
+function contrastRatio(foreground, background) {
+  const foregroundLuminance = relativeLuminance(foreground);
+  const backgroundLuminance = relativeLuminance(background);
+  const lighter = Math.max(foregroundLuminance, backgroundLuminance);
+  const darker = Math.min(foregroundLuminance, backgroundLuminance);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 function pixelDistance(a, b) {
   return Math.max(
     Math.abs(a[0] - b[0]),
     Math.abs(a[1] - b[1]),
     Math.abs(a[2] - b[2]),
   );
-}
-
-function getDayStamp() {
-  const date = new Date();
-  return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / (1000 * 60 * 60 * 24));
 }
 
 function loadExpectations() {
@@ -72,17 +166,15 @@ function loadExpectations() {
   if (!routeBacked) throw new Error('No route-backed daily simulation available for audit.');
 
   return {
-    catalogVersion: catalog.version,
-    dayStamp: getDayStamp(),
     homeMode,
     routeBacked,
     frame: {
-      light: designSystem.shell?.theme?.siteFrameLight || '#242529',
-      dark: designSystem.shell?.theme?.siteFrameDark || '#141517',
+      light: designSystem.shell?.theme?.siteFrameLight || '#141414',
+      dark: designSystem.shell?.theme?.siteFrameDark || '#141414',
     },
     safariFrame: {
-      light: designSystem.shell?.theme?.safariFrameLight || designSystem.shell?.theme?.siteFrameLight || '#181818',
-      dark: designSystem.shell?.theme?.safariFrameDark || designSystem.shell?.theme?.siteFrameDark || '#141517',
+      light: designSystem.shell?.theme?.safariFrameLight || designSystem.shell?.theme?.siteFrameLight || '#141414',
+      dark: designSystem.shell?.theme?.safariFrameDark || designSystem.shell?.theme?.siteFrameDark || '#141414',
     },
     window: {
       light: designSystem.runtime?.bgLight || '#f5f5f5',
@@ -160,6 +252,12 @@ async function readFrameState(page) {
     const root = document.documentElement;
     const rootStyle = getComputedStyle(root);
     const bodyStyle = getComputedStyle(document.body);
+    const activeTab = document.querySelector('[data-route-tab][aria-current="page"]');
+    const activeContent = activeTab?.querySelector('.shell-tab__label, .shell-tab__icon');
+    const inactiveTab = document.querySelector('[data-route-tab]:not([aria-current="page"])');
+    const activeStyle = activeTab ? getComputedStyle(activeTab) : null;
+    const activeContentStyle = activeContent ? getComputedStyle(activeContent) : null;
+    const inactiveStyle = inactiveTab ? getComputedStyle(inactiveTab) : null;
     return {
       boot: root.dataset.absBootState || '',
       transition: root.dataset.absSimulationFocusTransition || '',
@@ -168,15 +266,21 @@ async function readFrameState(page) {
       frameColor: rootStyle.getPropertyValue('--frame-color').trim(),
       wallColor: rootStyle.getPropertyValue('--wall-color').trim(),
       chromeBg: rootStyle.getPropertyValue('--chrome-bg').trim(),
+      lightLockedChrome: root.hasAttribute('data-abs-light-locked-chrome'),
       siteFrameLight: rootStyle.getPropertyValue('--frame-color-site-light').trim(),
       studioWindow: rootStyle.getPropertyValue('--studio-window-bg').trim(),
       frameInnerSurface: rootStyle.getPropertyValue('--frame-inner-surface').trim(),
       bodyBackground: bodyStyle.backgroundColor,
+      activeTabBackground: activeStyle?.backgroundColor || '',
+      activeTabColor: activeContentStyle?.color || activeStyle?.color || '',
+      activeTabBorder: activeStyle?.borderTopColor || '',
+      inactiveTabBackground: inactiveStyle?.backgroundColor || '',
+      inactiveTabBorder: inactiveStyle?.borderTopColor || '',
     };
   });
 
   const png = PNG.sync.read(await page.screenshot({ fullPage: false }));
-  const x = Math.min(8, png.width - 1);
+  const x = 0;
   const y = Math.min(100, png.height - 1);
   const offset = (y * png.width + x) * 4;
   return {
@@ -185,7 +289,7 @@ async function readFrameState(page) {
   };
 }
 
-function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, expectedWindow) {
+function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, expectedWindow, checkOuterPixel = true, expectFaintLightBorder = false) {
   const expected = normalizeHex(expectedHex);
   for (const key of ['absBrowserChrome', 'frameColor', 'wallColor', 'chromeBg']) {
     if (normalizeHex(actual[key]) !== expected) {
@@ -195,7 +299,7 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
 
   const expectedOuterRgb = cssRgbToRgb(actual.bodyBackground);
   if (!expectedOuterRgb) throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse body background ${actual.bodyBackground}`);
-  if (pixelDistance(actual.outerPixel, expectedOuterRgb) > 2) {
+  if (checkOuterPixel && pixelDistance(actual.outerPixel, expectedOuterRgb) > 2) {
     throw new Error(`${siteTheme}/${browserScheme}/${phase} outer pixel: expected body background ${expectedOuterRgb.join(',')}, got ${actual.outerPixel.join(',')}`);
   }
   if (normalizeHex(actual.studioWindow) !== normalizeHex(expectedWindow)) {
@@ -204,41 +308,86 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
   if (normalizeHex(actual.frameInnerSurface) !== normalizeHex(expectedWindow)) {
     throw new Error(`${siteTheme}/${browserScheme}/${phase} frameInnerSurface: expected ${expectedWindow}, got ${actual.frameInnerSurface}`);
   }
+
+  const expectedFrameRgb = hexToRgb(expectedHex);
+  const inactiveBackground = cssColorToRgba(actual.inactiveTabBackground);
+  const activeBackground = cssColorToRgba(actual.activeTabBackground);
+  const activeForeground = cssColorToRgba(actual.activeTabColor);
+  if (!expectedFrameRgb || !inactiveBackground || !activeBackground || !activeForeground) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse Button Bar colours: ${JSON.stringify({
+      expectedHex,
+      inactiveTabBackground: actual.inactiveTabBackground,
+      activeTabBackground: actual.activeTabBackground,
+      activeTabColor: actual.activeTabColor,
+    })}`);
+  }
+
+  if (pixelDistance(inactiveBackground, expectedFrameRgb) > 2) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} inactive Button Bar surface must match outer frame: expected ${expectedFrameRgb.join(',')}, got ${inactiveBackground.slice(0, 3).join(',')}`);
+  }
+
+  if (pixelDistance(activeBackground, expectedFrameRgb) > 48) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar surface is too far from the outer frame for a subtle pressed state: frame=${expectedFrameRgb.join(',')} active=${activeBackground.slice(0, 3).join(',')}`);
+  }
+
+  const compositedForeground = compositeRgba(activeForeground, activeBackground);
+  const activeContrast = contrastRatio(compositedForeground, activeBackground);
+  if (activeContrast < 4.5) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar contrast ${activeContrast.toFixed(2)} is below 4.5:1: foreground=${actual.activeTabColor} background=${actual.activeTabBackground}`);
+  }
+
+  actual.activeTabContrast = Number(activeContrast.toFixed(2));
+
+  if (actual.lightLockedChrome !== expectFaintLightBorder) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} light locked chrome marker: expected ${expectFaintLightBorder}, got ${actual.lightLockedChrome}`);
+  }
+
+  if (expectFaintLightBorder) {
+    const inactiveBorder = cssColorToRgba(actual.inactiveTabBorder);
+    const activeBorder = cssColorToRgba(actual.activeTabBorder);
+    if (!inactiveBorder || !activeBorder) {
+      throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse light Button Bar borders: inactive=${actual.inactiveTabBorder} active=${actual.activeTabBorder}`);
+    }
+
+    const inactiveBorderContrast = contrastRatio(compositeRgba(inactiveBorder, expectedFrameRgb), expectedFrameRgb);
+    const activeBorderContrast = contrastRatio(compositeRgba(activeBorder, expectedFrameRgb), expectedFrameRgb);
+    if (inactiveBorderContrast > 1.35 || activeBorderContrast > 1.55) {
+      throw new Error(`${siteTheme}/${browserScheme}/${phase} light Button Bar borders are too strong: inactive=${inactiveBorderContrast.toFixed(2)} active=${activeBorderContrast.toFixed(2)}`);
+    }
+    actual.buttonBorderContrast = {
+      inactive: Number(inactiveBorderContrast.toFixed(2)),
+      active: Number(activeBorderContrast.toFixed(2)),
+    };
+  }
 }
 
-async function runCase(browser, siteTheme, browserScheme, expectations) {
-  const expectedFrame = browserName === 'webkit'
-    ? (browserScheme === 'dark' ? expectations.safariFrame.dark : expectations.safariFrame.light)
-    : chromiumLockedHeaderFrame[browserScheme];
+async function runCase(browser, siteTheme, browserScheme, expectations, profile) {
+  const authoredFrame = browserName === 'webkit' ? expectations.safariFrame : expectations.frame;
+  const expectedFrame = profile.usesAuthoredFrame
+    ? (browserScheme === 'dark' ? authoredFrame.dark : authoredFrame.light)
+    : lockedHeaderFrames[browserName][browserScheme];
   const expectedWindow = expectations.window[siteTheme];
+  const expectFaintLightBorder = !profile.usesAuthoredFrame && browserScheme === 'light';
   const context = await browser.newContext({
-    viewport: { width: 1400, height: 900 },
-    deviceScaleFactor: 1,
+    ...profile.context,
     colorScheme: browserScheme,
   });
-  await context.addInitScript(({ themeName, dayStamp, simulationId, catalogVersion }) => {
+  await context.addInitScript(({ themeName }) => {
     localStorage.setItem('theme-preference-v2', themeName);
-    localStorage.setItem('abs_simulation_focus_choice_v1', JSON.stringify({
-      version: 1,
-      dayStamp,
-      simulationId,
-      catalogVersion,
-    }));
   }, {
     themeName: siteTheme,
-    dayStamp: expectations.dayStamp,
-    simulationId: expectations.homeMode.id,
-    catalogVersion: expectations.catalogVersion,
   });
 
   const page = await context.newPage();
   try {
-    await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+    const homeModeUrl = new URL(baseUrl);
+    homeModeUrl.searchParams.set('mode', expectations.homeMode.id);
+    await page.goto(homeModeUrl.toString(), { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => ['ready', 'failed'].includes(document.documentElement.dataset.absBootState), null, { timeout: 15000 });
     await page.waitForTimeout(600);
 
     const directHome = await readFrameState(page);
-    assertFrameState(siteTheme, browserScheme, `direct-home-${expectations.homeMode.id}`, directHome, expectedFrame, expectedWindow);
+    assertFrameState(siteTheme, browserScheme, `direct-home-${expectations.homeMode.id}`, directHome, expectedFrame, expectedWindow, !profile.context.isMobile, expectFaintLightBorder);
 
     await page.locator('.simulation-focus-switcher').click({ timeout: 5000 });
     await page.locator('.simulation-focus-row').filter({ hasText: expectations.routeBacked.name }).click({ timeout: 5000 });
@@ -250,9 +399,9 @@ async function runCase(browser, siteTheme, browserScheme, expectations) {
     await page.waitForTimeout(600);
 
     const routeBacked = await readFrameState(page);
-    assertFrameState(siteTheme, browserScheme, `route-backed-${expectations.routeBacked.id}`, routeBacked, expectedFrame, expectedWindow);
+    assertFrameState(siteTheme, browserScheme, `route-backed-${expectations.routeBacked.id}`, routeBacked, expectedFrame, expectedWindow, !profile.context.isMobile, expectFaintLightBorder);
 
-    log(`engine=${browserName} site=${siteTheme} browser=${browserScheme}: ${expectations.homeMode.id} -> ${expectations.routeBacked.id} frame=${expectedFrame}`);
+    log(`engine=${browserName} profile=${profile.name} site=${siteTheme} browser=${browserScheme}: ${expectations.homeMode.id} -> ${expectations.routeBacked.id} frame=${expectedFrame} active-contrast=${routeBacked.activeTabContrast}:1`);
   } finally {
     await context.close();
   }
@@ -264,9 +413,11 @@ async function run() {
   const browser = await browserType.launch();
 
   try {
-    for (const browserScheme of browserSchemes) {
-      for (const siteTheme of siteThemes) {
-        await runCase(browser, siteTheme, browserScheme, expectations);
+    for (const profile of browserProfiles) {
+      for (const browserScheme of browserSchemes) {
+        for (const siteTheme of siteThemes) {
+          await runCase(browser, siteTheme, browserScheme, expectations, profile);
+        }
       }
     }
   } finally {
@@ -274,7 +425,7 @@ async function run() {
     await server?.stop();
   }
 
-  log(`PASS (${browserName}): browser scheme owns browser harmony while site theme independently owns the studio-window surface.`);
+  log(`PASS (${browserName}): theme-color capability or locked-browser scheme owns outer harmony, Button Bar material follows it, and site theme independently owns the studio-window surface.`);
 }
 
 run().catch((error) => {

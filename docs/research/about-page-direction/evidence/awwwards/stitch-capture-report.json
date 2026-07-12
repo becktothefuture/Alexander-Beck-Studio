@@ -1,0 +1,67 @@
+[
+  {
+    "id": "giats",
+    "url": "https://giats.me/about",
+    "frames": 9,
+    "parts": [
+      "stitch-parts/giats-01.png",
+      "stitch-parts/giats-02.png",
+      "stitch-parts/giats-03.png",
+      "stitch-parts/giats-04.png",
+      "stitch-parts/giats-05.png",
+      "stitch-parts/giats-06.png",
+      "stitch-parts/giats-07.png",
+      "stitch-parts/giats-08.png",
+      "stitch-parts/giats-09.png"
+    ],
+    "errors": [],
+    "finalUrl": "https://giats.me/about"
+  },
+  {
+    "id": "gregory-lalle",
+    "url": "https://gregorylalle.com/about",
+    "frames": 6,
+    "parts": [
+      "stitch-parts/gregory-lalle-01.png",
+      "stitch-parts/gregory-lalle-02.png",
+      "stitch-parts/gregory-lalle-03.png",
+      "stitch-parts/gregory-lalle-04.png",
+      "stitch-parts/gregory-lalle-05.png",
+      "stitch-parts/gregory-lalle-06.png"
+    ],
+    "errors": [],
+    "finalUrl": "https://gregorylalle.com/about"
+  },
+  {
+    "id": "dennis-snellenberg",
+    "url": "https://dennissnellenberg.com/about",
+    "frames": 7,
+    "parts": [
+      "stitch-parts/dennis-snellenberg-01.png",
+      "stitch-parts/dennis-snellenberg-02.png",
+      "stitch-parts/dennis-snellenberg-03.png",
+      "stitch-parts/dennis-snellenberg-04.png",
+      "stitch-parts/dennis-snellenberg-05.png",
+      "stitch-parts/dennis-snellenberg-06.png",
+      "stitch-parts/dennis-snellenberg-07.png"
+    ],
+    "errors": [],
+    "finalUrl": "https://dennissnellenberg.com/about"
+  },
+  {
+    "id": "tomoya-okada",
+    "url": "https://v7.usestate.org/about/",
+    "frames": 7,
+    "parts": [
+      "stitch-parts/tomoya-okada-01.png",
+      "stitch-parts/tomoya-okada-02.png",
+      "stitch-parts/tomoya-okada-03.png",
+      "stitch-parts/tomoya-okada-04.png",
+      "stitch-parts/tomoya-okada-05.png",
+      "stitch-parts/tomoya-okada-06.png",
+      "stitch-parts/tomoya-okada-07.png"
+    ],
+    "errors": [],
+    "finalUrl": "https://v7.usestate.org/about/"
+  }
+]

@@ -1,0 +1,70 @@
+WEBBY ABOUT-PAGE RESEARCH — 13 EXAMPLES
+Captured 12 July 2026 at 1440 × 900. Official award evidence and live URLs are in sites.json.
+
+THE DECISIVE READ
+
+The best fit for Alexander is not a long agency manifesto. It is a 220–320 word personal story whose visual system does the emotional work. Righteous Creative proves that roughly 250 words can establish a promise, people, an origin and levity in one minute. Antoine Wodniack proves that a single dense trajectory sentence can coexist with highly expressive typography and spatial motion. Won J. You and Mark Woodland show how a belief can turn a varied career into a clear future-facing story. Fiddle and Better Off show how a side project, playlist, poster or experiment feels purposeful when it is evidence of a worldview rather than a miscellaneous gallery.
+
+WHAT THE STRONGEST PAGES DO
+
+1. Open with a useful belief, not a biography. “What changes because I am here?” is more compelling than job-title chronology.
+2. Make confidence evidential. Dates, named clients, shipped tools, collaborators, teaching, quotes and outcomes keep bold statements from becoming vanity.
+3. Change rhythm every 1–2 screens. Alternate large type, one short paragraph, a moving visual, a factual list, a personal fragment and a final light beat.
+4. Keep scrolling primary. Hover, drag, audio and tap work best as optional expansions of a complete default story.
+5. Give side work a reason. Bind posters, experiments or simulations to “current obsessions,” a time period, an influence, or a stated design belief.
+6. Let one visual grammar connect the whole page. Lusion uses 3D connective tissue; Fiddle uses music; Antoine uses binary geometry. Alexander can use flat dots and the Spatial Scan point cloud.
+7. End forward. The closing beat should combine aspiration with levity, not repeat a contact form.
+
+RECOMMENDED ONE-MINUTE SHAPE FOR ALEXANDER
+
+00–08s — One large belief or productive tension.
+08–20s — One compressed trajectory sentence with selected client proof.
+20–35s — Three specialties phrased as outcomes, each paired with a distinct dot-field response.
+35–48s — Two or three side fragments (poster, experiment, small object) presented as evidence of curiosity.
+48–56s — A future-facing sentence: what Alexander wants to make more of.
+56–60s — A small playful ending that rewards a pointer move or tap without blocking the Contact route.
+
+MOTION DIRECTION
+
+Use native vertical scrolling and orchestrate one continuous point-cloud space behind it. The field can gather into typographic punctuation, widen into client constellations, briefly resolve into scan-derived fragments around side projects, and loosen at the final joke. Pointer or tap should perturb, unfold or temporarily label the field; it should never be required to reveal the next paragraph. Every scene must have a reduced-motion equivalent and visible text before animation completes.
+
+TOP CASES TO FEATURE IN THE DECK
+
+Antoine Wodniack — Best length and typography/simulation balance. Borrow the one-sentence trajectory and sparse copy; avoid awards as the only proof.
+Righteous Creative — Best one-minute narrative and confident-without-theatre voice. Borrow the concise anti-pattern/origin; avoid imported nostalgia.
+Won J. You — Best career-pivot and aspiration structure. Borrow the mission-first arc and personality ticker; shorten the press inventory.
+Fiddle.Digital — Best governing metaphor and side-project integration. Borrow the coherence; avoid vague poetic copy and autoplay audio.
+Mark Woodland — Best belief-to-outcome architecture and optional topic expansions. Borrow the grouping model; keep it lighter and shorter.
+Better Off Lookback — Best way to incorporate taste, music and side work without randomness. Borrow a tiny “current obsessions” cabinet, not the full calendar archive.
+Someoddpilot — Best evidence that side ventures can explain professional character. Borrow one side-world; omit the agency-scale team roster.
+Lusion — Best example of using an ambient 3D system as connective tissue. Borrow the scene discipline; preserve native scroll and a semantic fallback.
+
+OTHER CASE NOTES
+
+Grilled Pixels — Rich origin and human photography, but 1,670 rendered words is far too long.
+Raw Materials — One-word positioning controls the whole experience, but virtual navigation is too interaction-dependent.
+Locomotive — A three-part operating model makes broad skills memorable; team and award density do not map to an individual.
+Metalab — Beliefs are validated by named voices and measurable practices; the current page is recruitment-oriented.
+Dops — Strong outward-facing benefit language and testimonial rhythm; its agency grids would duplicate Alexander’s Portfolio route.
+
+HOLD ONTO
+
+- One belief, one trajectory, three outcome-led specialties, selected client proof, two or three side fragments, one aspiration, one light ending.
+- Expressive typography with short copy.
+- Flat-dot/point-cloud continuity across scenes.
+- Optional tap-to-expand micro-stories.
+- Concrete evidence immediately after a confident claim.
+- A visible native-scroll story that still works with reduced motion.
+
+AVOID
+
+- Chronological CV dumps, generic value words, giant client-logo walls and award-count climaxes.
+- A second portfolio grid inside About.
+- Unexplained hobby mosaics.
+- Cursor tricks, drag or audio as mandatory navigation.
+- Fixed virtual scrolling without semantic and reduced-motion fallbacks.
+- More than roughly 300 core words if one-minute reading remains the constraint.
+
+EVIDENCE NOTES
+
+There are exactly 13 PNG captures. Standard pages use a full-page capture after a complete scroll-through to trigger lazy and animated content. Raw Materials, Lusion, Better Off and Antoine Wodniack use pinned or virtual scenes; their PNGs are stitched sequences of revealed viewport states so the report can show what a conventional full-page screenshot would miss. Four WebM clips document motion for Antoine Wodniack, Won J. You, Mark Woodland and Fiddle.Digital. Clips are representative opening scrolls, not exhaustive interaction recordings.

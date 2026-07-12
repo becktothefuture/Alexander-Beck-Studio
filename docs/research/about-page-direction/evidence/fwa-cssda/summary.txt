@@ -1,0 +1,136 @@
+R3 — FWA / CSS DESIGN AWARDS ABOUT-PAGE RESEARCH
+Research date: 12 July 2026
+Validated set: 13 unique CSSDA-recognized live sites with accessible About/Bio/Info/Studio content
+
+BOTTOM LINE
+
+The strongest About pages do not try to be miniature CVs. They make four decisions clearly:
+1. What am I unusually good at now?
+2. What selective path brought me here?
+3. What do I believe that changes how I work?
+4. What small human detail makes this voice memorable?
+
+For Alexander, the clearest content model is Maria Vareva's compact trajectory + beliefs, paced with the image/artifact interruptions of Giacomo Agnello Modica and the confident levity of Bogdan Kolomiyets. Camila Rosa shows how to compress proof into expandable counts. AKIS.STUDIO supplies the alternating large-type / media rhythm, but its length and generic agency language should not be copied.
+
+RECOMMENDED ONE-MINUTE SHAPE
+
+- 0–10 sec: a present-tense positioning line that names the professional edge.
+- 10–25 sec: three selective trajectory beats, each linked to a concrete change or client context.
+- 25–38 sec: two working beliefs expressed as decisions, not values wallpaper.
+- 38–50 sec: clients and proof in a compressed, optional layer.
+- 50–60 sec: one personal/side-project reveal and a closing line with levity.
+
+The core copy should target roughly 140–180 words. Lists, client detail, chronology, and side-work captions can expand on tap without adding to the first-pass reading time.
+
+STRONGEST CASES
+
+1. Maria Vareva — best compact narrative architecture.
+   Current frontier -> selective five-step trajectory -> four beliefs -> six values in 151 words. Calm, credible, and readable in under a minute. Best source for Alexander's content skeleton.
+
+2. Giacomo Agnello Modica — best integration of personality and side work.
+   Clients and recognition sit beside drag theatre, an old bicycle, comfort food, divas, and self-produced merchandise. Interactive taste buttons reveal why the visual work looks the way it does. Best source for purposeful playful details.
+
+3. Bogdan Kolomiyets — best confidence/likeability balance.
+   A clear commercial promise, personal photos, proof metrics, and four plain-language beliefs end in a humorous call to action. Best source for confident copy that does not sound self-important.
+
+4. Camila Rosa — best progressive disclosure.
+   Two sentences explain the work; clients and achievements provide proof; awards/jury/exhibitions/etc. are compressed into tappable counts. Best source for keeping the primary read short.
+
+5. AKIS.STUDIO — best scroll rhythm, weaker editing.
+   Large kinetic headings alternate with photographs, short copy, team cards, and logo fields. The choreography is transferable; the 494-word, generic agency copy is not.
+
+6. Jess Hill — best longform storytelling, clearest length anti-pattern.
+   Turning points, mentors, stakes, archival images, intimate captions, cats, and illness create a vivid human arc. At 2,311 words it is an archive, not a one-minute About. Borrow its chapter logic and personal artifacts, not its volume.
+
+SITE-BY-SITE SNAPSHOT
+
+Camila Rosa | CSSDA WOTD, 10 Jan 2026, Art | ~92 words
+Efficient two-paragraph practice statement, major clients, and expandable achievement counts. Warm, direct, visually distinctive. Avoid an undifferentiated client wall.
+
+Elsa Hanneke | CSSDA WOTD, 29 Dec 2025, Art | ~118 words
+One-screen professional ledger: positioning, clients, five recognitions, contact. Extremely assured and calm, but emotionally cool. Add one human detail for Alexander.
+
+Wendy Andrade | CSSDA Special Kudos, 1 Dec 2025, Photography | ~127 words
+Portrait plus one poetic third-person practice statement. Shows that a worldview can carry a short page. Avoid gallery-style distance and long lines.
+
+Ania Melnik | CSSDA Special Kudos, 27 Apr 2025, Web design/dev | ~818 words
+Maximal kinetic typography across design, AI, teaching, services, and awards. Useful as a demonstration of typographic rhythm and as a warning against role stacking, repetition, and exhaustive capability lists.
+
+Alex Ryan Design | CSSDA Special Kudos, 10 Jan 2026, Graphic design | ~374 words
+Large positioning sentence, client proof, two engagement models, recognition, expertise, friendly close. The practical 'how to work with me' section is worth borrowing; proof can be cut in half.
+
+Luca Ravanelli | CSSDA Special Kudos, 23 Jan 2026, Graphic design | ~277 words
+Philosophy-led and rigorous, followed by teaching/services/clients/team. Strong principle-to-proof structure; abstract opening and administrative lower half need a playful interruption.
+
+Maria Vareva | CSSDA Special Kudos, 21 Jan 2026, Products | ~151 words
+Best-in-set one-minute writing. Numbered clauses contain career, beliefs, and values while inline links substantiate claims. Add visual breathing points for Alexander.
+
+Aya El Ouahdani | CSSDA Special Kudos, 21 Jan 2026, Web design/dev | ~397 words
+Consistent terminal/system fiction with animated traits, project modules, and Aurora mode. Every effect reinforces a developer identity. Avoid tool percentages, jargon overload, and hover-only semantics.
+
+Stan Khoruzhenko | CSSDA Special Kudos, 17 Jan 2026, Web design/dev | ~361 words
+Outcome-rich cover-letter narrative with quantified design-system and startup impact. Strong factual authority; weak scanability and too many first-person sentences.
+
+AKIS.STUDIO | CSSDA Special Kudos, 17 Jan 2026, Agency | ~494 words
+Strong alternation of kinetic type, place, team, images, and proof. Excellent pacing reference. Copy repeats generic passion/authenticity/excellence language and runs too long.
+
+Jess Hill | CSSDA Special Kudos, 7 Dec 2025, Other | ~2,311 words
+Rich chaptered life story with sticky anchors, professional turning points, archives, pets, and health. Brilliant archive, incompatible primary reading length. Move exhaustive material behind optional layers.
+
+Bogdan Kolomiyets | CSSDA Special Kudos, 19 Feb 2026, Web design/dev | ~320 words
+Strong promise, personal collage, credible proof, short manifesto, and levity. Effective voice reference. Reduce conversion language and keep only the best two beliefs.
+
+Giacomo Agnello Modica | CSSDA Special Kudos, 6 Dec 2025, Art | ~226 words
+Clients, awards, influences, hobbies, and side products feel like one causal story. Interactive taste labels make personality useful. Correct copy errors and ensure hover effects also work on tap.
+
+REPEATED WINNING PATTERNS
+
+- A present-tense role or frontier beats a chronological opening.
+- Specific beliefs are stronger than adjectives: what gets removed, prototyped, challenged, or protected.
+- Clients and awards work best as proof after the proposition, not as the hero.
+- A visible number, date, or result carries more authority than 'passionate' or 'award-winning'.
+- One personal artifact is more memorable than a paragraph of hobbies.
+- Scroll chapters need alternating density: statement -> image/artifact -> proof -> statement.
+- Optional interaction works when it reveals evidence or taste, not when it hides essential biography.
+- Closing levity is most effective when it still advances the enquiry or human connection.
+
+AVOID
+
+- Exhaustive CV chronology in the primary path.
+- Multi-role title stacks that read as keyword coverage.
+- Generic passion/authenticity/excellence claims.
+- Tool percentages and capability inventories.
+- Repeated client, award, and testimonial proof.
+- Motion on every word or element.
+- Hover-only meaning on touch devices.
+- A long client logo wall without grouping or hierarchy.
+- Personality fragments that do not explain the work.
+- A second interaction model that competes with vertical scrolling.
+
+DESIGN IMPLICATIONS FOR ALEXANDER
+
+- Keep vertical scroll as the only required navigation.
+- Maintain a constant studio-window/background field so each section feels like a new arrangement in one room.
+- Use the parked Spatial Scan point cloud as a narrative instrument, not ambient wallpaper: reveal a portrait/object/room only when the corresponding sentence warrants it.
+- Let large type carry the transitions. One dominant sentence per viewport is enough.
+- Insert two or three side artifacts (poster, experiment, small project) as draggable or expandable evidence tied to the adjacent idea.
+- Allow client proof and deeper chronology to unfold on tap, while keeping the first-pass text visible and complete.
+- End with an interaction that has emotional logic and levity, such as a small artifact that refuses to stay perfectly arranged, rather than an unrelated mini-game.
+- Provide reduced-motion and no-WebGL equivalents; the narrative must remain coherent as plain text and static images.
+
+EVIDENCE NOTES
+
+- Every included site has official CSS Design Awards proof and a currently accessible live About/Profile/Studio URL.
+- All 13 included pages have a 1440px-wide full-page PNG in screenshots/.
+- Lazy/reveal content was scrolled into view before capture.
+- Tomoya Okada was researched and captured but excluded from the 13-site count after cross-lane duplication was detected. Its three captures remain reference-only.
+- Some CSSDA evidence uses an official winners/gallery page rather than a detail URL where the current detail page was not reliably indexed: Alex Ryan Design, Bogdan Kolomiyets, and Giacomo Agnello Modica. The official gallery names the award and score; live/About availability was independently verified.
+- Motion recording was secondary to the required validated 13-site evidence. See motion-manifest.txt for completed clips or honest limitations.
+
+FILES
+
+- research.json — machine-readable detailed analysis for exactly 13 sites.
+- summary.txt — this synthesis.
+- screenshots/ — full-page evidence.
+- videos/ — representative motion clips where feasible.
+- motion-manifest.txt — capture status and limitations.

@@ -10,6 +10,7 @@ import {
   getDailyFocusSimulations,
   getResolvedSimulationFocus,
   getSimulationLaunchTarget,
+  rememberReloadSimulation,
   SIMULATION_FOCUS_CHANGED_EVENT,
   SIMULATION_FOCUS_STORAGE_KEY,
   writeManualSimulationFocus,
@@ -165,6 +166,7 @@ export function SimulationFocusProvider({
 
   useEffect(() => {
     if (!routeIsDailyFocus) return;
+    rememberReloadSimulation(surfaceRouteId);
     const target = getSimulationLaunchTarget(surfaceRouteId);
     if (target?.routeBacked) {
       replaceCurrentUrl(buildRouteHref('home'));
@@ -415,6 +417,7 @@ export function SimulationFocusSwitcher() {
         ref={buttonRef}
         type="button"
         className="simulation-focus-pill simulation-focus-switcher"
+        data-simulation-id={activeSimulation.id}
         aria-haspopup="dialog"
         aria-expanded={isChooserOpen}
         aria-controls={FOCUS_MODAL_ID}

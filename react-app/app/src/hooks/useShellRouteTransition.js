@@ -153,6 +153,7 @@ const READY_FALLBACK_MS = 900;
 const GROUPED_ROUTE_OFFSET_MS = 80;
 const ROUTE_ENTER_SELECTOR = '[data-route-enter]';
 const ROUTE_ENTER_TOTAL_MS = 720;
+const PORTFOLIO_GATE_BRIDGE_FADE_MS = 480;
 const ROUTE_ENTER_GROUPS = {
   identity: {
     startMs: 0,
@@ -656,6 +657,41 @@ function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, options = {}
       setStableTimeout(finish, durationMs + 80);
     }))
   );
+}
+
+function removePortfolioGateTeaserBridge() {
+  document.querySelector('[data-portfolio-gate-teaser-bridge]')?.remove();
+}
+
+function dismissPortfolioGateTeaserBridge({
+  durationMs = ELEMENT_REVEAL_MS,
+  delayMs = 0,
+  easing = EASE_OUT,
+  instant = false,
+} = {}) {
+  const bridge = document.querySelector('[data-portfolio-gate-teaser-bridge]');
+  if (!bridge) return;
+  if (instant || typeof bridge.animate !== 'function') {
+    bridge.remove();
+    return;
+  }
+
+  const totalMs = Math.max(1, delayMs + durationMs);
+  const holdOffset = Math.min(1, Math.max(0, delayMs / totalMs));
+  const keyframes = holdOffset > 0
+    ? [{ opacity: 1, offset: 0 }, { opacity: 1, offset: holdOffset }, { opacity: 0, offset: 1 }]
+    : [{ opacity: 1 }, { opacity: 0 }];
+  const animation = bridge.animate(keyframes, { duration: totalMs, easing, fill: 'forwards' });
+  activeAnimations.push(animation);
+  let settled = false;
+  const remove = () => {
+    if (settled) return;
+    settled = true;
+    bridge.remove();
+  };
+  animation.onfinish = remove;
+  animation.oncancel = remove;
+  setStableTimeout(remove, totalMs + 80);
 }
 
 function setSimulationFocusTransitionState(state) {
@@ -1349,6 +1385,9 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       } else {
         syncSteadyTransitionPhase();
       }
+      if (isGateTransition) {
+        removePortfolioGateTeaserBridge();
+      }
       processQueuedNavigation();
     };
 
@@ -1604,7 +1643,14 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             surfaceRefs,
             enterMs: routeTimings.reveal,
             revealEasing: routeTimings.revealEasing,
-            onPrepared: dismissGateBackdropOnce,
+            onPrepared: () => {
+              dismissPortfolioGateTeaserBridge({
+                durationMs: PORTFOLIO_GATE_BRIDGE_FADE_MS,
+                delayMs: GROUPED_ROUTE_OFFSET_MS,
+                easing: 'linear',
+              });
+              dismissGateBackdropOnce();
+            },
           });
         })
         .then(() => {
@@ -1653,7 +1699,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             routeReadyWaiter.cancel();
             return;
           }
-          if (!isSameRoute) {
+          if (!isSameRoute || hasRouteContentChange) {
             setRouteLayerVisibility(false, surfaceRefs);
             commit();
           }
@@ -1666,6 +1712,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           }
           setTransitionPhase(TRANSITION_PHASES.ROUTE_IN);
           setRouteLayerVisibility(true, surfaceRefs);
+          dismissPortfolioGateTeaserBridge({ instant: true });
           dismissGateBackdropOnce();
           return undefined;
         })

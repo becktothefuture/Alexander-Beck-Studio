@@ -1,0 +1,34 @@
+[
+  {
+    "id": "dennis-snellenberg",
+    "name": "Dennis Snellenberg — Portfolio",
+    "slug": "dennis-snellenberg-portfolio",
+    "live": "https://dennissnellenberg.com/",
+    "about": "https://dennissnellenberg.com/about",
+    "awwwards": "https://www.awwwards.com/sites/dennis-snellenberg-portfolio",
+    "errors": [],
+    "status": 200,
+    "finalUrl": "https://dennissnellenberg.com/about",
+    "title": "About - Dennis Snellenberg",
+    "bodyText": "About Menu NAVIGATION Home Work About Contact SOCIALS Awwwards Instagram Twitter LinkedIn © Code byDennis Snellenberg Work About Contact Helping brands thrive in the digital world I help companies from all over the world with tailor-made solutions. With each project, I push my work to new horizons, always putting quality first. Always exploring... I can help you with ... 01 Design With a solid track record in designing websites, I deliver strong and user-friendly digital designs. (Since 2024 only in combination with development) 02 Development I build scalable websites from scratch that fit seamlessly with design. My focus is on micro animations, transitions and interaction. Building with Webflow (or Kirby CMS). 03 The full package A complete website from concept to implementation, that's what makes me stand out. My great sense for design and my development skills enable me to create kick-ass projects. Awwwards judge '19-25 I am a proud member of the Awwwards International Jury, where I judge the best websites in the world using my expertise as a designer and developer. Micro animations and transitions have my full attention and get me thrilled with every move. Let’s work together Get in touch info@dennissnellenberg.com +31 6 27 84 74 30 VERSION 2022 © Edition LOCAL TIME 04:00 PM GMT+2 SOCIALS Awwwards Instagram Twitter LinkedIn",
+    "wordCount": 215,
+    "scrollHeight": 900,
+    "screenshot": "dennis-snellenberg-about-full.png"
+  },
+  {
+    "id": "agustin-burgos",
+    "name": "Agustin Burgos — Portfolio",
+    "slug": "agustin-burgos-portfolio",
+    "live": "https://agustinburgos.com/",
+    "about": "https://agustinburgos.com/about",
+    "awwwards": "https://www.awwwards.com/sites/agustin-burgos-portfolio",
+    "errors": [],
+    "status": 200,
+    "finalUrl": "https://agustinburgos.com/about",
+    "title": "About Agustin Burgos | Senior Full Stack Developer with 10+ Years Experience",
+    "bodyText": "Work Work Prototypes Prototypes Services Services About About Contact Contact hi there, I'm Agustin Burgos the Resume I have been working for the past 10 years with Javascript. I’ve been writing/refactoring code and connecting restful apis using Angular, React and Vuejs for a couple of years but I also worked with different stacks in the past. I can help/guide your developers with best practices as well. As a Senior JavaScript Developer, I have had the opportunity to work with both mid-sized and large clients on a variety of projects in different industries. My experience has given me the opportunity to hone my skills and develop an understanding of the unique challenges that come with working on projects for these types of clients. I have worked on projects for clients in industries ranging from healthcare to finance to retail, and my experience has helped me understand the different coding requirements for each type of project. I have also been able to build strong relationships with clients, as I am able to understand their needs and provide solutions that meet their expectations. My familiarity with the different coding languages used in today’s web development projects has been extremely beneficial. I am able to quickly debug code, test and optimize the code, and ensure that it meets the standards of the client. I also have experience with building APIs and integrating them with other web services. 01 Software skills JavaScript Angular JS React VueJS Vue3 Vuex Pinia NuxtJS Serverless HTML5 Git/SVN/CVS V.C. Software Agile Methodologies Design Systems CSS3/Less/Sass Grid/Flex Yarn/Grunt/Gulp/Webpack NodeJS MongoDB Java Oracle/SQL Server 02 Work experience Freelance Senior Software Engineer & Full-Stack Developer 2019 Present Hey Mondo Senior Software Development 2019 2020 IT Crowd Argentina Software Development Engineer 2017 2019 Levvel Software Development Engineer 2017 2019 Avalith JavaScript Developer 2015 2017 Uxor IT Software Developer 2013 2015 03 Licenses & Certifications Partner Certification Mixpanel 2023 HKFXXZK8NKOV Certified Nuxt 3 Master Vue School 2023 7CTC7W7AQA Certified Nuxt Master Vue School 2021 5SEZYXMKQA Open Water Diver PADI 2018 my UNIVERSE SAY HELLO! SAY HELLO! SAY HELLO! SAY HELLO! Ready to elevate your code base to new heights? Experience the exceptional expertise of a skilled mentor who effortlessly propels projects to the next level. Let’s partner with your needs to maximize your code's potential. Don't miss out on this opportunity! What are you interested in? Development Mentorship Consultations Next-Level Success By sending my details, I have read and accept the Privacy policy. Let's talk FULL STACK DEVELOPER & SOFTWARE ENGINEER HOME WORK PROTOTYPES ABOUT SERVICES CONTACT PRIVACY POLICY COOKIES POLICY TERMS & CONDITIONS LINKEDIN GITHUB EMAIL AGUSTIN BURGOS 2026 | ALL RIGHTS RESERVED ©",
+    "wordCount": 445,
+    "scrollHeight": 8589,
+    "screenshot": "agustin-burgos-about-full.png"
+  }
+]

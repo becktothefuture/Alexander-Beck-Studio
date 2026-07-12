@@ -1,19 +1,19 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                          DAILY SCHEDULER                                     ║
-// ║      Deterministic simulation selection based on day of year                 ║
+// ║                         RELOAD SELECTOR                                      ║
+// ║      Picks a different Daily Simulation on every full page reload            ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getResolvedSimulationFocus } from '../../../data/simulationCatalog.js';
 
 /**
- * Get the daily mode based on the current date.
- * Uses local user time to ensure everyone sees the same simulation on the same day.
- * Daily Simulation rotates through catalog entries marked daily-rotation.
+ * Get the simulation selected for this page load.
+ * Daily Simulation picks from catalog entries marked daily-rotation and excludes
+ * the last visible simulation so a full reload always produces a change.
  * Extended modes remain available through arrow/panel navigation, but they should
  * not become first-run daily candidates.
  * 
- * @returns {string} The mode identifier for today
+ * @returns {string} The mode identifier for this page load
  */
-export function getDailyMode(date = new Date()) {
-  return getResolvedSimulationFocus({ date }).activeId;
+export function getDailyMode() {
+  return getResolvedSimulationFocus().activeId;
 }

@@ -7,166 +7,79 @@ import { chromium } from 'playwright';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const repoRoot = resolve(__dirname, '..');
 const catalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.json');
-
-const TARGET_DATE = process.env.ABS_HOME_DAILY_DATE || '2026-06-27';
-const EXPECTED_MODE = process.env.ABS_HOME_DAILY_MODE || 'pit';
 const DEFAULT_URL = 'http://127.0.0.1:8012/';
-
-function parseIsoDate(value) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
-  if (!match) return null;
-
-  const year = Number.parseInt(match[1], 10);
-  const month = Number.parseInt(match[2], 10) - 1;
-  const day = Number.parseInt(match[3], 10);
-  const timestamp = Date.UTC(year, month, day);
-  const parsed = new Date(timestamp);
-  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month || parsed.getUTCDate() !== day) {
-    return null;
-  }
-
-  return { year, month, day, stamp: Math.floor(timestamp / 86400000) };
-}
+const RELOAD_STORAGE_KEY = 'abs_simulation_reload_choice_v1';
 
 function resolveHomeUrl() {
   const raw = String(process.env.ABS_DEV_URL || DEFAULT_URL).trim() || DEFAULT_URL;
   const url = new URL(raw);
-  if (!url.pathname || url.pathname === '/') {
-    url.pathname = '/';
-  }
+  if (!url.pathname || url.pathname === '/') url.pathname = '/';
   if ((url.pathname === '/' || url.pathname.endsWith('/index.html')) && !url.searchParams.has('audit')) {
     url.searchParams.set('audit', 'home-runtime');
   }
   return url.toString();
 }
 
-function getAnchoredDailySimulation(catalog, targetDate) {
-  const dailySimulations = (catalog.simulations || []).filter((entry) => entry.stage === 'daily-rotation');
-  const date = parseIsoDate(targetDate);
-  const anchor = catalog.dailyRotation || {};
-  const anchorDate = parseIsoDate(anchor.anchorDate);
-  const anchorIndex = dailySimulations.findIndex((entry) => entry.id === anchor.anchorSimulationId);
-  if (!dailySimulations.length || !date || !anchorDate || anchorIndex < 0) return null;
+async function waitForActiveSimulation(page, eligibleIds, previousId = null) {
+  await page.waitForFunction(
+    ({ ids, previous }) => {
+      const switcher = document.querySelector('.simulation-focus-switcher[data-simulation-id]');
+      const simulationId = switcher?.dataset.simulationId || '';
+      return ids.includes(simulationId) && simulationId !== previous;
+    },
+    { ids: eligibleIds, previous: previousId },
+    { timeout: 30000 },
+  );
 
-  const index = ((anchorIndex + date.stamp - anchorDate.stamp) % dailySimulations.length + dailySimulations.length) % dailySimulations.length;
-  return dailySimulations[index] || null;
+  return page.evaluate((storageKey) => {
+    const url = new URL(window.location.href);
+    const storedRaw = window.sessionStorage.getItem(storageKey);
+    return {
+      activeId: document.querySelector('.simulation-focus-switcher')?.dataset.simulationId || '',
+      blockedParams: ['daily', 'focus', 'mode', 'simulation'].filter((key) => url.searchParams.has(key)),
+      pathname: url.pathname,
+      storedId: storedRaw ? JSON.parse(storedRaw)?.simulationId || '' : '',
+    };
+  }, RELOAD_STORAGE_KEY);
+}
+
+function assertCleanHomeState(result, label) {
+  if (result.pathname.startsWith('/lab/') || result.blockedParams.length > 0) {
+    throw new Error(`${label} did not settle on a clean Home URL: ${JSON.stringify(result)}`);
+  }
+  if (result.storedId !== result.activeId) {
+    throw new Error(`${label} did not store its active reload selection: ${JSON.stringify(result)}`);
+  }
 }
 
 async function main() {
   const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
-  const dailySimulation = getAnchoredDailySimulation(catalog, TARGET_DATE);
-  if (dailySimulation?.id !== EXPECTED_MODE) {
-    throw new Error(`Expected ${TARGET_DATE} daily simulation to be "${EXPECTED_MODE}", got "${dailySimulation?.id || 'none'}"`);
+  const eligibleIds = (catalog.simulations || [])
+    .filter((entry) => entry.stage === 'daily-rotation')
+    .map((entry) => entry.id);
+  if (eligibleIds.length < 2) {
+    throw new Error('Reload selection requires at least two Daily Simulation entries.');
   }
-  const browser = await chromium.launch();
-  const consoleMessages = [];
 
+  const browser = await chromium.launch();
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-    page.on('console', (message) => {
-      consoleMessages.push(`${message.type()}: ${message.text()}`);
-    });
+    await page.goto(resolveHomeUrl(), { waitUntil: 'networkidle', timeout: 60000 });
+    const first = await waitForActiveSimulation(page, eligibleIds);
+    assertCleanHomeState(first, 'Initial load');
 
-    await page.addInitScript(({ targetDate }) => {
-      const NativeDate = Date;
-      const fixed = new NativeDate(`${targetDate}T12:00:00`);
+    await page.reload({ waitUntil: 'networkidle', timeout: 60000 });
+    const second = await waitForActiveSimulation(page, eligibleIds, first.activeId);
+    assertCleanHomeState(second, 'First reload');
 
-      class MockDate extends NativeDate {
-        constructor(...args) {
-          if (args.length === 0) {
-            super(fixed.getTime());
-            return;
-          }
-          super(...args);
-        }
+    await page.reload({ waitUntil: 'networkidle', timeout: 60000 });
+    const third = await waitForActiveSimulation(page, eligibleIds, second.activeId);
+    assertCleanHomeState(third, 'Second reload');
 
-        static now() {
-          return fixed.getTime();
-        }
-
-        static parse(value) {
-          return NativeDate.parse(value);
-        }
-
-        static UTC(...args) {
-          return NativeDate.UTC(...args);
-        }
-      }
-
-      Object.setPrototypeOf(MockDate, NativeDate);
-      window.Date = MockDate;
-    }, { targetDate: TARGET_DATE });
-
-    const homeUrl = resolveHomeUrl();
-    await page.goto(homeUrl, { waitUntil: 'networkidle', timeout: 60000 });
-
-    if (dailySimulation.surface === 'home-mode') {
-      await page.waitForSelector('#c', { timeout: 30000 });
-      await page.waitForFunction(
-        ({ expectedMode, expectedName }) => {
-          const canvas = document.querySelector('#c');
-          const rect = canvas?.getBoundingClientRect?.();
-          let homeMode = null;
-          try {
-            homeMode = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.()?.mode || null;
-          } catch {
-            homeMode = null;
-          }
-          const switcherLabel = document.querySelector('.simulation-focus-switcher')?.textContent?.trim() || '';
-          return Boolean(
-            rect
-            && rect.width > 10
-            && rect.height > 10
-            && !document.querySelector('.daily-simulation-layer')
-            && (homeMode === expectedMode || switcherLabel.includes(expectedName))
-          );
-        },
-        { expectedMode: EXPECTED_MODE, expectedName: dailySimulation.name },
-        { timeout: 30000 },
-      );
-    } else {
-      await page.waitForSelector('.daily-simulation-layer', { timeout: 30000 });
-      await page.waitForFunction(
-        (expectedMode) => (
-          document.querySelector('.daily-simulation-layer')?.dataset.simulationId === expectedMode
-          && document.querySelector('.daily-simulation-layer')?.dataset.dailyFocusReady === 'true'
-        ),
-        EXPECTED_MODE,
-        { timeout: 30000 },
-      );
-    }
-
-    const result = await page.evaluate(() => {
-      const simulations = document.querySelector('#simulations');
-      const layer = document.querySelector('.daily-simulation-layer');
-      let homeMode = null;
-      try {
-        homeMode = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.()?.mode || null;
-      } catch {
-        homeMode = null;
-      }
-      return {
-        href: window.location.href,
-        pathname: window.location.pathname,
-        search: window.location.search,
-        simulationClassName: simulations?.className || '',
-        activeSimulationId: layer?.dataset.simulationId || homeMode || '',
-      };
-    });
-
-    if (result.pathname.startsWith('/lab/')) {
-      throw new Error(`Homepage redirected to a lab route: ${result.href}`);
-    }
-
-    const modeLogFound = consoleMessages.some((line) => line.includes(EXPECTED_MODE));
     console.log(JSON.stringify({
       ok: true,
-      date: TARGET_DATE,
-      expectedMode: EXPECTED_MODE,
-      href: result.href,
-      simulationClassName: result.simulationClassName,
-      activeSimulationId: result.activeSimulationId,
-      modeLogFound,
+      behavior: 'changes-on-every-reload',
+      selections: [first.activeId, second.activeId, third.activeId],
     }, null, 2));
   } finally {
     await browser.close();
@@ -174,6 +87,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error?.message || error);
+  console.error(error?.stack || error?.message || error);
   process.exit(1);
 });

@@ -1,0 +1,19 @@
+MOTION CAPTURE MANIFEST — R3
+Captured 12 July 2026 with Playwright at 1280x720.
+
+1. giacomo-info-scroll.webm
+   Source: https://giacomoagnellomodica.com/info/
+   Shows: vertical pacing into influence/favorite-thing controls and the optional playful reveal layer.
+   Status: complete (7.1 MB).
+
+2. maria-about-scroll.webm
+   Source: https://mariavareva.com/about
+   Shows: progressive large-type career/belief narrative during a clean vertical scroll.
+   Status: complete (1.2 MB).
+
+Not captured as video:
+- Bogdan Kolomiyets: full-page PNG preserves the complete content and personal-collage sequence; recording was deprioritized after the orchestrator requested immediate core delivery.
+- AKIS.STUDIO: full-page PNG preserves the 11,967px alternating type/image/team rhythm; the lengthy page would require a longer editorial clip to be representative.
+- Aya El Ouahdani and Ania Melnik: animation-heavy pages are documented by full-page captures and detailed notes; additional recordings were omitted to prioritize the validated 13-site dataset.
+
+The two completed clips are representative rather than exhaustive. The screenshot library and research.json are the authoritative evidence set.

@@ -3,6 +3,19 @@ import { getGateCodeLength, getGateInviteCode, markGateAccess } from '../../lib/
 import { triggerHaptic } from '../../lib/haptics.js';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
 
+function mountPortfolioGateTeaserBridge() {
+  document.querySelector('[data-portfolio-gate-teaser-bridge]')?.remove();
+  const teaser = document.querySelector('[data-portfolio-gate-teaser]');
+  const simulation = document.getElementById('simulations');
+  if (!teaser || !simulation) return;
+
+  const bridge = teaser.cloneNode(true);
+  bridge.removeAttribute('data-portfolio-gate-teaser');
+  bridge.setAttribute('data-portfolio-gate-teaser-bridge', '');
+  bridge.classList.add('portfolio-gate-teaser--transition-bridge');
+  simulation.appendChild(bridge);
+}
+
 export function PortfolioGateRoute() {
   const gateCopy = homeContent.gates?.portfolio || {};
   const title = gateCopy.title || 'View Portfolio';
@@ -28,9 +41,15 @@ export function PortfolioGateRoute() {
       void container.offsetWidth;
       container.classList.add('pulse-energy');
       triggerHaptic('success');
+      mountPortfolioGateTeaserBridge();
       markGateAccess('portfolio');
       window.setTimeout(() => {
-        trySpaNavigate('/portfolio.html', { replace: true });
+        trySpaNavigate('/portfolio.html', {
+          replace: true,
+          transitionStyle: 'gate-success',
+          exitMs: 240,
+          enterMs: 300,
+        });
       }, 180);
       return;
     }

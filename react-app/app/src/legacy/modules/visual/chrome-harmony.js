@@ -135,6 +135,13 @@ export function applyChromeHarmony() {
   const family = detectBrowserFamily();
   const themeColorLikelyApplied = detectThemeColorLikelyApplied(family);
   const browserIsDark = resolveBrowserChromeIsDark();
+  const isLockedHeaderFamily = family.isChromium || family.isFirefox;
+  const usesLightLockedChrome = !browserIsDark
+    && isLockedHeaderFamily
+    && mode !== 'site'
+    && (mode === 'browser' || !themeColorLikelyApplied);
+
+  document.documentElement.toggleAttribute('data-abs-light-locked-chrome', usesLightLockedChrome);
 
   applyShellPalette(resolveShellPalette(shellConfig));
 
@@ -160,7 +167,6 @@ export function applyChromeHarmony() {
 
   // Locked-header browsers: if the browser chrome likely won't respect theme-color,
   // adapt only the frame to the browser's native UI palette.
-  const isLockedHeaderFamily = family.isChromium || family.isFirefox;
   if (isLockedHeaderFamily && !themeColorLikelyApplied) {
     applyBrowserFrameColor(browserIsDark, family);
     return { mode, family, themeColorLikelyApplied, browserIsDark };

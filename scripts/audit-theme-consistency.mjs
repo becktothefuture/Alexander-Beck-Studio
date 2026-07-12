@@ -312,10 +312,17 @@ async function auditAutomaticPreference(browser, viewport) {
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
     const autoLightState = await assertTheme(page, 'light', `${viewport.name}/auto-system-light`);
     const browserLightFrame = autoLightState.browserChrome;
-    assert(browserLightFrame !== browserDarkFrame, `${viewport.name}: browser scheme did not change outer harmony`, {
-      browserDarkFrame,
-      browserLightFrame,
-    });
+    if (browserName === 'webkit') {
+      assert(browserLightFrame === browserDarkFrame, `${viewport.name}: theme-color-capable browser must retain the fixed dark outer wall`, {
+        browserDarkFrame,
+        browserLightFrame,
+      });
+    } else {
+      assert(browserLightFrame !== browserDarkFrame, `${viewport.name}: locked-browser scheme did not change outer harmony`, {
+        browserDarkFrame,
+        browserLightFrame,
+      });
+    }
 
     await activateThemeToggle(page, 'Switch to dark mode');
     const manualDarkOnLightBrowser = await assertTheme(page, 'dark', `${viewport.name}/manual-dark-after-auto`);

@@ -1,6 +1,8 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import homeContent from 'virtual:abs-content/home';
 import { triggerHaptic } from '../../lib/haptics.js';
+import { playContactRippleMotif } from '../../legacy/modules/audio/sound-engine.js';
+import { ContactRippleSimulation } from './ContactRippleSimulation.jsx';
 
 const COPY_FEEDBACK_MS = 3000;
 
@@ -34,7 +36,10 @@ async function copyToClipboard(text) {
 export function ContactRouteContent() {
   const contact = homeContent.contact || {};
   const [copyState, setCopyState] = useState('idle');
+  const [burstToken, setBurstToken] = useState(0);
   const resetTimerRef = useRef(null);
+  const pulseTimerRef = useRef(null);
+  const contentRef = useRef(null);
   const email = contact.email || 'alexander@beck.fyi';
   const copyText = contact.copy || {};
   const title = contact.title || 'Contact';
@@ -52,15 +57,29 @@ export function ContactRouteContent() {
     }
   }, []);
 
+  useEffect(() => () => {
+    if (resetTimerRef.current) window.clearTimeout(resetTimerRef.current);
+    if (pulseTimerRef.current) window.clearTimeout(pulseTimerRef.current);
+  }, []);
+
   const handleCopy = useCallback(async (event) => {
     const button = event.currentTarget;
+    setBurstToken((current) => current + 1);
+    void playContactRippleMotif({ unlockIfNeeded: true });
     const ok = await copyToClipboard(email);
     triggerHaptic(ok ? 'success' : 'error');
     button.classList.remove('pulse-energy');
+    if (pulseTimerRef.current) {
+      window.clearTimeout(pulseTimerRef.current);
+      pulseTimerRef.current = null;
+    }
     if (ok) {
       void button.offsetWidth;
       button.classList.add('pulse-energy');
-      window.setTimeout(() => button.classList.remove('pulse-energy'), 800);
+      pulseTimerRef.current = window.setTimeout(() => {
+        button.classList.remove('pulse-energy');
+        pulseTimerRef.current = null;
+      }, 800);
     }
     setFeedback(ok ? 'copied' : 'error');
   }, [email, setFeedback]);
@@ -78,7 +97,8 @@ export function ContactRouteContent() {
 
   return (
     <div className="route-centered-page contact-route" data-route-content="contact">
-      <section className="route-centered-page__inner contact-route__inner" aria-labelledby="contact-route-title">
+      <ContactRippleSimulation burstToken={burstToken} contentRef={contentRef} />
+      <section ref={contentRef} className="route-centered-page__inner contact-route__inner" aria-labelledby="contact-route-title">
         <p className="route-kicker" data-route-enter="identity" data-route-enter-order="0">Alexander Beck Studio</p>
         <h1 id="contact-route-title" className="route-centered-page__title" data-route-enter="identity" data-route-enter-order="1">{title}</h1>
         <p id="contact-route-description" className="route-centered-page__description" data-route-enter="context">

@@ -473,7 +473,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
 
     // Layout controls integrated into master panel
 
-    // Initialize starting mode. A non-empty startupMode overrides the daily rotation
+    // Initialize starting mode. A non-empty startupMode overrides reload selection
     // until it is cleared again in the authored shell config.
     const urlMode = getUrlStartupModeOverride();
     const configuredHeroMode = String(getShellConfig()?.hero?.startupMode || '').trim();
