@@ -923,11 +923,28 @@ function stopContactRippleMotif() {
   contactMotifVoices.clear();
 }
 
-function scheduleContactMotifNote({ frequency, offset, duration, gain: peakGain, pan, type }) {
+function scheduleContactMotifNote({
+  frequency,
+  frequencyEnd = null,
+  offset,
+  duration,
+  gain: peakGain,
+  pan = 0,
+  type = 'sine',
+  attack = 0.012,
+  filterStart = 4600,
+  filterEnd = 2400,
+  overtoneRatio = 2.01,
+  overtoneLevel = 0.14,
+  fmRatio = 0,
+  fmDepth = 0,
+}) {
   const start = audioContext.currentTime + offset;
   const stop = start + duration + 0.04;
   const oscillator = audioContext.createOscillator();
   const overtone = audioContext.createOscillator();
+  const modulator = fmDepth > 0 ? audioContext.createOscillator() : null;
+  const modulationGain = modulator ? audioContext.createGain() : null;
   const filter = audioContext.createBiquadFilter();
   const envelope = audioContext.createGain();
   const overtoneGain = audioContext.createGain();
@@ -937,18 +954,34 @@ function scheduleContactMotifNote({ frequency, offset, duration, gain: peakGain,
 
   oscillator.type = type;
   oscillator.frequency.setValueAtTime(frequency, start);
-  oscillator.detune.setValueAtTime((Math.random() - 0.5) * 5, start);
+  if (Number.isFinite(frequencyEnd) && frequencyEnd > 0) {
+    oscillator.frequency.exponentialRampToValueAtTime(frequencyEnd, start + Math.min(duration * 0.42, 0.28));
+  }
   overtone.type = 'sine';
-  overtone.frequency.setValueAtTime(frequency * 2.01, start);
-  overtoneGain.gain.setValueAtTime(0.16, start);
+  overtone.frequency.setValueAtTime(frequency * overtoneRatio, start);
+  if (Number.isFinite(frequencyEnd) && frequencyEnd > 0) {
+    overtone.frequency.exponentialRampToValueAtTime(
+      frequencyEnd * overtoneRatio,
+      start + Math.min(duration * 0.42, 0.28),
+    );
+  }
+  overtoneGain.gain.setValueAtTime(overtoneLevel, start);
+
+  if (modulator && modulationGain) {
+    modulator.type = 'sine';
+    modulator.frequency.setValueAtTime(frequency * fmRatio, start);
+    modulationGain.gain.setValueAtTime(fmDepth, start);
+    modulationGain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+    modulator.connect(modulationGain).connect(oscillator.frequency);
+  }
 
   filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(3600, start);
-  filter.frequency.exponentialRampToValueAtTime(2100, start + duration);
-  filter.Q.setValueAtTime(0.42, start);
+  filter.frequency.setValueAtTime(filterStart, start);
+  filter.frequency.exponentialRampToValueAtTime(filterEnd, start + duration);
+  filter.Q.setValueAtTime(0.62, start);
 
   envelope.gain.setValueAtTime(0.0001, start);
-  envelope.gain.exponentialRampToValueAtTime(peakGain, start + 0.018);
+  envelope.gain.exponentialRampToValueAtTime(peakGain, start + attack);
   envelope.gain.exponentialRampToValueAtTime(peakGain * 0.48, start + Math.min(0.22, duration * 0.42));
   envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
   if (panner) panner.pan.setValueAtTime(pan, start);
@@ -961,8 +994,16 @@ function scheduleContactMotifNote({ frequency, offset, duration, gain: peakGain,
   output.connect(wetGain);
 
   const voice = {
-    oscillators: [oscillator, overtone],
-    nodes: [oscillator, overtone, overtoneGain, filter, envelope, ...(panner ? [panner] : [])],
+    oscillators: [oscillator, overtone, ...(modulator ? [modulator] : [])],
+    nodes: [
+      oscillator,
+      overtone,
+      overtoneGain,
+      filter,
+      envelope,
+      ...(modulator ? [modulator, modulationGain] : []),
+      ...(panner ? [panner] : []),
+    ],
   };
   contactMotifVoices.add(voice);
 
@@ -974,12 +1015,60 @@ function scheduleContactMotifNote({ frequency, offset, duration, gain: peakGain,
   };
   oscillator.start(start);
   overtone.start(start);
+  modulator?.start(start);
   oscillator.stop(stop);
   overtone.stop(stop);
+  modulator?.stop(stop);
+}
+
+function scheduleContactMotifPulse({ frequency, offset, gain: peakGain, pan }) {
+  const start = audioContext.currentTime + offset;
+  const duration = 0.075;
+  const stop = start + duration + 0.02;
+  const oscillator = audioContext.createOscillator();
+  const filter = audioContext.createBiquadFilter();
+  const envelope = audioContext.createGain();
+  const panner = typeof audioContext.createStereoPanner === 'function'
+    ? audioContext.createStereoPanner()
+    : null;
+
+  oscillator.type = 'square';
+  oscillator.frequency.setValueAtTime(frequency * 1.5, start);
+  oscillator.frequency.exponentialRampToValueAtTime(frequency, start + 0.028);
+
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(frequency * 2.4, start);
+  filter.frequency.exponentialRampToValueAtTime(frequency * 1.25, start + duration);
+  filter.Q.setValueAtTime(4.2, start);
+
+  envelope.gain.setValueAtTime(0.0001, start);
+  envelope.gain.exponentialRampToValueAtTime(peakGain, start + 0.003);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  if (panner) panner.pan.setValueAtTime(pan, start);
+
+  oscillator.connect(filter).connect(envelope);
+  const output = panner ? envelope.connect(panner) : envelope;
+  output.connect(dryGain);
+  output.connect(wetGain);
+
+  const voice = {
+    oscillators: [oscillator],
+    nodes: [oscillator, filter, envelope, ...(panner ? [panner] : [])],
+  };
+  contactMotifVoices.add(voice);
+  oscillator.onended = () => {
+    if (!contactMotifVoices.delete(voice)) return;
+    for (const node of voice.nodes) {
+      try { node.disconnect(); } catch (e) {}
+    }
+  };
+  oscillator.start(start);
+  oscillator.stop(stop);
 }
 
 /**
- * Contact activation motif: two interleaved D-major melodic strands over a low anchor.
+ * Contact activation motif: a five-note sonic signature in D major/add-9.
+ * A low wake and octave shadow reinforce the same phrase before an open suspended resolve.
  * The first Contact click may unlock audio; an explicitly muted engine stays silent.
  */
 export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
@@ -990,24 +1079,45 @@ export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
   if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return false;
 
   stopContactRippleMotif();
-  const voices = [
-    { frequency: 293.66, offset: 0.000, duration: 1.05, gain: 0.030, pan: 0.00, type: 'sine' },
-    { frequency: 587.33, offset: 0.015, duration: 0.64, gain: 0.025, pan: -0.18, type: 'triangle' },
-    { frequency: 440.00, offset: 0.055, duration: 0.78, gain: 0.021, pan: 0.18, type: 'sine' },
-    { frequency: 739.99, offset: 0.130, duration: 0.66, gain: 0.022, pan: -0.12, type: 'triangle' },
-    { frequency: 554.37, offset: 0.185, duration: 0.76, gain: 0.019, pan: 0.13, type: 'sine' },
-    { frequency: 880.00, offset: 0.265, duration: 0.72, gain: 0.019, pan: -0.06, type: 'triangle' },
-    { frequency: 659.25, offset: 0.325, duration: 0.80, gain: 0.017, pan: 0.16, type: 'sine' },
-    { frequency: 1318.51, offset: 0.430, duration: 0.88, gain: 0.013, pan: 0.05, type: 'sine' },
-    { frequency: 987.77, offset: 0.455, duration: 0.92, gain: 0.014, pan: 0.20, type: 'sine' },
+  const tonalVoices = [
+    // Layer 1: low wake — the burst gathering energy at the centre.
+    { frequency: 146.83, frequencyEnd: 293.66, offset: 0.000, duration: 1.12, gain: 0.040, pan: 0.00, filterStart: 1800, filterEnd: 900, overtoneLevel: 0.07 },
+    { frequency: 220.00, offset: 0.090, duration: 0.84, gain: 0.018, pan: 0.05, filterStart: 2200, filterEnd: 1100, overtoneLevel: 0.06 },
+
+    // Layer 2: the memorable five-note signature: D–A–E–F♯–D.
+    { frequency: 587.33, offset: 0.000, duration: 0.38, gain: 0.039, pan: -0.22, type: 'triangle', attack: 0.005, fmRatio: 2.0, fmDepth: 6 },
+    { frequency: 880.00, offset: 0.120, duration: 0.40, gain: 0.036, pan: 0.20, type: 'triangle', attack: 0.005, fmRatio: 2.0, fmDepth: 8 },
+    { frequency: 1318.51, offset: 0.240, duration: 0.43, gain: 0.033, pan: -0.14, type: 'triangle', attack: 0.005, fmRatio: 1.5, fmDepth: 10 },
+    { frequency: 1479.98, offset: 0.360, duration: 0.48, gain: 0.031, pan: 0.14, type: 'triangle', attack: 0.005, fmRatio: 2.0, fmDepth: 9 },
+    { frequency: 1174.66, offset: 0.520, duration: 0.72, gain: 0.034, pan: 0.00, type: 'triangle', attack: 0.007, fmRatio: 1.5, fmDepth: 5 },
+
+    // Layer 3: a quieter octave shadow repeats the identity, not a competing melody.
+    { frequency: 293.66, offset: 0.055, duration: 0.56, gain: 0.016, pan: 0.24, filterStart: 3400, filterEnd: 1700, overtoneLevel: 0.06 },
+    { frequency: 440.00, offset: 0.175, duration: 0.58, gain: 0.015, pan: -0.22, filterStart: 3600, filterEnd: 1800, overtoneLevel: 0.06 },
+    { frequency: 659.25, offset: 0.295, duration: 0.62, gain: 0.014, pan: 0.16, filterStart: 3900, filterEnd: 1900, overtoneLevel: 0.05 },
+    { frequency: 739.99, offset: 0.415, duration: 0.66, gain: 0.013, pan: -0.14, filterStart: 4100, filterEnd: 2000, overtoneLevel: 0.05 },
+
+    // Layer 4: open D/A/E resolve gives the mark a calm, optimistic tail.
+    { frequency: 293.66, offset: 0.555, duration: 0.94, gain: 0.020, pan: -0.18, overtoneLevel: 0.07 },
+    { frequency: 440.00, offset: 0.555, duration: 0.98, gain: 0.018, pan: 0.00, overtoneLevel: 0.06 },
+    { frequency: 659.25, offset: 0.555, duration: 1.02, gain: 0.017, pan: 0.18, overtoneLevel: 0.06 },
+  ];
+  const dataPulses = [
+    { frequency: 1174.66, offset: 0.018, gain: 0.014, pan: -0.44 },
+    { frequency: 1760.00, offset: 0.138, gain: 0.012, pan: 0.42 },
+    { frequency: 1318.51, offset: 0.258, gain: 0.013, pan: -0.34 },
+    { frequency: 2217.46, offset: 0.378, gain: 0.011, pan: 0.32 },
   ];
 
   recordSoundDebugEvent('contact-ripple-motif', 'sound-engine:contact-ripple-motif', {
-    character: 'ethereal-serious-dual-melody',
-    noteCount: voices.length,
-    frequencies: voices.map((voice) => voice.frequency),
+    character: 'contact-sonic-logo',
+    motif: 'D5-A5-E6-Fsharp6-D6',
+    layerCount: 5,
+    noteCount: tonalVoices.length + dataPulses.length,
+    frequencies: [...tonalVoices, ...dataPulses].map((voice) => voice.frequency),
   });
-  for (const voice of voices) scheduleContactMotifNote(voice);
+  for (const voice of tonalVoices) scheduleContactMotifNote(voice);
+  for (const pulse of dataPulses) scheduleContactMotifPulse(pulse);
   return true;
 }
 

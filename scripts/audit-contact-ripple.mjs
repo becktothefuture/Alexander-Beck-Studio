@@ -127,12 +127,23 @@ async function readRippleState(page) {
     const stageStyle = stage ? getComputedStyle(stage) : null;
     const canvasStyle = canvas ? getComputedStyle(canvas) : null;
     const contentStyle = content ? getComputedStyle(content) : null;
+    const audioEvents = window.__ABS_SIMULATION_AUDIO__?.events || [];
+    let motifEvent = null;
+    for (let eventIndex = audioEvents.length - 1; eventIndex >= 0; eventIndex -= 1) {
+      if (audioEvents[eventIndex]?.type === 'contact-ripple-motif') {
+        motifEvent = audioEvents[eventIndex];
+        break;
+      }
+    }
     return {
       path: location.pathname,
       stageState: stage?.dataset.contactRippleState || '',
       burstCount: Number(stage?.dataset.contactRippleBurstCount || 0),
       bodyCount: Number(stage?.dataset.contactRippleBodyCount || 0),
       bodyRadius: Number(stage?.dataset.contactRippleBodyRadius || 0),
+      innerAlpha: Number(stage?.dataset.contactRippleInnerAlpha || 0),
+      outerAlpha: Number(stage?.dataset.contactRippleOuterAlpha || 0),
+      coreFadeRadius: Number(stage?.dataset.contactRippleCoreFadeRadius || 0),
       paletteSize: Number(stage?.dataset.contactRipplePaletteSize || 0),
       surface: stage?.dataset.contactRippleSurface || '',
       canvasWidth: canvas?.width || 0,
@@ -151,6 +162,9 @@ async function readRippleState(page) {
         ? { ...window.__ABS_CONTACT_RIPPLE_DIAGNOSTICS__ }
         : null,
       soundMotifCount: Number(window.__ABS_SIMULATION_AUDIO__?.byType?.['contact-ripple-motif'] || 0),
+      soundMotifCharacter: motifEvent?.character || '',
+      soundMotifLayerCount: Number(motifEvent?.layerCount || 0),
+      soundMotifNoteCount: Number(motifEvent?.noteCount || 0),
       soundEnabled: document.querySelector('.button-bar__sound-toggle')?.dataset.enabled || 'false',
     };
   });
@@ -163,6 +177,9 @@ function assertLayout(state, viewport) {
   assert(state.paletteSize >= 6, 'Contact ripple did not load the site palette', state);
   assert(state.bodyCount >= 100, 'Contact ripple fixed body field is unexpectedly sparse', state);
   assert(state.bodyRadius >= 8.5 && state.bodyRadius <= 10.4, 'Contact ripple bodies do not match the ball-pit size band', state);
+  assert(state.innerAlpha > 0 && state.innerAlpha < 0.2, 'Innermost Contact rings are not softly faded', state);
+  assert(state.outerAlpha === 1, 'Outer Contact rings are not fully opaque', state);
+  assert(state.coreFadeRadius > state.bodyRadius * 10, 'Contact core fade is unexpectedly narrow', state);
   assert(state.canvasPointerEvents === 'none', 'Decorative canvas captured pointer events', state);
   assert(state.stageZ < state.contentZ, 'Contact content is not above the ripple stage', state);
   assert(state.stageRect?.width > viewport.width * 0.75, 'Ripple stage does not fill the studio window', state);
@@ -236,6 +253,9 @@ async function runStandardScenario(browser, viewport, theme) {
     assert(successBurst.bodyCount === initial.bodyCount, 'Burst changed the number of rendered balls', { initial, successBurst });
     assert(successBurst.bodyRadius === initial.bodyRadius, 'Burst changed the rendered ball size', { initial, successBurst });
     assert(successBurst.soundEnabled === 'true', 'First Contact activation did not unlock the requested sound motif', successBurst);
+    assert(successBurst.soundMotifCharacter === 'contact-sonic-logo', 'Contact motif character is stale', successBurst);
+    assert(successBurst.soundMotifLayerCount >= 5, 'Contact motif is missing its layered signal stack', successBurst);
+    assert(successBurst.soundMotifNoteCount >= 18, 'Contact motif note stack is unexpectedly sparse', successBurst);
 
     const rapidStart = successBurst.burstCount;
     for (let clickIndex = 1; clickIndex <= 3; clickIndex += 1) {

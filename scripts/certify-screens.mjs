@@ -121,7 +121,7 @@ const matrix = [
       '#app-frame',
       '[data-route-tab="contact"]',
       '[data-route-content="contact"]',
-      '[data-contact-ripple-stage][data-contact-ripple-body-count]'
+      '[data-contact-ripple-stage][data-contact-ripple-body-count]:not([data-contact-ripple-body-count="0"])'
     ],
     minReadySelectors: 4,
     selectors: [
