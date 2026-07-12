@@ -99,8 +99,7 @@ export function ContactRouteContent() {
     <div className="route-centered-page contact-route" data-route-content="contact">
       <ContactRippleSimulation burstToken={burstToken} contentRef={contentRef} />
       <section ref={contentRef} className="route-centered-page__inner contact-route__inner" aria-labelledby="contact-route-title">
-        <p className="route-kicker" data-route-enter="identity" data-route-enter-order="0">Alexander Beck Studio</p>
-        <h1 id="contact-route-title" className="route-centered-page__title" data-route-enter="identity" data-route-enter-order="1">{title}</h1>
+        <h1 id="contact-route-title" className="route-centered-page__title" data-route-enter="identity" data-route-enter-order="0">{title}</h1>
         <p id="contact-route-description" className="route-centered-page__description" data-route-enter="context">
           {description}
         </p>
