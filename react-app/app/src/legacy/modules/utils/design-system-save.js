@@ -3,6 +3,7 @@ import { getAllControls } from '../ui/control-registry.js';
 import { getSoundConfig, getCurrentPreset } from '../audio/sound-engine.js';
 import { buildStudioShellPatch, buildStudioSurfaceSnapshot } from '../ui/studio-surface-controls.js';
 import { getShellConfig } from '../visual/site-shell.js';
+import { buildContactRippleSnapshot } from '../../../routes/contact/contactRippleConfig.js';
 import { loadDesignSystemConfig, normalizeDesignSystemConfig } from './design-config.js';
 
 const CONFIG_ONLY_RUNTIME_KEYS = [
@@ -108,6 +109,7 @@ export async function buildDesignSystemSnapshot({
   runtimeSnapshot = null,
   shellSnapshot = null,
   portfolioSnapshot = null,
+  contactSnapshot = null,
   cvSnapshot = null,
 } = {}) {
   const base = normalizeDesignSystemConfig(await loadDesignSystemConfig());
@@ -118,6 +120,7 @@ export async function buildDesignSystemSnapshot({
     runtime: nextRuntime,
     shell: clone(shellSnapshot || buildShellConfigSnapshot()),
     portfolio: portfolioSnapshot ? clone(portfolioSnapshot) : clone(base.portfolio),
+    contact: clone(contactSnapshot || buildContactRippleSnapshot()),
     cv: cvSnapshot ? clone(cvSnapshot) : clone(base.cv),
   };
 }

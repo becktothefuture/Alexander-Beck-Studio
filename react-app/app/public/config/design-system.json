@@ -152,7 +152,7 @@
     "puckEdgeLightOpacity": 0.16,
     "puckEdgeShadowOpacity": 0.2,
     "noiseEnabled": true,
-    "noiseOpacityLight": 0.15,
+    "noiseOpacityLight": 0.1,
     "noiseOpacityDark": 0.8,
     "noiseOffsetY": 0,
     "noiseSize": 175,
@@ -438,11 +438,11 @@
       "wallBaseDark": "#141414",
       "quoteButtonColorLight": "#f5f5f5",
       "quoteButtonColorDark": "#141414",
-      "siteFrameLight": "#141414",
-      "siteFrameDark": "#141414",
+      "siteFrameLight": "#242529",
+      "siteFrameDark": "#141517",
       "chromeHarmonyMode": "auto",
-      "safariFrameLight": "#141414",
-      "safariFrameDark": "#141414",
+      "safariFrameLight": "#181818",
+      "safariFrameDark": "#141517",
       "frameBorderEdgeOpacity": 0.009,
       "frameBorderMidOpacity": 0.017
     },
@@ -644,6 +644,24 @@
         "reducedMotionDurationMs": 320
       }
     }
+  },
+  "contact": {
+    "minBodyRadius": 8.9,
+    "maxBodyRadius": 8.9,
+    "bodyGapScale": 3.8,
+    "ringGapScale": 7,
+    "innerRingAlpha": 0.2,
+    "outerRingAlpha": 1,
+    "idleWaveLength": 128,
+    "idleWaveSpeed": 0.0003,
+    "idleSecondarySpeed": 0.00012,
+    "idleDisplacement": 1.65,
+    "burstDurationMs": 1650,
+    "burstFrontCount": 3,
+    "burstDisplacement": 56,
+    "burstTravelScale": 1.12,
+    "burstReleaseStart": 0.72,
+    "burstTwist": 4.5
   },
   "cv": {
     "leftWidth": 32,

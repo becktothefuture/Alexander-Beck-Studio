@@ -150,7 +150,7 @@
   "puckEdgeLightOpacity": 0.16,
   "puckEdgeShadowOpacity": 0.2,
   "noiseEnabled": true,
-  "noiseOpacityLight": 0.15,
+  "noiseOpacityLight": 0.1,
   "noiseOpacityDark": 0.8,
   "noiseOffsetY": 0,
   "noiseSize": 175,

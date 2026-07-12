@@ -480,13 +480,15 @@ export function normalizeDesignSystemConfig(raw = {}) {
     ? clone(source.portfolio)
     : (looksLikePortfolioConfig(source) ? clone(source) : {});
 
+  const contact = isPlainObject(source.contact) ? clone(source.contact) : {};
+
   const cv = isPlainObject(source.cv)
     ? clone(source.cv)
     : (looksLikeCvConfig(source) ? clone(source) : clone(DEFAULT_CV_CONFIG));
 
   const version = Number.isFinite(Number(source.version)) ? Number(source.version) : 1;
 
-  return { version, runtime, shell, portfolio, cv };
+  return { version, runtime, shell, portfolio, contact, cv };
 }
 
 async function loadFallbackDesignSystem() {
@@ -502,6 +504,7 @@ async function loadFallbackDesignSystem() {
     runtime: runtime || {},
     shell: shell || {},
     portfolio: portfolio || {},
+    contact: {},
     cv: cv || DEFAULT_CV_CONFIG,
   });
 }
@@ -535,6 +538,10 @@ export function deriveShellConfig(designSystem = {}) {
 
 export function derivePortfolioConfig(designSystem = {}) {
   return clone(normalizeDesignSystemConfig(designSystem).portfolio);
+}
+
+export function deriveContactConfig(designSystem = {}) {
+  return clone(normalizeDesignSystemConfig(designSystem).contact);
 }
 
 export function deriveCvConfig(designSystem = {}) {

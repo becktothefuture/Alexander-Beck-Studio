@@ -5,6 +5,11 @@ import {
   useDailyFocusReducedMotion,
   useDailyFocusTheme,
 } from '../daily-focus/dailyFocusTheme.js';
+import {
+  CONTACT_RIPPLE_CONFIG_EVENT,
+  getContactRippleConfig,
+  setContactRippleConfig,
+} from './contactRippleConfig.js';
 import { createContactRippleRenderer } from './contactRippleRenderer.js';
 import './contact-route.css';
 
@@ -33,6 +38,42 @@ export function ContactRippleSimulation({ burstToken, contentRef }) {
   }, []);
 
   useEffect(() => {
+    if (!designSystem?.contact) return;
+    setContactRippleConfig(designSystem.contact);
+  }, [designSystem]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || !designSystem) return undefined;
+    let cancelled = false;
+
+    Promise.all([
+      import('../../legacy/modules/ui/panel-popup-manager.js'),
+      import('./contactRipplePanel.js'),
+    ]).then(([panelManager, contactPanel]) => {
+      if (cancelled) return;
+      panelManager.registerDevPanelRoute({
+        page: 'contact',
+        pageLabel: 'Contact Us',
+        productLabel: 'Alexander Beck Studio',
+        panelTitle: 'Contact Controls',
+        pageSectionTitle: 'Contact Us View',
+        pageSectionIcon: '✉',
+        pageHTML: contactPanel.generateContactRipplePanelHTML(),
+        setupPageControls: contactPanel.bindContactRipplePanel,
+        masterGroupIds: ['audio'],
+        footerHint: '<kbd>/</kbd> panel · live apply · save to design JSON',
+        syncInitialControlSideEffects: false,
+      });
+    }).catch((error) => {
+      console.warn('Contact panel init failed', error);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [designSystem]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     if (!canvas || !stage) return undefined;
@@ -43,11 +84,18 @@ export function ContactRippleSimulation({ burstToken, contentRef }) {
       reducedMotion,
       getTheme: () => themeRef.current,
       getQuietZoneElement: () => contentRef.current,
+      getConfig: getContactRippleConfig,
     });
     rendererRef.current = renderer;
     renderer.start();
 
+    const handleConfigChange = (event) => {
+      renderer.updateConfig?.(event.detail?.config || getContactRippleConfig());
+    };
+    window.addEventListener(CONTACT_RIPPLE_CONFIG_EVENT, handleConfigChange);
+
     return () => {
+      window.removeEventListener(CONTACT_RIPPLE_CONFIG_EVENT, handleConfigChange);
       renderer.destroy();
       if (rendererRef.current === renderer) rendererRef.current = null;
     };

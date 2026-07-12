@@ -39,6 +39,7 @@ async function waitForIdle(page) {
       })()
       && document.documentElement.dataset.absBootState !== 'booting'
     ),
+    undefined,
     { timeout: WAIT_MS, polling: 50 },
   );
 }
@@ -54,6 +55,7 @@ async function waitForCanvasBuffer(page) {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       return canvas.width >= Math.floor(cssWidth * dpr) && canvas.height >= Math.floor(cssHeight * dpr);
     },
+    undefined,
     { timeout: WAIT_MS },
   );
 }
@@ -391,6 +393,18 @@ async function captureUnlockRevealReplay(browser, profile, checkpointId) {
   try {
     await page.goto(url('/portfolio.html?gate=portfolio'), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await waitForIdle(page);
+    await page.evaluate(() => {
+      const key = '__ABS_SPA_NAVIGATE__';
+      const navigate = window[key];
+      window[key] = (href, options = {}) => {
+        window[key] = navigate;
+        return navigate(href, {
+          ...options,
+          exitMs: Math.max(Number(options.exitMs) || 0, 800),
+          enterMs: Math.max(Number(options.enterMs) || 0, 1600),
+        });
+      };
+    });
     await fillGate(page);
 
     if (checkpointId === '05-route-in-early') {
@@ -405,21 +419,16 @@ async function captureUnlockRevealReplay(browser, profile, checkpointId) {
           && wallOpacity < 0.72
           && bridgeOpacity > 0.05
           && bridgeOpacity < 0.95;
-      }, { timeout: WAIT_MS, polling: 'raf' });
+      }, undefined, { timeout: WAIT_MS, polling: 'raf' });
     } else {
       await page.waitForFunction(() => {
         if ((document.documentElement.dataset.absTransitionPhase || 'idle') !== 'route-in') return false;
         const deck = document.getElementById('portfolioProjectMount');
         const opacity = deck ? Number.parseFloat(getComputedStyle(deck).opacity || '0') : 0;
         return opacity > 0.12 && opacity < 0.96;
-      }, { timeout: WAIT_MS, polling: 'raf' });
+      }, undefined, { timeout: WAIT_MS, polling: 'raf' });
     }
 
-    await page.evaluate(() => {
-      document.getAnimations().forEach((animation) => {
-        animation.playbackRate = 0.05;
-      });
-    });
     return await captureSequenceCheckpoint(page, cdpSession, prefix, checkpointId);
   } finally {
     await context.close();
@@ -475,6 +484,7 @@ async function auditUnlockSequence(browser, profile) {
         document.querySelector('.portfolio-gate-inputs')?.classList.contains('pulse-energy')
         && Boolean(window.__ABS_GATE_AUDIT_PENDING_NAVIGATION__)
       ),
+      undefined,
       { timeout: WAIT_MS },
     );
     frames.push(await captureSequenceCheckpoint(page, cdpSession, prefix, '02-code-accepted'));
@@ -485,7 +495,10 @@ async function auditUnlockSequence(browser, profile) {
       window[key] = navigate;
       delete window.__ABS_GATE_AUDIT_ORIGINAL_NAVIGATE__;
       delete window.__ABS_GATE_AUDIT_PENDING_NAVIGATION__;
-      navigate(pending.href, pending.options);
+      navigate(pending.href, {
+        ...pending.options,
+        exitMs: Math.max(Number(pending.options?.exitMs) || 0, 800),
+      });
     });
 
     await page.waitForFunction(() => {
@@ -495,18 +508,8 @@ async function auditUnlockSequence(browser, profile) {
       return Boolean(document.querySelector('[data-portfolio-gate-teaser]'))
         && opacity > 0.05
         && opacity < 0.95;
-    }, { timeout: WAIT_MS, polling: 'raf' });
-    await page.evaluate(() => {
-      document.getAnimations().forEach((animation) => {
-        animation.playbackRate = 0.05;
-      });
-    });
+    }, undefined, { timeout: WAIT_MS, polling: 'raf' });
     frames.push(await captureSequenceCheckpoint(page, cdpSession, prefix, '03-route-out'));
-    await page.evaluate(() => {
-      document.getAnimations().forEach((animation) => {
-        animation.playbackRate = 1;
-      });
-    });
 
     await page.waitForFunction(() => {
       if ((document.documentElement.dataset.absTransitionPhase || 'idle') !== 'route-out') return false;
@@ -517,7 +520,7 @@ async function auditUnlockSequence(browser, profile) {
         && Boolean(document.getElementById('portfolioProjectMount'))
         && styles?.visibility === 'hidden'
         && Number.parseFloat(styles.opacity || '1') <= 0.02;
-    }, { timeout: WAIT_MS, polling: 'raf' });
+    }, undefined, { timeout: WAIT_MS, polling: 'raf' });
     frames.push(await captureSequenceCheckpoint(page, cdpSession, prefix, '04-loading-bridge'));
 
     await page.waitForSelector('.portfolio-project-card, .portfolio-deck-card, .portfolio-project-label', { state: 'attached', timeout: WAIT_MS });

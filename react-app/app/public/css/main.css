@@ -4296,7 +4296,16 @@ svg.shell-tab__icon {
 .shell-tab[aria-current='page'] .shell-tab__icon,
 .shell-tab[aria-current='page'] .shell-tab__label {
   color: var(--shell-tab-text-active);
+}
+
+.shell-tab[aria-current='page'] .shell-tab__label {
   font-weight: var(--abs-weight-medium);
+}
+
+.shell-tab[aria-current='page'] .shell-tab__icon {
+  font-weight: 400;
+  filter: none;
+  text-shadow: none;
 }
 
 .button-bar__primary-buttons .shell-tab,
@@ -4355,11 +4364,19 @@ svg.shell-tab__icon {
   --button-bar-gasket-pressed-light: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.12);
   --button-bar-gasket-text-rest: var(--button-bar-outer-ink-muted, rgba(var(--abs-rgb-white), 0.64));
   --button-bar-gasket-text-active: var(--button-bar-outer-ink, rgba(var(--abs-rgb-white), 0.88));
+  --button-bar-selected-ground-share: 84%;
+  --button-bar-pressed-ground-share: 76%;
+  --button-bar-selected-shadow-opacity: 0.42;
+  --button-bar-pressed-shadow-opacity: 0.5;
 }
 
 html[data-abs-light-locked-chrome] .button-bar {
   --button-bar-gasket-cut: rgba(var(--abs-rgb-black), 0.1);
   --button-bar-gasket-active-cut: rgba(var(--abs-rgb-black), 0.14);
+  --button-bar-selected-ground-share: 92%;
+  --button-bar-pressed-ground-share: 86%;
+  --button-bar-selected-shadow-opacity: 0.16;
+  --button-bar-pressed-shadow-opacity: 0.22;
 }
 
 .button-bar .shell-tab,
@@ -4401,8 +4418,8 @@ html[data-abs-light-locked-chrome] .button-bar {
   color: var(--shell-tab-text-active);
   border-color: var(--button-bar-gasket-active-cut);
   border-bottom-color: var(--button-bar-gasket-pressed-light);
-  background: color-mix(in srgb, var(--shell-tab-surface-base) 84%, rgba(var(--abs-rgb-black), 1) 16%);
-  box-shadow: inset 0 calc(var(--abs-size-1px) * 2) calc(var(--abs-size-1px) * 4) rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.42);
+  background: color-mix(in srgb, var(--shell-tab-surface-base) var(--button-bar-selected-ground-share), rgba(var(--abs-rgb-black), 1));
+  box-shadow: inset 0 calc(var(--abs-size-1px) * 2) calc(var(--abs-size-1px) * 4) rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), var(--button-bar-selected-shadow-opacity));
 }
 
 .button-bar .button-bar__primary-buttons .shell-tab[aria-current='page']::before {
@@ -4415,8 +4432,8 @@ html[data-abs-light-locked-chrome] .button-bar {
   --shell-tab-motion-scale: 1;
   color: var(--shell-tab-text-active);
   border-bottom-color: var(--button-bar-gasket-pressed-light);
-  background: color-mix(in srgb, var(--shell-tab-surface-base) 76%, rgba(var(--abs-rgb-black), 1) 24%);
-  box-shadow: inset 0 calc(var(--abs-size-1px) * 3) calc(var(--abs-size-1px) * 5) rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.5);
+  background: color-mix(in srgb, var(--shell-tab-surface-base) var(--button-bar-pressed-ground-share), rgba(var(--abs-rgb-black), 1));
+  box-shadow: inset 0 calc(var(--abs-size-1px) * 3) calc(var(--abs-size-1px) * 5) rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), var(--button-bar-pressed-shadow-opacity));
   transition-duration: 0ms;
 }
 

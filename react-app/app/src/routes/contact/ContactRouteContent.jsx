@@ -42,7 +42,7 @@ export function ContactRouteContent() {
   const contentRef = useRef(null);
   const email = contact.email || 'alexander@beck.fyi';
   const copyText = contact.copy || {};
-  const title = contact.title || 'Contact';
+  const title = contact.title || "Let's talk";
   const description = contact.description
     || "Hit me up for collaborations and job opportunities. If you need innovative thinking and a creative mind to tackle complex aesthetic, visual, and system problems, get in touch.";
 

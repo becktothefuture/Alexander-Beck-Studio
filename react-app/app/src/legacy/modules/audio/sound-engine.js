@@ -304,6 +304,13 @@ let wheelBus = null;
 let isEnabled = false;
 let isUnlocked = false;
 const contactMotifVoices = new Set();
+const CONTACT_RIPPLE_MOTIF_VARIATIONS = Object.freeze([
+  Object.freeze({ id: 'centre', answerFrequency: 293.66, panSpread: 0.10, echoSpacing: 0.032 }),
+  Object.freeze({ id: 'inner', answerFrequency: 329.63, panSpread: 0.16, echoSpacing: 0.048 }),
+  Object.freeze({ id: 'middle', answerFrequency: 392.00, panSpread: 0.22, echoSpacing: 0.064 }),
+  Object.freeze({ id: 'outer', answerFrequency: 440.00, panSpread: 0.28, echoSpacing: 0.080 }),
+]);
+let contactMotifVariationIndex = 0;
 
 // Broadcast state changes so UI stays in sync
 export const SOUND_STATE_EVENT = 'simulations:sound-state';
@@ -1067,9 +1074,9 @@ function scheduleContactMotifPulse({ frequency, offset, gain: peakGain, pan }) {
 }
 
 /**
- * Contact activation motif: a restrained mechanical registration sequence.
- * A low motor bed, minor-second tension, octave shadow, and filtered relay ticks
- * form one repeatable identity without the brightness of a success jingle.
+ * Contact activation motif: a plotter-calibration sequence built from open intervals.
+ * Its stable phrase stays recognisable while a quiet echo advances through four
+ * ripple bands, widening and spacing out on each successive activation.
  * The first Contact click may unlock audio; an explicitly muted engine stays silent.
  */
 export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
@@ -1080,43 +1087,88 @@ export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
   if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return false;
 
   stopContactRippleMotif();
+  const variationIndex = contactMotifVariationIndex;
+  const variation = CONTACT_RIPPLE_MOTIF_VARIATIONS[variationIndex];
+  contactMotifVariationIndex = (variationIndex + 1) % CONTACT_RIPPLE_MOTIF_VARIATIONS.length;
+  const rippleEchoVoices = [
+    {
+      frequency: variation.answerFrequency,
+      offset: 0.080,
+      duration: 0.24,
+      gain: 0.0065,
+      pan: -variation.panSpread,
+      type: 'triangle',
+      attack: 0.008,
+      filterStart: 1480,
+      filterEnd: 680,
+      overtoneRatio: 1.5,
+      overtoneLevel: 0.018,
+    },
+    {
+      frequency: variation.answerFrequency,
+      offset: 0.305 + variation.echoSpacing,
+      duration: 0.32,
+      gain: 0.0060,
+      pan: variation.panSpread,
+      type: 'triangle',
+      attack: 0.010,
+      filterStart: 1360,
+      filterEnd: 600,
+      overtoneRatio: 1.5,
+      overtoneLevel: 0.016,
+    },
+    {
+      frequency: variation.answerFrequency,
+      offset: 0.565 + variation.echoSpacing * 2,
+      duration: 0.44,
+      gain: 0.0055,
+      pan: 0,
+      type: 'triangle',
+      attack: 0.012,
+      filterStart: 1220,
+      filterEnd: 520,
+      overtoneRatio: 1.5,
+      overtoneLevel: 0.014,
+    },
+  ];
   const tonalVoices = [
-    // Layer 1: low motor bed settles fractionally downward as the ripple releases.
-    { frequency: 73.42, frequencyEnd: 70.40, offset: 0.000, duration: 1.18, gain: 0.029, pan: -0.04, type: 'triangle', attack: 0.018, filterStart: 920, filterEnd: 420, overtoneRatio: 2.01, overtoneLevel: 0.035, fmRatio: 0.5, fmDepth: 1.6 },
-    { frequency: 110.00, frequencyEnd: 107.00, offset: 0.165, duration: 0.88, gain: 0.014, pan: 0.05, filterStart: 1080, filterEnd: 480, overtoneRatio: 1.5, overtoneLevel: 0.025 },
+    // Layer 1: a mid-low stepper bed moves gently upward into registration.
+    { frequency: 146.83, frequencyEnd: 148.50, offset: 0.000, duration: 0.92, gain: 0.020, pan: -0.03, type: 'triangle', attack: 0.016, filterStart: 1120, filterEnd: 520, overtoneRatio: 2.0, overtoneLevel: 0.028, fmRatio: 0.5, fmDepth: 1.2 },
+    { frequency: 220.00, frequencyEnd: 222.30, offset: 0.150, duration: 0.70, gain: 0.009, pan: 0.04, filterStart: 1280, filterEnd: 600, overtoneRatio: 1.5, overtoneLevel: 0.020 },
 
-    // Layer 2: the five-note identity — D, E-flat, lower A, C, D.
-    { frequency: 293.66, offset: 0.000, duration: 0.34, gain: 0.027, pan: -0.16, type: 'triangle', attack: 0.007, filterStart: 1900, filterEnd: 780, overtoneRatio: 1.5, overtoneLevel: 0.040, fmRatio: 2.0, fmDepth: 3.2 },
-    { frequency: 311.13, offset: 0.112, duration: 0.38, gain: 0.025, pan: 0.14, type: 'triangle', attack: 0.007, filterStart: 1840, filterEnd: 760, overtoneRatio: 1.5, overtoneLevel: 0.036, fmRatio: 2.0, fmDepth: 3.8 },
-    { frequency: 220.00, offset: 0.265, duration: 0.46, gain: 0.024, pan: -0.10, type: 'triangle', attack: 0.009, filterStart: 1700, filterEnd: 700, overtoneRatio: 2.0, overtoneLevel: 0.034, fmRatio: 1.5, fmDepth: 2.8 },
-    { frequency: 261.63, offset: 0.415, duration: 0.44, gain: 0.023, pan: 0.10, type: 'triangle', attack: 0.009, filterStart: 1760, filterEnd: 720, overtoneRatio: 1.5, overtoneLevel: 0.032, fmRatio: 2.0, fmDepth: 3.0 },
-    { frequency: 293.66, offset: 0.575, duration: 0.72, gain: 0.027, pan: 0.00, type: 'triangle', attack: 0.011, filterStart: 1600, filterEnd: 620, overtoneRatio: 1.5, overtoneLevel: 0.030, fmRatio: 1.5, fmDepth: 2.2 },
+    // Layer 2: open-interval plotter phrase — D, lower A, E, G, D.
+    { frequency: 293.66, offset: 0.000, duration: 0.28, gain: 0.026, pan: -0.12, type: 'triangle', attack: 0.006, filterStart: 1980, filterEnd: 860, overtoneRatio: 1.5, overtoneLevel: 0.032, fmRatio: 2.0, fmDepth: 2.2 },
+    { frequency: 220.00, offset: 0.105, duration: 0.32, gain: 0.022, pan: 0.11, type: 'triangle', attack: 0.007, filterStart: 1800, filterEnd: 780, overtoneRatio: 1.5, overtoneLevel: 0.028, fmRatio: 1.5, fmDepth: 1.8 },
+    { frequency: 329.63, offset: 0.225, duration: 0.34, gain: 0.024, pan: -0.09, type: 'triangle', attack: 0.007, filterStart: 2100, filterEnd: 920, overtoneRatio: 1.5, overtoneLevel: 0.030, fmRatio: 2.0, fmDepth: 2.4 },
+    { frequency: 392.00, offset: 0.365, duration: 0.38, gain: 0.022, pan: 0.09, type: 'triangle', attack: 0.008, filterStart: 2160, filterEnd: 960, overtoneRatio: 1.5, overtoneLevel: 0.026, fmRatio: 1.5, fmDepth: 2.0 },
+    { frequency: 293.66, offset: 0.535, duration: 0.62, gain: 0.025, pan: 0.00, type: 'triangle', attack: 0.010, filterStart: 1760, filterEnd: 720, overtoneRatio: 1.5, overtoneLevel: 0.026, fmRatio: 1.5, fmDepth: 1.6 },
 
-    // Layer 3: a very quiet lower-register trace makes the mark feel engineered, not melodic.
-    { frequency: 146.83, offset: 0.034, duration: 0.49, gain: 0.010, pan: 0.13, filterStart: 1120, filterEnd: 520, overtoneRatio: 2.0, overtoneLevel: 0.022 },
-    { frequency: 155.56, offset: 0.146, duration: 0.52, gain: 0.009, pan: -0.12, filterStart: 1100, filterEnd: 500, overtoneRatio: 2.0, overtoneLevel: 0.020 },
-    { frequency: 110.00, offset: 0.299, duration: 0.58, gain: 0.010, pan: 0.09, filterStart: 980, filterEnd: 450, overtoneRatio: 2.0, overtoneLevel: 0.020 },
-    { frequency: 130.81, offset: 0.449, duration: 0.56, gain: 0.009, pan: -0.08, filterStart: 1040, filterEnd: 470, overtoneRatio: 2.0, overtoneLevel: 0.018 },
-    { frequency: 146.83, offset: 0.609, duration: 0.77, gain: 0.011, pan: 0.00, filterStart: 980, filterEnd: 410, overtoneRatio: 2.0, overtoneLevel: 0.018 },
+    // Layer 3: the changing response travels outward on each press.
+    ...rippleEchoVoices,
 
-    // Layer 4: a tritone calibration tone moves into alignment beneath the final D.
-    { frequency: 146.83, offset: 0.545, duration: 0.82, gain: 0.012, pan: -0.10, filterStart: 900, filterEnd: 380, overtoneRatio: 1.5, overtoneLevel: 0.018 },
-    { frequency: 207.65, frequencyEnd: 220.00, offset: 0.535, duration: 0.86, gain: 0.010, pan: 0.10, filterStart: 1180, filterEnd: 460, overtoneRatio: 1.5, overtoneLevel: 0.016, fmRatio: 0.5, fmDepth: 1.2 },
+    // Layer 4: two aligned rails settle together without harmonic tension.
+    { frequency: 146.83, frequencyEnd: 148.50, offset: 0.480, duration: 0.65, gain: 0.009, pan: -0.07, filterStart: 980, filterEnd: 430, overtoneRatio: 1.5, overtoneLevel: 0.016 },
+    { frequency: 220.00, frequencyEnd: 222.30, offset: 0.500, duration: 0.62, gain: 0.008, pan: 0.07, filterStart: 1160, filterEnd: 500, overtoneRatio: 1.5, overtoneLevel: 0.014 },
   ];
   const dataPulses = [
-    // Layer 5: low filtered relay accents register each step without a bright click.
-    { frequency: 146.83, offset: 0.014, gain: 0.0090, pan: -0.24 },
-    { frequency: 155.56, offset: 0.126, gain: 0.0080, pan: 0.22 },
-    { frequency: 110.00, offset: 0.279, gain: 0.0085, pan: -0.18 },
-    { frequency: 130.81, offset: 0.429, gain: 0.0075, pan: 0.17 },
-    { frequency: 146.83, offset: 0.589, gain: 0.0085, pan: 0.00 },
+    // Layer 5: filtered stepper accents mirror the plotter phrase.
+    { frequency: 146.83, offset: 0.014, gain: 0.0080, pan: -0.20 },
+    { frequency: 220.00, offset: 0.119, gain: 0.0070, pan: 0.18 },
+    { frequency: 164.81, offset: 0.239, gain: 0.0075, pan: -0.15 },
+    { frequency: 196.00, offset: 0.379, gain: 0.0065, pan: 0.14 },
+    { frequency: 146.83, offset: 0.549, gain: 0.0075, pan: 0.00 },
   ];
 
   recordSoundDebugEvent('contact-ripple-motif', 'sound-engine:contact-ripple-motif', {
-    character: 'mechanical-registration-motif',
-    motif: 'D4-Eflat4-A3-C4-D4',
+    character: 'plotter-calibration-ripple',
+    motif: 'D4-A3-E4-G4-D4',
     layerCount: 5,
     noteCount: tonalVoices.length + dataPulses.length,
+    variation: variation.id,
+    variationIndex,
+    variationCount: CONTACT_RIPPLE_MOTIF_VARIATIONS.length,
+    answerFrequency: variation.answerFrequency,
+    echoSpacing: variation.echoSpacing,
     frequencies: [...tonalVoices, ...dataPulses].map((voice) => voice.frequency),
   });
   for (const voice of tonalVoices) scheduleContactMotifNote(voice);

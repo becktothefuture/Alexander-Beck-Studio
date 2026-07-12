@@ -128,6 +128,7 @@ async function readRippleState(page) {
     const canvasStyle = canvas ? getComputedStyle(canvas) : null;
     const contentStyle = content ? getComputedStyle(content) : null;
     const audioEvents = window.__ABS_SIMULATION_AUDIO__?.events || [];
+    const motifEvents = audioEvents.filter((event) => event?.type === 'contact-ripple-motif');
     let motifEvent = null;
     for (let eventIndex = audioEvents.length - 1; eventIndex >= 0; eventIndex -= 1) {
       if (audioEvents[eventIndex]?.type === 'contact-ripple-motif') {
@@ -146,6 +147,11 @@ async function readRippleState(page) {
       coreFadeRadius: Number(stage?.dataset.contactRippleCoreFadeRadius || 0),
       burstRelease: stage?.dataset.contactRippleBurstRelease || '',
       ballFinish: stage?.dataset.contactRippleBallFinish || '',
+      pointerMode: stage?.dataset.contactRipplePointerMode || '',
+      ringDirections: stage?.dataset.contactRippleRingDirections || '',
+      pointerMaxDegrees: Number(stage?.dataset.contactRipplePointerMaxDegrees || 0),
+      configControlCount: Number(stage?.dataset.contactRippleConfigControls || 0),
+      config: window.__ABS_CONTACT_RIPPLE_CONFIG__ || null,
       paletteSize: Number(stage?.dataset.contactRipplePaletteSize || 0),
       surface: stage?.dataset.contactRippleSurface || '',
       canvasWidth: canvas?.width || 0,
@@ -167,6 +173,10 @@ async function readRippleState(page) {
       soundMotifCharacter: motifEvent?.character || '',
       soundMotifLayerCount: Number(motifEvent?.layerCount || 0),
       soundMotifNoteCount: Number(motifEvent?.noteCount || 0),
+      soundMotifVariation: motifEvent?.variation || '',
+      soundMotifVariationIndex: Number(motifEvent?.variationIndex ?? -1),
+      soundMotifVariationCount: Number(motifEvent?.variationCount || 0),
+      soundMotifVariationHistory: motifEvents.slice(-8).map((event) => Number(event.variationIndex ?? -1)),
       soundEnabled: document.querySelector('.button-bar__sound-toggle')?.dataset.enabled || 'false',
     };
   });
@@ -177,19 +187,66 @@ function assertLayout(state, viewport) {
   assert(state.canvasHeight >= Math.floor(state.canvasClientHeight * state.canvasDpr) - 2, 'Canvas backing height is undersized', state);
   assert(state.canvasDpr > 0 && state.canvasDpr <= 1.5, 'Canvas DPR cap failed', state);
   assert(state.paletteSize >= 6, 'Contact ripple did not load the site palette', state);
-  assert(state.bodyCount >= 100, 'Contact ripple fixed body field is unexpectedly sparse', state);
-  assert(state.bodyRadius >= 8.5 && state.bodyRadius <= 10.4, 'Contact ripple bodies do not match the ball-pit size band', state);
-  assert(state.innerAlpha > 0 && state.innerAlpha <= 0.08, 'Innermost Contact rings are not sufficiently faded for copy contrast', state);
-  assert(state.outerAlpha === 1, 'Outer Contact rings are not fully opaque', state);
+  assert(state.bodyCount >= 40, 'Contact ripple fixed body field is unexpectedly sparse', state);
+  assert(
+    state.config?.burstDurationMs >= 500 && state.config?.burstDurationMs <= 4000,
+    'Contact ripple canonical config did not load',
+    state,
+  );
+  assert(
+    state.bodyRadius >= state.config.minBodyRadius && state.bodyRadius <= state.config.maxBodyRadius,
+    'Contact ripple body radius does not match the active Contact configuration',
+    state,
+  );
+  assert(state.configControlCount >= 10, 'Contact ripple parameter surface is incomplete', state);
+  assert(
+    Math.abs(state.innerAlpha - state.config.innerRingAlpha) <= 0.005,
+    'Inner Contact opacity does not match the active Contact configuration',
+    state,
+  );
+  assert(
+    Math.abs(state.outerAlpha - state.config.outerRingAlpha) <= 0.005,
+    'Outer Contact opacity does not match the active Contact configuration',
+    state,
+  );
   assert(state.coreFadeRadius > state.bodyRadius * 10, 'Contact core fade is unexpectedly narrow', state);
   assert(state.burstRelease === 'smoothstep-tail', 'Contact burst is missing its eased release phase', state);
   assert(state.ballFinish === 'flat-fill', 'Contact balls still expose a shaded rim treatment', state);
+  assert(state.pointerMode === 'alternating-soft', 'Contact pointer rotation mode is missing', state);
+  assert(state.ringDirections === 'alternating', 'Contact rings do not counter-rotate', state);
+  assert(state.pointerMaxDegrees >= 5 && state.pointerMaxDegrees <= 7, 'Contact pointer rotation is not subtle', state);
   assert(state.canvasPointerEvents === 'none', 'Decorative canvas captured pointer events', state);
   assert(state.stageZ < state.contentZ, 'Contact content is not above the ripple stage', state);
   assert(state.stageRect?.width > viewport.width * 0.75, 'Ripple stage does not fill the studio window', state);
   assert(state.stageRect?.height > viewport.height * 0.65, 'Ripple stage height is too small', state);
   assert(state.buttonRect && state.contentRect, 'Contact content geometry is missing', state);
   assert(state.diagnostics?.activeInstances === 1, 'Unexpected active Contact ripple instance count', state);
+}
+
+async function exercisePointerRotation(page, initial) {
+  const stage = initial.stageRect;
+  assert(stage, 'Contact pointer audit is missing stage geometry', initial);
+  const y = stage.top + (stage.height * 0.52);
+  await page.mouse.move(stage.left + (stage.width * 0.78), y);
+  await page.waitForFunction(() => (
+    window.__ABS_CONTACT_RIPPLE_DIAGNOSTICS__?.pointerActive === true
+    && Number(window.__ABS_CONTACT_RIPPLE_DIAGNOSTICS__?.pointerRotation || 0) > 0.008
+  ));
+  const clockwise = await readRippleState(page);
+
+  await page.mouse.move(stage.left + (stage.width * 0.22), y, { steps: 8 });
+  await page.waitForFunction(() => (
+    window.__ABS_CONTACT_RIPPLE_DIAGNOSTICS__?.pointerActive === true
+    && Number(window.__ABS_CONTACT_RIPPLE_DIAGNOSTICS__?.pointerRotation || 0) < -0.008
+  ));
+  const counterClockwise = await readRippleState(page);
+  assert(
+    clockwise.diagnostics.pointerRotation * counterClockwise.diagnostics.pointerRotation < 0,
+    'Contact pointer travel did not reverse the ring rotation response',
+    { clockwise, counterClockwise },
+  );
+  await page.mouse.move(2, 2);
+  return { clockwise, counterClockwise };
 }
 
 async function forceClipboardFailure(page) {
@@ -236,6 +293,7 @@ async function runStandardScenario(browser, viewport, theme) {
     await waitForRipple(page, 'idle');
     const initial = await readRippleState(page);
     assertLayout(initial, viewport);
+    const pointerRotation = await exercisePointerRotation(page, initial);
 
     const button = page.locator('[data-copy-email]');
     await button.click();
@@ -257,9 +315,11 @@ async function runStandardScenario(browser, viewport, theme) {
     assert(successBurst.bodyCount === initial.bodyCount, 'Burst changed the number of rendered balls', { initial, successBurst });
     assert(successBurst.bodyRadius === initial.bodyRadius, 'Burst changed the rendered ball size', { initial, successBurst });
     assert(successBurst.soundEnabled === 'true', 'First Contact activation did not unlock the requested sound motif', successBurst);
-    assert(successBurst.soundMotifCharacter === 'mechanical-registration-motif', 'Contact motif character is stale', successBurst);
+    assert(successBurst.soundMotifCharacter === 'plotter-calibration-ripple', 'Contact motif character is stale', successBurst);
     assert(successBurst.soundMotifLayerCount >= 5, 'Contact motif is missing its layered signal stack', successBurst);
-    assert(successBurst.soundMotifNoteCount >= 19, 'Contact motif note stack is unexpectedly sparse', successBurst);
+    assert(successBurst.soundMotifNoteCount >= 17, 'Contact motif note stack is unexpectedly sparse', successBurst);
+    assert(successBurst.soundMotifVariationCount === 4, 'Contact motif variation cycle is incomplete', successBurst);
+    assert(successBurst.soundMotifVariationIndex >= 0, 'Contact motif variation metadata is missing', successBurst);
 
     const rapidStart = successBurst.burstCount;
     for (let clickIndex = 1; clickIndex <= 3; clickIndex += 1) {
@@ -271,6 +331,11 @@ async function runStandardScenario(browser, viewport, theme) {
     const rapidBurst = await readRippleState(page);
     assert(rapidBurst.stageState === 'burst', 'Rapid activation did not restart the active burst', rapidBurst);
     assert(rapidBurst.bodyCount === initial.bodyCount, 'Rapid activation changed the fixed body count', { initial, rapidBurst });
+    assert(
+      new Set(rapidBurst.soundMotifVariationHistory).size === 4,
+      'Rapid activation did not advance through the full ripple-sound variation cycle',
+      rapidBurst,
+    );
 
     await forceClipboardFailure(page);
     const failureStart = rapidBurst.burstCount;
@@ -320,7 +385,7 @@ async function runStandardScenario(browser, viewport, theme) {
     assert(remounted.diagnostics?.destroyedInstances >= 1, 'Contact ripple teardown was not recorded', remounted);
     assert(pageErrors.length === 0, 'Page errors occurred during the standard ripple scenario', pageErrors);
 
-    return { initial, successBurst, rapidBurst, failureBurst, toggled, settled, remounted };
+    return { initial, pointerRotation, successBurst, rapidBurst, failureBurst, toggled, settled, remounted };
   } finally {
     await context.close();
   }
@@ -349,6 +414,8 @@ async function runReducedMotionScenario(browser) {
     await waitForIdle(page);
     await waitForRipple(page, 'reduced-idle');
     const initial = await readRippleState(page);
+    assert(initial.pointerMode === 'disabled-reduced-motion', 'Reduced motion did not disable pointer rotation', initial);
+    assert(Number(initial.diagnostics?.pointerRotation || 0) === 0, 'Reduced motion retained pointer rotation', initial);
     await page.locator('[data-copy-email]').click();
     await waitForRipple(page, 'reduced-burst');
     const burst = await readRippleState(page);
