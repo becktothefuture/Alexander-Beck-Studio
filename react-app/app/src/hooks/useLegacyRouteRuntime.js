@@ -55,6 +55,7 @@ export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId 
     const cleanups = [];
     const cleanupStates = new Map();
     let cancelled = false;
+    let runtimeReady = false;
     const isCurrent = () => (
       !cancelled
       && !controller.signal.aborted
@@ -77,7 +78,8 @@ export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId 
       return cleanup;
     };
     const markReady = () => {
-      if (isCurrent()) {
+      if (!runtimeReady && isCurrent()) {
+        runtimeReady = true;
         publishRuntimeLifecycle(routeId, generation, 'ready');
         dispatchRouteReady(routeId, generation);
       }
@@ -100,6 +102,7 @@ export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId 
             generation,
             isCurrent,
             registerCleanup,
+            markReady,
           })).then(registerCleanup);
         }
         throw new Error(`Legacy module is missing export "${exportName}"`);

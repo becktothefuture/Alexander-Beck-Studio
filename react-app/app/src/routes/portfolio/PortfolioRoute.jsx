@@ -1,6 +1,6 @@
 import homeContent from 'virtual:abs-content/home';
 import { PortfolioGateRoute } from './PortfolioGateRoute.jsx';
-import { PortfolioGateTeaser } from './PortfolioGateTeaser.jsx';
+import { PortfolioGateScene } from './PortfolioGateScene.jsx';
 
 export const PORTFOLIO_ROUTE_RUNTIME = {
   exportName: 'bootstrapPortfolio',
@@ -15,7 +15,7 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
       legacyRuntime: false,
       footerVariant: 'portfolio',
       studioWindowClassName: 'portfolio-simulation portfolio-simulation--locked route-page-window w-embed',
-      simulationLayer: <PortfolioGateTeaser />,
+      simulationLayer: <PortfolioGateScene />,
       windowOverlayContent: <PortfolioGateRoute />,
       uiLayer: {
         chrome: null,

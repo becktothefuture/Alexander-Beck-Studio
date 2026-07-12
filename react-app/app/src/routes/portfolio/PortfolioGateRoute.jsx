@@ -3,16 +3,16 @@ import { getGateCodeLength, getGateInviteCode, markGateAccess } from '../../lib/
 import { triggerHaptic } from '../../lib/haptics.js';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
 
-function mountPortfolioGateTeaserBridge() {
-  document.querySelector('[data-portfolio-gate-teaser-bridge]')?.remove();
-  const teaser = document.querySelector('[data-portfolio-gate-teaser]');
+function mountPortfolioGateSceneBridge() {
+  document.querySelector('[data-portfolio-gate-scene-bridge]')?.remove();
+  const scene = document.querySelector('[data-portfolio-gate-scene]');
   const simulation = document.getElementById('simulations');
-  if (!teaser || !simulation) return;
+  if (!scene || !simulation) return;
 
-  const bridge = teaser.cloneNode(true);
-  bridge.removeAttribute('data-portfolio-gate-teaser');
-  bridge.setAttribute('data-portfolio-gate-teaser-bridge', '');
-  bridge.classList.add('portfolio-gate-teaser--transition-bridge');
+  const bridge = scene.cloneNode(true);
+  bridge.removeAttribute('data-portfolio-gate-scene');
+  bridge.setAttribute('data-portfolio-gate-scene-bridge', '');
+  bridge.classList.add('portfolio-gate-scene--transition-bridge');
   simulation.appendChild(bridge);
 }
 
@@ -32,16 +32,22 @@ export function PortfolioGateRoute() {
   };
 
   const checkCode = (container) => {
+    if (container.dataset.gateAccepted === 'true') return;
     const inputs = Array.from(container.querySelectorAll('.portfolio-digit'));
     const enteredCode = inputs.map((input) => input.value).join('');
     if (enteredCode.length !== codeLength) return;
 
     if (enteredCode === getGateInviteCode('portfolio')) {
+      container.dataset.gateAccepted = 'true';
+      container.setAttribute('aria-busy', 'true');
+      inputs.forEach((input) => {
+        input.disabled = true;
+      });
       container.classList.remove('pulse-energy');
       void container.offsetWidth;
       container.classList.add('pulse-energy');
       triggerHaptic('success');
-      mountPortfolioGateTeaserBridge();
+      mountPortfolioGateSceneBridge();
       markGateAccess('portfolio');
       window.setTimeout(() => {
         trySpaNavigate('/portfolio.html', {

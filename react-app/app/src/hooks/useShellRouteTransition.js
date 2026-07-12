@@ -153,7 +153,8 @@ const READY_FALLBACK_MS = 900;
 const GROUPED_ROUTE_OFFSET_MS = 80;
 const ROUTE_ENTER_SELECTOR = '[data-route-enter]';
 const ROUTE_ENTER_TOTAL_MS = 720;
-const PORTFOLIO_GATE_BRIDGE_FADE_MS = 480;
+const PORTFOLIO_GATE_SCENE_FADE_MS = 480;
+const PORTFOLIO_GATE_DECK_REVEAL_DELAY_MS = 160;
 const ROUTE_ENTER_GROUPS = {
   identity: {
     startMs: 0,
@@ -659,17 +660,17 @@ function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, options = {}
   );
 }
 
-function removePortfolioGateTeaserBridge() {
-  document.querySelector('[data-portfolio-gate-teaser-bridge]')?.remove();
+function removePortfolioGateSceneBridge() {
+  document.querySelector('[data-portfolio-gate-scene-bridge]')?.remove();
 }
 
-function dismissPortfolioGateTeaserBridge({
+function dismissPortfolioGateSceneBridge({
   durationMs = ELEMENT_REVEAL_MS,
   delayMs = 0,
   easing = EASE_OUT,
   instant = false,
 } = {}) {
-  const bridge = document.querySelector('[data-portfolio-gate-teaser-bridge]');
+  const bridge = document.querySelector('[data-portfolio-gate-scene-bridge]');
   if (!bridge) return;
   if (instant || typeof bridge.animate !== 'function') {
     bridge.remove();
@@ -694,6 +695,19 @@ function dismissPortfolioGateTeaserBridge({
   animation.onfinish = remove;
   animation.oncancel = remove;
   setStableTimeout(remove, totalMs + 80);
+}
+
+function releasePortfolioGateDeck() {
+  const root = document.documentElement;
+  root.dataset.absPortfolioGateReveal = 'ready';
+  const generation = getActiveLegacyRuntimeSnapshot().generation;
+  window.dispatchEvent(new CustomEvent('abs:portfolio:reveal', {
+    detail: { generation },
+  }));
+}
+
+function clearPortfolioGateDeckRelease() {
+  delete document.documentElement.dataset.absPortfolioGateReveal;
 }
 
 function setSimulationFocusTransitionState(state) {
@@ -910,14 +924,21 @@ function isPortfolioScrollRailReady() {
   if (!wall || !mount || !firstCard) return false;
   const wallRect = wall.getBoundingClientRect();
   const cardRect = firstCard.getBoundingClientRect();
-  return (
+  const gatePrepared = document.documentElement.dataset.absGateTransition === 'active'
+    && mount.classList.contains('is-portfolio-boot-preparing');
+  const hasUsableGeometry = (
     isRectUsable(wallRect)
     && isRectUsable(cardRect)
     && cardRect.width >= Math.min(240, wallRect.width * 0.5)
     && cardRect.height >= 96
     && rectHasUsableVisibleArea(cardRect, wallRect)
-    && isElementVisiblyRevealed(mount)
-    && isElementVisiblyRevealed(firstCard)
+  );
+  return (
+    hasUsableGeometry
+    && (
+      gatePrepared
+      || (isElementVisiblyRevealed(mount) && isElementVisiblyRevealed(firstCard))
+    )
   );
 }
 
@@ -1388,7 +1409,8 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         syncSteadyTransitionPhase();
       }
       if (isGateTransition) {
-        removePortfolioGateTeaserBridge();
+        removePortfolioGateSceneBridge();
+        clearPortfolioGateDeckRelease();
       }
       processQueuedNavigation();
     };
@@ -1646,12 +1668,17 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             enterMs: routeTimings.reveal,
             revealEasing: routeTimings.revealEasing,
             onPrepared: () => {
-              dismissPortfolioGateTeaserBridge({
-                durationMs: PORTFOLIO_GATE_BRIDGE_FADE_MS,
+              dismissPortfolioGateSceneBridge({
+                durationMs: PORTFOLIO_GATE_SCENE_FADE_MS,
                 delayMs: GROUPED_ROUTE_OFFSET_MS,
                 easing: 'linear',
               });
               dismissGateBackdropOnce();
+              if (isGate && nextRouteId === 'portfolio') {
+                setStableTimeout(() => {
+                  if (!stale()) releasePortfolioGateDeck();
+                }, PORTFOLIO_GATE_DECK_REVEAL_DELAY_MS);
+              }
             },
           });
         })
@@ -1714,7 +1741,8 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           }
           setTransitionPhase(TRANSITION_PHASES.ROUTE_IN);
           setRouteLayerVisibility(true, surfaceRefs);
-          dismissPortfolioGateTeaserBridge({ instant: true });
+          releasePortfolioGateDeck();
+          dismissPortfolioGateSceneBridge({ instant: true });
           dismissGateBackdropOnce();
           return undefined;
         })

@@ -21,6 +21,8 @@ There is no visible Portfolio physics pit or archived slider pipeline.
 
 The in-window Portfolio gate is the only access gate. It does not use the retired whole-page Portfolio modal.
 
+When locked, Portfolio renders an inert CSS/DOM ghost scene and the code form only. It does not boot the deck, canvas, project JSON, or project media until the code is accepted. This is client-side access friction, not secure authentication: a determined visitor can still discover publicly hosted static files.
+
 ## Required verification
 
 Use a fresh production build, then run the Portfolio gate, carousel, drawer, pointer, and project-transition audits. Run project/route transitions in Chromium and WebKit. Manually check desktop and mobile input, reversal during open/close, focus restoration, native drawer scrolling, tap-ring switching, and Button Bar clearance.

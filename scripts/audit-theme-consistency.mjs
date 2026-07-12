@@ -98,8 +98,7 @@ async function readThemeState(page) {
       return normalized;
     };
     const browserChrome = getComputedStyle(root).getPropertyValue('--abs-browser-chrome').trim();
-    const teaser = document.querySelector('[data-portfolio-gate-teaser]');
-    const teaserImage = teaser?.querySelector('img');
+    const scene = document.querySelector('[data-portfolio-gate-scene]');
     return {
       path: location.pathname,
       phase: root.dataset.absTransitionPhase || 'idle',
@@ -116,9 +115,8 @@ async function readThemeState(page) {
       themeColor: normalizeColor(document.querySelector('meta[name="theme-color"]:not([media])')?.content || ''),
       storedPreference: localStorage.getItem('theme-preference-v2'),
       activeRoute: document.querySelector('[data-route-tab][aria-current="page"]')?.getAttribute('data-route-tab') || '',
-      teaserTheme: teaser?.getAttribute('data-portfolio-gate-theme') || '',
-      teaserSrc: teaserImage?.currentSrc || teaserImage?.src || '',
-      teaserReady: teaserImage ? teaserImage.complete && teaserImage.naturalWidth > 0 : null,
+      gateScenePresent: Boolean(scene),
+      gateSceneImageCount: scene?.querySelectorAll('img, picture, source').length || 0,
     };
   });
 }
@@ -212,14 +210,10 @@ async function navigateByTab(page, step, expectedTheme, expectedFrame, viewportN
   assertFrameMatches(state, expectedFrame, `${viewportName}/${step.id}`);
 
   if (step.id === 'portfolio') {
-    await page.waitForFunction((theme) => {
-      const teaser = document.querySelector('[data-portfolio-gate-teaser]');
-      const image = teaser?.querySelector('img');
-      return teaser?.getAttribute('data-portfolio-gate-theme') === theme
-        && image?.complete
-        && image.naturalWidth > 0
-        && image.currentSrc.includes(`-${theme}.jpg`);
-    }, expectedTheme, { timeout: waitMs });
+    await page.waitForFunction(() => {
+      const scene = document.querySelector('[data-portfolio-gate-scene]');
+      return Boolean(scene) && scene.querySelectorAll('img, picture, source').length === 0;
+    }, undefined, { timeout: waitMs });
   }
 }
 

@@ -1585,9 +1585,9 @@ class PortfolioScrollApp {
     card.style.setProperty('--portfolio-card-pose-saturate', pose.saturate.toFixed(3));
     const visualDepth = Math.max(0, Number(pose.depth) || 0);
     const revealOrder = (pose.visualSlot || pose.slot) === 'front'
-      ? 5
-      : Math.max(0, 5 - Math.min(5, Math.round(visualDepth)));
-    card.style.setProperty('--portfolio-card-reveal-delay', `${170 + (revealOrder * 28)}ms`);
+      ? 0
+      : Math.max(1, Math.min(5, Math.round(visualDepth)));
+    card.style.setProperty('--portfolio-card-reveal-delay', `${revealOrder * 40}ms`);
     card.style.removeProperty('opacity');
     card.style.removeProperty('transform');
     card.style.removeProperty('filter');
@@ -2687,11 +2687,18 @@ async function waitForStablePortfolioPresentation(options = {}) {
 }
 
 export async function bootstrapPortfolio(runtimeContext = {}) {
-  const { signal, isCurrent: isRuntimeCurrent, registerCleanup } = runtimeContext;
+  const {
+    signal,
+    isCurrent: isRuntimeCurrent,
+    registerCleanup,
+    markReady,
+    generation,
+  } = runtimeContext;
   const shellRouteTransitionActive = isRouteTransitionPhase(getTransitionPhase());
   const bootstrapRunId = activePortfolioBootstrapRunId + 1;
   activePortfolioBootstrapRunId = bootstrapRunId;
   const root = document.documentElement;
+  const waitForGateReveal = shellRouteTransitionActive && root.dataset.absGateTransition === 'active';
   let disposed = false;
   let rendererOwner = null;
   let pitCanvas = null;
@@ -2702,6 +2709,7 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
   let appDestroyed = false;
   let cleanupTransitionNavigationLinks = null;
   let handlePageShow = null;
+  let removeGateRevealListener = null;
   const isCurrentBootstrapRun = () => (
     !disposed
     && !signal?.aborted
@@ -2736,6 +2744,7 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
     }
     cleanupTransitionNavigationLinks?.();
     if (handlePageShow) window.removeEventListener('pageshow', handlePageShow);
+    removeGateRevealListener?.();
     destroyApp();
   };
   registerCleanup?.(cleanup);
@@ -2838,7 +2847,9 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
     hardRevealTimer = window.setTimeout(tick, 180);
   };
   preparePortfolioLayers();
-  scheduleHardReveal(shellRouteTransitionActive ? 2400 : 2200);
+  if (!waitForGateReveal) {
+    scheduleHardReveal(shellRouteTransitionActive ? 2400 : 2200);
+  }
   // Deck mount stays invisible; revealed after the first stable presentation.
   const hostLaidOut = await waitForPitSimulationHostReady();
   if (!isCurrentBootstrapRun()) return cleanup;
@@ -2904,7 +2915,9 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
   }
   installPortfolioAuditBridge(app);
   updateCursorSize();
-  scheduleHardReveal(shellRouteTransitionActive ? 900 : 520);
+  if (!waitForGateReveal) {
+    scheduleHardReveal(shellRouteTransitionActive ? 900 : 520);
+  }
 
   const settlePortfolioPresentation = () => {
     try {
@@ -2924,6 +2937,27 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
   await new Promise((resolve) => requestAnimationFrame(resolve));
   if (!isCurrentBootstrapRun()) return cleanup;
   settlePortfolioPresentation();
+
+  if (waitForGateReveal) {
+    markReady?.();
+    await new Promise((resolve) => {
+      let settled = false;
+      const release = (event) => {
+        const eventGeneration = Number(event?.detail?.generation || 0);
+        if (eventGeneration && eventGeneration !== Number(generation || 0)) return;
+        if (settled) return;
+        settled = true;
+        window.removeEventListener('abs:portfolio:reveal', release);
+        removeGateRevealListener = null;
+        resolve();
+      };
+      removeGateRevealListener = () => window.removeEventListener('abs:portfolio:reveal', release);
+      window.addEventListener('abs:portfolio:reveal', release);
+      if (root.dataset.absPortfolioGateReveal === 'ready') release();
+    });
+    if (!isCurrentBootstrapRun()) return cleanup;
+  }
+
   revealPortfolioLayers();
   const presentationSettled = await waitForStablePortfolioPresentation({
     timeoutMs: shellRouteTransitionActive ? 700 : 520,

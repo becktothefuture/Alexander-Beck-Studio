@@ -107,40 +107,367 @@ body.portfolio-page #simulations::before {
   box-shadow: none;
 }
 
-.portfolio-gate-teaser,
-.portfolio-gate-teaser__picture,
-.portfolio-gate-teaser__image {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.portfolio-gate-teaser {
+.portfolio-gate-scene {
+  --portfolio-gate-scene-ink: color-mix(in srgb, var(--text-primary) 78%, transparent);
+  --portfolio-gate-scene-shadow: rgb(0 0 0 / 0.24);
+  --portfolio-gate-scene-card-width: min(304px, 23.7vw);
+  --portfolio-gate-scene-card-height: min(444px, 58vh);
+  --portfolio-gate-scene-side-x: min(334px, 27.5vw);
+  --portfolio-gate-scene-side-y: clamp(18px, 2.35vw, 30px);
+  --portfolio-gate-scene-side-scale: 0.969;
+  --portfolio-gate-scene-dot-size: calc(var(--legend-circle-size) * 0.7);
   position: absolute;
-  inset: 0;
+  inset: -4%;
   overflow: hidden;
-  border-radius: var(--frame-inner-radius);
+  border-radius: calc(var(--frame-inner-radius) * 1.04);
   opacity: 0.5;
   pointer-events: none;
   user-select: none;
+  transform: scale(1.04);
+  transform-origin: center;
 }
 
-.portfolio-gate-teaser--transition-bridge {
+.portfolio-gate-scene--transition-bridge {
   z-index: 160;
   will-change: opacity;
 }
 
-.portfolio-gate-teaser__image {
-  object-fit: cover;
-  object-position: center;
-  pointer-events: none;
-  user-select: none;
+.portfolio-gate-scene__field {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--text-primary) 7%, transparent) 0 18%, transparent 49%),
+    var(--studio-window-bg);
 }
 
-/* Gate teaser JPGs are already baked with a 12px blur. Keep the runtime image
-   filter-free so the public asset itself, rather than removable CSS, owns the
-   first concealment layer. The in-window gate adds 30% more backdrop blur on
-   top without changing the shared modal/simulation-focus blur contract. */
+.portfolio-gate-scene__intro {
+  position: absolute;
+  z-index: 4;
+  top: clamp(134px, 12.6svh, 164px);
+  left: 50%;
+  display: grid;
+  gap: clamp(8px, 1.4cqh, 14px);
+  width: min(76%, 38rem);
+  transform: translateX(-50%);
+}
+
+.portfolio-gate-scene__intro-line {
+  display: block;
+  height: clamp(9px, 1.35vw, 18px);
+  margin-inline: auto;
+  border-radius: 999px;
+  background: var(--portfolio-gate-scene-ink);
+}
+
+.portfolio-gate-scene__intro-line--long {
+  width: min(100%, 27rem);
+}
+
+.portfolio-gate-scene__intro-line--short {
+  width: min(58%, 15rem);
+  opacity: 0.62;
+}
+
+.portfolio-gate-scene__deck {
+  position: absolute;
+  inset: 0;
+  perspective: 1600px;
+  transform-style: preserve-3d;
+}
+
+.portfolio-gate-scene__card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  width: var(--portfolio-gate-scene-card-width);
+  height: var(--portfolio-gate-scene-card-height);
+  overflow: hidden;
+  border-radius: 24px;
+  background: #101010;
+  box-shadow:
+    0 clamp(-24px, -1.55vw, -14px) clamp(28px, 2.8vw, 48px) -6px var(--portfolio-gate-scene-shadow),
+    0 clamp(4px, 0.45vw, 7px) clamp(10px, 1vw, 18px) -6px rgb(0 0 0 / 0.06),
+    var(--ui-chrome-button-edge);
+  transform:
+    translate3d(-50%, -50%, 0)
+    translateX(var(--portfolio-gate-scene-card-x, 0px))
+    translateY(var(--portfolio-gate-scene-card-y, 0px))
+    rotateZ(var(--portfolio-gate-scene-card-rotate, 0deg))
+    scale(var(--portfolio-gate-scene-card-scale, 1));
+  transform-origin: 50% 50%;
+}
+
+.portfolio-gate-scene__card--left {
+  z-index: 1;
+  --portfolio-gate-scene-card-x: calc(var(--portfolio-gate-scene-side-x) * -1);
+  --portfolio-gate-scene-card-y: var(--portfolio-gate-scene-side-y);
+  --portfolio-gate-scene-card-rotate: -10deg;
+  --portfolio-gate-scene-card-scale: var(--portfolio-gate-scene-side-scale);
+}
+
+.portfolio-gate-scene__card--center {
+  z-index: 3;
+}
+
+.portfolio-gate-scene__card--right {
+  z-index: 1;
+  --portfolio-gate-scene-card-x: var(--portfolio-gate-scene-side-x);
+  --portfolio-gate-scene-card-y: var(--portfolio-gate-scene-side-y);
+  --portfolio-gate-scene-card-rotate: 10deg;
+  --portfolio-gate-scene-card-scale: var(--portfolio-gate-scene-side-scale);
+}
+
+.portfolio-gate-scene__card--far-left,
+.portfolio-gate-scene__card--far-right {
+  display: none;
+}
+
+.portfolio-gate-scene__card-art {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.portfolio-gate-scene__card--left .portfolio-gate-scene__card-art,
+.portfolio-gate-scene__card--far-left .portfolio-gate-scene__card-art {
+  background:
+    radial-gradient(ellipse 68% 50% at 62% 70%, rgb(235 226 203 / 0.72) 0 24%, transparent 25%),
+    radial-gradient(circle at 22% 30%, rgb(79 133 211 / 0.82) 0 13%, transparent 14%),
+    linear-gradient(155deg, #10263a 0 28%, #547eaa 28% 51%, #e3d9c5 51% 74%, #25394e 74%);
+}
+
+.portfolio-gate-scene__card--center .portfolio-gate-scene__card-art {
+  background:
+    radial-gradient(circle at 63% 75%, rgb(255 221 183 / 0.72) 0 14%, transparent 15%),
+    linear-gradient(24deg, transparent 0 33%, rgb(119 40 42 / 0.58) 34% 47%, transparent 48%),
+    linear-gradient(147deg, #ff8b73 0 26%, #cb544b 26% 53%, #ecb077 53% 72%, #8b3435 72%);
+}
+
+.portfolio-gate-scene__card--right .portfolio-gate-scene__card-art,
+.portfolio-gate-scene__card--far-right .portfolio-gate-scene__card-art {
+  background:
+    radial-gradient(ellipse 62% 42% at 66% 70%, rgb(224 177 95 / 0.84) 0 23%, transparent 24%),
+    radial-gradient(circle at 32% 26%, rgb(113 96 177 / 0.76) 0 16%, transparent 17%),
+    linear-gradient(144deg, #b77935 0 31%, #262641 31% 52%, #6f5d9d 52% 73%, #d49f44 73%);
+}
+
+.portfolio-gate-scene__card-art::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: linear-gradient(180deg, rgb(8 10 14 / 0.06), rgb(8 10 14 / 0.26));
+}
+
+.portfolio-gate-scene__card-copy {
+  position: absolute;
+  z-index: 1;
+  top: clamp(18px, 2vw, 23px);
+  left: clamp(16px, 1.8vw, 20px);
+  display: grid;
+  gap: clamp(9px, 1vw, 12px);
+  width: calc(100% - clamp(32px, 3.6vw, 40px));
+}
+
+.portfolio-gate-scene__eyebrow,
+.portfolio-gate-scene__line {
+  display: block;
+  border-radius: 999px;
+  background: rgb(245 241 234 / 0.84);
+}
+
+.portfolio-gate-scene__eyebrow {
+  width: 31%;
+  height: clamp(7px, 0.8vw, 9px);
+  opacity: 0.68;
+}
+
+.portfolio-gate-scene__line {
+  width: 82%;
+  height: clamp(12px, 1.36vw, 16px);
+  opacity: 0.84;
+}
+
+.portfolio-gate-scene__line--short {
+  width: 56%;
+}
+
+.portfolio-gate-scene__line--medium {
+  width: 66%;
+}
+
+.portfolio-gate-scene__dot-dial {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% - clamp(48px, 6cqh, 60px));
+  left: 50%;
+  width: min(54vw, 680px);
+  height: 24px;
+  transform: translateX(-50%);
+}
+
+.portfolio-gate-scene__dot {
+  position: absolute;
+  top: 0;
+  width: var(--portfolio-gate-scene-dot-size);
+  height: var(--portfolio-gate-scene-dot-size);
+  border-radius: 50%;
+  background: var(--text-primary);
+  opacity: 0.46;
+  transform: translate(-50%, calc(var(--portfolio-gate-scene-dot-y, 0px) - 50%));
+}
+
+.portfolio-gate-scene__dot:nth-child(1) { left: 5%; --portfolio-gate-scene-dot-y: 14px; opacity: 0.08; }
+.portfolio-gate-scene__dot:nth-child(2) { left: 13%; --portfolio-gate-scene-dot-y: 9px; opacity: 0.16; }
+.portfolio-gate-scene__dot:nth-child(3) { left: 21%; --portfolio-gate-scene-dot-y: 6px; opacity: 0.24; }
+.portfolio-gate-scene__dot:nth-child(4) { left: 29%; --portfolio-gate-scene-dot-y: 3px; opacity: 0.34; }
+.portfolio-gate-scene__dot:nth-child(5) { left: 37%; --portfolio-gate-scene-dot-y: 1px; opacity: 0.44; }
+.portfolio-gate-scene__dot:nth-child(6) { left: 45%; --portfolio-gate-scene-dot-y: 0px; opacity: 0.54; }
+.portfolio-gate-scene__dot:nth-child(7) { left: 53%; --portfolio-gate-scene-dot-y: 0px; opacity: 0.64; }
+.portfolio-gate-scene__dot:nth-child(8) { left: 61%; --portfolio-gate-scene-dot-y: 1px; opacity: 0.52; }
+.portfolio-gate-scene__dot:nth-child(9) { left: 69%; --portfolio-gate-scene-dot-y: 3px; opacity: 0.42; }
+.portfolio-gate-scene__dot:nth-child(10) { left: 77%; --portfolio-gate-scene-dot-y: 6px; opacity: 0.30; }
+.portfolio-gate-scene__dot:nth-child(11) { left: 85%; --portfolio-gate-scene-dot-y: 9px; opacity: 0.20; }
+.portfolio-gate-scene__dot:nth-child(12) { left: 93%; --portfolio-gate-scene-dot-y: 14px; opacity: 0.10; }
+.portfolio-gate-scene__dot:nth-child(13) { display: none; }
+
+.portfolio-gate-scene__card--left,
+.portfolio-gate-scene__card--right {
+  filter: saturate(0.88);
+}
+
+.portfolio-gate-scene__easter-egg {
+  position: absolute;
+  right: clamp(24px, 4vw, 62px);
+  bottom: clamp(24px, 4vw, 58px);
+  z-index: 3;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(0.58rem, 0.72vw, 0.74rem);
+  letter-spacing: 0.11em;
+  opacity: 0.54;
+  text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+  .portfolio-gate-scene {
+    --portfolio-gate-scene-card-width: min(318px, 45vw);
+    --portfolio-gate-scene-card-height: auto;
+    --portfolio-gate-scene-side-x: min(350px, 44.5vw);
+    --portfolio-gate-scene-side-y: clamp(30px, 4.3vw, 36px);
+    --portfolio-gate-scene-side-scale: 0.858;
+  }
+
+  .portfolio-gate-scene__card {
+    aspect-ratio: 316 / 461;
+  }
+
+  .portfolio-gate-scene__intro {
+    top: clamp(140px, 16svh, 188px);
+    width: min(78vw, 28ch);
+  }
+
+  .portfolio-gate-scene__intro-line {
+    height: clamp(7px, 1.7vw, 12px);
+  }
+}
+
+@media (max-width: 600px) {
+  .portfolio-gate-scene {
+    --portfolio-gate-scene-card-height: auto;
+    --portfolio-gate-scene-card-width: min(322px, 65vw);
+    --portfolio-gate-scene-side-x: clamp(204px, 63.6vw, 240px);
+    --portfolio-gate-scene-side-y: clamp(20px, 6.6vw, 30px);
+    --portfolio-gate-scene-side-scale: 0.78;
+  }
+
+  .portfolio-gate-scene__intro {
+    top: clamp(128px, 14svh, 156px);
+    width: min(78vw, 28ch);
+  }
+
+  .portfolio-gate-scene__dot-dial {
+    top: calc(100% - clamp(48px, 6cqh, 60px));
+    width: min(88vw, 360px);
+  }
+
+  .portfolio-gate-scene__card--right {
+    display: block;
+  }
+
+  .portfolio-gate-scene__easter-egg {
+    right: 18px;
+    bottom: 18px;
+    max-width: 22ch;
+    font-size: 0.52rem;
+    line-height: 1.35;
+    text-align: right;
+  }
+}
+
+@media (min-width: 1280px) {
+  .portfolio-gate-scene {
+    --portfolio-gate-scene-side-x: min(450px, calc(34.2vw - 80px));
+  }
+
+  .portfolio-gate-scene__card--far-left,
+  .portfolio-gate-scene__card--far-right {
+    display: block;
+    z-index: 0;
+    --portfolio-gate-scene-card-y: 128px;
+    --portfolio-gate-scene-card-scale: 0.88;
+  }
+
+  .portfolio-gate-scene__card--far-left {
+    --portfolio-gate-scene-card-x: min(-450px, calc(162px - 67vw));
+    --portfolio-gate-scene-card-rotate: -22deg;
+  }
+
+  .portfolio-gate-scene__card--far-right {
+    --portfolio-gate-scene-card-x: max(450px, calc(67vw - 162px));
+    --portfolio-gate-scene-card-rotate: 22deg;
+  }
+}
+
+@media (min-width: 1280px) and (max-height: 1000px) {
+  .portfolio-gate-scene__intro {
+    top: clamp(110px, 10.5svh, 134px);
+  }
+}
+
+@media (max-width: 420px) {
+  .portfolio-gate-scene__dot-dial {
+    top: calc(100% - clamp(120px, 16cqh, 132px));
+  }
+}
+
+@media (max-width: 420px) and (max-height: 700px),
+  (max-height: 600px),
+  (max-width: 900px) and (max-height: 680px) {
+  .portfolio-gate-scene__dot-dial {
+    display: none;
+  }
+}
+
+@media (max-height: 480px) and (orientation: landscape) {
+  .portfolio-gate-scene {
+    --portfolio-gate-scene-card-width: min(34%, 270px);
+    --portfolio-gate-scene-card-height: min(330px, 58vh);
+    --portfolio-gate-scene-side-x: clamp(188px, 23vw, 270px);
+    --portfolio-gate-scene-side-y: 12px;
+  }
+
+  .portfolio-gate-scene__intro {
+    display: none;
+  }
+
+  .portfolio-gate-scene__dot-dial {
+    top: calc(100% - 18px);
+  }
+}
+
+/* The fictional scene is deliberately harmless if a visitor removes blur.
+   The in-window gate adds depth without changing shared modal/simulation blur. */
 body.portfolio-page--locked .window-overlay-blur-layer {
   -webkit-backdrop-filter: blur(8.58px);
   backdrop-filter: blur(8.58px);

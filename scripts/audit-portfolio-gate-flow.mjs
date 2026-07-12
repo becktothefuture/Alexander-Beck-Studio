@@ -8,8 +8,7 @@ const WAIT_MS = Number(process.env.ABS_CANVAS_WAIT_MS || 30000);
 const INVITE_CODE = process.env.ABS_PORTFOLIO_CODE || '739284';
 const DESKTOP_GATE_BLUR_PX = 8.58;
 const MOBILE_GATE_BLUR_PX = 15.6;
-const GATE_TEASER_OPACITY = 0.5;
-const MAX_BAKED_TEASER_EDGE_ENERGY = 4;
+const GATE_SCENE_OPACITY = 0.5;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outputRoot = resolve(__dirname, '..', 'output', 'playwright', 'portfolio-gate-audit');
 
@@ -25,6 +24,25 @@ function assert(condition, message, details = null) {
   if (condition) return;
   const suffix = details ? `\n${JSON.stringify(details, null, 2)}` : '';
   throw new Error(`${message}${suffix}`);
+}
+
+function trackLockedPortfolioRequests(page) {
+  const requests = [];
+  const handler = (request) => {
+    const requestUrl = request.url();
+    if (
+      requestUrl.includes('contents-portfolio.json')
+      || requestUrl.includes('/images/portfolio/pages/')
+      || requestUrl.includes('/video/')
+    ) {
+      requests.push(requestUrl);
+    }
+  };
+  page.on('request', handler);
+  return {
+    requests,
+    stop: () => page.off('request', handler),
+  };
 }
 
 async function waitForIdle(page) {
@@ -95,37 +113,11 @@ async function readState(page) {
     const finish = rectOf('.studio-window-finish-layer');
     const gateInner = rectOf('.portfolio-gate-route__inner');
     const gateInputs = rectOf('.portfolio-gate-inputs');
+    const deck = document.getElementById('portfolioProjectMount');
+    const activeDeckCard = deck?.querySelector('[data-deck-visual-slot="front"]');
     const root = document.documentElement;
     const body = document.body;
-    const teaser = document.querySelector('[data-portfolio-gate-teaser]');
-    const teaserImage = teaser?.querySelector('img');
-    const measureEdgeEnergy = (image) => {
-      if (!image?.complete || image.naturalWidth < 1 || image.naturalHeight < 1) return null;
-      const width = 256;
-      const height = Math.max(1, Math.round(width * (image.naturalHeight / image.naturalWidth)));
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext('2d', { willReadFrequently: true });
-      if (!context) return null;
-      context.drawImage(image, 0, 0, width, height);
-      const pixels = context.getImageData(0, 0, width, height).data;
-      let energy = 0;
-      let samples = 0;
-      const luminanceAt = (offset) => (
-        (pixels[offset] * 0.2126)
-        + (pixels[offset + 1] * 0.7152)
-        + (pixels[offset + 2] * 0.0722)
-      );
-      for (let y = 0; y < height; y += 1) {
-        for (let x = 0; x < width - 1; x += 1) {
-          const offset = ((y * width) + x) * 4;
-          energy += Math.abs(luminanceAt(offset) - luminanceAt(offset + 4));
-          samples += 1;
-        }
-      }
-      return samples > 0 ? Number((energy / samples).toFixed(3)) : null;
-    };
+    const scene = document.querySelector('[data-portfolio-gate-scene]');
     const canvas = document.getElementById('c');
     const canvasReady = Boolean(
       canvas
@@ -156,10 +148,18 @@ async function readState(page) {
       bodyClass: document.body.className,
       activeTab: document.querySelector('[data-route-tab][aria-current="page"]')?.getAttribute('data-route-tab') || '',
       lockedGate: Boolean(document.querySelector('[data-route-content="portfolio-gate"]')),
-      teaser: Boolean(document.querySelector('[data-portfolio-gate-teaser]')),
-      teaserBridge: Boolean(document.querySelector('[data-portfolio-gate-teaser-bridge]')),
-      teaserFocusableCount: document.querySelectorAll('[data-portfolio-gate-teaser] a, [data-portfolio-gate-teaser] button, [data-portfolio-gate-teaser] input, [data-portfolio-gate-teaser] [tabindex]').length,
-      deck: Boolean(document.getElementById('portfolioProjectMount')),
+      scene: Boolean(scene),
+      sceneBridge: Boolean(document.querySelector('[data-portfolio-gate-scene-bridge]')),
+      sceneFocusableCount: document.querySelectorAll('[data-portfolio-gate-scene] a, [data-portfolio-gate-scene] button, [data-portfolio-gate-scene] input, [data-portfolio-gate-scene] [tabindex]').length,
+      sceneImageCount: scene?.querySelectorAll('img, picture, source').length || 0,
+      sceneText: scene?.textContent?.trim() || '',
+      deck: Boolean(deck),
+      deckPrepared: deck?.classList.contains('is-portfolio-boot-preparing') || false,
+      deckVisible: deck?.classList.contains('is-portfolio-deck-visible') || false,
+      deckRevealing: deck?.classList.contains('is-portfolio-deck-revealing') || false,
+      activeCardRevealDelay: activeDeckCard
+        ? Number.parseFloat(getComputedStyle(activeDeckCard).getPropertyValue('--portfolio-card-reveal-delay') || '0')
+        : null,
       labels: document.querySelectorAll('.portfolio-project-label, .portfolio-deck-card').length,
       oldPortfolioModal: Boolean(document.querySelector('#portfolio-modal.active')),
       cookie: document.cookie,
@@ -170,11 +170,6 @@ async function readState(page) {
       rootDark: root.classList.contains('dark-mode'),
       bodyDark: body.classList.contains('dark-mode'),
       colorScheme: getComputedStyle(root).colorScheme,
-      teaserTheme: teaser?.getAttribute('data-portfolio-gate-theme') || '',
-      teaserSrc: teaserImage?.currentSrc || teaserImage?.src || '',
-      teaserReady: teaserImage ? teaserImage.complete && teaserImage.naturalWidth > 0 : null,
-      teaserImageFilter: teaserImage ? getComputedStyle(teaserImage).filter : null,
-      teaserEdgeEnergy: measureEdgeEnergy(teaserImage),
       gatePulse: document.querySelector('.portfolio-gate-inputs')?.classList.contains('pulse-energy') || false,
       canvasReady,
       gateColors: {
@@ -201,8 +196,8 @@ async function readState(page) {
       deckSurface: styleOf('#portfolioProjectMount'),
       gateSurface: styleOf('.portfolio-gate-route'),
       gateTitleSurface: styleOf('.portfolio-gate-route .route-centered-page__title'),
-      teaserSurface: styleOf('[data-portfolio-gate-teaser]'),
-      teaserBridgeSurface: styleOf('[data-portfolio-gate-teaser-bridge]'),
+      sceneSurface: styleOf('[data-portfolio-gate-scene]'),
+      sceneBridgeSurface: styleOf('[data-portfolio-gate-scene-bridge]'),
       gateLayoutOk: Boolean(
         sim
         && gateInner
@@ -244,9 +239,8 @@ function assertThemeState(
   theme,
   label,
   {
-    expectTeaser = false,
+    expectScene = false,
     expectedGateBlurPx = DESKTOP_GATE_BLUR_PX,
-    expectedTeaserViewport = 'desktop',
   } = {},
 ) {
   const expectedDark = theme === 'dark';
@@ -255,23 +249,17 @@ function assertThemeState(
   assert(state.colorScheme.includes(theme), `${label}: color-scheme drifted`, state);
   assert(state.storedTheme === theme, `${label}: stored theme drifted`, state);
 
-  if (expectTeaser) {
-    assert(state.teaserTheme === theme, `${label}: teaser theme drifted`, state);
-    assert(state.teaserReady, `${label}: teaser image did not load`, state);
+  if (expectScene) {
+    assert(state.scene, `${label}: fictional gate scene did not mount`, state);
+    assert(state.sceneImageCount === 0, `${label}: fictional gate scene must not use image assets`, state);
     assert(
-      state.teaserSrc.includes(`portfolio-gate-${expectedTeaserViewport}-${theme}.jpg`),
-      `${label}: teaser source does not match the ${expectedTeaserViewport}/${theme} breakpoint`,
-      state,
-    );
-    assert(state.teaserImageFilter === 'none', `${label}: teaser concealment must be baked into the JPG, not applied as a removable runtime filter`, state);
-    assert(
-      Math.abs(state.teaserSurface.opacity - GATE_TEASER_OPACITY) <= 0.01,
-      `${label}: teaser opacity did not resolve to ${GATE_TEASER_OPACITY}`,
+      state.sceneText === 'Cheeky. You found the scenery, not the work.',
+      `${label}: gate scene Easter egg drifted`,
       state,
     );
     assert(
-      Number.isFinite(state.teaserEdgeEnergy) && state.teaserEdgeEnergy <= MAX_BAKED_TEASER_EDGE_ENERGY,
-      `${label}: teaser asset is too sharp to satisfy the baked-blur contract`,
+      Math.abs(state.sceneSurface.opacity - GATE_SCENE_OPACITY) <= 0.01,
+      `${label}: scene opacity did not resolve to ${GATE_SCENE_OPACITY}`,
       state,
     );
     assert(
@@ -308,27 +296,22 @@ async function toggleLockedGateTheme(page, currentTheme) {
   const toggle = page.locator('.button-bar__theme-toggle');
   await toggle.click();
   await page.waitForFunction((theme) => {
-    const teaser = document.querySelector('[data-portfolio-gate-teaser]');
-    const image = teaser?.querySelector('img');
     return document.documentElement.getAttribute('data-abs-theme') === theme
       && document.body?.getAttribute('data-abs-theme') === theme
-      && teaser?.getAttribute('data-portfolio-gate-theme') === theme
-      && image?.complete
-      && image.naturalWidth > 0
-      && image.currentSrc.includes(`-${theme}.jpg`);
+      && Boolean(document.querySelector('[data-portfolio-gate-scene]'));
   }, nextTheme, { timeout: WAIT_MS });
   await waitForLockedBlurTheme(page, nextTheme);
   const toggled = await readState(page);
-  assertThemeState(toggled, nextTheme, `${currentTheme}/locked-live-toggle`, { expectTeaser: true });
+  assertThemeState(toggled, nextTheme, `${currentTheme}/locked-live-toggle`, { expectScene: true });
 
   await toggle.click();
   await page.waitForFunction((theme) => (
     document.documentElement.getAttribute('data-abs-theme') === theme
-    && document.querySelector('[data-portfolio-gate-teaser]')?.getAttribute('data-portfolio-gate-theme') === theme
+    && Boolean(document.querySelector('[data-portfolio-gate-scene]'))
   ), currentTheme, { timeout: WAIT_MS });
   await waitForLockedBlurTheme(page, currentTheme);
   const restored = await readState(page);
-  assertThemeState(restored, currentTheme, `${currentTheme}/locked-live-toggle-restored`, { expectTeaser: true });
+  assertThemeState(restored, currentTheme, `${currentTheme}/locked-live-toggle-restored`, { expectScene: true });
   return { toggled, restored };
 }
 
@@ -387,45 +370,29 @@ async function captureUnlockRevealReplay(browser, profile, checkpointId) {
   }, profile.theme);
   await context.clearCookies();
   const page = await context.newPage();
+  const lockedRequestTracker = trackLockedPortfolioRequests(page);
   const cdpSession = await context.newCDPSession(page);
   const prefix = `unlock-sequence-${profile.name}-${profile.theme}`;
 
   try {
     await page.goto(url('/portfolio.html?gate=portfolio'), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await waitForIdle(page);
-    await page.evaluate(() => {
-      const key = '__ABS_SPA_NAVIGATE__';
-      const navigate = window[key];
-      window[key] = (href, options = {}) => {
-        window[key] = navigate;
-        return navigate(href, {
-          ...options,
-          exitMs: Math.max(Number(options.exitMs) || 0, 800),
-          enterMs: Math.max(Number(options.enterMs) || 0, 1600),
-        });
-      };
-    });
     await fillGate(page);
 
     if (checkpointId === '05-route-in-early') {
       await page.waitForFunction(() => {
         if ((document.documentElement.dataset.absTransitionPhase || 'idle') !== 'route-in') return false;
-        const wall = document.getElementById('shell-wall-slot');
-        const wallOpacity = wall ? Number.parseFloat(getComputedStyle(wall).opacity || '0') : 0;
-        const bridge = document.querySelector('[data-portfolio-gate-teaser-bridge]');
-        const bridgeOpacity = bridge ? Number.parseFloat(getComputedStyle(bridge).opacity || '1') : 0;
+        const bridge = document.querySelector('[data-portfolio-gate-scene-bridge]');
         return Boolean(document.getElementById('portfolioProjectMount'))
-          && wallOpacity > 0.02
-          && wallOpacity < 0.72
-          && bridgeOpacity > 0.05
-          && bridgeOpacity < 0.95;
+          && Boolean(bridge);
       }, undefined, { timeout: WAIT_MS, polling: 'raf' });
+      await page.waitForTimeout(50);
     } else {
       await page.waitForFunction(() => {
         if ((document.documentElement.dataset.absTransitionPhase || 'idle') !== 'route-in') return false;
         const deck = document.getElementById('portfolioProjectMount');
-        const opacity = deck ? Number.parseFloat(getComputedStyle(deck).opacity || '0') : 0;
-        return opacity > 0.12 && opacity < 0.96;
+        return deck?.classList.contains('is-portfolio-deck-revealing')
+          && Boolean(document.querySelector('[data-portfolio-gate-scene-bridge]'));
       }, undefined, { timeout: WAIT_MS, polling: 'raf' });
     }
 
@@ -461,11 +428,10 @@ async function auditUnlockSequence(browser, profile) {
     await waitForIdle(page);
     const locked = await readState(page);
     assertThemeState(locked, profile.theme, `${prefix}/locked`, {
-      expectTeaser: true,
+      expectScene: true,
       expectedGateBlurPx: profile.mobile ? MOBILE_GATE_BLUR_PX : DESKTOP_GATE_BLUR_PX,
-      expectedTeaserViewport: profile.asset,
     });
-    assert(locked.gateTitleSurface?.filter === 'none', `${prefix}: gate title must remain sharp over the blurred teaser`, locked);
+    assert(locked.gateTitleSurface?.filter === 'none', `${prefix}: gate title must remain sharp over the blurred scene`, locked);
     frames.push(await captureSequenceCheckpoint(page, cdpSession, prefix, '01-locked'));
 
     await page.evaluate(() => {
@@ -505,20 +471,20 @@ async function auditUnlockSequence(browser, profile) {
       if ((document.documentElement.dataset.absTransitionPhase || 'idle') !== 'route-out') return false;
       const wall = document.getElementById('shell-wall-slot');
       const opacity = wall ? Number.parseFloat(getComputedStyle(wall).opacity || '1') : 1;
-      return Boolean(document.querySelector('[data-portfolio-gate-teaser]'))
+      return Boolean(document.querySelector('[data-portfolio-gate-scene]'))
         && opacity > 0.05
         && opacity < 0.95;
     }, undefined, { timeout: WAIT_MS, polling: 'raf' });
     frames.push(await captureSequenceCheckpoint(page, cdpSession, prefix, '03-route-out'));
 
     await page.waitForFunction(() => {
-      if ((document.documentElement.dataset.absTransitionPhase || 'idle') !== 'route-out') return false;
+      const phase = document.documentElement.dataset.absTransitionPhase || 'idle';
+      if (phase !== 'route-out' && phase !== 'route-in') return false;
       const wall = document.getElementById('shell-wall-slot');
       const styles = wall ? getComputedStyle(wall) : null;
-      return !document.querySelector('[data-portfolio-gate-teaser]')
-        && Boolean(document.querySelector('[data-portfolio-gate-teaser-bridge]'))
+      return !document.querySelector('[data-portfolio-gate-scene]')
+        && Boolean(document.querySelector('[data-portfolio-gate-scene-bridge]'))
         && Boolean(document.getElementById('portfolioProjectMount'))
-        && styles?.visibility === 'hidden'
         && Number.parseFloat(styles.opacity || '1') <= 0.02;
     }, undefined, { timeout: WAIT_MS, polling: 'raf' });
     frames.push(await captureSequenceCheckpoint(page, cdpSession, prefix, '04-loading-bridge'));
@@ -536,27 +502,32 @@ async function auditUnlockSequence(browser, profile) {
     const phases = frames.map((frame) => frame.state.phase);
     assert(phases.includes('route-out') && phases.includes('route-in') && phases.at(-1) === 'idle', `${prefix}: unlock phase sequence was incomplete`, frames);
     assert(frames[1].state.gatePulse, `${prefix}: code-accepted checkpoint missed the success pulse`, frames[1]);
-    assert(frames[2].state.teaser && frames[2].state.wallSurface.opacity > 0 && frames[2].state.wallSurface.opacity < 1, `${prefix}: teaser was not partially faded during route-out`, frames[2]);
+    assert(frames[2].state.scene && frames[2].state.wallSurface.opacity > 0 && frames[2].state.wallSurface.opacity < 1, `${prefix}: scene was not partially faded during route-out`, frames[2]);
     assert(
-      !frames[3].state.teaser
-        && frames[3].state.teaserBridge
-        && Math.abs(frames[3].state.teaserBridgeSurface.opacity - GATE_TEASER_OPACITY) <= 0.01
+      !frames[3].state.scene
+        && frames[3].state.sceneBridge
+        && Math.abs(frames[3].state.sceneBridgeSurface.opacity - GATE_SCENE_OPACITY) <= 0.01
         && frames[3].state.deck
-        && frames[3].state.wallSurface.visibility === 'hidden',
-      `${prefix}: loading bridge did not preserve the faint teaser while concealing the live deck`,
+        && frames[3].state.wallSurface.opacity <= 0.02,
+      `${prefix}: loading bridge did not preserve the faint scene while concealing the live deck`,
       frames[3],
     );
     assert(
       frames[4].state.deck
-        && frames[4].state.wallSurface.opacity > 0
-        && frames[4].state.wallSurface.opacity < 1
-        && frames[4].state.teaserBridgeSurface.opacity > 0
-        && frames[4].state.teaserBridgeSurface.opacity <= GATE_TEASER_OPACITY + 0.01
-        && (frames[4].state.wallSurface.opacity + frames[4].state.teaserBridgeSurface.opacity) >= 0.45,
-      `${prefix}: teaser/live crossfade dipped too dark during intermediate opacities`,
+        && Math.max(frames[4].state.wallSurface.opacity, frames[4].state.heroSurface.opacity) > 0
+        && Math.max(frames[4].state.wallSurface.opacity, frames[4].state.heroSurface.opacity) < 1
+        && frames[4].state.sceneBridgeSurface.opacity > 0
+        && frames[4].state.sceneBridgeSurface.opacity <= GATE_SCENE_OPACITY + 0.01
+        && (Math.max(frames[4].state.wallSurface.opacity, frames[4].state.heroSurface.opacity) + frames[4].state.sceneBridgeSurface.opacity) >= 0.45,
+      `${prefix}: scene/live crossfade dipped too dark during intermediate opacities`,
       frames[4],
     );
-    assert(!frames.at(-1).state.teaser && !frames.at(-1).state.teaserBridge && !frames.at(-1).state.lockedGate && frames.at(-1).state.deck && frames.at(-1).state.canvasReady, `${prefix}: settled Portfolio was not fully live`, frames.at(-1));
+    assert(
+      frames[5].state.deckRevealing && frames[5].state.activeCardRevealDelay === 0,
+      `${prefix}: active Portfolio card did not lead the staged deck reveal`,
+      frames[5],
+    );
+    assert(!frames.at(-1).state.scene && !frames.at(-1).state.sceneBridge && !frames.at(-1).state.lockedGate && frames.at(-1).state.deck && frames.at(-1).state.canvasReady, `${prefix}: settled Portfolio was not fully live`, frames.at(-1));
 
     const baseline = frames[0].state;
     frames.forEach((frame) => {
@@ -587,22 +558,24 @@ async function auditResponsiveGateBreakpoint(browser, profile) {
   }, profile.theme);
   await context.clearCookies();
   const page = await context.newPage();
+  const lockedRequestTracker = trackLockedPortfolioRequests(page);
 
   try {
     await page.goto(url('/portfolio.html?gate=portfolio'), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await waitForIdle(page);
     const state = await readState(page);
     assertThemeState(state, profile.theme, `breakpoint/${profile.name}`, {
-      expectTeaser: true,
+      expectScene: true,
       expectedGateBlurPx: profile.gateBlurPx,
-      expectedTeaserViewport: profile.asset,
     });
     assert(state.lockedGate && state.gateTitleSurface?.filter === 'none', `breakpoint/${profile.name}: gate copy is not sharp`, state);
     assert(state.gateLayoutOk, `breakpoint/${profile.name}: gate copy or code inputs overflow the studio window`, state);
+    assert(lockedRequestTracker.requests.length === 0, `breakpoint/${profile.name}: locked scene requested project data or media`, lockedRequestTracker.requests);
     const screenshotPath = resolve(outputRoot, `breakpoint-${profile.name}-${profile.viewport.width}x${profile.viewport.height}.png`);
     await page.screenshot({ path: screenshotPath, fullPage: false });
     return { profile, screenshotPath, state };
   } finally {
+    lockedRequestTracker.stop();
     await context.close();
   }
 }
@@ -622,17 +595,19 @@ async function auditTheme(browser, theme) {
     sessionStorage.setItem('abs_portfolio_gate_theme_seeded', '1');
   }, theme);
   const page = await context.newPage();
+  const lockedRequestTracker = trackLockedPortfolioRequests(page);
   const results = {};
   try {
     await context.clearCookies();
     await page.goto(url('/portfolio.html?gate=portfolio'), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await waitForIdle(page);
     results.lockedInitial = await readState(page);
-    assertThemeState(results.lockedInitial, theme, `${theme}/locked-initial`, { expectTeaser: true });
+    assertThemeState(results.lockedInitial, theme, `${theme}/locked-initial`, { expectScene: true });
     assert(results.lockedInitial.path === '/portfolio.html' && results.lockedInitial.search === '', 'Portfolio gate URL was not normalized', results.lockedInitial);
     assert(results.lockedInitial.activeTab === 'portfolio' && results.lockedInitial.lockedGate, 'Locked Portfolio route did not show in-window gate', results.lockedInitial);
-    assert(results.lockedInitial.teaser && !results.lockedInitial.deck && results.lockedInitial.labels === 0, 'Locked Portfolio did not use the static teaser-only route', results.lockedInitial);
-    assert(results.lockedInitial.teaserFocusableCount === 0, 'Portfolio teaser exposed focusable content', results.lockedInitial);
+    assert(results.lockedInitial.scene && !results.lockedInitial.deck && results.lockedInitial.labels === 0, 'Locked Portfolio did not use the fictional scene-only route', results.lockedInitial);
+    assert(results.lockedInitial.sceneFocusableCount === 0, 'Portfolio scene exposed focusable content', results.lockedInitial);
+    assert(lockedRequestTracker.requests.length === 0, 'Locked Portfolio requested protected project data or media', lockedRequestTracker.requests);
     assert(
       results.lockedInitial.windowContent?.zIndex < results.lockedInitial.windowFinish?.zIndex
         && results.lockedInitial.windowBlur?.zIndex < results.lockedInitial.windowFinish?.zIndex
@@ -643,7 +618,13 @@ async function auditTheme(browser, theme) {
     );
     assert(results.lockedInitial.geometryOk, 'Locked Portfolio window geometry does not align with bottom shell band', results.lockedInitial);
 
+    const requestsBeforeThemeToggle = lockedRequestTracker.requests.length;
     results.lockedThemeToggle = await toggleLockedGateTheme(page, theme);
+    assert(
+      lockedRequestTracker.requests.length === requestsBeforeThemeToggle,
+      'Locked theme switching requested protected project data or media',
+      lockedRequestTracker.requests,
+    );
 
     await page.screenshot({ path: resolve(outputRoot, `portfolio-locked-${theme}.png`), fullPage: false });
     await page.evaluate(() => {
@@ -651,7 +632,7 @@ async function auditTheme(browser, theme) {
       document.getElementById('window-overlay-content-layer')?.remove();
     });
     const uncovered = await readState(page);
-    assert(uncovered.teaser && !uncovered.deck && uncovered.labels === 0, 'Removing the gate overlay exposed live Portfolio content', uncovered);
+    assert(uncovered.scene && !uncovered.deck && uncovered.labels === 0, 'Removing the gate overlay exposed live Portfolio content', uncovered);
 
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     await waitForIdle(page);
@@ -685,9 +666,10 @@ async function auditTheme(browser, theme) {
     await page.goto(url('/portfolio.html'), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await waitForIdle(page);
     results.resetLocked = await readState(page);
-    assertThemeState(results.resetLocked, theme, `${theme}/reset-locked`, { expectTeaser: true });
+    assertThemeState(results.resetLocked, theme, `${theme}/reset-locked`, { expectScene: true });
     assert(results.resetLocked.lockedGate && !results.resetLocked.deck, 'Clearing site storage did not return Portfolio to locked gate', results.resetLocked);
   } finally {
+    lockedRequestTracker.stop();
     await context.close();
   }
 
@@ -704,22 +686,22 @@ async function main() {
     }
     results.unlockSequences = [];
     for (const profile of [
-      { name: 'desktop', theme: 'dark', viewport: { width: 1440, height: 900 }, mobile: false, asset: 'desktop' },
-      { name: 'tablet', theme: 'light', viewport: { width: 768, height: 1024 }, mobile: false, asset: 'tablet' },
-      { name: 'mobile', theme: 'light', viewport: { width: 390, height: 844 }, mobile: true, asset: 'mobile' },
+      { name: 'desktop', theme: 'dark', viewport: { width: 1440, height: 900 }, mobile: false },
+      { name: 'tablet', theme: 'light', viewport: { width: 768, height: 1024 }, mobile: false },
+      { name: 'mobile', theme: 'dark', viewport: { width: 390, height: 844 }, mobile: true },
     ]) {
       results.unlockSequences.push(await auditUnlockSequence(browser, profile));
     }
     results.responsiveBreakpoints = [];
     for (const profile of [
-      { name: 'mobile-compact', theme: 'light', viewport: { width: 320, height: 568 }, mobile: true, asset: 'mobile', gateBlurPx: MOBILE_GATE_BLUR_PX },
-      { name: 'mobile-max', theme: 'dark', viewport: { width: 600, height: 900 }, mobile: false, asset: 'mobile', gateBlurPx: MOBILE_GATE_BLUR_PX },
-      { name: 'tablet-min', theme: 'light', viewport: { width: 601, height: 900 }, mobile: false, asset: 'tablet', gateBlurPx: DESKTOP_GATE_BLUR_PX },
-      { name: 'tablet', theme: 'dark', viewport: { width: 768, height: 1024 }, mobile: false, asset: 'tablet', gateBlurPx: DESKTOP_GATE_BLUR_PX },
-      { name: 'tablet-max', theme: 'light', viewport: { width: 899, height: 900 }, mobile: false, asset: 'tablet', gateBlurPx: DESKTOP_GATE_BLUR_PX },
-      { name: 'desktop-min', theme: 'dark', viewport: { width: 900, height: 900 }, mobile: false, asset: 'desktop', gateBlurPx: DESKTOP_GATE_BLUR_PX },
-      { name: 'desktop-wide', theme: 'light', viewport: { width: 1440, height: 900 }, mobile: false, asset: 'desktop', gateBlurPx: DESKTOP_GATE_BLUR_PX },
-      { name: 'touch-landscape', theme: 'dark', viewport: { width: 844, height: 390 }, mobile: true, asset: 'tablet', gateBlurPx: MOBILE_GATE_BLUR_PX },
+      { name: 'mobile-compact', theme: 'light', viewport: { width: 320, height: 568 }, mobile: true, gateBlurPx: MOBILE_GATE_BLUR_PX },
+      { name: 'mobile-max', theme: 'dark', viewport: { width: 600, height: 900 }, mobile: false, gateBlurPx: MOBILE_GATE_BLUR_PX },
+      { name: 'tablet-min', theme: 'light', viewport: { width: 601, height: 900 }, mobile: false, gateBlurPx: DESKTOP_GATE_BLUR_PX },
+      { name: 'tablet', theme: 'dark', viewport: { width: 768, height: 1024 }, mobile: false, gateBlurPx: DESKTOP_GATE_BLUR_PX },
+      { name: 'tablet-max', theme: 'light', viewport: { width: 899, height: 900 }, mobile: false, gateBlurPx: DESKTOP_GATE_BLUR_PX },
+      { name: 'desktop-min', theme: 'dark', viewport: { width: 900, height: 900 }, mobile: false, gateBlurPx: DESKTOP_GATE_BLUR_PX },
+      { name: 'desktop-wide', theme: 'light', viewport: { width: 1440, height: 900 }, mobile: false, gateBlurPx: DESKTOP_GATE_BLUR_PX },
+      { name: 'touch-landscape', theme: 'dark', viewport: { width: 844, height: 390 }, mobile: true, gateBlurPx: MOBILE_GATE_BLUR_PX },
     ]) {
       results.responsiveBreakpoints.push(await auditResponsiveGateBreakpoint(browser, profile));
     }
@@ -739,7 +721,7 @@ async function main() {
   }
 
   console.log(JSON.stringify(results, null, 2));
-  console.error(`PASS: Portfolio light/dark gate, baked blur, ordered unlock sequences, cookie persistence, and reset flow passed (${outputRoot})`);
+  console.error(`PASS: Portfolio light/dark ghost scene, ordered unlock sequences, cookie persistence, and reset flow passed (${outputRoot})`);
 }
 
 main().catch((error) => {
