@@ -1892,3 +1892,91 @@ html.button-bar-playground-document {
     0 calc(var(--walkman-depth) * 1.35) calc(var(--walkman-depth) * 1.7)
       color-mix(in srgb, var(--spatial-face) 22%, rgba(0, 0, 0, 0.32));
 }
+
+/* Geometry parity: flat and spatial studies use the exact 00 tab proportions. */
+.button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
+  .button-bar-playground__bar {
+  flex: 0 1 calc(var(--shell-tab-height, 40.8px) * 14.48);
+  width: min(100%, calc(var(--shell-tab-height, 40.8px) * 14.48));
+  min-width: 0;
+  max-width: calc(var(--shell-tab-height, 40.8px) * 14.48);
+  margin-inline: auto;
+  padding-inline: 0;
+}
+
+.button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
+  .button-bar__primary-buttons {
+  grid-template-columns: var(--shell-tab-height, 40.8px) repeat(3, minmax(0, 1fr));
+  gap: var(--button-bar-primary-inner-gap, var(--shell-tab-gap, 16px));
+  width: 100%;
+  min-height: var(--shell-tab-height, 40.8px);
+}
+
+.button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab,
+.button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab:is(:hover, :focus-visible, :active) {
+  min-height: var(--shell-tab-height, 40.8px);
+  height: var(--shell-tab-height, 40.8px);
+  padding: 0 var(--shell-tab-padding-x, 16px);
+  border-radius: var(--button-bar-gasket-radius, 10px);
+  font-size: 14px;
+}
+
+.button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab[data-route-tab='home'] {
+  inline-size: var(--shell-tab-height, 40.8px);
+  block-size: var(--shell-tab-height, 40.8px);
+  min-width: var(--shell-tab-height, 40.8px);
+  max-width: var(--shell-tab-height, 40.8px);
+  min-height: var(--shell-tab-height, 40.8px);
+  max-height: var(--shell-tab-height, 40.8px);
+  aspect-ratio: 1 / 1;
+  padding: 0;
+}
+
+@media (max-width: 600px) {
+  .button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
+    .button-bar-playground__bar {
+    flex-basis: calc(44px * 7.4);
+    width: min(100%, calc(44px * 7.4));
+    max-width: calc(44px * 7.4);
+  }
+
+  .button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
+    .button-bar__primary-buttons {
+    grid-template-columns: 44px repeat(3, minmax(0, 1fr));
+    min-height: 44px;
+  }
+
+  .button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
+    .button-bar
+    .button-bar__primary-buttons
+    .shell-tab,
+  .button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
+    .button-bar
+    .button-bar__primary-buttons
+    .shell-tab:is(:hover, :focus-visible, :active) {
+    min-height: 44px;
+    height: 44px;
+    font-size: calc(clamp(0.82rem, 3.45vw, 0.9rem) - 2px);
+  }
+
+  .button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
+    .button-bar
+    .button-bar__primary-buttons
+    .shell-tab[data-route-tab='home'] {
+    inline-size: 44px;
+    block-size: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    min-height: 44px;
+    max-height: 44px;
+  }
+}
