@@ -138,7 +138,11 @@ const MODE_REGISTRY = {
   },
   [MODES.SPHERE_3D]: {
     load: () => import('./3d-sphere.js'),
-    hooks: { initialize: 'initialize3DSphere', force: 'apply3DSphereForces' }
+    hooks: {
+      initialize: 'initialize3DSphere',
+      force: 'apply3DSphereForces',
+      depthRender: 'render3DSphereDepthLayer'
+    }
   },
   [MODES.CUBE_3D]: {
     load: () => import('./3d-cube.js'),

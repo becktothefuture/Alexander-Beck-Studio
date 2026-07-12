@@ -4,18 +4,30 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
+import { MODES } from '../core/constants.js';
 import { spawnBall } from '../physics/spawn.js';
 import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
 import { getHeroTitleCanvasCenter } from '../rendering/title-depth.js';
+import { subscribeScenePointer } from '../input/pointer.js';
+import { resolveDistanceFogOpacity } from '../visual/depth-fog.js';
 import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 
-const DEFAULT_TUMBLE_SPEED = 0.65;
-const DEFAULT_TUMBLE_DAMPING = 0.9;
-const DEFAULT_MOUSE_DAMPING = 0.08;
+const DEFAULT_DRAG_GAIN = 1.25;
+const DEFAULT_RELEASE_SPIN_GAIN = 1.05;
+const DEFAULT_ANGULAR_DAMPING_PER_SEC = 0.55;
+const DEFAULT_MAX_ANGULAR_VELOCITY = 8.0;
+const DEFAULT_ORBIT_RADIUS_VW = 4.5;
+const DEFAULT_ORBIT_SPEED = 0.12;
+const DEFAULT_SPIN_STRAIN_MAX = 0.055;
+const DEFAULT_SPIN_STRAIN_START = 3.0;
+const DEFAULT_REDUCED_MOTION_SCALE = 0.18;
+const DEFAULT_MIN_DOT_RADIUS_PX = 1.8;
+const DEFAULT_ALPHA_MAX = 0.78;
 const INPUT_VELOCITY_EASE = 10;
-const MAX_INPUT_ANGULAR_VELOCITY = 2.4;
 const INPUT_VELOCITY_THRESHOLD = 0.025;
-const POINTER_SENTINEL_LIMIT = 1e8;
+const DEPTH_BLEND_BAND = 0.045;
+const depthRenderScratch = [];
+let unsubscribePointer = null;
 
 function fibonacciSphere(count) {
   const pts = [];
@@ -33,34 +45,19 @@ function fibonacciSphere(count) {
   return pts;
 }
 
-function rotateXYZ(x, y, z, rx, ry, rz) {
-  // Yaw (Y)
-  const cosY = Math.cos(ry);
-  const sinY = Math.sin(ry);
-  const x1 = x * cosY - z * sinY;
-  const z1 = x * sinY + z * cosY;
-
-  // Pitch (X)
-  const cosX = Math.cos(rx);
-  const sinX = Math.sin(rx);
-  const y2 = y * cosX - z1 * sinX;
-  const z2 = y * sinX + z1 * cosX;
-
-  // Roll (Z)
-  const cosZ = Math.cos(rz);
-  const sinZ = Math.sin(rz);
-  const x3 = x1 * cosZ - y2 * sinZ;
-  const y3 = x1 * sinZ + y2 * cosZ;
-
-  return { x: x3, y: y3, z: z2 };
-}
-
 function clampNumber(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function isValidPointerCoordinate(value) {
-  return Number.isFinite(value) && Math.abs(value) < POINTER_SENTINEL_LIMIT;
+function clampCanvasAlpha(value) {
+  const next = Number(value);
+  if (!Number.isFinite(next)) return 1;
+  return Math.max(0, Math.min(1, next));
+}
+
+function smoothstep(t) {
+  const x = clampNumber(t, 0, 1);
+  return x * x * (3 - (2 * x));
 }
 
 /**
@@ -161,18 +158,138 @@ function multiplyMatrices(a, b) {
   ];
 }
 
+function resolveReducedMotionScale(g) {
+  const reduce = typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduce) return 1;
+  return clampNumber(g.sphere3dReducedMotionScale ?? DEFAULT_REDUCED_MOTION_SCALE, 0, 1);
+}
+
+function resolveAngularDampingPerSec(g) {
+  const damping = Number(g.sphere3dAngularDampingPerSec);
+  if (Number.isFinite(damping)) {
+    return clampNumber(damping, 0, 8);
+  }
+  if (Number.isFinite(g.sphere3dTumbleDamping)) {
+    const legacyDamping = clampNumber(g.sphere3dTumbleDamping, 0.001, 0.999);
+    return clampNumber(-Math.log(legacyDamping) * 60, 0, 8);
+  }
+  return DEFAULT_ANGULAR_DAMPING_PER_SEC;
+}
+
+function resolveDragGain(g) {
+  return clampNumber(g.sphere3dDragGain ?? g.sphere3dTumbleSpeed ?? DEFAULT_DRAG_GAIN, 0, 4);
+}
+
+function resolveSpinIdleSpeed(g) {
+  return clampNumber(g.sphere3dSpinIdleSpeed ?? g.sphere3dIdleSpeed ?? 0.08, 0, 1.5);
+}
+
+function pointMatchesDrag(state, detail) {
+  if (!state?.isDragging) return false;
+  return state.dragPointerId === null || detail?.pointerId === null || detail.pointerId === state.dragPointerId;
+}
+
+function resetDragState(state) {
+  if (!state) return;
+  state.isDragging = false;
+  state.dragPointerId = null;
+  state.prevTrackballPoint = null;
+  state.lastPointerTime = 0;
+  state.pointerWasInCanvas = false;
+}
+
+function handleSpherePointer(type, detail) {
+  const g = getGlobals();
+  if (g.currentMode !== MODES.SPHERE_3D || !detail) return;
+  const state = g.sphere3dState;
+  if (!state) return;
+
+  if (type === 'down') {
+    if (!detail.inBounds) {
+      resetDragState(state);
+      return;
+    }
+    const relX = detail.x - state.cx;
+    const relY = detail.y - state.cy;
+    const interactionRadius = state.radiusPx * 1.35;
+    if (Math.hypot(relX, relY) > interactionRadius) {
+      resetDragState(state);
+      return;
+    }
+    state.isDragging = true;
+    state.dragPointerId = detail.pointerId ?? null;
+    state.prevTrackballPoint = mapToTrackball(relX, relY, state.radiusPx);
+    state.lastPointerTime = Number(detail.time) || performance.now();
+    state.pointerWasInCanvas = true;
+    return;
+  }
+
+  if (type === 'move') {
+    if (!pointMatchesDrag(state, detail)) return;
+    const now = Number(detail.time) || performance.now();
+    const elapsed = state.lastPointerTime > 0 ? (now - state.lastPointerTime) / 1000 : 0;
+    const dt = clampNumber(elapsed, 0.008, 0.08);
+    const relX = detail.x - state.cx;
+    const relY = detail.y - state.cy;
+    const currentPoint = mapToTrackball(relX, relY, state.radiusPx);
+
+    if (state.prevTrackballPoint) {
+      const rotation = trackballRotation(state.prevTrackballPoint, currentPoint);
+      const angularVel = rotation.angle / dt;
+      if (angularVel > INPUT_VELOCITY_THRESHOLD) {
+        const motionScale = resolveReducedMotionScale(g);
+        const dragGain = resolveDragGain(g) * motionScale;
+        const maxAngularVelocity = clampNumber(
+          g.sphere3dMaxAngularVelocity ?? DEFAULT_MAX_ANGULAR_VELOCITY,
+          0.2,
+          16
+        ) * Math.max(0.2, motionScale);
+        const targetAngularVel = Math.min(angularVel * dragGain, maxAngularVelocity);
+        const follow = 1 - Math.exp(-INPUT_VELOCITY_EASE * dt);
+        state.currentAngularVelX += ((rotation.axis.x * targetAngularVel) - state.currentAngularVelX) * follow;
+        state.currentAngularVelY += ((rotation.axis.y * targetAngularVel) - state.currentAngularVelY) * follow;
+        state.currentAngularVelZ += ((rotation.axis.z * targetAngularVel) - state.currentAngularVelZ) * follow;
+      }
+    }
+
+    state.prevTrackballPoint = currentPoint;
+    state.lastPointerTime = now;
+    state.pointerWasInCanvas = true;
+    return;
+  }
+
+  if (type === 'up' || type === 'cancel') {
+    if (!pointMatchesDrag(state, detail)) return;
+    const releaseGain = type === 'cancel'
+      ? 0.35
+      : clampNumber(g.sphere3dReleaseSpinGain ?? DEFAULT_RELEASE_SPIN_GAIN, 0, 2);
+    state.currentAngularVelX *= releaseGain;
+    state.currentAngularVelY *= releaseGain;
+    state.currentAngularVelZ *= releaseGain;
+    resetDragState(state);
+  }
+}
+
+function ensurePointerSubscription() {
+  if (unsubscribePointer) return;
+  unsubscribePointer = subscribeScenePointer(handleSpherePointer);
+}
+
 export function initialize3DSphere() {
   const g = getGlobals();
   const canvas = g.canvas;
   if (!canvas) return;
 
   clearBalls();
+  ensurePointerSubscription();
 
   const densityBase = Math.max(10, Math.round(g.sphere3dDensity ?? 350));
   const count = getMobileAdjustedCount(densityBase);
   if (count <= 0) return;
 
-  const radiusVw = g.sphere3dRadiusVw ?? 18;
+  const radiusVw = g.sphere3dRadiusVw ?? 72;
   // Scale based on shorter side (vmin) to ensure it fits/scales appropriately
   const minDim = Math.min(canvas.width, canvas.height);
   const radiusPx = Math.max(10, (radiusVw / 100) * minDim);
@@ -188,24 +305,26 @@ export function initialize3DSphere() {
   
   const titleCenter = getHeroTitleCanvasCenter(g);
   g.sphere3dState = {
-      cx: titleCenter.x,
-      cy: titleCenter.y,
-      radiusPx,
-      rotationMatrix: rotMatrix,  // 3x3 rotation matrix (avoids gimbal lock)
-      dotSizeMul,
-      // Trackball state
-      prevTrackballPoint: null,
-      currentAngularVelX: 0,
-      currentAngularVelY: 0,
-      currentAngularVelZ: 0,
-      idleRotationTime: 0,
-      // Smoothed mouse state for fluid interaction
-      smoothMouseX: null,
-      smoothMouseY: null,
-      pointerWasInCanvas: false,
-      lastPointerSequence: null,
-      audioAngle: 0
-    };
+    cx: titleCenter.x,
+    cy: titleCenter.y,
+    radiusPx,
+    rotationMatrix: rotMatrix,  // 3x3 rotation matrix (avoids gimbal lock)
+    dotSizeMul,
+    prevTrackballPoint: null,
+    currentAngularVelX: 0,
+    currentAngularVelY: 0,
+    currentAngularVelZ: 0,
+    orbitPhase: 0,
+    spinAxisLocalX: 0,
+    spinAxisLocalY: 1,
+    spinAxisLocalZ: 0,
+    spinStrain: 0,
+    isDragging: false,
+    dragPointerId: null,
+    lastPointerTime: 0,
+    pointerWasInCanvas: false,
+    audioAngle: 0
+  };
 
   const pts = fibonacciSphere(count);
   for (let i = 0; i < pts.length; i++) {
@@ -229,166 +348,118 @@ export function apply3DSphereForces(ball, dt) {
   if (!canvas || !state || !ball || !ball._sphere3d) return;
 
   // Read runtime params for real-time updates
-  const idleSpeed = g.sphere3dIdleSpeed ?? 0.15;
-  const tumbleSpeed = clampNumber(g.sphere3dTumbleSpeed ?? DEFAULT_TUMBLE_SPEED, 0, 3);
-  const tumbleDamping = clampNumber(g.sphere3dTumbleDamping ?? DEFAULT_TUMBLE_DAMPING, 0, 0.999);
+  const idleSpeed = resolveSpinIdleSpeed(g);
   const dotSizeMul = Math.max(0.2, g.sphere3dDotSizeMul ?? 1.0);
+  const motionScale = resolveReducedMotionScale(g);
 
   // Update shared rotation once per frame (first ball)
   if (ball === g.balls[0]) {
-    // Update center and radius to handle resize dynamically
     const titleCenter = getHeroTitleCanvasCenter(g);
-    state.cx = titleCenter.x;
-    state.cy = titleCenter.y;
 
-    const radiusVw = g.sphere3dRadiusVw ?? 18;
+    const radiusVw = g.sphere3dRadiusVw ?? 72;
     // Scale based on shorter side (vmin) to ensure it fits/scales appropriately
     const minDim = Math.min(canvas.width, canvas.height);
     state.radiusPx = Math.max(10, (radiusVw / 100) * minDim);
 
-    const cx = state.cx;
-    const cy = state.cy;
-    
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // TRACKBALL ROTATION MODEL (Matrix-based, no Euler angle drift)
-    // ═══════════════════════════════════════════════════════════════════════════════
-    const pointerInCanvas = g.pointerInCanvas ?? g.mouseInCanvas;
-    const inputX = Number.isFinite(g.pointerX) ? g.pointerX : g.mouseX;
-    const inputY = Number.isFinite(g.pointerY) ? g.pointerY : g.mouseY;
-    const pointerSequence = g.pointerSequence || 0;
+    const orbitRadius = Math.max(0, (g.sphere3dOrbitRadiusVw ?? DEFAULT_ORBIT_RADIUS_VW) / 100) * minDim * motionScale;
+    const orbitSpeed = clampNumber(g.sphere3dOrbitSpeed ?? DEFAULT_ORBIT_SPEED, 0, 1.5) * motionScale;
+    state.orbitPhase += orbitSpeed * dt;
+    state.cx = titleCenter.x + Math.cos(state.orbitPhase) * orbitRadius;
+    state.cy = titleCenter.y + Math.sin(state.orbitPhase) * orbitRadius * 0.38;
 
-    if (pointerInCanvas && isValidPointerCoordinate(inputX) && isValidPointerCoordinate(inputY)) {
-      // Smooth mouse position for fluid "weighty" feel
-      const mouseDamping = clampNumber(g.sphere3dMouseDamping ?? DEFAULT_MOUSE_DAMPING, 0.01, 1);
-
-      const needsPointerSeed = !state.pointerWasInCanvas
-        || state.lastPointerSequence !== pointerSequence
-        || g.pointerJustEnteredCanvas === true
-        || !isValidPointerCoordinate(state.smoothMouseX)
-        || !isValidPointerCoordinate(state.smoothMouseY);
-      if (needsPointerSeed) {
-        state.smoothMouseX = inputX;
-        state.smoothMouseY = inputY;
-        state.pointerWasInCanvas = true;
-        state.lastPointerSequence = pointerSequence;
-      } else {
-        // Lerp smoothed mouse towards current mouse. This adds "weight" to the
-        // cursor interaction after the first valid sample has been accepted.
-        state.smoothMouseX += (inputX - state.smoothMouseX) * mouseDamping;
-        state.smoothMouseY += (inputY - state.smoothMouseY) * mouseDamping;
-      }
-
-      // Use smoothed mouse for interaction calculations
-      const interactionX = state.smoothMouseX;
-      const interactionY = state.smoothMouseY;
-      
-      // Calculate mouse position relative to sphere center
-      const relX = interactionX - cx;
-      const relY = interactionY - cy;
-      const distFromCenter = Math.sqrt(relX * relX + relY * relY);
-      
-      // Check if mouse is over/near the sphere
-      const interactionRadius = state.radiusPx * 1.3;
-      
-      if (distFromCenter < interactionRadius) {
-        // Map current mouse position to trackball surface
-        const currentPoint = mapToTrackball(relX, relY, state.radiusPx);
-        
-        if (needsPointerSeed) {
-          state.prevTrackballPoint = currentPoint;
-        } else if (state.prevTrackballPoint) {
-          // Calculate rotation from previous to current position
-          const rotation = trackballRotation(state.prevTrackballPoint, currentPoint);
-          
-          if (rotation.angle > 0.0001) {
-            // Calculate angular velocity (rad/s)
-            const angularVel = rotation.angle / dt;
-            
-            if (angularVel > INPUT_VELOCITY_THRESHOLD) {
-              const targetAngularVel = Math.min(
-                angularVel * tumbleSpeed,
-                MAX_INPUT_ANGULAR_VELOCITY
-              );
-              const follow = 1 - Math.exp(-INPUT_VELOCITY_EASE * dt);
-              state.currentAngularVelX += ((rotation.axis.x * targetAngularVel) - state.currentAngularVelX) * follow;
-              state.currentAngularVelY += ((rotation.axis.y * targetAngularVel) - state.currentAngularVelY) * follow;
-              state.currentAngularVelZ += ((rotation.axis.z * targetAngularVel) - state.currentAngularVelZ) * follow;
-            }
-          }
-        }
-        
-        if (!needsPointerSeed) {
-          // Update previous point after real movement; first valid input only seeds it.
-          state.prevTrackballPoint = currentPoint;
-        }
-      } else {
-        state.prevTrackballPoint = null;
-      }
-    } else {
-      state.prevTrackballPoint = null;
-      state.pointerWasInCanvas = false;
-    }
-
-    // Apply damping to angular velocity
-    const damping = tumbleDamping;
+    const damping = Math.exp(-resolveAngularDampingPerSec(g) * dt * (state.isDragging ? 0.18 : 1));
     state.currentAngularVelX *= damping;
     state.currentAngularVelY *= damping;
     state.currentAngularVelZ *= damping;
-    
-  // Apply coasting rotation from residual angular velocity
-  // Use a small epsilon to prevent jitter at very low speeds
-  const totalAngularVel = Math.sqrt(
-    state.currentAngularVelX * state.currentAngularVelX +
-    state.currentAngularVelY * state.currentAngularVelY +
-    state.currentAngularVelZ * state.currentAngularVelZ
-  );
-  
-  if (totalAngularVel > 0.001) {
-    // Normalize axis
-    const axisX = state.currentAngularVelX / totalAngularVel;
-    const axisY = state.currentAngularVelY / totalAngularVel;
-    const axisZ = state.currentAngularVelZ / totalAngularVel;
-    const coastAngle = totalAngularVel * dt;
-    
-    // Apply coasting rotation
-    const coastMatrix = axisAngleToMatrix({ x: axisX, y: axisY, z: axisZ }, coastAngle);
-    state.rotationMatrix = multiplyMatrices(coastMatrix, state.rotationMatrix);
-    if (pointerInCanvas && totalAngularVel > 0.08) {
-      state.audioAngle += coastAngle;
-      triggerDetent({
-        id: '3d-sphere:orbit',
-        value: state.audioAngle,
-        step: Math.PI / 18,
-        velocity: totalAngularVel,
-        minVelocity: 0.11,
-        minIntervalMs: 34,
-        gain: 0.048,
-        filterHz: 3200,
-      });
+
+    // Apply coasting rotation from residual angular velocity.
+    let totalAngularVel = Math.sqrt(
+      state.currentAngularVelX * state.currentAngularVelX +
+      state.currentAngularVelY * state.currentAngularVelY +
+      state.currentAngularVelZ * state.currentAngularVelZ
+    );
+
+    const maxAngularVelocity = clampNumber(
+      g.sphere3dMaxAngularVelocity ?? DEFAULT_MAX_ANGULAR_VELOCITY,
+      0.2,
+      16
+    ) * Math.max(0.2, motionScale);
+    if (totalAngularVel > maxAngularVelocity) {
+      const velocityScale = maxAngularVelocity / totalAngularVel;
+      state.currentAngularVelX *= velocityScale;
+      state.currentAngularVelY *= velocityScale;
+      state.currentAngularVelZ *= velocityScale;
+      totalAngularVel = maxAngularVelocity;
     }
-  } else {
-    // Zero out velocity when stopped to prevent micro-drift
-    state.currentAngularVelX = 0;
-    state.currentAngularVelY = 0;
-    state.currentAngularVelZ = 0;
-  }
-  
-  // Gentle idle rotation around Y-axis (only when coasting is slow)
-  // Blends in as manual rotation slows down
-  if (totalAngularVel < 0.2) {
-    const blend = 1.0 - (totalAngularVel / 0.2); // 0 to 1
-    const idleAngle = idleSpeed * dt * blend;
-    const idleMatrix = axisAngleToMatrix({ x: 0, y: 1, z: 0 }, idleAngle);
-    state.rotationMatrix = multiplyMatrices(idleMatrix, state.rotationMatrix);
-  }
+
+    if (totalAngularVel > 0.001) {
+      const axisX = state.currentAngularVelX / totalAngularVel;
+      const axisY = state.currentAngularVelY / totalAngularVel;
+      const axisZ = state.currentAngularVelZ / totalAngularVel;
+      const coastAngle = totalAngularVel * dt;
+      const coastMatrix = axisAngleToMatrix({ x: axisX, y: axisY, z: axisZ }, coastAngle);
+      state.rotationMatrix = multiplyMatrices(coastMatrix, state.rotationMatrix);
+      state.spinAxisLocalX = state.rotationMatrix[0] * axisX + state.rotationMatrix[3] * axisY + state.rotationMatrix[6] * axisZ;
+      state.spinAxisLocalY = state.rotationMatrix[1] * axisX + state.rotationMatrix[4] * axisY + state.rotationMatrix[7] * axisZ;
+      state.spinAxisLocalZ = state.rotationMatrix[2] * axisX + state.rotationMatrix[5] * axisY + state.rotationMatrix[8] * axisZ;
+      if (state.isDragging && totalAngularVel > 0.08) {
+        state.audioAngle += coastAngle;
+        triggerDetent({
+          id: '3d-sphere:orbit',
+          value: state.audioAngle,
+          step: Math.PI / 18,
+          velocity: totalAngularVel,
+          minVelocity: 0.11,
+          minIntervalMs: 34,
+          gain: 0.048,
+          filterHz: 3200,
+        });
+      }
+    } else {
+      state.currentAngularVelX = 0;
+      state.currentAngularVelY = 0;
+      state.currentAngularVelZ = 0;
+    }
+
+    if (!state.isDragging && totalAngularVel < 0.25) {
+      const blend = 1.0 - (totalAngularVel / 0.25);
+      const idleAngle = idleSpeed * motionScale * dt * blend;
+      const idleMatrix = axisAngleToMatrix({ x: 0, y: 1, z: 0 }, idleAngle);
+      state.rotationMatrix = multiplyMatrices(idleMatrix, state.rotationMatrix);
+    }
+    const strainMax = clampNumber(g.sphere3dSpinStrainMax ?? DEFAULT_SPIN_STRAIN_MAX, 0, 0.12);
+    const strainStart = clampNumber(g.sphere3dSpinStrainStart ?? DEFAULT_SPIN_STRAIN_START, 0.2, 12);
+    const strainT = smoothstep((totalAngularVel - strainStart) / Math.max(0.1, maxAngularVelocity - strainStart));
+    state.spinStrain += ((strainT * strainMax * motionScale) - state.spinStrain) * (1 - Math.exp(-8 * dt));
   }
 
   const point = ball._sphere3d;
   const r = state.radiusPx;
   const matrix = state.rotationMatrix;
-  const localX = r * point.x;
-  const localY = r * point.y;
-  const localZ = r * point.z;
+  let unitX = point.x;
+  let unitY = point.y;
+  let unitZ = point.z;
+  const strain = state.spinStrain || 0;
+  if (strain > 0.0001) {
+    const axisX = state.spinAxisLocalX || 0;
+    const axisY = state.spinAxisLocalY || 1;
+    const axisZ = state.spinAxisLocalZ || 0;
+    const dot = unitX * axisX + unitY * axisY + unitZ * axisZ;
+    const parallelX = axisX * dot;
+    const parallelY = axisY * dot;
+    const parallelZ = axisZ * dot;
+    const perpX = unitX - parallelX;
+    const perpY = unitY - parallelY;
+    const perpZ = unitZ - parallelZ;
+    const axisCompression = 1 - strain * 0.5;
+    const radialBulge = 1 + strain;
+    unitX = parallelX * axisCompression + perpX * radialBulge;
+    unitY = parallelY * axisCompression + perpY * radialBulge;
+    unitZ = parallelZ * axisCompression + perpZ * radialBulge;
+  }
+  const localX = r * unitX;
+  const localY = r * unitY;
+  const localZ = r * unitZ;
   // Keep the per-particle hot path allocation-free. The sphere's local
   // coordinates are precomputed once during initialization.
   const rotatedX = matrix[0] * localX + matrix[1] * localY + matrix[2] * localZ;
@@ -414,7 +485,8 @@ export function apply3DSphereForces(ball, dt) {
   // This enhances the 3D effect significantly
   const perspectiveSize = 0.6 + depth * 0.8; // 0.6x to 1.4x scale
   
-  ball.r = clampRadiusToGlobalBounds(g, rawR * perspectiveSize);
+  const minDotRadius = Math.max(0, g.sphere3dMinDotRadiusPx ?? DEFAULT_MIN_DOT_RADIUS_PX) * (g.DPR || 1);
+  ball.r = Math.max(minDotRadius, clampRadiusToGlobalBounds(g, rawR * perspectiveSize));
   ball.x = targetX;
   ball.y = targetY;
   ball.vx = 0;
@@ -426,4 +498,62 @@ export function apply3DSphereForces(ball, dt) {
   // rotated.z ranges from -r to +r, so zShift (rotated.z + r) ranges from 0 to 2r
   // ball.z = 0 means BACK (fogged), ball.z = 1 means FRONT (clear)
   ball.z = depth;
+  const alphaMax = clampNumber(g.sphere3dAlphaMax ?? DEFAULT_ALPHA_MAX, 0.2, 1);
+  ball.alpha = resolveDistanceFogOpacity(depth, {
+    fogStart: g.sphere3dFogStart ?? 0.9,
+    fogMin: g.sphere3dFogMin ?? 0.42,
+  }) * alphaMax;
+}
+
+export function render3DSphereDepthLayer(ctx, options = {}) {
+  const g = getGlobals();
+  const balls = g.balls;
+  if (!ctx || !Array.isArray(balls) || balls.length === 0) return;
+
+  const layer = options.layer === 'front' ? 'front' : 'behind';
+  const depthPlane = Number.isFinite(options.depthPlane) ? options.depthPlane : 0.5;
+  const canvasWidth = Number(options.canvasWidth) || Number.POSITIVE_INFINITY;
+  const canvasHeight = Number(options.canvasHeight) || Number.POSITIVE_INFINITY;
+  const band = Math.max(0.001, Number(g.sphere3dDepthBlendBand ?? DEPTH_BLEND_BAND));
+
+  depthRenderScratch.length = 0;
+  for (let i = 0; i < balls.length; i += 1) {
+    const ball = balls[i];
+    if (!ball || ball._cloudMode !== 'sphere') continue;
+    const z = Number.isFinite(ball.z) ? ball.z : 1;
+    if (layer === 'behind' && z > depthPlane + band) continue;
+    if (layer === 'front' && z < depthPlane - band) continue;
+    depthRenderScratch.push(ball);
+  }
+  depthRenderScratch.sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+
+  ctx.save();
+  for (let i = 0; i < depthRenderScratch.length; i += 1) {
+    const ball = depthRenderScratch[i];
+    const z = Number.isFinite(ball.z) ? ball.z : 1;
+    const radius = typeof ball.getDisplayRadius === 'function'
+      ? ball.getDisplayRadius()
+      : (Number(ball.r) || 0);
+    if (radius <= 0.05) continue;
+    if (
+      ball.x + radius < 0 ||
+      ball.y + radius < 0 ||
+      ball.x - radius > canvasWidth ||
+      ball.y - radius > canvasHeight
+    ) {
+      continue;
+    }
+
+    const t = smoothstep((z - (depthPlane - band)) / (band * 2));
+    const layerAlpha = layer === 'front' ? t : 1 - t;
+    const alpha = clampCanvasAlpha((ball.alpha ?? 1) * (ball.filterOpacity ?? 1) * layerAlpha);
+    if (alpha <= 0.001) continue;
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = ball.color;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }

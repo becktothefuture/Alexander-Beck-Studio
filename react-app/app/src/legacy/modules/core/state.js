@@ -125,8 +125,8 @@ const state = {
   crittersWarmupFrames: 10,
   parallaxFloatWarmupFrames: 10,
   // Sphere Orbit (Mode 16)
-  sphere3dRadiusVw: 60,                     // Sphere radius (vw)
-  sphere3dDensity: 140,
+  sphere3dRadiusVw: 72,                     // Sphere radius (vmin)
+  sphere3dDensity: 94,
   sphere3dFocalLength: 600,
   sphere3dDotSizeMul: 1.0,
   sphere3dIdleSpeed: 0.15,
@@ -134,6 +134,20 @@ const state = {
   sphere3dTumbleSpeed: 0.65,
   sphere3dTumbleDamping: 0.9,
   sphere3dMouseDamping: 0.08,
+  sphere3dOrbitRadiusVw: 4.5,
+  sphere3dOrbitSpeed: 0.12,
+  sphere3dAngularDampingPerSec: 0.55,
+  sphere3dMaxAngularVelocity: 8,
+  sphere3dDragGain: 1.25,
+  sphere3dReleaseSpinGain: 1.05,
+  sphere3dFogStart: 0.9,
+  sphere3dFogMin: 0.42,
+  sphere3dAlphaMax: 0.9,
+  sphere3dMinDotRadiusPx: 1.8,
+  sphere3dSpinStrainMax: 0.055,
+  sphere3dSpinStrainStart: 3,
+  sphere3dReducedMotionScale: 0.18,
+  sphere3dDepthBlendBand: 0.045,
   sphere3dWarmupFrames: 10,
   // Cube Frame (Mode 17)
   cube3dSizeVw: 50,
@@ -1908,7 +1922,7 @@ export function initState(config) {
   }
 
   // Sphere Orbit (Mode 16)
-  if (config.sphere3dRadiusVw !== undefined) state.sphere3dRadiusVw = clampNumber(config.sphere3dRadiusVw, 5, 60, state.sphere3dRadiusVw);
+  if (config.sphere3dRadiusVw !== undefined) state.sphere3dRadiusVw = clampNumber(config.sphere3dRadiusVw, 5, 80, state.sphere3dRadiusVw);
   if (config.sphere3dDensity !== undefined) state.sphere3dDensity = clampInt(config.sphere3dDensity, 30, 600, state.sphere3dDensity);
   if (config.sphere3dFocalLength !== undefined) state.sphere3dFocalLength = clampInt(config.sphere3dFocalLength, 80, 2000, state.sphere3dFocalLength);
   if (config.sphere3dDotSizeMul !== undefined) state.sphere3dDotSizeMul = clampNumber(config.sphere3dDotSizeMul, 0.2, 4.0, state.sphere3dDotSizeMul);
@@ -1917,6 +1931,20 @@ export function initState(config) {
   if (config.sphere3dTumbleSpeed !== undefined) state.sphere3dTumbleSpeed = clampNumber(config.sphere3dTumbleSpeed, 0, 3, state.sphere3dTumbleSpeed);
   if (config.sphere3dTumbleDamping !== undefined) state.sphere3dTumbleDamping = clampNumber(config.sphere3dTumbleDamping, 0, 1, state.sphere3dTumbleDamping);
   if (config.sphere3dMouseDamping !== undefined) state.sphere3dMouseDamping = clampNumber(config.sphere3dMouseDamping, 0.01, 1, state.sphere3dMouseDamping);
+  if (config.sphere3dOrbitRadiusVw !== undefined) state.sphere3dOrbitRadiusVw = clampNumber(config.sphere3dOrbitRadiusVw, 0, 16, state.sphere3dOrbitRadiusVw);
+  if (config.sphere3dOrbitSpeed !== undefined) state.sphere3dOrbitSpeed = clampNumber(config.sphere3dOrbitSpeed, 0, 1.5, state.sphere3dOrbitSpeed);
+  if (config.sphere3dAngularDampingPerSec !== undefined) state.sphere3dAngularDampingPerSec = clampNumber(config.sphere3dAngularDampingPerSec, 0, 8, state.sphere3dAngularDampingPerSec);
+  if (config.sphere3dMaxAngularVelocity !== undefined) state.sphere3dMaxAngularVelocity = clampNumber(config.sphere3dMaxAngularVelocity, 0.2, 16, state.sphere3dMaxAngularVelocity);
+  if (config.sphere3dDragGain !== undefined) state.sphere3dDragGain = clampNumber(config.sphere3dDragGain, 0, 4, state.sphere3dDragGain);
+  if (config.sphere3dReleaseSpinGain !== undefined) state.sphere3dReleaseSpinGain = clampNumber(config.sphere3dReleaseSpinGain, 0, 2, state.sphere3dReleaseSpinGain);
+  if (config.sphere3dFogStart !== undefined) state.sphere3dFogStart = clampNumber(config.sphere3dFogStart, 0, 1, state.sphere3dFogStart);
+  if (config.sphere3dFogMin !== undefined) state.sphere3dFogMin = clampNumber(config.sphere3dFogMin, 0, 1, state.sphere3dFogMin);
+  if (config.sphere3dAlphaMax !== undefined) state.sphere3dAlphaMax = clampNumber(config.sphere3dAlphaMax, 0.2, 1, state.sphere3dAlphaMax);
+  if (config.sphere3dMinDotRadiusPx !== undefined) state.sphere3dMinDotRadiusPx = clampNumber(config.sphere3dMinDotRadiusPx, 0, 8, state.sphere3dMinDotRadiusPx);
+  if (config.sphere3dSpinStrainMax !== undefined) state.sphere3dSpinStrainMax = clampNumber(config.sphere3dSpinStrainMax, 0, 0.12, state.sphere3dSpinStrainMax);
+  if (config.sphere3dSpinStrainStart !== undefined) state.sphere3dSpinStrainStart = clampNumber(config.sphere3dSpinStrainStart, 0.2, 12, state.sphere3dSpinStrainStart);
+  if (config.sphere3dReducedMotionScale !== undefined) state.sphere3dReducedMotionScale = clampNumber(config.sphere3dReducedMotionScale, 0, 1, state.sphere3dReducedMotionScale);
+  if (config.sphere3dDepthBlendBand !== undefined) state.sphere3dDepthBlendBand = clampNumber(config.sphere3dDepthBlendBand, 0.001, 0.2, state.sphere3dDepthBlendBand);
   if (config.sphere3dWarmupFrames !== undefined) state.sphere3dWarmupFrames = clampInt(config.sphere3dWarmupFrames, 0, 240, state.sphere3dWarmupFrames);
 
   // Cube Frame (Mode 17)
