@@ -11,6 +11,14 @@ import { PNG } from 'pngjs';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const repoRoot = resolve(__dirname, '..');
 const outputDir = resolve(repoRoot, 'output/playwright/screens-certification');
+const homeContent = JSON.parse(readFileSync(
+  resolve(repoRoot, 'react-app/app/public/config/contents-home.json'),
+  'utf8',
+));
+const contactRequiredText = [
+  homeContent.contact?.title || "Let's talk",
+  homeContent.contact?.email || 'alexander@beck.fyi',
+];
 const previewHost = process.env.ABS_CERT_HOST || '127.0.0.1';
 const configuredPreviewPort = Number(process.env.ABS_CERT_PORT || 0);
 let previewPort = configuredPreviewPort || 8014;
@@ -127,7 +135,7 @@ const matrix = [
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
       { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Portfolio'] },
-      { selector: '[data-route-content="contact"]', minArea: 60000, requiredText: ['Contact', 'alexander@beck.fyi'] },
+      { selector: '[data-route-content="contact"]', minArea: 60000, requiredText: contactRequiredText },
       { selector: '[data-contact-ripple-canvas]', minArea: 60000, requiredText: [] }
     ]
   }
