@@ -3,11 +3,13 @@ import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const baseUrl = process.env.ABS_THEME_WALL_AUDIT_URL || 'http://127.0.0.1:8012';
 const shouldStartDevServer = !process.env.ABS_THEME_WALL_AUDIT_URL;
+const browserName = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
+const browserType = browserName === 'webkit' ? webkit : chromium;
 const routes = ['/', '/portfolio.html', '/about.html', '/contact.html'];
 const viewports = [
   { name: 'desktop', width: 1440, height: 960, deviceScaleFactor: 1, isMobile: false },
@@ -258,7 +260,7 @@ async function auditRoute(browser, route, viewport) {
 
 async function run() {
   const server = await ensureDevServer();
-  const browser = await chromium.launch();
+  const browser = await browserType.launch();
 
   try {
     for (const route of routes) {

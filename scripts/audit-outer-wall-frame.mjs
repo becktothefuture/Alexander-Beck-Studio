@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 import { PNG } from 'pngjs';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -12,6 +12,8 @@ const designSystemPath = resolve(repoRoot, 'react-app/app/public/config/design-s
 const catalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.json');
 const baseUrl = process.env.ABS_OUTER_WALL_AUDIT_URL || 'http://127.0.0.1:8012/index.html';
 const shouldStartDevServer = !process.env.ABS_OUTER_WALL_AUDIT_URL;
+const browserName = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
+const browserType = browserName === 'webkit' ? webkit : chromium;
 const siteThemes = ['light', 'dark'];
 const browserSchemes = ['light', 'dark'];
 const chromiumLockedHeaderFrame = {
@@ -77,6 +79,10 @@ function loadExpectations() {
     frame: {
       light: designSystem.shell?.theme?.siteFrameLight || '#242529',
       dark: designSystem.shell?.theme?.siteFrameDark || '#141517',
+    },
+    safariFrame: {
+      light: designSystem.shell?.theme?.safariFrameLight || designSystem.shell?.theme?.siteFrameLight || '#181818',
+      dark: designSystem.shell?.theme?.safariFrameDark || designSystem.shell?.theme?.siteFrameDark || '#141517',
     },
     window: {
       light: designSystem.runtime?.bgLight || '#f5f5f5',
@@ -201,8 +207,9 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
 }
 
 async function runCase(browser, siteTheme, browserScheme, expectations) {
-  const expectedFrame = chromiumLockedHeaderFrame[browserScheme]
-    || (browserScheme === 'dark' ? expectations.frame.dark : expectations.frame.light);
+  const expectedFrame = browserName === 'webkit'
+    ? (browserScheme === 'dark' ? expectations.safariFrame.dark : expectations.safariFrame.light)
+    : chromiumLockedHeaderFrame[browserScheme];
   const expectedWindow = expectations.window[siteTheme];
   const context = await browser.newContext({
     viewport: { width: 1400, height: 900 },
@@ -245,7 +252,7 @@ async function runCase(browser, siteTheme, browserScheme, expectations) {
     const routeBacked = await readFrameState(page);
     assertFrameState(siteTheme, browserScheme, `route-backed-${expectations.routeBacked.id}`, routeBacked, expectedFrame, expectedWindow);
 
-    log(`site=${siteTheme} browser=${browserScheme}: ${expectations.homeMode.id} -> ${expectations.routeBacked.id} locked-header-frame=${expectedFrame}`);
+    log(`engine=${browserName} site=${siteTheme} browser=${browserScheme}: ${expectations.homeMode.id} -> ${expectations.routeBacked.id} frame=${expectedFrame}`);
   } finally {
     await context.close();
   }
@@ -254,7 +261,7 @@ async function runCase(browser, siteTheme, browserScheme, expectations) {
 async function run() {
   const expectations = loadExpectations();
   const server = await ensureDevServer();
-  const browser = await chromium.launch();
+  const browser = await browserType.launch();
 
   try {
     for (const browserScheme of browserSchemes) {
@@ -267,7 +274,7 @@ async function run() {
     await server?.stop();
   }
 
-  log('PASS: browser scheme owns the locked-header frame while site theme independently owns the studio-window surface.');
+  log(`PASS (${browserName}): browser scheme owns browser harmony while site theme independently owns the studio-window surface.`);
 }
 
 run().catch((error) => {

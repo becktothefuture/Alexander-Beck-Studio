@@ -68,9 +68,11 @@ Run against a production preview:
 ```bash
 ABS_DEV_URL=http://127.0.0.1:8013 ABS_BROWSER=chromium npm run audit:theme-consistency
 ABS_DEV_URL=http://127.0.0.1:8013 ABS_BROWSER=webkit npm run audit:theme-consistency
-ABS_THEME_WALL_AUDIT_URL=http://127.0.0.1:8013 npm run audit:theme-wall-invariance
-ABS_OUTER_WALL_AUDIT_URL=http://127.0.0.1:8013/index.html npm run audit:outer-wall-frame
-ABS_PALETTE_AUDIT_URL=http://127.0.0.1:8013 npm run audit:palette-surface-contract
+ABS_THEME_WALL_AUDIT_URL=http://127.0.0.1:8013 ABS_BROWSER=chromium npm run audit:theme-wall-invariance
+ABS_THEME_WALL_AUDIT_URL=http://127.0.0.1:8013 ABS_BROWSER=webkit npm run audit:theme-wall-invariance
+ABS_OUTER_WALL_AUDIT_URL=http://127.0.0.1:8013/index.html ABS_BROWSER=chromium npm run audit:outer-wall-frame
+ABS_OUTER_WALL_AUDIT_URL=http://127.0.0.1:8013/index.html ABS_BROWSER=webkit npm run audit:outer-wall-frame
+npm run audit:palette-surface-contract
 ABS_DEV_URL=http://127.0.0.1:8013 npm run audit:portfolio-gate
 ```
 

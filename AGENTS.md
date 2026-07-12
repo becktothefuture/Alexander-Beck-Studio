@@ -77,6 +77,6 @@ npm run check:site
 
 For visual or routing work, build first, run preview separately, then run the relevant Playwright audits. Transition work requires Chromium and WebKit serial runs; use strict RAF mode when cadence changed. Generated screenshots live under the gitignored `output/playwright/` tree.
 
-Theme/frame work requires the palette-surface, wall-invariance, outer-frame, and theme-consistency audits. Run theme consistency in Chromium and WebKit, then inspect Home, Portfolio, About Me, and Contact in light/dark at desktop and mobile sizes. A green state-propagation audit is insufficient if window contrast or exposed-frame pixels are wrong.
+Theme/frame work requires the palette-surface, wall-invariance, outer-frame, and theme-consistency audits. Run wall invariance, outer frame, and theme consistency with `ABS_BROWSER=chromium` and `ABS_BROWSER=webkit`, then inspect Home, Portfolio, About Me, and Contact in light/dark at desktop and mobile sizes. A green state-propagation audit is insufficient if window contrast or exposed-frame pixels are wrong.
 
 Do not claim parity from a green build alone. State which routes, viewports, browsers, screenshots, and runtime audits were checked. Do not commit unless explicitly asked.

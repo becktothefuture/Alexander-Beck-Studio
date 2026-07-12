@@ -2138,8 +2138,8 @@ body.portfolio-project-open .ui-bottom {
     --portfolio-card-reveal-blur: 0px;
   }
 
-  .portfolio-deck-mount .portfolio-project-card[data-deck-slot="-1"],
-  .portfolio-deck-mount .portfolio-project-card[data-deck-slot="-2"] {
+  .portfolio-deck-mount .portfolio-project-card[data-deck-slot="-1"] .portfolio-project-card__media,
+  .portfolio-deck-mount .portfolio-project-card[data-deck-slot="-2"] .portfolio-project-card__media {
     filter: saturate(0.86);
   }
 
