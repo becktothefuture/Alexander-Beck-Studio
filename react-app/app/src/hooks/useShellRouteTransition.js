@@ -943,6 +943,8 @@ function isPortfolioScrollRailReady() {
 }
 
 function isDailyLabRouteReady(routeId) {
+  const isLocalAuditHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocalAuditHost && window.__ABS_AUDIT_FORCE_DAILY_NOT_READY__ === routeId) return false;
   switch (routeId) {
     case 'repel-room':
       return isCanvasSurfaceReady('#repel-room-canvas')
@@ -960,19 +962,18 @@ function isDailyLabRouteReady(routeId) {
       const figure = document.querySelector('.napoleon-point-cloud');
       const loadState = figure?.dataset?.pointCloudLoadState;
       return Boolean(
-        (loadState === 'ready'
+        loadState === 'ready'
           && isCanvasSurfaceReady('.napoleon-point-cloud__canvas--front')
-          && isSimulationVisualTransitionSourceActive(routeId))
-        || loadState === 'error'
+          && isSimulationVisualTransitionSourceActive(routeId)
       );
     }
     case 'beach-ball-room': {
       const container = document.querySelector('.beach-ball-room-simulation');
       const loadState = container?.dataset?.beachBallRoomLoadState;
       return Boolean(
-        (isCanvasSurfaceReady('.beach-ball-room-canvas')
-          && isSimulationVisualTransitionSourceActive(routeId))
-        || loadState === 'error'
+        loadState === 'ready'
+          && isCanvasSurfaceReady('.beach-ball-room-canvas')
+          && isSimulationVisualTransitionSourceActive(routeId)
       );
     }
     default:
@@ -1102,7 +1103,7 @@ function waitForRouteReady(routeId, timeoutMs, options = {}) {
         return false;
       }
       if (REQUIRED_STABLE_FRAMES === 0) {
-        settle();
+        settle('ready');
         return true;
       }
 
@@ -1115,19 +1116,19 @@ function waitForRouteReady(routeId, timeoutMs, options = {}) {
       previousSnapshot = snapshot;
 
       if (stableReadyFrames >= REQUIRED_STABLE_FRAMES) {
-        settle();
+        settle('ready');
         return true;
       }
       return false;
     };
 
-    settle = () => {
+    settle = (status = 'cancelled') => {
       if (settled) return;
       settled = true;
       window.removeEventListener('abs:route-ready', onReady);
       if (pollId) clearStableTimeout(pollId);
       if (timeoutId) clearStableTimeout(timeoutId);
-      resolve();
+      resolve(status);
     };
     const onReady = (e) => {
       if ((e?.detail?.routeId || '') !== routeId) return;
@@ -1137,7 +1138,7 @@ function waitForRouteReady(routeId, timeoutMs, options = {}) {
       maybeSettleReady();
     };
     window.addEventListener('abs:route-ready', onReady);
-    timeoutId = setStableTimeout(settle, timeoutMs);
+    timeoutId = setStableTimeout(() => settle('timeout'), timeoutMs);
 
     if (maybeSettleReady()) {
       return;
@@ -1283,6 +1284,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   const transitionActiveRef = useRef(false);
   const queuedNavigationRef = useRef(null);
   const activeRouteIdRef = useRef(routeState.route.id);
+  const activeRouteStateRef = useRef(routeState);
   const activeRouteContentSignatureRef = useRef(readRouteContentSignature(routeState));
   const activeFocusSimulationIdRef = useRef(readRouteStateSimulationFocusId(routeState));
   const activeGateTransitionRef = useRef(false);
@@ -1306,6 +1308,10 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     const hasRouteContentChange = nextRouteContentSignature !== activeRouteContentSignatureRef.current;
     const hasSimulationFocusChange = nextFocusSimulationId !== activeFocusSimulationIdRef.current;
     const method = options.replace ? 'replaceState' : 'pushState';
+    const previousState = activeRouteStateRef.current;
+    const previousRouteId = activeRouteIdRef.current;
+    const previousRouteContentSignature = activeRouteContentSignatureRef.current;
+    const previousFocusSimulationId = activeFocusSimulationIdRef.current;
     let historyCommitted = false;
     const commitHistory = (historyMethod = method) => {
       window.history[historyMethod](options.state || {}, '', nextState.canonicalHref);
@@ -1317,9 +1323,23 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         commitHistory();
       }
       setRouteState(nextState);
+      activeRouteStateRef.current = nextState;
       activeRouteIdRef.current = nextRouteId;
       activeRouteContentSignatureRef.current = nextRouteContentSignature;
       activeFocusSimulationIdRef.current = nextFocusSimulationId;
+    };
+    const rollback = (error) => {
+      window.history.replaceState(window.history.state || {}, '', previousState.canonicalHref);
+      setRouteState(previousState);
+      activeRouteStateRef.current = previousState;
+      activeRouteIdRef.current = previousRouteId;
+      activeRouteContentSignatureRef.current = previousRouteContentSignature;
+      activeFocusSimulationIdRef.current = previousFocusSimulationId;
+      try {
+        options.onFailure?.(error, previousState);
+      } catch {
+        // Failure reporting must not prevent route restoration.
+      }
     };
     const canPreemptActiveTransition = Boolean(
       options.preemptTransition
@@ -1435,7 +1455,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         || typeof options.afterRouteReady === 'function';
       let routeReadyWaiter = null;
       const waitForCommittedRouteReady = () => {
-        if (!shouldWaitForRouteReady) return Promise.resolve();
+        if (!shouldWaitForRouteReady) return Promise.resolve('ready');
         routeReadyWaiter = waitForRouteReady(readinessRouteId, routeTimings.ready, {
           lockedGateId: nextState.lockedGateId || null,
         });
@@ -1443,30 +1463,17 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         return routeReadyWaiter.promise;
       };
       let routeCommitted = false;
-      let enterStarted = false;
-      let committedFallbackTimer = 0;
       let transitionFinished = false;
       const runCommitCallback = () => Promise.resolve()
-        .then(() => (typeof options.onCommit === 'function' ? options.onCommit(nextState) : undefined))
-        .catch(() => undefined);
+        .then(() => (typeof options.onCommit === 'function' ? options.onCommit(nextState) : undefined));
       const runAfterRouteReady = () => Promise.resolve()
-        .then(() => (typeof options.afterRouteReady === 'function' ? options.afterRouteReady(nextState) : undefined))
-        .catch(() => undefined);
+        .then(() => (typeof options.afterRouteReady === 'function' ? options.afterRouteReady(nextState) : undefined));
       const finishSimulationFocusTransition = () => {
         if (transitionFinished) return;
         transitionFinished = true;
-        if (committedFallbackTimer) {
-          clearStableTimeout(committedFallbackTimer);
-          committedFallbackTimer = 0;
-        }
         finishTransition(false);
       };
       const runSimulationFocusEnter = () => {
-        enterStarted = true;
-        if (committedFallbackTimer) {
-          clearStableTimeout(committedFallbackTimer);
-          committedFallbackTimer = 0;
-        }
         setSimulationFocusTransitionState('in');
         if (nextRouteId === 'home' && !nextState.dailyFocusRouteId) {
           finishSimulationFocusTransition();
@@ -1483,23 +1490,6 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           }
         });
       };
-      const scheduleCommittedFallback = () => {
-        if (committedFallbackTimer) clearStableTimeout(committedFallbackTimer);
-        committedFallbackTimer = setStableTimeout(() => {
-          committedFallbackTimer = 0;
-          if (
-            transitionFinished
-            || enterStarted
-            || !routeCommitted
-            || !transitionActiveRef.current
-            || activeRouteIdRef.current !== nextRouteId
-          ) {
-            return;
-          }
-          recordSimulationVisualTransitionEvent('runtime-ready-fallback', { routeId: nextState.route.id });
-          void runSimulationFocusEnter();
-        }, Math.max(0, routeTimings.ready) + 120);
-      };
       const cancelStaleSimulationFocus = () => {
         routeReadyWaiter?.cancel();
         if (routeCommitted && transitionActiveRef.current && activeRouteIdRef.current === nextRouteId) {
@@ -1508,7 +1498,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       };
 
       Promise.resolve()
-        .then(() => nextRouteRuntime?.loadModule?.()).catch(() => undefined)
+        .then(() => nextRouteRuntime?.loadModule?.())
         .then(() => {
           if (stale()) {
             cancelStaleSimulationFocus();
@@ -1541,27 +1531,25 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           recordSimulationVisualTransitionEvent('commit', { routeId: nextState.route.id });
           commit();
           routeCommitted = true;
-          return runCommitCallback();
+          return undefined;
         })
         .then(() => {
           if (stale()) {
             cancelStaleSimulationFocus();
             return undefined;
           }
-          scheduleCommittedFallback();
           setSimulationShellStability(true, surfaceRefs, {
             titleSurface: simulationTitleSurface,
           });
           return waitForCommittedRouteReady();
         })
-        .then(() => runAfterRouteReady())
-        .then(() => {
-          if (stale()) {
-            cancelStaleSimulationFocus();
-            return undefined;
+        .then((readinessStatus) => {
+          if (readinessStatus !== 'ready') {
+            throw new Error(`Route "${readinessRouteId}" did not become ready (${readinessStatus})`);
           }
-          return undefined;
+          return runAfterRouteReady();
         })
+        .then(() => runCommitCallback())
         .then(() => {
           if (stale()) {
             cancelStaleSimulationFocus();
@@ -1580,11 +1568,20 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           }
           finishSimulationFocusTransition();
         })
-        .catch(() => {
+        .catch((error) => {
           routeReadyWaiter?.cancel();
           if (stale()) {
             cancelStaleSimulationFocus();
             return;
+          }
+          if (routeCommitted) {
+            rollback(error);
+          } else {
+            try {
+              options.onFailure?.(error, previousState);
+            } catch {
+              // Failure reporting must not prevent transition cleanup.
+            }
           }
           finishSimulationFocusTransition();
         });
@@ -1823,6 +1820,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       const token = ++transitionToken;
       const stale = () => token !== transitionToken;
       const simulationTimings = getSimulationFocusTimings(options, reduceMotion);
+      let taskError = null;
 
       setSimulationFocusTransitionState('out');
       animateSimulationFocusLayer(surfaceRefs, {
@@ -1841,11 +1839,20 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           recordSimulationVisualTransitionEvent('commit', { routeId: currentRouteId });
           return runTask();
         })
-        .catch(() => undefined)
+        .catch((error) => {
+          taskError = error;
+          try {
+            options.onFailure?.(error);
+          } catch {
+            // Failure reporting must not prevent the current scene returning.
+          }
+        })
         .then(() => {
           if (stale()) return undefined;
           setSimulationShellStability(true, surfaceRefs);
-          recordSimulationVisualTransitionEvent('runtime-ready', { routeId: currentRouteId });
+          recordSimulationVisualTransitionEvent(taskError ? 'runtime-failed' : 'runtime-ready', {
+            routeId: currentRouteId,
+          });
           setSimulationFocusTransitionState('in');
           return animateSimulationFocusLayer(surfaceRefs, {
             direction: 'in',
@@ -1973,6 +1980,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       if (isSameRoute) {
         setRouteLayerVisibility(true, surfaceRefs);
         setRouteState(nextState);
+        activeRouteStateRef.current = nextState;
         activeRouteIdRef.current = nextState.route.id;
         activeRouteContentSignatureRef.current = readRouteContentSignature(nextState);
         activeFocusSimulationIdRef.current = readRouteStateSimulationFocusId(nextState);

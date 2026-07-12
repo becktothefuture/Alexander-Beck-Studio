@@ -292,7 +292,12 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 export async function bootstrapHomePage(runtimeContext = {}) {
-  const { signal, isCurrent: isRuntimeCurrent, registerCleanup } = runtimeContext;
+  const {
+    signal,
+    isCurrent: isRuntimeCurrent,
+    registerCleanup,
+    markReady,
+  } = runtimeContext;
   let disposed = false;
   let rendererOwner = null;
   const isCurrent = () => (
@@ -609,6 +614,10 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     // Start main render loop
     // PERF: getForcesFn is resolved once per frame in the loop, not per particle
     startMainLoop(null, { getForcesFn: getForceApplicator });
+    if (shellRouteTransitionActiveAtStart) {
+      setHomeRouteReadyState(true);
+      markReady?.();
+    }
     const confirmCanvasTitleDraw = () => {
       if (!isCurrent()) return;
       if (isCanvasHomeTitleDrawn()) {
@@ -758,6 +767,8 @@ export async function bootstrapHomePage(runtimeContext = {}) {
         await waitForVisualReady();
         if (!isCurrent()) return cleanup;
         setBootLifecycleState('ready');
+        setHomeRouteReadyState(true);
+        markReady?.();
         if (reduceMotion) {
           setInitialSimulationVisualScale(1);
         } else {
@@ -769,7 +780,6 @@ export async function bootstrapHomePage(runtimeContext = {}) {
           });
           if (!isCurrent()) return cleanup;
         }
-        setHomeRouteReadyState(true);
         console.log('✓ Home simulation route-return entrance completed');
       } else {
         if (shouldRunHomePostBootEntrance) {

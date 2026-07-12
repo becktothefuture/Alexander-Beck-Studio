@@ -1,4 +1,4 @@
-const RAW_BASE_URL = import.meta.env.BASE_URL || '/';
+const RAW_BASE_URL = import.meta.env?.BASE_URL || '/';
 
 function normalizeBasePath(baseUrl) {
   const raw = String(baseUrl || '/').trim();

@@ -110,6 +110,8 @@ async function waitForSwitcherLabel(page, label) {
       layerId: document.querySelector('.daily-simulation-layer')?.dataset.simulationId || null,
       routePhase: document.documentElement.dataset.absTransitionPhase || '',
       focusPhase: document.documentElement.dataset.absSimulationFocusTransition || '',
+      switchState: window.__ABS_SIMULATION_SWITCH__ || null,
+      runtimeLifecycle: window.__ABS_RUNTIME_LIFECYCLE__ || null,
       modalActive: Boolean(document.querySelector('.simulation-focus-modal.active')),
       rows: Array.from(document.querySelectorAll('.simulation-focus-row__name')).map((node) => node.textContent?.trim()).filter(Boolean),
     }));

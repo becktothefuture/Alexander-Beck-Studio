@@ -1,53 +1,82 @@
-import { Suspense, lazy } from 'react';
+import { Component, Suspense, lazy } from 'react';
+import {
+  DAILY_FOCUS_RUNTIME_EXPORTS,
+  hasDailyFocusRuntime,
+  loadDailyFocusRuntimeModule,
+  publishDailyFocusRuntimeFailure,
+} from './dailyFocusRuntimeLoader.js';
+import { getSimulationLaunchTarget } from '../../data/simulationCatalog.js';
 
-const BeachBallRoomRuntime = lazy(() => (
-  import('../beach-ball-room/BeachBallRoomRuntime.jsx')
-    .then((module) => ({ default: module.BeachBallRoomRuntime }))
-));
-const NapoleonPointCloudRuntime = lazy(() => (
-  import('../concept-simulations/NapoleonPointCloudRuntime.jsx')
-    .then((module) => ({ default: module.NapoleonPointCloudRuntime }))
-));
-const RiftRingsRuntime = lazy(() => (
-  import('../concept-simulations/RiftRingsRuntime.jsx')
-    .then((module) => ({ default: module.RiftRingsRuntime }))
-));
-const FlockOfBirdsRuntime = lazy(() => (
-  import('../flock-of-birds/FlockOfBirdsRuntime.jsx')
-    .then((module) => ({ default: module.FlockOfBirdsRuntime }))
-));
-const MineralGrowthRuntime = lazy(() => (
-  import('../mineral-growth/MineralGrowthRuntime.jsx')
-    .then((module) => ({ default: module.MineralGrowthRuntime }))
-));
-const RepelRoomRuntime = lazy(() => (
-  import('../repel-room/RepelRoomRuntime.jsx')
-    .then((module) => ({ default: module.RepelRoomRuntime }))
-));
+function createLazyRuntime(simulationId) {
+  return lazy(() => loadDailyFocusRuntimeModule(simulationId).then((module) => ({
+    default: module[DAILY_FOCUS_RUNTIME_EXPORTS[simulationId]],
+  })));
+}
 
-function runtimeElement(element) {
+const RUNTIME_COMPONENTS = Object.freeze({
+  'beach-ball-room': createLazyRuntime('beach-ball-room'),
+  'napoleon-point-cloud': createLazyRuntime('napoleon-point-cloud'),
+  'rift-rings': createLazyRuntime('rift-rings'),
+  'flock-of-birds': createLazyRuntime('flock-of-birds'),
+  'mineral-growth': createLazyRuntime('mineral-growth'),
+  'repel-room': createLazyRuntime('repel-room'),
+});
+
+class DailyFocusRuntimeErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  componentDidCatch(error) {
+    publishDailyFocusRuntimeFailure(this.props.simulationId, error);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="daily-focus-runtime-status" data-runtime-status="failed" role="status">
+          <span>Simulation failed to load.</span>
+          <button
+            type="button"
+            onClick={() => {
+              const target = getSimulationLaunchTarget(this.props.simulationId);
+              window.location.assign(target?.href || window.location.href);
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function runtimeLoadingState() {
   return (
-    <Suspense fallback={null}>
-      {element}
-    </Suspense>
+    <div className="daily-focus-runtime-status" data-runtime-status="loading" role="status">
+      <span>Loading simulation…</span>
+    </div>
+  );
+}
+
+function dailyFocusRuntimeSlot(simulationId) {
+  const Runtime = RUNTIME_COMPONENTS[simulationId];
+  return (
+    <DailyFocusRuntimeErrorBoundary simulationId={simulationId}>
+      <Suspense fallback={runtimeLoadingState()}>
+        <Runtime />
+      </Suspense>
+    </DailyFocusRuntimeErrorBoundary>
   );
 }
 
 export function getDailyFocusPureRuntime(routeId) {
-  switch (routeId) {
-    case 'repel-room':
-      return runtimeElement(<RepelRoomRuntime />);
-    case 'flock-of-birds':
-      return runtimeElement(<FlockOfBirdsRuntime />);
-    case 'mineral-growth':
-      return runtimeElement(<MineralGrowthRuntime />);
-    case 'beach-ball-room':
-      return runtimeElement(<BeachBallRoomRuntime />);
-    case 'napoleon-point-cloud':
-      return runtimeElement(<NapoleonPointCloudRuntime />);
-    case 'rift-rings':
-      return runtimeElement(<RiftRingsRuntime />);
-    default:
-      return null;
-  }
+  if (!hasDailyFocusRuntime(routeId)) return null;
+  return dailyFocusRuntimeSlot(routeId);
 }

@@ -1,38 +1,30 @@
+import { withBasePath } from '../../../lib/base-path.js';
+
 const DESIGN_SYSTEM_PATHS = [
-  'config/design-system.json',
-  '../config/design-system.json',
-  'js/design-system.json',
-  '../js/design-system.json',
+  withBasePath('/config/design-system.json'),
+  withBasePath('/js/design-system.json'),
 ];
 
 const LEGACY_RUNTIME_PATHS = [
-  'config/default-config.json',
-  '../config/default-config.json',
-  'js/config.json',
-  '../js/config.json',
-  '../dist/js/config.json',
+  withBasePath('/config/default-config.json'),
+  withBasePath('/js/config.json'),
+  withBasePath('/dist/js/config.json'),
 ];
 
 const LEGACY_SHELL_PATHS = [
-  'config/shell-config.json',
-  '../config/shell-config.json',
-  'js/shell-config.json',
-  '../js/shell-config.json',
+  withBasePath('/config/shell-config.json'),
+  withBasePath('/js/shell-config.json'),
 ];
 
 const LEGACY_PORTFOLIO_PATHS = [
-  'config/portfolio-config.json',
-  '../config/portfolio-config.json',
-  'js/portfolio-config.json',
-  '../js/portfolio-config.json',
-  '../dist/js/portfolio-config.json',
+  withBasePath('/config/portfolio-config.json'),
+  withBasePath('/js/portfolio-config.json'),
+  withBasePath('/dist/js/portfolio-config.json'),
 ];
 
 const LEGACY_CV_PATHS = [
-  'config/cv-config.json',
-  '../config/cv-config.json',
-  'js/cv-config.json',
-  '../js/cv-config.json',
+  withBasePath('/config/cv-config.json'),
+  withBasePath('/js/cv-config.json'),
 ];
 
 export const DEFAULT_CV_CONFIG = {

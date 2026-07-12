@@ -8,7 +8,7 @@ const catalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.
 const homeRoutePath = resolve(repoRoot, 'react-app/app/src/routes/home/HomeRoute.jsx');
 const dailyFocusRoutePath = resolve(repoRoot, 'react-app/app/src/routes/daily-focus/DailyFocusRoute.jsx');
 const simulationStagePath = resolve(repoRoot, 'react-app/app/src/routes/daily-focus/SimulationStage.jsx');
-const dailyFocusRuntimesPath = resolve(repoRoot, 'react-app/app/src/routes/daily-focus/dailyFocusRuntimes.jsx');
+const dailyFocusRuntimeLoaderPath = resolve(repoRoot, 'react-app/app/src/routes/daily-focus/dailyFocusRuntimeLoader.js');
 const providerPath = resolve(repoRoot, 'react-app/app/src/components/simulation-focus/SimulationFocusProvider.jsx');
 
 const baseUrl = process.env.ABS_DEV_URL || 'http://localhost:8013';
@@ -54,7 +54,7 @@ async function runStaticChecks(dailyEntries, routeBackedDailyEntries) {
   const homeRouteSource = await readFile(homeRoutePath, 'utf8');
   const dailyFocusRouteSource = await readFile(dailyFocusRoutePath, 'utf8');
   const simulationStageSource = await readFile(simulationStagePath, 'utf8');
-  const dailyFocusRuntimesSource = await readFile(dailyFocusRuntimesPath, 'utf8');
+  const dailyFocusRuntimeLoaderSource = await readFile(dailyFocusRuntimeLoaderPath, 'utf8');
   const providerSource = await readFile(providerPath, 'utf8');
 
   if (!homeRouteSource.includes('simulationLayer: (')) {
@@ -79,11 +79,11 @@ async function runStaticChecks(dailyEntries, routeBackedDailyEntries) {
     failures.push('SimulationFocusProvider no longer cleans route-backed Daily URLs back to home.');
   }
   for (const entry of routeBackedDailyEntries) {
-    if (!dailyFocusRuntimesSource.includes(`case '${entry.id}'`)) {
+    if (!dailyFocusRuntimeLoaderSource.includes(`'${entry.id}': () => import(`)) {
       failures.push(`Daily Focus pure runtime is missing a route-backed case for "${entry.id}".`);
     }
   }
-  const extraRuntimeCases = Array.from(dailyFocusRuntimesSource.matchAll(/case\s+['"]([^'"]+)['"]\s*:/g))
+  const extraRuntimeCases = Array.from(dailyFocusRuntimeLoaderSource.matchAll(/['"]([^'"]+)['"]:\s*\(\)\s*=>\s*import\(/g))
     .map((match) => match[1])
     .filter((id) => !DAILY_FOCUS_RUNTIME_COMPATIBILITY_CASES.has(id))
     .filter((id) => !routeBackedDailyEntries.some((entry) => entry.id === id));
@@ -186,7 +186,7 @@ async function inspectPage(page, id, baseline) {
       errors.push(`Visible/text DOM found in simulation layer: ${textNodes.slice(0, 6).join(' | ')}`);
     }
 
-    const forbiddenUi = layer.querySelector('aside, header, footer, nav, h1, h2, h3, p:not(.screen-reader), button, input, textarea, select, label, [role="alert"], [role="status"]:not(.screen-reader)');
+    const forbiddenUi = layer.querySelector('aside, header, footer, nav, h1, h2, h3, p:not(.screen-reader), button:not(.daily-focus-runtime-status button), input, textarea, select, label, [role="alert"], [role="status"]:not(.screen-reader):not(.daily-focus-runtime-status)');
     if (forbiddenUi) {
       errors.push(`Non-runtime UI element found in simulation layer: ${forbiddenUi.tagName.toLowerCase()}.`);
     }

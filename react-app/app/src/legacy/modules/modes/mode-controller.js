@@ -457,6 +457,7 @@ export function disposeModeSystem() {
 export async function setMode(inputMode) {
   const globals = getGlobals();
   let mode = inputMode;
+  const previousMode = globals.currentMode;
 
   const routeBackedHref = ROUTE_BACKED_MODE_HREFS[mode];
   if (routeBackedHref) {
@@ -473,11 +474,12 @@ export async function setMode(inputMode) {
 
   if (!runtime || typeof runtime.initialize !== 'function') {
     console.warn(`[ModeLoader] Runtime for "${mode}" missing initialize hook.`);
-    if (mode !== MODES.PIT) return setMode(MODES.PIT);
+    const recoveryMode = previousMode && previousMode !== mode ? previousMode : MODES.PIT;
+    if (recoveryMode !== mode) await setMode(recoveryMode);
     return false;
   }
 
-  const prevMode = globals.currentMode;
+  const prevMode = previousMode;
   try {
     // Reset stateful systems on mode switch to prevent accumulation artifacts.
     resetPhysicsAccumulator();
@@ -541,7 +543,23 @@ export async function setMode(inputMode) {
     return true;
   } catch (error) {
     console.warn(`[ModeLoader] Failed while applying mode "${mode}"`, error);
-    if (mode !== MODES.PIT) return setMode(MODES.PIT);
+    globals.lastModeFailure = {
+      mode,
+      previousMode: prevMode,
+      message: error?.message || String(error),
+      at: typeof performance !== 'undefined' ? performance.now() : Date.now(),
+    };
+    try {
+      window.dispatchEvent(new CustomEvent('bb:modeFailed', {
+        detail: globals.lastModeFailure,
+      }));
+    } catch {
+      // Runtime restoration is more important than diagnostics.
+    }
+    const recoveryMode = prevMode && prevMode !== mode ? prevMode : MODES.PIT;
+    if (recoveryMode !== mode) {
+      await setMode(recoveryMode);
+    }
     return false;
   }
 }

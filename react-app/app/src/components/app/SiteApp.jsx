@@ -20,6 +20,7 @@ import {
   getDailyFocusRouteView,
   isDailyFocusRouteRequest,
 } from '../../routes/daily-focus/DailyFocusRoute.jsx';
+import { preloadDailyFocusRuntime } from '../../routes/daily-focus/dailyFocusRuntimeLoader.js';
 import {
   APERTURE_BLOOM_ROUTE_RUNTIME,
   CONFLUENCE_BRIDGES_ROUTE_RUNTIME,
@@ -151,12 +152,17 @@ function getRouteViewForId(routeId, canonicalHref, routeState, focusRevision = 0
 
 function getRouteRuntimeForId(routeId, canonicalHref, routeState, focusRevision = 0) {
   Number(focusRevision);
+  const dailyFocusRouteId = routeState?.dailyFocusRouteId
+    || (isDailyFocusRouteRequest(routeId, getSearchFromHref(canonicalHref)) ? routeId : null)
+    || (routeId === 'home' ? getHomeDailyFocusRouteId(canonicalHref, routeState) : null);
+  if (dailyFocusRouteId) {
+    return {
+      loadModule: () => preloadDailyFocusRuntime(dailyFocusRouteId),
+    };
+  }
   if (
     routeState?.lockedGateId
     || routeState?.routeLocked
-    || routeState?.dailyFocusRouteId
-    || isDailyFocusRouteRequest(routeId, getSearchFromHref(canonicalHref))
-    || (routeId === 'home' && getHomeDailyFocusRouteId(canonicalHref, routeState))
   ) {
     return {};
   }

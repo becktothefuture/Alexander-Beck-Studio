@@ -76,6 +76,8 @@ function getDailyFocusRuntimeElement(simulationId) {
 
 function isDailyFocusRuntimeReady(simulationId) {
   const id = String(simulationId || '');
+  const isLocalAuditHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocalAuditHost && window.__ABS_AUDIT_FORCE_DAILY_NOT_READY__ === id) return false;
   const stage = document.getElementById('simulation-stage');
   if (!id || stage?.dataset?.simulationId !== id || !isElementSurfaceReady(stage)) return false;
 
@@ -99,23 +101,17 @@ function isDailyFocusRuntimeReady(simulationId) {
       const figure = runtime.querySelector('.napoleon-point-cloud');
       const loadState = figure?.dataset?.pointCloudLoadState;
       return Boolean(
-        loadState === 'error'
-        || (
-          loadState === 'ready'
+        loadState === 'ready'
           && isCanvasSurfaceReady('.napoleon-point-cloud__canvas--front')
           && isSimulationVisualTransitionSourceActive(id)
-        )
       );
     }
     case 'beach-ball-room': {
       const loadState = runtime.dataset?.beachBallRoomLoadState;
       return Boolean(
-        loadState === 'error'
-        || (
-          loadState === 'ready'
+        loadState === 'ready'
           && isCanvasSurfaceReady('.beach-ball-room-canvas')
           && isSimulationVisualTransitionSourceActive(id)
-        )
       );
     }
     default:
@@ -158,6 +154,15 @@ function signalDailyFocusRouteReady(simulationId) {
       detail: { routeId: simulationId },
     }));
   });
+}
+
+function signalDailyFocusRouteFailed(simulationId, reason = 'runtime-not-ready') {
+  if (!simulationId) return;
+  const root = document.documentElement;
+  root.dataset.absDailyFocusStatus = 'failed';
+  window.dispatchEvent(new CustomEvent('abs:daily-focus-failed', {
+    detail: { routeId: simulationId, reason },
+  }));
 }
 
 async function registerDailyFocusDevPanelRoute() {
@@ -234,13 +239,27 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
             : `daily-focus-${simulationId}-fallback`,
         });
       }
-      signalDailyFocusRouteReady(simulationId);
+      if (runtimeReady) {
+        document.documentElement.dataset.absDailyFocusStatus = 'ready';
+        signalDailyFocusRouteReady(simulationId);
+      } else {
+        signalDailyFocusRouteFailed(simulationId);
+      }
     }
 
-    revealDailyFocusRoute().catch(() => undefined);
+    revealDailyFocusRoute().catch((error) => {
+      if (!cancelled) {
+        signalDailyFocusRouteFailed(simulationId, error?.message || 'runtime-error');
+        void completeDirectBoot({
+          selectors: DAILY_FOCUS_BOOT_SELECTORS,
+          detail: `daily-focus-${simulationId}-failed`,
+        });
+      }
+    });
 
     return () => {
       cancelled = true;
+      delete document.documentElement.dataset.absDailyFocusStatus;
     };
   }, [simulationId]);
 

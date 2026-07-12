@@ -548,6 +548,35 @@ html.fonts-loading .project-detail {
   min-height: 0;
 }
 
+.daily-focus-runtime-status {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 24;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(80%, 320px);
+  padding: 10px 12px;
+  color: var(--text-logo);
+  font: 500 0.78rem/1.2 var(--abs-font-sans);
+  border-radius: var(--abs-radius-pill);
+  background: color-mix(in srgb, var(--studio-window-bg) 88%, transparent);
+  box-shadow: 0 8px 24px -18px rgba(var(--abs-rgb-black), 0.42);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+
+.daily-focus-runtime-status button {
+  min-height: 34px;
+  padding: 0 12px;
+  color: inherit;
+  font: inherit;
+  border: 0;
+  border-radius: var(--abs-radius-pill);
+  background: color-mix(in srgb, var(--text-logo) 10%, transparent);
+  cursor: pointer;
+}
+
 .portfolio-slider-layer,
 .about-content-layer {
   position: absolute;

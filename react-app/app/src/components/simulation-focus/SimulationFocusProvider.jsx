@@ -26,6 +26,7 @@ import {
 } from '../../legacy/modules/ui/gate-modal-shared.js';
 import { SimulationFocusContext, useSimulationFocus } from './SimulationFocusContext.js';
 import { SimulationIcon } from './SimulationIcon.jsx';
+import { preloadDailyFocusRuntime } from '../../routes/daily-focus/dailyFocusRuntimeLoader.js';
 
 const FOCUS_MODAL_ID = 'simulation-focus-modal';
 const CHOOSER_TITLE_ID = 'simulation-focus-modal-title';
@@ -62,9 +63,9 @@ function applyHomeMode(mode) {
     .then((module) => module.setMode(mode));
 }
 
-function waitForHomeModeSurface(timeoutMs = 700) {
+function waitForHomeModeSurface(timeoutMs = 3200) {
   if (typeof window === 'undefined') {
-    return Promise.resolve();
+    return Promise.resolve(false);
   }
 
   return new Promise((resolve) => {
@@ -73,8 +74,12 @@ function waitForHomeModeSurface(timeoutMs = 700) {
       const canvas = document.getElementById('c');
       const hasDailyStage = Boolean(document.querySelector('.daily-simulation-layer'));
       const canvasReady = Boolean(canvas && canvas.width >= 64 && canvas.height >= 64);
-      if ((canvasReady && !hasDailyStage) || performance.now() - startedAt >= timeoutMs) {
-        resolve();
+      if (canvasReady && !hasDailyStage) {
+        resolve(true);
+        return;
+      }
+      if (performance.now() - startedAt >= timeoutMs) {
+        resolve(false);
         return;
       }
       window.requestAnimationFrame(tick);
@@ -92,6 +97,18 @@ function getFocusableElements(container) {
     const styles = window.getComputedStyle(element);
     return styles.display !== 'none' && styles.visibility !== 'hidden';
   });
+}
+
+function publishSimulationSwitchState(simulationId, status, error = null) {
+  if (typeof window === 'undefined') return;
+  const snapshot = Object.freeze({
+    simulationId,
+    status,
+    error: error?.message || String(error || ''),
+    at: performance.now(),
+  });
+  window.__ABS_SIMULATION_SWITCH__ = snapshot;
+  window.dispatchEvent(new CustomEvent('abs:simulation-switch-state', { detail: snapshot }));
 }
 
 export function SimulationFocusProvider({
@@ -279,36 +296,40 @@ export function SimulationFocusProvider({
     };
 
     window.setTimeout(() => {
+      const runSelection = async () => {
       const cleanHomeHref = buildRouteHref('home');
+      const targetHomeHref = `${cleanHomeHref}?mode=${encodeURIComponent(target.mode || '')}`;
+      const previousHomeMode = homeMode;
+      const handleSelectionFailure = (error) => {
+        setOptimisticActiveId(null);
+        setHomeMode(previousHomeMode);
+        dismissGateBackdrop();
+        publishSimulationSwitchState(simulationId, 'failed', error);
+      };
       const commitFocusChoice = () => {
         writeManualSimulationFocus(simulationId);
         refreshFocusState();
+        publishSimulationSwitchState(simulationId, 'ready');
       };
 
       if (target.surface === 'home-mode') {
-        const applySelectedHomeMode = () => {
-          return waitForHomeModeSurface()
-            .then(() => {
-              setHomeMode(target.mode);
-              return applyHomeMode(target.mode);
-            })
-            .then((applied) => {
-              if (applied !== false) {
-                replaceCurrentUrl(cleanHomeHref);
-              }
-              return applied;
-            });
+        const applySelectedHomeMode = async () => {
+          const surfaceReady = await waitForHomeModeSurface();
+          if (!surfaceReady) throw new Error('Home simulation surface did not become ready');
+          setHomeMode(target.mode);
+          const applied = await applyHomeMode(target.mode);
+          if (applied === false) throw new Error(`Simulation "${target.mode}" failed to initialize`);
+          replaceCurrentUrl(cleanHomeHref);
+          commitFocusChoice();
+          return true;
         };
 
         if (routeIsDailyFocus) {
-          const didNavigate = trySpaNavigate(cleanHomeHref, {
+          const didNavigate = trySpaNavigate(targetHomeHref, {
             replace: true,
             ...transitionOptions,
-            onCommit: () => {
-              commitFocusChoice();
-              setHomeMode(target.mode);
-            },
             afterRouteReady: applySelectedHomeMode,
+            onFailure: handleSelectionFailure,
           });
           if (!didNavigate) {
             commitFocusChoice();
@@ -319,27 +340,23 @@ export function SimulationFocusProvider({
 
         if (routeIdRef.current === 'home') {
           if (typeof transitionCurrentRoute === 'function'
-            && transitionCurrentRoute(() => {
-              commitFocusChoice();
-              return applySelectedHomeMode();
-            }, transitionOptions)) {
+            && transitionCurrentRoute(applySelectedHomeMode, {
+              ...transitionOptions,
+              onFailure: handleSelectionFailure,
+            })) {
             return;
           }
 
-          commitFocusChoice();
           void applySelectedHomeMode()
             .finally(() => dismissGateBackdrop())
-            .catch(() => undefined);
+            .catch(handleSelectionFailure);
           return;
         }
 
-        if (!trySpaNavigate(cleanHomeHref, {
+        if (!trySpaNavigate(targetHomeHref, {
           ...transitionOptions,
-          onCommit: () => {
-            commitFocusChoice();
-            setHomeMode(target.mode);
-          },
           afterRouteReady: applySelectedHomeMode,
+          onFailure: handleSelectionFailure,
         })) {
           commitFocusChoice();
           window.location.assign(cleanHomeHref);
@@ -347,18 +364,28 @@ export function SimulationFocusProvider({
         return;
       }
 
+      publishSimulationSwitchState(simulationId, 'preloading');
+      try {
+        await preloadDailyFocusRuntime(simulationId);
+      } catch (error) {
+        handleSelectionFailure(error);
+        return;
+      }
       setHomeMode(null);
       if (!trySpaNavigate(target.href, {
         ...transitionOptions,
         onCommit: commitFocusChoice,
+        onFailure: handleSelectionFailure,
       })) {
         commitFocusChoice();
         window.location.assign(target.href);
       }
+      };
+      void runSelection();
     }, closeSettleMs);
 
     return true;
-  }, [activeId, closeChooser, refreshFocusState, routeIsDailyFocus, transitionCurrentRoute]);
+  }, [activeId, closeChooser, homeMode, refreshFocusState, routeIsDailyFocus, transitionCurrentRoute]);
 
   const value = useMemo(() => ({
     activeId,

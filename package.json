@@ -49,6 +49,7 @@
     "audit:simulation-switcher:stress" : "node scripts\/audit-simulation-focus-transitions.mjs",
     "audit:simulation-focus" : "node scripts\/audit-simulation-focus.mjs",
     "audit:simulation-focus:stress" : "node scripts\/audit-simulation-focus-transitions.mjs",
+    "audit:simulation-recovery" : "node scripts\/audit-simulation-recovery.mjs",
     "audit:portfolio-drawer" : "node scripts\/audit-portfolio-drawer-open.mjs",
     "audit:portfolio-drawer:pointer" : "node scripts\/audit-portfolio-drawer-pointer.mjs",
     "audit:portfolio-carousel" : "node scripts\/audit-portfolio-carousel.mjs",
