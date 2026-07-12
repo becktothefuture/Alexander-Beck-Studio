@@ -184,7 +184,7 @@ async function run() {
     for (const theme of themes) {
       const context = await browser.newContext({ viewport: { width: 1280, height: 820 } });
       await context.addInitScript((forcedTheme) => {
-        localStorage.setItem('theme-preference-v2', forcedTheme);
+        localStorage.setItem('theme-preference-v3', forcedTheme);
         localStorage.removeItem('theme-preference');
         localStorage.removeItem('abs_palette_chapter');
       }, theme);

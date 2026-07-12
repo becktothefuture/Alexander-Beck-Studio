@@ -107,6 +107,16 @@ function detectSystemPreference() {
   return 'light';
 }
 
+function refreshSystemPreference() {
+  systemPreference = detectSystemPreference();
+  if (currentTheme === 'auto' && resolveShouldBeDark('auto') !== isRenderedDarkMode()) {
+    applyTheme('auto', { persist: false });
+    return;
+  }
+  applyChromeHarmony();
+  updateThemeColor(isRenderedDarkMode());
+}
+
 function resolveShouldBeDark(theme) {
   return resolveThemeIsDark(theme, systemPreference === 'dark');
 }
@@ -310,7 +320,8 @@ export function initializeDarkMode() {
   
   // Listen for system preference changes
   if (window.matchMedia) {
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    const colorSchemeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleColorSchemeChange = (e) => {
       systemPreference = e.matches ? 'dark' : 'light';
       devLog(`🖥️ System preference changed to: ${systemPreference}`);
       
@@ -321,7 +332,12 @@ export function initializeDarkMode() {
         applyChromeHarmony();
         updateThemeColor(isRenderedDarkMode());
       }
-    });
+    };
+    if (typeof colorSchemeMedia.addEventListener === 'function') {
+      colorSchemeMedia.addEventListener('change', handleColorSchemeChange);
+    } else {
+      colorSchemeMedia.addListener?.(handleColorSchemeChange);
+    }
   }
 
   // localStorage events fire in the other tab, keeping all open tabs in sync.
@@ -333,10 +349,17 @@ export function initializeDarkMode() {
   });
 
   // Re-check restored BFCache tabs before they become visible again.
-  window.addEventListener('pageshow', (event) => {
-    if (!event.persisted) return;
-    systemPreference = detectSystemPreference();
-    applyTheme(readThemePreference(), { persist: false });
+  window.addEventListener('pageshow', () => {
+    currentTheme = readThemePreference();
+    refreshSystemPreference();
+  });
+
+  // iOS Safari can resume a backgrounded tab without replaying the media-query
+  // event. Reconcile Auto whenever the document becomes visible again.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    currentTheme = readThemePreference();
+    refreshSystemPreference();
   });
 
   devLog('✓ Modern dark mode initialized');

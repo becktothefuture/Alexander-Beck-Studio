@@ -278,7 +278,7 @@ async function runStandardScenario(browser, viewport, theme) {
   }
   const context = await browser.newContext(contextOptions);
   await context.addInitScript((initialTheme) => {
-    localStorage.setItem('theme-preference-v2', initialTheme);
+    localStorage.setItem('theme-preference-v3', initialTheme);
     localStorage.removeItem('theme-preference');
   }, theme);
   if (browserName === 'webkit') {

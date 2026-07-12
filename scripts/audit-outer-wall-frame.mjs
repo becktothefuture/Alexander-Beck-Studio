@@ -373,7 +373,7 @@ async function runCase(browser, siteTheme, browserScheme, expectations, profile)
     colorScheme: browserScheme,
   });
   await context.addInitScript(({ themeName }) => {
-    localStorage.setItem('theme-preference-v2', themeName);
+    localStorage.setItem('theme-preference-v3', themeName);
   }, {
     themeName: siteTheme,
   });

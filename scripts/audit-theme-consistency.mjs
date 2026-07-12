@@ -110,10 +110,13 @@ async function readThemeState(page) {
       browserChrome,
       browserChromeResolved: normalizeColor(browserChrome),
       frameColor: getComputedStyle(root).getPropertyValue('--frame-color').trim(),
+      frameColorLight: getComputedStyle(root).getPropertyValue('--frame-color-light').trim(),
+      frameColorDark: getComputedStyle(root).getPropertyValue('--frame-color-dark').trim(),
       rootBackground: getComputedStyle(root).backgroundColor,
       bodyBackground: getComputedStyle(body).backgroundColor,
       themeColor: normalizeColor(document.querySelector('meta[name="theme-color"]:not([media])')?.content || ''),
-      storedPreference: localStorage.getItem('theme-preference-v2'),
+      storedPreference: localStorage.getItem('theme-preference-v3'),
+      legacyV2Preference: localStorage.getItem('theme-preference-v2'),
       activeRoute: document.querySelector('[data-route-tab][aria-current="page"]')?.getAttribute('data-route-tab') || '',
       gateScenePresent: Boolean(scene),
       gateSceneImageCount: scene?.querySelectorAll('img, picture, source').length || 0,
@@ -173,7 +176,7 @@ async function waitForFrame(page, expectedFrame, label) {
 async function setStoredPreference(context, preference) {
   await context.addInitScript((value) => {
     if (sessionStorage.getItem('abs_theme_audit_seeded') === '1') return;
-    localStorage.setItem('theme-preference-v2', value);
+    localStorage.setItem('theme-preference-v3', value);
     localStorage.removeItem('theme-preference');
     sessionStorage.removeItem('abs_portfolio_ok');
     localStorage.removeItem('abs_portfolio_ok');
@@ -306,17 +309,12 @@ async function auditAutomaticPreference(browser, viewport) {
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
     const autoLightState = await assertTheme(page, 'light', `${viewport.name}/auto-system-light`);
     const browserLightFrame = autoLightState.browserChrome;
-    if (browserName === 'webkit') {
-      assert(browserLightFrame === browserDarkFrame, `${viewport.name}: theme-color-capable browser must retain the fixed dark outer wall`, {
-        browserDarkFrame,
-        browserLightFrame,
-      });
-    } else {
-      assert(browserLightFrame !== browserDarkFrame, `${viewport.name}: locked-browser scheme did not change outer harmony`, {
-        browserDarkFrame,
-        browserLightFrame,
-      });
-    }
+    assert(browserDarkFrame === autoDarkState.frameColorDark, `${viewport.name}: dark browser scheme missed its authored frame palette`, autoDarkState);
+    assert(browserLightFrame === autoLightState.frameColorLight, `${viewport.name}: light browser scheme missed its authored frame palette`, autoLightState);
+    assert(browserLightFrame !== browserDarkFrame, `${viewport.name}: browser scheme did not change outer harmony`, {
+      browserDarkFrame,
+      browserLightFrame,
+    });
 
     await activateThemeToggle(page, 'Switch to dark mode');
     const manualDarkOnLightBrowser = await assertTheme(page, 'dark', `${viewport.name}/manual-dark-after-auto`);
@@ -334,11 +332,35 @@ async function auditAutomaticPreference(browser, viewport) {
   }
 }
 
+async function auditLegacyPreferenceMigration(browser, viewport) {
+  const context = await browser.newContext({
+    viewport: { width: viewport.width, height: viewport.height },
+    colorScheme: 'dark',
+    reducedMotion: 'reduce',
+  });
+  await context.addInitScript(() => {
+    localStorage.removeItem('theme-preference-v3');
+    localStorage.setItem('theme-preference-v2', 'light');
+    localStorage.removeItem('theme-preference');
+  });
+  const page = await context.newPage();
+
+  try {
+    await page.goto(url('/'), { waitUntil: 'domcontentloaded', timeout: 60000 });
+    const state = await assertTheme(page, 'dark', `${viewport.name}/legacy-v2-migrates-to-auto`);
+    assert(state.storedPreference === 'auto', `${viewport.name}: legacy preference did not migrate to Auto`, state);
+    assert(state.legacyV2Preference === null, `${viewport.name}: legacy v2 preference was not removed`, state);
+  } finally {
+    await context.close();
+  }
+}
+
 async function main() {
   const server = await ensureServer();
   const browser = await browserType.launch();
   try {
     for (const viewport of viewports) {
+      await auditLegacyPreferenceMigration(browser, viewport);
       await auditManualAndTabs(browser, viewport);
       await auditAutomaticPreference(browser, viewport);
       console.log(`[theme-consistency] PASS ${browserName}/${viewport.name}`);

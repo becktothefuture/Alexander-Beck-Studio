@@ -385,7 +385,7 @@ function analyzeScreenshot(filePath) {
 async function preparePage(page, entry, theme) {
   await page.addInitScript(({ themeName, sessionValues }) => {
     try {
-      localStorage.setItem('theme-preference-v2', themeName);
+      localStorage.setItem('theme-preference-v3', themeName);
       localStorage.removeItem('theme-preference');
     } catch {
       // Ignore unavailable storage during certification.

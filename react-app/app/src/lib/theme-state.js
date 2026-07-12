@@ -1,7 +1,8 @@
 export const THEME_DARK_CLASS = 'dark-mode';
 export const THEME_ATTR = 'data-abs-theme';
 export const THEME_CHANGE_EVENT = 'abs:theme-changed';
-export const THEME_STORAGE_KEY = 'theme-preference-v2';
+export const THEME_STORAGE_KEY = 'theme-preference-v3';
+export const LEGACY_V2_THEME_STORAGE_KEY = 'theme-preference-v2';
 export const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
 
 const VALID_THEME_PREFERENCES = new Set(['auto', 'light', 'dark']);
@@ -25,11 +26,18 @@ export function readThemePreference(storage = getLocalStorage()) {
     const saved = storage.getItem(THEME_STORAGE_KEY);
     if (VALID_THEME_PREFERENCES.has(saved)) return saved;
 
-    const legacy = storage.getItem(LEGACY_THEME_STORAGE_KEY);
+    const legacyV2 = storage.getItem(LEGACY_V2_THEME_STORAGE_KEY);
+    const legacy = VALID_THEME_PREFERENCES.has(legacyV2)
+      ? legacyV2
+      : storage.getItem(LEGACY_THEME_STORAGE_KEY);
     if (VALID_THEME_PREFERENCES.has(legacy)) {
-      storage.setItem(THEME_STORAGE_KEY, legacy);
+      // v2 could leave compact-mobile users trapped in a hidden manual override.
+      // Migrate the old contract once to the system-following default. Any choice
+      // made through the current UI is stored under v3 and remains intentional.
+      storage.setItem(THEME_STORAGE_KEY, 'auto');
+      storage.removeItem(LEGACY_V2_THEME_STORAGE_KEY);
       storage.removeItem(LEGACY_THEME_STORAGE_KEY);
-      return legacy;
+      return 'auto';
     }
   } catch {
     // Storage may be unavailable in private or embedded contexts.
@@ -44,6 +52,7 @@ export function writeThemePreference(value, storage = getLocalStorage()) {
 
   try {
     storage.setItem(THEME_STORAGE_KEY, preference);
+    storage.removeItem(LEGACY_V2_THEME_STORAGE_KEY);
     storage.removeItem(LEGACY_THEME_STORAGE_KEY);
   } catch {
     // Storage may be unavailable in private or embedded contexts.

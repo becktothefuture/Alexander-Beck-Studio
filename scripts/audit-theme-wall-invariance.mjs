@@ -214,7 +214,7 @@ async function auditRoute(browser, route, viewport) {
   });
 
   await context.addInitScript(() => {
-    localStorage.setItem('theme-preference-v2', 'light');
+    localStorage.setItem('theme-preference-v3', 'light');
     localStorage.removeItem('theme-preference');
   });
 

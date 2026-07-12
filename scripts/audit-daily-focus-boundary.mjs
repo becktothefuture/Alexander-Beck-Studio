@@ -262,7 +262,7 @@ async function main() {
   if (theme === 'light' || theme === 'dark' || theme === 'auto') {
     await page.emulateMedia({ colorScheme: theme === 'dark' ? 'dark' : 'light' });
     await page.addInitScript((themePreference) => {
-      window.localStorage.setItem('theme-preference-v2', themePreference);
+      window.localStorage.setItem('theme-preference-v3', themePreference);
     }, theme);
   }
   let baseline = null;

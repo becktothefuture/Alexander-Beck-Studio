@@ -153,7 +153,7 @@ async function run() {
   });
   await page.addInitScript(() => {
     try {
-      localStorage.setItem('theme-preference-v2', 'light');
+      localStorage.setItem('theme-preference-v3', 'light');
       localStorage.removeItem('theme-preference');
     } catch {}
   });
