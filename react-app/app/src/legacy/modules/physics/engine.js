@@ -19,7 +19,6 @@ import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-exp
 import { getRenderQualityProfile } from '../utils/render-quality.js';
 import { appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
 import { drawBallContrastVeil } from '../visual/ball-contrast-veil.js';
-import { drawBallRims } from '../visual/ball-rim.js';
 import { TITLE_DEPTH_PLANE_Z, drawHomepageCanvasTitle, modeUsesDepthTitlePlane } from '../rendering/title-depth.js';
 import { 
   getAccumulator, 
@@ -791,7 +790,6 @@ export function render() {
   } else if (crittersRenderLodEnabled || weaveRenderLodEnabled || shapesRenderEnabled) {
     ballRenderOptions = {
       simpleCircleBodies: true,
-      skipRims: true,
       canvasWidth: canvas.width,
       canvasHeight: canvas.height
     };
@@ -842,7 +840,6 @@ export function render() {
     ballRenderOptions = {
       ...(ballRenderOptions || {}),
       simpleCircleBodies: true,
-      skipRims: true,
       canvasWidth: canvas.width,
       canvasHeight: canvas.height
     };
@@ -1091,14 +1088,6 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
     simpleCircleBodies
   });
 
-  // ── Rim pass: directional depth edge on all rendered balls ──
-  if (!renderOptions?.skipRims) {
-    drawBallRims(ctx, ballsToRender, {
-      canvasWidth: canvasWidth,
-      canvasHeight: canvasHeight,
-      minRadius: pitLodEnabled ? tinyRadiusPx : 0
-    });
-  }
 }
 
 /**

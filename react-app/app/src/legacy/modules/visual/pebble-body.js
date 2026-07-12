@@ -247,67 +247,6 @@ export function appendPebbleBodyPath(ctx, ball, radius, globals) {
   appendPebbleGeometryPath(ctx, geom, radius);
 }
 
-function getRgb(hex) {
-  const value = String(hex || "var(--color-detected-000000)").replace('#', '').trim();
-  const normalized = value.length === 3
-    ? value.split('').map((part) => part + part).join('')
-    : value.padEnd(6, '0').slice(0, 6);
-  const int = Number.parseInt(normalized, 16);
-  return {
-    r: (int >> 16) & 255,
-    g: (int >> 8) & 255,
-    b: int & 255,
-  };
-}
-
-function getRelativeLuminance(rgb) {
-  const channel = (value) => {
-    const normalized = value / 255;
-    return normalized <= 0.03928
-      ? normalized / 12.92
-      : Math.pow((normalized + 0.055) / 1.055, 2.4);
-  };
-  return (0.2126 * channel(rgb.r)) + (0.7152 * channel(rgb.g)) + (0.0722 * channel(rgb.b));
-}
-
-function mixToward(rgb, target, t) {
-  return {
-    r: Math.round(rgb.r + ((target.r - rgb.r) * t)),
-    g: Math.round(rgb.g + ((target.g - rgb.g) * t)),
-    b: Math.round(rgb.b + ((target.b - rgb.b) * t)),
-  };
-}
-
-function getPebbleContourStyle(color, globals, radius) {
-  const rgb = getRgb(color);
-  const luminance = getRelativeLuminance(rgb);
-  const useShadowContour = luminance > 0.72;
-  const contourRgb = useShadowContour
-    ? mixToward(rgb, { r: 0, g: 0, b: 0 }, 0.14)
-    : mixToward(rgb, { r: 255, g: 255, b: 255 }, 0.22);
-  const contourAlpha = useShadowContour ? 0.22 : 0.28;
-  const dpr = globals?.DPR || 1;
-  return {
-    strokeStyle: `rgba(${contourRgb.r}, ${contourRgb.g}, ${contourRgb.b}, ${contourAlpha})`,
-    lineWidth: clamp(radius * 0.06, 0.8 * dpr, 2.2 * dpr, 1.2 * dpr),
-    inset: 0.72,
-  };
-}
-
-export function drawPebbleBodyRim(ctx, ball, x, y, radius, color, globals, opts = {}) {
-  // Shared simulation bodies now render flat fills only. Portfolio keeps its
-  // own dedicated body rim in portfolio/pit-mode.js.
-  void ctx;
-  void ball;
-  void x;
-  void y;
-  void radius;
-  void color;
-  void globals;
-  void opts;
-  return;
-}
-
 export function drawPebbleBody(ctx, ball, x, y, radius, color, globals, opts = {}) {
   if (!ctx) return;
   const rotationRad = Number.isFinite(opts.rotationRad) ? opts.rotationRad : 0;
@@ -326,13 +265,11 @@ export function drawPebbleBody(ctx, ball, x, y, radius, color, globals, opts = {
       ctx.arc(0, 0, renderRadius, 0, TAU);
       ctx.fill();
       ctx.restore();
-      drawPebbleBodyRim(ctx, ball, x, y, radius, color, globals, opts);
     } else {
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(x, y, renderRadius, 0, TAU);
       ctx.fill();
-      drawPebbleBodyRim(ctx, ball, x, y, radius, color, globals, opts);
     }
     return;
   }
@@ -350,7 +287,6 @@ export function drawPebbleBody(ctx, ball, x, y, radius, color, globals, opts = {
   appendPebbleBodyPath(ctx, ball, renderRadius, globals);
   ctx.fill();
   ctx.restore();
-  drawPebbleBodyRim(ctx, ball, x, y, radius, color, globals, opts);
 }
 
 export function getPebbleBodyRotation(ball) {

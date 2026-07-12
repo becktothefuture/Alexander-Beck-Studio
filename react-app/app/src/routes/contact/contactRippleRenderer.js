@@ -41,35 +41,6 @@ function isHexColor(value) {
   return /^#[0-9a-f]{6}$/i.test(String(value || '').trim());
 }
 
-function hexToRgb(color) {
-  const value = Number.parseInt(color.slice(1), 16);
-  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
-}
-
-function drawContactBallRim(context, center, radius, color) {
-  const [red, green, blue] = hexToRgb(color);
-  const lineWidth = radius * 0.12;
-  const gradient = context.createLinearGradient(
-    center - (radius * 0.1),
-    center - (radius * 0.15),
-    center + (radius * 0.1),
-    center + (radius * 0.15),
-  );
-  const light = `${red + ((255 - red) * 0.35) | 0},${green + ((255 - green) * 0.35) | 0},${blue + ((255 - blue) * 0.35) | 0}`;
-  const shadow = `${(red * 0.65) | 0},${(green * 0.65) | 0},${(blue * 0.65) | 0}`;
-  const base = `${red},${green},${blue}`;
-
-  gradient.addColorStop(0, `rgba(${light}, 0.6)`);
-  gradient.addColorStop(0.33, `rgba(${base}, 0)`);
-  gradient.addColorStop(0.83, `rgba(${base}, 0)`);
-  gradient.addColorStop(1, `rgba(${shadow}, 0.4)`);
-  context.strokeStyle = gradient;
-  context.lineWidth = lineWidth;
-  context.beginPath();
-  context.arc(center, center, radius - (lineWidth * 0.55), 0, TAU);
-  context.stroke();
-}
-
 function getDiagnostics() {
   if (typeof window === 'undefined') return null;
   if (!window.__ABS_CONTACT_RIPPLE_DIAGNOSTICS__) {
@@ -98,7 +69,6 @@ function createBallSprite(color) {
   context.beginPath();
   context.arc(center, center, radius, 0, TAU);
   context.fill();
-  drawContactBallRim(context, center, radius, color);
   return sprite;
 }
 
@@ -270,6 +240,7 @@ export function createContactRippleRenderer({
     stage.dataset.contactRippleOuterAlpha = OUTER_RING_ALPHA.toFixed(2);
     stage.dataset.contactRippleCoreFadeRadius = metrics.coreFadeEnd.toFixed(2);
     stage.dataset.contactRippleBurstRelease = 'smoothstep-tail';
+    stage.dataset.contactRippleBallFinish = 'flat-fill';
     const nextLayoutKey = `${Math.round(width)}x${Math.round(height)}:${metrics.bodyRadius.toFixed(2)}:${spriteSet.key}`;
     if (nextLayoutKey !== layoutKey) {
       layoutKey = nextLayoutKey;

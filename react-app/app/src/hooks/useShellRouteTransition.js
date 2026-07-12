@@ -676,11 +676,13 @@ function dismissPortfolioGateTeaserBridge({
     return;
   }
 
+  const resolvedOpacity = Number.parseFloat(getComputedStyle(bridge).opacity);
+  const startOpacity = Number.isFinite(resolvedOpacity) ? resolvedOpacity : 0.5;
   const totalMs = Math.max(1, delayMs + durationMs);
   const holdOffset = Math.min(1, Math.max(0, delayMs / totalMs));
   const keyframes = holdOffset > 0
-    ? [{ opacity: 1, offset: 0 }, { opacity: 1, offset: holdOffset }, { opacity: 0, offset: 1 }]
-    : [{ opacity: 1 }, { opacity: 0 }];
+    ? [{ opacity: startOpacity, offset: 0 }, { opacity: startOpacity, offset: holdOffset }, { opacity: 0, offset: 1 }]
+    : [{ opacity: startOpacity }, { opacity: 0 }];
   const animation = bridge.animate(keyframes, { duration: totalMs, easing, fill: 'forwards' });
   activeAnimations.push(animation);
   let settled = false;

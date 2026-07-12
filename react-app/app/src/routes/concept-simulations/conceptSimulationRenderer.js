@@ -977,15 +977,6 @@ export function createConceptSimulationRenderer({
     const config = getConfig();
     ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
     renderBackground(ctx, metrics, theme, config, pointer, simulationId, { transparentBackground });
-    if (simulationId === CONCEPT_SIMULATION_IDS.RIFT_RINGS) {
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetY = 0;
-    } else {
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.16)';
-      ctx.shadowBlur = Math.max(5, Math.min(16, metrics.cssWidth * 0.006));
-      ctx.shadowOffsetY = 1.5;
-    }
     if (simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES) {
       for (const body of bodies) {
         if (body.kind !== 'hub') drawBody(ctx, body, visualTransition.getScaleAt(body.bodyIndex));
@@ -998,7 +989,6 @@ export function createConceptSimulationRenderer({
         drawBody(ctx, body, visualTransition.getScaleAt(body.bodyIndex));
       }
     }
-    ctx.shadowColor = 'transparent';
     markAuditFrame(canvas);
   }
 

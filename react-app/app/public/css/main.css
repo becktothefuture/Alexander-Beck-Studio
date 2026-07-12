@@ -4061,7 +4061,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   --button-bar-active-bottom-shine: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.28);
   border-radius: var(--abs-radius-pill);
   color: var(--shell-tab-text-rest);
-  font-size: 16px;
+  font-size: 14px;
   background: transparent;
   box-shadow: none;
 }
@@ -4168,7 +4168,7 @@ svg.shell-tab__icon {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: 0.02em;
+  letter-spacing: normal;
   line-height: 1.15;
   white-space: nowrap;
   transition:
@@ -4614,7 +4614,7 @@ html[data-abs-light-locked-chrome] .button-bar {
 
   .button-bar__primary-buttons .shell-tab {
     padding-inline: clamp(9px, 2.4vw, 12px);
-    font-size: clamp(0.82rem, 3.45vw, 0.9rem);
+    font-size: calc(clamp(0.82rem, 3.45vw, 0.9rem) - 2px);
   }
 
   .button-bar__primary-buttons .shell-tab__icon {
@@ -4652,7 +4652,7 @@ html[data-abs-light-locked-chrome] .button-bar {
 
   .button-bar__primary-buttons .shell-tab {
     padding-inline: clamp(8px, 2.25vw, 11px);
-    font-size: clamp(0.8rem, 3.35vw, 0.88rem);
+    font-size: calc(clamp(0.8rem, 3.35vw, 0.88rem) - 2px);
   }
 }
 
@@ -4685,7 +4685,7 @@ html[data-abs-light-locked-chrome] .button-bar {
 
   .button-bar__primary-buttons .shell-tab {
     padding-inline: 2px;
-    font-size: 0.72rem;
+    font-size: calc(0.72rem - 2px);
   }
 }
 

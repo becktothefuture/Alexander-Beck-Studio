@@ -145,6 +145,7 @@ async function readRippleState(page) {
       outerAlpha: Number(stage?.dataset.contactRippleOuterAlpha || 0),
       coreFadeRadius: Number(stage?.dataset.contactRippleCoreFadeRadius || 0),
       burstRelease: stage?.dataset.contactRippleBurstRelease || '',
+      ballFinish: stage?.dataset.contactRippleBallFinish || '',
       paletteSize: Number(stage?.dataset.contactRipplePaletteSize || 0),
       surface: stage?.dataset.contactRippleSurface || '',
       canvasWidth: canvas?.width || 0,
@@ -182,6 +183,7 @@ function assertLayout(state, viewport) {
   assert(state.outerAlpha === 1, 'Outer Contact rings are not fully opaque', state);
   assert(state.coreFadeRadius > state.bodyRadius * 10, 'Contact core fade is unexpectedly narrow', state);
   assert(state.burstRelease === 'smoothstep-tail', 'Contact burst is missing its eased release phase', state);
+  assert(state.ballFinish === 'flat-fill', 'Contact balls still expose a shaded rim treatment', state);
   assert(state.canvasPointerEvents === 'none', 'Decorative canvas captured pointer events', state);
   assert(state.stageZ < state.contentZ, 'Contact content is not above the ripple stage', state);
   assert(state.stageRect?.width > viewport.width * 0.75, 'Ripple stage does not fill the studio window', state);
@@ -255,9 +257,9 @@ async function runStandardScenario(browser, viewport, theme) {
     assert(successBurst.bodyCount === initial.bodyCount, 'Burst changed the number of rendered balls', { initial, successBurst });
     assert(successBurst.bodyRadius === initial.bodyRadius, 'Burst changed the rendered ball size', { initial, successBurst });
     assert(successBurst.soundEnabled === 'true', 'First Contact activation did not unlock the requested sound motif', successBurst);
-    assert(successBurst.soundMotifCharacter === 'contact-sonic-logo', 'Contact motif character is stale', successBurst);
+    assert(successBurst.soundMotifCharacter === 'mechanical-registration-motif', 'Contact motif character is stale', successBurst);
     assert(successBurst.soundMotifLayerCount >= 5, 'Contact motif is missing its layered signal stack', successBurst);
-    assert(successBurst.soundMotifNoteCount >= 18, 'Contact motif note stack is unexpectedly sparse', successBurst);
+    assert(successBurst.soundMotifNoteCount >= 19, 'Contact motif note stack is unexpectedly sparse', successBurst);
 
     const rapidStart = successBurst.burstCount;
     for (let clickIndex = 1; clickIndex <= 3; clickIndex += 1) {

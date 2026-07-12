@@ -30,7 +30,6 @@ const PORTFOLIO_PEBBLE_VARIANTS = 16;
 const PORTFOLIO_PEBBLE_SEGMENTS_DESKTOP = 18;
 const PORTFOLIO_PEBBLE_SEGMENTS_MOBILE = 12;
 const PORTFOLIO_PEBBLE_RENDER_SCALE = 1;
-const PORTFOLIO_BODY_RIM_ENABLED = false;
 const PORTFOLIO_HOVER_SCALE = 1.05;
 const PORTFOLIO_HOVER_SPEED_IN = 8;
 const PORTFOLIO_HOVER_SPEED_OUT = 5;
@@ -205,58 +204,6 @@ function appendPebbleBodyPath(ctx, ball, radius) {
     ctx.quadraticCurveTo(ctrlX, ctrlY, midX, midY);
   }
   ctx.closePath();
-}
-
-const PORTFOLIO_RIM_WIDTH_MIN_PX = 3;
-const PORTFOLIO_RIM_WIDTH_MAX_PX = 6.5;
-const PORTFOLIO_RIM_INSET = 0.64;
-
-function getRelativeLuminance(rgb) {
-  const channel = (value) => {
-    const normalized = value / 255;
-    return normalized <= 0.03928
-      ? normalized / 12.92
-      : Math.pow((normalized + 0.055) / 1.055, 2.4);
-  };
-  return (0.2126 * channel(rgb.r)) + (0.7152 * channel(rgb.g)) + (0.0722 * channel(rgb.b));
-}
-
-function drawPortfolioBodyRim(ctx, x, y, r, color, drawPath, rotationRad) {
-  if (typeof drawPath !== 'function') return;
-
-  const rgb = hexToRgb(color);
-  const luminance = getRelativeLuminance(rgb);
-  const useShadowContour = luminance > 0.72;
-  const contour = useShadowContour
-    ? {
-        r: Math.round(rgb.r * 0.86),
-        g: Math.round(rgb.g * 0.86),
-        b: Math.round(rgb.b * 0.86),
-        alpha: 0.2,
-      }
-    : {
-        r: Math.round(rgb.r + ((255 - rgb.r) * 0.2)),
-        g: Math.round(rgb.g + ((255 - rgb.g) * 0.2)),
-        b: Math.round(rgb.b + ((255 - rgb.b) * 0.2)),
-        alpha: 0.26,
-      };
-  const lineWidth = clamp(r * 0.022, PORTFOLIO_RIM_WIDTH_MIN_PX, PORTFOLIO_RIM_WIDTH_MAX_PX);
-  const strokeRadius = Math.max(1, r - (lineWidth * PORTFOLIO_RIM_INSET));
-
-  ctx.save();
-  ctx.translate(x, y);
-  if (Number.isFinite(rotationRad) && rotationRad !== 0) ctx.rotate(rotationRad);
-  ctx.beginPath();
-  drawPath(ctx, strokeRadius);
-  ctx.clip();
-  ctx.strokeStyle = `rgba(${contour.r}, ${contour.g}, ${contour.b}, ${contour.alpha})`;
-  ctx.lineWidth = lineWidth;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  drawPath(ctx, strokeRadius);
-  ctx.stroke();
-  ctx.restore();
 }
 
 function storePortfolioSeedMetrics(ball, width, height, radius) {
@@ -598,23 +545,6 @@ function renderProjectBody(ctx, ball, isHovered) {
   ctx.fill();
   ctx.restore();
 
-  if (PORTFOLIO_BODY_RIM_ENABLED) {
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    drawPortfolioBodyRim(
-      ctx,
-      x,
-      y,
-      drawR,
-      ball.color,
-      (pathCtx, strokeR) => {
-        pathCtx.beginPath();
-        appendPebbleBodyPath(pathCtx, ball, strokeR);
-      },
-      rot
-    );
-    ctx.restore();
-  }
 }
 
 export function initializePortfolioPit() {

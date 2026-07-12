@@ -120,13 +120,13 @@ body.portfolio-page #simulations::before {
   inset: 0;
   overflow: hidden;
   border-radius: var(--frame-inner-radius);
+  opacity: 0.5;
   pointer-events: none;
   user-select: none;
 }
 
 .portfolio-gate-teaser--transition-bridge {
   z-index: 160;
-  opacity: 1;
   will-change: opacity;
 }
 

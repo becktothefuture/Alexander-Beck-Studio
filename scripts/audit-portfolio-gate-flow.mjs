@@ -8,6 +8,7 @@ const WAIT_MS = Number(process.env.ABS_CANVAS_WAIT_MS || 30000);
 const INVITE_CODE = process.env.ABS_PORTFOLIO_CODE || '739284';
 const DESKTOP_GATE_BLUR_PX = 8.58;
 const MOBILE_GATE_BLUR_PX = 15.6;
+const GATE_TEASER_OPACITY = 0.5;
 const MAX_BAKED_TEASER_EDGE_ENERGY = 4;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outputRoot = resolve(__dirname, '..', 'output', 'playwright', 'portfolio-gate-audit');
@@ -196,6 +197,7 @@ async function readState(page) {
       deckSurface: styleOf('#portfolioProjectMount'),
       gateSurface: styleOf('.portfolio-gate-route'),
       gateTitleSurface: styleOf('.portfolio-gate-route .route-centered-page__title'),
+      teaserSurface: styleOf('[data-portfolio-gate-teaser]'),
       teaserBridgeSurface: styleOf('[data-portfolio-gate-teaser-bridge]'),
       geometryOk: Boolean(
         sim
@@ -238,6 +240,11 @@ function assertThemeState(
     assert(state.teaserReady, `${label}: teaser image did not load`, state);
     assert(state.teaserSrc.includes(`-${theme}.jpg`), `${label}: teaser source does not match theme`, state);
     assert(state.teaserImageFilter === 'none', `${label}: teaser concealment must be baked into the JPG, not applied as a removable runtime filter`, state);
+    assert(
+      Math.abs(state.teaserSurface.opacity - GATE_TEASER_OPACITY) <= 0.01,
+      `${label}: teaser opacity did not resolve to ${GATE_TEASER_OPACITY}`,
+      state,
+    );
     assert(
       Number.isFinite(state.teaserEdgeEnergy) && state.teaserEdgeEnergy <= MAX_BAKED_TEASER_EDGE_ENERGY,
       `${label}: teaser asset is too sharp to satisfy the baked-blur contract`,
@@ -489,14 +496,22 @@ async function auditUnlockSequence(browser, profile) {
     assert(phases.includes('route-out') && phases.includes('route-in') && phases.at(-1) === 'idle', `${prefix}: unlock phase sequence was incomplete`, frames);
     assert(frames[1].state.gatePulse, `${prefix}: code-accepted checkpoint missed the success pulse`, frames[1]);
     assert(frames[2].state.teaser && frames[2].state.wallSurface.opacity > 0 && frames[2].state.wallSurface.opacity < 1, `${prefix}: teaser was not partially faded during route-out`, frames[2]);
-    assert(!frames[3].state.teaser && frames[3].state.teaserBridge && frames[3].state.teaserBridgeSurface.opacity > 0.99 && frames[3].state.deck && frames[3].state.wallSurface.visibility === 'hidden', `${prefix}: loading bridge did not preserve the teaser while concealing the live deck`, frames[3]);
+    assert(
+      !frames[3].state.teaser
+        && frames[3].state.teaserBridge
+        && Math.abs(frames[3].state.teaserBridgeSurface.opacity - GATE_TEASER_OPACITY) <= 0.01
+        && frames[3].state.deck
+        && frames[3].state.wallSurface.visibility === 'hidden',
+      `${prefix}: loading bridge did not preserve the faint teaser while concealing the live deck`,
+      frames[3],
+    );
     assert(
       frames[4].state.deck
         && frames[4].state.wallSurface.opacity > 0
         && frames[4].state.wallSurface.opacity < 1
         && frames[4].state.teaserBridgeSurface.opacity > 0
-        && frames[4].state.teaserBridgeSurface.opacity < 1
-        && (frames[4].state.wallSurface.opacity + frames[4].state.teaserBridgeSurface.opacity) >= 0.7,
+        && frames[4].state.teaserBridgeSurface.opacity <= GATE_TEASER_OPACITY + 0.01
+        && (frames[4].state.wallSurface.opacity + frames[4].state.teaserBridgeSurface.opacity) >= 0.45,
       `${prefix}: teaser/live crossfade dipped too dark during intermediate opacities`,
       frames[4],
     );

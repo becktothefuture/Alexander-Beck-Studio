@@ -8,7 +8,7 @@ import { CONSTANTS, MODES, isPitLikeMode } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
 import { registerWallImpactAtPoint, registerWallPressureAtPoint } from './wall-state.js';
 import { getPortfolioBodyMaxExtentAlongWorldNormal } from './portfolio-body-geometry.js';
-import { drawPebbleBody, drawPebbleBodyRim, appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
+import { drawPebbleBody, appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
 
 // Unique ID counter for ball sound debouncing
 let ballIdCounter = 0;
@@ -563,7 +563,6 @@ export class Ball {
       ctx.beginPath();
       appendPebbleBodyPath(ctx, this, displayRadius, globals);
       ctx.fill();
-      drawPebbleBodyRim(ctx, this, 0, 0, displayRadius, this.color, globals, { rotationRad: 0 });
       ctx.restore();
       return;
     }

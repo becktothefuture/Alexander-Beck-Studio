@@ -1067,8 +1067,9 @@ function scheduleContactMotifPulse({ frequency, offset, gain: peakGain, pan }) {
 }
 
 /**
- * Contact activation motif: a five-note sonic signature in D major/add-9.
- * A low wake and octave shadow reinforce the same phrase before an open suspended resolve.
+ * Contact activation motif: a restrained mechanical registration sequence.
+ * A low motor bed, minor-second tension, octave shadow, and filtered relay ticks
+ * form one repeatable identity without the brightness of a success jingle.
  * The first Contact click may unlock audio; an explicitly muted engine stays silent.
  */
 export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
@@ -1080,38 +1081,40 @@ export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
 
   stopContactRippleMotif();
   const tonalVoices = [
-    // Layer 1: low wake — the burst gathering energy at the centre.
-    { frequency: 146.83, frequencyEnd: 293.66, offset: 0.000, duration: 1.12, gain: 0.040, pan: 0.00, filterStart: 1800, filterEnd: 900, overtoneLevel: 0.07 },
-    { frequency: 220.00, offset: 0.090, duration: 0.84, gain: 0.018, pan: 0.05, filterStart: 2200, filterEnd: 1100, overtoneLevel: 0.06 },
+    // Layer 1: low motor bed settles fractionally downward as the ripple releases.
+    { frequency: 73.42, frequencyEnd: 70.40, offset: 0.000, duration: 1.18, gain: 0.029, pan: -0.04, type: 'triangle', attack: 0.018, filterStart: 920, filterEnd: 420, overtoneRatio: 2.01, overtoneLevel: 0.035, fmRatio: 0.5, fmDepth: 1.6 },
+    { frequency: 110.00, frequencyEnd: 107.00, offset: 0.165, duration: 0.88, gain: 0.014, pan: 0.05, filterStart: 1080, filterEnd: 480, overtoneRatio: 1.5, overtoneLevel: 0.025 },
 
-    // Layer 2: the memorable five-note signature: D–A–E–F♯–D.
-    { frequency: 587.33, offset: 0.000, duration: 0.38, gain: 0.039, pan: -0.22, type: 'triangle', attack: 0.005, fmRatio: 2.0, fmDepth: 6 },
-    { frequency: 880.00, offset: 0.120, duration: 0.40, gain: 0.036, pan: 0.20, type: 'triangle', attack: 0.005, fmRatio: 2.0, fmDepth: 8 },
-    { frequency: 1318.51, offset: 0.240, duration: 0.43, gain: 0.033, pan: -0.14, type: 'triangle', attack: 0.005, fmRatio: 1.5, fmDepth: 10 },
-    { frequency: 1479.98, offset: 0.360, duration: 0.48, gain: 0.031, pan: 0.14, type: 'triangle', attack: 0.005, fmRatio: 2.0, fmDepth: 9 },
-    { frequency: 1174.66, offset: 0.520, duration: 0.72, gain: 0.034, pan: 0.00, type: 'triangle', attack: 0.007, fmRatio: 1.5, fmDepth: 5 },
+    // Layer 2: the five-note identity — D, E-flat, lower A, C, D.
+    { frequency: 293.66, offset: 0.000, duration: 0.34, gain: 0.027, pan: -0.16, type: 'triangle', attack: 0.007, filterStart: 1900, filterEnd: 780, overtoneRatio: 1.5, overtoneLevel: 0.040, fmRatio: 2.0, fmDepth: 3.2 },
+    { frequency: 311.13, offset: 0.112, duration: 0.38, gain: 0.025, pan: 0.14, type: 'triangle', attack: 0.007, filterStart: 1840, filterEnd: 760, overtoneRatio: 1.5, overtoneLevel: 0.036, fmRatio: 2.0, fmDepth: 3.8 },
+    { frequency: 220.00, offset: 0.265, duration: 0.46, gain: 0.024, pan: -0.10, type: 'triangle', attack: 0.009, filterStart: 1700, filterEnd: 700, overtoneRatio: 2.0, overtoneLevel: 0.034, fmRatio: 1.5, fmDepth: 2.8 },
+    { frequency: 261.63, offset: 0.415, duration: 0.44, gain: 0.023, pan: 0.10, type: 'triangle', attack: 0.009, filterStart: 1760, filterEnd: 720, overtoneRatio: 1.5, overtoneLevel: 0.032, fmRatio: 2.0, fmDepth: 3.0 },
+    { frequency: 293.66, offset: 0.575, duration: 0.72, gain: 0.027, pan: 0.00, type: 'triangle', attack: 0.011, filterStart: 1600, filterEnd: 620, overtoneRatio: 1.5, overtoneLevel: 0.030, fmRatio: 1.5, fmDepth: 2.2 },
 
-    // Layer 3: a quieter octave shadow repeats the identity, not a competing melody.
-    { frequency: 293.66, offset: 0.055, duration: 0.56, gain: 0.016, pan: 0.24, filterStart: 3400, filterEnd: 1700, overtoneLevel: 0.06 },
-    { frequency: 440.00, offset: 0.175, duration: 0.58, gain: 0.015, pan: -0.22, filterStart: 3600, filterEnd: 1800, overtoneLevel: 0.06 },
-    { frequency: 659.25, offset: 0.295, duration: 0.62, gain: 0.014, pan: 0.16, filterStart: 3900, filterEnd: 1900, overtoneLevel: 0.05 },
-    { frequency: 739.99, offset: 0.415, duration: 0.66, gain: 0.013, pan: -0.14, filterStart: 4100, filterEnd: 2000, overtoneLevel: 0.05 },
+    // Layer 3: a very quiet lower-register trace makes the mark feel engineered, not melodic.
+    { frequency: 146.83, offset: 0.034, duration: 0.49, gain: 0.010, pan: 0.13, filterStart: 1120, filterEnd: 520, overtoneRatio: 2.0, overtoneLevel: 0.022 },
+    { frequency: 155.56, offset: 0.146, duration: 0.52, gain: 0.009, pan: -0.12, filterStart: 1100, filterEnd: 500, overtoneRatio: 2.0, overtoneLevel: 0.020 },
+    { frequency: 110.00, offset: 0.299, duration: 0.58, gain: 0.010, pan: 0.09, filterStart: 980, filterEnd: 450, overtoneRatio: 2.0, overtoneLevel: 0.020 },
+    { frequency: 130.81, offset: 0.449, duration: 0.56, gain: 0.009, pan: -0.08, filterStart: 1040, filterEnd: 470, overtoneRatio: 2.0, overtoneLevel: 0.018 },
+    { frequency: 146.83, offset: 0.609, duration: 0.77, gain: 0.011, pan: 0.00, filterStart: 980, filterEnd: 410, overtoneRatio: 2.0, overtoneLevel: 0.018 },
 
-    // Layer 4: open D/A/E resolve gives the mark a calm, optimistic tail.
-    { frequency: 293.66, offset: 0.555, duration: 0.94, gain: 0.020, pan: -0.18, overtoneLevel: 0.07 },
-    { frequency: 440.00, offset: 0.555, duration: 0.98, gain: 0.018, pan: 0.00, overtoneLevel: 0.06 },
-    { frequency: 659.25, offset: 0.555, duration: 1.02, gain: 0.017, pan: 0.18, overtoneLevel: 0.06 },
+    // Layer 4: a tritone calibration tone moves into alignment beneath the final D.
+    { frequency: 146.83, offset: 0.545, duration: 0.82, gain: 0.012, pan: -0.10, filterStart: 900, filterEnd: 380, overtoneRatio: 1.5, overtoneLevel: 0.018 },
+    { frequency: 207.65, frequencyEnd: 220.00, offset: 0.535, duration: 0.86, gain: 0.010, pan: 0.10, filterStart: 1180, filterEnd: 460, overtoneRatio: 1.5, overtoneLevel: 0.016, fmRatio: 0.5, fmDepth: 1.2 },
   ];
   const dataPulses = [
-    { frequency: 1174.66, offset: 0.018, gain: 0.014, pan: -0.44 },
-    { frequency: 1760.00, offset: 0.138, gain: 0.012, pan: 0.42 },
-    { frequency: 1318.51, offset: 0.258, gain: 0.013, pan: -0.34 },
-    { frequency: 2217.46, offset: 0.378, gain: 0.011, pan: 0.32 },
+    // Layer 5: low filtered relay accents register each step without a bright click.
+    { frequency: 146.83, offset: 0.014, gain: 0.0090, pan: -0.24 },
+    { frequency: 155.56, offset: 0.126, gain: 0.0080, pan: 0.22 },
+    { frequency: 110.00, offset: 0.279, gain: 0.0085, pan: -0.18 },
+    { frequency: 130.81, offset: 0.429, gain: 0.0075, pan: 0.17 },
+    { frequency: 146.83, offset: 0.589, gain: 0.0085, pan: 0.00 },
   ];
 
   recordSoundDebugEvent('contact-ripple-motif', 'sound-engine:contact-ripple-motif', {
-    character: 'contact-sonic-logo',
-    motif: 'D5-A5-E6-Fsharp6-D6',
+    character: 'mechanical-registration-motif',
+    motif: 'D4-Eflat4-A3-C4-D4',
     layerCount: 5,
     noteCount: tonalVoices.length + dataPulses.length,
     frequencies: [...tonalVoices, ...dataPulses].map((voice) => voice.frequency),

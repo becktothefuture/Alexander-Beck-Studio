@@ -8,7 +8,7 @@ The target is:
 
 - smooth, slightly irregular bodies
 - stable weight and settling
-- readable light edge and dark edge
+- flat palette fills with a clean silhouette
 - conservative performance
 
 This is not a “make everything random” system. It is a controlled visual-material language.
@@ -43,22 +43,21 @@ The site now uses a deterministic pebble family instead of perfect circles.
 - no per-frame random generation
 - low-point contour suitable for real-time canvas rendering
 
-### 2. Screen-Locked Rim Lighting
+### 2. Flat Material Finish
 
-The pebble can rotate, but the light direction stays fixed to the scene.
+Pebbles and circles use one unshaded palette fill.
 
 Rule:
 
 - rotate the body
-- do not rotate the light
+- keep the fill flat
+- do not add edge shading, contour strokes, glows, gradients, or local lighting
 
 Implementation:
 
 - fill path rotates with the pebble
-- highlight/shadow rim is drawn in screen/world space
-- the rim is clipped to the rotated pebble path
-
-This keeps the light edge visually stable while preserving body rotation.
+- no second rendering pass is applied to the body
+- depth comes from motion, overlap discipline, scale, and the silhouette itself
 
 ### 3. Portfolio Physics Tuning
 
@@ -113,7 +112,6 @@ Use these rules:
 
 - let the fill rotate
 - let the silhouette rotate
-- keep the lighting direction fixed
 - keep angular speed modest
 - avoid constant busy spin
 
@@ -129,7 +127,7 @@ Performance matters more than geometric purity.
 - stable seeds
 - circle physics
 - low-point pebble outlines
-- world-locked gradient rim
+- one flat fill pass
 - small body counts
 
 ### Risky
@@ -148,7 +146,6 @@ So the correct strategy is:
 - keep pit physics circular
 - reuse the shared pebble silhouette
 - allow visual rotation only
-- keep lighting world-fixed
 - use the same small explicit gap model for neighbors and walls
 - rely on existing LOD and throttle systems
 
@@ -162,6 +159,6 @@ The default should feel like:
 - slight asymmetry
 - restrained variation
 - calm weight
-- soft but readable edge lighting
+- crisp flat silhouettes
 
 If the bodies feel noisy, cartoonish, or over-styled, the system has gone too far.

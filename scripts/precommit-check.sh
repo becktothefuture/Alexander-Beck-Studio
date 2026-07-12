@@ -55,3 +55,7 @@ echo
 
 echo "8) Production HTML entry validation"
 npm run validate:html-entries
+
+echo
+echo "9) Flat circle material guardrail"
+npm run check:flat-circle-materials
