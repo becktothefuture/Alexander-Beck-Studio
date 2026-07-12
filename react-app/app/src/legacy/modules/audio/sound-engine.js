@@ -116,12 +116,12 @@ let WHEEL_SFX_CONFIG = {
   tickGainMul: 1.0,
   swishGainMul: 1.0,
 
-  tickBaseGain: 0.05,
+  tickBaseGain: 0.028,
   tickMinVelocity: 50,
   tickMaxVelocity: 1600,
   tickMinRate: 0.6,
   tickMaxRate: 9,
-  swishBaseGain: 0.04,
+  swishBaseGain: 0.016,
   swishMinVelocity: 220,
   swishMaxVelocity: 2200,
   swishMinHz: 600,
@@ -849,8 +849,12 @@ export function playWheelClose() {
 
 export function playHoverSound() {
   if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
-  recordSoundDebugEvent('hover-playback', 'sound-engine:hover', { gain: 0.064, filterHz: 1450 });
-  playWheelClick(0.064, 1450);
+  recordSoundDebugEvent('hover-playback', 'sound-engine:hover', {
+    gain: 0.034,
+    filterHz: 3000,
+    character: 'quiet-wheel-detent',
+  });
+  playWheelClick(0.034, 3000);
 }
 
 export function playButtonPressSound() {
