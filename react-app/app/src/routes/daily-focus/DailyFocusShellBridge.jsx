@@ -15,7 +15,7 @@ import { isSimulationVisualTransitionSourceActive } from '../../lib/simulationVi
 
 let runtimeConfigPromise = null;
 let runtimeTextPromise = null;
-const DAILY_FOCUS_READY_TIMEOUT_MS = 3600;
+const DAILY_FOCUS_READY_TIMEOUT_MS = 12000;
 const DAILY_FOCUS_READY_POLL_MS = 50;
 const DAILY_FOCUS_BOOT_SELECTORS = ['#abs-scene', '#app-frame', '#simulation-stage'];
 
@@ -127,6 +127,18 @@ function waitForDailyFocusRuntimeReady(simulationId, options = {}) {
     const tick = () => {
       if (isDailyFocusRuntimeReady(simulationId)) {
         resolve(true);
+        return;
+      }
+      const moduleLoad = window.__ABS_DAILY_RUNTIME_LOAD__;
+      const runtime = getDailyFocusRuntimeElement(simulationId);
+      const runtimeLoadState = runtime?.dataset?.pointCloudLoadState
+        || runtime?.dataset?.beachBallRoomLoadState
+        || '';
+      if (
+        (moduleLoad?.simulationId === simulationId && moduleLoad.status === 'failed')
+        || runtimeLoadState === 'error'
+      ) {
+        resolve(false);
         return;
       }
       if ((performance.now() - startedAt) >= timeoutMs) {

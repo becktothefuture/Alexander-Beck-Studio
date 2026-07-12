@@ -155,6 +155,132 @@ function parsePointCloudBuffer(buffer) {
   return { positions, normals, seeds, groups, pointCount };
 }
 
+function startCanvas2dPointCloudFallback({
+  root,
+  backCanvas,
+  frontCanvas,
+  asset,
+  groupColors,
+  settings,
+  setError,
+}) {
+  const backContext = backCanvas.getContext('2d');
+  const frontContext = frontCanvas.getContext('2d');
+  if (!backContext || !frontContext) return undefined;
+
+  let cancelled = false;
+  let parsed = null;
+  let visualScale = 1;
+  let unregisterTransition = null;
+  let resizeObserver = null;
+
+  const resize = () => {
+    const rect = root.getBoundingClientRect();
+    const width = Math.max(1, Math.round(rect.width));
+    const height = Math.max(1, Math.round(rect.height));
+    [backCanvas, frontCanvas].forEach((canvas) => {
+      canvas.width = width;
+      canvas.height = height;
+    });
+  };
+
+  const draw = () => {
+    const width = backCanvas.width;
+    const height = backCanvas.height;
+    backContext.clearRect(0, 0, width, height);
+    frontContext.clearRect(0, 0, width, height);
+    if (!parsed || visualScale <= 0.001) return;
+
+    const visibleCount = getVisiblePointCount(parsed.pointCount, settings.pointDensity);
+    let maxExtent = 0.001;
+    for (let index = 0; index < visibleCount; index += 1) {
+      const offset = index * 3;
+      maxExtent = Math.max(maxExtent, Math.abs(parsed.positions[offset]), Math.abs(parsed.positions[offset + 1]));
+    }
+    const fit = (Math.min(width, height) * 0.38 * visualScale) / maxExtent;
+    const centerX = width / 2;
+    const centerY = (height / 2) + (width < 680 ? height * 0.025 : 0);
+    const radius = Math.max(1, Number(settings.dotSize) * 0.42 * visualScale);
+    const opacity = clamp(Number(settings.dotOpacity), 0.2, 1);
+
+    for (let index = 0; index < visibleCount; index += 1) {
+      const offset = index * 3;
+      const context = parsed.positions[offset + 2] > 0 ? frontContext : backContext;
+      const color = groupColors[Math.round(parsed.groups[index]) % groupColors.length] || groupColors[0];
+      context.fillStyle = `rgba(${Math.round(color[0] * 255)}, ${Math.round(color[1] * 255)}, ${Math.round(color[2] * 255)}, ${opacity})`;
+      context.beginPath();
+      context.arc(
+        centerX + (parsed.positions[offset] * fit),
+        centerY - (parsed.positions[offset + 1] * fit),
+        radius,
+        0,
+        Math.PI * 2,
+      );
+      context.fill();
+    }
+  };
+
+  const setVisualScale = (scale) => {
+    visualScale = clamp(Number(scale), 0, 1);
+    draw();
+  };
+  const transition = (direction, timings = {}) => new Promise((resolve) => {
+    const durationMs = Math.max(0, Number(timings.durationMs) || 0);
+    setVisualScale(direction === 'out' ? 0 : 1);
+    window.setTimeout(resolve, durationMs);
+  });
+
+  async function load() {
+    root.dataset.pointCloudLoadState = 'loading';
+    try {
+      const response = await fetch(withBasePath(`/models/napoleon-bust/${asset.file}`), { cache: 'force-cache' });
+      if (!response.ok) throw new Error(`Point asset request failed with ${response.status}`);
+      parsed = parsePointCloudBuffer(await response.arrayBuffer());
+      if (cancelled) return;
+      resize();
+      draw();
+      unregisterTransition = registerSimulationVisualTransition(NAPOLEON_POINT_CLOUD_TRANSITION_ID, {
+        setVisualScale,
+        transitionOut: (timings) => transition('out', timings),
+        transitionIn: (timings) => transition('in', timings),
+      });
+      root.dataset.pointCloudLoadState = 'ready';
+      root.dataset.pointCloudRenderer = 'canvas-2d';
+      setError('');
+      window.__ABS_NAPOLEON_POINT_CLOUD__ = {
+        getMetrics: () => ({
+          quality: 'canvas-2d-fallback',
+          loadState: 'ready',
+          pointCount: parsed.pointCount,
+          visiblePointCount: getVisiblePointCount(parsed.pointCount, settings.pointDensity),
+          renderedFrames: 1,
+          canvasWidth: frontCanvas.width,
+          canvasHeight: frontCanvas.height,
+        }),
+        renderOnce: draw,
+      };
+    } catch (loadError) {
+      if (cancelled) return;
+      root.dataset.pointCloudLoadState = 'error';
+      setError(loadError?.message || 'Point asset failed to load');
+    }
+  }
+
+  resizeObserver = new ResizeObserver(() => {
+    resize();
+    draw();
+  });
+  resizeObserver.observe(root);
+  void load();
+
+  return () => {
+    cancelled = true;
+    resizeObserver?.disconnect();
+    unregisterTransition?.();
+    delete window.__ABS_NAPOLEON_POINT_CLOUD__;
+  };
+}
+
 function makePointMaterial(depthLayer) {
   return new THREE.ShaderMaterial({
     transparent: true,
@@ -444,9 +570,15 @@ export function NapoleonPointCloud({
     } catch {
       backRenderer?.dispose();
       frontRenderer?.dispose();
-      root.dataset.pointCloudLoadState = 'error';
-      setError('WebGL is unavailable, so Bust Cloud cannot render in this browser.');
-      return undefined;
+      return startCanvas2dPointCloudFallback({
+        root,
+        backCanvas,
+        frontCanvas,
+        asset,
+        groupColors,
+        settings: settingsRef.current,
+        setError,
+      });
     }
     backRenderer.setClearColor(0x000000, 0);
     frontRenderer.setClearColor(0x000000, 0);

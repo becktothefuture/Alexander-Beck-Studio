@@ -31,7 +31,7 @@ import { preloadDailyFocusRuntime } from '../../routes/daily-focus/dailyFocusRun
 const FOCUS_MODAL_ID = 'simulation-focus-modal';
 const CHOOSER_TITLE_ID = 'simulation-focus-modal-title';
 const SIMULATION_FOCUS_READY_FALLBACK_MS = 850;
-const ROUTE_BACKED_SIMULATION_READY_FALLBACK_MS = 4200;
+const ROUTE_BACKED_SIMULATION_READY_FALLBACK_MS = 13000;
 const DAILY_FOCUS_SIMULATIONS = Object.freeze(getDailyFocusSimulations());
 const DAILY_FOCUS_ID_SET = new Set(DAILY_FOCUS_SIMULATIONS.map((entry) => entry.id));
 
