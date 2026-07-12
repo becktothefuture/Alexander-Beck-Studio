@@ -2627,6 +2627,13 @@ body.dark-mode .ui-main-nav .footer_link {
   pointer-events: none;
 }
 
+@media (min-width: 769px) {
+  .ui-meta-row {
+    width: auto;
+    padding: 0 16px;
+  }
+}
+
 .ui-meta-left, .ui-meta-right {
   pointer-events: auto;
 }
