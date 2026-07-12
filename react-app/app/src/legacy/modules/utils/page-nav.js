@@ -70,13 +70,6 @@ if (typeof window !== 'undefined') {
         }
       });
       
-      // Also reveal route nav buttons
-      document.querySelectorAll('.ui-main-nav .footer_link').forEach(btn => {
-        btn.style.removeProperty('opacity');
-        btn.style.removeProperty('transform');
-        btn.style.removeProperty('filter');
-      });
-
       // Clear inline hero title line state if any prior transition wrote temporary values.
       document.querySelectorAll(
         '.hero-title__name, .hero-title__role, .hero-title__line, .hero-title__eyebrow'
@@ -110,9 +103,7 @@ function closeOverlaysBeforeNavigation({ preserveBackdrop = false } = {}) {
   const preserveTransitionPhase = preserveBackdrop || isShellRouteTransitionCompatActive();
 
   // Close modals
-  const modals = document.querySelectorAll(
-    '.modal.active, [data-modal].active, #contact-modal:not(.hidden), #cv-modal:not(.hidden), #portfolio-modal:not(.hidden)'
-  );
+  const modals = document.querySelectorAll('.modal.active, [data-modal].active');
   modals.forEach(modal => {
     modal.classList.remove('active');
     modal.classList.remove('closing');
@@ -142,13 +133,6 @@ function closeOverlaysBeforeNavigation({ preserveBackdrop = false } = {}) {
     });
   }
 
-  document.querySelectorAll('#modal-modal-host > .contact-modal, #modal-modal-host > .cv-modal, #modal-modal-host > .portfolio-modal').forEach((modal) => {
-    modal.classList.remove('active', 'closing');
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true');
-    modal.dataset.modalState = 'hidden';
-  });
-  
   // Close settings/master panel if open
   const panel = document.getElementById('master-panel');
   if (panel?.classList.contains('open')) {
@@ -182,9 +166,6 @@ function closeOverlaysBeforeNavigation({ preserveBackdrop = false } = {}) {
 // Navigation state types
 export const NAV_STATES = {
   INTERNAL: 'internal',                 // General internal navigation
-  OPEN_CV_MODAL: 'open_cv',             // Open CV modal on arrival
-  OPEN_PORTFOLIO_MODAL: 'open_portfolio', // Open Portfolio modal on arrival
-  OPEN_CONTACT_MODAL: 'open_contact',   // Open Contact modal on arrival
 };
 
 // ============================================================================
@@ -227,7 +208,6 @@ export function setNavigationState(state = NAV_STATES.INTERNAL) {
 /**
  * Get and consume the navigation state.
  * Returns null if no state or expired. Clears state after reading.
- * Also clears legacy flags for backwards compatibility.
  * @returns {string|null} Navigation state or null
  */
 export function getNavigationState() {
@@ -239,13 +219,6 @@ export function getNavigationState() {
     // Clear after reading (one-time use)
     sessionStorage.removeItem(NAV_STATE_KEY);
     sessionStorage.removeItem(NAV_TIMESTAMP_KEY);
-    
-    // Also clear legacy flags for clean migration
-    sessionStorage.removeItem('abs_open_cv_modal');
-    sessionStorage.removeItem('abs_open_cv_gate');
-    sessionStorage.removeItem('abs_open_portfolio_modal');
-    sessionStorage.removeItem('abs_open_contact_modal');
-    sessionStorage.removeItem('abs_internal_nav');
     
     if (state && isRecent) return state;
   } catch (e) {
@@ -308,23 +281,6 @@ export function shouldSkipWallAnimation() {
   const navState = getNavigationState();
   // Also check browser back/forward and hard reload/refresh
   return navState !== null || isBackForwardNavigation() || isReloadNavigation();
-}
-
-/**
- * Get which modal should auto-open on page load.
- * Must be called BEFORE shouldSkipWallAnimation() since that consumes the state.
- * @returns {string|null} 'cv', 'portfolio', 'contact', or null
- */
-export function getModalToAutoOpen() {
-  try {
-    const state = sessionStorage.getItem(NAV_STATE_KEY);
-    if (state === NAV_STATES.OPEN_CV_MODAL) return 'cv';
-    if (state === NAV_STATES.OPEN_PORTFOLIO_MODAL) return 'portfolio';
-    if (state === NAV_STATES.OPEN_CONTACT_MODAL) return 'contact';
-  } catch (e) {
-    // Storage unavailable
-  }
-  return null;
 }
 
 /**

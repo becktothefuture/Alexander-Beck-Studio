@@ -54,11 +54,11 @@ jobs:
       - name: Lint React app
         run: npm run lint --prefix react-app/app
 
-      - name: Validate HTML fragments
-        run: npm run validate:html-fragments
-
       - name: Validate simulation catalog
         run: npm run sim:validate
+
+      - name: Validate production HTML entries
+        run: npm run validate:html-entries
 
       - name: Check generated config parity
         run: npm run check:design-config

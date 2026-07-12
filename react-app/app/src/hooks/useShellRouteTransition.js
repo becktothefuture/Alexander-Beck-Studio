@@ -4,6 +4,7 @@ import { buildRouteHref, getRouteById, resolveRouteFromHref, resolveRouteFromPat
 import { installSpaNavigationBridge } from '../lib/spa-navigation.js';
 import { normalizeSimulationId, writeManualSimulationFocus } from '../data/simulationCatalog.js';
 import { clearStableTimeout, setStableTimeout } from '../lib/legacy-runtime-scope.js';
+import { getActiveLegacyRuntimeSnapshot } from './useLegacyRouteRuntime.js';
 import {
   isSimulationVisualTransitionSourceActive,
   recordSimulationVisualTransitionEvent,
@@ -97,39 +98,6 @@ function consumeStaleRouteRequests(url) {
     if (gate === 'portfolio') {
       url.searchParams.delete('gate');
       return `${getRouteById('portfolio').path}${url.search}${url.hash}`;
-    }
-    if (gate === 'cv') {
-      url.searchParams.delete('gate');
-      return `${getRouteById('about').path}${url.search}${url.hash}`;
-    }
-
-    const isAboutAlias = resolveRouteFromPathname(url.pathname).id === 'about';
-    if (isAboutAlias) {
-      ['cv', 'cvCode', 'access'].forEach((key) => url.searchParams.delete(key));
-      if (url.pathname !== getRouteById('about').path || url.searchParams.has('gate')) {
-        url.searchParams.delete('gate');
-        return `${getRouteById('about').path}${url.search}${url.hash}`;
-      }
-    }
-  } catch {
-    return null;
-  }
-
-  try {
-    const routeRequestKeys = [
-      ['abs_open_contact_modal', 'contact'],
-      ['abs_open_cv_gate', 'about'],
-      ['abs_open_cv_modal', 'about'],
-      ['abs_open_portfolio_modal', 'portfolio'],
-      ['abs_open_portfolio_gate', 'portfolio'],
-    ];
-    const requested = routeRequestKeys.find(([key]) => {
-      if (!window.sessionStorage.getItem(key)) return false;
-      window.sessionStorage.removeItem(key);
-      return true;
-    });
-    if (requested) {
-      return getRouteById(requested[1]).path;
     }
   } catch {
     return null;
@@ -563,19 +531,11 @@ function cancelActiveAnimations() {
   activeAnimations = [];
 }
 
-function isShellManagedRouteNavButton(el) {
-  return Boolean(el?.matches?.('.ui-main-nav .footer_link'));
-}
-
 function commitStaggerStyles(routeId, surfaceRefs) {
   getGroupedTransitionItems(routeId, surfaceRefs).forEach(({ el }) => {
     el.style.opacity = '1';
     el.style.transform = '';
     el.style.filter = '';
-    if (isShellManagedRouteNavButton(el)) {
-      el.style.transition = '';
-      el.style.transitionDelay = '';
-    }
     el.style.willChange = 'auto';
   });
   getRouteEnterTargets(surfaceRefs).forEach(({ el }) => {
@@ -997,10 +957,16 @@ function isRouteBaselineReady(routeId, options = {}) {
 
   if (routeId === 'home') {
     const isHomeRoute = !body.classList.contains('portfolio-page') && !body.classList.contains('cv-page');
+    const root = document.documentElement;
     const hero = document.getElementById('hero-title');
     const routeTabs = document.querySelectorAll('[data-route-tab]');
     const bootOverlay = document.getElementById('abs-boot-overlay');
     const bootState = document.documentElement.dataset.absBootState || '';
+    const runtime = getActiveLegacyRuntimeSnapshot();
+    const semanticTitleReady = Boolean(
+      hero?.querySelector('.hero-title__name')?.textContent?.trim()
+      && hero?.querySelector('.hero-title__role')?.textContent?.trim()
+    );
     return Boolean(
       isHomeRoute
       && hero
@@ -1008,6 +974,10 @@ function isRouteBaselineReady(routeId, options = {}) {
       && hasCanvasBufferReady()
       && !bootOverlay
       && bootState !== 'booting'
+      && runtime.routeId === 'home'
+      && runtime.status === 'ready'
+      && root.dataset.absHomeRouteReady === 'true'
+      && (root.dataset.absHomeCanvasTitleReady === 'true' || semanticTitleReady)
     );
   }
 
@@ -1062,7 +1032,6 @@ function waitForRouteReady(routeId, timeoutMs, options = {}) {
     let settled = false;
     let pollId = 0;
     let timeoutId = 0;
-    let readyEventSeen = false;
     let previousSnapshot = null;
     let stableReadyFrames = 0;
     const POLL_MS = 16;
@@ -1103,7 +1072,9 @@ function waitForRouteReady(routeId, timeoutMs, options = {}) {
     };
     const onReady = (e) => {
       if ((e?.detail?.routeId || '') !== routeId) return;
-      readyEventSeen = true;
+      const eventGeneration = Number(e?.detail?.generation || 0);
+      const currentGeneration = getActiveLegacyRuntimeSnapshot().generation;
+      if (eventGeneration && eventGeneration !== currentGeneration) return;
       maybeSettleReady();
     };
     window.addEventListener('abs:route-ready', onReady);
@@ -1115,12 +1086,7 @@ function waitForRouteReady(routeId, timeoutMs, options = {}) {
 
     const tick = () => {
       if (settled) return;
-      if (readyEventSeen && maybeSettleReady()) {
-        return;
-      }
-      if (!readyEventSeen && maybeSettleReady()) {
-        return;
-      }
+      if (maybeSettleReady()) return;
       pollId = setStableTimeout(tick, POLL_MS);
     };
     pollId = setStableTimeout(tick, POLL_MS);
@@ -1163,10 +1129,6 @@ function staggeredEntrance({
 
     // Hide every owned transition target before making it visible.
     targets.forEach(({ el }) => {
-      if (isShellManagedRouteNavButton(el)) {
-        el.style.transition = 'none';
-        el.style.transitionDelay = '0ms';
-      }
       el.style.opacity = '0';
       el.style.willChange = 'opacity, transform';
     });
@@ -1222,10 +1184,6 @@ function staggeredEntrance({
             el.style.opacity = '1';
             el.style.transform = '';
             el.style.filter = '';
-            if (isShellManagedRouteNavButton(el)) {
-              el.style.transition = '';
-              el.style.transitionDelay = '';
-            }
             el.style.willChange = 'auto';
           };
           anim.oncancel = anim.onfinish;

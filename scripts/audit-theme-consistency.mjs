@@ -12,10 +12,11 @@ const browserName = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
 const browserType = browserName === 'webkit' ? webkit : chromium;
 const shouldStartDevServer = !process.env.ABS_DEV_URL;
 const waitMs = Number(process.env.ABS_THEME_WAIT_MS || 30000);
+const viewportFilter = String(process.env.ABS_THEME_VIEWPORT || '').trim().toLowerCase();
 const viewports = [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'mobile', width: 390, height: 844 },
-];
+].filter((viewport) => !viewportFilter || viewport.name === viewportFilter);
 const routeSteps = [
   { id: 'about', path: '/about.html' },
   { id: 'contact', path: '/contact.html' },
@@ -142,6 +143,9 @@ async function waitForTheme(page, expectedTheme) {
 
 async function assertTheme(page, expectedTheme, label) {
   await waitForTheme(page, expectedTheme);
+  // The boot overlay can clear one task before the async shell config reapplies
+  // browser harmony. Give that projection a stable frame before comparing tabs.
+  await page.waitForTimeout(180);
   const state = await readThemeState(page);
   const expectedDark = expectedTheme === 'dark';
   assert(state.rootTheme === expectedTheme, `${label}: root theme drifted`, state);
@@ -157,6 +161,15 @@ async function assertTheme(page, expectedTheme, label) {
 
 function assertFrameMatches(state, expectedFrame, label) {
   assert(state.browserChrome === expectedFrame, `${label}: browser-frame palette changed across routes`, state);
+}
+
+async function waitForFrame(page, expectedFrame, label) {
+  await page.waitForFunction((expected) => (
+    getComputedStyle(document.documentElement).getPropertyValue('--abs-browser-chrome').trim() === expected
+  ), expectedFrame, { timeout: waitMs });
+  const state = await readThemeState(page);
+  assertFrameMatches(state, expectedFrame, label);
+  return state;
 }
 
 async function setStoredPreference(context, preference) {
@@ -255,15 +268,15 @@ async function auditManualAndTabs(browser, viewport) {
       assertTheme(firstPage, 'dark', `${viewport.name}/tab-one-dark`),
       assertTheme(secondPage, 'dark', `${viewport.name}/tab-two-storage-sync-dark`),
     ]);
-    const darkFrame = darkFirstTabState.browserChrome;
-    assertFrameMatches(darkSecondTabState, darkFrame, `${viewport.name}/tab-two-storage-sync-dark`);
+    assertFrameMatches(darkFirstTabState, lightFrame, `${viewport.name}/tab-one-dark`);
+    assertFrameMatches(darkSecondTabState, lightFrame, `${viewport.name}/tab-two-storage-sync-dark`);
     assert((await readThemeState(secondPage)).storedPreference === 'dark', `${viewport.name}: dark preference did not sync`);
 
     for (const step of routeSteps) {
-      await navigateByTab(firstPage, step, 'dark', darkFrame, viewport.name);
+      await navigateByTab(firstPage, step, 'dark', lightFrame, viewport.name);
     }
     for (const step of auxiliaryRouteSteps) {
-      await navigateDirect(firstPage, step, 'dark', darkFrame, viewport.name);
+      await navigateDirect(firstPage, step, 'dark', lightFrame, viewport.name);
     }
 
     await activateThemeToggle(secondPage, 'Switch to light mode');
@@ -293,18 +306,26 @@ async function auditAutomaticPreference(browser, viewport) {
 
   try {
     await page.goto(url('/'), { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await assertTheme(page, 'dark', `${viewport.name}/auto-system-dark`);
+    const autoDarkState = await assertTheme(page, 'dark', `${viewport.name}/auto-system-dark`);
+    const browserDarkFrame = autoDarkState.browserChrome;
 
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
-    await assertTheme(page, 'light', `${viewport.name}/auto-system-light`);
+    const autoLightState = await assertTheme(page, 'light', `${viewport.name}/auto-system-light`);
+    const browserLightFrame = autoLightState.browserChrome;
+    assert(browserLightFrame !== browserDarkFrame, `${viewport.name}: browser scheme did not change outer harmony`, {
+      browserDarkFrame,
+      browserLightFrame,
+    });
 
     await activateThemeToggle(page, 'Switch to dark mode');
-    await assertTheme(page, 'dark', `${viewport.name}/manual-dark-after-auto`);
+    const manualDarkOnLightBrowser = await assertTheme(page, 'dark', `${viewport.name}/manual-dark-after-auto`);
+    assertFrameMatches(manualDarkOnLightBrowser, browserLightFrame, `${viewport.name}/manual-dark-after-auto`);
 
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await waitForFrame(page, browserDarkFrame, `${viewport.name}/manual-dark-browser-dark`);
     await assertTheme(page, 'dark', `${viewport.name}/manual-stays-dark-on-system-dark`);
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
-    await delay(150);
+    await waitForFrame(page, browserLightFrame, `${viewport.name}/manual-dark-browser-light`);
     const state = await assertTheme(page, 'dark', `${viewport.name}/manual-ignores-system-change`);
     assert(state.storedPreference === 'dark', `${viewport.name}: manual override was not persisted`, state);
   } finally {

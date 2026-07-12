@@ -1,29 +1,12 @@
-# Custom cursor — behaviour contract
+# Custom cursor
 
-## Two cursors (do not merge)
+The custom cursor has two current forms:
 
-| Cursor | Where | Look & size | DOM |
-|--------|--------|-------------|-----|
-| **Home dot** | Home route inner wall, plus the portfolio inner wall/deck background when the detail view is closed, gate overlay **closed** | Solid `var(--cursor-color)`. Diameter ≈ **0.88 × on-screen ball diameter** (canvas `R_MIN`/`R_MAX` mapped through canvas CSS width). Clamped ~11–53px. | `#custom-cursor` **without** `.abs-cursor-tap` / `.modal-active`. Parent: `#simulations`, `position: absolute`, low z-index (under chrome). |
-| **Portfolio project hover** | Portfolio deck cards while the detail view is closed | Same `#custom-cursor` as the home dot, enlarged into a solid cursor-colour ball with centered `View project` text using `--cursor-hover-fg` for contrast. The card itself does not render an inline “View project” label. | `#custom-cursor.abs-cursor-project-hover`, parent stays `#simulations`, z-index elevated above the deck. |
-| **Tap ring** | **Inner wall** only for portfolio detail view / CV / index modal states, **and** while gate overlay is open | Same visual as the old “modal” cursor: **64px** translucent disc + rim (`main.css`: `#custom-cursor.abs-cursor-tap` and `#custom-cursor.modal-active`). | Parent: `document.body`, `position: fixed`, z-index **19990** (tap) or **20000** (modal). Class **`abs-cursor-tap`**; overlay code still adds **`modal-active`**. |
+- solid palette dot: Home inner wall and Portfolio deck/background while project detail is closed;
+- 64px tap ring: Portfolio detail, About Me, Contact, Portfolio gate, and modal/focus states.
 
-**Rule:** Portfolio route uses the **home dot** in the pit by default. Only the **portfolio detail view** switches to the 64px tap ring.
+There is no separate project-hover cursor family.
 
-**Rule:** Portfolio must **not** size the tap ring from pit `R_MAX` (that produced a huge disc). Tap ring is always **64px** CSS.
+The cursor is fixed to `body` so overlays cannot bury it. Home dot size is derived from the canvas ball mapping; Portfolio should match that perceptual diameter without depending on obsolete project bodies. Perfect cursor circles are excluded from squircle styling.
 
-**Rule:** Tap ring must stay **visible above** the UI layer (`body` + fixed), not only under `#simulations`.
-
-## Implementation
-
-- `react-app/app/src/legacy/modules/rendering/cursor.js` — `isHomeIndexRoute()`, `isMouseInSimulation()` (inner wall), project-card hover hit testing, `applyHomeDotMount`, `applyTapRingMount`, `updateCursorPosition`.
-- `react-app/app/public/css/main.css` — `#custom-cursor.abs-cursor-tap`, `#custom-cursor.modal-active` (shared block).
-- `react-app/app/public/css/portfolio.css` — `#custom-cursor.abs-cursor-project-hover` and the centered cursor label.
-- `react-app/app/src/legacy/modules/ui/modal-overlay.js` — adds/removes `.modal-active` on `#custom-cursor` when gate opens/closes.
-
-## Verification
-
-1. **Home** — Inner wall: small solid dot. Outside inner wall (footer, frame strip, chrome): **default** system cursor.
-2. **Portfolio** — Inner wall/deck background: home dot until the project detail view opens. While the detail view is open: 64px tap ring. Top bar / chrome outside inset: default cursor.
-3. **Gate open** — Tap ring, z above modal stack.
-4. **SPA** — Home ↔ portfolio: no invisible cursor; opacity starts at 1.
+Pointer handling must preserve mouse, pen, touch, keyboard focus, reduced motion, and route teardown. Never add nested rings or thin field/helper lines to simulation visuals.

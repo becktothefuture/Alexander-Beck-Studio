@@ -144,7 +144,7 @@ export function StyleguideTypographySection() {
         Semantic styles (production classes)
       </h3>
       <p className="styleguide-section__hint">
-        Below: the same selectors / variables used on home, portfolio, CV, and modals. Portfolio hero lines sit on a dark slab so white type is visible.
+        Below: the same selectors and variables used on Home, Portfolio, About, Contact, and the Portfolio gate.
       </p>
 
       <ul className="styleguide-type-roles">
@@ -173,7 +173,7 @@ export function StyleguideTypographySection() {
 
         <li className="styleguide-type-role">
           <div className="styleguide-type-role__label">
-            <code className="styleguide-doc__code">.ui-main-nav .footer_link</code> · primary buttons (production nav scale)
+            <code className="styleguide-doc__code">.button-bar__label</code> · primary route labels
           </div>
           <div className="styleguide-type-role__sample">
             <span className="styleguide-type-sample styleguide-type-sample--main-nav">About Me</span>
@@ -249,8 +249,8 @@ export function StyleguideTypographySection() {
 
         <li className="styleguide-type-role">
           <div className="styleguide-type-role__label">
-            Gate modals · <code className="styleguide-doc__code">.modal-title</code> /{' '}
-            <code className="styleguide-doc__code">.modal-description</code> (supporting description copy)
+            Portfolio gate · <code className="styleguide-doc__code">.modal-title</code> /{' '}
+            <code className="styleguide-doc__code">.modal-description</code>
           </div>
           <div className="styleguide-type-role__sample">
             <div className="styleguide-type-gate-block">
@@ -282,17 +282,12 @@ export function StyleguideTypographySection() {
 
         <li className="styleguide-type-role">
           <div className="styleguide-type-role__label">
-            CV route · <code className="styleguide-doc__code">.cv-section-title</code>,{' '}
-            <code className="styleguide-doc__code">.cv-entry-title</code>, body
+            Centered route · <code className="styleguide-doc__code">[data-route-content]</code>
           </div>
           <div className="styleguide-type-role__sample">
-            <div className="styleguide-type-cv-block">
-              <div className="styleguide-type-sample styleguide-type-sample--cv-section">Experience</div>
-              <div className="styleguide-type-sample styleguide-type-sample--cv-entry">Senior designer</div>
-              <p className="styleguide-type-sample styleguide-type-sample--cv-meta">2020 — Present · Berlin</p>
-              <p className="styleguide-type-sample styleguide-type-sample--cv-body">
-                Paragraph text mirrors the live CV route body scale and relaxed reading rhythm.
-              </p>
+            <div className="styleguide-type-centered-route">
+              <div className="styleguide-type-sample styleguide-type-sample--gate-title">About Me</div>
+              <p className="styleguide-type-sample styleguide-type-sample--gate-desc">Coming soon.</p>
             </div>
           </div>
         </li>

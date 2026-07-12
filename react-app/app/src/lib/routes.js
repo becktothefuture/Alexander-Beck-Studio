@@ -22,7 +22,7 @@ const ROUTE_DEFS = {
   about: {
     id: 'about',
     path: '/about.html',
-    aliases: ['/about.html', '/about', '/cv.html', '/cv'],
+    aliases: ['/about.html', '/about'],
     gated: false,
   },
   styleguide: {
@@ -134,8 +134,8 @@ export const SHELL_ROUTE_TABS = Object.freeze([
   {
     routeId: 'about',
     href: '/about.html',
-    label: 'About me',
-    ariaLabel: 'About me',
+    label: 'About Me',
+    ariaLabel: 'About Me',
     icon: 'ti-user',
     iconOnly: false,
   },

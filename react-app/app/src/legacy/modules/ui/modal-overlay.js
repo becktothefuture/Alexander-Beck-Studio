@@ -360,10 +360,7 @@ function handleOverlayClick(e) {
     if (target.closest('textarea')) return;
     
     // Accept clicks on content layer, modal host, or modal containers (but not their interactive children)
-    const isGateContainer = target.id === 'cv-modal' || 
-                           target.id === 'portfolio-modal' || 
-                           target.id === 'contact-modal' ||
-                           target.id === 'simulation-focus-modal' ||
+    const isGateContainer = target.id === 'simulation-focus-modal' ||
                            target.classList.contains('simulation-focus-modal') ||
                            target.classList.contains('modal-label') ||
                            target.classList.contains('modal-description');

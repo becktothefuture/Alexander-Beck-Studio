@@ -144,15 +144,15 @@ function applyDarkModeToDOM(isDark) {
   
   applyThemeState(isDark, { container: globals.container });
 
-  syncShellToDocument({ isDark });
   applyLayoutCSSVars();
 
   // Establish the authored palette before adapting frame chrome.
   applyColorTemplate(globals.currentTemplate);
+  syncShellToDocument({ isDark });
 
   // 1) If the browser ignores theme-color (desktop Chrome tabs), adapt the frame to match the browser UI.
   // 2) Then update meta theme-color from the (possibly updated) CSS vars.
-  applyChromeHarmony(isDark);
+  applyChromeHarmony();
   updateThemeColor(isDark);
   
   // Sync chrome color for rubbery walls
@@ -317,6 +317,9 @@ export function initializeDarkMode() {
       // If in auto mode, update
       if (currentTheme === 'auto' && resolveShouldBeDark('auto') !== isRenderedDarkMode()) {
         applyTheme('auto', { persist: false });
+      } else {
+        applyChromeHarmony();
+        updateThemeColor(isRenderedDarkMode());
       }
     });
   }

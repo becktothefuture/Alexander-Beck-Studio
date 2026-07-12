@@ -9,10 +9,6 @@ const GATE_REQUEST_KEYS = {
   portfolio: 'abs_open_portfolio_gate'
 };
 
-const LEGACY_GATE_REQUEST_KEYS = {
-  portfolio: ['abs_open_portfolio_modal']
-};
-
 const GATE_PAGE_PATHS = {
   portfolio: '/portfolio.html'
 };
@@ -102,8 +98,7 @@ function writeAccessCookie(name) {
 
 function getRequestKeys(gateId) {
   const currentKey = GATE_REQUEST_KEYS[gateId];
-  const legacyKeys = LEGACY_GATE_REQUEST_KEYS[gateId] || [];
-  return [currentKey, ...legacyKeys].filter(Boolean);
+  return [currentKey].filter(Boolean);
 }
 
 export function hasGateAccess(gateId) {
@@ -195,7 +190,7 @@ export function redirectToGateHome(gateId) {
 }
 
 export function navigateToGatePage(gateId, { allowDevAccess = false } = {}) {
-  const destinationPath = gateId === 'cv' ? '/about.html' : GATE_PAGE_PATHS[gateId];
+  const destinationPath = GATE_PAGE_PATHS[gateId];
   if (!destinationPath) return;
 
   if (allowDevAccess && import.meta.env.DEV) {
@@ -211,14 +206,6 @@ export function navigateToGatePage(gateId, { allowDevAccess = false } = {}) {
 
 export function navigateToHome(options = {}) {
   const destination = new URL(withBasePath(options.openContact ? '/contact.html' : '/'), window.location.origin);
-
-  if (options.openContact) {
-    try {
-      window.sessionStorage.removeItem('abs_open_contact_modal');
-    } catch {
-      // Storage can be unavailable in hardened/private browser modes.
-    }
-  }
 
   if (trySpaNavigate(destination.toString())) {
     return;

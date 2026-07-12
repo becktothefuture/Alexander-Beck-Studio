@@ -143,12 +143,6 @@ async function readRouteState(page) {
           middle: footerStyleOf('#edge-caption'),
         },
       },
-      sessionFlags: {
-        contact: sessionStorage.getItem('abs_open_contact_modal'),
-        cvGate: sessionStorage.getItem('abs_open_cv_gate'),
-        cvModal: sessionStorage.getItem('abs_open_cv_modal'),
-        portfolio: sessionStorage.getItem('abs_open_portfolio_modal'),
-      },
     };
   });
 }
@@ -187,22 +181,6 @@ async function openAndAssert(
     );
   }
   assert(predicate(state), `Route assertion failed for ${path}`, state);
-  await page.close();
-  return state;
-}
-
-async function assertStaleFlag(browser, flag, expectedPath, expectedRoute, predicate) {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-  await page.addInitScript((flagName) => {
-    sessionStorage.setItem(flagName, '1');
-  }, flag);
-  await page.goto(routeUrl('/index.html'), { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await waitForIdle(page);
-  const state = await readRouteState(page);
-  assert(state.path === expectedPath, `Stale flag ${flag} resolved to wrong path`, state);
-  assertShellTabs(state, expectedRoute);
-  assert(Object.values(state.sessionFlags).every((value) => value === null), `Stale flag ${flag} was not consumed`, state);
-  assert(predicate(state), `Stale flag ${flag} route assertion failed`, state);
   await page.close();
   return state;
 }
@@ -308,16 +286,6 @@ async function main() {
       assert(states.home.footer.middle && states.contact.footer.middle && states.about.footer.middle, `Standard footer middle caption is missing on ${viewport.name}`, states);
       assert(states.portfolio.footer.middle === null, `Portfolio footer unexpectedly renders the middle caption on ${viewport.name}`, states.portfolio);
     }
-    results.aliases = [
-      await openAndAssert(browser, '/cv.html?cv=482916', 'about', (state) => state.path === '/about.html' && state.search === '' && state.aboutRoute),
-      await openAndAssert(browser, '/index.html?gate=cv', 'about', (state) => state.path === '/about.html' && state.search === '' && state.aboutRoute),
-    ];
-    results.staleFlags = [
-      await assertStaleFlag(browser, 'abs_open_contact_modal', '/contact.html', 'contact', (state) => state.contactRoute),
-      await assertStaleFlag(browser, 'abs_open_cv_gate', '/about.html', 'about', (state) => state.aboutRoute),
-      await assertStaleFlag(browser, 'abs_open_cv_modal', '/about.html', 'about', (state) => state.aboutRoute),
-      await assertStaleFlag(browser, 'abs_open_portfolio_modal', '/portfolio.html', 'portfolio', (state) => state.portfolioGate),
-    ];
     results.simulationChooser = await assertSimulationChooser(browser);
   } finally {
     await browser.close();

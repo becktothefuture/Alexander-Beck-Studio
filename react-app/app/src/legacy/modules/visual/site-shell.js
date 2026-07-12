@@ -290,6 +290,7 @@ export function applyFrameChromePalette({ light, dark, active }) {
   const nextLight = light || active || getDefaultFrameColor();
   const nextDark = dark || active || nextLight;
   const nextActive = active || nextDark || nextLight;
+  const outerInk = resolveOuterShellInk(nextActive);
 
   root.style.setProperty('--abs-browser-chrome', nextActive);
   root.style.setProperty('--frame-color-light', nextLight);
@@ -301,6 +302,8 @@ export function applyFrameChromePalette({ light, dark, active }) {
   root.style.setProperty('--chrome-bg-light', nextLight);
   root.style.setProperty('--chrome-bg-dark', nextDark);
   root.style.setProperty('--chrome-bg', nextActive);
+  root.style.setProperty('--button-bar-outer-ink', outerInk.primary);
+  root.style.setProperty('--button-bar-outer-ink-muted', outerInk.muted);
 }
 
 function colorToRgbString(color, fallback = '0, 0, 0') {
@@ -326,6 +329,18 @@ function colorToRgbString(color, fallback = '0, 0, 0') {
   return fallback;
 }
 
+function resolveOuterShellInk(color) {
+  const rgb = colorToRgbString(color, '').split(',').map((part) => Number(part.trim()));
+  const hasRgb = rgb.length === 3 && rgb.every(Number.isFinite);
+  const isLight = hasRgb
+    ? ((rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722) >= 150)
+    : !window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+
+  return isLight
+    ? { primary: 'rgba(0, 0, 0, 0.82)', muted: 'rgba(0, 0, 0, 0.62)' }
+    : { primary: 'rgba(255, 255, 255, 0.88)', muted: 'rgba(255, 255, 255, 0.64)' };
+}
+
 function numberInRange(value, min, max, fallback) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return fallback;
@@ -341,6 +356,25 @@ export function applyShellPalette({ light, dark, active }) {
   root.style.setProperty('--abs-wall-base-light', nextLight);
   root.style.setProperty('--abs-wall-base-dark', nextDark);
   root.style.setProperty('--abs-wall-base', nextActive);
+}
+
+export function resolveWindowPalette(isDark = isDarkThemeDocument()) {
+  const globals = getGlobals();
+  const light = readCssVar('--bg-light') || globals?.bgLight || '#f5f5f5';
+  const dark = readCssVar('--bg-dark') || globals?.bgDark || '#141414';
+  return { light, dark, active: isDark ? dark : light };
+}
+
+export function applyWindowPalette({ light, dark, active }) {
+  const root = document.documentElement;
+  const nextLight = light || active || '#f5f5f5';
+  const nextDark = dark || active || '#141414';
+  const nextActive = active || nextLight;
+
+  root.style.setProperty('--studio-window-bg-light', nextLight);
+  root.style.setProperty('--studio-window-bg-dark', nextDark);
+  root.style.setProperty('--studio-window-bg', nextActive);
+  root.style.setProperty('--frame-inner-surface', 'var(--studio-window-bg)');
   root.style.setProperty('--simulation-contrast-veil-rgb', colorToRgbString(nextActive));
 }
 
@@ -572,11 +606,10 @@ export function syncShellToDocument(options = {}) {
 
   applyShellLayoutVars(config);
   applyShellPalette(innerPalette);
+  applyWindowPalette(resolveWindowPalette(isDark));
   applyShellSurfaceVars(config, isDark);
   const siteFramePalette = resolveSiteFramePalette(isDark);
   applySiteFramePalette(siteFramePalette);
-  applyFrameChromePalette(siteFramePalette);
-  syncThemeColorMeta();
 
   return innerPalette;
 }

@@ -1,4 +1,4 @@
-import { resolvePortfolioLabelContent } from './pit-mode.js';
+import { resolvePortfolioLabelContent } from './portfolio-content.js';
 import { createScrollPresence } from '../utils/scroll-presence.js';
 
 function clamp(value, min, max) {

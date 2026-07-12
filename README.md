@@ -1,123 +1,74 @@
-<div align="center">
-  <h1>Alexander Beck Studio Website</h1>
-  <p><strong>A simulation-led studio experience: React + Vite shell, preserved Canvas 2D runtime, performance-first physics.</strong></p>
-  <p>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-a3e635" alt="MIT License"></a>
-    <img src="https://img.shields.io/badge/narrative%20modes-24-2563eb" alt="24 narrative modes">
-    <img src="https://img.shields.io/badge/performance-60fps%20target-22c55e" alt="60fps Target">
-    <img src="https://img.shields.io/badge/privacy-local--first-0ea5e9" alt="Local-first Privacy">
-    <img src="https://img.shields.io/badge/runtime-React%20%2B%20legacy%20JS-61dafb?logo=react&logoColor=111827" alt="React plus legacy JS">
-    <img src="https://img.shields.io/badge/rendering-Canvas%202D-111827" alt="Canvas 2D">
-    <img src="https://img.shields.io/badge/bundler-Vite-646cff?logo=vite&logoColor=white" alt="Vite">
-  </p>
-</div>
+# Alexander Beck Studio
 
-<p align="center">
-  <img src="docs/assets/github/readme-showcase.png" alt="Desktop and mobile showcase of the Alexander Beck Studio Website">
-</p>
+An interactive portfolio built as a React/Vite shell around a live Canvas 2D simulation runtime.
 
-## Overview
-This project powers an interactive homepage where motion, physics, and narrative mode transitions are part of the brand experience.
-
-- 24 narrative simulation modes across gravity, swarm/flow, elastic, fluid, optical, parallax, and 3D families
-- 120Hz fixed-timestep physics with spatial hashing and optimized hot paths
-- Curated production runtime; dev: React on 8012, preview on 8013
-- Accessibility-conscious interactions and `prefers-reduced-motion` support
-- Privacy-conscious defaults: **no analytics**; fonts load from **Google Fonts** on shipped HTML; optional tactile layer may use **jsdelivr** when enabled
-
-## Quick Start
-Requires Node `>=20.19.0` and npm `>=10`.
+## Start here
 
 ```bash
-npm run install:all   # first-time: root + react-app/app
-npm run dev           # React dev server (8012)
-npm run preview       # Serve React build (port 8013)
+npm run install:all
+npm run dev
 ```
 
-Open:
-- React: `http://localhost:8012`
-- Production preview: `http://localhost:8013` (after `npm run build`)
+Development runs at `http://127.0.0.1:8012`. The live component reference is `/styleguide.html`.
 
-## Scripts
-| Command | Purpose |
-| --- | --- |
-| `npm run startup` | Interactive menu (recommended) |
-| `npm run install:all` | Install all deps (root, react-app) |
-| `npm run dev` | React dev server (8012) |
-| `npm run dev:react` | React only (port 8012) |
-| `npm run build` | Canonical production build: flatten design config, then build → `react-app/app/dist/` |
-| `npm run build:dev` | React unminified build + sourcemaps |
-| `npm run preview` | Serve React build (port 8013) |
-| `npm run clean` | Remove `react-app/app/dist` |
+## Production
 
-## Core Experience
-- **Narrative mode cycling**: Arrow-key progression through a curated sequence
-- **Physics realism**: collision behaviors, wall response, and scene impact tuning
-- **Visual polish**: wall wobble presets, grain, palette systems, and entrance choreography
-- **Audio feedback**: synthesized impact sounds with velocity-based mapping
-- **Touch parity**: mobile support with tuned depth and rounded-corner clipping
+```bash
+npm run check:site
+npm run preview
+```
 
-## Developer Guide
-### Architecture
+The root build is canonical. It verifies shared production entry shells, flattens `design-system.json` into runtime configs, then builds all Vite entries into `react-app/app/dist/`.
+
+## Current structure
+
 ```text
-react-app/app/     # Primary: Vite React app (src/, public/, dist/)
-docs/              # Development + reference docs
+react-app/app/
+├── src/
+│   ├── components/app/   SiteApp, StudioShell, Button Bar
+│   ├── routes/           Home, Portfolio, About, Contact, tools/labs
+│   ├── entries/          Vite entry mounts
+│   └── legacy/           active Canvas 2D and imperative route runtimes
+├── public/
+│   ├── config/           authored design/content JSON + generated configs
+│   ├── css/              shared and route CSS
+│   └── images/           production media
+└── dist/                 generated production build
+scripts/                  validation, flattening, audits, capture
+docs/reference/           current contracts only
 ```
-Edit `react-app/app/src/` and `react-app/app/public/` for the main site.
 
-The current supported app pipeline is `react-app/app/`. Historical standalone embed guidance is retained only for context in [`docs/reference/INTEGRATION.md`](docs/reference/INTEGRATION.md).
+The `legacy/` name does not mean unused: it contains the active simulation engine and Portfolio imperative runtime. Obsolete parallel page/template pipelines and historical task packets have been removed.
 
-`react-app/app/public/config/design-system.json` is the authored design/config source. `default-config.json`, `shell-config.json`, `portfolio-config.json`, and `cv-config.json` are generated compatibility/runtime outputs. Use the root `npm run build` for production because it runs `flatten:design-config` before the Vite build.
+## Routes
 
-### Engineering Constraints
-- O(1) behavior in hot paths and no allocations inside core physics loops
-- Preserve 60fps behavior across modes
-- ES modules with explicit `.js` import extensions
-- CSS token usage (`tokens.css`) over ad-hoc values
-- Two-layer modal blur architecture is locked and must not be altered
+- Home — interactive simulation wall and Daily Simulation focus
+- Portfolio — orbital project deck, in-window access gate, detail drawer
+- About Me — current About route
+- Contact — current contact route
 
-### Manual QA Expectations
-Automated tests are currently disabled. Before shipping:
-- Verify all current narrative modes run correctly
-- Check keyboard navigation and ARIA behavior
-- Validate mobile behavior and visual clipping
-- Confirm third-party behavior matches expectations (fonts; optional tactile CDN when on)
+The persistent Button Bar owns primary navigation. Route top bars are utility/back surfaces only.
 
-## Integration Guide (Historical)
-[`docs/reference/INTEGRATION.md`](docs/reference/INTEGRATION.md) describes the older standalone `app.js` / `shared.js` embed model. It is retained for context around the original Canvas runtime, not as the build or deployment guide for the current React/Vite site.
+## Source of truth
 
-## Documentation
-### Project Docs
-- **[`docs/BACKLOG.md`](docs/BACKLOG.md)** — consolidated backlog (**BL-*** audit items, **FE-*** PRD epics, **DO-***, **XP-***); start at **Product view**
-- [`docs/development/DEV-WORKFLOW.md`](docs/development/DEV-WORKFLOW.md)
-- [`docs/reference/SYSTEM-ARCHITECTURE.md`](docs/reference/SYSTEM-ARCHITECTURE.md)
-- [`docs/reference/CANVAS-RUNTIME.md`](docs/reference/CANVAS-RUNTIME.md)
-- [`docs/reference/PARITY-CONTRACT.md`](docs/reference/PARITY-CONTRACT.md)
-- [`docs/reference/ARCHITECTURE-IMPROVEMENT-LEDGER.md`](docs/reference/ARCHITECTURE-IMPROVEMENT-LEDGER.md)
-- [`docs/reference/MODES.md`](docs/reference/MODES.md)
-- [`docs/reference/CONFIGURATION.md`](docs/reference/CONFIGURATION.md)
-- [`docs/reference/INTEGRATION.md`](docs/reference/INTEGRATION.md)
-- [`docs/reference/PORTFOLIO.md`](docs/reference/PORTFOLIO.md)
+- Routes and Button Bar labels: `react-app/app/src/lib/routes.js`
+- Shared shell: `react-app/app/src/components/app/StudioShell.jsx`
+- Editorial copy: `react-app/app/public/config/contents-home.json` and `contents-portfolio.json`
+- Authored design values: `react-app/app/public/config/design-system.json`
+- Generated configs: `default-config.json`, `shell-config.json`, `portfolio-config.json`, `cv-config.json`
 
-### Official References
-- [MDN: Canvas API](https://developer.mozilla.org/docs/Web/API/Canvas_API)
-- [MDN: Web Audio API](https://developer.mozilla.org/docs/Web/API/Web_Audio_API)
-- [MDN: JavaScript Modules](https://developer.mozilla.org/docs/Web/JavaScript/Guide/Modules)
-- [WAI-ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/)
+See `docs/reference/GENERATED-CONFIG.md` for the compatibility-output boundary.
 
-## Controls
-| Key | Action |
-| --- | --- |
-| `→` | Next simulation in narrative order |
-| `←` | Previous simulation in narrative order |
-| `/` | Toggle dev panel dock (dev server only) |
-| `R` | Reset simulation |
+## Verification
 
-## Contributing
-1. Run `npm run dev`.
-2. Make changes in `react-app/app/` only.
-3. Keep docs and behavior aligned (`docs/` is authoritative).
-4. Follow conventional commit style (`feat:`, `fix:`, `perf:`, `docs:`).
+`npm run check:site` is the canonical non-browser gate. Browser coverage is supplied by focused Playwright audits, including screen certification, Portfolio gate/carousel/drawer, Canvas SPA stability, boot overlay, performance, and route transitions. There is no unit-test suite; do not describe the project as manual-only.
 
-## License
-MIT. See [`LICENSE`](LICENSE).
+Current architecture and behavior are documented in:
+
+- `docs/reference/SYSTEM-ARCHITECTURE.md`
+- `docs/reference/CONFIGURATION.md`
+- `docs/reference/CANVAS-RUNTIME.md`
+- `docs/reference/PORTFOLIO.md`
+- `docs/reference/TRANSITION-ORCHESTRATION.md`
+- `docs/reference/LAYER-STACKING.md`
+- `docs/reference/PARITY-CONTRACT.md`

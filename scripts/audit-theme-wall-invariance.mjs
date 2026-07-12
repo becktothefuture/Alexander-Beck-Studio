@@ -8,16 +8,18 @@ import { chromium } from 'playwright';
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const baseUrl = process.env.ABS_THEME_WALL_AUDIT_URL || 'http://127.0.0.1:8012';
 const shouldStartDevServer = !process.env.ABS_THEME_WALL_AUDIT_URL;
-const routes = ['/', '/about.html', '/contact.html'];
+const routes = ['/', '/portfolio.html', '/about.html', '/contact.html'];
 const viewports = [
   { name: 'desktop', width: 1440, height: 960, deviceScaleFactor: 1, isMobile: false },
   { name: 'mobile', width: 390, height: 844, deviceScaleFactor: 2, isMobile: true },
 ];
 
 const invariantRootVars = [
+  '--abs-browser-chrome',
+  '--frame-color',
+  '--wall-color',
   '--abs-wall-base',
-  '--frame-inner-surface',
-  '--simulation-contrast-veil-rgb',
+  '--shell-wall-bg',
   '--frame-inner-radius',
   '--frame-outer-radius',
   '--frame-border-width',
@@ -29,6 +31,13 @@ const invariantRootVars = [
   '--inner-wall-gradient-edge-width',
 ];
 const geometryKeys = new Set(['wallX', 'wallY', 'wallWidth', 'wallHeight']);
+const themeVariantKeys = new Set([
+  'theme',
+  'studioWindowBackground',
+  'frameInnerSurface',
+  'simulationContrastVeilRgb',
+  'wallBackgroundImage',
+]);
 const maxGeometryDeltaPx = 1.5;
 
 function log(message) {
@@ -158,6 +167,13 @@ async function readInvariantState(page) {
       wallBorderRadius: wallStyle.borderRadius,
       wallOverflow: wallStyle.overflow,
       wallBackgroundImage: wallStyle.backgroundImage,
+      studioWindowBackground: rootStyle.getPropertyValue('--studio-window-bg').trim(),
+      frameInnerSurface: rootStyle.getPropertyValue('--frame-inner-surface').trim(),
+      simulationContrastVeilRgb: rootStyle.getPropertyValue('--simulation-contrast-veil-rgb').trim(),
+      tabStyles: [...document.querySelectorAll('[data-route-tab]')].map((tab) => {
+        const style = getComputedStyle(tab);
+        return [tab.dataset.routeTab, style.color, style.backgroundColor, style.borderColor].join('|');
+      }).join(';'),
       wallBeforeBorderRadius: wallBeforeStyle.borderRadius,
       rimBorderRadius: rimStyle?.borderRadius || '',
     };
@@ -173,7 +189,7 @@ async function readInvariantState(page) {
 function diffInvariantState(before, after) {
   const diffs = [];
   for (const key of Object.keys(before)) {
-    if (key === 'theme') continue;
+    if (themeVariantKeys.has(key)) continue;
     if (geometryKeys.has(key)) {
       const delta = Math.abs(Number(before[key]) - Number(after[key]));
       if (delta > maxGeometryDeltaPx) {
@@ -221,6 +237,17 @@ async function auditRoute(browser, route, viewport) {
     const diffs = diffInvariantState(lightState, darkState);
     if (diffs.length > 0) {
       throw new Error(`${route} ${viewport.name} changed wall invariants:\n${diffs.join('\n')}`);
+    }
+
+    if (normalize(lightState.studioWindowBackground) === normalize(darkState.studioWindowBackground)) {
+      throw new Error(`${route} ${viewport.name} did not change the studio-window surface`);
+    }
+    if (normalize(lightState.frameInnerSurface) !== normalize(lightState.studioWindowBackground)
+      || normalize(darkState.frameInnerSurface) !== normalize(darkState.studioWindowBackground)) {
+      throw new Error(`${route} ${viewport.name} frame-inner surface drifted from the studio-window surface`);
+    }
+    if (normalize(lightState.simulationContrastVeilRgb) === normalize(darkState.simulationContrastVeilRgb)) {
+      throw new Error(`${route} ${viewport.name} did not retint the in-window contrast veil`);
     }
 
     log(`PASS ${route} ${viewport.name}`);

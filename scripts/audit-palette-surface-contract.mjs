@@ -32,29 +32,31 @@ function loadExpectations() {
   const designSystem = JSON.parse(readFileSync(designSystemPath, 'utf8'));
   const runtime = designSystem.runtime || {};
   const shellTheme = designSystem.shell?.theme || {};
-  const lightWall = shellTheme.wallBaseLight || runtime.bgLight || '#f5f5f5';
-  const darkWall = shellTheme.wallBaseDark || runtime.bgDark || '#202020';
+  const stableWall = shellTheme.wallBase
+    || shellTheme.wallBaseDark
+    || shellTheme.wallBaseLight
+    || '#141414';
+  const lightWindow = runtime.bgLight || '#f5f5f5';
+  const darkWindow = runtime.bgDark || '#141414';
 
   return {
     light: {
-      wall: lightWall,
-      wallLight: lightWall,
-      wallDark: darkWall,
-      bgLight: runtime.bgLight || lightWall,
-      bgDark: runtime.bgDark || darkWall,
+      wall: stableWall,
+      bgLight: lightWindow,
+      bgDark: darkWindow,
+      studioWindow: lightWindow,
       textPrimary: runtime.textColorLight || '#161616',
       textMuted: runtime.textColorLightMuted || '#2f2f2f',
-      veilRgb: hexToRgbString(lightWall),
+      veilRgb: hexToRgbString(lightWindow),
     },
     dark: {
-      wall: darkWall,
-      wallLight: lightWall,
-      wallDark: darkWall,
-      bgLight: runtime.bgLight || lightWall,
-      bgDark: runtime.bgDark || darkWall,
+      wall: stableWall,
+      bgLight: lightWindow,
+      bgDark: darkWindow,
+      studioWindow: darkWindow,
       textPrimary: runtime.textColorDark || '#f0f0f0',
       textMuted: runtime.textColorDarkMuted || '#c8c8c8',
-      veilRgb: hexToRgbString(darkWall),
+      veilRgb: hexToRgbString(darkWindow),
     },
   };
 }
@@ -123,29 +125,21 @@ async function ensureDevServer() {
   }
 }
 
-async function setPalette(page, palette) {
-  await page.evaluate(async (nextPalette) => {
+async function readContractState(page, palette) {
+  return page.evaluate(async (nextPalette) => {
     const colors = await import('/src/legacy/modules/visual/colors.js');
     const chrome = await import('/src/legacy/modules/visual/chrome-harmony.js');
-    const state = await import('/src/legacy/modules/core/state.js');
     colors.applyColorTemplate(nextPalette);
-    chrome.applyChromeHarmony(Boolean(state.getGlobals().isDarkMode));
-  }, palette);
-  await page.waitForTimeout(250);
-}
-
-async function readContractState(page) {
-  return page.evaluate(async () => {
-    const state = await import('/src/legacy/modules/core/state.js');
+    chrome.applyChromeHarmony();
     const root = document.documentElement;
     const cs = getComputedStyle(root);
     return {
-      currentTemplate: state.getGlobals().currentTemplate,
       wall: cs.getPropertyValue('--abs-wall-base').trim(),
       wallLight: cs.getPropertyValue('--abs-wall-base-light').trim(),
       wallDark: cs.getPropertyValue('--abs-wall-base-dark').trim(),
       bgLight: cs.getPropertyValue('--bg-light').trim(),
       bgDark: cs.getPropertyValue('--bg-dark').trim(),
+      studioWindow: cs.getPropertyValue('--studio-window-bg').trim(),
       frameInnerSurface: cs.getPropertyValue('--frame-inner-surface').trim(),
       textPrimary: cs.getPropertyValue('--text-primary').trim(),
       textMuted: cs.getPropertyValue('--text-muted').trim(),
@@ -155,23 +149,20 @@ async function readContractState(page) {
       heroRoleAccent: cs.getPropertyValue('--hero-role-accent').trim(),
       cursorColor: cs.getPropertyValue('--cursor-color').trim(),
     };
-  });
+  }, palette);
 }
 
 function assertSurfaceContract(theme, palette, actual, expected) {
-  for (const key of ['wall', 'wallLight', 'wallDark', 'bgLight', 'bgDark', 'textPrimary', 'textMuted', 'veilRgb']) {
+  for (const key of ['wall', 'bgLight', 'bgDark', 'studioWindow', 'textPrimary', 'textMuted', 'veilRgb']) {
     if (normalize(actual[key]) !== normalize(expected[key])) {
       throw new Error(`${theme}/${palette} ${key}: expected ${expected[key]}, got ${actual[key]}`);
     }
   }
 
-  if (normalize(actual.frameInnerSurface) !== normalize(actual.wall)) {
-    throw new Error(`${theme}/${palette} frameInnerSurface: expected active wall ${actual.wall}, got ${actual.frameInnerSurface}`);
+  if (normalize(actual.frameInnerSurface) !== normalize(actual.studioWindow)) {
+    throw new Error(`${theme}/${palette} frameInnerSurface: expected studio window ${actual.studioWindow}, got ${actual.frameInnerSurface}`);
   }
 
-  if (actual.currentTemplate !== palette) {
-    throw new Error(`${theme}/${palette} currentTemplate: expected ${palette}, got ${actual.currentTemplate}`);
-  }
 }
 
 function assertPaletteVariation(rows) {
@@ -200,11 +191,13 @@ async function run() {
       const page = await context.newPage();
       await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('#app-frame', { timeout: 15000 });
-      await page.waitForTimeout(800);
+      await page.waitForFunction(() => (
+        ['ready', 'failed'].includes(document.documentElement.dataset.absBootState)
+      ), null, { timeout: 15000 });
+      await page.waitForTimeout(250);
 
       for (const palette of palettes) {
-        await setPalette(page, palette);
-        const actual = await readContractState(page);
+        const actual = await readContractState(page, palette);
         assertSurfaceContract(theme, palette, actual, expectedByTheme[theme]);
         rows.push({ theme, palette, ...actual });
       }

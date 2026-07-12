@@ -40,6 +40,8 @@ let resizeDebounceId = null;
 
 /** Removes window / visualViewport / ResizeObserver subscriptions from the last setupRenderer() */
 let disposeRendererListenersFn = null;
+let rendererOwnerSequence = 0;
+let activeRendererOwner = 0;
 
 // Callback to force immediate render after canvas dimensions change
 // This prevents blank frames during resize
@@ -228,7 +230,9 @@ export function getEffectiveDPR() {
  * Tear down resize/orientation/visualViewport/ResizeObserver from the last `setupRenderer()`.
  * Safe to call multiple times; also cancels a pending debounced resize rAF.
  */
-export function disposeRendererListeners() {
+export function disposeRendererListeners(expectedOwner = null) {
+  if (expectedOwner !== null && expectedOwner !== activeRendererOwner) return false;
+  activeRendererOwner = 0;
   stopMainLoop();
   if (typeof disposeRendererListenersFn === 'function') {
     try {
@@ -251,6 +255,7 @@ export function disposeRendererListeners() {
     /* ignore */
   }
   if (typeof window !== 'undefined') window.__pointerReady = false;
+  return true;
 }
 
 /**
@@ -274,6 +279,8 @@ function bindLiveSimulationCanvas() {
 
 export function setupRenderer() {
   disposeRendererListeners();
+  const owner = ++rendererOwnerSequence;
+  activeRendererOwner = owner;
 
   // SPA route changes mount a new `#c`. Module-level `canvas` is reassigned here, so
   // `bindLiveSimulationCanvas()` would see live === canvas and skip resetting
@@ -292,7 +299,7 @@ export function setupRenderer() {
     canvas = null;
     ctx = null;
     console.error('Canvas not found');
-    return;
+    return owner;
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -306,7 +313,7 @@ export function setupRenderer() {
   if (!ctx) {
     canvas = null;
     console.warn('⚠️ Canvas 2D context unavailable');
-    return;
+    return owner;
   }
 
   detectOptimalDPR();
@@ -368,6 +375,7 @@ export function setupRenderer() {
       `✓ Renderer optimized (DPR: ${effectiveDPR.toFixed(2)}, desync: ${ctx.getContextAttributes?.()?.desynchronized ?? 'unknown'})`
     );
   }
+  return owner;
 }
 
 /**

@@ -3,7 +3,7 @@ import homeContent from 'virtual:abs-content/home';
 
 /**
  * SiteFooter – shared footer + edge caption for home, portfolio, and CV.
- * Mounted as a real React component via SharedFrame’s footer slot (createPortal into #footer-mount).
+ * Rendered by StudioShell as the shared site footer.
  */
 
 const SOCIAL_ICON_BY_KEY = Object.freeze({

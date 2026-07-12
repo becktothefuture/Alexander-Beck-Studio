@@ -29,7 +29,7 @@ function readSoundButtonState() {
 }
 
 function getNormalizedActiveRouteId(activeRouteId) {
-  return activeRouteId === 'cv' ? 'about' : activeRouteId;
+  return activeRouteId;
 }
 
 function playButtonBarHoverSound() {
@@ -86,20 +86,6 @@ function getRouteButtonClassName(tab) {
 }
 
 function ButtonBarIcon({ tab, className = 'button-bar__icon shell-tab__icon' }) {
-  if (tab.routeId === 'home') {
-    return (
-      <svg
-        className={`${className} button-bar__icon--home-minimal`}
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <path d="M5.75 11.1 12 5.85l6.25 5.25" />
-        <path d="M7.9 10.45v7.45h8.2v-7.45" />
-      </svg>
-    );
-  }
-
   return <i className={`ti ${tab.icon} ${className}`} aria-hidden="true" />;
 }
 

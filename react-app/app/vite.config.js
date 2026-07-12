@@ -10,7 +10,6 @@ const publicConfigDir = resolve(__dirname, 'public/config');
 const VIRTUAL_CONTENT_PREFIX = '\0virtual:abs-content/';
 const CONTENT_MODULES = {
   'virtual:abs-content/home': resolve(publicConfigDir, 'contents-home.json'),
-  'virtual:abs-content/cv': resolve(publicConfigDir, 'contents-cv.json'),
 };
 
 async function readJsonModule(filePath) {
@@ -36,9 +35,6 @@ function absContentVirtualPlugin() {
     async load(id) {
       if (id === `${VIRTUAL_CONTENT_PREFIX}home`) {
         return readJsonModule(CONTENT_MODULES['virtual:abs-content/home']);
-      }
-      if (id === `${VIRTUAL_CONTENT_PREFIX}cv`) {
-        return readJsonModule(CONTENT_MODULES['virtual:abs-content/cv']);
       }
       return null;
     },
@@ -67,7 +63,6 @@ export default defineConfig(({ mode }) => ({
         contact: resolve(__dirname, 'contact.html'),
         about: resolve(__dirname, 'about.html'),
         portfolio: resolve(__dirname, 'portfolio.html'),
-        cv: resolve(__dirname, 'cv.html'),
         styleguide: resolve(__dirname, 'styleguide.html'),
         simulations: resolve(__dirname, 'simulations.html'),
         'palette-lab': resolve(__dirname, 'palette-lab.html'),

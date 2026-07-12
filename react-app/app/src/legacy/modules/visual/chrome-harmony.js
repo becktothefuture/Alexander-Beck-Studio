@@ -124,44 +124,49 @@ function applySafariFrameColor(isDark) {
  * Decide whether to adapt the frame color to browser UI defaults.
  * The shell wall palette is restored separately so UI contrast stays stable.
  */
-export function applyChromeHarmony(isDark) {
+export function resolveBrowserChromeIsDark() {
+  return Boolean(window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+}
+
+export function applyChromeHarmony() {
   const g = getGlobals();
   const shellConfig = getShellConfig();
   const mode = resolveHarmonyMode(g, shellConfig);
   const family = detectBrowserFamily();
   const themeColorLikelyApplied = detectThemeColorLikelyApplied(family);
+  const browserIsDark = resolveBrowserChromeIsDark();
 
-  applyShellPalette(resolveShellPalette(shellConfig, isDark));
+  applyShellPalette(resolveShellPalette(shellConfig));
 
   if (mode === 'site') {
-    restoreSiteFrameColor(isDark);
-    return { mode, family, themeColorLikelyApplied };
+    restoreSiteFrameColor(browserIsDark);
+    return { mode, family, themeColorLikelyApplied, browserIsDark };
   }
 
   if (mode === 'browser') {
     if (family.isSafari) {
-      applySafariFrameColor(isDark);
-      return { mode, family, themeColorLikelyApplied };
+      applySafariFrameColor(browserIsDark);
+      return { mode, family, themeColorLikelyApplied, browserIsDark };
     }
-    applyBrowserFrameColor(isDark, family);
-    return { mode, family, themeColorLikelyApplied };
+    applyBrowserFrameColor(browserIsDark, family);
+    return { mode, family, themeColorLikelyApplied, browserIsDark };
   }
 
   // auto
   if (family.isSafari) {
-    applySafariFrameColor(isDark);
-    return { mode, family, themeColorLikelyApplied };
+    applySafariFrameColor(browserIsDark);
+    return { mode, family, themeColorLikelyApplied, browserIsDark };
   }
 
   // Locked-header browsers: if the browser chrome likely won't respect theme-color,
   // adapt only the frame to the browser's native UI palette.
   const isLockedHeaderFamily = family.isChromium || family.isFirefox;
   if (isLockedHeaderFamily && !themeColorLikelyApplied) {
-    applyBrowserFrameColor(isDark, family);
-    return { mode, family, themeColorLikelyApplied };
+    applyBrowserFrameColor(browserIsDark, family);
+    return { mode, family, themeColorLikelyApplied, browserIsDark };
   }
 
   // Firefox + others: stay on site frame unless explicitly forced.
-  restoreSiteFrameColor(isDark);
-  return { mode, family, themeColorLikelyApplied };
+  restoreSiteFrameColor(browserIsDark);
+  return { mode, family, themeColorLikelyApplied, browserIsDark };
 }

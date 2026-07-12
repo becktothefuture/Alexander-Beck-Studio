@@ -6,7 +6,6 @@ const INTERACTIVE_SELECTOR = [
   'a[href]',
   'input',
   '[role="button"]',
-  '.footer_link',
   '.abs-icon-btn',
   '.simulation-focus-pill',
   '.simulation-focus-row',

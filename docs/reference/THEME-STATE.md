@@ -1,6 +1,6 @@
-# Theme State Contract
+# Theme State and Window Boundary
 
-Dark/light theme is one site-wide state. Route components, simulations, gates, screenshots, and browser tabs must consume that state; they must not create their own theme policy.
+Dark/light theme is one site-wide content state, but its visual reach stops at the studio-window interior. Route components, simulations, gates, and in-window overlays consume that state; they must not create their own theme policy. The exposed wall/frame, browser chrome, and persistent Button Bar are outer-shell systems and do not consume the manual site theme.
 
 ## Preference Model
 
@@ -28,13 +28,34 @@ React consumers that need live theme state use `useRenderedThemeIsDark()`. Route
 
 The early inline script in each boot-overlay HTML entry is a first-paint mirror, not a second preference owner. It must resolve the same stored preference with the same rule as the runtime controller before React loads. Changes to preference behavior must update every boot-overlay entry and the runtime controller together.
 
+## Surface Ownership
+
+| Surface | Canonical tokens | Owner |
+| --- | --- | --- |
+| Exposed browser/page band | `--abs-browser-chrome`, `--frame-color`, `--wall-color` | Browser harmony |
+| Stable outer shell | `--shell-wall-bg`, `--abs-wall-base` | Shell configuration |
+| Studio-window interior | `--studio-window-bg`, `--frame-inner-surface` | Resolved site theme |
+| In-window contrast finish | `--simulation-contrast-veil-rgb` and finish opacities | Resolved site theme |
+| Persistent Button Bar | `--button-bar-outer-ink*` and shell material tokens | Stable outer shell |
+
+Never alias the window-interior tokens back to `--abs-wall-base`. Doing so freezes the window dark while light-mode ink changes, producing unreadable routes. Never derive the active outer-frame palette from the manual site preference.
+
 ## Browser Chrome
 
-Theme choice and browser-chrome harmony are separate. After the theme resolves, `chrome-harmony.js` adapts the exposed frame for Safari/theme-color browsers versus locked Chromium/Firefox chrome. Do not merge that browser-specific frame policy into theme preference resolution.
+Site theme and browser-chrome harmony are separate state machines:
 
-## Wall Surface
+- `chrome-harmony.js` resolves the outer palette from browser family plus `prefers-color-scheme`.
+- Safari and other theme-color-capable browsers use the authored site/Safari frame palette so the exposed band and browser bars blend.
+- Locked desktop Chromium and Firefox use their browser-native chrome palettes.
+- A manual site-theme toggle changes the window interior but leaves the active outer palette unchanged.
+- A browser/OS scheme change may update the outer palette even when the site has a manual light/dark override; it must not change that manual site preference.
+- In `auto`, the browser/OS scheme drives both systems through their separate ownership paths.
 
-Theme choice must not recolor the studio wall base. `site-shell.js` resolves `--abs-wall-base`, `--frame-inner-surface`, and the wall contrast color from one stable wall base so the wall remains visually continuous when switching between light and dark mode. Light/dark theme may still adjust text, controls, chrome harmonization, and wall finish opacity, but not the underlying wall color.
+Do not collapse this into a single "sync wall colour with theme" rule. `chromeHarmonyMode: auto` is the default browser-aware behavior; `site` and `browser` remain explicit development overrides.
+
+## Button Bar
+
+The Button Bar sits outside the studio window and is stable shell chrome. Its tab and secondary-control ink must not inherit `--text-primary` or `--text-muted` from the window theme. Route selection can change active state, but manual light/dark changes must not recolor the bar or alter its geometry.
 
 ## Portfolio Gate
 
@@ -47,7 +68,10 @@ Run against a production preview:
 ```bash
 ABS_DEV_URL=http://127.0.0.1:8013 ABS_BROWSER=chromium npm run audit:theme-consistency
 ABS_DEV_URL=http://127.0.0.1:8013 ABS_BROWSER=webkit npm run audit:theme-consistency
+ABS_THEME_WALL_AUDIT_URL=http://127.0.0.1:8013 npm run audit:theme-wall-invariance
+ABS_OUTER_WALL_AUDIT_URL=http://127.0.0.1:8013/index.html npm run audit:outer-wall-frame
+ABS_PALETTE_AUDIT_URL=http://127.0.0.1:8013 npm run audit:palette-surface-contract
 ABS_DEV_URL=http://127.0.0.1:8013 npm run audit:portfolio-gate
 ```
 
-The theme audit covers manual persistence, mobile, SPA routes, reload, two browser tabs, Auto browser-preference changes, and manual precedence over later browser changes.
+The theme audit covers manual persistence, mobile, SPA routes, reload, two browser tabs, Auto browser-preference changes, manual precedence, and independent outer-frame response. The wall audit protects outer variables, geometry, pixels, and Button Bar styles while requiring the studio-window surface and contrast veil to change.

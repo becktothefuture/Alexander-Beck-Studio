@@ -12,7 +12,8 @@ const designSystemPath = resolve(repoRoot, 'react-app/app/public/config/design-s
 const catalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.json');
 const baseUrl = process.env.ABS_OUTER_WALL_AUDIT_URL || 'http://127.0.0.1:8012/index.html';
 const shouldStartDevServer = !process.env.ABS_OUTER_WALL_AUDIT_URL;
-const themes = ['light', 'dark'];
+const siteThemes = ['light', 'dark'];
+const browserSchemes = ['light', 'dark'];
 const chromiumLockedHeaderFrame = {
   light: '#f1f3f4',
   dark: '#202124',
@@ -76,6 +77,10 @@ function loadExpectations() {
     frame: {
       light: designSystem.shell?.theme?.siteFrameLight || '#242529',
       dark: designSystem.shell?.theme?.siteFrameDark || '#141517',
+    },
+    window: {
+      light: designSystem.runtime?.bgLight || '#f5f5f5',
+      dark: designSystem.runtime?.bgDark || '#141414',
     },
   };
 }
@@ -158,6 +163,8 @@ async function readFrameState(page) {
       wallColor: rootStyle.getPropertyValue('--wall-color').trim(),
       chromeBg: rootStyle.getPropertyValue('--chrome-bg').trim(),
       siteFrameLight: rootStyle.getPropertyValue('--frame-color-site-light').trim(),
+      studioWindow: rootStyle.getPropertyValue('--studio-window-bg').trim(),
+      frameInnerSurface: rootStyle.getPropertyValue('--frame-inner-surface').trim(),
       bodyBackground: bodyStyle.backgroundColor,
     };
   });
@@ -172,25 +179,36 @@ async function readFrameState(page) {
   };
 }
 
-function assertFrameState(theme, phase, actual, expectedHex) {
+function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, expectedWindow) {
   const expected = normalizeHex(expectedHex);
   for (const key of ['absBrowserChrome', 'frameColor', 'wallColor', 'chromeBg']) {
     if (normalizeHex(actual[key]) !== expected) {
-      throw new Error(`${theme}/${phase} ${key}: expected ${expectedHex}, got ${actual[key]}`);
+      throw new Error(`${siteTheme}/${browserScheme}/${phase} ${key}: expected ${expectedHex}, got ${actual[key]}`);
     }
   }
 
   const expectedOuterRgb = cssRgbToRgb(actual.bodyBackground);
-  if (!expectedOuterRgb) throw new Error(`${theme}/${phase} could not parse body background ${actual.bodyBackground}`);
+  if (!expectedOuterRgb) throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse body background ${actual.bodyBackground}`);
   if (pixelDistance(actual.outerPixel, expectedOuterRgb) > 2) {
-    throw new Error(`${theme}/${phase} outer pixel: expected body background ${expectedOuterRgb.join(',')}, got ${actual.outerPixel.join(',')}`);
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} outer pixel: expected body background ${expectedOuterRgb.join(',')}, got ${actual.outerPixel.join(',')}`);
+  }
+  if (normalizeHex(actual.studioWindow) !== normalizeHex(expectedWindow)) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} studioWindow: expected ${expectedWindow}, got ${actual.studioWindow}`);
+  }
+  if (normalizeHex(actual.frameInnerSurface) !== normalizeHex(expectedWindow)) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} frameInnerSurface: expected ${expectedWindow}, got ${actual.frameInnerSurface}`);
   }
 }
 
-async function runTheme(browser, theme, expectations) {
-  const expectedFrame = chromiumLockedHeaderFrame[theme]
-    || (theme === 'dark' ? expectations.frame.dark : expectations.frame.light);
-  const context = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1 });
+async function runCase(browser, siteTheme, browserScheme, expectations) {
+  const expectedFrame = chromiumLockedHeaderFrame[browserScheme]
+    || (browserScheme === 'dark' ? expectations.frame.dark : expectations.frame.light);
+  const expectedWindow = expectations.window[siteTheme];
+  const context = await browser.newContext({
+    viewport: { width: 1400, height: 900 },
+    deviceScaleFactor: 1,
+    colorScheme: browserScheme,
+  });
   await context.addInitScript(({ themeName, dayStamp, simulationId, catalogVersion }) => {
     localStorage.setItem('theme-preference-v2', themeName);
     localStorage.setItem('abs_simulation_focus_choice_v1', JSON.stringify({
@@ -200,7 +218,7 @@ async function runTheme(browser, theme, expectations) {
       catalogVersion,
     }));
   }, {
-    themeName: theme,
+    themeName: siteTheme,
     dayStamp: expectations.dayStamp,
     simulationId: expectations.homeMode.id,
     catalogVersion: expectations.catalogVersion,
@@ -213,7 +231,7 @@ async function runTheme(browser, theme, expectations) {
     await page.waitForTimeout(600);
 
     const directHome = await readFrameState(page);
-    assertFrameState(theme, `direct-home-${expectations.homeMode.id}`, directHome, expectedFrame);
+    assertFrameState(siteTheme, browserScheme, `direct-home-${expectations.homeMode.id}`, directHome, expectedFrame, expectedWindow);
 
     await page.locator('.simulation-focus-switcher').click({ timeout: 5000 });
     await page.locator('.simulation-focus-row').filter({ hasText: expectations.routeBacked.name }).click({ timeout: 5000 });
@@ -225,9 +243,9 @@ async function runTheme(browser, theme, expectations) {
     await page.waitForTimeout(600);
 
     const routeBacked = await readFrameState(page);
-    assertFrameState(theme, `route-backed-${expectations.routeBacked.id}`, routeBacked, expectedFrame);
+    assertFrameState(siteTheme, browserScheme, `route-backed-${expectations.routeBacked.id}`, routeBacked, expectedFrame, expectedWindow);
 
-    log(`${theme}: ${expectations.homeMode.id} -> ${expectations.routeBacked.id} locked-header-frame=${expectedFrame}`);
+    log(`site=${siteTheme} browser=${browserScheme}: ${expectations.homeMode.id} -> ${expectations.routeBacked.id} locked-header-frame=${expectedFrame}`);
   } finally {
     await context.close();
   }
@@ -239,15 +257,17 @@ async function run() {
   const browser = await chromium.launch();
 
   try {
-    for (const theme of themes) {
-      await runTheme(browser, theme, expectations);
+    for (const browserScheme of browserSchemes) {
+      for (const siteTheme of siteThemes) {
+        await runCase(browser, siteTheme, browserScheme, expectations);
+      }
     }
   } finally {
     await browser.close();
     await server?.stop();
   }
 
-  log('PASS: frame variables match locked-header browser chrome and visible edge pixels match the shell wall on direct boot and route-backed simulation switch.');
+  log('PASS: browser scheme owns the locked-header frame while site theme independently owns the studio-window surface.');
 }
 
 run().catch((error) => {

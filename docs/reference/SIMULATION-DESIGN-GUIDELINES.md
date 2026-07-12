@@ -51,7 +51,7 @@ Future simulations must preserve cross-mode size coherence.
 
 Use the existing radius scale and count budgets as the reference:
 - home pit bodies define the baseline material family;
-- hidden/fallback portfolio pit bodies were larger because they were navigation objects;
+- Portfolio cards are DOM navigation objects and are not part of the simulation radius scale;
 - point-cloud modes can be smaller, but only when the concept is depth, flocking, or field sampling;
 - lab defaults must preserve the same readable pebble contour used by the current rotation.
 
@@ -113,7 +113,7 @@ These are the proven families in the current collection. New work should fit one
 
 ### Bounded Physical Pebbles
 
-Examples: `pit`, `portfolio-pit`, `water`, `bubbles`, `magnetic`.
+Examples: `pit`, `water`, `bubbles`, `magnetic`.
 
 Use when the main rule is gravity, contact, buoyancy, drag, pressure, or collision.
 

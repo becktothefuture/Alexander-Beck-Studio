@@ -4,7 +4,7 @@ export const ABOUT_ROUTE_RUNTIME = {
 
 export function getAboutRouteView() {
   return {
-    bodyClass: 'body about-page cv-page',
+    bodyClass: 'body about-page',
     legacyRuntime: false,
     surfaceRouteId: 'about',
     routeRenderKey: 'about',

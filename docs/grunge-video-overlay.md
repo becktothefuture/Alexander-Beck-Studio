@@ -87,7 +87,7 @@ For best performance, compress your video using a tool like:
 3. Update the video source in **all three HTML files**:
    - `source/index.html`
    - `source/portfolio.html`
-   - `source/cv.html`
+   - `react-app/app/about.html`
 
    Find the video element and uncomment/update the source lines:
 

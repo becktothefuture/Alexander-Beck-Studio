@@ -1,154 +1,62 @@
-# System Architecture
+# System architecture
 
-This site is a React/Vite shell wrapped around an intentionally preserved Canvas 2D runtime. The frontend experience is the product, so architecture work starts from parity: the same routes, content, boot overlay, transitions, canvas feel, modal behavior, portfolio drawer stacking, generated config semantics, and GitHub Pages deployment.
+## Production pipeline
 
-## Responsibility Split
+Every production HTML entry loads a small entry module from `src/entries/`. That module mounts one `SiteApp`; `SiteApp` resolves the route and renders one `StudioShell` plus the route-owned view/runtime.
 
-### React and Vite shell
+```text
+HTML entry
+  → src/entries/*.jsx
+  → SiteApp
+  → StudioShell
+     ├── physical window and frame
+     ├── route view
+     ├── shared footer
+     ├── persistent ShellButtonBar
+     └── overlay hosts
+  → optional route runtime bootstrap
+```
 
-The current supported app pipeline is `react-app/app/`.
+There is no second static page/template pipeline.
 
-React owns:
+## Route families
 
-- public page structure for the Vite HTML entries;
-- route resolution and gated route redirects;
-- shared route slots and shell chrome;
-- top bars, footer, modal hosts, and the portfolio sheet host;
-- route transition orchestration through `useShellRouteTransition`;
-- page composition for home, portfolio, CV, styleguide, simulations, and lab routes.
+| Route | React owner | Imperative/runtime owner |
+|---|---|---|
+| Home | `routes/home/HomeRoute.jsx` | `legacy/main.js` + simulation modules |
+| Portfolio | `routes/portfolio/PortfolioRoute.jsx` | `legacy/modules/portfolio/app.js`, drawer, handoff |
+| About Me | `routes/about/AboutRoute.jsx` | none |
+| Contact | `routes/contact/ContactRoute.jsx` | none |
 
-Vite owns:
+`src/lib/routes.js` owns canonical paths, aliases, Button Bar labels, and ARIA labels. `SiteApp.jsx` owns route descriptors and document titles.
 
-- local dev serving on port `8012`;
-- production bundling into `react-app/app/dist/`;
-- multi-entry HTML builds for the public routes;
-- virtual JSON content modules for selected route copy;
-- local dev/admin middleware for configuration and simulation tooling.
+## Shared shell
 
-### Canvas 2D runtime
+`StudioShell.jsx` owns the physical frame, studio window, footer, Button Bar, and overlay mount points. The Button Bar is the only primary route navigation. A route top bar may provide a back or local utility action but must not duplicate primary navigation.
 
-`react-app/app/src/legacy/` owns the imperative simulation runtime. The `legacy` name describes history and integration style, not a broken or disposable subsystem.
+The shell is persistent across SPA transitions. Route content inside the window may animate; the frame and Button Bar must remain materially continuous.
 
-The Canvas runtime owns:
+## Active imperative runtime
 
-- simulation state;
-- mode lifecycle;
-- physics and collision behavior;
-- renderer setup, canvas sizing, and DPR handling;
-- pointer-driven material behavior;
-- render loop timing and adaptive throttling;
-- portfolio runtime internals where still used;
-- runtime DOM enhancements that are coupled to the simulation engine.
+`src/legacy/` contains active Canvas 2D and route code. React owns mounting and lifecycle; imperative modules own simulation state, rendering, pointer mapping, and the current Portfolio deck/drawer runtime. Lifecycle bridges must be generation-safe so a cancelled bootstrap cannot tear down a newer route.
 
-Do not rewrite this runtime in React DOM, SVG, WebGL, Three.js, or another animation library as a modernization exercise. The boundary can become clearer over time, but the rendered and physical feel must stay intact.
+See `CANVAS-RUNTIME.md` and `TRANSITION-ORCHESTRATION.md`.
 
-### Config pipeline
+## Data and configuration
 
-The authored design/config source is:
+- `contents-home.json`: Home, footer/social, Contact, and Portfolio-gate editorial content
+- `contents-portfolio.json`: project cards, detail copy, and media
+- `design-system.json`: only authored design configuration
+- generated config JSON: runtime compatibility outputs created by flattening
 
-- `react-app/app/public/config/design-system.json`
+Browser storage and `window.__*` state are runtime helpers only.
 
-Generated compatibility/runtime outputs are:
+## Build
 
-- `react-app/app/public/config/default-config.json`
-- `react-app/app/public/config/shell-config.json`
-- `react-app/app/public/config/portfolio-config.json`
-- `react-app/app/public/config/cv-config.json`
+The root `npm run build` is canonical:
 
-`scripts/lib/flatten-design-config.mjs` derives the generated files from `design-system.json`. `npm run check:design-config` verifies the generated files without writing. The root command `npm run build` is the canonical production build because it runs `flatten:design-config` before the Vite app build. Running `npm run build --prefix react-app/app` is a lower-level Vite build and can bypass config flattening. See `GENERATED-CONFIG.md` for the generated-file contract.
+1. check production HTML entry shells against `index.html`;
+2. flatten the authored design config;
+3. run the multi-entry Vite build.
 
-## Boot Flow
-
-The public HTML entries are Vite inputs under `react-app/app/`. The production inputs include the main shell pages (`index.html`, `portfolio.html`, `about.html`, `contact.html`, `cv.html`, `styleguide.html`, `palette-lab.html`), `simulations.html`, `explain-it-like-im.html`, and the `/lab/*.html` simulation entries.
-
-The boot-overlay shell entries use the full first-paint boot contract. `index.html` is the canonical production boot and shared-stylesheet source for Home, Portfolio, About, Contact, and the CV alias; `npm run sync:entry-shell:check` rejects drift before a production build.
-
-1. The HTML document starts with `data-abs-boot-state="booting"` and hides `#root`.
-2. Critical inline CSS and the early theme/chrome script paint the browser chrome and boot overlay before React loads.
-3. The entry module, such as `src/entries/index.jsx`, mounts `SiteApp` into `#root`.
-4. React renders the selected route view into `StudioShell` unless the route is standalone.
-5. `useLegacyRouteRuntime` imports the route runtime module and calls its boot export.
-6. The runtime composes the canvas/DOM behavior and dispatches `abs:route-ready` after the route is ready enough for SPA transitions and route-specific listeners.
-7. Direct-load boot completion is owned by the route family: home canvas direct loads complete through `page-orchestrator.js`; non-home shell routes mark final readiness in `SiteApp.jsx`; route-backed Daily Focus direct loads complete through `DailyFocusShellBridge.jsx`.
-
-Simpler standalone/dashboard/lab entries such as `simulations.html`, `explain-it-like-im.html`, and `/lab/*.html` mount React into a plain `#root` without the heavy boot overlay. Their simpler boot shape is intentional; they are direct lab surfaces, not full shell boot-overlay routes, unless they are loaded through the shared shell as route-backed Daily Focus.
-
-The boot overlay and early theme/chrome script are first-paint infrastructure. Treat them as parity-sensitive. The early script mirrors the runtime preference resolver; the authoritative preference, DOM projection, cross-tab, and browser-preference contract is documented in [`THEME-STATE.md`](THEME-STATE.md).
-
-## Routing And Shell Composition
-
-`react-app/app/src/lib/routes.js` defines route IDs, canonical paths, aliases, and gated routes. Portfolio is gated through `access-gates.js`; `/cv` and `/cv.html` resolve to About.
-
-`SiteApp.jsx` joins each canonical route definition to one route descriptor containing its ID, path, aliases, gate state, title, React view factory, and runtime descriptor. `npm run sim:validate` checks descriptor coverage, Vite inputs, route definitions, and the simulation catalog for drift.
-
-The React shell owns shared route identity, layout variables, Button Bar variables, theme state, noise, footer content, the London clock, and shared link behavior. Legacy route runtimes own only route content, canvas/physics behavior, and route-specific interactions; they must not mutate shared React chrome.
-
-`useShellRouteTransition` is the only owner of SPA route transition sequencing. It resolves route state, handles gated redirects, manages transition phases on `<html data-abs-transition-phase>`, and waits for route readiness before reveal.
-
-Readiness ownership is intentionally split by concern, not duplicated: `abs:route-ready` is the runtime readiness signal consumed by SPA transitions; final direct-load `data-abs-boot-state="ready"` is set only by the active direct boot owner for the route family.
-
-`StudioShell.jsx` provides the shared scene:
-
-- `#simulations` for the wall/canvas route surface;
-- shell wall and hero slots;
-- `.fade-content` for header, main content, and footer;
-- modal hosts;
-- `#portfolio-sheet-host` as a sibling above `.fade-content`;
-- `#quote-viewport-host`.
-
-The portfolio drawer must remain mounted through `#portfolio-sheet-host` so it can stack above header and footer. `docs/reference/LAYER-STACKING.md` is canonical for this z-order contract.
-
-## Route Families
-
-- Home (`/`, `/index.html`) uses the shared shell with the main Canvas 2D runtime from `legacy/main.js`.
-- Portfolio (`/portfolio.html`) uses the shared shell, portfolio route view, invite gate, deck/detail DOM, and portfolio runtime module.
-- About (`/about.html`) uses the shared shell and About content route; `/cv.html` is a compatibility alias to About.
-- Contact (`/contact.html`) uses the shared shell and Contact content route.
-- Styleguide (`/styleguide.html`) is a shell-managed component-library route without the dev panel dock.
-- Simulations (`/simulations.html`) is the catalog/admin launchpad for simulation review and promotion.
-- Lab routes (`/lab/*.html`) are shell-managed simulation surfaces. Some are promoted into daily rotation; others remain lab-only with `enabledInRotation: false` or catalog stage boundaries.
-
-## Config And Content
-
-Runtime config loads from public config files in `react-app/app/public/config/`. The compatibility files are generated from `design-system.json` for older runtime loaders and route-specific normalizers.
-
-Route content is also public JSON:
-
-- `contents-home.json`
-- `contents-portfolio.json`
-- `contents-cv.json`
-
-Vite's virtual content plugin turns selected content files into importable modules for React route views. Public JSON still ships for runtime modules that fetch it directly.
-
-## Simulation Catalogue
-
-`react-app/app/src/data/simulationCatalog.json` is the catalog for simulation inventory, daily rotation, collection entries, automation candidates, hidden entries, launch paths, and review status.
-
-`simulationCatalog.js` derives immutable runtime helpers such as daily-rotation IDs, extended narrative IDs, and route-backed daily hrefs. The core mode constants import these derived arrays so narrative order follows the catalog.
-
-Do not change mode IDs, mode order, launch paths, daily rotation behavior, or promotion state without a dedicated parity pass.
-
-## Deployment
-
-GitHub Pages deployment is defined in `.github/workflows/gh-pages.yml`.
-
-The workflow installs dependencies for `react-app/app`, runs token, lint, HTML fragment, and simulation catalog checks, calls the root `npm run build`, verifies `react-app/app/dist/`, uploads that dist folder as a Pages artifact, and deploys it.
-
-The deployment target remains GitHub Pages. Do not change the target or publish a different output directory without an explicit deployment migration.
-
-## Do Not Change Lightly
-
-These systems are parity-sensitive:
-
-- boot overlay and early theme/chrome script in HTML entries;
-- `StudioShell` structure and stacking;
-- `useShellRouteTransition` and the transition phase contract;
-- `#portfolio-sheet-host` placement and z-index behavior;
-- Canvas renderer setup, resizing, and DPR handling;
-- render loop timing and adaptive throttling;
-- physics engine, collision behavior, and mode constants;
-- generated config files and flattening semantics;
-- GitHub Pages workflow and `react-app/app/dist/` deployment;
-- public route paths and gated route behavior.
-
-If a refactor touches any of these, state how parity was verified and run the relevant checks from `PARITY-CONTRACT.md`. For preservation-first follow-up decisions, see `ARCHITECTURE-IMPROVEMENT-LEDGER.md`.
+Direct app builds can bypass configuration flattening and are not release-equivalent.

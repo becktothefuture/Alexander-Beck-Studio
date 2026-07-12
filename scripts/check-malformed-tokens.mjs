@@ -9,7 +9,6 @@ const SEARCH_PATHS = [
   'react-app/app/public',
   'react-app/app/index.html',
   'react-app/app/portfolio.html',
-  'react-app/app/cv.html',
   'react-app/app/styleguide.html',
   'react-app/app/palette-lab.html',
   'react-app/app/explain-it-like-im.html',

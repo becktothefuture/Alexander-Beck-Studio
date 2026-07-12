@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const APP_ROOT = path.join(ROOT, 'react-app', 'app');
-const ENTRY_FILES = ['index.html', 'portfolio.html', 'about.html', 'contact.html', 'cv.html'];
+const ENTRY_FILES = ['index.html', 'portfolio.html', 'about.html', 'contact.html'];
 const CHECK_ONLY = process.argv.includes('--check');
 const BOOT_PATTERN = /    <script>\n      \(function\(\) \{\n        window\.__ABS_BOOT_STARTED_AT__[\s\S]*?\n    <\/script>/;
 const SHELL_STYLES_PATTERN = /    <link rel="stylesheet" href="%BASE_URL%css\/tokens\.css" \/>[\s\S]*?    <link rel="stylesheet" href="\/src\/styles\/base\.css" \/>/;

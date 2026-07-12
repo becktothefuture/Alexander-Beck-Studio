@@ -1,141 +1,59 @@
-# Development Workflow Guide
+# Development workflow
 
-## Quick Start
+## Setup and daily work
 
-**First-time setup:**
 ```bash
 npm run install:all
-```
-
-Requires Node `>=20.19.0` and npm `>=10`.
-
-**Daily development:**
-```bash
 npm run dev
 ```
 
-This starts the React app on port `8012`.
+Vite runs on port 8012. Node `>=20.19.0` and npm `>=10` are required.
 
-**Production preview:**
+## Canonical verification
+
 ```bash
-npm run build
+npm run check:site
 npm run preview
 ```
 
-This serves the built React app on port `8013`.
+`check:site` validates malformed tokens, real Vite HTML entries, the simulation catalog, lint, generated-config parity, production-entry shell parity, config flattening, and the production build. Preview serves that build on port 8013.
 
----
+Use focused Playwright audits after the server is running. Run transition audits serially in Chromium and WebKit; add `ABS_TRANSITION_STRICT_RAF=1` when motion cadence changed. Run `npm run certify:screens` only from a fresh build.
 
-## Development Modes Overview
+## Sources of truth
 
-| Mode | Command | Port | Best For |
-|------|---------|------|----------|
-| React dev | `npm run dev` | 8012 | Daily development with Vite HMR |
-| React dev | `npm run dev:react` | 8012 | Same as `npm run dev` |
-| React build | `npm run build` | — | Canonical production build: flattens config, then builds |
-| React build (debug) | `npm run build:dev` | — | Unminified build with sourcemaps |
-| React preview | `npm run preview` | 8013 | Manual QA against the built app |
+- application: `react-app/app/src/`
+- authored design config: `react-app/app/public/config/design-system.json`
+- editorial content: `react-app/app/public/config/contents-home.json`, `contents-portfolio.json`
+- generated runtime config: `default-config.json`, `shell-config.json`, `portfolio-config.json`, `cv-config.json`
+- build output: `react-app/app/dist/`
 
----
+The root build is release-equivalent. A direct app build bypasses the full config/entry workflow.
 
-## Source Of Truth
+## Common commands
 
-- App code: `react-app/app/src/`
-- Public assets and config: `react-app/app/public/`
-- Build output: `react-app/app/dist/`
-- Authored design/config source: `react-app/app/public/config/design-system.json`
-- Generated compatibility/runtime config: `default-config.json`, `shell-config.json`, `portfolio-config.json`, `cv-config.json`
-
-The React app is the only supported pipeline in this repository.
-
-Use the root `npm run build` for production. It runs `flatten:design-config` before the Vite app build. A direct `npm run build --prefix react-app/app` is a lower-level Vite build and can bypass generated config updates.
-
-## Build Warning Policy
-
-Lab HTML entries under `react-app/app/lab/` are lightweight direct lab surfaces. They link shared public CSS from the app root (`%BASE_URL%css/...`) and intentionally do not use the full shell boot overlay unless loaded through the shared shell as route-backed Daily Focus.
-
-Current accepted large-chunk warning:
-
-- `three.module-*.js` at roughly 502 kB minified: owned by Three.js-dependent lab/point-cloud routes. This is intentional for the current route set; create a follow-up before broad code splitting if another route-owned chunk crosses the warning threshold or this vendor chunk grows materially.
-
----
-
-## Common Workflows
-
-### Daily development
-```bash
-npm run dev
-```
-
-Open `http://localhost:8012`.
-
-### Pre-release verification
-```bash
-npm run lint --prefix react-app/app
-npm run check:design-config
-npm run build
-npm run preview
-```
-
-Open `http://localhost:8013`.
-
-### Clean build output
 ```bash
 npm run clean
+npm run check:design-config
+npm run validate:html-entries
+npm run sim:validate
+npm run audit:canvas-spa
+npm run audit:portfolio-gate
+npm run audit:portfolio-carousel
+npm run audit:portfolio-drawer
+npm run audit:transition-flows
+npm run certify:screens
 ```
 
-### Literal external-site capture to Figma
-Use this for faithful first-pass reference captures of external websites where the browser-rendered result matters more than cleanup.
+## Build warnings
 
-1. In Codex/Figma MCP, request `generate_figma_design` with `outputMode: "existingFile"` or `"newFile"` to get a single-use `captureId`.
-2. Submit the rendered page with the local Playwright helper:
+The Three.js vendor chunk for point-cloud/lab routes is an accepted large chunk. Treat new route-owned large chunks as regressions requiring an explicit decision.
 
-```bash
-npm run figma:capture:external -- --url https://www.heynds.com/en --capture-id <desktop-capture-id> --width 1440 --height 900
-npm run figma:capture:external -- --url https://www.heynds.com/en --capture-id <mobile-capture-id> --device "iPhone 13"
-```
+## Related contracts
 
-Notes:
-- Default navigation strategy is `domcontentloaded` with a 4s settle delay. This is more reliable for large external pages than `networkidle`.
-- The script strips CSP via Playwright request interception, injects Figma's capture script, and submits a literal `body` capture.
-- Poll completion through the Figma MCP tool with the same `captureId` until the design is added to the file.
-
----
-
-## Troubleshooting
-
-### Changes not showing in preview
-
-```bash
-npm run build
-npm run preview
-```
-
-### Port already in use
-
-```bash
-lsof -ti:8012 | xargs kill -9
-lsof -ti:8013 | xargs kill -9
-```
-
-### Build fails
-
-```bash
-rm -rf node_modules react-app/app/node_modules
-npm run install:all
-npm run build
-```
-
----
-
-## Related Documentation
-
-- [README](../../README.md)
-- [Configuration Reference](../reference/CONFIGURATION.md)
-- [Generated Config](../reference/GENERATED-CONFIG.md)
-- [System Architecture](../reference/SYSTEM-ARCHITECTURE.md)
-- [Canvas Runtime](../reference/CANVAS-RUNTIME.md)
-- [Parity Contract](../reference/PARITY-CONTRACT.md)
-- [Architecture Improvement Ledger](../reference/ARCHITECTURE-IMPROVEMENT-LEDGER.md)
-- [Mode Reference](../reference/MODES.md)
-- [Integration Guide](../reference/INTEGRATION.md)
+- `docs/reference/SYSTEM-ARCHITECTURE.md`
+- `docs/reference/CONFIGURATION.md`
+- `docs/reference/GENERATED-CONFIG.md`
+- `docs/reference/CANVAS-RUNTIME.md`
+- `docs/reference/PARITY-CONTRACT.md`
+- `docs/reference/MODES.md`

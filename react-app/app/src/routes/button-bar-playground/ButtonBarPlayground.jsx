@@ -5,121 +5,57 @@ import './button-bar-playground.css';
 
 const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
   {
-    id: 'current-studies',
+    id: 'physical-studies',
     variants: [
       {
-        id: 'current',
+        id: 'final-menu-bar',
         number: '00',
-        title: 'Current',
-        description: 'The production button bar, unchanged.',
+        title: 'Final menu bar',
+        description: 'The production choice: Precision Gasket controls with Stepped Cavity wall relief.',
+        structure: 'terraced wall channels',
+        composition: ['stepped-cavity'],
       },
       {
-        id: 'reduced-radius',
+        id: 'hairline-cutout',
         number: '01',
-        title: 'Lower radius',
-        description: 'The current treatment with calmer, less pill-like corners.',
+        title: 'Hairline cutout',
+        description: 'Flush wall plates defined by a single dark seam; the selected plate sinks cleanly into its aperture.',
+        structure: 'fine horizontal cooling lines',
       },
       {
-        id: 'contrast-plate',
+        id: 'light-edge',
         number: '02',
-        title: 'Colour plate',
-        description: 'A dimensional route-colour surface with black or white contrast type.',
-        usesRouteAccent: true,
+        title: 'Light edge',
+        description: 'A dark upper cut and a pale lower edge give the flush plates a precise machined fit.',
+        structure: 'stacked edge-lit fins',
       },
       {
-        id: 'kinetic-shader',
+        id: 'continuous-rail',
         number: '03',
-        title: 'Kinetic shader',
-        description: 'A lightweight, perpetual material field unique to each active route.',
-        usesRouteAccent: true,
+        title: 'Continuous rail',
+        description: 'The buttons become one fitted control strip, with fine internal joints and a deeper selected bay.',
+        structure: 'long recessed guide rails',
       },
       {
-        id: 'flat-colour',
+        id: 'precision-gasket',
         number: '04',
-        title: 'Flat colour',
-        description: 'The route colour as one solid, shadowless active surface.',
-        family: 'flat',
-        usesRouteAccent: true,
+        title: 'Precision gasket',
+        description: 'A narrow double seam suggests a soft mechanical gasket without making the controls look raised.',
+        structure: 'paired horizontal pressure bands',
       },
       {
-        id: 'selection-lamp',
+        id: 'stepped-cavity',
         number: '05',
-        title: 'Selection lamp',
-        description: 'Neutral type with a small route-colour light at the button base.',
-        family: 'lamp',
-        usesRouteAccent: true,
+        title: 'Stepped cavity',
+        description: 'Each cutout has a shallow inner step; selection drops to the second level with restrained depth.',
+        structure: 'terraced wall channels',
       },
-    ],
-  },
-  {
-    id: 'flat-colour-branches',
-    anchor: '04 →',
-    title: 'Flat colour branches',
-    description: 'Keep the decisive fill; test how much space it occupies and how loudly it speaks.',
-    variants: [
       {
-        id: 'inset-colour',
         number: '06',
-        title: 'Inset colour',
-        description: 'The flat fill steps inward, leaving a precise dark perimeter inside the hit area.',
-        family: 'flat',
-        usesRouteAccent: true,
-      },
-      {
-        id: 'deep-colour',
-        number: '07',
-        title: 'Deep colour',
-        description: 'A quieter full-surface fill, mixed toward black with white type on every route.',
-        family: 'flat',
-        usesRouteAccent: true,
-      },
-    ],
-  },
-  {
-    id: 'selection-lamp-branches',
-    anchor: '05 →',
-    title: 'Selection lamp branches',
-    description: 'Keep the typography neutral; test the indicator’s reach and sense of life.',
-    variants: [
-      {
-        id: 'long-lamp',
-        number: '08',
-        title: 'Long lamp',
-        description: 'A wider 28×2 signal: clearer at a glance, while remaining materially quiet.',
-        family: 'lamp',
-        usesRouteAccent: true,
-      },
-      {
-        id: 'breathing-lamp',
-        number: '09',
-        title: 'Breathing lamp',
-        description: 'The original 10×2 light with a slow brightness pulse and a static fallback.',
-        family: 'lamp',
-        usesRouteAccent: true,
-      },
-    ],
-  },
-  {
-    id: 'further-proposals',
-    anchor: '→',
-    title: 'Further proposals',
-    description: 'Two hybrids that borrow from the strongest directions without duplicating them.',
-    variants: [
-      {
-        id: 'tint-lamp',
-        number: '10',
-        title: 'Tint + lamp',
-        description: 'A restrained route tint supports the lamp without becoming another filled tab.',
-        family: 'lamp',
-        usesRouteAccent: true,
-      },
-      {
-        id: 'signal-dot',
-        number: '11',
-        title: 'Signal dot',
-        description: 'The lamp collapses into a 5px ball, bringing selection into the site’s circle language.',
-        family: 'lamp',
-        usesRouteAccent: true,
+        id: 'ribbed-monolith',
+        title: 'Ribbed monolith',
+        description: 'The bar sits inside a single architectural wall object whose fine ribs stop around each control cutout.',
+        structure: 'dense ribbed wall blocks',
       },
     ],
   },
@@ -137,6 +73,7 @@ function ButtonBarVariant({
   const sampleClassName = [
     'button-bar-playground__sample',
     'button-bar-playground__sample--' + variant.id,
+    ...(variant.composition || []).map((id) => 'button-bar-playground__sample--' + id),
   ].join(' ');
 
   useEffect(() => {
@@ -162,6 +99,11 @@ function ButtonBarVariant({
         </div>
       </header>
       <div className="button-bar-playground__stage">
+        <div
+          className="button-bar-playground__side button-bar-playground__side--left"
+          aria-hidden="true"
+          data-structure={variant.structure}
+        ><i /><i /><i /><i /><i /></div>
         <ShellButtonBar
           activeRouteId={activeRouteId}
           className="button-bar-playground__bar"
@@ -169,6 +111,11 @@ function ButtonBarVariant({
           onRouteSelect={onSelectRoute}
           preview
         />
+        <div
+          className="button-bar-playground__side button-bar-playground__side--right"
+          aria-hidden="true"
+          data-structure={variant.structure}
+        ><i /><i /><i /><i /><i /></div>
       </div>
     </article>
   );
@@ -185,15 +132,9 @@ export function ButtonBarPlayground() {
         <div className="button-bar-playground__intro">
           <div className="button-bar-playground__eyebrow">
             <span>Playground / Button Bar</span>
-            <span className="button-bar-playground__palette" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-              <i />
-            </span>
           </div>
-          <h1 id="button-bar-playground-title">Active-state studies</h1>
-          <p>Tap a route in any row to compare that state across every version.</p>
+          <h1 id="button-bar-playground-title">Physical button studies</h1>
+          <p>The final production bar followed by six neutral studies. Tap a route to compare the inset state across every version.</p>
         </div>
         <div className="button-bar-playground__readout" role="status" aria-live="polite">
           <span>Previewing</span>

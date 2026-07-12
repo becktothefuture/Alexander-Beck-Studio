@@ -871,3 +871,421 @@ body.button-bar-playground-page {
     transform: translateX(-50%);
   }
 }
+
+/* Neutral physical studies ------------------------------------------------- */
+
+.button-bar-playground {
+  --button-bar-playground-wall: color-mix(
+    in srgb,
+    var(--abs-browser-chrome, #141517) 90%,
+    rgba(var(--abs-rgb-white), 1) 10%
+  );
+  --button-bar-playground-cut: rgba(var(--abs-rgb-black), 0.46);
+  --button-bar-playground-edge: rgba(var(--abs-rgb-white), 0.105);
+  --button-bar-playground-edge-soft: rgba(var(--abs-rgb-white), 0.045);
+  background:
+    linear-gradient(110deg, rgba(var(--abs-rgb-white), 0.018), transparent 38%),
+    var(--abs-browser-chrome, #141517);
+}
+
+.button-bar-playground__stage {
+  display: flex;
+  align-items: stretch;
+  gap: var(--gap-sm);
+  min-height: calc(var(--shell-tab-height, 48px) + (var(--shell-bottom-tabs-padding-y) * 2));
+  padding: var(--gap-xs);
+  box-sizing: border-box;
+  border: var(--abs-size-1px) solid rgba(var(--abs-rgb-black), 0.24);
+  background:
+    linear-gradient(180deg, rgba(var(--abs-rgb-white), 0.025), transparent 45%),
+    var(--button-bar-playground-wall);
+  box-shadow:
+    inset 0 var(--abs-size-1px) 0 var(--button-bar-playground-edge-soft),
+    inset 0 calc(var(--abs-size-1px) * -1) 0 rgba(var(--abs-rgb-black), 0.22);
+}
+
+.button-bar-playground__bar {
+  flex: 0 1 790px;
+  width: auto;
+  min-width: min(100%, 640px);
+  padding-inline: 0;
+}
+
+.button-bar-playground__side {
+  position: relative;
+  display: none;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--abs-radius-sm);
+  pointer-events: none;
+}
+
+.button-bar-playground__side i {
+  position: absolute;
+  display: block;
+}
+
+.button-bar-playground__sample .shell-tab,
+.button-bar-playground__sample .button-bar__primary-buttons .shell-tab,
+.button-bar-playground__sample .button-bar__primary-buttons .shell-tab:is(:hover, :focus-visible) {
+  --shell-tab-route-accent: rgba(var(--abs-rgb-white), 0.82);
+  --shell-tab-text-rest: rgba(var(--abs-rgb-white), 0.58);
+  --shell-tab-text-hover: rgba(var(--abs-rgb-white), 0.82);
+  --shell-tab-text-active: rgba(var(--abs-rgb-white), 0.88);
+  color: var(--shell-tab-text-rest);
+  border: var(--abs-size-1px) solid rgba(var(--abs-rgb-black), 0.42);
+  border-radius: var(--abs-radius-cta);
+  background: var(--button-bar-playground-wall);
+  box-shadow:
+    inset 0 var(--abs-size-1px) 0 var(--button-bar-playground-edge-soft),
+    0 var(--abs-size-1px) 0 rgba(var(--abs-rgb-white), 0.025);
+}
+
+.button-bar-playground__sample .shell-tab:is(:hover, :focus-visible) {
+  color: var(--shell-tab-text-hover);
+  background: color-mix(
+    in srgb,
+    var(--button-bar-playground-wall) 96%,
+    rgba(var(--abs-rgb-white), 1) 4%
+  );
+}
+
+.button-bar-playground__sample .shell-tab:focus-visible,
+.button-bar-playground__sample .button-bar__primary-buttons .shell-tab:focus-visible {
+  outline: var(--abs-size-1px) solid rgba(var(--abs-rgb-white), 0.34);
+  outline-offset: calc(var(--abs-size-1px) * 2);
+}
+
+.button-bar-playground__sample .button-bar__primary-buttons .shell-tab[aria-current='page'],
+.button-bar-playground__sample .button-bar__primary-buttons .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active),
+.button-bar-playground__sample .button-bar__sound-toggle[data-enabled='true'] {
+  color: var(--shell-tab-text-active);
+  border-color: rgba(var(--abs-rgb-black), 0.58);
+  background: color-mix(
+    in srgb,
+    var(--button-bar-playground-wall) 84%,
+    rgba(var(--abs-rgb-black), 1) 16%
+  );
+  box-shadow:
+    inset 0 calc(var(--abs-size-1px) * 2) calc(var(--abs-size-1px) * 4) rgba(var(--abs-rgb-black), 0.42),
+    inset 0 calc(var(--abs-size-1px) * -1) 0 rgba(var(--abs-rgb-white), 0.08);
+  transform: translateY(var(--abs-size-1px));
+}
+
+.button-bar-playground__sample .button-bar__primary-buttons .shell-tab[aria-current='page']::before {
+  content: none;
+}
+
+.button-bar-playground__sample .shell-tab:active,
+.button-bar-playground__sample .button-bar__primary-buttons .shell-tab:active:not([aria-current='page']) {
+  color: var(--shell-tab-text-active);
+  background: color-mix(
+    in srgb,
+    var(--button-bar-playground-wall) 76%,
+    rgba(var(--abs-rgb-black), 1) 24%
+  );
+  box-shadow:
+    inset 0 calc(var(--abs-size-1px) * 3) calc(var(--abs-size-1px) * 5) rgba(var(--abs-rgb-black), 0.5),
+    inset 0 calc(var(--abs-size-1px) * -1) 0 rgba(var(--abs-rgb-white), 0.07);
+  transform: translateY(var(--abs-size-1px));
+  transition-duration: 0ms;
+}
+
+.button-bar-playground__sample .button-bar__theme-thumb,
+.button-bar-playground__sample .button-bar__theme-toggle:is(:hover, :focus-visible) .button-bar__theme-thumb {
+  color: rgba(var(--abs-rgb-white), 0.76);
+  background: var(--button-bar-playground-wall);
+  box-shadow:
+    inset 0 var(--abs-size-1px) 0 var(--button-bar-playground-edge),
+    inset 0 calc(var(--abs-size-1px) * -1) 0 rgba(var(--abs-rgb-black), 0.26);
+}
+
+/* 01 — a single flush perimeter seam. */
+.button-bar-playground__sample--hairline-cutout .shell-tab,
+.button-bar-playground__sample--hairline-cutout .button-bar__primary-buttons .shell-tab {
+  border-color: rgba(var(--abs-rgb-black), 0.5);
+  box-shadow: 0 var(--abs-size-1px) 0 var(--button-bar-playground-edge-soft);
+}
+
+/* 02 — directional light distinguishes the fitted edge without lift. */
+.button-bar-playground__sample--light-edge .shell-tab,
+.button-bar-playground__sample--light-edge .button-bar__primary-buttons .shell-tab {
+  border-color: rgba(var(--abs-rgb-black), 0.34);
+  box-shadow:
+    inset 0 var(--abs-size-1px) 0 rgba(var(--abs-rgb-black), 0.38),
+    inset 0 calc(var(--abs-size-1px) * -1) 0 var(--button-bar-playground-edge),
+    0 var(--abs-size-1px) 0 rgba(var(--abs-rgb-white), 0.025);
+}
+
+/* 03 — the nav reads as one control rail with internal joints. */
+.button-bar-playground__sample--continuous-rail .button-bar__primary-buttons {
+  gap: 0;
+  padding: calc(var(--abs-size-1px) * 3);
+  border: var(--abs-size-1px) solid rgba(var(--abs-rgb-black), 0.46);
+  border-radius: var(--abs-radius-cta);
+  background: color-mix(in srgb, var(--button-bar-playground-wall) 82%, rgba(var(--abs-rgb-black), 1) 18%);
+  box-shadow:
+    inset 0 calc(var(--abs-size-1px) * 2) calc(var(--abs-size-1px) * 4) rgba(var(--abs-rgb-black), 0.3),
+    inset 0 calc(var(--abs-size-1px) * -1) 0 var(--button-bar-playground-edge-soft);
+}
+
+.button-bar-playground__sample--continuous-rail .button-bar__primary-buttons .shell-tab {
+  border-width: 0 var(--abs-size-1px) 0 0;
+  border-color: rgba(var(--abs-rgb-black), 0.3);
+  border-radius: 0;
+  box-shadow: inset calc(var(--abs-size-1px) * -1) 0 0 var(--button-bar-playground-edge-soft);
+}
+
+.button-bar-playground__sample--continuous-rail .button-bar__primary-buttons .shell-tab:first-child {
+  border-radius: calc(var(--abs-radius-cta) - (var(--abs-size-1px) * 3)) 0 0 calc(var(--abs-radius-cta) - (var(--abs-size-1px) * 3));
+}
+
+.button-bar-playground__sample--continuous-rail .button-bar__primary-buttons .shell-tab:last-child {
+  border-right: 0;
+  border-radius: 0 calc(var(--abs-radius-cta) - (var(--abs-size-1px) * 3)) calc(var(--abs-radius-cta) - (var(--abs-size-1px) * 3)) 0;
+}
+
+/* 04 — a second seam implies a compressible gasket. */
+.button-bar-playground__sample--precision-gasket .shell-tab,
+.button-bar-playground__sample--precision-gasket .button-bar__primary-buttons .shell-tab {
+  border-color: rgba(var(--abs-rgb-black), 0.54);
+  box-shadow:
+    0 0 0 var(--abs-size-1px) rgba(var(--abs-rgb-white), 0.045),
+    inset 0 0 0 var(--abs-size-1px) rgba(var(--abs-rgb-black), 0.2);
+}
+
+/* 05 — a shallow inner shelf surrounds each plate. */
+.button-bar-playground__sample--stepped-cavity .shell-tab,
+.button-bar-playground__sample--stepped-cavity .button-bar__primary-buttons .shell-tab {
+  border: calc(var(--abs-size-1px) * 3) solid color-mix(
+    in srgb,
+    var(--button-bar-playground-wall) 80%,
+    rgba(var(--abs-rgb-black), 1) 20%
+  );
+  outline: var(--abs-size-1px) solid rgba(var(--abs-rgb-black), 0.42);
+  outline-offset: calc(var(--abs-size-1px) * -1);
+  box-shadow:
+    inset 0 var(--abs-size-1px) calc(var(--abs-size-1px) * 3) rgba(var(--abs-rgb-black), 0.34),
+    0 var(--abs-size-1px) 0 var(--button-bar-playground-edge-soft);
+}
+
+/* 06 — the controls become apertures in one ribbed wall object. */
+.button-bar-playground__sample--ribbed-monolith .button-bar-playground__stage {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 calc(var(--abs-size-1px) * 5),
+      rgba(var(--abs-rgb-black), 0.22) calc(var(--abs-size-1px) * 5) calc(var(--abs-size-1px) * 6),
+      rgba(var(--abs-rgb-white), 0.035) calc(var(--abs-size-1px) * 6) calc(var(--abs-size-1px) * 7)
+    ),
+    var(--button-bar-playground-wall);
+}
+
+.button-bar-playground__sample--ribbed-monolith .button-bar-playground__bar {
+  padding: var(--gap-xs);
+  border: var(--abs-size-1px) solid rgba(var(--abs-rgb-black), 0.42);
+  border-radius: var(--abs-radius-cta);
+  background: var(--button-bar-playground-wall);
+  box-shadow:
+    inset 0 calc(var(--abs-size-1px) * 2) calc(var(--abs-size-1px) * 4) rgba(var(--abs-rgb-black), 0.34),
+    0 var(--abs-size-1px) 0 var(--button-bar-playground-edge-soft);
+}
+
+@media (min-width: 900px) {
+  .button-bar-playground__side {
+    display: block;
+  }
+
+  /* 01: fine parallel cooling cuts. */
+  .button-bar-playground__sample--hairline-cutout .button-bar-playground__side {
+    background: repeating-linear-gradient(
+      180deg,
+      transparent 0 calc(var(--abs-size-1px) * 7),
+      rgba(var(--abs-rgb-black), 0.42) calc(var(--abs-size-1px) * 7) calc(var(--abs-size-1px) * 8),
+      rgba(var(--abs-rgb-white), 0.055) calc(var(--abs-size-1px) * 8) calc(var(--abs-size-1px) * 9)
+    );
+  }
+
+  /* 02: five short fins with a deliberate light-catching lower edge. */
+  .button-bar-playground__sample--light-edge .button-bar-playground__side i {
+    right: 8%;
+    left: 8%;
+    height: calc(var(--abs-size-1px) * 4);
+    border-top: var(--abs-size-1px) solid rgba(var(--abs-rgb-black), 0.38);
+    border-bottom: var(--abs-size-1px) solid rgba(var(--abs-rgb-white), 0.09);
+  }
+
+  .button-bar-playground__sample--light-edge .button-bar-playground__side i:nth-child(1) { top: 18%; }
+  .button-bar-playground__sample--light-edge .button-bar-playground__side i:nth-child(2) { top: 33%; }
+  .button-bar-playground__sample--light-edge .button-bar-playground__side i:nth-child(3) { top: 48%; }
+  .button-bar-playground__sample--light-edge .button-bar-playground__side i:nth-child(4) { top: 63%; }
+  .button-bar-playground__sample--light-edge .button-bar-playground__side i:nth-child(5) { top: 78%; }
+
+  /* 03: two long guide rails converge on the control strip. */
+  .button-bar-playground__sample--continuous-rail .button-bar-playground__side::before,
+  .button-bar-playground__sample--continuous-rail .button-bar-playground__side::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    left: 0;
+    height: calc(var(--abs-size-1px) * 5);
+    border-top: var(--abs-size-1px) solid rgba(var(--abs-rgb-black), 0.46);
+    border-bottom: var(--abs-size-1px) solid rgba(var(--abs-rgb-white), 0.055);
+  }
+
+  .button-bar-playground__sample--continuous-rail .button-bar-playground__side::before { top: 30%; }
+  .button-bar-playground__sample--continuous-rail .button-bar-playground__side::after { bottom: 30%; }
+
+  /* 04: paired pressure bands with alternating depth. */
+  .button-bar-playground__sample--precision-gasket .button-bar-playground__side {
+    background:
+      linear-gradient(180deg, transparent 28%, rgba(var(--abs-rgb-black), 0.4) 28% 31%, rgba(var(--abs-rgb-white), 0.05) 31% 33%, transparent 33%),
+      linear-gradient(180deg, transparent 67%, rgba(var(--abs-rgb-black), 0.4) 67% 70%, rgba(var(--abs-rgb-white), 0.05) 70% 72%, transparent 72%);
+  }
+
+  /* 05: shallow horizontal terraces, shortened toward the outside edge. */
+  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side i {
+    top: 50%;
+    right: 0;
+    height: calc(var(--abs-size-1px) * 4);
+    border-top: var(--abs-size-1px) solid rgba(var(--abs-rgb-black), 0.4);
+    border-bottom: var(--abs-size-1px) solid rgba(var(--abs-rgb-white), 0.06);
+    transform: translateY(-50%);
+  }
+
+  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side--right i { right: auto; left: 0; }
+  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side i:nth-child(1) { width: 100%; margin-top: calc(var(--abs-size-1px) * -18); }
+  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side i:nth-child(2) { width: 82%; margin-top: calc(var(--abs-size-1px) * -9); }
+  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side i:nth-child(3) { width: 64%; }
+  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side i:nth-child(4) { width: 82%; margin-top: calc(var(--abs-size-1px) * 9); }
+  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side i:nth-child(5) { width: 100%; margin-top: calc(var(--abs-size-1px) * 18); }
+
+  /* 06: denser ribs make the whole lower band feel structurally continuous. */
+  .button-bar-playground__sample--ribbed-monolith .button-bar-playground__side {
+    background: repeating-linear-gradient(
+      180deg,
+      transparent 0 calc(var(--abs-size-1px) * 5),
+      rgba(var(--abs-rgb-black), 0.28) calc(var(--abs-size-1px) * 5) calc(var(--abs-size-1px) * 6),
+      rgba(var(--abs-rgb-white), 0.045) calc(var(--abs-size-1px) * 6) calc(var(--abs-size-1px) * 7)
+    );
+  }
+}
+
+@media (max-width: 899px) {
+  .button-bar-playground__stage {
+    padding-inline: 0;
+  }
+
+  .button-bar-playground__bar {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    padding-inline: clamp(5px, 1.5vw, 8px);
+  }
+}
+
+/* 00 — exact production composition: Precision Gasket + Stepped Cavity. */
+.button-bar-playground__sample--final-menu-bar .button-bar-playground__stage {
+  border-color: transparent;
+  background: var(--abs-browser-chrome);
+  box-shadow: none;
+}
+
+.button-bar-playground__sample--final-menu-bar .button-bar-playground__side i:nth-child(3) {
+  display: none;
+}
+
+.button-bar-playground__sample--final-menu-bar .button-bar-playground__side i {
+  border-top-color: rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.6);
+  border-bottom-color: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.07);
+}
+
+.button-bar-playground__sample--final-menu-bar .button-bar-playground__side i:nth-child(1) {
+  margin-top: calc(var(--abs-size-1px) * -13.5);
+}
+
+.button-bar-playground__sample--final-menu-bar .button-bar-playground__side i:nth-child(2) {
+  margin-top: calc(var(--abs-size-1px) * -4.5);
+}
+
+.button-bar-playground__sample--final-menu-bar .button-bar-playground__side i:nth-child(4) {
+  margin-top: calc(var(--abs-size-1px) * 4.5);
+}
+
+.button-bar-playground__sample--final-menu-bar .button-bar-playground__side i:nth-child(5) {
+  margin-top: calc(var(--abs-size-1px) * 13.5);
+}
+
+.button-bar-playground__sample--final-menu-bar .button-bar {
+  --button-bar-gasket-ground: var(--abs-browser-chrome);
+}
+
+.button-bar-playground__sample--final-menu-bar .button-bar .shell-tab,
+.button-bar-playground__sample--final-menu-bar .button-bar__primary-buttons .shell-tab,
+.button-bar-playground__sample--final-menu-bar .button-bar__primary-buttons .shell-tab:is(:hover, :focus-visible) {
+  --shell-tab-motion-y: 0px;
+  --shell-tab-motion-scale: 1;
+  --shell-tab-text-rest: var(--button-bar-gasket-text-rest);
+  --shell-tab-text-hover: color-mix(in srgb, var(--text-primary) 78%, transparent);
+  --shell-tab-text-active: var(--button-bar-gasket-text-active);
+  color: var(--shell-tab-text-rest);
+  border: var(--abs-size-1px) solid var(--button-bar-gasket-cut);
+  border-radius: var(--button-bar-gasket-radius);
+  outline: none;
+  background: var(--button-bar-gasket-ground);
+  box-shadow:
+    inset 0 var(--abs-size-1px) 0 var(--button-bar-gasket-edge-soft),
+    0 var(--abs-size-1px) 0 var(--button-bar-gasket-edge-lower);
+  transform: none;
+}
+
+.button-bar-playground__sample--final-menu-bar
+  .button-bar
+  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active)
+  .shell-tab__label {
+  color: var(--shell-tab-text-hover);
+}
+
+.button-bar-playground__sample--final-menu-bar .button-bar .shell-tab:focus-visible,
+.button-bar-playground__sample--final-menu-bar .button-bar__primary-buttons .shell-tab:focus-visible {
+  outline: var(--abs-size-1px) solid color-mix(in srgb, var(--text-primary) 34%, transparent);
+  outline-offset: calc(var(--abs-size-1px) * 3);
+}
+
+.button-bar-playground__sample--final-menu-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--final-menu-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active),
+.button-bar-playground__sample--final-menu-bar .button-bar__sound-toggle[data-enabled='true'],
+.button-bar-playground__sample--final-menu-bar
+  .button-bar__sound-toggle[data-enabled='true']:is(:hover, :focus-visible, :active) {
+  --shell-tab-motion-y: var(--abs-size-1px);
+  --shell-tab-motion-scale: 1;
+  color: var(--shell-tab-text-active);
+  border-color: color-mix(in srgb, var(--button-bar-gasket-cut) 78%, rgba(var(--abs-rgb-black), 1) 22%);
+  border-bottom-color: var(--button-bar-gasket-pressed-light);
+  background: color-mix(in srgb, var(--shell-tab-surface-base) 84%, rgba(var(--abs-rgb-black), 1) 16%);
+  box-shadow: inset 0 calc(var(--abs-size-1px) * 2) calc(var(--abs-size-1px) * 4) rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.42);
+  transform: translateY(var(--abs-size-1px));
+}
+
+.button-bar-playground__sample--final-menu-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']::before {
+  content: none;
+}
+
+.button-bar-playground__sample--final-menu-bar .button-bar .shell-tab:active,
+.button-bar-playground__sample--final-menu-bar
+  .button-bar__primary-buttons
+  .shell-tab:active:not([aria-current='page']) {
+  color: var(--shell-tab-text-active);
+  border-bottom-color: var(--button-bar-gasket-pressed-light);
+  background: color-mix(in srgb, var(--shell-tab-surface-base) 76%, rgba(var(--abs-rgb-black), 1) 24%);
+  box-shadow: inset 0 calc(var(--abs-size-1px) * 3) calc(var(--abs-size-1px) * 5) rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.5);
+  transform: translateY(var(--abs-size-1px));
+  transition-duration: 0ms;
+}

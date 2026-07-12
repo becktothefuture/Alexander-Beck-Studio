@@ -8,6 +8,7 @@ import { getGlobals, clearBalls, syncPitPortfolioRadiusStatsFromBalls } from '..
 import { getPortfolioProjectPaletteColor } from '../visual/colors.js';
 import { resize, detectOptimalDPR } from '../rendering/renderer.js';
 import { getSimulationVisibleInsetPx } from '../utils/frame-geometry.js';
+import { resolvePortfolioLabelContent } from './portfolio-content.js';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -295,28 +296,6 @@ export function syncPortfolioAccentCircleColors() {
     }
   }
   if (any) globals.portfolioSyncLabelLayer?.();
-}
-
-export function resolvePortfolioLabelContent(project, fallbackTitle = 'Untitled Project') {
-  const eyebrow = String(
-    project?.eyebrow
-      || project?.labelEyebrow
-      || project?.client
-      || ''
-  ).trim();
-  const title = String(
-    project?.shapeTitle
-      || project?.shapeTitleLong
-      || project?.bodyTitle
-      || project?.displayTitle
-      || project?.title
-      || fallbackTitle
-  ).trim() || String(fallbackTitle || 'Untitled Project').trim();
-
-  return {
-    eyebrow,
-    title,
-  };
 }
 
 export function buildWrappedTitle(ctx, title, bounds) {

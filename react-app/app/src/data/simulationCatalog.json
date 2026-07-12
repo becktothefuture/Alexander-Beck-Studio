@@ -397,18 +397,6 @@
       },
       "summary": "Original scan-derived point-cloud route with a baked Blender camera path and flat site-circle rendering.",
       "lastReviewedAt": "2026-06-25"
-    },
-    {
-      "id": "portfolio-pit",
-      "name": "Portfolio Pit",
-      "chapter": "PORTFOLIO PIT",
-      "stage": "hidden",
-      "surface": "route-runtime",
-      "origin": "core-site",
-      "launchPath": "/portfolio.html",
-      "includeInNarrative": false,
-      "reviewStatus": "internal",
-      "summary": "Portfolio-specific pit runtime, not a standalone homepage candidate."
     }
   ]
 }

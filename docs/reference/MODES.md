@@ -9,7 +9,7 @@ Source of truth for mode IDs and narrative order:
 
 ## Runtime Summary
 
-- `27` mode IDs are registered in `MODES`, including the portfolio route's `portfolio-pit`.
+- Public simulation IDs and narrative ordering are defined by the mode constants and catalog together.
 - `24` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
 - The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `17` Daily simulations.
 - Daily Simulation selection uses the catalog `daily-rotation` stage, anchored by `dailyRotation.anchorDate` / `dailyRotation.anchorSimulationId` in `react-app/app/src/data/simulationCatalog.json`. Current anchor: `2026-06-27` resolves to `pit`.
@@ -32,7 +32,6 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | --- | --- | --- |
 | Ball Field | `pit` | Active |
 | Shapes | `shapes` | Active |
-| Portfolio Pit | `portfolio-pit` | Portfolio route only |
 | Light Swarm | `flies` | Active |
 | Weightless Drift | `weightless` | Active |
 | Water Flow | `water` | Active |
@@ -149,5 +148,4 @@ Loop order is `Featured -> Extended -> Featured`.
 
 - [`SIMULATION-DESIGN-GUIDELINES.md`](./SIMULATION-DESIGN-GUIDELINES.md) — Design, material, avoid-list, and promotion gate for new simulations
 - [`CONFIGURATION.md`](./CONFIGURATION.md) — Runtime config keys and ranges
-- [`INTEGRATION.md`](./INTEGRATION.md) — Historical standalone embed guidance
 - [`../development/DEV-WORKFLOW.md`](../development/DEV-WORKFLOW.md) — Dev/build workflow

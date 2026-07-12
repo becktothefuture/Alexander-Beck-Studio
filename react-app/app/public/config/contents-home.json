@@ -1,10 +1,5 @@
 {
-  "meta": {
-    "title": "Alexander Beck — Product Design, AI Product Design, Creative Technology — London",
-    "description": "Alexander Beck designs product experiences, AI workflows, interaction systems, and creative technology from London."
-  },
   "edge": {
-    "chapterText": "SOURCE MATERIAL",
     "tagline": "A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable.",
     "copyright": "\u00a9 2026 Alexander Beck"
   },
@@ -47,31 +42,8 @@
     "textBeforeLink": "Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity.",
     "mobileTextBeforeLink": "Innovation happens when different creative disciplines collide. I bring together design, technology, and storytelling to create experiences that feel familiar and entirely new.",
     "link": {
-      "id": "contact-email-inline",
-      "href": "#",
       "text": "Let's chat."
     }
-  },
-  "footer": {
-    "navAriaLabel": "Main navigation links",
-    "links": {
-      "contact": {
-        "id": "contact-email",
-        "href": "#",
-        "text": "Contact"
-      },
-      "portfolio": {
-        "id": "portfolio-modal-trigger",
-        "href": "#",
-        "text": "Portfolio"
-      },
-      "cv": {
-        "id": "cv-modal-trigger",
-        "href": "#",
-        "text": "About Me"
-      }
-    },
-    "metaLocationPrefix": "London, UK \u00b7 "
   },
   "socials": {
     "ariaLabel": "Social media links",
@@ -90,6 +62,8 @@
     }
   },
   "contact": {
+    "title": "Contact",
+    "description": "Hit me up for collaborations and job opportunities. If you need innovative thinking and a creative mind to tackle complex aesthetic, visual, and system problems, get in touch.",
     "email": "alexander@beck.fyi",
     "copy": {
       "buttonAriaLabel": "Copy email address",
@@ -105,22 +79,9 @@
     "blurb": "A curated selection of product projects across several industries—finance, mobility, digital ventures, and more. Each case shows how I partner with teams to clarify the proposition, shape the interaction, and carry the work through to what actually ships."
   },
   "gates": {
-    "common": {
-      "backText": "BACK",
-      "backAriaLabel": "Back",
-      "closeAriaLabel": "Close"
-    },
-    "cv": {
-      "title": "About Me",
-      "description": "Bots don't deserve nice things; that's why I put this gate up. If I gave you a code, enter it here—otherwise get in touch and I'll send access."
-    },
     "portfolio": {
       "title": "View Portfolio",
       "description": "Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated."
-    },
-    "contact": {
-      "title": "Contact",
-      "description": "Hit me up for collaborations and job opportunities. If you need innovative thinking and a creative mind to tackle complex aesthetic, visual, and system problems, get in touch."
     }
   }
 }

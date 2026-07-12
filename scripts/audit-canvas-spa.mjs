@@ -35,6 +35,7 @@ function resolveHomeEntryUrl() {
   ) {
     url.searchParams.set('mode', 'pit');
   }
+  url.searchParams.set('absAudit', '1');
   return url.toString();
 }
 const quiet = process.env.ABS_AUDIT_QUIET === '1' || process.env.ABS_AUDIT_QUIET === 'true';
@@ -83,12 +84,132 @@ async function snapshot(page, label) {
   }, { label, selector: SIMULATION_CANVAS_SELECTOR });
 }
 
+async function readCanvasDigest(page) {
+  return page.evaluate(() => {
+    const canvas = document.getElementById('c');
+    if (!canvas) return 0;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let digest = 2166136261;
+    const stepX = Math.max(1, Math.floor(canvas.width / 32));
+    const stepY = Math.max(1, Math.floor(canvas.height / 20));
+    for (let y = 0; y < canvas.height; y += stepY) {
+      for (let x = 0; x < canvas.width; x += stepX) {
+        const offset = ((y * canvas.width) + x) * 4;
+        digest ^= pixels[offset] + (pixels[offset + 1] << 8) + (pixels[offset + 2] << 16) + pixels[offset + 3];
+        digest = Math.imul(digest, 16777619);
+      }
+    }
+    return digest >>> 0;
+  });
+}
+
+async function waitForCanvasDigestChange(page, initialDigest, timeoutMs = BUFFER_WAIT_MS) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if ((await readCanvasDigest(page)) !== initialDigest) return;
+    await page.waitForTimeout(50);
+  }
+  throw new Error('home canvas digest did not change after stale Portfolio bootstrap settled');
+}
+
+async function runCancelledPortfolioBootstrapProbe(page) {
+  let releaseRequest;
+  let markRequestHeld;
+  let markRequestSettled;
+  const releasePromise = new Promise((resolve) => { releaseRequest = resolve; });
+  const requestHeldPromise = new Promise((resolve) => { markRequestHeld = resolve; });
+  const requestSettledPromise = new Promise((resolve) => { markRequestSettled = resolve; });
+  const portfolioDataPattern = /\/config\/contents-portfolio\.json(?:\?|$)/;
+
+  await page.route(portfolioDataPattern, async (route) => {
+    markRequestHeld();
+    try {
+      await releasePromise;
+      await route.continue();
+    } catch {
+      // The expected abort path can close the held request before release.
+    } finally {
+      markRequestSettled();
+    }
+  });
+
+  await page.evaluate(() => {
+    sessionStorage.setItem('abs_portfolio_ok', String(Date.now()));
+    window.__ABS_SPA_NAVIGATE__('/portfolio.html', {});
+  });
+  await page.waitForURL(/portfolio/i, { timeout: BUFFER_WAIT_MS });
+  await Promise.race([
+    requestHeldPromise,
+    page.waitForTimeout(BUFFER_WAIT_MS).then(() => {
+      throw new Error('portfolio bootstrap did not request contents-portfolio.json');
+    }),
+  ]);
+
+  await page.evaluate(() => {
+    window.__ABS_SPA_NAVIGATE__('/index.html', {});
+  });
+  await page.waitForURL((url) => url.pathname === '/' || /index/i.test(url.pathname), {
+    timeout: BUFFER_WAIT_MS,
+  });
+  releaseRequest();
+  await Promise.race([
+    requestSettledPromise,
+    page.waitForTimeout(BUFFER_WAIT_MS).then(() => {
+      throw new Error('held Portfolio bootstrap request did not settle after release');
+    }),
+  ]);
+  await page.unroute(portfolioDataPattern);
+  await page.evaluate(() => new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  }));
+
+  try {
+    await page.waitForFunction(() => {
+    const root = document.documentElement;
+    const title = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
+    return (
+      root.dataset.absRuntimeRoute === 'home'
+      && root.dataset.absRuntimeStatus === 'ready'
+      && root.dataset.absHomeRouteReady === 'true'
+      && root.dataset.absHomeCanvasTitleReady === 'true'
+      && root.dataset.absTransitionPhase === 'idle'
+      && !root.classList.contains('portfolio-booting')
+      && !root.classList.contains('portfolio-loaded')
+      && !document.body.classList.contains('portfolio-page')
+      && !document.body.dataset.portfolioLoadState
+      && title?.canvasTitleVisible === true
+      && title?.canvasTitleLineCount >= 2
+      && title?.ballCount > 0
+    );
+    }, null, { timeout: BUFFER_WAIT_MS });
+  } catch (error) {
+    const state = await page.evaluate(() => ({
+      path: location.pathname,
+      htmlClass: document.documentElement.className,
+      bodyClass: document.body.className,
+      rootData: { ...document.documentElement.dataset },
+      bodyData: { ...document.body.dataset },
+      runtime: window.__ABS_RUNTIME_LIFECYCLE__ || null,
+      home: window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.() || null,
+    }));
+    console.error('Cancelled bootstrap probe state:', JSON.stringify(state, null, 2));
+    throw error;
+  }
+
+  const firstDigest = await readCanvasDigest(page);
+  await waitForCanvasDigestChange(page, firstDigest);
+}
+
 async function main() {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
   await page.goto(resolveHomeEntryUrl(), { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForSelector(SIMULATION_CANVAS_SELECTOR, { state: 'attached', timeout: 30000 });
+  await waitForSimulationCanvasBuffer(page);
+
+  await runCancelledPortfolioBootstrapProbe(page);
   await waitForSimulationCanvasBuffer(page);
 
   const rows = [];

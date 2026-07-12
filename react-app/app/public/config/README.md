@@ -9,14 +9,13 @@
 - `default-config.json` — generated runtime settings for the homepage simulation.
 - `shell-config.json` — generated shared shell/surface/layout settings.
 - `portfolio-config.json` — generated portfolio-specific tuning.
-- `cv-config.json` — generated CV-specific tuning.
+- `cv-config.json` — retained generated-schema compatibility output; there is no live CV route.
 
 These generated files exist for runtime compatibility and build output. Do not treat them as the primary source of truth.
 
 ## Content files
 
 - `contents-home.json` — runtime copy for UI strings (copied to `dist/config/contents-home.json` + `dist/js/contents-home.json`).
-- `contents-cv.json` — CV/About route copy imported through the Vite virtual content plugin.
 - `contents-portfolio.json` — portfolio projects (copied to `dist/config/contents-portfolio.json` + `dist/js/contents-portfolio.json`).
 - Do not add a parallel `portfolio-data.json` content source. `contents-portfolio.json` is the only live portfolio content file.
 

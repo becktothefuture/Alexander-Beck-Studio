@@ -745,7 +745,7 @@ const state = {
   frameBorderWidthEffective: 20,
   frameOuterRadius: 46,      // Derived outer corner radius in px
   frameInnerRadius: 42,      // Canonical inner corner radius in px
-  frameInnerSurface: 'var(--abs-wall-base)', // Inner fill surface color
+  frameInnerSurface: 'var(--studio-window-bg)', // Theme-aware studio-window fill
   frameBorderGradientEdgeOpacity: 0.012, // Border gradient edge (180°; L/R rails pick up mid stop)
   frameBorderGradientMidOpacity: 0.025,  // Mid stop — ~2:1 vs edge
   frameVignetteEdgeOffsetY: 5,    // Inset vignette edge offset Y in px
@@ -1232,7 +1232,7 @@ export function applyLayoutCSSVars() {
   const frameBorderWidth = isMobileLayout ? frameBorderWidthMobile : frameBorderWidthDesktop;
   const frameInnerRadius = clampInt(state.wallRadius, 0, 300, 42);
   const frameOuterRadius = Math.max(frameInnerRadius, frameInnerRadius + frameBorderWidth);
-  const frameInnerSurface = 'var(--abs-wall-base)';
+  const frameInnerSurface = 'var(--studio-window-bg)';
   const frameBorderGradientEdgeOpacity = clampNumber(state.frameBorderGradientEdgeOpacity, 0, 1, 0.012);
   const frameBorderGradientMidOpacity = clampNumber(state.frameBorderGradientMidOpacity, 0, 1, 0.025);
   const frameVignetteEdgeOffsetY = clampInt(state.frameVignetteEdgeOffsetY, -100, 100, 5);
@@ -2183,7 +2183,7 @@ export function initState(config) {
   } else {
     state.frameOuterRadius = Math.max(0, state.frameInnerRadius + state.frameBorderWidth);
   }
-  state.frameInnerSurface = 'var(--abs-wall-base)';
+  state.frameInnerSurface = 'var(--studio-window-bg)';
   if (config.frameBorderGradientEdgeOpacity !== undefined) {
     state.frameBorderGradientEdgeOpacity = clampNumber(config.frameBorderGradientEdgeOpacity, 0, 1, state.frameBorderGradientEdgeOpacity);
   } else {

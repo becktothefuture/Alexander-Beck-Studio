@@ -44,7 +44,7 @@ export function setupMasterControls(options = {}) {
       colorSelect.dataset.panelBound = 'true';
       colorSelect.addEventListener('change', () => {
         applyColorTemplate(colorSelect.value);
-        applyChromeHarmony(Boolean(getGlobals().isDarkMode));
+        applyChromeHarmony();
         autoSaveSettings();
       });
     }

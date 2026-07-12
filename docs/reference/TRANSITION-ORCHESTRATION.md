@@ -24,6 +24,8 @@ Canonical engineering contract for route and modal transitions.
 - Settled state returns to `idle`.
 - Optional return easing marker: `data-abs-transition-returning="active"`.
 - `abs:route-ready` means the destination route is layout-settled enough to reveal, not merely mounted.
+- Runtime-backed `abs:route-ready` events include a generation. Readiness consumers compare it with the authoritative module-local runtime snapshot and ignore stale events.
+- Home readiness requires the current runtime snapshot, `data-abs-home-route-ready="true"`, and either a confirmed canvas-title draw or the restored two-line semantic title fallback. Canvas allocation alone is not readiness.
 - First-load entrance choreography and SPA route choreography are separate systems. Direct-load helpers must not mutate route-in visibility.
 
 ## 4) Direct-load boot overlay

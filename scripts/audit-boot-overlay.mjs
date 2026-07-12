@@ -48,7 +48,6 @@ const routes = [
 const htmlEntryFiles = [
   'react-app/app/index.html',
   'react-app/app/portfolio.html',
-  'react-app/app/cv.html',
   'react-app/app/styleguide.html',
   'react-app/app/palette-lab.html',
 ];

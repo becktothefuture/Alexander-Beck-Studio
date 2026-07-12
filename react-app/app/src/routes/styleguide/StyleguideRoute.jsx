@@ -1,5 +1,4 @@
-import { MainNavLink } from '../../components/MainNavLink.jsx';
-import { buildRouteHref } from '../../lib/routes.js';
+import { buildRouteHref, SHELL_ROUTE_TABS } from '../../lib/routes.js';
 import { StyleguideTypographySection } from './StyleguideTypography.jsx';
 
 export const STYLEGUIDE_ROUTE_RUNTIME = {
@@ -8,6 +7,37 @@ export const STYLEGUIDE_ROUTE_RUNTIME = {
 };
 
 const homeHref = buildRouteHref('home');
+
+function renderButtonBarSpecimen() {
+  return (
+    <div className="button-bar shell-bottom-band styleguide-button-bar" data-button-bar>
+      <nav className="button-bar__primary-buttons shell-tab-nav" aria-label="Button Bar specimen">
+        {SHELL_ROUTE_TABS.map((tab) => (
+          <button
+            key={tab.routeId}
+            type="button"
+            className={`button-bar__button shell-tab${tab.iconOnly ? ' button-bar__button--icon-only shell-tab--icon-only' : ''}`}
+            data-route-tab={tab.routeId}
+            data-state={tab.routeId === 'portfolio' ? 'active' : 'idle'}
+            aria-current={tab.routeId === 'portfolio' ? 'page' : undefined}
+            disabled
+          >
+            <i className={`ti ${tab.icon} button-bar__icon shell-tab__icon`} aria-hidden="true" />
+            <span className="button-bar__label shell-tab__label">{tab.label}</span>
+          </button>
+        ))}
+      </nav>
+      <div className="button-bar__secondary-buttons" role="group" aria-label="Secondary controls specimen">
+        <button type="button" className="button-bar__secondary-button shell-tab shell-tab--icon-only" aria-label="Sound off" disabled>
+          <i className="ti ti-volume-off button-bar__secondary-icon shell-tab__icon" aria-hidden="true" />
+        </button>
+        <button type="button" className="button-bar__secondary-button button-bar__theme-toggle shell-tab shell-tab--icon-only" aria-label="Theme" disabled>
+          <span className="button-bar__theme-thumb" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function renderSoundOnIcon() {
   return (
@@ -42,67 +72,34 @@ export function getStyleguideRouteView() {
         <div className="styleguide-doc">
           <h1 className="styleguide-doc__title">Component library</h1>
           <p className="styleguide-doc__lede">
-            Primary buttons: text actions via <code className="styleguide-doc__code">MainNavLink</code> (renders{' '}
-            <code className="styleguide-doc__code">.footer_link</code> inside <code className="styleguide-doc__code">.ui-main-nav</code>),
-            and icon actions via <code className="styleguide-doc__code">.abs-icon-btn</code>. Keep About Me title-cased; do not add alternate text-button classes.
+            The persistent Button Bar owns primary navigation. Route top bars are optional utility strips; icon actions use{' '}
+            <code className="styleguide-doc__code">.abs-icon-btn</code>. Keep About Me title-cased.
           </p>
 
           <StyleguideTypographySection />
 
-          <section className="styleguide-section" aria-labelledby="sg-main-nav">
-            <h2 id="sg-main-nav">Main navigation text buttons</h2>
+          <section className="styleguide-section" aria-labelledby="sg-button-bar">
+            <h2 id="sg-button-bar">Button Bar navigation</h2>
             <p className="styleguide-section__hint">
-              <code className="styleguide-doc__code">ui-main-nav</code> on the nav +{' '}
-              <code className="styleguide-doc__code">MainNavLink</code> (renders <code className="styleguide-doc__code">footer_link</code> + label span).
+              Route definitions and labels come from <code className="styleguide-doc__code">SHELL_ROUTE_TABS</code>. The specimen shows Portfolio active, alongside idle routes and the sound/theme group.
             </p>
-            <nav className="ui-main-nav styleguide-sample-row" aria-label="Sample main nav">
-              <MainNavLink>Contact</MainNavLink>
-              <MainNavLink>Portfolio</MainNavLink>
-              <MainNavLink>About Me</MainNavLink>
-            </nav>
+            {renderButtonBarSpecimen()}
           </section>
 
           <section className="styleguide-section" aria-labelledby="sg-route-topbar">
-            <h2 id="sg-route-topbar">Route top bar (full strip — canonical)</h2>
+            <h2 id="sg-route-topbar">Route utility top bar</h2>
             <p className="styleguide-section__hint">
-              Same contract as portfolio/CV: treat this like the footer—copy the structure, do not restyle. Portfolio keeps text actions on the right; CV keeps primary text actions in the center. Optional inset uses{' '}
-              <code className="styleguide-doc__code">--portfolio-nav-top</code> on top of <code className="styleguide-doc__code">--gap-xs</code>.
+              Use only when a route needs a back or utility action. Primary route switching remains in the Button Bar.
             </p>
             <div className="styleguide-topbar-frame">
               <header className="ui-top">
-                <div className="ui-top-main route-topbar portfolio-topbar">
+                <div className="ui-top-main route-topbar">
                   <div className="route-topbar__left">
                     <span className="gate-back abs-icon-btn styleguide-fake-icon" aria-hidden="true">
                       <i className="ti ti-arrow-left" aria-hidden="true" />
                     </span>
                   </div>
                   <div className="route-topbar__center" aria-hidden="true" />
-                  <div className="route-topbar__right ui-top-right">
-                    <nav className="portfolio-topnav ui-main-nav" aria-label="Sample route top nav">
-                      <MainNavLink>About Me</MainNavLink>
-                    </nav>
-                    <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample mute" disabled>
-                      <i className="ti ti-volume-off" aria-hidden="true" />
-                    </button>
-                    <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample sound on" data-enabled="true" aria-pressed="true" disabled>
-                      {renderSoundOnIcon()}
-                    </button>
-                  </div>
-                </div>
-              </header>
-            </div>
-            <div className="styleguide-topbar-frame">
-              <header className="ui-top">
-                <div className="ui-top-main route-topbar portfolio-topbar">
-                  <div className="route-topbar__left">
-                    <span className="gate-back abs-icon-btn styleguide-fake-icon" aria-hidden="true">
-                      <i className="ti ti-arrow-left" aria-hidden="true" />
-                    </span>
-                  </div>
-                  <nav className="route-topbar__center portfolio-topnav ui-main-nav" aria-label="Sample CV route top nav">
-                    <MainNavLink>Portfolio</MainNavLink>
-                    <MainNavLink>Contact</MainNavLink>
-                  </nav>
                   <div className="route-topbar__right ui-top-right">
                     <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample sound on" data-enabled="true" aria-pressed="true" disabled>
                       {renderSoundOnIcon()}
@@ -157,21 +154,6 @@ export function getStyleguideRouteView() {
                 <a href={homeHref}>text link</a>.
               </p>
             </blockquote>
-          </section>
-
-          <section className="styleguide-section" aria-labelledby="sg-text-stack">
-            <h2 id="sg-text-stack">Text buttons (stacked layout)</h2>
-            <p className="styleguide-section__hint">
-              Same component as the horizontal strip — <code className="styleguide-doc__code">MainNavLink</code> +{' '}
-              <code className="styleguide-doc__code">nav.ui-main-nav</code>. Use a column wrapper class for demos or tight columns; do not use a different button class.
-            </p>
-            <nav
-              className="ui-main-nav styleguide-main-nav--stack"
-              aria-label="Sample stacked text buttons"
-            >
-              <MainNavLink>Portfolio</MainNavLink>
-              <MainNavLink>Contact</MainNavLink>
-            </nav>
           </section>
 
           <section className="styleguide-section" aria-labelledby="sg-meta">

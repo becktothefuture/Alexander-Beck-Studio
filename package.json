@@ -51,8 +51,6 @@
     "audit:portfolio-drawer:pointer" : "node scripts\/audit-portfolio-drawer-pointer.mjs",
     "audit:portfolio-carousel" : "node scripts\/audit-portfolio-carousel.mjs",
     "audit:portfolio-gate" : "node scripts\/audit-portfolio-gate-flow.mjs",
-    "audit:portfolio-gate:quick" : "ABS_PORTFOLIO_GATE_MODE=quick node scripts\/audit-portfolio-gate-flow.mjs",
-    "audit:portfolio-pebbles" : "node scripts\/audit-portfolio-pebbles.mjs",
     "audit:portfolio-transition" : "node scripts\/audit-portfolio-project-transition.mjs",
     "audit:runtime-performance" : "node scripts\/audit-runtime-performance.mjs",
     "audit:runtime-performance:mobile-webkit" : "ABS_BROWSER=webkit node scripts\/audit-runtime-performance.mjs",
@@ -67,7 +65,7 @@
     "check:design-config" : "node scripts\/check-design-config.mjs",
     "check:malformed-tokens" : "node scripts\/check-malformed-tokens.mjs --full",
     "check:malformed-tokens:staged" : "node scripts\/check-malformed-tokens.mjs --staged",
-    "check:site" : "npm run check:malformed-tokens && npm run validate:html-fragments && npm run sim:validate && npm run lint --prefix react-app\/app && npm run check:design-config && npm run build",
+    "check:site" : "npm run check:malformed-tokens && npm run validate:html-entries && npm run sim:validate && npm run lint --prefix react-app\/app && npm run check:design-config && npm run build",
     "clean" : "rm -rf react-app\/app\/dist",
     "dev" : "npm run dev:react",
     "dev:react" : "npm run dev --prefix react-app\/app -- --port 8012",
@@ -86,7 +84,7 @@
     "startup" : "node scripts\/dev-startup.js",
     "sync:entry-shell" : "node scripts\/sync-production-entry-shell.mjs",
     "sync:entry-shell:check" : "node scripts\/sync-production-entry-shell.mjs --check",
-    "validate:html-fragments" : "node scripts\/validate-html-fragments.mjs"
+    "validate:html-entries" : "node scripts\/validate-html-entries.mjs"
   },
   "version" : "1.3.0"
 }

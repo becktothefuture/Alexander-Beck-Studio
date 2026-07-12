@@ -1,11 +1,6 @@
 import { loadRuntimeConfig } from '../utils/runtime-config.js';
 import { applyPortfolioConfig, loadPortfolioConfig, normalizePortfolioConfig } from './portfolio-config.js';
-import {
-  relayoutPortfolioProjectLabels,
-  initializePortfolioPit,
-  applyPortfolioAccentBallColor,
-  resolvePortfolioLabelContent,
-} from './pit-mode.js';
+import { resolvePortfolioLabelContent } from './portfolio-content.js';
 import { getPaletteTemplateOverrideFromUrl, getPortfolioProjectPaletteColor, getWeatherDrivenPaletteTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
 import { getGlobals } from '../core/state.js';
 import { loadRuntimeText } from '../utils/text-loader.js';
@@ -15,7 +10,6 @@ import * as SoundEngine from '../audio/sound-engine.js';
 import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 import { completeDirectBoot, waitForFrames, waitForPageReadyBarrier } from '../visual/page-orchestrator.js';
 import { resetTransitionState, setupPrefetchOnHover, setupTransitionNavigationLinks } from '../utils/page-nav.js';
-import { MODES } from '../core/constants.js';
 import {
   setupRenderer,
   getCanvas,
@@ -26,12 +20,7 @@ import {
   disposeRendererListeners,
 } from '../rendering/renderer.js';
 import { render } from '../physics/engine.js';
-import { clampBallPositionToWallInterior } from '../physics/Ball.js';
-import { relaxOverlapsWithKinematicBall } from '../physics/collision.js';
-import { portfolioCanvasPointHitsBody } from '../physics/portfolio-pit-narrow-phase.js';
 import { setCanvas } from '../core/state.js';
-import { initModeSystem, setMode, getForceApplicator } from '../modes/mode-controller.js';
-import { startMainLoop } from '../rendering/loop.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 import { destroyQuoteDisplay } from '../ui/quote-display.js';
 import { setupPointer } from '../input/pointer.js';
@@ -332,7 +321,7 @@ function shouldRotatePortfolioLabels() {
   return true;
 }
 
-async function fetchPortfolioData() {
+async function fetchPortfolioData(signal) {
   // Portfolio remains runtime-fetched because the legacy deck/drawer runtime
   // consumes project data outside the Vite virtual content path.
   const paths = [
@@ -343,10 +332,11 @@ async function fetchPortfolioData() {
 
   for (const path of paths) {
     try {
-      const response = await fetch(path, { cache: 'no-cache' });
+      const response = await fetch(path, { cache: 'no-cache', signal });
       if (!response.ok) continue;
       return await response.json();
     } catch (error) {
+      if (signal?.aborted) throw error;
       continue;
     }
   }
@@ -363,940 +353,6 @@ function resolveAsset(src) {
     : `${CONFIG.assetBasePath}${trimmed}`;
   const separator = baseUrl.includes('?') ? '&' : '?';
   return `${baseUrl}${separator}v=${getCacheBustValue()}`;
-}
-
-class PortfolioPitApp {
-  constructor({ config, projects }) {
-    this.config = normalizePortfolioConfig(config);
-    this.projects = Array.isArray(projects) ? projects : [];
-    this.canvas = document.getElementById('c');
-    this.mount = document.getElementById('portfolioProjectMount');
-    this.appFrame = document.getElementById('app-frame');
-    this.dragPointerId = null;
-    this.dragBall = null;
-    this.dragStart = null;
-    this.dragMoved = false;
-    this.dragVelocity = { vx: 0, vy: 0 };
-    this.dragSamples = [];
-    this.isProjectOpen = false;
-    this.projectOpenTimeouts = [];
-    this.selectedBall = null;
-    this.selectedProjectIndex = -1;
-    this.focusedProjectIndex = -1;
-    this.hoveredBallIndex = -1;
-    this.lastFocusedElement = null;
-    this.projectNav = null;
-    this.projectButtons = [];
-    this.projectLabelLayer = null;
-    this.projectLabels = [];
-    this._portfolioBodiesRefreshToken = 0;
-    this.projectDrawerView = null;
-    this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
-    this.boundAuditOpenProject = (event) => {
-      const index = Number(event?.detail?.index ?? 0);
-      if (!Number.isInteger(index) || index < 0) return;
-      const ball = this.getBallByProjectIndex(index);
-      if (ball) this.openProject(ball);
-    };
-    this.boundResize = () => {
-      window.requestAnimationFrame(() => {
-        resize();
-        if (!this.isProjectOpen) return;
-        const project = this.projects[this.selectedProjectIndex];
-        if (project) this.syncProjectHero(project, false);
-      });
-    };
-    this.boundPaletteChange = () => {
-      this.applyProjectPalette();
-      if (this.isProjectOpen && this.selectedProjectIndex >= 0) {
-        this.syncProjectHero(this.projects[this.selectedProjectIndex], false);
-      }
-    };
-  }
-
-  async init() {
-    this.ensureAnnouncer();
-    this.createProjectView();
-    this.createAccessibleProjectNav();
-    const globals = getGlobals();
-    globals.portfolioProjects = this.projects;
-    globals.portfolioPitConfig = this.config.runtime;
-
-    initModeSystem();
-    await setMode(MODES.PORTFOLIO_PIT);
-    this.applyPortfolioPhysicsProfile();
-    this.applyProjectPalette();
-    this.ensureProjectLabelLayer();
-    this.syncProjectLabels();
-    globals.portfolioDomLabels = true;
-    globals.portfolioSyncLabelLayer = () => this.syncProjectLabels();
-    globals.portfolioRelayoutLabels = () => {
-      relayoutPortfolioProjectLabels();
-      this.syncProjectLabels();
-    };
-    this.bindCanvasInteractions();
-    this.bindProjectOverlay();
-    this.setupDrawerMediaScrollShift();
-    document.addEventListener('abs:portfolio:open-project', this.boundAuditOpenProject);
-    window.addEventListener('resize', this.boundResize, { passive: true });
-    window.addEventListener('bb:paletteChanged', this.boundPaletteChange);
-  }
-
-  destroy() {
-    this._portfolioBodiesRefreshToken += 1;
-    window.removeEventListener('resize', this.boundResize);
-    window.removeEventListener('bb:paletteChanged', this.boundPaletteChange);
-    document.removeEventListener('abs:portfolio:open-project', this.boundAuditOpenProject);
-    this.teardownDrawerMediaScrollShift();
-    document.removeEventListener('keydown', this.boundProjectKeydown, true);
-    this.clearProjectOpenTimeouts();
-    if (this.projectNav) this.projectNav.remove();
-    if (this.projectLabelLayer) this.projectLabelLayer.remove();
-    this.projectDrawerView?.destroy();
-    const globals = getGlobals();
-    globals.ballBallSurfaceGapPx = 0;
-    globals.collisionPairSlopPx = null;
-    globals.portfolioDomLabels = false;
-    globals.portfolioPerformancePriority = false;
-    globals.portfolioSyncLabelLayer = null;
-    globals.portfolioRelayoutLabels = null;
-    this.restoreBackgroundInteractivity();
-  }
-
-  applyRuntimeConfig(runtime) {
-    this.config.runtime = normalizePortfolioConfig({ runtime }).runtime;
-    const globals = getGlobals();
-    globals.portfolioPitConfig = this.config.runtime;
-    if (this.isProjectOpen && this.selectedProjectIndex >= 0) {
-      const project = this.projects[this.selectedProjectIndex];
-      if (project) this.syncProjectHero(project, false);
-    }
-  }
-
-  refreshPitBodies() {
-    const globals = getGlobals();
-    globals.portfolioPitConfig = this.config.runtime;
-    const refreshToken = ++this._portfolioBodiesRefreshToken;
-    void setMode(MODES.PORTFOLIO_PIT).then((applied) => {
-      if (refreshToken !== this._portfolioBodiesRefreshToken) return;
-      const currentGlobals = getGlobals();
-      if (!applied || currentGlobals.currentMode !== MODES.PORTFOLIO_PIT) return;
-      this.applyPortfolioPhysicsProfile();
-      this.applyProjectPalette();
-      this.ensureProjectLabelLayer();
-      this.syncProjectLabels();
-    });
-  }
-
-  applyPortfolioPhysicsProfile() {
-    const globals = getGlobals();
-    const baseGravity = toNumber(globals.gravityMultiplierPit, 1.1);
-    const gravityScale = clamp(
-      toNumber(this.config.runtime.motion?.gravityScale, this.config.runtime.motion?.settleGravityScale ?? 0.42),
-      0.15,
-      0.85
-    );
-    const massMultiplier = clamp(toNumber(this.config.runtime.motion?.massMultiplier, 1), 0.5, 2);
-    const bodySpacing = clamp(toNumber(this.config.runtime.bodies?.ballSpacing, 0.08), 0, 1);
-    const layoutWallInset = this.config.runtime.layout?.wallInset;
-    const wallInset = layoutWallInset === undefined || layoutWallInset === null
-      ? Math.max(0, Math.round(toNumber(globals.wallInset, 5)))
-      : Math.max(0, Math.round(toNumber(layoutWallInset, 0)));
-    const ballBallSurfaceGapPx = Math.max(0, toNumber(this.config.runtime.bodies?.ballBallSurfaceGapPx, 0));
-    const collisionPairSlopPx = this.config.runtime.bodies?.collisionPairSlopPx ?? null;
-    globals.gravityMultiplier = baseGravity * gravityScale;
-    globals.G = globals.GE * globals.gravityMultiplier;
-    globals.physicsSkipSleepingSteps = false;
-    const dpr = globals.DPR || 1;
-    globals.ballSpacing = bodySpacing;
-    globals.ballBallSurfaceGapPx = ballBallSurfaceGapPx * dpr;
-    globals.collisionPairSlopPx = collisionPairSlopPx === null
-      ? null
-      : collisionPairSlopPx * dpr;
-    globals.wallInset = wallInset;
-    globals.physicsCollisionIterations = Math.max(
-      14,
-      Math.round(Number(globals.physicsCollisionIterations ?? 10) || 10)
-    );
-
-    const balls = Array.isArray(globals.balls) ? globals.balls : [];
-    for (let index = 0; index < balls.length; index += 1) {
-      const ball = balls[index];
-      if (!ball) continue;
-      ball.m = globals.ballMassKg * massMultiplier;
-    }
-  }
-
-  applyProjectPalette() {
-    const globals = getGlobals();
-    const balls = Array.isArray(globals.balls) ? globals.balls : [];
-    const n = balls.length;
-    for (let index = 0; index < n; index += 1) {
-      const ball = balls[index];
-      if (ball.__portfolioAccentCircle) {
-        applyPortfolioAccentBallColor(ball);
-        continue;
-      }
-      const color = getPortfolioProjectPaletteColor(index, n);
-      ball.color = color;
-      ball.labelColor = getContrastText(color);
-    }
-  }
-
-  /** Mount in `#portfolio-sheet-host` when present — sibling after `.fade-content` in `#abs-scene`; see `docs/reference/LAYER-STACKING.md`. */
-  createProjectView() {
-    const sheetHost = document.getElementById('portfolio-sheet-host');
-    const host = sheetHost || this.mount || this.canvas?.parentElement;
-    if (!host) return;
-    this.projectDrawerView?.destroy();
-    this.projectDrawerView = new PortfolioProjectDrawer({
-      host,
-      resolveAsset,
-      coverFallback: CONFIG.coverFallback,
-      onRequestClose: () => {
-        SoundEngine.playHoverSound?.();
-        this.closeProject();
-      },
-    });
-    this.projectView = this.projectDrawerView.mount();
-    this.projectBackdrop = this.projectDrawerView.backdrop;
-    this.projectDrawer = this.projectDrawerView.drawer;
-    this.projectScroll = this.projectDrawerView.scroll;
-    this.projectImage = this.projectDrawerView.image;
-    this.projectEyebrow = this.projectDrawerView.eyebrow;
-    this.projectTitle = this.projectDrawerView.title;
-    this.projectContent = this.projectDrawerView.content;
-    this.projectBack = this.projectDrawerView.backButton;
-  }
-
-  bindProjectOverlay() {}
-
-  setupDrawerMediaScrollShift() {
-    this.projectDrawerView?.setupMediaScrollShift();
-  }
-
-  teardownDrawerMediaScrollShift() {
-    this.projectDrawerView?.teardownMediaScrollShift();
-  }
-
-  scheduleDrawerMediaScrollShift() {
-    this.projectDrawerView?.scheduleDrawerMediaScrollShift();
-  }
-
-  updateDrawerMediaScrollShift() {
-    if (!this.isProjectOpen) return;
-    this.projectDrawerView?.updateDrawerMediaScrollShift();
-  }
-
-  resetDrawerMediaTransforms() {
-    this.projectDrawerView?.resetMediaTransforms();
-  }
-
-  resetProjectScrollTop() {
-    this.projectDrawerView?.resetScrollTop();
-  }
-
-  ensureAnnouncer() {
-    if (document.getElementById('announcer')) return;
-    const announcer = document.createElement('div');
-    announcer.id = 'announcer';
-    announcer.className = 'screen-reader';
-    announcer.setAttribute('role', 'status');
-    announcer.setAttribute('aria-live', 'polite');
-    announcer.setAttribute('aria-atomic', 'true');
-    document.body.appendChild(announcer);
-  }
-
-  createAccessibleProjectNav() {
-    if (!this.mount) return;
-    const existing = document.getElementById('portfolioProjectNav');
-    if (existing) existing.remove();
-
-    const nav = document.createElement('div');
-    nav.id = 'portfolioProjectNav';
-    nav.className = 'screen-reader';
-    nav.setAttribute('aria-label', 'Portfolio projects');
-
-    const intro = document.createElement('p');
-    intro.id = 'portfolioProjectNavHint';
-    intro.textContent = 'Use Tab to move through projects, then press Enter or Space to open one.';
-    nav.appendChild(intro);
-
-    this.projectButtons = this.projects.map((project, index) => {
-      const labelContent = resolvePortfolioLabelContent(project, `Project ${index + 1}`);
-      const ariaLabel = labelContent.eyebrow
-        ? `${labelContent.eyebrow}: ${labelContent.title}`
-        : labelContent.title;
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.dataset.projectIndex = String(index);
-      button.setAttribute('aria-describedby', 'portfolioProjectNavHint');
-      button.setAttribute('aria-controls', 'portfolioProjectView');
-      button.setAttribute('aria-haspopup', 'dialog');
-      button.setAttribute('aria-expanded', 'false');
-      button.setAttribute('aria-label', ariaLabel);
-      button.textContent = labelContent.title;
-      button.addEventListener('focus', () => this.setFocusedProjectIndex(index));
-      button.addEventListener('blur', () => {
-        if (this.focusedProjectIndex === index && !this.isProjectOpen) this.setFocusedProjectIndex(-1);
-      });
-      button.addEventListener('click', () => {
-        const ball = this.getBallByProjectIndex(index);
-        if (ball) this.openProject(ball);
-      });
-      nav.appendChild(button);
-      return button;
-    });
-
-    this.mount.appendChild(nav);
-    this.projectNav = nav;
-  }
-
-  ensureProjectLabelLayer() {
-    if (!this.mount) return;
-    const existing = this.mount.querySelector('.portfolio-label-layer');
-    if (existing) existing.remove();
-
-    const layer = document.createElement('div');
-    layer.className = 'portfolio-label-layer';
-    layer.setAttribute('aria-hidden', 'true');
-    this.projectLabels = this.projects.map((project, index) => {
-      const label = document.createElement('div');
-      label.className = 'portfolio-project-label';
-      label.dataset.projectIndex = String(index);
-
-      const text = document.createElement('div');
-      text.className = 'portfolio-project-label__text';
-      const eyebrow = document.createElement('div');
-      eyebrow.className = 'portfolio-project-label__eyebrow';
-      const title = document.createElement('div');
-      title.className = 'portfolio-project-label__title';
-      text.append(eyebrow, title);
-      label.appendChild(text);
-      label.__portfolioEyebrow = eyebrow;
-      label.__portfolioTitle = title;
-      layer.appendChild(label);
-      return label;
-    });
-
-    this.mount.appendChild(layer);
-    this.projectLabelLayer = layer;
-  }
-
-  syncProjectLabels() {
-    if (!this.projectLabelLayer) return;
-    const globals = getGlobals();
-    const dpr = globals.DPR || 1;
-    const balls = Array.isArray(globals.balls) ? globals.balls : [];
-
-    for (let index = 0; index < this.projectLabels.length; index += 1) {
-      const label = this.projectLabels[index];
-      if (!label) continue;
-      const text = label.firstElementChild;
-      const eyebrow = label.__portfolioEyebrow;
-      const title = label.__portfolioTitle;
-      const ball = balls.find((entry) => entry?.projectIndex === index);
-
-      if (!ball || ball.__portfolioHidden) {
-        label.style.opacity = '0';
-        label.__portfolioSyncSignature = '';
-        continue;
-      }
-
-      const eyebrowLines = Array.isArray(ball.label?.eyebrow?.lines) ? ball.label.eyebrow.lines : [];
-      const titleLines = Array.isArray(ball.label?.title?.lines) ? ball.label.title.lines : [ball.projectTitle || 'Project'];
-      const eyebrowKey = eyebrowLines.join('\n');
-      const titleKey = titleLines.join('\n');
-      if (eyebrow) {
-        if (eyebrowLines.length) {
-          eyebrow.hidden = false;
-          if (eyebrow.dataset.textKey !== eyebrowKey) {
-            eyebrow.innerHTML = eyebrowLines.map((line) => `<span>${escapeHtml(line)}</span>`).join('');
-            eyebrow.dataset.textKey = eyebrowKey;
-          }
-        } else {
-          eyebrow.hidden = true;
-          eyebrow.dataset.textKey = '';
-          eyebrow.innerHTML = '';
-        }
-      }
-      if (title) {
-        if (title.dataset.textKey !== titleKey) {
-          title.innerHTML = titleLines.map((line) => `<span>${escapeHtml(line)}</span>`).join('');
-          title.dataset.textKey = titleKey;
-        }
-        title.hidden = false;
-      }
-
-      const diameter = ball.r * 2;
-      const width = diameter / dpr;
-      const height = diameter / dpr;
-      const rotation = shouldRotatePortfolioLabels()
-        ? getReadableLabelRotation(ball.theta || 0)
-        : 0;
-      const titleFontSize = (ball.label?.titleFontSize || ball.label?.fontSize || 20) / dpr;
-      const titleLineHeight = (ball.label?.titleLineHeight || (titleFontSize * 0.84)) / Math.max(titleFontSize, 1);
-      const eyebrowFontSize = (ball.label?.eyebrowFontSize || Math.max(10, titleFontSize * 0.42)) / dpr;
-      const eyebrowLineHeight = (ball.label?.eyebrowLineHeight || (eyebrowFontSize * 0.92)) / Math.max(eyebrowFontSize, 1);
-      const gap = (ball.label?.gap || 0) / dpr;
-      const alpha = clamp(toNumber(ball.__portfolioDimAlpha, 1), 0, 1) * (ball.__portfolioSelected ? 0 : 1);
-      const syncSignature = [
-        width.toFixed(2),
-        height.toFixed(2),
-        (ball.x / dpr).toFixed(2),
-        (ball.y / dpr).toFixed(2),
-        rotation.toFixed(3),
-        alpha.toFixed(3),
-        ball.labelColor || "var(--color-brand-white)",
-        gap.toFixed(2),
-        titleFontSize.toFixed(2),
-        titleLineHeight.toFixed(3),
-        eyebrowFontSize.toFixed(2),
-        eyebrowLineHeight.toFixed(3),
-        eyebrowKey,
-        titleKey,
-      ].join('|');
-      if (label.__portfolioSyncSignature === syncSignature) {
-        continue;
-      }
-      label.__portfolioSyncSignature = syncSignature;
-
-      const widthCss = `${width}px`;
-      const heightCss = `${height}px`;
-      const hoverScale = ball._hoverScale ?? 1;
-      const transformCss = `translate(${ball.x / dpr}px, ${ball.y / dpr}px) translate(-50%, -50%) rotate(${rotation}rad) scale(${hoverScale.toFixed(4)})`;
-      const opacityCss = `${alpha}`;
-      const colorCss = ball.labelColor || "var(--color-brand-white)";
-      const gapCss = `${gap}px`;
-
-      if (label.style.width !== widthCss) label.style.width = widthCss;
-      if (label.style.height !== heightCss) label.style.height = heightCss;
-      if (label.style.transform !== transformCss) label.style.transform = transformCss;
-      if (label.style.opacity !== opacityCss) label.style.opacity = opacityCss;
-      if (label.style.color !== colorCss) label.style.color = colorCss;
-      if (label.style.getPropertyValue('--portfolio-label-stack-gap') !== gapCss) {
-        label.style.setProperty('--portfolio-label-stack-gap', gapCss);
-      }
-
-      if (text) {
-        const titleSizeCss = `${titleFontSize}px`;
-        const titleLineHeightCss = `${titleLineHeight}`;
-        const eyebrowSizeCss = `${eyebrowFontSize}px`;
-        const eyebrowLineHeightCss = `${eyebrowLineHeight}`;
-        if (text.style.getPropertyValue('--portfolio-label-title-size') !== titleSizeCss) {
-          text.style.setProperty('--portfolio-label-title-size', titleSizeCss);
-        }
-        if (text.style.getPropertyValue('--portfolio-label-title-line-height') !== titleLineHeightCss) {
-          text.style.setProperty('--portfolio-label-title-line-height', titleLineHeightCss);
-        }
-        if (text.style.getPropertyValue('--portfolio-label-eyebrow-size') !== eyebrowSizeCss) {
-          text.style.setProperty('--portfolio-label-eyebrow-size', eyebrowSizeCss);
-        }
-        if (text.style.getPropertyValue('--portfolio-label-eyebrow-line-height') !== eyebrowLineHeightCss) {
-          text.style.setProperty('--portfolio-label-eyebrow-line-height', eyebrowLineHeightCss);
-        }
-      }
-    }
-  }
-
-  bindCanvasInteractions() {
-    if (!this.canvas) return;
-    this.canvas.addEventListener('pointerdown', (event) => this.handlePointerDown(event));
-    this.canvas.addEventListener('pointermove', (event) => this.handlePointerMove(event));
-    this.canvas.addEventListener('pointerup', (event) => this.handlePointerUp(event));
-    this.canvas.addEventListener('pointercancel', (event) => this.handlePointerUp(event));
-    this.canvas.addEventListener('pointermove', (event) => this.handleHoverMove(event));
-    this.canvas.addEventListener('pointerleave', () => { this.hoveredBallIndex = -1; getGlobals().__portfolioHoveredIndex = -1; });
-  }
-
-  getCanvasPoint(event) {
-    const rect = this.canvas.getBoundingClientRect();
-    const globals = getGlobals();
-    const scaleX = rect.width > 0 ? this.canvas.width / rect.width : (globals.DPR || 1);
-    const scaleY = rect.height > 0 ? this.canvas.height / rect.height : (globals.DPR || 1);
-    return {
-      x: (event.clientX - rect.left) * scaleX,
-      y: (event.clientY - rect.top) * scaleY,
-    };
-  }
-
-  hitTestBall(point) {
-    const globals = getGlobals();
-    const balls = Array.isArray(globals.balls) ? globals.balls : [];
-    for (let index = balls.length - 1; index >= 0; index -= 1) {
-      const ball = balls[index];
-      if (!ball || ball.__portfolioHidden) continue;
-      if (Number.isInteger(ball.projectIndex)) {
-        if (portfolioCanvasPointHitsBody(ball, point.x, point.y, globals)) return ball;
-        continue;
-      }
-      const dx = point.x - ball.x;
-      const dy = point.y - ball.y;
-      if ((dx * dx) + (dy * dy) <= (ball.r * ball.r)) {
-        return ball;
-      }
-    }
-    return null;
-  }
-
-  hitTestProjectLabelClientPoint(clientX, clientY) {
-    if (!Array.isArray(this.projectLabels) || !this.projectLabels.length) return null;
-    let bestMatch = null;
-
-    for (let index = 0; index < this.projectLabels.length; index += 1) {
-      const label = this.projectLabels[index];
-      if (!(label instanceof HTMLElement)) continue;
-      if (label.style.opacity === '0') continue;
-      const rect = label.getBoundingClientRect();
-      if (!(rect.width > 8 && rect.height > 8)) continue;
-      if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) continue;
-
-      const projectIndex = Number(label.dataset.projectIndex);
-      if (!Number.isInteger(projectIndex)) continue;
-      const centerX = rect.left + (rect.width / 2);
-      const centerY = rect.top + (rect.height / 2);
-      const distance = Math.hypot(clientX - centerX, clientY - centerY);
-
-      if (!bestMatch || distance < bestMatch.distance) {
-        bestMatch = { projectIndex, distance };
-      }
-    }
-
-    return bestMatch ? this.getBallByProjectIndex(bestMatch.projectIndex) : null;
-  }
-
-  getBallByProjectIndex(projectIndex) {
-    const globals = getGlobals();
-    const balls = Array.isArray(globals.balls) ? globals.balls : [];
-    for (let index = 0; index < balls.length; index += 1) {
-      const ball = balls[index];
-      if (ball?.projectIndex === projectIndex) return ball;
-    }
-    return null;
-  }
-
-  setFocusedProjectIndex(projectIndex) {
-    this.focusedProjectIndex = Number.isInteger(projectIndex) ? projectIndex : -1;
-  }
-
-  handleHoverMove(event) {
-    if (this.dragBall || this.isProjectOpen) {
-      this.hoveredBallIndex = -1;
-      getGlobals().__portfolioHoveredIndex = -1;
-      return;
-    }
-    const point = this.getCanvasPoint(event);
-    const hit = this.hitTestBall(point);
-    this.hoveredBallIndex = hit && Number.isInteger(hit.projectIndex) ? hit.projectIndex : -1;
-    getGlobals().__portfolioHoveredIndex = this.hoveredBallIndex;
-  }
-
-  pushDragSample(x, y, stamp) {
-    this.dragSamples.push({ x, y, t: stamp });
-    while (this.dragSamples.length > DRAG_SAMPLE_LIMIT) this.dragSamples.shift();
-  }
-
-  estimateDragVelocity() {
-    const samples = Array.isArray(this.dragSamples) ? this.dragSamples : [];
-    if (samples.length < 2) return { vx: 0, vy: 0 };
-    const newest = samples[samples.length - 1]?.t ?? 0;
-    const recent = samples.filter((sample) => (newest - sample.t) <= DRAG_SAMPLE_MAX_AGE_MS);
-    if (recent.length < 2) return { vx: 0, vy: 0 };
-
-    let sumVx = 0;
-    let sumVy = 0;
-    let sumWeight = 0;
-    for (let index = 1; index < recent.length; index += 1) {
-      const prev = recent[index - 1];
-      const next = recent[index];
-      const dt = (next.t - prev.t) / 1000;
-      if (dt <= 0) continue;
-      const weight = index;
-      sumVx += (((next.x - prev.x) / dt) * weight);
-      sumVy += (((next.y - prev.y) / dt) * weight);
-      sumWeight += weight;
-    }
-
-    if (sumWeight <= 0) return { vx: 0, vy: 0 };
-    return {
-      vx: sumVx / sumWeight,
-      vy: sumVy / sumWeight,
-    };
-  }
-
-  clampDragVelocity(velocity) {
-    const dpr = getGlobals().DPR || 1;
-    const maxSpeedPx = clamp(
-      toNumber(this.config.runtime.motion?.dragMaxSpeedPx, 2200),
-      400,
-      12000
-    ) * dpr;
-    const speed = Math.hypot(velocity.vx, velocity.vy);
-    if (!(speed > maxSpeedPx) || speed <= 1e-6) return velocity;
-    const scale = maxSpeedPx / speed;
-    return {
-      vx: velocity.vx * scale,
-      vy: velocity.vy * scale,
-    };
-  }
-
-  estimateReleaseAngularVelocity(ball, velocity) {
-    if (!ball || !this.dragStart || !velocity) return 0;
-    const grabOffsetX = Number(this.dragStart.offsetX) || 0;
-    const grabOffsetY = Number(this.dragStart.offsetY) || 0;
-    const grabDistance = Math.hypot(grabOffsetX, grabOffsetY);
-    if (!(grabDistance > 1e-3)) return 0;
-
-    const cross = (grabOffsetX * velocity.vy) - (grabOffsetY * velocity.vx);
-    const tangentialSpeed = cross / grabDistance;
-    const armRatio = clamp(grabDistance / Math.max(ball.r, 1), 0, 1);
-    return (tangentialSpeed / Math.max(ball.r, 1)) * armRatio * 1.15;
-  }
-
-  handlePointerDown(event) {
-    if (this.isProjectOpen) return;
-    const point = this.getCanvasPoint(event);
-    const bodyHit = this.hitTestBall(point);
-    if (!bodyHit) {
-      const labelHit = this.hitTestProjectLabelClientPoint(event.clientX, event.clientY);
-      if (labelHit) {
-        this.openProject(labelHit);
-      }
-      return;
-    }
-
-    this.dragPointerId = event.pointerId;
-    this.dragBall = bodyHit;
-    this.dragBall.isPointerLocked = true;
-    this.dragBall.vx = 0;
-    this.dragBall.vy = 0;
-    this.dragBall.omega = 0;
-    this.dragBall.wake?.();
-    this.dragMoved = false;
-    this.dragStart = {
-      point,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      stamp: performance.now(),
-      offsetX: point.x - bodyHit.x,
-      offsetY: point.y - bodyHit.y,
-      lastX: point.x,
-      lastY: point.y,
-      lastStamp: performance.now(),
-    };
-    this.dragVelocity = { vx: 0, vy: 0 };
-    this.dragSamples = [];
-    this.pushDragSample(bodyHit.x, bodyHit.y, this.dragStart.stamp);
-    this.canvas.setPointerCapture?.(event.pointerId);
-  }
-
-  handlePointerMove(event) {
-    if (this.dragPointerId !== event.pointerId || !this.dragBall || !this.dragStart) return;
-    const point = this.getCanvasPoint(event);
-    const dx = event.clientX - this.dragStart.clientX;
-    const dy = event.clientY - this.dragStart.clientY;
-    const distance = Math.hypot(dx, dy);
-    if (distance > PORTFOLIO_CLICK_DRAG_THRESHOLD_PX) this.dragMoved = true;
-
-    const now = performance.now();
-    const targetX = point.x - this.dragStart.offsetX;
-    const targetY = point.y - this.dragStart.offsetY;
-
-    this.dragBall.x = targetX;
-    this.dragBall.y = targetY;
-    if (this.canvas) {
-      clampBallPositionToWallInterior(this.dragBall, this.canvas.width, this.canvas.height);
-    }
-    relaxOverlapsWithKinematicBall(this.dragBall);
-    this.pushDragSample(this.dragBall.x, this.dragBall.y, now);
-    this.dragVelocity = this.clampDragVelocity(this.estimateDragVelocity());
-    this.dragStart.lastX = targetX;
-    this.dragStart.lastY = targetY;
-    this.dragStart.lastStamp = now;
-  }
-
-  handlePointerUp(event) {
-    if (this.dragPointerId !== event.pointerId || !this.dragBall) return;
-    this.canvas.releasePointerCapture?.(event.pointerId);
-
-    const releasedBall = this.dragBall;
-    const throwMultiplier = clamp(toNumber(this.config.runtime.motion?.dragThrowMultiplier, 1.05), 0.2, 2);
-    const maxAngularSpeed = clamp(toNumber(this.config.runtime.motion?.maxAngularSpeed, 6.5), 0.5, 30);
-    releasedBall.isPointerLocked = false;
-    releasedBall.sleepTimer = 0;
-    releasedBall.isGrounded = false;
-    releasedBall.hasSupport = false;
-
-    if (this.dragMoved) {
-      const throwVelocity = this.clampDragVelocity({
-        vx: this.dragVelocity.vx * throwMultiplier,
-        vy: this.dragVelocity.vy * throwMultiplier,
-      });
-      const releaseOmega = this.estimateReleaseAngularVelocity(releasedBall, throwVelocity);
-      releasedBall.vx = throwVelocity.vx;
-      releasedBall.vy = throwVelocity.vy;
-      releasedBall.omega = clamp(releaseOmega, -maxAngularSpeed, maxAngularSpeed);
-      releasedBall.wake?.();
-    } else {
-      releasedBall.vx = 0;
-      releasedBall.vy = 0;
-      this.openProject(releasedBall);
-    }
-
-    this.dragPointerId = null;
-    this.dragBall = null;
-    this.dragStart = null;
-    this.dragMoved = false;
-    this.dragSamples = [];
-  }
-
-  clearProjectOpenTimeouts() {
-    while (this.projectOpenTimeouts.length) {
-      window.clearTimeout(this.projectOpenTimeouts.pop());
-    }
-  }
-
-  prefetchProjectAssets(project) {
-    if (!project) return;
-    [project.image, ...getProjectContentBlocks(project).map((block) => block.src)].forEach((src) => {
-      if (!src) return;
-      if (/\.(mp4|webm)$/i.test(src)) return;
-      const img = new Image();
-      img.decoding = 'async';
-      img.src = resolveAsset(src);
-    });
-  }
-
-  applyNeighborImpulse(selectedBall) {
-    const impulse = clamp(toNumber(this.config.runtime.motion?.neighborImpulse, 0), 0, 1400);
-    if (impulse <= 0) return;
-    const globals = getGlobals();
-    const balls = Array.isArray(globals.balls) ? globals.balls : [];
-    for (let index = 0; index < balls.length; index += 1) {
-      const ball = balls[index];
-      if (!ball || ball === selectedBall) continue;
-      const dx = ball.x - selectedBall.x;
-      const dy = ball.y - selectedBall.y;
-      const distance = Math.max(1, Math.hypot(dx, dy));
-      const strength = (impulse / distance) * 0.65;
-      ball.vx += (dx / distance) * strength;
-      ball.vy += (dy / distance) * strength;
-      ball.__portfolioDimAlpha = 0.2;
-      ball.wake?.();
-    }
-  }
-
-  syncProjectHero(project, animate = true) {
-    if (!this.selectedBall) throw new Error('Cannot sync project hero without a selected portfolio body');
-    if (!project) throw new Error('Cannot sync project hero without project data');
-    if (!this.projectView || !this.projectDrawerView) {
-      throw new Error('Portfolio project drawer is not mounted');
-    }
-
-    const openDuration = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
-      : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
-    const imageFadeMs = clamp(toNumber(this.config.runtime.motion?.imageFadeMs, 220), 0, 600);
-    const titleDelay = clamp(toNumber(this.config.runtime.motion?.titleRevealDelayMs, 280), 0, 1200);
-
-    this.projectDrawerView.syncProject(project, {
-      animate,
-      openDurationMs: openDuration,
-      imageFadeMs,
-      titleDelayMs: titleDelay,
-      accentColor: this.selectedBall?.color || getPortfolioProjectPaletteColor(this.selectedProjectIndex, this.projects.length),
-      motionConfig: this.config.runtime.motion || {},
-    });
-    this.syncProjectButtonStates();
-  }
-
-  openProject(ball) {
-    if (!ball || this.isProjectOpen) return;
-    const project = this.projects[ball.projectIndex];
-    if (!project) return;
-    const labelContent = resolvePortfolioLabelContent(project, project?.title || 'Project');
-    const spokenLabel = labelContent.eyebrow
-      ? `${labelContent.eyebrow}: ${labelContent.title}`
-      : labelContent.title;
-
-    SoundEngine.playHoverSound?.();
-    this.prefetchProjectAssets(project);
-    this.lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    this.selectedBall = ball;
-    this.selectedProjectIndex = ball.projectIndex;
-    this.isProjectOpen = true;
-    this.setFocusedProjectIndex(-1);
-
-    // Freeze all pebbles in place — no dimming, no hiding, no physics.
-    const globals = getGlobals();
-    const allBalls = Array.isArray(globals.balls) ? globals.balls : [];
-    for (let i = 0; i < allBalls.length; i += 1) {
-      const b = allBalls[i];
-      if (!b) continue;
-      b.vx = 0;
-      b.vy = 0;
-      b.omega = 0;
-      b.isPointerLocked = true;
-      if (b.sleep) b.sleep(); else b.isSleeping = true;
-    }
-    globals.__portfolioDrawerOpen = true;
-
-    this.disableBackgroundInteractivity();
-    try {
-      this.syncProjectHero(project, true);
-    } catch (error) {
-      this.restoreBackgroundInteractivity();
-      // Unfreeze all balls on failure
-      const g = getGlobals();
-      g.__portfolioDrawerOpen = false;
-      const allB = Array.isArray(g.balls) ? g.balls : [];
-      for (let i = 0; i < allB.length; i += 1) {
-        const b = allB[i];
-        if (!b) continue;
-        b.__portfolioDimAlpha = 1;
-        b.isPointerLocked = false;
-        if (b.wake) b.wake();
-      }
-      this.isProjectOpen = false;
-      this.selectedBall = null;
-      this.selectedProjectIndex = -1;
-      this.syncProjectButtonStates();
-      announceToScreenReader('Project view failed to open');
-      console.error('[portfolio] Failed to open project drawer', error);
-      return;
-    }
-    announceToScreenReader(`Opened project: ${spokenLabel}`);
-    document.addEventListener('keydown', this.boundProjectKeydown, true);
-
-    const openDuration = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
-      : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
-    this.projectOpenTimeouts.push(window.setTimeout(() => {
-      this.projectBack?.focus();
-    }, Math.min(900, openDuration + 80)));
-  }
-
-  finishProjectClose() {
-    this.restoreBackgroundInteractivity();
-
-    const globals = getGlobals();
-    globals.__portfolioDrawerOpen = false;
-    const balls = Array.isArray(globals.balls) ? globals.balls : [];
-    for (let index = 0; index < balls.length; index += 1) {
-      const ball = balls[index];
-      if (!ball) continue;
-      ball.__portfolioDimAlpha = 1;
-      ball.isPointerLocked = false;
-      if (ball.wake) ball.wake();
-    }
-    if (this.selectedBall) {
-      this.selectedBall.__portfolioSelected = false;
-      this.selectedBall.isPointerLocked = false;
-    }
-    this.isProjectOpen = false;
-    const restoredIndex = this.selectedProjectIndex;
-    this.selectedBall = null;
-    this.selectedProjectIndex = -1;
-    this.syncProjectButtonStates();
-    if (restoredIndex >= 0) this.setFocusedProjectIndex(restoredIndex);
-    announceToScreenReader('Closed project view');
-    if (this.lastFocusedElement?.focus) {
-      this.lastFocusedElement.focus();
-    } else if (restoredIndex >= 0 && this.projectButtons[restoredIndex]?.focus) {
-      this.projectButtons[restoredIndex].focus();
-    }
-  }
-
-  closeProject() {
-    if (!this.isProjectOpen) return;
-    if (!this.projectView) {
-      this.finishProjectClose();
-      return;
-    }
-    if (this.projectView.classList.contains('is-closing')) return;
-    this.clearProjectOpenTimeouts();
-    this.projectView.classList.remove('is-title-visible');
-    document.removeEventListener('keydown', this.boundProjectKeydown, true);
-
-    const openDuration = clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    this.projectDrawerView?.beginClose({
-      reducedMotion,
-      durationMs: openDuration,
-      onComplete: () => this.finishProjectClose(),
-    });
-  }
-
-  syncProjectButtonStates() {
-    for (let index = 0; index < this.projectButtons.length; index += 1) {
-      const button = this.projectButtons[index];
-      if (!button) continue;
-      const expanded = this.isProjectOpen && index === this.selectedProjectIndex;
-      button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    }
-  }
-
-  disableBackgroundInteractivity() {
-    document.body.classList.add('portfolio-project-open');
-    setPortfolioSheetHostHidden(false);
-    refreshCursor();
-    if (this.appFrame) {
-      this.appFrame.setAttribute('aria-hidden', 'true');
-      this.appFrame.inert = true;
-    }
-    if (this.projectNav) {
-      this.projectNav.setAttribute('aria-hidden', 'true');
-      this.projectNav.inert = true;
-    }
-  }
-
-  restoreBackgroundInteractivity() {
-    document.body.classList.remove('portfolio-project-open');
-    setPortfolioSheetHostHidden(true);
-    refreshCursor();
-    if (this.appFrame) {
-      this.appFrame.removeAttribute('aria-hidden');
-      this.appFrame.inert = false;
-    }
-    if (this.projectNav) {
-      this.projectNav.removeAttribute('aria-hidden');
-      this.projectNav.inert = false;
-    }
-  }
-
-  getProjectFocusableElements() {
-    return this.projectDrawerView?.getFocusableElements() || [];
-  }
-
-  handleProjectKeydown(event) {
-    if (!this.isProjectOpen) return;
-
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      this.closeProject();
-      return;
-    }
-
-    if (event.key !== 'Tab') return;
-    const focusables = this.getProjectFocusableElements();
-    if (!focusables.length) return;
-
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    const active = document.activeElement;
-
-    if (event.shiftKey && (active === first || !this.projectView.contains(active))) {
-      event.preventDefault();
-      last.focus();
-      return;
-    }
-
-    if (!event.shiftKey && (active === last || !this.projectView.contains(active))) {
-      event.preventDefault();
-      first.focus();
-    }
-  }
 }
 
 function getProjectAccentColor(projectIndex, projectCount) {
@@ -1422,15 +478,18 @@ class PortfolioScrollApp {
     this.boundPaletteChange = () => this.applyProjectPalette();
   }
 
-  async init() {
+  async init(signal) {
+    if (signal?.aborted) return false;
     this.ensureAnnouncer();
     this.configurePortfolioSfx();
     this.createProjectView();
     this.renderProjectDeck();
     await this.prepareProjectThumbnails();
+    if (signal?.aborted) return false;
     this.setupDeckEvents();
     this.applyProjectPalette();
     await new Promise((resolve) => requestAnimationFrame(resolve));
+    if (signal?.aborted) return false;
     this.updateCardMetrics();
     this.setActiveProject(0, { immediate: true });
     this.setupVideoObserver();
@@ -1444,6 +503,7 @@ class PortfolioScrollApp {
     globals.portfolioSyncLabelLayer = () => this.updateCardMetrics();
     globals.portfolioRelayoutLabels = () => this.updateCardMetrics();
     installPortfolioAuditBridge(this);
+    return true;
   }
 
   destroy() {
@@ -3626,37 +2686,82 @@ async function waitForStablePortfolioPresentation(options = {}) {
   });
 }
 
-function signalRouteReady(routeId) {
-  if (typeof window === 'undefined' || !routeId) return;
-  requestAnimationFrame(() => {
-    window.dispatchEvent(new CustomEvent('abs:route-ready', { detail: { routeId } }));
-  });
-}
-
-export async function bootstrapPortfolio() {
-  destroyQuoteDisplay();
+export async function bootstrapPortfolio(runtimeContext = {}) {
+  const { signal, isCurrent: isRuntimeCurrent, registerCleanup } = runtimeContext;
   const shellRouteTransitionActive = isRouteTransitionPhase(getTransitionPhase());
   const bootstrapRunId = activePortfolioBootstrapRunId + 1;
   activePortfolioBootstrapRunId = bootstrapRunId;
-  const isCurrentBootstrapRun = () => bootstrapRunId === activePortfolioBootstrapRunId;
   const root = document.documentElement;
+  let disposed = false;
+  let rendererOwner = null;
+  let pitCanvas = null;
+  let pitMount = null;
+  let deckRevealTimer = 0;
+  let hardRevealTimer = 0;
+  let app = null;
+  let appDestroyed = false;
+  let cleanupTransitionNavigationLinks = null;
+  let handlePageShow = null;
+  const isCurrentBootstrapRun = () => (
+    !disposed
+    && !signal?.aborted
+    && bootstrapRunId === activePortfolioBootstrapRunId
+    && (typeof isRuntimeCurrent !== 'function' || isRuntimeCurrent())
+  );
+  const destroyApp = () => {
+    if (!app || appDestroyed) return;
+    appDestroyed = true;
+    app.destroy();
+  };
+  const cleanup = () => {
+    if (disposed) return;
+    disposed = true;
+    if (activePortfolioBootstrapRunId === bootstrapRunId) {
+      activePortfolioBootstrapRunId += 1;
+    }
+    window.clearTimeout(deckRevealTimer);
+    window.clearTimeout(hardRevealTimer);
+    root.classList.remove('portfolio-booting', 'portfolio-loaded');
+    delete document.body.dataset.portfolioLoadState;
+    if (pitMount) {
+      delete pitMount.dataset.portfolioMediaReady;
+      pitMount.classList.remove(
+        'is-portfolio-boot-preparing',
+        'is-portfolio-deck-visible',
+        'is-portfolio-deck-revealing'
+      );
+    }
+    if (rendererOwner !== null) {
+      disposeRendererListeners(rendererOwner);
+    }
+    cleanupTransitionNavigationLinks?.();
+    if (handlePageShow) window.removeEventListener('pageshow', handlePageShow);
+    destroyApp();
+  };
+  registerCleanup?.(cleanup);
+  if (!isCurrentBootstrapRun()) return cleanup;
+
+  destroyQuoteDisplay();
   root.classList.add('portfolio-booting');
   root.classList.remove('portfolio-loaded');
   document.body.dataset.portfolioLoadState = 'booting';
 
   try {
     await loadRuntimeText();
+    if (!isCurrentBootstrapRun()) return cleanup;
     applyRuntimeTextToDOM();
   } catch (error) {
-    console.warn('Portfolio text load failed', error);
+    if (isCurrentBootstrapRun()) console.warn('Portfolio text load failed', error);
   }
+  if (!isCurrentBootstrapRun()) return cleanup;
 
   const runtimeConfig = await loadRuntimeConfig();
+  if (!isCurrentBootstrapRun()) return cleanup;
   const globals = getGlobals();
   globals.performanceHudEnabled = false;
   globals.portfolioPerformancePriority = true;
 
-  setupRenderer();
+  rendererOwner = setupRenderer();
   setCanvas(getCanvas(), getContext(), document.getElementById('simulations'));
   resize();
   setForceRenderCallback(render);
@@ -3672,13 +2777,12 @@ export async function bootstrapPortfolio() {
     },
     minimumMs: 120
   });
+  if (!isCurrentBootstrapRun()) return cleanup;
   // Keep the wall frame visible while preparing the DOM deck. The deck mount
   // stays transparent until its first measured pose is stable, avoiding a
   // blank-page flash without exposing unpositioned cards.
-  const pitCanvas = document.getElementById('c');
-  const pitMount = document.getElementById('portfolioProjectMount');
-  let deckRevealTimer = 0;
-  let hardRevealTimer = 0;
+  pitCanvas = document.getElementById('c');
+  pitMount = document.getElementById('portfolioProjectMount');
   let portfolioLayersRevealed = false;
   const hideLegacyPortfolioCanvas = () => {
     if (!pitCanvas) return;
@@ -3737,6 +2841,7 @@ export async function bootstrapPortfolio() {
   scheduleHardReveal(shellRouteTransitionActive ? 2400 : 2200);
   // Deck mount stays invisible; revealed after the first stable presentation.
   const hostLaidOut = await waitForPitSimulationHostReady();
+  if (!isCurrentBootstrapRun()) return cleanup;
   try {
     if (!hostLaidOut && import.meta.env?.DEV) {
       console.warn(
@@ -3768,17 +2873,22 @@ export async function bootstrapPortfolio() {
   }
   maybeAutoPickCursorColor('startup');
 
-  const portfolioConfig = applyPortfolioConfig(await loadPortfolioConfig());
-  const data = await fetchPortfolioData();
+  const loadedPortfolioConfig = await loadPortfolioConfig();
+  if (!isCurrentBootstrapRun()) return cleanup;
+  const portfolioConfig = applyPortfolioConfig(loadedPortfolioConfig);
+  const data = await fetchPortfolioData(signal);
+  if (!isCurrentBootstrapRun()) return cleanup;
   const projects = Array.isArray(data?.projects) ? data.projects : [];
 
-  const app = new PortfolioScrollApp({
+  app = new PortfolioScrollApp({
     config: portfolioConfig,
     projects
   });
   try {
-    await app.init();
+    await app.init(signal);
+    if (!isCurrentBootstrapRun()) return cleanup;
   } catch (error) {
+    if (!isCurrentBootstrapRun()) return cleanup;
     console.error('Portfolio deck initialization failed', error);
     document.body.classList.add('portfolio-deck-failed');
     root.classList.remove('portfolio-booting');
@@ -3790,30 +2900,7 @@ export async function bootstrapPortfolio() {
         detail: 'portfolio-deck-failed',
       });
     }
-    if (shellRouteTransitionActive) {
-      signalRouteReady('portfolio');
-    }
-    return () => {
-      window.clearTimeout(deckRevealTimer);
-      window.clearTimeout(hardRevealTimer);
-      if (isCurrentBootstrapRun()) {
-        root.classList.remove('portfolio-booting', 'portfolio-loaded');
-        delete document.body.dataset.portfolioLoadState;
-      }
-      if (pitMount && isCurrentBootstrapRun()) {
-        delete pitMount.dataset.portfolioMediaReady;
-        pitMount.classList.remove(
-          'is-portfolio-boot-preparing',
-          'is-portfolio-deck-visible',
-          'is-portfolio-deck-revealing'
-        );
-      }
-      try {
-        disposeRendererListeners();
-      } catch (e) {
-        /* ignore */
-      }
-    };
+    return cleanup;
   }
   installPortfolioAuditBridge(app);
   updateCursorSize();
@@ -3835,29 +2922,29 @@ export async function bootstrapPortfolio() {
   // CSS-level choreography. The stricter presentation check runs after the
   // reveal because it requires visible deck geometry.
   await new Promise((resolve) => requestAnimationFrame(resolve));
+  if (!isCurrentBootstrapRun()) return cleanup;
   settlePortfolioPresentation();
   revealPortfolioLayers();
   const presentationSettled = await waitForStablePortfolioPresentation({
     timeoutMs: shellRouteTransitionActive ? 700 : 520,
   });
+  if (!isCurrentBootstrapRun()) return cleanup;
   if (!presentationSettled && import.meta.env?.DEV) {
     console.warn('[portfolio] Presentation did not fully settle after reveal; using latest measured layout.');
   }
 
   if (!shellRouteTransitionActive) {
     await waitForFrames(2);
+    if (!isCurrentBootstrapRun()) return cleanup;
     await completeDirectBoot({
       selectors: ['#abs-scene', '#app-frame'],
       detail: presentationSettled ? 'portfolio-ready' : 'portfolio-ready-timeout',
     });
+    if (!isCurrentBootstrapRun()) return cleanup;
   }
 
   // During shell route-in, route-ready is emitted after the deck is visible and
   // at least one post-reveal stability pass has had a chance to complete.
-  if (shellRouteTransitionActive) {
-    signalRouteReady('portfolio');
-  }
-
   const ABS_DEV = import.meta.env.DEV;
   if (ABS_DEV) {
     try {
@@ -3865,6 +2952,7 @@ export async function bootstrapPortfolio() {
       const { generatePanelSectionsHTML } = await import('./panel/control-registry.js');
       const { setupControls } = await import('./panel/controls.js');
       const { setupBuildControls } = await import('./panel/build-controls.js');
+      if (!isCurrentBootstrapRun()) return cleanup;
       const panelRequested = (() => {
         try {
           const params = new URLSearchParams(window.location.search);
@@ -3896,6 +2984,7 @@ export async function bootstrapPortfolio() {
       registerDevPanelRoute(panelOptions);
       if (panelRequested) {
         const { createPanelDock } = await import('../ui/panel-dock.js');
+        if (!isCurrentBootstrapRun()) return cleanup;
         window.__PANEL_INITIALLY_VISIBLE__ = true;
         createPanelDock({
           ...panelOptions,
@@ -3908,9 +2997,9 @@ export async function bootstrapPortfolio() {
     }
   }
 
-  const cleanupTransitionNavigationLinks = setupTransitionNavigationLinks();
+  cleanupTransitionNavigationLinks = setupTransitionNavigationLinks();
 
-  const handlePageShow = (event) => {
+  handlePageShow = (event) => {
     if (event.persisted) {
       resetTransitionState();
       const appFrame = document.getElementById('app-frame');
@@ -3924,28 +3013,5 @@ export async function bootstrapPortfolio() {
     setupPrefetchOnHover(backLink, 'index.html');
   }
 
-  return () => {
-    window.clearTimeout(deckRevealTimer);
-    window.clearTimeout(hardRevealTimer);
-    if (isCurrentBootstrapRun()) {
-      root.classList.remove('portfolio-booting', 'portfolio-loaded');
-      delete document.body.dataset.portfolioLoadState;
-    }
-    if (pitMount && isCurrentBootstrapRun()) {
-      delete pitMount.dataset.portfolioMediaReady;
-      pitMount.classList.remove(
-        'is-portfolio-boot-preparing',
-        'is-portfolio-deck-visible',
-        'is-portfolio-deck-revealing'
-      );
-    }
-    try {
-      disposeRendererListeners();
-    } catch (e) {
-      /* ignore */
-    }
-    cleanupTransitionNavigationLinks();
-    window.removeEventListener('pageshow', handlePageShow);
-    app.destroy();
-  };
+  return cleanup;
 }

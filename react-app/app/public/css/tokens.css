@@ -26,7 +26,9 @@
   --abs-wall-base-dark: #141414;
   --abs-wall-base: var(--abs-wall-base-dark);
   --shell-wall-bg: #141414;
-  --studio-window-bg: var(--shell-wall-bg);
+  --studio-window-bg-light: var(--bg-light);
+  --studio-window-bg-dark: var(--bg-dark);
+  --studio-window-bg: var(--studio-window-bg-light);
   --frame-color-site-light: #202124;
   --frame-color-site-dark: #202124;
   --frame-color-light: #202124;
@@ -63,7 +65,7 @@
   --frame-border-width: var(--frame-border-width-desktop);
   --frame-outer-radius: clamp(36px, 4.5vw, 65px);
   --frame-inner-radius: max(0px, calc(var(--frame-outer-radius) - var(--frame-border-width)));
-  --frame-inner-surface: var(--abs-wall-base);
+  --frame-inner-surface: var(--studio-window-bg);
   --frame-border-gradient-rgb-dark: 153, 153, 153;
   --frame-border-gradient-rgb-light: 255, 255, 255;
   --frame-border-gradient-edge-opacity: 0.012;
@@ -843,8 +845,9 @@
 body.dark-mode,
 body[data-abs-theme='dark'] {
   color-scheme: dark;
-  /* Theme must not recolor the wall base; JS keeps --abs-wall-base stable. */
-  --frame-inner-surface: var(--abs-wall-base);
+  /* Theme changes the studio-window interior, never the outer wall/frame. */
+  --studio-window-bg: var(--studio-window-bg-dark);
+  --frame-inner-surface: var(--studio-window-bg);
   --frame-vignette-edge-rgb: 16, 17, 19;
   --frame-vignette-ambient-rgb: 10, 10, 10;
   --frame-vignette-edge-opacity: 0.66;

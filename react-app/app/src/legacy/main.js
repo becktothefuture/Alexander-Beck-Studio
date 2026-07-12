@@ -22,7 +22,7 @@ import { setupPointer } from './modules/input/pointer.js';
 import { setupOverscrollLock } from './modules/input/overscroll-lock.js';
 import { setupCustomCursor } from './modules/rendering/cursor.js';
 import { setMode, getForceApplicator, initModeSystem, disposeModeSystem } from './modules/modes/mode-controller.js';
-import { startMainLoop, stopMainLoop } from './modules/rendering/loop.js';
+import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/audio/sound-engine.js';
 import { initQuoteDisplay } from './modules/ui/quote-display.js';
@@ -104,11 +104,13 @@ function setHomeRouteReadyState(ready) {
   } catch (e) {}
 }
 
-function signalRouteReady(routeId) {
-  if (typeof window === 'undefined' || !routeId) return;
-  requestAnimationFrame(() => {
-    window.dispatchEvent(new CustomEvent('abs:route-ready', { detail: { routeId } }));
-  });
+function isCanvasHomeTitleDrawn() {
+  const titleState = getGlobals().canvasTitleRenderState || {};
+  return (
+    titleState.active === true
+    && titleState.visible === true
+    && Number(titleState.lineCount) >= 2
+  );
 }
 
 function getUrlStartupModeOverride() {
@@ -289,7 +291,33 @@ window.addEventListener('unhandledrejection', (event) => {
   }
 });
 
-export async function bootstrapHomePage() {
+export async function bootstrapHomePage(runtimeContext = {}) {
+  const { signal, isCurrent: isRuntimeCurrent, registerCleanup } = runtimeContext;
+  let disposed = false;
+  let rendererOwner = null;
+  const isCurrent = () => (
+    !disposed
+    && !signal?.aborted
+    && (typeof isRuntimeCurrent !== 'function' || isRuntimeCurrent())
+  );
+  const cleanup = () => {
+    if (disposed) return;
+    disposed = true;
+    try {
+      disposeModeSystem();
+    } catch (e) {
+      /* ignore */
+    }
+    if (rendererOwner !== null) {
+      try {
+        disposeRendererListeners(rendererOwner);
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  };
+  registerCleanup?.(cleanup);
+
   const shellRouteTransitionActiveAtStart = (
     isRouteTransitionPhase(getTransitionPhase())
     || isSimulationFocusTransitionActive()
@@ -300,16 +328,20 @@ export async function bootstrapHomePage() {
     setBootLifecycleState('booting');
   }
   setHomeRouteReadyState(false);
+  document.documentElement.dataset.absHomeCanvasTitleReady = 'false';
 
   // Mark JS as enabled (for CSS fallback detection)
   document.documentElement.classList.add('js-enabled');
 
   // TEXT (SOURCE OF TRUTH):
   // Load and apply all copy BEFORE fade-in so there is no visible “pop-in”.
+  let runtimeTextLoaded = false;
   try {
     await loadRuntimeText();
-    applyRuntimeTextToDOM();
+    runtimeTextLoaded = true;
   } catch (e) {}
+  if (!isCurrent()) return cleanup;
+  if (runtimeTextLoaded) applyRuntimeTextToDOM();
 
   // Console banner will be printed after colors are initialized (see below)
 
@@ -350,7 +382,7 @@ export async function bootstrapHomePage() {
     log('✓ Visual effects configured');
 
     // Setup canvas (attaches resize listener, but doesn't resize yet)
-    setupRenderer();
+    rendererOwner = setupRenderer();
     const canvas = getCanvas();
     const ctx = getContext();
     const container = document.getElementById('simulations');
@@ -452,10 +484,7 @@ export async function bootstrapHomePage() {
     // Initialize mode runtime (handles eager/lazy mode rollout flags)
     initModeSystem();
     await setMode(startMode);
-
-    if (isRouteTransitionPhase(getTransitionPhase())) {
-      signalRouteReady('home');
-    }
+    if (!isCurrent()) return cleanup;
 
     if (isHomeRuntimeAuditEnabled() && typeof window !== 'undefined') {
       window.__ABS_HOME_AUDIT__ = {
@@ -524,14 +553,16 @@ export async function bootstrapHomePage() {
       try {
         if (ABS_DEV) {
           const panelManager = await import('./modules/ui/panel-popup-manager.js');
+          if (!isCurrent()) return cleanup;
           panelManager.registerDevPanelRoute?.({
             page: 'home',
             pageLabel: 'Home',
             productLabel: 'Alexander Beck Studio',
           });
         } else {
-          window.__PANEL_INITIALLY_VISIBLE__ = true;
           const panelDock = await import('./modules/ui/panel-dock.js');
+          if (!isCurrent()) return cleanup;
+          window.__PANEL_INITIALLY_VISIBLE__ = true;
           panelDock.createPanelDock?.({
             page: 'home',
             pageLabel: 'Home',
@@ -542,10 +573,12 @@ export async function bootstrapHomePage() {
           });
         }
         const colors = await import('./modules/visual/colors.js');
+        if (!isCurrent()) return cleanup;
         colors.populateColorSelect?.();
         updateModeButtonsUI?.(startMode);
       } catch (e) {}
     }
+    if (!isCurrent()) return cleanup;
     mark('bb:ui');
     log(ABS_DEV
       ? '✓ Dev panel launcher ready'
@@ -573,6 +606,15 @@ export async function bootstrapHomePage() {
     // Start main render loop
     // PERF: getForcesFn is resolved once per frame in the loop, not per particle
     startMainLoop(null, { getForcesFn: getForceApplicator });
+    const confirmCanvasTitleDraw = () => {
+      if (!isCurrent()) return;
+      if (isCanvasHomeTitleDrawn()) {
+        document.documentElement.dataset.absHomeCanvasTitleReady = 'true';
+        return;
+      }
+      requestAnimationFrame(confirmCanvasTitleDraw);
+    };
+    requestAnimationFrame(confirmCanvasTitleDraw);
 
     mark('bb:end');
     log('✅ Bouncy Balls running (modular)');
@@ -624,6 +666,7 @@ export async function bootstrapHomePage() {
         initSpeculativePrefetch,
         didViewTransitionRun
       } = await import('./modules/utils/page-nav.js');
+      if (!isCurrent()) return cleanup;
 
       const shellConfig = getShellConfig();
       const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
@@ -647,6 +690,7 @@ export async function bootstrapHomePage() {
           },
           minimumMs: warmupMs
         });
+        if (!isCurrent()) return;
         try {
           resize();
           render();
@@ -654,7 +698,12 @@ export async function bootstrapHomePage() {
           void error;
         }
         await waitForCanvasReady({ selector: '#c', timeoutMs: 3200 });
+        if (!isCurrent()) return;
         await waitForFrames(2);
+        if (!isCurrent()) return;
+        document.documentElement.dataset.absHomeCanvasTitleReady = isCanvasHomeTitleDrawn()
+          ? 'true'
+          : 'false';
       };
 
       // Handle bfcache restore (browser back/forward with cached page)
@@ -692,6 +741,7 @@ export async function bootstrapHomePage() {
         });
       };
       const onHomeOverlayHidden = () => {
+        if (!isCurrent()) return;
         if (shouldRunHomePostBootEntrance) {
           startHomePostBootEntrance();
         } else {
@@ -703,6 +753,7 @@ export async function bootstrapHomePage() {
       if (shellRouteTransitionActive) {
         clearHomePostBootEntrance();
         await waitForVisualReady();
+        if (!isCurrent()) return cleanup;
         setBootLifecycleState('ready');
         if (reduceMotion) {
           setInitialSimulationVisualScale(1);
@@ -713,6 +764,7 @@ export async function bootstrapHomePage() {
             easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
             reason: 'home-route-return',
           });
+          if (!isCurrent()) return cleanup;
         }
         setHomeRouteReadyState(true);
         console.log('✓ Home simulation route-return entrance completed');
@@ -723,6 +775,7 @@ export async function bootstrapHomePage() {
           clearHomePostBootEntrance();
         }
         await waitForVisualReady();
+        if (!isCurrent()) return cleanup;
         await completeDirectBoot({
           selectors: ['#abs-scene', '#app-frame'],
           detail: reduceMotion
@@ -734,6 +787,7 @@ export async function bootstrapHomePage() {
                 : 'home-ready',
           onOverlayHidden: onHomeOverlayHidden,
         });
+        if (!isCurrent()) return cleanup;
         setHomeRouteReadyState(true);
         console.log('✓ Home direct boot revealed from settled first frame');
       }
@@ -742,12 +796,14 @@ export async function bootstrapHomePage() {
       initSpeculativePrefetch();
 
     } catch (e) {
+      if (!isCurrent()) return cleanup;
       console.warn('⚠️ Direct boot reveal failed, forcing settled content visible:', e);
       clearHomePostBootEntrance();
       await failDirectBoot({
         selectors: ['#abs-scene', '#app-frame'],
         detail: 'home-reveal-failed',
       });
+      if (!isCurrent()) return cleanup;
       setInitialSimulationVisualScale(1);
       setHomeRouteReadyState(true);
     }
@@ -756,30 +812,15 @@ export async function bootstrapHomePage() {
       setBootLifecycleState('ready');
     }
 
-    return () => {
-      try {
-        stopMainLoop();
-      } catch (e) {
-        /* ignore */
-      }
-      try {
-        disposeModeSystem();
-      } catch (e) {
-        /* ignore */
-      }
-      try {
-        disposeRendererListeners();
-      } catch (e) {
-        /* ignore */
-      }
-    };
+    return cleanup;
   } catch (error) {
+    if (!isCurrent()) return cleanup;
     setBootLifecycleState('failed');
     console.error('❌ Initialization failed:', error);
     document.body.innerHTML = `<div style="padding: var(--radius-lg); color: red; background: white;">
       <h2>Initialization Error</h2>
       <pre>${error.message}\n${error.stack}</pre>
     </div>`;
+    throw error;
   }
-  return undefined;
 }

@@ -445,6 +445,7 @@ export function initModeSystem() {
 }
 
 export function disposeModeSystem() {
+  modeChangeToken += 1;
   if (unregisterLegacyVisualTransition) {
     unregisterLegacyVisualTransition();
     unregisterLegacyVisualTransition = null;

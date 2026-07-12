@@ -53,5 +53,5 @@ echo "7) Malformed tokenized string guardrail"
 npm run check:malformed-tokens:staged
 echo
 
-echo "8) HTML fragment validation"
-npm run validate:html-fragments
+echo "8) Production HTML entry validation"
+npm run validate:html-entries

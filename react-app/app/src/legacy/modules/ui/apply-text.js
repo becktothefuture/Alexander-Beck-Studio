@@ -63,17 +63,12 @@ function applyPhilosophy() {
   const before = getText('philosophy.textBeforeLink', '');
   const mobileBefore = getText('philosophy.mobileTextBeforeLink', before) || before;
   const beforeWithGap = before ? `${String(before).replace(/\s+$/, '')} ` : '';
-  const linkId = getText('philosophy.link.id', 'contact-email-inline') || 'contact-email-inline';
-  const linkHref = getText('philosophy.link.href', '#') || '#';
   const linkText = getText('philosophy.link.text', '') || '';
 
-  let link = document.getElementById(linkId);
-  if (!link) link = p.querySelector('a');
+  const link = p.querySelector('a');
   if (!link) return;
 
-  // Ensure correct id/href/text
-  link.id = linkId;
-  link.setAttribute('href', linkHref);
+  // React owns link identity and route destination; content owns only the label.
   link.textContent = linkText;
 
   const fullCopy = p.querySelector('.home-philosophy-copy--full');

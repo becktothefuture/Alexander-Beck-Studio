@@ -40,6 +40,19 @@ Direct-load boot completion has one active owner per route family:
 
 Runtime boot functions may return a cleanup/disposer function. New runtime work should prefer explicit cleanup because it is easier to audit and safer during SPA route changes.
 
+### Runtime generation and cancellation
+
+`useLegacyRouteRuntime` assigns each mounted route runtime a generation and passes the boot export a lifecycle context containing `signal`, `generation`, `isCurrent`, and `registerCleanup`.
+
+- Its module-local active snapshot, exposed read-only through `getActiveLegacyRuntimeSnapshot()`, owns route identity and lifecycle status.
+- Register an idempotent disposer before the first asynchronous wait.
+- Check `signal.aborted` / `isCurrent()` after asynchronous work and before mutating shared DOM, renderer, mode, or route-ready state.
+- A disposer that resolves after cancellation is executed immediately.
+- Renderer teardown is owner-qualified. A stale generation must not stop or dispose the current generation's loop.
+- `abs:route-ready` includes the active runtime generation. Stale generations must not announce readiness.
+
+`<html data-abs-runtime-route data-abs-runtime-generation data-abs-runtime-status>` and `window.__ABS_RUNTIME_LIFECYCLE__` mirror only the latest snapshot for diagnostics. They are output-only and do not own route sequencing or retain lifecycle history.
+
 ## Cleanup Boundary
 
 `legacy-runtime-scope.js` wraps a route bootstrap and tracks event listeners, timers, animation frames, and idle callbacks created during that bootstrap. It is a migration safety net for older imperative modules.
@@ -73,7 +86,7 @@ runtime.destroy();
 
 That shape is guidance only. It is not a Phase 1 implementation requirement. Any adapter must preserve boot timing, route readiness, canvas sizing, physics, render output, and cleanup semantics.
 
-Current decision: do not add a live adapter until it removes real duplication or makes cleanup contracts enforceable. See `ARCHITECTURE-IMPROVEMENT-LEDGER.md` for the preservation-first classification.
+Current decision: do not add a live adapter until it removes real duplication or makes cleanup contracts enforceable.
 
 ## Refactor Rules
 

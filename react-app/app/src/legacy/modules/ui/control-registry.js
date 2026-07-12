@@ -2347,13 +2347,13 @@ export const CONTROL_SECTIONS = {
           const root = document.documentElement;
           root.style.setProperty('--abs-wall-base-light', val);
           g.wallBaseLight = val;
-          g.frameInnerSurface = 'var(--abs-wall-base)';
+          g.frameInnerSurface = 'var(--studio-window-bg)';
           import('../visual/site-shell.js').then((mod) => {
             mod.patchShellTheme?.({ wallBaseLight: val });
           }).catch(() => {});
           if (!document.body.classList.contains('dark-mode')) {
             root.style.setProperty('--abs-wall-base', val);
-            root.style.setProperty('--frame-inner-surface', 'var(--abs-wall-base)');
+            root.style.setProperty('--frame-inner-surface', 'var(--studio-window-bg)');
           }
           applyLayoutCSSVars();
         }
@@ -2370,13 +2370,13 @@ export const CONTROL_SECTIONS = {
           const root = document.documentElement;
           root.style.setProperty('--abs-wall-base-dark', val);
           g.wallBaseDark = val;
-          g.frameInnerSurface = 'var(--abs-wall-base)';
+          g.frameInnerSurface = 'var(--studio-window-bg)';
           import('../visual/site-shell.js').then((mod) => {
             mod.patchShellTheme?.({ wallBaseDark: val });
           }).catch(() => {});
           if (document.body.classList.contains('dark-mode')) {
             root.style.setProperty('--abs-wall-base', val);
-            root.style.setProperty('--frame-inner-surface', 'var(--abs-wall-base)');
+            root.style.setProperty('--frame-inner-surface', 'var(--studio-window-bg)');
           }
           applyLayoutCSSVars();
         }

@@ -504,11 +504,9 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
     rotateZ(var(--portfolio-card-rotate-z, 0deg))
     scale(var(--portfolio-card-scale, 0.86))
     scale(var(--portfolio-card-press-scale, 1));
-  filter:
-    blur(calc(var(--portfolio-card-pose-blur, 9px) + var(--portfolio-card-reveal-blur, 0px)))
-    saturate(var(--portfolio-card-pose-saturate, 0.76));
+  filter: none;
   transform-origin: 50% 50%;
-  will-change: transform, filter, opacity;
+  will-change: transform, opacity;
   backface-visibility: hidden;
   transition:
     opacity 160ms ease,
@@ -610,9 +608,11 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-project-card {
-  transition:
-    opacity 560ms var(--ease-organic, ease) var(--portfolio-card-reveal-delay, 180ms),
-    filter 680ms var(--ease-organic, ease) var(--portfolio-card-reveal-delay, 180ms);
+  transition: opacity 560ms var(--ease-organic, ease) var(--portfolio-card-reveal-delay, 180ms);
+}
+
+.portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-project-card__media {
+  transition: filter 680ms var(--ease-organic, ease) var(--portfolio-card-reveal-delay, 180ms);
 }
 
 .portfolio-deck-mount .portfolio-project-card:focus-visible {
@@ -726,6 +726,10 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   border-radius: var(--portfolio-card-media-radius);
   background: color-mix(in srgb, black 18%, var(--portfolio-card-deep));
   box-shadow: none;
+  filter:
+    blur(calc(var(--portfolio-card-pose-blur, 9px) + var(--portfolio-card-reveal-blur, 0px)))
+    saturate(var(--portfolio-card-pose-saturate, 0.76));
+  will-change: filter;
 }
 
 .portfolio-project-card__video,

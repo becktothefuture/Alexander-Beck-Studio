@@ -113,6 +113,17 @@ const matrix = [
       { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Portfolio'] },
       { selector: '[data-route-content="about"]', minArea: 60000, requiredText: ['Coming soon'] }
     ]
+  },
+  {
+    page: 'contact',
+    path: '/contact.html',
+    readySelectors: ['#app-frame', '[data-route-tab="contact"]', '[data-route-content="contact"]'],
+    minReadySelectors: 3,
+    selectors: [
+      { selector: '#app-frame', minArea: 200000, requiredText: [] },
+      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Portfolio'] },
+      { selector: '[data-route-content="contact"]', minArea: 60000, requiredText: ['Contact', 'alexander@beck.fyi'] }
+    ]
   }
 ];
 

@@ -1,109 +1,22 @@
-# Layer stacking — semantic homepage scene and overlays
+# Layer stacking
 
-**This file is the canonical source of truth** for z-order, semantic homepage layer ownership, and portfolio drawer placement. **Read it before** changing `#portfolio-sheet-host`, `.fade-content`, `#abs-scene`, `.simulation-contrast-veil`, or where `#portfolioProjectView` is mounted. **When in doubt, align code and comments here first.**
+The homepage and shared shell are an ordered physical system:
 
----
+1. browser/page ground;
+2. outer frame and inner wall;
+3. route scene transform group;
+4. simulation wall/effects;
+5. Home ball canvas and visual title path;
+6. pointer-transparent inner-shadow/contrast veil;
+7. route UI and footer;
+8. window overlays and Portfolio project sheet;
+9. modal/focus overlays;
+10. persistent Button Bar and its finish layer.
 
-## Conceptual stack (bottom → top)
+## Ownership
 
-| Order | Conceptual layer | Live owner |
-|------:|------------------|------------|
-| 1 | **Base Frame** | Browser/body background and outer frame colour. |
-| 2 | **App Scene Transform Group** | `#abs-scene.app-scene` — `#abs-scene` remains the compatibility ID; `.app-scene` is the semantic alias. |
-| 3 | **Simulation Wall + Scene Effects** | `#simulations.simulation-wall-layer` plus `#scene-effects`, `.noise`, `.inner-wall-gradient-edge`, and visually empty `.frame-vignette` compatibility layer. |
-| 4 | **Route Simulation / Content Layer** | `.route-simulation-layer` inside `#shell-wall-slot`; home owns `#c.ball-canvas-layer`, portfolio owns `.portfolio-slider-layer`, and About/CV owns `.about-content-layer`. The home title/subtitle are visually drawn through the canvas/title-depth renderer. Home ball contrast is rendered inside this canvas, clipped to ball bodies only. |
-| 6 | **Window Overlay Hook** | The simulation chooser and persistent Portfolio gate are clipped to the studio window, but mount as `#abs-scene` siblings above route UI; see the scene-child stack below. |
-| 7 | **Live Wall Finish** | `#simulations::before` (`165`) and `.inner-wall-gradient-edge` (`170`) preserve the canonical resting inset shadow and rim/light edge. `.studio-window-finish-layer` (`290`) mirrors that same finish above active in-window modal/gate overlays without changing normal route rendering. |
-| 8 | **Contrast Veil Hook** | `.simulation-contrast-veil`, pointer-transparent, `z-index: 180`; the DOM hook remains inert. Home renders contrast inside ball bodies; Portfolio uses its geometry-aware card pose opacity. |
-| 9 | **UI Layer** | `.fade-content.ui-layer`, `z-index: 200`; the stable shell contains `.route-ui-layer` for route-owned chrome/actions plus the shared footer mount. |
-| 10 | **Overlay Layer** | `#portfolio-sheet-host` (`220` / `260` when open), `#quote-viewport-host` (`250`), in-window modal layers (`270` / `280`), and the pointer-transparent active window finish (`290`). |
-| 11 | **Viewport Modal Layer** | `#modal-blur-layer.modal-layer` and `#modal-content-layer.modal-layer`, outside `#abs-scene`, remain reserved for genuinely viewport-wide dialogs. |
+`StudioShell.jsx` owns the physical window, overlay hosts, footer, and Button Bar. Route content stays inside the studio window. The Button Bar is outside the window and must never be covered by route content or a project sheet.
 
-The semantic names are additive. Do not replace compatibility hooks such as `#abs-scene`, `#simulations`, `.fade-content`, `#hero-title`, `data-abs-*`, `abs:*`, `__ABS_*`, `ABS_*`, `.abs-*`, or `--abs-*` unless every consumer is deliberately migrated and verified.
+`#portfolio-sheet-host` is a sibling overlay host within `#abs-scene`, after route content. The open Portfolio sheet covers the route header/footer/content but stops above the Button Bar. Preserve the host radius and clipping contract.
 
----
-
-## Portfolio drawer — non-negotiable
-
-| Rule | Detail |
-|------|--------|
-| **Above route chrome** | When a project is open, the drawer and its **backdrop** MUST paint **above** the **header row** (`.ui-top` / `.route-topbar`) **and** the **footer** (`SiteFooter` / `.ui-bottom`). Those live in **`.fade-content`** (`z-index: 200` in `main.css`). |
-| **Do not mount only in `#simulations`** | `#simulations` is `z-index: 100`. Anything that stays **only** inside that subtree cannot stack above `.fade-content` (200). The drawer host must be a **sibling** of `.fade-content` **inside `#abs-scene.app-scene`**, with a **higher `z-index`**. |
-| **DOM + CSS** | **`#portfolio-sheet-host`** comes **after** **`.fade-content`** in `#abs-scene` (`StudioShell.jsx`). `portfolio.css`: host `z-index: 220` (idle), **`body.portfolio-project-open`** raises host to **`z-index: 260`** so the sheet is also above **`#quote-viewport-host`** (250). |
-| **Geometry** | Host uses the **same inner-wall rectangle** as `#simulations canvas`: `position: fixed` with directional inset aliases (`--safari-tint-inset-x` for left/right, `--safari-tint-inset-y` for top/bottom) plus `var(--frame-border-width)`, **`border-radius: var(--frame-inner-radius)`**, **`overflow: hidden`**. Same **corner-shape** inheritance as canvas (e.g. squircle when `html.abs-corner-shape-squircle`). |
-
----
-
-## `#abs-scene.app-scene` children (bottom → top)
-
-`#abs-scene.app-scene` uses `transform` (`main.css`), so `position: fixed` descendants are positioned against the scene. **Sibling order + `z-index`** inside `#abs-scene`:
-
-| Order (typical DOM) | z-index | Layer |
-|--------------------|--------:|-------|
-| 1 | 100 | `#simulations.simulation-wall-layer` |
-| 2 | 175 | `.frame-vignette` |
-| 3 | **180** | **`.simulation-contrast-veil`** (inert compatibility hook; contrast is route-rendered) |
-| 4 | **200** | **`.fade-content.ui-layer`** (`.route-ui-layer` plus shared footer) |
-| 5 | **205** | `.shell-bottom-band` / Button Bar, outside the studio-window rectangle |
-| 6 | **220** / **260** when open | **`#portfolio-sheet-host`** |
-| 7 | 250 | `#quote-viewport-host` |
-| 8 | **270** | `#window-overlay-blur-layer` |
-| 9 | **280** | `#window-overlay-content-layer` |
-| 10 | **290** | `.studio-window-finish-layer` (visible only for an active chooser or locked Portfolio gate) |
-
-**Implementation:** `react-app/app/src/components/app/StudioShell.jsx` — `.simulation-contrast-veil` sits after `.frame-vignette` and before `.fade-content`; `#window-overlay-blur-layer`, `#window-overlay-content-layer`, and `.studio-window-finish-layer` remain **after** `.fade-content`. The finish layer reuses the overlay geometry and existing wall-finish recipes, stays hidden at rest, and never accepts pointer events.
-**Mount:** `react-app/app/src/legacy/modules/portfolio/app.js` — `createProjectView()` inserts `#portfolioProjectView` into `#portfolio-sheet-host`.
-
----
-
-## Inside `#simulations` only (no drawer host here)
-
-| Layer | z-index (typical) | Notes |
-|------:|------------------:|-------|
-| `.scene-effects` | 1 | Noise under route simulation/content |
-| `.shell-wall-slot` / `.route-simulation-layer` | 2+ | Route-owned simulation/content layer. |
-| `#c.ball-canvas-layer` | 10 | Home ball canvas layer. The home title/subtitle are visually drawn into this canvas path. |
-| `#simulation-front-depth-canvas` | 8 | Compatibility front-pass canvas for title-depth modes. |
-| `#simulations::before` | 165 | Live inner-wall inset shadow within the wall layer. |
-| `.inner-wall-gradient-edge` | 170 | Live rim/light edge within the wall layer. |
-| `.portfolio-slider-layer` / `#portfolioProjectMount` | — | Portfolio deck/slider layer and labels overlay. |
-| `.about-content-layer` / `#cv-scroll-container` | 10 | About/CV content layer and scroll surface. |
-
----
-
-## Outside `#abs-scene`
-
-Dev panel and genuinely viewport-wide modal blur/content use the higher global z-indexes (`tokens.css`, e.g. `--z-modal-content`). The simulation chooser and Portfolio gate use the in-window overlay instead. Do not move the portfolio drawer into modal layers unless the product intent is a full app-modal.
-
----
-
-## Controlled semantic migration
-
-| Compatibility hook | Semantic alias / owner | Reason retained |
-| --- | --- | --- |
-| `#abs-scene`, `.abs-scene` | `.app-scene` | Transition, modal depth, scene impact, boot, audits, and legacy modules consume the compatibility names. |
-| `#simulations` | `.simulation-wall-layer` | Canvas sizing, pointer, portfolio, and audits use the ID. |
-| `#c` | `.ball-canvas-layer` | Renderer/audits use the ID; semantic class names the layer. |
-| `.shell-wall-route-root` | `.route-simulation-layer` | Route-owned wall/content slot while preserving the existing shell slot and transition surface. |
-| `.fade-content` | `.ui-layer` | Route transitions and pointer pass-through rules use the historical class. |
-| `.shell-route-content-root` | `.route-ui-layer` | Route-owned UI slot; chrome/secondary transition wrappers remain implementation details. |
-| `#hero-title`, `.hero-title*` | Canvas title source | Semantic/accessibility source and geometry source for `title-depth.js`. |
-| `#portfolio-sheet-host`, `#quote-viewport-host` | Overlay hosts | Existing overlay contract is explicit; no wrapper is needed. |
-| `.studio-window-finish-layer` | Active in-window finish mirror | Repaints the existing rim/inset recipes above chooser and gate overlays without moving route UI or changing normal window rendering. |
-| `#modal-blur-layer`, `#modal-content-layer` | `.modal-layer` | Two-layer modal architecture stays locked. |
-
----
-
-## Other references (keep in sync)
-
-- `react-app/app/public/css/main.css` — `.simulation-contrast-veil`, `.fade-content`, `#quote-viewport-host`, `#abs-scene`
-- `react-app/app/public/css/portfolio.css` — `#portfolio-sheet-host` (includes comment pointing here)
-- `react-app/app/public/css/tokens.css` — “Z-INDEX STACKING ORDER” comment block
-
----
-
-## Verification (manual)
-
-- Open a project from **home** and **portfolio**: dimmer + sheet cover **header and footer**; backdrop click still closes where implemented.
-- With quote host on home: open project → sheet above quote puck (`260` > `250`).
-- Inspect Home desktop/mobile: ball-only contrast improves edge readability without repainting the wall. Inspect Portfolio: the wall remains flat, edge cards approach the `0.8` opacity floor, and offscreen copies still fade fully before rebasing.
+Do not move `#portfolioProjectView` back inside the simulation/content subtree. Do not solve stacking bugs with arbitrary higher z-indexes; preserve this ownership order.
