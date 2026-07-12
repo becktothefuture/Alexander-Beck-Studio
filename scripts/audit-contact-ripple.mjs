@@ -151,6 +151,7 @@ async function readRippleState(page) {
       ringDirections: stage?.dataset.contactRippleRingDirections || '',
       pointerMaxDegrees: Number(stage?.dataset.contactRipplePointerMaxDegrees || 0),
       configControlCount: Number(stage?.dataset.contactRippleConfigControls || 0),
+      innerRingsRemoved: Number(stage?.dataset.contactRippleInnerRingsRemoved || 0),
       config: window.__ABS_CONTACT_RIPPLE_CONFIG__ || null,
       paletteSize: Number(stage?.dataset.contactRipplePaletteSize || 0),
       surface: stage?.dataset.contactRippleSurface || '',
@@ -198,7 +199,12 @@ function assertLayout(state, viewport) {
     'Contact ripple body radius does not match the active Contact configuration',
     state,
   );
-  assert(state.configControlCount >= 10, 'Contact ripple parameter surface is incomplete', state);
+  assert(state.configControlCount >= 17, 'Contact ripple parameter surface is incomplete', state);
+  assert(
+    state.innerRingsRemoved === state.config.innerRingSkipCount,
+    'Contact ripple did not remove the configured number of inner rings',
+    state,
+  );
   assert(
     Math.abs(state.innerAlpha - state.config.innerRingAlpha) <= 0.005,
     'Inner Contact opacity does not match the active Contact configuration',

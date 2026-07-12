@@ -650,6 +650,7 @@
     "maxBodyRadius": 8.9,
     "bodyGapScale": 3.8,
     "ringGapScale": 7,
+    "innerRingSkipCount": 4,
     "innerRingAlpha": 0.2,
     "outerRingAlpha": 1,
     "idleWaveLength": 128,

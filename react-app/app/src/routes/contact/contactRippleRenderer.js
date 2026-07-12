@@ -1,4 +1,5 @@
 import {
+  CONTACT_RIPPLE_CONTROL_COUNT,
   DEFAULT_CONTACT_RIPPLE_CONFIG,
   normalizeContactRippleConfig,
 } from './contactRippleConfig.js';
@@ -255,12 +256,14 @@ export function createContactRippleRenderer({
     stage.dataset.contactRippleCoreFadeRadius = metrics.coreFadeEnd.toFixed(2);
     stage.dataset.contactRippleBurstRelease = 'smoothstep-tail';
     stage.dataset.contactRippleBallFinish = 'flat-fill';
-    stage.dataset.contactRippleConfigControls = '16';
+    stage.dataset.contactRippleConfigControls = String(CONTACT_RIPPLE_CONTROL_COUNT);
+    stage.dataset.contactRippleInnerRingsRemoved = String(config.innerRingSkipCount);
     const nextLayoutKey = [
       `${Math.round(width)}x${Math.round(height)}`,
       metrics.bodyRadius.toFixed(2),
       config.bodyGapScale.toFixed(2),
       config.ringGapScale.toFixed(2),
+      config.innerRingSkipCount,
       spriteSet.key,
     ].join(':');
     if (nextLayoutKey !== layoutKey) {
@@ -281,8 +284,8 @@ export function createContactRippleRenderer({
     const nextBodies = [];
     const bodyRadius = metrics.bodyRadius;
     const ringGap = bodyRadius * config.ringGapScale;
-    const firstRingRadius = bodyRadius * 4.25;
-    let ringIndex = 0;
+    const firstRingRadius = (bodyRadius * 4.25) + (ringGap * config.innerRingSkipCount);
+    let ringIndex = config.innerRingSkipCount;
 
     for (let ringRadius = firstRingRadius; ringRadius <= metrics.maxRadius; ringRadius += ringGap) {
       const circumference = TAU * ringRadius;

@@ -5,6 +5,7 @@ export const DEFAULT_CONTACT_RIPPLE_CONFIG = Object.freeze({
   maxBodyRadius: 10.4,
   bodyGapScale: 2.3,
   ringGapScale: 4.65,
+  innerRingSkipCount: 4,
   innerRingAlpha: 0.06,
   outerRingAlpha: 1,
   idleWaveLength: 128,
@@ -28,6 +29,7 @@ export const CONTACT_RIPPLE_CONTROL_GROUPS = Object.freeze([
       { id: 'maxBodyRadius', label: 'Max Radius', min: 8, max: 18, step: 0.1, unit: 'px' },
       { id: 'bodyGapScale', label: 'Ball Gap', min: 1.5, max: 3.8, step: 0.05, unit: '×' },
       { id: 'ringGapScale', label: 'Ring Gap', min: 2.5, max: 7, step: 0.05, unit: '×' },
+      { id: 'innerRingSkipCount', label: 'Remove Inner Rings', min: 0, max: 12, step: 1, integer: true },
       { id: 'innerRingAlpha', label: 'Inner Opacity', min: 0, max: 0.5, step: 0.01, display: 'percent' },
       { id: 'outerRingAlpha', label: 'Outer Opacity', min: 0.3, max: 1, step: 0.01, display: 'percent' },
     ],
@@ -55,6 +57,11 @@ export const CONTACT_RIPPLE_CONTROL_GROUPS = Object.freeze([
     ],
   },
 ]);
+
+export const CONTACT_RIPPLE_CONTROL_COUNT = CONTACT_RIPPLE_CONTROL_GROUPS.reduce(
+  (total, group) => total + group.controls.length,
+  0,
+);
 
 function clamp(value, min, max, fallback) {
   const numeric = Number(value);
