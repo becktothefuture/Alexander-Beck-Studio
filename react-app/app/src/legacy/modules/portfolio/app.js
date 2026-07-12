@@ -129,16 +129,6 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   contactShadowOpacity: 0.12,
 });
 
-const PORTFOLIO_DOT_COLORS = Object.freeze([
-  'var(--ball-1)',
-  'var(--ball-2)',
-  'var(--ball-3)',
-  'var(--ball-4)',
-  'var(--ball-5)',
-  'var(--ball-6)',
-  'var(--ball-7)',
-  'var(--ball-8)',
-]);
 const PORTFOLIO_DECK_INTRO_FALLBACK = Object.freeze({
   title: 'I design digital experiences around human response.',
   body: 'A curated selection of product projects across product systems, interaction models, and shipped digital experiences.',
@@ -1821,10 +1811,6 @@ class PortfolioScrollApp {
       const dot = document.createElement('span');
       dot.className = 'portfolio-carousel-dot';
       dot.dataset.dotIndex = String(index);
-      dot.style.setProperty(
-        '--portfolio-dot-color',
-        PORTFOLIO_DOT_COLORS[index % PORTFOLIO_DOT_COLORS.length]
-      );
       dotDial.appendChild(dot);
       return dot;
     });
@@ -2612,6 +2598,10 @@ class PortfolioScrollApp {
     if (!this.dotDial || !this.dotDialDots.length) return;
     const dotCount = this.dotDialDots.length;
     const radius = this.deckMetrics?.dotDialRadius || PORTFOLIO_DECK_DEFAULTS.dotDialRadiusPx;
+    const stageWidth = this.deckMetrics?.stageWidth || window.innerWidth || 1440;
+    const responsiveT = clamp((stageWidth - 390) / (1180 - 390), 0, 1);
+    const edgeFadeStart = lerp(0.14, 0.72, responsiveT);
+    const edgeFadeEnd = lerp(0.54, 0.88, responsiveT);
     const projectCount = Math.max(1, this.projects.length);
     const parallaxRatio = clamp(
       toNumber(this.deckOptions.dotParallaxRatio, PORTFOLIO_DECK_DEFAULTS.dotParallaxRatio),
@@ -2635,10 +2625,12 @@ class PortfolioScrollApp {
       const y = radius * (1 - Math.cos(angleRad));
       const wrappedDistance = Math.abs(normalized) * dotCount;
       const activeAmount = clamp(1 - (wrappedDistance / 2.5), 0, 1);
+      const edgeProgress = Math.abs(normalized) * 2;
+      const edgeOpacity = 1 - smoothstep(edgeFadeStart, edgeFadeEnd, edgeProgress);
       dot.style.setProperty('--portfolio-dot-x', `${x.toFixed(2)}px`);
       dot.style.setProperty('--portfolio-dot-y', `${y.toFixed(2)}px`);
       dot.style.setProperty('--portfolio-dot-scale', lerp(1, toNumber(this.deckOptions.dotActiveScale, PORTFOLIO_DECK_DEFAULTS.dotActiveScale), activeAmount).toFixed(3));
-      dot.style.setProperty('--portfolio-dot-opacity', '1');
+      dot.style.setProperty('--portfolio-dot-opacity', edgeOpacity.toFixed(3));
     });
   }
 

@@ -332,7 +332,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-card-overlay-height: 221.589px;
   --portfolio-card-accent-mix: 58%;
   --portfolio-carousel-dot-radius: 2050px;
-  --portfolio-carousel-dot-size: var(--legend-circle-size);
+  --portfolio-carousel-dot-size: calc(var(--legend-circle-size) * 0.7);
 }
 
 body.portfolio-page .shell-hero-slot {
@@ -825,7 +825,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   position: absolute;
   z-index: 9;
   left: 50%;
-  top: calc(100% - clamp(30px, 4cqh, 42px));
+  top: calc(100% - clamp(48px, 6cqh, 60px));
   width: 0;
   height: 0;
   pointer-events: none;
@@ -838,7 +838,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   width: var(--portfolio-carousel-dot-size);
   height: var(--portfolio-carousel-dot-size);
   border-radius: 50%;
-  background: var(--portfolio-dot-color, var(--cursor-color));
+  background: var(--text-primary);
   opacity: var(--portfolio-dot-opacity, 0.28);
   transform:
     translate3d(
@@ -1911,7 +1911,7 @@ body.portfolio-project-open .ui-bottom {
   }
 
   .portfolio-carousel-dot-dial {
-    top: calc(100% - clamp(68px, 9cqh, 80px));
+    top: calc(100% - clamp(48px, 6cqh, 60px));
   }
 
   .portfolio-deck-mount .portfolio-project-label.portfolio-project-card {
@@ -2013,6 +2013,14 @@ body.portfolio-project-open .ui-bottom {
 }
 
 @media (max-width: 420px) {
+  .portfolio-deck-mount {
+    --portfolio-carousel-mobile-dot-row-offset: clamp(120px, 16cqh, 132px);
+  }
+
+  .portfolio-carousel-dot-dial {
+    top: calc(100% - var(--portfolio-carousel-mobile-dot-row-offset));
+  }
+
   body.portfolio-page .hero-title.hero-title--portfolio {
     width: min(82vw, 18ch);
   }
@@ -2020,6 +2028,25 @@ body.portfolio-project-open .ui-bottom {
   body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
     font-size: clamp(1.35rem, 6.2vw, 1.85rem);
     line-height: 1.04;
+  }
+}
+
+@media (max-width: 420px) and (max-height: 700px) {
+  .portfolio-carousel-dot-dial {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) and (min-height: 701px) and (max-height: 760px) {
+  .portfolio-deck-mount {
+    --portfolio-carousel-mobile-dot-row-offset: clamp(92px, 13cqh, 100px);
+  }
+}
+
+@media (max-height: 600px),
+  (max-width: 900px) and (max-height: 680px) {
+  .portfolio-carousel-dot-dial {
+    display: none;
   }
 }
 
@@ -2065,9 +2092,6 @@ body.portfolio-project-open .ui-bottom {
     font-size: 0.875rem;
   }
 
-  .portfolio-carousel-dot-dial {
-    top: calc(100% - 54px);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
