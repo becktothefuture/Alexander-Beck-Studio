@@ -242,27 +242,32 @@ html:not([data-abs-boot-state='booting']) .portfolio-gate-scene__card {
   display: block;
 }
 
-.portfolio-gate-scene__card--left .portfolio-gate-scene__card-art,
 .portfolio-gate-scene__card--far-left .portfolio-gate-scene__card-art {
   background:
-    radial-gradient(ellipse 68% 50% at 62% 70%, rgb(235 226 203 / 0.72) 0 24%, transparent 25%),
-    radial-gradient(circle at 22% 30%, rgb(79 133 211 / 0.82) 0 13%, transparent 14%),
-    linear-gradient(155deg, #10263a 0 28%, #547eaa 28% 51%, #e3d9c5 51% 74%, #25394e 74%);
+    linear-gradient(180deg, rgb(8 10 14 / 0.08), rgb(8 10 14 / 0.3)),
+    url('/images/portfolio/pages/chapter-5-1.webp') center / cover no-repeat;
+}
+
+.portfolio-gate-scene__card--left .portfolio-gate-scene__card-art {
+  background:
+    linear-gradient(180deg, rgb(8 10 14 / 0.08), rgb(8 10 14 / 0.3)),
+    url('/images/portfolio/pages/chapter-6-2.webp') center / cover no-repeat;
 }
 
 .portfolio-gate-scene__card--center .portfolio-gate-scene__card-art {
-  background:
-    radial-gradient(circle at 63% 75%, rgb(255 221 183 / 0.72) 0 14%, transparent 15%),
-    linear-gradient(24deg, transparent 0 33%, rgb(119 40 42 / 0.58) 34% 47%, transparent 48%),
-    linear-gradient(147deg, #ff8b73 0 26%, #cb544b 26% 53%, #ecb077 53% 72%, #8b3435 72%);
+  background: #c8102e;
 }
 
-.portfolio-gate-scene__card--right .portfolio-gate-scene__card-art,
+.portfolio-gate-scene__card--right .portfolio-gate-scene__card-art {
+  background:
+    linear-gradient(180deg, rgb(8 10 14 / 0.08), rgb(8 10 14 / 0.3)),
+    url('/images/portfolio/pages/chapter-1-1.webp') center / cover no-repeat;
+}
+
 .portfolio-gate-scene__card--far-right .portfolio-gate-scene__card-art {
   background:
-    radial-gradient(ellipse 62% 42% at 66% 70%, rgb(224 177 95 / 0.84) 0 23%, transparent 24%),
-    radial-gradient(circle at 32% 26%, rgb(113 96 177 / 0.76) 0 16%, transparent 17%),
-    linear-gradient(144deg, #b77935 0 31%, #262641 31% 52%, #6f5d9d 52% 73%, #d49f44 73%);
+    linear-gradient(180deg, rgb(8 10 14 / 0.08), rgb(8 10 14 / 0.3)),
+    url('/images/portfolio/pages/chapter-4-1.webp') center 44% / cover no-repeat;
 }
 
 .portfolio-gate-scene__card-art::after {
@@ -486,17 +491,17 @@ html:not([data-abs-boot-state='booting']) .portfolio-gate-scene--transition-brid
   }
 }
 
-/* The fictional scene is deliberately harmless if a visitor removes blur.
-   The in-window gate adds depth without changing shared modal/simulation blur. */
+/* The locked deck deliberately uses the same static poster frames as the live
+   cards. It never starts the live deck, title/copy, JSON, or video runtime. */
 body.portfolio-page--locked .window-overlay-blur-layer {
-  -webkit-backdrop-filter: blur(8.58px);
-  backdrop-filter: blur(8.58px);
+  -webkit-backdrop-filter: blur(17.16px);
+  backdrop-filter: blur(17.16px);
 }
 
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
   body.portfolio-page--locked .window-overlay-blur-layer {
-    -webkit-backdrop-filter: blur(15.6px);
-    backdrop-filter: blur(15.6px);
+    -webkit-backdrop-filter: blur(31.2px);
+    backdrop-filter: blur(31.2px);
   }
 }
 

@@ -21,7 +21,7 @@ There is no visible Portfolio physics pit or archived slider pipeline.
 
 The in-window Portfolio gate is the only access gate. It does not use the retired whole-page Portfolio modal.
 
-When locked, Portfolio renders an inert CSS/DOM ghost scene and the code form only. It does not boot the deck, canvas, project JSON, or project media until the code is accepted. This is client-side access friction, not secure authentication: a determined visitor can still discover publicly hosted static files.
+When locked, Portfolio renders an inert CSS/DOM ghost scene and the code form only. It does not boot the deck, canvas, project JSON, title/copy, or video runtime until the code is accepted. The scene deliberately requests four fixed, static project poster frames—without card labels or interaction—so it preserves the live deck silhouette while it is blurred. This is client-side access friction, not secure authentication: a determined visitor can still discover publicly hosted static files.
 
 ## Required verification
 

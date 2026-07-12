@@ -946,8 +946,8 @@ const state = {
   wallLightFluctuationEnabled: false,       // Toggle ambient fluctuation animation
   modalOverlayEnabled: true,         // Enable/disable overlay
   modalOverlayOpacity: 0.01,          // White wash opacity (0-1)
-  modalOverlayBlurPx: 6.6,           // Desktop backdrop blur amount (px)
-  modalOverlayMobileBlurPx: 12,      // Touch/mobile backdrop blur amount (px)
+  modalOverlayBlurPx: 13.2,          // Desktop backdrop blur amount (px)
+  modalOverlayMobileBlurPx: 24,      // Touch/mobile backdrop blur amount (px)
   modalOverlayTransitionMs: 800,     // Blur-in transition duration (ms)
   modalOverlayTransitionOutMs: 600,  // Blur-out transition duration (ms)
   modalOverlayContentDelayMs: 200,   // Delay before dialog content appears (ms)

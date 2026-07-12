@@ -9,6 +9,8 @@ const VIEWPORTS = Object.freeze([
   { name: 'tablet', width: 768, height: 1024 },
   { name: 'desktop', width: 1280, height: 900 },
 ]);
+const DESKTOP_MODAL_BLUR_PX = 13.2;
+const MOBILE_MODAL_BLUR_PX = 24;
 
 const BROWSERS = { chromium, firefox, webkit };
 
@@ -16,6 +18,11 @@ function assert(condition, message, details = null) {
   if (condition) return;
   const suffix = details ? `\n${JSON.stringify(details, null, 2)}` : '';
   throw new Error(`${message}${suffix}`);
+}
+
+function readBlurPx(value) {
+  const match = String(value || '').match(/blur\(([\d.]+)px\)/i);
+  return match ? Number(match[1]) : 0;
 }
 
 function resolveOrigin() {
@@ -93,6 +100,8 @@ async function readRouteState(page) {
         height: rect.height,
       };
     };
+    const simulationList = document.querySelector('.simulation-focus-list');
+    const simulationListStyles = simulationList ? getComputedStyle(simulationList) : null;
     return {
       path: location.pathname,
       search: location.search,
@@ -116,6 +125,10 @@ async function readRouteState(page) {
       noiseLayer: styleOf('.noise'),
       noiseTexture: getComputedStyle(document.documentElement).getPropertyValue('--abs-noise-texture').trim(),
       chooserActive: Boolean(document.querySelector('.simulation-focus-modal.active')),
+      simulationList: simulationListStyles ? {
+        columnCount: simulationListStyles.gridTemplateColumns.split(' ').filter(Boolean).length,
+        width: simulationListStyles.width,
+      } : null,
       blurActive: Boolean(document.getElementById('modal-blur-layer')?.classList.contains('active')),
       contentActive: Boolean(document.getElementById('modal-content-layer')?.classList.contains('active')),
       windowBlur: styleOf('#window-overlay-blur-layer'),
@@ -185,8 +198,8 @@ async function openAndAssert(
   return state;
 }
 
-async function assertSimulationChooser(browser) {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+async function assertSimulationChooser(browser, viewport) {
+  const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
   await page.goto(routeUrl('/index.html'), { waitUntil: 'domcontentloaded', timeout: 60000 });
   await waitForIdle(page);
   await page.locator('.simulation-focus-switcher').click({ timeout: WAIT_MS });
@@ -195,10 +208,29 @@ async function assertSimulationChooser(browser) {
     () => Number.parseFloat(getComputedStyle(document.getElementById('window-overlay-blur-layer')).opacity || '0') > 0.9,
     { timeout: WAIT_MS, polling: 50 },
   );
+  const expectedBlur = viewport.name === 'mobile' ? MOBILE_MODAL_BLUR_PX : DESKTOP_MODAL_BLUR_PX;
+  await page.waitForFunction((expected) => {
+    const styles = getComputedStyle(document.getElementById('window-overlay-blur-layer'));
+    const value = styles.backdropFilter || styles.webkitBackdropFilter || '';
+    const match = value.match(/blur\(([\d.]+)px\)/i);
+    const blur = match ? Number(match[1]) : 0;
+    return Math.abs(blur - expected) <= 0.01;
+  }, expectedBlur, { timeout: WAIT_MS, polling: 50 });
   const openState = await readRouteState(page);
   assert(openState.phase === 'modal-open', 'Simulation chooser did not set modal-open phase', openState);
   assert(openState.chooserActive && openState.blurActive && openState.contentActive, 'Simulation chooser modal layers are not active', openState);
   assert(openState.windowBlur?.opacity > 0.9 && openState.windowContent?.pointerEvents === 'auto', 'Simulation chooser did not activate the in-window overlay', openState);
+  const expectedColumnCount = viewport.name === 'mobile' ? 1 : 2;
+  assert(
+    openState.simulationList?.columnCount === expectedColumnCount,
+    `Simulation chooser did not resolve to ${expectedColumnCount} column(s) on ${viewport.name}`,
+    openState,
+  );
+  assert(
+    Math.abs(readBlurPx(openState.windowBlur?.backdropFilter) - expectedBlur) <= 0.01,
+    `Simulation chooser blur did not resolve to ${expectedBlur}px on ${viewport.name}`,
+    openState,
+  );
   assert(
     openState.windowBlur.zIndex < openState.windowFinish?.zIndex
       && openState.windowContent.zIndex < openState.windowFinish?.zIndex
@@ -286,7 +318,11 @@ async function main() {
       assert(states.home.footer.middle && states.contact.footer.middle && states.about.footer.middle, `Standard footer middle caption is missing on ${viewport.name}`, states);
       assert(states.portfolio.footer.middle === null, `Portfolio footer unexpectedly renders the middle caption on ${viewport.name}`, states.portfolio);
     }
-    results.simulationChooser = await assertSimulationChooser(browser);
+    results.simulationChooser = {
+      desktop: await assertSimulationChooser(browser, VIEWPORTS[2]),
+      tablet: await assertSimulationChooser(browser, VIEWPORTS[1]),
+      mobile: await assertSimulationChooser(browser, VIEWPORTS[0]),
+    };
   } finally {
     await browser.close();
   }

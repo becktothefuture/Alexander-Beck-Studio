@@ -598,8 +598,8 @@
   --modal-overlay-transition-duration: 800ms;
   --modal-overlay-transition-out-duration: 600ms;
   --modal-content-delay: 200ms;
-  --modal-overlay-blur: 6.6px;
-  --modal-overlay-mobile-blur: 12px;
+  --modal-overlay-blur: 13.2px;
+  --modal-overlay-mobile-blur: 24px;
   --modal-depth-scale: 0.96;
   --modal-depth-translate-y: 8px;
   --modal-depth-duration: 800ms;

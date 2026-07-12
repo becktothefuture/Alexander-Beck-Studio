@@ -59,9 +59,9 @@ The Button Bar sits outside the studio window and is stable shell chrome. Its ta
 
 ## Portfolio Gate
 
-The locked Portfolio route uses one token-driven CSS/DOM ghost scene rather than theme or viewport image assets. Its abstract card planes adapt through responsive CSS and resolved theme tokens, so theme switching does not request a second preview asset.
+The locked Portfolio route uses one token-driven CSS/DOM ghost scene with the same fixed poster frames as the live deck. Its card planes adapt through responsive CSS and resolved theme tokens; theme switching does not request a second preview asset.
 
-The ghost scene contains no project media, project text, or client information. It fades in as a non-interactive set of fictional static thumbnails with no per-card titles; removing CSS blur reveals only the harmless intercept: “Ah, ah, ah. You didn’t say the magic word.” The locked Portfolio overlay adds a gate-only 30% backdrop-blur increase (8.58px desktop, 15.6px touch/mobile) without changing the shared modal or simulation-focus blur contract.
+The scene never starts the live deck, title/copy, project JSON, or video runtime. It uses four explicitly named static poster files and no per-card titles; removing CSS blur reveals those poster frames plus the harmless intercept: “Ah, ah, ah. You didn’t say the magic word.” The shared modal and simulation-focus backdrop blur is 13.2px desktop / 24px touch-mobile; the locked Portfolio gate remains 30% stronger at 17.16px desktop / 31.2px touch-mobile.
 
 ## Verification
 

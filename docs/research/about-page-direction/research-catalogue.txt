@@ -250,7 +250,7 @@ Capture: evidence/awwwards/agustin-burgos-about-full.png — Visible count inclu
 
 15. Grilled Pixels - Adam Roberts
 Award: 2026 · Nominee · Professional Services & Self-Promotion (2026)
-Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Award source: https://winners.webbyawards.com/2026/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion/376047/grilled-pixels--portfolio-of-adam-roberts
 Live About: https://www.grilledpixels.com/about/
 Length: ~1670 words / ~6.7 minutes
 Narrative: concise practice definition -> 25-year credibility and collaborator list -> origin story from childhood web-making -> working style and services -> personal/family image interlude -> awards and contact
@@ -267,7 +267,7 @@ Capture: evidence/webby/screenshots/01-grilled-pixels-about.png — Visible body
 
 16. Won J. You Studios - My Story
 Award: 2026 · Nominee · Professional Services & Self-Promotion (2026)
-Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Award source: https://winners.webbyawards.com/2026/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion/360775/won-j-you-studios-design-mentor-and-coach
 Live About: https://wonjyou.studio/about/
 Length: ~605 words / ~2.4 minutes
 Narrative: mission statement -> rapid-fire identity labels -> portrait and role definition -> career trajectory and recognizable clients -> teaching impact -> press and affiliations -> friendly contact
@@ -284,7 +284,7 @@ Capture: evidence/webby/screenshots/02-won-j-you-about.png — Motion clip shows
 
 17. Righteous Creative
 Award: 2026 · Webby Winner and People's Voice Winner · Professional Services & Self-Promotion (2026)
-Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Award source: https://winners.webbyawards.com/2026/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion/360335/righteous-creative
 Live About: https://righteouscreative.com/
 Length: ~249 words / ~1 minutes
 Narrative: plain-language promise -> team portraits with humorous role labels -> anti-agency origin -> nostalgic personality paragraph -> short rallying close
@@ -352,7 +352,7 @@ Capture: evidence/webby/screenshots/06-lusion-about.png — Ten wheel-driven sta
 
 21. Locomotive - Agency
 Award: 2024 · Nominee · Professional Services & Self-Promotion (2024)
-Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Award source: https://winners.webbyawards.com/2024/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion/279971/locomotive
 Live About: https://locomotive.ca/en/agency
 Length: ~771 words / ~3.1 minutes
 Narrative: independent-agency statement -> Digital-first Design positioning -> short manifesto film -> mission and three-founder origin -> capabilities -> people by discipline -> recognition and contact
@@ -386,7 +386,7 @@ Capture: evidence/webby/screenshots/08-someoddpilot-about.png — Default biogra
 
 23. Better Off Studio - The Lookback
 Award: 2025 · Nominee · Professional Services & Self-Promotion (2025)
-Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Award source: https://winners.webbyawards.com/2025/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion/321586/better-off-studio
 Live About: https://tlb.betteroff.studio/about/
 Length: ~442 words / ~1.8 minutes
 Narrative: living-archive definition -> why looking back clarifies the future -> three-content promise -> brief thanks -> monthly index of work, music, inspiration and clients
@@ -403,7 +403,7 @@ Capture: evidence/webby/screenshots/09-better-off-lookback-about.png — Ten whe
 
 24. Metalab - About
 Award: 2024 · Nominee · Professional Services & Self-Promotion (2024)
-Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Award source: https://winners.webbyawards.com/2024/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion/298168/metalab-rebrand
 Live About: https://www.metalab.com/about
 Length: ~461 words / ~1.8 minutes
 Narrative: global-team statement -> geographic spread -> operating belief about autonomy -> employee voices -> diversity commitments -> work-life practices -> open roles
@@ -420,7 +420,7 @@ Capture: evidence/webby/screenshots/10-metalab-about.png — Current live page i
 
 25. Dops Agency
 Award: 2024 · People's Voice Winner · Professional Services & Self-Promotion (2024)
-Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Award source: https://winners.webbyawards.com/2024/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion/281221/dops-visual-design-agency-website
 Live About: https://dops.agency/
 Length: ~631 words / ~2.5 minutes
 Narrative: visual-experience promise -> latest case -> selected work -> services -> team DNA -> client quotes -> client scale and awards -> team and contact
@@ -539,7 +539,7 @@ Capture: evidence/fwa-cssda/screenshots/04-ania-melnik-profile.png — Full 8762
 
 32. Alex Ryan Design
 Award: Special Kudos plus UI, UX, and Innovation public awards (2026-01-10)
-Award source: https://www.cssdesignawards.com/website-gallery?industry=graphic+design&page=1
+Award source: https://www.cssdesignawards.com/sites/alex-ryan-design/48687/
 Live About: https://www.alexryan.design/about
 Length: ~374 words / ~1.9 minutes
 Narrative: oversized positioning sentence -> client wall -> two engagement models -> recognitions -> expertise line -> friendly contact
@@ -658,7 +658,7 @@ Capture: evidence/fwa-cssda/screenshots/11-jess-hill-about.png — Complete 1537
 
 39. Bogdan Kolomiyets
 Award: Special Kudos plus UI, UX, and Innovation public awards (2026-02-19)
-Award source: https://www.cssdesignawards.com/website-gallery?industry=web+design%2Fdev
+Award source: https://www.cssdesignawards.com/sites/bogdan-kolomiyets/48898/
 Live About: https://bogdankolomiyets.com/about
 Length: ~320 words / ~1.6 minutes
 Narrative: positioning promise -> playful personal snapshots -> three proof statistics -> service personality -> four website beliefs -> humorous call to action
@@ -675,7 +675,7 @@ Capture: evidence/fwa-cssda/screenshots/12-bogdan-kolomiyets-about.png — Compl
 
 40. Giacomo Agnello Modica
 Award: Special Kudos plus UI, UX, and Innovation public awards (2025-12-06)
-Award source: https://www.cssdesignawards.com/website-gallery?industry=art
+Award source: https://www.cssdesignawards.com/sites/giacomo-agnello-modica-portfolio/48493/
 Live About: https://giacomoagnellomodica.com/info/
 Length: ~226 words / ~1.1 minutes
 Narrative: illustrated introduction -> practice and client list -> two selected recognitions -> personal hobby -> interactive influence ingredients -> favorite things -> self-published shop work

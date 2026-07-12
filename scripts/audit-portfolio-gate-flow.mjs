@@ -6,9 +6,15 @@ import { chromium } from 'playwright';
 
 const WAIT_MS = Number(process.env.ABS_CANVAS_WAIT_MS || 30000);
 const INVITE_CODE = process.env.ABS_PORTFOLIO_CODE || '739284';
-const DESKTOP_GATE_BLUR_PX = 8.58;
-const MOBILE_GATE_BLUR_PX = 15.6;
+const DESKTOP_GATE_BLUR_PX = 17.16;
+const MOBILE_GATE_BLUR_PX = 31.2;
 const GATE_SCENE_OPACITY = 0.5;
+const GATE_STATIC_POSTERS = new Set([
+  'chapter-1-1.webp',
+  'chapter-4-1.webp',
+  'chapter-5-1.webp',
+  'chapter-6-2.webp',
+]);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outputRoot = resolve(__dirname, '..', 'output', 'playwright', 'portfolio-gate-audit');
 
@@ -27,20 +33,31 @@ function assert(condition, message, details = null) {
 }
 
 function trackLockedPortfolioRequests(page) {
-  const requests = [];
+  const blockedRequests = [];
+  const posterRequests = [];
   const handler = (request) => {
     const requestUrl = request.url();
+    const pathname = new URL(requestUrl).pathname;
     if (
       requestUrl.includes('contents-portfolio.json')
-      || requestUrl.includes('/images/portfolio/pages/')
       || requestUrl.includes('/video/')
     ) {
-      requests.push(requestUrl);
+      blockedRequests.push(requestUrl);
+      return;
+    }
+    if (pathname.includes('/images/portfolio/pages/')) {
+      const filename = pathname.split('/').at(-1) || '';
+      if (GATE_STATIC_POSTERS.has(filename)) {
+        posterRequests.push(requestUrl);
+      } else {
+        blockedRequests.push(requestUrl);
+      }
     }
   };
   page.on('request', handler);
   return {
-    requests,
+    blockedRequests,
+    posterRequests,
     stop: () => page.off('request', handler),
   };
 }
@@ -177,6 +194,9 @@ async function readState(page) {
       sceneFocusableCount: document.querySelectorAll('[data-portfolio-gate-scene] a, [data-portfolio-gate-scene] button, [data-portfolio-gate-scene] input, [data-portfolio-gate-scene] [tabindex]').length,
       sceneImageCount: scene?.querySelectorAll('img, picture, source').length || 0,
       sceneCardCopyCount: scene?.querySelectorAll('.portfolio-gate-scene__card-copy').length || 0,
+      sceneStaticPosterCount: Array.from(scene?.querySelectorAll('.portfolio-gate-scene__card-art') || [])
+        .filter((cardArt) => getComputedStyle(cardArt).backgroundImage.includes('/images/portfolio/pages/'))
+        .length,
       sceneAnimationName: scene ? getComputedStyle(scene).animationName : '',
       sceneText: scene?.textContent?.trim() || '',
       sceneCards: visibleCardRects(
@@ -305,7 +325,8 @@ function assertThemeState(
 
   if (expectScene) {
     assert(state.scene, `${label}: fictional gate scene did not mount`, state);
-    assert(state.sceneImageCount === 0, `${label}: fictional gate scene must not use image assets`, state);
+    assert(state.sceneImageCount === 0, `${label}: static gate posters must not use image elements`, state);
+    assert(state.sceneStaticPosterCount === GATE_STATIC_POSTERS.size, `${label}: static gate poster set drifted`, state);
     assert(
       state.sceneText === "Ah, ah, ah. You didn't say the magic word.",
       `${label}: gate scene intercept copy drifted`,
@@ -339,7 +360,7 @@ function assertThemeState(
       state,
     );
     assert(state.gateColors.input === state.gateTokens.textInput, `${label}: gate input does not resolve from --text-input`, state);
-    const expectedBlur = theme === 'dark' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.18)';
+    const expectedBlur = theme === 'dark' ? 'rgba(0, 0, 0, 0.26)' : 'rgba(255, 255, 255, 0.24)';
     assert(state.blurBackground === expectedBlur, `${label}: locked blur layer does not match the resolved theme`, state);
   }
 }
@@ -348,7 +369,7 @@ async function waitForLockedBlurTheme(page, theme) {
   await page.waitForFunction((expectedTheme) => {
     const layer = document.getElementById('window-overlay-blur-layer');
     if (!layer) return false;
-    const expected = expectedTheme === 'dark' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.18)';
+    const expected = expectedTheme === 'dark' ? 'rgba(0, 0, 0, 0.26)' : 'rgba(255, 255, 255, 0.24)';
     return getComputedStyle(layer).backgroundColor === expected;
   }, theme, { timeout: WAIT_MS });
 }
@@ -445,8 +466,15 @@ async function captureUnlockRevealReplay(browser, profile, checkpointId) {
       await page.waitForFunction(() => {
         if ((document.documentElement.dataset.absTransitionPhase || 'idle') !== 'route-in') return false;
         const bridge = document.querySelector('[data-portfolio-gate-scene-bridge]');
+        const wall = document.getElementById('shell-wall-slot');
+        const hero = document.getElementById('shell-hero-slot');
+        const liveOpacity = Math.max(
+          Number.parseFloat(getComputedStyle(wall).opacity || '0'),
+          Number.parseFloat(getComputedStyle(hero).opacity || '0'),
+        );
         return Boolean(document.getElementById('portfolioProjectMount'))
-          && Boolean(bridge);
+          && Boolean(bridge)
+          && liveOpacity > 0;
       }, undefined, { timeout: WAIT_MS, polling: 'raf' });
       await page.waitForTimeout(50);
     } else {
@@ -633,7 +661,8 @@ async function auditResponsiveGateBreakpoint(browser, profile) {
     });
     assert(state.lockedGate && state.gateTitleSurface?.filter === 'none', `breakpoint/${profile.name}: gate copy is not sharp`, state);
     assert(state.gateLayoutOk, `breakpoint/${profile.name}: gate copy or code inputs overflow the studio window`, state);
-    assert(lockedRequestTracker.requests.length === 0, `breakpoint/${profile.name}: locked scene requested project data or media`, lockedRequestTracker.requests);
+    assert(lockedRequestTracker.blockedRequests.length === 0, `breakpoint/${profile.name}: locked scene requested project data, video, or an unapproved asset`, lockedRequestTracker.blockedRequests);
+    assert(lockedRequestTracker.posterRequests.length > 0, `breakpoint/${profile.name}: locked scene did not request static project posters`, lockedRequestTracker.posterRequests);
     const screenshotPath = resolve(outputRoot, `breakpoint-${profile.name}-${profile.viewport.width}x${profile.viewport.height}.png`);
     await page.screenshot({ path: screenshotPath, fullPage: false });
     return { profile, screenshotPath, state };
@@ -670,7 +699,8 @@ async function auditTheme(browser, theme) {
     assert(results.lockedInitial.activeTab === 'portfolio' && results.lockedInitial.lockedGate, 'Locked Portfolio route did not show in-window gate', results.lockedInitial);
     assert(results.lockedInitial.scene && !results.lockedInitial.deck && results.lockedInitial.labels === 0, 'Locked Portfolio did not use the fictional scene-only route', results.lockedInitial);
     assert(results.lockedInitial.sceneFocusableCount === 0, 'Portfolio scene exposed focusable content', results.lockedInitial);
-    assert(lockedRequestTracker.requests.length === 0, 'Locked Portfolio requested protected project data or media', lockedRequestTracker.requests);
+    assert(lockedRequestTracker.blockedRequests.length === 0, 'Locked Portfolio requested project data, video, or an unapproved asset', lockedRequestTracker.blockedRequests);
+    assert(lockedRequestTracker.posterRequests.length > 0, 'Locked Portfolio did not request static project posters', lockedRequestTracker.posterRequests);
     assert(
       results.lockedInitial.windowContent?.zIndex < results.lockedInitial.windowFinish?.zIndex
         && results.lockedInitial.windowBlur?.zIndex < results.lockedInitial.windowFinish?.zIndex
@@ -681,12 +711,13 @@ async function auditTheme(browser, theme) {
     );
     assert(results.lockedInitial.geometryOk, 'Locked Portfolio window geometry does not align with bottom shell band', results.lockedInitial);
 
-    const requestsBeforeThemeToggle = lockedRequestTracker.requests.length;
+    const posterRequestsBeforeThemeToggle = lockedRequestTracker.posterRequests.length;
     results.lockedThemeToggle = await toggleLockedGateTheme(page, theme);
     assert(
-      lockedRequestTracker.requests.length === requestsBeforeThemeToggle,
-      'Locked theme switching requested protected project data or media',
-      lockedRequestTracker.requests,
+      lockedRequestTracker.posterRequests.length === posterRequestsBeforeThemeToggle
+        && lockedRequestTracker.blockedRequests.length === 0,
+      'Locked theme switching requested project data, video, or an extra poster asset',
+      lockedRequestTracker,
     );
 
     await page.screenshot({ path: resolve(outputRoot, `portfolio-locked-${theme}.png`), fullPage: false });
@@ -695,7 +726,7 @@ async function auditTheme(browser, theme) {
       document.getElementById('window-overlay-content-layer')?.remove();
     });
     const uncovered = await readState(page);
-    assert(uncovered.scene && !uncovered.deck && uncovered.labels === 0, 'Removing the gate overlay exposed live Portfolio content', uncovered);
+    assert(uncovered.scene && !uncovered.deck && uncovered.labels === 0, 'Removing the gate overlay exposed the live Portfolio runtime', uncovered);
 
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     await waitForIdle(page);
@@ -785,7 +816,7 @@ async function main() {
   }
 
   console.log(JSON.stringify(results, null, 2));
-  console.error(`PASS: Portfolio light/dark ghost scene, ordered unlock sequences, cookie persistence, and reset flow passed (${outputRoot})`);
+  console.error(`PASS: Portfolio static-poster gate scene, ordered unlock sequences, cookie persistence, and reset flow passed (${outputRoot})`);
 }
 
 main().catch((error) => {

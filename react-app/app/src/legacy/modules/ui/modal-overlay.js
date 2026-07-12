@@ -277,7 +277,7 @@ export function initModalOverlay(config) {
     root.style.setProperty('--logo-blur-active-target', `${logoBlurActive}px`);
     root.style.setProperty('--logo-blur-active', `${logoBlurInactive}px`);
     
-    const tokenBlurPx = readTokenNumber('--modal-overlay-blur', 6.6);
+    const tokenBlurPx = readTokenNumber('--modal-overlay-blur', 13.2);
     const tokenMobileBlurPx = readTokenNumber('--modal-overlay-mobile-blur', tokenBlurPx);
     configuredOverlayBlurPx = normalizeBlurPx(config.modalOverlayBlurPx, tokenBlurPx);
     configuredOverlayMobileBlurPx = normalizeBlurPx(config.modalOverlayMobileBlurPx, tokenMobileBlurPx);

@@ -5009,19 +5009,19 @@ body.portfolio-page--locked .window-overlay-layer {
 
 html.simulation-focus-modal-open .window-overlay-blur-layer,
 body.portfolio-page--locked .window-overlay-blur-layer {
-  -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 6.6px));
-  backdrop-filter: blur(var(--modal-overlay-blur, 6.6px));
+  -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
+  backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
   background-color: rgba(var(--abs-rgb-white), var(--modal-overlay-opacity, 0.01));
 }
 
 body.portfolio-page--locked .window-overlay-blur-layer {
-  background-color: rgba(var(--abs-rgb-white), 0.18);
+  background-color: rgba(var(--abs-rgb-white), 0.24);
 }
 
 body.portfolio-page--locked.dark-mode .window-overlay-blur-layer,
 body.portfolio-page--locked[data-abs-theme='dark'] .window-overlay-blur-layer,
 html[data-abs-theme='dark'] body.portfolio-page--locked .window-overlay-blur-layer {
-  background-color: rgba(var(--abs-rgb-black), 0.2);
+  background-color: rgba(var(--abs-rgb-black), 0.26);
 }
 
 html.simulation-focus-modal-open .window-overlay-content-layer,
@@ -5041,8 +5041,8 @@ html.simulation-focus-modal-open #modal-content-layer {
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
   html.simulation-focus-modal-open .window-overlay-blur-layer,
   body.portfolio-page--locked .window-overlay-blur-layer {
-    -webkit-backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 12px)));
-    backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 12px)));
+    -webkit-backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
+    backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
   }
 }
 
@@ -6234,7 +6234,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .simulation-focus-modal {
   --simulation-focus-row-height: 48px;
   --simulation-focus-icon-size: 32px;
-  --simulation-focus-list-width: min(100%, 24rem);
+  --simulation-focus-list-width: min(100%, 19rem);
   --simulation-focus-list-gutter: clamp(12px, 4vw, 18px);
   --simulation-focus-scroll-fade: clamp(32px, 7svh, 68px);
   --simulation-focus-ink: var(--text-primary);
@@ -6468,11 +6468,11 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   letter-spacing: 0;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 720px) and (min-height: 560px) {
   .simulation-focus-modal {
-    --simulation-focus-row-height: 48px;
-    --simulation-focus-icon-size: 32px;
-    --simulation-focus-list-width: min(100%, 24rem);
+    --simulation-focus-row-height: 46px;
+    --simulation-focus-icon-size: 28px;
+    --simulation-focus-list-width: min(100%, 34rem);
     gap: var(--gap-md);
     padding:
       clamp(24px, 4svh, 48px)
@@ -6480,7 +6480,8 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   }
 
   .simulation-focus-list {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--gap-sm);
     width: var(--simulation-focus-list-width);
   }
 }
@@ -7237,8 +7238,8 @@ body.page-transitioning {
 
 #modal-blur-layer.active,
 .modal-blur-layer.active {
-  -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 12px));
-  backdrop-filter: blur(var(--modal-overlay-blur, 12px));
+  -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
+  backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
   background-color: rgba(var(--abs-rgb-white), var(--modal-overlay-opacity, 0.01));
   pointer-events: auto;
   
@@ -7251,8 +7252,8 @@ body.page-transitioning {
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
   #modal-blur-layer.active,
   .modal-blur-layer.active {
-    -webkit-backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 12px)));
-    backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 12px)));
+    -webkit-backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
+    backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
   }
 }
 
@@ -7375,8 +7376,8 @@ body.dark-mode .modal-blur-layer.active {
 }
 
 .modal-overlay.active {
-  -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 8px));
-  backdrop-filter: blur(var(--modal-overlay-blur, 8px));
+  -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
+  backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
   background-color: rgba(var(--abs-rgb-white), var(--modal-overlay-opacity, 0.01));
   pointer-events: auto;
   
