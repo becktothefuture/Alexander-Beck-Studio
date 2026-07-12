@@ -785,6 +785,80 @@ function cleanupSimulationFocusLayer(surfaceRefs) {
   layer.style.removeProperty('pointer-events');
 }
 
+function removeSimulationTransactionSnapshots() {
+  document.querySelectorAll('.simulation-transaction-snapshot').forEach((node) => node.remove());
+}
+
+function captureSimulationTransactionSnapshot() {
+  const host = document.getElementById('simulations');
+  const hostRect = host?.getBoundingClientRect();
+  if (!host || !hostRect || hostRect.width < 1 || hostRect.height < 1) return null;
+
+  removeSimulationTransactionSnapshots();
+  const pixelRatio = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+  const snapshot = document.createElement('canvas');
+  snapshot.className = 'simulation-transaction-snapshot';
+  snapshot.dataset.state = 'captured';
+  snapshot.width = Math.max(1, Math.round(hostRect.width * pixelRatio));
+  snapshot.height = Math.max(1, Math.round(hostRect.height * pixelRatio));
+  snapshot.style.left = `${hostRect.left}px`;
+  snapshot.style.top = `${hostRect.top}px`;
+  snapshot.style.width = `${hostRect.width}px`;
+  snapshot.style.height = `${hostRect.height}px`;
+
+  const context = snapshot.getContext('2d');
+  const sourceCanvases = Array.from(host.querySelectorAll('canvas'))
+    .filter((canvas) => canvas !== snapshot && canvas.width > 0 && canvas.height > 0)
+    .sort((left, right) => {
+      const leftZ = Number.parseFloat(getComputedStyle(left).zIndex) || 0;
+      const rightZ = Number.parseFloat(getComputedStyle(right).zIndex) || 0;
+      return leftZ - rightZ;
+    });
+  let capturedLayers = 0;
+  sourceCanvases.forEach((canvas) => {
+    const style = getComputedStyle(canvas);
+    const rect = canvas.getBoundingClientRect();
+    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return;
+    if (rect.width < 1 || rect.height < 1) return;
+    try {
+      context.globalAlpha = Number.parseFloat(style.opacity) || 1;
+      context.drawImage(
+        canvas,
+        (rect.left - hostRect.left) * pixelRatio,
+        (rect.top - hostRect.top) * pixelRatio,
+        rect.width * pixelRatio,
+        rect.height * pixelRatio,
+      );
+      capturedLayers += 1;
+    } catch {
+      // A failed layer capture must never block the route switch.
+    }
+  });
+  context.globalAlpha = 1;
+  if (capturedLayers === 0) return null;
+
+  snapshot.dataset.capturedLayers = String(capturedLayers);
+  document.body.append(snapshot);
+  let released = false;
+  return {
+    node: snapshot,
+    show() {
+      if (released || !snapshot.isConnected) return;
+      snapshot.dataset.state = 'visible';
+    },
+    release({ immediate = false } = {}) {
+      if (released) return;
+      released = true;
+      if (immediate || !snapshot.isConnected) {
+        snapshot.remove();
+        return;
+      }
+      snapshot.dataset.state = 'releasing';
+      setStableTimeout(() => snapshot.remove(), 200);
+    },
+  };
+}
+
 function animateSimulationFocusLayer(surfaceRefs, {
   direction,
   durationMs,
@@ -1126,6 +1200,7 @@ function waitForRouteReady(routeId, timeoutMs, options = {}) {
       if (settled) return;
       settled = true;
       window.removeEventListener('abs:route-ready', onReady);
+      window.removeEventListener('abs:daily-focus-failed', onFailed);
       if (pollId) clearStableTimeout(pollId);
       if (timeoutId) clearStableTimeout(timeoutId);
       resolve(status);
@@ -1137,7 +1212,12 @@ function waitForRouteReady(routeId, timeoutMs, options = {}) {
       if (eventGeneration && eventGeneration !== currentGeneration) return;
       maybeSettleReady();
     };
+    const onFailed = (event) => {
+      if ((event?.detail?.routeId || '') !== routeId) return;
+      settle('failed');
+    };
     window.addEventListener('abs:route-ready', onReady);
+    window.addEventListener('abs:daily-focus-failed', onFailed);
     timeoutId = setStableTimeout(() => settle('timeout'), timeoutMs);
 
     if (maybeSettleReady()) {
@@ -1355,6 +1435,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       activeGateTransitionRef.current = false;
       finalizeTransition(false, activeRouteIdRef.current, surfaceRefs);
       cleanupSimulationFocusLayer(surfaceRefs);
+      removeSimulationTransactionSnapshots();
       setSimulationShellStability(false, surfaceRefs);
       setSimulationFocusTransitionState(null);
       setPendingActiveRouteId(null);
@@ -1448,6 +1529,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       const token = ++transitionToken;
       const stale = () => token !== transitionToken;
       const simulationTimings = getSimulationFocusTimings(options, reduceMotion);
+      const retainedSimulation = captureSimulationTransactionSnapshot();
       const readinessRouteId = nextState.dailyFocusRouteId || nextState.route.id;
       const shouldWaitForRouteReady = !isSameRoute
         || Boolean(nextState.dailyFocusRouteId)
@@ -1471,6 +1553,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       const finishSimulationFocusTransition = () => {
         if (transitionFinished) return;
         transitionFinished = true;
+        retainedSimulation?.release();
         finishTransition(false);
       };
       const runSimulationFocusEnter = () => {
@@ -1492,6 +1575,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       };
       const cancelStaleSimulationFocus = () => {
         routeReadyWaiter?.cancel();
+        retainedSimulation?.release({ immediate: true });
         if (routeCommitted && transitionActiveRef.current && activeRouteIdRef.current === nextRouteId) {
           finishSimulationFocusTransition();
         }
@@ -1529,6 +1613,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             return undefined;
           }
           recordSimulationVisualTransitionEvent('commit', { routeId: nextState.route.id });
+          retainedSimulation?.show();
           commit();
           routeCommitted = true;
           return undefined;
@@ -1559,6 +1644,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             titleSurface: simulationTitleSurface,
           });
           recordSimulationVisualTransitionEvent('runtime-ready', { routeId: nextState.route.id });
+          retainedSimulation?.release();
           return runSimulationFocusEnter();
         })
         .then(() => {
@@ -1568,7 +1654,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           }
           finishSimulationFocusTransition();
         })
-        .catch((error) => {
+        .catch(async (error) => {
           routeReadyWaiter?.cancel();
           if (stale()) {
             cancelStaleSimulationFocus();
@@ -1576,6 +1662,11 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           }
           if (routeCommitted) {
             rollback(error);
+            const previousReadinessRouteId = previousState.dailyFocusRouteId || previousState.route.id;
+            const restoredRouteWaiter = waitForRouteReady(previousReadinessRouteId, routeTimings.ready, {
+              lockedGateId: previousState.lockedGateId || null,
+            });
+            await restoredRouteWaiter.promise;
           } else {
             try {
               options.onFailure?.(error, previousState);
@@ -1583,6 +1674,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
               // Failure reporting must not prevent transition cleanup.
             }
           }
+          retainedSimulation?.release();
           finishSimulationFocusTransition();
         });
 

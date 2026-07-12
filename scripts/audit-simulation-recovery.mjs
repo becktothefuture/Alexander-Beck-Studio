@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 import process from 'node:process';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 
 const baseUrl = String(process.env.ABS_DEV_URL || 'http://127.0.0.1:8012').replace(/\/$/, '');
 const waitMs = Number(process.env.ABS_SIMULATION_RECOVERY_WAIT_MS || 15000);
+const browserName = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
+const browserType = browserName === 'webkit' ? webkit : chromium;
+const reducedMotion = process.env.ABS_REDUCED_MOTION === 'reduce' ? 'reduce' : 'no-preference';
 
 function url(pathname) {
   return new URL(pathname, `${baseUrl}/`).toString();
@@ -58,7 +61,7 @@ async function createPage(browser) {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     colorScheme: 'dark',
-    reducedMotion: 'reduce',
+    reducedMotion,
   });
   await context.addInitScript(() => {
     if (sessionStorage.getItem('__abs_recovery_audit_seeded__') !== '1') {
@@ -77,13 +80,13 @@ async function createPage(browser) {
 }
 
 async function main() {
-  const browser = await chromium.launch();
+  const browser = await browserType.launch();
   const proof = {};
 
   try {
     {
       const { context, page } = await createPage(browser);
-      await page.route('**/RepelRoomRuntime.jsx*', (route) => route.abort('failed'));
+      await page.route('**/RepelRoomRuntime*', (route) => route.abort('failed'));
       await page.goto(url('/lab/repel-room.html?daily=1'), { waitUntil: 'domcontentloaded', timeout: 60000 });
       await page.waitForSelector('.daily-focus-runtime-status[data-runtime-status="failed"]', {
         timeout: waitMs,
@@ -97,7 +100,7 @@ async function main() {
         retryVisible: Boolean(element.querySelector('button')?.getBoundingClientRect().width),
       }));
       assert(failureUi.retryVisible && failureUi.text.includes('Retry'), 'Direct-load failure did not expose retry UI', failureUi);
-      await page.unroute('**/RepelRoomRuntime.jsx*');
+      await page.unroute('**/RepelRoomRuntime*');
       await page.locator('.daily-focus-runtime-status button').click();
       await page.waitForFunction(() => (
         document.querySelector('#simulation-stage')?.dataset.simulationId === 'repel-room'
@@ -109,7 +112,7 @@ async function main() {
 
     {
       const { context, page } = await createPage(browser);
-      await page.route('**/RepelRoomRuntime.jsx*', (route) => route.abort('failed'));
+      await page.route('**/RepelRoomRuntime*', (route) => route.abort('failed'));
       await openFlies(page);
       await chooseRepelRoom(page);
       await waitForRestoredFlies(page);
@@ -130,11 +133,39 @@ async function main() {
         window.__ABS_AUDIT_FORCE_DAILY_NOT_READY__ = 'repel-room';
       });
       await chooseRepelRoom(page);
+      await page.waitForFunction(() => (
+        document.querySelector('.simulation-transaction-snapshot')?.dataset.state === 'visible'
+      ), { timeout: waitMs });
+      const retainedFrame = await page.locator('.simulation-transaction-snapshot').evaluate((canvas) => {
+        const context = canvas.getContext('2d');
+        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+        let nonTransparentSamples = 0;
+        const pixelCount = canvas.width * canvas.height;
+        const stride = Math.max(1, Math.floor(pixelCount / 5000));
+        for (let pixelIndex = 0; pixelIndex < pixelCount; pixelIndex += stride) {
+          if (pixels[(pixelIndex * 4) + 3] > 0) nonTransparentSamples += 1;
+        }
+        return {
+          state: canvas.dataset.state,
+          capturedLayers: Number(canvas.dataset.capturedLayers || 0),
+          width: canvas.width,
+          height: canvas.height,
+          nonTransparentSamples,
+        };
+      });
+      assert(
+        retainedFrame.state === 'visible'
+          && retainedFrame.capturedLayers > 0
+          && retainedFrame.nonTransparentSamples > 0,
+        'Last-known-good simulation frame was not retained while the target was unready',
+        retainedFrame,
+      );
       await waitForRestoredFlies(page);
       const timeoutState = await readRecoveryState(page);
       assert(!timeoutState.readyEvents.includes('repel-room'), 'Timed-out runtime dispatched route-ready', timeoutState);
       assert(timeoutState.activeId === 'flies' && timeoutState.homeMode === 'flies', 'Readiness timeout did not roll back', timeoutState);
       proof.readinessTimeoutRolledBack = timeoutState;
+      proof.lastKnownGoodFrameRetained = retainedFrame;
 
       await page.evaluate(() => {
         delete window.__ABS_AUDIT_FORCE_DAILY_NOT_READY__;
@@ -160,7 +191,7 @@ async function main() {
       await context.close();
     }
 
-    console.log(JSON.stringify({ ok: true, proof }, null, 2));
+    console.log(JSON.stringify({ ok: true, browser: browserName, reducedMotion, proof }, null, 2));
   } finally {
     await browser.close();
   }

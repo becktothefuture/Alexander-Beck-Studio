@@ -7,6 +7,28 @@ const RUNTIME_LOADERS = Object.freeze({
   'repel-room': () => import('../repel-room/RepelRoomRuntime.jsx'),
 });
 
+// Safari/WebKit can cache a rejected module URL for the lifetime of a tab. These
+// deliberately separate Vite chunks give automatic and user retries fresh URLs.
+const RUNTIME_RETRY_LOADERS = Object.freeze({
+  'beach-ball-room': () => import('../beach-ball-room/BeachBallRoomRuntime.jsx?runtime-retry'),
+  'napoleon-point-cloud': () => import('../concept-simulations/NapoleonPointCloudRuntime.jsx?runtime-retry'),
+  'rift-rings': () => import('../concept-simulations/RiftRingsRuntime.jsx?runtime-retry'),
+  'flock-of-birds': () => import('../flock-of-birds/FlockOfBirdsRuntime.jsx?runtime-retry'),
+  'mineral-growth': () => import('../mineral-growth/MineralGrowthRuntime.jsx?runtime-retry'),
+  'repel-room': () => import('../repel-room/RepelRoomRuntime.jsx?runtime-retry'),
+});
+
+const RUNTIME_USER_RETRY_LOADERS = Object.freeze({
+  'beach-ball-room': () => import('../beach-ball-room/BeachBallRoomRuntime.jsx?runtime-user-retry'),
+  'napoleon-point-cloud': () => import('../concept-simulations/NapoleonPointCloudRuntime.jsx?runtime-user-retry'),
+  'rift-rings': () => import('../concept-simulations/RiftRingsRuntime.jsx?runtime-user-retry'),
+  'flock-of-birds': () => import('../flock-of-birds/FlockOfBirdsRuntime.jsx?runtime-user-retry'),
+  'mineral-growth': () => import('../mineral-growth/MineralGrowthRuntime.jsx?runtime-user-retry'),
+  'repel-room': () => import('../repel-room/RepelRoomRuntime.jsx?runtime-user-retry'),
+});
+
+const USER_RETRY_STORAGE_KEY = 'abs_daily_runtime_user_retry_v1';
+
 export const DAILY_FOCUS_RUNTIME_EXPORTS = Object.freeze({
   'beach-ball-room': 'BeachBallRoomRuntime',
   'napoleon-point-cloud': 'NapoleonPointCloudRuntime',
@@ -37,6 +59,14 @@ function waitForRetryDelay(ms = 140) {
 
 export async function loadDailyFocusRuntimeModule(simulationId, attempts = 2) {
   const loader = RUNTIME_LOADERS[simulationId];
+  const retryLoader = RUNTIME_RETRY_LOADERS[simulationId] || loader;
+  let userRetryRequested = false;
+  try {
+    userRetryRequested = sessionStorage.getItem(USER_RETRY_STORAGE_KEY) === simulationId;
+  } catch {
+    userRetryRequested = false;
+  }
+  const userRetryLoader = RUNTIME_USER_RETRY_LOADERS[simulationId] || retryLoader;
   const exportName = DAILY_FOCUS_RUNTIME_EXPORTS[simulationId];
   if (!loader || !exportName) throw new Error(`Unknown Daily Simulation runtime "${simulationId}"`);
   if (runtimeModuleCache.has(simulationId)) return runtimeModuleCache.get(simulationId);
@@ -47,11 +77,19 @@ export async function loadDailyFocusRuntimeModule(simulationId, attempts = 2) {
     publishRuntimeLoadState(simulationId, 'loading');
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
       try {
-        const module = await loader();
+        const attemptLoader = userRetryRequested
+          ? userRetryLoader
+          : (attempt === 1 ? loader : retryLoader);
+        const module = await attemptLoader();
         if (typeof module?.[exportName] !== 'function') {
           throw new Error(`Daily Simulation runtime "${simulationId}" is missing ${exportName}`);
         }
         runtimeModuleCache.set(simulationId, module);
+        try {
+          if (userRetryRequested) sessionStorage.removeItem(USER_RETRY_STORAGE_KEY);
+        } catch {
+          // Storage is optional; a successful module is already cached in memory.
+        }
         publishRuntimeLoadState(simulationId, 'ready');
         return module;
       } catch (error) {
@@ -82,4 +120,12 @@ export function hasDailyFocusRuntime(simulationId) {
 
 export function publishDailyFocusRuntimeFailure(simulationId, error) {
   publishRuntimeLoadState(simulationId, 'failed', error);
+}
+
+export function requestDailyFocusRuntimeDocumentRetry(simulationId) {
+  try {
+    sessionStorage.setItem(USER_RETRY_STORAGE_KEY, simulationId);
+  } catch {
+    // The cache-busting launch URL below still forces a fresh document.
+  }
 }

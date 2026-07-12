@@ -355,12 +355,41 @@ async function auditLegacyPreferenceMigration(browser, viewport) {
   }
 }
 
+async function auditMobileThemeReset(browser, viewport) {
+  if (viewport.name !== 'mobile') return;
+  const context = await browser.newContext({
+    viewport: { width: viewport.width, height: viewport.height },
+    colorScheme: 'dark',
+    reducedMotion: 'reduce',
+  });
+  await context.addInitScript(() => {
+    localStorage.setItem('theme-preference-v3', 'light');
+    localStorage.removeItem('theme-preference-v2');
+  });
+  const page = await context.newPage();
+
+  try {
+    await page.goto(url('/'), { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await assertTheme(page, 'light', `${viewport.name}/manual-light-before-device-reset`);
+    const reset = page.locator('.button-bar__mobile-theme-reset');
+    await reset.waitFor({ state: 'visible', timeout: waitMs });
+    await reset.click();
+    const state = await assertTheme(page, 'dark', `${viewport.name}/device-reset-follows-system-dark`);
+    assert(state.storedPreference === 'auto', `${viewport.name}: device reset did not persist Auto`, state);
+    assert(!(await reset.isVisible()), `${viewport.name}: device reset remained visible in Auto`);
+    assert(await page.locator('.button-bar__sound-toggle').isVisible(), `${viewport.name}: sound control did not return after reset`);
+  } finally {
+    await context.close();
+  }
+}
+
 async function main() {
   const server = await ensureServer();
   const browser = await browserType.launch();
   try {
     for (const viewport of viewports) {
       await auditLegacyPreferenceMigration(browser, viewport);
+      await auditMobileThemeReset(browser, viewport);
       await auditManualAndTabs(browser, viewport);
       await auditAutomaticPreference(browser, viewport);
       console.log(`[theme-consistency] PASS ${browserName}/${viewport.name}`);

@@ -3883,6 +3883,10 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   border-radius: 50%;
 }
 
+.button-bar__mobile-theme-reset {
+  display: none;
+}
+
 .button-bar__sound-toggle.shell-tab[data-state='idle']:not(:hover):not(:focus-visible):not(:active) {
   color: var(--button-bar-figma-muted-ink);
   background: transparent;
@@ -4658,6 +4662,21 @@ html[data-abs-light-locked-chrome] .button-bar {
     display: none;
   }
 
+  .button-bar__secondary-buttons:has(.button-bar__mobile-theme-reset) .button-bar__sound-toggle {
+    display: none;
+  }
+
+  .button-bar__mobile-theme-reset.shell-tab {
+    display: inline-flex;
+    flex: 0 0 var(--button-bar-mobile-secondary-height);
+    inline-size: var(--button-bar-mobile-secondary-height);
+    block-size: var(--button-bar-mobile-secondary-height);
+    min-width: var(--button-bar-mobile-secondary-height);
+    min-height: var(--button-bar-mobile-secondary-height);
+    padding: 0;
+    border-radius: 50%;
+  }
+
   .shell-tab {
     min-height: max(44px, calc(var(--shell-tab-height, 48px) - 2px));
   }
@@ -5038,6 +5057,25 @@ html.simulation-focus-modal-open #modal-content-layer {
   touch-action: none;
   border-radius: var(--frame-inner-radius);
   will-change: transform; /* Hint to create stacking context */
+}
+
+.simulation-transaction-snapshot {
+  position: fixed;
+  z-index: 160;
+  display: block;
+  box-sizing: border-box;
+  border-radius: var(--frame-inner-radius);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms var(--ui-ease-out, ease-out);
+}
+
+.simulation-transaction-snapshot[data-state='visible'] {
+  opacity: 1;
+}
+
+.simulation-transaction-snapshot[data-state='releasing'] {
+  opacity: 0;
 }
 
 #simulations canvas.ball-canvas-layer {

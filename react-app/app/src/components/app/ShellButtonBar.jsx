@@ -9,9 +9,10 @@ import {
   toggleSound,
   unlockAudio,
 } from '../../legacy/modules/audio/sound-engine.js';
-import { setTheme } from '../../legacy/modules/visual/dark-mode-v2.js';
+import { getCurrentTheme, setTheme } from '../../legacy/modules/visual/dark-mode-v2.js';
 import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
+import { THEME_CHANGE_EVENT } from '../../lib/theme-state.js';
 
 function readSoundButtonState() {
   try {
@@ -120,6 +121,19 @@ function MoonIcon() {
       <path d="M20.35 14.64A8.7 8.7 0 0 1 9.36 3.65a8.7 8.7 0 1 0 10.99 10.99Z" />
     </svg>
   );
+}
+
+function useCurrentThemePreference() {
+  const [preference, setPreference] = useState(() => getCurrentTheme());
+  useEffect(() => {
+    const syncPreference = (event) => {
+      setPreference(event?.detail?.theme || getCurrentTheme());
+    };
+    window.addEventListener(THEME_CHANGE_EVENT, syncPreference);
+    syncPreference();
+    return () => window.removeEventListener(THEME_CHANGE_EVENT, syncPreference);
+  }, []);
+  return preference;
 }
 
 function BottomThemeToggle() {
@@ -236,11 +250,31 @@ function BottomSoundToggle() {
   );
 }
 
+function BottomMobileThemeReset() {
+  const preference = useCurrentThemePreference();
+  const isDark = useRenderedThemeIsDark();
+  if (preference === 'auto') return null;
+
+  return (
+    <button
+      type="button"
+      className="button-bar__secondary-button button-bar__mobile-theme-reset shell-tab shell-tab--icon-only"
+      aria-label={`Use device theme instead of manual ${preference} mode`}
+      data-state={isDark ? 'dark' : 'light'}
+      onClick={() => setTheme('auto')}
+    >
+      {isDark ? <MoonIcon /> : <SunIcon />}
+      <span className="screen-reader">Use device theme</span>
+    </button>
+  );
+}
+
 function SecondaryButtons() {
   return (
     <div className="button-bar__secondary-buttons" role="group" aria-label="Secondary buttons" data-button-group="secondary-buttons">
       <BottomSoundToggle />
       <BottomThemeToggle />
+      <BottomMobileThemeReset />
     </div>
   );
 }

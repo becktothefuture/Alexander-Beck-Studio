@@ -4,6 +4,7 @@ import {
   hasDailyFocusRuntime,
   loadDailyFocusRuntimeModule,
   publishDailyFocusRuntimeFailure,
+  requestDailyFocusRuntimeDocumentRetry,
 } from './dailyFocusRuntimeLoader.js';
 import { getSimulationLaunchTarget } from '../../data/simulationCatalog.js';
 
@@ -44,8 +45,14 @@ class DailyFocusRuntimeErrorBoundary extends Component {
           <button
             type="button"
             onClick={() => {
+              // WebKit keeps a rejected dynamic-import result in its module map.
+              // Re-enter through the authored launch URL because the visible Home
+              // URL has already been canonicalized and no longer carries the route.
               const target = getSimulationLaunchTarget(this.props.simulationId);
-              window.location.assign(target?.href || window.location.href);
+              const retryUrl = new URL(target?.href || window.location.href, window.location.origin);
+              requestDailyFocusRuntimeDocumentRetry(this.props.simulationId);
+              retryUrl.searchParams.set('runtimeRetry', String(Date.now()));
+              window.location.replace(retryUrl.toString());
             }}
           >
             Retry
