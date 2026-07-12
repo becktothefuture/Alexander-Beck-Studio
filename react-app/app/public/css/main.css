@@ -4811,10 +4811,6 @@ html[data-abs-instrument-wake] #simulations::after {
    ───────────────────────────────────────────────────────────────────────────── */
 .inner-wall-gradient-edge,
 .studio-window-finish-layer {
-  box-shadow:
-    inset 0 0 1px 1px rgba(var(--abs-rgb-white), var(--frame-soft-border-ring-opacity)),
-    inset 0 1px 1px rgba(var(--abs-rgb-white), var(--frame-soft-border-light-opacity)),
-    inset 0 -1px 1px rgba(var(--abs-rgb-black), var(--frame-soft-border-shadow-opacity));
   background:
     /* Bottom edge — brightest at center, transparent at corners */
     radial-gradient(
