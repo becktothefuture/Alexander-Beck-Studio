@@ -66,6 +66,14 @@ function extractSwitchCases(source) {
     .map((match) => match[1]);
 }
 
+function extractDailyRuntimeIds(source) {
+  return Array.from(new Set([
+    ...extractSwitchCases(source),
+    ...Array.from(source.matchAll(/['"]([^'"]+)['"]:\s*\(\)\s*=>\s*import\(/g))
+      .map((match) => match[1]),
+  ]));
+}
+
 function extractStringObjectMaps(source, constName) {
   const pattern = new RegExp(`const\\s+${constName}\\s*=\\s*\\{([\\s\\S]*?)\\n\\s*\\};`, 'g');
   return Array.from(source.matchAll(pattern)).map((match) => {
@@ -173,7 +181,7 @@ function addRouteSourceValidationErrors(errors, simulations, {
 function addDailyFocusRuntimeCoverageErrors(errors, simulations, source, label) {
   const routeBackedDailyIds = getRouteBackedDailyIds(simulations);
   const routeBackedDailyIdSet = new Set(routeBackedDailyIds);
-  const runtimeCases = extractSwitchCases(source);
+  const runtimeCases = extractDailyRuntimeIds(source);
   const runtimeCaseSet = new Set(runtimeCases);
 
   routeBackedDailyIds.forEach((id) => {
@@ -262,9 +270,9 @@ async function main() {
   const routesSource = await readSource(SIMULATION_ADMIN_PATHS.routeRegistryPath);
   const viteSource = await readSource(SIMULATION_ADMIN_PATHS.viteConfigPath);
   const constantsSource = await readSource(SIMULATION_ADMIN_PATHS.constantsPath);
-  const dailyFocusRuntimesSource = await readSource(resolve(
+  const dailyFocusRuntimeLoaderSource = await readSource(resolve(
     SIMULATION_ADMIN_PATHS.reactAppRoot,
-    'src/routes/daily-focus/dailyFocusRuntimes.jsx',
+    'src/routes/daily-focus/dailyFocusRuntimeLoader.js',
   ));
   const dailyFocusShellBridgeSource = await readSource(resolve(
     SIMULATION_ADMIN_PATHS.reactAppRoot,
@@ -385,8 +393,8 @@ async function main() {
   addDailyFocusRuntimeCoverageErrors(
     errors,
     simulations,
-    dailyFocusRuntimesSource,
-    'dailyFocusRuntimes.jsx',
+    dailyFocusRuntimeLoaderSource,
+    'dailyFocusRuntimeLoader.js',
   );
   addDailyFocusRuntimeCoverageErrors(
     errors,
