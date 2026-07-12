@@ -1160,14 +1160,14 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
 /* Walkman studies share one configurable viewport-centred camera. */
 .button-bar-playground__variant-group--spatial-studies .button-bar-playground__stage {
   perspective: var(--walkman-perspective, 980px);
-  perspective-origin: var(--walkman-origin-x, 50%) var(--walkman-origin-y, 50%);
+  perspective-origin: var(--walkman-origin-x, 50vh) var(--walkman-origin-y, 50vh);
   overflow: visible;
   background: color-mix(in srgb, var(--playground-stage) 88%, black 12%);
 }
 .button-bar-playground__sample--walkman-inverted .button-bar-playground__stage {
   perspective-origin:
-    calc(100% - var(--walkman-origin-x, 50%))
-    calc(100% - var(--walkman-origin-y, 50%));
+    calc(100% - var(--walkman-origin-x, 50vh))
+    calc(100% - var(--walkman-origin-y, 50vh));
 }
 .button-bar-playground__variant-group--spatial-studies .button-bar {
   transform-style: preserve-3d;
@@ -1175,6 +1175,46 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
   transition: transform 120ms linear;
 }
 .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons { gap: clamp(7px, 1vw, 12px); transform-style: preserve-3d; }
+
+.button-bar-playground[data-walkman-layers='1'] .button-bar-playground__variant-group--spatial-studies .shell-tab {
+  --walkman-layer-stack: 0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 72%, black 28%);
+}
+.button-bar-playground[data-walkman-layers='2'] .button-bar-playground__variant-group--spatial-studies .shell-tab {
+  --walkman-layer-stack:
+    0 calc(var(--walkman-depth) * 0.5) 0 color-mix(in srgb, var(--spatial-face) 96%, white 4%),
+    0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 72%, black 28%);
+}
+.button-bar-playground[data-walkman-layers='3'] .button-bar-playground__variant-group--spatial-studies .shell-tab {
+  --walkman-layer-stack:
+    0 calc(var(--walkman-depth) * 0.33) 0 color-mix(in srgb, var(--spatial-face) 91%, white 9%),
+    0 calc(var(--walkman-depth) * 0.67) 0 color-mix(in srgb, var(--spatial-face) 94%, black 6%),
+    0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 72%, black 28%);
+}
+.button-bar-playground[data-walkman-layers='4'] .button-bar-playground__variant-group--spatial-studies .shell-tab {
+  --walkman-layer-stack:
+    0 calc(var(--walkman-depth) * 0.25) 0 color-mix(in srgb, var(--spatial-face) 88%, white 12%),
+    0 calc(var(--walkman-depth) * 0.5) 0 color-mix(in srgb, var(--spatial-face) 98%, white 2%),
+    0 calc(var(--walkman-depth) * 0.75) 0 color-mix(in srgb, var(--spatial-face) 87%, black 13%),
+    0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 72%, black 28%);
+}
+.button-bar-playground[data-walkman-layers='5'] .button-bar-playground__variant-group--spatial-studies .shell-tab {
+  --walkman-layer-stack:
+    0 calc(var(--walkman-depth) * 0.2) 0 color-mix(in srgb, var(--spatial-face) 87%, white 13%),
+    0 calc(var(--walkman-depth) * 0.4) 0 color-mix(in srgb, var(--spatial-face) 96%, white 4%),
+    0 calc(var(--walkman-depth) * 0.6) 0 color-mix(in srgb, var(--spatial-face) 96%, black 4%),
+    0 calc(var(--walkman-depth) * 0.8) 0 color-mix(in srgb, var(--spatial-face) 84%, black 16%),
+    0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 72%, black 28%);
+}
+.button-bar-playground[data-walkman-layers='6'] .button-bar-playground__variant-group--spatial-studies .shell-tab {
+  --walkman-layer-stack:
+    0 calc(var(--walkman-depth) * 0.167) 0 color-mix(in srgb, var(--spatial-face) 89%, white 11%),
+    0 calc(var(--walkman-depth) * 0.333) 0 color-mix(in srgb, var(--spatial-face) 95%, white 5%),
+    0 calc(var(--walkman-depth) * 0.5) 0 color-mix(in srgb, var(--spatial-face) 97%, black 3%),
+    0 calc(var(--walkman-depth) * 0.667) 0 color-mix(in srgb, var(--spatial-face) 89%, black 11%),
+    0 calc(var(--walkman-depth) * 0.833) 0 color-mix(in srgb, var(--spatial-face) 80%, black 20%),
+    0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 72%, black 28%);
+}
+
 .button-bar-playground__variant-group--spatial-studies .shell-tab,
 .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab,
 .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab:is(:hover, :focus-visible, :active) {
@@ -1188,9 +1228,7 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
   border-radius: 999px;
   background: var(--spatial-face);
   box-shadow:
-    0 calc(var(--walkman-depth) * 0.28) 0 color-mix(in srgb, var(--spatial-face) 76%, white 24%),
-    0 calc(var(--walkman-depth) * 0.58) 0 color-mix(in srgb, var(--spatial-face) 82%, black 18%),
-    0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 68%, black 32%),
+    var(--walkman-layer-stack),
     0 calc(var(--walkman-depth) * 1.25) calc(var(--walkman-depth) * 1.55) rgba(0, 0, 0, 0.24);
   transform: translateZ(calc(var(--walkman-depth) * 1.65)) translateY(calc(var(--walkman-depth) * -0.72));
   transform-style: preserve-3d;
@@ -1222,9 +1260,7 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
   box-shadow:
     inset 0 0 var(--walkman-rim-blur, 3.68px)
       color-mix(in srgb, var(--spatial-face) calc(100% - var(--walkman-rim-mix, 42%)), white var(--walkman-rim-mix, 42%)),
-    0 calc(var(--walkman-depth) * 0.34) 0 color-mix(in srgb, var(--spatial-face) 70%, white 30%),
-    0 calc(var(--walkman-depth) * 0.7) 0 color-mix(in srgb, var(--spatial-face) 78%, black 22%),
-    0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 69%, black 31%),
+    var(--walkman-layer-stack),
     0 calc(var(--walkman-depth) * 1.2) calc(var(--walkman-depth) * 1.6) rgba(0, 0, 0, 0.2);
 }
 
@@ -1705,9 +1741,7 @@ html.button-bar-playground-document {
   box-shadow:
     inset 0 0 var(--walkman-rim-blur, 3.68px)
       color-mix(in srgb, var(--spatial-face) calc(100% - var(--walkman-rim-mix, 42%)), white var(--walkman-rim-mix, 42%)),
-    0 calc(var(--walkman-depth) * 0.34) 0 color-mix(in srgb, var(--spatial-face) 70%, white 30%),
-    0 calc(var(--walkman-depth) * 0.7) 0 color-mix(in srgb, var(--spatial-face) 78%, black 22%),
-    0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 69%, black 31%),
+    var(--walkman-layer-stack),
     0 calc(var(--walkman-depth) * 1.2) calc(var(--walkman-depth) * 1.6) rgba(0, 0, 0, 0.2);
 }
 
@@ -1730,8 +1764,8 @@ html.button-bar-playground-document {
 
 .button-bar-playground__sample--walkman-inverted .button-bar-playground__stage {
   perspective-origin:
-    calc(100% - var(--walkman-origin-x, 38%))
-    calc(100% - var(--walkman-origin-y, 32%));
+    calc(100% - var(--walkman-origin-x, 50vh))
+    calc(100% - var(--walkman-origin-y, 50vh));
 }
 
 .button-bar-playground__variant-group--spatial-studies .shell-tab .shell-tab__label {
@@ -1739,22 +1773,22 @@ html.button-bar-playground-document {
 }
 
 /* Route-colour material system: face, body slices, shadow, and label share one contrast decision. */
-.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour)
+.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour, .button-bar-playground__sample--walkman-lifted-colour)
   .shell-tab:nth-child(1) {
   --shell-tab-route-accent: var(--ball-4);
   --walkman-route-ink: rgba(255, 255, 255, 0.94);
 }
-.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour)
+.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour, .button-bar-playground__sample--walkman-lifted-colour)
   .shell-tab:nth-child(2) {
   --shell-tab-route-accent: var(--ball-6);
   --walkman-route-ink: #172000;
 }
-.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour)
+.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour, .button-bar-playground__sample--walkman-lifted-colour)
   .shell-tab:nth-child(3) {
   --shell-tab-route-accent: var(--ball-7);
   --walkman-route-ink: rgba(255, 255, 255, 0.96);
 }
-.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour)
+.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour, .button-bar-playground__sample--walkman-lifted-colour)
   .shell-tab:nth-child(4) {
   --shell-tab-route-accent: var(--ball-8);
   --walkman-route-ink: #241500;
@@ -1791,4 +1825,70 @@ html.button-bar-playground-document {
     inset 0 1px 0 color-mix(in srgb, var(--shell-tab-route-accent) 76%, white 24%),
     0 1px 0 color-mix(in srgb, var(--shell-tab-route-accent) 70%, black 30%),
     0 3px 7px color-mix(in srgb, var(--shell-tab-route-accent) 34%, black 66%);
+}
+
+/* Inverse-pressure studies: rest flush, selection lifts outward into the shared camera. */
+.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-lifted-mono, .button-bar-playground__sample--walkman-lifted-colour)
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']) {
+  --spatial-face: color-mix(in srgb, var(--playground-stage) 88%, black 12%);
+  --spatial-ink: var(--playground-key-ink);
+  color: var(--spatial-ink);
+  border: 1px solid color-mix(in srgb, var(--spatial-face) 74%, var(--playground-ink) 26%);
+  background: var(--spatial-face);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--spatial-face) 92%, var(--playground-ink) 8%);
+  transform: translateZ(0) translateY(0);
+}
+
+.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-lifted-mono, .button-bar-playground__sample--walkman-lifted-colour)
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-lifted-mono, .button-bar-playground__sample--walkman-lifted-colour)
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  --spatial-face: var(--playground-key);
+  --spatial-ink: var(--playground-key-ink);
+  color: var(--spatial-ink);
+  border-color: color-mix(in srgb, var(--spatial-face) 74%, white 26%);
+  background: var(--spatial-face);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--spatial-face) 74%, white 26%),
+    var(--walkman-layer-stack),
+    0 calc(var(--walkman-depth) * 1.35) calc(var(--walkman-depth) * 1.7) rgba(0, 0, 0, 0.24);
+  transform: translateZ(calc(var(--walkman-depth) * 2.25)) translateY(calc(var(--walkman-depth) * -0.9));
+}
+
+.button-bar-playground__sample--walkman-lifted-colour
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--walkman-lifted-colour
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  --spatial-face: var(--shell-tab-route-accent);
+  --spatial-ink: var(--walkman-route-ink);
+}
+
+.button-bar-playground__sample--walkman-lifted-colour.button-bar-playground__sample--walkman-lifted-colour
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--walkman-lifted-colour.button-bar-playground__sample--walkman-lifted-colour
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  --spatial-face: var(--shell-tab-route-accent);
+  --spatial-ink: var(--walkman-route-ink);
+  color: var(--spatial-ink);
+  border-color: color-mix(in srgb, var(--spatial-face) 76%, white 24%);
+  background: var(--spatial-face);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--spatial-face) 72%, white 28%),
+    var(--walkman-layer-stack),
+    0 calc(var(--walkman-depth) * 1.35) calc(var(--walkman-depth) * 1.7)
+      color-mix(in srgb, var(--spatial-face) 22%, rgba(0, 0, 0, 0.32));
 }

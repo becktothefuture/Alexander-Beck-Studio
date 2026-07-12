@@ -4,21 +4,23 @@ import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
 import './button-bar-playground.css';
 
 const PLAYGROUND_THEME_STORAGE_KEY = 'button-bar-playground-theme-v1';
-const WALKMAN_CONFIG_STORAGE_KEY = 'button-bar-playground-walkman-config-v1';
+const WALKMAN_CONFIG_STORAGE_KEY = 'button-bar-playground-walkman-config-v2';
 const DEFAULT_WALKMAN_CONFIG = Object.freeze({
   perspective: 980,
-  originX: 38,
-  originY: 32,
+  originX: 50,
+  originY: 50,
   bodyDepth: 8,
   rimSoftness: 42,
+  layerCount: 6,
 });
 
 const WALKMAN_CONTROLS = Object.freeze([
-  { id: 'perspective', label: 'Perspective', min: 480, max: 1800, step: 10, unit: 'px' },
-  { id: 'originX', label: 'Origin X', min: 0, max: 100, step: 1, unit: '%' },
-  { id: 'originY', label: 'Origin Y', min: 0, max: 100, step: 1, unit: '%' },
+  { id: 'perspective', label: 'Perspective', min: 240, max: 2000, step: 10, unit: 'px' },
+  { id: 'originX', label: 'Origin X', min: -400, max: 400, step: 5, unit: 'vh' },
+  { id: 'originY', label: 'Origin Y', min: -400, max: 400, step: 5, unit: 'vh' },
   { id: 'bodyDepth', label: 'Body depth', min: 3, max: 16, step: 1, unit: 'px' },
   { id: 'rimSoftness', label: 'Rim softness', min: 0, max: 100, step: 1, unit: '%' },
+  { id: 'layerCount', label: 'Body layers', min: 1, max: 6, step: 1, unit: '' },
 ]);
 
 const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
@@ -138,9 +140,9 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
   },
   {
     id: 'spatial-studies',
-    anchor: '12–18',
+    anchor: '12–20',
     title: 'How quiet can a physical button be?',
-    description: 'Seven Walkman-like banks sit directly on the wall, using broad surfaces and restrained edges to create depth without visual noise.',
+    description: 'Nine Walkman-like banks sit directly on the wall, using broad surfaces and restrained edges to create depth without visual noise.',
     variants: [
       {
         id: 'walkman-bank',
@@ -203,6 +205,25 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
         title: 'Always colour',
         description: 'Every key keeps its route colour at rest and when pressed, with individual contrast-aware labels and matching tonal edges.',
         structure: 'persistent route colour bodies',
+        family: 'spatial',
+        palette: 'colour',
+        usesRouteAccent: true,
+      },
+      {
+        id: 'walkman-lifted-mono',
+        number: '19',
+        title: 'Lifted selection',
+        description: 'Resting keys sit snug with the wall behind a hairline seam; the selected monochrome key rises outward and reveals its body.',
+        structure: 'inverse-pressure monochrome keys',
+        family: 'spatial',
+        palette: 'mono',
+      },
+      {
+        id: 'walkman-lifted-colour',
+        number: '20',
+        title: 'Lifted colour selection',
+        description: 'The same flush resting state, but the selected key rises as a route-coloured physical body with contrast-aware ink.',
+        structure: 'inverse-pressure route colour keys',
         family: 'spatial',
         palette: 'colour',
         usesRouteAccent: true,
@@ -425,8 +446,8 @@ export function ButtonBarPlayground() {
 
   const walkmanStyle = {
     '--walkman-perspective': `${walkmanConfig.perspective}px`,
-    '--walkman-origin-x': `${walkmanConfig.originX}%`,
-    '--walkman-origin-y': `${walkmanConfig.originY}%`,
+    '--walkman-origin-x': `${walkmanConfig.originX}vh`,
+    '--walkman-origin-y': `${walkmanConfig.originY}vh`,
     '--walkman-body-depth': `${walkmanConfig.bodyDepth}px`,
     '--walkman-rim-mix': `${walkmanConfig.rimSoftness}%`,
     '--walkman-rim-blur': `${2 + (walkmanConfig.rimSoftness * 0.04)}px`,
@@ -449,6 +470,7 @@ export function ButtonBarPlayground() {
         aria-labelledby="button-bar-playground-title"
         data-playground-theme={theme}
         data-config-panel-open={isWalkmanPanelOpen ? 'true' : 'false'}
+        data-walkman-layers={walkmanConfig.layerCount}
         style={walkmanStyle}
       >
       <header className="button-bar-playground__header">
@@ -457,7 +479,7 @@ export function ButtonBarPlayground() {
             <span>Playground / Button Bar</span>
           </div>
           <h1 id="button-bar-playground-title">Button bar studies</h1>
-          <p>Nineteen ways to ask what a tab should feel like: fitted into the wall, completely flat, or built as a quiet physical body.</p>
+          <p>Twenty-one ways to ask what a tab should feel like: fitted into the wall, completely flat, or built as a quiet physical body.</p>
         </div>
         <div className="button-bar-playground__readout" role="status" aria-live="polite">
           <span>Previewing</span>
