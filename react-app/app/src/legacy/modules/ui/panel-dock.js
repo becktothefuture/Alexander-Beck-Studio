@@ -677,8 +677,11 @@ function createMasterPanel({
     setupLayoutControls(panel);
     setupDevViewControls(panel);
 
-    // Page-specific bindings (portfolio carousel, etc).
-    try { setupPageControls?.(panel, { uiDocument: targetDocument }); } catch (e) {}
+    // Page-specific bindings (portfolio carousel, Contact ripple, etc).
+    try {
+      const pageControlsCleanup = setupPageControls?.(panel, { uiDocument: targetDocument });
+      if (typeof pageControlsCleanup === 'function') cleanupFns.push(pageControlsCleanup);
+    } catch (e) {}
 
     // `.mode-controls` blocks stay hidden until `.active`; home toggles via mode buttons.
     // Other routes: show the accordion for the current simulation mode (incl. portfolio-pit → pit).

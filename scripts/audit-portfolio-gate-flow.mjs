@@ -91,6 +91,8 @@ async function readState(page) {
     const band = rectOf('[data-button-bar]') || rectOf('[data-shell-bottom-band]');
     const host = rectOf('#portfolio-sheet-host');
     const finish = rectOf('.studio-window-finish-layer');
+    const gateInner = rectOf('.portfolio-gate-route__inner');
+    const gateInputs = rectOf('.portfolio-gate-inputs');
     const root = document.documentElement;
     const body = document.body;
     const teaser = document.querySelector('[data-portfolio-gate-teaser]');
@@ -199,6 +201,18 @@ async function readState(page) {
       gateTitleSurface: styleOf('.portfolio-gate-route .route-centered-page__title'),
       teaserSurface: styleOf('[data-portfolio-gate-teaser]'),
       teaserBridgeSurface: styleOf('[data-portfolio-gate-teaser-bridge]'),
+      gateLayoutOk: Boolean(
+        sim
+        && gateInner
+        && gateInputs
+        && gateInner.left >= sim.left - 1
+        && gateInner.top >= sim.top - 1
+        && gateInner.right <= sim.right + 1
+        && gateInner.bottom <= sim.bottom + 1
+        && gateInputs.left >= sim.left - 1
+        && gateInputs.right <= sim.right + 1
+        && gateInputs.bottom <= sim.bottom + 1
+      ),
       geometryOk: Boolean(
         sim
         && band
@@ -227,7 +241,11 @@ function assertThemeState(
   state,
   theme,
   label,
-  { expectTeaser = false, expectedGateBlurPx = DESKTOP_GATE_BLUR_PX } = {},
+  {
+    expectTeaser = false,
+    expectedGateBlurPx = DESKTOP_GATE_BLUR_PX,
+    expectedTeaserViewport = 'desktop',
+  } = {},
 ) {
   const expectedDark = theme === 'dark';
   assert(state.rootTheme === theme && state.bodyTheme === theme, `${label}: theme attributes drifted`, state);
@@ -238,7 +256,11 @@ function assertThemeState(
   if (expectTeaser) {
     assert(state.teaserTheme === theme, `${label}: teaser theme drifted`, state);
     assert(state.teaserReady, `${label}: teaser image did not load`, state);
-    assert(state.teaserSrc.includes(`-${theme}.jpg`), `${label}: teaser source does not match theme`, state);
+    assert(
+      state.teaserSrc.includes(`portfolio-gate-${expectedTeaserViewport}-${theme}.jpg`),
+      `${label}: teaser source does not match the ${expectedTeaserViewport}/${theme} breakpoint`,
+      state,
+    );
     assert(state.teaserImageFilter === 'none', `${label}: teaser concealment must be baked into the JPG, not applied as a removable runtime filter`, state);
     assert(
       Math.abs(state.teaserSurface.opacity - GATE_TEASER_OPACITY) <= 0.01,
@@ -393,6 +415,11 @@ async function captureUnlockRevealReplay(browser, profile, checkpointId) {
       }, { timeout: WAIT_MS, polling: 'raf' });
     }
 
+    await page.evaluate(() => {
+      document.getAnimations().forEach((animation) => {
+        animation.playbackRate = 0.05;
+      });
+    });
     return await captureSequenceCheckpoint(page, cdpSession, prefix, checkpointId);
   } finally {
     await context.close();
@@ -427,6 +454,7 @@ async function auditUnlockSequence(browser, profile) {
     assertThemeState(locked, profile.theme, `${prefix}/locked`, {
       expectTeaser: true,
       expectedGateBlurPx: profile.mobile ? MOBILE_GATE_BLUR_PX : DESKTOP_GATE_BLUR_PX,
+      expectedTeaserViewport: profile.asset,
     });
     assert(locked.gateTitleSurface?.filter === 'none', `${prefix}: gate title must remain sharp over the blurred teaser`, locked);
     frames.push(await captureSequenceCheckpoint(page, cdpSession, prefix, '01-locked'));
@@ -468,7 +496,17 @@ async function auditUnlockSequence(browser, profile) {
         && opacity > 0.05
         && opacity < 0.95;
     }, { timeout: WAIT_MS, polling: 'raf' });
+    await page.evaluate(() => {
+      document.getAnimations().forEach((animation) => {
+        animation.playbackRate = 0.05;
+      });
+    });
     frames.push(await captureSequenceCheckpoint(page, cdpSession, prefix, '03-route-out'));
+    await page.evaluate(() => {
+      document.getAnimations().forEach((animation) => {
+        animation.playbackRate = 1;
+      });
+    });
 
     await page.waitForFunction(() => {
       if ((document.documentElement.dataset.absTransitionPhase || 'idle') !== 'route-out') return false;
@@ -524,6 +562,43 @@ async function auditUnlockSequence(browser, profile) {
     });
 
     return { profile, frames };
+  } finally {
+    await context.close();
+  }
+}
+
+async function auditResponsiveGateBreakpoint(browser, profile) {
+  const context = await browser.newContext({
+    viewport: profile.viewport,
+    colorScheme: profile.theme,
+    reducedMotion: 'no-preference',
+    deviceScaleFactor: 1,
+    isMobile: profile.mobile,
+    hasTouch: profile.mobile,
+  });
+  await context.addInitScript((themePreference) => {
+    localStorage.setItem('theme-preference-v2', themePreference);
+    localStorage.removeItem('theme-preference');
+    sessionStorage.removeItem('abs_portfolio_ok');
+    localStorage.removeItem('abs_portfolio_ok');
+  }, profile.theme);
+  await context.clearCookies();
+  const page = await context.newPage();
+
+  try {
+    await page.goto(url('/portfolio.html?gate=portfolio'), { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await waitForIdle(page);
+    const state = await readState(page);
+    assertThemeState(state, profile.theme, `breakpoint/${profile.name}`, {
+      expectTeaser: true,
+      expectedGateBlurPx: profile.gateBlurPx,
+      expectedTeaserViewport: profile.asset,
+    });
+    assert(state.lockedGate && state.gateTitleSurface?.filter === 'none', `breakpoint/${profile.name}: gate copy is not sharp`, state);
+    assert(state.gateLayoutOk, `breakpoint/${profile.name}: gate copy or code inputs overflow the studio window`, state);
+    const screenshotPath = resolve(outputRoot, `breakpoint-${profile.name}-${profile.viewport.width}x${profile.viewport.height}.png`);
+    await page.screenshot({ path: screenshotPath, fullPage: false });
+    return { profile, screenshotPath, state };
   } finally {
     await context.close();
   }
@@ -626,10 +701,24 @@ async function main() {
     }
     results.unlockSequences = [];
     for (const profile of [
-      { name: 'desktop', theme: 'dark', viewport: { width: 1440, height: 900 }, mobile: false },
-      { name: 'mobile', theme: 'light', viewport: { width: 390, height: 844 }, mobile: true },
+      { name: 'desktop', theme: 'dark', viewport: { width: 1440, height: 900 }, mobile: false, asset: 'desktop' },
+      { name: 'tablet', theme: 'light', viewport: { width: 768, height: 1024 }, mobile: false, asset: 'tablet' },
+      { name: 'mobile', theme: 'light', viewport: { width: 390, height: 844 }, mobile: true, asset: 'mobile' },
     ]) {
       results.unlockSequences.push(await auditUnlockSequence(browser, profile));
+    }
+    results.responsiveBreakpoints = [];
+    for (const profile of [
+      { name: 'mobile-compact', theme: 'light', viewport: { width: 320, height: 568 }, mobile: true, asset: 'mobile', gateBlurPx: MOBILE_GATE_BLUR_PX },
+      { name: 'mobile-max', theme: 'dark', viewport: { width: 600, height: 900 }, mobile: false, asset: 'mobile', gateBlurPx: MOBILE_GATE_BLUR_PX },
+      { name: 'tablet-min', theme: 'light', viewport: { width: 601, height: 900 }, mobile: false, asset: 'tablet', gateBlurPx: DESKTOP_GATE_BLUR_PX },
+      { name: 'tablet', theme: 'dark', viewport: { width: 768, height: 1024 }, mobile: false, asset: 'tablet', gateBlurPx: DESKTOP_GATE_BLUR_PX },
+      { name: 'tablet-max', theme: 'light', viewport: { width: 899, height: 900 }, mobile: false, asset: 'tablet', gateBlurPx: DESKTOP_GATE_BLUR_PX },
+      { name: 'desktop-min', theme: 'dark', viewport: { width: 900, height: 900 }, mobile: false, asset: 'desktop', gateBlurPx: DESKTOP_GATE_BLUR_PX },
+      { name: 'desktop-wide', theme: 'light', viewport: { width: 1440, height: 900 }, mobile: false, asset: 'desktop', gateBlurPx: DESKTOP_GATE_BLUR_PX },
+      { name: 'touch-landscape', theme: 'dark', viewport: { width: 844, height: 390 }, mobile: true, asset: 'tablet', gateBlurPx: MOBILE_GATE_BLUR_PX },
+    ]) {
+      results.responsiveBreakpoints.push(await auditResponsiveGateBreakpoint(browser, profile));
     }
     assert(
       results.light.lockedInitial.gateTokens.textPrimary !== results.dark.lockedInitial.gateTokens.textPrimary,
