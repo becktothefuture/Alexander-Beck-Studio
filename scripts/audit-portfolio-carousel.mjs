@@ -233,18 +233,137 @@ async function auditCursor(page) {
 
 async function getMotionSample(page) {
   return page.evaluate(() => {
-    const snapshot = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
+    const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
+    const snapshot = app?.getDeckDebugSnapshot?.();
     const dot = document.querySelector('.portfolio-carousel-dot');
     const dotRect = dot?.getBoundingClientRect?.();
+    const visibleProjectIndices = Array.from(new Set(
+      (snapshot?.cards || [])
+        .filter((card) => card.visibility !== 'hidden' && card.opacity > 0.05)
+        .map((card) => card.index)
+    ));
+    const frontProjectIndices = Array.from(new Set(
+      (snapshot?.cards || [])
+        .filter((card) => card.visualSlot === 'front' && card.visibility !== 'hidden' && card.opacity > 0.05)
+        .map((card) => card.index)
+    ));
     return {
+      projectCount: app?.projects?.length || 0,
       activeIndex: snapshot?.activeIndex ?? -1,
+      intendedIndex: snapshot?.intendedIndex ?? -1,
       displayPosition: snapshot?.displayPosition ?? 0,
       targetPosition: snapshot?.targetPosition ?? 0,
       settled: Boolean(snapshot?.isSettled),
       inputState: snapshot?.inputState || '',
+      wheelAccumulated: app?.wheelGesture?.accumulated ?? null,
+      visibleProjectIndices,
+      frontProjectIndices,
       dot: dotRect ? { x: dotRect.x, y: dotRect.y } : null,
     };
   });
+}
+
+async function waitForDeckIdle(page) {
+  await page.waitForFunction(
+    () => {
+      const snapshot = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
+      return snapshot?.isSettled && snapshot?.inputState === 'idle';
+    },
+    null,
+    { timeout: Math.min(WAIT_MS, 5000) }
+  );
+}
+
+async function auditInfiniteWheelStress(page, { axis, direction }) {
+  await page.evaluate(() => {
+    window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.setActiveProject?.(0, { immediate: true });
+  });
+  await waitForDeckIdle(page);
+  const center = await getActiveCardCenter(page);
+  await page.mouse.move(center.x, center.y);
+  const before = await getMotionSample(page);
+  const eventCount = Math.max(40, before.projectCount * 10);
+  const inFlightSamples = await page.evaluate(async ({ wheelAxis, wheelDirection, count }) => {
+    const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
+    const stage = document.querySelector('.portfolio-deck-stage');
+    if (!app || !stage) return [];
+    const collectSample = () => {
+      const snapshot = app.getDeckDebugSnapshot?.();
+      const visibleProjectIndices = Array.from(new Set(
+        (snapshot?.cards || [])
+          .filter((card) => card.visibility !== 'hidden' && card.opacity > 0.05)
+          .map((card) => card.index)
+      ));
+      const frontProjectIndices = Array.from(new Set(
+        (snapshot?.cards || [])
+          .filter((card) => card.visualSlot === 'front' && card.visibility !== 'hidden' && card.opacity > 0.05)
+          .map((card) => card.index)
+      ));
+      return {
+        projectCount: app.projects?.length || 0,
+        activeIndex: snapshot?.activeIndex ?? -1,
+        intendedIndex: snapshot?.intendedIndex ?? -1,
+        displayPosition: snapshot?.displayPosition ?? 0,
+        targetPosition: snapshot?.targetPosition ?? 0,
+        settled: Boolean(snapshot?.isSettled),
+        inputState: snapshot?.inputState || '',
+        wheelAccumulated: app.wheelGesture?.accumulated ?? null,
+        visibleProjectIndices,
+        frontProjectIndices,
+      };
+    };
+    const samples = [];
+    for (let index = 0; index < count; index += 1) {
+      const delta = wheelDirection * 420;
+      stage.dispatchEvent(new WheelEvent('wheel', {
+        bubbles: true,
+        cancelable: true,
+        deltaX: wheelAxis === 'x' ? delta : 0,
+        deltaY: wheelAxis === 'y' ? delta : 0,
+        deltaMode: WheelEvent.DOM_DELTA_PIXEL,
+      }));
+      await new Promise((resolve) => setTimeout(resolve, 8));
+      samples.push(collectSample());
+    }
+    return samples;
+  }, { wheelAxis: axis, wheelDirection: direction, count: eventCount });
+  await waitForDeckIdle(page);
+  const after = await getMotionSample(page);
+
+  const projectCount = Math.max(1, before.projectCount);
+  const wrapIndex = (value) => ((Math.round(value) % projectCount) + projectCount) % projectCount;
+  const blankSamples = inFlightSamples
+    .map((sample, index) => ({ index, sample }))
+    .filter(({ sample }) => sample.visibleProjectIndices.length === 0);
+  const orderMismatches = inFlightSamples
+    .map((sample, index) => ({
+      index,
+      expectedIndex: wrapIndex(sample.displayPosition),
+      frontProjectIndices: sample.frontProjectIndices,
+    }))
+    .filter(({ expectedIndex, frontProjectIndices }) => !frontProjectIndices.includes(expectedIndex));
+  const accumulatedSamples = inFlightSamples
+    .map((sample) => sample.wheelAccumulated)
+    .filter(Number.isFinite);
+  const maxAbsAccumulated = accumulatedSamples.length
+    ? Math.max(...accumulatedSamples.map(Math.abs))
+    : 0;
+  const settledCoordinatesBounded = after.targetPosition >= 0
+    && after.targetPosition < projectCount
+    && after.displayPosition >= 0
+    && after.displayPosition < projectCount;
+
+  return {
+    axis,
+    direction,
+    before,
+    after,
+    eventCount,
+    maxAbsAccumulated: Number(maxAbsAccumulated.toFixed(4)),
+    blankSamples: blankSamples.map(({ index }) => index),
+    orderMismatches,
+    settledCoordinatesBounded,
+  };
 }
 
 async function waitForCommittedAdvance(page, beforeIndex) {
@@ -269,14 +388,18 @@ async function waitForCommittedAdvance(page, beforeIndex) {
 
 function findMotionReversals(samples) {
   if (samples.length < 2) return [];
-  const overallDirection = Math.sign(
-    samples[samples.length - 1].displayPosition - samples[0].displayPosition
-  );
+  const projectCount = Math.max(0, samples[0]?.projectCount || 0);
+  const deltas = samples.slice(1).map((sample, index) => {
+    const rawDelta = sample.displayPosition - samples[index].displayPosition;
+    return projectCount
+      ? rawDelta - (Math.round(rawDelta / projectCount) * projectCount)
+      : rawDelta;
+  });
+  const overallDirection = Math.sign(deltas.reduce((sum, delta) => sum + delta, 0));
   if (!overallDirection) return [];
   const reversals = [];
-  for (let index = 1; index < samples.length; index += 1) {
-    const delta = samples[index].displayPosition - samples[index - 1].displayPosition;
-    if (delta * overallDirection < -0.04) reversals.push({ index, delta });
+  for (let index = 0; index < deltas.length; index += 1) {
+    if (deltas[index] * overallDirection < -0.04) reversals.push({ index: index + 1, delta: deltas[index] });
   }
   return reversals;
 }
@@ -605,6 +728,11 @@ async function auditReducedMotion(page) {
   await openViewport(page, { width: 1440, height: 900 });
   const press = await auditPointerPress(page, 'desktop-reduced-motion-pointer-down.png');
   const wheel = await auditWheel(page);
+  const infiniteStress = {
+    forward: await auditInfiniteWheelStress(page, { axis: 'x', direction: 1 }),
+    backward: await auditInfiniteWheelStress(page, { axis: 'x', direction: -1 }),
+  };
+  await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-reduced-motion-infinite-stress.png') });
   await page.evaluate(() => document.querySelector('.portfolio-project-card.is-active')?.click());
   await page.waitForSelector('#portfolioProjectView.is-visible.is-open', { state: 'visible', timeout: WAIT_MS });
   await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-reduced-motion-drawer-open.png') });
@@ -612,7 +740,7 @@ async function auditReducedMotion(page) {
   await page.locator('.portfolio-project-view__back--top').click();
   await page.waitForFunction(() => !document.body.classList.contains('portfolio-project-open'), null, { timeout: WAIT_MS });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  return { press, wheel, drawerOpen };
+  return { press, wheel, infiniteStress, drawerOpen };
 }
 
 async function main() {
@@ -649,6 +777,13 @@ async function main() {
         await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-after-drag.png') });
         summary.viewports.desktop.continuousWheel = await auditContinuousWheel(page);
         await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-after-continuous-wheel.png') });
+        summary.viewports.desktop.infiniteStress = {
+          verticalForward: await auditInfiniteWheelStress(page, { axis: 'y', direction: 1 }),
+          verticalBackward: await auditInfiniteWheelStress(page, { axis: 'y', direction: -1 }),
+          horizontalForward: await auditInfiniteWheelStress(page, { axis: 'x', direction: 1 }),
+          horizontalBackward: await auditInfiniteWheelStress(page, { axis: 'x', direction: -1 }),
+        };
+        await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-infinite-stress.png') });
         summary.accents = await captureAccents(page);
         summary.drawer = await captureDrawer(page);
       }
@@ -656,6 +791,11 @@ async function main() {
       if (viewport.name === 'mobile') {
         summary.viewports.mobile.drag = await auditDrag(page, 150);
         await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'mobile-after-drag.png') });
+        summary.viewports.mobile.infiniteStress = {
+          forward: await auditInfiniteWheelStress(page, { axis: 'x', direction: 1 }),
+          backward: await auditInfiniteWheelStress(page, { axis: 'x', direction: -1 }),
+        };
+        await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'mobile-infinite-stress.png') });
       }
     }
     summary.reducedMotion = await auditReducedMotion(page);
@@ -690,6 +830,28 @@ async function main() {
     if (summary.viewports.desktop.wheel?.reversals.length) failures.push('desktop: wheel trace reversed after committed input');
     if ((summary.viewports.desktop.continuousWheel?.distance ?? 0) < 2) failures.push('desktop: continuous wheel did not advance multiple projects');
     if (summary.viewports.desktop.continuousWheel?.reversals.length) failures.push('desktop: continuous wheel trace reversed');
+    const stressGroups = [
+      ['desktop', summary.viewports.desktop.infiniteStress],
+      ['mobile', summary.viewports.mobile.infiniteStress],
+      ['reduced motion', summary.reducedMotion?.infiniteStress],
+    ];
+    for (const [groupName, group] of stressGroups) {
+      for (const [caseName, result] of Object.entries(group || {})) {
+        const label = `${groupName} ${caseName}`;
+        if ((result.maxAbsAccumulated ?? Infinity) > (result.before?.projectCount || 0) + 0.0001) {
+          failures.push(`${label}: wheel gesture exceeded one complete loop`);
+        }
+        if (result.blankSamples?.length) failures.push(`${label}: carousel exposed a blank endpoint`);
+        if (result.orderMismatches?.length) failures.push(`${label}: visible project order broke during rebasing`);
+        if (!result.settledCoordinatesBounded) failures.push(`${label}: settled coordinates were not bounded`);
+        if (!result.after?.settled || result.after?.inputState !== 'idle') {
+          failures.push(`${label}: carousel did not return to an idle settled state`);
+        }
+        if (result.after?.activeIndex < 0 || result.after?.activeIndex >= (result.before?.projectCount || 0)) {
+          failures.push(`${label}: carousel settled without a valid active project`);
+        }
+      }
+    }
     if (summary.viewports.desktop.drag?.before.activeIndex === summary.viewports.desktop.drag?.after.activeIndex) failures.push('desktop: drag did not advance');
     if (summary.viewports.mobile.drag?.before.activeIndex === summary.viewports.mobile.drag?.after.activeIndex) failures.push('mobile: drag did not advance');
     if (summary.viewports.desktop.drag?.drawerOpen || summary.viewports.mobile.drag?.drawerOpen) failures.push('drag opened the project drawer');

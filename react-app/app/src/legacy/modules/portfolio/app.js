@@ -2769,14 +2769,22 @@ class PortfolioScrollApp {
     if (this.mount) this.mount.dataset.carouselInputState = state;
   }
 
-  rebaseSettledDeckPosition() {
+  rebaseDeckPosition({ allowInFlight = false } = {}) {
     const projectCount = this.projects.length;
     if (!projectCount) return false;
-    if (Math.abs(this.deckDisplayPosition - Math.round(this.deckDisplayPosition)) >= 0.003) return false;
-    if (Math.abs(this.deckTargetPosition - this.deckDisplayPosition) >= 0.003) return false;
-    const settledPosition = Math.round(this.deckDisplayPosition);
-    const normalizedPosition = this.wrapDeckPosition(settledPosition);
-    const shift = settledPosition - normalizedPosition;
+    let shift = 0;
+    if (allowInFlight) {
+      const referencePosition = Number.isFinite(this.deckTargetPosition)
+        ? this.deckTargetPosition
+        : this.deckDisplayPosition;
+      shift = Math.round(referencePosition / projectCount) * projectCount;
+    } else {
+      if (Math.abs(this.deckDisplayPosition - Math.round(this.deckDisplayPosition)) >= 0.003) return false;
+      if (Math.abs(this.deckTargetPosition - this.deckDisplayPosition) >= 0.003) return false;
+      const settledPosition = Math.round(this.deckDisplayPosition);
+      const normalizedPosition = this.wrapDeckPosition(settledPosition);
+      shift = settledPosition - normalizedPosition;
+    }
     if (!shift) return false;
     this.deckDisplayPosition -= shift;
     this.deckTargetPosition -= shift;
@@ -2826,7 +2834,7 @@ class PortfolioScrollApp {
       this.deckDisplayPosition = target;
       this.deckIsSettling = false;
       this.setDeckInputState('idle');
-      this.rebaseSettledDeckPosition();
+      this.rebaseDeckPosition();
       this.updateDeckSlots({ activeChanged: true, force: true });
       this.stopPortfolioCarouselSfx();
       return;
@@ -2861,11 +2869,14 @@ class PortfolioScrollApp {
     if (Math.abs(targetDelta) > 0.0001) {
       this.deckMotionDirection = targetDelta > 0 ? 1 : -1;
     }
+    this.rebaseDeckPosition({ allowInFlight: true });
     this.deckIsSettling = false;
     if (options.immediate || reducedMotion) {
       this.deckDisplayPosition = this.deckTargetPosition;
-      this.setDeckInputState(this.isProjectOpen ? 'drawer-open' : 'idle');
-      this.rebaseSettledDeckPosition();
+      this.setDeckInputState(
+        this.isProjectOpen ? 'drawer-open' : (this.wheelGesture ? 'wheel-active' : 'idle')
+      );
+      this.rebaseDeckPosition();
       this.updateDeckSlots({ activeChanged: true, force: true });
       this.stopPortfolioCarouselSfx();
       return;
@@ -2909,8 +2920,10 @@ class PortfolioScrollApp {
       this.deckAnimationFrame = window.requestAnimationFrame((nextTimestamp) => this.stepDeckAnimation(nextTimestamp));
     } else {
       this.deckLastFrameAt = 0;
-      this.setDeckInputState(this.isProjectOpen ? 'drawer-open' : 'idle');
-      this.rebaseSettledDeckPosition();
+      this.setDeckInputState(
+        this.isProjectOpen ? 'drawer-open' : (this.wheelGesture ? 'wheel-active' : 'idle')
+      );
+      this.rebaseDeckPosition();
       this.updateDeckFromScroll({ activeChanged: true });
       this.stopPortfolioCarouselSfx();
     }
@@ -2975,7 +2988,11 @@ class PortfolioScrollApp {
       };
     }
     const gesture = this.wheelGesture;
-    gesture.accumulated += projectDelta;
+    gesture.accumulated = clamp(
+      gesture.accumulated + projectDelta,
+      -this.projects.length,
+      this.projects.length
+    );
     gesture.lastAt = now;
     const commitThreshold = this.getDeckInputCommitThreshold();
     if (!gesture.committed && Math.abs(gesture.accumulated) >= commitThreshold) {
