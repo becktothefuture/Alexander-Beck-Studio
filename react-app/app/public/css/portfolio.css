@@ -398,9 +398,12 @@ html:not([data-abs-boot-state='booting']) .portfolio-gate-scene--transition-brid
   .portfolio-gate-scene {
     --portfolio-gate-scene-card-height: auto;
     --portfolio-gate-scene-card-width: min(322px, 65vw);
-    --portfolio-gate-scene-side-x: clamp(204px, 63.6vw, 240px);
-    --portfolio-gate-scene-side-y: clamp(20px, 6.6vw, 30px);
-    --portfolio-gate-scene-side-scale: 0.78;
+    /* The scene itself carries a 1.04 overscan. These values deliberately
+       compensate for that scale so the inert side cards land with the live
+       deck at narrow portrait widths. */
+    --portfolio-gate-scene-side-x: clamp(204px, 66.9vw, 270px);
+    --portfolio-gate-scene-side-y: calc(clamp(20px, 6.6vw, 30px) + 1.43px);
+    --portfolio-gate-scene-side-scale: 0.773;
   }
 
   .portfolio-gate-scene__intercept {
@@ -466,10 +469,12 @@ html:not([data-abs-boot-state='booting']) .portfolio-gate-scene--transition-brid
 
 @media (max-height: 480px) and (orientation: landscape) {
   .portfolio-gate-scene {
-    --portfolio-gate-scene-card-width: min(34%, 270px);
-    --portfolio-gate-scene-card-height: min(330px, 58vh);
-    --portfolio-gate-scene-side-x: clamp(188px, 23vw, 270px);
-    --portfolio-gate-scene-side-y: 12px;
+    /* Match the live deck after the scene's 1.04 crop overscan is applied. */
+    --portfolio-gate-scene-card-width: min(34%, 260px);
+    --portfolio-gate-scene-card-height: min(330px, 55.8vh);
+    --portfolio-gate-scene-side-x: clamp(300px, 40.72vw, 360px);
+    --portfolio-gate-scene-side-y: 31.1px;
+    --portfolio-gate-scene-side-scale: 0.876;
   }
 
   .portfolio-gate-scene__intercept {

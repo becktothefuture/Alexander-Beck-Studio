@@ -140,6 +140,30 @@ async function readState(page) {
       return color;
     };
     const blurLayer = document.getElementById('window-overlay-blur-layer');
+    const visibleCardRects = (selector, keyFor) => Array.from(document.querySelectorAll(selector))
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        const styles = getComputedStyle(element);
+        return {
+          key: keyFor(element),
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+          opacity: Number.parseFloat(styles.opacity || '0'),
+          visibility: styles.visibility,
+        };
+      })
+      .filter((card) => (
+        card.width > 0
+        && card.height > 0
+        && card.opacity > 0.1
+        && card.visibility !== 'hidden'
+        && sim
+        && card.left < sim.right
+        && card.left + card.width > sim.left
+      ))
+      .sort((left, right) => left.left - right.left);
     return {
       path: location.pathname,
       search: location.search,
@@ -155,10 +179,18 @@ async function readState(page) {
       sceneCardCopyCount: scene?.querySelectorAll('.portfolio-gate-scene__card-copy').length || 0,
       sceneAnimationName: scene ? getComputedStyle(scene).animationName : '',
       sceneText: scene?.textContent?.trim() || '',
+      sceneCards: visibleCardRects(
+        '.portfolio-gate-scene__card',
+        (card) => Array.from(card.classList).find((name) => name.startsWith('portfolio-gate-scene__card--')) || '',
+      ),
       deck: Boolean(deck),
       deckPrepared: deck?.classList.contains('is-portfolio-boot-preparing') || false,
       deckVisible: deck?.classList.contains('is-portfolio-deck-visible') || false,
       deckRevealing: deck?.classList.contains('is-portfolio-deck-revealing') || false,
+      deckCards: visibleCardRects(
+        '.portfolio-project-card',
+        (card) => `${card.dataset.projectId || 'project'}:${card.dataset.deckDepth || ''}`,
+      ),
       activeCardRevealDelay: activeDeckCard
         ? Number.parseFloat(getComputedStyle(activeDeckCard).getPropertyValue('--portfolio-card-reveal-delay') || '0')
         : null,
@@ -229,6 +261,25 @@ async function readState(page) {
         && Math.abs(finish.bottom - host.bottom) <= 1
       ),
     };
+  });
+}
+
+function assertGateSceneDeckLayoutParity(lockedState, unlockedState, label, tolerance = 3) {
+  const sceneCards = lockedState.sceneCards || [];
+  const deckCards = unlockedState.deckCards || [];
+  assert(sceneCards.length === deckCards.length, `${label}: locked and live card counts drifted`, {
+    sceneCards,
+    deckCards,
+  });
+  sceneCards.forEach((sceneCard, index) => {
+    const liveCard = deckCards[index];
+    ['left', 'top', 'width', 'height'].forEach((key) => {
+      assert(
+        Math.abs(sceneCard[key] - liveCard[key]) <= tolerance,
+        `${label}: ${sceneCard.key || `card ${index + 1}`} ${key} drifted from live deck`,
+        { sceneCard, liveCard, tolerance },
+      );
+    });
   });
 }
 
@@ -539,6 +590,7 @@ async function auditUnlockSequence(browser, profile) {
       frames[5],
     );
     assert(!frames.at(-1).state.scene && !frames.at(-1).state.sceneBridge && !frames.at(-1).state.lockedGate && frames.at(-1).state.deck && frames.at(-1).state.canvasReady, `${prefix}: settled Portfolio was not fully live`, frames.at(-1));
+    assertGateSceneDeckLayoutParity(frames[0].state, frames.at(-1).state, `${prefix}: gate scene layout`);
 
     const baseline = frames[0].state;
     frames.forEach((frame) => {
@@ -655,6 +707,7 @@ async function auditTheme(browser, theme) {
     results.unlocked = await readState(page);
     assertThemeState(results.unlocked, theme, `${theme}/unlocked`);
     assert(results.unlocked.deck && results.unlocked.labels > 0, 'Portfolio did not unlock to deck content', results.unlocked);
+    assertGateSceneDeckLayoutParity(results.lockedInitial, results.unlocked, `${theme}: gate scene layout`);
     assert(results.unlocked.cookie.includes('abs_portfolio_ok='), 'Portfolio unlock did not write abs_portfolio_ok cookie', results.unlocked);
     assert(results.unlocked.geometryOk, 'Unlocked Portfolio window geometry does not align with bottom shell band', results.unlocked);
     assert(!results.unlocked.oldPortfolioModal, 'Old Portfolio modal opened during route gate flow', results.unlocked);
