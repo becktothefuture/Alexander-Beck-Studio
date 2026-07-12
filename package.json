@@ -33,6 +33,7 @@
     "audit:contact-ripple" : "node scripts\/audit-contact-ripple.mjs",
     "audit:boot-overlay" : "node scripts\/audit-boot-overlay.mjs",
     "audit:home-daily" : "node scripts\/audit-home-daily-mode.mjs",
+    "audit:home-title-invariance" : "node scripts\/audit-home-title-invariance.mjs",
     "audit:outer-wall-frame" : "node scripts\/audit-outer-wall-frame.mjs",
     "audit:palette-surface-contract" : "node scripts\/audit-palette-surface-contract.mjs",
     "audit:theme-wall-invariance" : "node scripts\/audit-theme-wall-invariance.mjs",

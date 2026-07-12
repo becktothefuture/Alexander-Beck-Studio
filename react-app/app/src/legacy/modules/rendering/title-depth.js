@@ -23,13 +23,17 @@ const titleRenderCache = {
     font: '',
     color: '',
     opacity: 0,
-    letterSpacingPx: 0
+    letterSpacingPx: 0,
+    fontSizeCssPx: 0
   })),
   state: {
     active: false,
     visible: false,
     lineCount: 0,
     maxOpacity: 0,
+    firstLineFontSizeCssPx: 0,
+    firstLineX: 0,
+    firstLineY: 0,
     sourceId: 'hero-title'
   }
 };
@@ -127,6 +131,9 @@ function markCanvasTitleInactive(globals) {
   titleRenderCache.state.visible = false;
   titleRenderCache.state.lineCount = 0;
   titleRenderCache.state.maxOpacity = 0;
+  titleRenderCache.state.firstLineFontSizeCssPx = 0;
+  titleRenderCache.state.firstLineX = 0;
+  titleRenderCache.state.firstLineY = 0;
   if (globals) globals.canvasTitleRenderState = titleRenderCache.state;
   return titleRenderCache;
 }
@@ -157,6 +164,7 @@ function buildTitleRenderSignature(canvas, title, root, body, scene) {
   return [
     canvas.width,
     canvas.height,
+    canvas.id || '',
     title.textContent,
     root?.className || '',
     root?.dataset?.absTransitionPhase || '',
@@ -222,11 +230,21 @@ function refreshCanvasTitleCache(ctx, globals) {
   titleRenderCache.maxOpacity = 0;
 
   const sourceLines = lineNodes.length ? lineNodes : [title];
+  const sceneImpactLogoScale = parseCssPx(
+    titleStyle.getPropertyValue('--abs-scene-impact-logo-scale'),
+    1
+  );
+  const brandLogoUserScale = parseCssPx(
+    titleStyle.getPropertyValue('--brand-logo-user-scale'),
+    1
+  );
+  const stableTitleScale = Math.max(0.01, sceneImpactLogoScale * brandLogoUserScale);
   for (let i = 0; i < titleRenderCache.lines.length; i += 1) {
     const target = titleRenderCache.lines[i];
     const source = sourceLines[i];
     target.text = '';
     target.opacity = 0;
+    target.fontSizeCssPx = 0;
     if (!source) continue;
 
     const text = source.textContent?.trim() || '';
@@ -235,11 +253,10 @@ function refreshCanvasTitleCache(ctx, globals) {
 
     const style = getComputedStyle(source);
     const cssFontSize = parseCssPx(style.fontSize, 16);
-    const cssLineHeight = parseCssPx(style.lineHeight, cssFontSize * 1.1);
-    const transformScale = cssLineHeight > 0 ? lineRect.height / cssLineHeight : 1;
-    const fontPx = Math.max(1, cssFontSize * scaleY * transformScale);
+    const fontSizeCssPx = Math.max(1, cssFontSize * stableTitleScale);
+    const fontPx = Math.max(1, fontSizeCssPx * scaleY);
     const opacity = clamp01(parseCssPx(style.opacity, 1) * canvasTitleOpacity);
-    const letterSpacingPx = parseCssPx(style.letterSpacing, 0) * scaleX;
+    const letterSpacingPx = parseCssPx(style.letterSpacing, 0) * stableTitleScale * scaleX;
     const fontStyle = style.fontStyle && style.fontStyle !== 'normal' ? `${style.fontStyle} ` : '';
     const fontWeight = style.fontWeight || '400';
 
@@ -250,6 +267,7 @@ function refreshCanvasTitleCache(ctx, globals) {
     target.color = style.color || titleStyle.color || '#000';
     target.opacity = opacity;
     target.letterSpacingPx = Number.isFinite(letterSpacingPx) ? letterSpacingPx : 0;
+    target.fontSizeCssPx = fontSizeCssPx;
 
     titleRenderCache.lineCount += 1;
     titleRenderCache.maxOpacity = Math.max(titleRenderCache.maxOpacity, opacity);
@@ -260,6 +278,9 @@ function refreshCanvasTitleCache(ctx, globals) {
   titleRenderCache.state.visible = titleRenderCache.visible;
   titleRenderCache.state.lineCount = titleRenderCache.lineCount;
   titleRenderCache.state.maxOpacity = titleRenderCache.maxOpacity;
+  titleRenderCache.state.firstLineFontSizeCssPx = titleRenderCache.lines[0].fontSizeCssPx;
+  titleRenderCache.state.firstLineX = titleRenderCache.lines[0].x;
+  titleRenderCache.state.firstLineY = titleRenderCache.lines[0].y;
   globals.canvasTitleRenderState = titleRenderCache.state;
 
   return titleRenderCache;

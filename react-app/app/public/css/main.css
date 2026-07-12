@@ -3127,6 +3127,7 @@ button.abs-meta-btn,
 }
 
 .hero-title {
+  --home-hero-title-font-size: calc(clamp(28px, calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw), 52px) * var(--home-hero-title-scale, 1));
   position: absolute;
   top: 50%;
   left: calc(50% + var(--home-hero-title-optical-offset-x, 0px));
@@ -3162,10 +3163,13 @@ button.abs-meta-btn,
   backface-visibility: hidden;
 }
 
-html[data-shell-route='home'] body:not(.daily-focus-page) .hero-title--canvas-source {
+html[data-shell-route='home'] .hero-title--canvas-source {
   --home-hero-title-scale: 1.2;
   /* Compensate for the right-hand full stop so the wordmark reads centred. */
   --home-hero-title-optical-offset-x: clamp(1px, 0.15vw, 2px);
+}
+
+html[data-shell-route='home'] body:not(.daily-focus-page) .hero-title--canvas-source {
   --canvas-title-opacity: calc(1 - var(--ui-obscured, 0));
   opacity: 0;
 }
@@ -3235,7 +3239,7 @@ body.portfolio-page .hero-title:not(.hero-title--portfolio) {
   opacity: 0;
   filter: blur(12px);
   transform: scale(0.92);
-  font-size: calc(clamp(28px, calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw), 52px) * var(--home-hero-title-scale, 1));
+  font-size: var(--home-hero-title-font-size);
   font-weight: 400;
   letter-spacing: var(--hero-title-letter-spacing, -0.027ch);
   text-transform: none;
@@ -5355,9 +5359,8 @@ html.is-safari .noise::before {
 }
 
 @media (min-width: 601px) and (max-width: 1024px) {
-  html[data-shell-route='home'] body:not(.daily-focus-page) .hero-title__name,
-  html[data-shell-route='home'] body:not(.daily-focus-page) .hero-title__role {
-    font-size: calc(clamp(21px, calc(var(--abs-home-logo-width-vw, 52) * 0.11625 * 1vw), 39px) * var(--home-hero-title-scale, 1));
+  html[data-shell-route='home'] .hero-title--canvas-source {
+    --home-hero-title-font-size: calc(clamp(21px, calc(var(--abs-home-logo-width-vw, 52) * 0.11625 * 1vw), 39px) * var(--home-hero-title-scale, 1));
   }
 }
 
@@ -5384,10 +5387,14 @@ html.is-safari .noise::before {
   }
   
   /* Mobile hero title — both lines same scale */
+  html[data-shell-route='home'] .hero-title--canvas-source {
+    --home-hero-title-font-size: calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px) * 0.85 * var(--mobile-type-scale) * var(--home-hero-title-scale, 1));
+  }
+
   .hero-title__name,
   .hero-title__role,
   .hero-title__line {
-    font-size: calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px) * 0.85 * var(--mobile-type-scale) * var(--home-hero-title-scale, 1));
+    font-size: var(--home-hero-title-font-size);
   }
 
   html[data-shell-route='home'] body #simulations:not(.simulation-depth-title-layer-active) .shell-hero-slot {
