@@ -14,6 +14,13 @@ const DEFAULT_URL = 'http://127.0.0.1:8013';
 const WAIT_MS = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_WAIT_MS || 40000);
 const FRAME_COUNT = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_FRAMES || 46);
 const FRAME_INTERVAL_MS = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_INTERVAL_MS || 45);
+const HEADLESS = process.env.ABS_SIMULATION_FOCUS_STRESS_HEADED !== '1';
+const TARGET_FOCUS_IDS = new Set(
+  String(process.env.ABS_SIMULATION_FOCUS_STRESS_TARGETS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean),
+);
 const SIMULATION_URL_STATE_PARAMS = ['daily', 'focus', 'mode', 'simulation'];
 let expectedChooserRows = 0;
 const ROUTE_BACKED_FOCUS_IDS = new Set([
@@ -534,7 +541,32 @@ async function chooseSimulationWithFrames(page, flow) {
     );
   }
   await waitForIdle(page);
+  if (flow.finalRouteBacked) {
+    try {
+      await page.waitForFunction(
+        (expectedFocus) => {
+          const visualTransition = window.__ABS_SIMULATION_VISUAL_TRANSITION__;
+          return visualTransition?.sourceId === expectedFocus
+            && Number(visualTransition.maxScale) >= 0.9
+            && Number(visualTransition.visibleRatio) >= 0.9;
+        },
+        flow.finalFocus,
+        { timeout: WAIT_MS, polling: 50 },
+      );
+    } catch (error) {
+      const diagnostics = await page.evaluate(() => ({
+        focus: document.querySelector('.simulation-focus-switcher')?.dataset.simulationId || '',
+        pointCloudLoadState: document.querySelector('.napoleon-point-cloud')?.dataset.pointCloudLoadState || '',
+        visualTransition: window.__ABS_SIMULATION_VISUAL_TRANSITION__ || null,
+      }));
+      throw new Error(
+        `Route-backed flow "${flow.name}" did not become visibly ready: ${JSON.stringify(diagnostics)}`,
+        { cause: error },
+      );
+    }
+  }
   await assertChooserSwitchSettled(page, flow);
+  frames.push(await captureFrame(page, `${flow.name}-settled`, frames.length, Date.now()));
   return frames;
 }
 
@@ -607,7 +639,7 @@ function buildReportHtml(report) {
 
 const readFileSyncCache = new Map();
 
-async function analyzeFrames(frames) {
+async function analyzeFrames(frames, flow) {
   for (const frame of frames) {
     readFileSyncCache.set(frame.image, await readFile(frame.image));
   }
@@ -667,6 +699,20 @@ async function analyzeFrames(frames) {
     if (maxVisibleRatio < 0.9) issues.push(`visible-area-did-not-recover:${maxVisibleRatio.toFixed(2)}`);
   }
 
+  const settledVisualTransition = frames[frames.length - 1]?.state.visualTransition;
+  const settledSourceId = settledVisualTransition?.sourceId || '';
+  const settledMaxScale = Number(settledVisualTransition?.maxScale);
+  const settledVisibleRatio = Number(settledVisualTransition?.visibleRatio);
+  if (flow.finalRouteBacked && settledSourceId !== flow.finalFocus) {
+    issues.push(`settled-source-mismatch:${settledSourceId || 'none'}`);
+  }
+  if (Number.isFinite(settledMaxScale) && settledMaxScale < 0.9) {
+    issues.push(`settled-scale-did-not-recover:${settledMaxScale.toFixed(2)}`);
+  }
+  if (Number.isFinite(settledVisibleRatio) && settledVisibleRatio < 0.9) {
+    issues.push(`settled-visible-area-did-not-recover:${settledVisibleRatio.toFixed(2)}`);
+  }
+
   return {
     frames,
     maxMeanDelta,
@@ -685,11 +731,15 @@ async function main() {
   const dailyEntries = catalog.simulations.filter((entry) => entry.stage === 'daily-rotation');
   expectedChooserRows = dailyEntries.length;
   if (expectedChooserRows <= 0) throw new Error('Expected at least one Daily Simulation entry in the catalog');
-  const flows = buildDailyFocusFlows(dailyEntries);
+  const allFlows = buildDailyFocusFlows(dailyEntries);
+  const flows = TARGET_FOCUS_IDS.size
+    ? allFlows.filter((flow) => TARGET_FOCUS_IDS.has(flow.finalFocus))
+    : allFlows;
+  if (!flows.length) throw new Error('No simulation focus flows matched the requested targets');
   const startFocus = flows[0]?.fromFocus || dailyEntries[0]?.id || 'pit';
   const startLabel = flows[0]?.from || dailyEntries[0]?.name || 'Ball Field';
 
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ headless: HEADLESS });
   const page = await browser.newPage({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 1,
@@ -712,7 +762,7 @@ async function main() {
     for (const flow of flows) {
       await waitForSwitcherLabel(page, flow.from);
       const frames = await chooseSimulationWithFrames(page, flow);
-      const analyzed = await analyzeFrames(frames);
+      const analyzed = await analyzeFrames(frames, flow);
       flowReports.push({
         ...analyzed,
         name: flow.name,

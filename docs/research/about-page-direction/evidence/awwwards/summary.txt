@@ -1,0 +1,83 @@
+AWWWARDS ABOUT-PAGE RESEARCH — 14-SITE SYNTHESIS
+Researched 12 July 2026
+
+WHAT THE STRONGEST PAGES DO
+
+1. They open with a useful identity, not a biography.
+The best first screen answers: what do you make, for whom, and what is distinctive about how you work? Thibaud Fellay, Dennis Snellenberg, Jhosue Mesias, and Tomoya Okada establish this before chronology.
+
+2. Confidence is outsourced to evidence.
+Pedro Matos Chaves uses roles, clients, talks, and publications. Grégory Lallé explains what selected clients actually do. Nalaprasad names present and previous responsibilities. This feels more credible than repeated adjectives about quality or passion.
+
+3. One human idea makes the profile memorable.
+Giats uses the developer-as-host metaphor. Veronica Zubakova uses self-aware questions and community projects. Dennis names his fascination with micro-animation. Thibaud links his craft to mountains, light, and human collaboration. A specific belief or fascination is more useful than a long personality section.
+
+4. Side projects work best as story evidence.
+Teaching, conferences, mentoring, posters, templates, experiments, and even a diving certification are effective when they prove curiosity or character. They feel random when presented as an unrelated gallery.
+
+5. Expressive typography can replace decorative density.
+Grégory, Tomoya, Veronica, and Thibaud create drama through scale, whitespace, alignment, and chapter changes. They do not need a new visual effect for every section.
+
+6. Scroll is the narrative spine; interaction is seasoning.
+The successful pattern is scroll to progress, then pointer/touch to perturb, reveal, drag, or unfold something already present. Hover is never required to understand the biography. This aligns directly with Alexander’s intended interaction model.
+
+READING-LENGTH FINDING
+
+The median visible count in this sample is about 214 words. The most useful one-minute references sit around 150–220 words: Thibaud Fellay (205), Grégory Lallé (213), Nalaprasad (213), Tomoya Okada (154), Dennis Snellenberg (215), and Luc Hohler (189). Giats, Sai Narayanan, Pedro Matos Chaves, and Agustin Burgos show how quickly service inventories and CV detail push the page past two minutes.
+
+RECOMMENDED CONTENT BUDGET FOR ALEXANDER
+
+- 35–50 words: opening professional thesis and point of view
+- 40–55 words: trajectory, compressed into three meaningful turns
+- 25–40 words: specialisms and what Alexander brings to teams
+- 20–30 words: selected clients/proof, grouped rather than scattered
+- 25–40 words: side projects, posters, experiments, and personality
+- 15–25 words: aspiration plus a final moment of levity
+- Total target: 175–220 words, excluding navigation and short labels
+
+RECOMMENDED STORY ARC
+
+1. NOW — one confident sentence about the work Alexander does and why it matters.
+2. HOW I SEE IT — one belief given a full typographic scene.
+3. HOW I GOT HERE — three career turns, not a complete timeline.
+4. WHAT I AM GOOD AT — three or four precise specialties with evidence.
+5. WHO I HAVE HELPED — a controlled client/proof moment with context.
+6. THE THINGS BETWEEN — posters, visual experiments, and small projects inserted as evidence of curiosity.
+7. NEXT — one honest aspiration.
+8. HUMAN EXIT — a playful, low-stakes interaction or sentence that releases the seriousness.
+
+DESIGN DIRECTION SUGGESTED BY THE RESEARCH
+
+Use a stable dark or light in-window background and let scale, spacing, and the flat-dot/point-cloud language create the changing scenes. A restrained spatial point field could behave as a continuous narrator: initially a calm portrait or abstract constellation, then separate into timeline markers, client clusters, poster windows, and a final playful object. Scroll should move the camera or reorganize the same material; pointer and touch should disturb, attract, drag, or briefly unfold it. This gives every effect a role in the story and avoids random spectacle.
+
+Three high-value interaction patterns:
+
+- Scroll-composed point cloud: the same flat-circle field resolves into different meaningful forms at chapter thresholds. The user never has to steer it.
+- Evidence windows: a poster or small project expands on tap/hover, then collapses back into the text rhythm without opening a gallery mode.
+- Draggable levity object: a final dot, puck, or card can be tossed or rearranged after the professional story is complete. It should be optional and resettable.
+
+WHAT TO AVOID
+
+- A service catalogue disguised as an About page
+- Exhaustive client, award, software, or employment lists
+- Generic claims such as passionate, unique, impactful, or pixel-perfect without evidence
+- A chronology beginning with education and ending at the present
+- Tiny editorial type used to make dense content look minimal
+- Hover-only essential information
+- Multiple unrelated visual effects or decorative 3D objects
+- Scroll-jacking that removes a clear sense of progress
+- More than one major interactive mechanic before the final section
+- A confident tone based on rankings rather than decisions, outcomes, collaborators, and craft
+
+STRONGEST CASE STUDIES FOR THE FINAL DECK
+
+1. Thibaud Fellay — best overall balance of one-minute copy, belief, imagery, credits, and cinematic scroll.
+2. Veronica Zubakova — strongest playful personal voice and integration of side projects/community activity.
+3. Grégory Lallé — strongest typography-only authority and client proof with context.
+4. Jack Elder — strongest integration of biography, career evidence, side project, and one recurring 3D/pixel language; also a caution on length.
+5. Tomoya Okada — strongest concise aspiration and sparse spatial typography.
+6. Nalaprasad — strongest plainspoken one-minute career summary and light closing note.
+
+CAPTURE LIBRARY
+
+Fourteen validated desktop PNGs are stored beside this summary. Giats, Grégory Lallé, Dennis Snellenberg, and Tomoya Okada use stitched revealed viewports because their transformed smooth-scroll documents report only viewport height. Four representative 20-second motion clips are supplied in MP4 and WebM for Giats, Thibaud Fellay, Veronica Zubakova, and Jack Elder. The current live sites may have evolved since their award dates; the linked Awwwards listings remain the award evidence.

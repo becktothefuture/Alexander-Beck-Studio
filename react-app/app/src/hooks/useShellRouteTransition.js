@@ -1444,7 +1444,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           committedFallbackTimer = 0;
         }
         setSimulationFocusTransitionState('in');
-        if (nextRouteId === 'home') {
+        if (nextRouteId === 'home' && !nextState.dailyFocusRouteId) {
           finishSimulationFocusTransition();
           return Promise.resolve();
         }

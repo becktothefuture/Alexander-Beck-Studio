@@ -6,13 +6,15 @@ const IDLE_DISPLACEMENT = 1.65;
 const BURST_DURATION_MS = 1650;
 const BURST_FRONT_COUNT = 3;
 const BURST_DISPLACEMENT = 56;
+const BURST_TRAVEL_SCALE = 1.12;
+const BURST_RELEASE_START = 0.72;
 const REDUCED_BURST_MS = 620;
 const MAX_DPR = 1.5;
 const MIN_BODY_RADIUS = 8.6;
 const MAX_BODY_RADIUS = 10.4;
 const BODY_GAP_SCALE = 2.3;
 const RING_GAP_SCALE = 4.65;
-const INNER_RING_ALPHA = 0.12;
+const INNER_RING_ALPHA = 0.06;
 const OUTER_RING_ALPHA = 1;
 const DEFAULT_PALETTE = ['#a7afb0', '#c6cecf', '#f5f8f6', '#00a5a0', '#031210', '#d7ff2f', '#2c96ff', '#ff7e4a'];
 const DEFAULT_DISTRIBUTION = [
@@ -267,6 +269,7 @@ export function createContactRippleRenderer({
     stage.dataset.contactRippleInnerAlpha = INNER_RING_ALPHA.toFixed(2);
     stage.dataset.contactRippleOuterAlpha = OUTER_RING_ALPHA.toFixed(2);
     stage.dataset.contactRippleCoreFadeRadius = metrics.coreFadeEnd.toFixed(2);
+    stage.dataset.contactRippleBurstRelease = 'smoothstep-tail';
     const nextLayoutKey = `${Math.round(width)}x${Math.round(height)}:${metrics.bodyRadius.toFixed(2)}:${spriteSet.key}`;
     if (nextLayoutKey !== layoutKey) {
       layoutKey = nextLayoutKey;
@@ -324,7 +327,7 @@ export function createContactRippleRenderer({
 
   function getBurstEnergy(baseRadius, progress) {
     if (progress < 0 || progress >= 1) return 0;
-    const frontRadius = Math.pow(progress, 0.72) * metrics.maxRadius;
+    const frontRadius = Math.pow(progress, 0.72) * metrics.maxRadius * BURST_TRAVEL_SCALE;
     const frontWidth = clamp(metrics.bodyRadius * 4.8, 38, 58);
     let energy = 0;
 
@@ -336,7 +339,9 @@ export function createContactRippleRenderer({
       energy += frontEnergy * (1 - (frontIndex * 0.22));
     }
 
-    return clamp(energy, 0, 1.35);
+    const releaseProgress = (progress - BURST_RELEASE_START) / (1 - BURST_RELEASE_START);
+    const release = 1 - smoothstep(releaseProgress);
+    return clamp(energy * release, 0, 1.35);
   }
 
   function getRingAlpha(baseRadius, energy) {

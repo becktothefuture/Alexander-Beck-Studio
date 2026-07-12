@@ -1,0 +1,691 @@
+ABOUT ME CREATIVE-DIRECTION RESEARCH CATALOGUE
+Research date: 2026-07-12
+Scope: 40 award-recognized personal portfolios and small creative studios with About/Profile/Studio pages
+
+PORTFOLIO-WIDE METRICS
+Sites: 40
+Median About-page word count: 354
+Mean About-page word count: 442
+At or below 220 words: 13
+At or below 300 words: 18
+Range: 80–2311 words
+
+01. David Heckhoff Portfolio
+Award: Awwwards Honorable Mention (2022-05-02)
+Award source: https://www.awwwards.com/sites/david-heckhoff-portfolio
+Live About: https://david-hckh.com/
+Length: ~80 words / ~0.4 minutes
+Narrative: role and location -> specialism statement -> skills -> selected projects -> contact
+Tone: Direct and technically assured; confidence comes from specificity rather than self-praise.
+Typography/layout: Compact sans-serif type, strong whitespace, small project tiles, and a restrained off-white canvas.
+Scroll/reveals: Conventional vertical progression with light transitions; the current live version is quieter than the awarded experimental submission.
+Pointer/touch: Project tiles and navigation supply modest hover feedback; interaction is secondary to scanning.
+Media/simulation: Project imagery rather than a continuous About simulation in the current capture.
+Why it works: A visitor can understand what David builds and inspect proof in well under a minute.
+Borrow: Name the specialty in one precise sentence | Use a compact capability cluster before project proof | Let project thumbnails validate the claim
+Avoid: The biography is too thin for a memorable personal story | A skills list without beliefs can feel interchangeable
+Accessibility/performance: Light current page is easy to scan; ensure small type and hover-only cues remain keyboard and touch accessible.
+Capture: evidence/awwwards/david-heckhoff-about-full.png — Current 2026 live design differs from the 2022 awarded version.
+
+02. Giats — Portfolio
+Award: Awwwards Honorable Mention (2024-08-14)
+Award source: https://www.awwwards.com/sites/https-giats-me
+Live About: https://giats.me/about
+Length: ~480 words / ~2.4 minutes
+Narrative: large craft promise -> host metaphor -> personal introduction -> interests -> services -> process -> call to action
+Tone: Friendly and enthusiastic, with a confident service-provider posture; the hospitality metaphor softens technical authority.
+Typography/layout: Oversized display headings alternate with compact explanatory text and long enumerated capability lists.
+Scroll/reveals: Smooth scrolling stages headline, portrait/3D media, service chapters, process lists, and footer as separate acts.
+Pointer/touch: Pointer movement animates the scene and menu; scrolling remains the main route through the content.
+Media/simulation: A prominent 3D portrait/object treatment creates a memorable opening without replacing the written profile.
+Why it works: The page has a clear authored rhythm and a relatable metaphor, but its service inventory substantially exceeds a one-minute read.
+Borrow: Open with a human metaphor for the role | Use one spatial object as a recurring narrator | Alternate large statements with brief proof
+Avoid: Long SEO and workflow inventories | Repeating broad quality claims | A service catalogue that overwhelms the personal story
+Accessibility/performance: 3D and smooth-scroll effects need reduced-motion, keyboard, and low-power fallbacks; direct headless loading was fragile during capture.
+Capture: evidence/awwwards/giats-about-full.png — Smooth-scroll transforms prevented a reliable native full-page capture.
+
+03. Pedro Matos Chaves · Design
+Award: Awwwards Honorable Mention (2023-04-21)
+Award source: https://www.awwwards.com/sites/pedro-matos-chaves-design
+Live About: https://pedromc.design/about
+Length: ~358 words / ~1.8 minutes
+Narrative: short current-role introduction -> experience -> education -> clients -> skills and tools -> awards and publications -> contact
+Tone: Calm, factual, and professional; authority is delegated to roles, institutions, clients, and recognition.
+Typography/layout: Editorial résumé structure with generous whitespace, compact columns, and sharp typographic hierarchy.
+Scroll/reveals: A straightforward vertical index; pacing comes from whitespace and section changes rather than spectacle.
+Pointer/touch: Simple links and theme control; interaction does not compete with reading.
+Media/simulation: Minimal portrait/project media keeps focus on the career record.
+Why it works: Highly scannable evidence makes a broad career legible, even when readers skip the prose.
+Borrow: Use a compressed career ladder | Group clients as proof rather than name-dropping inside prose | Separate capability, recognition, and side activity
+Avoid: An exhaustive CV on the main narrative path | Very small list typography | Giving every accolade equal weight
+Accessibility/performance: Mostly text-led and robust; compact type needs contrast and minimum-size checks on mobile.
+Capture: evidence/awwwards/pedro-matos-chaves-about-full.png — Current live content and dates may post-date the 2023 award.
+
+04. Thibaud Fellay — Portfolio 24
+Award: Awwwards Site of the Day (2024-11-28)
+Award source: https://www.awwwards.com/sites/thibaud-fellay-portfolio-24
+Live About: https://thibaud.film/about/
+Length: ~205 words / ~1 minutes
+Narrative: work index context -> short biography -> creative vision -> collaborator credits -> invitation
+Tone: Poetic but grounded; it speaks about aims and working method instead of declaring greatness.
+Typography/layout: Black editorial field, compact uppercase labels, large photographic moments, and tightly controlled measure.
+Scroll/reveals: Short cinematic sequence; copy appears in distinct scenes and pixelated portrait/media transitions punctuate the scroll.
+Pointer/touch: Hover changes image treatment and gives the portrait a tactile digital texture; touch can retain the scroll reveal without requiring hover.
+Media/simulation: Pixel-resolved portrait and film imagery embody the cinematography story.
+Why it works: It reaches a one-minute target while covering identity, belief, method, collaborators, and invitation.
+Borrow: Give one belief its own full-scale scene | Credit collaborators visibly | Use media as punctuation between short paragraphs
+Avoid: Low-contrast tiny labels | A poetic vision without concrete proof | Hover as the only way to reveal essential content
+Accessibility/performance: Heavy imagery and pixel effects need responsive sources and reduced-motion handling; semantic copy remains readable without the effect.
+Capture: evidence/awwwards/thibaud-fellay-about-full.png — Static PNG cannot fully show pixel transitions.
+
+05. Jhosue Mesias — Portfolio
+Award: Awwwards Honorable Mention (2024-12-30)
+Award source: https://www.awwwards.com/sites/jhosue-mesias-portfolio
+Live About: https://www.jhosuemesias.com/
+Length: ~95 words / ~0.5 minutes
+Narrative: role -> who he helps -> value statement -> selected work -> contact
+Tone: Concise, optimistic, and client-facing; confidence is expressed as a promise of useful collaboration.
+Typography/layout: Large digital-designer title, narrow explanatory copy, strong black-and-white contrast, and floating project media.
+Scroll/reveals: Vertical scroll reveals project imagery between short text blocks; the motion keeps a very small amount of copy lively.
+Pointer/touch: Drag and pointer prompts add play, but the core page remains scroll-readable.
+Media/simulation: Floating screens and abstract interface fragments act as a portfolio cloud around the text.
+Why it works: The proposition is understood almost instantly and the work follows before attention drops.
+Borrow: Use a sub-100-word thesis near the opening | Let side projects float through the narrative | Make contact the natural final beat
+Avoid: Generic phrases about unique experiences | Relying on motion to supply all personality | Too little career trajectory
+Accessibility/performance: Draggable visual layers should not obstruct text or trap touch gestures; provide stable ordering for reduced motion.
+Capture: evidence/awwwards/jhosue-mesias-about-full.png — About content is embedded in a single-page portfolio rather than a dedicated route.
+
+06. Veronica Zubakova — Portfolio
+Award: Awwwards Honorable Mention (2025-05-29)
+Award source: https://www.awwwards.com/sites/veronica-zubakova-portfolio
+Live About: https://veronicazubakova.com/about/
+Length: ~258 words / ~1.3 minutes
+Narrative: playful self-definition -> range of work -> teaching and community side projects -> career story -> strength -> future-facing joke -> contact
+Tone: Conversational, self-aware, and warm; rhetorical questions prevent the profile sounding inflated.
+Typography/layout: Huge expressive greeting, mixed serif/sans display moments, black backdrop, scattered captions, and portrait inserts.
+Scroll/reveals: Typography changes scale and alignment between chapters; images enter as milestones rather than a gallery.
+Pointer/touch: Pointer effects are playful accents; the page remains understandable through scroll alone.
+Media/simulation: Lecture, conference, and portrait images make non-portfolio activity feel like evidence of character.
+Why it works: It combines professional range, community contribution, trajectory, and levity in a coherent personal voice.
+Borrow: Use one self-aware question to humanize the introduction | Treat posters and side projects as story milestones | End aspiration with a light human note
+Avoid: Age-sensitive experience counts | A chronology that becomes a résumé paragraph | Scattered captions without clear reading order
+Accessibility/performance: Expressive layout needs a linear DOM order, adequate text sizes, and reduced-motion support.
+Capture: evidence/awwwards/veronica-zubakova-about-full.png — Static image does not communicate the full cadence of typographic entrances.
+
+07. Sai Narayanan
+Award: Awwwards Honorable Mention (2025-05-30)
+Award source: https://www.awwwards.com/sites/sai-narayanan
+Live About: https://www.sainarayanan.com/about
+Length: ~595 words / ~3 minutes
+Narrative: brand promise -> belief -> action -> results -> client roster -> role-by-role trajectory -> contact
+Tone: Ambitious and consultancy-led; measurable outcomes make the high-confidence posture more credible.
+Typography/layout: Dark modular page with oversized proposition, verb-led chapters, editorial grids, and compact proof blocks.
+Scroll/reveals: Each process verb becomes a scroll chapter, followed by a long experience record and client proof.
+Pointer/touch: Hover and motion support the chapter changes; reading remains the dominant action.
+Media/simulation: Project and identity fragments illustrate the process without a single persistent simulation.
+Why it works: The Believe–Action–Results frame is memorable and connects philosophy to evidence, but the page is much longer than one minute.
+Borrow: Use three active verbs as narrative anchors | Attach outcomes to specific roles | Name clients in one controlled proof moment
+Avoid: Duplicated process language | Long role descriptions on the primary path | A services-first voice that hides personality
+Accessibility/performance: Dense text needs stronger chunking on small screens; motion should never delay access to outcome evidence.
+Capture: evidence/awwwards/sai-narayanan-about-full.png — Visible word count includes extensive role detail and navigation.
+
+08. Grégory Lallé — 24
+Award: Awwwards Site of the Day (2024-10-30)
+Award source: https://www.awwwards.com/sites/gregory-lalle-24
+Live About: https://gregorylalle.com/about
+Length: ~213 words / ~1.1 minutes
+Narrative: compact bio and availability -> numbered selected clients with context -> award ledger -> contact
+Tone: Cool and factual; it avoids adjectives about the author and lets client context and awards carry authority.
+Typography/layout: Extreme editorial scale contrast: huge About title, tiny labels, generous white space, and ledger-like lists.
+Scroll/reveals: A smooth, minimal scroll converts a short biography into a spatial editorial sequence.
+Pointer/touch: Subtle cursor and hover states reward exploration without introducing a second navigation model.
+Media/simulation: Very little media; typography and whitespace are the expressive system.
+Why it works: Ten clients become meaningful because each receives a short description rather than appearing as a logo wall.
+Borrow: Explain why selected clients or projects matter | Use one proof ledger instead of scattered logos | Let typography create scale without adding decoration
+Avoid: Tiny body copy | An awards matrix that feels self-congratulatory | Low emotional warmth
+Accessibility/performance: Text scale extremes need careful minimum sizes and zoom testing; smooth-scroll must retain keyboard behavior.
+Capture: evidence/awwwards/gregory-lalle-about-full.png — Stitched because the smooth-scroll page reports a viewport-height document.
+
+09. Jack Elder Design
+Award: Awwwards Honorable Mention (2024-11-07)
+Award source: https://www.awwwards.com/sites/jack-elder-design
+Live About: https://www.jackelder.design/#pixel-scroll
+Length: ~276 words / ~1.4 minutes
+Narrative: role and design tension -> featured work -> profile -> career table -> skillset -> template side project -> contact
+Tone: Bold but practical; repeated emphasis on audience connection balances the visual bravado.
+Typography/layout: Large black-and-white type, section counters, long vertical composition, and 3D/pixel objects used as anchors.
+Scroll/reveals: A long choreographed journey moves through work, profile, experience, skills, and contact with recurring scroll prompts.
+Pointer/touch: Pointer movement animates pixel/3D details; the page still advances through scrolling.
+Media/simulation: Pixel-scroll objects and project panels give the biography a tactile, constructed quality.
+Why it works: Career evidence and personality are integrated into the same visual system rather than separated into résumé and playground modes.
+Borrow: Give side projects a legitimate narrative beat | Reuse one object language across chapters | Pair expressive scenes with simple tables
+Avoid: A 13,000-pixel journey for one-minute content | Repeated scroll instructions | Motion that competes with reading
+Accessibility/performance: Long 3D scroll needs reduced motion, progressive loading, stable focus, and touch-friendly fallbacks.
+Capture: evidence/awwwards/jack-elder-about-full.png — Static capture cannot reproduce the 3D/pixel choreography.
+
+10. Nalaprasad — Portfolio
+Award: Awwwards Honorable Mention (2025-05-13)
+Award source: https://www.awwwards.com/sites/nalaprasad-portfolio
+Live About: https://nalaprasad.com/about
+Length: ~213 words / ~1.1 minutes
+Narrative: friendly introduction -> current and previous roles -> personal interests -> contact facts -> experience table -> achievements -> light closing line
+Tone: Plainspoken and warm; specific employers and responsibilities provide credibility without inflated claims.
+Typography/layout: Dark page, clear section headings, portrait card, table rows, and restrained cyan accents.
+Scroll/reveals: Mostly conventional vertical reading with light Framer transitions and a clean data rhythm.
+Pointer/touch: Minimal interaction keeps focus on the profile; links and rows remain obvious targets.
+Media/simulation: A single portrait and small ambient accents support the text rather than dominate it.
+Why it works: It covers present role, trajectory, interests, recognition, and contact in almost exactly one minute.
+Borrow: State present, previous, and earlier trajectory in one paragraph | Include one genuine outside-work interest | End with a line of levity
+Avoid: Too many dated rows | Recognition that duplicates the portfolio | Treating mentoring or AI as unproven buzzwords
+Accessibility/performance: Straightforward structure is robust; table rows must reflow cleanly and maintain contrast on mobile.
+Capture: evidence/awwwards/nalaprasad-about-full.png — Current roles extend beyond the 2025 awarded submission.
+
+11. Luc Hohler Design
+Award: Awwwards Honorable Mention (2025-05-12)
+Award source: https://www.awwwards.com/sites/luc-hohler-design
+Live About: https://luchohler.com/
+Length: ~189 words / ~0.9 minutes
+Narrative: three-role identity -> client-oriented promise -> services -> four-step method -> contact
+Tone: Approachable and service-focused; the coffee invitation adds warmth to a technically broad profile.
+Typography/layout: Dark high-contrast sections, oversized role labels, gradients, and small 3D/graphic objects.
+Scroll/reveals: Process steps alternate text and visual moments, creating a simple chapter rhythm.
+Pointer/touch: Interactive 3D accents respond to movement, while scroll remains the primary progression.
+Media/simulation: Small 3D illustrations visualize stages of the working method.
+Why it works: A broad design-and-development offer becomes understandable through four concrete process stages in under a minute.
+Borrow: Use a recurring object to mark chapters | Explain working method in active language | Add one warm, ordinary invitation
+Avoid: Broad capability claims without client proof | Decorative 3D objects unrelated to meaning | Process language that sounds like an agency template
+Accessibility/performance: 3D accents need fallbacks; French copy and large headings should retain sensible line lengths at narrow widths.
+Capture: evidence/awwwards/luc-hohler-about-full.png — Site reported a four-times-wide backing surface; the archived PNG was downsampled without cropping.
+
+12. Tomoya Okada — Portfolio v7
+Award: Awwwards Honorable Mention (2025-05-06)
+Award source: https://www.awwwards.com/sites/portfolio-ver7-tomoya-okada
+Live About: https://v7.usestate.org/about/
+Length: ~154 words / ~0.8 minutes
+Narrative: brief role and curiosity -> experience detail -> personal motto -> scope -> award counts -> contact
+Tone: Humble, disciplined, and future-facing; ambition appears as continuous practice rather than self-celebration.
+Typography/layout: Black canvas, oversized spaced letters, orange highlights, compact labels, and an intentionally sparse composition.
+Scroll/reveals: Smooth transformed scroll reveals short passages and large type as spatial panels.
+Pointer/touch: Pointer motion adds energy to the sparse page; essential information remains text-based.
+Media/simulation: Abstract motion and typographic space carry the experience without portfolio imagery.
+Why it works: It is short enough for one minute and includes both present capability and desired direction.
+Borrow: Include one sentence about what comes next | Use aspiration as a chapter, not a closing cliché | Let sparse typography make the short copy feel substantial
+Avoid: Award-count scorekeeping as a main identity | Too little client context | Spatial movement that hides reading order
+Accessibility/performance: Transformed scrolling needs semantic order, reduced-motion support, and reliable focus handling.
+Capture: evidence/awwwards/tomoya-okada-about-full.png — Stitched because the transformed page reports a viewport-height document.
+
+13. Dennis Snellenberg — Portfolio
+Award: Awwwards Honorable Mention (2019-08-15)
+Award source: https://www.awwwards.com/sites/dennis-snellenberg-portfolio
+Live About: https://dennissnellenberg.com/about
+Length: ~215 words / ~1.1 minutes
+Narrative: large value statement -> short quality philosophy -> three service modes -> jury credential and personal enthusiasm -> contact
+Tone: Confident and commercially clear; a specific fascination with micro-animation adds personal conviction.
+Typography/layout: Generous white field, oversized neutral sans-serif, a bright blue circular motif, portrait photography, and simple numbered services.
+Scroll/reveals: Minimal smooth-scroll sequence; large headline, portrait, service blocks, and contact arrive in clean stages.
+Pointer/touch: The circular motif and transitions respond subtly; the page avoids interaction overload.
+Media/simulation: A single bold circle and portrait give a human focal point without becoming a separate experience.
+Why it works: The page explains value, offer, differentiator, and enthusiasm in about one minute.
+Borrow: Name one craft detail that genuinely excites you | Use three compact professional facets | Combine a human portrait with one abstract recurring form
+Avoid: Generic global-company language | Leading too heavily with services | A jury credential that becomes the story
+Accessibility/performance: Clean visual hierarchy is strong; transformed scrolling must retain keyboard and reduced-motion behavior.
+Capture: evidence/awwwards/dennis-snellenberg-about-full.png — Awwwards lists the 2019 .nl submission; the current live site is on .com and has materially evolved.
+
+14. Agustin Burgos — Portfolio
+Award: Awwwards Honorable Mention (2024-05-28)
+Award source: https://www.awwwards.com/sites/agustin-burgos-portfolio
+Live About: https://agustinburgos.com/about
+Length: ~445 words / ~2.2 minutes
+Narrative: friendly greeting -> technical summary -> extended client reassurance -> software inventory -> work history -> certifications and hobby -> contact form
+Tone: Earnest and expert-led, but repeated reassurance and exhaustive lists dilute the personal voice.
+Typography/layout: Large playful heading, dark backgrounds, dense technical lists, timeline rows, and animated graphic elements.
+Scroll/reveals: Long vertical progression moves from prose into increasingly database-like evidence and then a large contact section.
+Pointer/touch: Motion and hover effects add polish, but the interaction is not essential to comprehension.
+Media/simulation: Animated graphic motifs create energy around a résumé-heavy page.
+Why it works: It demonstrates depth and leaves little ambiguity about the technical offer; it is most useful as a counterexample for brevity.
+Borrow: Use one unexpected personal qualification or hobby for levity | Show a selective trajectory | Make capability concrete
+Avoid: Exhaustive tool inventories | Repeated claims of understanding client needs | More than two minutes of résumé copy | A contact form larger than the story
+Accessibility/performance: Dense lists are difficult to scan on mobile; animated backgrounds should not reduce text contrast or delay interaction.
+Capture: evidence/awwwards/agustin-burgos-about-full.png — Visible count includes navigation, skills, certifications, and contact labels.
+
+15. Grilled Pixels - Adam Roberts
+Award: 2026 · Nominee · Professional Services & Self-Promotion (2026)
+Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Live About: https://www.grilledpixels.com/about/
+Length: ~1670 words / ~6.7 minutes
+Narrative: concise practice definition -> 25-year credibility and collaborator list -> origin story from childhood web-making -> working style and services -> personal/family image interlude -> awards and contact
+Tone: Direct, energetic and craft-proud. Confidence comes from specificity and longevity, then softens through family images and an endearing early-web origin story.
+Typography/layout: Oversized condensed display type, numbered editorial sections, a tight monochrome palette, and irregularly placed media create a magazine-like personal dossier.
+Scroll/reveals: Long vertical sequence with section counters, scale shifts and image reveals; the page alternates dense proof with lighter human moments.
+Pointer/touch: Hover and cursor feedback support calls to action and media; the story remains readable without them.
+Media/simulation: Portrait and candid family photography interrupt the professional narrative; motion and WebGL capability are described and demonstrated in page behavior.
+Why it works: It proves range through a coherent life story rather than a detached skills list. Specific dates, collaborators and formative detail make the confidence believable.
+Borrow: one vivid origin detail | professional proof followed by a human image interruption | numbered chapters that make a long page skimmable
+Avoid: the full length is far beyond a one-minute read | large service inventories repeat the portfolio | too many award metrics can feel self-congratulatory
+Accessibility/performance: Heavy animation and custom cursor treatment increase cognitive and GPU load. Provide reduced-motion behavior and avoid making body copy depend on reveal completion.
+Capture: evidence/webby/screenshots/01-grilled-pixels-about.png — Visible body text includes navigation and interface labels, so word count is an upper bound.
+
+16. Won J. You Studios - My Story
+Award: 2026 · Nominee · Professional Services & Self-Promotion (2026)
+Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Live About: https://wonjyou.studio/about/
+Length: ~605 words / ~2.4 minutes
+Narrative: mission statement -> rapid-fire identity labels -> portrait and role definition -> career trajectory and recognizable clients -> teaching impact -> press and affiliations -> friendly contact
+Tone: Warm, optimistic and deliberately characterful. Bold labels such as tech optimist and design geek give permission for personality, while the evidence stays concrete.
+Typography/layout: Large kinetic type and repeated self-descriptors run through a minimalist grid; portraits and small factual paragraphs provide contrast.
+Scroll/reveals: A directive to scroll begins a paced transformation from manifesto to person to proof. Text bands, image sequences and press modules create clear tempo changes.
+Pointer/touch: Hover and tap animate media and links, but scrolling carries the narrative.
+Media/simulation: A portrait sequence behaves like an animated contact sheet; repeated image states make one person feel lively without adding decorative subject matter.
+Why it works: The page turns a career pivot into a simple story: what I did, what it taught me, and what I am here to do next.
+Borrow: state the future-facing mission early | use a short personality ticker as levity | make client proof a chapter rather than a logo wall | show teaching or community impact as an outcome
+Avoid: press inventory becomes repetitive | self-labels need restraint to avoid feeling manufactured | the page still exceeds the desired one-minute read
+Accessibility/performance: The page produced many browser warnings and is very tall. Repeated animated images need lazy loading, meaningful alternatives and reduced-motion fallbacks.
+Capture: evidence/webby/screenshots/02-won-j-you-about.png — Motion clip shows the opening narrative cadence; full capture includes all revealed sections.
+
+17. Righteous Creative
+Award: 2026 · Webby Winner and People's Voice Winner · Professional Services & Self-Promotion (2026)
+Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Live About: https://righteouscreative.com/
+Length: ~249 words / ~1 minutes
+Narrative: plain-language promise -> team portraits with humorous role labels -> anti-agency origin -> nostalgic personality paragraph -> short rallying close
+Tone: Dry, irreverent and anti-theatre. It sounds experienced without posturing because it names the industry behavior the founders reject.
+Typography/layout: Huge stretched letterforms and a sparse black field create swagger; compact team cards and game-like class labels puncture the seriousness.
+Scroll/reveals: A short single-page scroll; large typographic transitions turn five small content beats into a complete arc.
+Pointer/touch: Portrait alternatives and subtle hover reactions add play without becoming the route through the content.
+Media/simulation: Animated portraits and role archetypes carry most of the personality; there is no unnecessary showreel interruption.
+Why it works: This is the clearest one-minute benchmark: one promise, three people, one reason for existing, one memorable cultural texture.
+Borrow: use a specific enemy or tension to explain the practice | let one playful personal reference do the work of a hobbies list | target roughly 250 to 300 core words
+Avoid: nostalgia can narrow the audience if overused | anti-agency language would feel borrowed unless it reflects Alexander's actual experience
+Accessibility/performance: Very large type must preserve readable line breaks on mobile. Decorative character animations should be hidden from assistive technology.
+Capture: evidence/webby/screenshots/03-righteous-creative-about.png — The live page is effectively its own substantive About page.
+
+18. Fiddle.Digital
+Award: 2025 · Webby Winner · Professional Services & Self-Promotion (2025)
+Award source: https://winners.webbyawards.com/2025/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion/339211/fiddledigital-design-agency
+Live About: https://fiddle.digital/about
+Length: ~541 words / ~2.2 minutes
+Narrative: design-and-engineering definition -> services -> music metaphor and interactive player -> beliefs and process philosophy -> awards -> open-source product and publications -> handwritten-feeling contact close
+Tone: Poetic and earnest, with confidence located in a recurring harmony metaphor and the proof of an open-source tool.
+Typography/layout: Editorial serif/sans contrast, Japanese annotations, dense but carefully measured text blocks, and audio-player UI create a distinct authored world.
+Scroll/reveals: Each paragraph arrives as a discrete composition. The rhythm alternates philosophy, interaction and credential blocks rather than stacking prose.
+Pointer/touch: The embedded player, hover details and tactile contact treatment reward exploration; all main claims remain visible in the scroll.
+Media/simulation: Music is both interface and organizing metaphor. StringTune, the studio's own animation library, serves as a credible side-project proof point.
+Why it works: The metaphor is not decoration: harmony links positioning, motion, interaction, process and the side project into one idea.
+Borrow: choose one governing metaphor for text and motion | use one self-initiated tool or experiment as proof of curiosity | alternate belief statements with playable moments
+Avoid: abstract belief copy can become vague | award counts should not dominate | audio needs explicit user control
+Accessibility/performance: Autoplay audio must remain off; player controls need keyboard labels. Scroll animation should respect reduced motion.
+Capture: evidence/webby/screenshots/04-fiddle-digital-about.png — Motion clip demonstrates paragraph and media pacing.
+
+19. Raw Materials - An Unusual Design Company
+Award: 2024 · Two Webby Wins · Professional Services & Self-Promotion and Best Navigation/Structure (2024)
+Award source: https://winners.webbyawards.com/2024/websites-and-mobile-sites/features-design/best-navigationstructure/281127/raw-materials--an-unusual-design-company
+Live About: https://www.therawmaterials.com/
+Length: ~420 words / ~1.7 minutes
+Narrative: unusual-company proposition -> principle that difference creates better outcomes -> selected work and disciplines -> people and locations -> contact
+Tone: Provocative but reasoned. The unusual claim is immediately explained as a practical competitive principle.
+Typography/layout: An experimental app-like canvas, bold color fields and modular cards avoid the conventional agency-page stack.
+Scroll/reveals: Wheel input drives a virtual, spatial sequence rather than normal document flow; content behaves like connected scenes.
+Pointer/touch: Drag, hover and directional navigation are structural, making this more interaction-led than Alexander's intended scroll-first balance.
+Media/simulation: Work and identity live in the same spatial canvas. The interface itself is the demonstration.
+Why it works: A single defensible word, unusual, organizes the proposition and interaction model.
+Borrow: name one principle and make every reveal reinforce it | treat images and experiments as connected scenes | let the interface demonstrate the stated specialty
+Avoid: do not copy the nonstandard navigation | a studio manifesto does not map directly to a personal biography | virtual scrolling complicates accessibility and capture
+Accessibility/performance: The fixed virtual canvas obscures normal document height and can challenge keyboard, screen-reader and reduced-motion users. A semantic parallel flow is essential.
+Capture: evidence/webby/screenshots/05-raw-materials-about.png — The site uses a fixed virtual canvas; ten consecutive wheel-driven viewport states were stitched so content is visible. Browser text count included hidden application content and was not used.
+
+20. Lusion - About Us
+Award: 2024 · Webby Winner and Nominee · Best Mobile Visual Design - Aesthetic; Professional Services & Self-Promotion (2024)
+Award source: https://winners.webbyawards.com/2024/websites-and-mobile-sites/mobile-features-design/best-mobile-visual-design-aesthetic-mobile-features/281405/lusion
+Live About: https://lusion.co/about/
+Length: ~349 words / ~1.4 minutes
+Narrative: large studio definition -> team and founder -> multidisciplinary process -> brand proof -> awards, articles and talks -> expandable expertise -> contact
+Tone: Precise, global and production-minded. Short declarative statements let the visual craft provide most of the confidence.
+Typography/layout: Enormous all-caps statements, disciplined white space and small data-like labels produce a cinematic but legible contrast.
+Scroll/reveals: Virtual scrolling choreographs type, 3D and lists as large scenes. Expandable expertise restores user control after the cinematic opening.
+Pointer/touch: Accordion-like capability controls and 3D reactions are secondary to wheel/touch scrolling.
+Media/simulation: 3D forms are used as connective tissue, not separate portfolio pieces; motion demonstrates the studio's production specialty.
+Why it works: The copy is short enough that sophisticated motion never competes with a dense biography.
+Borrow: use one spatial dot/point-cloud system as connective tissue | keep scene copy to one thought | pair expressive scenes with compact factual lists
+Avoid: studio capability grids are too broad for a personal page | award totals risk becoming the emotional climax | virtual scroll should not replace native scroll
+Accessibility/performance: 3D and fixed-canvas behavior require a reduced-motion and low-power mode. Accordions need explicit states and keyboard support.
+Capture: evidence/webby/screenshots/06-lusion-about.png — Ten wheel-driven states were stitched because the smooth-scroll canvas reports one viewport of document height.
+
+21. Locomotive - Agency
+Award: 2024 · Nominee · Professional Services & Self-Promotion (2024)
+Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Live About: https://locomotive.ca/en/agency
+Length: ~771 words / ~3.1 minutes
+Narrative: independent-agency statement -> Digital-first Design positioning -> short manifesto film -> mission and three-founder origin -> capabilities -> people by discipline -> recognition and contact
+Tone: Playful, technically literate and civic. Montréal identity and a Triforce metaphor make the operating model memorable.
+Typography/layout: Big clean type is disrupted by emoji-like symbols, counters and label fragments; the page feels systematic without becoming corporate.
+Scroll/reveals: Native vertical chapters alternate manifesto, capability and team density. The embedded film is optional rather than a gate.
+Pointer/touch: Team entries expand for biographies; the expandable layer is additive, which maps well to tap interaction.
+Media/simulation: A short manifesto film provides a richer layer without replacing the written summary.
+Why it works: The Triforce reduces operations, design and development into an understandable personal mythology.
+Borrow: compress overlapping specialties into a simple three-part model | let taps expand optional detail | use place as texture only if it explains the practice
+Avoid: large team and awards sections are not relevant to an individual | symbols must not create reading noise
+Accessibility/performance: Symbol-heavy labels need clear accessible names. Optional video requires captions and pause controls.
+Capture: evidence/webby/screenshots/07-locomotive-agency.png — Team expansions were left closed to represent the default one-pass reading experience.
+
+22. Someoddpilot - About
+Award: 2024 · Honoree · Professional Services & Self-Promotion (2024)
+Award source: https://winners.webbyawards.com/2024/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion/294858/someoddpilot
+Live About: https://someoddpilot.com/about/
+Length: ~984 words / ~3.9 minutes
+Narrative: transformation proposition -> record-label origin story -> five beliefs -> six surprising studio facts -> client voices -> partner biographies -> working style -> side ventures and contact
+Tone: Culturally fluent, candid and slightly rebellious. The language rejects marketing gloss while remaining generous toward collaborators.
+Typography/layout: Large manifesto typography, black-and-white imagery and alternating grids produce a zine/editorial cadence.
+Scroll/reveals: The page shifts rhythm every few screens: story, principles, facts, quotes, portraits, side projects. This prevents a long page from feeling like one essay.
+Pointer/touch: Hover reveals and linked side ventures invite detours, but the main story reads linearly.
+Media/simulation: Photography, record-label history, an art gallery and apparel work prove cultural interests without a conventional hobbies section.
+Why it works: Side projects are presented as evidence of a worldview and business evolution, never as random decoration.
+Borrow: frame small projects as evidence of taste | alternate a belief with a concrete fact | end with one unexpected side-world | use client voice sparingly to validate tone
+Avoid: the full leadership roster is too long | many manifesto statements compete for attention | individual copy should use I rather than imported studio we language
+Accessibility/performance: Long animated pages need landmarks and skip links. Image-heavy blocks should use responsive assets and meaningful alt text.
+Capture: evidence/webby/screenshots/08-someoddpilot-about.png — Default biography and side-venture states are visible; linked sub-sites were not followed.
+
+23. Better Off Studio - The Lookback
+Award: 2025 · Nominee · Professional Services & Self-Promotion (2025)
+Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Live About: https://tlb.betteroff.studio/about/
+Length: ~442 words / ~1.8 minutes
+Narrative: living-archive definition -> why looking back clarifies the future -> three-content promise -> brief thanks -> monthly index of work, music, inspiration and clients
+Tone: Self-aware, culturally alert and lightly boastful with a wink. It admits that the archive is a flex, then explains why reflection is useful.
+Typography/layout: Oversized date and archive typography, black fields and index labels turn an annual recap into an editorial object.
+Scroll/reveals: A fixed virtual-scroller moves from declaration into a month-by-month archive. The index structure gives side material an organizing reason.
+Pointer/touch: Music and archive items are browsable, while the About statement remains the linear entry point.
+Media/simulation: Playlists, inspiration, client moments and case studies share one time-based system; taste becomes part of professional identity.
+Why it works: It offers the best answer to how side projects can be sprinkled in: bind them to time, influence or a recurring theme.
+Borrow: package posters and experiments as a small cabinet of current obsessions | make levity a final recurring archive beat | connect looking back to future aspiration
+Avoid: a calendar archive would overwhelm a one-minute About page | do not expose unfinished filler months | music autoplay would be intrusive
+Accessibility/performance: Fixed virtual scrolling and background audio need strong fallbacks. Every archive item should be reachable by keyboard and represented in semantic order.
+Capture: evidence/webby/screenshots/09-better-off-lookback-about.png — Ten wheel-driven states were stitched because the app uses a fixed virtual canvas. This page is an About/annual taste archive attached to the nominated studio site.
+
+24. Metalab - About
+Award: 2024 · Nominee · Professional Services & Self-Promotion (2024)
+Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Live About: https://www.metalab.com/about
+Length: ~461 words / ~1.8 minutes
+Narrative: global-team statement -> geographic spread -> operating belief about autonomy -> employee voices -> diversity commitments -> work-life practices -> open roles
+Tone: Friendly, factual and employee-led. The firm lets named people and measurable practices carry the claims.
+Typography/layout: Large conversational headings, horizontal place names, portrait grids and compact metrics create a human data-story.
+Scroll/reveals: A restrained vertical sequence moves from global scale to individual voices to quantified culture.
+Pointer/touch: Drag and hover are explicitly signposted on image and location modules, adding play without hiding the text.
+Media/simulation: Remote-work portraits and desk photographs make an abstract distributed team tangible.
+Why it works: Claims such as autonomy and balance are immediately followed by employee testimony and policies.
+Borrow: follow each belief with evidence | use a few client or collaborator voices instead of self-praise | turn trajectory into named places or environments only when meaningful
+Avoid: employment metrics are irrelevant to a personal site | generic culture claims without proof | drag cues should not distract from scroll
+Accessibility/performance: Draggable visuals need non-drag alternatives. Diversity metrics require context rather than purely visual presentation.
+Capture: evidence/webby/screenshots/10-metalab-about.png — Current live page is recruitment-oriented; principles were extracted for individual-profile use and the scale mismatch is explicit.
+
+25. Dops Agency
+Award: 2024 · People's Voice Winner · Professional Services & Self-Promotion (2024)
+Award source: https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion
+Live About: https://dops.agency/
+Length: ~631 words / ~2.5 minutes
+Narrative: visual-experience promise -> latest case -> selected work -> services -> team DNA -> client quotes -> client scale and awards -> team and contact
+Tone: Polished, enthusiastic and client-centered. Repeated references to user desire keep the language outward-facing rather than autobiographical.
+Typography/layout: Large staggered statements, glowing imagery and modular work cards create a high-energy studio showcase.
+Scroll/reveals: A long home/About hybrid alternates proof and explanation; testimonial typography provides useful tempo changes.
+Pointer/touch: Hover states animate project previews and service labels; scroll retains control.
+Media/simulation: 3D motion and animated case media demonstrate capability, though they are more portfolio than biography.
+Why it works: The page does not merely say passionate or visionary; it places those values beside work, testimonials and client numbers.
+Borrow: keep confidence outward-facing by describing client or user benefit | use one short testimonial as a change of voice | pair each specialty with a visual proof fragment
+Avoid: adjectives such as visionary become generic when repeated | logo and award walls are too corporate | do not duplicate the Portfolio route
+Accessibility/performance: Animated media and luminous contrast need reduced-motion testing and accessible text contrast. Dense project grids require clear focus states.
+Capture: evidence/webby/screenshots/11-dops-about.png — The substantive About content is integrated into the one-page studio home.
+
+26. AW Portfolio - Antoine Wodniack
+Award: 2025 · Webby Winner · Best Home Page (2025)
+Award source: https://winners.webbyawards.com/2025/websites-and-mobile-sites/features-design/best-home-page/332383/aw-portfolio
+Live About: https://wodniack.dev/
+Length: ~220 words / ~0.9 minutes
+Narrative: location and availability -> creative-developer identity -> two-paragraph positioning and trajectory -> awards -> work transition -> contact
+Tone: Extremely concise and matter-of-fact. A single chronological sentence covers tools, roles, projects, leadership and ongoing learning.
+Typography/layout: A saturated red field, giant condensed type, binary texture and geometric WebGL/canvas forms turn minimal copy into a strong authored environment.
+Scroll/reveals: The native scroll moves through pinned typographic and geometric scenes. Text is sparse enough to be read while the spatial composition changes.
+Pointer/touch: Contrast control and geometric reactions add agency; the biography itself requires no interaction.
+Media/simulation: Abstract grids and forms visualize coding and motion without showing generic code screenshots.
+Why it works: This is the best word-count benchmark. The career sentence is dense with evidence, while the page behavior supplies excitement.
+Borrow: compress trajectory into one vivid sentence | let the visual system carry emotion so copy can stay short | state availability or aspiration plainly | use abstract dot geometry instead of illustrative filler
+Avoid: an awards-only proof section can feel narrow | extreme color and condensed type reduce long-form readability | pinned scenes must not create blank scroll regions
+Accessibility/performance: High saturation and condensed display type need contrast and readability checks. Canvas decoration should be ignored by assistive technology and disabled for reduced motion.
+Capture: evidence/webby/screenshots/12-antoine-wodniack-about.png — Twelve viewport states were stitched because one full-page capture left blank areas around pinned scenes. Word count excludes decorative binary digits.
+
+27. Mark Woodland
+Award: 2026 · Honoree · Best Home Page (2026)
+Award source: https://winners.webbyawards.com/2026/websites-and-mobile-sites/features-design/best-home-page/363849/mark-woodland
+Live About: https://markwoodland.com.au/
+Length: ~503 words / ~2 minutes
+Narrative: leadership proposition -> choose-a-topic video layer -> belief and trajectory -> three initiatives linked to human outcomes -> three issue chapters -> media and newsletter
+Tone: Purposeful, civic and controlled. Confidence comes from connecting every venture to a human outcome, not from describing the founder as exceptional.
+Typography/layout: Oversized editorial typography, periwinkle/blue color fields, rounded media and numbered policy chapters create a contemporary public-leadership profile.
+Scroll/reveals: Vertical scroll is the backbone; pinned topic transitions and optional video deepen the story. Repeated keep-scrolling cues sustain momentum.
+Pointer/touch: Users can choose housing, education or healthcare and play short takes. These interactions expand a clear default narrative.
+Media/simulation: Founder video is divided by topic, avoiding a single long showreel. Venture cards connect abstract beliefs to real systems.
+Why it works: The page converts a complicated multi-industry career into one belief, three proof points and three optional deeper topics.
+Borrow: use one belief as the spine | group clients and projects by the change Alexander helps create | offer optional tap-to-expand stories | end on an outward-looking aspiration
+Avoid: repeated issue copy pushes beyond one minute | video errors or missing captions damage credibility | public-leadership gravitas should not displace playfulness
+Accessibility/performance: Observed browser console errors around media did not prevent the text capture but are a risk. Videos require captions, poster fallbacks and reduced-motion-safe transitions.
+Capture: evidence/webby/screenshots/13-mark-woodland-about.png — Full page captured; optional topic videos were not opened so the default reading path remains visible.
+
+28. Camila Rosa
+Award: Website of the Day (2026-01-10)
+Award source: https://www.cssdesignawards.com/sites/camila-rosa-portfolio/48629/
+Live About: https://www.camilarosa.net/about
+Length: ~92 words / ~0.5 minutes
+Narrative: one-line professional position -> two compact belief/practice paragraphs -> recognizable client list -> expandable achievement categories -> contact
+Tone: Warm and direct. Confidence comes from specificity and the work's social point of view, then from quiet evidence rather than adjectives.
+Typography/layout: Large declarative headline over a restrained two-column editorial grid; dense credentials are reduced to labeled counts that open on demand.
+Scroll/reveals: A short vertical scroll. The face/eye illustration gives the opening personality; achievement rows disclose detail on interaction without burdening the first read.
+Pointer/touch: Click/tap rows reveal lists. Navigation remains conventional and touch-safe.
+Media/simulation: Expressive portrait illustration and eye motif; no gratuitous simulation.
+Why it works: It separates identity from proof: two sentences explain the practice, while clients and achievements supply credibility in compressed form.
+Borrow: Use one memorable personal visual, two sharply edited statements, then evidence as expandable counts. This is a strong model for a one-minute Alexander page.
+Avoid: A long undifferentiated client list can become wallpaper; cluster or animate only enough to preserve recognition.
+Accessibility/performance: The icon-like expandable rows need explicit button semantics, focus states, and expanded-state announcements. Motion should not be required to understand the content.
+Capture: evidence/fwa-cssda/screenshots/01-camila-rosa-about.png — All page sections were scrolled through before capture so lazy content was loaded. Full page captured at 1440px CSS width.
+
+29. Elsa Hanneke
+Award: Website of the Day (2025-12-29)
+Award source: https://www.cssdesignawards.com/sites/elsa-hanneke/48653/
+Live About: https://elsa.works/about
+Length: ~118 words / ~0.6 minutes
+Narrative: single-sentence positioning -> selected clients -> five recognitions -> contact and credits
+Tone: Cool, concise, and assured. It never claims greatness; the client list and recognition ledger do the status work.
+Typography/layout: Monospaced/editorial system with small section labels and spacious columns. The entire About page fits in one desktop viewport.
+Scroll/reveals: No scrolling is necessary on desktop; the work index carries the spatial innovation while About becomes a calm information panel.
+Pointer/touch: Black/white background switch and standard links. Low interaction burden.
+Media/simulation: About is text-only, contrasting with the spatial project index and moving media elsewhere in the portfolio.
+Why it works: The page knows its job: orientation and proof. It avoids repeating portfolio content and creates a deliberate pause in an otherwise immersive site.
+Borrow: A visually ambitious portfolio does not require every About moment to perform. Let expressive typography and spatial transitions frame concise facts.
+Avoid: The client block is impressive but emotionally cool; Alexander needs at least one human detail or belief to avoid reading like a credits list.
+Accessibility/performance: The background controls must retain contrast and accessible names. Tiny monospaced type needs careful mobile sizing.
+Capture: evidence/fwa-cssda/screenshots/02-elsa-hanneke-about.png — Complete one-viewport About page captured at 1440x1000; no hidden lower sections.
+
+30. Wendy Andrade
+Award: Special Kudos plus UI, UX, and Innovation public awards (2025-12-01)
+Award source: https://www.cssdesignawards.com/sites/wendy-andrade/48473/
+Live About: https://www.wendyandrade.co/en/bio
+Length: ~127 words / ~0.6 minutes
+Narrative: portrait -> inquiries and representation -> single long biographical statement
+Tone: Poetic and third-person. Confidence comes from a clear cultural purpose and a single Wired recognition, not a catalogue of achievements.
+Typography/layout: Large portrait and generous whitespace; one substantial paragraph is treated as an art statement rather than résumé copy.
+Scroll/reveals: Simple vertical movement with the portrait preceding the statement. The image-to-text ratio creates a slow, reflective reveal.
+Pointer/touch: Minimal; language switch and contact links only.
+Media/simulation: One portrait. The broader site uses a fluid stream of titles and media inspired by water.
+Why it works: It gives the practice a worldview in roughly one paragraph. The page feels authored even with very little interface.
+Borrow: A compact About can be memorable when it names what the work is for, not only what the person does.
+Avoid: Dense third-person prose can feel like gallery copy and may distance the reader. Break Alexander's copy into more breathable beats.
+Accessibility/performance: Ensure language controls expose state and that the portrait has useful alt text. Long line lengths should be constrained.
+Capture: evidence/fwa-cssda/screenshots/03-wendy-andrade-bio.png — English Bio URL redirected correctly; complete 2031px page captured after lazy-load scroll.
+
+31. Ania Melnik
+Award: Special Kudos plus UI, UX, and Innovation public awards (2025-04-27)
+Award source: https://www.cssdesignawards.com/sites/ania-melnik-portfolio/47394/
+Live About: https://amelnik.com/
+Length: ~818 words / ~4.1 minutes
+Narrative: multi-role identity statement -> studio and art-direction pitch -> design capabilities -> AI consultancy -> education -> awards -> contact
+Tone: Energetic, maximal, commercial, and highly self-assured. The breadth is impressive but the repeated superlatives push toward sales copy.
+Typography/layout: Oversized kinetic sentences, repeated vertical modules, marquee fragments, and an intentionally dense multi-section scroll.
+Scroll/reveals: Long vertical page with word-by-word text entrances, embedded motion, repeated capability modules, and section color/rhythm changes.
+Pointer/touch: Anchor navigation, social links, and repeated collaboration calls. Much of the experience is scroll-triggered rather than pointer-led.
+Media/simulation: Embedded moving media, oversized type, and animated section choreography rather than a single signature simulation.
+Why it works: It proves that type alone can carry sustained kinetic rhythm, but it is intentionally not efficient as a one-minute profile.
+Borrow: Borrow the alternating typographic scale and clear chapter changes, not the volume. One strong sentence per beat is enough.
+Avoid: Role stacking, repeated calls to action, duplicated claims, long service inventories, and percentage-style expertise all make the profile feel less selective.
+Accessibility/performance: Letter-split DOM creates an extremely noisy accessibility tree; motion density, embedded media, and long scroll increase cognitive and performance cost. Reduced-motion behavior is essential.
+Capture: evidence/fwa-cssda/screenshots/04-ania-melnik-profile.png — Full 8762px one-page profile captured after all sections were scrolled into view. This is intentionally retained as an anti-pattern/control case.
+
+32. Alex Ryan Design
+Award: Special Kudos plus UI, UX, and Innovation public awards (2026-01-10)
+Award source: https://www.cssdesignawards.com/website-gallery?industry=graphic+design&page=1
+Live About: https://www.alexryan.design/about
+Length: ~374 words / ~1.9 minutes
+Narrative: oversized positioning sentence -> client wall -> two engagement models -> recognitions -> expertise line -> friendly contact
+Tone: Confident and commercially clear, with a conversational close. Evidence is concrete, though the category-redefining promise is more assertive than the supporting story.
+Typography/layout: Large split typography opens the page; compact editorial lists and modular cards create a measured downward rhythm.
+Scroll/reveals: Vertical scroll with word-level entrances and distinct sections. Dark-mode control adds a light secondary interaction.
+Pointer/touch: Theme toggle, links, and copy-email affordance. Interaction supports rather than competes with reading.
+Media/simulation: The About page is primarily kinetic typography; project media remains outside the narrative.
+Why it works: The two engagement models answer a practical hiring question most About pages ignore, turning biography into useful decision support.
+Borrow: Include a compact 'how I work with teams' beat; it makes professional positioning more actionable than a generic skills list.
+Avoid: Awards descriptions and the long client wall duplicate proof. Trim to the strongest handful for a one-minute page.
+Accessibility/performance: Word-split animation should preserve a clean accessible name. The dark-mode toggle needs persistent state and sufficient contrast.
+Capture: evidence/fwa-cssda/screenshots/05-alex-ryan-about.png — Full 3041px About page captured after triggering all scroll entrances. This site replaced Tomoya Okada to avoid cross-lane duplication.
+
+33. Luca Ravanelli
+Award: Special Kudos plus UI, UX, and Innovation public awards (2026-01-23)
+Award source: https://www.cssdesignawards.com/sites/luca-ravanelli-portfolio/48733/
+Live About: https://lucaravanelli.com/about/
+Length: ~277 words / ~1.4 minutes
+Narrative: design philosophy -> teaching -> services -> recognition and exhibitions -> clients -> social/contact -> team and status
+Tone: Formal, exacting, and philosophy-led. Confidence is expressed through principles such as reduction, grids, precision, and synthesis.
+Typography/layout: Minimal black-and-white Swiss/editorial grid; a large About title gives way to compact, information-dense columns.
+Scroll/reveals: Short conventional vertical scroll with subtle type entrances. Information density increases below the opening statement.
+Pointer/touch: Straightforward links and downloadable CV; no interaction gimmick.
+Media/simulation: No media on About. The site's playground holds motion studies, maintaining a useful separation between biography and experimentation.
+Why it works: A single coherent principle explains both style and studio evolution. The page then acts as a reference sheet for serious enquiries.
+Borrow: Lead with a belief that actually governs decisions, then use a compact ledger for proof. Alexander can do this more warmly and with fewer lists.
+Avoid: The philosophy paragraph is abstract and the lower half becomes administrative. Add a concrete example or playful interruption before attention drops.
+Accessibility/performance: Very small secondary type and long lists may be tiring on mobile; ensure headings and list semantics remain intact through animation.
+Capture: evidence/fwa-cssda/screenshots/06-luca-ravanelli-about.png — Complete 1991px About page captured; all lists and footer content visible.
+
+34. Maria Vareva
+Award: Special Kudos plus UI, UX, and Innovation public awards (2026-01-21)
+Award source: https://www.cssdesignawards.com/sites/maria-vareva/48730/
+Live About: https://mariavareva.com/about
+Length: ~151 words / ~0.8 minutes
+Narrative: current role and frontier -> five-step trajectory with linked work -> four working beliefs -> six values -> location/contact
+Tone: Calm, intelligent, and self-aware. Numbering contains the confidence; the prose stays factual and avoids inflated claims.
+Typography/layout: One very large paragraph becomes the entire page. Numbered clauses, line breaks, and linked nouns create rhythm without extra interface chrome.
+Scroll/reveals: A focused 2903px vertical reading experience. The text enters progressively and linked trajectory items act as visual anchors.
+Pointer/touch: Links deepen specific career claims; otherwise scrolling remains primary.
+Media/simulation: Minimal animated marks associated with linked projects; the core story is typographic.
+Why it works: It integrates role, past, beliefs, and values into 151 words. The sequence answers who, where from, how, and why in under a minute.
+Borrow: This is the strongest content architecture for Alexander: current edge, selective trajectory, actual principles, and human values, each in one numbered beat.
+Avoid: A single giant paragraph may be hard to scan and feels formal. Alexander should add one or two playful media interruptions and stronger mobile chunking.
+Accessibility/performance: Word-level animation and large text must preserve natural reading order. Embedded linked objects should not interrupt keyboard flow.
+Capture: evidence/fwa-cssda/screenshots/07-maria-vareva-about.png — Full About page captured after scroll reveals; all 151 words and footer visible.
+
+35. Aya El Ouahdani
+Award: Special Kudos plus UI, UX, and Innovation public awards (2026-01-21)
+Award source: https://www.cssdesignawards.com/sites/interactive-web-portfolio/48731/
+Live About: https://www.ouahdina.com/
+Length: ~397 words / ~2 minutes
+Narrative: system-status hero -> code-styled profile -> three animated traits -> project modules -> technology arsenal -> competencies -> contact protocol
+Tone: Playful, energetic, and game-like. Confidence is expressed through a complete fictional system rather than conventional biography.
+Typography/layout: Terminal language, outlined panels, neon accents, counters, and modular cards create a coherent interface fiction.
+Scroll/reveals: Long vertical scroll; trait meters animate, projects react on hover, and a secondary Aurora mode alters the atmosphere.
+Pointer/touch: Hover-to-preview modules, mode switch, project controls, and contact buttons. On touch, hover semantics require an alternate first-tap behavior.
+Media/simulation: Animated avatar, progress meters, interactive project previews, and game/terminal motifs.
+Why it works: Every interaction reinforces the maker's developer identity. The fiction is consistent rather than decorative.
+Borrow: Choose one behavioral metaphor tied to Alexander's actual practice—such as spatial scan/dot field—and let it govern reveals, labels, and transitions.
+Avoid: Tool percentages, broad capability lists, and system jargon overwhelm the human story. Do not let the metaphor consume the one-minute narrative.
+Accessibility/performance: Hover instructions are not touch-complete; small terminal text, heavy animation, and generic progress values create usability and performance risks. A reduced-motion and non-WebGL path is necessary.
+Capture: evidence/fwa-cssda/screenshots/08-aya-el-ouahdani-profile.png — Full 9400px one-page portfolio captured after all modules and lazy media were scrolled through.
+
+36. Stan Khoruzhenko
+Award: Special Kudos plus UI, UX, and Innovation public awards (2026-01-17)
+Award source: https://www.cssdesignawards.com/sites/stan-design-portfolio/48716/
+Live About: https://stan-khoruzhenko.com/bio
+Length: ~361 words / ~1.8 minutes
+Narrative: current senior role -> end-to-end method -> design-system ownership -> quantified Rippling result -> founding-designer trajectory -> startup outcome
+Tone: Direct and highly outcome-oriented. The confidence is credible when tied to numbers, but the uninterrupted first-person pitch is intense.
+Typography/layout: Single dense narrative column with inline company links; minimal visual hierarchy beyond the Introduction label.
+Scroll/reveals: Short 1805px scroll and no material reveals. The page reads like a high-impact cover letter.
+Pointer/touch: Inline links to employers and case studies; otherwise static.
+Media/simulation: None on the Bio page, despite a more animated work homepage.
+Why it works: It explains contribution, scope, and measurable outcome instead of listing generic responsibilities.
+Borrow: Alexander's trajectory should name what changed because of his work, not only where he worked. One or two verified outcomes can carry considerable authority.
+Avoid: The wall of text exceeds a comfortable one-minute scan and repeats 'I'. Break the arc into chapters and reserve numbers for the most meaningful evidence.
+Accessibility/performance: Readable semantics and low runtime cost, but line length and paragraph density reduce comprehension, especially on smaller screens.
+Capture: evidence/fwa-cssda/screenshots/09-stan-khoruzhenko-bio.png — Complete 1805px Bio captured after all content loaded.
+
+37. AKIS.STUDIO
+Award: Special Kudos plus UI, UX, and Innovation public awards (2026-01-17)
+Award source: https://www.cssdesignawards.com/sites/akis-studio/48714/
+Live About: https://akis.studio/en/about
+Length: ~494 words / ~2.5 minutes
+Narrative: studio/location hero -> three-part philosophy -> collective strength -> team portraits -> long-term partnership -> client proof -> closing team image and invitation
+Tone: Warm and earnest but agency-generic in places. Confidence comes from a visible team and a partnership promise more than from awards.
+Typography/layout: Large kinetic headings alternate with images, short paragraphs, team cards, and logo fields across a long editorial scroll.
+Scroll/reveals: Scroll is the main narrative engine; oversized headings reveal word by word, team cards move horizontally, and image scale resets pacing.
+Pointer/touch: Carousel controls and standard links; no essential hover-only information.
+Media/simulation: Team photography and an animated hero scene; the media is tied to place and people.
+Why it works: The alternating rhythm is strong even when the writing is long. Team portraits turn abstract collaboration claims into visible evidence.
+Borrow: Use recurring large-type chapters separated by one concrete image, artifact, or simulation. Alexander can create the same rhythm with side projects and dot-field moments.
+Avoid: Repeated passion/authenticity/excellence language and a 494-word page feel generic. Specific decisions and outcomes are more persuasive.
+Accessibility/performance: Very tall page and animated split text increase runtime cost; carousel must remain keyboard/touch accessible and reduced-motion should flatten heading reveals.
+Capture: evidence/fwa-cssda/screenshots/10-akis-studio-about.png — Complete 11967px Studio page captured after all scroll reveals and team/client media loaded.
+
+38. Jess Hill
+Award: Special Kudos plus UI, UX, and Innovation public awards (2025-12-07)
+Award source: https://www.cssdesignawards.com/sites/jess-hill/48500/
+Live About: https://www.jesshill.com.au/about
+Length: ~2311 words / ~11.6 minutes
+Narrative: current standing -> recent career -> award archive -> chronological backstory -> cats and personal life -> brain-cancer reflections -> book and newsletter calls to action
+Tone: Authoritative, candid, and deeply personal. It earns confidence through reporting detail and vulnerability rather than self-promotion.
+Typography/layout: Editorial longform with sticky chapter navigation, large images, timelines, award cards, and intimate captions.
+Scroll/reveals: A 15370px chaptered vertical story. Sticky anchors make the long page navigable; image/caption interludes continually reset the reading rhythm.
+Pointer/touch: Anchor navigation, expandable award media, and article/book links. Scrolling remains dominant.
+Media/simulation: Portraits, archival photographs, awards, videos, personal snapshots, and captions; no abstract simulation.
+Why it works: It is not reading-efficient, but it demonstrates how professional trajectory becomes a story through turning points, mentors, stakes, and human detail.
+Borrow: Borrow the chapter anchors and the alternation between professional turning points and small human artifacts. Compress the same technique into five Alexander beats.
+Avoid: Eleven-plus minutes is far outside the brief. Exhaustive awards and biography should live in expandable/archive layers, not the primary one-minute path.
+Accessibility/performance: Strong semantic headings and anchor navigation, but page weight, many images/videos, and extremely long reading time create cognitive and performance costs. Media lightboxes need focus management.
+Capture: evidence/fwa-cssda/screenshots/11-jess-hill-about.png — Complete 15370px page captured after every chapter was scrolled. Retained as the strongest narrative reference and clearest length anti-pattern.
+
+39. Bogdan Kolomiyets
+Award: Special Kudos plus UI, UX, and Innovation public awards (2026-02-19)
+Award source: https://www.cssdesignawards.com/website-gallery?industry=web+design%2Fdev
+Live About: https://bogdankolomiyets.com/about
+Length: ~320 words / ~1.6 minutes
+Narrative: positioning promise -> playful personal snapshots -> three proof statistics -> service personality -> four website beliefs -> humorous call to action
+Tone: Confident, conversational, and funny. It repeatedly frames expertise as client benefit and uses self-deprecation to prevent the pitch from feeling pompous.
+Typography/layout: Oversized statements, annotated personal image collage, numerical proof blocks, and numbered manifesto cards.
+Scroll/reveals: Strong vertical pacing across 7565px: image collage, metric reveals, a large personal-service sentence, then four belief modules.
+Pointer/touch: Mostly scrolling and links. Images and text animate into place; no interaction is required for core content.
+Media/simulation: Personal photographs of wife, dog, seaside life, and humorous snapshots. These are meaning-bearing rather than decorative.
+Why it works: It solves the confidence/likeability balance unusually well. Beliefs are stated as client-relevant truths, then levity closes the loop.
+Borrow: Use one unexpected personal artifact, one plain-English service promise, and a short belief set. End with a joke that still advances the contact decision.
+Avoid: The conversion language can feel overly sales-driven, and 320 words still exceeds the one-minute target. Keep only the best two beliefs.
+Accessibility/performance: Split text creates a large DOM and animated statistics must expose stable text. Personal images need meaningful alt descriptions; reveal motion should respect reduced-motion.
+Capture: evidence/fwa-cssda/screenshots/12-bogdan-kolomiyets-about.png — Complete 7565px About page captured after all counters, photos, and manifesto modules loaded.
+
+40. Giacomo Agnello Modica
+Award: Special Kudos plus UI, UX, and Innovation public awards (2025-12-06)
+Award source: https://www.cssdesignawards.com/website-gallery?industry=art
+Live About: https://giacomoagnellomodica.com/info/
+Length: ~226 words / ~1.1 minutes
+Narrative: illustrated introduction -> practice and client list -> two selected recognitions -> personal hobby -> interactive influence ingredients -> favorite things -> self-published shop work
+Tone: Cheerful, specific, and disarming. Major clients and recognition are balanced by drag theatre, an old bicycle, comfort food, divas, and rainy places.
+Typography/layout: Illustrated fragments, short paragraphs, client names, and playful button-like phrases create an informal scrapbook rhythm.
+Scroll/reveals: A concise 3316px scroll. Hover/tap ingredient buttons reveal corresponding visual references, making the taste statement interactive.
+Pointer/touch: Influence and favorite-thing buttons are optional playful layers; core biography stays visible without interaction.
+Media/simulation: Illustrated self-portrait fragments, influence images, personal references, and self-produced merchandise.
+Why it works: Every playful detail explains the work's visual language. Personality, side work, and professional proof are not separate decorations—they form one causal story.
+Borrow: This is the strongest model for Alexander's side-project sprinkling: let artifacts reveal influences and taste, and make each interaction answer 'why is this here?'.
+Avoid: The client list could be shorter, and copy errors weaken polish. Ensure interaction labels work on both hover and tap.
+Accessibility/performance: Some figures lacked accessible image names in the captured accessibility tree. Button-revealed images need alt text, keyboard triggers, and persistent touch behavior.
+Capture: evidence/fwa-cssda/screenshots/13-giacomo-agnello-modica-info.png — Cookie notice declined before capture. Complete 3316px Info page captured after all lazy content loaded.

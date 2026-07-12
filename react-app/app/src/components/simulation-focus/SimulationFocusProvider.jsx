@@ -30,6 +30,7 @@ import { SimulationIcon } from './SimulationIcon.jsx';
 const FOCUS_MODAL_ID = 'simulation-focus-modal';
 const CHOOSER_TITLE_ID = 'simulation-focus-modal-title';
 const SIMULATION_FOCUS_READY_FALLBACK_MS = 850;
+const ROUTE_BACKED_SIMULATION_READY_FALLBACK_MS = 4200;
 const DAILY_FOCUS_SIMULATIONS = Object.freeze(getDailyFocusSimulations());
 const DAILY_FOCUS_ID_SET = new Set(DAILY_FOCUS_SIMULATIONS.map((entry) => entry.id));
 
@@ -271,7 +272,9 @@ export function SimulationFocusProvider({
     const closeSettleMs = getGateModalCloseDurationMs({ keepBackdrop: true });
     const transitionOptions = {
       transitionStyle: 'simulation-focus',
-      readyFallbackMs: SIMULATION_FOCUS_READY_FALLBACK_MS,
+      readyFallbackMs: target.routeBacked
+        ? ROUTE_BACKED_SIMULATION_READY_FALLBACK_MS
+        : SIMULATION_FOCUS_READY_FALLBACK_MS,
       releaseGateBackdropOnComplete: true,
     };
 

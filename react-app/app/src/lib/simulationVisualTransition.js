@@ -350,10 +350,12 @@ export async function runSimulationVisualTransition(direction, timings = {}) {
     ]);
   } finally {
     if (token === runToken) {
+      const completionEntry = getActiveEntry() || entry;
+      const completionHandler = completionEntry?.handlers || handler;
       initialVisualScale = targetScale;
       if (normalizedDirection === 'in') firstDailyRegistrationPending = false;
       recordSimulationVisualTransitionEvent(`${normalizedDirection}-complete`, {
-        sourceId: entry?.sourceId || activeSourceId || '',
+        sourceId: completionEntry?.sourceId || activeSourceId || '',
         sequence,
         direction: normalizedDirection,
         reason: transitionTimings.reason,
@@ -367,13 +369,16 @@ export async function runSimulationVisualTransition(direction, timings = {}) {
         });
       }
       try {
-        handler?.setVisualScale?.(targetScale, { immediate: true, phase: `${normalizedDirection}-complete` });
+        completionHandler?.setVisualScale?.(targetScale, {
+          immediate: true,
+          phase: `${normalizedDirection}-complete`,
+        });
       } catch (error) {
         void error;
       }
       publishDebug({
         phase: normalizedDirection === 'out' ? 'hold' : 'idle',
-        sourceId: entry?.sourceId || activeSourceId || '',
+        sourceId: completionEntry?.sourceId || activeSourceId || '',
         updatedAt: now(),
         direction: normalizedDirection,
         minScale: targetScale,

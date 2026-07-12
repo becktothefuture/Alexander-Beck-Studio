@@ -144,6 +144,7 @@ async function readRippleState(page) {
       innerAlpha: Number(stage?.dataset.contactRippleInnerAlpha || 0),
       outerAlpha: Number(stage?.dataset.contactRippleOuterAlpha || 0),
       coreFadeRadius: Number(stage?.dataset.contactRippleCoreFadeRadius || 0),
+      burstRelease: stage?.dataset.contactRippleBurstRelease || '',
       paletteSize: Number(stage?.dataset.contactRipplePaletteSize || 0),
       surface: stage?.dataset.contactRippleSurface || '',
       canvasWidth: canvas?.width || 0,
@@ -177,9 +178,10 @@ function assertLayout(state, viewport) {
   assert(state.paletteSize >= 6, 'Contact ripple did not load the site palette', state);
   assert(state.bodyCount >= 100, 'Contact ripple fixed body field is unexpectedly sparse', state);
   assert(state.bodyRadius >= 8.5 && state.bodyRadius <= 10.4, 'Contact ripple bodies do not match the ball-pit size band', state);
-  assert(state.innerAlpha > 0 && state.innerAlpha < 0.2, 'Innermost Contact rings are not softly faded', state);
+  assert(state.innerAlpha > 0 && state.innerAlpha <= 0.08, 'Innermost Contact rings are not sufficiently faded for copy contrast', state);
   assert(state.outerAlpha === 1, 'Outer Contact rings are not fully opaque', state);
   assert(state.coreFadeRadius > state.bodyRadius * 10, 'Contact core fade is unexpectedly narrow', state);
+  assert(state.burstRelease === 'smoothstep-tail', 'Contact burst is missing its eased release phase', state);
   assert(state.canvasPointerEvents === 'none', 'Decorative canvas captured pointer events', state);
   assert(state.stageZ < state.contentZ, 'Contact content is not above the ripple stage', state);
   assert(state.stageRect?.width > viewport.width * 0.75, 'Ripple stage does not fill the studio window', state);
@@ -295,6 +297,10 @@ async function runStandardScenario(browser, viewport, theme) {
       path: resolve(outputRoot, `${viewport.label}-${theme}-${browserName}-burst.png`),
       fullPage: false,
     });
+    await waitForRipple(page, 'idle');
+    const settled = await readRippleState(page);
+    assert(settled.bodyCount === initial.bodyCount, 'Burst settlement changed the fixed body count', { initial, settled });
+    assert(settled.bodyRadius === initial.bodyRadius, 'Burst settlement changed the rendered ball size', { initial, settled });
 
     await page.locator('[data-route-tab="about"]').click();
     await page.waitForURL(/about\.html/, { timeout: 30000 });
@@ -312,7 +318,7 @@ async function runStandardScenario(browser, viewport, theme) {
     assert(remounted.diagnostics?.destroyedInstances >= 1, 'Contact ripple teardown was not recorded', remounted);
     assert(pageErrors.length === 0, 'Page errors occurred during the standard ripple scenario', pageErrors);
 
-    return { initial, successBurst, rapidBurst, failureBurst, toggled, remounted };
+    return { initial, successBurst, rapidBurst, failureBurst, toggled, settled, remounted };
   } finally {
     await context.close();
   }

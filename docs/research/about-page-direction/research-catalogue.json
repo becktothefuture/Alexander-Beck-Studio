@@ -1,0 +1,2004 @@
+{
+  "title": "About Me creative-direction research catalogue",
+  "researched_on": "2026-07-12",
+  "scope": "40 award-recognized personal portfolios and small creative studios with About/Profile/Studio pages",
+  "reading_rate_note": "Read-time estimates are source-lane approximations and should be treated directionally.",
+  "metrics": {
+    "site_count": 40,
+    "lane_counts": {
+      "Awwwards": 14,
+      "The Webby Awards": 13,
+      "CSS Design Awards": 13
+    },
+    "median_word_count": 354,
+    "mean_word_count": 442,
+    "at_or_below_220_words": 13,
+    "at_or_below_300_words": 18,
+    "shortest_word_count": 80,
+    "longest_word_count": 2311
+  },
+  "sites": [
+    {
+      "lane": "Awwwards",
+      "id": "david-heckhoff",
+      "name": "David Heckhoff Portfolio",
+      "creator_type": "single-page profile section",
+      "award": "Awwwards Honorable Mention",
+      "award_date": "2022-05-02",
+      "award_url": "https://www.awwwards.com/sites/david-heckhoff-portfolio",
+      "live_url": "https://david-hckh.com/",
+      "about_url": "https://david-hckh.com/",
+      "word_count": 80,
+      "read_minutes": 0.4,
+      "narrative_sequence": [
+        "role and location",
+        "specialism statement",
+        "skills",
+        "selected projects",
+        "contact"
+      ],
+      "information_types": [
+        "identity",
+        "specialisms",
+        "technical stack",
+        "project proof",
+        "availability"
+      ],
+      "tone_and_confidence": "Direct and technically assured; confidence comes from specificity rather than self-praise.",
+      "typography_and_layout": "Compact sans-serif type, strong whitespace, small project tiles, and a restrained off-white canvas.",
+      "scroll_and_reveals": "Conventional vertical progression with light transitions; the current live version is quieter than the awarded experimental submission.",
+      "pointer_touch": "Project tiles and navigation supply modest hover feedback; interaction is secondary to scanning.",
+      "media_or_simulation": "Project imagery rather than a continuous About simulation in the current capture.",
+      "why_it_works": "A visitor can understand what David builds and inspect proof in well under a minute.",
+      "borrow_for_alexander": [
+        "Name the specialty in one precise sentence",
+        "Use a compact capability cluster before project proof",
+        "Let project thumbnails validate the claim"
+      ],
+      "avoid": [
+        "The biography is too thin for a memorable personal story",
+        "A skills list without beliefs can feel interchangeable"
+      ],
+      "accessibility_performance": "Light current page is easy to scan; ensure small type and hover-only cues remain keyboard and touch accessible.",
+      "screenshot": "evidence/awwwards/david-heckhoff-about-full.png",
+      "capture_notes": "Current 2026 live design differs from the 2022 awarded version.",
+      "motion": {
+        "status": "not captured"
+      }
+    },
+    {
+      "lane": "Awwwards",
+      "id": "giats",
+      "name": "Giats — Portfolio",
+      "creator_type": "dedicated About page",
+      "award": "Awwwards Honorable Mention",
+      "award_date": "2024-08-14",
+      "award_url": "https://www.awwwards.com/sites/https-giats-me",
+      "live_url": "https://giats.me/",
+      "about_url": "https://giats.me/about",
+      "word_count": 480,
+      "read_minutes": 2.4,
+      "narrative_sequence": [
+        "large craft promise",
+        "host metaphor",
+        "personal introduction",
+        "interests",
+        "services",
+        "process",
+        "call to action"
+      ],
+      "information_types": [
+        "positioning",
+        "education",
+        "personality",
+        "services",
+        "workflow",
+        "availability"
+      ],
+      "tone_and_confidence": "Friendly and enthusiastic, with a confident service-provider posture; the hospitality metaphor softens technical authority.",
+      "typography_and_layout": "Oversized display headings alternate with compact explanatory text and long enumerated capability lists.",
+      "scroll_and_reveals": "Smooth scrolling stages headline, portrait/3D media, service chapters, process lists, and footer as separate acts.",
+      "pointer_touch": "Pointer movement animates the scene and menu; scrolling remains the main route through the content.",
+      "media_or_simulation": "A prominent 3D portrait/object treatment creates a memorable opening without replacing the written profile.",
+      "why_it_works": "The page has a clear authored rhythm and a relatable metaphor, but its service inventory substantially exceeds a one-minute read.",
+      "borrow_for_alexander": [
+        "Open with a human metaphor for the role",
+        "Use one spatial object as a recurring narrator",
+        "Alternate large statements with brief proof"
+      ],
+      "avoid": [
+        "Long SEO and workflow inventories",
+        "Repeating broad quality claims",
+        "A service catalogue that overwhelms the personal story"
+      ],
+      "accessibility_performance": "3D and smooth-scroll effects need reduced-motion, keyboard, and low-power fallbacks; direct headless loading was fragile during capture.",
+      "screenshot": "evidence/awwwards/giats-about-full.png",
+      "capture_notes": "Smooth-scroll transforms prevented a reliable native full-page capture.",
+      "motion": {
+        "status": "captured",
+        "mp4": "motion/giats-about-motion.mp4",
+        "webm": "motion/giats-about-motion.webm"
+      }
+    },
+    {
+      "lane": "Awwwards",
+      "id": "pedro-matos-chaves",
+      "name": "Pedro Matos Chaves · Design",
+      "creator_type": "dedicated About page",
+      "award": "Awwwards Honorable Mention",
+      "award_date": "2023-04-21",
+      "award_url": "https://www.awwwards.com/sites/pedro-matos-chaves-design",
+      "live_url": "https://pedromc.design/",
+      "about_url": "https://pedromc.design/about",
+      "word_count": 358,
+      "read_minutes": 1.8,
+      "narrative_sequence": [
+        "short current-role introduction",
+        "experience",
+        "education",
+        "clients",
+        "skills and tools",
+        "awards and publications",
+        "contact"
+      ],
+      "information_types": [
+        "trajectory",
+        "clients",
+        "skills",
+        "education",
+        "recognition",
+        "availability"
+      ],
+      "tone_and_confidence": "Calm, factual, and professional; authority is delegated to roles, institutions, clients, and recognition.",
+      "typography_and_layout": "Editorial résumé structure with generous whitespace, compact columns, and sharp typographic hierarchy.",
+      "scroll_and_reveals": "A straightforward vertical index; pacing comes from whitespace and section changes rather than spectacle.",
+      "pointer_touch": "Simple links and theme control; interaction does not compete with reading.",
+      "media_or_simulation": "Minimal portrait/project media keeps focus on the career record.",
+      "why_it_works": "Highly scannable evidence makes a broad career legible, even when readers skip the prose.",
+      "borrow_for_alexander": [
+        "Use a compressed career ladder",
+        "Group clients as proof rather than name-dropping inside prose",
+        "Separate capability, recognition, and side activity"
+      ],
+      "avoid": [
+        "An exhaustive CV on the main narrative path",
+        "Very small list typography",
+        "Giving every accolade equal weight"
+      ],
+      "accessibility_performance": "Mostly text-led and robust; compact type needs contrast and minimum-size checks on mobile.",
+      "screenshot": "evidence/awwwards/pedro-matos-chaves-about-full.png",
+      "capture_notes": "Current live content and dates may post-date the 2023 award.",
+      "motion": {
+        "status": "not captured"
+      }
+    },
+    {
+      "lane": "Awwwards",
+      "id": "thibaud-fellay",
+      "name": "Thibaud Fellay — Portfolio 24",
+      "creator_type": "dedicated About page",
+      "award": "Awwwards Site of the Day",
+      "award_date": "2024-11-28",
+      "award_url": "https://www.awwwards.com/sites/thibaud-fellay-portfolio-24",
+      "live_url": "https://thibaud.film/",
+      "about_url": "https://thibaud.film/about/",
+      "word_count": 205,
+      "read_minutes": 1,
+      "narrative_sequence": [
+        "work index context",
+        "short biography",
+        "creative vision",
+        "collaborator credits",
+        "invitation"
+      ],
+      "information_types": [
+        "origin",
+        "craft philosophy",
+        "working conditions",
+        "collaboration",
+        "credits"
+      ],
+      "tone_and_confidence": "Poetic but grounded; it speaks about aims and working method instead of declaring greatness.",
+      "typography_and_layout": "Black editorial field, compact uppercase labels, large photographic moments, and tightly controlled measure.",
+      "scroll_and_reveals": "Short cinematic sequence; copy appears in distinct scenes and pixelated portrait/media transitions punctuate the scroll.",
+      "pointer_touch": "Hover changes image treatment and gives the portrait a tactile digital texture; touch can retain the scroll reveal without requiring hover.",
+      "media_or_simulation": "Pixel-resolved portrait and film imagery embody the cinematography story.",
+      "why_it_works": "It reaches a one-minute target while covering identity, belief, method, collaborators, and invitation.",
+      "borrow_for_alexander": [
+        "Give one belief its own full-scale scene",
+        "Credit collaborators visibly",
+        "Use media as punctuation between short paragraphs"
+      ],
+      "avoid": [
+        "Low-contrast tiny labels",
+        "A poetic vision without concrete proof",
+        "Hover as the only way to reveal essential content"
+      ],
+      "accessibility_performance": "Heavy imagery and pixel effects need responsive sources and reduced-motion handling; semantic copy remains readable without the effect.",
+      "screenshot": "evidence/awwwards/thibaud-fellay-about-full.png",
+      "capture_notes": "Static PNG cannot fully show pixel transitions.",
+      "motion": {
+        "status": "captured",
+        "mp4": "motion/thibaud-fellay-about-motion.mp4",
+        "webm": "motion/thibaud-fellay-about-motion.webm"
+      }
+    },
+    {
+      "lane": "Awwwards",
+      "id": "jhosue-mesias",
+      "name": "Jhosue Mesias — Portfolio",
+      "creator_type": "single-page positioning section",
+      "award": "Awwwards Honorable Mention",
+      "award_date": "2024-12-30",
+      "award_url": "https://www.awwwards.com/sites/jhosue-mesias-portfolio",
+      "live_url": "https://www.jhosuemesias.com/",
+      "about_url": "https://www.jhosuemesias.com/",
+      "word_count": 95,
+      "read_minutes": 0.5,
+      "narrative_sequence": [
+        "role",
+        "who he helps",
+        "value statement",
+        "selected work",
+        "contact"
+      ],
+      "information_types": [
+        "positioning",
+        "audience",
+        "design philosophy",
+        "project proof",
+        "contact"
+      ],
+      "tone_and_confidence": "Concise, optimistic, and client-facing; confidence is expressed as a promise of useful collaboration.",
+      "typography_and_layout": "Large digital-designer title, narrow explanatory copy, strong black-and-white contrast, and floating project media.",
+      "scroll_and_reveals": "Vertical scroll reveals project imagery between short text blocks; the motion keeps a very small amount of copy lively.",
+      "pointer_touch": "Drag and pointer prompts add play, but the core page remains scroll-readable.",
+      "media_or_simulation": "Floating screens and abstract interface fragments act as a portfolio cloud around the text.",
+      "why_it_works": "The proposition is understood almost instantly and the work follows before attention drops.",
+      "borrow_for_alexander": [
+        "Use a sub-100-word thesis near the opening",
+        "Let side projects float through the narrative",
+        "Make contact the natural final beat"
+      ],
+      "avoid": [
+        "Generic phrases about unique experiences",
+        "Relying on motion to supply all personality",
+        "Too little career trajectory"
+      ],
+      "accessibility_performance": "Draggable visual layers should not obstruct text or trap touch gestures; provide stable ordering for reduced motion.",
+      "screenshot": "evidence/awwwards/jhosue-mesias-about-full.png",
+      "capture_notes": "About content is embedded in a single-page portfolio rather than a dedicated route.",
+      "motion": {
+        "status": "not captured"
+      }
+    },
+    {
+      "lane": "Awwwards",
+      "id": "veronica-zubakova",
+      "name": "Veronica Zubakova — Portfolio",
+      "creator_type": "dedicated About page",
+      "award": "Awwwards Honorable Mention",
+      "award_date": "2025-05-29",
+      "award_url": "https://www.awwwards.com/sites/veronica-zubakova-portfolio",
+      "live_url": "https://veronicazubakova.com/",
+      "about_url": "https://veronicazubakova.com/about/",
+      "word_count": 258,
+      "read_minutes": 1.3,
+      "narrative_sequence": [
+        "playful self-definition",
+        "range of work",
+        "teaching and community side projects",
+        "career story",
+        "strength",
+        "future-facing joke",
+        "contact"
+      ],
+      "information_types": [
+        "specialism",
+        "personality",
+        "side projects",
+        "trajectory",
+        "strengths",
+        "aspiration"
+      ],
+      "tone_and_confidence": "Conversational, self-aware, and warm; rhetorical questions prevent the profile sounding inflated.",
+      "typography_and_layout": "Huge expressive greeting, mixed serif/sans display moments, black backdrop, scattered captions, and portrait inserts.",
+      "scroll_and_reveals": "Typography changes scale and alignment between chapters; images enter as milestones rather than a gallery.",
+      "pointer_touch": "Pointer effects are playful accents; the page remains understandable through scroll alone.",
+      "media_or_simulation": "Lecture, conference, and portrait images make non-portfolio activity feel like evidence of character.",
+      "why_it_works": "It combines professional range, community contribution, trajectory, and levity in a coherent personal voice.",
+      "borrow_for_alexander": [
+        "Use one self-aware question to humanize the introduction",
+        "Treat posters and side projects as story milestones",
+        "End aspiration with a light human note"
+      ],
+      "avoid": [
+        "Age-sensitive experience counts",
+        "A chronology that becomes a résumé paragraph",
+        "Scattered captions without clear reading order"
+      ],
+      "accessibility_performance": "Expressive layout needs a linear DOM order, adequate text sizes, and reduced-motion support.",
+      "screenshot": "evidence/awwwards/veronica-zubakova-about-full.png",
+      "capture_notes": "Static image does not communicate the full cadence of typographic entrances.",
+      "motion": {
+        "status": "captured",
+        "mp4": "motion/veronica-zubakova-about-motion.mp4",
+        "webm": "motion/veronica-zubakova-about-motion.webm"
+      }
+    },
+    {
+      "lane": "Awwwards",
+      "id": "sai-narayanan",
+      "name": "Sai Narayanan",
+      "creator_type": "dedicated About page",
+      "award": "Awwwards Honorable Mention",
+      "award_date": "2025-05-30",
+      "award_url": "https://www.awwwards.com/sites/sai-narayanan",
+      "live_url": "https://www.sainarayanan.com",
+      "about_url": "https://www.sainarayanan.com/about",
+      "word_count": 595,
+      "read_minutes": 3,
+      "narrative_sequence": [
+        "brand promise",
+        "belief",
+        "action",
+        "results",
+        "client roster",
+        "role-by-role trajectory",
+        "contact"
+      ],
+      "information_types": [
+        "philosophy",
+        "process",
+        "outcomes",
+        "clients",
+        "leadership",
+        "career trajectory"
+      ],
+      "tone_and_confidence": "Ambitious and consultancy-led; measurable outcomes make the high-confidence posture more credible.",
+      "typography_and_layout": "Dark modular page with oversized proposition, verb-led chapters, editorial grids, and compact proof blocks.",
+      "scroll_and_reveals": "Each process verb becomes a scroll chapter, followed by a long experience record and client proof.",
+      "pointer_touch": "Hover and motion support the chapter changes; reading remains the dominant action.",
+      "media_or_simulation": "Project and identity fragments illustrate the process without a single persistent simulation.",
+      "why_it_works": "The Believe–Action–Results frame is memorable and connects philosophy to evidence, but the page is much longer than one minute.",
+      "borrow_for_alexander": [
+        "Use three active verbs as narrative anchors",
+        "Attach outcomes to specific roles",
+        "Name clients in one controlled proof moment"
+      ],
+      "avoid": [
+        "Duplicated process language",
+        "Long role descriptions on the primary path",
+        "A services-first voice that hides personality"
+      ],
+      "accessibility_performance": "Dense text needs stronger chunking on small screens; motion should never delay access to outcome evidence.",
+      "screenshot": "evidence/awwwards/sai-narayanan-about-full.png",
+      "capture_notes": "Visible word count includes extensive role detail and navigation.",
+      "motion": {
+        "status": "not captured"
+      }
+    },
+    {
+      "lane": "Awwwards",
+      "id": "gregory-lalle",
+      "name": "Grégory Lallé — 24",
+      "creator_type": "dedicated About page",
+      "award": "Awwwards Site of the Day",
+      "award_date": "2024-10-30",
+      "award_url": "https://www.awwwards.com/sites/gregory-lalle-24",
+      "live_url": "https://gregorylalle.com",
+      "about_url": "https://gregorylalle.com/about",
+      "word_count": 213,
+      "read_minutes": 1.1,
+      "narrative_sequence": [
+        "compact bio and availability",
+        "numbered selected clients with context",
+        "award ledger",
+        "contact"
+      ],
+      "information_types": [
+        "specialism",
+        "location",
+        "availability",
+        "clients",
+        "project context",
+        "recognition"
+      ],
+      "tone_and_confidence": "Cool and factual; it avoids adjectives about the author and lets client context and awards carry authority.",
+      "typography_and_layout": "Extreme editorial scale contrast: huge About title, tiny labels, generous white space, and ledger-like lists.",
+      "scroll_and_reveals": "A smooth, minimal scroll converts a short biography into a spatial editorial sequence.",
+      "pointer_touch": "Subtle cursor and hover states reward exploration without introducing a second navigation model.",
+      "media_or_simulation": "Very little media; typography and whitespace are the expressive system.",
+      "why_it_works": "Ten clients become meaningful because each receives a short description rather than appearing as a logo wall.",
+      "borrow_for_alexander": [
+        "Explain why selected clients or projects matter",
+        "Use one proof ledger instead of scattered logos",
+        "Let typography create scale without adding decoration"
+      ],
+      "avoid": [
+        "Tiny body copy",
+        "An awards matrix that feels self-congratulatory",
+        "Low emotional warmth"
+      ],
+      "accessibility_performance": "Text scale extremes need careful minimum sizes and zoom testing; smooth-scroll must retain keyboard behavior.",
+      "screenshot": "evidence/awwwards/gregory-lalle-about-full.png",
+      "capture_notes": "Stitched because the smooth-scroll page reports a viewport-height document.",
+      "motion": {
+        "status": "not captured"
+      }
+    },
+    {
+      "lane": "Awwwards",
+      "id": "jack-elder",
+      "name": "Jack Elder Design",
+      "creator_type": "single-page About chapter",
+      "award": "Awwwards Honorable Mention",
+      "award_date": "2024-11-07",
+      "award_url": "https://www.awwwards.com/sites/jack-elder-design",
+      "live_url": "https://www.jackelder.design/",
+      "about_url": "https://www.jackelder.design/#pixel-scroll",
+      "word_count": 276,
+      "read_minutes": 1.4,
+      "narrative_sequence": [
+        "role and design tension",
+        "featured work",
+        "profile",
+        "career table",
+        "skillset",
+        "template side project",
+        "contact"
+      ],
+      "information_types": [
+        "positioning",
+        "projects",
+        "belief",
+        "experience",
+        "skills",
+        "side project"
+      ],
+      "tone_and_confidence": "Bold but practical; repeated emphasis on audience connection balances the visual bravado.",
+      "typography_and_layout": "Large black-and-white type, section counters, long vertical composition, and 3D/pixel objects used as anchors.",
+      "scroll_and_reveals": "A long choreographed journey moves through work, profile, experience, skills, and contact with recurring scroll prompts.",
+      "pointer_touch": "Pointer movement animates pixel/3D details; the page still advances through scrolling.",
+      "media_or_simulation": "Pixel-scroll objects and project panels give the biography a tactile, constructed quality.",
+      "why_it_works": "Career evidence and personality are integrated into the same visual system rather than separated into résumé and playground modes.",
+      "borrow_for_alexander": [
+        "Give side projects a legitimate narrative beat",
+        "Reuse one object language across chapters",
+        "Pair expressive scenes with simple tables"
+      ],
+      "avoid": [
+        "A 13,000-pixel journey for one-minute content",
+        "Repeated scroll instructions",
+        "Motion that competes with reading"
+      ],
+      "accessibility_performance": "Long 3D scroll needs reduced motion, progressive loading, stable focus, and touch-friendly fallbacks.",
+      "screenshot": "evidence/awwwards/jack-elder-about-full.png",
+      "capture_notes": "Static capture cannot reproduce the 3D/pixel choreography.",
+      "motion": {
+        "status": "captured",
+        "mp4": "motion/jack-elder-about-motion.mp4",
+        "webm": "motion/jack-elder-about-motion.webm"
+      }
+    },
+    {
+      "lane": "Awwwards",
+      "id": "nalaprasad",
+      "name": "Nalaprasad — Portfolio",
+      "creator_type": "dedicated About page",
+      "award": "Awwwards Honorable Mention",
+      "award_date": "2025-05-13",
+      "award_url": "https://www.awwwards.com/sites/nalaprasad-portfolio",
+      "live_url": "https://nalaprasad.com/",
+      "about_url": "https://nalaprasad.com/about",
+      "word_count": 213,
+      "read_minutes": 1.1,
+      "narrative_sequence": [
+        "friendly introduction",
+        "current and previous roles",
+        "personal interests",
+        "contact facts",
+        "experience table",
+        "achievements",
+        "light closing line"
+      ],
+      "information_types": [
+        "trajectory",
+        "clients/employers",
+        "location",
+        "mentoring",
+        "AI interest",
+        "recognition"
+      ],
+      "tone_and_confidence": "Plainspoken and warm; specific employers and responsibilities provide credibility without inflated claims.",
+      "typography_and_layout": "Dark page, clear section headings, portrait card, table rows, and restrained cyan accents.",
+      "scroll_and_reveals": "Mostly conventional vertical reading with light Framer transitions and a clean data rhythm.",
+      "pointer_touch": "Minimal interaction keeps focus on the profile; links and rows remain obvious targets.",
+      "media_or_simulation": "A single portrait and small ambient accents support the text rather than dominate it.",
+      "why_it_works": "It covers present role, trajectory, interests, recognition, and contact in almost exactly one minute.",
+      "borrow_for_alexander": [
+        "State present, previous, and earlier trajectory in one paragraph",
+        "Include one genuine outside-work interest",
+        "End with a line of levity"
+      ],
+      "avoid": [
+        "Too many dated rows",
+        "Recognition that duplicates the portfolio",
+        "Treating mentoring or AI as unproven buzzwords"
+      ],
+      "accessibility_performance": "Straightforward structure is robust; table rows must reflow cleanly and maintain contrast on mobile.",
+      "screenshot": "evidence/awwwards/nalaprasad-about-full.png",
+      "capture_notes": "Current roles extend beyond the 2025 awarded submission.",
+      "motion": {
+        "status": "not captured"
+      }
+    },
+    {
+      "lane": "Awwwards",
+      "id": "luc-hohler",
+      "name": "Luc Hohler Design",
+      "creator_type": "single-page studio/profile narrative",
+      "award": "Awwwards Honorable Mention",
+      "award_date": "2025-05-12",
+      "award_url": "https://www.awwwards.com/sites/luc-hohler-design",
+      "live_url": "https://luchohler.com/",
+      "about_url": "https://luchohler.com/",
+      "word_count": 189,
+      "read_minutes": 0.9,
+      "narrative_sequence": [
+        "three-role identity",
+        "client-oriented promise",
+        "services",
+        "four-step method",
+        "contact"
+      ],
+      "information_types": [
+        "specialisms",
+        "value proposition",
+        "process",
+        "deliverables",
+        "contact"
+      ],
+      "tone_and_confidence": "Approachable and service-focused; the coffee invitation adds warmth to a technically broad profile.",
+      "typography_and_layout": "Dark high-contrast sections, oversized role labels, gradients, and small 3D/graphic objects.",
+      "scroll_and_reveals": "Process steps alternate text and visual moments, creating a simple chapter rhythm.",
+      "pointer_touch": "Interactive 3D accents respond to movement, while scroll remains the primary progression.",
+      "media_or_simulation": "Small 3D illustrations visualize stages of the working method.",
+      "why_it_works": "A broad design-and-development offer becomes understandable through four concrete process stages in under a minute.",
+      "borrow_for_alexander": [
+        "Use a recurring object to mark chapters",
+        "Explain working method in active language",
+        "Add one warm, ordinary invitation"
+      ],
+      "avoid": [
+        "Broad capability claims without client proof",
+        "Decorative 3D objects unrelated to meaning",
+        "Process language that sounds like an agency template"
+      ],
+      "accessibility_performance": "3D accents need fallbacks; French copy and large headings should retain sensible line lengths at narrow widths.",
+      "screenshot": "evidence/awwwards/luc-hohler-about-full.png",
+      "capture_notes": "Site reported a four-times-wide backing surface; the archived PNG was downsampled without cropping.",
+      "motion": {
+        "status": "not captured"
+      }
+    },
+    {
+      "lane": "Awwwards",
+      "id": "tomoya-okada",
+      "name": "Tomoya Okada — Portfolio v7",
+      "creator_type": "dedicated About page",
+      "award": "Awwwards Honorable Mention",
+      "award_date": "2025-05-06",
+      "award_url": "https://www.awwwards.com/sites/portfolio-ver7-tomoya-okada",
+      "live_url": "https://v7.usestate.org/",
+      "about_url": "https://v7.usestate.org/about/",
+      "word_count": 154,
+      "read_minutes": 0.8,
+      "narrative_sequence": [
+        "brief role and curiosity",
+        "experience detail",
+        "personal motto",
+        "scope",
+        "award counts",
+        "contact"
+      ],
+      "information_types": [
+        "role",
+        "learning trajectory",
+        "design/motion interest",
+        "aspiration",
+        "capabilities",
+        "recognition"
+      ],
+      "tone_and_confidence": "Humble, disciplined, and future-facing; ambition appears as continuous practice rather than self-celebration.",
+      "typography_and_layout": "Black canvas, oversized spaced letters, orange highlights, compact labels, and an intentionally sparse composition.",
+      "scroll_and_reveals": "Smooth transformed scroll reveals short passages and large type as spatial panels.",
+      "pointer_touch": "Pointer motion adds energy to the sparse page; essential information remains text-based.",
+      "media_or_simulation": "Abstract motion and typographic space carry the experience without portfolio imagery.",
+      "why_it_works": "It is short enough for one minute and includes both present capability and desired direction.",
+      "borrow_for_alexander": [
+        "Include one sentence about what comes next",
+        "Use aspiration as a chapter, not a closing cliché",
+        "Let sparse typography make the short copy feel substantial"
+      ],
+      "avoid": [
+        "Award-count scorekeeping as a main identity",
+        "Too little client context",
+        "Spatial movement that hides reading order"
+      ],
+      "accessibility_performance": "Transformed scrolling needs semantic order, reduced-motion support, and reliable focus handling.",
+      "screenshot": "evidence/awwwards/tomoya-okada-about-full.png",
+      "capture_notes": "Stitched because the transformed page reports a viewport-height document.",
+      "motion": {
+        "status": "not captured"
+      }
+    },
+    {
+      "lane": "Awwwards",
+      "id": "dennis-snellenberg",
+      "name": "Dennis Snellenberg — Portfolio",
+      "creator_type": "dedicated About page",
+      "award": "Awwwards Honorable Mention",
+      "award_date": "2019-08-15",
+      "award_url": "https://www.awwwards.com/sites/dennis-snellenberg-portfolio",
+      "live_url": "https://dennissnellenberg.com/",
+      "about_url": "https://dennissnellenberg.com/about",
+      "word_count": 215,
+      "read_minutes": 1.1,
+      "narrative_sequence": [
+        "large value statement",
+        "short quality philosophy",
+        "three service modes",
+        "jury credential and personal enthusiasm",
+        "contact"
+      ],
+      "information_types": [
+        "positioning",
+        "belief",
+        "services",
+        "differentiator",
+        "recognition",
+        "contact"
+      ],
+      "tone_and_confidence": "Confident and commercially clear; a specific fascination with micro-animation adds personal conviction.",
+      "typography_and_layout": "Generous white field, oversized neutral sans-serif, a bright blue circular motif, portrait photography, and simple numbered services.",
+      "scroll_and_reveals": "Minimal smooth-scroll sequence; large headline, portrait, service blocks, and contact arrive in clean stages.",
+      "pointer_touch": "The circular motif and transitions respond subtly; the page avoids interaction overload.",
+      "media_or_simulation": "A single bold circle and portrait give a human focal point without becoming a separate experience.",
+      "why_it_works": "The page explains value, offer, differentiator, and enthusiasm in about one minute.",
+      "borrow_for_alexander": [
+        "Name one craft detail that genuinely excites you",
+        "Use three compact professional facets",
+        "Combine a human portrait with one abstract recurring form"
+      ],
+      "avoid": [
+        "Generic global-company language",
+        "Leading too heavily with services",
+        "A jury credential that becomes the story"
+      ],
+      "accessibility_performance": "Clean visual hierarchy is strong; transformed scrolling must retain keyboard and reduced-motion behavior.",
+      "screenshot": "evidence/awwwards/dennis-snellenberg-about-full.png",
+      "capture_notes": "Awwwards lists the 2019 .nl submission; the current live site is on .com and has materially evolved.",
+      "motion": {
+        "status": "not captured"
+      }
+    },
+    {
+      "lane": "Awwwards",
+      "id": "agustin-burgos",
+      "name": "Agustin Burgos — Portfolio",
+      "creator_type": "dedicated About page",
+      "award": "Awwwards Honorable Mention",
+      "award_date": "2024-05-28",
+      "award_url": "https://www.awwwards.com/sites/agustin-burgos-portfolio",
+      "live_url": "https://agustinburgos.com/",
+      "about_url": "https://agustinburgos.com/about",
+      "word_count": 445,
+      "read_minutes": 2.2,
+      "narrative_sequence": [
+        "friendly greeting",
+        "technical summary",
+        "extended client reassurance",
+        "software inventory",
+        "work history",
+        "certifications and hobby",
+        "contact form"
+      ],
+      "information_types": [
+        "experience",
+        "technical stack",
+        "industries",
+        "employment",
+        "certifications",
+        "personality detail",
+        "services"
+      ],
+      "tone_and_confidence": "Earnest and expert-led, but repeated reassurance and exhaustive lists dilute the personal voice.",
+      "typography_and_layout": "Large playful heading, dark backgrounds, dense technical lists, timeline rows, and animated graphic elements.",
+      "scroll_and_reveals": "Long vertical progression moves from prose into increasingly database-like evidence and then a large contact section.",
+      "pointer_touch": "Motion and hover effects add polish, but the interaction is not essential to comprehension.",
+      "media_or_simulation": "Animated graphic motifs create energy around a résumé-heavy page.",
+      "why_it_works": "It demonstrates depth and leaves little ambiguity about the technical offer; it is most useful as a counterexample for brevity.",
+      "borrow_for_alexander": [
+        "Use one unexpected personal qualification or hobby for levity",
+        "Show a selective trajectory",
+        "Make capability concrete"
+      ],
+      "avoid": [
+        "Exhaustive tool inventories",
+        "Repeated claims of understanding client needs",
+        "More than two minutes of résumé copy",
+        "A contact form larger than the story"
+      ],
+      "accessibility_performance": "Dense lists are difficult to scan on mobile; animated backgrounds should not reduce text contrast or delay interaction.",
+      "screenshot": "evidence/awwwards/agustin-burgos-about-full.png",
+      "capture_notes": "Visible count includes navigation, skills, certifications, and contact labels.",
+      "motion": {
+        "status": "not captured"
+      }
+    },
+    {
+      "lane": "The Webby Awards",
+      "id": "grilled-pixels",
+      "name": "Grilled Pixels - Adam Roberts",
+      "creator_type": "individual design and development practice",
+      "award": "2026 · Nominee · Professional Services & Self-Promotion",
+      "award_date": "2026",
+      "award_url": "https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion",
+      "live_url": "https://www.grilledpixels.com/",
+      "about_url": "https://www.grilledpixels.com/about/",
+      "word_count": 1670,
+      "read_minutes": 6.7,
+      "narrative_sequence": [
+        "concise practice definition",
+        "25-year credibility and collaborator list",
+        "origin story from childhood web-making",
+        "working style and services",
+        "personal/family image interlude",
+        "awards and contact"
+      ],
+      "information_types": [
+        "positioning",
+        "experience",
+        "origin story",
+        "capabilities",
+        "collaborators",
+        "personal photography",
+        "awards"
+      ],
+      "tone_and_confidence": "Direct, energetic and craft-proud. Confidence comes from specificity and longevity, then softens through family images and an endearing early-web origin story.",
+      "typography_and_layout": "Oversized condensed display type, numbered editorial sections, a tight monochrome palette, and irregularly placed media create a magazine-like personal dossier.",
+      "scroll_and_reveals": "Long vertical sequence with section counters, scale shifts and image reveals; the page alternates dense proof with lighter human moments.",
+      "pointer_touch": "Hover and cursor feedback support calls to action and media; the story remains readable without them.",
+      "media_or_simulation": "Portrait and candid family photography interrupt the professional narrative; motion and WebGL capability are described and demonstrated in page behavior.",
+      "why_it_works": "It proves range through a coherent life story rather than a detached skills list. Specific dates, collaborators and formative detail make the confidence believable.",
+      "borrow_for_alexander": [
+        "one vivid origin detail",
+        "professional proof followed by a human image interruption",
+        "numbered chapters that make a long page skimmable"
+      ],
+      "avoid": [
+        "the full length is far beyond a one-minute read",
+        "large service inventories repeat the portfolio",
+        "too many award metrics can feel self-congratulatory"
+      ],
+      "accessibility_performance": "Heavy animation and custom cursor treatment increase cognitive and GPU load. Provide reduced-motion behavior and avoid making body copy depend on reveal completion.",
+      "screenshot": "evidence/webby/screenshots/01-grilled-pixels-about.png",
+      "capture_notes": "Visible body text includes navigation and interface labels, so word count is an upper bound.",
+      "motion": null
+    },
+    {
+      "lane": "The Webby Awards",
+      "id": "won-j-you",
+      "name": "Won J. You Studios - My Story",
+      "creator_type": "individual design leader, educator and coach",
+      "award": "2026 · Nominee · Professional Services & Self-Promotion",
+      "award_date": "2026",
+      "award_url": "https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion",
+      "live_url": "https://wonjyou.studio/",
+      "about_url": "https://wonjyou.studio/about/",
+      "word_count": 605,
+      "read_minutes": 2.4,
+      "narrative_sequence": [
+        "mission statement",
+        "rapid-fire identity labels",
+        "portrait and role definition",
+        "career trajectory and recognizable clients",
+        "teaching impact",
+        "press and affiliations",
+        "friendly contact"
+      ],
+      "information_types": [
+        "mission",
+        "personality descriptors",
+        "trajectory",
+        "clients",
+        "teaching impact",
+        "press",
+        "contact"
+      ],
+      "tone_and_confidence": "Warm, optimistic and deliberately characterful. Bold labels such as tech optimist and design geek give permission for personality, while the evidence stays concrete.",
+      "typography_and_layout": "Large kinetic type and repeated self-descriptors run through a minimalist grid; portraits and small factual paragraphs provide contrast.",
+      "scroll_and_reveals": "A directive to scroll begins a paced transformation from manifesto to person to proof. Text bands, image sequences and press modules create clear tempo changes.",
+      "pointer_touch": "Hover and tap animate media and links, but scrolling carries the narrative.",
+      "media_or_simulation": "A portrait sequence behaves like an animated contact sheet; repeated image states make one person feel lively without adding decorative subject matter.",
+      "why_it_works": "The page turns a career pivot into a simple story: what I did, what it taught me, and what I am here to do next.",
+      "borrow_for_alexander": [
+        "state the future-facing mission early",
+        "use a short personality ticker as levity",
+        "make client proof a chapter rather than a logo wall",
+        "show teaching or community impact as an outcome"
+      ],
+      "avoid": [
+        "press inventory becomes repetitive",
+        "self-labels need restraint to avoid feeling manufactured",
+        "the page still exceeds the desired one-minute read"
+      ],
+      "accessibility_performance": "The page produced many browser warnings and is very tall. Repeated animated images need lazy loading, meaningful alternatives and reduced-motion fallbacks.",
+      "screenshot": "evidence/webby/screenshots/02-won-j-you-about.png",
+      "capture_notes": "Motion clip shows the opening narrative cadence; full capture includes all revealed sections.",
+      "motion": null
+    },
+    {
+      "lane": "The Webby Awards",
+      "id": "righteous-creative",
+      "name": "Righteous Creative",
+      "creator_type": "three-person creative technology studio",
+      "award": "2026 · Webby Winner and People's Voice Winner · Professional Services & Self-Promotion",
+      "award_date": "2026",
+      "award_url": "https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion",
+      "live_url": "https://righteouscreative.com/",
+      "about_url": "https://righteouscreative.com/",
+      "word_count": 249,
+      "read_minutes": 1,
+      "narrative_sequence": [
+        "plain-language promise",
+        "team portraits with humorous role labels",
+        "anti-agency origin",
+        "nostalgic personality paragraph",
+        "short rallying close"
+      ],
+      "information_types": [
+        "positioning",
+        "team",
+        "origin",
+        "experience",
+        "cultural personality",
+        "contact"
+      ],
+      "tone_and_confidence": "Dry, irreverent and anti-theatre. It sounds experienced without posturing because it names the industry behavior the founders reject.",
+      "typography_and_layout": "Huge stretched letterforms and a sparse black field create swagger; compact team cards and game-like class labels puncture the seriousness.",
+      "scroll_and_reveals": "A short single-page scroll; large typographic transitions turn five small content beats into a complete arc.",
+      "pointer_touch": "Portrait alternatives and subtle hover reactions add play without becoming the route through the content.",
+      "media_or_simulation": "Animated portraits and role archetypes carry most of the personality; there is no unnecessary showreel interruption.",
+      "why_it_works": "This is the clearest one-minute benchmark: one promise, three people, one reason for existing, one memorable cultural texture.",
+      "borrow_for_alexander": [
+        "use a specific enemy or tension to explain the practice",
+        "let one playful personal reference do the work of a hobbies list",
+        "target roughly 250 to 300 core words"
+      ],
+      "avoid": [
+        "nostalgia can narrow the audience if overused",
+        "anti-agency language would feel borrowed unless it reflects Alexander's actual experience"
+      ],
+      "accessibility_performance": "Very large type must preserve readable line breaks on mobile. Decorative character animations should be hidden from assistive technology.",
+      "screenshot": "evidence/webby/screenshots/03-righteous-creative-about.png",
+      "capture_notes": "The live page is effectively its own substantive About page.",
+      "motion": null
+    },
+    {
+      "lane": "The Webby Awards",
+      "id": "fiddle-digital",
+      "name": "Fiddle.Digital",
+      "creator_type": "small design-led engineering agency",
+      "award": "2025 · Webby Winner · Professional Services & Self-Promotion",
+      "award_date": "2025",
+      "award_url": "https://winners.webbyawards.com/2025/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion/339211/fiddledigital-design-agency",
+      "live_url": "https://fiddle.digital/",
+      "about_url": "https://fiddle.digital/about",
+      "word_count": 541,
+      "read_minutes": 2.2,
+      "narrative_sequence": [
+        "design-and-engineering definition",
+        "services",
+        "music metaphor and interactive player",
+        "beliefs and process philosophy",
+        "awards",
+        "open-source product and publications",
+        "handwritten-feeling contact close"
+      ],
+      "information_types": [
+        "positioning",
+        "services",
+        "beliefs",
+        "metaphor",
+        "awards",
+        "side project",
+        "press"
+      ],
+      "tone_and_confidence": "Poetic and earnest, with confidence located in a recurring harmony metaphor and the proof of an open-source tool.",
+      "typography_and_layout": "Editorial serif/sans contrast, Japanese annotations, dense but carefully measured text blocks, and audio-player UI create a distinct authored world.",
+      "scroll_and_reveals": "Each paragraph arrives as a discrete composition. The rhythm alternates philosophy, interaction and credential blocks rather than stacking prose.",
+      "pointer_touch": "The embedded player, hover details and tactile contact treatment reward exploration; all main claims remain visible in the scroll.",
+      "media_or_simulation": "Music is both interface and organizing metaphor. StringTune, the studio's own animation library, serves as a credible side-project proof point.",
+      "why_it_works": "The metaphor is not decoration: harmony links positioning, motion, interaction, process and the side project into one idea.",
+      "borrow_for_alexander": [
+        "choose one governing metaphor for text and motion",
+        "use one self-initiated tool or experiment as proof of curiosity",
+        "alternate belief statements with playable moments"
+      ],
+      "avoid": [
+        "abstract belief copy can become vague",
+        "award counts should not dominate",
+        "audio needs explicit user control"
+      ],
+      "accessibility_performance": "Autoplay audio must remain off; player controls need keyboard labels. Scroll animation should respect reduced motion.",
+      "screenshot": "evidence/webby/screenshots/04-fiddle-digital-about.png",
+      "capture_notes": "Motion clip demonstrates paragraph and media pacing.",
+      "motion": null
+    },
+    {
+      "lane": "The Webby Awards",
+      "id": "raw-materials",
+      "name": "Raw Materials - An Unusual Design Company",
+      "creator_type": "small-to-mid design company; studio-scale mismatch",
+      "award": "2024 · Two Webby Wins · Professional Services & Self-Promotion and Best Navigation/Structure",
+      "award_date": "2024",
+      "award_url": "https://winners.webbyawards.com/2024/websites-and-mobile-sites/features-design/best-navigationstructure/281127/raw-materials--an-unusual-design-company",
+      "live_url": "https://www.therawmaterials.com/",
+      "about_url": "https://www.therawmaterials.com/",
+      "word_count": 420,
+      "read_minutes": 1.7,
+      "narrative_sequence": [
+        "unusual-company proposition",
+        "principle that difference creates better outcomes",
+        "selected work and disciplines",
+        "people and locations",
+        "contact"
+      ],
+      "information_types": [
+        "positioning",
+        "belief",
+        "work",
+        "capabilities",
+        "team"
+      ],
+      "tone_and_confidence": "Provocative but reasoned. The unusual claim is immediately explained as a practical competitive principle.",
+      "typography_and_layout": "An experimental app-like canvas, bold color fields and modular cards avoid the conventional agency-page stack.",
+      "scroll_and_reveals": "Wheel input drives a virtual, spatial sequence rather than normal document flow; content behaves like connected scenes.",
+      "pointer_touch": "Drag, hover and directional navigation are structural, making this more interaction-led than Alexander's intended scroll-first balance.",
+      "media_or_simulation": "Work and identity live in the same spatial canvas. The interface itself is the demonstration.",
+      "why_it_works": "A single defensible word, unusual, organizes the proposition and interaction model.",
+      "borrow_for_alexander": [
+        "name one principle and make every reveal reinforce it",
+        "treat images and experiments as connected scenes",
+        "let the interface demonstrate the stated specialty"
+      ],
+      "avoid": [
+        "do not copy the nonstandard navigation",
+        "a studio manifesto does not map directly to a personal biography",
+        "virtual scrolling complicates accessibility and capture"
+      ],
+      "accessibility_performance": "The fixed virtual canvas obscures normal document height and can challenge keyboard, screen-reader and reduced-motion users. A semantic parallel flow is essential.",
+      "screenshot": "evidence/webby/screenshots/05-raw-materials-about.png",
+      "capture_notes": "The site uses a fixed virtual canvas; ten consecutive wheel-driven viewport states were stitched so content is visible. Browser text count included hidden application content and was not used.",
+      "motion": null
+    },
+    {
+      "lane": "The Webby Awards",
+      "id": "lusion",
+      "name": "Lusion - About Us",
+      "creator_type": "six-person creative production studio; small-studio mismatch",
+      "award": "2024 · Webby Winner and Nominee · Best Mobile Visual Design - Aesthetic; Professional Services & Self-Promotion",
+      "award_date": "2024",
+      "award_url": "https://winners.webbyawards.com/2024/websites-and-mobile-sites/mobile-features-design/best-mobile-visual-design-aesthetic-mobile-features/281405/lusion",
+      "live_url": "https://lusion.co/",
+      "about_url": "https://lusion.co/about/",
+      "word_count": 349,
+      "read_minutes": 1.4,
+      "narrative_sequence": [
+        "large studio definition",
+        "team and founder",
+        "multidisciplinary process",
+        "brand proof",
+        "awards, articles and talks",
+        "expandable expertise",
+        "contact"
+      ],
+      "information_types": [
+        "positioning",
+        "team",
+        "process",
+        "clients",
+        "recognition",
+        "capabilities"
+      ],
+      "tone_and_confidence": "Precise, global and production-minded. Short declarative statements let the visual craft provide most of the confidence.",
+      "typography_and_layout": "Enormous all-caps statements, disciplined white space and small data-like labels produce a cinematic but legible contrast.",
+      "scroll_and_reveals": "Virtual scrolling choreographs type, 3D and lists as large scenes. Expandable expertise restores user control after the cinematic opening.",
+      "pointer_touch": "Accordion-like capability controls and 3D reactions are secondary to wheel/touch scrolling.",
+      "media_or_simulation": "3D forms are used as connective tissue, not separate portfolio pieces; motion demonstrates the studio's production specialty.",
+      "why_it_works": "The copy is short enough that sophisticated motion never competes with a dense biography.",
+      "borrow_for_alexander": [
+        "use one spatial dot/point-cloud system as connective tissue",
+        "keep scene copy to one thought",
+        "pair expressive scenes with compact factual lists"
+      ],
+      "avoid": [
+        "studio capability grids are too broad for a personal page",
+        "award totals risk becoming the emotional climax",
+        "virtual scroll should not replace native scroll"
+      ],
+      "accessibility_performance": "3D and fixed-canvas behavior require a reduced-motion and low-power mode. Accordions need explicit states and keyboard support.",
+      "screenshot": "evidence/webby/screenshots/06-lusion-about.png",
+      "capture_notes": "Ten wheel-driven states were stitched because the smooth-scroll canvas reports one viewport of document height.",
+      "motion": null
+    },
+    {
+      "lane": "The Webby Awards",
+      "id": "locomotive",
+      "name": "Locomotive - Agency",
+      "creator_type": "independent agency; larger-team mismatch",
+      "award": "2024 · Nominee · Professional Services & Self-Promotion",
+      "award_date": "2024",
+      "award_url": "https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion",
+      "live_url": "https://locomotive.ca/en",
+      "about_url": "https://locomotive.ca/en/agency",
+      "word_count": 771,
+      "read_minutes": 3.1,
+      "narrative_sequence": [
+        "independent-agency statement",
+        "Digital-first Design positioning",
+        "short manifesto film",
+        "mission and three-founder origin",
+        "capabilities",
+        "people by discipline",
+        "recognition and contact"
+      ],
+      "information_types": [
+        "positioning",
+        "origin",
+        "mission",
+        "capabilities",
+        "team",
+        "awards"
+      ],
+      "tone_and_confidence": "Playful, technically literate and civic. Montréal identity and a Triforce metaphor make the operating model memorable.",
+      "typography_and_layout": "Big clean type is disrupted by emoji-like symbols, counters and label fragments; the page feels systematic without becoming corporate.",
+      "scroll_and_reveals": "Native vertical chapters alternate manifesto, capability and team density. The embedded film is optional rather than a gate.",
+      "pointer_touch": "Team entries expand for biographies; the expandable layer is additive, which maps well to tap interaction.",
+      "media_or_simulation": "A short manifesto film provides a richer layer without replacing the written summary.",
+      "why_it_works": "The Triforce reduces operations, design and development into an understandable personal mythology.",
+      "borrow_for_alexander": [
+        "compress overlapping specialties into a simple three-part model",
+        "let taps expand optional detail",
+        "use place as texture only if it explains the practice"
+      ],
+      "avoid": [
+        "large team and awards sections are not relevant to an individual",
+        "symbols must not create reading noise"
+      ],
+      "accessibility_performance": "Symbol-heavy labels need clear accessible names. Optional video requires captions and pause controls.",
+      "screenshot": "evidence/webby/screenshots/07-locomotive-agency.png",
+      "capture_notes": "Team expansions were left closed to represent the default one-pass reading experience.",
+      "motion": null
+    },
+    {
+      "lane": "The Webby Awards",
+      "id": "someoddpilot",
+      "name": "Someoddpilot - About",
+      "creator_type": "25-person multidisciplinary studio; larger-team mismatch",
+      "award": "2024 · Honoree · Professional Services & Self-Promotion",
+      "award_date": "2024",
+      "award_url": "https://winners.webbyawards.com/2024/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion/294858/someoddpilot",
+      "live_url": "https://someoddpilot.com/",
+      "about_url": "https://someoddpilot.com/about/",
+      "word_count": 984,
+      "read_minutes": 3.9,
+      "narrative_sequence": [
+        "transformation proposition",
+        "record-label origin story",
+        "five beliefs",
+        "six surprising studio facts",
+        "client voices",
+        "partner biographies",
+        "working style",
+        "side ventures and contact"
+      ],
+      "information_types": [
+        "positioning",
+        "origin",
+        "beliefs",
+        "facts",
+        "testimonials",
+        "leadership",
+        "side ventures"
+      ],
+      "tone_and_confidence": "Culturally fluent, candid and slightly rebellious. The language rejects marketing gloss while remaining generous toward collaborators.",
+      "typography_and_layout": "Large manifesto typography, black-and-white imagery and alternating grids produce a zine/editorial cadence.",
+      "scroll_and_reveals": "The page shifts rhythm every few screens: story, principles, facts, quotes, portraits, side projects. This prevents a long page from feeling like one essay.",
+      "pointer_touch": "Hover reveals and linked side ventures invite detours, but the main story reads linearly.",
+      "media_or_simulation": "Photography, record-label history, an art gallery and apparel work prove cultural interests without a conventional hobbies section.",
+      "why_it_works": "Side projects are presented as evidence of a worldview and business evolution, never as random decoration.",
+      "borrow_for_alexander": [
+        "frame small projects as evidence of taste",
+        "alternate a belief with a concrete fact",
+        "end with one unexpected side-world",
+        "use client voice sparingly to validate tone"
+      ],
+      "avoid": [
+        "the full leadership roster is too long",
+        "many manifesto statements compete for attention",
+        "individual copy should use I rather than imported studio we language"
+      ],
+      "accessibility_performance": "Long animated pages need landmarks and skip links. Image-heavy blocks should use responsive assets and meaningful alt text.",
+      "screenshot": "evidence/webby/screenshots/08-someoddpilot-about.png",
+      "capture_notes": "Default biography and side-venture states are visible; linked sub-sites were not followed.",
+      "motion": null
+    },
+    {
+      "lane": "The Webby Awards",
+      "id": "better-off-lookback",
+      "name": "Better Off Studio - The Lookback",
+      "creator_type": "small creative studio annual archive",
+      "award": "2025 · Nominee · Professional Services & Self-Promotion",
+      "award_date": "2025",
+      "award_url": "https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion",
+      "live_url": "https://betteroff.studio/",
+      "about_url": "https://tlb.betteroff.studio/about/",
+      "word_count": 442,
+      "read_minutes": 1.8,
+      "narrative_sequence": [
+        "living-archive definition",
+        "why looking back clarifies the future",
+        "three-content promise",
+        "brief thanks",
+        "monthly index of work, music, inspiration and clients"
+      ],
+      "information_types": [
+        "personality",
+        "taste",
+        "reflection",
+        "work",
+        "music",
+        "inspiration",
+        "aspiration"
+      ],
+      "tone_and_confidence": "Self-aware, culturally alert and lightly boastful with a wink. It admits that the archive is a flex, then explains why reflection is useful.",
+      "typography_and_layout": "Oversized date and archive typography, black fields and index labels turn an annual recap into an editorial object.",
+      "scroll_and_reveals": "A fixed virtual-scroller moves from declaration into a month-by-month archive. The index structure gives side material an organizing reason.",
+      "pointer_touch": "Music and archive items are browsable, while the About statement remains the linear entry point.",
+      "media_or_simulation": "Playlists, inspiration, client moments and case studies share one time-based system; taste becomes part of professional identity.",
+      "why_it_works": "It offers the best answer to how side projects can be sprinkled in: bind them to time, influence or a recurring theme.",
+      "borrow_for_alexander": [
+        "package posters and experiments as a small cabinet of current obsessions",
+        "make levity a final recurring archive beat",
+        "connect looking back to future aspiration"
+      ],
+      "avoid": [
+        "a calendar archive would overwhelm a one-minute About page",
+        "do not expose unfinished filler months",
+        "music autoplay would be intrusive"
+      ],
+      "accessibility_performance": "Fixed virtual scrolling and background audio need strong fallbacks. Every archive item should be reachable by keyboard and represented in semantic order.",
+      "screenshot": "evidence/webby/screenshots/09-better-off-lookback-about.png",
+      "capture_notes": "Ten wheel-driven states were stitched because the app uses a fixed virtual canvas. This page is an About/annual taste archive attached to the nominated studio site.",
+      "motion": null
+    },
+    {
+      "lane": "The Webby Awards",
+      "id": "metalab",
+      "name": "Metalab - About",
+      "creator_type": "global product design firm; large-team mismatch",
+      "award": "2024 · Nominee · Professional Services & Self-Promotion",
+      "award_date": "2024",
+      "award_url": "https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion",
+      "live_url": "https://www.metalab.com/",
+      "about_url": "https://www.metalab.com/about",
+      "word_count": 461,
+      "read_minutes": 1.8,
+      "narrative_sequence": [
+        "global-team statement",
+        "geographic spread",
+        "operating belief about autonomy",
+        "employee voices",
+        "diversity commitments",
+        "work-life practices",
+        "open roles"
+      ],
+      "information_types": [
+        "culture",
+        "locations",
+        "operating principles",
+        "employee quotes",
+        "diversity data",
+        "benefits"
+      ],
+      "tone_and_confidence": "Friendly, factual and employee-led. The firm lets named people and measurable practices carry the claims.",
+      "typography_and_layout": "Large conversational headings, horizontal place names, portrait grids and compact metrics create a human data-story.",
+      "scroll_and_reveals": "A restrained vertical sequence moves from global scale to individual voices to quantified culture.",
+      "pointer_touch": "Drag and hover are explicitly signposted on image and location modules, adding play without hiding the text.",
+      "media_or_simulation": "Remote-work portraits and desk photographs make an abstract distributed team tangible.",
+      "why_it_works": "Claims such as autonomy and balance are immediately followed by employee testimony and policies.",
+      "borrow_for_alexander": [
+        "follow each belief with evidence",
+        "use a few client or collaborator voices instead of self-praise",
+        "turn trajectory into named places or environments only when meaningful"
+      ],
+      "avoid": [
+        "employment metrics are irrelevant to a personal site",
+        "generic culture claims without proof",
+        "drag cues should not distract from scroll"
+      ],
+      "accessibility_performance": "Draggable visuals need non-drag alternatives. Diversity metrics require context rather than purely visual presentation.",
+      "screenshot": "evidence/webby/screenshots/10-metalab-about.png",
+      "capture_notes": "Current live page is recruitment-oriented; principles were extracted for individual-profile use and the scale mismatch is explicit.",
+      "motion": null
+    },
+    {
+      "lane": "The Webby Awards",
+      "id": "dops",
+      "name": "Dops Agency",
+      "creator_type": "21-person visual design agency; larger-team mismatch",
+      "award": "2024 · People's Voice Winner · Professional Services & Self-Promotion",
+      "award_date": "2024",
+      "award_url": "https://winners.webbyawards.com/winners/websites-and-mobile-sites/general-desktop-mobile-sites/professional-services-self-promotion",
+      "live_url": "https://dops.agency/",
+      "about_url": "https://dops.agency/",
+      "word_count": 631,
+      "read_minutes": 2.5,
+      "narrative_sequence": [
+        "visual-experience promise",
+        "latest case",
+        "selected work",
+        "services",
+        "team DNA",
+        "client quotes",
+        "client scale and awards",
+        "team and contact"
+      ],
+      "information_types": [
+        "positioning",
+        "work",
+        "services",
+        "values",
+        "testimonials",
+        "clients",
+        "awards",
+        "team"
+      ],
+      "tone_and_confidence": "Polished, enthusiastic and client-centered. Repeated references to user desire keep the language outward-facing rather than autobiographical.",
+      "typography_and_layout": "Large staggered statements, glowing imagery and modular work cards create a high-energy studio showcase.",
+      "scroll_and_reveals": "A long home/About hybrid alternates proof and explanation; testimonial typography provides useful tempo changes.",
+      "pointer_touch": "Hover states animate project previews and service labels; scroll retains control.",
+      "media_or_simulation": "3D motion and animated case media demonstrate capability, though they are more portfolio than biography.",
+      "why_it_works": "The page does not merely say passionate or visionary; it places those values beside work, testimonials and client numbers.",
+      "borrow_for_alexander": [
+        "keep confidence outward-facing by describing client or user benefit",
+        "use one short testimonial as a change of voice",
+        "pair each specialty with a visual proof fragment"
+      ],
+      "avoid": [
+        "adjectives such as visionary become generic when repeated",
+        "logo and award walls are too corporate",
+        "do not duplicate the Portfolio route"
+      ],
+      "accessibility_performance": "Animated media and luminous contrast need reduced-motion testing and accessible text contrast. Dense project grids require clear focus states.",
+      "screenshot": "evidence/webby/screenshots/11-dops-about.png",
+      "capture_notes": "The substantive About content is integrated into the one-page studio home.",
+      "motion": null
+    },
+    {
+      "lane": "The Webby Awards",
+      "id": "antoine-wodniack",
+      "name": "AW Portfolio - Antoine Wodniack",
+      "creator_type": "individual creative developer",
+      "award": "2025 · Webby Winner · Best Home Page",
+      "award_date": "2025",
+      "award_url": "https://winners.webbyawards.com/2025/websites-and-mobile-sites/features-design/best-home-page/332383/aw-portfolio",
+      "live_url": "https://wodniack.dev/",
+      "about_url": "https://wodniack.dev/",
+      "word_count": 220,
+      "read_minutes": 0.9,
+      "narrative_sequence": [
+        "location and availability",
+        "creative-developer identity",
+        "two-paragraph positioning and trajectory",
+        "awards",
+        "work transition",
+        "contact"
+      ],
+      "information_types": [
+        "role",
+        "positioning",
+        "trajectory",
+        "experience",
+        "awards",
+        "availability"
+      ],
+      "tone_and_confidence": "Extremely concise and matter-of-fact. A single chronological sentence covers tools, roles, projects, leadership and ongoing learning.",
+      "typography_and_layout": "A saturated red field, giant condensed type, binary texture and geometric WebGL/canvas forms turn minimal copy into a strong authored environment.",
+      "scroll_and_reveals": "The native scroll moves through pinned typographic and geometric scenes. Text is sparse enough to be read while the spatial composition changes.",
+      "pointer_touch": "Contrast control and geometric reactions add agency; the biography itself requires no interaction.",
+      "media_or_simulation": "Abstract grids and forms visualize coding and motion without showing generic code screenshots.",
+      "why_it_works": "This is the best word-count benchmark. The career sentence is dense with evidence, while the page behavior supplies excitement.",
+      "borrow_for_alexander": [
+        "compress trajectory into one vivid sentence",
+        "let the visual system carry emotion so copy can stay short",
+        "state availability or aspiration plainly",
+        "use abstract dot geometry instead of illustrative filler"
+      ],
+      "avoid": [
+        "an awards-only proof section can feel narrow",
+        "extreme color and condensed type reduce long-form readability",
+        "pinned scenes must not create blank scroll regions"
+      ],
+      "accessibility_performance": "High saturation and condensed display type need contrast and readability checks. Canvas decoration should be ignored by assistive technology and disabled for reduced motion.",
+      "screenshot": "evidence/webby/screenshots/12-antoine-wodniack-about.png",
+      "capture_notes": "Twelve viewport states were stitched because one full-page capture left blank areas around pinned scenes. Word count excludes decorative binary digits.",
+      "motion": null
+    },
+    {
+      "lane": "The Webby Awards",
+      "id": "mark-woodland",
+      "name": "Mark Woodland",
+      "creator_type": "individual founder and policy advocate",
+      "award": "2026 · Honoree · Best Home Page",
+      "award_date": "2026",
+      "award_url": "https://winners.webbyawards.com/2026/websites-and-mobile-sites/features-design/best-home-page/363849/mark-woodland",
+      "live_url": "https://markwoodland.com.au/",
+      "about_url": "https://markwoodland.com.au/",
+      "word_count": 503,
+      "read_minutes": 2,
+      "narrative_sequence": [
+        "leadership proposition",
+        "choose-a-topic video layer",
+        "belief and trajectory",
+        "three initiatives linked to human outcomes",
+        "three issue chapters",
+        "media and newsletter"
+      ],
+      "information_types": [
+        "belief",
+        "trajectory",
+        "ventures",
+        "social outcomes",
+        "topic expertise",
+        "media"
+      ],
+      "tone_and_confidence": "Purposeful, civic and controlled. Confidence comes from connecting every venture to a human outcome, not from describing the founder as exceptional.",
+      "typography_and_layout": "Oversized editorial typography, periwinkle/blue color fields, rounded media and numbered policy chapters create a contemporary public-leadership profile.",
+      "scroll_and_reveals": "Vertical scroll is the backbone; pinned topic transitions and optional video deepen the story. Repeated keep-scrolling cues sustain momentum.",
+      "pointer_touch": "Users can choose housing, education or healthcare and play short takes. These interactions expand a clear default narrative.",
+      "media_or_simulation": "Founder video is divided by topic, avoiding a single long showreel. Venture cards connect abstract beliefs to real systems.",
+      "why_it_works": "The page converts a complicated multi-industry career into one belief, three proof points and three optional deeper topics.",
+      "borrow_for_alexander": [
+        "use one belief as the spine",
+        "group clients and projects by the change Alexander helps create",
+        "offer optional tap-to-expand stories",
+        "end on an outward-looking aspiration"
+      ],
+      "avoid": [
+        "repeated issue copy pushes beyond one minute",
+        "video errors or missing captions damage credibility",
+        "public-leadership gravitas should not displace playfulness"
+      ],
+      "accessibility_performance": "Observed browser console errors around media did not prevent the text capture but are a risk. Videos require captions, poster fallbacks and reduced-motion-safe transitions.",
+      "screenshot": "evidence/webby/screenshots/13-mark-woodland-about.png",
+      "capture_notes": "Full page captured; optional topic videos were not opened so the default reading path remains visible.",
+      "motion": null
+    },
+    {
+      "lane": "CSS Design Awards",
+      "id": "camila-rosa",
+      "name": "Camila Rosa",
+      "creator_type": "individual illustrator and artist",
+      "award": "Website of the Day",
+      "award_date": "2026-01-10",
+      "award_url": "https://www.cssdesignawards.com/sites/camila-rosa-portfolio/48629/",
+      "live_url": "https://www.camilarosa.net/",
+      "about_url": "https://www.camilarosa.net/about",
+      "word_count": 92,
+      "read_minutes": 0.5,
+      "narrative_sequence": [
+        "one-line professional position",
+        "two compact belief/practice paragraphs",
+        "recognizable client list",
+        "expandable achievement categories",
+        "contact"
+      ],
+      "information_types": [
+        "role",
+        "location",
+        "mediums",
+        "creative themes",
+        "clients",
+        "awards",
+        "jury work",
+        "exhibitions",
+        "publications",
+        "books",
+        "press",
+        "videos"
+      ],
+      "tone_and_confidence": "Warm and direct. Confidence comes from specificity and the work's social point of view, then from quiet evidence rather than adjectives.",
+      "typography_and_layout": "Large declarative headline over a restrained two-column editorial grid; dense credentials are reduced to labeled counts that open on demand.",
+      "scroll_and_reveals": "A short vertical scroll. The face/eye illustration gives the opening personality; achievement rows disclose detail on interaction without burdening the first read.",
+      "pointer_touch": "Click/tap rows reveal lists. Navigation remains conventional and touch-safe.",
+      "media_or_simulation": "Expressive portrait illustration and eye motif; no gratuitous simulation.",
+      "why_it_works": "It separates identity from proof: two sentences explain the practice, while clients and achievements supply credibility in compressed form.",
+      "borrow_for_alexander": [
+        "Use one memorable personal visual, two sharply edited statements, then evidence as expandable counts. This is a strong model for a one-minute Alexander page."
+      ],
+      "avoid": [
+        "A long undifferentiated client list can become wallpaper; cluster or animate only enough to preserve recognition."
+      ],
+      "accessibility_performance": "The icon-like expandable rows need explicit button semantics, focus states, and expanded-state announcements. Motion should not be required to understand the content.",
+      "screenshot": "evidence/fwa-cssda/screenshots/01-camila-rosa-about.png",
+      "capture_notes": "All page sections were scrolled through before capture so lazy content was loaded. Full page captured at 1440px CSS width.",
+      "motion": null
+    },
+    {
+      "lane": "CSS Design Awards",
+      "id": "elsa-hanneke",
+      "name": "Elsa Hanneke",
+      "creator_type": "individual artist and interdisciplinary creative director",
+      "award": "Website of the Day",
+      "award_date": "2025-12-29",
+      "award_url": "https://www.cssdesignawards.com/sites/elsa-hanneke/48653/",
+      "live_url": "https://elsa.works/",
+      "about_url": "https://elsa.works/about",
+      "word_count": 118,
+      "read_minutes": 0.6,
+      "narrative_sequence": [
+        "single-sentence positioning",
+        "selected clients",
+        "five recognitions",
+        "contact and credits"
+      ],
+      "information_types": [
+        "role",
+        "disciplines",
+        "clients",
+        "awards",
+        "contact",
+        "site credits"
+      ],
+      "tone_and_confidence": "Cool, concise, and assured. It never claims greatness; the client list and recognition ledger do the status work.",
+      "typography_and_layout": "Monospaced/editorial system with small section labels and spacious columns. The entire About page fits in one desktop viewport.",
+      "scroll_and_reveals": "No scrolling is necessary on desktop; the work index carries the spatial innovation while About becomes a calm information panel.",
+      "pointer_touch": "Black/white background switch and standard links. Low interaction burden.",
+      "media_or_simulation": "About is text-only, contrasting with the spatial project index and moving media elsewhere in the portfolio.",
+      "why_it_works": "The page knows its job: orientation and proof. It avoids repeating portfolio content and creates a deliberate pause in an otherwise immersive site.",
+      "borrow_for_alexander": [
+        "A visually ambitious portfolio does not require every About moment to perform. Let expressive typography and spatial transitions frame concise facts."
+      ],
+      "avoid": [
+        "The client block is impressive but emotionally cool; Alexander needs at least one human detail or belief to avoid reading like a credits list."
+      ],
+      "accessibility_performance": "The background controls must retain contrast and accessible names. Tiny monospaced type needs careful mobile sizing.",
+      "screenshot": "evidence/fwa-cssda/screenshots/02-elsa-hanneke-about.png",
+      "capture_notes": "Complete one-viewport About page captured at 1440x1000; no hidden lower sections.",
+      "motion": null
+    },
+    {
+      "lane": "CSS Design Awards",
+      "id": "wendy-andrade",
+      "name": "Wendy Andrade",
+      "creator_type": "individual visual artist and photographer",
+      "award": "Special Kudos plus UI, UX, and Innovation public awards",
+      "award_date": "2025-12-01",
+      "award_url": "https://www.cssdesignawards.com/sites/wendy-andrade/48473/",
+      "live_url": "https://www.wendyandrade.co/en",
+      "about_url": "https://www.wendyandrade.co/en/bio",
+      "word_count": 127,
+      "read_minutes": 0.6,
+      "narrative_sequence": [
+        "portrait",
+        "inquiries and representation",
+        "single long biographical statement"
+      ],
+      "information_types": [
+        "location and background",
+        "creative purpose",
+        "medium",
+        "method",
+        "recognition",
+        "contact"
+      ],
+      "tone_and_confidence": "Poetic and third-person. Confidence comes from a clear cultural purpose and a single Wired recognition, not a catalogue of achievements.",
+      "typography_and_layout": "Large portrait and generous whitespace; one substantial paragraph is treated as an art statement rather than résumé copy.",
+      "scroll_and_reveals": "Simple vertical movement with the portrait preceding the statement. The image-to-text ratio creates a slow, reflective reveal.",
+      "pointer_touch": "Minimal; language switch and contact links only.",
+      "media_or_simulation": "One portrait. The broader site uses a fluid stream of titles and media inspired by water.",
+      "why_it_works": "It gives the practice a worldview in roughly one paragraph. The page feels authored even with very little interface.",
+      "borrow_for_alexander": [
+        "A compact About can be memorable when it names what the work is for, not only what the person does."
+      ],
+      "avoid": [
+        "Dense third-person prose can feel like gallery copy and may distance the reader. Break Alexander's copy into more breathable beats."
+      ],
+      "accessibility_performance": "Ensure language controls expose state and that the portrait has useful alt text. Long line lengths should be constrained.",
+      "screenshot": "evidence/fwa-cssda/screenshots/03-wendy-andrade-bio.png",
+      "capture_notes": "English Bio URL redirected correctly; complete 2031px page captured after lazy-load scroll.",
+      "motion": null
+    },
+    {
+      "lane": "CSS Design Awards",
+      "id": "ania-melnik",
+      "name": "Ania Melnik",
+      "creator_type": "individual multidisciplinary designer and AI artist",
+      "award": "Special Kudos plus UI, UX, and Innovation public awards",
+      "award_date": "2025-04-27",
+      "award_url": "https://www.cssdesignawards.com/sites/ania-melnik-portfolio/47394/",
+      "live_url": "https://amelnik.com/",
+      "about_url": "https://amelnik.com/",
+      "word_count": 818,
+      "read_minutes": 4.1,
+      "narrative_sequence": [
+        "multi-role identity statement",
+        "studio and art-direction pitch",
+        "design capabilities",
+        "AI consultancy",
+        "education",
+        "awards",
+        "contact"
+      ],
+      "information_types": [
+        "roles",
+        "location",
+        "beliefs",
+        "services",
+        "awards",
+        "teaching",
+        "AI consulting",
+        "contact"
+      ],
+      "tone_and_confidence": "Energetic, maximal, commercial, and highly self-assured. The breadth is impressive but the repeated superlatives push toward sales copy.",
+      "typography_and_layout": "Oversized kinetic sentences, repeated vertical modules, marquee fragments, and an intentionally dense multi-section scroll.",
+      "scroll_and_reveals": "Long vertical page with word-by-word text entrances, embedded motion, repeated capability modules, and section color/rhythm changes.",
+      "pointer_touch": "Anchor navigation, social links, and repeated collaboration calls. Much of the experience is scroll-triggered rather than pointer-led.",
+      "media_or_simulation": "Embedded moving media, oversized type, and animated section choreography rather than a single signature simulation.",
+      "why_it_works": "It proves that type alone can carry sustained kinetic rhythm, but it is intentionally not efficient as a one-minute profile.",
+      "borrow_for_alexander": [
+        "Borrow the alternating typographic scale and clear chapter changes, not the volume. One strong sentence per beat is enough."
+      ],
+      "avoid": [
+        "Role stacking, repeated calls to action, duplicated claims, long service inventories, and percentage-style expertise all make the profile feel less selective."
+      ],
+      "accessibility_performance": "Letter-split DOM creates an extremely noisy accessibility tree; motion density, embedded media, and long scroll increase cognitive and performance cost. Reduced-motion behavior is essential.",
+      "screenshot": "evidence/fwa-cssda/screenshots/04-ania-melnik-profile.png",
+      "capture_notes": "Full 8762px one-page profile captured after all sections were scrolled into view. This is intentionally retained as an anti-pattern/control case.",
+      "motion": null
+    },
+    {
+      "lane": "CSS Design Awards",
+      "id": "alex-ryan",
+      "name": "Alex Ryan Design",
+      "creator_type": "independent identity, web, and digital designer",
+      "award": "Special Kudos plus UI, UX, and Innovation public awards",
+      "award_date": "2026-01-10",
+      "award_url": "https://www.cssdesignawards.com/website-gallery?industry=graphic+design&page=1",
+      "live_url": "https://www.alexryan.design/",
+      "about_url": "https://www.alexryan.design/about",
+      "word_count": 374,
+      "read_minutes": 1.9,
+      "narrative_sequence": [
+        "oversized positioning sentence",
+        "client wall",
+        "two engagement models",
+        "recognitions",
+        "expertise line",
+        "friendly contact"
+      ],
+      "information_types": [
+        "audience",
+        "services",
+        "clients",
+        "working model",
+        "awards",
+        "specialisms",
+        "availability",
+        "contact"
+      ],
+      "tone_and_confidence": "Confident and commercially clear, with a conversational close. Evidence is concrete, though the category-redefining promise is more assertive than the supporting story.",
+      "typography_and_layout": "Large split typography opens the page; compact editorial lists and modular cards create a measured downward rhythm.",
+      "scroll_and_reveals": "Vertical scroll with word-level entrances and distinct sections. Dark-mode control adds a light secondary interaction.",
+      "pointer_touch": "Theme toggle, links, and copy-email affordance. Interaction supports rather than competes with reading.",
+      "media_or_simulation": "The About page is primarily kinetic typography; project media remains outside the narrative.",
+      "why_it_works": "The two engagement models answer a practical hiring question most About pages ignore, turning biography into useful decision support.",
+      "borrow_for_alexander": [
+        "Include a compact 'how I work with teams' beat; it makes professional positioning more actionable than a generic skills list."
+      ],
+      "avoid": [
+        "Awards descriptions and the long client wall duplicate proof. Trim to the strongest handful for a one-minute page."
+      ],
+      "accessibility_performance": "Word-split animation should preserve a clean accessible name. The dark-mode toggle needs persistent state and sufficient contrast.",
+      "screenshot": "evidence/fwa-cssda/screenshots/05-alex-ryan-about.png",
+      "capture_notes": "Full 3041px About page captured after triggering all scroll entrances. This site replaced Tomoya Okada to avoid cross-lane duplication.",
+      "motion": null
+    },
+    {
+      "lane": "CSS Design Awards",
+      "id": "luca-ravanelli",
+      "name": "Luca Ravanelli",
+      "creator_type": "small art-direction and motion-design studio led by an individual",
+      "award": "Special Kudos plus UI, UX, and Innovation public awards",
+      "award_date": "2026-01-23",
+      "award_url": "https://www.cssdesignawards.com/sites/luca-ravanelli-portfolio/48733/",
+      "live_url": "https://lucaravanelli.com/",
+      "about_url": "https://lucaravanelli.com/about/",
+      "word_count": 277,
+      "read_minutes": 1.4,
+      "narrative_sequence": [
+        "design philosophy",
+        "teaching",
+        "services",
+        "recognition and exhibitions",
+        "clients",
+        "social/contact",
+        "team and status"
+      ],
+      "information_types": [
+        "beliefs",
+        "studio evolution",
+        "teaching",
+        "services",
+        "press",
+        "exhibitions",
+        "clients",
+        "team",
+        "contact"
+      ],
+      "tone_and_confidence": "Formal, exacting, and philosophy-led. Confidence is expressed through principles such as reduction, grids, precision, and synthesis.",
+      "typography_and_layout": "Minimal black-and-white Swiss/editorial grid; a large About title gives way to compact, information-dense columns.",
+      "scroll_and_reveals": "Short conventional vertical scroll with subtle type entrances. Information density increases below the opening statement.",
+      "pointer_touch": "Straightforward links and downloadable CV; no interaction gimmick.",
+      "media_or_simulation": "No media on About. The site's playground holds motion studies, maintaining a useful separation between biography and experimentation.",
+      "why_it_works": "A single coherent principle explains both style and studio evolution. The page then acts as a reference sheet for serious enquiries.",
+      "borrow_for_alexander": [
+        "Lead with a belief that actually governs decisions, then use a compact ledger for proof. Alexander can do this more warmly and with fewer lists."
+      ],
+      "avoid": [
+        "The philosophy paragraph is abstract and the lower half becomes administrative. Add a concrete example or playful interruption before attention drops."
+      ],
+      "accessibility_performance": "Very small secondary type and long lists may be tiring on mobile; ensure headings and list semantics remain intact through animation.",
+      "screenshot": "evidence/fwa-cssda/screenshots/06-luca-ravanelli-about.png",
+      "capture_notes": "Complete 1991px About page captured; all lists and footer content visible.",
+      "motion": null
+    },
+    {
+      "lane": "CSS Design Awards",
+      "id": "maria-vareva",
+      "name": "Maria Vareva",
+      "creator_type": "individual lead product designer",
+      "award": "Special Kudos plus UI, UX, and Innovation public awards",
+      "award_date": "2026-01-21",
+      "award_url": "https://www.cssdesignawards.com/sites/maria-vareva/48730/",
+      "live_url": "https://mariavareva.com/",
+      "about_url": "https://mariavareva.com/about",
+      "word_count": 151,
+      "read_minutes": 0.8,
+      "narrative_sequence": [
+        "current role and frontier",
+        "five-step trajectory with linked work",
+        "four working beliefs",
+        "six values",
+        "location/contact"
+      ],
+      "information_types": [
+        "current role",
+        "trajectory",
+        "selected companies",
+        "beliefs",
+        "values",
+        "location",
+        "contact"
+      ],
+      "tone_and_confidence": "Calm, intelligent, and self-aware. Numbering contains the confidence; the prose stays factual and avoids inflated claims.",
+      "typography_and_layout": "One very large paragraph becomes the entire page. Numbered clauses, line breaks, and linked nouns create rhythm without extra interface chrome.",
+      "scroll_and_reveals": "A focused 2903px vertical reading experience. The text enters progressively and linked trajectory items act as visual anchors.",
+      "pointer_touch": "Links deepen specific career claims; otherwise scrolling remains primary.",
+      "media_or_simulation": "Minimal animated marks associated with linked projects; the core story is typographic.",
+      "why_it_works": "It integrates role, past, beliefs, and values into 151 words. The sequence answers who, where from, how, and why in under a minute.",
+      "borrow_for_alexander": [
+        "This is the strongest content architecture for Alexander: current edge, selective trajectory, actual principles, and human values, each in one numbered beat."
+      ],
+      "avoid": [
+        "A single giant paragraph may be hard to scan and feels formal. Alexander should add one or two playful media interruptions and stronger mobile chunking."
+      ],
+      "accessibility_performance": "Word-level animation and large text must preserve natural reading order. Embedded linked objects should not interrupt keyboard flow.",
+      "screenshot": "evidence/fwa-cssda/screenshots/07-maria-vareva-about.png",
+      "capture_notes": "Full About page captured after scroll reveals; all 151 words and footer visible.",
+      "motion": "videos/maria-about-scroll.webm"
+    },
+    {
+      "lane": "CSS Design Awards",
+      "id": "aya-el-ouahdani",
+      "name": "Aya El Ouahdani",
+      "creator_type": "individual creative full-stack developer",
+      "award": "Special Kudos plus UI, UX, and Innovation public awards",
+      "award_date": "2026-01-21",
+      "award_url": "https://www.cssdesignawards.com/sites/interactive-web-portfolio/48731/",
+      "live_url": "https://www.ouahdina.com/",
+      "about_url": "https://www.ouahdina.com/",
+      "word_count": 397,
+      "read_minutes": 2,
+      "narrative_sequence": [
+        "system-status hero",
+        "code-styled profile",
+        "three animated traits",
+        "project modules",
+        "technology arsenal",
+        "competencies",
+        "contact protocol"
+      ],
+      "information_types": [
+        "role",
+        "availability",
+        "location",
+        "values",
+        "projects",
+        "tools",
+        "competencies",
+        "contact"
+      ],
+      "tone_and_confidence": "Playful, energetic, and game-like. Confidence is expressed through a complete fictional system rather than conventional biography.",
+      "typography_and_layout": "Terminal language, outlined panels, neon accents, counters, and modular cards create a coherent interface fiction.",
+      "scroll_and_reveals": "Long vertical scroll; trait meters animate, projects react on hover, and a secondary Aurora mode alters the atmosphere.",
+      "pointer_touch": "Hover-to-preview modules, mode switch, project controls, and contact buttons. On touch, hover semantics require an alternate first-tap behavior.",
+      "media_or_simulation": "Animated avatar, progress meters, interactive project previews, and game/terminal motifs.",
+      "why_it_works": "Every interaction reinforces the maker's developer identity. The fiction is consistent rather than decorative.",
+      "borrow_for_alexander": [
+        "Choose one behavioral metaphor tied to Alexander's actual practice—such as spatial scan/dot field—and let it govern reveals, labels, and transitions."
+      ],
+      "avoid": [
+        "Tool percentages, broad capability lists, and system jargon overwhelm the human story. Do not let the metaphor consume the one-minute narrative."
+      ],
+      "accessibility_performance": "Hover instructions are not touch-complete; small terminal text, heavy animation, and generic progress values create usability and performance risks. A reduced-motion and non-WebGL path is necessary.",
+      "screenshot": "evidence/fwa-cssda/screenshots/08-aya-el-ouahdani-profile.png",
+      "capture_notes": "Full 9400px one-page portfolio captured after all modules and lazy media were scrolled through.",
+      "motion": null
+    },
+    {
+      "lane": "CSS Design Awards",
+      "id": "stan-khoruzhenko",
+      "name": "Stan Khoruzhenko",
+      "creator_type": "individual design leader and product designer",
+      "award": "Special Kudos plus UI, UX, and Innovation public awards",
+      "award_date": "2026-01-17",
+      "award_url": "https://www.cssdesignawards.com/sites/stan-design-portfolio/48716/",
+      "live_url": "https://stan-khoruzhenko.com/",
+      "about_url": "https://stan-khoruzhenko.com/bio",
+      "word_count": 361,
+      "read_minutes": 1.8,
+      "narrative_sequence": [
+        "current senior role",
+        "end-to-end method",
+        "design-system ownership",
+        "quantified Rippling result",
+        "founding-designer trajectory",
+        "startup outcome"
+      ],
+      "information_types": [
+        "role",
+        "location",
+        "method",
+        "leadership",
+        "tools",
+        "business outcomes",
+        "trajectory",
+        "contact"
+      ],
+      "tone_and_confidence": "Direct and highly outcome-oriented. The confidence is credible when tied to numbers, but the uninterrupted first-person pitch is intense.",
+      "typography_and_layout": "Single dense narrative column with inline company links; minimal visual hierarchy beyond the Introduction label.",
+      "scroll_and_reveals": "Short 1805px scroll and no material reveals. The page reads like a high-impact cover letter.",
+      "pointer_touch": "Inline links to employers and case studies; otherwise static.",
+      "media_or_simulation": "None on the Bio page, despite a more animated work homepage.",
+      "why_it_works": "It explains contribution, scope, and measurable outcome instead of listing generic responsibilities.",
+      "borrow_for_alexander": [
+        "Alexander's trajectory should name what changed because of his work, not only where he worked. One or two verified outcomes can carry considerable authority."
+      ],
+      "avoid": [
+        "The wall of text exceeds a comfortable one-minute scan and repeats 'I'. Break the arc into chapters and reserve numbers for the most meaningful evidence."
+      ],
+      "accessibility_performance": "Readable semantics and low runtime cost, but line length and paragraph density reduce comprehension, especially on smaller screens.",
+      "screenshot": "evidence/fwa-cssda/screenshots/09-stan-khoruzhenko-bio.png",
+      "capture_notes": "Complete 1805px Bio captured after all content loaded.",
+      "motion": null
+    },
+    {
+      "lane": "CSS Design Awards",
+      "id": "akis-studio",
+      "name": "AKIS.STUDIO",
+      "creator_type": "small branding and web studio",
+      "award": "Special Kudos plus UI, UX, and Innovation public awards",
+      "award_date": "2026-01-17",
+      "award_url": "https://www.cssdesignawards.com/sites/akis-studio/48714/",
+      "live_url": "https://akis.studio/en",
+      "about_url": "https://akis.studio/en/about",
+      "word_count": 494,
+      "read_minutes": 2.5,
+      "narrative_sequence": [
+        "studio/location hero",
+        "three-part philosophy",
+        "collective strength",
+        "team portraits",
+        "long-term partnership",
+        "client proof",
+        "closing team image and invitation"
+      ],
+      "information_types": [
+        "location",
+        "philosophy",
+        "methods",
+        "team",
+        "partnership model",
+        "clients",
+        "contact"
+      ],
+      "tone_and_confidence": "Warm and earnest but agency-generic in places. Confidence comes from a visible team and a partnership promise more than from awards.",
+      "typography_and_layout": "Large kinetic headings alternate with images, short paragraphs, team cards, and logo fields across a long editorial scroll.",
+      "scroll_and_reveals": "Scroll is the main narrative engine; oversized headings reveal word by word, team cards move horizontally, and image scale resets pacing.",
+      "pointer_touch": "Carousel controls and standard links; no essential hover-only information.",
+      "media_or_simulation": "Team photography and an animated hero scene; the media is tied to place and people.",
+      "why_it_works": "The alternating rhythm is strong even when the writing is long. Team portraits turn abstract collaboration claims into visible evidence.",
+      "borrow_for_alexander": [
+        "Use recurring large-type chapters separated by one concrete image, artifact, or simulation. Alexander can create the same rhythm with side projects and dot-field moments."
+      ],
+      "avoid": [
+        "Repeated passion/authenticity/excellence language and a 494-word page feel generic. Specific decisions and outcomes are more persuasive."
+      ],
+      "accessibility_performance": "Very tall page and animated split text increase runtime cost; carousel must remain keyboard/touch accessible and reduced-motion should flatten heading reveals.",
+      "screenshot": "evidence/fwa-cssda/screenshots/10-akis-studio-about.png",
+      "capture_notes": "Complete 11967px Studio page captured after all scroll reveals and team/client media loaded.",
+      "motion": null
+    },
+    {
+      "lane": "CSS Design Awards",
+      "id": "jess-hill",
+      "name": "Jess Hill",
+      "creator_type": "individual author, journalist, educator, and advocate",
+      "award": "Special Kudos plus UI, UX, and Innovation public awards",
+      "award_date": "2025-12-07",
+      "award_url": "https://www.cssdesignawards.com/sites/jess-hill/48500/",
+      "live_url": "https://www.jesshill.com.au/",
+      "about_url": "https://www.jesshill.com.au/about",
+      "word_count": 2311,
+      "read_minutes": 11.6,
+      "narrative_sequence": [
+        "current standing",
+        "recent career",
+        "award archive",
+        "chronological backstory",
+        "cats and personal life",
+        "brain-cancer reflections",
+        "book and newsletter calls to action"
+      ],
+      "information_types": [
+        "current role",
+        "impact",
+        "awards",
+        "chronology",
+        "mentors",
+        "family",
+        "pets",
+        "health",
+        "publications",
+        "calls to action"
+      ],
+      "tone_and_confidence": "Authoritative, candid, and deeply personal. It earns confidence through reporting detail and vulnerability rather than self-promotion.",
+      "typography_and_layout": "Editorial longform with sticky chapter navigation, large images, timelines, award cards, and intimate captions.",
+      "scroll_and_reveals": "A 15370px chaptered vertical story. Sticky anchors make the long page navigable; image/caption interludes continually reset the reading rhythm.",
+      "pointer_touch": "Anchor navigation, expandable award media, and article/book links. Scrolling remains dominant.",
+      "media_or_simulation": "Portraits, archival photographs, awards, videos, personal snapshots, and captions; no abstract simulation.",
+      "why_it_works": "It is not reading-efficient, but it demonstrates how professional trajectory becomes a story through turning points, mentors, stakes, and human detail.",
+      "borrow_for_alexander": [
+        "Borrow the chapter anchors and the alternation between professional turning points and small human artifacts. Compress the same technique into five Alexander beats."
+      ],
+      "avoid": [
+        "Eleven-plus minutes is far outside the brief. Exhaustive awards and biography should live in expandable/archive layers, not the primary one-minute path."
+      ],
+      "accessibility_performance": "Strong semantic headings and anchor navigation, but page weight, many images/videos, and extremely long reading time create cognitive and performance costs. Media lightboxes need focus management.",
+      "screenshot": "evidence/fwa-cssda/screenshots/11-jess-hill-about.png",
+      "capture_notes": "Complete 15370px page captured after every chapter was scrolled. Retained as the strongest narrative reference and clearest length anti-pattern.",
+      "motion": null
+    },
+    {
+      "lane": "CSS Design Awards",
+      "id": "bogdan-kolomiyets",
+      "name": "Bogdan Kolomiyets",
+      "creator_type": "individual web designer and developer",
+      "award": "Special Kudos plus UI, UX, and Innovation public awards",
+      "award_date": "2026-02-19",
+      "award_url": "https://www.cssdesignawards.com/website-gallery?industry=web+design%2Fdev",
+      "live_url": "https://bogdankolomiyets.com/",
+      "about_url": "https://bogdankolomiyets.com/about",
+      "word_count": 320,
+      "read_minutes": 1.6,
+      "narrative_sequence": [
+        "positioning promise",
+        "playful personal snapshots",
+        "three proof statistics",
+        "service personality",
+        "four website beliefs",
+        "humorous call to action"
+      ],
+      "information_types": [
+        "specialism",
+        "experience",
+        "project count",
+        "audience",
+        "working style",
+        "beliefs",
+        "personal life",
+        "contact"
+      ],
+      "tone_and_confidence": "Confident, conversational, and funny. It repeatedly frames expertise as client benefit and uses self-deprecation to prevent the pitch from feeling pompous.",
+      "typography_and_layout": "Oversized statements, annotated personal image collage, numerical proof blocks, and numbered manifesto cards.",
+      "scroll_and_reveals": "Strong vertical pacing across 7565px: image collage, metric reveals, a large personal-service sentence, then four belief modules.",
+      "pointer_touch": "Mostly scrolling and links. Images and text animate into place; no interaction is required for core content.",
+      "media_or_simulation": "Personal photographs of wife, dog, seaside life, and humorous snapshots. These are meaning-bearing rather than decorative.",
+      "why_it_works": "It solves the confidence/likeability balance unusually well. Beliefs are stated as client-relevant truths, then levity closes the loop.",
+      "borrow_for_alexander": [
+        "Use one unexpected personal artifact, one plain-English service promise, and a short belief set. End with a joke that still advances the contact decision."
+      ],
+      "avoid": [
+        "The conversion language can feel overly sales-driven, and 320 words still exceeds the one-minute target. Keep only the best two beliefs."
+      ],
+      "accessibility_performance": "Split text creates a large DOM and animated statistics must expose stable text. Personal images need meaningful alt descriptions; reveal motion should respect reduced-motion.",
+      "screenshot": "evidence/fwa-cssda/screenshots/12-bogdan-kolomiyets-about.png",
+      "capture_notes": "Complete 7565px About page captured after all counters, photos, and manifesto modules loaded.",
+      "motion": null
+    },
+    {
+      "lane": "CSS Design Awards",
+      "id": "giacomo-agnello-modica",
+      "name": "Giacomo Agnello Modica",
+      "creator_type": "individual illustrator and graphic designer",
+      "award": "Special Kudos plus UI, UX, and Innovation public awards",
+      "award_date": "2025-12-06",
+      "award_url": "https://www.cssdesignawards.com/website-gallery?industry=art",
+      "live_url": "https://giacomoagnellomodica.com/",
+      "about_url": "https://giacomoagnellomodica.com/info/",
+      "word_count": 226,
+      "read_minutes": 1.1,
+      "narrative_sequence": [
+        "illustrated introduction",
+        "practice and client list",
+        "two selected recognitions",
+        "personal hobby",
+        "interactive influence ingredients",
+        "favorite things",
+        "self-published shop work"
+      ],
+      "information_types": [
+        "role",
+        "location",
+        "specialisms",
+        "clients",
+        "awards",
+        "influences",
+        "personality",
+        "side projects",
+        "shop"
+      ],
+      "tone_and_confidence": "Cheerful, specific, and disarming. Major clients and recognition are balanced by drag theatre, an old bicycle, comfort food, divas, and rainy places.",
+      "typography_and_layout": "Illustrated fragments, short paragraphs, client names, and playful button-like phrases create an informal scrapbook rhythm.",
+      "scroll_and_reveals": "A concise 3316px scroll. Hover/tap ingredient buttons reveal corresponding visual references, making the taste statement interactive.",
+      "pointer_touch": "Influence and favorite-thing buttons are optional playful layers; core biography stays visible without interaction.",
+      "media_or_simulation": "Illustrated self-portrait fragments, influence images, personal references, and self-produced merchandise.",
+      "why_it_works": "Every playful detail explains the work's visual language. Personality, side work, and professional proof are not separate decorations—they form one causal story.",
+      "borrow_for_alexander": [
+        "This is the strongest model for Alexander's side-project sprinkling: let artifacts reveal influences and taste, and make each interaction answer 'why is this here?'."
+      ],
+      "avoid": [
+        "The client list could be shorter, and copy errors weaken polish. Ensure interaction labels work on both hover and tap."
+      ],
+      "accessibility_performance": "Some figures lacked accessible image names in the captured accessibility tree. Button-revealed images need alt text, keyboard triggers, and persistent touch behavior.",
+      "screenshot": "evidence/fwa-cssda/screenshots/13-giacomo-agnello-modica-info.png",
+      "capture_notes": "Cookie notice declined before capture. Complete 3316px Info page captured after all lazy content loaded.",
+      "motion": "videos/giacomo-info-scroll.webm"
+    }
+  ]
+}
