@@ -4,6 +4,22 @@ import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
 import './button-bar-playground.css';
 
 const PLAYGROUND_THEME_STORAGE_KEY = 'button-bar-playground-theme-v1';
+const WALKMAN_CONFIG_STORAGE_KEY = 'button-bar-playground-walkman-config-v1';
+const DEFAULT_WALKMAN_CONFIG = Object.freeze({
+  perspective: 980,
+  originX: 38,
+  originY: 32,
+  bodyDepth: 8,
+  rimSoftness: 42,
+});
+
+const WALKMAN_CONTROLS = Object.freeze([
+  { id: 'perspective', label: 'Perspective', min: 480, max: 1800, step: 10, unit: 'px' },
+  { id: 'originX', label: 'Origin X', min: 0, max: 100, step: 1, unit: '%' },
+  { id: 'originY', label: 'Origin Y', min: 0, max: 100, step: 1, unit: '%' },
+  { id: 'bodyDepth', label: 'Body depth', min: 3, max: 16, step: 1, unit: 'px' },
+  { id: 'rimSoftness', label: 'Rim softness', min: 0, max: 100, step: 1, unit: '%' },
+]);
 
 const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
   {
@@ -122,56 +138,73 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
   },
   {
     id: 'spatial-studies',
-    anchor: '12–16',
-    title: 'What if the tabs were physical bodies?',
-    description: 'Five studies treat the controls as instruments with mass, wells, stacked bodies, and a shared viewport-centred camera.',
+    anchor: '12–18',
+    title: 'How quiet can a physical button be?',
+    description: 'Seven Walkman-like banks sit directly on the wall, using broad surfaces and restrained edges to create depth without visual noise.',
     variants: [
       {
         id: 'walkman-bank',
         number: '12',
         title: 'Walkman bank',
-        description: 'Monochrome mechanical keys stand above a shared tray; the selected key presses flush into the housing.',
-        structure: 'portable control chassis',
+        description: 'The original mechanical key language, simplified and mounted directly to the wall without a surrounding tray.',
+        structure: 'direct-mounted mechanical keys',
         family: 'spatial',
         palette: 'mono',
       },
       {
-        id: 'layered-pills',
+        id: 'walkman-polished',
         number: '13',
-        title: 'Layered pills',
-        description: 'Solid route-colour faces sit over five tonal body slices, creating a real stacked edge that compresses on selection.',
-        structure: 'stacked pill laminations',
-        family: 'spatial',
-        palette: 'colour',
-        usesRouteAccent: true,
-      },
-      {
-        id: 'colour-plungers',
-        number: '14',
-        title: 'Colour plungers',
-        description: 'Individual route-coloured keys rise from dark wells, then sink toward the panel when active.',
-        structure: 'individual plunger wells',
-        family: 'spatial',
-        palette: 'colour',
-        usesRouteAccent: true,
-      },
-      {
-        id: 'console-wells',
-        number: '15',
-        title: 'Console wells',
-        description: 'A single monochrome instrument body contains four deep control bays with a lowered selected face.',
-        structure: 'recessed instrument panel',
+        title: 'Polished plastic',
+        description: 'A soft inner rim borrows the lightest body tone, smoothing the transition between face and edge.',
+        structure: 'soft polished rim',
         family: 'spatial',
         palette: 'mono',
       },
       {
-        id: 'viewport-array',
-        number: '16',
-        title: 'Viewport array',
-        description: 'The whole bar shares one camera; each tab occupies a slightly different angle and depth around the viewport centre.',
-        structure: 'shared perspective array',
+        id: 'walkman-soft-body',
+        number: '14',
+        title: 'Soft body',
+        description: 'One broad tonal body and a feathered lower contact shadow create depth with almost no visible strata.',
+        structure: 'broad soft body',
         family: 'spatial',
-        palette: 'mixed',
+        palette: 'mono',
+      },
+      {
+        id: 'walkman-low-profile',
+        number: '15',
+        title: 'Low profile',
+        description: 'A shallower body and wider highlight make the controls feel moulded rather than assembled from layers.',
+        structure: 'shallow moulded keys',
+        family: 'spatial',
+        palette: 'mono',
+      },
+      {
+        id: 'walkman-inverted',
+        number: '16',
+        title: 'Inverted camera',
+        description: 'The same quiet button body viewed from the opposite perspective origin, reversing the spatial pull across the viewport.',
+        structure: 'inverted perspective origin',
+        family: 'spatial',
+        palette: 'mono',
+      },
+      {
+        id: 'walkman-active-colour',
+        number: '17',
+        title: 'Colour when pressed',
+        description: 'The selected key switches to its route colour; its label, highlight, body edge, and contact shadow adapt with the material.',
+        structure: 'active route colour body',
+        family: 'spatial',
+        palette: 'colour',
+        usesRouteAccent: true,
+      },
+      {
+        id: 'walkman-always-colour',
+        number: '18',
+        title: 'Always colour',
+        description: 'Every key keeps its route colour at rest and when pressed, with individual contrast-aware labels and matching tonal edges.',
+        structure: 'persistent route colour bodies',
+        family: 'spatial',
+        palette: 'colour',
         usesRouteAccent: true,
       },
     ],
@@ -188,6 +221,64 @@ function readPlaygroundTheme() {
     // Storage can be unavailable in private browsing contexts.
   }
   return 'dark';
+}
+
+function readWalkmanConfig() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(WALKMAN_CONFIG_STORAGE_KEY));
+    return WALKMAN_CONTROLS.reduce((config, control) => {
+      const value = Number(stored?.[control.id]);
+      config[control.id] = Number.isFinite(value)
+        ? Math.min(control.max, Math.max(control.min, value))
+        : DEFAULT_WALKMAN_CONFIG[control.id];
+      return config;
+    }, {});
+  } catch {
+    return { ...DEFAULT_WALKMAN_CONFIG };
+  }
+}
+
+function WalkmanConfigPanel({ config, onChange, onClose, onReset }) {
+  return (
+    <aside className="parameterizer-panel walkman-config-panel" aria-label="Walkman button controls">
+      <div className="parameterizer-header">
+        <span>Walkman geometry</span>
+        <button type="button" onClick={onClose} aria-label="Close Walkman controls">Close</button>
+      </div>
+      <div className="parameterizer-scroll">
+        <details className="parameterizer-folder" open>
+          <summary className="parameterizer-folder-title">Camera &amp; body</summary>
+          <div className="walkman-config-panel__rows">
+            {WALKMAN_CONTROLS.map((control) => (
+              <label className="parameterizer-row" htmlFor={`walkman-${control.id}`} key={control.id}>
+                <span className="parameterizer-label">{control.label}</span>
+                <span className="parameterizer-control">
+                  <input
+                    id={`walkman-${control.id}`}
+                    type="range"
+                    min={control.min}
+                    max={control.max}
+                    step={control.step}
+                    value={config[control.id]}
+                    onChange={(event) => onChange(control.id, Number(event.target.value))}
+                  />
+                </span>
+                <output className="parameterizer-value" htmlFor={`walkman-${control.id}`}>
+                  {config[control.id]}{control.unit}
+                </output>
+              </label>
+            ))}
+          </div>
+        </details>
+        <div className="walkman-config-panel__note">
+          The inverted study mirrors both origin axes. Pointer tilt remains intentionally subtle.
+        </div>
+      </div>
+      <div className="parameterizer-actions">
+        <button type="button" onClick={onReset}>Reset defaults</button>
+      </div>
+    </aside>
+  );
 }
 
 function PlaygroundThemeToggle({ theme, onToggle }) {
@@ -276,6 +367,8 @@ function ButtonBarVariant({
 export function ButtonBarPlayground() {
   const [activeRouteId, setActiveRouteId] = useState('about');
   const [theme, setTheme] = useState(readPlaygroundTheme);
+  const [walkmanConfig, setWalkmanConfig] = useState(readWalkmanConfig);
+  const [isWalkmanPanelOpen, setIsWalkmanPanelOpen] = useState(false);
   const activeTab = SHELL_ROUTE_TABS.find((tab) => tab.routeId === activeRouteId)
     || SHELL_ROUTE_TABS[0];
 
@@ -291,6 +384,14 @@ export function ButtonBarPlayground() {
       // Theme still works for the current session when storage is unavailable.
     }
   }, [theme]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(WALKMAN_CONFIG_STORAGE_KEY, JSON.stringify(walkmanConfig));
+    } catch {
+      // Live tuning remains available when storage is unavailable.
+    }
+  }, [walkmanConfig]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -322,13 +423,33 @@ export function ButtonBarPlayground() {
     };
   }, []);
 
+  const walkmanStyle = {
+    '--walkman-perspective': `${walkmanConfig.perspective}px`,
+    '--walkman-origin-x': `${walkmanConfig.originX}%`,
+    '--walkman-origin-y': `${walkmanConfig.originY}%`,
+    '--walkman-body-depth': `${walkmanConfig.bodyDepth}px`,
+    '--walkman-rim-mix': `${walkmanConfig.rimSoftness}%`,
+    '--walkman-rim-blur': `${2 + (walkmanConfig.rimSoftness * 0.04)}px`,
+  };
+
   return (
     <>
       <PlaygroundThemeToggle theme={theme} onToggle={setTheme} />
+      <button
+        type="button"
+        className="button-bar-playground__config-toggle"
+        aria-expanded={isWalkmanPanelOpen}
+        aria-controls="walkman-config-panel"
+        onClick={() => setIsWalkmanPanelOpen((isOpen) => !isOpen)}
+      >
+        Tune depth
+      </button>
       <main
         className="button-bar-playground"
         aria-labelledby="button-bar-playground-title"
         data-playground-theme={theme}
+        data-config-panel-open={isWalkmanPanelOpen ? 'true' : 'false'}
+        style={walkmanStyle}
       >
       <header className="button-bar-playground__header">
         <div className="button-bar-playground__intro">
@@ -336,7 +457,7 @@ export function ButtonBarPlayground() {
             <span>Playground / Button Bar</span>
           </div>
           <h1 id="button-bar-playground-title">Button bar studies</h1>
-          <p>Seventeen ways to ask what a tab should feel like: fitted into the wall, completely flat, or built as a physical body.</p>
+          <p>Nineteen ways to ask what a tab should feel like: fitted into the wall, completely flat, or built as a quiet physical body.</p>
         </div>
         <div className="button-bar-playground__readout" role="status" aria-live="polite">
           <span>Previewing</span>
@@ -380,6 +501,16 @@ export function ButtonBarPlayground() {
         })}
       </section>
       </main>
+      {isWalkmanPanelOpen ? (
+        <div id="walkman-config-panel">
+          <WalkmanConfigPanel
+            config={walkmanConfig}
+            onChange={(id, value) => setWalkmanConfig((current) => ({ ...current, [id]: value }))}
+            onClose={() => setIsWalkmanPanelOpen(false)}
+            onReset={() => setWalkmanConfig({ ...DEFAULT_WALKMAN_CONFIG })}
+          />
+        </div>
+      ) : null}
     </>
   );
 }

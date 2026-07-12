@@ -1157,12 +1157,17 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
 .button-bar-playground__sample--dominant-tab .shell-tab { flex: 0.72 1 0; background: color-mix(in srgb, var(--playground-ink) 10%, transparent); }
 .button-bar-playground__sample--dominant-tab .button-bar__primary-buttons .shell-tab[aria-current='page'] { flex-grow: 1.85; color: #101113; background: var(--shell-tab-route-accent); }
 
-/* Spatial studies share one viewport-centred perspective camera. */
+/* Walkman studies share one configurable viewport-centred camera. */
 .button-bar-playground__variant-group--spatial-studies .button-bar-playground__stage {
-  perspective: clamp(720px, 90vw, 1440px);
-  perspective-origin: 50vw 50vh;
+  perspective: var(--walkman-perspective, 980px);
+  perspective-origin: var(--walkman-origin-x, 50%) var(--walkman-origin-y, 50%);
   overflow: visible;
   background: color-mix(in srgb, var(--playground-stage) 88%, black 12%);
+}
+.button-bar-playground__sample--walkman-inverted .button-bar-playground__stage {
+  perspective-origin:
+    calc(100% - var(--walkman-origin-x, 50%))
+    calc(100% - var(--walkman-origin-y, 50%));
 }
 .button-bar-playground__variant-group--spatial-studies .button-bar {
   transform-style: preserve-3d;
@@ -1175,40 +1180,182 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
 .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab:is(:hover, :focus-visible, :active) {
   --spatial-face: var(--playground-key);
   --spatial-ink: var(--playground-key-ink);
+  --walkman-depth: var(--walkman-body-depth, 8px);
   position: relative;
   min-height: 48px;
   color: var(--spatial-ink);
-  border: 1px solid color-mix(in srgb, var(--spatial-face) 68%, white 32%);
+  border: 1px solid color-mix(in srgb, var(--spatial-face) 90%, white 10%);
   border-radius: 999px;
   background: var(--spatial-face);
-  box-shadow: 0 2px 0 color-mix(in srgb, var(--spatial-face) 72%, white 28%), 0 4px 0 color-mix(in srgb, var(--spatial-face) 80%, black 20%), 0 6px 0 color-mix(in srgb, var(--spatial-face) 74%, black 26%), 0 8px 0 color-mix(in srgb, var(--spatial-face) 68%, black 32%), 0 12px 15px rgba(0, 0, 0, 0.28);
-  transform: translateZ(14px) translateY(-6px);
+  box-shadow:
+    0 calc(var(--walkman-depth) * 0.28) 0 color-mix(in srgb, var(--spatial-face) 76%, white 24%),
+    0 calc(var(--walkman-depth) * 0.58) 0 color-mix(in srgb, var(--spatial-face) 82%, black 18%),
+    0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 68%, black 32%),
+    0 calc(var(--walkman-depth) * 1.25) calc(var(--walkman-depth) * 1.55) rgba(0, 0, 0, 0.24);
+  transform: translateZ(calc(var(--walkman-depth) * 1.65)) translateY(calc(var(--walkman-depth) * -0.72));
   transform-style: preserve-3d;
   transition: transform 140ms ease, box-shadow 140ms ease;
 }
 .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab[aria-current='page'] {
   color: var(--spatial-ink);
   background: var(--spatial-face);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--spatial-face) 68%, black 32%), 0 3px 6px rgba(0, 0, 0, 0.22);
+  border-color: color-mix(in srgb, var(--spatial-face) 86%, black 14%);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--spatial-face) 74%, black 26%), 0 3px 6px rgba(0, 0, 0, 0.2);
   transform: translateZ(2px) translateY(2px);
 }
 .button-bar-playground__variant-group--spatial-studies .shell-tab:focus-visible { outline: 2px solid var(--playground-ink); outline-offset: 5px; }
+.button-bar-playground__variant-group--spatial-studies .shell-tab .shell-tab__label { color: currentColor; }
 
-.button-bar-playground__sample--walkman-bank .button-bar__primary-buttons,
-.button-bar-playground__sample--console-wells .button-bar__primary-buttons { padding: 12px; border-radius: 16px; background: var(--playground-panel); box-shadow: inset 0 2px 2px rgba(255,255,255,.12), inset 0 -4px 7px rgba(0,0,0,.28), 0 12px 20px rgba(0,0,0,.24); }
-.button-bar-playground__sample--walkman-bank .shell-tab { border-radius: 5px; }
-.button-bar-playground__sample--layered-pills .shell-tab,
-.button-bar-playground__sample--colour-plungers .shell-tab { --spatial-face: var(--shell-tab-route-accent); --spatial-ink: #101113; }
-.button-bar-playground__sample--colour-plungers .button-bar__primary-buttons { padding: 10px; border-radius: 999px; background: color-mix(in srgb, var(--playground-panel) 72%, black 28%); box-shadow: inset 0 8px 14px rgba(0,0,0,.38); }
-.button-bar-playground__sample--colour-plungers .shell-tab { transform: translateZ(20px) translateY(-8px); }
-.button-bar-playground__sample--colour-plungers .button-bar__primary-buttons .shell-tab[aria-current='page'] { transform: translateZ(0) translateY(3px); }
-.button-bar-playground__sample--console-wells .shell-tab { border-radius: 8px; }
-.button-bar-playground__sample--viewport-array .shell-tab { --spatial-face: color-mix(in srgb, var(--shell-tab-route-accent) 54%, var(--playground-key) 46%); --spatial-ink: #101113; }
-.button-bar-playground__sample--viewport-array .shell-tab:nth-child(1) { transform: translateZ(5px) rotateY(5deg) translateY(-3px); }
-.button-bar-playground__sample--viewport-array .shell-tab:nth-child(2) { transform: translateZ(11px) rotateY(2deg) translateY(-5px); }
-.button-bar-playground__sample--viewport-array .shell-tab:nth-child(3) { transform: translateZ(11px) rotateY(-2deg) translateY(-5px); }
-.button-bar-playground__sample--viewport-array .shell-tab:nth-child(4) { transform: translateZ(5px) rotateY(-5deg) translateY(-3px); }
-.button-bar-playground__sample--viewport-array .button-bar__primary-buttons .shell-tab[aria-current='page'] { transform: translateZ(0) translateY(3px); }
+/* No group housing: every bank mounts directly to the wall. */
+.button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.button-bar-playground__sample--walkman-bank .shell-tab { border-radius: 7px; }
+
+/* Polished face: the inner rim matches the lightest exposed body tone. */
+.button-bar-playground__sample--walkman-polished .shell-tab {
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 var(--walkman-rim-blur, 3.68px)
+      color-mix(in srgb, var(--spatial-face) calc(100% - var(--walkman-rim-mix, 42%)), white var(--walkman-rim-mix, 42%)),
+    0 calc(var(--walkman-depth) * 0.34) 0 color-mix(in srgb, var(--spatial-face) 70%, white 30%),
+    0 calc(var(--walkman-depth) * 0.7) 0 color-mix(in srgb, var(--spatial-face) 78%, black 22%),
+    0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 69%, black 31%),
+    0 calc(var(--walkman-depth) * 1.2) calc(var(--walkman-depth) * 1.6) rgba(0, 0, 0, 0.2);
+}
+
+/* Soft body: one continuous tonal edge rather than visible slices. */
+.button-bar-playground__sample--walkman-soft-body .shell-tab {
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px var(--walkman-rim-blur, 3.68px) rgba(255, 255, 255, 0.15),
+    0 var(--walkman-depth) calc(var(--walkman-depth) * 0.35) color-mix(in srgb, var(--spatial-face) 64%, black 36%),
+    0 calc(var(--walkman-depth) * 1.3) calc(var(--walkman-depth) * 1.8) rgba(0, 0, 0, 0.18);
+}
+
+/* Low profile: depth is deliberately compressed and highlight widened. */
+.button-bar-playground__sample--walkman-low-profile .shell-tab {
+  --walkman-depth: calc(var(--walkman-body-depth, 8px) * 0.55);
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 4px rgba(255, 255, 255, 0.18),
+    0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 72%, black 28%),
+    0 calc(var(--walkman-depth) * 1.45) calc(var(--walkman-depth) * 2) rgba(0, 0, 0, 0.16);
+}
+
+.button-bar-playground__sample--walkman-inverted .button-bar {
+  transform: rotateX(calc(var(--button-bar-playground-camera-x) * -1)) rotateY(calc(var(--button-bar-playground-camera-y) * -1));
+}
+
+.button-bar-playground__config-toggle {
+  position: fixed;
+  z-index: 1001;
+  top: max(14px, var(--abs-safe-top));
+  right: max(158px, calc(var(--abs-safe-right) + 144px));
+  min-width: 104px;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  color: #eceff3;
+  background: rgba(25, 26, 29, 0.92);
+  font: 500 10px/1 var(--abs-font-mono);
+  letter-spacing: normal;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.button-bar-playground__config-toggle:focus-visible { outline: 2px solid var(--ball-4); outline-offset: 3px; }
+
+.walkman-config-panel {
+  --parameterizer-header-height: 32px;
+  --parameterizer-folder-height: 28px;
+  --parameterizer-row-height: 32px;
+  position: fixed;
+  z-index: 1100;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 50dvh;
+  min-height: 260px;
+  overflow: hidden;
+  border-top: 1px solid #34373d;
+  background: #191a1d;
+  color: #eceff3;
+  box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.28);
+  font: 11px/1.25 var(--abs-font-sans);
+}
+.walkman-config-panel .parameterizer-header {
+  display: flex;
+  flex: 0 0 var(--parameterizer-header-height);
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  border-bottom: 1px solid #2d3036;
+  background: #111215;
+  font-weight: 600;
+}
+.walkman-config-panel button {
+  min-height: 24px;
+  border: 1px solid #3b3f47;
+  border-radius: 3px;
+  color: #eceff3;
+  background: #2a2d33;
+  font: inherit;
+  cursor: pointer;
+}
+.walkman-config-panel .parameterizer-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.walkman-config-panel .parameterizer-folder { border-bottom: 1px solid #2d3036; }
+.walkman-config-panel .parameterizer-folder-title {
+  display: flex;
+  align-items: center;
+  height: var(--parameterizer-folder-height);
+  padding: 0 12px;
+  background: #222429;
+  font-weight: 600;
+  list-style: none;
+}
+.walkman-config-panel .parameterizer-folder-title::-webkit-details-marker { display: none; }
+.walkman-config-panel .parameterizer-folder-title::before { width: 14px; color: #8d939c; content: 'v'; }
+.walkman-config-panel__rows { width: min(100%, 720px); margin: 0 auto; }
+.walkman-config-panel .parameterizer-row {
+  display: grid;
+  grid-template-columns: minmax(100px, 42%) minmax(100px, 1fr) 60px;
+  align-items: center;
+  height: var(--parameterizer-row-height);
+  padding: 0 12px;
+  border-bottom: 1px solid #25282d;
+  background: #191a1d;
+}
+.walkman-config-panel .parameterizer-label { overflow: hidden; color: #cfd3d8; text-overflow: ellipsis; white-space: nowrap; }
+.walkman-config-panel .parameterizer-control { display: flex; min-width: 0; }
+.walkman-config-panel input[type='range'] { width: 100%; accent-color: #5db7ff; }
+.walkman-config-panel .parameterizer-value { color: #5db7ff; font-family: var(--abs-font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.walkman-config-panel__note { width: min(100%, 720px); margin: 0 auto; padding: 12px; box-sizing: border-box; color: #8d939c; }
+.walkman-config-panel .parameterizer-actions {
+  display: flex;
+  flex: 0 0 36px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 12px;
+  border-top: 1px solid #2d3036;
+  background: #151619;
+}
+.walkman-config-panel .parameterizer-actions button { padding: 0 10px; }
+
+.button-bar-playground[data-config-panel-open='true'] { padding-bottom: calc(50dvh + var(--gap-xl)); }
 
 @media (max-width: 600px) {
   .button-bar-playground { padding-top: 76px; }
@@ -1550,4 +1697,98 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
 
 html.button-bar-playground-document {
   perspective: none;
+}
+
+/* Walkman finish recipes must remain the final button declarations in this file. */
+.button-bar-playground__sample--walkman-polished .button-bar__primary-buttons .shell-tab:not([aria-current='page']) {
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 var(--walkman-rim-blur, 3.68px)
+      color-mix(in srgb, var(--spatial-face) calc(100% - var(--walkman-rim-mix, 42%)), white var(--walkman-rim-mix, 42%)),
+    0 calc(var(--walkman-depth) * 0.34) 0 color-mix(in srgb, var(--spatial-face) 70%, white 30%),
+    0 calc(var(--walkman-depth) * 0.7) 0 color-mix(in srgb, var(--spatial-face) 78%, black 22%),
+    0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 69%, black 31%),
+    0 calc(var(--walkman-depth) * 1.2) calc(var(--walkman-depth) * 1.6) rgba(0, 0, 0, 0.2);
+}
+
+.button-bar-playground__sample--walkman-soft-body .button-bar__primary-buttons .shell-tab:not([aria-current='page']) {
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px var(--walkman-rim-blur, 3.68px) rgba(255, 255, 255, 0.15),
+    0 var(--walkman-depth) calc(var(--walkman-depth) * 0.35) color-mix(in srgb, var(--spatial-face) 64%, black 36%),
+    0 calc(var(--walkman-depth) * 1.3) calc(var(--walkman-depth) * 1.8) rgba(0, 0, 0, 0.18);
+}
+
+.button-bar-playground__sample--walkman-low-profile .button-bar__primary-buttons .shell-tab:not([aria-current='page']) {
+  --walkman-depth: calc(var(--walkman-body-depth, 8px) * 0.55);
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 4px rgba(255, 255, 255, 0.18),
+    0 var(--walkman-depth) 0 color-mix(in srgb, var(--spatial-face) 72%, black 28%),
+    0 calc(var(--walkman-depth) * 1.45) calc(var(--walkman-depth) * 2) rgba(0, 0, 0, 0.16);
+}
+
+.button-bar-playground__sample--walkman-inverted .button-bar-playground__stage {
+  perspective-origin:
+    calc(100% - var(--walkman-origin-x, 38%))
+    calc(100% - var(--walkman-origin-y, 32%));
+}
+
+.button-bar-playground__variant-group--spatial-studies .shell-tab .shell-tab__label {
+  color: currentColor;
+}
+
+/* Route-colour material system: face, body slices, shadow, and label share one contrast decision. */
+.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour)
+  .shell-tab:nth-child(1) {
+  --shell-tab-route-accent: var(--ball-4);
+  --walkman-route-ink: rgba(255, 255, 255, 0.94);
+}
+.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour)
+  .shell-tab:nth-child(2) {
+  --shell-tab-route-accent: var(--ball-6);
+  --walkman-route-ink: #172000;
+}
+.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour)
+  .shell-tab:nth-child(3) {
+  --shell-tab-route-accent: var(--ball-7);
+  --walkman-route-ink: rgba(255, 255, 255, 0.96);
+}
+.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour)
+  .shell-tab:nth-child(4) {
+  --shell-tab-route-accent: var(--ball-8);
+  --walkman-route-ink: #241500;
+}
+
+.button-bar-playground__sample--walkman-active-colour .button-bar__primary-buttons .shell-tab[aria-current='page'],
+.button-bar-playground__sample--walkman-always-colour .button-bar__primary-buttons .shell-tab {
+  --spatial-face: var(--shell-tab-route-accent);
+  --spatial-ink: var(--walkman-route-ink);
+  color: var(--spatial-ink);
+  background: var(--spatial-face);
+}
+
+.button-bar-playground__sample--walkman-active-colour
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--walkman-active-colour
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active),
+.button-bar-playground__sample--walkman-always-colour
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--walkman-always-colour
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  color: var(--walkman-route-ink);
+  border-color: color-mix(in srgb, var(--shell-tab-route-accent) 82%, black 18%);
+  background: var(--shell-tab-route-accent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--shell-tab-route-accent) 76%, white 24%),
+    0 1px 0 color-mix(in srgb, var(--shell-tab-route-accent) 70%, black 30%),
+    0 3px 7px color-mix(in srgb, var(--shell-tab-route-accent) 34%, black 66%);
 }
