@@ -4414,12 +4414,13 @@ svg.shell-tab__icon {
     0 var(--abs-size-1px) 0 var(--button-bar-gasket-edge-lower);
 }
 
-/* One immutable outer radius prevents the theme switch snapping by state. */
+/* The theme control is the one capsule in the gasket set. Keep its half-height
+   radius immutable so the track never snaps between interaction states. */
 .button-bar .button-bar__theme-toggle.shell-tab,
 .button-bar .button-bar__theme-toggle.shell-tab:is(:hover, :focus-visible, :active),
 .button-bar .button-bar__theme-toggle.shell-tab[data-state='light'],
 .button-bar .button-bar__theme-toggle.shell-tab[data-state='dark'] {
-  --button-bar-switch-radius: var(--button-bar-gasket-radius);
+  --button-bar-switch-radius: calc(var(--button-bar-switch-height) / 2);
   border-radius: var(--button-bar-switch-radius);
 }
 
