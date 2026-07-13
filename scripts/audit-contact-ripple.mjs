@@ -112,6 +112,9 @@ async function readRippleState(page) {
     const canvas = document.querySelector('[data-contact-ripple-canvas]');
     const content = document.querySelector('.contact-route__inner');
     const button = document.querySelector('[data-copy-email]');
+    const title = document.querySelector('#contact-route-title');
+    const description = document.querySelector('#contact-route-description');
+    const typographyGlyphs = Array.from(document.querySelectorAll('[data-contact-typography-glyph]'));
     const rectOf = (element) => {
       if (!element) return null;
       const rect = element.getBoundingClientRect();
@@ -129,6 +132,15 @@ async function readRippleState(page) {
     const contentStyle = content ? getComputedStyle(content) : null;
     const audioEvents = window.__ABS_SIMULATION_AUDIO__?.events || [];
     const motifEvents = audioEvents.filter((event) => event?.type === 'contact-ripple-motif');
+    const typographyMotion = typographyGlyphs.map((glyph) => {
+      const style = getComputedStyle(glyph);
+      let displacement = 0;
+      if (style.transform && style.transform !== 'none') {
+        const matrix = new DOMMatrixReadOnly(style.transform);
+        displacement = Math.hypot(matrix.m41, matrix.m42);
+      }
+      return { animationName: style.animationName, displacement };
+    });
     let motifEvent = null;
     for (let eventIndex = audioEvents.length - 1; eventIndex >= 0; eventIndex -= 1) {
       if (audioEvents[eventIndex]?.type === 'contact-ripple-motif') {
@@ -164,6 +176,24 @@ async function readRippleState(page) {
       canvasRect: rectOf(canvas),
       contentRect: rectOf(content),
       buttonRect: rectOf(button),
+      typographyImpact: content?.dataset.contactTypographyImpact || '',
+      typographyReducedMotion: content?.dataset.contactTypographyReducedMotion || '',
+      typographyGlyphCount: typographyGlyphs.length,
+      typographyTitleGlyphCount: typographyGlyphs.filter((glyph) => (
+        glyph.dataset.contactTypographyVariant === 'title'
+      )).length,
+      typographyDescriptionGlyphCount: typographyGlyphs.filter((glyph) => (
+        glyph.dataset.contactTypographyVariant === 'description'
+      )).length,
+      typographyAnimatingGlyphCount: typographyMotion.filter(({ animationName }) => (
+        animationName === 'contactTypographyScatter' || animationName === 'contactTypographyEmphasis'
+      )).length,
+      typographyMovingGlyphCount: typographyMotion.filter(({ displacement }) => displacement > 0.5).length,
+      typographyMaxDisplacement: Math.max(0, ...typographyMotion.map(({ displacement }) => displacement)),
+      titleAccessibleText: title?.getAttribute('aria-label') || '',
+      titleVisualText: title?.textContent || '',
+      descriptionAccessibleText: description?.getAttribute('aria-label') || '',
+      descriptionVisualText: description?.textContent || '',
       stageZ: Number(stageStyle?.zIndex || 0),
       contentZ: Number(contentStyle?.zIndex || 0),
       canvasPointerEvents: canvasStyle?.pointerEvents || '',
@@ -226,6 +256,14 @@ function assertLayout(state, viewport) {
   assert(state.stageRect?.width > viewport.width * 0.75, 'Ripple stage does not fill the studio window', state);
   assert(state.stageRect?.height > viewport.height * 0.65, 'Ripple stage height is too small', state);
   assert(state.buttonRect && state.contentRect, 'Contact content geometry is missing', state);
+  assert(state.typographyTitleGlyphCount > 0, 'Contact title is not prepared for the typography impact', state);
+  assert(state.typographyDescriptionGlyphCount > 0, 'Contact description is not prepared for the typography impact', state);
+  assert(state.titleAccessibleText === state.titleVisualText, 'Contact title accessibility text changed', state);
+  assert(
+    state.descriptionAccessibleText === state.descriptionVisualText,
+    'Contact description accessibility text changed',
+    state,
+  );
   assert(state.diagnostics?.activeInstances === 1, 'Unexpected active Contact ripple instance count', state);
 }
 
@@ -316,6 +354,13 @@ async function runStandardScenario(browser, viewport, theme) {
     await page.waitForFunction((previousCount) => (
       Number(document.querySelector('[data-contact-ripple-stage]')?.dataset.contactRippleBurstCount || 0) > previousCount
     ), immediateStart);
+    await page.waitForFunction(() => (
+      document.querySelector('.contact-route__inner')?.dataset.contactTypographyImpact === 'active'
+      && Array.from(document.querySelectorAll('[data-contact-typography-glyph]')).some((glyph) => (
+        getComputedStyle(glyph).animationName === 'contactTypographyScatter'
+      ))
+    ));
+    await page.waitForTimeout(180);
     const successBurst = await readRippleState(page);
     assert(successBurst.stageState === 'burst', 'Email activation did not immediately enter burst state', successBurst);
     assert(successBurst.bodyCount === initial.bodyCount, 'Burst changed the number of rendered balls', { initial, successBurst });
@@ -326,6 +371,14 @@ async function runStandardScenario(browser, viewport, theme) {
     assert(successBurst.soundMotifNoteCount >= 17, 'Contact motif note stack is unexpectedly sparse', successBurst);
     assert(successBurst.soundMotifVariationCount === 4, 'Contact motif variation cycle is incomplete', successBurst);
     assert(successBurst.soundMotifVariationIndex >= 0, 'Contact motif variation metadata is missing', successBurst);
+    assert(successBurst.typographyImpact === 'active', 'Copy did not activate the typography impact', successBurst);
+    assert(
+      successBurst.typographyAnimatingGlyphCount === successBurst.typographyGlyphCount,
+      'Copy did not animate every Contact typography glyph',
+      successBurst,
+    );
+    assert(successBurst.typographyMovingGlyphCount > 0, 'Contact glyphs did not physically scatter', successBurst);
+    assert(successBurst.typographyMaxDisplacement >= 4, 'Contact typography scatter is too subtle', successBurst);
 
     const rapidStart = successBurst.burstCount;
     for (let clickIndex = 1; clickIndex <= 3; clickIndex += 1) {
@@ -342,6 +395,7 @@ async function runStandardScenario(browser, viewport, theme) {
       'Rapid activation did not advance through the full ripple-sound variation cycle',
       rapidBurst,
     );
+    assert(rapidBurst.typographyImpact === 'active', 'Rapid activation did not restart the typography impact', rapidBurst);
 
     await forceClipboardFailure(page);
     const failureStart = rapidBurst.burstCount;
@@ -353,6 +407,7 @@ async function runStandardScenario(browser, viewport, theme) {
     const failureBurst = await readRippleState(page);
     assert(failureBurst.stageState === 'burst', 'Clipboard failure suppressed the ripple burst', failureBurst);
     assert(failureBurst.bodyCount === initial.bodyCount, 'Clipboard failure changed the fixed body count', { initial, failureBurst });
+    assert(failureBurst.typographyImpact === 'active', 'Clipboard failure suppressed the typography impact', failureBurst);
 
     const originalSurface = failureBurst.surface;
     await page.evaluate(() => {
@@ -374,6 +429,8 @@ async function runStandardScenario(browser, viewport, theme) {
     const settled = await readRippleState(page);
     assert(settled.bodyCount === initial.bodyCount, 'Burst settlement changed the fixed body count', { initial, settled });
     assert(settled.bodyRadius === initial.bodyRadius, 'Burst settlement changed the rendered ball size', { initial, settled });
+    assert(settled.typographyImpact === 'idle', 'Typography impact did not settle back to idle', settled);
+    assert(settled.typographyMovingGlyphCount === 0, 'Typography remained displaced after settlement', settled);
 
     await page.locator('[data-route-tab="about"]').click();
     await page.waitForURL(/about\.html/, { timeout: 30000 });
@@ -426,6 +483,14 @@ async function runReducedMotionScenario(browser) {
     await waitForRipple(page, 'reduced-burst');
     const burst = await readRippleState(page);
     assert(burst.burstCount === initial.burstCount + 1, 'Reduced-motion burst count did not increment', { initial, burst });
+    assert(burst.typographyImpact === 'active', 'Reduced motion suppressed typography feedback entirely', burst);
+    assert(burst.typographyReducedMotion === 'true', 'Typography did not detect reduced-motion preference', burst);
+    assert(
+      burst.typographyAnimatingGlyphCount === burst.typographyGlyphCount,
+      'Reduced-motion typography emphasis did not reach every glyph',
+      burst,
+    );
+    assert(burst.typographyMovingGlyphCount === 0, 'Reduced-motion typography displaced glyphs', burst);
     await page.waitForFunction(() => (
       document.querySelector('[data-contact-ripple-stage]')?.dataset.contactRippleState === 'reduced-idle'
     ), null, { timeout: 3000 });
