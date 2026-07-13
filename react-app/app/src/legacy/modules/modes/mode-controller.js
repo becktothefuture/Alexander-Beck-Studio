@@ -190,6 +190,7 @@ const MODE_REGISTRY = {
     load: () => import('./shapes.js'),
     hooks: {
       initialize: 'initializeShapes',
+      cleanup: 'cleanupShapes',
       force: 'applyShapesForces',
       customStep: 'stepShapes'
     }
@@ -228,6 +229,7 @@ function toFn(module, key) {
 function buildModeRuntime(module, hooks = {}) {
   return {
     initialize: toFn(module, hooks.initialize),
+    cleanup: toFn(module, hooks.cleanup),
     force: toFn(module, hooks.force),
     update: toFn(module, hooks.update),
     preRender: toFn(module, hooks.preRender),
@@ -450,6 +452,10 @@ export function initModeSystem() {
 
 export function disposeModeSystem() {
   modeChangeToken += 1;
+  try {
+    const currentMode = getGlobals()?.currentMode;
+    modeRuntimeCache.get(currentMode)?.cleanup?.();
+  } catch (e) {}
   if (unregisterLegacyVisualTransition) {
     unregisterLegacyVisualTransition();
     unregisterLegacyVisualTransition = null;
@@ -486,6 +492,7 @@ export async function setMode(inputMode) {
   const prevMode = previousMode;
   try {
     // Reset stateful systems on mode switch to prevent accumulation artifacts.
+    modeRuntimeCache.get(previousMode)?.cleanup?.();
     resetPhysicsAccumulator();
     resetAdaptiveThrottle();
     restoreCrittersOverridesIfNeeded(globals, mode);

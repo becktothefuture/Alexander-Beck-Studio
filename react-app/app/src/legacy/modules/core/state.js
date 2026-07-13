@@ -576,6 +576,11 @@ const state = {
   shapesPointerRadius: 220,
   shapesDamping: 0.978,
   shapesMaxSpeed: 1250,
+  shapesGrabAngularDampingPerSec: 1.2,
+  shapesReleaseLinearGain: 1,
+  shapesReleaseAngularGain: 1,
+  shapesMaxAngularSpeed: 8,
+  shapesReducedMotionScale: 0.35,
   shapesWarmupFrames: 0,
 
   // Pressure Field mode
@@ -2072,6 +2077,11 @@ export function initState(config) {
   if (config.shapesPointerRadius !== undefined) state.shapesPointerRadius = clampInt(config.shapesPointerRadius, 60, 420, state.shapesPointerRadius);
   if (config.shapesDamping !== undefined) state.shapesDamping = clampNumber(config.shapesDamping, 0.86, 0.999, state.shapesDamping);
   if (config.shapesMaxSpeed !== undefined) state.shapesMaxSpeed = clampInt(config.shapesMaxSpeed, 80, 2400, state.shapesMaxSpeed);
+  if (config.shapesGrabAngularDampingPerSec !== undefined) state.shapesGrabAngularDampingPerSec = clampNumber(config.shapesGrabAngularDampingPerSec, 0, 8, state.shapesGrabAngularDampingPerSec);
+  if (config.shapesReleaseLinearGain !== undefined) state.shapesReleaseLinearGain = clampNumber(config.shapesReleaseLinearGain, 0, 1.5, state.shapesReleaseLinearGain);
+  if (config.shapesReleaseAngularGain !== undefined) state.shapesReleaseAngularGain = clampNumber(config.shapesReleaseAngularGain, 0, 1.5, state.shapesReleaseAngularGain);
+  if (config.shapesMaxAngularSpeed !== undefined) state.shapesMaxAngularSpeed = clampNumber(config.shapesMaxAngularSpeed, 0.5, 12, state.shapesMaxAngularSpeed);
+  if (config.shapesReducedMotionScale !== undefined) state.shapesReducedMotionScale = clampNumber(config.shapesReducedMotionScale, 0.1, 1, state.shapesReducedMotionScale);
 
   // Pressure Field mode
   if (config.pressureCrucibleBallCount !== undefined) state.pressureCrucibleBallCount = clampInt(config.pressureCrucibleBallCount, 48, 220, state.pressureCrucibleBallCount);

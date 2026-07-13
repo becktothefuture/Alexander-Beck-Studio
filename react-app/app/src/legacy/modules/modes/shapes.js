@@ -18,6 +18,13 @@ const EXTRA_LARGE_SHAPE_SCALE = 2.05;
 const DROP_INITIAL_HOLD_SECONDS = 0.75;
 const DROP_SHAPE_DELAY_SECONDS = 0.62;
 const DROP_X_RATIOS = [0.28, 0.62, 0.42, 0.76, 0.52];
+const DRAG_SAMPLE_COUNT = 5;
+const DRAG_SAMPLE_MAX_AGE_MS = 120;
+const SHAPES_SUBSTEP_SECONDS = 1 / 120;
+const SHAPES_MAX_SUBSTEPS = 4;
+const SHAPES_MAX_HELD_ANGLE_CORRECTION = 0.07;
+const SHAPES_MIN_RELEASE_SPEED = 30;
+const SHAPES_MIN_RELEASE_SPIN = 0.08;
 
 let unsubscribePointer = null;
 
@@ -259,8 +266,17 @@ function getBodyInvMass(body) {
 }
 
 function getBodyInvInertia(body) {
-  if (!body || body.isDragged || body.isPending) return 0;
+  if (!body || body.isPending) return 0;
+  if (body.isDragged) return body.dragInvPivotInertia || 0;
   return body.invInertia || 0;
+}
+
+function getBodyContactArmX(body, rx) {
+  return body?.isDragged ? rx - (body.dragGrabWorldX || 0) : rx;
+}
+
+function getBodyContactArmY(body, ry) {
+  return body?.isDragged ? ry - (body.dragGrabWorldY || 0) : ry;
 }
 
 function applyBodyImpulse(body, rx, ry, ix, iy) {
@@ -269,14 +285,61 @@ function applyBodyImpulse(body, rx, ry, ix, iy) {
   if (invMass <= 0 && invInertia <= 0) return;
   body.vx += ix * invMass;
   body.vy += iy * invMass;
-  body.omega += (rx * iy - ry * ix) * invInertia;
+  const armX = getBodyContactArmX(body, rx);
+  const armY = getBodyContactArmY(body, ry);
+  body.omega += (armX * iy - armY * ix) * invInertia;
+  if (body.isDragged) {
+    const maxAngular = Math.max(0.5, Number(body.dragMaxAngularSpeed) || 8);
+    body.omega = clamp(body.omega, -maxAngular, maxAngular);
+  }
 }
 
 function getContactVelocity(body, rx, ry) {
+  if (body?.isDragged) {
+    const armX = getBodyContactArmX(body, rx);
+    const armY = getBodyContactArmY(body, ry);
+    return {
+      x: (body.dragAnchorVx || 0) - body.omega * armY,
+      y: (body.dragAnchorVy || 0) + body.omega * armX,
+    };
+  }
   return {
     x: body.vx - body.omega * ry,
     y: body.vy + body.omega * rx,
   };
+}
+
+function syncHeldBodyPose(body) {
+  if (!body?.isDragged) return;
+  const cos = Math.cos(body.angle);
+  const sin = Math.sin(body.angle);
+  const grabWorldX = body.dragGrabLocalX * cos - body.dragGrabLocalY * sin;
+  const grabWorldY = body.dragGrabLocalX * sin + body.dragGrabLocalY * cos;
+  body.dragGrabWorldX = grabWorldX;
+  body.dragGrabWorldY = grabWorldY;
+  body.x = body.dragAnchorX - grabWorldX;
+  body.y = body.dragAnchorY - grabWorldY;
+  body.vx = body.dragAnchorVx + body.omega * grabWorldY;
+  body.vy = body.dragAnchorVy - body.omega * grabWorldX;
+}
+
+function applyHeldAngularCorrection(body, rx, ry, nx, ny, penetration) {
+  if (!body?.isDragged || penetration <= 0) return false;
+  const armX = getBodyContactArmX(body, rx);
+  const armY = getBodyContactArmY(body, ry);
+  const leverage = armX * ny - armY * nx;
+  const minLeverage = Math.max(0.5, body.dotRadius * 0.08);
+  if (Math.abs(leverage) < minLeverage) return false;
+  const softness = Math.max(1, body.dotRadius * body.dotRadius * 0.16);
+  const correction = clamp(
+    (penetration * leverage) / (leverage * leverage + softness),
+    -SHAPES_MAX_HELD_ANGLE_CORRECTION,
+    SHAPES_MAX_HELD_ANGLE_CORRECTION
+  );
+  if (Math.abs(correction) < 0.00001) return false;
+  body.angle += correction;
+  syncHeldBodyPose(body);
+  return true;
 }
 
 function applyRubberSquash(body, amount, normalAngle) {
@@ -286,34 +349,6 @@ function applyRubberSquash(body, amount, normalAngle) {
     body.rubberSquash = next;
     body.rubberSquashAngle = normalAngle;
   }
-}
-
-function getRotatedBounds(body) {
-  const cos = Math.cos(body.angle);
-  const sin = Math.sin(body.angle);
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
-  for (let i = 0; i < body.points.length; i += 1) {
-    const point = body.points[i];
-    const rx = point.lx * cos - point.ly * sin;
-    const ry = point.lx * sin + point.ly * cos;
-    minX = Math.min(minX, rx - body.dotRadius);
-    maxX = Math.max(maxX, rx + body.dotRadius);
-    minY = Math.min(minY, ry - body.dotRadius);
-    maxY = Math.max(maxY, ry + body.dotRadius);
-  }
-  return { minX, maxX, minY, maxY };
-}
-
-function constrainBodyInsideWalls(body, g) {
-  if (!body || !g?.canvas) return;
-  const dpr = g.DPR || 1;
-  const margin = Math.max(0, Number(g.wallInset) || 0) * dpr;
-  const bounds = getRotatedBounds(body);
-  body.x = clamp(body.x, margin - bounds.minX, g.canvas.width - margin - bounds.maxX);
-  body.y = clamp(body.y, margin - bounds.minY, g.canvas.height - margin - bounds.maxY);
 }
 
 function createShapeBodies(g, count, dotRadius) {
@@ -375,6 +410,11 @@ function createShapeBodies(g, count, dotRadius) {
       rubberSquash: 0,
       rubberSquashAngle: 0,
       collisionCooldown: 0,
+      reducedMotionRelease: false,
+      lastReleaseTargetVx: 0,
+      lastReleaseTargetVy: 0,
+      lastReleaseTargetOmega: 0,
+      peakDragOmega: 0,
     };
     bodies.push(body);
 
@@ -423,22 +463,26 @@ function collideBodyWithWalls(body, g) {
     const r = body.dotRadius;
 
     if (wx - r < minX) {
-      resolveBodyWallContact(body, rx, ry, 1, 0, minX - (wx - r), rest, friction, invMass, invInertia);
+      const corrected = resolveBodyWallContact(body, rx, ry, 1, 0, minX - (wx - r), rest, friction, invMass, invInertia);
+      if (corrected && body.isDragged) return;
     }
     if (wx + r > maxX) {
-      resolveBodyWallContact(body, rx, ry, -1, 0, (wx + r) - maxX, rest, friction, invMass, invInertia);
+      const corrected = resolveBodyWallContact(body, rx, ry, -1, 0, (wx + r) - maxX, rest, friction, invMass, invInertia);
+      if (corrected && body.isDragged) return;
     }
     if (wy - r < minY && !allowTopEntry) {
-      resolveBodyWallContact(body, rx, ry, 0, 1, minY - (wy - r), rest, friction, invMass, invInertia);
+      const corrected = resolveBodyWallContact(body, rx, ry, 0, 1, minY - (wy - r), rest, friction, invMass, invInertia);
+      if (corrected && body.isDragged) return;
     }
     if (wy + r > maxY) {
-      resolveBodyWallContact(body, rx, ry, 0, -1, (wy + r) - maxY, rest, friction, invMass, invInertia);
+      const corrected = resolveBodyWallContact(body, rx, ry, 0, -1, (wy + r) - maxY, rest, friction, invMass, invInertia);
+      if (corrected && body.isDragged) return;
     }
   }
 }
 
 function resolveBodyWallContact(body, rx, ry, nx, ny, penetration, rest, friction, invMass, invInertia) {
-  if (penetration <= 0) return;
+  if (penetration <= 0) return false;
 
   if (invMass > 0) {
     body.x += nx * penetration * 0.94;
@@ -447,7 +491,9 @@ function resolveBodyWallContact(body, rx, ry, nx, ny, penetration, rest, frictio
 
   const velocity = getContactVelocity(body, rx, ry);
   const normalVelocity = velocity.x * nx + velocity.y * ny;
-  const rxn = rx * ny - ry * nx;
+  const armX = getBodyContactArmX(body, rx);
+  const armY = getBodyContactArmY(body, ry);
+  const rxn = armX * ny - armY * nx;
   const normalDenom = invMass + rxn * rxn * invInertia;
   if (normalVelocity < 0 && normalDenom > 0) {
     const j = (-(1 + rest) * normalVelocity) / normalDenom;
@@ -458,7 +504,7 @@ function resolveBodyWallContact(body, rx, ry, nx, ny, penetration, rest, frictio
   const tx = -ny;
   const ty = nx;
   const tangentVelocity = velocity.x * tx + velocity.y * ty;
-  const rxt = rx * ty - ry * tx;
+  const rxt = armX * ty - armY * tx;
   const tangentDenom = invMass + rxt * rxt * invInertia;
   if (tangentDenom > 0) {
     const jt = -tangentVelocity / tangentDenom;
@@ -467,11 +513,13 @@ function resolveBodyWallContact(body, rx, ry, nx, ny, penetration, rest, frictio
     applyBodyImpulse(body, rx, ry, tx * clamped, ty * clamped);
   }
 
-  if (ny < -0.5 && Math.abs(body.vy) < 14) {
+  if (!body.isDragged && ny < -0.5 && Math.abs(body.vy) < 14) {
     body.vy = 0;
     body.vx *= 0.94;
     body.omega *= 0.86;
   }
+
+  return applyHeldAngularCorrection(body, rx, ry, nx, ny, penetration);
 }
 
 function resolveBodyCollisions(bodies) {
@@ -541,8 +589,12 @@ function resolveBodyDotContacts(a, b, rest) {
       const rvx = vb.x - va.x;
       const rvy = vb.y - va.y;
       const normalVelocity = rvx * nx + rvy * ny;
-      const crossA = rax * ny - ray * nx;
-      const crossB = rbx * ny - rby * nx;
+      const armAx = getBodyContactArmX(a, rax);
+      const armAy = getBodyContactArmY(a, ray);
+      const armBx = getBodyContactArmX(b, rbx);
+      const armBy = getBodyContactArmY(b, rby);
+      const crossA = armAx * ny - armAy * nx;
+      const crossB = armBx * ny - armBy * nx;
       const normalDenom = invMassA + invMassB + crossA * crossA * invInertiaA + crossB * crossB * invInertiaB;
       let normalImpulse = 0;
       if (normalVelocity < 0 && normalDenom > 0) {
@@ -560,8 +612,8 @@ function resolveBodyDotContacts(a, b, rest) {
       const tx = -ny;
       const ty = nx;
       const tangentVelocity = rvx * tx + rvy * ty;
-      const crossTa = rax * ty - ray * tx;
-      const crossTb = rbx * ty - rby * tx;
+      const crossTa = armAx * ty - armAy * tx;
+      const crossTb = armBx * ty - armBy * tx;
       const tangentDenom = invMassA + invMassB + crossTa * crossTa * invInertiaA + crossTb * crossTb * invInertiaB;
       if (tangentDenom > 0) {
         const maxFriction = Math.max(friction, Math.abs(normalImpulse) * friction);
@@ -571,6 +623,15 @@ function resolveBodyDotContacts(a, b, rest) {
         applyBodyImpulse(a, rax, ray, -ix, -iy);
         applyBodyImpulse(b, rbx, rby, ix, iy);
       }
+
+      let correctedHeldBody = false;
+      if (a.isDragged) {
+        correctedHeldBody = applyHeldAngularCorrection(a, rax, ray, -nx, -ny, penetration) || correctedHeldBody;
+      }
+      if (b.isDragged) {
+        correctedHeldBody = applyHeldAngularCorrection(b, rbx, rby, nx, ny, penetration) || correctedHeldBody;
+      }
+      if (correctedHeldBody) return;
     }
   }
 }
@@ -579,15 +640,6 @@ function pointerMatches(interaction, detail) {
   if (!interaction || !detail) return false;
   if (interaction.pointerId === null || detail.pointerId === null) return true;
   return interaction.pointerId === detail.pointerId;
-}
-
-function rotateLocalPoint(lx, ly, angle) {
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return {
-    x: lx * cos - ly * sin,
-    y: lx * sin + ly * cos,
-  };
 }
 
 function findBodyAtPoint(g, x, y) {
@@ -619,29 +671,122 @@ function findBodyAtPoint(g, x, y) {
   return null;
 }
 
+function updateDragVelocityEstimate(drag, maxSpeed, referenceTime = null) {
+  if (!drag || drag.sampleCount < 2) {
+    if (drag) {
+      drag.filteredAnchorVx = 0;
+      drag.filteredAnchorVy = 0;
+    }
+    return;
+  }
+
+  const newestIndex = (drag.sampleNext - 1 + DRAG_SAMPLE_COUNT) % DRAG_SAMPLE_COUNT;
+  const newestTime = drag.sampleTime[newestIndex];
+  const cutoffTime = Number.isFinite(referenceTime) ? referenceTime : newestTime;
+  if (cutoffTime - newestTime > DRAG_SAMPLE_MAX_AGE_MS) {
+    drag.filteredAnchorVx = 0;
+    drag.filteredAnchorVy = 0;
+    return;
+  }
+  const oldestIndex = (drag.sampleNext - drag.sampleCount + DRAG_SAMPLE_COUNT) % DRAG_SAMPLE_COUNT;
+  let sumVx = 0;
+  let sumVy = 0;
+  let sumWeight = 0;
+
+  for (let i = 1; i < drag.sampleCount; i += 1) {
+    const aIndex = (oldestIndex + i - 1) % DRAG_SAMPLE_COUNT;
+    const bIndex = (oldestIndex + i) % DRAG_SAMPLE_COUNT;
+    const aTime = drag.sampleTime[aIndex];
+    const bTime = drag.sampleTime[bIndex];
+    if (cutoffTime - bTime > DRAG_SAMPLE_MAX_AGE_MS) continue;
+    const dt = (bTime - aTime) / 1000;
+    if (dt <= 0) continue;
+    const weight = i;
+    sumVx += ((drag.sampleX[bIndex] - drag.sampleX[aIndex]) / dt) * weight;
+    sumVy += ((drag.sampleY[bIndex] - drag.sampleY[aIndex]) / dt) * weight;
+    sumWeight += weight;
+  }
+
+  let vx = sumWeight > 0 ? sumVx / sumWeight : 0;
+  let vy = sumWeight > 0 ? sumVy / sumWeight : 0;
+  const speed = Math.hypot(vx, vy);
+  if (speed > maxSpeed && speed > 0) {
+    const scale = maxSpeed / speed;
+    vx *= scale;
+    vy *= scale;
+  }
+  drag.filteredAnchorVx = vx;
+  drag.filteredAnchorVy = vy;
+}
+
+function pushDragSample(g, drag, x, y, time) {
+  if (!drag) return;
+  const index = drag.sampleNext;
+  drag.sampleX[index] = x;
+  drag.sampleY[index] = y;
+  drag.sampleTime[index] = time;
+  drag.sampleNext = (index + 1) % DRAG_SAMPLE_COUNT;
+  drag.sampleCount = Math.min(DRAG_SAMPLE_COUNT, drag.sampleCount + 1);
+  const maxSpeed = Math.max(80, Number(g.shapesMaxSpeed ?? 1250)) * (g.DPR || 1);
+  updateDragVelocityEstimate(drag, maxSpeed);
+}
+
 function beginShapeDrag(g, detail, hit) {
   const state = g.shapesState;
   const body = hit?.body;
   if (!state || !body) return;
   body.isDragged = true;
-  body.vx *= 0.2;
-  body.vy *= 0.2;
-  body.omega *= 0.25;
-  state.drag = {
+  body.reducedMotionRelease = false;
+  body.lastReleaseTargetVx = 0;
+  body.lastReleaseTargetVy = 0;
+  body.lastReleaseTargetOmega = 0;
+  body.peakDragOmega = Math.abs(body.omega);
+  const cos = Math.cos(body.angle);
+  const sin = Math.sin(body.angle);
+  const grabWorldX = hit.localX * cos - hit.localY * sin;
+  const grabWorldY = hit.localX * sin + hit.localY * cos;
+  const centerInertia = body.invInertia > 0 ? 1 / body.invInertia : body.mass * body.radius * body.radius;
+  const pivotDistanceSq = hit.localX * hit.localX + hit.localY * hit.localY;
+  const pivotInertia = Math.max(1, centerInertia + body.mass * pivotDistanceSq);
+  const anchorVx = body.vx - body.omega * grabWorldY;
+  const anchorVy = body.vy + body.omega * grabWorldX;
+  const now = detail.time || performance.now();
+  const drag = {
     body,
     pointerId: detail.pointerId ?? null,
     grabLocalX: hit.localX,
     grabLocalY: hit.localY,
     targetX: detail.x,
     targetY: detail.y,
-    pointerVx: 0,
-    pointerVy: 0,
+    physicsAnchorX: detail.x,
+    physicsAnchorY: detail.y,
+    solvedAnchorVx: anchorVx,
+    solvedAnchorVy: anchorVy,
+    filteredAnchorVx: 0,
+    filteredAnchorVy: 0,
     lastX: detail.x,
     lastY: detail.y,
-    lastBodyX: body.x,
-    lastBodyY: body.y,
-    lastTime: detail.time || performance.now(),
+    lastTime: now,
+    pivotInertia,
+    invPivotInertia: 1 / pivotInertia,
+    sampleX: new Float64Array(DRAG_SAMPLE_COUNT),
+    sampleY: new Float64Array(DRAG_SAMPLE_COUNT),
+    sampleTime: new Float64Array(DRAG_SAMPLE_COUNT),
+    sampleNext: 0,
+    sampleCount: 0,
   };
+  state.drag = drag;
+  body.dragGrabLocalX = hit.localX;
+  body.dragGrabLocalY = hit.localY;
+  body.dragGrabWorldX = grabWorldX;
+  body.dragGrabWorldY = grabWorldY;
+  body.dragAnchorX = detail.x;
+  body.dragAnchorY = detail.y;
+  body.dragAnchorVx = anchorVx;
+  body.dragAnchorVy = anchorVy;
+  body.dragInvPivotInertia = drag.invPivotInertia;
+  body.dragMaxAngularSpeed = Math.max(0.5, Number(g.shapesMaxAngularSpeed ?? 8));
+  pushDragSample(g, drag, detail.x, detail.y, now);
   state.sweep = null;
 }
 
@@ -650,60 +795,124 @@ function updateShapeDrag(g, detail) {
   const drag = state?.drag;
   if (!drag || !pointerMatches(drag, detail)) return;
   const now = detail.time || performance.now();
-  const dt = clamp((now - drag.lastTime) / 1000, 0.008, 0.08);
+  const moved = Math.hypot(detail.x - drag.lastX, detail.y - drag.lastY);
 
   drag.targetX = detail.x;
   drag.targetY = detail.y;
-  drag.pointerVx = (detail.x - drag.lastX) / dt;
-  drag.pointerVy = (detail.y - drag.lastY) / dt;
-
+  if (moved >= 0.25) pushDragSample(g, drag, detail.x, detail.y, now);
   drag.lastX = detail.x;
   drag.lastY = detail.y;
   drag.lastTime = now;
 }
 
-function applyAnchoredDrag(g, drag, dt) {
+function applyAnchoredDrag(g, drag, dt, anchorX, anchorY, anchorVx, anchorVy) {
   const body = drag?.body;
   if (!body) return;
-
-  const step = clamp(dt, 0.008, 0.08);
-  const previousX = body.x;
-  const previousY = body.y;
-  const grabbed = rotateLocalPoint(drag.grabLocalX, drag.grabLocalY, body.angle);
+  const step = Math.max(0.0001, dt);
+  const cos = Math.cos(body.angle);
+  const sin = Math.sin(body.angle);
+  const grabWorldX = drag.grabLocalX * cos - drag.grabLocalY * sin;
+  const grabWorldY = drag.grabLocalX * sin + drag.grabLocalY * cos;
+  const deltaAnchorVx = anchorVx - drag.solvedAnchorVx;
+  const deltaAnchorVy = anchorVy - drag.solvedAnchorVy;
   const gravity = (g.GE || 1960) * clamp(Number(g.shapesGravityScale ?? 0.92), 0, 1.4);
-  const centerInertia = body.invInertia > 0 ? 1 / body.invInertia : body.mass * body.radius * body.radius;
-  const pivotDistanceSq = drag.grabLocalX * drag.grabLocalX + drag.grabLocalY * drag.grabLocalY;
-  const pivotInvInertia = 1 / Math.max(1, centerInertia + body.mass * pivotDistanceSq);
-  const gravityTorque = -grabbed.x * body.mass * gravity;
-  const pointerTorque = (grabbed.x * drag.pointerVy - grabbed.y * drag.pointerVx) * body.mass * 0.09;
+  const pointerDeltaOmega = body.mass
+    * (grabWorldX * deltaAnchorVy - grabWorldY * deltaAnchorVx)
+    * drag.invPivotInertia;
+  const gravityTorque = -grabWorldX * body.mass * gravity;
+  const heldDamping = clamp(Number(g.shapesGrabAngularDampingPerSec ?? 1.2), 0, 8);
+  const maxAngular = Math.max(0.5, Number(g.shapesMaxAngularSpeed ?? 8));
 
-  body.omega += (gravityTorque + pointerTorque) * pivotInvInertia * step;
-  body.omega *= Math.pow(0.9, step * 60);
-  body.omega = clamp(body.omega, -5.5, 5.5);
+  body.omega += pointerDeltaOmega;
+  body.omega += gravityTorque * drag.invPivotInertia * step;
+  body.omega *= Math.exp(-heldDamping * step);
+  body.omega = clamp(body.omega, -maxAngular, maxAngular);
+  const maxLinear = Math.max(80, Number(g.shapesMaxSpeed ?? 1250)) * (g.DPR || 1);
+  const grabDistanceSq = grabWorldX * grabWorldX + grabWorldY * grabWorldY;
+  if (grabDistanceSq > 0.0001) {
+    const quadraticB = 2 * (anchorVx * grabWorldY - anchorVy * grabWorldX);
+    const quadraticC = anchorVx * anchorVx + anchorVy * anchorVy - maxLinear * maxLinear;
+    const discriminant = Math.max(0, quadraticB * quadraticB - 4 * grabDistanceSq * quadraticC);
+    const root = Math.sqrt(discriminant);
+    const minOmega = (-quadraticB - root) / (2 * grabDistanceSq);
+    const maxOmegaForLinearSpeed = (-quadraticB + root) / (2 * grabDistanceSq);
+    body.omega = clamp(body.omega, minOmega, maxOmegaForLinearSpeed);
+  }
+  body.peakDragOmega = Math.max(body.peakDragOmega || 0, Math.abs(body.omega));
   body.angle += body.omega * step;
 
-  const nextGrabbed = rotateLocalPoint(drag.grabLocalX, drag.grabLocalY, body.angle);
-  body.x = drag.targetX - nextGrabbed.x;
-  body.y = drag.targetY - nextGrabbed.y;
-  constrainBodyInsideWalls(body, g);
-
-  body.vx = (body.x - previousX) / step;
-  body.vy = (body.y - previousY) / step;
-  drag.lastBodyX = body.x;
-  drag.lastBodyY = body.y;
-  drag.pointerVx *= Math.pow(0.72, step * 60);
-  drag.pointerVy *= Math.pow(0.72, step * 60);
+  drag.solvedAnchorVx = anchorVx;
+  drag.solvedAnchorVy = anchorVy;
+  body.dragAnchorX = anchorX;
+  body.dragAnchorY = anchorY;
+  body.dragAnchorVx = anchorVx;
+  body.dragAnchorVy = anchorVy;
+  body.dragMaxAngularSpeed = maxAngular;
+  syncHeldBodyPose(body);
 }
 
-function endShapeDrag(g, cancelled) {
+function clampBodyLinearSpeed(body, maxSpeed) {
+  const speed = Math.hypot(body.vx, body.vy);
+  if (speed <= maxSpeed || speed <= 0) return;
+  const scale = maxSpeed / speed;
+  body.vx *= scale;
+  body.vy *= scale;
+}
+
+function endShapeDrag(g, cancelled, detail = null) {
   const state = g.shapesState;
   const drag = state?.drag;
   if (!drag) return;
-  drag.body.isDragged = false;
-  const releaseScale = cancelled ? 0 : 0.42;
-  drag.body.vx *= releaseScale;
-  drag.body.vy *= releaseScale;
-  drag.body.omega *= 0.25;
+  const body = drag.body;
+  if (!cancelled && detail && pointerMatches(drag, detail)) {
+    updateShapeDrag(g, detail);
+  }
+
+  const dpr = g.DPR || 1;
+  const reduced = prefersReducedMotion();
+  const reducedScale = reduced
+    ? clamp(Number(g.shapesReducedMotionScale ?? 0.35), 0.1, 1)
+    : 1;
+  const maxLinear = Math.max(80, Number(g.shapesMaxSpeed ?? 1250)) * dpr * reducedScale;
+  const maxAngular = Math.max(0.5, Number(g.shapesMaxAngularSpeed ?? 8)) * reducedScale;
+
+  if (cancelled) {
+    body.lastReleaseTargetVx = 0;
+    body.lastReleaseTargetVy = 0;
+    body.lastReleaseTargetOmega = 0;
+    body.vx *= 0.25;
+    body.vy *= 0.25;
+    body.omega *= 0.25;
+  } else {
+    const releaseTime = Number.isFinite(detail?.time) ? detail.time : performance.now();
+    updateDragVelocityEstimate(drag, Math.max(80, Number(g.shapesMaxSpeed ?? 1250)) * dpr, releaseTime);
+    const solvedOmega = body.omega;
+    const linearGain = clamp(Number(g.shapesReleaseLinearGain ?? 1), 0, 1.5) * reducedScale;
+    const angularGain = clamp(Number(g.shapesReleaseAngularGain ?? 1), 0, 1.5) * reducedScale;
+    body.lastReleaseTargetVx = drag.filteredAnchorVx + solvedOmega * body.dragGrabWorldY;
+    body.lastReleaseTargetVy = drag.filteredAnchorVy - solvedOmega * body.dragGrabWorldX;
+    body.lastReleaseTargetOmega = solvedOmega;
+    body.vx = body.lastReleaseTargetVx * linearGain;
+    body.vy = body.lastReleaseTargetVy * linearGain;
+    body.omega = solvedOmega * angularGain;
+  }
+
+  clampBodyLinearSpeed(body, maxLinear);
+  body.omega = clamp(body.omega, -maxAngular, maxAngular);
+  if (Math.hypot(body.vx, body.vy) < SHAPES_MIN_RELEASE_SPEED * dpr) {
+    body.vx = 0;
+    body.vy = 0;
+  }
+  if (Math.abs(body.omega) < SHAPES_MIN_RELEASE_SPIN) body.omega = 0;
+  body.reducedMotionRelease = reduced && !cancelled;
+  body.isDragged = false;
+  body.dragGrabLocalX = 0;
+  body.dragGrabLocalY = 0;
+  body.dragGrabWorldX = 0;
+  body.dragGrabWorldY = 0;
+  body.dragAnchorVx = 0;
+  body.dragAnchorVy = 0;
+  body.dragInvPivotInertia = 0;
   state.drag = null;
 }
 
@@ -834,7 +1043,7 @@ function handlePointer(type, detail) {
   }
 
   if (type === 'up' || type === 'cancel') {
-    if (state.drag && pointerMatches(state.drag, detail)) endShapeDrag(g, type === 'cancel');
+    if (state.drag && pointerMatches(state.drag, detail)) endShapeDrag(g, type === 'cancel', detail);
     if (state.sweep && pointerMatches(state.sweep, detail)) state.sweep = null;
   }
 }
@@ -842,6 +1051,18 @@ function handlePointer(type, detail) {
 function ensurePointerSubscription() {
   if (unsubscribePointer) return;
   unsubscribePointer = subscribeScenePointer(handlePointer);
+}
+
+export function cleanupShapes() {
+  const g = getGlobals();
+  const state = g.shapesState;
+  if (!state) return;
+  if (state.drag) endShapeDrag(g, true);
+  state.sweep = null;
+  const bodies = state.bodies || [];
+  for (let i = 0; i < bodies.length; i += 1) {
+    bodies[i].isDragged = false;
+  }
 }
 
 function releaseBodyFromSequence(body, g) {
@@ -934,64 +1155,97 @@ export function stepShapes(dt) {
   const bodies = state.bodies || [];
   const dpr = g.DPR || 1;
   const reduced = prefersReducedMotion();
+  const frameDt = clamp(Number(dt) || 0, 0, 0.033);
+  if (frameDt <= 0) {
+    syncDotsToBodies(g);
+    return;
+  }
   const gravity = (g.GE || 1960) * clamp(Number(g.shapesGravityScale ?? 0.92), 0, 1.4);
   const damping = clamp(Number(g.shapesDamping ?? 0.985), 0.86, 0.999);
-  const dampingFactor = Math.pow(damping, dt * 60);
-  const angularDamping = Math.pow(0.982, dt * 60);
-  const maxSpeed = Math.max(80, Number(g.shapesMaxSpeed ?? 1500)) * dpr;
-
-  state.time += dt;
-  state.reducedMotion = reduced;
-
-  for (let i = 0; i < bodies.length; i += 1) {
-    const body = bodies[i];
-    body.rubberSquash *= Math.pow(0.68, dt * 60);
-
-    if (body.isPending) {
-      if (state.time >= body.dropDelay) {
-        releaseBodyFromSequence(body, g);
-      } else {
-        body.x = body.spawnX;
-        body.y = body.spawnY;
-        body.vx = 0;
-        body.vy = 0;
-        body.omega = 0;
-        continue;
-      }
-    }
-
-    if (body.isDragged) {
-      applyAnchoredDrag(g, state.drag, dt);
-      continue;
-    }
-
-    body.vy += gravity * dt;
-
-    body.vx *= dampingFactor;
-    body.vy *= dampingFactor;
-    body.omega *= angularDamping;
-
-    const speed = Math.hypot(body.vx, body.vy);
-    if (speed > maxSpeed) {
-      const scale = maxSpeed / speed;
-      body.vx *= scale;
-      body.vy *= scale;
-    }
-
-    body.x += body.vx * dt;
-    body.y += body.vy * dt;
-    body.angle += body.omega * dt;
-
-    collideBodyWithWalls(body, g);
+  const maxSpeed = Math.max(80, Number(g.shapesMaxSpeed ?? 1250)) * dpr;
+  const maxAngular = Math.max(0.5, Number(g.shapesMaxAngularSpeed ?? 8));
+  const reducedScale = clamp(Number(g.shapesReducedMotionScale ?? 0.35), 0.1, 1);
+  const substeps = Math.min(
+    SHAPES_MAX_SUBSTEPS,
+    Math.max(1, Math.ceil(frameDt / SHAPES_SUBSTEP_SECONDS))
+  );
+  const subDt = frameDt / substeps;
+  const collisionPasses = substeps === 1 ? 6 : Math.max(2, Math.ceil(6 / substeps));
+  const drag = state.drag;
+  const dragStartX = drag?.physicsAnchorX ?? 0;
+  const dragStartY = drag?.physicsAnchorY ?? 0;
+  const dragEndX = drag?.targetX ?? dragStartX;
+  const dragEndY = drag?.targetY ?? dragStartY;
+  let dragFrameVx = drag ? (dragEndX - dragStartX) / frameDt : 0;
+  let dragFrameVy = drag ? (dragEndY - dragStartY) / frameDt : 0;
+  const dragFrameSpeed = Math.hypot(dragFrameVx, dragFrameVy);
+  if (dragFrameSpeed > maxSpeed && dragFrameSpeed > 0) {
+    const scale = maxSpeed / dragFrameSpeed;
+    dragFrameVx *= scale;
+    dragFrameVy *= scale;
   }
 
-  if (Number(g.shapesBodyCollisionEnabled ?? 1) !== 0) {
-    for (let pass = 0; pass < 6; pass += 1) {
-      resolveBodyCollisions(bodies);
-      for (let i = 0; i < bodies.length; i += 1) {
-        collideBodyWithWalls(bodies[i], g);
+  state.time += frameDt;
+  state.reducedMotion = reduced;
+
+  for (let substep = 0; substep < substeps; substep += 1) {
+    const dragRatio = (substep + 1) / substeps;
+    const dragAnchorX = dragStartX + (dragEndX - dragStartX) * dragRatio;
+    const dragAnchorY = dragStartY + (dragEndY - dragStartY) * dragRatio;
+
+    for (let i = 0; i < bodies.length; i += 1) {
+      const body = bodies[i];
+      body.rubberSquash *= Math.pow(0.68, subDt * 60);
+
+      if (body.isPending) {
+        if (state.time >= body.dropDelay) {
+          releaseBodyFromSequence(body, g);
+        } else {
+          body.x = body.spawnX;
+          body.y = body.spawnY;
+          body.vx = 0;
+          body.vy = 0;
+          body.omega = 0;
+          continue;
+        }
+      }
+
+      if (body.isDragged && drag?.body === body) {
+        applyAnchoredDrag(g, drag, subDt, dragAnchorX, dragAnchorY, dragFrameVx, dragFrameVy);
+        collideBodyWithWalls(body, g);
+        continue;
+      }
+
+      const settleRate = body.reducedMotionRelease && reduced ? 1 / reducedScale : 1;
+      const dampingFactor = Math.pow(damping, subDt * 60 * settleRate);
+      const angularDamping = Math.pow(0.982, subDt * 60 * settleRate);
+      body.vy += gravity * subDt;
+      body.vx *= dampingFactor;
+      body.vy *= dampingFactor;
+      body.omega *= angularDamping;
+      body.omega = clamp(body.omega, -maxAngular, maxAngular);
+      clampBodyLinearSpeed(body, maxSpeed);
+      body.x += body.vx * subDt;
+      body.y += body.vy * subDt;
+      body.angle += body.omega * subDt;
+      collideBodyWithWalls(body, g);
+    }
+
+    if (Number(g.shapesBodyCollisionEnabled ?? 1) !== 0) {
+      for (let pass = 0; pass < collisionPasses; pass += 1) {
+        resolveBodyCollisions(bodies);
+        for (let i = 0; i < bodies.length; i += 1) {
+          collideBodyWithWalls(bodies[i], g);
+        }
       }
     }
+
+    if (drag?.body?.isDragged) syncHeldBodyPose(drag.body);
+  }
+
+  if (drag && state.drag === drag) {
+    drag.physicsAnchorX = dragEndX;
+    drag.physicsAnchorY = dragEndY;
   }
 
   syncDotsToBodies(g);

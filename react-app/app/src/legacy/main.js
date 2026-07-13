@@ -21,8 +21,8 @@ import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
 import { setupOverscrollLock } from './modules/input/overscroll-lock.js';
 import { setupCustomCursor } from './modules/rendering/cursor.js';
-import { setMode, getForceApplicator, initModeSystem, disposeModeSystem } from './modules/modes/mode-controller.js';
-import { startMainLoop } from './modules/rendering/loop.js';
+import { setMode, getForceApplicator, getModeCustomStep, initModeSystem, disposeModeSystem } from './modules/modes/mode-controller.js';
+import { startMainLoop, stopMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/audio/sound-engine.js';
 import { initQuoteDisplay } from './modules/ui/quote-display.js';
@@ -495,6 +495,8 @@ export async function bootstrapHomePage(runtimeContext = {}) {
       window.__ABS_HOME_AUDIT__ = {
         getGlobals,
         getShellConfig,
+        stopMainLoop,
+        stepCurrentMode: (dt) => getModeCustomStep()?.(dt),
         getRuntimeSnapshot: () => {
           const globals = getGlobals();
           const balls = Array.isArray(globals.balls) ? globals.balls : [];

@@ -61,3 +61,15 @@ Loaders and normalizers live under `src/legacy/modules/utils/` and route-specifi
 - The inner wall radius includes an optical compensation multiplier; document and visually certify any change.
 - Shared shell finish is authored once and reused across routes.
 - Convenience presets must explicitly be persistent or UI-only.
+
+### Shapes kinetic grab controls
+
+The Shapes hard-pivot interaction is authored through runtime keys in `design-system.json`:
+
+- `shapesGrabAngularDampingPerSec` controls held spin damping as a per-second exponential rate.
+- `shapesReleaseLinearGain` and `shapesReleaseAngularGain` scale reconstructed release momentum.
+- `shapesMaxSpeed` is the CSS-pixel linear safety cap and is converted through DPR once in the runtime.
+- `shapesMaxAngularSpeed` caps held and released angular velocity in radians per second.
+- `shapesReducedMotionScale` scales release gains/caps and increases post-release settling without disabling the exact pointer anchor.
+
+These controls do not change empty-space sweep behavior. The exact grabbed point remains authoritative; at an infeasible edge pose, wall contacts minimize penetration through rotation rather than moving the anchor away from the pointer.

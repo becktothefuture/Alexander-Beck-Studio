@@ -4722,6 +4722,72 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Velocity damping for the moving shape bodies.'
       },
+      {
+        id: 'shapesGrabAngularDampingPerSec',
+        label: 'Held Spin Damping',
+        stateKey: 'shapesGrabAngularDampingPerSec',
+        type: 'range',
+        min: 0, max: 8, step: 0.1,
+        default: 1.2,
+        format: v => `${Number(v).toFixed(1)}/s`,
+        parse: parseFloat,
+        hint: 'Per-second angular damping while a shape is pinned to the pointer.'
+      },
+      {
+        id: 'shapesReleaseLinearGain',
+        label: 'Throw Gain',
+        stateKey: 'shapesReleaseLinearGain',
+        type: 'range',
+        min: 0, max: 1.5, step: 0.05,
+        default: 1,
+        format: v => Number(v).toFixed(2),
+        parse: parseFloat,
+        hint: 'Multiplier applied to reconstructed centre velocity on release.'
+      },
+      {
+        id: 'shapesReleaseAngularGain',
+        label: 'Spin Gain',
+        stateKey: 'shapesReleaseAngularGain',
+        type: 'range',
+        min: 0, max: 1.5, step: 0.05,
+        default: 1,
+        format: v => Number(v).toFixed(2),
+        parse: parseFloat,
+        hint: 'Multiplier applied to retained angular velocity on release.'
+      },
+      {
+        id: 'shapesMaxSpeed',
+        label: 'Max Throw Speed',
+        stateKey: 'shapesMaxSpeed',
+        type: 'range',
+        min: 80, max: 2400, step: 20,
+        default: 1250,
+        format: v => `${Math.round(v)}px/s`,
+        parse: v => parseInt(v, 10),
+        hint: 'Maximum CSS-pixel speed for held input and released shape movement.'
+      },
+      {
+        id: 'shapesMaxAngularSpeed',
+        label: 'Max Spin',
+        stateKey: 'shapesMaxAngularSpeed',
+        type: 'range',
+        min: 0.5, max: 12, step: 0.1,
+        default: 8,
+        format: v => `${Number(v).toFixed(1)}rad/s`,
+        parse: parseFloat,
+        hint: 'Maximum angular speed while held and after release.'
+      },
+      {
+        id: 'shapesReducedMotionScale',
+        label: 'Reduced Motion Scale',
+        stateKey: 'shapesReducedMotionScale',
+        type: 'range',
+        min: 0.1, max: 1, step: 0.05,
+        default: 0.35,
+        format: v => Number(v).toFixed(2),
+        parse: parseFloat,
+        hint: 'Scales release gains and caps while increasing post-release settling.'
+      },
       warmupFramesControl('shapesWarmupFrames')
     ]
   },

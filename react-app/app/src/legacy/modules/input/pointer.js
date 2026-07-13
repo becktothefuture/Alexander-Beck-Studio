@@ -113,6 +113,7 @@ export function setupPointer() {
       target.closest('#panelDock') ||
       target.closest('#masterPanel') ||
       target.closest('#dockToggle') ||
+      target.closest('.panel-toggle-btn') ||
       target.closest('.panel-dock') ||
       target.closest('.panel') ||
       target.closest('#expertise-legend') ||  // Legend area is UI
@@ -225,13 +226,13 @@ export function setupPointer() {
 
     // Don't track simulation interactions if the user is over the panel UI.
     if (isEventOnUI(target)) {
-      resetPointerState({ keepCoordinates: true, time: now });
+      cancelActivePointer(target, { keepCoordinates: true, time: now });
       return;
     }
     
     // Don't track simulation interactions when gates/overlay are active
     if (isOverlayActive()) {
-      resetPointerState({ keepCoordinates: true, time: now });
+      cancelActivePointer(target, { keepCoordinates: true, time: now });
       return;
     }
 
@@ -330,7 +331,7 @@ export function setupPointer() {
     if (!e.isPrimary) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (isEventOnUI(e.target) || isTargetInteractive(e.target) || isOverlayActive()) {
-      resetPointerState({ keepCoordinates: true });
+      cancelActivePointer(e.target, { keepCoordinates: true });
       return;
     }
 
@@ -366,12 +367,34 @@ export function setupPointer() {
 
   const handlePointerEnd = (e, type) => {
     const now = performance.now();
+    const hasFiniteClientPosition = Number.isFinite(e?.clientX) && Number.isFinite(e?.clientY);
+    const hasMissingTouchEndPosition = e?.pointerType === 'touch'
+      && e.clientX === 0
+      && e.clientY === 0
+      && globals.pointerInCanvas === true;
+    const hasClientPosition = hasFiniteClientPosition && !hasMissingTouchEndPosition;
+    const pos = hasClientPosition
+      ? getCanvasPosition(e.clientX, e.clientY)
+      : {
+        x: globals.pointerX,
+        y: globals.pointerY,
+        inBounds: globals.pointerInCanvas === true
+      };
+    if (hasClientPosition) {
+      updatePointerState(pos, {
+        pointerId: e.pointerId,
+        pointerType: e.pointerType || globals.pointerType || 'mouse',
+        active: false,
+        eventType: type,
+        time: now
+      });
+    }
     emitScenePointer(type, {
-      x: globals.mouseX,
-      y: globals.mouseY,
+      x: pos.x,
+      y: pos.y,
       clientX: e.clientX,
       clientY: e.clientY,
-      inBounds: globals.mouseInCanvas,
+      inBounds: pos.inBounds,
       target: e.target,
       pointerId: e.pointerId,
       pointerType: e.pointerType || 'mouse',
@@ -386,6 +409,29 @@ export function setupPointer() {
     globals.pointerActive = false;
     globals.pointerInputId = null;
     globals.pointerJustEnteredCanvas = false;
+  };
+
+  const cancelActivePointer = (target = document, { keepCoordinates = false, time = performance.now() } = {}) => {
+    if (globals.pointerActive === true || globals.pointerInputId !== null) {
+      emitScenePointer('cancel', {
+        x: globals.pointerX,
+        y: globals.pointerY,
+        clientX: null,
+        clientY: null,
+        inBounds: false,
+        target,
+        pointerId: globals.pointerInputId,
+        pointerType: globals.pointerType || 'mouse',
+        time,
+        velocity: 0,
+        dirX: 0,
+        dirY: 0,
+        active: false,
+        sequence: globals.pointerSequence || 0,
+        justEnteredCanvas: false
+      });
+    }
+    resetPointerState({ keepCoordinates, time });
   };
 
   document.addEventListener('pointerup', (e) => {
@@ -506,12 +552,21 @@ export function setupPointer() {
   /**
    * Reset mouse when leaving window
    */
-  document.addEventListener('mouseleave', () => {
+  document.addEventListener('mouseleave', (event) => {
+    cancelActivePointer(event.target || document);
     resetPointerState();
     mouseVelocity = 0;
     mouseDirX = 0;
     mouseDirY = 0;
     hideCursor();
+  }, { passive: true });
+
+  window.addEventListener('blur', () => {
+    cancelActivePointer(window);
+  }, { passive: true });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) cancelActivePointer(document);
   }, { passive: true });
   
   /**
