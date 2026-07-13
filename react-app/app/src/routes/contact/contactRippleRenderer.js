@@ -11,6 +11,9 @@ const POINTER_FRESH_MS = 720;
 const POINTER_MAX_ROTATION = Math.PI / 30;
 const POINTER_ACTIVE_RESPONSE = 3.2;
 const POINTER_RETURN_RESPONSE = 1.35;
+const IDLE_ROTATION_SPEED = 0.045;
+const POINTER_MAX_SPEED_BOOST = 0.42;
+const POINTER_SPEED_RESPONSE = 5.5;
 const DEFAULT_PALETTE = ['#a7afb0', '#c6cecf', '#f5f8f6', '#00a5a0', '#031210', '#d7ff2f', '#2c96ff', '#ff7e4a'];
 const DEFAULT_DISTRIBUTION = [
   { colorIndex: 0, weight: 31 },
@@ -180,9 +183,13 @@ export function createContactRippleRenderer({
     active: false,
     target: 0,
     rotation: 0,
+    speedBoost: 0,
+    speedBoostTarget: 0,
+    driftRotation: 0,
     lastAt: -Infinity,
     lastInputAt: -Infinity,
     lastX: 0,
+    lastY: 0,
   };
 
   stage.dataset.contactRippleState = reducedMotion ? 'reduced-idle' : 'idle';
@@ -349,7 +356,7 @@ export function createContactRippleRenderer({
     return idleAlpha + ((config.outerRingAlpha - idleAlpha) * burstLift);
   }
 
-  function updatePointerRotation(now, isReduced) {
+  function updateRingRotation(now, isReduced) {
     const dt = lastMotionFrameAt
       ? clamp((now - lastMotionFrameAt) / 1000, 1 / 240, 1 / 20)
       : 1 / 60;
@@ -362,18 +369,30 @@ export function createContactRippleRenderer({
     const alpha = 1 - Math.exp(-dt * response);
     pointerMotion.rotation += (target - pointerMotion.rotation) * alpha;
     if (!pointerFresh && Math.abs(pointerMotion.rotation) < 0.00005) pointerMotion.rotation = 0;
+
+    const speedBoostTarget = pointerFresh ? pointerMotion.speedBoostTarget : 0;
+    const speedAlpha = 1 - Math.exp(-dt * POINTER_SPEED_RESPONSE);
+    pointerMotion.speedBoost += (speedBoostTarget - pointerMotion.speedBoost) * speedAlpha;
+    if (!pointerFresh && pointerMotion.speedBoost < 0.0001) pointerMotion.speedBoost = 0;
+    if (!isReduced) {
+      pointerMotion.driftRotation = (
+        pointerMotion.driftRotation + ((IDLE_ROTATION_SPEED + pointerMotion.speedBoost) * dt)
+      ) % TAU;
+    }
     if (diagnostics) {
       diagnostics.pointerActive = pointerFresh;
       diagnostics.pointerRotation = pointerMotion.rotation;
       diagnostics.pointerTarget = target;
+      diagnostics.pointerSpeedBoost = pointerMotion.speedBoost;
+      diagnostics.driftRotation = pointerMotion.driftRotation;
     }
-    return pointerMotion.rotation;
+    return pointerMotion.rotation + pointerMotion.driftRotation;
   }
 
   function drawField(now, reducedEmphasis = null) {
     const elapsed = now - startedAt;
     const isReduced = reducedEmphasis !== null;
-    const pointerRotation = updatePointerRotation(now, isReduced);
+    const ringRotation = updateRingRotation(now, isReduced);
     const burstElapsed = now - burstStartedAt;
     const burstProgress = burstElapsed / config.burstDurationMs;
     const burstActive = burstElapsed >= 0 && burstProgress < 1;
@@ -406,7 +425,7 @@ export function createContactRippleRenderer({
       const renderedRadius = body.baseRadius + idleOffset + radialKick;
       const ringDepth = clamp(body.baseRadius / metrics.maxRadius, 0, 1);
       const renderedAngle = body.angle
-        + (pointerRotation * body.ringDirection * (0.58 + (ringDepth * 0.42)));
+        + (ringRotation * body.ringDirection * (0.58 + (ringDepth * 0.42)));
       const cos = Math.cos(renderedAngle);
       const sin = Math.sin(renderedAngle);
       const x = metrics.centerX + (cos * renderedRadius) - (sin * tangentialKick);
@@ -486,6 +505,7 @@ export function createContactRippleRenderer({
   function resetPointerMotion() {
     pointerMotion.active = false;
     pointerMotion.target = 0;
+    pointerMotion.speedBoostTarget = 0;
     pointerMotion.lastInputAt = -Infinity;
     requestFrame();
   }
@@ -510,12 +530,18 @@ export function createContactRippleRenderer({
     const velocityX = Number.isFinite(pointerMotion.lastInputAt)
       ? clamp((localX - pointerMotion.lastX) / Math.max(1, rect.width) / inputDt, -0.9, 0.9)
       : 0;
+    const velocityY = Number.isFinite(pointerMotion.lastInputAt)
+      ? clamp((localY - pointerMotion.lastY) / Math.max(1, rect.height) / inputDt, -0.9, 0.9)
+      : 0;
+    const pointerSpeed = clamp(Math.hypot(velocityX, velocityY) / 0.9, 0, 1);
     const influence = (xNorm * 0.72) + (yNorm * 0.10) + (velocityX * 0.18);
     pointerMotion.active = true;
     pointerMotion.target = clamp(influence * POINTER_MAX_ROTATION, -POINTER_MAX_ROTATION, POINTER_MAX_ROTATION);
+    pointerMotion.speedBoostTarget = pointerSpeed * POINTER_MAX_SPEED_BOOST;
     pointerMotion.lastAt = now;
     pointerMotion.lastInputAt = now;
     pointerMotion.lastX = localX;
+    pointerMotion.lastY = localY;
     requestFrame();
   }
 
