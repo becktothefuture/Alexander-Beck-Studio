@@ -40,6 +40,17 @@
     inset 0 -2.5px 2.5px -1px var(--dominant-utility-light);
 }
 
+body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
+  --dominant-utility-light: rgba(var(--abs-rgb-white), 0.22);
+}
+
+.button-bar[data-button-bar-material='dominant-tab'] .shell-tab {
+  transition:
+    background 160ms var(--shell-tab-motion-ease),
+    color 160ms var(--shell-tab-motion-ease),
+    transform 160ms var(--shell-tab-motion-ease);
+}
+
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
   .shell-tab[data-route-tab='home'] {
