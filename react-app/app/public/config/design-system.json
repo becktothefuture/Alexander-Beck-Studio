@@ -91,7 +91,6 @@
     "modalDepthTranslateY": 8,
     "containerBorderVw": 1.9,
     "wallInset": 5,
-    "simulationPaddingVw": 0.2,
     "bgLight": "#e9e9e9",
     "bgDark": "#141414",
     "textColorLight": "#161616",
@@ -132,7 +131,6 @@
         "weight": 10
       }
     ],
-    "wallRadiusVw": 4.5,
     "innerWallGradientEdgeTopOpacity": 0.31,
     "innerWallGradientEdgeTopShadowOpacity": 0.57,
     "innerWallGradientEdgeWidth": 2.5,
@@ -375,7 +373,6 @@
     "frameBorderWidth": 0,
     "frameBorderWidthMobile": 4,
     "layoutMinContentPaddingPx": 0,
-    "layoutMinWallRadiusPx": 32,
     "soundPreset": "crystalPebbles",
     "soundConfig": {
       "attackTime": 0.003,

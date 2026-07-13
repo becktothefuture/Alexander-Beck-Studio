@@ -61,12 +61,9 @@ export function buildRuntimeConfigSnapshot() {
   config.wallThicknessVw = g.wallThicknessVw;
   config.frameBorderWidth = g.frameBorderWidth;
   config.frameBorderWidthMobile = g.frameBorderWidthMobile;
-  config.simulationPaddingVw = g.simulationPaddingVw;
   config.contentPaddingVw = g.contentPaddingVw;
   config.contentPaddingHorizontalRatio = g.contentPaddingHorizontalRatio;
-  config.wallRadiusVw = g.wallRadiusVw;
   config.layoutMinContentPaddingPx = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
-  config.layoutMinWallRadiusPx = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));
 
   try {
     config.soundPreset = getCurrentPreset();

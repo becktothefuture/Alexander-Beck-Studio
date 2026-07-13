@@ -362,8 +362,8 @@ const state = {
   hiveGoalReachedRadius: 50,      // distance threshold to consider goal reached (10-200)
   hivePathAdherence: 0.5,         // probability to pick next sequential point vs random (0-1)
   
-  // Corner (matches CSS border-radius for collision bounds)
-  cornerRadius: 42,
+  // Corner (matches the canonical CSS frame radius for collision bounds)
+  cornerRadius: 32,
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Layout: vw-native controls (derived to px on demand)
@@ -379,7 +379,6 @@ const state = {
 
   // Canonical layout knobs (vw units)
   containerBorderVw: 0,     // outer inset from viewport (vw)
-  simulationPaddingVw: 0,   // inner inset around canvas (vw)
   // Additive chrome “breath” beyond wall thickness: fraction of layout **width** only (not height / not sqrt area).
   //   addPx = layoutWidthPx * contentPaddingRatio
   // (Back-compat: if config provides a large value (|v| > 1), we treat it as legacy px and divide by width.)
@@ -389,7 +388,6 @@ const state = {
   mobileWallThicknessXFactor: 1.4,    // wall thickness multiplier for LEFT/RIGHT on mobile (1.0 = same as desktop)
   desktopWallThicknessFactor: 1.0,    // wall thickness multiplier for TOP/BOTTOM on desktop (1.0 = base)
   mobileEdgeLabelsVisible: true,     // whether to show edge labels on mobile (default: visible)
-  wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
   wallThicknessVw: 4,       // wall inset / frame thickness (vw); default 4vw
   wallThicknessAreaMultiplier: 1.0,  // multiplier for area-based wall thickness scaling (1.0 = no area scaling)
   wallThicknessMinPx: 6,    // minimum wall thickness clamp (px) for small viewports
@@ -431,13 +429,6 @@ const state = {
   noiseColorDark: '#202023', // Dark ink — never brightens dark walls
   detailNoiseOpacity: 1, // Overall opacity multiplier for detail page noise (0-1)
 
-  // Minimum clamp targets (px)
-  // These define the “clamp down towards” values on small viewports, where vw-derived
-  // padding/radius can become too tight. Kept here so:
-  // - The clamp logic uses the same source of truth
-  // - The control panel can display the effective minimums
-  layoutMinWallRadiusPx: 28,
-  
   // Wall collision inset (px). Helps prevent visual overlap with the wall edge.
   // This is distinct from radius: it shrinks the effective collision bounds uniformly.
   wallInset: 5,
@@ -757,8 +748,8 @@ const state = {
   frameBorderWidth: 20,     // Desktop visual wall thickness / frame band (px)
   frameBorderWidthMobile: 4, // Mobile visual wall thickness / frame band (px)
   frameBorderWidthEffective: 20,
-  frameOuterRadius: 46,      // Derived outer corner radius in px
-  frameInnerRadius: 42,      // Canonical inner corner radius in px
+  frameOuterRadius: 32,      // Canonical outer corner radius in px
+  frameInnerRadius: 32,      // Canonical inner corner radius in px
   frameInnerSurface: 'var(--studio-window-bg)', // Theme-aware studio-window fill
   frameBorderGradientEdgeOpacity: 0.012, // Border gradient edge (180°; L/R rails pick up mid stop)
   frameBorderGradientMidOpacity: 0.025,  // Mid stop — ~2:1 vs edge
@@ -797,7 +788,7 @@ const state = {
   footerNavBarGapVw: 2.5,             // Sets `--footer-nav-bar-gap` (viewport units)
   ...BUTTON_BAR_DEFAULTS,
   wallThickness: 12,        // Unified: wall tubes + body border (px)
-  wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
+  wallRadius: 32,           // Corner radius - shared by all rounded elements (px)
 
   // ═══════════════════════════════════════════════════════════════════════════════
   // WALL SHADOW - Recessed panel depth effect
@@ -1025,10 +1016,10 @@ const state = {
     return CONSTANTS.SQUASH_MAX_BASE * (this.ballSoftness / 40.0);
   },
   
-  // Canvas corner radius = container radius - simulation padding
-  // Used by physics for corner collision detection
+  // Canvas corner radius = canonical frame radius.
+  // Used by physics for corner collision detection.
   getCanvasCornerRadius() {
-    return Math.max(0, this.cornerRadius - this.simulationPadding);
+    return Math.max(0, this.cornerRadius);
   }
 };
 
@@ -1113,10 +1104,12 @@ export function applyLayoutFromVwToPx() {
     : 0;
 
   const borderPx = vwToPx(outerInsetVw, w);
-  const simPadPx = vwToPx(state.simulationPaddingVw, w);
-  const radiusPx = vwToPx(state.wallRadiusVw, w);
-
-  const minWallRadiusPx = Math.max(0, Math.round(state.layoutMinWallRadiusPx || 0));
+  const canonicalFrameRadiusPx = Math.max(0, Math.round(
+    readTokenPx(
+      '--abs-frame-radius-value',
+      readTokenPx('--abs-frame-radius', state.wallRadius || 32)
+    ) || 32
+  ));
 
   const baseThicknessPx = vwToPx(wallThicknessVw, w);
 
@@ -1146,7 +1139,7 @@ export function applyLayoutFromVwToPx() {
   // Vertical (top/bottom) uses desktop factor, horizontal (left/right) gets mobile factor
   state.containerBorder = Math.round(borderPx * desktopWallFactor); // Y (top/bottom)
   state.containerBorderX = Math.round(borderPx * mobileWallXFactor); // X (left/right)
-  state.simulationPadding = Math.round(simPadPx);
+  state.simulationPadding = 0;
   
   // Wall thickness: area-scaled base × axis-specific factor (desktop = Y, mobile = X)
   const thicknessMul = isMobileLayout ? mobileWallXFactor : desktopWallFactor;
@@ -1177,7 +1170,7 @@ export function applyLayoutFromVwToPx() {
   state.contentPaddingY = state.contentPadding;
   state.contentPaddingX = Math.round(structuralMinX + Math.min(breathPx * horizRatio, 64));
   
-  state.wallRadius = Math.max(minWallRadiusPx, Math.round(radiusPx));
+  state.wallRadius = canonicalFrameRadiusPx;
   state.cornerRadius = state.wallRadius;
 
   // Cursor influence radius (vw → px), then apply mode multipliers.
@@ -1244,7 +1237,7 @@ export function applyLayoutCSSVars() {
   const frameBorderWidthDesktop = clampInt(state.frameBorderWidth, 0, 40, 0);
   const frameBorderWidthMobile = clampInt(state.frameBorderWidthMobile, 0, 40, frameBorderWidthDesktop);
   const frameBorderWidth = isMobileLayout ? frameBorderWidthMobile : frameBorderWidthDesktop;
-  const frameInnerRadius = clampInt(state.wallRadius, 0, 300, 42);
+  const frameInnerRadius = clampInt(state.wallRadius, 0, 300, 32);
   const frameOuterRadius = Math.max(frameInnerRadius, frameInnerRadius + frameBorderWidth);
   const frameInnerSurface = 'var(--studio-window-bg)';
   const frameBorderGradientEdgeOpacity = clampNumber(state.frameBorderGradientEdgeOpacity, 0, 1, 0.012);
@@ -1860,13 +1853,8 @@ export function initState(config) {
   if (config.critterEdgeAvoid !== undefined) state.critterEdgeAvoid = config.critterEdgeAvoid;
   if (config.critterMousePull !== undefined) state.critterMousePull = config.critterMousePull;
   
-  // Layout min clamp targets (px)
-  // These define the minimum padding/radius we clamp down towards on small viewports.
-  if (config.layoutMinWallRadiusPx !== undefined) {
-    state.layoutMinWallRadiusPx = clampNumber(config.layoutMinWallRadiusPx, 0, 400, state.layoutMinWallRadiusPx);
-  } else {
-    state.layoutMinWallRadiusPx = readTokenPx('--layout-min-wall-radius', state.layoutMinWallRadiusPx);
-  }
+  // Layout min radius was deprecated when frame/wall/simulation radius became a
+  // single --abs-frame-radius token.
   if (config.critterMouseRadiusVw !== undefined) state.critterMouseRadiusVw = config.critterMouseRadiusVw;
   if (config.critterRestitution !== undefined) state.critterRestitution = config.critterRestitution;
   if (config.critterFriction !== undefined) state.critterFriction = config.critterFriction;
@@ -2128,7 +2116,9 @@ export function initState(config) {
   
   // Two-level padding system
   if (config.containerBorder !== undefined) state.containerBorder = config.containerBorder;
-  if (config.simulationPadding !== undefined) state.simulationPadding = config.simulationPadding;
+  // Deprecated radius override. The simulation and wall always use
+  // --abs-frame-radius through applyLayoutFromVwToPx().
+  if (config.simulationPadding !== undefined) state.simulationPadding = 0;
   if (config.contentPadding !== undefined) state.contentPadding = config.contentPadding;
   // Container inner shadow removed
   
@@ -2449,11 +2439,8 @@ export function initState(config) {
   if (config.detailNoiseOpacity !== undefined) state.detailNoiseOpacity = clampNumber(config.detailNoiseOpacity, 0, 1, state.detailNoiseOpacity);
   
   if (config.wallThickness !== undefined) state.wallThickness = config.wallThickness;
-  if (config.wallRadius !== undefined) {
-    state.wallRadius = config.wallRadius;
-    // Keep physics corner collision aligned to the visual radius.
-    state.cornerRadius = config.wallRadius;
-  }
+  // Deprecated radius override. The simulation and wall always use
+  // --abs-frame-radius through applyLayoutFromVwToPx().
   if (config.wallInset !== undefined) {
     state.wallInset = clampInt(config.wallInset, 0, 48, state.wallInset);
   }
@@ -2608,7 +2595,6 @@ export function initState(config) {
 
   // Canonical vw keys (preferred)
   if (config.containerBorderVw !== undefined) state.containerBorderVw = clampNumber(config.containerBorderVw, 0, 20, state.containerBorderVw);
-  if (config.simulationPaddingVw !== undefined) state.simulationPaddingVw = clampNumber(config.simulationPaddingVw, 0, 20, state.simulationPaddingVw);
   if (config.contentPaddingRatio !== undefined) {
     const v = Number(config.contentPaddingRatio);
     if (Number.isFinite(v)) {
@@ -2626,7 +2612,6 @@ export function initState(config) {
   if (config.mobileWallThicknessXFactor !== undefined) state.mobileWallThicknessXFactor = clampNumber(config.mobileWallThicknessXFactor, 0.5, 3.0, state.mobileWallThicknessXFactor);
   if (config.desktopWallThicknessFactor !== undefined) state.desktopWallThicknessFactor = clampNumber(config.desktopWallThicknessFactor, 0.5, 3.0, state.desktopWallThicknessFactor);
   if (config.mobileEdgeLabelsVisible !== undefined) state.mobileEdgeLabelsVisible = !!config.mobileEdgeLabelsVisible;
-  if (config.wallRadiusVw !== undefined) state.wallRadiusVw = clampNumber(config.wallRadiusVw, 0, 40, state.wallRadiusVw);
   if (config.wallThicknessVw !== undefined) state.wallThicknessVw = clampNumber(config.wallThicknessVw, 0, 20, state.wallThicknessVw);
   if (config.wallThicknessAreaMultiplier !== undefined) state.wallThicknessAreaMultiplier = clampNumber(config.wallThicknessAreaMultiplier, 0, 10, state.wallThicknessAreaMultiplier);
   if (config.wallThicknessMinPx !== undefined) state.wallThicknessMinPx = clampNumber(config.wallThicknessMinPx, 0, 200, state.wallThicknessMinPx);
@@ -2640,10 +2625,6 @@ export function initState(config) {
     const legacyInsetPx = readTokenPx('--safari-tint-inset', null);
     if (Number.isFinite(legacyInsetPx) && legacyInsetPx > 0) state.containerBorderVw = pxToVw(legacyInsetPx, basisW);
   }
-  if (!(Number.isFinite(state.wallRadiusVw) && state.wallRadiusVw > 0)) {
-    const tokenRadiusVw = readTokenNumber('--wall-radius-vw', null);
-    if (Number.isFinite(tokenRadiusVw) && tokenRadiusVw > 0) state.wallRadiusVw = tokenRadiusVw;
-  }
   if (!(Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)) {
     const tokenThicknessVw = readTokenNumber('--wall-thickness-vw', null);
     if (Number.isFinite(tokenThicknessVw) && tokenThicknessVw > 0) state.wallThicknessVw = tokenThicknessVw;
@@ -2653,12 +2634,6 @@ export function initState(config) {
   // the current (or virtual) viewport width.
   if (!(Number.isFinite(state.containerBorderVw) && state.containerBorderVw > 0)) {
     state.containerBorderVw = pxToVw(state.containerBorder, basisW);
-  }
-  if (!(Number.isFinite(state.simulationPaddingVw) && state.simulationPaddingVw >= 0)) {
-    state.simulationPaddingVw = pxToVw(state.simulationPadding, basisW);
-  }
-  if (!(Number.isFinite(state.wallRadiusVw) && state.wallRadiusVw > 0)) {
-    state.wallRadiusVw = pxToVw(state.wallRadius, basisW);
   }
   if (!(Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)) {
     state.wallThicknessVw = pxToVw(state.wallThickness, basisW);

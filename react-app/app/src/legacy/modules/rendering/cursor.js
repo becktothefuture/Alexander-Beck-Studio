@@ -8,12 +8,13 @@ import { getGlobals } from '../core/state.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
 import { triggerCursorExplosion, updateMouseVelocity } from '../visual/cursor-explosion.js';
 import { getMouseVelocity, getMouseDirection } from '../input/pointer.js';
-import { getSimulationVisibleInsetCssPx } from '../utils/frame-geometry.js';
 
 let cursorElement = null;
 let isInitialized = false;
 /** Prevents duplicate `abs-link-hover` listeners across SPA re-bootstrap */
 let linkHoverListening = false;
+/** Keeps the custom cursor available on React route runtimes that do not boot legacy pointer.js. */
+let documentCursorTracking = false;
 let isInSimulation = false;
 let cachedContainerRect = null;
 let rectCacheTime = 0;
@@ -24,9 +25,9 @@ const HOME_DOT_FALLBACK_CSS_PX = 24;
 const HOME_DOT_MIN_CSS_PX = 11;
 const HOME_DOT_MAX_CSS_PX = 53;
 const PORTFOLIO_DECK_CURSOR_Z_INDEX = 940;
+const HOME_CURSOR_Z_INDEX = 19990;
 const TAP_CURSOR_Z_INDEX = 19990;
 const MODAL_CURSOR_Z_INDEX = 20000;
-let cachedFrameInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 let fadeInStarted = false;
 let fadeInAnimation = null;
 let wasOverLink = false; // Track previous hover state for transition detection
@@ -67,6 +68,27 @@ function unwireLinkHoverListener() {
   linkHoverListening = false;
 }
 
+function handleDocumentCursorPointerMove(event) {
+  if (event?.pointerType && event.pointerType !== 'mouse') {
+    hideCursor();
+    return;
+  }
+  updateCursorPosition(event.clientX, event.clientY);
+}
+
+function handleDocumentCursorMouseMove(event) {
+  if (window.PointerEvent) return;
+  updateCursorPosition(event.clientX, event.clientY);
+}
+
+function wireDocumentCursorTracking() {
+  if (documentCursorTracking) return;
+  document.addEventListener('pointermove', handleDocumentCursorPointerMove, { passive: true });
+  document.addEventListener('mousemove', handleDocumentCursorMouseMove, { passive: true });
+  document.addEventListener('mouseleave', hideCursor, { passive: true });
+  documentCursorTracking = true;
+}
+
 /**
  * SPA remounts can drop `#custom-cursor` from the tree while module flags stay true;
  * `setupCustomCursor()` would then no-op and pointer updates hit a detached node.
@@ -90,8 +112,9 @@ function ensureLiveCustomCursorElement() {
 }
 
 /**
- * Check if mouse is inside the frame interior (the actual simulation content area).
- * Uses #simulations bounds minus its border widths.
+ * Check if mouse is inside the visible studio window.
+ * The native cursor returns outside this rectangle; the custom circle owns the
+ * whole in-window surface, including route UI and modal controls.
  * Uses cached bounding rect for performance
  * This keeps cursor behavior aligned with the simplified frame DOM.
  */
@@ -103,26 +126,15 @@ function isMouseInSimulation(clientX, clientY) {
   const now = performance.now();
   if (!cachedContainerRect || (now - rectCacheTime) > RECT_CACHE_MS) {
     cachedContainerRect = container.getBoundingClientRect();
-    const visibleInset = getSimulationVisibleInsetCssPx(getGlobals());
-    cachedFrameInsets = {
-      top: visibleInset,
-      right: visibleInset,
-      bottom: visibleInset,
-      left: visibleInset
-    };
     rectCacheTime = now;
   }
   
   const rect = cachedContainerRect;
-  const left = rect.left + cachedFrameInsets.left;
-  const right = rect.right - cachedFrameInsets.right;
-  const top = rect.top + cachedFrameInsets.top;
-  const bottom = rect.bottom - cachedFrameInsets.bottom;
   return (
-    clientX >= left &&
-    clientX <= right &&
-    clientY >= top &&
-    clientY <= bottom
+    clientX >= rect.left &&
+    clientX <= rect.right &&
+    clientY >= rect.top &&
+    clientY <= rect.bottom
   );
 }
 
@@ -220,6 +232,7 @@ export function setupCustomCursor() {
   }
 
   if (isInitialized && cursorElement?.isConnected) {
+    wireDocumentCursorTracking();
     updateCursorSize();
     return;
   }
@@ -230,6 +243,7 @@ export function setupCustomCursor() {
     isInitialized = true;
     ensureCursorLabel();
     wireLinkHoverListener();
+    wireDocumentCursorTracking();
     updateCursorSize();
     stray.style.opacity = '1';
     fadeInStarted = false;
@@ -251,6 +265,7 @@ export function setupCustomCursor() {
 
   isInitialized = true;
   wireLinkHoverListener();
+  wireDocumentCursorTracking();
   updateCursorSize();
   startCursorFadeIn();
 }
@@ -304,19 +319,15 @@ function applyTapRingMount(clientX, clientY, overlayIsActive) {
 }
 
 function applyHomeDotMount(clientX, clientY) {
-  const container = document.getElementById('simulations');
-  if (container && cursorElement.parentElement !== container) {
-    container.appendChild(cursorElement);
+  if (cursorElement.parentElement !== document.body) {
+    document.body.appendChild(cursorElement);
   }
-  cursorElement.style.position = 'absolute';
+  cursorElement.style.position = 'fixed';
   cursorElement.style.zIndex = shouldElevatePortfolioDeckCursor()
     ? String(PORTFOLIO_DECK_CURSOR_Z_INDEX)
-    : '3';
-  if (container) {
-    const rect = container.getBoundingClientRect();
-    cursorElement.style.left = `${clientX - rect.left}px`;
-    cursorElement.style.top = `${clientY - rect.top}px`;
-  }
+    : String(HOME_CURSOR_Z_INDEX);
+  cursorElement.style.left = `${clientX}px`;
+  cursorElement.style.top = `${clientY}px`;
   cursorElement.classList.remove('abs-cursor-tap');
   cursorElement.classList.remove('modal-active');
   const d = getHomeCursorDotDiameterCssPx();
@@ -492,13 +503,13 @@ export function updateCursorPosition(clientX, clientY) {
 
   const shouldUseHomeDot = shouldUseHomeDotCursor();
   const homeDot = shouldUseHomeDot && isInSimulation && !overlayIsActive && !useDevChromeTapRing;
-  const tapRing = overlayIsActive || useDevChromeTapRing || (!shouldUseHomeDot && isInSimulation);
+  const tapRing = isInSimulation && (overlayIsActive || useDevChromeTapRing || !shouldUseHomeDot);
 
   if (!overlayIsActive) {
     cursorElement.classList.remove('modal-active');
   }
 
-  const showCustomCursor = overlayIsActive || homeDot || tapRing;
+  const showCustomCursor = homeDot || tapRing;
   if (showCustomCursor) {
     document.body.classList.add('abs-in-simulation');
   } else {
@@ -516,7 +527,7 @@ export function updateCursorPosition(clientX, clientY) {
       return;
     }
     cursorElement.style.display = 'block';
-    cursorElement.style.transform = ZERO_SCALE;
+    cursorElement.style.transform = FULL_SCALE;
     return;
   }
 
@@ -538,15 +549,7 @@ export function updateCursorPosition(clientX, clientY) {
 
   cursorElement.style.display = 'block';
 
-  if (homeDot && !wasInSimulation) {
-    cursorElement.style.transform = ZERO_SCALE;
-    cursorElement.offsetHeight;
-    requestAnimationFrame(() => {
-      if (cursorElement) {
-        cursorElement.style.transform = FULL_SCALE;
-      }
-    });
-  }
+  cursorElement.style.transform = FULL_SCALE;
 }
 
 export function refreshCursor() {

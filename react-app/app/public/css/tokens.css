@@ -168,7 +168,6 @@
   /* Radii & Layout Metrics */
   --abs-radius-1: 1px;
   --abs-radius-9: 9px;
-  --abs-radius-wall-min: 32px;
   --abs-radius-card: 3vmin;
   --abs-radius-input: 8px;
   --abs-radius-cta: 10px;
@@ -176,7 +175,6 @@
 
   --abs-container-border-vw: 1.9;
   --abs-wall-thickness-vw: 2;
-  --abs-wall-radius-vw: 4.5;
   --abs-layout-min-padding: 16px;
 
   /* Opacity Scale */
@@ -387,8 +385,6 @@
   /* Layout + Radius */
   --container-border-vw: var(--abs-container-border-vw);
   --wall-thickness-vw: var(--abs-wall-thickness-vw);
-  --wall-radius-vw: var(--abs-wall-radius-vw);
-  --layout-min-wall-radius: var(--abs-radius-wall-min);
   --layout-min-content-padding: var(--abs-layout-min-padding);
   --wall-thickness: calc(var(--wall-thickness-vw) * 1vw);
   --wall-radius: var(--abs-frame-radius);

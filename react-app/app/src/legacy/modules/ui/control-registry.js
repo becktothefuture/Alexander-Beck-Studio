@@ -2289,41 +2289,6 @@ export const CONTROL_SECTIONS = {
             }
           }).catch(() => {});
         }
-      },
-      {
-        id: 'simulationPaddingVw',
-        label: 'Corner padding (vw)',
-        stateKey: 'simulationPaddingVw',
-        type: 'range',
-        min: 0, max: 2, step: 0.05,
-        default: 0,
-        format: v => `${Number(v).toFixed(2)}vw`,
-        parse: parseFloat,
-        hint: 'Shrinks the physics corner radius vs the wall (--simulation-padding, getCanvasCornerRadius). Use with wall inset to keep rounded corners off the rim.',
-        onChange: (g) => {
-          Promise.all([
-            import('../core/state.js'),
-            import('../physics/Ball.js')
-          ]).then(([stateMod, ballMod]) => {
-            try {
-              stateMod.applyLayoutFromVwToPx();
-              stateMod.applyLayoutCSSVars();
-            } catch (e) {}
-            try { resize(); } catch (e) {}
-            const canvas = g?.canvas;
-            const balls = Array.isArray(g?.balls) ? g.balls : [];
-            const w = Number(canvas?.width) || 0;
-            const h = Number(canvas?.height) || 0;
-            if (w <= 0 || h <= 0) return;
-            for (let i = 0; i < balls.length; i += 1) {
-              const ball = balls[i];
-              if (!ball) continue;
-              ballMod.clampBallPositionToWallInterior(ball, w, h);
-              ball.isSleeping = false;
-              ball.sleepTimer = 0;
-            }
-          }).catch(() => {});
-        }
       }
     ]
   },
@@ -2679,24 +2644,7 @@ export const CONTROL_SECTIONS = {
     icon: '🖼️',
     defaultOpen: false,
     controls: [
-      { type: 'divider', label: 'Frame Geometry' },
       { type: 'divider', label: 'Wall Layout' },
-      {
-        id: 'wallRadiusVw',
-        label: 'Corner Radius',
-        stateKey: 'wallRadiusVw',
-        type: 'range',
-        min: 0, max: 12, step: 0.1,
-        default: 3.7,
-        format: v => `${v.toFixed(1)}vw`,
-        parse: parseFloat,
-        onChange: (g, val) => {
-          import('../core/state.js').then(mod => {
-            mod.applyLayoutFromVwToPx();
-            mod.applyLayoutCSSVars();
-          });
-        }
-      },
       {
         id: 'restitution',
         label: 'Bounce',

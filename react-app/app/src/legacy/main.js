@@ -136,9 +136,9 @@ function getUrlStartupModeOverride() {
  *
  * Two-level system:
  * 1. --container-border: insets #simulations from viewport (reveals body bg as outer frame)
- * 2. --simulation-padding: padding inside container around canvas (inner breathing room)
+ * 2. --simulation-padding: deprecated/no-op; simulation corners use --abs-frame-radius
  *
- * The canvas radius auto-calculates via CSS: calc(var(--container-radius) - var(--simulation-padding))
+ * The canvas, wall, frame, and physics corner radius all use --abs-frame-radius.
  */
 /**
  * Apply visual CSS variables (noise opacity/size, walls) from config to :root

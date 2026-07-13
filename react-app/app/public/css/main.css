@@ -235,13 +235,8 @@ body.body {
 /* (Intentionally no portfolio/cv override here.)
    Portfolio/CV now run the same WAAPI fade-in sequence as index. */
 
-/* Hide cursor only when mouse is inside inner wall area (class set by JS)
-   Custom cursor appears in inner wall area; default cursor shows outside */
-body.abs-in-simulation,
-body.abs-in-simulation *,
-body.abs-in-simulation *:hover,
-/* Hide default cursor when mouse is inside inner wall area (class set by cursor.js)
-   Custom cursor appears in inner wall area; default cursor shows outside */
+/* Hide default cursor only while cursor.js reports the pointer inside the studio window.
+   The custom cursor owns the in-window UI; the system cursor returns outside the window. */
 body.abs-in-simulation,
 body.abs-in-simulation *,
 body.abs-in-simulation *:hover,
@@ -272,22 +267,18 @@ body.abs-in-simulation .panel a {
   cursor: pointer !important;
 }
 
-/* Footer social icons keep the native pointer while the custom cursor implodes on hover. */
+/* In-window controls keep the custom cursor. The system cursor returns only outside the studio window. */
 body.abs-in-simulation #social-links .footer_icon-link,
 body.abs-in-simulation #social-links .footer_icon-link *,
 body.abs-in-simulation #social-links .footer_icon-link:hover,
 body.abs-in-simulation #social-links .footer_icon-link:focus,
-body.abs-in-simulation #social-links .footer_icon-link:active {
-  cursor: pointer !important;
-}
-
-/* Simulation focus controls keep the native cursor while sitting inside the custom-cursor wall. */
+body.abs-in-simulation #social-links .footer_icon-link:active,
 body.abs-in-simulation .simulation-focus-switcher-slot,
 body.abs-in-simulation .simulation-focus-switcher-slot *,
 body.abs-in-simulation .simulation-focus-switcher-slot:hover,
 body.abs-in-simulation .simulation-focus-switcher-slot:focus,
 body.abs-in-simulation .simulation-focus-switcher-slot:active {
-  cursor: pointer !important;
+  cursor: none !important;
 }
 
 /* Modal overlays also use custom cursor */
@@ -297,7 +288,7 @@ body.abs-in-simulation .simulation-focus-switcher-slot:active {
   cursor: none !important;
 }
 
-/* The simulation chooser modal is a native-pointer surface. */
+/* The simulation chooser modal is an in-window surface; keep the custom cursor as the only cursor. */
 body.abs-in-simulation .simulation-focus-modal,
 body.abs-in-simulation .simulation-focus-modal *,
 body.abs-in-simulation .simulation-focus-modal:hover,
@@ -314,7 +305,7 @@ body.abs-in-simulation .simulation-focus-modal *:active,
 .modal-overlay .simulation-focus-modal *:focus,
 .modal-overlay .simulation-focus-modal:active,
 .modal-overlay .simulation-focus-modal *:active {
-  cursor: default !important;
+  cursor: none !important;
 }
 
 body.abs-in-simulation .simulation-focus-modal button,
@@ -345,7 +336,7 @@ body.abs-in-simulation .simulation-focus-modal .gate-back *,
 .modal-overlay .simulation-focus-modal .simulation-focus-row:active *,
 .modal-overlay .simulation-focus-modal .gate-back,
 .modal-overlay .simulation-focus-modal .gate-back * {
-  cursor: pointer !important;
+  cursor: none !important;
 }
 
 body.dark-mode,
@@ -5739,8 +5730,8 @@ a:active {
 
 /* Link hover: Power Transfer — cursor implodes (scale 0), energy flows into button */
 body.abs-link-hovering #custom-cursor {
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0);
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
   transition: transform var(--abs-cursor-shrink-duration, 200ms) ease-in,
               opacity var(--abs-cursor-shrink-duration, 200ms) ease-in;
 }
@@ -6233,12 +6224,13 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .simulation-focus-modal {
-  --simulation-focus-row-height: 48px;
-  --simulation-focus-icon-size: 32px;
-  --simulation-focus-list-width: min(100%, 19rem);
-  --simulation-focus-list-gutter: clamp(12px, 4vw, 18px);
-  --simulation-focus-scroll-fade: clamp(32px, 7svh, 68px);
+  --simulation-focus-row-height: 42px;
+  --simulation-focus-icon-size: 26px;
+  --simulation-focus-list-width: min(100%, 17rem);
+  --simulation-focus-list-gutter: clamp(8px, 3vw, 12px);
+  --simulation-focus-scroll-fade: clamp(18px, 4svh, 36px);
   --simulation-focus-ink: var(--text-primary);
+  --simulation-focus-hover-opacity: 0.14;
   position: absolute;
   inset: 0;
   width: 100%;
@@ -6251,9 +6243,9 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   opacity: 0;
   visibility: hidden;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  align-items: stretch;
-  align-content: stretch;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  align-content: center;
   justify-items: center;
   gap: var(--gap-md);
   padding: clamp(20px, 4vw, 32px) var(--abs-modal-mobile-pad-x, 20px);
@@ -6299,10 +6291,11 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
-  gap: calc(var(--gap-xs) * 0.5);
+  gap: calc(var(--gap-xs) * 0.4);
   width: var(--simulation-focus-list-width);
   min-height: 0;
-  height: 100%;
+  height: auto;
+  max-height: min(58svh, 520px);
   justify-self: center;
   overflow-x: hidden;
   overflow-y: auto;
@@ -6357,9 +6350,11 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   cursor: pointer;
   isolation: isolate;
   overflow: visible;
+  opacity: 0.75;
   -webkit-tap-highlight-color: transparent;
   transition:
     color 160ms var(--ease-organic),
+    opacity 160ms var(--ease-organic),
     transform 140ms var(--ease-organic),
     filter 140ms var(--ease-organic);
 }
@@ -6370,8 +6365,8 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   inset: var(--abs-soft-hover-field-inset);
   z-index: -1;
   border-radius: inherit;
-  background: var(--abs-soft-hover-field-fill);
-  filter: blur(var(--abs-soft-hover-field-blur));
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  filter: blur(0);
   box-shadow: none;
   opacity: 0;
   pointer-events: none;
@@ -6395,7 +6390,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 .simulation-focus-row:focus-visible::before,
 .simulation-focus-row:active::before {
-  opacity: var(--abs-soft-hover-field-opacity);
+  opacity: var(--simulation-focus-hover-opacity);
   transform: none;
   transition:
     opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
@@ -6409,7 +6404,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   }
 
   .simulation-focus-row:hover::before {
-    opacity: var(--abs-soft-hover-field-opacity);
+    opacity: var(--simulation-focus-hover-opacity);
     transform: none;
     transition:
       opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
@@ -6431,6 +6426,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .simulation-focus-row[aria-current='true'] {
   border-color: transparent;
   background: transparent;
+  opacity: 1;
 }
 
 .simulation-focus-row__icon {
@@ -6443,7 +6439,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--gap-xs);
 }
 
@@ -6471,9 +6467,9 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 @media (min-width: 720px) and (min-height: 560px) {
   .simulation-focus-modal {
-    --simulation-focus-row-height: 46px;
-    --simulation-focus-icon-size: 28px;
-    --simulation-focus-list-width: min(100%, 34rem);
+    --simulation-focus-row-height: 40px;
+    --simulation-focus-icon-size: 24px;
+    --simulation-focus-list-width: min(100%, 27rem);
     gap: var(--gap-md);
     padding:
       clamp(24px, 4svh, 48px)
@@ -6482,7 +6478,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
   .simulation-focus-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: var(--gap-sm);
+    column-gap: calc(var(--gap-sm) * 0.8);
     width: var(--simulation-focus-list-width);
   }
 }
@@ -7550,8 +7546,8 @@ body.cv-page.abs-link-hovering {
 }
 
 body.cv-page.abs-link-hovering #custom-cursor {
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0);
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
   transition: transform var(--abs-power-transfer-duration, 300ms) var(--ease-organic),
               opacity var(--abs-power-transfer-duration, 300ms) var(--ease-organic);
 }

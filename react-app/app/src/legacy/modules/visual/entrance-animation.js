@@ -123,16 +123,10 @@ export function transitionToWallState(options = {}) {
   // PHASE 1: LOCK VALUES (prevent CSS variable interference)
   // ═══════════════════════════════════════════════════════════════════════════════
   
-  // Read final border-radius from state/style (source of truth, stable value)
-  // Portfolio page keeps wallRadius-driven behavior. Simulation/index now uses
-  // the authored CSS radius so frame fidelity stays consistent.
-  const isPortfolioPage = document.body.classList.contains('portfolio-page');
+  // Read final border-radius from the element so entrance animation follows the
+  // same --abs-frame-radius contract as the wall, frame, canvas, and physics.
   const resolvedFrameRadius = getComputedStyle(wallContainer).borderTopLeftRadius || "var(--space-xl)";
-  const finalRadius = isPortfolioPage 
-    ? ((g.wallRadius && typeof g.wallRadius === 'number' && g.wallRadius > 0) 
-        ? `${g.wallRadius}px` 
-        : "var(--font-size-h2)")
-    : resolvedFrameRadius;
+  const finalRadius = resolvedFrameRadius;
   
   // Keep the wall inside the viewport throughout the entrance animation.
   const configuredInitialScale = Number(g.entranceWallInitialScale) || 1.1;

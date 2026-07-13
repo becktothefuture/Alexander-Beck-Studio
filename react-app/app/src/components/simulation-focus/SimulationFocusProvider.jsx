@@ -625,7 +625,6 @@ export function SimulationFocusChooser() {
               <SimulationIcon id={entry.id} className="simulation-focus-row__icon" />
               <span className="simulation-focus-row__copy">
                 <span className="simulation-focus-row__name">{entry.name}</span>
-                {isActive ? <span className="simulation-focus-row__meta">Active</span> : null}
               </span>
             </button>
           );

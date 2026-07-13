@@ -56,6 +56,7 @@ import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visua
 import { initializeDarkMode } from '../../legacy/modules/visual/dark-mode-v2.js';
 import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
 import { initLinkCursorHop } from '../../legacy/modules/ui/link-cursor-hop.js';
+import { setupCustomCursor } from '../../legacy/modules/rendering/cursor.js';
 import { isDarkThemeDocument } from '../../lib/theme-state.js';
 import { getRouteById } from '../../lib/routes.js';
 
@@ -100,6 +101,7 @@ function syncSharedShellRuntimeState() {
       initNoiseSystem(runtimeConfig);
       initializeDarkMode();
       initLinkCursorHop();
+      setupCustomCursor();
     });
   }
   return sharedShellRuntimeSyncPromise;
