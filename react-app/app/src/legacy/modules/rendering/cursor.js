@@ -140,9 +140,13 @@ function isMouseInSimulation(clientX, clientY) {
 
 function isHomeIndexRoute() {
   try {
+    const routeId = document.documentElement?.dataset?.shellRoute;
+    if (routeId) return routeId === 'home';
     const b = document.body;
     return (
       !b.classList.contains('portfolio-page') &&
+      !b.classList.contains('about-page') &&
+      !b.classList.contains('contact-page') &&
       !b.classList.contains('cv-page') &&
       !b.classList.contains('styleguide-page')
     );

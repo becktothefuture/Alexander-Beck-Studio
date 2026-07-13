@@ -55,6 +55,7 @@
     "audit:portfolio-carousel" : "node scripts\/audit-portfolio-carousel.mjs",
     "audit:portfolio-gate" : "node scripts\/audit-portfolio-gate-flow.mjs",
     "audit:portfolio-transition" : "node scripts\/audit-portfolio-project-transition.mjs",
+    "audit:route-cursor-colour" : "node scripts\/audit-route-cursor-colour.mjs",
     "audit:runtime-performance" : "node scripts\/audit-runtime-performance.mjs",
     "audit:runtime-performance:mobile-webkit" : "ABS_BROWSER=webkit node scripts\/audit-runtime-performance.mjs",
     "audit:transition-flows" : "node scripts\/audit-transition-flows.mjs",

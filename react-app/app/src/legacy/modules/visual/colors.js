@@ -194,6 +194,12 @@ export function getTimeOfDayPaletteTemplate() {
 
 const CURSOR_SAFE_FALLBACK_INDICES = [3, 5, 6, 7];
 const CURSOR_SAT_MIN = 0.18; // exclude greys/white/black; keep “ball color” feel
+const ROUTE_CURSOR_ACCENT_INDEXES = Object.freeze({
+  home: 3,
+  portfolio: 5,
+  about: 6,
+  contact: 7,
+});
 
 function clampInt(v, min, max) {
   const n = Number(v);
@@ -411,6 +417,21 @@ function stampCursorCSSVar(hex) {
   } catch (_) { /* no-op */ }
 }
 
+function resolveCssColorToHex(colorExpression) {
+  if (typeof document === 'undefined') return null;
+  try {
+    const probe = document.createElement('div');
+    probe.style.cssText =
+      `position:fixed;left:-9999px;top:0;visibility:hidden;pointer-events:none;color:${colorExpression};`;
+    document.documentElement.appendChild(probe);
+    const cssColor = getComputedStyle(probe).color;
+    probe.remove();
+    return parseComputedCssColorToHex(cssColor);
+  } catch (_) {
+    return null;
+  }
+}
+
 function resolveCursorHexFromIndex(colors, idx) {
   const list = colors && colors.length ? colors : [];
   const i = clampInt(idx, 0, Math.max(0, Math.min(7, list.length - 1)));
@@ -480,8 +501,72 @@ export function applyCursorColorIndex(index, { forceMode } = {}) {
   return { index: finalIdx, hex };
 }
 
+export function getRouteCursorAccentHex(routeId) {
+  if (!Object.prototype.hasOwnProperty.call(ROUTE_CURSOR_ACCENT_INDEXES, routeId)) return null;
+  return resolveCssColorToHex(`var(--button-bar-accent-${routeId})`);
+}
+
+function getActiveProductionRouteId() {
+  if (typeof document === 'undefined') return null;
+  try {
+    const routeId = document.documentElement?.dataset?.shellRoute;
+    if (Object.prototype.hasOwnProperty.call(ROUTE_CURSOR_ACCENT_INDEXES, routeId)) return routeId;
+    if (routeId) return null;
+
+    const activeTab = document.querySelector('[data-route-tab][aria-current="page"]');
+    const activeTabRoute = activeTab?.getAttribute('data-route-tab');
+    if (Object.prototype.hasOwnProperty.call(ROUTE_CURSOR_ACCENT_INDEXES, activeTabRoute)) {
+      return activeTabRoute;
+    }
+
+    if (document.body?.classList?.contains('portfolio-page')) return 'portfolio';
+    if (document.body?.classList?.contains('about-page')) return 'about';
+    if (document.body?.classList?.contains('contact-page')) return 'contact';
+    if (
+      document.body
+      && !document.body.classList.contains('styleguide-page')
+      && !document.body.classList.contains('simulation-dashboard-page')
+      && !document.body.classList.contains('palette-lab-page')
+      && !document.body.classList.contains('daily-focus-page')
+      && !document.body.classList.contains('concept-simulation-page')
+    ) {
+      return 'home';
+    }
+  } catch (_) {
+    return null;
+  }
+  return null;
+}
+
+export function applyRouteCursorColor(routeId) {
+  if (!Object.prototype.hasOwnProperty.call(ROUTE_CURSOR_ACCENT_INDEXES, routeId)) return null;
+  const hex = getRouteCursorAccentHex(routeId);
+  if (!hex) return null;
+
+  const g = getGlobals();
+  g.cursorColorMode = 'route';
+  g.cursorColorIndex = ROUTE_CURSOR_ACCENT_INDEXES[routeId];
+  g.cursorColorHex = hex;
+  g.cursorRouteId = routeId;
+  stampCursorCSSVar(hex);
+
+  try {
+    document.documentElement.dataset.cursorRoute = routeId;
+    document.documentElement.style.setProperty('--cursor-route-color', hex);
+  } catch (_) { /* no-op */ }
+
+  return { routeId, index: g.cursorColorIndex, hex };
+}
+
+export function applyActiveRouteCursorColor(routeId = getActiveProductionRouteId()) {
+  return applyRouteCursorColor(routeId);
+}
+
 export function maybeAutoPickCursorColor(reason = 'auto') {
   const g = getGlobals();
+  const routePick = applyActiveRouteCursorColor();
+  if (routePick) return true;
+
   if (g.cursorColorMode !== 'auto') {
     // Still ensure CSS var is aligned with current palette variant.
     applyCursorColorIndex(g.cursorColorIndex, { forceMode: g.cursorColorMode });
@@ -773,17 +858,21 @@ export function applyColorTemplate(templateName) {
   } catch (_) { /* no-op */ }
   
   // Cursor color must remain valid across template + theme changes.
-  // Do NOT auto-rotate here; only re-resolve to the new palette variant (or snap if invalid).
+  // Route colour wins on production routes; non-production surfaces keep the legacy cursor mode.
   if (globals.cursorColorMode !== 'auto' && globals.cursorColorMode !== 'manual') {
     globals.cursorColorMode = 'auto';
   }
-  applyCursorColorIndex(globals.cursorColorIndex, { forceMode: globals.cursorColorMode });
   
   // Update existing ball colors
   updateExistingBallColors();
   
   // Sync CSS variables
   syncPaletteVars(globals.currentColors);
+
+  const routePick = applyActiveRouteCursorColor();
+  if (!routePick) {
+    applyCursorColorIndex(globals.cursorColorIndex, { forceMode: globals.cursorColorMode });
+  }
   
   // Update UI color pickers
   updateColorPickersUI();
