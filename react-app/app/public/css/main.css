@@ -3883,7 +3883,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   border-radius: 50%;
 }
 
-.button-bar__mobile-theme-reset {
+.button-bar__mobile-theme-reset.shell-tab {
   display: none;
 }
 
@@ -4520,23 +4520,19 @@ html[data-abs-light-locked-chrome] .button-bar {
 @media (min-width: 900px) and (hover: hover) {
   .button-bar.shell-bottom-band::before,
   .button-bar.shell-bottom-band::after {
+    --button-bar-groove-inline-inset: clamp(16px, 2vw, 24px);
+
     content: '';
     display: block;
     flex: 1 1 0;
     align-self: stretch;
     min-width: 0;
     border-radius: var(--button-bar-gasket-radius);
-    background: repeating-linear-gradient(
-      180deg,
-      transparent 0 calc(var(--abs-size-1px) * 4),
-      color-mix(in srgb, var(--button-bar-gasket-cut) 88%, rgba(var(--abs-rgb-black), 1) 12%) calc(var(--abs-size-1px) * 4) calc(var(--abs-size-1px) * 5),
-      transparent calc(var(--abs-size-1px) * 5) calc(var(--abs-size-1px) * 6),
-      color-mix(in srgb, var(--button-bar-gasket-light) 72%, rgba(var(--abs-rgb-white), 1) 28%) calc(var(--abs-size-1px) * 6) calc(var(--abs-size-1px) * 7),
-      transparent calc(var(--abs-size-1px) * 7) calc(var(--abs-size-1px) * 10)
-    );
-    background-position: center;
-    background-size: 100% calc(100% - (var(--abs-size-1px) * 4));
-    background-repeat: repeat-y;
+    background:
+      linear-gradient(180deg, var(--button-bar-gasket-cut), transparent 25% 75%, var(--button-bar-gasket-light)) center calc(50% - (var(--abs-size-1px) * 13.5)) / calc(100% - (var(--button-bar-groove-inline-inset) * 2)) calc(var(--abs-size-1px) * 4) no-repeat,
+      linear-gradient(180deg, var(--button-bar-gasket-cut), transparent 25% 75%, var(--button-bar-gasket-light)) center calc(50% - (var(--abs-size-1px) * 4.5)) / calc(100% - (var(--button-bar-groove-inline-inset) * 2)) calc(var(--abs-size-1px) * 4) no-repeat,
+      linear-gradient(180deg, var(--button-bar-gasket-cut), transparent 25% 75%, var(--button-bar-gasket-light)) center calc(50% + (var(--abs-size-1px) * 4.5)) / calc(100% - (var(--button-bar-groove-inline-inset) * 2)) calc(var(--abs-size-1px) * 4) no-repeat,
+      linear-gradient(180deg, var(--button-bar-gasket-cut), transparent 25% 75%, var(--button-bar-gasket-light)) center calc(50% + (var(--abs-size-1px) * 13.5)) / calc(100% - (var(--button-bar-groove-inline-inset) * 2)) calc(var(--abs-size-1px) * 4) no-repeat;
     opacity: 0.9;
     pointer-events: none;
   }

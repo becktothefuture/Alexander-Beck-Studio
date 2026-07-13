@@ -1,0 +1,224 @@
+/* Spatial interaction states -------------------------------------------------
+   The aligned body layers, front face, and content all read --spatial-lift.
+   Hover and press therefore change Z only; X/Y alignment remains untouched. */
+
+.button-bar-playground__variant-group--spatial-studies {
+  --spatial-raised-hover-lift: min(
+    var(--spatial-active-lift, 16px),
+    calc(var(--spatial-resting-lift, 2px) + 4px)
+  );
+  --spatial-pressed-hover-lift: max(
+    var(--spatial-resting-lift, 2px),
+    calc(var(--spatial-active-lift, 16px) - 4px)
+  );
+}
+
+/* Keyboard focus previews the same travel as pointer hover. */
+.button-bar-playground__sample:is(
+    [data-spatial-model='raised'],
+    [data-spatial-model='inverted']
+  )
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):focus-visible,
+.button-bar-playground__sample:is(
+    [data-spatial-model='raised'],
+    [data-spatial-model='inverted']
+  )
+  .button-bar__sound-toggle:not([data-enabled='true']):focus-visible,
+.button-bar-playground__sample:is(
+    [data-spatial-model='raised'],
+    [data-spatial-model='inverted']
+  )
+  .button-bar__theme-toggle:focus-visible {
+  --spatial-lift: var(--spatial-raised-hover-lift);
+}
+
+.button-bar-playground__sample[data-spatial-model='pressed']
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):focus-visible,
+.button-bar-playground__sample[data-spatial-model='pressed']
+  .button-bar__sound-toggle:not([data-enabled='true']):focus-visible,
+.button-bar-playground__sample[data-spatial-model='pressed']
+  .button-bar__theme-toggle:focus-visible {
+  --spatial-lift: var(--spatial-pressed-hover-lift);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* Raised and inverted banks lift an available key slightly on approach. */
+  .button-bar-playground__sample:is(
+      [data-spatial-model='raised'],
+      [data-spatial-model='inverted']
+    )
+    .button-bar__primary-buttons
+    .shell-tab:not([aria-current='page']):hover,
+  .button-bar-playground__sample:is(
+      [data-spatial-model='raised'],
+      [data-spatial-model='inverted']
+    )
+    .button-bar__sound-toggle:not([data-enabled='true']):hover,
+  .button-bar-playground__sample:is(
+      [data-spatial-model='raised'],
+      [data-spatial-model='inverted']
+    )
+    .button-bar__theme-toggle:hover {
+    --spatial-lift: var(--spatial-raised-hover-lift);
+  }
+
+  /* Walkman keys begin proud and travel toward the wall on approach. */
+  .button-bar-playground__sample[data-spatial-model='pressed']
+    .button-bar__primary-buttons
+    .shell-tab:not([aria-current='page']):hover,
+  .button-bar-playground__sample[data-spatial-model='pressed']
+    .button-bar__sound-toggle:not([data-enabled='true']):hover,
+  .button-bar-playground__sample[data-spatial-model='pressed']
+    .button-bar__theme-toggle:hover {
+    --spatial-lift: var(--spatial-pressed-hover-lift);
+  }
+}
+
+/* Pointer/key activation always travels toward the wall. */
+.button-bar-playground__sample:is(
+    [data-spatial-model='raised'],
+    [data-spatial-model='pressed'],
+    [data-spatial-model='inverted']
+  )
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):active,
+.button-bar-playground__sample:is(
+    [data-spatial-model='raised'],
+    [data-spatial-model='pressed'],
+    [data-spatial-model='inverted']
+  )
+  .button-bar__secondary-buttons
+  .button-bar__secondary-button.shell-tab:active {
+  --spatial-lift: var(--spatial-resting-lift, 2px);
+}
+
+/* Persistent selection is model-owned and does not acquire another hover state. */
+.button-bar-playground__sample:is(
+    [data-spatial-model='raised'],
+    [data-spatial-model='inverted']
+  )
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active),
+.button-bar-playground__sample:is(
+    [data-spatial-model='raised'],
+    [data-spatial-model='inverted']
+  )
+  .button-bar__sound-toggle[data-enabled='true']:not(:active) {
+  --spatial-lift: var(--spatial-active-lift, 16px);
+}
+
+.button-bar-playground__sample[data-spatial-model='pressed']
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active),
+.button-bar-playground__sample[data-spatial-model='pressed']
+  .button-bar__sound-toggle[data-enabled='true'] {
+  --spatial-lift: var(--spatial-resting-lift, 2px);
+}
+
+/* Light monochrome faces require dark utility ink. Keep icon colour inherited
+   so production icon rules cannot reintroduce translucent white. */
+.button-bar-playground[data-playground-theme='light']
+  .button-bar-playground__sample[data-spatial-material='mono']
+  .button-bar__sound-toggle {
+  --spatial-ink: var(--playground-ink);
+  color: var(--spatial-ink);
+}
+
+.button-bar-playground[data-playground-theme='light']
+  .button-bar-playground__variant-group--spatial-studies
+  .button-bar-playground__sample[data-spatial-material='mono']
+  .button-bar
+  .button-bar__secondary-buttons
+  .button-bar__sound-toggle.shell-tab
+  .button-bar__secondary-icon.shell-tab__icon {
+  color: var(--playground-ink);
+}
+
+/* Colour utilities retain their authored face/ink pairing in every state. */
+.button-bar-playground__sample[data-spatial-material='colour']
+  .button-bar__sound-toggle
+  .button-bar__secondary-icon {
+  color: var(--spatial-ink);
+}
+
+/* Raised selection: the idle bank nearly disappears into the wall; selection
+   introduces route colour while preserving the same aligned extrusion model. */
+.button-bar-playground__sample[data-spatial-material='selection-colour']
+  :is(.button-bar__primary-buttons .shell-tab, .button-bar__secondary-button.shell-tab) {
+  --raised-selection-wall: color-mix(in srgb, var(--playground-stage) 88%, black 12%);
+  --spatial-face: color-mix(in srgb, var(--raised-selection-wall) 96%, var(--playground-ink) 4%);
+  --spatial-ink: color-mix(in srgb, var(--playground-ink) 72%, var(--playground-stage) 28%);
+  --spatial-body: color-mix(in srgb, var(--spatial-face), black 14%);
+  --spatial-highlight: color-mix(in srgb, var(--spatial-face) 92%, white 8%);
+  --spatial-shadow-edge: color-mix(in srgb, var(--spatial-face) 88%, black 12%);
+  color: var(--spatial-ink);
+}
+
+.button-bar-playground__sample[data-spatial-material='selection-colour']
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'] {
+  --spatial-face: var(--button-bar-playground-active-color);
+  --spatial-ink: var(--button-bar-playground-active-ink);
+  --spatial-body: color-mix(
+    in srgb,
+    var(--spatial-face),
+    black var(--spatial-body-contrast, 28%)
+  );
+  --spatial-highlight: color-mix(in srgb, var(--spatial-face) 68%, white 32%);
+  --spatial-shadow-edge: color-mix(in srgb, var(--spatial-face) 76%, black 24%);
+  --shell-tab-text-active: var(--spatial-ink);
+  color: var(--spatial-ink);
+}
+
+.button-bar-playground__sample[data-spatial-material='selection-colour']
+  .button-bar__sound-toggle[data-enabled='true'] {
+  --spatial-face: var(--ball-5);
+  --spatial-ink: rgba(var(--abs-rgb-white), 0.96);
+  --spatial-body: color-mix(
+    in srgb,
+    var(--spatial-face),
+    black var(--spatial-body-contrast, 28%)
+  );
+  color: var(--spatial-ink);
+}
+
+/* Hover changes spatial lift only. Text and icon ink stay tied to the face
+   material until the control is actually selected. */
+.button-bar-playground__variant-group--spatial-studies
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab
+  :is(.shell-tab__icon, .shell-tab__label),
+.button-bar-playground__variant-group--spatial-studies
+  .button-bar
+  .button-bar__sound-toggle
+  .button-bar__secondary-icon {
+  color: currentColor;
+}
+
+.button-bar-playground
+  .button-bar-playground__variant-group--spatial-studies
+  .button-bar-playground__sample
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active)
+  :is(.shell-tab__icon, .shell-tab__label) {
+  color: var(--spatial-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button-bar-playground__variant-group--spatial-studies
+    :is(
+      .spatial-button-layer,
+      .button-bar__primary-buttons .shell-tab::before,
+      .button-bar__primary-buttons .shell-tab .shell-tab__icon,
+      .button-bar__primary-buttons .shell-tab .shell-tab__label,
+      .button-bar__secondary-button::before,
+      .button-bar__secondary-button .button-bar__secondary-icon,
+      .button-bar__theme-thumb
+    ) {
+    transition: none;
+  }
+}

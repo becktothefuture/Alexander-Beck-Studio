@@ -137,11 +137,18 @@ function useCurrentThemePreference() {
   return preference;
 }
 
-function BottomThemeToggle() {
-  const isDark = useRenderedThemeIsDark();
+function BottomThemeToggle({ decoration, previewTheme, onPreviewThemeChange }) {
+  const renderedThemeIsDark = useRenderedThemeIsDark();
+  const isDark = previewTheme ? previewTheme === 'dark' : renderedThemeIsDark;
 
   const nextTheme = isDark ? 'light' : 'dark';
-  const activateTheme = () => setTheme(nextTheme);
+  const activateTheme = () => {
+    if (onPreviewThemeChange) {
+      onPreviewThemeChange(nextTheme);
+      return;
+    }
+    setTheme(nextTheme);
+  };
 
   return (
     <button
@@ -167,6 +174,7 @@ function BottomThemeToggle() {
         activateTheme();
       }}
     >
+      {decoration}
       <span className="button-bar__theme-thumb" aria-hidden="true">
         {isDark ? <MoonIcon /> : <SunIcon />}
       </span>
@@ -175,7 +183,7 @@ function BottomThemeToggle() {
   );
 }
 
-function BottomSoundToggle() {
+function BottomSoundToggle({ decoration }) {
   const [soundState, setSoundState] = useState(readSoundButtonState);
   const isEnabled = soundState.isUnlocked && soundState.isEnabled;
 
@@ -245,6 +253,7 @@ function BottomSoundToggle() {
         handleClick();
       }}
     >
+      {decoration}
       <i className={`ti ${isEnabled ? 'ti-volume-2' : 'ti-volume-off'} button-bar__secondary-icon shell-tab__icon`} aria-hidden="true" />
       <span className="screen-reader">{isEnabled ? 'Sound on' : 'Sound off'}</span>
     </button>
@@ -270,12 +279,21 @@ function BottomMobileThemeReset() {
   );
 }
 
-function SecondaryButtons() {
+function SecondaryButtons({
+  preview,
+  previewTheme,
+  onPreviewThemeChange,
+  renderDecoration,
+}) {
   return (
     <div className="button-bar__secondary-buttons" role="group" aria-label="Secondary buttons" data-button-group="secondary-buttons">
-      <BottomSoundToggle />
-      <BottomThemeToggle />
-      <BottomMobileThemeReset />
+      <BottomSoundToggle decoration={renderDecoration?.({ controlId: 'sound' })} />
+      <BottomThemeToggle
+        decoration={renderDecoration?.({ controlId: 'theme' })}
+        previewTheme={previewTheme}
+        onPreviewThemeChange={onPreviewThemeChange}
+      />
+      {!preview ? <BottomMobileThemeReset /> : null}
     </div>
   );
 }
@@ -308,16 +326,15 @@ function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect, renderDeco
       if (beginCapturedPointerPress(event)) {
         playButtonBarPressSound();
         markPointerActivated(event);
-        if (onRouteSelect) {
-          selectRoute();
-        } else {
+        if (!onRouteSelect) {
           event.preventDefault();
           navigateRoute();
         }
       }
     },
     onPointerUp: (event) => {
-      completeCapturedPointerPress(event);
+      if (!completeCapturedPointerPress(event)) return;
+      if (onRouteSelect) selectRoute();
     },
     onKeyDown: (event) => {
       if (!isActive && isKeyboardPress(event)) playButtonBarPressSound();
@@ -381,7 +398,10 @@ export function ShellButtonBar({
   onRouteNavigate,
   onRouteSelect,
   preview = false,
+  previewTheme,
+  onPreviewThemeChange,
   renderRouteButtonDecoration,
+  renderSecondaryButtonDecoration,
 }) {
   const normalizedActiveRouteId = getNormalizedActiveRouteId(activeRouteId);
   const barClassName = ['button-bar', className].filter(Boolean).join(' ');
@@ -418,7 +438,12 @@ export function ShellButtonBar({
         ))}
       </nav>
       <div className="button-bar__divider" aria-hidden="true" />
-      <SecondaryButtons />
+      <SecondaryButtons
+        preview={preview}
+        previewTheme={previewTheme}
+        onPreviewThemeChange={onPreviewThemeChange}
+        renderDecoration={renderSecondaryButtonDecoration}
+      />
     </div>
   );
 }

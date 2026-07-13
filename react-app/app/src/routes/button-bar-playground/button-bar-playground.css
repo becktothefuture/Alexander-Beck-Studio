@@ -210,10 +210,7 @@ body.button-bar-playground-page {
 }
 
 .button-bar-playground__group-copy {
-  display: grid;
-  grid-template-columns: minmax(9rem, 0.36fr) minmax(0, 1fr);
-  align-items: baseline;
-  gap: var(--gap-md);
+  display: block;
 }
 
 .button-bar-playground__group-copy h2,
@@ -263,10 +260,7 @@ body.button-bar-playground-page {
 }
 
 .button-bar-playground__sample-copy {
-  display: grid;
-  grid-template-columns: minmax(9rem, 0.36fr) minmax(0, 1fr);
-  align-items: baseline;
-  gap: var(--gap-md);
+  display: block;
 }
 
 .button-bar-playground__sample :is(h2, h3),
@@ -327,6 +321,7 @@ body.button-bar-playground-page {
 
 .button-bar-playground__tabs .button-bar__button[aria-current='page'] {
   cursor: default;
+  pointer-events: none;
 }
 
 .button-bar-playground__sample .shell-tab[data-route-tab='home'] {
@@ -1003,7 +998,7 @@ body.button-bar-playground-page {
   transition-duration: 0ms;
 }
 
-/* 07–16: flat and spatial playground studies. */
+/* 07–17: flat and spatial playground studies. */
 html[data-button-bar-playground-theme='light'].button-bar-playground-document,
 html[data-button-bar-playground-theme='light'] body.button-bar-playground-page,
 html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #root {
@@ -1100,22 +1095,14 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
 
 .button-bar-playground__variant-group--flat-studies .button-bar-playground__stage,
 .button-bar-playground__variant-group--spatial-studies .button-bar-playground__stage {
-  min-height: 104px;
-  padding: clamp(14px, 2vw, 24px);
+  min-height: calc(var(--shell-tab-height, 48px) + (var(--shell-bottom-tabs-padding-y) * 2));
+  padding: var(--gap-xs);
   border-color: var(--playground-rule);
   background: var(--playground-stage);
 }
 .button-bar-playground__variant-group--flat-studies .button-bar,
 .button-bar-playground__variant-group--spatial-studies .button-bar { background: transparent; box-shadow: none; }
-.button-bar-playground__variant-group--flat-studies .button-bar__divider,
-.button-bar-playground__variant-group--flat-studies .button-bar__secondary-buttons,
-.button-bar-playground__variant-group--spatial-studies .button-bar__divider,
-.button-bar-playground__variant-group--spatial-studies .button-bar__secondary-buttons { display: none; }
-.button-bar-playground__variant-group--flat-studies .button-bar__primary-buttons,
-.button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons { width: 100%; }
-
 /* Flat studies share zero shadows, lighting gradients, and displacement. */
-.button-bar-playground__variant-group--flat-studies .shell-tab,
 .button-bar-playground__variant-group--flat-studies .button-bar__primary-buttons .shell-tab,
 .button-bar-playground__variant-group--flat-studies .button-bar__primary-buttons .shell-tab:is(:hover, :focus-visible, :active),
 .button-bar-playground__variant-group--flat-studies .button-bar__primary-buttons .shell-tab[aria-current='page'] {
@@ -1129,139 +1116,225 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
   transform: none;
   transition: color 150ms ease, background-color 150ms ease, flex-grow 180ms ease;
 }
-.button-bar-playground__variant-group--flat-studies .shell-tab:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.button-bar-playground__variant-group--flat-studies .button-bar__primary-buttons .shell-tab:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
-.button-bar-playground__sample[data-route-accent='true'] .shell-tab:nth-child(1) { --shell-tab-route-accent: var(--ball-4); }
-.button-bar-playground__sample[data-route-accent='true'] .shell-tab:nth-child(2) { --shell-tab-route-accent: var(--ball-6); }
-.button-bar-playground__sample[data-route-accent='true'] .shell-tab:nth-child(3) { --shell-tab-route-accent: var(--ball-7); }
-.button-bar-playground__sample[data-route-accent='true'] .shell-tab:nth-child(4) { --shell-tab-route-accent: var(--ball-8); }
+.button-bar-playground__sample[data-route-accent='true'] .button-bar__primary-buttons .shell-tab:nth-child(1) { --shell-tab-route-accent: var(--ball-4); }
+.button-bar-playground__sample[data-route-accent='true'] .button-bar__primary-buttons .shell-tab:nth-child(2) { --shell-tab-route-accent: var(--ball-6); }
+.button-bar-playground__sample[data-route-accent='true'] .button-bar__primary-buttons .shell-tab:nth-child(3) { --shell-tab-route-accent: var(--ball-7); }
+.button-bar-playground__sample[data-route-accent='true'] .button-bar__primary-buttons .shell-tab:nth-child(4) { --shell-tab-route-accent: var(--ball-8); }
 
 .button-bar-playground__sample--type-rail .button-bar__primary-buttons { gap: 0; border-block: 1px solid var(--playground-ink); }
-.button-bar-playground__sample--type-rail .shell-tab { font-family: var(--abs-font-mono); text-transform: uppercase; }
+.button-bar-playground__sample--type-rail .button-bar__primary-buttons .shell-tab { font-family: var(--abs-font-mono); text-transform: uppercase; }
 .button-bar-playground__sample--type-rail .button-bar__primary-buttons .shell-tab[aria-current='page'],
 .button-bar-playground__sample--binary-grid .button-bar__primary-buttons .shell-tab[aria-current='page'] { color: var(--playground-page); background: var(--playground-ink); }
 
 .button-bar-playground__sample--signal-blocks .button-bar__primary-buttons { gap: 3px; }
-.button-bar-playground__sample--signal-blocks .shell-tab { color: #101113; background: var(--shell-tab-route-accent); opacity: 0.46; }
-.button-bar-playground__sample--signal-blocks .shell-tab:hover { opacity: 0.72; }
+.button-bar-playground__sample--signal-blocks .button-bar__primary-buttons .shell-tab { color: #101113; background: var(--shell-tab-route-accent); opacity: 0.46; }
+.button-bar-playground__sample--signal-blocks .button-bar__primary-buttons .shell-tab:hover { opacity: 0.72; }
 .button-bar-playground__sample--signal-blocks .button-bar__primary-buttons .shell-tab[aria-current='page'] { color: #101113; background: var(--shell-tab-route-accent); opacity: 1; }
 
 .button-bar-playground__sample--binary-grid .button-bar__primary-buttons { gap: 0; border: 2px solid var(--playground-ink); }
 .button-bar-playground__sample--binary-grid .shell-tab + .shell-tab { border-left: 2px solid var(--playground-ink); }
 
 .button-bar-playground__sample--split-field .button-bar__primary-buttons { gap: 2px; }
-.button-bar-playground__sample--split-field .shell-tab { color: var(--playground-ink); background: linear-gradient(90deg, var(--shell-tab-route-accent) 0 12px, transparent 12px); }
+.button-bar-playground__sample--split-field .button-bar__primary-buttons .shell-tab { color: var(--playground-ink); background: linear-gradient(90deg, var(--shell-tab-route-accent) 0 12px, transparent 12px); }
 .button-bar-playground__sample--split-field .button-bar__primary-buttons .shell-tab[aria-current='page'] { color: #101113; background: var(--shell-tab-route-accent); }
 
 .button-bar-playground__sample--dominant-tab .button-bar__primary-buttons { gap: 4px; }
-.button-bar-playground__sample--dominant-tab .shell-tab { flex: 0.72 1 0; background: color-mix(in srgb, var(--playground-ink) 10%, transparent); }
-.button-bar-playground__sample--dominant-tab .button-bar__primary-buttons .shell-tab[aria-current='page'] { flex-grow: 1.85; color: #101113; background: var(--shell-tab-route-accent); }
+.button-bar-playground__sample--dominant-tab .button-bar__primary-buttons .shell-tab {
+  --dominant-tab-active-ink: rgba(var(--abs-rgb-white), 0.94);
+  --dominant-tab-pressed-shadow: rgba(var(--abs-rgb-black), 0.5);
+  --dominant-tab-pressed-light: rgba(var(--abs-rgb-white), 0.3);
+  --shell-tab-text-hover: var(--playground-key-ink);
+  flex: 0.72 1 0;
+  border-radius: var(--shell-tab-radius, 16px);
+  background: transparent;
+  box-shadow: none;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 100ms ease,
+    transform 100ms ease,
+    flex-grow 180ms ease;
+}
+.button-bar-playground__sample--dominant-tab
+  .button-bar__primary-buttons
+  .shell-tab:is([data-route-tab='portfolio'], [data-route-tab='contact']) {
+  --dominant-tab-active-ink: rgba(var(--abs-rgb-black), 0.92);
+}
+.button-bar-playground__sample--dominant-tab
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible, :active),
+.button-bar-playground__sample--dominant-tab
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'] {
+  box-shadow:
+    inset 0 var(--flat-pressed-shadow-edge, 2.5px) 0 var(--dominant-tab-pressed-shadow),
+    inset 0 calc(var(--flat-pressed-light-edge, 1px) * -1) 0 var(--dominant-tab-pressed-light);
+  transform: translateY(var(--abs-size-1px));
+}
+.button-bar-playground__sample--dominant-tab
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible, :active) {
+  background: color-mix(in srgb, var(--playground-ink) 14%, transparent);
+}
+.button-bar-playground__sample--dominant-tab .button-bar__primary-buttons .shell-tab[aria-current='page'] {
+  --shell-tab-text-active: var(--dominant-tab-active-ink);
+  flex-grow: 1.85;
+  color: var(--dominant-tab-active-ink);
+  background: var(--shell-tab-route-accent);
+}
 
-/* Walkman studies share one configurable camera and one-material body model. */
+/* Spatial studies share one tilted camera and one aligned extrusion engine. */
 .button-bar-playground__variant-group--spatial-studies .button-bar-playground__stage {
-  perspective: var(--walkman-perspective, 980px);
-  perspective-origin: var(--walkman-origin-x, 50vh) var(--walkman-origin-y, 50vh);
+  perspective: var(--spatial-perspective, 1100px);
+  perspective-origin: var(--spatial-origin-x, 50vh) var(--spatial-origin-y, 5vh);
   overflow: visible;
   background: color-mix(in srgb, var(--playground-stage) 88%, black 12%);
 }
-.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-inverted, .button-bar-playground__sample--walkman-inverted-active-colour, .button-bar-playground__sample--walkman-inverted-always-colour)
-  .button-bar-playground__stage {
-  perspective-origin:
-    calc(100% - var(--walkman-origin-x, 50vh))
-    calc(100% - var(--walkman-origin-y, 50vh));
-}
 .button-bar-playground__variant-group--spatial-studies .button-bar {
+  --spatial-effective-bank-tilt: var(--spatial-bank-tilt-x, 14deg);
+  --spatial-effective-pointer-x: var(--button-bar-playground-camera-x, 0deg);
   transform-style: preserve-3d;
-  transform: rotateX(var(--button-bar-playground-camera-x)) rotateY(var(--button-bar-playground-camera-y));
+  transform:
+    rotateX(calc(var(--spatial-effective-bank-tilt) + var(--spatial-effective-pointer-x)))
+    rotateY(calc(var(--spatial-bank-yaw-y, 0deg) + var(--button-bar-playground-camera-y, 0deg)));
+  transform-origin: 50% 50%;
   transition: transform 120ms linear;
 }
-.button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons { gap: clamp(7px, 1vw, 12px); transform-style: preserve-3d; }
-
-.button-bar-playground[data-walkman-layers='1'] .button-bar-playground__variant-group--spatial-studies .shell-tab {
-  --walkman-layer-step: var(--walkman-depth);
+.button-bar-playground__sample[data-spatial-model='inverted'] .button-bar {
+  --spatial-effective-bank-tilt: calc(var(--spatial-bank-tilt-x, 14deg) * -1);
+  --spatial-effective-pointer-x: calc(var(--button-bar-playground-camera-x, 0deg) * -1);
 }
-.button-bar-playground[data-walkman-layers='2'] .button-bar-playground__variant-group--spatial-studies .shell-tab {
-  --walkman-layer-step: calc(var(--walkman-depth) * 0.5);
-}
-.button-bar-playground[data-walkman-layers='3'] .button-bar-playground__variant-group--spatial-studies .shell-tab {
-  --walkman-layer-step: calc(var(--walkman-depth) * 0.333);
-}
-.button-bar-playground[data-walkman-layers='4'] .button-bar-playground__variant-group--spatial-studies .shell-tab {
-  --walkman-layer-step: calc(var(--walkman-depth) * 0.25);
-}
-.button-bar-playground[data-walkman-layers='5'] .button-bar-playground__variant-group--spatial-studies .shell-tab {
-  --walkman-layer-step: calc(var(--walkman-depth) * 0.2);
-}
-.button-bar-playground[data-walkman-layers='6'] .button-bar-playground__variant-group--spatial-studies .shell-tab {
-  --walkman-layer-step: calc(var(--walkman-depth) * 0.167);
+.button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons {
+  gap: clamp(7px, 1vw, 12px);
+  transform-style: preserve-3d;
 }
 
-.button-bar-playground__variant-group--spatial-studies .walkman-button-layers {
+.button-bar-playground[data-spatial-layers='2'] .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab {
+  --spatial-layer-step: var(--spatial-body-span);
+}
+.button-bar-playground[data-spatial-layers='3'] .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab {
+  --spatial-layer-step: calc(var(--spatial-body-span) * 0.5);
+}
+.button-bar-playground[data-spatial-layers='4'] .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab {
+  --spatial-layer-step: calc(var(--spatial-body-span) * 0.3333);
+}
+.button-bar-playground[data-spatial-layers='5'] .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab {
+  --spatial-layer-step: calc(var(--spatial-body-span) * 0.25);
+}
+.button-bar-playground[data-spatial-layers='6'] .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab {
+  --spatial-layer-step: calc(var(--spatial-body-span) * 0.2);
+}
+
+.button-bar-playground__variant-group--spatial-studies .spatial-button-layers {
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
   transform-style: preserve-3d;
 }
-.button-bar-playground__variant-group--spatial-studies .walkman-button-layer {
+.button-bar-playground__variant-group--spatial-studies .spatial-button-layer {
   position: absolute;
   inset: 0;
   display: none;
+  border: 0;
   border-radius: inherit;
   background: var(--spatial-body);
   backface-visibility: hidden;
+  transition: transform 180ms cubic-bezier(0.2, 0.82, 0.2, 1);
 }
-.button-bar-playground[data-walkman-layers='1'] .walkman-button-layer:nth-child(-n + 1),
-.button-bar-playground[data-walkman-layers='2'] .walkman-button-layer:nth-child(-n + 2),
-.button-bar-playground[data-walkman-layers='3'] .walkman-button-layer:nth-child(-n + 3),
-.button-bar-playground[data-walkman-layers='4'] .walkman-button-layer:nth-child(-n + 4),
-.button-bar-playground[data-walkman-layers='5'] .walkman-button-layer:nth-child(-n + 5),
-.button-bar-playground[data-walkman-layers='6'] .walkman-button-layer:nth-child(-n + 6) { display: block; }
-.button-bar-playground__variant-group--spatial-studies .walkman-button-layer:nth-child(1) { transform: translateZ(calc(var(--walkman-layer-step) * -1)); }
-.button-bar-playground__variant-group--spatial-studies .walkman-button-layer:nth-child(2) { transform: translateZ(calc(var(--walkman-layer-step) * -2)); }
-.button-bar-playground__variant-group--spatial-studies .walkman-button-layer:nth-child(3) { transform: translateZ(calc(var(--walkman-layer-step) * -3)); }
-.button-bar-playground__variant-group--spatial-studies .walkman-button-layer:nth-child(4) { transform: translateZ(calc(var(--walkman-layer-step) * -4)); }
-.button-bar-playground__variant-group--spatial-studies .walkman-button-layer:nth-child(5) { transform: translateZ(calc(var(--walkman-layer-step) * -5)); }
-.button-bar-playground__variant-group--spatial-studies .walkman-button-layer:nth-child(6) { transform: translateZ(calc(var(--walkman-layer-step) * -6)); }
+.button-bar-playground[data-spatial-layers='2'] .spatial-button-layer:nth-child(-n + 2),
+.button-bar-playground[data-spatial-layers='3'] .spatial-button-layer:nth-child(-n + 3),
+.button-bar-playground[data-spatial-layers='4'] .spatial-button-layer:nth-child(-n + 4),
+.button-bar-playground[data-spatial-layers='5'] .spatial-button-layer:nth-child(-n + 5),
+.button-bar-playground[data-spatial-layers='6'] .spatial-button-layer:nth-child(-n + 6) { display: block; }
+.button-bar-playground__variant-group--spatial-studies .spatial-button-layer:nth-child(1) { transform: translateZ(0); }
+.button-bar-playground__variant-group--spatial-studies .spatial-button-layer:nth-child(2) { transform: translateZ(var(--spatial-layer-step)); }
+.button-bar-playground__variant-group--spatial-studies .spatial-button-layer:nth-child(3) { transform: translateZ(calc(var(--spatial-layer-step) * 2)); }
+.button-bar-playground__variant-group--spatial-studies .spatial-button-layer:nth-child(4) { transform: translateZ(calc(var(--spatial-layer-step) * 3)); }
+.button-bar-playground__variant-group--spatial-studies .spatial-button-layer:nth-child(5) { transform: translateZ(calc(var(--spatial-layer-step) * 4)); }
+.button-bar-playground__variant-group--spatial-studies .spatial-button-layer:nth-child(6) { transform: translateZ(calc(var(--spatial-layer-step) * 5)); }
 
-.button-bar-playground__variant-group--spatial-studies .shell-tab,
 .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab,
 .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab:is(:hover, :focus-visible, :active) {
-  --spatial-face: var(--playground-key);
+  --spatial-face: color-mix(in srgb, var(--playground-key) 88%, var(--playground-ink) 12%);
   --spatial-ink: var(--playground-key-ink);
-  --spatial-body: color-mix(in srgb, var(--spatial-face) 72%, black 28%);
-  --spatial-light-edge: color-mix(in srgb, var(--spatial-face) 64%, white 36%);
-  --walkman-depth: var(--walkman-body-depth, 8px);
+  --spatial-body: color-mix(in srgb, var(--spatial-face), black var(--spatial-body-contrast, 28%));
+  --spatial-highlight: color-mix(in srgb, var(--spatial-face) 68%, white 32%);
+  --spatial-shadow-edge: color-mix(in srgb, var(--spatial-face) 76%, black 24%);
+  --spatial-lift: var(--spatial-resting-lift, 2px);
+  --spatial-body-span: max(0px, calc(var(--spatial-lift) - 0.5px));
   position: relative;
   min-height: 48px;
+  isolation: auto;
   color: var(--spatial-ink);
-  border: 1px solid color-mix(in srgb, var(--spatial-face) 94%, white 6%);
+  border: 0;
   border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  transform-style: preserve-3d;
+  transition: none;
+}
+.button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  display: block;
+  border: 0;
+  border-radius: inherit;
   background: var(--spatial-face);
   box-shadow:
-    inset 0 calc(var(--walkman-rim-blur, 3.68px) * -0.6) var(--walkman-rim-blur, 3.68px) calc(var(--walkman-rim-blur, 3.68px) * -0.5) var(--spatial-body),
-    inset 0 calc(var(--walkman-rim-blur, 3.68px) * 0.45) var(--walkman-rim-blur, 3.68px) calc(var(--walkman-rim-blur, 3.68px) * -0.58) var(--spatial-light-edge),
-    0 calc(var(--walkman-depth) * 1.2) calc(var(--walkman-depth) * 1.8) rgba(0, 0, 0, 0.2);
-  transform: translateZ(calc(var(--walkman-depth) * 1.65)) translateY(calc(var(--walkman-depth) * -0.72));
-  transform-style: preserve-3d;
-  transition: transform 140ms ease, box-shadow 140ms ease;
+    inset 0 calc(var(--spatial-rim-blur, 3.1px) * -0.55) var(--spatial-rim-blur, 3.1px)
+      calc(var(--spatial-rim-blur, 3.1px) * -0.65) var(--spatial-body),
+    inset 0 calc(var(--spatial-rim-blur, 3.1px) * 0.45) var(--spatial-rim-blur, 3.1px)
+      calc(var(--spatial-rim-blur, 3.1px) * -0.72) var(--spatial-highlight);
+  backface-visibility: hidden;
+  pointer-events: none;
+  transform: translateZ(var(--spatial-lift));
+  transition: transform 180ms cubic-bezier(0.2, 0.82, 0.2, 1);
 }
 .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab[aria-current='page'] {
+  --spatial-lift: var(--spatial-active-lift, 16px);
   color: var(--spatial-ink);
-  background: var(--spatial-face);
-  border-color: color-mix(in srgb, var(--spatial-face) 86%, black 14%);
-  box-shadow:
-    inset 0 -2px var(--walkman-rim-blur, 3.68px) -2px var(--spatial-body),
-    inset 0 2px var(--walkman-rim-blur, 3.68px) -2px var(--spatial-light-edge),
-    0 2px 5px rgba(0, 0, 0, 0.18);
-  transform: translateZ(2px) translateY(2px);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
 }
-.button-bar-playground__variant-group--spatial-studies .shell-tab:focus-visible { outline: 2px solid var(--playground-ink); outline-offset: 5px; }
-.button-bar-playground__variant-group--spatial-studies .shell-tab :is(.shell-tab__icon, .shell-tab__label) {
+.button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab[aria-current='page']::before {
+  content: '';
+}
+.button-bar-playground__sample[data-spatial-model='pressed'] .button-bar__primary-buttons .shell-tab {
+  --spatial-lift: var(--spatial-active-lift, 16px);
+}
+.button-bar-playground__sample[data-spatial-model='pressed'] .button-bar__primary-buttons .shell-tab[aria-current='page'] {
+  --spatial-lift: var(--spatial-resting-lift, 2px);
+}
+.button-bar-playground__sample[data-spatial-model='inverted'] .button-bar__primary-buttons .shell-tab {
+  --spatial-body: color-mix(in srgb, var(--spatial-face), white var(--spatial-body-contrast, 28%));
+}
+.button-bar-playground__sample[data-spatial-model='inverted'] .button-bar__primary-buttons .shell-tab::before {
+  box-shadow:
+    inset 0 calc(var(--spatial-rim-blur, 3.1px) * 0.55) var(--spatial-rim-blur, 3.1px)
+      calc(var(--spatial-rim-blur, 3.1px) * -0.65) var(--spatial-body),
+    inset 0 calc(var(--spatial-rim-blur, 3.1px) * -0.4) var(--spatial-rim-blur, 3.1px)
+      calc(var(--spatial-rim-blur, 3.1px) * -0.72) var(--spatial-shadow-edge);
+}
+.button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab:focus-visible {
+  outline: none;
+}
+.button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab:focus-visible::before {
+  outline: 2px solid var(--playground-ink);
+  outline-offset: 5px;
+}
+.button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab :is(.shell-tab__icon, .shell-tab__label) {
   position: relative;
   z-index: 1;
   color: currentColor;
-  transform: translateZ(1px);
+  transform: translateZ(calc(var(--spatial-lift) + 1px));
+  transition: transform 180ms cubic-bezier(0.2, 0.82, 0.2, 1);
 }
 
 /* No group housing: every bank mounts directly to the wall. */
@@ -1272,39 +1345,6 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
   background: transparent;
   box-shadow: none;
 }
-.button-bar-playground__sample--walkman-polished .shell-tab { --walkman-rim-blur: 6px; }
-.button-bar-playground__sample--walkman-soft-body .shell-tab {
-  --walkman-depth: calc(var(--walkman-body-depth, 8px) * 0.68);
-  --spatial-body: color-mix(in srgb, var(--spatial-face) 80%, black 20%);
-}
-.button-bar-playground__sample--walkman-low-profile .shell-tab {
-  --walkman-depth: calc(var(--walkman-body-depth, 8px) * 1.18);
-  --spatial-body: color-mix(in srgb, var(--spatial-face) 64%, black 36%);
-  --walkman-rim-blur: 2.4px;
-}
-
-.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-inverted, .button-bar-playground__sample--walkman-inverted-active-colour, .button-bar-playground__sample--walkman-inverted-always-colour) .button-bar {
-  transform: rotateX(calc(var(--button-bar-playground-camera-x) * -1)) rotateY(calc(var(--button-bar-playground-camera-y) * -1));
-}
-
-.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-inverted, .button-bar-playground__sample--walkman-inverted-active-colour, .button-bar-playground__sample--walkman-inverted-always-colour) .shell-tab {
-  --spatial-body: color-mix(in srgb, var(--spatial-face) 70%, white 30%);
-  box-shadow:
-    inset 0 calc(var(--walkman-rim-blur, 3.68px) * 0.6) var(--walkman-rim-blur, 3.68px) calc(var(--walkman-rim-blur, 3.68px) * -0.5) var(--spatial-body),
-    inset 0 calc(var(--walkman-rim-blur, 3.68px) * -0.4) var(--walkman-rim-blur, 3.68px) calc(var(--walkman-rim-blur, 3.68px) * -0.6) color-mix(in srgb, var(--spatial-face) 88%, black 12%),
-    0 calc(var(--walkman-depth) * -0.8) calc(var(--walkman-depth) * 1.7) rgba(0, 0, 0, 0.18);
-  transform: translateZ(calc(var(--walkman-depth) * 1.65)) translateY(calc(var(--walkman-depth) * 0.72));
-}
-
-.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-inverted, .button-bar-playground__sample--walkman-inverted-active-colour, .button-bar-playground__sample--walkman-inverted-always-colour)
-  .button-bar__primary-buttons .shell-tab[aria-current='page'] {
-  box-shadow:
-    inset 0 2px var(--walkman-rim-blur, 3.68px) -2px var(--spatial-body),
-    inset 0 -2px var(--walkman-rim-blur, 3.68px) -2px color-mix(in srgb, var(--spatial-face) 88%, black 12%),
-    0 -2px 5px rgba(0, 0, 0, 0.16);
-  transform: translateZ(2px) translateY(-2px);
-}
-
 .button-bar-playground__config-toggle {
   position: fixed;
   z-index: 1001;
@@ -1415,17 +1455,425 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
   .button-bar-playground { padding-top: 76px; }
   .button-bar-playground__header { grid-template-columns: 1fr; }
   .button-bar-playground__readout { justify-items: start; width: fit-content; }
-  .button-bar-playground__variant-group--flat-studies .button-bar-playground__stage,
-  .button-bar-playground__variant-group--spatial-studies .button-bar-playground__stage { padding: 12px 4px; }
   .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons { gap: 4px; }
-  .button-bar-playground__sample--dominant-tab .shell-tab { flex-grow: .85; }
+  .button-bar-playground__sample--dominant-tab .button-bar__primary-buttons .shell-tab { flex-grow: .85; }
   .button-bar-playground__sample--dominant-tab .button-bar__primary-buttons .shell-tab[aria-current='page'] { flex-grow: 1.25; }
 }
 
 @media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
-  .button-bar-playground__variant-group--spatial-studies .button-bar { transform: none; transition: none; }
+  .button-bar-playground__variant-group--spatial-studies .button-bar {
+    transform:
+      rotateX(var(--spatial-effective-bank-tilt))
+      rotateY(var(--spatial-bank-yaw-y, 0deg));
+    transition: none;
+  }
   .button-bar-playground__theme-toggle-track i,
-  .button-bar-playground__variant-group--spatial-studies .shell-tab { transition-duration: 0ms; }
+  .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab { transition-duration: 0ms; }
+  .button-bar-playground__variant-group--spatial-studies .spatial-button-layer,
+  .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab::before,
+  .button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab :is(.shell-tab__icon, .shell-tab__label) {
+    transition: none;
+  }
+}
+
+/* Specimen utility controls ------------------------------------------------
+   Sound and theme are part of each study's material language. The lab theme
+   owns their state so every specimen changes as one coherent object. */
+
+.button-bar-playground[data-playground-theme='light'] {
+  --button-bar-playground-wall: color-mix(in srgb, var(--playground-stage) 94%, var(--playground-ink) 6%);
+  --button-bar-playground-cut: rgba(var(--abs-rgb-black), 0.25);
+  --button-bar-playground-edge: rgba(var(--abs-rgb-white), 0.62);
+  --button-bar-playground-edge-soft: rgba(var(--abs-rgb-white), 0.42);
+}
+
+.button-bar-playground__sample .button-bar__secondary-buttons {
+  align-items: stretch;
+}
+
+.button-bar-playground__sample .button-bar__secondary-button > :not(.spatial-button-layers) {
+  position: relative;
+  z-index: 2;
+}
+
+.button-bar-playground__sample .button-bar__secondary-svg {
+  color: currentColor;
+}
+
+.button-bar-playground[data-playground-theme='light']
+  .button-bar-playground__variant-group--physical-studies
+  .button-bar-playground__sample
+  .shell-tab {
+  --shell-tab-text-rest: rgba(23, 24, 25, 0.58);
+  --shell-tab-text-hover: rgba(23, 24, 25, 0.82);
+  --shell-tab-text-active: rgba(23, 24, 25, 0.9);
+  color: var(--shell-tab-text-rest);
+}
+
+.button-bar-playground__variant-group--physical-studies
+  .button-bar-playground__sample
+  .button-bar__theme-thumb,
+.button-bar-playground__variant-group--physical-studies
+  .button-bar-playground__sample
+  .button-bar__theme-toggle:is(:hover, :focus-visible)
+  .button-bar__theme-thumb {
+  color: var(--shell-tab-text-hover);
+  background: color-mix(in srgb, var(--button-bar-playground-wall) 90%, var(--playground-ink) 10%);
+  box-shadow:
+    inset 0 var(--abs-size-1px) 0 var(--button-bar-playground-edge),
+    inset 0 calc(var(--abs-size-1px) * -1) 0 var(--button-bar-playground-cut);
+}
+
+/* 03: utilities join the same continuous rail as the route controls. */
+.button-bar-playground__sample--continuous-rail .button-bar__secondary-buttons {
+  gap: 0;
+  padding: calc(var(--abs-size-1px) * 3);
+  border: var(--abs-size-1px) solid rgba(var(--abs-rgb-black), 0.46);
+  border-radius: var(--abs-radius-cta);
+  background: color-mix(in srgb, var(--button-bar-playground-wall) 82%, var(--playground-ink) 18%);
+  box-shadow:
+    inset 0 calc(var(--abs-size-1px) * 2) calc(var(--abs-size-1px) * 4) rgba(var(--abs-rgb-black), 0.24),
+    inset 0 calc(var(--abs-size-1px) * -1) 0 var(--button-bar-playground-edge-soft);
+}
+
+.button-bar-playground__sample--continuous-rail
+  .button-bar__secondary-buttons
+  .button-bar__secondary-button.shell-tab {
+  border-width: 0 var(--abs-size-1px) 0 0;
+  border-radius: 0;
+  box-shadow: inset calc(var(--abs-size-1px) * -1) 0 0 var(--button-bar-playground-edge-soft);
+}
+
+.button-bar-playground__sample--continuous-rail
+  .button-bar__secondary-buttons
+  .button-bar__sound-toggle.shell-tab {
+  border-radius: calc(var(--abs-radius-cta) - (var(--abs-size-1px) * 3)) 0 0 calc(var(--abs-radius-cta) - (var(--abs-size-1px) * 3));
+}
+
+.button-bar-playground__sample--continuous-rail
+  .button-bar__secondary-buttons
+  .button-bar__theme-toggle.shell-tab {
+  border-right: 0;
+  border-radius: 0 calc(var(--abs-radius-cta) - (var(--abs-size-1px) * 3)) calc(var(--abs-radius-cta) - (var(--abs-size-1px) * 3)) 0;
+}
+
+/* Flat families: utilities use the same rules, fields, and state signals as
+   their route controls—never the production gasket treatment. */
+.button-bar-playground__variant-group--flat-studies
+  .button-bar-playground__sample
+  .button-bar__secondary-button.shell-tab,
+.button-bar-playground__variant-group--flat-studies
+  .button-bar-playground__sample
+  .button-bar__secondary-button.shell-tab:is(:hover, :focus-visible, :active) {
+  --utility-accent: var(--ball-5);
+  --utility-accent-ink: rgba(var(--abs-rgb-white), 0.96);
+  color: var(--playground-key-ink);
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.button-bar-playground__variant-group--flat-studies
+  .button-bar-playground__sample
+  .button-bar__secondary-button.shell-tab:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.button-bar-playground__variant-group--flat-studies
+  .button-bar-playground__sample
+  .button-bar__theme-thumb,
+.button-bar-playground__variant-group--flat-studies
+  .button-bar-playground__sample
+  .button-bar__theme-toggle:is(:hover, :focus-visible, :active)
+  .button-bar__theme-thumb {
+  color: var(--playground-page);
+  background: var(--playground-ink);
+  box-shadow: none;
+}
+
+.button-bar-playground__sample--type-rail .button-bar__secondary-buttons {
+  gap: 0;
+  border-block: 1px solid var(--playground-ink);
+}
+
+.button-bar-playground__sample--type-rail .button-bar__secondary-button.button-bar__sound-toggle.shell-tab[data-enabled='true'],
+.button-bar-playground__sample--type-rail .button-bar__secondary-button.button-bar__sound-toggle.shell-tab[data-enabled='true']:is(:hover, :focus-visible, :active) {
+  color: var(--playground-page);
+  background: var(--playground-ink);
+}
+
+.button-bar-playground__sample--signal-blocks .button-bar__secondary-buttons {
+  gap: 3px;
+}
+
+.button-bar-playground__sample--signal-blocks .button-bar__sound-toggle.shell-tab {
+  color: var(--utility-accent-ink);
+  background: var(--utility-accent);
+  opacity: 0.46;
+}
+
+.button-bar-playground__sample--signal-blocks .button-bar__secondary-button.button-bar__sound-toggle.shell-tab:is(:hover, :focus-visible),
+.button-bar-playground__sample--signal-blocks .button-bar__secondary-button.button-bar__sound-toggle.shell-tab[data-enabled='true'],
+.button-bar-playground__sample--signal-blocks .button-bar__secondary-button.button-bar__sound-toggle.shell-tab[data-enabled='true']:is(:hover, :focus-visible, :active) {
+  opacity: 1;
+}
+
+.button-bar-playground__sample--signal-blocks .button-bar__theme-toggle.shell-tab {
+  color: var(--playground-page);
+  background: var(--playground-ink);
+}
+
+.button-bar-playground__sample--signal-blocks .button-bar__theme-thumb,
+.button-bar-playground__sample--signal-blocks .button-bar__theme-toggle:is(:hover, :focus-visible, :active) .button-bar__theme-thumb {
+  color: var(--playground-ink);
+  background: var(--playground-page);
+}
+
+.button-bar-playground__sample--binary-grid .button-bar__secondary-buttons {
+  gap: 0;
+  border: 2px solid var(--playground-ink);
+}
+
+.button-bar-playground__sample--binary-grid .button-bar__secondary-button + .button-bar__secondary-button {
+  border-left: 2px solid var(--playground-ink);
+}
+
+.button-bar-playground__sample--binary-grid .button-bar__secondary-button.button-bar__sound-toggle.shell-tab[data-enabled='true'],
+.button-bar-playground__sample--binary-grid .button-bar__secondary-button.button-bar__sound-toggle.shell-tab[data-enabled='true']:is(:hover, :focus-visible, :active) {
+  color: var(--playground-page);
+  background: var(--playground-ink);
+}
+
+.button-bar-playground__sample--split-field .button-bar__secondary-buttons {
+  gap: 2px;
+}
+
+.button-bar-playground__sample--split-field .button-bar__secondary-button.shell-tab,
+.button-bar-playground__sample--split-field .button-bar__secondary-button.shell-tab:is(:hover, :focus-visible, :active) {
+  color: var(--playground-ink);
+  background: linear-gradient(90deg, var(--utility-accent) 0 12px, transparent 12px);
+}
+
+.button-bar-playground__sample--split-field .button-bar__secondary-button.button-bar__sound-toggle.shell-tab[data-enabled='true'],
+.button-bar-playground__sample--split-field .button-bar__secondary-button.button-bar__sound-toggle.shell-tab[data-enabled='true']:is(:hover, :focus-visible, :active) {
+  color: var(--utility-accent-ink);
+  background: var(--utility-accent);
+}
+
+.button-bar-playground__sample--dominant-tab .button-bar__secondary-buttons {
+  gap: 4px;
+}
+
+.button-bar-playground__sample--dominant-tab .button-bar__secondary-button.shell-tab {
+  color: var(--playground-key-ink);
+  border-radius: var(--shell-tab-radius, 16px);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.button-bar-playground__sample--dominant-tab
+  .button-bar__secondary-button.shell-tab:not([data-enabled='true']):is(:hover, :focus-visible, :active) {
+  background: color-mix(in srgb, var(--playground-ink) 14%, transparent);
+  box-shadow:
+    inset 0 var(--flat-pressed-shadow-edge, 2.5px) 0 rgba(var(--abs-rgb-black), 0.5),
+    inset 0 calc(var(--flat-pressed-light-edge, 1px) * -1) 0 rgba(var(--abs-rgb-white), 0.3);
+  transform: translateY(var(--abs-size-1px));
+}
+
+.button-bar-playground__sample--dominant-tab .button-bar__secondary-button.button-bar__sound-toggle.shell-tab[data-enabled='true'],
+.button-bar-playground__sample--dominant-tab .button-bar__secondary-button.button-bar__sound-toggle.shell-tab[data-enabled='true']:is(:hover, :focus-visible, :active) {
+  color: var(--utility-accent-ink);
+  background: var(--utility-accent);
+  box-shadow:
+    inset 0 var(--flat-pressed-shadow-edge, 2.5px) 0 rgba(var(--abs-rgb-black), 0.5),
+    inset 0 calc(var(--flat-pressed-light-edge, 1px) * -1) 0 rgba(var(--abs-rgb-white), 0.3);
+  transform: translateY(var(--abs-size-1px));
+}
+
+.button-bar-playground__sample--dominant-tab .button-bar__theme-thumb,
+.button-bar-playground__sample--dominant-tab .button-bar__theme-toggle:is(:hover, :focus-visible, :active) .button-bar__theme-thumb {
+  color: var(--playground-page);
+  background: var(--playground-ink);
+}
+
+/* Spatial utilities share the exact aligned-layer extrusion used by the route
+   keys. Their X/Y positions never diverge; the bank tilt reveals their body. */
+.button-bar-playground__variant-group--spatial-studies .button-bar__secondary-buttons {
+  gap: clamp(7px, 1vw, 12px);
+  transform-style: preserve-3d;
+}
+
+.button-bar-playground[data-spatial-layers='2']
+  .button-bar-playground__variant-group--spatial-studies
+  .button-bar__secondary-button { --spatial-layer-step: var(--spatial-body-span); }
+.button-bar-playground[data-spatial-layers='3']
+  .button-bar-playground__variant-group--spatial-studies
+  .button-bar__secondary-button { --spatial-layer-step: calc(var(--spatial-body-span) * 0.5); }
+.button-bar-playground[data-spatial-layers='4']
+  .button-bar-playground__variant-group--spatial-studies
+  .button-bar__secondary-button { --spatial-layer-step: calc(var(--spatial-body-span) * 0.3333); }
+.button-bar-playground[data-spatial-layers='5']
+  .button-bar-playground__variant-group--spatial-studies
+  .button-bar__secondary-button { --spatial-layer-step: calc(var(--spatial-body-span) * 0.25); }
+.button-bar-playground[data-spatial-layers='6']
+  .button-bar-playground__variant-group--spatial-studies
+  .button-bar__secondary-button { --spatial-layer-step: calc(var(--spatial-body-span) * 0.2); }
+
+.button-bar-playground__variant-group--spatial-studies
+  .button-bar__secondary-button.shell-tab,
+.button-bar-playground__variant-group--spatial-studies
+  .button-bar__secondary-button.shell-tab:is(:hover, :focus-visible, :active) {
+  --spatial-face: color-mix(in srgb, var(--playground-key) 88%, var(--playground-ink) 12%);
+  --spatial-ink: var(--playground-key-ink);
+  --spatial-body: color-mix(in srgb, var(--spatial-face), black var(--spatial-body-contrast, 28%));
+  --spatial-highlight: color-mix(in srgb, var(--spatial-face) 68%, white 32%);
+  --spatial-shadow-edge: color-mix(in srgb, var(--spatial-face) 76%, black 24%);
+  --spatial-lift: var(--spatial-resting-lift, 2px);
+  --spatial-body-span: max(0px, calc(var(--spatial-lift) - 0.5px));
+  position: relative;
+  isolation: auto;
+  color: var(--spatial-ink);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  transform-style: preserve-3d;
+  transition: none;
+}
+
+.button-bar-playground__variant-group--spatial-studies
+  .button-bar__secondary-button.shell-tab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  border: 0;
+  border-radius: inherit;
+  background: var(--spatial-face);
+  box-shadow:
+    inset 0 calc(var(--spatial-rim-blur, 3.1px) * -0.55) var(--spatial-rim-blur, 3.1px)
+      calc(var(--spatial-rim-blur, 3.1px) * -0.65) var(--spatial-body),
+    inset 0 calc(var(--spatial-rim-blur, 3.1px) * 0.45) var(--spatial-rim-blur, 3.1px)
+      calc(var(--spatial-rim-blur, 3.1px) * -0.72) var(--spatial-highlight);
+  backface-visibility: hidden;
+  pointer-events: none;
+  transform: translateZ(var(--spatial-lift));
+  transition: transform 180ms cubic-bezier(0.2, 0.82, 0.2, 1);
+}
+
+.button-bar-playground__sample[data-spatial-model='raised']
+  .button-bar__sound-toggle[data-enabled='true'] {
+  --spatial-lift: var(--spatial-active-lift, 16px);
+}
+
+.button-bar-playground__sample[data-spatial-model='pressed']
+  .button-bar__secondary-button {
+  --spatial-lift: var(--spatial-active-lift, 16px);
+}
+
+.button-bar-playground__sample[data-spatial-model='pressed']
+  .button-bar__sound-toggle[data-enabled='true'] {
+  --spatial-lift: var(--spatial-resting-lift, 2px);
+}
+
+.button-bar-playground__sample[data-spatial-model='inverted']
+  .button-bar__secondary-button {
+  --spatial-body: color-mix(in srgb, var(--spatial-face), white var(--spatial-body-contrast, 28%));
+}
+
+.button-bar-playground__sample[data-spatial-model='inverted']
+  .button-bar__secondary-button::before {
+  box-shadow:
+    inset 0 calc(var(--spatial-rim-blur, 3.1px) * 0.55) var(--spatial-rim-blur, 3.1px)
+      calc(var(--spatial-rim-blur, 3.1px) * -0.65) var(--spatial-body),
+    inset 0 calc(var(--spatial-rim-blur, 3.1px) * -0.4) var(--spatial-rim-blur, 3.1px)
+      calc(var(--spatial-rim-blur, 3.1px) * -0.72) var(--spatial-shadow-edge);
+}
+
+.button-bar-playground__sample[data-spatial-material='colour']
+  .button-bar__secondary-button.button-bar__sound-toggle.shell-tab {
+  --spatial-face: var(--ball-5);
+  --spatial-ink: rgba(var(--abs-rgb-white), 0.96);
+}
+
+.button-bar-playground__sample[data-spatial-material='colour']
+  .button-bar__secondary-button.button-bar__theme-toggle.shell-tab {
+  --spatial-face: var(--playground-ink);
+  --spatial-ink: var(--playground-page);
+}
+
+.button-bar-playground__variant-group--spatial-studies
+  .button-bar__secondary-button.shell-tab:focus-visible {
+  outline: 0;
+}
+
+.button-bar-playground__variant-group--spatial-studies
+  .button-bar__secondary-button.shell-tab:focus-visible::before {
+  outline: 2px solid var(--playground-ink);
+  outline-offset: 5px;
+}
+
+.button-bar-playground__variant-group--spatial-studies
+  .button-bar__sound-toggle
+  .button-bar__secondary-icon {
+  color: currentColor;
+  transform: translateZ(calc(var(--spatial-lift) + 1px));
+  transition: transform 180ms cubic-bezier(0.2, 0.82, 0.2, 1);
+}
+
+.button-bar-playground__variant-group--spatial-studies
+  .button-bar__theme-toggle
+  .button-bar__theme-thumb,
+.button-bar-playground__variant-group--spatial-studies
+  .button-bar__theme-toggle:is(:hover, :focus-visible, :active)
+  .button-bar__theme-thumb {
+  color: var(--spatial-ink);
+  background: color-mix(in srgb, var(--spatial-face) 74%, var(--playground-page) 26%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--spatial-ink) 14%, transparent);
+  transform: translate3d(0, -50%, calc(var(--spatial-lift) + 1px));
+  transition:
+    inset-inline-start 160ms var(--shell-tab-motion-ease),
+    transform 180ms cubic-bezier(0.2, 0.82, 0.2, 1);
+}
+
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .button-bar-playground__sample .button-bar__secondary-buttons {
+    align-self: stretch;
+    gap: 3px;
+    width: auto;
+    min-width: 0;
+  }
+
+  .button-bar-playground__sample .button-bar__theme-toggle.shell-tab {
+    display: inline-flex;
+    flex: 0 0 calc(var(--button-bar-mobile-secondary-height) * 10 / 7);
+    inline-size: calc(var(--button-bar-mobile-secondary-height) * 10 / 7);
+    block-size: var(--button-bar-mobile-secondary-height);
+    min-width: calc(var(--button-bar-mobile-secondary-height) * 10 / 7);
+    min-height: var(--button-bar-mobile-secondary-height);
+  }
+
+  .button-bar-playground__sample--continuous-rail .button-bar__secondary-buttons,
+  .button-bar-playground__sample--type-rail .button-bar__secondary-buttons,
+  .button-bar-playground__sample--binary-grid .button-bar__secondary-buttons {
+    gap: 0;
+  }
+
+  .button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
+    .button-bar
+    .button-bar__primary-buttons
+    .shell-tab:not([data-route-tab='home']) {
+    padding-inline: 5px;
+  }
+
+  .button-bar-playground__variant-group--spatial-studies .button-bar__secondary-buttons {
+    gap: 4px;
+  }
 }
 
 .button-bar-playground__sample .button-bar__theme-thumb,
@@ -1530,82 +1978,23 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
 
 @media (min-width: 900px) {
   .button-bar-playground__side {
+    --button-bar-playground-groove-inline-inset: clamp(16px, 2vw, 24px);
+    --button-bar-playground-groove-cut: rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.6);
+    --button-bar-playground-groove-light: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.07);
+
     display: block;
-  }
-
-  /* 01: fine parallel cooling cuts. */
-  .button-bar-playground__sample--hairline-cutout .button-bar-playground__side {
-    background: repeating-linear-gradient(
-      180deg,
-      transparent 0 calc(var(--abs-size-1px) * 7),
-      rgba(var(--abs-rgb-black), 0.42) calc(var(--abs-size-1px) * 7) calc(var(--abs-size-1px) * 8),
-      rgba(var(--abs-rgb-white), 0.055) calc(var(--abs-size-1px) * 8) calc(var(--abs-size-1px) * 9)
-    );
-  }
-
-  /* 02: five full-field fins with a deliberate light-catching lower edge. */
-  .button-bar-playground__sample--light-edge .button-bar-playground__side i {
-    right: 0;
-    left: 0;
-    height: calc(var(--abs-size-1px) * 4);
-    border-top: var(--abs-size-1px) solid rgba(var(--abs-rgb-black), 0.55);
-    border-bottom: var(--abs-size-1px) solid rgba(var(--abs-rgb-white), 0.14);
-    transform: translateY(-50%);
-  }
-
-  .button-bar-playground__sample--light-edge .button-bar-playground__side i:nth-child(1) { top: 8%; }
-  .button-bar-playground__sample--light-edge .button-bar-playground__side i:nth-child(2) { top: 29%; }
-  .button-bar-playground__sample--light-edge .button-bar-playground__side i:nth-child(3) { top: 50%; }
-  .button-bar-playground__sample--light-edge .button-bar-playground__side i:nth-child(4) { top: 71%; }
-  .button-bar-playground__sample--light-edge .button-bar-playground__side i:nth-child(5) { top: 92%; }
-
-  /* 03: two long guide rails converge on the control strip. */
-  .button-bar-playground__sample--continuous-rail .button-bar-playground__side::before,
-  .button-bar-playground__sample--continuous-rail .button-bar-playground__side::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    left: 0;
-    height: calc(var(--abs-size-1px) * 5);
-    border-top: var(--abs-size-1px) solid rgba(var(--abs-rgb-black), 0.46);
-    border-bottom: var(--abs-size-1px) solid rgba(var(--abs-rgb-white), 0.055);
-  }
-
-  .button-bar-playground__sample--continuous-rail .button-bar-playground__side::before { top: 30%; }
-  .button-bar-playground__sample--continuous-rail .button-bar-playground__side::after { bottom: 30%; }
-
-  /* 04: paired pressure bands with alternating depth. */
-  .button-bar-playground__sample--precision-gasket .button-bar-playground__side {
     background:
-      linear-gradient(180deg, transparent 28%, rgba(var(--abs-rgb-black), 0.4) 28% 31%, rgba(var(--abs-rgb-white), 0.05) 31% 33%, transparent 33%),
-      linear-gradient(180deg, transparent 67%, rgba(var(--abs-rgb-black), 0.4) 67% 70%, rgba(var(--abs-rgb-white), 0.05) 70% 72%, transparent 72%);
+      linear-gradient(180deg, var(--button-bar-playground-groove-cut), transparent 25% 75%, var(--button-bar-playground-groove-light)) center calc(50% - (var(--abs-size-1px) * 13.5)) / calc(100% - (var(--button-bar-playground-groove-inline-inset) * 2)) calc(var(--abs-size-1px) * 4) no-repeat,
+      linear-gradient(180deg, var(--button-bar-playground-groove-cut), transparent 25% 75%, var(--button-bar-playground-groove-light)) center calc(50% - (var(--abs-size-1px) * 4.5)) / calc(100% - (var(--button-bar-playground-groove-inline-inset) * 2)) calc(var(--abs-size-1px) * 4) no-repeat,
+      linear-gradient(180deg, var(--button-bar-playground-groove-cut), transparent 25% 75%, var(--button-bar-playground-groove-light)) center calc(50% + (var(--abs-size-1px) * 4.5)) / calc(100% - (var(--button-bar-playground-groove-inline-inset) * 2)) calc(var(--abs-size-1px) * 4) no-repeat,
+      linear-gradient(180deg, var(--button-bar-playground-groove-cut), transparent 25% 75%, var(--button-bar-playground-groove-light)) center calc(50% + (var(--abs-size-1px) * 13.5)) / calc(100% - (var(--button-bar-playground-groove-inline-inset) * 2)) calc(var(--abs-size-1px) * 4) no-repeat;
+    opacity: 0.9;
   }
 
-  /* 05: shallow horizontal terraces, shortened toward the outside edge. */
-  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side i {
-    top: 50%;
-    right: 0;
-    height: calc(var(--abs-size-1px) * 4);
-    border-top: var(--abs-size-1px) solid rgba(var(--abs-rgb-black), 0.4);
-    border-bottom: var(--abs-size-1px) solid rgba(var(--abs-rgb-white), 0.06);
-    transform: translateY(-50%);
-  }
-
-  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side--right i { right: auto; left: 0; }
-  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side i:nth-child(1) { width: 100%; margin-top: calc(var(--abs-size-1px) * -18); }
-  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side i:nth-child(2) { width: 82%; margin-top: calc(var(--abs-size-1px) * -9); }
-  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side i:nth-child(3) { width: 64%; }
-  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side i:nth-child(4) { width: 82%; margin-top: calc(var(--abs-size-1px) * 9); }
-  .button-bar-playground__sample--stepped-cavity .button-bar-playground__side i:nth-child(5) { width: 100%; margin-top: calc(var(--abs-size-1px) * 18); }
-
-  /* 06: denser ribs make the whole lower band feel structurally continuous. */
-  .button-bar-playground__sample--ribbed-monolith .button-bar-playground__side {
-    background: repeating-linear-gradient(
-      180deg,
-      transparent 0 calc(var(--abs-size-1px) * 5),
-      rgba(var(--abs-rgb-black), 0.28) calc(var(--abs-size-1px) * 5) calc(var(--abs-size-1px) * 6),
-      rgba(var(--abs-rgb-white), 0.045) calc(var(--abs-size-1px) * 6) calc(var(--abs-size-1px) * 7)
-    );
+  .button-bar-playground__side i,
+  .button-bar-playground__side::before,
+  .button-bar-playground__side::after {
+    display: none;
   }
 }
 
@@ -1629,25 +2018,6 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
   border-color: transparent;
   background: var(--abs-browser-chrome);
   box-shadow: none;
-}
-
-.button-bar-playground__sample--final-menu-bar .button-bar-playground__side {
-  background: repeating-linear-gradient(
-    180deg,
-    transparent 0 calc(var(--abs-size-1px) * 4),
-    color-mix(in srgb, var(--button-bar-playground-groove-cut) 88%, rgba(var(--abs-rgb-black), 1) 12%) calc(var(--abs-size-1px) * 4) calc(var(--abs-size-1px) * 5),
-    transparent calc(var(--abs-size-1px) * 5) calc(var(--abs-size-1px) * 6),
-    color-mix(in srgb, var(--button-bar-playground-groove-light) 72%, rgba(var(--abs-rgb-white), 1) 28%) calc(var(--abs-size-1px) * 6) calc(var(--abs-size-1px) * 7),
-    transparent calc(var(--abs-size-1px) * 7) calc(var(--abs-size-1px) * 10)
-  );
-  background-position: center;
-  background-size: 100% calc(100% - (var(--abs-size-1px) * 4));
-  background-repeat: repeat-y;
-  opacity: 0.9;
-}
-
-.button-bar-playground__sample--final-menu-bar .button-bar-playground__side i {
-  display: none;
 }
 
 .button-bar-playground__sample--final-menu-bar .button-bar {
@@ -1750,58 +2120,45 @@ html.button-bar-playground-document {
   perspective: none;
 }
 
-.button-bar-playground__variant-group--spatial-studies .shell-tab .shell-tab__label {
+.button-bar-playground__variant-group--spatial-studies .button-bar__primary-buttons .shell-tab .shell-tab__label {
   color: currentColor;
 }
 
-/* Route-colour material system: face, one body tone, edge light, and ink share one decision. */
-.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour, .button-bar-playground__sample--walkman-inverted-active-colour, .button-bar-playground__sample--walkman-inverted-always-colour)
-  .shell-tab:nth-child(1) {
+/* Colour is a material variation on the same six-layer geometry. */
+.button-bar-playground__sample[data-spatial-material='colour']
+  .button-bar__primary-buttons .shell-tab:nth-child(1) {
   --shell-tab-route-accent: var(--ball-4);
   --walkman-route-ink: rgba(255, 255, 255, 0.94);
 }
-.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour, .button-bar-playground__sample--walkman-inverted-active-colour, .button-bar-playground__sample--walkman-inverted-always-colour)
-  .shell-tab:nth-child(2) {
+.button-bar-playground__sample[data-spatial-material='colour']
+  .button-bar__primary-buttons .shell-tab:nth-child(2) {
   --shell-tab-route-accent: var(--ball-6);
   --walkman-route-ink: #172000;
 }
-.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour, .button-bar-playground__sample--walkman-inverted-active-colour, .button-bar-playground__sample--walkman-inverted-always-colour)
-  .shell-tab:nth-child(3) {
+.button-bar-playground__sample[data-spatial-material='colour']
+  .button-bar__primary-buttons .shell-tab:nth-child(3) {
   --shell-tab-route-accent: var(--ball-7);
   --walkman-route-ink: rgba(255, 255, 255, 0.96);
 }
-.button-bar-playground__sample:is(.button-bar-playground__sample--walkman-active-colour, .button-bar-playground__sample--walkman-always-colour, .button-bar-playground__sample--walkman-inverted-active-colour, .button-bar-playground__sample--walkman-inverted-always-colour)
-  .shell-tab:nth-child(4) {
+.button-bar-playground__sample[data-spatial-material='colour']
+  .button-bar__primary-buttons .shell-tab:nth-child(4) {
   --shell-tab-route-accent: var(--ball-8);
   --walkman-route-ink: #241500;
 }
 
-.button-bar-playground__sample--walkman-active-colour .button-bar__primary-buttons .shell-tab[aria-current='page'],
-.button-bar-playground__sample--walkman-always-colour .button-bar__primary-buttons .shell-tab,
-.button-bar-playground__sample--walkman-inverted-active-colour .button-bar__primary-buttons .shell-tab[aria-current='page'],
-.button-bar-playground__sample--walkman-inverted-always-colour .button-bar__primary-buttons .shell-tab {
+.button-bar-playground__sample[data-spatial-material='colour'] .button-bar__primary-buttons .shell-tab {
   --spatial-face: var(--shell-tab-route-accent);
   --spatial-ink: var(--walkman-route-ink);
+  --shell-tab-text-active: var(--walkman-route-ink);
   color: var(--spatial-ink);
-  background: var(--spatial-face);
+  background: transparent;
 }
 
-/* Geometry parity: flat and spatial studies use the exact 00 tab proportions. */
-.button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
-  .button-bar-playground__bar {
-  flex: 0 1 calc(var(--shell-tab-height, 40.8px) * 14.48);
-  width: min(100%, calc(var(--shell-tab-height, 40.8px) * 14.48));
-  min-width: 0;
-  max-width: calc(var(--shell-tab-height, 40.8px) * 14.48);
-  margin-inline: auto;
-  padding-inline: 0;
-}
-
+/* Geometry parity: flat and spatial route tabs use the exact 00 proportions. */
 .button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
   .button-bar__primary-buttons {
   grid-template-columns: var(--shell-tab-height, 40.8px) repeat(3, minmax(0, 1fr));
   gap: var(--button-bar-primary-inner-gap, var(--shell-tab-gap, 16px));
-  width: 100%;
   min-height: var(--shell-tab-height, 40.8px);
 }
 
@@ -1836,13 +2193,6 @@ html.button-bar-playground-document {
 
 @media (max-width: 600px) {
   .button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
-    .button-bar-playground__bar {
-    flex-basis: calc(44px * 7.4);
-    width: min(100%, calc(44px * 7.4));
-    max-width: calc(44px * 7.4);
-  }
-
-  .button-bar-playground__variant-group:is(.button-bar-playground__variant-group--flat-studies, .button-bar-playground__variant-group--spatial-studies)
     .button-bar__primary-buttons {
     grid-template-columns: 44px repeat(3, minmax(0, 1fr));
     min-height: 44px;
@@ -1872,4 +2222,451 @@ html.button-bar-playground-document {
     min-height: 44px;
     max-height: 44px;
   }
+}
+
+/* The production specimen normally inherits browser chrome. Inside the lab it
+   follows the authored preview theme so its dark and light states stay useful. */
+.button-bar-playground[data-playground-theme='light']
+  .button-bar-playground__sample--final-menu-bar
+  .button-bar-playground__stage {
+  background: var(--button-bar-playground-wall);
+}
+
+.button-bar-playground[data-playground-theme='light']
+  .button-bar-playground__sample--final-menu-bar
+  .button-bar {
+  --button-bar-gasket-ground: var(--button-bar-playground-wall);
+  --button-bar-gasket-cut: rgba(var(--abs-rgb-black), 0.3);
+  --button-bar-gasket-edge-soft: rgba(var(--abs-rgb-white), 0.48);
+  --button-bar-gasket-edge-lower: rgba(var(--abs-rgb-black), 0.08);
+  --button-bar-gasket-pressed-light: rgba(var(--abs-rgb-white), 0.58);
+}
+
+.button-bar-playground[data-playground-theme='light']
+  .button-bar-playground__sample--final-menu-bar
+  .button-bar
+  .shell-tab,
+.button-bar-playground[data-playground-theme='light']
+  .button-bar-playground__sample--final-menu-bar
+  .button-bar__primary-buttons
+  .shell-tab:is(:hover, :focus-visible) {
+  --shell-tab-surface-base: var(--button-bar-playground-wall);
+  --shell-tab-text-rest: rgba(23, 24, 25, 0.58);
+  --shell-tab-text-hover: rgba(23, 24, 25, 0.82);
+  --shell-tab-text-active: rgba(23, 24, 25, 0.9);
+  color: var(--shell-tab-text-rest);
+  background: var(--button-bar-gasket-ground);
+}
+
+.button-bar-playground[data-playground-theme='light']
+  .button-bar-playground__sample--final-menu-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground[data-playground-theme='light']
+  .button-bar-playground__sample--final-menu-bar
+  .button-bar__sound-toggle[data-enabled='true'] {
+  color: var(--shell-tab-text-active);
+  background: color-mix(in srgb, var(--button-bar-playground-wall) 86%, var(--playground-ink) 14%);
+}
+
+/* Dominant tabs are visually absent at rest. Their material appears only while
+   hovering/pressing or after a control has been selected. */
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):not(:hover):not(:focus-visible):not(:active),
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__secondary-button.shell-tab:not([data-enabled='true']):not(:hover):not(:focus-visible):not(:active) {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Interaction-state repairs -------------------------------------------------
+   Selected route controls are inert in the playground. Keep their material
+   completely invariant if a browser retains a hover or active pseudo-state
+   while the preview selection changes. */
+
+/* 00: the production study uses one restrained gasket hover in both themes,
+   including its icon-only utilities. */
+.button-bar-playground__sample--final-menu-bar {
+  --playground-final-active-surface: color-mix(
+    in srgb,
+    var(--shell-tab-surface-base) 84%,
+    rgba(var(--abs-rgb-black), 1) 16%
+  );
+}
+
+.button-bar-playground[data-playground-theme='light']
+  .button-bar-playground__sample--final-menu-bar {
+  --playground-final-active-surface: color-mix(
+    in srgb,
+    var(--button-bar-playground-wall) 86%,
+    var(--playground-ink) 14%
+  );
+}
+
+.button-bar-playground__sample--final-menu-bar
+  .button-bar
+  .shell-tab:not([aria-current='page']):not([data-enabled='true']):is(:hover, :focus-visible):not(:active) {
+  color: var(--shell-tab-text-hover);
+  background: color-mix(
+    in srgb,
+    var(--button-bar-gasket-ground) 94%,
+    var(--playground-ink) 6%
+  );
+}
+
+.button-bar-playground__sample--final-menu-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--final-menu-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  --shell-tab-motion-y: var(--abs-size-1px);
+  --shell-tab-motion-scale: 1;
+  color: var(--shell-tab-text-active);
+  border-color: color-mix(in srgb, var(--button-bar-gasket-cut) 78%, rgba(var(--abs-rgb-black), 1) 22%);
+  border-bottom-color: var(--button-bar-gasket-pressed-light);
+  background: var(--playground-final-active-surface);
+  box-shadow: inset 0 calc(var(--abs-size-1px) * 2) calc(var(--abs-size-1px) * 4) rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.42);
+  transform: translateY(var(--abs-size-1px));
+}
+
+/* 01–06: retain the shared pressed cavity after selection, regardless of
+   residual pointer state. */
+.button-bar-playground__variant-group--physical-studies
+  .button-bar-playground__sample:not(.button-bar-playground__sample--final-menu-bar)
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__variant-group--physical-studies
+  .button-bar-playground__sample:not(.button-bar-playground__sample--final-menu-bar)
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  color: var(--shell-tab-text-active);
+  border-color: rgba(var(--abs-rgb-black), 0.58);
+  background: color-mix(
+    in srgb,
+    var(--button-bar-playground-wall) 84%,
+    rgba(var(--abs-rgb-black), 1) 16%
+  );
+  box-shadow:
+    inset 0 calc(var(--abs-size-1px) * 2) calc(var(--abs-size-1px) * 4) rgba(var(--abs-rgb-black), 0.42),
+    inset 0 calc(var(--abs-size-1px) * -1) 0 rgba(var(--abs-rgb-white), 0.08);
+  transform: translateY(var(--abs-size-1px));
+}
+
+/* 06: ribbing stays structural; the aperture itself gains a quiet highlight. */
+.button-bar-playground__sample--ribbed-monolith
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active) {
+  color: var(--shell-tab-text-hover);
+  background: color-mix(
+    in srgb,
+    var(--button-bar-playground-wall) 88%,
+    var(--playground-ink) 12%
+  );
+  box-shadow:
+    inset 0 var(--abs-size-1px) 0 var(--button-bar-playground-edge),
+    inset 0 calc(var(--abs-size-1px) * -1) 0 var(--button-bar-playground-cut);
+}
+
+/* Flat route interactions remain planar. */
+.button-bar-playground__sample--type-rail
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active) {
+  color: var(--playground-ink);
+  background: color-mix(in srgb, var(--playground-ink) 10%, transparent);
+}
+
+.button-bar-playground__sample--type-rail
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):active {
+  color: var(--playground-ink);
+  background: color-mix(in srgb, var(--playground-ink) 18%, transparent);
+}
+
+.button-bar-playground__sample--type-rail
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--type-rail
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active),
+.button-bar-playground__sample--binary-grid
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--binary-grid
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  color: var(--playground-page);
+  background: var(--playground-ink);
+  opacity: 1;
+  box-shadow: none;
+  transform: none;
+}
+
+.button-bar-playground__sample--signal-blocks
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--signal-blocks
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  color: #101113;
+  background: var(--shell-tab-route-accent);
+  opacity: 1;
+  box-shadow: none;
+  transform: none;
+}
+
+.button-bar-playground__sample--split-field
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--split-field
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  color: #101113;
+  background: var(--shell-tab-route-accent);
+  box-shadow: none;
+  transform: none;
+}
+
+.button-bar-playground__sample--dominant-tab
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--dominant-tab
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  flex-grow: 1.85;
+  color: var(--dominant-tab-active-ink);
+  background: var(--shell-tab-route-accent);
+  box-shadow:
+    inset 0 var(--flat-pressed-shadow-edge, 2.5px) 0 var(--dominant-tab-pressed-shadow),
+    inset 0 calc(var(--flat-pressed-light-edge, 1px) * -1) 0 var(--dominant-tab-pressed-light);
+  transform: translateY(var(--abs-size-1px));
+}
+
+/* 07–10 utilities inherit each flat family's own state signal. */
+.button-bar-playground__sample--type-rail
+  .button-bar__secondary-button.shell-tab:not([data-enabled='true']):is(:hover, :focus-visible):not(:active),
+.button-bar-playground__sample--binary-grid
+  .button-bar__secondary-button.shell-tab:not([data-enabled='true']):is(:hover, :focus-visible):not(:active) {
+  color: var(--playground-ink);
+  background: color-mix(in srgb, var(--playground-ink) 10%, transparent);
+}
+
+.button-bar-playground__sample--type-rail
+  .button-bar__secondary-button.shell-tab:not([data-enabled='true']):active {
+  color: var(--playground-ink);
+  background: color-mix(in srgb, var(--playground-ink) 18%, transparent);
+}
+
+.button-bar-playground__sample--binary-grid
+  .button-bar__secondary-button.shell-tab:not([data-enabled='true']):active {
+  color: var(--playground-page);
+  background: var(--playground-ink);
+}
+
+.button-bar-playground__sample--signal-blocks
+  .button-bar__theme-toggle.shell-tab:is(:hover, :focus-visible) {
+  color: var(--playground-page);
+  background: color-mix(in srgb, var(--playground-ink) 82%, var(--utility-accent) 18%);
+}
+
+.button-bar-playground__sample--signal-blocks
+  .button-bar__theme-toggle.shell-tab:active {
+  color: var(--playground-page);
+  background: color-mix(in srgb, var(--playground-ink) 68%, var(--utility-accent) 32%);
+}
+
+.button-bar-playground__sample--split-field
+  .button-bar__secondary-button.shell-tab:not([data-enabled='true']):is(:hover, :focus-visible) {
+  color: var(--playground-ink);
+  background: linear-gradient(
+    90deg,
+    var(--utility-accent) 0 12px,
+    color-mix(in srgb, var(--playground-ink) 10%, transparent) 12px
+  );
+}
+
+.button-bar-playground__sample--split-field
+  .button-bar__secondary-button.shell-tab:not([data-enabled='true']):active {
+  color: var(--playground-ink);
+  background: linear-gradient(
+    90deg,
+    var(--utility-accent) 0 12px,
+    color-mix(in srgb, var(--playground-ink) 18%, transparent) 12px
+  );
+}
+
+.button-bar-playground__sample--split-field
+  .button-bar__sound-toggle.shell-tab[data-enabled='true'],
+.button-bar-playground__sample--split-field
+  .button-bar__sound-toggle.shell-tab[data-enabled='true']:is(:hover, :focus-visible, :active) {
+  color: var(--utility-accent-ink);
+  background: var(--utility-accent);
+  box-shadow: none;
+  transform: none;
+}
+
+/* The shared flat reset has intentionally high specificity. Keep these last
+   so Signal blocks and Binary grid can expose their own planar hover signal. */
+.button-bar-playground__variant-group--flat-studies
+  .button-bar-playground__sample--signal-blocks
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active) {
+  color: #101113;
+  background: color-mix(
+    in srgb,
+    var(--shell-tab-route-accent) 82%,
+    var(--playground-ink) 18%
+  );
+  opacity: 0.78;
+}
+
+.button-bar-playground__variant-group--flat-studies
+  .button-bar-playground__sample--binary-grid
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active) {
+  color: var(--playground-ink);
+  background: color-mix(in srgb, var(--playground-ink) 10%, transparent);
+}
+
+.button-bar-playground__variant-group--flat-studies
+  .button-bar-playground__sample--signal-blocks
+  .button-bar
+  .button-bar__theme-toggle.shell-tab:is(:hover, :focus-visible):not(:active) {
+  color: var(--playground-page);
+  background: color-mix(
+    in srgb,
+    var(--playground-ink) 76%,
+    var(--utility-accent) 24%
+  );
+}
+
+.button-bar-playground__variant-group--flat-studies
+  .button-bar-playground__sample--signal-blocks
+  .button-bar
+  .button-bar__theme-toggle.shell-tab:active {
+  color: var(--playground-page);
+  background: color-mix(
+    in srgb,
+    var(--playground-ink) 56%,
+    var(--utility-accent) 44%
+  );
+}
+
+/* All playground families inherit the approved 00 control height on narrow
+   screens. Physical studies use flex rather than the flat/spatial grid, so
+   pin Home on both axes to keep its icon plate genuinely square. */
+@media (max-width: 600px) {
+  .button-bar-playground__variant-group--physical-studies
+    .button-bar-playground__sample
+    .button-bar
+    .button-bar__primary-buttons
+    .shell-tab[data-route-tab='home'] {
+    flex: 0 0 44px;
+    inline-size: 44px;
+    block-size: 44px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    aspect-ratio: 1 / 1;
+    padding: 0;
+  }
+}
+
+/* 11: a quiet approach becomes a definite physical press. The sharp inner cut
+   keeps the edge precise while separate soft shadow and light layers roll into
+   the flat colour without making the tab look permanently raised. */
+.button-bar-playground__sample--dominant-tab {
+  --dominant-tab-pressed-shadow: rgba(var(--abs-rgb-black), 0.5);
+  --dominant-tab-pressed-light: rgba(var(--abs-rgb-white), 0.3);
+  --dominant-tab-hover-fill: 5%;
+  --dominant-tab-press-fill: 10%;
+  --dominant-tab-hover-travel: 0.35px;
+  --dominant-tab-press-travel: var(--abs-size-1px);
+  --dominant-tab-shadow-sharp: color-mix(
+    in srgb,
+    var(--dominant-tab-pressed-shadow) 84%,
+    transparent
+  );
+  --dominant-tab-shadow-soft: color-mix(
+    in srgb,
+    var(--dominant-tab-pressed-shadow) 66%,
+    transparent
+  );
+  --dominant-tab-pressed-rim:
+    inset 0 var(--abs-size-1px) 0 var(--dominant-tab-shadow-sharp),
+    inset 0 var(--flat-pressed-shadow-edge, 2.5px) var(--flat-pressed-shadow-blur, 3px)
+      var(--dominant-tab-shadow-soft),
+    inset 0 calc(var(--flat-pressed-light-edge, 1px) * -1) var(--flat-pressed-light-blur, 1px)
+      var(--dominant-tab-pressed-light);
+}
+
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active),
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__secondary-button.shell-tab:not([data-enabled='true']):is(:hover, :focus-visible):not(:active) {
+  color: var(--playground-key-ink);
+  background: color-mix(
+    in srgb,
+    var(--playground-ink) var(--dominant-tab-hover-fill),
+    transparent
+  );
+  box-shadow: var(--dominant-tab-pressed-rim);
+  transform: translateY(var(--dominant-tab-hover-travel));
+}
+
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab
+  :is(.shell-tab__icon, .shell-tab__label),
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__sound-toggle
+  .button-bar__secondary-icon {
+  color: currentColor;
+}
+
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):active,
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__secondary-button.shell-tab:not([data-enabled='true']):active {
+  color: var(--playground-ink);
+  background: color-mix(
+    in srgb,
+    var(--playground-ink) var(--dominant-tab-press-fill),
+    transparent
+  );
+  box-shadow: var(--dominant-tab-pressed-rim);
+  transform: translateY(var(--dominant-tab-press-travel));
+}
+
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active),
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__sound-toggle.shell-tab[data-enabled='true'],
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__sound-toggle.shell-tab[data-enabled='true']:is(:hover, :focus-visible, :active) {
+  box-shadow: var(--dominant-tab-pressed-rim);
+  transform: translateY(var(--dominant-tab-press-travel));
 }

@@ -2,39 +2,70 @@ import { useEffect, useRef, useState } from 'react';
 import { ShellButtonBar } from '../../components/app/ShellButtonBar.jsx';
 import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
 import './button-bar-playground.css';
+import './button-bar-playground-spatial-states.css';
 
 const PLAYGROUND_THEME_STORAGE_KEY = 'button-bar-playground-theme-v1';
-const WALKMAN_CONFIG_STORAGE_KEY = 'button-bar-playground-walkman-config-v2';
+const WALKMAN_CONFIG_STORAGE_KEY = 'button-bar-playground-walkman-config-v3';
 const DEFAULT_WALKMAN_CONFIG = Object.freeze({
-  perspective: 980,
+  perspective: 1100,
   originX: 50,
-  originY: 50,
-  bodyDepth: 8,
+  originY: 5,
+  bankTiltX: 14,
+  bankYawY: 0,
+  restingLift: 2,
+  activeLift: 16,
+  bodyContrast: 28,
   rimSoftness: 42,
   layerCount: 6,
+  flatShadowEdge: 2.5,
+  flatShadowBlur: 3,
+  flatLightEdge: 1,
+  flatLightBlur: 1,
 });
 
-const WALKMAN_CONTROLS = Object.freeze([
+const FLAT_CONTROLS = Object.freeze([
+  { id: 'flatShadowEdge', label: 'Shadow edge', min: 0, max: 6, step: 0.25, unit: 'px' },
+  { id: 'flatShadowBlur', label: 'Shadow blur', min: 0, max: 8, step: 0.25, unit: 'px' },
+  { id: 'flatLightEdge', label: 'Light edge', min: 0, max: 4, step: 0.25, unit: 'px' },
+  { id: 'flatLightBlur', label: 'Light blur', min: 0, max: 4, step: 0.25, unit: 'px' },
+]);
+
+const SPATIAL_CAMERA_CONTROLS = Object.freeze([
   { id: 'perspective', label: 'Perspective', min: 240, max: 2000, step: 10, unit: 'px' },
   { id: 'originX', label: 'Origin X', min: -400, max: 400, step: 5, unit: 'vh' },
   { id: 'originY', label: 'Origin Y', min: -400, max: 400, step: 5, unit: 'vh' },
-  { id: 'bodyDepth', label: 'Body depth', min: 3, max: 16, step: 1, unit: 'px' },
-  { id: 'rimSoftness', label: 'Rim softness', min: 0, max: 100, step: 1, unit: '%' },
-  { id: 'layerCount', label: 'Body layers', min: 1, max: 6, step: 1, unit: '' },
+  { id: 'bankTiltX', label: 'Bank tilt X', min: -18, max: 18, step: 0.5, unit: 'deg' },
+  { id: 'bankYawY', label: 'Bank yaw Y', min: -12, max: 12, step: 0.5, unit: 'deg' },
 ]);
+
+const SPATIAL_BODY_CONTROLS = Object.freeze([
+  { id: 'restingLift', label: 'Rest / low lift', min: 0, max: 12, step: 0.5, unit: 'px' },
+  { id: 'activeLift', label: 'Active / high lift', min: 6, max: 24, step: 0.5, unit: 'px' },
+  { id: 'layerCount', label: 'Body layers', min: 2, max: 6, step: 1, unit: '' },
+  { id: 'bodyContrast', label: 'Body contrast', min: 0, max: 50, step: 1, unit: '%' },
+  { id: 'rimSoftness', label: 'Rim softness', min: 0, max: 100, step: 1, unit: '%' },
+]);
+
+const PLAYGROUND_CONTROL_GROUPS = Object.freeze([
+  { id: 'flat-buttons', title: 'Flat buttons', controls: FLAT_CONTROLS },
+  { id: 'spatial-camera', title: 'Spatial camera', controls: SPATIAL_CAMERA_CONTROLS },
+  { id: 'spatial-body', title: 'Spatial body', controls: SPATIAL_BODY_CONTROLS },
+]);
+
+const PLAYGROUND_CONTROLS = Object.freeze(
+  PLAYGROUND_CONTROL_GROUPS.flatMap((group) => group.controls),
+);
 
 const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
   {
     id: 'physical-studies',
     anchor: '00–06',
     title: 'How little depth is enough?',
-    description: 'The production solution and six fitted-wall studies establish the current mechanical baseline.',
     variants: [
       {
         id: 'final-menu-bar',
         number: '00',
         title: 'Final menu bar',
-        description: 'The production choice: Precision Gasket controls with Stepped Cavity wall relief.',
         structure: 'terraced wall channels',
         composition: ['stepped-cavity'],
       },
@@ -42,42 +73,36 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
         id: 'hairline-cutout',
         number: '01',
         title: 'Hairline cutout',
-        description: 'Flush wall plates defined by a single dark seam; the selected plate sinks cleanly into its aperture.',
         structure: 'fine horizontal cooling lines',
       },
       {
         id: 'light-edge',
         number: '02',
         title: 'Light edge',
-        description: 'A dark upper cut and a pale lower edge give the flush plates a precise machined fit.',
         structure: 'stacked edge-lit fins',
       },
       {
         id: 'continuous-rail',
         number: '03',
         title: 'Continuous rail',
-        description: 'The buttons become one fitted control strip, with fine internal joints and a deeper selected bay.',
         structure: 'long recessed guide rails',
       },
       {
         id: 'precision-gasket',
         number: '04',
         title: 'Precision gasket',
-        description: 'A narrow double seam suggests a soft mechanical gasket without making the controls look raised.',
         structure: 'paired horizontal pressure bands',
       },
       {
         id: 'stepped-cavity',
         number: '05',
         title: 'Stepped cavity',
-        description: 'Each cutout has a shallow inner step; selection drops to the second level with restrained depth.',
         structure: 'terraced wall channels',
       },
       {
         number: '06',
         id: 'ribbed-monolith',
         title: 'Ribbed monolith',
-        description: 'The bar sits inside a single architectural wall object whose fine ribs stop around each control cutout.',
         structure: 'dense ribbed wall blocks',
       },
     ],
@@ -86,13 +111,11 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
     id: 'flat-studies',
     anchor: '07–11',
     title: 'What if there were no depth at all?',
-    description: 'Five studies remove lighting, shadows, and physical displacement. Interest comes from type, proportion, rhythm, and solid colour.',
     variants: [
       {
         id: 'type-rail',
         number: '07',
         title: 'Type rail',
-        description: 'The button bodies disappear. One reversed label block is enough to make the active route decisive.',
         structure: 'flat typographic register',
         family: 'flat',
         palette: 'mono',
@@ -101,7 +124,6 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
         id: 'signal-blocks',
         number: '08',
         title: 'Signal blocks',
-        description: 'Every route becomes a solid colour field; selection is expressed through saturation and ink inversion.',
         structure: 'solid colour register',
         family: 'flat',
         palette: 'colour',
@@ -111,7 +133,6 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
         id: 'binary-grid',
         number: '09',
         title: 'Binary grid',
-        description: 'A strict monochrome control grid uses only rules, solid cells, and black–white inversion.',
         structure: 'binary segment grid',
         family: 'flat',
         palette: 'mono',
@@ -120,7 +141,6 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
         id: 'split-field',
         number: '10',
         title: 'Split field',
-        description: 'A hard-edged route-colour field occupies part of every tab and expands across the selected state.',
         structure: 'hard-stop colour bands',
         family: 'flat',
         palette: 'colour',
@@ -130,7 +150,6 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
         id: 'dominant-tab',
         number: '11',
         title: 'Dominant tab',
-        description: 'The active route claims more width and a solid signal colour while inactive routes compress around it.',
         structure: 'proportional tab rhythm',
         family: 'flat',
         palette: 'mixed',
@@ -140,93 +159,71 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
   },
   {
     id: 'spatial-studies',
-    anchor: '12–20',
+    anchor: '12–17',
     title: 'Can one edge describe the whole body?',
-    description: 'Nine Walkman-like banks use one solid face and one repeated body colour. A matching inner rim makes the layers read as a single moulded object.',
     variants: [
       {
-        id: 'walkman-bank',
+        id: 'spatial-raised-mono',
         number: '12',
-        title: 'Dark body',
-        description: 'A solid face sits above identical darker layers. The lower inner rim matches the body while a soft top edge catches the light.',
-        structure: 'dark unified button body',
+        title: 'Raised selection',
+        structure: 'raised selective-colour extrusion',
         family: 'spatial',
-        palette: 'mono',
+        palette: 'mixed',
+        spatialModel: 'raised',
+        spatialMaterial: 'selection-colour',
+        usesRouteAccent: true,
       },
       {
-        id: 'walkman-polished',
+        id: 'spatial-raised-colour',
         number: '13',
-        title: 'Polished plastic',
-        description: 'The same dark body with a broader, softer inner blend so the face rolls into its edge like polished moulded plastic.',
-        structure: 'polished dark body',
+        title: 'Raised selection / colour',
+        structure: 'raised colour extrusion',
         family: 'spatial',
-        palette: 'mono',
+        palette: 'colour',
+        spatialModel: 'raised',
+        spatialMaterial: 'colour',
+        usesRouteAccent: true,
       },
       {
-        id: 'walkman-soft-body',
+        id: 'spatial-pressed-mono',
         number: '14',
-        title: 'Quiet body',
-        description: 'A lighter body tone and shallower travel keep the object soft, with the same material logic and fewer visible cues.',
-        structure: 'quiet dark body',
+        title: 'Walkman pressed mode',
+        structure: 'pressed monochrome extrusion',
         family: 'spatial',
         palette: 'mono',
+        spatialModel: 'pressed',
+        spatialMaterial: 'mono',
       },
       {
-        id: 'walkman-low-profile',
+        id: 'spatial-pressed-colour',
         number: '15',
-        title: 'Deep body',
-        description: 'A darker side wall and tighter face edge make the button feel taller without adding another material or outline.',
-        structure: 'deep dark body',
+        title: 'Walkman pressed mode / colour',
+        structure: 'pressed colour extrusion',
         family: 'spatial',
-        palette: 'mono',
+        palette: 'colour',
+        spatialModel: 'pressed',
+        spatialMaterial: 'colour',
+        usesRouteAccent: true,
       },
       {
-        id: 'walkman-inverted',
+        id: 'spatial-inverted-mono',
         number: '16',
-        title: 'Light body / inverted view',
-        description: 'The camera moves above the bank. Identical light body layers now rise behind the face, and the matching inner rim moves to the top edge.',
-        structure: 'light unified button body',
+        title: 'Inverted camera',
+        structure: 'inverted monochrome extrusion',
         family: 'spatial',
         palette: 'mono',
+        spatialModel: 'inverted',
+        spatialMaterial: 'mono',
       },
       {
-        id: 'walkman-active-colour',
+        id: 'spatial-inverted-colour',
         number: '17',
-        title: 'Colour selection / dark body',
-        description: 'The selected key takes its route colour; every exposed layer becomes one darker version of that face colour.',
-        structure: 'selected colour dark body',
+        title: 'Inverted camera / colour',
+        structure: 'inverted colour extrusion',
         family: 'spatial',
         palette: 'colour',
-        usesRouteAccent: true,
-      },
-      {
-        id: 'walkman-always-colour',
-        number: '18',
-        title: 'Full colour / dark body',
-        description: 'Every key keeps its route colour, contrast-aware label, matching dark body, and soft face highlight in every state.',
-        structure: 'full colour dark bodies',
-        family: 'spatial',
-        palette: 'colour',
-        usesRouteAccent: true,
-      },
-      {
-        id: 'walkman-inverted-active-colour',
-        number: '19',
-        title: 'Colour selection / light body',
-        description: 'The inverted view gives the selected route a single lighter body colour, with its upper inner rim blending into the exposed layers.',
-        structure: 'selected colour light body',
-        family: 'spatial',
-        palette: 'colour',
-        usesRouteAccent: true,
-      },
-      {
-        id: 'walkman-inverted-always-colour',
-        number: '20',
-        title: 'Full colour / light body',
-        description: 'All four coloured keys are viewed from above, using one lighter body tone per route and a restrained darker edge opposite the light.',
-        structure: 'full colour light bodies',
-        family: 'spatial',
-        palette: 'colour',
+        spatialModel: 'inverted',
+        spatialMaterial: 'colour',
         usesRouteAccent: true,
       },
     ],
@@ -248,7 +245,7 @@ function readPlaygroundTheme() {
 function readWalkmanConfig() {
   try {
     const stored = JSON.parse(localStorage.getItem(WALKMAN_CONFIG_STORAGE_KEY));
-    return WALKMAN_CONTROLS.reduce((config, control) => {
+    return PLAYGROUND_CONTROLS.reduce((config, control) => {
       const value = Number(stored?.[control.id]);
       config[control.id] = Number.isFinite(value)
         ? Math.min(control.max, Math.max(control.min, value))
@@ -262,38 +259,40 @@ function readWalkmanConfig() {
 
 function WalkmanConfigPanel({ config, onChange, onClose, onReset }) {
   return (
-    <aside className="parameterizer-panel walkman-config-panel" aria-label="Walkman button controls">
+    <aside className="parameterizer-panel walkman-config-panel" aria-label="Button geometry controls">
       <div className="parameterizer-header">
-        <span>Walkman geometry</span>
-        <button type="button" onClick={onClose} aria-label="Close Walkman controls">Close</button>
+        <span>Button geometry</span>
+        <button type="button" onClick={onClose} aria-label="Close button geometry controls">Close</button>
       </div>
       <div className="parameterizer-scroll">
-        <details className="parameterizer-folder" open>
-          <summary className="parameterizer-folder-title">Camera &amp; body</summary>
-          <div className="walkman-config-panel__rows">
-            {WALKMAN_CONTROLS.map((control) => (
-              <label className="parameterizer-row" htmlFor={`walkman-${control.id}`} key={control.id}>
-                <span className="parameterizer-label">{control.label}</span>
-                <span className="parameterizer-control">
-                  <input
-                    id={`walkman-${control.id}`}
-                    type="range"
-                    min={control.min}
-                    max={control.max}
-                    step={control.step}
-                    value={config[control.id]}
-                    onChange={(event) => onChange(control.id, Number(event.target.value))}
-                  />
-                </span>
-                <output className="parameterizer-value" htmlFor={`walkman-${control.id}`}>
-                  {config[control.id]}{control.unit}
-                </output>
-              </label>
-            ))}
-          </div>
-        </details>
+        {PLAYGROUND_CONTROL_GROUPS.map((group) => (
+          <details className="parameterizer-folder" open key={group.id}>
+            <summary className="parameterizer-folder-title">{group.title}</summary>
+            <div className="walkman-config-panel__rows">
+              {group.controls.map((control) => (
+                <label className="parameterizer-row" htmlFor={`walkman-${control.id}`} key={control.id}>
+                  <span className="parameterizer-label">{control.label}</span>
+                  <span className="parameterizer-control">
+                    <input
+                      id={`walkman-${control.id}`}
+                      type="range"
+                      min={control.min}
+                      max={control.max}
+                      step={control.step}
+                      value={config[control.id]}
+                      onChange={(event) => onChange(control.id, Number(event.target.value))}
+                    />
+                  </span>
+                  <output className="parameterizer-value" htmlFor={`walkman-${control.id}`}>
+                    {config[control.id]}{control.unit}
+                  </output>
+                </label>
+              ))}
+            </div>
+          </details>
+        ))}
         <div className="walkman-config-panel__note">
-          The inverted study mirrors both origin axes. Pointer tilt remains intentionally subtle.
+          Pressed mode swaps the low and high lifts. Inverted camera reverses the bank tilt.
         </div>
       </div>
       <div className="parameterizer-actions">
@@ -325,15 +324,15 @@ function PlaygroundThemeToggle({ theme, onToggle }) {
   );
 }
 
-function WalkmanButtonLayers() {
+function SpatialButtonBody() {
   return (
-    <span className="walkman-button-layers" aria-hidden="true">
-      <i className="walkman-button-layer" />
-      <i className="walkman-button-layer" />
-      <i className="walkman-button-layer" />
-      <i className="walkman-button-layer" />
-      <i className="walkman-button-layer" />
-      <i className="walkman-button-layer" />
+    <span className="spatial-button-layers" aria-hidden="true">
+      <i className="spatial-button-layer" />
+      <i className="spatial-button-layer" />
+      <i className="spatial-button-layer" />
+      <i className="spatial-button-layer" />
+      <i className="spatial-button-layer" />
+      <i className="spatial-button-layer" />
     </span>
   );
 }
@@ -341,8 +340,10 @@ function WalkmanButtonLayers() {
 function ButtonBarVariant({
   variant,
   activeRouteId,
+  playgroundTheme,
   headingLevel = 'h2',
   onSelectRoute,
+  onToggleTheme,
 }) {
   const sampleRef = useRef(null);
   const Heading = headingLevel;
@@ -366,6 +367,8 @@ function ButtonBarVariant({
       data-route-accent={variant.usesRouteAccent ? 'true' : undefined}
       data-variant-family={variant.family}
       data-palette={variant.palette}
+      data-spatial-model={variant.spatialModel}
+      data-spatial-material={variant.spatialMaterial}
     >
       <header className="button-bar-playground__sample-header">
         <span className="button-bar-playground__sample-number" aria-hidden="true">
@@ -373,7 +376,6 @@ function ButtonBarVariant({
         </span>
         <div className="button-bar-playground__sample-copy">
           <Heading id={headingId}>{variant.title}</Heading>
-          <p>{variant.description}</p>
         </div>
       </header>
       <div className="button-bar-playground__stage">
@@ -388,7 +390,10 @@ function ButtonBarVariant({
           navClassName="button-bar-playground__tabs"
           onRouteSelect={onSelectRoute}
           preview
-          renderRouteButtonDecoration={variant.family === 'spatial' ? WalkmanButtonLayers : undefined}
+          previewTheme={playgroundTheme}
+          onPreviewThemeChange={onToggleTheme}
+          renderRouteButtonDecoration={variant.family === 'spatial' ? SpatialButtonBody : undefined}
+          renderSecondaryButtonDecoration={variant.family === 'spatial' ? SpatialButtonBody : undefined}
         />
         <div
           className="button-bar-playground__side button-bar-playground__side--right"
@@ -460,12 +465,19 @@ export function ButtonBarPlayground() {
   }, []);
 
   const walkmanStyle = {
-    '--walkman-perspective': `${walkmanConfig.perspective}px`,
-    '--walkman-origin-x': `${walkmanConfig.originX}vh`,
-    '--walkman-origin-y': `${walkmanConfig.originY}vh`,
-    '--walkman-body-depth': `${walkmanConfig.bodyDepth}px`,
-    '--walkman-rim-mix': `${walkmanConfig.rimSoftness}%`,
-    '--walkman-rim-blur': `${2 + (walkmanConfig.rimSoftness * 0.04)}px`,
+    '--spatial-perspective': `${walkmanConfig.perspective}px`,
+    '--spatial-origin-x': `${walkmanConfig.originX}vh`,
+    '--spatial-origin-y': `${walkmanConfig.originY}vh`,
+    '--spatial-bank-tilt-x': `${walkmanConfig.bankTiltX}deg`,
+    '--spatial-bank-yaw-y': `${walkmanConfig.bankYawY}deg`,
+    '--spatial-resting-lift': `${walkmanConfig.restingLift}px`,
+    '--spatial-active-lift': `${walkmanConfig.activeLift}px`,
+    '--spatial-body-contrast': `${walkmanConfig.bodyContrast}%`,
+    '--spatial-rim-blur': `${1 + (walkmanConfig.rimSoftness * 0.05)}px`,
+    '--flat-pressed-shadow-edge': `${walkmanConfig.flatShadowEdge}px`,
+    '--flat-pressed-shadow-blur': `${walkmanConfig.flatShadowBlur}px`,
+    '--flat-pressed-light-edge': `${walkmanConfig.flatLightEdge}px`,
+    '--flat-pressed-light-blur': `${walkmanConfig.flatLightBlur}px`,
   };
 
   return (
@@ -485,7 +497,7 @@ export function ButtonBarPlayground() {
         aria-labelledby="button-bar-playground-title"
         data-playground-theme={theme}
         data-config-panel-open={isWalkmanPanelOpen ? 'true' : 'false'}
-        data-walkman-layers={walkmanConfig.layerCount}
+        data-spatial-layers={walkmanConfig.layerCount}
         style={walkmanStyle}
       >
       <header className="button-bar-playground__header">
@@ -494,7 +506,6 @@ export function ButtonBarPlayground() {
             <span>Playground / Button Bar</span>
           </div>
           <h1 id="button-bar-playground-title">Button bar studies</h1>
-          <p>Twenty-one ways to ask what a tab should feel like: fitted into the wall, completely flat, or built as a quiet physical body.</p>
         </div>
         <div className="button-bar-playground__readout" role="status" aria-live="polite">
           <span>Previewing</span>
@@ -520,7 +531,6 @@ export function ButtonBarPlayground() {
                   </span>
                   <div className="button-bar-playground__group-copy">
                     <h2 id={groupHeadingId}>{group.title}</h2>
-                    <p>{group.description}</p>
                   </div>
                 </header>
               ) : null}
@@ -529,8 +539,10 @@ export function ButtonBarPlayground() {
                   key={variant.id}
                   variant={variant}
                   activeRouteId={activeRouteId}
+                  playgroundTheme={theme}
                   headingLevel={group.title ? 'h3' : 'h2'}
                   onSelectRoute={setActiveRouteId}
+                  onToggleTheme={setTheme}
                 />
               ))}
             </section>
