@@ -235,6 +235,7 @@ const BUTTON_BAR_RUNTIME_KEY_ALIASES = Object.freeze({
   shellTabActiveWhiteMixPct: 'buttonBarButtonActiveWhiteMixPct',
   shellTabIndicatorOpacity: 'buttonBarIndicatorOpacity',
   shellTabShadowOpacity: 'buttonBarShadowOpacity',
+  shellTabGrooveLightOpacity: 'buttonBarGrooveLightOpacity',
   shellTabActiveGlowPx: 'buttonBarActiveGlowPx',
   shellTabActiveDropPx: 'buttonBarActiveDropPx',
   shellTabTransitionMs: 'buttonBarTransitionMs',

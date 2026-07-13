@@ -52,6 +52,7 @@
     "buttonBarButtonActiveWhiteMixPct": 0,
     "buttonBarIndicatorOpacity": 0.5,
     "buttonBarShadowOpacity": 0.12,
+    "buttonBarGrooveLightOpacity": 0.12,
     "buttonBarPressZTravelPx": 2,
     "buttonBarActiveGlowPx": 6,
     "buttonBarActiveDropPx": 0,

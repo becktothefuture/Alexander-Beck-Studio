@@ -4359,7 +4359,7 @@ svg.shell-tab__icon {
   --button-bar-gasket-radius: var(--abs-radius-cta);
   --button-bar-gasket-cut: rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.6);
   --button-bar-gasket-active-cut: color-mix(in srgb, var(--button-bar-gasket-cut) 78%, rgba(var(--abs-rgb-black), 1) 22%);
-  --button-bar-gasket-light: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.07);
+  --button-bar-gasket-light: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), var(--button-bar-groove-light-opacity, 0.12));
   --button-bar-gasket-edge-soft: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.065);
   --button-bar-gasket-edge-lower: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.04);
   --button-bar-gasket-pressed-light: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.12);

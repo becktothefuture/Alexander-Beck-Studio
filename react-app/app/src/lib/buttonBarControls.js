@@ -15,6 +15,7 @@ export const BUTTON_BAR_DEFAULTS = Object.freeze({
   buttonBarButtonActiveWhiteMixPct: 0,
   buttonBarIndicatorOpacity: 0.5,
   buttonBarShadowOpacity: 0.12,
+  buttonBarGrooveLightOpacity: 0.12,
   buttonBarActiveGlowPx: 6,
   buttonBarActiveDropPx: 0,
   buttonBarTransitionMs: 140,
@@ -37,6 +38,7 @@ const LEGACY_BUTTON_BAR_KEYS = Object.freeze({
   buttonBarButtonActiveWhiteMixPct: 'shellTabActiveWhiteMixPct',
   buttonBarIndicatorOpacity: 'shellTabIndicatorOpacity',
   buttonBarShadowOpacity: 'shellTabShadowOpacity',
+  buttonBarGrooveLightOpacity: 'shellTabGrooveLightOpacity',
   buttonBarActiveGlowPx: 'shellTabActiveGlowPx',
   buttonBarActiveDropPx: 'shellTabActiveDropPx',
   buttonBarTransitionMs: 'shellTabTransitionMs',
@@ -197,6 +199,15 @@ export const BUTTON_BAR_CONTROL_GROUPS = Object.freeze([
         step: 0.01,
         display: 'ratio',
       },
+      {
+        id: 'buttonBarGrooveLightOpacity',
+        label: 'Groove Light',
+        type: 'range',
+        min: 0,
+        max: 0.3,
+        step: 0.01,
+        display: 'ratio',
+      },
     ],
   },
   {
@@ -294,6 +305,7 @@ export function applyButtonBarCssVars(source = {}, root = null) {
   targetRoot.style.setProperty('--button-bar-button-active-white-mix', `${config.buttonBarButtonActiveWhiteMixPct}%`);
   targetRoot.style.setProperty('--button-bar-indicator-opacity', String(config.buttonBarIndicatorOpacity));
   targetRoot.style.setProperty('--button-bar-shadow-opacity', String(config.buttonBarShadowOpacity));
+  targetRoot.style.setProperty('--button-bar-groove-light-opacity', String(config.buttonBarGrooveLightOpacity));
   targetRoot.style.setProperty('--button-bar-active-glow', `${config.buttonBarActiveGlowPx}px`);
   targetRoot.style.setProperty('--button-bar-active-drop', `${config.buttonBarActiveDropPx}px`);
   targetRoot.style.setProperty('--button-bar-transition-ms', `${config.buttonBarTransitionMs}ms`);
