@@ -350,9 +350,9 @@ async function runStandardScenario(browser, viewport, theme) {
     assert(successBurst.bodyCount === initial.bodyCount, 'Burst changed the number of rendered balls', { initial, successBurst });
     assert(successBurst.bodyRadius === initial.bodyRadius, 'Burst changed the rendered ball size', { initial, successBurst });
     assert(successBurst.soundEnabled === 'true', 'First Contact activation did not unlock the requested sound motif', successBurst);
-    assert(successBurst.soundMotifCharacter === 'positive-pressure-wave-ripple', 'Contact motif character is stale', successBurst);
-    assert(successBurst.soundMotifLayerCount >= 4, 'Contact motif is missing its positive pressure-wave layers', successBurst);
-    assert(successBurst.soundMotifNoteCount >= 8, 'Contact motif positive pressure-wave event stack is unexpectedly sparse', successBurst);
+    assert(successBurst.soundMotifCharacter === 'bright-lift-ripple', 'Contact motif character is stale', successBurst);
+    assert(successBurst.soundMotifLayerCount >= 4, 'Contact motif is missing its bright lifted ripple layers', successBurst);
+    assert(successBurst.soundMotifNoteCount >= 8, 'Contact motif bright lifted event stack is unexpectedly sparse', successBurst);
     assert(successBurst.soundMotifVariationCount === 4, 'Contact motif variation cycle is incomplete', successBurst);
     assert(successBurst.soundMotifVariationIndex >= 0, 'Contact motif variation metadata is missing', successBurst);
     assert(successBurst.soundMotifRingOffsetsMs.length === 5, 'Contact motif is missing ring-synced offsets', successBurst);
@@ -365,7 +365,7 @@ async function runStandardScenario(browser, viewport, theme) {
       successBurst,
     );
     assert(successBurst.typographyEffectPresent === false, 'Copy activated a typography effect', successBurst);
-    assert(successBurst.soundMotifTailReleaseMs >= 540, 'Contact motif release tail is too short', successBurst);
+    assert(successBurst.soundMotifTailReleaseMs >= 560, 'Contact motif release tail is too short', successBurst);
     assert(successBurst.soundMotifDurationMs >= 2200, 'Contact motif still ends too abruptly', successBurst);
     assert(successBurst.soundMotifDurationMs <= 2500, 'Contact motif tail is longer than intended', successBurst);
 

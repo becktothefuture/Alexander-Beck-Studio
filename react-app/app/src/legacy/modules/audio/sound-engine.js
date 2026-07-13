@@ -305,10 +305,10 @@ let isEnabled = false;
 let isUnlocked = false;
 const contactMotifVoices = new Set();
 const CONTACT_RIPPLE_MOTIF_VARIATIONS = Object.freeze([
-  Object.freeze({ id: 'bright-tight', ringDelayScale: 0.96, panSpread: 0.14, pressureGain: 0.96, brightness: 1.16 }),
-  Object.freeze({ id: 'bright-wide-left', ringDelayScale: 1.00, panSpread: 0.22, pressureGain: 0.92, brightness: 1.10 }),
-  Object.freeze({ id: 'bright-wide-right', ringDelayScale: 1.04, panSpread: 0.26, pressureGain: 0.90, brightness: 1.18 }),
-  Object.freeze({ id: 'warm-long', ringDelayScale: 1.08, panSpread: 0.18, pressureGain: 0.98, brightness: 1.06 }),
+  Object.freeze({ id: 'lift-tight', ringDelayScale: 0.98, panSpread: 0.14, pressureGain: 0.72, brightness: 1.30 }),
+  Object.freeze({ id: 'lift-wide-left', ringDelayScale: 1.00, panSpread: 0.22, pressureGain: 0.70, brightness: 1.24 }),
+  Object.freeze({ id: 'lift-wide-right', ringDelayScale: 1.02, panSpread: 0.26, pressureGain: 0.68, brightness: 1.34 }),
+  Object.freeze({ id: 'lift-long', ringDelayScale: 1.04, panSpread: 0.18, pressureGain: 0.74, brightness: 1.22 }),
 ]);
 let contactMotifVariationIndex = 0;
 
@@ -1073,7 +1073,7 @@ function scheduleContactPressureRing({
     harmonic.type = 'sine';
     harmonic.frequency.setValueAtTime(harmonicFrequency, start);
     harmonic.frequency.exponentialRampToValueAtTime(
-      Math.max(80, harmonicFrequency * 0.88),
+      Math.max(80, harmonicFrequency * 1.06),
       start + Math.min(duration * 0.72, 0.36),
     );
     harmonicGainNode.gain.setValueAtTime(harmonicGain, start);
@@ -1132,9 +1132,9 @@ function scheduleContactPressureRing({
 }
 
 /**
- * Contact activation motif: a positive pressure-wave bloom synced to the
- * visible ripple. The press stays tactile, then five airy ring pulses travel
- * outward and decay into a longer shimmer tail.
+ * Contact activation motif: a bright lifted ripple synced to the visible wave.
+ * The press stays tactile without a bass drop, then five airy ring pulses travel
+ * outward and resolve into a longer upward shimmer tail.
  * The first Contact click may unlock audio; an explicitly muted engine stays silent.
  */
 export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
@@ -1156,29 +1156,29 @@ export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
   const pressureGain = variation.pressureGain;
   const pressureEvents = [
     { label: 'press-snap', offset: 0.000, duration: 0.034 },
-    { label: 'soft-pressure-hit', offset: 0.012, duration: 0.24 },
+    { label: 'lifted-press-body', offset: 0.014, duration: 0.14 },
     { label: 'ring-one', offset: ringOffsets[0], duration: 0.20, release: 0.24 },
     { label: 'ring-two', offset: ringOffsets[1], duration: 0.26, release: 0.32 },
     { label: 'ring-three', offset: ringOffsets[2], duration: 0.34, release: 0.42 },
     { label: 'ring-four', offset: ringOffsets[3], duration: 0.43, release: 0.55 },
     { label: 'ring-five', offset: ringOffsets[4], duration: 0.50, release: 0.56 },
-    { label: 'air-tail', offset: 1.36 * variation.ringDelayScale, duration: 0.42, release: 0.50 },
+    { label: 'upward-air-tail', offset: 1.32 * variation.ringDelayScale, duration: 0.48, release: 0.58 },
   ];
 
   recordSoundDebugEvent('contact-ripple-motif', 'sound-engine:contact-ripple-motif', {
-    character: 'positive-pressure-wave-ripple',
-    motif: 'snap-lift-five-rings-air-tail',
+    character: 'bright-lift-ripple',
+    motif: 'snap-lift-five-rings-upward-air-tail',
     layerCount: 4,
     noteCount: pressureEvents.length,
     variation: variation.id,
     variationIndex,
     variationCount: CONTACT_RIPPLE_MOTIF_VARIATIONS.length,
     ringOffsetsMs: ringOffsets.map((offset) => Math.round(offset * 1000)),
-    tailReleaseMs: 560,
+    tailReleaseMs: 580,
     durationMs: Math.round(Math.max(...pressureEvents.map((event) => (
       event.offset + event.duration + (event.release ?? 0.30)
     ))) * 1000),
-    frequencies: [132, 440, 523, 659, 784, 880, 659],
+    frequencies: [196, 392, 494, 587, 659, 784, 988, 1175],
   });
 
   scheduleContactPressureSnap({
@@ -1189,98 +1189,98 @@ export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
     filterEnd: 2600 * brightness,
   });
   scheduleContactPressureThump({
-    offset: 0.012,
-    duration: 0.18,
-    gain: 0.010 * pressureGain,
-    frequency: 132,
-    frequencyEnd: 108,
-    filterStart: 1100 * brightness,
-    filterEnd: 520,
-    release: 0.10,
+    offset: 0.014,
+    duration: 0.12,
+    gain: 0.0048 * pressureGain,
+    frequency: 196,
+    frequencyEnd: 247,
+    filterStart: 2600 * brightness,
+    filterEnd: 1450 * brightness,
+    release: 0.08,
   });
   scheduleContactPressureRing({
     offset: ringOffsets[0],
     duration: 0.20,
-    gain: 0.0130 * pressureGain,
+    gain: 0.0128 * pressureGain,
     pan: -variation.panSpread,
-    frequency: 440 * brightness,
-    frequencyEnd: 466 * brightness,
-    harmonicFrequency: 880 * brightness,
-    harmonicGain: 0.0032 * pressureGain,
-    filterStart: 3300 * brightness,
-    filterEnd: 1680 * brightness,
-    noiseGain: 0.0058,
+    frequency: 392 * brightness,
+    frequencyEnd: 494 * brightness,
+    harmonicFrequency: 784 * brightness,
+    harmonicGain: 0.0034 * pressureGain,
+    filterStart: 3900 * brightness,
+    filterEnd: 2300 * brightness,
+    noiseGain: 0.0062,
     release: 0.24,
   });
   scheduleContactPressureRing({
     offset: ringOffsets[1],
     duration: 0.26,
-    gain: 0.0140 * pressureGain,
+    gain: 0.0132 * pressureGain,
     pan: variation.panSpread,
-    frequency: 523 * brightness,
+    frequency: 494 * brightness,
     frequencyEnd: 587 * brightness,
-    harmonicFrequency: 1046 * brightness,
-    harmonicGain: 0.0034 * pressureGain,
-    filterStart: 3120 * brightness,
-    filterEnd: 1520 * brightness,
-    noiseGain: 0.0054,
+    harmonicFrequency: 988 * brightness,
+    harmonicGain: 0.0036 * pressureGain,
+    filterStart: 3720 * brightness,
+    filterEnd: 2200 * brightness,
+    noiseGain: 0.0058,
     release: 0.32,
   });
   scheduleContactPressureRing({
     offset: ringOffsets[2],
     duration: 0.34,
-    gain: 0.0135 * pressureGain,
+    gain: 0.0126 * pressureGain,
     pan: 0,
-    frequency: 659 * brightness,
-    frequencyEnd: 698 * brightness,
-    harmonicFrequency: 1318 * brightness,
-    harmonicGain: 0.0032 * pressureGain,
-    filterStart: 2860 * brightness,
-    filterEnd: 1360 * brightness,
-    noiseGain: 0.0048,
+    frequency: 587 * brightness,
+    frequencyEnd: 740 * brightness,
+    harmonicFrequency: 1175 * brightness,
+    harmonicGain: 0.0033 * pressureGain,
+    filterStart: 3500 * brightness,
+    filterEnd: 2050 * brightness,
+    noiseGain: 0.0050,
     release: 0.42,
   });
   scheduleContactPressureRing({
     offset: ringOffsets[3],
     duration: 0.43,
-    gain: 0.0120 * pressureGain,
+    gain: 0.0114 * pressureGain,
     pan: variation.panSpread * 0.52,
-    frequency: 784 * brightness,
+    frequency: 659 * brightness,
     frequencyEnd: 880 * brightness,
-    harmonicFrequency: 1568 * brightness,
-    harmonicGain: 0.0029 * pressureGain,
-    filterStart: 2600 * brightness,
-    filterEnd: 1180 * brightness,
-    noiseGain: 0.0042,
+    harmonicFrequency: 1318 * brightness,
+    harmonicGain: 0.0030 * pressureGain,
+    filterStart: 3260 * brightness,
+    filterEnd: 1880 * brightness,
+    noiseGain: 0.0044,
     release: 0.55,
   });
   scheduleContactPressureRing({
     offset: ringOffsets[4],
     duration: 0.50,
-    gain: 0.0090 * pressureGain,
+    gain: 0.0098 * pressureGain,
     pan: -variation.panSpread * 0.32,
-    frequency: 880 * brightness,
-    frequencyEnd: 784 * brightness,
-    harmonicFrequency: 1760 * brightness,
-    harmonicGain: 0.0024 * pressureGain,
-    filterStart: 2240 * brightness,
-    filterEnd: 980 * brightness,
-    noiseGain: 0.0036,
+    frequency: 784 * brightness,
+    frequencyEnd: 988 * brightness,
+    harmonicFrequency: 1568 * brightness,
+    harmonicGain: 0.0027 * pressureGain,
+    filterStart: 3020 * brightness,
+    filterEnd: 1720 * brightness,
+    noiseGain: 0.0038,
     release: 0.56,
   });
   scheduleContactPressureRing({
-    offset: 1.36 * variation.ringDelayScale,
-    duration: 0.42,
-    gain: 0.0068 * pressureGain,
+    offset: 1.32 * variation.ringDelayScale,
+    duration: 0.48,
+    gain: 0.0058 * pressureGain,
     pan: 0,
-    frequency: 659 * brightness,
-    frequencyEnd: 587 * brightness,
-    harmonicFrequency: 1318 * brightness,
-    harmonicGain: 0.0018 * pressureGain,
-    filterStart: 1780 * brightness,
-    filterEnd: 760 * brightness,
-    noiseGain: 0.0022,
-    release: 0.50,
+    frequency: 988 * brightness,
+    frequencyEnd: 1175 * brightness,
+    harmonicFrequency: 1976 * brightness,
+    harmonicGain: 0.0019 * pressureGain,
+    filterStart: 2850 * brightness,
+    filterEnd: 1580 * brightness,
+    noiseGain: 0.0028,
+    release: 0.58,
   });
   return true;
 }
