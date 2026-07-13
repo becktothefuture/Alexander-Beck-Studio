@@ -79,6 +79,7 @@ async function readTitleMetrics(page) {
     return {
       cssFontSize,
       titleScale,
+      domTitleOpacity: Number.parseFloat(titleStyle.opacity || '1'),
       effectiveFontSize: cssFontSize * titleScale,
       titleRect: {
         width: titleRect.width,
@@ -136,6 +137,7 @@ async function visitSimulation(page, entry) {
   const metrics = await readTitleMetrics(page);
   assert(metrics, `${entry.id}: title metrics unavailable`);
   if (entry.surface === 'home-mode') {
+    assert(metrics.domTitleOpacity <= 0.02, `${entry.id}: semantic Home title became visually paintable`, metrics);
     assert(metrics.canvasTitleVisible, `${entry.id}: canvas title is not visible`, metrics);
     compareMetric(
       metrics.canvasFontSize,

@@ -5,6 +5,11 @@
 
 import { CONSTANTS, MODES } from './constants.js';
 import { readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
+import {
+  DEFAULT_FRAME_RADIUS_DESKTOP_PX,
+  DEFAULT_FRAME_RADIUS_MOBILE_PX,
+  resolveResponsiveFrameRadiusPx,
+} from '../visual/frame-radius.js';
 import { getTimeOfDayPalette } from '../../../palette/timeOfDayPalette.js';
 import { getLondonWeatherPaletteAccents } from '../../../palette/londonPalettes.js';
 import {
@@ -748,6 +753,8 @@ const state = {
   frameBorderWidth: 20,     // Desktop visual wall thickness / frame band (px)
   frameBorderWidthMobile: 4, // Mobile visual wall thickness / frame band (px)
   frameBorderWidthEffective: 20,
+  frameRadiusMobilePx: DEFAULT_FRAME_RADIUS_MOBILE_PX,
+  frameRadiusDesktopPx: DEFAULT_FRAME_RADIUS_DESKTOP_PX,
   frameOuterRadius: 32,      // Canonical outer corner radius in px
   frameInnerRadius: 32,      // Canonical inner corner radius in px
   frameInnerSurface: 'var(--studio-window-bg)', // Theme-aware studio-window fill
@@ -1104,12 +1111,21 @@ export function applyLayoutFromVwToPx() {
     : 0;
 
   const borderPx = vwToPx(outerInsetVw, w);
-  const canonicalFrameRadiusPx = Math.max(0, Math.round(
-    readTokenPx(
-      '--abs-frame-radius-value',
-      readTokenPx('--abs-frame-radius', state.wallRadius || 32)
-    ) || 32
+  const frameRadiusMobilePx = Math.max(0, readTokenPx(
+    '--abs-frame-radius-mobile',
+    state.frameRadiusMobilePx || DEFAULT_FRAME_RADIUS_MOBILE_PX
   ));
+  const frameRadiusDesktopPx = Math.max(frameRadiusMobilePx, readTokenPx(
+    '--abs-frame-radius-desktop',
+    state.frameRadiusDesktopPx || DEFAULT_FRAME_RADIUS_DESKTOP_PX
+  ));
+  const canonicalFrameRadiusPx = resolveResponsiveFrameRadiusPx({
+    mobile: frameRadiusMobilePx,
+    desktop: frameRadiusDesktopPx,
+    viewportWidth: w,
+  });
+  state.frameRadiusMobilePx = frameRadiusMobilePx;
+  state.frameRadiusDesktopPx = frameRadiusDesktopPx;
 
   const baseThicknessPx = vwToPx(wallThicknessVw, w);
 
@@ -1237,8 +1253,8 @@ export function applyLayoutCSSVars() {
   const frameBorderWidthDesktop = clampInt(state.frameBorderWidth, 0, 40, 0);
   const frameBorderWidthMobile = clampInt(state.frameBorderWidthMobile, 0, 40, frameBorderWidthDesktop);
   const frameBorderWidth = isMobileLayout ? frameBorderWidthMobile : frameBorderWidthDesktop;
-  const frameInnerRadius = clampInt(state.wallRadius, 0, 300, 32);
-  const frameOuterRadius = Math.max(frameInnerRadius, frameInnerRadius + frameBorderWidth);
+  const frameInnerRadius = clampNumber(state.wallRadius, 0, 300, 32);
+  const frameOuterRadius = frameInnerRadius;
   const frameInnerSurface = 'var(--studio-window-bg)';
   const frameBorderGradientEdgeOpacity = clampNumber(state.frameBorderGradientEdgeOpacity, 0, 1, 0.012);
   const frameBorderGradientMidOpacity = clampNumber(state.frameBorderGradientMidOpacity, 0, 1, 0.025);
@@ -1271,6 +1287,18 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--frame-vignette-edge-opacity', String(frameVignetteEdgeOpacity));
   root.style.setProperty('--frame-vignette-ambient-blur', `${frameVignetteAmbientBlur}px`);
   root.style.setProperty('--frame-vignette-ambient-opacity', String(frameVignetteAmbientOpacity));
+  try {
+    if (import.meta.env.DEV || globalThis.__ABS_ROUTE_PERF_AUDIT__ === true) {
+      globalThis.__ABS_FRAME_RADIUS_AUDIT__ = {
+        getSnapshot: () => ({
+          cornerRadius: state.getCanvasCornerRadius(),
+          wallRadius: state.wallRadius,
+          frameInnerRadius: state.frameInnerRadius,
+          frameOuterRadius: state.frameOuterRadius,
+        }),
+      };
+    }
+  } catch (e) {}
   const contrastVeilOpacityLight = clampNumber(state.simulationContrastVeilOpacityLight, 0, 0.6, 0.216);
   const contrastVeilOpacityDark = clampNumber(state.simulationContrastVeilOpacityDark, 0, 0.6, 0.348);
   const contrastVeilReachX = clampNumber(state.simulationContrastVeilReachX, 0, 50, 25);

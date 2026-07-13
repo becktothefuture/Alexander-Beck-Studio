@@ -4,7 +4,7 @@
 // ║        Supports visibility toggling and dynamic HTML generation              ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { applyLayoutCSSVars, getGlobals } from '../core/state.js';
+import { applyLayoutCSSVars, applyLayoutFromVwToPx, getGlobals } from '../core/state.js';
 import {
   DEV_ONLY_MODES,
   NARRATIVE_MODE_SEQUENCE,
@@ -17,6 +17,7 @@ import { resetCurrentMode, setMode } from '../modes/mode-controller.js';
 import { resize } from '../rendering/renderer.js';
 import { updateCursorSize } from '../rendering/cursor.js';
 import { getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
+import { applyShellLayoutVars, patchShellLayout } from '../visual/site-shell.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
 import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-shadow.js';
 import { initQuotePuck } from './quote-puck.js';
@@ -58,6 +59,35 @@ function forEachUiElementById(id, callback) {
     const element = uiDocument.getElementById(id);
     if (element) callback(element, uiDocument);
   });
+}
+
+function syncFrameRadiusControl(id, value) {
+  forEachUiElementById(`${id}Slider`, (element) => {
+    element.value = String(value);
+  });
+  forEachUiElementById(`${id}Val`, (element) => {
+    element.textContent = `${Math.round(value)}px`;
+  });
+}
+
+function applyFrameRadiusControlChange(g, changedKey) {
+  let mobile = Math.max(0, Math.round(Number(g.frameRadiusMobilePx) || 0));
+  let desktop = Math.max(0, Math.round(Number(g.frameRadiusDesktopPx) || 0));
+
+  if (changedKey === 'frameRadiusMobilePx') mobile = Math.min(mobile, desktop);
+  if (changedKey === 'frameRadiusDesktopPx') desktop = Math.max(desktop, mobile);
+
+  g.frameRadiusMobilePx = mobile;
+  g.frameRadiusDesktopPx = desktop;
+  patchShellLayout({
+    frameRadiusMobile: `${mobile}px`,
+    frameRadiusDesktop: `${desktop}px`,
+  });
+  applyShellLayoutVars();
+  applyLayoutFromVwToPx();
+  applyLayoutCSSVars();
+  syncFrameRadiusControl('frameRadiusMobilePx', mobile);
+  syncFrameRadiusControl('frameRadiusDesktopPx', desktop);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1239,30 +1269,30 @@ export const CONTROL_SECTIONS = {
 
       { type: 'divider', label: 'Frame' },
       {
-        id: 'frameRadiusPx',
-        label: 'Frame Radius',
-        stateKey: 'frameRadiusPx',
+        id: 'frameRadiusMobilePx',
+        label: 'Radius Mobile',
+        stateKey: 'frameRadiusMobilePx',
+        designScope: 'shellLayout',
         type: 'range',
-        min: 8, max: 48, step: 1,
+        min: 8, max: 32, step: 1,
+        default: 20,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Shared radius at 480px and below. It scales fluidly to the desktop radius and cannot exceed it.',
+        onChange: (g) => applyFrameRadiusControlChange(g, 'frameRadiusMobilePx')
+      },
+      {
+        id: 'frameRadiusDesktopPx',
+        label: 'Radius Desktop',
+        stateKey: 'frameRadiusDesktopPx',
+        designScope: 'shellLayout',
+        type: 'range',
+        min: 20, max: 48, step: 1,
         default: 32,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10),
-        hint: 'Canonical outer wall/frame corner radius. Desktop, tablet, mobile, inner frame, and wall radii all use this same value.',
-        onChange: (_g, val) => {
-          const radius = Math.max(0, Math.round(Number(val) || 0));
-          const root = document.documentElement;
-          root.style.setProperty('--abs-frame-radius-value', `${radius}px`);
-          root.style.setProperty('--abs-frame-radius', `${radius}px`);
-          root.style.setProperty('--abs-frame-radius-desktop', `${radius}px`);
-          root.style.setProperty('--abs-frame-radius-tablet', `${radius}px`);
-          root.style.setProperty('--abs-frame-radius-mobile', `${radius}px`);
-          root.style.setProperty('--frame-outer-radius', 'var(--abs-frame-radius)');
-          root.style.setProperty('--frame-inner-radius', 'var(--abs-frame-radius)');
-          root.style.setProperty('--wall-radius', 'var(--abs-frame-radius)');
-          root.style.setProperty('--outer-wall-radius', 'var(--abs-frame-radius)');
-          root.style.setProperty('--container-radius', 'var(--abs-frame-radius)');
-          root.style.setProperty('--canvas-radius', 'var(--abs-frame-radius)');
-        }
+        hint: 'Shared radius at 991px and above. It scales fluidly from the mobile radius and cannot fall below it.',
+        onChange: (g) => applyFrameRadiusControlChange(g, 'frameRadiusDesktopPx')
       },
 
       { type: 'divider', label: 'Hit Areas' },

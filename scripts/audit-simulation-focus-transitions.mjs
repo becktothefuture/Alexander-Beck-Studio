@@ -193,6 +193,23 @@ async function getState(page, elapsedMs) {
         && rect.height > 0
       );
     };
+    const visibleThroughAncestors = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) return false;
+      const rect = element.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return false;
+
+      let opacity = 1;
+      let current = element;
+      while (current instanceof Element) {
+        const styles = getComputedStyle(current);
+        if (styles.display === 'none' || styles.visibility === 'hidden') return false;
+        opacity *= Number.parseFloat(styles.opacity || '1');
+        if (opacity <= 0.02) return false;
+        current = current.parentElement;
+      }
+      return true;
+    };
     const scaleFor = (selector) => {
       const element = document.querySelector(selector);
       if (!element) return null;
@@ -227,6 +244,22 @@ async function getState(page, elapsedMs) {
       && Number(homeSnapshot?.canvasTitleMaxOpacity || 0) > 0.35
       && Number(homeSnapshot?.canvasTitleLineCount || 0) > 0
     );
+    const titleDomRect = rectFor('#hero-title');
+    const homeDomTitlePaintable = Boolean(
+      document.documentElement.dataset.shellRoute === 'home'
+      && !document.body.classList.contains('daily-focus-page')
+      && document.getElementById('hero-title')?.classList.contains('hero-title--canvas-source')
+      && Number(titleDomRect?.opacity) > 0.02
+    );
+    const titleDomVisible = visibleThroughAncestors('#hero-title');
+    const titleCopiesExposed = Boolean(
+      titleDomVisible
+      && titleCanvasVisible
+      && visibleThroughAncestors('#c')
+      && !document.getElementById('abs-boot-overlay')
+      && !visible('.simulation-focus-modal.active')
+      && !visible('.simulation-focus-modal.closing')
+    );
 
     return {
       elapsed,
@@ -234,6 +267,7 @@ async function getState(page, elapsedMs) {
       path: window.location.pathname,
       bootOverlayPresent: Boolean(document.getElementById('abs-boot-overlay')),
       bootState,
+      homeCanvasTitleReady: document.documentElement.dataset.absHomeCanvasTitleReady || '',
       blockedSimulationUrlParams: Array.from(params.keys()).filter((key) => (
         key === 'daily' || key === 'focus' || key === 'mode' || key === 'simulation'
       )),
@@ -268,7 +302,7 @@ async function getState(page, elapsedMs) {
       ),
       switcherRect: rectFor('.simulation-focus-switcher'),
       modalRect: rectFor('.simulation-focus-modal'),
-      titleRect: rectFor('#hero-title'),
+      titleRect: titleDomRect,
       buttonBarRect: rectFor('[data-button-bar]'),
       legendRect: rectFor('#expertise-legend'),
       descriptionRect: rectFor('.decorative-script'),
@@ -276,6 +310,9 @@ async function getState(page, elapsedMs) {
       edgeCaptionRect: rectFor('#edge-caption'),
       londonTimeRect: rectFor('#site-year'),
       titleCanvasVisible,
+      titleDomVisible,
+      homeDomTitlePaintable,
+      titleCopiesExposed,
       titleCanvasMaxOpacity: Number(homeSnapshot?.canvasTitleMaxOpacity || 0),
       titleCanvasLineCount: Number(homeSnapshot?.canvasTitleLineCount || 0),
       canvas: activeCanvas ? {
@@ -388,6 +425,14 @@ function checkFrame(frame, imageStats, { enforceShellUi = true } = {}) {
     issues.push('boot-state-reset-during-switch');
   }
 
+  if (state.titleCopiesExposed) {
+    issues.push('dom-and-canvas-title-visible-together');
+  }
+
+  if (state.homeDomTitlePaintable) {
+    issues.push('home-dom-title-paintable');
+  }
+
   if (!modalBusy && state.simulationFocusPhase === 'idle' && (imageStats.stdev < 2 || imageStats.mean < 2 || imageStats.mean > 253)) {
     issues.push('blank-or-flat-frame');
   }
@@ -492,6 +537,24 @@ function analyzeBootStates(states) {
   const events = states[states.length - 1]?.state.visualTransition?.events || [];
   const eventTypes = new Set(events.map((event) => event.type));
   const issues = [];
+  const duplicateTitleFrames = states
+    .filter(({ state }) => state.titleCopiesExposed)
+    .map(({ index, state }) => ({
+      index,
+      elapsed: state.elapsed,
+      bootState: state.bootState,
+      homeCanvasTitleReady: state.homeCanvasTitleReady,
+      titleOpacity: state.titleRect?.opacity,
+      sceneOpacity: state.sceneRect?.opacity,
+    }));
+  const paintableDomTitleFrames = states
+    .filter(({ state }) => state.homeDomTitlePaintable)
+    .map(({ index, state }) => ({
+      index,
+      elapsed: state.elapsed,
+      bootState: state.bootState,
+      titleOpacity: state.titleRect?.opacity,
+    }));
   if (!visualMinScales.some((scale) => scale >= 0 && scale < 0.35)) {
     issues.push('direct-reload-missing-low-scale-entry-frame');
   }
@@ -505,8 +568,15 @@ function analyzeBootStates(states) {
   ) {
     issues.push('direct-reload-missing-scale-in-wave');
   }
+  if (duplicateTitleFrames.length > 0) {
+    issues.push('direct-reload-dom-and-canvas-title-visible-together');
+  }
+  if (paintableDomTitleFrames.length > 0) {
+    issues.push('direct-reload-home-dom-title-paintable');
+  }
   return {
-    states,
+    duplicateTitleFrames,
+    paintableDomTitleFrames,
     phases: Array.from(phases),
     minScale: visualMinScales.length ? Math.min(...visualMinScales) : null,
     maxScale: visualMaxScales.length ? Math.max(...visualMaxScales) : null,

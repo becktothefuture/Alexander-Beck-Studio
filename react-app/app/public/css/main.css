@@ -3187,15 +3187,12 @@ html[data-shell-route='home'] .hero-title--canvas-source {
   --home-hero-title-optical-offset-x: clamp(1px, 0.15vw, 2px);
 }
 
+/* On Home this node is semantic copy and a geometry source only. The canvas is
+   the sole visual title owner, including boot, failure, and transition states. */
 html[data-shell-route='home'] body:not(.daily-focus-page) .hero-title--canvas-source {
   --canvas-title-opacity: calc(1 - var(--ui-obscured, 0));
   opacity: 0;
-}
-
-/* Keep the semantic title visible until the active Home runtime confirms that
-   the same title has been drawn through the canvas path. */
-html[data-shell-route='home']:not([data-abs-home-canvas-title-ready='true']) body:not(.daily-focus-page) .hero-title--canvas-source {
-  opacity: calc(1 - var(--ui-obscured, 0));
+  transition: none;
 }
 
 html[data-abs-simulation-shell-stable='true'] #shell-hero-slot {
@@ -3212,28 +3209,6 @@ html[data-abs-simulation-shell-stable='true'] .shell-transition-surface--footer 
   opacity: 1;
   visibility: visible;
   filter: none;
-}
-
-html[data-abs-simulation-shell-stable='true'] .hero-title--canvas-source,
-html[data-abs-simulation-title-surface='dom-handoff'] .hero-title--canvas-source {
-  opacity: calc(1 - var(--ui-obscured, 0));
-  transition: none;
-}
-
-html[data-abs-simulation-shell-stable='true'] #hero-title .hero-title__name,
-html[data-abs-simulation-title-surface='dom-handoff'] #hero-title .hero-title__name {
-  animation: none;
-  opacity: 1;
-  filter: none;
-  transform: none;
-}
-
-html[data-abs-simulation-shell-stable='true'] #hero-title .hero-title__role,
-html[data-abs-simulation-title-surface='dom-handoff'] #hero-title .hero-title__role {
-  animation: none;
-  opacity: var(--brand-logo-secondary-opacity, 0.66);
-  filter: none;
-  transform: none;
 }
 
 /* Faster exit when modal opens */
@@ -6928,6 +6903,89 @@ body.dark-mode .contact-email-copy {
   font-family: var(--abs-font-sans);
   font-size: 0.9rem;
   color: var(--text-quiet);
+}
+
+/* Contact copy impact: the email field acts as a force source beneath the type. */
+.contact-kinetic-text {
+  display: inline;
+}
+
+.contact-kinetic-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.contact-kinetic-glyph {
+  display: inline-block;
+  transform: translate3d(0, 0, 0) rotate(0deg);
+  transform-origin: 50% 62%;
+  will-change: auto;
+}
+
+.contact-route__inner.is-typography-scattering .contact-kinetic-glyph {
+  animation: contactTypographyScatter 0.92s var(--ease-organic) var(--contact-scatter-delay, 0ms) both;
+  will-change: transform, color, text-shadow;
+}
+
+@keyframes contactTypographyScatter {
+  0% {
+    color: inherit;
+    text-shadow: 0 0 0 rgba(var(--abs-energy-green-rgb), 0);
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  9% {
+    transform:
+      translate3d(var(--contact-scatter-in-x, 0), var(--contact-scatter-in-y, 0), 0)
+      rotate(0deg);
+  }
+  28% {
+    color: rgba(var(--abs-energy-green-rgb), 1);
+    text-shadow:
+      0 0 10px rgba(var(--abs-energy-green-rgb), 0.52),
+      0 0 24px rgba(var(--abs-energy-green-rgb), 0.24);
+    transform:
+      translate3d(var(--contact-scatter-x, 0), var(--contact-scatter-y, 0), 0)
+      rotate(var(--contact-scatter-rotate, 0deg));
+  }
+  58% {
+    color: inherit;
+    text-shadow: 0 0 3px rgba(var(--abs-energy-green-rgb), 0.12);
+    transform:
+      translate3d(var(--contact-scatter-return-x, 0), var(--contact-scatter-return-y, 0), 0)
+      rotate(0deg);
+  }
+  76% {
+    transform:
+      translate3d(var(--contact-scatter-in-x, 0), var(--contact-scatter-in-y, 0), 0)
+      rotate(0deg);
+  }
+  100% {
+    color: inherit;
+    text-shadow: 0 0 0 rgba(var(--abs-energy-green-rgb), 0);
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-route__inner.is-typography-scattering .contact-kinetic-glyph {
+    animation: contactTypographyEmphasis 0.32s ease-out both;
+    transform: none;
+    will-change: color, text-shadow;
+  }
+
+  @keyframes contactTypographyEmphasis {
+    0%,
+    100% {
+      color: inherit;
+      text-shadow: none;
+      transform: none;
+    }
+    35% {
+      color: rgba(var(--abs-energy-green-rgb), 1);
+      text-shadow: 0 0 12px rgba(var(--abs-energy-green-rgb), 0.28);
+      transform: none;
+    }
+  }
 }
 
 .cv-modal-inputs,

@@ -290,6 +290,12 @@ export function drawHomepageCanvasTitle(ctx, globals) {
   const cache = refreshCanvasTitleCache(ctx, globals);
   if (!cache.active || cache.lineCount <= 0) return false;
 
+  // Claim visual ownership before this frame is composed. This makes the DOM
+  // fallback disappear in the same frame as the first visible canvas draw.
+  if (cache.visible && document.documentElement.dataset.absHomeCanvasTitleReady !== 'true') {
+    document.documentElement.dataset.absHomeCanvasTitleReady = 'true';
+  }
+
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

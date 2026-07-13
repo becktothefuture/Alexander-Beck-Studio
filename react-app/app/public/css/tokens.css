@@ -44,13 +44,12 @@
   --abs-content-inset-desktop: 28px;
   --abs-content-inset-tablet: 22px;
   --abs-content-inset-mobile: 16px;
-  --abs-frame-radius-value: 32px;
-  --abs-frame-radius-desktop: var(--abs-frame-radius-value);
-  --abs-frame-radius-tablet: var(--abs-frame-radius-value);
-  --abs-frame-radius-mobile: var(--abs-frame-radius-value);
+  --abs-frame-radius-value: clamp(20px, calc(8.727984344px + 2.348336595vw), 32px);
+  --abs-frame-radius-desktop: 32px;
+  --abs-frame-radius-mobile: 20px;
   --abs-frame-inset: var(--abs-frame-inset-desktop);
   --abs-content-inset: var(--abs-content-inset-desktop);
-  --abs-frame-radius: var(--abs-frame-radius-desktop);
+  --abs-frame-radius: var(--abs-frame-radius-value);
   --abs-safe-top: env(safe-area-inset-top, 0px);
   --abs-safe-right: env(safe-area-inset-right, 0px);
   --abs-safe-bottom: env(safe-area-inset-bottom, 0px);

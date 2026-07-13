@@ -68,6 +68,9 @@ const DEFAULT_STUDIO_SURFACE_CONFIG = {
 let designSystemPromise = null;
 
 const RETIRED_RUNTIME_KEYS = new Set([
+  'frameRadiusPx',
+  'frameRadiusMobilePx',
+  'frameRadiusDesktopPx',
   'autoDarkModeEnabled',
   'autoDarkNightStartHour',
   'autoDarkNightEndHour',
@@ -247,6 +250,7 @@ const RETIRED_SHELL_THEME_KEYS = new Set([
 
 const RETIRED_SHELL_LAYOUT_KEYS = new Set([
   'quoteMaxWidth',
+  'frameRadiusTablet',
 ]);
 
 const RETIRED_SHELL_SURFACE_KEYS = new Set([

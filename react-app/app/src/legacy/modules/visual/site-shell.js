@@ -6,6 +6,10 @@ import {
 } from '../utils/design-config.js';
 import { getGlobals } from '../core/state.js';
 import { isDarkThemeDocument } from '../../../lib/theme-state.js';
+import {
+  buildResponsiveFrameRadiusCss,
+  resolveFrameRadiusEndpoints,
+} from './frame-radius.js';
 
 const DEFAULT_SHELL_CONFIG = {
   theme: {
@@ -29,8 +33,7 @@ const DEFAULT_SHELL_CONFIG = {
     contentInsetTablet: '22px',
     contentInsetMobile: '16px',
     frameRadiusDesktop: '32px',
-    frameRadiusTablet: '32px',
-    frameRadiusMobile: '32px',
+    frameRadiusMobile: '20px',
     decorativeScriptMaxWidth: '431px',
     decorativeScriptPaddingX: '0px',
     decorativeScriptPaddingY: '0px',
@@ -131,6 +134,13 @@ export function getShellConfig() {
 export function patchShellTheme(themePatch = {}) {
   currentShellConfig = mergeShellConfig(currentShellConfig, {
     theme: themePatch,
+  });
+  return currentShellConfig;
+}
+
+export function patchShellLayout(layoutPatch = {}) {
+  currentShellConfig = mergeShellConfig(currentShellConfig, {
+    layout: layoutPatch,
   });
   return currentShellConfig;
 }
@@ -390,9 +400,16 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--abs-content-inset-desktop', layout.contentInsetDesktop);
   root.style.setProperty('--abs-content-inset-tablet', layout.contentInsetTablet);
   root.style.setProperty('--abs-content-inset-mobile', layout.contentInsetMobile);
-  root.style.setProperty('--abs-frame-radius-desktop', layout.frameRadiusDesktop);
-  root.style.setProperty('--abs-frame-radius-tablet', layout.frameRadiusTablet);
-  root.style.setProperty('--abs-frame-radius-mobile', layout.frameRadiusMobile);
+  const frameRadius = resolveFrameRadiusEndpoints(layout);
+  root.style.setProperty('--abs-frame-radius-desktop', `${frameRadius.desktop}px`);
+  root.style.setProperty('--abs-frame-radius-mobile', `${frameRadius.mobile}px`);
+  root.style.setProperty('--abs-frame-radius-value', buildResponsiveFrameRadiusCss(frameRadius));
+  root.style.removeProperty('--abs-frame-radius-tablet');
+  try {
+    const globals = getGlobals();
+    globals.frameRadiusMobilePx = frameRadius.mobile;
+    globals.frameRadiusDesktopPx = frameRadius.desktop;
+  } catch (e) {}
   root.style.setProperty('--decorative-script-max-width', layout.decorativeScriptMaxWidth);
   root.style.setProperty('--decorative-script-padding-left', layout.decorativeScriptPaddingX);
   root.style.setProperty('--decorative-script-padding-vertical', layout.decorativeScriptPaddingY);

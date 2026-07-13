@@ -39,7 +39,7 @@ export function buildRuntimeConfigSnapshot() {
     const controls = getAllControls();
     for (const control of controls) {
       if (!control?.stateKey) continue;
-      if (control.designScope === 'shellTheme') continue;
+      if (control.designScope === 'shellTheme' || control.designScope === 'shellLayout') continue;
       const value = g[control.stateKey];
       if (value === undefined) continue;
       config[control.stateKey] = value;
@@ -98,6 +98,16 @@ export function buildShellConfigSnapshot() {
     safariFrameLight: g.safariFrameLight || nextShell.theme?.safariFrameLight,
     safariFrameDark: g.safariFrameDark || nextShell.theme?.safariFrameDark,
   };
+
+  nextShell.layout = {
+    ...(nextShell.layout || {}),
+    frameRadiusMobile: `${Math.max(0, Number(g.frameRadiusMobilePx) || 20)}px`,
+    frameRadiusDesktop: `${Math.max(
+      Number(g.frameRadiusMobilePx) || 20,
+      Number(g.frameRadiusDesktopPx) || 32
+    )}px`,
+  };
+  delete nextShell.layout.frameRadiusTablet;
 
   return nextShell;
 }
