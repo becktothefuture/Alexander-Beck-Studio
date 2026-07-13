@@ -30,7 +30,6 @@
   :root {
     --abs-frame-inset: var(--abs-frame-inset-tablet);
     --abs-content-inset: var(--abs-content-inset-tablet);
-    --abs-frame-radius: var(--abs-frame-radius-tablet);
   }
 }
 
@@ -38,7 +37,6 @@
   :root {
     --abs-frame-inset: var(--abs-frame-inset-mobile);
     --abs-content-inset: var(--abs-content-inset-mobile);
-    --abs-frame-radius: var(--abs-frame-radius-mobile);
   }
 }
 
@@ -3806,9 +3804,9 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
       - var(--safari-tint-inset-x, var(--safari-tint-inset))
       - var(--safari-tint-inset-x, var(--safari-tint-inset))
     ),
-    var(--button-bar-max-width, 1280px)
+    var(--button-bar-max-width, 2400px)
   );
-  max-width: var(--button-bar-max-width, 1280px);
+  max-width: var(--button-bar-max-width, 2400px);
   transform: translateX(-50%);
 }
 

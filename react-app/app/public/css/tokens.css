@@ -44,9 +44,10 @@
   --abs-content-inset-desktop: 28px;
   --abs-content-inset-tablet: 22px;
   --abs-content-inset-mobile: 16px;
-  --abs-frame-radius-desktop: 32px;
-  --abs-frame-radius-tablet: 28px;
-  --abs-frame-radius-mobile: 24px;
+  --abs-frame-radius-value: 32px;
+  --abs-frame-radius-desktop: var(--abs-frame-radius-value);
+  --abs-frame-radius-tablet: var(--abs-frame-radius-value);
+  --abs-frame-radius-mobile: var(--abs-frame-radius-value);
   --abs-frame-inset: var(--abs-frame-inset-desktop);
   --abs-content-inset: var(--abs-content-inset-desktop);
   --abs-frame-radius: var(--abs-frame-radius-desktop);
@@ -63,8 +64,8 @@
   --frame-border-width-desktop: 0px;
   --frame-border-width-mobile: 4px;
   --frame-border-width: var(--frame-border-width-desktop);
-  --frame-outer-radius: clamp(36px, 4.5vw, 65px);
-  --frame-inner-radius: max(0px, calc(var(--frame-outer-radius) - var(--frame-border-width)));
+  --frame-outer-radius: var(--abs-frame-radius);
+  --frame-inner-radius: var(--abs-frame-radius);
   --frame-inner-surface: var(--studio-window-bg);
   --frame-border-gradient-rgb-dark: 153, 153, 153;
   --frame-border-gradient-rgb-light: 255, 255, 255;
@@ -390,13 +391,12 @@
   --layout-min-wall-radius: var(--abs-radius-wall-min);
   --layout-min-content-padding: var(--abs-layout-min-padding);
   --wall-thickness: calc(var(--wall-thickness-vw) * 1vw);
-  --wall-radius: clamp(var(--layout-min-wall-radius), calc(var(--wall-radius-vw) * 1vw), 999px);
-  /* Outer wall radius follows the canonical wall radius plus frame thickness. */
-  --outer-wall-radius: calc(var(--wall-radius) + var(--wall-thickness));
+  --wall-radius: var(--abs-frame-radius);
+  --outer-wall-radius: var(--abs-frame-radius);
   --container-radius: var(--wall-radius);
   --container-border: calc(var(--container-border-vw) * 1vw);
   --simulation-padding: 0px;
-  --canvas-radius: calc(var(--wall-radius) - var(--simulation-padding));
+  --canvas-radius: var(--wall-radius);
 
   /* Noise + Grain */
   --noise-size: 85px;

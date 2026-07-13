@@ -171,6 +171,13 @@
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab:is(:active, [aria-current='page'])
+  :is(.shell-tab__icon, .shell-tab__label) {
+  transform: translate3d(0, calc(0px - var(--shell-tab-motion-y, 0px)), 0);
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
   .button-bar__secondary-buttons {
   --shell-control-icon-size: var(--dominant-secondary-icon-size);
   align-self: center;
@@ -255,7 +262,7 @@
   line-height: 1;
   filter: none;
   text-shadow: none;
-  transform: none;
+  transform: translate3d(0.08em, 0, 0);
 }
 
 .button-bar[data-button-bar-material='dominant-tab']

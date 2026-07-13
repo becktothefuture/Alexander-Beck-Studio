@@ -1234,8 +1234,36 @@ export const CONTROL_SECTIONS = {
              applyLayoutFromVwToPx();
              applyLayoutCSSVars();
            }).catch(() => {});
-         }
+       }
        },
+
+      { type: 'divider', label: 'Frame' },
+      {
+        id: 'frameRadiusPx',
+        label: 'Frame Radius',
+        stateKey: 'frameRadiusPx',
+        type: 'range',
+        min: 8, max: 48, step: 1,
+        default: 32,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Canonical outer wall/frame corner radius. Desktop, tablet, mobile, inner frame, and wall radii all use this same value.',
+        onChange: (_g, val) => {
+          const radius = Math.max(0, Math.round(Number(val) || 0));
+          const root = document.documentElement;
+          root.style.setProperty('--abs-frame-radius-value', `${radius}px`);
+          root.style.setProperty('--abs-frame-radius', `${radius}px`);
+          root.style.setProperty('--abs-frame-radius-desktop', `${radius}px`);
+          root.style.setProperty('--abs-frame-radius-tablet', `${radius}px`);
+          root.style.setProperty('--abs-frame-radius-mobile', `${radius}px`);
+          root.style.setProperty('--frame-outer-radius', 'var(--abs-frame-radius)');
+          root.style.setProperty('--frame-inner-radius', 'var(--abs-frame-radius)');
+          root.style.setProperty('--wall-radius', 'var(--abs-frame-radius)');
+          root.style.setProperty('--outer-wall-radius', 'var(--abs-frame-radius)');
+          root.style.setProperty('--container-radius', 'var(--abs-frame-radius)');
+          root.style.setProperty('--canvas-radius', 'var(--abs-frame-radius)');
+        }
+      },
 
       { type: 'divider', label: 'Hit Areas' },
       {

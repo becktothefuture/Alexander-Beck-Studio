@@ -1236,7 +1236,7 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--content-padding-y', `${Math.max(0, state.contentPaddingY)}px`);
   root.style.setProperty('--content-padding-y-bottom', `${contentPaddingBottom}px`);
   root.style.setProperty('--abs-content-pad-mul-bottom', `${contentPaddingBottomRatio}`);
-  root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
+  root.style.setProperty('--wall-radius', 'var(--abs-frame-radius)');
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
   root.style.setProperty('--abs-wall-base-light', state.wallBaseLight || '#efefef');
   root.style.setProperty('--abs-wall-base-dark', state.wallBaseDark || '#141414');
@@ -1268,8 +1268,8 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--frame-border-width', `${frameBorderWidth}px`);
   root.style.setProperty('--frame-border-width-desktop', `${frameBorderWidthDesktop}px`);
   root.style.setProperty('--frame-border-width-mobile', `${frameBorderWidthMobile}px`);
-  root.style.setProperty('--frame-outer-radius', `${frameOuterRadius}px`);
-  root.style.setProperty('--frame-inner-radius', `${frameInnerRadius}px`);
+  root.style.setProperty('--frame-outer-radius', 'var(--abs-frame-radius)');
+  root.style.setProperty('--frame-inner-radius', 'var(--abs-frame-radius)');
   root.style.setProperty('--frame-inner-surface', frameInnerSurface);
   root.style.setProperty('--frame-border-gradient-edge-opacity', String(frameBorderGradientEdgeOpacity));
   root.style.setProperty('--frame-border-gradient-mid-opacity', String(frameBorderGradientMidOpacity));
