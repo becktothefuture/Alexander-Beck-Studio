@@ -163,11 +163,11 @@
   --spatial-ink: var(--button-bar-playground-active-ink);
   --spatial-body: color-mix(
     in srgb,
-    var(--spatial-face),
-    black var(--spatial-body-contrast, 28%)
+    var(--spatial-face) 82%,
+    white 18%
   );
-  --spatial-highlight: color-mix(in srgb, var(--spatial-face) 68%, white 32%);
-  --spatial-shadow-edge: color-mix(in srgb, var(--spatial-face) 76%, black 24%);
+  --spatial-highlight: color-mix(in srgb, var(--spatial-face) 58%, white 42%);
+  --spatial-shadow-edge: var(--spatial-body);
   --shell-tab-text-active: var(--spatial-ink);
   color: var(--spatial-ink);
 }
@@ -178,8 +178,8 @@
   --spatial-ink: rgba(var(--abs-rgb-white), 0.96);
   --spatial-body: color-mix(
     in srgb,
-    var(--spatial-face),
-    black var(--spatial-body-contrast, 28%)
+    var(--spatial-face) 82%,
+    white 18%
   );
   color: var(--spatial-ink);
 }

@@ -1,26 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { ShellButtonBar } from '../../components/app/ShellButtonBar.jsx';
 import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
+import { getTimeOfDayPalette } from '../../palette/timeOfDayPalette.js';
 import './button-bar-playground.css';
 import './button-bar-playground-spatial-states.css';
+import '../../components/app/shell-button-bar-dominant.css';
 
 const PLAYGROUND_THEME_STORAGE_KEY = 'button-bar-playground-theme-v1';
-const WALKMAN_CONFIG_STORAGE_KEY = 'button-bar-playground-walkman-config-v3';
+const WALKMAN_CONFIG_STORAGE_KEY = 'button-bar-playground-walkman-config-v4';
 const DEFAULT_WALKMAN_CONFIG = Object.freeze({
-  perspective: 1100,
+  perspective: 1720,
   originX: 50,
-  originY: 5,
-  bankTiltX: 14,
+  originY: -55,
+  bankTiltX: 1,
   bankYawY: 0,
-  restingLift: 2,
-  activeLift: 16,
-  bodyContrast: 28,
-  rimSoftness: 42,
-  layerCount: 6,
-  flatShadowEdge: 2.5,
-  flatShadowBlur: 3,
-  flatLightEdge: 1,
-  flatLightBlur: 1,
+  restingLift: 0.5,
+  activeLift: 13,
+  bodyContrast: 19,
+  rimSoftness: 65,
+  layerCount: 3,
+  flatShadowEdge: 3,
+  flatShadowBlur: 5.25,
+  flatLightEdge: 2.5,
+  flatLightBlur: 2.5,
 });
 
 const FLAT_CONTROLS = Object.freeze([
@@ -56,7 +58,70 @@ const PLAYGROUND_CONTROLS = Object.freeze(
   PLAYGROUND_CONTROL_GROUPS.flatMap((group) => group.controls),
 );
 
+const PLAYGROUND_TIME_PALETTE = getTimeOfDayPalette();
+const PLAYGROUND_TIME_COLORS = Array.isArray(PLAYGROUND_TIME_PALETTE?.light)
+  ? PLAYGROUND_TIME_PALETTE.light
+  : ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#d7ff2f', '#0d5cb6', '#ffa000'];
+
+function getContrastInk(hex) {
+  const normalized = String(hex || '').replace('#', '');
+  if (!/^[0-9a-f]{6}$/i.test(normalized)) return '#ffffff';
+  const channels = [0, 2, 4].map((offset) => {
+    const channel = Number.parseInt(normalized.slice(offset, offset + 2), 16) / 255;
+    return channel <= 0.04045
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance = (channels[0] * 0.2126) + (channels[1] * 0.7152) + (channels[2] * 0.0722);
+  return luminance > 0.179 ? '#101113' : '#ffffff';
+}
+
+const PLAYGROUND_PALETTE_STYLE = Object.freeze({
+  ...PLAYGROUND_TIME_COLORS.reduce((style, color, index) => {
+    style[`--ball-${index + 1}`] = color;
+    return style;
+  }, {}),
+  '--button-bar-accent-home': PLAYGROUND_TIME_COLORS[3],
+  '--button-bar-accent-home-ink': getContrastInk(PLAYGROUND_TIME_COLORS[3]),
+  '--button-bar-accent-sound': PLAYGROUND_TIME_COLORS[3],
+  '--button-bar-accent-sound-ink': getContrastInk(PLAYGROUND_TIME_COLORS[3]),
+  '--button-bar-accent-portfolio': PLAYGROUND_TIME_COLORS[5],
+  '--button-bar-accent-portfolio-ink': getContrastInk(PLAYGROUND_TIME_COLORS[5]),
+  '--button-bar-accent-about': PLAYGROUND_TIME_COLORS[6],
+  '--button-bar-accent-about-ink': getContrastInk(PLAYGROUND_TIME_COLORS[6]),
+  '--button-bar-accent-contact': PLAYGROUND_TIME_COLORS[7],
+  '--button-bar-accent-contact-ink': getContrastInk(PLAYGROUND_TIME_COLORS[7]),
+});
+
+const DOMINANT_TAB_VARIANT = Object.freeze({
+  id: 'dominant-tab',
+  number: '11',
+  title: 'Dominant tab',
+  structure: 'proportional tab rhythm',
+  family: 'flat',
+  palette: 'mixed',
+  usesRouteAccent: true,
+});
+
+const RAISED_SELECTION_VARIANT = Object.freeze({
+  id: 'spatial-raised-mono',
+  number: '12',
+  title: 'Raised selection',
+  structure: 'raised selective-colour extrusion',
+  family: 'spatial',
+  palette: 'mixed',
+  spatialModel: 'raised',
+  spatialMaterial: 'selection-colour',
+  usesRouteAccent: true,
+});
+
 const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
+  {
+    id: 'shortlist',
+    anchor: '11 / 12',
+    title: 'Shortlist',
+    variants: [DOMINANT_TAB_VARIANT, RAISED_SELECTION_VARIANT],
+  },
   {
     id: 'physical-studies',
     anchor: '00–06',
@@ -109,7 +174,7 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
   },
   {
     id: 'flat-studies',
-    anchor: '07–11',
+    anchor: '07–10',
     title: 'What if there were no depth at all?',
     variants: [
       {
@@ -146,33 +211,13 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
         palette: 'colour',
         usesRouteAccent: true,
       },
-      {
-        id: 'dominant-tab',
-        number: '11',
-        title: 'Dominant tab',
-        structure: 'proportional tab rhythm',
-        family: 'flat',
-        palette: 'mixed',
-        usesRouteAccent: true,
-      },
     ],
   },
   {
     id: 'spatial-studies',
-    anchor: '12–17',
+    anchor: '13–17',
     title: 'Can one edge describe the whole body?',
     variants: [
-      {
-        id: 'spatial-raised-mono',
-        number: '12',
-        title: 'Raised selection',
-        structure: 'raised selective-colour extrusion',
-        family: 'spatial',
-        palette: 'mixed',
-        spatialModel: 'raised',
-        spatialMaterial: 'selection-colour',
-        usesRouteAccent: true,
-      },
       {
         id: 'spatial-raised-colour',
         number: '13',
@@ -387,6 +432,7 @@ function ButtonBarVariant({
         <ShellButtonBar
           activeRouteId={activeRouteId}
           className="button-bar-playground__bar"
+          materialVariant={variant.id === 'dominant-tab' ? 'dominant-tab' : undefined}
           navClassName="button-bar-playground__tabs"
           onRouteSelect={onSelectRoute}
           preview
@@ -406,7 +452,7 @@ function ButtonBarVariant({
 }
 
 export function ButtonBarPlayground() {
-  const [activeRouteId, setActiveRouteId] = useState('about');
+  const [activeRouteId, setActiveRouteId] = useState('contact');
   const [theme, setTheme] = useState(readPlaygroundTheme);
   const [walkmanConfig, setWalkmanConfig] = useState(readWalkmanConfig);
   const [isWalkmanPanelOpen, setIsWalkmanPanelOpen] = useState(false);
@@ -465,6 +511,7 @@ export function ButtonBarPlayground() {
   }, []);
 
   const walkmanStyle = {
+    ...PLAYGROUND_PALETTE_STYLE,
     '--spatial-perspective': `${walkmanConfig.perspective}px`,
     '--spatial-origin-x': `${walkmanConfig.originX}vh`,
     '--spatial-origin-y': `${walkmanConfig.originY}vh`,
@@ -496,6 +543,7 @@ export function ButtonBarPlayground() {
         className="button-bar-playground"
         aria-labelledby="button-bar-playground-title"
         data-playground-theme={theme}
+        data-time-palette={PLAYGROUND_TIME_PALETTE?.id}
         data-config-panel-open={isWalkmanPanelOpen ? 'true' : 'false'}
         data-spatial-layers={walkmanConfig.layerCount}
         style={walkmanStyle}
@@ -534,17 +582,28 @@ export function ButtonBarPlayground() {
                   </div>
                 </header>
               ) : null}
-              {group.variants.map((variant) => (
-                <ButtonBarVariant
-                  key={variant.id}
-                  variant={variant}
-                  activeRouteId={activeRouteId}
-                  playgroundTheme={theme}
-                  headingLevel={group.title ? 'h3' : 'h2'}
-                  onSelectRoute={setActiveRouteId}
-                  onToggleTheme={setTheme}
-                />
-              ))}
+              {group.variants.map((variant) => {
+                const preview = (
+                  <ButtonBarVariant
+                    key={variant.id}
+                    variant={variant}
+                    activeRouteId={activeRouteId}
+                    playgroundTheme={theme}
+                    headingLevel={group.title ? 'h3' : 'h2'}
+                    onSelectRoute={setActiveRouteId}
+                    onToggleTheme={setTheme}
+                  />
+                );
+
+                return group.id === 'shortlist' ? (
+                  <div
+                    key={variant.id}
+                    className={`button-bar-playground__shortlist-item button-bar-playground__variant-group--${variant.family}-studies`}
+                  >
+                    {preview}
+                  </div>
+                ) : preview;
+              })}
             </section>
           );
         })}

@@ -4,7 +4,7 @@ import { getGlobals } from '../../legacy/modules/core/state.js';
 import {
   getCurrentPalette,
   getPaletteTemplateOverrideFromUrl,
-  getWeatherDrivenPaletteTemplate,
+  getTimeOfDayPaletteTemplate,
   resolveColorTemplateName,
 } from '../../legacy/modules/visual/colors.js';
 import {
@@ -189,7 +189,7 @@ function resolvePalette(isDarkMode) {
   const templateId = resolveColorTemplateName(
     getPaletteTemplateOverrideFromUrl()
       || globals.currentTemplate
-      || getWeatherDrivenPaletteTemplate(),
+      || getTimeOfDayPaletteTemplate(),
   );
   const colors = getCurrentPalette(templateId, isDarkMode)
     .map((hex) => normalizeHexColor(hex, null))

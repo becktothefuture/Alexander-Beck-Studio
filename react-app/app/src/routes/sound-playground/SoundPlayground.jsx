@@ -347,7 +347,6 @@ function FidgetArea({ isAudioReady }) {
             className={`sound-playground__fidget-ball sound-playground__fidget-ball--${ball.color}`}
             style={{ left: `${ball.x}%`, top: `${ball.y}%` }}
             aria-label={`Drag ${ball.label} ball`}
-            onPointerEnter={isAudioReady ? playHoverSound : undefined}
             onPointerDown={(event) => beginBallDrag(event, ball)}
             onPointerMove={moveBall}
             onPointerUp={endBallDrag}
@@ -362,7 +361,6 @@ function FidgetArea({ isAudioReady }) {
             className="sound-playground__fidget-dial"
             style={{ '--dial-angle': `${dialAngle}deg` }}
             aria-label="Spin sound dial"
-            onPointerEnter={isAudioReady ? playHoverSound : undefined}
             onPointerDown={beginDialDrag}
             onPointerMove={moveDial}
             onPointerUp={endDialDrag}
@@ -426,9 +424,8 @@ function HoverCandidateCard({ candidate, isAudioReady, isActive, onPreview }) {
         className="sound-playground__candidate-play"
         disabled={!isAudioReady}
         onClick={playCandidate}
-        onPointerEnter={playCandidate}
       >
-        <strong>Try hover</strong>
+        <strong>Play sound</strong>
       </SoundButton>
     </article>
   );

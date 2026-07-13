@@ -185,6 +185,19 @@ body.button-bar-playground-page {
   min-width: 0;
 }
 
+.button-bar-playground__variant-group--shortlist {
+  margin-bottom: clamp(2.5rem, 5vw, 4.5rem);
+  border-bottom: var(--abs-size-1px) solid var(--button-bar-playground-line);
+}
+
+.button-bar-playground__variant-group--shortlist > .button-bar-playground__group-header {
+  padding-block: var(--gap-lg);
+}
+
+.button-bar-playground__shortlist-item {
+  min-width: 0;
+}
+
 .button-bar-playground__group-header {
   display: grid;
   grid-template-columns: 2.5rem minmax(0, 1fr);
@@ -326,25 +339,25 @@ body.button-bar-playground-page {
 
 .button-bar-playground__sample .shell-tab[data-route-tab='home'] {
   --button-bar-playground-active-color: var(--button-bar-accent-home);
-  --button-bar-playground-active-ink: rgba(var(--abs-rgb-white), 1);
+  --button-bar-playground-active-ink: var(--button-bar-accent-home-ink, rgba(var(--abs-rgb-white), 1));
   --button-bar-playground-active-veil: rgba(var(--abs-rgb-black), 0.18);
 }
 
 .button-bar-playground__sample .shell-tab[data-route-tab='portfolio'] {
   --button-bar-playground-active-color: var(--button-bar-accent-portfolio);
-  --button-bar-playground-active-ink: rgba(var(--abs-rgb-black), 0.94);
+  --button-bar-playground-active-ink: var(--button-bar-accent-portfolio-ink, rgba(var(--abs-rgb-black), 0.94));
   --button-bar-playground-active-veil: rgba(var(--abs-rgb-white), 0.06);
 }
 
 .button-bar-playground__sample .shell-tab[data-route-tab='about'] {
   --button-bar-playground-active-color: var(--button-bar-accent-about);
-  --button-bar-playground-active-ink: rgba(var(--abs-rgb-white), 1);
+  --button-bar-playground-active-ink: var(--button-bar-accent-about-ink, rgba(var(--abs-rgb-white), 1));
   --button-bar-playground-active-veil: rgba(var(--abs-rgb-black), 0.2);
 }
 
 .button-bar-playground__sample .shell-tab[data-route-tab='contact'] {
   --button-bar-playground-active-color: var(--button-bar-accent-contact);
-  --button-bar-playground-active-ink: rgba(var(--abs-rgb-black), 0.94);
+  --button-bar-playground-active-ink: var(--button-bar-accent-contact-ink, rgba(var(--abs-rgb-black), 0.94));
   --button-bar-playground-active-veil: rgba(var(--abs-rgb-white), 0.05);
 }
 
@@ -1667,39 +1680,6 @@ html[data-button-bar-playground-theme='light'] body.button-bar-playground-page #
   gap: 4px;
 }
 
-.button-bar-playground__sample--dominant-tab .button-bar__secondary-button.shell-tab {
-  color: var(--playground-key-ink);
-  border-radius: var(--shell-tab-radius, 16px);
-  background: transparent;
-  box-shadow: none;
-  transform: none;
-}
-
-.button-bar-playground__sample--dominant-tab
-  .button-bar__secondary-button.shell-tab:not([data-enabled='true']):is(:hover, :focus-visible, :active) {
-  background: color-mix(in srgb, var(--playground-ink) 14%, transparent);
-  box-shadow:
-    inset 0 var(--flat-pressed-shadow-edge, 2.5px) 0 rgba(var(--abs-rgb-black), 0.5),
-    inset 0 calc(var(--flat-pressed-light-edge, 1px) * -1) 0 rgba(var(--abs-rgb-white), 0.3);
-  transform: translateY(var(--abs-size-1px));
-}
-
-.button-bar-playground__sample--dominant-tab .button-bar__secondary-button.button-bar__sound-toggle.shell-tab[data-enabled='true'],
-.button-bar-playground__sample--dominant-tab .button-bar__secondary-button.button-bar__sound-toggle.shell-tab[data-enabled='true']:is(:hover, :focus-visible, :active) {
-  color: var(--utility-accent-ink);
-  background: var(--utility-accent);
-  box-shadow:
-    inset 0 var(--flat-pressed-shadow-edge, 2.5px) 0 rgba(var(--abs-rgb-black), 0.5),
-    inset 0 calc(var(--flat-pressed-light-edge, 1px) * -1) 0 rgba(var(--abs-rgb-white), 0.3);
-  transform: translateY(var(--abs-size-1px));
-}
-
-.button-bar-playground__sample--dominant-tab .button-bar__theme-thumb,
-.button-bar-playground__sample--dominant-tab .button-bar__theme-toggle:is(:hover, :focus-visible, :active) .button-bar__theme-thumb {
-  color: var(--playground-page);
-  background: var(--playground-ink);
-}
-
 /* Spatial utilities share the exact aligned-layer extrusion used by the route
    keys. Their X/Y positions never diverge; the bank tilt reveals their body. */
 .button-bar-playground__variant-group--spatial-studies .button-bar__secondary-buttons {
@@ -2582,6 +2562,10 @@ html.button-bar-playground-document {
 /* 11: a quiet approach becomes a definite physical press. The sharp inner cut
    keeps the edge precise while separate soft shadow and light layers roll into
    the flat colour without making the tab look permanently raised. */
+.button-bar-playground__sample--dominant-tab .button-bar.button-bar {
+  --dominant-primary-control-height: 48px;
+}
+
 .button-bar-playground__sample--dominant-tab {
   --dominant-tab-pressed-shadow: rgba(var(--abs-rgb-black), 0.5);
   --dominant-tab-pressed-light: rgba(var(--abs-rgb-white), 0.3);
@@ -2610,10 +2594,7 @@ html.button-bar-playground-document {
 .button-bar-playground__sample--dominant-tab
   .button-bar
   .button-bar__primary-buttons
-  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active),
-.button-bar-playground__sample--dominant-tab
-  .button-bar
-  .button-bar__secondary-button.shell-tab:not([data-enabled='true']):is(:hover, :focus-visible):not(:active) {
+  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active) {
   color: var(--playground-key-ink);
   background: color-mix(
     in srgb,
@@ -2639,10 +2620,7 @@ html.button-bar-playground-document {
 .button-bar-playground__sample--dominant-tab
   .button-bar
   .button-bar__primary-buttons
-  .shell-tab:not([aria-current='page']):active,
-.button-bar-playground__sample--dominant-tab
-  .button-bar
-  .button-bar__secondary-button.shell-tab:not([data-enabled='true']):active {
+  .shell-tab:not([aria-current='page']):active {
   color: var(--playground-ink);
   background: color-mix(
     in srgb,
@@ -2660,13 +2638,67 @@ html.button-bar-playground-document {
 .button-bar-playground__sample--dominant-tab
   .button-bar
   .button-bar__primary-buttons
-  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active),
-.button-bar-playground__sample--dominant-tab
-  .button-bar
-  .button-bar__sound-toggle.shell-tab[data-enabled='true'],
-.button-bar-playground__sample--dominant-tab
-  .button-bar
-  .button-bar__sound-toggle.shell-tab[data-enabled='true']:is(:hover, :focus-visible, :active) {
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
   box-shadow: var(--dominant-tab-pressed-rim);
   transform: translateY(var(--dominant-tab-press-travel));
+}
+
+/* Finalist geometry is intentionally distinct: the flat dominant control has
+   a softer moulded corner, while the raised body keeps a tighter physical edge. */
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab,
+.button-bar-playground__sample--dominant-tab
+  .button-bar
+  .button-bar__primary-buttons
+  .shell-tab:is(:hover, :focus-visible, :active) {
+  border-radius: 16px;
+}
+
+.button-bar-playground__sample--spatial-raised-mono
+  .button-bar
+  :is(.button-bar__primary-buttons .shell-tab, .button-bar__secondary-button.shell-tab),
+.button-bar-playground__sample--spatial-raised-mono
+  .button-bar
+  :is(.button-bar__primary-buttons .shell-tab, .button-bar__secondary-button.shell-tab)::before,
+.button-bar-playground__sample--spatial-raised-mono
+  .button-bar
+  .spatial-button-layer {
+  border-radius: 8px;
+}
+
+/* Finalist state polish from the selected studies: idle route faces have no
+   perimeter cut, labels are a little quieter, and the raised active face keeps
+   only the illuminated lower blend into its body. */
+:is(
+    .button-bar-playground__sample--dominant-tab,
+    .button-bar-playground__sample--spatial-raised-mono
+  )
+  .button-bar__primary-buttons
+  .shell-tab__label {
+  font-weight: 560;
+}
+
+.button-bar-playground__sample--dominant-tab
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']) {
+  border-width: 0;
+}
+
+.button-bar-playground__sample--spatial-raised-mono
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page'])::before {
+  box-shadow: none;
+}
+
+.button-bar-playground__sample--spatial-raised-mono
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']::before,
+.button-bar-playground__sample--spatial-raised-mono
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active)::before {
+  box-shadow:
+    inset 0 calc(var(--spatial-rim-blur, 3.1px) * -0.55) var(--spatial-rim-blur, 3.1px)
+      calc(var(--spatial-rim-blur, 3.1px) * -0.65) var(--spatial-body);
 }

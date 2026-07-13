@@ -5,7 +5,7 @@
 
 import { CONSTANTS, MODES } from './constants.js';
 import { readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
-import { getLondonWeatherPaletteFromAssessment } from '../../../weather/londonWeatherAssessment.js';
+import { getTimeOfDayPalette } from '../../../palette/timeOfDayPalette.js';
 import { getLondonWeatherPaletteAccents } from '../../../palette/londonPalettes.js';
 import {
   BUTTON_BAR_DEFAULTS,
@@ -13,8 +13,8 @@ import {
   normalizeButtonBarConfig,
 } from '../../../lib/buttonBarControls.js';
 
-const assessedPalette = getLondonWeatherPaletteFromAssessment();
-const assessedAccents = getLondonWeatherPaletteAccents(assessedPalette?.id) || {};
+const timeOfDayPalette = getTimeOfDayPalette();
+const timeOfDayAccents = getLondonWeatherPaletteAccents(timeOfDayPalette?.id) || {};
 
 // Helper: Convert hex color to "r, g, b" string for CSS rgba()
 function hexToRgbString(hex) {
@@ -464,11 +464,11 @@ const state = {
   
   // Colors
   // Palette chapters ("colour schemes") — see `source/modules/visual/colors.js`
-  // Keep these aligned with the assessed London weather palette so:
+  // Keep these aligned with the palette selected from the visitor's local time so:
   // - CSS fallback matches JS-driven palette chapters
   // - early paints (before JS applies templates) look correct
-  currentColors: Array.isArray(assessedPalette?.light) ? assessedPalette.light.slice() : ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#f03030', '#0d5cb6', '#ffa000'],
-  currentTemplate: assessedPalette?.id || 'portlandHaze',
+  currentColors: Array.isArray(timeOfDayPalette?.light) ? timeOfDayPalette.light.slice() : ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#f03030', '#0d5cb6', '#ffa000'],
+  currentTemplate: timeOfDayPalette?.id || 'portlandHaze',
   // If true, rotate to the next palette chapter on each reload.
   // If false, respect `currentTemplate` from runtime config.
   paletteRotateOnReload: false,
@@ -740,7 +740,7 @@ const state = {
   // Container inner shadow removed
   
   // Unified Color System (backgrounds, frame, walls)
-  // Palette/weather chapters must not change these surfaces; design config owns them.
+  // Time-of-day palette chapters must not change these surfaces; design config owns them.
   bgLight: '#f5f5f5',       // Light mode background color
   bgDark: '#141414',        // Dark mode background color
   wallBaseLight: '#f5f5f5', // Inner wall surface in light mode
@@ -786,7 +786,7 @@ const state = {
   edgeCaptionDistanceMinPx: 8,
   edgeCaptionDistanceMaxPx: 48,
   // Link Colors
-  linkHoverColor: assessedAccents.linkHoverColor || '#f03030',          // Link hover accent (shared)
+  linkHoverColor: timeOfDayAccents.linkHoverColor || '#f03030',          // Link hover accent (shared)
 
   // Logo colors now derive from `--text-primary` in CSS (same for index + portfolio).
   // Logo sizing + index main link placement (CSS vars)

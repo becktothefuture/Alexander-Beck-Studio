@@ -1,7 +1,7 @@
 import { loadRuntimeConfig } from '../utils/runtime-config.js';
 import { applyPortfolioConfig, loadPortfolioConfig, normalizePortfolioConfig } from './portfolio-config.js';
 import { resolvePortfolioLabelContent } from './portfolio-content.js';
-import { getPaletteTemplateOverrideFromUrl, getPortfolioProjectPaletteColor, getWeatherDrivenPaletteTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
+import { getPaletteTemplateOverrideFromUrl, getPortfolioProjectPaletteColor, getTimeOfDayPaletteTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
 import { getGlobals } from '../core/state.js';
 import { loadRuntimeText } from '../utils/text-loader.js';
 import { applyRuntimeTextToDOM } from '../ui/apply-text.js';
@@ -52,8 +52,6 @@ const CONFIG = {
 let activePortfolioBootstrapRunId = 0;
 
 const PORTFOLIO_CLICK_DRAG_THRESHOLD_PX = 12;
-const PORTFOLIO_HOVER_SOUND_MIN_INTERVAL_MS = 180;
-const PORTFOLIO_HOVER_SOUND_REPEAT_INTERVAL_MS = 650;
 const PORTFOLIO_ACTION_SOUND_MIN_INTERVAL_MS = 90;
 const PORTFOLIO_CENTER_SOUND_MIN_INTERVAL_MS = 120;
 const PORTFOLIO_CAROUSEL_DETENT_STEP = 0.33;
@@ -449,8 +447,6 @@ class PortfolioScrollApp {
     this.portfolioWheelSfxConfigured = false;
     this.portfolioSfxLastFrameAt = 0;
     this.portfolioSfxLastPosition = 0;
-    this.lastPortfolioHoverSoundAt = -Infinity;
-    this.lastPortfolioHoverSoundKey = '';
     this.lastPortfolioActionSoundAt = -Infinity;
     this.lastPortfolioCenterSoundAt = -Infinity;
     this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
@@ -625,25 +621,6 @@ class PortfolioScrollApp {
       gain: PORTFOLIO_CAROUSEL_DETENT_GAIN,
       filterHz: PORTFOLIO_CAROUSEL_DETENT_FILTER_HZ,
     });
-  }
-
-  playPortfolioHoverSound(card, source = 'pointer') {
-    if (this.isProjectOpen || !card) return;
-    if (card.dataset.deckVisualSlot !== 'front') return;
-    if (this.getCardProjectIndex(card) !== this.getDeckIntentIndex()) return;
-    if (!this.isDeckPositionSettled()) return;
-
-    const now = performance.now();
-    const key = `${source}:${this.getCardProjectIndex(card)}`;
-    if (now - this.lastPortfolioHoverSoundAt < PORTFOLIO_HOVER_SOUND_MIN_INTERVAL_MS) return;
-    if (key === this.lastPortfolioHoverSoundKey
-      && now - this.lastPortfolioHoverSoundAt < PORTFOLIO_HOVER_SOUND_REPEAT_INTERVAL_MS) {
-      return;
-    }
-
-    this.lastPortfolioHoverSoundAt = now;
-    this.lastPortfolioHoverSoundKey = key;
-    SoundEngine.playHoverSound?.();
   }
 
   playPortfolioActionSound() {
@@ -852,11 +829,9 @@ class PortfolioScrollApp {
     card.addEventListener('pointerenter', () => {
       const currentProject = this.projects[this.getCardProjectIndex(card)];
       this.prefetchProjectAssets(currentProject);
-      this.playPortfolioHoverSound(card, 'pointer');
     });
     card.addEventListener('focus', () => {
       card.classList.add('is-keyboard-focused');
-      this.playPortfolioHoverSound(card, 'focus');
     });
     card.addEventListener('blur', () => card.classList.remove('is-keyboard-focused'));
     return card;
@@ -2880,7 +2855,7 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
   if (paletteOverride) {
     getGlobals().currentTemplate = paletteOverride;
   } else {
-    getGlobals().currentTemplate = getWeatherDrivenPaletteTemplate() || rotatePaletteChapterOnReload();
+    getGlobals().currentTemplate = getTimeOfDayPaletteTemplate() || rotatePaletteChapterOnReload();
   }
   maybeAutoPickCursorColor('startup');
 

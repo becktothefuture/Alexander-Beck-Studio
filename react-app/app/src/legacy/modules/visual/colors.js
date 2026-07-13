@@ -6,7 +6,7 @@ import {
   getLondonWeatherPaletteAccents,
   resolveLondonWeatherPaletteId,
 } from '../../../palette/londonPalettes.js';
-import { getLondonWeatherPaletteIdFromAssessment } from '../../../weather/londonWeatherAssessment.js';
+import { getTimeOfDayPaletteId } from '../../../palette/timeOfDayPalette.js';
 
 function clamp01(t) {
   const n = Number(t);
@@ -182,8 +182,8 @@ export function getPaletteTemplateOverrideFromUrl() {
   }
 }
 
-export function getWeatherDrivenPaletteTemplate() {
-  return resolveLondonWeatherPaletteId(getLondonWeatherPaletteIdFromAssessment()) || DEFAULT_LONDON_WEATHER_PALETTE_ID;
+export function getTimeOfDayPaletteTemplate() {
+  return resolveLondonWeatherPaletteId(getTimeOfDayPaletteId()) || DEFAULT_LONDON_WEATHER_PALETTE_ID;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

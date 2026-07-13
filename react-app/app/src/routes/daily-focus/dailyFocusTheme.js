@@ -4,13 +4,13 @@ import {
   resolveLondonWeatherPaletteId,
 } from '../../palette/londonPalettes.js';
 import { desaturateGreysToBackground } from '../../palette/paletteTransforms.js';
-import { getLondonWeatherPaletteIdFromAssessment } from '../../weather/londonWeatherAssessment.js';
+import { getTimeOfDayPaletteId } from '../../palette/timeOfDayPalette.js';
 import { withBasePath } from '../../lib/base-path.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 
 export const DAILY_FOCUS_DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
 
-const DEFAULT_DAILY_FOCUS_PALETTE_ID = getLondonWeatherPaletteIdFromAssessment();
+const DEFAULT_DAILY_FOCUS_PALETTE_ID = getTimeOfDayPaletteId();
 
 const RAW_DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_DAILY_FOCUS_PALETTE_ID)?.dark || [
   '#a7afb0',

@@ -4,7 +4,6 @@ import {
   getSoundState,
   initSoundEngine,
   playButtonPressSound,
-  playHoverSound,
   playSoundEnabledMotif,
   toggleSound,
   unlockAudio,
@@ -31,10 +30,6 @@ function readSoundButtonState() {
 
 function getNormalizedActiveRouteId(activeRouteId) {
   return activeRouteId;
-}
-
-function playButtonBarHoverSound() {
-  playHoverSound();
 }
 
 function playButtonBarPressSound() {
@@ -157,7 +152,6 @@ function BottomThemeToggle({ decoration, previewTheme, onPreviewThemeChange }) {
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       aria-pressed={isDark ? 'true' : 'false'}
       data-state={isDark ? 'dark' : 'light'}
-      onPointerEnter={playButtonBarHoverSound}
       onPointerDown={(event) => {
         if (beginCapturedPointerPress(event)) playButtonBarPressSound();
       }}
@@ -236,7 +230,6 @@ function BottomSoundToggle({ decoration }) {
       aria-pressed={isEnabled ? 'true' : 'false'}
       data-state={isEnabled ? 'active' : 'idle'}
       data-enabled={isEnabled ? 'true' : 'false'}
-      onPointerEnter={playButtonBarHoverSound}
       onPointerDown={(event) => {
         if (beginCapturedPointerPress(event)) playButtonBarPressSound();
       }}
@@ -318,9 +311,6 @@ function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect, renderDeco
     'data-state': isActive ? 'active' : 'idle',
     'aria-label': tab.ariaLabel,
     'aria-current': isActive ? 'page' : undefined,
-    onPointerEnter: () => {
-      if (!isActive) playButtonBarHoverSound();
-    },
     onPointerDown: (event) => {
       if (isActive || isModifiedRouteEvent(event)) return;
       if (beginCapturedPointerPress(event)) {
@@ -394,6 +384,7 @@ function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect, renderDeco
 export function ShellButtonBar({
   activeRouteId,
   className = 'shell-bottom-band',
+  materialVariant,
   navClassName = '',
   onRouteNavigate,
   onRouteSelect,
@@ -418,6 +409,7 @@ export function ShellButtonBar({
       data-button-bar
       data-shell-bottom-band={!preview ? '' : undefined}
       data-button-bar-preview={preview ? '' : undefined}
+      data-button-bar-material={materialVariant || undefined}
     >
       <nav
         className={primaryNavClassName}

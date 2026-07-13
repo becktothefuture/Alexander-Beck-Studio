@@ -69,6 +69,7 @@ export default defineConfig(({ mode }) => ({
         'lab/beach-ball-room': resolve(__dirname, 'lab/beach-ball-room.html'),
         'lab/flock-of-birds': resolve(__dirname, 'lab/flock-of-birds.html'),
         'lab/button-bar-playground': resolve(__dirname, 'lab/button-bar-playground.html'),
+        'lab/dominant-tab': resolve(__dirname, 'lab/dominant-tab.html'),
         'lab/sound-playground': resolve(__dirname, 'lab/sound-playground.html'),
         'lab/repel-room': resolve(__dirname, 'lab/repel-room.html'),
         'lab/wall-repel': resolve(__dirname, 'lab/wall-repel.html'),

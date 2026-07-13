@@ -13,7 +13,7 @@ import {
   resolveLondonWeatherPaletteId,
 } from '../../palette/londonPalettes.js';
 import { desaturateGreysToBackground } from '../../palette/paletteTransforms.js';
-import { getLondonWeatherPaletteIdFromAssessment } from '../../weather/londonWeatherAssessment.js';
+import { getTimeOfDayPaletteId } from '../../palette/timeOfDayPalette.js';
 import { withBasePath } from '../../lib/base-path.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 import './mineral-growth-runtime.css';
@@ -21,7 +21,7 @@ import './mineral-growth.css';
 
 const CONFIG_URL = withBasePath('/config/mineral-growth-demo.json');
 const DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
-const DEFAULT_MINERAL_GROWTH_PALETTE_ID = getLondonWeatherPaletteIdFromAssessment();
+const DEFAULT_MINERAL_GROWTH_PALETTE_ID = getTimeOfDayPaletteId();
 const RAW_DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_MINERAL_GROWTH_PALETTE_ID)?.dark || [
   '#a7afb0',
   '#c6cecf',

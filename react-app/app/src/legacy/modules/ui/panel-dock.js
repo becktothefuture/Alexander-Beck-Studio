@@ -29,8 +29,7 @@ import {
   SOUND_STATE_EVENT,
   playTestSound,
   unlockAudio,
-  toggleSound,
-  playHoverSound
+  toggleSound
 } from '../audio/sound-engine.js';
 import {
   bindSoundControls,
@@ -534,7 +533,6 @@ export function createPanelDock(options = {}) {
   // Setup interactions
   setupDragging();
   setupResizePersistence();
-  setupPanelHoverSounds();
   revealRequestedPanelSection();
 
   // `/` panel toggle is centralized in `keyboard.js` (wired from React in dev for all routes).
@@ -1231,27 +1229,6 @@ function setupLayoutControls(panel) {
       syncDerivedLayout({ triggerResize: true });
     });
   }
-}
-
-// ════════════════════════════════════════════════════════════════════════════════
-// PANEL HOVER SOUNDS
-// ════════════════════════════════════════════════════════════════════════════════
-
-function setupPanelHoverSounds() {
-  if (!dockElement) return;
-  
-  dockElement.addEventListener('pointerenter', (e) => {
-    const target = e.target;
-    if (!target || !target.closest) return;
-    
-    const isButton = target.matches('button, [role="button"], .mode-btn, .mac-dot');
-    const isSliderThumb = target.matches('input[type="range"]');
-    const isSelect = target.matches('select');
-    
-    if (isButton || isSliderThumb || isSelect) {
-      playHoverSound();
-    }
-  }, true);
 }
 
 // ════════════════════════════════════════════════════════════════════════════════

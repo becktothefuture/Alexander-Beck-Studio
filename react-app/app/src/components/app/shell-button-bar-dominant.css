@@ -1,0 +1,242 @@
+/* Dominant Tab utility material ------------------------------------------------
+   This opt-in layer is shared by the focused validation lab and study 11.
+   Production bars do not carry the data attribute and remain unchanged. */
+
+.button-bar[data-button-bar-material='dominant-tab'] {
+  /* Utility controls are deliberately subordinate to route controls: their
+     visible body is three quarters of the primary height, centred in the same
+     row so both groups share one optical axis. */
+  --dominant-primary-control-height: var(--shell-tab-height, 48px);
+  --dominant-secondary-control-height: calc(var(--dominant-primary-control-height) * 0.75);
+  --dominant-secondary-icon-size: calc(var(--dominant-secondary-control-height) * 0.5);
+  --dominant-utility-wall: var(
+    --playground-stage,
+    var(--dominant-wall, var(--button-bar-gasket-ground))
+  );
+  --dominant-utility-page: var(
+    --playground-page,
+    var(--dominant-page-bg, var(--dominant-utility-wall))
+  );
+  --dominant-utility-ink: var(
+    --playground-ink,
+    var(--dominant-page-ink, var(--button-bar-outer-ink))
+  );
+  --dominant-utility-muted: var(
+    --playground-key-ink,
+    var(--dominant-wall-ink, var(--button-bar-outer-ink-muted))
+  );
+  --dominant-utility-shadow: var(--dominant-press-shadow, rgba(var(--abs-rgb-black), 0.56));
+  --dominant-utility-light: var(--dominant-press-light, rgba(var(--abs-rgb-white), 0.42));
+  --dominant-sound-active: var(
+    --button-bar-accent-sound,
+    var(--button-bar-accent-home)
+  );
+  --dominant-sound-active-ink: var(
+    --button-bar-accent-sound-ink,
+    var(--button-bar-accent-home-ink, rgba(var(--abs-rgb-white), 1))
+  );
+  --dominant-utility-pressed-rim:
+    inset 0 3px 5.25px -1px var(--dominant-utility-shadow),
+    inset 0 -2.5px 2.5px -1px var(--dominant-utility-light);
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__secondary-buttons {
+  --shell-control-icon-size: var(--dominant-secondary-icon-size);
+  align-self: center;
+  align-items: center;
+  block-size: var(--dominant-primary-control-height);
+  min-height: var(--dominant-primary-control-height);
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__secondary-button.shell-tab,
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__secondary-button.shell-tab:is(:hover, :focus-visible, :active) {
+  --shell-tab-motion-y: 0px;
+  --shell-tab-motion-scale: 1;
+  border-width: 0;
+  transform: none;
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__sound-toggle.shell-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 var(--dominant-secondary-control-height);
+  inline-size: var(--dominant-secondary-control-height);
+  block-size: var(--dominant-secondary-control-height);
+  min-width: var(--dominant-secondary-control-height);
+  min-height: var(--dominant-secondary-control-height);
+  aspect-ratio: 1 / 1;
+  padding: 0;
+}
+
+/* Sound is quiet at rest and becomes a persistent palette signal when on. */
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__sound-toggle.shell-tab:not([data-enabled='true']),
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__sound-toggle.shell-tab:not([data-enabled='true']):not(:hover):not(:focus-visible):not(:active) {
+  color: var(--dominant-utility-muted);
+  background: transparent;
+  box-shadow: none;
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__sound-toggle.shell-tab:not([data-enabled='true']):is(:hover, :focus-visible, :active) {
+  color: var(--dominant-utility-ink);
+  outline: none;
+  background: color-mix(in srgb, var(--dominant-utility-ink) 7%, transparent);
+  box-shadow: var(
+    --dominant-tab-pressed-rim,
+    var(--dominant-utility-pressed-rim)
+  );
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__sound-toggle.shell-tab[data-enabled='true'],
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__sound-toggle.shell-tab[data-enabled='true']:is(:hover, :focus-visible, :active) {
+  --shell-tab-text-active: var(--dominant-sound-active-ink);
+  color: var(--dominant-sound-active-ink);
+  outline: none;
+  background: var(--dominant-sound-active);
+  box-shadow: var(
+    --dominant-tab-pressed-rim,
+    var(--dominant-utility-pressed-rim)
+  );
+  transform: none;
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__sound-toggle.shell-tab
+  .button-bar__secondary-icon.shell-tab__icon,
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__sound-toggle.shell-tab:is(:hover, :focus-visible, :active)
+  .button-bar__secondary-icon.shell-tab__icon {
+  display: inline-grid;
+  place-items: center;
+  inline-size: var(--dominant-secondary-icon-size);
+  block-size: var(--dominant-secondary-icon-size);
+  margin: 0;
+  color: currentColor;
+  font-size: var(--dominant-secondary-icon-size);
+  line-height: 1;
+  filter: none;
+  text-shadow: none;
+  transform: none;
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__sound-toggle
+  .button-bar__secondary-icon::before {
+  display: block;
+  line-height: 1;
+}
+
+/* The switch is one fixed track with two mathematically symmetric endpoints. */
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__theme-toggle.shell-tab,
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__theme-toggle.shell-tab:is(:hover, :focus-visible, :active) {
+  --button-bar-switch-height: var(--dominant-secondary-control-height);
+  --button-bar-switch-padding: 4px;
+  box-sizing: border-box;
+  flex: 0 0 calc(var(--dominant-secondary-control-height) * 10 / 7);
+  inline-size: calc(var(--dominant-secondary-control-height) * 10 / 7);
+  block-size: var(--dominant-secondary-control-height);
+  min-width: calc(var(--dominant-secondary-control-height) * 10 / 7);
+  min-height: var(--dominant-secondary-control-height);
+  color: var(--dominant-utility-muted);
+  border-width: 0;
+  border-radius: var(--button-bar-switch-radius);
+  outline: none;
+  outline-offset: 0;
+  background: color-mix(
+    in srgb,
+    var(--dominant-utility-ink) 10%,
+    var(--dominant-utility-wall) 90%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--dominant-utility-light) 46%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--dominant-utility-shadow) 34%, transparent);
+  transform: none;
+}
+
+/* Hover and keyboard focus can reveal material, but idle label ink does not
+   change until the button is physically pressed. */
+.button-bar.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active),
+.button-bar.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active)
+  :is(.shell-tab__icon, .shell-tab__label) {
+  color: var(--dominant-utility-muted);
+}
+
+.button-bar.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):active,
+.button-bar.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):active
+  :is(.shell-tab__icon, .shell-tab__label) {
+  color: var(--dominant-utility-ink);
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__theme-toggle.shell-tab:is(:hover, :focus-visible, :active) {
+  background: color-mix(
+    in srgb,
+    var(--dominant-utility-ink) 14%,
+    var(--dominant-utility-wall) 86%
+  );
+  box-shadow: var(
+    --dominant-tab-pressed-rim,
+    var(--dominant-utility-pressed-rim)
+  );
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__theme-toggle[data-state='light']
+  .button-bar__theme-thumb {
+  inset-inline-start: var(--button-bar-switch-padding);
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__theme-toggle[data-state='dark']
+  .button-bar__theme-thumb {
+  inset-inline-start: calc(
+    100% - var(--button-bar-switch-padding) - var(--button-bar-switch-thumb-size)
+  );
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__theme-toggle
+  .button-bar__theme-thumb,
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__theme-toggle:is(:hover, :focus-visible, :active)
+  .button-bar__theme-thumb {
+  position: absolute;
+  color: var(--dominant-utility-page);
+  border-radius: var(--button-bar-switch-thumb-radius);
+  background: var(--dominant-utility-ink);
+  box-shadow: none;
+  filter: none;
+  text-shadow: none;
+  transform: translate3d(0, -50%, 0);
+  transition:
+    inset-inline-start 160ms var(--shell-tab-motion-ease),
+    background 160ms var(--shell-tab-motion-ease),
+    color 160ms var(--shell-tab-motion-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__theme-toggle
+    .button-bar__theme-thumb {
+    transition: none;
+  }
+}
