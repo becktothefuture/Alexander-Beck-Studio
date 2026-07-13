@@ -12,6 +12,7 @@ import { getCurrentTheme, setTheme } from '../../legacy/modules/visual/dark-mode
 import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 import { THEME_CHANGE_EVENT } from '../../lib/theme-state.js';
+import './shell-button-bar-dominant.css';
 
 function readSoundButtonState() {
   try {

@@ -813,6 +813,19 @@ function syncPaletteVars(colors) {
       const hex = list[i] || '#ffffff';
       root.style.setProperty(`--ball-${i+1}`, hex);
     }
+
+    const routeAccentIndexes = {
+      home: 3,
+      portfolio: 5,
+      about: 6,
+      contact: 7,
+      sound: 3,
+    };
+    Object.entries(routeAccentIndexes).forEach(([routeId, colorIndex]) => {
+      const hex = list[colorIndex] || '#ffffff';
+      root.style.setProperty(`--button-bar-accent-${routeId}`, hex);
+      root.style.setProperty(`--button-bar-accent-${routeId}-ink`, computeSafeTextOnCursorColor(hex) || '#ffffff');
+    });
   } catch (_) { /* no-op */ }
 }
 

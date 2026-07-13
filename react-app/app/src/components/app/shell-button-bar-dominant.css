@@ -41,6 +41,136 @@
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab[data-route-tab='home'] {
+  --dominant-active-color: var(--button-bar-accent-home, var(--ball-4, #00695c));
+  --dominant-active-ink: var(--button-bar-accent-home-ink, #ffffff);
+  --shell-tab-route-accent: var(--dominant-active-color);
+  --shell-tab-text-active: var(--dominant-active-ink);
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab[data-route-tab='portfolio'] {
+  --dominant-active-color: var(--button-bar-accent-portfolio, var(--ball-6, #d7ff2f));
+  --dominant-active-ink: var(--button-bar-accent-portfolio-ink, #101113);
+  --shell-tab-route-accent: var(--dominant-active-color);
+  --shell-tab-text-active: var(--dominant-active-ink);
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab[data-route-tab='about'] {
+  --dominant-active-color: var(--button-bar-accent-about, var(--ball-7, #0d5cb6));
+  --dominant-active-ink: var(--button-bar-accent-about-ink, #ffffff);
+  --shell-tab-route-accent: var(--dominant-active-color);
+  --shell-tab-text-active: var(--dominant-active-ink);
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab[data-route-tab='contact'] {
+  --dominant-active-color: var(--button-bar-accent-contact, var(--ball-8, #ffa000));
+  --dominant-active-ink: var(--button-bar-accent-contact-ink, #101113);
+  --shell-tab-route-accent: var(--dominant-active-color);
+  --shell-tab-text-active: var(--dominant-active-ink);
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab,
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab:is(:hover, :focus-visible, :active),
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  --shell-tab-motion-y: 0px;
+  --shell-tab-motion-scale: 1;
+  border-width: 0;
+  border-radius: 16px;
+  transform: none;
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab {
+  color: var(--dominant-utility-muted);
+  font-weight: 560;
+  letter-spacing: normal;
+  background: transparent;
+  box-shadow: none;
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active) {
+  color: var(--dominant-utility-muted);
+  outline: none;
+  background: color-mix(in srgb, var(--dominant-utility-ink) 7%, transparent);
+  box-shadow: var(
+    --dominant-tab-pressed-rim,
+    var(--dominant-utility-pressed-rim)
+  );
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):active {
+  color: var(--dominant-utility-ink);
+  outline: none;
+  background: color-mix(in srgb, var(--dominant-utility-ink) 10%, transparent);
+  box-shadow: var(
+    --dominant-tab-pressed-rim,
+    var(--dominant-utility-pressed-rim)
+  );
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page'],
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  color: var(--dominant-active-ink);
+  cursor: default;
+  background: var(--dominant-active-color);
+  box-shadow: var(
+    --dominant-tab-pressed-rim,
+    var(--dominant-utility-pressed-rim)
+  );
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']::before {
+  content: none;
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab
+  :is(.shell-tab__icon, .shell-tab__label),
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab:is(:hover, :focus-visible, :active)
+  :is(.shell-tab__icon, .shell-tab__label),
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']
+  :is(.shell-tab__icon, .shell-tab__label) {
+  color: currentColor;
+  font-weight: 560;
+  letter-spacing: normal;
+  filter: none;
+  text-shadow: none;
+  transform: none;
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
   .button-bar__secondary-buttons {
   --shell-control-icon-size: var(--dominant-secondary-icon-size);
   align-self: center;
