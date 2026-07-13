@@ -305,7 +305,7 @@ export function initialize3DSphere() {
   
   const titleCenter = getHeroTitleCanvasCenter(g);
   g.sphere3dState = {
-    cx: titleCenter.x,
+    cx: canvas.width * 0.5,
     cy: titleCenter.y,
     radiusPx,
     rotationMatrix: rotMatrix,  // 3x3 rotation matrix (avoids gimbal lock)
@@ -364,7 +364,7 @@ export function apply3DSphereForces(ball, dt) {
     const orbitRadius = Math.max(0, (g.sphere3dOrbitRadiusVw ?? DEFAULT_ORBIT_RADIUS_VW) / 100) * minDim * motionScale;
     const orbitSpeed = clampNumber(g.sphere3dOrbitSpeed ?? DEFAULT_ORBIT_SPEED, 0, 1.5) * motionScale;
     state.orbitPhase += orbitSpeed * dt;
-    state.cx = titleCenter.x + Math.cos(state.orbitPhase) * orbitRadius;
+    state.cx = canvas.width * 0.5;
     state.cy = titleCenter.y + Math.sin(state.orbitPhase) * orbitRadius * 0.38;
 
     const damping = Math.exp(-resolveAngularDampingPerSec(g) * dt * (state.isDragging ? 0.18 : 1));
