@@ -945,9 +945,12 @@ function scheduleContactMotifNote({
   overtoneLevel = 0.14,
   fmRatio = 0,
   fmDepth = 0,
+  release = 0.10,
 }) {
   const start = audioContext.currentTime + offset;
-  const stop = start + duration + 0.04;
+  const releaseDuration = Math.max(0, release);
+  const envelopeEnd = start + duration;
+  const stop = envelopeEnd + releaseDuration + 0.04;
   const oscillator = audioContext.createOscillator();
   const overtone = audioContext.createOscillator();
   const modulator = fmDepth > 0 ? audioContext.createOscillator() : null;
@@ -990,7 +993,12 @@ function scheduleContactMotifNote({
   envelope.gain.setValueAtTime(0.0001, start);
   envelope.gain.exponentialRampToValueAtTime(peakGain, start + attack);
   envelope.gain.exponentialRampToValueAtTime(peakGain * 0.48, start + Math.min(0.22, duration * 0.42));
-  envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  if (releaseDuration > 0) {
+    envelope.gain.exponentialRampToValueAtTime(Math.max(0.0002, peakGain * 0.06), envelopeEnd);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, envelopeEnd + releaseDuration);
+  } else {
+    envelope.gain.exponentialRampToValueAtTime(0.0001, envelopeEnd);
+  }
   if (panner) panner.pan.setValueAtTime(pan, start);
 
   oscillator.connect(filter);
@@ -1129,6 +1137,7 @@ export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
       filterEnd: 520,
       overtoneRatio: 1.5,
       overtoneLevel: 0.014,
+      release: 0.30,
     },
   ];
   const tonalVoices = [
@@ -1141,7 +1150,7 @@ export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
     { frequency: 220.00, offset: 0.105, duration: 0.32, gain: 0.022, pan: 0.11, type: 'triangle', attack: 0.007, filterStart: 1800, filterEnd: 780, overtoneRatio: 1.5, overtoneLevel: 0.028, fmRatio: 1.5, fmDepth: 1.8 },
     { frequency: 329.63, offset: 0.225, duration: 0.34, gain: 0.024, pan: -0.09, type: 'triangle', attack: 0.007, filterStart: 2100, filterEnd: 920, overtoneRatio: 1.5, overtoneLevel: 0.030, fmRatio: 2.0, fmDepth: 2.4 },
     { frequency: 392.00, offset: 0.365, duration: 0.38, gain: 0.022, pan: 0.09, type: 'triangle', attack: 0.008, filterStart: 2160, filterEnd: 960, overtoneRatio: 1.5, overtoneLevel: 0.026, fmRatio: 1.5, fmDepth: 2.0 },
-    { frequency: 293.66, offset: 0.535, duration: 0.62, gain: 0.025, pan: 0.00, type: 'triangle', attack: 0.010, filterStart: 1760, filterEnd: 720, overtoneRatio: 1.5, overtoneLevel: 0.026, fmRatio: 1.5, fmDepth: 1.6 },
+    { frequency: 293.66, offset: 0.535, duration: 0.62, gain: 0.025, pan: 0.00, type: 'triangle', attack: 0.010, filterStart: 1760, filterEnd: 720, overtoneRatio: 1.5, overtoneLevel: 0.026, fmRatio: 1.5, fmDepth: 1.6, release: 0.28 },
 
     // Layer 3: the changing response travels outward on each press.
     ...rippleEchoVoices,
@@ -1169,6 +1178,10 @@ export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
     variationCount: CONTACT_RIPPLE_MOTIF_VARIATIONS.length,
     answerFrequency: variation.answerFrequency,
     echoSpacing: variation.echoSpacing,
+    tailReleaseMs: 300,
+    durationMs: Math.round(Math.max(...tonalVoices.map((voice) => (
+      voice.offset + voice.duration + (voice.release ?? 0.10)
+    ))) * 1000),
     frequencies: [...tonalVoices, ...dataPulses].map((voice) => voice.frequency),
   });
   for (const voice of tonalVoices) scheduleContactMotifNote(voice);
