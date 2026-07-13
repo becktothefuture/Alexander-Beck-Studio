@@ -4526,12 +4526,18 @@ html[data-abs-light-locked-chrome] .button-bar {
     align-self: stretch;
     min-width: 0;
     border-radius: var(--button-bar-gasket-radius);
-    background:
-      linear-gradient(180deg, var(--button-bar-gasket-cut), transparent 25% 75%, var(--button-bar-gasket-light)) right calc(50% - (var(--abs-size-1px) * 13.5)) / 100% calc(var(--abs-size-1px) * 4) no-repeat,
-      linear-gradient(180deg, var(--button-bar-gasket-cut), transparent 25% 75%, var(--button-bar-gasket-light)) right calc(50% - (var(--abs-size-1px) * 4.5)) / 82% calc(var(--abs-size-1px) * 4) no-repeat,
-      linear-gradient(180deg, var(--button-bar-gasket-cut), transparent 25% 75%, var(--button-bar-gasket-light)) right calc(50% + (var(--abs-size-1px) * 4.5)) / 82% calc(var(--abs-size-1px) * 4) no-repeat,
-      linear-gradient(180deg, var(--button-bar-gasket-cut), transparent 25% 75%, var(--button-bar-gasket-light)) right calc(50% + (var(--abs-size-1px) * 13.5)) / 100% calc(var(--abs-size-1px) * 4) no-repeat;
-    opacity: 0.76;
+    background: repeating-linear-gradient(
+      180deg,
+      transparent 0 calc(var(--abs-size-1px) * 4),
+      color-mix(in srgb, var(--button-bar-gasket-cut) 88%, rgba(var(--abs-rgb-black), 1) 12%) calc(var(--abs-size-1px) * 4) calc(var(--abs-size-1px) * 5),
+      transparent calc(var(--abs-size-1px) * 5) calc(var(--abs-size-1px) * 6),
+      color-mix(in srgb, var(--button-bar-gasket-light) 72%, rgba(var(--abs-rgb-white), 1) 28%) calc(var(--abs-size-1px) * 6) calc(var(--abs-size-1px) * 7),
+      transparent calc(var(--abs-size-1px) * 7) calc(var(--abs-size-1px) * 10)
+    );
+    background-position: center;
+    background-size: 100% calc(100% - (var(--abs-size-1px) * 4));
+    background-repeat: repeat-y;
+    opacity: 0.9;
     pointer-events: none;
   }
 

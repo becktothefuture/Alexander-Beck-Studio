@@ -90,9 +90,10 @@ function ButtonBarIcon({ tab, className = 'button-bar__icon shell-tab__icon' }) 
   return <i className={`ti ${tab.icon} ${className}`} aria-hidden="true" />;
 }
 
-function RouteButtonContent({ tab }) {
+function RouteButtonContent({ tab, decoration }) {
   return (
     <>
+      {decoration}
       <ButtonBarIcon tab={tab} />
       {tab.iconOnly ? (
         <>
@@ -279,7 +280,7 @@ function SecondaryButtons() {
   );
 }
 
-function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect }) {
+function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect, renderDecoration }) {
   const selectRoute = () => {
     if (isActive) return;
     onRouteSelect?.(tab.routeId, tab);
@@ -322,6 +323,7 @@ function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect }) {
       if (!isActive && isKeyboardPress(event)) playButtonBarPressSound();
     },
   };
+  const decoration = renderDecoration?.(tab);
 
   if (onRouteSelect) {
     return (
@@ -334,7 +336,7 @@ function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect }) {
           selectRoute();
         }}
       >
-        <RouteButtonContent tab={tab} />
+        <RouteButtonContent tab={tab} decoration={decoration} />
       </button>
     );
   }
@@ -367,7 +369,7 @@ function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect }) {
       {...commonProps}
       onClick={handleClick}
     >
-      <RouteButtonContent tab={tab} />
+      <RouteButtonContent tab={tab} decoration={decoration} />
     </a>
   );
 }
@@ -379,6 +381,7 @@ export function ShellButtonBar({
   onRouteNavigate,
   onRouteSelect,
   preview = false,
+  renderRouteButtonDecoration,
 }) {
   const normalizedActiveRouteId = getNormalizedActiveRouteId(activeRouteId);
   const barClassName = ['button-bar', className].filter(Boolean).join(' ');
@@ -410,6 +413,7 @@ export function ShellButtonBar({
             isActive={tab.routeId === normalizedActiveRouteId}
             onRouteNavigate={onRouteNavigate}
             onRouteSelect={onRouteSelect}
+            renderDecoration={renderRouteButtonDecoration}
           />
         ))}
       </nav>

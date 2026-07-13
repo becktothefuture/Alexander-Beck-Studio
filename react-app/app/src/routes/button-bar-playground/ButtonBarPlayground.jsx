@@ -141,15 +141,15 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
   {
     id: 'spatial-studies',
     anchor: '12–20',
-    title: 'How quiet can a physical button be?',
-    description: 'Nine Walkman-like banks sit directly on the wall, using broad surfaces and restrained edges to create depth without visual noise.',
+    title: 'Can one edge describe the whole body?',
+    description: 'Nine Walkman-like banks use one solid face and one repeated body colour. A matching inner rim makes the layers read as a single moulded object.',
     variants: [
       {
         id: 'walkman-bank',
         number: '12',
-        title: 'Walkman bank',
-        description: 'The original mechanical key language, simplified and mounted directly to the wall without a surrounding tray.',
-        structure: 'direct-mounted mechanical keys',
+        title: 'Dark body',
+        description: 'A solid face sits above identical darker layers. The lower inner rim matches the body while a soft top edge catches the light.',
+        structure: 'dark unified button body',
         family: 'spatial',
         palette: 'mono',
       },
@@ -157,44 +157,44 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
         id: 'walkman-polished',
         number: '13',
         title: 'Polished plastic',
-        description: 'A soft inner rim borrows the lightest body tone, smoothing the transition between face and edge.',
-        structure: 'soft polished rim',
+        description: 'The same dark body with a broader, softer inner blend so the face rolls into its edge like polished moulded plastic.',
+        structure: 'polished dark body',
         family: 'spatial',
         palette: 'mono',
       },
       {
         id: 'walkman-soft-body',
         number: '14',
-        title: 'Soft body',
-        description: 'One broad tonal body and a feathered lower contact shadow create depth with almost no visible strata.',
-        structure: 'broad soft body',
+        title: 'Quiet body',
+        description: 'A lighter body tone and shallower travel keep the object soft, with the same material logic and fewer visible cues.',
+        structure: 'quiet dark body',
         family: 'spatial',
         palette: 'mono',
       },
       {
         id: 'walkman-low-profile',
         number: '15',
-        title: 'Low profile',
-        description: 'A shallower body and wider highlight make the controls feel moulded rather than assembled from layers.',
-        structure: 'shallow moulded keys',
+        title: 'Deep body',
+        description: 'A darker side wall and tighter face edge make the button feel taller without adding another material or outline.',
+        structure: 'deep dark body',
         family: 'spatial',
         palette: 'mono',
       },
       {
         id: 'walkman-inverted',
         number: '16',
-        title: 'Inverted camera',
-        description: 'The same quiet button body viewed from the opposite perspective origin, reversing the spatial pull across the viewport.',
-        structure: 'inverted perspective origin',
+        title: 'Light body / inverted view',
+        description: 'The camera moves above the bank. Identical light body layers now rise behind the face, and the matching inner rim moves to the top edge.',
+        structure: 'light unified button body',
         family: 'spatial',
         palette: 'mono',
       },
       {
         id: 'walkman-active-colour',
         number: '17',
-        title: 'Colour when pressed',
-        description: 'The selected key switches to its route colour; its label, highlight, body edge, and contact shadow adapt with the material.',
-        structure: 'active route colour body',
+        title: 'Colour selection / dark body',
+        description: 'The selected key takes its route colour; every exposed layer becomes one darker version of that face colour.',
+        structure: 'selected colour dark body',
         family: 'spatial',
         palette: 'colour',
         usesRouteAccent: true,
@@ -202,28 +202,29 @@ const BUTTON_BAR_VARIANT_GROUPS = Object.freeze([
       {
         id: 'walkman-always-colour',
         number: '18',
-        title: 'Always colour',
-        description: 'Every key keeps its route colour at rest and when pressed, with individual contrast-aware labels and matching tonal edges.',
-        structure: 'persistent route colour bodies',
+        title: 'Full colour / dark body',
+        description: 'Every key keeps its route colour, contrast-aware label, matching dark body, and soft face highlight in every state.',
+        structure: 'full colour dark bodies',
         family: 'spatial',
         palette: 'colour',
         usesRouteAccent: true,
       },
       {
-        id: 'walkman-lifted-mono',
+        id: 'walkman-inverted-active-colour',
         number: '19',
-        title: 'Lifted selection',
-        description: 'Resting keys sit snug with the wall behind a hairline seam; the selected monochrome key rises outward and reveals its body.',
-        structure: 'inverse-pressure monochrome keys',
+        title: 'Colour selection / light body',
+        description: 'The inverted view gives the selected route a single lighter body colour, with its upper inner rim blending into the exposed layers.',
+        structure: 'selected colour light body',
         family: 'spatial',
-        palette: 'mono',
+        palette: 'colour',
+        usesRouteAccent: true,
       },
       {
-        id: 'walkman-lifted-colour',
+        id: 'walkman-inverted-always-colour',
         number: '20',
-        title: 'Lifted colour selection',
-        description: 'The same flush resting state, but the selected key rises as a route-coloured physical body with contrast-aware ink.',
-        structure: 'inverse-pressure route colour keys',
+        title: 'Full colour / light body',
+        description: 'All four coloured keys are viewed from above, using one lighter body tone per route and a restrained darker edge opposite the light.',
+        structure: 'full colour light bodies',
         family: 'spatial',
         palette: 'colour',
         usesRouteAccent: true,
@@ -324,6 +325,19 @@ function PlaygroundThemeToggle({ theme, onToggle }) {
   );
 }
 
+function WalkmanButtonLayers() {
+  return (
+    <span className="walkman-button-layers" aria-hidden="true">
+      <i className="walkman-button-layer" />
+      <i className="walkman-button-layer" />
+      <i className="walkman-button-layer" />
+      <i className="walkman-button-layer" />
+      <i className="walkman-button-layer" />
+      <i className="walkman-button-layer" />
+    </span>
+  );
+}
+
 function ButtonBarVariant({
   variant,
   activeRouteId,
@@ -374,6 +388,7 @@ function ButtonBarVariant({
           navClassName="button-bar-playground__tabs"
           onRouteSelect={onSelectRoute}
           preview
+          renderRouteButtonDecoration={variant.family === 'spatial' ? WalkmanButtonLayers : undefined}
         />
         <div
           className="button-bar-playground__side button-bar-playground__side--right"
