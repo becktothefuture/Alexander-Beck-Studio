@@ -140,10 +140,16 @@ async function readRippleState(page) {
       path: location.pathname,
       stageState: stage?.dataset.contactRippleState || '',
       burstCount: Number(stage?.dataset.contactRippleBurstCount || 0),
+      activeBurstCount: Number(stage?.dataset.contactRippleActiveBurstCount || 0),
+      maxActiveBursts: Number(stage?.dataset.contactRippleMaxActiveBursts || 0),
+      burstMode: stage?.dataset.contactRippleBurstMode || '',
       bodyCount: Number(stage?.dataset.contactRippleBodyCount || 0),
       bodyRadius: Number(stage?.dataset.contactRippleBodyRadius || 0),
       innerAlpha: Number(stage?.dataset.contactRippleInnerAlpha || 0),
       outerAlpha: Number(stage?.dataset.contactRippleOuterAlpha || 0),
+      idleInnerAlpha: Number(stage?.dataset.contactRippleIdleInnerAlpha || 0),
+      idleOuterAlpha: Number(stage?.dataset.contactRippleIdleOuterAlpha || 0),
+      burstPeakAlpha: Number(stage?.dataset.contactRippleBurstPeakAlpha || 0),
       coreFadeRadius: Number(stage?.dataset.contactRippleCoreFadeRadius || 0),
       burstRelease: stage?.dataset.contactRippleBurstRelease || '',
       ballFinish: stage?.dataset.contactRippleBallFinish || '',
@@ -182,6 +188,9 @@ async function readRippleState(page) {
       soundMotifVariationIndex: Number(motifEvent?.variationIndex ?? -1),
       soundMotifVariationCount: Number(motifEvent?.variationCount || 0),
       soundMotifVariationHistory: motifEvents.slice(-8).map((event) => Number(event.variationIndex ?? -1)),
+      soundMotifRingOffsetsMs: Array.isArray(motifEvent?.ringOffsetsMs)
+        ? motifEvent.ringOffsetsMs.map((offset) => Number(offset || 0))
+        : [],
       soundMotifTailReleaseMs: Number(motifEvent?.tailReleaseMs || 0),
       soundMotifDurationMs: Number(motifEvent?.durationMs || 0),
       soundEnabled: document.querySelector('.button-bar__sound-toggle')?.dataset.enabled || 'false',
@@ -221,12 +230,25 @@ function assertLayout(state, viewport) {
     'Outer Contact opacity does not match the active Contact configuration',
     state,
   );
+  assert(
+    state.idleInnerAlpha >= 0 && state.idleInnerAlpha < state.innerAlpha,
+    'Contact idle inner opacity is not reduced below the configured pulse opacity',
+    state,
+  );
+  assert(
+    state.idleOuterAlpha > state.idleInnerAlpha && state.idleOuterAlpha < state.outerAlpha,
+    'Contact idle outer opacity is not reduced below the configured pulse opacity',
+    state,
+  );
+  assert(state.idleOuterAlpha <= 0.45, 'Contact idle outer opacity is too strong for the default field', state);
+  assert(Math.abs(state.burstPeakAlpha - 1) <= 0.005, 'Contact pulse peak opacity is not full strength', state);
   assert(state.coreFadeRadius > state.bodyRadius * 10, 'Contact core fade is unexpectedly narrow', state);
   assert(state.burstRelease === 'smoothstep-tail', 'Contact burst is missing its eased release phase', state);
+  assert(state.burstMode === 'additive-wavefronts', 'Contact ripple does not use additive wavefront launches', state);
   assert(state.ballFinish === 'flat-fill', 'Contact balls still expose a shaded rim treatment', state);
-  assert(state.pointerMode === 'alternating-soft', 'Contact pointer rotation mode is missing', state);
+  assert(state.pointerMode === 'autonomous-drift', 'Contact pointer influence is still active', state);
   assert(state.ringDirections === 'alternating', 'Contact rings do not counter-rotate', state);
-  assert(state.pointerMaxDegrees >= 5 && state.pointerMaxDegrees <= 7, 'Contact pointer rotation is not subtle', state);
+  assert(state.pointerMaxDegrees === 0, 'Contact pointer rotation range is still enabled', state);
   assert(state.canvasPointerEvents === 'none', 'Decorative canvas captured pointer events', state);
   assert(state.stageZ < state.contentZ, 'Contact content is not above the ripple stage', state);
   assert(state.stageRect?.width > viewport.width * 0.75, 'Ripple stage does not fill the studio window', state);
@@ -236,30 +258,30 @@ function assertLayout(state, viewport) {
   assert(state.diagnostics?.activeInstances === 1, 'Unexpected active Contact ripple instance count', state);
 }
 
-async function exercisePointerRotation(page, initial) {
+async function exerciseAutonomousDrift(page, initial) {
   const stage = initial.stageRect;
-  assert(stage, 'Contact pointer audit is missing stage geometry', initial);
-  const y = stage.top + (stage.height * 0.52);
-  await page.mouse.move(stage.left + (stage.width * 0.78), y);
-  await page.waitForFunction(() => (
-    window.__ABS_CONTACT_RIPPLE_DIAGNOSTICS__?.pointerActive === true
-    && Number(window.__ABS_CONTACT_RIPPLE_DIAGNOSTICS__?.pointerRotation || 0) > 0.008
-  ));
-  const clockwise = await readRippleState(page);
+  assert(stage, 'Contact autonomous drift audit is missing stage geometry', initial);
+  const initialDrift = Number(initial.diagnostics?.driftRotation || 0);
+  await page.waitForFunction((previousDrift) => (
+    Math.abs(Number(window.__ABS_CONTACT_RIPPLE_DIAGNOSTICS__?.driftRotation || 0) - previousDrift) > 0.002
+  ), initialDrift);
+  const drifted = await readRippleState(page);
+  assert(drifted.diagnostics.pointerActive === false, 'Contact drift unexpectedly activated pointer state', drifted);
+  assert(Number(drifted.diagnostics.pointerRotation || 0) === 0, 'Contact autonomous drift retained pointer rotation', drifted);
+  assert(Number(drifted.diagnostics.pointerTarget || 0) === 0, 'Contact autonomous drift retained pointer target', drifted);
+  assert(Number(drifted.diagnostics.pointerSpeedBoost || 0) === 0, 'Contact autonomous drift retained pointer speed boost', drifted);
 
+  const y = stage.top + (stage.height * 0.52);
+  await page.mouse.move(stage.left + (stage.width * 0.78), y, { steps: 8 });
   await page.mouse.move(stage.left + (stage.width * 0.22), y, { steps: 8 });
-  await page.waitForFunction(() => (
-    window.__ABS_CONTACT_RIPPLE_DIAGNOSTICS__?.pointerActive === true
-    && Number(window.__ABS_CONTACT_RIPPLE_DIAGNOSTICS__?.pointerRotation || 0) < -0.008
-  ));
-  const counterClockwise = await readRippleState(page);
-  assert(
-    clockwise.diagnostics.pointerRotation * counterClockwise.diagnostics.pointerRotation < 0,
-    'Contact pointer travel did not reverse the ring rotation response',
-    { clockwise, counterClockwise },
-  );
+  await page.waitForTimeout(80);
+  const afterMouse = await readRippleState(page);
+  assert(afterMouse.diagnostics.pointerActive === false, 'Mouse movement activated Contact pointer influence', afterMouse);
+  assert(Number(afterMouse.diagnostics.pointerRotation || 0) === 0, 'Mouse movement changed Contact pointer rotation', afterMouse);
+  assert(Number(afterMouse.diagnostics.pointerTarget || 0) === 0, 'Mouse movement changed Contact pointer target', afterMouse);
+  assert(Number(afterMouse.diagnostics.pointerSpeedBoost || 0) === 0, 'Mouse movement changed Contact pointer speed boost', afterMouse);
   await page.mouse.move(2, 2);
-  return { clockwise, counterClockwise };
+  return { drifted, afterMouse };
 }
 
 async function forceClipboardFailure(page) {
@@ -306,7 +328,7 @@ async function runStandardScenario(browser, viewport, theme) {
     await waitForRipple(page, 'idle');
     const initial = await readRippleState(page);
     assertLayout(initial, viewport);
-    const pointerRotation = await exercisePointerRotation(page, initial);
+    const autonomousDrift = await exerciseAutonomousDrift(page, initial);
 
     const button = page.locator('[data-copy-email]');
     await button.click();
@@ -328,14 +350,24 @@ async function runStandardScenario(browser, viewport, theme) {
     assert(successBurst.bodyCount === initial.bodyCount, 'Burst changed the number of rendered balls', { initial, successBurst });
     assert(successBurst.bodyRadius === initial.bodyRadius, 'Burst changed the rendered ball size', { initial, successBurst });
     assert(successBurst.soundEnabled === 'true', 'First Contact activation did not unlock the requested sound motif', successBurst);
-    assert(successBurst.soundMotifCharacter === 'plotter-calibration-ripple', 'Contact motif character is stale', successBurst);
-    assert(successBurst.soundMotifLayerCount >= 5, 'Contact motif is missing its layered signal stack', successBurst);
-    assert(successBurst.soundMotifNoteCount >= 17, 'Contact motif note stack is unexpectedly sparse', successBurst);
+    assert(successBurst.soundMotifCharacter === 'positive-pressure-wave-ripple', 'Contact motif character is stale', successBurst);
+    assert(successBurst.soundMotifLayerCount >= 4, 'Contact motif is missing its positive pressure-wave layers', successBurst);
+    assert(successBurst.soundMotifNoteCount >= 8, 'Contact motif positive pressure-wave event stack is unexpectedly sparse', successBurst);
     assert(successBurst.soundMotifVariationCount === 4, 'Contact motif variation cycle is incomplete', successBurst);
     assert(successBurst.soundMotifVariationIndex >= 0, 'Contact motif variation metadata is missing', successBurst);
+    assert(successBurst.soundMotifRingOffsetsMs.length === 5, 'Contact motif is missing ring-synced offsets', successBurst);
+    assert(
+      successBurst.soundMotifRingOffsetsMs[0] < successBurst.soundMotifRingOffsetsMs[1]
+        && successBurst.soundMotifRingOffsetsMs[1] < successBurst.soundMotifRingOffsetsMs[2]
+        && successBurst.soundMotifRingOffsetsMs[2] < successBurst.soundMotifRingOffsetsMs[3]
+        && successBurst.soundMotifRingOffsetsMs[3] < successBurst.soundMotifRingOffsetsMs[4],
+      'Contact motif ring offsets do not travel outward in time',
+      successBurst,
+    );
     assert(successBurst.typographyEffectPresent === false, 'Copy activated a typography effect', successBurst);
-    assert(successBurst.soundMotifTailReleaseMs >= 280, 'Contact motif release tail is too short', successBurst);
-    assert(successBurst.soundMotifDurationMs >= 1400, 'Contact motif still ends too abruptly', successBurst);
+    assert(successBurst.soundMotifTailReleaseMs >= 540, 'Contact motif release tail is too short', successBurst);
+    assert(successBurst.soundMotifDurationMs >= 2200, 'Contact motif still ends too abruptly', successBurst);
+    assert(successBurst.soundMotifDurationMs <= 2500, 'Contact motif tail is longer than intended', successBurst);
 
     const rapidStart = successBurst.burstCount;
     for (let clickIndex = 1; clickIndex <= 3; clickIndex += 1) {
@@ -346,6 +378,13 @@ async function runStandardScenario(browser, viewport, theme) {
     }
     const rapidBurst = await readRippleState(page);
     assert(rapidBurst.stageState === 'burst', 'Rapid activation did not restart the active burst', rapidBurst);
+    assert(rapidBurst.activeBurstCount >= 2, 'Rapid activation replaced the active ripple instead of layering wavefronts', rapidBurst);
+    assert(rapidBurst.maxActiveBursts >= 2, 'Contact ripple did not record overlapping wavefronts', rapidBurst);
+    assert(
+      rapidBurst.diagnostics?.maxConcurrentBursts >= 2,
+      'Contact ripple diagnostics did not capture concurrent wavefronts',
+      rapidBurst,
+    );
     assert(rapidBurst.bodyCount === initial.bodyCount, 'Rapid activation changed the fixed body count', { initial, rapidBurst });
     assert(
       new Set(rapidBurst.soundMotifVariationHistory).size === 4,
@@ -384,6 +423,7 @@ async function runStandardScenario(browser, viewport, theme) {
     });
     await waitForRipple(page, 'idle');
     const settled = await readRippleState(page);
+    assert(settled.activeBurstCount === 0, 'Settled Contact ripple still has active wavefronts', settled);
     assert(settled.bodyCount === initial.bodyCount, 'Burst settlement changed the fixed body count', { initial, settled });
     assert(settled.bodyRadius === initial.bodyRadius, 'Burst settlement changed the rendered ball size', { initial, settled });
     assert(settled.typographyEffectPresent === false, 'Typography effect appeared after settlement', settled);
@@ -404,7 +444,7 @@ async function runStandardScenario(browser, viewport, theme) {
     assert(remounted.diagnostics?.destroyedInstances >= 1, 'Contact ripple teardown was not recorded', remounted);
     assert(pageErrors.length === 0, 'Page errors occurred during the standard ripple scenario', pageErrors);
 
-    return { initial, pointerRotation, successBurst, rapidBurst, failureBurst, toggled, settled, remounted };
+    return { initial, autonomousDrift, successBurst, rapidBurst, failureBurst, toggled, settled, remounted };
   } finally {
     await context.close();
   }

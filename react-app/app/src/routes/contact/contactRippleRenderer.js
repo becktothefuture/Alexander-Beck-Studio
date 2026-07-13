@@ -7,13 +7,11 @@ import {
 const TAU = Math.PI * 2;
 const REDUCED_BURST_MS = 620;
 const MAX_DPR = 1.5;
-const POINTER_FRESH_MS = 720;
-const POINTER_MAX_ROTATION = Math.PI / 30;
-const POINTER_ACTIVE_RESPONSE = 3.2;
-const POINTER_RETURN_RESPONSE = 1.35;
 const IDLE_ROTATION_SPEED = 0.045;
-const POINTER_MAX_SPEED_BOOST = 0.42;
-const POINTER_SPEED_RESPONSE = 5.5;
+const MAX_ACTIVE_BURSTS = 8;
+const IDLE_RING_ALPHA_SCALE = 0.38;
+const IDLE_RING_ALPHA_MAX = 0.42;
+const BURST_RING_ALPHA_PEAK = 1;
 const DEFAULT_PALETTE = ['#a7afb0', '#c6cecf', '#f5f8f6', '#00a5a0', '#031210', '#d7ff2f', '#2c96ff', '#ff7e4a'];
 const DEFAULT_DISTRIBUTION = [
   { colorIndex: 0, weight: 31 },
@@ -161,7 +159,9 @@ export function createContactRippleRenderer({
   let frameId = 0;
   let startedAt = 0;
   let burstStartedAt = -Infinity;
+  let activeBursts = [];
   let burstCount = 0;
+  let maxConcurrentBursts = 0;
   let needsRender = true;
   let config = normalizeContactRippleConfig(getConfig?.() || DEFAULT_CONTACT_RIPPLE_CONFIG);
   let metrics = {
@@ -179,35 +179,35 @@ export function createContactRippleRenderer({
   let bodies = [];
   let layoutKey = '';
   let lastMotionFrameAt = 0;
-  const pointerMotion = {
-    active: false,
-    target: 0,
-    rotation: 0,
-    speedBoost: 0,
-    speedBoostTarget: 0,
-    driftRotation: 0,
-    lastAt: -Infinity,
-    lastInputAt: -Infinity,
-    lastX: 0,
-    lastY: 0,
-  };
+  let driftRotation = 0;
 
   stage.dataset.contactRippleState = reducedMotion ? 'reduced-idle' : 'idle';
   stage.dataset.contactRippleBurstCount = '0';
+  stage.dataset.contactRippleActiveBurstCount = '0';
+  stage.dataset.contactRippleMaxActiveBursts = '0';
   stage.dataset.contactRippleInstance = String(instanceId);
-  stage.dataset.contactRipplePointerMode = reducedMotion ? 'disabled-reduced-motion' : 'alternating-soft';
+  stage.dataset.contactRippleBurstMode = 'additive-wavefronts';
+  stage.dataset.contactRipplePointerMode = reducedMotion ? 'disabled-reduced-motion' : 'autonomous-drift';
   stage.dataset.contactRippleRingDirections = 'alternating';
-  stage.dataset.contactRipplePointerMaxDegrees = (POINTER_MAX_ROTATION * (180 / Math.PI)).toFixed(2);
+  stage.dataset.contactRipplePointerMaxDegrees = '0.00';
   if (diagnostics) {
     diagnostics.pointerActive = false;
     diagnostics.pointerRotation = 0;
     diagnostics.pointerTarget = 0;
+    diagnostics.pointerSpeedBoost = 0;
+    diagnostics.driftRotation = 0;
   }
 
   function setState(nextState) {
     if (stage.dataset.contactRippleState === nextState) return;
     stage.dataset.contactRippleState = nextState;
     if (diagnostics) diagnostics.lastState = nextState;
+  }
+
+  function getIdleAlphaRange() {
+    const inner = clamp(config.innerRingAlpha * IDLE_RING_ALPHA_SCALE, 0, IDLE_RING_ALPHA_MAX);
+    const outer = clamp(config.outerRingAlpha * IDLE_RING_ALPHA_SCALE, inner, IDLE_RING_ALPHA_MAX);
+    return { inner, outer };
   }
 
   function syncTheme() {
@@ -260,6 +260,10 @@ export function createContactRippleRenderer({
     stage.dataset.contactRipplePaletteSize = String(spriteSet.palette.length);
     stage.dataset.contactRippleInnerAlpha = config.innerRingAlpha.toFixed(2);
     stage.dataset.contactRippleOuterAlpha = config.outerRingAlpha.toFixed(2);
+    const idleAlphaRange = getIdleAlphaRange();
+    stage.dataset.contactRippleIdleInnerAlpha = idleAlphaRange.inner.toFixed(2);
+    stage.dataset.contactRippleIdleOuterAlpha = idleAlphaRange.outer.toFixed(2);
+    stage.dataset.contactRippleBurstPeakAlpha = BURST_RING_ALPHA_PEAK.toFixed(2);
     stage.dataset.contactRippleCoreFadeRadius = metrics.coreFadeEnd.toFixed(2);
     stage.dataset.contactRippleBurstRelease = 'smoothstep-tail';
     stage.dataset.contactRippleBallFinish = 'flat-fill';
@@ -347,13 +351,61 @@ export function createContactRippleRenderer({
     return clamp(energy * release, 0, 1.35);
   }
 
+  function syncActiveBursts(now, durationMs) {
+    activeBursts = activeBursts.filter((started) => {
+      const elapsed = now - started;
+      return elapsed >= 0 && elapsed < durationMs;
+    });
+    const activeCount = activeBursts.length;
+    if (activeCount > maxConcurrentBursts) maxConcurrentBursts = activeCount;
+    stage.dataset.contactRippleActiveBurstCount = String(activeCount);
+    stage.dataset.contactRippleMaxActiveBursts = String(maxConcurrentBursts);
+    if (diagnostics) {
+      diagnostics.activeBurstCount = activeCount;
+      diagnostics.maxConcurrentBursts = maxConcurrentBursts;
+    }
+    return activeCount > 0;
+  }
+
+  function getBurstField(baseRadius, angle, now) {
+    if (activeBursts.length === 0) {
+      return {
+        active: false,
+        energy: 0,
+        radialSignal: 0,
+        tangentialSignal: 0,
+      };
+    }
+
+    let energySum = 0;
+    let radialSignal = 0;
+    let tangentialSignal = 0;
+    for (const started of activeBursts) {
+      const progress = (now - started) / config.burstDurationMs;
+      const energy = getBurstEnergy(baseRadius, progress);
+      if (energy <= 0) continue;
+      const reboundPhase = Math.sin((progress * TAU * 1.8) - (baseRadius * 0.012));
+      energySum += energy;
+      radialSignal += energy * (0.78 + (reboundPhase * 0.22));
+      tangentialSignal += energy * Math.sin((angle * 5) + (progress * TAU));
+    }
+
+    return {
+      active: true,
+      energy: clamp(energySum, 0, 1.85),
+      radialSignal: clamp(radialSignal, 0, 1.85),
+      tangentialSignal: clamp(tangentialSignal, -1.65, 1.65),
+    };
+  }
+
   function getRingAlpha(baseRadius, energy) {
     const fadeSpan = Math.max(1, metrics.coreFadeEnd - metrics.coreFadeStart);
     const coreProgress = smoothstep((baseRadius - metrics.coreFadeStart) / fadeSpan);
-    const idleAlpha = config.innerRingAlpha
-      + ((config.outerRingAlpha - config.innerRingAlpha) * coreProgress);
-    const burstLift = clamp(energy * 0.9, 0, 1);
-    return idleAlpha + ((config.outerRingAlpha - idleAlpha) * burstLift);
+    const idleAlphaRange = getIdleAlphaRange();
+    const idleAlpha = idleAlphaRange.inner
+      + ((idleAlphaRange.outer - idleAlphaRange.inner) * coreProgress);
+    const burstLift = clamp(energy * 0.95, 0, 1);
+    return idleAlpha + ((BURST_RING_ALPHA_PEAK - idleAlpha) * burstLift);
   }
 
   function updateRingRotation(now, isReduced) {
@@ -361,41 +413,22 @@ export function createContactRippleRenderer({
       ? clamp((now - lastMotionFrameAt) / 1000, 1 / 240, 1 / 20)
       : 1 / 60;
     lastMotionFrameAt = now;
-    const pointerFresh = !isReduced
-      && pointerMotion.active
-      && now - pointerMotion.lastAt < POINTER_FRESH_MS;
-    const target = pointerFresh ? pointerMotion.target : 0;
-    const response = pointerFresh ? POINTER_ACTIVE_RESPONSE : POINTER_RETURN_RESPONSE;
-    const alpha = 1 - Math.exp(-dt * response);
-    pointerMotion.rotation += (target - pointerMotion.rotation) * alpha;
-    if (!pointerFresh && Math.abs(pointerMotion.rotation) < 0.00005) pointerMotion.rotation = 0;
-
-    const speedBoostTarget = pointerFresh ? pointerMotion.speedBoostTarget : 0;
-    const speedAlpha = 1 - Math.exp(-dt * POINTER_SPEED_RESPONSE);
-    pointerMotion.speedBoost += (speedBoostTarget - pointerMotion.speedBoost) * speedAlpha;
-    if (!pointerFresh && pointerMotion.speedBoost < 0.0001) pointerMotion.speedBoost = 0;
-    if (!isReduced) {
-      pointerMotion.driftRotation = (
-        pointerMotion.driftRotation + ((IDLE_ROTATION_SPEED + pointerMotion.speedBoost) * dt)
-      ) % TAU;
-    }
+    if (!isReduced) driftRotation = (driftRotation + (IDLE_ROTATION_SPEED * dt)) % TAU;
     if (diagnostics) {
-      diagnostics.pointerActive = pointerFresh;
-      diagnostics.pointerRotation = pointerMotion.rotation;
-      diagnostics.pointerTarget = target;
-      diagnostics.pointerSpeedBoost = pointerMotion.speedBoost;
-      diagnostics.driftRotation = pointerMotion.driftRotation;
+      diagnostics.pointerActive = false;
+      diagnostics.pointerRotation = 0;
+      diagnostics.pointerTarget = 0;
+      diagnostics.pointerSpeedBoost = 0;
+      diagnostics.driftRotation = driftRotation;
     }
-    return pointerMotion.rotation + pointerMotion.driftRotation;
+    return driftRotation;
   }
 
   function drawField(now, reducedEmphasis = null) {
     const elapsed = now - startedAt;
     const isReduced = reducedEmphasis !== null;
     const ringRotation = updateRingRotation(now, isReduced);
-    const burstElapsed = now - burstStartedAt;
-    const burstProgress = burstElapsed / config.burstDurationMs;
-    const burstActive = burstElapsed >= 0 && burstProgress < 1;
+    const burstActive = isReduced ? reducedEmphasis > 0 : syncActiveBursts(now, config.burstDurationMs);
 
     for (let bodyIndex = 0; bodyIndex < bodies.length; bodyIndex += 1) {
       const body = bodies[bodyIndex];
@@ -408,19 +441,16 @@ export function createContactRippleRenderer({
       );
       const idleWave = (primarySwell * 0.76) + (secondarySwell * 0.24);
       const idleOffset = isReduced ? 0 : idleWave * config.idleDisplacement;
-      let energy = !isReduced
-        ? getBurstEnergy(body.baseRadius, burstProgress)
-        : reducedEmphasis;
-      if (!burstActive && !isReduced) energy = 0;
+      const burstField = isReduced
+        ? { energy: reducedEmphasis, radialSignal: 0, tangentialSignal: 0 }
+        : getBurstField(body.baseRadius, body.angle, now);
+      const energy = !isReduced ? burstField.energy : reducedEmphasis;
 
-      const reboundPhase = energy > 0
-        ? Math.sin((burstProgress * TAU * 1.8) - (body.baseRadius * 0.012))
-        : 0;
       const radialKick = isReduced
         ? 0
-        : energy * config.burstDisplacement * (0.78 + (reboundPhase * 0.22));
+        : burstField.radialSignal * config.burstDisplacement;
       const tangentialKick = !isReduced && energy > 0
-        ? energy * Math.sin((body.angle * 5) + (burstProgress * TAU)) * config.burstTwist
+        ? burstField.tangentialSignal * config.burstTwist
         : 0;
       const renderedRadius = body.baseRadius + idleOffset + radialKick;
       const ringDepth = clamp(body.baseRadius / metrics.maxRadius, 0, 1);
@@ -443,9 +473,14 @@ export function createContactRippleRenderer({
   }
 
   function drawReduced(now) {
-    const burstProgress = clamp((now - burstStartedAt) / REDUCED_BURST_MS, 0, 1);
-    const burstActive = now - burstStartedAt >= 0 && burstProgress < 1;
-    const emphasis = burstActive ? (1 - smoothstep(burstProgress)) * 0.44 : 0;
+    syncActiveBursts(now, REDUCED_BURST_MS);
+    let emphasis = 0;
+    for (const started of activeBursts) {
+      const progress = clamp((now - started) / REDUCED_BURST_MS, 0, 1);
+      emphasis += (1 - smoothstep(progress)) * 0.44;
+    }
+    emphasis = clamp(emphasis, 0, 0.72);
+    const burstActive = activeBursts.length > 0;
     drawField(now, emphasis);
     return burstActive;
   }
@@ -502,54 +537,6 @@ export function createContactRippleRenderer({
     requestFrame();
   }
 
-  function resetPointerMotion() {
-    pointerMotion.active = false;
-    pointerMotion.target = 0;
-    pointerMotion.speedBoostTarget = 0;
-    pointerMotion.lastInputAt = -Infinity;
-    requestFrame();
-  }
-
-  function handlePointerMove(event) {
-    if (reducedMotion || (event.pointerType && event.pointerType !== 'mouse')) return;
-    const rect = stage.getBoundingClientRect();
-    const localX = event.clientX - rect.left;
-    const localY = event.clientY - rect.top;
-    const inside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
-    if (!inside || rect.width <= 0 || rect.height <= 0) {
-      resetPointerMotion();
-      return;
-    }
-
-    const now = performance.now();
-    const xNorm = clamp(((localX / rect.width) - 0.5) * 2, -1, 1);
-    const yNorm = clamp(((localY / rect.height) - 0.5) * 2, -1, 1);
-    const inputDt = Number.isFinite(pointerMotion.lastInputAt)
-      ? clamp((now - pointerMotion.lastInputAt) / 1000, 1 / 240, 0.1)
-      : 1 / 60;
-    const velocityX = Number.isFinite(pointerMotion.lastInputAt)
-      ? clamp((localX - pointerMotion.lastX) / Math.max(1, rect.width) / inputDt, -0.9, 0.9)
-      : 0;
-    const velocityY = Number.isFinite(pointerMotion.lastInputAt)
-      ? clamp((localY - pointerMotion.lastY) / Math.max(1, rect.height) / inputDt, -0.9, 0.9)
-      : 0;
-    const pointerSpeed = clamp(Math.hypot(velocityX, velocityY) / 0.9, 0, 1);
-    const influence = (xNorm * 0.72) + (yNorm * 0.10) + (velocityX * 0.18);
-    pointerMotion.active = true;
-    pointerMotion.target = clamp(influence * POINTER_MAX_ROTATION, -POINTER_MAX_ROTATION, POINTER_MAX_ROTATION);
-    pointerMotion.speedBoostTarget = pointerSpeed * POINTER_MAX_SPEED_BOOST;
-    pointerMotion.lastAt = now;
-    pointerMotion.lastInputAt = now;
-    pointerMotion.lastX = localX;
-    pointerMotion.lastY = localY;
-    requestFrame();
-  }
-
-  function handlePointerOut(event) {
-    if (event.relatedTarget) return;
-    resetPointerMotion();
-  }
-
   const resizeObserver = typeof ResizeObserver === 'function'
     ? new ResizeObserver(handleResize)
     : null;
@@ -558,11 +545,6 @@ export function createContactRippleRenderer({
   if (quietZoneElement) resizeObserver?.observe(quietZoneElement);
   window.addEventListener('resize', handleResize, { passive: true });
   document.addEventListener('visibilitychange', handleVisibilityChange);
-  if (!reducedMotion) {
-    window.addEventListener('pointermove', handlePointerMove, { passive: true });
-    window.addEventListener('pointerout', handlePointerOut, { passive: true });
-    window.addEventListener('blur', resetPointerMotion);
-  }
 
   return {
     start() {
@@ -574,9 +556,20 @@ export function createContactRippleRenderer({
       if (destroyed) return;
       burstCount += 1;
       burstStartedAt = performance.now();
+      activeBursts.push(burstStartedAt);
+      if (activeBursts.length > MAX_ACTIVE_BURSTS) {
+        activeBursts = activeBursts.slice(activeBursts.length - MAX_ACTIVE_BURSTS);
+      }
+      if (activeBursts.length > maxConcurrentBursts) maxConcurrentBursts = activeBursts.length;
       stage.dataset.contactRippleBurstCount = String(burstCount);
+      stage.dataset.contactRippleActiveBurstCount = String(activeBursts.length);
+      stage.dataset.contactRippleMaxActiveBursts = String(maxConcurrentBursts);
       setState(reducedMotion ? 'reduced-burst' : 'burst');
-      if (diagnostics) diagnostics.totalBursts += 1;
+      if (diagnostics) {
+        diagnostics.totalBursts += 1;
+        diagnostics.activeBurstCount = activeBursts.length;
+        diagnostics.maxConcurrentBursts = maxConcurrentBursts;
+      }
       needsRender = true;
       requestFrame();
     },
@@ -590,14 +583,12 @@ export function createContactRippleRenderer({
     destroy() {
       if (destroyed) return;
       destroyed = true;
+      activeBursts = [];
       if (frameId) window.cancelAnimationFrame(frameId);
       frameId = 0;
       resizeObserver?.disconnect();
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerout', handlePointerOut);
-      window.removeEventListener('blur', resetPointerMotion);
       context.setTransform(1, 0, 0, 1, 0, 0);
       context.clearRect(0, 0, canvas.width, canvas.height);
       setState('destroyed');
@@ -608,6 +599,8 @@ export function createContactRippleRenderer({
         diagnostics.pointerActive = false;
         diagnostics.pointerRotation = 0;
         diagnostics.pointerTarget = 0;
+        diagnostics.pointerSpeedBoost = 0;
+        diagnostics.activeBurstCount = 0;
       }
     },
   };

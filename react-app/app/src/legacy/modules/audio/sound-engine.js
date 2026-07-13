@@ -305,10 +305,10 @@ let isEnabled = false;
 let isUnlocked = false;
 const contactMotifVoices = new Set();
 const CONTACT_RIPPLE_MOTIF_VARIATIONS = Object.freeze([
-  Object.freeze({ id: 'centre', answerFrequency: 293.66, panSpread: 0.10, echoSpacing: 0.032 }),
-  Object.freeze({ id: 'inner', answerFrequency: 329.63, panSpread: 0.16, echoSpacing: 0.048 }),
-  Object.freeze({ id: 'middle', answerFrequency: 392.00, panSpread: 0.22, echoSpacing: 0.064 }),
-  Object.freeze({ id: 'outer', answerFrequency: 440.00, panSpread: 0.28, echoSpacing: 0.080 }),
+  Object.freeze({ id: 'bright-tight', ringDelayScale: 0.96, panSpread: 0.14, pressureGain: 0.96, brightness: 1.16 }),
+  Object.freeze({ id: 'bright-wide-left', ringDelayScale: 1.00, panSpread: 0.22, pressureGain: 0.92, brightness: 1.10 }),
+  Object.freeze({ id: 'bright-wide-right', ringDelayScale: 1.04, panSpread: 0.26, pressureGain: 0.90, brightness: 1.18 }),
+  Object.freeze({ id: 'warm-long', ringDelayScale: 1.08, panSpread: 0.18, pressureGain: 0.98, brightness: 1.06 }),
 ]);
 let contactMotifVariationIndex = 0;
 
@@ -930,135 +930,95 @@ function stopContactRippleMotif() {
   contactMotifVoices.clear();
 }
 
-function scheduleContactMotifNote({
-  frequency,
-  frequencyEnd = null,
+function registerContactMotifVoice({ sources, nodes, primary = sources[0] }) {
+  const voice = { oscillators: sources, nodes };
+  contactMotifVoices.add(voice);
+  if (primary) {
+    primary.onended = () => {
+      if (!contactMotifVoices.delete(voice)) return;
+      for (const node of voice.nodes) {
+        try { node.disconnect(); } catch (e) {}
+      }
+    };
+  }
+  return voice;
+}
+
+function scheduleContactPressureSnap({
   offset,
   duration,
   gain: peakGain,
   pan = 0,
-  type = 'sine',
-  attack = 0.012,
-  filterStart = 4600,
-  filterEnd = 2400,
-  overtoneRatio = 2.01,
-  overtoneLevel = 0.14,
-  fmRatio = 0,
-  fmDepth = 0,
-  release = 0.10,
+  filterStart = 3600,
+  filterEnd = 1800,
 }) {
   const start = audioContext.currentTime + offset;
-  const releaseDuration = Math.max(0, release);
-  const envelopeEnd = start + duration;
-  const stop = envelopeEnd + releaseDuration + 0.04;
-  const oscillator = audioContext.createOscillator();
-  const overtone = audioContext.createOscillator();
-  const modulator = fmDepth > 0 ? audioContext.createOscillator() : null;
-  const modulationGain = modulator ? audioContext.createGain() : null;
-  const filter = audioContext.createBiquadFilter();
-  const envelope = audioContext.createGain();
-  const overtoneGain = audioContext.createGain();
-  const panner = typeof audioContext.createStereoPanner === 'function'
-    ? audioContext.createStereoPanner()
-    : null;
-
-  oscillator.type = type;
-  oscillator.frequency.setValueAtTime(frequency, start);
-  if (Number.isFinite(frequencyEnd) && frequencyEnd > 0) {
-    oscillator.frequency.exponentialRampToValueAtTime(frequencyEnd, start + Math.min(duration * 0.42, 0.28));
-  }
-  overtone.type = 'sine';
-  overtone.frequency.setValueAtTime(frequency * overtoneRatio, start);
-  if (Number.isFinite(frequencyEnd) && frequencyEnd > 0) {
-    overtone.frequency.exponentialRampToValueAtTime(
-      frequencyEnd * overtoneRatio,
-      start + Math.min(duration * 0.42, 0.28),
-    );
-  }
-  overtoneGain.gain.setValueAtTime(overtoneLevel, start);
-
-  if (modulator && modulationGain) {
-    modulator.type = 'sine';
-    modulator.frequency.setValueAtTime(frequency * fmRatio, start);
-    modulationGain.gain.setValueAtTime(fmDepth, start);
-    modulationGain.gain.exponentialRampToValueAtTime(0.001, start + duration);
-    modulator.connect(modulationGain).connect(oscillator.frequency);
-  }
-
-  filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(filterStart, start);
-  filter.frequency.exponentialRampToValueAtTime(filterEnd, start + duration);
-  filter.Q.setValueAtTime(0.62, start);
-
-  envelope.gain.setValueAtTime(0.0001, start);
-  envelope.gain.exponentialRampToValueAtTime(peakGain, start + attack);
-  envelope.gain.exponentialRampToValueAtTime(peakGain * 0.48, start + Math.min(0.22, duration * 0.42));
-  if (releaseDuration > 0) {
-    envelope.gain.exponentialRampToValueAtTime(Math.max(0.0002, peakGain * 0.06), envelopeEnd);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, envelopeEnd + releaseDuration);
-  } else {
-    envelope.gain.exponentialRampToValueAtTime(0.0001, envelopeEnd);
-  }
-  if (panner) panner.pan.setValueAtTime(pan, start);
-
-  oscillator.connect(filter);
-  overtone.connect(overtoneGain).connect(filter);
-  filter.connect(envelope);
-  const output = panner ? envelope.connect(panner) : envelope;
-  output.connect(dryGain);
-  output.connect(wetGain);
-
-  const voice = {
-    oscillators: [oscillator, overtone, ...(modulator ? [modulator] : [])],
-    nodes: [
-      oscillator,
-      overtone,
-      overtoneGain,
-      filter,
-      envelope,
-      ...(modulator ? [modulator, modulationGain] : []),
-      ...(panner ? [panner] : []),
-    ],
-  };
-  contactMotifVoices.add(voice);
-
-  oscillator.onended = () => {
-    if (!contactMotifVoices.delete(voice)) return;
-    for (const node of voice.nodes) {
-      try { node.disconnect(); } catch (e) {}
-    }
-  };
-  oscillator.start(start);
-  overtone.start(start);
-  modulator?.start(start);
-  oscillator.stop(stop);
-  overtone.stop(stop);
-  modulator?.stop(stop);
-}
-
-function scheduleContactMotifPulse({ frequency, offset, gain: peakGain, pan }) {
-  const start = audioContext.currentTime + offset;
-  const duration = 0.075;
-  const stop = start + duration + 0.02;
-  const oscillator = audioContext.createOscillator();
+  const stop = start + duration + 0.025;
+  const noise = createTransientNoise();
   const filter = audioContext.createBiquadFilter();
   const envelope = audioContext.createGain();
   const panner = typeof audioContext.createStereoPanner === 'function'
     ? audioContext.createStereoPanner()
     : null;
-
-  oscillator.type = 'square';
-  oscillator.frequency.setValueAtTime(frequency * 1.5, start);
-  oscillator.frequency.exponentialRampToValueAtTime(frequency, start + 0.028);
 
   filter.type = 'bandpass';
-  filter.frequency.setValueAtTime(frequency * 2.4, start);
-  filter.frequency.exponentialRampToValueAtTime(frequency * 1.25, start + duration);
-  filter.Q.setValueAtTime(4.2, start);
+  filter.frequency.setValueAtTime(filterStart, start);
+  filter.frequency.exponentialRampToValueAtTime(filterEnd, start + duration);
+  filter.Q.setValueAtTime(3.4, start);
 
   envelope.gain.setValueAtTime(0.0001, start);
   envelope.gain.exponentialRampToValueAtTime(peakGain, start + 0.003);
   envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  if (panner) panner.pan.setValueAtTime(pan, start);
+
+  noise.connect(filter).connect(envelope);
+  const output = panner ? envelope.connect(panner) : envelope;
+  output.connect(dryGain);
+  output.connect(wetGain);
+
+  registerContactMotifVoice({
+    sources: [noise],
+    nodes: [noise, filter, envelope, ...(panner ? [panner] : [])],
+    primary: noise,
+  });
+  noise.start(start, Math.random() * 1.2);
+  noise.stop(stop);
+}
+
+function scheduleContactPressureThump({
+  offset,
+  duration,
+  gain: peakGain,
+  pan = 0,
+  frequency = 82,
+  frequencyEnd = 52,
+  filterStart = 520,
+  filterEnd = 220,
+  release = 0.18,
+}) {
+  const start = audioContext.currentTime + offset;
+  const envelopeEnd = start + duration;
+  const stop = envelopeEnd + release + 0.05;
+  const oscillator = audioContext.createOscillator();
+  const filter = audioContext.createBiquadFilter();
+  const envelope = audioContext.createGain();
+  const panner = typeof audioContext.createStereoPanner === 'function'
+    ? audioContext.createStereoPanner()
+    : null;
+
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(frequency, start);
+  oscillator.frequency.exponentialRampToValueAtTime(frequencyEnd, start + Math.min(duration, 0.24));
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(filterStart, start);
+  filter.frequency.exponentialRampToValueAtTime(filterEnd, envelopeEnd + release);
+  filter.Q.setValueAtTime(0.54, start);
+
+  envelope.gain.setValueAtTime(0.0001, start);
+  envelope.gain.exponentialRampToValueAtTime(peakGain, start + 0.012);
+  envelope.gain.exponentialRampToValueAtTime(Math.max(0.0002, peakGain * 0.18), envelopeEnd);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, envelopeEnd + release);
   if (panner) panner.pan.setValueAtTime(pan, start);
 
   oscillator.connect(filter).connect(envelope);
@@ -1066,25 +1026,115 @@ function scheduleContactMotifPulse({ frequency, offset, gain: peakGain, pan }) {
   output.connect(dryGain);
   output.connect(wetGain);
 
-  const voice = {
-    oscillators: [oscillator],
+  registerContactMotifVoice({
+    sources: [oscillator],
     nodes: [oscillator, filter, envelope, ...(panner ? [panner] : [])],
-  };
-  contactMotifVoices.add(voice);
-  oscillator.onended = () => {
-    if (!contactMotifVoices.delete(voice)) return;
-    for (const node of voice.nodes) {
-      try { node.disconnect(); } catch (e) {}
-    }
-  };
+    primary: oscillator,
+  });
   oscillator.start(start);
   oscillator.stop(stop);
 }
 
+function scheduleContactPressureRing({
+  offset,
+  duration,
+  gain: peakGain,
+  pan = 0,
+  frequency,
+  frequencyEnd,
+  harmonicFrequency = null,
+  harmonicGain = 0,
+  filterStart,
+  filterEnd,
+  noiseGain = 0.012,
+  release = 0.20,
+}) {
+  const start = audioContext.currentTime + offset;
+  const envelopeEnd = start + duration;
+  const stop = envelopeEnd + release + 0.04;
+  const oscillator = audioContext.createOscillator();
+  const harmonic = Number.isFinite(harmonicFrequency) && harmonicGain > 0
+    ? audioContext.createOscillator()
+    : null;
+  const noise = createTransientNoise();
+  const toneFilter = audioContext.createBiquadFilter();
+  const noiseFilter = audioContext.createBiquadFilter();
+  const toneEnvelope = audioContext.createGain();
+  const harmonicGainNode = harmonic ? audioContext.createGain() : null;
+  const noiseEnvelope = audioContext.createGain();
+  const panner = typeof audioContext.createStereoPanner === 'function'
+    ? audioContext.createStereoPanner()
+    : null;
+
+  oscillator.type = 'triangle';
+  oscillator.frequency.setValueAtTime(frequency, start);
+  oscillator.frequency.exponentialRampToValueAtTime(frequencyEnd, start + Math.min(duration * 0.62, 0.28));
+  if (harmonic) {
+    harmonic.type = 'sine';
+    harmonic.frequency.setValueAtTime(harmonicFrequency, start);
+    harmonic.frequency.exponentialRampToValueAtTime(
+      Math.max(80, harmonicFrequency * 0.88),
+      start + Math.min(duration * 0.72, 0.36),
+    );
+    harmonicGainNode.gain.setValueAtTime(harmonicGain, start);
+    harmonicGainNode.gain.exponentialRampToValueAtTime(0.0001, envelopeEnd + release);
+  }
+
+  toneFilter.type = 'bandpass';
+  toneFilter.frequency.setValueAtTime(filterStart, start);
+  toneFilter.frequency.exponentialRampToValueAtTime(filterEnd, envelopeEnd + release);
+  toneFilter.Q.setValueAtTime(2.2, start);
+
+  noiseFilter.type = 'bandpass';
+  noiseFilter.frequency.setValueAtTime(filterStart * 1.32, start);
+  noiseFilter.frequency.exponentialRampToValueAtTime(filterEnd * 0.92, envelopeEnd);
+  noiseFilter.Q.setValueAtTime(1.6, start);
+
+  toneEnvelope.gain.setValueAtTime(0.0001, start);
+  toneEnvelope.gain.exponentialRampToValueAtTime(peakGain, start + 0.006);
+  toneEnvelope.gain.exponentialRampToValueAtTime(Math.max(0.0002, peakGain * 0.16), envelopeEnd);
+  toneEnvelope.gain.exponentialRampToValueAtTime(0.0001, envelopeEnd + release);
+
+  noiseEnvelope.gain.setValueAtTime(0.0001, start);
+  noiseEnvelope.gain.exponentialRampToValueAtTime(noiseGain, start + 0.004);
+  noiseEnvelope.gain.exponentialRampToValueAtTime(0.0001, start + Math.min(duration * 0.58, 0.12));
+  if (panner) panner.pan.setValueAtTime(pan, start);
+
+  oscillator.connect(toneFilter).connect(toneEnvelope);
+  if (harmonic && harmonicGainNode) harmonic.connect(harmonicGainNode).connect(toneFilter);
+  noise.connect(noiseFilter).connect(noiseEnvelope);
+  const toneOutput = panner ? toneEnvelope.connect(panner) : toneEnvelope;
+  const noiseOutput = panner ? noiseEnvelope.connect(panner) : noiseEnvelope;
+  toneOutput.connect(dryGain);
+  toneOutput.connect(wetGain);
+  noiseOutput.connect(dryGain);
+
+  registerContactMotifVoice({
+    sources: [oscillator, ...(harmonic ? [harmonic] : []), noise],
+    nodes: [
+      oscillator,
+      ...(harmonic ? [harmonic, harmonicGainNode] : []),
+      noise,
+      toneFilter,
+      noiseFilter,
+      toneEnvelope,
+      noiseEnvelope,
+      ...(panner ? [panner] : []),
+    ],
+    primary: oscillator,
+  });
+  oscillator.start(start);
+  harmonic?.start(start);
+  noise.start(start, Math.random() * 1.2);
+  oscillator.stop(stop);
+  harmonic?.stop(stop);
+  noise.stop(start + Math.min(duration + 0.03, 0.18));
+}
+
 /**
- * Contact activation motif: a plotter-calibration sequence built from open intervals.
- * Its stable phrase stays recognisable while a quiet echo advances through four
- * ripple bands, widening and spacing out on each successive activation.
+ * Contact activation motif: a positive pressure-wave bloom synced to the
+ * visible ripple. The press stays tactile, then five airy ring pulses travel
+ * outward and decay into a longer shimmer tail.
  * The first Contact click may unlock audio; an explicitly muted engine stays silent.
  */
 export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
@@ -1098,94 +1148,140 @@ export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
   const variationIndex = contactMotifVariationIndex;
   const variation = CONTACT_RIPPLE_MOTIF_VARIATIONS[variationIndex];
   contactMotifVariationIndex = (variationIndex + 1) % CONTACT_RIPPLE_MOTIF_VARIATIONS.length;
-  const rippleEchoVoices = [
-    {
-      frequency: variation.answerFrequency,
-      offset: 0.080,
-      duration: 0.24,
-      gain: 0.0065,
-      pan: -variation.panSpread,
-      type: 'triangle',
-      attack: 0.008,
-      filterStart: 1480,
-      filterEnd: 680,
-      overtoneRatio: 1.5,
-      overtoneLevel: 0.018,
-    },
-    {
-      frequency: variation.answerFrequency,
-      offset: 0.305 + variation.echoSpacing,
-      duration: 0.32,
-      gain: 0.0060,
-      pan: variation.panSpread,
-      type: 'triangle',
-      attack: 0.010,
-      filterStart: 1360,
-      filterEnd: 600,
-      overtoneRatio: 1.5,
-      overtoneLevel: 0.016,
-    },
-    {
-      frequency: variation.answerFrequency,
-      offset: 0.565 + variation.echoSpacing * 2,
-      duration: 0.44,
-      gain: 0.0055,
-      pan: 0,
-      type: 'triangle',
-      attack: 0.012,
-      filterStart: 1220,
-      filterEnd: 520,
-      overtoneRatio: 1.5,
-      overtoneLevel: 0.014,
-      release: 0.30,
-    },
-  ];
-  const tonalVoices = [
-    // Layer 1: a mid-low stepper bed moves gently upward into registration.
-    { frequency: 146.83, frequencyEnd: 148.50, offset: 0.000, duration: 0.92, gain: 0.020, pan: -0.03, type: 'triangle', attack: 0.016, filterStart: 1120, filterEnd: 520, overtoneRatio: 2.0, overtoneLevel: 0.028, fmRatio: 0.5, fmDepth: 1.2 },
-    { frequency: 220.00, frequencyEnd: 222.30, offset: 0.150, duration: 0.70, gain: 0.009, pan: 0.04, filterStart: 1280, filterEnd: 600, overtoneRatio: 1.5, overtoneLevel: 0.020 },
 
-    // Layer 2: open-interval plotter phrase — D, lower A, E, G, D.
-    { frequency: 293.66, offset: 0.000, duration: 0.28, gain: 0.026, pan: -0.12, type: 'triangle', attack: 0.006, filterStart: 1980, filterEnd: 860, overtoneRatio: 1.5, overtoneLevel: 0.032, fmRatio: 2.0, fmDepth: 2.2 },
-    { frequency: 220.00, offset: 0.105, duration: 0.32, gain: 0.022, pan: 0.11, type: 'triangle', attack: 0.007, filterStart: 1800, filterEnd: 780, overtoneRatio: 1.5, overtoneLevel: 0.028, fmRatio: 1.5, fmDepth: 1.8 },
-    { frequency: 329.63, offset: 0.225, duration: 0.34, gain: 0.024, pan: -0.09, type: 'triangle', attack: 0.007, filterStart: 2100, filterEnd: 920, overtoneRatio: 1.5, overtoneLevel: 0.030, fmRatio: 2.0, fmDepth: 2.4 },
-    { frequency: 392.00, offset: 0.365, duration: 0.38, gain: 0.022, pan: 0.09, type: 'triangle', attack: 0.008, filterStart: 2160, filterEnd: 960, overtoneRatio: 1.5, overtoneLevel: 0.026, fmRatio: 1.5, fmDepth: 2.0 },
-    { frequency: 293.66, offset: 0.535, duration: 0.62, gain: 0.025, pan: 0.00, type: 'triangle', attack: 0.010, filterStart: 1760, filterEnd: 720, overtoneRatio: 1.5, overtoneLevel: 0.026, fmRatio: 1.5, fmDepth: 1.6, release: 0.28 },
-
-    // Layer 3: the changing response travels outward on each press.
-    ...rippleEchoVoices,
-
-    // Layer 4: two aligned rails settle together without harmonic tension.
-    { frequency: 146.83, frequencyEnd: 148.50, offset: 0.480, duration: 0.65, gain: 0.009, pan: -0.07, filterStart: 980, filterEnd: 430, overtoneRatio: 1.5, overtoneLevel: 0.016 },
-    { frequency: 220.00, frequencyEnd: 222.30, offset: 0.500, duration: 0.62, gain: 0.008, pan: 0.07, filterStart: 1160, filterEnd: 500, overtoneRatio: 1.5, overtoneLevel: 0.014 },
-  ];
-  const dataPulses = [
-    // Layer 5: filtered stepper accents mirror the plotter phrase.
-    { frequency: 146.83, offset: 0.014, gain: 0.0080, pan: -0.20 },
-    { frequency: 220.00, offset: 0.119, gain: 0.0070, pan: 0.18 },
-    { frequency: 164.81, offset: 0.239, gain: 0.0075, pan: -0.15 },
-    { frequency: 196.00, offset: 0.379, gain: 0.0065, pan: 0.14 },
-    { frequency: 146.83, offset: 0.549, gain: 0.0075, pan: 0.00 },
+  const ringOffsets = [0.14, 0.31, 0.54, 0.83, 1.18].map((offset) => (
+    Number((offset * variation.ringDelayScale).toFixed(3))
+  ));
+  const brightness = variation.brightness;
+  const pressureGain = variation.pressureGain;
+  const pressureEvents = [
+    { label: 'press-snap', offset: 0.000, duration: 0.034 },
+    { label: 'soft-pressure-hit', offset: 0.012, duration: 0.24 },
+    { label: 'ring-one', offset: ringOffsets[0], duration: 0.20, release: 0.24 },
+    { label: 'ring-two', offset: ringOffsets[1], duration: 0.26, release: 0.32 },
+    { label: 'ring-three', offset: ringOffsets[2], duration: 0.34, release: 0.42 },
+    { label: 'ring-four', offset: ringOffsets[3], duration: 0.43, release: 0.55 },
+    { label: 'ring-five', offset: ringOffsets[4], duration: 0.50, release: 0.56 },
+    { label: 'air-tail', offset: 1.36 * variation.ringDelayScale, duration: 0.42, release: 0.50 },
   ];
 
   recordSoundDebugEvent('contact-ripple-motif', 'sound-engine:contact-ripple-motif', {
-    character: 'plotter-calibration-ripple',
-    motif: 'D4-A3-E4-G4-D4',
-    layerCount: 5,
-    noteCount: tonalVoices.length + dataPulses.length,
+    character: 'positive-pressure-wave-ripple',
+    motif: 'snap-lift-five-rings-air-tail',
+    layerCount: 4,
+    noteCount: pressureEvents.length,
     variation: variation.id,
     variationIndex,
     variationCount: CONTACT_RIPPLE_MOTIF_VARIATIONS.length,
-    answerFrequency: variation.answerFrequency,
-    echoSpacing: variation.echoSpacing,
-    tailReleaseMs: 300,
-    durationMs: Math.round(Math.max(...tonalVoices.map((voice) => (
-      voice.offset + voice.duration + (voice.release ?? 0.10)
+    ringOffsetsMs: ringOffsets.map((offset) => Math.round(offset * 1000)),
+    tailReleaseMs: 560,
+    durationMs: Math.round(Math.max(...pressureEvents.map((event) => (
+      event.offset + event.duration + (event.release ?? 0.30)
     ))) * 1000),
-    frequencies: [...tonalVoices, ...dataPulses].map((voice) => voice.frequency),
+    frequencies: [132, 440, 523, 659, 784, 880, 659],
   });
-  for (const voice of tonalVoices) scheduleContactMotifNote(voice);
-  for (const pulse of dataPulses) scheduleContactMotifPulse(pulse);
+
+  scheduleContactPressureSnap({
+    offset: 0,
+    duration: 0.034,
+    gain: 0.017 * pressureGain,
+    filterStart: 5200 * brightness,
+    filterEnd: 2600 * brightness,
+  });
+  scheduleContactPressureThump({
+    offset: 0.012,
+    duration: 0.18,
+    gain: 0.010 * pressureGain,
+    frequency: 132,
+    frequencyEnd: 108,
+    filterStart: 1100 * brightness,
+    filterEnd: 520,
+    release: 0.10,
+  });
+  scheduleContactPressureRing({
+    offset: ringOffsets[0],
+    duration: 0.20,
+    gain: 0.0130 * pressureGain,
+    pan: -variation.panSpread,
+    frequency: 440 * brightness,
+    frequencyEnd: 466 * brightness,
+    harmonicFrequency: 880 * brightness,
+    harmonicGain: 0.0032 * pressureGain,
+    filterStart: 3300 * brightness,
+    filterEnd: 1680 * brightness,
+    noiseGain: 0.0058,
+    release: 0.24,
+  });
+  scheduleContactPressureRing({
+    offset: ringOffsets[1],
+    duration: 0.26,
+    gain: 0.0140 * pressureGain,
+    pan: variation.panSpread,
+    frequency: 523 * brightness,
+    frequencyEnd: 587 * brightness,
+    harmonicFrequency: 1046 * brightness,
+    harmonicGain: 0.0034 * pressureGain,
+    filterStart: 3120 * brightness,
+    filterEnd: 1520 * brightness,
+    noiseGain: 0.0054,
+    release: 0.32,
+  });
+  scheduleContactPressureRing({
+    offset: ringOffsets[2],
+    duration: 0.34,
+    gain: 0.0135 * pressureGain,
+    pan: 0,
+    frequency: 659 * brightness,
+    frequencyEnd: 698 * brightness,
+    harmonicFrequency: 1318 * brightness,
+    harmonicGain: 0.0032 * pressureGain,
+    filterStart: 2860 * brightness,
+    filterEnd: 1360 * brightness,
+    noiseGain: 0.0048,
+    release: 0.42,
+  });
+  scheduleContactPressureRing({
+    offset: ringOffsets[3],
+    duration: 0.43,
+    gain: 0.0120 * pressureGain,
+    pan: variation.panSpread * 0.52,
+    frequency: 784 * brightness,
+    frequencyEnd: 880 * brightness,
+    harmonicFrequency: 1568 * brightness,
+    harmonicGain: 0.0029 * pressureGain,
+    filterStart: 2600 * brightness,
+    filterEnd: 1180 * brightness,
+    noiseGain: 0.0042,
+    release: 0.55,
+  });
+  scheduleContactPressureRing({
+    offset: ringOffsets[4],
+    duration: 0.50,
+    gain: 0.0090 * pressureGain,
+    pan: -variation.panSpread * 0.32,
+    frequency: 880 * brightness,
+    frequencyEnd: 784 * brightness,
+    harmonicFrequency: 1760 * brightness,
+    harmonicGain: 0.0024 * pressureGain,
+    filterStart: 2240 * brightness,
+    filterEnd: 980 * brightness,
+    noiseGain: 0.0036,
+    release: 0.56,
+  });
+  scheduleContactPressureRing({
+    offset: 1.36 * variation.ringDelayScale,
+    duration: 0.42,
+    gain: 0.0068 * pressureGain,
+    pan: 0,
+    frequency: 659 * brightness,
+    frequencyEnd: 587 * brightness,
+    harmonicFrequency: 1318 * brightness,
+    harmonicGain: 0.0018 * pressureGain,
+    filterStart: 1780 * brightness,
+    filterEnd: 760 * brightness,
+    noiseGain: 0.0022,
+    release: 0.50,
+  });
   return true;
 }
 
