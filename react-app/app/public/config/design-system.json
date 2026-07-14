@@ -135,8 +135,6 @@
     "innerWallGradientEdgeTopOpacity": 0.31,
     "innerWallGradientEdgeTopShadowOpacity": 0.57,
     "innerWallGradientEdgeWidth": 2.5,
-    "innerWallPitInsetShadowOpacity": 0.215,
-    "innerWallPitInsetShadowBlurPx": 36,
     "outerWallCastShadowOpacityLight": 0,
     "simulationContrastVeilOpacityLight": 0.216,
     "simulationContrastVeilOpacityDark": 0.348,

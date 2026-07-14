@@ -127,7 +127,6 @@ async function readState(page) {
     const sim = rectOf('#simulations');
     const band = rectOf('[data-button-bar]') || rectOf('[data-shell-bottom-band]');
     const host = rectOf('#portfolio-sheet-host');
-    const finish = rectOf('.studio-window-finish-layer');
     const gateInner = rectOf('.portfolio-gate-route__inner');
     const gateInputs = rectOf('.portfolio-gate-inputs');
     const deck = document.getElementById('portfolioProjectMount');
@@ -244,7 +243,6 @@ async function readState(page) {
       host,
       windowBlur: styleOf('#window-overlay-blur-layer'),
       windowContent: styleOf('#window-overlay-content-layer'),
-      windowFinish: styleOf('.studio-window-finish-layer'),
       wallEdge: styleOf('.inner-wall-gradient-edge'),
       wallSurface: styleOf('#shell-wall-slot'),
       heroSurface: styleOf('#shell-hero-slot'),
@@ -274,11 +272,10 @@ async function readState(page) {
         && host.left >= sim.left - 1
         && host.right <= sim.right + 1
         && host.bottom <= sim.bottom + 1
-        && finish
-        && Math.abs(finish.top - host.top) <= 1
-        && Math.abs(finish.left - host.left) <= 1
-        && Math.abs(finish.right - host.right) <= 1
-        && Math.abs(finish.bottom - host.bottom) <= 1
+        && Math.abs(sim.top - host.top) <= 1
+        && Math.abs(sim.left - host.left) <= 1
+        && Math.abs(sim.right - host.right) <= 1
+        && Math.abs(sim.bottom - host.bottom) <= 1
       ),
     };
   });
@@ -702,11 +699,9 @@ async function auditTheme(browser, theme) {
     assert(lockedRequestTracker.blockedRequests.length === 0, 'Locked Portfolio requested project data, video, or an unapproved asset', lockedRequestTracker.blockedRequests);
     assert(lockedRequestTracker.posterRequests.length > 0, 'Locked Portfolio did not request static project posters', lockedRequestTracker.posterRequests);
     assert(
-      results.lockedInitial.windowContent?.zIndex < results.lockedInitial.windowFinish?.zIndex
-        && results.lockedInitial.windowBlur?.zIndex < results.lockedInitial.windowFinish?.zIndex
-        && results.lockedInitial.windowFinish?.opacity > 0.9
-        && results.lockedInitial.windowFinish?.pointerEvents === 'none',
-      'Portfolio gate is not stacked below the active window finish',
+      results.lockedInitial.windowBlur?.zIndex < results.lockedInitial.windowContent?.zIndex
+        && results.lockedInitial.windowContent?.pointerEvents === 'auto',
+      'Portfolio gate overlay layers are not stacked correctly',
       results.lockedInitial,
     );
     assert(results.lockedInitial.geometryOk, 'Locked Portfolio window geometry does not align with bottom shell band', results.lockedInitial);

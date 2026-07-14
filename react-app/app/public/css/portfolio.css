@@ -100,13 +100,6 @@ body.portfolio-page .simulation-contrast-veil::after {
   mask-image: none;
 }
 
-/* Preserve the thin live rim, but remove the recessed inset shadow from the
-   Portfolio wall so the card-opacity blend sits over one neutral surface. */
-body.portfolio-page #simulations::before {
-  content: none;
-  box-shadow: none;
-}
-
 .portfolio-gate-scene {
   --portfolio-gate-scene-shadow: rgb(0 0 0 / 0.24);
   --portfolio-gate-scene-card-width: min(304px, 23.7vw);

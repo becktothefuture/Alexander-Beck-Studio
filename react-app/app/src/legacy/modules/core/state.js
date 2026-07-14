@@ -924,10 +924,6 @@ const state = {
   innerWallGradientEdgeWidth: 3,            // Gradient edge rim thickness (px) — ~50% above legacy 2px
   innerWallGradientEdgeTopOpacity: 0.18,    // Master — bottom + sides light rim only
   innerWallGradientEdgeTopShadowOpacity: 0.3, // Top inner edge shadow rim (0–1, CSS-clamped in apply)
-  innerWallPitInsetShadowOpacity: 0.18,     // Pit interior inset shadow (theme-invariant)
-  innerWallPitInsetShadowBlurPx: 28,        // Inset shadow blur (px)
-  innerWallPitInsetShadowSpreadPx: -6,      // Negative pulls shadow inward from rim
-  innerWallPitInsetShadowOffsetYPx: 4,      // Slight downward bias (top light)
   puckShadowOpacity: 0.14,                  // Puck disk drop shadow strength
   puckEdgeWidth: 1,                         // Puck rim thickness (px)
   puckEdgeLightOpacity: 0.3,               // Puck top rim light
@@ -1515,21 +1511,6 @@ export function applyLayoutCSSVars() {
   // Inner wall shine — disabled (replaced by gradient edge system)
   root.style.setProperty('--inner-wall-shine-opacity', '0');
 
-  // Pit inset shadow (#simulations::before — above canvas, below rim overlay).
-  // Keep edge treatment theme-invariant so light/dark toggles cannot redraw the wall contour.
-  const pitOp = state.innerWallPitInsetShadowOpacity ?? 0.12;
-  const pitOpacityMul = 1.2;
-  const pitCap = 0.36;
-  let pitOpacity = Number(
-    Math.min(pitCap, pitOp * pitOpacityMul).toFixed(3)
-  );
-  let pitBlur = state.innerWallPitInsetShadowBlurPx ?? 28;
-  const pitSpread = state.innerWallPitInsetShadowSpreadPx ?? -6;
-  const pitOff = state.innerWallPitInsetShadowOffsetYPx ?? 4;
-  root.style.setProperty('--inner-wall-pit-inset-shadow-blur', `${pitBlur}px`);
-  root.style.setProperty('--inner-wall-pit-inset-shadow-spread', `${pitSpread}px`);
-  root.style.setProperty('--inner-wall-pit-inset-shadow-offset-y', `${pitOff}px`);
-  root.style.setProperty('--inner-wall-pit-inset-shadow-opacity', String(pitOpacity));
 
   // Gradient edge — master drives bottom/sides light; top shadow has its own control.
   // Ratios intentionally match the approved light-mode contour in every theme.
@@ -2585,18 +2566,6 @@ export function initState(config) {
   if (config.innerWallShineOpacityDark !== undefined) state.innerWallShineOpacityDark = config.innerWallShineOpacityDark;
   if (config.innerWallShineColor !== undefined) state.innerWallShineColor = String(config.innerWallShineColor ?? '');
   if (config.innerWallGradientEdgeWidth !== undefined) state.innerWallGradientEdgeWidth = clampNumber(config.innerWallGradientEdgeWidth, 0, 6, 3);
-  if (config.innerWallPitInsetShadowOpacity !== undefined) {
-    state.innerWallPitInsetShadowOpacity = clampNumber(config.innerWallPitInsetShadowOpacity, 0, 0.35, 0.12);
-  }
-  if (config.innerWallPitInsetShadowBlurPx !== undefined) {
-    state.innerWallPitInsetShadowBlurPx = clampNumber(config.innerWallPitInsetShadowBlurPx, 8, 64, 28);
-  }
-  if (config.innerWallPitInsetShadowSpreadPx !== undefined) {
-    state.innerWallPitInsetShadowSpreadPx = clampNumber(config.innerWallPitInsetShadowSpreadPx, -14, 4, -6);
-  }
-  if (config.innerWallPitInsetShadowOffsetYPx !== undefined) {
-    state.innerWallPitInsetShadowOffsetYPx = clampNumber(config.innerWallPitInsetShadowOffsetYPx, 0, 14, 4);
-  }
   if (config.innerWallGradientEdgeTopOpacity !== undefined) {
     state.innerWallGradientEdgeTopOpacity = clampNumber(config.innerWallGradientEdgeTopOpacity, 0, 1, 0.18);
   }

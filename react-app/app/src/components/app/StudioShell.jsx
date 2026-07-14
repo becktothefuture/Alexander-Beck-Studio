@@ -161,10 +161,6 @@ export function StudioShell({
           <ShellWindowOverlay>
             {windowOverlayContent ?? simulationFocusModal}
           </ShellWindowOverlay>
-          <div
-            className="window-overlay-layer studio-window-finish-layer"
-            aria-hidden="true"
-          />
           <ShellButtonBar
             activeRouteId={activeRouteId || routeRenderKey}
             materialVariant="dominant-tab"

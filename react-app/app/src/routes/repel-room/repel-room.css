@@ -8,7 +8,6 @@ body.repel-room-page #simulations {
   border-color: var(--frame-color, #141517);
 }
 
-body.repel-room-page #simulations::before,
 body.repel-room-page #simulations::after,
 body.repel-room-page #simulations > .scene-effects,
 body.repel-room-page .inner-wall-gradient-edge,

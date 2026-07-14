@@ -185,7 +185,6 @@ async function readInvariantState(page) {
     const radiusSelectors = {
       canvasBorderRadius: '#simulations canvas',
       overlayBorderRadius: '.window-overlay-layer',
-      finishBorderRadius: '.studio-window-finish-layer',
       vignetteBorderRadius: '.frame-vignette',
       veilBorderRadius: '.simulation-contrast-veil',
       noiseBorderRadius: '.noise',

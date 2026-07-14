@@ -8,7 +8,6 @@ body.beach-ball-room-page #simulations {
   border-color: var(--frame-color, #07111b);
 }
 
-body.beach-ball-room-page #simulations::before,
 body.beach-ball-room-page #simulations::after,
 body.beach-ball-room-page #simulations > .scene-effects,
 body.beach-ball-room-page .inner-wall-gradient-edge,

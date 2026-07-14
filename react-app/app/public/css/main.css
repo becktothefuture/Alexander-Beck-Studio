@@ -3710,7 +3710,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   z-index: 100; /* Wall: top of visual stack (below modals at z:19998+) */
   pointer-events: none;
   overflow: hidden;
-  /* No outward box-shadow: depth is inset-only (#simulations::before + .inner-wall-gradient-edge). */
+  /* No outward box-shadow: depth is carried by the inner-wall gradient edge. */
   /* GPU layer hint for smooth compositing */
   transform: translateZ(0);
   transform-origin: center center;
@@ -4830,31 +4830,6 @@ html[data-abs-instrument-wake] #simulations::after {
   }
 }
 
-/* Narrow inner-wall inset only; broad atmospheric shadows belong to ball contrast, not the wall. */
-#simulations::before,
-.studio-window-finish-layer::before {
-  content: '';
-  position: absolute;
-  border-radius: var(--frame-inner-radius);
-  pointer-events: none;
-  box-shadow:
-    inset 0 var(--inner-wall-pit-inset-shadow-offset-y) min(var(--inner-wall-pit-inset-shadow-blur), 20px)
-      max(var(--inner-wall-pit-inset-shadow-spread), -8px)
-      rgba(var(--inner-wall-bottom-shadow-rgb), var(--inner-wall-pit-inset-shadow-opacity)),
-    inset 10px 0 28px -28px rgba(var(--inner-wall-bottom-shadow-rgb), var(--inner-wall-recess-side-shadow-opacity)),
-    inset -10px 0 28px -28px rgba(var(--inner-wall-bottom-shadow-rgb), var(--inner-wall-recess-side-shadow-opacity)),
-    inset 0 0 34px -28px rgba(var(--inner-wall-bottom-shadow-rgb), var(--inner-wall-recess-corner-shadow-opacity)),
-    inset 0 -8px 22px -24px rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-recess-lower-light-opacity));
-}
-
-#simulations::before {
-  top: var(--frame-border-width);
-  left: var(--frame-border-width);
-  right: var(--frame-border-width);
-  bottom: var(--frame-border-width);
-  z-index: var(--z-live-wall-inset-shadow, 165);
-}
-
 .outer-wall,
 .outer-wall__shine,
 .inner-wall,
@@ -4869,8 +4844,7 @@ html[data-abs-instrument-wake] #simulations::after {
    Portfolio sheet (portfolio.css): positive seat inset reveals this rim from the real pit
    under the transparent margin; the drawer face uses insert-only shading (no wall lights).
    ───────────────────────────────────────────────────────────────────────────── */
-.inner-wall-gradient-edge,
-.studio-window-finish-layer {
+.inner-wall-gradient-edge {
   background:
     /* Bottom edge — brightest at center, transparent at corners */
     radial-gradient(
@@ -4944,21 +4918,6 @@ html[data-abs-instrument-wake] #simulations::after {
     visibility 0s linear var(--modal-overlay-transition-out-duration, 600ms);
 }
 
-/* Repaint only the physical window finish above active in-window overlays.
-   It stays hidden at rest so normal route rendering remains pixel-identical. */
-.studio-window-finish-layer {
-  z-index: var(--z-window-finish, 290);
-  border-radius: var(--frame-inner-radius);
-  overflow: hidden;
-  transition:
-    opacity var(--modal-overlay-transition-out-duration, 600ms) var(--ease-gate-motion),
-    visibility 0s linear var(--modal-overlay-transition-out-duration, 600ms);
-}
-
-.studio-window-finish-layer::before {
-  inset: 0;
-}
-
 .window-overlay-modal-host {
   position: absolute;
   inset: 0;
@@ -4997,7 +4956,7 @@ body.portfolio-page--locked .window-overlay-content-layer {
 }
 
 /* The legacy controller still owns chooser phase/depth timing, but its
-   viewport layers must not paint above the live studio-window finish. */
+   viewport layers must not paint above the in-window overlay system. */
 html.simulation-focus-modal-open #modal-blur-layer,
 html.simulation-focus-modal-open #modal-content-layer {
   pointer-events: none;

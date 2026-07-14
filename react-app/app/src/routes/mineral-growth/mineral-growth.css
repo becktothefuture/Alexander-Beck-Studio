@@ -8,7 +8,6 @@ body.mineral-growth-page #simulations {
   border-color: var(--frame-color, #141517);
 }
 
-body.mineral-growth-page #simulations::before,
 body.mineral-growth-page #simulations::after,
 body.mineral-growth-page #simulations > .scene-effects,
 body.mineral-growth-page .inner-wall-gradient-edge,

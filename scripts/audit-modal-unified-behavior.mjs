@@ -133,15 +133,7 @@ async function readRouteState(page) {
       contentActive: Boolean(document.getElementById('modal-content-layer')?.classList.contains('active')),
       windowBlur: styleOf('#window-overlay-blur-layer'),
       windowContent: styleOf('#window-overlay-content-layer'),
-      windowFinish: styleOf('.studio-window-finish-layer'),
       windowContentRect: rectOf('#window-overlay-content-layer'),
-      windowFinishRect: rectOf('.studio-window-finish-layer'),
-      windowFinishInset: (() => {
-        const finish = document.querySelector('.studio-window-finish-layer');
-        if (!finish) return null;
-        const styles = getComputedStyle(finish, '::before');
-        return { boxShadow: styles.boxShadow };
-      })(),
       wallEdge: styleOf('.inner-wall-gradient-edge'),
       globalBlur: styleOf('#modal-blur-layer'),
       footer: {
@@ -232,19 +224,15 @@ async function assertSimulationChooser(browser, viewport) {
     openState,
   );
   assert(
-    openState.windowBlur.zIndex < openState.windowFinish?.zIndex
-      && openState.windowContent.zIndex < openState.windowFinish?.zIndex
-      && openState.windowFinish?.opacity > 0.9
-      && openState.windowFinish?.visibility === 'visible'
-      && openState.windowFinish?.pointerEvents === 'none',
-    'Simulation chooser is not stacked below the active window finish',
+    openState.windowBlur.zIndex < openState.windowContent?.zIndex
+      && openState.windowContent?.pointerEvents === 'auto',
+    'Simulation chooser overlay layers are not stacked correctly',
     openState,
   );
   assert(
-    JSON.stringify(openState.windowContentRect) === JSON.stringify(openState.windowFinishRect)
-      && openState.windowFinish?.backgroundImage !== 'none'
-      && openState.windowFinishInset?.boxShadow !== 'none',
-    'Active window finish does not match the modal geometry or visual recipe',
+    openState.windowContentRect?.width > 0
+      && openState.windowContentRect?.height > 0,
+    'In-window modal geometry is invalid',
     openState,
   );
   assert(
@@ -258,9 +246,8 @@ async function assertSimulationChooser(browser, viewport) {
   await waitForIdle(page);
   await page.waitForFunction(
     () => {
-      const finishVisibility = getComputedStyle(document.querySelector('.studio-window-finish-layer')).visibility;
       const contentVisibility = getComputedStyle(document.getElementById('window-overlay-content-layer')).visibility;
-      return finishVisibility === 'hidden' && contentVisibility === 'hidden';
+      return contentVisibility === 'hidden';
     },
     { timeout: WAIT_MS, polling: 50 },
   );
@@ -269,8 +256,8 @@ async function assertSimulationChooser(browser, viewport) {
     !closedState.chooserActive
       && !closedState.blurActive
       && !closedState.contentActive
-      && closedState.windowFinish?.opacity === 0
-      && closedState.windowFinish?.pointerEvents === 'none',
+      && closedState.windowContent?.opacity === 0
+      && closedState.windowContent?.pointerEvents === 'none',
     'Simulation chooser did not close cleanly',
     closedState,
   );

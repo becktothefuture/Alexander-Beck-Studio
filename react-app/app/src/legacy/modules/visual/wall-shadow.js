@@ -136,7 +136,4 @@ export function updateWallShadowCSS(g) {
   // Apply stroke opacity (disabled by default)
   container.style.setProperty('--wall-stroke-opacity', strokeOpacity.toFixed(3));
   
-  // Remove legacy style tag that targeted #simulations::before (display:none)
-  const styleTag = document.getElementById('wall-shadow-override-style');
-  if (styleTag) styleTag.remove();
 }

@@ -8,7 +8,6 @@ body.concept-simulation-page #simulations {
   border-color: var(--frame-color, #141517);
 }
 
-body.concept-simulation-page #simulations::before,
 body.concept-simulation-page #simulations::after,
 body.concept-simulation-page #simulations > .scene-effects,
 body.concept-simulation-page .inner-wall-gradient-edge,

@@ -8,7 +8,6 @@ body.flock-of-birds-page #simulations {
   border-color: var(--frame-color, #141517);
 }
 
-body.flock-of-birds-page #simulations::before,
 body.flock-of-birds-page #simulations::after,
 body.flock-of-birds-page #simulations > .scene-effects,
 body.flock-of-birds-page .inner-wall-gradient-edge,

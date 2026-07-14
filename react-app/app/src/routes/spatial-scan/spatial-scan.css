@@ -78,7 +78,6 @@ body.spatial-scan-page[data-spatial-scan-camera-mode='scroll'] .spatial-scan-poi
 }
 
 body.spatial-scan-page #simulations .scene-effects,
-body.spatial-scan-page #simulations::before,
 body.spatial-scan-page #simulations::after {
   opacity: 0;
 }

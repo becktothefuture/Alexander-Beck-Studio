@@ -92,7 +92,7 @@ function applyFrameRadiusControlChange(g, changedKey) {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // WALL SHADOW CSS UPDATE
-// Legacy note: pit depth uses #simulations::before (inset shadow) + .inner-wall-gradient-edge rim.
+// Legacy note: wall depth is now carried by .inner-wall-gradient-edge.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Export for initialization
@@ -2744,37 +2744,6 @@ export const CONTROL_SECTIONS = {
         hint: 'Thickness of the light rim on the pit opening (home + all routes).',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--inner-wall-gradient-edge-width', `${val}px`);
-        }
-      },
-      { type: 'divider', label: 'Narrow Inner Shadow' },
-      {
-        id: 'innerWallPitInsetShadowOpacity',
-        label: 'Inner shadow opacity',
-        stateKey: 'innerWallPitInsetShadowOpacity',
-        type: 'range',
-        min: 0, max: 0.28, step: 0.005,
-        default: 0.12,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Narrow inset shadow at the inner wall edge. It is capped so it cannot create a wide centre wash.',
-        onChange: (g, val) => {
-          g.innerWallPitInsetShadowOpacity = val;
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'innerWallPitInsetShadowBlurPx',
-        label: 'Inner shadow reach',
-        stateKey: 'innerWallPitInsetShadowBlurPx',
-        type: 'range',
-        min: 8, max: 56, step: 1,
-        default: 28,
-        format: v => `${Math.round(v)}px`,
-        parse: parseFloat,
-        hint: 'How far the edge shadow feathers. CSS caps the rendered reach to keep the wall centre neutral.',
-        onChange: (g, val) => {
-          g.innerWallPitInsetShadowBlurPx = val;
-          applyLayoutCSSVars();
         }
       },
       { type: 'divider', label: 'Outer Frame Shadow' },
