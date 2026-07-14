@@ -1503,6 +1503,11 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         removePortfolioGateSceneBridge();
         clearPortfolioGateDeckRelease();
       }
+      try {
+        options.onComplete?.(activeRouteStateRef.current);
+      } catch {
+        // Completion listeners are cosmetic cleanup; transition state is already settled.
+      }
       processQueuedNavigation();
     };
 

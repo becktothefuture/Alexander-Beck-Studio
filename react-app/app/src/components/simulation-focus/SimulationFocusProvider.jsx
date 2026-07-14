@@ -120,12 +120,15 @@ export function SimulationFocusProvider({
   const routeIdRef = useRef(routeId);
   const returnFocusRef = useRef(null);
   const closeTimerRef = useRef(null);
+  const legacyBlurSuppressTimerRef = useRef(null);
   const [focusState, setFocusState] = useState(() => getResolvedSimulationFocus());
   const [homeMode, setHomeMode] = useState(readUrlMode);
   const [optimisticActiveId, setOptimisticActiveId] = useState(null);
   const [isChooserOpen, setChooserOpen] = useState(false);
   const [isChooserClosing, setChooserClosing] = useState(false);
   const [isChooserActive, setChooserActive] = useState(false);
+  const [isFocusHandoffActive, setFocusHandoffActive] = useState(false);
+  const [isLegacyBlurSuppressed, setLegacyBlurSuppressed] = useState(false);
 
   const refreshFocusState = useCallback(() => {
     setFocusState(getResolvedSimulationFocus());
@@ -263,6 +266,34 @@ export function SimulationFocusProvider({
     if (closeTimerRef.current !== null) {
       window.clearTimeout(closeTimerRef.current);
     }
+    if (legacyBlurSuppressTimerRef.current !== null) {
+      window.clearTimeout(legacyBlurSuppressTimerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('simulation-focus-handoff-active', isFocusHandoffActive);
+    return () => {
+      document.documentElement.classList.remove('simulation-focus-handoff-active');
+    };
+  }, [isFocusHandoffActive]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('simulation-focus-legacy-blur-suppressed', isLegacyBlurSuppressed);
+    return () => {
+      document.documentElement.classList.remove('simulation-focus-legacy-blur-suppressed');
+    };
+  }, [isLegacyBlurSuppressed]);
+
+  const releaseLegacyBlurSuppression = useCallback(() => {
+    if (legacyBlurSuppressTimerRef.current !== null) {
+      window.clearTimeout(legacyBlurSuppressTimerRef.current);
+    }
+    const closeDurationMs = getGateModalCloseDurationMs();
+    legacyBlurSuppressTimerRef.current = window.setTimeout(() => {
+      setLegacyBlurSuppressed(false);
+      legacyBlurSuppressTimerRef.current = null;
+    }, closeDurationMs + 80);
   }, []);
 
   const toggleChooser = useCallback((triggerElement = null) => {
@@ -284,6 +315,8 @@ export function SimulationFocusProvider({
 
     triggerHaptic('step');
     setOptimisticActiveId(simulationId);
+    setFocusHandoffActive(true);
+    setLegacyBlurSuppressed(true);
     closeChooser({ haptic: false, restoreFocus: false, keepBackdrop: true });
 
     const closeSettleMs = getGateModalCloseDurationMs({ keepBackdrop: true });
@@ -303,13 +336,23 @@ export function SimulationFocusProvider({
       const handleSelectionFailure = (error) => {
         setOptimisticActiveId(null);
         setHomeMode(previousHomeMode);
+        setFocusHandoffActive(false);
+        releaseLegacyBlurSuppression();
         dismissGateBackdrop();
         publishSimulationSwitchState(simulationId, 'failed', error);
+      };
+      const handleSelectionComplete = () => {
+        setFocusHandoffActive(false);
+        releaseLegacyBlurSuppression();
       };
       const commitFocusChoice = () => {
         writeManualSimulationFocus(simulationId);
         refreshFocusState();
         publishSimulationSwitchState(simulationId, 'ready');
+      };
+      const transitionOptionsWithCompletion = {
+        ...transitionOptions,
+        onComplete: handleSelectionComplete,
       };
 
       if (target.surface === 'home-mode') {
@@ -327,12 +370,13 @@ export function SimulationFocusProvider({
         if (routeIsDailyFocus) {
           const didNavigate = trySpaNavigate(targetHomeHref, {
             replace: true,
-            ...transitionOptions,
+            ...transitionOptionsWithCompletion,
             afterRouteReady: applySelectedHomeMode,
             onFailure: handleSelectionFailure,
           });
           if (!didNavigate) {
             commitFocusChoice();
+            handleSelectionComplete();
             window.location.assign(cleanHomeHref);
           }
           return;
@@ -341,24 +385,28 @@ export function SimulationFocusProvider({
         if (routeIdRef.current === 'home') {
           if (typeof transitionCurrentRoute === 'function'
             && transitionCurrentRoute(applySelectedHomeMode, {
-              ...transitionOptions,
+              ...transitionOptionsWithCompletion,
               onFailure: handleSelectionFailure,
             })) {
             return;
           }
 
           void applySelectedHomeMode()
-            .finally(() => dismissGateBackdrop())
+            .finally(() => {
+              dismissGateBackdrop();
+              handleSelectionComplete();
+            })
             .catch(handleSelectionFailure);
           return;
         }
 
         if (!trySpaNavigate(targetHomeHref, {
-          ...transitionOptions,
+          ...transitionOptionsWithCompletion,
           afterRouteReady: applySelectedHomeMode,
           onFailure: handleSelectionFailure,
         })) {
           commitFocusChoice();
+          handleSelectionComplete();
           window.location.assign(cleanHomeHref);
         }
         return;
@@ -373,11 +421,12 @@ export function SimulationFocusProvider({
       }
       setHomeMode(null);
       if (!trySpaNavigate(target.href, {
-        ...transitionOptions,
+        ...transitionOptionsWithCompletion,
         onCommit: commitFocusChoice,
         onFailure: handleSelectionFailure,
       })) {
         commitFocusChoice();
+        handleSelectionComplete();
         window.location.assign(target.href);
       }
       };
@@ -385,7 +434,7 @@ export function SimulationFocusProvider({
     }, closeSettleMs);
 
     return true;
-  }, [activeId, closeChooser, homeMode, refreshFocusState, routeIsDailyFocus, transitionCurrentRoute]);
+  }, [activeId, closeChooser, homeMode, refreshFocusState, releaseLegacyBlurSuppression, routeIsDailyFocus, transitionCurrentRoute]);
 
   const value = useMemo(() => ({
     activeId,

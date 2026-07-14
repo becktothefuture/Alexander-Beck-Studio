@@ -219,6 +219,20 @@ async function getState(page, elapsedMs) {
       if (!values || values.length < 4) return 1;
       return Math.sqrt((values[0] * values[0]) + (values[1] * values[1]));
     };
+    const overlayLayerState = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const rect = element.getBoundingClientRect();
+      const styles = getComputedStyle(element);
+      return {
+        active: element.classList.contains('active'),
+        opacity: Number.parseFloat(styles.opacity || '1'),
+        visibility: styles.visibility,
+        display: styles.display,
+        backdropFilter: styles.backdropFilter || styles.webkitBackdropFilter || '',
+        rect: { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left, width: rect.width, height: rect.height },
+      };
+    };
 
     const activeCanvas = Array.from(document.querySelectorAll([
       '#c',
@@ -280,6 +294,8 @@ async function getState(page, elapsedMs) {
       sceneRect: rectFor('#abs-scene'),
       wallScale: scaleFor('#shell-wall-slot'),
       runtimeScale: Number.parseFloat(visualTransition?.maxScale ?? '1'),
+      legacyBlurLayer: overlayLayerState('#modal-blur-layer'),
+      windowBlurLayer: overlayLayerState('#window-overlay-blur-layer'),
       visualTransition: visualTransition ? {
         phase: visualTransition.phase || '',
         sourceId: visualTransition.sourceId || '',
@@ -426,6 +442,27 @@ function checkFrame(frame, imageStats, { enforceShellUi = true } = {}) {
 
   if (state.titleCopiesExposed) {
     issues.push('dom-and-canvas-title-visible-together');
+  }
+
+  if (['out', 'hold', 'in'].includes(state.simulationFocusPhase)) {
+    const legacyBlurVisible = Boolean(
+      state.legacyBlurLayer?.active
+      && state.legacyBlurLayer.display !== 'none'
+      && state.legacyBlurLayer.visibility !== 'hidden'
+      && Number(state.legacyBlurLayer.opacity) > 0.02
+    );
+    const windowBlurVisible = Boolean(
+      state.windowBlurLayer
+      && state.windowBlurLayer.display !== 'none'
+      && state.windowBlurLayer.visibility !== 'hidden'
+      && Number(state.windowBlurLayer.opacity) > 0.02
+    );
+    if (legacyBlurVisible) {
+      issues.push('legacy-fullpage-blur-visible-during-simulation-handoff');
+    }
+    if (!windowBlurVisible) {
+      issues.push('window-blur-missing-during-simulation-handoff');
+    }
   }
 
   if (state.homeDomTitlePaintable) {
@@ -646,6 +683,21 @@ async function assertChooserSwitchSettled(page, flow) {
     const url = new URL(window.location.href);
     const blur = document.getElementById('modal-blur-layer');
     const content = document.getElementById('modal-content-layer');
+    const visibleBackdropBlur = (element) => {
+      if (!element) return false;
+      const styles = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      const backdropFilter = styles.backdropFilter || styles.webkitBackdropFilter || '';
+      const blurPx = Number.parseFloat(backdropFilter.match(/blur\(([-0-9.]+)px\)/)?.[1] || '0');
+      return Boolean(
+        blurPx > 0.1
+        && styles.display !== 'none'
+        && styles.visibility !== 'hidden'
+        && Number.parseFloat(styles.opacity || '1') > 0.02
+        && rect.width > 0
+        && rect.height > 0
+      );
+    };
     return {
       href: window.location.href,
       pathname: url.pathname,
@@ -655,6 +707,7 @@ async function assertChooserSwitchSettled(page, flow) {
       transitionPhase: document.documentElement.dataset.absTransitionPhase || 'idle',
       simulationFocusPhase: document.documentElement.dataset.absSimulationFocusTransition || 'idle',
       modalOverlayActive: Boolean(blur?.classList.contains('active') || content?.classList.contains('active')),
+      legacyFullPageBlurVisible: visibleBackdropBlur(blur),
     };
   }, SIMULATION_URL_STATE_PARAMS);
 
@@ -664,6 +717,7 @@ async function assertChooserSwitchSettled(page, flow) {
   if (result.transitionPhase !== 'idle') issues.push(`transition-phase:${result.transitionPhase}`);
   if (result.simulationFocusPhase !== 'idle') issues.push(`simulation-focus-phase:${result.simulationFocusPhase}`);
   if (result.modalOverlayActive) issues.push('modal-overlay-active-after-switch');
+  if (result.legacyFullPageBlurVisible) issues.push('legacy-fullpage-blur-visible-after-switch');
   if (result.pathname.startsWith('/lab/')) issues.push(`lab-path:${result.pathname}`);
   if (result.blockedParams.length > 0) issues.push(`simulation-url-params:${result.blockedParams.join(',')}`);
 

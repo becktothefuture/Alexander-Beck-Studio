@@ -4798,11 +4798,11 @@ html[data-abs-instrument-wake] #simulations::after {
 /* In-window modal system: route/UI content < blur < modal UI, clipped to the studio window. */
 .window-overlay-layer {
   position: absolute;
-  top: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
-  left: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
-  right: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
-  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom) + var(--frame-border-width));
-  border-radius: var(--frame-inner-radius);
+  top: var(--safari-tint-inset-y, var(--safari-tint-inset));
+  left: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  right: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom));
+  border-radius: var(--frame-outer-radius);
   overflow: hidden;
   opacity: 0;
   visibility: hidden;
@@ -4838,6 +4838,7 @@ html[data-abs-instrument-wake] #simulations::after {
 }
 
 html.simulation-focus-modal-open .window-overlay-layer,
+html.simulation-focus-handoff-active .window-overlay-layer,
 body.portfolio-page--locked .window-overlay-layer {
   opacity: 1;
   visibility: visible;
@@ -4845,6 +4846,7 @@ body.portfolio-page--locked .window-overlay-layer {
 }
 
 html.simulation-focus-modal-open .window-overlay-blur-layer,
+html.simulation-focus-handoff-active .window-overlay-blur-layer,
 body.portfolio-page--locked .window-overlay-blur-layer {
   -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
   backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
@@ -4869,7 +4871,11 @@ body.portfolio-page--locked .window-overlay-content-layer {
 /* The legacy controller still owns chooser phase/depth timing, but its
    viewport layers must not paint above the in-window overlay system. */
 html.simulation-focus-modal-open #modal-blur-layer,
-html.simulation-focus-modal-open #modal-content-layer {
+html.simulation-focus-modal-open #modal-content-layer,
+html.simulation-focus-handoff-active #modal-blur-layer,
+html.simulation-focus-handoff-active #modal-content-layer,
+html.simulation-focus-legacy-blur-suppressed #modal-blur-layer,
+html.simulation-focus-legacy-blur-suppressed #modal-content-layer {
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
@@ -4877,6 +4883,7 @@ html.simulation-focus-modal-open #modal-content-layer {
 
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
   html.simulation-focus-modal-open .window-overlay-blur-layer,
+  html.simulation-focus-handoff-active .window-overlay-blur-layer,
   body.portfolio-page--locked .window-overlay-blur-layer {
     -webkit-backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
     backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
@@ -7140,7 +7147,15 @@ body.page-transitioning {
 html.simulation-focus-modal-open #modal-blur-layer,
 html.simulation-focus-modal-open .modal-blur-layer,
 html.simulation-focus-modal-open #modal-content-layer,
-html.simulation-focus-modal-open .modal-content-layer {
+html.simulation-focus-modal-open .modal-content-layer,
+html.simulation-focus-handoff-active #modal-blur-layer,
+html.simulation-focus-handoff-active .modal-blur-layer,
+html.simulation-focus-handoff-active #modal-content-layer,
+html.simulation-focus-handoff-active .modal-content-layer,
+html.simulation-focus-legacy-blur-suppressed #modal-blur-layer,
+html.simulation-focus-legacy-blur-suppressed .modal-blur-layer,
+html.simulation-focus-legacy-blur-suppressed #modal-content-layer,
+html.simulation-focus-legacy-blur-suppressed .modal-content-layer {
   top: var(--safari-tint-inset-y, var(--safari-tint-inset));
   right: var(--safari-tint-inset-x, var(--safari-tint-inset));
   bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom));
