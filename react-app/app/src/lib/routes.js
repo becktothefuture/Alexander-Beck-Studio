@@ -25,6 +25,12 @@ const ROUTE_DEFS = {
     aliases: ['/about.html', '/about'],
     gated: false,
   },
+  'about-narrative-lab': {
+    id: 'about-narrative-lab',
+    path: '/lab/about-narrative.html',
+    aliases: ['/lab/about-narrative.html', '/lab/about-narrative'],
+    gated: false,
+  },
   styleguide: {
     id: 'styleguide',
     path: '/styleguide.html',

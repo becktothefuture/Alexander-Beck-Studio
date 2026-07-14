@@ -4,6 +4,10 @@ import { StudioShell } from './StudioShell.jsx';
 import { getHomeRouteView, HOME_ROUTE_RUNTIME } from '../../routes/home/HomeRoute.jsx';
 import { getPortfolioRouteView, PORTFOLIO_ROUTE_RUNTIME } from '../../routes/portfolio/PortfolioRoute.jsx';
 import { ABOUT_ROUTE_RUNTIME, getAboutRouteView } from '../../routes/about/AboutRoute.jsx';
+import {
+  ABOUT_NARRATIVE_LAB_ROUTE_RUNTIME,
+  getAboutNarrativeLabRouteView,
+} from '../../routes/about-narrative-lab/AboutNarrativeLabRoute.jsx';
 import { CONTACT_ROUTE_RUNTIME, getContactRouteView } from '../../routes/contact/ContactRoute.jsx';
 import { getStyleguideRouteView, STYLEGUIDE_ROUTE_RUNTIME } from '../../routes/styleguide/StyleguideRoute.jsx';
 import {
@@ -70,6 +74,11 @@ const ROUTE_DESCRIPTORS = Object.freeze({
   contact: defineRouteDescriptor('contact', { title: 'Contact - Alexander Beck Studio', getView: getContactRouteView, runtime: CONTACT_ROUTE_RUNTIME }),
   portfolio: defineRouteDescriptor('portfolio', { title: 'Portfolio - Alexander Beck', getView: getPortfolioRouteView, runtime: PORTFOLIO_ROUTE_RUNTIME }),
   about: defineRouteDescriptor('about', { title: 'About Me - Alexander Beck Studio', getView: getAboutRouteView, runtime: ABOUT_ROUTE_RUNTIME }),
+  'about-narrative-lab': defineRouteDescriptor('about-narrative-lab', {
+    title: 'About Narrative Lab - Alexander Beck Studio',
+    getView: getAboutNarrativeLabRouteView,
+    runtime: ABOUT_NARRATIVE_LAB_ROUTE_RUNTIME,
+  }),
   styleguide: defineRouteDescriptor('styleguide', { getView: getStyleguideRouteView, runtime: STYLEGUIDE_ROUTE_RUNTIME }),
   simulations: defineRouteDescriptor('simulations', { getView: getSimulationLaunchpadRouteView, runtime: SIMULATION_LAUNCHPAD_ROUTE_RUNTIME }),
   'palette-lab': defineRouteDescriptor('palette-lab', { getView: getPaletteLabRouteView, runtime: PALETTE_LAB_ROUTE_RUNTIME }),
@@ -400,7 +409,7 @@ export function SiteApp() {
           transitionCurrentRoute={transitionCurrentRoute}
         >
           <StudioShell
-            activeRouteId={activeRouteId}
+            activeRouteId={routeView.navigationRouteId || activeRouteId}
             routeRenderKey={routeView.routeRenderKey || routeState.route.id}
             contentRenderKey={routeView.contentRenderKey || routeState.route.id}
             studioWindowClassName={routeView.studioWindowClassName || routeView.wallClassName}
