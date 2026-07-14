@@ -30,9 +30,9 @@
   --studio-window-bg-dark: var(--bg-dark);
   --studio-window-bg: var(--studio-window-bg-light);
   --frame-color-site-light: #202124;
-  --frame-color-site-dark: #202124;
+  --frame-color-site-dark: #121314;
   --frame-color-light: #202124;
-  --frame-color-dark: #202124;
+  --frame-color-dark: #121314;
   --frame-color: var(--frame-color-dark);
   --wall-color-light: var(--frame-color-light);
   --wall-color-dark: var(--frame-color-dark);
@@ -276,7 +276,7 @@
   --button-bar-height: calc(var(--button-bar-button-height) + (var(--button-bar-padding-y) * 2));
   --button-bar-responsive-height: var(--button-bar-height);
   --button-bar-button-padding-x: 16px;
-  --button-bar-button-radius: 14px;
+  --button-bar-button-radius: 999px;
   --button-bar-font-size: 1.032rem;
   --button-bar-max-width: 2400px;
   --button-bar-bg: color-mix(in srgb, var(--abs-browser-chrome) 88%, rgba(var(--abs-rgb-black), 1) 12%);
@@ -298,8 +298,8 @@
   --button-bar-button-inner-shadow: rgba(var(--abs-rgb-black), 0.24);
   --button-bar-button-light-color: color-mix(in srgb, var(--cursor-color) 72%, rgba(var(--abs-rgb-white), 1) 28%);
   --button-bar-indicator-opacity: 0.5;
-  --button-bar-shadow-opacity: 0.12;
-  --button-bar-active-glow: 6px;
+  --button-bar-shadow-opacity: 0;
+  --button-bar-active-glow: 0px;
   --button-bar-active-drop: 0px;
   --button-bar-transition-ms: 140ms;
   --shell-bottom-tabs-gap: var(--button-bar-inset);
@@ -554,7 +554,7 @@
   --outer-wall-top-bevel-opacity-dark: 0.35;  /* Outer wall bevel opacity (dark mode) */
   
   /* Inner wall gradient edge - radial gradient light/shadow edges */
-  --inner-wall-gradient-edge-width: 3px;      /* Thickness of gradient edge border (~50% above prior 2px default) */
+  --inner-wall-gradient-edge-width: 0px;
   --inner-wall-gradient-radius: 70;           /* Percentage of width for gradient spread */
   --inner-wall-top-bevel-width: 2px;          /* Inner wall top light edge thickness */
   --inner-wall-top-light-opacity: 0.22;       /* Inner wall top light edge opacity (light mode) */
@@ -566,10 +566,10 @@
   --inner-wall-bottom-shadow-rgb: 0, 0, 0;    /* Inner wall bottom shadow color RGB */
 
   /* Gradient edge per-side opacities (bottom/sides: light rim; top: shadow rim — overridden by JS) */
-  --inner-wall-gradient-edge-top-shadow-opacity: 0.3;
-  --inner-wall-gradient-edge-bottom-opacity: 0.32;
-  --inner-wall-gradient-edge-side-opacity: 0.18;
-  --inner-wall-gradient-edge-side-shadow-opacity: 0.18;
+  --inner-wall-gradient-edge-top-shadow-opacity: 0;
+  --inner-wall-gradient-edge-bottom-opacity: 0;
+  --inner-wall-gradient-edge-side-opacity: 0;
+  --inner-wall-gradient-edge-side-shadow-opacity: 0;
 
   /* Inner wall shine - strong blur from all sides (background colored) */
   --inner-wall-shine-blur: 20px;

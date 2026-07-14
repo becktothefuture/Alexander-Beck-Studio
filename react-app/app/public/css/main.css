@@ -2410,9 +2410,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   -webkit-backdrop-filter: blur(18px) saturate(1.08);
   backdrop-filter: blur(18px) saturate(1.08);
   -webkit-tap-highlight-color: transparent;
-  box-shadow:
-    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.16),
-    0 12px 32px rgba(var(--abs-rgb-black), 0.08);
+  box-shadow: none;
   transition:
     border-color 180ms var(--ease-organic),
     color 180ms var(--ease-organic),
@@ -2428,7 +2426,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   z-index: 0;
   border-radius: inherit;
   background: var(--abs-soft-hover-field-fill);
-  filter: blur(var(--abs-soft-hover-field-blur));
+  filter: none;
   box-shadow: none;
   opacity: 0;
   pointer-events: none;
@@ -2458,9 +2456,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   line-height: 1.2;
   white-space: normal;
   overflow: visible;
-  box-shadow:
-    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.12),
-    0 8px 20px rgba(var(--abs-rgb-black), 0.055);
+  box-shadow: none;
 }
 
 html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher {
@@ -2516,8 +2512,8 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 }
 
 .simulation-focus-pill:active {
-  transform: scale(0.985);
-  filter: blur(0.4px);
+  transform: none;
+  filter: none;
 }
 
 .simulation-focus-pill:focus-visible {
@@ -3891,10 +3887,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   background:
     linear-gradient(180deg, rgba(var(--abs-rgb-white), 0.014) 0%, rgba(var(--abs-rgb-white), 0.004) 44%, rgba(var(--abs-rgb-black), 0.022) 100%),
     color-mix(in srgb, var(--shell-tab-surface-hover) 96%, rgba(var(--abs-rgb-white), 1) 4%);
-  box-shadow:
-    inset 0 1px 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.26),
-    inset 0 -1px 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.2),
-    0 4px 9px -8px rgba(var(--abs-rgb-black), 0.36);
+  box-shadow: none;
   transition:
     background 160ms var(--shell-tab-motion-ease),
     box-shadow 160ms var(--shell-tab-motion-ease),
@@ -3912,18 +3905,12 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 .button-bar__theme-toggle:hover .button-bar__theme-thumb,
 .button-bar__theme-toggle:focus-visible .button-bar__theme-thumb {
   color: var(--shell-tab-text-hover);
-  box-shadow:
-    inset 0 1px 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.3),
-    inset 0 -1px 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.22),
-    0 6px 12px -8px rgba(var(--abs-rgb-black), 0.42);
+  box-shadow: none;
 }
 
 .button-bar__theme-toggle:active .button-bar__theme-thumb {
   transform: translate3d(0, -50%, 0);
-  box-shadow:
-    inset 0 1px 1px -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.34),
-    inset 0 -1px 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.18),
-    0 2px 7px -9px rgba(var(--abs-rgb-black), 0.28);
+  box-shadow: none;
 }
 
 .button-bar__sound-toggle[data-enabled='true'],
@@ -3931,18 +3918,13 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 .button-bar__sound-toggle[data-enabled='true']:focus-visible,
 .button-bar__sound-toggle[data-enabled='true']:active {
   --shell-tab-route-accent: var(--button-bar-sound-active-accent, var(--button-bar-accent-sound));
-  --shell-tab-motion-y: 0.35px;
-  --shell-tab-motion-scale: 0.998;
+  --shell-tab-motion-y: 0px;
+  --shell-tab-motion-scale: 1;
   color: var(--shell-tab-text-active);
   background:
     linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.038) 0%, rgba(var(--abs-rgb-white), 0.004) 56%, rgba(var(--abs-rgb-black), 0.018) 100%),
     var(--shell-tab-surface-active);
-  box-shadow:
-    inset 0 1px 1px -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.36),
-    inset 1px 0 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.08),
-    inset 0 -1px 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.24),
-    inset -1px 0 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.08),
-    0 3px 9px -11px rgba(var(--abs-rgb-black), 0.18);
+  box-shadow: none;
 }
 
 .button-bar__sound-toggle[data-enabled='true']:active {
@@ -4006,19 +3988,14 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   line-height: 1;
   letter-spacing: 0;
   text-decoration: none;
-  border-radius: min(var(--ui-icon-corner-radius), var(--shell-tab-radius, 14px));
+  border-radius: var(--abs-radius-pill);
   border: 0;
   cursor: pointer;
   background:
     linear-gradient(180deg, rgba(var(--abs-rgb-white), 0.006) 0%, rgba(var(--abs-rgb-white), 0.002) 34%, rgba(var(--abs-rgb-black), 0.018) 100%),
     var(--shell-tab-surface-rest);
   overflow: visible;
-  box-shadow:
-    inset 0 1px 0 -0.5px var(--shell-tab-edge-light),
-    inset 1px 0 0 -0.5px var(--shell-tab-edge-light-side),
-    inset 0 -1px 0 -0.5px var(--shell-tab-edge-dark),
-    inset -1px 0 0 -0.5px var(--shell-tab-edge-dark-side),
-    0 6px 14px -13px var(--shell-tab-drop-shadow);
+  box-shadow: none;
   -webkit-tap-highlight-color: transparent;
   transform: translateY(var(--shell-tab-motion-y)) scale(var(--shell-tab-motion-scale));
   transform-origin: 50% 50%;
@@ -4037,7 +4014,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   inline-size: var(--ui-icon-frame-size);
   min-width: var(--ui-icon-frame-size);
   padding: 0;
-  border-radius: min(var(--ui-icon-corner-radius), var(--shell-tab-radius, 14px));
+  border-radius: var(--abs-radius-pill);
   justify-self: start;
 }
 
@@ -4087,9 +4064,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   background:
     linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.035) 0%, transparent 100%),
     var(--button-bar-figma-hover-fill);
-  box-shadow:
-    inset 0 1px 1px 0 rgba(var(--abs-rgb-black), 0.2),
-    inset 0 -1px 0 0 rgba(var(--abs-rgb-white), 0.08);
+  box-shadow: none;
 }
 
 .button-bar__primary-buttons .shell-tab[data-route-tab='home'] {
@@ -4205,12 +4180,7 @@ svg.shell-tab__icon {
   background:
     linear-gradient(180deg, rgba(var(--abs-rgb-white), 0.012) 0%, rgba(var(--abs-rgb-white), 0.004) 38%, rgba(var(--abs-rgb-black), 0.018) 100%),
     var(--shell-tab-surface-hover);
-  box-shadow:
-    inset 0 1px 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.26),
-    inset 1px 0 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.11),
-    inset 0 -1px 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.2),
-    inset -1px 0 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.095),
-    0 9px 17px -13px rgba(var(--abs-rgb-black), 0.22);
+  box-shadow: none;
   color: var(--shell-tab-text-hover);
   transition-duration: 160ms, 160ms, 140ms, 160ms;
   transition-timing-function:
@@ -4239,46 +4209,30 @@ svg.shell-tab__icon {
 
 .shell-tab:focus-visible {
   outline: none;
-  box-shadow:
-    inset 0 1px 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.26),
-    inset 1px 0 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.11),
-    inset 0 -1px 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.2),
-    inset -1px 0 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.095),
-    0 0 0 1px color-mix(in srgb, var(--shell-tab-route-accent) 26%, transparent),
-    0 9px 17px -13px rgba(var(--abs-rgb-black), 0.22);
+  box-shadow: none;
 }
 
 .shell-tab[aria-current='page'] {
-  --shell-tab-motion-y: 0.35px;
-  --shell-tab-motion-scale: 0.998;
+  --shell-tab-motion-y: 0px;
+  --shell-tab-motion-scale: 1;
   cursor: default;
   background:
     linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.065) 0%, rgba(var(--abs-rgb-white), 0.001) 58%, rgba(var(--abs-rgb-black), 0.024) 100%),
     var(--shell-tab-surface-active);
   color: var(--shell-tab-text-active);
-  box-shadow:
-    inset 0 1px 2px -0.75px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.42),
-    inset 1px 0 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.08),
-    inset 0 -1px 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.25),
-    inset -1px 0 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.08),
-    0 3px 9px -11px rgba(var(--abs-rgb-black), 0.16);
+  box-shadow: none;
 }
 
 .shell-tab[aria-current='page']:hover,
 .shell-tab[aria-current='page']:focus-visible,
 .shell-tab[aria-current='page']:active {
-  --shell-tab-motion-y: 0.35px;
-  --shell-tab-motion-scale: 0.998;
+  --shell-tab-motion-y: 0px;
+  --shell-tab-motion-scale: 1;
   cursor: default;
   background:
     linear-gradient(180deg, rgba(var(--abs-rgb-black), 0.065) 0%, rgba(var(--abs-rgb-white), 0.001) 58%, rgba(var(--abs-rgb-black), 0.024) 100%),
     var(--shell-tab-surface-active);
-  box-shadow:
-    inset 0 1px 2px -0.75px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.42),
-    inset 1px 0 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.08),
-    inset 0 -1px 0 -0.5px rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.25),
-    inset -1px 0 0 -0.5px rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.08),
-    0 3px 9px -11px rgba(var(--abs-rgb-black), 0.16);
+  box-shadow: none;
   color: var(--shell-tab-text-active);
 }
 
@@ -4335,17 +4289,13 @@ svg.shell-tab__icon {
   display: block;
   border-radius: inherit;
   background: var(--shell-tab-route-accent);
-  box-shadow:
-    inset 0 calc(var(--abs-size-1px) * 2) calc(var(--abs-size-1px) * 2) calc(var(--abs-size-1px) * -1) var(--button-bar-active-top-shadow),
-    inset 0 calc(var(--abs-size-1px) * -1) 0 0 var(--button-bar-active-bottom-shine);
+  box-shadow: none;
   pointer-events: none;
   transition: box-shadow 120ms var(--shell-tab-motion-ease);
 }
 
 .button-bar__primary-buttons .shell-tab[aria-current='page']:active::before {
-  box-shadow:
-    inset 0 calc(var(--abs-size-1px) * 2) calc(var(--abs-size-1px) * 3) calc(var(--abs-size-1px) * -1) rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.3),
-    inset 0 calc(var(--abs-size-1px) * -2) var(--abs-size-1px) calc(var(--abs-size-1px) * -1) rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.38);
+  box-shadow: none;
   transition-duration: 0ms;
 }
 
@@ -4357,19 +4307,19 @@ svg.shell-tab__icon {
 /* Production Button Bar material: flush precision-gasket cutouts. */
 .button-bar {
   --button-bar-gasket-ground: var(--abs-browser-chrome);
-  --button-bar-gasket-radius: var(--abs-radius-cta);
+  --button-bar-gasket-radius: var(--abs-radius-pill);
   --button-bar-gasket-cut: rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.6);
   --button-bar-gasket-active-cut: color-mix(in srgb, var(--button-bar-gasket-cut) 78%, rgba(var(--abs-rgb-black), 1) 22%);
-  --button-bar-gasket-light: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), var(--button-bar-groove-light-opacity, 0.12));
-  --button-bar-gasket-edge-soft: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.065);
-  --button-bar-gasket-edge-lower: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.04);
-  --button-bar-gasket-pressed-light: rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.12);
+  --button-bar-gasket-light: transparent;
+  --button-bar-gasket-edge-soft: transparent;
+  --button-bar-gasket-edge-lower: transparent;
+  --button-bar-gasket-pressed-light: transparent;
   --button-bar-gasket-text-rest: var(--button-bar-outer-ink-muted, rgba(var(--abs-rgb-white), 0.64));
   --button-bar-gasket-text-active: var(--button-bar-outer-ink, rgba(var(--abs-rgb-white), 0.88));
   --button-bar-selected-ground-share: 84%;
   --button-bar-pressed-ground-share: 76%;
-  --button-bar-selected-shadow-opacity: 0.42;
-  --button-bar-pressed-shadow-opacity: 0.5;
+  --button-bar-selected-shadow-opacity: 0;
+  --button-bar-pressed-shadow-opacity: 0;
 }
 
 html[data-abs-light-locked-chrome] .button-bar {
@@ -4377,8 +4327,8 @@ html[data-abs-light-locked-chrome] .button-bar {
   --button-bar-gasket-active-cut: rgba(var(--abs-rgb-black), 0.14);
   --button-bar-selected-ground-share: 92%;
   --button-bar-pressed-ground-share: 86%;
-  --button-bar-selected-shadow-opacity: 0.16;
-  --button-bar-pressed-shadow-opacity: 0.22;
+  --button-bar-selected-shadow-opacity: 0;
+  --button-bar-pressed-shadow-opacity: 0;
 }
 
 .button-bar .shell-tab,
@@ -4394,9 +4344,7 @@ html[data-abs-light-locked-chrome] .button-bar {
   border: var(--abs-size-1px) solid var(--button-bar-gasket-cut);
   border-radius: var(--button-bar-gasket-radius);
   background: var(--button-bar-gasket-ground);
-  box-shadow:
-    inset 0 var(--abs-size-1px) 0 var(--button-bar-gasket-edge-soft),
-    0 var(--abs-size-1px) 0 var(--button-bar-gasket-edge-lower);
+  box-shadow: none;
 }
 
 .button-bar
@@ -4415,13 +4363,13 @@ html[data-abs-light-locked-chrome] .button-bar {
 .button-bar .button-bar__primary-buttons .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active),
 .button-bar .button-bar__sound-toggle[data-enabled='true'],
 .button-bar .button-bar__sound-toggle[data-enabled='true']:is(:hover, :focus-visible, :active) {
-  --shell-tab-motion-y: var(--abs-size-1px);
+  --shell-tab-motion-y: 0px;
   --shell-tab-motion-scale: 1;
   color: var(--shell-tab-text-active);
   border-color: var(--button-bar-gasket-active-cut);
   border-bottom-color: var(--button-bar-gasket-pressed-light);
   background: color-mix(in srgb, var(--shell-tab-surface-base) var(--button-bar-selected-ground-share), rgba(var(--abs-rgb-black), 1));
-  box-shadow: inset 0 calc(var(--abs-size-1px) * 2) calc(var(--abs-size-1px) * 4) rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), var(--button-bar-selected-shadow-opacity));
+  box-shadow: none;
 }
 
 .button-bar .button-bar__primary-buttons .shell-tab[aria-current='page']::before {
@@ -4430,21 +4378,19 @@ html[data-abs-light-locked-chrome] .button-bar {
 
 .button-bar .shell-tab:active,
 .button-bar .button-bar__primary-buttons .shell-tab:active:not([aria-current='page']) {
-  --shell-tab-motion-y: var(--abs-size-1px);
+  --shell-tab-motion-y: 0px;
   --shell-tab-motion-scale: 1;
   color: var(--shell-tab-text-active);
   border-bottom-color: var(--button-bar-gasket-pressed-light);
   background: color-mix(in srgb, var(--shell-tab-surface-base) var(--button-bar-pressed-ground-share), rgba(var(--abs-rgb-black), 1));
-  box-shadow: inset 0 calc(var(--abs-size-1px) * 3) calc(var(--abs-size-1px) * 5) rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), var(--button-bar-pressed-shadow-opacity));
+  box-shadow: none;
   transition-duration: 0ms;
 }
 
 .button-bar .button-bar__sound-toggle.shell-tab[data-state='idle']:not(:hover):not(:focus-visible):not(:active) {
   color: var(--shell-tab-text-rest);
   background: var(--button-bar-gasket-ground);
-  box-shadow:
-    inset 0 var(--abs-size-1px) 0 var(--button-bar-gasket-edge-soft),
-    0 var(--abs-size-1px) 0 var(--button-bar-gasket-edge-lower);
+  box-shadow: none;
 }
 
 /* The theme control is the one capsule in the gasket set. Keep its half-height
@@ -4475,13 +4421,9 @@ html[data-abs-light-locked-chrome] .button-bar {
 .button-bar .button-bar__theme-toggle .button-bar__theme-thumb,
 .button-bar .button-bar__theme-toggle:is(:hover, :focus-visible) .button-bar__theme-thumb {
   color: var(--button-bar-theme-thumb-ink);
-  box-shadow:
-    inset 0 var(--abs-size-1px) 0 calc(var(--abs-size-1px) * -0.5) rgba(var(--inner-wall-top-light-rgb, var(--abs-rgb-white)), 0.26),
-    inset 0 calc(var(--abs-size-1px) * -1) 0 calc(var(--abs-size-1px) * -0.5) rgba(var(--inner-wall-bottom-shadow-rgb, var(--abs-rgb-black)), 0.2),
-    0 calc(var(--abs-size-1px) * 4) calc(var(--abs-size-1px) * 9) calc(var(--abs-size-1px) * -8) rgba(var(--abs-rgb-black), 0.36);
+  box-shadow: none;
 }
 
-/* Desktop-only stepped-cavity relief fills the wall beside the controls. */
 @media (min-width: 900px) and (hover: hover) {
   .button-bar.shell-bottom-band::before,
   .button-bar.shell-bottom-band::after {
@@ -4493,12 +4435,8 @@ html[data-abs-light-locked-chrome] .button-bar {
     align-self: stretch;
     min-width: 0;
     border-radius: var(--button-bar-gasket-radius);
-    background:
-      linear-gradient(180deg, var(--button-bar-gasket-cut), transparent 25% 75%, var(--button-bar-gasket-light)) center calc(50% - (var(--abs-size-1px) * 13.5)) / calc(100% - (var(--button-bar-groove-inline-inset) * 2)) calc(var(--abs-size-1px) * 4) no-repeat,
-      linear-gradient(180deg, var(--button-bar-gasket-cut), transparent 25% 75%, var(--button-bar-gasket-light)) center calc(50% - (var(--abs-size-1px) * 4.5)) / calc(100% - (var(--button-bar-groove-inline-inset) * 2)) calc(var(--abs-size-1px) * 4) no-repeat,
-      linear-gradient(180deg, var(--button-bar-gasket-cut), transparent 25% 75%, var(--button-bar-gasket-light)) center calc(50% + (var(--abs-size-1px) * 4.5)) / calc(100% - (var(--button-bar-groove-inline-inset) * 2)) calc(var(--abs-size-1px) * 4) no-repeat,
-      linear-gradient(180deg, var(--button-bar-gasket-cut), transparent 25% 75%, var(--button-bar-gasket-light)) center calc(50% + (var(--abs-size-1px) * 13.5)) / calc(100% - (var(--button-bar-groove-inline-inset) * 2)) calc(var(--abs-size-1px) * 4) no-repeat;
-    opacity: 0.9;
+    background: none;
+    opacity: 0;
     pointer-events: none;
   }
 
@@ -4846,35 +4784,7 @@ html[data-abs-instrument-wake] #simulations::after {
    under the transparent margin; the drawer face uses insert-only shading (no wall lights).
    ───────────────────────────────────────────────────────────────────────────── */
 .inner-wall-gradient-edge {
-  background:
-    /* Bottom edge — brightest at center, transparent at corners */
-    radial-gradient(
-      50% 100% at 50% 100%,
-      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-bottom-opacity)) 0%,
-      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-bottom-opacity) * 0.3)) 60%,
-      transparent 100%
-    ) bottom center / 100% var(--inner-wall-gradient-edge-width) no-repeat,
-    /* Top edge — darkest at center, transparent at corners (inset shadow lip) */
-    radial-gradient(
-      50% 100% at 50% 0%,
-      rgba(var(--inner-wall-bottom-shadow-rgb), var(--inner-wall-gradient-edge-top-shadow-opacity)) 0%,
-      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--inner-wall-gradient-edge-top-shadow-opacity) * 0.3)) 60%,
-      transparent 100%
-    ) top center / 100% var(--inner-wall-gradient-edge-width) no-repeat,
-    /* Left edge — brightest at center, transparent at corners */
-    radial-gradient(
-      100% 50% at 0% 50%,
-      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-side-opacity)) 0%,
-      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-side-opacity) * 0.3)) 60%,
-      transparent 100%
-    ) left center / var(--inner-wall-gradient-edge-width) 100% no-repeat,
-    /* Right edge — brightest at center, transparent at corners */
-    radial-gradient(
-      100% 50% at 100% 50%,
-      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-side-shadow-opacity)) 0%,
-      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-side-shadow-opacity) * 0.3)) 60%,
-      transparent 100%
-    ) right center / var(--inner-wall-gradient-edge-width) 100% no-repeat;
+  background: none;
 }
 
 .inner-wall-gradient-edge {
@@ -6310,7 +6220,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   z-index: -1;
   border-radius: inherit;
   background: color-mix(in srgb, currentColor 10%, transparent);
-  filter: blur(0);
+  filter: none;
   box-shadow: none;
   opacity: 0;
   pointer-events: none;
@@ -6358,8 +6268,8 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .simulation-focus-row:active {
-  transform: scale(0.99);
-  filter: blur(0.25px);
+  transform: none;
+  filter: none;
 }
 
 .simulation-focus-row:focus-visible {

@@ -911,14 +911,14 @@ body:not(.dark-mode) {
 }
 
 .mode-button:active {
-  transform: scale(0.95);
+  transform: none;
 }
 
 /* Daily Mode indicator */
 .mode-button.is-daily-mode {
   position: relative;
   border-color: var(--panel-accent);
-  box-shadow: 0 0 0 1px var(--panel-accent);
+  box-shadow: none;
 }
 
 .mode-button.is-daily-mode::before {
