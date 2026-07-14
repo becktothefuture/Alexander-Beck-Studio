@@ -1,6 +1,6 @@
 import homeContent from 'virtual:abs-content/home';
 
-export const ABOUT_NARRATIVE_SETTINGS_KEY = 'abs:about-narrative-lab:settings:v1';
+export const ABOUT_NARRATIVE_SETTINGS_KEY = 'abs:about-narrative-lab:settings:v4';
 
 export const ABOUT_NARRATIVE_DEFAULT_SETTINGS = Object.freeze({
   scrollSmoothing: 0.82,
@@ -13,10 +13,12 @@ export const ABOUT_NARRATIVE_DEFAULT_SETTINGS = Object.freeze({
   exitDrift: 32,
   maxBlur: 20,
   fadeWindow: 0.18,
-  backgroundOpacity: 0.58,
-  backgroundCrossfade: 0.18,
   editorialRevealThreshold: 0.74,
-  readingWidth: 46,
+  readingWidth: 58,
+  fieldOpacity: 0.82,
+  waveStrength: 0.68,
+  cameraRoll: 0.38,
+  bustScale: 0.58,
 });
 
 export const ABOUT_NARRATIVE_CONTROL_GROUPS = Object.freeze([
@@ -37,11 +39,13 @@ export const ABOUT_NARRATIVE_CONTROL_GROUPS = Object.freeze([
     ],
   },
   {
-    id: 'background',
-    label: 'Background',
+    id: 'world',
+    label: 'Point-cloud world',
     controls: [
-      { id: 'backgroundOpacity', label: 'Opacity', min: 0, max: 0.9, step: 0.01 },
-      { id: 'backgroundCrossfade', label: 'Crossfade', min: 0.08, max: 0.32, step: 0.01 },
+      { id: 'fieldOpacity', label: 'Field opacity', min: 0.2, max: 1, step: 0.01 },
+      { id: 'waveStrength', label: 'Terrain waves', min: 0, max: 1.4, step: 0.01 },
+      { id: 'cameraRoll', label: 'Camera roll', min: 0, max: 0.7, step: 0.01 },
+      { id: 'bustScale', label: 'Bust scale', min: 0.42, max: 0.9, step: 0.01 },
     ],
   },
   {
@@ -49,153 +53,123 @@ export const ABOUT_NARRATIVE_CONTROL_GROUPS = Object.freeze([
     label: 'Reading',
     controls: [
       { id: 'editorialRevealThreshold', label: 'Reveal threshold', min: 0.6, max: 0.9, step: 0.01 },
-      { id: 'readingWidth', label: 'Reading width', min: 34, max: 56, step: 1, suffix: 'rem' },
+      { id: 'readingWidth', label: 'Reading width', min: 42, max: 72, step: 1, suffix: 'rem' },
     ],
   },
-]);
-
-export const ABOUT_NARRATIVE_BACKGROUNDS = Object.freeze([
-  {
-    id: 'unresolved-density',
-    src: '/images/about-narrative-lab/unresolved-density.webp',
-  },
-  {
-    id: 'ordered-field',
-    src: '/images/about-narrative-lab/ordered-field.webp',
-  },
-  {
-    id: 'responsive-living-structure',
-    src: '/images/about-narrative-lab/responsive-living-structure.webp',
-  },
-  {
-    id: 'open-release',
-    src: '/images/about-narrative-lab/open-release.webp',
-  },
-]);
-
-export const ABOUT_NARRATIVE_CLIENTS = Object.freeze([
-  'American Heart Association',
-  'S&P Global',
-  'Yoti',
-  'Bentley',
-  'Sony',
-  'Jaguar Land Rover',
-  'McCann',
-  'Maybourne Hotels',
-  'SunExpress',
-  'Lufthansa Group',
-  'Turkish Airlines',
-  'Tourism Ireland',
-  'Experian',
-  'Money and Pensions Service',
-  'Frankfurt Opera',
-  'DCC',
 ]);
 
 export const ABOUT_NARRATIVE_SECTIONS = Object.freeze([
   {
-    id: 'present',
-    label: 'Present',
-    type: 'spatial',
+    id: 'invitation',
+    label: 'Invitation',
+    type: 'opening',
     variant: 'opener',
-    backgroundStage: 0,
-    copy: 'I help organisations shape complex ideas into clear, human and emotionally compelling experiences—especially when the answer is still being figured out.',
-    fragments: [
-      'I help organisations shape complex ideas',
-      'into clear, human and emotionally compelling experiences',
-      'especially when the answer is still being figured out.',
-    ],
+    copy: 'I help organisations shape complex ideas…',
   },
   {
-    id: 'profile',
-    label: 'Profile',
+    id: 'promise',
+    label: 'What clarity makes possible',
     type: 'editorial',
-    backgroundStage: 0,
-    paragraphs: [
-      'I’m a creative designer, technologist and systems thinker based in London. At Critical Mass, I work on digital experiences for the American Heart Association.',
-      'Teams bring me in to solve complexity, connect ambitious ideas to practical execution, and turn research, user needs and business ambition into purposeful, surprising work.',
+    variant: 'opening-continuation',
+    prose: [
+      {
+        text: 'into clear, human and emotionally compelling experiences.',
+      },
     ],
   },
   {
-    id: 'perspective',
-    label: 'Perspective',
+    id: 'complexity',
+    label: 'Complexity',
     type: 'spatial',
-    variant: 'default',
-    backgroundStage: 1,
-    copy: 'The whole experience matters: how it works, how it looks, and how it makes people feel.',
+    variant: 'approach',
+    copy: 'We are surrounded by systems becoming denser, faster and harder to read.',
     fragments: [
-      'The whole experience matters:',
-      'how it works, how it looks,',
-      'and how it makes people feel.',
+      'We are surrounded by systems becoming denser,',
+      'faster and harder to read.',
     ],
   },
   {
-    id: 'trajectory',
-    label: 'Trajectory',
+    id: 'attention',
+    label: 'Learning to see',
     type: 'editorial',
-    backgroundStage: 1,
-    paragraphs: [
-      'My path moved from language, technology and visual communication into interaction, behaviour and trust, then into products, brands and systems in implementation. Denaline, Yoti and MRM are the main turns; education stays a quiet footnote.',
+    prose: [
+      {
+        text: 'I came to design through language and technology—two systems for carrying an idea from one mind to another. Visual form taught me that attention is shaped by choices: what comes forward, what recedes, what connects and what disappears.',
+      },
+      {
+        text: 'Clarity begins with attention: deciding what comes forward, what recedes, what connects and what disappears.',
+        emphasis: true,
+      },
+    ],
+    details: [
+      'That path expanded from composition and visual language into interfaces, behaviour, trust, products and systems.',
+    ],
+    inlineVisual: 'attention-field',
+  },
+  {
+    id: 'ai',
+    label: 'Possibility and judgement',
+    type: 'constellation',
+    variant: 'constellation',
+    copy: 'AI multiplies possibilities. Judgement gives them direction.',
+    fragments: [
+      'AI multiplies possibilities.',
+      'Judgement gives them direction.',
     ],
   },
   {
-    id: 'payoff',
-    label: 'From ambition to reality',
+    id: 'structure',
+    label: 'Passing through',
     type: 'spatial',
-    variant: 'default',
-    backgroundStage: 2,
-    copy: 'From ambition to reality, I help teams find the organising idea, make it tangible and protect what matters through delivery.',
+    variant: 'traverse',
+    copy: 'Complexity is not the enemy. Confusion is.',
     fragments: [
-      'From ambition to reality,',
-      'I help teams find the organising idea,',
-      'make it tangible and protect what matters through delivery.',
+      'Complexity is not the enemy.',
+      'Confusion is.',
+    ],
+  },
+  {
+    id: 'stillness',
+    label: 'From order to life',
+    type: 'spatial',
+    variant: 'living-field',
+    copy: 'A perfect system can still feel lifeless. Character begins when it learns to respond.',
+    fragments: [
+      'A perfect system can still feel lifeless.',
+      'Character begins when it learns to respond.',
     ],
   },
   {
     id: 'practice',
-    label: 'Practice',
+    label: 'Making ideas tangible',
     type: 'editorial',
-    backgroundStage: 2,
-    paragraphs: [
-      'Today I work through immersion, clear creative direction, genuine collaboration and prototypes people can experience. My client context spans healthcare, finance, mobility, travel, technology and culture.',
+    prose: [
+      {
+        text: 'The work often begins before the format is known. I immerse myself in the problem, look for the organising idea, and make it tangible enough for people to test together. Prototypes turn opinions into something we can experience. Systems help the idea travel.',
+      },
+      {
+        text: 'Character is not decoration added after the useful work. It lives in how something responds, how movement guides attention, how a constraint becomes a useful choice, and how a person can sense that somebody cared.',
+      },
+      {
+        text: 'The aim is not less complexity. It is more meaning, made legible.',
+        emphasis: true,
+      },
     ],
-    clients: ABOUT_NARRATIVE_CLIENTS,
-  },
-  {
-    id: 'curiosity',
-    label: 'Curiosity',
-    type: 'cabinet',
-    backgroundStage: 2,
-    items: [
-      {
-        title: 'iOS keyboard exploration',
-        caption: 'Rethinking a familiar input until its assumptions become visible.',
-      },
-      {
-        title: 'Spatial interface experiments',
-        caption: 'Testing how a website can feel architectural without losing clarity.',
-      },
-      {
-        title: '3D and visual R&D',
-        caption: 'Exploring material, motion and atmosphere as product-design tools.',
-      },
+    details: [
+      'The contexts change—from healthcare and identity to finance, mobility and culture—but the work repeatedly moves from an unresolved question towards something people can see, test and shape together.',
     ],
   },
   {
-    id: 'next',
-    label: 'Next',
-    type: 'spatial',
-    variant: 'closing',
-    backgroundStage: 3,
-    copy: 'I’m looking for greater responsibility in innovation, creative direction and early-stage experience design—especially around AI, trust, privacy, robotics, digital identity, education and healthcare.',
+    id: 'point-of-view',
+    label: 'Point of view',
+    type: 'finale',
+    variant: 'finale',
+    copy: 'In the end, clarity is a point of view… by finding what must survive.',
     fragments: [
-      'I’m looking for greater responsibility',
-      'in innovation, creative direction and early-stage experience design',
-      'especially around AI, trust, privacy, robotics, digital identity, education and healthcare.',
+      'In the end, clarity is a point of view.',
+      '…by finding what must survive.',
     ],
-    support: [
-      'If you are tackling a meaningful problem that is not neatly defined, I’d like to hear from you.',
-    ],
+    cta: 'Bring me something unresolved.',
   },
 ]);
 

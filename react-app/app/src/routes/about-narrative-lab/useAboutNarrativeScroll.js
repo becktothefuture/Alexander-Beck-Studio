@@ -19,7 +19,6 @@ export function useAboutNarrativeScroll({
   scrollportRef,
   contentRef,
   sectionRefs,
-  backgroundRefs,
 }) {
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const activeSectionIndexRef = useRef(0);
@@ -87,7 +86,8 @@ export function useAboutNarrativeScroll({
       if (!node) return;
       const measurement = sections[index];
       const data = sectionData[index];
-      if (!measurement || data?.type !== 'spatial') return;
+      const isSpatialMovement = ['spatial', 'constellation', 'finale'].includes(data?.type);
+      if (!measurement || !isSpatialMovement) return;
       const fragments = measurement.fragments || [];
 
       if (reduceMotion) {
@@ -119,6 +119,7 @@ export function useAboutNarrativeScroll({
         const relativeProgress = (progress - center) / fragmentWindow;
         const entryStart = fragmentIndex === 0 ? 0 : center - fragmentWindow;
         const direction = fragmentIndex % 2 === 0 ? -1 : 1;
+        const holdsAtEnd = data?.type === 'finale' && fragmentIndex === fragments.length - 1;
         let scale = 1;
         let blur = 0;
         let opacity = 1;
@@ -134,6 +135,13 @@ export function useAboutNarrativeScroll({
           x = 0;
           y = 0;
           z = mix(-currentSettings.entryDepth, 0, phase);
+        } else if (holdsAtEnd) {
+          scale = 1;
+          blur = 0;
+          opacity = 1;
+          x = 0;
+          y = 0;
+          z = 0;
         } else {
           const phase = ease(clamp01(relativeProgress));
           scale = mix(1, currentSettings.nearScale, phase);
@@ -170,34 +178,7 @@ export function useAboutNarrativeScroll({
       node.style.setProperty('--editorial-y', `${((1 - progress) * 12).toFixed(2)}px`);
     });
 
-    const activeMeasurement = sections[nextActiveIndex];
-    const activeData = sectionData[nextActiveIndex];
-    const nextData = sectionData[nextActiveIndex + 1];
-    const activeStage = activeData?.backgroundStage ?? 0;
-    const nextStage = nextData?.backgroundStage ?? activeStage;
-    const localProgress = activeMeasurement
-      ? clamp01((focusLine - activeMeasurement.top) / Math.max(1, activeMeasurement.height))
-      : 0;
-    const crossfadeWindow = Math.max(0.04, currentSettings.backgroundCrossfade);
-    const crossfade = reduceMotion
-      ? 0
-      : nextStage !== activeStage
-        ? clamp01((localProgress - (1 - crossfadeWindow)) / crossfadeWindow)
-        : 0;
-    backgroundRefs.current.forEach((node, stageIndex) => {
-      if (!node) return;
-      let weight = stageIndex === activeStage ? 1 : 0;
-      if (nextStage !== activeStage) {
-        if (stageIndex === activeStage) weight = 1 - crossfade;
-        if (stageIndex === nextStage) weight = crossfade;
-      }
-      node.style.setProperty('--background-weight', weight.toFixed(4));
-      node.style.setProperty(
-        '--background-opacity',
-        (weight * currentSettings.backgroundOpacity).toFixed(4),
-      );
-    });
-  }, [backgroundRefs, scrollportRef, sectionData, sectionRefs]);
+  }, [scrollportRef, sectionData, sectionRefs]);
 
   const scheduleFrame = useCallback(() => {
     if (frameRef.current) return;
