@@ -27,20 +27,21 @@
   );
   --dominant-utility-shadow: var(--dominant-press-shadow, rgba(var(--abs-rgb-black), 0.52));
   --dominant-utility-light: var(--dominant-press-light, rgba(var(--abs-rgb-white), 0.42));
-  --dominant-sound-active: var(
-    --button-bar-accent-sound,
-    var(--button-bar-accent-home)
-  );
-  --dominant-sound-active-ink: var(
-    --button-bar-accent-sound-ink,
-    var(--button-bar-accent-home-ink, rgba(var(--abs-rgb-white), 1))
-  );
+  --dominant-sound-active-light: var(--button-bar-sound-active-light, rgba(var(--abs-rgb-white), 1));
+  --dominant-sound-active-dark: var(--button-bar-sound-active-dark, rgba(var(--abs-rgb-black), 1));
+  --dominant-sound-active-ink-light: var(--button-bar-sound-active-ink-light, rgba(var(--abs-rgb-black), 0.9));
+  --dominant-sound-active-ink-dark: var(--button-bar-sound-active-ink-dark, rgba(var(--abs-rgb-white), 0.94));
+  --dominant-sound-active: var(--dominant-sound-active-light);
+  --dominant-sound-active-ink: var(--dominant-sound-active-ink-light);
   --dominant-utility-pressed-rim: none;
   --dominant-tab-pressed-rim: none;
 }
 
+:root[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab'],
 body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
   --dominant-utility-light: rgba(var(--abs-rgb-white), 0.22);
+  --dominant-sound-active: var(--dominant-sound-active-dark);
+  --dominant-sound-active-ink: var(--dominant-sound-active-ink-dark);
 }
 
 .button-bar[data-button-bar-material='dominant-tab'] .shell-tab {
