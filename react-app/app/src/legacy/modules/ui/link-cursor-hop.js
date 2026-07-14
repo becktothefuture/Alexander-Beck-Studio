@@ -1,10 +1,11 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                     LINK HOVER — CURSOR HIDE SYSTEM                          ║
-// ║  Minimal hover detection: hides custom cursor when over interactive elements ║
+// ║                    ACTION HOVER — CUSTOM CURSOR SYSTEM                       ║
+// ║  Tracks in-window clickable targets so the cursor can lead the hover state.  ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 let isInitialized = false;
 const HOVER_CLASS = 'abs-link-hovering';
+const ACTION_HOVER_CLASS = 'abs-action-hovering';
 
 /** Currently hovered link/button (set on pointerover, cleared on pointerout). Used for power-transfer explosion origin. */
 let currentHoveredElement = null;
@@ -25,11 +26,9 @@ function getNearestAction(target) {
   const el = target.closest('a, button, [role="button"]');
   if (!el) return null;
 
-  // Dev launcher should keep the custom cursor visible instead of triggering the
-  // link-hover implosion path that hides it.
+  // Dev launcher and persistent Button Bar keep their own cursor/hover contracts.
   if (el.closest('.panel-toggle-btn')) return null;
   if (el.closest('[data-button-bar]')) return null;
-  if (el.closest('.portfolio-deck-card')) return null;
 
   // Exclude portfolio carousel slides
   try {
@@ -50,6 +49,7 @@ function onPointerOver(e) {
   try {
     currentHoveredElement = link;
     document.body.classList.add(HOVER_CLASS);
+    document.body.classList.add(ACTION_HOVER_CLASS);
     document.body.dispatchEvent(new CustomEvent('abs-link-hover', { detail: { element: link } }));
   } catch (e) {}
 }
@@ -64,6 +64,7 @@ function onPointerOut(e) {
   try {
     currentHoveredElement = null;
     document.body.classList.remove(HOVER_CLASS);
+    document.body.classList.remove(ACTION_HOVER_CLASS);
   } catch (e) {}
 }
 
@@ -75,6 +76,7 @@ export function initLinkCursorHop() {
   try {
     currentHoveredElement = null;
     document.body.classList.remove(HOVER_CLASS);
+    document.body.classList.remove(ACTION_HOVER_CLASS);
   } catch (e) {}
 
   // Pointer events
@@ -92,6 +94,7 @@ export function initLinkCursorHop() {
     try {
       currentHoveredElement = null;
       document.body.classList.remove(HOVER_CLASS);
+      document.body.classList.remove(ACTION_HOVER_CLASS);
     } catch (e) {}
   }, { passive: true });
 
@@ -103,6 +106,7 @@ export function initLinkCursorHop() {
         try {
           currentHoveredElement = null;
           document.body.classList.remove(HOVER_CLASS);
+          document.body.classList.remove(ACTION_HOVER_CLASS);
         } catch (e) {}
       }
     },

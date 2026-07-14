@@ -4,6 +4,7 @@ import { MODES } from '../core/constants.js';
 import { getColorByIndex } from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { subscribeScenePointer } from '../input/pointer.js';
+import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 
 const SHAPE_TYPES = [
   'right-triangle',
@@ -80,9 +81,8 @@ function getShapeColor(g, shapeIndex, pointIndex, rowIndex, colIndex) {
 }
 
 function getInteriorMargin(g, dotRadius) {
-  const dpr = g.DPR || 1;
-  const wallInset = Math.max(0, Number(g.wallInset) || 0) * dpr;
-  return Math.max(wallInset + dotRadius * 4, dotRadius * 7);
+  const collisionInset = getSimulationCollisionInsetPx(g);
+  return Math.max(collisionInset + dotRadius * 4, dotRadius * 7);
 }
 
 function getShapeCenters(g, canvas, dotRadius, count = SHAPE_TYPES.length) {
@@ -436,8 +436,7 @@ function createShapeBodies(g, count, dotRadius) {
 
 function collideBodyWithWalls(body, g) {
   const canvas = g.canvas;
-  const dpr = g.DPR || 1;
-  const margin = Math.max(0, Number(g.wallInset) || 0) * dpr;
+  const margin = getSimulationCollisionInsetPx(g);
   const rest = clamp(Number(g.shapesWallRestitution ?? 0.48), 0.05, 0.95);
   const friction = 1.28;
   const minX = margin;

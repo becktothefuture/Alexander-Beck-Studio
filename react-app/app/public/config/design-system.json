@@ -444,8 +444,6 @@
       "siteFrameLight": "#242529",
       "siteFrameDark": "#121314",
       "chromeHarmonyMode": "auto",
-      "safariFrameLight": "#181818",
-      "safariFrameDark": "#121314",
       "frameBorderEdgeOpacity": 0.009,
       "frameBorderMidOpacity": 0.017
     },
@@ -636,12 +634,12 @@
     }
   },
   "contact": {
-    "minBodyRadius": 8.6,
-    "maxBodyRadius": 10.4,
-    "bodyGapScale": 2.3,
-    "ringGapScale": 4.65,
+    "minBodyRadius": 3.8,
+    "maxBodyRadius": 6.4,
+    "bodyGapScale": 5.6,
+    "ringGapScale": 8.8,
     "innerRingSkipCount": 4,
-    "innerRingAlpha": 0.06,
+    "innerRingAlpha": 1,
     "outerRingAlpha": 1,
     "idleWaveLength": 128,
     "idleWaveSpeed": 0.0003,

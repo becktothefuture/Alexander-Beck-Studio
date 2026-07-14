@@ -17,7 +17,6 @@ import { resetCurrentMode, setMode } from '../modes/mode-controller.js';
 import { resize } from '../rendering/renderer.js';
 import { updateCursorSize } from '../rendering/cursor.js';
 import { getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
-import { applyShellLayoutVars, patchShellLayout } from '../visual/site-shell.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
 import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-shadow.js';
 import { initQuotePuck } from './quote-puck.js';
@@ -59,35 +58,6 @@ function forEachUiElementById(id, callback) {
     const element = uiDocument.getElementById(id);
     if (element) callback(element, uiDocument);
   });
-}
-
-function syncFrameRadiusControl(id, value) {
-  forEachUiElementById(`${id}Slider`, (element) => {
-    element.value = String(value);
-  });
-  forEachUiElementById(`${id}Val`, (element) => {
-    element.textContent = `${Math.round(value)}px`;
-  });
-}
-
-function applyFrameRadiusControlChange(g, changedKey) {
-  let mobile = Math.max(0, Math.round(Number(g.frameRadiusMobilePx) || 0));
-  let desktop = Math.max(0, Math.round(Number(g.frameRadiusDesktopPx) || 0));
-
-  if (changedKey === 'frameRadiusMobilePx') mobile = Math.min(mobile, desktop);
-  if (changedKey === 'frameRadiusDesktopPx') desktop = Math.max(desktop, mobile);
-
-  g.frameRadiusMobilePx = mobile;
-  g.frameRadiusDesktopPx = desktop;
-  patchShellLayout({
-    frameRadiusMobile: `${mobile}px`,
-    frameRadiusDesktop: `${desktop}px`,
-  });
-  applyShellLayoutVars();
-  applyLayoutFromVwToPx();
-  applyLayoutCSSVars();
-  syncFrameRadiusControl('frameRadiusMobilePx', mobile);
-  syncFrameRadiusControl('frameRadiusDesktopPx', desktop);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -223,8 +193,6 @@ const RETIRED_CONTROL_IDS = new Set([
   'frameInnerSurface',
   'logoBlurInactive',
   'logoBlurActive',
-  'lockedHeaderLight',
-  'lockedHeaderDark',
   'tactileEnabled',
   'tactileProjectId',
   'tactileScale',
@@ -314,7 +282,6 @@ export const MASTER_GROUPS = [
     icon: '🧱',
     sections: [
       'wallGeometry',
-      'layers',
       'noise',
       'uiSpacing'
     ]
@@ -824,7 +791,7 @@ export const CONTROL_SECTIONS = {
         default: 'auto',
         format: v => String(v),
         parse: v => String(v),
-        hint: 'Safari/theme-color browsers use the site frame; locked-header browsers adapt the outer frame to native browser chrome.',
+        hint: 'Browser/OS light and dark schemes own the exposed frame; Site frame is a development override.',
         onChange: (g) => {
           setTheme(getCurrentTheme());
         }
@@ -853,6 +820,36 @@ export const CONTROL_SECTIONS = {
     icon: '⚖️',
     defaultOpen: false,
     controls: [
+      { type: 'divider', label: 'Collision' },
+      {
+        id: 'simulationCollisionInsetPx',
+        label: 'Wall collision inset',
+        stateKey: 'simulationCollisionInsetPx',
+        type: 'range',
+        min: 0, max: 32, step: 1,
+        default: 10,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Physics-only clearance from the visible wall. It never moves the canvas, rim, shadow, or wall radius.',
+        onChange: (g, val) => {
+          g.simulationCollisionInsetPx = Math.max(0, Math.min(32, Number(val) || 0));
+          resize();
+          import('../physics/Ball.js').then(({ clampBallPositionToWallInterior }) => {
+            const w = g.canvas?.width || 0;
+            const h = g.canvas?.height || 0;
+            if (!(w > 0) || !(h > 0) || !Array.isArray(g.balls)) return;
+            for (const ball of g.balls) {
+              if (!ball || !clampBallPositionToWallInterior(ball, w, h)) continue;
+              if (typeof ball.wake === 'function') ball.wake();
+              else {
+                ball.isSleeping = false;
+                ball.sleepTimer = 0;
+              }
+            }
+          }).catch(() => {});
+        }
+      },
+      { type: 'divider', label: 'Material' },
       {
         id: 'ballMassKg',
         label: 'Ball Mass',
@@ -1266,34 +1263,6 @@ export const CONTROL_SECTIONS = {
            }).catch(() => {});
        }
        },
-
-      { type: 'divider', label: 'Frame' },
-      {
-        id: 'frameRadiusMobilePx',
-        label: 'Radius Mobile',
-        stateKey: 'frameRadiusMobilePx',
-        designScope: 'shellLayout',
-        type: 'range',
-        min: 8, max: 32, step: 1,
-        default: 20,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Shared radius at 480px and below. It scales fluidly to the desktop radius and cannot exceed it.',
-        onChange: (g) => applyFrameRadiusControlChange(g, 'frameRadiusMobilePx')
-      },
-      {
-        id: 'frameRadiusDesktopPx',
-        label: 'Radius Desktop',
-        stateKey: 'frameRadiusDesktopPx',
-        designScope: 'shellLayout',
-        type: 'range',
-        min: 20, max: 48, step: 1,
-        default: 32,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Shared radius at 991px and above. It scales fluidly from the mobile radius and cannot fall below it.',
-        onChange: (g) => applyFrameRadiusControlChange(g, 'frameRadiusDesktopPx')
-      },
 
       { type: 'divider', label: 'Hit Areas' },
       {
@@ -2267,63 +2236,6 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // LAYERS - Overlay positioning and edge overlap controls
-  // ═══════════════════════════════════════════════════════════════════════════
-  layers: {
-    title: 'Layers & Edges',
-    icon: '📐',
-    defaultOpen: false,
-    controls: [
-      { type: 'divider', label: 'Wall Frame' },
-      {
-        id: 'containerBorderVw',
-        label: 'Outer Inset',
-        stateKey: 'containerBorderVw',
-        type: 'range',
-        min: 0, max: 8, step: 0.1,
-        default: 1.5,
-        format: v => `${v.toFixed(1)}vw`,
-        parse: parseFloat,
-        hint: 'Distance from viewport edge to wall outer edge (vw)',
-        onChange: () => {
-          import('../core/state.js').then(mod => {
-            mod.applyLayoutFromVwToPx();
-            mod.applyLayoutCSSVars();
-          });
-        }
-      },
-      {
-        id: 'wallInset',
-        label: 'Simulation wall inset',
-        stateKey: 'wallInset',
-        type: 'range',
-        min: 0, max: 24, step: 1,
-        default: 10,
-        format: v => `${Math.round(Number(v) || 0)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Extra physics margin so balls stay inside the inner wall, clear of the light rim (px). Applies to pit modes and all modes using the same wall SDF.',
-        onChange: (g) => {
-          import('../physics/Ball.js').then((ballMod) => {
-            try { resize(); } catch (e) {}
-            const canvas = g?.canvas;
-            const balls = Array.isArray(g?.balls) ? g.balls : [];
-            const w = Number(canvas?.width) || 0;
-            const h = Number(canvas?.height) || 0;
-            if (w <= 0 || h <= 0) return;
-            for (let i = 0; i < balls.length; i += 1) {
-              const ball = balls[i];
-              if (!ball) continue;
-              ballMod.clampBallPositionToWallInterior(ball, w, h);
-              ball.isSleeping = false;
-              ball.sleepTimer = 0;
-            }
-          }).catch(() => {});
-        }
-      }
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // COLORS - Full color system (backgrounds, text, links, logo)
   // ═══════════════════════════════════════════════════════════════════════════
   colors: {
@@ -2487,38 +2399,6 @@ export const CONTROL_SECTIONS = {
           g.frameColorDark = val;
           import('../visual/site-shell.js').then((mod) => {
             mod.patchShellTheme?.({ siteFrameDark: val });
-          }).catch(() => {});
-          setTheme(getCurrentTheme());
-        }
-      },
-      {
-        id: 'safariFrameLight',
-        label: 'Safari Wall · Light',
-        stateKey: 'safariFrameLight',
-        designScope: 'shellTheme',
-        type: 'color',
-        default: "var(--color-detected-181818)",
-        hint: 'Safari-specific outer wall color in light mode.',
-        onChange: (g, val) => {
-          g.safariFrameLight = val;
-          import('../visual/site-shell.js').then((mod) => {
-            mod.patchShellTheme?.({ safariFrameLight: val });
-          }).catch(() => {});
-          setTheme(getCurrentTheme());
-        }
-      },
-      {
-        id: 'safariFrameDark',
-        label: 'Safari Wall · Dark',
-        stateKey: 'safariFrameDark',
-        designScope: 'shellTheme',
-        type: 'color',
-        default: "var(--color-detected-181818)",
-        hint: 'Safari-specific outer wall color in dark mode.',
-        onChange: (g, val) => {
-          g.safariFrameDark = val;
-          import('../visual/site-shell.js').then((mod) => {
-            mod.patchShellTheme?.({ safariFrameDark: val });
           }).catch(() => {});
           setTheme(getCurrentTheme());
         }
@@ -2691,77 +2571,48 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // WALL LIGHT — narrow inset wall rim. Top shadow rim: separate slider.
-  // Ratios: bottom 145%, sides 85% of rim master. Theme toggles do not alter wall contour.
+  // WALL RIM — effects listed back-to-front in the rendered stack.
   // ═══════════════════════════════════════════════════════════════════════════
   wallLight: {
     title: 'Wall Rim',
     icon: '🏠',
     controls: [
-      { type: 'divider', label: 'Edge Rim' },
+      { type: 'divider', label: 'Directional Rim' },
       {
         id: 'innerWallGradientEdgeTopOpacity',
-        label: 'Wall rim',
+        label: 'Rim light',
         stateKey: 'innerWallGradientEdgeTopOpacity',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.22,
+        default: 0.31,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Light rim on bottom and sides only (center peak, corners fade). Top edge uses Top shadow rim. Theme toggles do not alter this contour.',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(Number((val * 1.45).toFixed(3))));
-          document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(Number((val * 0.85).toFixed(3))));
-          document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-shadow-opacity', String(Number((val * 0.85).toFixed(3))));
-        }
+        onChange: () => applyLayoutCSSVars()
       },
       {
         id: 'innerWallGradientEdgeTopShadowOpacity',
-        label: 'Top shadow rim',
+        label: 'Top shadow',
         stateKey: 'innerWallGradientEdgeTopShadowOpacity',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.3,
+        default: 0.319,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Dark inset lip along the top inner edge only. Theme toggles do not alter this contour.',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty(
-            '--inner-wall-gradient-edge-top-shadow-opacity',
-            String(Number(Math.min(1, val * 0.56).toFixed(3)))
-          );
-        }
+        onChange: () => applyLayoutCSSVars()
       },
       {
         id: 'innerWallGradientEdgeWidth',
-        label: 'Edge Width',
+        label: 'Rim reach',
         stateKey: 'innerWallGradientEdgeWidth',
         type: 'range',
         min: 0.5, max: 6, step: 0.5,
-        default: 4,
+        default: 2.5,
         format: v => `${v}px`,
         parse: parseFloat,
-        hint: 'Thickness of the light rim on the pit opening (home + all routes).',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--inner-wall-gradient-edge-width', `${val}px`);
-        }
-      },
-      { type: 'divider', label: 'Outer Frame Shadow' },
-      {
-        id: 'outerWallCastShadowOpacityLight',
-        label: 'Outer cast shadow',
-        stateKey: 'outerWallCastShadowOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.005,
-        default: 0.06,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Subtle depth shadow behind the frame, not the inward wall shadow.',
-        onChange: (g, val) => {
-          g.outerWallCastShadowOpacityDark = Math.min(1, Number((val * 1.2).toFixed(3)));
-          const isDark = document.body.classList.contains('dark-mode');
-          document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(isDark ? g.outerWallCastShadowOpacityDark : val));
-        }
+        hint: 'How far the broad directional rim feathers into the pit opening (home + all routes).',
+        onChange: () => applyLayoutCSSVars()
       },
     ]
   },
@@ -6126,7 +5977,7 @@ export function generateMasterSectionsHTML(options = {}) {
 
 // Generate sections for GLOBAL group only
 export function generateGlobalSectionsHTML() {
-  const globalSections = ['colors', 'colorDistribution', 'layers', 'uiSpacing', 'cursor', 'links', 'scene'];
+  const globalSections = ['colors', 'colorDistribution', 'uiSpacing', 'cursor', 'links', 'scene'];
   let html = '';
   for (const key of globalSections) {
     if (!CONTROL_SECTIONS[key]) continue;

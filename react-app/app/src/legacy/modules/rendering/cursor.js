@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                          CUSTOM CURSOR RENDERER                              ║
-// ║  Home inner wall: small solid dot (88% on-screen ball). Tap ring only for     ║
-// ║  drawer/modal states that need the larger affordance — see CUSTOM-CURSOR.      ║
+// ║  In-window default: solid palette dot. Translucent lens only for drawer,       ║
+// ║  modal, dev chrome, and action-hover focus states — see CUSTOM-CURSOR.         ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
@@ -19,7 +19,7 @@ let isInSimulation = false;
 let cachedContainerRect = null;
 let rectCacheTime = 0;
 const RECT_CACHE_MS = 100; // Cache rect for 100ms to avoid excessive layout reads
-const TAP_RING_CSS_PX = 64;
+const TAP_RING_CSS_PX = 48;
 const HOME_DOT_TO_BALL_DIAMETER = 0.88;
 const HOME_DOT_FALLBACK_CSS_PX = 24;
 const HOME_DOT_MIN_CSS_PX = 11;
@@ -138,23 +138,6 @@ function isMouseInSimulation(clientX, clientY) {
   );
 }
 
-function isHomeIndexRoute() {
-  try {
-    const routeId = document.documentElement?.dataset?.shellRoute;
-    if (routeId) return routeId === 'home';
-    const b = document.body;
-    return (
-      !b.classList.contains('portfolio-page') &&
-      !b.classList.contains('about-page') &&
-      !b.classList.contains('contact-page') &&
-      !b.classList.contains('cv-page') &&
-      !b.classList.contains('styleguide-page')
-    );
-  } catch (e) {
-    return false;
-  }
-}
-
 function isPortfolioDetailViewOpen() {
   try {
     return Boolean(document?.body?.classList?.contains?.('portfolio-project-open'));
@@ -175,15 +158,7 @@ function shouldElevatePortfolioDeckCursor() {
 }
 
 function shouldUseHomeDotCursor() {
-  if (isHomeIndexRoute()) return true;
-  try {
-    if (document?.body?.classList?.contains?.('portfolio-page')) {
-      return !isPortfolioDetailViewOpen();
-    }
-  } catch (e) {
-    // Fall through to non-home routes using the tap ring.
-  }
-  return false;
+  return !isPortfolioDetailViewOpen();
 }
 
 function isDevChromeCursorTarget(target) {
@@ -299,9 +274,9 @@ export function updateCursorSize() {
 }
 
 const ZERO_SCALE = 'translate(-50%, -50%) scale(0)';
-const FULL_SCALE = 'translate(-50%, -50%) scale(1)';
+const FULL_SCALE = 'translate(-50%, -50%) scale(var(--abs-cursor-scale, 1))';
 
-function applyTapRingMount(clientX, clientY, overlayIsActive) {
+function applyTapRingMount(clientX, clientY, overlayIsActive, actionHover = false) {
   if (cursorElement.parentElement !== document.body) {
     document.body.appendChild(cursorElement);
   }
@@ -310,11 +285,12 @@ function applyTapRingMount(clientX, clientY, overlayIsActive) {
   cursorElement.style.top = `${clientY}px`;
   cursorElement.style.zIndex = String(overlayIsActive ? MODAL_CURSOR_Z_INDEX : TAP_CURSOR_Z_INDEX);
   cursorElement.classList.add('abs-cursor-tap');
+  cursorElement.classList.toggle('abs-cursor-action-hover', Boolean(actionHover));
   cursorElement.style.width = `${TAP_RING_CSS_PX}px`;
   cursorElement.style.height = `${TAP_RING_CSS_PX}px`;
   cursorElement.style.boxSizing = 'border-box';
   cursorElement.style.transform = FULL_SCALE;
-  cursorElement.style.opacity = '1';
+  cursorElement.style.opacity = '';
   cursorElement.style.backgroundColor = '';
   cursorElement.style.border = '';
   cursorElement.classList.remove('abs-cursor-project-hover');
@@ -333,6 +309,7 @@ function applyHomeDotMount(clientX, clientY) {
   cursorElement.style.left = `${clientX}px`;
   cursorElement.style.top = `${clientY}px`;
   cursorElement.classList.remove('abs-cursor-tap');
+  cursorElement.classList.remove('abs-cursor-action-hover');
   cursorElement.classList.remove('modal-active');
   const d = getHomeCursorDotDiameterCssPx();
   cursorElement.style.width = `${d}px`;
@@ -506,8 +483,9 @@ export function updateCursorPosition(clientX, clientY) {
   const useDevChromeTapRing = !overlayIsActive && isDevChromeCursorTarget(hoverTarget);
 
   const shouldUseHomeDot = shouldUseHomeDotCursor();
-  const homeDot = shouldUseHomeDot && isInSimulation && !overlayIsActive && !useDevChromeTapRing;
-  const tapRing = isInSimulation && (overlayIsActive || useDevChromeTapRing || !shouldUseHomeDot);
+  const lensForActionHover = isOverLink && shouldUseHomeDot && !overlayIsActive && !useDevChromeTapRing;
+  const homeDot = shouldUseHomeDot && isInSimulation && !overlayIsActive && !useDevChromeTapRing && !lensForActionHover;
+  const tapRing = isInSimulation && (overlayIsActive || useDevChromeTapRing || !shouldUseHomeDot || lensForActionHover);
 
   if (!overlayIsActive) {
     cursorElement.classList.remove('modal-active');
@@ -523,7 +501,7 @@ export function updateCursorPosition(clientX, clientY) {
   // LINK HOVER: mount first so the implosion reads against the right surface
   if (isOverLink) {
     if (overlayIsActive || tapRing) {
-      applyTapRingMount(clientX, clientY, overlayIsActive);
+      applyTapRingMount(clientX, clientY, overlayIsActive, true);
     } else if (homeDot) {
       applyHomeDotMount(clientX, clientY);
     } else {
@@ -546,7 +524,7 @@ export function updateCursorPosition(clientX, clientY) {
   }
 
   if (overlayIsActive || tapRing) {
-    applyTapRingMount(clientX, clientY, overlayIsActive);
+    applyTapRingMount(clientX, clientY, overlayIsActive, isOverLink);
   } else {
     applyHomeDotMount(clientX, clientY);
   }

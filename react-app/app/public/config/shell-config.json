@@ -7,8 +7,6 @@
     "siteFrameLight": "#242529",
     "siteFrameDark": "#121314",
     "chromeHarmonyMode": "auto",
-    "safariFrameLight": "#181818",
-    "safariFrameDark": "#121314",
     "frameBorderEdgeOpacity": 0.009,
     "frameBorderMidOpacity": 0.017
   },

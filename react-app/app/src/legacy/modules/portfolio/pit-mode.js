@@ -7,7 +7,7 @@ import { Ball } from '../physics/Ball.js';
 import { getGlobals, clearBalls, syncPitPortfolioRadiusStatsFromBalls } from '../core/state.js';
 import { getPortfolioProjectPaletteColor } from '../visual/colors.js';
 import { resize, detectOptimalDPR } from '../rendering/renderer.js';
-import { getSimulationVisibleInsetPx } from '../utils/frame-geometry.js';
+import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { resolvePortfolioLabelContent } from './portfolio-content.js';
 
 function clamp(value, min, max) {
@@ -432,7 +432,7 @@ function seedProjectBodies(globals) {
   const fontFamily = getComputedStyle(document.body).fontFamily || 'Helvetica Neue, Arial, sans-serif';
   const isMobile = width < 700;
 
-  const frameInset = getSimulationVisibleInsetPx(globals);
+  const frameInset = getSimulationCollisionInsetPx(globals);
   const innerW = Math.max(1, width - 2 * frameInset);
   const innerH = Math.max(1, height - 2 * frameInset);
   const innerArea = innerW * innerH;

@@ -5,6 +5,7 @@ import { Ball } from '../physics/Ball.js';
 import { MODES } from '../core/constants.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
+import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 
 const TAU = Math.PI * 2;
 const HORIZONTAL = 0;
@@ -38,12 +39,10 @@ function prefersReducedMotion() {
 }
 
 function getLaneMargin(g, canvas) {
-  const dpr = g.DPR || 1;
   const maxR = Math.max(g.R_MAX || 18, g.R_MED || 18);
-  const wi = Number(g.wallInset);
-  const wallInset = Math.max(0, Number.isFinite(wi) ? wi : 0) * dpr;
+  const collisionInset = getSimulationCollisionInsetPx(g);
   const edgeRatio = Math.min(canvas.width, canvas.height) * 0.05;
-  return Math.max(wallInset + maxR * 2.5, edgeRatio);
+  return Math.max(collisionInset + maxR * 2.5, edgeRatio);
 }
 
 function getLaneBase(lane, lanes, min, span) {

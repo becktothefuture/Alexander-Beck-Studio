@@ -327,12 +327,13 @@ function getMasterPanelContent({
 
   const masterGroupsHTML = generateMasterSectionsHTML({
     prepend: {
+      shell: generateStudioShellControlsHTML({ sectionKeys: ['frame'] }),
       simulations: simulationsPrepend,
       ballsGroup: ballsPrepend,
     },
     append: {
       studio: generateStudioSurfaceControlsHTML(),
-      shell: generateStudioShellControlsHTML({ sectionKeys: ['shellLayout', 'quoteSystem'] }),
+      shell: generateStudioShellControlsHTML({ sectionKeys: ['quoteSystem'] }),
       puck: generateStudioShellControlsHTML({
         sectionKeys: ['puck'],
         puckPrependHTML: getPuckColorControlsHTML(),

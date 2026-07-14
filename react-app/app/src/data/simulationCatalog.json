@@ -71,9 +71,7 @@
     },
     {
       "id": "repel-room",
-      "legacyIds": [
-        "wall-repel"
-      ],
+      "legacyIds": ["wall-repel"],
       "name": "Tension",
       "chapter": "TENSION",
       "stage": "daily-rotation",
@@ -82,12 +80,8 @@
       "launchPath": "/lab/repel-room.html",
       "dailyHref": "/lab/repel-room.html?daily=1",
       "configPath": "/config/repel-room-demo.json",
-      "legacyLaunchPaths": [
-        "/lab/wall-repel.html"
-      ],
-      "legacyConfigPaths": [
-        "/config/wall-repel-demo.json"
-      ],
+      "legacyLaunchPaths": ["/lab/wall-repel.html"],
+      "legacyConfigPaths": ["/config/wall-repel-demo.json"],
       "previewId": "wall-repel",
       "includeInNarrative": true,
       "reviewStatus": "stable",

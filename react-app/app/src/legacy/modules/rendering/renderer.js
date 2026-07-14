@@ -20,7 +20,10 @@ import {
 import { applyCanvasShadow } from './effects.js';
 import { stopMainLoop } from './loop.js';
 import { isDev } from '../utils/logger.js';
-import { getSimulationCanvasBleedCssPx, getSimulationVisibleInsetPx } from '../utils/frame-geometry.js';
+import {
+  getSimulationCollisionInsetPx,
+  syncSimulationCollisionBounds,
+} from '../utils/frame-geometry.js';
 
 let canvas, ctx;
 
@@ -55,13 +58,6 @@ export function setForceRenderCallback(callback) {
   forceRenderCallback = callback;
 }
 
-// Cached canvas clip path (rounded rect) — recomputed on resize only.
-// This prevents iOS/mobile corner “bleed” where canvas pixels can peek past the
-// container’s rounded corners during fast motion / compositing.
-let cachedClipW = 0;
-let cachedClipH = 0;
-let cachedClipR = 0;
-
 function acquireSimulation2dContext(el) {
   if (!el) return null;
   let c = el.getContext('2d', {
@@ -76,32 +72,6 @@ function acquireSimulation2dContext(el) {
     c.imageSmoothingEnabled = false;
   }
   return c;
-}
-
-function buildRoundedRectPath(w, h, r) {
-  // Build a rounded-rect path in *canvas pixel* space.
-  // Important: keep allocation out of hot paths (called only on resize).
-  const rr = Math.max(0, Math.min(r, Math.min(w, h) * 0.5));
-  if (typeof Path2D === 'undefined') return null;
-  const p = new Path2D();
-
-  if (rr <= 0) {
-    p.rect(0, 0, w, h);
-    return p;
-  }
-
-  // Rounded rect via arcTo (widely supported).
-  p.moveTo(rr, 0);
-  p.lineTo(w - rr, 0);
-  p.arcTo(w, 0, w, rr, rr);
-  p.lineTo(w, h - rr);
-  p.arcTo(w, h, w - rr, h, rr);
-  p.lineTo(rr, h);
-  p.arcTo(0, h, 0, h - rr, rr);
-  p.lineTo(0, rr);
-  p.arcTo(0, 0, rr, 0, rr);
-  p.closePath();
-  return p;
 }
 
 function clamp(value, min, max) {
@@ -132,7 +102,7 @@ function getPortfolioBodyRadiusForResize(ball, balls, globals, newWidth, newHeig
 
   if (index >= 0 && count > 0) {
     const dpr = globals.DPR || 1;
-    const frameInset = getSimulationVisibleInsetPx(globals);
+    const frameInset = getSimulationCollisionInsetPx(globals);
     const innerW = Math.max(1, newWidth - 2 * frameInset);
     const innerH = Math.max(1, newHeight - 2 * frameInset);
     const areaNorm = Math.sqrt(innerW * innerH);
@@ -379,11 +349,10 @@ export function setupRenderer() {
 }
 
 /**
- * Resize canvas to match container dimensions minus wall thickness.
- * 
- * The rubber wall system uses wall thickness as the inset for the canvas.
- * CSS handles positioning (top/left/right/bottom = wallThickness)
- * JS handles buffer dimensions for high-DPI rendering.
+ * Resize the canvas to the exact CSS wall box.
+ *
+ * CSS owns the visible contour and clipping. JS only sizes the backing store
+ * and caches the independently authored physics boundary.
  * 
  * DYNAMIC BALL REPOSITIONING:
  * When the canvas resizes, balls are scaled proportionally to maintain their
@@ -452,8 +421,23 @@ export function resize() {
   
   // Use container dimensions if available, fallback to window for safety
   const container = globals.container || document.getElementById('simulations');
-  const containerWidth = container ? container.clientWidth : window.innerWidth;
-  const containerHeight = container ? container.clientHeight : window.innerHeight;
+  // CSS owns the Canvas display box through `#simulations canvas { width/height: 100% }`.
+  // Never round-trip computed CSS dimensions through inline pixel strings: embedded
+  // Chromium can serialize a 640.203125px wall as 640.203px, then quantize the Canvas
+  // to 640.1875px when that string is written back. The resulting 1/64px shortfall is
+  // enough to expose a dark corner after compositor antialiasing.
+  canvas.style.removeProperty('left');
+  canvas.style.removeProperty('top');
+  canvas.style.removeProperty('width');
+  canvas.style.removeProperty('height');
+
+  const containerRect = container?.getBoundingClientRect();
+  const containerWidth = containerRect?.width > 0
+    ? containerRect.width
+    : (container ? container.clientWidth : window.innerWidth);
+  const containerHeight = containerRect?.height > 0
+    ? containerRect.height
+    : (container ? container.clientHeight : window.innerHeight);
   
   // ══════════════════════════════════════════════════════════════════════════════
   // SAFETY: Skip resize if container reports invalid dimensions
@@ -464,12 +448,8 @@ export function resize() {
     return;
   }
   
-  // Canvas CSS is calc(100% + 2px) for edge coverage, so buffer should be container + 2px.
-  // This ensures the wall drawing fills to the actual CSS edges.
-  const CSS_EDGE_OVERFLOW = 2;
-  const canvasBleedCssPx = getSimulationCanvasBleedCssPx(globals);
-  const canvasWidth = containerWidth + CSS_EDGE_OVERFLOW + (canvasBleedCssPx * 2);
-  const canvasHeight = containerHeight + CSS_EDGE_OVERFLOW + (canvasBleedCssPx * 2);
+  const canvasWidth = containerWidth;
+  const canvasHeight = containerHeight;
   
   // Canvas fills container - CSS handles mode-specific heights
   // Ball Field: CSS sets 150vh, Other modes: CSS sets 100%
@@ -486,7 +466,7 @@ export function resize() {
   if (newWidth <= 0 || newHeight <= 0) {
     return;
   }
-  
+
   // Early-out only if logical size AND the backing store already match. After SPA remount,
   // `newWidth` may equal `prev*` while `canvas` is a new default 300×150 — must not skip.
   if (
@@ -495,6 +475,7 @@ export function resize() {
     canvas.width === newWidth &&
     canvas.height === newHeight
   ) {
+    syncSimulationCollisionBounds(globals, container, canvas);
     return;
   }
   
@@ -593,11 +574,9 @@ export function resize() {
     }
   }
   
-  // Always update CSS display size (doesn't cause flicker)
-  canvas.style.left = `${-canvasBleedCssPx}px`;
-  canvas.style.top = `${-canvasBleedCssPx}px`;
-  canvas.style.width = canvasWidth + 'px';
-  canvas.style.height = simHeight + 'px';
+  // Physics consumes this cached inset boundary. The visible canvas remains
+  // full-size and is clipped solely by the CSS wall container.
+  syncSimulationCollisionBounds(globals, container, canvas);
 
   if (shouldRelayoutPortfolioLabels) {
     try {
@@ -618,19 +597,6 @@ export function resize() {
     }
   }
 
-  // Update cached clip path (rounded-rect) on any resize that changes buffer dims
-  // Radius is controlled entirely by rubber wall system - canvas uses rectangular clip (0 radius)
-  // This ensures visual rounded corners come only from wall rendering, not canvas clipping
-  try {
-    // Force 0 radius for canvas clip - rubber wall system controls visual radius
-    const rCanvasPx = 0;
-    if (canvas.width !== cachedClipW || canvas.height !== cachedClipH || Math.abs(rCanvasPx - cachedClipR) > 1e-3) {
-      cachedClipW = canvas.width;
-      cachedClipH = canvas.height;
-      cachedClipR = rCanvasPx;
-      globals.canvasClipPath = buildRoundedRectPath(canvas.width, canvas.height, rCanvasPx);
-    }
-  } catch (e) {}
 }
 
 export function getCanvas() {

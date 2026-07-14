@@ -1,7 +1,7 @@
 export const FRAME_RADIUS_MOBILE_VIEWPORT_PX = 480;
 export const FRAME_RADIUS_DESKTOP_VIEWPORT_PX = 991;
-export const DEFAULT_FRAME_RADIUS_MOBILE_PX = 20;
-export const DEFAULT_FRAME_RADIUS_DESKTOP_PX = 32;
+export const DEFAULT_FRAME_RADIUS_MOBILE_PX = 32;
+export const DEFAULT_FRAME_RADIUS_DESKTOP_PX = 72;
 
 function parseRadiusPx(value, fallback) {
   const numeric = Number.parseFloat(String(value ?? '').trim());

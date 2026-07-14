@@ -243,13 +243,16 @@ export function transitionToWallState(options = {}) {
       let scaleComplete = false;
       let radiusComplete = false;
       let contentComplete = wallContentElements.length === 0; // Skip if no content
+      let cleanupStarted = false;
       
       const finishAnimation = () => {
-        if (scaleComplete && radiusComplete && contentComplete) {
-          // Lock final values with inline styles
+        if (scaleComplete && radiusComplete && contentComplete && !cleanupStarted) {
+          cleanupStarted = true;
+          // Return geometry ownership to CSS after the entrance finishes.
           wallContainer.style.transform = 'scale(1)';
-          wallContainer.style.borderRadius = finalRadius;
           wallContainer.style.opacity = '1';
+          radiusAnim.cancel();
+          wallContainer.style.removeProperty('border-radius');
           
           // Lock wall content final state
           wallContentElements.forEach(el => {
@@ -326,6 +329,7 @@ export function transitionToWallState(options = {}) {
       
       setTimeout(() => {
         wallContainer.style.transition = originalTransition || '';
+        wallContainer.style.removeProperty('border-radius');
         // Lock wall content final state
         wallContentElements.forEach(el => {
           el.style.opacity = '1';

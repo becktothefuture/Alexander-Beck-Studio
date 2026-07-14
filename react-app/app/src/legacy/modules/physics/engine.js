@@ -804,21 +804,9 @@ export function render() {
   }
   globals.renderQualityTierResolved = qualityProfile.tier;
   
-  // Clear frame (ghost trails removed per performance optimization plan)
-  // Clear BEFORE applying clip so the corners never accumulate stale pixels.
+  // Clear frame (ghost trails removed per performance optimization plan).
+  // CSS on #simulations owns the only visual clip.
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // ══════════════════════════════════════════════════════════════════════════════
-  // OPTIMIZATION #5: Skip clip when corner radius is 0 (save/restore is expensive)
-  // ══════════════════════════════════════════════════════════════════════════════
-  const clipPath = globals.canvasClipPath;
-  const cornerRadius = globals.cornerRadius ?? globals.wallRadius ?? 0;
-  const needsClip = clipPath && cornerRadius > 0;
-  
-  if (needsClip) {
-    ctx.save();
-    try { ctx.clip(clipPath); } catch (e) {}
-  }
   
   // Draw water ripples (behind balls)
   if (globals.currentMode === MODES.WATER) {
@@ -864,19 +852,12 @@ export function render() {
 
     drawHomepageCanvasTitle(ctx, globals);
 
-    if (needsClip) {
-      frontCtx.save();
-      try { frontCtx.clip(clipPath); } catch (e) {}
-    }
     depthRenderer(frontCtx, {
       layer: 'front',
       depthPlane: TITLE_DEPTH_PLANE_Z,
       canvasWidth: canvas.width,
       canvasHeight: canvas.height
     });
-    if (needsClip) {
-      frontCtx.restore();
-    }
   } else if (needsDepthTitleLayer && frontCtx) {
     resetZPartitionCache();
 
@@ -897,14 +878,7 @@ export function render() {
     drawHomepageCanvasTitle(ctx, globals);
 
     if (zPartitionCache.inFront.length > 0) {
-      if (needsClip) {
-        frontCtx.save();
-        try { frontCtx.clip(clipPath); } catch (e) {}
-      }
       renderBallsColorBatched(frontCtx, zPartitionCache.inFront, true, ballRenderOptions);
-      if (needsClip) {
-        frontCtx.restore();
-      }
     }
   } else {
     drawHomepageCanvasTitle(ctx, globals);
@@ -913,11 +887,6 @@ export function render() {
 
   if (modeRenderer && modeRenderer.postRender) {
     modeRenderer.postRender(ctx);
-  }
-  
-  // Restore clip BEFORE drawing walls (walls extend beyond canvas edges)
-  if (needsClip) {
-    ctx.restore();
   }
   
   const postFxStart = isPitMode ? performance.now() : 0;

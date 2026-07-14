@@ -1,0 +1,91 @@
+- generic [active] [ref=f8e1]:
+  - generic [ref=f8e3]:
+    - generic [ref=f8e4]:
+      - generic:
+        - figure
+      - generic "About Alexander narrative" [ref=f8e7]:
+        - main [ref=f8e8]:
+          - region [ref=f8e9]:
+            - heading "I help organisations shape complex ideas into clear, human and emotionally compelling experiences…" [level=1] [ref=f8e12]
+          - region [ref=f8e14]:
+            - heading "We are surrounded by systems becoming denser, faster and harder to read." [level=2] [ref=f8e17]:
+              - generic [ref=f8e18]: We are surrounded by systems becoming denser,
+              - generic [ref=f8e19]: faster and harder to read.
+          - region [ref=f8e20]:
+            - generic [ref=f8e21]:
+              - heading "Learning to see" [level=2] [ref=f8e22]
+              - paragraph [ref=f8e23]: "I came to design through language and technology—two systems for carrying an idea from one mind to another. Visual form taught me that attention is shaped by choices: what comes forward, what recedes, what connects and what disappears."
+              - paragraph [ref=f8e24]: "Clarity begins with attention: deciding what comes forward, what recedes, what connects and what disappears."
+              - figure "Points repeatedly reorganise around one emerging relationship." [ref=f8e25]:
+                - generic [ref=f8e63]: Attention changes the field before it changes the answer.
+              - paragraph [ref=f8e64]: That path expanded from composition and visual language into interfaces, behaviour, trust, products and systems.
+          - region [ref=f8e65]:
+            - heading "AI multiplies possibilities. Judgement gives them direction." [level=2] [ref=f8e68]:
+              - generic [ref=f8e69]: AI multiplies possibilities.
+              - generic [ref=f8e70]: Judgement gives them direction.
+          - region [ref=f8e71]:
+            - heading "Complexity is not the enemy. Confusion is." [level=2] [ref=f8e74]:
+              - generic [ref=f8e75]: Complexity is not the enemy.
+              - generic [ref=f8e76]: Confusion is.
+          - region [ref=f8e77]:
+            - heading "A perfect system can still feel lifeless. Character begins when it learns to respond." [level=2] [ref=f8e80]:
+              - generic [ref=f8e81]: A perfect system can still feel lifeless.
+              - generic [ref=f8e82]: Character begins when it learns to respond.
+          - region [ref=f8e83]:
+            - generic [ref=f8e84]:
+              - heading "Making ideas tangible" [level=2] [ref=f8e85]
+              - paragraph [ref=f8e86]: The work often begins before the format is known. I immerse myself in the problem, look for the organising idea, and make it tangible enough for people to test together. Prototypes turn opinions into something we can experience. Systems help the idea travel.
+              - paragraph [ref=f8e87]: Character is not decoration added after the useful work. It lives in how something responds, how movement guides attention, how a constraint becomes a useful choice, and how a person can sense that somebody cared.
+              - paragraph [ref=f8e88]: The aim is not less complexity. It is more meaning, made legible.
+              - paragraph [ref=f8e89]: The contexts change—from healthcare and identity to finance, mobility and culture—but the work repeatedly moves from an unresolved question towards something people can see, test and shape together.
+          - region [ref=f8e90]:
+            - generic [ref=f8e92]:
+              - heading "In the end, clarity is a point of view… by finding what must survive." [level=2] [ref=f8e93]:
+                - generic [ref=f8e94]: In the end, clarity is a point of view.
+                - generic [ref=f8e95]: …by finding what must survive.
+              - generic [ref=f8e96]:
+                - paragraph [ref=f8e97]: Bring me something unresolved.
+                - navigation "Contact Alexander" [ref=f8e98]:
+                  - link "Start a conversation" [ref=f8e99] [cursor=pointer]:
+                    - /url: mailto:alexander@beck.fyi
+                  - link "LinkedIn" [ref=f8e100] [cursor=pointer]:
+                    - /url: https://www.linkedin.com/in/thisisbeck/
+      - generic "Section 1 of 8": 01 / 08
+    - generic:
+      - generic:
+        - generic:
+          - contentinfo:
+            - generic:
+              - group "Social media links" [ref=f8e102]:
+                - link "Apple Music" [ref=f8e103] [cursor=pointer]:
+                  - /url: https://music.apple.com/profile/beckandeggs
+                  - generic: 
+                - link "LinkedIn" [ref=f8e105] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/in/thisisbeck/
+                  - generic: 
+              - generic [ref=f8e107]:
+                - generic "London local time":
+                  - generic:
+                    - generic:
+                      - strong: London
+                    - time: 10:37:40 AM
+          - status:
+            - generic: A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable. © 2026 Alexander Beck
+    - generic [ref=f8e108]:
+      - navigation "Primary buttons" [ref=f8e109]:
+        - link "Home" [ref=f8e110] [cursor=pointer]:
+          - /url: /index.html
+          - generic: 
+        - link "Portfolio" [ref=f8e112] [cursor=pointer]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About Me" [ref=f8e114]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=f8e116] [cursor=pointer]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=f8e118]:
+        - button "Sound off" [ref=f8e119] [cursor=pointer]:
+          - generic: 
+  - button "Parameters" [ref=f8e122] [cursor=pointer]

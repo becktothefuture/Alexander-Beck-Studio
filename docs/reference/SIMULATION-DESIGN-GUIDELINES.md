@@ -59,7 +59,7 @@ When in doubt, reduce count before reducing size.
 
 ### Color
 
-Use the active London weather/design-system palette and the canonical `colorDistribution` contract.
+Use the active time-of-day/design-system palette and the canonical `colorDistribution` contract.
 
 Rules:
 - neutral palette roles should remain dominant;

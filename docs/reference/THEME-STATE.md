@@ -45,8 +45,8 @@ Never alias the window-interior tokens back to `--abs-wall-base`. Doing so freez
 Site theme and browser-chrome harmony are separate state machines:
 
 - `chrome-harmony.js` resolves the outer palette from browser family plus `prefers-color-scheme`.
-- Safari and other theme-color-capable browsers use the fixed dark authored wall colour in both browser schemes so the exposed band and browser bars remain dark.
-- Locked desktop Chromium and Firefox use their browser-native chrome palettes.
+- Chromium, Android Chrome, Safari, and iOS Safari use the shared browser-scheme frame palette, so browser/OS light scheme makes the exposed band and frame light, and dark scheme makes them dark.
+- Firefox uses its browser-native chrome palette.
 - A manual site-theme toggle changes the window interior but leaves the active outer palette unchanged.
 - A browser/OS scheme change may update the outer palette even when the site has a manual light/dark override; it must not change that manual site preference.
 - In `auto`, the browser/OS scheme drives both systems through their separate ownership paths.
@@ -55,7 +55,7 @@ Do not collapse this into a single "sync wall colour with theme" rule. `chromeHa
 
 ## Button Bar
 
-The Button Bar sits outside the studio window and is stable shell chrome. Its tab and secondary-control ink must not inherit `--text-primary` or `--text-muted` from the window theme. Its material surface must derive from `--abs-browser-chrome`, so native light Chromium and Firefox use a faint low-contrast gasket edge that matches the restraint of the fixed dark path while retaining a distinct keyboard focus outline. Route selection can change active state, but manual light/dark changes must not recolor the bar or alter its geometry.
+The Button Bar sits outside the studio window and is stable shell chrome. Its tab and secondary-control ink must not inherit `--text-primary` or `--text-muted` from the window theme. Its material surface must derive from `--abs-browser-chrome`, so browser light scheme uses a faint low-contrast gasket edge while retaining a distinct keyboard focus outline. Route selection can change active state, but manual light/dark changes must not recolor the bar or alter its geometry.
 
 ## Portfolio Gate
 

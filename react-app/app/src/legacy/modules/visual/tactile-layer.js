@@ -26,11 +26,10 @@ export async function initTactileLayer(config) {
     container = document.createElement('div');
     container.id = 'tactile-layer';
     
-    // Position inside #simulations
-    // Match the geometry of the inner wall exactly
+    // Fill the same CSS-owned visual contour as every other simulation layer.
     container.style.position = 'absolute';
-    container.style.inset = 'var(--wall-thickness)';
-    container.style.borderRadius = 'var(--wall-radius, 24px)';
+    container.style.inset = '0';
+    container.style.borderRadius = 'inherit';
     container.style.overflow = 'hidden'; // Clip content to rounded corners
     
     // Layering: Canvas (0) < Tactile (20) < Outer Wall (25) < Inner Wall (30)

@@ -10,13 +10,23 @@ The runtime owns:
 
 - simulation state and globals;
 - physics, collisions, and mode-specific force application;
-- renderer setup, canvas sizing, DPR handling, and clipping;
+- renderer setup, canvas sizing, DPR handling, and physics-boundary caching;
 - per-frame loop timing;
 - pointer, cursor, sound, and material responses tied to simulation state;
 - direct-load boot completion after the canvas route is visually ready;
 - route-specific imperative modules such as the portfolio runtime and CV bootstrap.
 
 React mounts the DOM structure and route slots. The runtime bootstraps imperative behavior into those slots.
+
+## Visual Contour Authority
+
+`#simulations` is the sole rounded clip for the studio window. Every Canvas inside it fills the wall box as a rectangular layer with no independent `border-radius`, mask, or drawing-path clip. Repeating the wall radius on a full-size Canvas creates a second antialiased contour and can reveal dark stepped pixels even when DOM rectangles and computed radii match.
+
+Canvas display sizing is CSS-owned too. The renderer must not serialize fractional computed wall dimensions into inline Canvas pixel sizes: embedded Chromium can round that string to a different layout quantum. CSS keeps the display box attached to the frame immediately during resize; JavaScript measures the resulting box only to update the backing store and physics cache.
+
+Physics uses the separate `simulationCollisionBounds` cache. Changing that boundary must never change the Canvas CSS box or the visible wall contour.
+
+Run `npm run audit:rendered-wall-contour` for Chromium and `ABS_BROWSER=webkit npm run audit:rendered-wall-contour` for WebKit. The audit compares the production corner pixels with a forced parent-only clip oracle across the supported breakpoint, theme, and DPR matrix.
 
 ## Route Bootstrapping
 

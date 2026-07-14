@@ -25,14 +25,21 @@
     --playground-key-ink,
     var(--dominant-wall-ink, var(--button-bar-outer-ink-muted))
   );
+  --dominant-utility-control-bg: color-mix(
+    in srgb,
+    var(--dominant-utility-wall) 86%,
+    var(--dominant-utility-ink) 14%
+  );
+  --dominant-utility-control-bg-hover: color-mix(
+    in srgb,
+    var(--dominant-utility-wall) 82%,
+    var(--dominant-utility-ink) 18%
+  );
+  --dominant-utility-control-ink: var(--dominant-utility-ink);
   --dominant-utility-shadow: var(--dominant-press-shadow, rgba(var(--abs-rgb-black), 0.52));
   --dominant-utility-light: var(--dominant-press-light, rgba(var(--abs-rgb-white), 0.42));
-  --dominant-sound-active-light: var(--button-bar-sound-active-light, rgba(var(--abs-rgb-white), 1));
-  --dominant-sound-active-dark: var(--button-bar-sound-active-dark, rgba(var(--abs-rgb-black), 1));
-  --dominant-sound-active-ink-light: var(--button-bar-sound-active-ink-light, rgba(var(--abs-rgb-black), 0.9));
-  --dominant-sound-active-ink-dark: var(--button-bar-sound-active-ink-dark, rgba(var(--abs-rgb-white), 0.94));
-  --dominant-sound-active: var(--dominant-sound-active-light);
-  --dominant-sound-active-ink: var(--dominant-sound-active-ink-light);
+  --dominant-sound-active: var(--button-bar-sound-active, var(--dominant-utility-control-bg));
+  --dominant-sound-active-ink: var(--button-bar-sound-active-ink, var(--dominant-utility-control-ink));
   --dominant-utility-pressed-rim: none;
   --dominant-tab-pressed-rim: none;
 }
@@ -40,8 +47,6 @@
 :root[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab'],
 body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
   --dominant-utility-light: rgba(var(--abs-rgb-white), 0.22);
-  --dominant-sound-active: var(--dominant-sound-active-dark);
-  --dominant-sound-active-ink: var(--dominant-sound-active-ink-dark);
 }
 
 .button-bar[data-button-bar-material='dominant-tab'] .shell-tab {
@@ -348,9 +353,9 @@ body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
   .button-bar__theme-toggle:is(:hover, :focus-visible, :active)
   .button-bar__theme-thumb {
   position: absolute;
-  color: var(--dominant-utility-page);
+  color: var(--dominant-utility-control-ink);
   border-radius: var(--button-bar-switch-thumb-radius);
-  background: var(--dominant-utility-ink);
+  background: var(--dominant-utility-control-bg);
   box-shadow: none;
   filter: none;
   text-shadow: none;

@@ -15,6 +15,7 @@ import {
 import { randomRadiusForKaleidoscopeVh } from '../utils/ball-sizing.js';
 import { drawPebbleBody } from '../visual/pebble-body.js';
 import { triggerDetent } from '../audio/simulation-audio-adapter.js';
+import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 
 const TAU = Math.PI * 2;
 const EPS = 1e-6;
@@ -129,8 +130,7 @@ export function applyKaleidoscopeBounds(ball, w, h, dt) {
   // - No sounds, no rubber wall impacts, no corner repellers
   // - Gentle reflection with mild energy loss for stability
   const g = getGlobals();
-  const wiK = Number(g.wallInset);
-  const inset = Math.max(2, Number.isFinite(wiK) ? Math.max(0, wiK) : 3) * (g.DPR || 1);
+  const inset = Math.max(2, getSimulationCollisionInsetPx(g));
   const minX = inset + ball.r;
   const maxX = w - inset - ball.r;
   const minY = inset + ball.r;
@@ -237,8 +237,7 @@ function initializeKaleidoscopeWithCount(count, mode) {
   // Non-overlapping spawn (one-time O(n²), acceptable at init)
   const placed = [];
   const maxAttemptsPerBall = 90;
-  const wiM = Number(g.wallInset);
-  const margin = Math.max(2, Number.isFinite(wiM) ? Math.max(0, wiM) : 3) * g.DPR;
+  const margin = Math.max(2, getSimulationCollisionInsetPx(g));
 
   const palette = Array.isArray(g.currentColors) ? g.currentColors : [];
   const distribution = Array.isArray(g.colorDistribution) ? g.colorDistribution : [];

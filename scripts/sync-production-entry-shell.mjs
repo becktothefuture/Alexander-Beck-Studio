@@ -5,13 +5,16 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const APP_ROOT = path.join(ROOT, 'react-app', 'app');
-const ENTRY_FILES = ['index.html', 'portfolio.html', 'about.html', 'contact.html'];
+const ENTRY_FILES = ['index.html', 'portfolio.html', 'about.html', 'contact.html', 'styleguide.html', 'palette-lab.html'];
 const CHECK_ONLY = process.argv.includes('--check');
+const HTML_OPEN_PATTERN = /<html[^\n]*>/;
 const BOOT_PATTERN = /    <script>\n      \(function\(\) \{\n        window\.__ABS_BOOT_STARTED_AT__[\s\S]*?\n    <\/script>/;
 const SHELL_STYLES_PATTERN = /    <link rel="stylesheet" href="%BASE_URL%css\/tokens\.css" \/>[\s\S]*?    <link rel="stylesheet" href="\/src\/styles\/base\.css" \/>/;
 
 const canonicalPath = path.join(APP_ROOT, ENTRY_FILES[0]);
 const canonicalHtml = await fs.readFile(canonicalPath, 'utf8');
+const canonicalHtmlOpen = canonicalHtml.match(HTML_OPEN_PATTERN)?.[0];
+if (!canonicalHtmlOpen) throw new Error(`Canonical html tag not found in ${canonicalPath}`);
 const canonicalBoot = canonicalHtml.match(BOOT_PATTERN)?.[0];
 if (!canonicalBoot) throw new Error(`Canonical shell boot block not found in ${canonicalPath}`);
 const canonicalShellStyles = canonicalHtml.match(SHELL_STYLES_PATTERN)?.[0];
@@ -21,12 +24,18 @@ const drifted = [];
 for (const entry of ENTRY_FILES.slice(1)) {
   const entryPath = path.join(APP_ROOT, entry);
   let html = await fs.readFile(entryPath, 'utf8');
+  const currentHtmlOpen = html.match(HTML_OPEN_PATTERN)?.[0];
+  if (!currentHtmlOpen) throw new Error(`Html tag not found in ${entryPath}`);
   const currentBoot = html.match(BOOT_PATTERN)?.[0];
   if (!currentBoot) throw new Error(`Shell boot block not found in ${entryPath}`);
   const currentShellStyles = html.match(SHELL_STYLES_PATTERN)?.[0];
   if (!currentShellStyles) throw new Error(`Shell stylesheet block not found in ${entryPath}`);
 
   const contracts = [];
+  if (currentHtmlOpen !== canonicalHtmlOpen) {
+    contracts.push('html');
+    html = html.replace(HTML_OPEN_PATTERN, canonicalHtmlOpen);
+  }
   if (currentBoot !== canonicalBoot) {
     contracts.push('boot');
     html = html.replace(BOOT_PATTERN, canonicalBoot);

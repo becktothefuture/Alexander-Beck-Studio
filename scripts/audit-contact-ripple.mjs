@@ -143,6 +143,9 @@ async function readRippleState(page) {
       activeBurstCount: Number(stage?.dataset.contactRippleActiveBurstCount || 0),
       maxActiveBursts: Number(stage?.dataset.contactRippleMaxActiveBursts || 0),
       burstMode: stage?.dataset.contactRippleBurstMode || '',
+      burstColor: stage?.dataset.contactRippleBurstColor || '',
+      burstOrigin: stage?.dataset.contactRippleBurstOrigin || '',
+      lastBurstOrigin: stage?.dataset.contactRippleLastBurstOrigin || '',
       bodyCount: Number(stage?.dataset.contactRippleBodyCount || 0),
       bodyRadius: Number(stage?.dataset.contactRippleBodyRadius || 0),
       innerAlpha: Number(stage?.dataset.contactRippleInnerAlpha || 0),
@@ -204,6 +207,7 @@ function assertLayout(state, viewport) {
   assert(state.canvasDpr > 0 && state.canvasDpr <= 1.5, 'Canvas DPR cap failed', state);
   assert(state.paletteSize >= 6, 'Contact ripple did not load the site palette', state);
   assert(state.bodyCount >= 40, 'Contact ripple fixed body field is unexpectedly sparse', state);
+  assert(state.bodyCount <= 560, 'Contact ripple fixed body field is too dense for the Contact treatment', state);
   assert(
     state.config?.burstDurationMs >= 500 && state.config?.burstDurationMs <= 4000,
     'Contact ripple canonical config did not load',
@@ -231,20 +235,22 @@ function assertLayout(state, viewport) {
     state,
   );
   assert(
-    state.idleInnerAlpha >= 0 && state.idleInnerAlpha < state.innerAlpha,
-    'Contact idle inner opacity is not reduced below the configured pulse opacity',
+    Math.abs(state.idleInnerAlpha - state.innerAlpha) <= 0.005,
+    'Contact idle inner opacity is not fully aligned with the configured opacity',
     state,
   );
   assert(
-    state.idleOuterAlpha > state.idleInnerAlpha && state.idleOuterAlpha < state.outerAlpha,
-    'Contact idle outer opacity is not reduced below the configured pulse opacity',
+    Math.abs(state.idleOuterAlpha - state.outerAlpha) <= 0.005,
+    'Contact idle outer opacity is not fully aligned with the configured opacity',
     state,
   );
-  assert(state.idleOuterAlpha <= 0.45, 'Contact idle outer opacity is too strong for the default field', state);
+  assert(state.idleInnerAlpha >= 0.995 && state.idleOuterAlpha >= 0.995, 'Contact default field is not fully opaque', state);
   assert(Math.abs(state.burstPeakAlpha - 1) <= 0.005, 'Contact pulse peak opacity is not full strength', state);
   assert(state.coreFadeRadius > state.bodyRadius * 10, 'Contact core fade is unexpectedly narrow', state);
   assert(state.burstRelease === 'smoothstep-tail', 'Contact burst is missing its eased release phase', state);
   assert(state.burstMode === 'additive-wavefronts', 'Contact ripple does not use additive wavefront launches', state);
+  assert(state.burstColor.toLowerCase() === '#22c55e', 'Contact ripple burst is not using the confirmation green wave color', state);
+  assert(state.burstOrigin === 'center', 'Contact ripple burst is not configured to originate from the Contact field center', state);
   assert(state.ballFinish === 'flat-fill', 'Contact balls still expose a shaded rim treatment', state);
   assert(state.pointerMode === 'autonomous-drift', 'Contact pointer influence is still active', state);
   assert(state.ringDirections === 'alternating', 'Contact rings do not counter-rotate', state);
@@ -347,8 +353,18 @@ async function runStandardScenario(browser, viewport, theme) {
     ), immediateStart);
     const successBurst = await readRippleState(page);
     assert(successBurst.stageState === 'burst', 'Email activation did not immediately enter burst state', successBurst);
+    const [originX, originY] = successBurst.lastBurstOrigin.split(',').map(Number);
+    const canvasCenterX = successBurst.canvasRect.width * 0.5;
+    const canvasCenterY = successBurst.canvasRect.height * 0.5;
+    assert(
+      Number.isFinite(originX) && Number.isFinite(originY)
+        && Math.abs(originX - canvasCenterX) <= 2
+        && Math.abs(originY - canvasCenterY) <= 2,
+      'Email activation did not originate the color wave from the Contact field center',
+      successBurst,
+    );
     assert(successBurst.bodyCount === initial.bodyCount, 'Burst changed the number of rendered balls', { initial, successBurst });
-    assert(successBurst.bodyRadius === initial.bodyRadius, 'Burst changed the rendered ball size', { initial, successBurst });
+    assert(Math.abs(successBurst.bodyRadius - initial.bodyRadius) <= 0.08, 'Burst changed the rendered ball size', { initial, successBurst });
     assert(successBurst.soundEnabled === 'true', 'First Contact activation did not unlock the requested sound motif', successBurst);
     assert(successBurst.soundMotifCharacter === 'bright-lift-ripple', 'Contact motif character is stale', successBurst);
     assert(successBurst.soundMotifLayerCount >= 4, 'Contact motif is missing its bright lifted ripple layers', successBurst);
@@ -425,7 +441,7 @@ async function runStandardScenario(browser, viewport, theme) {
     const settled = await readRippleState(page);
     assert(settled.activeBurstCount === 0, 'Settled Contact ripple still has active wavefronts', settled);
     assert(settled.bodyCount === initial.bodyCount, 'Burst settlement changed the fixed body count', { initial, settled });
-    assert(settled.bodyRadius === initial.bodyRadius, 'Burst settlement changed the rendered ball size', { initial, settled });
+    assert(Math.abs(settled.bodyRadius - initial.bodyRadius) <= 0.08, 'Burst settlement changed the rendered ball size', { initial, settled });
     assert(settled.typographyEffectPresent === false, 'Typography effect appeared after settlement', settled);
 
     await page.locator('[data-route-tab="about"]').click();

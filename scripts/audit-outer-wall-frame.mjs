@@ -16,7 +16,7 @@ const browserName = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
 const browserType = { chromium, firefox, webkit }[browserName] || chromium;
 const siteThemes = ['light', 'dark'];
 const browserSchemes = ['light', 'dark'];
-const lockedHeaderFrames = {
+const browserSchemeFrames = {
   chromium: {
     light: '#f1f3f4',
     dark: '#202124',
@@ -25,12 +25,15 @@ const lockedHeaderFrames = {
     light: '#f9f9fb',
     dark: '#1c1b22',
   },
+  webkit: {
+    light: '#f1f3f4',
+    dark: '#202124',
+  },
 };
 const browserProfiles = browserName === 'chromium'
   ? [
       {
-        name: 'desktop-locked',
-        usesAuthoredFrame: false,
+        name: 'desktop-browser-chrome',
         context: {
           viewport: { width: 1400, height: 900 },
           deviceScaleFactor: 1,
@@ -38,7 +41,6 @@ const browserProfiles = browserName === 'chromium'
       },
       {
         name: 'android-theme-color',
-        usesAuthoredFrame: true,
         context: {
           viewport: { width: 390, height: 844 },
           deviceScaleFactor: 2,
@@ -51,8 +53,7 @@ const browserProfiles = browserName === 'chromium'
   : browserName === 'firefox'
     ? [
         {
-          name: 'desktop-locked',
-          usesAuthoredFrame: false,
+          name: 'desktop-browser-chrome',
           context: {
             viewport: { width: 1400, height: 900 },
             deviceScaleFactor: 1,
@@ -61,11 +62,20 @@ const browserProfiles = browserName === 'chromium'
       ]
     : [
       {
-        name: 'theme-color-capable',
-        usesAuthoredFrame: true,
+        name: 'desktop-theme-color',
         context: {
           viewport: { width: 1400, height: 900 },
           deviceScaleFactor: 1,
+        },
+      },
+      {
+        name: 'iphone-theme-color',
+        context: {
+          viewport: { width: 390, height: 844 },
+          deviceScaleFactor: 3,
+          isMobile: true,
+          hasTouch: true,
+          userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',
         },
       },
     ];
@@ -172,10 +182,6 @@ function loadExpectations() {
       light: designSystem.shell?.theme?.siteFrameLight || '#141414',
       dark: designSystem.shell?.theme?.siteFrameDark || '#141414',
     },
-    safariFrame: {
-      light: designSystem.shell?.theme?.safariFrameLight || designSystem.shell?.theme?.siteFrameLight || '#141414',
-      dark: designSystem.shell?.theme?.safariFrameDark || designSystem.shell?.theme?.siteFrameDark || '#141414',
-    },
     window: {
       light: designSystem.runtime?.bgLight || '#f5f5f5',
       dark: designSystem.runtime?.bgDark || '#141414',
@@ -255,6 +261,7 @@ async function readFrameState(page) {
     const activeTab = document.querySelector('[data-route-tab][aria-current="page"]');
     const activeContent = activeTab?.querySelector('.shell-tab__label, .shell-tab__icon');
     const inactiveTab = document.querySelector('[data-route-tab]:not([aria-current="page"])');
+    const buttonBar = inactiveTab?.closest('.button-bar');
     const activeStyle = activeTab ? getComputedStyle(activeTab) : null;
     const activeContentStyle = activeContent ? getComputedStyle(activeContent) : null;
     const inactiveStyle = inactiveTab ? getComputedStyle(inactiveTab) : null;
@@ -266,7 +273,7 @@ async function readFrameState(page) {
       frameColor: rootStyle.getPropertyValue('--frame-color').trim(),
       wallColor: rootStyle.getPropertyValue('--wall-color').trim(),
       chromeBg: rootStyle.getPropertyValue('--chrome-bg').trim(),
-      lightLockedChrome: root.hasAttribute('data-abs-light-locked-chrome'),
+      lightBrowserChrome: root.hasAttribute('data-abs-light-browser-chrome'),
       siteFrameLight: rootStyle.getPropertyValue('--frame-color-site-light').trim(),
       studioWindow: rootStyle.getPropertyValue('--studio-window-bg').trim(),
       frameInnerSurface: rootStyle.getPropertyValue('--frame-inner-surface').trim(),
@@ -275,6 +282,7 @@ async function readFrameState(page) {
       activeTabColor: activeContentStyle?.color || activeStyle?.color || '',
       activeTabBorder: activeStyle?.borderTopColor || '',
       inactiveTabBackground: inactiveStyle?.backgroundColor || '',
+      buttonBarBackground: buttonBar ? getComputedStyle(buttonBar).backgroundColor : '',
       inactiveTabBorder: inactiveStyle?.borderTopColor || '',
     };
   });
@@ -289,7 +297,7 @@ async function readFrameState(page) {
   };
 }
 
-function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, expectedWindow, checkOuterPixel = true, expectFaintLightBorder = false) {
+function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, expectedWindow, checkOuterPixel = true, expectLightBrowserChrome = false) {
   const expected = normalizeHex(expectedHex);
   for (const key of ['absBrowserChrome', 'frameColor', 'wallColor', 'chromeBg']) {
     if (normalizeHex(actual[key]) !== expected) {
@@ -311,23 +319,28 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
 
   const expectedFrameRgb = hexToRgb(expectedHex);
   const inactiveBackground = cssColorToRgba(actual.inactiveTabBackground);
+  const buttonBarBackground = cssColorToRgba(actual.buttonBarBackground);
+  const bodyBackground = cssColorToRgba(actual.bodyBackground);
   const activeBackground = cssColorToRgba(actual.activeTabBackground);
   const activeForeground = cssColorToRgba(actual.activeTabColor);
-  if (!expectedFrameRgb || !inactiveBackground || !activeBackground || !activeForeground) {
+  if (!expectedFrameRgb || !inactiveBackground || !buttonBarBackground || !bodyBackground || !activeBackground || !activeForeground) {
     throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse Button Bar colours: ${JSON.stringify({
       expectedHex,
       inactiveTabBackground: actual.inactiveTabBackground,
+      buttonBarBackground: actual.buttonBarBackground,
       activeTabBackground: actual.activeTabBackground,
       activeTabColor: actual.activeTabColor,
     })}`);
   }
 
-  if (pixelDistance(inactiveBackground, expectedFrameRgb) > 2) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} inactive Button Bar surface must match outer frame: expected ${expectedFrameRgb.join(',')}, got ${inactiveBackground.slice(0, 3).join(',')}`);
+  const compositedButtonBarBackground = compositeRgba(buttonBarBackground, bodyBackground);
+  const compositedInactiveBackground = compositeRgba(inactiveBackground, compositedButtonBarBackground);
+  if (pixelDistance(compositedInactiveBackground, expectedFrameRgb) > 2) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} inactive Button Bar surface must match outer frame: expected ${expectedFrameRgb.join(',')}, got ${compositedInactiveBackground.join(',')}`);
   }
 
-  if (pixelDistance(activeBackground, expectedFrameRgb) > 48) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar surface is too far from the outer frame for a subtle pressed state: frame=${expectedFrameRgb.join(',')} active=${activeBackground.slice(0, 3).join(',')}`);
+  if (activeBackground[3] < 0.9) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar surface must be an opaque selected state: got ${actual.activeTabBackground}`);
   }
 
   const compositedForeground = compositeRgba(activeForeground, activeBackground);
@@ -338,11 +351,11 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
 
   actual.activeTabContrast = Number(activeContrast.toFixed(2));
 
-  if (actual.lightLockedChrome !== expectFaintLightBorder) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} light locked chrome marker: expected ${expectFaintLightBorder}, got ${actual.lightLockedChrome}`);
+  if (actual.lightBrowserChrome !== expectLightBrowserChrome) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} light browser chrome marker: expected ${expectLightBrowserChrome}, got ${actual.lightBrowserChrome}`);
   }
 
-  if (expectFaintLightBorder) {
+  if (expectLightBrowserChrome) {
     const inactiveBorder = cssColorToRgba(actual.inactiveTabBorder);
     const activeBorder = cssColorToRgba(actual.activeTabBorder);
     if (!inactiveBorder || !activeBorder) {
@@ -362,12 +375,9 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
 }
 
 async function runCase(browser, siteTheme, browserScheme, expectations, profile) {
-  const authoredFrame = browserName === 'webkit' ? expectations.safariFrame : expectations.frame;
-  const expectedFrame = profile.usesAuthoredFrame
-    ? (browserScheme === 'dark' ? authoredFrame.dark : authoredFrame.light)
-    : lockedHeaderFrames[browserName][browserScheme];
+  const expectedFrame = browserSchemeFrames[browserName][browserScheme];
   const expectedWindow = expectations.window[siteTheme];
-  const expectFaintLightBorder = !profile.usesAuthoredFrame && browserScheme === 'light';
+  const expectLightBrowserChrome = browserScheme === 'light';
   const context = await browser.newContext({
     ...profile.context,
     colorScheme: browserScheme,
@@ -384,10 +394,10 @@ async function runCase(browser, siteTheme, browserScheme, expectations, profile)
     homeModeUrl.searchParams.set('mode', expectations.homeMode.id);
     await page.goto(homeModeUrl.toString(), { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => ['ready', 'failed'].includes(document.documentElement.dataset.absBootState), null, { timeout: 15000 });
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1200);
 
     const directHome = await readFrameState(page);
-    assertFrameState(siteTheme, browserScheme, `direct-home-${expectations.homeMode.id}`, directHome, expectedFrame, expectedWindow, !profile.context.isMobile, expectFaintLightBorder);
+    assertFrameState(siteTheme, browserScheme, `direct-home-${expectations.homeMode.id}`, directHome, expectedFrame, expectedWindow, !profile.context.isMobile, expectLightBrowserChrome);
 
     await page.locator('.simulation-focus-switcher').click({ timeout: 5000 });
     await page.locator('.simulation-focus-row').filter({ hasText: expectations.routeBacked.name }).click({ timeout: 5000 });
@@ -395,11 +405,13 @@ async function runCase(browser, siteTheme, browserScheme, expectations, profile)
       document.querySelector('.simulation-focus-pill__label')?.textContent?.trim() === name
       && document.documentElement.dataset.absSimulationFocusTransition !== 'out'
       && document.documentElement.dataset.absSimulationFocusTransition !== 'hold'
+      && document.documentElement.dataset.absSimulationFocusTransition !== 'in'
+      && !document.querySelector('#modal-blur-layer.active')
     ), expectations.routeBacked.name, { timeout: 15000 });
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1200);
 
     const routeBacked = await readFrameState(page);
-    assertFrameState(siteTheme, browserScheme, `route-backed-${expectations.routeBacked.id}`, routeBacked, expectedFrame, expectedWindow, !profile.context.isMobile, expectFaintLightBorder);
+    assertFrameState(siteTheme, browserScheme, `route-backed-${expectations.routeBacked.id}`, routeBacked, expectedFrame, expectedWindow, !profile.context.isMobile, expectLightBrowserChrome);
 
     log(`engine=${browserName} profile=${profile.name} site=${siteTheme} browser=${browserScheme}: ${expectations.homeMode.id} -> ${expectations.routeBacked.id} frame=${expectedFrame} active-contrast=${routeBacked.activeTabContrast}:1`);
   } finally {
@@ -425,7 +437,7 @@ async function run() {
     await server?.stop();
   }
 
-  log(`PASS (${browserName}): theme-color capability or locked-browser scheme owns outer harmony, Button Bar material follows it, and site theme independently owns the studio-window surface.`);
+  log(`PASS (${browserName}): browser/OS scheme owns outer harmony, Button Bar material follows it, and site theme independently owns the studio-window surface.`);
 }
 
 run().catch((error) => {

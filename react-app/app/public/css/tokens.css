@@ -39,15 +39,15 @@
   --wall-color: var(--frame-color);
   --abs-browser-chrome: var(--frame-color);
   --abs-frame-inset-desktop: 16px;
-  --abs-frame-inset-tablet: 14px;
   --abs-frame-inset-mobile: 10px;
+  --abs-frame-inset-value: clamp(10px, calc(4.363992172px + 1.174168297vw), 16px);
   --abs-content-inset-desktop: 28px;
   --abs-content-inset-tablet: 22px;
   --abs-content-inset-mobile: 16px;
-  --abs-frame-radius-value: clamp(20px, calc(8.727984344px + 2.348336595vw), 32px);
-  --abs-frame-radius-desktop: 32px;
-  --abs-frame-radius-mobile: 20px;
-  --abs-frame-inset: var(--abs-frame-inset-desktop);
+  --abs-frame-radius-value: clamp(32px, calc(-5.573385519px + 7.82778865vw), 72px);
+  --abs-frame-radius-desktop: 72px;
+  --abs-frame-radius-mobile: 32px;
+  --abs-frame-inset: var(--abs-frame-inset-value);
   --abs-content-inset: var(--abs-content-inset-desktop);
   --abs-frame-radius: var(--abs-frame-radius-value);
   --abs-safe-top: env(safe-area-inset-top, 0px);
@@ -60,9 +60,6 @@
   --chrome-bg-light: var(--frame-color-light);
   --chrome-bg-dark: var(--frame-color-dark);
   /* Simplified frame geometry + effects */
-  --frame-border-width-desktop: 0px;
-  --frame-border-width-mobile: 4px;
-  --frame-border-width: var(--frame-border-width-desktop);
   --frame-outer-radius: var(--abs-frame-radius);
   --frame-inner-radius: var(--abs-frame-radius);
   --frame-inner-surface: var(--studio-window-bg);
@@ -172,8 +169,6 @@
   --abs-radius-cta: 10px;
   --abs-radius-pill: 999px;
 
-  --abs-container-border-vw: 1.9;
-  --abs-wall-thickness-vw: 2;
   --abs-layout-min-padding: 16px;
 
   /* Opacity Scale */
@@ -382,14 +377,14 @@
   --cursor-color: var(--ball-6);
 
   /* Layout + Radius */
-  --container-border-vw: var(--abs-container-border-vw);
-  --wall-thickness-vw: var(--abs-wall-thickness-vw);
+  --container-border-vw: 0;
+  --wall-thickness-vw: 0;
   --layout-min-content-padding: var(--abs-layout-min-padding);
-  --wall-thickness: calc(var(--wall-thickness-vw) * 1vw);
+  --wall-thickness: var(--abs-frame-inset);
   --wall-radius: var(--abs-frame-radius);
   --outer-wall-radius: var(--abs-frame-radius);
   --container-radius: var(--wall-radius);
-  --container-border: calc(var(--container-border-vw) * 1vw);
+  --container-border: var(--abs-frame-inset);
   --simulation-padding: 0px;
   --canvas-radius: var(--wall-radius);
 
@@ -524,11 +519,6 @@
   --outer-wall-bottom-light-opacity: 0.55;    /* Bottom light opacity */
   --outer-wall-bottom-light-rgb: 255, 255, 255; /* Bottom light RGB (editable via color picker) */
   --outer-wall-edge-width: 2px;               /* Height of outer wall gradient edges */
-  --outer-wall-cast-shadow-offset: 3px;       /* Cast shadow Y offset */
-  --outer-wall-cast-shadow-blur: 14px;        /* Cast shadow blur */
-  --outer-wall-cast-shadow-spread: 0px;       /* Cast shadow spread */
-  --outer-wall-cast-shadow-opacity: 0.1;      /* Cast shadow opacity */
-  --outer-wall-cast-shadow-rgb: 0, 0, 0;      /* Cast shadow RGB (editable via color picker) */
   --outer-wall-top-bevel-rgb: 0, 0, 0;        /* Top bevel RGB (editable via color picker) */
   
   /* Inner wall inner glow (inset) — RGB used by main.css box-shadow on #simulations */
@@ -555,6 +545,10 @@
   
   /* Inner wall gradient edge - radial gradient light/shadow edges */
   --inner-wall-gradient-edge-width: 0px;
+  --inner-wall-rim-focus-x: 50%;
+  --inner-wall-rim-focus-y: 50%;
+  --inner-wall-rim-falloff-stop: 60%;
+  --inner-wall-rim-falloff-opacity-mul: 0.3;
   --inner-wall-gradient-radius: 70;           /* Percentage of width for gradient spread */
   --inner-wall-top-bevel-width: 2px;          /* Inner wall top light edge thickness */
   --inner-wall-top-light-opacity: 0.22;       /* Inner wall top light edge opacity (light mode) */
@@ -810,8 +804,7 @@
 
 @media (max-width: 600px) {
   :root {
-    --frame-border-width: var(--frame-border-width-mobile);
-    --safari-tint-inset-x: calc(var(--container-border) * 1.4);
+    --safari-tint-inset-x: var(--container-border);
   }
 }
 

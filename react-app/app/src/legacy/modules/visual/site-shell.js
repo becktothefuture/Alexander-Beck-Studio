@@ -4,12 +4,20 @@ import {
   loadLegacyShellConfig,
   shouldUseCanonicalDesignConfig,
 } from '../utils/design-config.js';
-import { getGlobals } from '../core/state.js';
+import {
+  applyLayoutCSSVars,
+  applyLayoutFromVwToPx,
+  getGlobals,
+} from '../core/state.js';
 import { isDarkThemeDocument } from '../../../lib/theme-state.js';
 import {
   buildResponsiveFrameRadiusCss,
   resolveFrameRadiusEndpoints,
 } from './frame-radius.js';
+import {
+  buildResponsiveFrameInsetCss,
+  resolveFrameInsetEndpoints,
+} from './frame-inset.js';
 
 const DEFAULT_SHELL_CONFIG = {
   theme: {
@@ -20,20 +28,17 @@ const DEFAULT_SHELL_CONFIG = {
     siteFrameLight: '#141414',
     siteFrameDark: '#141414',
     chromeHarmonyMode: 'adaptive',
-    safariFrameLight: '#141414',
-    safariFrameDark: '#141414',
     frameBorderEdgeOpacity: 0.03,
     frameBorderMidOpacity: 0.06
   },
   layout: {
     frameInsetDesktop: '16px',
-    frameInsetTablet: '14px',
     frameInsetMobile: '10px',
     contentInsetDesktop: '28px',
     contentInsetTablet: '22px',
     contentInsetMobile: '16px',
-    frameRadiusDesktop: '32px',
-    frameRadiusMobile: '20px',
+    frameRadiusDesktop: '72px',
+    frameRadiusMobile: '32px',
     decorativeScriptMaxWidth: '431px',
     decorativeScriptPaddingX: '0px',
     decorativeScriptPaddingY: '0px',
@@ -260,7 +265,7 @@ export function resolveSiteFramePalette(isDark = isDarkThemeDocument()) {
   return { light, dark, active };
 }
 
-export function resolveBrowserFramePalette(config = currentShellConfig, isDark = isDarkThemeDocument()) {
+export function resolveBrowserFramePalette(isDark = isDarkThemeDocument()) {
   const family = detectBrowserFamily();
   let light = DEFAULT_SHELL_CONFIG.theme.siteFrameLight;
   let dark = DEFAULT_SHELL_CONFIG.theme.siteFrameDark;
@@ -268,19 +273,11 @@ export function resolveBrowserFramePalette(config = currentShellConfig, isDark =
   if (family.isFirefox) {
     light = '#f9f9fb';
     dark = '#1c1b22';
-  } else if (family.isChromium) {
+  } else {
     light = '#f1f3f4';
     dark = '#202124';
   }
 
-  const active = isDark ? dark : light;
-
-  return { light, dark, active };
-}
-
-export function resolveSafariFramePalette(config = currentShellConfig, isDark = isDarkThemeDocument()) {
-  const light = config?.theme?.safariFrameLight || config?.theme?.siteFrameLight || DEFAULT_SHELL_CONFIG.theme.safariFrameLight;
-  const dark = config?.theme?.safariFrameDark || config?.theme?.siteFrameDark || DEFAULT_SHELL_CONFIG.theme.safariFrameDark;
   const active = isDark ? dark : light;
 
   return { light, dark, active };
@@ -394,9 +391,12 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   const motion = config?.motion || DEFAULT_SHELL_CONFIG.motion;
   const hero = config?.hero || DEFAULT_SHELL_CONFIG.hero;
 
-  root.style.setProperty('--abs-frame-inset-desktop', layout.frameInsetDesktop);
-  root.style.setProperty('--abs-frame-inset-tablet', layout.frameInsetTablet);
-  root.style.setProperty('--abs-frame-inset-mobile', layout.frameInsetMobile);
+  const frameInset = resolveFrameInsetEndpoints(layout);
+  root.style.setProperty('--abs-frame-inset-desktop', `${frameInset.desktop}px`);
+  root.style.setProperty('--abs-frame-inset-mobile', `${frameInset.mobile}px`);
+  root.style.setProperty('--abs-frame-inset-value', buildResponsiveFrameInsetCss(frameInset));
+  root.style.setProperty('--abs-frame-inset', 'var(--abs-frame-inset-value)');
+  root.style.removeProperty('--abs-frame-inset-tablet');
   root.style.setProperty('--abs-content-inset-desktop', layout.contentInsetDesktop);
   root.style.setProperty('--abs-content-inset-tablet', layout.contentInsetTablet);
   root.style.setProperty('--abs-content-inset-mobile', layout.contentInsetMobile);
@@ -407,8 +407,15 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.removeProperty('--abs-frame-radius-tablet');
   try {
     const globals = getGlobals();
+    globals.frameInsetMobilePx = frameInset.mobile;
+    globals.frameInsetDesktopPx = frameInset.desktop;
     globals.frameRadiusMobilePx = frameRadius.mobile;
     globals.frameRadiusDesktopPx = frameRadius.desktop;
+    // Keep every JS geometry consumer synchronized when authored shell values
+    // arrive asynchronously. Home's renderer also does this on resize, but
+    // non-rendering routes otherwise retained the previous/default radius.
+    applyLayoutFromVwToPx();
+    applyLayoutCSSVars();
   } catch (e) {}
   root.style.setProperty('--decorative-script-max-width', layout.decorativeScriptMaxWidth);
   root.style.setProperty('--decorative-script-padding-left', layout.decorativeScriptPaddingX);

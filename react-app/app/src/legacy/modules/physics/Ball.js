@@ -8,6 +8,7 @@ import { CONSTANTS, MODES, isPitLikeMode } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
 import { registerWallImpactAtPoint, registerWallPressureAtPoint } from './wall-state.js';
 import { getPortfolioBodyMaxExtentAlongWorldNormal } from './portfolio-body-geometry.js';
+import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { drawPebbleBody, appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
 
 // Unique ID counter for ball sound debouncing
@@ -47,26 +48,37 @@ function getInteriorWallViolation(ball, w, h) {
   const cornerRadiusPx = (typeof globals.getCanvasCornerRadius === 'function')
     ? globals.getCanvasCornerRadius()
     : (globals.cornerRadius ?? globals.wallRadius ?? 0);
-  const cr = Math.max(0, Number(cornerRadiusPx) || 0) * (DPR || 1);
+  const maxFallbackInset = Math.max(0, (Math.min(w, h) * 0.5) - 0.5);
+  const fallbackInset = Math.min(getSimulationCollisionInsetPx(globals), maxFallbackInset);
+  const fallbackRadius = Math.max(0, ((Number(cornerRadiusPx) || 0) * (DPR || 1)) - fallbackInset);
+  const measuredBounds = globals.simulationCollisionBounds;
+  const hasMeasuredBounds = Boolean(
+    measuredBounds
+    && Number.isFinite(measuredBounds.x)
+    && Number.isFinite(measuredBounds.y)
+    && Number.isFinite(measuredBounds.width)
+    && Number.isFinite(measuredBounds.height)
+    && Number.isFinite(measuredBounds.radius)
+    && measuredBounds.width > 0
+    && measuredBounds.height > 0
+  );
 
-  // The renderer now bleeds `#c` out to the wall's visible surface inset.
-  // Keep collision bounds at the canvas edge here; adding a second frame-derived
-  // inset recreates the false floating gap the user called out.
-  const insetPx = 0;
-  const wi = Number(globals.wallInset);
-  const borderInset = Math.max(0, Number.isFinite(wi) ? wi : 0) * (DPR || 1);
-
-  const innerW = Math.max(1, w - insetPx * 2);
-  const innerH = Math.max(1, h - insetPx * 2);
-  const innerR = Math.max(0, Math.min(cr, innerW * 0.5, innerH * 0.5));
+  // The cached simulation interior is physics-only. The canvas still renders
+  // to the visible wall contour; this authored inset only controls collisions.
+  const boundaryX = hasMeasuredBounds ? measuredBounds.x : fallbackInset;
+  const boundaryY = hasMeasuredBounds ? measuredBounds.y : fallbackInset;
+  const innerW = hasMeasuredBounds ? measuredBounds.width : Math.max(1, w - (fallbackInset * 2));
+  const innerH = hasMeasuredBounds ? measuredBounds.height : Math.max(1, h - (fallbackInset * 2));
+  const boundaryRadius = hasMeasuredBounds ? measuredBounds.radius : fallbackRadius;
+  const innerR = Math.max(0, Math.min(boundaryRadius, innerW * 0.5, innerH * 0.5));
 
   const isPitMode = isPitLikeMode(currentMode);
   const hx = innerW * 0.5;
   const hy = innerH * 0.5;
   const rr = innerR;
 
-  const cx = insetPx + hx;
-  const cy = insetPx + hy;
+  const cx = boundaryX + hx;
+  const cy = boundaryY + hy;
   const lx = ball.x - cx;
   const ly = ball.y - cy;
   const ax = Math.abs(lx);
@@ -96,7 +108,11 @@ function getInteriorWallViolation(ball, w, h) {
   nx *= lx < 0 ? -1 : 1;
   ny *= ly < 0 ? -1 : 1;
 
-  const skipForPit = isPitMode && ny < -0.5;
+  // Pit balls pour through the straight top opening, but the rounded top
+  // corners remain physical. The previous broad `ny < -0.5` exemption also
+  // disabled diagonal corner collisions, which made large frame radii appear
+  // unrelated to the ball-pit boundary.
+  const skipForPit = isPitMode && ny < 0 && Math.abs(nx) <= 1e-4;
   const skipForBubbles = currentMode === MODES.BUBBLES && ny < -0.5;
   // Portfolio bodies can be chunkier than circles; using r for walls makes them float above the
   // floor and feel disconnected from the wall mask. Use support along the same SDF normal n.
@@ -107,7 +123,8 @@ function getInteriorWallViolation(ball, w, h) {
   const shapeExtentAlongN = usePortfolioWallExtent
     ? getPortfolioBodyMaxExtentAlongWorldNormal(ball, nx, ny, globals)
     : effectiveRadius;
-  const margin = shapeExtentAlongN + borderInset;
+  // The physical boundary already includes the shared frame inset.
+  const margin = shapeExtentAlongN;
   const penetration = sdfDist + margin;
   if (penetration <= 0) return null;
   if (skipForPit || skipForBubbles) return null;
@@ -120,12 +137,15 @@ function getInteriorWallViolation(ball, w, h) {
  * A few iterations cover tight corners without running the full physics step.
  */
 export function clampBallPositionToWallInterior(ball, w, h) {
+  let changed = false;
   for (let iter = 0; iter < 8; iter += 1) {
     const v = getInteriorWallViolation(ball, w, h);
-    if (!v) return;
+    if (!v) return changed;
     ball.x -= v.nx * v.penetration;
     ball.y -= v.ny * v.penetration;
+    changed = true;
   }
+  return changed;
 }
 
 export class Ball {

@@ -1,0 +1,43 @@
+- generic [ref=e3]:
+  - generic "Portfolio projects" [ref=e4]
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - banner
+      - generic:
+        - contentinfo:
+          - generic:
+            - group "Social media links" [ref=e6]:
+              - link "Apple Music" [ref=e7] [cursor=pointer]:
+                - /url: https://music.apple.com/profile/beckandeggs
+                - generic: 
+              - link "LinkedIn" [ref=e9] [cursor=pointer]:
+                - /url: https://www.linkedin.com/in/thisisbeck/
+                - generic: 
+            - generic [ref=e11]:
+              - generic "London local time":
+                - generic:
+                  - generic:
+                    - strong: London
+                    - generic: ·
+                  - time: 7:36:59 PM
+  - generic [ref=e12]:
+    - navigation "Primary buttons" [ref=e13]:
+      - link "Home" [ref=e14] [cursor=pointer]:
+        - /url: /index.html
+        - generic: 
+      - link "Portfolio" [ref=e16]:
+        - /url: /portfolio.html
+        - text: 
+      - link "About Me" [ref=e18] [cursor=pointer]:
+        - /url: /about.html
+        - text: 
+      - link "Contact" [ref=e20] [cursor=pointer]:
+        - /url: /contact.html
+        - text: 
+    - group "Secondary buttons" [ref=e22]:
+      - button "Sound off" [ref=e23] [cursor=pointer]:
+        - generic: 
+      - button "Switch to dark mode" [ref=e25] [cursor=pointer]

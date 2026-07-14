@@ -3,6 +3,8 @@ import {
   applyLayoutFromVwToPx,
   getGlobals,
 } from '../core/state.js';
+import { applyShellLayoutVars, patchShellLayout } from '../visual/site-shell.js';
+import { resize } from '../rendering/renderer.js';
 
 export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   edgeStrength: 0.06,
@@ -25,8 +27,10 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   quotePaddingY: 24,
   edgeCaptionDistanceMin: 8,
   edgeCaptionDistanceMax: 48,
-  wallThicknessVw: 4,
-  frameBorderWidth: 20,
+  frameInsetMobilePx: 10,
+  frameInsetDesktopPx: 16,
+  frameRadiusMobilePx: 32,
+  frameRadiusDesktopPx: 72,
 };
 
 const SURFACE_CONTROL_SECTIONS = [
@@ -55,13 +59,15 @@ const SURFACE_CONTROL_SECTIONS = [
 
 const SHELL_OBJECT_CONTROL_SECTIONS = [
   {
-    key: 'shellLayout',
-    title: 'Shell Layout',
+    key: 'frame',
+    title: 'Frame',
     icon: '📐',
     defaultOpen: true,
     controls: [
-      { id: 'wallThicknessVw', label: 'Outer Wall Size', min: 0.5, max: 12, step: 0.1, unit: 'vw' },
-      { id: 'frameBorderWidth', label: 'Wall thickness', min: 0, max: 20, step: 1, unit: 'px' },
+      { id: 'frameInsetMobilePx', label: 'Mobile Size', min: 4, max: 32, step: 1, unit: 'px' },
+      { id: 'frameInsetDesktopPx', label: 'Desktop Size', min: 8, max: 48, step: 1, unit: 'px' },
+      { id: 'frameRadiusMobilePx', label: 'Mobile Radius', min: 16, max: 64, step: 1, unit: 'px' },
+      { id: 'frameRadiusDesktopPx', label: 'Desktop Radius', min: 32, max: 120, step: 1, unit: 'px' },
     ],
   },
   {
@@ -164,17 +170,73 @@ function readCurrentConfig() {
     quotePaddingY: readNumber(rootStyle, '--abs-quote-pad-y', DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingY),
     edgeCaptionDistanceMin: readNumber(rootStyle, '--edge-caption-distance-min', DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMin),
     edgeCaptionDistanceMax: readNumber(rootStyle, '--edge-caption-distance-max', DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax),
-    wallThicknessVw: (() => {
+    frameInsetMobilePx: (() => {
       const g = getGlobals();
-      const v = g?.wallThicknessVw;
-      return Number.isFinite(v) && v >= 0 ? v : DEFAULT_STUDIO_SURFACE_CONFIG.wallThicknessVw;
+      const v = g?.frameInsetMobilePx;
+      return Number.isFinite(v) && v >= 0 ? v : DEFAULT_STUDIO_SURFACE_CONFIG.frameInsetMobilePx;
     })(),
-    frameBorderWidth: (() => {
+    frameInsetDesktopPx: (() => {
       const g = getGlobals();
-      const v = g?.frameBorderWidth;
-      return Number.isFinite(v) && v >= 0 ? v : DEFAULT_STUDIO_SURFACE_CONFIG.frameBorderWidth;
+      const v = g?.frameInsetDesktopPx;
+      return Number.isFinite(v) && v >= 0 ? v : DEFAULT_STUDIO_SURFACE_CONFIG.frameInsetDesktopPx;
+    })(),
+    frameRadiusMobilePx: (() => {
+      const g = getGlobals();
+      const v = g?.frameRadiusMobilePx;
+      return Number.isFinite(v) && v >= 0 ? v : DEFAULT_STUDIO_SURFACE_CONFIG.frameRadiusMobilePx;
+    })(),
+    frameRadiusDesktopPx: (() => {
+      const g = getGlobals();
+      const v = g?.frameRadiusDesktopPx;
+      return Number.isFinite(v) && v >= 0 ? v : DEFAULT_STUDIO_SURFACE_CONFIG.frameRadiusDesktopPx;
     })(),
   };
+}
+
+function normalizeResponsiveEndpoints(config, {
+  mobileId,
+  desktopId,
+  mobileMin,
+  mobileMax,
+  desktopMin,
+  desktopMax,
+  changedId = null,
+}) {
+  let mobile = Math.round(clamp(config[mobileId], mobileMin, mobileMax, DEFAULT_STUDIO_SURFACE_CONFIG[mobileId]));
+  let desktop = Math.round(clamp(config[desktopId], desktopMin, desktopMax, DEFAULT_STUDIO_SURFACE_CONFIG[desktopId]));
+
+  if (mobile > desktop) {
+    if (changedId === mobileId) mobile = desktop;
+    else desktop = mobile;
+  }
+
+  config[mobileId] = mobile;
+  config[desktopId] = desktop;
+  return { mobile, desktop };
+}
+
+function normalizeFrameInsetEndpoints(config, changedId = null) {
+  return normalizeResponsiveEndpoints(config, {
+    mobileId: 'frameInsetMobilePx',
+    desktopId: 'frameInsetDesktopPx',
+    mobileMin: 4,
+    mobileMax: 32,
+    desktopMin: 8,
+    desktopMax: 48,
+    changedId,
+  });
+}
+
+function normalizeFrameRadiusEndpoints(config, changedId = null) {
+  return normalizeResponsiveEndpoints(config, {
+    mobileId: 'frameRadiusMobilePx',
+    desktopId: 'frameRadiusDesktopPx',
+    mobileMin: 16,
+    mobileMax: 64,
+    desktopMin: 32,
+    desktopMax: 120,
+    changedId,
+  });
 }
 
 function formatValue(control, value) {
@@ -214,7 +276,7 @@ function syncStudioRuntimeState(config) {
   } catch (e) {}
 }
 
-export function applyStudioSurfaceConfig(config) {
+export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {}) {
   const root = document.documentElement;
   const edgeStrength = clamp(config.edgeStrength, 0, 0.45, DEFAULT_STUDIO_SURFACE_CONFIG.edgeStrength);
   const edgeWidth = clamp(config.edgeWidth, 0, 2.5, DEFAULT_STUDIO_SURFACE_CONFIG.edgeWidth);
@@ -236,8 +298,8 @@ export function applyStudioSurfaceConfig(config) {
   const quotePaddingY = clamp(config.quotePaddingY, 6, 40, DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingY);
   const edgeCaptionDistanceMin = clamp(config.edgeCaptionDistanceMin, 0, 24, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMin);
   const edgeCaptionDistanceMax = clamp(config.edgeCaptionDistanceMax, 24, 80, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax);
-  const wallThicknessVw = clamp(config.wallThicknessVw, 0.5, 12, DEFAULT_STUDIO_SURFACE_CONFIG.wallThicknessVw);
-  const frameBorderWidth = Math.round(clamp(config.frameBorderWidth, 0, 20, DEFAULT_STUDIO_SURFACE_CONFIG.frameBorderWidth));
+  const frameInset = normalizeFrameInsetEndpoints(config);
+  const frameRadius = normalizeFrameRadiusEndpoints(config);
 
   // Sync surface config into state first so applyLayoutCSSVars() (e.g. hover-edge vars) uses current values.
   syncStudioRuntimeState({
@@ -276,17 +338,29 @@ export function applyStudioSurfaceConfig(config) {
     quotePaddingY,
     edgeCaptionDistanceMin,
     edgeCaptionDistanceMax,
-    wallThicknessVw,
-    frameBorderWidth,
+    frameInsetMobilePx: frameInset.mobile,
+    frameInsetDesktopPx: frameInset.desktop,
+    frameRadiusMobilePx: frameRadius.mobile,
+    frameRadiusDesktopPx: frameRadius.desktop,
   };
   window.__ABS_STUDIO_SURFACE_CONFIG__ = studioSurfaceSnapshot;
 
   const g = getGlobals();
   if (g) {
-    if (Number.isFinite(wallThicknessVw)) g.wallThicknessVw = wallThicknessVw;
-    if (Number.isFinite(frameBorderWidth) && frameBorderWidth >= 0) g.frameBorderWidth = frameBorderWidth;
+    g.frameInsetMobilePx = frameInset.mobile;
+    g.frameInsetDesktopPx = frameInset.desktop;
+    g.frameRadiusMobilePx = frameRadius.mobile;
+    g.frameRadiusDesktopPx = frameRadius.desktop;
+    patchShellLayout({
+      frameInsetMobile: `${frameInset.mobile}px`,
+      frameInsetDesktop: `${frameInset.desktop}px`,
+      frameRadiusMobile: `${frameRadius.mobile}px`,
+      frameRadiusDesktop: `${frameRadius.desktop}px`,
+    });
+    applyShellLayoutVars();
     applyLayoutFromVwToPx();
     applyLayoutCSSVars();
+    if (refreshGeometry) resize();
   }
 
   root.style.setProperty('--abs-surface-edge-opacity', `${edgeStrength}`);
@@ -418,8 +492,25 @@ export function bindStudioSurfaceControls(options = {}) {
       input.dataset.boundStudioSurface = 'true';
       input.addEventListener('input', () => {
         config[control.id] = clamp(input.value, control.min, control.max, DEFAULT_STUDIO_SURFACE_CONFIG[control.id]);
-        if (output) output.textContent = formatValue(control, config[control.id]);
-        applyStudioSurfaceConfig(config);
+        const endpointIds = control.id.startsWith('frameInset')
+          ? ['frameInsetMobilePx', 'frameInsetDesktopPx']
+          : control.id.startsWith('frameRadius')
+            ? ['frameRadiusMobilePx', 'frameRadiusDesktopPx']
+            : null;
+        if (endpointIds) {
+          if (control.id.startsWith('frameInset')) normalizeFrameInsetEndpoints(config, control.id);
+          else normalizeFrameRadiusEndpoints(config, control.id);
+          for (const endpointId of endpointIds) {
+            const endpointControl = section.controls.find((candidate) => candidate.id === endpointId);
+            const endpointInput = uiDocument.getElementById(`studioSurface_${endpointId}Slider`);
+            const endpointOutput = uiDocument.getElementById(`studioSurface_${endpointId}Val`);
+            if (endpointInput) endpointInput.value = String(config[endpointId]);
+            if (endpointOutput && endpointControl) endpointOutput.textContent = formatValue(endpointControl, config[endpointId]);
+          }
+        } else if (output) {
+          output.textContent = formatValue(control, config[control.id]);
+        }
+        applyStudioSurfaceConfig(config, { refreshGeometry: Boolean(endpointIds) });
       });
     }
   }
@@ -483,6 +574,14 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   nextShell.layout.quotePaddingY = `${Math.round(config.quotePaddingY)}px`;
   nextShell.layout.edgeCaptionDistanceMin = `${Math.round(config.edgeCaptionDistanceMin)}px`;
   nextShell.layout.edgeCaptionDistanceMax = `${Math.round(config.edgeCaptionDistanceMax)}px`;
+  const frameInset = normalizeFrameInsetEndpoints(config);
+  nextShell.layout.frameInsetMobile = `${frameInset.mobile}px`;
+  nextShell.layout.frameInsetDesktop = `${frameInset.desktop}px`;
+  delete nextShell.layout.frameInsetTablet;
+  const frameRadius = normalizeFrameRadiusEndpoints(config);
+  nextShell.layout.frameRadiusMobile = `${frameRadius.mobile}px`;
+  nextShell.layout.frameRadiusDesktop = `${frameRadius.desktop}px`;
+  delete nextShell.layout.frameRadiusTablet;
   delete nextShell.layout.quoteMaxWidth;
   delete nextShell.surface.quoteButtonFillOpacity;
   nextShell.motion = { ...(baseShell?.motion || {}) };

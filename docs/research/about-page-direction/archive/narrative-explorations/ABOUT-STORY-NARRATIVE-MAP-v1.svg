@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3200" height="2200" viewBox="0 0 3200 2200">
+  <style>
+    .bg { fill: #f7f7f4; }
+    .panel { fill: #ffffff; stroke: #1b1b1b; stroke-width: 2; }
+    .soft { fill: #f7f7f4; stroke: #b7b7b0; stroke-width: 2; }
+    .accent { fill: none; stroke: #ef3f83; stroke-width: 3; }
+    .title { font: 700 76px Inter, Arial, sans-serif; fill: #151515; letter-spacing: -2px; }
+    .subtitle { font: 400 30px Inter, Arial, sans-serif; fill: #151515; }
+    .section { font: 700 28px Inter, Arial, sans-serif; fill: #151515; }
+    .mode { font: 700 17px Inter, Arial, sans-serif; fill: #151515; letter-spacing: 1px; }
+    .heading { font: 700 34px Inter, Arial, sans-serif; fill: #151515; letter-spacing: -0.5px; }
+    .body { font: 400 24px Inter, Arial, sans-serif; fill: #151515; }
+    .small { font: 400 20px Inter, Arial, sans-serif; fill: #151515; }
+    .quote { font: 500 26px Inter, Arial, sans-serif; fill: #151515; }
+    .divider { stroke: #1b1b1b; stroke-width: 2; }
+  </style>
+
+  <rect class="bg" width="3200" height="2200" />
+
+  <text class="title" x="120" y="150">About Me narrative map</text>
+  <text class="subtitle" x="120" y="212">One evergreen spine. Three early voices. Animation as counterpoint, never explanation.</text>
+  <line class="divider" x1="120" y1="270" x2="3080" y2="270" />
+
+  <rect class="accent" x="120" y="312" width="168" height="46" rx="23" />
+  <text class="mode" x="154" y="342">SPATIAL</text>
+  <text class="small" x="310" y="343">Centred, short, travelling through the reading plane</text>
+  <rect class="panel" x="1020" y="312" width="182" height="46" rx="23" />
+  <text class="mode" x="1050" y="342">EDITORIAL</text>
+  <text class="small" x="1224" y="343">Left-aligned, sentence case, calm reading width</text>
+
+  <text class="section" x="120" y="425">EVERGREEN FIVE-ACT STRUCTURE</text>
+
+  <!-- Shared spine -->
+  <g transform="translate(120,465)">
+    <rect class="panel" width="560" height="390" rx="12" />
+    <rect class="accent" x="28" y="28" width="140" height="42" rx="21" />
+    <text class="mode" x="52" y="56">SPATIAL</text>
+    <text class="heading" x="28" y="122">1. Story promise</text>
+    <text class="body" x="28" y="170">
+      <tspan x="28" dy="0">Open the tension between</tspan>
+      <tspan x="28" dy="35">clarity and what could be lost.</tspan>
+      <tspan x="28" dy="58">Question:</tspan>
+      <tspan x="28" dy="35">What is this really about?</tspan>
+      <tspan x="28" dy="58">Background: anticipation.</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(720,465)">
+    <rect class="panel" width="560" height="390" rx="12" />
+    <rect class="panel" x="28" y="28" width="154" height="42" rx="21" />
+    <text class="mode" x="51" y="56">EDITORIAL</text>
+    <text class="heading" x="28" y="122">2. Personal lens</text>
+    <text class="body" x="28" y="170">
+      <tspan x="28" dy="0">Composition, form, shape, type,</tspan>
+      <tspan x="28" dy="35">image and attention.</tspan>
+      <tspan x="28" dy="58">Question:</tspan>
+      <tspan x="28" dy="35">Why is he telling this story?</tspan>
+      <tspan x="28" dy="58">Proof: mixed early studies.</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(1320,465)">
+    <rect class="panel" width="560" height="390" rx="12" />
+    <rect class="accent" x="28" y="28" width="140" height="42" rx="21" />
+    <text class="mode" x="52" y="56">SPATIAL</text>
+    <text class="heading" x="28" y="122">3. Expansion</text>
+    <text class="body" x="28" y="170">
+      <tspan x="28" dy="0">Move from one surface into</tspan>
+      <tspan x="28" dy="35">products, services and systems.</tspan>
+      <tspan x="28" dy="58">Question:</tspan>
+      <tspan x="28" dy="35">How did the work grow?</tspan>
+      <tspan x="28" dy="58">Background: scale opens.</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(1920,465)">
+    <rect class="panel" width="560" height="390" rx="12" />
+    <rect class="panel" x="28" y="28" width="154" height="42" rx="21" />
+    <text class="mode" x="51" y="56">EDITORIAL</text>
+    <text class="heading" x="28" y="122">4. Practice</text>
+    <text class="body" x="28" y="170">
+      <tspan x="28" dy="0">Give complexity structure, then</tspan>
+      <tspan x="28" dy="35">keep its character alive.</tspan>
+      <tspan x="28" dy="58">Question:</tspan>
+      <tspan x="28" dy="35">What does he actually do?</tspan>
+      <tspan x="28" dy="58">Background: structure + response.</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(2520,465)">
+    <rect class="panel" width="560" height="390" rx="12" />
+    <rect class="accent" x="28" y="28" width="140" height="42" rx="21" />
+    <text class="mode" x="52" y="56">SPATIAL</text>
+    <text class="heading" x="28" y="122">5. Open ending</text>
+    <text class="body" x="28" y="170">
+      <tspan x="28" dy="0">State the work wanted next and</tspan>
+      <tspan x="28" dy="35">make one clear invitation.</tspan>
+      <tspan x="28" dy="58">Question:</tspan>
+      <tspan x="28" dy="35">What becomes possible next?</tspan>
+      <tspan x="28" dy="58">Background: release and openness.</tspan>
+    </text>
+  </g>
+
+  <text class="section" x="120" y="940">THREE VOICES ON THE SAME SPINE</text>
+
+  <!-- Route A -->
+  <rect class="soft" x="120" y="980" width="2960" height="270" rx="12" />
+  <text class="heading" x="154" y="1030">A. Learning to look</text>
+  <text class="small" x="154" y="1066">Literary, observant, craft-led</text>
+  <line class="divider" x1="620" y1="1005" x2="620" y2="1225" />
+  <text class="quote" x="656" y="1032"><tspan x="656">“I learned design</tspan><tspan x="656" dy="34">by learning to look.”</tspan></text>
+  <text class="quote" x="1140" y="1032"><tspan x="1140">Composition, form, shape.</tspan><tspan x="1140" dy="34">Small decisions change meaning.</tspan></text>
+  <text class="quote" x="1624" y="1032"><tspan x="1624">“The canvas changed.</tspan><tspan x="1624" dy="34">The attention stayed.”</tspan></text>
+  <text class="quote" x="2108" y="1032"><tspan x="2108">Clear without becoming</tspan><tspan x="2108" dy="34">anonymous.</tspan></text>
+  <text class="quote" x="2592" y="1032"><tspan x="2592">“It has not found</tspan><tspan x="2592" dy="34">its form yet.”</tspan></text>
+
+  <!-- Route B -->
+  <rect class="soft" x="120" y="1290" width="2960" height="270" rx="12" />
+  <text class="heading" x="154" y="1334"><tspan x="154">B. Work that crosses</tspan><tspan x="154" dy="36">disciplines</tspan></text>
+  <text class="small" x="154" y="1420">Direct, contemporary, client-legible</text>
+  <line class="divider" x1="620" y1="1315" x2="620" y2="1535" />
+  <text class="quote" x="656" y="1342"><tspan x="656">“Happiest when a project</tspan><tspan x="656" dy="34">crosses disciplines.”</tspan></text>
+  <text class="quote" x="1140" y="1342"><tspan x="1140">Composition, form, shape.</tspan><tspan x="1140" dy="34">Keep room for surprise.</tspan></text>
+  <text class="quote" x="1624" y="1342"><tspan x="1624">“The decisions</tspan><tspan x="1624" dy="34">became connected.”</tspan></text>
+  <text class="quote" x="2108" y="1342"><tspan x="2108">A strong system and</tspan><tspan x="2108" dy="34">a specific point of view.</tspan></text>
+  <text class="quote" x="2592" y="1342"><tspan x="2592">“Tell me the complicated</tspan><tspan x="2592" dy="34">part.”</tspan></text>
+
+  <!-- Route C -->
+  <rect class="soft" x="120" y="1600" width="2960" height="270" rx="12" />
+  <text class="heading" x="154" y="1650">C. The questions grew</text>
+  <text class="small" x="154" y="1686">Performable, cumulative, emotionally direct</text>
+  <line class="divider" x1="620" y1="1625" x2="620" y2="1845" />
+  <text class="quote" x="656" y="1652"><tspan x="656">“Where something sits.</tspan><tspan x="656" dy="34">What changes when it moves.”</tspan></text>
+  <text class="quote" x="1140" y="1652"><tspan x="1140">Form, shape and space.</tspan><tspan x="1140" dy="34">Every choice changes experience.</tspan></text>
+  <text class="quote" x="1624" y="1652"><tspan x="1624">Composition → interaction →</tspan><tspan x="1624" dy="34">journey → system.</tspan></text>
+  <text class="quote" x="2108" y="1652"><tspan x="2108">“It works. It also</tspan><tspan x="2108" dy="34">has to feel right.”</tspan></text>
+  <text class="quote" x="2592" y="1652"><tspan x="2592">“Room to make</tspan><tspan x="2592" dy="34">something new.”</tspan></text>
+
+  <!-- Recommendation -->
+  <rect class="panel" x="120" y="1930" width="2960" height="180" rx="12" />
+  <text class="heading" x="154" y="1980">Recommended synthesis</text>
+  <text class="body" x="154" y="2025">
+    <tspan x="154">Route C’s dramatic curve + Route A’s visual foundation + Route B’s commercial clarity.</tspan>
+    <tspan x="154" dy="42">The words tell the story. The point field supplies anticipation, concentration, expansion, balance and release.</tspan>
+  </text>
+</svg>

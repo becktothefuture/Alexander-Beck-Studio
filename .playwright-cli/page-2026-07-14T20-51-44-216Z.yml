@@ -1,0 +1,53 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: Ah, ah, ah. You didn't say the magic word.
+  - generic:
+    - generic:
+      - generic:
+        - contentinfo:
+          - generic:
+            - group "Social media links" [ref=e6]:
+              - link "Apple Music" [ref=e7] [cursor=pointer]:
+                - /url: https://music.apple.com/profile/beckandeggs
+                - generic: 
+              - link "LinkedIn" [ref=e9] [cursor=pointer]:
+                - /url: https://www.linkedin.com/in/thisisbeck/
+                - generic: 
+            - generic "London local time" [ref=e12]:
+              - generic [ref=e13]:
+                - generic [ref=e14]:
+                  - strong [ref=e15]: London
+                  - generic [ref=e16]: ·
+                - time [ref=e17]: 9:51:44 PM
+  - region [ref=e20]:
+    - paragraph [ref=e21]: Private work
+    - heading "View Portfolio" [level=1] [ref=e22]
+    - paragraph [ref=e23]: Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated.
+    - group "View Portfolio" [ref=e24]:
+      - textbox "Portfolio invite code digit 1 of 6" [ref=e25]
+      - textbox "Portfolio invite code digit 2 of 6" [ref=e26]
+      - textbox "Portfolio invite code digit 3 of 6" [ref=e27]
+      - textbox "Portfolio invite code digit 4 of 6" [ref=e28]
+      - textbox "Portfolio invite code digit 5 of 6" [ref=e29]
+      - textbox "Portfolio invite code digit 6 of 6" [ref=e30]
+  - generic [ref=e31]:
+    - navigation "Primary buttons" [ref=e32]:
+      - link "Home" [ref=e33] [cursor=pointer]:
+        - /url: /index.html
+        - generic: 
+      - link "Work" [ref=e35]:
+        - /url: /portfolio.html
+        - text: 
+      - link "About Me" [ref=e37] [cursor=pointer]:
+        - /url: /about.html
+        - text: 
+      - link "Contact" [ref=e39] [cursor=pointer]:
+        - /url: /contact.html
+        - text: 
+    - group "Secondary buttons" [ref=e41]:
+      - button "Sound off" [ref=e42] [cursor=pointer]:
+        - generic: 
+      - button "Switch to dark mode" [ref=e44] [cursor=pointer]

@@ -71,6 +71,23 @@ const RETIRED_RUNTIME_KEYS = new Set([
   'frameRadiusPx',
   'frameRadiusMobilePx',
   'frameRadiusDesktopPx',
+  'frameInsetMobilePx',
+  'frameInsetDesktopPx',
+  'containerBorderVw',
+  'wallThicknessVw',
+  'wallThicknessAreaMultiplier',
+  'wallThicknessMinPx',
+  'wallThicknessMaxPx',
+  'mobileWallThicknessXFactor',
+  'desktopWallThicknessFactor',
+  'frameBorderWidth',
+  'frameBorderWidthMobile',
+  'wallInset',
+  'outerWallCastShadowOpacityLight',
+  'outerWallCastShadowOpacityDark',
+  'outerWallCastShadowBlur',
+  'outerWallCastShadowOffset',
+  'outerWallCastShadowSpread',
   'autoDarkModeEnabled',
   'autoDarkNightStartHour',
   'autoDarkNightEndHour',
@@ -244,6 +261,8 @@ const BUTTON_BAR_RUNTIME_KEY_ALIASES = Object.freeze({
 const RETIRED_SHELL_THEME_KEYS = new Set([
   'lockedHeaderLight',
   'lockedHeaderDark',
+  'safariFrameLight',
+  'safariFrameDark',
   'frameVignetteEdgeBlur',
   'frameVignetteEdgeOpacity',
   'frameVignetteAmbientOpacity',
@@ -251,6 +270,7 @@ const RETIRED_SHELL_THEME_KEYS = new Set([
 
 const RETIRED_SHELL_LAYOUT_KEYS = new Set([
   'quoteMaxWidth',
+  'frameInsetTablet',
   'frameRadiusTablet',
 ]);
 

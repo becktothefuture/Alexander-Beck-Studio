@@ -57,10 +57,6 @@ export function buildRuntimeConfigSnapshot() {
   config.repelSoftness = g.repelSoft;
 
   config.layoutViewportWidthPx = g.layoutViewportWidthPx || 0;
-  config.containerBorderVw = g.containerBorderVw;
-  config.wallThicknessVw = g.wallThicknessVw;
-  config.frameBorderWidth = g.frameBorderWidth;
-  config.frameBorderWidthMobile = g.frameBorderWidthMobile;
   config.contentPaddingVw = g.contentPaddingVw;
   config.contentPaddingHorizontalRatio = g.contentPaddingHorizontalRatio;
   config.layoutMinContentPaddingPx = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
@@ -95,18 +91,26 @@ export function buildShellConfigSnapshot() {
     quoteButtonColorDark: g.quoteButtonColorDark || nextShell.theme?.quoteButtonColorDark,
     siteFrameLight: g.frameColorLight || nextShell.theme?.siteFrameLight,
     siteFrameDark: g.frameColorDark || nextShell.theme?.siteFrameDark,
-    safariFrameLight: g.safariFrameLight || nextShell.theme?.safariFrameLight,
-    safariFrameDark: g.safariFrameDark || nextShell.theme?.safariFrameDark,
   };
+  delete nextShell.theme.safariFrameLight;
+  delete nextShell.theme.safariFrameDark;
+  delete nextShell.theme.lockedHeaderLight;
+  delete nextShell.theme.lockedHeaderDark;
 
   nextShell.layout = {
     ...(nextShell.layout || {}),
-    frameRadiusMobile: `${Math.max(0, Number(g.frameRadiusMobilePx) || 20)}px`,
+    frameInsetMobile: `${Math.max(0, Number(g.frameInsetMobilePx) || 10)}px`,
+    frameInsetDesktop: `${Math.max(
+      Number(g.frameInsetMobilePx) || 10,
+      Number(g.frameInsetDesktopPx) || 16
+    )}px`,
+    frameRadiusMobile: `${Math.max(0, Number(g.frameRadiusMobilePx) || 32)}px`,
     frameRadiusDesktop: `${Math.max(
-      Number(g.frameRadiusMobilePx) || 20,
-      Number(g.frameRadiusDesktopPx) || 32
+      Number(g.frameRadiusMobilePx) || 32,
+      Number(g.frameRadiusDesktopPx) || 72
     )}px`,
   };
+  delete nextShell.layout.frameInsetTablet;
   delete nextShell.layout.frameRadiusTablet;
 
   return nextShell;

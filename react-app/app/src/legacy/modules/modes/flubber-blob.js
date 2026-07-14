@@ -9,6 +9,7 @@ import { Ball } from '../physics/Ball.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { subscribeScenePointer } from '../input/pointer.js';
 import { triggerPressure } from '../audio/simulation-audio-adapter.js';
+import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const TWO_PI = Math.PI * 2;
@@ -371,8 +372,7 @@ function writeRoundedRectViolation(cx, cy, w, h, margin, g, out) {
   const outsideCorner = Math.hypot(Math.max(rdx, 0), Math.max(rdy, 0));
   const insideRect = Math.min(Math.max(rdx, rdy), 0);
   const sdfDist = outsideCorner + insideRect - rr;
-  const wi = Number(g.wallInset);
-  const borderInset = Math.max(0, Number.isFinite(wi) ? wi : 0) * dpr;
+  const borderInset = getSimulationCollisionInsetPx(g);
   const penetration = sdfDist + margin + borderInset;
   if (penetration <= 0) return false;
   out.nx = nx * (lx < 0 ? -1 : 1);

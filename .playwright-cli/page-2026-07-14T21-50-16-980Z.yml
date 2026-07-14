@@ -1,0 +1,95 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e3]:
+    - generic [ref=f2e4]:
+      - generic "About Alexander narrative" [ref=f2e6]:
+        - main [ref=f2e7]:
+          - region [ref=f2e8]:
+            - heading "I help organisations shape complex ideas…" [level=1] [ref=f2e10]
+          - region [ref=f2e11]:
+            - generic [ref=f2e12]:
+              - heading "What clarity makes possible" [level=2] [ref=f2e13]
+              - paragraph [ref=f2e14]: into clear, human and emotionally compelling experiences.
+          - region [ref=f2e15]:
+            - heading "We are surrounded by systems becoming denser, faster and harder to read." [level=2] [ref=f2e18]:
+              - generic [ref=f2e19]: We are surrounded by systems becoming denser,
+              - generic [ref=f2e20]: faster and harder to read.
+          - region [ref=f2e21]:
+            - generic [ref=f2e22]:
+              - heading "Learning to see" [level=2] [ref=f2e23]
+              - paragraph [ref=f2e24]: "I came to design through language and technology—two systems for carrying an idea from one mind to another. Visual form taught me that attention is shaped by choices: what comes forward, what recedes, what connects and what disappears."
+              - paragraph [ref=f2e25]: "Clarity begins with attention: deciding what comes forward, what recedes, what connects and what disappears."
+              - figure "Points repeatedly reorganise around one emerging relationship." [ref=f2e26]:
+                - generic [ref=f2e64]: Attention changes the field before it changes the answer.
+              - paragraph [ref=f2e65]: That path expanded from composition and visual language into interfaces, behaviour, trust, products and systems.
+          - region [ref=f2e66]:
+            - heading "Possibility expands. A point of view gives it direction." [level=2] [ref=f2e69]:
+              - generic [ref=f2e70]: Possibility expands.
+              - generic [ref=f2e71]: A point of view gives it direction.
+          - region [ref=f2e72]:
+            - heading "Complexity is not the enemy. Confusion is." [level=2] [ref=f2e75]:
+              - generic [ref=f2e76]: Complexity is not the enemy.
+              - generic [ref=f2e77]: Confusion is.
+          - region [ref=f2e78]:
+            - heading "A perfect system can still feel lifeless. Character begins when it learns to respond." [level=2] [ref=f2e81]:
+              - generic [ref=f2e82]: A perfect system can still feel lifeless.
+              - generic [ref=f2e83]: Character begins when it learns to respond.
+          - region [ref=f2e84]:
+            - generic [ref=f2e85]:
+              - heading "Making ideas tangible" [level=2] [ref=f2e86]
+              - paragraph [ref=f2e87]: The work often begins before the format is known. I immerse myself in the problem, look for the organising idea, and make it tangible enough for people to test together. Prototypes turn opinions into something we can experience. Systems help the idea travel.
+              - paragraph [ref=f2e88]: Character is not decoration added after the useful work. It lives in how something responds, how movement guides attention, how a constraint becomes a useful choice, and how a person can sense that somebody cared.
+              - paragraph [ref=f2e89]: The aim is not less complexity. It is more meaning, made legible.
+              - paragraph [ref=f2e90]: The contexts change—from healthcare and identity to finance, mobility and culture—but the work repeatedly moves from an unresolved question towards something people can see, test and shape together.
+          - region [ref=f2e91]:
+            - generic [ref=f2e93]:
+              - heading "In the end, clarity is a point of view. …by finding what must survive." [level=2] [ref=f2e94]:
+                - generic [ref=f2e95]: In the end, clarity is a point of view.
+                - generic [ref=f2e96]: …by finding what must survive.
+              - group "Rotate the point-cloud bust horizontally"
+              - generic [ref=f2e97]:
+                - paragraph [ref=f2e98]: Bring me something unresolved.
+                - navigation "Contact Alexander" [ref=f2e99]:
+                  - link "Start a conversation" [ref=f2e100] [cursor=pointer]:
+                    - /url: mailto:alexander@beck.fyi
+                  - link "LinkedIn" [ref=f2e101] [cursor=pointer]:
+                    - /url: https://www.linkedin.com/in/thisisbeck/
+      - generic "Section 1 of 9": 01 / 09
+    - generic:
+      - generic:
+        - generic:
+          - contentinfo:
+            - generic:
+              - group "Social media links" [ref=f2e103]:
+                - link "Apple Music" [ref=f2e104] [cursor=pointer]:
+                  - /url: https://music.apple.com/profile/beckandeggs
+                  - generic: 
+                - link "LinkedIn" [ref=f2e106] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/in/thisisbeck/
+                  - generic: 
+              - generic "London local time" [ref=f2e109]:
+                - generic [ref=f2e110]:
+                  - generic [ref=f2e111]:
+                    - strong [ref=f2e112]: London
+                    - generic [ref=f2e113]: ·
+                  - time [ref=f2e114]: 10:50:16 PM
+          - status:
+            - generic: A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable. © 2026 Alexander Beck
+    - generic [ref=f2e115]:
+      - navigation "Primary buttons" [ref=f2e116]:
+        - link "Home" [ref=f2e117] [cursor=pointer]:
+          - /url: /index.html
+          - generic: 
+        - link "Work" [ref=f2e119] [cursor=pointer]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About Me" [ref=f2e121]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=f2e123] [cursor=pointer]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=f2e125]:
+        - button "Sound off" [ref=f2e126] [cursor=pointer]:
+          - generic: 
+        - button "Switch to dark mode" [ref=f2e128] [cursor=pointer]
+  - button "Parameters" [ref=f2e135] [cursor=pointer]

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="fonts-loading" data-abs-boot-state="booting" style="background:var(--abs-browser-chrome,#141517);background-color:var(--abs-browser-chrome,#141517)">
+<html lang="en" class="fonts-loading" data-abs-boot-state="booting" style="background:var(--abs-browser-chrome,#202124);background-color:var(--abs-browser-chrome,#202124)">
   <head>
     <style id="fade-blocking">#root,#abs-scene,#app-frame{opacity:0;visibility:hidden}</style>
     <style id="abs-critical-shell">
@@ -259,60 +259,23 @@
       (function() {
         window.__ABS_BOOT_STARTED_AT__ = (window.performance && typeof window.performance.now === 'function') ? window.performance.now() : Date.now();
         var root = document.documentElement;
-        root.classList.add('palette-lab-shell');
         var DEFAULTS = {
           bgLight: '#f5f5f5',
           bgDark: '#202020',
           wallBaseLight: '#f5f5f5',
           wallBaseDark: '#202020',
           frameColorLight: '#242529',
-          frameColorDark: '#141517',
-          safariFrameLight: '#181818',
-          safariFrameDark: '#141517',
-          lockedHeaderLight: '#242529',
-          lockedHeaderDark: '#141517'
+          frameColorDark: '#121314',
+          browserFrameLight: '#f1f3f4',
+          browserFrameDark: '#202124',
+          firefoxHeaderLight: '#f9f9fb',
+          firefoxHeaderDark: '#1c1b22'
         };
 
         function detectBrowserFamily() {
           var ua = navigator.userAgent || '';
-          var vendor = navigator.vendor || '';
           var isFirefox = /Firefox\//.test(ua) || /FxiOS\//.test(ua);
-          var isSafari = /Safari\//.test(ua)
-            && /Apple/.test(vendor)
-            && !/Chrome\//.test(ua)
-            && !/Chromium\//.test(ua)
-            && !/CriOS\//.test(ua)
-            && !/FxiOS\//.test(ua)
-            && !/Edg\//.test(ua)
-            && !/EdgiOS\//.test(ua)
-            && !/OPR\//.test(ua)
-            && !/OPiOS\//.test(ua);
-          var isSamsungInternet = /SamsungBrowser\//.test(ua);
-          var isChromium = /Chrome\//.test(ua)
-            || /Chromium\//.test(ua)
-            || /CriOS\//.test(ua)
-            || /Edg\//.test(ua)
-            || /EdgiOS\//.test(ua)
-            || /OPR\//.test(ua)
-            || /OPiOS\//.test(ua)
-            || /Brave\//.test(ua)
-            || isSamsungInternet;
-          return { isFirefox: isFirefox, isSafari: isSafari, isChromium: isChromium, isSamsungInternet: isSamsungInternet };
-        }
-
-        function themeColorLikelyApplied(family) {
-          var ua = navigator.userAgent || '';
-          var isAndroid = /Android/.test(ua);
-          var isIOS = /iPhone|iPad|iPod/.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
-          var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
-            || (window.matchMedia && window.matchMedia('(display-mode: minimal-ui)').matches)
-            || navigator.standalone === true;
-
-          if (family.isFirefox) return false;
-          if (isStandalone) return true;
-          if (family.isSafari) return true;
-          if (family.isChromium) return isAndroid || family.isSamsungInternet;
-          return isAndroid || isIOS;
+          return { isFirefox: isFirefox };
         }
 
         function syncMeta(name, media, color) {
@@ -342,26 +305,23 @@
 
         function applyPalette(isDark) {
           var family = detectBrowserFamily();
-          var useLockedPalette = !family.isSafari && !themeColorLikelyApplied(family);
           var innerLight = DEFAULTS.wallBaseLight;
           var innerDark = DEFAULTS.wallBaseDark;
           var frameLight;
           var frameDark;
-          if (family.isSafari) {
-            frameLight = DEFAULTS.safariFrameLight;
-            frameDark = DEFAULTS.safariFrameDark;
-          } else if (useLockedPalette) {
-            frameLight = DEFAULTS.lockedHeaderLight;
-            frameDark = DEFAULTS.lockedHeaderDark;
+          if (family.isFirefox) {
+            frameLight = DEFAULTS.firefoxHeaderLight;
+            frameDark = DEFAULTS.firefoxHeaderDark;
           } else {
-            frameLight = DEFAULTS.frameColorLight;
-            frameDark = DEFAULTS.frameColorDark;
+            frameLight = DEFAULTS.browserFrameLight;
+            frameDark = DEFAULTS.browserFrameDark;
           }
           var activeInner = isDark ? innerDark : innerLight;
           var activeFrame = isDark ? frameDark : frameLight;
           var activeTheme = isDark ? 'dark' : 'light';
 
           root.style.colorScheme = activeTheme;
+          root.toggleAttribute('data-abs-light-browser-chrome', !isDark);
           root.setAttribute('data-abs-theme', activeTheme);
           root.style.setProperty('--color-bg-light', DEFAULTS.bgLight);
           root.style.setProperty('--color-bg-dark', DEFAULTS.bgDark);
@@ -447,9 +407,9 @@
     />
     <link rel="stylesheet" href="%BASE_URL%css/tokens.css" />
     <link rel="stylesheet" href="%BASE_URL%css/normalize.css" />
-    <link rel="stylesheet" href="%BASE_URL%css/main.css" />
+    <link rel="stylesheet" href="%BASE_URL%css/main.css?v=simulation-focus-overlay-20260714" />
+    <!-- Portfolio drawer + pit: many rules use `body.portfolio-page`; `#portfolio-sheet-host` is the drawer mount on all routes -->
     <link rel="stylesheet" href="%BASE_URL%css/portfolio.css?v=portfolio-gate-20260712" />
-    <link rel="stylesheet" href="%BASE_URL%css/palette-lab.css" />
     <link rel="stylesheet" href="/src/styles/base.css" />
   </head>
   <body class="body">

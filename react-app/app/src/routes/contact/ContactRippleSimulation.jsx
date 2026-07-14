@@ -13,7 +13,7 @@ import {
 import { createContactRippleRenderer } from './contactRippleRenderer.js';
 import './contact-route.css';
 
-export function ContactRippleSimulation({ burstToken, contentRef }) {
+export function ContactRippleSimulation({ burstSignal, contentRef }) {
   const stageRef = useRef(null);
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
@@ -102,8 +102,8 @@ export function ContactRippleSimulation({ burstToken, contentRef }) {
   }, [contentRef, reducedMotion]);
 
   useEffect(() => {
-    if (burstToken > 0) rendererRef.current?.burst();
-  }, [burstToken]);
+    if (burstSignal?.id) rendererRef.current?.burst();
+  }, [burstSignal]);
 
   return (
     <div

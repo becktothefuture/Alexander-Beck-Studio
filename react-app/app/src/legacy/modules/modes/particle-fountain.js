@@ -8,7 +8,7 @@ import { Ball } from '../physics/Ball.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
-import { getSimulationVisibleInsetPx } from '../utils/frame-geometry.js';
+import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { triggerPressure } from '../audio/simulation-audio-adapter.js';
 
 // Emission timer for continuous particle spawning
@@ -67,10 +67,7 @@ function createParticle() {
   
   // Calculate bottom center position (accounting for wall inset)
   // Position slightly above bottom so particles don't immediately trigger recycling
-  const wallInset = getSimulationVisibleInsetPx(g);
-  const wi = Number(g.wallInset);
-  const borderInset = Math.max(0, (Number.isFinite(wi) ? wi : 0) * DPR);
-  const bottomInset = wallInset + borderInset;
+  const bottomInset = getSimulationCollisionInsetPx(g);
   const fountainX = w / 2;
   // Start slightly above the ground threshold so particles have room to rise
   const fountainY = h - bottomInset - (targetRadius * 0.5);
@@ -132,10 +129,7 @@ function recycleParticle(ball) {
   
   // Calculate bottom center position
   // Position slightly above bottom so particles don't immediately trigger recycling
-  const wallInset = getSimulationVisibleInsetPx(g);
-  const wi = Number(g.wallInset);
-  const borderInset = Math.max(0, (Number.isFinite(wi) ? wi : 0) * DPR);
-  const bottomInset = wallInset + borderInset;
+  const bottomInset = getSimulationCollisionInsetPx(g);
   const fountainX = w / 2;
   // Start slightly above the ground threshold so particles have room to rise
   const fountainY = h - bottomInset - (targetRadius * 0.5);
@@ -293,10 +287,7 @@ export function updateParticleFountain(dt) {
   const DPR = g.DPR || 1;
   const w = canvas.width;
   const h = canvas.height;
-  const wallInset = getSimulationVisibleInsetPx(g);
-  const wi = Number(g.wallInset);
-  const borderInset = Math.max(0, (Number.isFinite(wi) ? wi : 0) * DPR);
-  const bottomThreshold = h - wallInset - borderInset;
+  const bottomThreshold = h - getSimulationCollisionInsetPx(g);
   const velocityThreshold = 20 * DPR; // Very slow upward velocity
   
   // ═══════════════════════════════════════════════════════════════════════════

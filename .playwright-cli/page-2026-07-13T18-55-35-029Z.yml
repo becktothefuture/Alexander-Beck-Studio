@@ -1,0 +1,13 @@
+- generic [ref=f9e12]:
+  - generic [ref=f9e13]: "[plugin:vite:import-analysis] Failed to resolve import \"./AboutNarrativeLabExperience.jsx\" from \"src/routes/about-narrative-lab/AboutNarrativeLabRoute.jsx\". Does the file exist?"
+  - generic [ref=f9e14]: /Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabRoute.jsx:1:44
+  - generic [ref=f9e15]: "1 | import { jsxDEV } from \"react/jsx-dev-runtime\"; 2 | import { AboutNarrativeLabExperience } from \"./AboutNarrativeLabExperience.jsx\"; | ^ 3 | export const ABOUT_NARRATIVE_LAB_ROUTE_RUNTIME = { 4 | legacyRuntime: false"
+  - generic [ref=f9e16]: at TransformPluginContext._formatLog (file:///Users/alexanderbeck/Projects-code/Alexander%20Beck%20Studio%20Website/react-app/app/node_modules/vite/dist/node/chunks/config.js:28999:43) at TransformPluginContext.error (file:///Users/alexanderbeck/Projects-code/Alexander%20Beck%20Studio%20Website/react-app/app/node_modules/vite/dist/node/chunks/config.js:28996:14) at normalizeUrl (file:///Users/alexanderbeck/Projects-code/Alexander%20Beck%20Studio%20Website/react-app/app/node_modules/vite/dist/node/chunks/config.js:27119:18) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///Users/alexanderbeck/Projects-code/Alexander%20Beck%20Studio%20Website/react-app/app/node_modules/vite/dist/node/chunks/config.js:27177:32 at async Promise.all (index 1) at async TransformPluginContext.transform (file:///Users/alexanderbeck/Projects-code/Alexander%20Beck%20Studio%20Website/react-app/app/node_modules/vite/dist/node/chunks/config.js:27145:4) at async EnvironmentPluginContainer.transform (file:///Users/alexanderbeck/Projects-code/Alexander%20Beck%20Studio%20Website/react-app/app/node_modules/vite/dist/node/chunks/config.js:28797:14) at async loadAndTransform (file:///Users/alexanderbeck/Projects-code/Alexander%20Beck%20Studio%20Website/react-app/app/node_modules/vite/dist/node/chunks/config.js:22670:26) at async viteTransformMiddleware (file:///Users/alexanderbeck/Projects-code/Alexander%20Beck%20Studio%20Website/react-app/app/node_modules/vite/dist/node/chunks/config.js:24542:20)
+  - generic [ref=f9e17]:
+    - text: Click outside, press Esc key, or fix the code to dismiss.You can also disable this overlay by setting
+    - code [ref=f9e18]: server.hmr.overlay
+    - text: to
+    - code [ref=f9e19]: "false"
+    - text: in
+    - code [ref=f9e20]: vite.config.js
+    - text: .

@@ -30,7 +30,7 @@ Canonical engineering contract for route and modal transitions.
 
 ## 4) Direct-load boot overlay
 - Direct document loads start behind `#abs-boot-overlay`, with `<html data-abs-boot-state="booting">` and `#root` hidden/inert.
-- A CSS-generated `html::before` / `html::after` bridge covers the viewport from the critical head style before the body overlay DOM exists; the first-paint browser chrome fallback mirrors `shell.theme.siteFrameDark` in `design-system.json`, and `#abs-boot-overlay` remains the main release/fade layer.
+- A CSS-generated `html::before` / `html::after` bridge covers the viewport from the critical head style before the body overlay DOM exists; the first-paint browser chrome fallback starts from the browser-scheme dark frame color until the boot script resolves the active browser/OS scheme, and `#abs-boot-overlay` remains the main release/fade layer.
 - The first-paint loader is a compact 36px six-dot spinner derived from the exact simulation-system ball palette slots, excluding only the pure white and pure black ball slots. The dots use the loader playground's Fluid Sweep cadence: a roughly 2.24s eased orbit and 4.8px dots on a 14.25px radius. Colour changes are intentionally less frequent: the dots hold a stable palette through most of a roughly 6.72s colour cycle, then run a short stepped burst around the ring using 160ms phase offsets. Saved light and dark themes use the same simulation-system dot palette.
 - The overlay must remain visible for at least 750ms on every direct document load before it can begin its exit fade.
 - The spinner must disappear as the overlay exit begins; the dark overlay surface carries the soft fade by itself.

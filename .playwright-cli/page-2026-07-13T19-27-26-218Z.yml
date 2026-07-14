@@ -1,0 +1,118 @@
+- generic [active] [ref=f17e1]:
+  - generic [ref=f17e3]:
+    - generic [ref=f17e4]:
+      - main [ref=f17e6]:
+        - region [ref=f17e7]:
+          - generic [ref=f17e9]:
+            - paragraph [ref=f17e10]: 01 — Present
+            - heading "I help organisations shape complex ideas into clear, human and emotionally compelling experiences—especially when the answer is still being figured out." [level=1] [ref=f17e11]
+        - region [ref=f17e12]:
+          - generic [ref=f17e13]:
+            - paragraph [ref=f17e14]: 02 — Profile
+            - heading "Profile" [level=2] [ref=f17e15]
+            - paragraph [ref=f17e16]: I’m a creative designer, technologist and systems thinker based in London. At Critical Mass, I work on digital experiences for the American Heart Association.
+            - paragraph [ref=f17e17]: Teams bring me in to solve complexity, connect ambitious ideas to practical execution, and turn research, user needs and business ambition into purposeful, surprising work.
+        - region [ref=f17e18]:
+          - generic [ref=f17e20]:
+            - paragraph [ref=f17e21]: 03 — Perspective
+            - 'heading "The whole experience matters: how it works, how it looks, and how it makes people feel." [level=2] [ref=f17e22]'
+        - region [ref=f17e23]:
+          - generic [ref=f17e24]:
+            - paragraph [ref=f17e25]: 04 — Trajectory
+            - heading "Trajectory" [level=2] [ref=f17e26]
+            - paragraph [ref=f17e27]: My path moved from language, technology and visual communication into interaction, behaviour and trust, then into products, brands and systems in implementation. Denaline, Yoti and MRM are the main turns; education stays a quiet footnote.
+        - region [ref=f17e28]:
+          - generic [ref=f17e30]:
+            - paragraph [ref=f17e31]: 05 — From ambition to reality
+            - heading "From ambition to reality, I help teams find the organising idea, make it tangible and protect what matters through delivery." [level=2] [ref=f17e32]
+        - region [ref=f17e33]:
+          - generic [ref=f17e34]:
+            - paragraph [ref=f17e35]: 06 — Practice
+            - heading "Practice" [level=2] [ref=f17e36]
+            - paragraph [ref=f17e37]: Today I work through immersion, clear creative direction, genuine collaboration and prototypes people can experience. My client context spans healthcare, finance, mobility, travel, technology and culture.
+            - list "Selected client context" [ref=f17e38]:
+              - listitem [ref=f17e39]: American Heart Association
+              - listitem [ref=f17e40]: S&P Global
+              - listitem [ref=f17e41]: Yoti
+              - listitem [ref=f17e42]: Bentley
+              - listitem [ref=f17e43]: Sony
+              - listitem [ref=f17e44]: Jaguar Land Rover
+              - listitem [ref=f17e45]: McCann
+              - listitem [ref=f17e46]: Maybourne Hotels
+              - listitem [ref=f17e47]: SunExpress
+              - listitem [ref=f17e48]: Lufthansa Group
+              - listitem [ref=f17e49]: Turkish Airlines
+              - listitem [ref=f17e50]: Tourism Ireland
+              - listitem [ref=f17e51]: Experian
+              - listitem [ref=f17e52]: Money and Pensions Service
+              - listitem [ref=f17e53]: Frankfurt Opera
+              - listitem [ref=f17e54]: DCC
+        - region [ref=f17e55]:
+          - generic [ref=f17e56]:
+            - paragraph [ref=f17e57]: 07 — Curiosity
+            - heading "Curiosity stays practical." [level=2] [ref=f17e58]
+            - generic [ref=f17e59]:
+              - article [ref=f17e60]:
+                - generic [ref=f17e61]: "01"
+                - heading "iOS keyboard exploration" [level=3] [ref=f17e62]
+                - paragraph [ref=f17e63]: Rethinking a familiar input until its assumptions become visible.
+              - article [ref=f17e64]:
+                - generic [ref=f17e65]: "02"
+                - heading "Spatial interface experiments" [level=3] [ref=f17e66]
+                - paragraph [ref=f17e67]: Testing how a website can feel architectural without losing clarity.
+              - article [ref=f17e68]:
+                - generic [ref=f17e69]: "03"
+                - heading "3D and visual R&D" [level=3] [ref=f17e70]
+                - paragraph [ref=f17e71]: Exploring material, motion and atmosphere as product-design tools.
+        - region [ref=f17e72]:
+          - generic [ref=f17e74]:
+            - paragraph [ref=f17e75]: 08 — Next
+            - heading "I’m looking for greater responsibility in innovation, creative direction and early-stage experience design—especially around AI, trust, privacy, robotics, digital identity, education and healthcare." [level=2] [ref=f17e76]
+            - paragraph [ref=f17e77]: If you are tackling a meaningful problem that is not neatly defined, I’d like to hear from you.
+            - navigation "Contact Alexander" [ref=f17e78]:
+              - link "Email me" [ref=f17e79] [cursor=pointer]:
+                - /url: mailto:alexander@beck.fyi
+              - link "LinkedIn" [ref=f17e80] [cursor=pointer]:
+                - /url: https://www.linkedin.com/in/thisisbeck/
+      - generic:
+        - generic: 01 / 08
+        - generic: —
+        - strong: Present
+    - generic:
+      - generic:
+        - generic:
+          - contentinfo:
+            - generic:
+              - group "Social media links" [ref=f17e82]:
+                - link "Apple Music" [ref=f17e83] [cursor=pointer]:
+                  - /url: https://music.apple.com/profile/beckandeggs
+                  - generic: 
+                - link "LinkedIn" [ref=f17e85] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/in/thisisbeck/
+                  - generic: 
+              - generic [ref=f17e87]:
+                - generic "London local time":
+                  - generic:
+                    - generic:
+                      - strong: London
+                    - time: 8:27:26 PM
+          - status:
+            - generic: A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable. © 2026 Alexander Beck
+    - generic [ref=f17e88]:
+      - navigation "Primary buttons" [ref=f17e89]:
+        - link "Home" [ref=f17e90] [cursor=pointer]:
+          - /url: /index.html
+          - generic: 
+        - link "Portfolio" [ref=f17e92] [cursor=pointer]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About Me" [ref=f17e94]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=f17e96] [cursor=pointer]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=f17e98]:
+        - button "Sound off" [ref=f17e99] [cursor=pointer]:
+          - generic: 
+  - button "Parameters" [ref=f17e102] [cursor=pointer]

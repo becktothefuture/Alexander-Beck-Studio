@@ -8,7 +8,7 @@ import {
   ABOUT_NARRATIVE_SETTINGS_KEY,
 } from './aboutNarrativeLabData.js';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
-import { useAboutNarrativeScroll } from './useAboutNarrativeScroll.js';
+import { useAboutNarrativeTimeline } from './useAboutNarrativeTimeline.js';
 import './about-narrative-lab.css';
 
 const INLINE_STUDY_POINTS = Object.freeze(Array.from({ length: 36 }, (_, index) => ({
@@ -48,7 +48,16 @@ async function copyText(text) {
   }
 }
 
-function OpeningSection({ section, index, sectionRef }) {
+function getSectionStyle(section, settings) {
+  const lengthMultiplier = section.mode === 'editorial' ? 1 : settings.spatialLength;
+  return {
+    '--section-duration-wu': section.durationWU * lengthMultiplier,
+    '--section-duration-mobile-wu': (section.mobileDurationWU || section.durationWU) * lengthMultiplier,
+  };
+}
+
+function OpeningSection({ section, index, sectionRef, settings }) {
+  const copy = section.lines.join(' ');
   return (
     <section
       ref={sectionRef}
@@ -56,27 +65,34 @@ function OpeningSection({ section, index, sectionRef }) {
       className="about-narrative-section about-narrative-section--opening"
       data-narrative-section={section.id}
       data-section-index={index}
+      data-world-stage={section.world}
+      style={getSectionStyle(section, settings)}
       aria-labelledby={`about-narrative-${section.id}-title`}
     >
       <div className="about-narrative-opening-inner">
         <h1 id={`about-narrative-${section.id}-title`} data-editorial-line data-primary-copy>
-          {section.copy}
+          {copy}
         </h1>
       </div>
     </section>
   );
 }
 
-function SpatialSection({ section, index, sectionRef }) {
+function SpatialSection({ section, index, sectionRef, settings }) {
   const Heading = index === 0 ? 'h1' : 'h2';
-  const fragments = section.fragments || [section.copy];
+  const copy = section.lines.join(' ');
+  const layoutClass = section.layout === 'lower'
+    ? 'constellation'
+    : section.layout === 'wide' ? 'living-field' : section.layout;
   return (
     <section
       ref={sectionRef}
       id={`about-narrative-${section.id}`}
-      className={`about-narrative-section about-narrative-section--spatial about-narrative-section--${section.variant}`}
+      className={`about-narrative-section about-narrative-section--spatial about-narrative-section--${layoutClass}`}
       data-narrative-section={section.id}
       data-section-index={index}
+      data-world-stage={section.world}
+      style={getSectionStyle(section, settings)}
       aria-labelledby={`about-narrative-${section.id}-title`}
     >
       <div className="about-narrative-spatial-stage">
@@ -84,10 +100,10 @@ function SpatialSection({ section, index, sectionRef }) {
           <Heading
             id={`about-narrative-${section.id}-title`}
             className="about-narrative-spatial-title"
-            aria-label={section.copy}
+            aria-label={copy}
             data-primary-copy
           >
-            {fragments.map((fragment, fragmentIndex) => (
+            {section.lines.map((fragment, fragmentIndex) => (
               <span
                 key={fragment}
                 className="about-narrative-spatial-fragment"
@@ -127,46 +143,48 @@ function InlinePointStudy() {
   );
 }
 
-function EditorialSection({ section, index, sectionRef }) {
+function EditorialSection({ section, index, sectionRef, settings }) {
   return (
     <section
       ref={sectionRef}
       id={`about-narrative-${section.id}`}
-      className={`about-narrative-section about-narrative-section--editorial${section.variant ? ` about-narrative-section--${section.variant}` : ''}`}
+      className={`about-narrative-section about-narrative-section--editorial${section.layout ? ` about-narrative-section--${section.layout}` : ''}`}
       data-narrative-section={section.id}
       data-section-index={index}
+      data-world-stage={section.world}
+      style={getSectionStyle(section, settings)}
       aria-labelledby={`about-narrative-${section.id}-title`}
     >
       <div className="about-narrative-editorial-inner">
         <h2 id={`about-narrative-${section.id}-title`} className="about-narrative-visually-hidden">
           {section.label}
         </h2>
-        {section.prose?.map((paragraph) => (
-          <p
-            key={paragraph.text}
-            className={`about-narrative-editorial-copy${paragraph.emphasis ? ' is-highlighted' : ''}`}
-            data-editorial-line
-            data-primary-copy
-          >
-            {paragraph.text}
-          </p>
-        ))}
-        {section.inlineVisual === 'attention-field' ? <InlinePointStudy /> : null}
-        {section.details?.map((paragraph) => (
-          <p key={paragraph} className="about-narrative-editorial-detail" data-editorial-line>{paragraph}</p>
-        ))}
-        {section.contact ? (
-          <nav className="about-narrative-cta about-narrative-cta--editorial" aria-label="Contact Alexander" data-editorial-line>
-            <a href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}>Email me</a>
-            <a href={ABOUT_NARRATIVE_CONTACT.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
-          </nav>
-        ) : null}
+        {section.blocks.map((block, blockIndex) => {
+          const key = `${block.kind}-${blockIndex}`;
+          if (block.kind === 'visual' && block.visual === 'attention-field') {
+            return <InlinePointStudy key={key} />;
+          }
+          if (block.kind === 'detail') {
+            return <p key={key} className="about-narrative-editorial-detail" data-editorial-line>{block.text}</p>;
+          }
+          return (
+            <p
+              key={key}
+              className={`about-narrative-editorial-copy${block.kind === 'highlight' ? ' is-highlighted' : ''}`}
+              data-editorial-line
+              data-primary-copy
+            >
+              {block.text}
+            </p>
+          );
+        })}
       </div>
     </section>
   );
 }
 
-function FinaleSection({ section, index, sectionRef }) {
+function FinaleSection({ section, index, sectionRef, settings, interactionRef }) {
+  const copy = section.lines.join(' ');
   return (
     <section
       ref={sectionRef}
@@ -174,6 +192,8 @@ function FinaleSection({ section, index, sectionRef }) {
       className="about-narrative-section about-narrative-section--spatial about-narrative-section--closing about-narrative-section--finale"
       data-narrative-section={section.id}
       data-section-index={index}
+      data-world-stage={section.world}
+      style={getSectionStyle(section, settings)}
       aria-labelledby={`about-narrative-${section.id}-title`}
     >
       <div className="about-narrative-spatial-stage about-narrative-finale-stage">
@@ -181,10 +201,10 @@ function FinaleSection({ section, index, sectionRef }) {
           <h2
             id={`about-narrative-${section.id}-title`}
             className="about-narrative-spatial-title"
-            aria-label={section.copy}
+            aria-label={copy}
             data-primary-copy
           >
-            {section.fragments.map((fragment, fragmentIndex) => (
+            {section.lines.map((fragment, fragmentIndex) => (
               <span
                 key={fragment}
                 className="about-narrative-spatial-fragment"
@@ -196,8 +216,16 @@ function FinaleSection({ section, index, sectionRef }) {
               </span>
             ))}
           </h2>
+          <div
+            ref={interactionRef}
+            className="about-narrative-bust-interaction"
+            data-active="false"
+            role="group"
+            aria-label="Rotate the point-cloud bust horizontally"
+            tabIndex={-1}
+          />
           <div className="about-narrative-finale-cta">
-            <p>{section.cta}</p>
+            <p>{section.prompt}</p>
             <nav className="about-narrative-cta" aria-label="Contact Alexander">
               <a href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}>Start a conversation</a>
               <a href={ABOUT_NARRATIVE_CONTACT.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
@@ -335,10 +363,14 @@ export function AboutNarrativeLabExperience() {
   const scrollportRef = useRef(null);
   const contentRef = useRef(null);
   const sectionRefs = useRef([]);
+  const worldRuntimeRef = useRef(null);
+  const bustInteractionRef = useRef(null);
 
-  const activeSectionIndex = useAboutNarrativeScroll({
+  const activeSectionIndex = useAboutNarrativeTimeline({
     settings,
     sectionData: ABOUT_NARRATIVE_SECTIONS,
+    rootRef,
+    worldRuntimeRef,
     scrollportRef,
     contentRef,
     sectionRefs,
@@ -346,10 +378,6 @@ export function AboutNarrativeLabExperience() {
 
   const rootStyle = useMemo(() => ({
     '--about-reading-width': `${settings.readingWidth}rem`,
-    '--about-spatial-height-desktop': `${200 * settings.spatialLength}svh`,
-    '--about-closing-height-desktop': `${220 * settings.spatialLength}svh`,
-    '--about-spatial-height-mobile': `${175 * settings.spatialLength}svh`,
-    '--about-closing-height-mobile': `${185 * settings.spatialLength}svh`,
   }), [settings]);
 
   const handleSettingChange = useCallback((key, value) => {
@@ -369,10 +397,10 @@ export function AboutNarrativeLabExperience() {
   return (
     <div ref={rootRef} className="about-narrative-lab" data-route-content="about-narrative-lab" style={rootStyle}>
       <AboutNarrativeWorld
-        rendererId="procedural-points-v1"
+        rendererId="three-point-world-v1"
         rootRef={rootRef}
-        scrollportRef={scrollportRef}
-        settings={settings}
+        interactionRef={bustInteractionRef}
+        runtimeRef={worldRuntimeRef}
       />
 
       <div
@@ -385,21 +413,18 @@ export function AboutNarrativeLabExperience() {
         <main ref={contentRef} className="about-narrative-content">
           {ABOUT_NARRATIVE_SECTIONS.map((section, index) => {
             const sectionRef = (node) => { sectionRefs.current[index] = node; };
-            if (section.type === 'opening') {
-              return <OpeningSection key={section.id} section={section} index={index} sectionRef={sectionRef} />;
+            if (section.layout === 'opener') {
+              return <OpeningSection key={section.id} section={section} index={index} sectionRef={sectionRef} settings={settings} />;
             }
-            if (section.type === 'spatial') {
+            if (section.mode === 'spatial') {
               return (
-                <SpatialSection key={section.id} section={section} index={index} sectionRef={sectionRef} />
+                <SpatialSection key={section.id} section={section} index={index} sectionRef={sectionRef} settings={settings} />
               );
             }
-            if (section.type === 'constellation') {
-              return <SpatialSection key={section.id} section={section} index={index} sectionRef={sectionRef} />;
+            if (section.mode === 'finale') {
+              return <FinaleSection key={section.id} section={section} index={index} sectionRef={sectionRef} settings={settings} interactionRef={bustInteractionRef} />;
             }
-            if (section.type === 'finale') {
-              return <FinaleSection key={section.id} section={section} index={index} sectionRef={sectionRef} />;
-            }
-            return <EditorialSection key={section.id} section={section} index={index} sectionRef={sectionRef} />;
+            return <EditorialSection key={section.id} section={section} index={index} sectionRef={sectionRef} settings={settings} />;
           })}
         </main>
       </div>

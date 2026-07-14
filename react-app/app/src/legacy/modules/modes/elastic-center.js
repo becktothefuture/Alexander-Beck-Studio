@@ -7,6 +7,7 @@ import { pickRandomColorWithIndex, getColorByIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { subscribeScenePointer } from '../input/pointer.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
+import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 
 const TAU = Math.PI * 2;
 const MIN_DISTANCE = 0.001;
@@ -59,10 +60,9 @@ function getDpr(g) {
 
 function getLoomBounds(g) {
   const canvas = g.canvas;
-  const dpr = getDpr(g);
   const maxR = Math.max(g.R_MAX || 14, g.R_MED || 12);
-  const wallInset = Math.max(0, Number(g.wallInset) || 0) * dpr;
-  const margin = Math.max(wallInset + maxR * 4.2, Math.min(canvas.width, canvas.height) * 0.07);
+  const collisionInset = getSimulationCollisionInsetPx(g);
+  const margin = Math.max(collisionInset + maxR * 4.2, Math.min(canvas.width, canvas.height) * 0.07);
   const cx = canvas.width * 0.5;
   const cy = canvas.height * 0.5;
   const spanX = Math.max(maxR * 8, (canvas.width - margin * 2) * 0.74);

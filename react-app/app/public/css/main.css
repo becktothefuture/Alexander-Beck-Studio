@@ -28,14 +28,12 @@
 
 @media (max-width: 1279px) {
   :root {
-    --abs-frame-inset: var(--abs-frame-inset-tablet);
     --abs-content-inset: var(--abs-content-inset-tablet);
   }
 }
 
 @media (max-width: 767px) {
   :root {
-    --abs-frame-inset: var(--abs-frame-inset-mobile);
     --abs-content-inset: var(--abs-content-inset-mobile);
   }
 }
@@ -3692,18 +3690,9 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  border: var(--frame-border-width) solid transparent;
+  border: 0;
   border-radius: var(--frame-outer-radius);
-  /* 180° border gradient: top/bottom pick up edge stops; left/right vertical rails pick up the mid stop
-     at mid-height (subtle side highlights). Edge/mid opacities stay ~1:2 via applyLayoutCSSVars. */
-  background:
-    linear-gradient(var(--frame-inner-surface), var(--frame-inner-surface)) padding-box,
-    linear-gradient(
-      180deg,
-      rgba(var(--frame-border-gradient-rgb-dark), var(--frame-border-gradient-edge-opacity)) 0%,
-      rgba(var(--frame-border-gradient-rgb-light), var(--frame-border-gradient-mid-opacity)) 50%,
-      rgba(var(--frame-border-gradient-rgb-dark), var(--frame-border-gradient-edge-opacity)) 100%
-    ) border-box;
+  background: var(--frame-inner-surface);
   z-index: 100; /* Wall: top of visual stack (below modals at z:19998+) */
   pointer-events: none;
   overflow: hidden;
@@ -4322,7 +4311,7 @@ svg.shell-tab__icon {
   --button-bar-pressed-shadow-opacity: 0;
 }
 
-html[data-abs-light-locked-chrome] .button-bar {
+html[data-abs-light-browser-chrome] .button-bar {
   --button-bar-gasket-cut: rgba(var(--abs-rgb-black), 0.1);
   --button-bar-gasket-active-cut: rgba(var(--abs-rgb-black), 0.14);
   --button-bar-selected-ground-share: 92%;
@@ -4633,6 +4622,7 @@ html[data-abs-light-locked-chrome] .button-bar {
 
 @media (max-width: 340px) {
   :root {
+    --button-bar-mobile-primary-height: 46px;
     --button-bar-mobile-secondary-height: 46px;
   }
 
@@ -4790,7 +4780,7 @@ html[data-abs-instrument-wake] #simulations::after {
 .inner-wall-gradient-edge {
   position: absolute;
   inset: 0;
-  border-radius: inherit;
+  border-radius: var(--frame-outer-radius);
   pointer-events: none;
   z-index: 170;
 }
@@ -4899,7 +4889,9 @@ html.simulation-focus-legacy-blur-suppressed #modal-content-layer {
   z-index: 10; /* Canvas (balls): below video (z:20), below wall frame (z:30/40) */
   pointer-events: auto; /* Interactions enabled */
   touch-action: none;
-  border-radius: var(--frame-inner-radius);
+  /* #simulations is the sole rounded-clip authority. A second radius on a
+     full-size Canvas produces a separately antialiased inner contour. */
+  border-radius: 0;
   will-change: transform; /* Hint to create stacking context */
 }
 
@@ -4908,7 +4900,7 @@ html.simulation-focus-legacy-blur-suppressed #modal-content-layer {
   z-index: 160;
   display: block;
   box-sizing: border-box;
-  border-radius: var(--frame-inner-radius);
+  border-radius: var(--frame-outer-radius);
   opacity: 0;
   pointer-events: none;
   transition: opacity 180ms var(--ui-ease-out, ease-out);
@@ -4933,7 +4925,7 @@ html.simulation-focus-legacy-blur-suppressed #modal-content-layer {
   display: none;
   width: 100%;
   height: 100%;
-  border-radius: var(--frame-inner-radius);
+  border-radius: 0;
   pointer-events: none;
   touch-action: none;
   background: transparent;
@@ -4965,14 +4957,14 @@ html.simulation-focus-legacy-blur-suppressed #modal-content-layer {
    ───────────────────────────────────────────────────────────────────────────── */
 .scene-effects {
   position: absolute;
-  top: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
-  left: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
-  right: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
-  bottom: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
+  top: var(--safari-tint-inset-y, var(--safari-tint-inset));
+  left: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  right: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  bottom: var(--safari-tint-inset-y, var(--safari-tint-inset));
   /* Default when misplaced; in-wall placement uses #simulations > .scene-effects below */
   z-index: 150;
   pointer-events: none;
-  border-radius: var(--frame-inner-radius);
+  border-radius: var(--frame-outer-radius);
   overflow: hidden;
 }
 
@@ -4988,11 +4980,11 @@ html.simulation-focus-legacy-blur-suppressed #modal-content-layer {
 
 .frame-vignette {
   position: absolute;
-  top: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
-  left: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
-  right: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
-  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom) + var(--frame-border-width));
-  border-radius: var(--frame-inner-radius);
+  top: var(--safari-tint-inset-y, var(--safari-tint-inset));
+  left: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  right: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom));
+  border-radius: var(--frame-outer-radius);
   overflow: hidden;
   pointer-events: none;
   z-index: 175;
@@ -5002,11 +4994,11 @@ html.simulation-focus-legacy-blur-suppressed #modal-content-layer {
 
 .simulation-contrast-veil {
   position: absolute;
-  top: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
-  left: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
-  right: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
-  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom) + var(--frame-border-width));
-  border-radius: var(--frame-inner-radius);
+  top: var(--safari-tint-inset-y, var(--safari-tint-inset));
+  left: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  right: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom));
+  border-radius: var(--frame-outer-radius);
   overflow: hidden;
   pointer-events: none;
   z-index: var(--z-contrast-veil, 180);
@@ -5558,6 +5550,13 @@ a:active {
 
 /* Custom Cursor */
 #custom-cursor {
+  --abs-cursor-scale: 1;
+  --abs-lens-bg: rgba(var(--abs-rgb-black), 0.1);
+  --abs-lens-filter: blur(5px) saturate(1.04);
+  --abs-lens-shadow:
+    0 8px 22px rgba(var(--abs-rgb-black), 0.12),
+    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.16),
+    inset 0 -1px 0 rgba(var(--abs-rgb-black), 0.06);
   /* Use absolute positioning when inside #simulations (transformed parent makes fixed relative to parent) */
   position: absolute;
   pointer-events: none;
@@ -5565,25 +5564,37 @@ a:active {
   border: none;
   background: var(--cursor-color);
   transform-origin: center center;
-  transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, -50%) scale(var(--abs-cursor-scale));
   opacity: 0.85; /* Transparent but visible */
   /* Power transfer: fast snap (200ms) so cursor hits first, then button reacts */
   transition: transform var(--abs-cursor-shrink-duration, 200ms) ease-in,
               opacity var(--abs-cursor-shrink-duration, 200ms) ease-in,
               width 0.35s var(--ease-hesitant),
               height 0.35s var(--ease-hesitant),
-              background 0.35s var(--ease-hesitant);
-  will-change: transform, opacity, width, height, background;
+              background 0.35s var(--ease-hesitant),
+              box-shadow 0.35s var(--ease-hesitant),
+              -webkit-backdrop-filter 0.35s var(--ease-hesitant),
+              backdrop-filter 0.35s var(--ease-hesitant);
+  will-change: transform, opacity, width, height, background, box-shadow;
   width: 20px;
   height: 20px;
   border-radius: 50%;
   /* Blend mode is applied via overlay element, not here */
 }
 
-/* Link hover: Power Transfer — cursor implodes (scale 0), energy flows into button */
-body.abs-link-hovering #custom-cursor {
+body.dark-mode #custom-cursor {
+  --abs-lens-bg: rgba(var(--abs-rgb-white), 0.16);
+  --abs-lens-shadow:
+    0 8px 24px rgba(var(--abs-rgb-black), 0.16),
+    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.18),
+    inset 0 -1px 0 rgba(var(--abs-rgb-black), 0.12);
+}
+
+/* Action hover: cursor leads the hover state while targets keep restrained feedback. */
+body.abs-link-hovering #custom-cursor,
+body.abs-action-hovering #custom-cursor {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, -50%) scale(var(--abs-cursor-scale));
   transition: transform var(--abs-cursor-shrink-duration, 200ms) ease-in,
               opacity var(--abs-cursor-shrink-duration, 200ms) ease-in;
 }
@@ -5926,24 +5937,65 @@ body.dark-mode .ui-main-nav .footer_link:active {
   transform: none;
 }
 
-/* Tap / UI ring (64px): portfolio, CV, chrome, gates — see docs/reference/CUSTOM-CURSOR.md */
+/* Translucent lens: focus/detail states and action-hover morph — see docs/reference/CUSTOM-CURSOR.md */
 #custom-cursor.abs-cursor-tap,
 #custom-cursor.modal-active {
   display: block;
-  width: 64px;
-  height: 64px;
-  max-width: 64px;
-  max-height: 64px;
+  width: 48px;
+  height: 48px;
+  max-width: 48px;
+  max-height: 48px;
   box-sizing: border-box;
-  background: rgba(var(--abs-rgb-white), 0.4);
-  border: 2px solid rgba(var(--abs-rgb-white), 0.27);
+  background: var(--abs-lens-bg);
+  border: 0;
   border-radius: 50%;
-  transform: translate(-50%, -50%) scale(1);
+  box-shadow: var(--abs-lens-shadow);
+  -webkit-backdrop-filter: var(--abs-lens-filter);
+  backdrop-filter: var(--abs-lens-filter);
+  transform: translate(-50%, -50%) scale(var(--abs-cursor-scale));
+  opacity: 1;
+}
+
+#custom-cursor.abs-cursor-tap.abs-cursor-action-hover,
+#custom-cursor.modal-active.abs-cursor-action-hover {
+  --abs-cursor-scale: 0.86;
   opacity: 1;
 }
 /* position + z-index set in cursor.js: body-fixed tap vs modal stack */
 
 /* Cursor color is palette-driven via --cursor-color (no dark-mode override). */
+
+@media (hover: hover) and (pointer: fine) {
+  body.abs-action-hovering :is(
+    .simulation-focus-pill:hover,
+    .footer_link:hover,
+    .decorative-script p a:hover,
+    .contact-email-row:hover,
+    .simulation-focus-row:hover,
+    .gate-back:hover,
+    .abs-icon-btn:hover
+  ) {
+    opacity: 1;
+  }
+
+  body.abs-action-hovering .contact-email-row:not(.pulse-energy):hover::before {
+    opacity: calc(var(--abs-soft-hover-field-opacity) * 0.72);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #custom-cursor {
+    transition:
+      opacity 120ms var(--ease-organic),
+      background 120ms var(--ease-organic),
+      box-shadow 120ms var(--ease-organic);
+  }
+
+  #custom-cursor.abs-cursor-tap.abs-cursor-action-hover,
+  #custom-cursor.modal-active.abs-cursor-action-hover {
+    --abs-cursor-scale: 1;
+  }
+}
 
 /* Circle Colors */
 .circle.bg-ball-1 { background-color: var(--ball-1); }
@@ -7435,7 +7487,7 @@ body.cv-page.abs-link-hovering {
 
 body.cv-page.abs-link-hovering #custom-cursor {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, -50%) scale(var(--abs-cursor-scale));
   transition: transform var(--abs-power-transfer-duration, 300ms) var(--ease-organic),
               opacity var(--abs-power-transfer-duration, 300ms) var(--ease-organic);
 }

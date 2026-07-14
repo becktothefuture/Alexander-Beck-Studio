@@ -85,7 +85,9 @@ export function drawWalls(ctx, w, h, options = {}) {
   
   const innerW = Math.max(1, w - (insetPx * 2));
   const innerH = Math.max(1, h - (insetPx * 2));
-  const innerR = Math.max(0, Math.min(rCanvasPx, innerW * 0.5, innerH * 0.5));
+  // An inset rounded rectangle has the same parallel perimeter as the outer
+  // wall only when its corner radius reduces by the inset amount.
+  const innerR = Math.max(0, Math.min(rCanvasPx - insetPx, innerW * 0.5, innerH * 0.5));
   
   // Small padding beyond canvas edges for sub-pixel path rounding safety
   const pad = Math.max(2, 2 * DPR);

@@ -442,6 +442,7 @@ export function showOverlay() {
         } else {
             cursor.classList.add('modal-active');
             cursor.style.display = 'block';
+            cursor.style.opacity = '';
         }
     }
     

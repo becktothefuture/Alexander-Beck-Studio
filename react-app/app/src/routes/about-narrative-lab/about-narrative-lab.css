@@ -7,10 +7,6 @@ body.about-narrative-lab-page .route-simulation-layer {
 
 .about-narrative-lab {
   --about-reading-width: 58rem;
-  --about-spatial-height-desktop: 200svh;
-  --about-closing-height-desktop: 220svh;
-  --about-spatial-height-mobile: 175svh;
-  --about-closing-height-mobile: 185svh;
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -27,38 +23,13 @@ body.about-narrative-lab-page .route-simulation-layer {
   pointer-events: none;
 }
 
-body.about-narrative-lab-page #simulations .about-narrative-point-field,
-body.about-narrative-lab-page #simulations .about-narrative-bust,
-body.about-narrative-lab-page #simulations .about-narrative-bust * {
-  pointer-events: none;
-}
-
-.about-narrative-point-field,
-.about-narrative-bust {
+.about-narrative-world__canvas {
   position: absolute;
   inset: 0;
-  z-index: 1;
-  width: 100%;
-  height: 100%;
-}
-
-.about-narrative-point-field {
   display: block;
-  opacity: var(--narrative-field-opacity, 1);
-  will-change: opacity;
-}
-
-.about-narrative-bust {
-  opacity: var(--narrative-bust-opacity, 0);
-  transform: scale(var(--narrative-bust-scale, 0.46));
-  transform-origin: 50% 50%;
-  will-change: opacity, transform;
-}
-
-.about-narrative-bust .napoleon-point-cloud,
-.about-narrative-bust .napoleon-point-cloud__canvas {
   width: 100%;
   height: 100%;
+  pointer-events: none;
 }
 
 .about-narrative-scrollport {
@@ -88,13 +59,13 @@ body.about-narrative-lab-page #simulations .about-narrative-bust * {
 }
 
 .about-narrative-section--spatial {
-  height: var(--about-spatial-height-desktop);
+  height: calc(var(--section-duration-wu, 2) * 100svh);
 }
 
 .about-narrative-section--opening {
   display: grid;
   place-items: center;
-  min-height: 100svh;
+  min-height: calc(var(--section-duration-wu, 1) * 100svh);
   padding: clamp(5rem, 10vw, 9rem) clamp(1.25rem, 7vw, 7rem);
 }
 
@@ -113,14 +84,6 @@ body.about-narrative-lab-page #simulations .about-narrative-bust * {
   letter-spacing: -0.065em;
   line-height: 0.96;
   text-wrap: balance;
-}
-
-.about-narrative-section--closing {
-  height: var(--about-closing-height-desktop);
-}
-
-.about-narrative-section--constellation {
-  height: 180svh;
 }
 
 .about-narrative-spatial-stage {
@@ -206,7 +169,7 @@ body.about-narrative-lab-page #simulations .about-narrative-bust * {
 .about-narrative-section--editorial {
   display: flex;
   align-items: center;
-  min-height: 120svh;
+  min-height: calc(var(--section-duration-wu, 1.2) * 100svh);
   padding: clamp(6rem, 12vw, 11rem) clamp(1.25rem, 9vw, 9rem);
 }
 
@@ -347,10 +310,40 @@ body.about-narrative-lab-page #simulations .about-narrative-bust * {
   transform: translateX(-50%);
 }
 
+.about-narrative-bust-interaction {
+  position: absolute;
+  z-index: 2;
+  top: 24%;
+  left: 50%;
+  width: min(58vw, 38rem);
+  height: 48%;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  outline: none;
+  pointer-events: none;
+  touch-action: pan-y;
+  transform: translateX(-50%);
+}
+
+.about-narrative-bust-interaction[data-active='true'] {
+  pointer-events: auto;
+}
+
+.about-narrative-bust-interaction:active {
+  cursor: grabbing;
+}
+
+.about-narrative-bust-interaction:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--text-primary) 55%, transparent);
+  outline-offset: 0.35rem;
+  border-radius: 50%;
+}
+
 .about-narrative-finale-cta {
   position: absolute;
   left: 50%;
-  bottom: clamp(5.5rem, 11svh, 8rem);
+  bottom: clamp(4.25rem, 8svh, 6.5rem);
   width: min(100%, 34rem);
   opacity: var(--spatial-context-opacity, 0);
   text-align: center;
@@ -620,20 +613,13 @@ body.about-narrative-lab-page #simulations .about-narrative-bust * {
 }
 
 @media (max-width: 600px) {
-  .about-narrative-bust {
-    transform: translateY(-2rem) scale(calc(var(--narrative-bust-scale, 0.46) * 0.78));
-  }
-
   .about-narrative-section--spatial {
-    height: var(--about-spatial-height-mobile);
+    height: calc(var(--section-duration-mobile-wu, var(--section-duration-wu, 1.75)) * 100svh);
   }
 
-  .about-narrative-section--closing {
-    height: var(--about-closing-height-mobile);
-  }
-
-  .about-narrative-section--constellation {
-    height: 160svh;
+  .about-narrative-section--opening,
+  .about-narrative-section--editorial {
+    min-height: calc(var(--section-duration-mobile-wu, var(--section-duration-wu, 1)) * 100svh);
   }
 
   .about-narrative-spatial-stage {
@@ -663,6 +649,12 @@ body.about-narrative-lab-page #simulations .about-narrative-bust * {
 
   .about-narrative-finale-cta {
     bottom: 4.75rem;
+  }
+
+  .about-narrative-bust-interaction {
+    top: 23%;
+    width: min(82vw, 28rem);
+    height: 49%;
   }
 
   .about-narrative-section--editorial {
@@ -725,7 +717,7 @@ body.about-narrative-lab-page #simulations .about-narrative-bust * {
   }
 
   .about-narrative-section--spatial,
-  .about-narrative-section--closing {
+  .about-narrative-section--opening {
     height: auto;
     min-height: 100svh;
   }

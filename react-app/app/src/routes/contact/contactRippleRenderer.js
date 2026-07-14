@@ -9,9 +9,12 @@ const REDUCED_BURST_MS = 620;
 const MAX_DPR = 1.5;
 const IDLE_ROTATION_SPEED = 0.045;
 const MAX_ACTIVE_BURSTS = 8;
-const IDLE_RING_ALPHA_SCALE = 0.38;
-const IDLE_RING_ALPHA_MAX = 0.42;
 const BURST_RING_ALPHA_PEAK = 1;
+const KALEIDOSCOPE_DOT_SIZE_VH = 0.6;
+const KALEIDOSCOPE_DOT_AREA_MUL = 1.15;
+const KALEIDOSCOPE_DOT_SIZE_VARIANCE = 0.38;
+const CONFIRMATION_GREEN = '#22c55e';
+const COLOR_WAVE_PEAK = 0.94;
 const DEFAULT_PALETTE = ['#a7afb0', '#c6cecf', '#f5f8f6', '#00a5a0', '#031210', '#d7ff2f', '#2c96ff', '#ff7e4a'];
 const DEFAULT_DISTRIBUTION = [
   { colorIndex: 0, weight: 31 },
@@ -31,6 +34,10 @@ function clamp(value, min, max) {
 function smoothstep(value) {
   const t = clamp(value, 0, 1);
   return t * t * (3 - (2 * t));
+}
+
+function lerp(a, b, t) {
+  return a + ((b - a) * t);
 }
 
 function isHexColor(value) {
@@ -99,6 +106,7 @@ function createSpriteSet(theme) {
     palette,
     sequence: resolveColorSequence(theme, palette.length),
     sprites: palette.map(createBallSprite),
+    confirmationSprite: createBallSprite(CONFIRMATION_GREEN),
   };
 }
 
@@ -187,6 +195,8 @@ export function createContactRippleRenderer({
   stage.dataset.contactRippleMaxActiveBursts = '0';
   stage.dataset.contactRippleInstance = String(instanceId);
   stage.dataset.contactRippleBurstMode = 'additive-wavefronts';
+  stage.dataset.contactRippleBurstColor = CONFIRMATION_GREEN;
+  stage.dataset.contactRippleBurstOrigin = 'center';
   stage.dataset.contactRipplePointerMode = reducedMotion ? 'disabled-reduced-motion' : 'autonomous-drift';
   stage.dataset.contactRippleRingDirections = 'alternating';
   stage.dataset.contactRipplePointerMaxDegrees = '0.00';
@@ -205,9 +215,23 @@ export function createContactRippleRenderer({
   }
 
   function getIdleAlphaRange() {
-    const inner = clamp(config.innerRingAlpha * IDLE_RING_ALPHA_SCALE, 0, IDLE_RING_ALPHA_MAX);
-    const outer = clamp(config.outerRingAlpha * IDLE_RING_ALPHA_SCALE, inner, IDLE_RING_ALPHA_MAX);
+    const inner = clamp(config.innerRingAlpha, 0, 1);
+    const outer = clamp(config.outerRingAlpha, inner, 1);
     return { inner, outer };
+  }
+
+  function getKaleidoscopeRadiusMetrics(height) {
+    const base = Math.max(
+      1,
+      (KALEIDOSCOPE_DOT_SIZE_VH * 0.01) * height * Math.sqrt(KALEIDOSCOPE_DOT_AREA_MUL),
+    );
+    const variance = clamp(KALEIDOSCOPE_DOT_SIZE_VARIANCE * 0.5, 0, 0.2);
+    return {
+      base: clamp(base, config.minBodyRadius, config.maxBodyRadius),
+      min: clamp(base * (1 - variance), config.minBodyRadius, config.maxBodyRadius),
+      max: clamp(base * (1 + variance), config.minBodyRadius, config.maxBodyRadius),
+      variance,
+    };
   }
 
   function syncTheme() {
@@ -235,13 +259,13 @@ export function createContactRippleRenderer({
     }
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const minSide = Math.min(width, height);
-    const bodyRadius = clamp(minSide * 0.0135, config.minBodyRadius, config.maxBodyRadius);
+    const radiusMetrics = getKaleidoscopeRadiusMetrics(height);
+    const bodyRadius = radiusMetrics.base;
     const contentZone = getQuietZone(canvas, getQuietZoneElement?.());
     const contentCoreRadius = contentZone
       ? (Math.max(contentZone.halfWidth, contentZone.halfHeight) * 0.96)
         + (bodyRadius * config.ringGapScale * 0.75)
-      : minSide * 0.3;
+      : Math.min(width, height) * 0.3;
     const coreFadeEnd = clamp(contentCoreRadius, bodyRadius * 18, bodyRadius * 38);
     metrics = {
       width,
@@ -250,6 +274,9 @@ export function createContactRippleRenderer({
       centerY: height * 0.5,
       maxRadius: Math.hypot(width * 0.5, height * 0.5) + (config.maxBodyRadius * 2),
       bodyRadius,
+      minBodyRadius: radiusMetrics.min,
+      maxBodyRadius: radiusMetrics.max,
+      sizeVariance: radiusMetrics.variance,
       coreFadeStart: Math.max(bodyRadius * 4.25, coreFadeEnd - (bodyRadius * config.ringGapScale * 1.25)),
       coreFadeEnd,
       dpr,
@@ -291,16 +318,23 @@ export function createContactRippleRenderer({
     return spriteSet.sequence[sequenceIndex];
   }
 
+  function getBodyRadius(ringIndex, beadIndex) {
+    const seed = Math.sin((ringIndex * 127.1) + (beadIndex * 311.7)) * 43758.5453123;
+    const t = seed - Math.floor(seed);
+    return lerp(metrics.minBodyRadius, metrics.maxBodyRadius, t);
+  }
+
   function rebuildBodies() {
     const nextBodies = [];
     const bodyRadius = metrics.bodyRadius;
-    const ringGap = bodyRadius * config.ringGapScale;
-    const firstRingRadius = (bodyRadius * 4.25) + (ringGap * config.innerRingSkipCount);
+    const spacingRadius = metrics.maxBodyRadius || bodyRadius;
+    const ringGap = spacingRadius * config.ringGapScale;
+    const firstRingRadius = (spacingRadius * 4.25) + (ringGap * config.innerRingSkipCount);
     let ringIndex = config.innerRingSkipCount;
 
     for (let ringRadius = firstRingRadius; ringRadius <= metrics.maxRadius; ringRadius += ringGap) {
       const circumference = TAU * ringRadius;
-      const minimumSpacing = bodyRadius * 2 * config.bodyGapScale;
+      const minimumSpacing = spacingRadius * 2 * config.bodyGapScale;
       const beadCount = clamp(Math.floor(circumference / minimumSpacing), 6, 164);
       const angleOffset = (ringIndex % 2 === 0 ? 0 : Math.PI / beadCount) + (ringIndex * 0.071);
 
@@ -312,6 +346,7 @@ export function createContactRippleRenderer({
           ringIndex,
           ringDirection: ringIndex % 2 === 0 ? 1 : -1,
           colorIndex: getBodyColorIndex(ringIndex, beadIndex, beadCount),
+          radius: getBodyRadius(ringIndex, beadIndex),
           phase: ringIndex * 0.12,
         });
       }
@@ -323,24 +358,28 @@ export function createContactRippleRenderer({
     stage.dataset.contactRippleBodyRadius = bodyRadius.toFixed(2);
   }
 
-  function drawBall(x, y, radius, alpha, colorIndex) {
+  function drawBall(x, y, radius, alpha, colorIndex, waveMix = 0) {
     if (alpha <= 0.003 || radius <= 0.1) return;
     const sprite = spriteSet.sprites[colorIndex % spriteSet.sprites.length];
     if (!sprite) return;
     const diameter = radius * 2.36;
     context.globalAlpha = clamp(alpha, 0, 1);
     context.drawImage(sprite, x - (diameter * 0.5), y - (diameter * 0.5), diameter, diameter);
+    if (waveMix > 0.003 && spriteSet.confirmationSprite) {
+      context.globalAlpha = clamp(waveMix * alpha, 0, 1);
+      context.drawImage(spriteSet.confirmationSprite, x - (diameter * 0.5), y - (diameter * 0.5), diameter, diameter);
+    }
   }
 
-  function getBurstEnergy(baseRadius, progress) {
+  function getBurstEnergy(distanceFromOrigin, progress, maxDistance) {
     if (progress < 0 || progress >= 1) return 0;
-    const frontRadius = Math.pow(progress, 0.72) * metrics.maxRadius * config.burstTravelScale;
-    const frontWidth = clamp(metrics.bodyRadius * 4.8, 38, 58);
+    const frontRadius = Math.pow(progress, 0.72) * maxDistance * config.burstTravelScale;
+    const frontWidth = clamp((metrics.maxBodyRadius || metrics.bodyRadius) * 7.5, 34, 64);
     let energy = 0;
 
     for (let frontIndex = 0; frontIndex < config.burstFrontCount; frontIndex += 1) {
       const echoRadius = frontRadius - (frontIndex * frontWidth * 1.18);
-      const distance = baseRadius - echoRadius;
+      const distance = distanceFromOrigin - echoRadius;
       const width = frontWidth * (1 + (frontIndex * 0.18));
       const frontEnergy = Math.exp(-0.5 * ((distance / width) ** 2));
       energy += frontEnergy * (1 - (frontIndex * 0.22));
@@ -353,7 +392,7 @@ export function createContactRippleRenderer({
 
   function syncActiveBursts(now, durationMs) {
     activeBursts = activeBursts.filter((started) => {
-      const elapsed = now - started;
+      const elapsed = now - started.startedAt;
       return elapsed >= 0 && elapsed < durationMs;
     });
     const activeCount = activeBursts.length;
@@ -367,34 +406,53 @@ export function createContactRippleRenderer({
     return activeCount > 0;
   }
 
-  function getBurstField(baseRadius, angle, now) {
+  function getBurstField(x, y, now) {
     if (activeBursts.length === 0) {
       return {
         active: false,
         energy: 0,
         radialSignal: 0,
         tangentialSignal: 0,
+        colorSignal: 0,
+        directionX: 0,
+        directionY: 0,
       };
     }
 
     let energySum = 0;
     let radialSignal = 0;
     let tangentialSignal = 0;
+    let colorSignal = 0;
+    let directionX = 0;
+    let directionY = 0;
     for (const started of activeBursts) {
-      const progress = (now - started) / config.burstDurationMs;
-      const energy = getBurstEnergy(baseRadius, progress);
+      const progress = (now - started.startedAt) / config.burstDurationMs;
+      const dx = x - started.x;
+      const dy = y - started.y;
+      const distance = Math.hypot(dx, dy);
+      const energy = getBurstEnergy(distance, progress, started.maxDistance);
       if (energy <= 0) continue;
-      const reboundPhase = Math.sin((progress * TAU * 1.8) - (baseRadius * 0.012));
+      const safeDistance = Math.max(1, distance);
+      const ux = dx / safeDistance;
+      const uy = dy / safeDistance;
+      const reboundPhase = Math.sin((progress * TAU * 1.8) - (distance * 0.018));
       energySum += energy;
       radialSignal += energy * (0.78 + (reboundPhase * 0.22));
-      tangentialSignal += energy * Math.sin((angle * 5) + (progress * TAU));
+      tangentialSignal += energy * Math.sin((Math.atan2(dy, dx) * 5) + (progress * TAU));
+      colorSignal += energy * (1 - smoothstep(progress * 0.72));
+      directionX += ux * energy;
+      directionY += uy * energy;
     }
 
+    const directionLength = Math.hypot(directionX, directionY);
     return {
       active: true,
       energy: clamp(energySum, 0, 1.85),
       radialSignal: clamp(radialSignal, 0, 1.85),
       tangentialSignal: clamp(tangentialSignal, -1.65, 1.65),
+      colorSignal: clamp(colorSignal, 0, 1.45),
+      directionX: directionLength > 0 ? directionX / directionLength : 0,
+      directionY: directionLength > 0 ? directionY / directionLength : 0,
     };
   }
 
@@ -404,7 +462,7 @@ export function createContactRippleRenderer({
     const idleAlphaRange = getIdleAlphaRange();
     const idleAlpha = idleAlphaRange.inner
       + ((idleAlphaRange.outer - idleAlphaRange.inner) * coreProgress);
-    const burstLift = clamp(energy * 0.95, 0, 1);
+    const burstLift = clamp(energy * 0.2, 0, 1);
     return idleAlpha + ((BURST_RING_ALPHA_PEAK - idleAlpha) * burstLift);
   }
 
@@ -441,9 +499,17 @@ export function createContactRippleRenderer({
       );
       const idleWave = (primarySwell * 0.76) + (secondarySwell * 0.24);
       const idleOffset = isReduced ? 0 : idleWave * config.idleDisplacement;
+      const ringDepth = clamp(body.baseRadius / metrics.maxRadius, 0, 1);
+      const renderedAngle = body.angle
+        + (ringRotation * body.ringDirection * (0.58 + (ringDepth * 0.42)));
+      const cos = Math.cos(renderedAngle);
+      const sin = Math.sin(renderedAngle);
+      const baseRadius = body.baseRadius + idleOffset;
+      const baseX = metrics.centerX + (cos * baseRadius);
+      const baseY = metrics.centerY + (sin * baseRadius);
       const burstField = isReduced
-        ? { energy: reducedEmphasis, radialSignal: 0, tangentialSignal: 0 }
-        : getBurstField(body.baseRadius, body.angle, now);
+        ? { energy: reducedEmphasis, radialSignal: 0, tangentialSignal: 0, colorSignal: reducedEmphasis }
+        : getBurstField(baseX, baseY, now);
       const energy = !isReduced ? burstField.energy : reducedEmphasis;
 
       const radialKick = isReduced
@@ -452,20 +518,17 @@ export function createContactRippleRenderer({
       const tangentialKick = !isReduced && energy > 0
         ? burstField.tangentialSignal * config.burstTwist
         : 0;
-      const renderedRadius = body.baseRadius + idleOffset + radialKick;
-      const ringDepth = clamp(body.baseRadius / metrics.maxRadius, 0, 1);
-      const renderedAngle = body.angle
-        + (ringRotation * body.ringDirection * (0.58 + (ringDepth * 0.42)));
-      const cos = Math.cos(renderedAngle);
-      const sin = Math.sin(renderedAngle);
-      const x = metrics.centerX + (cos * renderedRadius) - (sin * tangentialKick);
-      const y = metrics.centerY + (sin * renderedRadius) + (cos * tangentialKick);
+      const directionX = burstField.directionX || cos;
+      const directionY = burstField.directionY || sin;
+      const x = baseX + (directionX * radialKick) - (directionY * tangentialKick);
+      const y = baseY + (directionY * radialKick) + (directionX * tangentialKick);
       drawBall(
         x,
         y,
-        metrics.bodyRadius,
+        body.radius || metrics.bodyRadius,
         getRingAlpha(body.baseRadius, energy),
         body.colorIndex,
+        clamp((burstField.colorSignal || 0) * COLOR_WAVE_PEAK, 0, COLOR_WAVE_PEAK),
       );
     }
 
@@ -476,7 +539,7 @@ export function createContactRippleRenderer({
     syncActiveBursts(now, REDUCED_BURST_MS);
     let emphasis = 0;
     for (const started of activeBursts) {
-      const progress = clamp((now - started) / REDUCED_BURST_MS, 0, 1);
+      const progress = clamp((now - started.startedAt) / REDUCED_BURST_MS, 0, 1);
       emphasis += (1 - smoothstep(progress)) * 0.44;
     }
     emphasis = clamp(emphasis, 0, 0.72);
@@ -552,11 +615,29 @@ export function createContactRippleRenderer({
       needsRender = true;
       requestFrame();
     },
-    burst() {
+    burst(origin = null) {
       if (destroyed) return;
       burstCount += 1;
       burstStartedAt = performance.now();
-      activeBursts.push(burstStartedAt);
+      const rect = canvas.getBoundingClientRect();
+      const originX = Number.isFinite(origin?.x)
+        ? clamp(origin.x - rect.left, 0, metrics.width)
+        : metrics.centerX;
+      const originY = Number.isFinite(origin?.y)
+        ? clamp(origin.y - rect.top, 0, metrics.height)
+        : metrics.centerY;
+      const maxDistance = Math.max(
+        Math.hypot(originX, originY),
+        Math.hypot(metrics.width - originX, originY),
+        Math.hypot(originX, metrics.height - originY),
+        Math.hypot(metrics.width - originX, metrics.height - originY),
+      ) + ((metrics.maxBodyRadius || metrics.bodyRadius) * 4);
+      activeBursts.push({
+        startedAt: burstStartedAt,
+        x: originX,
+        y: originY,
+        maxDistance,
+      });
       if (activeBursts.length > MAX_ACTIVE_BURSTS) {
         activeBursts = activeBursts.slice(activeBursts.length - MAX_ACTIVE_BURSTS);
       }
@@ -564,6 +645,7 @@ export function createContactRippleRenderer({
       stage.dataset.contactRippleBurstCount = String(burstCount);
       stage.dataset.contactRippleActiveBurstCount = String(activeBursts.length);
       stage.dataset.contactRippleMaxActiveBursts = String(maxConcurrentBursts);
+      stage.dataset.contactRippleLastBurstOrigin = `${originX.toFixed(2)},${originY.toFixed(2)}`;
       setState(reducedMotion ? 'reduced-burst' : 'burst');
       if (diagnostics) {
         diagnostics.totalBursts += 1;

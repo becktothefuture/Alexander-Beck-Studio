@@ -5,7 +5,7 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
-import { getSimulationVisibleInsetCssPx } from '../utils/frame-geometry.js';
+import { getSimulationCollisionInsetCssPx } from '../utils/frame-geometry.js';
 
 const HOME_PIT_PEBBLE_SURFACE_GAP_PX = 2;
 
@@ -52,7 +52,7 @@ function spawnPourBallPit(globals, targetBalls) {
 
   // Spawn from the top, biased toward the right but ~1/3 in toward center.
   // Keep a narrow band so the drop-in reads as a deliberate "pour".
-  const padding = getSimulationVisibleInsetCssPx(globals) * DPR;
+  const padding = getSimulationCollisionInsetCssPx(globals) * DPR;
   const spawnXLeft = padding;
   const spawnXRight = w - padding;
   const usableW = spawnXRight - spawnXLeft;

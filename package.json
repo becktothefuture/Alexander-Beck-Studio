@@ -59,6 +59,7 @@
     "audit:shapes-kinetic-grab" : "node scripts\/audit-shapes-kinetic-grab.mjs",
     "audit:runtime-performance" : "node scripts\/audit-runtime-performance.mjs",
     "audit:runtime-performance:mobile-webkit" : "ABS_BROWSER=webkit node scripts\/audit-runtime-performance.mjs",
+    "audit:rendered-wall-contour" : "node scripts\/audit-rendered-wall-contour.mjs",
     "audit:transition-flows" : "node scripts\/audit-transition-flows.mjs",
     "audit:transition-gate" : "node scripts\/audit-transition-gate-serial.mjs",
     "audit:modal-unified" : "node scripts\/audit-modal-unified-behavior.mjs",

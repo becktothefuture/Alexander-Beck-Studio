@@ -116,13 +116,17 @@ function assertBootDotPaletteContract() {
 function assertCriticalBootSource() {
   assertBootDotPaletteContract();
   const designConfig = JSON.parse(readFileSync(designConfigFile, 'utf8'));
-  const canonicalDarkChrome = designConfig?.shell?.theme?.siteFrameDark;
-  assert(canonicalDarkChrome, `${designConfigFile}: missing shell.theme.siteFrameDark`);
+  const canonicalSiteFrameDark = designConfig?.shell?.theme?.siteFrameDark;
+  const browserFrameLight = '#f1f3f4';
+  const browserFrameDark = '#202124';
+  const firefoxFrameLight = '#f9f9fb';
+  const firefoxFrameDark = '#1c1b22';
+  assert(canonicalSiteFrameDark, `${designConfigFile}: missing shell.theme.siteFrameDark`);
 
   for (const file of htmlEntryFiles) {
     const source = readFileSync(file, 'utf8');
     assert(
-      source.includes(`style="background:${canonicalDarkChrome};background-color:${canonicalDarkChrome}"`),
+      source.includes(`style="background:var(--abs-browser-chrome,${browserFrameDark});background-color:var(--abs-browser-chrome,${browserFrameDark})"`),
       `${file}: missing inline html background fallback`
     );
     assertSourceHasNoDeprecatedBootChrome(source, file);
@@ -166,16 +170,24 @@ function assertCriticalBootSource() {
       `${file}: missing dot animation stop rule during boot overlay exit`
     );
     assert(
-      source.includes(`frameColorDark: '${canonicalDarkChrome}'`),
-      `${file}: inline frame dark fallback does not match canonical ${canonicalDarkChrome}`
+      source.includes(`frameColorDark: '${canonicalSiteFrameDark}'`),
+      `${file}: inline site-frame dark fallback does not match canonical ${canonicalSiteFrameDark}`
     );
     assert(
-      source.includes(`safariFrameDark: '${canonicalDarkChrome}'`),
-      `${file}: inline Safari frame dark fallback does not match canonical ${canonicalDarkChrome}`
+      source.includes(`browserFrameLight: '${browserFrameLight}'`),
+      `${file}: inline browser light fallback does not match ${browserFrameLight}`
     );
     assert(
-      source.includes(`lockedHeaderDark: '${canonicalDarkChrome}'`),
-      `${file}: inline locked-header dark fallback does not match canonical ${canonicalDarkChrome}`
+      source.includes(`browserFrameDark: '${browserFrameDark}'`),
+      `${file}: inline browser dark fallback does not match ${browserFrameDark}`
+    );
+    assert(
+      source.includes(`firefoxHeaderLight: '${firefoxFrameLight}'`),
+      `${file}: inline Firefox light fallback does not match ${firefoxFrameLight}`
+    );
+    assert(
+      source.includes(`firefoxHeaderDark: '${firefoxFrameDark}'`),
+      `${file}: inline Firefox dark fallback does not match ${firefoxFrameDark}`
     );
   }
 }

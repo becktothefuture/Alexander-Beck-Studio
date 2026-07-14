@@ -1,0 +1,257 @@
+- generic [ref=e1]:
+  - region "Settings" [ref=e49]:
+    - generic [ref=e50]:
+      - generic [ref=e51]: Settings
+      - button "Toggle light/dark mode" [ref=e52] [cursor=pointer]: 🌙
+    - generic [ref=e53]:
+      - group [ref=e54]:
+        - generic "✨ Studio" [ref=e55] [cursor=pointer]:
+          - generic [ref=e56]: ✨
+          - generic [ref=e57]: Studio
+        - option "Ball 1 — Product Design" [selected]
+        - option "Ball 2"
+        - option "Ball 3 — Art Direction" [disabled]
+        - option "Ball 4 — Experience Design" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Parametric Systems" [disabled]
+        - option "Ball 7 — Motion & 3D" [disabled]
+        - option "Ball 8 — Creative Engineering" [disabled]
+        - option "Ball 1 — Product Design" [disabled]
+        - option "Ball 2"
+        - option "Ball 3 — Art Direction" [disabled]
+        - option "Ball 4 — Experience Design" [selected]
+        - option "Ball 5"
+        - option "Ball 6 — Parametric Systems" [disabled]
+        - option "Ball 7 — Motion & 3D" [disabled]
+        - option "Ball 8 — Creative Engineering" [disabled]
+        - option "Ball 1 — Product Design" [disabled]
+        - option "Ball 2"
+        - option "Ball 3 — Art Direction" [selected]
+        - option "Ball 4 — Experience Design" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Parametric Systems" [disabled]
+        - option "Ball 7 — Motion & 3D" [disabled]
+        - option "Ball 8 — Creative Engineering" [disabled]
+        - option "Ball 1 — Product Design" [disabled]
+        - option "Ball 2"
+        - option "Ball 3 — Art Direction" [disabled]
+        - option "Ball 4 — Experience Design" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Parametric Systems" [disabled]
+        - option "Ball 7 — Motion & 3D" [selected]
+        - option "Ball 8 — Creative Engineering" [disabled]
+        - option "Ball 1 — Product Design" [disabled]
+        - option "Ball 2"
+        - option "Ball 3 — Art Direction" [disabled]
+        - option "Ball 4 — Experience Design" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Parametric Systems" [disabled]
+        - option "Ball 7 — Motion & 3D" [disabled]
+        - option "Ball 8 — Creative Engineering" [selected]
+        - option "Ball 1 — Product Design" [disabled]
+        - option "Ball 2"
+        - option "Ball 3 — Art Direction" [disabled]
+        - option "Ball 4 — Experience Design" [disabled]
+        - option "Ball 5"
+        - option "Ball 6 — Parametric Systems" [selected]
+        - option "Ball 7 — Motion & 3D" [disabled]
+        - option "Ball 8 — Creative Engineering" [disabled]
+      - group [ref=e58]:
+        - generic "🧱 Shell" [ref=e59] [cursor=pointer]:
+          - generic [ref=e60]: 🧱
+          - generic [ref=e61]: Shell
+        - option "Jitter (film grain)" [selected]
+        - option "Drift (slow pan)"
+        - option "Static"
+      - group [ref=e62]:
+        - generic "💡 Light" [ref=e63] [cursor=pointer]:
+          - generic [ref=e64]: 💡
+          - generic [ref=e65]: Light
+      - group [ref=e66]:
+        - generic "⚡ Simulations" [ref=e67] [cursor=pointer]:
+          - generic [ref=e68]: ⚡
+          - generic [ref=e69]: Simulations
+      - group [ref=e70]:
+        - generic "🎱 Balls" [ref=e71] [cursor=pointer]:
+          - generic [ref=e72]: 🎱
+          - generic [ref=e73]: Balls
+      - group [ref=e74]:
+        - generic "🔘 Puck" [ref=e75] [cursor=pointer]:
+          - generic [ref=e76]: 🔘
+          - generic [ref=e77]: Puck
+      - group [ref=e78]:
+        - generic "🔊 Audio" [ref=e79] [cursor=pointer]:
+          - generic [ref=e80]: 🔊
+          - generic [ref=e81]: Audio
+        - text: 
+      - group [ref=e82]:
+        - generic "🧪 Advanced" [ref=e83] [cursor=pointer]:
+          - generic [ref=e84]: 🧪
+          - generic [ref=e85]: Advanced
+        - option "Organic (default)" [selected]
+        - option "Ease Out"
+        - option "Ease In Out"
+        - option "Bounce"
+        - option "Overshoot"
+        - option "Site frame"
+        - option "Auto (browser-aware)" [selected]
+        - option "Browser frame (force)"
+      - group [ref=e86]:
+        - generic "🗂️ Portfolio" [ref=e87] [cursor=pointer]:
+          - generic [ref=e88]: 🗂️
+          - generic [ref=e89]: Portfolio
+        - group [ref=e91]:
+          - generic "CAR Carousel" [ref=e92] [cursor=pointer]:
+            - generic [ref=e93]: CAR
+            - generic [ref=e94]: Carousel
+          - generic [ref=e95]:
+            - group [ref=e96]:
+              - generic "Card Size" [ref=e97] [cursor=pointer]
+            - group [ref=e98]:
+              - generic "Orbit Layout" [ref=e99] [cursor=pointer]
+              - generic [ref=e100]:
+                - generic [ref=e101]:
+                  - generic [ref=e102]:
+                    - generic [ref=e103]: Orbit Y
+                    - generic [ref=e104]: 50%
+                  - slider "Orbit Y" [ref=e105] [cursor=pointer]: "50"
+                - generic [ref=e106]:
+                  - generic [ref=e107]:
+                    - generic [ref=e108]: Mobile orbit Y
+                    - generic [ref=e109]: 50%
+                  - slider "Mobile orbit Y" [ref=e110] [cursor=pointer]: "50"
+                - generic [ref=e111]:
+                  - generic [ref=e112]:
+                    - generic [ref=e113]: Desktop radius
+                    - generic [ref=e114]: 1820px
+                  - slider "Desktop radius" [ref=e115] [cursor=pointer]: "1820"
+                - generic [ref=e116]:
+                  - generic [ref=e117]:
+                    - generic [ref=e118]: Mobile radius
+                    - generic [ref=e119]: 820px
+                  - slider "Mobile radius" [ref=e120] [cursor=pointer]: "820"
+                - generic [ref=e121]:
+                  - generic [ref=e122]:
+                    - generic [ref=e123]: Desktop spacing
+                    - generic [ref=e124]: 10.25deg
+                  - slider "Desktop spacing" [ref=e125] [cursor=pointer]: "10.25"
+                - generic [ref=e126]:
+                  - generic [ref=e127]:
+                    - generic [ref=e128]: Mobile spacing
+                    - generic [ref=e129]: 13.5deg
+                  - slider "Mobile spacing" [ref=e130] [cursor=pointer]: "13.5"
+                - generic [ref=e131]:
+                  - generic [ref=e132]:
+                    - generic [ref=e133]: Minimum card gap
+                    - generic [ref=e134]: 18px
+                  - slider "Minimum card gap" [ref=e135] [cursor=pointer]: "18"
+            - group [ref=e136]:
+              - generic "Depth & Tilt" [ref=e137] [cursor=pointer]
+            - group [ref=e138]:
+              - generic "Dot Track" [ref=e139] [cursor=pointer]
+            - group [ref=e140]:
+              - generic "Gesture Input" [ref=e141] [cursor=pointer]
+            - group [ref=e142]:
+              - generic "Settle Motion" [ref=e143] [cursor=pointer]
+            - group [ref=e144]:
+              - generic "Speed Field" [ref=e145] [cursor=pointer]
+      - group [ref=e147]:
+        - generic "↗ Views" [ref=e148] [cursor=pointer]:
+          - generic [ref=e149]: ↗
+          - generic [ref=e150]: Views
+      - button "💾 Save Design JSON" [ref=e152] [cursor=pointer]
+      - generic [ref=e153]:
+        - generic [ref=e154]: /
+        - text: panel
+  - generic [ref=e3]:
+    - generic "Portfolio projects" [ref=e4]:
+      - region "Selected portfolio projects" [ref=e31]:
+        - generic:
+          - region "I design digital experiences around human response.":
+            - heading "I design digital experiences around human response." [level=2]
+          - generic "I design digital experiences around human response.":
+            - button [ref=e32]:
+              - generic:
+                - paragraph: Bentley
+                - heading [level=3]: Digital calm for luxury ownership
+              - figure [ref=e33]
+              - generic: View
+            - button [ref=e34]:
+              - generic:
+                - paragraph: Personal
+                - heading [level=3]: A portfolio built as an environment
+              - figure [ref=e35]
+              - generic: View
+            - button [ref=e36]:
+              - generic:
+                - paragraph: Pro Keyboard
+                - heading [level=3]: Touch typing refined
+              - figure [ref=e37]
+              - generic: View
+            - 'button "Open project 1: American Heart Association: Heart.org redesign" [ref=e38]':
+              - generic:
+                - paragraph: American Heart Association
+                - heading "Heart.org redesign" [level=3]
+              - figure [ref=e39]
+            - button [ref=e41]:
+              - generic:
+                - paragraph: S&P Global
+                - heading [level=3]: Making financial indexes visible
+              - figure [ref=e42]
+              - generic: View
+            - button [ref=e43]:
+              - generic:
+                - paragraph: SunExpress
+                - heading [level=3]: Clearer flight booking
+              - figure [ref=e44]
+              - generic: View
+            - button [ref=e45]:
+              - generic:
+                - paragraph: Yoti
+                - heading [level=3]: Designing trust flows
+              - figure [ref=e46]
+              - generic: View
+          - status: "American Heart Association: Heart.org redesign. Project 1 of 7."
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - banner
+        - generic:
+          - contentinfo:
+            - generic:
+              - group "Social media links" [ref=e6]:
+                - link "Apple Music" [ref=e7]:
+                  - /url: https://music.apple.com/profile/beckandeggs
+                  - generic: 
+                - link "LinkedIn" [ref=e9]:
+                  - /url: https://www.linkedin.com/in/thisisbeck/
+                  - generic: 
+              - generic [ref=e11]:
+                - generic "London local time":
+                  - generic:
+                    - generic:
+                      - strong: London
+                      - generic: ·
+                    - time: 7:02:07 PM
+    - generic [ref=e12]:
+      - navigation "Primary buttons" [ref=e13]:
+        - link "Home" [ref=e14]:
+          - /url: /index.html
+          - generic: 
+        - link "Portfolio" [ref=e16]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About Me" [ref=e18]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=e20]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=e22]:
+        - button "Sound off" [ref=e23]:
+          - generic: 
+        - button "Switch to dark mode" [ref=e25]
+  - status [ref=e47]: Switched to Ball Field mode
+  - button "Toggle design panel" [active] [pressed] [ref=e48]

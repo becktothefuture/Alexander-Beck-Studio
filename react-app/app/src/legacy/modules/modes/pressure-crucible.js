@@ -3,6 +3,7 @@ import { Ball, clampBallPositionToWallInterior } from '../physics/Ball.js';
 import { MODES } from '../core/constants.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { triggerPressure } from '../audio/simulation-audio-adapter.js';
+import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 
 const TAU = Math.PI * 2;
 
@@ -58,8 +59,7 @@ function getCanvasCenter(canvas) {
 }
 
 function getInteriorMargin(g, canvas, extra = 0) {
-  const dpr = Math.max(1, g.DPR || 1);
-  const inset = Math.max(0, (g.wallInset ?? 0) * dpr);
+  const inset = getSimulationCollisionInsetPx(g);
   return Math.max(inset + extra, (g.R_MAX || 18) * 3);
 }
 

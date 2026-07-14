@@ -911,6 +911,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-deck-mount .portfolio-project-card:hover,
 .portfolio-deck-mount .portfolio-project-card.is-keyboard-focused {
+  --portfolio-card-press-scale: 1.012;
   box-shadow: var(--portfolio-card-contact-shadow-hover);
 }
 
@@ -1486,18 +1487,36 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   top: max(var(--portfolio-project-back-inset-y), env(safe-area-inset-top, 0px));
   left: max(var(--portfolio-project-back-inset-x), env(safe-area-inset-left, 0px));
   z-index: 60;
+  inline-size: 60px;
+  block-size: 60px;
+  width: 60px;
+  height: 60px;
+  min-width: 60px;
+  min-height: 60px;
+  max-width: 60px;
+  max-height: 60px;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  overflow: hidden;
   color: #fff;
   border: none;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.52);
-  box-shadow: none;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  corner-shape: round;
+  background: rgba(0, 0, 0, 0.24);
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(5px) saturate(1.04);
+  -webkit-backdrop-filter: blur(5px) saturate(1.04);
   transition:
     opacity 120ms linear,
     transform 0.15s var(--ease-organic),
     filter 0.15s var(--ease-organic),
     background-color 180ms ease;
+}
+
+.portfolio-project-view__back--top.abs-icon-btn::before {
+  content: none;
 }
 
 .portfolio-project-view__back.abs-icon-btn:hover,
@@ -1508,12 +1527,20 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 .portfolio-project-view__back--top.abs-icon-btn:hover,
 .portfolio-project-view__back--top.abs-icon-btn:focus-visible {
   color: #fff;
-  background: rgba(0, 0, 0, 0.64);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .portfolio-project-view__back.abs-icon-btn:focus-visible {
   outline: calc(var(--abs-size-1px) * 2) solid currentColor;
   outline-offset: calc(var(--abs-size-1px) * 2);
+}
+
+.portfolio-project-view__back--top.abs-icon-btn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 calc(var(--abs-size-1px) * 2) rgba(255, 255, 255, 0.72),
+    0 8px 22px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .portfolio-project-view__scroll {
@@ -2543,6 +2570,7 @@ body.portfolio-project-open .ui-bottom {
   .portfolio-deck-intro,
   .portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-project-card,
   .portfolio-deck-mount .portfolio-project-card {
+    --portfolio-card-press-scale: 1;
     transition-duration: 1ms;
     transition-delay: 0ms;
   }

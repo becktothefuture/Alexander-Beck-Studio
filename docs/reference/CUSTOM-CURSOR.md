@@ -2,11 +2,15 @@
 
 The custom cursor has two current forms:
 
-- solid palette dot: Home inner wall and Portfolio deck/background while project detail is closed;
-- 64px tap ring: Portfolio detail, About Me, Contact, Portfolio gate, and modal/focus states.
+- solid palette dot: default in-window cursor across the primary tabs: Home, Portfolio deck/background, About Me, and Contact;
+- translucent lens: simulation chooser/modal states, Portfolio project detail, dev chrome targets, and in-window action hover.
 
 There is no separate project-hover cursor family.
 
-The cursor is fixed to `body` so overlays cannot bury it. Home dot size is derived from the canvas ball mapping; Portfolio should match that perceptual diameter without depending on obsolete project bodies. Perfect cursor circles are excluded from squircle styling.
+The cursor is fixed to `body` so overlays cannot bury it. The dot size is derived from the canvas ball mapping when available, with a stable fallback for route surfaces that do not expose the Home canvas metrics. Portfolio should match that perceptual diameter without depending on obsolete project bodies. Perfect cursor circles are excluded from squircle styling.
+
+Clickable in-window body targets use a cursor-led hover: the palette dot morphs into the translucent lens, while the target keeps restrained local feedback such as a soft field, opacity lift, or existing card shadow. When the lens is already active, hovering a clickable target makes the lens smaller and quieter instead of adding an accent flash.
+
+The persistent Button Bar, dev panels, and surfaces outside the framed studio window keep their own cursor contracts. The native cursor returns outside the framed window.
 
 Pointer handling must preserve mouse, pen, touch, keyboard focus, reduced motion, and route teardown. Never add nested rings or thin field/helper lines to simulation visuals.
