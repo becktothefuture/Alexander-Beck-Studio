@@ -16,7 +16,6 @@ function createLazyRuntime(simulationId) {
 
 const RUNTIME_COMPONENTS = Object.freeze({
   'beach-ball-room': createLazyRuntime('beach-ball-room'),
-  'napoleon-point-cloud': createLazyRuntime('napoleon-point-cloud'),
   'rift-rings': createLazyRuntime('rift-rings'),
   'flock-of-birds': createLazyRuntime('flock-of-birds'),
   'mineral-growth': createLazyRuntime('mineral-growth'),

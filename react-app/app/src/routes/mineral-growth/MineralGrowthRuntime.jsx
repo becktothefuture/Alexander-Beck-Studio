@@ -79,14 +79,14 @@ export function MineralGrowthRuntime() {
       className="mineral-growth-demo mineral-growth-demo--daily-focus daily-focus-runtime"
       data-simulation-id={MINERAL_GROWTH_SIMULATION_REGISTRY_ENTRY.id}
       data-enabled-in-rotation={String(MINERAL_GROWTH_SIMULATION_REGISTRY_ENTRY.enabledInRotation)}
-      aria-label="Mineral Bloom simulation"
+      aria-label="Formation simulation"
     >
       <canvas
         ref={canvasRef}
         id="mineral-growth-canvas"
         className="mineral-growth-canvas"
         role="img"
-        aria-label="Mineral Bloom flat growth simulation"
+        aria-label="Formation flat growth simulation"
       />
     </section>
   );

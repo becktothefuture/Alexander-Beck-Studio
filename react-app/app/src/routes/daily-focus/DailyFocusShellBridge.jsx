@@ -97,15 +97,6 @@ function isDailyFocusRuntimeReady(simulationId) {
     case 'rift-rings':
       return isCanvasSurfaceReady('#rift-rings-canvas')
         && isSimulationVisualTransitionSourceActive(id);
-    case 'napoleon-point-cloud': {
-      const figure = runtime.querySelector('.napoleon-point-cloud');
-      const loadState = figure?.dataset?.pointCloudLoadState;
-      return Boolean(
-        loadState === 'ready'
-          && isCanvasSurfaceReady('.napoleon-point-cloud__canvas--front')
-          && isSimulationVisualTransitionSourceActive(id)
-      );
-    }
     case 'beach-ball-room': {
       const loadState = runtime.dataset?.beachBallRoomLoadState;
       return Boolean(

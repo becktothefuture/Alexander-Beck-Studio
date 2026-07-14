@@ -74,11 +74,11 @@ export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
   },
   [CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD]: {
     id: CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD,
-    name: 'Bust Cloud',
-    chapter: 'BUST CLOUD',
+    name: 'Impression',
+    chapter: 'IMPRESSION',
     path: '/lab/napoleon-point-cloud.html',
     configPath: '/config/napoleon-point-cloud-demo.json',
-    ariaLabel: 'Bust Cloud flat point-cloud simulation',
+    ariaLabel: 'Impression flat point-cloud simulation',
     enabledInRotation: isSimulationInDailyRotation(CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD),
     defaults: {
       version: 1,
@@ -103,8 +103,8 @@ export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
   },
   [CONCEPT_SIMULATION_IDS.RIFT_RINGS]: {
     id: CONCEPT_SIMULATION_IDS.RIFT_RINGS,
-    name: 'Depth Rings',
-    chapter: 'DEPTH RINGS',
+    name: 'Depth',
+    chapter: 'DEPTH',
     path: '/lab/rift-rings.html',
     configPath: '/config/rift-rings-demo.json',
     ariaLabel: 'Expansive concentric depth rings that shear and breathe under mouse or touch movement',

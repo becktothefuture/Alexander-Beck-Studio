@@ -10,8 +10,8 @@
   "simulations": [
     {
       "id": "pit",
-      "name": "Ball Field",
-      "chapter": "BALL FIELD",
+      "name": "Foundation",
+      "chapter": "FOUNDATION",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -22,8 +22,8 @@
     },
     {
       "id": "shapes",
-      "name": "Shapes",
-      "chapter": "SHAPES",
+      "name": "Assembly",
+      "chapter": "ASSEMBLY",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -35,8 +35,8 @@
     },
     {
       "id": "flies",
-      "name": "Light Swarm",
-      "chapter": "LIGHT SWARM",
+      "name": "Attention",
+      "chapter": "ATTENTION",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -47,8 +47,8 @@
     },
     {
       "id": "3d-cube",
-      "name": "Cube Frame",
-      "chapter": "CUBE FRAME",
+      "name": "Scaffold",
+      "chapter": "SCAFFOLD",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -59,8 +59,8 @@
     },
     {
       "id": "water",
-      "name": "Water Flow",
-      "chapter": "WATER FLOW",
+      "name": "Flow",
+      "chapter": "FLOW",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -71,17 +71,23 @@
     },
     {
       "id": "repel-room",
-      "legacyIds": ["wall-repel"],
-      "name": "Repel Room",
-      "chapter": "REPEL ROOM",
+      "legacyIds": [
+        "wall-repel"
+      ],
+      "name": "Tension",
+      "chapter": "TENSION",
       "stage": "daily-rotation",
       "surface": "lab-route",
       "origin": "promoted-lab",
       "launchPath": "/lab/repel-room.html",
       "dailyHref": "/lab/repel-room.html?daily=1",
       "configPath": "/config/repel-room-demo.json",
-      "legacyLaunchPaths": ["/lab/wall-repel.html"],
-      "legacyConfigPaths": ["/config/wall-repel-demo.json"],
+      "legacyLaunchPaths": [
+        "/lab/wall-repel.html"
+      ],
+      "legacyConfigPaths": [
+        "/config/wall-repel-demo.json"
+      ],
       "previewId": "wall-repel",
       "includeInNarrative": true,
       "reviewStatus": "stable",
@@ -102,8 +108,8 @@
     },
     {
       "id": "3d-sphere",
-      "name": "Sphere Orbit",
-      "chapter": "SPHERE ORBIT",
+      "name": "Continuity",
+      "chapter": "CONTINUITY",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -114,15 +120,14 @@
     },
     {
       "id": "napoleon-point-cloud",
-      "name": "Bust Cloud",
-      "chapter": "BUST CLOUD",
-      "stage": "daily-rotation",
+      "name": "Impression",
+      "chapter": "IMPRESSION",
+      "stage": "collection",
       "surface": "lab-route",
       "origin": "promoted-lab",
       "launchPath": "/lab/napoleon-point-cloud.html",
-      "dailyHref": "/lab/napoleon-point-cloud.html?daily=1",
       "configPath": "/config/napoleon-point-cloud-demo.json",
-      "includeInNarrative": true,
+      "includeInNarrative": false,
       "reviewStatus": "candidate",
       "capture": {
         "delayMs": 4800,
@@ -134,8 +139,8 @@
     },
     {
       "id": "flock-of-birds",
-      "name": "Flock Drift",
-      "chapter": "FLOCK DRIFT",
+      "name": "Convergence",
+      "chapter": "CONVERGENCE",
       "stage": "daily-rotation",
       "surface": "lab-route",
       "origin": "promoted-lab",
@@ -148,8 +153,8 @@
     },
     {
       "id": "flubber-blob",
-      "name": "Soft Blob",
-      "chapter": "SOFT BLOB",
+      "name": "Cohesion",
+      "chapter": "COHESION",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -160,8 +165,8 @@
     },
     {
       "id": "weave-field",
-      "name": "Weave Field",
-      "chapter": "WEAVE FIELD",
+      "name": "Juxtaposition",
+      "chapter": "JUXTAPOSITION",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -172,8 +177,8 @@
     },
     {
       "id": "mineral-growth",
-      "name": "Mineral Bloom",
-      "chapter": "MINERAL BLOOM",
+      "name": "Formation",
+      "chapter": "FORMATION",
       "stage": "daily-rotation",
       "surface": "lab-route",
       "origin": "promoted-lab",
@@ -198,8 +203,8 @@
     },
     {
       "id": "kaleidoscope-3",
-      "name": "Kaleido Bloom",
-      "chapter": "KALEIDO BLOOM",
+      "name": "Refraction",
+      "chapter": "REFRACTION",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -210,8 +215,8 @@
     },
     {
       "id": "bubbles",
-      "name": "Bubble Lift",
-      "chapter": "BUBBLE LIFT",
+      "name": "Emergence",
+      "chapter": "EMERGENCE",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -258,8 +263,8 @@
     },
     {
       "id": "starfield-3d",
-      "name": "Star Field",
-      "chapter": "STAR FIELD",
+      "name": "Perspective",
+      "chapter": "PERSPECTIVE",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -270,8 +275,8 @@
     },
     {
       "id": "kaleidoscope-rift",
-      "name": "Kaleido Rift",
-      "chapter": "KALEIDO RIFT",
+      "name": "Multiplicity",
+      "chapter": "MULTIPLICITY",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -353,8 +358,8 @@
     },
     {
       "id": "rift-rings",
-      "name": "Depth Rings",
-      "chapter": "DEPTH RINGS",
+      "name": "Depth",
+      "chapter": "DEPTH",
       "stage": "daily-rotation",
       "surface": "lab-route",
       "origin": "promoted-lab",

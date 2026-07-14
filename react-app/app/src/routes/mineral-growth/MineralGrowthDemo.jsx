@@ -199,11 +199,11 @@ function MineralGrowthPanel({ config, saveStatus, onChange, onReset, onSave }) {
   return (
     <aside
       className="parameterizer-panel mineral-growth-panel"
-      aria-label="Mineral Bloom controls"
+      aria-label="Formation controls"
       data-collapsed={String(collapsed)}
     >
       <div className="parameterizer-header">
-        <span>Mineral Bloom</span>
+        <span>Formation</span>
         <span className="mineral-growth-panel__header-right">
           <span className="mineral-growth-panel__status" role="status" aria-live="polite">
             {saveStatus}
@@ -391,14 +391,14 @@ export function MineralGrowthDemo() {
       data-enabled-in-rotation={String(MINERAL_GROWTH_SIMULATION_REGISTRY_ENTRY.enabledInRotation)}
       data-panel-visible={String(showControlPanel)}
       style={{ '--mineral-growth-surface': themeColors.active }}
-      aria-label="Mineral Bloom lab"
+      aria-label="Formation lab"
     >
       <canvas
         ref={canvasRef}
         id="mineral-growth-canvas"
         className="mineral-growth-canvas"
         role="img"
-        aria-label="Mineral Bloom flat growth simulation"
+        aria-label="Formation flat growth simulation"
       />
       {showControlPanel ? (
         <MineralGrowthPanel

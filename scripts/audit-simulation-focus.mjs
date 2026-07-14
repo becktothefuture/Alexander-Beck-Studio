@@ -284,11 +284,11 @@ async function main() {
       { timeout: WAIT_MS, polling: 50 },
     );
 
-    await chooseSimulation(page, 'Repel Room', 'repel-room');
+    await chooseSimulation(page, 'Tension', 'repel-room');
 
-    await chooseSimulation(page, 'Light Swarm', 'flies');
+    await chooseSimulation(page, 'Attention', 'flies');
 
-    await chooseSimulation(page, 'Water Flow', 'water');
+    await chooseSimulation(page, 'Flow', 'water');
 
     await page.goto(resolveUrl('/index.html'), { waitUntil: 'networkidle', timeout: 60000 });
     await page.waitForFunction(

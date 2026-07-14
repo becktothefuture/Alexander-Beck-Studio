@@ -198,7 +198,6 @@ const DAILY_LAB_ROUTE_IDS = new Set([
   'repel-room',
   'flock-of-birds',
   'mineral-growth',
-  'napoleon-point-cloud',
   'rift-rings',
 ]);
 
@@ -1032,15 +1031,6 @@ function isDailyLabRouteReady(routeId) {
     case 'rift-rings':
       return isCanvasSurfaceReady('#rift-rings-canvas')
         && isSimulationVisualTransitionSourceActive(routeId);
-    case 'napoleon-point-cloud': {
-      const figure = document.querySelector('.napoleon-point-cloud');
-      const loadState = figure?.dataset?.pointCloudLoadState;
-      return Boolean(
-        loadState === 'ready'
-          && isCanvasSurfaceReady('.napoleon-point-cloud__canvas--front')
-          && isSimulationVisualTransitionSourceActive(routeId)
-      );
-    }
     case 'beach-ball-room': {
       const container = document.querySelector('.beach-ball-room-simulation');
       const loadState = container?.dataset?.beachBallRoomLoadState;

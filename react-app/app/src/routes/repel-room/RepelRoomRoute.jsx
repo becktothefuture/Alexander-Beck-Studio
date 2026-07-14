@@ -30,6 +30,6 @@ export function getRepelRoomRouteView() {
         </div>
       </header>
     ),
-    mainContent: <main className="ui-center-spacer" aria-label="Repel Room lab" />,
+    mainContent: <main className="ui-center-spacer" aria-label="Tension lab" />,
   };
 }

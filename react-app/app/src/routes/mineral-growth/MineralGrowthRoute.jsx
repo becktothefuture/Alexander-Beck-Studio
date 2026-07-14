@@ -30,6 +30,6 @@ export function getMineralGrowthRouteView() {
         </div>
       </header>
     ),
-    mainContent: <main className="ui-center-spacer" aria-label="Mineral Bloom lab" />,
+    mainContent: <main className="ui-center-spacer" aria-label="Formation lab" />,
   };
 }

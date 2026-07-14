@@ -155,9 +155,9 @@ function RepelRoomPanel({ config, saveStatus, onChange, onReset, onSave }) {
   ));
 
   return (
-    <aside className="parameterizer-panel repel-room-panel" aria-label="Repel Room controls">
+    <aside className="parameterizer-panel repel-room-panel" aria-label="Tension controls">
       <div className="parameterizer-header">
-        <span>Repel Room</span>
+        <span>Tension</span>
         <span className="repel-room-panel__status">{saveStatus}</span>
       </div>
       <div className="parameterizer-scroll">
@@ -331,14 +331,14 @@ export function RepelRoomDemo() {
       data-enabled-in-rotation={String(REPEL_ROOM_SIMULATION_REGISTRY_ENTRY.enabledInRotation)}
       data-panel-visible={String(showControlPanel)}
       style={{ '--repel-room-surface': themeColors.active }}
-      aria-label="Repel Room lab"
+      aria-label="Tension lab"
     >
       <canvas
         ref={canvasRef}
         id="repel-room-canvas"
         className="repel-room-canvas"
         role="img"
-        aria-label="Repel Room flat ball simulation"
+        aria-label="Tension flat ball simulation"
       />
       {showControlPanel ? (
         <RepelRoomPanel

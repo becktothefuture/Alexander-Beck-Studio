@@ -62,9 +62,9 @@ Loaders and normalizers live under `src/legacy/modules/utils/` and route-specifi
 - Shared shell finish is authored once and reused across routes.
 - Convenience presets must explicitly be persistent or UI-only.
 
-### Shapes kinetic grab controls
+### Assembly kinetic grab controls
 
-The Shapes hard-pivot interaction is authored through runtime keys in `design-system.json`:
+The Assembly hard-pivot interaction is authored through runtime keys in `design-system.json`:
 
 - `shapesGrabAngularDampingPerSec` controls held spin damping as a per-second exponential rate.
 - `shapesReleaseLinearGain` and `shapesReleaseAngularGain` scale reconstructed release momentum.

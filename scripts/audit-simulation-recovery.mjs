@@ -29,7 +29,7 @@ async function openFlies(page) {
 async function chooseRepelRoom(page) {
   await page.locator('.simulation-focus-switcher').click();
   await page.waitForSelector('.simulation-focus-modal.active', { timeout: waitMs });
-  await page.locator('.simulation-focus-row').filter({ hasText: 'Repel Room' }).first().click();
+  await page.locator('.simulation-focus-row').filter({ hasText: 'Tension' }).first().click();
 }
 
 async function readRecoveryState(page) {

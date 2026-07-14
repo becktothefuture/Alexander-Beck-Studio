@@ -79,14 +79,14 @@ export function FlockOfBirdsRuntime() {
       className="flock-of-birds-demo flock-of-birds-demo--daily-focus daily-focus-runtime"
       data-simulation-id={FLOCK_OF_BIRDS_SIMULATION_REGISTRY_ENTRY.id}
       data-enabled-in-rotation={String(FLOCK_OF_BIRDS_SIMULATION_REGISTRY_ENTRY.enabledInRotation)}
-      aria-label="Flock Drift simulation"
+      aria-label="Convergence simulation"
     >
       <canvas
         ref={canvasRef}
         id="flock-of-birds-canvas"
         className="flock-of-birds-canvas"
         role="img"
-        aria-label="Flock Drift flat flock simulation"
+        aria-label="Convergence flat flock simulation"
       />
     </section>
   );

@@ -425,7 +425,7 @@ export function NapoleonPointCloud({
   maxDpr = 1.5,
   reducedMotion = false,
   className = '',
-  ariaLabel = 'Bust Cloud flat point-cloud simulation',
+  ariaLabel = 'Impression flat point-cloud simulation',
   decorative = false,
   theme = DEFAULT_THEME,
   showDiagnostics = false,

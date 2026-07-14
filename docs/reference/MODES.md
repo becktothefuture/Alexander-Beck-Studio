@@ -30,31 +30,31 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 
 | Mode | ID | Runtime status |
 | --- | --- | --- |
-| Ball Field | `pit` | Active |
-| Shapes | `shapes` | Active |
-| Light Swarm | `flies` | Active |
+| Foundation | `pit` | Active |
+| Assembly | `shapes` | Active |
+| Attention | `flies` | Active |
 | Weightless Drift | `weightless` | Active |
-| Water Flow | `water` | Active |
+| Flow | `water` | Active |
 | Magnetic Field | `magnetic` | Active |
-| Bubble Lift | `bubbles` | Active |
-| Kaleido Bloom | `kaleidoscope-3` | Active |
-| Kaleido Rift | `kaleidoscope-rift` | Active |
-| Depth Rings | `rift-rings` | Route-backed daily/lab |
+| Emergence | `bubbles` | Active |
+| Refraction | `kaleidoscope-3` | Active |
+| Multiplicity | `kaleidoscope-rift` | Active |
+| Depth | `rift-rings` | Route-backed daily/lab |
 | Critter Swarm | `critters` | Active |
 | Parallax Drift | `parallax-float` | Active |
-| Sphere Orbit | `3d-sphere` | Active |
-| Cube Frame | `3d-cube` | Active |
-| Star Field | `starfield-3d` | Active |
+| Continuity | `3d-sphere` | Active |
+| Scaffold | `3d-cube` | Active |
+| Perspective | `starfield-3d` | Active |
 | Elastic Loom | `elastic-center` | Collection only |
-| Flock Drift | `flock-of-birds` | Route-backed daily/lab |
-| Repel Room | `repel-room` | Route-backed daily/lab (`wall-repel` remains a legacy URL/config alias) |
+| Convergence | `flock-of-birds` | Route-backed daily/lab |
+| Tension | `repel-room` | Route-backed daily/lab (`wall-repel` remains a legacy URL/config alias) |
 | Aperture Bloom | `aperture-bloom` | Route-backed collection/lab |
-| Mineral Bloom | `mineral-growth` | Route-backed daily/lab |
-| Soft Blob | `flubber-blob` | Active |
-| Weave Field | `weave-field` | Active |
+| Formation | `mineral-growth` | Route-backed daily/lab |
+| Cohesion | `flubber-blob` | Active |
+| Juxtaposition | `weave-field` | Active |
 | Pressure Field | `pressure-crucible` | Active |
 | Particle Fountain | `particle-fountain` | Active |
-| Bust Cloud | `napoleon-point-cloud` | Route-backed daily/lab |
+| Impression | `napoleon-point-cloud` | Route-backed daily/lab |
 | Beach Ball Room | `beach-ball-room` | Route-backed collection/lab |
 
 ---
@@ -63,23 +63,23 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 
 ### Featured Tier (shown first)
 
-1. `pit` — BALL FIELD
-2. `shapes` — SHAPES
-3. `flies` — LIGHT SWARM
-4. `3d-cube` — CUBE FRAME
-5. `water` — WATER FLOW
-6. `repel-room` — REPEL ROOM
-7. `3d-sphere` — SPHERE ORBIT
-8. `napoleon-point-cloud` — BUST CLOUD
-9. `flock-of-birds` — FLOCK DRIFT
-10. `flubber-blob` — SOFT BLOB
-11. `weave-field` — WEAVE FIELD
-12. `mineral-growth` — MINERAL BLOOM
-13. `kaleidoscope-3` — KALEIDO BLOOM
-14. `bubbles` — BUBBLE LIFT
-15. `starfield-3d` — STAR FIELD
-16. `kaleidoscope-rift` — KALEIDO RIFT
-17. `rift-rings` — DEPTH RINGS
+1. `pit` — FOUNDATION
+2. `shapes` — ASSEMBLY
+3. `flies` — ATTENTION
+4. `3d-cube` — SCAFFOLD
+5. `water` — FLOW
+6. `repel-room` — TENSION
+7. `3d-sphere` — CONTINUITY
+8. `napoleon-point-cloud` — IMPRESSION
+9. `flock-of-birds` — CONVERGENCE
+10. `flubber-blob` — COHESION
+11. `weave-field` — JUXTAPOSITION
+12. `mineral-growth` — FORMATION
+13. `kaleidoscope-3` — REFRACTION
+14. `bubbles` — EMERGENCE
+15. `starfield-3d` — PERSPECTIVE
+16. `kaleidoscope-rift` — MULTIPLICITY
+17. `rift-rings` — DEPTH
 
 ### Extended Tier (shown after Featured)
 
@@ -124,7 +124,7 @@ Loop order is `Featured -> Extended -> Featured`.
 - `bubbles`: full-height drink-like nucleation from lower sources, terminal rise, pointer/touch wake deflection, surface dissolve, and recycle.
 - `kaleidoscope-3`: mirrored wedge render with center-pointer fill, edge-pointer opening, and mode-local bounds/render path.
 - `kaleidoscope-rift`: one-wedge polar lattice mirrored into counter-rotating petals; pointer/touch movement shears rings and opens a radial rift instead of folding the full source field.
-- `rift-rings`: route-backed Depth Rings concentric-circle field with symmetric ring bands, whole-ring counter-rotation, stronger pointer/touch radial travel, and center-depth fog that makes the innermost ring almost disappear.
+- `rift-rings`: route-backed Depth concentric-circle field with symmetric ring bands, whole-ring counter-rotation, stronger pointer/touch radial travel, and center-depth fog that makes the innermost ring almost disappear.
 - `critters`: locomotion-based critter behavior and local separation.
 - `parallax-float`: layered depth field with levitation/parallax response.
 - `3d-sphere`: rotating spherical point cloud.
@@ -132,10 +132,10 @@ Loop order is `Featured -> Extended -> Featured`.
 - `starfield-3d`: depth-projected starfield with recycle, pointer/touch camera pan, and shared distance fog.
 - `elastic-center`: Collection-only Elastic Loom; a palette-bead lattice with invisible spring links, single-pointer drag, release waves, subtle hover pressure, and normal wall containment.
 - `flock-of-birds`: route-backed distant flock with weighted center-biased motion, no wall collisions, mouse avoidance, and a safe sky band above the ground.
-- `repel-room`: route-backed Repel Room with heavy palette balls launched through a bounded room, strong room-edge repulsion, mobile-bounded DPR/count, and mouse repulsion without visible cursor rings. Legacy `wall-repel` links resolve to this canonical mode.
+- `repel-room`: route-backed Tension with heavy palette balls launched through a bounded room, strong room-edge repulsion, mobile-bounded DPR/count, and mouse repulsion without visible cursor rings. Legacy `wall-repel` links resolve to this canonical mode.
 - `aperture-bloom`: route-backed radial circle aperture with symmetric ring spacing, pointer-opened breathing gaps, normal round circles, and the central brand/link area reserved.
 - `mineral-growth`: route-backed terrarium thicket with edge-rooted pebble branches and leaflet clusters, deterministic seed support, no visible overlap, and mobile-collapsed controls.
-- `napoleon-point-cloud`: route-backed Bust Cloud surface-sampled classical bust-face point cloud with the title layered through the dot field, 5k point amount, 14% density, 23.4 dot size, 0.72x mouse rotation, and auto rotation on.
+- `napoleon-point-cloud`: route-backed Impression surface-sampled classical bust-face point cloud with the title layered through the dot field, 5k point amount, 14% density, 23.4 dot size, 0.72x mouse rotation, and auto rotation on.
 - `beach-ball-room`: Collection-only route-backed Beach Ball Room circle-built beach ball with room-scale wall physics, softened room-line treatment, calmer rebound, and controls hidden unless `controls=1`.
 - `flubber-blob`: fixed-size hard circles simulated as embedded beads in a soft silicone-gel raft with persistent gel links, hard 2D contacts, passive hover-only cursor pressure/wake, lossy wall rebound, and no visible detach/reattach behavior.
 - `weave-field`: perpendicular discipline streams that progressively cross into a loose woven lattice, with cursor/touch repulsion opening temporary gaps, shared wall/collision containment, and a compact portrait/mobile weave with fewer lanes and softer motion.

@@ -156,9 +156,9 @@ function FlockOfBirdsPanel({ config, saveStatus, onChange, onReset, onSave }) {
   ));
 
   return (
-    <aside className="parameterizer-panel flock-of-birds-panel" aria-label="Flock Drift controls">
+    <aside className="parameterizer-panel flock-of-birds-panel" aria-label="Convergence controls">
       <div className="parameterizer-header">
-        <span>Flock Drift</span>
+        <span>Convergence</span>
         <span className="flock-of-birds-panel__status">{saveStatus}</span>
       </div>
       <div className="parameterizer-scroll">
@@ -329,14 +329,14 @@ export function FlockOfBirdsDemo() {
         '--flock-of-birds-ground': `${config.groundLine * 100}%`,
         '--flock-of-birds-surface': themeColors.active,
       }}
-      aria-label="Flock Drift lab"
+      aria-label="Convergence lab"
     >
       <canvas
         ref={canvasRef}
         id="flock-of-birds-canvas"
         className="flock-of-birds-canvas"
         role="img"
-        aria-label="Flock Drift flat flock simulation"
+        aria-label="Convergence flat flock simulation"
       />
       <div className="flock-of-birds-ground" aria-hidden="true" />
       {showControlPanel ? (

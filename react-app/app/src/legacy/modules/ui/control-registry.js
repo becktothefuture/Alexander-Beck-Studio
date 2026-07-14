@@ -3692,7 +3692,7 @@ export const CONTROL_SECTIONS = {
   },
 
   pit: {
-    title: 'Ball Field',
+    title: 'Foundation',
     icon: '🎯',
     mode: 'pit',
     defaultOpen: false,
@@ -3765,7 +3765,7 @@ export const CONTROL_SECTIONS = {
   },
 
   flies: {
-    title: 'Light Swarm',
+    title: 'Attention',
     icon: '🕊️',
     mode: 'flies',
     defaultOpen: false,
@@ -3878,7 +3878,7 @@ export const CONTROL_SECTIONS = {
   },
 
   water: {
-    title: 'Water Flow',
+    title: 'Flow',
     icon: '🌊',
     mode: 'water',
     defaultOpen: false,
@@ -3996,7 +3996,7 @@ export const CONTROL_SECTIONS = {
   },
 
   bubbles: {
-    title: 'Bubble Lift',
+    title: 'Emergence',
     icon: '🫧',
     mode: 'bubbles',
     defaultOpen: false,
@@ -4079,7 +4079,7 @@ export const CONTROL_SECTIONS = {
   },
 
   kaleidoscope: {
-    title: 'Kaleido Bloom',
+    title: 'Refraction',
     icon: '🪞',
     mode: 'kaleidoscope-3',
     defaultOpen: false,
@@ -4183,7 +4183,7 @@ export const CONTROL_SECTIONS = {
     ]
   },
   starfield3d: {
-    title: 'Star Field',
+    title: 'Perspective',
     icon: '✨',
     mode: 'starfield-3d',
     defaultOpen: false,
@@ -4332,7 +4332,7 @@ export const CONTROL_SECTIONS = {
   },
 
   flubberBlob: {
-    title: 'Soft Blob',
+    title: 'Cohesion',
     icon: '🫠',
     mode: 'flubber-blob',
     defaultOpen: false,
@@ -4452,7 +4452,7 @@ export const CONTROL_SECTIONS = {
   },
 
   weaveField: {
-    title: 'Weave Field',
+    title: 'Juxtaposition',
     icon: '🧵',
     mode: 'weave-field',
     defaultOpen: false,
@@ -4585,7 +4585,7 @@ export const CONTROL_SECTIONS = {
   },
 
   shapes: {
-    title: 'Shapes',
+    title: 'Assembly',
     icon: '▣',
     mode: 'shapes',
     defaultOpen: false,
@@ -4997,7 +4997,7 @@ export const CONTROL_SECTIONS = {
   },
 
   sphere3d: {
-    title: 'Sphere Orbit',
+    title: 'Continuity',
     icon: '🌐',
     mode: '3d-sphere',
     defaultOpen: false,
@@ -5151,7 +5151,7 @@ export const CONTROL_SECTIONS = {
   },
 
   cube3d: {
-    title: 'Cube Frame',
+    title: 'Scaffold',
     icon: '🧊',
     mode: '3d-cube',
     defaultOpen: false,
@@ -6198,32 +6198,32 @@ export function generateModeSwitcherHTML() {
     'beach-ball-room': '◍'
   };
   const modeLabels = {
-    'pit': 'Ball Field',
-    'bubbles': 'Bubble Lift',
+    'pit': 'Foundation',
+    'bubbles': 'Emergence',
     'critters': 'Critter Swarm',
-    'flies': 'Light Swarm',
-    'water': 'Water Flow',
+    'flies': 'Attention',
+    'water': 'Flow',
     'magnetic': 'Magnetic Field',
     'weightless': 'Weightless Drift',
-    'kaleidoscope-3': 'Kaleido Bloom',
-    'kaleidoscope-rift': 'Kaleido Rift',
-    'rift-rings': 'Depth Rings',
+    'kaleidoscope-3': 'Refraction',
+    'kaleidoscope-rift': 'Multiplicity',
+    'rift-rings': 'Depth',
     'parallax-float': 'Parallax Drift',
-    '3d-sphere': 'Sphere Orbit',
-    '3d-cube': 'Cube Frame',
-    'starfield-3d': 'Star Field',
+    '3d-sphere': 'Continuity',
+    '3d-cube': 'Scaffold',
+    'starfield-3d': 'Perspective',
     'elastic-center': 'Elastic Loom',
-    'flock-of-birds': 'Flock Drift',
-    'repel-room': 'Repel Room',
-    'wall-repel': 'Repel Room',
+    'flock-of-birds': 'Convergence',
+    'repel-room': 'Tension',
+    'wall-repel': 'Tension',
     'aperture-bloom': 'Aperture Bloom',
-    'mineral-growth': 'Mineral Bloom',
-    'flubber-blob': 'Soft Blob',
-    'weave-field': 'Weave Field',
-    'shapes': 'Shapes',
+    'mineral-growth': 'Formation',
+    'flubber-blob': 'Cohesion',
+    'weave-field': 'Juxtaposition',
+    'shapes': 'Assembly',
     'pressure-crucible': 'Pressure Field',
     'particle-fountain': 'Particle Fountain',
-    'napoleon-point-cloud': 'Bust Cloud',
+    'napoleon-point-cloud': 'Impression',
     'beach-ball-room': 'Beach Ball Room'
   };
   
@@ -6326,32 +6326,32 @@ function generateHomeModeSectionHTML() {
               'beach-ball-room': '◍'
             };
             const modeLabels = {
-              'pit': 'Ball Field',
-              'bubbles': 'Bubble Lift',
+              'pit': 'Foundation',
+              'bubbles': 'Emergence',
               'critters': 'Critter Swarm',
-              'flies': 'Light Swarm',
-              'water': 'Water Flow',
+              'flies': 'Attention',
+              'water': 'Flow',
               'magnetic': 'Magnetic Field',
               'weightless': 'Weightless Drift',
-              'kaleidoscope-3': 'Kaleido Bloom',
-              'kaleidoscope-rift': 'Kaleido Rift',
-              'rift-rings': 'Depth Rings',
+              'kaleidoscope-3': 'Refraction',
+              'kaleidoscope-rift': 'Multiplicity',
+              'rift-rings': 'Depth',
               'parallax-float': 'Parallax Drift',
-              '3d-sphere': 'Sphere Orbit',
-              '3d-cube': 'Cube Frame',
-              'starfield-3d': 'Star Field',
+              '3d-sphere': 'Continuity',
+              '3d-cube': 'Scaffold',
+              'starfield-3d': 'Perspective',
               'elastic-center': 'Elastic Loom',
-              'flock-of-birds': 'Flock Drift',
-              'repel-room': 'Repel Room',
-              'wall-repel': 'Repel Room',
+              'flock-of-birds': 'Convergence',
+              'repel-room': 'Tension',
+              'wall-repel': 'Tension',
               'aperture-bloom': 'Aperture Bloom',
-              'mineral-growth': 'Mineral Bloom',
-              'flubber-blob': 'Soft Blob',
-              'weave-field': 'Weave Field',
-              'shapes': 'Shapes',
+              'mineral-growth': 'Formation',
+              'flubber-blob': 'Cohesion',
+              'weave-field': 'Juxtaposition',
+              'shapes': 'Assembly',
               'pressure-crucible': 'Pressure Field',
               'particle-fountain': 'Particle Fountain',
-              'napoleon-point-cloud': 'Bust Cloud',
+              'napoleon-point-cloud': 'Impression',
               'beach-ball-room': 'Beach Ball Room'
             };
             let buttons = '';

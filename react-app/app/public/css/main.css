@@ -6158,10 +6158,10 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .simulation-focus-modal {
-  --simulation-focus-row-height: 42px;
-  --simulation-focus-icon-size: 26px;
-  --simulation-focus-list-width: min(100%, 17rem);
-  --simulation-focus-list-gutter: clamp(8px, 3vw, 12px);
+  --simulation-focus-row-height: 38px;
+  --simulation-focus-icon-size: 22px;
+  --simulation-focus-list-width: min(100%, 14.75rem);
+  --simulation-focus-list-gutter: clamp(6px, 2.6vw, 10px);
   --simulation-focus-scroll-fade: clamp(18px, 4svh, 36px);
   --simulation-focus-ink: var(--text-primary);
   --simulation-focus-hover-opacity: 0.14;
@@ -6275,10 +6275,10 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   display: grid;
   grid-template-columns: var(--simulation-focus-icon-size) minmax(0, 1fr);
   align-items: center;
-  gap: var(--gap-sm);
+  gap: calc(var(--gap-sm) * 0.72);
   min-height: var(--simulation-focus-row-height);
   width: 100%;
-  padding: calc(var(--gap-xs) * 0.5) var(--gap-sm);
+  padding: calc(var(--gap-xs) * 0.45) calc(var(--gap-sm) * 0.72);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -6401,9 +6401,9 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 @media (min-width: 720px) and (min-height: 560px) {
   .simulation-focus-modal {
-    --simulation-focus-row-height: 40px;
-    --simulation-focus-icon-size: 24px;
-    --simulation-focus-list-width: min(100%, 27rem);
+    --simulation-focus-row-height: 36px;
+    --simulation-focus-icon-size: 22px;
+    --simulation-focus-list-width: min(100%, 21rem);
     gap: var(--gap-md);
     padding:
       clamp(24px, 4svh, 48px)

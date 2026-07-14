@@ -27,7 +27,6 @@ const ROUTE_BACKED_FOCUS_IDS = new Set([
   'repel-room',
   'flock-of-birds',
   'mineral-growth',
-  'napoleon-point-cloud',
   'rift-rings',
 ]);
 
@@ -809,7 +808,7 @@ async function main() {
     : allFlows;
   if (!flows.length) throw new Error('No simulation focus flows matched the requested targets');
   const startFocus = flows[0]?.fromFocus || dailyEntries[0]?.id || 'pit';
-  const startLabel = flows[0]?.from || dailyEntries[0]?.name || 'Ball Field';
+  const startLabel = flows[0]?.from || dailyEntries[0]?.name || 'Foundation';
 
   const browser = await chromium.launch({ headless: HEADLESS });
   const page = await browser.newPage({

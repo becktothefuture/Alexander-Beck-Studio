@@ -373,7 +373,7 @@ Problem: the concept produced overlapping circles, central bunching, and arrange
 
 Rule: no visible circle overlap, no circular bead piles, no field demo that has to be explained as fluid or ferrofluid. If the material cannot be represented without overlap artifacts, choose a different concept.
 
-### Wall Repel / Repel Room
+### Wall Repel / Tension
 
 Problem: early random placement plus repulsion/collision parked in the center and did not create a distinctive composition.
 

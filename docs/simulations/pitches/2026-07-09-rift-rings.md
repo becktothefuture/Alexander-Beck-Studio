@@ -1,4 +1,4 @@
-# Depth Rings
+# Depth
 
 - **ID:** `rift-rings`
 - **Stage:** automation candidate
@@ -10,7 +10,7 @@ Expansive concentric rings of site-colored circle bodies drift in alternating di
 
 ## Why It Is Different
 
-Kaleido Rift uses a mirrored polar lattice and petal-like shear. Rift Rings keeps the polar inspiration but removes the mirrored kaleidoscope structure: the composition is a larger field of independent concentric bands that extend far beyond the visible wall and feel like a spatial pressure system moving through the room.
+Multiplicity uses a mirrored polar lattice and petal-like shear. Rift Rings keeps the polar inspiration but removes the mirrored kaleidoscope structure: the composition is a larger field of independent concentric bands that extend far beyond the visible wall and feel like a spatial pressure system moving through the room.
 
 ## Material Fit
 
@@ -30,4 +30,4 @@ Promote only if the default frame is immediately composed, the offscreen scale f
 
 ## Deletion Criteria
 
-Delete it if it reads as a decorative orbit field, feels too close to Kaleido Rift, depends on density that causes muddy overlap, or cannot preserve a strong first frame on mobile without losing the expansive behavior.
+Delete it if it reads as a decorative orbit field, feels too close to Multiplicity, depends on density that causes muddy overlap, or cannot preserve a strong first frame on mobile without losing the expansive behavior.

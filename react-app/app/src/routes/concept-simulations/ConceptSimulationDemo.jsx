@@ -345,9 +345,9 @@ function NapoleonControlRow({ control, value, onChange }) {
 
 function NapoleonPointCloudPanel({ config, onChange, onReset }) {
   return (
-    <aside className="parameterizer-panel napoleon-point-cloud-panel" aria-label="Bust Cloud controls">
+    <aside className="parameterizer-panel napoleon-point-cloud-panel" aria-label="Impression controls">
       <div className="parameterizer-header">
-        <span>Bust Cloud</span>
+        <span>Impression</span>
         <span className="napoleon-point-cloud-panel__status">live</span>
       </div>
       <div className="parameterizer-scroll">

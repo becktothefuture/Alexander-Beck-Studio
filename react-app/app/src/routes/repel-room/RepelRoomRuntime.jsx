@@ -79,14 +79,14 @@ export function RepelRoomRuntime() {
       className="repel-room-demo repel-room-demo--daily-focus daily-focus-runtime"
       data-simulation-id={REPEL_ROOM_SIMULATION_REGISTRY_ENTRY.id}
       data-enabled-in-rotation={String(REPEL_ROOM_SIMULATION_REGISTRY_ENTRY.enabledInRotation)}
-      aria-label="Repel Room simulation"
+      aria-label="Tension simulation"
     >
       <canvas
         ref={canvasRef}
         id="repel-room-canvas"
         className="repel-room-canvas"
         role="img"
-        aria-label="Repel Room flat ball simulation"
+        aria-label="Tension flat ball simulation"
       />
     </section>
   );
