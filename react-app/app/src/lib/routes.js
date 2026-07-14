@@ -132,8 +132,8 @@ export const SHELL_ROUTE_TABS = Object.freeze([
   {
     routeId: 'portfolio',
     href: '/portfolio.html',
-    label: 'Portfolio',
-    ariaLabel: 'Portfolio',
+    label: 'Work',
+    ariaLabel: 'Work',
     icon: 'ti-briefcase',
     iconOnly: false,
   },

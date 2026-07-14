@@ -3381,10 +3381,10 @@ html.abs-direct-boot-staging .ui-main-nav .footer_link {
    The canvas and wall stay out of scope; this is a short text/chrome reveal. */
 :root {
   --home-post-boot-ease: cubic-bezier(0.22, 0, 0.16, 1);
-  --home-post-boot-duration-identity: 980ms;
-  --home-post-boot-duration-support: 1180ms;
+  --home-post-boot-duration-identity: 420ms;
+  --home-post-boot-duration-support: 480ms;
   --home-post-boot-delay-identity-name: 0ms;
-  --home-post-boot-delay-identity-role: 140ms;
+  --home-post-boot-delay-identity-role: 58ms;
   --home-post-boot-delay-legend-start: 360ms;
   --home-post-boot-delay-legend-step: 96ms;
   --home-post-boot-delay-context-start: 1340ms;
@@ -3393,9 +3393,9 @@ html.abs-direct-boot-staging .ui-main-nav .footer_link {
   --home-post-boot-delay-action-step: 120ms;
   --home-post-boot-delay-footer-start: 2100ms;
   --home-post-boot-delay-footer-step: 100ms;
-  --home-post-boot-ty: 7px;
-  --home-post-boot-blur: 4px;
-  --home-post-boot-scale: 0.985;
+  --home-post-boot-ty: 3px;
+  --home-post-boot-blur: 1.5px;
+  --home-post-boot-scale: 0.994;
   --route-enter-ty: 3px;
   --route-enter-blur: 1.5px;
   --route-enter-scale: 0.994;
@@ -7312,6 +7312,15 @@ body.portfolio-page--locked #simulations {
   pointer-events: auto;
 }
 
+:root {
+  --route-title-font-size: calc(clamp(28px, calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw), 52px) * 1.2);
+  --route-title-line-height: 1.02;
+  --route-title-letter-spacing: 0;
+  --route-description-font-size: clamp(0.875rem, 0.76rem + 0.32vw, 1rem);
+  --route-description-line-height: 1.32;
+  --route-description-max-width: 40ch;
+}
+
 .route-centered-page {
   position: absolute;
   inset: 0;
@@ -7331,7 +7340,7 @@ body.portfolio-page--locked #simulations {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--gap-md);
+  gap: clamp(10px, 1.6vmin, 18px);
   text-align: center;
 }
 
@@ -7348,23 +7357,33 @@ body.portfolio-page--locked #simulations {
 .route-centered-page__title {
   margin: 0;
   font-family: var(--abs-font-sans);
-  font-size: clamp(2.2rem, 8vmin, 4.8rem);
+  font-size: var(--route-title-font-size);
   font-weight: var(--abs-weight-regular);
-  line-height: 0.98;
-  letter-spacing: 0;
+  line-height: var(--route-title-line-height);
+  letter-spacing: var(--route-title-letter-spacing);
   text-wrap: balance;
 }
 
 .route-centered-page__description {
-  max-width: 42ch;
+  max-width: var(--route-description-max-width);
   margin: 0;
   font-family: var(--abs-font-sans);
-  font-size: var(--supporting-description-font-size);
-  line-height: var(--supporting-description-line-height);
+  font-size: var(--route-description-font-size);
+  font-weight: 450;
+  line-height: var(--route-description-line-height);
   letter-spacing: var(--supporting-description-letter-spacing);
   color: var(--supporting-description-color);
-  opacity: var(--supporting-description-opacity);
+  opacity: 0.64;
   text-wrap: pretty;
+}
+
+@media (max-width: 600px) {
+  :root {
+    --route-title-font-size: calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px) * 0.85 * var(--mobile-type-scale) * 1.2);
+    --route-description-font-size: calc(0.875rem * var(--mobile-type-scale));
+    --route-description-line-height: 1.34;
+    --route-description-max-width: 34ch;
+  }
 }
 
 .contact-route__copy {
