@@ -86,6 +86,7 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       inputCapProjects: 0.32,
       inputCommitThresholdProjects: 0.18,
       inputIntentWindowMs: 180,
+      maxLeadProjects: 2,
       followSmoothing: 0.18,
       settleIdleMs: 150,
       settleStrength: 0.15,
@@ -100,7 +101,7 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       centerYPercent: 50,
       mobileCenterYPercent: 50,
       perspectivePx: 1600,
-      pathRadiusPx: 1820,
+      pathRadiusPx: 2600,
       mobilePathRadiusPx: 820,
       angleStepDeg: 10.25,
       mobileAngleStepDeg: 13.5,
@@ -112,11 +113,22 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       minCardGapPx: 18,
       dotDialRadiusPx: 2050,
       mobileDotDialRadiusPx: 900,
-      dotDensity: 18,
+      dotDensity: 5,
       dotActiveScale: 1,
       dotParallaxRatio: 1,
       dotArcSpanDeg: 18,
       contactShadowOpacity: 0.12,
+      particleField: {
+        idleOpacity: 0,
+        fastOpacity: 0.26,
+        quietBandHeight: 0.42,
+        quietBandOpacity: 0.3,
+        densityScale: 1,
+        minRadiusPx: 1.8,
+        maxRadiusPx: 18,
+        motionResponse: 1,
+        parallaxDepth: 1,
+      },
     },
     openHero: {
       imageVeilOpacity: 0.14,
@@ -151,6 +163,35 @@ function merge(target, source) {
 export function normalizePortfolioConfig(rawConfig) {
   const merged = merge(DEFAULT_PORTFOLIO_CONFIG, rawConfig);
   const runtime = merge(DEFAULT_PORTFOLIO_CONFIG.runtime, merged.runtime);
+  const rawCarousel = isObject(rawConfig?.runtime?.carousel) ? rawConfig.runtime.carousel : {};
+  if (!isObject(rawCarousel.particleField) && isObject(rawCarousel.speedField)) {
+    const legacyField = rawCarousel.speedField;
+    const legacyFastOpacity = Number(legacyField.maxOpacity);
+    runtime.carousel.particleField = merge(DEFAULT_PORTFOLIO_CONFIG.runtime.carousel.particleField, {
+      idleOpacity: Number.isFinite(legacyFastOpacity)
+        ? Math.min(1, Math.max(0, legacyFastOpacity * 0.34))
+        : DEFAULT_PORTFOLIO_CONFIG.runtime.carousel.particleField.idleOpacity,
+      fastOpacity: Number.isFinite(legacyFastOpacity)
+        ? legacyFastOpacity
+        : DEFAULT_PORTFOLIO_CONFIG.runtime.carousel.particleField.fastOpacity,
+      ...(Number.isFinite(Number(legacyField.densityScale))
+        ? { densityScale: Number(legacyField.densityScale) }
+        : {}),
+    });
+  }
+  if (runtime?.carousel) delete runtime.carousel.speedField;
+  if (isObject(runtime?.carousel?.particleField)) {
+    const field = runtime.carousel.particleField;
+    field.idleOpacity = Math.min(1, Math.max(0, Number(field.idleOpacity) || 0));
+    field.fastOpacity = Math.min(1, Math.max(field.idleOpacity, Number(field.fastOpacity) || 0.26));
+    field.quietBandHeight = Math.min(0.72, Math.max(0.18, Number(field.quietBandHeight) || 0.42));
+    field.quietBandOpacity = Math.min(1, Math.max(0.05, Number(field.quietBandOpacity) || 0.3));
+    field.densityScale = Math.min(2, Math.max(0.25, Number(field.densityScale) || 1));
+    field.minRadiusPx = Math.min(6, Math.max(0.75, Number(field.minRadiusPx) || 1.8));
+    field.maxRadiusPx = Math.min(36, Math.max(field.minRadiusPx + 1, Number(field.maxRadiusPx) || 18));
+    field.motionResponse = Math.min(2.5, Math.max(0.25, Number(field.motionResponse) || 1));
+    field.parallaxDepth = Math.min(2, Math.max(0.25, Number(field.parallaxDepth) || 1));
+  }
   if (runtime?.labeling) {
     if (runtime.labeling.fontDesktopPx === undefined && Number.isFinite(Number(runtime.labeling.fontMaxPx))) {
       runtime.labeling.fontDesktopPx = Number(runtime.labeling.fontMaxPx);

@@ -46,14 +46,14 @@
   --portfolio-project-back-inset-y: max(
     0px,
     calc(
-      var(--content-padding-y) - (var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width)) -
+      var(--content-padding-y) - var(--safari-tint-inset-y, var(--safari-tint-inset)) -
         var(--portfolio-drawer-seat-inset)
     )
   );
   --portfolio-project-back-inset-x: max(
     0px,
     calc(
-      var(--content-padding-x) - (var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width)) -
+      var(--content-padding-x) - var(--safari-tint-inset-x, var(--safari-tint-inset)) -
         var(--portfolio-drawer-seat-inset)
     )
   );
@@ -593,14 +593,14 @@ body.portfolio-page .ui-center-spacer {
 #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-host-bottom-reserve: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom));
   position: fixed;
-  top: calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--frame-border-width));
-  left: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
-  right: calc(var(--safari-tint-inset-x, var(--safari-tint-inset)) + var(--frame-border-width));
-  bottom: calc(var(--frame-border-width) + var(--portfolio-host-bottom-reserve));
+  top: var(--safari-tint-inset-y, var(--safari-tint-inset));
+  left: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  right: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  bottom: var(--portfolio-host-bottom-reserve);
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  border-radius: var(--frame-inner-radius);
+  border-radius: var(--frame-outer-radius);
   overflow: hidden;
   pointer-events: none;
   /* Above .fade-content (200); below open override when project open */
@@ -626,6 +626,29 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   z-index: 22;
   pointer-events: none;
   isolation: isolate;
+}
+
+.portfolio-speed-field-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: none;
+  contain: strict;
+  transition: opacity 140ms linear;
+}
+
+.portfolio-speed-field-canvas.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.portfolio-speed-field-canvas.is-suspended {
+  opacity: 0;
+  visibility: hidden;
 }
 
 .portfolio-scroll-canvas {
@@ -699,7 +722,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-card-overlay-height: 221.589px;
   --portfolio-card-accent-mix: 58%;
   --portfolio-carousel-dot-radius: 2050px;
-  --portfolio-carousel-dot-size: calc(var(--legend-circle-size) * 0.7);
+  --portfolio-carousel-dot-size: calc(var(--legend-circle-size) * 0.546);
 }
 
 body.portfolio-page .shell-hero-slot {
@@ -772,9 +795,8 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   left: 50%;
   box-sizing: border-box;
   display: grid;
-  gap: clamp(8px, 1.4vh, 14px);
-  gap: clamp(8px, 1.4cqh, 14px);
-  width: min(1098px, 76%);
+  gap: clamp(7px, 1cqh, 12px);
+  width: min(760px, 76%);
   transform: translate3d(-50%, 0, 0);
   text-align: center;
   color: var(--text-primary);
@@ -810,7 +832,14 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-deck-intro__body {
-  display: none;
+  display: block;
+  max-width: min(45ch, 100%);
+  justify-self: center;
+  font-family: var(--abs-font-sans);
+  font-size: clamp(0.82rem, 0.74rem + 0.28vw, 0.96rem);
+  font-weight: 450;
+  line-height: 1.28;
+  color: color-mix(in srgb, var(--text-primary) 66%, transparent);
 }
 
 .portfolio-deck-viewport {
@@ -2278,7 +2307,8 @@ body.portfolio-project-open .ui-bottom {
   }
 
   .portfolio-deck-intro__body {
-    display: none;
+    font-size: clamp(0.72rem, 3vw, 0.82rem);
+    line-height: 1.28;
   }
 
   .portfolio-carousel-dot-dial {
@@ -2461,6 +2491,11 @@ body.portfolio-project-open .ui-bottom {
 
   .portfolio-deck-intro__title {
     font-size: 0.875rem;
+  }
+
+  .portfolio-deck-intro__body {
+    font-size: 0.6875rem;
+    line-height: 1.22;
   }
 
 }

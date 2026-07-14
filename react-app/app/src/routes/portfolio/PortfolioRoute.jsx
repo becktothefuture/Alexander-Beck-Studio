@@ -25,12 +25,12 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
   }
 
   const portfolioBlurb = homeContent.portfolio?.blurb
-    || 'A curated selection of product projects across several industries—finance, mobility, digital ventures, and more. Each case shows how I partner with teams to clarify the proposition, shape the interaction, and carry the work through to what actually ships.';
+    || 'From early concepts to shipped websites, apps, tools, and platforms.';
   const portfolioHeroEyebrow = homeContent.portfolio?.heroEyebrow || 'Alexander Beck';
   const portfolioHeroLines = Array.isArray(homeContent.portfolio?.heroLines)
     ? homeContent.portfolio.heroLines
     : [
-        'I design digital experiences around human response.'
+        'Selected design work.'
       ];
   const portfolioHeroAria = [portfolioHeroEyebrow, ...portfolioHeroLines].filter(Boolean).join(' ');
   const portfolioHeroSecondary = portfolioHeroLines[1] || '';
@@ -41,6 +41,11 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
     studioWindowClassName: 'portfolio-simulation w-embed',
     simulationLayer: (
       <div className="portfolio-slider-layer">
+        <canvas
+          className="portfolio-speed-field-canvas"
+          aria-hidden="true"
+          draggable="false"
+        />
         <canvas
           id="c"
           className="portfolio-pit-canvas portfolio-scroll-canvas"

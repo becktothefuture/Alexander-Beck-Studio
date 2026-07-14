@@ -15,7 +15,7 @@ const ARTIFACT_ROOT = path.resolve(
     || `output/playwright/portfolio-carousel-fixes-qa-${new Date().toISOString().replace(/[:.]/g, '-')}`
 );
 const VIEWPORTS = [
-  { name: 'desktop-wide', width: 2048, height: 1152 },
+  { name: 'desktop-wide', width: 3440, height: 1440 },
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'tablet', width: 1024, height: 768 },
   { name: 'mobile-landscape', width: 844, height: 390 },
@@ -175,6 +175,8 @@ async function collectDotAppearance(page) {
         sample.centerY - samples[index].centerY
       ));
     const activeCardRect = document.querySelector('.portfolio-project-card.is-active')?.getBoundingClientRect?.();
+    const dotDial = document.querySelector('.portfolio-carousel-dot-dial');
+    const dotDialVisible = dotDial ? getComputedStyle(dotDial).display !== 'none' : false;
     const activeCardOverlaps = activeCardRect
       ? dots.filter((dot) => {
         const rect = dot.getBoundingClientRect();
@@ -186,6 +188,9 @@ async function collectDotAppearance(page) {
       count: samples.length,
       uniqueColors: new Set(samples.map((sample) => sample.color)).size,
       minOpacity: samples.length ? Math.min(...samples.map((sample) => sample.opacity)) : null,
+      maxOpacity: samples.length ? Math.max(...samples.map((sample) => sample.opacity)) : null,
+      opacities: samples.map((sample) => Number(sample.opacity.toFixed(3))).sort((a, b) => a - b),
+      dotDialVisible,
       cornerShapes: Array.from(new Set(samples.map((sample) => sample.cornerShape).filter(Boolean))),
       maxAspectDelta: samples.length
         ? Math.max(...samples.map((sample) => Math.abs(sample.width - sample.height)))
@@ -197,6 +202,13 @@ async function collectDotAppearance(page) {
       dotSize: samples[0]?.width ?? null,
       activeCardOverlaps,
     };
+  });
+}
+
+async function collectParticleFieldSnapshot(page) {
+  return page.evaluate(() => {
+    const snapshot = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
+    return snapshot?.particleField || null;
   });
 }
 
@@ -253,11 +265,19 @@ async function getMotionSample(page) {
       intendedIndex: snapshot?.intendedIndex ?? -1,
       displayPosition: snapshot?.displayPosition ?? 0,
       targetPosition: snapshot?.targetPosition ?? 0,
+      targetLead: snapshot?.targetLead ?? 0,
+      maxLeadProjects: snapshot?.maxLeadProjects ?? 0,
+      measuredVelocity: snapshot?.measuredVelocity ?? 0,
+      rebaseCount: snapshot?.rebaseCount ?? 0,
+      particleField: snapshot?.particleField || null,
+      speedField: snapshot?.particleField || snapshot?.speedField || null,
       settled: Boolean(snapshot?.isSettled),
       inputState: snapshot?.inputState || '',
       wheelAccumulated: app?.wheelGesture?.accumulated ?? null,
       visibleProjectIndices,
       frontProjectIndices,
+      cardCount: snapshot?.cards?.length || 0,
+      focusableCardCount: document.querySelectorAll('.portfolio-project-card[tabindex="0"]').length,
       dot: dotRect ? { x: dotRect.x, y: dotRect.y } : null,
     };
   });
@@ -274,6 +294,17 @@ async function waitForDeckIdle(page) {
   );
 }
 
+async function waitForParticleIdle(page) {
+  await page.waitForFunction(
+    () => {
+      const field = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.()?.particleField;
+      return !field || (!field.running && !field.visible && (field.opacity || 0) <= 0.02);
+    },
+    null,
+    { timeout: Math.min(WAIT_MS, 5000) }
+  );
+}
+
 async function auditInfiniteWheelStress(page, { axis, direction }) {
   await page.evaluate(() => {
     window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.setActiveProject?.(0, { immediate: true });
@@ -282,7 +313,7 @@ async function auditInfiniteWheelStress(page, { axis, direction }) {
   const center = await getActiveCardCenter(page);
   await page.mouse.move(center.x, center.y);
   const before = await getMotionSample(page);
-  const eventCount = Math.max(40, before.projectCount * 10);
+  const eventCount = Math.max(280, before.projectCount * 140);
   const inFlightSamples = await page.evaluate(async ({ wheelAxis, wheelDirection, count }) => {
     const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
     const stage = document.querySelector('.portfolio-deck-stage');
@@ -305,11 +336,19 @@ async function auditInfiniteWheelStress(page, { axis, direction }) {
         intendedIndex: snapshot?.intendedIndex ?? -1,
         displayPosition: snapshot?.displayPosition ?? 0,
         targetPosition: snapshot?.targetPosition ?? 0,
+        targetLead: snapshot?.targetLead ?? 0,
+        maxLeadProjects: snapshot?.maxLeadProjects ?? 0,
+        measuredVelocity: snapshot?.measuredVelocity ?? 0,
+        rebaseCount: snapshot?.rebaseCount ?? 0,
+        particleField: snapshot?.particleField || null,
+        speedField: snapshot?.particleField || snapshot?.speedField || null,
         settled: Boolean(snapshot?.isSettled),
         inputState: snapshot?.inputState || '',
         wheelAccumulated: app.wheelGesture?.accumulated ?? null,
         visibleProjectIndices,
         frontProjectIndices,
+        cardCount: snapshot?.cards?.length || 0,
+        focusableCardCount: document.querySelectorAll('.portfolio-project-card[tabindex="0"]').length,
       };
     };
     const samples = [];
@@ -328,6 +367,7 @@ async function auditInfiniteWheelStress(page, { axis, direction }) {
     return samples;
   }, { wheelAxis: axis, wheelDirection: direction, count: eventCount });
   await waitForDeckIdle(page);
+  await waitForParticleIdle(page);
   const after = await getMotionSample(page);
 
   const projectCount = Math.max(1, before.projectCount);
@@ -342,12 +382,38 @@ async function auditInfiniteWheelStress(page, { axis, direction }) {
       frontProjectIndices: sample.frontProjectIndices,
     }))
     .filter(({ expectedIndex, frontProjectIndices }) => !frontProjectIndices.includes(expectedIndex));
-  const accumulatedSamples = inFlightSamples
-    .map((sample) => sample.wheelAccumulated)
-    .filter(Number.isFinite);
-  const maxAbsAccumulated = accumulatedSamples.length
-    ? Math.max(...accumulatedSamples.map(Math.abs))
+  const wrappedDeltas = inFlightSamples.slice(1).map((sample, index) => {
+    const rawDelta = sample.displayPosition - inFlightSamples[index].displayPosition;
+    return ((((rawDelta + (projectCount / 2)) % projectCount) + projectCount) % projectCount)
+      - (projectCount / 2);
+  });
+  const totalTravel = wrappedDeltas.reduce((sum, delta) => sum + delta, 0);
+  const lateStart = Math.floor(wrappedDeltas.length * 0.75);
+  const lateTravel = wrappedDeltas.slice(lateStart).reduce((sum, delta) => sum + delta, 0);
+  const maxAbsLead = inFlightSamples.length
+    ? Math.max(...inFlightSamples.map((sample) => Math.abs(sample.targetLead)))
     : 0;
+  const maxCoordinateMagnitude = inFlightSamples.length
+    ? Math.max(...inFlightSamples.flatMap((sample) => [
+        Math.abs(sample.displayPosition),
+        Math.abs(sample.targetPosition),
+      ]))
+    : 0;
+  const fieldActivated = inFlightSamples.some((sample) => (
+    sample.speedField?.visible || (sample.speedField?.opacity || 0) > 0.02
+  ));
+  const maxFieldParticleCount = inFlightSamples.length
+    ? Math.max(...inFlightSamples.map((sample) => sample.speedField?.particleCount || 0))
+    : 0;
+  const minFieldParticleCount = inFlightSamples
+    .map((sample) => sample.speedField?.particleCount)
+    .filter(Number.isFinite)
+    .reduce((min, count) => Math.min(min, count), Infinity);
+  const cardCounts = Array.from(new Set(inFlightSamples.map((sample) => sample.cardCount)));
+  const focusableWhileMoving = inFlightSamples
+    .map((sample, index) => ({ index, sample }))
+    .filter(({ sample }) => Math.abs(sample.measuredVelocity) > 0.05 && sample.focusableCardCount > 0)
+    .map(({ index }) => index);
   const settledCoordinatesBounded = after.targetPosition >= 0
     && after.targetPosition < projectCount
     && after.displayPosition >= 0
@@ -359,10 +425,202 @@ async function auditInfiniteWheelStress(page, { axis, direction }) {
     before,
     after,
     eventCount,
-    maxAbsAccumulated: Number(maxAbsAccumulated.toFixed(4)),
+    totalTravel: Number(totalTravel.toFixed(4)),
+    lateTravel: Number(lateTravel.toFixed(4)),
+    maxAbsLead: Number(maxAbsLead.toFixed(4)),
+    maxCoordinateMagnitude: Number(maxCoordinateMagnitude.toFixed(4)),
+    fieldActivated,
+    fieldParticleCountStable: Number.isFinite(minFieldParticleCount)
+      && minFieldParticleCount === maxFieldParticleCount,
+    fieldParticleCount: maxFieldParticleCount,
+    cardCounts,
+    focusableWhileMoving,
     blankSamples: blankSamples.map(({ index }) => index),
     orderMismatches,
     settledCoordinatesBounded,
+  };
+}
+
+async function auditSpeedFieldPerformance(page, durationMs = 10_000) {
+  await page.evaluate(() => {
+    window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.setActiveProject?.(0, { immediate: true });
+  });
+  await waitForDeckIdle(page);
+  const sample = await page.evaluate(async (duration) => {
+    const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
+    const stage = document.querySelector('.portfolio-deck-stage');
+    if (!app || !stage) return null;
+    const intervals = [];
+    let previousFrameAt = 0;
+    let fieldActivated = false;
+    let minParticleCount = Infinity;
+    let maxParticleCount = 0;
+    let maxLead = 0;
+    const initialCardCount = app.cards?.length || 0;
+
+    const collectFrameIntervals = (sampleDuration, onFrame) => new Promise((resolve) => {
+      const frameIntervals = [];
+      const sampleStartedAt = performance.now();
+      let previousSampleFrameAt = 0;
+      const sampleFrame = (timestamp) => {
+        if (previousSampleFrameAt) frameIntervals.push(timestamp - previousSampleFrameAt);
+        previousSampleFrameAt = timestamp;
+        onFrame?.();
+        if (timestamp - sampleStartedAt >= sampleDuration) resolve(frameIntervals);
+        else requestAnimationFrame(sampleFrame);
+      };
+      requestAnimationFrame(sampleFrame);
+    });
+
+    const originalFieldDraw = app.particleField?.drawFrame;
+    if (app.particleField && typeof originalFieldDraw === 'function') {
+      app.particleField.drawFrame = () => {};
+    }
+    const baselineIntervals = await collectFrameIntervals(5000, () => {
+      stage.dispatchEvent(new WheelEvent('wheel', {
+        bubbles: true,
+        cancelable: true,
+        deltaY: 420,
+        deltaMode: WheelEvent.DOM_DELTA_PIXEL,
+      }));
+    });
+    if (app.particleField && typeof originalFieldDraw === 'function') {
+      app.particleField.drawFrame = originalFieldDraw;
+    }
+
+    const startedAt = performance.now();
+    await new Promise((resolve) => {
+      const sampleFrame = (timestamp) => {
+        if (previousFrameAt) intervals.push(timestamp - previousFrameAt);
+        previousFrameAt = timestamp;
+        stage.dispatchEvent(new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          deltaY: 420,
+          deltaMode: WheelEvent.DOM_DELTA_PIXEL,
+        }));
+        const fieldSnapshot = app.particleField?.getSnapshot?.();
+        const particleCount = fieldSnapshot?.particleCount;
+        fieldActivated ||= Boolean(fieldSnapshot?.visible || (fieldSnapshot?.opacity || 0) > 0.02);
+        if (Number.isFinite(particleCount)) {
+          minParticleCount = Math.min(minParticleCount, particleCount);
+          maxParticleCount = Math.max(maxParticleCount, particleCount);
+        }
+        maxLead = Math.max(
+          maxLead,
+          Math.abs((app.deckTargetPosition || 0) - (app.deckDisplayPosition || 0))
+        );
+        if (timestamp - startedAt >= duration) resolve();
+        else requestAnimationFrame(sampleFrame);
+      };
+      requestAnimationFrame(sampleFrame);
+    });
+    return {
+      intervals,
+      fieldActivated,
+      minParticleCount: Number.isFinite(minParticleCount) ? minParticleCount : 0,
+      maxParticleCount,
+      maxLead,
+      initialCardCount,
+      finalCardCount: app.cards?.length || 0,
+      baselineIntervals,
+    };
+  }, durationMs);
+  await waitForDeckIdle(page);
+  await waitForParticleIdle(page);
+  const after = await page.evaluate(() => {
+    const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
+    const snapshot = app?.getDeckDebugSnapshot?.();
+    return {
+      fieldRunning: Boolean(snapshot?.particleField?.running),
+      fieldActive: Boolean(snapshot?.particleField?.active),
+      fieldVisible: Boolean(snapshot?.particleField?.visible),
+      fieldOpacity: Number(snapshot?.particleField?.opacity || 0),
+      reducedMotion: Boolean(snapshot?.particleField?.reducedMotion),
+      deckRafActive: Boolean(app?.deckAnimationFrame),
+    };
+  });
+  const intervals = sample?.intervals?.filter(Number.isFinite) || [];
+  const baselineIntervals = sample?.baselineIntervals?.filter(Number.isFinite) || [];
+  const sorted = [...intervals].sort((a, b) => a - b);
+  const baselineSorted = [...baselineIntervals].sort((a, b) => a - b);
+  const elapsed = intervals.reduce((sum, interval) => sum + interval, 0);
+  const baselineElapsed = baselineIntervals.reduce((sum, interval) => sum + interval, 0);
+  const p95Index = Math.max(0, Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1));
+  const baselineP95Index = Math.max(
+    0,
+    Math.min(baselineSorted.length - 1, Math.ceil(baselineSorted.length * 0.95) - 1)
+  );
+  const fps = intervals.length * 1000 / Math.max(1, elapsed);
+  const baselineFps = baselineIntervals.length * 1000 / Math.max(1, baselineElapsed);
+  const p95Ms = sorted[p95Index] ?? Infinity;
+  const baselineP95Ms = baselineSorted[baselineP95Index] ?? Infinity;
+  return {
+    durationMs,
+    fps,
+    p95Ms,
+    baselineFps,
+    baselineP95Ms,
+    absoluteGateAvailable: baselineFps >= 58 && baselineP95Ms <= 20,
+    relativeFpsGateAvailable: baselineFps >= 30,
+    relativeFpsRatio: baselineFps > 0 ? fps / baselineFps : 0,
+    relativeP95Ratio: baselineP95Ms > 0 ? p95Ms / baselineP95Ms : Infinity,
+    fieldActivated: Boolean(sample?.fieldActivated),
+    particleCountStable: sample?.minParticleCount > 0
+      && sample?.minParticleCount === sample?.maxParticleCount,
+    particleCount: sample?.maxParticleCount || 0,
+    cardCountStable: sample?.initialCardCount > 0
+      && sample?.initialCardCount === sample?.finalCardCount,
+    maxLead: sample?.maxLead ?? Infinity,
+    after,
+  };
+}
+
+async function auditRapidReversal(page) {
+  await page.evaluate(() => {
+    window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.setActiveProject?.(0, { immediate: true });
+  });
+  await waitForDeckIdle(page);
+  const result = await page.evaluate(async () => {
+    const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
+    const stage = document.querySelector('.portfolio-deck-stage');
+    if (!app || !stage) return null;
+    const dispatch = (deltaY) => stage.dispatchEvent(new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY,
+      deltaMode: WheelEvent.DOM_DELTA_PIXEL,
+    }));
+    for (let index = 0; index < 48; index += 1) {
+      dispatch(420);
+      await new Promise((resolve) => setTimeout(resolve, 8));
+    }
+    const beforeReversal = app.getDeckDebugSnapshot?.();
+    const samples = [];
+    for (let index = 0; index < 48; index += 1) {
+      dispatch(-420);
+      await new Promise((resolve) => setTimeout(resolve, 8));
+      const snapshot = app.getDeckDebugSnapshot?.();
+      samples.push({
+        velocity: snapshot?.measuredVelocity || 0,
+        fieldVelocity: snapshot?.particleField?.filteredVelocity || 0,
+        lead: snapshot?.targetLead || 0,
+        visible: (snapshot?.cards || []).some((card) => card.visibility !== 'hidden' && card.opacity > 0.05),
+      });
+    }
+    return {
+      beforeVelocity: beforeReversal?.measuredVelocity || 0,
+      beforeFieldVelocity: beforeReversal?.particleField?.filteredVelocity || 0,
+      reversalSample: samples.findIndex((sample) => sample.velocity < -0.5),
+      fieldReversalSample: samples.findIndex((sample) => sample.fieldVelocity < -0.5),
+      maxLead: Math.max(...samples.map((sample) => Math.abs(sample.lead))),
+      blankSamples: samples.map((sample, index) => ({ sample, index })).filter(({ sample }) => !sample.visible).map(({ index }) => index),
+    };
+  });
+  await waitForDeckIdle(page);
+  return {
+    ...result,
+    after: await getMotionSample(page),
   };
 }
 
@@ -435,7 +693,7 @@ async function auditContinuousWheel(page) {
   const center = await getActiveCardCenter(page);
   await page.mouse.move(center.x, center.y);
   const samples = [before];
-  for (let index = 0; index < 8; index += 1) {
+  for (let index = 0; index < 16; index += 1) {
     await page.mouse.wheel(0, 260);
     await page.waitForTimeout(30);
     samples.push(await getMotionSample(page));
@@ -758,11 +1016,13 @@ async function main() {
   try {
     for (const viewport of VIEWPORTS) {
       await openViewport(page, viewport);
+      await waitForParticleIdle(page);
       const geometry = await collectGeometry(page);
       await page.screenshot({ path: path.join(ARTIFACT_ROOT, `${viewport.name}-closed.png`) });
       summary.viewports[viewport.name] = {
         geometry,
         dots: await collectDotAppearance(page),
+        particleField: await collectParticleFieldSnapshot(page),
       };
 
       if (viewport.name === 'desktop') {
@@ -777,12 +1037,14 @@ async function main() {
         await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-after-drag.png') });
         summary.viewports.desktop.continuousWheel = await auditContinuousWheel(page);
         await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-after-continuous-wheel.png') });
+        summary.viewports.desktop.speedFieldPerformance = await auditSpeedFieldPerformance(page);
         summary.viewports.desktop.infiniteStress = {
           verticalForward: await auditInfiniteWheelStress(page, { axis: 'y', direction: 1 }),
           verticalBackward: await auditInfiniteWheelStress(page, { axis: 'y', direction: -1 }),
           horizontalForward: await auditInfiniteWheelStress(page, { axis: 'x', direction: 1 }),
           horizontalBackward: await auditInfiniteWheelStress(page, { axis: 'x', direction: -1 }),
         };
+        summary.viewports.desktop.rapidReversal = await auditRapidReversal(page);
         await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-infinite-stress.png') });
         summary.accents = await captureAccents(page);
         summary.drawer = await captureDrawer(page);
@@ -809,17 +1071,24 @@ async function main() {
       if (result.geometry.introCardGap !== null && result.geometry.introCardGap < 8) {
         failures.push(`${name}: intro overlaps or crowds the active card`);
       }
-      if (result.dots.count < 12 || result.dots.count > 24) failures.push(`${name}: dot track is not sparse`);
-      if (result.dots.uniqueColors < 8) failures.push(`${name}: dot track does not use the homepage palette`);
-      if (result.dots.minOpacity === null || result.dots.minOpacity < 0.99) failures.push(`${name}: dot colors are faded`);
+      if (name === 'desktop-wide' && result.geometry.cards.length < 7) {
+        failures.push('desktop-wide: ultra-wide layout does not expose all seven project cards');
+      }
+      if (result.dots.count !== 5) failures.push(`${name}: dot track should render exactly five dots`);
+      if (result.dots.dotSize === null || result.dots.dotSize > 10) failures.push(`${name}: dot track dots are too large`);
+      if (result.dots.maxOpacity === null || result.dots.maxOpacity < 0.9) failures.push(`${name}: center dot is not strong enough`);
+      if (result.dots.minOpacity === null || result.dots.minOpacity > 0.35) failures.push(`${name}: side dots are not gently faded`);
       if (result.dots.cornerShapes.includes('squircle')) failures.push(`${name}: dots use squircle corners`);
       if (result.dots.maxAspectDelta === null || result.dots.maxAspectDelta > 0.5) failures.push(`${name}: dots are not square before rounding`);
       if (result.dots.minRadiusRatio === null || result.dots.minRadiusRatio < 0.49) failures.push(`${name}: dots are not circular`);
-      if (result.dots.minCenterGap === null || result.dots.minCenterGap < result.dots.dotSize * 1.35) {
+      if (result.dots.dotDialVisible && (result.dots.minCenterGap === null || result.dots.minCenterGap < result.dots.dotSize * 1.35)) {
         failures.push(`${name}: dots are not spaced clearly apart`);
       }
       if (result.dots.activeCardOverlaps === null || result.dots.activeCardOverlaps > 0) {
         failures.push(`${name}: dot track overlaps the active card`);
+      }
+      if ((result.particleField?.opacity ?? 1) > 0.02 || result.particleField?.visible) {
+        failures.push(`${name}: particle field should be dark while idle`);
       }
     }
     if ((summary.viewports.desktop.press?.delta ?? Infinity) > 2) failures.push('desktop: pointer-down center delta exceeded 2px');
@@ -830,6 +1099,28 @@ async function main() {
     if (summary.viewports.desktop.wheel?.reversals.length) failures.push('desktop: wheel trace reversed after committed input');
     if ((summary.viewports.desktop.continuousWheel?.distance ?? 0) < 2) failures.push('desktop: continuous wheel did not advance multiple projects');
     if (summary.viewports.desktop.continuousWheel?.reversals.length) failures.push('desktop: continuous wheel trace reversed');
+    const speedPerformance = summary.viewports.desktop.speedFieldPerformance;
+    if (speedPerformance?.absoluteGateAvailable) {
+      if ((speedPerformance?.fps ?? 0) < 58) failures.push('desktop: active speed field fell below 58 FPS');
+      if ((speedPerformance?.p95Ms ?? Infinity) > 20) failures.push('desktop: active speed field p95 frame interval exceeded 20ms');
+    } else {
+      if (speedPerformance?.relativeFpsGateAvailable && (speedPerformance?.relativeFpsRatio ?? 0) < 0.85) failures.push('desktop: active speed field reduced FPS by more than 15% from the moving-carousel baseline');
+      if ((speedPerformance?.relativeP95Ratio ?? Infinity) > 1.15) failures.push('desktop: active speed field worsened p95 frame time by more than 15% from the host baseline');
+    }
+    if (!speedPerformance?.fieldActivated) failures.push('desktop: persistent particle field was not visible during the performance burst');
+    if (!speedPerformance?.particleCountStable) failures.push('desktop: particle field count changed during the performance burst');
+    if (!speedPerformance?.cardCountStable) failures.push('desktop: permanent card count changed during the performance burst');
+    if ((speedPerformance?.maxLead ?? Infinity) > 2.02) failures.push('desktop: performance burst exceeded the bounded target lead');
+    if (speedPerformance?.after?.fieldRunning || speedPerformance?.after?.fieldVisible || (speedPerformance?.after?.fieldOpacity ?? 1) > 0.02) failures.push('desktop: persistent particle field stayed visible after settlement');
+    if (speedPerformance?.after?.deckRafActive) failures.push('desktop: carousel RAF remained active after the performance burst settled');
+    const rapidReversal = summary.viewports.desktop.rapidReversal;
+    if (!(rapidReversal?.beforeVelocity > 0)) failures.push('desktop: reversal setup never reached forward carousel speed');
+    if (!(rapidReversal?.beforeFieldVelocity > 0)) failures.push('desktop: reversal setup never reached forward field speed');
+    if (rapidReversal?.reversalSample < 0 || rapidReversal?.reversalSample > 18) failures.push('desktop: carousel did not reverse promptly after opposite input');
+    if (rapidReversal?.fieldReversalSample < 0 || rapidReversal?.fieldReversalSample > 24) failures.push('desktop: speed field did not reverse smoothly after opposite input');
+    if ((rapidReversal?.maxLead ?? Infinity) > 2.02) failures.push('desktop: rapid reversal exceeded the bounded target lead');
+    if (rapidReversal?.blankSamples?.length) failures.push('desktop: rapid reversal exposed a blank carousel frame');
+    if (!rapidReversal?.after?.settled || rapidReversal?.after?.inputState !== 'idle') failures.push('desktop: rapid reversal did not return to a settled idle state');
     const stressGroups = [
       ['desktop', summary.viewports.desktop.infiniteStress],
       ['mobile', summary.viewports.mobile.infiniteStress],
@@ -838,9 +1129,15 @@ async function main() {
     for (const [groupName, group] of stressGroups) {
       for (const [caseName, result] of Object.entries(group || {})) {
         const label = `${groupName} ${caseName}`;
-        if ((result.maxAbsAccumulated ?? Infinity) > (result.before?.projectCount || 0) + 0.0001) {
-          failures.push(`${label}: wheel gesture exceeded one complete loop`);
-        }
+        const projectCount = result.before?.projectCount || 0;
+        const expectedDirection = result.direction || 0;
+        if (Math.abs(result.totalTravel ?? 0) < projectCount * 10) failures.push(`${label}: sustained input did not exceed ten loops`);
+        if (Math.sign(result.totalTravel || 0) !== expectedDirection) failures.push(`${label}: sustained travel moved in the wrong direction`);
+        if (Math.abs(result.lateTravel ?? 0) < projectCount * 2) failures.push(`${label}: carousel stopped progressing during the final input quarter`);
+        if ((result.maxAbsLead ?? Infinity) > (result.before?.maxLeadProjects || 0) + 0.02) failures.push(`${label}: target/display lead exceeded its bound`);
+        if ((result.maxCoordinateMagnitude ?? Infinity) > projectCount + (result.before?.maxLeadProjects || 0) + 1) failures.push(`${label}: rebased coordinates escaped their bounded range`);
+        if (result.cardCounts?.length !== 1 || result.cardCounts[0] !== result.before?.cardCount) failures.push(`${label}: permanent card count changed during sustained input`);
+        if (result.focusableWhileMoving?.length) failures.push(`${label}: a card remained focusable while the deck was moving`);
         if (result.blankSamples?.length) failures.push(`${label}: carousel exposed a blank endpoint`);
         if (result.orderMismatches?.length) failures.push(`${label}: visible project order broke during rebasing`);
         if (!result.settledCoordinatesBounded) failures.push(`${label}: settled coordinates were not bounded`);
@@ -849,6 +1146,14 @@ async function main() {
         }
         if (result.after?.activeIndex < 0 || result.after?.activeIndex >= (result.before?.projectCount || 0)) {
           failures.push(`${label}: carousel settled without a valid active project`);
+        }
+        if (groupName === 'reduced motion') {
+          if (result.fieldActivated) failures.push(`${label}: particle field became visible under reduced motion`);
+          if (result.after?.particleField?.running) failures.push(`${label}: particle field animated under reduced motion`);
+        } else {
+          if (!result.fieldActivated) failures.push(`${label}: sustained input did not reveal the particle field`);
+          if (!result.fieldParticleCountStable || (result.fieldParticleCount || 0) < 1) failures.push(`${label}: particle field count was not fixed`);
+          if ((result.after?.particleField?.opacity ?? 1) > 0.02 || result.after?.particleField?.visible) failures.push(`${label}: particle field stayed visible after settlement`);
         }
       }
     }
