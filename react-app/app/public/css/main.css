@@ -2752,10 +2752,10 @@ button.abs-meta-btn,
 /* Social links use gap from parent .footer_icon-group (tokenized via --footer-icon-gap) */
 
 .footer_icon-link {
-  color: var(--text-quiet);
+  color: var(--text-primary);
   /* Explicit transform so focus/active translateY(nudge) transitions cleanly (no 1px snap on blur) */
   transform: translateZ(0);
-  /* Removed explicit opacity - now controlled by index page rule (0.7 default, 1 on hover) */
+  opacity: 0.7;
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic),
               opacity 0.15s var(--ease-organic);
@@ -2774,7 +2774,8 @@ button.abs-meta-btn,
 }
 
 
-.footer_icon-link:hover {
+.footer_icon-link:hover,
+.footer_icon-link:focus-visible {
   color: var(--text-primary);
   opacity: 1;
 }
@@ -5976,7 +5977,7 @@ body.dark-mode .ui-main-nav .footer_link:active {
   min-height: var(--ui-icon-frame-size);
   margin: 0;
   padding: var(--abs-space-2xs) var(--abs-space-sm);
-  color: inherit;
+  color: var(--text-primary);
   font: inherit;
   text-decoration: none;
   background: none;
@@ -5985,8 +5986,17 @@ body.dark-mode .ui-main-nav .footer_link:active {
   box-shadow: none;
   cursor: default;
   filter: none;
-  pointer-events: none;
+  opacity: 0.7;
+  pointer-events: auto;
   transform: translateZ(0);
+  transition: opacity 0.15s var(--ease-organic);
+}
+
+#site-year.meta-caption:hover,
+#site-year.meta-caption:focus,
+#site-year.meta-caption:active {
+  color: var(--text-primary);
+  opacity: 1;
 }
 
 #site-year.meta-caption::before,
