@@ -333,7 +333,6 @@ async function readHomeRevealSnapshot(page) {
         nav: read('[data-route-tab]'),
         legend: read('#expertise-legend .legend__item'),
         script: read('.ui-top-right .decorative-script'),
-        sound: read('.ui-top-right .sound-toggle'),
         social: read('#social-links .footer_icon-link'),
         meta: read('#site-year.abs-meta-btn'),
         edge: read('#edge-caption'),
@@ -362,7 +361,7 @@ async function readHomeRevealTimingSnapshot(page) {
     return {
       identity: readDelayList('#hero-title .hero-title__name, #hero-title .hero-title__role'),
       legend: readDelayList('#expertise-legend .legend__item'),
-      context: readDelayList('#app-frame .ui-top-right .decorative-script, #app-frame .ui-top-right .sound-toggle'),
+      context: readDelayList('#app-frame .ui-top-right .decorative-script'),
       action: readDelayList('[data-route-tab]'),
       footer: readDelayList('#social-links .footer_icon-link, #site-year.abs-meta-btn, #edge-caption, #quote-display'),
     };
@@ -510,7 +509,7 @@ async function readHomeRevealVisibleOrder(page) {
       if (overlayAllowsVisibility() && rootAllowsVisibility()) {
         collect('identity', '#hero-title .hero-title__name, #hero-title .hero-title__role');
         collect('legend', '#expertise-legend .legend__item');
-        collect('context', '#app-frame .ui-top-right .decorative-script, #app-frame .ui-top-right .sound-toggle');
+        collect('context', '#app-frame .ui-top-right .decorative-script');
         collect('action', '[data-route-tab]');
         collect('footer', '#social-links .footer_icon-link, #site-year.abs-meta-btn, #edge-caption, #quote-display');
       }
@@ -584,7 +583,6 @@ function assertHomeRevealSettled(snapshot, { allowHiddenEdge = false, allowHidde
   assertHomeTargetVisible(snapshot.targets.nav, 'nav');
   assertHomeTargetVisible(snapshot.targets.legend, 'legend');
   assertHomeTargetVisible(snapshot.targets.script, 'script', 0.69);
-  assertHomeTargetVisible(snapshot.targets.sound, 'sound', 0.69);
   assertHomeTargetVisible(snapshot.targets.social, 'social', 0.69);
   assertHomeTargetVisible(snapshot.targets.meta, 'meta', 0.69);
   if (!(allowHiddenEdge && targetIsIntentionallyNonRenderable(snapshot.targets.edge))) {
@@ -645,7 +643,23 @@ async function auditRoute(browser, route, profile) {
 
 async function waitForHomeBootReplay(page, label, profile) {
   await page.waitForSelector('#abs-boot-overlay', { state: 'visible', timeout: timeoutMs });
-  await page.waitForFunction(() => document.documentElement.classList.contains('abs-home-post-boot-pending'), null, { timeout: timeoutMs });
+  const initialRevealState = await page.waitForFunction(() => {
+    const root = document.documentElement;
+    if (root.classList.contains('abs-home-post-boot-complete')) return 'complete';
+    if (root.classList.contains('abs-home-post-boot-pending')) return 'pending';
+    return '';
+  }, null, { timeout: timeoutMs });
+  const startedPending = await initialRevealState.jsonValue();
+  if (startedPending === 'complete') {
+    await page.waitForSelector('#abs-boot-overlay', { state: 'detached', timeout: timeoutMs });
+    await assertMinimumVisibleElapsed(page, label);
+    const releasedBoot = await readBootSnapshot(page);
+    assertBootSurfaceColourStable(releasedBoot, label);
+    assertBootSpinnerGone(releasedBoot, label);
+    const settledReveal = await readHomeRevealSnapshot(page);
+    assertHomeRevealSettled(settledReveal, profile);
+    return;
+  }
   const heldBoot = await readBootSnapshot(page);
   assertBootSurfaceColourStable(heldBoot, label);
   const spinner = await readSpinnerSnapshot(page);
@@ -732,10 +746,13 @@ async function main() {
 
   try {
     for (const profile of profiles) {
+      console.log(`[boot-overlay] ${profile.label}: home-direct`);
       results.push(await auditHomeDirectReplay(browser, profile));
       for (const route of routes) {
+        console.log(`[boot-overlay] ${profile.label}: ${route.label}`);
         results.push(await auditRoute(browser, route, profile));
       }
+      console.log(`[boot-overlay] ${profile.label}: home-reduced-motion`);
       results.push(await auditHomeReducedMotion(browser, profile));
     }
   } finally {

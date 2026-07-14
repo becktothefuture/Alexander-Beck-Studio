@@ -223,7 +223,7 @@ body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__sound-toggle.shell-tab:not([data-enabled='true']):not(:hover):not(:focus-visible):not(:active) {
   color: var(--dominant-utility-muted);
-  background: transparent;
+  background: var(--button-bar-gasket-ground, var(--abs-browser-chrome));
   box-shadow: none;
 }
 
@@ -231,7 +231,11 @@ body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
   .button-bar__sound-toggle.shell-tab:not([data-enabled='true']):is(:hover, :focus-visible, :active) {
   color: var(--dominant-utility-ink);
   outline: none;
-  background: color-mix(in srgb, var(--dominant-utility-ink) 7%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--button-bar-gasket-ground, var(--abs-browser-chrome)) 93%,
+    var(--dominant-utility-ink) 7%
+  );
   box-shadow: none;
 }
 

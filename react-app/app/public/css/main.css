@@ -3405,7 +3405,9 @@ html.abs-home-post-boot-pending #hero-title .hero-title__role,
 html.abs-home-post-boot-pending #expertise-legend .legend__item,
 html.abs-home-post-boot-pending #main-links .footer_link,
 html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
-html.abs-home-post-boot-pending #app-frame .ui-top-right .sound-toggle,
+html.abs-home-post-boot-pending #social-links .footer_icon-link,
+html.abs-home-post-boot-pending #site-year.abs-meta-btn,
+html.abs-home-post-boot-pending #edge-caption,
 html.abs-home-post-boot-pending #quote-display {
   opacity: 0;
   filter: blur(var(--home-post-boot-blur));
@@ -3423,7 +3425,9 @@ html.abs-home-post-boot-enter #hero-title .hero-title__role,
 html.abs-home-post-boot-enter #expertise-legend .legend__item,
 html.abs-home-post-boot-enter #main-links .footer_link,
 html.abs-home-post-boot-enter #app-frame .ui-top-right .decorative-script,
-html.abs-home-post-boot-enter #app-frame .ui-top-right .sound-toggle,
+html.abs-home-post-boot-enter #social-links .footer_icon-link,
+html.abs-home-post-boot-enter #site-year.abs-meta-btn,
+html.abs-home-post-boot-enter #edge-caption,
 html.abs-home-post-boot-enter #quote-display {
   transition:
     opacity var(--home-post-boot-duration-support) var(--home-post-boot-ease),
@@ -3479,8 +3483,16 @@ html.abs-home-post-boot-enter[data-shell-route='home'] body:not(.detail-open) #a
   transition-delay: 0s;
 }
 
-html.abs-home-post-boot-enter #app-frame .ui-top-right .sound-toggle {
-  transition-delay: calc(var(--home-post-boot-delay-context-start) + var(--home-post-boot-delay-context-step));
+html.abs-home-post-boot-enter #social-links .footer_icon-link {
+  transition-delay: var(--home-post-boot-delay-footer-start);
+}
+
+html.abs-home-post-boot-enter #site-year.abs-meta-btn {
+  transition-delay: calc(var(--home-post-boot-delay-footer-start) + var(--home-post-boot-delay-footer-step));
+}
+
+html.abs-home-post-boot-enter #edge-caption {
+  transition-delay: calc(var(--home-post-boot-delay-footer-start) + (var(--home-post-boot-delay-footer-step) * 2));
 }
 
 html.abs-home-post-boot-enter #quote-display {
@@ -3526,7 +3538,6 @@ html.abs-home-post-boot-enter #quote-display {
   html.abs-home-post-boot-pending #expertise-legend .legend__item,
   html.abs-home-post-boot-pending #main-links .footer_link,
   html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
-  html.abs-home-post-boot-pending #app-frame .ui-top-right .sound-toggle,
   html.abs-home-post-boot-pending #quote-display {
     opacity: 1;
     filter: none;
@@ -3538,8 +3549,7 @@ html.abs-home-post-boot-enter #quote-display {
     opacity: var(--brand-logo-secondary-opacity, 0.66);
   }
 
-  html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
-  html.abs-home-post-boot-pending #app-frame .ui-top-right .sound-toggle {
+  html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script {
     opacity: var(--supporting-description-opacity);
   }
 }
