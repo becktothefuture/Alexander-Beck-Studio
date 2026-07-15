@@ -28,6 +28,7 @@ import { setupOverscrollLock } from '../input/overscroll-lock.js';
 import { refreshCursor, setupCustomCursor, updateCursorSize } from '../rendering/cursor.js';
 import { PortfolioProjectDrawer, getProjectContentBlocks } from './project-drawer.js';
 import { PortfolioProjectHandoff } from './project-handoff.js';
+import { PortfolioParticleField } from './portfolio-speed-field.js';
 import { getBasePathWithTrailingSlash } from '../../../lib/base-path.js';
 import { triggerHaptic } from '../../../lib/haptics.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
@@ -500,6 +501,10 @@ class PortfolioScrollApp {
     this.configurePortfolioSfx();
     this.createProjectView();
     this.renderProjectDeck();
+    this.particleField = new PortfolioParticleField(
+      document.querySelector('.portfolio-speed-field-canvas'),
+      this.deckOptions.particleField
+    );
     await this.prepareProjectThumbnails();
     if (signal?.aborted) return false;
     this.setupDeckEvents();
@@ -507,6 +512,7 @@ class PortfolioScrollApp {
     await new Promise((resolve) => requestAnimationFrame(resolve));
     if (signal?.aborted) return false;
     this.updateCardMetrics();
+    this.particleField.start();
     this.setActiveProject(0, { immediate: true });
     this.setupVideoObserver();
     document.addEventListener('abs:portfolio:open-project', this.boundAuditOpenProject);
@@ -861,17 +867,16 @@ class PortfolioScrollApp {
     copy.append(client, title);
     if (tags.childElementCount) copy.appendChild(tags);
 
-    const cta = document.createElement('div');
-    cta.className = 'portfolio-project-card__cta';
-    cta.setAttribute('aria-hidden', 'true');
-    cta.textContent = 'View';
-
     const media = this.createProjectCardMedia(project, projectIndex, {
       attachVideo: Boolean(getProjectVideoSrc(project) && !shouldReducePortfolioMotion()),
       eager: true,
     });
-    card.append(copy, media);
-    card.appendChild(cta);
+    const material = document.createElement('div');
+    material.className = 'portfolio-project-card__material';
+    material.setAttribute('aria-hidden', 'true');
+    material.appendChild(media);
+
+    card.append(material, copy);
     card.addEventListener('click', (event) => this.handleCardClick(event, card));
     card.addEventListener('keydown', (event) => this.handleCardKeydown(event, card));
     card.addEventListener('pointerenter', () => {
@@ -1121,25 +1126,32 @@ class PortfolioScrollApp {
   }
 
   getTitleClearanceCenterYPercent({ stageHeight, cardHeight }) {
-    const hero = document.getElementById('hero-title');
     const stage = this.deckStage || this.mount;
-    if (!hero || !stage || !(stageHeight > 0) || !(cardHeight > 0)) return 0;
+    const intro = stage?.querySelector?.('.portfolio-deck-intro');
+    if (!intro || !stage || !(stageHeight > 0) || !(cardHeight > 0)) return 0;
 
-    const heroRect = hero.getBoundingClientRect?.();
+    const introRect = intro.getBoundingClientRect?.();
+    const title = intro.querySelector('.portfolio-deck-intro__title');
+    const titleRect = title?.getBoundingClientRect?.();
     const stageRect = stage.getBoundingClientRect?.();
+    const titleLineHeight = Number.parseFloat(title ? getComputedStyle(title).lineHeight : '');
     if (
-      !heroRect ||
+      !introRect ||
+      !titleRect ||
       !stageRect ||
-      heroRect.width <= 0 ||
-      heroRect.height <= 0 ||
+      introRect.width <= 0 ||
+      introRect.height <= 0 ||
+      titleRect.height <= titleLineHeight * 1.5 ||
       stageRect.height <= 0
     ) {
       return 0;
     }
 
+    // Keep the carousel's canonical centred seat for the normal one-line intro.
+    // Only a wrapped Contact-sized title needs to displace the deck for clearance.
     const clearancePx = clamp(stageHeight * 0.035, 18, 42);
-    const heroBottom = heroRect.bottom - stageRect.top;
-    return ((heroBottom + clearancePx + (cardHeight * 0.5)) / stageHeight) * 100;
+    const introBottom = introRect.bottom - stageRect.top;
+    return ((introBottom + clearancePx + (cardHeight * 0.5)) / stageHeight) * 100;
   }
 
   applyDeckTuning() {

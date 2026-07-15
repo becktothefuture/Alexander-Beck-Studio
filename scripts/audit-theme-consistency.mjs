@@ -265,15 +265,15 @@ async function auditManualAndTabs(browser, viewport) {
       assertTheme(firstPage, 'dark', `${viewport.name}/tab-one-dark`),
       assertTheme(secondPage, 'dark', `${viewport.name}/tab-two-storage-sync-dark`),
     ]);
-    assertFrameMatches(darkFirstTabState, lightFrame, `${viewport.name}/tab-one-dark`);
-    assertFrameMatches(darkSecondTabState, lightFrame, `${viewport.name}/tab-two-storage-sync-dark`);
+    const darkFrame = darkFirstTabState.browserChrome;
+    assertFrameMatches(darkSecondTabState, darkFrame, `${viewport.name}/tab-two-storage-sync-dark`);
     assert((await readThemeState(secondPage)).storedPreference === 'dark', `${viewport.name}: dark preference did not sync`);
 
     for (const step of routeSteps) {
-      await navigateByTab(firstPage, step, 'dark', lightFrame, viewport.name);
+      await navigateByTab(firstPage, step, 'dark', darkFrame, viewport.name);
     }
     for (const step of auxiliaryRouteSteps) {
-      await navigateDirect(firstPage, step, 'dark', lightFrame, viewport.name);
+      await navigateDirect(firstPage, step, 'dark', darkFrame, viewport.name);
     }
 
     await activateThemeToggle(secondPage, 'Switch to light mode');
@@ -318,13 +318,13 @@ async function auditAutomaticPreference(browser, viewport) {
 
     await activateThemeToggle(page, 'Switch to dark mode');
     const manualDarkOnLightBrowser = await assertTheme(page, 'dark', `${viewport.name}/manual-dark-after-auto`);
-    assertFrameMatches(manualDarkOnLightBrowser, browserLightFrame, `${viewport.name}/manual-dark-after-auto`);
+    assertFrameMatches(manualDarkOnLightBrowser, browserDarkFrame, `${viewport.name}/manual-dark-after-auto`);
 
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
     await waitForFrame(page, browserDarkFrame, `${viewport.name}/manual-dark-browser-dark`);
     await assertTheme(page, 'dark', `${viewport.name}/manual-stays-dark-on-system-dark`);
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
-    await waitForFrame(page, browserLightFrame, `${viewport.name}/manual-dark-browser-light`);
+    await waitForFrame(page, browserDarkFrame, `${viewport.name}/manual-dark-browser-light`);
     const state = await assertTheme(page, 'dark', `${viewport.name}/manual-ignores-system-change`);
     assert(state.storedPreference === 'dark', `${viewport.name}: manual override was not persisted`, state);
   } finally {

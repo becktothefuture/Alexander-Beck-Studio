@@ -333,6 +333,7 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
   }
 
   const expectedFrameRgb = hexToRgb(expectedHex);
+  const expectedWindowRgb = hexToRgb(expectedWindow);
   const inactiveBackground = cssColorToRgba(actual.inactiveTabBackground);
   const buttonBarBackground = cssColorToRgba(actual.buttonBarBackground);
   const bodyBackground = cssColorToRgba(actual.bodyBackground);
@@ -379,8 +380,12 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
     }
 
     const compositedBackground = compositeRgba(background, surfaceBackground);
-    if (pixelDistance(compositedBackground, expectedFrameRgb) > 2) {
-      throw new Error(`${siteTheme}/${browserScheme}/${phase} ${name} surface must match outer frame: expected ${expectedFrameRgb.join(',')}, got ${compositedBackground.join(',')} from ${backgroundValue}`);
+    if (!expectedWindowRgb) {
+      throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse expected window ${expectedWindow}`);
+    }
+
+    if (pixelDistance(compositedBackground, expectedWindowRgb) > 2) {
+      throw new Error(`${siteTheme}/${browserScheme}/${phase} ${name} surface must match studio window: expected ${expectedWindowRgb.join(',')}, got ${compositedBackground.join(',')} from ${backgroundValue}`);
     }
 
     const compositedControlForeground = compositeRgba(foreground, compositedBackground);
@@ -418,9 +423,9 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
 }
 
 async function runCase(browser, siteTheme, browserScheme, expectations, profile) {
-  const expectedFrame = browserSchemeFrames[browserName][browserScheme];
+  const expectedFrame = browserSchemeFrames[browserName][siteTheme];
   const expectedWindow = expectations.window[siteTheme];
-  const expectLightBrowserChrome = browserScheme === 'light';
+  const expectLightBrowserChrome = siteTheme === 'light';
   const context = await browser.newContext({
     ...profile.context,
     colorScheme: browserScheme,
@@ -480,7 +485,7 @@ async function run() {
     await server?.stop();
   }
 
-  log(`PASS (${browserName}): browser/OS scheme owns outer harmony, Button Bar material follows it, and site theme independently owns the studio-window surface.`);
+  log(`PASS (${browserName}): rendered theme keeps the outer frame, Button Bar material, and studio-window surface in the same light/dark state.`);
 }
 
 run().catch((error) => {

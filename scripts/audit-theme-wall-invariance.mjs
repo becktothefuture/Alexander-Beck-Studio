@@ -73,6 +73,12 @@ const themeVariantKeys = new Set([
   'frameInnerSurface',
   'simulationContrastVeilRgb',
   'wallBackgroundImage',
+  'tabStyles',
+  '--abs-browser-chrome',
+  '--frame-color',
+  '--wall-color',
+  '--abs-wall-base',
+  '--shell-wall-bg',
 ]);
 const maxGeometryDeltaPx = 1.5;
 const maxRadiusDeltaPx = 0.05;

@@ -13,6 +13,7 @@ import {
   resolveShellPalette,
   resolveSiteFramePalette,
 } from './site-shell.js';
+import { isDarkThemeDocument } from '../../../lib/theme-state.js';
 
 const CHROMIUM_BROWSER_LIGHT_FALLBACK = "var(--color-detected-f1f3f4)";
 const CHROMIUM_BROWSER_DARK_FALLBACK = "var(--color-detected-202124)";
@@ -61,11 +62,12 @@ function applyBrowserFrameColor(isDark, family) {
 }
 
 /**
- * Decide whether to adapt the frame color to browser UI defaults.
- * The shell wall palette is restored separately so UI contrast stays stable.
+ * Decide which light/dark frame palette endpoint is active.
+ * The rendered site theme is the source of truth so the frame and window do not
+ * land in crossed light/dark states.
  */
 export function resolveBrowserChromeIsDark() {
-  return Boolean(window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+  return isDarkThemeDocument();
 }
 
 export function applyChromeHarmony() {
@@ -90,7 +92,7 @@ export function applyChromeHarmony() {
     return { mode, family, browserIsDark };
   }
 
-  // auto: browser/OS scheme owns the exposed frame in every browser family.
+  // auto: the rendered theme selects the browser-family frame palette endpoint.
   applyBrowserFrameColor(browserIsDark, family);
   return { mode, family, browserIsDark };
 }

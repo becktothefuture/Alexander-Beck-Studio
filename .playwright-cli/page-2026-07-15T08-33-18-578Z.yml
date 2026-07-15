@@ -1,0 +1,66 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e3]:
+    - generic "Portfolio projects" [ref=f1e79]:
+      - region "Selected portfolio projects" [ref=f1e80]:
+        - generic:
+          - region "Selected design work.":
+            - heading "Selected design work." [level=2]
+            - paragraph: From early concepts to shipped websites, apps, tools, and platforms.
+          - generic "Selected design work.":
+            - button [ref=f1e81] [cursor=pointer]:
+              - generic:
+                - figure
+              - generic:
+                - paragraph: Pro Keyboard
+                - heading [level=3]: Touch typing refined
+            - 'button "Open project 1: American Heart Association: Heart.org redesign" [ref=f1e82] [cursor=pointer]':
+              - generic:
+                - figure
+              - generic:
+                - paragraph: American Heart Association
+                - heading "Heart.org redesign" [level=3]
+            - button [ref=f1e83] [cursor=pointer]:
+              - generic:
+                - figure
+              - generic:
+                - paragraph: S&P Global
+                - heading [level=3]: Making financial indexes visible
+          - status: "American Heart Association: Heart.org redesign. Project 1 of 7."
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - banner
+        - generic:
+          - contentinfo:
+            - generic:
+              - group "Social media links" [ref=f1e13]:
+                - link "Apple Music" [ref=f1e14] [cursor=pointer]:
+                  - /url: https://music.apple.com/profile/beckandeggs
+                  - generic: 
+                - link "LinkedIn" [ref=f1e16] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/in/thisisbeck/
+                  - generic: 
+              - generic "London local time" [ref=f1e19]:
+                - generic [ref=f1e20]:
+                  - strong [ref=f1e22]: London
+                  - time [ref=f1e24]: 9:33:18 AM
+    - generic [ref=f1e25]:
+      - navigation "Primary buttons" [ref=f1e26]:
+        - link "Home" [ref=f1e27] [cursor=pointer]:
+          - /url: /index.html
+          - generic: 
+        - link "Work" [ref=f1e29]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About Me" [ref=f1e31] [cursor=pointer]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=f1e33] [cursor=pointer]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=f1e35]:
+        - button "Sound off" [ref=f1e36] [cursor=pointer]:
+          - generic: 
+  - status [ref=f1e44]: Switched to Flow mode

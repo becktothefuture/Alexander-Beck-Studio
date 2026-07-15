@@ -208,19 +208,20 @@ async function collectDotAppearance(page) {
 async function collectParticleFieldSnapshot(page) {
   return page.evaluate(() => {
     const canvas = document.querySelector('.portfolio-speed-field-canvas');
-    if (canvas) {
+    if (!canvas) {
       return {
-        error: 'portfolio-speed-field-canvas-mounted',
+        error: 'portfolio-speed-field-canvas-missing',
       };
     }
     const snapshot = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
-    return snapshot?.particleField || {
-      mounted: false,
-      active: false,
-      running: false,
-      visible: false,
-      opacity: 0,
-      particleCount: 0,
+    if (!snapshot?.particleField) {
+      return {
+        error: 'portfolio-particle-field-snapshot-missing',
+      };
+    }
+    return {
+      ...snapshot.particleField,
+      mounted: canvas.isConnected,
     };
   });
 }
@@ -1008,9 +1009,28 @@ async function captureDrawer(page) {
   return state;
 }
 
+async function auditParticleFieldRemount(page) {
+  await page.locator('[data-route-tab="home"]').click();
+  await page.waitForURL(/\/index\.html(?:[?#]|$)/, { timeout: WAIT_MS });
+  await page.waitForFunction(
+    () => (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle',
+    null,
+    { timeout: WAIT_MS }
+  );
+  const homeCanvasCount = await page.locator('.portfolio-speed-field-canvas').count();
+
+  await page.locator('[data-route-tab="portfolio"]').click();
+  await page.waitForURL(/\/portfolio\.html(?:[?#]|$)/, { timeout: WAIT_MS });
+  await waitForCarousel(page);
+  const returnCanvasCount = await page.locator('.portfolio-speed-field-canvas').count();
+  const particleField = await collectParticleFieldSnapshot(page);
+  return { homeCanvasCount, returnCanvasCount, particleField };
+}
+
 async function auditReducedMotion(page) {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openViewport(page, { width: 1440, height: 900 });
+  const particleField = await collectParticleFieldSnapshot(page);
   const press = await auditPointerPress(page, 'desktop-reduced-motion-pointer-down.png');
   const wheel = await auditWheel(page);
   const infiniteStress = {
@@ -1025,7 +1045,7 @@ async function auditReducedMotion(page) {
   await page.locator('.portfolio-project-view__back--top').click();
   await page.waitForFunction(() => !document.body.classList.contains('portfolio-project-open'), null, { timeout: WAIT_MS });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  return { press, wheel, infiniteStress, drawerOpen };
+  return { particleField, press, wheel, infiniteStress, drawerOpen };
 }
 
 async function main() {
@@ -1075,6 +1095,7 @@ async function main() {
         await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-infinite-stress.png') });
         summary.accents = await captureAccents(page);
         summary.drawer = await captureDrawer(page);
+        summary.particleFieldRemount = await auditParticleFieldRemount(page);
       }
 
       if (viewport.name === 'mobile') {
@@ -1115,6 +1136,26 @@ async function main() {
         failures.push(`${name}: dot track overlaps the active card`);
       }
       if (result.particleField?.error) failures.push(`${name}: ${result.particleField.error}`);
+      if (!result.particleField?.error) {
+        if (!result.particleField?.mounted) failures.push(`${name}: particle field canvas is not mounted`);
+        if (!result.particleField?.active) failures.push(`${name}: particle field lifecycle is not active`);
+        if ((result.particleField?.particleCount || 0) < 1) failures.push(`${name}: particle field did not seed particles`);
+        if ((result.particleField?.cssWidth || 0) < 1 || (result.particleField?.cssHeight || 0) < 1) {
+          failures.push(`${name}: particle field canvas has no display size`);
+        }
+        const expectedBackingWidth = Math.ceil(
+          (result.particleField?.cssWidth || 0) * (result.particleField?.dpr || 1)
+        );
+        const expectedBackingHeight = Math.ceil(
+          (result.particleField?.cssHeight || 0) * (result.particleField?.dpr || 1)
+        );
+        if (
+          result.particleField?.backingWidth !== expectedBackingWidth
+          || result.particleField?.backingHeight !== expectedBackingHeight
+        ) {
+          failures.push(`${name}: particle field backing store is out of sync`);
+        }
+      }
       if ((result.particleField?.opacity ?? 1) > 0.02 || result.particleField?.visible) {
         failures.push(`${name}: particle field should be dark while idle`);
       }
@@ -1135,17 +1176,18 @@ async function main() {
       if (speedPerformance?.relativeFpsGateAvailable && (speedPerformance?.relativeFpsRatio ?? 0) < 0.85) failures.push('desktop: active speed field reduced FPS by more than 15% from the moving-carousel baseline');
       if ((speedPerformance?.relativeP95Ratio ?? Infinity) > 1.15) failures.push('desktop: active speed field worsened p95 frame time by more than 15% from the host baseline');
     }
-    if (speedPerformance?.fieldActivated) failures.push('desktop: retired particle field became visible during the performance burst');
-    if (speedPerformance?.hasParticleField && !speedPerformance?.particleCountStable) failures.push('desktop: particle field count changed during the performance burst');
+    if (!speedPerformance?.fieldActivated) failures.push('desktop: persistent particle field was not visible during the performance burst');
+    if (!speedPerformance?.hasParticleField) failures.push('desktop: persistent particle field did not contain particles');
+    if (!speedPerformance?.particleCountStable) failures.push('desktop: particle field count changed during the performance burst');
     if (!speedPerformance?.cardCountStable) failures.push('desktop: permanent card count changed during the performance burst');
     if ((speedPerformance?.maxLead ?? Infinity) > 2.02) failures.push('desktop: performance burst exceeded the bounded target lead');
     if (speedPerformance?.after?.fieldRunning || speedPerformance?.after?.fieldVisible || (speedPerformance?.after?.fieldOpacity ?? 1) > 0.02) failures.push('desktop: persistent particle field stayed visible after settlement');
     if (speedPerformance?.after?.deckRafActive) failures.push('desktop: carousel RAF remained active after the performance burst settled');
     const rapidReversal = summary.viewports.desktop.rapidReversal;
     if (!(rapidReversal?.beforeVelocity > 0)) failures.push('desktop: reversal setup never reached forward carousel speed');
+    if (!(rapidReversal?.beforeFieldVelocity > 0)) failures.push('desktop: reversal setup never reached forward field speed');
     if (rapidReversal?.reversalSample < 0 || rapidReversal?.reversalSample > 18) failures.push('desktop: carousel did not reverse promptly after opposite input');
-    if ((rapidReversal?.beforeFieldVelocity || 0) !== 0) failures.push('desktop: retired speed field still reported velocity');
-    if ((rapidReversal?.fieldReversalSample ?? -1) >= 0) failures.push('desktop: retired speed field still reversed after opposite input');
+    if (rapidReversal?.fieldReversalSample < 0 || rapidReversal?.fieldReversalSample > 24) failures.push('desktop: speed field did not reverse smoothly after opposite input');
     if ((rapidReversal?.maxLead ?? Infinity) > 2.02) failures.push('desktop: rapid reversal exceeded the bounded target lead');
     if (rapidReversal?.blankSamples?.length) failures.push('desktop: rapid reversal exposed a blank carousel frame');
     if (!rapidReversal?.after?.settled || rapidReversal?.after?.inputState !== 'idle') failures.push('desktop: rapid reversal did not return to a settled idle state');
@@ -1179,8 +1221,8 @@ async function main() {
           if (result.fieldActivated) failures.push(`${label}: particle field became visible under reduced motion`);
           if (result.after?.particleField?.running) failures.push(`${label}: particle field animated under reduced motion`);
         } else {
-          if (result.fieldActivated) failures.push(`${label}: retired particle field became visible during sustained input`);
-          if ((result.fieldParticleCount || 0) > 0) failures.push(`${label}: retired particle field still has particles`);
+          if (!result.fieldActivated) failures.push(`${label}: sustained input did not reveal the particle field`);
+          if (!result.fieldParticleCountStable || (result.fieldParticleCount || 0) < 1) failures.push(`${label}: particle field count was not fixed`);
           if ((result.after?.particleField?.opacity ?? 1) > 0.02 || result.after?.particleField?.visible) failures.push(`${label}: particle field stayed visible after settlement`);
         }
       }
@@ -1210,7 +1252,16 @@ async function main() {
     const distinctAccentCount = new Set(summary.accents?.map((entry) => entry.accent)).size;
     if (!accentCount || distinctAccentCount !== accentCount) failures.push('accent audit did not resolve one distinct accent per project');
     if (!summary.drawer?.bodyOpen || !summary.drawer?.drawerVisible) failures.push('project drawer did not open after carousel checks');
+    if ((summary.particleFieldRemount?.homeCanvasCount ?? Infinity) !== 0) failures.push('particle field canvas survived after leaving Portfolio');
+    if (summary.particleFieldRemount?.returnCanvasCount !== 1) failures.push('particle field did not remount as exactly one canvas after returning to Portfolio');
+    if (summary.particleFieldRemount?.particleField?.error) failures.push(`particle field remount: ${summary.particleFieldRemount.particleField.error}`);
+    if (!summary.particleFieldRemount?.particleField?.active) failures.push('particle field lifecycle was inactive after returning to Portfolio');
+    if ((summary.particleFieldRemount?.particleField?.particleCount || 0) < 1) failures.push('particle field did not reseed after returning to Portfolio');
     if ((summary.reducedMotion?.press?.delta ?? Infinity) > 2) failures.push('reduced motion: pointer-down center delta exceeded 2px');
+    if (summary.reducedMotion?.particleField?.error) failures.push(`reduced motion: ${summary.reducedMotion.particleField.error}`);
+    if (!summary.reducedMotion?.particleField?.active) failures.push('reduced motion: particle field lifecycle is not active');
+    if (!summary.reducedMotion?.particleField?.reducedMotion) failures.push('reduced motion: particle field did not observe the motion preference');
+    if ((summary.reducedMotion?.particleField?.particleCount || 0) < 1) failures.push('reduced motion: particle field did not retain its static particle composition');
     if (summary.reducedMotion?.wheel?.before.activeIndex === summary.reducedMotion?.wheel?.after.activeIndex) failures.push('reduced motion: wheel did not advance');
     if (!summary.reducedMotion?.drawerOpen) failures.push('reduced motion: project drawer did not open');
     if (pageErrors.length) failures.push(`${pageErrors.length} page error(s)`);

@@ -221,6 +221,8 @@ export class PortfolioProjectHandoff {
   buildBridge({ atTarget }) {
     this.removeBridge({ keepMedia: true });
     const sourceStyle = getComputedStyle(this.sourceMedia);
+    const sourceMaterial = this.sourceCard.querySelector('.portfolio-project-card__material') || this.sourceCard;
+    const sourceMaterialStyle = getComputedStyle(sourceMaterial);
     const targetStyle = getComputedStyle(this.drawerView.getHeroImageShell?.() || this.sourceMedia);
     const bridge = document.createElement('div');
     bridge.className = 'portfolio-project-media-bridge';
@@ -239,7 +241,7 @@ export class PortfolioProjectHandoff {
       background: this.drawerView.usesColorMedia?.()
         ? (this.drawerView.getHeroColor?.() || sourceStyle.backgroundColor)
         : sourceStyle.backgroundColor,
-      boxShadow: getComputedStyle(this.sourceCard).boxShadow,
+      boxShadow: sourceMaterialStyle.boxShadow,
     });
 
     const sourceVeilElement = this.sourceMedia.querySelector('.portfolio-project-card__media-veil');
@@ -273,6 +275,8 @@ export class PortfolioProjectHandoff {
     this.animations = [];
     this.durationMs = durationMs;
     const sourceStyle = getComputedStyle(this.sourceMedia);
+    const sourceMaterial = this.sourceCard.querySelector('.portfolio-project-card__material') || this.sourceCard;
+    const sourceMaterialStyle = getComputedStyle(sourceMaterial);
     const targetStyle = getComputedStyle(this.drawerView.getHeroImageShell?.() || this.sourceMedia);
     const animationOptions = {
       duration: durationMs,
@@ -295,7 +299,7 @@ export class PortfolioProjectHandoff {
         width: `${this.sourceRect.width}px`,
         height: `${this.sourceRect.height}px`,
         borderRadius: sourceStyle.borderRadius,
-        boxShadow: getComputedStyle(this.sourceCard).boxShadow,
+        boxShadow: sourceMaterialStyle.boxShadow,
       },
       {
         left: `${this.targetRect.left}px`,

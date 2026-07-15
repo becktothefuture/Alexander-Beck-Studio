@@ -32,30 +32,29 @@ The early inline script in each boot-overlay HTML entry is a first-paint mirror,
 
 | Surface | Canonical tokens | Owner |
 | --- | --- | --- |
-| Exposed browser/page band | `--abs-browser-chrome`, `--frame-color`, `--wall-color` | Browser harmony |
-| Stable outer shell | `--shell-wall-bg`, `--abs-wall-base` | Shell configuration |
+| Exposed browser/page band | `--abs-browser-chrome`, `--frame-color`, `--wall-color` | Rendered theme harmony |
+| Shell wall | `--shell-wall-bg`, `--abs-wall-base` | Rendered theme harmony |
 | Studio-window interior | `--studio-window-bg`, `--frame-inner-surface` | Resolved site theme |
 | In-window contrast finish | `--simulation-contrast-veil-rgb` and finish opacities | Resolved site theme |
-| Persistent Button Bar | `--button-bar-outer-ink*` and shell material tokens | Stable outer shell |
+| Persistent Button Bar | `--button-bar-outer-ink*`, `--studio-window-bg`, `--text-primary` | Outer frame plus window utility controls |
 
-Never alias the window-interior tokens back to `--abs-wall-base`. Doing so freezes the window dark while light-mode ink changes, producing unreadable routes. Never derive the active outer-frame palette from the manual site preference.
+Never alias the window-interior tokens back to `--abs-wall-base`; keep each surface token explicit even when they share the same active light/dark endpoint.
 
 ## Browser Chrome
 
-Site theme and browser-chrome harmony are separate state machines:
+Site theme and browser-chrome harmony share one active light/dark endpoint:
 
-- `chrome-harmony.js` resolves the outer palette from browser family plus `prefers-color-scheme`.
-- Chromium, Android Chrome, Safari, and iOS Safari use the shared browser-scheme frame palette, so browser/OS light scheme makes the exposed band and frame light, and dark scheme makes them dark.
+- `chrome-harmony.js` resolves the outer palette endpoint from the rendered site theme.
+- In Auto, the rendered site theme follows `prefers-color-scheme`, so the browser/OS light scheme makes both the window and frame light, and dark scheme makes both dark.
 - Firefox uses its browser-native chrome palette.
-- A manual site-theme toggle changes the window interior but leaves the active outer palette unchanged.
-- A browser/OS scheme change may update the outer palette even when the site has a manual light/dark override; it must not change that manual site preference.
-- In `auto`, the browser/OS scheme drives both systems through their separate ownership paths.
+- A manual site-theme toggle moves the window interior and exposed frame together.
+- A browser/OS scheme change updates the site only when the stored preference is Auto.
 
-Do not collapse this into a single "sync wall colour with theme" rule. `chromeHarmonyMode: auto` is the default browser-aware behavior; `site` and `browser` remain explicit development overrides.
+`chromeHarmonyMode: auto` is the default browser-aware behavior; `site` and `browser` remain explicit development overrides for palette source. They do not create crossed light/dark frame and window states.
 
 ## Button Bar
 
-The Button Bar sits outside the studio window and is stable shell chrome. Its tab and secondary-control ink must not inherit `--text-primary` or `--text-muted` from the window theme. Its material surface must derive from `--abs-browser-chrome`, so browser light scheme uses a faint low-contrast gasket edge while retaining a distinct keyboard focus outline. Route selection can change active state, but manual light/dark changes must not recolor the bar or alter its geometry.
+The Button Bar sits outside the studio window. Primary route material derives from `--abs-browser-chrome`, so it tracks the active frame. Secondary sound/theme controls derive from the window surface and text color, so their bodies match `--studio-window-bg` and their icons stay legible. Route selection can change active state, but theme changes must not alter geometry.
 
 ## Portfolio Gate
 

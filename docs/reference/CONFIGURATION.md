@@ -45,13 +45,13 @@ Loaders and normalizers live under `src/legacy/modules/utils/` and route-specifi
 
 | Contract | Tokens/config | Required behavior |
 | --- | --- | --- |
-| Browser-aware exposed frame | `runtime.chromeHarmonyMode`, `shell.theme.siteFrame*`, `--abs-browser-chrome`, `--frame-color`, `--wall-color` | Browser/OS light and dark scheme drives the exposed page band, frame, wall, theme-color, and Button Bar material across Chromium, Android Chrome, Safari, and iOS Safari. Manual site theme does not affect this path. |
-| Stable outer shell | `shell.theme.wallBase*`, `--shell-wall-bg`, `--abs-wall-base` | Remains stable across manual site-theme changes. |
+| Theme-aligned exposed frame | `runtime.chromeHarmonyMode`, `shell.theme.siteFrame*`, `--abs-browser-chrome`, `--frame-color`, `--wall-color` | The rendered site theme selects the exposed page band, frame, wall, theme-color, and Button Bar material endpoint. In Auto this follows the browser/OS scheme; manual light/dark moves the frame and window together. |
+| Shell wall | `shell.theme.wallBase*`, `--shell-wall-bg`, `--abs-wall-base` | Uses the same active light/dark endpoint as the rendered site theme while preserving geometry. |
 | Themeable studio window | `runtime.bgLight`, `runtime.bgDark`, `--studio-window-bg`, `--frame-inner-surface` | Follows the resolved site theme and contains all route content. |
 | Themeable in-window veil | `--simulation-contrast-veil-rgb` and light/dark veil opacities | Follows the active studio-window surface. |
-| Stable Button Bar | `--button-bar-outer-ink*` and shell material tokens | Does not inherit window text tokens or recolor on manual theme changes. |
+| Theme-aligned Button Bar | `--button-bar-outer-ink*` and shell material tokens | Primary material follows the resolved outer frame. Secondary sound/theme controls use the studio-window background and text color. |
 
-`syncShellToDocument()` owns stable shell and window projection. `applyChromeHarmony()` separately owns the active outer-frame variables from browser/OS scheme. Retired Safari-specific frame keys are pruned during config loading/saving and must not re-enter runtime harmony. The Button Bar material must derive from the resolved outer-frame colour so its rest, hover, and pressed states keep the same subtle contrast in both native light and dark chrome. Do not make `--studio-window-bg` or `--frame-inner-surface` aliases of `--abs-wall-base`, and do not pass the resolved site theme into browser harmony.
+`syncShellToDocument()` owns stable shell and window projection. `applyChromeHarmony()` owns the active outer-frame variables from the rendered light/dark theme so the exposed frame and studio window never invert. Retired Safari-specific frame keys are pruned during config loading/saving and must not re-enter runtime harmony. The primary Button Bar material must derive from the resolved outer-frame colour so its rest, hover, and pressed states keep the same subtle contrast. Secondary sound/theme controls intentionally derive from the window background and text tokens. Do not make `--studio-window-bg` or `--frame-inner-surface` aliases of `--abs-wall-base`.
 
 ## Behavioral invariants
 
