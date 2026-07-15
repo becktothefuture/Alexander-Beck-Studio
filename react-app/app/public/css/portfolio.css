@@ -8,6 +8,7 @@
   --portfolio-intro-title-size: clamp(2.13rem, 3.51vw, 3.42rem);
   --portfolio-intro-title-line-height: 1.08;
   --portfolio-intro-title-letter-spacing: -0.034em;
+  --portfolio-card-image-veil-opacity: 0.46;
   --portfolio-image-veil-opacity: 0.46;
   --portfolio-project-view-veil-opacity: var(--simulation-contrast-veil-opacity, 0.18);
   --portfolio-project-view-veil-blur: var(--simulation-contrast-veil-blur, 80px);
@@ -1134,7 +1135,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: rgba(0, 0, 0, var(--portfolio-image-veil-opacity));
+  background: rgba(0, 0, 0, var(--portfolio-card-image-veil-opacity));
   opacity: 1;
 }
 

@@ -101,7 +101,8 @@ async function startFrameSampler(page, durationMs = 1200) {
         heroObjectPosition: document.querySelector('.portfolio-project-view__image')
           ? getComputedStyle(document.querySelector('.portfolio-project-view__image')).objectPosition
           : '',
-        bridgeVeilBackground: bridgeVeil ? getComputedStyle(bridgeVeil).backgroundImage : 'none',
+        bridgeVeilBackgroundImage: bridgeVeil ? getComputedStyle(bridgeVeil).backgroundImage : 'none',
+        bridgeVeilBackgroundColor: bridgeVeil ? getComputedStyle(bridgeVeil).backgroundColor : 'transparent',
         bridgeBoxShadow: bridgeStyle?.boxShadow || 'none',
         bridgeZIndex: bridgeStyle ? Number(bridgeStyle.zIndex) : 0,
         rootZIndex: rootStyle ? Number(rootStyle.zIndex) : 0,
@@ -132,6 +133,12 @@ async function captureTimedFrames(page, prefix, times) {
   return captures;
 }
 
+function readColorAlpha(value) {
+  if (!value || value === 'transparent') return 0;
+  const channels = String(value).match(/[\d.]+/g)?.map(Number) || [];
+  return channels.length >= 4 && Number.isFinite(channels[3]) ? channels[3] : 1;
+}
+
 function validateOpenSamples(samples, label, failures, requireFrameDensity = true) {
   const bridgeSamples = samples.filter((sample) => sample.bridgeRect && sample.bridgeOpacity > 0.01);
   if (requireFrameDensity && bridgeSamples.length < 3) {
@@ -157,8 +164,15 @@ function validateOpenSamples(samples, label, failures, requireFrameDensity = tru
     && ['transparent', 'rgba(0, 0, 0, 0)'].includes(firstBridge.bridgeMediaBackground)
   ) {
     failures.push(`${label}: colour media bridge lost its solid fill`);
-  } else if (firstBridge?.bridgeMediaMode !== 'colour' && firstBridge?.bridgeVeilBackground === 'none') {
-    failures.push(`${label}: media bridge lost the thumbnail veil`);
+  } else if (firstBridge?.bridgeMediaMode !== 'colour') {
+    if (['transparent', 'rgba(0, 0, 0, 0)'].includes(firstBridge?.bridgeVeilBackgroundColor)) {
+      failures.push(`${label}: media bridge lost the solid thumbnail veil`);
+    } else if (readColorAlpha(firstBridge?.bridgeVeilBackgroundColor) < 0.4) {
+      failures.push(`${label}: media bridge thumbnail veil is too faint`);
+    }
+    if (firstBridge?.bridgeVeilBackgroundImage !== 'none') {
+      failures.push(`${label}: media bridge retained a thumbnail gradient`);
+    }
   }
   if (firstBridge?.bridgeBoxShadow === 'none') {
     failures.push(`${label}: media bridge lost the thumbnail contact shadow`);

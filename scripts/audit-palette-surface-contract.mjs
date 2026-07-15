@@ -32,16 +32,20 @@ function loadExpectations() {
   const designSystem = JSON.parse(readFileSync(designSystemPath, 'utf8'));
   const runtime = designSystem.runtime || {};
   const shellTheme = designSystem.shell?.theme || {};
-  const stableWall = shellTheme.wallBase
-    || shellTheme.wallBaseDark
-    || shellTheme.wallBaseLight
+  const lightWall = shellTheme.wallBaseLight
+    || shellTheme.wallBase
+    || '#efefef';
+  const darkWall = shellTheme.wallBaseDark
+    || shellTheme.wallBase
     || '#141414';
   const lightWindow = runtime.bgLight || '#f5f5f5';
   const darkWindow = runtime.bgDark || '#141414';
 
   return {
     light: {
-      wall: stableWall,
+      wall: lightWall,
+      wallLight: lightWall,
+      wallDark: darkWall,
       bgLight: lightWindow,
       bgDark: darkWindow,
       studioWindow: lightWindow,
@@ -50,7 +54,9 @@ function loadExpectations() {
       veilRgb: hexToRgbString(lightWindow),
     },
     dark: {
-      wall: stableWall,
+      wall: darkWall,
+      wallLight: lightWall,
+      wallDark: darkWall,
       bgLight: lightWindow,
       bgDark: darkWindow,
       studioWindow: darkWindow,
@@ -153,7 +159,7 @@ async function readContractState(page, palette) {
 }
 
 function assertSurfaceContract(theme, palette, actual, expected) {
-  for (const key of ['wall', 'bgLight', 'bgDark', 'studioWindow', 'textPrimary', 'textMuted', 'veilRgb']) {
+  for (const key of ['wall', 'wallLight', 'wallDark', 'bgLight', 'bgDark', 'studioWindow', 'textPrimary', 'textMuted', 'veilRgb']) {
     if (normalize(actual[key]) !== normalize(expected[key])) {
       throw new Error(`${theme}/${palette} ${key}: expected ${expected[key]}, got ${actual[key]}`);
     }

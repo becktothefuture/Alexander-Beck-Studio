@@ -263,10 +263,16 @@ async function readFrameState(page) {
     const inactiveTab = document.querySelector('[data-route-tab]:not([aria-current="page"])');
     const buttonBar = inactiveTab?.closest('.button-bar');
     const activePill = buttonBar?.querySelector('.button-bar__active-pill');
+    const soundToggle = buttonBar?.querySelector('.button-bar__sound-toggle');
+    const themeToggle = buttonBar?.querySelector('.button-bar__theme-toggle');
+    const themeThumb = buttonBar?.querySelector('.button-bar__theme-thumb');
     const activeStyle = activeTab ? getComputedStyle(activeTab) : null;
     const activeContentStyle = activeContent ? getComputedStyle(activeContent) : null;
     const inactiveStyle = inactiveTab ? getComputedStyle(inactiveTab) : null;
     const activePillStyle = activePill ? getComputedStyle(activePill) : null;
+    const soundStyle = soundToggle ? getComputedStyle(soundToggle) : null;
+    const themeStyle = themeToggle ? getComputedStyle(themeToggle) : null;
+    const themeThumbStyle = themeThumb ? getComputedStyle(themeThumb) : null;
     return {
       boot: root.dataset.absBootState || '',
       transition: root.dataset.absSimulationFocusTransition || '',
@@ -287,6 +293,12 @@ async function readFrameState(page) {
       inactiveTabBackground: inactiveStyle?.backgroundColor || '',
       buttonBarBackground: buttonBar ? getComputedStyle(buttonBar).backgroundColor : '',
       inactiveTabBorder: inactiveStyle?.borderTopColor || '',
+      soundToggleBackground: soundStyle?.backgroundColor || '',
+      soundToggleColor: soundStyle?.color || '',
+      themeToggleBackground: themeStyle?.backgroundColor || '',
+      themeToggleColor: themeStyle?.color || '',
+      themeThumbBackground: themeThumbStyle?.backgroundColor || '',
+      themeThumbColor: themeThumbStyle?.color || '',
     };
   });
 
@@ -358,6 +370,33 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
   if (actual.lightBrowserChrome !== expectLightBrowserChrome) {
     throw new Error(`${siteTheme}/${browserScheme}/${phase} light browser chrome marker: expected ${expectLightBrowserChrome}, got ${actual.lightBrowserChrome}`);
   }
+
+  const assertUtilityControl = (name, backgroundValue, colorValue, surfaceBackground = compositedButtonBarBackground) => {
+    const background = cssColorToRgba(backgroundValue);
+    const foreground = cssColorToRgba(colorValue);
+    if (!background || !foreground) {
+      throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse ${name} colours: background=${backgroundValue} color=${colorValue}`);
+    }
+
+    const compositedBackground = compositeRgba(background, surfaceBackground);
+    if (pixelDistance(compositedBackground, expectedFrameRgb) > 2) {
+      throw new Error(`${siteTheme}/${browserScheme}/${phase} ${name} surface must match outer frame: expected ${expectedFrameRgb.join(',')}, got ${compositedBackground.join(',')} from ${backgroundValue}`);
+    }
+
+    const compositedControlForeground = compositeRgba(foreground, compositedBackground);
+    const controlContrast = contrastRatio(compositedControlForeground, compositedBackground);
+    if (controlContrast < 3) {
+      throw new Error(`${siteTheme}/${browserScheme}/${phase} ${name} icon contrast ${controlContrast.toFixed(2)} is below 3:1: foreground=${colorValue} background=${backgroundValue}`);
+    }
+
+    return Number(controlContrast.toFixed(2));
+  };
+
+  actual.utilityControlContrast = {
+    sound: assertUtilityControl('sound-toggle', actual.soundToggleBackground, actual.soundToggleColor),
+    themeTrack: assertUtilityControl('theme-toggle', actual.themeToggleBackground, actual.themeToggleColor),
+    themeThumb: assertUtilityControl('theme-thumb', actual.themeThumbBackground, actual.themeThumbColor, cssColorToRgba(actual.themeToggleBackground) ? compositeRgba(cssColorToRgba(actual.themeToggleBackground), compositedButtonBarBackground) : compositedButtonBarBackground),
+  };
 
   if (expectLightBrowserChrome) {
     const inactiveBorder = cssColorToRgba(actual.inactiveTabBorder);

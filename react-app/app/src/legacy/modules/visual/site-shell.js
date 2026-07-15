@@ -224,13 +224,14 @@ export function resolveShellPalette(config = currentShellConfig, isDark = isDark
   const family = detectBrowserFamily();
   const themeColorLikelyApplied = detectThemeColorLikelyApplied(family);
 
-  const stableWallBase = config?.theme?.wallBase
-    || config?.theme?.wallBaseDark
-    || config?.theme?.wallBaseLight
+  const stableWallBase = config?.theme?.wallBase || '';
+  const light = config?.theme?.wallBaseLight
+    || stableWallBase
+    || DEFAULT_SHELL_CONFIG.theme.wallBaseLight;
+  const dark = config?.theme?.wallBaseDark
+    || stableWallBase
     || DEFAULT_SHELL_CONFIG.theme.wallBaseDark;
-  const light = stableWallBase;
-  const dark = stableWallBase;
-  const active = stableWallBase;
+  const active = isDark ? dark : light;
 
   return {
     light,
@@ -363,6 +364,7 @@ export function applyShellPalette({ light, dark, active }) {
   root.style.setProperty('--abs-wall-base-light', nextLight);
   root.style.setProperty('--abs-wall-base-dark', nextDark);
   root.style.setProperty('--abs-wall-base', nextActive);
+  root.style.setProperty('--shell-wall-bg', nextActive);
 }
 
 export function resolveWindowPalette(isDark = isDarkThemeDocument()) {
