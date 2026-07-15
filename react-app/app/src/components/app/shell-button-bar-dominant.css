@@ -380,11 +380,7 @@ body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
   border-radius: var(--button-bar-switch-radius);
   outline: none;
   outline-offset: 0;
-  background: color-mix(
-    in srgb,
-    var(--dominant-utility-ink) 8%,
-    var(--dominant-utility-wall) 92%
-  );
+  background: var(--dominant-utility-control-bg);
   box-shadow: none;
   transform: none;
 }
@@ -413,11 +409,7 @@ body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__theme-toggle.shell-tab:is(:hover, :focus-visible, :active) {
-  background: color-mix(
-    in srgb,
-    var(--dominant-utility-ink) 10%,
-    var(--dominant-utility-wall) 90%
-  );
+  background: var(--dominant-utility-control-bg-hover);
   box-shadow: none;
 }
 

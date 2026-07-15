@@ -1,7 +1,15 @@
+import { useLayoutEffect } from 'react';
+
 import { SiteFooter } from '../SiteFooter.jsx';
 import { ShellButtonBar } from './ShellButtonBar.jsx';
 import { ShellWindowOverlay } from './ShellWindowOverlay.jsx';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
+
+function disposeRouteDepthTitleCanvas() {
+  if (typeof document === 'undefined') return;
+  document.getElementById('simulation-front-depth-canvas')?.remove();
+  document.getElementById('simulations')?.classList?.remove('simulation-depth-title-layer-active');
+}
 
 function RouteSceneMount({ routeRenderKey, children }) {
   switch (routeRenderKey) {
@@ -95,6 +103,23 @@ export function StudioShell({
   const routeSimulationLayer = simulationLayer ?? studioWindowContent ?? wallContent;
   const routeHeroLayer = heroLayer ?? heroTitle;
   const routeUiLayer = normalizeRouteUiLayer(uiLayer, headerContent, mainContent);
+
+  useLayoutEffect(() => {
+    if (routeRenderKey === 'home') return undefined;
+
+    let firstFrame = 0;
+    let secondFrame = 0;
+    disposeRouteDepthTitleCanvas();
+    firstFrame = window.requestAnimationFrame(() => {
+      disposeRouteDepthTitleCanvas();
+      secondFrame = window.requestAnimationFrame(disposeRouteDepthTitleCanvas);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
+  }, [routeRenderKey]);
 
   return (
     <>

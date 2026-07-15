@@ -262,9 +262,11 @@ async function readFrameState(page) {
     const activeContent = activeTab?.querySelector('.shell-tab__label, .shell-tab__icon');
     const inactiveTab = document.querySelector('[data-route-tab]:not([aria-current="page"])');
     const buttonBar = inactiveTab?.closest('.button-bar');
+    const activePill = buttonBar?.querySelector('.button-bar__active-pill');
     const activeStyle = activeTab ? getComputedStyle(activeTab) : null;
     const activeContentStyle = activeContent ? getComputedStyle(activeContent) : null;
     const inactiveStyle = inactiveTab ? getComputedStyle(inactiveTab) : null;
+    const activePillStyle = activePill ? getComputedStyle(activePill) : null;
     return {
       boot: root.dataset.absBootState || '',
       transition: root.dataset.absSimulationFocusTransition || '',
@@ -279,6 +281,7 @@ async function readFrameState(page) {
       frameInnerSurface: rootStyle.getPropertyValue('--frame-inner-surface').trim(),
       bodyBackground: bodyStyle.backgroundColor,
       activeTabBackground: activeStyle?.backgroundColor || '',
+      activePillBackground: activePillStyle?.display === 'none' ? '' : activePillStyle?.backgroundColor || '',
       activeTabColor: activeContentStyle?.color || activeStyle?.color || '',
       activeTabBorder: activeStyle?.borderTopColor || '',
       inactiveTabBackground: inactiveStyle?.backgroundColor || '',
@@ -321,7 +324,7 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
   const inactiveBackground = cssColorToRgba(actual.inactiveTabBackground);
   const buttonBarBackground = cssColorToRgba(actual.buttonBarBackground);
   const bodyBackground = cssColorToRgba(actual.bodyBackground);
-  const activeBackground = cssColorToRgba(actual.activeTabBackground);
+  const activeBackground = cssColorToRgba(actual.activePillBackground || actual.activeTabBackground);
   const activeForeground = cssColorToRgba(actual.activeTabColor);
   if (!expectedFrameRgb || !inactiveBackground || !buttonBarBackground || !bodyBackground || !activeBackground || !activeForeground) {
     throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse Button Bar colours: ${JSON.stringify({
@@ -329,6 +332,7 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
       inactiveTabBackground: actual.inactiveTabBackground,
       buttonBarBackground: actual.buttonBarBackground,
       activeTabBackground: actual.activeTabBackground,
+      activePillBackground: actual.activePillBackground,
       activeTabColor: actual.activeTabColor,
     })}`);
   }
@@ -340,13 +344,13 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
   }
 
   if (activeBackground[3] < 0.9) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar surface must be an opaque selected state: got ${actual.activeTabBackground}`);
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar surface must be an opaque selected state: got ${actual.activePillBackground || actual.activeTabBackground}`);
   }
 
   const compositedForeground = compositeRgba(activeForeground, activeBackground);
   const activeContrast = contrastRatio(compositedForeground, activeBackground);
   if (activeContrast < 4.5) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar contrast ${activeContrast.toFixed(2)} is below 4.5:1: foreground=${actual.activeTabColor} background=${actual.activeTabBackground}`);
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar contrast ${activeContrast.toFixed(2)} is below 4.5:1: foreground=${actual.activeTabColor} background=${actual.activePillBackground || actual.activeTabBackground}`);
   }
 
   actual.activeTabContrast = Number(activeContrast.toFixed(2));

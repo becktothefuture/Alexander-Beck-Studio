@@ -462,6 +462,7 @@ class PortfolioScrollApp {
     this.portfolioWheelSfxConfigured = false;
     this.portfolioSfxLastFrameAt = 0;
     this.portfolioSfxLastPosition = 0;
+    this.portfolioSfxLastCenterPosition = 0;
     this.lastPortfolioActionSoundAt = -Infinity;
     this.lastPortfolioCenterSoundAt = -Infinity;
     this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
@@ -606,6 +607,7 @@ class PortfolioScrollApp {
   resetPortfolioCarouselSfxSample() {
     this.portfolioSfxLastFrameAt = 0;
     this.portfolioSfxLastPosition = this.deckDisplayPosition;
+    this.portfolioSfxLastCenterPosition = Math.round(this.deckDisplayPosition);
   }
 
   stopPortfolioCarouselSfx() {
@@ -655,10 +657,32 @@ class PortfolioScrollApp {
     const now = performance.now();
     if (now - this.lastPortfolioCenterSoundAt < PORTFOLIO_CENTER_SOUND_MIN_INTERVAL_MS) return;
     this.lastPortfolioCenterSoundAt = now;
+    if (typeof SoundEngine.playWheelCenterClick === 'function') {
+      SoundEngine.playWheelCenterClick();
+      return;
+    }
     SoundEngine.playDetentClick?.({
       gain: PORTFOLIO_CAROUSEL_DETENT_GAIN,
       filterHz: PORTFOLIO_CAROUSEL_DETENT_FILTER_HZ,
     });
+  }
+
+  triggerPortfolioCenterCrossingFeedback(previousPosition, currentPosition = this.deckDisplayPosition) {
+    const nextCenterPosition = Math.round(currentPosition);
+    if (nextCenterPosition === this.portfolioSfxLastCenterPosition) return;
+    this.portfolioSfxLastCenterPosition = nextCenterPosition;
+
+    if (
+      this.isProjectOpen
+      || shouldReducePortfolioMotion()
+      || !this.projects.length
+      || Math.abs(currentPosition - previousPosition) < 0.0001
+    ) {
+      return;
+    }
+
+    triggerHaptic('step', { minIntervalMs: 180 });
+    this.playPortfolioCenterSound();
   }
 
   createProjectView() {
@@ -1706,7 +1730,7 @@ class PortfolioScrollApp {
       this.updateDeckStatus();
       this.updateVideoPlayback();
     }
-    if (activeChanged && !this.isProjectOpen) {
+    if (activeChanged && !this.isProjectOpen && shouldReducePortfolioMotion()) {
       triggerHaptic('step', { minIntervalMs: 180 });
       this.playPortfolioCenterSound();
     }
@@ -1936,6 +1960,7 @@ class PortfolioScrollApp {
     if (!shift) return false;
     this.deckDisplayPosition -= shift;
     this.deckTargetPosition -= shift;
+    this.portfolioSfxLastCenterPosition -= shift;
     if (this.wheelGesture) this.wheelGesture.origin -= shift;
     if (this.pointerState) this.pointerState.startTargetPosition -= shift;
     this.deckRebaseCount += 1;
@@ -2071,6 +2096,7 @@ class PortfolioScrollApp {
     this.deckMeasuredVelocity = (this.deckDisplayPosition - previousDisplayPosition) / (elapsedMs / 1000);
     this.particleField?.setVelocity(this.deckMeasuredVelocity);
 
+    this.triggerPortfolioCenterCrossingFeedback(previousDisplayPosition, this.deckDisplayPosition);
     this.updateDeckFromScroll();
     this.updatePortfolioCarouselSfx(timestamp);
 

@@ -617,29 +617,6 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   isolation: isolate;
 }
 
-.portfolio-speed-field-canvas {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  width: 100%;
-  height: 100%;
-  opacity: 1;
-  visibility: visible;
-  pointer-events: none;
-  contain: strict;
-  transition: opacity 140ms linear;
-}
-
-.portfolio-speed-field-canvas.is-active {
-  opacity: 1;
-  visibility: visible;
-}
-
-.portfolio-speed-field-canvas.is-suspended {
-  opacity: 0;
-  visibility: hidden;
-}
-
 .portfolio-scroll-canvas {
   opacity: 0;
   visibility: hidden;
@@ -1527,8 +1504,8 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-project-view__back--top.abs-icon-btn:focus-visible {
-  outline: calc(var(--abs-size-1px) * 2) solid currentColor;
-  outline-offset: calc(var(--abs-size-1px) * 2);
+  outline: none;
+  outline-offset: 0;
   box-shadow: none;
 }
 
@@ -1873,8 +1850,8 @@ body.portfolio-project-open .ui-bottom {
 .portfolio-project-view__block--note p,
 .portfolio-project-view__takeaways li {
   margin: 0;
-  font-size: clamp(1rem, 1.3vw, 1.16rem);
-  line-height: 1.62;
+  font-size: clamp(1.28rem, 1.95vw, 1.7rem);
+  line-height: 1.32;
   widows: 2;
   orphans: 2;
 }
@@ -1902,6 +1879,15 @@ body.portfolio-project-open .ui-bottom {
 .portfolio-project-view__takeaways,
 .portfolio-project-view__links {
   max-width: min(72ch, 100%);
+}
+
+.portfolio-project-view__summary,
+.portfolio-project-view__overview,
+.portfolio-project-view__block--text,
+.portfolio-project-view__block--chapter,
+.portfolio-project-view__block--note,
+.portfolio-project-view__takeaways {
+  padding-block: clamp(28px, 4.8vw, 64px);
 }
 
 .portfolio-project-view__section-label {
@@ -1986,13 +1972,13 @@ body.portfolio-project-open .ui-bottom {
 
 .portfolio-project-view__stack {
   display: grid;
-  gap: clamp(20px, 2.6vw, 30px);
+  gap: clamp(42px, 6vw, 78px);
 }
 
 .portfolio-project-view__block {
   margin: 0;
   display: grid;
-  gap: 10px;
+  gap: clamp(14px, 2vw, 24px);
 }
 
 .portfolio-project-view__block--chapter {
@@ -2028,6 +2014,48 @@ body.portfolio-project-open .ui-bottom {
 .portfolio-project-view__prose-highlight {
   color: var(--portfolio-project-accent);
   font-weight: 580;
+}
+
+.portfolio-project-view__block--chapter[data-highlight-tone='0'] {
+  --portfolio-prose-highlight-color: var(--ball-6);
+}
+
+.portfolio-project-view__block--chapter[data-highlight-tone='1'] {
+  --portfolio-prose-highlight-color: var(--ball-7);
+}
+
+.portfolio-project-view__block--chapter[data-highlight-tone='2'] {
+  --portfolio-prose-highlight-color: var(--ball-8);
+}
+
+.portfolio-project-view__block--chapter[data-highlight-tone='3'] {
+  --portfolio-prose-highlight-color: var(--ball-4);
+}
+
+html.dark-mode .portfolio-project-view__block--chapter[data-highlight-tone='1'],
+html[data-abs-theme='dark'] .portfolio-project-view__block--chapter[data-highlight-tone='1'] {
+  --portfolio-prose-highlight-color: color-mix(in srgb, var(--ball-7) 56%, rgba(var(--abs-rgb-white), 1) 44%);
+}
+
+html.dark-mode .portfolio-project-view__block--chapter[data-highlight-tone='3'],
+html[data-abs-theme='dark'] .portfolio-project-view__block--chapter[data-highlight-tone='3'] {
+  --portfolio-prose-highlight-color: color-mix(in srgb, var(--ball-4) 58%, rgba(var(--abs-rgb-white), 1) 42%);
+}
+
+.portfolio-project-view__block--chapter .portfolio-project-view__prose-highlight {
+  color: var(--portfolio-prose-highlight-color, var(--portfolio-project-accent));
+}
+
+.portfolio-project-view__summary,
+.portfolio-project-view__overview,
+.portfolio-project-view__block--text,
+.portfolio-project-view__block--chapter,
+.portfolio-project-view__block--note,
+.portfolio-project-view__takeaways,
+.portfolio-project-view__links {
+  filter: blur(var(--scroll-presence-blur, 0px));
+  transform: translate3d(0, var(--scroll-presence-y, 0px), 0);
+  will-change: opacity, filter, transform;
 }
 
 .portfolio-project-view__block--note {
@@ -2165,7 +2193,7 @@ body.portfolio-project-open .ui-bottom {
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__body-inner {
-  gap: clamp(16px, 2.2vw, 28px);
+  gap: clamp(30px, 4.6vw, 58px);
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__metadata {
@@ -2203,8 +2231,8 @@ body.portfolio-project-open .ui-bottom {
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__summary p,
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__block--chapter p,
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__block--text p {
-  font-size: clamp(1.04rem, 1.22vw, 1.16rem);
-  line-height: 1.64;
+  font-size: clamp(1.5rem, 2.45vw, 2.36rem);
+  line-height: 1.17;
   color: var(--portfolio-drawer-ink);
 }
 
@@ -2219,35 +2247,35 @@ body.portfolio-project-open .ui-bottom {
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__summary {
-  max-width: 64ch;
+  max-width: min(52rem, 100%);
+  padding-block: clamp(56px, 9.6vw, 128px);
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__summary p {
-  font-size: clamp(1.04rem, 1.22vw, 1.16rem);
-  line-height: 1.64;
+  font-size: clamp(1.5rem, 2.45vw, 2.36rem);
+  line-height: 1.17;
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__block--chapter {
-  margin-block: clamp(var(--gap-lg), 4vw, var(--gap-xl)) clamp(var(--gap-xs), 1vw, var(--gap-sm));
-  padding-top: 0;
+  margin-block: clamp(var(--gap-xl), 6vw, calc(var(--gap-xl) * 2.2)) clamp(var(--gap-md), 3vw, var(--gap-xl));
+  padding-block: clamp(56px, 9.6vw, 128px);
   grid-template-columns: 1fr;
   gap: 0;
   border: 0;
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__chapter-copy {
-  max-width: 64ch;
-  gap: var(--gap-xs);
+  max-width: min(52rem, 100%);
+  gap: clamp(var(--gap-xs), 1.2vw, var(--gap-sm));
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__prose-highlight {
-  color: color-mix(in srgb, var(--ball-6) 82%, var(--portfolio-project-accent) 18%);
-  font-weight: 560;
+  font-weight: 600;
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__block--text {
-  max-width: 64ch;
-  padding: 0;
+  max-width: min(52rem, 100%);
+  padding-block: clamp(56px, 9.6vw, 128px);
   border: 0;
 }
 

@@ -206,7 +206,7 @@ async function readWallReadyDebug(page) {
 }
 
 async function waitForWallReady(page, label = 'wall') {
-  try {
+  async function waitForStableWall() {
     await page.evaluate(() => {
       window.__absThemeWallAuditRect = '';
       window.__absThemeWallAuditExactKey = '';
@@ -216,9 +216,12 @@ async function waitForWallReady(page, label = 'wall') {
       const rootStyle = getComputedStyle(document.documentElement);
       const wall = document.querySelector('#simulations');
       const toggle = document.querySelector('.button-bar__theme-toggle');
+      const routeTabs = [...document.querySelectorAll('[data-route-tab]')];
       return Boolean(
         wall
         && toggle
+        && routeTabs.length >= 4
+        && routeTabs.every((tab) => getComputedStyle(tab).color !== 'rgb(0, 0, 238)')
         && getComputedStyle(wall).borderTopLeftRadius.trim().endsWith('px')
         && rootStyle.getPropertyValue('--container-border').trim().endsWith('px')
       );
@@ -267,8 +270,22 @@ async function waitForWallReady(page, label = 'wall') {
       }
       return performance.now() - window.__absThemeWallAuditExactSince >= stableForMs;
     }, { tolerance: maxRadiusDeltaPx, stableForMs: 300 }, { timeout: 15000, polling: 100 });
+  }
+
+  try {
+    await waitForStableWall();
   } catch (error) {
     const debug = await readWallReadyDebug(page).catch(() => null);
+    if (debug && !debug.wallExists) {
+      await page.reload({ waitUntil: 'domcontentloaded', timeout: NAVIGATION_TIMEOUT_MS });
+      try {
+        await waitForStableWall();
+        return;
+      } catch (retryError) {
+        const retryDebug = await readWallReadyDebug(page).catch(() => null);
+        throw new Error(`${label}: wall did not settle after reload\n${JSON.stringify(retryDebug, null, 2)}`, { cause: retryError });
+      }
+    }
     throw new Error(`${label}: wall did not settle\n${JSON.stringify(debug, null, 2)}`, { cause: error });
   }
 }

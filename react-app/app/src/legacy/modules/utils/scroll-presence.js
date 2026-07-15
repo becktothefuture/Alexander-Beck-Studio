@@ -83,6 +83,8 @@ export function createScrollPresence(root, options = {}) {
       const nextValue = presence.toFixed(3);
       if (item.style.getPropertyValue('--scroll-presence') !== nextValue) {
         item.style.setProperty('--scroll-presence', nextValue);
+        item.style.setProperty('--scroll-presence-blur', `${((1 - presence) * 3).toFixed(2)}px`);
+        item.style.setProperty('--scroll-presence-y', `${((1 - presence) * 12).toFixed(2)}px`);
       }
     });
 
@@ -133,7 +135,11 @@ export function createScrollPresence(root, options = {}) {
       root.removeEventListener('load', handleLoad, true);
       window.removeEventListener('resize', handleResize);
       window.visualViewport?.removeEventListener('resize', handleResize);
-      items.forEach((item) => item.style.removeProperty('--scroll-presence'));
+      items.forEach((item) => {
+        item.style.removeProperty('--scroll-presence');
+        item.style.removeProperty('--scroll-presence-blur');
+        item.style.removeProperty('--scroll-presence-y');
+      });
       items = [];
       activeItem = null;
     },

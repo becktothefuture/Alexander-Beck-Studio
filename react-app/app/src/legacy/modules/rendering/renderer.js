@@ -196,12 +196,31 @@ export function getEffectiveDPR() {
   return effectiveDPR;
 }
 
+function disposeDepthTitleCanvas() {
+  const globals = getGlobals();
+  const frontCanvas = globals.depthTitleFrontCanvas || document.getElementById('simulation-front-depth-canvas');
+  try {
+    globals.depthTitleFrontCtx?.clearRect?.(0, 0, frontCanvas?.width || 0, frontCanvas?.height || 0);
+  } catch (e) {
+    /* ignore */
+  }
+  frontCanvas?.remove?.();
+  const container = globals.container || document.getElementById('simulations');
+  container?.classList?.remove('simulation-depth-title-layer-active');
+  globals.depthTitleFrontCanvas = null;
+  globals.depthTitleFrontCtx = null;
+}
+
 /**
  * Tear down resize/orientation/visualViewport/ResizeObserver from the last `setupRenderer()`.
  * Safe to call multiple times; also cancels a pending debounced resize rAF.
  */
 export function disposeRendererListeners(expectedOwner = null) {
-  if (expectedOwner !== null && expectedOwner !== activeRendererOwner) return false;
+  if (expectedOwner !== null && expectedOwner !== activeRendererOwner) {
+    stopMainLoop();
+    disposeDepthTitleCanvas();
+    return false;
+  }
   activeRendererOwner = 0;
   stopMainLoop();
   if (typeof disposeRendererListenersFn === 'function') {
@@ -216,6 +235,7 @@ export function disposeRendererListeners(expectedOwner = null) {
     cancelAnimationFrame(resizeDebounceId);
     resizeDebounceId = null;
   }
+  disposeDepthTitleCanvas();
   // SPA route teardown removes pointer listeners via legacy scope; allow the next
   // `setupPointer()` to register fresh handlers (otherwise __pointerReady blocks re-init).
   try {

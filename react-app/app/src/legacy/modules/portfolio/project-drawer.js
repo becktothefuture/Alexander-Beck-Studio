@@ -139,12 +139,63 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function buildChapterProseMarkup(title, body) {
-  const highlightedTitle = title
-    ? `<span class="portfolio-project-view__prose-highlight">${escapeHtml(title)}</span>`
-    : '';
-  const bodyCopy = body ? escapeHtml(body) : '';
-  return [highlightedTitle, bodyCopy].filter(Boolean).join(' ');
+const CHAPTER_HIGHLIGHT_PATTERNS = Object.freeze([
+  'title',
+  'last-sentence-fragment',
+  'first-sentence-fragment',
+  'title',
+]);
+
+function splitSentences(value) {
+  return String(value || '').match(/[^.!?]+[.!?]?/g)?.map((part) => part.trim()).filter(Boolean) || [];
+}
+
+function getSentenceFragment(sentence, target = 'last') {
+  const words = String(sentence || '').split(/\s+/).filter(Boolean);
+  if (words.length <= 3) return sentence;
+  const fragmentLength = Math.min(3, Math.max(2, Math.round(words.length * 0.32)));
+  return target === 'first'
+    ? words.slice(0, fragmentLength).join(' ')
+    : words.slice(-fragmentLength).join(' ').replace(/[.!?]$/, '');
+}
+
+function replaceFirstPlainTextMatch(source, needle, replacement) {
+  if (!source || !needle) return escapeHtml(source);
+  const index = source.indexOf(needle);
+  if (index < 0) return escapeHtml(source);
+  return [
+    escapeHtml(source.slice(0, index)),
+    replacement,
+    escapeHtml(source.slice(index + needle.length)),
+  ].join('');
+}
+
+function buildChapterProseMarkup(title, body, chapterIndex = 0) {
+  const pattern = CHAPTER_HIGHLIGHT_PATTERNS[chapterIndex % CHAPTER_HIGHLIGHT_PATTERNS.length];
+  const titleCopy = title ? escapeHtml(title) : '';
+  const bodyCopy = String(body || '');
+
+  if (pattern === 'title' && title) {
+    return [
+      `<span class="portfolio-project-view__prose-highlight">${escapeHtml(title)}</span>`,
+      bodyCopy ? escapeHtml(bodyCopy) : '',
+    ].filter(Boolean).join(' ');
+  }
+
+  const sentences = splitSentences(bodyCopy);
+  const targetSentence = pattern === 'first-sentence-fragment'
+    ? sentences[0]
+    : sentences[sentences.length - 1];
+  const targetFragment = getSentenceFragment(
+    targetSentence,
+    pattern === 'first-sentence-fragment' ? 'first' : 'last'
+  );
+  const highlightedBody = replaceFirstPlainTextMatch(
+    bodyCopy,
+    targetFragment,
+    `<span class="portfolio-project-view__prose-highlight">${escapeHtml(targetFragment)}</span>`
+  );
+  return [titleCopy, highlightedBody].filter(Boolean).join(' ');
 }
 
 function computeDrawerMediaScrollShiftY(mediaRect, scrollerRect) {
@@ -599,6 +650,7 @@ export class PortfolioProjectDrawer {
       : [];
     const takeaways = Array.isArray(project?.takeaways) ? project.takeaways : [];
     let stillImageOrdinal = 1;
+    let chapterOrdinal = 0;
 
     const metadataHtml = metadata.length
       ? `
@@ -655,12 +707,14 @@ export class PortfolioProjectDrawer {
         const label = block.label || '';
         const title = block.title || '';
         const body = block.body || block.text || '';
+        const chapterIndex = chapterOrdinal;
+        chapterOrdinal += 1;
         return `
-          <section class="portfolio-project-view__block portfolio-project-view__block--chapter" data-scroll-presence data-scroll-presence-span="0.2">
+          <section class="portfolio-project-view__block portfolio-project-view__block--chapter" data-scroll-presence data-scroll-presence-span="0.2" data-highlight-tone="${chapterIndex % 4}">
             ${number ? `<span class="portfolio-project-view__chapter-number" aria-hidden="true">${escapeHtml(number)}</span>` : ''}
             <div class="portfolio-project-view__chapter-copy">
               ${label ? `<p class="portfolio-project-view__chapter-label">${escapeHtml(label)}</p>` : ''}
-              ${title || body ? `<p class="portfolio-project-view__chapter-line">${buildChapterProseMarkup(title, body)}</p>` : ''}
+              ${title || body ? `<p class="portfolio-project-view__chapter-line">${buildChapterProseMarkup(title, body, chapterIndex)}</p>` : ''}
             </div>
           </section>
         `;
