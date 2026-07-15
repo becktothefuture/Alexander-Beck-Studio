@@ -50,7 +50,7 @@ The system is distributed across these production surfaces. A design change is c
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
 | Portfolio intro, orbital deck, gate, cards, project drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `PortfolioGateScene.jsx`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
-| About Me route-entry composition | `AboutRoute.jsx`, shared centered-route CSS |
+| About Me scroll narrative, editorial sections, point field, and bust resolution | `AboutRoute.jsx`, `routes/about-narrative-lab/`, `about-narrative-lab.css` |
 | Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
 | Footer signature, social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
 | Theme, frame, wall, noise, contrast veil, and browser harmony | `dark-mode-v2.js`, `site-shell.js`, `chrome-harmony.js`, `tokens.css` |
@@ -151,9 +151,12 @@ The outer shell is one stable instrument: exposed band, wall, frame, studio wind
 
 ### About Me
 
-- About uses the centered route-entry composition inside the same physical window.
-- The current “Coming soon” view is an intentional placeholder, not a template for future About content.
-- Do not invent a second route hierarchy until the About concept and content are commissioned.
+- About is one continuous scroll narrative inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, footer, and Button Bar remain stable.
+- The narrative moves from a dense idea cloud through a calm field, a six-discipline grid, a living wave field, and a large point-cloud bust. These are transformations of one material, not separate decorative scenes.
+- Two vertically scrolling editorial areas carry the background, client context, disciplines, AI, and multidisciplinary synthesis. Spatial copy between them must advance the argument rather than act as detachable captions.
+- The six disciplines are named literally in the editorial layer and represented by exactly six emphasized grid points. Once the grid becomes the living field, it behaves as one connected system.
+- The bust is the quiet epilogue. It may rotate or respond horizontally, while the final profile, statement, and contact actions remain readable without covering the sculpture.
+- The creative toolkit belongs to the development lab route with `?edit=1`. The production About route and production lab build use the same validated authored document but expose no tuning interface.
 
 ### Contact
 
@@ -314,7 +317,7 @@ These are implementation/documentation findings, not permission for a broad refa
 | P2 | Raw component colors and fallback palettes drift | Contact/Portfolio surfaces and Contact ripple fallback duplicate color values. | Introduce local semantic component tokens and one shared palette fallback. |
 | P2 | Tap-target token name is unsafe | `--abs-tap-target` resolves below the actual 44px control minimum. | Rename it for what it sizes or redefine it as the true minimum and separate glyph/frame sizes. |
 | P2 | Token scope is broad and repetitive | Global token file mixes foundations, compatibility aliases, and component internals. | Do not rewrite wholesale; keep new global tokens semantic and move component tokens locally when that component is revised. |
-| P3 | About is unfinished | The route is a deliberate “Coming soon” placeholder. | Keep it explicit and avoid inventing a new pattern before the content direction exists. |
+| P3 | About narrative is still being authored | The production route now uses the canonical spatial narrative and protected point-world runtime; its copy and choreography remain an active editorial workstream. | Iterate through the development-only creative toolkit while preserving the shared shell and validated playback contract. |
 
 ## Verification
 

@@ -25,7 +25,7 @@ There is no second static page/template pipeline.
 |---|---|---|
 | Home | `routes/home/HomeRoute.jsx` | `legacy/main.js` + simulation modules |
 | Portfolio | `routes/portfolio/PortfolioRoute.jsx` | `legacy/modules/portfolio/app.js`, drawer, handoff |
-| About Me | `routes/about/AboutRoute.jsx` | none |
+| About Me | `routes/about/AboutRoute.jsx` + shared About narrative components | React-owned Three.js point world |
 | Contact | `routes/contact/ContactRoute.jsx` | none |
 
 `src/lib/routes.js` owns canonical paths, aliases, Button Bar labels, and ARIA labels. `SiteApp.jsx` owns route descriptors and document titles.
@@ -45,6 +45,7 @@ See `CANVAS-RUNTIME.md` and `TRANSITION-ORCHESTRATION.md`.
 ## Data and configuration
 
 - `contents-home.json`: Home, footer/social, Contact, and Portfolio-gate editorial content
+- `contents-about.json`: About copy, Section order, WU extents, Camera keys, World Shapes/modifiers, and interactions
 - `contents-portfolio.json`: project cards, detail copy, and media
 - `design-system.json`: only authored design configuration
 - generated config JSON: runtime compatibility outputs created by flattening
@@ -58,5 +59,6 @@ The root `npm run build` is canonical:
 1. check production HTML entry shells against `index.html`;
 2. flatten the authored design config;
 3. run the multi-entry Vite build.
+4. verify that the development-only About editor and Save client did not enter production assets.
 
 Direct app builds can bypass configuration flattening and are not release-equivalent.

@@ -10,6 +10,7 @@ const publicConfigDir = resolve(__dirname, 'public/config');
 const VIRTUAL_CONTENT_PREFIX = '\0virtual:abs-content/';
 const CONTENT_MODULES = {
   'virtual:abs-content/home': resolve(publicConfigDir, 'contents-home.json'),
+  'virtual:abs-content/about': resolve(publicConfigDir, 'contents-about.json'),
 };
 
 async function readJsonModule(filePath) {
@@ -33,10 +34,9 @@ function absContentVirtualPlugin() {
       return null;
     },
     async load(id) {
-      if (id === `${VIRTUAL_CONTENT_PREFIX}home`) {
-        return readJsonModule(CONTENT_MODULES['virtual:abs-content/home']);
-      }
-      return null;
+      if (!id.startsWith(VIRTUAL_CONTENT_PREFIX)) return null;
+      const moduleId = `virtual:abs-content/${id.slice(VIRTUAL_CONTENT_PREFIX.length)}`;
+      return CONTENT_MODULES[moduleId] ? readJsonModule(CONTENT_MODULES[moduleId]) : null;
     },
     handleHotUpdate({ file, server }) {
       if (!watchedFiles.includes(file)) return;

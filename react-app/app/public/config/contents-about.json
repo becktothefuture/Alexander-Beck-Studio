@@ -1,0 +1,783 @@
+{
+  "schemaVersion": 1,
+  "globals": {
+    "scrollSmoothing": 0.82,
+    "readingWidthRem": 58,
+    "editorialRevealThreshold": 0.74,
+    "camera": {
+      "startZ": 8,
+      "cadence": 1,
+      "cadenceLocked": true,
+      "fov": 48
+    },
+    "pointMaterial": {
+      "opacity": 0.82,
+      "pointSize": 3.6
+    },
+    "textMotion": {
+      "preset": "travelling-title-v1",
+      "farScale": 0.72,
+      "nearScale": 1.42,
+      "entryDepth": 520,
+      "exitDepth": 360,
+      "exitDrift": 32,
+      "maxBlur": 20
+    }
+  },
+  "sections": [
+    {
+      "id": "promise",
+      "label": "Promise",
+      "type": "spatial",
+      "layout": "opener",
+      "extentWU": 1.25,
+      "mobileExtentWU": 1.15,
+      "text": {
+        "cues": [
+          {
+            "id": "promise-main",
+            "text": "I help shape complex ideas into emotionally compelling experiences.",
+            "enter": 0,
+            "hold": 0.45,
+            "exit": 1,
+            "preset": "opener-v1"
+          }
+        ]
+      },
+      "camera": {
+        "keys": []
+      },
+      "world": {
+        "mode": "set",
+        "adapterId": "point-field-v1",
+        "shapeId": "cluster-v1",
+        "seed": 506832829,
+        "entryDistanceWU": 8,
+        "transform": {
+          "position": [
+            0,
+            1.55,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": 0.72
+        },
+        "transitionIn": {
+          "start": 0,
+          "end": 0,
+          "type": "morph",
+          "easing": "smoothstep",
+          "correspondence": "index-v1"
+        },
+        "shapeParameters": {
+          "radius": 2.7,
+          "density": 1
+        },
+        "modifiers": [
+          {
+            "id": "ambient-drift-v1",
+            "enabled": true,
+            "parameters": {
+              "amplitude": 0.025,
+              "speed": 0.62,
+              "timeMode": "mixed"
+            }
+          }
+        ]
+      },
+      "interaction": {
+        "type": "none"
+      }
+    },
+    {
+      "id": "complexity",
+      "label": "Entering complexity",
+      "type": "spatial",
+      "layout": "center",
+      "extentWU": 2.8,
+      "mobileExtentWU": 2.45,
+      "text": {
+        "cues": [
+          {
+            "id": "complexity-idea",
+            "text": "At the beginning, an idea can feel like everything at once.",
+            "enter": 0,
+            "hold": 0.16,
+            "exit": 0.325,
+            "preset": "travelling-title-v1"
+          },
+          {
+            "id": "complexity-conditions",
+            "text": "It might need to be useful, original, technically possible and emotionally right—all before its shape is clear.",
+            "enter": 0.335,
+            "hold": 0.5,
+            "exit": 0.665,
+            "preset": "travelling-title-v1"
+          },
+          {
+            "id": "complexity-curiosity",
+            "text": "This is the part I enjoy: learning what is there, understanding what matters to the people involved, and finding the direction that can hold it together.",
+            "enter": 0.675,
+            "hold": 0.84,
+            "exit": 1,
+            "preset": "travelling-title-v1"
+          }
+        ]
+      },
+      "camera": {
+        "keys": [
+          {
+            "at": 0.08,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "lookAtOffset": [
+              0,
+              0,
+              -1
+            ],
+            "fov": 48,
+            "roll": 0,
+            "easing": "smoothstep"
+          },
+          {
+            "at": 0.38,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "lookAtOffset": [
+              0,
+              0,
+              -1
+            ],
+            "fov": 48,
+            "roll": 0.38,
+            "easing": "smoothstep"
+          },
+          {
+            "at": 0.68,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "lookAtOffset": [
+              0,
+              0,
+              -1
+            ],
+            "fov": 48,
+            "roll": 0,
+            "easing": "smoothstep"
+          }
+        ]
+      },
+      "world": {
+        "mode": "set",
+        "adapterId": "point-field-v1",
+        "shapeId": "calm-field-v1",
+        "seed": 506832829,
+        "entryDistanceWU": 1.8,
+        "transform": {
+          "position": [
+            0,
+            0.2,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": 1
+        },
+        "transitionIn": {
+          "start": 0.08,
+          "end": 0.68,
+          "type": "morph",
+          "easing": "smoothstep",
+          "correspondence": "index-v1"
+        },
+        "shapeParameters": {
+          "width": 13,
+          "depth": 17,
+          "height": -1.72,
+          "jitter": 0.035,
+          "density": 1
+        },
+        "modifiers": [
+          {
+            "id": "ambient-drift-v1",
+            "enabled": true,
+            "parameters": {
+              "amplitude": 0.025,
+              "speed": 0.62,
+              "timeMode": "mixed"
+            }
+          }
+        ]
+      },
+      "interaction": {
+        "type": "none"
+      }
+    },
+    {
+      "id": "background",
+      "label": "Curiosity connects the work",
+      "type": "editorial",
+      "layout": "reading",
+      "extentWU": 2.25,
+      "mobileExtentWU": 2.6,
+      "text": {
+        "blocks": [
+          {
+            "id": "background-prose",
+            "kind": "prose",
+            "text": "I have always had one foot in the technical and one in the visual. I studied Computer Science before Communication Design, then built a practice across digital products, identity, interfaces, motion and creative technology. The common thread is curiosity: how something works, how it feels, and how those qualities can strengthen one another."
+          },
+          {
+            "id": "background-list",
+            "kind": "list",
+            "label": "Things I keep coming back to",
+            "items": [
+              "Emerging technology with a useful role in people’s lives.",
+              "Products and systems with character.",
+              "Strong visual ideas that also work.",
+              "Making ideas tangible early, because a deck can only do so much."
+            ]
+          },
+          {
+            "id": "background-clients",
+            "kind": "clients",
+            "text": "That curiosity has shaped work with Yoti, S&P Global, Bentley, SunExpress, McCann and the American Heart Association across identity, finance, mobility, healthcare and digital products."
+          }
+        ]
+      },
+      "camera": {
+        "keys": []
+      },
+      "world": {
+        "mode": "continue"
+      },
+      "interaction": {
+        "type": "none"
+      }
+    },
+    {
+      "id": "practice-reveal",
+      "label": "The practice comes into view",
+      "type": "spatial",
+      "layout": "constellation",
+      "extentWU": 1.7,
+      "mobileExtentWU": 1.55,
+      "text": {
+        "cues": [
+          {
+            "id": "practice-main",
+            "text": "Over time, those interests became a practice built across six connected disciplines.",
+            "enter": 0.335,
+            "hold": 0.5,
+            "exit": 0.665,
+            "preset": "travelling-title-v1"
+          }
+        ]
+      },
+      "camera": {
+        "keys": [
+          {
+            "at": 0.08,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "lookAtOffset": [
+              0,
+              0,
+              -1
+            ],
+            "fov": 48,
+            "roll": 0,
+            "easing": "smoothstep"
+          },
+          {
+            "at": 0.38,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "lookAtOffset": [
+              0,
+              0,
+              -1
+            ],
+            "fov": 48,
+            "roll": 0.38,
+            "easing": "smoothstep"
+          },
+          {
+            "at": 0.68,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "lookAtOffset": [
+              0,
+              0,
+              -1
+            ],
+            "fov": 48,
+            "roll": 0,
+            "easing": "smoothstep"
+          }
+        ]
+      },
+      "world": {
+        "mode": "set",
+        "adapterId": "point-field-v1",
+        "shapeId": "discipline-grid-v1",
+        "seed": 506832829,
+        "entryDistanceWU": 4.2,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": 0.92
+        },
+        "transitionIn": {
+          "start": 0.08,
+          "end": 0.68,
+          "type": "morph",
+          "easing": "smoothstep",
+          "correspondence": "index-v1"
+        },
+        "shapeParameters": {
+          "width": 12.5,
+          "height": 7.5,
+          "depthJitter": 0.04,
+          "density": 1
+        },
+        "modifiers": [
+          {
+            "id": "ambient-drift-v1",
+            "enabled": true,
+            "parameters": {
+              "amplitude": 0.025,
+              "speed": 0.62,
+              "timeMode": "mixed"
+            }
+          },
+          {
+            "id": "group-emphasis-v1",
+            "enabled": true,
+            "parameters": {
+              "strength": 2.35
+            }
+          }
+        ]
+      },
+      "interaction": {
+        "type": "none"
+      }
+    },
+    {
+      "id": "disciplines",
+      "label": "Six disciplines. One connected practice.",
+      "type": "editorial",
+      "layout": "disciplines",
+      "extentWU": 2.8,
+      "mobileExtentWU": 3.2,
+      "text": {
+        "blocks": [
+          {
+            "id": "disciplines-list",
+            "kind": "disciplines",
+            "items": [
+              "Product Design",
+              "Experience Design",
+              "Art Direction",
+              "Motion & 3D",
+              "Creative Engineering",
+              "Parametric Systems"
+            ]
+          },
+          {
+            "id": "disciplines-practice",
+            "kind": "prose",
+            "text": "Product Design and Experience Design help me understand the opportunity and shape how the experience works. Art Direction gives the idea character and a point of view. Motion & 3D make behaviour, space and feeling tangible. Creative Engineering and Parametric Systems let me explore directly through code, tools and working systems."
+          },
+          {
+            "id": "disciplines-ai",
+            "kind": "prose",
+            "text": "AI runs through this practice as both a creative material and a practical capability, expanding what I can explore, generate and build. Judgement, craft and context give those possibilities purpose."
+          },
+          {
+            "id": "disciplines-synthesis",
+            "kind": "prose",
+            "text": "Moving between the disciplines lets one kind of thinking change another. An insight can reshape the product. A technical experiment can unlock the visual language. Motion can make an interaction easier to understand. Each move informs the next until the work begins to feel coherent."
+          }
+        ]
+      },
+      "camera": {
+        "keys": []
+      },
+      "world": {
+        "mode": "continue"
+      },
+      "interaction": {
+        "type": "none"
+      }
+    },
+    {
+      "id": "bringing-life",
+      "label": "Bringing the idea to life",
+      "type": "spatial",
+      "layout": "living-field",
+      "extentWU": 3,
+      "mobileExtentWU": 2.7,
+      "text": {
+        "cues": [
+          {
+            "id": "life-momentum",
+            "text": "As these ways of thinking begin to work together, the idea gathers momentum.",
+            "enter": 0,
+            "hold": 0.16,
+            "exit": 0.3,
+            "preset": "travelling-title-v1"
+          },
+          {
+            "id": "life-form",
+            "text": "What was difficult to picture takes on form, behaviour and character.",
+            "enter": 0.25,
+            "hold": 0.39,
+            "exit": 0.53,
+            "preset": "travelling-title-v1"
+          },
+          {
+            "id": "life-feel",
+            "text": "It becomes something people can understand, interact with and feel.",
+            "enter": 0.48,
+            "hold": 0.61,
+            "exit": 0.75,
+            "preset": "travelling-title-v1"
+          },
+          {
+            "id": "life-meaning",
+            "text": "That is what I mean by bringing an idea to life.",
+            "enter": 0.7,
+            "hold": 0.84,
+            "exit": 1,
+            "preset": "travelling-title-v1"
+          }
+        ]
+      },
+      "camera": {
+        "keys": [
+          {
+            "at": 0.08,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "lookAtOffset": [
+              0,
+              0,
+              -1
+            ],
+            "fov": 48,
+            "roll": 0,
+            "easing": "smoothstep"
+          },
+          {
+            "at": 0.38,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "lookAtOffset": [
+              0,
+              0,
+              -1
+            ],
+            "fov": 48,
+            "roll": 0.38,
+            "easing": "smoothstep"
+          },
+          {
+            "at": 0.68,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "lookAtOffset": [
+              0,
+              0,
+              -1
+            ],
+            "fov": 48,
+            "roll": 0,
+            "easing": "smoothstep"
+          }
+        ]
+      },
+      "world": {
+        "mode": "set",
+        "adapterId": "point-field-v1",
+        "shapeId": "living-field-v1",
+        "seed": 506832829,
+        "entryDistanceWU": 0.8,
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": 1
+        },
+        "transitionIn": {
+          "start": 0.08,
+          "end": 0.68,
+          "type": "morph",
+          "easing": "smoothstep",
+          "correspondence": "index-v1"
+        },
+        "shapeParameters": {
+          "width": 13.5,
+          "depth": 18,
+          "baseY": -1.58,
+          "terrainX": 0.14,
+          "terrainZ": 0.12,
+          "density": 1
+        },
+        "modifiers": [
+          {
+            "id": "ambient-drift-v1",
+            "enabled": true,
+            "parameters": {
+              "amplitude": 0.025,
+              "speed": 0.62,
+              "timeMode": "mixed"
+            }
+          },
+          {
+            "id": "living-wave-v1",
+            "enabled": true,
+            "parameters": {
+              "strength": 0.68,
+              "amplitude": 0.12,
+              "speed": 0.42,
+              "frequencyX": 1.15,
+              "frequencyZ": 0.72,
+              "timeMode": "mixed"
+            }
+          },
+          {
+            "id": "living-colour-v1",
+            "enabled": true,
+            "parameters": {
+              "strength": 0.62,
+              "timeMode": "mixed"
+            }
+          }
+        ]
+      },
+      "interaction": {
+        "type": "none"
+      }
+    },
+    {
+      "id": "role",
+      "label": "The role I play",
+      "type": "editorial",
+      "layout": "exit",
+      "extentWU": 1.25,
+      "mobileExtentWU": 1.4,
+      "text": {
+        "blocks": [
+          {
+            "id": "role-highlight",
+            "kind": "highlight",
+            "text": "This is the role I play for ambitious teams: bringing design, creative technology and AI together to shape new products, services and experiences from early direction to the details that make them convincing."
+          }
+        ]
+      },
+      "camera": {
+        "keys": []
+      },
+      "world": {
+        "mode": "continue"
+      },
+      "interaction": {
+        "type": "none"
+      }
+    },
+    {
+      "id": "epilogue",
+      "label": "Alexander Beck",
+      "type": "finale",
+      "layout": "text-bust-cta",
+      "extentWU": 2.4,
+      "mobileExtentWU": 2.1,
+      "text": {
+        "cues": [
+          {
+            "id": "epilogue-name",
+            "text": "Alexander Beck",
+            "enter": 0.32,
+            "hold": 0.5,
+            "exit": 1,
+            "preset": "finale-v1"
+          }
+        ],
+        "profile": "Creative technologist, multidisciplinary designer and AI specialist.",
+        "prompt": "Using creativity and technology to shape something new."
+      },
+      "camera": {
+        "keys": [
+          {
+            "at": 0.08,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "lookAtOffset": [
+              0,
+              0,
+              -1
+            ],
+            "fov": 48,
+            "roll": 0,
+            "easing": "smoothstep"
+          },
+          {
+            "at": 0.38,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "lookAtOffset": [
+              0,
+              0,
+              -1
+            ],
+            "fov": 48,
+            "roll": 0.38,
+            "easing": "smoothstep"
+          },
+          {
+            "at": 0.68,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "lookAtOffset": [
+              0,
+              0,
+              -1
+            ],
+            "fov": 48,
+            "roll": 0,
+            "easing": "smoothstep"
+          }
+        ]
+      },
+      "world": {
+        "mode": "set",
+        "adapterId": "point-field-v1",
+        "shapeId": "bust-v1",
+        "seed": 506832829,
+        "entryDistanceWU": 5.4,
+        "transform": {
+          "position": [
+            0,
+            0.08,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": 0.84,
+          "mobileScale": 0.5,
+          "mobileYOffset": 0.58
+        },
+        "transitionIn": {
+          "start": 0.08,
+          "end": 0.68,
+          "type": "morph",
+          "easing": "smoothstep",
+          "correspondence": "index-v1"
+        },
+        "shapeParameters": {
+          "density": 1
+        },
+        "modifiers": [
+          {
+            "id": "ambient-drift-v1",
+            "enabled": true,
+            "parameters": {
+              "amplitude": 0.025,
+              "speed": 0.62,
+              "timeMode": "mixed"
+            }
+          },
+          {
+            "id": "bust-yaw-v1",
+            "enabled": true,
+            "parameters": {
+              "speed": 0.026,
+              "dragSensitivity": 1,
+              "resumeDelay": 1.2,
+              "resumeBlend": 1.4,
+              "timeMode": "ambient"
+            }
+          }
+        ]
+      },
+      "interaction": {
+        "type": "horizontal-spin",
+        "activationStart": 0.54
+      },
+      "locked": true
+    }
+  ],
+  "library": {
+    "presets": [
+      {
+        "id": "current-approved-v1",
+        "label": "Current approved look",
+        "scope": "sequence",
+        "protected": true
+      }
+    ]
+  }
+}

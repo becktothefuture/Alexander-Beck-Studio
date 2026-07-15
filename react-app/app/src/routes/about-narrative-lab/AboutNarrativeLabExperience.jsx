@@ -1,56 +1,33 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ABOUT_NARRATIVE_CONTACT,
-  ABOUT_NARRATIVE_CONTROL_GROUPS,
-  ABOUT_NARRATIVE_DEFAULT_SETTINGS,
-  ABOUT_NARRATIVE_SECTIONS,
-  ABOUT_NARRATIVE_SETTINGS_KEY,
+  ABOUT_NARRATIVE_DOCUMENT,
 } from './aboutNarrativeLabData.js';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
 import { useAboutNarrativeTimeline } from './useAboutNarrativeTimeline.js';
 import './about-narrative-lab.css';
 
-function readStoredSettings() {
-  try {
-    const stored = JSON.parse(window.localStorage.getItem(ABOUT_NARRATIVE_SETTINGS_KEY) || '{}');
-    return Object.fromEntries(Object.entries(ABOUT_NARRATIVE_DEFAULT_SETTINGS).map(([key, fallback]) => {
-      const value = Number(stored[key]);
-      return [key, Number.isFinite(value) ? value : fallback];
-    }));
-  } catch {
-    return { ...ABOUT_NARRATIVE_DEFAULT_SETTINGS };
-  }
-}
-
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.setAttribute('readonly', 'true');
-    textarea.style.position = 'fixed';
-    textarea.style.insetInlineStart = '-9999px';
-    document.body.appendChild(textarea);
-    textarea.select();
-    const copied = document.execCommand?.('copy') === true;
-    textarea.remove();
-    return copied;
-  }
-}
-
-function getSectionStyle(section, settings) {
-  const lengthMultiplier = section.mode === 'editorial' ? 1 : settings.spatialLength;
+function getSectionStyle(section) {
   return {
-    '--section-duration-wu': section.durationWU * lengthMultiplier,
-    '--section-duration-mobile-wu': (section.mobileDurationWU || section.durationWU) * lengthMultiplier,
+    '--section-duration-wu': section.extentWU,
+    '--section-duration-mobile-wu': section.mobileExtentWU,
   };
 }
 
-function OpeningSection({ section, index, sectionRef, settings }) {
-  const copy = section.lines.join(' ');
+function CueText({ cue }) {
+  return (
+    <span
+      className="about-narrative-spatial-fragment"
+      data-text-cue={cue.id}
+      aria-hidden="true"
+    >
+      {cue.text}
+    </span>
+  );
+}
+
+function OpeningSection({ section, index, sectionRef, onSelect }) {
+  const semanticCopy = section.text.cues.map((cue) => cue.text).join(' ');
   return (
     <section
       ref={sectionRef}
@@ -58,22 +35,22 @@ function OpeningSection({ section, index, sectionRef, settings }) {
       className="about-narrative-section about-narrative-section--opening"
       data-narrative-section={section.id}
       data-section-index={index}
-      data-world-stage={section.world}
-      style={getSectionStyle(section, settings)}
-      aria-labelledby={`about-narrative-${section.id}-title`}
+      style={getSectionStyle(section)}
+      aria-labelledby="about-route-title"
+      onClick={() => onSelect?.({ type: 'section', sectionId: section.id })}
     >
       <div className="about-narrative-opening-inner">
-        <h1 id={`about-narrative-${section.id}-title`} data-editorial-line data-primary-copy>
-          {copy}
+        <h1 id="about-route-title" aria-label={semanticCopy} data-primary-copy>
+          {section.text.cues.map((cue) => <CueText cue={cue} key={cue.id} />)}
         </h1>
       </div>
     </section>
   );
 }
 
-function SpatialSection({ section, index, sectionRef, settings }) {
+function SpatialSection({ section, index, sectionRef, onSelect }) {
   const Heading = index === 0 ? 'h1' : 'h2';
-  const copy = section.lines.join(' ');
+  const copy = section.text.cues.map((cue) => cue.text).join(' ');
   const layoutClass = section.layout === 'lower'
     ? 'constellation'
     : section.layout === 'wide' ? 'living-field' : section.layout;
@@ -84,8 +61,7 @@ function SpatialSection({ section, index, sectionRef, settings }) {
       className={`about-narrative-section about-narrative-section--spatial about-narrative-section--${layoutClass}`}
       data-narrative-section={section.id}
       data-section-index={index}
-      data-world-stage={section.world}
-      style={getSectionStyle(section, settings)}
+      style={getSectionStyle(section)}
       aria-labelledby={`about-narrative-${section.id}-title`}
     >
       <div className="about-narrative-spatial-stage">
@@ -96,16 +72,14 @@ function SpatialSection({ section, index, sectionRef, settings }) {
             aria-label={copy}
             data-primary-copy
           >
-            {section.lines.map((fragment, fragmentIndex) => (
+            {section.text.cues.map((cue) => (
               <span
-                key={fragment}
+                key={cue.id}
                 className="about-narrative-spatial-fragment"
-                data-spatial-fragment
-                data-fragment-index={fragmentIndex}
+                data-text-cue={cue.id}
                 aria-hidden="true"
-              >
-                {fragment}{' '}
-              </span>
+                onClick={(event) => { event.stopPropagation(); onSelect?.({ type: 'cue', sectionId: section.id, cueId: cue.id }); }}
+              >{cue.text}</span>
             ))}
           </Heading>
         </div>
@@ -118,9 +92,7 @@ function EditorialList({ block }) {
   return (
     <div className="about-narrative-editorial-list">
       {block.label ? <p className="about-narrative-editorial-list__label" data-editorial-line>{block.label}</p> : null}
-      <ul>
-        {block.items.map((item) => <li key={item} data-editorial-line>{item}</li>)}
-      </ul>
+      <ul>{block.items.map((item) => <li key={item} data-editorial-line>{item}</li>)}</ul>
     </div>
   );
 }
@@ -131,9 +103,7 @@ function DisciplineList({ items }) {
       {items.map((item, itemIndex) => (
         <li key={item} data-editorial-line>
           <span className="about-narrative-discipline-list__marker" aria-hidden="true" />
-          <span className="about-narrative-discipline-list__number" aria-hidden="true">
-            {String(itemIndex + 1).padStart(2, '0')}
-          </span>
+          <span className="about-narrative-discipline-list__number" aria-hidden="true">{String(itemIndex + 1).padStart(2, '0')}</span>
           <span>{item}</span>
         </li>
       ))}
@@ -141,7 +111,7 @@ function DisciplineList({ items }) {
   );
 }
 
-function EditorialSection({ section, index, sectionRef, settings }) {
+function EditorialSection({ section, index, sectionRef, onSelect }) {
   return (
     <section
       ref={sectionRef}
@@ -149,46 +119,26 @@ function EditorialSection({ section, index, sectionRef, settings }) {
       className={`about-narrative-section about-narrative-section--editorial${section.layout ? ` about-narrative-section--${section.layout}` : ''}`}
       data-narrative-section={section.id}
       data-section-index={index}
-      data-world-stage={section.world}
-      style={getSectionStyle(section, settings)}
+      style={getSectionStyle(section)}
       aria-labelledby={`about-narrative-${section.id}-title`}
+      onClick={() => onSelect?.({ type: 'section', sectionId: section.id })}
     >
       <div className="about-narrative-editorial-inner">
-        <h2 id={`about-narrative-${section.id}-title`} className="about-narrative-editorial-title" data-editorial-line>
-          {section.label}
-        </h2>
-        {section.blocks.map((block, blockIndex) => {
-          const key = `${block.kind}-${blockIndex}`;
-          if (block.kind === 'list') {
-            return <EditorialList key={key} block={block} />;
-          }
-          if (block.kind === 'disciplines') {
-            return <DisciplineList key={key} items={block.items} />;
-          }
-          if (block.kind === 'clients') {
-            return <p key={key} className="about-narrative-editorial-clients" data-editorial-line>{block.text}</p>;
-          }
-          if (block.kind === 'detail') {
-            return <p key={key} className="about-narrative-editorial-detail" data-editorial-line>{block.text}</p>;
-          }
-          return (
-            <p
-              key={key}
-              className={`about-narrative-editorial-copy${block.kind === 'highlight' ? ' is-highlighted' : ''}`}
-              data-editorial-line
-              data-primary-copy
-            >
-              {block.text}
-            </p>
-          );
+        <h2 id={`about-narrative-${section.id}-title`} className="about-narrative-editorial-title" data-editorial-line>{section.label}</h2>
+        {section.text.blocks.map((block) => {
+          if (block.kind === 'list') return <EditorialList key={block.id} block={block} />;
+          if (block.kind === 'disciplines') return <DisciplineList key={block.id} items={block.items} />;
+          if (block.kind === 'clients') return <p key={block.id} className="about-narrative-editorial-clients" data-editorial-line>{block.text}</p>;
+          if (block.kind === 'detail') return <p key={block.id} className="about-narrative-editorial-detail" data-editorial-line>{block.text}</p>;
+          return <p key={block.id} className={`about-narrative-editorial-copy${block.kind === 'highlight' ? ' is-highlighted' : ''}`} data-editorial-line data-primary-copy>{block.text}</p>;
         })}
       </div>
     </section>
   );
 }
 
-function FinaleSection({ section, index, sectionRef, settings, interactionRef }) {
-  const copy = section.lines.join(' ');
+function FinaleSection({ section, index, sectionRef, interactionRef, onSelect }) {
+  const copy = section.text.cues.map((cue) => cue.text).join(' ');
   return (
     <section
       ref={sectionRef}
@@ -196,28 +146,14 @@ function FinaleSection({ section, index, sectionRef, settings, interactionRef })
       className="about-narrative-section about-narrative-section--spatial about-narrative-section--closing about-narrative-section--finale"
       data-narrative-section={section.id}
       data-section-index={index}
-      data-world-stage={section.world}
-      style={getSectionStyle(section, settings)}
+      style={getSectionStyle(section)}
       aria-labelledby={`about-narrative-${section.id}-title`}
     >
       <div className="about-narrative-spatial-stage about-narrative-finale-stage">
         <div className="about-narrative-spatial-copy about-narrative-finale-copy">
-          <h2
-            id={`about-narrative-${section.id}-title`}
-            className="about-narrative-spatial-title"
-            aria-label={copy}
-            data-primary-copy
-          >
-            {section.lines.map((fragment, fragmentIndex) => (
-              <span
-                key={fragment}
-                className="about-narrative-spatial-fragment"
-                data-spatial-fragment
-                data-fragment-index={fragmentIndex}
-                aria-hidden="true"
-              >
-                {fragment}{' '}
-              </span>
+          <h2 id={`about-narrative-${section.id}-title`} className="about-narrative-spatial-title" aria-label={copy} data-primary-copy>
+            {section.text.cues.map((cue) => (
+              <span key={cue.id} className="about-narrative-spatial-fragment" data-text-cue={cue.id} aria-hidden="true" onClick={() => onSelect?.({ type: 'cue', sectionId: section.id, cueId: cue.id })}>{cue.text}</span>
             ))}
           </h2>
           <div
@@ -229,8 +165,8 @@ function FinaleSection({ section, index, sectionRef, settings, interactionRef })
             tabIndex={-1}
           />
           <div className="about-narrative-finale-cta">
-            <p className="about-narrative-finale-profile">{section.profile}</p>
-            <p className="about-narrative-finale-statement">{section.prompt}</p>
+            <p className="about-narrative-finale-profile">{section.text.profile}</p>
+            <p className="about-narrative-finale-statement">{section.text.prompt}</p>
             <nav className="about-narrative-cta" aria-label="Contact Alexander">
               <a href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}>Email</a>
               <a href={ABOUT_NARRATIVE_CONTACT.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
@@ -242,132 +178,26 @@ function FinaleSection({ section, index, sectionRef, settings, interactionRef })
   );
 }
 
-function SectionIndicator({ activeIndex }) {
+function SectionIndicator({ activeIndex, count }) {
   return (
-    <div
-      className="about-narrative-indicator"
-      aria-label={`Section ${activeIndex + 1} of ${ABOUT_NARRATIVE_SECTIONS.length}`}
-      aria-live="polite"
-      aria-atomic="true"
-    >
-      <span>{String(activeIndex + 1).padStart(2, '0')} / {String(ABOUT_NARRATIVE_SECTIONS.length).padStart(2, '0')}</span>
+    <div className="about-narrative-indicator" aria-label={`Section ${activeIndex + 1} of ${count}`} aria-live="polite" aria-atomic="true">
+      <span>{String(activeIndex + 1).padStart(2, '0')} / {String(count).padStart(2, '0')}</span>
     </div>
   );
 }
 
-function formatControlValue(control, value) {
-  const decimals = control.step < 0.1 ? 2 : control.step < 1 ? 1 : 0;
-  return `${Number(value).toFixed(decimals)}${control.suffix || ''}`;
-}
-
-function NarrativeControls({ settings, onChange, onReset }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [copyState, setCopyState] = useState('idle');
-  const [openGroups, setOpenGroups] = useState(() => new Set(['motion']));
-  const launcherRef = useRef(null);
-  const closeButtonRef = useRef(null);
-  const hasOpenedRef = useRef(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      hasOpenedRef.current = true;
-      closeButtonRef.current?.focus();
-    } else if (hasOpenedRef.current) {
-      launcherRef.current?.focus();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') setIsOpen(false);
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
-
-  const handleCopy = useCallback(async () => {
-    const copied = await copyText(JSON.stringify(settings, null, 2));
-    setCopyState(copied ? 'copied' : 'error');
-    window.setTimeout(() => setCopyState('idle'), 1600);
-  }, [settings]);
-
-  return createPortal((
-    <div className={`about-narrative-controls${isOpen ? ' is-open' : ''}`}>
-      {!isOpen ? (
-        <button
-          ref={launcherRef}
-          type="button"
-          className="about-narrative-controls__launcher"
-          aria-expanded="false"
-          aria-controls="about-narrative-parameterizer"
-          onClick={() => setIsOpen(true)}
-        >
-          <i className="ti ti-adjustments-horizontal" aria-hidden="true" />
-          <span>Parameters</span>
-        </button>
-      ) : (
-        <aside id="about-narrative-parameterizer" className="parameterizer-panel" aria-label="About narrative parameters">
-          <header className="parameterizer-header">
-            <span>About narrative</span>
-            <button ref={closeButtonRef} type="button" aria-label="Close parameters" onClick={() => setIsOpen(false)}>
-              <i className="ti ti-x" aria-hidden="true" />
-            </button>
-          </header>
-          <div className="parameterizer-scroll">
-            {ABOUT_NARRATIVE_CONTROL_GROUPS.map((group) => (
-              <details
-                key={group.id}
-                className="parameterizer-folder"
-                open={openGroups.has(group.id)}
-                onToggle={(event) => {
-                  const isExpanded = event.currentTarget.open;
-                  setOpenGroups((current) => {
-                    const next = new Set(current);
-                    if (isExpanded) next.add(group.id);
-                    else next.delete(group.id);
-                    return next;
-                  });
-                }}
-              >
-                <summary className="parameterizer-folder-title">{group.label}</summary>
-                {group.controls.map((control) => (
-                  <label key={control.id} className="parameterizer-row" title={control.label}>
-                    <span className="parameterizer-label">{control.label}</span>
-                    <span className="parameterizer-control">
-                      <input
-                        type="range"
-                        min={control.min}
-                        max={control.max}
-                        step={control.step}
-                        value={settings[control.id]}
-                        onChange={(event) => onChange(control.id, Number(event.target.value))}
-                      />
-                      <output className="parameterizer-value">{formatControlValue(control, settings[control.id])}</output>
-                    </span>
-                  </label>
-                ))}
-              </details>
-            ))}
-          </div>
-          <div className="parameterizer-actions">
-            <button type="button" onClick={onReset}>Reset</button>
-            <button type="button" onClick={handleCopy}>
-              {copyState === 'copied' ? 'Copied' : copyState === 'error' ? 'Copy failed' : 'Copy JSON'}
-            </button>
-          </div>
-        </aside>
-      )}
-    </div>
-  ), document.body);
-}
-
 export function AboutNarrativeLabExperience({
   routeContentId = 'about-narrative-lab',
-  showControls = true,
   showIndicator = true,
 }) {
-  const [settings, setSettings] = useState(readStoredSettings);
+  const editorRequested = useMemo(() => (
+    typeof window !== 'undefined'
+    && routeContentId === 'about-narrative-lab'
+    && new URLSearchParams(window.location.search).get('edit') === '1'
+  ), [routeContentId]);
+  const [editorModule, setEditorModule] = useState(null);
+  const [editorStore, setEditorStore] = useState(null);
+  const [playbackDocument, setPlaybackDocument] = useState(ABOUT_NARRATIVE_DOCUMENT);
   const rootRef = useRef(null);
   const scrollportRef = useRef(null);
   const contentRef = useRef(null);
@@ -375,9 +205,34 @@ export function AboutNarrativeLabExperience({
   const worldRuntimeRef = useRef(null);
   const bustInteractionRef = useRef(null);
 
+  useEffect(() => {
+    if (!__DEV__ || !editorRequested) return undefined;
+    let active = true;
+    Promise.all([
+      import('./AboutNarrativeEditor.jsx'),
+      import('./aboutNarrativeEditorStore.js'),
+    ]).then(([editor, storeModule]) => {
+      if (!active) return;
+      const store = storeModule.createAboutNarrativeEditorStore(ABOUT_NARRATIVE_DOCUMENT);
+      setEditorStore(store);
+      setEditorModule(() => editor.default);
+    }).catch((error) => console.error('[About narrative] Could not load the development editor.', error));
+    return () => { active = false; };
+  }, [editorRequested]);
+
+  useEffect(() => {
+    if (!editorStore) return undefined;
+    const update = () => {
+      const state = editorStore.getSnapshot();
+      setPlaybackDocument(state.tryState?.document || state.document);
+    };
+    update();
+    return editorStore.subscribe(update);
+  }, [editorStore]);
+
   const activeSectionIndex = useAboutNarrativeTimeline({
-    settings,
-    sectionData: ABOUT_NARRATIVE_SECTIONS,
+    document: playbackDocument,
+    editorStore,
     rootRef,
     worldRuntimeRef,
     scrollportRef,
@@ -386,60 +241,27 @@ export function AboutNarrativeLabExperience({
   });
 
   const rootStyle = useMemo(() => ({
-    '--about-reading-width': `${settings.readingWidth}rem`,
-  }), [settings]);
-
-  const handleSettingChange = useCallback((key, value) => {
-    setSettings((current) => {
-      const next = { ...current, [key]: value };
-      window.localStorage.setItem(ABOUT_NARRATIVE_SETTINGS_KEY, JSON.stringify(next));
-      return next;
-    });
-  }, []);
-
-  const handleReset = useCallback(() => {
-    const next = { ...ABOUT_NARRATIVE_DEFAULT_SETTINGS };
-    window.localStorage.removeItem(ABOUT_NARRATIVE_SETTINGS_KEY);
-    setSettings(next);
-  }, []);
+    '--about-reading-width': `${playbackDocument.globals.readingWidthRem}rem`,
+  }), [playbackDocument.globals.readingWidthRem]);
+  const select = editorStore ? (selection) => editorStore.setSelection(selection) : null;
+  const Editor = editorModule;
 
   return (
     <div ref={rootRef} className="about-narrative-lab" data-route-content={routeContentId} style={rootStyle}>
-      <AboutNarrativeWorld
-        rendererId="three-point-world-v1"
-        rootRef={rootRef}
-        interactionRef={bustInteractionRef}
-        runtimeRef={worldRuntimeRef}
-      />
-
-      <div
-        ref={scrollportRef}
-        className="about-narrative-scrollport"
-        data-lenis-prevent-touch
-        tabIndex={0}
-        aria-label="About Alexander narrative"
-      >
+      <AboutNarrativeWorld rendererId="three-point-world-v1" rootRef={rootRef} interactionRef={bustInteractionRef} runtimeRef={worldRuntimeRef} />
+      <div ref={scrollportRef} className="about-narrative-scrollport" data-lenis-prevent-touch tabIndex={0} aria-label="About Alexander narrative">
         <main ref={contentRef} className="about-narrative-content">
-          {ABOUT_NARRATIVE_SECTIONS.map((section, index) => {
+          {playbackDocument.sections.map((section, index) => {
             const sectionRef = (node) => { sectionRefs.current[index] = node; };
-            if (section.layout === 'opener') {
-              return <OpeningSection key={section.id} section={section} index={index} sectionRef={sectionRef} settings={settings} />;
-            }
-            if (section.mode === 'spatial') {
-              return (
-                <SpatialSection key={section.id} section={section} index={index} sectionRef={sectionRef} settings={settings} />
-              );
-            }
-            if (section.mode === 'finale') {
-              return <FinaleSection key={section.id} section={section} index={index} sectionRef={sectionRef} settings={settings} interactionRef={bustInteractionRef} />;
-            }
-            return <EditorialSection key={section.id} section={section} index={index} sectionRef={sectionRef} settings={settings} />;
+            if (section.layout === 'opener') return <OpeningSection key={section.id} section={section} index={index} sectionRef={sectionRef} onSelect={select} />;
+            if (section.type === 'spatial') return <SpatialSection key={section.id} section={section} index={index} sectionRef={sectionRef} onSelect={select} />;
+            if (section.type === 'finale') return <FinaleSection key={section.id} section={section} index={index} sectionRef={sectionRef} interactionRef={bustInteractionRef} onSelect={select} />;
+            return <EditorialSection key={section.id} section={section} index={index} sectionRef={sectionRef} onSelect={select} />;
           })}
         </main>
       </div>
-
-      {showIndicator ? <SectionIndicator activeIndex={activeSectionIndex} /> : null}
-      {showControls ? <NarrativeControls settings={settings} onChange={handleSettingChange} onReset={handleReset} /> : null}
+      {showIndicator && !editorStore ? <SectionIndicator activeIndex={activeSectionIndex} count={playbackDocument.sections.length} /> : null}
+      {Editor && editorStore ? <Editor store={editorStore} runtimeRef={worldRuntimeRef} rootRef={rootRef} /> : null}
     </div>
   );
 }

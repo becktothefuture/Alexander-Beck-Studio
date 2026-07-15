@@ -1,12 +1,13 @@
-body.about-narrative-lab-page .shell-wall-slot,
-body.about-narrative-lab-page .shell-wall-route-root,
-body.about-narrative-lab-page .route-simulation-layer {
+body.about-narrative-page .shell-wall-slot,
+body.about-narrative-page .shell-wall-route-root,
+body.about-narrative-page .route-simulation-layer {
   width: 100%;
   height: 100%;
 }
 
 .about-narrative-lab {
   --about-reading-width: 58rem;
+  --about-route-accent: var(--button-bar-accent-about, var(--ball-7, #0d5cb6));
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -14,6 +15,7 @@ body.about-narrative-lab-page .route-simulation-layer {
   background: var(--studio-window-bg);
   pointer-events: auto;
   isolation: isolate;
+  container-type: size;
 }
 
 .about-narrative-world {
@@ -59,30 +61,30 @@ body.about-narrative-lab-page .route-simulation-layer {
 }
 
 .about-narrative-section--spatial {
-  height: calc(var(--section-duration-wu, 2) * 100svh);
+  height: calc(var(--section-duration-wu, 2) * var(--narrative-viewport-height, 100cqh));
 }
 
 .about-narrative-section--opening {
   display: grid;
   place-items: center;
-  min-height: calc(var(--section-duration-wu, 1) * 100svh);
+  min-height: calc(var(--section-duration-wu, 1) * var(--narrative-viewport-height, 100cqh));
   padding: clamp(5rem, 10vw, 9rem) clamp(1.25rem, 7vw, 7rem);
 }
 
 .about-narrative-opening-inner {
   width: min(100%, 66rem);
   text-align: center;
-  transform: translateY(9svh);
+  transform: translateY(5cqh);
 }
 
 .about-narrative-opening-inner h1 {
-  max-width: 16ch;
+  max-width: 19ch;
   margin: 0 auto;
-  font-family: var(--abs-font-sans);
-  font-size: clamp(2.7rem, 6.7vw, 7.2rem);
-  font-weight: 500;
-  letter-spacing: -0.065em;
-  line-height: 0.96;
+  font-family: var(--abs-font-headline);
+  font-size: clamp(2.8rem, 5.5vw, 6.2rem);
+  font-weight: 400;
+  letter-spacing: var(--abs-font-headline-letter-spacing);
+  line-height: calc(0.94 * var(--abs-font-headline-line-height-scale, 1));
   text-wrap: balance;
 }
 
@@ -92,7 +94,7 @@ body.about-narrative-lab-page .route-simulation-layer {
   display: grid;
   place-items: center;
   width: 100%;
-  height: 100svh;
+  height: var(--narrative-viewport-height, 100cqh);
   box-sizing: border-box;
   padding: clamp(4.5rem, 9vw, 8.5rem) clamp(1.25rem, 7vw, 7rem);
   overflow: hidden;
@@ -152,7 +154,7 @@ body.about-narrative-lab-page .route-simulation-layer {
 
 .about-narrative-section--constellation .about-narrative-spatial-stage {
   place-items: end center;
-  padding-bottom: clamp(6rem, 15svh, 10rem);
+  padding-bottom: clamp(6rem, 15cqh, 10rem);
 }
 
 .about-narrative-section--constellation .about-narrative-spatial-title {
@@ -163,18 +165,24 @@ body.about-narrative-lab-page .route-simulation-layer {
 }
 
 .about-narrative-section--living-field .about-narrative-spatial-title {
-  font-size: clamp(2.2rem, 5.4vw, 6.4rem);
+  font-size: clamp(2rem, 4.8vw, 5.6rem);
+}
+
+.about-narrative-section--disciplines {
+  align-items: flex-start;
+  padding-top: clamp(7rem, 16cqh, 11rem);
+  padding-bottom: clamp(8rem, 18cqh, 13rem);
 }
 
 .about-narrative-section--editorial {
   display: flex;
   align-items: center;
-  min-height: calc(var(--section-duration-wu, 1.2) * 100svh);
+  min-height: calc(var(--section-duration-wu, 1.2) * var(--narrative-viewport-height, 100cqh));
   padding: clamp(6rem, 12vw, 11rem) clamp(1.25rem, 9vw, 9rem);
 }
 
 .about-narrative-section--opening-continuation {
-  min-height: 110svh;
+  min-height: calc(1.1 * var(--narrative-viewport-height, 100cqh));
 }
 
 .about-narrative-section--opening-continuation .about-narrative-editorial-copy {
@@ -189,12 +197,24 @@ body.about-narrative-lab-page .route-simulation-layer {
 }
 
 .about-narrative-section--exit {
-  min-height: 100svh;
+  min-height: var(--narrative-viewport-height, 100cqh);
 }
 
 .about-narrative-editorial-inner {
   width: min(100%, var(--about-reading-width));
   margin-inline: auto;
+}
+
+.about-narrative-editorial-title {
+  max-width: 28ch;
+  margin: 0 0 clamp(3rem, 7vw, 6rem);
+  color: var(--text-muted);
+  font-family: var(--abs-font-mono);
+  font-size: clamp(0.72rem, 0.85vw, 0.84rem);
+  font-weight: 550;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  text-transform: uppercase;
 }
 
 [data-editorial-line] {
@@ -220,19 +240,21 @@ body.about-narrative-lab-page .route-simulation-layer {
 }
 
 .about-narrative-editorial-copy {
-  max-width: 25ch;
+  max-width: 34ch;
   margin: 0 0 clamp(2rem, 4vw, 3.5rem);
-  font-size: clamp(2rem, 3.25vw, 3.55rem);
-  font-weight: 450;
-  letter-spacing: -0.045em;
-  line-height: 1.08;
+  font-size: clamp(1.5rem, 2.35vw, 2.55rem);
+  font-weight: 430;
+  letter-spacing: -0.035em;
+  line-height: 1.14;
   text-wrap: pretty;
 }
 
 .about-narrative-editorial-copy.is-highlighted {
-  max-width: 21ch;
+  max-width: 25ch;
   margin-block: clamp(4rem, 8vw, 8rem);
-  font-weight: 600;
+  font-size: clamp(1.8rem, 3vw, 3.4rem);
+  font-weight: 560;
+  line-height: 1.08;
 }
 
 .about-narrative-editorial-detail {
@@ -242,6 +264,118 @@ body.about-narrative-lab-page .route-simulation-layer {
   font-size: clamp(1.0625rem, 1.2vw, 1.125rem);
   letter-spacing: -0.015em;
   line-height: 1.55;
+}
+
+.about-narrative-editorial-list {
+  width: min(100%, 42rem);
+  margin: clamp(4rem, 8vw, 7rem) 0;
+}
+
+.about-narrative-editorial-list__label {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+  font-family: var(--abs-font-mono);
+  font-size: clamp(0.72rem, 0.85vw, 0.84rem);
+  letter-spacing: 0.035em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.about-narrative-editorial-list ul,
+.about-narrative-discipline-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.about-narrative-editorial-list li {
+  padding: 0.9rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--text-primary) 16%, transparent);
+  font-size: clamp(1.05rem, 1.5vw, 1.38rem);
+  letter-spacing: -0.025em;
+  line-height: 1.35;
+}
+
+.about-narrative-editorial-list li:last-child {
+  border-bottom: 1px solid color-mix(in srgb, var(--text-primary) 16%, transparent);
+}
+
+.about-narrative-editorial-clients {
+  max-width: 48ch;
+  margin: clamp(3.5rem, 7vw, 6rem) 0 0;
+  color: var(--text-muted);
+  font-size: clamp(1.05rem, 1.35vw, 1.25rem);
+  letter-spacing: -0.018em;
+  line-height: 1.5;
+}
+
+.about-narrative-discipline-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 48rem);
+  margin: 0 0 clamp(5rem, 10vw, 9rem);
+  border-top: 1px solid color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+
+.about-narrative-discipline-list li {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7rem;
+  min-height: clamp(4.25rem, 7vw, 5.75rem);
+  padding: 0.8rem 1rem 0.8rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-primary) 18%, transparent);
+  font-size: clamp(1.05rem, 1.55vw, 1.4rem);
+  font-weight: 520;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.about-narrative-discipline-list li:nth-child(odd) {
+  padding-inline-end: clamp(1rem, 3vw, 2.5rem);
+}
+
+.about-narrative-discipline-list li:nth-child(even) {
+  padding-inline-start: clamp(1rem, 3vw, 2.5rem);
+  border-inline-start: 1px solid color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+
+.about-narrative-discipline-list__marker {
+  width: 0.62rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--discipline-color, var(--about-route-accent));
+  box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--discipline-color, var(--about-route-accent)) 14%, transparent);
+}
+
+.about-narrative-discipline-list__number {
+  color: var(--text-muted);
+  font-family: var(--abs-font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.about-narrative-discipline-list li:nth-child(1),
+.about-narrative-discipline-list li:nth-child(5) {
+  --discipline-color: var(--ball-7, #0d5cb6);
+}
+
+.about-narrative-discipline-list li:nth-child(2),
+.about-narrative-discipline-list li:nth-child(6) {
+  --discipline-color: var(--ball-4, #00695c);
+}
+
+.about-narrative-discipline-list li:nth-child(3) {
+  --discipline-color: var(--ball-8, #ffa000);
+}
+
+.about-narrative-discipline-list li:nth-child(4) {
+  --discipline-color: var(--ball-6, #d7ff2f);
+}
+
+.about-narrative-section--disciplines .about-narrative-editorial-copy {
+  margin-inline-start: auto;
 }
 
 .about-narrative-inline-study {
@@ -294,7 +428,7 @@ body.about-narrative-lab-page .route-simulation-layer {
 }
 
 .about-narrative-finale-stage {
-  padding-block: clamp(4.5rem, 8vw, 7rem);
+  padding: 0 clamp(1rem, 5vw, 5rem);
 }
 
 .about-narrative-finale-copy {
@@ -303,7 +437,7 @@ body.about-narrative-lab-page .route-simulation-layer {
 
 .about-narrative-finale-copy .about-narrative-spatial-title {
   position: absolute;
-  top: clamp(1rem, 5svh, 4rem);
+  top: clamp(1.25rem, 3.5cqh, 2.5rem);
   left: 50%;
   width: min(100%, 58rem);
   font-size: clamp(2rem, min(4.5vw, 6vh), 4.6rem);
@@ -343,20 +477,38 @@ body.about-narrative-lab-page .route-simulation-layer {
 .about-narrative-finale-cta {
   position: absolute;
   left: 50%;
-  bottom: clamp(4.25rem, 8svh, 6.5rem);
-  width: min(100%, 34rem);
+  bottom: clamp(5.75rem, 11cqh, 7rem);
+  display: grid;
+  grid-template-areas:
+    'profile actions'
+    'statement actions';
+  grid-template-columns: minmax(16rem, 24rem) auto;
+  align-items: end;
+  justify-content: space-between;
+  width: min(calc(100% - 6rem), 72rem);
   opacity: var(--spatial-context-opacity, 0);
-  text-align: center;
+  text-align: left;
   transform: translate3d(-50%, var(--spatial-context-y, 16px), 0);
   will-change: opacity, transform;
 }
 
-.about-narrative-finale-cta > p {
+.about-narrative-finale-profile {
+  grid-area: profile;
   margin: 0;
-  font-size: clamp(1.4rem, 2.4vw, 2.4rem);
+  font-size: clamp(1.1rem, 1.75vw, 1.65rem);
   font-weight: 550;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.about-narrative-finale-statement {
+  grid-area: statement;
+  max-width: 34ch;
+  margin: 0.55rem 0 0;
+  color: var(--text-muted);
+  font-size: clamp(0.95rem, 1.2vw, 1.08rem);
+  line-height: 1.4;
 }
 
 .about-narrative-cta {
@@ -364,6 +516,12 @@ body.about-narrative-lab-page .route-simulation-layer {
   justify-content: center;
   gap: 0.65rem;
   margin-top: clamp(1.5rem, 3vw, 2.4rem);
+}
+
+.about-narrative-finale-cta .about-narrative-cta {
+  grid-area: actions;
+  justify-content: flex-end;
+  margin: 0;
 }
 
 .about-narrative-cta--editorial {
@@ -614,12 +772,12 @@ body.about-narrative-lab-page .route-simulation-layer {
 
 @media (max-width: 600px) {
   .about-narrative-section--spatial {
-    height: calc(var(--section-duration-mobile-wu, var(--section-duration-wu, 1.75)) * 100svh);
+    height: calc(var(--section-duration-mobile-wu, var(--section-duration-wu, 1.75)) * var(--narrative-viewport-height, 100cqh));
   }
 
   .about-narrative-section--opening,
   .about-narrative-section--editorial {
-    min-height: calc(var(--section-duration-mobile-wu, var(--section-duration-wu, 1)) * 100svh);
+    min-height: calc(var(--section-duration-mobile-wu, var(--section-duration-wu, 1)) * var(--narrative-viewport-height, 100cqh));
   }
 
   .about-narrative-spatial-stage {
@@ -639,7 +797,7 @@ body.about-narrative-lab-page .route-simulation-layer {
   }
 
   .about-narrative-opening-inner {
-    transform: translateY(6svh);
+    transform: translateY(3cqh);
   }
 
   .about-narrative-finale-copy .about-narrative-spatial-title {
@@ -648,7 +806,30 @@ body.about-narrative-lab-page .route-simulation-layer {
   }
 
   .about-narrative-finale-cta {
-    bottom: 4.75rem;
+    bottom: 5.75rem;
+    grid-template-areas:
+      'profile'
+      'statement'
+      'actions';
+    grid-template-columns: 1fr;
+    justify-items: center;
+    width: calc(100% - 2rem);
+    text-align: center;
+  }
+
+  .about-narrative-finale-profile {
+    max-width: 22ch;
+    font-size: clamp(1rem, 5.2vw, 1.3rem);
+  }
+
+  .about-narrative-finale-statement {
+    max-width: 28ch;
+    margin-inline: auto;
+  }
+
+  .about-narrative-finale-cta .about-narrative-cta {
+    justify-content: center;
+    margin-top: 1rem;
   }
 
   .about-narrative-bust-interaction {
@@ -663,8 +844,27 @@ body.about-narrative-lab-page .route-simulation-layer {
 
   .about-narrative-editorial-copy {
     max-width: 25ch;
-    font-size: clamp(1.65rem, 7.3vw, 2.4rem);
+    font-size: clamp(1.45rem, 6.5vw, 2.2rem);
     line-height: 1.12;
+  }
+
+  .about-narrative-editorial-title {
+    margin-bottom: 2.75rem;
+  }
+
+  .about-narrative-discipline-list {
+    grid-template-columns: 1fr;
+    margin-bottom: 4.5rem;
+  }
+
+  .about-narrative-discipline-list li:nth-child(odd),
+  .about-narrative-discipline-list li:nth-child(even) {
+    padding-inline: 0;
+    border-inline-start: 0;
+  }
+
+  .about-narrative-section--disciplines .about-narrative-editorial-copy {
+    margin-inline-start: 0;
   }
 
   .about-narrative-editorial-detail {
@@ -708,6 +908,10 @@ body.about-narrative-lab-page .route-simulation-layer {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .about-narrative-world__canvas {
+    opacity: 0.28;
+  }
+
   .about-narrative-spatial-copy,
   .about-narrative-spatial-fragment,
   [data-editorial-line],
@@ -719,12 +923,14 @@ body.about-narrative-lab-page .route-simulation-layer {
   .about-narrative-section--spatial,
   .about-narrative-section--opening {
     height: auto;
-    min-height: 100svh;
+    min-height: 100cqh;
   }
 
   .about-narrative-spatial-stage {
     position: relative;
-    min-height: 100svh;
+    height: auto;
+    min-height: 100cqh;
+    overflow: visible;
   }
 
   .about-narrative-spatial-copy,
@@ -738,6 +944,11 @@ body.about-narrative-lab-page .route-simulation-layer {
     display: block;
   }
 
+  .about-narrative-section--spatial:not(.about-narrative-section--finale) .about-narrative-spatial-title {
+    font-size: clamp(1.75rem, 6.5vw, 3.6rem);
+    line-height: 1.05;
+  }
+
   .about-narrative-spatial-fragment {
     display: block;
     max-width: none;
@@ -747,7 +958,7 @@ body.about-narrative-lab-page .route-simulation-layer {
   }
 
   .about-narrative-spatial-fragment + .about-narrative-spatial-fragment {
-    margin-top: 0.18em;
+    margin-top: 0.5em;
   }
 
   .about-narrative-cta {

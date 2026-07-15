@@ -4,15 +4,17 @@ import {
   createSmoothScrollMediaQueries,
   shouldUseNativeSmoothScroll,
 } from '../../lib/smooth-scroll.js';
-import { compileAboutNarrativeStageSequence } from './aboutNarrativeStages.js';
+import {
+  compileAboutNarrativeDocument,
+  sampleAboutNarrativeCue,
+  sampleAboutNarrativePlan,
+} from './aboutNarrativeCompiler.js';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
-const mix = (from, to, progress) => from + ((to - from) * progress);
-const ease = (value) => 1 - ((1 - clamp01(value)) ** 3);
 
 export function useAboutNarrativeTimeline({
-  settings,
-  sectionData,
+  document,
+  editorStore = null,
   rootRef,
   worldRuntimeRef,
   scrollportRef,
@@ -21,14 +23,14 @@ export function useAboutNarrativeTimeline({
 }) {
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const activeSectionIndexRef = useRef(0);
-  const settingsRef = useRef(settings);
+  const documentRef = useRef(document);
+  const planRef = useRef(compileAboutNarrativeDocument(document));
   const measurementsRef = useRef({ dirty: true, sections: [], editorialLines: [] });
-  const stageSequenceRef = useRef(compileAboutNarrativeStageSequence(sectionData));
 
   useLayoutEffect(() => {
-    settingsRef.current = settings;
+    documentRef.current = document;
     measurementsRef.current.dirty = true;
-  }, [settings]);
+  }, [document]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -38,10 +40,15 @@ export function useAboutNarrativeTimeline({
 
     const { reducedMotionQuery, nativeScrollQuery } = createSmoothScrollMediaQueries();
     let lenis = null;
-    let frame = 0;
+    let raf = 0;
     let previousTime = performance.now();
+    let lastTransportPublish = 0;
+    let playbackWU = 0;
+    let previousTransportOwner = 'scroll';
 
     const measure = () => {
+      const viewportHeight = Math.max(1, scrollport.clientHeight);
+      root.style.setProperty('--narrative-viewport-height', `${viewportHeight}px`);
       const scrollRect = scrollport.getBoundingClientRect();
       const scrollTop = scrollport.scrollTop;
       const sections = sectionRefs.current.map((node) => {
@@ -50,193 +57,196 @@ export function useAboutNarrativeTimeline({
         return {
           top: rect.top - scrollRect.top + scrollTop,
           height: rect.height,
-          fragments: Array.from(node.querySelectorAll('[data-spatial-fragment]')),
         };
+      });
+      const profile = window.matchMedia('(max-width: 600px), (pointer: coarse)').matches ? 'mobile' : 'desktop';
+      const authored = documentRef.current;
+      const hydrated = Object.fromEntries(authored.sections.map((section, index) => [
+        section.id,
+        {
+          topWU: (sections[index]?.top || 0) / viewportHeight,
+          extentWU: (sections[index]?.height || viewportHeight) / viewportHeight,
+        },
+      ]));
+      const editorProfile = editorStore?.getSnapshot().previewProfile;
+      planRef.current = compileAboutNarrativeDocument(authored, {
+        profile: editorProfile === 'mobile' ? 'mobile' : profile,
+        measurements: hydrated,
       });
       const editorialLines = Array.from(content.querySelectorAll('[data-editorial-line]')).map((node) => {
         const rect = node.getBoundingClientRect();
         return { node, top: rect.top - scrollRect.top + scrollTop };
       });
       measurementsRef.current = { dirty: false, sections, editorialLines };
+      editorStore?.setRuntimePlan?.(planRef.current);
     };
 
-    const updateSpatialCopy = (scrollTop, viewportHeight, reducedMotion, currentSettings) => {
-      measurementsRef.current.sections.forEach((measurement, index) => {
-        const node = sectionRefs.current[index];
-        const data = sectionData[index];
-        if (!node || !measurement || !['spatial', 'finale'].includes(data?.mode)) return;
-        const fragments = measurement.fragments;
-        if (reducedMotion) {
-          fragments.forEach((fragment) => {
-            fragment.style.setProperty('--fragment-x', '0px');
-            fragment.style.setProperty('--fragment-y', '0px');
-            fragment.style.setProperty('--fragment-z', '0px');
-            fragment.style.setProperty('--fragment-scale', '1');
-            fragment.style.setProperty('--fragment-blur', '0px');
-            fragment.style.setProperty('--fragment-opacity', '1');
-          });
-          node.style.setProperty('--spatial-context-opacity', '1');
-          node.style.setProperty('--spatial-context-y', '0px');
-          return;
+    const updateTextCues = (frame, reducedMotion) => {
+      documentRef.current.sections.forEach((section) => {
+        const sectionNode = content.querySelector(`[data-narrative-section="${section.id}"]`);
+        if (!sectionNode || !['spatial', 'finale'].includes(section.type)) return;
+        const local = frame.section.id === section.id
+          ? frame.localProgress
+          : frame.storyWU < (planRef.current.sections.find((item) => item.id === section.id)?.startWU || 0) ? 0 : 1;
+        const cues = section.text.cues || [];
+        let reducedIndex = 0;
+        if (reducedMotion && cues.length > 1) {
+          reducedIndex = cues.findIndex((cue) => local <= cue.exit);
+          if (reducedIndex < 0) reducedIndex = cues.length - 1;
         }
-
-        const travel = Math.max(1, measurement.height - viewportHeight);
-        const progress = clamp01((scrollTop - measurement.top) / travel);
-        const fragmentWindow = Math.min(0.2, Math.max(0.14, 0.12 + (currentSettings.fadeWindow * 0.25)));
-        let contextOpacity = 0;
-        let contextY = 16;
-
-        fragments.forEach((fragment, fragmentIndex) => {
-          const fragmentRatio = fragments.length > 1 ? fragmentIndex / (fragments.length - 1) : 0.5;
-          const isInitialFragment = index === 0 && fragmentIndex === 0;
-          const center = isInitialFragment ? 0 : 0.5 + ((fragmentRatio - 0.5) * currentSettings.fragmentSpread);
-          const relativeProgress = (progress - center) / fragmentWindow;
-          const entryStart = fragmentIndex === 0 ? 0 : center - fragmentWindow;
-          const direction = fragmentIndex % 2 === 0 ? -1 : 1;
-          const holdsAtEnd = data.mode === 'finale' && fragmentIndex === fragments.length - 1;
-          let scale = 1;
-          let blur = 0;
-          let opacity = 1;
-          let x = 0;
-          let y = 0;
-          let z = 0;
-
-          if (relativeProgress < 0) {
-            const phase = ease(clamp01((progress - entryStart) / Math.max(0.001, center - entryStart)));
-            scale = mix(currentSettings.farScale, 1, phase);
-            blur = mix(currentSettings.maxBlur * 0.85, 0, phase);
-            opacity = phase;
-            z = mix(-currentSettings.entryDepth, 0, phase);
-          } else if (!holdsAtEnd) {
-            const phase = ease(clamp01(relativeProgress));
-            scale = mix(1, currentSettings.nearScale, phase);
-            blur = mix(0, currentSettings.maxBlur, phase);
-            opacity = 1 - phase;
-            x = mix(0, direction * currentSettings.exitDrift * -0.875, phase);
-            y = mix(0, -currentSettings.exitDrift, phase);
-            z = mix(0, currentSettings.exitDepth, phase);
-          }
-
-          fragment.style.setProperty('--fragment-x', `${x.toFixed(2)}px`);
-          fragment.style.setProperty('--fragment-y', `${y.toFixed(2)}px`);
-          fragment.style.setProperty('--fragment-z', `${z.toFixed(2)}px`);
-          fragment.style.setProperty('--fragment-scale', scale.toFixed(4));
-          fragment.style.setProperty('--fragment-blur', `${blur.toFixed(2)}px`);
-          fragment.style.setProperty('--fragment-opacity', opacity.toFixed(4));
-          if (fragmentIndex === fragments.length - 1) {
-            contextOpacity = opacity;
-            contextY = y * -0.35;
-          }
+        cues.forEach((cue, cueIndex) => {
+          const node = sectionNode.querySelector(`[data-text-cue="${cue.id}"]`);
+          if (!node) return;
+          const state = sampleAboutNarrativeCue(
+            cue,
+            local,
+            frame.globals.textMotion,
+            reducedMotion,
+          );
+          const visible = reducedMotion ? cueIndex === reducedIndex : true;
+          node.style.setProperty('--fragment-x', `${state.x.toFixed(2)}px`);
+          node.style.setProperty('--fragment-y', `${state.y.toFixed(2)}px`);
+          node.style.setProperty('--fragment-z', `${state.z.toFixed(2)}px`);
+          node.style.setProperty('--fragment-scale', state.scale.toFixed(4));
+          node.style.setProperty('--fragment-blur', `${state.blur.toFixed(2)}px`);
+          node.style.setProperty('--fragment-opacity', visible ? state.opacity.toFixed(4) : '0');
         });
-        node.style.setProperty('--spatial-context-opacity', contextOpacity.toFixed(4));
-        node.style.setProperty('--spatial-context-y', `${contextY.toFixed(2)}px`);
       });
     };
 
-    const updateEditorialCopy = (scrollTop, viewportHeight, reducedMotion, currentSettings) => {
+    const updateEditorialCopy = (scrollTop, viewportHeight, reducedMotion) => {
+      const threshold = documentRef.current.globals.editorialRevealThreshold;
       measurementsRef.current.editorialLines.forEach(({ node, top }) => {
         const progress = reducedMotion
           ? 1
-          : clamp01(((viewportHeight * currentSettings.editorialRevealThreshold) - (top - scrollTop)) / 96);
+          : clamp01(((viewportHeight * threshold) - (top - scrollTop)) / 96);
         node.style.setProperty('--editorial-reveal', progress.toFixed(4));
         node.style.setProperty('--editorial-blur', `${((1 - progress) * 3).toFixed(2)}px`);
         node.style.setProperty('--editorial-y', `${((1 - progress) * 12).toFixed(2)}px`);
       });
     };
 
+    const readTransport = (deltaSeconds) => {
+      const transport = editorStore?.getSnapshot().transport;
+      if (!transport || transport.owner === 'scroll') {
+        previousTransportOwner = 'scroll';
+        return scrollport.scrollTop / Math.max(1, scrollport.clientHeight);
+      }
+      lenis?.stop?.();
+      if (transport.owner === 'playback' && transport.playing) {
+        if (previousTransportOwner !== 'playback') playbackWU = transport.storyWU;
+        previousTransportOwner = 'playback';
+        playbackWU += deltaSeconds * 0.42;
+        if (transport.loop && playbackWU > transport.loop.endWU) playbackWU = transport.loop.startWU;
+        else if (playbackWU >= planRef.current.maxStoryWU) {
+          playbackWU = planRef.current.maxStoryWU;
+          editorStore.setTransport({ playing: false, owner: 'timeline', storyWU: playbackWU });
+        }
+        scrollport.scrollTop = playbackWU * scrollport.clientHeight;
+        return playbackWU;
+      }
+      previousTransportOwner = transport.owner;
+      playbackWU = transport.storyWU;
+      scrollport.scrollTop = playbackWU * scrollport.clientHeight;
+      return playbackWU;
+    };
+
     const renderFrame = (time) => {
       lenis?.raf(time);
       if (measurementsRef.current.dirty) measure();
-      const { sections } = measurementsRef.current;
-      const viewportHeight = Math.max(1, scrollport.clientHeight);
-      const scrollTop = scrollport.scrollTop;
-      const currentSettings = settingsRef.current;
-      const reducedMotion = reducedMotionQuery.matches;
-      const focusLine = scrollTop + (viewportHeight * 0.46);
-      let indicatorIndex = 0;
-      let timelineIndex = 0;
-      sections.forEach((section, index) => {
-        if (section && focusLine >= section.top) indicatorIndex = index;
-        if (section && scrollTop >= section.top) timelineIndex = index;
-      });
-
-      if (indicatorIndex !== activeSectionIndexRef.current) {
-        activeSectionIndexRef.current = indicatorIndex;
-        setActiveSectionIndex(indicatorIndex);
-      }
-
-      updateSpatialCopy(scrollTop, viewportHeight, reducedMotion, currentSettings);
-      updateEditorialCopy(scrollTop, viewportHeight, reducedMotion, currentSettings);
-
-      const currentMeasurement = sections[timelineIndex];
-      const currentSequence = stageSequenceRef.current[timelineIndex];
-      const sectionTravel = Math.max(1, currentMeasurement.height - viewportHeight);
-      const sectionProgress = clamp01((scrollTop - currentMeasurement.top) / sectionTravel);
-      const stageMorph = currentSequence.changesStage
-        ? clamp01((sectionProgress - 0.08) / 0.6)
-        : 1;
-      const storyPositionWU = scrollTop / viewportHeight;
-      const cameraPositionWU = storyPositionWU * currentSettings.cameraSpeed;
       const deltaSeconds = Math.min(0.05, Math.max(0, (time - previousTime) / 1000));
       previousTime = time;
-      const stageStartWU = (sections[currentSequence.stageStartIndex]?.top || 0) / viewportHeight;
-      const fromStageStartWU = (sections[currentSequence.fromStageStartIndex]?.top || 0) / viewportHeight;
-
-      root.dataset.activeNarrativeSection = sectionData[indicatorIndex].id;
-      root.style.setProperty('--narrative-story-wu', storyPositionWU.toFixed(4));
-      worldRuntimeRef.current?.render({
-        stageId: currentSequence.stageId,
-        fromStageId: currentSequence.fromStageId,
-        stageStartWU,
-        fromStageStartWU,
-        stageChanges: currentSequence.changesStage,
-        stageMorph,
-        sectionProgress,
-        storyPositionWU,
-        cameraPositionWU,
-        elapsedSeconds: time / 1000,
-        deltaSeconds,
+      const viewportHeight = Math.max(1, scrollport.clientHeight);
+      const reducedMotion = reducedMotionQuery.matches
+        || editorStore?.getSnapshot().previewProfile === 'reduced-motion';
+      const storyWU = readTransport(deltaSeconds);
+      const frame = sampleAboutNarrativePlan(planRef.current, storyWU, {
+        ambientSeconds: time / 1000,
         reducedMotion,
-        settings: currentSettings,
+        liveAmbient: editorStore?.getSnapshot().transport.liveAmbient !== false,
       });
-      frame = window.requestAnimationFrame(renderFrame);
+
+      if (frame) {
+        frame.deltaSeconds = deltaSeconds;
+        if (frame.sectionIndex !== activeSectionIndexRef.current) {
+          activeSectionIndexRef.current = frame.sectionIndex;
+          setActiveSectionIndex(frame.sectionIndex);
+        }
+        root.dataset.activeNarrativeSection = frame.section.id;
+        root.style.setProperty('--narrative-story-wu', frame.storyWU.toFixed(4));
+        updateTextCues(frame, reducedMotion);
+        updateEditorialCopy(scrollport.scrollTop, viewportHeight, reducedMotion);
+        worldRuntimeRef.current?.render(frame);
+        if (editorStore && time - lastTransportPublish > 80) {
+          const current = editorStore.getSnapshot().transport;
+          if (current.owner === 'scroll') editorStore.setTransport({ storyWU: frame.storyWU });
+          lastTransportPublish = time;
+        }
+      }
+      raf = window.requestAnimationFrame(renderFrame);
     };
 
     const rebuildLenis = () => {
       lenis?.destroy();
       lenis = null;
+      const transport = editorStore?.getSnapshot().transport;
+      if (transport && transport.owner !== 'scroll') return;
       if (shouldUseNativeSmoothScroll({ reducedMotionQuery, nativeScrollQuery })) return;
       lenis = createSmoothScroll({
         wrapper: scrollport,
         content,
-        smoothing: settingsRef.current.scrollSmoothing,
+        smoothing: documentRef.current.globals.scrollSmoothing,
       });
     };
     const markDirty = () => { measurementsRef.current.dirty = true; };
-    const handleMediaChange = () => {
+    const handleMediaChange = () => { rebuildLenis(); markDirty(); };
+    const cancelPlayback = () => {
+      const transport = editorStore?.getSnapshot().transport;
+      if (!transport || transport.owner === 'scroll') return;
+      editorStore.setTransport({
+        owner: 'scroll',
+        playing: false,
+        storyWU: scrollport.scrollTop / Math.max(1, scrollport.clientHeight),
+      });
       rebuildLenis();
-      markDirty();
     };
+    const handleStoreChange = () => {
+      const state = editorStore?.getSnapshot();
+      if (!state) return;
+      if (state.compiledPlan?.document !== planRef.current.document) markDirty();
+      if (state.transport.owner === 'scroll') {
+        if (lenis) lenis.start?.();
+        else rebuildLenis();
+      }
+    };
+
     const resizeObserver = new ResizeObserver(markDirty);
     resizeObserver.observe(scrollport);
     resizeObserver.observe(content);
     reducedMotionQuery.addEventListener('change', handleMediaChange);
     nativeScrollQuery.addEventListener('change', handleMediaChange);
-    document.fonts?.ready?.then(markDirty).catch(() => {});
+    scrollport.addEventListener('wheel', cancelPlayback, { passive: true });
+    scrollport.addEventListener('touchstart', cancelPlayback, { passive: true });
+    const unsubscribe = editorStore?.subscribe(handleStoreChange);
+    window.document.fonts?.ready?.then(markDirty).catch(() => {});
     rebuildLenis();
     measure();
-    frame = window.requestAnimationFrame(renderFrame);
+    raf = window.requestAnimationFrame(renderFrame);
 
     return () => {
-      window.cancelAnimationFrame(frame);
+      window.cancelAnimationFrame(raf);
       lenis?.destroy();
       resizeObserver.disconnect();
+      unsubscribe?.();
       reducedMotionQuery.removeEventListener('change', handleMediaChange);
       nativeScrollQuery.removeEventListener('change', handleMediaChange);
+      scrollport.removeEventListener('wheel', cancelPlayback);
+      scrollport.removeEventListener('touchstart', cancelPlayback);
       delete root.dataset.activeNarrativeSection;
       root.style.removeProperty('--narrative-story-wu');
+      root.style.removeProperty('--narrative-viewport-height');
     };
-  }, [contentRef, rootRef, scrollportRef, sectionData, sectionRefs, settings.scrollSmoothing, worldRuntimeRef]);
+  }, [contentRef, editorStore, rootRef, scrollportRef, sectionRefs, worldRuntimeRef]);
 
   return activeSectionIndex;
 }
