@@ -34,7 +34,7 @@
     0px,
     calc(var(--portfolio-drawer-seat-radius) - var(--portfolio-drawer-inner-radius-shrink))
   );
-  --portfolio-drawer-ground: var(--abs-browser-chrome, var(--frame-inner-surface, var(--wall-color)));
+  --portfolio-drawer-ground: var(--studio-window-bg, var(--frame-inner-surface));
   --portfolio-drawer-ink: var(--text-primary);
   --portfolio-drawer-muted: color-mix(in srgb, var(--portfolio-drawer-ink) 72%, transparent);
   /* Insert face only: contact shadows + top read (no bottom “wall floor” light — that lives on the pit). */
@@ -43,19 +43,9 @@
   --portfolio-drawer-insert-lip-opacity: 0.16;
   --portfolio-drawer-outline-width: 1px;
   --portfolio-drawer-outline-opacity: 0.28;
-  --portfolio-project-back-inset-y: max(
-    0px,
-    calc(
-      var(--content-padding-y) - var(--safari-tint-inset-y, var(--safari-tint-inset)) -
-        var(--portfolio-drawer-seat-inset)
-    )
-  );
-  --portfolio-project-back-inset-x: max(
-    0px,
-    calc(
-      var(--content-padding-x) - var(--safari-tint-inset-x, var(--safari-tint-inset)) -
-        var(--portfolio-drawer-seat-inset)
-    )
+  --portfolio-project-back-offset: clamp(18px, 2.8vw, 38px);
+  --portfolio-project-back-clearance: calc(
+    var(--portfolio-project-back-offset) + var(--ui-icon-frame-size) + clamp(14px, 3vw, 24px)
   );
   --portfolio-hero-image-gutter: 0px;
   --portfolio-hero-image-radius: max(
@@ -68,8 +58,7 @@
 }
 
 html.dark-mode,
-html[data-abs-theme='dark'],
-html.is-safari {
+html[data-abs-theme='dark'] {
   --portfolio-drawer-ink: #f5f1ea;
   --portfolio-drawer-muted: rgba(245, 241, 234, 0.72);
   --portfolio-drawer-insert-contact-opacity: 0.32;
@@ -1484,30 +1473,28 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-project-view__back--top.abs-icon-btn {
   position: absolute;
-  top: max(var(--portfolio-project-back-inset-y), env(safe-area-inset-top, 0px));
-  left: max(var(--portfolio-project-back-inset-x), env(safe-area-inset-left, 0px));
+  top: max(var(--portfolio-project-back-offset), env(safe-area-inset-top, 0px));
+  left: max(var(--portfolio-project-back-offset), env(safe-area-inset-left, 0px));
   z-index: 60;
-  inline-size: 60px;
-  block-size: 60px;
-  width: 60px;
-  height: 60px;
-  min-width: 60px;
-  min-height: 60px;
-  max-width: 60px;
-  max-height: 60px;
+  inline-size: var(--ui-icon-frame-size);
+  block-size: var(--ui-icon-frame-size);
+  width: var(--ui-icon-frame-size);
+  height: var(--ui-icon-frame-size);
+  min-width: var(--ui-icon-frame-size);
+  min-height: var(--ui-icon-frame-size);
+  max-width: var(--ui-icon-frame-size);
+  max-height: var(--ui-icon-frame-size);
   aspect-ratio: 1 / 1;
   padding: 0;
   overflow: hidden;
-  color: #fff;
+  color: var(--portfolio-hero-control-ink, #fff);
   border: none;
   border-radius: 50%;
   corner-shape: round;
-  background: rgba(0, 0, 0, 0.24);
-  box-shadow:
-    0 8px 22px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(5px) saturate(1.04);
-  -webkit-backdrop-filter: blur(5px) saturate(1.04);
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   transition:
     opacity 120ms linear,
     transform 0.15s var(--ease-organic),
@@ -1526,8 +1513,12 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-project-view__back--top.abs-icon-btn:hover,
 .portfolio-project-view__back--top.abs-icon-btn:focus-visible {
-  color: #fff;
-  background: rgba(0, 0, 0, 0.3);
+  color: var(--portfolio-hero-control-ink, #fff);
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.portfolio-project-view.is-scrolled .portfolio-project-view__back--top.abs-icon-btn {
+  color: var(--portfolio-drawer-ink);
 }
 
 .portfolio-project-view__back.abs-icon-btn:focus-visible {
@@ -1536,11 +1527,9 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-project-view__back--top.abs-icon-btn:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 calc(var(--abs-size-1px) * 2) rgba(255, 255, 255, 0.72),
-    0 8px 22px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  outline: calc(var(--abs-size-1px) * 2) solid currentColor;
+  outline-offset: calc(var(--abs-size-1px) * 2);
+  box-shadow: none;
 }
 
 .portfolio-project-view__scroll {
@@ -2379,6 +2368,10 @@ body.portfolio-project-open .ui-bottom {
 }
 
 @media (max-width: 720px) {
+  .portfolio-project-view__body {
+    padding-left: max(var(--portfolio-sheet-pad-x), var(--portfolio-project-back-clearance));
+  }
+
   .portfolio-project-view__metadata {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

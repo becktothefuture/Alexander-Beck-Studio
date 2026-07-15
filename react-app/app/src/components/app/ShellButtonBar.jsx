@@ -396,6 +396,7 @@ export function ShellButtonBar({
   renderSecondaryButtonDecoration,
 }) {
   const normalizedActiveRouteId = getNormalizedActiveRouteId(activeRouteId);
+  const activeRouteTab = SHELL_ROUTE_TABS.find((tab) => tab.routeId === normalizedActiveRouteId);
   const barClassName = ['button-bar', className].filter(Boolean).join(' ');
   const primaryNavClassName = [
     'button-bar__primary-buttons',
@@ -418,7 +419,9 @@ export function ShellButtonBar({
         data-button-group="primary-buttons"
         data-button-bar-nav
         data-route-tabs
+        data-active-route={activeRouteTab?.routeId}
       >
+        <span className="button-bar__active-pill" aria-hidden="true" />
         {SHELL_ROUTE_TABS.map((tab) => (
           <RouteButton
             key={tab.routeId}
