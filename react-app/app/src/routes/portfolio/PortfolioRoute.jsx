@@ -61,19 +61,6 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
         />
       </div>
     ),
-    heroLayer: (
-      <h2
-        id="hero-title"
-        className="hero-title hero-title--portfolio"
-        aria-label={portfolioHeroAria}
-      >
-        <span className="hero-title__eyebrow" data-route-enter="identity" data-route-enter-order="0">{portfolioHeroEyebrow}</span>
-        <span className="hero-title__line" data-route-enter="identity" data-route-enter-order="1">{portfolioHeroLines[0]}</span>
-        {portfolioHeroSecondary ? (
-          <span className="hero-title__line hero-title__line--secondary" data-route-enter="identity" data-route-enter-order="2">{portfolioHeroSecondary}</span>
-        ) : null}
-      </h2>
-    ),
     uiLayer: {
       chrome: (
         <header className="ui-top" data-portfolio-ui>
@@ -86,7 +73,24 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
           <div id="top-elements-soundRow" className="ui-top-soundRow" />
         </header>
       ),
-      secondary: <main className="ui-center-spacer" aria-hidden="true" />
+      secondary: (
+        <>
+          <div className="portfolio-route-title-ui">
+            <h2
+              id="hero-title"
+              className="hero-title hero-title--portfolio"
+              aria-label={portfolioHeroAria}
+            >
+              <span className="hero-title__eyebrow" data-route-enter="identity" data-route-enter-order="0">{portfolioHeroEyebrow}</span>
+              <span className="hero-title__line" data-route-enter="identity" data-route-enter-order="1">{portfolioHeroLines[0]}</span>
+              {portfolioHeroSecondary ? (
+                <span className="hero-title__line hero-title__line--secondary" data-route-enter="identity" data-route-enter-order="2">{portfolioHeroSecondary}</span>
+              ) : null}
+            </h2>
+          </div>
+          <main className="ui-center-spacer" aria-hidden="true" />
+        </>
+      )
     }
   };
 }

@@ -27,10 +27,11 @@
     "url" : "https:\/\/github.com\/becktothefuture\/Alexander-Beck-Studio.git"
   },
   "scripts" : {
-    "audit:ball-contrast-veil" : "node scripts\/audit-ball-contrast-veil.mjs",
+    "audit:ball-contrast-veil" : "npm run audit:contrast-veil",
     "audit:canvas-spa" : "node scripts\/audit-canvas-spa.mjs",
     "audit:canvas-spa:quick" : "ABS_SPA_ROUNDS=2 ABS_AUDIT_QUIET=1 node scripts\/audit-canvas-spa.mjs",
     "audit:contact-ripple" : "node scripts\/audit-contact-ripple.mjs",
+    "audit:contrast-veil" : "node scripts\/audit-contrast-veil.mjs",
     "audit:boot-overlay" : "node scripts\/audit-boot-overlay.mjs",
     "audit:home-daily" : "node scripts\/audit-home-daily-mode.mjs",
     "audit:home-title-invariance" : "node scripts\/audit-home-title-invariance.mjs",

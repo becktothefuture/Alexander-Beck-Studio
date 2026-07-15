@@ -78,13 +78,6 @@ body.portfolio-page #simulations {
   overflow: hidden;
 }
 
-/* The route and project drawer use the same edge-contrast primitive. The
-   locked gate stays flat until it hands off to the unlocked Portfolio scene. */
-body.portfolio-page:not(.portfolio-page--locked) :is(.simulation-contrast-veil, .portfolio-project-view__veil)::before,
-body.portfolio-page:not(.portfolio-page--locked) :is(.simulation-contrast-veil, .portfolio-project-view__veil)::after {
-  content: '';
-}
-
 .portfolio-gate-scene {
   --portfolio-gate-scene-shadow: rgb(0 0 0 / 0.24);
   --portfolio-gate-scene-card-width: min(304px, 23.7vw);
@@ -708,18 +701,13 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-carousel-dot-size: calc(var(--legend-circle-size) * 0.546);
 }
 
-body.portfolio-page .shell-hero-slot {
-  z-index: 24;
-}
-
-body.portfolio-page .shell-hero-surface {
-  box-sizing: border-box;
-  display: grid;
-  place-items: start center;
-  padding:
-    clamp(154px, 21vh, 214px)
-    var(--portfolio-stage-pad)
-    0;
+.portfolio-route-title-ui {
+  position: fixed;
+  top: var(--safari-tint-inset-y, var(--safari-tint-inset));
+  left: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  right: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  bottom: 0;
+  pointer-events: none;
 }
 
 body.portfolio-page .hero-title.hero-title--portfolio {
@@ -1404,6 +1392,8 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
     transform var(--portfolio-project-open-ms) var(--portfolio-sheet-ease-out);
   pointer-events: auto;
   isolation: isolate;
+  container-type: size;
+  container-name: portfolio-drawer;
   box-shadow: none;
   will-change: opacity, transform;
 }
@@ -1473,14 +1463,8 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   transition: opacity var(--portfolio-project-open-ms) var(--portfolio-sheet-ease-out);
 }
 
-.portfolio-project-view.is-open .portfolio-project-view__veil {
+.portfolio-project-view.is-visible .portfolio-project-view__veil {
   opacity: 1;
-}
-
-.portfolio-project-view.is-closing .portfolio-project-view__veil {
-  opacity: 0;
-  transition-duration: var(--portfolio-project-close-ms, var(--portfolio-project-open-ms));
-  transition-timing-function: var(--portfolio-sheet-ease-in);
 }
 
 .portfolio-project-view.is-open .portfolio-project-view__drawer {
@@ -1569,7 +1553,6 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-project-view__scroll {
   position: relative;
-  z-index: 1;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -1582,8 +1565,6 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   -ms-overflow-style: none;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  container-type: size;
-  container-name: portfolio-drawer;
   pointer-events: none;
 }
 
@@ -1718,7 +1699,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-project-view__hero-copy {
   position: relative;
-  z-index: 2;
+  z-index: 4;
   box-sizing: border-box;
   min-height: 100%;
   width: 100%;
@@ -1760,7 +1741,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
     calc(var(--portfolio-sheet-pad-x) - var(--portfolio-hero-image-gutter)),
     env(safe-area-inset-left, 0px)
   );
-  z-index: 3;
+  z-index: 4;
   display: grid;
   place-items: center;
   width: calc(0.79 * clamp(40px, 3.2vw, 52px));

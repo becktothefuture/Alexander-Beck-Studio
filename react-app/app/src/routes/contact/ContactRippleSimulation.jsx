@@ -10,10 +10,11 @@ import {
   getContactRippleConfig,
   setContactRippleConfig,
 } from './contactRippleConfig.js';
+import { CONTACT_RIPPLE_BURST_EVENT } from './contactRippleEvents.js';
 import { createContactRippleRenderer } from './contactRippleRenderer.js';
 import './contact-route.css';
 
-export function ContactRippleSimulation({ burstSignal, contentRef }) {
+export function ContactRippleSimulation() {
   const stageRef = useRef(null);
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
@@ -83,7 +84,7 @@ export function ContactRippleSimulation({ burstSignal, contentRef }) {
       stage,
       reducedMotion,
       getTheme: () => themeRef.current,
-      getQuietZoneElement: () => contentRef.current,
+      getQuietZoneElement: () => document.getElementById('contact-route-content'),
       getConfig: getContactRippleConfig,
     });
     rendererRef.current = renderer;
@@ -92,18 +93,17 @@ export function ContactRippleSimulation({ burstSignal, contentRef }) {
     const handleConfigChange = (event) => {
       renderer.updateConfig?.(event.detail?.config || getContactRippleConfig());
     };
+    const handleBurstRequest = () => renderer.burst();
     window.addEventListener(CONTACT_RIPPLE_CONFIG_EVENT, handleConfigChange);
+    window.addEventListener(CONTACT_RIPPLE_BURST_EVENT, handleBurstRequest);
 
     return () => {
       window.removeEventListener(CONTACT_RIPPLE_CONFIG_EVENT, handleConfigChange);
+      window.removeEventListener(CONTACT_RIPPLE_BURST_EVENT, handleBurstRequest);
       renderer.destroy();
       if (rendererRef.current === renderer) rendererRef.current = null;
     };
-  }, [contentRef, reducedMotion]);
-
-  useEffect(() => {
-    if (burstSignal?.id) rendererRef.current?.burst();
-  }, [burstSignal]);
+  }, [reducedMotion]);
 
   return (
     <div

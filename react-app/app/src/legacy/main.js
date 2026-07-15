@@ -541,7 +541,6 @@ export async function bootstrapHomePage(runtimeContext = {}) {
             throttleLevel: Number(globals.adaptiveThrottleLevel) || 0,
             renderQualityTier: globals.renderQualityTierResolved || null,
             titleLayoutReadCount: Number(globals.titleLayoutReadCount) || 0,
-            mobileContrastVeilSkipped: globals.mobileContrastVeilSkipped === true,
             semanticTitleText: title?.textContent?.replace(/\s+/g, ' ').trim() || '',
             behindTitleCount,
             inFrontOfTitleCount,

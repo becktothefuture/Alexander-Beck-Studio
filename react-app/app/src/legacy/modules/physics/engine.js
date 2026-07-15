@@ -18,7 +18,6 @@ import {
 import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-explosion.js';
 import { getRenderQualityProfile } from '../utils/render-quality.js';
 import { appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
-import { drawBallContrastVeil } from '../visual/ball-contrast-veil.js';
 import { TITLE_DEPTH_PLANE_Z, drawHomepageCanvasTitle, modeUsesDepthTitlePlane } from '../rendering/title-depth.js';
 import { 
   getAccumulator, 
@@ -1076,16 +1075,6 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
       }
     }
   }
-
-  drawBallContrastVeil(ctx, ballsToRender, {
-    ...(renderOptions || {}),
-    applyDepthFog,
-    canvasWidth,
-    canvasHeight,
-    pitRenderLodEnabled: pitLodEnabled,
-    pitTinyRadiusPx: tinyRadiusPx,
-    simpleCircleBodies
-  });
 
 }
 

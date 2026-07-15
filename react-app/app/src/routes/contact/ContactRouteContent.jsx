@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import homeContent from 'virtual:abs-content/home';
 import { triggerHaptic } from '../../lib/haptics.js';
 import { playContactRippleMotif } from '../../legacy/modules/audio/sound-engine.js';
-import { ContactRippleSimulation } from './ContactRippleSimulation.jsx';
+import { requestContactRippleBurst } from './contactRippleEvents.js';
 
 const COPY_FEEDBACK_MS = 3000;
 
@@ -36,10 +36,8 @@ async function copyToClipboard(text) {
 export function ContactRouteContent() {
   const contact = homeContent.contact || {};
   const [copyState, setCopyState] = useState('idle');
-  const [burstSignal, setBurstSignal] = useState(null);
   const resetTimerRef = useRef(null);
   const pulseTimerRef = useRef(null);
-  const contentRef = useRef(null);
   const email = contact.email || 'alexander@beck.fyi';
   const copyText = contact.copy || {};
   const title = contact.title || "Let's talk";
@@ -64,9 +62,7 @@ export function ContactRouteContent() {
 
   const handleCopy = useCallback(async (event) => {
     const button = event.currentTarget;
-    setBurstSignal({
-      id: Date.now(),
-    });
+    requestContactRippleBurst();
     void playContactRippleMotif({ unlockIfNeeded: true });
     const ok = await copyToClipboard(email);
     triggerHaptic(ok ? 'success' : 'error');
@@ -99,8 +95,7 @@ export function ContactRouteContent() {
 
   return (
     <div className="route-centered-page contact-route" data-route-content="contact">
-      <ContactRippleSimulation burstSignal={burstSignal} contentRef={contentRef} />
-      <section ref={contentRef} className="route-centered-page__inner contact-route__inner" aria-labelledby="contact-route-title">
+      <section id="contact-route-content" className="route-centered-page__inner contact-route__inner" aria-labelledby="contact-route-title">
         <h1 id="contact-route-title" className="route-centered-page__title" data-route-enter="identity" data-route-enter-order="0">
           {title}
         </h1>

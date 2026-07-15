@@ -100,6 +100,8 @@ export function StudioShell({
 }) {
   const routeWindowClassName = studioWindowClassName ?? wallClassName;
   const windowLayerClassName = ['studio-window-layer', 'simulation-wall-layer', routeWindowClassName].filter(Boolean).join(' ');
+  // Route scenes and optional hero material stay below the shared veil.
+  // Visible interface copy and controls belong in uiLayer above it.
   const routeSimulationLayer = simulationLayer ?? studioWindowContent ?? wallContent;
   const routeHeroLayer = heroLayer ?? heroTitle;
   const routeUiLayer = normalizeRouteUiLayer(uiLayer, headerContent, mainContent);
