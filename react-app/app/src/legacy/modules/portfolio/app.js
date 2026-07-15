@@ -854,6 +854,11 @@ class PortfolioScrollApp {
     titleText.textContent = project?.displayTitle || project?.title || labelContent.title;
     title.append(titleText);
 
+    const cta = document.createElement('span');
+    cta.className = 'portfolio-project-card__cta';
+    cta.setAttribute('aria-hidden', 'true');
+    cta.textContent = 'View project';
+
     const tags = document.createElement('ul');
     tags.className = 'portfolio-project-card__tags';
     tags.setAttribute('aria-label', 'Project tags');
@@ -864,7 +869,7 @@ class PortfolioScrollApp {
       tags.appendChild(item);
     });
 
-    copy.append(client, title);
+    copy.append(client, title, cta);
     if (tags.childElementCount) copy.appendChild(tags);
 
     const media = this.createProjectCardMedia(project, projectIndex, {

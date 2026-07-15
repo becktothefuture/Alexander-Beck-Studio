@@ -1094,6 +1094,55 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   display: inline;
 }
 
+.portfolio-project-card__cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  min-height: 36px;
+  margin: 2px 0 0;
+  padding: clamp(8px, 0.9vw, 10px) clamp(18px, 1.8vw, 24px);
+  border: var(--hairline, 1px) solid transparent;
+  border-radius: var(--abs-radius-pill);
+  background: color-mix(in srgb, var(--frame-inner-surface) 48%, transparent);
+  color: var(--text-logo);
+  font-family: var(--abs-font-sans);
+  font-size: clamp(12px, 1.2vw, 13px);
+  font-weight: var(--abs-weight-regular);
+  line-height: 1.2;
+  text-shadow: none;
+  isolation: isolate;
+  overflow: visible;
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+  backdrop-filter: blur(18px) saturate(1.08);
+  box-shadow: none;
+  transition:
+    border-color 180ms var(--ease-organic),
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.portfolio-project-card__cta::before {
+  content: '';
+  position: absolute;
+  inset: var(--abs-soft-hover-field-inset);
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--abs-soft-hover-field-fill);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--abs-soft-hover-field-duration) var(--ease-organic);
+}
+
+.portfolio-deck-mount .portfolio-project-card:is(:hover, :focus-visible, .is-keyboard-focused) .portfolio-project-card__cta {
+  color: var(--text-primary);
+}
+
+.portfolio-deck-mount .portfolio-project-card:is(:hover, :focus-visible, .is-keyboard-focused) .portfolio-project-card__cta::before {
+  opacity: var(--abs-soft-hover-field-opacity);
+}
+
 .portfolio-project-card__tags {
   display: none;
   flex-wrap: wrap;

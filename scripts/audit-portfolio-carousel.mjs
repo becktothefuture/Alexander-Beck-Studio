@@ -1022,6 +1022,17 @@ async function auditParticleFieldRemount(page) {
   await page.locator('[data-route-tab="portfolio"]').click();
   await page.waitForURL(/\/portfolio\.html(?:[?#]|$)/, { timeout: WAIT_MS });
   await waitForCarousel(page);
+  await page.waitForFunction(
+    () => Boolean(
+      window.__ABS_PORTFOLIO_AUDIT__
+        ?.getApp?.()
+        ?.getDeckDebugSnapshot?.()
+        ?.particleField
+        ?.active
+    ),
+    null,
+    { timeout: WAIT_MS }
+  );
   const returnCanvasCount = await page.locator('.portfolio-speed-field-canvas').count();
   const particleField = await collectParticleFieldSnapshot(page);
   return { homeCanvasCount, returnCanvasCount, particleField };
