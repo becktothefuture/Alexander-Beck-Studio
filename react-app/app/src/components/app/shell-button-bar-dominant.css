@@ -25,23 +25,21 @@
     --playground-key-ink,
     var(--dominant-wall-ink, var(--button-bar-outer-ink-muted))
   );
-  --dominant-utility-control-bg: color-mix(
-    in srgb,
-    var(--dominant-utility-wall) 86%,
-    var(--dominant-utility-ink) 14%
+  --dominant-utility-window-bg: var(
+    --studio-window-bg,
+    var(--frame-inner-surface, var(--dominant-utility-wall))
   );
-  --dominant-utility-control-bg-hover: color-mix(
-    in srgb,
-    var(--dominant-utility-wall) 82%,
-    var(--dominant-utility-ink) 18%
-  );
+  --dominant-utility-control-bg: var(--dominant-utility-window-bg);
+  --dominant-utility-control-bg-hover: var(--dominant-utility-window-bg);
   --dominant-utility-control-ink: var(--dominant-utility-ink);
   --dominant-utility-shadow: var(--dominant-press-shadow, rgba(var(--abs-rgb-black), 0.52));
   --dominant-utility-light: var(--dominant-press-light, rgba(var(--abs-rgb-white), 0.42));
-  --dominant-sound-active: var(--button-bar-sound-active, var(--dominant-utility-control-bg));
+  --dominant-sound-active: var(--dominant-utility-control-bg);
   --dominant-sound-active-ink: var(--button-bar-sound-active-ink, var(--dominant-utility-control-ink));
   --dominant-utility-pressed-rim: none;
   --dominant-tab-pressed-rim: none;
+  --shell-tab-motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --button-bar-pill-motion-ease: cubic-bezier(0.2, 1.18, 0.24, 1);
 }
 
 :root[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab'],
@@ -134,9 +132,9 @@ body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
   box-shadow: none;
   pointer-events: none;
   transition:
-    inset-inline-start 220ms var(--shell-tab-motion-ease),
-    inline-size 220ms var(--shell-tab-motion-ease),
-    background 160ms var(--shell-tab-motion-ease);
+    inset-inline-start 320ms var(--button-bar-pill-motion-ease),
+    inline-size 320ms var(--button-bar-pill-motion-ease),
+    background 180ms var(--shell-tab-motion-ease);
   will-change: inset-inline-start, inline-size;
   contain: layout paint style;
 }
@@ -308,13 +306,13 @@ body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
   padding: 0;
 }
 
-/* Sound is quiet at rest and becomes a persistent palette signal when on. */
+/* Sound keeps the same window-interior body in both states. */
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__sound-toggle.shell-tab:not([data-enabled='true']),
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__sound-toggle.shell-tab:not([data-enabled='true']):not(:hover):not(:focus-visible):not(:active) {
   color: var(--dominant-utility-muted);
-  background: var(--button-bar-gasket-ground, var(--abs-browser-chrome));
+  background: var(--dominant-utility-control-bg);
   box-shadow: none;
 }
 
@@ -322,11 +320,7 @@ body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
   .button-bar__sound-toggle.shell-tab:not([data-enabled='true']):is(:hover, :focus-visible, :active) {
   color: var(--dominant-utility-ink);
   outline: none;
-  background: color-mix(
-    in srgb,
-    var(--button-bar-gasket-ground, var(--abs-browser-chrome)) 93%,
-    var(--dominant-utility-ink) 7%
-  );
+  background: var(--dominant-utility-control-bg-hover);
   box-shadow: none;
 }
 
@@ -358,7 +352,7 @@ body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
   line-height: 1;
   filter: none;
   text-shadow: none;
-  transform: translate3d(0.08em, 0, 0);
+  transform: translate3d(0.04em, 0.04em, 0);
 }
 
 .button-bar[data-button-bar-material='dominant-tab']

@@ -33,6 +33,10 @@ function getNormalizedActiveRouteId(activeRouteId) {
   return activeRouteId;
 }
 
+function getRouteTabById(routeId) {
+  return SHELL_ROUTE_TABS.find((tab) => tab.routeId === routeId);
+}
+
 function playButtonBarPressSound() {
   playButtonPressSound();
 }
@@ -292,7 +296,13 @@ function SecondaryButtons({
   );
 }
 
-function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect, renderDecoration }) {
+function RouteButton({
+  tab,
+  isActive,
+  onRouteNavigate,
+  onRouteSelect,
+  renderDecoration,
+}) {
   const selectRoute = () => {
     if (isActive) return;
     onRouteSelect?.(tab.routeId, tab);
@@ -313,7 +323,8 @@ function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect, renderDeco
     'aria-label': tab.ariaLabel,
     'aria-current': isActive ? 'page' : undefined,
     onPointerDown: (event) => {
-      if (isActive || isModifiedRouteEvent(event)) return;
+      if (isActive) return;
+      if (isModifiedRouteEvent(event)) return;
       if (beginCapturedPointerPress(event)) {
         playButtonBarPressSound();
         markPointerActivated(event);
@@ -324,6 +335,7 @@ function RouteButton({ tab, isActive, onRouteNavigate, onRouteSelect, renderDeco
       }
     },
     onPointerUp: (event) => {
+      if (isActive) return;
       if (!completeCapturedPointerPress(event)) return;
       if (onRouteSelect) selectRoute();
     },
@@ -396,7 +408,7 @@ export function ShellButtonBar({
   renderSecondaryButtonDecoration,
 }) {
   const normalizedActiveRouteId = getNormalizedActiveRouteId(activeRouteId);
-  const activeRouteTab = SHELL_ROUTE_TABS.find((tab) => tab.routeId === normalizedActiveRouteId);
+  const activeRouteTab = getRouteTabById(normalizedActiveRouteId);
   const barClassName = ['button-bar', className].filter(Boolean).join(' ');
   const primaryNavClassName = [
     'button-bar__primary-buttons',
