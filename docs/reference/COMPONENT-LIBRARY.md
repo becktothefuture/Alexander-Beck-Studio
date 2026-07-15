@@ -23,3 +23,5 @@ Use `header.ui-top > .ui-top-main.route-topbar` only when a route or lab needs a
 ## Typography and content specimens
 
 The live styleguide covers Home hero/legend, Button Bar labels, supporting script copy, edge/meta copy, Portfolio gate, Portfolio drawer, and centered About/Contact route copy. Exact values come from tokens and production CSS rather than this document.
+
+Top-level route headlines use Instrument Serif through `--abs-font-headline`, optically scaled by `--abs-font-headline-scale`, with headline-specific leading and tracking tokens. This is limited to the Home canvas title and `.route-centered-page__title`; portfolio card and project-detail titles stay in Geist.

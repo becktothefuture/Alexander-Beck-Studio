@@ -9,7 +9,7 @@ const ENTRY_FILES = ['index.html', 'portfolio.html', 'about.html', 'contact.html
 const CHECK_ONLY = process.argv.includes('--check');
 const HTML_OPEN_PATTERN = /<html[^\n]*>/;
 const BOOT_PATTERN = /    <script>\n      \(function\(\) \{\n        window\.__ABS_BOOT_STARTED_AT__[\s\S]*?\n    <\/script>/;
-const SHELL_STYLES_PATTERN = /    <link rel="stylesheet" href="%BASE_URL%css\/tokens\.css" \/>[\s\S]*?    <link rel="stylesheet" href="\/src\/styles\/base\.css" \/>/;
+const SHELL_STYLES_PATTERN = /    <link rel="preconnect" href="https:\/\/fonts\.googleapis\.com" \/>[\s\S]*?    <link rel="stylesheet" href="\/src\/styles\/base\.css" \/>/;
 
 const canonicalPath = path.join(APP_ROOT, ENTRY_FILES[0]);
 const canonicalHtml = await fs.readFile(canonicalPath, 'utf8');

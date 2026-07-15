@@ -11,8 +11,10 @@ export function StyleguideTypographySection() {
         <code className="styleguide-doc__code">--abs-font-*</code>, <code className="styleguide-doc__code">--text-*</code>,{' '}
         <code className="styleguide-doc__code">--line-height-*</code>, <code className="styleguide-doc__code">--letter-spacing-*</code>
         ). Fonts load via Google Fonts on each HTML shell (
-        <code className="styleguide-doc__code">Geist</code>, <code className="styleguide-doc__code">Geist Mono</code>
-        ); only the visible London word uses the display script stack (<code className="styleguide-doc__code">--abs-font-display</code>).
+        <code className="styleguide-doc__code">Geist</code>, <code className="styleguide-doc__code">Geist Mono</code>,{' '}
+        <code className="styleguide-doc__code">Instrument Serif</code>). Route-level headlines use{' '}
+        <code className="styleguide-doc__code">--abs-font-headline</code>; only the visible London word uses the display script stack (
+        <code className="styleguide-doc__code">--abs-font-display</code>).
       </p>
 
       <h3 className="styleguide-type-subhd" id="sg-type-families">
@@ -29,6 +31,12 @@ export function StyleguideTypographySection() {
           <div className="styleguide-type-card__meta">--abs-font-mono</div>
           <p className="styleguide-type-card__sample" lang="en">
             Geist Mono — edge caption / mono · 01:23:45
+          </p>
+        </div>
+        <div className="styleguide-type-card styleguide-type-card--headline" role="group" aria-label="Route headline serif">
+          <div className="styleguide-type-card__meta">--abs-font-headline</div>
+          <p className="styleguide-type-card__sample" lang="en">
+            Instrument Serif — route headlines
           </p>
         </div>
         <div className="styleguide-type-card styleguide-type-card--display" role="group" aria-label="Display script">
@@ -151,7 +159,7 @@ export function StyleguideTypographySection() {
         <li className="styleguide-type-role">
           <div className="styleguide-type-role__label">
             <code className="styleguide-doc__code">.hero-title__name</code> /{' '}
-            <code className="styleguide-doc__code">.hero-title__role</code> · home hero (two lines, one style)
+            <code className="styleguide-doc__code">.hero-title__role</code> · home route headline (two lines, one style)
           </div>
           <div className="styleguide-type-role__sample">
             <div className="styleguide-type-hero-block">
@@ -282,7 +290,7 @@ export function StyleguideTypographySection() {
 
         <li className="styleguide-type-role">
           <div className="styleguide-type-role__label">
-            Centered route · <code className="styleguide-doc__code">[data-route-content]</code>
+            Centered route headline · <code className="styleguide-doc__code">.route-centered-page__title</code>
           </div>
           <div className="styleguide-type-role__sample">
             <div className="styleguide-type-centered-route">

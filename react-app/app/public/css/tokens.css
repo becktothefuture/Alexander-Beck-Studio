@@ -107,6 +107,10 @@
   /* Typography Tokens */
   --abs-font-sans: "Geist", system-ui, sans-serif;
   --abs-font-mono: "Geist Mono", ui-monospace, monospace;
+  --abs-font-headline: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --abs-font-headline-scale: 1.22;
+  --abs-font-headline-line-height-scale: 0.92;
+  --abs-font-headline-letter-spacing: -0.01ch;
   --abs-font-display: "Snell Roundhand", "Apple Chancery", "Segoe Script", "Bradley Hand", cursive;
   --abs-font-display-scale: 1.22;
   --abs-weight-regular: 400;

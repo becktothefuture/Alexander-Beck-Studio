@@ -1298,6 +1298,13 @@ body.styleguide-page .styleguide-type-card--mono .styleguide-type-card__sample {
   letter-spacing: normal;
 }
 
+body.styleguide-page .styleguide-type-card--headline .styleguide-type-card__sample {
+  font-family: var(--abs-font-headline);
+  font-size: calc(var(--text-xl) * var(--abs-font-headline-scale, 1));
+  line-height: calc(var(--line-height-title) * var(--abs-font-headline-line-height-scale, 1));
+  letter-spacing: var(--abs-font-headline-letter-spacing);
+}
+
 body.styleguide-page .styleguide-type-card--display .styleguide-type-card__sample {
   font-family: var(--abs-font-display);
   font-size: calc(var(--text-xl) * var(--abs-font-display-scale, 1));
@@ -1453,12 +1460,12 @@ body.styleguide-page .styleguide-type-hero-block {
 
 body.styleguide-page .styleguide-type-sample--hero-name,
 body.styleguide-page .styleguide-type-sample--hero-role {
-  font-family: var(--abs-font-sans);
+  font-family: var(--abs-font-headline);
   font-weight: 400;
-  letter-spacing: var(--hero-title-letter-spacing, -0.027ch);
-  line-height: var(--hero-title-line-height, 1.1);
+  letter-spacing: var(--abs-font-headline-letter-spacing);
+  line-height: calc(1.1 * var(--abs-font-headline-line-height-scale, 1));
   color: var(--text-logo);
-  font-size: clamp(22px, calc(var(--abs-home-logo-width-vw, 52) * 0.12 * 1vw), 40px);
+  font-size: calc(clamp(22px, calc(var(--abs-home-logo-width-vw, 52) * 0.12 * 1vw), 40px) * var(--abs-font-headline-scale, 1));
 }
 
 body.styleguide-page .styleguide-type-sample--hero-role {
@@ -1588,12 +1595,12 @@ body.dark-mode.styleguide-page .styleguide-type-gate-block {
 }
 
 body.styleguide-page .styleguide-type-sample--gate-title {
-  font-family: var(--abs-font-sans);
-  font-size: 48px;
-  line-height: var(--line-height-title);
+  font-family: var(--abs-font-headline);
+  font-size: calc(48px * var(--abs-font-headline-scale, 1));
+  line-height: calc(var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1));
   margin: 0 0 var(--gap-sm);
   font-weight: 400;
-  letter-spacing: -0.028em;
+  letter-spacing: var(--abs-font-headline-letter-spacing);
   color: var(--text-primary);
 }
 
@@ -3140,7 +3147,7 @@ button.abs-meta-btn,
 }
 
 .hero-title {
-  --home-hero-title-font-size: calc(clamp(28px, calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw), 52px) * var(--home-hero-title-scale, 1));
+  --home-hero-title-font-size: calc(clamp(28px, calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw), 52px) * var(--home-hero-title-scale, 1) * var(--home-headline-scale, 1));
   position: absolute;
   top: 50%;
   left: calc(50% + var(--home-hero-title-optical-offset-x, 0px));
@@ -3178,6 +3185,10 @@ button.abs-meta-btn,
 
 html[data-shell-route='home'] .hero-title--canvas-source {
   --home-hero-title-scale: 1.2;
+  --home-headline-scale: var(--abs-font-headline-scale, 1);
+  --hero-title-line-height: calc(1.1 * var(--abs-font-headline-line-height-scale, 1));
+  --hero-title-letter-spacing: var(--abs-font-headline-letter-spacing);
+  font-family: var(--abs-font-headline);
   /* Compensate for the right-hand full stop so the wordmark reads centred. */
   --home-hero-title-optical-offset-x: clamp(1px, 0.15vw, 2px);
 }
@@ -5273,7 +5284,7 @@ html.is-safari .noise::before {
 
 @media (min-width: 601px) and (max-width: 1024px) {
   html[data-shell-route='home'] .hero-title--canvas-source {
-    --home-hero-title-font-size: calc(clamp(21px, calc(var(--abs-home-logo-width-vw, 52) * 0.11625 * 1vw), 39px) * var(--home-hero-title-scale, 1));
+    --home-hero-title-font-size: calc(clamp(21px, calc(var(--abs-home-logo-width-vw, 52) * 0.11625 * 1vw), 39px) * var(--home-hero-title-scale, 1) * var(--home-headline-scale, 1));
   }
 }
 
@@ -5301,7 +5312,7 @@ html.is-safari .noise::before {
   
   /* Mobile hero title — both lines same scale */
   html[data-shell-route='home'] .hero-title--canvas-source {
-    --home-hero-title-font-size: calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px) * 0.85 * var(--mobile-type-scale) * var(--home-hero-title-scale, 1));
+    --home-hero-title-font-size: calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px) * 0.85 * var(--mobile-type-scale) * var(--home-hero-title-scale, 1) * var(--home-headline-scale, 1));
   }
 
   .hero-title__name,
@@ -7418,11 +7429,11 @@ body.portfolio-page--locked #simulations {
 
 .route-centered-page__title {
   margin: 0;
-  font-family: var(--abs-font-sans);
-  font-size: var(--route-title-font-size);
+  font-family: var(--abs-font-headline);
+  font-size: calc(var(--route-title-font-size) * var(--abs-font-headline-scale, 1));
   font-weight: var(--abs-weight-regular);
-  line-height: var(--route-title-line-height);
-  letter-spacing: var(--route-title-letter-spacing);
+  line-height: calc(var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1));
+  letter-spacing: var(--abs-font-headline-letter-spacing);
   text-wrap: balance;
 }
 
