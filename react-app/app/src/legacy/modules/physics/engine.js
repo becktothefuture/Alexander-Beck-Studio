@@ -67,8 +67,36 @@ function modeNeedsDepthTitleLayer(mode) {
   return modeUsesDepthTitlePlane(mode);
 }
 
+function isDepthTitleRouteActive() {
+  if (typeof document === 'undefined') return true;
+  const routeId = document.documentElement?.dataset?.shellRoute || '';
+  return routeId === '' || routeId === 'home';
+}
+
+function disposeDepthTitleCanvas(globals) {
+  const container = globals?.container || document.getElementById('simulations');
+  const frontCanvas = globals?.depthTitleFrontCanvas || document.getElementById('simulation-front-depth-canvas');
+  try {
+    const frontCtx = globals?.depthTitleFrontCtx;
+    frontCtx?.clearRect(0, 0, frontCanvas?.width || 0, frontCanvas?.height || 0);
+  } catch (e) {
+    /* ignore */
+  }
+  frontCanvas?.remove?.();
+  container?.classList?.remove('simulation-depth-title-layer-active');
+  if (globals) {
+    globals.depthTitleFrontCanvas = null;
+    globals.depthTitleFrontCtx = null;
+  }
+}
+
 function syncDepthTitleCanvas(globals, sourceCanvas) {
   if (!globals || !sourceCanvas) return null;
+  if (!isDepthTitleRouteActive()) {
+    disposeDepthTitleCanvas(globals);
+    return null;
+  }
+
   const container = globals.container || document.getElementById('simulations');
   if (!container) return null;
 
@@ -91,18 +119,20 @@ function syncDepthTitleCanvas(globals, sourceCanvas) {
 }
 
 function setDepthTitleLayerActive(globals, active) {
+  const nextActive = Boolean(active && isDepthTitleRouteActive());
+  if (!nextActive) {
+    disposeDepthTitleCanvas(globals);
+    return;
+  }
+
   const container = globals?.container || document.getElementById('simulations');
   if (container) {
-    container.classList.toggle('simulation-depth-title-layer-active', Boolean(active));
+    container.classList.toggle('simulation-depth-title-layer-active', nextActive);
   }
 
   const frontCanvas = globals?.depthTitleFrontCanvas;
   if (frontCanvas) {
-    frontCanvas.dataset.active = active ? 'true' : 'false';
-    if (!active) {
-      const frontCtx = globals.depthTitleFrontCtx;
-      frontCtx?.clearRect(0, 0, frontCanvas.width, frontCanvas.height);
-    }
+    frontCanvas.dataset.active = 'true';
   }
 }
 

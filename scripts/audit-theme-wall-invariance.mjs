@@ -466,6 +466,8 @@ function expectedRadiusForViewport(width, state) {
 }
 
 function expectedFrameSizeForViewport(width, state) {
+  const resolved = parseRadius(state['resolvedSize:--abs-frame-inset']);
+  if (resolved !== null) return resolved;
   const mobile = parseRadius(state['--abs-frame-inset-mobile']) ?? 10;
   const desktop = parseRadius(state['--abs-frame-inset-desktop']) ?? 16;
   return expectedResponsiveValue(width, mobile, desktop);

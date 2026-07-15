@@ -9,6 +9,11 @@
   --portfolio-intro-title-line-height: 1.08;
   --portfolio-intro-title-letter-spacing: -0.034em;
   --portfolio-image-veil-opacity: 0.46;
+  --portfolio-project-view-veil-opacity: var(--simulation-contrast-veil-opacity, 0.18);
+  --portfolio-project-view-veil-blur: var(--simulation-contrast-veil-blur, 80px);
+  --portfolio-project-view-veil-reach-x: var(--simulation-contrast-veil-reach-x, 24%);
+  --portfolio-project-view-veil-reach-y: var(--simulation-contrast-veil-reach-y, 22%);
+  --portfolio-project-view-veil-dither-opacity: var(--simulation-contrast-veil-dither-opacity, 0.035);
   --portfolio-hero-corner-fade-size: clamp(calc(var(--gap-xl) * 2.8), 11vw, calc(var(--gap-xl) * 5.4));
   --portfolio-hero-corner-fade-opacity: 0.94;
   --portfolio-hero-corner-fade-top-opacity: 0.72;
@@ -685,8 +690,6 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-card-surface: var(--portfolio-card-base);
   --portfolio-card-ink: #f8f3eb;
   --portfolio-card-muted: color-mix(in srgb, var(--portfolio-card-ink) 72%, var(--portfolio-card-base));
-  --portfolio-card-overlay-height: 221.589px;
-  --portfolio-card-accent-mix: 58%;
   --portfolio-carousel-dot-radius: 2050px;
   --portfolio-carousel-dot-size: calc(var(--legend-circle-size) * 0.546);
 }
@@ -1131,20 +1134,8 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--portfolio-card-accent) var(--portfolio-card-accent-mix), #010813) 0%,
-      color-mix(in srgb, var(--portfolio-card-accent) 42%, rgba(1, 8, 19, 0.84)) 24%,
-      rgba(1, 8, 19, 0.58) 43%,
-      rgba(1, 8, 19, 0) var(--portfolio-card-overlay-height)
-    ),
-    linear-gradient(to top, rgba(0, 0, 0, 0.24), transparent 48%);
+  background: rgba(0, 0, 0, var(--portfolio-image-veil-opacity));
   opacity: 1;
-}
-
-.portfolio-deck-mount .portfolio-project-card.is-active {
-  --portfolio-card-accent-mix: 74%;
 }
 
 .portfolio-project-card__cta {
@@ -1423,6 +1414,82 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   z-index: 3;
   box-shadow: inset 0 0 0 var(--portfolio-drawer-outline-width)
     rgba(var(--inner-wall-bottom-shadow-rgb), var(--portfolio-drawer-outline-opacity));
+}
+
+.portfolio-project-view__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--portfolio-project-open-ms) var(--portfolio-sheet-ease-out);
+}
+
+.portfolio-project-view__veil::before,
+.portfolio-project-view__veil::after {
+  content: '';
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.portfolio-project-view__veil::before {
+  inset: calc(-1 * var(--portfolio-project-view-veil-blur));
+  background:
+    linear-gradient(
+      90deg,
+      rgba(var(--simulation-contrast-veil-rgb), var(--portfolio-project-view-veil-opacity)) 0%,
+      rgba(var(--simulation-contrast-veil-rgb), 0) var(--portfolio-project-view-veil-reach-x),
+      rgba(var(--simulation-contrast-veil-rgb), 0) calc(100% - var(--portfolio-project-view-veil-reach-x)),
+      rgba(var(--simulation-contrast-veil-rgb), var(--portfolio-project-view-veil-opacity)) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(var(--simulation-contrast-veil-rgb), var(--portfolio-project-view-veil-opacity)) 0%,
+      rgba(var(--simulation-contrast-veil-rgb), 0) var(--portfolio-project-view-veil-reach-y),
+      rgba(var(--simulation-contrast-veil-rgb), 0) calc(100% - var(--portfolio-project-view-veil-reach-y)),
+      rgba(var(--simulation-contrast-veil-rgb), var(--portfolio-project-view-veil-opacity)) 100%
+    );
+  filter: blur(var(--portfolio-project-view-veil-blur));
+}
+
+.portfolio-project-view__veil::after {
+  inset: 0;
+  background-image: var(--simulation-contrast-veil-dither-texture);
+  background-size:
+    var(--simulation-contrast-veil-dither-size, 96px)
+    var(--simulation-contrast-veil-dither-size, 96px);
+  background-repeat: repeat;
+  opacity: var(--portfolio-project-view-veil-dither-opacity);
+  mix-blend-mode: soft-light;
+  -webkit-mask-image:
+    radial-gradient(
+      ellipse at center,
+      transparent 0%,
+      transparent 46%,
+      rgba(0, 0, 0, 0.65) 72%,
+      #000 100%
+    );
+  mask-image:
+    radial-gradient(
+      ellipse at center,
+      transparent 0%,
+      transparent 46%,
+      rgba(0, 0, 0, 0.65) 72%,
+      #000 100%
+    );
+}
+
+.portfolio-project-view.is-open .portfolio-project-view__veil {
+  opacity: 1;
+}
+
+.portfolio-project-view.is-closing .portfolio-project-view__veil {
+  opacity: 0;
+  transition-duration: var(--portfolio-project-close-ms, var(--portfolio-project-open-ms));
+  transition-timing-function: var(--portfolio-sheet-ease-in);
 }
 
 .portfolio-project-view.is-open .portfolio-project-view__drawer {

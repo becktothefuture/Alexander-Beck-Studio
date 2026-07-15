@@ -29,13 +29,14 @@
     --studio-window-bg,
     var(--frame-inner-surface, var(--dominant-utility-wall))
   );
+  --button-bar-secondary-control-ink: var(--text-primary, var(--dominant-utility-ink));
   --dominant-utility-control-bg: var(--dominant-utility-window-bg);
   --dominant-utility-control-bg-hover: var(--dominant-utility-window-bg);
-  --dominant-utility-control-ink: var(--dominant-utility-ink);
+  --dominant-utility-control-ink: var(--button-bar-secondary-control-ink);
   --dominant-utility-shadow: var(--dominant-press-shadow, rgba(var(--abs-rgb-black), 0.52));
   --dominant-utility-light: var(--dominant-press-light, rgba(var(--abs-rgb-white), 0.42));
   --dominant-sound-active: var(--dominant-utility-control-bg);
-  --dominant-sound-active-ink: var(--button-bar-sound-active-ink, var(--dominant-utility-control-ink));
+  --dominant-sound-active-ink: var(--button-bar-sound-active-ink, var(--button-bar-secondary-control-ink));
   --dominant-utility-pressed-rim: none;
   --dominant-tab-pressed-rim: none;
   --shell-tab-motion-ease: cubic-bezier(0.2, 0, 0, 1);
@@ -311,14 +312,14 @@ body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
   .button-bar__sound-toggle.shell-tab:not([data-enabled='true']),
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__sound-toggle.shell-tab:not([data-enabled='true']):not(:hover):not(:focus-visible):not(:active) {
-  color: var(--dominant-utility-muted);
+  color: var(--button-bar-secondary-control-ink);
   background: var(--dominant-utility-control-bg);
   box-shadow: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__sound-toggle.shell-tab:not([data-enabled='true']):is(:hover, :focus-visible, :active) {
-  color: var(--dominant-utility-ink);
+  color: var(--button-bar-secondary-control-ink);
   outline: none;
   background: var(--dominant-utility-control-bg-hover);
   box-shadow: none;
@@ -375,7 +376,7 @@ body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
   block-size: var(--dominant-secondary-control-height);
   min-width: calc(var(--dominant-secondary-control-height) * 10 / 7);
   min-height: var(--dominant-secondary-control-height);
-  color: var(--dominant-utility-muted);
+  color: var(--button-bar-secondary-control-ink);
   border-width: 0;
   border-radius: var(--button-bar-switch-radius);
   outline: none;
@@ -434,7 +435,7 @@ body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
   .button-bar__theme-toggle:is(:hover, :focus-visible, :active)
   .button-bar__theme-thumb {
   position: absolute;
-  color: var(--dominant-utility-control-ink);
+  color: var(--button-bar-secondary-control-ink);
   border-radius: var(--button-bar-switch-thumb-radius);
   background: var(--dominant-utility-control-bg);
   box-shadow: none;
