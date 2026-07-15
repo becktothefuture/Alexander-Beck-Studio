@@ -188,6 +188,17 @@ Rules:
 
 The first readable frame should already feel composed. Do not rely on a long buildup to make the simulation make sense.
 
+### Home Title Legibility
+
+The Home canvas renders the visible title from the semantic DOM title's computed typography. The current route headline is Instrument Serif, whose finer strokes are less tolerant of sustained occlusion than Geist.
+
+Rules:
+- momentary ball crossings can be part of the interaction, but the default and settled compositions must leave both title lines legible;
+- do not assume old Geist text metrics when tuning a mode's title clearance or material distribution;
+- verify the real loaded font at desktop and mobile sizes, in both light and dark themes, before approving a mode;
+- inspect both the first readable frame and a high-activity state;
+- solve readability through body density, placement, motion, and tonal separation—not text outlines, shadows, glow, or a background plate.
+
 ---
 
 ## 6. Interaction Rules

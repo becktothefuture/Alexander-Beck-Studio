@@ -19,4 +19,6 @@ The homepage and shared shell are an ordered physical system:
 
 `#portfolio-sheet-host` is a sibling overlay host within `#abs-scene`, after route content. The open Portfolio sheet covers the route header/footer/content but stops above the Button Bar. Preserve the host radius and clipping contract.
 
+The Portfolio route veil and `.portfolio-project-view__veil` are separate physical instances of the shared `.contrast-veil-surface` primitive. The route instance sits above the simulation wall, particles, and cards but below route UI. The drawer instance sits above project content inside `#portfolio-sheet-host`, while its Back control remains above the veil. Keep the instances separate so the sheet host can preserve its stacking and clipping contract; consolidate their visual treatment through the shared primitive instead.
+
 Do not move `#portfolioProjectView` back inside the simulation/content subtree. Do not solve stacking bugs with arbitrary higher z-indexes; preserve this ownership order.

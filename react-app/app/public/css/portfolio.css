@@ -10,11 +10,6 @@
   --portfolio-intro-title-letter-spacing: -0.034em;
   --portfolio-card-image-veil-opacity: 0.12;
   --portfolio-image-veil-opacity: 0.46;
-  --portfolio-project-view-veil-opacity: var(--simulation-contrast-veil-opacity, 0.18);
-  --portfolio-project-view-veil-blur: var(--simulation-contrast-veil-blur, 80px);
-  --portfolio-project-view-veil-reach-x: var(--simulation-contrast-veil-reach-x, 24%);
-  --portfolio-project-view-veil-reach-y: var(--simulation-contrast-veil-reach-y, 22%);
-  --portfolio-project-view-veil-dither-opacity: var(--simulation-contrast-veil-dither-opacity, 0.035);
   --portfolio-hero-corner-fade-size: clamp(calc(var(--gap-xl) * 2.8), 11vw, calc(var(--gap-xl) * 5.4));
   --portfolio-hero-corner-fade-opacity: 0.94;
   --portfolio-hero-corner-fade-top-opacity: 0.72;
@@ -83,16 +78,11 @@ body.portfolio-page #simulations {
   overflow: hidden;
 }
 
-/* Portfolio keeps the wall flat: edge cards blend through their existing pose
-   opacity, while the shared full-window veil remains inert to avoid banding. */
-body.portfolio-page .simulation-contrast-veil::before,
-body.portfolio-page .simulation-contrast-veil::after {
-  content: none;
-  background: none;
-  filter: none;
-  opacity: 0;
-  -webkit-mask-image: none;
-  mask-image: none;
+/* The route and project drawer use the same edge-contrast primitive. The
+   locked gate stays flat until it hands off to the unlocked Portfolio scene. */
+body.portfolio-page:not(.portfolio-page--locked) .contrast-veil-surface::before,
+body.portfolio-page:not(.portfolio-page--locked) .contrast-veil-surface::after {
+  content: '';
 }
 
 .portfolio-gate-scene {
@@ -884,7 +874,9 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   transform: scale(var(--portfolio-card-press-scale, 1));
   transform-origin: 50% 50%;
   pointer-events: none;
-  transition: box-shadow 180ms var(--ease-organic, ease);
+  transition:
+    transform 420ms var(--ease-settle, cubic-bezier(0.16, 1, 0.3, 1)),
+    box-shadow 300ms var(--ease-settle, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .portfolio-deck-mount .portfolio-project-card__material::before {
@@ -1068,7 +1060,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   letter-spacing: 0.3px;
   text-transform: none;
   color: #f5f1ea;
-  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.48);
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.24);
 }
 
 .portfolio-deck-mount .portfolio-project-label__text,
@@ -1085,7 +1077,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   line-height: 32px;
   letter-spacing: 0;
   color: #f5f1ea;
-  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.48);
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.26);
   overflow-wrap: normal;
   text-wrap: balance;
 }
@@ -1141,6 +1133,14 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-deck-mount .portfolio-project-card:is(:hover, :focus-visible, .is-keyboard-focused) .portfolio-project-card__cta::before {
   opacity: var(--abs-soft-hover-field-opacity);
+}
+
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .portfolio-project-card__cta {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--frame-inner-surface) 88%, transparent);
+  }
 }
 
 .portfolio-project-card__tags {
@@ -1471,61 +1471,6 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--portfolio-project-open-ms) var(--portfolio-sheet-ease-out);
-}
-
-.portfolio-project-view__veil::before,
-.portfolio-project-view__veil::after {
-  content: '';
-  position: absolute;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-.portfolio-project-view__veil::before {
-  inset: calc(-1 * var(--portfolio-project-view-veil-blur));
-  background:
-    linear-gradient(
-      90deg,
-      rgba(var(--simulation-contrast-veil-rgb), var(--portfolio-project-view-veil-opacity)) 0%,
-      rgba(var(--simulation-contrast-veil-rgb), 0) var(--portfolio-project-view-veil-reach-x),
-      rgba(var(--simulation-contrast-veil-rgb), 0) calc(100% - var(--portfolio-project-view-veil-reach-x)),
-      rgba(var(--simulation-contrast-veil-rgb), var(--portfolio-project-view-veil-opacity)) 100%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(var(--simulation-contrast-veil-rgb), var(--portfolio-project-view-veil-opacity)) 0%,
-      rgba(var(--simulation-contrast-veil-rgb), 0) var(--portfolio-project-view-veil-reach-y),
-      rgba(var(--simulation-contrast-veil-rgb), 0) calc(100% - var(--portfolio-project-view-veil-reach-y)),
-      rgba(var(--simulation-contrast-veil-rgb), var(--portfolio-project-view-veil-opacity)) 100%
-    );
-  filter: blur(var(--portfolio-project-view-veil-blur));
-}
-
-.portfolio-project-view__veil::after {
-  inset: 0;
-  background-image: var(--simulation-contrast-veil-dither-texture);
-  background-size:
-    var(--simulation-contrast-veil-dither-size, 96px)
-    var(--simulation-contrast-veil-dither-size, 96px);
-  background-repeat: repeat;
-  opacity: var(--portfolio-project-view-veil-dither-opacity);
-  mix-blend-mode: soft-light;
-  -webkit-mask-image:
-    radial-gradient(
-      ellipse at center,
-      transparent 0%,
-      transparent 46%,
-      rgba(0, 0, 0, 0.65) 72%,
-      #000 100%
-    );
-  mask-image:
-    radial-gradient(
-      ellipse at center,
-      transparent 0%,
-      transparent 46%,
-      rgba(0, 0, 0, 0.65) 72%,
-      #000 100%
-    );
 }
 
 .portfolio-project-view.is-open .portfolio-project-view__veil {

@@ -12,6 +12,15 @@ The visible project media is the shared handoff object. `project-handoff.js` mea
 
 There is no visible Portfolio physics pit or archived slider pipeline.
 
+## Typography
+
+Portfolio deliberately separates the route voice from the project-information voice.
+
+- The deck intro and the locked gate title are route-entry headlines, so they use Instrument Serif through `.route-centered-page__title` and the shared headline tokens.
+- Portfolio card titles and the project-drawer title remain Geist. They identify work and support interaction, so they should retain the site's precise structural voice.
+- Do not make the drawer title serif merely to create continuity with the route intro. The contrast is the hierarchy: editorial arrival first, clear project information second.
+- Instrument Serif may be considered later for an occasional pull quote or chapter opener inside a case study, but only as an explicitly art-directed exception.
+
 ## Ownership
 
 - React route/window: `src/routes/portfolio/PortfolioRoute.jsx`

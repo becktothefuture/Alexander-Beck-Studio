@@ -39,7 +39,7 @@
 - Design config: `public/config/design-system.json`
 - Live component reference: `/styleguide.html` and `docs/reference/COMPONENT-LIBRARY.md`
 
-Read the focused reference before changing a contract: `SYSTEM-ARCHITECTURE.md`, `CANVAS-RUNTIME.md`, `PORTFOLIO.md`, `TRANSITION-ORCHESTRATION.md`, `LAYER-STACKING.md`, `CONFIGURATION.md`, or `CUSTOM-CURSOR.md`.
+Read the focused reference before changing a contract: `SYSTEM-ARCHITECTURE.md`, `SITE-STYLEGUIDE.md`, `CANVAS-RUNTIME.md`, `PORTFOLIO.md`, `TRANSITION-ORCHESTRATION.md`, `LAYER-STACKING.md`, `CONFIGURATION.md`, or `CUSTOM-CURSOR.md`.
 
 ## Implementation rules
 
@@ -58,6 +58,8 @@ Read the focused reference before changing a contract: `SYSTEM-ARCHITECTURE.md`,
 - Portfolio project sheets cover route content but stop above the Button Bar. See `LAYER-STACKING.md`.
 - Portfolio detail handoff animates the selected media geometry into the drawer hero; preserve reversal and reduced-motion behavior.
 - The home canvas owns balls plus the visual title path; semantic DOM copy remains for accessibility.
+- Instrument Serif is reserved for route-entry headlines through the headline tokens. Keep navigation, descriptions, Portfolio cards, and project-detail titles in Geist; do not spread the serif through inheritance or use it as a general heading font.
+- Instrument Serif's fine strokes are less tolerant of sustained simulation occlusion. Preserve title legibility by tuning material density, placement, and motion—not by adding outlines, shadows, or a background plate to the title.
 - Do not add thin helper rings/lines to simulation visuals. Express forces through material motion or broad tonal fields.
 - Preserve wall/frame color separation and do not alter wall geometry, radii, shadow plates, or shell colors without explicit scope.
 - Manual light/dark theme affects the studio-window interior only: `--studio-window-bg`, `--frame-inner-surface`, in-window finish, route content, simulations, gates, and overlays. Never alias those surfaces to `--abs-wall-base`.

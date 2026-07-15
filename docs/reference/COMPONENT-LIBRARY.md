@@ -24,4 +24,13 @@ Use `header.ui-top > .ui-top-main.route-topbar` only when a route or lab needs a
 
 The live styleguide covers Home hero/legend, Button Bar labels, supporting script copy, edge/meta copy, Portfolio gate, Portfolio drawer, and centered About/Contact route copy. Exact values come from tokens and production CSS rather than this document.
 
-Top-level route headlines use Instrument Serif through `--abs-font-headline`, optically scaled by `--abs-font-headline-scale`, with headline-specific leading and tracking tokens. This is limited to the Home canvas title and `.route-centered-page__title`; portfolio card and project-detail titles stay in Geist.
+### Headline contract
+
+Top-level route headlines use Instrument Serif through `--abs-font-headline`, optically scaled by `--abs-font-headline-scale`, with headline-specific leading and tracking tokens. The contrast with Geist is intentional: the serif creates a warmer, more editorial arrival while the rest of the interface stays precise and system-led.
+
+- Allowed: the Home canvas title and `.route-centered-page__title` on Portfolio, About Me, Contact, and the Portfolio gate.
+- Not allowed: navigation, descriptions, Portfolio card titles, project-detail titles, controls, metadata, or general section headings.
+- Possible future exception: a deliberately art-directed pull quote or case-study chapter opener. This requires explicit scope; it is not inherited by default.
+- Implementation: consume `--abs-font-headline`, `--abs-font-headline-scale`, `--abs-font-headline-line-height-scale`, and `--abs-font-headline-letter-spacing`. Do not duplicate their resolved values in component CSS.
+
+The production values are a `1.22` optical size scale, `0.92` line-height scale, and `-0.01ch` letter spacing. Project titles remain Geist so the route voice and the project-information hierarchy do not compete.

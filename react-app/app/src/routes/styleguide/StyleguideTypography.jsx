@@ -16,6 +16,10 @@ export function StyleguideTypographySection() {
         <code className="styleguide-doc__code">--abs-font-headline</code>; only the visible London word uses the display script stack (
         <code className="styleguide-doc__code">--abs-font-display</code>).
       </p>
+      <p className="styleguide-section__hint">
+        Instrument Serif is the editorial route-entry voice; Geist remains the precise structural voice for UI and project information.
+        Keep the serif limited to the Home canvas title and centered route titles. Portfolio card and project-detail titles stay in Geist.
+      </p>
 
       <h3 className="styleguide-type-subhd" id="sg-type-families">
         Font families
