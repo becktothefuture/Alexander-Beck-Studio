@@ -217,7 +217,7 @@ The shared title token uses a direct mobile clamp, bridges the 601–1024px inte
 :root {
   --route-entry-title-size:
     calc(
-      clamp(33.6px, calc(var(--abs-home-logo-width-vw, 52) * 0.186vw), 62.4px)
+      clamp(33.6px, var(--abs-home-logo-width-vw, 52) * 0.186vw, 62.4px)
       * var(--abs-font-headline-scale, 1)
     );
 }

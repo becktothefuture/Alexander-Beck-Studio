@@ -3149,7 +3149,7 @@ button.abs-meta-btn,
 .hero-title {
   --home-hero-title-font-size: clamp(
     28px,
-    calc(var(--abs-home-logo-width-vw, 52) * 0.155vw),
+    var(--abs-home-logo-width-vw, 52) * 0.155vw,
     52px
   );
   position: absolute;
@@ -7377,7 +7377,7 @@ body.portfolio-page--locked #simulations {
   --route-entry-title-size: calc(
     clamp(
       33.6px,
-      calc(var(--abs-home-logo-width-vw, 52) * 0.186vw),
+      var(--abs-home-logo-width-vw, 52) * 0.186vw,
       62.4px
     ) * var(--abs-font-headline-scale, 1)
   );
