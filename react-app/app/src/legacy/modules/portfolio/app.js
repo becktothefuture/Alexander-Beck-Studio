@@ -28,7 +28,6 @@ import { setupOverscrollLock } from '../input/overscroll-lock.js';
 import { refreshCursor, setupCustomCursor, updateCursorSize } from '../rendering/cursor.js';
 import { PortfolioProjectDrawer, getProjectContentBlocks } from './project-drawer.js';
 import { PortfolioProjectHandoff } from './project-handoff.js';
-import { PortfolioParticleField } from './portfolio-speed-field.js';
 import { getBasePathWithTrailingSlash } from '../../../lib/base-path.js';
 import { triggerHaptic } from '../../../lib/haptics.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
@@ -500,10 +499,6 @@ class PortfolioScrollApp {
     this.configurePortfolioSfx();
     this.createProjectView();
     this.renderProjectDeck();
-    this.particleField = new PortfolioParticleField(
-      document.querySelector('.portfolio-speed-field-canvas'),
-      this.deckOptions.particleField
-    );
     await this.prepareProjectThumbnails();
     if (signal?.aborted) return false;
     this.setupDeckEvents();
@@ -511,7 +506,6 @@ class PortfolioScrollApp {
     await new Promise((resolve) => requestAnimationFrame(resolve));
     if (signal?.aborted) return false;
     this.updateCardMetrics();
-    this.particleField.start();
     this.setActiveProject(0, { immediate: true });
     this.setupVideoObserver();
     document.addEventListener('abs:portfolio:open-project', this.boundAuditOpenProject);

@@ -139,6 +139,14 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function buildChapterProseMarkup(title, body) {
+  const highlightedTitle = title
+    ? `<span class="portfolio-project-view__prose-highlight">${escapeHtml(title)}</span>`
+    : '';
+  const bodyCopy = body ? escapeHtml(body) : '';
+  return [highlightedTitle, bodyCopy].filter(Boolean).join(' ');
+}
+
 function computeDrawerMediaScrollShiftY(mediaRect, scrollerRect) {
   const scrollHeight = scrollerRect.height;
   if (!(scrollHeight > 1)) return 0;
@@ -652,8 +660,7 @@ export class PortfolioProjectDrawer {
             ${number ? `<span class="portfolio-project-view__chapter-number" aria-hidden="true">${escapeHtml(number)}</span>` : ''}
             <div class="portfolio-project-view__chapter-copy">
               ${label ? `<p class="portfolio-project-view__chapter-label">${escapeHtml(label)}</p>` : ''}
-              ${title ? `<h2>${escapeHtml(title)}</h2>` : ''}
-              ${body ? `<p>${escapeHtml(body)}</p>` : ''}
+              ${title || body ? `<p class="portfolio-project-view__chapter-line">${buildChapterProseMarkup(title, body)}</p>` : ''}
             </div>
           </section>
         `;
@@ -727,7 +734,7 @@ export class PortfolioProjectDrawer {
     const takeawayHtml = takeaways.length
       ? `
         <section class="portfolio-project-view__takeaways" data-scroll-presence data-scroll-presence-span="0.18">
-          <h2>${escapeHtml(project?.takeawaysTitle || 'Personal takeaways')}</h2>
+          <p class="portfolio-project-view__section-label">${escapeHtml(project?.takeawaysTitle || 'Personal takeaways')}</p>
           <ul>${takeaways.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
         </section>
       `
@@ -740,7 +747,7 @@ export class PortfolioProjectDrawer {
       ${metadataHtml}
       ${project?.overview ? `
         <section class="portfolio-project-view__overview" data-scroll-presence data-scroll-presence-span="0.18">
-          <h2>Overview</h2>
+          <p class="portfolio-project-view__section-label">Overview</p>
           <p>${escapeHtml(project.overview)}</p>
         </section>
       ` : ''}

@@ -381,7 +381,7 @@
     "reverbHighDamp": 0.55,
     "minGain": 0.001,
     "maxGain": 0.0125,
-    "masterGain": 0.24,
+    "masterGain": 0.42,
     "voiceGainMax": 0.02,
     "minTimeBetweenSounds": 0.018,
     "maxPan": 0.15,

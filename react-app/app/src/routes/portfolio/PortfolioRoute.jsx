@@ -42,11 +42,6 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
     simulationLayer: (
       <div className="portfolio-slider-layer">
         <canvas
-          className="portfolio-speed-field-canvas"
-          aria-hidden="true"
-          draggable="false"
-        />
-        <canvas
           id="c"
           className="portfolio-pit-canvas portfolio-scroll-canvas"
           aria-hidden="true"

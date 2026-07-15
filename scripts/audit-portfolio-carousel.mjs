@@ -207,8 +207,21 @@ async function collectDotAppearance(page) {
 
 async function collectParticleFieldSnapshot(page) {
   return page.evaluate(() => {
+    const canvas = document.querySelector('.portfolio-speed-field-canvas');
+    if (canvas) {
+      return {
+        error: 'portfolio-speed-field-canvas-mounted',
+      };
+    }
     const snapshot = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
-    return snapshot?.particleField || null;
+    return snapshot?.particleField || {
+      mounted: false,
+      active: false,
+      running: false,
+      visible: false,
+      opacity: 0,
+      particleCount: 0,
+    };
   });
 }
 
@@ -247,6 +260,12 @@ async function getMotionSample(page) {
   return page.evaluate(() => {
     const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
     const snapshot = app?.getDeckDebugSnapshot?.();
+    const particleField = snapshot?.particleField || {
+      running: false,
+      visible: false,
+      opacity: 0,
+      particleCount: 0,
+    };
     const dot = document.querySelector('.portfolio-carousel-dot');
     const dotRect = dot?.getBoundingClientRect?.();
     const visibleProjectIndices = Array.from(new Set(
@@ -269,8 +288,8 @@ async function getMotionSample(page) {
       maxLeadProjects: snapshot?.maxLeadProjects ?? 0,
       measuredVelocity: snapshot?.measuredVelocity ?? 0,
       rebaseCount: snapshot?.rebaseCount ?? 0,
-      particleField: snapshot?.particleField || null,
-      speedField: snapshot?.particleField || snapshot?.speedField || null,
+      particleField,
+      speedField: particleField,
       settled: Boolean(snapshot?.isSettled),
       inputState: snapshot?.inputState || '',
       wheelAccumulated: app?.wheelGesture?.accumulated ?? null,
@@ -320,6 +339,12 @@ async function auditInfiniteWheelStress(page, { axis, direction }) {
     if (!app || !stage) return [];
     const collectSample = () => {
       const snapshot = app.getDeckDebugSnapshot?.();
+      const particleField = snapshot?.particleField || {
+        running: false,
+        visible: false,
+        opacity: 0,
+        particleCount: 0,
+      };
       const visibleProjectIndices = Array.from(new Set(
         (snapshot?.cards || [])
           .filter((card) => card.visibility !== 'hidden' && card.opacity > 0.05)
@@ -340,8 +365,8 @@ async function auditInfiniteWheelStress(page, { axis, direction }) {
         maxLeadProjects: snapshot?.maxLeadProjects ?? 0,
         measuredVelocity: snapshot?.measuredVelocity ?? 0,
         rebaseCount: snapshot?.rebaseCount ?? 0,
-        particleField: snapshot?.particleField || null,
-        speedField: snapshot?.particleField || snapshot?.speedField || null,
+        particleField,
+        speedField: particleField,
         settled: Boolean(snapshot?.isSettled),
         inputState: snapshot?.inputState || '',
         wheelAccumulated: app.wheelGesture?.accumulated ?? null,
@@ -566,8 +591,10 @@ async function auditSpeedFieldPerformance(page, durationMs = 10_000) {
     relativeFpsRatio: baselineFps > 0 ? fps / baselineFps : 0,
     relativeP95Ratio: baselineP95Ms > 0 ? p95Ms / baselineP95Ms : Infinity,
     fieldActivated: Boolean(sample?.fieldActivated),
-    particleCountStable: sample?.minParticleCount > 0
-      && sample?.minParticleCount === sample?.maxParticleCount,
+    hasParticleField: Boolean(sample?.maxParticleCount),
+    particleCountStable: sample?.maxParticleCount
+      ? sample?.minParticleCount > 0 && sample?.minParticleCount === sample?.maxParticleCount
+      : true,
     particleCount: sample?.maxParticleCount || 0,
     cardCountStable: sample?.initialCardCount > 0
       && sample?.initialCardCount === sample?.finalCardCount,
@@ -1087,6 +1114,7 @@ async function main() {
       if (result.dots.activeCardOverlaps === null || result.dots.activeCardOverlaps > 0) {
         failures.push(`${name}: dot track overlaps the active card`);
       }
+      if (result.particleField?.error) failures.push(`${name}: ${result.particleField.error}`);
       if ((result.particleField?.opacity ?? 1) > 0.02 || result.particleField?.visible) {
         failures.push(`${name}: particle field should be dark while idle`);
       }
@@ -1107,17 +1135,17 @@ async function main() {
       if (speedPerformance?.relativeFpsGateAvailable && (speedPerformance?.relativeFpsRatio ?? 0) < 0.85) failures.push('desktop: active speed field reduced FPS by more than 15% from the moving-carousel baseline');
       if ((speedPerformance?.relativeP95Ratio ?? Infinity) > 1.15) failures.push('desktop: active speed field worsened p95 frame time by more than 15% from the host baseline');
     }
-    if (!speedPerformance?.fieldActivated) failures.push('desktop: persistent particle field was not visible during the performance burst');
-    if (!speedPerformance?.particleCountStable) failures.push('desktop: particle field count changed during the performance burst');
+    if (speedPerformance?.fieldActivated) failures.push('desktop: retired particle field became visible during the performance burst');
+    if (speedPerformance?.hasParticleField && !speedPerformance?.particleCountStable) failures.push('desktop: particle field count changed during the performance burst');
     if (!speedPerformance?.cardCountStable) failures.push('desktop: permanent card count changed during the performance burst');
     if ((speedPerformance?.maxLead ?? Infinity) > 2.02) failures.push('desktop: performance burst exceeded the bounded target lead');
     if (speedPerformance?.after?.fieldRunning || speedPerformance?.after?.fieldVisible || (speedPerformance?.after?.fieldOpacity ?? 1) > 0.02) failures.push('desktop: persistent particle field stayed visible after settlement');
     if (speedPerformance?.after?.deckRafActive) failures.push('desktop: carousel RAF remained active after the performance burst settled');
     const rapidReversal = summary.viewports.desktop.rapidReversal;
     if (!(rapidReversal?.beforeVelocity > 0)) failures.push('desktop: reversal setup never reached forward carousel speed');
-    if (!(rapidReversal?.beforeFieldVelocity > 0)) failures.push('desktop: reversal setup never reached forward field speed');
     if (rapidReversal?.reversalSample < 0 || rapidReversal?.reversalSample > 18) failures.push('desktop: carousel did not reverse promptly after opposite input');
-    if (rapidReversal?.fieldReversalSample < 0 || rapidReversal?.fieldReversalSample > 24) failures.push('desktop: speed field did not reverse smoothly after opposite input');
+    if ((rapidReversal?.beforeFieldVelocity || 0) !== 0) failures.push('desktop: retired speed field still reported velocity');
+    if ((rapidReversal?.fieldReversalSample ?? -1) >= 0) failures.push('desktop: retired speed field still reversed after opposite input');
     if ((rapidReversal?.maxLead ?? Infinity) > 2.02) failures.push('desktop: rapid reversal exceeded the bounded target lead');
     if (rapidReversal?.blankSamples?.length) failures.push('desktop: rapid reversal exposed a blank carousel frame');
     if (!rapidReversal?.after?.settled || rapidReversal?.after?.inputState !== 'idle') failures.push('desktop: rapid reversal did not return to a settled idle state');
@@ -1151,8 +1179,8 @@ async function main() {
           if (result.fieldActivated) failures.push(`${label}: particle field became visible under reduced motion`);
           if (result.after?.particleField?.running) failures.push(`${label}: particle field animated under reduced motion`);
         } else {
-          if (!result.fieldActivated) failures.push(`${label}: sustained input did not reveal the particle field`);
-          if (!result.fieldParticleCountStable || (result.fieldParticleCount || 0) < 1) failures.push(`${label}: particle field count was not fixed`);
+          if (result.fieldActivated) failures.push(`${label}: retired particle field became visible during sustained input`);
+          if ((result.fieldParticleCount || 0) > 0) failures.push(`${label}: retired particle field still has particles`);
           if ((result.after?.particleField?.opacity ?? 1) > 0.02 || result.after?.particleField?.visible) failures.push(`${label}: particle field stayed visible after settlement`);
         }
       }

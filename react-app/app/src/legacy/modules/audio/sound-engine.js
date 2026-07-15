@@ -55,10 +55,10 @@ const BASE_CONFIG = {
   reverbWetMix: 0.18,
   reverbHighDamp: 0.55,
   
-  // Volume / dynamics (reduced 50% for subtle chimes)
+  // Volume / dynamics
   minGain: 0.001,
   maxGain: 0.0125,
-  masterGain: 0.28,
+  masterGain: 0.42,
   voiceGainMax: 0.02,
   
   // Performance
@@ -218,7 +218,7 @@ export const SOUND_PRESETS = {
     reverbWetMix: 0.04,
     reverbDecay: 0.10,
     highShelfGain: -4.0,
-    masterGain: 0.24,
+    masterGain: 0.42,
   },
   
   // ★ PREFERRED: Very soft, minimal transient — like wooden beads
@@ -310,6 +310,7 @@ const CONTACT_RIPPLE_MOTIF_VARIATIONS = Object.freeze([
   Object.freeze({ id: 'lift-wide-right', ringDelayScale: 1.02, panSpread: 0.26, pressureGain: 0.68, brightness: 1.34 }),
   Object.freeze({ id: 'lift-long', ringDelayScale: 1.04, panSpread: 0.18, pressureGain: 0.74, brightness: 1.22 }),
 ]);
+const CONTACT_RIPPLE_MOTIF_GAIN = 3.25;
 let contactMotifVariationIndex = 0;
 
 // Broadcast state changes so UI stays in sync
@@ -1173,6 +1174,7 @@ export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
     variation: variation.id,
     variationIndex,
     variationCount: CONTACT_RIPPLE_MOTIF_VARIATIONS.length,
+    gainMultiplier: CONTACT_RIPPLE_MOTIF_GAIN,
     ringOffsetsMs: ringOffsets.map((offset) => Math.round(offset * 1000)),
     tailReleaseMs: 580,
     durationMs: Math.round(Math.max(...pressureEvents.map((event) => (
@@ -1184,14 +1186,14 @@ export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
   scheduleContactPressureSnap({
     offset: 0,
     duration: 0.034,
-    gain: 0.017 * pressureGain,
+    gain: 0.017 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     filterStart: 5200 * brightness,
     filterEnd: 2600 * brightness,
   });
   scheduleContactPressureThump({
     offset: 0.014,
     duration: 0.12,
-    gain: 0.0048 * pressureGain,
+    gain: 0.0048 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     frequency: 196,
     frequencyEnd: 247,
     filterStart: 2600 * brightness,
@@ -1201,85 +1203,85 @@ export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
   scheduleContactPressureRing({
     offset: ringOffsets[0],
     duration: 0.20,
-    gain: 0.0128 * pressureGain,
+    gain: 0.0128 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     pan: -variation.panSpread,
     frequency: 392 * brightness,
     frequencyEnd: 494 * brightness,
     harmonicFrequency: 784 * brightness,
-    harmonicGain: 0.0034 * pressureGain,
+    harmonicGain: 0.0034 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     filterStart: 3900 * brightness,
     filterEnd: 2300 * brightness,
-    noiseGain: 0.0062,
+    noiseGain: 0.0062 * CONTACT_RIPPLE_MOTIF_GAIN,
     release: 0.24,
   });
   scheduleContactPressureRing({
     offset: ringOffsets[1],
     duration: 0.26,
-    gain: 0.0132 * pressureGain,
+    gain: 0.0132 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     pan: variation.panSpread,
     frequency: 494 * brightness,
     frequencyEnd: 587 * brightness,
     harmonicFrequency: 988 * brightness,
-    harmonicGain: 0.0036 * pressureGain,
+    harmonicGain: 0.0036 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     filterStart: 3720 * brightness,
     filterEnd: 2200 * brightness,
-    noiseGain: 0.0058,
+    noiseGain: 0.0058 * CONTACT_RIPPLE_MOTIF_GAIN,
     release: 0.32,
   });
   scheduleContactPressureRing({
     offset: ringOffsets[2],
     duration: 0.34,
-    gain: 0.0126 * pressureGain,
+    gain: 0.0126 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     pan: 0,
     frequency: 587 * brightness,
     frequencyEnd: 740 * brightness,
     harmonicFrequency: 1175 * brightness,
-    harmonicGain: 0.0033 * pressureGain,
+    harmonicGain: 0.0033 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     filterStart: 3500 * brightness,
     filterEnd: 2050 * brightness,
-    noiseGain: 0.0050,
+    noiseGain: 0.0050 * CONTACT_RIPPLE_MOTIF_GAIN,
     release: 0.42,
   });
   scheduleContactPressureRing({
     offset: ringOffsets[3],
     duration: 0.43,
-    gain: 0.0114 * pressureGain,
+    gain: 0.0114 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     pan: variation.panSpread * 0.52,
     frequency: 659 * brightness,
     frequencyEnd: 880 * brightness,
     harmonicFrequency: 1318 * brightness,
-    harmonicGain: 0.0030 * pressureGain,
+    harmonicGain: 0.0030 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     filterStart: 3260 * brightness,
     filterEnd: 1880 * brightness,
-    noiseGain: 0.0044,
+    noiseGain: 0.0044 * CONTACT_RIPPLE_MOTIF_GAIN,
     release: 0.55,
   });
   scheduleContactPressureRing({
     offset: ringOffsets[4],
     duration: 0.50,
-    gain: 0.0098 * pressureGain,
+    gain: 0.0098 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     pan: -variation.panSpread * 0.32,
     frequency: 784 * brightness,
     frequencyEnd: 988 * brightness,
     harmonicFrequency: 1568 * brightness,
-    harmonicGain: 0.0027 * pressureGain,
+    harmonicGain: 0.0027 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     filterStart: 3020 * brightness,
     filterEnd: 1720 * brightness,
-    noiseGain: 0.0038,
+    noiseGain: 0.0038 * CONTACT_RIPPLE_MOTIF_GAIN,
     release: 0.56,
   });
   scheduleContactPressureRing({
     offset: 1.32 * variation.ringDelayScale,
     duration: 0.48,
-    gain: 0.0058 * pressureGain,
+    gain: 0.0058 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     pan: 0,
     frequency: 988 * brightness,
     frequencyEnd: 1175 * brightness,
     harmonicFrequency: 1976 * brightness,
-    harmonicGain: 0.0019 * pressureGain,
+    harmonicGain: 0.0019 * pressureGain * CONTACT_RIPPLE_MOTIF_GAIN,
     filterStart: 2850 * brightness,
     filterEnd: 1580 * brightness,
-    noiseGain: 0.0028,
+    noiseGain: 0.0028 * CONTACT_RIPPLE_MOTIF_GAIN,
     release: 0.58,
   });
   return true;

@@ -1514,7 +1514,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 .portfolio-project-view__back--top.abs-icon-btn:hover,
 .portfolio-project-view__back--top.abs-icon-btn:focus-visible {
   color: var(--portfolio-hero-control-ink, #fff);
-  background: color-mix(in srgb, currentColor 8%, transparent);
+  background: transparent;
 }
 
 .portfolio-project-view.is-scrolled .portfolio-project-view__back--top.abs-icon-btn {
@@ -1820,7 +1820,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-project-view__body-inner {
   max-width: min(68rem, 100%);
-  margin: 0 auto;
+  margin: 0;
   display: grid;
   gap: clamp(22px, 3vw, 36px);
   padding: clamp(var(--gap-xl), 4vw, calc(var(--gap-xl) * 1.6)) 0;
@@ -1904,8 +1904,7 @@ body.portfolio-project-open .ui-bottom {
   max-width: min(72ch, 100%);
 }
 
-.portfolio-project-view__overview h2,
-.portfolio-project-view__takeaways h2 {
+.portfolio-project-view__section-label {
   margin: 0;
   font-size: clamp(0.9rem, 1vw, 1rem);
   font-weight: 500;
@@ -2026,15 +2025,9 @@ body.portfolio-project-open .ui-bottom {
   color: var(--portfolio-project-accent);
 }
 
-.portfolio-project-view__chapter-copy h2 {
-  max-width: 18ch;
-  margin: 0;
-  font-family: var(--abs-font-sans);
-  font-size: clamp(2rem, 5vw, 4.6rem);
-  font-weight: 480;
-  line-height: 0.98;
-  letter-spacing: -0.052em;
-  text-wrap: balance;
+.portfolio-project-view__prose-highlight {
+  color: var(--portfolio-project-accent);
+  font-weight: 580;
 }
 
 .portfolio-project-view__block--note {
@@ -2095,9 +2088,12 @@ body.portfolio-project-open .ui-bottom {
 }
 
 .portfolio-project-view__block figcaption {
-  font-size: clamp(0.82rem, 0.96vw, 0.94rem);
-  line-height: 1.5;
-  opacity: 0.72;
+  max-width: min(42rem, 100%);
+  justify-self: center;
+  text-align: center;
+  font-size: clamp(0.72rem, 0.76vw, 0.8rem);
+  line-height: 1.36;
+  color: color-mix(in srgb, var(--portfolio-drawer-ink) 62%, transparent);
 }
 
 .portfolio-project-view__block--quote {
@@ -2207,8 +2203,8 @@ body.portfolio-project-open .ui-bottom {
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__summary p,
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__block--chapter p,
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__block--text p {
-  font-size: clamp(1.16rem, 1.45vw, 1.32rem);
-  line-height: 1.58;
+  font-size: clamp(1.04rem, 1.22vw, 1.16rem);
+  line-height: 1.64;
   color: var(--portfolio-drawer-ink);
 }
 
@@ -2219,51 +2215,49 @@ body.portfolio-project-open .ui-bottom {
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__block--chapter p,
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__block--text p {
-  color: var(--portfolio-drawer-muted);
+  color: var(--portfolio-drawer-ink);
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__summary {
-  max-width: 58ch;
+  max-width: 64ch;
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__summary p {
-  font-size: clamp(1.5rem, 3.81vw, 2rem);
-  line-height: 1.5;
+  font-size: clamp(1.04rem, 1.22vw, 1.16rem);
+  line-height: 1.64;
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__block--chapter {
-  margin-block: clamp(var(--gap-xl), 5vw, calc(var(--gap-xl) * 1.6)) clamp(var(--gap-sm), 1.6vw, var(--gap-md));
+  margin-block: clamp(var(--gap-lg), 4vw, var(--gap-xl)) clamp(var(--gap-xs), 1vw, var(--gap-sm));
   padding-top: 0;
   grid-template-columns: 1fr;
-  gap: var(--gap-sm);
+  gap: 0;
   border: 0;
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__chapter-copy {
   max-width: 64ch;
-  gap: var(--gap-sm);
+  gap: var(--gap-xs);
 }
 
-.portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__chapter-copy h2 {
-  max-width: 24ch;
-  font-size: clamp(2rem, 3.6vw, 3.25rem);
-  font-weight: 400;
-  line-height: 1.02;
-  letter-spacing: -0.036em;
-  text-wrap: wrap;
+.portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__prose-highlight {
+  color: color-mix(in srgb, var(--ball-6) 82%, var(--portfolio-project-accent) 18%);
+  font-weight: 560;
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__block--text {
-  max-width: 42ch;
+  max-width: 64ch;
   padding: 0;
   border: 0;
 }
 
 .portfolio-project-view[data-project-id='chapter-7'] .portfolio-project-view__block figcaption {
-  font-size: clamp(0.98rem, 1.1vw, 1.08rem);
-  line-height: 1.45;
-  color: var(--portfolio-drawer-ink);
-  opacity: 0.72;
+  max-width: min(34rem, 92%);
+  justify-self: center;
+  text-align: center;
+  font-size: clamp(0.68rem, 0.72vw, 0.76rem);
+  line-height: 1.34;
+  color: color-mix(in srgb, var(--portfolio-drawer-ink) 62%, transparent);
 }
 
 .portfolio-project-card[data-project-id='chapter-7'] .portfolio-project-card__client,
