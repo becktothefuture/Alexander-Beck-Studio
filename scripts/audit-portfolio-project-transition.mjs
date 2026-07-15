@@ -80,6 +80,7 @@ async function startFrameSampler(page, durationMs = 1200) {
       const bridgeVisual = bridge?.querySelector('.portfolio-project-view__image');
       const bridgeMedia = bridge?.querySelector('.portfolio-project-view__image-motion');
       const bridgeVeil = bridge?.querySelector('.portfolio-project-media-bridge__source-veil');
+      const heroVeil = document.querySelector('.portfolio-project-view__image-veil');
       const drawer = document.querySelector('.portfolio-project-view__drawer');
       const hero = document.querySelector('.portfolio-project-view__image-shell');
       const deck = document.querySelector('.portfolio-deck-stage');
@@ -103,6 +104,8 @@ async function startFrameSampler(page, durationMs = 1200) {
           : '',
         bridgeVeilBackgroundImage: bridgeVeil ? getComputedStyle(bridgeVeil).backgroundImage : 'none',
         bridgeVeilBackgroundColor: bridgeVeil ? getComputedStyle(bridgeVeil).backgroundColor : 'transparent',
+        bridgeVeilOpacity: bridgeVeil ? Number(getComputedStyle(bridgeVeil).opacity) : 0,
+        heroVeilOpacity: heroVeil ? Number(getComputedStyle(heroVeil).opacity) : 0,
         bridgeBoxShadow: bridgeStyle?.boxShadow || 'none',
         bridgeZIndex: bridgeStyle ? Number(bridgeStyle.zIndex) : 0,
         rootZIndex: rootStyle ? Number(rootStyle.zIndex) : 0,
@@ -156,6 +159,9 @@ function validateOpenSamples(samples, label, failures, requireFrameDensity = tru
     }
     if (sample.handoffMediaCount !== 1) {
       failures.push(`${label}: expected one shared hero-media node, found ${sample.handoffMediaCount}`);
+    }
+    if (sample.bridgeMediaMode !== 'colour' && sample.bridgeVeilOpacity + sample.heroVeilOpacity < 0.8) {
+      failures.push(`${label}: media darkening dropped out at ${sample.atMs}ms`);
     }
   });
   const firstBridge = bridgeSamples[0];

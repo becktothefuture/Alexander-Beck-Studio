@@ -316,8 +316,7 @@ export class PortfolioProjectHandoff {
     ]);
     add(this.bridge.querySelector('.portfolio-project-media-bridge__source-veil'), [
       { opacity: 1, offset: 0 },
-      { opacity: 1, offset: 0.18 },
-      { opacity: 0, offset: 0.55 },
+      { opacity: 1, offset: 0.55 },
       { opacity: 0, offset: 1 },
     ]);
     add(this.getDeckStage?.(), [

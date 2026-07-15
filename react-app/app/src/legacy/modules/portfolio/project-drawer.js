@@ -1,5 +1,10 @@
 import { resolvePortfolioLabelContent } from './portfolio-content.js';
 import { createScrollPresence } from '../utils/scroll-presence.js';
+import {
+  createSmoothScroll,
+  createSmoothScrollMediaQueries,
+  shouldUseNativeSmoothScroll,
+} from '../../../lib/smooth-scroll.js';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -409,11 +414,17 @@ export class PortfolioProjectDrawer {
     this.content = null;
     this.backButton = null;
     this.scrollPresence = null;
+    this.smoothScroll = null;
+    this.smoothScrollFrame = null;
+    this.reducedMotionQuery = null;
+    this.nativeScrollQuery = null;
     this.openTimers = [];
     this.closeFallbackTimer = null;
     this.mediaShiftRaf = null;
     this.boundScheduleDrawerMediaScrollShift = () => this.scheduleDrawerMediaScrollShift();
     this.boundUpdateScrollState = () => this.updateScrollState();
+    this.boundRebuildSmoothScroll = () => this.rebuildSmoothScroll();
+    this.boundSmoothScrollRaf = (time) => this.updateSmoothScroll(time);
     this.boundRequestClose = (event) => {
       if (event?.type === 'pointerdown' && event.target !== this.backdrop) return;
       event?.stopPropagation?.();
@@ -457,9 +468,69 @@ export class PortfolioProjectDrawer {
           maxSpanPx: 220,
         })
       : null;
+    this.setupSmoothScroll();
     this.setupMediaScrollShift();
     this.updateScrollState();
     return this.root;
+  }
+
+  setupSmoothScroll() {
+    this.teardownSmoothScroll();
+    if (!this.scroll) return;
+    const { reducedMotionQuery, nativeScrollQuery } = createSmoothScrollMediaQueries();
+    this.reducedMotionQuery = reducedMotionQuery;
+    this.nativeScrollQuery = nativeScrollQuery;
+    this.reducedMotionQuery.addEventListener('change', this.boundRebuildSmoothScroll);
+    this.nativeScrollQuery.addEventListener('change', this.boundRebuildSmoothScroll);
+    this.rebuildSmoothScroll();
+  }
+
+  rebuildSmoothScroll() {
+    this.destroySmoothScrollInstance();
+    if (!this.scroll) return;
+    if (shouldUseNativeSmoothScroll({
+      reducedMotionQuery: this.reducedMotionQuery,
+      nativeScrollQuery: this.nativeScrollQuery,
+    })) return;
+    this.smoothScroll = createSmoothScroll({
+      wrapper: this.scroll,
+      content: this.scroll,
+    });
+    this.refreshSmoothScroll();
+    this.startSmoothScrollFrame();
+  }
+
+  startSmoothScrollFrame() {
+    if (!this.smoothScroll || this.smoothScrollFrame != null) return;
+    this.smoothScrollFrame = window.requestAnimationFrame(this.boundSmoothScrollRaf);
+  }
+
+  updateSmoothScroll(time) {
+    this.smoothScroll?.raf(time);
+    this.smoothScrollFrame = this.smoothScroll
+      ? window.requestAnimationFrame(this.boundSmoothScrollRaf)
+      : null;
+  }
+
+  destroySmoothScrollInstance() {
+    if (this.smoothScrollFrame != null) {
+      window.cancelAnimationFrame(this.smoothScrollFrame);
+      this.smoothScrollFrame = null;
+    }
+    this.smoothScroll?.destroy();
+    this.smoothScroll = null;
+  }
+
+  refreshSmoothScroll() {
+    this.smoothScroll?.resize();
+  }
+
+  teardownSmoothScroll() {
+    this.destroySmoothScrollInstance();
+    this.reducedMotionQuery?.removeEventListener('change', this.boundRebuildSmoothScroll);
+    this.nativeScrollQuery?.removeEventListener('change', this.boundRebuildSmoothScroll);
+    this.reducedMotionQuery = null;
+    this.nativeScrollQuery = null;
   }
 
   updateScrollState() {
@@ -519,7 +590,9 @@ export class PortfolioProjectDrawer {
 
   resetScrollTop() {
     if (!this.scroll) return;
+    this.smoothScroll?.scrollTo(0, { immediate: true, force: true });
     this.scroll.scrollTop = 0;
+    this.refreshSmoothScroll();
   }
 
   getDrawerRect() {
@@ -856,6 +929,7 @@ export class PortfolioProjectDrawer {
         this.image.style.objectPosition = project.heroPosition || '';
         this.image.addEventListener('load', () => {
           this.updateScrollCueColor(accentColor);
+          this.refreshSmoothScroll();
           this.scheduleDrawerMediaScrollShift();
           this.scrollPresence?.refresh();
         }, { once: true });
@@ -872,6 +946,7 @@ export class PortfolioProjectDrawer {
       ? 'portfolioProjectEyebrow portfolioProjectTitle'
       : 'portfolioProjectTitle');
     if (this.content) this.content.innerHTML = this.buildProjectContent(project);
+    this.refreshSmoothScroll();
     this.scrollPresence?.refresh();
     this.scheduleDrawerMediaScrollShift();
 
@@ -989,6 +1064,7 @@ export class PortfolioProjectDrawer {
 
   destroy() {
     this.clearOpenTimers();
+    this.teardownSmoothScroll();
     this.teardownMediaScrollShift();
     this.scrollPresence?.destroy();
     this.scrollPresence = null;

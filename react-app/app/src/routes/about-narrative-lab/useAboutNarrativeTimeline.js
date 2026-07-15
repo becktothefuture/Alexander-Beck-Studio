@@ -1,14 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import Lenis from 'lenis';
+import {
+  createSmoothScroll,
+  createSmoothScrollMediaQueries,
+  shouldUseNativeSmoothScroll,
+} from '../../lib/smooth-scroll.js';
 import { compileAboutNarrativeStageSequence } from './aboutNarrativeStages.js';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
 const mix = (from, to, progress) => from + ((to - from) * progress);
 const ease = (value) => 1 - ((1 - clamp01(value)) ** 3);
-
-function readNativeTouchScroll() {
-  return window.matchMedia('(max-width: 600px), (hover: none), (pointer: coarse)').matches;
-}
 
 export function useAboutNarrativeTimeline({
   settings,
@@ -36,8 +36,7 @@ export function useAboutNarrativeTimeline({
     const content = contentRef.current;
     if (!root || !scrollport || !content) return undefined;
 
-    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const touchQuery = window.matchMedia('(max-width: 600px), (hover: none), (pointer: coarse)');
+    const { reducedMotionQuery, nativeScrollQuery } = createSmoothScrollMediaQueries();
     let lenis = null;
     let frame = 0;
     let previousTime = performance.now();
@@ -206,14 +205,11 @@ export function useAboutNarrativeTimeline({
     const rebuildLenis = () => {
       lenis?.destroy();
       lenis = null;
-      if (reducedMotionQuery.matches || readNativeTouchScroll()) return;
-      lenis = new Lenis({
+      if (shouldUseNativeSmoothScroll({ reducedMotionQuery, nativeScrollQuery })) return;
+      lenis = createSmoothScroll({
         wrapper: scrollport,
         content,
-        lerp: 0.22 - (settingsRef.current.scrollSmoothing * 0.18),
-        smoothWheel: true,
-        syncTouch: false,
-        autoRaf: false,
+        smoothing: settingsRef.current.scrollSmoothing,
       });
     };
     const markDirty = () => { measurementsRef.current.dirty = true; };
@@ -225,7 +221,7 @@ export function useAboutNarrativeTimeline({
     resizeObserver.observe(scrollport);
     resizeObserver.observe(content);
     reducedMotionQuery.addEventListener('change', handleMediaChange);
-    touchQuery.addEventListener('change', handleMediaChange);
+    nativeScrollQuery.addEventListener('change', handleMediaChange);
     document.fonts?.ready?.then(markDirty).catch(() => {});
     rebuildLenis();
     measure();
@@ -236,7 +232,7 @@ export function useAboutNarrativeTimeline({
       lenis?.destroy();
       resizeObserver.disconnect();
       reducedMotionQuery.removeEventListener('change', handleMediaChange);
-      touchQuery.removeEventListener('change', handleMediaChange);
+      nativeScrollQuery.removeEventListener('change', handleMediaChange);
       delete root.dataset.activeNarrativeSection;
       root.style.removeProperty('--narrative-story-wu');
     };
