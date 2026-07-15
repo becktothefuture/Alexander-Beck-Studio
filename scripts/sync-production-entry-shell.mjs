@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const APP_ROOT = path.join(ROOT, 'react-app', 'app');
 const ENTRY_FILES = ['index.html', 'portfolio.html', 'about.html', 'contact.html', 'styleguide.html', 'palette-lab.html'];
+const INSTRUMENT_FONT_PATH = path.join(APP_ROOT, 'public', 'fonts', 'instrument-serif', 'InstrumentSerif-Regular.woff2');
+const INSTRUMENT_FONT_HREF = '%BASE_URL%fonts/instrument-serif/InstrumentSerif-Regular.woff2';
 const CHECK_ONLY = process.argv.includes('--check');
 const HTML_OPEN_PATTERN = /<html[^\n]*>/;
 const BOOT_PATTERN = /    <script>\n      \(function\(\) \{\n        window\.__ABS_BOOT_STARTED_AT__[\s\S]*?\n    <\/script>/;
@@ -19,6 +21,16 @@ const canonicalBoot = canonicalHtml.match(BOOT_PATTERN)?.[0];
 if (!canonicalBoot) throw new Error(`Canonical shell boot block not found in ${canonicalPath}`);
 const canonicalShellStyles = canonicalHtml.match(SHELL_STYLES_PATTERN)?.[0];
 if (!canonicalShellStyles) throw new Error(`Canonical shell stylesheet block not found in ${canonicalPath}`);
+const instrumentFontStat = await fs.stat(INSTRUMENT_FONT_PATH).catch(() => null);
+if (!instrumentFontStat?.isFile() || instrumentFontStat.size === 0) {
+  throw new Error(`Instrument Serif webfont missing or empty: ${INSTRUMENT_FONT_PATH}`);
+}
+if (!canonicalShellStyles.includes(`href="${INSTRUMENT_FONT_HREF}"`)) {
+  throw new Error(`Canonical entry shell must preload ${INSTRUMENT_FONT_HREF}`);
+}
+if (canonicalShellStyles.includes('family=Instrument+Serif')) {
+  throw new Error('Instrument Serif must remain self-hosted, not part of the Google Fonts request');
+}
 
 const drifted = [];
 for (const entry of ENTRY_FILES.slice(1)) {

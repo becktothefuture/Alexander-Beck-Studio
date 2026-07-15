@@ -2,7 +2,7 @@
 
 ## What this is for
 
-This questionnaire supplies the raw material for the five-act structure in `ABOUT-NARRATIVE-FRAMEWORK.md`:
+This questionnaire supplied the raw material for the archived five-act structure in `../../archive/narrative-explorations/ABOUT-NARRATIVE-FRAMEWORK.md`:
 
 **complexity → attention → structure → character → possibility**
 
@@ -337,7 +337,7 @@ Complete this after the questions. It prevents client names, outcomes and contri
 The answers should be distilled in this order:
 
 1. Extract exact phrases, concrete scenes and verified facts.
-2. Fill the population worksheet in `ABOUT-NARRATIVE-FRAMEWORK.md`.
+2. Fill the population worksheet in `../../archive/narrative-explorations/ABOUT-NARRATIVE-FRAMEWORK.md`.
 3. Write one complete framework-led story before exploring tonal variations.
 4. Check that the story works without animation.
 5. Tighten it to approximately 200–240 core words.

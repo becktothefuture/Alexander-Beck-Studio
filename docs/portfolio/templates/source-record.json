@@ -1,0 +1,18 @@
+{
+  "id": "src-YYYYMMDD-001",
+  "title": "<source title>",
+  "type": "pdf",
+  "status": "active",
+  "extractionStatus": "pending",
+  "sensitivity": "personal",
+  "origin": "user_provided",
+  "receivedAt": "YYYY-MM-DD",
+  "projectIds": ["<project-id>"],
+  "path": "docs/portfolio/sources/raw/<source-id>/<filename>",
+  "extractedPath": "docs/portfolio/sources/extracted/<source-id>.md",
+  "sha256": "<checksum>",
+  "summary": "<what this source appears to contain>",
+  "supersedes": [],
+  "supersededBy": []
+}
+

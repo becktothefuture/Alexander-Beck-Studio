@@ -38,6 +38,8 @@ Instrument Serif is limited to the Home canvas title and route-level titles usin
 - `--abs-font-headline-line-height-scale: 0.92`
 - `--abs-font-headline-letter-spacing: -0.01ch`
 
+The regular Instrument Serif webfont is self-hosted under `public/fonts/instrument-serif/`, preloaded by every production HTML shell, and included in the runtime font-readiness gate before canvas or route content is revealed. Do not restore it to the external Google Fonts request or remove it from the readiness gate.
+
 This pairing moves the site from a purely system-led portfolio towards an authored studio while retaining a precise technical spine. Its value depends on scarcity: do not apply Instrument Serif to project names, navigation, body copy, or ordinary section headings. A future use in a pull quote or case-study chapter opener may be considered deliberately, but it must not become the default editorial decoration.
 
 Instrument Serif's finer strokes are more vulnerable to visual interruption than Geist. On Home, momentary ball crossings are part of the material interaction, but the default and settled states must leave both title lines legible. Solve conflicts through simulation density, placement, contrast, and motion. Do not compensate with text outlines, shadows, or a background plate.

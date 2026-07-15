@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "projectId": "personal-website",
+  "title": "Personal Website",
+  "lifecycleStatus": "active",
+  "copyEligibility": "blocked_missing_facts",
+  "sensitivity": "public",
+  "lastReviewed": "2026-07-15",
+  "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
+  "workingHypotheses": [],
+  "claims": [],
+  "conflicts": [],
+  "openQuestions": [
+    {"id": "q-personal-001", "category": "brief", "question": "Why did Alexander start the site, and what question was the first version trying to answer?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-personal-002", "category": "timeline", "question": "Which versions or milestones materially changed the design?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-personal-003", "category": "decision", "question": "Which browser, performance, accessibility, or implementation constraint most changed the visual direction?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-personal-004", "category": "outcome", "question": "What should count as the observable outcome: the living system, a capability, external response, or something else?", "status": "open", "answer": null, "sourceIds": []}
+  ],
+  "media": [],
+  "interviewRounds": []
+}
+

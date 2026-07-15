@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "projectId": "sp-global",
+  "title": "S&P Global",
+  "lifecycleStatus": "active",
+  "copyEligibility": "blocked_missing_facts",
+  "sensitivity": "internal",
+  "lastReviewed": "2026-07-15",
+  "readiness": {
+    "sourceCoverage": "partial",
+    "interviewStatus": "not_started",
+    "mediaCoverage": "partial",
+    "copyStatus": "blocked_missing_facts"
+  },
+  "workingHypotheses": [
+    "The strongest narrative tension is translating expert financial logic without flattening its power."
+  ],
+  "claims": [
+    {
+      "id": "claim-sp-001",
+      "category": "brief",
+      "statement": "The engagement aimed to turn an index-building workflow based on email, spreadsheets, Python scripts, and undocumented expert knowledge into a visual product.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 5–6, Factsheet and Behind the Brief"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm the product's exact public name."
+    },
+    {
+      "id": "claim-sp-002",
+      "category": "audience",
+      "statement": "The intended audience included experienced financial experts and newer users; research participants included analysts, hedge-fund managers, and index engineers.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 5 and 12"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Clarify the actual primary user and purchasing audience."
+    },
+    {
+      "id": "claim-sp-003",
+      "category": "role",
+      "statement": "Alexander led UX and visual design and contributed workflow mapping, interface language, screens, flows, prototypes, workshops, and user-test facilitation.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [
+        {"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — MRM"},
+        {"sourceId": "src-20260715-002", "locator": "p. 5, My Role"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Separate leadership, hands-on production, and shared team responsibilities in interview."
+    },
+    {
+      "id": "claim-sp-004",
+      "category": "team",
+      "statement": "The old portfolio credits Tom Good, Claudia Carbutt, Andy Kemp, and Martin Grosjean and describes collaboration with a UX lead and junior designer.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 5, My Role and Creds"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm spelling, titles, and permission to credit."
+    },
+    {
+      "id": "claim-sp-005",
+      "category": "constraint",
+      "statement": "The team had to preserve the depth of a system built for internal experts while making it understandable to external users, with few comparable products to reference.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 6, Behind the Brief"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Strong candidate for the opening tension."
+    },
+    {
+      "id": "claim-sp-006",
+      "category": "decision",
+      "statement": "Foundation, schedule, and method were represented as modular, swappable building blocks so users could see how an index was assembled.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 8, Modular Thinking"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm whether this model shipped and how it evolved."
+    },
+    {
+      "id": "claim-sp-007",
+      "category": "collaboration",
+      "statement": "Internal working sessions established a shared model, and later walkthroughs with power users helped tune defaults, grouping, and progressive disclosure.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 7 and 12"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Ask for one specific piece of feedback and the design change it caused."
+    },
+    {
+      "id": "claim-sp-008",
+      "category": "decision",
+      "statement": "Interface language, micro-animation, typography, and restrained colour were used to make a dense product feel lighter without concealing data.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 9, Charm & Restraint"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "The language insight is narratively useful but needs a concrete before-and-after example."
+    },
+    {
+      "id": "claim-sp-009",
+      "category": "outcome",
+      "statement": "The old portfolio claims the platform reduced index launch time from three weeks to a few days.",
+      "status": "candidate",
+      "confidence": "low",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 5, Factsheet result"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Do not publish without method, baseline, and client confirmation."
+    },
+    {
+      "id": "claim-sp-010",
+      "category": "delivery_status",
+      "statement": "Portfolio v1 shows a detailed rule-builder interface and describes a separate SPICE marketing rollout as ongoing in May 2025.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 10–13"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Clarify what shipped, what was prototype, and whether SPICE belongs in the same case study."
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "conflict-sp-001",
+      "claimIds": ["claim-sp-001"],
+      "status": "open",
+      "question": "Should the project be named S&P Global, S&P Dow Jones Index Builder, or SPICE Index Builder, and is the CV's 'SMP Global' simply a typo?",
+      "resolution": null
+    }
+  ],
+  "openQuestions": [
+    {"id": "q-sp-001", "category": "brief", "question": "What exactly was the product, who used it, and what was the original problem?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-sp-002", "category": "role", "question": "What did Alexander personally own and make, and what belonged to the wider team?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-sp-003", "category": "decision", "question": "Which rule, validation problem, or interaction decision best demonstrates the difficult work?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-sp-004", "category": "team", "question": "Who were the closest collaborators and how did they change the work?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-sp-005", "category": "outcome", "question": "What shipped or changed, and can any speed or workflow improvement be substantiated?", "status": "open", "answer": null, "sourceIds": []}
+  ],
+  "media": [
+    {"id": "media-sp-001", "sourceId": "src-20260715-002", "locator": "p. 5", "subject": "Project factsheet", "storyUse": "Brief, role, and team reference", "status": "candidate", "permissionStatus": "unknown", "notes": "Internal working reference, not necessarily public media."},
+    {"id": "media-sp-002", "sourceId": "src-20260715-002", "locator": "p. 6", "subject": "Legacy Python, table, and spreadsheet workflow", "storyUse": "Establish the starting complexity", "status": "candidate", "permissionStatus": "unknown", "notes": "Request original artefacts or a safe reconstruction."},
+    {"id": "media-sp-003", "sourceId": "src-20260715-002", "locator": "p. 7", "subject": "Early exploration and working-session material", "storyUse": "Show ambiguity and alignment", "status": "candidate", "permissionStatus": "unknown", "notes": "Source image is blurred."},
+    {"id": "media-sp-004", "sourceId": "src-20260715-002", "locator": "p. 8", "subject": "Modular foundation, schedule, and method model", "storyUse": "Explain the breakthrough interaction model", "status": "candidate", "permissionStatus": "unknown", "notes": "Request original model and 3D-printed keepsake photo."},
+    {"id": "media-sp-005", "sourceId": "src-20260715-002", "locator": "p. 9", "subject": "Visual-language and UX-writing exploration", "storyUse": "Connect clarity, tone, and restraint", "status": "candidate", "permissionStatus": "unknown", "notes": "Source UI is blurred."},
+    {"id": "media-sp-006", "sourceId": "src-20260715-002", "locator": "p. 10", "subject": "Index product screen montage", "storyUse": "Show system breadth", "status": "candidate", "permissionStatus": "unknown", "notes": "Locate original exports."},
+    {"id": "media-sp-007", "sourceId": "src-20260715-002", "locator": "p. 11, editor canvas", "subject": "Rebalance-rule editor", "storyUse": "Hero interaction proof", "status": "candidate", "permissionStatus": "unknown", "notes": "Strongest detailed UI evidence in the PDF."},
+    {"id": "media-sp-008", "sourceId": "src-20260715-002", "locator": "p. 11, rule sidebar", "subject": "Filters, logic, and function library", "storyUse": "Explain expert control", "status": "candidate", "permissionStatus": "unknown", "notes": "Can be cropped separately from the editor canvas."},
+    {"id": "media-sp-009", "sourceId": "src-20260715-002", "locator": "p. 12", "subject": "Power-user testing material", "storyUse": "Show evidence-led refinement", "status": "candidate", "permissionStatus": "unknown", "notes": "Request session artefacts that are safe to publish."},
+    {"id": "media-sp-010", "sourceId": "src-20260715-002", "locator": "p. 13", "subject": "SPICE marketing rollout screens", "storyUse": "Close on product-to-market expression", "status": "candidate", "permissionStatus": "unknown", "notes": "Clarify whether this is the same engagement and what is live."}
+  ],
+  "interviewRounds": []
+}

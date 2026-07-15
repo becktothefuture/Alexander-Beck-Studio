@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "projectId": "sunexpress",
+  "title": "SunExpress",
+  "lifecycleStatus": "active",
+  "copyEligibility": "blocked_missing_facts",
+  "sensitivity": "internal",
+  "lastReviewed": "2026-07-15",
+  "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
+  "workingHypotheses": [],
+  "claims": [],
+  "conflicts": [],
+  "openQuestions": [
+    {"id": "q-sunexpress-001", "category": "timeline", "question": "When did the project happen, in what employer or agency context, and for how long?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-sunexpress-002", "category": "scope", "question": "Which booking stages, markets, languages, and platforms were actually in scope?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-sunexpress-003", "category": "role", "question": "What did Alexander personally own in the journey, design system, and icon work?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-sunexpress-004", "category": "delivery_status", "question": "Which parts were implemented, tested, or remained conceptual?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-sunexpress-005", "category": "reflection", "question": "What has visibly aged, what still holds up, and what would Alexander now change?", "status": "open", "answer": null, "sourceIds": []}
+  ],
+  "media": [],
+  "interviewRounds": []
+}
+

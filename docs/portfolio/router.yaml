@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "execution": {
+    "defaultMode": "read_only",
+    "requireProjectResolution": true,
+    "requireMissingFileReport": true,
+    "requirePostWriteVerification": true
+  },
+  "globalFiles": {
+    "catalog": "docs/portfolio/catalog.json",
+    "sourceIndex": "docs/portfolio/sources/index.json",
+    "ingestionLog": "docs/portfolio/logs/ingestion-log.md",
+    "decisionLog": "docs/portfolio/logs/decision-log.md"
+  },
+  "intents": [
+    {
+      "id": "question",
+      "description": "Answer from registered evidence without changing files.",
+      "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/sources/index.json", "docs/portfolio/projects/{project_id}.json"],
+      "allowedWrites": [],
+      "postconditions": ["no_files_changed"]
+    },
+    {
+      "id": "source_ingest",
+      "description": "Register an original source and create a locator-based extraction note.",
+      "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/sources/index.json", "docs/portfolio/templates/source-record.json"],
+      "allowedWrites": ["docs/portfolio/sources/raw/", "docs/portfolio/sources/extracted/", "docs/portfolio/sources/index.json", "docs/portfolio/logs/ingestion-log.md"],
+      "postconditions": ["source_has_id", "source_has_checksum", "source_has_sensitivity", "source_paths_exist"]
+    },
+    {
+      "id": "claim_distill",
+      "description": "Map extracted evidence into a project claim ledger.",
+      "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/sources/index.json", "docs/portfolio/sources/extracted/{source_id}.md", "docs/portfolio/projects/{project_id}.json"],
+      "allowedWrites": ["docs/portfolio/projects/{project_id}.json", "docs/portfolio/logs/ingestion-log.md"],
+      "postconditions": ["claims_have_sources", "claims_have_locators", "confidence_is_low_medium_or_high"]
+    },
+    {
+      "id": "interview_update",
+      "description": "Register interview answers and use them to confirm, dispute, or withhold claims.",
+      "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/sources/index.json", "docs/portfolio/projects/{project_id}.json", "docs/portfolio/templates/interview-round.md"],
+      "allowedWrites": ["docs/portfolio/sources/raw/", "docs/portfolio/sources/extracted/", "docs/portfolio/sources/index.json", "docs/portfolio/projects/{project_id}.json", "docs/portfolio/logs/ingestion-log.md"],
+      "postconditions": ["interview_is_registered_source", "personal_claims_are_user_confirmed"]
+    },
+    {
+      "id": "copy_draft",
+      "description": "Create source-linked project copy only after the project passes its copy gate.",
+      "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/sources/index.json", "docs/portfolio/projects/{project_id}.json", "docs/reference/PORTFOLIO-CONTENT-STRUCTURE.md", "docs/reference/TONE-OF-VOICE.md"],
+      "allowedWrites": ["docs/portfolio/drafts/"],
+      "postconditions": ["project_is_copy_ready", "only_confirmed_claims_used", "on_hold_projects_blocked"]
+    }
+  ]
+}
+

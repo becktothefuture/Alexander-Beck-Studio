@@ -53,6 +53,15 @@ Read `DESIGN.md` before changing the production visual system, then read the foc
 - A configurable value is complete only when live apply, canonical save, reload, flattening, and preview agree.
 - Primary route controls belong in the Button Bar. Route top bars are optional utility/back strips, not a second navigation system.
 
+## Portfolio knowledge source of truth
+
+- Before extracting portfolio sources, answering project-fact questions, running interviews, or drafting case-study copy, read `docs/portfolio/router.yaml` and select the narrowest intent.
+- Resolve the project through `docs/portfolio/catalog.json`, then read `docs/portfolio/sources/index.json` and `docs/portfolio/projects/<project-id>.json`.
+- Raw supplied files are evidence; extracted notes and old portfolio copy enter as candidate claims. Only confirmed, source-linked claims may be treated as settled facts in final copy.
+- Preserve contradictions and missing information. Do not silently promote polished wording, Figma copy, or the current website configuration into factual authority.
+- American Heart Association is on hold. Sources may be indexed, but no final-copy draft or outcome claim may be created until the hold is explicitly removed.
+- After portfolio-knowledge writes, run `npm run verify:portfolio-knowledge`.
+
 ## Locked visual contracts
 
 - The physical window, outer frame, Button Bar, and outside-window shell do not enter/exit with route content.

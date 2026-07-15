@@ -1,0 +1,193 @@
+                 Project for: SunExpress                                                                                         IV   #2                                SunExpress
+
+
+
+
+                 Placeholder                                                                                                          budget airline
+                 TITLE here
+                 FOCUS 1 
+                                                                                                                                      Product UX
+
+                 FOCUS 2                                                                                                              Solving complexity
+
+                 FOCUS 3                                                                                                              3d Craft
+
+
+
+
+Alexander Beck                 Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps                              2022–2025    Folio 05/25
+   S&P Dow jones
+factsheet
+
+
+                    background
+
+                    SunExpress, a joint venture between ufthansa and Turkish            L                                                               I joined the team tasked with overhauling the entire web
+                    Airlines, was facing increased pressure from newer, more agile                                                                      experience. From structural analysis to design systems and
+                    budget competitors. Their digital presence wasn t helping. The                                  ’                                   booking flow refinement, the work touched every layer of the
+                    site was outdated, inflexible, and structurally cluttered—making it                                                                 interface. It was early in my career, but it pushed me to balance
+                    hard for users to find what they needed, let alone get inspired.
+                                                                   commercial clarity with operational constraints, across
+                                                                                                                                                        platforms, languages, and teams. That balance—between what
+                                                                                                                                                        users need and what the business can support—became
+                                                                                                                                                        foundational to how I approach product design.
+
+
+
+                    Focus                                                                              My Role                                                       Worth Pointing Out                                         Core Threads
+                                                                                                       I was responsible for end-to-end UX, working                  I was responsible for end-to-end UX, working closely         Placeholder
+                                                                                                       closely with visual designers, developers, and                with visual designers, developers, and stakeholders
+                                  REsearch                 strategy
+                                                                                                       stakeholders across the business. I mapped                    across the business. I mapped journeys across                Placeholder
+                                                                                                       journeys across booking paths, audited existing               booking paths, audited existing interactions, and            Placeholder
+                                                                                                       interactions, and restructured screens around                 restructured screens around clearer decision points.
+                                                                                                       clearer decision points. The aim was to reduce                The aim was to reduce confusion, surface value
+                                                                                                       confusion, surface value earlier, and create space            earlier, and create space for upsell opportunities         Creds
+                      Visuals                                     Prototyping                          for upsell opportunities without disrupting flow.
+            without disrupting flow.
+
+                                                                                                                                                                                                                                Tom Good – Head of UX;  
+                                                                                                       I also built a design system from scratch, including a        I also built a design system from scratch, including a     Claudia Carbutt – UX Design;  
+                                                                                                       custom icon set designed to stretch across multiple           custom icon set designed to stretch across multiple        Andy Kemp - Business Analyst;  
+                                                 systems                                               languages and screen types. Every component was               languages and screen types. Every component was            Martin Grosjean - Client Services
+                                                                                                       tested across real use cases—not just in isolation            tested across real use cases—not just in isolation.
+
+
+
+
+   Alexander Beck    Experience | Motion | Aesthetics                           A quick look at creating vision, websites, products and apps                                                                        2022–2025   Folio 05/25
+   S&P Dow jones
+
+
+
+
+                    Reading the Signals
+
+
+
+                    Analytics revealed behaviour that clashed with
+ideation
+
+
+
+
+                    assumptions. Users weren’t scrolling.
+                    Promotions were getting missed. Drop-offs
+                    spiked midway through booking. 
+
+                    As a first step, it was crucial to reprioritise the
+                    content structure, elevate offers, and place
+                    booking functionality front and centre. It was
+                    less about redesigning pages and more about
+                    correcting how information showed up in
+                    context.
+
+
+
+
+   Alexander Beck     Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps   2022–2025   Folio 05/25
+   S&P Dow jones
+
+
+
+
+                    Foundations, Not Fragments
+
+
+                    It quickly became apparent that the content
+ideation
+
+
+
+
+                    across the 100+ pages of the website was
+                    inconsistent, the layouts fragile. 
+
+                    We introduced clearer templates, defined
+                    reusable zones, and laid out a responsive
+                    framework that gave SunExpress room to move
+                                 Easy and fun
+                    without creating     chaos. 
+
+                                 Interaction
+
+
+                    Alongside this, we developed a design system
+                    to support accessibility, reinforce brand
+                    character, and make daily use easier for teams
+                    maintaining and evolving the site. It became the
+                    base layer for both consistency and flexibility
+                    across the board.
+
+
+
+
+   Alexander Beck     Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps   2022–2025   Folio 05/25
+   S&P Dow jones
+ideation
+
+
+
+
+   Alexander Beck   Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps   2022–2025   Folio 05/25
+   S&P Dow jones
+
+
+
+
+                    Lorem ipsum
+
+
+
+                    Throughout the process, prototypes were our
+ideation
+
+
+
+
+                    conversation layer. We used mid-fidelity
+                    screens to validate structure, pressure-test
+                    edge cases, and clarify interaction states. 
+
+                    This helped stakeholders stay engaged without
+                    getting distracted by visuals too early, and gave
+                    us space to make real decisions upstream.
+
+
+
+
+   Alexander Beck     Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps   2022–2025   Folio 05/25
+   S&P Dow jones
+ideation
+
+
+
+
+   Alexander Beck   Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps   2022–2025   Folio 05/25
+   S&P Dow jones
+
+
+
+
+                    Shaping Simplicity at Scale
+
+
+
+                    Booking flows aren’t linear. Flexible dates,
+ideation
+
+
+
+
+                    extras, one-ways, returns—each adds a branch.
+                    I designed a flow that revealed options as
+                    needed rather than all at once. This reduced
+                    decision fatigue and worked across mobile and
+                    desktop without forked logic or redundant
+                    layouts.
+
+
+
+
+   Alexander Beck     Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps   2022–2025   Folio 05/25
+

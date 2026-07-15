@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-07-15",
+  "projects": [
+    {
+      "id": "aha",
+      "title": "American Heart Association",
+      "status": "on_hold",
+      "copyEligibility": "blocked_on_hold",
+      "record": "docs/portfolio/projects/aha.json",
+      "holdReason": "Ongoing work; final narrative and outcome claims are intentionally deferred."
+    },
+    {
+      "id": "sp-global",
+      "title": "S&P Global",
+      "status": "active",
+      "copyEligibility": "blocked_missing_facts",
+      "record": "docs/portfolio/projects/sp-global.json"
+    },
+    {
+      "id": "bentley",
+      "title": "Bentley",
+      "status": "active",
+      "copyEligibility": "blocked_missing_facts",
+      "record": "docs/portfolio/projects/bentley.json"
+    },
+    {
+      "id": "yoti",
+      "title": "Yoti",
+      "status": "active",
+      "copyEligibility": "blocked_missing_facts",
+      "record": "docs/portfolio/projects/yoti.json"
+    },
+    {
+      "id": "sunexpress",
+      "title": "SunExpress",
+      "status": "active",
+      "copyEligibility": "blocked_missing_facts",
+      "record": "docs/portfolio/projects/sunexpress.json"
+    },
+    {
+      "id": "personal-website",
+      "title": "Personal Website",
+      "status": "active",
+      "copyEligibility": "blocked_missing_facts",
+      "record": "docs/portfolio/projects/personal-website.json"
+    },
+    {
+      "id": "mccann",
+      "title": "McCann",
+      "status": "active",
+      "copyEligibility": "blocked_missing_facts",
+      "record": "docs/portfolio/projects/mccann.json"
+    },
+    {
+      "id": "swiss-re",
+      "title": "Swiss Re",
+      "status": "active",
+      "copyEligibility": "blocked_missing_facts",
+      "record": "docs/portfolio/projects/swiss-re.json"
+    },
+    {
+      "id": "impressions",
+      "title": "Impressions",
+      "status": "active",
+      "copyEligibility": "blocked_missing_facts",
+      "record": "docs/portfolio/projects/impressions.json"
+    },
+    {
+      "id": "prokeyboard",
+      "title": "ProKeyboard",
+      "status": "active",
+      "copyEligibility": "blocked_missing_facts",
+      "record": "docs/portfolio/projects/prokeyboard.json",
+      "portfolioPlacement": "undecided",
+      "catalogueReason": "Dedicated side-project page in Portfolio v1."
+    },
+    {
+      "id": "gen-digital",
+      "title": "Gen Digital",
+      "status": "archived",
+      "copyEligibility": "blocked_missing_facts",
+      "record": "docs/portfolio/projects/gen-digital.json",
+      "portfolioPlacement": "undecided",
+      "catalogueReason": "Named as a Hugo & Cat client; exact project is not yet described."
+    },
+    {
+      "id": "tourism-ireland",
+      "title": "Tourism Ireland",
+      "status": "archived",
+      "copyEligibility": "blocked_missing_facts",
+      "record": "docs/portfolio/projects/tourism-ireland.json",
+      "portfolioPlacement": "undecided",
+      "catalogueReason": "Named in a prior-experience credit; exact project is not yet described."
+    }
+  ]
+}

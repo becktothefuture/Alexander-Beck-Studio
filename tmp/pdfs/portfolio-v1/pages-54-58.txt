@@ -1,0 +1,186 @@
+                                                                                                                   About me
+
+
+
+Alexander Beck   Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps              2022–2025   Folio 05/25
+                 Principles & Mindsets                                                                                   Co re Sk ill S et
+
+
+
+
+                 Human‑centred empathy – Assisted in planning and running user                                                       Design & Research
+
+                                                                                                                                     UX/UI design, interaction design, design systems,
+                 interviews alongside UX researchers, mapping core user journeys so
+                                                                                                                                     prototyping (lo- to hi-fi), accessibility, usability testing –
+                 design decisions reflect real needs.                                                                                ensuring each decision is grounded in real user insights.
+
+
+                 Strategic foresight –Translated research insights into clear roadmaps
+                                                                                                                                     Technical & Tools
+
+                 that focus teams on shared goals, ensuring design work ties back to                                                 Figma, Sketch, Photoshop, Illustrator, After Effects,
+                 business and user outcomes.                                                                                         HTML5, CSS3, JavaScript, Git, Webflow ­– enabling
+                                                                                                                                     seamless hand-off between design and development.
+
+                 Collaborative catalyst – Led design workshops and coached cross-
+                 disciplinary squads, embedding WCAG standards to create inclusive                                                   AI & Emerging Tech
+
+
+                 products for all users.                                                                                             Prompt engineering, Stable Diffusion/ComfyUI,
+                                                                                                                                     Midjourney, Krea – accelerating ideation while keeping
+                                                                                                                                     people at the centre.
+                 Restless innovator – Prototyped with Blender, Three.js, and AI tools
+                 (Midjourney, ComfyUI), exploring new creative possibilities without
+                                                                                                                                     3D & Motion
+
+                 losing sight of real-world value.
+                                                                                                                                     Blender, Spline, Three.js – crafting spatial narratives and
+                                                                                                                                     adding depth to user journeys.
+
+
+
+                                                                                                                                     C   ollaboration & Leadership
+
+                                                                                                                                     D   esign sprints, stakeholder workshops, mentoring, cross-
+                                                                                                                                     functional delivery – driving cross-team alignment and
+                                                                                                                                     fostering a culture of continuous improvement.
+
+
+
+
+Alexander Beck         Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps                                             2022–2025         Folio 05/25
+                 Professional experience
+
+
+
+                     MRM (McCann) – London                                                                                                 Yoti – London 
+                     Associate Design Director · Jul 2024 – Present (1yr)                                                                  Senior Product Designer · Dec 2017 – Nov 2019 (2 yrs)
+
+                         Defined UX/UI strategy for SMP Global Index Builder, facilitating user interview sessions and                         Crafted privacy-first UX flows to balance KYC/security requirements with a frictionless signup
+                         stakeholder workshops to align product vision with trader and analyst needs.                                          experience, reducing user drop-off and building trust.
+
+                         Developed interactive prototypes (Figma + Three.js) of key flows, surfacing friction points                           Co-founded and maintained Yoti’s design system, standardising components across web and mobile to
+                         early and reducing rework downstream.                                                                                 accelerate feature delivery.
+
+                         Partnered with engineers to implement WCAG 2.1 AA–compliant, responsive interfaces,                                   Translated complex compliance requirements into intuitive interfaces, simplifying both B2B and B2C
+                         ensuring accessibility without sacrificing brand polish.                                                              onboarding journeys.
+
+                         Advocated AI-powered design methods and low-code tools to accelerate concept exploration
+                         and foster a culture of experimentation.
+
+
+                                                                                                                                           Dennerlein GmbH – Frankfurt 
+                                                                                                                                           Art Director · Oct 2014 – Aug 2017 (2.9 yrs)
+                     Hugo & Cat – London 
+                                                                                                                                                 verhauled a website for a top‑5 leisure airline, improving user
+                     Associate Design Director → Senior Designer · Nov 2020 – Jul 2024 (2.7 yrs)                                               O
+
+                                                                                                                                               journeys and booking flows that contributed to a 15 % revenue
+                                                                                                                                               increase.
+                         Directed UX/UI for high-profile clients (Bentley, Gen Digital, S&P Global), architecting cohesive web
+                         and mobile experiences that balanced luxury branding with usability.
+
+                         Established design standards, reusable templates, and UI resources to improve consistency and
+                         speed up delivery across projects.
+
+                         Ensured digital experiences met WCAG standards, collaborating with developers to integrate
+                                                                                                                                           Early Roles
+                         accessible design practices.
+                                                                                                                                               Junior Art Director (ANY Concept & Design), Freelance Brand
+                                                                                                                                               Designer – built foundations in typography, storytelling and
+                                                                                                                                               client comms.
+
+
+
+
+Alexander Beck           Experience | Motion | Aesthetics                   A quick look at creating vision, websites, products and apps                                                  2022–2025                Folio 05/25
+  About
+Misc
+
+
+
+
+                   E d u cat i o n                                                                                                     A q u ot e i lov e
+
+
+
+
+                   BA (Hons) Communication Design – Hochschule Mainz, Germany · 2013 
+                                                                                                                                       “No great discovery was ever
+                   Completed two semesters in Computer Science Fundamentals,
+                                                                                                                                       made without a bold guess.”
+                   University of Coimbra, Portugal.
+
+
+                                                                                                                                       ― Isaac Newton
+
+
+
+
+                   Awa r d s & R ec o g n i t i o n
+
+
+
+
+                   CSS Design Awards – UI, UX & Innovation (2021)
+
+
+                   Art Directors Club Germany – Bronze (2014)
+
+
+                   German Designer Club – Future Award (2014)
+
+
+
+
+                   L a n g uag e s
+
+
+
+
+                   Fluent English, German, Portuguese
+
+
+
+
+                   I   n t e r e sts &   S   ide   P   ro   j   ec ts
+
+
+
+
+                   ProKeyboard – designing and prototyping an accessible mobile
+                   keyboard for neurodivergent users; ask me for a demo.
+                   Cycling, interior design, music production, indie game enthusiast – fuel
+
+                   for fresh creative perspectives.
+
+
+
+
+  Alexander Beck               Experience | Motion | Aesthetics         A quick look at creating vision, websites, products and apps                        2022–2025   Folio 05/25
+                 SIDE PROJECT
+                                              ProKeyboard   0.4
+
+
+
+                 As a side project, I’ve been creating a new kind
+                 of mobile keyboard—one that better supports
+                 focus, fluidity, and neurodiverse thinking. 
+
+                 Drawing inspiration from Gboard and iOS, I’m
+                 experimenting with subtle feedback loops, one-
+                 handed modes, adaptive keyboard shapes and
+                 AI-enhanced prediction—all while reimagining
+                 how keyboard UI could evolve beyond its 2007
+                 roots. 
+
+                 It’s a passion project rooted in a belief: real
+                 innovation often comes from the margins.
+
+
+
+
+
+Alexander Beck     Experience | Motion | Aesthetics               A quick look at creating vision, websites, products and apps   2022–2025   Folio 05/25
+

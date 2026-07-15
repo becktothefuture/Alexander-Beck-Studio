@@ -39,6 +39,8 @@ const VERTEX_SHADER = `
   uniform vec2 toWaveFrequency;
   uniform float fromGroupStrength;
   uniform float toGroupStrength;
+  uniform float disciplineFocus;
+  uniform float gridInfluence;
   uniform float fromLivingColour;
   uniform float toLivingColour;
   uniform float fromBust;
@@ -96,7 +98,13 @@ const VERTEX_SHADER = `
 
     float group = mix(fromGroup, toGroup, morph);
     float groupStrength = mix(fromGroupStrength, toGroupStrength, morph);
-    float groupWeight = step(0.5, group) * step(0.001, groupStrength);
+    float groupExists = step(0.5, group) * step(0.001, groupStrength);
+    float focusActive = step(0.5, disciplineFocus);
+    float focusMatch = 1.0 - step(0.45, abs(group - disciplineFocus));
+    float groupWeight = groupExists * mix(1.0, mix(0.28, 1.0, focusMatch), focusActive);
+    worldPoint.z += gridInfluence * step(0.001, groupStrength) * 0.22 * sin(
+      (worldPoint.x * 0.82) + (worldPoint.y * 0.54) - (ambientTime * 0.45)
+    );
     float colourWeight = mix(fromLivingColour, toLivingColour, morph);
     float livingBand = 0.5 + (0.5 * sin(
       (worldPoint.x * 0.72) + (worldPoint.z * 0.38) + (ambientTime * 0.18)
@@ -230,6 +238,8 @@ function createPointFieldAdapter({ canvas, root, interaction, runtimeRef }) {
     toWaveFrequency: { value: new THREE.Vector2(1, 1) },
     fromGroupStrength: { value: 0 },
     toGroupStrength: { value: 0 },
+    disciplineFocus: { value: 0 },
+    gridInfluence: { value: 0 },
     fromLivingColour: { value: 0 },
     toLivingColour: { value: 0 },
     fromBust: { value: 0 },
@@ -438,6 +448,12 @@ function createPointFieldAdapter({ canvas, root, interaction, runtimeRef }) {
     uniforms.fromBust.value = fromWorld.shapeId === 'bust-v1' ? 1 : 0;
     uniforms.toBust.value = toWorld.shapeId === 'bust-v1' ? 1 : 0;
     uniforms.bustYaw.value = bustYaw;
+    uniforms.disciplineFocus.value = Number(frame.editorialSignals?.disciplineFocus || 0);
+    uniforms.gridInfluence.value = frame.reducedMotion
+      ? 0
+      : Number(frame.editorialSignals?.gridInfluence || 0);
+    root.dataset.worldGroupFocus = String(uniforms.disciplineFocus.value);
+    root.dataset.worldGridInfluence = uniforms.gridInfluence.value.toFixed(4);
 
     const interactionEnabled = frame.section.interaction?.type === 'horizontal-spin'
       && frame.localProgress >= Number(frame.section.interaction.activationStart || 0);

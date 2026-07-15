@@ -87,6 +87,7 @@
     "install:all" : "npm install && npm install --prefix react-app\/app",
     "precommit:check" : "bash scripts\/precommit-check.sh",
     "preview" : "npm run preview --prefix react-app\/app -- --port 8013",
+    "portfolio:source:add" : "node scripts\/portfolio\/register-source.mjs",
     "sim:capture" : "node scripts\/capture-simulation-previews.mjs",
     "sim:daily" : "bash scripts\/run-daily-simulation-automation.sh",
     "sim:validate" : "node scripts\/validate-simulation-catalog.mjs",
@@ -94,7 +95,8 @@
     "startup" : "node scripts\/dev-startup.js",
     "sync:entry-shell" : "node scripts\/sync-production-entry-shell.mjs",
     "sync:entry-shell:check" : "node scripts\/sync-production-entry-shell.mjs --check",
-    "validate:html-entries" : "node scripts\/validate-html-entries.mjs"
+    "validate:html-entries" : "node scripts\/validate-html-entries.mjs",
+    "verify:portfolio-knowledge" : "node scripts\/portfolio\/verify-portfolio-knowledge.mjs"
   },
   "version" : "1.3.0"
 }

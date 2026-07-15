@@ -55,6 +55,7 @@ import {
 } from '../../data/simulationCatalog.js';
 import { completeDirectBoot } from '../../legacy/modules/visual/page-orchestrator.js';
 import { applyLayoutCSSVars, initState } from '../../legacy/modules/core/state.js';
+import { waitForFonts } from '../../legacy/modules/utils/font-loader.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
 import { initializeDarkMode } from '../../legacy/modules/visual/dark-mode-v2.js';
@@ -212,9 +213,17 @@ function shouldDeferBootStateForHold() {
   }
 }
 
-function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {}) {
+async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {}) {
   if (typeof document === 'undefined') return;
   if (isStandaloneRoute || routeId === 'home') return;
+
+  const fontsReady = await waitForFonts();
+  if (options.isCancelled?.()) return;
+  if (!fontsReady) {
+    console.error('[shell] Critical fonts failed to load before direct-route reveal');
+    document.documentElement.dataset.absBootDetail = 'critical-fonts-unavailable';
+    return;
+  }
 
   // Non-home shell direct loads do not run the home page-orchestrator boot
   // completion path. SiteApp owns their final boot-ready marker after the
@@ -341,9 +350,14 @@ export function SiteApp() {
   }, [routeState.route.id]);
 
   useLayoutEffect(() => {
-    markDirectShellRouteReady(routeState.route.id, isStandaloneRoute, {
+    let cancelled = false;
+    void markDirectShellRouteReady(routeState.route.id, isStandaloneRoute, {
       deferBootState: isDailyFocusRoute,
+      isCancelled: () => cancelled,
     });
+    return () => {
+      cancelled = true;
+    };
   }, [isDailyFocusRoute, isStandaloneRoute, routeState.route.id]);
 
   useLegacyRouteRuntime({

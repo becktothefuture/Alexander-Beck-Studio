@@ -4,6 +4,7 @@ import {
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
   ABOUT_NARRATIVE_EASINGS,
   ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES,
+  ABOUT_NARRATIVE_MAX_TRANSITION_LOCAL,
   ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
   ABOUT_NARRATIVE_SCHEMA_VERSION,
   ABOUT_NARRATIVE_SECTION_TYPES,
@@ -57,6 +58,19 @@ function normalizeCameraKey(key = {}, fallbackFov = 48) {
     roll: Number(key.roll ?? 0),
     easing: ABOUT_NARRATIVE_EASINGS.includes(key.easing) ? key.easing : 'smoothstep',
   };
+}
+
+function normalizeCameraKeys(keys, fallbackFov) {
+  const normalized = Array.isArray(keys)
+    ? keys.map((key) => normalizeCameraKey(key, fallbackFov))
+    : [];
+  const defaultKey = normalizeCameraKey({}, fallbackFov);
+  if (!normalized.length) {
+    return [defaultKey, { ...defaultKey, at: 1 }];
+  }
+  if (normalized[0].at > 0) normalized.unshift({ ...normalized[0], at: 0 });
+  if (normalized.at(-1).at < 1) normalized.push({ ...normalized.at(-1), at: 1 });
+  return normalized;
 }
 
 function normalizeCue(cue = {}, index = 0) {
@@ -176,9 +190,7 @@ export function normalizeAboutNarrativeDocument(input = {}) {
         }
         : {},
       camera: {
-        keys: Array.isArray(section.camera?.keys)
-          ? section.camera.keys.map((key) => normalizeCameraKey(key, fallbackFov))
-          : [],
+        keys: normalizeCameraKeys(section.camera?.keys, fallbackFov),
         ...(section.camera?.pathMode ? { pathMode: String(section.camera.pathMode) } : {}),
         ...(finite(section.camera?.cadenceOverride) ? { cadenceOverride: Number(section.camera.cadenceOverride) } : {}),
       },
@@ -378,8 +390,8 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
       }
       const transition = section.world.transitionIn || {};
       if (strictUnknownKeys) pushUnknownKeys(diagnostics, transition, TRANSITION_KEYS, `${path}.world.transitionIn`);
-      if (![transition.start, transition.end].every(finite) || transition.start < 0 || transition.end > 1 || transition.start > transition.end) {
-        diagnostics.push({ level: 'error', code: 'transition-window', path: `${path}.world.transitionIn`, message: 'Transition timing must satisfy 0 ≤ Start ≤ End ≤ 1.' });
+      if (![transition.start, transition.end].every(finite) || transition.start < 0 || transition.end > ABOUT_NARRATIVE_MAX_TRANSITION_LOCAL || transition.start > transition.end) {
+        diagnostics.push({ level: 'error', code: 'transition-window', path: `${path}.world.transitionIn`, message: `Transition timing must satisfy 0 ≤ Start ≤ End ≤ ${ABOUT_NARRATIVE_MAX_TRANSITION_LOCAL}. Values above 1 continue through inherited World Sections.` });
       }
       if (!ABOUT_NARRATIVE_TRANSITION_TYPES.includes(transition.type)
         || !ABOUT_NARRATIVE_EASINGS.includes(transition.easing)

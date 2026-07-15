@@ -90,23 +90,60 @@ function compileMeasurements(document, profile, measurements) {
 
 function compileWorldClips(sections) {
   let activeWorld = null;
+  let activeTransition = null;
   return sections.map((section, index) => {
-    const previousWorld = activeWorld;
     const changesWorld = section.world.mode === 'set';
     if (changesWorld) {
-      activeWorld = {
+      const nextWorld = {
         ...cloneAboutNarrativeDocument(section.world),
         sectionId: section.id,
         sectionIndex: index,
         startWU: section.startWU,
+        travelWU: section.travelWU,
+      };
+      const previousWorld = activeWorld || nextWorld;
+      const transition = nextWorld.transitionIn;
+      activeWorld = nextWorld;
+      activeTransition = {
+        fromWorld: previousWorld,
+        toWorld: nextWorld,
+        startWU: section.startWU + (transition.start * section.travelWU),
+        endWU: section.startWU + (transition.end * section.travelWU),
       };
     }
     return {
       activeWorld,
-      previousWorld: changesWorld ? (previousWorld || activeWorld) : activeWorld,
+      previousWorld: activeTransition?.fromWorld || activeWorld,
       changesWorld,
+      transition: activeTransition,
     };
   });
+}
+
+export function getAboutNarrativeWorldTransitionLimit(plan, sectionIndex) {
+  const section = plan?.sections?.[sectionIndex];
+  if (!section || section.world.mode !== 'set') return 1;
+  const nextWorld = plan.sections.slice(sectionIndex + 1).find((item) => item.world.mode === 'set');
+  const boundaryWU = nextWorld?.startWU ?? plan.maxStoryWU;
+  return Math.max(0, (boundaryWU - section.startWU) / section.travelWU);
+}
+
+function compileWorldTransitionDiagnostics(sections, maxStoryWU) {
+  const diagnostics = [];
+  const planLike = { sections, maxStoryWU };
+  sections.forEach((section, sectionIndex) => {
+    if (section.world.mode !== 'set' || section.world.transitionIn.type === 'cut') return;
+    const limit = getAboutNarrativeWorldTransitionLimit(planLike, sectionIndex);
+    if (section.world.transitionIn.end > limit + 0.00001) {
+      diagnostics.push({
+        level: 'error',
+        code: 'transition-overrun',
+        path: `sections.${sectionIndex}.world.transitionIn.end`,
+        message: `Transition End must stay at or before ${limit.toFixed(3)}, where the next World begins.`,
+      });
+    }
+  });
+  return diagnostics;
 }
 
 function compileContinuityDiagnostics(sections) {
@@ -161,6 +198,7 @@ export function compileAboutNarrativeDocument(input, {
   }
 
   const measuredSections = compileMeasurements(document, profile, measurements);
+  const maxStoryWU = Math.max(0, (measuredSections.at(-1)?.endWU || 1) - 1);
   const worldStates = compileWorldClips(measuredSections);
   const sections = measuredSections.map((section, index) => Object.freeze({
     ...section,
@@ -170,7 +208,22 @@ export function compileAboutNarrativeDocument(input, {
     }),
     worldState: Object.freeze(worldStates[index]),
   }));
-  const completeDiagnostics = [...diagnostics, ...compileContinuityDiagnostics(sections)];
+  const completeDiagnostics = [
+    ...diagnostics,
+    ...compileContinuityDiagnostics(sections),
+    ...compileWorldTransitionDiagnostics(sections, maxStoryWU),
+  ];
+  if (completeDiagnostics.some((item) => item.level === 'error')) {
+    return Object.freeze({
+      valid: false,
+      document,
+      diagnostics: Object.freeze(completeDiagnostics),
+      profile,
+      sections: Object.freeze([]),
+      totalExtentWU: 0,
+      maxStoryWU: 0,
+    });
+  }
 
   return Object.freeze({
     valid: true,
@@ -179,7 +232,7 @@ export function compileAboutNarrativeDocument(input, {
     diagnostics: Object.freeze(completeDiagnostics),
     sections: Object.freeze(sections),
     totalExtentWU: sections.at(-1)?.endWU || 0,
-    maxStoryWU: Math.max(0, (sections.at(-1)?.endWU || 1) - 1),
+    maxStoryWU,
   });
 }
 
@@ -197,7 +250,11 @@ export function sampleAboutNarrativePlan(plan, storyWU, {
   const cadence = Number.isFinite(section.camera.cadenceOverride)
     ? section.camera.cadenceOverride
     : globalCamera.cadence;
-  const cameraKey = sampleCameraKeys(section.camera.keys, localProgress, globalCamera.fov);
+  const cameraKey = sampleCameraKeys(
+    section.camera.keys,
+    reducedMotion ? 0 : localProgress,
+    globalCamera.fov,
+  );
   const cameraStoryWU = reducedMotion ? section.startWU : clampedStoryWU;
   const cameraPosition = [
     cameraKey.offset[0],
@@ -210,11 +267,15 @@ export function sampleAboutNarrativePlan(plan, storyWU, {
     cameraPosition[2] + cameraKey.lookAtOffset[2],
   ];
   const worldState = section.worldState;
-  const transition = worldState.activeWorld?.transitionIn || { start: 0, end: 0, easing: 'linear' };
-  const transitionSpan = Math.max(0.00001, transition.end - transition.start);
-  const transitionProgress = worldState.changesWorld
-    ? applyAboutNarrativeEasing(transition.easing, (localProgress - transition.start) / transitionSpan)
-    : 1;
+  const transition = worldState.activeWorld?.transitionIn || { start: 0, end: 0, type: 'cut', easing: 'linear' };
+  const compiledTransition = worldState.transition;
+  const transitionSpanWU = Math.max(0.00001, (compiledTransition?.endWU || 0) - (compiledTransition?.startWU || 0));
+  const transitionProgress = transition.type === 'cut' || !compiledTransition
+    ? 1
+    : applyAboutNarrativeEasing(
+      transition.easing,
+      (clampedStoryWU - compiledTransition.startWU) / transitionSpanWU,
+    );
 
   return {
     globals: plan.document.globals,
@@ -237,7 +298,11 @@ export function sampleAboutNarrativePlan(plan, storyWU, {
       to: worldState.activeWorld,
       changes: worldState.changesWorld,
       transitionProgress: reducedMotion ? 1 : transitionProgress,
-      transition,
+      transition: {
+        ...transition,
+        startWU: compiledTransition?.startWU ?? section.startWU,
+        endWU: compiledTransition?.endWU ?? section.startWU,
+      },
     },
   };
 }

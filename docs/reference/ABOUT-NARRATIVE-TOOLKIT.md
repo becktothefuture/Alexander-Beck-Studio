@@ -59,7 +59,7 @@ Other ownership stays separate:
 
 ## World units and scroll
 
-`1 WU` means one current narrative viewport height. The editor reduces the preview to make room for its timeline and inspector, then updates the pixel value of one WU so authored timing does not stretch.
+`1 WU` means one current narrative viewport height. The inspector can reduce the preview width, but the fixed timeline is portalled above the studio window and never changes its height or authored timing.
 
 Each Section saves `extentWU` and `mobileExtentWU`:
 
@@ -78,6 +78,8 @@ The runtime has one `storyWU` value. Three sources can own it:
 - **Playback:** the editor advances the playhead at a fixed rate.
 
 Only one owner is active at a time. Scrubbing stops Lenis. Choosing **Follow scroll** resumes it without resetting the current page position. Wheel or touch input cancels playback.
+
+The timeline is a collapsible, development-only overlay with its own fixed palette: amber for Sequence/playhead, cyan for Camera, violet for World, coral for Text, and green for Interaction. This palette does not inherit route or website theme colours. Left and Right arrow keys jump to the previous or next timing point unless a text field or numeric control has focus.
 
 The compiler converts `storyWU` into:
 
@@ -120,6 +122,8 @@ A Camera key stores:
 The editor interpolates aim and lens independently from the protected base dolly. Orientation is resolved by Three.js look-at math rather than interpolating authored Euler rotations.
 
 Use **Set camera key** to make a change permanent. Camera recipes—Push, Glide, Orbit, Reveal, and Resolve—create normal visible keys that can be edited or deleted.
+
+Every Section always has protected Camera keys at `0` and `1`. Existing authored framing is copied to those boundaries, so adding the keys does not change the approved camera path. Intermediate keys remain freely editable and removable.
 
 **Camera View** shows the published camera. **Director View** temporarily orbits, tilts, and zooms around the sampled target without writing keys. Resetting or leaving Director View restores the published framing.
 
@@ -203,6 +207,8 @@ Disable **Live ambient** to freeze ambient movement while comparing frames.
 4. Select the new Text clip in the Text lane.
 5. Edit the statement and its Enter, Hold, and Exit handles.
 
+Clicking a clip selects and highlights it. Clicking a Camera diamond, World transition marker, Text Enter/Hold/Exit marker, or Interaction activation marker also snaps the global playhead to that exact WU.
+
 The saved Cue is in the same Section object as its timing. No second file or JavaScript array needs editing.
 
 The DOM contains one semantic sentence per Cue. Visual depth, blur, and scale are presentation only.
@@ -245,6 +251,8 @@ Status meanings:
 
 Edits made while Save is in flight remain dirty after the response. Recovery drafts save after a debounce and on `pagehide`. A stale draft never applies automatically; the editor offers Recover as unsaved copy, Export, or Discard.
 
+The router preserves `?edit=1`, and editor-originated writes do not trigger Vite's generic content reload. Save therefore keeps the same editor URL, selection, and playhead open.
+
 ## Safeguards
 
 Validation blocks Apply and Save for duplicate IDs, invalid extents, unsafe text, unknown adapters/Shapes/modifiers, broken numeric values, unsupported transitions, invalid buffers, or a missing final bust contract.
@@ -277,4 +285,4 @@ ABS_BROWSER=webkit npm run audit:about-narrative
 npm run check:site
 ```
 
-The browser audit verifies exact-WU sampling, constant cadence, editor/playback presence, text edit and undo, WebGL readiness in Chromium, and editor clearance above the persistent Button Bar at desktop and mobile sizes.
+The browser audit verifies exact-WU sampling, constant cadence, editor/playback presence, Instrument Serif titles, portal placement, complete Camera boundary keys, click/keyboard keyframe navigation, text edit and undo, WebGL readiness in Chromium, timeline collapse, and editor clearance above the persistent Button Bar at desktop and mobile sizes.

@@ -10,9 +10,9 @@ export function StyleguideTypographySection() {
         Source tokens: <code className="styleguide-doc__code">tokens.css</code> (
         <code className="styleguide-doc__code">--abs-font-*</code>, <code className="styleguide-doc__code">--text-*</code>,{' '}
         <code className="styleguide-doc__code">--line-height-*</code>, <code className="styleguide-doc__code">--letter-spacing-*</code>
-        ). Fonts load via Google Fonts on each HTML shell (
-        <code className="styleguide-doc__code">Geist</code>, <code className="styleguide-doc__code">Geist Mono</code>,{' '}
-        <code className="styleguide-doc__code">Instrument Serif</code>). Route-level headlines use{' '}
+        ). Each HTML shell loads <code className="styleguide-doc__code">Geist</code> and{' '}
+        <code className="styleguide-doc__code">Geist Mono</code> through Google Fonts. Instrument Serif is self-hosted,
+        preloaded, and included in the page-ready font gate. Route-level headlines use{' '}
         <code className="styleguide-doc__code">--abs-font-headline</code>; only the visible London word uses the display script stack (
         <code className="styleguide-doc__code">--abs-font-display</code>).
       </p>

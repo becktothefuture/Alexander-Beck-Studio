@@ -1,4 +1,5 @@
 const DEFAULT_FONT_FACES = [
+  '1em "Instrument Serif"',
   '1em "tabler-icons"',
 ];
 
@@ -16,11 +17,18 @@ export async function waitForFonts({ timeoutMs = 4000, fontFaces = DEFAULT_FONT_
     timeoutId = window.setTimeout(() => resolve(false), timeoutMs);
   });
 
-  const loadPromise = Promise.all(
-    fontFaces.map((face) => document.fonts.load(face).catch(() => null))
-  )
-    .then(() => document.fonts.ready)
-    .then(() => true)
+  const loadPromise = Promise.all(fontFaces.map(async (face) => {
+    try {
+      const matches = await document.fonts.load(face);
+      return matches.length > 0 && document.fonts.check(face);
+    } catch {
+      return false;
+    }
+  }))
+    .then(async (results) => {
+      await document.fonts.ready;
+      return results.every(Boolean) && fontFaces.every((face) => document.fonts.check(face));
+    })
     .catch(() => false);
 
   const loaded = await Promise.race([loadPromise, timeoutPromise]);

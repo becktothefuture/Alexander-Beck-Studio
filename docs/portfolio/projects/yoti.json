@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "projectId": "yoti",
+  "title": "Yoti",
+  "lifecycleStatus": "active",
+  "copyEligibility": "blocked_missing_facts",
+  "sensitivity": "internal",
+  "lastReviewed": "2026-07-15",
+  "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
+  "workingHypotheses": [],
+  "claims": [],
+  "conflicts": [],
+  "openQuestions": [
+    {"id": "q-yoti-001", "category": "brief", "question": "Which exact identity or age-verification product and user journey should the case study cover?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-yoti-002", "category": "role", "question": "What did Alexander personally design, prototype, write, or test?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-yoti-003", "category": "constraint", "question": "Which regulatory, technical, or trust constraint most changed the design?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-yoti-004", "category": "team", "question": "Who resolved the cross-device, product, legal, or technical tensions with Alexander?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-yoti-005", "category": "outcome", "question": "What shipped or remained live, and what evidence or feedback may be stated publicly?", "status": "open", "answer": null, "sourceIds": []}
+  ],
+  "media": [],
+  "interviewRounds": []
+}
+

@@ -1,0 +1,528 @@
+                                                                                                                   Personal Project                                 V
+
+
+
+
+                                                                                                                   Placeholder  
+                                                                                                                   TITLE here
+                                                                                                                   Code-Led Design 
+                                                                                                                   Spatial Interaction 
+                                                                                                                   System Thinking
+
+
+
+
+Alexander Beck   Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps                          2022–2025   Folio 05/25
+   S&P Dow jones
+factsheet
+
+
+                    b   a ground
+                         ck
+
+
+
+
+                    This project explores how a personal website can behave more                                                                           The creative process involved not only design decisions but
+                    like a space than a sequence of pages. The goal was to design a                                                                        deep explorations into how browsers handle memory, thread
+                    responsive environment with spatial depth, dynamic interaction,                                                                        priorities, and animation cycles. This helped shape a technical
+                    and layered content. Every decision aimed to balance                                                                                   approach that was just as considered as the visual one.
+
+                    expressiveness with performance.
+
+                                                                                                                                                           The build became a continuous process of refining structure,
+                    Rather than following a conventional scroll-down structure, the                                                                        motion, and clarity—guided by curiosity, technical learning, and
+                    site uses motion, sound, and spatial hierarchy to guide users                                                                          a desire to better integrate development into my creative
+                    inward—creating a sense of place rather than path.                                                                                     process. It remains an active project, shaped by experimentation
+                                                                                                                                                           and iteration.
+
+
+                    F   o us
+                         c                                                                                 My Role                                                     Worth Pointing Out                                        Core Threads
+                                                                                                           I designed and built the site from scratch using            Performance became a design tool in itself. Visual          2024 – Ongoing
+                                                                                                           Webflow, native CSS, and JavaScript. Every                  ideas were only kept if they could run smoothly
+                                     REsearch                  strategy
+                                                                                                           interaction, motion, and layout is custom-coded,            across breakpoints and hardware limitations. Browser        Placeholder
+                                                                                                           with around 20 scripts running in sync to create a          logic, mobile RAM constraints, and rendering                Placeholder
+                                                                                                           responsive, animated environment.
+                          bottlenecks became part of the design consideration.
+
+                                                                                                           I focused on performance from the start—                    AI tools were also integrated into the process—not to     Creds
+                         Visuals                                      Prototy ing                          optimising images, DOM structure, and animation             generate output, but to accelerate prototyping,
+                                                                                                           logic to keep things lightweight across devices. I          texture generation, and spatial thinking. The process
+                                                                             p
+
+
+                                                                                                                                                                                                                                 Tom Good – Head of UX;  
+                                                                                                           experimented with CSS-based 3D, modular                     involved frequent switches between AI inspiration         Claudia Carbutt – UX Design;  
+                                                                                                           scripting, and ambient sound, while keeping the             and manual refinement.                                    Andy Kemp - Business Analyst;  
+                                                    syste sm
+                                                                                                           codebase clean, documented, and easy to scale.                                                                        Martin Grosjean - Client Services
+
+
+
+
+   Alexander Beck       Experience | Motion | Aesthetics                            A quick look at creating vision, websites, products and apps                                                                     2022–2025   Folio 05/25
+A bit about me
+                    Rediscovering Code as a Creative Tool
+
+
+
+                    I studied computer science for a year and
+                    always wanted to bring that foundation back
+                    into my design work. 
+
+                    This project gave me that chance.
+                    Understanding how systems work helped me
+                    see where creative opportunities open up and
+                    where structural constraints actually sit.
+
+
+
+
+   Alexander Beck     Experience | Motion | Aesthetics      A quick look at creating vision, websites, products and apps   2022–2025   Folio 05/25
+Experimentation
+                    Built, Scrapped, Rebuilt
+
+
+
+                    Most of the early experiments didn’t survive the
+                    final cut—not because they weren’t exciting,
+                    but because they didn’t serve the rhythm of the
+                    experience. 
+
+                    There were ideas that felt too heavy, too
+                    ornamental, or too disconnected from the
+                    spatial structure I was aiming for. What stayed
+                    had to feel orchestrated. What left helped
+                    define the edges.
+
+
+
+
+   Alexander Beck      Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps   2022–2025   Folio 05/25
+AI assisted workflows
+                        Generative as Iterative
+
+
+
+                        I used AI tools throughout the process—not for
+                        the final design, but to help imagine textures,
+                        lighting, and environments.
+
+                        I made a habit of jumping between diffusion
+                        generations, and the live build, letting each
+                        output inform the next. 
+
+                        The process became a loop: generate,
+                        interpret, refine, implement. It taught me that
+                        when used with intention, generative design
+                        can deepen the creative process rather than
+                        dilute it.
+
+
+
+
+     Alexander Beck       Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps   2022–2025   Folio 05/25
+Evolving depth
+                              D e s i g n i n g fo r D i m e n s i o n a l S pac e
+
+
+
+
+                              O ne of the core design questions I explored
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                           BECK
+                              was: what makes an interface spatial? I wanted
+                                                                                                                                                                                                                                             open for opportunities                                                             11 : 21 pm (GM T)   LO N DO N 14 °C   mon, 12.Dec
+
+
+
+
+                                                                     Men                                                                                                                                                                                                               sometimes                 making               eggs
+                                                                           u
+                                                                                                                                                                       JipoK70fvH1PQ                                                                                                                                                                                                                                                                 JipoK70fvH1PQ
+
+
+                              the site to feel like a window into another world,                                                                                                                       sound on
+                                                                                                                                                                                                                                                                        “ N o g re at d isc ove r y w as eve r m a de wit h o ut a b old g u e ss ."
+
+
+                                                                                                                                                                                                                                                                                                               saac Newton
+
+
+
+                              not a scrollable document. 
+
+                                                                                                                                                                                                                                                                                                           I
+
+
+
+
+                                                                                 33241863925238479283632 px apart
+                                                                                                                                                                                                                                                                                                                                                                                                                                                    12
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                           11                  1
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                     10                            2
+
+                                                                                                                                                                               Merging  
+                                                                                                                                                                               logic with                                                                                                                                                                                                                                        9                                     3
+
+                                                                                                                                                                               imagination
+
+
+
+                                hat meant flipping the scroll direction,
+                                                                                                                                                                                                                                                                                                                                                                                                                                     8                             4
+
+
+
+
+                              T                                                                                                                                                  A parting thought
+                                                                                                                                                                                                                                                                                                                                                                                                                                           7
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                     6
+                                                                                                                                                                                                                                                                                                                                                                                                                                                               5
+
+
+
+
+                              layering motion in parallax space, and                                                                                                                                                                                                      EXPERIENCES       FOR    B   entley, Swiss Re, S&P Global, Tourism Irelanmd                                                                                      One-button R
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                               C   lick me
+                                                                                                                                                                                                                                                                                                                                                                                                                                                              PG
+
+
+
+
+                              designing transitions to feel more like arrival
+                                                                                 Lorem ipsum dolor sit amet consectetur. Neque turpis ut urna vestibulum arcu tortor
+                                                                                                                                                                                                                                                                                                                                                                                                                                                    000
+                                                                                                                                                                       Making sure everything works is half
+
+                                                                                                                                                                       the job. The devil is in the details.
+
+                                                                                                                                                                                                                                      33.2
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                el pushing in progre
+                                                                                                                                                                                                                                                                                                                                                                                                                                          Reach          out
+
+
+
+
+                              than loading. 
+                                                                                                                                                                                 2,970                                                                                                                                                                                                       Buy      me     a    drink
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                          Look      me        up
+
+                                                                                                                                                                                                                                      33.3
+
+
+
+                              Every experimental choice had to be justified
+                                                                                                                                                                                                                                                                                                                                                                                     SCROLL
+                                                                                                                                                                                                                                                                                                                                                                                     at 5 MPH
+                                                                                                                                                                                 working tunes radio
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                      TUE → 23rd
+
+                              through UX—not just that it could be done, but                                                                                                                                                                                           A designer working in the space between craft and pure
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           Lorem ipsum dolor sit amet consectetur.
+                                                                                                                                                                                               ```
+                                                                         imagination. thinking big and making it happen.  
+                                                                                                                                                                                           Hello? 
+
+                                                                                                                                                                                                                                                                         UX/UI / lo-code, 1/2 german+portuguese, living it up in                                                                                          • mind machine •
+
+
+
+                              that it could be understood. Bringing people
+                                                                                                                                                                                                                                                                                                 london..
+                                                                                                                                                                                        Who am I? 
+
+
+                                                                                                                                                                                       ...A website? 
+
+                                                                                                                                                                                                                     arriving 2025
+
+                                                                                                                                                                                   You're here... why? 
+
+
+                                                                                                                                                                                    Alexander Beck's
+                                                                                 Lorem ipsum dolor sit amet consectetur. Neque turpis ut urna vestibulum arcu tortor
+
+
+
+
+                                                                                                                                                                                         portfolio... 
+
+
+
+
+
+                              along for the ride was part of the challenge.
+                                                                                                                                                                                  That's me? But... I'm
+                                                                                                                                                                                                                                                                                                          at h o m e in london , UK
+                                                                                                                                                                                           empty. 
+
+
+
+
+
+
+                                                                                                                                                                                        Click here? 
+
+
+                                                                                                                                                                                    Nothing happens. 
+
+
+                                                                                                                                                                                          Curious. 
+
+
+
+
+
+
+                                                                                                                                                                                 I'm supposed to show
+                                                                                                                                                                                                                                                                                                  building the nex t big thing?                                                                                                                                                                                                                   lift
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                               "A l
+                                                                                                                                                                                           things. 
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ex i                                                       protective
+                                                                                                                                                                                    Designs, maybe? 
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                              those s one of
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      design                                                     glass
+                                                                                                                                                                                   Not sure how. Yet. 
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                             wh
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                o just       ers
+                                                                                                                                                                                                                                                      Lorem ipsum dolor sit amet consectetur. Lectus quis dapibus enim a venenatis pulvinar velit vel placerat. Placerat quis duis                                                                                                       gets it
+                                                                                                                                                                                        You scroll. 
+
+                                                                                                                                                                                                                                                             auctor luctus adipiscing. Sit et a massa scelerisque sit. Imperdiet sed non semper mi eu mauris enim enim. V itae                                                                                                                  ."
+
+                                                                                                                                                                                          I follow. 
+
+
+                                                                                                                                                                                But there's... nothing to
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    Andy.K
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  on Li
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          nked
+                                                                                                                                                                                            see. 
+
+                                                                                                                                                                                                                                                                                                                                  In
+
+                                                                                                                                                                                         CURSOR SPEED             2,970   (MPH)                                                       Creating Customer Experiences at HugoMRM, London                                                                                 MOUSE TRAVEL                31    (miles)
+                                                                                                                                                                                     Am I a galler y? 
+
+
+                                                                                                                                                                                   Without paintings? 
+
+
+                                                                                                                                                                                        Interesting. 
+
+
+
+
+
+
+                                                                                                                                                                                    One day, maybe... 
+
+
+                                                                                                                                                                                 Pictures, text, colors. 
+
+
+                                                                                                                                                                                  Now, I'm... just here. 
+
+
+
+
+
+
+                                                                                                                                                                               Alexander Beck
+                                                                                                                                                                                   You're early, I think. 
+                                                      Product designer / Creative director                                                                                                                      l H L D : L H F D P L U £ E H [ d = = = a\ [o n m                                                              Alexander Beck
+                                                                                                                                                                                   Or am I not ready? 
+
+
+                                                                                                                                                                                     What is 'ready'? 
+
+
+
+
+
+
+                                                                                                                                                                                    Come back later? 
+
+
+                                                                                                                                                                                   Will I be different? 
+
+
+                                                                                                                                                                                         Hope so. 
+
+
+
+
+
+
+                                                                                                                                                                                          You go. 
+
+
+                                                                                                                                                                                           I stay. 
+
+
+                                                                                                                                                                                      Waiting to be...
+
+                                                                                                                                                                                        something. 
+
+
+
+
+
+
+                    Alexander Beck                      Product designer / Creative director                                                                                        End of... thinking?
+
+
+                                                                                                                                                                                                                                                                                                                                                                                     Alexander Beck                                                                                                      Product designer / Creative director
+                                                                                                                                                                                        Still here... 
+
+
+                                                                                                                                                                                         Thinking. 
+
+
+                                                                                                                                                                                 What does it mean... to
+
+                                                                                                                                                                                      be a website? 
+
+
+
+
+
+
+                                                                                                                                                                                I exist... on the internet. 
+
+
+                                                                                                                                                                               A space with... no space. 
+
+
+                                                                                                                                                                                      How peculiar. 
+
+
+
+
+
+
+                                                                                                                                                                                    Am I like a book? 
+
+
+                                                                                                                                                                                   Pages, but digital. 
+
+
+                                                                                                                                                                                Yet, no pages here. Not
+
+                                                                                                                                                                                             yet. 
+
+
+
+
+
+
+                                                                                                                                                                                  People come... to see
+
+                                                                                                                                                                                             me. 
+
+
+                                                                                                                                                                                      But see what? 
+
+
+                                                                                                                                                                                I'm a portfolio with... no
+
+
+
+
+   Alexander Beck                 Experience | Motion | Aesthetics                                                                                                                         A quick look at creating vision, websites, products and apps                                                                                                                                                                                                                                                                                                     2022–2025   Folio 05/25
+                                                                                                                                                                                         portfolio. 
+
+
+
+
+
+
+                                                                                                                                                                                 If I'm Alexander Beck's
+
+                                                                                                                                                                                            site, 
+
+
+                                                                                                                                                                                Who is Alexander Beck? 
+
+Evolving depth
+
+
+
+
+   Alexander Beck   Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps   2022–2025   Folio 05/25
+Status quo
+             Humbled by the Build
+
+
+             This project forced me to get serious about
+             performance. Early versions broke under the
+             weight of canvas animations, ambient layers,
+             and concurrent scripts—especially on mobile. 
+
+             I learned to spot memory sinks, restructure
+             scripts, and think of the browser as a limited     robot recording
+             machine, not a blank canvas.
+
+             The refactoring is still ongoing, but the system
+             now runs leaner, cleaner, and with room to
+             grow. The codebase has become a source of
+             pride: documented, modular, and surprisingly
+             elegant, given where it started.---
+Demo
+                 Entering the Cockpit
+
+
+
+                 The final scene pulls you deeper into the
+                 experience. You scroll into a spacecraft moving
+                 through infinity—a visual metaphor for
+                 exploration and focus. 
+
+                 At its core is a cockpit, and inside it, a
+                 responsive console: a computer with
+                 switchable states, ambient feedback, and a
+                 rhythm of its own. The portfolio lives here,
+                 nested within this machine. 
+
+                 It’s a world within a world, designed to feel
+                 tactile, reactive, and alive. This moment
+                 anchors the entire experience—something
+                 quiet, cinematic, and deliberate.
+
+
+
+
+Alexander Beck     Experience | Motion | Aesthetics   A quick look at creating vision, websites, products and apps   2022–2025   Folio 05/25
+

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "projectId": "swiss-re",
+  "title": "Swiss Re",
+  "lifecycleStatus": "active",
+  "copyEligibility": "blocked_missing_facts",
+  "sensitivity": "confidential",
+  "lastReviewed": "2026-07-15",
+  "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
+  "workingHypotheses": [],
+  "claims": [],
+  "conflicts": [],
+  "openQuestions": [
+    {"id": "q-swissre-001", "category": "project_identity", "question": "What product, service, platform, or initiative was the work for?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-swissre-002", "category": "brief", "question": "Who was the audience and what problem or opportunity created the brief?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-swissre-003", "category": "role", "question": "What was Alexander's role, hands-on contribution, team, and timeframe?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-swissre-004", "category": "constraint", "question": "What was the defining organisational, technical, regulatory, or information constraint?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-swissre-005", "category": "decision", "question": "Which concrete model, workflow, prototype, or decision is worth showing?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-swissre-006", "category": "outcome", "question": "What shipped or changed, what remains unknown, and what may be published?", "status": "open", "answer": null, "sourceIds": []}
+  ],
+  "media": [],
+  "interviewRounds": []
+}
+

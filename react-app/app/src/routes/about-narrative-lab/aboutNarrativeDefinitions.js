@@ -1,6 +1,7 @@
 export const ABOUT_NARRATIVE_SCHEMA_VERSION = 1;
 export const ABOUT_NARRATIVE_EDITOR_HEADER = 'about-narrative-v1';
 export const ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES = 1024 * 1024;
+export const ABOUT_NARRATIVE_MAX_TRANSITION_LOCAL = 16;
 
 export const ABOUT_NARRATIVE_SECTION_TYPES = Object.freeze(['spatial', 'editorial', 'finale']);
 export const ABOUT_NARRATIVE_BLOCK_KINDS = Object.freeze([

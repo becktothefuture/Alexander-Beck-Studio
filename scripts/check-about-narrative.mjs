@@ -45,12 +45,65 @@ test('compiler derives a single ordered WU sequence', () => {
   assert.equal(plan.totalExtentWU, canonical.sections.reduce((sum, section) => sum + section.extentWU, 0));
 });
 
+test('canonical document follows the approved V7 storyboard allocation', () => {
+  assert.deepEqual(
+    canonical.sections.map((section) => section.id),
+    ['promise', 'complexity', 'background', 'practice-reveal', 'disciplines', 'bringing-life', 'role', 'epilogue'],
+  );
+  assert.deepEqual(
+    canonical.sections.map((section) => section.world.mode === 'set' ? section.world.shapeId : 'continue'),
+    ['cluster-v1', 'calm-field-v1', 'continue', 'discipline-grid-v1', 'continue', 'living-field-v1', 'continue', 'bust-v1'],
+  );
+  assert.equal(canonical.sections[0].text.cues[0].text, 'I help shape complex ideas into emotionally compelling experiences.');
+  assert.equal(canonical.sections[2].text.blocks[0].text, 'Perhaps that is why I have always been drawn to the space between aesthetics and technology.');
+  assert.equal(canonical.sections[4].text.blocks[1].items.length, 6);
+  assert.equal(canonical.sections[6].text.blocks.length, 1);
+  assert.equal(canonical.sections[7].text.cues[0].text, 'If you are building something new, let’s talk.');
+  assert.equal(canonical.sections[7].text.profile, undefined);
+  assert.equal(canonical.sections[7].text.prompt, undefined);
+});
+
+test('every Section has protected camera boundary keyframes', () => {
+  canonical.sections.forEach((section) => {
+    assert.ok(section.camera.keys.length >= 2, `${section.id} should have at least two camera keys`);
+    assert.equal(section.camera.keys[0].at, 0);
+    assert.equal(section.camera.keys.at(-1).at, 1);
+  });
+});
+
 test('protected base camera advances at constant cadence', () => {
   const plan = compileAboutNarrativeDocument(canonical);
   const first = sampleAboutNarrativePlan(plan, 2.1);
   const second = sampleAboutNarrativePlan(plan, 2.6);
   assert.ok(Math.abs((first.camera.position[2] - second.camera.position[2]) - 0.5) < 1e-9);
   assert.equal(first.camera.cadence, canonical.globals.camera.cadence);
+});
+
+test('World transitions can continue through inherited Sections', () => {
+  const extended = structuredClone(canonical);
+  extended.sections[1].world.transitionIn.start = 1.4;
+  extended.sections[1].world.transitionIn.end = 2.2;
+  const plan = compileAboutNarrativeDocument(extended);
+  assert.equal(plan.valid, true);
+  const origin = plan.sections[1];
+  const halfwayWU = origin.startWU + (1.8 * origin.travelWU);
+  const sample = sampleAboutNarrativePlan(plan, halfwayWU);
+  assert.equal(sample.section.id, extended.sections[2].id);
+  assert.ok(Math.abs(sample.world.transitionProgress - 0.5) < 1e-9);
+  assert.equal(sample.world.from.shapeId, extended.sections[0].world.shapeId);
+  assert.equal(sample.world.to.shapeId, extended.sections[1].world.shapeId);
+});
+
+test('World transition cuts remove interpolation without removing the World', () => {
+  const cut = structuredClone(canonical);
+  cut.sections[1].world.transitionIn.type = 'cut';
+  cut.sections[1].world.transitionIn.start = 0;
+  cut.sections[1].world.transitionIn.end = 0;
+  const plan = compileAboutNarrativeDocument(cut);
+  assert.equal(plan.valid, true);
+  const sample = sampleAboutNarrativePlan(plan, plan.sections[1].startWU);
+  assert.equal(sample.world.transitionProgress, 1);
+  assert.equal(sample.world.to.shapeId, cut.sections[1].world.shapeId);
 });
 
 test('reduced-motion camera stays settled within a Section', () => {

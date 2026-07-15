@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "projectId": "gen-digital",
+  "title": "Gen Digital",
+  "lifecycleStatus": "archived",
+  "copyEligibility": "blocked_missing_facts",
+  "sensitivity": "internal",
+  "lastReviewed": "2026-07-15",
+  "readiness": {
+    "sourceCoverage": "partial",
+    "interviewStatus": "not_started",
+    "mediaCoverage": "not_started",
+    "copyStatus": "blocked_missing_facts"
+  },
+  "workingHypotheses": [
+    "Gen Digital may be a client credit rather than a project that belongs in the public portfolio."
+  ],
+  "claims": [
+    {
+      "id": "claim-gen-digital-001",
+      "category": "project_identity",
+      "statement": "Gen Digital was named as one of Alexander's Hugo & Cat clients.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [
+        {"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — Hugo & Cat"},
+        {"sourceId": "src-20260715-002", "locator": "p. 56, Professional Experience — Hugo & Cat"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Neither source identifies the product, brief, team, deliverables, or outcome."
+    },
+    {
+      "id": "claim-gen-digital-002",
+      "category": "timeline",
+      "statement": "The work occurred at some point during Alexander's Hugo & Cat tenure from November 2020 to July 2024.",
+      "status": "candidate",
+      "confidence": "low",
+      "sensitivity": "internal",
+      "sources": [
+        {"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — Hugo & Cat"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "This is an employment window, not a confirmed project date."
+    }
+  ],
+  "conflicts": [],
+  "openQuestions": [
+    {
+      "id": "q-gen-digital-001",
+      "category": "project_identity",
+      "question": "What Gen Digital product or engagement was this, and under which consumer brand did it appear?",
+      "status": "open",
+      "answer": null,
+      "sourceIds": []
+    },
+    {
+      "id": "q-gen-digital-002",
+      "category": "role",
+      "question": "What did you personally own, who worked with you, and what was delivered?",
+      "status": "open",
+      "answer": null,
+      "sourceIds": []
+    },
+    {
+      "id": "q-gen-digital-003",
+      "category": "permission",
+      "question": "Is this work showable, and should it be a case study, an Impressions item, or only a client credit?",
+      "status": "open",
+      "answer": null,
+      "sourceIds": []
+    }
+  ],
+  "media": [],
+  "interviewRounds": []
+}

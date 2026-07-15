@@ -1,5 +1,9 @@
 # Portfolio Interview Plan
 
+## Factual source of truth
+
+This document defines the interview method. Project facts, source provenance, open questions, readiness, and the American Heart Association hold state live in `docs/portfolio/`. Do not promote wording from this plan into final copy unless the relevant project claim is confirmed there.
+
 ## What to expect
 
 We will work through one project at a time. The conversation should feel like remembering the work with a thoughtful colleague, not completing a questionnaire.

@@ -3,7 +3,10 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { createDevAdminPlugin } from './vite.dev-admin-plugin.js';
+import {
+  createDevAdminPlugin,
+  shouldSuppressAboutNarrativeEditorReload,
+} from './vite.dev-admin-plugin.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicConfigDir = resolve(__dirname, 'public/config');
@@ -42,6 +45,7 @@ function absContentVirtualPlugin() {
       if (!watchedFiles.includes(file)) return;
       const modules = [...server.moduleGraph.idToModuleMap.values()].filter((mod) => mod.id && mod.id.startsWith(VIRTUAL_CONTENT_PREFIX));
       modules.forEach((mod) => server.moduleGraph.invalidateModule(mod));
+      if (shouldSuppressAboutNarrativeEditorReload(file)) return [];
       server.ws.send({ type: 'full-reload' });
       return [];
     },

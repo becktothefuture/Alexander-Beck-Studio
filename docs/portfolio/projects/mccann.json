@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "projectId": "mccann",
+  "title": "McCann",
+  "lifecycleStatus": "active",
+  "copyEligibility": "blocked_missing_facts",
+  "sensitivity": "internal",
+  "lastReviewed": "2026-07-15",
+  "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
+  "workingHypotheses": [],
+  "claims": [],
+  "conflicts": [],
+  "openQuestions": [
+    {"id": "q-mccann-001", "category": "project_identity", "question": "Which McCann organisation, website, or initiative was this?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-mccann-002", "category": "brief", "question": "What was the brief, audience, and intended change?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-mccann-003", "category": "role", "question": "What was Alexander's role, employer context, team, and timeframe?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-mccann-004", "category": "decision", "question": "What was the distinctive interaction or restrained design decision, and why did it matter?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-mccann-005", "category": "permission", "question": "What shipped, where can it be seen, and which images or outcomes are approved for publication?", "status": "open", "answer": null, "sourceIds": []}
+  ],
+  "media": [],
+  "interviewRounds": []
+}
+

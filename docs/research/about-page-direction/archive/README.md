@@ -1,14 +1,8 @@
 # About Me direction archive
 
-These files are retained as historical working material. They are not current instructions for writing or storyboarding the About Me page.
+These files are retained as historical working material. They are not current instructions for writing, storyboarding or implementing the About Me page.
 
-The active source of truth is one level above:
-
-- `../ABOUT-NARRATIVE-FRAMEWORK.md`
-- `../ABOUT-NARRATIVE-OPTIONS.md`
-- `../ABOUT-NARRATIVE-VERIFICATION.md`
-
-Interviews, source material and tone guidance now live in `../supporting/`.
+The active prose source is `../ABOUT-NARRATIVE-SCRIPT-v7.md`; `../ABOUT-NARRATIVE-STORYBOARD-v7.md` is the current visual reference. Interviews, source material and tone guidance remain in `../supporting/`.
 
 ## Narrative explorations
 
@@ -18,20 +12,23 @@ Interviews, source material and tone guidance now live in `../supporting/`.
 - the literal-room and orchestration routes;
 - the complexity-to-life narrative draft;
 - three early writing routes;
-- the route-based narrative map in SVG and PNG formats.
-- the superseded story-led five-act framework and Draft 1.
+- the route-based narrative map in SVG and PNG formats;
+- the superseded story-led five-act framework and Draft 1;
+- the superseded manifesto framework, narrative options and verification checklist;
+- the original narrative-lab implementation brief;
+- the V2, V3, V4, V5 and V6 scripts and storyboards, plus the V3 story-led draft.
 
-These files contain useful ideas and phrases, but their architecture and copy predate the canonical framework.
+These files contain useful ideas and phrases, but their architecture and copy predate the active V7 prose.
 
 The related [FigJam narrative map](https://www.figma.com/board/uVSfMQrdagYNTMFvIIDrsq) should also be treated as a historical discussion board.
 
 ## Storyboards
 
 - `storyboards/v1/` — initial single-route storyboard.
-- `storyboards/v2/` — Traverse, Intercut and Transform comparison.
-- `storyboards/v3/` — Calm System storyboard, contact sheet and animatic.
+- `storyboards/v2/` — Traverse, Intercut and Transform comparison plus the generated V2 storyboard sheets.
+- `storyboards/v3/` — Calm System storyboard, contact sheet, animatic and modular text-free frame set.
 
-Version 3 remains the most developed motion reference, but its copy and section logic predate the active hybrid framework. A future storyboard should be created only after the framework and narrative route are approved and the narrowed verification questions are answered.
+Version 3 remains useful motion history, but its copy and section logic are superseded by V4 and the production implementation.
 
 ## Generated metadata
 

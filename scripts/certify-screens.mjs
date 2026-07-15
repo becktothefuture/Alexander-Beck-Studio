@@ -49,7 +49,7 @@ const matrix = [
         selector: '[data-route-tab]',
         minCount: 4,
         minArea: 400,
-        requiredText: ['Home', 'About Me', 'Contact', 'Portfolio']
+        requiredText: ['Home', 'About Me', 'Contact', 'Work']
       },
       {
         selector: '#expertise-legend .legend__item',
@@ -75,7 +75,7 @@ const matrix = [
           selector: '[data-route-tab]',
           minCount: 4,
           minArea: 400,
-          requiredText: ['Home', 'About Me', 'Contact', 'Portfolio']
+          requiredText: ['Home', 'About Me', 'Contact', 'Work']
         },
         {
           selector: '#expertise-legend .legend__item',
@@ -105,21 +105,20 @@ const matrix = [
       { selector: '#c', minArea: 60000, requiredText: [] },
       { selector: '#portfolioProjectMount', minArea: 60000, requiredText: [] },
       { selector: '.portfolio-deck-card.is-active', minCount: 1, minArea: 60000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Portfolio'] }
+      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work'] }
     ]
   },
   {
     page: 'about',
     path: '/about.html',
-    // The intentional Coming soon composition is mostly one surface color,
-    // especially in dark mode; selector/text checks remain the validity gate.
-    allowNearBlank: true,
+    requireBootState: true,
+    readySettleMs: 800,
     readySelectors: ['#app-frame', '[data-route-tab="about"]', '[data-route-content="about"]'],
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Portfolio'] },
-      { selector: '[data-route-content="about"]', minArea: 60000, requiredText: ['Coming soon'] }
+      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work'] },
+      { selector: '[data-route-content="about"]', minArea: 60000, requiredText: ['I help shape complex ideas'] }
     ]
   },
   {
@@ -134,7 +133,7 @@ const matrix = [
     minReadySelectors: 4,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Portfolio'] },
+      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work'] },
       { selector: '[data-route-content="contact"]', minArea: 60000, requiredText: contactRequiredText },
       { selector: '[data-contact-ripple-canvas]', minArea: 60000, requiredText: [] }
     ]
@@ -465,10 +464,21 @@ async function waitForEntryReadiness(page, entry, timeoutMs = 22000) {
 
   while (Date.now() - startedAt < timeoutMs) {
     lastSample = await sampleReadiness(page, entry);
+    const bootStateReady = acceptableBootStates.includes(lastSample.bootState);
+    const selectorsReady = lastSample.visibleSelectors >= (entry.minReadySelectors || 1);
+
+    if (entry.requireBootState && bootStateReady && selectorsReady) {
+      return {
+        ready: true,
+        source: `boot-and-selectors:${lastSample.bootState}:${lastSample.visibleSelectors}`,
+        lastSample
+      };
+    }
 
     if (
+      !entry.requireBootState &&
       !entry.requireReadySelectors &&
-      acceptableBootStates.includes(lastSample.bootState)
+      bootStateReady
     ) {
       return {
         ready: true,
@@ -477,7 +487,7 @@ async function waitForEntryReadiness(page, entry, timeoutMs = 22000) {
       };
     }
 
-    if (lastSample.visibleSelectors >= (entry.minReadySelectors || 1)) {
+    if (!entry.requireBootState && selectorsReady) {
       return {
         ready: true,
         source: `selectors:${lastSample.visibleSelectors}`,

@@ -35,6 +35,15 @@ import {
 } from './src/routes/about-narrative-lab/aboutNarrativeSchema.js';
 
 const repoRoot = SIMULATION_ADMIN_PATHS.repoRoot;
+let aboutNarrativeEditorWrite = null;
+
+export function shouldSuppressAboutNarrativeEditorReload(file) {
+  if (!aboutNarrativeEditorWrite) return false;
+  const matches = aboutNarrativeEditorWrite.file === file
+    && Date.now() <= aboutNarrativeEditorWrite.expiresAt;
+  if (Date.now() > aboutNarrativeEditorWrite.expiresAt) aboutNarrativeEditorWrite = null;
+  return matches;
+}
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -157,6 +166,10 @@ export function createDevAdminPlugin({ publicConfigDir }) {
       await handle.sync();
       await handle.close();
       handle = null;
+      aboutNarrativeEditorWrite = {
+        file: aboutNarrativeConfigPath,
+        expiresAt: Date.now() + 1500,
+      };
       await rename(tempPath, aboutNarrativeConfigPath);
     } catch (error) {
       await handle?.close().catch(() => {});

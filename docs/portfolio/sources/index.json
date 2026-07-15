@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "src-20260715-001",
+      "title": "Alexander Beck – UX/UI Designer & Creative Technologist – CV (2025)",
+      "type": "pdf",
+      "status": "active",
+      "extractionStatus": "complete",
+      "sensitivity": "personal",
+      "origin": "user_provided",
+      "receivedAt": "2026-07-15",
+      "projectIds": [
+        "sp-global",
+        "bentley",
+        "gen-digital",
+        "yoti",
+        "sunexpress",
+        "prokeyboard",
+        "mccann"
+      ],
+      "path": "docs/portfolio/sources/raw/src-20260715-001/Alexander Beck – UX:UI Designer & Creative Technologist – CV.pdf",
+      "extractedPath": "docs/portfolio/sources/extracted/src-20260715-001.md",
+      "sha256": "2144ab8ed008bd99fe39e6f1be0fdc41a1634f797963ccecdc4f737fc0dab6d8",
+      "summary": "One-page 2025 CV containing career-context claims for MRM (McCann), S&P Global, Hugo & Cat client work, Yoti, SunExpress, and ProKeyboard. Personal contact details remain confined to the raw source.",
+      "supersedes": [],
+      "supersededBy": []
+    },
+    {
+      "id": "src-20260715-002",
+      "title": "Portfolio v1 (2025)",
+      "type": "pdf",
+      "status": "active",
+      "extractionStatus": "complete",
+      "sensitivity": "personal",
+      "origin": "user_provided",
+      "receivedAt": "2026-07-15",
+      "projectIds": [
+        "sp-global",
+        "bentley",
+        "yoti",
+        "sunexpress",
+        "personal-website",
+        "prokeyboard",
+        "gen-digital",
+        "mccann",
+        "swiss-re",
+        "tourism-ireland"
+      ],
+      "path": "docs/portfolio/sources/raw/src-20260715-002/Portfolio-v1.pdf",
+      "extractedPath": "docs/portfolio/sources/extracted/src-20260715-002.md",
+      "sha256": "7a4d389749db27fd427f4dfe2888259f2274a4d8e3d2fb2ee605e30409eed7ac",
+      "summary": "Sixty-page May 2025 portfolio with developed sections for S&P Global, Bentley, Yoti, SunExpress, and a personal website; a dedicated ProKeyboard side-project page; and named-only career credits including Gen Digital, Swiss Re, and Tourism Ireland.",
+      "supersedes": [],
+      "supersededBy": []
+    }
+  ]
+}

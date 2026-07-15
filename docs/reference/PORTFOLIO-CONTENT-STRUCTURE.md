@@ -1,5 +1,9 @@
 # Portfolio Project Content Structure
 
+## Factual source of truth
+
+This document defines editorial structure, not project facts. Final copy must be derived from confirmed, source-linked claims in `docs/portfolio/projects/` and must pass the copy gate in `docs/portfolio/catalog.json`.
+
 ## Purpose
 
 Each project should work at two speeds:

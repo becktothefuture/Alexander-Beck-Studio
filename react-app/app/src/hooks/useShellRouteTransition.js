@@ -114,6 +114,9 @@ function buildCanonicalRouteHref(route, url) {
       if (value) canonical.searchParams.set(key, value);
     });
   }
+  if (__DEV__ && route.id === 'about-narrative-lab' && url.searchParams.get('edit') === '1') {
+    canonical.searchParams.set('edit', '1');
+  }
   canonical.hash = url.hash;
   return `${canonical.pathname}${canonical.search}${canonical.hash}`;
 }

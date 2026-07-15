@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "projectId": "impressions",
+  "title": "Impressions",
+  "lifecycleStatus": "active",
+  "copyEligibility": "blocked_missing_facts",
+  "sensitivity": "internal",
+  "lastReviewed": "2026-07-15",
+  "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
+  "subprojects": [
+    {"id": "jaguar-land-rover", "title": "Jaguar Land Rover", "status": "unverified"},
+    {"id": "maybourne", "title": "Maybourne Hotels", "status": "name_needs_confirmation"},
+    {"id": "posters", "title": "Posters", "status": "unverified"},
+    {"id": "other-small-work", "title": "Other small work", "status": "unverified"}
+  ],
+  "workingHypotheses": [],
+  "claims": [],
+  "conflicts": [],
+  "openQuestions": [
+    {"id": "q-impressions-001", "category": "project_identity", "question": "Is the hotel client correctly named Maybourne Hotels, and which individual projects belong in each group?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-impressions-002", "category": "role", "question": "What was Alexander's role, year, and context for every selected artefact?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-impressions-003", "category": "permission", "question": "Which Jaguar Land Rover, Maybourne, poster, and small-work assets may be shown publicly?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-impressions-004", "category": "media", "question": "Which ten artefacts create the strongest varied sequence without repetition?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-impressions-005", "category": "anecdote", "question": "What single observation, brief detail, or craft decision makes each selected artefact worth seeing?", "status": "open", "answer": null, "sourceIds": []}
+  ],
+  "media": [],
+  "interviewRounds": []
+}
+

@@ -111,11 +111,21 @@ export function useAboutNarrativeTimeline({
           node.style.setProperty('--fragment-blur', `${state.blur.toFixed(2)}px`);
           node.style.setProperty('--fragment-opacity', visible ? state.opacity.toFixed(4) : '0');
         });
+        if (section.type === 'finale') {
+          const contextStart = Number(section.interaction?.activationStart ?? 0.54);
+          const contextProgress = reducedMotion
+            ? 1
+            : clamp01((local - contextStart) / 0.14);
+          sectionNode.style.setProperty('--spatial-context-opacity', contextProgress.toFixed(4));
+          sectionNode.style.setProperty('--spatial-context-y', `${((1 - contextProgress) * 16).toFixed(2)}px`);
+        }
       });
     };
 
     const updateEditorialCopy = (scrollTop, viewportHeight, reducedMotion) => {
       const threshold = documentRef.current.globals.editorialRevealThreshold;
+      let disciplineFocus = 0;
+      let gridInfluence = 0;
       measurementsRef.current.editorialLines.forEach(({ node, top }) => {
         const progress = reducedMotion
           ? 1
@@ -123,7 +133,11 @@ export function useAboutNarrativeTimeline({
         node.style.setProperty('--editorial-reveal', progress.toFixed(4));
         node.style.setProperty('--editorial-blur', `${((1 - progress) * 3).toFixed(2)}px`);
         node.style.setProperty('--editorial-y', `${((1 - progress) * 12).toFixed(2)}px`);
+        const group = Number(node.dataset.worldGroup || 0);
+        if (group > 0 && progress >= 0.24) disciplineFocus = group;
+        if (node.dataset.worldInfluence === 'true') gridInfluence = Math.max(gridInfluence, progress);
       });
+      return { disciplineFocus, gridInfluence };
     };
 
     const readTransport = (deltaSeconds) => {
@@ -175,7 +189,7 @@ export function useAboutNarrativeTimeline({
         root.dataset.activeNarrativeSection = frame.section.id;
         root.style.setProperty('--narrative-story-wu', frame.storyWU.toFixed(4));
         updateTextCues(frame, reducedMotion);
-        updateEditorialCopy(scrollport.scrollTop, viewportHeight, reducedMotion);
+        frame.editorialSignals = updateEditorialCopy(scrollport.scrollTop, viewportHeight, reducedMotion);
         worldRuntimeRef.current?.render(frame);
         if (editorStore && time - lastTransportPublish > 80) {
           const current = editorStore.getSnapshot().transport;

@@ -1,27 +1,24 @@
 # About Me narrative direction
 
-This folder contains the active manifesto-led narrative system for the `beck.fyi` About Me page.
+This folder contains the current narrative source for the `beck.fyi` About Me page.
 
-## Review now
+## Current source of truth
 
-1. `ABOUT-NARRATIVE-FRAMEWORK.md` — the research-backed journey from density through structure to a living, responsive field.
-2. `ABOUT-NARRATIVE-OPTIONS.md` — two complete manifesto-led narrative approaches for discussion.
-3. `ABOUT-NARRATIVE-VERIFICATION.md` — seven essential decision groups required before final public copy.
+`ABOUT-NARRATIVE-SCRIPT-v7.md` is the current editable prose script.
+
+`ABOUT-NARRATIVE-STORYBOARD-v7.md` is the current visual and route-mapping reference.
+
+Its eight-part dramatic arc is implemented by:
+
+- `react-app/app/src/routes/about/AboutRoute.jsx`;
+- `react-app/app/src/routes/about-narrative-lab/`.
+
+The production route and narrative lab share the same current experience. The lab adds controls for refinement; it is not a competing version.
 
 ## Supporting material
 
-`supporting/` contains material that explains where the direction came from but does not require regular review:
-
-- interviews and editable questionnaires;
-- preserved Round 1 and Round 2 answers;
-- coverage assessments and the source matrix;
-- tone-of-voice guidance and the earlier full verification questionnaire;
-- the 40-site research deck, catalogue, evidence and concept mockups.
+`supporting/` contains the interviews, questionnaire answers, source matrix, tone guidance and 40-site creative-direction research that informed V4. These are evidence and reference material rather than alternative narrative versions.
 
 ## Archive
 
-`archive/` contains superseded profile-led and earlier story-led routes, plus Draft 1, storyboards, animatics and generated metadata. These remain available for reference but are not active direction.
-
-## Current sequence
-
-Review the framework → choose one narrative approach → verify its selected proof → rewrite the live copy and point-cloud storyboard together → create the animatic → implement the final continuous spatial journey.
+`archive/` contains every superseded framework, script, implementation brief and storyboard asset from V1 through V6. Nothing in that folder should be treated as current direction.

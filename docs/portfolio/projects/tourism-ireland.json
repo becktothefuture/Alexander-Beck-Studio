@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "projectId": "tourism-ireland",
+  "title": "Tourism Ireland",
+  "lifecycleStatus": "archived",
+  "copyEligibility": "blocked_missing_facts",
+  "sensitivity": "internal",
+  "lastReviewed": "2026-07-15",
+  "readiness": {
+    "sourceCoverage": "partial",
+    "interviewStatus": "not_started",
+    "mediaCoverage": "not_started",
+    "copyStatus": "blocked_missing_facts"
+  },
+  "workingHypotheses": [
+    "Tourism Ireland may be a client credit embedded in an older personal-site design rather than a current portfolio candidate."
+  ],
+  "claims": [
+    {
+      "id": "claim-tourism-ireland-001",
+      "category": "project_identity",
+      "statement": "Tourism Ireland appears in a prior personal-site experience credit alongside Bentley, Swiss Re, and S&P Global.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [
+        {"sourceId": "src-20260715-002", "locator": "p. 50, Evolving Depth — embedded personal-site screen"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "The source contains no description of the work and misspells Ireland."
+    }
+  ],
+  "conflicts": [],
+  "openQuestions": [
+    {
+      "id": "q-tourism-ireland-001",
+      "category": "project_identity",
+      "question": "What Tourism Ireland engagement does this credit refer to?",
+      "status": "open",
+      "answer": null,
+      "sourceIds": []
+    },
+    {
+      "id": "q-tourism-ireland-002",
+      "category": "role",
+      "question": "What did you make, when did you make it, and with whom?",
+      "status": "open",
+      "answer": null,
+      "sourceIds": []
+    },
+    {
+      "id": "q-tourism-ireland-003",
+      "category": "permission",
+      "question": "Should this remain only a client credit or enter the Impressions collection?",
+      "status": "open",
+      "answer": null,
+      "sourceIds": []
+    }
+  ],
+  "media": [],
+  "interviewRounds": []
+}

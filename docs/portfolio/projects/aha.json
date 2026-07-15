@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "projectId": "aha",
+  "title": "American Heart Association",
+  "lifecycleStatus": "on_hold",
+  "copyEligibility": "blocked_on_hold",
+  "holdReason": "The project is ongoing; final narrative, contribution, implementation, and outcome claims are deferred.",
+  "sensitivity": "confidential",
+  "lastReviewed": "2026-07-15",
+  "readiness": {
+    "sourceCoverage": "not_assessed",
+    "interviewStatus": "deferred",
+    "mediaCoverage": "not_assessed",
+    "copyStatus": "blocked_on_hold"
+  },
+  "workingHypotheses": [],
+  "claims": [],
+  "conflicts": [],
+  "openQuestions": [
+    {
+      "id": "q-aha-001",
+      "category": "delivery_status",
+      "question": "What explicit project milestone or permission should remove the copy hold?",
+      "status": "deferred",
+      "answer": null,
+      "sourceIds": []
+    },
+    {
+      "id": "q-aha-002",
+      "category": "permission",
+      "question": "Which existing materials may be catalogued internally while remaining excluded from public copy?",
+      "status": "deferred",
+      "answer": null,
+      "sourceIds": []
+    }
+  ],
+  "media": [],
+  "interviewRounds": []
+}
+

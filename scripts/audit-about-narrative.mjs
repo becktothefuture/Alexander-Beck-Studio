@@ -19,10 +19,40 @@ async function audit(viewport, label) {
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
   await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1200);
+  assert.equal(new URL(page.url()).searchParams.get('edit'), '1');
   assert.equal(await page.locator('[data-narrative-section]').count(), 8);
   assert.equal(await page.locator('.about-editor').count(), 1);
+  assert.equal(await page.locator('#simulations .about-editor').count(), 0);
+  assert.equal(await page.locator('body > .about-editor').count(), 1);
+  assert.equal(await page.locator('.about-editor .ti').count(), 0);
+  assert.equal(await page.locator('.about-editor-transport > button svg').count(), 5);
   const root = page.locator('.about-narrative-lab');
   if (browserName === 'chromium') assert.equal(await root.getAttribute('data-point-world-state'), 'ready');
+  assert.match(
+    await page.locator('.about-narrative-spatial-title').first().evaluate((node) => getComputedStyle(node).fontFamily),
+    /Instrument Serif/,
+  );
+  const cameraClips = page.locator('.about-editor-lane--camera .about-editor-clip');
+  for (let index = 0; index < await cameraClips.count(); index += 1) {
+    assert.ok(await cameraClips.nth(index).locator('.about-editor-key').count() >= 2);
+  }
+  const hoverKey = page.locator('.about-editor-key').nth(3);
+  const keyBeforeHover = await hoverKey.evaluate((node) => ({
+    transform: getComputedStyle(node).transform,
+    rect: node.getBoundingClientRect().toJSON(),
+  }));
+  await hoverKey.hover();
+  await page.waitForTimeout(220);
+  const keyAfterHover = await hoverKey.evaluate((node) => ({
+    transform: getComputedStyle(node).transform,
+    cursor: getComputedStyle(node).cursor,
+    rect: node.getBoundingClientRect().toJSON(),
+  }));
+  assert.equal(keyAfterHover.transform, keyBeforeHover.transform);
+  assert.ok(Math.abs(keyAfterHover.rect.x - keyBeforeHover.rect.x) < 0.1);
+  assert.ok(Math.abs(keyAfterHover.rect.y - keyBeforeHover.rect.y) < 0.1);
+  assert.equal(keyAfterHover.cursor, 'pointer');
+  assert.equal(await page.locator('#custom-cursor').evaluate((node) => getComputedStyle(node).display), 'none');
 
   const transport = page.locator('.about-editor-transport input[type="range"]');
   for (const storyWU of [0, 1.5, 3.5, 6.5, 10.5, 15.5]) {
@@ -37,23 +67,95 @@ async function audit(viewport, label) {
   }
 
   await page.locator('.about-editor-lane--section button').nth(1).click();
-  await page.locator('.about-editor-lane--text .about-editor-clip').nth(1).locator('.about-editor-cue').first().click();
+  const selectedCue = page.locator('.about-editor-lane--text .about-editor-clip').nth(1).locator('.about-editor-cue').first();
+  await selectedCue.click({ position: { x: 3, y: 14 } });
+  assert.equal(await selectedCue.getAttribute('aria-pressed'), 'true');
   const textarea = page.locator('.about-editor-inspector textarea').first();
   if (await textarea.isVisible()) {
     const original = await textarea.inputValue();
     await textarea.fill('Temporary audit statement.');
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
     assert.equal(await textarea.inputValue(), original);
+    await textarea.blur();
   }
+  const beforeArrow = Number(await transport.inputValue());
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(80);
+  assert.ok(Number(await transport.inputValue()) > beforeArrow);
+  assert.ok(await page.locator('.about-editor-key.is-selected, .about-editor-timing-key.is-selected').count() >= 1);
 
   if (viewport.width >= 760) {
+    const inspector = page.locator('.about-editor-inspector');
+    const inspectorHeader = inspector.locator('header').first();
+    const [inspectorBefore, headerBox] = await Promise.all([inspector.boundingBox(), inspectorHeader.boundingBox()]);
+    assert.ok(inspectorBefore && headerBox);
+    await page.mouse.move(headerBox.x + 36, headerBox.y + (headerBox.height / 2));
+    await page.mouse.down();
+    await page.mouse.move(headerBox.x - 140, headerBox.y + 46, { steps: 6 });
+    await page.mouse.up();
+    const inspectorAfter = await inspector.boundingBox();
+    assert.equal(await inspector.getAttribute('data-floating'), 'true');
+    assert.ok(inspectorAfter.x < inspectorBefore.x - 80);
+    assert.ok(inspectorAfter.y >= 0);
+    assert.ok(inspectorAfter.x >= 0);
+    assert.ok(inspectorAfter.x + inspectorAfter.width <= viewport.width);
+    const editorBottomBoundary = await page.locator('[data-button-bar]').boundingBox();
+    const timelineBoundary = await page.locator('.about-editor-bottom').boundingBox();
+    if (timelineBoundary) assert.ok(inspectorAfter.y + inspectorAfter.height <= timelineBoundary.y);
+    else if (editorBottomBoundary) assert.ok(inspectorAfter.y + inspectorAfter.height <= editorBottomBoundary.y);
+    await inspectorHeader.dblclick();
+    assert.equal(await inspector.getAttribute('data-floating'), 'false');
+
+    const complexityWorldClip = page.locator('.about-editor-lane--world .about-editor-clip').nth(1);
+    await complexityWorldClip.locator('.about-editor-world-clip').click();
+    const transitionDetails = page.locator('.about-editor-inspector details').filter({ hasText: 'Transition in' });
+    const transitionEnd = transitionDetails.locator('.about-editor-property').filter({ hasText: /^End/ }).locator('input[type="number"]');
+    await transitionEnd.fill('2.2');
+    await page.waitForTimeout(120);
+    const transitionKeys = complexityWorldClip.locator('.about-editor-timing-key.is-world');
+    assert.equal(await transitionKeys.count(), 2);
+    const [complexityClipBox, transitionEndBox] = await Promise.all([
+      complexityWorldClip.boundingBox(),
+      transitionKeys.nth(1).boundingBox(),
+    ]);
+    assert.ok(complexityClipBox && transitionEndBox);
+    assert.ok(transitionEndBox.x > complexityClipBox.x + complexityClipBox.width);
+    await transitionKeys.nth(1).click({ force: true });
+    await page.keyboard.press('Delete');
+    await page.waitForTimeout(120);
+    assert.equal(await transitionKeys.count(), 0);
+    assert.match(await transitionDetails.textContent(), /cuts in/i);
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await page.waitForTimeout(120);
+    assert.equal(await transitionKeys.count(), 2);
+
+    const disciplineFocusWU = await page.locator('[data-world-group="4"]').evaluate((node) => {
+      const scrollport = document.querySelector('.about-narrative-scrollport');
+      const scrollRect = scrollport.getBoundingClientRect();
+      const absoluteTop = node.getBoundingClientRect().top - scrollRect.top + scrollport.scrollTop;
+      return (absoluteTop - (scrollport.clientHeight * 0.68)) / scrollport.clientHeight;
+    });
+    await transport.fill(String(Math.round(disciplineFocusWU / 0.002) * 0.002));
+    await page.waitForTimeout(140);
+    assert.equal(await root.getAttribute('data-world-group-focus'), '4');
+    const influenceWU = await page.locator('[data-world-influence="true"]').evaluate((node) => {
+      const scrollport = document.querySelector('.about-narrative-scrollport');
+      const scrollRect = scrollport.getBoundingClientRect();
+      const absoluteTop = node.getBoundingClientRect().top - scrollRect.top + scrollport.scrollTop;
+      return (absoluteTop - (scrollport.clientHeight * 0.68)) / scrollport.clientHeight;
+    });
+    await transport.fill(String(Math.round(influenceWU / 0.002) * 0.002));
+    await page.waitForTimeout(140);
+    assert.ok(Number(await root.getAttribute('data-world-grid-influence')) > 0.2);
+
     const practice = page.locator('[data-narrative-section="practice-reveal"]');
     const practiceWU = await practice.evaluate((node) => {
       const scrollport = document.querySelector('.about-narrative-scrollport');
       return (node.offsetTop / scrollport.clientHeight) + 0.4;
     });
     await transport.fill(String(Math.round(practiceWU / 0.002) * 0.002));
-    await page.locator('.about-editor-lane--world > button').nth(3).click();
+    await page.locator('.about-editor-lane--world .about-editor-world-clip').nth(3).click();
+    await page.waitForTimeout(120);
     const before = await root.evaluate((node) => ({
       camera: getComputedStyle(node).getPropertyValue('--narrative-camera-forward'),
       text: document.querySelector('[data-text-cue="practice-main"]')?.textContent,
@@ -76,8 +178,16 @@ async function audit(viewport, label) {
   const editorBottom = page.locator('.about-editor-bottom');
   if (await bottomBar.count()) {
     const [barBox, editorBox] = await Promise.all([bottomBar.boundingBox(), editorBottom.boundingBox()]);
-    if (barBox && editorBox) assert.ok(editorBox.y + editorBox.height <= barBox.y + 1);
+    if (barBox && editorBox) {
+      assert.ok(Math.abs(editorBox.y + editorBox.height - viewport.height) <= 1);
+      assert.ok(editorBox.y < barBox.y && editorBox.y + editorBox.height > barBox.y);
+    }
   }
+  const timelineToggle = page.locator('.about-editor-timeline-toggle');
+  await timelineToggle.click();
+  assert.equal(await timelineToggle.getAttribute('aria-expanded'), 'false');
+  await timelineToggle.click();
+  assert.equal(await timelineToggle.getAttribute('aria-expanded'), 'true');
   assert.deepEqual(errors, []);
   await page.screenshot({ path: `output/playwright/about-narrative/${browserName}-${label}.png` });
   await page.close();

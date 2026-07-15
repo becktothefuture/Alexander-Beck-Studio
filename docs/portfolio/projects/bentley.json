@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "projectId": "bentley",
+  "title": "Bentley",
+  "lifecycleStatus": "active",
+  "copyEligibility": "blocked_missing_facts",
+  "sensitivity": "internal",
+  "lastReviewed": "2026-07-15",
+  "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
+  "workingHypotheses": [],
+  "claims": [],
+  "conflicts": [],
+  "openQuestions": [
+    {"id": "q-bentley-001", "category": "brief", "question": "What was the exact brief, product surface, and intended audience?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-bentley-002", "category": "role", "question": "Which interaction, motion, prototype, and 3D work was personally Alexander's?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-bentley-003", "category": "decision", "question": "Which expressive direction was reduced, rejected, or deliberately restrained, and why?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-bentley-004", "category": "team", "question": "Who shaped the brand, product, design, and 3D work alongside Alexander?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-bentley-005", "category": "delivery_status", "question": "What was adopted, tested, implemented, or left as a concept?", "status": "open", "answer": null, "sourceIds": []}
+  ],
+  "media": [],
+  "interviewRounds": []
+}
+

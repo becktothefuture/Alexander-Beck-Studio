@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "projectId": "prokeyboard",
+  "title": "ProKeyboard",
+  "lifecycleStatus": "active",
+  "copyEligibility": "blocked_missing_facts",
+  "sensitivity": "personal",
+  "lastReviewed": "2026-07-15",
+  "readiness": {
+    "sourceCoverage": "partial",
+    "interviewStatus": "not_started",
+    "mediaCoverage": "partial",
+    "copyStatus": "blocked_missing_facts"
+  },
+  "workingHypotheses": [
+    "This may work better as an Impressions item or side-project note than as a full case study."
+  ],
+  "claims": [
+    {
+      "id": "claim-prokeyboard-001",
+      "category": "project_identity",
+      "statement": "ProKeyboard is a self-initiated mobile-keyboard side project.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [
+        {"sourceId": "src-20260715-001", "locator": "p. 1, Interests & Side Projects"},
+        {"sourceId": "src-20260715-002", "locator": "p. 58, Side Project"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Project identity is consistent across both supplied sources."
+    },
+    {
+      "id": "claim-prokeyboard-002",
+      "category": "brief",
+      "statement": "The project explores a mobile keyboard intended to support focus, fluidity, accessibility, and neurodivergent users.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [
+        {"sourceId": "src-20260715-001", "locator": "p. 1, Interests & Side Projects"},
+        {"sourceId": "src-20260715-002", "locator": "p. 58, Side Project"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm the current problem statement and preferred language around neurodivergence."
+    },
+    {
+      "id": "claim-prokeyboard-003",
+      "category": "scope",
+      "statement": "Explorations named in the old portfolio include subtle feedback loops, one-handed modes, adaptive keyboard shapes, and AI-enhanced prediction.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [
+        {"sourceId": "src-20260715-002", "locator": "p. 58, Side Project"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm which explorations reached a working prototype."
+    },
+    {
+      "id": "claim-prokeyboard-004",
+      "category": "decision",
+      "statement": "The exploration used Gboard and iOS as reference points while questioning conventions inherited from early smartphone keyboards.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "personal",
+      "sources": [
+        {"sourceId": "src-20260715-002", "locator": "p. 58, Side Project"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Needs a concrete example of what was retained or rejected from each reference."
+    },
+    {
+      "id": "claim-prokeyboard-005",
+      "category": "delivery_status",
+      "statement": "The project was still being designed and prototyped when the 2025 CV and portfolio were produced.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [
+        {"sourceId": "src-20260715-001", "locator": "p. 1, Interests & Side Projects"},
+        {"sourceId": "src-20260715-002", "locator": "p. 58, Side Project"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Current 2026 status is unknown."
+    }
+  ],
+  "conflicts": [],
+  "openQuestions": [
+    {
+      "id": "q-prokeyboard-001",
+      "category": "delivery_status",
+      "question": "What exists today: sketches, a Figma prototype, coded keyboard, user test, or abandoned direction?",
+      "status": "open",
+      "answer": null,
+      "sourceIds": []
+    },
+    {
+      "id": "q-prokeyboard-002",
+      "category": "audience",
+      "question": "Which neurodivergent needs or behaviours were you designing for, and what evidence shaped them?",
+      "status": "open",
+      "answer": null,
+      "sourceIds": []
+    },
+    {
+      "id": "q-prokeyboard-003",
+      "category": "decision",
+      "question": "Which single keyboard interaction best proves the idea, and why is it better than the default?",
+      "status": "open",
+      "answer": null,
+      "sourceIds": []
+    },
+    {
+      "id": "q-prokeyboard-004",
+      "category": "permission",
+      "question": "Should ProKeyboard become a full case study, an Impressions item, or remain private?",
+      "status": "open",
+      "answer": null,
+      "sourceIds": []
+    }
+  ],
+  "media": [
+    {
+      "id": "media-prokeyboard-001",
+      "sourceId": "src-20260715-002",
+      "locator": "p. 58",
+      "subject": "Blurred contact sheet of keyboard and mobile-screen explorations",
+      "storyUse": "Evidence that several interface directions existed",
+      "status": "candidate",
+      "permissionStatus": "unknown",
+      "notes": "The source page is intentionally blurred; request original screens."
+    }
+  ],
+  "interviewRounds": []
+}

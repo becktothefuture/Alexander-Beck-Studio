@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "projectId": "<project-id>",
+  "title": "<project title>",
+  "lifecycleStatus": "active",
+  "copyEligibility": "blocked_missing_facts",
+  "sensitivity": "internal",
+  "lastReviewed": "YYYY-MM-DD",
+  "readiness": {
+    "sourceCoverage": "not_started",
+    "interviewStatus": "not_started",
+    "mediaCoverage": "not_started",
+    "copyStatus": "blocked_missing_facts"
+  },
+  "workingHypotheses": [],
+  "claims": [],
+  "conflicts": [],
+  "openQuestions": [],
+  "media": [],
+  "interviewRounds": []
+}
+
