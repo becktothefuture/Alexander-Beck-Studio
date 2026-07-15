@@ -1,5 +1,7 @@
 # Portfolio
 
+Production design intent and shared responsive rules live in [`DESIGN.md`](../../DESIGN.md). This file owns the Portfolio-specific deck, gate, drawer, and handoff contract.
+
 ## Current experience
 
 Portfolio is an orbital, scroll/drag-controlled DOM card deck managed by `PortfolioScrollApp`. Selecting a card opens a project drawer mounted in `#portfolio-sheet-host`.

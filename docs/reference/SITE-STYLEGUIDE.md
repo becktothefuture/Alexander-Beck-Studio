@@ -2,7 +2,7 @@
 
 ## Scope
 
-The system covers Home, Portfolio, About Me, Contact, the persistent shell, Portfolio gate/drawer, and lab utility chrome.
+The production design intent and responsive rules live in [`DESIGN.md`](../../DESIGN.md). This pattern index covers Home, Portfolio, About Me, Contact, the persistent shell, Portfolio gate/drawer, and lab utility chrome; lab patterns are not evidence for the production design constitution.
 
 ## Navigation
 

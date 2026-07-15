@@ -37,9 +37,10 @@
 - Portfolio deck/drawer/handoff: `src/legacy/modules/portfolio/`
 - Editorial content: `public/config/contents-home.json` and `contents-portfolio.json`
 - Design config: `public/config/design-system.json`
+- Production design constitution: `DESIGN.md`
 - Live component reference: `/styleguide.html` and `docs/reference/COMPONENT-LIBRARY.md`
 
-Read the focused reference before changing a contract: `SYSTEM-ARCHITECTURE.md`, `SITE-STYLEGUIDE.md`, `CANVAS-RUNTIME.md`, `PORTFOLIO.md`, `TRANSITION-ORCHESTRATION.md`, `LAYER-STACKING.md`, `CONFIGURATION.md`, or `CUSTOM-CURSOR.md`.
+Read `DESIGN.md` before changing the production visual system, then read the focused reference for the affected contract: `SYSTEM-ARCHITECTURE.md`, `SITE-STYLEGUIDE.md`, `CANVAS-RUNTIME.md`, `PORTFOLIO.md`, `TRANSITION-ORCHESTRATION.md`, `LAYER-STACKING.md`, `CONFIGURATION.md`, or `CUSTOM-CURSOR.md`.
 
 ## Implementation rules
 

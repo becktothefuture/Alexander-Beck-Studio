@@ -63,12 +63,13 @@ Guide for all user-facing copy on the site. Single source of truth for how the s
 - **Overview:** What you did, in past tense. Verbs first: “Mapped …”, “Shipped …”, “Defined …”. One outcome per sentence.
 - **Takeaways:** Short lessons. Principle + consequence. Educational. “Design with real data to keep flows honest” is on-tone; “Governance keeps systems from drifting” is on-tone.
 
-**Gates (About Me, Portfolio, Contact)**
-- **Title:** What the gate is. “About Me”, “View Portfolio”, “Contact”.
-- **Description:** Human, direct—why the gate exists (bots, NDAs), what to do with a code if you have one, or how to reach out. Contact modal: open invite for collaborations and hiring; no generic “product design / AI prototyping” filler. Plain, helpful.
+**Portfolio gate**
+- **Title:** State the destination directly: “View Portfolio”.
+- **Description:** Human and direct—why access is code-gated and what to do with a code if you have one. Plain and helpful.
 - **Buttons:** “Back”, “Submit”, etc. Functional only.
 
-**Contact (email, copy feedback)**  
+**Contact route (intro, email, copy feedback)**
+- **Intro:** An open invite for collaborations and hiring; no generic “product design / AI prototyping” filler.
 - “Copy email address”, “Copied”, “Copy failed”. Minimal. No jokes.
 
 **Captions (portfolio images/videos)**  

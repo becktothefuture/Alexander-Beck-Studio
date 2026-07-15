@@ -11,6 +11,10 @@ npm run dev
 
 Development runs at `http://127.0.0.1:8012`. The live component reference is `/styleguide.html`.
 
+## Design
+
+[`DESIGN.md`](DESIGN.md) is the production design constitution for Home, Work/Portfolio, About Me, Contact, and the shared shell. It records the design thesis, cross-route rules, fluid responsive policy, intentional exceptions, and current outliers. Exact authored values remain in `react-app/app/public/config/design-system.json`; component-level usage remains in `docs/reference/SITE-STYLEGUIDE.md` and `docs/reference/COMPONENT-LIBRARY.md`.
+
 ## Production
 
 ```bash
@@ -65,6 +69,7 @@ See `docs/reference/GENERATED-CONFIG.md` for the compatibility-output boundary.
 
 Current architecture and behavior are documented in:
 
+- `DESIGN.md`
 - `docs/reference/SYSTEM-ARCHITECTURE.md`
 - `docs/reference/CONFIGURATION.md`
 - `docs/reference/CANVAS-RUNTIME.md`

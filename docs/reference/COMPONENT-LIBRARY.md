@@ -1,12 +1,12 @@
 # Component library
 
-The live reference is `/styleguide.html`. It must describe production components, not retired specimens.
+The live reference is `/styleguide.html`. It must describe production components, not retired specimens. Cross-route design intent and responsive policy live in [`DESIGN.md`](../../DESIGN.md).
 
 ## Primary navigation: Button Bar
 
 `ShellButtonBar.jsx` renders the persistent bottom navigation from `SHELL_ROUTE_TABS` in `src/lib/routes.js`.
 
-- Route buttons: Home, Portfolio, About Me, Contact
+- Route buttons: Home, Work (Portfolio route), About Me, Contact
 - States: idle, hover/focus, pressed, active/current
 - Secondary controls: sound and theme
 - Mobile: Home gains a visible label; all controls remain keyboard and touch accessible
@@ -31,6 +31,6 @@ Top-level route headlines use Instrument Serif through `--abs-font-headline`, op
 - Allowed: the Home canvas title and `.route-centered-page__title` on Portfolio, About Me, Contact, and the Portfolio gate.
 - Not allowed: navigation, descriptions, Portfolio card titles, project-detail titles, controls, metadata, or general section headings.
 - Possible future exception: a deliberately art-directed pull quote or case-study chapter opener. This requires explicit scope; it is not inherited by default.
-- Implementation: consume `--abs-font-headline`, `--abs-font-headline-scale`, `--abs-font-headline-line-height-scale`, and `--abs-font-headline-letter-spacing`. Do not duplicate their resolved values in component CSS.
+- Implementation: consume `--route-entry-title-base-size`, `--abs-font-headline`, `--abs-font-headline-scale`, `--abs-font-headline-line-height-scale`, and `--abs-font-headline-letter-spacing`. Do not duplicate their resolved values in component CSS.
 
-The production values are a `1.22` optical size scale, `0.92` line-height scale, and `-0.01ch` letter spacing. Project titles remain Geist so the route voice and the project-information hierarchy do not compete.
+Resolved values come from the headline tokens. Project titles remain Geist so the route voice and the project-information hierarchy do not compete.

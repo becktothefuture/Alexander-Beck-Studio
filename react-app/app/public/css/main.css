@@ -3147,7 +3147,11 @@ button.abs-meta-btn,
 }
 
 .hero-title {
-  --home-hero-title-font-size: calc(clamp(28px, calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw), 52px) * var(--home-hero-title-scale, 1) * var(--home-headline-scale, 1));
+  --home-hero-title-font-size: clamp(
+    28px,
+    calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw),
+    52px
+  );
   position: absolute;
   top: 50%;
   left: calc(50% + var(--home-hero-title-optical-offset-x, 0px));
@@ -3184,8 +3188,9 @@ button.abs-meta-btn,
 }
 
 html[data-shell-route='home'] .hero-title--canvas-source {
-  --home-hero-title-scale: 1.2;
-  --home-headline-scale: var(--abs-font-headline-scale, 1);
+  --home-hero-title-font-size: calc(
+    var(--route-entry-title-base-size) * var(--abs-font-headline-scale, 1)
+  );
   --hero-title-line-height: calc(1.1 * var(--abs-font-headline-line-height-scale, 1));
   --hero-title-letter-spacing: var(--abs-font-headline-letter-spacing);
   font-family: var(--abs-font-headline);
@@ -5284,12 +5289,6 @@ html.is-safari .noise::before {
   }
 }
 
-@media (min-width: 601px) and (max-width: 1024px) {
-  html[data-shell-route='home'] .hero-title--canvas-source {
-    --home-hero-title-font-size: calc(clamp(21px, calc(var(--abs-home-logo-width-vw, 52) * 0.11625 * 1vw), 39px) * var(--home-hero-title-scale, 1) * var(--home-headline-scale, 1));
-  }
-}
-
 @media (max-width: 600px) { /* Mobile */
   :root {
     /* Horizontal ratio is now handled by JS (contentPaddingHorizontalRatio).
@@ -5312,17 +5311,6 @@ html.is-safari .noise::before {
     --edge-label-inset-gap: 2px;
   }
   
-  /* Mobile hero title — both lines same scale */
-  html[data-shell-route='home'] .hero-title--canvas-source {
-    --home-hero-title-font-size: calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px) * 0.85 * var(--mobile-type-scale) * var(--home-hero-title-scale, 1) * var(--home-headline-scale, 1));
-  }
-
-  .hero-title__name,
-  .hero-title__role,
-  .hero-title__line {
-    font-size: var(--home-hero-title-font-size);
-  }
-
   html[data-shell-route='home'] body #simulations:not(.simulation-depth-title-layer-active) .shell-hero-slot {
     z-index: 6;
   }
@@ -7388,12 +7376,26 @@ body.portfolio-page--locked #simulations {
 }
 
 :root {
-  --route-title-font-size: calc(clamp(28px, calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw), 52px) * 1.2);
+  --route-entry-title-base-size: calc(
+    clamp(28px, calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw), 52px) * 1.2
+  );
   --route-title-line-height: 1.02;
   --route-title-letter-spacing: 0;
   --route-description-font-size: clamp(0.875rem, 0.76rem + 0.32vw, 1rem);
   --route-description-line-height: 1.32;
   --route-description-max-width: 40ch;
+}
+
+/* Preserve the approved mobile curve through 600px and the desktop value from
+   1025px, then interpolate only across the former tablet discontinuities. */
+@media (min-width: 601px) and (max-width: 1024px) {
+  :root {
+    --route-entry-title-base-size: clamp(
+      31.212px,
+      calc(-12.818118px + 7.338353vw),
+      62.4px
+    );
+  }
 }
 
 .route-centered-page {
@@ -7432,7 +7434,9 @@ body.portfolio-page--locked #simulations {
 .route-centered-page__title {
   margin: 0;
   font-family: var(--abs-font-headline);
-  font-size: calc(var(--route-title-font-size) * var(--abs-font-headline-scale, 1));
+  font-size: calc(
+    var(--route-entry-title-base-size) * var(--abs-font-headline-scale, 1)
+  );
   font-weight: var(--abs-weight-regular);
   line-height: calc(var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1));
   letter-spacing: var(--abs-font-headline-letter-spacing);
@@ -7454,7 +7458,12 @@ body.portfolio-page--locked #simulations {
 
 @media (max-width: 600px) {
   :root {
-    --route-title-font-size: calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px) * 0.85 * var(--mobile-type-scale) * 1.2);
+    --route-entry-title-base-size: calc(
+      clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px)
+      * 0.85
+      * var(--mobile-type-scale)
+      * 1.2
+    );
     --route-description-font-size: calc(0.875rem * var(--mobile-type-scale));
     --route-description-line-height: 1.34;
     --route-description-max-width: 34ch;

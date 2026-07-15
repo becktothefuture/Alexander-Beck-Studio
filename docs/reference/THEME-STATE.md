@@ -2,9 +2,11 @@
 
 Dark/light theme is one site-wide content state, but its visual reach stops at the studio-window interior. Route components, simulations, gates, and in-window overlays consume that state; they must not create their own theme policy. The exposed wall/frame, browser chrome, and persistent Button Bar are outer-shell systems and do not consume the manual site theme.
 
+The intended surface hierarchy is summarized in [`DESIGN.md`](../../DESIGN.md). Known drift remains in the current outer-harmony runtime: resolve that behavior, this document, `CONFIGURATION.md`, theme-color projection, and the browser audits as one change.
+
 ## Preference Model
 
-The stored preference is `auto`, `light`, or `dark` under `theme-preference-v2`.
+The stored preference is `auto`, `light`, or `dark` under `theme-preference-v3`. `theme-preference-v2` and the original `theme-preference` key are migration inputs only.
 
 - `auto` follows only `prefers-color-scheme`.
 - `light` and `dark` are explicit user overrides.

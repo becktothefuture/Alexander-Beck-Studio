@@ -14,7 +14,7 @@ The runtime owns:
 - per-frame loop timing;
 - pointer, cursor, sound, and material responses tied to simulation state;
 - direct-load boot completion after the canvas route is visually ready;
-- route-specific imperative modules such as the portfolio runtime and CV bootstrap.
+- route-specific imperative modules such as the Portfolio runtime.
 
 React mounts the DOM structure and route slots. The runtime bootstraps imperative behavior into those slots.
 
@@ -44,7 +44,7 @@ export const HOME_ROUTE_RUNTIME = {
 Direct-load boot completion has one active owner per route family:
 
 - home canvas direct loads: `legacy/modules/visual/page-orchestrator.js`;
-- non-home shell routes such as portfolio, CV, styleguide, simulations, and palette-lab: `SiteApp.jsx`;
+- non-home shell routes such as Portfolio, About Me, Contact, styleguide, simulations, and palette-lab: `SiteApp.jsx`;
 - route-backed Daily Focus direct loads: `routes/daily-focus/DailyFocusShellBridge.jsx`;
 - standalone lab/dashboard entries: their lightweight page bootstrap, without the full shell boot overlay.
 

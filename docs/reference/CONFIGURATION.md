@@ -43,6 +43,8 @@ Loaders and normalizers live under `src/legacy/modules/utils/` and route-specifi
 
 ### Theme and browser-frame token boundary
 
+Theme preference and surface behavior are owned by [`THEME-STATE.md`](THEME-STATE.md), with the intended design boundary summarized in [`DESIGN.md`](../../DESIGN.md). The table below documents the current runtime projection; it must not be used to silently overturn the locked studio-window-only manual-theme boundary. Resolve the known outer-harmony drift across runtime, docs, theme-color projection, and audits together.
+
 | Contract | Tokens/config | Required behavior |
 | --- | --- | --- |
 | Theme-aligned exposed frame | `runtime.chromeHarmonyMode`, `shell.theme.siteFrame*`, `--abs-browser-chrome`, `--frame-color`, `--wall-color` | The rendered site theme selects the exposed page band, frame, wall, theme-color, and Button Bar material endpoint. In Auto this follows the browser/OS scheme; manual light/dark moves the frame and window together. |

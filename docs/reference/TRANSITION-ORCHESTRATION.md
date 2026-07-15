@@ -64,7 +64,7 @@ Canonical engineering contract for route and modal transitions.
 - Route-in restores readable groups first, then animates route-owned children marked with `[data-route-enter]`.
 - `[data-route-enter]` accepts the named groups `identity`, `legend`, `context`, `action`, and `footer`; `data-route-enter-order` controls order inside a group. Add these markers to route content instead of adding new shell selectors when a view needs child-level entrance motion.
 - After `abs:route-ready`, route-in must wait for a short paint barrier before preparing child entrances so destination refs, layout, and `[data-route-enter]` markers belong to the new route.
-- Portfolio route-in must restore hero + route UI together before slider labels / pit accents become readable.
+- Portfolio route-in must restore hero + route UI together before deck labels and speed-field accents become readable.
 - First readable route-in frame must already have final geometry for the hero surface inside the inner wall.
 
 ## 7) Instrument Wake

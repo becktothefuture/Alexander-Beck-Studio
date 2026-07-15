@@ -1,0 +1,348 @@
+# Design system
+
+## Purpose and scope
+
+This is the design constitution for the production Alexander Beck Studio website. It covers the shared shell and the four main routes: Home, Work/Portfolio, About Me, and Contact. The Portfolio gate and project drawer are included because they are part of the production route.
+
+Labs, playgrounds, dashboards, test fixtures, audit pages, and the live styleguide are not design evidence for this document. The styleguide is a verification surface for production patterns.
+
+This file owns intent, cross-route rules, responsive policy, and exception governance. It does not replace the authored values in `react-app/app/public/config/design-system.json`, the runtime CSS tokens, or the focused technical contracts in `docs/reference/`.
+
+## Design thesis
+
+The site is an engineered studio instrument with editorial warmth.
+
+- Clean and precise, but never sterile.
+- Playful through physical response, surprising behavior, and careful material detail rather than decorative clutter.
+- Contemporary and authored: Instrument Serif creates an editorial arrival; Geist keeps the interface technically exact.
+- Persistent and spatially reliable: the frame, window, Button Bar, and outside shell read as one object.
+- Restrained in its effects: color, blur, grain, depth, sound, and motion earn their place by clarifying hierarchy or interaction.
+- Human at the edges: the London signature, direct copy, and occasional irregular physical behavior soften the engineered structure.
+
+The useful reference is the product-minded precision of Teenage Engineering, not a literal imitation of its typography, hardware, or skeuomorphism.
+
+## Authority
+
+| Concern | Authority | Rule |
+| --- | --- | --- |
+| Design intent and cross-route consistency | `DESIGN.md` | Change this when the design language changes. |
+| Authored numeric values and configurable behavior | `react-app/app/public/config/design-system.json` | This is the only authored configuration. |
+| Runtime CSS vocabulary and first-paint fallbacks | `react-app/app/public/css/tokens.css` | Consume semantic tokens; do not create parallel scales. |
+| Shared shell and route composition | `StudioShell.jsx`, `main.css` | The shell is persistent; route content is replaceable. |
+| Component anatomy and states | `docs/reference/COMPONENT-LIBRARY.md` | Components must match production markup and accessibility. |
+| Current visual pattern index | `docs/reference/SITE-STYLEGUIDE.md` | Keep aligned with the live production styleguide. |
+| Theme behavior | `docs/reference/THEME-STATE.md` | Implementation must also satisfy the locked boundary below. |
+| Home canvas and title rendering | `CANVAS-RUNTIME.md`, `SIMULATION-DESIGN-GUIDELINES.md` | DOM and Canvas title geometry are one contract. |
+| Portfolio deck, gate, drawer, and handoff | `docs/reference/PORTFOLIO.md` | Preserve route-specific art direction and reversal. |
+| Motion rationale and implementation | `MATERIAL-PRESENCE.md`, `SCENE-ENTRANCE-PRINCIPLE.md`, `TRANSITION-ORCHESTRATION.md` | Rationale, visual rules, and state ownership remain separate. |
+
+Generated configs, browser storage, and inline runtime state are outputs, not design sources.
+
+## Production design artefacts
+
+The system is distributed across these production surfaces. A design change is complete only when every affected path agrees.
+
+| Artefact | Production source |
+| --- | --- |
+| Core tokens, palette, type roles, spacing, radii, finish, and motion values | `public/config/design-system.json`, `public/css/tokens.css` |
+| Font loading and first-paint shell | `index.html`, `portfolio.html`, `about.html`, `contact.html` |
+| Persistent shell, surface slots, footer, overlay hosts, and Button Bar | `StudioShell.jsx`, `ShellButtonBar.jsx`, `SiteFooter.jsx`, `main.css`, `shell-button-bar-dominant.css` |
+| Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
+| Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
+| Portfolio intro, orbital deck, gate, cards, project drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `PortfolioGateScene.jsx`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
+| About Me route-entry composition | `AboutRoute.jsx`, shared centered-route CSS |
+| Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
+| Footer signature, social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
+| Theme, frame, wall, noise, contrast veil, and browser harmony | `dark-mode-v2.js`, `site-shell.js`, `chrome-harmony.js`, `tokens.css` |
+| Cursor states and pointer mapping | `cursor.js`, `main.css`, `CUSTOM-CURSOR.md` |
+| Copy tone and content ownership | `TONE-OF-VOICE.md`, `SITE-COPY.md`, production content JSON |
+
+Paths above are relative to `react-app/app/` unless they start with `docs/`.
+
+## Foundations
+
+### Typography
+
+The core pairing is Instrument Serif plus Geist.
+
+- Instrument Serif is the editorial route-entry voice. Use it only for the Home title and top-level route-entry titles, including the Portfolio intro and gate.
+- Geist is the structural voice for navigation, descriptions, controls, Portfolio cards, project names, project-detail titles, and ordinary headings.
+- Geist Mono is operational: kickers, metadata, access inputs, the Contact email address, and compact technical labels.
+- The script face is a rare signature, principally the London mark. It is not another heading style.
+- Do not inherit Instrument Serif through a section or route. Apply the headline role explicitly.
+- Project titles stay Geist. The editorial route voice and the project-information voice must not compete.
+- Tracking and leading belong to named roles. Do not apply a broad optical correction and repair it component by component.
+- The visible Home title is rendered by Canvas from the semantic DOM title's computed metrics. Font family, size, leading, tracking, wrapping, and font-load timing must remain synchronized.
+
+Exact values live in the headline and text tokens. The design rule is scarcity and contrast, not a copied numeric type scale.
+
+### Colour and surface ownership
+
+The neutral structure carries the interface. Accent colors signal route, interaction, or simulation material; they are not general decoration.
+
+- Preserve distinct layers for the browser/page band, outer wall, physical frame, studio-window interior, in-window finish, controls, and route content.
+- Manual site theme is intended to affect the studio-window interior only. The exposed band, wall/frame, and stable outer shell follow browser/OS harmony independently. Current implementation drift is recorded below and must be resolved as one theme change, not patched in prose.
+- The Button Bar belongs to the outer shell. Its material and ink must not be derived casually from route body text.
+- Route accents remain stable: Home green, Work acid, About blue, Contact orange.
+- Neutrals dominate simulations. Use acid, blue, orange, and green as controlled focal material.
+- Grain, vignette, and the contrast veil should make the window feel physical without muddying type or flattening surface separation.
+- All normal text must meet WCAG 2.2 AA contrast in both themes. Do not use opacity as the only way to create hierarchy when it makes the resolved color fail.
+
+### Spacing and layout
+
+- Use the existing 4px sub-unit and 8px rhythm for static endpoints. Tight icon/text pairings may use the smaller step.
+- Reuse semantic gaps and content insets. Do not create a route-specific spacing scale.
+- The studio window always reserves the full Button Bar stack, separator, gap, padding, and safe-area inset.
+- Readable text measure uses `ch`; layout width uses percentages, container units, or explicit maximums.
+- Width-owned typography and horizontal spacing use width-based fluid interpolation. Height-owned composition may use `svh`, `dvh`, or container height units.
+- Avoid `vmin` for values whose intent is horizontal; it can collapse spacing in short landscape viewports.
+- Route-specific composition is allowed. Shared page padding, title spacing, description measure, and action spacing should still consume the same semantic roles.
+
+### Geometry, radius, and depth
+
+- `#simulations` is the sole visible rounded clip for the studio window.
+- Frame inset and frame radius are authored as mobile/desktop endpoints and interpolated by the runtime. Components consume the resolved geometry rather than cloning it.
+- True circles remain circles. Squircle treatment applies only to eligible framed surfaces and controls.
+- Pills indicate selection, compact controls, or grouped actions; do not turn every container into a pill.
+- Prefer contact edges, inset light, broad recesses, and restrained shadow to generic floating-card elevation.
+- The Portfolio drawer inherits the window geometry and reads as an inserted surface, not a detached modal.
+- Do not add thin force lines, helper rings, or decorative outlines to explain simulation behavior.
+
+### Iconography and controls
+
+- Tabler Outline is the default icon language. Use custom SVG only where exact brand or control geometry is required.
+- Every icon-only control has an accessible name, a visible keyboard focus state, and an effective target of at least 44px.
+- The Button Bar is the only primary navigation. Its moving pill is one shared object, not four independent selected backgrounds.
+- Route top bars are local utility/back strips only.
+- Sound and haptics reinforce a state change but never carry its meaning alone.
+
+### Motion and material presence
+
+- The physical frame, window, Button Bar, and outside shell remain present during route changes.
+- Animate route-owned content inside the stable window.
+- The first readable frame uses final geometry. Text must not become legible while still moving into its layout position.
+- Entrance order is identity, context, action, then supporting detail. Returning from an interruption is faster and simpler than the first entrance.
+- Hover and press motion should feel compact, tactile, and bounded.
+- Reduced motion removes travel, blur, scale, stagger, parallax, continuous field motion, and Ken Burns effects while preserving hierarchy and state.
+- Preserve selected media as the physical object during the Portfolio card-to-drawer handoff.
+
+## Shared shell and route patterns
+
+### Persistent shell
+
+The outer shell is one stable instrument: exposed band, wall, frame, studio window, footer, Button Bar, modal hosts, and Portfolio sheet host. Page changes must not recreate or reanimate that object.
+
+### Home
+
+- Home is the baseline for shell geometry, finish, content inset, and simulation material.
+- The top composition is intentionally asymmetric: expertise at left, philosophy at right, identity centered in the field.
+- The visible title belongs to the Canvas path; semantic DOM copy remains the metric and accessibility source.
+- The settled/default simulation must leave both title lines legible. Solve occlusion with density, placement, color, and motion—not text outlines, shadows, or a plate.
+- Expertise filtering is a real interaction and must have full keyboard and assistive-technology semantics.
+
+### Work / Portfolio
+
+- “Work” is the Button Bar label; “Portfolio” is the route and experience name.
+- The live route is an orbital, drag/scroll-controlled media deck. It is not a grid or a physics pit.
+- The route intro and gate use the editorial route-entry voice. Card and project-detail titles remain Geist.
+- The locked gate is an inert blurred ghost scene and code form; it does not boot private project content.
+- The drawer covers route content, stops above the Button Bar, supports native reading/selection behavior, and preserves focus restoration.
+- Project-specific editorial treatments must be named content variants, not selector rules tied only to a project ID.
+
+### About Me
+
+- About uses the centered route-entry composition inside the same physical window.
+- The current “Coming soon” view is an intentional placeholder, not a template for future About content.
+- Do not invent a second route hierarchy until the About concept and content are commissioned.
+
+### Contact
+
+- Contact uses the centered route-entry title, supporting description, and one primary email-copy action.
+- The ripple field is a route-specific material behavior. It creates a quiet zone around content and responds to the copy action.
+- The email address uses Geist Mono; copy success is expressed with visible text, icon state, sound, haptic feedback, and material motion.
+- Contact retains the shared spacing/type roles even though its simulation and action are unique.
+
+### Footer
+
+- The footer is quiet edge metadata: social links, studio statement, and London time/signature.
+- It remains subordinate to route content and must stay readable without becoming a second navigation bar.
+- Portfolio may suppress the long edge caption where it would compete with the deck.
+
+## Simulation language
+
+- Use solid flat circles or approved pebble bodies as the primary material.
+- Bodies must be large enough to read as material and separated enough to preserve silhouette.
+- Express force through motion, displacement, density, collision, and broad tonal fields.
+- Do not use overlapping transparent circles, weather overlays, long decorative trails, thin vector fields, or generic particles as the main idea.
+- Reduce body count before reducing readable body size.
+- Contact's concentric ripple field and Portfolio's deterministic speed field are intentional production exceptions because they retain the same solid-body palette and physical logic.
+
+## Fluid responsive contract
+
+Mobile and desktop output are approved endpoints. Responsive work must preserve those endpoints and improve only the interpolation between them.
+
+1. Record the current computed mobile and desktop value, the viewport widths that define them, and every consumer.
+2. Interpolate with a monotonic linear `clamp()` or the existing runtime endpoint helper.
+3. Use media/container queries only for structural changes: column count, navigation arrangement, drawer composition, short landscape, or interaction capability.
+4. Keep controls, touch targets, borders, icons, safe areas, and shell clearance categorical when predictable geometry is more important than fluidity.
+5. Verify computed values immediately below and above every removed breakpoint.
+
+The reusable formula is:
+
+```text
+slope = (desktop - mobile) / (desktopWidth - mobileWidth)
+intercept = mobile - slope * mobileWidth
+value = clamp(mobile, calc(intercept + slope * 100vw), desktop)
+```
+
+Generate coefficients at build/runtime precision. Do not hand-tune the middle by eye after endpoints are fixed.
+
+### Responsive merge status
+
+The route-entry title family is implemented. The remaining rows are proposals and are not applied production changes.
+
+| Status | Family | Merge | Exceptions to preserve |
+| --- | --- | --- | --- |
+| Implemented | Route-entry title | One `--route-entry-title-base-size` used by Home, Portfolio intro/gate, About, and Contact | Home and centered routes keep separate optical leading; Home Canvas continues to read the DOM result. |
+| Proposed | Route description | One continuous size token and one optional editorial measure/leading modifier shared by Contact and Portfolio intro | About has no description yet; route copy may keep different content width where justified. |
+| Proposed | Centered route spacing | Shared content-only page padding, stack gap, description gap, and action gap tokens | Do not apply these tokens to the Button Bar, frame, deck geometry, or drawer handoff. |
+| Proposed | Home support system | Replace repeated tablet/mobile selectors with semantic legend-size, supporting-size, and top-gap tokens | Column count and short-height layout remain structural breakpoints. |
+| Proposed | Portfolio card type | Local fluid client/title tokens | Keep Geist and preserve fixed card geometry/legibility. |
+| Proposed | Portfolio detail title | Local continuous Geist title token | Named editorial variants may opt into documented alternatives. |
+| Proposed | Contact email | Local continuous mono-size token across the narrow safeguard | Preserve 44px+ hit target and readable address wrapping. |
+
+The shared title token preserves the existing mobile curve through 600px, bridges only the 601–1024px interval, and retains the existing desktop value from 1025px upward:
+
+```css
+:root {
+  --route-entry-title-base-size:
+    calc(clamp(28px, calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw), 52px) * 1.2);
+}
+
+@media (min-width: 601px) and (max-width: 1024px) {
+  :root {
+    --route-entry-title-base-size:
+      clamp(31.212px, calc(-12.818118px + 7.338353vw), 62.4px);
+  }
+}
+
+@media (max-width: 600px) {
+  :root {
+    --route-entry-title-base-size:
+      calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px)
+        * 0.85 * var(--mobile-type-scale) * 1.2);
+  }
+}
+```
+
+The existing headline optical scale is applied after this base size. The result removes the `600→601` and `1024→1025` jumps without changing any value at or below 600px or at or above 1025px.
+
+Recommended companion bridges:
+
+```css
+--route-description-size:
+  clamp(12.6px, calc(9.2px + 0.566667vw), 16px);
+
+--route-page-padding:
+  clamp(24px, calc(10.628571px + 3.428571vw), 72px);
+
+--route-stack-gap:
+  clamp(10px, calc(7.771429px + 0.571429vw), 18px);
+
+--abs-content-padding:
+  calc(var(--abs-frame-inset) + min(1.5vw, 64px));
+```
+
+Recalculate these from approved computed endpoints before implementation if the source values change.
+
+### Do not fluidize
+
+- Button Bar geometry, touch targets, safe-area offsets, dividers, and icon frames.
+- Frame inset/radius; they already have a canonical endpoint interpolation.
+- Portfolio orbital geometry, drawer handoff geometry, and height-led project art direction.
+- Home short-height compression and narrow landscape safeguards.
+- Borders, focus-ring widths, cursor rings, or motion timing.
+- Project titles through the route-entry serif token.
+
+## Accessibility and performance rules
+
+- Preserve semantic headings even when the visible result is rendered by Canvas.
+- All primary interactions support mouse, pen, touch, keyboard, focus restoration, and assistive technology.
+- Never suppress focus globally. Use one semantic, visible `:focus-visible` treatment for links, buttons, inputs, tabs, cards, and drawer controls.
+- Normal text meets WCAG 2.2 AA in both themes. Validate the resolved color after opacity and backdrop composition.
+- Do not use color, motion, sound, or haptics as the only state indicator.
+- Reading surfaces support native text selection. Drag suppression stays local to draggable decks.
+- Canvas work remains bounded and allocation-light. Route teardown cancels loops, listeners, timers, and stale async work.
+- Font loading must not leave the Home Canvas title measured against a fallback face.
+
+## Intentional exceptions
+
+An exception is allowed only when it strengthens the design thesis and is recorded with:
+
+- route and owner;
+- rationale;
+- token/variant name;
+- mobile and desktop endpoints;
+- intermediate behavior;
+- light/dark behavior;
+- reduced-motion behavior;
+- accessibility impact;
+- verification command and screenshots.
+
+Current intentional exceptions are the Home Canvas title, Home expertise composition, Portfolio orbital deck, Portfolio media handoff, Portfolio gate, Contact ripple field, and the London signature.
+
+## Outlier register and proposed resolutions
+
+These are implementation/documentation findings, not permission for a broad refactor. Resolve them in small verified waves.
+
+| Priority | Outlier | Evidence | Proposed resolution |
+| --- | --- | --- | --- |
+| P0 | Focus visibility is broadly suppressed | Global and component `:focus-visible` rules remove outline/shadow in `main.css` and Button Bar CSS. | Define semantic focus-ring tokens, remove blanket suppression, and verify every main-page interactive state. |
+| P0 | Home expertise is click-only | Legend items are `div` elements with JS click listeners. | Render buttons or add complete button semantics, Enter/Space handling, and pressed/expanded state without changing the visual design. |
+| P0 | Theme intent, docs, and runtime disagree | Locked design intent says manual theme stops at the studio window; parts of `THEME-STATE.md`, `CONFIGURATION.md`, and `chrome-harmony.js` couple outer frame to rendered site theme. | Decide once from the locked boundary, then update runtime, docs, theme-color projection, Button Bar, and browser audits together. |
+| P1 | Light supporting copy is likely under contrast | Muted text plus `0.64` opacity resolves near a 3.25:1 contrast on the common light interior. | Use an opaque semantic muted color or raise resolved contrast; verify real composited colors in both themes. |
+| P1 | Cursor contract disagrees | Instructions specify a 64px lens for detail/About/Contact/gates/modals; runtime uses 48px and defaults About/Contact to the dot. | Define one route/state matrix and one size token, then align JS, CSS, docs, and cursor audits. |
+| P1 | Config and CSS fallbacks disagree | Frame colors, desktop inset/radius, interior light color, and some motion fallbacks differ from authored config. | Generate critical first-paint fallbacks from `design-system.json` or share one endpoint builder. |
+| P1 | Authored content-inset tokens do not own layout | `contentInset*` values are stamped, while runtime `contentPadding*` values drive the visible page. | Choose one endpoint contract and feed the same resolved value to CSS, overlays, and runtime geometry. |
+| P1 | Project-detail title drops at `640→641` | The normal Geist title falls from roughly `61.6px` to `44.9px`. | Add a local continuous project-detail title bridge; do not use the route-entry serif. |
+| P1 | Contact email and mobile type multiplier jump | Narrow email guard and global `--mobile-type-scale` switch values abruptly. | Replace local size switches with content-role fluid tokens while retaining structural breakpoints. |
+| P1 | Portfolio reading surface blocks selection | Global `user-select: none` is not restored in the drawer body. | Restore native selection/cursor behavior inside the reading surface; keep drag suppression on the deck only. |
+| P2 | Global Geist tracking creates repair overrides | Body uses very tight global tracking; drawer and components reset it locally. | Default body to neutral tracking and apply named compact/normal/loose/mono/headline roles explicitly. |
+| P2 | Project editorial style is tied to one ID | Extensive `chapter-7` selectors encode a reusable art direction as an exception. | Promote it to a named content variant and preserve the current output exactly during migration. |
+| P2 | Raw component colors and fallback palettes drift | Contact/Portfolio surfaces and Contact ripple fallback duplicate color values. | Introduce local semantic component tokens and one shared palette fallback. |
+| P2 | Tap-target token name is unsafe | `--abs-tap-target` resolves below the actual 44px control minimum. | Rename it for what it sizes or redefine it as the true minimum and separate glyph/frame sizes. |
+| P2 | Token scope is broad and repetitive | Global token file mixes foundations, compatibility aliases, and component internals. | Do not rewrite wholesale; keep new global tokens semantic and move component tokens locally when that component is revised. |
+| P3 | About is unfinished | The route is a deliberate “Coming soon” placeholder. | Keep it explicit and avoid inventing a new pattern before the content direction exists. |
+
+## Verification
+
+Every design-system implementation change starts with a production build and ends with visual inspection of the main pages.
+
+Minimum matrix:
+
+- Routes: Home, Work/Portfolio gate and unlocked deck, About Me, Contact, Portfolio drawer.
+- Widths: 320, 375/390, 480, 600, 601, 640, 641, 767, 768, 900, 991, 992, 1024, 1025, 1440, and 3440 where Portfolio is affected.
+- Heights: common phone, short landscape, standard desktop, and the approved desktop capture height.
+- Themes: light and dark.
+- Browsers: Chromium and WebKit for route/motion/theme changes.
+- States: default, hover, keyboard focus, pressed, active, gate, drawer, reduced motion, and settled simulation.
+
+Run the canonical gate:
+
+```bash
+npm run check:site
+```
+
+Then use the focused screen, route, theme, Canvas, Portfolio, and transition audits listed in `AGENTS.md`. A green command does not replace screenshot inspection, computed-style checks, or breakpoint-adjacent comparison.
+
+## Change checklist
+
+- [ ] The change reinforces the design thesis.
+- [ ] Existing semantic tokens or a justified new role own the value.
+- [ ] Approved mobile and desktop endpoints are unchanged unless explicitly re-art-directed.
+- [ ] Intermediate widths are monotonic and breakpoint-adjacent values were checked.
+- [ ] Home Canvas and semantic title paths agree where typography changed.
+- [ ] Light/dark, keyboard focus, contrast, reduced motion, touch, and safe areas were checked.
+- [ ] Persistent shell geometry and Button Bar clearance are unchanged unless in scope.
+- [ ] Route-specific exceptions are named and documented rather than hidden in selectors.
+- [ ] Focused references, styleguide specimens, and production implementation agree.

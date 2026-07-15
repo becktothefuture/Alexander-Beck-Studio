@@ -9,7 +9,7 @@ Related references:
 - [`PEBBLE-BODIES.md`](./PEBBLE-BODIES.md) - shared body material language
 - [`CONFIGURATION.md`](./CONFIGURATION.md) - runtime/config keys and persistence model
 - [`MATERIAL-PRESENCE.md`](./MATERIAL-PRESENCE.md) - continuity and motion principles
-- [`PORTFOLIO-PIT-PHYSICS.md`](./PORTFOLIO-PIT-PHYSICS.md) - collision/contact failure modes
+- [`DESIGN.md`](../../DESIGN.md) - production design thesis, responsive rules, and exception policy
 
 ---
 

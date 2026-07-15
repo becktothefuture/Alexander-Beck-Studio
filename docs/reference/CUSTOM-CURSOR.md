@@ -1,5 +1,7 @@
 # Custom cursor
 
+Cross-route interaction intent lives in [`DESIGN.md`](../../DESIGN.md). There is known drift between the locked 64px route/state lens contract and the current 48px runtime/default route classifier; align the state matrix, JS, CSS, documentation, and audits in one change.
+
 The custom cursor has two current forms:
 
 - solid palette dot: default in-window cursor across the primary tabs: Home, Portfolio deck/background, About Me, and Contact;

@@ -1,10 +1,10 @@
 # Material presence
 
-Guide for how the site should feel in motion, at rest, and during state changes. Single source of truth for preserving perceptual continuity across home, portfolio, CV, modals, chrome, and future routes.
+Guide for how the site should feel in motion, at rest, and during state changes. Single source of truth for preserving perceptual continuity across Home, Portfolio, About Me, Contact, modals, chrome, and future routes.
 
 **Goal:** The interface should feel solid, continuous, and available. Motion should confirm change without making the UI feel absent, airy, or temporarily lost.
 
-**Related:** [`SITE-STYLEGUIDE.md`](SITE-STYLEGUIDE.md), [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md), [`TRANSITION-ORCHESTRATION.md`](TRANSITION-ORCHESTRATION.md), [`TONE-OF-VOICE.md`](TONE-OF-VOICE.md), [`AGENTS.md`](../../AGENTS.md)
+**Related:** [`DESIGN.md`](../../DESIGN.md), [`SITE-STYLEGUIDE.md`](SITE-STYLEGUIDE.md), [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md), [`TRANSITION-ORCHESTRATION.md`](TRANSITION-ORCHESTRATION.md), [`TONE-OF-VOICE.md`](TONE-OF-VOICE.md), [`AGENTS.md`](../../AGENTS.md)
 
 ---
 
@@ -144,7 +144,7 @@ If the answer exposes delay, fragmentation, or theatrical absence in primary UI,
 - [ ] Return transitions are simpler and faster than first-load entrances where appropriate.
 - [ ] Decorative stagger does not delay recognition of important actions.
 - [ ] Motion supports accessibility by reducing cognitive reconstruction work.
-- [ ] Verified on home, portfolio, CV, and modal flows affected by the change.
+- [ ] Verified on Home, Portfolio, About Me, Contact, and modal flows affected by the change.
 - [ ] Verified with `prefers-reduced-motion` if the change adds or alters motion.
 - [ ] Transition ownership still follows `TRANSITION-ORCHESTRATION.md` (single owner + phase contract).
 - [ ] Chromium + WebKit transition audits are attached (normal + strict RAF), including in-flight and settled checkpoints.
