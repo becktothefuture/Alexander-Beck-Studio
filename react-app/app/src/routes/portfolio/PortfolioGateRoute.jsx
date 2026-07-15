@@ -55,6 +55,7 @@ export function PortfolioGateRoute() {
           transitionStyle: 'gate-success',
           exitMs: 240,
           enterMs: 300,
+          readyFallbackMs: 8000,
         });
       }, 180);
       return;
