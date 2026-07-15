@@ -857,7 +857,10 @@ class PortfolioScrollApp {
     const cta = document.createElement('span');
     cta.className = 'portfolio-project-card__cta';
     cta.setAttribute('aria-hidden', 'true');
-    cta.textContent = 'View project';
+    const ctaLabel = document.createElement('span');
+    ctaLabel.className = 'portfolio-project-card__cta-label';
+    ctaLabel.textContent = 'View';
+    cta.appendChild(ctaLabel);
 
     const tags = document.createElement('ul');
     tags.className = 'portfolio-project-card__tags';
@@ -869,7 +872,7 @@ class PortfolioScrollApp {
       tags.appendChild(item);
     });
 
-    copy.append(client, title, cta);
+    copy.append(client, title);
     if (tags.childElementCount) copy.appendChild(tags);
 
     const media = this.createProjectCardMedia(project, projectIndex, {
@@ -881,7 +884,11 @@ class PortfolioScrollApp {
     material.setAttribute('aria-hidden', 'true');
     material.appendChild(media);
 
-    card.append(material, copy);
+    const surface = document.createElement('div');
+    surface.className = 'portfolio-project-card__surface';
+    surface.append(material, copy);
+
+    card.append(surface, cta);
     card.addEventListener('click', (event) => this.handleCardClick(event, card));
     card.addEventListener('keydown', (event) => this.handleCardKeydown(event, card));
     card.addEventListener('pointerenter', () => {

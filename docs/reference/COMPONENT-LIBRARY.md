@@ -31,6 +31,6 @@ Top-level route headlines use Instrument Serif through `--abs-font-headline`, op
 - Allowed: the Home canvas title and `.route-centered-page__title` on Portfolio, About Me, Contact, and the Portfolio gate.
 - Not allowed: navigation, descriptions, Portfolio card titles, project-detail titles, controls, metadata, or general section headings.
 - Possible future exception: a deliberately art-directed pull quote or case-study chapter opener. This requires explicit scope; it is not inherited by default.
-- Implementation: consume `--route-entry-title-base-size`, `--abs-font-headline`, `--abs-font-headline-scale`, `--abs-font-headline-line-height-scale`, and `--abs-font-headline-letter-spacing`. Do not duplicate their resolved values in component CSS.
+- Implementation: consume the resolved `--route-entry-title-size` with `--abs-font-headline`, `--abs-font-headline-line-height-scale`, and `--abs-font-headline-letter-spacing`. The optical scale is already included in the resolved size; do not repeat it in component CSS.
 
 Resolved values come from the headline tokens. Project titles remain Geist so the route voice and the project-information hierarchy do not compete.

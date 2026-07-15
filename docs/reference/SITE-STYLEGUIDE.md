@@ -33,6 +33,7 @@ The typography is a deliberate contrast system rather than one family applied ev
 Instrument Serif is limited to the Home canvas title and route-level titles using `.route-centered-page__title`, including the Portfolio intro and gate. The production tokens are:
 
 - `--abs-font-headline: "Instrument Serif", ...`
+- `--route-entry-title-size`: shared responsive size for Home and route-entry titles
 - `--abs-font-headline-scale: 1.22`
 - `--abs-font-headline-line-height-scale: 0.92`
 - `--abs-font-headline-letter-spacing: -0.01ch`

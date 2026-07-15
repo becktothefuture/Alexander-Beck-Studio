@@ -203,7 +203,7 @@ The route-entry title family is implemented. The remaining rows are proposals an
 
 | Status | Family | Merge | Exceptions to preserve |
 | --- | --- | --- | --- |
-| Implemented | Route-entry title | One `--route-entry-title-base-size` used by Home, Portfolio intro/gate, About, and Contact | Home and centered routes keep separate optical leading; Home Canvas continues to read the DOM result. |
+| Implemented | Route-entry title | One resolved `--route-entry-title-size` used by Home, Portfolio intro/gate, About, and Contact | Home and centered routes keep separate optical leading; Home Canvas continues to read the DOM result. |
 | Proposed | Route description | One continuous size token and one optional editorial measure/leading modifier shared by Contact and Portfolio intro | About has no description yet; route copy may keep different content width where justified. |
 | Proposed | Centered route spacing | Shared content-only page padding, stack gap, description gap, and action gap tokens | Do not apply these tokens to the Button Bar, frame, deck geometry, or drawer handoff. |
 | Proposed | Home support system | Replace repeated tablet/mobile selectors with semantic legend-size, supporting-size, and top-gap tokens | Column count and short-height layout remain structural breakpoints. |
@@ -211,31 +211,33 @@ The route-entry title family is implemented. The remaining rows are proposals an
 | Proposed | Portfolio detail title | Local continuous Geist title token | Named editorial variants may opt into documented alternatives. |
 | Proposed | Contact email | Local continuous mono-size token across the narrow safeguard | Preserve 44px+ hit target and readable address wrapping. |
 
-The shared title token preserves the existing mobile curve through 600px, bridges only the 601–1024px interval, and retains the existing desktop value from 1025px upward:
+The shared title token uses a direct mobile clamp, bridges the 601–1024px interval, and retains the existing desktop value from 1025px upward:
 
 ```css
 :root {
-  --route-entry-title-base-size:
-    calc(clamp(28px, calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw), 52px) * 1.2);
+  --route-entry-title-size:
+    calc(
+      clamp(33.6px, calc(var(--abs-home-logo-width-vw, 52) * 0.186vw), 62.4px)
+      * var(--abs-font-headline-scale, 1)
+    );
 }
 
 @media (min-width: 601px) and (max-width: 1024px) {
   :root {
-    --route-entry-title-base-size:
-      clamp(31.212px, calc(-12.818118px + 7.338353vw), 62.4px);
+    --route-entry-title-size:
+      calc((6.211765vw - 1.270588px) * var(--abs-font-headline-scale, 1));
   }
 }
 
 @media (max-width: 600px) {
   :root {
-    --route-entry-title-base-size:
-      calc(clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px)
-        * 0.85 * var(--mobile-type-scale) * 1.2);
+    --route-entry-title-size:
+      calc(clamp(19px, 8.108vw, 36px) * var(--abs-font-headline-scale, 1));
   }
 }
 ```
 
-The existing headline optical scale is applied after this base size. The result removes the `600→601` and `1024→1025` jumps without changing any value at or below 600px or at or above 1025px.
+The resolved token applies the headline optical scale once, so Home and centered routes consume the same finished size without repeating the calculation. The mobile curve is 15% larger than the previous output, while the tablet bridge preserves monotonic scaling across `600→601` and `1024→1025` without changing the desktop endpoint.
 
 Recommended companion bridges:
 

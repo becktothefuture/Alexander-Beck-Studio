@@ -3149,7 +3149,7 @@ button.abs-meta-btn,
 .hero-title {
   --home-hero-title-font-size: clamp(
     28px,
-    calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw),
+    calc(var(--abs-home-logo-width-vw, 52) * 0.155vw),
     52px
   );
   position: absolute;
@@ -3188,9 +3188,7 @@ button.abs-meta-btn,
 }
 
 html[data-shell-route='home'] .hero-title--canvas-source {
-  --home-hero-title-font-size: calc(
-    var(--route-entry-title-base-size) * var(--abs-font-headline-scale, 1)
-  );
+  --home-hero-title-font-size: var(--route-entry-title-size);
   --hero-title-line-height: calc(1.1 * var(--abs-font-headline-line-height-scale, 1));
   --hero-title-letter-spacing: var(--abs-font-headline-letter-spacing);
   font-family: var(--abs-font-headline);
@@ -7376,24 +7374,24 @@ body.portfolio-page--locked #simulations {
 }
 
 :root {
-  --route-entry-title-base-size: calc(
-    clamp(28px, calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw), 52px) * 1.2
+  --route-entry-title-size: calc(
+    clamp(
+      33.6px,
+      calc(var(--abs-home-logo-width-vw, 52) * 0.186vw),
+      62.4px
+    ) * var(--abs-font-headline-scale, 1)
   );
   --route-title-line-height: 1.02;
-  --route-title-letter-spacing: 0;
   --route-description-font-size: clamp(0.875rem, 0.76rem + 0.32vw, 1rem);
   --route-description-line-height: 1.32;
   --route-description-max-width: 40ch;
 }
 
-/* Preserve the approved mobile curve through 600px and the desktop value from
-   1025px, then interpolate only across the former tablet discontinuities. */
+/* Bridge the enlarged 600px mobile endpoint to the desktop value at 1025px. */
 @media (min-width: 601px) and (max-width: 1024px) {
   :root {
-    --route-entry-title-base-size: clamp(
-      31.212px,
-      calc(-12.818118px + 7.338353vw),
-      62.4px
+    --route-entry-title-size: calc(
+      (6.211765vw - 1.270588px) * var(--abs-font-headline-scale, 1)
     );
   }
 }
@@ -7434,9 +7432,7 @@ body.portfolio-page--locked #simulations {
 .route-centered-page__title {
   margin: 0;
   font-family: var(--abs-font-headline);
-  font-size: calc(
-    var(--route-entry-title-base-size) * var(--abs-font-headline-scale, 1)
-  );
+  font-size: var(--route-entry-title-size);
   font-weight: var(--abs-weight-regular);
   line-height: calc(var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1));
   letter-spacing: var(--abs-font-headline-letter-spacing);
@@ -7458,11 +7454,8 @@ body.portfolio-page--locked #simulations {
 
 @media (max-width: 600px) {
   :root {
-    --route-entry-title-base-size: calc(
-      clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px)
-      * 0.85
-      * var(--mobile-type-scale)
-      * 1.2
+    --route-entry-title-size: calc(
+      clamp(19px, 8.108vw, 36px) * var(--abs-font-headline-scale, 1)
     );
     --route-description-font-size: calc(0.875rem * var(--mobile-type-scale));
     --route-description-line-height: 1.34;
