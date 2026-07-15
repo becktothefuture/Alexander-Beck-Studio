@@ -390,7 +390,7 @@ function createProjectDrawerMarkup() {
             <div class="portfolio-project-view__body-inner" id="portfolioProjectContent"></div>
           </section>
         </div>
-        <div class="portfolio-project-view__veil contrast-veil-surface" aria-hidden="true"></div>
+        <div class="portfolio-project-view__veil" aria-hidden="true"></div>
       </div>
     </section>
   `;

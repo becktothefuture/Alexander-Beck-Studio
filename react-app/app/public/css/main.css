@@ -5025,9 +5025,8 @@ html.simulation-focus-legacy-blur-suppressed #modal-content-layer {
   z-index: var(--z-contrast-veil, 180);
 }
 
-/* Canonical edge-contrast treatment. Route and overlay instances own only
-   their geometry, stacking, and reveal timing. */
-.contrast-veil-surface::before {
+.simulation-contrast-veil::before,
+.portfolio-project-view__veil::before {
   content: none;
   position: absolute;
   inset: calc(-1 * var(--simulation-contrast-veil-blur, 80px));
@@ -5051,7 +5050,8 @@ html.simulation-focus-legacy-blur-suppressed #modal-content-layer {
   filter: blur(var(--simulation-contrast-veil-blur, 80px));
 }
 
-.contrast-veil-surface::after {
+.simulation-contrast-veil::after,
+.portfolio-project-view__veil::after {
   content: none;
   position: absolute;
   inset: 0;

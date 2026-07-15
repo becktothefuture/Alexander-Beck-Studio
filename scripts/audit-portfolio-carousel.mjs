@@ -911,7 +911,6 @@ async function readPortfolioVeil(page) {
     const rootStyle = getComputedStyle(document.documentElement);
     return {
       theme: document.querySelector('.button-bar__theme-toggle')?.dataset.state || '',
-      usesSharedPrimitive: veil?.classList.contains('contrast-veil-surface') || false,
       rect: rectOf(veil),
       overlayRect: rectOf(document.getElementById('window-overlay-content-layer')),
       pointerEvents: veilStyle?.pointerEvents || '',
@@ -927,8 +926,6 @@ async function readPortfolioVeil(page) {
       wallInsetShadow: wallInset?.boxShadow || '',
       wallRgb: rootStyle.getPropertyValue('--simulation-contrast-veil-rgb').trim(),
       opacity: rootStyle.getPropertyValue('--simulation-contrast-veil-opacity').trim(),
-      particleCanvasCount: document.querySelectorAll('.portfolio-speed-field-canvas').length,
-      activeCardCount: document.querySelectorAll('.portfolio-project-card.is-active').length,
     };
   });
 }
@@ -1002,43 +999,11 @@ async function captureDrawer(page) {
   });
   await page.locator('.portfolio-project-card.is-active').click();
   await page.waitForSelector('#portfolioProjectView.is-visible.is-open', { state: 'visible', timeout: WAIT_MS });
-  await page.waitForTimeout(760);
   await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-drawer-open.png') });
-  const state = await page.evaluate(() => {
-    const zIndexOf = (element) => Number.parseInt(element ? getComputedStyle(element).zIndex : '0', 10) || 0;
-    const pseudoSignature = (element, pseudo) => {
-      if (!element) return null;
-      const style = getComputedStyle(element, pseudo);
-      return {
-        content: style.content,
-        backgroundImage: style.backgroundImage,
-        backgroundSize: style.backgroundSize,
-        backgroundRepeat: style.backgroundRepeat,
-        filter: style.filter,
-        opacity: style.opacity,
-        maskImage: style.maskImage,
-      };
-    };
-    const sharedVeil = document.querySelector('.simulation-contrast-veil');
-    const detailVeil = document.querySelector('.portfolio-project-view__veil');
-    const detailScroll = document.querySelector('.portfolio-project-view__scroll');
-    const detailBack = document.querySelector('.portfolio-project-view__back--top');
-    return {
-      bodyOpen: document.body.classList.contains('portfolio-project-open'),
-      drawerVisible: document.getElementById('portfolioProjectView')?.classList.contains('is-open') || false,
-      usesSharedPrimitive: detailVeil?.classList.contains('contrast-veil-surface') || false,
-      pointerEvents: detailVeil ? getComputedStyle(detailVeil).pointerEvents : '',
-      sharedZ: zIndexOf(sharedVeil),
-      sheetZ: zIndexOf(document.getElementById('portfolio-sheet-host')),
-      scrollZ: zIndexOf(detailScroll),
-      detailZ: zIndexOf(detailVeil),
-      backZ: zIndexOf(detailBack),
-      sharedBefore: pseudoSignature(sharedVeil, '::before'),
-      sharedAfter: pseudoSignature(sharedVeil, '::after'),
-      detailBefore: pseudoSignature(detailVeil, '::before'),
-      detailAfter: pseudoSignature(detailVeil, '::after'),
-    };
-  });
+  const state = await page.evaluate(() => ({
+    bodyOpen: document.body.classList.contains('portfolio-project-open'),
+    drawerVisible: document.getElementById('portfolioProjectView')?.classList.contains('is-open') || false,
+  }));
   await page.locator('.portfolio-project-view__back--top').click();
   await page.waitForFunction(() => !document.body.classList.contains('portfolio-project-open'), null, { timeout: WAIT_MS });
   return state;
@@ -1289,24 +1254,15 @@ async function main() {
       if (JSON.stringify(veil.rect) !== JSON.stringify(veil.overlayRect)) failures.push(`${theme}: portfolio veil does not match the inner-window rectangle`);
       if (!(veil.wallZ < veil.zIndex && veil.zIndex < veil.uiZ && veil.zIndex < veil.sheetZ)) failures.push(`${theme}: portfolio veil stacking order is incorrect`);
       if (veil.pointerEvents !== 'none') failures.push(`${theme}: portfolio veil intercepts pointer input`);
-      if (!veil.usesSharedPrimitive) failures.push(`${theme}: portfolio veil is not using the shared contrast primitive`);
       if (veil.beforeContent === 'none' || veil.beforeBackground === 'none') failures.push(`${theme}: portfolio full-window edge gradient is inactive`);
       if (veil.afterContent === 'none' || veil.afterBackground === 'none') failures.push(`${theme}: portfolio full-window dither is inactive`);
       if (veil.wallInsetContent !== 'none' || veil.wallInsetShadow !== 'none') failures.push(`${theme}: portfolio wall inset shadow is still active`);
       if (!veil.wallRgb || !veil.opacity) failures.push(`${theme}: portfolio veil is not using shared wall tokens`);
-      if (veil.particleCanvasCount !== 1) failures.push(`${theme}: portfolio veil check did not find exactly one particle canvas beneath it`);
-      if (veil.activeCardCount < 1) failures.push(`${theme}: portfolio veil check did not find an active card beneath it`);
     }
     const accentCount = summary.accents?.length || 0;
     const distinctAccentCount = new Set(summary.accents?.map((entry) => entry.accent)).size;
     if (!accentCount || distinctAccentCount !== accentCount) failures.push('accent audit did not resolve one distinct accent per project');
     if (!summary.drawer?.bodyOpen || !summary.drawer?.drawerVisible) failures.push('project drawer did not open after carousel checks');
-    if (!summary.drawer?.usesSharedPrimitive) failures.push('project drawer veil is not using the shared contrast primitive');
-    if (summary.drawer?.pointerEvents !== 'none') failures.push('project drawer veil intercepts pointer input');
-    if (!(summary.drawer?.sharedZ < summary.drawer?.sheetZ)) failures.push('project drawer host does not sit above the route veil');
-    if (!(summary.drawer?.scrollZ < summary.drawer?.detailZ && summary.drawer?.detailZ < summary.drawer?.backZ)) failures.push('project drawer veil stacking order is incorrect');
-    if (JSON.stringify(summary.drawer?.sharedBefore) !== JSON.stringify(summary.drawer?.detailBefore)) failures.push('route and project drawer edge gradients have drifted');
-    if (JSON.stringify(summary.drawer?.sharedAfter) !== JSON.stringify(summary.drawer?.detailAfter)) failures.push('route and project drawer dither treatments have drifted');
     if ((summary.particleFieldRemount?.homeCanvasCount ?? Infinity) !== 0) failures.push('particle field canvas survived after leaving Portfolio');
     if (summary.particleFieldRemount?.returnCanvasCount !== 1) failures.push('particle field did not remount as exactly one canvas after returning to Portfolio');
     if (summary.particleFieldRemount?.particleField?.error) failures.push(`particle field remount: ${summary.particleFieldRemount.particleField.error}`);

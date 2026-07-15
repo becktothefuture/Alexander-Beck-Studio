@@ -80,8 +80,8 @@ body.portfolio-page #simulations {
 
 /* The route and project drawer use the same edge-contrast primitive. The
    locked gate stays flat until it hands off to the unlocked Portfolio scene. */
-body.portfolio-page:not(.portfolio-page--locked) .contrast-veil-surface::before,
-body.portfolio-page:not(.portfolio-page--locked) .contrast-veil-surface::after {
+body.portfolio-page:not(.portfolio-page--locked) :is(.simulation-contrast-veil, .portfolio-project-view__veil)::before,
+body.portfolio-page:not(.portfolio-page--locked) :is(.simulation-contrast-veil, .portfolio-project-view__veil)::after {
   content: '';
 }
 

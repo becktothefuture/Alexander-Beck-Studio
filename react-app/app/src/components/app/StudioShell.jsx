@@ -151,7 +151,7 @@ export function StudioShell({
             {simulationFocusControls}
           </div>
           <div className="frame-vignette" aria-hidden="true" />
-          <div className="simulation-contrast-veil contrast-veil-surface" aria-hidden="true" />
+          <div className="simulation-contrast-veil" aria-hidden="true" />
 
           <div
             ref={surfaceRefs?.ui}
