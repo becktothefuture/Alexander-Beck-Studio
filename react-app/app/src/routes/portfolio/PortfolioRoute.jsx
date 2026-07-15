@@ -53,7 +53,6 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
           aria-label="Portfolio projects"
           data-intro-title={portfolioHeroLines[0]}
           data-intro-body={portfolioBlurb}
-          data-route-enter="context"
         />
       </div>
     ),

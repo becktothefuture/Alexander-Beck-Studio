@@ -25,13 +25,12 @@
     --playground-key-ink,
     var(--dominant-wall-ink, var(--button-bar-outer-ink-muted))
   );
-  --button-bar-secondary-control-ink: var(--button-bar-outer-ink, var(--dominant-utility-ink));
-  --dominant-utility-control-bg: var(--button-bar-gasket-ground, var(--dominant-utility-wall));
-  --dominant-utility-control-bg-hover: color-mix(
-    in srgb,
-    var(--dominant-utility-control-bg) 88%,
-    var(--button-bar-secondary-control-ink) 12%
+  --button-bar-secondary-control-ink: var(--text-primary, var(--dominant-utility-ink));
+  --dominant-utility-control-bg: var(
+    --studio-window-bg,
+    var(--frame-inner-surface, var(--dominant-utility-wall))
   );
+  --dominant-utility-control-bg-hover: var(--dominant-utility-control-bg);
   --dominant-utility-control-ink: var(--button-bar-secondary-control-ink);
   --dominant-utility-shadow: var(--dominant-press-shadow, rgba(var(--abs-rgb-black), 0.52));
   --dominant-utility-light: var(--dominant-press-light, rgba(var(--abs-rgb-white), 0.42));
@@ -353,7 +352,7 @@ body.dark-mode .button-bar[data-button-bar-material='dominant-tab'] {
   line-height: 1;
   filter: none;
   text-shadow: none;
-  transform: translate3d(0.04em, 0.04em, 0);
+  transform: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']

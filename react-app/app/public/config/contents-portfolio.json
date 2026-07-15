@@ -117,13 +117,22 @@
           "layout": { "aspect": "2:3" }
         },
         {
+          "type": "quote",
+          "text": "The value of the system is not that every page looks the same. It is that people can trust the structure while the content changes.",
+          "attribution": "Project reflection"
+        },
+        {
           "type": "chapter",
           "label": "Status",
           "title": "Current state",
           "body": "Two routes remain: editorial and system-led. The final case study will add my specific decisions, one collaboration challenge and the observable result once confirmed."
         }
       ],
-      "takeaways": []
+      "takeaways": [
+        "Large content systems need a stable structure before visual polish can matter.",
+        "Clinical authority depends on clear routes through the information, not just tone.",
+        "The strongest direction will connect editorial hierarchy with reusable interface behaviour."
+      ]
     },
     {
       "id": "chapter-1",
@@ -192,6 +201,11 @@
           "alt": "Index builder landing screen with options to build, validate, and deploy an index.",
           "caption": "Landing screen for building, validating, and deploying a strategic index.",
           "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "quote",
+          "text": "The interface had to make the rules feel inspectable, so a complex financial process could become something people could build with.",
+          "attribution": "Project reflection"
         }
       ],
       "takeaways": [
@@ -253,6 +267,11 @@
           "alt": "Project notes about SunExpress accessibility, language, and scalable interaction patterns.",
           "caption": "Project notes on accessibility, language, and scalable interaction patterns.",
           "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "quote",
+          "text": "A booking flow becomes calmer when every choice arrives in the right order and every next step feels expected.",
+          "attribution": "Project reflection"
         }
       ],
       "takeaways": [
@@ -314,6 +333,11 @@
           "alt": "Yoti brand and logo documentation page.",
           "caption": "Brand and interface documentation for consistent implementation.",
           "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "quote",
+          "text": "Trust is designed in the small moments: the waiting state, the handoff, the reason a user is being asked to continue.",
+          "attribution": "Project reflection"
         }
       ],
       "takeaways": [
@@ -375,6 +399,11 @@
           "alt": "Bentley digital strategy prompts and experience principles.",
           "caption": "Strategy prompts for a connected Bentley ownership experience.",
           "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "quote",
+          "text": "The digital product needed to feel composed before it felt clever; restraint became part of the interaction language.",
+          "attribution": "Project reflection"
         }
       ],
       "takeaways": [
@@ -436,6 +465,11 @@
           "alt": "Dark immersive website screen with interface and depth effects.",
           "caption": "Interface study for depth, atmosphere, and movement.",
           "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "quote",
+          "text": "The site works best when it behaves less like a document and more like a room you can move through.",
+          "attribution": "Project reflection"
         }
       ],
       "takeaways": [
@@ -490,6 +524,11 @@
           "alt": "Minimal prototype screen with the Beck mark.",
           "caption": "Minimal interface study for the wider concept system.",
           "layout": { "aspect": "16:9" }
+        },
+        {
+          "type": "quote",
+          "text": "A small learning tool still needs a rhythm: feedback that helps, progress that feels visible, and no extra pressure.",
+          "attribution": "Project reflection"
         }
       ],
       "takeaways": [
