@@ -11,13 +11,6 @@ import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
 import { useAboutNarrativeTimeline } from './useAboutNarrativeTimeline.js';
 import './about-narrative-lab.css';
 
-const INLINE_STUDY_POINTS = Object.freeze(Array.from({ length: 36 }, (_, index) => ({
-  id: index,
-  x: ((index * 37) % 101) / 100,
-  y: ((index * 61) % 97) / 96,
-  delay: (index % 9) * -0.18,
-})));
-
 function readStoredSettings() {
   try {
     const stored = JSON.parse(window.localStorage.getItem(ABOUT_NARRATIVE_SETTINGS_KEY) || '{}');
@@ -121,25 +114,30 @@ function SpatialSection({ section, index, sectionRef, settings }) {
   );
 }
 
-function InlinePointStudy() {
+function EditorialList({ block }) {
   return (
-    <figure className="about-narrative-inline-study" data-editorial-line aria-label="Points repeatedly reorganise around one emerging relationship.">
-      <div className="about-narrative-inline-study__field" aria-hidden="true">
-        {INLINE_STUDY_POINTS.map((point) => (
-          <span
-            key={point.id}
-            style={{
-              '--study-x': point.x,
-              '--study-y': point.y,
-              '--study-dx': `${(0.5 - point.x) * 88}px`,
-              '--study-dy': `${(0.5 - point.y) * 40}px`,
-              '--study-delay': `${point.delay}s`,
-            }}
-          />
-        ))}
-      </div>
-      <figcaption>Attention changes the field before it changes the answer.</figcaption>
-    </figure>
+    <div className="about-narrative-editorial-list">
+      {block.label ? <p className="about-narrative-editorial-list__label" data-editorial-line>{block.label}</p> : null}
+      <ul>
+        {block.items.map((item) => <li key={item} data-editorial-line>{item}</li>)}
+      </ul>
+    </div>
+  );
+}
+
+function DisciplineList({ items }) {
+  return (
+    <ol className="about-narrative-discipline-list" aria-label="Areas of expertise">
+      {items.map((item, itemIndex) => (
+        <li key={item} data-editorial-line>
+          <span className="about-narrative-discipline-list__marker" aria-hidden="true" />
+          <span className="about-narrative-discipline-list__number" aria-hidden="true">
+            {String(itemIndex + 1).padStart(2, '0')}
+          </span>
+          <span>{item}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -156,13 +154,19 @@ function EditorialSection({ section, index, sectionRef, settings }) {
       aria-labelledby={`about-narrative-${section.id}-title`}
     >
       <div className="about-narrative-editorial-inner">
-        <h2 id={`about-narrative-${section.id}-title`} className="about-narrative-visually-hidden">
+        <h2 id={`about-narrative-${section.id}-title`} className="about-narrative-editorial-title" data-editorial-line>
           {section.label}
         </h2>
         {section.blocks.map((block, blockIndex) => {
           const key = `${block.kind}-${blockIndex}`;
-          if (block.kind === 'visual' && block.visual === 'attention-field') {
-            return <InlinePointStudy key={key} />;
+          if (block.kind === 'list') {
+            return <EditorialList key={key} block={block} />;
+          }
+          if (block.kind === 'disciplines') {
+            return <DisciplineList key={key} items={block.items} />;
+          }
+          if (block.kind === 'clients') {
+            return <p key={key} className="about-narrative-editorial-clients" data-editorial-line>{block.text}</p>;
           }
           if (block.kind === 'detail') {
             return <p key={key} className="about-narrative-editorial-detail" data-editorial-line>{block.text}</p>;
@@ -225,9 +229,10 @@ function FinaleSection({ section, index, sectionRef, settings, interactionRef })
             tabIndex={-1}
           />
           <div className="about-narrative-finale-cta">
-            <p>{section.prompt}</p>
+            <p className="about-narrative-finale-profile">{section.profile}</p>
+            <p className="about-narrative-finale-statement">{section.prompt}</p>
             <nav className="about-narrative-cta" aria-label="Contact Alexander">
-              <a href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}>Start a conversation</a>
+              <a href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}>Email</a>
               <a href={ABOUT_NARRATIVE_CONTACT.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
             </nav>
           </div>
@@ -357,7 +362,11 @@ function NarrativeControls({ settings, onChange, onReset }) {
   ), document.body);
 }
 
-export function AboutNarrativeLabExperience() {
+export function AboutNarrativeLabExperience({
+  routeContentId = 'about-narrative-lab',
+  showControls = true,
+  showIndicator = true,
+}) {
   const [settings, setSettings] = useState(readStoredSettings);
   const rootRef = useRef(null);
   const scrollportRef = useRef(null);
@@ -395,7 +404,7 @@ export function AboutNarrativeLabExperience() {
   }, []);
 
   return (
-    <div ref={rootRef} className="about-narrative-lab" data-route-content="about-narrative-lab" style={rootStyle}>
+    <div ref={rootRef} className="about-narrative-lab" data-route-content={routeContentId} style={rootStyle}>
       <AboutNarrativeWorld
         rendererId="three-point-world-v1"
         rootRef={rootRef}
@@ -429,8 +438,8 @@ export function AboutNarrativeLabExperience() {
         </main>
       </div>
 
-      <SectionIndicator activeIndex={activeSectionIndex} />
-      <NarrativeControls settings={settings} onChange={handleSettingChange} onReset={handleReset} />
+      {showIndicator ? <SectionIndicator activeIndex={activeSectionIndex} /> : null}
+      {showControls ? <NarrativeControls settings={settings} onChange={handleSettingChange} onReset={handleReset} /> : null}
     </div>
   );
 }

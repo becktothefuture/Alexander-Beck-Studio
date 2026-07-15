@@ -6,19 +6,19 @@ export const ABOUT_NARRATIVE_STAGES = Object.freeze({
     cameraDistanceWU: 8,
     transform: Object.freeze({ x: 0, y: 1.55, scale: 0.72 }),
   }),
-  aperture: Object.freeze({
-    shape: 'aperture',
-    cameraDistanceWU: 3.2,
-    transform: Object.freeze({ x: 0, y: 0, scale: 1 }),
+  'calm-field': Object.freeze({
+    shape: 'calm-field',
+    cameraDistanceWU: 1.8,
+    transform: Object.freeze({ x: 0, y: 0.2, scale: 1 }),
   }),
-  traverse: Object.freeze({
-    shape: 'traverse',
-    cameraDistanceWU: 0,
-    transform: Object.freeze({ x: 0, y: 0, scale: 1 }),
+  'discipline-grid': Object.freeze({
+    shape: 'discipline-grid',
+    cameraDistanceWU: 4.2,
+    transform: Object.freeze({ x: 0, y: 0, scale: 0.92 }),
   }),
   'living-field': Object.freeze({
     shape: 'living-field',
-    cameraDistanceWU: 0.5,
+    cameraDistanceWU: 0.8,
     transform: Object.freeze({ x: 0, y: 0, scale: 1 }),
   }),
   'bust-resolve': Object.freeze({
@@ -32,7 +32,7 @@ export const ABOUT_NARRATIVE_STAGES = Object.freeze({
 export const ABOUT_NARRATIVE_STAGE_IDS = Object.freeze(Object.keys(ABOUT_NARRATIVE_STAGES));
 
 const SECTION_MODES = new Set(['spatial', 'editorial', 'finale']);
-const BLOCK_KINDS = new Set(['prose', 'highlight', 'detail', 'visual']);
+const BLOCK_KINDS = new Set(['prose', 'highlight', 'detail', 'list', 'clients', 'disciplines']);
 
 export function compileAboutNarrativeStageSequence(sections) {
   let currentStage = ABOUT_NARRATIVE_DEFAULT_STAGE;
