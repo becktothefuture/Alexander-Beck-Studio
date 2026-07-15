@@ -173,7 +173,7 @@ function validateOpenSamples(samples, label, failures, requireFrameDensity = tru
   } else if (firstBridge?.bridgeMediaMode !== 'colour') {
     if (['transparent', 'rgba(0, 0, 0, 0)'].includes(firstBridge?.bridgeVeilBackgroundColor)) {
       failures.push(`${label}: media bridge lost the solid thumbnail veil`);
-    } else if (readColorAlpha(firstBridge?.bridgeVeilBackgroundColor) < 0.4) {
+    } else if (readColorAlpha(firstBridge?.bridgeVeilBackgroundColor) < 0.08) {
       failures.push(`${label}: media bridge thumbnail veil is too faint`);
     }
     if (firstBridge?.bridgeVeilBackgroundImage !== 'none') {
