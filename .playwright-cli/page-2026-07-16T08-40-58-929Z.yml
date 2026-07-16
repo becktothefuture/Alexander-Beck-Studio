@@ -1,0 +1,45 @@
+- generic [ref=e11]:
+  - generic:
+    - generic:
+      - region [ref=e258]:
+        - heading "Let's talk" [level=1] [ref=e259]
+        - paragraph [ref=e260]: Hit me up for collaborations and job opportunities. If you need innovative thinking and a creative mind to tackle complex aesthetic, visual, and system problems, get in touch.
+        - button "Copy email address" [ref=e262]:
+          - generic [ref=e263]: alexander@beck.fyi
+          - generic [ref=e264]: 
+      - generic:
+        - contentinfo:
+          - generic:
+            - group "Social media links" [ref=e22]:
+              - link "Apple Music" [ref=e63]:
+                - /url: https://music.apple.com/profile/beckandeggs
+                - generic: 
+              - link "LinkedIn" [ref=e65]:
+                - /url: https://www.linkedin.com/in/thisisbeck/
+                - generic: 
+            - generic "London local time" [ref=e67]:
+              - generic [ref=e68]:
+                - generic [ref=e69]:
+                  - strong [ref=e70]: London
+                  - generic [ref=e71]: ·
+                - time [ref=e72]: 9:40:58 AM
+        - status:
+          - generic: A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable. © 2026 Alexander Beck
+  - generic [ref=e24]:
+    - navigation "Primary buttons" [ref=e25]:
+      - link "Home" [ref=e26]:
+        - /url: /index.html
+        - generic: 
+      - link "Work" [ref=e28]:
+        - /url: /portfolio.html
+        - text: 
+      - link "About Me" [ref=e30]:
+        - /url: /about.html
+        - text: 
+      - link "Contact" [ref=e32]:
+        - /url: /contact.html
+        - text: 
+    - group "Secondary buttons" [ref=e34]:
+      - button "Sound off" [ref=e35]:
+        - generic: 
+      - button "Switch to dark mode" [active] [ref=e265]

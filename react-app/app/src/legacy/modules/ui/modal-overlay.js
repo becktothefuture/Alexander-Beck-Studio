@@ -453,7 +453,7 @@ export function showOverlay() {
 /**
  * Hide the overlay with smooth blur animation
  */
-export function hideOverlay({ clearReturnState = true } = {}) {
+export function hideOverlay({ clearReturnState = true, instant = false } = {}) {
     if (!blurLayerElement || !contentLayerElement || !isEnabled) return;
 
     const wasOverlayActive =
@@ -467,6 +467,13 @@ export function hideOverlay({ clearReturnState = true } = {}) {
     }
 
     if (clearReturnState) clearModalReturnState();
+
+    const overlayLayers = [blurLayerElement, contentLayerElement];
+    if (instant) {
+        overlayLayers.forEach((layer) => {
+            layer.style.transition = 'none';
+        });
+    }
     
     // Remove active class from BOTH layers
     blurLayerElement.classList.remove('active');
@@ -481,6 +488,15 @@ export function hideOverlay({ clearReturnState = true } = {}) {
     
     // Remove depth effect from scene
     applyDepthEffect(false);
+
+    if (instant) {
+        void blurLayerElement.offsetWidth;
+        requestAnimationFrame(() => {
+            overlayLayers.forEach((layer) => {
+                layer.style.removeProperty('transition');
+            });
+        });
+    }
 
     if (!isRouteTransitionPhase(getTransitionPhase())) {
         setTransitionPhase(TRANSITION_PHASES.IDLE, { returning: clearReturnState });

@@ -36,6 +36,18 @@ async function audit(viewport, label) {
     await page.locator('.about-narrative-spatial-title').first().evaluate((node) => getComputedStyle(node).fontFamily),
     /Instrument Serif/,
   );
+  const verticalTitles = page.locator('.about-narrative-vertical-title');
+  assert.equal(await verticalTitles.count(), 2);
+  assert.equal(await page.locator('[data-text-cue="promise-main"]').getAttribute('data-text-movement'), 'vertical');
+  assert.equal(await page.locator('[data-text-cue="complexity-idea"]').getAttribute('data-text-movement'), 'vertical');
+  assert.equal(await page.locator('[data-text-cue="complexity-conditions"]').getAttribute('data-text-movement'), 'spatial');
+  const spatialStageAlignment = await page.locator('.about-narrative-spatial-stage').evaluateAll((nodes) => nodes.map((node) => ({
+    alignItems: getComputedStyle(node).alignItems,
+    justifyItems: getComputedStyle(node).justifyItems,
+  })));
+  assert.ok(spatialStageAlignment.every((item) => item.alignItems === 'center' && item.justifyItems === 'center'));
+  const spatialTitleSizes = await page.locator('.about-narrative-spatial-title').evaluateAll((nodes) => [...new Set(nodes.map((node) => getComputedStyle(node).fontSize))]);
+  assert.equal(spatialTitleSizes.length, 1);
   const editorialTypeSizes = await page.locator([
     '.about-narrative-editorial-title',
     '.about-narrative-editorial-copy',
@@ -49,9 +61,19 @@ async function audit(viewport, label) {
   assert.equal(editorialTypeSizes.length, 1);
   const cameraClips = page.locator('.about-editor-lane--camera .about-editor-clip');
   for (let index = 0; index < await cameraClips.count(); index += 1) {
-    assert.ok(await cameraClips.nth(index).locator('.about-editor-key').count() >= 2);
+    assert.equal(await cameraClips.nth(index).locator('.about-editor-camera-anchor').count(), 2);
+    assert.equal(await cameraClips.nth(index).locator('.about-editor-key.is-boundary').count(), 0);
   }
-  const hoverKey = page.locator('.about-editor-key').nth(3);
+  assert.ok(await page.locator('.about-editor-camera-anchor').evaluateAll((nodes) => (
+    nodes.every((node) => getComputedStyle(node).pointerEvents === 'none')
+  )));
+  assert.equal(
+    await page.locator('.about-editor-timing-key.is-text').count(),
+    await page.locator('.about-editor-cue').count(),
+    'Text should expose one timeline marker per Cue',
+  );
+  assert.equal(await page.locator('.about-editor-cue.is-vertical').count(), 2);
+  const hoverKey = page.locator('.about-editor-key').first();
   const keyBeforeHover = await hoverKey.evaluate((node) => ({
     transform: getComputedStyle(node).transform,
     rect: node.getBoundingClientRect().toJSON(),
@@ -70,6 +92,11 @@ async function audit(viewport, label) {
   assert.equal(await page.locator('#custom-cursor').evaluate((node) => getComputedStyle(node).display), 'none');
 
   const transport = page.locator('.about-editor-transport input[type="range"]');
+  const openingTitleBefore = await verticalTitles.first().boundingBox();
+  await transport.fill('0.12');
+  await page.waitForTimeout(120);
+  const openingTitleAfter = await verticalTitles.first().boundingBox();
+  assert.ok(openingTitleBefore && openingTitleAfter && openingTitleAfter.y < openingTitleBefore.y - 40);
   for (const storyWU of [0, 1.5, 3.5, 6.5, 10.5, 15.5]) {
     await transport.fill(String(storyWU));
     await page.waitForTimeout(180);
@@ -85,6 +112,7 @@ async function audit(viewport, label) {
   const selectedCue = page.locator('.about-editor-lane--text .about-editor-clip').nth(1).locator('.about-editor-cue').first();
   await selectedCue.click({ position: { x: 3, y: 14 } });
   assert.equal(await selectedCue.getAttribute('aria-pressed'), 'true');
+  assert.equal(await selectedCue.locator('xpath=..').locator('.about-editor-timing-key.is-text.is-selected').count(), 1);
   const textarea = page.locator('.about-editor-inspector textarea').first();
   if (await textarea.isVisible()) {
     const original = await textarea.inputValue();
@@ -98,8 +126,51 @@ async function audit(viewport, label) {
   await page.waitForTimeout(80);
   assert.ok(Number(await transport.inputValue()) > beforeArrow);
   assert.ok(await page.locator('.about-editor-key.is-selected, .about-editor-timing-key.is-selected').count() >= 1);
+  assert.equal(await page.locator('.about-editor-timing-note').count(), 0);
 
   if (viewport.width >= 760) {
+    const practiceCameraClip = cameraClips.nth(3);
+    const disciplinesCameraClip = cameraClips.nth(4);
+    const movableCameraKey = practiceCameraClip.locator('.about-editor-key.is-draggable').first();
+    const [destinationClipBox, cameraKeyBox] = await Promise.all([disciplinesCameraClip.boundingBox(), movableCameraKey.boundingBox()]);
+    const cameraLabelBeforeDrag = await movableCameraKey.getAttribute('aria-label');
+    const sourceKeyCountBefore = await practiceCameraClip.locator('.about-editor-key').count();
+    const destinationKeyCountBefore = await disciplinesCameraClip.locator('.about-editor-key').count();
+    assert.ok(destinationClipBox && cameraKeyBox);
+    await page.mouse.move(cameraKeyBox.x + (cameraKeyBox.width / 2), cameraKeyBox.y + (cameraKeyBox.height / 2));
+    await page.mouse.down();
+    await page.mouse.move(destinationClipBox.x + (destinationClipBox.width * 0.3), cameraKeyBox.y + (cameraKeyBox.height / 2), { steps: 8 });
+    assert.equal(await page.locator('.about-editor-camera-drag-ghost').count(), 1);
+    await page.mouse.up();
+    await page.waitForTimeout(100);
+    assert.equal(await practiceCameraClip.locator('.about-editor-key').count(), sourceKeyCountBefore - 1);
+    assert.equal(await disciplinesCameraClip.locator('.about-editor-key').count(), destinationKeyCountBefore + 1);
+    const movedCameraKey = disciplinesCameraClip.locator('.about-editor-key.is-selected');
+    assert.match(await movedCameraKey.getAttribute('aria-label'), /through Six connected disciplines/i);
+    assert.notEqual(await movedCameraKey.getAttribute('aria-label'), cameraLabelBeforeDrag);
+    assert.equal(await page.locator('.about-editor-camera-drag-ghost').count(), 0);
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await page.waitForTimeout(100);
+    assert.equal(await practiceCameraClip.locator('.about-editor-key').count(), sourceKeyCountBefore);
+    assert.equal(await disciplinesCameraClip.locator('.about-editor-key').count(), destinationKeyCountBefore);
+    assert.equal(await practiceCameraClip.locator('.about-editor-key').first().getAttribute('aria-label'), cameraLabelBeforeDrag);
+
+    const complexityTextClip = page.locator('.about-editor-lane--text .about-editor-clip').nth(1);
+    const movableTextKey = complexityTextClip.locator('.about-editor-timing-key.is-text.is-draggable').nth(1);
+    const [textClipBox, textKeyBox] = await Promise.all([complexityTextClip.boundingBox(), movableTextKey.boundingBox()]);
+    const textLabelBeforeDrag = await movableTextKey.getAttribute('aria-label');
+    assert.ok(textClipBox && textKeyBox);
+    await page.mouse.move(textKeyBox.x + (textKeyBox.width / 2), textKeyBox.y + (textKeyBox.height / 2));
+    await page.mouse.down();
+    await page.mouse.move(Math.min(textClipBox.x + textClipBox.width - 14, textKeyBox.x + 18), textKeyBox.y + (textKeyBox.height / 2), { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(100);
+    assert.notEqual(await movableTextKey.getAttribute('aria-label'), textLabelBeforeDrag);
+    assert.equal(await movableTextKey.getAttribute('aria-pressed'), 'true');
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await page.waitForTimeout(100);
+    assert.equal(await movableTextKey.getAttribute('aria-label'), textLabelBeforeDrag);
+
     const inspector = page.locator('.about-editor-inspector');
     const inspectorHeader = inspector.locator('header').first();
     const [inspectorBefore, headerBox] = await Promise.all([inspector.boundingBox(), inspectorHeader.boundingBox()]);

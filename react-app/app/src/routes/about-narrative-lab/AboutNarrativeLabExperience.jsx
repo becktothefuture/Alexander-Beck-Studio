@@ -3,6 +3,7 @@ import {
   ABOUT_NARRATIVE_CONTACT,
   ABOUT_NARRATIVE_DOCUMENT,
 } from './aboutNarrativeLabData.js';
+import { getAboutNarrativeCueMovement } from './aboutNarrativeCompiler.js';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
 import { useAboutNarrativeTimeline } from './useAboutNarrativeTimeline.js';
 import './about-narrative-lab.css';
@@ -14,25 +15,56 @@ function getSectionStyle(section) {
   };
 }
 
-function CueText({ cue, onSelect }) {
+function getVerticalCueStyle(cue, section) {
+  const desktopExtentWU = Math.max(1, Number(section.extentWU));
+  const mobileExtentWU = Math.max(1, Number(section.mobileExtentWU));
+  const desktopTravelWU = Math.max(0.001, desktopExtentWU - 1);
+  const mobileTravelWU = Math.max(0.001, mobileExtentWU - 1);
+  const desktopTop = (0.5 + (Number(cue.hold) * desktopTravelWU)) / desktopExtentWU;
+  const mobileTop = (0.5 + (Number(cue.hold) * mobileTravelWU)) / mobileExtentWU;
+  return {
+    '--vertical-cue-top': `${(desktopTop * 100).toFixed(4)}%`,
+    '--vertical-cue-top-mobile': `${(mobileTop * 100).toFixed(4)}%`,
+  };
+}
+
+function VerticalCueSequence({ cues, section, headingId = null, headingLevel = 2, onSelect }) {
+  if (!cues.length) return null;
+  const Heading = headingLevel === 1 ? 'h1' : 'h2';
   return (
-    <span
-      className="about-narrative-spatial-fragment"
-      data-text-cue={cue.id}
-      aria-hidden="true"
-      onClick={(event) => {
-        if (!onSelect) return;
-        event.stopPropagation();
-        onSelect({ type: 'cue', cueId: cue.id });
-      }}
-    >
-      {cue.text}
-    </span>
+    <div className="about-narrative-vertical-sequence" data-text-movement="vertical">
+      {cues.map((cue, cueIndex) => {
+        const isSemanticHeading = Boolean(headingId) && cueIndex === 0;
+        const Element = isSemanticHeading ? Heading : 'p';
+        return (
+          <Element
+            key={cue.id}
+            id={isSemanticHeading ? headingId : undefined}
+            className={`about-narrative-vertical-title${section.layout === 'opener' ? ' is-opener' : ''}`}
+            style={getVerticalCueStyle(cue, section)}
+            data-text-cue={cue.id}
+            data-text-movement="vertical"
+            data-editorial-line
+            data-primary-copy
+            aria-label={isSemanticHeading ? cues.map((item) => item.text).join(' ') : undefined}
+            aria-hidden={isSemanticHeading ? undefined : true}
+            onClick={(event) => {
+              if (!onSelect) return;
+              event.stopPropagation();
+              onSelect({ type: 'cue', sectionId: section.id, cueId: cue.id });
+            }}
+          >{cue.text}</Element>
+        );
+      })}
+    </div>
   );
 }
 
 function OpeningSection({ section, index, sectionRef, onSelect }) {
-  const semanticCopy = section.text.cues.map((cue) => cue.text).join(' ');
+  const verticalCues = section.text.cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'vertical');
+  const spatialCues = section.text.cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'spatial');
+  const copy = section.text.cues.map((cue) => cue.text).join(' ');
+  const headingId = 'about-route-title';
   return (
     <section
       ref={sectionRef}
@@ -41,14 +73,22 @@ function OpeningSection({ section, index, sectionRef, onSelect }) {
       data-narrative-section={section.id}
       data-section-index={index}
       style={getSectionStyle(section)}
-      aria-labelledby="about-route-title"
+      aria-labelledby={headingId}
       onClick={() => onSelect?.({ type: 'section', sectionId: section.id })}
+      data-text-movement={verticalCues.length && spatialCues.length ? 'mixed' : verticalCues.length ? 'vertical' : 'spatial'}
     >
-      <div className="about-narrative-opening-inner">
-        <h1 id="about-route-title" aria-label={semanticCopy} data-primary-copy>
-          {section.text.cues.map((cue) => <CueText cue={cue} key={cue.id} onSelect={(selection) => onSelect?.({ ...selection, sectionId: section.id })} />)}
-        </h1>
-      </div>
+      <VerticalCueSequence cues={verticalCues} section={section} headingId={spatialCues.length ? null : headingId} headingLevel={1} onSelect={onSelect} />
+      {spatialCues.length ? (
+        <div className="about-narrative-spatial-stage" data-text-movement="spatial">
+          <div className="about-narrative-spatial-copy">
+            <h1 id={headingId} className="about-narrative-spatial-title" aria-label={copy} data-primary-copy>
+              {spatialCues.map((cue) => (
+                <span key={cue.id} className="about-narrative-spatial-fragment" data-text-cue={cue.id} data-text-movement="spatial" aria-hidden="true" onClick={(event) => { event.stopPropagation(); onSelect?.({ type: 'cue', sectionId: section.id, cueId: cue.id }); }}>{cue.text}</span>
+              ))}
+            </h1>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -56,6 +96,9 @@ function OpeningSection({ section, index, sectionRef, onSelect }) {
 function SpatialSection({ section, index, sectionRef, onSelect }) {
   const Heading = index === 0 ? 'h1' : 'h2';
   const copy = section.text.cues.map((cue) => cue.text).join(' ');
+  const verticalCues = section.text.cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'vertical');
+  const spatialCues = section.text.cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'spatial');
+  const headingId = `about-narrative-${section.id}-title`;
   const layoutClass = section.layout === 'lower'
     ? 'constellation'
     : section.layout === 'wide' ? 'living-field' : section.layout;
@@ -67,28 +110,33 @@ function SpatialSection({ section, index, sectionRef, onSelect }) {
       data-narrative-section={section.id}
       data-section-index={index}
       style={getSectionStyle(section)}
-      aria-labelledby={`about-narrative-${section.id}-title`}
+      aria-labelledby={headingId}
+      data-text-movement={verticalCues.length && spatialCues.length ? 'mixed' : verticalCues.length ? 'vertical' : 'spatial'}
     >
-      <div className="about-narrative-spatial-stage">
-        <div className="about-narrative-spatial-copy">
-          <Heading
-            id={`about-narrative-${section.id}-title`}
-            className="about-narrative-spatial-title"
-            aria-label={copy}
-            data-primary-copy
-          >
-            {section.text.cues.map((cue) => (
+      <VerticalCueSequence cues={verticalCues} section={section} headingId={spatialCues.length ? null : headingId} headingLevel={index === 0 ? 1 : 2} onSelect={onSelect} />
+      {spatialCues.length ? (
+        <div className="about-narrative-spatial-stage" data-text-movement="spatial">
+          <div className="about-narrative-spatial-copy">
+            <Heading
+              id={headingId}
+              className="about-narrative-spatial-title"
+              aria-label={copy}
+              data-primary-copy
+            >
+              {spatialCues.map((cue) => (
               <span
                 key={cue.id}
                 className="about-narrative-spatial-fragment"
                 data-text-cue={cue.id}
+                data-text-movement="spatial"
                 aria-hidden="true"
                 onClick={(event) => { event.stopPropagation(); onSelect?.({ type: 'cue', sectionId: section.id, cueId: cue.id }); }}
               >{cue.text}</span>
-            ))}
-          </Heading>
+              ))}
+            </Heading>
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }
@@ -144,6 +192,7 @@ function EditorialSection({ section, index, sectionRef, onSelect }) {
       style={getSectionStyle(section)}
       aria-labelledby={`about-narrative-${section.id}-title`}
       onClick={() => onSelect?.({ type: 'section', sectionId: section.id })}
+      data-text-movement="vertical"
     >
       <div className="about-narrative-editorial-inner">
         <h2
@@ -181,7 +230,10 @@ function EditorialSection({ section, index, sectionRef, onSelect }) {
 
 function FinaleSection({ section, index, sectionRef, interactionRef, onSelect }) {
   const copy = section.text.cues.map((cue) => cue.text).join(' ');
+  const spatialCues = section.text.cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'spatial');
+  const verticalCues = section.text.cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'vertical');
   const hasSupportingCopy = Boolean(section.text.profile || section.text.prompt);
+  const headingId = `about-narrative-${section.id}-title`;
   return (
     <section
       ref={sectionRef}
@@ -190,15 +242,19 @@ function FinaleSection({ section, index, sectionRef, interactionRef, onSelect })
       data-narrative-section={section.id}
       data-section-index={index}
       style={getSectionStyle(section)}
-      aria-labelledby={`about-narrative-${section.id}-title`}
+      aria-labelledby={headingId}
+      data-text-movement={verticalCues.length && spatialCues.length ? 'mixed' : verticalCues.length ? 'vertical' : 'spatial'}
     >
+      <VerticalCueSequence cues={verticalCues} section={section} headingId={spatialCues.length ? null : headingId} headingLevel={2} onSelect={onSelect} />
       <div className="about-narrative-spatial-stage about-narrative-finale-stage">
         <div className="about-narrative-spatial-copy about-narrative-finale-copy">
-          <h2 id={`about-narrative-${section.id}-title`} className="about-narrative-spatial-title" aria-label={copy} data-primary-copy>
-            {section.text.cues.map((cue) => (
-              <span key={cue.id} className="about-narrative-spatial-fragment" data-text-cue={cue.id} aria-hidden="true" onClick={() => onSelect?.({ type: 'cue', sectionId: section.id, cueId: cue.id })}>{cue.text}</span>
-            ))}
-          </h2>
+          {spatialCues.length ? (
+            <h2 id={headingId} className="about-narrative-spatial-title" aria-label={copy} data-primary-copy>
+              {spatialCues.map((cue) => (
+                <span key={cue.id} className="about-narrative-spatial-fragment" data-text-cue={cue.id} data-text-movement="spatial" aria-hidden="true" onClick={() => onSelect?.({ type: 'cue', sectionId: section.id, cueId: cue.id })}>{cue.text}</span>
+              ))}
+            </h2>
+          ) : null}
           <div
             ref={interactionRef}
             className="about-narrative-bust-interaction"

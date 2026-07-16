@@ -16,12 +16,16 @@
     },
     "textMotion": {
       "preset": "travelling-title-v1",
-      "farScale": 0.72,
-      "nearScale": 1.42,
-      "entryDepth": 520,
-      "exitDepth": 360,
-      "exitDrift": 32,
-      "maxBlur": 20
+      "durationScale": 1.7,
+      "startY": -110,
+      "endY": 130,
+      "readableStart": 0.24,
+      "readableEnd": 0.76,
+      "farScale": 0.78,
+      "nearScale": 1.14,
+      "entryDepth": 360,
+      "exitDepth": 220,
+      "maxBlur": 22
     }
   },
   "sections": [
@@ -40,7 +44,10 @@
             "enter": 0,
             "hold": 0.45,
             "exit": 1,
-            "preset": "opener-v1"
+            "preset": "opener-v1",
+            "motion": {
+              "mode": "vertical"
+            }
           }
         ]
       },
@@ -142,7 +149,10 @@
             "enter": 0,
             "hold": 0.065,
             "exit": 0.13,
-            "preset": "travelling-title-v1"
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "vertical"
+            }
           },
           {
             "id": "complexity-conditions",
@@ -150,7 +160,10 @@
             "enter": 0.17,
             "hold": 0.235,
             "exit": 0.3,
-            "preset": "travelling-title-v1"
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
           },
           {
             "id": "complexity-fragmented",
@@ -158,7 +171,10 @@
             "enter": 0.34,
             "hold": 0.405,
             "exit": 0.47,
-            "preset": "travelling-title-v1"
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
           },
           {
             "id": "complexity-curiosity",
@@ -166,7 +182,10 @@
             "enter": 0.51,
             "hold": 0.575,
             "exit": 0.64,
-            "preset": "travelling-title-v1"
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
           },
           {
             "id": "complexity-listen",
@@ -174,7 +193,10 @@
             "enter": 0.68,
             "hold": 0.745,
             "exit": 0.81,
-            "preset": "travelling-title-v1"
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
           },
           {
             "id": "complexity-focus",
@@ -182,7 +204,10 @@
             "enter": 0.85,
             "hold": 0.925,
             "exit": 1,
-            "preset": "travelling-title-v1"
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
           }
         ]
       },
@@ -202,38 +227,6 @@
             ],
             "fov": 48,
             "roll": 0,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 0.24,
-            "offset": [
-              0,
-              0,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 0.58,
-            "offset": [
-              0.16,
-              0.12,
-              0
-            ],
-            "lookAtOffset": [
-              -0.1,
-              -0.08,
-              -1
-            ],
-            "fov": 51,
-            "roll": 0.08,
             "easing": "smoothstep"
           },
           {
@@ -409,7 +402,10 @@
             "enter": 0.14,
             "hold": 0.44,
             "exit": 0.78,
-            "preset": "travelling-title-v1"
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
           }
         ]
       },
@@ -637,7 +633,10 @@
             "enter": 0,
             "hold": 0.08,
             "exit": 0.16,
-            "preset": "travelling-title-v1"
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
           },
           {
             "id": "life-form",
@@ -645,7 +644,10 @@
             "enter": 0.2,
             "hold": 0.28,
             "exit": 0.36,
-            "preset": "travelling-title-v1"
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
           },
           {
             "id": "life-character",
@@ -653,7 +655,10 @@
             "enter": 0.4,
             "hold": 0.48,
             "exit": 0.56,
-            "preset": "travelling-title-v1"
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
           },
           {
             "id": "life-feel",
@@ -661,7 +666,10 @@
             "enter": 0.6,
             "hold": 0.68,
             "exit": 0.76,
-            "preset": "travelling-title-v1"
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
           },
           {
             "id": "life-meaning",
@@ -669,7 +677,10 @@
             "enter": 0.82,
             "hold": 0.91,
             "exit": 1,
-            "preset": "travelling-title-v1"
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
           }
         ]
       },
@@ -885,7 +896,10 @@
             "enter": 0.18,
             "hold": 0.34,
             "exit": 1,
-            "preset": "finale-v1"
+            "preset": "finale-v1",
+            "motion": {
+              "mode": "spatial"
+            }
           }
         ]
       },

@@ -1092,8 +1092,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-project-card__cta {
-  --portfolio-card-cta-fill: rgba(1, 6, 15, 0.1);
-  --portfolio-card-cta-blur: 10px;
+  --portfolio-card-cta-fill: var(--abs-soft-control-fill);
   position: absolute;
   z-index: 3;
   left: 50%;
@@ -1107,7 +1106,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   min-height: 0;
   margin: 0;
   padding: 0 16px;
-  border: 0;
+  border: var(--abs-soft-control-edge-width, 0.5px) solid var(--abs-soft-control-outline);
   border-radius: var(--abs-radius-pill);
   background: transparent;
   isolation: isolate;
@@ -1123,10 +1122,6 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
     visibility 0s linear 180ms;
 }
 
-html[data-abs-theme='dark'] .portfolio-project-card__cta {
-  --portfolio-card-cta-fill: rgba(255, 255, 255, 0.1);
-}
-
 .portfolio-project-card__cta::before {
   content: '';
   position: absolute;
@@ -1134,16 +1129,21 @@ html[data-abs-theme='dark'] .portfolio-project-card__cta {
   z-index: 0;
   border-radius: inherit;
   background: var(--portfolio-card-cta-fill);
-  -webkit-backdrop-filter: blur(var(--portfolio-card-cta-blur)) saturate(1.08);
-  backdrop-filter: blur(var(--portfolio-card-cta-blur)) saturate(1.08);
+  -webkit-backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
+  backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
   pointer-events: none;
+  transition: background-color 160ms var(--ease-organic, ease);
 }
 
 .portfolio-project-card__cta-label {
   position: relative;
   z-index: 1;
   display: block;
-  color: #dddddd;
+  color: var(--text-primary);
   font-family: var(--abs-font-sans);
   font-size: 16px;
   font-weight: 500;
@@ -1165,6 +1165,13 @@ html[data-abs-theme='dark'] .portfolio-project-card__cta {
   visibility: visible;
   transform: translate3d(-50%, 0, 0);
   transition-delay: 0s;
+}
+
+.portfolio-deck-mount .portfolio-project-card:hover .portfolio-project-card__cta,
+.portfolio-deck-mount .portfolio-project-card.is-keyboard-focused .portfolio-project-card__cta,
+.portfolio-deck-mount .portfolio-project-card.is-pressing .portfolio-project-card__cta {
+  --portfolio-card-cta-fill: var(--abs-soft-control-emphasis-fill);
+  border-color: var(--abs-soft-control-outline-active);
 }
 
 .portfolio-project-card__tags {
@@ -1519,11 +1526,16 @@ html[data-abs-theme='dark'] .portfolio-project-card__cta {
 
 /* Drawer return action: same quiet icon family as route back + footer socials. */
 .portfolio-project-view__back.abs-icon-btn {
-  color: var(--portfolio-drawer-muted);
-  background: transparent;
+  color: var(--text-primary);
+  border: var(--abs-soft-control-edge-width, 0.5px) solid var(--abs-soft-control-outline);
+  background: var(--abs-soft-control-fill);
   box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
+  -webkit-backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
 }
 
 .portfolio-project-view__back--top.abs-icon-btn {
@@ -1542,14 +1554,12 @@ html[data-abs-theme='dark'] .portfolio-project-card__cta {
   aspect-ratio: 1 / 1;
   padding: 0;
   overflow: hidden;
-  color: var(--portfolio-hero-control-ink, #fff);
-  border: none;
+  color: var(--text-primary);
+  border-color: var(--abs-soft-control-outline);
   border-radius: 50%;
   corner-shape: round;
-  background: transparent;
+  background: var(--abs-soft-control-fill);
   box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
   transition:
     opacity 120ms linear,
     transform 0.15s var(--ease-organic),
@@ -1567,9 +1577,11 @@ html[data-abs-theme='dark'] .portfolio-project-card__cta {
 }
 
 .portfolio-project-view__back--top.abs-icon-btn:hover,
-.portfolio-project-view__back--top.abs-icon-btn:focus-visible {
-  color: var(--portfolio-hero-control-ink, #fff);
-  background: transparent;
+.portfolio-project-view__back--top.abs-icon-btn:focus-visible,
+.portfolio-project-view__back--top.abs-icon-btn:active {
+  color: var(--text-primary);
+  border-color: var(--abs-soft-control-outline-active);
+  background: var(--abs-soft-control-emphasis-fill);
 }
 
 .portfolio-project-view.is-scrolled .portfolio-project-view__back--top.abs-icon-btn {

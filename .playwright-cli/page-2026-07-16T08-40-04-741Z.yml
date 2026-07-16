@@ -1,0 +1,84 @@
+- generic [ref=e11]:
+  - generic:
+    - application "Bouncy balls" [ref=e12]
+    - generic:
+      - generic:
+        - heading "Alexander Beck. Creative. Technologist." [level=1]:
+          - generic: Alexander Beck.
+          - generic: Creative. Technologist.
+    - button "Refraction" [expanded] [ref=e14]
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - banner:
+              - generic:
+                - navigation "Areas of expertise" [ref=e19]:
+                  - generic [ref=e43]: Product Design
+                  - generic [ref=e46]: Experience Design
+                  - generic [ref=e49]: Art Direction
+                  - generic [ref=e52]: Motion & 3D
+                  - generic [ref=e55]: Creative Engineering
+                  - generic [ref=e58]: Parametric Systems
+                - blockquote [ref=e61]:
+                  - paragraph [ref=e62]:
+                    - text: Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity.
+                    - link "Let's chat." [ref=e20]:
+                      - /url: /contact.html
+      - generic:
+        - contentinfo:
+          - generic:
+            - group "Social media links" [ref=e22]:
+              - link "Apple Music" [ref=e63]:
+                - /url: https://music.apple.com/profile/beckandeggs
+                - generic: 
+              - link "LinkedIn" [ref=e65]:
+                - /url: https://www.linkedin.com/in/thisisbeck/
+                - generic: 
+            - generic "London local time" [ref=e67]:
+              - generic [ref=e68]:
+                - generic [ref=e69]:
+                  - strong [ref=e70]: London
+                  - generic [ref=e71]: ·
+                - time [ref=e72]: 9:40:04 AM
+        - status:
+          - generic: A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable. © 2026 Alexander Beck
+  - dialog [ref=e74]:
+    - button "Close simulation chooser" [ref=e76]
+    - heading "Choose a simulation" [level=2] [ref=e77]
+    - list [ref=e78]:
+      - button "Foundation" [ref=e79]
+      - button "Assembly" [ref=e91]
+      - button "Attention" [ref=e106]
+      - button "Scaffold" [ref=e118]
+      - button "Flow" [ref=e131]
+      - button "Tension" [ref=e141]
+      - button "Continuity" [ref=e149]
+      - button "Convergence" [ref=e157]
+      - button "Cohesion" [ref=e172]
+      - button "Juxtaposition" [ref=e182]
+      - button "Formation" [ref=e189]
+      - button "Refraction" [active] [ref=e196]
+      - button "Emergence" [ref=e208]
+      - button "Perspective" [ref=e221]
+      - button "Multiplicity" [ref=e235]
+      - button "Depth" [ref=e245]
+  - generic [ref=e24]:
+    - navigation "Primary buttons" [ref=e25]:
+      - link "Home" [ref=e26]:
+        - /url: /index.html
+        - generic: 
+      - link "Work" [ref=e28]:
+        - /url: /portfolio.html
+        - text: 
+      - link "About Me" [ref=e30]:
+        - /url: /about.html
+        - text: 
+      - link "Contact" [ref=e32]:
+        - /url: /contact.html
+        - text: 
+    - group "Secondary buttons" [ref=e34]:
+      - button "Sound off" [ref=e35]:
+        - generic: 
+      - button "Switch to light mode" [pressed] [ref=e253]

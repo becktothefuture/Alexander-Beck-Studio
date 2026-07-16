@@ -1,6 +1,7 @@
 import {
   ABOUT_NARRATIVE_ADAPTER_DEFINITIONS,
   ABOUT_NARRATIVE_BLOCK_KINDS,
+  ABOUT_NARRATIVE_CAMERA_EASINGS,
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
   ABOUT_NARRATIVE_EASINGS,
   ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES,
@@ -9,6 +10,7 @@ import {
   ABOUT_NARRATIVE_SCHEMA_VERSION,
   ABOUT_NARRATIVE_SECTION_TYPES,
   ABOUT_NARRATIVE_SHAPE_DEFINITIONS,
+  ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES,
   ABOUT_NARRATIVE_TRANSITION_TYPES,
 } from './aboutNarrativeDefinitions.js';
 
@@ -22,6 +24,7 @@ const CAMERA_KEYS = new Set(['keys', 'pathMode', 'cadenceOverride']);
 const CAMERA_KEY_KEYS = new Set(['at', 'offset', 'lookAtOffset', 'fov', 'roll', 'easing']);
 const TRANSITION_KEYS = new Set(['start', 'end', 'type', 'easing', 'correspondence']);
 const CUE_KEYS = new Set(['id', 'text', 'enter', 'hold', 'exit', 'preset', 'anchor', 'motion']);
+const CUE_MOTION_KEYS = new Set(['mode']);
 const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items']);
 const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 'mobileYOffset']);
 const MODIFIER_KEYS = new Set(['id', 'enabled', 'parameters']);
@@ -56,7 +59,7 @@ function normalizeCameraKey(key = {}, fallbackFov = 48) {
     lookAtOffset: cloneVector(key.lookAtOffset, [0, 0, -1]),
     fov: Number(key.fov ?? fallbackFov),
     roll: Number(key.roll ?? 0),
-    easing: ABOUT_NARRATIVE_EASINGS.includes(key.easing) ? key.easing : 'smoothstep',
+    easing: ABOUT_NARRATIVE_CAMERA_EASINGS.includes(key.easing) ? key.easing : 'smoothstep',
   };
 }
 
@@ -82,7 +85,11 @@ function normalizeCue(cue = {}, index = 0) {
     exit: Number(cue.exit ?? 1),
     preset: String(cue.preset || 'travelling-title-v1'),
     ...(cue.anchor ? { anchor: String(cue.anchor) } : {}),
-    ...(cue.motion && typeof cue.motion === 'object' ? { motion: cloneAboutNarrativeDocument(cue.motion) } : {}),
+    motion: {
+      mode: ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES.includes(cue.motion?.mode)
+        ? cue.motion.mode
+        : 'spatial',
+    },
   };
 }
 
@@ -166,12 +173,16 @@ export function normalizeAboutNarrativeDocument(input = {}) {
       },
       textMotion: {
         preset: String(textMotion.preset || 'travelling-title-v1'),
-        farScale: Number(textMotion.farScale ?? 0.72),
-        nearScale: Number(textMotion.nearScale ?? 1.42),
-        entryDepth: Number(textMotion.entryDepth ?? 520),
-        exitDepth: Number(textMotion.exitDepth ?? 360),
-        exitDrift: Number(textMotion.exitDrift ?? 32),
-        maxBlur: Number(textMotion.maxBlur ?? 20),
+        durationScale: Number(textMotion.durationScale ?? 1.6),
+        startY: Number(textMotion.startY ?? -110),
+        endY: Number(textMotion.endY ?? 130),
+        readableStart: Number(textMotion.readableStart ?? 0.24),
+        readableEnd: Number(textMotion.readableEnd ?? 0.76),
+        farScale: Number(textMotion.farScale ?? 0.78),
+        nearScale: Number(textMotion.nearScale ?? 1.14),
+        entryDepth: Number(textMotion.entryDepth ?? 360),
+        exitDepth: Number(textMotion.exitDepth ?? 220),
+        maxBlur: Number(textMotion.maxBlur ?? 22),
       },
     },
     sections: Array.isArray(source.sections) ? source.sections.map((section, index) => ({
@@ -245,11 +256,15 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
     ['camera.fov', globals.camera?.fov, 20, 90],
     ['pointMaterial.opacity', globals.pointMaterial?.opacity, 0, 1],
     ['pointMaterial.pointSize', globals.pointMaterial?.pointSize, 0.1, 20],
+    ['textMotion.durationScale', globals.textMotion?.durationScale, 0.25, 4],
+    ['textMotion.startY', globals.textMotion?.startY, -500, 500],
+    ['textMotion.endY', globals.textMotion?.endY, -500, 500],
+    ['textMotion.readableStart', globals.textMotion?.readableStart, 0, 1],
+    ['textMotion.readableEnd', globals.textMotion?.readableEnd, 0, 1],
     ['textMotion.farScale', globals.textMotion?.farScale, 0.05, 5],
     ['textMotion.nearScale', globals.textMotion?.nearScale, 0.05, 5],
     ['textMotion.entryDepth', globals.textMotion?.entryDepth, 0, 3000],
     ['textMotion.exitDepth', globals.textMotion?.exitDepth, 0, 3000],
-    ['textMotion.exitDrift', globals.textMotion?.exitDrift, 0, 500],
     ['textMotion.maxBlur', globals.textMotion?.maxBlur, 0, 100],
   ];
   globalRanges.forEach(([path, value, min, max]) => {
@@ -260,6 +275,17 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
   if (typeof globals.camera?.cadenceLocked !== 'boolean') {
     diagnostics.push({ level: 'error', code: 'global-camera-lock', path: 'globals.camera.cadenceLocked', message: 'Camera cadence lock must be true or false.' });
   }
+  if (Number(globals.textMotion?.readableStart) >= Number(globals.textMotion?.readableEnd)) {
+    diagnostics.push({ level: 'error', code: 'text-readable-window', path: 'globals.textMotion', message: 'Clear from must come before Clear until.' });
+  }
+  if (
+    Number(globals.textMotion?.startY) === Number(globals.textMotion?.endY)
+    && Number(globals.textMotion?.entryDepth) === 0
+    && Number(globals.textMotion?.exitDepth) === 0
+    && Number(globals.textMotion?.farScale) === Number(globals.textMotion?.nearScale)
+  ) {
+    diagnostics.push({ level: 'warning', code: 'text-static-path', path: 'globals.textMotion', message: 'The spatial-title path has no movement on Y, depth, or scale.' });
+  }
   if (!Array.isArray(document.sections) || document.sections.length === 0) {
     diagnostics.push({ level: 'error', code: 'missing-sections', path: 'sections', message: 'At least one Section is required.' });
   }
@@ -267,7 +293,6 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
   const seenSectionIds = new Set();
   const seenContentIds = new Set();
   let finaleCount = 0;
-  let previousPrimaryExit = -1;
 
   (document.sections || []).forEach((section, sectionIndex) => {
     const path = `sections.${sectionIndex}`;
@@ -310,13 +335,13 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
       if (!finite(key.fov) || key.fov < 20 || key.fov > 90 || !finite(key.roll)) {
         diagnostics.push({ level: 'error', code: 'camera-value', path: keyPath, message: 'Camera FOV and roll must remain finite and within safe bounds.' });
       }
-      if (!ABOUT_NARRATIVE_EASINGS.includes(key.easing)) {
-        diagnostics.push({ level: 'error', code: 'camera-easing', path: `${keyPath}.easing`, message: 'Unknown camera easing.' });
+      if (!ABOUT_NARRATIVE_CAMERA_EASINGS.includes(key.easing)) {
+        diagnostics.push({ level: 'error', code: 'camera-easing', path: `${keyPath}.easing`, message: 'Camera easing must be Smoothstep or Ease in out so movement settles smoothly at each key.' });
       }
     });
 
     const cues = section.text?.cues || [];
-    previousPrimaryExit = -1;
+    const previousCueExit = { spatial: -1, vertical: -1 };
     cues.forEach((cue, cueIndex) => {
       const cuePath = `${path}.text.cues.${cueIndex}`;
       if (strictUnknownKeys) pushUnknownKeys(diagnostics, cue, CUE_KEYS, cuePath);
@@ -330,13 +355,28 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
       if (![cue.enter, cue.hold, cue.exit].every(finite) || cue.enter < 0 || cue.exit > 1 || cue.enter > cue.hold || cue.hold > cue.exit) {
         diagnostics.push({ level: 'error', code: 'cue-timing', path: cuePath, message: 'Cue timing must satisfy 0 ≤ Enter ≤ Hold ≤ Exit ≤ 1.' });
       }
-      if (previousPrimaryExit >= 0 && cue.enter < previousPrimaryExit - 0.12) {
+      if (strictUnknownKeys) pushUnknownKeys(diagnostics, cue.motion, CUE_MOTION_KEYS, `${cuePath}.motion`);
+      if (!ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES.includes(cue.motion?.mode)) {
+        diagnostics.push({ level: 'error', code: 'cue-motion-mode', path: `${cuePath}.motion.mode`, message: 'Cue movement must be spatial or vertical.' });
+      }
+      const durationScale = Math.max(0.01, Number(globals.textMotion?.durationScale) || 1);
+      const movement = ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES.includes(cue.motion?.mode) ? cue.motion.mode : 'spatial';
+      const effectiveEnter = movement === 'spatial'
+        ? Math.max(0, cue.hold - ((cue.hold - cue.enter) * durationScale))
+        : cue.enter;
+      const effectiveExit = movement === 'spatial'
+        ? Math.min(1, cue.hold + ((cue.exit - cue.hold) * durationScale))
+        : cue.exit;
+      if (previousCueExit[movement] >= 0 && effectiveEnter < previousCueExit[movement] - 0.12) {
         diagnostics.push({ level: 'warning', code: 'cue-overlap', path: cuePath, message: 'Large text cues overlap substantially.' });
       }
-      if (cue.exit - cue.enter < 0.12) {
+      if (previousCueExit[movement] >= 0 && effectiveEnter - previousCueExit[movement] > 0.08) {
+        diagnostics.push({ level: 'warning', code: 'cue-gap', path: cuePath, message: 'The visible gap before this Cue may interrupt the narrative rhythm.' });
+      }
+      if (movement === 'spatial' && effectiveExit - effectiveEnter < 0.16) {
         diagnostics.push({ level: 'warning', code: 'cue-short', path: cuePath, message: 'This Cue may pass too quickly to read.' });
       }
-      previousPrimaryExit = cue.exit;
+      previousCueExit[movement] = effectiveExit;
     });
 
     (section.text?.blocks || []).forEach((block, blockIndex) => {
@@ -491,7 +531,7 @@ export function applyLegacyAboutNarrativeSettings(document, legacy = {}) {
   if (finite(legacy.nearScale)) globals.textMotion.nearScale = Number(legacy.nearScale);
   if (finite(legacy.entryDepth)) globals.textMotion.entryDepth = Number(legacy.entryDepth);
   if (finite(legacy.exitDepth)) globals.textMotion.exitDepth = Number(legacy.exitDepth);
-  if (finite(legacy.exitDrift)) globals.textMotion.exitDrift = Number(legacy.exitDrift);
+  if (finite(legacy.exitDrift)) globals.textMotion.endY = -Number(legacy.exitDrift);
   if (finite(legacy.maxBlur)) globals.textMotion.maxBlur = Number(legacy.maxBlur);
   next.sections.forEach((section) => {
     section.world.modifiers?.forEach((modifier) => {

@@ -102,6 +102,43 @@
   /* Single stroke color (keep this token; override in :root.dark-mode) */
   --abs-stroke-medium: rgba(var(--abs-rgb-black), 0.18);
 
+  /* Shared quiet control material: theme surface, darkened by at most 5%. */
+  --abs-soft-control-darken: 5%;
+  --abs-soft-control-fill-opacity: 72%;
+  --abs-soft-control-outline-opacity: 12%;
+  --abs-soft-control-outline-active-opacity: 15%;
+  --abs-soft-control-emphasis-rgb: var(--abs-rgb-white);
+  --abs-soft-control-emphasis-opacity: 86%;
+  --abs-soft-control-edge-width: 0.5px;
+  --abs-soft-control-blur: 18px;
+  --abs-soft-control-saturation: 1.08;
+  --abs-soft-control-surface:
+    color-mix(
+      in srgb,
+      var(--frame-inner-surface) calc(100% - var(--abs-soft-control-darken)),
+      rgba(var(--abs-rgb-black), 1) var(--abs-soft-control-darken)
+    );
+  --abs-soft-control-fill:
+    color-mix(
+      in srgb,
+      var(--abs-soft-control-surface) var(--abs-soft-control-fill-opacity),
+      transparent
+    );
+  --abs-soft-control-outline:
+    color-mix(
+      in srgb,
+      var(--text-primary) var(--abs-soft-control-outline-opacity),
+      transparent
+    );
+  --abs-soft-control-outline-active:
+    color-mix(
+      in srgb,
+      var(--text-primary) var(--abs-soft-control-outline-active-opacity),
+      transparent
+    );
+  --abs-soft-control-emphasis-fill:
+    rgba(var(--abs-soft-control-emphasis-rgb), var(--abs-soft-control-emphasis-opacity));
+
   /* Ball colors (preserved) */
   --ball-1: #b5b7b6;
   --ball-2: #bbbdbd;
@@ -832,6 +869,8 @@
 body.dark-mode,
 body[data-abs-theme='dark'] {
   color-scheme: dark;
+  --abs-soft-control-emphasis-rgb: var(--abs-rgb-black);
+  --abs-soft-control-emphasis-opacity: 72%;
   /* Theme changes the studio-window interior, never the outer wall/frame. */
   --studio-window-bg: var(--studio-window-bg-dark);
   --frame-inner-surface: var(--studio-window-bg);

@@ -116,6 +116,6 @@ export function closeGateModal({
   }, closeDurationMs);
 }
 
-export function dismissGateBackdrop({ suppressReturnAnimation = false } = {}) {
-  hideOverlay({ clearReturnState: !suppressReturnAnimation });
+export function dismissGateBackdrop({ suppressReturnAnimation = false, instant = false } = {}) {
+  hideOverlay({ clearReturnState: !suppressReturnAnimation, instant });
 }

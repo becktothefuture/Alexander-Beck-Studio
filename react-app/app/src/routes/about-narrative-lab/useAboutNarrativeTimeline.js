@@ -6,6 +6,7 @@ import {
 } from '../../lib/smooth-scroll.js';
 import {
   compileAboutNarrativeDocument,
+  getAboutNarrativeCueMovement,
   sampleAboutNarrativeCue,
   sampleAboutNarrativePlan,
 } from './aboutNarrativeCompiler.js';
@@ -88,7 +89,7 @@ export function useAboutNarrativeTimeline({
         const local = frame.section.id === section.id
           ? frame.localProgress
           : frame.storyWU < (planRef.current.sections.find((item) => item.id === section.id)?.startWU || 0) ? 0 : 1;
-        const cues = section.text.cues || [];
+        const cues = (section.text.cues || []).filter((cue) => getAboutNarrativeCueMovement(cue) === 'spatial');
         let reducedIndex = 0;
         if (reducedMotion && cues.length > 1) {
           reducedIndex = cues.findIndex((cue) => local <= cue.exit);

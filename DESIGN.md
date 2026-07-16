@@ -116,6 +116,19 @@ The neutral structure carries the interface. Accent colors signal route, interac
 - Route top bars are local utility/back strips only.
 - Sound and haptics reinforce a state change but never carry its meaning alone.
 
+#### Quiet control material and emphasis
+
+The Home simulation switcher, Portfolio card CTA, Portfolio drawer back control, and Contact email/copy action are one material family. They consume the semantic `--abs-soft-control-*` tokens while retaining their own pill, circle, or box geometry.
+
+- The resting material follows the current studio-window theme, darkens its surface by no more than 5%, and remains translucent enough for the 18px backdrop blur and gentle saturation to preserve local context.
+- The edge is 0.5px at 12% opacity in the resting state and may rise to no more than 15% for hover, keyboard focus, pressed, open, or selected states.
+- Emphasis is adaptive, not route-accented: use a translucent white field in light mode and a translucent black field in dark mode. Text and icons resolve through the current in-window text tokens.
+- Hover, `:focus-visible`, and pressed states use the same emphasis fill, blur, saturation, and active edge. The Home switcher also keeps that state while its chooser is open.
+- Do not stack a colored halo, glow, drop shadow, or second hover field on top of this emphasis material. State must remain calm and legible over moving simulation content.
+- The manual site theme owns these values because these controls live inside the studio window. Never derive them from the browser-aware wall or outer-frame palette.
+
+Inside the simulation chooser, option rows are transparent at rest. The current simulation, hovered option, keyboard-focused option, and pressed option use one identical emphasis material; the current row remains visibly emphasized before pointer interaction. The modal close control is transparent at rest and uses that same material on hover, keyboard focus, and press. Reduced motion removes transitions without removing any selected, focus, or hover-state contrast.
+
 ### Motion and material presence
 
 - The physical frame, window, Button Bar, and outside shell remain present during route changes.

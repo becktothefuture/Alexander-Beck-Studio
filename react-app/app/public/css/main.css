@@ -2390,9 +2390,9 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 .simulation-focus-pill {
   position: relative;
   appearance: none;
-  border: var(--hairline, 1px) solid color-mix(in srgb, var(--text-logo) 36%, transparent);
+  border: var(--abs-soft-control-edge-width, 0.5px) solid var(--abs-soft-control-outline);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--frame-inner-surface) 54%, transparent);
+  background: var(--abs-soft-control-fill);
   color: var(--text-logo);
   display: inline-flex;
   align-items: center;
@@ -2412,8 +2412,12 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   isolation: isolate;
   overflow: visible;
   pointer-events: auto;
-  -webkit-backdrop-filter: blur(18px) saturate(1.08);
-  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
+  backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
   -webkit-tap-highlight-color: transparent;
   box-shadow: none;
   transition:
@@ -2450,9 +2454,9 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 
 .simulation-focus-switcher {
   align-items: center;
-  border-color: transparent;
+  border-color: var(--abs-soft-control-outline);
   border-radius: var(--abs-radius-pill);
-  background: color-mix(in srgb, var(--frame-inner-surface) 48%, transparent);
+  background: var(--abs-soft-control-fill);
   gap: calc(var(--gap-xs) * 0.7);
   min-height: 36px;
   max-width: calc(100vw - (var(--gap-md) * 2));
@@ -2479,7 +2483,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 }
 
 .simulation-focus-pill.simulation-focus-switcher:hover {
-  border-color: color-mix(in srgb, var(--text-logo) 36%, transparent);
+  border-color: var(--abs-soft-control-outline-active);
 }
 
 .simulation-focus-switcher .simulation-focus-pill__icon {
@@ -2493,22 +2497,24 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 
 .simulation-focus-pill:hover,
 .simulation-focus-pill:focus-visible,
+.simulation-focus-pill:active,
 .simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill {
-  border-color: color-mix(in srgb, var(--text-logo) 42%, transparent);
+  border-color: var(--abs-soft-control-outline-active);
+  background: var(--abs-soft-control-emphasis-fill);
   color: var(--text-primary);
 }
 
-.simulation-focus-pill.simulation-focus-switcher,
 .simulation-focus-pill.simulation-focus-switcher:hover,
 .simulation-focus-pill.simulation-focus-switcher:focus-visible,
 .simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill.simulation-focus-switcher {
-  border-color: transparent;
+  border-color: var(--abs-soft-control-outline-active);
 }
 
 .simulation-focus-pill:hover::before,
 .simulation-focus-pill:focus-visible::before,
+.simulation-focus-pill:active::before,
 .simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill::before {
-  opacity: var(--abs-soft-hover-field-opacity);
+  opacity: 0;
   transform: none;
   transition:
     opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
@@ -4852,7 +4858,7 @@ html[data-abs-instrument-wake] #simulations::after {
 }
 
 html.simulation-focus-modal-open .window-overlay-layer,
-html.simulation-focus-handoff-active .window-overlay-layer,
+html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-layer,
 body.portfolio-page--locked .window-overlay-layer {
   opacity: 1;
   visibility: visible;
@@ -4860,7 +4866,7 @@ body.portfolio-page--locked .window-overlay-layer {
 }
 
 html.simulation-focus-modal-open .window-overlay-blur-layer,
-html.simulation-focus-handoff-active .window-overlay-blur-layer,
+html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-blur-layer,
 body.portfolio-page--locked .window-overlay-blur-layer {
   -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
   backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
@@ -4886,10 +4892,8 @@ body.portfolio-page--locked .window-overlay-content-layer {
    viewport layers must not paint above the in-window overlay system. */
 html.simulation-focus-modal-open #modal-blur-layer,
 html.simulation-focus-modal-open #modal-content-layer,
-html.simulation-focus-handoff-active #modal-blur-layer,
-html.simulation-focus-handoff-active #modal-content-layer,
-html.simulation-focus-legacy-blur-suppressed #modal-blur-layer,
-html.simulation-focus-legacy-blur-suppressed #modal-content-layer {
+html[data-shell-route='home'][data-abs-simulation-focus-transition] #modal-blur-layer,
+html[data-shell-route='home'][data-abs-simulation-focus-transition] #modal-content-layer {
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
@@ -4897,7 +4901,7 @@ html.simulation-focus-legacy-blur-suppressed #modal-content-layer {
 
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
   html.simulation-focus-modal-open .window-overlay-blur-layer,
-  html.simulation-focus-handoff-active .window-overlay-blur-layer,
+  html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-blur-layer,
   body.portfolio-page--locked .window-overlay-blur-layer {
     -webkit-backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
     backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
@@ -5988,7 +5992,7 @@ body.dark-mode .ui-main-nav .footer_link:active {
   }
 
   body.abs-action-hovering .contact-email-row:not(.pulse-energy):hover::before {
-    opacity: calc(var(--abs-soft-hover-field-opacity) * 0.72);
+    opacity: 0;
   }
 }
 
@@ -6152,7 +6156,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   --simulation-focus-list-gutter: clamp(6px, 2.6vw, 10px);
   --simulation-focus-scroll-fade: clamp(18px, 4svh, 36px);
   --simulation-focus-ink: var(--text-primary);
-  --simulation-focus-hover-opacity: 0.14;
+  --simulation-focus-hover-fill: var(--abs-soft-control-emphasis-fill);
   position: absolute;
   inset: 0;
   width: 100%;
@@ -6256,7 +6260,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .simulation-focus-row {
   position: relative;
   appearance: none;
-  border: var(--hairline, 1px) solid transparent;
+  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
   border-radius: var(--abs-radius-pill);
   background: transparent;
   color: var(--simulation-focus-ink);
@@ -6275,6 +6279,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   opacity: 0.75;
   -webkit-tap-highlight-color: transparent;
   transition:
+    border-color 160ms var(--ease-organic),
     color 160ms var(--ease-organic),
     opacity 160ms var(--ease-organic),
     transform 140ms var(--ease-organic),
@@ -6284,10 +6289,16 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .simulation-focus-row::before {
   content: '';
   position: absolute;
-  inset: var(--abs-soft-hover-field-inset);
+  inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background: color-mix(in srgb, currentColor 10%, transparent);
+  background: var(--simulation-focus-hover-fill);
+  -webkit-backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
+  backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
   filter: none;
   box-shadow: none;
   opacity: 0;
@@ -6306,13 +6317,17 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .simulation-focus-row:focus-visible,
-.simulation-focus-row:active {
+.simulation-focus-row:active,
+.simulation-focus-row[aria-current='true'] {
+  border-color: var(--abs-soft-control-outline-active);
   color: var(--text-primary);
+  opacity: 1;
 }
 
 .simulation-focus-row:focus-visible::before,
-.simulation-focus-row:active::before {
-  opacity: var(--simulation-focus-hover-opacity);
+.simulation-focus-row:active::before,
+.simulation-focus-row[aria-current='true']::before {
+  opacity: 1;
   transform: none;
   transition:
     opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
@@ -6322,11 +6337,13 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 @media (hover: hover) and (pointer: fine) {
   .simulation-focus-row:hover {
+    border-color: var(--abs-soft-control-outline-active);
     color: var(--text-primary);
+    opacity: 1;
   }
 
   .simulation-focus-row:hover::before {
-    opacity: var(--simulation-focus-hover-opacity);
+    opacity: 1;
     transform: none;
     transition:
       opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
@@ -6346,7 +6363,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .simulation-focus-row[aria-current='true'] {
-  border-color: transparent;
+  border-color: var(--abs-soft-control-outline-active);
   background: transparent;
   opacity: 1;
 }
@@ -6438,6 +6455,29 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 .simulation-focus-modal .gate-back {
   color: var(--simulation-focus-ink);
+  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
+  border-radius: 50%;
+  corner-shape: round;
+  -webkit-backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
+  backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
+  transition:
+    border-color 160ms var(--ease-organic),
+    background-color 160ms var(--ease-organic),
+    color 160ms var(--ease-organic),
+    transform 0.15s var(--ease-organic),
+    filter 0.15s var(--ease-organic);
+}
+
+.simulation-focus-modal .gate-back:hover,
+.simulation-focus-modal .gate-back:focus-visible,
+.simulation-focus-modal .gate-back:active {
+  border-color: var(--abs-soft-control-outline-active);
+  background: var(--abs-soft-control-emphasis-fill);
+  color: var(--text-primary);
 }
 
 .cv-modal.active .modal-label,
@@ -6600,10 +6640,15 @@ body.cv-page .route-topbar .gate-back {
   /* Single source of truth: children inherit this for simpler styling. */
   color: var(--text-quiet);
 
-  border: 1px solid var(--abs-stroke-medium);
+  border: var(--abs-soft-control-edge-width, 0.5px) solid var(--abs-soft-control-outline);
   border-radius: var(--abs-radius-cta);
-  background: #ffffff;
-  background-color: #ffffff;
+  background: var(--abs-soft-control-fill);
+  -webkit-backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
+  backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
   -webkit-tap-highlight-color: transparent;
   overflow: visible; /* CHANGED: was hidden - allows pulse to expand */
   position: relative;
@@ -6679,18 +6724,19 @@ html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse
   animation: contactPulseField 0.8s ease-out both;
 }
 
-.contact-email-row:not(.pulse-energy):hover {
+.contact-email-row:not(.pulse-energy):hover,
+.contact-email-row:not(.pulse-energy):active {
   color: var(--text-primary);
-  border-color: var(--abs-stroke-medium);
-  background: #ffffff;
-  background-color: #ffffff;
+  border-color: var(--abs-soft-control-outline-active);
+  background: var(--abs-soft-control-emphasis-fill);
   box-shadow: none;
 }
 
 .contact-email-row:not(.pulse-energy):hover::before,
+.contact-email-row:not(.pulse-energy):active::before,
 .contact-email-row:not(.pulse-energy):focus-visible::before,
 .contact-email-row:not(.pulse-energy):focus-within::before {
-  opacity: var(--abs-soft-hover-field-opacity);
+  opacity: 0;
 }
 
 .contact-email-row:active {
@@ -6702,7 +6748,8 @@ html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse
 .contact-email-row:focus-visible,
 .contact-email-row:focus-within {
   outline: none;
-  border-color: var(--abs-stroke-medium);
+  border-color: var(--abs-soft-control-outline-active);
+  background: var(--abs-soft-control-emphasis-fill);
   box-shadow: none;
 }
 
@@ -6757,11 +6804,11 @@ html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse
   justify-content: center;
   appearance: none;
   border: 0;
-  border-left: 1px solid rgba(var(--abs-rgb-black), 0.12);
+  border-left: var(--abs-soft-control-edge-width, 0.5px) solid var(--abs-soft-control-outline);
   background: transparent;
   padding: var(--contact-email-pad-y) var(--contact-email-pad-x);
   color: inherit;
-  border-left-color: color-mix(in srgb, currentColor 18%, transparent);
+  border-left-color: var(--abs-soft-control-outline);
   transition: inherit;
 }
 
@@ -6800,9 +6847,8 @@ html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse
 }
 
 body.dark-mode .contact-email-row {
-  border-color: rgba(var(--abs-rgb-white), 0.34);
-  background: #161616;
-  background-color: #161616;
+  border-color: var(--abs-soft-control-outline);
+  background: var(--abs-soft-control-fill);
   color: var(--text-quiet);
 }
 
@@ -6818,16 +6864,19 @@ body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-e
   animation: contactPulseFieldDark 0.8s ease-out both;
 }
 
-body.dark-mode .contact-email-row:not(.pulse-energy):hover {
+body.dark-mode .contact-email-row:not(.pulse-energy):hover,
+body.dark-mode .contact-email-row:not(.pulse-energy):active,
+body.dark-mode .contact-email-row:not(.pulse-energy):focus,
+body.dark-mode .contact-email-row:not(.pulse-energy):focus-visible,
+body.dark-mode .contact-email-row:not(.pulse-energy):focus-within {
   color: var(--text-primary);
-  border-color: rgba(var(--abs-rgb-white), 0.34);
-  background: #161616;
-  background-color: #161616;
+  border-color: var(--abs-soft-control-outline-active);
+  background: var(--abs-soft-control-emphasis-fill);
   box-shadow: none;
 }
 
 body.dark-mode .contact-email-copy {
-  border-left-color: color-mix(in srgb, currentColor 18%, transparent);
+  border-left-color: var(--abs-soft-control-outline);
 }
 
 .contact-email-icon {
@@ -7209,14 +7258,10 @@ html.simulation-focus-modal-open #modal-blur-layer,
 html.simulation-focus-modal-open .modal-blur-layer,
 html.simulation-focus-modal-open #modal-content-layer,
 html.simulation-focus-modal-open .modal-content-layer,
-html.simulation-focus-handoff-active #modal-blur-layer,
-html.simulation-focus-handoff-active .modal-blur-layer,
-html.simulation-focus-handoff-active #modal-content-layer,
-html.simulation-focus-handoff-active .modal-content-layer,
-html.simulation-focus-legacy-blur-suppressed #modal-blur-layer,
-html.simulation-focus-legacy-blur-suppressed .modal-blur-layer,
-html.simulation-focus-legacy-blur-suppressed #modal-content-layer,
-html.simulation-focus-legacy-blur-suppressed .modal-content-layer {
+html[data-shell-route='home'][data-abs-simulation-focus-transition] #modal-blur-layer,
+html[data-shell-route='home'][data-abs-simulation-focus-transition] .modal-blur-layer,
+html[data-shell-route='home'][data-abs-simulation-focus-transition] #modal-content-layer,
+html[data-shell-route='home'][data-abs-simulation-focus-transition] .modal-content-layer {
   top: var(--safari-tint-inset-y, var(--safari-tint-inset));
   right: var(--safari-tint-inset-x, var(--safari-tint-inset));
   bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom));

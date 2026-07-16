@@ -66,27 +66,41 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-section--opening {
-  display: grid;
-  place-items: center;
   min-height: calc(var(--section-duration-wu, 1) * var(--narrative-viewport-height, 100cqh));
-  padding: clamp(5rem, 10vw, 9rem) clamp(1.25rem, 7vw, 7rem);
 }
 
-.about-narrative-opening-inner {
-  width: min(100%, 66rem);
-  text-align: center;
-  transform: translateY(5cqh);
+.about-narrative-vertical-sequence {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
 }
 
-.about-narrative-opening-inner h1 {
-  max-width: 19ch;
-  margin: 0 auto;
+.about-narrative-vertical-title {
+  position: absolute;
+  top: var(--vertical-cue-top, 50%);
+  left: 50%;
+  width: min(calc(100% - clamp(2.5rem, 14vw, 14rem)), 70rem);
+  max-width: 22ch;
+  margin: 0;
+  opacity: var(--editorial-reveal, 0);
+  color: var(--text-primary);
+  filter: blur(var(--editorial-blur, 3px));
   font-family: var(--abs-font-headline);
-  font-size: clamp(2.8rem, 5.5vw, 6.2rem);
+  font-size: clamp(2.4rem, 6.7vw, 7.8rem);
   font-weight: 400;
   letter-spacing: var(--abs-font-headline-letter-spacing);
-  line-height: calc(0.94 * var(--abs-font-headline-line-height-scale, 1));
+  line-height: calc(0.96 * var(--abs-font-headline-line-height-scale, 1));
+  text-align: center;
+  text-shadow: 0 1px 24px color-mix(in srgb, var(--studio-window-bg) 52%, transparent);
   text-wrap: balance;
+  pointer-events: auto;
+  transform: translate3d(-50%, calc(-50% + var(--editorial-y, 12px)), 0);
+  will-change: opacity, filter, transform;
+}
+
+.about-narrative-vertical-title.is-opener {
+  top: calc(var(--vertical-cue-top, 50%) + 3cqh);
 }
 
 .about-narrative-spatial-stage {
@@ -131,42 +145,17 @@ body.about-narrative-page .route-simulation-layer {
   display: block;
   max-width: 22ch;
   opacity: var(--fragment-opacity, 0);
-  filter: blur(var(--fragment-blur, 18px));
+  filter: blur(var(--fragment-blur, 22px));
   transform:
     translate3d(
       var(--fragment-x, 0px),
-      var(--fragment-y, 42px),
-      var(--fragment-z, -520px)
+      var(--fragment-y, -110px),
+      var(--fragment-z, -360px)
     )
-    scale(var(--fragment-scale, 0.72));
+    scale(var(--fragment-scale, 0.78));
   transform-origin: center;
   backface-visibility: hidden;
   will-change: opacity, filter, transform;
-}
-
-.about-narrative-section--closing .about-narrative-spatial-copy {
-  width: min(100%, 62rem);
-}
-
-.about-narrative-section--closing .about-narrative-spatial-title {
-  font-size: clamp(2.1rem, min(4.4vw, 6.3vh), 4.4rem);
-  line-height: 0.98;
-}
-
-.about-narrative-section--constellation .about-narrative-spatial-stage {
-  place-items: end center;
-  padding-bottom: clamp(6rem, 15cqh, 10rem);
-}
-
-.about-narrative-section--constellation .about-narrative-spatial-title {
-  max-width: 24ch;
-  margin-inline: auto;
-  font-size: clamp(1.8rem, 3.8vw, 4.2rem);
-  line-height: 1;
-}
-
-.about-narrative-section--living-field .about-narrative-spatial-title {
-  font-size: clamp(2rem, 4.8vw, 5.6rem);
 }
 
 .about-narrative-section--disciplines {
@@ -230,6 +219,10 @@ body.about-narrative-page .route-simulation-layer {
   filter: blur(var(--editorial-blur));
   transform: translate3d(0, var(--editorial-y), 0);
   will-change: opacity, filter, transform;
+}
+
+.about-narrative-vertical-title[data-editorial-line] {
+  transform: translate3d(-50%, calc(-50% + var(--editorial-y, 12px)), 0);
 }
 
 .about-narrative-visually-hidden {
@@ -486,16 +479,13 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-finale-copy {
+  display: grid;
+  place-items: center;
   height: 100%;
 }
 
 .about-narrative-finale-copy .about-narrative-spatial-title {
-  position: absolute;
-  top: clamp(1.25rem, 3.5cqh, 2.5rem);
-  left: 50%;
-  width: min(100%, 58rem);
-  font-size: clamp(2rem, min(4.5vw, 6vh), 4.6rem);
-  transform: translateX(-50%);
+  width: 100%;
 }
 
 .about-narrative-bust-interaction {
@@ -815,7 +805,7 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 @media (max-width: 760px) {
-  .about-narrative-opening-inner h1,
+  .about-narrative-vertical-title,
   .about-narrative-spatial-title {
     font-size: clamp(2.25rem, 11vw, 4.5rem);
     line-height: 0.98;
@@ -825,10 +815,14 @@ body.about-narrative-page .route-simulation-layer {
 
 @media (min-width: 601px) and (max-height: 760px) {
   .about-narrative-spatial-stage {
-    padding-block: 4rem 6.5rem;
+    padding-block: 4.75rem;
   }
 
   .about-narrative-spatial-title {
+    font-size: clamp(2.2rem, min(5.5vw, 9vh), 5rem);
+  }
+
+  .about-narrative-vertical-title {
     font-size: clamp(2.2rem, min(5.5vw, 9vh), 5rem);
   }
 }
@@ -844,28 +838,15 @@ body.about-narrative-page .route-simulation-layer {
   }
 
   .about-narrative-spatial-stage {
-    padding: 5.25rem 1rem 6.5rem;
+    padding: 5.75rem 1rem;
   }
 
-  .about-narrative-section--closing .about-narrative-spatial-title {
-    font-size: clamp(2rem, 9vw, 3.4rem);
+  .about-narrative-vertical-title {
+    top: var(--vertical-cue-top-mobile, var(--vertical-cue-top, 50%));
   }
 
-  .about-narrative-section--constellation .about-narrative-spatial-stage {
-    padding-bottom: 8.5rem;
-  }
-
-  .about-narrative-section--constellation .about-narrative-spatial-title {
-    font-size: clamp(1.65rem, 8vw, 2.75rem);
-  }
-
-  .about-narrative-opening-inner {
-    transform: translateY(3cqh);
-  }
-
-  .about-narrative-finale-copy .about-narrative-spatial-title {
-    top: 1.5rem;
-    font-size: clamp(1.8rem, 8.5vw, 3rem);
+  .about-narrative-vertical-title.is-opener {
+    top: calc(var(--vertical-cue-top-mobile, var(--vertical-cue-top, 50%)) + 3cqh);
   }
 
   .about-narrative-finale-cta {
@@ -1024,6 +1005,24 @@ body.about-narrative-page .route-simulation-layer {
 
   .about-narrative-spatial-title {
     display: block;
+  }
+
+  .about-narrative-vertical-sequence {
+    position: relative;
+    inset: auto;
+    display: grid;
+    place-items: center;
+    min-height: 100cqh;
+  }
+
+  .about-narrative-vertical-title,
+  .about-narrative-vertical-title.is-opener {
+    position: relative;
+    top: auto;
+    left: auto;
+    opacity: 1;
+    filter: none;
+    transform: none;
   }
 
   .about-narrative-section--spatial:not(.about-narrative-section--finale) .about-narrative-spatial-title {

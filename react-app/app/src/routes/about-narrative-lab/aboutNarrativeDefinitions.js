@@ -4,6 +4,7 @@ export const ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES = 1024 * 1024;
 export const ABOUT_NARRATIVE_MAX_TRANSITION_LOCAL = 16;
 
 export const ABOUT_NARRATIVE_SECTION_TYPES = Object.freeze(['spatial', 'editorial', 'finale']);
+export const ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES = Object.freeze(['spatial', 'vertical']);
 export const ABOUT_NARRATIVE_BLOCK_KINDS = Object.freeze([
   'prose',
   'highlight',
@@ -26,6 +27,10 @@ export const ABOUT_NARRATIVE_EASINGS = Object.freeze([
   'ease-out',
   'ease-in-out',
   'hold',
+]);
+export const ABOUT_NARRATIVE_CAMERA_EASINGS = Object.freeze([
+  'smoothstep',
+  'ease-in-out',
 ]);
 export const ABOUT_NARRATIVE_CORRESPONDENCE_MODES = Object.freeze([
   'index-v1',
@@ -61,6 +66,22 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     controls: Object.freeze([
       numberControl('opacity', 'Opacity', 0.2, 1, 0.01),
       numberControl('pointSize', 'Point size', 1.5, 7, 0.1, 'px'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'textMotion',
+    label: 'Spatial titles',
+    controls: Object.freeze([
+      numberControl('durationScale', 'Travel duration', 0.75, 2.5, 0.05, '×'),
+      numberControl('startY', 'Start Y', -240, 240, 2, 'px'),
+      numberControl('endY', 'End Y', -240, 240, 2, 'px'),
+      numberControl('readableStart', 'Clear from', 0, 0.45, 0.01),
+      numberControl('readableEnd', 'Clear until', 0.55, 1, 0.01),
+      numberControl('farScale', 'Entry scale', 0.4, 1.4, 0.01, '×'),
+      numberControl('nearScale', 'Exit scale', 0.7, 2, 0.01, '×'),
+      numberControl('entryDepth', 'Entry depth', 0, 1200, 10, 'px'),
+      numberControl('exitDepth', 'Exit depth', 0, 1200, 10, 'px'),
+      numberControl('maxBlur', 'Maximum blur', 0, 40, 1, 'px'),
     ]),
   }),
 ]);

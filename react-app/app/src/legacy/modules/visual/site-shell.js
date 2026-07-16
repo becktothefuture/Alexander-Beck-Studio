@@ -52,6 +52,15 @@ const DEFAULT_SHELL_CONFIG = {
     radius: '18px',
     blur: '8px',
     saturation: 1.12,
+    controlMaterialDarkenPercent: 5,
+    controlMaterialFillOpacity: 0.72,
+    controlMaterialOutlineOpacity: 0.12,
+    controlMaterialOutlineActiveOpacity: 0.15,
+    controlMaterialEmphasisOpacityLight: 0.86,
+    controlMaterialEmphasisOpacityDark: 0.72,
+    controlMaterialEdgeWidth: '0.5px',
+    controlMaterialBlur: '18px',
+    controlMaterialSaturation: 1.08,
     sceneHighlight: 0.3,
     contrastVeilOpacityLight: 0.216,
     contrastVeilOpacityDark: 0.348,
@@ -499,6 +508,46 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
     240,
     DEFAULT_SHELL_CONFIG.surface.contrastVeilDitherSize
   );
+  const controlMaterialDarkenPercent = numberInRange(
+    surface.controlMaterialDarkenPercent,
+    0,
+    5,
+    DEFAULT_SHELL_CONFIG.surface.controlMaterialDarkenPercent
+  );
+  const controlMaterialFillOpacity = numberInRange(
+    surface.controlMaterialFillOpacity,
+    0,
+    1,
+    DEFAULT_SHELL_CONFIG.surface.controlMaterialFillOpacity
+  );
+  const controlMaterialOutlineOpacity = numberInRange(
+    surface.controlMaterialOutlineOpacity,
+    0,
+    0.15,
+    DEFAULT_SHELL_CONFIG.surface.controlMaterialOutlineOpacity
+  );
+  const controlMaterialOutlineActiveOpacity = numberInRange(
+    surface.controlMaterialOutlineActiveOpacity,
+    controlMaterialOutlineOpacity,
+    0.15,
+    DEFAULT_SHELL_CONFIG.surface.controlMaterialOutlineActiveOpacity
+  );
+  const controlMaterialEmphasisOpacity = numberInRange(
+    isDark
+      ? surface.controlMaterialEmphasisOpacityDark
+      : surface.controlMaterialEmphasisOpacityLight,
+    0,
+    1,
+    isDark
+      ? DEFAULT_SHELL_CONFIG.surface.controlMaterialEmphasisOpacityDark
+      : DEFAULT_SHELL_CONFIG.surface.controlMaterialEmphasisOpacityLight
+  );
+  const controlMaterialSaturation = numberInRange(
+    surface.controlMaterialSaturation,
+    1,
+    1.5,
+    DEFAULT_SHELL_CONFIG.surface.controlMaterialSaturation
+  );
 
   const fillOpacity = isDark ? surface.fillOpacityDark : surface.fillOpacityLight;
   const sheenTopOpacity = isDark ? surface.sheenTopOpacityDark : surface.sheenTopOpacityLight;
@@ -549,6 +598,20 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
   root.style.setProperty('--abs-surface-light-edge-blur', surface.lightEdgeBlur);
   root.style.setProperty('--abs-surface-light-edge-top-opacity', String(topEdgeOpacity));
   root.style.setProperty('--abs-surface-light-edge-bottom-opacity', String(bottomEdgeOpacity));
+  root.style.setProperty('--abs-soft-control-darken', `${controlMaterialDarkenPercent}%`);
+  root.style.setProperty('--abs-soft-control-fill-opacity', `${controlMaterialFillOpacity * 100}%`);
+  root.style.setProperty('--abs-soft-control-outline-opacity', `${controlMaterialOutlineOpacity * 100}%`);
+  root.style.setProperty('--abs-soft-control-outline-active-opacity', `${controlMaterialOutlineActiveOpacity * 100}%`);
+  root.style.setProperty('--abs-soft-control-emphasis-opacity', `${controlMaterialEmphasisOpacity * 100}%`);
+  root.style.setProperty(
+    '--abs-soft-control-edge-width',
+    surface.controlMaterialEdgeWidth || DEFAULT_SHELL_CONFIG.surface.controlMaterialEdgeWidth
+  );
+  root.style.setProperty(
+    '--abs-soft-control-blur',
+    surface.controlMaterialBlur || DEFAULT_SHELL_CONFIG.surface.controlMaterialBlur
+  );
+  root.style.setProperty('--abs-soft-control-saturation', String(controlMaterialSaturation));
   root.style.setProperty('--hover-edge-width', edgeWidth);
   root.style.setProperty('--hover-edge-top-opacity', String(topEdgeOpacity));
   root.style.setProperty('--hover-edge-bottom-opacity', String(Math.max(bottomEdgeOpacity, edgeOpacity * 0.28)));

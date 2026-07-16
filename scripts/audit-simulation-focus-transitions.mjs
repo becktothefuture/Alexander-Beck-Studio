@@ -84,13 +84,24 @@ async function waitForIdle(page) {
     () => {
       const blur = document.getElementById('modal-blur-layer');
       const content = document.getElementById('modal-content-layer');
+      const root = document.documentElement;
+      const windowBlur = document.getElementById('window-overlay-blur-layer');
+      const windowBlurStyles = windowBlur ? getComputedStyle(windowBlur) : null;
+      const windowBlurSettled = Boolean(
+        windowBlurStyles
+        && windowBlurStyles.visibility === 'hidden'
+        && Number.parseFloat(windowBlurStyles.opacity || '1') <= 0.001
+      );
       return (
-        (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
-        && (document.documentElement.dataset.absSimulationFocusTransition || 'idle') === 'idle'
+        (root.dataset.absTransitionPhase || 'idle') === 'idle'
+        && (root.dataset.absSimulationFocusTransition || 'idle') === 'idle'
+        && !root.classList.contains('simulation-focus-handoff-active')
         && !blur?.classList.contains('active')
         && !content?.classList.contains('active')
+        && windowBlurSettled
       );
     },
+    null,
     { timeout: WAIT_MS, polling: 50 },
   );
 }
@@ -683,6 +694,7 @@ async function assertChooserSwitchSettled(page, flow) {
     const url = new URL(window.location.href);
     const blur = document.getElementById('modal-blur-layer');
     const content = document.getElementById('modal-content-layer');
+    const windowBlur = document.getElementById('window-overlay-blur-layer');
     const visibleBackdropBlur = (element) => {
       if (!element) return false;
       const styles = getComputedStyle(element);
@@ -706,8 +718,10 @@ async function assertChooserSwitchSettled(page, flow) {
       bootState: document.documentElement.dataset.absBootState || '',
       transitionPhase: document.documentElement.dataset.absTransitionPhase || 'idle',
       simulationFocusPhase: document.documentElement.dataset.absSimulationFocusTransition || 'idle',
+      simulationFocusHandoffActive: document.documentElement.classList.contains('simulation-focus-handoff-active'),
       modalOverlayActive: Boolean(blur?.classList.contains('active') || content?.classList.contains('active')),
       legacyFullPageBlurVisible: visibleBackdropBlur(blur),
+      windowBlurVisible: visibleBackdropBlur(windowBlur),
     };
   }, SIMULATION_URL_STATE_PARAMS);
 
@@ -716,14 +730,121 @@ async function assertChooserSwitchSettled(page, flow) {
   if (result.bootState === 'booting') issues.push('boot-state-booting-after-switch');
   if (result.transitionPhase !== 'idle') issues.push(`transition-phase:${result.transitionPhase}`);
   if (result.simulationFocusPhase !== 'idle') issues.push(`simulation-focus-phase:${result.simulationFocusPhase}`);
+  if (result.simulationFocusHandoffActive) issues.push('simulation-focus-handoff-active-after-switch');
   if (result.modalOverlayActive) issues.push('modal-overlay-active-after-switch');
   if (result.legacyFullPageBlurVisible) issues.push('legacy-fullpage-blur-visible-after-switch');
+  if (result.windowBlurVisible) issues.push('window-blur-visible-after-switch');
   if (result.pathname.startsWith('/lab/')) issues.push(`lab-path:${result.pathname}`);
   if (result.blockedParams.length > 0) issues.push(`simulation-url-params:${result.blockedParams.join(',')}`);
 
   if (issues.length) {
     throw new Error(`Chooser switch "${flow.name}" did not settle correctly: ${issues.join('; ')} ${JSON.stringify(result)}`);
   }
+}
+
+async function assertSimulationOverlayReleased(page, label) {
+  await page.waitForFunction(() => {
+    const root = document.documentElement;
+    const windowBlur = document.getElementById('window-overlay-blur-layer');
+    const styles = windowBlur ? getComputedStyle(windowBlur) : null;
+    const blurSettled = Boolean(
+      styles
+      && styles.visibility === 'hidden'
+      && Number.parseFloat(styles.opacity || '1') <= 0.001
+    );
+    return (
+      !root.dataset.absSimulationFocusTransition
+      && !root.classList.contains('simulation-focus-handoff-active')
+      && !root.classList.contains('simulation-focus-modal-open')
+      && blurSettled
+    );
+  }, null, { timeout: WAIT_MS, polling: 50 });
+
+  const state = await page.evaluate(() => {
+    const root = document.documentElement;
+    const windowBlur = document.getElementById('window-overlay-blur-layer');
+    const styles = windowBlur ? getComputedStyle(windowBlur) : null;
+    return {
+      route: root.dataset.shellRoute || '',
+      focusPhase: root.dataset.absSimulationFocusTransition || 'idle',
+      handoffClass: root.classList.contains('simulation-focus-handoff-active'),
+      modalClass: root.classList.contains('simulation-focus-modal-open'),
+      blur: styles?.backdropFilter || styles?.webkitBackdropFilter || '',
+      opacity: Number.parseFloat(styles?.opacity || '0'),
+      visibility: styles?.visibility || 'hidden',
+    };
+  });
+
+  if (
+    state.focusPhase !== 'idle'
+    || state.handoffClass
+    || state.modalClass
+    || state.opacity > 0.001
+    || state.visibility !== 'hidden'
+  ) {
+    throw new Error(`${label} left simulation overlay state active: ${JSON.stringify(state)}`);
+  }
+  return state;
+}
+
+async function exerciseCrossRouteInterruptions(page) {
+  const proof = {};
+  const currentLabel = await page.locator('.simulation-focus-switcher').textContent();
+  const nextHomeMode = ['Foundation', 'Assembly', 'Attention']
+    .find((label) => !currentLabel?.includes(label));
+  if (!nextHomeMode) throw new Error(`Could not choose a different Home simulation from "${currentLabel || ''}"`);
+
+  await openChooser(page);
+  await page.locator('.simulation-focus-modal.active .simulation-focus-row')
+    .filter({ hasText: nextHomeMode })
+    .first()
+    .click({ timeout: WAIT_MS });
+  await page.waitForFunction(() => Boolean(document.documentElement.dataset.absSimulationFocusTransition), null, {
+    timeout: WAIT_MS,
+    polling: 25,
+  });
+  await page.getByRole('link', { name: 'Contact' }).click({ timeout: WAIT_MS });
+  await page.getByRole('link', { name: 'About Me' }).click({ timeout: WAIT_MS });
+  await page.waitForFunction(() => document.documentElement.dataset.shellRoute === 'about', null, {
+    timeout: WAIT_MS,
+    polling: 50,
+  });
+  proof.rapidTabNavigation = await assertSimulationOverlayReleased(page, 'Rapid Button Bar navigation');
+
+  await page.getByRole('link', { name: 'Home' }).click({ timeout: WAIT_MS });
+  await page.waitForFunction(() => (
+    document.documentElement.dataset.shellRoute === 'home'
+    && Boolean(document.querySelector('.simulation-focus-switcher'))
+  ), null, { timeout: WAIT_MS, polling: 50 });
+  await waitForIdle(page);
+
+  await page.evaluate(() => {
+    window.__ABS_AUDIT_FORCE_DAILY_NOT_READY__ = 'repel-room';
+  });
+  await openChooser(page);
+  await page.locator('.simulation-focus-modal.active .simulation-focus-row')
+    .filter({ hasText: 'Tension' })
+    .first()
+    .click({ timeout: WAIT_MS });
+  await page.waitForFunction(() => Boolean(document.documentElement.dataset.absSimulationFocusTransition), null, {
+    timeout: WAIT_MS,
+    polling: 25,
+  });
+  await page.goBack({ waitUntil: 'domcontentloaded', timeout: WAIT_MS });
+  proof.historyInterruption = await assertSimulationOverlayReleased(page, 'History interruption');
+  if (proof.historyInterruption.route !== 'about') {
+    await page.getByRole('link', { name: 'About Me' }).click({ timeout: WAIT_MS });
+    await page.waitForFunction(() => document.documentElement.dataset.shellRoute === 'about', null, {
+      timeout: WAIT_MS,
+      polling: 50,
+    });
+  }
+  proof.historyThenTab = await assertSimulationOverlayReleased(page, 'Route after history interruption');
+  await page.evaluate(() => {
+    delete window.__ABS_AUDIT_FORCE_DAILY_NOT_READY__;
+  });
+
+  return proof;
 }
 
 function buildReportHtml(report) {
@@ -895,6 +1016,7 @@ async function main() {
         to: flow.to,
       });
     }
+    const interruptionProof = await exerciseCrossRouteInterruptions(page);
 
     const report = {
       ok: bootReport.issues.length === 0 && flowReports.every((flow) => flow.issues.length === 0),
@@ -907,6 +1029,7 @@ async function main() {
         minScale: bootReport.minScale,
         maxScale: bootReport.maxScale,
       },
+      interruptions: interruptionProof,
       flows: flowReports,
     };
 

@@ -501,14 +501,28 @@ function playRouteEnterTargets(targets, routeEnterMotion) {
 
 /* ── backdrop cleanup (with direct-DOM fallback) ─────────────────────────── */
 
-function forceBackdropDismiss() {
+function forceBackdropDismiss({ instant = false } = {}) {
   try {
     setTransitionPhase(TRANSITION_PHASES.IDLE);
     clearTransitionReturningState();
     const blur = document.getElementById('modal-blur-layer');
     const content = document.getElementById('modal-content-layer');
+    if (instant) {
+      [blur, content].forEach((layer) => {
+        if (layer) layer.style.transition = 'none';
+      });
+    }
     if (blur) blur.classList.remove('active');
     if (content) content.classList.remove('active');
+    blur?.setAttribute('aria-hidden', 'true');
+    content?.setAttribute('aria-hidden', 'true');
+    document.getElementById('custom-cursor')?.classList.remove('modal-active');
+    if (instant && blur) {
+      void blur.offsetWidth;
+      requestAnimationFrame(() => {
+        [blur, content].forEach((layer) => layer?.style.removeProperty('transition'));
+      });
+    }
     const scene = document.getElementById('abs-scene');
     if (scene) scene.classList.remove('gate-depth-active');
   } catch {
@@ -517,9 +531,12 @@ function forceBackdropDismiss() {
 }
 
 function dismissGateBackdrop(options = {}) {
+  if (options.instant) {
+    forceBackdropDismiss(options);
+  }
   import('../legacy/modules/ui/gate-modal-shared.js')
     .then((m) => m.dismissGateBackdrop(options))
-    .catch(() => forceBackdropDismiss());
+    .catch(() => forceBackdropDismiss(options));
 }
 
 /* ── animation tracking ──────────────────────────────────────────────────── */
@@ -789,6 +806,15 @@ function cleanupSimulationFocusLayer(surfaceRefs) {
 
 function removeSimulationTransactionSnapshots() {
   document.querySelectorAll('.simulation-transaction-snapshot').forEach((node) => node.remove());
+}
+
+function resetSimulationFocusTransition(surfaceRefs, { discardSnapshots = false } = {}) {
+  cleanupSimulationFocusLayer(surfaceRefs);
+  if (discardSnapshots) {
+    removeSimulationTransactionSnapshots();
+  }
+  setSimulationShellStability(false, surfaceRefs);
+  setSimulationFocusTransitionState(null);
 }
 
 function captureSimulationTransactionSnapshot() {
@@ -1420,6 +1446,9 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       && isRouteTransitionPhase(getTransitionPhase())
     );
     const preemptActiveTransition = () => {
+      const wasSimulationFocusTransition = Boolean(
+        document.documentElement.dataset.absSimulationFocusTransition
+      );
       ++transitionToken;
       queuedNavigationRef.current = null;
       activeRouteReadyCancelRef.current?.();
@@ -1427,10 +1456,10 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       transitionActiveRef.current = false;
       activeGateTransitionRef.current = false;
       finalizeTransition(false, activeRouteIdRef.current, surfaceRefs);
-      cleanupSimulationFocusLayer(surfaceRefs);
-      removeSimulationTransactionSnapshots();
-      setSimulationShellStability(false, surfaceRefs);
-      setSimulationFocusTransitionState(null);
+      resetSimulationFocusTransition(surfaceRefs, { discardSnapshots: true });
+      if (wasSimulationFocusTransition) {
+        dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
+      }
       setPendingActiveRouteId(null);
       syncSteadyTransitionPhase();
       commitHistory(activeTransitionCommittedRef.current ? 'replaceState' : method);
@@ -1455,6 +1484,10 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     const nextRouteRuntime = getRouteRuntimeRef.current(nextRouteId, nextState.canonicalHref, nextState);
     const isGate = options.transitionStyle === 'gate-success';
     const isSimulationFocus = options.transitionStyle === 'simulation-focus';
+    if (!isSimulationFocus && document.documentElement.dataset.absSimulationFocusTransition) {
+      resetSimulationFocusTransition(surfaceRefs, { discardSnapshots: true });
+      dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
+    }
     const readyMs = options.readyFallbackMs
       ?? (isGate ? 850 : (nextRouteId === 'home' ? 500 : 700));
     const routeTimings = getRouteTransitionTimings({
@@ -1494,11 +1527,9 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         gateBackdropDismissed,
         preserveTransitionPhase: releaseGateBackdrop,
       });
-      cleanupSimulationFocusLayer(surfaceRefs);
-      setSimulationShellStability(false, surfaceRefs);
-      setSimulationFocusTransitionState(null);
+      resetSimulationFocusTransition(surfaceRefs);
       if (releaseGateBackdrop) {
-        dismissGateBackdrop();
+        dismissGateBackdrop({ instant: isSimulationFocus });
       } else {
         syncSteadyTransitionPhase();
       }
@@ -1519,6 +1550,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       activeGateTransitionRef.current = false;
       activeTransitionCommittedRef.current = historyCommitted;
       setLegacyRouteTransitionActive(true, { gate: false });
+      setSimulationFocusTransitionState('prepare');
       const simulationTitleSurface = getSimulationTitleSurfaceForRouteChange(activeRouteIdRef.current, nextRouteId);
       setSimulationShellStability(true, surfaceRefs, {
         titleSurface: simulationTitleSurface,
@@ -1878,11 +1910,9 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       finalizeTransition(false, currentRouteId, surfaceRefs, {
         preserveTransitionPhase: releaseGateBackdrop,
       });
-      cleanupSimulationFocusLayer(surfaceRefs);
-      setSimulationShellStability(false, surfaceRefs);
-      setSimulationFocusTransitionState(null);
+      resetSimulationFocusTransition(surfaceRefs);
       if (releaseGateBackdrop) {
-        dismissGateBackdrop();
+        dismissGateBackdrop({ instant: isSimulationFocus });
       } else {
         syncSteadyTransitionPhase();
       }
@@ -2056,6 +2086,9 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       const isSameRoute = nextState.route.id === activeRouteIdRef.current;
       const wasGateTransition = activeGateTransitionRef.current;
       const wasTransitionActive = transitionActiveRef.current;
+      const wasSimulationFocusTransition = Boolean(
+        document.documentElement.dataset.absSimulationFocusTransition
+      );
 
       ++transitionToken;
       queuedNavigationRef.current = null;
@@ -2067,6 +2100,10 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       transitionActiveRef.current = false;
       activeGateTransitionRef.current = false;
       setPendingActiveRouteId(null);
+      if (wasSimulationFocusTransition) {
+        resetSimulationFocusTransition(surfaceRefs, { discardSnapshots: true });
+        dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
+      }
       if (isSameRoute) {
         setRouteLayerVisibility(true, surfaceRefs);
         setRouteState(nextState);
@@ -2084,19 +2121,23 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     window.addEventListener('popstate', handlePopState);
     return () => {
       window.removeEventListener('popstate', handlePopState);
+      const wasSimulationFocusTransition = Boolean(
+        document.documentElement.dataset.absSimulationFocusTransition
+      );
       if (transitionActiveRef.current) {
         ++transitionToken;
         queuedNavigationRef.current = null;
         activeRouteReadyCancelRef.current?.();
         activeRouteReadyCancelRef.current = null;
         finalizeTransition(activeGateTransitionRef.current, activeRouteIdRef.current, surfaceRefs);
-        cleanupSimulationFocusLayer(surfaceRefs);
-        setSimulationShellStability(false, surfaceRefs);
-        setSimulationFocusTransitionState(null);
         transitionActiveRef.current = false;
         activeGateTransitionRef.current = false;
         setPendingActiveRouteId(null);
         syncSteadyTransitionPhase();
+      }
+      if (wasSimulationFocusTransition) {
+        resetSimulationFocusTransition(surfaceRefs, { discardSnapshots: true });
+        dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
       }
     };
   }, [navigate, surfaceRefs, syncSteadyTransitionPhase]);

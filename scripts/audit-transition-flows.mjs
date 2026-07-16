@@ -50,6 +50,7 @@ async function waitForIdle(page) {
       })()
       && document.documentElement.dataset.absBootState !== 'booting'
     ),
+    null,
     { timeout: WAIT_MS, polling: STRICT_RAF ? 'raf' : 50 },
   );
 }
@@ -167,7 +168,7 @@ async function main() {
 
   const results = [];
   try {
-    await page.goto(routeUrl('/index.html'), { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(routeUrl('/index.html?mode=pit&absAudit=1'), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await waitForReady(page, '#c');
     results.push(await captureCheckpoint(page, 'home-initial', 'settled'));
 

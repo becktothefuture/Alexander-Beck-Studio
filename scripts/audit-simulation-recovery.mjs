@@ -43,18 +43,32 @@ async function readRecoveryState(page) {
     storedChoice: sessionStorage.getItem('abs_simulation_focus_choice_v1'),
     transitionPhase: document.documentElement.dataset.absTransitionPhase || 'idle',
     focusPhase: document.documentElement.dataset.absSimulationFocusTransition || 'idle',
+    windowBlur: (() => {
+      const element = document.getElementById('window-overlay-blur-layer');
+      const styles = element ? getComputedStyle(element) : null;
+      return {
+        opacity: Number.parseFloat(styles?.opacity || '0'),
+        visibility: styles?.visibility || 'hidden',
+      };
+    })(),
     readyEvents: window.__ABS_READY_EVENTS__ || [],
   }));
 }
 
 async function waitForRestoredFlies(page) {
-  await page.waitForFunction(() => (
-    window.__ABS_SIMULATION_SWITCH__?.status === 'failed'
-    && window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.()?.mode === 'flies'
-    && document.querySelector('.simulation-focus-switcher')?.dataset.simulationId === 'flies'
-    && !document.querySelector('#simulation-stage')
-    && !document.documentElement.dataset.absSimulationFocusTransition
-  ), { timeout: waitMs });
+  await page.waitForFunction(() => {
+    const windowBlur = document.getElementById('window-overlay-blur-layer');
+    const styles = windowBlur ? getComputedStyle(windowBlur) : null;
+    return (
+      window.__ABS_SIMULATION_SWITCH__?.status === 'failed'
+      && window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.()?.mode === 'flies'
+      && document.querySelector('.simulation-focus-switcher')?.dataset.simulationId === 'flies'
+      && !document.querySelector('#simulation-stage')
+      && !document.documentElement.dataset.absSimulationFocusTransition
+      && styles?.visibility === 'hidden'
+      && Number.parseFloat(styles.opacity || '1') <= 0.001
+    );
+  }, null, { timeout: waitMs });
 }
 
 async function createPage(browser) {
@@ -181,7 +195,9 @@ async function main() {
         (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
         && (document.documentElement.dataset.absSimulationFocusTransition || 'idle') === 'idle'
         && !document.documentElement.classList.contains('simulation-focus-modal-open')
-      ), { timeout: waitMs });
+        && getComputedStyle(document.getElementById('window-overlay-blur-layer')).visibility === 'hidden'
+        && Number.parseFloat(getComputedStyle(document.getElementById('window-overlay-blur-layer')).opacity || '1') <= 0.001
+      ), null, { timeout: waitMs });
       const successState = await readRecoveryState(page);
       assert(!requestedUrls.some((requestUrl) => requestUrl.includes('/lab/config/')), 'Route-relative config request still occurs', {
         offending: requestedUrls.filter((requestUrl) => requestUrl.includes('/lab/config/')),

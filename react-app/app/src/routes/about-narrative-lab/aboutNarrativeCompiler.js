@@ -159,24 +159,55 @@ function compileContinuityDiagnostics(sections) {
       to.offset[1] - from.offset[1],
       to.offset[2] - from.offset[2],
     );
-    if (positionGap > 0.5) {
+    if (positionGap > 0.001) {
       diagnostics.push({
         level: 'warning',
         code: 'camera-position-gap',
         path: `sections.${index}.camera.keys.0`,
-        message: `Camera offset changes ${positionGap.toFixed(2)} WU at the Section boundary.`,
+        message: `Camera offset differs by ${positionGap.toFixed(2)} WU at this boundary. Playback inherits the previous endpoint to prevent a jump.`,
       });
     }
-    if (Math.abs(to.fov - from.fov) > 8) {
+    const aimGap = Math.hypot(
+      to.lookAtOffset[0] - from.lookAtOffset[0],
+      to.lookAtOffset[1] - from.lookAtOffset[1],
+      to.lookAtOffset[2] - from.lookAtOffset[2],
+    );
+    if (aimGap > 0.001) {
+      diagnostics.push({
+        level: 'warning',
+        code: 'camera-aim-gap',
+        path: `sections.${index}.camera.keys.0`,
+        message: 'Camera aim differs at this boundary. Playback inherits the previous endpoint to prevent a rotation jump.',
+      });
+    }
+    if (Math.abs(to.fov - from.fov) > 0.01) {
       diagnostics.push({
         level: 'warning',
         code: 'camera-fov-gap',
         path: `sections.${index}.camera.keys.0`,
-        message: 'Camera field of view changes abruptly at the Section boundary.',
+        message: 'Camera field of view differs at this boundary. Playback inherits the previous endpoint to prevent a lens jump.',
+      });
+    }
+    if (Math.abs(to.roll - from.roll) > 0.001) {
+      diagnostics.push({
+        level: 'warning',
+        code: 'camera-roll-gap',
+        path: `sections.${index}.camera.keys.0`,
+        message: 'Camera roll differs at this boundary. Playback inherits the previous endpoint to prevent a rotation jump.',
       });
     }
   });
   return diagnostics;
+}
+
+function inheritCameraPose(target, source) {
+  return {
+    ...target,
+    offset: [...source.offset],
+    lookAtOffset: [...source.lookAtOffset],
+    fov: source.fov,
+    roll: source.roll,
+  };
 }
 
 export function compileAboutNarrativeDocument(input, {
@@ -200,17 +231,26 @@ export function compileAboutNarrativeDocument(input, {
   const measuredSections = compileMeasurements(document, profile, measurements);
   const maxStoryWU = Math.max(0, (measuredSections.at(-1)?.endWU || 1) - 1);
   const worldStates = compileWorldClips(measuredSections);
-  const sections = measuredSections.map((section, index) => Object.freeze({
-    ...section,
-    camera: Object.freeze({
-      ...section.camera,
-      keys: Object.freeze([...section.camera.keys].sort((a, b) => a.at - b.at).map(Object.freeze)),
-    }),
-    worldState: Object.freeze(worldStates[index]),
-  }));
+  const continuityDiagnostics = compileContinuityDiagnostics(measuredSections);
+  const sections = measuredSections.reduce((compiled, section, index) => {
+    const keys = [...section.camera.keys]
+      .sort((a, b) => a.at - b.at)
+      .map((key) => ({ ...key, offset: [...key.offset], lookAtOffset: [...key.lookAtOffset] }));
+    const previousEnd = compiled.at(-1)?.camera.keys.at(-1);
+    if (previousEnd && keys.length) keys[0] = inheritCameraPose(keys[0], previousEnd);
+    compiled.push(Object.freeze({
+      ...section,
+      camera: Object.freeze({
+        ...section.camera,
+        keys: Object.freeze(keys.map(Object.freeze)),
+      }),
+      worldState: Object.freeze(worldStates[index]),
+    }));
+    return compiled;
+  }, []);
   const completeDiagnostics = [
     ...diagnostics,
-    ...compileContinuityDiagnostics(sections),
+    ...continuityDiagnostics,
     ...compileWorldTransitionDiagnostics(sections, maxStoryWU),
   ];
   if (completeDiagnostics.some((item) => item.level === 'error')) {
@@ -307,46 +347,62 @@ export function sampleAboutNarrativePlan(plan, storyWU, {
   };
 }
 
+export function getAboutNarrativeCueMotionInterval(cue, textMotion = {}) {
+  const enter = Number(cue.enter ?? 0);
+  const focus = Number(cue.hold ?? ((enter + Number(cue.exit ?? 1)) * 0.5));
+  const exit = Number(cue.exit ?? 1);
+  const durationScale = Math.max(0.01, Number(textMotion.durationScale ?? 1));
+  return {
+    start: Math.max(0, focus - ((focus - enter) * durationScale)),
+    focus,
+    end: Math.min(1, focus + ((exit - focus) * durationScale)),
+  };
+}
+
+export function getAboutNarrativeCueMovement(cue) {
+  return cue.motion?.mode === 'vertical' ? 'vertical' : 'spatial';
+}
+
 export function sampleAboutNarrativeCue(cue, localProgress, textMotion, reducedMotion = false) {
   if (reducedMotion) {
     return { opacity: 1, scale: 1, blur: 0, x: 0, y: 0, z: 0 };
   }
-  if (cue.preset === 'opener-v1' && localProgress <= cue.hold) {
-    return { opacity: 1, scale: 1, blur: 0, x: 0, y: 0, z: 0 };
-  }
-  const enterSpan = Math.max(0.00001, cue.hold - cue.enter);
-  const exitSpan = Math.max(0.00001, cue.exit - cue.hold);
-  if (localProgress < cue.enter || localProgress > cue.exit) {
+  const interval = getAboutNarrativeCueMotionInterval(cue, textMotion);
+  const startY = Number(textMotion.startY ?? -110);
+  const endY = Number(textMotion.endY ?? 130);
+  const entryDepth = Number(textMotion.entryDepth ?? 360);
+  const exitDepth = Number(textMotion.exitDepth ?? 220);
+  const farScale = Number(textMotion.farScale ?? 0.78);
+  const nearScale = Number(textMotion.nearScale ?? 1.14);
+  const maxBlur = Number(textMotion.maxBlur ?? 22);
+  if (localProgress < interval.start || localProgress > interval.end) {
+    const before = localProgress < interval.start;
     return {
       opacity: 0,
-      scale: localProgress < cue.enter ? textMotion.farScale : textMotion.nearScale,
-      blur: textMotion.maxBlur,
+      scale: before ? farScale : nearScale,
+      blur: maxBlur,
       x: 0,
-      y: localProgress < cue.enter ? 0 : -textMotion.exitDrift,
-      z: localProgress < cue.enter ? -textMotion.entryDepth : textMotion.exitDepth,
+      y: before ? startY : endY,
+      z: before ? -entryDepth : exitDepth,
     };
   }
-  if (localProgress <= cue.hold) {
-    const progress = applyAboutNarrativeEasing('ease-out', (localProgress - cue.enter) / enterSpan);
-    return {
-      opacity: progress,
-      scale: mix(textMotion.farScale, 1, progress),
-      blur: mix(textMotion.maxBlur * 0.85, 0, progress),
-      x: 0,
-      y: 0,
-      z: mix(-textMotion.entryDepth, 0, progress),
-    };
-  }
-  if (cue.exit >= 1 && cue.preset === 'finale-v1') {
-    return { opacity: 1, scale: 1, blur: 0, x: 0, y: 0, z: 0 };
-  }
-  const progress = applyAboutNarrativeEasing('ease-out', (localProgress - cue.hold) / exitSpan);
+  const span = Math.max(0.00001, interval.end - interval.start);
+  const progress = clamp01((localProgress - interval.start) / span);
+  const readableStart = clamp01(Number(textMotion.readableStart ?? 0.24));
+  const readableEnd = clamp01(Number(textMotion.readableEnd ?? 0.76));
+  const clearIn = readableStart <= 0
+    ? 1
+    : applyAboutNarrativeEasing('smoothstep', progress / readableStart);
+  const clearOut = readableEnd >= 1
+    ? 1
+    : 1 - applyAboutNarrativeEasing('smoothstep', (progress - readableEnd) / (1 - readableEnd));
+  const clarity = Math.min(clearIn, clearOut);
   return {
-    opacity: 1 - progress,
-    scale: mix(1, textMotion.nearScale, progress),
-    blur: mix(0, textMotion.maxBlur, progress),
+    opacity: clarity,
+    scale: mix(farScale, nearScale, progress),
+    blur: mix(maxBlur, 0, clarity),
     x: 0,
-    y: mix(0, -textMotion.exitDrift, progress),
-    z: mix(0, textMotion.exitDepth, progress),
+    y: mix(startY, endY, progress),
+    z: mix(-entryDepth, exitDepth, progress),
   };
 }

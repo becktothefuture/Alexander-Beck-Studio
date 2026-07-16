@@ -16,6 +16,10 @@ The live reference is `/styleguide.html`. It must describe production components
 
 `.abs-icon-btn` is the shared frame for back, sound, and other glyph-only utility actions. Every icon button needs an accessible name and visible focus treatment.
 
+### Quiet control material
+
+The Home simulation switcher, Portfolio card CTA, Portfolio drawer back button, and Contact email/copy action share the `--abs-soft-control-*` material tokens. The material follows the studio-window theme, mixes in no more than 5% black, preserves background context with blur, and uses a 0.5px outline at 12% opacity (15% maximum for active states). Hover, keyboard focus, press, and persistent open states use the shared emphasis fill: white in light mode and near-black in dark mode. The simulation chooser applies this same blurred emphasis state and active edge to its selected row, hovered row, and close button. Components keep their own geometry while consuming the same fill, edge, blur, and saturation values; no component adds a second colored halo or glow.
+
 ## Route top bars
 
 Use `header.ui-top > .ui-top-main.route-topbar` only when a route or lab needs a back/local utility control. Keep left, center, and right slots structurally stable. Do not add a second set of route links.

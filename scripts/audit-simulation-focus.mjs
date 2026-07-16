@@ -37,13 +37,18 @@ async function waitForIdle(page) {
     () => {
       const blur = document.getElementById('modal-blur-layer');
       const content = document.getElementById('modal-content-layer');
+      const windowBlur = document.getElementById('window-overlay-blur-layer');
+      const windowBlurStyles = windowBlur ? getComputedStyle(windowBlur) : null;
       return (
         (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
         && (document.documentElement.dataset.absSimulationFocusTransition || 'idle') === 'idle'
         && !blur?.classList.contains('active')
         && !content?.classList.contains('active')
+        && windowBlurStyles?.visibility === 'hidden'
+        && Number.parseFloat(windowBlurStyles.opacity || '1') <= 0.001
       );
     },
+    null,
     { timeout: WAIT_MS, polling: 50 },
   );
 }
@@ -160,6 +165,8 @@ async function assertChooserSwitchSettled(page, label) {
     const url = new URL(window.location.href);
     const blur = document.getElementById('modal-blur-layer');
     const content = document.getElementById('modal-content-layer');
+    const windowBlur = document.getElementById('window-overlay-blur-layer');
+    const windowBlurStyles = windowBlur ? getComputedStyle(windowBlur) : null;
     return {
       href: window.location.href,
       pathname: url.pathname,
@@ -169,13 +176,22 @@ async function assertChooserSwitchSettled(page, label) {
       transitionPhase: document.documentElement.dataset.absTransitionPhase || 'idle',
       simulationFocusPhase: document.documentElement.dataset.absSimulationFocusTransition || 'idle',
       modalOverlayActive: Boolean(blur?.classList.contains('active') || content?.classList.contains('active')),
+      windowBlurSettled: Boolean(
+        windowBlurStyles?.visibility === 'hidden'
+        && Number.parseFloat(windowBlurStyles.opacity || '1') <= 0.001
+      ),
     };
   }, SIMULATION_URL_STATE_PARAMS);
 
   if (result.bootOverlayPresent || result.bootState === 'booting') {
     throw new Error(`Boot overlay/state reset during chooser switch to "${label}": ${JSON.stringify(result)}`);
   }
-  if (result.transitionPhase !== 'idle' || result.simulationFocusPhase !== 'idle' || result.modalOverlayActive) {
+  if (
+    result.transitionPhase !== 'idle'
+    || result.simulationFocusPhase !== 'idle'
+    || result.modalOverlayActive
+    || !result.windowBlurSettled
+  ) {
     throw new Error(`Chooser switch to "${label}" did not settle idle: ${JSON.stringify(result)}`);
   }
   if (result.pathname.startsWith('/lab/') || result.blockedParams.length > 0) {
