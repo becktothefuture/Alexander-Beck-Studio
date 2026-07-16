@@ -5,9 +5,19 @@ import {
   generateAboutNarrativeShape,
 } from './aboutNarrativePointShapes.js';
 import { applyAboutNarrativeCorrespondence } from './aboutNarrativeCorrespondence.js';
+import { getGlobals } from '../../legacy/modules/core/state.js';
 
 const DESKTOP_POINT_COUNT = 12000;
 const MOBILE_POINT_COUNT = 5000;
+const MATERIAL_SLOT_COUNT = 6;
+const FALLBACK_MATERIAL_DISTRIBUTION = Object.freeze([
+  Object.freeze({ colorIndex: 0, weight: 31 }),
+  Object.freeze({ colorIndex: 3, weight: 13 }),
+  Object.freeze({ colorIndex: 2, weight: 16 }),
+  Object.freeze({ colorIndex: 6, weight: 20 }),
+  Object.freeze({ colorIndex: 7, weight: 10 }),
+  Object.freeze({ colorIndex: 5, weight: 10 }),
+]);
 
 const VERTEX_SHADER = `
   attribute vec3 targetPosition;
@@ -46,11 +56,17 @@ const VERTEX_SHADER = `
   uniform float fromBust;
   uniform float toBust;
   uniform float bustYaw;
-  uniform vec3 pointColor;
-  uniform vec3 disciplineColor1;
-  uniform vec3 disciplineColor2;
-  uniform vec3 disciplineColor3;
-  uniform vec3 disciplineColor4;
+  uniform vec3 materialColor1;
+  uniform vec3 materialColor2;
+  uniform vec3 materialColor3;
+  uniform vec3 materialColor4;
+  uniform vec3 materialColor5;
+  uniform vec3 materialColor6;
+  uniform float materialThreshold1;
+  uniform float materialThreshold2;
+  uniform float materialThreshold3;
+  uniform float materialThreshold4;
+  uniform float materialThreshold5;
   varying float pointAlpha;
   varying vec3 pointTint;
 
@@ -65,12 +81,21 @@ const VERTEX_SHADER = `
   }
 
   vec3 groupColor(float index) {
-    if (index < 1.5) return disciplineColor1;
-    if (index < 2.5) return disciplineColor2;
-    if (index < 3.5) return disciplineColor3;
-    if (index < 4.5) return disciplineColor4;
-    if (index < 5.5) return disciplineColor1;
-    return disciplineColor2;
+    if (index < 1.5) return materialColor1;
+    if (index < 2.5) return materialColor2;
+    if (index < 3.5) return materialColor3;
+    if (index < 4.5) return materialColor4;
+    if (index < 5.5) return materialColor5;
+    return materialColor6;
+  }
+
+  vec3 materialColor(float seed) {
+    if (seed < materialThreshold1) return materialColor1;
+    if (seed < materialThreshold2) return materialColor2;
+    if (seed < materialThreshold3) return materialColor3;
+    if (seed < materialThreshold4) return materialColor4;
+    if (seed < materialThreshold5) return materialColor5;
+    return materialColor6;
   }
 
   void main() {
@@ -109,12 +134,14 @@ const VERTEX_SHADER = `
     float livingBand = 0.5 + (0.5 * sin(
       (worldPoint.x * 0.72) + (worldPoint.z * 0.38) + (ambientTime * 0.18)
     ));
-    vec3 livingColor = mix(
-      disciplineColor1,
-      disciplineColor2,
-      0.5 + (0.5 * sin(pointSeed * 18.0))
+    float materialSeed = fract((pointSeed * 43.713) + 0.271);
+    vec3 baseColor = materialColor(materialSeed);
+    vec3 livingColor = materialColor(fract((materialSeed * 3.17) + 0.37));
+    pointTint = mix(
+      baseColor,
+      livingColor,
+      colourWeight * smoothstep(0.72, 0.98, livingBand) * 0.48
     );
-    pointTint = mix(pointColor, livingColor, colourWeight * smoothstep(0.72, 0.98, livingBand));
     pointTint = mix(pointTint, groupColor(group), groupWeight);
 
     vec4 viewPoint = modelViewMatrix * vec4(worldPoint, 1.0);
@@ -124,7 +151,7 @@ const VERTEX_SHADER = `
     float emphasis = 1.0 + (groupWeight * groupStrength) + (waveWeight * 0.18);
     gl_PointSize = pointSize * sizeWeight * emphasis * pixelRatio
       * clamp(5.0 / max(1.0, -viewPoint.z), 0.56, 3.2);
-    pointAlpha = presence * (0.56 + (0.34 * sin((pointSeed * 19.0) + 1.4)));
+    pointAlpha = presence;
   }
 `;
 
@@ -137,7 +164,7 @@ const FRAGMENT_SHADER = `
     vec2 center = gl_PointCoord - vec2(0.5);
     float radius = length(center);
     if (radius > 0.5 || pointAlpha <= 0.001) discard;
-    float edge = 1.0 - smoothstep(0.34, 0.5, radius);
+    float edge = 1.0 - smoothstep(0.44, 0.5, radius);
     gl_FragColor = vec4(pointTint, fieldOpacity * pointAlpha * edge);
   }
 `;
@@ -148,6 +175,37 @@ function modifier(world, id) {
 
 function readColorToken(styles, token, fallback) {
   return styles.getPropertyValue(token).trim() || fallback;
+}
+
+function getMaterialDistribution() {
+  const configured = getGlobals()?.colorDistribution;
+  const valid = Array.isArray(configured)
+    ? configured.filter((row) => Number(row?.weight) > 0).slice(0, MATERIAL_SLOT_COUNT)
+    : [];
+  if (valid.length !== MATERIAL_SLOT_COUNT) return FALLBACK_MATERIAL_DISTRIBUTION;
+  return valid;
+}
+
+function syncMaterialPalette(uniforms, styles) {
+  const distribution = getMaterialDistribution();
+  const weights = distribution.map((row) => Number(row.weight));
+  const total = weights.reduce((sum, weight) => sum + weight, 0) || 1;
+  let cumulative = 0;
+  distribution.forEach((row, index) => {
+    const colorIndex = Math.max(0, Math.min(7, Math.floor(Number(row.colorIndex) || 0)));
+    const fallback = FALLBACK_MATERIAL_DISTRIBUTION[index];
+    const fallbackIndex = Math.max(0, Math.min(7, Number(fallback.colorIndex) || 0));
+    const color = readColorToken(
+      styles,
+      `--ball-${colorIndex + 1}`,
+      readColorToken(styles, `--ball-${fallbackIndex + 1}`, '#ffffff'),
+    );
+    uniforms[`materialColor${index + 1}`].value.setStyle(color);
+    cumulative += weights[index] / total;
+    if (index < MATERIAL_SLOT_COUNT - 1) {
+      uniforms[`materialThreshold${index + 1}`].value = cumulative;
+    }
+  });
 }
 
 function createEmptyAttribute(count, value = 0) {
@@ -222,7 +280,7 @@ function createPointFieldAdapter({ canvas, root, interaction, runtimeRef }) {
     morphProgress: { value: 0 },
     storyTime: { value: 0 },
     ambientTime: { value: 0 },
-    pointSize: { value: 3.6 },
+    pointSize: { value: 5.4 },
     pixelRatio: { value: 1 },
     fromDriftAmplitude: { value: 0 },
     toDriftAmplitude: { value: 0 },
@@ -245,19 +303,25 @@ function createPointFieldAdapter({ canvas, root, interaction, runtimeRef }) {
     fromBust: { value: 0 },
     toBust: { value: 0 },
     bustYaw: { value: 0 },
-    pointColor: { value: new THREE.Color('#ffffff') },
-    disciplineColor1: { value: new THREE.Color('#0d5cb6') },
-    disciplineColor2: { value: new THREE.Color('#00695c') },
-    disciplineColor3: { value: new THREE.Color('#ffa000') },
-    disciplineColor4: { value: new THREE.Color('#d7ff2f') },
-    fieldOpacity: { value: 0.82 },
+    materialColor1: { value: new THREE.Color('#b5b7b6') },
+    materialColor2: { value: new THREE.Color('#00695c') },
+    materialColor3: { value: new THREE.Color('#ffffff') },
+    materialColor4: { value: new THREE.Color('#0d5cb6') },
+    materialColor5: { value: new THREE.Color('#ffa000') },
+    materialColor6: { value: new THREE.Color('#d7ff2f') },
+    materialThreshold1: { value: 0.31 },
+    materialThreshold2: { value: 0.44 },
+    materialThreshold3: { value: 0.60 },
+    materialThreshold4: { value: 0.80 },
+    materialThreshold5: { value: 0.90 },
+    fieldOpacity: { value: 0.96 },
   };
   const material = new THREE.ShaderMaterial({
     uniforms,
     vertexShader: VERTEX_SHADER,
     fragmentShader: FRAGMENT_SHADER,
     transparent: true,
-    depthWrite: false,
+    depthWrite: true,
     blending: THREE.NormalBlending,
   });
   geometry.setAttribute('position', new THREE.BufferAttribute(emptyPositions, 3));
@@ -297,11 +361,7 @@ function createPointFieldAdapter({ canvas, root, interaction, runtimeRef }) {
 
   const updateTheme = () => {
     const styles = getComputedStyle(root);
-    uniforms.pointColor.value.setStyle(styles.color || '#ffffff');
-    uniforms.disciplineColor1.value.setStyle(readColorToken(styles, '--ball-7', '#0d5cb6'));
-    uniforms.disciplineColor2.value.setStyle(readColorToken(styles, '--ball-4', '#00695c'));
-    uniforms.disciplineColor3.value.setStyle(readColorToken(styles, '--ball-8', '#ffa000'));
-    uniforms.disciplineColor4.value.setStyle(readColorToken(styles, '--ball-6', '#d7ff2f'));
+    syncMaterialPalette(uniforms, styles);
   };
 
   const resize = () => {
@@ -523,6 +583,8 @@ function createPointFieldAdapter({ canvas, root, interaction, runtimeRef }) {
   interaction.addEventListener('keydown', handleKeyDown);
   canvas.addEventListener('webglcontextlost', handleContextLost);
   canvas.addEventListener('webglcontextrestored', handleContextRestored);
+  window.addEventListener('bb:paletteChanged', updateTheme);
+  window.addEventListener('abs:theme-changed', updateTheme);
   resize();
   updateTheme();
   root.dataset.pointWorldState = 'ready';
@@ -560,6 +622,8 @@ function createPointFieldAdapter({ canvas, root, interaction, runtimeRef }) {
     interaction.removeEventListener('keydown', handleKeyDown);
     canvas.removeEventListener('webglcontextlost', handleContextLost);
     canvas.removeEventListener('webglcontextrestored', handleContextRestored);
+    window.removeEventListener('bb:paletteChanged', updateTheme);
+    window.removeEventListener('abs:theme-changed', updateTheme);
     geometry.dispose();
     material.dispose();
     renderer.dispose();

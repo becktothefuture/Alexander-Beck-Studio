@@ -6,10 +6,174 @@
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "internal",
   "lastReviewed": "2026-07-15",
-  "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
-  "workingHypotheses": [],
-  "claims": [],
-  "conflicts": [],
+  "readiness": {"sourceCoverage": "partial", "interviewStatus": "not_started", "mediaCoverage": "partial", "copyStatus": "blocked_missing_facts"},
+  "workingHypotheses": [
+    "Yoti is probably too broad for one linear case study; the strongest story may be a system of trust told through three concrete artefacts."
+  ],
+  "claims": [
+    {
+      "id": "claim-yoti-001",
+      "category": "brief",
+      "statement": "Yoti aimed to make digital identity feel secure, private, intelligible, and usable across online and offline contexts.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 27, Factsheet background"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "This is company-level context; the case study still needs a bounded project."
+    },
+    {
+      "id": "claim-yoti-002",
+      "category": "audience",
+      "statement": "The work addressed consumers proving identity or age, third-party businesses requesting data, in-store staff, and internal stakeholders.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 27–34"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Choose one primary audience per chapter or narrow the case study."
+    },
+    {
+      "id": "claim-yoti-003",
+      "category": "role",
+      "statement": "Alexander worked as a Senior Product Designer across product, engineering, brand, and design-system work.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [
+        {"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — Yoti"},
+        {"sourceId": "src-20260715-002", "locator": "p. 27, My Role"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Separate ownership by artefact and team."
+    },
+    {
+      "id": "claim-yoti-004",
+      "category": "timeline",
+      "statement": "The CV dates Alexander's Yoti employment from December 2017 to November 2019.",
+      "status": "disputed",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — Yoti"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Conflicts with the old portfolio's 'over two and a half years' statement."
+    },
+    {
+      "id": "claim-yoti-005",
+      "category": "timeline",
+      "statement": "Portfolio v1 says the work spanned over two and a half years.",
+      "status": "disputed",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 27, Factsheet background"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Resolve against employment dates and any freelance or prior involvement."
+    },
+    {
+      "id": "claim-yoti-006",
+      "category": "hands_on",
+      "statement": "Alexander co-developed the design system and style guide and helped maintain cohesion across product, engineering, and brand.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [
+        {"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — Yoti"},
+        {"sourceId": "src-20260715-002", "locator": "p. 27, My Role"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Clarify co-founder language, governance, and lasting contribution."
+    },
+    {
+      "id": "claim-yoti-007",
+      "category": "hands_on",
+      "statement": "Alexander says he designed and prototyped a gyroscope-driven, spoof-resistant hologram for in-store age proof.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 28, Anti-spoof hologram"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Strong personal-contribution story; confirm collaborators and technical implementation."
+    },
+    {
+      "id": "claim-yoti-008",
+      "category": "delivery_status",
+      "statement": "The old portfolio claims the hologram progressed from R&D prototype to production and remained in use in May 2025.",
+      "status": "candidate",
+      "confidence": "low",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 28, Anti-spoof hologram"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Verify present status and publication permission."
+    },
+    {
+      "id": "claim-yoti-009",
+      "category": "hands_on",
+      "statement": "Other attributed work includes a low-cost physical ID scanner, third-party QR login, an age-verification recovery effort, the main website, and content strategy.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 29–34"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "This breadth should be separated into discrete artefacts during interview."
+    },
+    {
+      "id": "claim-yoti-010",
+      "category": "constraint",
+      "statement": "Policy change, public scepticism, privacy concerns, spoof resistance, and unfamiliar interaction models made trust the central design constraint.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 27, 28, 30, and 33"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Strong narrative frame if anchored to a specific journey."
+    },
+    {
+      "id": "claim-yoti-011",
+      "category": "collaboration",
+      "statement": "The factsheet names Andy Ainger, Amy Rodgers, a partially redacted brand lead, and a partially redacted head of development as collaborators.",
+      "status": "candidate",
+      "confidence": "low",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 27, Creds"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Incomplete names mean no public credit can be drafted yet."
+    },
+    {
+      "id": "claim-yoti-012",
+      "category": "outcome",
+      "statement": "The CV claims privacy-first onboarding reduced drop-off, while Portfolio v1 claims several systems remained in use.",
+      "status": "candidate",
+      "confidence": "low",
+      "sensitivity": "internal",
+      "sources": [
+        {"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — Yoti"},
+        {"sourceId": "src-20260715-002", "locator": "p. 27, My Role"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Neither outcome has supporting metrics or current verification."
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "conflict-yoti-001",
+      "claimIds": ["claim-yoti-004", "claim-yoti-005"],
+      "status": "open",
+      "question": "Was Alexander's Yoti involvement approximately two years or more than two and a half years?",
+      "resolution": null
+    }
+  ],
   "openQuestions": [
     {"id": "q-yoti-001", "category": "brief", "question": "Which exact identity or age-verification product and user journey should the case study cover?", "status": "open", "answer": null, "sourceIds": []},
     {"id": "q-yoti-002", "category": "role", "question": "What did Alexander personally design, prototype, write, or test?", "status": "open", "answer": null, "sourceIds": []},
@@ -17,7 +181,17 @@
     {"id": "q-yoti-004", "category": "team", "question": "Who resolved the cross-device, product, legal, or technical tensions with Alexander?", "status": "open", "answer": null, "sourceIds": []},
     {"id": "q-yoti-005", "category": "outcome", "question": "What shipped or remained live, and what evidence or feedback may be stated publicly?", "status": "open", "answer": null, "sourceIds": []}
   ],
-  "media": [],
+  "media": [
+    {"id": "media-yoti-001", "sourceId": "src-20260715-002", "locator": "p. 27", "subject": "Yoti factsheet", "storyUse": "Scope, role, and collaborator reference", "status": "candidate", "permissionStatus": "unknown", "notes": "Working reference."},
+    {"id": "media-yoti-002", "sourceId": "src-20260715-002", "locator": "p. 28", "subject": "Gyroscope-based anti-spoof hologram", "storyUse": "Signature interaction and personal contribution", "status": "candidate", "permissionStatus": "unknown", "notes": "Request prototype video or original frames."},
+    {"id": "media-yoti-003", "sourceId": "src-20260715-002", "locator": "p. 29", "subject": "Physical in-store scanner prototype", "storyUse": "Show physical prototyping", "status": "candidate", "permissionStatus": "unknown", "notes": "Request unblurred process photos."},
+    {"id": "media-yoti-004", "sourceId": "src-20260715-002", "locator": "p. 30", "subject": "Third-party QR login states", "storyUse": "Explain the first brand touchpoint", "status": "candidate", "permissionStatus": "unknown", "notes": "Request partner-safe screens."},
+    {"id": "media-yoti-005", "sourceId": "src-20260715-002", "locator": "p. 31", "subject": "British Airways data-sharing handoff", "storyUse": "Show what information the user is asked to share", "status": "candidate", "permissionStatus": "unknown", "notes": "Confirm rights to show the partner brand."},
+    {"id": "media-yoti-006", "sourceId": "src-20260715-002", "locator": "p. 32", "subject": "Patented security visual", "storyUse": "Potential transition between trust artefacts", "status": "candidate", "permissionStatus": "unknown", "notes": "Insufficient context in source; may be dropped."},
+    {"id": "media-yoti-007", "sourceId": "src-20260715-002", "locator": "p. 33", "subject": "Adult age-verification flow", "storyUse": "Show privacy and recovery challenge", "status": "candidate", "permissionStatus": "unknown", "notes": "Sensitive context; require explicit clearance."},
+    {"id": "media-yoti-008", "sourceId": "src-20260715-002", "locator": "p. 34", "subject": "Yoti website redesign", "storyUse": "Show structural and voice work", "status": "candidate", "permissionStatus": "unknown", "notes": "Request original website captures."},
+    {"id": "media-yoti-009", "sourceId": "src-20260715-002", "locator": "p. 35", "subject": "Website and brand-system montage", "storyUse": "Connect product, brand, and content", "status": "candidate", "permissionStatus": "unknown", "notes": "Locate original assets."},
+    {"id": "media-yoti-010", "sourceId": "src-20260715-002", "locator": "p. 36", "subject": "Cross-layer storytelling material", "storyUse": "Close on stewardship across product and communications", "status": "candidate", "permissionStatus": "unknown", "notes": "Source image is blurred; request concrete artefacts."}
+  ],
   "interviewRounds": []
 }
-

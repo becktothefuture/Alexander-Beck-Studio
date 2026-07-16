@@ -37,7 +37,7 @@
     {
       "id": "interview_update",
       "description": "Register interview answers and use them to confirm, dispute, or withhold claims.",
-      "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/sources/index.json", "docs/portfolio/projects/{project_id}.json", "docs/portfolio/templates/interview-round.md"],
+      "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/sources/index.json", "docs/portfolio/projects/{project_id}.json", "docs/portfolio/INTERVIEW-ROADMAP.md", "docs/portfolio/templates/interview-round.md"],
       "allowedWrites": ["docs/portfolio/sources/raw/", "docs/portfolio/sources/extracted/", "docs/portfolio/sources/index.json", "docs/portfolio/projects/{project_id}.json", "docs/portfolio/logs/ingestion-log.md"],
       "postconditions": ["interview_is_registered_source", "personal_claims_are_user_confirmed"]
     },
@@ -50,4 +50,3 @@
     }
   ]
 }
-

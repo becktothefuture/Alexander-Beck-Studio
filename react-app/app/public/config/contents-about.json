@@ -11,8 +11,8 @@
       "fov": 48
     },
     "pointMaterial": {
-      "opacity": 0.82,
-      "pointSize": 3.6
+      "opacity": 0.96,
+      "pointSize": 5.4
     },
     "textMotion": {
       "preset": "travelling-title-v1",
@@ -109,7 +109,7 @@
         },
         "shapeParameters": {
           "radius": 2.7,
-          "density": 1
+          "density": 0.12
         },
         "modifiers": [
           {
@@ -285,7 +285,7 @@
           "depth": 17,
           "height": -1.72,
           "jitter": 0.035,
-          "density": 1
+          "density": 0.14
         },
         "modifiers": [
           {
@@ -511,7 +511,7 @@
           "width": 12.5,
           "height": 7.5,
           "depthJitter": 0.04,
-          "density": 1
+          "density": 0.18
         },
         "modifiers": [
           {
@@ -773,7 +773,7 @@
           "baseY": -1.58,
           "terrainX": 0.14,
           "terrainZ": 0.12,
-          "density": 1
+          "density": 0.16
         },
         "modifiers": [
           {
@@ -1002,7 +1002,7 @@
           "correspondence": "index-v1"
         },
         "shapeParameters": {
-          "density": 1
+          "density": 0.38
         },
         "modifiers": [
           {

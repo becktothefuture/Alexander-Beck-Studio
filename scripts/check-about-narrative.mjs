@@ -45,7 +45,7 @@ test('compiler derives a single ordered WU sequence', () => {
   assert.equal(plan.totalExtentWU, canonical.sections.reduce((sum, section) => sum + section.extentWU, 0));
 });
 
-test('canonical document follows the approved V7 storyboard allocation', () => {
+test('canonical document preserves the approved eight-part storyboard allocation', () => {
   assert.deepEqual(
     canonical.sections.map((section) => section.id),
     ['promise', 'complexity', 'background', 'practice-reveal', 'disciplines', 'bringing-life', 'role', 'epilogue'],
@@ -61,6 +61,15 @@ test('canonical document follows the approved V7 storyboard allocation', () => {
   assert.equal(canonical.sections[7].text.cues[0].text, 'If you are building something new, let’s talk.');
   assert.equal(canonical.sections[7].text.profile, undefined);
   assert.equal(canonical.sections[7].text.prompt, undefined);
+});
+
+test('spatial copy is authored as single-sentence beats', () => {
+  canonical.sections.forEach((section) => {
+    (section.text.cues || []).forEach((cue) => {
+      const sentenceBreaks = cue.text.match(/[.!?][…”’"')\]]*\s+(?=[\p{L}\p{N}])/gu) || [];
+      assert.equal(sentenceBreaks.length, 0, `${cue.id} should contain no more than one sentence`);
+    });
+  });
 });
 
 test('every Section has protected camera boundary keyframes', () => {

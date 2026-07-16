@@ -54,6 +54,7 @@ yarn-error.log*
 # One-off local audit scripts (Playwright/Node scratch)
 tmp/*.cjs
 tmp/*.mjs
+/tmp/pdfs/
 output/cv_audit.js
 output/*.cjs
 

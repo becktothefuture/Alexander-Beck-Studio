@@ -6,9 +6,39 @@
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "internal",
   "lastReviewed": "2026-07-15",
-  "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
-  "workingHypotheses": [],
-  "claims": [],
+  "readiness": {"sourceCoverage": "partial", "interviewStatus": "not_started", "mediaCoverage": "not_started", "copyStatus": "blocked_missing_facts"},
+  "workingHypotheses": [
+    "The supplied files confirm MRM (McCann) as an employer but do not identify the separate McCann project intended for the portfolio."
+  ],
+  "claims": [
+    {
+      "id": "claim-mccann-001",
+      "category": "project_identity",
+      "statement": "Alexander worked at MRM (McCann) in London as an Associate Design Director when the 2025 materials were produced.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [
+        {"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — MRM (McCann)"},
+        {"sourceId": "src-20260715-002", "locator": "p. 56, Professional Experience — MRM (McCann)"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Employment context is not evidence for the intended McCann case study."
+    },
+    {
+      "id": "claim-mccann-002",
+      "category": "timeline",
+      "statement": "The CV dates the MRM role from July 2024 and lists it as current in June 2025.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — MRM (McCann)"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "This is an employment timeline, not a project timeline."
+    }
+  ],
   "conflicts": [],
   "openQuestions": [
     {"id": "q-mccann-001", "category": "project_identity", "question": "Which McCann organisation, website, or initiative was this?", "status": "open", "answer": null, "sourceIds": []},
@@ -20,4 +50,3 @@
   "media": [],
   "interviewRounds": []
 }
-

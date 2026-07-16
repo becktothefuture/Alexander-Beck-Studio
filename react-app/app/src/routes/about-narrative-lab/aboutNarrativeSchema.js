@@ -161,8 +161,8 @@ export function normalizeAboutNarrativeDocument(input = {}) {
         fov: fallbackFov,
       },
       pointMaterial: {
-        opacity: Number(pointMaterial.opacity ?? 0.82),
-        pointSize: Number(pointMaterial.pointSize ?? 3.6),
+        opacity: Number(pointMaterial.opacity ?? 0.96),
+        pointSize: Number(pointMaterial.pointSize ?? 5.4),
       },
       textMotion: {
         preset: String(textMotion.preset || 'travelling-title-v1'),

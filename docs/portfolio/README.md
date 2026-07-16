@@ -23,6 +23,7 @@ Conflicting claims stay separate until resolved. Older portfolio language is use
 
 - Project catalogue and readiness: `catalog.json`
 - Per-project claim ledgers: `projects/<project-id>.json`
+- Project-by-project interview sequence: `INTERVIEW-ROADMAP.md`
 - Original supplied files: `sources/raw/<source-id>/`
 - Page- or slide-addressable extraction notes: `sources/extracted/<source-id>.md`
 - Source registry and checksums: `sources/index.json`
@@ -36,4 +37,3 @@ Conflicting claims stay separate until resolved. Older portfolio language is use
 Final portfolio copy may use only confirmed claims. Candidate claims can create interview questions, but cannot appear as settled facts. A project becomes copy-ready only when its required fact categories, publication permissions, and media sequence are complete.
 
 American Heart Association is explicitly `on_hold`. Sources may be catalogued, but the project cannot move into final-copy drafting until Alexander removes the hold.
-

@@ -6,9 +6,24 @@
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "confidential",
   "lastReviewed": "2026-07-15",
-  "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
-  "workingHypotheses": [],
-  "claims": [],
+  "readiness": {"sourceCoverage": "partial", "interviewStatus": "not_started", "mediaCoverage": "not_started", "copyStatus": "blocked_missing_facts"},
+  "workingHypotheses": [
+    "The supplied portfolio confirms only that Swiss Re was prior experience; every substantive case-study fact still needs to come from interview or new source material."
+  ],
+  "claims": [
+    {
+      "id": "claim-swissre-001",
+      "category": "project_identity",
+      "statement": "Swiss Re appears in a prior personal-site experience credit alongside Bentley, S&P Global, and Tourism Ireland.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "confidential",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 50, Evolving Depth — embedded personal-site screen"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "No product, role, timeframe, team, or outcome is supplied."
+    }
+  ],
   "conflicts": [],
   "openQuestions": [
     {"id": "q-swissre-001", "category": "project_identity", "question": "What product, service, platform, or initiative was the work for?", "status": "open", "answer": null, "sourceIds": []},
@@ -21,4 +36,3 @@
   "media": [],
   "interviewRounds": []
 }
-

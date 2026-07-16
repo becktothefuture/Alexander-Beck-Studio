@@ -15,6 +15,7 @@ const REQUIRED_PATHS = [
   'README.md',
   'SCHEMA.md',
   'EXTRACTION-WORKFLOW.md',
+  'INTERVIEW-ROADMAP.md',
   'router.yaml',
   'catalog.json',
   'sources/index.json',

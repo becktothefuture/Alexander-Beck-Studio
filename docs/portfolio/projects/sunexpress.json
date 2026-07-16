@@ -6,10 +6,144 @@
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "internal",
   "lastReviewed": "2026-07-15",
-  "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
-  "workingHypotheses": [],
-  "claims": [],
-  "conflicts": [],
+  "readiness": {"sourceCoverage": "partial", "interviewStatus": "not_started", "mediaCoverage": "partial", "copyStatus": "blocked_missing_facts"},
+  "workingHypotheses": [
+    "The honest archive angle is that the visual style has aged, while the information architecture and booking decisions remain useful evidence."
+  ],
+  "claims": [
+    {
+      "id": "claim-sunexpress-001",
+      "category": "brief",
+      "statement": "The project aimed to overhaul an outdated and structurally cluttered airline website and booking experience.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 38, Factsheet background"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm whether the engagement covered the full site or selected releases."
+    },
+    {
+      "id": "claim-sunexpress-002",
+      "category": "audience",
+      "statement": "The work served leisure travellers booking across languages, platforms, and branching itinerary types.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 38 and 44"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Identify primary markets and accessibility needs."
+    },
+    {
+      "id": "claim-sunexpress-003",
+      "category": "role",
+      "statement": "Alexander describes responsibility for end-to-end UX while working as an Art Director at Dennerlein GmbH.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [
+        {"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — Dennerlein GmbH"},
+        {"sourceId": "src-20260715-002", "locator": "p. 38, My Role"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm the exact title and responsibility during this specific project."
+    },
+    {
+      "id": "claim-sunexpress-004",
+      "category": "timeline",
+      "statement": "The work took place during Alexander's Dennerlein tenure from October 2014 to August 2017, but exact project dates are not yet known.",
+      "status": "candidate",
+      "confidence": "low",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — Dennerlein GmbH"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Employment window is not a project timeline."
+    },
+    {
+      "id": "claim-sunexpress-005",
+      "category": "hands_on",
+      "statement": "Attributed work includes journey mapping, interaction audits, screen restructuring, booking-flow design, a responsive design system, and a multilingual icon set.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 38–44"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Clarify which pieces were designed personally versus by the visual-design team."
+    },
+    {
+      "id": "claim-sunexpress-006",
+      "category": "constraint",
+      "statement": "The redesign had to rationalise more than 100 inconsistent pages while supporting accessibility, multiple languages, operational constraints, and complex booking branches.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 38, 40, and 44"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm the 100+ page count and actual accessibility standard."
+    },
+    {
+      "id": "claim-sunexpress-007",
+      "category": "decision",
+      "statement": "Analytics showing missed promotions, low scrolling, and mid-booking drop-off led the team to reprioritise content and place booking functionality first.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 39, Reading the Signals"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Ask which metric or observed behaviour most directly changed a screen."
+    },
+    {
+      "id": "claim-sunexpress-008",
+      "category": "decision",
+      "statement": "The booking flow progressively revealed flexible-date, extra, one-way, and return options instead of exposing every branch at once.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 44, Shaping Simplicity at Scale"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm testing evidence and the shipped interaction."
+    },
+    {
+      "id": "claim-sunexpress-009",
+      "category": "collaboration",
+      "statement": "The work was carried out with visual designers, developers, and stakeholders across the business, using mid-fidelity prototypes as a shared decision tool.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 38 and 42"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Names and specific collaboration moments are missing."
+    },
+    {
+      "id": "claim-sunexpress-010",
+      "category": "outcome",
+      "statement": "The CV claims the website overhaul contributed to a 15% revenue increase.",
+      "status": "candidate",
+      "confidence": "low",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — Dennerlein GmbH"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Do not publish without a source, measurement window, and credible attribution."
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "conflict-sunexpress-001",
+      "claimIds": [],
+      "status": "open",
+      "question": "The SunExpress factsheet repeats S&P collaborator names; who actually worked on SunExpress?",
+      "resolution": null
+    }
+  ],
   "openQuestions": [
     {"id": "q-sunexpress-001", "category": "timeline", "question": "When did the project happen, in what employer or agency context, and for how long?", "status": "open", "answer": null, "sourceIds": []},
     {"id": "q-sunexpress-002", "category": "scope", "question": "Which booking stages, markets, languages, and platforms were actually in scope?", "status": "open", "answer": null, "sourceIds": []},
@@ -17,7 +151,16 @@
     {"id": "q-sunexpress-004", "category": "delivery_status", "question": "Which parts were implemented, tested, or remained conceptual?", "status": "open", "answer": null, "sourceIds": []},
     {"id": "q-sunexpress-005", "category": "reflection", "question": "What has visibly aged, what still holds up, and what would Alexander now change?", "status": "open", "answer": null, "sourceIds": []}
   ],
-  "media": [],
+  "media": [
+    {"id": "media-sunexpress-001", "sourceId": "src-20260715-002", "locator": "p. 38", "subject": "SunExpress factsheet", "storyUse": "Brief and role reference", "status": "candidate", "permissionStatus": "unknown", "notes": "Ignore copied collaborator credits."},
+    {"id": "media-sunexpress-002", "sourceId": "src-20260715-002", "locator": "p. 39", "subject": "Analytics and information-priority evidence", "storyUse": "Show why the structure changed", "status": "candidate", "permissionStatus": "unknown", "notes": "Source visual is blurred; request original analytics or safe recreation."},
+    {"id": "media-sunexpress-003", "sourceId": "src-20260715-002", "locator": "p. 40", "subject": "Responsive content framework", "storyUse": "Explain 100+ page systemisation", "status": "candidate", "permissionStatus": "unknown", "notes": "Request template/system map."},
+    {"id": "media-sunexpress-004", "sourceId": "src-20260715-002", "locator": "p. 41, interface studies", "subject": "UI and responsive component studies", "storyUse": "Show the design system in use", "status": "candidate", "permissionStatus": "unknown", "notes": "Locate original boards."},
+    {"id": "media-sunexpress-005", "sourceId": "src-20260715-002", "locator": "p. 41, icon set", "subject": "Custom airline icon system", "storyUse": "Show multilingual visual communication", "status": "candidate", "permissionStatus": "unknown", "notes": "Request vector originals."},
+    {"id": "media-sunexpress-006", "sourceId": "src-20260715-002", "locator": "p. 42", "subject": "Mid-fidelity prototype states", "storyUse": "Explain prototypes as conversation layer", "status": "candidate", "permissionStatus": "unknown", "notes": "Source image is blurred."},
+    {"id": "media-sunexpress-007", "sourceId": "src-20260715-002", "locator": "p. 43, screen family", "subject": "Desktop and mobile booking screens", "storyUse": "Show cross-platform system breadth", "status": "candidate", "permissionStatus": "unknown", "notes": "Locate original screen exports."},
+    {"id": "media-sunexpress-008", "sourceId": "src-20260715-002", "locator": "p. 43, process sketch", "subject": "Booking-flow sketches and annotations", "storyUse": "Connect structure to final screens", "status": "candidate", "permissionStatus": "unknown", "notes": "Request legible source sketch."},
+    {"id": "media-sunexpress-009", "sourceId": "src-20260715-002", "locator": "p. 44", "subject": "Progressively disclosed booking flow", "storyUse": "Close on the key interaction decision", "status": "candidate", "permissionStatus": "unknown", "notes": "Need multiple state captures for a clear sequence."}
+  ],
   "interviewRounds": []
 }
-

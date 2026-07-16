@@ -6,9 +6,135 @@
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "internal",
   "lastReviewed": "2026-07-15",
-  "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
-  "workingHypotheses": [],
-  "claims": [],
+  "readiness": {"sourceCoverage": "partial", "interviewStatus": "not_started", "mediaCoverage": "partial", "copyStatus": "blocked_missing_facts"},
+  "workingHypotheses": [
+    "The story is a short vision engagement about making digital ownership feel anticipatory rather than transactional."
+  ],
+  "claims": [
+    {
+      "id": "claim-bentley-001",
+      "category": "brief",
+      "statement": "The initial brief was to reimagine My Bentley World, then broaden the work into a wider digital expression system.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 15, Factsheet background"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm the original deliverables and client terminology."
+    },
+    {
+      "id": "claim-bentley-002",
+      "category": "audience",
+      "statement": "The concept considered prospective fans, customers configuring a vehicle, and long-term owners waiting for delivery or using ownership services.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 15, 17, and 19"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Identify the primary audience for the actual client brief."
+    },
+    {
+      "id": "claim-bentley-003",
+      "category": "role",
+      "statement": "Alexander worked across concept, interaction design, storytelling, 3D, and motion and contributed to the strategic microsite.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [
+        {"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — Hugo & Cat"},
+        {"sourceId": "src-20260715-002", "locator": "p. 15, My Role"}
+      ],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Clarify leadership versus individual production."
+    },
+    {
+      "id": "claim-bentley-004",
+      "category": "hands_on",
+      "statement": "Alexander developed interactive flows and built the digital-garage scene in Blender.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 15 and 19"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Ask which visible renders, models, interactions, and motion studies were personally produced."
+    },
+    {
+      "id": "claim-bentley-005",
+      "category": "timeline",
+      "statement": "The factsheet labels the engagement as two months.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 15, Core Threads"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm dates and whether later extensions were separate."
+    },
+    {
+      "id": "claim-bentley-006",
+      "category": "constraint",
+      "statement": "The experience had to express luxury and brand richness without making the interface busy or competing with Bentley's film and photography.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 15 and 22"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Strong candidate for the narrative tension."
+    },
+    {
+      "id": "claim-bentley-007",
+      "category": "decision",
+      "statement": "The journey revealed content and features according to the user's stage of ownership to reduce clutter and create anticipation.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 17, Anticipation by Design"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Ask for the specific lifecycle states and unlock logic."
+    },
+    {
+      "id": "claim-bentley-008",
+      "category": "decision",
+      "statement": "A 3D garage let users see their configured car, track progress, explore features, and remain emotionally connected while waiting for delivery.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 19, A Garage Worth Waiting For"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm whether this was a prototype, client-approved direction, or implementation."
+    },
+    {
+      "id": "claim-bentley-009",
+      "category": "team",
+      "statement": "The factsheet credits Tom Good, Jude Gay, Russel Hinton, and Paohan Chen across UX, creative direction, visual design, and motion.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 15, Creds"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm spellings, roles, contribution boundaries, and credit permission."
+    },
+    {
+      "id": "claim-bentley-010",
+      "category": "delivery_status",
+      "statement": "The portfolio calls the work a vision piece intended to spark internal conversation and says its principles were documented in an interactive Webflow microsite.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 24–25"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "No implementation outcome is established."
+    }
+  ],
   "conflicts": [],
   "openQuestions": [
     {"id": "q-bentley-001", "category": "brief", "question": "What was the exact brief, product surface, and intended audience?", "status": "open", "answer": null, "sourceIds": []},
@@ -17,7 +143,17 @@
     {"id": "q-bentley-004", "category": "team", "question": "Who shaped the brand, product, design, and 3D work alongside Alexander?", "status": "open", "answer": null, "sourceIds": []},
     {"id": "q-bentley-005", "category": "delivery_status", "question": "What was adopted, tested, implemented, or left as a concept?", "status": "open", "answer": null, "sourceIds": []}
   ],
-  "media": [],
+  "media": [
+    {"id": "media-bentley-001", "sourceId": "src-20260715-002", "locator": "p. 15", "subject": "Bentley factsheet", "storyUse": "Brief, role, team, and duration reference", "status": "candidate", "permissionStatus": "unknown", "notes": "Working reference rather than final portfolio media."},
+    {"id": "media-bentley-002", "sourceId": "src-20260715-002", "locator": "p. 16", "subject": "My Bentley World mobile interface montage", "storyUse": "Establish the product surface", "status": "candidate", "permissionStatus": "unknown", "notes": "Locate original exports."},
+    {"id": "media-bentley-003", "sourceId": "src-20260715-002", "locator": "p. 17", "subject": "Progressive ownership journey", "storyUse": "Explain anticipation and staged content", "status": "candidate", "permissionStatus": "unknown", "notes": "Source visual is blurred."},
+    {"id": "media-bentley-004", "sourceId": "src-20260715-002", "locator": "p. 18", "subject": "Digital garage visual", "storyUse": "Introduce the signature concept", "status": "candidate", "permissionStatus": "unknown", "notes": "Request Blender source or high-resolution render."},
+    {"id": "media-bentley-005", "sourceId": "src-20260715-002", "locator": "p. 19", "subject": "Garage waiting-state narrative", "storyUse": "Connect configuration to delivery anticipation", "status": "candidate", "permissionStatus": "unknown", "notes": "Pair with a real interaction sequence."},
+    {"id": "media-bentley-006", "sourceId": "src-20260715-002", "locator": "p. 20", "subject": "Vehicle and ownership interface studies", "storyUse": "Show product breadth", "status": "candidate", "permissionStatus": "unknown", "notes": "Source imagery is blurred."},
+    {"id": "media-bentley-007", "sourceId": "src-20260715-002", "locator": "p. 21", "subject": "Utility and brand-storytelling tracks", "storyUse": "Explain the two-track strategy", "status": "candidate", "permissionStatus": "unknown", "notes": "Request the underlying journey/system map."},
+    {"id": "media-bentley-008", "sourceId": "src-20260715-002", "locator": "p. 22", "subject": "Photography-led visual-language studies", "storyUse": "Demonstrate restraint", "status": "candidate", "permissionStatus": "unknown", "notes": "Confirm rights for Bentley photography."},
+    {"id": "media-bentley-009", "sourceId": "src-20260715-002", "locator": "pp. 23–24", "subject": "Test-drive and future-experience concepts", "storyUse": "Show the vision extending beyond ownership utility", "status": "candidate", "permissionStatus": "unknown", "notes": "Clarify which concepts were client-selected."},
+    {"id": "media-bentley-010", "sourceId": "src-20260715-002", "locator": "p. 25", "subject": "Interactive strategy microsite", "storyUse": "Close on the internal alignment tool", "status": "candidate", "permissionStatus": "unknown", "notes": "Request Webflow capture or archived URL."}
+  ],
   "interviewRounds": []
 }
-

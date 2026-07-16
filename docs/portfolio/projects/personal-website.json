@@ -6,17 +6,163 @@
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "public",
   "lastReviewed": "2026-07-15",
-  "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
-  "workingHypotheses": [],
-  "claims": [],
-  "conflicts": [],
+  "readiness": {"sourceCoverage": "partial", "interviewStatus": "not_started", "mediaCoverage": "partial", "copyStatus": "blocked_missing_facts"},
+  "workingHypotheses": [
+    "Portfolio v1 documents a predecessor built with Webflow, CSS, and JavaScript; the final case study should tell the evolution into the current React and simulation system rather than polishing the obsolete version."
+  ],
+  "claims": [
+    {
+      "id": "claim-personal-001",
+      "category": "brief",
+      "statement": "The predecessor site explored whether a personal website could feel like a spatial environment rather than a sequence of pages.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "public",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 46, Factsheet background"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Confirm whether this remains the core question of the current site."
+    },
+    {
+      "id": "claim-personal-002",
+      "category": "audience",
+      "statement": "The site functioned as a portfolio and professional introduction for prospective collaborators, clients, and employers.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "public",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 45–46 and 50"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Ask which audience actually mattered most."
+    },
+    {
+      "id": "claim-personal-003",
+      "category": "timeline",
+      "statement": "Portfolio v1 labels the predecessor as a 2024–ongoing project in May 2025.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "public",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 46, Core Threads"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Current project history and major rebuild dates still need to be established."
+    },
+    {
+      "id": "claim-personal-004",
+      "category": "role",
+      "statement": "Alexander was the designer and developer of the predecessor site.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "public",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 46, My Role"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "The current site's AI-assisted development and any collaborators should be credited separately."
+    },
+    {
+      "id": "claim-personal-005",
+      "category": "hands_on",
+      "statement": "The predecessor was built with Webflow, native CSS, and JavaScript and used custom motion, layout, sound, and CSS-based 3D.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "public",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 46, My Role"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Historical implementation only; do not describe the current repo this way."
+    },
+    {
+      "id": "claim-personal-006",
+      "category": "constraint",
+      "statement": "Canvas animation, ambient layers, concurrent scripts, mobile memory, and rendering bottlenecks forced performance to become a design constraint.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "public",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 46 and 52"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Likely still relevant, but current examples should come from the live implementation history."
+    },
+    {
+      "id": "claim-personal-007",
+      "category": "decision",
+      "statement": "Early experiments were removed when they felt too heavy, ornamental, or disconnected from the intended spatial rhythm.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "public",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 48, Built, Scrapped, Rebuilt"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Ask for two rejected examples and the rule learned from each."
+    },
+    {
+      "id": "claim-personal-008",
+      "category": "decision",
+      "statement": "Generative tools were used to imagine textures, lighting, and environments, with outputs interpreted and manually refined rather than treated as final design.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "public",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 49, Generative as Iterative"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Identify which tools and outputs materially influenced the current site."
+    },
+    {
+      "id": "claim-personal-009",
+      "category": "decision",
+      "statement": "The predecessor used horizontal movement, parallax depth, and arrival-like transitions to make the interface feel spatial.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "public",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 50–51, Evolving Depth"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Compare this explicitly with the current framed-window and simulation language."
+    },
+    {
+      "id": "claim-personal-010",
+      "category": "outcome",
+      "statement": "The old portfolio says refactoring made the predecessor leaner, more modular, documented, and able to grow, while work remained ongoing.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "public",
+      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 52, Humbled by the Build"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-07-15",
+      "notes": "Treat as a reflection, not a measured outcome."
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "conflict-personal-001",
+      "claimIds": ["claim-personal-005", "claim-personal-009"],
+      "status": "open",
+      "question": "Which predecessor concepts survive in the current site, and which should be documented only as discarded history?",
+      "resolution": null
+    },
+    {
+      "id": "conflict-personal-002",
+      "claimIds": [],
+      "status": "open",
+      "question": "The factsheet carries S&P collaborator credits that appear copied; confirm that these are not personal-site credits.",
+      "resolution": null
+    }
+  ],
   "openQuestions": [
     {"id": "q-personal-001", "category": "brief", "question": "Why did Alexander start the site, and what question was the first version trying to answer?", "status": "open", "answer": null, "sourceIds": []},
     {"id": "q-personal-002", "category": "timeline", "question": "Which versions or milestones materially changed the design?", "status": "open", "answer": null, "sourceIds": []},
     {"id": "q-personal-003", "category": "decision", "question": "Which browser, performance, accessibility, or implementation constraint most changed the visual direction?", "status": "open", "answer": null, "sourceIds": []},
     {"id": "q-personal-004", "category": "outcome", "question": "What should count as the observable outcome: the living system, a capability, external response, or something else?", "status": "open", "answer": null, "sourceIds": []}
   ],
-  "media": [],
+  "media": [
+    {"id": "media-personal-001", "sourceId": "src-20260715-002", "locator": "p. 46", "subject": "Predecessor-site factsheet", "storyUse": "Historical brief and build reference", "status": "candidate", "permissionStatus": "owner_approval_needed", "notes": "Ignore copied collaborator credits."},
+    {"id": "media-personal-002", "sourceId": "src-20260715-002", "locator": "p. 47", "subject": "Code and system-thinking process", "storyUse": "Explain return to hands-on development", "status": "candidate", "permissionStatus": "owner_approval_needed", "notes": "Source imagery is blurred; replace with real code/process evidence."},
+    {"id": "media-personal-003", "sourceId": "src-20260715-002", "locator": "p. 48", "subject": "Discarded design experiments", "storyUse": "Show selection and restraint", "status": "candidate", "permissionStatus": "owner_approval_needed", "notes": "Request actual rejected captures."},
+    {"id": "media-personal-004", "sourceId": "src-20260715-002", "locator": "p. 49", "subject": "AI-assisted texture and environment iterations", "storyUse": "Explain generate-interpret-refine-implement loop", "status": "candidate", "permissionStatus": "owner_approval_needed", "notes": "Request source/output pairs."},
+    {"id": "media-personal-005", "sourceId": "src-20260715-002", "locator": "p. 50", "subject": "Large predecessor-site spatial composition", "storyUse": "Show horizontal, layered interface direction", "status": "candidate", "permissionStatus": "owner_approval_needed", "notes": "Historical version, not current UI."},
+    {"id": "media-personal-006", "sourceId": "src-20260715-002", "locator": "p. 51", "subject": "Predecessor depth and cursor interaction", "storyUse": "Continue spatial interaction sequence", "status": "candidate", "permissionStatus": "owner_approval_needed", "notes": "Historical version."},
+    {"id": "media-personal-007", "sourceId": "src-20260715-002", "locator": "p. 52", "subject": "Performance and refactoring evidence", "storyUse": "Show where technical limits changed design", "status": "candidate", "permissionStatus": "owner_approval_needed", "notes": "Replace blurred robot recording with measurable current evidence."},
+    {"id": "media-personal-008", "sourceId": "src-20260715-002", "locator": "p. 53", "subject": "Cockpit ending and nested portfolio concept", "storyUse": "Historical climax or discarded-direction reflection", "status": "candidate", "permissionStatus": "owner_approval_needed", "notes": "Decide whether this belongs in the current narrative."}
+  ],
   "interviewRounds": []
 }
-

@@ -12,6 +12,10 @@ const launchOptions = browserName === 'chromium' ? {
 const browser = await browserType.launch(launchOptions);
 await mkdir('output/playwright/about-narrative', { recursive: true });
 
+function formatWU(value) {
+  return String(Number((Math.round(value / 0.002) * 0.002).toFixed(3)));
+}
+
 async function audit(viewport, label) {
   const page = await browser.newPage({ viewport });
   const errors = [];
@@ -32,6 +36,17 @@ async function audit(viewport, label) {
     await page.locator('.about-narrative-spatial-title').first().evaluate((node) => getComputedStyle(node).fontFamily),
     /Instrument Serif/,
   );
+  const editorialTypeSizes = await page.locator([
+    '.about-narrative-editorial-title',
+    '.about-narrative-editorial-copy',
+    '.about-narrative-editorial-detail',
+    '.about-narrative-editorial-list__label',
+    '.about-narrative-editorial-list li',
+    '.about-narrative-client-logos li',
+    '.about-narrative-discipline-list li',
+    '.about-narrative-discipline-list__number',
+  ].join(',')).evaluateAll((nodes) => [...new Set(nodes.map((node) => getComputedStyle(node).fontSize))]);
+  assert.equal(editorialTypeSizes.length, 1);
   const cameraClips = page.locator('.about-editor-lane--camera .about-editor-clip');
   for (let index = 0; index < await cameraClips.count(); index += 1) {
     assert.ok(await cameraClips.nth(index).locator('.about-editor-key').count() >= 2);
@@ -135,7 +150,7 @@ async function audit(viewport, label) {
       const absoluteTop = node.getBoundingClientRect().top - scrollRect.top + scrollport.scrollTop;
       return (absoluteTop - (scrollport.clientHeight * 0.68)) / scrollport.clientHeight;
     });
-    await transport.fill(String(Math.round(disciplineFocusWU / 0.002) * 0.002));
+    await transport.fill(formatWU(disciplineFocusWU));
     await page.waitForTimeout(140);
     assert.equal(await root.getAttribute('data-world-group-focus'), '4');
     const influenceWU = await page.locator('[data-world-influence="true"]').evaluate((node) => {
@@ -144,7 +159,7 @@ async function audit(viewport, label) {
       const absoluteTop = node.getBoundingClientRect().top - scrollRect.top + scrollport.scrollTop;
       return (absoluteTop - (scrollport.clientHeight * 0.68)) / scrollport.clientHeight;
     });
-    await transport.fill(String(Math.round(influenceWU / 0.002) * 0.002));
+    await transport.fill(formatWU(influenceWU));
     await page.waitForTimeout(140);
     assert.ok(Number(await root.getAttribute('data-world-grid-influence')) > 0.2);
 
@@ -153,7 +168,7 @@ async function audit(viewport, label) {
       const scrollport = document.querySelector('.about-narrative-scrollport');
       return (node.offsetTop / scrollport.clientHeight) + 0.4;
     });
-    await transport.fill(String(Math.round(practiceWU / 0.002) * 0.002));
+    await transport.fill(formatWU(practiceWU));
     await page.locator('.about-editor-lane--world .about-editor-world-clip').nth(3).click();
     await page.waitForTimeout(120);
     const before = await root.evaluate((node) => ({
