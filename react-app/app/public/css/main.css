@@ -6147,7 +6147,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 .simulation-focus-modal {
   --simulation-focus-row-height: 38px;
-  --simulation-focus-icon-size: 22px;
+  --simulation-focus-icon-size: 24px;
   --simulation-focus-list-width: min(100%, 14.75rem);
   --simulation-focus-list-gutter: clamp(6px, 2.6vw, 10px);
   --simulation-focus-scroll-fade: clamp(18px, 4svh, 36px);
@@ -6390,7 +6390,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 @media (min-width: 720px) and (min-height: 560px) {
   .simulation-focus-modal {
     --simulation-focus-row-height: 36px;
-    --simulation-focus-icon-size: 22px;
+    --simulation-focus-icon-size: 24px;
     --simulation-focus-list-width: min(100%, 21rem);
     gap: var(--gap-md);
     padding:
