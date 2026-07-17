@@ -52,6 +52,26 @@ test('bust holds one yaw through forward and reverse formation boundaries', () =
   assert.ok(Math.abs(controller.yaw - capturedYaw) <= 0.003);
 });
 
+test('bust sampling reuses caller input and one stable snapshot for 600 hot frames', () => {
+  const controller = createAboutNarrativeBustController();
+  const input = {
+    active: true,
+    transitionProgress: 1,
+    deltaSeconds: 0,
+    speed: 0.04,
+    resumeDelay: 0,
+    liveAmbient: false,
+    deterministicScrub: true,
+    reducedMotion: false,
+    hidden: false,
+  };
+  const snapshot = controller.sample(input);
+  for (let index = 0; index < 600; index += 1) {
+    assert.equal(controller.sample(input), snapshot);
+  }
+  assert.equal(controller.yaw, 0);
+});
+
 test('cold direct seek is front-facing and deterministic scrubbing never advances yaw', () => {
   const controller = createAboutNarrativeBustController();
   controller.sample({ active: true, transitionProgress: 1, deltaSeconds: 8, speed: 1 });

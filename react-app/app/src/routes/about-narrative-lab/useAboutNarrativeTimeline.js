@@ -9,6 +9,7 @@ import {
   createAboutNarrativeFrameSample,
   getAboutNarrativePreparationRequest,
   getAboutNarrativeCueMovement,
+  getAboutNarrativeReducedCueIndex,
   sampleAboutNarrativeCue,
   sampleAboutNarrativePlanInto,
 } from './aboutNarrativeCompiler.js';
@@ -152,11 +153,9 @@ export function useAboutNarrativeTimeline({
           ? frame.localProgress
           : frame.storyWU < (planRef.current.sections.find((item) => item.id === section.id)?.startWU || 0) ? 0 : 1;
         const cues = (section.text.cues || []).filter((cue) => getAboutNarrativeCueMovement(cue) === 'spatial');
-        let reducedIndex = 0;
-        if (reducedMotion && cues.length > 1) {
-          reducedIndex = cues.findIndex((cue) => local <= cue.exit);
-          if (reducedIndex < 0) reducedIndex = cues.length - 1;
-        }
+        const reducedIndex = reducedMotion
+          ? getAboutNarrativeReducedCueIndex(cues, local, frame.globals.textMotion)
+          : -1;
         cues.forEach((cue, cueIndex) => {
           const node = sectionNode.querySelector(`[data-text-cue="${cue.id}"]`);
           if (!node) return;

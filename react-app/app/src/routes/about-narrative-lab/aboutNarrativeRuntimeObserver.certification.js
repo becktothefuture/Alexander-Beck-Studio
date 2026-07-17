@@ -60,14 +60,21 @@ export function createAboutNarrativeRuntimeObserver({
   };
 
   const render = () => {
+    const uploadDurationBefore = Number(
+      webglTracker?.getSnapshot?.().uploadSubmissionDurationMs || 0,
+    );
     const startedAt = now();
     renderer.render(scene, camera);
     lastFrameTime = Math.max(0, now() - startedAt);
     if (!pendingFirstUpload) return;
     pendingFirstUpload = false;
-    maxFirstUploadDurationMs = Math.max(maxFirstUploadDurationMs, lastFrameTime);
+    const uploadDurationAfter = Number(
+      webglTracker?.getSnapshot?.().uploadSubmissionDurationMs || 0,
+    );
+    const firstUploadDurationMs = Math.max(0, uploadDurationAfter - uploadDurationBefore);
+    maxFirstUploadDurationMs = Math.max(maxFirstUploadDurationMs, firstUploadDurationMs);
     diagnostics.recordMetrics({
-      firstUploadDurationMs: lastFrameTime,
+      firstUploadDurationMs,
       maxFirstUploadDurationMs,
     });
   };

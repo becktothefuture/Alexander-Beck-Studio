@@ -5,13 +5,14 @@ import { createAboutNarrativeRuntimeDiagnostics } from '../react-app/app/src/rou
 import { createAboutNarrativeRuntimeObserver as createCertificationObserver } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimeObserver.certification.js';
 import { createAboutNarrativeRuntimeObserver as createProductionObserver } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimeObserver.production.js';
 
-function createRenderer() {
+function createRenderer(onRender = () => {}) {
   let calls = 0;
   return {
     info: { render: { calls: 0 } },
     render() {
       calls += 1;
       this.info.render.calls = calls;
+      onRender();
     },
   };
 }
@@ -29,7 +30,8 @@ test('production observer renders without exposing certification telemetry', () 
 });
 
 test('certification observer records lifecycle, timing, and resource metrics', () => {
-  const renderer = createRenderer();
+  let uploadSubmissionDurationMs = 0;
+  const renderer = createRenderer(() => { uploadSubmissionDurationMs += 0.75; });
   const diagnostics = createAboutNarrativeRuntimeDiagnostics();
   const position = { array: new Float32Array(6) };
   const fixedAttributes = { position };
@@ -47,7 +49,15 @@ test('certification observer records lifecycle, timing, and resource metrics', (
     shapeCache: { getSnapshot: () => ({ entries: 1, uniqueBytes: 24 }) },
     sequenceCache: { getSnapshot: () => ({ entries: 1, uniqueBytes: 48 }) },
     resourceLedger: { getSnapshot: () => ({ buffers: { uniqueCount: 1, uniqueBytes: 48 }, gpu: { liveCount: 1, liveBytes: 24 }, diagnostics: { count: 0 } }) },
-    webglTracker: { getSnapshot: () => ({ liveCount: 1, liveBytes: 24, diagnostics: [] }) },
+    webglTracker: {
+      getSnapshot: () => ({
+        liveCount: 1,
+        liveBytes: 24,
+        uploadSubmissionDurationMs,
+        maxUploadSubmissionDurationMs: uploadSubmissionDurationMs,
+        diagnostics: [],
+      }),
+    },
     now: () => ticks.shift(),
   });
   observer.workerStarted();
@@ -62,7 +72,8 @@ test('certification observer records lifecycle, timing, and resource metrics', (
   assert.equal(metrics.bufferRebuilds, 1);
   assert.equal(metrics.maxInstallDurationMs, 3);
   assert.equal(metrics.maxWorkerMessageDurationMs, 4);
-  assert.equal(metrics.maxFirstUploadDurationMs, 2);
+  assert.equal(metrics.frameTimeMs, 2);
+  assert.equal(metrics.maxFirstUploadDurationMs, 0.75);
   assert.equal(metrics.fixedAttributeIdentityStable, true);
   assert.equal(metrics.resourceDiagnosticCount, 0);
   observer.reset();

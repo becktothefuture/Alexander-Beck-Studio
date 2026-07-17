@@ -1366,6 +1366,7 @@ function createPointFieldAdapter({
       installPreparedPair(preparedPair);
     }
     if (!installedPair) return;
+    hotFrameCount += 1;
     const pairMatchesRequest = installedPair.fromWorld.sectionId === requestedFromWorld.sectionId
       && installedPair.toWorld.sectionId === requestedToWorld.sectionId;
     if (pairMatchesRequest) {
@@ -1398,17 +1399,16 @@ function createPointFieldAdapter({
       ? Math.min(0.5, Math.max(0, frame.ambientTime - lastBustAmbientTime))
       : 0;
     lastBustAmbientTime = frame.ambientTime;
-    const bustState = bustController.sample({
-      active: toWorld.shapeId === 'bust-v1',
-      transitionProgress,
-      deltaSeconds: bustDeltaSeconds,
-      speed: Number(bust?.speed || 0),
-      resumeDelay: Number(bust?.resumeDelay || 0),
-      liveAmbient: frame.ambientTime > 0,
-      deterministicScrub: frame.ambientTime === 0,
-      reducedMotion: frame.reducedMotion,
-      hidden: document.hidden,
-    });
+    bustSampleInput.active = toWorld.shapeId === 'bust-v1';
+    bustSampleInput.transitionProgress = transitionProgress;
+    bustSampleInput.deltaSeconds = bustDeltaSeconds;
+    bustSampleInput.speed = Number(bust?.speed || 0);
+    bustSampleInput.resumeDelay = Number(bust?.resumeDelay || 0);
+    bustSampleInput.liveAmbient = frame.ambientTime > 0;
+    bustSampleInput.deterministicScrub = frame.ambientTime === 0;
+    bustSampleInput.reducedMotion = frame.reducedMotion;
+    bustSampleInput.hidden = document.hidden;
+    const bustState = bustController.sample(bustSampleInput);
     bustYaw = bustState.yaw;
     if (toWorld.shapeId !== 'bust-v1' && dragStart) {
       if (interaction.hasPointerCapture(dragStart.pointerId)) {
@@ -1454,14 +1454,19 @@ function createPointFieldAdapter({
       toTransformScratch,
       toStoryOffset,
     );
-    root.dataset.worldDisciplineRise = Math.max(fromDisciplineRise, toDisciplineRise).toFixed(4);
+    const disciplineRise = Math.max(fromDisciplineRise, toDisciplineRise);
+    if (disciplineRise !== lastDisciplineRise) {
+      root.dataset.worldDisciplineRise = disciplineRise.toFixed(4);
+      lastDisciplineRise = disciplineRise;
+      hotFrameDomWrites += 1;
+    }
     uniforms.morphProgress.value = transitionProgress;
     uniforms.storyTime.value = frame.storyTime;
     uniforms.ambientTime.value = frame.ambientTime;
     uniforms.pointSize.value = frame.globals.pointMaterial.pointSize;
     uniforms.fieldOpacity.value = frame.globals.pointMaterial.opacity;
-    setModifierUniforms('from', fromWorld, frame.globals);
-    setModifierUniforms('to', toWorld, frame.globals);
+    setModifierUniforms(modifierUniformTargets.from, fromWorld, frame.globals);
+    setModifierUniforms(modifierUniformTargets.to, toWorld, frame.globals);
     if (frame.reducedMotion) {
       uniforms.fromDriftAmplitude.value = 0;
       uniforms.toDriftAmplitude.value = 0;
@@ -1471,13 +1476,25 @@ function createPointFieldAdapter({
     uniforms.fromBust.value = fromWorld.shapeId === 'bust-v1' ? 1 : 0;
     uniforms.toBust.value = toWorld.shapeId === 'bust-v1' ? 1 : 0;
     uniforms.bustYaw.value = bustYaw;
-    root.dataset.worldBustShaderYaw = bustYaw.toFixed(5);
+    if (bustYaw !== lastBustShaderYaw) {
+      root.dataset.worldBustShaderYaw = bustYaw.toFixed(5);
+      lastBustShaderYaw = bustYaw;
+      hotFrameDomWrites += 1;
+    }
     uniforms.disciplineFocus.value = Number(frame.editorialSignals?.disciplineFocus || 0);
     uniforms.gridInfluence.value = frame.reducedMotion
       ? 0
       : Number(frame.editorialSignals?.gridInfluence || 0);
-    root.dataset.worldGroupFocus = String(uniforms.disciplineFocus.value);
-    root.dataset.worldGridInfluence = uniforms.gridInfluence.value.toFixed(4);
+    if (uniforms.disciplineFocus.value !== lastGroupFocus) {
+      root.dataset.worldGroupFocus = String(uniforms.disciplineFocus.value);
+      lastGroupFocus = uniforms.disciplineFocus.value;
+      hotFrameDomWrites += 1;
+    }
+    if (uniforms.gridInfluence.value !== lastGridInfluence) {
+      root.dataset.worldGridInfluence = uniforms.gridInfluence.value.toFixed(4);
+      lastGridInfluence = uniforms.gridInfluence.value;
+      hotFrameDomWrites += 1;
+    }
     updateDisciplineReveal(frame, fromWorld, toWorld);
 
     const interactionEnabled = pairMatchesRequest
@@ -1485,14 +1502,46 @@ function createPointFieldAdapter({
       && !formingBust
       && frame.section.interaction?.type === 'horizontal-spin'
       && frame.localProgress >= Number(frame.section.interaction.activationStart || 0);
-    interaction.dataset.active = interactionEnabled ? 'true' : 'false';
-    interaction.tabIndex = interactionEnabled ? 0 : -1;
-    root.dataset.worldStage = toWorld.shapeId;
-    root.dataset.cameraCadence = frame.globals.camera.cadenceLocked ? 'locked-world-units-v1' : 'editable-world-units-v1';
-    root.style.setProperty('--narrative-camera-forward', (frame.globals.camera.startZ - frame.camera.position[2]).toFixed(4));
-    root.style.setProperty('--narrative-camera-roll', frame.camera.roll.toFixed(4));
-    root.style.setProperty('--narrative-camera-fov', frame.camera.fov.toFixed(2));
-    root.style.setProperty('--narrative-bust-yaw', bustYaw.toFixed(4));
+    if (interactionEnabled !== lastInteractionEnabled) {
+      interaction.dataset.active = interactionEnabled ? 'true' : 'false';
+      interaction.tabIndex = interactionEnabled ? 0 : -1;
+      lastInteractionEnabled = interactionEnabled;
+      hotFrameDomWrites += 2;
+    }
+    if (toWorld.shapeId !== lastWorldStage) {
+      root.dataset.worldStage = toWorld.shapeId;
+      lastWorldStage = toWorld.shapeId;
+      hotFrameDomWrites += 1;
+    }
+    const cameraCadence = frame.globals.camera.cadenceLocked
+      ? 'locked-world-units-v1'
+      : 'editable-world-units-v1';
+    if (cameraCadence !== lastCameraCadence) {
+      root.dataset.cameraCadence = cameraCadence;
+      lastCameraCadence = cameraCadence;
+      hotFrameDomWrites += 1;
+    }
+    const cameraForward = frame.globals.camera.startZ - frame.camera.position[2];
+    if (cameraForward !== lastCameraForward) {
+      root.style.setProperty('--narrative-camera-forward', cameraForward.toFixed(4));
+      lastCameraForward = cameraForward;
+      hotFrameDomWrites += 1;
+    }
+    if (frame.camera.roll !== lastCameraRoll) {
+      root.style.setProperty('--narrative-camera-roll', frame.camera.roll.toFixed(4));
+      lastCameraRoll = frame.camera.roll;
+      hotFrameDomWrites += 1;
+    }
+    if (frame.camera.fov !== lastCameraFov) {
+      root.style.setProperty('--narrative-camera-fov', frame.camera.fov.toFixed(2));
+      lastCameraFov = frame.camera.fov;
+      hotFrameDomWrites += 1;
+    }
+    if (bustYaw !== lastBustStyleYaw) {
+      root.style.setProperty('--narrative-bust-yaw', bustYaw.toFixed(4));
+      lastBustStyleYaw = bustYaw;
+      hotFrameDomWrites += 1;
+    }
     frameStartedAt = performance.now();
     renderer.render(scene, camera);
     lastFrameTime = performance.now() - frameStartedAt;
@@ -1641,6 +1690,12 @@ function createPointFieldAdapter({
       maxWorkerMessageDurationMs = 0;
       maxFirstUploadDurationMs = 0;
     },
+    resetHotFrameMetrics: () => {
+      hotFrameCount = 0;
+      hotFrameOwnedAllocations = 0;
+      hotFrameDomQueries = 0;
+      hotFrameDomWrites = 0;
+    },
     render,
     getMetrics: () => {
       const shapeCacheSnapshot = shapeCache.getSnapshot();
@@ -1663,6 +1718,10 @@ function createPointFieldAdapter({
         maxInstallDurationMs,
         maxWorkerMessageDurationMs,
         maxFirstUploadDurationMs,
+        hotFrameCount,
+        hotFrameOwnedAllocations,
+        hotFrameDomQueries,
+        hotFrameDomWrites,
         workerStarts,
         workerTerminations,
         workerTimeouts,

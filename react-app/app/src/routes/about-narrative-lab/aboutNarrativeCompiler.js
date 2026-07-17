@@ -508,6 +508,23 @@ export function getAboutNarrativeCueMotionInterval(cue, textMotion = {}) {
   };
 }
 
+export function getAboutNarrativeReducedCueIndex(cues = [], localProgress, textMotion = {}) {
+  const local = clamp01(Number(localProgress) || 0);
+  let closestIndex = -1;
+  let closestDistance = Number.POSITIVE_INFINITY;
+
+  cues.forEach((cue, cueIndex) => {
+    const interval = getAboutNarrativeCueMotionInterval(cue, textMotion);
+    if (local < interval.start || local > interval.end) return;
+    const distance = Math.abs(local - interval.focus);
+    if (distance >= closestDistance) return;
+    closestIndex = cueIndex;
+    closestDistance = distance;
+  });
+
+  return closestIndex;
+}
+
 export function getAboutNarrativeCueMovement(cue) {
   return cue.motion?.mode === 'vertical' ? 'vertical' : 'spatial';
 }

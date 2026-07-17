@@ -1152,21 +1152,21 @@ body.about-narrative-page .route-simulation-layer {
     transition: none;
   }
 
-  .about-narrative-section--spatial,
-  .about-narrative-section--opening {
+  .about-narrative-lab:not([data-editor-active='true']) .about-narrative-section--spatial,
+  .about-narrative-lab:not([data-editor-active='true']) .about-narrative-section--opening {
     height: auto;
     min-height: 100cqh;
   }
 
-  .about-narrative-spatial-stage {
+  .about-narrative-lab:not([data-editor-active='true']) .about-narrative-spatial-stage {
     position: relative;
     height: auto;
     min-height: 100cqh;
     overflow: visible;
   }
 
-  .about-narrative-spatial-copy,
-  [data-editorial-line] {
+  .about-narrative-lab:not([data-editor-active='true']) .about-narrative-spatial-copy,
+  .about-narrative-lab:not([data-editor-active='true']) [data-editorial-line] {
     opacity: 1;
     filter: none;
     transform: none;
@@ -1176,11 +1176,11 @@ body.about-narrative-page .route-simulation-layer {
     animation: none;
   }
 
-  .about-narrative-spatial-title {
+  .about-narrative-lab:not([data-editor-active='true']) .about-narrative-spatial-title {
     display: block;
   }
 
-  .about-narrative-vertical-sequence {
+  .about-narrative-lab:not([data-editor-active='true']) .about-narrative-vertical-sequence {
     position: relative;
     inset: auto;
     display: grid;
@@ -1188,8 +1188,8 @@ body.about-narrative-page .route-simulation-layer {
     min-height: 100cqh;
   }
 
-  .about-narrative-vertical-title,
-  .about-narrative-vertical-title.is-opener {
+  .about-narrative-lab:not([data-editor-active='true']) .about-narrative-vertical-title,
+  .about-narrative-lab:not([data-editor-active='true']) .about-narrative-vertical-title.is-opener {
     position: relative;
     top: auto;
     left: auto;
@@ -1198,12 +1198,12 @@ body.about-narrative-page .route-simulation-layer {
     transform: none;
   }
 
-  .about-narrative-section--spatial:not(.about-narrative-section--finale) .about-narrative-spatial-title {
+  .about-narrative-lab:not([data-editor-active='true']) .about-narrative-section--spatial:not(.about-narrative-section--finale) .about-narrative-spatial-title {
     font-size: clamp(1.75rem, 6.5vw, 3.6rem);
     line-height: 1.05;
   }
 
-  .about-narrative-spatial-fragment {
+  .about-narrative-lab:not([data-editor-active='true']) .about-narrative-spatial-fragment {
     display: block;
     max-width: none;
     opacity: 1;
@@ -1211,11 +1211,11 @@ body.about-narrative-page .route-simulation-layer {
     transform: none;
   }
 
-  .about-narrative-spatial-fragment + .about-narrative-spatial-fragment {
+  .about-narrative-lab:not([data-editor-active='true']) .about-narrative-spatial-fragment + .about-narrative-spatial-fragment {
     margin-top: 0.5em;
   }
 
-  .about-narrative-cta {
+  .about-narrative-lab:not([data-editor-active='true']) .about-narrative-cta {
     opacity: 1;
     transform: none;
   }
@@ -1224,7 +1224,7 @@ body.about-narrative-page .route-simulation-layer {
     animation: none;
   }
 
-  .about-narrative-finale-cta {
+  .about-narrative-lab:not([data-editor-active='true']) .about-narrative-finale-cta {
     opacity: 1;
     transform: translateX(-50%);
   }

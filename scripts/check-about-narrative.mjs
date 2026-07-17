@@ -6,6 +6,7 @@ import {
   compileAboutNarrativeDocument,
   getAboutNarrativeCueMovement,
   getAboutNarrativeCueMotionInterval,
+  getAboutNarrativeReducedCueIndex,
   sampleAboutNarrativeCue,
   sampleAboutNarrativePlan,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCompiler.js';
@@ -764,6 +765,19 @@ test('authored title movement resolves to vertical or spatial', () => {
   assert.ok(canonical.sections[0].text.cues.every((cue) => getAboutNarrativeCueMovement(cue) === 'spatial'));
   assert.ok(canonical.sections[1].text.cues.every((cue) => getAboutNarrativeCueMovement(cue) === 'spatial'));
   assert.equal(canonical.sections[1].text.cues.some((cue) => cue.id === 'complexity-idea'), false);
+});
+
+test('reduced-motion title selection follows the same travel intervals as the timeline', () => {
+  const cues = canonical.sections[0].text.cues;
+  const motion = canonical.globals.textMotion;
+  const first = getAboutNarrativeCueMotionInterval(cues[0], motion);
+  const second = getAboutNarrativeCueMotionInterval(cues[1], motion);
+  const gap = first.end + ((second.start - first.end) * 0.5);
+
+  assert.equal(getAboutNarrativeReducedCueIndex(cues, 0.1, motion), 0);
+  assert.equal(getAboutNarrativeReducedCueIndex(cues, first.end, motion), 0);
+  assert.equal(getAboutNarrativeReducedCueIndex(cues, gap, motion), -1);
+  assert.equal(getAboutNarrativeReducedCueIndex(cues, second.start, motion), 1);
 });
 
 test('spatial Cues move continuously through their focus point', () => {

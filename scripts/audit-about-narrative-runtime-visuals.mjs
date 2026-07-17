@@ -17,11 +17,11 @@ const browser = await chromium.launch({
 await mkdir(outputDir, { recursive: true });
 
 const checkpoints = [
-  { id: 'desktop-turbulent', storyWU: 3.2, stage: 'turbulent-field-v1', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-discipline', storyWU: 8.4, stage: 'discipline-grid-v1', viewport: { width: 1440, height: 1000 } },
-  { id: 'mobile-discipline', storyWU: 8.4, stage: 'discipline-grid-v1', viewport: { width: 390, height: 844 } },
-  { id: 'desktop-bust', storyWU: 18.3, stage: 'bust-v1', viewport: { width: 1440, height: 1000 } },
-  { id: 'reduced-motion-discipline', storyWU: 8.4, stage: 'discipline-grid-v1', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' },
+  { id: 'desktop-turbulent', storyWU: 3.2, sectionId: 'complexity', localProgress: 0.77, stage: 'turbulent-field-v1', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-discipline', storyWU: 8.4, sectionId: 'practice-reveal', localProgress: 0.95, stage: 'discipline-grid-v1', viewport: { width: 1440, height: 1000 } },
+  { id: 'mobile-discipline', storyWU: 8.4, sectionId: 'practice-reveal', localProgress: 0.95, stage: 'discipline-grid-v1', viewport: { width: 390, height: 844 } },
+  { id: 'desktop-bust', storyWU: 18.3, sectionId: 'epilogue', localProgress: 0.87, stage: 'bust-v1', viewport: { width: 1440, height: 1000 } },
+  { id: 'reduced-motion-discipline', storyWU: 8.4, sectionId: 'practice-reveal', localProgress: 0.95, stage: 'discipline-grid-v1', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' },
 ];
 
 const evidence = [];
@@ -37,14 +37,13 @@ for (const checkpoint of checkpoints) {
   });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
-  await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.about-editor-transport input[type="range"]', { timeout: 20_000 });
-  await page.locator('.about-editor-transport input[type="range"]').evaluate((input, value) => {
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-    setter.call(input, String(value));
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  }, checkpoint.storyWU);
+  await page.goto(`${baseUrl}/lab/about-narrative.html`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector(`[data-narrative-section="${checkpoint.sectionId}"]`, { timeout: 20_000 });
+  await page.evaluate(({ sectionId, localProgress }) => {
+    const section = document.querySelector(`[data-narrative-section="${sectionId}"]`);
+    const scrollTravel = Math.max(0, section.offsetHeight - window.innerHeight);
+    window.scrollTo(0, section.offsetTop + (scrollTravel * localProgress));
+  }, checkpoint);
   await page.waitForFunction(({ stage }) => {
     const root = document.querySelector('.about-narrative-lab');
     return root?.dataset.worldPrepare === 'ready'
