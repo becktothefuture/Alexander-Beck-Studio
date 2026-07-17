@@ -135,13 +135,13 @@ function assertCriticalBootSource() {
     assert(!source.includes('html[data-abs-boot-state="booting"]::after'), `${file}: duplicate critical spinner returned`);
     assert(source.includes('@keyframes absBootSpin'), `${file}: missing supplied shadow-spinner keyframes`);
     assert(source.includes('animation: absBootSpin 1.1s infinite ease'), `${file}: boot spinner cadence drifted`);
-    assert(source.includes('--abs-boot-loader-size: 1px'), `${file}: boot spinner size drifted`);
+    assert(source.includes('--abs-boot-loader-size: 0.7px'), `${file}: boot spinner size drifted`);
     assert(source.includes("var bootLoaderColors = ['rgba(255, 255, 255, 0.92)'"), `${file}: missing fixed dark-surface loader palette`);
     assert(!source.includes("rgba(32, 33, 36, 0.9)"), `${file}: light-surface loader branch must be removed`);
     assert(!source.includes('var(--ball-'), `${file}: boot loader must not inherit ball palette colors`);
     assert(source.includes('font-size: 11pt'), `${file}: long-wait copy must remain 11pt`);
     assert(source.includes('position: absolute'), `${file}: missing non-shifting message positioning`);
-    assert(source.includes('--abs-boot-loader-visual-size: 62px'), `${file}: missing spinner visual-height token`);
+    assert(source.includes('--abs-boot-loader-visual-size: 43.4px'), `${file}: missing spinner visual-height token`);
     assert(source.includes('top: var(--abs-boot-loader-visual-size)'), `${file}: long-wait copy offset drifted`);
     assert(source.includes('--abs-boot-message-fade: 900ms'), `${file}: long-wait copy fade duration drifted`);
     assert(source.includes('role="status" aria-live="polite" aria-atomic="true"'), `${file}: missing accessible boot status semantics`);
@@ -261,13 +261,13 @@ async function assertMinimumVisibleElapsed(page, label) {
 
 function assertSpinnerReady(snapshot, label, { reducedMotion = false } = {}) {
   assert(snapshot.spinnerBoxShadow && snapshot.spinnerBoxShadow !== 'none', `${label}: spinner shadows did not render`);
-  assert(snapshot.spinnerFontSize >= 9.9 && snapshot.spinnerFontSize <= 10.1, `${label}: spinner core size drifted to ${snapshot.spinnerFontSize}px`);
-  assert(snapshot.spinnerWidth >= 9.9 && snapshot.spinnerWidth <= 10.1, `${label}: spinner width drifted to ${snapshot.spinnerWidth}px`);
-  assert(snapshot.spinnerHeight >= 9.9 && snapshot.spinnerHeight <= 10.1, `${label}: spinner height drifted to ${snapshot.spinnerHeight}px`);
+  assert(snapshot.spinnerFontSize >= 6.9 && snapshot.spinnerFontSize <= 7.1, `${label}: spinner core size drifted to ${snapshot.spinnerFontSize}px`);
+  assert(snapshot.spinnerWidth >= 6.9 && snapshot.spinnerWidth <= 7.1, `${label}: spinner width drifted to ${snapshot.spinnerWidth}px`);
+  assert(snapshot.spinnerHeight >= 6.9 && snapshot.spinnerHeight <= 7.1, `${label}: spinner height drifted to ${snapshot.spinnerHeight}px`);
   const visualSize = snapshot.spinnerFontSize * 6.2;
-  assert(visualSize >= 61 && visualSize <= 63, `${label}: spinner visual footprint drifted to ${visualSize}px`);
+  assert(visualSize >= 43 && visualSize <= 44, `${label}: spinner visual footprint drifted to ${visualSize}px`);
   assert(snapshot.messagePosition === 'absolute', `${label}: long-wait message must not affect loader layout`);
-  assert(snapshot.messageTop === 62, `${label}: long-wait message top offset drifted to ${snapshot.messageTop}px`);
+  assert(Math.abs(snapshot.messageTop - 43.4) <= 0.1, `${label}: long-wait message top offset drifted to ${snapshot.messageTop}px`);
   assert(snapshot.messageFontSize >= 14.6 && snapshot.messageFontSize <= 14.8, `${label}: expected 11pt copy, got ${snapshot.messageFontSize}px`);
   assert(snapshot.messageTextAlign === 'center', `${label}: long-wait message is not center aligned`);
   if (reducedMotion) {
