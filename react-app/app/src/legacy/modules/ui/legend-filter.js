@@ -53,7 +53,6 @@ export function initLegendFilterSystem() {
       for (const legendItem of legendItems) {
         const isActive = !!item && legendItem === item;
         legendItem.classList.toggle('legend__item--active', isActive);
-        legendItem.classList.toggle('legend__item--dimmed', !!item && !isActive);
       }
     }
 

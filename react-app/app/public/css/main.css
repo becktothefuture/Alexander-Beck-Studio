@@ -1891,37 +1891,18 @@ body.dark-mode .legend .legend__item--interactive:hover span {
   color: var(--text-primary);
 }
 
-/* Active filter state */
+/* A tapped mobile item holds the same quiet field and label treatment as desktop hover. */
 .legend__item--active {
   opacity: 1;
 }
 
-.legend__item--active span {
-  color: var(--cursor-hover-fg, var(--text-primary));
+html[data-shell-route='home'] body:not(.detail-open) .legend__item.legend__item--active span {
+  color: var(--text-primary);
   opacity: 1;
 }
 
-.legend__item--active::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: var(--legend-item-radius);
-  pointer-events: none;
-  background: var(--cursor-color, var(--link-hover-color));
-  box-shadow: var(--ui-chrome-button-edge);
-}
-
-/* Dimmed state (when another filter is active): fade label only; dots stay full strength.
-   `.legend__item.legend__item--dimmed` beats default index span opacity; dimmed:hover beats plain :hover span. */
-html[data-shell-route='home'] body:not(.detail-open) .legend__item.legend__item--dimmed span {
-  color: inherit;
-  opacity: 0.35;
-  transition: opacity 0.25s var(--ease-organic);
-}
-
-html[data-shell-route='home'] body:not(.detail-open) .legend__item.legend__item--dimmed:hover span {
-  opacity: 0.6;
+html[data-shell-route='home'] body:not(.detail-open) .legend__item--active::after {
+  opacity: var(--home-text-hover-field-opacity);
 }
 
 /* Legend tooltip — floating dialog below the clicked label (position set by JS) */
