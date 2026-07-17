@@ -887,6 +887,10 @@
   background: color-mix(in srgb, var(--editor-field) 92%, #000 8%);
 }
 
+.about-editor-lane--text {
+  --about-editor-text-row-height: calc(50% - 4px);
+}
+
 .about-editor-lanes[data-solo-track='camera'] .about-editor-lane:not(.about-editor-lane--camera):not(.about-editor-lane--section),
 .about-editor-lanes[data-solo-track='world'] .about-editor-lane:not(.about-editor-lane--world):not(.about-editor-lane--section),
 .about-editor-lanes[data-solo-track='text'] .about-editor-lane:not(.about-editor-lane--text):not(.about-editor-lane--section) {
@@ -1172,8 +1176,6 @@
 .about-editor-cue,
 .about-editor-editorial-clip {
   position: absolute;
-  top: 5px;
-  bottom: 5px;
   min-width: 5px;
   padding: 0;
   border: 0 !important;
@@ -1181,6 +1183,9 @@
 }
 
 .about-editor-cue {
+  top: 3px;
+  bottom: auto;
+  height: var(--about-editor-text-row-height);
   width: 20px;
   min-width: 20px;
   transform: translateX(-50%);
@@ -1331,7 +1336,10 @@
   z-index: 3;
   top: 3px;
   bottom: auto;
-  height: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--about-editor-text-row-height);
   min-width: 34px;
   overflow: hidden;
   padding: 0 7px;
@@ -1346,7 +1354,7 @@
     ) !important;
   font-size: 8px;
   font-weight: 650;
-  line-height: 13px;
+  line-height: 1;
   letter-spacing: 0.025em;
   text-align: center;
   text-overflow: ellipsis;
@@ -1404,13 +1412,18 @@ body.abs-in-simulation .about-editor-timeline-toggle {
 }
 
 .about-editor-editorial-clip {
-  top: 20px;
+  top: auto;
   bottom: 3px;
+  height: var(--about-editor-text-row-height);
   right: 3px;
   left: 3px;
   width: auto;
+  overflow: hidden;
   color: var(--editor-bg) !important;
-  font-size: 9px;
+  font-size: 8px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .about-editor-playhead {
