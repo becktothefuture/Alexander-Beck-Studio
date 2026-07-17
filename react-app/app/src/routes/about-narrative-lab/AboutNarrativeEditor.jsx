@@ -65,6 +65,7 @@ import {
   getAboutNarrativeExtentField,
   getAboutNarrativeSelectionMembers,
   moveAboutNarrativeCueTiming,
+  getAboutNarrativeTimelineLocalPercent,
   remapAboutNarrativePlayheadContext,
   resolveAboutNarrativeCameraKeyDrop,
   resolveAboutNarrativeCueDistribution,
@@ -905,7 +906,17 @@ function Timeline({ store, snapshot, onOpenGlobal }) {
               const localPosition = (at) => `${localPercent(at)}%`;
               const extendedLocalPosition = (at) => `${(Number(at || 0) * (compiled?.travelWU || spanWU) / spanWU) * 100}%`;
               const extendedLocalWidth = (from, to) => `${Math.max(0.35, (Number(to) - Number(from)) * (compiled?.travelWU || spanWU) / spanWU * 100)}%`;
-              const textPosition = (at) => `${clamp01(Number(at || 0)) * 100}%`;
+              // Text cues are sampled from the scrollable part of a pinned
+              // Section. Use the same WU conversion for the lane geometry so
+              // the left edge of a pink cue is precisely its visual entrance.
+              const textPosition = (at) => `${getAboutNarrativeTimelineLocalPercent(
+                clamp01(Number(at || 0)),
+                { travelWU: compiled?.travelWU || spanWU, spanWU },
+              )}%`;
+              const textWidth = (duration) => `${Math.max(0.5, getAboutNarrativeTimelineLocalPercent(
+                Math.max(0, Number(duration) || 0),
+                { travelWU: compiled?.travelWU || spanWU, spanWU },
+              ))}%`;
               const selectAt = (nextSelection, at = 0) => {
                 store.setSelection({ sectionId: section.id, ...nextSelection });
                 store.setTransport({
@@ -1078,7 +1089,7 @@ function Timeline({ store, snapshot, onOpenGlobal }) {
                       const motionSpan = motionInterval ? Math.max(0.00001, motionInterval.end - motionInterval.start) : 0;
                       const cueStyle = motionInterval ? {
                         left: textPosition(motionInterval.start),
-                        width: `${Math.max(0.5, motionSpan * 100)}%`,
+                        width: textWidth(motionSpan),
                       } : { left: textPosition(cue.hold) };
                       const focusPosition = motionInterval
                         ? `${((cue.hold - motionInterval.start) / motionSpan) * 100}%`

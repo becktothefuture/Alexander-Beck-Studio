@@ -55,17 +55,6 @@
             "motion": {
               "mode": "spatial"
             }
-          },
-          {
-            "id": "complexity-idea",
-            "text": "At the start, an idea can feel like everything at once.",
-            "enter": 0.61,
-            "hold": 0.77,
-            "exit": 1,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
           }
         ]
       },
@@ -155,16 +144,38 @@
       "label": "Entering complexity",
       "type": "spatial",
       "layout": "center",
-      "extentWU": 1.85,
-      "mobileExtentWU": 1.75,
+      "extentWU": 3.5,
+      "mobileExtentWU": 3.2,
       "text": {
         "cues": [
           {
+            "id": "complexity-idea",
+            "text": "At the start, an idea can feel like everything at once.",
+            "enter": 0.06,
+            "hold": 0.16,
+            "exit": 0.26,
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
+          },
+          {
             "id": "complexity-conditions",
             "text": "It has to be useful, original, technically possible and emotionally right.",
-            "enter": 0.18,
-            "hold": 0.33,
-            "exit": 0.48,
+            "enter": 0.41,
+            "hold": 0.51,
+            "exit": 0.61,
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
+          },
+          {
+            "id": "complexity-direction",
+            "text": "The work is to give those forces a direction.",
+            "enter": 0.76,
+            "hold": 0.86,
+            "exit": 0.94,
             "preset": "travelling-title-v1",
             "motion": {
               "mode": "spatial"
@@ -228,20 +239,20 @@
           "scale": 0.92
         },
         "transitionIn": {
-          "start": 0.02,
-          "end": 0.28,
+          "start": 0,
+          "end": 0.66,
           "type": "morph",
           "easing": "smoothstep",
           "correspondence": "spatial-nearest-v1"
         },
         "shapeParameters": {
-          "width": 10,
-          "height": 7,
-        "depth": 15,
-          "chunkCount": 7,
-          "chunkSize": 1.55,
-          "scatter": 0.14,
-          "turbulence": 0.52,
+          "width": 12,
+          "height": 8,
+          "depth": 28,
+          "chunkCount": 8,
+          "chunkSize": 1.75,
+          "scatter": 0.11,
+          "turbulence": 0.58,
           "density": 0.22
         },
         "modifiers": [
@@ -450,11 +461,12 @@
             0,
             0
           ],
-          "scale": 1
+          "scale": 1,
+          "mobileScale": 0.55
         },
         "transitionIn": {
-          "start": 0.02,
-          "end": 0.18,
+          "start": 0,
+          "end": 0.55,
           "type": "morph",
           "easing": "smoothstep",
           "correspondence": "spatial-nearest-v1"
@@ -492,9 +504,9 @@
           {
             "id": "complexity-curiosity",
             "text": "This stage of an idea has always captivated me.",
-            "enter": 0.08,
-            "hold": 0.18,
-            "exit": 0.28,
+            "enter": 0.04,
+            "hold": 0.13,
+            "exit": 0.22,
             "preset": "travelling-title-v1",
             "motion": {
               "mode": "spatial"
@@ -503,9 +515,9 @@
           {
             "id": "complexity-listen",
             "text": "I learn what is there and what matters to the people involved.",
-            "enter": 0.4,
-            "hold": 0.5,
-            "exit": 0.6,
+            "enter": 0.26,
+            "hold": 0.35,
+            "exit": 0.44,
             "preset": "travelling-title-v1",
             "motion": {
               "mode": "spatial"
@@ -514,15 +526,60 @@
           {
             "id": "complexity-focus",
             "text": "Then I look for the organising thought that can bring it into focus.",
-            "enter": 0.72,
-            "hold": 0.82,
-            "exit": 0.94,
+            "enter": 0.48,
+            "hold": 0.57,
+            "exit": 0.67,
             "preset": "travelling-title-v1",
             "motion": {
               "mode": "spatial"
             }
           }
-        ]
+        ],
+        "disciplineReveal": {
+          "id": "practice-disciplines",
+          "fieldTravelStart": 0.02,
+          "fieldTravelEnd": 2.1,
+          "fieldTravelWU": 9.6,
+          "fieldFogStartWU": 4.2,
+          "fieldFogEndWU": 8.4,
+          "fieldFogStrength": 0.78,
+          "start": 0.74,
+          "end": 1.9,
+          "stagger": 0.075,
+          "backgroundFade": 0.12,
+          "backgroundOpacity": 0.2,
+          "reconnectOpacity": 0.24,
+          "pointScale": 1.35,
+          "labelOffsetPx": 10,
+          "labelDuration": 0.09,
+          "hold": 0.4,
+          "items": [
+            {
+              "group": 1,
+              "label": "Product Design"
+            },
+            {
+              "group": 2,
+              "label": "Experience Design"
+            },
+            {
+              "group": 3,
+              "label": "Art Direction"
+            },
+            {
+              "group": 4,
+              "label": "Motion & 3D"
+            },
+            {
+              "group": 5,
+              "label": "Creative Engineering"
+            },
+            {
+              "group": 6,
+              "label": "Parametric Systems"
+            }
+          ]
+        }
       },
       "camera": {
         "keys": [
@@ -575,51 +632,6 @@
       "extentWU": 3.5,
       "mobileExtentWU": 4.2,
       "text": {
-        "disciplineReveal": {
-          "id": "practice-disciplines",
-          "fieldTravelStart": 0.02,
-          "fieldTravelEnd": 0.82,
-          "fieldTravelWU": 6.8,
-          "fieldFogStartWU": 4.2,
-          "fieldFogEndWU": 8.4,
-          "fieldFogStrength": 0.78,
-          "start": 0.18,
-          "end": 0.88,
-          "stagger": 0.075,
-          "backgroundFade": 0.12,
-          "backgroundOpacity": 0.2,
-          "reconnectOpacity": 0.24,
-          "pointScale": 1.35,
-          "labelOffsetPx": 10,
-          "labelDuration": 0.09,
-          "hold": 0.14,
-          "items": [
-            {
-              "group": 1,
-              "label": "Product Design"
-            },
-            {
-              "group": 2,
-              "label": "Experience Design"
-            },
-            {
-              "group": 3,
-              "label": "Art Direction"
-            },
-            {
-              "group": 4,
-              "label": "Motion & 3D"
-            },
-            {
-              "group": 5,
-              "label": "Creative Engineering"
-            },
-            {
-              "group": 6,
-              "label": "Parametric Systems"
-            }
-          ]
-        },
         "blocks": [
           {
             "id": "disciplines-title",

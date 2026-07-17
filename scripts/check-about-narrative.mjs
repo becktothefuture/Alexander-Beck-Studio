@@ -20,6 +20,7 @@ import {
   duplicateAboutNarrativeSection,
   getAboutNarrativeCameraKeyTimingBounds,
   getAboutNarrativeCueTimingBounds,
+  getAboutNarrativeTimelineLocalPercent,
   getAboutNarrativeExtentField,
   getAboutNarrativeSelectionMembers,
   moveAboutNarrativeCueTiming,
@@ -96,12 +97,13 @@ test('canonical About document validates and serializes deterministically', () =
 
 test('older drafts inherit new discipline field-handoff controls without becoming invalid', () => {
   const legacyDraft = structuredClone(canonical);
-  const reveal = legacyDraft.sections.find((section) => section.id === 'disciplines').text.disciplineReveal;
+  const revealSection = legacyDraft.sections.find((section) => section.text.disciplineReveal);
+  const reveal = revealSection.text.disciplineReveal;
   ['fieldTravelStart', 'fieldTravelEnd', 'fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength']
     .forEach((key) => { delete reveal[key]; });
   assert.deepEqual(validateAboutNarrativeDocument(legacyDraft).filter((item) => item.level === 'error'), []);
   const normalized = normalizeAboutNarrativeDocument(legacyDraft)
-    .sections.find((section) => section.id === 'disciplines').text.disciplineReveal;
+    .sections.find((section) => section.id === revealSection.id).text.disciplineReveal;
   assert.equal(normalized.fieldTravelWU, 6.8);
   assert.equal(normalized.fieldFogStrength, 0.8);
 });
@@ -140,10 +142,10 @@ test('canonical document preserves the approved eight-part storyboard allocation
   );
   assert.equal(canonical.sections[0].text.cues[0].text, 'I help shape complex ideas into emotionally compelling experiences.');
   assert.equal(canonical.sections[2].text.blocks[0].text, 'Perhaps that is why I have always been drawn to the space between aesthetics and technology.');
-  assert.equal(canonical.sections[4].text.disciplineReveal.items.length, 6);
+  assert.equal(canonical.sections[3].text.disciplineReveal.items.length, 6);
   assert.equal(canonical.sections[3].text.cues.length, 3);
   assert.equal(canonical.sections[4].text.blocks.some((block) => block.kind === 'disciplines'), false);
-  const disciplineLabels = canonical.sections[4].text.disciplineReveal.items.map((item) => item.label);
+  const disciplineLabels = canonical.sections[3].text.disciplineReveal.items.map((item) => item.label);
   const disciplineEditorialCopy = canonical.sections[4].text.blocks.map((block) => block.text || '').join(' ');
   disciplineLabels.forEach((label) => assert.equal(disciplineEditorialCopy.includes(label), false));
   assert.equal(canonical.sections[4].text.blocks.at(-1).worldInfluence, true);
@@ -165,12 +167,30 @@ test('canonical sequence opts exactly four inter-Shape transitions into local tr
   assert.deepEqual(sampleAboutNarrativePlan(plan, 0).world.sequence, plan.worldSequence);
 });
 
+test('the opening travels continuously from cluster through turbulence into the calm field', () => {
+  const plan = compileAboutNarrativeDocument(canonical);
+  const [promise, complexity, background] = plan.sections;
+  const [promiseSource, complexitySource, backgroundSource] = canonical.sections;
+  assert.equal(promiseSource.text.cues.length, 1, 'The opening cluster carries only the promise.');
+  assert.equal(complexitySource.text.cues.length, 3, 'The turbulent corridor carries the three title beats.');
+  assert.equal(complexitySource.world.shapeParameters.depth, 28, 'The turbulent corridor reaches deeply into the scene.');
+  assert.equal(complexitySource.world.transitionIn.start, 0);
+  assert.ok(complexitySource.world.transitionIn.end >= 0.6, 'Cluster formation should occupy most of the turbulent passage.');
+  assert.equal(backgroundSource.world.transitionIn.start, 0, 'The calm-field resolve begins immediately after turbulence.');
+  assert.ok(backgroundSource.world.transitionIn.end >= 0.5, 'The calm-field resolve should remain gradual.');
+  assert.equal(complexity.worldState.transition.startWU, complexity.startWU);
+  assert.equal(background.worldState.transition.startWU, background.startWU);
+  assert.ok(complexity.worldState.transition.endWU > complexity.worldState.transition.startWU);
+  assert.ok(background.worldState.transition.endWU > background.worldState.transition.startWU);
+});
+
 test('discipline reveal owns one extended clip, a paced top-down camera handoff, and six editorially spaced anchors', () => {
   const plan = compileAboutNarrativeDocument(canonical);
   const background = plan.sections[2];
   const practice = plan.sections[3];
   const disciplines = plan.sections[4];
-  assert.equal(plan.disciplineReveal.sectionId, disciplines.id);
+  const reveal = practice.text.disciplineReveal;
+  assert.equal(plan.disciplineReveal.sectionId, practice.id);
   assert.deepEqual(background.camera.keys.map((key) => key.at), [0, 0.5, 0.74, 1]);
   assert.deepEqual(background.camera.keys.at(-1).offset, [0, 6.4, 0]);
   assert.deepEqual(background.camera.keys.at(-1).lookAtOffset, [0, -6.4, -0.45]);
@@ -181,24 +201,33 @@ test('discipline reveal owns one extended clip, a paced top-down camera handoff,
   assert.equal(practice.worldState.changesWorld, false);
   assert.equal(practice.worldState.activeWorld.sectionId, background.id);
   assert.equal(background.world.shapeParameters.depth, 24);
+  assert.equal(background.world.transform.mobileScale, 0.55);
   assert.equal(practice.text.cues.length, 3);
-  assert.equal(disciplines.text.disciplineReveal.fieldTravelStart, 0.02);
-  assert.equal(disciplines.text.disciplineReveal.fieldTravelEnd, 0.82);
-  assert.equal(disciplines.text.disciplineReveal.fieldTravelWU, 6.8);
-  assert.ok(disciplines.text.disciplineReveal.fieldFogStartWU < disciplines.text.disciplineReveal.fieldFogEndWU);
-  assert.equal(disciplines.text.disciplineReveal.fieldFogStrength, 0.78);
-  assert.equal(disciplines.text.disciplineReveal.backgroundOpacity, 0.2);
-  assert.equal(disciplines.text.disciplineReveal.reconnectOpacity, 0.24);
+  assert.ok(reveal.fieldTravelStart < practice.text.cues[0].enter);
+  assert.ok(practice.text.cues.at(-1).exit < reveal.start);
+  assert.equal(reveal.fieldTravelStart, 0.02);
+  assert.equal(reveal.fieldTravelEnd, 2.1);
+  assert.equal(reveal.fieldTravelWU, 9.6);
+  const baseCameraTravelWU = (reveal.fieldTravelEnd - reveal.fieldTravelStart)
+    * practice.travelWU
+    * canonical.globals.camera.cadence;
+  assert.ok(reveal.fieldTravelWU > baseCameraTravelWU);
+  assert.ok(reveal.fieldTravelEnd > 1);
+  assert.ok(reveal.fieldTravelEnd > reveal.end);
+  assert.ok(reveal.fieldFogStartWU < reveal.fieldFogEndWU);
+  assert.equal(reveal.fieldFogStrength, 0.78);
+  assert.equal(reveal.backgroundOpacity, 0.2);
+  assert.equal(reveal.reconnectOpacity, 0.24);
   const revealFrame = sampleAboutNarrativePlan(
     plan,
-    disciplines.startWU + (disciplines.travelWU * 0.7),
+    practice.startWU + (practice.travelWU * 0.95),
   );
-  assert.equal(revealFrame.disciplineReveal.sectionIndex, 4);
-  assert.ok(Math.abs(revealFrame.disciplineReveal.localProgress - 0.7) < 1e-9);
-  assert.ok(disciplines.text.disciplineReveal.end < 1);
-  const editorialHandoffFrame = sampleAboutNarrativePlan(plan, disciplines.startWU + (disciplines.travelWU * 0.24));
-  assert.ok(editorialHandoffFrame.disciplineReveal.localProgress > disciplines.text.disciplineReveal.start);
-  assert.ok(editorialHandoffFrame.disciplineReveal.localProgress < disciplines.text.disciplineReveal.end);
+  assert.equal(revealFrame.disciplineReveal.sectionIndex, 3);
+  assert.ok(Math.abs(revealFrame.disciplineReveal.localProgress - 0.95) < 1e-9);
+  assert.ok(reveal.end > 1);
+  const editorialHandoffFrame = sampleAboutNarrativePlan(plan, disciplines.startWU + (disciplines.travelWU * 0.2));
+  assert.ok(editorialHandoffFrame.disciplineReveal.localProgress > 1);
+  assert.ok(editorialHandoffFrame.disciplineReveal.localProgress < reveal.end);
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
   assert.equal(new Set(verticalPositions).size, 6);
   assert.ok(verticalPositions[0] >= 0.5);
@@ -209,7 +238,7 @@ test('discipline colours follow the canonical Home simulation distribution', () 
   const distributionTokens = designSystem.runtime.colorDistribution.map(({ colorIndex }) => `--ball-${colorIndex + 1}`);
   assert.deepEqual(ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS, distributionTokens);
   assert.deepEqual(
-    canonical.sections.find((section) => section.id === 'disciplines').text.disciplineReveal.items.map(({ label }) => label),
+    canonical.sections.find((section) => section.text.disciplineReveal).text.disciplineReveal.items.map(({ label }) => label),
     designSystem.runtime.colorDistribution.map(({ label }) => label),
   );
 });
@@ -449,19 +478,19 @@ test('Cue multi-selection remains backward-compatible and toggles deterministica
 test('Cue groups move in global WU, clamp as one group, and preserve envelopes', () => {
   const plan = compileAboutNarrativeDocument(canonical);
   const members = [
-    { type: 'cue', sectionId: 'promise', cueId: 'complexity-idea', keyPart: 'focus' },
     { type: 'cue', sectionId: cueTrack.id, cueId: cueTrackIds[0], keyPart: 'focus' },
+    { type: 'cue', sectionId: cueTrack.id, cueId: cueTrackIds[1], keyPart: 'focus' },
   ];
   const result = resolveAboutNarrativeCueGroupMove({
     document: canonical,
     plan,
     members,
     primary: members[0],
-    deltaWU: 0.5,
+    deltaWU: 5,
   });
   assert.equal(result.valid, true);
   assert.equal(result.deltaWU, result.maxDeltaWU);
-  assert.ok(result.deltaWU < 0.5);
+  assert.ok(result.deltaWU < 5);
   assert.equal(result.moves[0].sectionId, members[0].sectionId);
   assert.equal(result.moves[1].sectionId, members[1].sectionId);
 
@@ -853,14 +882,18 @@ test('reduced-motion camera stays settled within a Section', () => {
 test('authored title movement resolves to vertical or spatial', () => {
   const allCues = canonical.sections.flatMap((section) => section.text.cues || []);
   assert.ok(allCues.every((cue) => ['spatial', 'vertical'].includes(getAboutNarrativeCueMovement(cue))));
-  assert.deepEqual(canonical.sections[0].text.cues.map((cue) => cue.id), ['promise-main', 'complexity-idea']);
+  assert.deepEqual(canonical.sections[0].text.cues.map((cue) => cue.id), ['promise-main']);
   assert.ok(canonical.sections[0].text.cues.every((cue) => getAboutNarrativeCueMovement(cue) === 'spatial'));
   assert.ok(canonical.sections[1].text.cues.every((cue) => getAboutNarrativeCueMovement(cue) === 'spatial'));
-  assert.equal(canonical.sections[1].text.cues.some((cue) => cue.id === 'complexity-idea'), false);
+  assert.deepEqual(canonical.sections[1].text.cues.map((cue) => cue.id), [
+    'complexity-idea',
+    'complexity-conditions',
+    'complexity-direction',
+  ]);
 });
 
 test('reduced-motion title selection follows the same travel intervals as the timeline', () => {
-  const cues = canonical.sections[0].text.cues;
+  const cues = canonical.sections[1].text.cues;
   const motion = canonical.globals.textMotion;
   const first = getAboutNarrativeCueMotionInterval(cues[0], motion);
   const second = getAboutNarrativeCueMotionInterval(cues[1], motion);
@@ -870,6 +903,31 @@ test('reduced-motion title selection follows the same travel intervals as the ti
   assert.equal(getAboutNarrativeReducedCueIndex(cues, first.end, motion), 0);
   assert.equal(getAboutNarrativeReducedCueIndex(cues, gap, motion), -1);
   assert.equal(getAboutNarrativeReducedCueIndex(cues, second.start, motion), 1);
+});
+
+test('timeline text clips share the runtime WU interval in pinned Sections', () => {
+  const plan = compileAboutNarrativeDocument(canonical);
+  for (const [index, section] of plan.sections.entries()) {
+    const sourceSection = canonical.sections.find((item) => item.id === section.id);
+    const nextStartWU = plan.sections[index + 1]?.startWU ?? plan.maxStoryWU;
+    const spanWU = nextStartWU - section.startWU;
+    for (const cue of sourceSection.text.cues || []) {
+      if (getAboutNarrativeCueMovement(cue) !== 'spatial') continue;
+      const interval = getAboutNarrativeCueMotionInterval(cue, canonical.globals.textMotion);
+      const leftPercent = getAboutNarrativeTimelineLocalPercent(interval.start, {
+        travelWU: section.travelWU,
+        spanWU,
+      });
+      const widthPercent = getAboutNarrativeTimelineLocalPercent(interval.end - interval.start, {
+        travelWU: section.travelWU,
+        spanWU,
+      });
+      const timelineStartWU = section.startWU + ((leftPercent / 100) * spanWU);
+      const timelineEndWU = timelineStartWU + ((widthPercent / 100) * spanWU);
+      assert.ok(Math.abs(timelineStartWU - (section.startWU + (interval.start * section.travelWU))) < 0.00001, cue.id);
+      assert.ok(Math.abs(timelineEndWU - (section.startWU + (interval.end * section.travelWU))) < 0.00001, cue.id);
+    }
+  }
 });
 
 test('spatial Cues move continuously through their focus point', () => {
@@ -887,12 +945,13 @@ test('spatial Cues move continuously through their focus point', () => {
 });
 
 test('travelling Cues visibly blur in and blur out within their Section', () => {
-  const cues = canonical.sections[0].text.cues;
+  const openerCue = canonical.sections[0].text.cues[0];
+  const cues = canonical.sections[1].text.cues;
   const motion = canonical.globals.textMotion;
-  const firstInterval = getAboutNarrativeCueMotionInterval(cues[0], motion);
-  const firstFrame = sampleAboutNarrativeCue(cues[0], firstInterval.start, motion, false);
-  const movingFrame = sampleAboutNarrativeCue(cues[0], firstInterval.start + ((firstInterval.end - firstInterval.start) * 0.5), motion, false);
-  const laterCue = canonical.sections[1].text.cues[0];
+  const openerInterval = getAboutNarrativeCueMotionInterval(openerCue, motion);
+  const firstFrame = sampleAboutNarrativeCue(openerCue, openerInterval.start, motion, false);
+  const movingFrame = sampleAboutNarrativeCue(openerCue, openerInterval.start + ((openerInterval.end - openerInterval.start) * 0.5), motion, false);
+  const laterCue = cues[0];
   const laterInterval = getAboutNarrativeCueMotionInterval(laterCue, motion);
   const approachingFrame = sampleAboutNarrativeCue(
     laterCue,
@@ -902,14 +961,14 @@ test('travelling Cues visibly blur in and blur out within their Section', () => 
   );
   const lastInterval = getAboutNarrativeCueMotionInterval(cues.at(-1), motion);
   const lastFrame = sampleAboutNarrativeCue(cues.at(-1), lastInterval.end, motion, false);
-  assert.equal(firstInterval.start, 0);
+  assert.equal(openerInterval.start, 0);
   assert.equal(firstFrame.opacity, 1);
   assert.equal(firstFrame.blur, 0);
   assert.equal(firstFrame.y, motion.openerStartY);
   assert.ok(movingFrame.y > firstFrame.y);
   assert.ok(approachingFrame.opacity > 0 && approachingFrame.opacity < 1);
   assert.ok(approachingFrame.blur > 0 && approachingFrame.blur < motion.maxBlur);
-  assert.equal(lastInterval.end, 1);
+  assert.ok(lastInterval.end < 1 && lastInterval.end > 0.99);
   assert.equal(lastFrame.opacity, 0);
   assert.equal(lastFrame.blur, motion.maxBlur);
 });

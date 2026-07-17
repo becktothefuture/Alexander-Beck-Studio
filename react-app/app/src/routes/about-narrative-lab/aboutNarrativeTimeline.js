@@ -16,6 +16,18 @@ function cleanTimelineValue(value) {
   return Number(Number(value).toFixed(6));
 }
 
+/**
+ * Converts a Section-local timing value into the percentage used by the
+ * timeline. Pinned Sections occupy their authored extent in the editor, but
+ * only `travelWU` of that extent advances the narrative. Keeping this mapping
+ * here means timeline clips and runtime sampling share the same WU model.
+ */
+export function getAboutNarrativeTimelineLocalPercent(at, { travelWU, spanWU }) {
+  const safeSpanWU = Math.max(0.001, Number(spanWU) || 0);
+  const safeTravelWU = Math.max(0, Number(travelWU) || 0);
+  return cleanTimelineValue((Number(at) || 0) * (safeTravelWU / safeSpanWU) * 100);
+}
+
 function getSectionAtStoryWU(plan, storyWU) {
   if (!plan?.sections?.length) return { section: null, sectionIndex: -1 };
   const clampedStoryWU = clamp(Number(storyWU) || 0, 0, Number(plan.maxStoryWU || 0));

@@ -323,8 +323,8 @@ async function audit(viewport, label) {
   assert.ok(openingCueGeometry.centreDelta <= 1);
   assert.ok(openingCueGeometry.cueTop > openingCueGeometry.titleBottom);
   assert.equal(await root.getAttribute('data-opening-scroll-cue'), 'visible');
-  assert.equal(await page.locator('#about-narrative-promise [data-text-cue="complexity-idea"]').count(), 1);
-  assert.equal(await page.locator('#about-narrative-complexity [data-text-cue="complexity-idea"]').count(), 0);
+  assert.equal(await page.locator('#about-narrative-promise [data-text-cue="complexity-idea"]').count(), 0);
+  assert.equal(await page.locator('#about-narrative-complexity [data-text-cue="complexity-idea"]').count(), 1);
   assert.equal(await page.locator('[data-text-cue="practice-main"]').count(), 0);
   assert.equal(await page.locator('.about-narrative-discipline-list').count(), 0);
   assert.equal(await page.locator('.about-narrative-discipline-reveal').count(), 1);
@@ -483,6 +483,7 @@ async function audit(viewport, label) {
 
   const transport = page.locator('.about-editor-transport input[type="range"]');
   const openingTitle = page.locator('[data-text-cue="promise-main"]');
+  const secondOpeningTitle = page.locator('[data-text-cue="complexity-idea"]');
   await transport.fill('0.04');
   await page.waitForTimeout(120);
   assert.equal(await root.getAttribute('data-opening-scroll-cue'), 'hidden');
@@ -491,6 +492,21 @@ async function audit(viewport, label) {
   await page.waitForTimeout(120);
   const openingTitleAfter = await openingTitle.evaluate((node) => Number.parseFloat(getComputedStyle(node).getPropertyValue('--fragment-y')));
   assert.ok(openingTitleAfter > openingTitleBefore + 40);
+  // The visual sampler and its pink timeline clip must describe the same
+  // interval. This deliberately checks just before and during the second
+  // opener title rather than relying on a screenshot of the initial state.
+  await transport.fill(formatWU(await getSectionStoryWU('complexity', 0)));
+  await page.waitForTimeout(120);
+  const secondTitleBeforeEntrance = await secondOpeningTitle.evaluate((node) => Number.parseFloat(
+    getComputedStyle(node).getPropertyValue('--fragment-opacity'),
+  ));
+  assert.ok(secondTitleBeforeEntrance < 0.01, 'The second title must stay hidden before its timeline clip begins.');
+  await transport.fill(formatWU(await getSectionStoryWU('complexity', 0.16)));
+  await page.waitForTimeout(120);
+  const secondTitleAtFocus = await secondOpeningTitle.evaluate((node) => Number.parseFloat(
+    getComputedStyle(node).getPropertyValue('--fragment-opacity'),
+  ));
+  assert.ok(secondTitleAtFocus > 0.99, 'The second title must be clear at its timeline focus point.');
   for (const storyWU of [0, 1.5, 3.5, 6.5, 10.5, 15.5]) {
     await transport.fill(String(storyWU));
     await page.waitForTimeout(180);
@@ -650,11 +666,11 @@ async function audit(viewport, label) {
     await page.waitForTimeout(100);
     assert.equal(await movableWorldTransition.getAttribute('style'), worldTransitionStyleBefore);
 
-    const introTextClip = page.locator('.about-editor-lane--text .about-editor-clip').first();
-    const movableTextCue = introTextClip.locator('.about-editor-cue.is-draggable').nth(1);
+    const complexityTextClip = page.locator('.about-editor-lane--text .about-editor-clip').nth(1);
+    const movableTextCue = complexityTextClip.locator('.about-editor-cue.is-draggable').first();
     const textLabelBeforeDrag = await movableTextCue.getAttribute('aria-label');
     const dragIntroCueTo = async (at) => {
-      const [textClipBox, textCueBox] = await Promise.all([introTextClip.boundingBox(), movableTextCue.boundingBox()]);
+      const [textClipBox, textCueBox] = await Promise.all([complexityTextClip.boundingBox(), movableTextCue.boundingBox()]);
       assert.ok(textClipBox && textCueBox);
       await page.mouse.move(textCueBox.x + (textCueBox.width / 2), textCueBox.y + (textCueBox.height / 2));
       await page.mouse.down();
@@ -848,10 +864,10 @@ async function audit(viewport, label) {
     assert.match(await page.locator('.about-editor-inspector').textContent(), /Grid fade duration/i);
     assert.match(await page.locator('.about-editor-inspector').textContent(), /Reveal order and labels/i);
     const [revealTextClipBox, revealClipBox] = await Promise.all([revealTextClip.boundingBox(), revealClip.boundingBox()]);
-    const editorialClipBox = await revealTextClip.locator('.about-editor-editorial-clip').boundingBox();
+    const lastPracticeCueBox = await revealTextClip.locator('.about-editor-cue').last().boundingBox();
     const revealLabelBeforeDrag = await revealClip.getAttribute('aria-label');
-    assert.ok(revealTextClipBox && revealClipBox && editorialClipBox);
-    assert.ok(revealClipBox.y + revealClipBox.height <= editorialClipBox.y, 'Discipline and editorial Text clips should occupy separate sublanes');
+    assert.ok(revealTextClipBox && revealClipBox && lastPracticeCueBox);
+    assert.ok(lastPracticeCueBox.x + lastPracticeCueBox.width <= revealClipBox.x, 'Practice titles should resolve before the Discipline reveal begins');
     await page.mouse.move(revealClipBox.x + (revealClipBox.width / 2), revealClipBox.y + (revealClipBox.height / 2));
     await page.mouse.down();
     await page.mouse.move(Math.max(revealTextClipBox.x + 8, revealClipBox.x + (revealClipBox.width / 2) - 12), revealClipBox.y + (revealClipBox.height / 2), { steps: 5 });
@@ -927,7 +943,7 @@ async function audit(viewport, label) {
     assert.equal(await transitionKeys.count(), 2);
 
     const practice = page.locator('[data-narrative-section="practice-reveal"]');
-    const revealWU = await getSectionStoryWU('disciplines', 0.68);
+    const revealWU = await getSectionStoryWU('practice-reveal', 1.3);
     await transport.fill(formatWU(revealWU));
     await page.waitForTimeout(180);
     assert.equal(await root.getAttribute('data-world-discipline-visible'), '6');
@@ -960,7 +976,7 @@ async function audit(viewport, label) {
     await page.screenshot({ path: `output/playwright/about-narrative/${browserName}-${label}-discipline-reveal.png` });
 
     const disciplinesSection = page.locator('[data-narrative-section="disciplines"]');
-    await transport.fill(formatWU(await getSectionStoryWU('disciplines', 0.35)));
+    await transport.fill(formatWU(await getSectionStoryWU('disciplines', 0.15)));
     await page.waitForFunction(() => (
       Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels) > 0
     ));
