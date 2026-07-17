@@ -53,7 +53,6 @@ export async function loadDailyFocusJson(url, fallback) {
 
 export function resolveDailyFocusTheme(designSystem, isDarkMode = false) {
   const runtime = designSystem?.runtime || {};
-  const shellTheme = designSystem?.shell?.theme || {};
   const paletteId = resolveLondonWeatherPaletteId(
     runtime.paletteId
       || runtime.palette
@@ -62,8 +61,8 @@ export function resolveDailyFocusTheme(designSystem, isDarkMode = false) {
       || DEFAULT_DAILY_FOCUS_PALETTE_ID,
   ) || DEFAULT_DAILY_FOCUS_PALETTE_ID;
   const palette = getLondonWeatherPalette(paletteId);
-  const bgLight = runtime.bgLight || shellTheme.wallBaseLight || DEFAULT_DAILY_FOCUS_THEME.light;
-  const bgDark = runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_DAILY_FOCUS_THEME.dark;
+  const bgLight = runtime.bgLight || DEFAULT_DAILY_FOCUS_THEME.light;
+  const bgDark = runtime.bgDark || DEFAULT_DAILY_FOCUS_THEME.dark;
   const activeBg = isDarkMode ? bgDark : bgLight;
   const rawPalette = Array.isArray(isDarkMode ? palette?.dark : palette?.light)
     ? (isDarkMode ? palette.dark : palette.light)

@@ -113,8 +113,9 @@ html {
   /* Default cursor outside inner wall area; custom cursor only inside inner wall */
   cursor: default;
   /* The exposed page band must match the resolved browser chrome exactly. */
-  background: var(--abs-browser-chrome, #141414);
-  background-color: var(--abs-browser-chrome, #141414);
+  background: var(--abs-browser-chrome, #000000);
+  background-color: var(--abs-browser-chrome, #000000);
+  color-scheme: dark;
   /* 3D perspective for entrance animations */
   perspective: var(--entrance-perspective, 1000px);
   perspective-origin: center center;
@@ -147,18 +148,16 @@ html.aspect-portrait {
   --entrance-perspective: 800px;
 }
 
-/* Initial browser-default state (before entrance animation) */
-/* Unified wall color fallback: #242529 (consistent across all modes) */
+/* Initial browser-default state (before entrance animation). */
 html.entrance-pre-transition {
-  background: var(--abs-browser-chrome, #141414);
-  background-color: var(--abs-browser-chrome, #141414);
+  background: var(--abs-browser-chrome, #000000);
+  background-color: var(--abs-browser-chrome, #000000);
 }
 
-/* Dark mode override: prevent white flash on load */
-/* Unified wall color (same as light mode) */
+/* Dark mode override: prevent white flash on load. */
 html.entrance-pre-transition.dark-mode {
-  background: var(--abs-browser-chrome, #141414);
-  background-color: var(--abs-browser-chrome, #141414);
+  background: var(--abs-browser-chrome, #000000);
+  background-color: var(--abs-browser-chrome, #000000);
 }
 
 /* Background elements are visible immediately (no fade-in) */
@@ -217,8 +216,8 @@ body.body {
   letter-spacing: var(--abs-letter-spacing-global);
   /* iOS Safari can reveal the body background during rubber-band/viewport UI changes.
      Keep body aligned to the wall color so no browser-white edges appear. */
-  background: var(--abs-browser-chrome, #141414);
-  background-color: var(--abs-browser-chrome, #141414);
+  background: var(--abs-browser-chrome, #000000);
+  background-color: var(--abs-browser-chrome, #000000);
   color: var(--text-primary);
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: auto;
@@ -339,8 +338,8 @@ body.abs-in-simulation .simulation-focus-modal .gate-back *,
 
 body.dark-mode,
 body.body.dark-mode { 
-  background: var(--abs-browser-chrome, #141414);
-  background-color: var(--abs-browser-chrome, #141414);
+  background: var(--abs-browser-chrome, #000000);
+  background-color: var(--abs-browser-chrome, #000000);
   color: var(--text-primary);
   /* Inner shadow removed */
 }
@@ -3753,6 +3752,17 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
     height var(--duration-resize) var(--ease-organic);
 }
 
+/* The document/browser surface stays dark. Native UI inside the studio window
+   receives the resolved manual/auto theme at explicit window-layer boundaries. */
+#simulations,
+#app-frame,
+#window-overlay-content-layer,
+#portfolio-sheet-host,
+#shell-persistent-route-ui-host,
+#modal-content-layer {
+  color-scheme: var(--studio-window-color-scheme, light);
+}
+
 .shell-bottom-band {
   position: fixed;
   left: var(--safari-tint-inset-x, var(--safari-tint-inset));
@@ -3784,6 +3794,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   --button-bar-figma-selected-ink: #ff4013;
   --button-bar-figma-muted-ink: rgba(191, 186, 177, 0.6);
   display: flex;
+  color-scheme: dark;
   align-items: stretch;
   width: min(100%, var(--button-bar-width, 2400px));
   max-width: var(--button-bar-max-width, 2400px);
@@ -3992,7 +4003,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   --shell-tab-text-rest: rgba(var(--abs-rgb-white), 0.73);
   --shell-tab-text-hover: rgba(var(--abs-rgb-white), 0.8);
   --shell-tab-text-active: var(--shell-tab-route-accent);
-  --shell-tab-surface-base: var(--shell-wall-bg, var(--studio-window-bg));
+  --shell-tab-surface-base: var(--shell-wall-bg, var(--abs-browser-chrome));
   --shell-tab-surface-rest: var(--shell-tab-surface-base);
   --shell-tab-surface-hover: color-mix(in srgb, var(--shell-tab-surface-base) calc(100% - var(--abs-button-hover-darken-mix, 10%)), rgba(var(--abs-rgb-black), 1) var(--abs-button-hover-darken-mix, 10%));
   --shell-tab-surface-pressed: color-mix(in srgb, var(--shell-tab-surface-base) 10%, rgba(var(--abs-rgb-black), 1) 90%);
@@ -4350,15 +4361,6 @@ svg.shell-tab__icon {
   --button-bar-gasket-text-active: var(--button-bar-outer-ink, rgba(var(--abs-rgb-white), 0.88));
   --button-bar-selected-ground-share: 84%;
   --button-bar-pressed-ground-share: 76%;
-  --button-bar-selected-shadow-opacity: 0;
-  --button-bar-pressed-shadow-opacity: 0;
-}
-
-html[data-abs-light-browser-chrome] .button-bar {
-  --button-bar-gasket-cut: rgba(var(--abs-rgb-black), 0.1);
-  --button-bar-gasket-active-cut: rgba(var(--abs-rgb-black), 0.14);
-  --button-bar-selected-ground-share: 92%;
-  --button-bar-pressed-ground-share: 86%;
   --button-bar-selected-shadow-opacity: 0;
   --button-bar-pressed-shadow-opacity: 0;
 }
@@ -8478,7 +8480,7 @@ html {
   padding: var(--gap-xs) var(--gap-sm);
   border-radius: var(--abs-radius-9);
   border: var(--abs-size-1px) solid rgba(var(--abs-rgb-white), 0.14);
-  background: color-mix(in srgb, var(--wall-color, #242529) 84%, transparent);
+  background: color-mix(in srgb, var(--wall-color, #000000) 84%, transparent);
   color: var(--text-color-light, #161616);
   font-family: var(--abs-font-mono);
   font-size: var(--text-xs);

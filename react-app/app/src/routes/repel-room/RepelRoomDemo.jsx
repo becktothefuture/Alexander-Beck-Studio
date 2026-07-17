@@ -70,7 +70,6 @@ function downloadConfig(config) {
 
 function resolveRepelRoomTheme(designSystem, isDark) {
   const runtime = designSystem?.runtime || {};
-  const shellTheme = designSystem?.shell?.theme || {};
   const paletteId = resolveLondonWeatherPaletteId(
     runtime.paletteId
       || runtime.palette
@@ -80,8 +79,8 @@ function resolveRepelRoomTheme(designSystem, isDark) {
   ) || DEFAULT_LONDON_WEATHER_PALETTE_ID;
   const palette = getLondonWeatherPalette(paletteId);
 
-  const light = runtime.bgLight || shellTheme.wallBaseLight || DEFAULT_THEME_COLORS.light;
-  const dark = runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_THEME_COLORS.dark;
+  const light = runtime.bgLight || DEFAULT_THEME_COLORS.light;
+  const dark = runtime.bgDark || DEFAULT_THEME_COLORS.dark;
   const activePalette = isDark ? palette?.dark : palette?.light;
 
   return {

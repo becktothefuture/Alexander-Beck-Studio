@@ -810,7 +810,6 @@ function applyPaletteTheme(templateName) {
   const accents = getLondonWeatherPaletteAccents(templateName);
   if (!accents || !root) return;
 
-  globals.frameColor = isDark ? globals.frameColorDark : globals.frameColorLight;
   globals.linkHoverColor = accents.linkHoverColor || globals.linkHoverColor;
 
   root.style.setProperty('--link-hover-color', globals.linkHoverColor);

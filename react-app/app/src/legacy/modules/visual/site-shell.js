@@ -21,13 +21,11 @@ import {
 
 const DEFAULT_SHELL_CONFIG = {
   theme: {
-    wallBaseLight: '#efefef',
-    wallBaseDark: '#141414',
+    wallBase: '#141414',
     quoteButtonColorLight: '#efefef',
     quoteButtonColorDark: '#141414',
-    siteFrameLight: '#141414',
-    siteFrameDark: '#141414',
-    chromeHarmonyMode: 'adaptive',
+    siteFrame: '#000000',
+    chromeHarmonyMode: 'auto',
     frameBorderEdgeOpacity: 0.03,
     frameBorderMidOpacity: 0.06
   },
@@ -190,6 +188,9 @@ export async function loadShellConfig() {
 export function detectBrowserFamily() {
   const ua = navigator.userAgent || '';
   const vendor = navigator.vendor || '';
+  const isIOS = /iPhone|iPad|iPod/.test(ua)
+    || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(ua);
   const isFirefox = /Firefox\//.test(ua) || /FxiOS\//.test(ua);
   const isSafari = /Safari\//.test(ua)
     && /Apple/.test(vendor)
@@ -212,49 +213,39 @@ export function detectBrowserFamily() {
     || /Brave\//.test(ua)
     || isSamsungInternet;
 
-  return { isFirefox, isSafari, isChromium, isSamsungInternet };
+  return { isFirefox, isSafari, isChromium, isSamsungInternet, isIOS, isAndroid };
 }
 
 export function detectThemeColorLikelyApplied(family = detectBrowserFamily()) {
-  const ua = navigator.userAgent || '';
-  const isAndroid = /Android/.test(ua);
-  const isIOS = /iPhone|iPad|iPod/.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
   const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
     || (window.matchMedia && window.matchMedia('(display-mode: minimal-ui)').matches)
     || (navigator.standalone === true);
 
-  if (family.isFirefox) return false;
   if (isStandalone) return true;
+  if (family.isIOS) return true;
+  if (family.isFirefox) return false;
   if (family.isSafari) return true;
-  if (family.isChromium) return isAndroid || family.isSamsungInternet;
-  return isAndroid || isIOS;
+  if (family.isChromium) return family.isAndroid || family.isSamsungInternet;
+  return family.isAndroid || family.isIOS;
 }
 
-export function resolveShellPalette(config = currentShellConfig, isDark = isDarkThemeDocument()) {
+export function resolveShellPalette(config = currentShellConfig) {
   const family = detectBrowserFamily();
   const themeColorLikelyApplied = detectThemeColorLikelyApplied(family);
-
-  const stableWallBase = config?.theme?.wallBase || '';
-  const light = config?.theme?.wallBaseLight
-    || stableWallBase
-    || DEFAULT_SHELL_CONFIG.theme.wallBaseLight;
-  const dark = config?.theme?.wallBaseDark
-    || stableWallBase
-    || DEFAULT_SHELL_CONFIG.theme.wallBaseDark;
-  const active = isDark ? dark : light;
+  const active = config?.theme?.wallBase || DEFAULT_SHELL_CONFIG.theme.wallBase;
 
   return {
-    light,
-    dark,
+    light: active,
+    dark: active,
     active,
     family,
     themeColorLikelyApplied,
-    usesLockedPalette: false
+    usesLockedPalette: true
   };
 }
 
 function getDefaultFrameColor() {
-  return '#202124';
+  return DEFAULT_SHELL_CONFIG.theme.siteFrame;
 }
 
 function readCssVar(name) {
@@ -263,62 +254,38 @@ function readCssVar(name) {
   return styles.getPropertyValue(name).trim();
 }
 
-export function resolveSiteFramePalette(isDark = isDarkThemeDocument()) {
-  const light = readCssVar('--frame-color-site-light')
-    || readCssVar('--frame-color-light')
+export function resolveSiteFramePalette() {
+  const active = readCssVar('--frame-color-site')
+    || readCssVar('--frame-color-site-dark')
+    || readCssVar('--frame-color-site-light')
     || getDefaultFrameColor();
-  const dark = readCssVar('--frame-color-site-dark')
-    || readCssVar('--frame-color-dark')
-    || light
-    || getDefaultFrameColor();
-  const active = isDark ? dark : light;
 
-  return { light, dark, active };
+  return { light: active, dark: active, active };
 }
 
-export function resolveBrowserFramePalette(isDark = isDarkThemeDocument()) {
-  const family = detectBrowserFamily();
-  let light = DEFAULT_SHELL_CONFIG.theme.siteFrameLight;
-  let dark = DEFAULT_SHELL_CONFIG.theme.siteFrameDark;
-
-  if (family.isFirefox) {
-    light = '#f9f9fb';
-    dark = '#1c1b22';
-  } else {
-    light = '#f1f3f4';
-    dark = '#202124';
-  }
-
-  const active = isDark ? dark : light;
-
-  return { light, dark, active };
-}
-
-export function applySiteFramePalette({ light, dark }) {
+export function applySiteFramePalette({ active, light, dark }) {
   const root = document.documentElement;
-  const nextLight = light || getDefaultFrameColor();
-  const nextDark = dark || nextLight;
+  const nextActive = active || dark || light || getDefaultFrameColor();
 
-  root.style.setProperty('--frame-color-site-light', nextLight);
-  root.style.setProperty('--frame-color-site-dark', nextDark);
+  root.style.setProperty('--frame-color-site', nextActive);
+  root.style.setProperty('--frame-color-site-light', nextActive);
+  root.style.setProperty('--frame-color-site-dark', nextActive);
 }
 
-export function applyFrameChromePalette({ light, dark, active }) {
+export function applyFrameChromePalette({ active, light, dark }) {
   const root = document.documentElement;
-  const nextLight = light || active || getDefaultFrameColor();
-  const nextDark = dark || active || nextLight;
-  const nextActive = active || nextDark || nextLight;
+  const nextActive = active || dark || light || getDefaultFrameColor();
   const outerInk = resolveOuterShellInk(nextActive);
 
   root.style.setProperty('--abs-browser-chrome', nextActive);
-  root.style.setProperty('--frame-color-light', nextLight);
-  root.style.setProperty('--frame-color-dark', nextDark);
+  root.style.setProperty('--frame-color-light', nextActive);
+  root.style.setProperty('--frame-color-dark', nextActive);
   root.style.setProperty('--frame-color', nextActive);
-  root.style.setProperty('--wall-color-light', nextLight);
-  root.style.setProperty('--wall-color-dark', nextDark);
+  root.style.setProperty('--wall-color-light', nextActive);
+  root.style.setProperty('--wall-color-dark', nextActive);
   root.style.setProperty('--wall-color', nextActive);
-  root.style.setProperty('--chrome-bg-light', nextLight);
-  root.style.setProperty('--chrome-bg-dark', nextDark);
+  root.style.setProperty('--chrome-bg-light', nextActive);
+  root.style.setProperty('--chrome-bg-dark', nextActive);
   root.style.setProperty('--chrome-bg', nextActive);
   root.style.setProperty('--button-bar-outer-ink', outerInk.primary);
   root.style.setProperty('--button-bar-outer-ink-muted', outerInk.muted);
@@ -352,7 +319,7 @@ function resolveOuterShellInk(color) {
   const hasRgb = rgb.length === 3 && rgb.every(Number.isFinite);
   const isLight = hasRgb
     ? ((rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722) >= 150)
-    : !window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+    : false;
 
   return isLight
     ? { primary: 'rgba(0, 0, 0, 0.82)', muted: 'rgba(0, 0, 0, 0.62)' }
@@ -367,12 +334,10 @@ function numberInRange(value, min, max, fallback) {
 
 export function applyShellPalette({ light, dark, active }) {
   const root = document.documentElement;
-  const nextActive = active || dark || light || DEFAULT_SHELL_CONFIG.theme.wallBaseDark;
-  const nextLight = light || nextActive;
-  const nextDark = dark || nextActive;
+  const nextActive = active || dark || light || DEFAULT_SHELL_CONFIG.theme.wallBase;
 
-  root.style.setProperty('--abs-wall-base-light', nextLight);
-  root.style.setProperty('--abs-wall-base-dark', nextDark);
+  root.style.setProperty('--abs-wall-base-light', nextActive);
+  root.style.setProperty('--abs-wall-base-dark', nextActive);
   root.style.setProperty('--abs-wall-base', nextActive);
   root.style.setProperty('--shell-wall-bg', nextActive);
 }
@@ -563,9 +528,9 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
   const bottomEdgeOpacity = isDark ? surface.lightEdgeBottomOpacityDark : surface.lightEdgeBottomOpacityLight;
   const edgeWidth = surface.edgeWidth || surface.lightEdgeInset || DEFAULT_SHELL_CONFIG.surface.edgeWidth;
 
-  /* Quote button color (per-mode); fallback to inner wall if not set */
-  const quoteBtnLight = theme.quoteButtonColorLight ?? theme.wallBaseLight ?? DEFAULT_SHELL_CONFIG.theme.wallBaseLight;
-  const quoteBtnDark = theme.quoteButtonColorDark ?? theme.wallBaseDark ?? DEFAULT_SHELL_CONFIG.theme.wallBaseDark;
+  /* Quote button color (per-mode); fallback to the stable outer wall if unset. */
+  const quoteBtnLight = theme.quoteButtonColorLight ?? theme.wallBase ?? DEFAULT_SHELL_CONFIG.theme.wallBase;
+  const quoteBtnDark = theme.quoteButtonColorDark ?? theme.wallBase ?? DEFAULT_SHELL_CONFIG.theme.wallBase;
   root.style.setProperty('--quote-button-color-light', quoteBtnLight);
   root.style.setProperty('--quote-button-color-dark', quoteBtnDark);
   root.style.setProperty('--quote-button-color', isDark ? quoteBtnDark : quoteBtnLight);
@@ -577,8 +542,7 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
     }
   } catch (e) {}
 
-  root.style.setProperty('--frame-color-site-light', theme.siteFrameLight || getDefaultFrameColor());
-  root.style.setProperty('--frame-color-site-dark', theme.siteFrameDark || theme.siteFrameLight || getDefaultFrameColor());
+  applySiteFramePalette({ active: theme.siteFrame || getDefaultFrameColor() });
   root.style.setProperty('--frame-border-gradient-edge-opacity', String(theme.frameBorderEdgeOpacity));
   root.style.setProperty('--frame-border-gradient-mid-opacity', String(theme.frameBorderMidOpacity));
 
@@ -659,10 +623,10 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
 }
 
 export function syncThemeColorMeta() {
-  const { light, dark, active } = applyFramePaletteReadback();
+  const { active } = applyFramePaletteReadback();
   const entries = [
-    { media: '(prefers-color-scheme: light)', color: light || active },
-    { media: '(prefers-color-scheme: dark)', color: dark || active }
+    { media: '(prefers-color-scheme: light)', color: active },
+    { media: '(prefers-color-scheme: dark)', color: active }
   ];
 
   entries.forEach(({ media, color }) => {
@@ -682,30 +646,28 @@ export function syncThemeColorMeta() {
     fallback.name = 'theme-color';
     document.head.appendChild(fallback);
   }
-  fallback.content = active || dark || light;
+  fallback.content = active;
 }
 
-function applyFramePaletteReadback(isDark = isDarkThemeDocument()) {
-  const light = readCssVar('--frame-color-light') || getDefaultFrameColor();
-  const dark = readCssVar('--frame-color-dark') || light || getDefaultFrameColor();
-  const active = readCssVar('--frame-color') || (isDark ? dark : light);
+function applyFramePaletteReadback() {
+  const active = readCssVar('--frame-color') || getDefaultFrameColor();
 
-  return { light, dark, active };
+  return { light: active, dark: active, active };
 }
 
 export function syncShellToDocument(options = {}) {
   const config = options.config || currentShellConfig;
   const isDark = options.isDark ?? isDarkThemeDocument();
-  const innerPalette = resolveShellPalette(config, isDark);
+  const shellPalette = resolveShellPalette(config);
 
   applyShellLayoutVars(config);
-  applyShellPalette(innerPalette);
+  applyShellPalette(shellPalette);
   applyWindowPalette(resolveWindowPalette(isDark));
   applyShellSurfaceVars(config, isDark);
-  const siteFramePalette = resolveSiteFramePalette(isDark);
+  const siteFramePalette = resolveSiteFramePalette();
   applySiteFramePalette(siteFramePalette);
 
-  return innerPalette;
+  return shellPalette;
 }
 
 export function getModalChromeConfig(config = currentShellConfig) {

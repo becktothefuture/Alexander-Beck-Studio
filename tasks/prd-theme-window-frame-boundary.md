@@ -1,5 +1,7 @@
 # PRD: Theme Window and Browser-Frame Boundary
 
+> Superseded on 2026-07-17 by `tasks/prd-fixed-dark-outer-shell-boundary.md`. This file remains as change history for the earlier browser-light outer-harmony contract.
+
 ## Introduction
 
 Dark and light theme must affect content inside the studio window only. The exposed wall/frame and browser-chrome blend are a separate browser-aware system: Safari and other theme-color-capable browsers use the authored frame palette, while locked-header Chromium and Firefox browsers adapt the exposed band to their native chrome palette.

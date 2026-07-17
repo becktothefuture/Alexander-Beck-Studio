@@ -73,7 +73,7 @@ Read `DESIGN.md` before changing the production visual system, then read the foc
 - Do not add thin helper rings/lines to simulation visuals. Express forces through material motion or broad tonal fields.
 - Preserve wall/frame color separation and do not alter wall geometry, radii, shadow plates, or shell colors without explicit scope.
 - Manual light/dark theme affects the studio-window interior only: `--studio-window-bg`, `--frame-inner-surface`, in-window finish, route content, simulations, gates, and overlays. Never alias those surfaces to `--abs-wall-base`.
-- The exposed band is browser-aware, not site-theme-aware. Preserve `chromeHarmonyMode: auto`: Safari/theme-color browsers use the authored frame palette; locked desktop Chromium/Firefox use browser-native chrome; active outer harmony follows the browser/OS scheme independently of a manual site preference.
+- The exposed band and physical frame are invariant opaque black (`#000000`) across browser families, browser/OS schemes, site themes, and display gamuts. Preserve `chromeHarmonyMode: auto` only as a compatibility sentinel; no production path may approximate browser chrome or change the frame away from black.
 - The Button Bar belongs to the stable outer shell. Do not derive its ink/material from `--text-primary` or `--text-muted`, and verify all four route tabs remain legible and selected correctly in both site themes.
 - The custom cursor uses the small solid dot on Home/Portfolio backgrounds and the 64px tap ring for Portfolio detail, About, Contact, gates, and modal states. Home-dot sizing is derived from the active canvas mapping; Portfolio uses the same perceptual size.
 - Quote puck behavior includes the current air-hockey-style drag/throw response. Do not describe it as drag-only.

@@ -68,6 +68,15 @@ const DEFAULT_STUDIO_SURFACE_CONFIG = {
 let designSystemPromise = null;
 
 const RETIRED_RUNTIME_KEYS = new Set([
+  'chromeHarmonyMode',
+  'wallBase',
+  'wallBaseLight',
+  'wallBaseDark',
+  'frameColor',
+  'frameColorLight',
+  'frameColorDark',
+  'wallColorLight',
+  'wallColorDark',
   'frameRadiusPx',
   'frameRadiusMobilePx',
   'frameRadiusDesktopPx',
@@ -266,6 +275,10 @@ const RETIRED_SHELL_THEME_KEYS = new Set([
   'frameVignetteEdgeBlur',
   'frameVignetteEdgeOpacity',
   'frameVignetteAmbientOpacity',
+  'wallBaseLight',
+  'wallBaseDark',
+  'siteFrameLight',
+  'siteFrameDark',
 ]);
 
 const RETIRED_SHELL_LAYOUT_KEYS = new Set([
@@ -319,6 +332,17 @@ function pruneRuntimeConfig(runtime = {}) {
 function pruneShellConfig(shell = {}) {
   const nextShell = clone(shell);
   if (isPlainObject(nextShell.theme)) {
+    const wallBase = nextShell.theme.wallBase
+      ?? nextShell.theme.wallBaseDark
+      ?? nextShell.theme.wallBaseLight;
+    const siteFrame = nextShell.theme.siteFrame
+      ?? nextShell.theme.siteFrameDark
+      ?? nextShell.theme.siteFrameLight;
+    if (wallBase !== undefined) nextShell.theme.wallBase = wallBase;
+    if (siteFrame !== undefined) nextShell.theme.siteFrame = siteFrame;
+    if (nextShell.theme.chromeHarmonyMode !== undefined) {
+      nextShell.theme.chromeHarmonyMode = 'auto';
+    }
     for (const key of RETIRED_SHELL_THEME_KEYS) {
       delete nextShell.theme[key];
     }
@@ -379,12 +403,8 @@ function applyDerivedStudioRuntime(runtime = {}, shell = {}) {
   const theme = isPlainObject(shell.theme) ? shell.theme : {};
   const nextRuntime = clone(runtime);
 
-  if (theme.wallBaseLight !== undefined && nextRuntime.wallBaseLight === undefined) {
-    nextRuntime.wallBaseLight = theme.wallBaseLight;
-  }
-  if (theme.wallBaseDark !== undefined && nextRuntime.wallBaseDark === undefined) {
-    nextRuntime.wallBaseDark = theme.wallBaseDark;
-  }
+  if (theme.wallBase !== undefined) nextRuntime.wallBase = theme.wallBase;
+  if (theme.siteFrame !== undefined) nextRuntime.frameColor = theme.siteFrame;
   nextRuntime.hoverEdgeEnabled = studio.edgeStrength > 0;
   nextRuntime.hoverEdgeWidth = studio.edgeWidth;
   nextRuntime.hoverEdgeBottomEnabled = studio.edgeStrength > 0;

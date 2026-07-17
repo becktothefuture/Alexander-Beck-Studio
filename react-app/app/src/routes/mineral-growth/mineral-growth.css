@@ -5,7 +5,7 @@ body.mineral-growth-page {
 
 body.mineral-growth-page #simulations {
   background: var(--abs-wall-base, #202020);
-  border-color: var(--frame-color, #141517);
+  border-color: var(--frame-color, #000000);
 }
 
 body.mineral-growth-page #simulations::after,

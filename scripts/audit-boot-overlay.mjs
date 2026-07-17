@@ -7,9 +7,17 @@ const minimumVisibleMs = 750;
 const browserName = (process.env.ABS_BROWSER || 'chromium').trim().toLowerCase();
 const browserType = browserName === 'webkit' ? webkit : chromium;
 const requestedProfile = (process.env.ABS_BOOT_AUDIT_PROFILE || 'all').trim().toLowerCase();
+const loaderOnly = process.env.ABS_BOOT_AUDIT_LOADER_ONLY === '1';
+const copyOnly = process.env.ABS_BOOT_AUDIT_COPY_ONLY === '1';
 const deprecatedBootChromeHex = '#3c3c3c';
 const deprecatedBootChromeRgb = 'rgb(60, 60, 60)';
-const simSystemBootDots = ['#b5b7b6', '#00695c', '#bbbdbd', '#0d5cb6', '#ffa000', '#d7ff2f'];
+const longBootMessages = [
+  { afterMs: 5000, text: 'Tuning the motion.' },
+  { afterMs: 10000, text: 'Building the scene.' },
+  { afterMs: 20000, text: 'The simulation is warming up.' },
+  { afterMs: 30000, text: 'Nearly there.' },
+  { afterMs: 40000, text: 'Still here. Thanks for waiting.' },
+];
 const tabletDevice = devices['iPad (gen 7)'];
 const mobileDevice = devices['iPhone 13'];
 
@@ -48,6 +56,8 @@ const routes = [
 const htmlEntryFiles = [
   'react-app/app/index.html',
   'react-app/app/portfolio.html',
+  'react-app/app/about.html',
+  'react-app/app/contact.html',
   'react-app/app/styleguide.html',
   'react-app/app/palette-lab.html',
 ];
@@ -106,89 +116,74 @@ function assertSourceHasNoDeprecatedBootChrome(source, label) {
   );
 }
 
-function assertBootDotPaletteContract() {
-  const neutralBootDots = new Set(['#ffffff', '#000000']);
-  for (const color of simSystemBootDots) {
-    assert(!neutralBootDots.has(color.toLowerCase()), `boot dot palette includes neutral ball slot ${color}`);
-  }
-}
-
 function assertCriticalBootSource() {
-  assertBootDotPaletteContract();
   const designConfig = JSON.parse(readFileSync(designConfigFile, 'utf8'));
-  const canonicalSiteFrameDark = designConfig?.shell?.theme?.siteFrameDark;
-  const browserFrameLight = '#f1f3f4';
-  const browserFrameDark = '#202124';
-  const firefoxFrameLight = '#f9f9fb';
-  const firefoxFrameDark = '#1c1b22';
-  assert(canonicalSiteFrameDark, `${designConfigFile}: missing shell.theme.siteFrameDark`);
+  const canonicalWall = designConfig?.shell?.theme?.wallBase;
+  const canonicalSiteFrame = designConfig?.shell?.theme?.siteFrame;
+  assert(canonicalWall, `${designConfigFile}: missing shell.theme.wallBase`);
+  assert(canonicalSiteFrame, `${designConfigFile}: missing shell.theme.siteFrame`);
+  assert(canonicalSiteFrame === '#000000', `${designConfigFile}: outer frame must be true black`);
 
   for (const file of htmlEntryFiles) {
     const source = readFileSync(file, 'utf8');
     assert(
-      source.includes(`style="background:var(--abs-browser-chrome,${browserFrameDark});background-color:var(--abs-browser-chrome,${browserFrameDark})"`),
+      source.includes(`style="background:var(--abs-browser-chrome,${canonicalSiteFrame});background-color:var(--abs-browser-chrome,${canonicalSiteFrame})"`),
       `${file}: missing inline html background fallback`
     );
     assertSourceHasNoDeprecatedBootChrome(source, file);
-    assert(
-      source.includes('html[data-abs-boot-state="booting"]::before'),
-      `${file}: missing critical first-paint boot cover`
-    );
-    assert(
-      source.includes('html[data-abs-boot-state="booting"]::after'),
-      `${file}: missing critical first-paint spinner`
-    );
-    assert(source.includes('absCriticalBootOrbit'), `${file}: missing critical spinner orbit keyframes`);
-    assert(source.includes('absCriticalBootColorShift'), `${file}: missing critical spinner color-shift keyframes`);
-    assert(source.includes('absBootDotColorShift'), `${file}: missing body spinner color-shift keyframes`);
-    assert(source.includes('--abs-dot-color-delay'), `${file}: missing body spinner color phase delays`);
-    assert(source.includes('--abs-boot-orbit-ms: 2240ms'), `${file}: boot orbit cadence drifted`);
-    assert(source.includes('--abs-boot-color-cycle-ms: 6720ms'), `${file}: boot colour cycle cadence drifted`);
-    assert(source.includes('--abs-boot-color-step-ms: 160ms'), `${file}: boot colour sweep step drifted`);
-    assert(source.includes('--abs-boot-color-sync-ms: 80ms'), `${file}: missing boot colour sync delay`);
-    assert(source.includes('--abs-boot-dot-1: #b5b7b6'), `${file}: missing simulation-system boot dot palette`);
-    assert(source.includes("isDark\n            ? ['#b5b7b6', '#00695c', '#bbbdbd', '#0d5cb6', '#ffa000', '#d7ff2f']"), `${file}: missing simulation-system dark-theme dot palette script`);
-    assert(source.includes(": ['#b5b7b6', '#00695c', '#bbbdbd', '#0d5cb6', '#ffa000', '#d7ff2f']"), `${file}: missing simulation-system light-theme dot palette script`);
+    assert(!source.includes('html[data-abs-boot-state="booting"]::before'), `${file}: duplicate critical boot cover returned`);
+    assert(!source.includes('html[data-abs-boot-state="booting"]::after'), `${file}: duplicate critical spinner returned`);
+    assert(source.includes('@keyframes absBootSpin'), `${file}: missing supplied shadow-spinner keyframes`);
+    assert(source.includes('animation: absBootSpin 1.1s infinite ease'), `${file}: boot spinner cadence drifted`);
+    assert(source.includes('--abs-boot-loader-size: 1px'), `${file}: boot spinner size drifted`);
+    assert(source.includes("var bootLoaderColors = ['rgba(255, 255, 255, 0.92)'"), `${file}: missing fixed dark-surface loader palette`);
+    assert(!source.includes("rgba(32, 33, 36, 0.9)"), `${file}: light-surface loader branch must be removed`);
     assert(!source.includes('var(--ball-'), `${file}: boot loader must not inherit ball palette colors`);
-    assert(source.includes('width: 36px'), `${file}: boot spinner size drifted`);
-    assert(source.includes('width: 4.8px'), `${file}: boot dot size drifted`);
-    assert(source.includes('translateY(-14.25px)'), `${file}: boot dot radius drifted`);
-    assert(source.includes('--abs-dot-color-delay: -240ms'), `${file}: missing phased colour wave step`);
-    assert(source.includes('0%, 63.99%, 82%, 100% { background: var(--abs-dot-color); }'), `${file}: boot dot colour hold window drifted`);
-    assert(source.includes('79% { background: var(--abs-boot-dot-6'), `${file}: boot dot colour burst window drifted`);
-    assert(source.includes('absBootDotColorShift var(--abs-boot-color-cycle-ms) steps(1, end) infinite'), `${file}: boot dot colour burst timing drifted`);
-    assert(
-      source.includes('html:not([data-abs-boot-state="booting"])::after'),
-      `${file}: missing explicit critical spinner off-state`
-    );
+    assert(source.includes('font-size: 11pt'), `${file}: long-wait copy must remain 11pt`);
+    assert(source.includes('position: absolute'), `${file}: missing non-shifting message positioning`);
+    assert(source.includes('--abs-boot-loader-visual-size: 62px'), `${file}: missing spinner visual-height token`);
+    assert(source.includes('top: var(--abs-boot-loader-visual-size)'), `${file}: long-wait copy offset drifted`);
+    assert(source.includes('--abs-boot-message-fade: 900ms'), `${file}: long-wait copy fade duration drifted`);
+    assert(source.includes('role="status" aria-live="polite" aria-atomic="true"'), `${file}: missing accessible boot status semantics`);
+    for (const message of longBootMessages) {
+      assert(source.includes(`>${message.text}</p>`), `${file}: missing ${message.afterMs}ms long-wait message`);
+    }
+    assert(source.includes('--abs-boot-message-in: 5s'), `${file}: missing five-second message threshold`);
+    assert(source.includes('--abs-boot-message-in: 10s'), `${file}: missing ten-second message threshold`);
+    assert(source.includes('--abs-boot-message-in: 20s'), `${file}: missing twenty-second message threshold`);
+    assert(source.includes('--abs-boot-message-in: 30s'), `${file}: missing thirty-second message threshold`);
+    assert(source.includes('--abs-boot-message-in: 40s'), `${file}: missing forty-second message threshold`);
+    assert(source.includes('@keyframes absBootMessageFadeIn'), `${file}: missing soft message fade-in`);
+    assert(source.includes('@keyframes absBootMessageFadeOut'), `${file}: missing soft message fade-out`);
+    assert(!source.includes('steps(1, end)'), `${file}: hard message swap returned`);
+    assert(!source.includes('LONG_BOOT_MESSAGES'), `${file}: long-wait copy must remain CSS-only`);
+    assert(!source.includes('updateLongBootMessage'), `${file}: long-wait copy must not use a timer script`);
+    assert(source.includes('@keyframes absBootLoaderExit'), `${file}: missing loader scale-out handoff`);
+    assert(source.includes('@keyframes absBootSceneReveal'), `${file}: missing studio-window material handoff`);
+    assert(source.includes('transform: scale(0.985)'), `${file}: studio-window reveal depth drifted`);
+    assert(!source.includes('@keyframes absBootWorldReveal'), `${file}: fixed outer shell must not scale during boot`);
+    assert(source.includes("window.location.protocol === 'file:'"), `${file}: missing raw-file preview detection`);
+    assert(source.includes('This preview needs the dev server.'), `${file}: missing raw-file preview guidance`);
     assert(
       source.includes('#abs-boot-overlay.is-exiting #abs-boot-spinner'),
       `${file}: missing spinner hide rule during boot overlay exit`
     );
     assert(
-      source.includes('#abs-boot-overlay.is-exiting .abs-boot-dot::before'),
-      `${file}: missing dot animation stop rule during boot overlay exit`
+      source.includes('#abs-boot-overlay.is-exiting #abs-boot-stage'),
+      `${file}: missing loader-stage hide rule during boot overlay exit`
     );
     assert(
-      source.includes(`frameColorDark: '${canonicalSiteFrameDark}'`),
-      `${file}: inline site-frame dark fallback does not match canonical ${canonicalSiteFrameDark}`
+      source.includes(`wallBase: '${canonicalWall}'`),
+      `${file}: inline wall fallback does not match canonical ${canonicalWall}`
     );
     assert(
-      source.includes(`browserFrameLight: '${browserFrameLight}'`),
-      `${file}: inline browser light fallback does not match ${browserFrameLight}`
+      source.includes(`siteFrame: '${canonicalSiteFrame}'`),
+      `${file}: inline site-frame fallback does not match canonical ${canonicalSiteFrame}`
     );
-    assert(
-      source.includes(`browserFrameDark: '${browserFrameDark}'`),
-      `${file}: inline browser dark fallback does not match ${browserFrameDark}`
-    );
-    assert(
-      source.includes(`firefoxHeaderLight: '${firefoxFrameLight}'`),
-      `${file}: inline Firefox light fallback does not match ${firefoxFrameLight}`
-    );
-    assert(
-      source.includes(`firefoxHeaderDark: '${firefoxFrameDark}'`),
-      `${file}: inline Firefox dark fallback does not match ${firefoxFrameDark}`
-    );
+    assert(!source.includes('chromiumFrameDark'), `${file}: obsolete Chromium frame override returned`);
+    assert(!source.includes('firefoxFrameDark'), `${file}: obsolete Firefox frame override returned`);
+    assert(!source.includes('detectBrowserFamily'), `${file}: first paint must not branch frame color by browser`);
+    assert(!source.includes('data-abs-light-browser-chrome'), `${file}: obsolete light browser chrome marker returned`);
   }
 }
 
@@ -214,9 +209,9 @@ async function readBootSnapshot(page) {
       overlayExiting: Boolean(overlay?.classList.contains('is-exiting')),
       overlaySpinnerVisible: Boolean(spinner && getComputedStyle(spinner).visibility !== 'hidden' && Number(getComputedStyle(spinner).opacity) > 0.02),
       criticalSpinnerAnimation: criticalSpinnerStyle?.animationName || '',
+      rootColorScheme: documentStyle.colorScheme,
       rootHidden: Boolean(root?.inert || root?.getAttribute('aria-hidden') === 'true' || rootStyle?.visibility === 'hidden'),
       rootVisible: Boolean(root && !root.inert && root.getAttribute('aria-hidden') !== 'true' && rootStyle?.visibility !== 'hidden'),
-      spinnerDotCount: spinner?.querySelectorAll('.abs-boot-dot').length || 0,
       releaseReady: typeof window.__ABS_RELEASE_BOOT_OVERLAY__ === 'function',
     };
   });
@@ -225,14 +220,24 @@ async function readBootSnapshot(page) {
 async function readSpinnerSnapshot(page) {
   return page.evaluate(() => {
     const spinner = document.getElementById('abs-boot-spinner');
-    const firstDot = spinner?.querySelector('.abs-boot-dot');
+    const message = document.getElementById('abs-boot-messages');
+    const messageLine = message?.querySelector('.abs-boot-message');
     const spinnerStyle = spinner ? getComputedStyle(spinner) : null;
-    const dotStyle = firstDot ? getComputedStyle(firstDot, '::before') : null;
+    const messageStyle = message ? getComputedStyle(message) : null;
+    const documentStyle = getComputedStyle(document.documentElement);
     return {
-      dotCount: spinner?.querySelectorAll('.abs-boot-dot').length || 0,
       spinnerAnimation: spinnerStyle?.animationName || '',
-      dotAnimation: dotStyle?.animationName || '',
-      firstDotColor: dotStyle?.backgroundColor || '',
+      spinnerBoxShadow: spinnerStyle?.boxShadow || '',
+      spinnerFontSize: Number.parseFloat(spinnerStyle?.fontSize || '0'),
+      spinnerWidth: Number.parseFloat(spinnerStyle?.width || '0'),
+      spinnerHeight: Number.parseFloat(spinnerStyle?.height || '0'),
+      loaderStrongColor: documentStyle.getPropertyValue('--abs-boot-loader-1').trim(),
+      messageColor: documentStyle.getPropertyValue('--abs-boot-message-color').trim(),
+      resolvedMessageColor: messageLine ? getComputedStyle(messageLine).color : '',
+      messagePosition: messageStyle?.position || '',
+      messageTop: Number.parseFloat(messageStyle?.top || '0'),
+      messageFontSize: Number.parseFloat(messageStyle?.fontSize || '0'),
+      messageTextAlign: messageStyle?.textAlign || '',
     };
   });
 }
@@ -255,16 +260,34 @@ async function assertMinimumVisibleElapsed(page, label) {
 }
 
 function assertSpinnerReady(snapshot, label, { reducedMotion = false } = {}) {
-  assert(snapshot.dotCount === 6, `${label}: expected six boot spinner dots, got ${snapshot.dotCount}`);
-  assert(snapshot.firstDotColor && snapshot.firstDotColor !== 'rgba(0, 0, 0, 0)', `${label}: first spinner dot did not resolve a color`);
+  assert(snapshot.spinnerBoxShadow && snapshot.spinnerBoxShadow !== 'none', `${label}: spinner shadows did not render`);
+  assert(snapshot.spinnerFontSize >= 9.9 && snapshot.spinnerFontSize <= 10.1, `${label}: spinner core size drifted to ${snapshot.spinnerFontSize}px`);
+  assert(snapshot.spinnerWidth >= 9.9 && snapshot.spinnerWidth <= 10.1, `${label}: spinner width drifted to ${snapshot.spinnerWidth}px`);
+  assert(snapshot.spinnerHeight >= 9.9 && snapshot.spinnerHeight <= 10.1, `${label}: spinner height drifted to ${snapshot.spinnerHeight}px`);
+  const visualSize = snapshot.spinnerFontSize * 6.2;
+  assert(visualSize >= 61 && visualSize <= 63, `${label}: spinner visual footprint drifted to ${visualSize}px`);
+  assert(snapshot.messagePosition === 'absolute', `${label}: long-wait message must not affect loader layout`);
+  assert(snapshot.messageTop === 62, `${label}: long-wait message top offset drifted to ${snapshot.messageTop}px`);
+  assert(snapshot.messageFontSize >= 14.6 && snapshot.messageFontSize <= 14.8, `${label}: expected 11pt copy, got ${snapshot.messageFontSize}px`);
+  assert(snapshot.messageTextAlign === 'center', `${label}: long-wait message is not center aligned`);
   if (reducedMotion) {
-    assert(snapshot.spinnerAnimation === 'none', `${label}: spinner should not orbit under reduced motion`);
-    assert(snapshot.dotAnimation === 'none', `${label}: spinner dots should not pulse under reduced motion`);
+    assert(snapshot.spinnerAnimation === 'none', `${label}: spinner should not animate under reduced motion`);
   } else {
-    assert(snapshot.spinnerAnimation.includes('absBootOrbit'), `${label}: spinner orbit animation was not active`);
-    assert(snapshot.dotAnimation.includes('absBootDotPulse'), `${label}: spinner dot pulse animation was not active`);
-    assert(snapshot.dotAnimation.includes('absBootDotColorShift'), `${label}: spinner dot color-shift animation was not active`);
+    assert(
+      snapshot.spinnerAnimation.includes('absBootSpin')
+        || snapshot.spinnerAnimation.includes('absBootLoaderExit'),
+      `${label}: shadow-spinner animation or release handoff was not active`
+    );
   }
+}
+
+function assertSpinnerTheme(bootSnapshot, spinnerSnapshot, label) {
+  assert(bootSnapshot.rootColorScheme.includes('dark'), `${label}: root browser color-scheme must stay dark during boot`);
+  assert(spinnerSnapshot.loaderStrongColor.includes('255, 255, 255'), `${label}: dark boot surface did not use light loader ink`);
+  assert(spinnerSnapshot.spinnerBoxShadow.includes('255, 255, 255'), `${label}: loader did not resolve light ink`);
+  assert(spinnerSnapshot.messageColor.includes('255, 255, 255'), `${label}: dark boot surface did not use light message ink`);
+  assert(spinnerSnapshot.resolvedMessageColor.includes('255, 255, 255'), `${label}: message copy did not inherit its subtle light ink`);
+  assert(spinnerSnapshot.resolvedMessageColor.includes('0.54'), `${label}: message copy lost its subtle opacity`);
 }
 
 function assertBootSpinnerGone(snapshot, label) {
@@ -304,6 +327,259 @@ async function assertBootSpinnerHiddenDuringExit(page, label) {
     snapshot.criticalSpinnerAnimation === 'none',
     `${label}: critical boot spinner was still active during overlay exit (${snapshot.criticalSpinnerAnimation})`
   );
+}
+
+async function auditBootTheme(browser, { colorScheme, reducedMotion = false }) {
+  const label = `theme-${colorScheme}${reducedMotion ? '-reduced-motion' : ''}`;
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    colorScheme,
+    reducedMotion: reducedMotion ? 'reduce' : 'no-preference',
+  });
+  const page = await context.newPage();
+
+  await page.goto(buildPlainRouteUrl('/index.html'), { waitUntil: 'domcontentloaded', timeout: timeoutMs });
+  await page.waitForSelector('#abs-boot-spinner', { state: 'visible', timeout: timeoutMs });
+
+  const bootSnapshot = await readBootSnapshot(page);
+  const spinnerSnapshot = await readSpinnerSnapshot(page);
+  assertBootSurfaceColourStable(bootSnapshot, label);
+  assertSpinnerReady(spinnerSnapshot, label, { reducedMotion });
+  assertSpinnerTheme(bootSnapshot, spinnerSnapshot, label, colorScheme);
+
+  await context.close();
+  return {
+    route: label,
+    profile: 'desktop',
+    held: 'initial-paint',
+    released: bootSnapshot.bootState,
+    selector: '#abs-boot-spinner',
+    homeReveal: reducedMotion ? 'static loader' : 'animated loader',
+  };
+}
+
+async function auditBootHandoff(browser, { reducedMotion = false }) {
+  const label = reducedMotion ? 'handoff-reduced-motion' : 'handoff-spatial';
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    reducedMotion: reducedMotion ? 'reduce' : 'no-preference',
+  });
+  const page = await context.newPage();
+
+  await page.goto(buildPlainRouteUrl('/index.html'), { waitUntil: 'commit', timeout: timeoutMs });
+  await page.waitForFunction(() => (
+    document.documentElement.dataset.absBootState === 'revealing'
+    && document.getElementById('abs-boot-overlay')?.classList.contains('is-exiting')
+  ), null, { polling: 'raf', timeout: timeoutMs });
+
+  const snapshot = await page.evaluate(() => {
+    const root = document.getElementById('root');
+    const scene = document.getElementById('shell-wall-slot');
+    const spinner = document.getElementById('abs-boot-spinner');
+    const overlay = document.getElementById('abs-boot-overlay');
+    const buttonBar = document.querySelector('[data-button-bar]');
+    const rootStyle = root ? getComputedStyle(root) : null;
+    const sceneStyle = scene ? getComputedStyle(scene) : null;
+    const spinnerStyle = spinner ? getComputedStyle(spinner) : null;
+    const overlayStyle = overlay ? getComputedStyle(overlay) : null;
+    const buttonRect = buttonBar?.getBoundingClientRect();
+    return {
+      rootAnimation: rootStyle?.animationName || '',
+      rootTransform: rootStyle?.transform || '',
+      sceneAnimation: sceneStyle?.animationName || '',
+      sceneTransform: sceneStyle?.transform || '',
+      spinnerAnimation: spinnerStyle?.animationName || '',
+      spinnerTransform: spinnerStyle?.transform || '',
+      overlayDuration: overlayStyle?.transitionDuration || '',
+      simulationReady: document.documentElement.dataset.absHomeSimulationReady || '',
+      titlePrepared: document.documentElement.dataset.absHomeCanvasTitlePrepared || '',
+      postBootEntering: document.documentElement.classList.contains('abs-home-post-boot-enter'),
+      materialPhase: window.__ABS_SIMULATION_VISUAL_TRANSITION__?.phase || '',
+      buttonRect: buttonRect ? {
+        x: buttonRect.x,
+        y: buttonRect.y,
+        width: buttonRect.width,
+        height: buttonRect.height,
+      } : null,
+    };
+  });
+
+  assert(snapshot.rootAnimation === 'none', `${label}: fixed outer shell received a boot animation`);
+  assert(snapshot.rootTransform === 'none', `${label}: fixed outer shell received a boot transform`);
+  assert(snapshot.simulationReady === 'true', `${label}: overlay released before simulation readiness`);
+  assert(snapshot.titlePrepared === 'true', `${label}: overlay released before canvas-title geometry was prepared`);
+  assert(!snapshot.postBootEntering, `${label}: Home copy started while the loader overlay still existed`);
+  assert(snapshot.buttonRect, `${label}: missing stable Button Bar geometry`);
+
+  if (reducedMotion) {
+    assert(snapshot.sceneAnimation === 'none', `${label}: studio-window scale should be removed`);
+    assert(snapshot.spinnerAnimation === 'none', `${label}: loader scale should be removed`);
+  } else {
+    assert(snapshot.sceneAnimation.includes('absBootSceneReveal'), `${label}: studio-window material reveal was not active`);
+    assert(snapshot.spinnerAnimation.includes('absBootLoaderExit'), `${label}: loader scale-out was not active`);
+    assert(snapshot.sceneTransform !== 'none', `${label}: studio-window reveal transform did not resolve`);
+    assert(snapshot.spinnerTransform !== 'none', `${label}: loader exit transform did not resolve`);
+    assert(snapshot.materialPhase === 'in', `${label}: simulation material bloom did not start with overlay exit`);
+  }
+
+  await page.waitForSelector('#abs-boot-overlay', { state: 'detached', timeout: timeoutMs });
+  await page.waitForFunction((expectsReducedMotion) => {
+    const root = document.documentElement;
+    return expectsReducedMotion
+      ? root.classList.contains('abs-home-post-boot-complete')
+      : root.classList.contains('abs-home-post-boot-enter');
+  }, reducedMotion, { polling: 'raf', timeout: timeoutMs });
+
+  const settledButtonRect = await page.locator('[data-button-bar]').evaluate((buttonBar) => {
+    const rect = buttonBar.getBoundingClientRect();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  });
+  for (const key of ['x', 'y', 'width', 'height']) {
+    assert(
+      Math.abs(settledButtonRect[key] - snapshot.buttonRect[key]) <= 0.25,
+      `${label}: fixed Button Bar ${key} shifted during boot handoff`
+    );
+  }
+
+  await context.close();
+  return {
+    route: label,
+    profile: 'desktop',
+    held: 'handoff-frame',
+    released: 'revealing',
+    selector: '#abs-boot-overlay + #root',
+    homeReveal: reducedMotion ? 'static scene/copy after detach' : 'loader-out/material-in/copy-after-detach',
+  };
+}
+
+async function readLongBootSnapshot(page) {
+  return page.evaluate(() => {
+    const spinner = document.getElementById('abs-boot-spinner');
+    const messageHost = document.getElementById('abs-boot-messages');
+    const messages = Array.from(document.querySelectorAll('.abs-boot-message'));
+    const messageOpacities = messages.map((message) => Number(getComputedStyle(message).opacity));
+    const visibleMessage = messages.find((message) => {
+      const style = getComputedStyle(message);
+      return style.visibility !== 'hidden' && Number(style.opacity) > 0.5;
+    });
+    const spinnerRect = spinner?.getBoundingClientRect();
+    const spinnerStyle = spinner ? getComputedStyle(spinner) : null;
+    const spinnerVisualHeight = Number.parseFloat(spinnerStyle?.fontSize || '0') * 6.2;
+    const messageRect = messageHost?.getBoundingClientRect();
+    const messageStyle = messageHost ? getComputedStyle(messageHost) : null;
+    const textRange = visibleMessage ? document.createRange() : null;
+    if (textRange && visibleMessage) textRange.selectNodeContents(visibleMessage);
+    return {
+      message: visibleMessage?.textContent || '',
+      messageVisible: Boolean(visibleMessage),
+      messageOpacities,
+      messageTextHeight: textRange?.getBoundingClientRect().height || 0,
+      messagePosition: messageStyle?.position || '',
+      messageFontSize: Number.parseFloat(messageStyle?.fontSize || '0'),
+      messageTextAlign: messageStyle?.textAlign || '',
+      spinnerVisualHeight,
+      messageGap: spinnerRect && messageRect
+        ? messageRect.top - ((spinnerRect.top + (spinnerRect.height / 2)) + (spinnerVisualHeight / 2))
+        : 0,
+      spinnerCenterX: spinnerRect ? spinnerRect.left + (spinnerRect.width / 2) : 0,
+      spinnerCenterY: spinnerRect ? spinnerRect.top + (spinnerRect.height / 2) : 0,
+    };
+  });
+}
+
+async function auditLongBootMessages(browser) {
+  const label = 'long-wait-copy';
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  await page.route('**/src/entries/index.jsx*', (route) => route.abort('failed'));
+  await page.route('**/assets/index-*.js', (route) => route.abort('failed'));
+
+  await page.goto(buildPlainRouteUrl('/index.html'), { waitUntil: 'domcontentloaded', timeout: timeoutMs });
+  await page.waitForSelector('#abs-boot-spinner', { state: 'visible', timeout: timeoutMs });
+
+  await page.evaluate(() => {
+    document.querySelectorAll('.abs-boot-message').forEach((message) => {
+      message.getAnimations().forEach((animation) => {
+        animation.pause();
+        animation.currentTime = 0;
+      });
+    });
+  });
+  const initial = await readLongBootSnapshot(page);
+  assert(!initial.messageVisible && initial.message === '', `${label}: copy appeared before five seconds`);
+  assert(initial.messagePosition === 'absolute', `${label}: message participates in loader layout`);
+  assert(initial.messageFontSize >= 14.6 && initial.messageFontSize <= 14.8, `${label}: expected 11pt copy, got ${initial.messageFontSize}px`);
+  assert(initial.messageTextAlign === 'center', `${label}: copy is not center aligned`);
+  assert(
+    Math.abs(initial.messageGap - (initial.spinnerVisualHeight / 2)) <= 0.1,
+    `${label}: expected a half-spinner-height gap, got ${initial.messageGap}px`
+  );
+
+  await page.evaluate(() => {
+    document.querySelectorAll('.abs-boot-message').forEach((message) => {
+      message.getAnimations().forEach((animation) => {
+        animation.currentTime = 9550;
+      });
+    });
+  });
+  const fadeOut = await readLongBootSnapshot(page);
+  assert(
+    fadeOut.messageOpacities[0] > 0.05 && fadeOut.messageOpacities[0] < 0.95,
+    `${label}: outgoing copy did not fade softly (${JSON.stringify(fadeOut.messageOpacities)})`
+  );
+
+  await page.evaluate(() => {
+    document.querySelectorAll('.abs-boot-message').forEach((message) => {
+      message.getAnimations().forEach((animation) => {
+        animation.currentTime = 10000;
+      });
+    });
+  });
+  const swapPoint = await readLongBootSnapshot(page);
+  assert(
+    swapPoint.messageOpacities[0] < 0.02 && swapPoint.messageOpacities[1] < 0.02,
+    `${label}: message swap produced overlapping copy (${JSON.stringify(swapPoint.messageOpacities)})`
+  );
+
+  await page.evaluate(() => {
+    document.querySelectorAll('.abs-boot-message').forEach((message) => {
+      message.getAnimations().forEach((animation) => {
+        animation.currentTime = 10450;
+      });
+    });
+  });
+  const fadeIn = await readLongBootSnapshot(page);
+  assert(
+    fadeIn.messageOpacities[0] < 0.02
+      && fadeIn.messageOpacities[1] > 0.05 && fadeIn.messageOpacities[1] < 0.95,
+    `${label}: incoming copy did not fade softly (${JSON.stringify(fadeIn.messageOpacities)})`
+  );
+
+  for (const expected of longBootMessages) {
+    await page.evaluate((elapsed) => {
+      document.querySelectorAll('.abs-boot-message').forEach((message) => {
+        message.getAnimations().forEach((animation) => {
+          animation.currentTime = elapsed;
+        });
+      });
+    }, expected.afterMs + 920);
+    const snapshot = await readLongBootSnapshot(page);
+    assert(snapshot.messageVisible, `${label}: ${expected.afterMs}ms message was not visible`);
+    assert(snapshot.message === expected.text, `${label}: ${expected.afterMs}ms message did not swap correctly`);
+    assert(snapshot.messageTextHeight <= 21, `${label}: ${expected.afterMs}ms message wrapped onto multiple lines`);
+    assert(Math.abs(snapshot.spinnerCenterX - initial.spinnerCenterX) <= 0.01, `${label}: message shifted loader horizontally at ${expected.afterMs}ms`);
+    assert(Math.abs(snapshot.spinnerCenterY - initial.spinnerCenterY) <= 0.01, `${label}: message shifted loader vertically at ${expected.afterMs}ms`);
+  }
+
+  await context.close();
+  return {
+    route: label,
+    profile: 'desktop',
+    held: 'module-aborted',
+    released: 'booting',
+    selector: '#abs-boot-messages',
+    homeReveal: '5/10/20/30/40s swapped',
+  };
 }
 
 async function readHomeRevealSnapshot(page) {
@@ -745,16 +1021,39 @@ async function main() {
   const results = [];
 
   try {
-    for (const profile of profiles) {
-      console.log(`[boot-overlay] ${profile.label}: home-direct`);
-      results.push(await auditHomeDirectReplay(browser, profile));
-      for (const route of routes) {
-        console.log(`[boot-overlay] ${profile.label}: ${route.label}`);
-        results.push(await auditRoute(browser, route, profile));
+    if (!copyOnly) {
+      for (const themeProfile of [
+        { colorScheme: 'light' },
+        { colorScheme: 'dark' },
+        { colorScheme: 'dark', reducedMotion: true },
+      ]) {
+        const themeLabel = `${themeProfile.colorScheme}${themeProfile.reducedMotion ? '-reduced-motion' : ''}`;
+        console.log(`[boot-overlay] theme: ${themeLabel}`);
+        results.push(await auditBootTheme(browser, themeProfile));
       }
-      console.log(`[boot-overlay] ${profile.label}: home-reduced-motion`);
-      results.push(await auditHomeReducedMotion(browser, profile));
+      for (const handoffProfile of [
+        { reducedMotion: false },
+        { reducedMotion: true },
+      ]) {
+        const handoffLabel = handoffProfile.reducedMotion ? 'reduced-motion' : 'spatial';
+        console.log(`[boot-overlay] handoff: ${handoffLabel}`);
+        results.push(await auditBootHandoff(browser, handoffProfile));
+      }
+      if (!loaderOnly) {
+        for (const profile of profiles) {
+          console.log(`[boot-overlay] ${profile.label}: home-direct`);
+          results.push(await auditHomeDirectReplay(browser, profile));
+          for (const route of routes) {
+            console.log(`[boot-overlay] ${profile.label}: ${route.label}`);
+            results.push(await auditRoute(browser, route, profile));
+          }
+          console.log(`[boot-overlay] ${profile.label}: home-reduced-motion`);
+          results.push(await auditHomeReducedMotion(browser, profile));
+        }
+      }
     }
+    console.log('[boot-overlay] long-wait copy');
+    results.push(await auditLongBootMessages(browser));
   } finally {
     await browser.close();
   }

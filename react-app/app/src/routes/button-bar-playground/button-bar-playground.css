@@ -8,7 +8,7 @@ body.button-bar-playground-page #root {
   overflow-x: hidden;
   overflow-y: auto;
   color-scheme: dark;
-  background: var(--abs-browser-chrome, #141517);
+  background: var(--abs-browser-chrome, #000000);
 }
 
 html.button-bar-playground-document {
@@ -32,7 +32,7 @@ body.button-bar-playground-page {
   --button-bar-playground-line: color-mix(in srgb, var(--text-muted) 16%, transparent);
   --button-bar-playground-surface: color-mix(
     in srgb,
-    var(--abs-browser-chrome, #141517) 88%,
+    var(--abs-browser-chrome, #000000) 88%,
     rgba(var(--abs-rgb-white), 1) 12%
   );
   --button-bar-playground-muted: rgba(var(--abs-rgb-white), 0.5);
@@ -62,7 +62,7 @@ body.button-bar-playground-page {
       color-mix(in srgb, var(--ball-8) 5%, transparent),
       transparent 34%
     ),
-    var(--abs-browser-chrome, #141517);
+    var(--abs-browser-chrome, #000000);
   font-family: var(--abs-font-sans);
 }
 
@@ -155,7 +155,7 @@ body.button-bar-playground-page {
   border-radius: var(--abs-radius-pill);
   background: color-mix(
     in srgb,
-    var(--abs-browser-chrome, #141517) 74%,
+    var(--abs-browser-chrome, #000000) 74%,
     rgba(var(--abs-rgb-white), 1) 26%
   );
   box-shadow: inset 0 var(--abs-size-1px) 0 rgba(var(--abs-rgb-white), 0.05);
@@ -207,7 +207,7 @@ body.button-bar-playground-page {
   border-bottom: var(--abs-size-1px) solid var(--button-bar-playground-line);
   background: color-mix(
     in srgb,
-    var(--abs-browser-chrome, #141517) 96%,
+    var(--abs-browser-chrome, #000000) 96%,
     rgba(var(--abs-rgb-white), 1) 4%
   );
 }
@@ -896,7 +896,7 @@ body.button-bar-playground-page {
 .button-bar-playground {
   --button-bar-playground-wall: color-mix(
     in srgb,
-    var(--abs-browser-chrome, #141517) 90%,
+    var(--abs-browser-chrome, #000000) 90%,
     rgba(var(--abs-rgb-white), 1) 10%
   );
   --button-bar-playground-cut: rgba(var(--abs-rgb-black), 0.46);
@@ -904,7 +904,7 @@ body.button-bar-playground-page {
   --button-bar-playground-edge-soft: rgba(var(--abs-rgb-white), 0.045);
   background:
     linear-gradient(110deg, rgba(var(--abs-rgb-white), 0.018), transparent 38%),
-    var(--abs-browser-chrome, #141517);
+    var(--abs-browser-chrome, #000000);
 }
 
 .button-bar-playground__stage {

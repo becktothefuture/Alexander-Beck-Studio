@@ -5,7 +5,7 @@ body.beach-ball-room-page {
 
 body.beach-ball-room-page #simulations {
   background: var(--abs-wall-base, var(--frame-inner-surface, transparent));
-  border-color: var(--frame-color, #07111b);
+  border-color: var(--frame-color, #000000);
 }
 
 body.beach-ball-room-page #simulations::after,

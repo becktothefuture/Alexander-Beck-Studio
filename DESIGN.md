@@ -81,8 +81,8 @@ Exact values live in the headline and text tokens. The design rule is scarcity a
 The neutral structure carries the interface. Accent colors signal route, interaction, or simulation material; they are not general decoration.
 
 - Preserve distinct layers for the browser/page band, outer wall, physical frame, studio-window interior, in-window finish, controls, and route content.
-- Manual site theme is intended to affect the studio-window interior only. The exposed band, wall/frame, and stable outer shell follow browser/OS harmony independently. Current implementation drift is recorded below and must be resolved as one theme change, not patched in prose.
-- The Button Bar belongs to the outer shell. Its material and ink must not be derived casually from route body text.
+- Manual site theme affects the studio-window interior only. The exposed band, physical frame, preloader, and stable outer shell use opaque true black (`#000000`) in every site theme, browser scheme, browser family, and display gamut. The separate wall surface remains `#141414`.
+- The Button Bar belongs to the dark outer shell. Route tabs, sound, theme, and reset controls must not derive material or ink from the studio window or route body text.
 - Route accents remain stable: Home green, Work acid, About blue, Contact orange.
 - Neutrals dominate simulations. Use acid, blue, orange, and green as controlled focal material.
 - Grain, vignette, and the contrast veil should make the window feel physical without muddying type or flattening surface separation.
@@ -144,7 +144,7 @@ Inside the simulation chooser, option rows are transparent at rest. The current 
 
 ### Persistent shell
 
-The outer shell is one stable instrument: exposed band, wall, frame, studio window, footer, Button Bar, modal hosts, and Portfolio sheet host. Page changes must not recreate or reanimate that object.
+The shell is one stable instrument: exposed band, wall/frame geometry, studio-window host, footer, Button Bar, modal hosts, and Portfolio sheet host. Page changes must not recreate or reanimate it; only the studio-window interior surface and content change theme.
 
 ### Home
 
@@ -323,7 +323,6 @@ These are implementation/documentation findings, not permission for a broad refa
 | --- | --- | --- | --- |
 | P0 | Focus visibility is broadly suppressed | Global and component `:focus-visible` rules remove outline/shadow in `main.css` and Button Bar CSS. | Define semantic focus-ring tokens, remove blanket suppression, and verify every main-page interactive state. |
 | P0 | Home expertise is click-only | Legend items are `div` elements with JS click listeners. | Render buttons or add complete button semantics, Enter/Space handling, and pressed/expanded state without changing the visual design. |
-| P0 | Theme intent, docs, and runtime disagree | Locked design intent says manual theme stops at the studio window; parts of `THEME-STATE.md`, `CONFIGURATION.md`, and `chrome-harmony.js` couple outer frame to rendered site theme. | Decide once from the locked boundary, then update runtime, docs, theme-color projection, Button Bar, and browser audits together. |
 | P1 | Light supporting copy is likely under contrast | Muted text plus `0.64` opacity resolves near a 3.25:1 contrast on the common light interior. | Use an opaque semantic muted color or raise resolved contrast; verify real composited colors in both themes. |
 | P1 | Cursor contract disagrees | Instructions specify a 64px lens for detail/About/Contact/gates/modals; runtime uses 48px and defaults About/Contact to the dot. | Define one route/state matrix and one size token, then align JS, CSS, docs, and cursor audits. |
 | P1 | Config and CSS fallbacks disagree | Frame colors, desktop inset/radius, interior light color, and some motion fallbacks differ from authored config. | Generate critical first-paint fallbacks from `design-system.json` or share one endpoint builder. |

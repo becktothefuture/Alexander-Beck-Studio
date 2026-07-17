@@ -107,6 +107,9 @@ async function readThemeState(page) {
       rootDark: root.classList.contains('dark-mode'),
       bodyDark: body?.classList.contains('dark-mode') || false,
       colorScheme: getComputedStyle(root).colorScheme,
+      studioWindowColorScheme: document.querySelector('#simulations')
+        ? getComputedStyle(document.querySelector('#simulations')).colorScheme
+        : '',
       browserChrome,
       browserChromeResolved: normalizeColor(browserChrome),
       frameColor: getComputedStyle(root).getPropertyValue('--frame-color').trim(),
@@ -152,7 +155,8 @@ async function assertTheme(page, expectedTheme, label) {
   assert(state.rootTheme === expectedTheme, `${label}: root theme drifted`, state);
   assert(state.bodyTheme === expectedTheme, `${label}: body theme drifted`, state);
   assert(state.rootDark === expectedDark && state.bodyDark === expectedDark, `${label}: theme classes drifted`, state);
-  assert(state.colorScheme.includes(expectedTheme), `${label}: color-scheme drifted`, state);
+  assert(state.colorScheme.includes('dark'), `${label}: root browser color-scheme did not stay dark`, state);
+  assert(state.studioWindowColorScheme.includes(expectedTheme), `${label}: studio-window color-scheme drifted`, state);
   assert(state.browserChrome && state.frameColor === state.browserChrome, `${label}: frame/browser chrome drifted`, state);
   assert(state.rootBackground === state.browserChromeResolved, `${label}: page background/browser chrome drifted`, state);
   assert(state.bodyBackground === state.browserChromeResolved, `${label}: body background/browser chrome drifted`, state);
@@ -266,6 +270,10 @@ async function auditManualAndTabs(browser, viewport) {
       assertTheme(secondPage, 'dark', `${viewport.name}/tab-two-storage-sync-dark`),
     ]);
     const darkFrame = darkFirstTabState.browserChrome;
+    assert(darkFrame === lightFrame, `${viewport.name}: manual theme recoloured the outer frame`, {
+      lightFrame,
+      darkFrame,
+    });
     assertFrameMatches(darkSecondTabState, darkFrame, `${viewport.name}/tab-two-storage-sync-dark`);
     assert((await readThemeState(secondPage)).storedPreference === 'dark', `${viewport.name}: dark preference did not sync`);
 
@@ -309,22 +317,22 @@ async function auditAutomaticPreference(browser, viewport) {
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
     const autoLightState = await assertTheme(page, 'light', `${viewport.name}/auto-system-light`);
     const browserLightFrame = autoLightState.browserChrome;
-    assert(browserDarkFrame === autoDarkState.frameColorDark, `${viewport.name}: dark browser scheme missed its authored frame palette`, autoDarkState);
-    assert(browserLightFrame === autoLightState.frameColorLight, `${viewport.name}: light browser scheme missed its authored frame palette`, autoLightState);
-    assert(browserLightFrame !== browserDarkFrame, `${viewport.name}: browser scheme did not change outer harmony`, {
+    assert(browserDarkFrame === autoDarkState.frameColorDark, `${viewport.name}: dark browser scheme missed its active dark frame`, autoDarkState);
+    assert(browserLightFrame === autoLightState.frameColorLight, `${viewport.name}: light browser scheme missed its authored dark frame`, autoLightState);
+    assert(browserLightFrame === browserDarkFrame, `${viewport.name}: browser scheme changed the invariant black frame`, {
       browserDarkFrame,
       browserLightFrame,
     });
 
     await activateThemeToggle(page, 'Switch to dark mode');
     const manualDarkOnLightBrowser = await assertTheme(page, 'dark', `${viewport.name}/manual-dark-after-auto`);
-    assertFrameMatches(manualDarkOnLightBrowser, browserDarkFrame, `${viewport.name}/manual-dark-after-auto`);
+    assertFrameMatches(manualDarkOnLightBrowser, browserLightFrame, `${viewport.name}/manual-dark-after-auto`);
 
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
     await waitForFrame(page, browserDarkFrame, `${viewport.name}/manual-dark-browser-dark`);
     await assertTheme(page, 'dark', `${viewport.name}/manual-stays-dark-on-system-dark`);
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
-    await waitForFrame(page, browserDarkFrame, `${viewport.name}/manual-dark-browser-light`);
+    await waitForFrame(page, browserLightFrame, `${viewport.name}/manual-dark-browser-light`);
     const state = await assertTheme(page, 'dark', `${viewport.name}/manual-ignores-system-change`);
     assert(state.storedPreference === 'dark', `${viewport.name}: manual override was not persisted`, state);
   } finally {

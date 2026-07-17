@@ -2,7 +2,7 @@
 
 Dark/light theme is one site-wide content state, but its visual reach stops at the studio-window interior. Route components, simulations, gates, and in-window overlays consume that state; they must not create their own theme policy. The exposed wall/frame, browser chrome, and persistent Button Bar are outer-shell systems and do not consume the manual site theme.
 
-The intended surface hierarchy is summarized in [`DESIGN.md`](../../DESIGN.md). Known drift remains in the current outer-harmony runtime: resolve that behavior, this document, `CONFIGURATION.md`, theme-color projection, and the browser audits as one change.
+The intended surface hierarchy is summarized in [`DESIGN.md`](../../DESIGN.md). The runtime, first-paint mirror, configuration, theme-color projection, Button Bar, and browser audits implement the same boundary.
 
 ## Preference Model
 
@@ -21,7 +21,8 @@ The resolved theme must agree on all of these surfaces:
 
 - `html.dark-mode` and `body.dark-mode` for dark mode;
 - `data-abs-theme="light|dark"` on both `html` and `body`;
-- `color-scheme` on `html`;
+- dark `color-scheme` on `html`, independent of the manual site theme;
+- `--studio-window-color-scheme: light|dark` at the window boundary;
 - the runtime theme event detail (`{ theme, isDark }`).
 
 React consumers that need live theme state use `useRenderedThemeIsDark()`. Route and simulation components must not add, remove, or restore `dark-mode` themselves.
@@ -34,29 +35,28 @@ The early inline script in each boot-overlay HTML entry is a first-paint mirror,
 
 | Surface | Canonical tokens | Owner |
 | --- | --- | --- |
-| Exposed browser/page band | `--abs-browser-chrome`, `--frame-color`, `--wall-color` | Rendered theme harmony |
-| Shell wall | `--shell-wall-bg`, `--abs-wall-base` | Rendered theme harmony |
+| Exposed browser/page band | `--abs-browser-chrome`, `--frame-color`, `--wall-color` | Dark-only outer-shell policy |
+| Shell wall | `--shell-wall-bg`, `--abs-wall-base` | Stable authored dark wall |
 | Studio-window interior | `--studio-window-bg`, `--frame-inner-surface` | Resolved site theme |
 | In-window contrast finish | `--simulation-contrast-veil-rgb` and finish opacities | Resolved site theme |
-| Persistent Button Bar | `--button-bar-outer-ink*`, `--studio-window-bg`, `--text-primary` | Outer frame plus window utility controls |
+| Persistent Button Bar | `--button-bar-outer-ink*`, outer-shell material tokens | Dark-only outer-shell policy |
 
 Never alias the window-interior tokens back to `--abs-wall-base`; keep each surface token explicit even when they share the same active light/dark endpoint.
 
 ## Browser Chrome
 
-Site theme and browser-chrome harmony share one active light/dark endpoint:
+Site theme, browser scheme, browser family, and display gamut are not inputs to frame colour:
 
-- `chrome-harmony.js` resolves the outer palette endpoint from the rendered site theme.
-- In Auto, the rendered site theme follows `prefers-color-scheme`, so the browser/OS light scheme makes both the window and frame light, and dark scheme makes both dark.
-- Firefox uses its browser-native chrome palette.
-- A manual site-theme toggle moves the window interior and exposed frame together.
-- A browser/OS scheme change updates the site only when the stored preference is Auto.
+- Every environment uses the authored opaque true-black frame (`#000000`).
+- Safari and iOS/iPadOS receive true black through `theme-color`, the manifest, and the document background. RGB zero is already true black in sRGB and Display P3, so no wide-gamut override is required.
+- A manual site-theme toggle changes only the studio window, including when the stored preference is not Auto.
+- A browser/OS scheme change may update an Auto studio window without changing the frame or overriding the stored site preference.
 
-`chromeHarmonyMode: auto` is the default browser-aware behavior; `site` and `browser` remain explicit development overrides for palette source. They do not create crossed light/dark frame and window states.
+`chromeHarmonyMode: auto` remains a canonical compatibility sentinel. It is not a runtime control and no production path can select a non-black outer-frame policy.
 
 ## Button Bar
 
-The Button Bar sits outside the studio window. Primary route material derives from `--abs-browser-chrome`, so it tracks the active frame. Secondary sound/theme controls derive from the window surface and text color, so their bodies match `--studio-window-bg` and their icons stay legible. Route selection can change active state, but theme changes must not alter geometry.
+The Button Bar sits outside the studio window. Primary route material and secondary sound/theme/reset controls derive from the active dark outer frame and outer-shell ink. Theme changes may move the switch thumb, change its icon/label, and update route content; they must not recolour Button Bar material, borders, focus treatment, or ink.
 
 ## Portfolio Gate
 

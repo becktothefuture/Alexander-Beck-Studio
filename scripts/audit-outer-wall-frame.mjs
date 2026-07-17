@@ -16,20 +16,6 @@ const browserName = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
 const browserType = { chromium, firefox, webkit }[browserName] || chromium;
 const siteThemes = ['light', 'dark'];
 const browserSchemes = ['light', 'dark'];
-const browserSchemeFrames = {
-  chromium: {
-    light: '#f1f3f4',
-    dark: '#202124',
-  },
-  firefox: {
-    light: '#f9f9fb',
-    dark: '#1c1b22',
-  },
-  webkit: {
-    light: '#f1f3f4',
-    dark: '#202124',
-  },
-};
 const browserProfiles = browserName === 'chromium'
   ? [
       {
@@ -178,10 +164,8 @@ function loadExpectations() {
   return {
     homeMode,
     routeBacked,
-    frame: {
-      light: designSystem.shell?.theme?.siteFrameLight || '#141414',
-      dark: designSystem.shell?.theme?.siteFrameDark || '#141414',
-    },
+    frame: designSystem.shell?.theme?.siteFrame || '#000000',
+    wall: designSystem.shell?.theme?.wallBase || '#141414',
     window: {
       light: designSystem.runtime?.bgLight || '#f5f5f5',
       dark: designSystem.runtime?.bgDark || '#141414',
@@ -281,11 +265,17 @@ async function readFrameState(page) {
       frameColor: rootStyle.getPropertyValue('--frame-color').trim(),
       wallColor: rootStyle.getPropertyValue('--wall-color').trim(),
       chromeBg: rootStyle.getPropertyValue('--chrome-bg').trim(),
-      lightBrowserChrome: root.hasAttribute('data-abs-light-browser-chrome'),
-      siteFrameLight: rootStyle.getPropertyValue('--frame-color-site-light').trim(),
+      siteFrame: rootStyle.getPropertyValue('--frame-color-site').trim(),
+      wallBase: rootStyle.getPropertyValue('--abs-wall-base').trim(),
+      shellWall: rootStyle.getPropertyValue('--shell-wall-bg').trim(),
       studioWindow: rootStyle.getPropertyValue('--studio-window-bg').trim(),
       frameInnerSurface: rootStyle.getPropertyValue('--frame-inner-surface').trim(),
+      rootColorScheme: rootStyle.colorScheme,
+      studioWindowColorScheme: document.querySelector('#simulations')
+        ? getComputedStyle(document.querySelector('#simulations')).colorScheme
+        : '',
       bodyBackground: bodyStyle.backgroundColor,
+      themeColor: document.querySelector('meta[name="theme-color"]:not([media])')?.content || '',
       activeTabBackground: activeStyle?.backgroundColor || '',
       activePillBackground: activePillStyle?.display === 'none' ? '' : activePillStyle?.backgroundColor || '',
       activeTabColor: activeContentStyle?.color || activeStyle?.color || '',
@@ -312,7 +302,7 @@ async function readFrameState(page) {
   };
 }
 
-function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, expectedWindow, checkOuterPixel = true, expectLightBrowserChrome = false) {
+function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, expectedWindow, expectedWall, expectedSiteFrame, checkOuterPixel = true) {
   const expected = normalizeHex(expectedHex);
   for (const key of ['absBrowserChrome', 'frameColor', 'wallColor', 'chromeBg']) {
     if (normalizeHex(actual[key]) !== expected) {
@@ -331,9 +321,24 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
   if (normalizeHex(actual.frameInnerSurface) !== normalizeHex(expectedWindow)) {
     throw new Error(`${siteTheme}/${browserScheme}/${phase} frameInnerSurface: expected ${expectedWindow}, got ${actual.frameInnerSurface}`);
   }
+  if (normalizeHex(actual.wallBase) !== normalizeHex(expectedWall)
+    || normalizeHex(actual.shellWall) !== normalizeHex(expectedWall)) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} stable wall drifted: expected ${expectedWall}, got wall=${actual.wallBase} shell=${actual.shellWall}`);
+  }
+  if (normalizeHex(actual.siteFrame) !== normalizeHex(expectedSiteFrame)) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} authored frame drifted: expected ${expectedSiteFrame}, got ${actual.siteFrame}`);
+  }
+  if (!String(actual.rootColorScheme).includes('dark')) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} root color-scheme must remain dark, got ${actual.rootColorScheme}`);
+  }
+  if (!String(actual.studioWindowColorScheme).includes(siteTheme)) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} studio-window color-scheme expected ${siteTheme}, got ${actual.studioWindowColorScheme}`);
+  }
+  if (normalizeHex(actual.themeColor) !== expected) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} theme-color expected ${expectedHex}, got ${actual.themeColor}`);
+  }
 
   const expectedFrameRgb = hexToRgb(expectedHex);
-  const expectedWindowRgb = hexToRgb(expectedWindow);
   const inactiveBackground = cssColorToRgba(actual.inactiveTabBackground);
   const buttonBarBackground = cssColorToRgba(actual.buttonBarBackground);
   const bodyBackground = cssColorToRgba(actual.bodyBackground);
@@ -368,10 +373,6 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
 
   actual.activeTabContrast = Number(activeContrast.toFixed(2));
 
-  if (actual.lightBrowserChrome !== expectLightBrowserChrome) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} light browser chrome marker: expected ${expectLightBrowserChrome}, got ${actual.lightBrowserChrome}`);
-  }
-
   const assertUtilityControl = (name, backgroundValue, colorValue, surfaceBackground = compositedButtonBarBackground) => {
     const background = cssColorToRgba(backgroundValue);
     const foreground = cssColorToRgba(colorValue);
@@ -380,12 +381,8 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
     }
 
     const compositedBackground = compositeRgba(background, surfaceBackground);
-    if (!expectedWindowRgb) {
-      throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse expected window ${expectedWindow}`);
-    }
-
-    if (pixelDistance(compositedBackground, expectedWindowRgb) > 2) {
-      throw new Error(`${siteTheme}/${browserScheme}/${phase} ${name} surface must match studio window: expected ${expectedWindowRgb.join(',')}, got ${compositedBackground.join(',')} from ${backgroundValue}`);
+    if (pixelDistance(compositedBackground, expectedFrameRgb) > 2) {
+      throw new Error(`${siteTheme}/${browserScheme}/${phase} ${name} surface must match outer frame: expected ${expectedFrameRgb.join(',')}, got ${compositedBackground.join(',')} from ${backgroundValue}`);
     }
 
     const compositedControlForeground = compositeRgba(foreground, compositedBackground);
@@ -403,29 +400,15 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
     themeThumb: assertUtilityControl('theme-thumb', actual.themeThumbBackground, actual.themeThumbColor, cssColorToRgba(actual.themeToggleBackground) ? compositeRgba(cssColorToRgba(actual.themeToggleBackground), compositedButtonBarBackground) : compositedButtonBarBackground),
   };
 
-  if (expectLightBrowserChrome) {
-    const inactiveBorder = cssColorToRgba(actual.inactiveTabBorder);
-    const activeBorder = cssColorToRgba(actual.activeTabBorder);
-    if (!inactiveBorder || !activeBorder) {
-      throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse light Button Bar borders: inactive=${actual.inactiveTabBorder} active=${actual.activeTabBorder}`);
-    }
+}
 
-    const inactiveBorderContrast = contrastRatio(compositeRgba(inactiveBorder, expectedFrameRgb), expectedFrameRgb);
-    const activeBorderContrast = contrastRatio(compositeRgba(activeBorder, expectedFrameRgb), expectedFrameRgb);
-    if (inactiveBorderContrast > 1.35 || activeBorderContrast > 1.55) {
-      throw new Error(`${siteTheme}/${browserScheme}/${phase} light Button Bar borders are too strong: inactive=${inactiveBorderContrast.toFixed(2)} active=${activeBorderContrast.toFixed(2)}`);
-    }
-    actual.buttonBorderContrast = {
-      inactive: Number(inactiveBorderContrast.toFixed(2)),
-      active: Number(activeBorderContrast.toFixed(2)),
-    };
-  }
+function resolveExpectedFrame(_browserScheme, expectations, _profile) {
+  return expectations.frame;
 }
 
 async function runCase(browser, siteTheme, browserScheme, expectations, profile) {
-  const expectedFrame = browserSchemeFrames[browserName][siteTheme];
+  const expectedFrame = resolveExpectedFrame(browserScheme, expectations, profile);
   const expectedWindow = expectations.window[siteTheme];
-  const expectLightBrowserChrome = siteTheme === 'light';
   const context = await browser.newContext({
     ...profile.context,
     colorScheme: browserScheme,
@@ -445,7 +428,7 @@ async function runCase(browser, siteTheme, browserScheme, expectations, profile)
     await page.waitForTimeout(1200);
 
     const directHome = await readFrameState(page);
-    assertFrameState(siteTheme, browserScheme, `direct-home-${expectations.homeMode.id}`, directHome, expectedFrame, expectedWindow, !profile.context.isMobile, expectLightBrowserChrome);
+    assertFrameState(siteTheme, browserScheme, `direct-home-${expectations.homeMode.id}`, directHome, expectedFrame, expectedWindow, expectations.wall, expectations.frame, !profile.context.isMobile);
 
     await page.locator('.simulation-focus-switcher').click({ timeout: 5000 });
     await page.locator('.simulation-focus-row').filter({ hasText: expectations.routeBacked.name }).click({ timeout: 5000 });
@@ -459,7 +442,7 @@ async function runCase(browser, siteTheme, browserScheme, expectations, profile)
     await page.waitForTimeout(1200);
 
     const routeBacked = await readFrameState(page);
-    assertFrameState(siteTheme, browserScheme, `route-backed-${expectations.routeBacked.id}`, routeBacked, expectedFrame, expectedWindow, !profile.context.isMobile, expectLightBrowserChrome);
+    assertFrameState(siteTheme, browserScheme, `route-backed-${expectations.routeBacked.id}`, routeBacked, expectedFrame, expectedWindow, expectations.wall, expectations.frame, !profile.context.isMobile);
 
     log(`engine=${browserName} profile=${profile.name} site=${siteTheme} browser=${browserScheme}: ${expectations.homeMode.id} -> ${expectations.routeBacked.id} frame=${expectedFrame} active-contrast=${routeBacked.activeTabContrast}:1`);
   } finally {
@@ -485,7 +468,7 @@ async function run() {
     await server?.stop();
   }
 
-  log(`PASS (${browserName}): rendered theme keeps the outer frame, Button Bar material, and studio-window surface in the same light/dark state.`);
+  log(`PASS (${browserName}): site theme changes only the studio window; the outer frame and Button Bar remain dark.`);
 }
 
 run().catch((error) => {

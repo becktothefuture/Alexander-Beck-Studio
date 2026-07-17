@@ -10,6 +10,7 @@ const baseUrl = process.env.ABS_THEME_WALL_AUDIT_URL || 'http://127.0.0.1:8012';
 const shouldStartDevServer = !process.env.ABS_THEME_WALL_AUDIT_URL;
 const browserName = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
 const browserType = browserName === 'webkit' ? webkit : chromium;
+const viewportFilter = String(process.env.ABS_THEME_WALL_VIEWPORT || '').trim().toLowerCase();
 const NAVIGATION_TIMEOUT_MS = 60_000;
 const routes = ['/', '/portfolio.html', '/about.html', '/contact.html'];
 const viewports = [
@@ -27,7 +28,7 @@ const viewports = [
   { name: 'desktop-anchor-991', width: 991, height: 900, deviceScaleFactor: 1, isMobile: false },
   { name: 'evidence-1273', width: 1273, height: 1326, deviceScaleFactor: 1, isMobile: false },
   { name: 'desktop-1440', width: 1440, height: 960, deviceScaleFactor: 1, isMobile: false },
-];
+].filter((viewport) => !viewportFilter || viewport.name === viewportFilter);
 
 const invariantRootVars = [
   '--abs-browser-chrome',
@@ -72,13 +73,8 @@ const themeVariantKeys = new Set([
   'studioWindowBackground',
   'frameInnerSurface',
   'simulationContrastVeilRgb',
+  'studioWindowColorScheme',
   'wallBackgroundImage',
-  'tabStyles',
-  '--abs-browser-chrome',
-  '--frame-color',
-  '--wall-color',
-  '--abs-wall-base',
-  '--shell-wall-bg',
 ]);
 const maxGeometryDeltaPx = 1.5;
 const maxRadiusDeltaPx = 0.05;
@@ -366,9 +362,15 @@ async function readInvariantState(page) {
       studioWindowBackground: rootStyle.getPropertyValue('--studio-window-bg').trim(),
       frameInnerSurface: rootStyle.getPropertyValue('--frame-inner-surface').trim(),
       simulationContrastVeilRgb: rootStyle.getPropertyValue('--simulation-contrast-veil-rgb').trim(),
+      rootColorScheme: rootStyle.colorScheme,
+      studioWindowColorScheme: getComputedStyle(wall).colorScheme,
       tabStyles: [...document.querySelectorAll('[data-route-tab]')].map((tab) => {
         const style = getComputedStyle(tab);
         return [tab.dataset.routeTab, style.color, style.backgroundColor, style.borderColor].join('|');
+      }).join(';'),
+      utilityStyles: [...document.querySelectorAll('.button-bar__sound-toggle, .button-bar__theme-toggle, .button-bar__theme-thumb')].map((control) => {
+        const style = getComputedStyle(control);
+        return [control.className, style.color, style.backgroundColor, style.borderColor, style.boxShadow].join('|');
       }).join(';'),
       wallBeforeBorderRadius: wallBeforeStyle.borderRadius,
       wallBeforeContent: wallBeforeStyle.content,
@@ -727,6 +729,12 @@ async function auditRoute(browser, route, viewport) {
     }
     if (normalize(lightState.simulationContrastVeilRgb) === normalize(darkState.simulationContrastVeilRgb)) {
       throw new Error(`${route} ${viewport.name} did not retint the in-window contrast veil`);
+    }
+    if (!normalize(lightState.rootColorScheme).includes('dark') || !normalize(darkState.rootColorScheme).includes('dark')) {
+      throw new Error(`${route} ${viewport.name} root browser color-scheme did not stay dark`);
+    }
+    if (!normalize(lightState.studioWindowColorScheme).includes('light') || !normalize(darkState.studioWindowColorScheme).includes('dark')) {
+      throw new Error(`${route} ${viewport.name} studio-window color-scheme did not follow the site theme`);
     }
 
     log(`PASS ${route} ${viewport.name}`);

@@ -779,24 +779,6 @@ export const CONTROL_SECTIONS = {
     defaultOpen: false,
     controls: [
       {
-        id: 'chromeHarmonyMode',
-        label: 'Chrome Harmony',
-        stateKey: 'chromeHarmonyMode',
-        type: 'select',
-        options: [
-          { value: 'site', label: 'Site frame' },
-          { value: 'auto', label: 'Auto (browser-aware)' },
-          { value: 'browser', label: 'Browser frame (force)' }
-        ],
-        default: 'auto',
-        format: v => String(v),
-        parse: v => String(v),
-        hint: 'Browser/OS light and dark schemes own the exposed frame; Site frame is a development override.',
-        onChange: (g) => {
-          setTheme(getCurrentTheme());
-        }
-      },
-      {
         id: 'cornerShapeSquircleEnabled',
         label: 'Squircle corners',
         stateKey: 'cornerShapeSquircleEnabled',
@@ -2269,53 +2251,51 @@ export const CONTROL_SECTIONS = {
           root.style.setProperty('--bg-dark', val);
         }
       },
-      { type: 'divider', label: 'Wall Interior' },
+      { type: 'divider', label: 'Outer Shell' },
       {
-        id: 'wallBaseLight',
-        label: 'Inner Wall · Light',
-        stateKey: 'wallBaseLight',
+        id: 'wallBase',
+        label: 'Wall',
+        stateKey: 'wallBase',
         designScope: 'shellTheme',
         type: 'color',
-        default: "var(--color-detected-efefef)",
-        hint: 'Inner wall color in light mode.',
+        default: "var(--color-detected-141414)",
+        hint: 'Stable dark wall around the themeable studio window.',
         onChange: (g, val) => {
           const root = document.documentElement;
           root.style.setProperty('--abs-wall-base-light', val);
-          g.wallBaseLight = val;
+          root.style.setProperty('--abs-wall-base-dark', val);
+          root.style.setProperty('--abs-wall-base', val);
+          root.style.setProperty('--shell-wall-bg', val);
+          g.wallBase = val;
           g.frameInnerSurface = 'var(--studio-window-bg)';
           import('../visual/site-shell.js').then((mod) => {
-            mod.patchShellTheme?.({ wallBaseLight: val });
+            mod.patchShellTheme?.({ wallBase: val });
           }).catch(() => {});
-          if (!document.body.classList.contains('dark-mode')) {
-            root.style.setProperty('--abs-wall-base', val);
-            root.style.setProperty('--frame-inner-surface', 'var(--studio-window-bg)');
-          }
+          root.style.setProperty('--frame-inner-surface', 'var(--studio-window-bg)');
           applyLayoutCSSVars();
         }
       },
       {
-        id: 'wallBaseDark',
-        label: 'Inner Wall · Dark',
-        stateKey: 'wallBaseDark',
+        id: 'frameColor',
+        label: 'Authored Frame',
+        stateKey: 'frameColor',
         designScope: 'shellTheme',
         type: 'color',
-        default: "var(--color-detected-181818)",
-        hint: 'Inner wall color in dark mode.',
+        default: "var(--color-detected-000000)",
+        hint: 'Opaque true black across themes, browsers, and display gamuts.',
         onChange: (g, val) => {
           const root = document.documentElement;
-          root.style.setProperty('--abs-wall-base-dark', val);
-          g.wallBaseDark = val;
-          g.frameInnerSurface = 'var(--studio-window-bg)';
+          root.style.setProperty('--frame-color-site', val);
+          root.style.setProperty('--frame-color-site-light', val);
+          root.style.setProperty('--frame-color-site-dark', val);
+          g.frameColor = val;
           import('../visual/site-shell.js').then((mod) => {
-            mod.patchShellTheme?.({ wallBaseDark: val });
+            mod.patchShellTheme?.({ siteFrame: val });
           }).catch(() => {});
-          if (document.body.classList.contains('dark-mode')) {
-            root.style.setProperty('--abs-wall-base', val);
-            root.style.setProperty('--frame-inner-surface', 'var(--studio-window-bg)');
-          }
-          applyLayoutCSSVars();
+          setTheme(getCurrentTheme());
         }
       },
+      { type: 'divider', label: 'Quote Puck' },
       {
         id: 'quoteButtonColorLight',
         label: 'Light',
@@ -2358,49 +2338,6 @@ export const CONTROL_SECTIONS = {
             root.style.setProperty('--quote-button-color', val);
           }
           applyLayoutCSSVars();
-        }
-      },
-      { type: 'divider', label: 'Outer Wall & Chrome' },
-      {
-        id: 'frameColorLight',
-        label: 'Outer Wall · Light',
-        stateKey: 'frameColorLight',
-        designScope: 'shellTheme',
-        type: 'color',
-        default: "var(--color-detected-242529)",
-        hint: 'Canonical outer wall and browser chrome in light mode.',
-        onChange: (g, val) => {
-          const root = document.documentElement;
-          root.style.setProperty('--frame-color-site-light', val);
-          root.style.setProperty('--frame-color-light', val);
-          root.style.setProperty('--wall-color-light', val);
-          root.style.setProperty('--chrome-bg-light', val);
-          g.frameColorLight = val;
-          import('../visual/site-shell.js').then((mod) => {
-            mod.patchShellTheme?.({ siteFrameLight: val });
-          }).catch(() => {});
-          setTheme(getCurrentTheme());
-        }
-      },
-      {
-        id: 'frameColorDark',
-        label: 'Outer Wall · Dark',
-        stateKey: 'frameColorDark',
-        designScope: 'shellTheme',
-        type: 'color',
-        default: "var(--color-detected-242529)",
-        hint: 'Canonical outer wall and browser chrome in dark mode.',
-        onChange: (g, val) => {
-          const root = document.documentElement;
-          root.style.setProperty('--frame-color-site-dark', val);
-          root.style.setProperty('--frame-color-dark', val);
-          root.style.setProperty('--wall-color-dark', val);
-          root.style.setProperty('--chrome-bg-dark', val);
-          g.frameColorDark = val;
-          import('../visual/site-shell.js').then((mod) => {
-            mod.patchShellTheme?.({ siteFrameDark: val });
-          }).catch(() => {});
-          setTheme(getCurrentTheme());
         }
       },
       // ─── TEXT (LIGHT MODE) ───────────────────────────────────────────────

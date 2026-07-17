@@ -8,7 +8,6 @@ import { applyColorTemplate } from './colors.js';
 import { syncChromeColor } from '../physics/engine.js';
 import { log as devLog } from '../utils/logger.js';
 import { applyChromeHarmony } from './chrome-harmony.js';
-import { readTokenVar } from '../utils/tokens.js';
 import { applyShellLayoutVars, syncShellToDocument, syncThemeColorMeta } from './site-shell.js';
 import { forEachPanelUiDocument, resolvePanelUiDocument } from '../ui/panel-ui-context.js';
 import {
@@ -114,7 +113,7 @@ function refreshSystemPreference() {
     return;
   }
   applyChromeHarmony();
-  updateThemeColor(isRenderedDarkMode());
+  updateThemeColor();
 }
 
 function resolveShouldBeDark(theme) {
@@ -128,21 +127,8 @@ function isRenderedDarkMode() {
 /**
  * Update browser chrome/theme color tags from currently-active wall CSS vars.
  */
-function updateThemeColor(isDark) {
-  const g = getGlobals();
-  const cssActive = readTokenVar('--frame-color', '');
-  const cssLight = readTokenVar('--frame-color-light', '');
-  const cssDark = readTokenVar('--frame-color-dark', '');
-  const fallback = g?.frameColor || g?.frameColorLight || g?.frameColorDark || "var(--color-detected-242529)";
-  const activeColor = cssActive || (isDark ? (cssDark || cssLight) : (cssLight || cssDark)) || fallback;
-  const lightColor = cssLight || activeColor || fallback;
-  const darkColor = cssDark || activeColor || fallback;
-  
-  syncThemeColorMeta({
-    active: activeColor,
-    light: lightColor,
-    dark: darkColor
-  });
+function updateThemeColor() {
+  syncThemeColorMeta();
 }
 
 /**
@@ -165,10 +151,9 @@ function applyDarkModeToDOM(isDark) {
   applyColorTemplate(globals.currentTemplate);
   syncShellToDocument({ isDark });
 
-  // 1) If the browser ignores theme-color (desktop Chrome tabs), adapt the frame to match the browser UI.
-  // 2) Then update meta theme-color from the (possibly updated) CSS vars.
+  // Re-project the invariant black frame through every theme-color tag.
   applyChromeHarmony();
-  updateThemeColor(isDark);
+  updateThemeColor();
   
   // Sync chrome color for rubbery walls
   syncChromeColor();

@@ -32,20 +32,15 @@ function loadExpectations() {
   const designSystem = JSON.parse(readFileSync(designSystemPath, 'utf8'));
   const runtime = designSystem.runtime || {};
   const shellTheme = designSystem.shell?.theme || {};
-  const lightWall = shellTheme.wallBaseLight
-    || shellTheme.wallBase
-    || '#efefef';
-  const darkWall = shellTheme.wallBaseDark
-    || shellTheme.wallBase
-    || '#141414';
+  const stableWall = shellTheme.wallBase || '#141414';
   const lightWindow = runtime.bgLight || '#f5f5f5';
   const darkWindow = runtime.bgDark || '#141414';
 
   return {
     light: {
-      wall: lightWall,
-      wallLight: lightWall,
-      wallDark: darkWall,
+      wall: stableWall,
+      wallLight: stableWall,
+      wallDark: stableWall,
       bgLight: lightWindow,
       bgDark: darkWindow,
       studioWindow: lightWindow,
@@ -54,9 +49,9 @@ function loadExpectations() {
       veilRgb: hexToRgbString(lightWindow),
     },
     dark: {
-      wall: darkWall,
-      wallLight: lightWall,
-      wallDark: darkWall,
+      wall: stableWall,
+      wallLight: stableWall,
+      wallDark: stableWall,
       bgLight: lightWindow,
       bgDark: darkWindow,
       studioWindow: darkWindow,

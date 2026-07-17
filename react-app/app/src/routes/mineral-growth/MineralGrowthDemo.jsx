@@ -73,7 +73,6 @@ function downloadConfig(config) {
 
 function resolveMineralGrowthTheme(designSystem, isDarkMode) {
   const runtime = designSystem?.runtime || {};
-  const shellTheme = designSystem?.shell?.theme || {};
   const paletteId = resolveLondonWeatherPaletteId(
     runtime.paletteId
       || runtime.palette
@@ -82,8 +81,8 @@ function resolveMineralGrowthTheme(designSystem, isDarkMode) {
       || DEFAULT_MINERAL_GROWTH_PALETTE_ID,
   ) || DEFAULT_MINERAL_GROWTH_PALETTE_ID;
   const palette = getLondonWeatherPalette(paletteId);
-  const bgLight = runtime.bgLight || shellTheme.wallBaseLight || DEFAULT_THEME_COLORS.light;
-  const bgDark = runtime.bgDark || shellTheme.wallBaseDark || DEFAULT_THEME_COLORS.dark;
+  const bgLight = runtime.bgLight || DEFAULT_THEME_COLORS.light;
+  const bgDark = runtime.bgDark || DEFAULT_THEME_COLORS.dark;
   const activeBg = isDarkMode ? bgDark : bgLight;
   const rawPalette = Array.isArray(isDarkMode ? palette?.dark : palette?.light)
     ? (isDarkMode ? palette.dark : palette.light)

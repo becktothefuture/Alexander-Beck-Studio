@@ -1,6 +1,5 @@
 {
   "liteModeEnabled": false,
-  "chromeHarmonyMode": "auto",
   "cornerShapeSquircleEnabled": true,
   "ballMassKg": 240,
   "REST": 0.18,
@@ -432,8 +431,8 @@
   "tensionLoomPulseSpeed": 620,
   "tensionLoomPulseWidth": 58,
   "tensionLoomWarmupFrames": 8,
-  "wallBaseLight": "#f5f5f5",
-  "wallBaseDark": "#141414",
+  "wallBase": "#141414",
+  "frameColor": "#000000",
   "hoverEdgeEnabled": false,
   "hoverEdgeWidth": 0.5,
   "hoverEdgeBottomEnabled": false,

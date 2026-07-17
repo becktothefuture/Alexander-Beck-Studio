@@ -66,7 +66,6 @@ export function buildRuntimeConfigSnapshot() {
     config.soundConfig = getSoundConfig();
   } catch (e) {}
 
-  config.chromeHarmonyMode = g.chromeHarmonyMode;
   config.cornerShapeSquircleEnabled = g.cornerShapeSquircleEnabled !== false;
   config.enableLOD = false;
 
@@ -85,17 +84,20 @@ export function buildShellConfigSnapshot() {
 
   nextShell.theme = {
     ...(nextShell.theme || {}),
-    wallBaseLight: g.wallBaseLight || nextShell.theme?.wallBaseLight,
-    wallBaseDark: g.wallBaseDark || nextShell.theme?.wallBaseDark,
+    wallBase: g.wallBase || nextShell.theme?.wallBase,
     quoteButtonColorLight: g.quoteButtonColorLight || nextShell.theme?.quoteButtonColorLight,
     quoteButtonColorDark: g.quoteButtonColorDark || nextShell.theme?.quoteButtonColorDark,
-    siteFrameLight: g.frameColorLight || nextShell.theme?.siteFrameLight,
-    siteFrameDark: g.frameColorDark || nextShell.theme?.siteFrameDark,
+    siteFrame: g.frameColor || nextShell.theme?.siteFrame,
+    chromeHarmonyMode: 'auto',
   };
   delete nextShell.theme.safariFrameLight;
   delete nextShell.theme.safariFrameDark;
   delete nextShell.theme.lockedHeaderLight;
   delete nextShell.theme.lockedHeaderDark;
+  delete nextShell.theme.wallBaseLight;
+  delete nextShell.theme.wallBaseDark;
+  delete nextShell.theme.siteFrameLight;
+  delete nextShell.theme.siteFrameDark;
 
   nextShell.layout = {
     ...(nextShell.layout || {}),

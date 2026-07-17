@@ -92,7 +92,8 @@ export function applyThemeState(isDark, options = {}) {
   });
 
   if (root?.style) {
-    root.style.colorScheme = theme;
+    root.style.colorScheme = 'dark';
+    root.style.setProperty('--studio-window-color-scheme', theme);
   }
 
   return theme;

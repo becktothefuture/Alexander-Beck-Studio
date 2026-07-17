@@ -5,7 +5,7 @@ body.flock-of-birds-page {
 
 body.flock-of-birds-page #simulations {
   background: var(--abs-wall-base, #202020);
-  border-color: var(--frame-color, #141517);
+  border-color: var(--frame-color, #000000);
 }
 
 body.flock-of-birds-page #simulations::after,

@@ -43,23 +43,23 @@ Loaders and normalizers live under `src/legacy/modules/utils/` and route-specifi
 
 ### Theme and browser-frame token boundary
 
-Theme preference and surface behavior are owned by [`THEME-STATE.md`](THEME-STATE.md), with the intended design boundary summarized in [`DESIGN.md`](../../DESIGN.md). The table below documents the current runtime projection; it must not be used to silently overturn the locked studio-window-only manual-theme boundary. Resolve the known outer-harmony drift across runtime, docs, theme-color projection, and audits together.
+Theme preference and surface behavior are owned by [`THEME-STATE.md`](THEME-STATE.md), with the design boundary summarized in [`DESIGN.md`](../../DESIGN.md). Manual light/dark preference owns the studio-window interior only. The physical shell has one authored dark palette and a separate dark-only browser-harmony policy.
 
 | Contract | Tokens/config | Required behavior |
 | --- | --- | --- |
-| Theme-aligned exposed frame | `runtime.chromeHarmonyMode`, `shell.theme.siteFrame*`, `--abs-browser-chrome`, `--frame-color`, `--wall-color` | The rendered site theme selects the exposed page band, frame, wall, theme-color, and Button Bar material endpoint. In Auto this follows the browser/OS scheme; manual light/dark moves the frame and window together. |
-| Shell wall | `shell.theme.wallBase*`, `--shell-wall-bg`, `--abs-wall-base` | Uses the same active light/dark endpoint as the rendered site theme while preserving geometry. |
+| True-black exposed frame | `shell.theme.siteFrame`, `--abs-browser-chrome`, `--frame-color`, `--wall-color` | Uses opaque `#000000` in every browser family, browser scheme, site theme, and display gamut. |
+| Stable shell wall | `shell.theme.wallBase`, `--shell-wall-bg`, `--abs-wall-base` | Uses one authored dark endpoint in every browser and site theme while preserving geometry. |
 | Themeable studio window | `runtime.bgLight`, `runtime.bgDark`, `--studio-window-bg`, `--frame-inner-surface` | Follows the resolved site theme and contains all route content. |
 | Themeable in-window veil | `--simulation-contrast-veil-rgb` and light/dark veil opacities | Follows the active studio-window surface. |
-| Theme-aligned Button Bar | `--button-bar-outer-ink*` and shell material tokens | Primary material follows the resolved outer frame. Secondary sound/theme controls use the studio-window background and text color. |
+| Stable dark Button Bar | `--button-bar-outer-ink*` and shell material tokens | Route tabs, sound, theme, and reset controls use only outer-shell material and ink. Theme state may change iconography, labels, and thumb position, not control colour. |
 
-`syncShellToDocument()` owns stable shell and window projection. `applyChromeHarmony()` owns the active outer-frame variables from the rendered light/dark theme so the exposed frame and studio window never invert. Retired Safari-specific frame keys are pruned during config loading/saving and must not re-enter runtime harmony. The primary Button Bar material must derive from the resolved outer-frame colour so its rest, hover, and pressed states keep the same subtle contrast. Secondary sound/theme controls intentionally derive from the window background and text tokens. Do not make `--studio-window-bg` or `--frame-inner-surface` aliases of `--abs-wall-base`.
+`syncShellToDocument()` projects the stable wall and themeable window separately. `applyChromeHarmony()` delegates invariant frame projection to `outer-shell-policy.js`; browser family, browser/OS scheme, and site theme cannot alter the authored black value. Legacy `wallBaseLight/Dark` and `siteFrameLight/Dark` fields are normalized into the stable authored values, pruned from canonical/save output, and emitted only as derived compatibility aliases where still required. The Button Bar derives from the resolved outer frame. Do not make `--studio-window-bg` or `--frame-inner-surface` aliases of `--abs-wall-base`.
 
 ## Behavioral invariants
 
 - Squircle support is CSS-only and toggled by `runtime.cornerShapeSquircleEnabled`.
 - Wall, frame, page ground, and canvas colors remain visibly separated.
-- Manual theme changes stop at the studio-window boundary; browser/OS changes may still update outer harmony.
+- Manual theme and browser/OS scheme changes stop at the studio-window boundary; the outer frame remains true black.
 - The inner wall radius includes an optical compensation multiplier; document and visually certify any change.
 - Shared shell finish is authored once and reused across routes.
 - Convenience presets must explicitly be persistent or UI-only.

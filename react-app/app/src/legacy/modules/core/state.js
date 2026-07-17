@@ -694,12 +694,6 @@ const state = {
   // Resolved theme state (preference is owned by dark-mode-v2.js)
   isDarkMode: false,
 
-  // Browser ↔ Frame harmony
-  // - 'auto': adapt the exposed frame to the browser/OS colour scheme
-  // - 'site': always keep site frame (benchmark / Safari look)
-  // - 'browser': always adapt frame to browser UI palette (artful extension)
-  // Default uses Auto so the exposed frame and browser chrome stay coherent.
-  chromeHarmonyMode: 'auto',
   // CSS `corner-shape: squircle` (iOS-like) where the browser supports it; class on <html>.
   cornerShapeSquircleEnabled: true,
   
@@ -755,11 +749,8 @@ const state = {
   // Time-of-day palette chapters must not change these surfaces; design config owns them.
   bgLight: '#f5f5f5',       // Light mode background color
   bgDark: '#141414',        // Dark mode background color
-  wallBaseLight: '#f5f5f5', // Inner wall surface in light mode
-  wallBaseDark: '#141414',  // Inner wall surface in dark mode
-  frameColor: '#242529',    // Frame color (legacy - use frameColorLight/frameColorDark)
-  frameColorLight: '#242529',  // Frame/wall color in light mode (browser chrome + walls + border)
-  frameColorDark: '#141517',   // Frame/wall color in dark mode (browser chrome + walls + border)
+  wallBase: '#141414',      // Stable dark physical wall around the studio window
+  frameColor: '#000000',    // Stable true-black frame across themes, browsers, and display gamuts
   useSimplifiedFrame: true, // CSS-only frame (disables legacy canvas inner-wall rendering)
   // Simplified frame geometry + effects (single-wall model)
   frameRadiusMobilePx: DEFAULT_FRAME_RADIUS_MOBILE_PX,
@@ -1216,8 +1207,8 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--abs-content-pad-mul-bottom', `${contentPaddingBottomRatio}`);
   root.style.setProperty('--wall-radius', 'var(--abs-frame-radius)');
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
-  root.style.setProperty('--abs-wall-base-light', state.wallBaseLight || '#efefef');
-  root.style.setProperty('--abs-wall-base-dark', state.wallBaseDark || '#141414');
+  root.style.setProperty('--abs-wall-base-light', state.wallBase || '#141414');
+  root.style.setProperty('--abs-wall-base-dark', state.wallBase || '#141414');
   // Simplified frame geometry/effects CSS vars.
   const frameOuterRadius = clampNumber(state.wallRadius, 0, 300, 32);
   const frameInnerRadius = frameOuterRadius;
@@ -2117,38 +2108,14 @@ export function initState(config) {
   else state.bgLight = readTokenVar('--bg-light', state.bgLight);
   if (config.bgDark !== undefined) state.bgDark = config.bgDark;
   else state.bgDark = readTokenVar('--bg-dark', state.bgDark);
-  if (config.wallBaseLight !== undefined) {
-    state.wallBaseLight = config.wallBaseLight;
-  } else {
-    state.wallBaseLight = readTokenVar('--abs-wall-base-light', state.wallBaseLight);
-  }
-  if (config.wallBaseDark !== undefined) {
-    state.wallBaseDark = config.wallBaseDark;
-  } else {
-    state.wallBaseDark = readTokenVar('--abs-wall-base-dark', state.wallBaseDark);
-  }
-  // Frame colors (wall + browser chrome)
-  if (config.frameColorLight !== undefined) {
-    state.frameColorLight = config.frameColorLight;
-  } else {
-    state.frameColorLight = readTokenVar('--frame-color-light', state.frameColorLight);
-  }
-  if (config.frameColorDark !== undefined) {
-    state.frameColorDark = config.frameColorDark;
-  } else {
-    state.frameColorDark = readTokenVar('--frame-color-dark', state.frameColorDark);
-  }
-  // Backward compatibility: if frameColor is set, use it for both light and dark
-  if (config.frameColor !== undefined) {
-    state.frameColor = config.frameColor;
-    state.frameColorLight = config.frameColor;
-    state.frameColorDark = config.frameColor;
-  } else {
-    const fallbackColor = state.frameColorDark || state.frameColorLight || '#242529';
-    state.frameColorLight = state.frameColorLight || fallbackColor;
-    state.frameColorDark = state.frameColorDark || fallbackColor;
-    state.frameColor = fallbackColor;
-  }
+  state.wallBase = config.wallBase
+    || config.wallBaseDark
+    || config.wallBaseLight
+    || readTokenVar('--abs-wall-base', state.wallBase);
+  state.frameColor = config.frameColor
+    || config.frameColorDark
+    || config.frameColorLight
+    || readTokenVar('--frame-color-site', state.frameColor);
   if (config.useSimplifiedFrame !== undefined) {
     state.useSimplifiedFrame = Boolean(config.useSimplifiedFrame);
   }
@@ -2400,19 +2367,8 @@ export function initState(config) {
   if (config.ballSpacing !== undefined) state.ballSpacing = config.ballSpacing;
   if (config.ballBallSurfaceGapPx !== undefined) state.ballBallSurfaceGapPx = config.ballBallSurfaceGapPx;
 
-  // Wall colors: use frameColorLight/frameColorDark (all wall colors point to frameColor via CSS)
-  // Legacy config support: if wallColorLight/wallColorDark are set, update frame colors
-  if (config.wallColorLight !== undefined) {
-    state.frameColorLight = config.wallColorLight;
-    state.frameColor = config.wallColorLight; // Legacy compatibility
-  }
-  if (config.wallColorDark !== undefined) {
-    state.frameColorDark = config.wallColorDark;
-    if (!config.wallColorLight) {
-      // Only update legacy frameColor if light wasn't set
-      state.frameColor = config.wallColorDark;
-    }
-  }
+  // Legacy wall-frame aliases migrate into the one authored frame value.
+  state.frameColor = config.wallColorDark || config.wallColorLight || state.frameColor;
   
   // Gate overlay settings
   if (config.modalOverlayEnabled !== undefined) state.modalOverlayEnabled = config.modalOverlayEnabled;
