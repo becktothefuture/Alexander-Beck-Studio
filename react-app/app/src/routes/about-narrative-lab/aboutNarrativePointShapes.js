@@ -1,4 +1,7 @@
-import { getAboutNarrativeShapeDefinition } from './aboutNarrativeDefinitions.js';
+import {
+  ABOUT_NARRATIVE_DISCIPLINE_ANCHORS,
+  getAboutNarrativeShapeDefinition,
+} from './aboutNarrativeDefinitions.js';
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
@@ -62,6 +65,78 @@ function createCluster(count, seeds, parameters) {
   return { positions };
 }
 
+function hash01(value) {
+  const hashed = Math.sin((value * 12.9898) + 78.233) * 43758.5453123;
+  return hashed - Math.floor(hashed);
+}
+
+function createTurbulentField(count, seeds, parameters) {
+  const positions = new Float32Array(count * 3);
+  const width = Number(parameters.width ?? 10);
+  const height = Number(parameters.height ?? 7);
+  const depth = Number(parameters.depth ?? 9);
+  const chunkCount = Math.max(3, Math.round(Number(parameters.chunkCount ?? 7)));
+  const chunkSize = Number(parameters.chunkSize ?? 1.55);
+  const scatter = Number(parameters.scatter ?? 0.14);
+  const turbulence = Number(parameters.turbulence ?? 0.52);
+  const chunks = Array.from({ length: chunkCount }, (_, chunkIndex) => ({
+    x: (hash01((chunkIndex + 1) * 17.13) - 0.5) * width * 0.76,
+    y: (hash01((chunkIndex + 1) * 31.71) - 0.5) * height * 0.72,
+    z: (hash01((chunkIndex + 1) * 47.37) - 0.5) * depth * 0.82,
+    radius: chunkSize * (0.62 + (hash01((chunkIndex + 1) * 61.19) * 0.72)),
+    weight: 0.34 + (hash01((chunkIndex + 1) * 79.43) * 1.66),
+  }));
+  const totalWeight = chunks.reduce((sum, chunk) => sum + chunk.weight, 0);
+  const centroid = chunks.reduce((center, chunk) => ({
+    x: center.x + (chunk.x * chunk.weight),
+    y: center.y + (chunk.y * chunk.weight),
+    z: center.z + (chunk.z * chunk.weight),
+  }), { x: 0, y: 0, z: 0 });
+  chunks.forEach((chunk) => {
+    chunk.x -= centroid.x / totalWeight;
+    chunk.y -= centroid.y / totalWeight;
+    chunk.z -= centroid.z / totalWeight;
+  });
+
+  for (let index = 0; index < count; index += 1) {
+    const selector = hash01((index + 1) * 3.17) * totalWeight;
+    let accumulated = 0;
+    let chunk = chunks[0];
+    for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
+      accumulated += chunks[chunkIndex].weight;
+      if (selector <= accumulated) {
+        chunk = chunks[chunkIndex];
+        break;
+      }
+    }
+
+    const theta = hash01((index + 1) * 5.93) * Math.PI * 2;
+    const vertical = (hash01((index + 1) * 11.71) * 2) - 1;
+    const ring = Math.sqrt(Math.max(0, 1 - (vertical * vertical)));
+    const radius = chunk.radius * Math.pow(hash01((index + 1) * 23.47), 1.42);
+    let x = chunk.x + (Math.cos(theta) * ring * radius);
+    let y = chunk.y + (vertical * radius * 0.82);
+    let z = chunk.z + (Math.sin(theta) * ring * radius);
+
+    if (hash01((index + 1) * 97.17) < scatter) {
+      x = (hash01((index + 1) * 37.11) - 0.5) * width;
+      y = (hash01((index + 1) * 41.73) - 0.5) * height;
+      z = (hash01((index + 1) * 53.29) - 0.5) * depth;
+    }
+
+    const warpSeed = hash01((index + 1) * 67.91) * Math.PI * 2;
+    x += Math.sin((z * 0.73) + (y * 0.41) + warpSeed) * turbulence;
+    y += Math.sin((x * 0.54) - (z * 0.37) + (warpSeed * 1.31)) * turbulence * 0.58;
+    z += Math.cos((x * 0.62) + (y * 0.47) - (warpSeed * 0.73)) * turbulence;
+
+    const offset = index * 3;
+    positions[offset] = x;
+    positions[offset + 1] = y;
+    positions[offset + 2] = z;
+  }
+  return { positions };
+}
+
 function createCalmField(count, seeds, parameters) {
   const positions = new Float32Array(count * 3);
   const { columns, rows } = getFieldDimensions(count);
@@ -85,18 +160,10 @@ function createCalmField(count, seeds, parameters) {
 function createDisciplineGroups(count) {
   const groups = new Float32Array(count);
   const { columns, rows } = getFieldDimensions(count);
-  const anchors = [
-    [0.2, 0.24],
-    [0.5, 0.19],
-    [0.8, 0.27],
-    [0.24, 0.67],
-    [0.52, 0.73],
-    [0.8, 0.63],
-  ];
-  anchors.forEach(([x, y], anchorIndex) => {
+  ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.forEach(({ group, x, y }) => {
     const column = Math.round(x * (columns - 1));
     const row = Math.round(y * (rows - 1));
-    groups[Math.min(count - 1, (row * columns) + column)] = anchorIndex + 1;
+    groups[Math.min(count - 1, (row * columns) + column)] = group;
   });
   return groups;
 }
@@ -196,12 +263,20 @@ export function validateAboutNarrativeShapeOutput(output, pointCount) {
   if (!(output.presence instanceof Float32Array) || output.presence.length !== pointCount) {
     throw new Error('Shape presence must match the canonical point count.');
   }
+  if (!(output.size instanceof Float32Array) || output.size.length !== pointCount) {
+    throw new Error('Shape size must match the canonical point count.');
+  }
   for (let index = 0; index < output.positions.length; index += 1) {
     if (!Number.isFinite(output.positions[index])) throw new Error('Shape positions contain a non-finite coordinate.');
   }
   for (let index = 0; index < output.presence.length; index += 1) {
     if (!Number.isFinite(output.presence[index]) || output.presence[index] < 0 || output.presence[index] > 1) {
       throw new Error('Shape presence values must stay between 0 and 1.');
+    }
+  }
+  for (let index = 0; index < output.size.length; index += 1) {
+    if (!Number.isFinite(output.size[index]) || output.size[index] < 0) {
+      throw new Error('Shape size values must be finite and non-negative.');
     }
   }
   Object.entries(output.attributes || {}).forEach(([name, attribute]) => {
@@ -214,6 +289,7 @@ export function validateAboutNarrativeShapeOutput(output, pointCount) {
 
 const GENERATORS = Object.freeze({
   'cluster-v1': createCluster,
+  'turbulent-field-v1': createTurbulentField,
   'calm-field-v1': createCalmField,
   'discipline-grid-v1': createDisciplineGrid,
   'living-field-v1': createLivingField,
@@ -242,6 +318,11 @@ export async function generateAboutNarrativeShape({
     output = GENERATORS[shapeId](pointCount, seeds, parameters || {});
   }
   output.presence = createPresence(pointCount, seeds, Number(parameters?.density ?? 1));
+  if (output.attributes?.disciplineGroup) {
+    for (let index = 0; index < output.attributes.disciplineGroup.length; index += 1) {
+      if (output.attributes.disciplineGroup[index] > 0) output.presence[index] = 1;
+    }
+  }
   collapseInactivePositions(output.positions, output.presence);
   output.size = output.size || new Float32Array(pointCount).fill(1);
   output.attributes = output.attributes || {};

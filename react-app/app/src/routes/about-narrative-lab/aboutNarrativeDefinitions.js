@@ -13,6 +13,16 @@ export const ABOUT_NARRATIVE_BLOCK_KINDS = Object.freeze([
   'clients',
   'disciplines',
 ]);
+export const ABOUT_NARRATIVE_EMPHASIS_TONES = Object.freeze(['blue', 'green', 'orange']);
+export const ABOUT_NARRATIVE_DISCIPLINE_TONES = Object.freeze(['green', 'blue', 'neutral', 'acid', 'orange']);
+export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = Object.freeze([
+  Object.freeze({ group: 1, x: 0.14, y: 0.12 }),
+  Object.freeze({ group: 2, x: 0.43, y: 0.27 }),
+  Object.freeze({ group: 3, x: 0.69, y: 0.42 }),
+  Object.freeze({ group: 4, x: 0.2, y: 0.58 }),
+  Object.freeze({ group: 5, x: 0.49, y: 0.73 }),
+  Object.freeze({ group: 6, x: 0.66, y: 0.88 }),
+]);
 export const ABOUT_NARRATIVE_TRANSITION_TYPES = Object.freeze([
   'morph',
   'dissolve-morph',
@@ -35,12 +45,25 @@ export const ABOUT_NARRATIVE_CAMERA_EASINGS = Object.freeze([
 export const ABOUT_NARRATIVE_CORRESPONDENCE_MODES = Object.freeze([
   'index-v1',
   'stable-seed',
+  'spatial-nearest-v1',
   'group-aware',
 ]);
 
 function numberControl(id, label, min, max, step, unit = '') {
   return Object.freeze({ id, label, type: 'range', min, max, step, unit });
 }
+
+export const ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS = Object.freeze([
+  numberControl('start', 'Reveal start', 0, 0.8, 0.005),
+  numberControl('end', 'Label exit', 0.2, 1, 0.005),
+  numberControl('stagger', 'Stagger', 0.02, 0.16, 0.005),
+  numberControl('backgroundFade', 'Grid fade duration', 0.02, 0.4, 0.005),
+  numberControl('backgroundOpacity', 'Resting grid opacity', 0, 0.4, 0.01),
+  numberControl('pointScale', 'Active point size', 1, 8, 0.05, '×'),
+  numberControl('labelOffsetPx', 'Label offset', 0, 64, 1, 'px'),
+  numberControl('labelDuration', 'Label reveal duration', 0.02, 0.25, 0.005),
+  numberControl('hold', 'Six-point hold', 0, 0.4, 0.005),
+]);
 
 export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
   Object.freeze({
@@ -69,11 +92,23 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     ]),
   }),
   Object.freeze({
+    id: 'swarmTurbulence',
+    label: 'Shared turbulence',
+    controls: Object.freeze([
+      numberControl('amplitude', 'Movement range', 0, 0.25, 0.001, 'WU'),
+      numberControl('speed', 'Speed', 0, 2, 0.01),
+      numberControl('irregularity', 'Erratic motion', 0, 1, 0.01),
+      numberControl('individuality', 'Individuality', 0, 1, 0.01),
+      numberControl('axisSpread', '3D spread', 0, 1, 0.01),
+    ]),
+  }),
+  Object.freeze({
     id: 'textMotion',
     label: 'Spatial titles',
     controls: Object.freeze([
       numberControl('durationScale', 'Travel duration', 0.75, 2.5, 0.05, '×'),
       numberControl('startY', 'Start Y', -240, 240, 2, 'px'),
+      numberControl('openerStartY', 'Opener start Y', -120, 180, 2, 'px'),
       numberControl('endY', 'End Y', -240, 240, 2, 'px'),
       numberControl('readableStart', 'Clear from', 0, 0.45, 0.01),
       numberControl('readableEnd', 'Clear until', 0.55, 1, 0.01),
@@ -95,6 +130,23 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
     cost: 1,
     parameters: Object.freeze([
       numberControl('radius', 'Radius', 0.8, 6, 0.05, 'WU'),
+      numberControl('density', 'Presence', 0.1, 1, 0.01),
+    ]),
+  }),
+  'turbulent-field-v1': Object.freeze({
+    id: 'turbulent-field-v1',
+    label: 'Turbulent field',
+    description: 'An uneven volumetric cloud with dense organic chunks and open pockets.',
+    adapterId: 'point-field-v1',
+    cost: 1,
+    parameters: Object.freeze([
+      numberControl('width', 'Width', 4, 24, 0.1, 'WU'),
+      numberControl('height', 'Height', 2, 14, 0.1, 'WU'),
+      numberControl('depth', 'Depth', 4, 28, 0.1, 'WU'),
+      numberControl('chunkCount', 'Cloud chunks', 3, 14, 1),
+      numberControl('chunkSize', 'Chunk size', 0.4, 4, 0.05, 'WU'),
+      numberControl('scatter', 'Loose particles', 0, 0.6, 0.01),
+      numberControl('turbulence', 'Organic warp', 0, 1.5, 0.01, 'WU'),
       numberControl('density', 'Presence', 0.1, 1, 0.01),
     ]),
   }),
@@ -163,6 +215,16 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
       numberControl('amplitude', 'Amplitude', 0, 0.2, 0.001, 'WU'),
       numberControl('speed', 'Speed', 0, 2, 0.01),
       Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', options: Object.freeze(['story', 'ambient', 'mixed']) }),
+    ]),
+  }),
+  'swarm-life-v1': Object.freeze({
+    id: 'swarm-life-v1',
+    label: 'Swarm life',
+    version: 1,
+    cost: 1,
+    reducedMotion: 'disabled',
+    parameters: Object.freeze([
+      numberControl('strength', 'Local strength', 0, 1.5, 0.01),
     ]),
   }),
   'group-emphasis-v1': Object.freeze({
@@ -238,6 +300,20 @@ export function getAboutNarrativeShapeDefinition(shapeId) {
 
 export function getAboutNarrativeModifierDefinition(modifierId) {
   return ABOUT_NARRATIVE_MODIFIER_DEFINITIONS[modifierId] || null;
+}
+
+export function resolveAboutNarrativeSwarmMotion(parameters = {}, profile = {}) {
+  const numberOr = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+  const strength = Math.max(0, numberOr(parameters.strength, 1));
+  return {
+    strength,
+    amplitude: numberOr(profile.amplitude, 0.05) * strength,
+    speed: numberOr(profile.speed, 0.52),
+    irregularity: numberOr(profile.irregularity, 0.74),
+    individuality: numberOr(profile.individuality, 0.92),
+    axisSpread: numberOr(profile.axisSpread, 0.9),
+    storyMix: 0,
+  };
 }
 
 export function getAboutNarrativeAdapterDefinition(adapterId) {

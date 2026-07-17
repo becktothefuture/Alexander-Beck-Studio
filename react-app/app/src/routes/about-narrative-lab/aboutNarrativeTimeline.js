@@ -90,8 +90,8 @@ export function getAboutNarrativeCueTimingBounds(cue) {
   const lead = Math.max(0, focus - Number(cue.enter));
   const trail = Math.max(0, Number(cue.exit) - focus);
   return {
-    min: cleanTimelineValue(lead),
-    max: cleanTimelineValue(1 - trail),
+    min: 0,
+    max: 1,
     lead,
     trail,
   };

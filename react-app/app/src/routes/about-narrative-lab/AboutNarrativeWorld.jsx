@@ -2,10 +2,10 @@ import { AboutNarrativePointWorld3D } from './AboutNarrativePointWorld3D.jsx';
 
 export const DEFAULT_ABOUT_NARRATIVE_WORLD = 'three-point-world-v1';
 
-function ThreePointWorld({ rootRef, interactionRef, runtimeRef }) {
+function ThreePointWorld({ rootRef, interactionRef, disciplineOverlayRef, runtimeRef }) {
   return (
     <div className="about-narrative-world" data-world-implementation={DEFAULT_ABOUT_NARRATIVE_WORLD} aria-hidden="true">
-      <AboutNarrativePointWorld3D rootRef={rootRef} interactionRef={interactionRef} runtimeRef={runtimeRef} />
+      <AboutNarrativePointWorld3D rootRef={rootRef} interactionRef={interactionRef} disciplineOverlayRef={disciplineOverlayRef} runtimeRef={runtimeRef} />
     </div>
   );
 }
@@ -18,9 +18,10 @@ export function AboutNarrativeWorld({
   rendererId = DEFAULT_ABOUT_NARRATIVE_WORLD,
   rootRef,
   interactionRef,
+  disciplineOverlayRef,
   runtimeRef,
 }) {
   const Renderer = ABOUT_NARRATIVE_WORLD_RENDERERS[rendererId]
     || ABOUT_NARRATIVE_WORLD_RENDERERS[DEFAULT_ABOUT_NARRATIVE_WORLD];
-  return <Renderer rootRef={rootRef} interactionRef={interactionRef} runtimeRef={runtimeRef} />;
+  return <Renderer rootRef={rootRef} interactionRef={interactionRef} disciplineOverlayRef={disciplineOverlayRef} runtimeRef={runtimeRef} />;
 }

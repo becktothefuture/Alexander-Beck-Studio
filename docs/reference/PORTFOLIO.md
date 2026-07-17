@@ -6,6 +6,8 @@ Production design intent and shared responsive rules live in [`DESIGN.md`](../..
 
 Portfolio is an orbital, scroll/drag-controlled DOM card deck managed by `PortfolioScrollApp`. Selecting a card opens a project drawer mounted in `#portfolio-sheet-host`.
 
+The five-item pagination track uses short horizontal lines arranged on the existing shallow arc. The active line is fully opaque; the remaining lines share the site-wide quiet indicator material and thickness.
+
 The deck uses a fixed repeated-card pool rather than growing the DOM. Sustained wheel or trackpad input advances through rebased project coordinates indefinitely while a bounded target lead prevents an unbounded catch-up queue. A Portfolio-owned Canvas 2D field continuously draws three deterministic layers of solid circles behind the cards. It drifts slowly at rest, responds to signed measured deck velocity, and remains visible as a static composition under reduced motion.
 
 The field has a soft horizontal quiet band centred on the effective responsive Orbit Y value. Its nine authored controls cover idle/fast opacity, quiet-band height/opacity, density, far/near circle size, motion response, and parallax depth. It pauses while the route is hidden, gated, transitioning, drawer-open, or unmounted; it does not own the legacy `#c` canvas.

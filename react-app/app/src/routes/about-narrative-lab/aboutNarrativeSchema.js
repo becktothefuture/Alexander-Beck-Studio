@@ -3,7 +3,10 @@ import {
   ABOUT_NARRATIVE_BLOCK_KINDS,
   ABOUT_NARRATIVE_CAMERA_EASINGS,
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
+  ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS,
+  ABOUT_NARRATIVE_DISCIPLINE_TONES,
   ABOUT_NARRATIVE_EASINGS,
+  ABOUT_NARRATIVE_EMPHASIS_TONES,
   ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES,
   ABOUT_NARRATIVE_MAX_TRANSITION_LOCAL,
   ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
@@ -17,15 +20,19 @@ import {
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const UNSAFE_TEXT_PATTERN = /<\/?(?:script|style|iframe)|\bon\w+\s*=|javascript:/i;
 const TOP_LEVEL_KEYS = new Set(['schemaVersion', 'globals', 'sections', 'library']);
-const GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'camera', 'pointMaterial', 'textMotion']);
+const GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
 const SECTION_KEYS = new Set(['id', 'label', 'type', 'layout', 'extentWU', 'mobileExtentWU', 'text', 'camera', 'world', 'interaction', 'locked']);
+const TEXT_KEYS = new Set(['cues', 'blocks', 'profile', 'prompt', 'disciplineReveal']);
 const WORLD_KEYS = new Set(['mode', 'adapterId', 'shapeId', 'seed', 'entryDistanceWU', 'transform', 'transitionIn', 'shapeParameters', 'modifiers']);
 const CAMERA_KEYS = new Set(['keys', 'pathMode', 'cadenceOverride']);
 const CAMERA_KEY_KEYS = new Set(['at', 'offset', 'lookAtOffset', 'fov', 'roll', 'easing']);
 const TRANSITION_KEYS = new Set(['start', 'end', 'type', 'easing', 'correspondence']);
 const CUE_KEYS = new Set(['id', 'text', 'enter', 'hold', 'exit', 'preset', 'anchor', 'motion']);
 const CUE_MOTION_KEYS = new Set(['mode']);
-const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items']);
+const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'emphasis', 'worldInfluence']);
+const EMPHASIS_KEYS = new Set(['text', 'tone']);
+const DISCIPLINE_REVEAL_KEYS = new Set(['id', 'start', 'end', 'stagger', 'backgroundFade', 'backgroundOpacity', 'pointScale', 'labelOffsetPx', 'labelDuration', 'hold', 'items']);
+const DISCIPLINE_REVEAL_ITEM_KEYS = new Set(['group', 'label', 'tone']);
 const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 'mobileYOffset']);
 const MODIFIER_KEYS = new Set(['id', 'enabled', 'parameters']);
 const INTERACTION_KEYS = new Set(['type', 'activationStart']);
@@ -101,16 +108,47 @@ function normalizeBlock(block = {}, index = 0) {
     ...(block.label ? { label: String(block.label) } : {}),
     ...(Array.isArray(block.items) ? { items: block.items.map(String) } : {}),
     ...(typeof block.text === 'string' ? { text: block.text } : {}),
+    ...(Array.isArray(block.emphasis) ? {
+      emphasis: block.emphasis.map((item) => ({
+        text: String(item?.text || ''),
+        tone: ABOUT_NARRATIVE_EMPHASIS_TONES.includes(item?.tone) ? item.tone : 'blue',
+      })),
+    } : {}),
+    ...(block.worldInfluence === true ? { worldInfluence: true } : {}),
+  };
+}
+
+function normalizeDisciplineReveal(reveal = {}) {
+  return {
+    id: String(reveal.id || 'discipline-reveal'),
+    start: Number(reveal.start ?? 0.32),
+    end: Number(reveal.end ?? 0.98),
+    stagger: Number(reveal.stagger ?? 0.085),
+    backgroundFade: Number(reveal.backgroundFade ?? 0.12),
+    backgroundOpacity: Number(reveal.backgroundOpacity ?? 0.06),
+    pointScale: Number(reveal.pointScale ?? 3.6),
+    labelOffsetPx: Number(reveal.labelOffsetPx ?? 18),
+    labelDuration: Number(reveal.labelDuration ?? 0.07),
+    hold: Number(reveal.hold ?? 0.08),
+    items: Array.isArray(reveal.items) ? reveal.items.map((item, index) => ({
+      group: Math.round(Number(item?.group ?? index + 1)),
+      label: String(item?.label || ''),
+      tone: ABOUT_NARRATIVE_DISCIPLINE_TONES.includes(item?.tone) ? item.tone : 'neutral',
+    })) : [],
   };
 }
 
 function normalizeModifier(modifier = {}) {
+  const id = String(modifier.id || '');
+  const parameters = modifier.parameters && typeof modifier.parameters === 'object'
+    ? cloneAboutNarrativeDocument(modifier.parameters)
+    : {};
   return {
-    id: String(modifier.id || ''),
+    id,
     enabled: modifier.enabled !== false,
-    parameters: modifier.parameters && typeof modifier.parameters === 'object'
-      ? cloneAboutNarrativeDocument(modifier.parameters)
-      : {},
+    parameters: id === 'swarm-life-v1'
+      ? { strength: Number(parameters.strength ?? 1) }
+      : parameters,
   };
 }
 
@@ -152,6 +190,7 @@ export function normalizeAboutNarrativeDocument(input = {}) {
   const globals = source.globals && typeof source.globals === 'object' ? source.globals : {};
   const camera = globals.camera && typeof globals.camera === 'object' ? globals.camera : {};
   const pointMaterial = globals.pointMaterial && typeof globals.pointMaterial === 'object' ? globals.pointMaterial : {};
+  const swarmTurbulence = globals.swarmTurbulence && typeof globals.swarmTurbulence === 'object' ? globals.swarmTurbulence : {};
   const textMotion = globals.textMotion && typeof globals.textMotion === 'object' ? globals.textMotion : {};
   const fallbackFov = Number(camera.fov ?? 48);
 
@@ -171,10 +210,18 @@ export function normalizeAboutNarrativeDocument(input = {}) {
         opacity: Number(pointMaterial.opacity ?? 0.96),
         pointSize: Number(pointMaterial.pointSize ?? 5.4),
       },
+      swarmTurbulence: {
+        amplitude: Number(swarmTurbulence.amplitude ?? 0.05),
+        speed: Number(swarmTurbulence.speed ?? 0.52),
+        irregularity: Number(swarmTurbulence.irregularity ?? 0.74),
+        individuality: Number(swarmTurbulence.individuality ?? 0.92),
+        axisSpread: Number(swarmTurbulence.axisSpread ?? 0.9),
+      },
       textMotion: {
         preset: String(textMotion.preset || 'travelling-title-v1'),
         durationScale: Number(textMotion.durationScale ?? 1.6),
         startY: Number(textMotion.startY ?? -110),
+        openerStartY: Number(textMotion.openerStartY ?? 36),
         endY: Number(textMotion.endY ?? 130),
         readableStart: Number(textMotion.readableStart ?? 0.24),
         readableEnd: Number(textMotion.readableEnd ?? 0.76),
@@ -196,6 +243,7 @@ export function normalizeAboutNarrativeDocument(input = {}) {
         ? {
           ...(Array.isArray(section.text.cues) ? { cues: section.text.cues.map(normalizeCue) } : {}),
           ...(Array.isArray(section.text.blocks) ? { blocks: section.text.blocks.map(normalizeBlock) } : {}),
+          ...(section.text.disciplineReveal ? { disciplineReveal: normalizeDisciplineReveal(section.text.disciplineReveal) } : {}),
           ...(typeof section.text.profile === 'string' ? { profile: section.text.profile } : {}),
           ...(typeof section.text.prompt === 'string' ? { prompt: section.text.prompt } : {}),
         }
@@ -256,8 +304,14 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
     ['camera.fov', globals.camera?.fov, 20, 90],
     ['pointMaterial.opacity', globals.pointMaterial?.opacity, 0, 1],
     ['pointMaterial.pointSize', globals.pointMaterial?.pointSize, 0.1, 20],
+    ['swarmTurbulence.amplitude', globals.swarmTurbulence?.amplitude, 0, 0.25],
+    ['swarmTurbulence.speed', globals.swarmTurbulence?.speed, 0, 2],
+    ['swarmTurbulence.irregularity', globals.swarmTurbulence?.irregularity, 0, 1],
+    ['swarmTurbulence.individuality', globals.swarmTurbulence?.individuality, 0, 1],
+    ['swarmTurbulence.axisSpread', globals.swarmTurbulence?.axisSpread, 0, 1],
     ['textMotion.durationScale', globals.textMotion?.durationScale, 0.25, 4],
     ['textMotion.startY', globals.textMotion?.startY, -500, 500],
+    ['textMotion.openerStartY', globals.textMotion?.openerStartY, -500, 500],
     ['textMotion.endY', globals.textMotion?.endY, -500, 500],
     ['textMotion.readableStart', globals.textMotion?.readableStart, 0, 1],
     ['textMotion.readableEnd', globals.textMotion?.readableEnd, 0, 1],
@@ -341,6 +395,48 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
     });
 
     const cues = section.text?.cues || [];
+    if (strictUnknownKeys) pushUnknownKeys(diagnostics, section.text, TEXT_KEYS, `${path}.text`);
+    const disciplineReveal = section.text?.disciplineReveal;
+    if (disciplineReveal) {
+      const revealPath = `${path}.text.disciplineReveal`;
+      if (strictUnknownKeys) pushUnknownKeys(diagnostics, disciplineReveal, DISCIPLINE_REVEAL_KEYS, revealPath);
+      if (!ID_PATTERN.test(disciplineReveal.id || '') || seenContentIds.has(disciplineReveal.id)) {
+        diagnostics.push({ level: 'error', code: 'discipline-reveal-id', path: `${revealPath}.id`, message: 'The Discipline reveal ID must be a unique lower-case slug.' });
+      }
+      seenContentIds.add(disciplineReveal.id);
+      ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS.forEach((control) => validateControlValue(
+        diagnostics,
+        `${revealPath}.${control.id}`,
+        disciplineReveal[control.id],
+        control,
+      ));
+      const items = disciplineReveal.items || [];
+      const groups = new Set();
+      if (items.length !== 6) {
+        diagnostics.push({ level: 'error', code: 'discipline-reveal-count', path: `${revealPath}.items`, message: 'A Discipline reveal must contain exactly six labelled points.' });
+      }
+      items.forEach((item, itemIndex) => {
+        const itemPath = `${revealPath}.items.${itemIndex}`;
+        if (strictUnknownKeys) pushUnknownKeys(diagnostics, item, DISCIPLINE_REVEAL_ITEM_KEYS, itemPath);
+        if (!Number.isInteger(item.group) || item.group < 1 || item.group > 6 || groups.has(item.group)) {
+          diagnostics.push({ level: 'error', code: 'discipline-reveal-group', path: `${itemPath}.group`, message: 'Discipline groups must uniquely cover 1 through 6.' });
+        }
+        groups.add(item.group);
+        if (!item.label?.trim() || item.label.length > 80 || UNSAFE_TEXT_PATTERN.test(item.label)) {
+          diagnostics.push({ level: 'error', code: 'discipline-reveal-label', path: `${itemPath}.label`, message: 'Discipline labels must be safe, concise, and non-empty.' });
+        }
+        if (!ABOUT_NARRATIVE_DISCIPLINE_TONES.includes(item.tone)) {
+          diagnostics.push({ level: 'error', code: 'discipline-reveal-tone', path: `${itemPath}.tone`, message: 'Unsupported discipline point colour.' });
+        }
+      });
+      const lastRevealEnd = Number(disciplineReveal.start)
+        + (Math.max(0, items.length - 1) * Number(disciplineReveal.stagger))
+        + Number(disciplineReveal.labelDuration);
+      if (Number(disciplineReveal.start) >= Number(disciplineReveal.end)
+        || lastRevealEnd + Number(disciplineReveal.hold) > Number(disciplineReveal.end) + 0.00001) {
+        diagnostics.push({ level: 'error', code: 'discipline-reveal-timing', path: revealPath, message: 'Reveal start, stagger, duration, hold, and label exit must fit inside the clip.' });
+      }
+    }
     const previousCueExit = { spatial: -1, vertical: -1 };
     cues.forEach((cue, cueIndex) => {
       const cuePath = `${path}.text.cues.${cueIndex}`;
@@ -352,8 +448,14 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
       if (!cue.text?.trim() || cue.text.length > 1200 || UNSAFE_TEXT_PATTERN.test(cue.text)) {
         diagnostics.push({ level: 'error', code: 'cue-text', path: `${cuePath}.text`, message: 'Cue text must be plain, safe, and non-empty.' });
       }
-      if (![cue.enter, cue.hold, cue.exit].every(finite) || cue.enter < 0 || cue.exit > 1 || cue.enter > cue.hold || cue.hold > cue.exit) {
-        diagnostics.push({ level: 'error', code: 'cue-timing', path: cuePath, message: 'Cue timing must satisfy 0 ≤ Enter ≤ Hold ≤ Exit ≤ 1.' });
+      if (![cue.enter, cue.hold, cue.exit].every(finite)
+        || cue.enter < -1
+        || cue.hold < 0
+        || cue.hold > 1
+        || cue.exit > 2
+        || cue.enter > cue.hold
+        || cue.hold > cue.exit) {
+        diagnostics.push({ level: 'error', code: 'cue-timing', path: cuePath, message: 'Cue focus must stay inside its Section. Its preserved travel envelope may extend up to one Section-length beyond either edge.' });
       }
       if (strictUnknownKeys) pushUnknownKeys(diagnostics, cue.motion, CUE_MOTION_KEYS, `${cuePath}.motion`);
       if (!ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES.includes(cue.motion?.mode)) {
@@ -390,8 +492,25 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
         diagnostics.push({ level: 'error', code: 'block-kind', path: `${blockPath}.kind`, message: 'Unknown editorial block type.' });
       }
       const strings = [...(block.items || []), block.text || '', block.label || ''];
+      (block.emphasis || []).forEach((item, emphasisIndex) => {
+        const emphasisPath = `${blockPath}.emphasis.${emphasisIndex}`;
+        if (strictUnknownKeys) pushUnknownKeys(diagnostics, item, EMPHASIS_KEYS, emphasisPath);
+        if (!item.text?.trim() || UNSAFE_TEXT_PATTERN.test(item.text)) {
+          diagnostics.push({ level: 'error', code: 'emphasis-text', path: `${emphasisPath}.text`, message: 'Highlighted text must be safe and non-empty.' });
+        }
+        if (!ABOUT_NARRATIVE_EMPHASIS_TONES.includes(item.tone)) {
+          diagnostics.push({ level: 'error', code: 'emphasis-tone', path: `${emphasisPath}.tone`, message: 'Highlight tone must be blue, green, or orange.' });
+        }
+        if (block.text && item.text && !block.text.includes(item.text)) {
+          diagnostics.push({ level: 'warning', code: 'emphasis-missing', path: emphasisPath, message: `Highlighted phrase “${item.text}” is not present in this block.` });
+        }
+      });
+      strings.push(...(block.emphasis || []).map((item) => item.text || ''));
       if (strings.some((value) => UNSAFE_TEXT_PATTERN.test(value))) {
         diagnostics.push({ level: 'error', code: 'unsafe-text', path: blockPath, message: 'Editorial content must be plain text.' });
+      }
+      if (block.worldInfluence != null && typeof block.worldInfluence !== 'boolean') {
+        diagnostics.push({ level: 'error', code: 'world-influence', path: `${blockPath}.worldInfluence`, message: 'World influence must be true or false.' });
       }
     });
 
@@ -504,8 +623,8 @@ export function assertValidAboutNarrativeDocument(document, options) {
 }
 
 export function serializeAboutNarrativeDocument(input) {
+  assertValidAboutNarrativeDocument(input);
   const document = normalizeAboutNarrativeDocument(input);
-  assertValidAboutNarrativeDocument(document);
   return `${JSON.stringify(document, null, 2)}\n`;
 }
 

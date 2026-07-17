@@ -210,6 +210,19 @@ function inheritCameraPose(target, source) {
   };
 }
 
+function compileDisciplineReveal(sections) {
+  const sectionIndex = sections.findIndex((section) => section.text?.disciplineReveal);
+  if (sectionIndex < 0) return null;
+  const section = sections[sectionIndex];
+  return Object.freeze({
+    sectionId: section.id,
+    sectionIndex,
+    startWU: section.startWU,
+    travelWU: section.travelWU,
+    config: Object.freeze(cloneAboutNarrativeDocument(section.text.disciplineReveal)),
+  });
+}
+
 export function compileAboutNarrativeDocument(input, {
   profile = 'desktop',
   measurements = null,
@@ -264,6 +277,10 @@ export function compileAboutNarrativeDocument(input, {
       maxStoryWU: 0,
     });
   }
+  const disciplineReveal = compileDisciplineReveal(sections);
+  const worldSequence = Object.freeze(sections
+    .filter((section) => section.worldState.changesWorld)
+    .map((section) => section.worldState.activeWorld));
 
   return Object.freeze({
     valid: true,
@@ -271,6 +288,8 @@ export function compileAboutNarrativeDocument(input, {
     profile,
     diagnostics: Object.freeze(completeDiagnostics),
     sections: Object.freeze(sections),
+    worldSequence,
+    disciplineReveal,
     totalExtentWU: sections.at(-1)?.endWU || 0,
     maxStoryWU,
   });
@@ -316,6 +335,12 @@ export function sampleAboutNarrativePlan(plan, storyWU, {
       transition.easing,
       (clampedStoryWU - compiledTransition.startWU) / transitionSpanWU,
     );
+  const disciplineReveal = plan.disciplineReveal
+    ? {
+      ...plan.disciplineReveal,
+      localProgress: (clampedStoryWU - plan.disciplineReveal.startWU) / plan.disciplineReveal.travelWU,
+    }
+    : null;
 
   return {
     globals: plan.document.globals,
@@ -336,6 +361,7 @@ export function sampleAboutNarrativePlan(plan, storyWU, {
     world: {
       from: worldState.previousWorld,
       to: worldState.activeWorld,
+      sequence: plan.worldSequence,
       changes: worldState.changesWorld,
       transitionProgress: reducedMotion ? 1 : transitionProgress,
       transition: {
@@ -344,6 +370,7 @@ export function sampleAboutNarrativePlan(plan, storyWU, {
         endWU: compiledTransition?.endWU ?? section.startWU,
       },
     },
+    disciplineReveal,
   };
 }
 
@@ -364,8 +391,10 @@ export function getAboutNarrativeCueMovement(cue) {
 }
 
 export function sampleAboutNarrativeCue(cue, localProgress, textMotion, reducedMotion = false) {
+  const isOpener = cue.preset === 'opener-v1';
+  const openerStartY = Number(textMotion.openerStartY ?? 36);
   if (reducedMotion) {
-    return { opacity: 1, scale: 1, blur: 0, x: 0, y: 0, z: 0 };
+    return { opacity: 1, scale: 1, blur: 0, x: 0, y: isOpener ? openerStartY : 0, z: 0 };
   }
   const interval = getAboutNarrativeCueMotionInterval(cue, textMotion);
   const startY = Number(textMotion.startY ?? -110);
@@ -390,6 +419,20 @@ export function sampleAboutNarrativeCue(cue, localProgress, textMotion, reducedM
   const progress = clamp01((localProgress - interval.start) / span);
   const readableStart = clamp01(Number(textMotion.readableStart ?? 0.24));
   const readableEnd = clamp01(Number(textMotion.readableEnd ?? 0.76));
+  if (isOpener && interval.start === 0) {
+    const fadeOutProgress = readableEnd >= 1
+      ? 0
+      : clamp01((progress - readableEnd) / (1 - readableEnd));
+    const clarity = 1 - applyAboutNarrativeEasing('smoothstep', fadeOutProgress);
+    return {
+      opacity: clarity,
+      scale: mix(1, nearScale, progress),
+      blur: mix(maxBlur, 0, clarity),
+      x: 0,
+      y: mix(openerStartY, endY, progress),
+      z: mix(0, exitDepth, progress),
+    };
+  }
   const clearIn = readableStart <= 0
     ? 1
     : applyAboutNarrativeEasing('smoothstep', progress / readableStart);

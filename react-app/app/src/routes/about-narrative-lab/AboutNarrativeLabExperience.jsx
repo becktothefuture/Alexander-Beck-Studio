@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ABOUT_NARRATIVE_CONTACT,
   ABOUT_NARRATIVE_DOCUMENT,
 } from './aboutNarrativeLabData.js';
 import { getAboutNarrativeCueMovement } from './aboutNarrativeCompiler.js';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
-import { useAboutNarrativeTimeline } from './useAboutNarrativeTimeline.js';
+import {
+  ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
+  ABOUT_SCROLL_INDICATOR_TICK_COUNT,
+  useAboutNarrativeTimeline,
+} from './useAboutNarrativeTimeline.js';
 import './about-narrative-lab.css';
 
 function getSectionStyle(section) {
@@ -86,6 +91,9 @@ function OpeningSection({ section, index, sectionRef, onSelect }) {
                 <span key={cue.id} className="about-narrative-spatial-fragment" data-text-cue={cue.id} data-text-movement="spatial" aria-hidden="true" onClick={(event) => { event.stopPropagation(); onSelect?.({ type: 'cue', sectionId: section.id, cueId: cue.id }); }}>{cue.text}</span>
               ))}
             </h1>
+            <div className="about-narrative-opening-scroll-cue" aria-hidden="true">
+              <i className="ti ti-arrow-left about-narrative-opening-scroll-cue__icon" />
+            </div>
           </div>
         </div>
       ) : null}
@@ -95,10 +103,12 @@ function OpeningSection({ section, index, sectionRef, onSelect }) {
 
 function SpatialSection({ section, index, sectionRef, onSelect }) {
   const Heading = index === 0 ? 'h1' : 'h2';
-  const copy = section.text.cues.map((cue) => cue.text).join(' ');
-  const verticalCues = section.text.cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'vertical');
-  const spatialCues = section.text.cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'spatial');
+  const cues = section.text.cues || [];
+  const copy = cues.map((cue) => cue.text).join(' ');
+  const verticalCues = cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'vertical');
+  const spatialCues = cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'spatial');
   const headingId = `about-narrative-${section.id}-title`;
+  const hasHeading = verticalCues.length > 0 || spatialCues.length > 0;
   const layoutClass = section.layout === 'lower'
     ? 'constellation'
     : section.layout === 'wide' ? 'living-field' : section.layout;
@@ -110,7 +120,8 @@ function SpatialSection({ section, index, sectionRef, onSelect }) {
       data-narrative-section={section.id}
       data-section-index={index}
       style={getSectionStyle(section)}
-      aria-labelledby={headingId}
+      aria-labelledby={hasHeading ? headingId : undefined}
+      aria-label={hasHeading ? undefined : section.label}
       data-text-movement={verticalCues.length && spatialCues.length ? 'mixed' : verticalCues.length ? 'vertical' : 'spatial'}
     >
       <VerticalCueSequence cues={verticalCues} section={section} headingId={spatialCues.length ? null : headingId} headingLevel={index === 0 ? 1 : 2} onSelect={onSelect} />
@@ -138,6 +149,30 @@ function SpatialSection({ section, index, sectionRef, onSelect }) {
         </div>
       ) : null}
     </section>
+  );
+}
+
+function DisciplineRevealOverlay({ reveal, overlayRef }) {
+  if (!reveal) return null;
+  return (
+    <ol
+      ref={overlayRef}
+      className="about-narrative-discipline-reveal"
+      data-discipline-reveal={reveal.id}
+      aria-label="Six connected disciplines"
+      aria-hidden="true"
+    >
+      {reveal.items.map((item) => (
+        <li
+          key={item.group}
+          data-discipline-group={item.group}
+          data-discipline-tone={item.tone}
+          style={{ '--discipline-label-offset': `${reveal.labelOffsetPx}px` }}
+        >
+          <span className="about-narrative-discipline-reveal__label">{item.label}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -176,12 +211,52 @@ function ClientLogos({ items = [] }) {
   );
 }
 
+function EditorialText({ text = '', emphasis = [] }) {
+  if (!emphasis.length) return text;
+  const matches = [];
+  emphasis.forEach((item, emphasisIndex) => {
+    if (!item.text) return;
+    let fromIndex = 0;
+    while (fromIndex < text.length) {
+      const start = text.indexOf(item.text, fromIndex);
+      if (start < 0) break;
+      matches.push({
+        start,
+        end: start + item.text.length,
+        tone: item.tone,
+        emphasisIndex,
+      });
+      fromIndex = start + item.text.length;
+    }
+  });
+  matches.sort((a, b) => (a.start - b.start) || (b.end - a.end) || (a.emphasisIndex - b.emphasisIndex));
+  const accepted = [];
+  matches.forEach((match) => {
+    if (match.start >= (accepted.at(-1)?.end || 0)) accepted.push(match);
+  });
+  if (!accepted.length) return text;
+
+  const parts = [];
+  let cursor = 0;
+  accepted.forEach((match) => {
+    if (match.start > cursor) parts.push(text.slice(cursor, match.start));
+    parts.push(
+      <strong
+        className="about-narrative-editorial-emphasis"
+        data-emphasis-tone={match.tone}
+        key={`${match.start}-${match.end}`}
+      >
+        {text.slice(match.start, match.end)}
+      </strong>,
+    );
+    cursor = match.end;
+  });
+  if (cursor < text.length) parts.push(text.slice(cursor));
+  return parts;
+}
+
 function EditorialSection({ section, index, sectionRef, onSelect }) {
   const highlightedBlock = section.text.blocks.find((block) => block.kind === 'highlight');
-  const hasDisciplineList = section.text.blocks.some((block) => block.kind === 'disciplines');
-  const finalProseId = hasDisciplineList
-    ? [...section.text.blocks].reverse().find((block) => block.kind === 'prose')?.id
-    : null;
   return (
     <section
       ref={sectionRef}
@@ -202,24 +277,27 @@ function EditorialSection({ section, index, sectionRef, onSelect }) {
           data-editorial-block={highlightedBlock?.id}
           data-primary-copy
         >
-          {highlightedBlock?.text || section.label}
+          <EditorialText
+            text={highlightedBlock?.text || section.label}
+            emphasis={highlightedBlock?.emphasis}
+          />
         </h2>
         {section.text.blocks.map((block) => {
           if (block.id === highlightedBlock?.id) return null;
           if (block.kind === 'list') return <EditorialList key={block.id} block={block} />;
           if (block.kind === 'disciplines') return <DisciplineList key={block.id} items={block.items} />;
           if (block.kind === 'clients') return <ClientLogos key={block.id} items={block.items} />;
-          if (block.kind === 'detail') return <p key={block.id} className="about-narrative-editorial-detail" data-editorial-line data-editorial-block={block.id}>{block.text}</p>;
+          if (block.kind === 'detail') return <p key={block.id} className="about-narrative-editorial-detail" data-editorial-line data-editorial-block={block.id}><EditorialText text={block.text} emphasis={block.emphasis} /></p>;
           return (
             <p
               key={block.id}
               className="about-narrative-editorial-copy"
               data-editorial-line
               data-editorial-block={block.id}
-              data-world-influence={block.id === finalProseId ? 'true' : undefined}
+              data-world-influence={block.worldInfluence ? 'true' : undefined}
               data-primary-copy
             >
-              {block.text}
+              <EditorialText text={block.text} emphasis={block.emphasis} />
             </p>
           );
         })}
@@ -277,11 +355,43 @@ function FinaleSection({ section, index, sectionRef, interactionRef, onSelect })
   );
 }
 
-function SectionIndicator({ activeIndex, count }) {
+function ScrollProgressIndicator({ activeSectionIndex, activeStartIndex, sectionCount }) {
+  const maxStartIndex = Math.max(
+    1,
+    ABOUT_SCROLL_INDICATOR_TICK_COUNT - ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
+  );
+  const progressValue = Math.round((activeStartIndex / maxStartIndex) * 100);
+  const sectionStatus = `Section ${activeSectionIndex + 1} of ${sectionCount}`;
   return (
-    <div className="about-narrative-indicator" aria-label={`Section ${activeIndex + 1} of ${count}`} aria-live="polite" aria-atomic="true">
-      <span>{String(activeIndex + 1).padStart(2, '0')} / {String(count).padStart(2, '0')}</span>
-    </div>
+    <>
+      <div
+        className="about-narrative-indicator"
+        data-about-indicator-layer="ui"
+        role="progressbar"
+        aria-label="About page scroll progress"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow={progressValue}
+        aria-valuetext={sectionStatus}
+      >
+        {Array.from({ length: ABOUT_SCROLL_INDICATOR_TICK_COUNT }, (_, index) => {
+          const isActive = index >= activeStartIndex
+            && index < activeStartIndex + ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT;
+          return (
+            <span
+              aria-hidden="true"
+              className={`about-narrative-indicator__line${isActive ? ' is-active' : ''}`}
+              data-active={isActive ? 'true' : 'false'}
+              data-line-index={index}
+              key={index}
+            />
+          );
+        })}
+      </div>
+      <span className="about-narrative-visually-hidden" role="status" aria-live="polite" aria-atomic="true">
+        {sectionStatus}
+      </span>
+    </>
   );
 }
 
@@ -296,6 +406,7 @@ export function AboutNarrativeLabExperience({
   ), [routeContentId]);
   const [editorModule, setEditorModule] = useState(null);
   const [editorStore, setEditorStore] = useState(null);
+  const [indicatorHost, setIndicatorHost] = useState(null);
   const [playbackDocument, setPlaybackDocument] = useState(ABOUT_NARRATIVE_DOCUMENT);
   const rootRef = useRef(null);
   const scrollportRef = useRef(null);
@@ -303,6 +414,14 @@ export function AboutNarrativeLabExperience({
   const sectionRefs = useRef([]);
   const worldRuntimeRef = useRef(null);
   const bustInteractionRef = useRef(null);
+  const disciplineOverlayRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!showIndicator || typeof document === 'undefined') return undefined;
+    const host = document.querySelector('#abs-scene > .ui-layer');
+    setIndicatorHost(host);
+    return undefined;
+  }, [routeContentId, showIndicator]);
 
   useEffect(() => {
     if (!__DEV__ || !editorRequested) return undefined;
@@ -329,7 +448,7 @@ export function AboutNarrativeLabExperience({
     return editorStore.subscribe(update);
   }, [editorStore]);
 
-  const activeSectionIndex = useAboutNarrativeTimeline({
+  const { activeSectionIndex, activeIndicatorStartIndex } = useAboutNarrativeTimeline({
     document: playbackDocument,
     editorStore,
     rootRef,
@@ -342,12 +461,16 @@ export function AboutNarrativeLabExperience({
   const rootStyle = useMemo(() => ({
     '--about-reading-width': `${playbackDocument.globals.readingWidthRem}rem`,
   }), [playbackDocument.globals.readingWidthRem]);
+  const disciplineReveal = useMemo(() => (
+    playbackDocument.sections.find((section) => section.text?.disciplineReveal)?.text.disciplineReveal || null
+  ), [playbackDocument]);
   const select = editorStore ? (selection) => editorStore.setSelection(selection) : null;
   const Editor = editorModule;
 
   return (
     <div ref={rootRef} className="about-narrative-lab" data-route-content={routeContentId} style={rootStyle}>
-      <AboutNarrativeWorld rendererId="three-point-world-v1" rootRef={rootRef} interactionRef={bustInteractionRef} runtimeRef={worldRuntimeRef} />
+      <AboutNarrativeWorld rendererId="three-point-world-v1" rootRef={rootRef} interactionRef={bustInteractionRef} disciplineOverlayRef={disciplineOverlayRef} runtimeRef={worldRuntimeRef} />
+      <DisciplineRevealOverlay reveal={disciplineReveal} overlayRef={disciplineOverlayRef} />
       <div ref={scrollportRef} className="about-narrative-scrollport" data-lenis-prevent-touch tabIndex={0} aria-label="About Alexander narrative">
         <main ref={contentRef} className="about-narrative-content">
           {playbackDocument.sections.map((section, index) => {
@@ -359,7 +482,18 @@ export function AboutNarrativeLabExperience({
           })}
         </main>
       </div>
-      {showIndicator && !editorStore ? <SectionIndicator activeIndex={activeSectionIndex} count={playbackDocument.sections.length} /> : null}
+      {showIndicator && !editorStore && indicatorHost
+        ? createPortal(
+          <div className="about-narrative-indicator-layer" data-about-indicator-host="ui">
+            <ScrollProgressIndicator
+              activeSectionIndex={activeSectionIndex}
+              activeStartIndex={activeIndicatorStartIndex}
+              sectionCount={playbackDocument.sections.length}
+            />
+          </div>,
+          indicatorHost,
+        )
+        : null}
       {Editor && editorStore ? <Editor store={editorStore} runtimeRef={worldRuntimeRef} rootRef={rootRef} /> : null}
     </div>
   );

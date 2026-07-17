@@ -477,6 +477,7 @@
       "controlMaterialEdgeWidth": "0.5px",
       "controlMaterialBlur": "18px",
       "controlMaterialSaturation": 1.08,
+      "indicatorLineThickness": "3px",
       "sceneHighlight": 0.3,
       "contrastVeilOpacityLight": 0.216,
       "contrastVeilOpacityDark": 0.348,

@@ -70,13 +70,18 @@ The calm field remains broad and still enough to read. It is a pause after the c
 
 **Existing route section:** `practice-reveal` · spatial constellation · `calm-field-v1` to `discipline-grid-v1`
 
-**Display copy**
+**World-linked labels, in order**
 
-> Over time, it has grown into a way of working across six connected disciplines: Product Design, Experience Design, Art Direction, Motion & 3D, Creative Engineering and Parametric Systems.
+1. Product Design
+2. Experience Design
+3. Art Direction
+4. Motion & 3D
+5. Creative Engineering
+6. Parametric Systems
 
 **Visual direction**
 
-The camera rises from the field to the existing grid. Six exact points become visible within it as the six disciplines are named. The grid is not an abstract backdrop; it is the visible structure of the way of working described in the sentence.
+At the end of the calm field, the camera pitches into a near-perpendicular view while its forward cadence continues. The field resolves into a horizontal grid. Its ordinary points recede, then six exact coloured points and their labels appear sequentially with generous vertical rhythm. This is one world-linked reveal clip, not six spatial-title Cues.
 
 ### 05 — Editorial area two
 
@@ -86,18 +91,9 @@ The camera rises from the field to the existing grid. Six exact points become vi
 
 > Each brings a different way of thinking to the work.
 
-**Discipline list**
-
-1. Product Design
-2. Experience Design
-3. Art Direction
-4. Motion & 3D
-5. Creative Engineering
-6. Parametric Systems
-
 **Body copy, in order**
 
-> Product Design and Experience Design help me understand an opportunity and shape how an experience works. Art Direction gives it character and a point of view. Motion & 3D make behaviour, space and feeling tangible. Creative Engineering and Parametric Systems let me explore directly through code, tools and working systems.
+> Their different perspectives help me understand an opportunity, shape how an experience works, give it character, make behaviour and feeling tangible, and explore directly through code, tools and working systems.
 
 > AI runs through all of this as a creative material and a practical capability, expanding what I can explore, generate and build.
 
@@ -105,7 +101,7 @@ The camera rises from the field to the existing grid. Six exact points become vi
 
 **Visual direction**
 
-The six named editorial items correspond to the six emphasised points in the grid. As each item enters the reading area, its point becomes legible; it does not become a separate object. During the final paragraph, influence travels through the grid so the points begin behaving as one connected field.
+The six labels leave before this editorial section begins, but their coloured points remain. During the final paragraph, the surrounding grid reconnects and influence begins travelling through it so the points behave as one connected field.
 
 ### 06 — Bringing the idea to life
 

@@ -13,6 +13,13 @@ import {
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
 
+export const ABOUT_SCROLL_INDICATOR_TICK_COUNT = 18;
+export const ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT = 2;
+const ABOUT_SCROLL_INDICATOR_MAX_START_INDEX = Math.max(
+  0,
+  ABOUT_SCROLL_INDICATOR_TICK_COUNT - ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
+);
+
 export function useAboutNarrativeTimeline({
   document,
   editorStore = null,
@@ -23,7 +30,9 @@ export function useAboutNarrativeTimeline({
   sectionRefs,
 }) {
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const [activeIndicatorStartIndex, setActiveIndicatorStartIndex] = useState(0);
   const activeSectionIndexRef = useRef(0);
+  const activeIndicatorStartIndexRef = useRef(0);
   const documentRef = useRef(document);
   const planRef = useRef(compileAboutNarrativeDocument(document));
   const measurementsRef = useRef({ dirty: true, sections: [], editorialLines: [] });
@@ -172,6 +181,15 @@ export function useAboutNarrativeTimeline({
       const deltaSeconds = Math.min(0.05, Math.max(0, (time - previousTime) / 1000));
       previousTime = time;
       const viewportHeight = Math.max(1, scrollport.clientHeight);
+      const scrollRange = Math.max(0, scrollport.scrollHeight - viewportHeight);
+      const scrollProgress = scrollRange > 0 ? clamp01(scrollport.scrollTop / scrollRange) : 0;
+      const nextIndicatorStartIndex = Math.round(
+        scrollProgress * ABOUT_SCROLL_INDICATOR_MAX_START_INDEX,
+      );
+      if (nextIndicatorStartIndex !== activeIndicatorStartIndexRef.current) {
+        activeIndicatorStartIndexRef.current = nextIndicatorStartIndex;
+        setActiveIndicatorStartIndex(nextIndicatorStartIndex);
+      }
       const reducedMotion = reducedMotionQuery.matches
         || editorStore?.getSnapshot().previewProfile === 'reduced-motion';
       const storyWU = readTransport(deltaSeconds);
@@ -188,6 +206,9 @@ export function useAboutNarrativeTimeline({
           setActiveSectionIndex(frame.sectionIndex);
         }
         root.dataset.activeNarrativeSection = frame.section.id;
+        const openingScrollCueVisible = scrollport.scrollTop <= 16;
+        root.dataset.openingScrollCue = openingScrollCueVisible ? 'visible' : 'hidden';
+        root.style.setProperty('--opening-scroll-cue-opacity', openingScrollCueVisible ? '1' : '0');
         root.style.setProperty('--narrative-story-wu', frame.storyWU.toFixed(4));
         updateTextCues(frame, reducedMotion);
         frame.editorialSignals = updateEditorialCopy(scrollport.scrollTop, viewportHeight, reducedMotion);
@@ -258,10 +279,12 @@ export function useAboutNarrativeTimeline({
       scrollport.removeEventListener('wheel', cancelPlayback);
       scrollport.removeEventListener('touchstart', cancelPlayback);
       delete root.dataset.activeNarrativeSection;
+      delete root.dataset.openingScrollCue;
+      root.style.removeProperty('--opening-scroll-cue-opacity');
       root.style.removeProperty('--narrative-story-wu');
       root.style.removeProperty('--narrative-viewport-height');
     };
   }, [contentRef, editorStore, rootRef, scrollportRef, sectionRefs, worldRuntimeRef]);
 
-  return activeSectionIndex;
+  return { activeSectionIndex, activeIndicatorStartIndex };
 }

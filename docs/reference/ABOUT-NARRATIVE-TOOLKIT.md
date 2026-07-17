@@ -24,7 +24,7 @@ About Narrative
     ├── Section
     │   ├── Camera track → Camera keys
     │   ├── World track → Shape + modifier stack
-    │   ├── Text track → travelling Cues or editorial blocks
+    │   ├── Text track → travelling Cues, editorial blocks, or one world-linked reveal clip
     │   └── Interaction track
     └── Section …
 ```
@@ -37,6 +37,7 @@ About Narrative
 - A **modifier** adds deterministic or ambient movement to a Shape.
 - A **Cue** is a large travelling statement.
 - An **editorial block** is native vertically scrolling prose, a list, or a detail.
+- A **Discipline reveal** is one movable Text clip that projects six labels from exact Three.js point anchors without creating six ordinary title keyframes.
 
 “Stage” is not part of the authored vocabulary.
 
@@ -163,13 +164,19 @@ Correspondence modes are:
 
 - `index-v1`: exact compatibility with the approved sequence
 - `stable-seed`: the same canonical seeded pool, suitable for new procedural Shapes
+- `spatial-nearest-v1`: the editor's **Local travel (approx.)** mode; it matches visible points in world space, protects semantic anchors, and accepts only a visibility-aware improvement over the compatible baseline
 - `group-aware`: additionally preserves declared semantic groups such as the six discipline anchors
 
-Correspondence is applied only when Shape buffers change, never in the RAF loop.
+The current narrative uses Local travel for its five inter-Shape transitions. The mapping is approximate rather than a mathematically global optimum: a deterministic Morton ordering and bounded local repair reduce aggregate and outlier travel without an impractical 12,000-point exact solver.
+
+Procedural Shape generation and correspondence are prepared cumulatively in a module Worker, never in the RAF loop. The mapped endpoint of A → B becomes the exact source ordering for B → C, keeping point colour, drift phase, presence, and semantic identity continuous across the complete story. Direct seeking compiles the same chain. A complete last-known-good pair stays installed while an edited sequence prepares or fails.
+
+Select a World clip and open **Transition in → Correspondence** to compare Index order, Stable seed, Local travel, and Group aware. The inspector identifies the source and target Shapes and reports Preparing, Ready, Baseline fallback, or Failed. Saved JSON stores only the registered mode; generated permutations and metrics remain runtime data.
 
 ## Current procedural Shapes
 
 - `cluster-v1`: a spherical complexity cloud
+- `turbulent-field-v1`: an uneven volumetric cloud assembled from weighted chunks, sparse pockets, loose particles, and an organic coordinate warp
 - `calm-field-v1`: a wide horizontal clearing
 - `discipline-grid-v1`: a frontal field with six semantic anchors
 - `living-field-v1`: terrain designed for wave and colour modifiers
@@ -182,12 +189,13 @@ Use **World → Replace Shape → Try** to preview a replacement at the same pla
 A Shape supplies rest positions. Its ordered modifier stack supplies behaviour:
 
 - Ambient drift
+- Swarm life: independent 3D motion driven by the Sequence-level **Shared turbulence** profile. The cluster and turbulent field use the same full-strength profile; each World exposes only a local strength multiplier, allowing the same motion to taper smoothly into the calm field.
 - Group emphasis
 - Living wave
 - Living colour
 - Bust yaw
 
-Modifiers can be enabled, reordered, and parameterised. Each registered modifier declares safe ranges, units, cost, and reduced-motion behaviour.
+Modifiers can be enabled, reordered, and parameterised. Shared turbulence range, speed, irregularity, individuality, and axis spread are edited once under **Sequence → Shared turbulence**. The World-level **Swarm life → Local strength** control changes intensity without creating a second motion profile. Each registered modifier declares safe ranges, units, cost, and reduced-motion behaviour.
 
 Two clocks keep editing reproducible:
 
@@ -197,6 +205,8 @@ Two clocks keep editing reproducible:
 
 Disable **Live ambient** to freeze ambient movement while comparing frames.
 
+During living-field → bust formation, bust yaw is held at its entry value. Automatic and pointer/keyboard rotation begin from that same settled value only after the sculpture has formed, so correspondence is measured against a stable destination.
+
 ## Text editing
 
 ### Add another travelling title
@@ -205,17 +215,27 @@ Disable **Live ambient** to freeze ambient movement while comparing frames.
 2. Put the playhead where the new sentence should be most readable.
 3. In the inspector choose **Add text cue at playhead**.
 4. Select the new Text clip in the Text lane.
-5. Edit the statement and its Enter, Hold, and Exit handles.
+5. Edit the statement, then drag its pink block to the desired focus point.
 
-Clicking a clip selects and highlights it. Clicking a Camera diamond, World transition marker, Text Enter/Hold/Exit marker, or Interaction activation marker also snaps the global playhead to that exact WU.
+Clicking a clip selects and highlights it. Clicking a Camera diamond, World transition marker, Text block, or Interaction activation marker also snaps the global playhead to that exact WU.
+
+A Text block is a fixed-size timing marker, not a duration bar. It maps directly to 0–100% of its owning Section and keeps the point where that sentence is most readable. Dragging preserves the complete automatic travel envelope, including its speed and blur cadence; those values remain global under **Spatial titles**. When the envelope crosses a Section edge, the off-section portion is cropped instead of resizing or restricting the marker.
 
 The saved Cue is in the same Section object as its timing. No second file or JavaScript array needs editing.
 
 The DOM contains one semantic sentence per Cue. Visual depth, blur, and scale are presentation only.
 
+The single `opener-v1` Cue is already sharp at `0 WU` and begins from **Spatial titles → Opener start Y**. It then continues moving toward the shared exit position. Later travelling titles continue to use the shared Start Y, readable window, and blur-in/blur-out behaviour.
+
 ### Edit editorial prose
 
 Select an editorial Section, then edit its blocks under **Editorial content**. Paragraphs, highlights, details, clients, discipline lists, and normal lists stay native DOM content. They are not converted into hundreds of keyframes.
+
+### Edit the six-discipline reveal
+
+Select the striped **Discipline reveal** clip in the Text lane. Its inspector controls reveal start and label exit, stagger, grid fade, resting grid opacity, point size, label offset, label reveal duration, and the final six-point hold. Reorder the six rows to change reveal order without remapping their stable point groups.
+
+The clip is one draggable timing object. Moving it shifts the complete sequence while preserving all internal spacing. The labels are native DOM text, but their positions are projected each frame from the corresponding Three.js grid points. After the labels leave, the six coloured points remain. Marking an editorial prose block **Reconnect point grid** restores the surrounding grid as that paragraph enters.
 
 ## History, comparison, and checkpoints
 

@@ -18,6 +18,10 @@ import {
 } from 'lucide-react';
 import {
   ABOUT_NARRATIVE_GLOBAL_CONTROLS,
+  ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
+  ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS,
+  ABOUT_NARRATIVE_DISCIPLINE_TONES,
+  ABOUT_NARRATIVE_EMPHASIS_TONES,
   ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
   ABOUT_NARRATIVE_SHAPE_DEFINITIONS,
 } from './aboutNarrativeDefinitions.js';
@@ -175,6 +179,13 @@ function getTimelineKeyframes(snapshot) {
         selection: { type: 'cue', sectionId: section.id, cueId: cue.id, keyPart: 'focus' },
       });
     });
+    if (section.text.disciplineReveal) {
+      events.push({
+        storyWU: toStoryWU(section.text.disciplineReveal.start),
+        priority: 28,
+        selection: { type: 'discipline-reveal', sectionId: section.id },
+      });
+    }
     if (section.interaction?.type !== 'none' && Number.isFinite(section.interaction.activationStart)) {
       events.push({
         storyWU: toStoryWU(section.interaction.activationStart),
@@ -268,6 +279,7 @@ function nextId(document, base) {
     section.id,
     ...(section.text.cues || []).map((cue) => cue.id),
     ...(section.text.blocks || []).map((block) => block.id),
+    ...(section.text.disciplineReveal ? [section.text.disciplineReveal.id] : []),
   ]));
   let id = makeSlug(base);
   let suffix = 2;
@@ -439,9 +451,33 @@ function Timeline({ store, snapshot }) {
       }
       return;
     }
-    const laneFraction = clamp01((event.clientX - drag.rect.left) / drag.rect.width);
-    const rawAt = laneFraction * (drag.spanWU / drag.travelWU);
-    const nextAt = Math.min(drag.max, Math.max(drag.min, snapAboutNarrativeTimelineValue(rawAt)));
+    if (drag.type === 'discipline-reveal') {
+      const deltaLane = (event.clientX - drag.startX) / drag.rect.width;
+      const nextAt = Math.min(drag.max, Math.max(
+        drag.min,
+        snapAboutNarrativeTimelineValue(drag.at + deltaLane),
+      ));
+      if (Math.abs(nextAt - drag.lastAt) < 0.000001) return;
+      const delta = nextAt - drag.lastAt;
+      store.commit('Move Discipline reveal', (draft) => {
+        const reveal = draft.sections[drag.sectionIndex].text.disciplineReveal;
+        if (!reveal) return;
+        reveal.start += delta;
+        reveal.end += delta;
+      }, { coalesceKey: drag.coalesceKey, selection: drag.selection });
+      drag.lastAt = nextAt;
+      store.setTransport({
+        owner: 'timeline',
+        playing: false,
+        storyWU: drag.sectionStartWU + (nextAt * drag.travelWU),
+      });
+      return;
+    }
+    const deltaLane = (event.clientX - drag.startX) / drag.rect.width;
+    const nextAt = Math.min(drag.max, Math.max(
+      drag.min,
+      snapAboutNarrativeTimelineValue(drag.at + deltaLane),
+    ));
     if (Math.abs(nextAt - drag.lastAt) < 0.000001) return;
     store.commit('Move text Cue', (draft) => {
       const cue = draft.sections[drag.sectionIndex].text.cues.find((item) => item.id === drag.cueId);
@@ -524,7 +560,8 @@ function Timeline({ store, snapshot }) {
               const inSelectedSection = selection.sectionId === section.id;
               const localPosition = (at) => `${Math.min(100, (Number(at || 0) * (compiled?.travelWU || spanWU) / spanWU) * 100)}%`;
               const extendedLocalPosition = (at) => `${(Number(at || 0) * (compiled?.travelWU || spanWU) / spanWU) * 100}%`;
-              const localWidth = (from, to) => `${Math.max(0.35, ((Number(to) - Number(from)) * (compiled?.travelWU || spanWU) / spanWU) * 100)}%`;
+              const textPosition = (at) => `${clamp01(Number(at || 0)) * 100}%`;
+              const textWidth = (from, to) => `${Math.max(0.35, (Number(to) - Number(from)) * 100)}%`;
               const selectAt = (nextSelection, at = 0) => {
                 store.setSelection({ sectionId: section.id, ...nextSelection });
                 store.setTransport({
@@ -629,33 +666,21 @@ function Timeline({ store, snapshot }) {
               if (lane === 'text') {
                 return (
                   <div className="about-editor-clip" key={section.id} style={{ width }}>
-                    {(section.text.cues || []).flatMap((cue) => {
+                    {(section.text.cues || []).map((cue) => {
                       const isSelected = inSelectedSection && selection.type === 'cue' && selection.cueId === cue.id;
                       const movement = getAboutNarrativeCueMovement(cue);
-                      const motionInterval = getAboutNarrativeCueMotionInterval(cue, snapshot.document.globals.textMotion);
-                      const motionStart = clamp01(movement === 'vertical' ? cue.enter : motionInterval.start);
-                      const motionEnd = clamp01(movement === 'vertical' ? cue.exit : motionInterval.end);
                       const timingBounds = getAboutNarrativeCueTimingBounds(cue);
                       const token = `cue:${section.id}:${cue.id}`;
                       const cueSelection = { type: 'cue', sectionId: section.id, cueId: cue.id, keyPart: 'focus' };
-                      return [
+                      return (
                         <button
                           type="button"
-                          className={`about-editor-cue is-${movement}${isSelected ? ' is-selected' : ''}`}
+                          className={`about-editor-cue is-${movement}${timingBounds.min === timingBounds.max ? ' is-boundary' : ' is-draggable'}${isSelected ? ' is-selected' : ''}`}
                           key={cue.id}
-                          style={{ left: localPosition(motionStart), width: localWidth(motionStart, motionEnd) }}
-                          onClick={() => selectAt({ type: 'cue', cueId: cue.id }, cue.hold)}
+                          style={{ left: textPosition(cue.hold) }}
+                          aria-label={`${movement === 'vertical' ? 'Vertical' : 'Spatial'} text at ${Math.round(cue.hold * 100)}% · ${cue.text}`}
                           aria-pressed={isSelected}
-                          title={`${movement === 'vertical' ? 'Vertical' : 'Spatial'} title · ${cue.text}`}
-                        />,
-                        <button
-                          type="button"
-                          className={`about-editor-timing-key is-text is-focus is-${movement}${timingBounds.min === timingBounds.max ? ' is-boundary' : ' is-draggable'}${isSelected ? ' is-selected' : ''}`}
-                          key={`${cue.id}-focus`}
-                          style={{ left: localPosition(cue.hold) }}
-                          title={`Text cue at ${Math.round(cue.hold * 100)}% · drag to retime`}
-                          aria-label={`${cue.id} text cue at ${Math.round(cue.hold * 100)}%`}
-                          aria-pressed={isSelected}
+                          title={`${movement === 'vertical' ? 'Vertical' : 'Spatial'} title · drag to move it; duration stays global · ${cue.text}`}
                           onPointerDown={(event) => beginTimingDrag(event, {
                             type: 'cue',
                             token,
@@ -676,9 +701,46 @@ function Timeline({ store, snapshot }) {
                           onPointerUp={endTimingDrag}
                           onPointerCancel={endTimingDrag}
                           onClick={() => handleTimingClick(token, () => selectAt({ type: 'cue', cueId: cue.id, keyPart: 'focus' }, cue.hold))}
-                        />,
-                      ];
+                        />
+                      );
                     })}
+                    {section.text.disciplineReveal ? (() => {
+                      const reveal = section.text.disciplineReveal;
+                      const duration = reveal.end - reveal.start;
+                      const centre = reveal.start + (duration * 0.5);
+                      const isSelected = inSelectedSection && selection.type === 'discipline-reveal';
+                      const token = `discipline-reveal:${section.id}:${reveal.id}`;
+                      const revealSelection = { type: 'discipline-reveal', sectionId: section.id };
+                      return (
+                        <button
+                          type="button"
+                          className={`about-editor-discipline-reveal is-draggable${isSelected ? ' is-selected' : ''}`}
+                          style={{ left: textPosition(reveal.start), width: textWidth(reveal.start, reveal.end) }}
+                          aria-label={`Discipline reveal from ${Math.round(reveal.start * 100)}% to ${Math.round(reveal.end * 100)}%`}
+                          aria-pressed={isSelected}
+                          title="Discipline reveal · drag the complete clip to retime"
+                          onPointerDown={(event) => beginTimingDrag(event, {
+                            type: 'discipline-reveal',
+                            token,
+                            locked: false,
+                            min: duration * 0.5,
+                            max: 1 - (duration * 0.5),
+                            at: centre,
+                            sectionIndex,
+                            sectionStartWU: startWU,
+                            spanWU,
+                            travelWU: compiled?.travelWU || spanWU,
+                            storyWU: startWU + (centre * (compiled?.travelWU || 0)),
+                            selection: revealSelection,
+                            coalesceKey: `timeline:${token}`,
+                          })}
+                          onPointerMove={moveTimingDrag}
+                          onPointerUp={endTimingDrag}
+                          onPointerCancel={endTimingDrag}
+                          onClick={() => handleTimingClick(token, () => selectAt({ type: 'discipline-reveal' }, reveal.start))}
+                        >Discipline reveal</button>
+                      );
+                    })() : null}
                     {(section.text.blocks || []).length ? (
                       <button type="button" className={`about-editor-editorial-clip${inSelectedSection && selection.type === 'section' ? ' is-selected' : ''}`} onClick={() => selectAt({ type: 'section' })}>
                         Vertical · {section.text.blocks.length} blocks
@@ -720,9 +782,10 @@ function Timeline({ store, snapshot }) {
 function SequenceInspector({ store, snapshot }) {
   const commitGlobal = (group, key, value) => store.commit(`Change ${key}`, (draft) => {
     if (group === 'sequence') draft.globals[key] = value;
-    if (group === 'camera') draft.globals.camera[key] = value;
-    if (group === 'material') draft.globals.pointMaterial[key] = value;
-    if (group === 'textMotion') draft.globals.textMotion[key] = value;
+    else {
+      const targetKey = group === 'material' ? 'pointMaterial' : group;
+      draft.globals[targetKey][key] = value;
+    }
   }, { coalesceKey: `global:${group}:${key}` });
   return (
     <>
@@ -730,15 +793,12 @@ function SequenceInspector({ store, snapshot }) {
       {ABOUT_NARRATIVE_GLOBAL_CONTROLS.map((group) => (
         <details open key={group.id}>
           <summary>{group.label}</summary>
-          {group.id === 'textMotion' ? <p className="about-editor-help">Every title follows this path continuously. Negative Y is higher, positive Y is lower. Clear from and Clear until set the sharp window from 0–1.</p> : null}
+          {group.id === 'textMotion' ? <p className="about-editor-help">Every title follows this path continuously. Negative Y is higher, positive Y is lower. The opener starts sharp at its own Y position; Clear from and Clear until set the sharp window for later titles.</p> : null}
+          {group.id === 'swarmTurbulence' ? <p className="about-editor-help">One ambient motion profile drives both the cluster and turbulent field. Each World only scales its strength, so the motion stays continuous while Shapes change.</p> : null}
           {group.controls.map((control) => {
             const target = group.id === 'sequence'
               ? snapshot.document.globals
-              : group.id === 'camera'
-                ? snapshot.document.globals.camera
-                : group.id === 'material'
-                  ? snapshot.document.globals.pointMaterial
-                  : snapshot.document.globals.textMotion;
+              : snapshot.document.globals[group.id === 'material' ? 'pointMaterial' : group.id];
             return (
               <NumberProperty
                 key={control.id}
@@ -815,6 +875,17 @@ function EditorialBlocks({ store, snapshot, section }) {
   const updateBlock = (blockIndex, field, value) => store.commit('Edit editorial copy', (draft) => {
     draft.sections[sectionIndex].text.blocks[blockIndex][field] = value;
   }, { coalesceKey: `block:${section.id}:${blockIndex}:${field}`, selection: snapshot.selection });
+  const updateEmphasis = (blockIndex, emphasisIndex, field, value) => store.commit('Edit editorial highlight', (draft) => {
+    draft.sections[sectionIndex].text.blocks[blockIndex].emphasis[emphasisIndex][field] = value;
+  }, { coalesceKey: `block:${section.id}:${blockIndex}:emphasis:${emphasisIndex}:${field}`, selection: snapshot.selection });
+  const addEmphasis = (blockIndex) => store.commit('Add editorial highlight', (draft) => {
+    const block = draft.sections[sectionIndex].text.blocks[blockIndex];
+    block.emphasis ||= [];
+    block.emphasis.push({ text: block.text.trim().split(/\s+/).slice(0, 2).join(' '), tone: 'blue' });
+  }, { selection: snapshot.selection });
+  const removeEmphasis = (blockIndex, emphasisIndex) => store.commit('Remove editorial highlight', (draft) => {
+    draft.sections[sectionIndex].text.blocks[blockIndex].emphasis.splice(emphasisIndex, 1);
+  }, { selection: snapshot.selection });
   return (
     <details open>
       <summary>Editorial content</summary>
@@ -823,6 +894,22 @@ function EditorialBlocks({ store, snapshot, section }) {
           <div><code>{block.kind}</code><span>{block.id}</span></div>
           {block.label != null ? <Property label="Label"><input value={block.label} onChange={(event) => updateBlock(blockIndex, 'label', event.target.value)} /></Property> : null}
           {block.text != null ? <Property label="Copy"><textarea rows="5" value={block.text} onChange={(event) => updateBlock(blockIndex, 'text', event.target.value)} /></Property> : null}
+          {block.kind === 'prose' ? <Property label="Reconnect point grid"><input type="checkbox" checked={block.worldInfluence === true} onChange={(event) => updateBlock(blockIndex, 'worldInfluence', event.target.checked)} /></Property> : null}
+          {block.text != null ? (
+            <div className="about-editor-emphasis-controls">
+              <span>Highlighted words</span>
+              {(block.emphasis || []).map((item, emphasisIndex) => (
+                <div className="about-editor-emphasis-row" key={`${block.id}-emphasis-${emphasisIndex}`}>
+                  <input aria-label="Highlighted phrase" value={item.text} onChange={(event) => updateEmphasis(blockIndex, emphasisIndex, 'text', event.target.value)} />
+                  <select aria-label="Highlight colour" value={item.tone} onChange={(event) => updateEmphasis(blockIndex, emphasisIndex, 'tone', event.target.value)}>
+                    {ABOUT_NARRATIVE_EMPHASIS_TONES.map((tone) => <option value={tone} key={tone}>{tone}</option>)}
+                  </select>
+                  <button type="button" aria-label={`Remove ${item.text || 'empty'} highlight`} onClick={() => removeEmphasis(blockIndex, emphasisIndex)}>×</button>
+                </div>
+              ))}
+              <button type="button" onClick={() => addEmphasis(blockIndex)}>Add highlight</button>
+            </div>
+          ) : null}
           {block.items ? <Property label="Items"><textarea rows="6" value={block.items.join('\n')} onChange={(event) => updateBlock(blockIndex, 'items', event.target.value.split('\n').filter(Boolean))} /></Property> : null}
         </div>
       ))}
@@ -858,7 +945,7 @@ function CueInspector({ store, snapshot, section }) {
   return (
     <>
       <header><span>Text Cue</span><strong>{cue.id}</strong></header>
-      <p className="about-editor-help">One marker positions this statement. Spatial titles travel through the shared camera path; vertical titles move naturally with the page and use the editorial reveal.</p>
+      <p className="about-editor-help">Drag the pink timing marker anywhere from 0–100% of its Section. This moves the title's focus time only. Its travel duration, speed, blur, and in/out cadence remain controlled globally under Spatial titles.</p>
       <Property label="Statement"><textarea rows="7" value={cue.text} onChange={(event) => update('text', event.target.value)} /></Property>
       <Property label="Movement"><select value={movement} onChange={(event) => updateMovement(event.target.value)}><option value="spatial">Spatial travel</option><option value="vertical">Vertical scroll</option></select></Property>
       <NumberProperty
@@ -878,6 +965,74 @@ function CueInspector({ store, snapshot, section }) {
         </>
       ) : <Property label="Reveal"><output className="about-editor-readout">Editorial vertical scroll</output></Property>}
       <button type="button" className="about-editor-danger" disabled={section.type === 'finale'} onClick={remove}>Delete Cue</button>
+    </>
+  );
+}
+
+function DisciplineRevealInspector({ store, snapshot, section }) {
+  const sectionIndex = getSectionIndex(snapshot.document, section.id);
+  const reveal = section.text.disciplineReveal;
+  if (!reveal) return <SectionInspector store={store} snapshot={snapshot} section={section} />;
+  const update = (label, mutate, coalesceKey = null) => store.commit(label, (draft) => {
+    mutate(draft.sections[sectionIndex].text.disciplineReveal);
+  }, { coalesceKey, selection: snapshot.selection });
+  const occupied = ((reveal.items.length - 1) * reveal.stagger) + reveal.labelDuration + reveal.hold;
+  const limitsFor = (control) => {
+    if (control.id === 'start') return { min: control.min, max: Math.max(control.min, reveal.end - occupied) };
+    if (control.id === 'end') return { min: Math.min(control.max, reveal.start + occupied), max: control.max };
+    if (control.id === 'stagger') return {
+      min: control.min,
+      max: Math.max(control.min, (reveal.end - reveal.start - reveal.labelDuration - reveal.hold) / Math.max(1, reveal.items.length - 1)),
+    };
+    if (control.id === 'labelDuration') return {
+      min: control.min,
+      max: Math.max(control.min, reveal.end - reveal.start - ((reveal.items.length - 1) * reveal.stagger) - reveal.hold),
+    };
+    if (control.id === 'hold') return {
+      min: control.min,
+      max: Math.max(control.min, reveal.end - reveal.start - ((reveal.items.length - 1) * reveal.stagger) - reveal.labelDuration),
+    };
+    return { min: control.min, max: control.max };
+  };
+  return (
+    <>
+      <header><span>Text sequence</span><strong>Discipline reveal</strong></header>
+      <p className="about-editor-help">One clip controls the complete six-point sequence. Drag its striped block in the Text lane to move every reveal together.</p>
+      <details open><summary>Reveal choreography</summary>
+        {ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS.map((control) => {
+          const limits = limitsFor(control);
+          return (
+            <NumberProperty
+              key={control.id}
+              label={control.label}
+              value={reveal[control.id]}
+              min={limits.min}
+              max={limits.max}
+              step={control.step}
+              unit={control.unit}
+              onChange={(value) => update(`Change ${control.label}`, (draft) => { draft[control.id] = value; }, `discipline-reveal:${section.id}:${control.id}`)}
+            />
+          );
+        })}
+      </details>
+      <details open><summary>Reveal order and labels</summary>
+        <div className="about-editor-discipline-items">
+          {reveal.items.map((item, itemIndex) => (
+            <div className="about-editor-discipline-item" key={item.group}>
+              <code>{String(itemIndex + 1).padStart(2, '0')}</code>
+              <input value={item.label} aria-label={`Discipline ${itemIndex + 1} label`} onChange={(event) => update('Edit discipline label', (draft) => { draft.items[itemIndex].label = event.target.value; }, `discipline-reveal:${section.id}:item:${item.group}:label`)} />
+              <select value={item.tone} aria-label={`${item.label} colour`} onChange={(event) => update('Change discipline colour', (draft) => { draft.items[itemIndex].tone = event.target.value; })}>
+                {ABOUT_NARRATIVE_DISCIPLINE_TONES.map((tone) => <option key={tone}>{tone}</option>)}
+              </select>
+              <span>
+                <button type="button" disabled={itemIndex === 0} aria-label={`Reveal ${item.label} earlier`} onClick={() => update('Reorder discipline reveal', (draft) => { const [moved] = draft.items.splice(itemIndex, 1); draft.items.splice(itemIndex - 1, 0, moved); })}>↑</button>
+                <button type="button" disabled={itemIndex === reveal.items.length - 1} aria-label={`Reveal ${item.label} later`} onClick={() => update('Reorder discipline reveal', (draft) => { const [moved] = draft.items.splice(itemIndex, 1); draft.items.splice(itemIndex + 1, 0, moved); })}>↓</button>
+              </span>
+            </div>
+          ))}
+        </div>
+      </details>
+      <p className="about-editor-help">The six points persist after the labels leave. An editorial block marked “Reconnect point grid” restores the surrounding grid as that paragraph enters.</p>
     </>
   );
 }
@@ -985,7 +1140,14 @@ function CameraInspector({ store, snapshot, section }) {
   );
 }
 
-function WorldInspector({ store, snapshot, section }) {
+const CORRESPONDENCE_LABELS = Object.freeze({
+  'index-v1': 'Index order',
+  'stable-seed': 'Stable seed',
+  'spatial-nearest-v1': 'Local travel (approx.)',
+  'group-aware': 'Group aware',
+});
+
+function WorldInspector({ store, snapshot, section, runtimeMetrics }) {
   const sectionIndex = getSectionIndex(snapshot.document, section.id);
   if (section.world.mode !== 'set') {
     return <><header><span>World track</span><strong>Inherited World</strong></header><p className="about-editor-help">This Section keeps the previous World. Choose “Create World clip” only when the shape should change here.</p><button type="button" className="about-editor-wide-action" onClick={() => store.commit('Create World clip', (draft) => {
@@ -997,6 +1159,22 @@ function WorldInspector({ store, snapshot, section }) {
   const transitionLimit = getAboutNarrativeWorldTransitionLimit(snapshot.compiledPlan, sectionIndex);
   const transitionMax = Math.max(transitionLimit, world.transitionIn.end, 1);
   const transitionEnabled = world.transitionIn.type !== 'cut';
+  const correspondenceEnabled = ['morph', 'dissolve-morph'].includes(world.transitionIn.type);
+  const previousWorldSection = snapshot.document.sections
+    .slice(0, sectionIndex)
+    .reverse()
+    .find((item) => item.world.mode === 'set');
+  const sourceShape = ABOUT_NARRATIVE_SHAPE_DEFINITIONS[previousWorldSection?.world.shapeId || world.shapeId];
+  const prepared = runtimeMetrics?.preparedWorldIds?.includes(section.id);
+  const correspondenceStatus = runtimeMetrics?.correspondenceSequenceState === 'failed'
+    ? 'Failed'
+    : runtimeMetrics?.correspondenceSequenceState === 'loading'
+      ? 'Preparing'
+      : prepared
+        ? runtimeMetrics?.correspondenceFallback && runtimeMetrics?.correspondenceToWorldId === section.id
+          ? 'Baseline fallback'
+          : 'Ready'
+        : 'Preparing';
   const update = (label, mutate, coalesceKey = null) => store.commit(label, (draft) => mutate(draft.sections[sectionIndex].world), { coalesceKey, selection: snapshot.selection });
   const tryShape = (shapeId) => store.beginTry(`Replace Shape with ${ABOUT_NARRATIVE_SHAPE_DEFINITIONS[shapeId].label}`, (draft) => {
     const target = draft.sections[sectionIndex].world;
@@ -1029,6 +1207,9 @@ function WorldInspector({ store, snapshot, section }) {
           <NumberProperty label="End" value={world.transitionIn.end} min={0} max={transitionMax} step={0.005} unit="× section" onChange={(value) => update('Change transition end', (draft) => { draft.transitionIn.end = Math.max(value, draft.transitionIn.start); })} />
           <Property label="Type"><select value={world.transitionIn.type} onChange={(event) => update('Change transition type', (draft) => { draft.transitionIn.type = event.target.value; })}><option value="morph">Morph</option><option value="dissolve-morph">Dissolve morph</option><option value="crossfade">Crossfade</option><option value="hold">Hold</option></select></Property>
           <Property label="Easing"><select value={world.transitionIn.easing} onChange={(event) => update('Change transition easing', (draft) => { draft.transitionIn.easing = event.target.value; })}><option value="linear">Linear</option><option value="smoothstep">Smoothstep</option><option value="ease-in">Ease in</option><option value="ease-out">Ease out</option><option value="ease-in-out">Ease in out</option><option value="hold">Hold</option></select></Property>
+          <p className="about-editor-help">Maps {sourceShape?.label || 'previous Shape'} → {shape?.label || world.shapeId}.</p>
+          <Property label="Correspondence"><select aria-label="Correspondence" value={world.transitionIn.correspondence} disabled={!correspondenceEnabled} title={correspondenceEnabled ? 'Choose how source points are assigned to target points.' : 'Correspondence applies to Morph and Dissolve morph transitions.'} onChange={(event) => update('Change correspondence', (draft) => { draft.transitionIn.correspondence = event.target.value; })}>{ABOUT_NARRATIVE_CORRESPONDENCE_MODES.map((mode) => <option value={mode} key={mode}>{CORRESPONDENCE_LABELS[mode] || mode}</option>)}</select></Property>
+          <p className="about-editor-help" role="status" aria-live="polite">Correspondence: {correspondenceStatus}{prepared && runtimeMetrics?.correspondenceToWorldId === section.id && Number.isFinite(runtimeMetrics?.correspondenceImprovement) ? ` · ${Math.round(runtimeMetrics.correspondenceImprovement * 100)}% RMS improvement` : ''}.</p>
           <button type="button" className="about-editor-danger" onClick={() => store.commit('Remove World transition', (draft) => {
             const transition = draft.sections[sectionIndex].world.transitionIn;
             transition.start = 0;
@@ -1069,7 +1250,7 @@ function Diagnostics({ diagnostics }) {
   })}</div>;
 }
 
-function Inspector({ store, snapshot, timelineOpen }) {
+function Inspector({ store, snapshot, timelineOpen, runtimeMetrics }) {
   const inspectorRef = useRef(null);
   const dragRef = useRef(null);
   const lastHeaderClickRef = useRef(null);
@@ -1079,8 +1260,9 @@ function Inspector({ store, snapshot, timelineOpen }) {
   let content = <SectionInspector store={store} snapshot={snapshot} section={section} />;
   if (snapshot.selection.type === 'sequence') content = <SequenceInspector store={store} snapshot={snapshot} />;
   if (snapshot.selection.type === 'cue') content = <CueInspector store={store} snapshot={snapshot} section={section} />;
+  if (snapshot.selection.type === 'discipline-reveal') content = <DisciplineRevealInspector store={store} snapshot={snapshot} section={section} />;
   if (snapshot.selection.type === 'camera-key') content = <CameraInspector store={store} snapshot={snapshot} section={section} />;
-  if (snapshot.selection.type === 'world') content = <WorldInspector store={store} snapshot={snapshot} section={section} />;
+  if (snapshot.selection.type === 'world') content = <WorldInspector store={store} snapshot={snapshot} section={section} runtimeMetrics={runtimeMetrics} />;
   if (snapshot.selection.type === 'interaction') content = <SectionInspector store={store} snapshot={snapshot} section={section} />;
 
   useEffect(() => {
@@ -1425,7 +1607,7 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
       {pathVisible ? <CameraPathOverlay snapshot={snapshot} /> : null}
       {directorView ? <div className="about-editor-director-controls"><strong>Director View</strong><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ yaw: -0.08 })}>←</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ pitch: 0.08 })}>↑</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ pitch: -0.08 })}>↓</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ yaw: 0.08 })}>→</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ distance: -0.2 })}>＋</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ distance: 0.2 })}>−</button><button type="button" onClick={() => runtimeRef.current?.resetDirector?.()}>Reset</button><small>Temporary inspection only. Published Camera keys are unchanged.</small></div> : null}
 
-      <Inspector store={store} snapshot={snapshot} timelineOpen={timelineOpen} />
+      <Inspector store={store} snapshot={snapshot} timelineOpen={timelineOpen} runtimeMetrics={runtimeMetrics} />
       <button
         type="button"
         className="about-editor-timeline-toggle"

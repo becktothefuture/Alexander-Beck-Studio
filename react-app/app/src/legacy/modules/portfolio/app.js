@@ -63,6 +63,8 @@ const PORTFOLIO_RING_MAX_VISIBLE_OFFSET = 3;
 const PORTFOLIO_RING_GUARD_SLOTS = 2;
 const PORTFOLIO_THUMBNAIL_READY_TIMEOUT_MS = 1800;
 const PORTFOLIO_CARD_EDGE_MIN_OPACITY = 0.8;
+const PORTFOLIO_INDICATOR_REST_OPACITY = 0.22;
+const PORTFOLIO_INDICATOR_ACTIVE_RADIUS = 2;
 const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   reducedMotionDurationMs: 1,
   scrollSensitivity: 1,
@@ -1801,11 +1803,10 @@ class PortfolioScrollApp {
       const x = Math.sin(angleRad) * radius;
       const y = radius * (1 - Math.cos(angleRad));
       const wrappedDistance = Math.abs(normalized) * dotCount;
-      const activeAmount = clamp(1 - (wrappedDistance / 2.5), 0, 1);
-      const edgeOpacity = lerp(0.12, 1, activeAmount);
+      const activeAmount = clamp(1 - (wrappedDistance / PORTFOLIO_INDICATOR_ACTIVE_RADIUS), 0, 1);
+      const edgeOpacity = lerp(PORTFOLIO_INDICATOR_REST_OPACITY, 1, activeAmount);
       dot.style.setProperty('--portfolio-dot-x', `${x.toFixed(2)}px`);
       dot.style.setProperty('--portfolio-dot-y', `${y.toFixed(2)}px`);
-      dot.style.setProperty('--portfolio-dot-scale', lerp(0.82, toNumber(this.deckOptions.dotActiveScale, PORTFOLIO_DECK_DEFAULTS.dotActiveScale), activeAmount).toFixed(3));
       dot.style.setProperty('--portfolio-dot-opacity', edgeOpacity.toFixed(3));
     });
   }

@@ -138,13 +138,13 @@ const CONTROL_SECTIONS = {
       },
       {
         key: 'dot-track',
-        title: 'Dot Track',
+        title: 'Line Track',
         controls: [
-          { id: 'carouselDotDialRadiusPx', label: 'Desktop dot spread', configKey: 'runtime.carousel.dotDialRadiusPx', type: 'range', min: 900, max: 3600, step: 10, unit: 'px', default: 2050, refresh: true, hint: 'Changes the width and curvature of the visible dot track.' },
-          { id: 'carouselMobileDotDialRadiusPx', label: 'Mobile dot spread', configKey: 'runtime.carousel.mobileDotDialRadiusPx', type: 'range', min: 520, max: 1600, step: 10, unit: 'px', default: 900, refresh: true, hint: 'Changes the width and curvature of the dot track on narrow viewports.' },
-          { id: 'carouselDotDensity', label: 'Dot count', configKey: 'runtime.carousel.dotDensity', type: 'range', min: 5, max: 48, step: 1, unit: '', default: 5, refresh: true, hint: 'Total dots in the repeating track. Updates immediately.' },
-          { id: 'carouselDotParallaxRatio', label: 'Scroll ratio', configKey: 'runtime.carousel.dotParallaxRatio', type: 'range', min: -2, max: 2, step: 0.05, unit: '', default: 1, refresh: true, hint: 'How far and in which direction the dots travel while the carousel moves.' },
-          { id: 'carouselDotArcSpanDeg', label: 'Arc width', configKey: 'runtime.carousel.dotArcSpanDeg', type: 'range', min: 8, max: 34, step: 0.5, unit: 'deg', default: 18, refresh: true, hint: 'Angular width occupied by the complete dot track.' },
+          { id: 'carouselDotDialRadiusPx', label: 'Desktop line spread', configKey: 'runtime.carousel.dotDialRadiusPx', type: 'range', min: 900, max: 3600, step: 10, unit: 'px', default: 2050, refresh: true, hint: 'Changes the width and curvature of the visible line track.' },
+          { id: 'carouselMobileDotDialRadiusPx', label: 'Mobile line spread', configKey: 'runtime.carousel.mobileDotDialRadiusPx', type: 'range', min: 520, max: 1600, step: 10, unit: 'px', default: 900, refresh: true, hint: 'Changes the width and curvature of the line track on narrow viewports.' },
+          { id: 'carouselDotDensity', label: 'Line count', configKey: 'runtime.carousel.dotDensity', type: 'range', min: 5, max: 48, step: 1, unit: '', default: 5, refresh: true, hint: 'Total lines in the repeating track. Updates immediately.' },
+          { id: 'carouselDotParallaxRatio', label: 'Scroll ratio', configKey: 'runtime.carousel.dotParallaxRatio', type: 'range', min: -2, max: 2, step: 0.05, unit: '', default: 1, refresh: true, hint: 'How far and in which direction the lines travel while the carousel moves.' },
+          { id: 'carouselDotArcSpanDeg', label: 'Arc width', configKey: 'runtime.carousel.dotArcSpanDeg', type: 'range', min: 8, max: 34, step: 0.5, unit: 'deg', default: 18, refresh: true, hint: 'Angular width occupied by the complete line track.' },
         ],
       },
       {

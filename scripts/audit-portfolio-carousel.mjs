@@ -177,6 +177,9 @@ async function collectDotAppearance(page) {
     const activeCardRect = document.querySelector('.portfolio-project-card.is-active')?.getBoundingClientRect?.();
     const dotDial = document.querySelector('.portfolio-carousel-dot-dial');
     const dotDialVisible = dotDial ? getComputedStyle(dotDial).display !== 'none' : false;
+    const sharedThickness = Number.parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--abs-indicator-line-thickness')
+    );
     const activeCardOverlaps = activeCardRect
       ? dots.filter((dot) => {
         const rect = dot.getBoundingClientRect();
@@ -192,14 +195,19 @@ async function collectDotAppearance(page) {
       opacities: samples.map((sample) => Number(sample.opacity.toFixed(3))).sort((a, b) => a - b),
       dotDialVisible,
       cornerShapes: Array.from(new Set(samples.map((sample) => sample.cornerShape).filter(Boolean))),
-      maxAspectDelta: samples.length
-        ? Math.max(...samples.map((sample) => Math.abs(sample.width - sample.height)))
+      maxThicknessDelta: samples.length && Number.isFinite(sharedThickness)
+        ? Math.max(...samples.map((sample) => Math.abs(sample.height - sharedThickness)))
         : null,
-      minRadiusRatio: samples.length
-        ? Math.min(...samples.map((sample) => sample.borderRadius / Math.max(1, sample.width)))
+      minAspectRatio: samples.length
+        ? Math.min(...samples.map((sample) => sample.width / Math.max(1, sample.height)))
+        : null,
+      minPillRadiusRatio: samples.length
+        ? Math.min(...samples.map((sample) => sample.borderRadius / Math.max(0.5, sample.height / 2)))
         : null,
       minCenterGap: centerGaps.length ? Math.min(...centerGaps) : null,
-      dotSize: samples[0]?.width ?? null,
+      lineLength: samples[0]?.width ?? null,
+      lineThickness: samples[0]?.height ?? null,
+      sharedThickness: Number.isFinite(sharedThickness) ? sharedThickness : null,
       activeCardOverlaps,
     };
   });
@@ -1133,18 +1141,22 @@ async function main() {
       if (name === 'desktop-wide' && result.geometry.cards.length < 7) {
         failures.push('desktop-wide: ultra-wide layout does not expose all seven project cards');
       }
-      if (result.dots.count !== 5) failures.push(`${name}: dot track should render exactly five dots`);
-      if (result.dots.dotSize === null || result.dots.dotSize > 10) failures.push(`${name}: dot track dots are too large`);
-      if (result.dots.maxOpacity === null || result.dots.maxOpacity < 0.9) failures.push(`${name}: center dot is not strong enough`);
-      if (result.dots.minOpacity === null || result.dots.minOpacity > 0.35) failures.push(`${name}: side dots are not gently faded`);
-      if (result.dots.cornerShapes.includes('squircle')) failures.push(`${name}: dots use squircle corners`);
-      if (result.dots.maxAspectDelta === null || result.dots.maxAspectDelta > 0.5) failures.push(`${name}: dots are not square before rounding`);
-      if (result.dots.minRadiusRatio === null || result.dots.minRadiusRatio < 0.49) failures.push(`${name}: dots are not circular`);
-      if (result.dots.dotDialVisible && (result.dots.minCenterGap === null || result.dots.minCenterGap < result.dots.dotSize * 1.35)) {
-        failures.push(`${name}: dots are not spaced clearly apart`);
+      if (result.dots.count !== 5) failures.push(`${name}: line track should render exactly five lines`);
+      if (result.dots.lineLength === null || result.dots.lineLength > 10) failures.push(`${name}: line track marks are too long`);
+      if (result.dots.lineThickness === null || result.dots.sharedThickness === null || result.dots.maxThicknessDelta > 0.05) {
+        failures.push(`${name}: line track does not use the shared thickness`);
+      }
+      if (result.dots.maxOpacity === null || result.dots.maxOpacity < 0.99) failures.push(`${name}: active line is not fully opaque`);
+      if (result.dots.minOpacity === null || result.dots.minOpacity < 0.2 || result.dots.minOpacity > 0.24) failures.push(`${name}: resting lines do not use the quiet opacity`);
+      if (result.dots.uniqueColors !== 1) failures.push(`${name}: line track uses inconsistent ink colours`);
+      if (result.dots.cornerShapes.includes('squircle')) failures.push(`${name}: lines use squircle corners`);
+      if (result.dots.minAspectRatio === null || result.dots.minAspectRatio < 2) failures.push(`${name}: line track marks are not horizontally proportioned`);
+      if (result.dots.minPillRadiusRatio === null || result.dots.minPillRadiusRatio < 0.99) failures.push(`${name}: line track marks do not have pill ends`);
+      if (result.dots.dotDialVisible && (result.dots.minCenterGap === null || result.dots.minCenterGap < result.dots.lineLength * 1.35)) {
+        failures.push(`${name}: lines are not spaced clearly apart`);
       }
       if (result.dots.activeCardOverlaps === null || result.dots.activeCardOverlaps > 0) {
-        failures.push(`${name}: dot track overlaps the active card`);
+        failures.push(`${name}: line track overlaps the active card`);
       }
       if (result.particleField?.error) failures.push(`${name}: ${result.particleField.error}`);
       if (!result.particleField?.error) {
@@ -1175,7 +1187,7 @@ async function main() {
     if (/view project/i.test(summary.viewports.desktop.cursor?.text || '')) failures.push('desktop: cursor still contains View Project');
     if (/abs-cursor-project-hover/.test(summary.viewports.desktop.cursor?.className || '')) failures.push('desktop: project-hover cursor class still active');
     if (summary.viewports.desktop.wheel?.before.activeIndex === summary.viewports.desktop.wheel?.after.activeIndex) failures.push('desktop: wheel did not advance');
-    if ((summary.viewports.desktop.wheel?.dotDelta ?? 0) <= 0.5) failures.push('desktop: dot coordinates did not move');
+    if ((summary.viewports.desktop.wheel?.dotDelta ?? 0) <= 0.5) failures.push('desktop: line coordinates did not move');
     if (summary.viewports.desktop.wheel?.reversals.length) failures.push('desktop: wheel trace reversed after committed input');
     if ((summary.viewports.desktop.continuousWheel?.distance ?? 0) < 2) failures.push('desktop: continuous wheel did not advance multiple projects');
     if (summary.viewports.desktop.continuousWheel?.reversals.length) failures.push('desktop: continuous wheel trace reversed');

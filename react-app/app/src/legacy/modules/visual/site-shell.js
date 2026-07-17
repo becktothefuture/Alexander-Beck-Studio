@@ -61,6 +61,7 @@ const DEFAULT_SHELL_CONFIG = {
     controlMaterialEdgeWidth: '0.5px',
     controlMaterialBlur: '18px',
     controlMaterialSaturation: 1.08,
+    indicatorLineThickness: '3px',
     sceneHighlight: 0.3,
     contrastVeilOpacityLight: 0.216,
     contrastVeilOpacityDark: 0.348,
@@ -612,6 +613,10 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
     surface.controlMaterialBlur || DEFAULT_SHELL_CONFIG.surface.controlMaterialBlur
   );
   root.style.setProperty('--abs-soft-control-saturation', String(controlMaterialSaturation));
+  root.style.setProperty(
+    '--abs-indicator-line-thickness',
+    surface.indicatorLineThickness || DEFAULT_SHELL_CONFIG.surface.indicatorLineThickness
+  );
   root.style.setProperty('--hover-edge-width', edgeWidth);
   root.style.setProperty('--hover-edge-top-opacity', String(topEdgeOpacity));
   root.style.setProperty('--hover-edge-bottom-opacity', String(Math.max(bottomEdgeOpacity, edgeOpacity * 0.28)));

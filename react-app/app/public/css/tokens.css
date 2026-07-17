@@ -139,6 +139,13 @@
   --abs-soft-control-emphasis-fill:
     rgba(var(--abs-soft-control-emphasis-rgb), var(--abs-soft-control-emphasis-opacity));
 
+  /* Shared progress/pagination line language. Thickness is projected from shell config. */
+  --abs-indicator-line-width: 8px;
+  --abs-indicator-line-thickness: 3px;
+  --abs-indicator-line-gap: 9px;
+  --abs-indicator-rest-opacity: 0.22;
+  --abs-indicator-ink: rgb(var(--abs-rgb-black));
+
   /* Ball colors (preserved) */
   --ball-1: #b5b7b6;
   --ball-2: #bbbdbd;
@@ -873,6 +880,7 @@ body[data-abs-theme='dark'] {
   color-scheme: dark;
   --abs-soft-control-emphasis-rgb: var(--abs-rgb-black);
   --abs-soft-control-emphasis-opacity: 72%;
+  --abs-indicator-ink: rgb(var(--abs-rgb-white));
   /* Theme changes the studio-window interior, never the outer wall/frame. */
   --studio-window-bg: var(--studio-window-bg-dark);
   --frame-inner-surface: var(--studio-window-bg);

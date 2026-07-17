@@ -468,6 +468,67 @@
   color: var(--editor-muted);
 }
 
+.about-editor-emphasis-controls {
+  display: grid;
+  gap: 5px;
+  padding: 7px 0;
+  border-top: 1px solid var(--editor-line);
+}
+
+.about-editor-emphasis-controls > span {
+  color: var(--editor-muted);
+}
+
+.about-editor-emphasis-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 26px;
+  gap: 4px;
+}
+
+.about-editor-emphasis-row input,
+.about-editor-emphasis-row select {
+  min-width: 0;
+}
+
+.about-editor-emphasis-row button,
+.about-editor-emphasis-controls > button {
+  min-height: 26px;
+}
+
+.about-editor-discipline-items {
+  display: grid;
+  gap: 5px;
+  padding-block: 6px;
+}
+
+.about-editor-discipline-item {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 68px 46px;
+  align-items: center;
+  gap: 4px;
+}
+
+.about-editor-discipline-item code {
+  color: var(--editor-muted);
+  font-size: 8px;
+}
+
+.about-editor-discipline-item input,
+.about-editor-discipline-item select {
+  min-width: 0;
+}
+
+.about-editor-discipline-item > span {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+}
+
+.about-editor-discipline-item button {
+  min-height: 24px;
+  padding: 0;
+}
+
 .about-editor-modifier > div:first-child span { display: flex; align-items: center; gap: 3px; }
 .about-editor-modifier > div:first-child button { width: 20px; height: 20px; padding: 0; }
 
@@ -794,7 +855,9 @@
 }
 
 .about-editor-key.is-draggable,
-.about-editor-timing-key.is-draggable {
+.about-editor-timing-key.is-draggable,
+.about-editor-cue.is-draggable,
+.about-editor-discipline-reveal.is-draggable {
   touch-action: none;
 }
 
@@ -812,26 +875,58 @@
   padding: 0;
   border: 0 !important;
   border-radius: 2px !important;
-  background: color-mix(in srgb, var(--editor-text) 78%, var(--editor-ink) 22%) !important;
+}
+
+.about-editor-cue {
+  width: 20px;
+  min-width: 20px;
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--editor-text) 72%, var(--editor-field) 28%) !important;
+}
+
+.about-editor button.about-editor-cue:hover,
+.about-editor button.about-editor-cue:focus,
+.about-editor button.about-editor-cue:focus-visible,
+.about-editor button.about-editor-cue:active {
+  transform: translateX(-50%);
+  transition: none;
+}
+
+.about-editor-cue.is-vertical,
+.about-editor-editorial-clip {
+  background: color-mix(in srgb, var(--editor-text) 84%, var(--editor-ink) 16%) !important;
 }
 
 .about-editor-cue.is-selected,
-.about-editor-editorial-clip.is-selected {
+.about-editor-editorial-clip.is-selected,
+.about-editor-discipline-reveal.is-selected {
   z-index: 2;
   box-shadow: 0 0 0 2px var(--editor-text), 0 0 12px color-mix(in srgb, var(--editor-text) 55%, transparent);
 }
 
-.about-editor-cue.is-vertical {
+.about-editor-discipline-reveal {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  min-width: 34px;
+  overflow: hidden;
+  padding: 0 7px;
+  border: 0 !important;
+  border-radius: 2px !important;
+  color: var(--editor-bg) !important;
   background:
     repeating-linear-gradient(
       90deg,
-      color-mix(in srgb, var(--editor-text) 62%, var(--editor-field)) 0 5px,
-      color-mix(in srgb, var(--editor-text) 88%, var(--editor-ink)) 5px 7px
+      color-mix(in srgb, var(--editor-text) 76%, var(--editor-field)) 0 12px,
+      color-mix(in srgb, var(--editor-text) 90%, var(--editor-ink)) 12px 14px
     ) !important;
-}
-
-.about-editor-timing-key.is-text.is-vertical {
-  color: color-mix(in srgb, var(--editor-text) 68%, white);
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: 0.025em;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .about-editor-timing-key {
@@ -849,8 +944,6 @@
 }
 
 .about-editor-timing-key.is-world { color: var(--editor-world); }
-.about-editor-timing-key.is-text { color: var(--editor-text); }
-.about-editor-timing-key.is-text.is-focus { top: 50%; width: 9px; height: 9px; transform: translate(-50%, -50%) rotate(45deg); }
 .about-editor-timing-key.is-interaction { color: var(--editor-interaction); }
 
 .about-editor-timing-key.is-selected {
@@ -883,13 +976,6 @@ body.abs-in-simulation .about-editor-bottom button,
 body.abs-in-simulation .about-editor-bottom select,
 body.abs-in-simulation .about-editor-timeline-toggle {
   cursor: pointer !important;
-}
-
-.about-editor button.about-editor-timing-key.is-text.is-focus:hover,
-.about-editor button.about-editor-timing-key.is-text.is-focus:focus,
-.about-editor button.about-editor-timing-key.is-text.is-focus:focus-visible,
-.about-editor button.about-editor-timing-key.is-text.is-focus:active {
-  transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .about-editor-editorial-clip {

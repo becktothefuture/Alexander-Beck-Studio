@@ -167,8 +167,8 @@ The outer shell is one stable instrument: exposed band, wall, frame, studio wind
 
 - About is one continuous scroll narrative inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, footer, and Button Bar remain stable.
 - The narrative moves from a dense idea cloud through a calm field, a six-discipline grid, a living wave field, and a large point-cloud bust. These are transformations of one material, not separate decorative scenes.
-- Two vertically scrolling editorial areas carry the background, client context, disciplines, AI, and multidisciplinary synthesis. Spatial copy between them must advance the argument rather than act as detachable captions.
-- The six disciplines are named literally in the editorial layer and represented by exactly six emphasized grid points. Once the grid becomes the living field, it behaves as one connected system.
+- Two vertically scrolling editorial areas carry the background, client context, reflections on the practice, AI, and multidisciplinary synthesis. Spatial copy between them must advance the argument rather than act as detachable captions.
+- The six disciplines are named once through a world-linked reveal projected from exactly six emphasized grid points. They do not repeat as a scrolling list. The labels leave while the six points persist; the following editorial synthesis reconnects the surrounding grid before it becomes the living field.
 - The bust is the quiet epilogue. It may rotate or respond horizontally, while the final profile, statement, and contact actions remain readable without covering the sculpture.
 - The creative toolkit belongs to the development lab route with `?edit=1`. The production About route and production lab build use the same validated authored document but expose no tuning interface.
 
