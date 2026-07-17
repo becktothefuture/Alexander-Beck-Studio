@@ -71,7 +71,7 @@ function defineRouteDescriptor(routeId, definition) {
 }
 
 const ROUTE_DESCRIPTORS = Object.freeze({
-  home: defineRouteDescriptor('home', { title: 'Alexander Beck Studio', getView: getHomeRouteView, runtime: HOME_ROUTE_RUNTIME }),
+  home: defineRouteDescriptor('home', { title: 'Alexander Beck — Designer & Technologist', getView: getHomeRouteView, runtime: HOME_ROUTE_RUNTIME }),
   contact: defineRouteDescriptor('contact', { title: 'Contact - Alexander Beck Studio', getView: getContactRouteView, runtime: CONTACT_ROUTE_RUNTIME }),
   portfolio: defineRouteDescriptor('portfolio', { title: 'Portfolio - Alexander Beck', getView: getPortfolioRouteView, runtime: PORTFOLIO_ROUTE_RUNTIME }),
   about: defineRouteDescriptor('about', { title: 'About Me - Alexander Beck Studio', getView: getAboutRouteView, runtime: ABOUT_ROUTE_RUNTIME }),

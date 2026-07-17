@@ -2,6 +2,8 @@
    ║  STYLEGUIDE — Typography reference (tokens + semantic specimens)            ║
    ╚══════════════════════════════════════════════════════════════════════════════╝ */
 
+import { HOME_IDENTITY } from '../../lib/home-identity.js';
+
 export function StyleguideTypographySection() {
   return (
     <section className="styleguide-section" aria-labelledby="sg-type">
@@ -167,8 +169,8 @@ export function StyleguideTypographySection() {
           </div>
           <div className="styleguide-type-role__sample">
             <div className="styleguide-type-hero-block">
-              <span className="styleguide-type-sample styleguide-type-sample--hero-name">Alexander Beck.</span>
-              <span className="styleguide-type-sample styleguide-type-sample--hero-role">Creative. Technologist.</span>
+              <span className="styleguide-type-sample styleguide-type-sample--hero-name">{HOME_IDENTITY.name}</span>
+              <span className="styleguide-type-sample styleguide-type-sample--hero-role">{HOME_IDENTITY.role}</span>
             </div>
           </div>
         </li>

@@ -1,4 +1,5 @@
 import homeContent from 'virtual:abs-content/home';
+import { HOME_IDENTITY } from '../../lib/home-identity.js';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
 
 export const HOME_ROUTE_RUNTIME = {
@@ -46,10 +47,10 @@ export function getHomeRouteView() {
         id="hero-title"
         className="hero-title hero-title--canvas-source"
         data-canvas-title-source="home"
-        aria-label="Alexander Beck. Creative. Technologist."
+        aria-label={HOME_IDENTITY.ariaLabel}
       >
-        <span className="hero-title__name" data-route-enter="identity" data-route-enter-order="0">Alexander Beck.</span>
-        <span className="hero-title__role" data-route-enter="identity" data-route-enter-order="1">Creative. Technologist.</span>
+        <span className="hero-title__name" data-route-enter="identity" data-route-enter-order="0">{HOME_IDENTITY.name}</span>
+        <span className="hero-title__role" data-route-enter="identity" data-route-enter-order="1">{HOME_IDENTITY.role}</span>
       </h1>
     ),
     uiLayer: {
