@@ -3,28 +3,82 @@ import { open, readFile, readdir, rename, unlink } from 'node:fs/promises';
 import { basename, dirname, resolve } from 'node:path';
 import process from 'node:process';
 import {
-  assertValidAboutNarrativeDocument,
-  migrateAboutNarrativeDocument,
-  serializeAboutNarrativeDocument,
-} from './aboutNarrativeSchema.js';
+  loadAboutNarrativeTrackSource,
+  preflightAboutNarrativeTrackRuntimePlans,
+  serializeAboutNarrativeTrackSource,
+} from './aboutNarrativeTrackPersistence.js';
+import {
+  ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+} from './aboutNarrativeTrackSchema.js';
 
 function hash(serialized) {
   return createHash('sha256').update(serialized).digest('hex');
 }
-export function createAboutNarrativePersistenceService({ configPath }) {
+
+function validationError(message, result = null, diagnostics = null) {
+  const error = new Error(message);
+  error.name = 'AboutNarrativeValidationError';
+  error.diagnostics = diagnostics || result?.diagnostics || [];
+  error.original = result?.original;
+  error.result = result;
+  return error;
+}
+
+function lockedSourceError(current) {
+  const message = current.status === 'future'
+    ? 'The canonical About document uses a newer schema and cannot be overwritten by this editor.'
+    : 'The canonical About document is invalid and cannot be overwritten. Export or repair the exact source first.';
+  const fallbackDiagnostic = {
+    level: 'error',
+    code: current.status === 'future' ? 'future-schema' : 'invalid-source',
+    path: 'document',
+    message,
+  };
+  return validationError(
+    message,
+    current.source,
+    current.diagnostics?.length ? current.diagnostics : [fallbackDiagnostic],
+  );
+}
+
+export function createAboutNarrativePersistenceService({
+  configPath,
+  preflight = preflightAboutNarrativeTrackRuntimePlans,
+}) {
   const canonicalPath = resolve(configPath);
   let queue = Promise.resolve();
 
   const read = async () => {
     const raw = await readFile(canonicalPath, 'utf8');
-    const migrated = migrateAboutNarrativeDocument(JSON.parse(raw));
-    if (migrated.readOnly) throw new Error('The canonical About document uses a newer schema.');
-    const serialized = serializeAboutNarrativeDocument(migrated.document);
-    return Object.freeze({ document: JSON.parse(serialized), serialized, hash: hash(serialized) });
+    const loaded = loadAboutNarrativeTrackSource(raw, { preflight });
+    if (!loaded.valid) {
+      return Object.freeze({
+        document: raw,
+        serialized: raw,
+        hash: hash(raw),
+        readOnly: true,
+        status: loaded.status,
+        diagnostics: loaded.diagnostics,
+        original: raw,
+        source: loaded,
+      });
+    }
+    const serialized = serializeAboutNarrativeTrackSource(loaded.document, { preflight });
+    return Object.freeze({
+      document: JSON.parse(serialized),
+      serialized,
+      hash: hash(serialized),
+      readOnly: false,
+      status: loaded.status,
+      migrations: loaded.migrations,
+      sourceVersion: loaded.sourceVersion,
+    });
   };
 
   const saveNow = async (candidate, ifMatch) => {
     const current = await read();
+    if (current.readOnly) throw lockedSourceError(current);
+
     const expected = String(ifMatch || '').replaceAll('"', '');
     if (!expected || expected !== current.hash) {
       const error = new Error('The source changed on disk. Reload it or export your draft before retrying.');
@@ -32,15 +86,30 @@ export function createAboutNarrativePersistenceService({ configPath }) {
       error.currentHash = current.hash;
       throw error;
     }
-    const migrated = migrateAboutNarrativeDocument(candidate);
-    if (migrated.readOnly) {
-      const error = new Error('A future About document cannot be saved by this editor.');
-      error.name = 'AboutNarrativeValidationError';
-      error.diagnostics = [{ level: 'error', code: 'future-schema', path: 'schemaVersion', message: error.message }];
-      throw error;
+
+    const loaded = loadAboutNarrativeTrackSource(candidate, { preflight });
+    if (!loaded.valid) {
+      throw validationError(
+        loaded.readOnly
+          ? 'A future About document cannot be saved by this editor.'
+          : loaded.message || 'The About document is invalid.',
+        loaded,
+      );
     }
-    assertValidAboutNarrativeDocument(migrated.document);
-    const serialized = serializeAboutNarrativeDocument(migrated.document);
+    if (loaded.sourceVersion !== ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) {
+      throw validationError(
+        'Only a schema v3 About document can be saved. Reload the source to migrate it before saving.',
+        loaded,
+        [{
+          level: 'error',
+          code: 'schema-version-write',
+          path: 'schemaVersion',
+          message: 'Persistence accepts only the live schema v3 document model.',
+        }],
+      );
+    }
+
+    const serialized = serializeAboutNarrativeTrackSource(loaded.document, { preflight });
     const document = JSON.parse(serialized);
     const temporaryPath = `${canonicalPath}.tmp-${process.pid}-${randomBytes(6).toString('hex')}`;
     let fileHandle;

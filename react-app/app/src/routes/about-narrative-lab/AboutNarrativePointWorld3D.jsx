@@ -15,6 +15,10 @@ import {
   ABOUT_NARRATIVE_CACHE_LIMITS,
   ABOUT_NARRATIVE_POINT_PROFILES,
 } from './aboutNarrativeRuntimeConstants.js';
+import {
+  classifyAboutNarrativeLayoutProfile,
+  resolveAboutNarrativePointProfile,
+} from './aboutNarrativeProfileResolver.js';
 import { createAboutNarrativeRuntimeDiagnostics } from './aboutNarrativeRuntimeDiagnostics.js';
 import {
   ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
@@ -25,6 +29,13 @@ import {
   inspectAboutNarrativeAnchorSampling,
   sampleAboutNarrativeAnchorPosition,
 } from './aboutNarrativeModifierSampling.js';
+import {
+  findAboutNarrativeWorldById,
+  getAboutNarrativeWorldId,
+  getAboutNarrativeWorldPairId,
+  requireAboutNarrativeWorldId,
+  resolveAboutNarrativeWorldAnchorRailZ,
+} from './aboutNarrativeWorldIdentity.js';
 import { getGlobals } from '../../legacy/modules/core/state.js';
 import { createAboutNarrativeRuntimeResources } from 'virtual:about-narrative-resource-tools';
 import { createAboutNarrativeRuntimeObserver } from 'virtual:about-narrative-runtime-observer';
@@ -341,11 +352,11 @@ function writeWorldTransform(target, world, globals, compact, scratch, storyOffs
   const scale = compact && Number.isFinite(transform.mobileScale)
     ? Number(transform.mobileScale)
     : baseScale;
-  const entryCameraZ = globals.camera.startZ - (world.startWU * globals.camera.cadence);
+  const anchorRailZ = resolveAboutNarrativeWorldAnchorRailZ(world, globals);
   scratch.position.set(
     position[0],
     position[1] + (compact ? Number(transform.mobileYOffset || 0) : 0),
-    entryCameraZ - Number(world.entryDistanceWU || 0) + position[2],
+    anchorRailZ - Number(world.entryDistanceWU || 0) + position[2],
   );
   if (storyOffset) scratch.position.add(storyOffset);
   scratch.euler.set(
@@ -404,10 +415,17 @@ function createPointFieldAdapter({
   interaction,
   disciplineOverlayRef,
   runtimeRef,
+  pointProfile: explicitPointProfile,
 }) {
-  const compact = window.matchMedia('(max-width: 600px), (pointer: coarse)').matches;
-  const quality = compact ? 'mobile' : 'desktop';
+  const initialBounds = root.getBoundingClientRect();
+  const layoutProfile = classifyAboutNarrativeLayoutProfile({
+    inlineSize: initialBounds.width || window.innerWidth,
+    blockSize: initialBounds.height || window.innerHeight,
+  });
+  const quality = explicitPointProfile || resolveAboutNarrativePointProfile(layoutProfile);
+  const compact = quality === 'mobile';
   const pointProfile = ABOUT_NARRATIVE_POINT_PROFILES[quality];
+  if (!pointProfile) throw new RangeError(`Unknown About Narrative point profile: ${quality}.`);
   const pointCount = pointProfile.pointCount;
   const diagnostics = createAboutNarrativeRuntimeDiagnostics({
     initial: { state: 'idle', generation: 0, attemptCount: 0 },
@@ -665,7 +683,6 @@ function createPointFieldAdapter({
   const disciplineLabelPositionUnit = new Uint8Array(6);
   let cachedDisciplineOverlay = null;
   let cachedDisciplineChildCount = -1;
-  let lastDisciplineAriaHidden = '';
   let lastDisciplineVisibleCount = Number.NaN;
   let lastDisciplineLabelCount = Number.NaN;
   let lastGridBackground = Number.NaN;
@@ -704,7 +721,6 @@ function createPointFieldAdapter({
     if (overlay === cachedDisciplineOverlay && childCount === cachedDisciplineChildCount) return;
     cachedDisciplineOverlay = overlay || null;
     cachedDisciplineChildCount = childCount;
-    lastDisciplineAriaHidden = '';
     runtimeObserver.hotFrameOwnedAllocation();
     for (let index = 0; index < disciplineLabels.length; index += 1) {
       disciplineLabels[index] = overlay?.querySelector(DISCIPLINE_LABEL_SELECTORS[index]) || null;
@@ -786,7 +802,7 @@ function createPointFieldAdapter({
       pinOwner: 'bootstrap-pending',
       dispose: (value) => resourceLedger?.release('shape-cache', value),
     }).then((output) => {
-      resourceLedger?.retain('shape-cache', output);
+      if (!disposed) resourceLedger?.retain('shape-cache', output);
       return output;
     });
   };
@@ -847,7 +863,7 @@ function createPointFieldAdapter({
     runtimeObserver.pairInstalled(performance.now() - installStartedAt);
     diagnostics.recordLifecycle('pair-installed', {
       installedPairId: installedPair.key,
-      installedWorldId: installedPair.toWorld.sectionId,
+      installedWorldId: getAboutNarrativeWorldId(installedPair.toWorld),
       requestedStrategy: installedPair.requestedStrategy,
       installedStrategy: installedPair.installedStrategy,
       fallbackReason: installedPair.fallbackReason,
@@ -861,8 +877,9 @@ function createPointFieldAdapter({
       const fromOutput = outputs[Math.max(0, index - 1)].output;
       const fromWorld = sequence[Math.max(0, index - 1)];
       const toWorld = sequence[index];
-      pairs.set(toWorld.sectionId, {
-        key: `${key}:${toWorld.sectionId}`,
+      const toWorldId = requireAboutNarrativeWorldId(toWorld, 'Prepared target World');
+      pairs.set(toWorldId, {
+        key: `${key}:${toWorldId}`,
         fromWorld,
         toWorld,
         fromOutput,
@@ -877,7 +894,7 @@ function createPointFieldAdapter({
     return {
       key,
       pairs,
-      worldIds: sequence.map((world) => world.sectionId),
+      worldIds: sequence.map((world) => requireAboutNarrativeWorldId(world, 'Prepared World')),
       preparationDurationMs: performance.now() - startedAt,
       mainThreadApplicationMs: 0,
       generationDurationMs: Number(timings?.generationMs || 0),
@@ -934,9 +951,12 @@ function createPointFieldAdapter({
       const releasePendingPublication = () => {
         if (!ownsPendingPublication) return;
         ownsPendingPublication = false;
-        resourceLedger?.releaseOwner('pending-publication');
+        if (!disposed) resourceLedger?.releaseOwner('pending-publication');
       };
       try {
+        if (disposed || signal.aborted) {
+          throw new DOMException('Preparation was aborted.', 'AbortError');
+        }
         if (resourceLedger) {
           resourceLedger.retain('pending-publication', event.data);
           ownsPendingPublication = true;
@@ -1015,6 +1035,7 @@ function createPointFieldAdapter({
     validateCandidate: (candidate) => candidate,
     publishReady: (candidate, identity) => {
       try {
+        if (disposed) throw new DOMException('Preparation was aborted.', 'AbortError');
         const request = activePreparation;
         if (!request || request.sequenceKey !== identity.sequenceKey) throw new Error('Preparation intent became stale.');
         const response = candidate.response;
@@ -1082,7 +1103,7 @@ function createPointFieldAdapter({
       if (disposed || installedPair || requestId !== bootstrapRequestId
         || activePreparation?.sequenceKey !== sequenceKey) return;
       installPreparedPair({
-        key: `${sequenceKey}:${targetWorld.sectionId}:bootstrap`,
+        key: `${sequenceKey}:${requireAboutNarrativeWorldId(targetWorld, 'Bootstrap World')}:bootstrap`,
         fromWorld: targetWorld,
         toWorld: targetWorld,
         fromOutput: output,
@@ -1104,6 +1125,10 @@ function createPointFieldAdapter({
     const sequence = descriptor?.runtimeWorlds || descriptor?.worlds;
     const globals = descriptor?.globals || { camera: descriptor?.camera };
     if (!sequenceKey || !Array.isArray(sequence) || !sequence.length || !globals?.camera) return false;
+    if (descriptor?.profile && descriptor.profile !== quality) {
+      root.dataset.worldError = `Point profile ${descriptor.profile} requires a renderer remount.`;
+      return false;
+    }
     if (readySequence?.key === sequenceKey) return true;
     const cached = sequenceCache.get(sequenceKey);
     if (cached) {
@@ -1118,12 +1143,12 @@ function createPointFieldAdapter({
       return true;
     }
     if (activePreparation?.sequenceKey === sequenceKey && sequenceState === 'loading') {
-      const nextTarget = sequence.find((world) => world.sectionId === targetWorldId) || sequence[0];
+      const nextTarget = findAboutNarrativeWorldById(sequence, targetWorldId) || sequence[0];
       bootstrapTarget(sequenceKey, nextTarget);
       return true;
     }
     const entries = sequence.map((world, index) => ({
-      id: world.sectionId,
+      id: requireAboutNarrativeWorldId(world, 'Worker World'),
       mode: index === 0
         ? 'index-v1'
         : world.transitionIn?.correspondence || world.correspondence || 'index-v1',
@@ -1164,7 +1189,7 @@ function createPointFieldAdapter({
     }
     sequenceState = 'loading';
     root.dataset.worldPrepare = 'loading';
-    const targetWorld = sequence.find((world) => world.sectionId === targetWorldId) || sequence[0];
+    const targetWorld = findAboutNarrativeWorldById(sequence, targetWorldId) || sequence[0];
     bootstrapTarget(sequenceKey, targetWorld);
     return true;
   };
@@ -1199,12 +1224,9 @@ function createPointFieldAdapter({
     target.set(0, 0, 0);
     const revealState = frame.disciplineReveal;
     const reveal = revealState?.config;
-    const local = Number(revealState?.localProgress ?? -1);
-    if (frame.reducedMotion || !hasDisciplineAnchors || !reveal || local < 0) return 0;
-    const travelStart = Number(reveal.fieldTravelStart ?? 0.06);
-    const travelEnd = Number(reveal.fieldTravelEnd ?? 2.7);
+    if (frame.reducedMotion || !hasDisciplineAnchors || !revealState?.active || !reveal) return 0;
     const travelDistance = Number(reveal.fieldTravelWU ?? 6.8) * (compact ? 0.72 : 1);
-    const rise = travelDistance * smoothRange(local, travelStart, travelEnd);
+    const rise = travelDistance * Number(revealState.fieldTravelProgress || 0);
     cameraUpScratch.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
     target.copy(cameraUpScratch).multiplyScalar(rise);
     return rise;
@@ -1226,9 +1248,9 @@ function createPointFieldAdapter({
     const gridDisciplineIndices = disciplineWorld === toWorld
       ? toDisciplineIndices
       : fromDisciplineIndices;
-    const local = Number(revealState?.localProgress ?? -1);
-    const revealAvailable = Boolean(reveal && disciplineWorld && local >= 0);
-    const reducedActive = frame.reducedMotion && frame.sectionIndex === revealState?.sectionIndex;
+    const storyWU = Number(frame.storyWU || 0);
+    const revealAvailable = Boolean(reveal && disciplineWorld && revealState?.active);
+    const reducedActive = Boolean(revealState?.settled && revealState?.labelActive);
     disciplineWeights.fill(0);
     disciplineLabelBaseReveal.fill(0);
 
@@ -1236,26 +1258,23 @@ function createPointFieldAdapter({
     let visibleLabels = 0;
     let fieldFogWeight = 0;
     if (revealAvailable) {
-      backgroundWeight = reducedActive
-        ? 1
-        : smoothRange(local, reveal.start, reveal.start + reveal.backgroundFade);
+      backgroundWeight = Number(revealState.backgroundProgress || 0);
+      const travelSpanWU = Math.max(0.00001, revealState.fieldTravelEndWU - revealState.fieldTravelStartWU);
+      const fogInEndWU = revealState.fieldTravelStartWU + (travelSpanWU * 0.18);
       fieldFogWeight = reducedActive
         ? 0
-        : smoothRange(local, reveal.fieldTravelStart, reveal.fieldTravelStart + 0.18)
-          * (1 - smoothRange(local, reveal.end, reveal.end + 0.2));
-      const lastRevealEnd = reveal.start
-        + (Math.max(0, reveal.items.length - 1) * reveal.stagger)
-        + reveal.labelDuration;
-      const exitStart = Math.min(reveal.end, lastRevealEnd + reveal.hold);
-      const exitProgress = reducedActive ? 0 : smoothRange(local, exitStart, reveal.end);
+        : smoothRange(storyWU, revealState.fieldTravelStartWU, fogInEndWU)
+          * (1 - smoothRange(storyWU, revealState.endWU, revealState.endWU + (travelSpanWU * 0.2)));
+      const exitStartWU = Math.min(revealState.endWU, Number(reveal.labelSequenceEndWU));
+      const exitProgress = reducedActive ? 0 : smoothRange(storyWU, exitStartWU, revealState.endWU);
       for (let orderIndex = 0; orderIndex < reveal.items.length; orderIndex += 1) {
         const item = reveal.items[orderIndex];
-        const itemStart = reveal.start + (orderIndex * reveal.stagger);
+        const itemStartWU = revealState.startWU + (orderIndex * revealState.staggerWU);
         const itemReveal = reducedActive
           ? 1
-          : smoothRange(local, itemStart, itemStart + reveal.labelDuration);
+          : smoothRange(storyWU, itemStartWU, itemStartWU + revealState.labelDurationWU);
         disciplineWeights[item.group - 1] = itemReveal;
-        const labelReveal = local <= reveal.end ? itemReveal * (1 - exitProgress) : 0;
+        const labelReveal = storyWU <= revealState.endWU ? itemReveal * (1 - exitProgress) : 0;
         disciplineLabelBaseReveal[item.group - 1] = labelReveal;
       }
     }
@@ -1371,12 +1390,6 @@ function createPointFieldAdapter({
           writeDisciplineRevealStyles(group - 1, 0);
         }
       }
-      const nextAriaHidden = visibleLabels > 0 ? 'false' : 'true';
-      if (nextAriaHidden !== lastDisciplineAriaHidden) {
-        overlay.setAttribute('aria-hidden', nextAriaHidden);
-        lastDisciplineAriaHidden = nextAriaHidden;
-        runtimeObserver.hotFrameDomWrite();
-      }
     }
     let visibleDisciplineCount = 0;
     for (let index = 0; index < disciplineWeights.length; index += 1) {
@@ -1407,24 +1420,36 @@ function createPointFieldAdapter({
   const render = (frame) => {
     latestFrame = frame;
     if (!frame || !contextAvailable || document.hidden) return;
+    if (frame.pointProfile && frame.pointProfile !== quality) {
+      if (lastInteractionEnabled !== false) {
+        interaction.dataset.active = 'false';
+        interaction.tabIndex = -1;
+        lastInteractionEnabled = false;
+        runtimeObserver.hotFrameDomWrite(2);
+      }
+      return;
+    }
     const requestedFromWorld = frame.world.from || frame.world.to;
     const requestedToWorld = frame.world.to || requestedFromWorld;
     if (!requestedFromWorld || !requestedToWorld) return;
+    const requestedFromWorldId = getAboutNarrativeWorldId(requestedFromWorld);
+    const requestedToWorldId = getAboutNarrativeWorldId(requestedToWorld);
+    if (!requestedFromWorldId || !requestedToWorldId) return;
     const requestedSequenceKey = frame.world.sequenceKey;
     const preparedPair = readySequence?.key === requestedSequenceKey
-      ? readySequence.pairs.get(requestedToWorld.sectionId)
+      ? readySequence.pairs.get(requestedToWorldId)
       : null;
     if (preparedPair
-      && preparedPair.fromWorld.sectionId === requestedFromWorld.sectionId
-      && preparedPair.toWorld.sectionId === requestedToWorld.sectionId) {
+      && getAboutNarrativeWorldId(preparedPair.fromWorld) === requestedFromWorldId
+      && getAboutNarrativeWorldId(preparedPair.toWorld) === requestedToWorldId) {
       preparedPair.fromWorld = requestedFromWorld;
       preparedPair.toWorld = requestedToWorld;
       installPreparedPair(preparedPair);
     }
     if (!installedPair) return;
     runtimeObserver.hotFrameStarted();
-    const pairMatchesRequest = installedPair.fromWorld.sectionId === requestedFromWorld.sectionId
-      && installedPair.toWorld.sectionId === requestedToWorld.sectionId;
+    const pairMatchesRequest = getAboutNarrativeWorldId(installedPair.fromWorld) === requestedFromWorldId
+      && getAboutNarrativeWorldId(installedPair.toWorld) === requestedToWorldId;
     if (pairMatchesRequest) {
       installedPair.fromWorld = requestedFromWorld;
       installedPair.toWorld = requestedToWorld;
@@ -1563,11 +1588,13 @@ function createPointFieldAdapter({
     }
     updateDisciplineReveal(frame, fromWorld, toWorld);
 
+    const activeInteraction = frame.interactions?.activeInteraction;
     const interactionEnabled = pairMatchesRequest
       && bustController.interactive
       && !formingBust
-      && frame.section.interaction?.type === 'horizontal-spin'
-      && frame.localProgress >= Number(frame.section.interaction.activationStart || 0);
+      && activeInteraction?.type === 'horizontal-spin'
+      && activeInteraction.targetWorldId === requestedToWorldId
+      && frame.interactions.interactionActivated;
     if (interactionEnabled !== lastInteractionEnabled) {
       interaction.dataset.active = interactionEnabled ? 'true' : 'false';
       interaction.tabIndex = interactionEnabled ? 0 : -1;
@@ -1707,7 +1734,7 @@ function createPointFieldAdapter({
     const webglSnapshot = webglTracker?.getSnapshot();
     const pairs = readySequence
       ? [...readySequence.pairs.values()].map((pair) => Object.freeze({
-        pairId: `${pair.fromWorld.sectionId}->${pair.toWorld.sectionId}`,
+        pairId: getAboutNarrativeWorldPairId(pair.fromWorld, pair.toWorld),
         inputFingerprint: activePreparation?.inputFingerprint || '',
         state: 'ready',
         source: 'worker',
@@ -1723,7 +1750,7 @@ function createPointFieldAdapter({
       pendingSequenceKey: lifecycle.state === 'preparing' ? lifecycle.sequenceKey || '' : '',
       failedSequenceKey: lifecycle.state === 'failed' ? lifecycle.sequenceKey || '' : '',
       installedPairId: installedPair?.key || '',
-      installedWorldId: installedPair?.toWorld?.sectionId || '',
+      installedWorldId: getAboutNarrativeWorldId(installedPair?.toWorld),
       ...runtimeObserver.getLifecycleFields(),
       shapeCache: shapeCacheSnapshot,
       sequenceCache: sequenceCacheSnapshot,
@@ -1833,7 +1860,13 @@ function createPointFieldAdapter({
   };
 }
 
-export function AboutNarrativePointWorld3D({ rootRef, interactionRef, disciplineOverlayRef, runtimeRef }) {
+export function AboutNarrativePointWorld3D({
+  rootRef,
+  interactionRef,
+  disciplineOverlayRef,
+  runtimeRef,
+  pointProfile = '',
+}) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -1848,13 +1881,14 @@ export function AboutNarrativePointWorld3D({ rootRef, interactionRef, discipline
         interaction,
         disciplineOverlayRef,
         runtimeRef,
+        pointProfile,
       });
     } catch (error) {
       root.dataset.pointWorldState = 'unavailable';
       console.warn('[About narrative] Point world unavailable; continuing with editorial content.', error);
       return () => { delete root.dataset.pointWorldState; };
     }
-  }, [disciplineOverlayRef, interactionRef, rootRef, runtimeRef]);
+  }, [disciplineOverlayRef, interactionRef, pointProfile, rootRef, runtimeRef]);
 
   return <canvas ref={canvasRef} className="about-narrative-world__canvas" aria-hidden="true" />;
 }

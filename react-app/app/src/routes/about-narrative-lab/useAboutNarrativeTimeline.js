@@ -4,17 +4,24 @@ import {
   createSmoothScrollMediaQueries,
   shouldUseNativeSmoothScroll,
 } from '../../lib/smooth-scroll.js';
+import { remapAboutNarrativeScrollTop } from './aboutNarrativeProfileResolver.js';
 import {
-  compileAboutNarrativeDocument,
-  createAboutNarrativeFrameSample,
-  getAboutNarrativePreparationRequest,
-  getAboutNarrativeCueMovement,
-  getAboutNarrativeReducedCueIndex,
-  sampleAboutNarrativeCue,
-  sampleAboutNarrativePlanInto,
-} from './aboutNarrativeCompiler.js';
+  compileAboutNarrativeRuntimePlan,
+  createAboutNarrativeRuntimeFrameSample,
+  createAboutNarrativeTitleFieldSample,
+  getAboutNarrativeRuntimePreparationRequest,
+  sampleAboutNarrativeRuntimePlanInto,
+  sampleAboutNarrativeTitleFieldInto,
+} from './aboutNarrativeRuntimePlan.js';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
+const EMPTY_MEASUREMENTS = Object.freeze({
+  dirty: true,
+  viewportHeight: 0,
+  editorialLines: [],
+  titleFields: [],
+  contextFields: [],
+});
 
 export const ABOUT_SCROLL_INDICATOR_TICK_COUNT = 18;
 export const ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT = 2;
@@ -23,6 +30,50 @@ const ABOUT_SCROLL_INDICATOR_MAX_START_INDEX = Math.max(
   ABOUT_SCROLL_INDICATOR_TICK_COUNT - ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
 );
 
+function getPreviewOptions(editorStore) {
+  const previewState = editorStore?.getSnapshot?.()?.previewState;
+  return {
+    previewLayoutProfile: previewState?.layoutProfile,
+    previewMotionProfile: previewState?.motionProfile,
+  };
+}
+
+function createInitialPlan(document, editorStore) {
+  const canReadViewport = typeof window !== 'undefined';
+  return compileAboutNarrativeRuntimePlan(document, {
+    inlineSize: canReadViewport ? window.innerWidth : undefined,
+    blockSize: canReadViewport ? window.innerHeight : undefined,
+    ...getPreviewOptions(editorStore),
+  });
+}
+
+function getTransport(editorStore) {
+  return editorStore?.getSnapshot?.()?.transport || null;
+}
+
+function getPlaybackDocument(documentRef, editorStore) {
+  return editorStore?.getSnapshot?.()?.document || documentRef.current;
+}
+
+function isFieldActive(field, storyWU, durationWU) {
+  if (storyWU < Number(field.startWU)) return false;
+  if (storyWU < Number(field.endWU)) return true;
+  return Math.abs(storyWU - durationWU) <= 0.000001
+    && Math.abs(Number(field.endWU) - durationWU) <= 0.000001;
+}
+
+function getEditorialReveal(field, lineIndex, lineCount, storyWU, reducedMotion) {
+  const startWU = Number(field.startWU);
+  const focusWU = Number(field.focusWU);
+  if (reducedMotion) return storyWU >= startWU ? 1 : 0;
+  if (focusWU <= startWU) return storyWU >= startWU ? 1 : 0;
+  const count = Math.max(1, lineCount);
+  const spanWU = Math.max(0.000001, focusWU - startWU);
+  const revealStartWU = startWU + (spanWU * (lineIndex / count));
+  const revealEndWU = startWU + (spanWU * ((lineIndex + 1) / count));
+  return clamp01((storyWU - revealStartWU) / Math.max(0.000001, revealEndWU - revealStartWU));
+}
+
 export function useAboutNarrativeTimeline({
   document,
   editorStore = null,
@@ -30,26 +81,29 @@ export function useAboutNarrativeTimeline({
   worldRuntimeRef,
   scrollportRef,
   contentRef,
-  sectionRefs,
 }) {
-  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const initialPlanRef = useRef(null);
+  if (initialPlanRef.current == null) {
+    initialPlanRef.current = createInitialPlan(document, editorStore);
+  }
+  const [runtimePlan, setRuntimePlan] = useState(initialPlanRef.current);
+  const [storyWU, setStoryWU] = useState(0);
+  const [storyProgress, setStoryProgress] = useState(0);
   const [activeIndicatorStartIndex, setActiveIndicatorStartIndex] = useState(0);
-  const activeSectionIndexRef = useRef(0);
+  const storyWURef = useRef(0);
+  const storyProgressRef = useRef(0);
   const activeIndicatorStartIndexRef = useRef(0);
   const documentRef = useRef(document);
-  const planRef = useRef(compileAboutNarrativeDocument(document));
+  const planRef = useRef(initialPlanRef.current);
   const frameSampleRef = useRef(null);
   const frameSampleOptionsRef = useRef(null);
-  if (frameSampleRef.current == null) frameSampleRef.current = createAboutNarrativeFrameSample();
-  if (frameSampleOptionsRef.current == null) {
-    frameSampleOptionsRef.current = {
-      ambientSeconds: 0,
-      reducedMotion: false,
-      liveAmbient: true,
-    };
-  }
-  const measurementsRef = useRef({ dirty: true, sections: [], editorialLines: [] });
+  const titleSampleByIdRef = useRef(new Map());
+  const measurementsRef = useRef({ ...EMPTY_MEASUREMENTS });
   const requestMeasureRef = useRef(() => {});
+  if (frameSampleRef.current == null) frameSampleRef.current = createAboutNarrativeRuntimeFrameSample();
+  if (frameSampleOptionsRef.current == null) {
+    frameSampleOptionsRef.current = { ambientSeconds: 0, deltaSeconds: 0, liveAmbient: true };
+  }
 
   useLayoutEffect(() => {
     documentRef.current = document;
@@ -67,21 +121,36 @@ export function useAboutNarrativeTimeline({
     let lenis = null;
     let raf = 0;
     let previousTime = performance.now();
+    let lastReactPublish = 0;
     let lastTransportPublish = 0;
     let playbackWU = 0;
     let previousTransportOwner = 'scroll';
     let measureTimer = 0;
     let preparationTimer = 0;
     let lastPreparationIdentity = '';
+    let installedDocument = null;
+    let installedProfileKey = '';
+    let lastDiagnosticKey = '';
+    let disposed = false;
+    let lastStoreDocument = editorStore?.getSnapshot?.()?.document || null;
+    let lastStorePreviewKey = JSON.stringify(editorStore?.getSnapshot?.()?.previewState || null);
 
     const getCurrentStoryWU = () => {
-      const transport = editorStore?.getSnapshot().transport;
-      if (transport && transport.owner !== 'scroll') return Number(transport.storyWU || 0);
-      return scrollport.scrollTop / Math.max(1, scrollport.clientHeight);
+      const transport = getTransport(editorStore);
+      if (transport && transport.owner !== 'scroll') return Number(transport.storyWU) || 0;
+      const viewportHeight = Math.max(1, measurementsRef.current.viewportHeight || scrollport.clientHeight);
+      const scrollWU = scrollport.scrollTop / viewportHeight;
+      return planRef.current?.resolver?.storyWUFromScrollWU(scrollWU) || 0;
     };
 
-    const handoffPreparation = (storyWU, { force = false } = {}) => {
-      const request = getAboutNarrativePreparationRequest(planRef.current, storyWU);
+    const setScrollFromStoryWU = (nextStoryWU, viewportHeight = scrollport.clientHeight) => {
+      const resolver = planRef.current?.resolver;
+      if (!resolver) return;
+      scrollport.scrollTop = resolver.scrollWUFromStoryWU(nextStoryWU) * Math.max(1, viewportHeight);
+    };
+
+    const handoffPreparation = (nextStoryWU, { force = false } = {}) => {
+      const request = getAboutNarrativeRuntimePreparationRequest(planRef.current, nextStoryWU);
       const runtime = worldRuntimeRef.current;
       if (!request || typeof runtime?.preparePlan !== 'function') return false;
       const identity = `${request.sequenceKey}:${request.targetWorldId}`;
@@ -91,51 +160,150 @@ export function useAboutNarrativeTimeline({
       return true;
     };
 
-    const schedulePreparationHandoff = (storyWU = getCurrentStoryWU(), options) => {
+    const schedulePreparationHandoff = (nextStoryWU = getCurrentStoryWU(), options) => {
       window.clearTimeout(preparationTimer);
       preparationTimer = window.setTimeout(() => {
         preparationTimer = 0;
-        handoffPreparation(storyWU, options);
+        handoffPreparation(nextStoryWU, options);
       }, 0);
+    };
+
+    const rebuildLenis = () => {
+      lenis?.destroy();
+      lenis = null;
+      const transport = getTransport(editorStore);
+      if (transport && transport.owner !== 'scroll') return;
+      if (planRef.current?.motionProfile === 'reduced') return;
+      if (shouldUseNativeSmoothScroll({ reducedMotionQuery, nativeScrollQuery })) return;
+      lenis = createSmoothScroll({
+        wrapper: scrollport,
+        content,
+        smoothing: planRef.current?.model?.globals?.scrollSmoothing
+          ?? documentRef.current.globals.scrollSmoothing,
+      });
+    };
+
+    const collectContentPressure = (viewportHeight) => {
+      const pressure = {};
+      content.querySelectorAll('[data-text-field-id]').forEach((node) => {
+        const fieldId = node.dataset.textFieldId;
+        if (!fieldId) return;
+        const measuredHeightPx = Math.max(node.scrollHeight, node.getBoundingClientRect().height);
+        const previous = pressure[fieldId]?.measuredHeightPx || 0;
+        pressure[fieldId] = {
+          measuredHeightPx: Math.max(previous, measuredHeightPx),
+          viewportHeightPx: viewportHeight,
+        };
+      });
+      return pressure;
+    };
+
+    const cacheSemanticNodes = (plan) => {
+      const fieldsById = new Map(plan.textFields.map((field) => [field.id, field]));
+      const editorialCounts = new Map();
+      const editorialIndexes = new Map();
+      const editorialNodes = Array.from(content.querySelectorAll('[data-editorial-line]'));
+      editorialNodes.forEach((node) => {
+        const fieldId = node.closest('[data-text-field-id]')?.dataset.textFieldId;
+        if (fieldId) editorialCounts.set(fieldId, (editorialCounts.get(fieldId) || 0) + 1);
+      });
+      const editorialLines = editorialNodes.flatMap((node) => {
+        const fieldId = node.closest('[data-text-field-id]')?.dataset.textFieldId;
+        const field = fieldsById.get(fieldId);
+        const isEditorialField = field?.kind === 'scroll-block'
+          || (field?.kind === 'title' && field.movement === 'vertical');
+        if (!isEditorialField) return [];
+        const lineIndex = editorialIndexes.get(fieldId) || 0;
+        editorialIndexes.set(fieldId, lineIndex + 1);
+        return [{ node, field, lineIndex, lineCount: editorialCounts.get(fieldId) || 1 }];
+      });
+      const titleFields = [];
+      const contextFields = [];
+      content.querySelectorAll('[data-text-field-id]').forEach((node) => {
+        const field = fieldsById.get(node.dataset.textFieldId);
+        if (!field) return;
+        if (field.kind === 'title' && field.movement === 'spatial') {
+          let sample = titleSampleByIdRef.current.get(field.id);
+          if (!sample) {
+            sample = createAboutNarrativeTitleFieldSample();
+            titleSampleByIdRef.current.set(field.id, sample);
+          }
+          titleFields.push({ node, field, sample });
+        }
+        if (field.presentation?.layout === 'text-bust-cta') contextFields.push({ node, field });
+      });
+      measurementsRef.current = {
+        ...measurementsRef.current,
+        dirty: false,
+        editorialLines,
+        titleFields,
+        contextFields,
+      };
     };
 
     const measure = () => {
       const viewportHeight = Math.max(1, scrollport.clientHeight);
+      const viewportWidth = Math.max(1, scrollport.clientWidth);
+      const previousViewportHeight = Math.max(
+        1,
+        measurementsRef.current.viewportHeight || viewportHeight,
+      );
+      const previousPlan = planRef.current;
+      const transport = getTransport(editorStore);
+      const sourceDocument = getPlaybackDocument(documentRef, editorStore);
+      const contentPressure = collectContentPressure(viewportHeight);
+      const candidate = compileAboutNarrativeRuntimePlan(sourceDocument, {
+        inlineSize: viewportWidth,
+        blockSize: viewportHeight,
+        prefersReducedMotion: reducedMotionQuery.matches,
+        ...getPreviewOptions(editorStore),
+        contentPressure,
+      });
+
       root.style.setProperty('--narrative-viewport-height', `${viewportHeight}px`);
-      const scrollRect = scrollport.getBoundingClientRect();
-      const scrollTop = scrollport.scrollTop;
-      const sections = sectionRefs.current.map((node) => {
-        if (!node) return null;
-        const rect = node.getBoundingClientRect();
-        return {
-          top: rect.top - scrollRect.top + scrollTop,
-          height: rect.height,
-        };
-      });
-      const profile = window.matchMedia('(max-width: 600px), (pointer: coarse)').matches ? 'mobile' : 'desktop';
-      const authored = documentRef.current;
-      const hydrated = Object.fromEntries(authored.sections.map((section, index) => [
-        section.id,
-        {
-          topWU: (sections[index]?.top || 0) / viewportHeight,
-          extentWU: (sections[index]?.height || viewportHeight) / viewportHeight,
-        },
-      ]));
-      const editorProfile = editorStore?.getSnapshot().previewProfile;
-      planRef.current = compileAboutNarrativeDocument(authored, {
-        profile: editorProfile === 'mobile' ? 'mobile' : profile,
-        measurements: hydrated,
-      });
-      const editorialLines = Array.from(content.querySelectorAll('[data-editorial-line]')).map((node) => {
-        const rect = node.getBoundingClientRect();
-        return { node, top: rect.top - scrollRect.top + scrollTop };
-      });
-      measurementsRef.current = { dirty: false, sections, editorialLines };
-      editorStore?.setRuntimePlan?.(planRef.current);
-      schedulePreparationHandoff(getCurrentStoryWU(), { force: true });
+      measurementsRef.current = { ...measurementsRef.current, viewportHeight };
+      if (!candidate.valid) {
+        editorStore?.setRuntimePlan?.(candidate);
+        measurementsRef.current.dirty = false;
+        return;
+      }
+
+      const profileKey = `${candidate.layoutProfile}:${candidate.motionProfile}`;
+      const modelOrProfileChanged = sourceDocument !== installedDocument
+        || profileKey !== installedProfileKey;
+      const preservedStoryWU = transport && transport.owner !== 'scroll'
+        ? Number(transport.storyWU) || 0
+        : previousPlan?.resolver ? remapAboutNarrativeScrollTop({
+          scrollTop: scrollport.scrollTop,
+          previousViewportHeight,
+          nextViewportHeight: viewportHeight,
+          previousResolver: previousPlan.resolver,
+          nextResolver: candidate.resolver,
+        }).storyWU : candidate.resolver.storyWUFromScrollWU(
+          scrollport.scrollTop / viewportHeight,
+        );
+
+      planRef.current = candidate;
+      root.style.setProperty('--narrative-content-extent-wu', candidate.resolver.contentExtentWU);
+      setScrollFromStoryWU(preservedStoryWU, viewportHeight);
+      cacheSemanticNodes(candidate);
+
+      const diagnosticKey = JSON.stringify(candidate.diagnostics);
+      if (modelOrProfileChanged) {
+        installedDocument = sourceDocument;
+        installedProfileKey = profileKey;
+        setRuntimePlan(candidate);
+        editorStore?.setRuntimePlan?.(candidate);
+        schedulePreparationHandoff(preservedStoryWU, { force: true });
+        rebuildLenis();
+      } else if (diagnosticKey !== lastDiagnosticKey) {
+        editorStore?.setRuntimePlan?.(candidate);
+      }
+      lastDiagnosticKey = diagnosticKey;
     };
 
     const scheduleMeasure = () => {
+      if (disposed) return;
       measurementsRef.current.dirty = true;
       window.clearTimeout(measureTimer);
       measureTimer = window.setTimeout(() => {
@@ -145,86 +313,75 @@ export function useAboutNarrativeTimeline({
     };
     requestMeasureRef.current = scheduleMeasure;
 
-    const updateTextCues = (frame, reducedMotion) => {
-      documentRef.current.sections.forEach((section) => {
-        const sectionNode = content.querySelector(`[data-narrative-section="${section.id}"]`);
-        if (!sectionNode || !['spatial', 'finale'].includes(section.type)) return;
-        const local = frame.section.id === section.id
-          ? frame.localProgress
-          : frame.storyWU < (planRef.current.sections.find((item) => item.id === section.id)?.startWU || 0) ? 0 : 1;
-        const cues = (section.text.cues || []).filter((cue) => getAboutNarrativeCueMovement(cue) === 'spatial');
-        const reducedIndex = reducedMotion
-          ? getAboutNarrativeReducedCueIndex(cues, local, frame.globals.textMotion)
-          : -1;
-        cues.forEach((cue, cueIndex) => {
-          const node = sectionNode.querySelector(`[data-text-cue="${cue.id}"]`);
-          if (!node) return;
-          const state = sampleAboutNarrativeCue(
-            cue,
-            local,
-            frame.globals.textMotion,
-            reducedMotion,
-          );
-          const visible = reducedMotion ? cueIndex === reducedIndex : true;
-          node.style.setProperty('--fragment-x', `${state.x.toFixed(2)}px`);
-          node.style.setProperty('--fragment-y', `${state.y.toFixed(2)}px`);
-          node.style.setProperty('--fragment-z', `${state.z.toFixed(2)}px`);
-          node.style.setProperty('--fragment-blur', `${state.blur.toFixed(2)}px`);
-          node.style.setProperty('--fragment-opacity', visible ? state.opacity.toFixed(4) : '0');
-        });
-        if (section.type === 'finale') {
-          const contextStart = Number(section.interaction?.activationStart ?? 0.54);
-          const contextProgress = reducedMotion
-            ? 1
-            : clamp01((local - contextStart) / 0.14);
-          sectionNode.style.setProperty('--spatial-context-opacity', contextProgress.toFixed(4));
-          sectionNode.style.setProperty('--spatial-context-y', `${((1 - contextProgress) * 16).toFixed(2)}px`);
-        }
-      });
-    };
+    const updateSemanticText = (frame) => {
+      const reducedMotion = frame.reducedMotion;
+      const textMotion = frame.globals.textMotion;
+      for (const { node, field, sample } of measurementsRef.current.titleFields) {
+        sampleAboutNarrativeTitleFieldInto(field, frame.storyWU, textMotion, reducedMotion, sample);
+        const visible = !reducedMotion
+          || isFieldActive(field, frame.storyWU, frame.durationWU);
+        node.style.setProperty('--fragment-x', `${sample.x.toFixed(2)}px`);
+        node.style.setProperty('--fragment-y', `${sample.y.toFixed(2)}px`);
+        node.style.setProperty('--fragment-z', `${sample.z.toFixed(2)}px`);
+        node.style.setProperty('--fragment-blur', `${sample.blur.toFixed(2)}px`);
+        node.style.setProperty('--fragment-opacity', visible ? sample.opacity.toFixed(4) : '0');
+      }
 
-    const updateEditorialCopy = (scrollTop, viewportHeight, reducedMotion, target) => {
-      const threshold = documentRef.current.globals.editorialRevealThreshold;
       let disciplineFocus = 0;
       let gridInfluence = 0;
-      measurementsRef.current.editorialLines.forEach(({ node, top }) => {
-        const progress = reducedMotion
-          ? 1
-          : clamp01(((viewportHeight * threshold) - (top - scrollTop)) / 96);
+      for (const record of measurementsRef.current.editorialLines) {
+        const { node, field, lineIndex, lineCount } = record;
+        const progress = getEditorialReveal(
+          field,
+          lineIndex,
+          lineCount,
+          frame.storyWU,
+          reducedMotion,
+        );
         node.style.setProperty('--editorial-reveal', progress.toFixed(4));
         node.style.setProperty('--editorial-blur', `${((1 - progress) * 3).toFixed(2)}px`);
         node.style.setProperty('--editorial-y', `${((1 - progress) * 12).toFixed(2)}px`);
-        const group = Number(node.dataset.worldGroup || 0);
+        const group = Number(node.dataset.worldGroup) || 0;
         if (group > 0 && progress >= 0.24) disciplineFocus = group;
         if (node.dataset.worldInfluence === 'true') gridInfluence = Math.max(gridInfluence, progress);
-      });
-      target.disciplineFocus = disciplineFocus;
-      target.gridInfluence = gridInfluence;
-      return target;
+      }
+      frame.editorialSignals.disciplineFocus = disciplineFocus;
+      frame.editorialSignals.gridInfluence = gridInfluence;
+
+      for (const { node, field } of measurementsRef.current.contextFields) {
+        const contextProgress = reducedMotion
+          ? (frame.storyWU >= field.startWU ? 1 : 0)
+          : clamp01(
+            (frame.storyWU - field.startWU)
+            / Math.max(0.000001, field.focusWU - field.startWU),
+          );
+        node.style.setProperty('--spatial-context-opacity', contextProgress.toFixed(4));
+        node.style.setProperty('--spatial-context-y', `${((1 - contextProgress) * 16).toFixed(2)}px`);
+      }
     };
 
     const readTransport = (deltaSeconds) => {
-      const transport = editorStore?.getSnapshot().transport;
+      const transport = getTransport(editorStore);
       if (!transport || transport.owner === 'scroll') {
         previousTransportOwner = 'scroll';
-        return scrollport.scrollTop / Math.max(1, scrollport.clientHeight);
+        return getCurrentStoryWU();
       }
       lenis?.stop?.();
       if (transport.owner === 'playback' && transport.playing) {
-        if (previousTransportOwner !== 'playback') playbackWU = transport.storyWU;
+        if (previousTransportOwner !== 'playback') playbackWU = Number(transport.storyWU) || 0;
         previousTransportOwner = 'playback';
         playbackWU += deltaSeconds * 0.42;
         if (transport.loop && playbackWU > transport.loop.endWU) playbackWU = transport.loop.startWU;
-        else if (playbackWU >= planRef.current.maxStoryWU) {
-          playbackWU = planRef.current.maxStoryWU;
+        else if (playbackWU >= planRef.current.durationWU) {
+          playbackWU = planRef.current.durationWU;
           editorStore.setTransport({ playing: false, owner: 'timeline', storyWU: playbackWU });
         }
-        scrollport.scrollTop = playbackWU * scrollport.clientHeight;
+        setScrollFromStoryWU(playbackWU);
         return playbackWU;
       }
       previousTransportOwner = transport.owner;
-      playbackWU = transport.storyWU;
-      scrollport.scrollTop = playbackWU * scrollport.clientHeight;
+      playbackWU = Number(transport.storyWU) || 0;
+      setScrollFromStoryWU(playbackWU);
       return playbackWU;
     };
 
@@ -232,88 +389,76 @@ export function useAboutNarrativeTimeline({
       lenis?.raf(time);
       const deltaSeconds = Math.min(0.05, Math.max(0, (time - previousTime) / 1000));
       previousTime = time;
-      const viewportHeight = Math.max(1, scrollport.clientHeight);
-      const scrollRange = Math.max(0, scrollport.scrollHeight - viewportHeight);
-      const scrollProgress = scrollRange > 0 ? clamp01(scrollport.scrollTop / scrollRange) : 0;
-      const nextIndicatorStartIndex = Math.round(
-        scrollProgress * ABOUT_SCROLL_INDICATOR_MAX_START_INDEX,
-      );
-      if (nextIndicatorStartIndex !== activeIndicatorStartIndexRef.current) {
-        activeIndicatorStartIndexRef.current = nextIndicatorStartIndex;
-        setActiveIndicatorStartIndex(nextIndicatorStartIndex);
-      }
-      const reducedMotion = reducedMotionQuery.matches
-        || editorStore?.getSnapshot().previewProfile === 'reduced-motion';
-      const storyWU = readTransport(deltaSeconds);
+      const nextStoryWU = readTransport(deltaSeconds);
       const sampleOptions = frameSampleOptionsRef.current;
       sampleOptions.ambientSeconds = time / 1000;
-      sampleOptions.reducedMotion = reducedMotion;
-      sampleOptions.liveAmbient = editorStore?.getSnapshot().transport.liveAmbient !== false;
-      const frame = sampleAboutNarrativePlanInto(
+      sampleOptions.deltaSeconds = deltaSeconds;
+      sampleOptions.liveAmbient = getTransport(editorStore)?.liveAmbient !== false;
+      const frame = sampleAboutNarrativeRuntimePlanInto(
         planRef.current,
-        storyWU,
+        nextStoryWU,
         frameSampleRef.current,
         sampleOptions,
       );
 
       if (frame) {
-        frame.deltaSeconds = deltaSeconds;
-        if (frame.sectionIndex !== activeSectionIndexRef.current) {
-          activeSectionIndexRef.current = frame.sectionIndex;
-          setActiveSectionIndex(frame.sectionIndex);
+        const nextStoryProgress = frame.durationWU > 0
+          ? clamp01(frame.storyWU / frame.durationWU)
+          : 0;
+        const nextIndicatorStartIndex = Math.round(
+          nextStoryProgress * ABOUT_SCROLL_INDICATOR_MAX_START_INDEX,
+        );
+        if (nextIndicatorStartIndex !== activeIndicatorStartIndexRef.current) {
+          activeIndicatorStartIndexRef.current = nextIndicatorStartIndex;
+          setActiveIndicatorStartIndex(nextIndicatorStartIndex);
         }
-        root.dataset.activeNarrativeSection = frame.section.id;
+        if (time - lastReactPublish >= 80
+          || Math.abs(frame.storyWU - storyWURef.current) >= frame.durationWU) {
+          storyWURef.current = frame.storyWU;
+          storyProgressRef.current = nextStoryProgress;
+          setStoryWU(frame.storyWU);
+          setStoryProgress(nextStoryProgress);
+          lastReactPublish = time;
+        }
+        root.dataset.activeNarrativeWorld = frame.world.to?.id || '';
         const openingScrollCueVisible = scrollport.scrollTop <= 16;
         root.dataset.openingScrollCue = openingScrollCueVisible ? 'visible' : 'hidden';
         root.style.setProperty('--opening-scroll-cue-opacity', openingScrollCueVisible ? '1' : '0');
         root.style.setProperty('--narrative-story-wu', frame.storyWU.toFixed(4));
-        updateTextCues(frame, reducedMotion);
-        updateEditorialCopy(
-          scrollport.scrollTop,
-          viewportHeight,
-          reducedMotion,
-          frame.editorialSignals,
-        );
+        updateSemanticText(frame);
         worldRuntimeRef.current?.render(frame);
         if (editorStore && time - lastTransportPublish > 80) {
-          const current = editorStore.getSnapshot().transport;
-          if (current.owner === 'scroll') editorStore.setTransport({ storyWU: frame.storyWU });
+          const current = getTransport(editorStore);
+          if (current?.owner === 'scroll') editorStore.setTransport({ storyWU: frame.storyWU });
           lastTransportPublish = time;
         }
       }
       raf = window.requestAnimationFrame(renderFrame);
     };
 
-    const rebuildLenis = () => {
-      lenis?.destroy();
-      lenis = null;
-      const transport = editorStore?.getSnapshot().transport;
-      if (transport && transport.owner !== 'scroll') return;
-      if (shouldUseNativeSmoothScroll({ reducedMotionQuery, nativeScrollQuery })) return;
-      lenis = createSmoothScroll({
-        wrapper: scrollport,
-        content,
-        smoothing: documentRef.current.globals.scrollSmoothing,
-      });
-    };
     const markDirty = () => { scheduleMeasure(); };
-    const handleMediaChange = () => { rebuildLenis(); markDirty(); };
+    const handleReducedMotionChange = () => { rebuildLenis(); markDirty(); };
+    const handleNativeScrollChange = () => { rebuildLenis(); };
     const cancelPlayback = () => {
-      const transport = editorStore?.getSnapshot().transport;
+      const transport = getTransport(editorStore);
       if (!transport || transport.owner === 'scroll') return;
-      editorStore.setTransport({
-        owner: 'scroll',
-        playing: false,
-        storyWU: scrollport.scrollTop / Math.max(1, scrollport.clientHeight),
-      });
+      const nextStoryWU = Number(transport.storyWU) || getCurrentStoryWU();
+      setScrollFromStoryWU(nextStoryWU);
+      editorStore.setTransport({ owner: 'scroll', playing: false, storyWU: nextStoryWU });
       rebuildLenis();
     };
     const handleStoreChange = () => {
-      const state = editorStore?.getSnapshot();
+      const state = editorStore?.getSnapshot?.();
       if (!state) return;
-      if (state.compiledPlan?.document !== planRef.current.document) markDirty();
-      else schedulePreparationHandoff(state.transport.storyWU);
-      if (state.transport.owner === 'scroll') {
+      const nextPreviewKey = JSON.stringify(state.previewState || null);
+      if (state.document !== lastStoreDocument || nextPreviewKey !== lastStorePreviewKey) {
+        lastStoreDocument = state.document;
+        lastStorePreviewKey = nextPreviewKey;
+        markDirty();
+      } else {
+        schedulePreparationHandoff(Number(state.transport?.storyWU) || 0);
+      }
+      if (state.transport?.owner === 'scroll') {
         if (lenis) lenis.start?.();
         else rebuildLenis();
       }
@@ -328,41 +473,43 @@ export function useAboutNarrativeTimeline({
     const resizeObserver = new ResizeObserver(markDirty);
     resizeObserver.observe(scrollport);
     resizeObserver.observe(content);
-    reducedMotionQuery.addEventListener('change', handleMediaChange);
-    nativeScrollQuery.addEventListener('change', handleMediaChange);
+    reducedMotionQuery.addEventListener('change', handleReducedMotionChange);
+    nativeScrollQuery.addEventListener('change', handleNativeScrollChange);
     scrollport.addEventListener('wheel', cancelPlayback, { passive: true });
     scrollport.addEventListener('touchstart', cancelPlayback, { passive: true });
     scrollport.addEventListener('scroll', handleScrollPreparation, { passive: true });
     window.document.addEventListener('visibilitychange', handleVisibilityChange);
     root.addEventListener('about:world-runtime-ready', handleRuntimeReady);
-    const unsubscribe = editorStore?.subscribe(handleStoreChange);
+    const unsubscribe = editorStore?.subscribe?.(handleStoreChange);
     window.document.fonts?.ready?.then(markDirty).catch(() => {});
-    rebuildLenis();
     measure();
+    rebuildLenis();
     raf = window.requestAnimationFrame(renderFrame);
 
     return () => {
+      disposed = true;
       window.cancelAnimationFrame(raf);
       window.clearTimeout(measureTimer);
       window.clearTimeout(preparationTimer);
       lenis?.destroy();
       resizeObserver.disconnect();
       unsubscribe?.();
-      reducedMotionQuery.removeEventListener('change', handleMediaChange);
-      nativeScrollQuery.removeEventListener('change', handleMediaChange);
+      reducedMotionQuery.removeEventListener('change', handleReducedMotionChange);
+      nativeScrollQuery.removeEventListener('change', handleNativeScrollChange);
       scrollport.removeEventListener('wheel', cancelPlayback);
       scrollport.removeEventListener('touchstart', cancelPlayback);
       scrollport.removeEventListener('scroll', handleScrollPreparation);
       window.document.removeEventListener('visibilitychange', handleVisibilityChange);
       root.removeEventListener('about:world-runtime-ready', handleRuntimeReady);
       requestMeasureRef.current = () => {};
-      delete root.dataset.activeNarrativeSection;
+      delete root.dataset.activeNarrativeWorld;
       delete root.dataset.openingScrollCue;
       root.style.removeProperty('--opening-scroll-cue-opacity');
       root.style.removeProperty('--narrative-story-wu');
       root.style.removeProperty('--narrative-viewport-height');
+      root.style.removeProperty('--narrative-content-extent-wu');
     };
-  }, [contentRef, editorStore, rootRef, scrollportRef, sectionRefs, worldRuntimeRef]);
+  }, [contentRef, editorStore, rootRef, scrollportRef, worldRuntimeRef]);
 
-  return { activeSectionIndex, activeIndicatorStartIndex };
+  return { runtimePlan, storyWU, storyProgress, activeIndicatorStartIndex };
 }

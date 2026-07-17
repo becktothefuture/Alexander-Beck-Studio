@@ -5,7 +5,7 @@ import {
   ABOUT_NARRATIVE_DOCUMENT,
 } from './aboutNarrativeLabData.js';
 import { ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS } from './aboutNarrativeDefinitions.js';
-import { getAboutNarrativeCueMovement } from './aboutNarrativeCompiler.js';
+import { normalizeAboutNarrativeTrackDocument } from './aboutNarrativeTrackSchema.js';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
 import {
   ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
@@ -14,204 +14,26 @@ import {
 } from './useAboutNarrativeTimeline.js';
 import './about-narrative-lab.css';
 
-function getSectionStyle(section) {
+const INITIAL_ABOUT_NARRATIVE_TRACK_DOCUMENT = normalizeAboutNarrativeTrackDocument(
+  ABOUT_NARRATIVE_DOCUMENT,
+);
+
+function getRenderSpanStyle(span) {
+  const startWU = Number(span.scrollBounds.startWU);
+  const focusWU = Number(span.scrollBounds.focusWU);
+  const endWU = Number(span.scrollBounds.endWU);
   return {
-    '--section-duration-wu': section.extentWU,
-    '--section-duration-mobile-wu': section.mobileExtentWU,
+    '--render-span-start-wu': startWU,
+    '--render-span-focus-wu': focusWU,
+    '--render-span-end-wu': endWU,
+    '--render-span-duration-wu': Math.max(0.001, endWU - startWU),
   };
 }
 
-function getVerticalCueStyle(cue, section) {
-  const desktopExtentWU = Math.max(1, Number(section.extentWU));
-  const mobileExtentWU = Math.max(1, Number(section.mobileExtentWU));
-  const desktopTravelWU = Math.max(0.001, desktopExtentWU - 1);
-  const mobileTravelWU = Math.max(0.001, mobileExtentWU - 1);
-  const desktopTop = (0.5 + (Number(cue.hold) * desktopTravelWU)) / desktopExtentWU;
-  const mobileTop = (0.5 + (Number(cue.hold) * mobileTravelWU)) / mobileExtentWU;
-  return {
-    '--vertical-cue-top': `${(desktopTop * 100).toFixed(4)}%`,
-    '--vertical-cue-top-mobile': `${(mobileTop * 100).toFixed(4)}%`,
-  };
-}
-
-function VerticalCueSequence({ cues, section, headingId = null, headingLevel = 2, onSelect }) {
-  if (!cues.length) return null;
-  const Heading = headingLevel === 1 ? 'h1' : 'h2';
-  return (
-    <div className="about-narrative-vertical-sequence" data-text-movement="vertical">
-      {cues.map((cue, cueIndex) => {
-        const isSemanticHeading = Boolean(headingId) && cueIndex === 0;
-        const Element = isSemanticHeading ? Heading : 'p';
-        return (
-          <Element
-            key={cue.id}
-            id={isSemanticHeading ? headingId : undefined}
-            className={`about-narrative-vertical-title${section.layout === 'opener' ? ' is-opener' : ''}`}
-            style={getVerticalCueStyle(cue, section)}
-            data-text-cue={cue.id}
-            data-text-movement="vertical"
-            data-editorial-line
-            data-primary-copy
-            aria-label={isSemanticHeading ? cues.map((item) => item.text).join(' ') : undefined}
-            aria-hidden={isSemanticHeading ? undefined : true}
-            onClick={(event) => {
-              if (!onSelect) return;
-              event.stopPropagation();
-              onSelect({ type: 'cue', sectionId: section.id, cueId: cue.id });
-            }}
-          >{cue.text}</Element>
-        );
-      })}
-    </div>
-  );
-}
-
-function OpeningSection({ section, index, sectionRef, onSelect }) {
-  const verticalCues = section.text.cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'vertical');
-  const spatialCues = section.text.cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'spatial');
-  const copy = section.text.cues.map((cue) => cue.text).join(' ');
-  const headingId = 'about-route-title';
-  return (
-    <section
-      ref={sectionRef}
-      id={`about-narrative-${section.id}`}
-      className="about-narrative-section about-narrative-section--opening"
-      data-narrative-section={section.id}
-      data-section-index={index}
-      style={getSectionStyle(section)}
-      aria-labelledby={headingId}
-      onClick={() => onSelect?.({ type: 'section', sectionId: section.id })}
-      data-text-movement={verticalCues.length && spatialCues.length ? 'mixed' : verticalCues.length ? 'vertical' : 'spatial'}
-    >
-      <VerticalCueSequence cues={verticalCues} section={section} headingId={spatialCues.length ? null : headingId} headingLevel={1} onSelect={onSelect} />
-      {spatialCues.length ? (
-        <div className="about-narrative-spatial-stage" data-text-movement="spatial">
-          <div className="about-narrative-spatial-copy">
-            <h1 id={headingId} className="about-narrative-spatial-title" aria-label={copy} data-primary-copy>
-              {spatialCues.map((cue) => (
-                <span key={cue.id} className="about-narrative-spatial-fragment" data-text-cue={cue.id} data-text-movement="spatial" aria-hidden="true" onClick={(event) => { event.stopPropagation(); onSelect?.({ type: 'cue', sectionId: section.id, cueId: cue.id }); }}>{cue.text}</span>
-              ))}
-            </h1>
-            <div className="about-narrative-opening-scroll-cue" aria-hidden="true">
-              <i className="ti ti-arrow-left about-narrative-opening-scroll-cue__icon" />
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function SpatialSection({ section, index, sectionRef, onSelect }) {
-  const Heading = index === 0 ? 'h1' : 'h2';
-  const cues = section.text.cues || [];
-  const copy = cues.map((cue) => cue.text).join(' ');
-  const verticalCues = cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'vertical');
-  const spatialCues = cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'spatial');
-  const headingId = `about-narrative-${section.id}-title`;
-  const hasHeading = verticalCues.length > 0 || spatialCues.length > 0;
-  const layoutClass = section.layout === 'lower'
-    ? 'constellation'
-    : section.layout === 'wide' ? 'living-field' : section.layout;
-  return (
-    <section
-      ref={sectionRef}
-      id={`about-narrative-${section.id}`}
-      className={`about-narrative-section about-narrative-section--spatial about-narrative-section--${layoutClass}`}
-      data-narrative-section={section.id}
-      data-section-index={index}
-      style={getSectionStyle(section)}
-      aria-labelledby={hasHeading ? headingId : undefined}
-      aria-label={hasHeading ? undefined : section.label}
-      data-text-movement={verticalCues.length && spatialCues.length ? 'mixed' : verticalCues.length ? 'vertical' : 'spatial'}
-    >
-      <VerticalCueSequence cues={verticalCues} section={section} headingId={spatialCues.length ? null : headingId} headingLevel={index === 0 ? 1 : 2} onSelect={onSelect} />
-      {spatialCues.length ? (
-        <div className="about-narrative-spatial-stage" data-text-movement="spatial">
-          <div className="about-narrative-spatial-copy">
-            <Heading
-              id={headingId}
-              className="about-narrative-spatial-title"
-              aria-label={copy}
-              data-primary-copy
-            >
-              {spatialCues.map((cue) => (
-              <span
-                key={cue.id}
-                className="about-narrative-spatial-fragment"
-                data-text-cue={cue.id}
-                data-text-movement="spatial"
-                aria-hidden="true"
-                onClick={(event) => { event.stopPropagation(); onSelect?.({ type: 'cue', sectionId: section.id, cueId: cue.id }); }}
-              >{cue.text}</span>
-              ))}
-            </Heading>
-          </div>
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function DisciplineRevealOverlay({ reveal, overlayRef }) {
-  if (!reveal) return null;
-  return (
-    <ol
-      ref={overlayRef}
-      className="about-narrative-discipline-reveal"
-      data-discipline-reveal={reveal.id}
-      aria-label="Six connected disciplines"
-      aria-hidden="true"
-    >
-      {reveal.items.map((item) => (
-        <li
-          key={item.group}
-          data-discipline-group={item.group}
-          style={{
-            '--discipline-color': `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})`,
-            '--discipline-label-offset': `${reveal.labelOffsetPx}px`,
-          }}
-        >
-          <span className="about-narrative-discipline-reveal__label">{item.label}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function EditorialList({ block }) {
-  return (
-    <div className="about-narrative-editorial-list">
-      {block.label ? <p className="about-narrative-editorial-list__label" data-editorial-line>{block.label}</p> : null}
-      <ul>{block.items.map((item) => <li key={item} data-editorial-line>{item}</li>)}</ul>
-    </div>
-  );
-}
-
-function DisciplineList({ items }) {
-  return (
-    <ol className="about-narrative-discipline-list" aria-label="Areas of expertise">
-      {items.map((item, itemIndex) => (
-        <li key={item} data-editorial-line data-world-group={itemIndex + 1}>
-          <span className="about-narrative-discipline-list__marker" aria-hidden="true" />
-          <span className="about-narrative-discipline-list__number" aria-hidden="true">{String(itemIndex + 1).padStart(2, '0')}</span>
-          <span>{item}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function ClientLogos({ items = [] }) {
-  return (
-    <ul className="about-narrative-client-logos" aria-label="Selected clients" data-editorial-line>
-      {items.map((item) => (
-        <li key={item} data-client-logo={item.toLowerCase().replace(/[^a-z0-9]+/g, '-')}>
-          {item}
-        </li>
-      ))}
-    </ul>
-  );
+function selectTextField(onSelect, fieldId, event) {
+  if (!onSelect) return;
+  event?.stopPropagation();
+  onSelect({ type: 'text-field', id: fieldId });
 }
 
 function EditorialText({ text = '', emphasis = [] }) {
@@ -232,7 +54,11 @@ function EditorialText({ text = '', emphasis = [] }) {
       fromIndex = start + item.text.length;
     }
   });
-  matches.sort((a, b) => (a.start - b.start) || (b.end - a.end) || (a.emphasisIndex - b.emphasisIndex));
+  matches.sort((left, right) => (
+    left.start - right.start
+    || right.end - left.end
+    || left.emphasisIndex - right.emphasisIndex
+  ));
   const accepted = [];
   matches.forEach((match) => {
     if (match.start >= (accepted.at(-1)?.end || 0)) accepted.push(match);
@@ -258,143 +84,252 @@ function EditorialText({ text = '', emphasis = [] }) {
   return parts;
 }
 
-function EditorialSection({ section, index, sectionRef, onSelect }) {
-  const highlightedBlock = section.text.blocks.find((block) => block.kind === 'highlight');
+function ScrollBlockField({ field, onSelect }) {
+  const block = field.block || {};
+  const commonProps = {
+    'data-text-field-id': field.id,
+    'data-primary-copy': true,
+    'data-world-influence': block.worldInfluence ? 'true' : undefined,
+    onClick: (event) => selectTextField(onSelect, field.id, event),
+  };
+
+  if (block.kind === 'highlight') {
+    return (
+      <h2 {...commonProps} className="about-narrative-editorial-title" data-editorial-line>
+        <EditorialText text={block.text} emphasis={block.emphasis} />
+      </h2>
+    );
+  }
+  if (block.kind === 'detail') {
+    return (
+      <p {...commonProps} className="about-narrative-editorial-detail" data-editorial-line>
+        <EditorialText text={block.text} emphasis={block.emphasis} />
+      </p>
+    );
+  }
+  if (block.kind === 'clients') {
+    return (
+      <ul {...commonProps} className="about-narrative-client-logos" data-editorial-line aria-label="Selected clients">
+        {(block.items || []).map((item) => (
+          <li key={item} data-client-logo={item.toLowerCase().replace(/[^a-z0-9]+/g, '-')}>
+            {item}
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  if (block.kind === 'disciplines') {
+    return (
+      <ol {...commonProps} className="about-narrative-discipline-list" aria-label={block.label || 'Areas of expertise'}>
+        {(block.items || []).map((item, itemIndex) => (
+          <li key={item} data-editorial-line data-world-group={itemIndex + 1}>
+            <span className="about-narrative-discipline-list__marker" aria-hidden="true" />
+            <span className="about-narrative-discipline-list__number" aria-hidden="true">
+              {String(itemIndex + 1).padStart(2, '0')}
+            </span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ol>
+    );
+  }
+  if (block.kind === 'list') {
+    const labelId = `${field.id}-label`;
+    return (
+      <section
+        {...commonProps}
+        className="about-narrative-editorial-list"
+        aria-labelledby={block.label ? labelId : undefined}
+        aria-label={block.label ? undefined : 'About Alexander'}
+      >
+        {block.label ? <p id={labelId} className="about-narrative-editorial-list__label" data-editorial-line>{block.label}</p> : null}
+        <ul>{(block.items || []).map((item) => <li key={item} data-editorial-line>{item}</li>)}</ul>
+      </section>
+    );
+  }
   return (
-    <section
-      ref={sectionRef}
-      id={`about-narrative-${section.id}`}
-      className={`about-narrative-section about-narrative-section--editorial${section.layout ? ` about-narrative-section--${section.layout}` : ''}`}
-      data-narrative-section={section.id}
-      data-section-index={index}
-      style={getSectionStyle(section)}
-      aria-labelledby={`about-narrative-${section.id}-title`}
-      onClick={() => onSelect?.({ type: 'section', sectionId: section.id })}
-      data-text-movement="vertical"
-    >
-      <div className="about-narrative-editorial-inner">
-        <h2
-          id={`about-narrative-${section.id}-title`}
-          className="about-narrative-editorial-title"
-          data-editorial-line
-          data-editorial-block={highlightedBlock?.id}
-          data-primary-copy
-        >
-          <EditorialText
-            text={highlightedBlock?.text || section.label}
-            emphasis={highlightedBlock?.emphasis}
-          />
-        </h2>
-        {section.text.blocks.map((block) => {
-          if (block.id === highlightedBlock?.id) return null;
-          if (block.kind === 'list') return <EditorialList key={block.id} block={block} />;
-          if (block.kind === 'disciplines') return <DisciplineList key={block.id} items={block.items} />;
-          if (block.kind === 'clients') return <ClientLogos key={block.id} items={block.items} />;
-          if (block.kind === 'detail') return <p key={block.id} className="about-narrative-editorial-detail" data-editorial-line data-editorial-block={block.id}><EditorialText text={block.text} emphasis={block.emphasis} /></p>;
-          return (
-            <p
-              key={block.id}
-              className="about-narrative-editorial-copy"
-              data-editorial-line
-              data-editorial-block={block.id}
-              data-world-influence={block.worldInfluence ? 'true' : undefined}
-              data-primary-copy
-            >
-              <EditorialText text={block.text} emphasis={block.emphasis} />
-            </p>
-          );
-        })}
-      </div>
-    </section>
+    <p {...commonProps} className="about-narrative-editorial-copy" data-editorial-line>
+      <EditorialText text={block.text} emphasis={block.emphasis} />
+    </p>
   );
 }
 
-function FinaleSection({ section, index, sectionRef, interactionRef, onSelect }) {
-  const copy = section.text.cues.map((cue) => cue.text).join(' ');
-  const spatialCues = section.text.cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'spatial');
-  const verticalCues = section.text.cues.filter((cue) => getAboutNarrativeCueMovement(cue) === 'vertical');
-  const hasSupportingCopy = Boolean(section.text.profile || section.text.prompt);
-  const headingId = `about-narrative-${section.id}-title`;
+function FinaleActions() {
+  return (
+    <div className="about-narrative-finale-cta is-actions-only">
+      <nav className="about-narrative-cta" aria-label="Contact Alexander">
+        <a href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}>Email</a>
+        <a href={ABOUT_NARRATIVE_CONTACT.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
+      </nav>
+    </div>
+  );
+}
+
+function TitleField({
+  field,
+  isPrimaryTitle,
+  interactionRef,
+  onSelect,
+}) {
+  const Heading = isPrimaryTitle ? 'h1' : 'h2';
+  const headingId = isPrimaryTitle ? 'about-route-title' : `${field.id}-title`;
+  const isFinale = field.preset === 'finale-v1'
+    || field.presentation?.layout === 'text-bust-cta';
+  const bustInstructionsId = `${field.id}-bust-instructions`;
   return (
     <section
-      ref={sectionRef}
-      id={`about-narrative-${section.id}`}
-      className="about-narrative-section about-narrative-section--spatial about-narrative-section--closing about-narrative-section--finale"
-      data-narrative-section={section.id}
-      data-section-index={index}
-      style={getSectionStyle(section)}
+      className={`about-narrative-spatial-copy about-narrative-text-field${isFinale ? ' is-finale' : ''}`}
+      data-text-field-id={field.id}
+      data-text-preset={field.preset}
       aria-labelledby={headingId}
-      data-text-movement={verticalCues.length && spatialCues.length ? 'mixed' : verticalCues.length ? 'vertical' : 'spatial'}
+      onClick={(event) => selectTextField(onSelect, field.id, event)}
     >
-      <VerticalCueSequence cues={verticalCues} section={section} headingId={spatialCues.length ? null : headingId} headingLevel={2} onSelect={onSelect} />
-      <div className="about-narrative-spatial-stage about-narrative-finale-stage">
-        <div className="about-narrative-spatial-copy about-narrative-finale-copy">
-          {spatialCues.length ? (
-            <h2 id={headingId} className="about-narrative-spatial-title" aria-label={copy} data-primary-copy>
-              {spatialCues.map((cue) => (
-                <span key={cue.id} className="about-narrative-spatial-fragment" data-text-cue={cue.id} data-text-movement="spatial" aria-hidden="true" onClick={() => onSelect?.({ type: 'cue', sectionId: section.id, cueId: cue.id })}>{cue.text}</span>
-              ))}
-            </h2>
-          ) : null}
+      <Heading id={headingId} className="about-narrative-spatial-title about-narrative-spatial-fragment" data-primary-copy>
+        {field.text}
+      </Heading>
+      {field.preset === 'opener-v1' ? (
+        <div className="about-narrative-opening-scroll-cue" aria-hidden="true">
+          <i className="ti ti-arrow-left about-narrative-opening-scroll-cue__icon" />
+        </div>
+      ) : null}
+      {isFinale ? (
+        <>
           <div
             ref={interactionRef}
             className="about-narrative-bust-interaction"
             data-active="false"
             role="group"
             aria-label="Rotate the point-cloud bust horizontally"
+            aria-describedby={bustInstructionsId}
+            aria-keyshortcuts="ArrowLeft ArrowRight"
             tabIndex={-1}
           />
-          <div className={`about-narrative-finale-cta${hasSupportingCopy ? '' : ' is-actions-only'}`}>
-            {section.text.profile ? <p className="about-narrative-finale-profile">{section.text.profile}</p> : null}
-            {section.text.prompt ? <p className="about-narrative-finale-statement">{section.text.prompt}</p> : null}
-            <nav className="about-narrative-cta" aria-label="Contact Alexander">
-              <a href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}>Email</a>
-              <a href={ABOUT_NARRATIVE_CONTACT.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
-            </nav>
-          </div>
-        </div>
-      </div>
+          <span id={bustInstructionsId} className="about-narrative-visually-hidden">
+            Drag horizontally, or use the left and right arrow keys, to rotate the bust.
+          </span>
+          <FinaleActions />
+        </>
+      ) : null}
     </section>
   );
 }
 
-function ScrollProgressIndicator({ activeSectionIndex, activeStartIndex, sectionCount }) {
+function DisciplineRevealField({ field, overlayRef, onSelect }) {
+  return (
+    <ol
+      ref={overlayRef}
+      className="about-narrative-discipline-reveal"
+      data-text-field-id={field.id}
+      data-discipline-reveal={field.id}
+      aria-label="Six connected disciplines"
+      onClick={(event) => selectTextField(onSelect, field.id, event)}
+    >
+      {(field.choreography?.items || []).map((item) => (
+        <li
+          key={item.group}
+          data-discipline-group={item.group}
+          style={{
+            '--discipline-color': `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})`,
+            '--discipline-label-offset': `${field.choreography.labelOffsetPx}px`,
+          }}
+        >
+          <span className="about-narrative-discipline-reveal__label">{item.label}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function TextRenderSpan({
+  field,
+  span,
+  isPrimaryTitle,
+  interactionRef,
+  disciplineOverlayRef,
+  onSelect,
+}) {
+  if (!field?.publishable || field.kind === 'stub') return null;
+  const layout = field.presentation?.layout || span.layoutMode;
+  if (field.kind === 'title') {
+    return (
+      <div
+        className={`about-narrative-render-span about-narrative-render-span--title about-narrative-render-span--${layout}`}
+        data-render-span-id={span.id}
+        data-presentation-layout={layout}
+        style={getRenderSpanStyle(span)}
+      >
+        <div className="about-narrative-spatial-stage">
+          <TitleField
+            field={field}
+            isPrimaryTitle={isPrimaryTitle}
+            interactionRef={interactionRef}
+            onSelect={onSelect}
+          />
+        </div>
+      </div>
+    );
+  }
+  if (field.kind === 'discipline-reveal') {
+    return (
+      <div
+        className="about-narrative-render-span about-narrative-render-span--discipline"
+        data-render-span-id={span.id}
+        data-presentation-layout={layout}
+        style={getRenderSpanStyle(span)}
+      >
+        <DisciplineRevealField field={field} overlayRef={disciplineOverlayRef} onSelect={onSelect} />
+      </div>
+    );
+  }
+  if (field.kind === 'scroll-block') {
+    return (
+      <div
+        className={`about-narrative-render-span about-narrative-render-span--editorial about-narrative-render-span--${layout}`}
+        data-render-span-id={span.id}
+        data-presentation-layout={layout}
+        style={getRenderSpanStyle(span)}
+      >
+        <ScrollBlockField field={field} onSelect={onSelect} />
+      </div>
+    );
+  }
+  return null;
+}
+
+function ScrollProgressIndicator({ activeStartIndex, progress }) {
   const maxStartIndex = Math.max(
     1,
     ABOUT_SCROLL_INDICATOR_TICK_COUNT - ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
   );
-  const progressValue = Math.round((activeStartIndex / maxStartIndex) * 100);
-  const sectionStatus = `Section ${activeSectionIndex + 1} of ${sectionCount}`;
+  const progressValue = Math.round(Math.min(1, Math.max(0, Number(progress) || 0)) * 100);
+  const resolvedStartIndex = Number.isFinite(activeStartIndex)
+    ? activeStartIndex
+    : Math.round((progressValue / 100) * maxStartIndex);
   return (
-    <>
-      <div
-        className="about-narrative-indicator"
-        data-about-indicator-layer="ui"
-        role="progressbar"
-        aria-label="About page scroll progress"
-        aria-valuemin="0"
-        aria-valuemax="100"
-        aria-valuenow={progressValue}
-        aria-valuetext={sectionStatus}
-      >
-        {Array.from({ length: ABOUT_SCROLL_INDICATOR_TICK_COUNT }, (_, index) => {
-          const isActive = index >= activeStartIndex
-            && index < activeStartIndex + ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT;
-          return (
-            <div
-              aria-hidden="true"
-              className={`about-narrative-indicator__line${isActive ? ' is-active' : ''}`}
-              data-active={isActive ? 'true' : 'false'}
-              data-line-index={index}
-              key={index}
-            />
-          );
-        })}
-      </div>
-      <span className="about-narrative-visually-hidden" role="status" aria-live="polite" aria-atomic="true">
-        {sectionStatus}
-      </span>
-    </>
+    <div
+      className="about-narrative-indicator"
+      data-about-indicator-layer="ui"
+      role="progressbar"
+      aria-label="About page scroll progress"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow={progressValue}
+      aria-valuetext={`${progressValue}% through the About narrative`}
+    >
+      {Array.from({ length: ABOUT_SCROLL_INDICATOR_TICK_COUNT }, (_, index) => {
+        const isActive = index >= resolvedStartIndex
+          && index < resolvedStartIndex + ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT;
+        return (
+          <div
+            aria-hidden="true"
+            className={`about-narrative-indicator__line${isActive ? ' is-active' : ''}`}
+            data-active={isActive ? 'true' : 'false'}
+            data-line-index={index}
+            key={index}
+          />
+        );
+      })}
+    </div>
   );
 }
 
@@ -410,19 +345,17 @@ export function AboutNarrativeLabExperience({
   const [editorModule, setEditorModule] = useState(null);
   const [editorStore, setEditorStore] = useState(null);
   const [indicatorHost, setIndicatorHost] = useState(null);
-  const [playbackDocument, setPlaybackDocument] = useState(ABOUT_NARRATIVE_DOCUMENT);
+  const [playbackDocument, setPlaybackDocument] = useState(INITIAL_ABOUT_NARRATIVE_TRACK_DOCUMENT);
   const rootRef = useRef(null);
   const scrollportRef = useRef(null);
   const contentRef = useRef(null);
-  const sectionRefs = useRef([]);
   const worldRuntimeRef = useRef(null);
   const bustInteractionRef = useRef(null);
   const disciplineOverlayRef = useRef(null);
 
   useLayoutEffect(() => {
     if (!showIndicator || typeof document === 'undefined') return undefined;
-    const host = document.getElementById('shell-persistent-route-ui-host');
-    setIndicatorHost(host);
+    setIndicatorHost(document.getElementById('shell-persistent-route-ui-host'));
     return undefined;
   }, [routeContentId, showIndicator]);
 
@@ -431,10 +364,12 @@ export function AboutNarrativeLabExperience({
     let active = true;
     Promise.all([
       import('./AboutNarrativeEditor.jsx'),
-      import('./aboutNarrativeEditorStore.js'),
+      import('./aboutNarrativeTrackEditorStore.js'),
     ]).then(([editor, storeModule]) => {
       if (!active) return;
-      const store = storeModule.createAboutNarrativeEditorStore(ABOUT_NARRATIVE_DOCUMENT);
+      const store = storeModule.createAboutNarrativeTrackEditorStore(
+        INITIAL_ABOUT_NARRATIVE_TRACK_DOCUMENT,
+      );
       setEditorStore(store);
       setEditorModule(() => editor.default);
     }).catch((error) => console.error('[About narrative] Could not load the development editor.', error));
@@ -443,46 +378,87 @@ export function AboutNarrativeLabExperience({
 
   useEffect(() => {
     if (!editorStore) return undefined;
-    const update = () => {
-      const state = editorStore.getSnapshot();
-      setPlaybackDocument(state.tryState?.document || state.document);
-    };
+    const update = () => setPlaybackDocument(editorStore.getSnapshot().document);
     update();
     return editorStore.subscribe(update);
   }, [editorStore]);
 
-  const { activeSectionIndex, activeIndicatorStartIndex } = useAboutNarrativeTimeline({
+  const {
+    runtimePlan,
+    storyWU,
+    storyProgress,
+    activeIndicatorStartIndex,
+  } = useAboutNarrativeTimeline({
     document: playbackDocument,
     editorStore,
     rootRef,
     worldRuntimeRef,
     scrollportRef,
     contentRef,
-    sectionRefs,
   });
 
-  const rootStyle = useMemo(() => ({
-    '--about-reading-width': `${playbackDocument.globals.readingWidthRem}rem`,
-    '--about-text-perspective': `${Number(playbackDocument.globals.textMotion.perspective) || 1600}px`,
-  }), [playbackDocument.globals.readingWidthRem, playbackDocument.globals.textMotion.perspective]);
-  const disciplineReveal = useMemo(() => (
-    playbackDocument.sections.find((section) => section.text?.disciplineReveal)?.text.disciplineReveal || null
-  ), [playbackDocument]);
+  const textFieldsById = useMemo(() => new Map(
+    (runtimePlan?.textFields || []).map((field) => [field.id, field]),
+  ), [runtimePlan]);
+  const primaryTitleId = useMemo(() => (
+    runtimePlan?.renderSpans
+      ?.map((span) => textFieldsById.get(span.fieldIds[0]))
+      .find((field) => field?.kind === 'title' && field.publishable)?.id || ''
+  ), [runtimePlan, textFieldsById]);
   const select = editorStore ? (selection) => editorStore.setSelection(selection) : null;
   const Editor = editorModule;
+  const globals = runtimePlan?.model?.globals || playbackDocument.globals;
+  const contentExtentWU = runtimePlan?.resolver?.contentExtentWU
+    || playbackDocument.profiles.desktop.scrollDurationWU + 1;
+  const rootStyle = {
+    '--about-reading-width': `${globals.readingWidthRem}rem`,
+    '--about-text-perspective': `${Number(globals.textMotion.perspective) || 1600}px`,
+    '--about-editorial-reveal-threshold': Number(globals.editorialRevealThreshold) || 0.74,
+  };
+  const contentStyle = {
+    '--narrative-content-extent-wu': contentExtentWU,
+  };
 
   return (
-    <div ref={rootRef} className="about-narrative-lab" data-route-content={routeContentId} style={rootStyle}>
-      <AboutNarrativeWorld rendererId="three-point-world-v1" rootRef={rootRef} interactionRef={bustInteractionRef} disciplineOverlayRef={disciplineOverlayRef} runtimeRef={worldRuntimeRef} />
-      <DisciplineRevealOverlay reveal={disciplineReveal} overlayRef={disciplineOverlayRef} />
-      <div ref={scrollportRef} className="about-narrative-scrollport" data-lenis-prevent-touch tabIndex={0} aria-label="About Alexander narrative">
-        <main ref={contentRef} className="about-narrative-content">
-          {playbackDocument.sections.map((section, index) => {
-            const sectionRef = (node) => { sectionRefs.current[index] = node; };
-            if (section.layout === 'opener') return <OpeningSection key={section.id} section={section} index={index} sectionRef={sectionRef} onSelect={select} />;
-            if (section.type === 'spatial') return <SpatialSection key={section.id} section={section} index={index} sectionRef={sectionRef} onSelect={select} />;
-            if (section.type === 'finale') return <FinaleSection key={section.id} section={section} index={index} sectionRef={sectionRef} interactionRef={bustInteractionRef} onSelect={select} />;
-            return <EditorialSection key={section.id} section={section} index={index} sectionRef={sectionRef} onSelect={select} />;
+    <div
+      ref={rootRef}
+      className="about-narrative-lab"
+      data-route-content={routeContentId}
+      data-about-layout-profile={runtimePlan?.layoutProfile || 'desktop'}
+      data-about-motion-profile={runtimePlan?.motionProfile || 'full'}
+      data-narrative-story-wu={Number(storyWU || 0).toFixed(4)}
+      style={rootStyle}
+    >
+      <AboutNarrativeWorld
+        rendererId="three-point-world-v1"
+        rootRef={rootRef}
+        interactionRef={bustInteractionRef}
+        disciplineOverlayRef={disciplineOverlayRef}
+        runtimeRef={worldRuntimeRef}
+        pointProfile={runtimePlan?.pointProfile}
+      />
+      <div
+        ref={scrollportRef}
+        className="about-narrative-scrollport"
+        data-lenis-prevent-touch
+        tabIndex={0}
+        aria-label="About Alexander narrative"
+      >
+        <main ref={contentRef} className="about-narrative-content" style={contentStyle}>
+          {(runtimePlan?.renderSpans || []).map((span) => {
+            const field = textFieldsById.get(span.fieldIds[0]);
+            if (!field?.publishable || field.kind === 'stub') return null;
+            return (
+              <TextRenderSpan
+                key={span.id}
+                field={field}
+                span={span}
+                isPrimaryTitle={field.id === primaryTitleId}
+                interactionRef={bustInteractionRef}
+                disciplineOverlayRef={disciplineOverlayRef}
+                onSelect={select}
+              />
+            );
           })}
         </main>
       </div>
@@ -490,15 +466,19 @@ export function AboutNarrativeLabExperience({
         ? createPortal(
           <div className="about-narrative-indicator-layer" data-about-indicator-host="shell-persistent">
             <ScrollProgressIndicator
-              activeSectionIndex={activeSectionIndex}
               activeStartIndex={activeIndicatorStartIndex}
-              sectionCount={playbackDocument.sections.length}
+              progress={storyProgress}
             />
           </div>,
           indicatorHost,
         )
         : null}
-      {Editor && editorStore ? <Editor store={editorStore} runtimeRef={worldRuntimeRef} rootRef={rootRef} /> : null}
+      {Editor && editorStore && typeof document !== 'undefined'
+        ? createPortal(
+          <Editor store={editorStore} runtimeRef={worldRuntimeRef} rootRef={rootRef} />,
+          document.body,
+        )
+        : null}
     </div>
   );
 }

@@ -21,7 +21,7 @@ import {
   serializeAboutNarrativeDocument,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeSchema.js';
 
-const repoConfigPath = new URL('../react-app/app/public/config/contents-about.json', import.meta.url);
+const repoConfigPath = new URL('./fixtures/about-narrative/contents-about-v2.json', import.meta.url);
 const canonical = JSON.parse(await readFile(repoConfigPath, 'utf8'));
 
 test('schema v1 migrates sequentially without reinterpreting legacy hold playback', () => {
@@ -137,7 +137,7 @@ test('pair status requires the exact pair ID and input fingerprint', () => {
   assert.equal(stale.state, 'idle');
   const exact = resolveAboutNarrativePairStatus({
     plan,
-    sectionId: descriptor.toWorldId,
+    worldId: descriptor.toWorldId,
     diagnostics: { pairs: [{ pairId: descriptor.id, inputFingerprint: descriptor.inputFingerprint, state: 'ready', source: 'cache' }] },
   });
   assert.equal(exact.state, 'ready');

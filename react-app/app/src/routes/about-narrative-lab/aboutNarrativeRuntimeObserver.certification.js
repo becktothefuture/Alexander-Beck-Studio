@@ -1,4 +1,5 @@
 import { projectAboutNarrativeRuntimeMetrics } from './aboutNarrativeRuntimeDiagnostics.js';
+import { getAboutNarrativeWorldId } from './aboutNarrativeWorldIdentity.js';
 
 function readSnapshot(source, label) {
   return source?.getSnapshot?.(label) || null;
@@ -166,7 +167,7 @@ export function createAboutNarrativeRuntimeObserver({
         + (webglSnapshot?.diagnostics.length || 0),
       correspondenceSequenceState: sequenceState,
       correspondencePairId: installedPair?.key || '',
-      correspondenceToWorldId: installedPair?.toWorld?.sectionId || '',
+      correspondenceToWorldId: getAboutNarrativeWorldId(installedPair?.toWorld),
       correspondenceRequestedStrategy: installedPair?.requestedStrategy || '',
       correspondenceInstalledStrategy: installedPair?.installedStrategy || '',
       correspondenceFallback: installedPair?.fallbackReason || '',

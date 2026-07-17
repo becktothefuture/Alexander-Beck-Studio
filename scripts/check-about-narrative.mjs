@@ -61,8 +61,20 @@ import {
 import {
   createAboutNarrativeIndependentWorldClip,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeWorldClips.js';
+import {
+  migrateAboutNarrativeVersion2To3,
+  serializeAboutNarrativeTrackDocument,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
+import {
+  ABOUT_NARRATIVE_TRACK_PROFILE_IDS,
+  ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+  compileAboutNarrativeTrackModel,
+  createAboutNarrativeTrackModel,
+  sampleAboutNarrativeTrackPlan,
+  validateAboutNarrativeTrackModel,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackModel.js';
 
-const configPath = resolve('react-app/app/public/config/contents-about.json');
+const configPath = resolve('scripts/fixtures/about-narrative/contents-about-v2.json');
 const designSystemPath = resolve('react-app/app/public/config/design-system.json');
 const canonical = normalizeAboutNarrativeDocument(JSON.parse(await readFile(configPath, 'utf8')));
 const designSystem = JSON.parse(await readFile(designSystemPath, 'utf8'));
@@ -70,6 +82,17 @@ const cueTrack = canonical.sections.find((section) => Array.isArray(section.text
 assert.ok(cueTrack, 'Canonical document needs one multi-cue track for editor behavior fixtures.');
 const cueTrackIndex = canonical.sections.findIndex((section) => section.id === cueTrack.id);
 const cueTrackIds = cueTrack.text.cues.map((cue) => cue.id);
+
+const cleanWU = (value) => Number(Number(value).toFixed(6));
+
+function assertClose(actual, expected, message, tolerance = 0.000001) {
+  assert.ok(Math.abs(actual - expected) <= tolerance, `${message}: expected ${expected}, received ${actual}`);
+}
+
+function assertVectorClose(actual, expected, message, tolerance = 0.000001) {
+  assert.equal(actual.length, expected.length, `${message}: vector length`);
+  actual.forEach((value, index) => assertClose(value, expected[index], `${message}.${index}`, tolerance));
+}
 
 function createPointFixture(points, {
   presence = null,
@@ -131,6 +154,289 @@ test('compiler derives a single ordered WU sequence', () => {
   assert.equal(plan.totalExtentWU, canonical.sections.reduce((sum, section) => sum + section.extentWU, 0));
 });
 
+test('sectionless track-model adapter emits a v3 graph without authored containers', () => {
+  const model = createAboutNarrativeTrackModel(canonical);
+  const validationErrors = validateAboutNarrativeTrackModel(model).filter((item) => item.level === 'error');
+  assert.deepEqual(validationErrors, []);
+  assert.equal(model.schemaVersion, ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION);
+  ['sections', 'groups', 'bands', 'chapters'].forEach((key) => {
+    assert.equal(Object.hasOwn(model, key), false, `model must not expose ${key}`);
+  });
+  assert.deepEqual(Object.keys(model.profiles).sort(), [...ABOUT_NARRATIVE_TRACK_PROFILE_IDS].sort());
+  const desktopDuration = cleanWU(canonical.sections.reduce((sum, section) => sum + section.extentWU, 0) - 1);
+  const mobileDuration = cleanWU(canonical.sections.reduce((sum, section) => sum + section.mobileExtentWU, 0) - 1);
+  assert.equal(model.profiles.desktop.storyDurationWU, desktopDuration);
+  assert.equal(model.profiles.tablet.storyDurationWU, desktopDuration);
+  assert.equal(model.profiles.mobile.storyDurationWU, desktopDuration);
+  assert.equal(model.profiles.mobile.scrollDurationWU, mobileDuration);
+  assert.deepEqual(model.profiles['reduced-motion'], { mode: 'overlay', motionPolicy: 'settled' });
+  ['sourceSchemaVersion', 'modelVersion'].forEach((key) => assert.equal(Object.hasOwn(model, key), false));
+});
+
+test('v2 to v3 migration and v3 serialization are byte-deterministic', () => {
+  const first = migrateAboutNarrativeVersion2To3(canonical);
+  const second = migrateAboutNarrativeVersion2To3(structuredClone(canonical));
+  assert.deepEqual(second, first);
+  const serialized = serializeAboutNarrativeTrackDocument(first);
+  assert.equal(serializeAboutNarrativeTrackDocument(JSON.parse(serialized)), serialized);
+  assert.deepEqual(JSON.parse(serialized), first);
+  assert.deepEqual(createAboutNarrativeTrackModel(canonical), first);
+  const forbidden = new Set(['sections', 'groups', 'bands', 'chapters', 'sourceSchemaVersion', 'modelVersion', 'orderIndex', 'endWU', 'baseProfile', 'layoutHint', 'renderSpans']);
+  const visit = (value, path = 'document') => {
+    if (!value || typeof value !== 'object') return;
+    Object.entries(value).forEach(([key, child]) => {
+      const directWorldObject = /^document\.tracks\.worlds\.objects\.\d+$/.test(path);
+      if (key === 'endWU' && !directWorldObject) {
+        visit(child, `${path}.${key}`);
+        return;
+      }
+      assert.equal(forbidden.has(key), false, `${path}.${key} must not be persisted`);
+      visit(child, `${path}.${key}`);
+    });
+  };
+  visit(first);
+});
+
+test('v3 migration validates raw v2 before normalization and preserves the rejected original', () => {
+  const invalid = structuredClone(canonical);
+  invalid.sections[1].world.transitionIn.correspondence = 'unknown-correspondence';
+  assert.throws(() => migrateAboutNarrativeVersion2To3(invalid), (error) => {
+    assert.equal(error.name, 'AboutNarrativeTrackMigrationError');
+    assert.equal(error.original.sections[1].world.transitionIn.correspondence, 'unknown-correspondence');
+    return true;
+  });
+});
+
+test('strict v3 validation rejects unknown fields, invalid overrides, and publishable stubs', () => {
+  const unknown = migrateAboutNarrativeVersion2To3(canonical);
+  unknown.tracks.camera.keys[0].sectionId = 'promise';
+  assert.ok(validateAboutNarrativeTrackModel(unknown).some((item) => item.code === 'unknown-key'));
+
+  const override = migrateAboutNarrativeVersion2To3(canonical);
+  override.profiles.mobile.overrides.text.missing = { startWU: 1 };
+  assert.ok(validateAboutNarrativeTrackModel(override).some((item) => item.code === 'override-target'));
+
+  const stub = migrateAboutNarrativeVersion2To3(canonical);
+  stub.tracks.text.fields.push({
+    id: 'text-planning-stub',
+    kind: 'stub',
+    startWU: 1,
+    focusWU: 1.2,
+    endWU: 1.4,
+    publishable: true,
+    label: 'Planning placeholder',
+  });
+  stub.tracks.text.fields.sort((left, right) => left.startWU - right.startWU || left.focusWU - right.focusWU || left.id.localeCompare(right.id));
+  assert.ok(validateAboutNarrativeTrackModel(stub).some((item) => item.code === 'stub-publishable'));
+});
+
+test('compiling caller-owned v3 input never freezes it by reference', () => {
+  const document = migrateAboutNarrativeVersion2To3(canonical);
+  const firstKey = document.tracks.camera.keys[0];
+  const plan = compileAboutNarrativeTrackModel(document);
+  assert.equal(plan.valid, true);
+  assert.equal(Object.isFrozen(document), false);
+  assert.equal(Object.isFrozen(firstKey), false);
+  firstKey.offset[0] += 1;
+  assert.notEqual(firstKey.offset[0], plan.model.tracks.camera.keys[0].offset[0]);
+});
+
+test('sectionless track-model adapter treats World starts as the only structural anchors', () => {
+  const plan = compileAboutNarrativeDocument(canonical);
+  const model = createAboutNarrativeTrackModel(canonical);
+  const worldObjects = model.tracks.worlds.objects;
+  const setWorldSections = canonical.sections.filter((section) => section.world.mode === 'set');
+  assert.deepEqual(
+    worldObjects.map((world) => world.id),
+    setWorldSections.map((section) => `world-${section.id}`),
+  );
+  assert.equal(worldObjects.some((world) => world.id === 'world-practice-reveal'), false);
+  assert.equal(worldObjects.some((world) => world.id === 'world-disciplines'), false);
+  worldObjects.forEach((world, index) => {
+    const sectionId = world.id.replace(/^world-/, '');
+    const compiled = plan.sections.find((section) => section.id === sectionId);
+    const source = canonical.sections.find((section) => section.id === sectionId);
+    assert.equal(world.startWU, cleanWU(compiled.startWU));
+    assert.equal(world.anchorWU, cleanWU(compiled.startWU));
+    assert.equal(world.transitionIn.startWU, cleanWU(compiled.startWU + (source.world.transitionIn.start * compiled.travelWU)));
+    assert.equal(world.transitionIn.endWU, cleanWU(compiled.startWU + (source.world.transitionIn.end * compiled.travelWU)));
+    assert.equal(Object.hasOwn(world, 'endWU'), false, 'World end is derived by the compiler');
+    assert.equal(
+      compileAboutNarrativeTrackModel(model).worlds[index].endWU,
+      cleanWU(worldObjects[index + 1]?.startWU ?? plan.maxStoryWU),
+    );
+  });
+});
+
+test('sectionless track-model adapter flattens Camera keys into absolute WU', () => {
+  const plan = compileAboutNarrativeDocument(canonical);
+  const model = createAboutNarrativeTrackModel(canonical);
+  const expectedKeyCount = canonical.sections.reduce((sum, section) => sum + section.camera.keys.length, 0);
+  assert.equal(model.tracks.camera.keys.length, expectedKeyCount);
+  plan.sections.forEach((compiled) => {
+    compiled.camera.keys.forEach((key, keyIndex) => {
+      const flattened = model.tracks.camera.keys.find((item) => item.id === `camera-${compiled.id}-${keyIndex}`);
+      assert.ok(flattened, `missing flattened key for ${compiled.id}.${keyIndex}`);
+      assert.equal(flattened.atWU, cleanWU(compiled.startWU + (key.at * compiled.travelWU)));
+      assert.deepEqual(flattened.offset, key.offset);
+      assert.deepEqual(flattened.lookAtOffset, key.lookAtOffset);
+      const flattenedIndex = model.tracks.camera.keys.findIndex((item) => item.id === flattened.id);
+      assert.equal(flattened.locked, flattenedIndex === 0 || flattenedIndex === model.tracks.camera.keys.length - 1);
+    });
+  });
+});
+
+test('sectionless track-model adapter converts Text into independent absolute fields', () => {
+  const plan = compileAboutNarrativeDocument(canonical);
+  const model = createAboutNarrativeTrackModel(canonical);
+  const cueCount = canonical.sections.reduce((sum, section) => sum + (section.text.cues || []).length, 0);
+  const blockCount = canonical.sections.reduce((sum, section) => sum + (section.text.blocks || []).length, 0);
+  assert.equal(model.tracks.text.fields.filter((field) => field.kind === 'title').length, cueCount);
+  assert.equal(model.tracks.text.fields.filter((field) => field.kind === 'scroll-block').length, blockCount);
+
+  const sourceCue = canonical.sections[1].text.cues[1];
+  const sourceSection = plan.sections[1];
+  const sourceMotionInterval = getAboutNarrativeCueMotionInterval(sourceCue, canonical.globals.textMotion);
+  const titleField = model.tracks.text.fields.find((field) => field.id === `text-${sourceCue.id}`);
+  assert.equal(titleField.kind, 'title');
+  assert.equal(titleField.startWU, cleanWU(sourceSection.startWU + (sourceMotionInterval.start * sourceSection.travelWU)));
+  assert.equal(titleField.focusWU, cleanWU(sourceSection.startWU + (sourceCue.hold * sourceSection.travelWU)));
+  assert.equal(titleField.endWU, cleanWU(sourceSection.startWU + (sourceMotionInterval.end * sourceSection.travelWU)));
+  assert.equal(titleField.text, sourceCue.text);
+
+  canonical.sections.forEach((legacySection) => {
+    const compiledSection = plan.sections.find((item) => item.id === legacySection.id);
+    (legacySection.text.cues || []).filter((cue) => getAboutNarrativeCueMovement(cue) === 'spatial').forEach((cue) => {
+      const interval = getAboutNarrativeCueMotionInterval(cue, canonical.globals.textMotion);
+      const migrated = model.tracks.text.fields.find((field) => field.id === `text-${cue.id}`);
+      assert.equal(migrated.startWU, cleanWU(compiledSection.startWU + (interval.start * compiledSection.travelWU)), `${cue.id} effective start`);
+      assert.equal(migrated.focusWU, cleanWU(compiledSection.startWU + (interval.focus * compiledSection.travelWU)), `${cue.id} focus`);
+      assert.equal(migrated.endWU, cleanWU(compiledSection.startWU + (interval.end * compiledSection.travelWU)), `${cue.id} effective end`);
+    });
+  });
+
+  const verticalSource = structuredClone(canonical);
+  const verticalSection = verticalSource.sections.find((section) => section.text.cues?.length);
+  const verticalCue = verticalSection.text.cues[0];
+  verticalCue.motion.mode = 'vertical';
+  const verticalPlan = compileAboutNarrativeDocument(verticalSource);
+  const verticalCompiledSection = verticalPlan.sections.find((section) => section.id === verticalSection.id);
+  const verticalField = createAboutNarrativeTrackModel(verticalSource).tracks.text.fields.find((field) => field.id === `text-${verticalCue.id}`);
+  assert.equal(verticalField.startWU, cleanWU(verticalCompiledSection.startWU + (verticalCue.enter * verticalCompiledSection.travelWU)));
+  assert.equal(verticalField.focusWU, cleanWU(verticalCompiledSection.startWU + (verticalCue.hold * verticalCompiledSection.travelWU)));
+  assert.equal(verticalField.endWU, cleanWU(verticalCompiledSection.startWU + (verticalCue.exit * verticalCompiledSection.travelWU)));
+
+  const revealSourceSection = canonical.sections.find((section) => section.text.disciplineReveal);
+  const revealCompiled = plan.sections.find((section) => section.id === revealSourceSection.id);
+  const reveal = revealSourceSection.text.disciplineReveal;
+  const revealField = model.tracks.text.fields.find((field) => field.kind === 'discipline-reveal');
+  assert.equal(revealField.id, `text-${reveal.id}`);
+  assert.equal(revealField.startWU, cleanWU(revealCompiled.startWU + (reveal.start * revealCompiled.travelWU)));
+  assert.equal(revealField.endWU, cleanWU(revealCompiled.startWU + (reveal.end * revealCompiled.travelWU)));
+  assert.equal(revealField.fieldTravelEndWU, cleanWU(revealCompiled.startWU + (reveal.fieldTravelEnd * revealCompiled.travelWU)));
+  assert.equal(revealField.choreography.items.length, 6);
+  const choreography = revealField.choreography;
+  ['stagger', 'backgroundFade', 'labelDuration', 'hold'].forEach((legacyKey) => {
+    assert.equal(Object.hasOwn(choreography, legacyKey), false, `${legacyKey} must not survive as section-local timing`);
+  });
+  assert.equal(choreography.staggerWU, cleanWU(reveal.stagger * revealCompiled.travelWU));
+  assert.equal(choreography.backgroundFadeWU, cleanWU(reveal.backgroundFade * revealCompiled.travelWU));
+  assert.equal(choreography.labelDurationWU, cleanWU(reveal.labelDuration * revealCompiled.travelWU));
+  assert.equal(choreography.holdWU, cleanWU(reveal.hold * revealCompiled.travelWU));
+
+  choreography.items.forEach((item, itemIndex) => {
+    const migratedEntryWU = revealField.startWU + (itemIndex * choreography.staggerWU);
+    const legacyEntryWU = revealCompiled.startWU
+      + ((reveal.start + (itemIndex * reveal.stagger)) * revealCompiled.travelWU);
+    assertClose(migratedEntryWU, legacyEntryWU, `discipline item ${item.group} entry`, 0.00001);
+    assertClose(
+      migratedEntryWU + choreography.labelDurationWU,
+      legacyEntryWU + (reveal.labelDuration * revealCompiled.travelWU),
+      `discipline item ${item.group} label end`,
+      0.00001,
+    );
+  });
+  const migratedSequenceEndWU = revealField.startWU
+    + ((choreography.items.length - 1) * choreography.staggerWU)
+    + choreography.labelDurationWU
+    + choreography.holdWU;
+  const legacySequenceEndWU = revealCompiled.startWU
+    + ((reveal.start
+      + ((reveal.items.length - 1) * reveal.stagger)
+      + reveal.labelDuration
+      + reveal.hold) * revealCompiled.travelWU);
+  assertClose(migratedSequenceEndWU, legacySequenceEndWU, 'discipline absolute sequence end', 0.00001);
+  assertClose(
+    revealField.startWU + choreography.backgroundFadeWU,
+    revealCompiled.startWU + ((reveal.start + reveal.backgroundFade) * revealCompiled.travelWU),
+    'discipline background fade end',
+    0.00001,
+  );
+});
+
+test('sectionless track-model adapter targets interactions at active World objects', () => {
+  const plan = compileAboutNarrativeDocument(canonical);
+  const model = createAboutNarrativeTrackModel(canonical);
+  assert.equal(model.tracks.interactions.clips.length, 1);
+  const clip = model.tracks.interactions.clips[0];
+  const finale = canonical.sections.at(-1);
+  const compiledFinale = plan.sections.at(-1);
+  assert.equal(clip.id, 'interaction-epilogue');
+  assert.equal(clip.type, 'horizontal-spin');
+  assert.equal(clip.targetWorldId, 'world-epilogue');
+  assert.equal(clip.activationWU, cleanWU(compiledFinale.startWU + (finale.interaction.activationStart * compiledFinale.travelWU)));
+  assert.equal(clip.endWU, model.profiles.desktop.storyDurationWU);
+});
+
+test('sectionless track sampler matches legacy Camera and World samples at fixed WU checkpoints', () => {
+  const legacyPlan = compileAboutNarrativeDocument(canonical);
+  const trackPlan = compileAboutNarrativeTrackModel(canonical);
+  assert.equal(trackPlan.valid, true);
+  const checkpoints = [
+    0,
+    legacyPlan.sections[0].startWU + (legacyPlan.sections[0].travelWU * 0.5),
+    legacyPlan.sections[1].startWU,
+    legacyPlan.sections[1].startWU + (legacyPlan.sections[1].travelWU * 0.45),
+    legacyPlan.sections[2].worldState.transition.endWU,
+    legacyPlan.sections[3].startWU + (legacyPlan.sections[3].travelWU * 0.95),
+    legacyPlan.sections[5].startWU + (legacyPlan.sections[5].travelWU * 0.5),
+    legacyPlan.sections.at(-1).startWU + (legacyPlan.sections.at(-1).travelWU * 0.66),
+    legacyPlan.maxStoryWU,
+  ].map(cleanWU);
+
+  checkpoints.forEach((storyWU) => {
+    const legacy = sampleAboutNarrativePlan(legacyPlan, storyWU);
+    const track = sampleAboutNarrativeTrackPlan(trackPlan, storyWU);
+    assertVectorClose(track.camera.position, legacy.camera.position, `camera.position @ ${storyWU}`);
+    assertVectorClose(track.camera.target, legacy.camera.target, `camera.target @ ${storyWU}`);
+    assertClose(track.camera.fov, legacy.camera.fov, `camera.fov @ ${storyWU}`);
+    assertClose(track.camera.roll, legacy.camera.roll, `camera.roll @ ${storyWU}`);
+    assert.equal(track.world.to.id, `world-${legacy.world.to.sectionId}`);
+    assert.equal(track.world.from.id, `world-${legacy.world.from.sectionId}`);
+    assertClose(track.world.transitionProgress, legacy.world.transitionProgress, `world.transitionProgress @ ${storyWU}`);
+  });
+});
+
+test('sectionless track sampler exposes text focus and interaction activation without Section state', () => {
+  const legacyPlan = compileAboutNarrativeDocument(canonical);
+  const trackPlan = compileAboutNarrativeTrackModel(canonical);
+  canonical.sections.forEach((section) => {
+    const compiled = legacyPlan.sections.find((item) => item.id === section.id);
+    (section.text.cues || []).forEach((cue) => {
+      const focusWU = compiled.startWU + (cue.hold * compiled.travelWU);
+      const sample = sampleAboutNarrativeTrackPlan(trackPlan, focusWU);
+      assert.ok(sample.text.activeFieldIds.includes(`text-${cue.id}`), `${cue.id} should be active at its focus WU`);
+    });
+  });
+
+  const clip = trackPlan.interactionClips[0];
+  const before = sampleAboutNarrativeTrackPlan(trackPlan, clip.activationWU - 0.001);
+  const after = sampleAboutNarrativeTrackPlan(trackPlan, clip.activationWU + 0.001);
+  assert.ok(before.interactions.activeClipIds.includes(clip.id));
+  assert.equal(before.interactions.activatedClipIds.includes(clip.id), false);
+  assert.ok(after.interactions.activatedClipIds.includes(clip.id));
+});
+
 test('canonical document preserves the approved eight-part storyboard allocation', () => {
   assert.deepEqual(
     canonical.sections.map((section) => section.id),
@@ -141,16 +447,21 @@ test('canonical document preserves the approved eight-part storyboard allocation
     ['cluster-v1', 'turbulent-field-v1', 'calm-field-v1', 'continue', 'continue', 'living-field-v1', 'continue', 'bust-v1'],
   );
   assert.equal(canonical.sections[0].text.cues[0].text, 'I help shape complex ideas into emotionally compelling experiences.');
-  assert.equal(canonical.sections[2].text.blocks[0].text, 'Perhaps that is why I have always been drawn to the space between aesthetics and technology.');
+  assert.equal(canonical.sections[2].text.blocks[0].text, 'I studied Communication Design because I wanted to understand how meaning is made.');
   assert.equal(canonical.sections[3].text.disciplineReveal.items.length, 6);
   assert.equal(canonical.sections[3].text.cues.length, 3);
   assert.equal(canonical.sections[4].text.blocks.some((block) => block.kind === 'disciplines'), false);
-  const disciplineLabels = canonical.sections[3].text.disciplineReveal.items.map((item) => item.label);
   const disciplineEditorialCopy = canonical.sections[4].text.blocks.map((block) => block.text || '').join(' ');
-  disciplineLabels.forEach((label) => assert.equal(disciplineEditorialCopy.includes(label), false));
+  [
+    'Product and Experience Design',
+    'Art Direction',
+    'Motion & 3D',
+    'Creative Engineering',
+    'Parametric Systems',
+  ].forEach((label) => assert.equal(disciplineEditorialCopy.includes(label), true));
   assert.equal(canonical.sections[4].text.blocks.at(-1).worldInfluence, true);
   assert.equal(canonical.sections[6].text.blocks.length, 3);
-  assert.equal(canonical.sections[7].text.cues[0].text, 'If you are building something new, let’s talk.');
+  assert.equal(canonical.sections[7].text.cues[0].text, "If you are building something new, let's talk.");
   assert.equal(canonical.sections[7].text.profile, undefined);
   assert.equal(canonical.sections[7].text.prompt, undefined);
 });
@@ -333,7 +644,7 @@ test('editorial emphasis stays structured, sparse, and attached to authored copy
   });
   const disciplineBlocks = canonical.sections.find((section) => section.id === 'disciplines').text.blocks;
   assert.equal(disciplineBlocks.flatMap((block) => block.emphasis || []).length, 1);
-  assert.deepEqual(disciplineBlocks[0].emphasis.map((item) => item.text), ['different way of thinking']);
+  assert.deepEqual(disciplineBlocks[0].emphasis.map((item) => item.text), ['shape of the problem']);
   assert.ok(disciplineBlocks.slice(1).every((block) => !block.emphasis?.length));
 });
 

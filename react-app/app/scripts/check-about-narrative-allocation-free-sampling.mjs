@@ -8,9 +8,24 @@ import {
   sampleAboutNarrativePlan,
   sampleAboutNarrativePlanInto,
 } from '../src/routes/about-narrative-lab/aboutNarrativeCompiler.js';
+import {
+  compileAboutNarrativeTrackModel,
+  createAboutNarrativeTrackFrameSample,
+  sampleAboutNarrativeTrackPlan,
+  sampleAboutNarrativeTrackPlanInto,
+} from '../src/routes/about-narrative-lab/aboutNarrativeTrackModel.js';
+import {
+  compileAboutNarrativeRuntimePlan,
+  createAboutNarrativeRuntimeFrameSample,
+  sampleAboutNarrativeRuntimePlanInto,
+} from '../src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
 
 const canonical = JSON.parse(await readFile(
   new URL('../public/config/contents-about.json', import.meta.url),
+  'utf8',
+));
+const legacy = JSON.parse(await readFile(
+  new URL('../../../scripts/fixtures/about-narrative/contents-about-v2.json', import.meta.url),
   'utf8',
 ));
 
@@ -45,8 +60,36 @@ function comparableFrame(frame) {
   };
 }
 
+function comparableTrackFrame(frame) {
+  return {
+    storyWU: frame.storyWU,
+    durationWU: frame.durationWU,
+    globals: frame.globals,
+    camera: {
+      position: [...frame.camera.position],
+      target: [...frame.camera.target],
+      fov: frame.camera.fov,
+      roll: frame.camera.roll,
+      cadence: frame.camera.cadence,
+    },
+    world: {
+      from: frame.world.from,
+      to: frame.world.to,
+      transitionProgress: frame.world.transitionProgress,
+      transition: frame.world.transition,
+    },
+    text: {
+      activeFieldIds: [...frame.text.activeFieldIds],
+    },
+    interactions: {
+      activeClipIds: [...frame.interactions.activeClipIds],
+      activatedClipIds: [...frame.interactions.activatedClipIds],
+    },
+  };
+}
+
 test('sampleInto preserves allocating sampler values across story states', () => {
-  const plan = compileAboutNarrativeDocument(canonical);
+  const plan = compileAboutNarrativeDocument(legacy);
   const target = createAboutNarrativeFrameSample();
   const options = { ambientSeconds: 12.5, reducedMotion: false, liveAmbient: true };
   const checkpoints = [0, 0.7, 2.1, 5.4, 9.8, plan.maxStoryWU];
@@ -58,7 +101,7 @@ test('sampleInto preserves allocating sampler values across story states', () =>
 });
 
 test('600 warmed samples retain every runtime-owned container and array identity', () => {
-  const plan = compileAboutNarrativeDocument(canonical);
+  const plan = compileAboutNarrativeDocument(legacy);
   const target = createAboutNarrativeFrameSample();
   const options = { ambientSeconds: 0, reducedMotion: false, liveAmbient: true };
   sampleAboutNarrativePlanInto(plan, 0, target, options);
@@ -91,7 +134,7 @@ test('600 warmed samples retain every runtime-owned container and array identity
 test('sampleInto rejects arbitrary targets and invalid plans without mutating ownership', () => {
   assert.throws(
     () => sampleAboutNarrativePlanInto(
-      compileAboutNarrativeDocument(canonical),
+      compileAboutNarrativeDocument(legacy),
       0,
       {},
     ),
@@ -99,4 +142,79 @@ test('sampleInto rejects arbitrary targets and invalid plans without mutating ow
   );
   const target = createAboutNarrativeFrameSample();
   assert.equal(sampleAboutNarrativePlanInto({ valid: false, sections: [] }, 0, target), null);
+});
+
+test('sectionless track sampleInto preserves allocating sampler values across story states', () => {
+  const plan = compileAboutNarrativeTrackModel(canonical);
+  const target = createAboutNarrativeTrackFrameSample();
+  const checkpoints = [0, 0.7, 2.1, 5.4, 9.8, plan.durationWU];
+  checkpoints.forEach((storyWU) => {
+    const expected = sampleAboutNarrativeTrackPlan(plan, storyWU);
+    const actual = sampleAboutNarrativeTrackPlanInto(plan, storyWU, target);
+    assert.deepEqual(comparableTrackFrame(actual), comparableTrackFrame(expected));
+  });
+});
+
+test('sectionless track sampleInto retains every runtime-owned container and array identity', () => {
+  const plan = compileAboutNarrativeTrackModel(canonical);
+  const target = createAboutNarrativeTrackFrameSample();
+  sampleAboutNarrativeTrackPlanInto(plan, 0, target);
+  const identities = {
+    frame: target,
+    camera: target.camera,
+    cameraPosition: target.camera.position,
+    cameraTarget: target.camera.target,
+    world: target.world,
+    text: target.text,
+    textIds: target.text.activeFieldIds,
+    interactions: target.interactions,
+    activeClipIds: target.interactions.activeClipIds,
+    activatedClipIds: target.interactions.activatedClipIds,
+  };
+
+  for (let index = 0; index < 600; index += 1) {
+    const storyWU = (index / 599) * plan.durationWU;
+    const sampled = sampleAboutNarrativeTrackPlanInto(plan, storyWU, target);
+    assert.equal(sampled, identities.frame);
+    assert.equal(sampled.camera, identities.camera);
+    assert.equal(sampled.camera.position, identities.cameraPosition);
+    assert.equal(sampled.camera.target, identities.cameraTarget);
+    assert.equal(sampled.world, identities.world);
+    assert.equal(sampled.text, identities.text);
+    assert.equal(sampled.text.activeFieldIds, identities.textIds);
+    assert.equal(sampled.interactions, identities.interactions);
+    assert.equal(sampled.interactions.activeClipIds, identities.activeClipIds);
+    assert.equal(sampled.interactions.activatedClipIds, identities.activatedClipIds);
+  }
+});
+
+test('sectionless track sampleInto rejects arbitrary targets and invalid plans without mutating ownership', () => {
+  assert.throws(
+    () => sampleAboutNarrativeTrackPlanInto(
+      compileAboutNarrativeTrackModel(canonical),
+      0,
+      {},
+    ),
+    /createAboutNarrativeTrackFrameSample/,
+  );
+  const target = createAboutNarrativeTrackFrameSample();
+  assert.equal(sampleAboutNarrativeTrackPlanInto({ valid: false, cameraKeys: [] }, 0, target), null);
+});
+
+test('sectionless runtime sampleInto retains stable responsive profile fields', () => {
+  const plan = compileAboutNarrativeRuntimePlan(canonical, {
+    inlineSize: 768,
+    blockSize: 1024,
+  });
+  const target = createAboutNarrativeRuntimeFrameSample();
+  for (let index = 0; index < 600; index += 1) {
+    const sampled = sampleAboutNarrativeRuntimePlanInto(
+      plan,
+      (index / 599) * plan.durationWU,
+      target,
+    );
+    assert.equal(sampled, target);
+    assert.equal(sampled.layoutProfile, 'tablet');
+    assert.equal(sampled.pointProfile, 'mobile');
+  }
 });

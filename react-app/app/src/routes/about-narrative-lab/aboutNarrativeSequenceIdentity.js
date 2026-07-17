@@ -3,6 +3,13 @@ import {
   ABOUT_NARRATIVE_POINT_PROFILES,
   ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
 } from './aboutNarrativeRuntimeConstants.js';
+import {
+  getAboutNarrativeWorldPairId,
+  requireAboutNarrativeWorldId,
+  resolveAboutNarrativeWorldAnchorRailZ,
+  resolveAboutNarrativeWorldAnchorWU,
+} from './aboutNarrativeWorldIdentity.js';
+import { resolveAboutNarrativePointProfile } from './aboutNarrativeProfileResolver.js';
 
 function canonicalNumber(value) {
   if (!Number.isFinite(value)) throw new TypeError('About narrative sequence identity requires finite numbers.');
@@ -51,18 +58,20 @@ function canonicalStoryWU(value) {
   return Math.round(number * 1_000) / 1_000;
 }
 
-function createWorldPreparationInput(world) {
+function createWorldPreparationInput(world, globals) {
   const transform = world.transform || {};
+  const worldId = requireAboutNarrativeWorldId(world);
+  const startWU = canonicalStoryWU(world.startWU);
+  const anchorWU = canonicalStoryWU(resolveAboutNarrativeWorldAnchorWU(world));
+  const anchorRailZ = canonicalStoryWU(resolveAboutNarrativeWorldAnchorRailZ(world, globals));
   return {
-    id: world.sectionId,
-    sectionId: world.sectionId,
-    sectionIndex: world.sectionIndex,
-    adapterId: world.adapterId,
+    id: worldId,
     shapeId: world.shapeId,
     seed: world.seed,
     shapeParameters: cloneIdentityValue(world.shapeParameters || {}),
-    startWU: canonicalStoryWU(world.startWU),
-    travelWU: canonicalStoryWU(world.travelWU),
+    startWU,
+    anchorWU,
+    anchorRailZ,
     entryDistanceWU: world.entryDistanceWU,
     transform: {
       position: [...(transform.position || [0, 0, 0])],
@@ -75,21 +84,20 @@ function createWorldPreparationInput(world) {
   };
 }
 
-function createPair(fromWorld, toWorld, profile, camera) {
+function createPair(fromWorld, toWorld, profile) {
   const requestedStrategy = fromWorld === toWorld ? 'index-v1' : toWorld.correspondence;
   const identity = {
     protocolVersion: ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
     correspondenceVersion: ABOUT_NARRATIVE_CORRESPONDENCE_VERSION,
     profile,
-    camera,
     fromWorld,
     toWorld,
     requestedStrategy,
   };
   return {
-    id: `${fromWorld.sectionId}->${toWorld.sectionId}`,
-    fromWorldId: fromWorld.sectionId,
-    toWorldId: toWorld.sectionId,
+    id: getAboutNarrativeWorldPairId(fromWorld, toWorld),
+    fromWorldId: fromWorld.id,
+    toWorldId: toWorld.id,
     requestedStrategy,
     inputFingerprint: serializeAboutNarrativeSequenceIdentity(identity),
   };
@@ -100,26 +108,27 @@ export function createAboutNarrativeWorldPreparationDescriptor({
   globals,
   profile = 'desktop',
 }) {
-  const pointProfile = profile === 'mobile'
-    ? ABOUT_NARRATIVE_POINT_PROFILES.mobile
-    : ABOUT_NARRATIVE_POINT_PROFILES.desktop;
+  const pointProfile = ABOUT_NARRATIVE_POINT_PROFILES[
+    resolveAboutNarrativePointProfile(profile)
+  ];
   const camera = {
     startZ: Number(globals.camera.startZ),
     cadence: Number(globals.camera.cadence),
   };
-  const worlds = worldSequence.map(createWorldPreparationInput);
+  const worlds = worldSequence.map((world) => createWorldPreparationInput(world, globals));
+  if (new Set(worlds.map((world) => world.id)).size !== worlds.length) {
+    throw new TypeError('About narrative preparation requires unique stable World ids.');
+  }
   const pairs = worlds.map((toWorld, index) => createPair(
     worlds[Math.max(0, index - 1)],
     toWorld,
     pointProfile.id,
-    camera,
   ));
   const identity = {
     protocolVersion: ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
     correspondenceVersion: ABOUT_NARRATIVE_CORRESPONDENCE_VERSION,
     profile: pointProfile.id,
     pointCount: pointProfile.pointCount,
-    camera,
     worlds,
   };
   const worldSequenceKey = `about-narrative-sequence:${serializeAboutNarrativeSequenceIdentity(identity)}`;

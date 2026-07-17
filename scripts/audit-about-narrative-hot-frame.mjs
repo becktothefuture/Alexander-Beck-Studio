@@ -19,9 +19,14 @@ const renderSource = source.slice(
 
 assert.doesNotMatch(revealSource, /\.forEach\s*\(/, 'Discipline hot sampling must use indexed loops.');
 assert.doesNotMatch(revealSource, /querySelector/, 'Discipline labels must be cached before hot sampling.');
+assert.doesNotMatch(revealSource, /aria-hidden/, 'Discipline semantics must remain exposed while visual reveal changes.');
 assert.doesNotMatch(renderSource, /bustController\.sample\s*\(\s*\{/, 'Bust sampling must use stable caller input.');
 assert.doesNotMatch(renderSource, /setModifierUniforms\s*\(\s*['"]/, 'Modifier uniforms must not build dynamic property names.');
 assert.doesNotMatch(renderSource, /new\s+(?:Array|Float\w*Array|THREE\.)/, 'PointWorld render must not construct owned hot-frame objects.');
+assert.doesNotMatch(renderSource, /frame\.(?:section|sectionIndex|localProgress)\b/, 'PointWorld must consume sectionless frame signals.');
+assert.match(renderSource, /frame\.interactions\?\.activeInteraction/, 'PointWorld must consume the active Interaction clip.');
+assert.match(renderSource, /frame\.interactions\.interactionActivated/, 'PointWorld must consume absolute Interaction activation.');
+assert.doesNotMatch(source, /matchMedia\(/, 'Point resources must not be selected from pointer/media heuristics.');
 
 const browser = await chromium.launch({
   headless: true,

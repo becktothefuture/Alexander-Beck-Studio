@@ -5,12 +5,12 @@ function normalizeState(record) {
   if (record.state === 'ready' && record.fallbackReason) return 'fallback';
   return STATES.has(record.state) ? record.state : 'idle';
 }
-export function getAboutNarrativePairDescriptor(plan, sectionId) {
-  return plan?.worldPreparationDescriptor?.pairs?.find((pair) => pair.toWorldId === sectionId) || null;
+export function getAboutNarrativePairDescriptor(plan, worldId) {
+  return plan?.worldPreparationDescriptor?.pairs?.find((pair) => pair.toWorldId === worldId) || null;
 }
 
-export function resolveAboutNarrativePairStatus({ plan, sectionId, diagnostics }) {
-  const descriptor = getAboutNarrativePairDescriptor(plan, sectionId);
+export function resolveAboutNarrativePairStatus({ plan, worldId, sectionId, diagnostics }) {
+  const descriptor = getAboutNarrativePairDescriptor(plan, worldId || sectionId);
   if (!descriptor) return Object.freeze({ state: 'idle', descriptor: null, record: null, exact: false });
   const records = Array.isArray(diagnostics?.pairs) ? diagnostics.pairs : [];
   const record = records.find((candidate) => (

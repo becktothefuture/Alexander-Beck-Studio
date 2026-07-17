@@ -9,7 +9,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { chromium, webkit } from 'playwright';
-import { ABOUT_NARRATIVE_SCHEMA_VERSION } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDefinitions.js';
+import { ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
 import {
   ABOUT_NARRATIVE_CORRESPONDENCE_VERSION,
   ABOUT_NARRATIVE_POINT_PROFILES,
@@ -311,15 +311,15 @@ function certificationAuditCommands(baseUrl) {
     command('runtime-soak-desktop', 'runtime', 'node', ['scripts/audit-about-narrative-runtime-soak.mjs'], browserEnvironment(baseUrl, { ABS_ABOUT_SOAK_PROFILE: 'desktop' }), browserRetries),
     command('runtime-soak-mobile', 'runtime', 'node', ['scripts/audit-about-narrative-runtime-soak.mjs'], browserEnvironment(baseUrl, { ABS_ABOUT_SOAK_PROFILE: 'mobile' }), browserRetries),
     command('runtime-visual-audit', 'visual', 'node', ['scripts/audit-about-narrative-runtime-visuals.mjs'], browserEnvironment(baseUrl), browserRetries),
-    command('certification-chromium-audit', 'browser', 'node', ['scripts/audit-about-narrative.mjs'], browserEnvironment(baseUrl, { ABS_BROWSER: 'chromium', ABS_ABOUT_EDITOR_ONLY: '1' }), browserRetries),
-    command('certification-webkit-audit', 'browser', 'node', ['scripts/audit-about-narrative.mjs'], browserEnvironment(baseUrl, { ABS_BROWSER: 'webkit', ABS_ABOUT_EDITOR_ONLY: '1' }), browserRetries),
+    command('certification-chromium-audit', 'browser', 'node', ['scripts/audit-about-narrative-sectionless.mjs'], browserEnvironment(baseUrl, { ABS_BROWSER: 'chromium', ABS_ABOUT_EDITOR_ONLY: '1' }), browserRetries),
+    command('certification-webkit-audit', 'browser', 'node', ['scripts/audit-about-narrative-sectionless.mjs'], browserEnvironment(baseUrl, { ABS_BROWSER: 'webkit', ABS_ABOUT_EDITOR_ONLY: '1' }), browserRetries),
   ];
 }
 
 function productionAuditCommands(baseUrl) {
   return [
-    command('production-chromium-audit', 'production', 'node', ['scripts/audit-about-narrative.mjs'], browserEnvironment(baseUrl, { ABS_BROWSER: 'chromium', ABS_ABOUT_PRODUCTION_INDICATOR_ONLY: '1' }), browserRetries),
-    command('production-webkit-audit', 'production', 'node', ['scripts/audit-about-narrative.mjs'], browserEnvironment(baseUrl, { ABS_BROWSER: 'webkit', ABS_ABOUT_PRODUCTION_INDICATOR_ONLY: '1' }), browserRetries),
+    command('production-chromium-audit', 'production', 'node', ['scripts/audit-about-narrative-sectionless.mjs'], browserEnvironment(baseUrl, { ABS_BROWSER: 'chromium', ABS_ABOUT_PRODUCTION_INDICATOR_ONLY: '1' }), browserRetries),
+    command('production-webkit-audit', 'production', 'node', ['scripts/audit-about-narrative-sectionless.mjs'], browserEnvironment(baseUrl, { ABS_BROWSER: 'webkit', ABS_ABOUT_PRODUCTION_INDICATOR_ONLY: '1' }), browserRetries),
   ];
 }
 
@@ -485,12 +485,12 @@ const manifest = {
     webkit: browserDescription(webkit, 'webkit'),
   },
   versions: {
-    schema: ABOUT_NARRATIVE_SCHEMA_VERSION,
-    compiler: `sha256:${sha256(await readFile(resolve(repoRoot, 'react-app/app/src/routes/about-narrative-lab/aboutNarrativeCompiler.js')))}`,
+    schema: ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+    compiler: `sha256:${sha256(await readFile(resolve(repoRoot, 'react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js')))}`,
     workerProtocol: ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
     correspondenceRegistry: ABOUT_NARRATIVE_CORRESPONDENCE_VERSION,
-    canonicalWorldCount: canonicalDocument.sections.filter((section) => section.world?.mode === 'set').length,
-    canonicalTransitionCount: Math.max(0, canonicalDocument.sections.filter((section) => section.world?.mode === 'set').length - 1),
+    canonicalWorldCount: canonicalDocument.tracks.worlds.objects.length,
+    canonicalTransitionCount: Math.max(0, canonicalDocument.tracks.worlds.objects.length - 1),
     pointBudgets: {
       desktop: ABOUT_NARRATIVE_POINT_PROFILES.desktop.pointCount,
       mobile: ABOUT_NARRATIVE_POINT_PROFILES.mobile.pointCount,

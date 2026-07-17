@@ -17,11 +17,11 @@ const browser = await chromium.launch({
 await mkdir(outputDir, { recursive: true });
 
 const checkpoints = [
-  { id: 'desktop-turbulent', storyWU: 3.2, sectionId: 'complexity', localProgress: 0.77, stage: 'turbulent-field-v1', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-discipline', storyWU: 8.4, sectionId: 'practice-reveal', localProgress: 0.95, stage: 'calm-field-v1', viewport: { width: 1440, height: 1000 } },
-  { id: 'mobile-discipline', storyWU: 8.4, sectionId: 'practice-reveal', localProgress: 0.95, stage: 'calm-field-v1', viewport: { width: 390, height: 844 } },
-  { id: 'desktop-bust', storyWU: 18.3, sectionId: 'epilogue', localProgress: 0.87, stage: 'bust-v1', viewport: { width: 1440, height: 1000 } },
-  { id: 'reduced-motion-discipline', storyWU: 8.4, sectionId: 'practice-reveal', localProgress: 0.95, stage: 'calm-field-v1', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' },
+  { id: 'desktop-turbulent', storyWU: 3.2, stage: 'turbulent-field-v1', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-discipline', storyWU: 10.2, stage: 'calm-field-v1', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true },
+  { id: 'mobile-discipline', storyWU: 10.2, stage: 'calm-field-v1', viewport: { width: 390, height: 844 }, expectExactAnchor: true },
+  { id: 'desktop-bust', storyWU: 21.1, stage: 'bust-v1', viewport: { width: 1440, height: 1000 } },
+  { id: 'reduced-motion-discipline', storyWU: 10.2, stage: 'calm-field-v1', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', expectExactAnchor: true },
 ];
 
 const evidence = [];
@@ -38,13 +38,13 @@ for (const checkpoint of checkpoints) {
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto(`${baseUrl}/lab/about-narrative.html`, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector(`[data-narrative-section="${checkpoint.sectionId}"]`, { timeout: 20_000 });
-  await page.evaluate(({ sectionId, localProgress }) => {
-    const section = document.querySelector(`[data-narrative-section="${sectionId}"]`);
+  await page.waitForSelector('.about-narrative-lab', { timeout: 20_000 });
+  await page.evaluate(({ storyWU }) => {
     const scrollport = document.querySelector('.about-narrative-scrollport');
-    if (!section || !scrollport) return;
-    const scrollTravel = Math.max(0, section.offsetHeight - scrollport.clientHeight);
-    scrollport.scrollTo(0, section.offsetTop + (scrollTravel * localProgress));
+    if (!scrollport) return;
+    const progress = Math.min(1, Math.max(0, storyWU / 21.8));
+    const scrollTravel = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
+    scrollport.scrollTo(0, scrollTravel * progress);
     scrollport.dispatchEvent(new Event('scroll', { bubbles: true }));
   }, checkpoint);
   await page.waitForFunction(({ stage }) => {
@@ -80,7 +80,7 @@ for (const checkpoint of checkpoints) {
   assert.equal(state.drawCalls, 1);
   assert.equal(state.fixedAttributeIdentityStable, true);
   assert.equal(state.resourceDiagnosticCount, 0);
-  if (checkpoint.sectionId === 'practice-reveal') assert.equal(state.anchorSampling, 'exact');
+  if (checkpoint.expectExactAnchor) assert.equal(state.anchorSampling, 'exact');
   assert.deepEqual(consoleErrors, []);
 
   evidence.push({ ...checkpoint, state, consoleErrors, screenshot });
