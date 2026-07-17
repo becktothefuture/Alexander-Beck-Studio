@@ -741,6 +741,8 @@
   /* Unified icon button geometry (used across header/footer/dialogs). */
   --ui-icon-frame-size: calc(var(--abs-size-icon-lg) + (var(--link-icon-padding) * 2));
   --ui-icon-glyph-size: var(--abs-size-icon-lg);
+  --abs-window-control-offset: clamp(18px, 2.8vw, 38px);
+  --abs-window-control-seat-inset: 3px;
   --shell-control-icon-size: clamp(20px, 1.4vw, 24px);
   --ui-icon-corner-radius-mul: 0.5; /* fraction of wall radius; buttons track wall roundness */
   /* Directly correlated to wall: radius = wall-radius × mul. 4px min avoids degenerate when wall is tiny. */

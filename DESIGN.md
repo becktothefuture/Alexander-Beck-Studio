@@ -125,9 +125,10 @@ The Home simulation switcher, Portfolio card CTA, Portfolio drawer back control,
 - Emphasis is adaptive, not route-accented: use a translucent white field in light mode and a translucent black field in dark mode. Text and icons resolve through the current in-window text tokens.
 - Hover, `:focus-visible`, and pressed states use the same emphasis fill, blur, saturation, and active edge. The Home switcher also keeps that state while its chooser is open.
 - Do not stack a colored halo, glow, drop shadow, or second hover field on top of this emphasis material. State must remain calm and legible over moving simulation content.
+- A circular material control owns one complete circle. The custom cursor lens yields while hovering the simulation chooser close control or Portfolio drawer back control; never nest a smaller cursor circle inside the control surface.
 - The manual site theme owns these values because these controls live inside the studio window. Never derive them from the browser-aware wall or outer-frame palette.
 
-Inside the simulation chooser, option rows are transparent at rest. The current simulation, hovered option, keyboard-focused option, and pressed option use one identical emphasis material; the current row remains visibly emphasized before pointer interaction. The modal close control is transparent at rest and uses that same material on hover, keyboard focus, and press. Reduced motion removes transitions without removing any selected, focus, or hover-state contrast.
+Inside the simulation chooser, option rows are transparent at rest. The current simulation, hovered option, keyboard-focused option, and pressed option use one identical emphasis material; the current row remains visibly emphasized before pointer interaction. The modal close control is anchored at the studio window's top-right corner using the same safe-area-aware inset as the Portfolio drawer's top-left back control. It is transparent at rest and uses the shared emphasis material on hover, keyboard focus, and press. Reduced motion removes transitions without removing any selected, focus, or hover-state contrast.
 
 ### Motion and material presence
 

@@ -5974,6 +5974,17 @@ body.dark-mode .ui-main-nav .footer_link:active {
   --abs-cursor-scale: 0.86;
   opacity: 1;
 }
+
+/* Circular material controls own their complete hover surface. The pointer lens
+   yields here so one large control circle is never stacked with a smaller one. */
+@media (hover: hover) and (pointer: fine) {
+  body:has(.simulation-focus-modal .gate-back:hover) #custom-cursor,
+  body:has(.portfolio-project-view__back--top.abs-icon-btn:hover) #custom-cursor {
+    visibility: hidden;
+    opacity: 0;
+    transition: none;
+  }
+}
 /* position + z-index set in cursor.js: body-fixed tap vs modal stack */
 
 /* Cursor color is palette-driven via --cursor-color (no dark-mode override). */
@@ -6169,7 +6180,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   opacity: 0;
   visibility: hidden;
   display: grid;
-  grid-template-rows: auto auto auto;
+  grid-template-rows: auto auto;
   align-items: center;
   align-content: center;
   justify-items: center;
@@ -6422,13 +6433,6 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .simulation-focus-pill::before,
-  .simulation-focus-row::before {
-    transition: none;
-  }
-}
-
 .modal-label {
   text-align: center;
   width: 100%;
@@ -6453,7 +6457,31 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   margin: 0;
 }
 
+.simulation-focus-modal .simulation-focus-modal__nav {
+  position: absolute;
+  top: calc(
+    var(--abs-window-control-seat-inset, 3px)
+    + max(var(--abs-window-control-offset, clamp(18px, 2.8vw, 38px)), env(safe-area-inset-top, 0px))
+  );
+  right: calc(
+    var(--abs-window-control-seat-inset, 3px)
+    + max(var(--abs-window-control-offset, clamp(18px, 2.8vw, 38px)), env(safe-area-inset-right, 0px))
+  );
+  z-index: 3;
+  width: var(--ui-icon-frame-size);
+  height: var(--ui-icon-frame-size);
+}
+
 .simulation-focus-modal .gate-back {
+  inline-size: var(--ui-icon-frame-size);
+  block-size: var(--ui-icon-frame-size);
+  width: var(--ui-icon-frame-size);
+  height: var(--ui-icon-frame-size);
+  min-width: var(--ui-icon-frame-size);
+  min-height: var(--ui-icon-frame-size);
+  max-width: var(--ui-icon-frame-size);
+  max-height: var(--ui-icon-frame-size);
+  padding: 0;
   color: var(--simulation-focus-ink);
   border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
   border-radius: 50%;
@@ -6478,6 +6506,16 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   border-color: var(--abs-soft-control-outline-active);
   background: var(--abs-soft-control-emphasis-fill);
   color: var(--text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .simulation-focus-pill,
+  .simulation-focus-pill::before,
+  .simulation-focus-row,
+  .simulation-focus-row::before,
+  .simulation-focus-modal .gate-back {
+    transition: none;
+  }
 }
 
 .cv-modal.active .modal-label,
