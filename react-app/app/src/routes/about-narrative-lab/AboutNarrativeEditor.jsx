@@ -77,6 +77,10 @@ import {
   toggleAboutNarrativeCueSelection,
   validateAboutNarrativeCueClipboardPayload,
 } from './aboutNarrativeTimeline.js';
+import {
+  createAboutNarrativeIndependentWorldClip,
+  getAboutNarrativeInheritedWorldSource,
+} from './aboutNarrativeWorldClips.js';
 import './about-narrative-editor.css';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
@@ -544,6 +548,7 @@ function Timeline({ store, snapshot, onOpenGlobal }) {
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     let nextSelection = drag.selection;
+    const usesPreview = ['cue', 'world-transition', 'interaction'].includes(drag.type);
     if (drag.type === 'cue') {
       const currentSelection = store.getSnapshot().selection;
       const currentMembers = getAboutNarrativeSelectionMembers(currentSelection);
@@ -556,13 +561,17 @@ function Timeline({ store, snapshot, onOpenGlobal }) {
           ? { ...drag.selection, members: currentMembers }
           : drag.selection;
       store.beginPreview('Move text Cues');
+    } else if (drag.type === 'world-transition') {
+      store.beginPreview(`Move World transition ${drag.part}`);
+    } else if (drag.type === 'interaction') {
+      store.beginPreview('Move interaction activation');
     }
     timingDragRef.current = {
       ...drag,
       selection: nextSelection,
       members: drag.type === 'cue' ? getAboutNarrativeSelectionMembers(nextSelection) : null,
-      startDocument: drag.type === 'cue' ? cloneAboutNarrativeDocument(store.getSnapshot().document) : null,
-      startPlan: drag.type === 'cue' ? store.getSnapshot().compiledPlan : null,
+      startDocument: usesPreview ? cloneAboutNarrativeDocument(store.getSnapshot().document) : null,
+      startPlan: usesPreview ? store.getSnapshot().compiledPlan : null,
       pointerId: event.pointerId,
       rect,
       startX: event.clientX,
@@ -610,6 +619,32 @@ function Timeline({ store, snapshot, onOpenGlobal }) {
       });
       return;
     }
+    if (drag.type === 'world-transition' || drag.type === 'interaction') {
+      const visualSpan = drag.spanWU / Math.max(0.001, drag.travelWU);
+      const localDelta = ((event.clientX - drag.startX) / drag.rect.width) * visualSpan;
+      const nextAt = Math.min(drag.max, Math.max(
+        drag.min,
+        snapAboutNarrativeTimelineValue(drag.at + localDelta),
+      ));
+      if (Math.abs(nextAt - drag.lastAt) < 0.000001) return;
+      drag.lastAt = nextAt;
+      queuePreviewFrame(() => {
+        store.updatePreview((draft) => {
+          if (drag.type === 'world-transition') {
+            const transition = draft.sections[drag.sectionIndex]?.world?.transitionIn;
+            if (transition) transition[drag.part] = nextAt;
+          } else {
+            const interaction = draft.sections[drag.sectionIndex]?.interaction;
+            if (interaction) interaction.activationStart = nextAt;
+          }
+        }, {
+          owner: 'timeline',
+          playing: false,
+          storyWU: drag.sectionStartWU + (nextAt * drag.travelWU),
+        });
+      });
+      return;
+    }
     const localDelta = (event.clientX - drag.startX) / drag.rect.width;
     const movement = resolveAboutNarrativeCueGroupMove({
       document: drag.startDocument,
@@ -638,7 +673,7 @@ function Timeline({ store, snapshot, onOpenGlobal }) {
     const drag = timingDragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    if (drag.type === 'cue') {
+    if (['cue', 'world-transition', 'interaction'].includes(drag.type)) {
       flushPreviewFrame();
       if (event.type === 'pointercancel' || !drag.moved) store.cancelPreview();
       else store.commitPreview(drag.selection);
@@ -980,6 +1015,8 @@ function Timeline({ store, snapshot, onOpenGlobal }) {
                 const transition = section.world.mode === 'set' && section.world.transitionIn.type !== 'cut'
                   ? section.world.transitionIn
                   : null;
+                const transitionLimit = getAboutNarrativeWorldTransitionLimit(compiledPlan, sectionIndex);
+                const transitionMax = Math.max(1, transitionLimit, transition?.end || 0);
                 return (
                   <div className={`about-editor-clip${isSelected ? ' is-selected' : ''}`} key={section.id} style={{ width }}>
                     <button
@@ -994,8 +1031,26 @@ function Timeline({ store, snapshot, onOpenGlobal }) {
                         key={part}
                         className={`about-editor-timing-key is-world${isSelected && selection.keyPart === `transition-${part}` ? ' is-selected' : ''}`}
                         style={{ left: extendedLocalPosition(transition[part]) }}
-                        title={`World transition ${part}`}
+                        title={`World transition ${part} · drag horizontally to retime`}
                         aria-label={`${section.label} World transition ${part}`}
+                        onPointerDown={(event) => beginTimingDrag(event, {
+                          type: 'world-transition',
+                          token: `world-transition:${section.id}:${part}`,
+                          part,
+                          at: transition[part],
+                          min: part === 'start' ? 0 : transition.start,
+                          max: part === 'start' ? transition.end : transitionMax,
+                          sectionIndex,
+                          sectionStartWU: startWU,
+                          spanWU,
+                          travelWU: compiled?.travelWU || spanWU,
+                          storyWU: startWU + (Number(transition[part]) * (compiled?.travelWU || 0)),
+                          selection: { type: 'world', sectionId: section.id, keyPart: `transition-${part}` },
+                          coalesceKey: `timeline:world-transition:${section.id}:${part}`,
+                        })}
+                        onPointerMove={moveTimingDrag}
+                        onPointerUp={endTimingDrag}
+                        onPointerCancel={endTimingDrag}
                         onClick={() => selectAt({ type: 'world', keyPart: `transition-${part}` }, transition[part])}
                       />
                     )) : null}
@@ -1136,8 +1191,25 @@ function Timeline({ store, snapshot, onOpenGlobal }) {
                       type="button"
                       className={`about-editor-timing-key is-interaction${isSelected && selection.keyPart === 'activation' ? ' is-selected' : ''}`}
                       style={{ left: localPosition(activation) }}
-                      title="Interaction activation"
+                      title="Interaction activation · drag horizontally to retime"
                       aria-label={`${section.label} interaction activation keyframe`}
+                      onPointerDown={(event) => beginTimingDrag(event, {
+                        type: 'interaction',
+                        token: `interaction:${section.id}:activation`,
+                        at: activation,
+                        min: 0,
+                        max: 1,
+                        sectionIndex,
+                        sectionStartWU: startWU,
+                        spanWU,
+                        travelWU: compiled?.travelWU || spanWU,
+                        storyWU: startWU + (Number(activation) * (compiled?.travelWU || 0)),
+                        selection: { type: 'interaction', sectionId: section.id, keyPart: 'activation' },
+                        coalesceKey: `timeline:interaction:${section.id}:activation`,
+                      })}
+                      onPointerMove={moveTimingDrag}
+                      onPointerUp={endTimingDrag}
+                      onPointerCancel={endTimingDrag}
                       onClick={() => selectAt({ type: 'interaction', keyPart: 'activation' }, activation)}
                     />
                   ) : null}
@@ -1745,9 +1817,12 @@ const CORRESPONDENCE_LABELS = Object.freeze(Object.fromEntries(
 function WorldInspector({ store, snapshot, section, runtimeMetrics, runtime }) {
   const sectionIndex = getSectionIndex(snapshot.document, section.id);
   if (section.world.mode !== 'set') {
-    return <><header><span>World track</span><strong>Inherited World</strong></header><p className="about-editor-help">This Section keeps the previous World. Choose “Create World clip” only when the shape should change here.</p><button type="button" className="about-editor-wide-action" onClick={() => store.commit('Create World clip', (draft) => {
-      draft.sections[sectionIndex].world = cloneAboutNarrativeDocument(draft.sections.slice(0, sectionIndex).reverse().find((item) => item.world.mode === 'set')?.world || draft.sections[0].world);
-    })}>Create World clip</button></>;
+    const source = getAboutNarrativeInheritedWorldSource(snapshot.document, section.id);
+    const sourceShape = ABOUT_NARRATIVE_SHAPE_DEFINITIONS[source?.world?.shapeId]?.label || 'previous World';
+    return <><header><span>World track</span><strong>Inherited · {sourceShape}</strong></header><p className="about-editor-help">This passage uses the {sourceShape} from {source?.label || 'the preceding Section'} so its material continues without a transition. Change that earlier World to affect both passages, or make an isolated copy here for an independent variation.</p><button type="button" className="about-editor-wide-action" onClick={() => store.commit('Create independent World clip', (draft) => {
+      const independentWorld = createAboutNarrativeIndependentWorldClip(draft, section.id);
+      if (independentWorld) draft.sections[sectionIndex].world = independentWorld;
+    })}>Create independent World clip</button></>;
   }
   const world = section.world;
   const shape = ABOUT_NARRATIVE_SHAPE_DEFINITIONS[world.shapeId];

@@ -41,8 +41,11 @@ for (const checkpoint of checkpoints) {
   await page.waitForSelector(`[data-narrative-section="${checkpoint.sectionId}"]`, { timeout: 20_000 });
   await page.evaluate(({ sectionId, localProgress }) => {
     const section = document.querySelector(`[data-narrative-section="${sectionId}"]`);
-    const scrollTravel = Math.max(0, section.offsetHeight - window.innerHeight);
-    window.scrollTo(0, section.offsetTop + (scrollTravel * localProgress));
+    const scrollport = document.querySelector('.about-narrative-scrollport');
+    if (!section || !scrollport) return;
+    const scrollTravel = Math.max(0, section.offsetHeight - scrollport.clientHeight);
+    scrollport.scrollTo(0, section.offsetTop + (scrollTravel * localProgress));
+    scrollport.dispatchEvent(new Event('scroll', { bubbles: true }));
   }, checkpoint);
   await page.waitForFunction(({ stage }) => {
     const root = document.querySelector('.about-narrative-lab');

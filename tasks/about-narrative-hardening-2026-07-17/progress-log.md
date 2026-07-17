@@ -5,10 +5,10 @@
 | Phase | Status | Implementation commit | Evidence manifest | Reviewer | Notes |
 |---|---|---|---|---|---|
 | 0 · Baseline | Complete | — | `output/playwright/about-narrative/` | Lead | Existing main-thread apply budget failure captured |
-| 1 · PRD 01 Runtime | In progress | — | — | Runtime specialist | Blocker for all later PRDs |
-| 2 · PRD 02 Correspondence | Planned | — | — | — | Requires stable Worker protocol |
-| 3 · PRD 03 Editor/Persistence | Planned | — | — | — | Requires registry and lifecycle APIs |
-| 4 · PRD 04 Certification | Planned | — | — | — | Independent final gate |
+| 1 · PRD 01 Runtime | In review | — | `output/playwright/about-narrative-hardening/runtime/` | Runtime specialist | Pure, hot-frame, fault, and desktop/mobile 1,000-transition gates pass |
+| 2 · PRD 02 Correspondence | In review | — | `output/playwright/about-narrative-hardening/runtime/` | Correspondence specialist | Registry, v2 property suite, and 1,000-seed coverage pass |
+| 3 · PRD 03 Editor/Persistence | In review | — | `output/playwright/about-narrative/` | Editor specialist | Schema, persistence, accessibility, Chromium/WebKit, and production-isolation gates pass |
+| 4 · PRD 04 Certification | In review | — | `output/playwright/about-narrative-hardening/certification/` | Certification specialist | Manifest contract is implemented; clean-checkout and independent sign-off remain release gates |
 
 Allowed status values: `Not started`, `In progress`, `Blocked`, `In review`, `Complete`.
 
@@ -115,6 +115,7 @@ Allowed status values: `Not started`, `In progress`, `Blocked`, `In review`, `Co
 
 | Date | Scope | Reviewer | Findings | Resolution commit/evidence | Sign-off |
 |---|---|---|---|---|---|
+| 2026-07-17 | Integrated PRD 01–04 implementation and audits | Runtime, correspondence, editor, and certification specialists | Audit assumptions had drifted from the current storyboard (cue ownership, scrollport, section indexes, indicator mount timing, bounded correspondence fallback). | Focused audit/test updates; `check:about-narrative-hardening`, `check:about-production`, hot-frame, fault, desktop/mobile soaks, runtime visuals, Chromium, and WebKit passed. | Pending clean-checkout certification and independent release review |
 |  |  |  |  |  |  |
 
 ## Archive record

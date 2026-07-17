@@ -155,60 +155,16 @@
       "label": "Entering complexity",
       "type": "spatial",
       "layout": "center",
-      "extentWU": 2.95,
-      "mobileExtentWU": 2.6,
+      "extentWU": 1.85,
+      "mobileExtentWU": 1.75,
       "text": {
         "cues": [
           {
             "id": "complexity-conditions",
             "text": "It has to be useful, original, technically possible and emotionally right.",
-            "enter": 0.17,
-            "hold": 0.235,
-            "exit": 0.3,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "complexity-fragmented",
-            "text": "Its shape is still fragmented.",
-            "enter": 0.34,
-            "hold": 0.405,
-            "exit": 0.47,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "complexity-curiosity",
-            "text": "This stage of an idea has always captivated me.",
-            "enter": 0.51,
-            "hold": 0.575,
-            "exit": 0.64,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "complexity-listen",
-            "text": "I learn what is there and what matters to the people involved.",
-            "enter": 0.68,
-            "hold": 0.745,
-            "exit": 0.81,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "complexity-focus",
-            "text": "Then I look for the organising thought that can bring it into focus.",
-            "enter": 0.85,
-            "hold": 0.925,
-            "exit": 1,
+            "enter": 0.18,
+            "hold": 0.33,
+            "exit": 0.48,
             "preset": "travelling-title-v1",
             "motion": {
               "mode": "spatial"
@@ -257,7 +213,7 @@
         "adapterId": "point-field-v1",
         "shapeId": "turbulent-field-v1",
         "seed": 506832829,
-      "entryDistanceWU": 5,
+        "entryDistanceWU": 6.2,
         "transform": {
           "position": [
             0,
@@ -269,7 +225,7 @@
             0,
             0
           ],
-          "scale": 1
+          "scale": 0.92
         },
         "transitionIn": {
           "start": 0.02,
@@ -286,7 +242,7 @@
           "chunkSize": 1.55,
           "scatter": 0.14,
           "turbulence": 0.52,
-          "density": 0.26
+          "density": 0.22
         },
         "modifiers": [
           {
@@ -307,8 +263,8 @@
       "label": "Curiosity across aesthetics and technology",
       "type": "editorial",
       "layout": "reading",
-      "extentWU": 2.9,
-      "mobileExtentWU": 3.6,
+      "extentWU": 3.45,
+      "mobileExtentWU": 4.1,
       "text": {
         "blocks": [
         {
@@ -321,6 +277,11 @@
               "tone": "blue"
             }
           ]
+        },
+        {
+          "id": "background-fragmented",
+          "kind": "prose",
+          "text": "Its shape is still fragmented."
         },
         {
           "id": "background-practice",
@@ -503,7 +464,7 @@
           "depth": 24,
           "height": -1.72,
           "jitter": 0.035,
-          "density": 0.18
+          "density": 0.22
         },
         "modifiers": [
           {
@@ -524,54 +485,44 @@
       "label": "The practice comes into view",
       "type": "spatial",
       "layout": "constellation",
-      "extentWU": 1.8,
-      "mobileExtentWU": 1.75,
+      "extentWU": 2.8,
+      "mobileExtentWU": 2.65,
       "text": {
-        "disciplineReveal": {
-          "id": "practice-disciplines",
-          "fieldTravelStart": 0.06,
-          "fieldTravelEnd": 2.7,
-          "fieldTravelWU": 6.8,
-          "fieldFogStartWU": 4.8,
-          "fieldFogEndWU": 10.5,
-          "fieldFogStrength": 0.8,
-          "start": 0.32,
-          "end": 2.9,
-          "stagger": 0.075,
-          "backgroundFade": 0.12,
-          "backgroundOpacity": 0.22,
-          "reconnectOpacity": 0.24,
-          "pointScale": 1.35,
-          "labelOffsetPx": 10,
-          "labelDuration": 0.06,
-          "hold": 1.45,
-          "items": [
-            {
-              "group": 1,
-              "label": "Product Design"
-            },
-            {
-              "group": 2,
-              "label": "Experience Design"
-            },
-            {
-              "group": 3,
-              "label": "Art Direction"
-            },
-            {
-              "group": 4,
-              "label": "Motion & 3D"
-            },
-            {
-              "group": 5,
-              "label": "Creative Engineering"
-            },
-            {
-              "group": 6,
-              "label": "Parametric Systems"
+        "cues": [
+          {
+            "id": "complexity-curiosity",
+            "text": "This stage of an idea has always captivated me.",
+            "enter": 0.08,
+            "hold": 0.18,
+            "exit": 0.28,
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
             }
-          ]
-        }
+          },
+          {
+            "id": "complexity-listen",
+            "text": "I learn what is there and what matters to the people involved.",
+            "enter": 0.4,
+            "hold": 0.5,
+            "exit": 0.6,
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
+          },
+          {
+            "id": "complexity-focus",
+            "text": "Then I look for the organising thought that can bring it into focus.",
+            "enter": 0.72,
+            "hold": 0.82,
+            "exit": 0.94,
+            "preset": "travelling-title-v1",
+            "motion": {
+              "mode": "spatial"
+            }
+          }
+        ]
       },
       "camera": {
         "keys": [
@@ -621,9 +572,54 @@
       "label": "Six connected disciplines",
       "type": "editorial",
       "layout": "disciplines",
-      "extentWU": 3.2,
-      "mobileExtentWU": 4,
+      "extentWU": 3.5,
+      "mobileExtentWU": 4.2,
       "text": {
+        "disciplineReveal": {
+          "id": "practice-disciplines",
+          "fieldTravelStart": 0.02,
+          "fieldTravelEnd": 0.82,
+          "fieldTravelWU": 6.8,
+          "fieldFogStartWU": 4.2,
+          "fieldFogEndWU": 8.4,
+          "fieldFogStrength": 0.78,
+          "start": 0.18,
+          "end": 0.88,
+          "stagger": 0.075,
+          "backgroundFade": 0.12,
+          "backgroundOpacity": 0.2,
+          "reconnectOpacity": 0.24,
+          "pointScale": 1.35,
+          "labelOffsetPx": 10,
+          "labelDuration": 0.09,
+          "hold": 0.14,
+          "items": [
+            {
+              "group": 1,
+              "label": "Product Design"
+            },
+            {
+              "group": 2,
+              "label": "Experience Design"
+            },
+            {
+              "group": 3,
+              "label": "Art Direction"
+            },
+            {
+              "group": 4,
+              "label": "Motion & 3D"
+            },
+            {
+              "group": 5,
+              "label": "Creative Engineering"
+            },
+            {
+              "group": 6,
+              "label": "Parametric Systems"
+            }
+          ]
+        },
         "blocks": [
           {
             "id": "disciplines-title",
@@ -702,16 +698,16 @@
       "label": "Bringing the idea to life",
       "type": "spatial",
       "layout": "living-field",
-      "extentWU": 3.1,
-      "mobileExtentWU": 2.85,
+      "extentWU": 2.9,
+      "mobileExtentWU": 2.7,
       "text": {
         "cues": [
           {
             "id": "life-momentum",
             "text": "As those ways of thinking begin to influence one another, complexity starts to cohere.",
-            "enter": 0,
-            "hold": 0.08,
-            "exit": 0.16,
+            "enter": 0.1,
+            "hold": 0.19,
+            "exit": 0.28,
             "preset": "travelling-title-v1",
             "motion": {
               "mode": "spatial"
@@ -720,9 +716,9 @@
           {
             "id": "life-form",
             "text": "It takes on clear form and intuitive behaviour.",
-            "enter": 0.2,
-            "hold": 0.28,
-            "exit": 0.36,
+            "enter": 0.43,
+            "hold": 0.52,
+            "exit": 0.61,
             "preset": "travelling-title-v1",
             "motion": {
               "mode": "spatial"
@@ -731,31 +727,9 @@
           {
             "id": "life-character",
             "text": "It gains a character people can trust.",
-            "enter": 0.4,
-            "hold": 0.48,
-            "exit": 0.56,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "life-feel",
-            "text": "It becomes something they can relate to, interact with and feel.",
-            "enter": 0.6,
-            "hold": 0.68,
-            "exit": 0.76,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "life-meaning",
-            "text": "That is what excites me about bringing an idea to life.",
-            "enter": 0.82,
-            "hold": 0.91,
-            "exit": 1,
+            "enter": 0.76,
+            "hold": 0.85,
+            "exit": 0.94,
             "preset": "travelling-title-v1",
             "motion": {
               "mode": "spatial"
@@ -861,9 +835,9 @@
           "width": 13.5,
           "depth": 18,
           "baseY": -1.58,
-          "terrainX": 0.14,
-          "terrainZ": 0.12,
-          "density": 0.16
+          "terrainX": 0.18,
+          "terrainZ": 0.16,
+          "density": 0.26
         },
         "modifiers": [
           {
@@ -879,8 +853,8 @@
             "id": "living-wave-v1",
             "enabled": true,
             "parameters": {
-              "strength": 0.68,
-              "amplitude": 0.12,
+              "strength": 0.82,
+              "amplitude": 0.18,
               "speed": 0.42,
               "frequencyX": 1.15,
               "frequencyZ": 0.72,
@@ -891,7 +865,7 @@
             "id": "living-colour-v1",
             "enabled": true,
             "parameters": {
-              "strength": 0.62,
+              "strength": 0.7,
               "timeMode": "mixed"
             }
           }
@@ -903,16 +877,26 @@
     },
     {
       "id": "role",
-      "label": "Service proposition",
+      "label": "What takes shape",
       "type": "editorial",
       "layout": "exit",
-      "extentWU": 1.35,
-      "mobileExtentWU": 1.5,
+      "extentWU": 2.45,
+      "mobileExtentWU": 2.8,
       "text": {
         "blocks": [
         {
           "id": "role-highlight",
           "kind": "highlight",
+          "text": "It becomes something people can relate to, interact with and feel."
+        },
+        {
+          "id": "role-meaning",
+          "kind": "prose",
+          "text": "That is what excites me about bringing an idea to life."
+        },
+        {
+          "id": "role-service",
+          "kind": "prose",
           "text": "That is the work I do with ambitious teams: bringing design, creative technology and AI together to give early ideas a form people can understand, trust and want to engage with.",
           "emphasis": [
             {

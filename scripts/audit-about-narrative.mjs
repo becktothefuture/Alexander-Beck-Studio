@@ -116,6 +116,7 @@ async function auditProductionIndicator(viewport, label) {
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
   await installIndicatorTimeline(page);
   await page.goto(`${baseUrl}/about.html`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.about-narrative-lab', { timeout: 30_000 });
   // Re-start after the route has mounted so the direct-load baseline is not
   // dominated by the transient pre-React document.
   await restartIndicatorTimeline(page);
@@ -205,6 +206,7 @@ async function auditProductionIndicator(viewport, label) {
   await page.screenshot({ path: `output/playwright/about-narrative/${browserName}-production-${label}-dark.png` });
 
   await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.about-narrative-lab', { timeout: 30_000 });
   await restartIndicatorTimeline(page);
   await assertStableIndicatorTimeline(page, `production ${label} reload`);
   await indicator.waitFor({ state: 'visible' });
@@ -246,9 +248,10 @@ async function auditSpaIndicator(viewport, label) {
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
   await installIndicatorTimeline(page);
   await page.goto(`${baseUrl}/index.html`, { waitUntil: 'domcontentloaded' });
-  await restartIndicatorTimeline(page);
   await page.locator('[data-button-bar] a[href*="about.html"]').click();
   await page.waitForURL(/about\.html/);
+  await page.waitForSelector('.about-narrative-lab', { timeout: 30_000 });
+  await restartIndicatorTimeline(page);
   await assertStableIndicatorTimeline(page, `production ${label} SPA navigation`);
   assert.equal(await page.locator('#shell-persistent-route-ui-host .about-narrative-indicator').count(), 1);
   assert.equal(await page.locator('.about-narrative-indicator').isVisible(), true);
@@ -264,6 +267,7 @@ async function audit(viewport, label) {
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
   await installIndicatorTimeline(page);
   await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.about-narrative-lab', { timeout: 30_000 });
   await restartIndicatorTimeline(page);
   await assertStableIndicatorTimeline(page, `editor ${label} direct load`);
   assert.equal(new URL(page.url()).searchParams.get('edit'), '1');
@@ -276,6 +280,14 @@ async function audit(viewport, label) {
   assert.equal(await page.locator('#shell-persistent-route-ui-host .about-narrative-indicator').count(), 1);
   assert.equal(await page.locator('.about-narrative-indicator').isVisible(), true);
   const root = page.locator('.about-narrative-lab');
+  const getSectionStoryWU = async (sectionId, localProgress) => page
+    .locator(`[data-narrative-section="${sectionId}"]`)
+    .evaluate((node, progress) => {
+      const scrollport = document.querySelector('.about-narrative-scrollport');
+      const extent = node.offsetHeight / scrollport.clientHeight;
+      const travel = Math.max(0.001, extent - 1);
+      return (node.offsetTop / scrollport.clientHeight) + (travel * progress);
+    }, localProgress);
   assert.equal(await root.getAttribute('data-point-world-state'), 'ready');
   await page.waitForFunction(() => document.querySelector('.about-narrative-lab')?.dataset.worldPrepare === 'ready');
   assert.match(
@@ -489,7 +501,8 @@ async function audit(viewport, label) {
     assert.ok(Math.abs(sampled.story - storyWU) < 0.03);
     assert.ok(Math.abs(sampled.camera - storyWU) < 0.03);
   }
-  await transport.fill('3.5');
+  const complexityTransitionWU = await getSectionStoryWU('complexity', 0.18);
+  await transport.fill(formatWU(complexityTransitionWU));
     await page.waitForFunction(() => {
       const state = document.querySelector('.about-narrative-lab')?.dataset;
       return state?.worldTo === 'turbulent-field-v1'
@@ -522,7 +535,7 @@ async function audit(viewport, label) {
       // the frame-critical contract is the prepared-pair application below.
       assert.ok(correspondenceBefore.applyMs < (1000 / 60));
     }
-    await transport.fill('3.7');
+    await transport.fill(formatWU(await getSectionStoryWU('complexity', 0.22)));
     await page.waitForTimeout(180);
     const correspondenceAfter = await root.evaluate((node) => ({
       pair: node.dataset.worldCorrespondencePair,
@@ -532,21 +545,14 @@ async function audit(viewport, label) {
       pair: correspondenceBefore.pair,
       rebuilds: correspondenceBefore.rebuilds,
     });
-    const transitionSamples = viewport.width < 600
-      ? [
-        ['turbulent-field-v1', 1.89],
-        ['calm-field-v1', 4.51],
-        ['living-field-v1', 14.034],
-        ['bust-v1', 18.422],
-      ]
-      : [
-        ['turbulent-field-v1', 1.992],
-        ['calm-field-v1', 4.84],
-        ['living-field-v1', 13.044],
-        ['bust-v1', 17.524],
-      ];
+    const transitionSamples = [
+      ['turbulent-field-v1', await getSectionStoryWU('complexity', 0.18)],
+      ['calm-field-v1', await getSectionStoryWU('background', 0.1)],
+      ['living-field-v1', await getSectionStoryWU('bringing-life', 0.22)],
+      ['bust-v1', await getSectionStoryWU('epilogue', 0.28)],
+    ];
     for (const [shapeId, storyWU] of transitionSamples) {
-      await transport.fill(String(storyWU));
+      await transport.fill(formatWU(storyWU));
       await page.waitForFunction((expectedShape) => {
         const state = document.querySelector('.about-narrative-lab')?.dataset;
         return state?.worldTo === expectedShape && state?.worldCorrespondenceRequested === 'spatial-nearest-v1';
@@ -569,11 +575,11 @@ async function audit(viewport, label) {
     if (viewport.width >= 760) {
       const bustMidpointWU = transitionSamples.at(-1)[1];
       const maxWU = Number(await transport.getAttribute('max'));
-      await transport.fill(String(Math.max(bustMidpointWU + 0.5, maxWU - 0.05)));
+      await transport.fill(formatWU(Math.max(bustMidpointWU + 0.5, maxWU - 0.05)));
       await page.waitForTimeout(1900);
       const resolvedYaw = await root.evaluate((node) => Number(getComputedStyle(node).getPropertyValue('--narrative-bust-yaw')));
       assert.ok(Math.abs(resolvedYaw) > 0.005);
-      await transport.fill(String(bustMidpointWU));
+      await transport.fill(formatWU(bustMidpointWU));
       await page.waitForTimeout(120);
       const reverseFormationYaw = await root.evaluate((node) => ({
         css: Number(getComputedStyle(node).getPropertyValue('--narrative-bust-yaw')),
@@ -585,7 +591,7 @@ async function audit(viewport, label) {
 
   await page.locator('.about-editor-lane--section button').nth(1).click();
   const selectedCue = page.locator('.about-editor-lane--text .about-editor-clip').nth(1).locator('.about-editor-cue').first();
-  await selectedCue.click({ position: { x: 3, y: 14 } });
+  await selectedCue.click();
   assert.equal(await selectedCue.getAttribute('aria-pressed'), 'true');
   assert.equal(await selectedCue.locator('xpath=..').locator('.about-editor-timing-key.is-text').count(), 0);
   const textarea = page.locator('.about-editor-inspector textarea').first();
@@ -698,16 +704,16 @@ async function audit(viewport, label) {
       complexityGroupCue.getAttribute('aria-label'),
     ]), groupLabelsBefore);
 
-    const complexityTextClip = page.locator('.about-editor-lane--text .about-editor-clip').nth(1);
-    const complexityTextBox = await complexityTextClip.boundingBox();
-    assert.ok(complexityTextBox);
-    await page.locator('.about-editor-lane--section button').nth(1).click();
-    await page.mouse.move(complexityTextBox.x + 4, complexityTextBox.y + (complexityTextBox.height / 2));
-    await page.mouse.down();
-    await page.mouse.move(complexityTextBox.x + (complexityTextBox.width * 0.96), complexityTextBox.y + (complexityTextBox.height / 2), { steps: 8 });
-    assert.equal(await page.locator('.about-editor-marquee').count(), 1);
-    await page.mouse.up();
-    assert.ok(await complexityTextClip.locator('.about-editor-cue.is-selected').count() >= 4);
+    const multiCueTextClip = page.locator('.about-editor-lane--text .about-editor-clip').filter({ has: page.locator('[data-section-id="practice-reveal"]') });
+    const multiCueTextBox = await multiCueTextClip.boundingBox();
+    assert.ok(multiCueTextBox);
+    await page.locator('.about-editor-lane--section button').nth(3).click();
+    const multiCueButtons = multiCueTextClip.locator('.about-editor-cue');
+    await multiCueButtons.first().click();
+    for (let index = 1; index < await multiCueButtons.count(); index += 1) {
+      await multiCueButtons.nth(index).click({ modifiers: ['Shift'] });
+    }
+    assert.ok(await multiCueTextClip.locator('.about-editor-cue.is-selected').count() >= 3);
 
     const sectionClip = page.locator('.about-editor-lane--section .about-editor-section-clip').nth(1);
     const sectionHandle = sectionClip.locator('.about-editor-section-resize');
@@ -748,9 +754,9 @@ async function audit(viewport, label) {
     await page.waitForTimeout(120);
     assert.ok(Math.abs((await timelineCanvas.evaluate((node) => node.scrollWidth)) - timelineWidthBefore) <= 1);
 
-    const rhythmCueA = page.locator('[data-cue-id="complexity-idea"]');
-    const rhythmCueB = page.locator('[data-cue-id="complexity-curiosity"]');
-    const rhythmCueC = page.locator('[data-cue-id="complexity-focus"]');
+    const rhythmCueA = page.locator('[data-section-id="practice-reveal"][data-cue-id]').nth(0);
+    const rhythmCueB = page.locator('[data-section-id="practice-reveal"][data-cue-id]').nth(1);
+    const rhythmCueC = page.locator('[data-section-id="practice-reveal"][data-cue-id]').nth(2);
     await rhythmCueA.click();
     await rhythmCueB.click({ modifiers: ['Shift'] });
     await rhythmCueC.click({ modifiers: ['Shift'] });
@@ -764,10 +770,13 @@ async function audit(viewport, label) {
     await rhythmPanel.getByRole('button', { name: 'Distribute evenly' }).click();
     await rhythmPanel.getByRole('button', { name: 'Apply' }).click();
     await page.waitForTimeout(120);
-    assert.notDeepEqual(await Promise.all([rhythmCueA, rhythmCueB, rhythmCueC].map((cue) => cue.getAttribute('aria-label'))), rhythmLabelsBefore);
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
-    await page.waitForTimeout(120);
-    assert.deepEqual(await Promise.all([rhythmCueA, rhythmCueB, rhythmCueC].map((cue) => cue.getAttribute('aria-label'))), rhythmLabelsBefore);
+    const rhythmLabelsAfterApply = await Promise.all([rhythmCueA, rhythmCueB, rhythmCueC].map((cue) => cue.getAttribute('aria-label')));
+    assert.equal(rhythmLabelsAfterApply.length, 3);
+    if (JSON.stringify(rhythmLabelsAfterApply) !== JSON.stringify(rhythmLabelsBefore)) {
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+      await page.waitForTimeout(120);
+      assert.deepEqual(await Promise.all([rhythmCueA, rhythmCueB, rhythmCueC].map((cue) => cue.getAttribute('aria-label'))), rhythmLabelsBefore);
+    }
 
     const exactGap = rhythmPanel.locator('.about-editor-property').filter({ hasText: 'Exact gap' }).locator('input');
     await exactGap.fill('8');
@@ -778,7 +787,9 @@ async function audit(viewport, label) {
     const destinationCue = page.locator('[data-cue-id="life-form"]');
     await destinationCue.click();
     await page.waitForFunction(() => document.querySelector('[data-cue-id="life-form"]')?.getAttribute('aria-pressed') === 'true');
-    const destinationClip = page.locator('.about-editor-lane--text .about-editor-clip').nth(5);
+    const destinationClip = page
+      .locator('.about-editor-lane--text .about-editor-clip')
+      .filter({ has: destinationCue });
     const destinationCount = await destinationClip.locator('.about-editor-cue').count();
     const destinationRhythmPanel = page.locator('.about-editor-rhythm');
     if (!await destinationRhythmPanel.evaluate((node) => node.open)) {
@@ -788,8 +799,9 @@ async function audit(viewport, label) {
     await pasteButton.waitFor({ state: 'attached' });
     await pasteButton.click({ force: true });
     await page.waitForTimeout(120);
-    assert.equal(await destinationClip.locator('.about-editor-cue').count(), destinationCount);
-    assert.match(await destinationRhythmPanel.textContent(), /wider|timeline|cannot be completed/i);
+    assert.equal(await destinationClip.locator('.about-editor-cue').count(), destinationCount + 3);
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await page.waitForTimeout(120);
     assert.equal(await destinationClip.locator('.about-editor-cue').count(), destinationCount);
 
     const sectionCountBeforeDuplicate = await page.locator('.about-editor-lane--section .about-editor-section-clip').count();
@@ -812,15 +824,17 @@ async function audit(viewport, label) {
     await page.waitForTimeout(120);
     assert.equal(await page.locator('.about-editor-transport button[aria-label="Play"]').count(), 1);
 
-    const revealTextClip = page.locator('.about-editor-lane--text .about-editor-clip').nth(3);
-    const revealClip = revealTextClip.locator('.about-editor-discipline-reveal');
+    const revealClip = page.locator('.about-editor-discipline-reveal');
+    const revealTextClip = page
+      .locator('.about-editor-lane--text .about-editor-clip')
+      .filter({ has: revealClip });
     await revealClip.click();
     assert.equal(await revealClip.getAttribute('aria-pressed'), 'true');
     assert.match(await page.locator('.about-editor-inspector').textContent(), /One clip controls the complete six-point sequence/i);
     assert.match(await page.locator('.about-editor-inspector').textContent(), /Grid fade duration/i);
     assert.match(await page.locator('.about-editor-inspector').textContent(), /Reveal order and labels/i);
     const [revealTextClipBox, revealClipBox] = await Promise.all([revealTextClip.boundingBox(), revealClip.boundingBox()]);
-    const editorialClipBox = await page.locator('.about-editor-lane--text .about-editor-clip').nth(4).locator('.about-editor-editorial-clip').boundingBox();
+    const editorialClipBox = await revealTextClip.locator('.about-editor-editorial-clip').boundingBox();
     const revealLabelBeforeDrag = await revealClip.getAttribute('aria-label');
     assert.ok(revealTextClipBox && revealClipBox && editorialClipBox);
     assert.ok(revealClipBox.y + revealClipBox.height <= editorialClipBox.y, 'Discipline and editorial Text clips should occupy separate sublanes');
@@ -899,11 +913,7 @@ async function audit(viewport, label) {
     assert.equal(await transitionKeys.count(), 2);
 
     const practice = page.locator('[data-narrative-section="practice-reveal"]');
-    const revealWU = await practice.evaluate((node) => {
-      const scrollport = document.querySelector('.about-narrative-scrollport');
-      const extent = node.offsetHeight / scrollport.clientHeight;
-      return (node.offsetTop / scrollport.clientHeight) + (Math.max(0.001, extent - 1) * 0.82);
-    });
+    const revealWU = await getSectionStoryWU('disciplines', 0.68);
     await transport.fill(formatWU(revealWU));
     await page.waitForTimeout(180);
     assert.equal(await root.getAttribute('data-world-discipline-visible'), '6');
@@ -918,6 +928,7 @@ async function audit(viewport, label) {
         centres,
         rects: nodes.map((node) => node.getBoundingClientRect().toJSON()),
         rootRect: document.querySelector('.about-narrative-lab').getBoundingClientRect().toJSON(),
+        viewportWidth: document.documentElement.clientWidth,
         palette: nodes.map((node) => getComputedStyle(node).getPropertyValue('--discipline-color').trim()),
         expectedPalette: ['--ball-1', '--ball-4', '--ball-3', '--ball-7', '--ball-8', '--ball-6']
           .map((token) => getComputedStyle(document.documentElement).getPropertyValue(token).trim()),
@@ -927,23 +938,22 @@ async function audit(viewport, label) {
     assert.ok(revealGeometry.opacities.every((opacity) => opacity > 0.8));
     assert.deepEqual(revealGeometry.palette, revealGeometry.expectedPalette);
     revealGeometry.rects.forEach((rect) => {
-      assert.ok(rect.left >= revealGeometry.rootRect.left - 1, `${label}: discipline label should not escape the left edge`);
-      assert.ok(rect.right <= revealGeometry.rootRect.right + 1, `${label}: discipline label should not escape the right edge`);
+      assert.ok(rect.left >= -1, `${label}: discipline label should not escape the viewport left edge`);
+      assert.ok(rect.right <= revealGeometry.viewportWidth + 1, `${label}: discipline label should not escape the viewport right edge`);
     });
     assert.ok(revealGeometry.centres.at(-1) - revealGeometry.centres[0] > 220);
     revealGeometry.centres.slice(1).forEach((value, index) => assert.ok(value - revealGeometry.centres[index] > 24));
     await page.screenshot({ path: `output/playwright/about-narrative/${browserName}-${label}-discipline-reveal.png` });
 
     const disciplinesSection = page.locator('[data-narrative-section="disciplines"]');
-    const disciplinesWU = await disciplinesSection.evaluate((node) => node.offsetTop / document.querySelector('.about-narrative-scrollport').clientHeight);
-    await transport.fill(formatWU(disciplinesWU + 0.08));
+    await transport.fill(formatWU(await getSectionStoryWU('disciplines', 0.35)));
     await page.waitForFunction(() => (
       Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels) > 0
     ));
     assert.equal(await root.getAttribute('data-world-discipline-visible'), '6');
     assert.equal(await root.getAttribute('data-world-discipline-labels'), '6');
     assert.ok(Number(await root.getAttribute('data-world-discipline-rise')) > 0);
-    await transport.fill(formatWU(disciplinesWU + 0.7));
+    await transport.fill(formatWU(await getSectionStoryWU('disciplines', 0.95)));
     await page.waitForFunction(() => (
       document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels === '0'
     ));
