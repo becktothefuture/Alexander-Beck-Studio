@@ -1839,6 +1839,7 @@ body.styleguide-page .styleguide-type-sample--cv-body {
 .legend__item--interactive {
   position: relative;
   border-radius: var(--legend-item-radius);
+  background: transparent;
   display: flex;
   justify-content: flex-start;
   align-items: center; /* Center aligns with text container height (cap height) */
@@ -1852,6 +1853,7 @@ body.styleguide-page .styleguide-type-sample--cv-body {
   justify-self: start;
   box-sizing: border-box;
   z-index: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .legend__item--interactive::after {
@@ -1875,34 +1877,20 @@ body.styleguide-page .styleguide-type-sample--cv-body {
 
 /* Unified hover state - handled in INTERACTIVE HOVER EFFECTS section below */
 
-.legend__item--interactive:hover {
+.legend__item--interactive:is(:hover, .legend__item--active) {
   opacity: 1;
   /* Disable scale animation - keep exact same dimensions on hover */
   animation: none;
   transform: none;
 }
 
-/* Legend label text stays body color (no cursor-tint on hover) */
-.legend .legend__item--interactive:hover span {
+/* Legend label text stays body color (no cursor-tint on hover or active). */
+.legend .legend__item--interactive:is(:hover, .legend__item--active) span {
   color: var(--text-primary);
 }
 
-body.dark-mode .legend .legend__item--interactive:hover span {
+body.dark-mode .legend .legend__item--interactive:is(:hover, .legend__item--active) span {
   color: var(--text-primary);
-}
-
-/* A tapped mobile item holds the same quiet field and label treatment as desktop hover. */
-.legend__item--active {
-  opacity: 1;
-}
-
-html[data-shell-route='home'] body:not(.detail-open) .legend__item.legend__item--active span {
-  color: var(--text-primary);
-  opacity: 1;
-}
-
-html[data-shell-route='home'] body:not(.detail-open) .legend__item--active::after {
-  opacity: var(--home-text-hover-field-opacity);
 }
 
 /* Legend tooltip — floating dialog below the clicked label (position set by JS) */
@@ -2135,7 +2123,7 @@ html[data-shell-route='home'] body:not(.detail-open) .decorative-script {
 
 /* Restore full opacity on hover/focus */
 /* Note: #main-links .footer_link excluded - controlled by entrance animation state */
-html[data-shell-route='home'] body:not(.detail-open) .legend__item:hover span,
+html[data-shell-route='home'] body:not(.detail-open) .legend__item:is(:hover, .legend__item--active) span,
 html[data-shell-route='home'] body:not(.detail-open) .legend__item:focus-visible span,
 html[data-shell-route='home'] body:not(.detail-open) .decorative-script:hover,
 html[data-shell-route='home'] body:not(.detail-open) .decorative-script:focus-within,
@@ -2145,7 +2133,7 @@ html[data-shell-route='home'] body:not(.detail-open) .sound-toggle:focus-visible
   opacity: 1;
 }
 
-html[data-shell-route='home'] body:not(.detail-open) .legend__item:hover::after,
+html[data-shell-route='home'] body:not(.detail-open) .legend__item:is(:hover, .legend__item--active)::after,
 html[data-shell-route='home'] body:not(.detail-open) .decorative-script:hover::before,
 html[data-shell-route='home'] body:not(.detail-open) .decorative-script:focus-within::before {
   opacity: var(--home-text-hover-field-opacity);
