@@ -65,6 +65,43 @@ async function auditProduction(viewport, label, expectedProfile) {
   assert.equal(initial.layoutProfile, expectedProfile);
 
   await page.locator('.about-narrative-scrollport').evaluate((node) => {
+    node.scrollTop = (node.scrollHeight - node.clientHeight) * (11.49 / 21.8);
+    node.dispatchEvent(new Event('scroll', { bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const root = document.querySelector('.about-narrative-lab');
+    const storyWU = Number(root?.dataset.narrativeStoryWu);
+    return storyWU > 11.45
+      && storyWU < 11.55
+      && root?.dataset.worldDisciplineLabels === '6';
+  });
+  const disciplineState = await page.evaluate(() => {
+    const root = document.querySelector('.about-narrative-lab');
+    const viewport = document.querySelector('.about-narrative-discipline-reveal').getBoundingClientRect();
+    const labels = [...document.querySelectorAll('[data-discipline-group]')].map((label) => label.getBoundingClientRect());
+    return {
+      activeWorld: root.dataset.activeNarrativeWorld,
+      gridInfluence: root.dataset.worldGridInfluence,
+      worldFrom: root.dataset.worldFrom,
+      worldTo: root.dataset.worldTo,
+      labelsWithinViewport: labels.every((rect) => (
+        rect.left >= viewport.left - 1
+        && rect.right <= viewport.right + 1
+        && rect.top >= viewport.top - 1
+        && rect.bottom <= viewport.bottom + 1
+      )),
+    };
+  });
+  assert.deepEqual(disciplineState, {
+    activeWorld: 'world-discipline-isolation',
+    gridInfluence: '0.0000',
+    worldFrom: 'calm-field-v1',
+    worldTo: 'calm-field-v1',
+    labelsWithinViewport: true,
+  });
+  await page.screenshot({ path: `${outputDir}/${browserName}-production-${label}-discipline.png` });
+
+  await page.locator('.about-narrative-scrollport').evaluate((node) => {
     node.scrollTop = node.scrollHeight - node.clientHeight;
     node.dispatchEvent(new Event('scroll', { bubbles: true }));
   });
@@ -100,6 +137,101 @@ async function auditEditor() {
   assert.equal(initial.legacyContainerCount, 0);
   assert.equal(initial.plusLabels.length, 4);
   assert.equal(initial.semanticFieldCount, 26);
+
+  const editorialConnection = await page.evaluate(() => {
+    const first = document.querySelector('[data-track-object-id="text-background-title"]');
+    const middle = document.querySelector('[data-track-object-id="text-background-fragmented"]');
+    const last = document.querySelector('[data-track-object-id="text-background-clients"]');
+    const firstRect = first?.getBoundingClientRect();
+    const middleRect = middle?.getBoundingClientRect();
+    return {
+      firstBefore: first?.classList.contains('is-connected-before'),
+      firstAfter: first?.classList.contains('is-connected-after'),
+      middleBefore: middle?.classList.contains('is-connected-before'),
+      middleAfter: middle?.classList.contains('is-connected-after'),
+      lastBefore: last?.classList.contains('is-connected-before'),
+      lastAfter: last?.classList.contains('is-connected-after'),
+      firstGap: middleRect && firstRect ? middleRect.left - firstRect.right : Number.POSITIVE_INFINITY,
+    };
+  });
+  assert.deepEqual(
+    { ...editorialConnection, firstGap: undefined },
+    {
+      firstBefore: false,
+      firstAfter: true,
+      middleBefore: true,
+      middleAfter: true,
+      lastBefore: true,
+      lastAfter: false,
+      firstGap: undefined,
+    },
+  );
+  assert.ok(Math.abs(editorialConnection.firstGap) < 0.1, `Connected editorial gap was ${editorialConnection.firstGap}px.`);
+
+  const disciplineEditorialConnection = await page.evaluate(() => {
+    const ids = [
+      'text-disciplines-title',
+      'text-disciplines-practice',
+      'text-disciplines-ai',
+      'text-disciplines-synthesis',
+    ];
+    const clips = ids.map((id) => document.querySelector(`[data-track-object-id="${id}"]`));
+    return clips.map((clip, index) => ({
+      before: clip?.classList.contains('is-connected-before'),
+      after: clip?.classList.contains('is-connected-after'),
+      gap: index === 0 ? 0 : clip.getBoundingClientRect().left - clips[index - 1].getBoundingClientRect().right,
+    }));
+  });
+  assert.deepEqual(
+    disciplineEditorialConnection.map(({ before, after }) => ({ before, after })),
+    [
+      { before: false, after: true },
+      { before: true, after: true },
+      { before: true, after: true },
+      { before: true, after: false },
+    ],
+  );
+  disciplineEditorialConnection.slice(1).forEach(({ gap }) => {
+    assert.ok(Math.abs(gap) < 0.1, `Connected discipline editorial gap was ${gap}px.`);
+  });
+
+  const playhead = page.getByRole('slider', { name: 'Story WU playhead' });
+  await playhead.evaluate((node) => { node.value = '0'; });
+  const playheadBox = await playhead.boundingBox();
+  await playhead.click({
+    position: {
+      x: playheadBox.width * (11.49 / 21.8),
+      y: playheadBox.height / 2,
+    },
+  });
+  await page.waitForFunction(() => (
+    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) > 11.45
+    && document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels === '6'
+  ));
+  const disciplineDesktop = await page.evaluate(() => {
+    const root = document.querySelector('.about-narrative-lab');
+    const viewport = document.querySelector('[aria-label="About Alexander narrative"]').getBoundingClientRect();
+    const labels = [...document.querySelectorAll('[data-discipline-group]')].map((label) => label.getBoundingClientRect());
+    return {
+      activeWorld: root.dataset.activeNarrativeWorld,
+      gridInfluence: root.dataset.worldGridInfluence,
+      worldFrom: root.dataset.worldFrom,
+      worldTo: root.dataset.worldTo,
+      labelsWithinViewport: labels.every((rect) => (
+        rect.left >= viewport.left - 1
+        && rect.right <= viewport.right + 1
+        && rect.top >= viewport.top - 1
+        && rect.bottom <= viewport.bottom + 1
+      )),
+    };
+  });
+  assert.deepEqual(disciplineDesktop, {
+    activeWorld: 'world-discipline-isolation',
+    gridInfluence: '0.0000',
+    worldFrom: 'calm-field-v1',
+    worldTo: 'calm-field-v1',
+    labelsWithinViewport: true,
+  });
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-desktop.png` });
 
   await page.getByRole('button', { name: 'Checkpoint' }).click();
@@ -168,11 +300,35 @@ async function auditEditor() {
   assert.ok(Math.abs(tabletLandscapeRatio - (1180 / 820)) < 0.01);
   await page.getByRole('button', { name: 'Mobile' }).click();
   await page.getByLabel('Preview orientation').selectOption('portrait');
+  await playhead.evaluate((node) => { node.value = '0'; });
+  const mobilePlayheadBox = await playhead.boundingBox();
+  await playhead.click({
+    position: {
+      x: mobilePlayheadBox.width * (11.49 / 21.8),
+      y: mobilePlayheadBox.height / 2,
+    },
+  });
   const mobilePortraitRatio = await page.locator('.about-narrative-scrollport').evaluate((node) => {
     const rect = node.getBoundingClientRect();
     return rect.width / rect.height;
   });
   assert.ok(Math.abs(mobilePortraitRatio - (390 / 844)) < 0.01);
+  await page.waitForFunction(() => {
+    const root = document.querySelector('.about-narrative-lab');
+    return Number(root?.dataset.narrativeStoryWu) > 11.45
+      && root?.dataset.worldDisciplineLabels === '6';
+  });
+  const mobileDisciplineBounds = await page.evaluate(() => {
+    const viewport = document.querySelector('.about-narrative-discipline-reveal').getBoundingClientRect();
+    return [...document.querySelectorAll('[data-discipline-group]')].every((label) => {
+      const rect = label.getBoundingClientRect();
+      return rect.left >= viewport.left - 1
+        && rect.right <= viewport.right + 1
+        && rect.top >= viewport.top - 1
+        && rect.bottom <= viewport.bottom + 1;
+    });
+  });
+  assert.equal(mobileDisciplineBounds, true);
   await page.getByLabel('Preview orientation').selectOption('landscape');
   const mobileLandscapeRatio = await page.locator('.about-narrative-scrollport').evaluate((node) => {
     const rect = node.getBoundingClientRect();

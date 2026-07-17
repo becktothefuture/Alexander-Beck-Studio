@@ -7,6 +7,10 @@ import {
 import { withBasePath } from '../../lib/base-path.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 import {
+  DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
+  normalizeMobileSimulationBodyScale,
+} from '../../lib/mobileSimulationSizing.js';
+import {
   CONCEPT_SIMULATION_IDS,
   CONCEPT_SIMULATION_REGISTRY,
   normalizeConceptSimulationConfig,
@@ -43,6 +47,7 @@ const DEFAULT_THEME_COLORS = {
   active: '#202020',
   palette: DEFAULT_PALETTE,
   colorDistribution: DEFAULT_COLOR_DISTRIBUTION,
+  mobileSimulationBodyScale: DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
 };
 
 const NAPOLEON_AMOUNT_OPTIONS = [
@@ -227,6 +232,9 @@ function resolveConceptTheme(designSystem, isDark) {
     colorDistribution: Array.isArray(runtime.colorDistribution)
       ? runtime.colorDistribution
       : DEFAULT_THEME_COLORS.colorDistribution,
+    mobileSimulationBodyScale: normalizeMobileSimulationBodyScale(
+      runtime.mobileSimulationBodyScale,
+    ),
   };
 }
 

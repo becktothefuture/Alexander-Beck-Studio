@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   SOUND_STATE_EVENT,
   getSoundState,
@@ -35,6 +35,81 @@ function getNormalizedActiveRouteId(activeRouteId) {
 
 function getRouteTabById(routeId) {
   return SHELL_ROUTE_TABS.find((tab) => tab.routeId === routeId);
+}
+
+function getVisibleRouteTabContent(routeTab) {
+  return [...routeTab.querySelectorAll('.shell-tab__label, .shell-tab__icon')]
+    .find((element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    }) || null;
+}
+
+function syncActivePillGeometry(primaryNav, activeRouteId) {
+  const activeTab = [...primaryNav.querySelectorAll('[data-route-tab]')]
+    .find((tab) => tab.dataset.routeTab === activeRouteId);
+  const activePill = primaryNav.querySelector('.button-bar__active-pill');
+  if (!activeTab || !activePill) return;
+
+  const primaryNavRect = primaryNav.getBoundingClientRect();
+  const activeTabRect = activeTab.getBoundingClientRect();
+  const visualHeight = activePill.getBoundingClientRect().height;
+  if (!primaryNavRect.width || !activeTabRect.width || !visualHeight) return;
+
+  const activeContent = getVisibleRouteTabContent(activeTab);
+  const activeTabStyle = getComputedStyle(activeTab);
+  const inlinePadding = Number.parseFloat(activeTabStyle.paddingLeft)
+    + Number.parseFloat(activeTabStyle.paddingRight);
+  const contentWidth = activeContent?.getBoundingClientRect().width || 0;
+  const isHomeTab = activeTab.dataset.routeTab === 'home';
+  const desiredWidth = isHomeTab ? visualHeight : contentWidth + inlinePadding;
+  const width = Math.min(activeTabRect.width, desiredWidth);
+  const x = activeTabRect.left - primaryNavRect.left + ((activeTabRect.width - width) / 2);
+
+  primaryNav.style.setProperty('--button-bar-active-pill-x', `${x.toFixed(3)}px`);
+  primaryNav.style.setProperty('--button-bar-active-pill-width', `${width.toFixed(3)}px`);
+}
+
+function useActivePillGeometry(primaryNavRef, activeRouteId, enabled) {
+  useLayoutEffect(() => {
+    const primaryNav = primaryNavRef.current;
+    if (!enabled || !primaryNav || !activeRouteId) return undefined;
+
+    let frameId = 0;
+    let disposed = false;
+    const update = () => {
+      if (disposed) return;
+      frameId = 0;
+      syncActivePillGeometry(primaryNav, activeRouteId);
+    };
+    const scheduleUpdate = () => {
+      if (disposed || frameId) return;
+      frameId = requestAnimationFrame(update);
+    };
+
+    update();
+
+    const activeTab = [...primaryNav.querySelectorAll('[data-route-tab]')]
+      .find((tab) => tab.dataset.routeTab === activeRouteId);
+    const activeContent = activeTab ? getVisibleRouteTabContent(activeTab) : null;
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(scheduleUpdate);
+    resizeObserver?.observe(primaryNav);
+    if (activeTab) resizeObserver?.observe(activeTab);
+    if (activeContent) resizeObserver?.observe(activeContent);
+    window.addEventListener('resize', scheduleUpdate);
+    document.fonts?.ready?.then(scheduleUpdate);
+
+    return () => {
+      disposed = true;
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', scheduleUpdate);
+      resizeObserver?.disconnect();
+      primaryNav.style.removeProperty('--button-bar-active-pill-x');
+      primaryNav.style.removeProperty('--button-bar-active-pill-width');
+    };
+  }, [activeRouteId, enabled, primaryNavRef]);
 }
 
 function playButtonBarPressSound() {
@@ -409,6 +484,12 @@ export function ShellButtonBar({
 }) {
   const normalizedActiveRouteId = getNormalizedActiveRouteId(activeRouteId);
   const activeRouteTab = getRouteTabById(normalizedActiveRouteId);
+  const primaryNavRef = useRef(null);
+  useActivePillGeometry(
+    primaryNavRef,
+    normalizedActiveRouteId,
+    materialVariant === 'dominant-tab',
+  );
   const barClassName = ['button-bar', className].filter(Boolean).join(' ');
   const primaryNavClassName = [
     'button-bar__primary-buttons',
@@ -426,6 +507,7 @@ export function ShellButtonBar({
       data-button-bar-material={materialVariant || undefined}
     >
       <nav
+        ref={primaryNavRef}
         className={primaryNavClassName}
         aria-label={preview ? 'Playground route buttons' : 'Primary buttons'}
         data-button-group="primary-buttons"

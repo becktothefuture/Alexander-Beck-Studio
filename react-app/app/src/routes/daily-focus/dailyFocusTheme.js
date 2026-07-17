@@ -7,6 +7,10 @@ import { desaturateGreysToBackground } from '../../palette/paletteTransforms.js'
 import { getTimeOfDayPaletteId } from '../../palette/timeOfDayPalette.js';
 import { withBasePath } from '../../lib/base-path.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
+import {
+  DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
+  normalizeMobileSimulationBodyScale,
+} from '../../lib/mobileSimulationSizing.js';
 
 export const DAILY_FOCUS_DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
 
@@ -39,6 +43,7 @@ export const DEFAULT_DAILY_FOCUS_THEME = Object.freeze({
   active: '#202020',
   palette: DEFAULT_PALETTE,
   colorDistribution: DEFAULT_COLOR_DISTRIBUTION,
+  mobileSimulationBodyScale: DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
 });
 
 export async function loadDailyFocusJson(url, fallback) {
@@ -76,6 +81,9 @@ export function resolveDailyFocusTheme(designSystem, isDarkMode = false) {
     colorDistribution: Array.isArray(runtime.colorDistribution)
       ? runtime.colorDistribution
       : DEFAULT_DAILY_FOCUS_THEME.colorDistribution,
+    mobileSimulationBodyScale: normalizeMobileSimulationBodyScale(
+      runtime.mobileSimulationBodyScale,
+    ),
   };
 }
 

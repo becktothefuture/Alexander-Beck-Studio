@@ -1,12 +1,19 @@
 /* Dominant Tab utility material ------------------------------------------------
-   This opt-in layer is shared by the focused validation lab and study 11.
-   Production bars do not carry the data attribute and remain unchanged. */
+   This layer is shared by the production shell and the focused validation lab. */
 
 .button-bar[data-button-bar-material='dominant-tab'] {
   /* Utility controls are deliberately subordinate to route controls: their
      visible body is three quarters of the primary height, centred in the same
      row so both groups share one optical axis. */
   --dominant-primary-control-height: var(--shell-tab-height, 48px);
+  --dominant-primary-tab-visual-height: 80%;
+  --dominant-primary-tab-padding-inline: calc(var(--shell-tab-padding-x, 16px) * 0.9);
+  --dominant-primary-tab-font-size: calc(14px * 0.8);
+  --dominant-primary-tab-font-weight: 644;
+  --dominant-primary-tab-letter-spacing: 0.03em;
+  --dominant-primary-active-surface: var(--studio-window-bg);
+  --dominant-primary-active-ink: rgb(var(--abs-rgb-black));
+  --dominant-primary-idle-ink: rgba(var(--abs-rgb-white), 0.48);
   --dominant-secondary-control-height: calc(var(--dominant-primary-control-height) * 0.75);
   --dominant-secondary-icon-size: calc(var(--dominant-secondary-control-height) * 0.5);
   --dominant-utility-wall: var(
@@ -20,10 +27,6 @@
   --dominant-utility-ink: var(
     --playground-ink,
     var(--dominant-page-ink, var(--button-bar-outer-ink))
-  );
-  --dominant-utility-muted: var(
-    --playground-key-ink,
-    var(--dominant-wall-ink, var(--button-bar-outer-ink-muted))
   );
   --button-bar-secondary-control-ink: var(--dominant-utility-ink);
   --dominant-utility-control-bg: var(--dominant-utility-wall);
@@ -47,68 +50,14 @@
 }
 
 .button-bar[data-button-bar-material='dominant-tab'] .button-bar__primary-buttons {
-  --button-bar-moving-pill-gap: var(--button-bar-primary-inner-gap, var(--shell-tab-gap, 16px));
-  --button-bar-moving-pill-home-width: var(--ui-icon-frame-size, var(--shell-tab-height, 48px));
-  --button-bar-moving-pill-label-width: calc(
-    (
-      100%
-      - var(--button-bar-moving-pill-home-width)
-      - var(--button-bar-moving-pill-gap)
-      - var(--button-bar-moving-pill-gap)
-      - var(--button-bar-moving-pill-gap)
-    )
-    / 3
-  );
-  --button-bar-moving-pill-portfolio-x: calc(
-    var(--button-bar-moving-pill-home-width)
-    + var(--button-bar-moving-pill-gap)
-  );
-  --button-bar-moving-pill-about-x: calc(
-    var(--button-bar-moving-pill-portfolio-x)
-    + var(--button-bar-moving-pill-label-width)
-    + var(--button-bar-moving-pill-gap)
-  );
-  --button-bar-moving-pill-contact-x: calc(
-    var(--button-bar-moving-pill-about-x)
-    + var(--button-bar-moving-pill-label-width)
-    + var(--button-bar-moving-pill-gap)
-  );
   --button-bar-active-pill-x: 0px;
-  --button-bar-active-pill-width: var(--button-bar-moving-pill-home-width);
-  --button-bar-active-pill-height: 100%;
-  --button-bar-active-pill-y: 0px;
-  --button-bar-active-pill-bg: var(--button-bar-accent-home, var(--ball-4, #00695c));
+  --button-bar-active-pill-width: calc(var(--shell-tab-height, 48px) * 0.8);
+  --button-bar-active-pill-height: var(--dominant-primary-tab-visual-height);
+  --button-bar-active-pill-y: 10%;
+  --button-bar-active-pill-bg: var(--dominant-primary-active-surface);
 
   position: relative;
   isolation: isolate;
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons[data-active-route='home'] {
-  --button-bar-active-pill-x: 0px;
-  --button-bar-active-pill-width: var(--button-bar-moving-pill-home-width);
-  --button-bar-active-pill-bg: var(--button-bar-accent-home, var(--ball-4, #00695c));
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons[data-active-route='portfolio'] {
-  --button-bar-active-pill-x: var(--button-bar-moving-pill-portfolio-x);
-  --button-bar-active-pill-width: var(--button-bar-moving-pill-label-width);
-  --button-bar-active-pill-bg: var(--button-bar-accent-portfolio, var(--ball-6, #d7ff2f));
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons[data-active-route='about'] {
-  --button-bar-active-pill-x: var(--button-bar-moving-pill-about-x);
-  --button-bar-active-pill-width: var(--button-bar-moving-pill-label-width);
-  --button-bar-active-pill-bg: var(--button-bar-accent-about, var(--ball-7, #0d5cb6));
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons[data-active-route='contact'] {
-  --button-bar-active-pill-x: var(--button-bar-moving-pill-contact-x);
-  --button-bar-active-pill-width: var(--button-bar-moving-pill-label-width);
-  --button-bar-active-pill-bg: var(--button-bar-accent-contact, var(--ball-8, #ffa000));
 }
 
 .button-bar[data-button-bar-material='dominant-tab'] .button-bar__active-pill {
@@ -119,7 +68,8 @@
   display: block;
   inline-size: var(--button-bar-active-pill-width);
   block-size: var(--button-bar-active-pill-height);
-  border-radius: var(--abs-radius-pill);
+  border-radius: 50%;
+  corner-shape: initial;
   background: var(--button-bar-active-pill-bg);
   box-shadow: none;
   pointer-events: none;
@@ -135,42 +85,6 @@
   .button-bar__primary-buttons:not([data-active-route])
   .button-bar__active-pill {
   display: none;
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab[data-route-tab='home'] {
-  --dominant-active-color: var(--button-bar-accent-home, var(--ball-4, #00695c));
-  --dominant-active-ink: var(--button-bar-accent-home-ink, #ffffff);
-  --shell-tab-route-accent: var(--dominant-active-color);
-  --shell-tab-text-active: var(--dominant-active-ink);
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab[data-route-tab='portfolio'] {
-  --dominant-active-color: var(--button-bar-accent-portfolio, var(--ball-6, #d7ff2f));
-  --dominant-active-ink: var(--button-bar-accent-portfolio-ink, #101113);
-  --shell-tab-route-accent: var(--dominant-active-color);
-  --shell-tab-text-active: var(--dominant-active-ink);
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab[data-route-tab='about'] {
-  --dominant-active-color: var(--button-bar-accent-about, var(--ball-7, #0d5cb6));
-  --dominant-active-ink: var(--button-bar-accent-about-ink, #ffffff);
-  --shell-tab-route-accent: var(--dominant-active-color);
-  --shell-tab-text-active: var(--dominant-active-ink);
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab[data-route-tab='contact'] {
-  --dominant-active-color: var(--button-bar-accent-contact, var(--ball-8, #ffa000));
-  --dominant-active-ink: var(--button-bar-accent-contact-ink, #101113);
-  --shell-tab-route-accent: var(--dominant-active-color);
-  --shell-tab-text-active: var(--dominant-active-ink);
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
@@ -195,17 +109,30 @@
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
   .shell-tab {
-  color: var(--dominant-utility-muted);
-  font-weight: 560;
-  letter-spacing: normal;
+  color: var(--dominant-primary-idle-ink);
   background: transparent;
   box-shadow: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
+  .shell-tab:not(.shell-tab--icon-only) {
+  padding-inline: var(--dominant-primary-tab-padding-inline);
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab__label {
+  font-size: var(--dominant-primary-tab-font-size);
+  font-weight: var(--dominant-primary-tab-font-weight);
+  letter-spacing: var(--dominant-primary-tab-letter-spacing);
+  text-transform: uppercase;
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
   .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active) {
-  color: var(--dominant-utility-muted);
+  color: var(--dominant-primary-idle-ink);
   outline: none;
   background: transparent;
   box-shadow: none;
@@ -226,10 +153,17 @@
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
   .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
-  color: var(--dominant-active-ink);
+  color: var(--dominant-primary-active-ink);
   cursor: default;
   background: transparent;
   box-shadow: none;
+}
+
+:root.dark-mode .button-bar[data-button-bar-material='dominant-tab'],
+:root[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab'],
+body.dark-mode .button-bar[data-button-bar-material='dominant-tab'],
+body[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab'] {
+  --dominant-primary-active-ink: rgb(var(--abs-rgb-white));
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
@@ -251,8 +185,6 @@
   .shell-tab[aria-current='page']
   :is(.shell-tab__icon, .shell-tab__label) {
   color: currentColor;
-  font-weight: 560;
-  letter-spacing: normal;
   filter: none;
   text-shadow: none;
   transform: none;
@@ -386,7 +318,7 @@
   .button-bar__primary-buttons
   .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active)
   :is(.shell-tab__icon, .shell-tab__label) {
-  color: var(--dominant-utility-muted);
+  color: var(--dominant-primary-idle-ink);
 }
 
 .button-bar.button-bar[data-button-bar-material='dominant-tab']
@@ -440,21 +372,20 @@
 }
 
 @media (max-width: 767px), (hover: none) and (pointer: coarse) {
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__primary-buttons {
-    --button-bar-moving-pill-home-width: var(--shell-tab-height, 48px);
+  .button-bar[data-button-bar-material='dominant-tab'] {
+    --dominant-primary-tab-padding-inline: calc(clamp(9px, 2.4vw, 12px) * 0.9);
+  }
+}
+
+@media (max-width: 480px) {
+  .button-bar[data-button-bar-material='dominant-tab'] {
+    --dominant-primary-tab-padding-inline: calc(clamp(8px, 2.25vw, 11px) * 0.9);
   }
 }
 
 @media (max-width: 340px) {
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__primary-buttons {
-    --button-bar-moving-pill-home-width: 46px;
-  }
-}
-
-@media (min-width: 601px) and (max-width: 680px) {
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__primary-buttons[data-active-route='home'] {
-    --button-bar-active-pill-height: var(--shell-tab-height, 48px);
+  .button-bar[data-button-bar-material='dominant-tab'] {
+    --dominant-primary-tab-padding-inline: 1.8px;
   }
 }
 

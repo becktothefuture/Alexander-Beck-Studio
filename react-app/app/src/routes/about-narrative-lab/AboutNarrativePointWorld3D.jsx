@@ -37,6 +37,7 @@ import {
   resolveAboutNarrativeWorldAnchorRailZ,
 } from './aboutNarrativeWorldIdentity.js';
 import { getGlobals } from '../../legacy/modules/core/state.js';
+import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { createAboutNarrativeRuntimeResources } from 'virtual:about-narrative-resource-tools';
 import { createAboutNarrativeRuntimeObserver } from 'virtual:about-narrative-runtime-observer';
 
@@ -97,6 +98,12 @@ const VERTEX_SHADER = `
   uniform vec2 toWaveFrequency;
   uniform float fromGroupStrength;
   uniform float toGroupStrength;
+  uniform float fromDisciplineIsolation;
+  uniform float toDisciplineIsolation;
+  uniform float fromDisciplineBackgroundOpacity;
+  uniform float toDisciplineBackgroundOpacity;
+  uniform float fromDisciplineBackgroundScale;
+  uniform float toDisciplineBackgroundScale;
   uniform float disciplineFocus;
   uniform float gridInfluence;
   uniform vec3 disciplineRevealA;
@@ -127,6 +134,7 @@ const VERTEX_SHADER = `
   uniform vec3 disciplineColor4;
   uniform vec3 disciplineColor5;
   uniform vec3 disciplineColor6;
+  uniform vec3 disciplineBackgroundColor;
   uniform float materialThreshold1;
   uniform float materialThreshold2;
   uniform float materialThreshold3;
@@ -221,6 +229,18 @@ const VERTEX_SHADER = `
     float group = mix(fromGroup, toGroup, morph);
     float groupStrength = mix(fromGroupStrength, toGroupStrength, morph);
     float groupExists = step(0.5, group);
+    float disciplineIsolation = mix(fromDisciplineIsolation, toDisciplineIsolation, morph);
+    float isolatedBackground = (1.0 - groupExists) * disciplineIsolation;
+    float isolatedBackgroundOpacity = mix(
+      fromDisciplineBackgroundOpacity,
+      toDisciplineBackgroundOpacity,
+      morph
+    );
+    float isolatedBackgroundScale = mix(
+      fromDisciplineBackgroundScale,
+      toDisciplineBackgroundScale,
+      morph
+    );
     float focusActive = step(0.5, disciplineFocus);
     float focusMatch = 1.0 - step(0.45, abs(group - disciplineFocus));
     float legacyGroupWeight = groupExists * step(0.001, groupStrength)
@@ -242,19 +262,22 @@ const VERTEX_SHADER = `
       livingColor,
       colourWeight * smoothstep(0.72, 0.98, livingBand) * 0.48
     );
+    pointTint = mix(pointTint, disciplineBackgroundColor, isolatedBackground);
     pointTint = mix(pointTint, groupColor(group), groupWeight);
 
     vec4 viewPoint = modelViewMatrix * vec4(worldPoint, 1.0);
     gl_Position = projectionMatrix * viewPoint;
     float presence = mix(fromPresence, toPresence, morph);
     float reconnect = clamp(gridInfluence, 0.0, 1.0);
+    float textBackgroundWeight = disciplineBackgroundWeight * (1.0 - disciplineIsolation);
     float backgroundVisibility = mix(
       1.0,
       mix(disciplineBackgroundOpacity, disciplineReconnectOpacity, reconnect),
-      disciplineBackgroundWeight
+      textBackgroundWeight
     );
     float revealVisibility = mix(backgroundVisibility, 1.0, revealedGroupWeight);
     presence *= mix(1.0, revealVisibility, disciplineRevealActive);
+    presence *= mix(1.0, isolatedBackgroundOpacity, isolatedBackground);
     float fieldFogDistance = abs(worldPoint.z - cameraPosition.z);
     float fieldFog = smoothstep(
       disciplineFieldFogStartWU,
@@ -265,7 +288,8 @@ const VERTEX_SHADER = `
     float sizeWeight = mix(fromPointSize, toPointSize, morph);
     float groupScale = mix(groupStrength, max(0.0, disciplinePointScale - 1.0), disciplineRevealActive);
     float emphasis = 1.0 + (groupWeight * groupScale) + (waveWeight * 0.18);
-    gl_PointSize = pointSize * sizeWeight * emphasis * pixelRatio
+    float isolationScale = mix(1.0, isolatedBackgroundScale, isolatedBackground);
+    gl_PointSize = pointSize * sizeWeight * emphasis * isolationScale * pixelRatio
       * clamp(5.0 / max(1.0, -viewPoint.z), 0.56, 3.2);
     pointAlpha = presence;
   }
@@ -328,6 +352,9 @@ function syncMaterialPalette(uniforms, styles) {
       readColorToken(styles, token, disciplineFallbacks[index]),
     );
   });
+  uniforms.disciplineBackgroundColor.value.setStyle(
+    readColorToken(styles, '--text-muted', '#8b8f92'),
+  );
 }
 
 function createEmptyAttribute(count, value = 0) {
@@ -343,7 +370,7 @@ function shapeCacheKey(world, quality) {
   ]);
 }
 
-function writeWorldTransform(target, world, globals, compact, scratch, storyOffset = null) {
+function writeWorldTransform(target, world, globals, compact, scratch) {
   if (!world) return target.identity();
   const transform = world.transform || {};
   const position = transform.position || [0, 0, 0];
@@ -358,7 +385,6 @@ function writeWorldTransform(target, world, globals, compact, scratch, storyOffs
     position[1] + (compact ? Number(transform.mobileYOffset || 0) : 0),
     anchorRailZ - Number(world.entryDistanceWU || 0) + position[2],
   );
-  if (storyOffset) scratch.position.add(storyOffset);
   scratch.euler.set(
     rotation[0],
     rotation[1],
@@ -424,6 +450,15 @@ function createPointFieldAdapter({
   });
   const quality = explicitPointProfile || resolveAboutNarrativePointProfile(layoutProfile);
   const compact = quality === 'mobile';
+  const mobileBodyScale = resolveMobileSimulationBodyScale(
+    getGlobals().mobileSimulationBodyScale,
+    {
+      width: initialBounds.width || window.innerWidth,
+      height: initialBounds.height || window.innerHeight,
+      isMobileDevice: layoutProfile === 'mobile' ? true : undefined,
+    },
+  );
+  root.dataset.mobileSimulationBodyScale = mobileBodyScale.toFixed(2);
   const pointProfile = ABOUT_NARRATIVE_POINT_PROFILES[quality];
   if (!pointProfile) throw new RangeError(`Unknown About Narrative point profile: ${quality}.`);
   const pointCount = pointProfile.pointCount;
@@ -484,6 +519,12 @@ function createPointFieldAdapter({
     toWaveFrequency: { value: new THREE.Vector2(1, 1) },
     fromGroupStrength: { value: 0 },
     toGroupStrength: { value: 0 },
+    fromDisciplineIsolation: { value: 0 },
+    toDisciplineIsolation: { value: 0 },
+    fromDisciplineBackgroundOpacity: { value: 1 },
+    toDisciplineBackgroundOpacity: { value: 1 },
+    fromDisciplineBackgroundScale: { value: 1 },
+    toDisciplineBackgroundScale: { value: 1 },
     disciplineFocus: { value: 0 },
     gridInfluence: { value: 0 },
     disciplineRevealA: { value: new THREE.Vector3() },
@@ -514,6 +555,7 @@ function createPointFieldAdapter({
     disciplineColor4: { value: new THREE.Color('#0d5cb6') },
     disciplineColor5: { value: new THREE.Color('#ffa000') },
     disciplineColor6: { value: new THREE.Color('#d7ff2f') },
+    disciplineBackgroundColor: { value: new THREE.Color('#8b8f92') },
     materialThreshold1: { value: 0.31 },
     materialThreshold2: { value: 0.44 },
     materialThreshold3: { value: 0.60 },
@@ -534,6 +576,9 @@ function createPointFieldAdapter({
       waveSpeed: uniforms.fromWaveSpeed,
       waveFrequency: uniforms.fromWaveFrequency,
       groupStrength: uniforms.fromGroupStrength,
+      disciplineIsolation: uniforms.fromDisciplineIsolation,
+      disciplineBackgroundOpacity: uniforms.fromDisciplineBackgroundOpacity,
+      disciplineBackgroundScale: uniforms.fromDisciplineBackgroundScale,
       livingColour: uniforms.fromLivingColour,
     }),
     to: Object.freeze({
@@ -548,6 +593,9 @@ function createPointFieldAdapter({
       waveSpeed: uniforms.toWaveSpeed,
       waveFrequency: uniforms.toWaveFrequency,
       groupStrength: uniforms.toGroupStrength,
+      disciplineIsolation: uniforms.toDisciplineIsolation,
+      disciplineBackgroundOpacity: uniforms.toDisciplineBackgroundOpacity,
+      disciplineBackgroundScale: uniforms.toDisciplineBackgroundScale,
       livingColour: uniforms.toLivingColour,
     }),
   });
@@ -645,9 +693,6 @@ function createPointFieldAdapter({
   const correspondenceFromScratch = createTransformScratch();
   const correspondenceToScratch = createTransformScratch();
   const disciplinePointScratch = new THREE.Vector3();
-  const fromStoryOffset = new THREE.Vector3();
-  const toStoryOffset = new THREE.Vector3();
-  const cameraUpScratch = new THREE.Vector3();
   const disciplineWeights = new Float32Array(6);
   const disciplineLabelBaseReveal = new Float64Array(6);
   const fromDisciplinePositions = new Float32Array(18).fill(Number.NaN);
@@ -686,7 +731,6 @@ function createPointFieldAdapter({
   let lastDisciplineVisibleCount = Number.NaN;
   let lastDisciplineLabelCount = Number.NaN;
   let lastGridBackground = Number.NaN;
-  let lastDisciplineRise = Number.NaN;
   let lastDisciplineFog = Number.NaN;
   let lastBustShaderYaw = Number.NaN;
   let lastGroupFocus = Number.NaN;
@@ -709,6 +753,7 @@ function createPointFieldAdapter({
       drift: modifier(world, 'ambient-drift-v1'),
       wave: modifier(world, 'living-wave-v1'),
       group: modifier(world, 'group-emphasis-v1'),
+      isolation: modifier(world, 'discipline-isolation-v1'),
       colour: modifier(world, 'living-colour-v1'),
       bust: modifier(world, 'bust-yaw-v1'),
     };
@@ -770,12 +815,11 @@ function createPointFieldAdapter({
   };
 
   const resize = () => {
-    const rootRect = root.getBoundingClientRect();
     const canvasRect = canvas.getBoundingClientRect();
     width = Math.max(1, canvasRect.width);
     height = Math.max(1, canvasRect.height);
-    viewportOffsetX = canvasRect.left - rootRect.left;
-    viewportOffsetY = canvasRect.top - rootRect.top;
+    viewportOffsetX = 0;
+    viewportOffsetY = 0;
     const ratio = Math.min(window.devicePixelRatio || 1, pointProfile.maximumPixelRatio);
     renderer.setPixelRatio(ratio);
     renderer.setSize(width, height, false);
@@ -1200,6 +1244,7 @@ function createPointFieldAdapter({
     const drift = sharedSwarm || slots?.drift;
     const wave = slots?.wave;
     const group = slots?.group;
+    const isolation = slots?.isolation;
     const colour = slots?.colour;
     target.driftAmplitude.value = Number(drift?.amplitude || 0);
     target.driftSpeed.value = Number(drift?.speed || 0);
@@ -1217,19 +1262,10 @@ function createPointFieldAdapter({
       Number(wave?.frequencyZ || 1),
     );
     target.groupStrength.value = Number(group?.strength || 0);
+    target.disciplineIsolation.value = Number(isolation?.strength || 0);
+    target.disciplineBackgroundOpacity.value = Number(isolation?.backgroundOpacity ?? 1);
+    target.disciplineBackgroundScale.value = Number(isolation?.backgroundScale ?? 1);
     target.livingColour.value = Number(colour?.strength || 0);
-  };
-
-  const resolveDisciplineStoryOffset = (frame, target, hasDisciplineAnchors) => {
-    target.set(0, 0, 0);
-    const revealState = frame.disciplineReveal;
-    const reveal = revealState?.config;
-    if (frame.reducedMotion || !hasDisciplineAnchors || !revealState?.active || !reveal) return 0;
-    const travelDistance = Number(reveal.fieldTravelWU ?? 6.8) * (compact ? 0.72 : 1);
-    const rise = travelDistance * Number(revealState.fieldTravelProgress || 0);
-    cameraUpScratch.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
-    target.copy(cameraUpScratch).multiplyScalar(rise);
-    return rise;
   };
 
   const updateDisciplineReveal = (frame, fromWorld, toWorld) => {
@@ -1517,25 +1553,12 @@ function createPointFieldAdapter({
       camera.updateProjectionMatrix();
     }
     camera.updateMatrixWorld(true);
-    const fromWorldHasDisciplineAnchors = hasAllDisciplineAnchors(fromDisciplineIndices);
-    const toWorldHasDisciplineAnchors = hasAllDisciplineAnchors(toDisciplineIndices);
-    const fromDisciplineRise = resolveDisciplineStoryOffset(
-      frame,
-      fromStoryOffset,
-      fromWorldHasDisciplineAnchors,
-    );
-    const toDisciplineRise = resolveDisciplineStoryOffset(
-      frame,
-      toStoryOffset,
-      toWorldHasDisciplineAnchors,
-    );
     writeWorldTransform(
       uniforms.fromTransform.value,
       fromWorld,
       frame.globals,
       compact,
       fromTransformScratch,
-      fromStoryOffset,
     );
     writeWorldTransform(
       uniforms.toTransform.value,
@@ -1543,18 +1566,11 @@ function createPointFieldAdapter({
       frame.globals,
       compact,
       toTransformScratch,
-      toStoryOffset,
     );
-    const disciplineRise = Math.max(fromDisciplineRise, toDisciplineRise);
-    if (disciplineRise !== lastDisciplineRise) {
-      root.dataset.worldDisciplineRise = disciplineRise.toFixed(4);
-      lastDisciplineRise = disciplineRise;
-      runtimeObserver.hotFrameDomWrite();
-    }
     uniforms.morphProgress.value = transitionProgress;
     uniforms.storyTime.value = frame.storyTime;
     uniforms.ambientTime.value = frame.ambientTime;
-    uniforms.pointSize.value = frame.globals.pointMaterial.pointSize;
+    uniforms.pointSize.value = frame.globals.pointMaterial.pointSize * mobileBodyScale;
     uniforms.fieldOpacity.value = frame.globals.pointMaterial.opacity;
     setModifierUniforms(modifierUniformTargets.from, fromWorld, frame.globals);
     setModifierUniforms(modifierUniformTargets.to, toWorld, frame.globals);
@@ -1832,6 +1848,7 @@ function createPointFieldAdapter({
     delete root.dataset.cameraCadence;
     delete root.dataset.pointAsset;
     delete root.dataset.pointWorldState;
+    delete root.dataset.mobileSimulationBodyScale;
     delete root.dataset.worldPrepare;
     delete root.dataset.worldError;
     delete root.dataset.worldCorrespondence;
@@ -1851,7 +1868,6 @@ function createPointFieldAdapter({
     delete root.dataset.worldDisciplineVisible;
     delete root.dataset.worldDisciplineLabels;
     delete root.dataset.worldGridBackground;
-    delete root.dataset.worldDisciplineRise;
     delete root.dataset.worldDisciplineFog;
     root.style.removeProperty('--narrative-camera-forward');
     root.style.removeProperty('--narrative-camera-roll');

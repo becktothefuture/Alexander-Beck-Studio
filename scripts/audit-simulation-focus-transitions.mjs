@@ -260,6 +260,8 @@ async function getState(page, elapsedMs) {
         return rect.width >= 64 && rect.height >= 64;
       });
     const visualTransition = window.__ABS_SIMULATION_VISUAL_TRANSITION__ || null;
+    const transactionSnapshot = document.querySelector('.simulation-transaction-snapshot');
+    const transactionSnapshotStyles = transactionSnapshot ? getComputedStyle(transactionSnapshot) : null;
     const homeSnapshot = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.() || null;
     const params = new URLSearchParams(window.location.search);
     const bootState = document.documentElement.dataset.absBootState || '';
@@ -307,6 +309,13 @@ async function getState(page, elapsedMs) {
       runtimeScale: Number.parseFloat(visualTransition?.maxScale ?? '1'),
       legacyBlurLayer: overlayLayerState('#modal-blur-layer'),
       windowBlurLayer: overlayLayerState('#window-overlay-blur-layer'),
+      transactionSnapshot: transactionSnapshot ? {
+        state: transactionSnapshot.dataset.state || '',
+        opacity: Number.parseFloat(transactionSnapshotStyles?.opacity || '0'),
+        visibility: transactionSnapshotStyles?.visibility || 'hidden',
+        display: transactionSnapshotStyles?.display || 'none',
+        insideScene: Boolean(document.getElementById('abs-scene')?.contains(transactionSnapshot)),
+      } : null,
       visualTransition: visualTransition ? {
         phase: visualTransition.phase || '',
         sourceId: visualTransition.sourceId || '',
@@ -453,6 +462,19 @@ function checkFrame(frame, imageStats, { enforceShellUi = true } = {}) {
 
   if (state.titleCopiesExposed) {
     issues.push('dom-and-canvas-title-visible-together');
+  }
+
+  if (state.transactionSnapshot && !state.transactionSnapshot.insideScene) {
+    issues.push('simulation-recovery-snapshot-outside-scene');
+  }
+
+  if (
+    state.transactionSnapshot
+    && state.transactionSnapshot.display !== 'none'
+    && state.transactionSnapshot.visibility !== 'hidden'
+    && state.transactionSnapshot.opacity > 0.02
+  ) {
+    issues.push('simulation-recovery-snapshot-visible-during-successful-switch');
   }
 
   if (['out', 'hold', 'in'].includes(state.simulationFocusPhase)) {

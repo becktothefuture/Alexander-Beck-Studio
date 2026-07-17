@@ -10,6 +10,13 @@
   "workingHypotheses": [
     "Yoti is probably too broad for one linear case study; the strongest story may be a system of trust told through three concrete artefacts."
   ],
+  "organisingIdea": {
+    "statement": "Make invisible digital proof feel trustworthy at the exact moment a person or verifier has to act on it.",
+    "status": "candidate",
+    "evidenceBasis": "source_backed",
+    "sourceClaimIds": ["claim-yoti-001", "claim-yoti-007", "claim-yoti-009", "claim-yoti-010"],
+    "lastReviewed": "2026-07-17"
+  },
   "claims": [
     {
       "id": "claim-yoti-001",

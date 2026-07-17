@@ -22,6 +22,10 @@ import {
   applyButtonBarCssVars,
   normalizeButtonBarConfig,
 } from '../../../lib/buttonBarControls.js';
+import {
+  DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
+  resolveMobileSimulationBodyScale,
+} from '../../../lib/mobileSimulationSizing.js';
 
 const timeOfDayPalette = getTimeOfDayPalette();
 const timeOfDayAccents = getLondonWeatherPaletteAccents(timeOfDayPalette?.id) || {};
@@ -201,6 +205,8 @@ const state = {
   // Mobile performance: global multiplier applied to object counts (0..1).
   // 1.0 = no reduction, 0.0 = (effectively) no objects.
   mobileObjectReductionFactor: 1.0,
+  // Mobile visual density: radius multiplier applied after responsive sizing.
+  mobileSimulationBodyScale: DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
   // Only reduce object counts on mobile when counts exceed this threshold.
   mobileObjectReductionThreshold: 200,
   // Lite mode: global multiplier applied to object counts (0..1).
@@ -1645,6 +1651,14 @@ export function initState(config) {
       state.mobileObjectReductionFactor
     );
   }
+  if (config.mobileSimulationBodyScale !== undefined) {
+    state.mobileSimulationBodyScale = clampNumber(
+      config.mobileSimulationBodyScale,
+      0.5,
+      1,
+      state.mobileSimulationBodyScale
+    );
+  }
   if (config.mobileObjectReductionThreshold !== undefined) {
     state.mobileObjectReductionThreshold = clampInt(
       config.mobileObjectReductionThreshold,
@@ -2731,9 +2745,22 @@ export function updateBallSizes() {
   const t = Math.pow(tLinear, curve);
   
   // Interpolation between min and max sizes
-  const size = minSize + (maxSize - minSize) * t;
+  const responsiveSize = minSize + (maxSize - minSize) * t;
+  const mobileBodyScale = resolveMobileSimulationBodyScale(
+    state.mobileSimulationBodyScale,
+    {
+      width: viewportWidth,
+      height: getLayoutViewportHeightPx(),
+      isMobileDevice: state.isMobile ? true : undefined,
+    }
+  );
+  const size = responsiveSize * mobileBodyScale;
   
   state.R_MED = size;
   state.R_MIN = size;
   state.R_MAX = size;
+  if (state.canvas?.dataset) {
+    state.canvas.dataset.mobileSimulationBodyScale = mobileBodyScale.toFixed(2);
+    state.canvas.dataset.simulationBodyRadius = size.toFixed(2);
+  }
 }

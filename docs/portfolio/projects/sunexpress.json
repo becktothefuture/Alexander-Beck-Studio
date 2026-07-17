@@ -10,6 +10,13 @@
   "workingHypotheses": [
     "The honest archive angle is that the visual style has aged, while the information architecture and booking decisions remain useful evidence."
   ],
+  "organisingIdea": {
+    "statement": "Sequence a branching booking journey so travellers see the right choice at the right moment without hiding commercial options.",
+    "status": "candidate",
+    "evidenceBasis": "source_backed",
+    "sourceClaimIds": ["claim-sunexpress-006", "claim-sunexpress-007", "claim-sunexpress-008"],
+    "lastReviewed": "2026-07-17"
+  },
   "claims": [
     {
       "id": "claim-sunexpress-001",

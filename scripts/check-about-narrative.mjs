@@ -541,8 +541,10 @@ test('discipline reveal owns one extended clip, a paced top-down camera handoff,
   assert.ok(editorialHandoffFrame.disciplineReveal.localProgress < reveal.end);
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
   assert.equal(new Set(verticalPositions).size, 6);
-  assert.ok(verticalPositions[0] >= 0.5);
-  verticalPositions.slice(1).forEach((value, index) => assert.ok(value - verticalPositions[index] >= 0.034));
+  assert.ok(verticalPositions[0] <= 0.25);
+  assert.ok(verticalPositions.at(-1) <= 0.43);
+  assert.ok(verticalPositions.at(-1) - verticalPositions[0] >= 0.189);
+  verticalPositions.slice(1).forEach((value, index) => assert.ok(value - verticalPositions[index] >= 0.037));
 });
 
 test('discipline colours follow the canonical Home simulation distribution', () => {

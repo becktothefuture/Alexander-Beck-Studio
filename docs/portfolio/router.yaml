@@ -46,7 +46,7 @@
       "description": "Create source-linked project copy only after the project passes its copy gate.",
       "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/sources/index.json", "docs/portfolio/projects/{project_id}.json", "docs/reference/PORTFOLIO-CONTENT-STRUCTURE.md", "docs/reference/TONE-OF-VOICE.md"],
       "allowedWrites": ["docs/portfolio/drafts/"],
-      "postconditions": ["project_is_copy_ready", "only_confirmed_claims_used", "on_hold_projects_blocked"]
+      "postconditions": ["project_is_copy_ready", "organising_idea_is_confirmed", "only_confirmed_claims_used", "on_hold_projects_blocked"]
     }
   ]
 }

@@ -14,6 +14,13 @@
     {"id": "other-small-work", "title": "Other small work", "status": "unverified"}
   ],
   "workingHypotheses": [],
+  "organisingIdea": {
+    "statement": "A small piece earns its place through one decisive creative move, not through the amount of process surrounding it.",
+    "status": "hypothesis",
+    "evidenceBasis": "interview_needed",
+    "sourceClaimIds": [],
+    "lastReviewed": "2026-07-17"
+  },
   "claims": [],
   "conflicts": [],
   "openQuestions": [
@@ -26,4 +33,3 @@
   "media": [],
   "interviewRounds": []
 }
-

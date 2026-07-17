@@ -16,6 +16,7 @@ import { randomRadiusForKaleidoscopeVh } from '../utils/ball-sizing.js';
 import { drawPebbleBody } from '../visual/pebble-body.js';
 import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
+import { resolveMobileSimulationBodyScale } from '../../../lib/mobileSimulationSizing.js';
 
 const TAU = Math.PI * 2;
 const EPS = 1e-6;
@@ -202,7 +203,15 @@ function randomRadiusForKaleidoscopeRift(g) {
   const areaMul = clamp(Number(params.dotAreaMul), 0.1, 2.0);
   const base = Math.max(1, (vh * 0.01) * h * Math.sqrt(areaMul));
   const variance = clamp(Number(params.sizeVariance) * 0.5, 0, 0.2);
-  return base * (1 - variance + Math.random() * variance * 2);
+  const mobileBodyScale = resolveMobileSimulationBodyScale(
+    g.mobileSimulationBodyScale,
+    {
+      width: g.W,
+      height: g.H,
+      isMobileDevice: g.isMobile ? true : undefined,
+    },
+  );
+  return base * (1 - variance + Math.random() * variance * 2) * mobileBodyScale;
 }
 
 // Initialize with specific ball count (used by all kaleidoscope variants)

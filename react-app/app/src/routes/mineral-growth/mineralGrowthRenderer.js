@@ -2,6 +2,7 @@ import {
   createIndexedSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
+import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import {
   triggerImpact,
   triggerPressure,
@@ -326,15 +327,26 @@ function resolveSeedCount(config, metrics, countLimit, reducedMotion) {
   return Math.max(1, Math.min(requested, motionMax, countMax));
 }
 
-function resolveRadius(random, config, reducedMotion, kind = BODY_KIND_STEM, isRoot = false) {
+function resolveRadius(
+  random,
+  config,
+  reducedMotion,
+  mobileBodyScale,
+  kind = BODY_KIND_STEM,
+  isRoot = false,
+) {
   const scale = clamp(numberOr(config.bodyScale, 1), 0.8, 1.8);
   const base = 7.5 + (random() - 0.5) * 0.62;
   const kindScale = kind === BODY_KIND_LEAFLET ? 0.72 + random() * 0.1 : 1;
   const rootScale = isRoot ? 1.08 : 1;
-  return base * scale * kindScale * rootScale * (reducedMotion ? 0.96 : 1);
+  return base * scale * mobileBodyScale * kindScale * rootScale * (reducedMotion ? 0.96 : 1);
 }
 
 function getFormationKey(config, theme, metrics, seed, reducedMotion) {
+  const mobileBodyScale = resolveMobileSimulationBodyScale(
+    theme?.mobileSimulationBodyScale,
+    metrics,
+  );
   return [
     seed,
     Math.round(metrics.cssWidth),
@@ -353,6 +365,7 @@ function getFormationKey(config, theme, metrics, seed, reducedMotion) {
     numberOr(config.leafletDensity, 0).toFixed(3),
     numberOr(config.packingGap, 0).toFixed(3),
     numberOr(config.colorSpread, 0).toFixed(3),
+    mobileBodyScale.toFixed(2),
     getThemeKey(theme),
   ].join(':');
 }
@@ -536,7 +549,17 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     ? clamp(numberOr(config.leafletDensity, 0.48), 0, 0.34)
     : clamp(numberOr(config.leafletDensity, 0.48), 0, 1);
   const paletteLength = resolvePalette(theme).length;
-  const maxRadius = drawEnvelopeRadius(8.7 * clamp(numberOr(config.bodyScale, 1), 0.8, 1.8));
+  const mobileBodyScale = resolveMobileSimulationBodyScale(
+    theme?.mobileSimulationBodyScale,
+    metrics,
+  );
+  const maxRadius = drawEnvelopeRadius(
+    8.7 * clamp(numberOr(config.bodyScale, 1), 0.8, 1.8) * mobileBodyScale,
+  );
+  const nominalBodyRadius = 7.5
+    * clamp(numberOr(config.bodyScale, 1), 0.8, 1.8)
+    * mobileBodyScale
+    * (reducedMotion ? 0.96 : 1);
   const cellSize = Math.max(28, maxRadius * 2 + gap + 16);
   const gridCols = Math.max(1, Math.ceil(metrics.cssWidth / cellSize));
   const gridRows = Math.max(1, Math.ceil(metrics.cssHeight / cellSize));
@@ -578,6 +601,8 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     gridRows,
     cellSize,
     maxRadius,
+    nominalBodyRadius,
+    mobileSimulationBodyScale: mobileBodyScale,
     minGapPx: 0,
     formationMinX: Infinity,
     formationMaxX: 0,
@@ -751,7 +776,14 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     let placement = null;
     for (let attempt = 0; attempt < 24 && rootIndex < 0; attempt += 1) {
       placement = rootPlacement(rootSlot, rootLimit, random, metrics, config, seed + attempt * 101);
-      const radius = resolveRadius(random, config, reducedMotion, BODY_KIND_STEM, true);
+      const radius = resolveRadius(
+        random,
+        config,
+        reducedMotion,
+        mobileBodyScale,
+        BODY_KIND_STEM,
+        true,
+      );
       const envelope = drawEnvelopeRadius(radius);
       const x = clamp(placement.x, envelope + wallGap, metrics.cssWidth - envelope - wallGap);
       const y = clamp(placement.y, envelope + wallGap, metrics.cssHeight - envelope - wallGap);
@@ -847,7 +879,14 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     const parentX = state.x[parentIndex];
     const parentY = state.y[parentIndex];
     const { angles, base, boundary } = candidateAngles(tip, parentX, parentY);
-    const radius = resolveRadius(random, config, reducedMotion, BODY_KIND_STEM, false);
+    const radius = resolveRadius(
+      random,
+      config,
+      reducedMotion,
+      mobileBodyScale,
+      BODY_KIND_STEM,
+      false,
+    );
     const step = (
       state.radius[parentIndex]
       + radius
@@ -901,7 +940,14 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
   function placeLeaflet(parentIndex, tip, side, distanceBoost = 0) {
     if (state.count >= countLimit) return false;
     const parentAngle = state.angle[parentIndex];
-    const radius = resolveRadius(random, config, reducedMotion, BODY_KIND_LEAFLET, false);
+    const radius = resolveRadius(
+      random,
+      config,
+      reducedMotion,
+      mobileBodyScale,
+      BODY_KIND_LEAFLET,
+      false,
+    );
 
     for (let attempt = 0; attempt < 7; attempt += 1) {
       const leafAngle = parentAngle
@@ -1511,6 +1557,8 @@ export function createMineralGrowthRenderer({
       lastFrameAt = 0;
       lastRenderAt = 0;
     }
+    canvas.dataset.mobileSimulationBodyScale = state.mobileSimulationBodyScale.toFixed(2);
+    canvas.dataset.simulationBodyRadius = state.nominalBodyRadius.toFixed(2);
     return { config, theme };
   }
 
@@ -1551,6 +1599,8 @@ export function createMineralGrowthRenderer({
       rootRightCount: rendered.rootRightCount,
       paletteUsed: rendered.paletteUsed,
       paletteSize: rendered.paletteSize,
+      simulationBodyRadius: state?.nominalBodyRadius || 0,
+      mobileSimulationBodyScale: state?.mobileSimulationBodyScale || 1,
     };
     return lastMetrics;
   }

@@ -7,6 +7,7 @@
         color-scheme: dark;
         --abs-boot-loader-size: 0.7px;
         --abs-boot-loader-visual-size: 43.4px;
+        --abs-boot-overlay-out-ms: 640ms;
         --abs-boot-message-fade: 900ms;
         --abs-boot-loader-1: #ffffff;
         --abs-boot-loader-2: rgba(255, 255, 255, 0.2);
@@ -39,7 +40,7 @@
 
       html[data-shell-route="home"][data-abs-boot-state="revealing"] #shell-wall-slot {
         transform-origin: 50% 50%;
-        animation: absBootSceneReveal var(--abs-boot-overlay-out-ms, 480ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+        animation: absBootSceneReveal var(--abs-boot-overlay-out-ms, 480ms) cubic-bezier(0.45, 0, 0.55, 1) both;
       }
 
       #abs-boot-overlay {
@@ -51,16 +52,12 @@
         background: var(--abs-browser-chrome, #000000);
         opacity: 1;
         pointer-events: auto;
-        transition: opacity var(--abs-boot-overlay-out-ms, 480ms) cubic-bezier(0.16, 1, 0.3, 1);
+        transition: opacity var(--abs-boot-overlay-out-ms, 480ms) cubic-bezier(0.45, 0, 0.55, 1);
       }
 
       #abs-boot-overlay.is-exiting {
         opacity: 0;
         pointer-events: none;
-      }
-
-      #abs-boot-overlay.is-exiting #abs-boot-stage {
-        animation: absBootStageExit var(--abs-boot-overlay-out-ms, 480ms) ease-out both;
       }
 
       #abs-boot-overlay.is-exiting #abs-boot-spinner {
@@ -299,17 +296,13 @@
       }
 
       @keyframes absBootLoaderExit {
-        from { opacity: 1; transform: scale(1) translateZ(0); }
-        to { opacity: 0; transform: scale(1.8) translateZ(0); }
-      }
-
-      @keyframes absBootStageExit {
-        from { opacity: 1; }
-        to { opacity: 0; }
+        0% { opacity: 1; transform: scale(1) translateZ(0); }
+        18% { opacity: 1; transform: scale(1.08) translateZ(0); }
+        100% { opacity: 0; transform: scale(2.4) translateZ(0); }
       }
 
       @keyframes absBootSceneReveal {
-        from { opacity: 0.86; transform: scale(0.985); }
+        from { opacity: 0.72; transform: scale(0.97); }
         to { opacity: 1; transform: scale(1); }
       }
 

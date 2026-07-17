@@ -15,6 +15,10 @@ import {
 } from '../../palette/londonPalettes.js';
 import { withBasePath } from '../../lib/base-path.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
+import {
+  DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
+  normalizeMobileSimulationBodyScale,
+} from '../../lib/mobileSimulationSizing.js';
 import './repel-room-runtime.css';
 import './repel-room.css';
 
@@ -45,6 +49,7 @@ const DEFAULT_THEME_COLORS = {
   active: '#202020',
   palette: DEFAULT_PALETTE,
   colorDistribution: DEFAULT_COLOR_DISTRIBUTION,
+  mobileSimulationBodyScale: DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
 };
 
 async function loadJson(url, fallback) {
@@ -91,6 +96,9 @@ function resolveRepelRoomTheme(designSystem, isDark) {
     colorDistribution: Array.isArray(runtime.colorDistribution)
       ? runtime.colorDistribution
       : DEFAULT_THEME_COLORS.colorDistribution,
+    mobileSimulationBodyScale: normalizeMobileSimulationBodyScale(
+      runtime.mobileSimulationBodyScale,
+    ),
   };
 }
 

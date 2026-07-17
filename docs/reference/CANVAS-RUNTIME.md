@@ -48,6 +48,8 @@ Direct-load boot completion has one active owner per route family:
 - route-backed Daily Focus direct loads: `routes/daily-focus/DailyFocusShellBridge.jsx`;
 - standalone lab/dashboard entries: their lightweight page bootstrap, without the full shell boot overlay.
 
+The Home owner does not equate canvas allocation with readiness. It waits for critical fonts, the final backing-store size, two rendered frames, and the measured two-line canvas-title state before setting `data-abs-home-simulation-ready="true"`. Route-backed Daily Focus uses the same public readiness marker after its own runtime surface reports ready. The overlay exit then starts the simulation-material entrance; Home copy remains staged until the overlay has detached.
+
 Runtime boot functions may return a cleanup/disposer function. New runtime work should prefer explicit cleanup because it is easier to audit and safer during SPA route changes.
 
 ### Runtime generation and cancellation

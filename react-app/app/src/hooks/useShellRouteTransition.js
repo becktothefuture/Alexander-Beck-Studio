@@ -821,8 +821,9 @@ function resetSimulationFocusTransition(surfaceRefs, { discardSnapshots = false 
 
 function captureSimulationTransactionSnapshot() {
   const host = document.getElementById('simulations');
+  const snapshotHost = document.getElementById('simulation-transaction-snapshot-host');
   const hostRect = host?.getBoundingClientRect();
-  if (!host || !hostRect || hostRect.width < 1 || hostRect.height < 1) return null;
+  if (!host || !snapshotHost || !hostRect || hostRect.width < 1 || hostRect.height < 1) return null;
 
   removeSimulationTransactionSnapshots();
   const pixelRatio = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
@@ -868,12 +869,15 @@ function captureSimulationTransactionSnapshot() {
   if (capturedLayers === 0) return null;
 
   snapshot.dataset.capturedLayers = String(capturedLayers);
-  document.body.append(snapshot);
   let released = false;
   return {
     node: snapshot,
     show() {
-      if (released || !snapshot.isConnected) return;
+      if (released || !snapshotHost.isConnected) return;
+      if (!snapshot.isConnected) {
+        snapshotHost.append(snapshot);
+        snapshot.getBoundingClientRect();
+      }
       snapshot.dataset.state = 'visible';
     },
     release({ immediate = false } = {}) {
@@ -1650,7 +1654,6 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             return undefined;
           }
           recordSimulationVisualTransitionEvent('commit', { routeId: nextState.route.id });
-          retainedSimulation?.show();
           commit();
           routeCommitted = true;
           return undefined;
@@ -1681,7 +1684,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             titleSurface: simulationTitleSurface,
           });
           recordSimulationVisualTransitionEvent('runtime-ready', { routeId: nextState.route.id });
-          retainedSimulation?.release();
+          retainedSimulation?.release({ immediate: true });
           return runSimulationFocusEnter();
         })
         .then(() => {
@@ -1698,6 +1701,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             return;
           }
           if (routeCommitted) {
+            retainedSimulation?.show();
             rollback(error);
             const previousReadinessRouteId = previousState.dailyFocusRouteId || previousState.route.id;
             const restoredRouteWaiter = waitForRouteReady(previousReadinessRouteId, routeTimings.ready, {
@@ -1711,7 +1715,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
               // Failure reporting must not prevent transition cleanup.
             }
           }
-          retainedSimulation?.release();
+          retainedSimulation?.release({ immediate: !routeCommitted });
           finishSimulationFocusTransition();
         });
 

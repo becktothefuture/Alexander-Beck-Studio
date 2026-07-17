@@ -4,6 +4,7 @@ import { MODES } from '../core/constants.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { triggerPressure } from '../audio/simulation-audio-adapter.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
+import { resolveMobileSimulationBodyScale } from '../../../lib/mobileSimulationSizing.js';
 
 const TAU = Math.PI * 2;
 
@@ -130,7 +131,15 @@ function createFluxState() {
 function getParticleSize(g, compact) {
   const dpr = Math.max(1, g.DPR || 1);
   const size = clamp(Number(g.pressureCrucibleParticleSize ?? 5.9) || 5.9, 1.5, 10);
-  return size * dpr * (compact ? 0.86 : 1);
+  const mobileBodyScale = resolveMobileSimulationBodyScale(
+    g.mobileSimulationBodyScale,
+    {
+      width: g.W,
+      height: g.H,
+      isMobileDevice: g.isMobile ? true : undefined,
+    },
+  );
+  return size * dpr * (compact ? 0.86 : 1) * mobileBodyScale;
 }
 
 function prepareFrame(g, state, dt) {

@@ -4,11 +4,13 @@ This folder contains the current narrative source for the `beck.fyi` About Me pa
 
 ## Current source of truth
 
-`ABOUT-NARRATIVE-SCRIPT-v7.md` is the current editable prose script.
+`ABOUT-NARRATIVE-SCRIPT-v13.md` is the current editable prose script.
 
-`ABOUT-NARRATIVE-STORYBOARD-v7.md` is the current visual and route-mapping reference.
+`ABOUT-NARRATIVE-SCRIPT-v13.md` includes its visual allocation and global-track story beats.
 
-Its eight-part dramatic arc is implemented by:
+The current production route still uses the legacy section model while the lab migrates to independently authored Camera, World, Text and Interaction tracks. V13 is written for the target continuous journey: World starts are visual anchors, not containers for the narrative.
+
+The experience is implemented by:
 
 - `react-app/app/src/routes/about/AboutRoute.jsx`;
 - `react-app/app/src/routes/about-narrative-lab/`.
@@ -21,4 +23,4 @@ The production route and narrative lab share the same current experience. The la
 
 ## Archive
 
-`archive/` contains every superseded framework, script, implementation brief and storyboard asset from V1 through V6. Nothing in that folder should be treated as current direction.
+`archive/` contains every superseded framework, script, implementation brief and storyboard asset from V1 through V11. The V12 files remain nearby as comparison drafts, with V12-C promoted to V13.

@@ -80,6 +80,8 @@ const REQUIRED_COPY_CATEGORIES = [
   'permission',
 ];
 const CLAIM_STATUSES = new Set(['candidate', 'confirmed', 'disputed', 'rejected', 'withheld']);
+const ORGANISING_IDEA_STATUSES = new Set(['hypothesis', 'candidate', 'confirmed', 'rejected', 'on_hold']);
+const ORGANISING_IDEA_EVIDENCE = new Set(['source_backed', 'interview_needed', 'interview_confirmed', 'interview_deferred']);
 const CONFIDENCE_VALUES = new Set(['low', 'medium', 'high']);
 const SENSITIVITY_VALUES = new Set(['public', 'internal', 'confidential', 'personal', 'restricted']);
 const QUESTION_STATUSES = new Set(['open', 'deferred', 'resolved', 'discarded']);
@@ -168,6 +170,35 @@ if (catalog) {
         }
       }
 
+      const organisingIdea = record.organisingIdea;
+      if (!organisingIdea || typeof organisingIdea !== 'object' || Array.isArray(organisingIdea)) {
+        errors.push(`${project.id}: organisingIdea must be an object`);
+      } else {
+        if (!organisingIdea.statement?.trim()) errors.push(`${project.id}: organisingIdea requires a statement`);
+        if (!ORGANISING_IDEA_STATUSES.has(organisingIdea.status)) {
+          errors.push(`${project.id}: invalid organisingIdea status ${organisingIdea.status}`);
+        }
+        if (!ORGANISING_IDEA_EVIDENCE.has(organisingIdea.evidenceBasis)) {
+          errors.push(`${project.id}: invalid organisingIdea evidenceBasis ${organisingIdea.evidenceBasis}`);
+        }
+        if (!Array.isArray(organisingIdea.sourceClaimIds)) {
+          errors.push(`${project.id}: organisingIdea sourceClaimIds must be an array`);
+        } else {
+          for (const claimId of organisingIdea.sourceClaimIds) {
+            if (!claimIds.has(claimId)) errors.push(`${project.id}: organisingIdea references unknown claim ${claimId}`);
+          }
+          if (organisingIdea.evidenceBasis === 'source_backed' && organisingIdea.sourceClaimIds.length === 0) {
+            errors.push(`${project.id}: source-backed organisingIdea requires sourceClaimIds`);
+          }
+        }
+        if (project.status === 'on_hold' && organisingIdea.status !== 'on_hold') {
+          errors.push(`${project.id}: on-hold project must have an on-hold organisingIdea`);
+        }
+        if (project.status !== 'on_hold' && organisingIdea.status === 'on_hold') {
+          errors.push(`${project.id}: active or archived project cannot have an on-hold organisingIdea`);
+        }
+      }
+
       const questionIds = new Set();
       for (const question of record.openQuestions || []) {
         if (!question.id || questionIds.has(question.id)) errors.push(`${project.id}: missing or duplicate question ID ${question.id}`);
@@ -180,6 +211,9 @@ if (catalog) {
       }
 
       if (['ready_for_draft', 'approved'].includes(project.copyEligibility)) {
+        if (record.organisingIdea?.status !== 'confirmed') {
+          errors.push(`${project.id}: copy-ready project requires a confirmed organisingIdea`);
+        }
         const confirmedCategories = new Set(
           (record.claims || [])
             .filter((claim) => claim.status === 'confirmed')

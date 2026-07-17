@@ -3383,15 +3383,16 @@ html.abs-direct-boot-staging .ui-main-nav .footer_link {
   --home-post-boot-duration-identity: 420ms;
   --home-post-boot-duration-support: 480ms;
   --home-post-boot-delay-identity-name: 0ms;
-  --home-post-boot-delay-identity-role: 58ms;
-  --home-post-boot-delay-legend-start: 360ms;
-  --home-post-boot-delay-legend-step: 96ms;
-  --home-post-boot-delay-context-start: 1340ms;
-  --home-post-boot-delay-context-step: 120ms;
-  --home-post-boot-delay-action-start: 1740ms;
-  --home-post-boot-delay-action-step: 120ms;
-  --home-post-boot-delay-footer-start: 2100ms;
+  --home-post-boot-delay-identity-role: 90ms;
+  --home-post-boot-delay-legend-start: 900ms;
+  --home-post-boot-delay-legend-step: 90ms;
+  --home-post-boot-delay-context-start: 1650ms;
+  --home-post-boot-delay-context-step: 110ms;
+  --home-post-boot-delay-action-start: 2000ms;
+  --home-post-boot-delay-action-step: 110ms;
+  --home-post-boot-delay-footer-start: 2350ms;
   --home-post-boot-delay-footer-step: 100ms;
+  --home-post-boot-delay-simulation-tab: 3000ms;
   --home-post-boot-ty: 3px;
   --home-post-boot-blur: 1.5px;
   --home-post-boot-scale: 0.994;
@@ -3409,7 +3410,8 @@ html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
 html.abs-home-post-boot-pending #social-links .footer_icon-link,
 html.abs-home-post-boot-pending #site-year.abs-meta-btn,
 html.abs-home-post-boot-pending #edge-caption,
-html.abs-home-post-boot-pending #quote-display {
+html.abs-home-post-boot-pending #quote-display,
+html.abs-home-post-boot-pending .simulation-focus-switcher-slot {
   opacity: 0;
   filter: blur(var(--home-post-boot-blur));
   transform: translateY(var(--home-post-boot-ty)) scale(var(--home-post-boot-scale));
@@ -3421,6 +3423,10 @@ html.abs-home-post-boot-pending #main-links .footer_link {
   transform: translateY(0) scale(1);
 }
 
+html.abs-home-post-boot-pending .simulation-focus-switcher-slot {
+  transform: translateX(-50%) translateY(var(--home-post-boot-ty)) scale(var(--home-post-boot-scale));
+}
+
 html.abs-home-post-boot-enter #hero-title .hero-title__name,
 html.abs-home-post-boot-enter #hero-title .hero-title__role,
 html.abs-home-post-boot-enter #expertise-legend .legend__item,
@@ -3429,7 +3435,8 @@ html.abs-home-post-boot-enter #app-frame .ui-top-right .decorative-script,
 html.abs-home-post-boot-enter #social-links .footer_icon-link,
 html.abs-home-post-boot-enter #site-year.abs-meta-btn,
 html.abs-home-post-boot-enter #edge-caption,
-html.abs-home-post-boot-enter #quote-display {
+html.abs-home-post-boot-enter #quote-display,
+html.abs-home-post-boot-enter .simulation-focus-switcher-slot {
   transition:
     opacity var(--home-post-boot-duration-support) var(--home-post-boot-ease),
     filter var(--home-post-boot-duration-support) var(--home-post-boot-ease),
@@ -3500,6 +3507,10 @@ html.abs-home-post-boot-enter #quote-display {
   transition-delay: calc(var(--home-post-boot-delay-footer-start) + (var(--home-post-boot-delay-footer-step) * 3));
 }
 
+html.abs-home-post-boot-enter .simulation-focus-switcher-slot {
+  transition-delay: var(--home-post-boot-delay-simulation-tab);
+}
+
 /* Reduced motion: instant transitions */
 @media (prefers-reduced-motion: reduce) {
   :root {
@@ -3539,7 +3550,8 @@ html.abs-home-post-boot-enter #quote-display {
   html.abs-home-post-boot-pending #expertise-legend .legend__item,
   html.abs-home-post-boot-pending #main-links .footer_link,
   html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
-  html.abs-home-post-boot-pending #quote-display {
+  html.abs-home-post-boot-pending #quote-display,
+  html.abs-home-post-boot-pending .simulation-focus-switcher-slot {
     opacity: 1;
     filter: none;
     transform: none;
@@ -3552,6 +3564,10 @@ html.abs-home-post-boot-enter #quote-display {
 
   html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script {
     opacity: var(--supporting-description-opacity);
+  }
+
+  html.abs-home-post-boot-pending .simulation-focus-switcher-slot {
+    transform: translateX(-50%);
   }
 }
 

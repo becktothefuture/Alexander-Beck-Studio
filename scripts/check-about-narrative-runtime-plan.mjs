@@ -73,21 +73,23 @@ function boundarySamples(plan) {
 
 test('runtime plan migrates v2 or accepts strict v3 without authored Section state', () => {
   const fromV2 = compileAboutNarrativeRuntimePlan(legacy, { layoutProfile: 'desktop' });
-  const v3 = migrateAboutNarrativeVersion2To3(legacy);
-  const fromV3 = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  const migratedV3 = migrateAboutNarrativeVersion2To3(legacy);
+  const fromMigratedV3 = compileAboutNarrativeRuntimePlan(migratedV3, { layoutProfile: 'desktop' });
+  const fromCanonicalV3 = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
 
   assert.equal(fromV2.valid, true);
-  assert.equal(fromV3.valid, true);
+  assert.equal(fromMigratedV3.valid, true);
+  assert.equal(fromCanonicalV3.valid, true);
   assert.equal(fromV2.model.schemaVersion, 3);
   assert.equal(fromV2.layoutProfile, 'desktop');
   assert.equal(fromV2.pointProfile, 'desktop');
   assert.equal(fromV2.motionProfile, 'full');
   assert.equal(fromV2.durationWU, fromV2.maxStoryWU);
   assert.equal(fromV2.resolver.contentExtentWU, fromV2.resolver.scrollDurationWU + 1);
-  assert.deepEqual(fromV2.cameraKeys, fromV3.cameraKeys);
-  assert.deepEqual(fromV2.worlds, fromV3.worlds);
-  assert.deepEqual(v3, canonical);
+  assert.deepEqual(fromV2.cameraKeys, fromMigratedV3.cameraKeys);
+  assert.deepEqual(fromV2.worlds, fromMigratedV3.worlds);
   assert.equal('sections' in fromV2, false);
+  assert.equal('sections' in fromCanonicalV3, false);
   assert.equal('sectionIndex' in sampleAboutNarrativeRuntimePlan(fromV2, 0), false);
   assert.equal('localProgress' in sampleAboutNarrativeRuntimePlan(fromV2, 0), false);
 });
@@ -117,7 +119,7 @@ test('compiled Worlds derive endWU and anchorRailZ and preparation uses stable W
 
 test('desktop Camera and World sampling matches legacy over randomized and boundary-epsilon WU', () => {
   const legacyPlan = compileAboutNarrativeDocument(legacy, { profile: 'desktop' });
-  const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  const plan = compileAboutNarrativeRuntimePlan(legacy, { layoutProfile: 'desktop' });
   const samples = [...seededStorySamples(plan.durationWU), ...boundarySamples(plan)];
 
   samples.forEach((storyWU) => {
@@ -135,7 +137,7 @@ test('desktop Camera and World sampling matches legacy over randomized and bound
 
 test('absolute title windows match migrated legacy Cue timing with half-open ends', () => {
   const legacyPlan = compileAboutNarrativeDocument(legacy, { profile: 'desktop' });
-  const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  const plan = compileAboutNarrativeRuntimePlan(legacy, { layoutProfile: 'desktop' });
   const titleIds = new Set(plan.textFields.filter((field) => field.kind === 'title').map((field) => field.id));
   const titleWindows = legacyPlan.sections.flatMap((section) => (
     (section.text.cues || []).map((cue) => {
@@ -172,7 +174,7 @@ test('absolute title windows match migrated legacy Cue timing with half-open end
 
 test('absolute spatial Title sampling matches legacy motion at randomized and boundary WU', () => {
   const legacyPlan = compileAboutNarrativeDocument(legacy, { profile: 'desktop' });
-  const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  const plan = compileAboutNarrativeRuntimePlan(legacy, { layoutProfile: 'desktop' });
   const textMotion = legacy.globals.textMotion;
   const target = createAboutNarrativeTitleFieldSample();
   let randomState = 0x243f6a88;

@@ -6,13 +6,24 @@
 
 The page should sound like a thoughtful designer explaining how he sees the work—not a manifesto generator, a résumé, or a personal-brand campaign.
 
+## Current anchor: V13
+
+V13 works because it does four things at once:
+
+1. It begins with judgement, not mood: “Ambition is rarely the hard part.”
+2. It makes the problem practical: ideas need form people can understand, trust and use.
+3. It turns biography into evidence: Communication Design, agency work, product work, emerging technology and project domains explain the current practice.
+4. It treats disciplines as working materials, not departments or a list of services.
+
+Future About edits should preserve that spine. They can change wording, pacing and emphasis, but they should not return to the softer rejected voice: “I enjoy this stage”, “drawn to the space”, “the work”, or abstract claims about complexity without a practical consequence.
+
 ## Six rules
 
 ### 1. Start with a tension worth following
 
 Open with an observation or difficult judgement that creates a question for the page to answer. Introduce “I” only when the story needs origin, action or responsibility.
 
-**Use:** “The hardest part of making something clear is deciding what not to lose.”
+**Use:** “Ambition is rarely the hard part.”
 **Avoid:** “Digital experiences are often asked to make complicated things feel simple.”
 
 ### 2. State the point directly
@@ -33,6 +44,8 @@ Talk about screens, systems, interactions, brands, constraints and users. Avoid 
 
 After a belief, name the discipline, method, client or decision that makes it credible. Do not interrupt the opening with a biography, but do not leave the page floating in abstraction.
 
+For V13, proof means career trajectory, project domains, disciplines, tools, AI as working material, and the kind of output teams can use. Avoid proving a claim with more claims.
+
 ### 5. Use plain language with visual rhythm
 
 Short statements can be spatial and emphatic. Prose should remain natural and conversational. Use repetition only when the animation gives it a reason.
@@ -40,6 +53,8 @@ Short statements can be spatial and emphatic. Prose should remain natural and co
 ### 6. Be confident without closing the subject
 
 Describe what the work tries to do and how Alexander tests it. End with curiosity and direction, not mastery or self-congratulation.
+
+Confidence should come from sentence shape: judgement → consequence → evidence. Avoid announcing taste or superiority.
 
 ## Tone characteristics
 
@@ -50,13 +65,13 @@ Describe what the work tries to do and how Alexander tests it. End with curiosit
 | Specific | Disciplines, methods and clients provide evidence. |
 | Warm | The language respects the reader and leaves room for curiosity. |
 | Precise | One idea per sentence; no inflated adjectives. |
-| Lightly self-aware | The page can acknowledge that order, systems and polish have limits. |
+| Practical | Abstract ambition resolves into form, behaviour, trust and use. |
 
 ## Sentence patterns
 
 Use these patterns repeatedly without making them formulaic:
 
-- **Observation → complication:** “Making something clearer means deciding what must survive.”
+- **Judgement → practical consequence:** “Ambition is rarely the hard part. The hard part is giving ideas form people can understand, trust and use.”
 - **Principle → consequence:** “Structure makes decisions legible. Character gives people a reason to care.”
 - **Origin → transferable lesson:** “Learning composition, form and shape taught me that small decisions can change the whole experience.”
 - **Claim → proof:** “My work moves between product design, art direction and creative engineering. That has included…”
@@ -66,6 +81,8 @@ Use these patterns repeatedly without making them formulaic:
 
 clear, structure, character, respond, rhythm, test, build, use, attention, depth, movement, curiosity, constraint, system, interaction
 
+Also favour the V13 vocabulary: form, behaviour, trust, working material, point of view, implementation, useful, understand.
+
 ## Words and habits to avoid
 
 - “I think”, “I believe”, “for me” before a clear claim;
@@ -73,6 +90,8 @@ clear, structure, character, respond, rhythm, test, build, use, attention, depth
 - context, contradiction, nuance and humanity clustered as abstract nouns;
 - world-class, high-impact, innovative, cutting-edge or unique;
 - overly polished slogan chains;
+- “the work” when the sentence needs to name the actual project, product, service, experience or decision;
+- “drawn to”, “I enjoy” and “I like” when they weaken the professional claim;
 - metaphors that have no visible counterpart in the experience.
 
 ## Publishing check

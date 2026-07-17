@@ -34,6 +34,6 @@ Conflicting claims stay separate until resolved. Older portfolio language is use
 
 ## Copy gate
 
-Final portfolio copy may use only confirmed claims. Candidate claims can create interview questions, but cannot appear as settled facts. A project becomes copy-ready only when its required fact categories, publication permissions, and media sequence are complete.
+Final portfolio copy may use only confirmed claims. Candidate claims can create interview questions, but cannot appear as settled facts. A project becomes copy-ready only when its organising idea is confirmed and its required fact categories, publication permissions, and media sequence are complete.
 
 American Heart Association is explicitly `on_hold`. Sources may be catalogued, but the project cannot move into final-copy drafting until Alexander removes the hold.

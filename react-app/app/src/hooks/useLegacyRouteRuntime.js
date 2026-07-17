@@ -26,6 +26,8 @@ function publishRuntimeLifecycle(routeId, generation, status) {
 
   if (routeId === 'home' && status !== 'ready') {
     root.dataset.absHomeRouteReady = 'false';
+    root.dataset.absHomeSimulationReady = 'false';
+    root.dataset.absHomeCanvasTitlePrepared = 'false';
     root.dataset.absHomeCanvasTitleReady = 'false';
   }
 }

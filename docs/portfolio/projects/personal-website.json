@@ -10,6 +10,13 @@
   "workingHypotheses": [
     "Portfolio v1 documents a predecessor built with Webflow, CSS, and JavaScript; the final case study should tell the evolution into the current React and simulation system rather than polishing the obsolete version."
   ],
+  "organisingIdea": {
+    "statement": "Treat the browser's limitations as a creative collaborator that determines which expressive ideas deserve to survive.",
+    "status": "candidate",
+    "evidenceBasis": "source_backed",
+    "sourceClaimIds": ["claim-personal-006", "claim-personal-007", "claim-personal-009"],
+    "lastReviewed": "2026-07-17"
+  },
   "claims": [
     {
       "id": "claim-personal-001",

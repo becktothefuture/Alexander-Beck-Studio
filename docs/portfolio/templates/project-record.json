@@ -13,10 +13,16 @@
     "copyStatus": "blocked_missing_facts"
   },
   "workingHypotheses": [],
+  "organisingIdea": {
+    "statement": "<one observation-mechanism-proof narrative hypothesis>",
+    "status": "hypothesis",
+    "evidenceBasis": "interview_needed",
+    "sourceClaimIds": [],
+    "lastReviewed": "YYYY-MM-DD"
+  },
   "claims": [],
   "conflicts": [],
   "openQuestions": [],
   "media": [],
   "interviewRounds": []
 }
-

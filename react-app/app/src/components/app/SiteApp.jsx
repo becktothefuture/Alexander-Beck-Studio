@@ -228,10 +228,6 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
     return;
   }
 
-  // Non-home shell direct loads do not run the home page-orchestrator boot
-  // completion path. SiteApp owns their final boot-ready marker after the
-  // route view has mounted; route runtimes still dispatch abs:route-ready for
-  // SPA transitions and route-specific fixtures.
   const root = document.documentElement;
   root.classList.remove(
     'fonts-loading',

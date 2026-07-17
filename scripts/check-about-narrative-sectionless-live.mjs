@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import { compileAboutNarrativeRuntimePlan } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
 import { validateAboutNarrativeTrackDocument } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
+import { ABOUT_NARRATIVE_DISCIPLINE_ANCHORS } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDefinitions.js';
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const canonicalSource = await read('../react-app/app/public/config/contents-about.json');
@@ -57,6 +58,77 @@ test('live renderer, timeline, and 3D frame contain no Section contract', () => 
   assert.match(liveSources.experience, /data-text-field-id/);
   assert.match(liveSources.experience, /role="progressbar"/);
   assert.match(liveSources.experience, /pointProfile=\{runtimePlan\?\.pointProfile\}/);
+});
+
+test('the grid and discipline-isolation moments share one fixed World surface', () => {
+  const background = canonical.tracks.worlds.objects.find((world) => world.id === 'world-background');
+  const isolation = canonical.tracks.worlds.objects.find((world) => world.id === 'world-discipline-isolation');
+  assert.ok(background);
+  assert.ok(isolation);
+  assert.deepEqual(background.modifiers, []);
+  assert.equal(isolation.startWU, 9.602);
+  assert.equal(isolation.anchorWU, background.anchorWU);
+  assert.equal(isolation.shapeId, background.shapeId);
+  assert.equal(isolation.seed, background.seed);
+  assert.equal(isolation.entryDistanceWU, background.entryDistanceWU);
+  assert.deepEqual(isolation.transform, background.transform);
+  assert.deepEqual(isolation.shapeParameters, background.shapeParameters);
+  assert.equal(isolation.transitionIn.correspondence, 'index-v1');
+  assert.deepEqual(isolation.modifiers, [{
+    id: 'discipline-isolation-v1',
+    enabled: true,
+    parameters: {
+      strength: 1,
+      backgroundOpacity: 0.2,
+      backgroundScale: 0.58,
+    },
+  }]);
+  assert.doesNotMatch(liveSources.world, /worldDisciplineRise|resolveDisciplineStoryOffset|storyOffset/);
+  assert.match(liveSources.world, /camera\.position\.fromArray\(frame\.camera\.position\)/);
+});
+
+test('discipline isolation bookends the grid and the Camera owns the handoff', () => {
+  const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
+  const bookend = keys.get('camera-grid-bookend-0');
+  const reveal = keys.get('camera-practice-reveal-0');
+  const editorial = keys.get('camera-disciplines-0');
+  assert.equal(bookend.atWU, 9.602);
+  assert.deepEqual(bookend.offset, [0, 0, 0]);
+  assert.deepEqual(bookend.lookAtOffset, [0, 0, -1]);
+  assert.equal(reveal.atWU, 10.45);
+  assert.deepEqual(reveal.offset, [0, 6.4, -0.25]);
+  assert.deepEqual(editorial.offset, [0, 6.4, 0.75]);
+  const revealCameraZ = canonical.globals.camera.startZ - reveal.atWU + reveal.offset[2];
+  const editorialCameraZ = canonical.globals.camera.startZ - editorial.atWU + editorial.offset[2];
+  assert.ok(Math.abs(revealCameraZ - editorialCameraZ) < 0.000001, 'Camera holds the discipline band during its reveal.');
+
+  const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
+  assert.equal(new Set(verticalPositions).size, 6);
+  assert.ok(verticalPositions[0] <= 0.25);
+  assert.ok(verticalPositions.at(-1) - verticalPositions[0] >= 0.189);
+
+  const fields = canonical.tracks.text.fields;
+  const editorialIds = [
+    'text-disciplines-title',
+    'text-disciplines-practice',
+    'text-disciplines-ai',
+    'text-disciplines-synthesis',
+  ];
+  const editorialFields = editorialIds.map((id) => fields.find((field) => field.id === id));
+  editorialFields.forEach((field) => assert.ok(field));
+  editorialFields.slice(1).forEach((field, index) => {
+    assert.equal(editorialFields[index].endWU, field.startWU);
+    assert.equal(editorialFields[index].presentation.layout, field.presentation.layout);
+  });
+  assert.equal(editorialFields.at(-1).block.worldInfluence, undefined);
+
+  const mobileCamera = canonical.profiles.mobile.overrides.camera;
+  assert.equal(mobileCamera['camera-practice-reveal-0'].fov, 55);
+  assert.deepEqual(mobileCamera['camera-practice-reveal-0'].offset, [0, 4.3, 2.2]);
+  assert.deepEqual(mobileCamera['camera-disciplines-0'].offset, [0, 4.3, 3.2]);
+  const tabletCamera = canonical.profiles.tablet.overrides.camera;
+  assert.deepEqual(tabletCamera['camera-practice-reveal-0'].offset, [0, 6.4, 2.2]);
+  assert.deepEqual(tabletCamera['camera-disciplines-0'].offset, [0, 6.4, 3.2]);
 });
 
 test('editor exposes exactly four independent lanes and all Text creation kinds', () => {

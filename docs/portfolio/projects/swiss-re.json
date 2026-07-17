@@ -10,6 +10,13 @@
   "workingHypotheses": [
     "The supplied portfolio confirms only that Swiss Re was prior experience; every substantive case-study fact still needs to come from interview or new source material."
   ],
+  "organisingIdea": {
+    "statement": "Find the human decision hidden inside an institutional system and make the information around that decision graspable.",
+    "status": "hypothesis",
+    "evidenceBasis": "interview_needed",
+    "sourceClaimIds": [],
+    "lastReviewed": "2026-07-17"
+  },
   "claims": [
     {
       "id": "claim-swissre-001",

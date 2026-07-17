@@ -14,6 +14,13 @@
     "copyStatus": "blocked_on_hold"
   },
   "workingHypotheses": [],
+  "organisingIdea": {
+    "statement": "Intentionally deferred while the project is ongoing.",
+    "status": "on_hold",
+    "evidenceBasis": "interview_deferred",
+    "sourceClaimIds": [],
+    "lastReviewed": "2026-07-17"
+  },
   "claims": [],
   "conflicts": [],
   "openQuestions": [
@@ -37,4 +44,3 @@
   "media": [],
   "interviewRounds": []
 }
-

@@ -16,6 +16,7 @@ import {
   triggerRelease,
 } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
+import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import {
   BEACH_BALL_ROOM_DEFAULT_SETTINGS,
   clampBeachBallRoomInteger,
@@ -568,7 +569,18 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     container.dataset.renderedDpr = String(renderer.getPixelRatio());
     const ballDiameterRatio = clampBeachBallRoomNumber(settings.ballDiameterViewportRatio, 0.15, 0.9);
     const targetDiameter = Math.min(metrics.visibleWidth, metrics.visibleHeight) * ballDiameterRatio;
-    ballRadius = Math.max(0.25, targetDiameter * 0.5);
+    const globals = getGlobals();
+    const mobileBodyScale = resolveMobileSimulationBodyScale(
+      globals.mobileSimulationBodyScale,
+      {
+        width: metrics.width,
+        height: metrics.height,
+        isMobileDevice: globals.isMobile ? true : undefined,
+      },
+    );
+    ballRadius = Math.max(0.25, targetDiameter * 0.5 * mobileBodyScale);
+    container.dataset.mobileSimulationBodyScale = mobileBodyScale.toFixed(2);
+    container.dataset.simulationBodyRadius = ballRadius.toFixed(3);
     depthSphere.scale.setScalar(ballRadius);
     updatePointerColliderScale();
     updateRoomGeometry();

@@ -245,6 +245,10 @@ export function registerSimulationVisualTransition(sourceId, handlers = {}) {
 export function setInitialSimulationVisualScale(scale) {
   initialVisualScale = clamp01(Number(scale));
   const entry = getActiveEntry();
+  if (entry && initialVisualScale >= 0.999) {
+    firstDailyRegistrationPending = false;
+    directBootEnterToken += 1;
+  }
   try {
     entry?.handlers?.setVisualScale?.(initialVisualScale, { immediate: true, phase: 'initial' });
   } catch (error) {

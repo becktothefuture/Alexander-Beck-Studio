@@ -2,6 +2,7 @@ import {
   createIndexedSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
+import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { triggerPressure } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 
 const TAU = Math.PI * 2;
@@ -303,6 +304,7 @@ export function createFlockOfBirdsRenderer({
   let lastTime = 0;
   let metricsDirty = true;
   let metricsSyncCount = 0;
+  let mobileBodyScale = 1;
   let unregisterVisualTransition = null;
   const visualTransition = createIndexedSimulationVisualTransition({
     sourceId: 'flock-of-birds',
@@ -332,7 +334,7 @@ export function createFlockOfBirdsRenderer({
   }
 
   function resolveFlightBand(config, height, groundY) {
-    const radius = Math.max(1, Number(config.birdRadius) || 10);
+    const radius = Math.max(1, Number(config.birdRadius) || 10) * mobileBodyScale;
     const hardTop = config.topMargin + radius * 2.5;
     const hardBottom = groundY - radius * 4.2;
     const top = clamp(
@@ -1054,7 +1056,7 @@ export function createFlockOfBirdsRenderer({
 
       let nextX = xi + nextVx * dt * motionScale;
       let nextY = yi + nextVy * dt * motionScale;
-      const radius = config.birdRadius * (1 + state.depth[i] * config.depthSize);
+      const radius = config.birdRadius * mobileBodyScale * (1 + state.depth[i] * config.depthSize);
       const hardMargin = Math.max(radius * 4, width * 0.08);
       if (nextX < flightLeft - hardMargin) {
         nextX = flightLeft - hardMargin;
@@ -1174,8 +1176,8 @@ export function createFlockOfBirdsRenderer({
     const spanY = Math.max(1, maxY - minY);
     const scaleX = spanX > maxSpanX ? maxSpanX / spanX : 1;
     const scaleY = spanY > maxSpanY ? maxSpanY / spanY : 1;
-    const minSafeY = config.topMargin + config.birdRadius * 1.5;
-    const maxSafeY = groundY - config.birdRadius * 2.2;
+    const minSafeY = config.topMargin + config.birdRadius * mobileBodyScale * 1.5;
+    const maxSafeY = groundY - config.birdRadius * mobileBodyScale * 2.2;
 
     for (let i = 0; i < count; i += 1) {
       state.x[i] = clamp(targetCenterX + (state.x[i] - centerX) * scaleX, 16, width - 16);
@@ -1211,7 +1213,7 @@ export function createFlockOfBirdsRenderer({
 
   function drawBirds(config, theme) {
     const colors = createBirdColorCache(theme);
-    const baseRadius = config.birdRadius;
+    const baseRadius = config.birdRadius * mobileBodyScale;
     const depthSize = config.depthSize;
 
     for (let i = 0; i < state.count; i += 1) {
@@ -1229,6 +1231,14 @@ export function createFlockOfBirdsRenderer({
 
   function prepareFrame(config, theme) {
     syncMetrics(config);
+    mobileBodyScale = resolveMobileSimulationBodyScale(
+      theme?.mobileSimulationBodyScale,
+      metrics,
+    );
+    metrics.mobileSimulationBodyScale = mobileBodyScale;
+    metrics.simulationBodyRadius = config.birdRadius * mobileBodyScale;
+    canvas.dataset.mobileSimulationBodyScale = mobileBodyScale.toFixed(2);
+    canvas.dataset.simulationBodyRadius = metrics.simulationBodyRadius.toFixed(2);
     initializeBirds(config, theme);
     metrics.birdCount = state.count;
     metrics.targetFps = resolveTargetFps(config, reducedMotion);

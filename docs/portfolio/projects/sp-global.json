@@ -15,6 +15,13 @@
   "workingHypotheses": [
     "The strongest narrative tension is translating expert financial logic without flattening its power."
   ],
+  "organisingIdea": {
+    "statement": "Make index logic visible and teachable without taking authorship or expert control away from the people building it.",
+    "status": "candidate",
+    "evidenceBasis": "source_backed",
+    "sourceClaimIds": ["claim-sp-001", "claim-sp-005", "claim-sp-006", "claim-sp-007"],
+    "lastReviewed": "2026-07-17"
+  },
   "claims": [
     {
       "id": "claim-sp-001",

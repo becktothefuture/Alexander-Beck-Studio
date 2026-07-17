@@ -152,6 +152,7 @@ export function StudioShell({
             </div>
             {simulationFocusControls}
           </div>
+          <div id="simulation-transaction-snapshot-host" aria-hidden="true" />
           <div className="frame-vignette" aria-hidden="true" />
           <div className="simulation-contrast-veil" aria-hidden="true" />
 

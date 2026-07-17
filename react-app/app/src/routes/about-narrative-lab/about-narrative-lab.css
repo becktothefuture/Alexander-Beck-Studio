@@ -541,47 +541,77 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-cta a {
+  --about-narrative-cta-fill: var(--abs-soft-control-fill);
+  position: relative;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
-  padding: 0.72rem 1rem;
-  border: var(--abs-soft-control-edge-width, 1px) solid color-mix(
-    in srgb,
-    var(--text-primary) var(--abs-soft-control-outline-opacity, 22%),
-    transparent
-  );
-  border-radius: 999px;
-  background: color-mix(
-    in srgb,
-    var(--studio-window-bg) var(--abs-soft-control-fill-opacity, 76%),
-    transparent
-  );
-  box-shadow: 0 0.45rem 1.35rem color-mix(in srgb, var(--text-primary) 8%, transparent);
+  padding: 0 16px;
+  border: var(--abs-soft-control-edge-width, 0.5px) solid var(--abs-soft-control-outline);
+  border-radius: var(--abs-radius-pill);
+  background: transparent;
+  isolation: isolate;
+  overflow: visible;
+  box-shadow: none;
   color: var(--text-primary);
-  font-family: var(--abs-font-mono);
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1;
   text-decoration: none;
   pointer-events: auto;
-  -webkit-backdrop-filter: blur(var(--abs-soft-control-blur, 14px)) saturate(var(--abs-soft-control-saturation, 1));
-  backdrop-filter: blur(var(--abs-soft-control-blur, 14px)) saturate(var(--abs-soft-control-saturation, 1));
-  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+  transition: border-color 160ms var(--ease-organic, ease);
+}
+
+.about-narrative-cta a::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: var(--about-narrative-cta-fill);
+  -webkit-backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
+  backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
+  pointer-events: none;
+  transition: background-color 160ms var(--ease-organic, ease);
+}
+
+.about-narrative-cta__label {
+  position: relative;
+  z-index: 1;
+  display: block;
+  color: var(--text-primary);
+  font-family: var(--abs-font-sans);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 18px;
+  letter-spacing: 0;
+  text-align: center;
+  text-shadow: none;
+  filter: none;
+}
+
+@supports (text-box: trim-both cap alphabetic) {
+  .about-narrative-cta__label {
+    text-box: trim-both cap alphabetic;
+  }
 }
 
 .about-narrative-cta a:hover,
-.about-narrative-cta a:focus-visible {
-  border-color: color-mix(in srgb, var(--text-primary) 48%, transparent);
-  background: color-mix(in srgb, var(--text-primary) 12%, var(--studio-window-bg));
-  outline: none;
+.about-narrative-cta a:focus-visible,
+.about-narrative-cta a:active {
+  --about-narrative-cta-fill: var(--abs-soft-control-emphasis-fill);
+  border-color: var(--abs-soft-control-outline-active);
 }
 
-.about-narrative-cta a:focus-visible {
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--studio-window-bg) 82%, transparent),
-    0 0 0 4px color-mix(in srgb, var(--about-route-accent) 68%, var(--text-primary));
+.about-narrative-cta a:focus-visible .about-narrative-cta__label {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.14em;
+  text-decoration-color: color-mix(in srgb, var(--text-primary) 42%, transparent);
 }
 
 .about-narrative-visually-hidden {

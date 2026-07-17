@@ -10,6 +10,13 @@
   "workingHypotheses": [
     "The supplied files confirm MRM (McCann) as an employer but do not identify the separate McCann project intended for the portfolio."
   ],
+  "organisingIdea": {
+    "statement": "A single restrained interaction can give a website a memorable identity more effectively than a feature-heavy experience.",
+    "status": "hypothesis",
+    "evidenceBasis": "interview_needed",
+    "sourceClaimIds": [],
+    "lastReviewed": "2026-07-17"
+  },
   "claims": [
     {
       "id": "claim-mccann-001",

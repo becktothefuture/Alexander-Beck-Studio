@@ -158,8 +158,12 @@ function FinaleActions() {
   return (
     <div className="about-narrative-finale-cta is-actions-only">
       <nav className="about-narrative-cta" aria-label="Contact Alexander">
-        <a href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}>Email</a>
-        <a href={ABOUT_NARRATIVE_CONTACT.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
+        <a href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}>
+          <span className="about-narrative-cta__label">Email</span>
+        </a>
+        <a href={ABOUT_NARRATIVE_CONTACT.linkedin} target="_blank" rel="noreferrer">
+          <span className="about-narrative-cta__label">LinkedIn</span>
+        </a>
       </nav>
     </div>
   );

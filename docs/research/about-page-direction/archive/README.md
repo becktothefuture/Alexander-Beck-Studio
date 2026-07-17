@@ -2,7 +2,7 @@
 
 These files are retained as historical working material. They are not current instructions for writing, storyboarding or implementing the About Me page.
 
-The active prose source is `../ABOUT-NARRATIVE-SCRIPT-v7.md`; `../ABOUT-NARRATIVE-STORYBOARD-v7.md` is the current visual reference. Interviews, source material and tone guidance remain in `../supporting/`.
+The active prose source is `../ABOUT-NARRATIVE-SCRIPT-v13.md`, which includes the current visual allocation. Interviews, source material and tone guidance remain in `../supporting/`.
 
 ## Narrative explorations
 
@@ -16,9 +16,9 @@ The active prose source is `../ABOUT-NARRATIVE-SCRIPT-v7.md`; `../ABOUT-NARRATIV
 - the superseded story-led five-act framework and Draft 1;
 - the superseded manifesto framework, narrative options and verification checklist;
 - the original narrative-lab implementation brief;
-- the V2, V3, V4, V5 and V6 scripts and storyboards, plus the V3 story-led draft.
+- the V2 through V11 scripts and storyboards, plus the V3 story-led draft.
 
-These files contain useful ideas and phrases, but their architecture and copy predate the active V7 prose.
+These files contain useful ideas and phrases, but their architecture and copy predate the active V13 prose.
 
 The related [FigJam narrative map](https://www.figma.com/board/uVSfMQrdagYNTMFvIIDrsq) should also be treated as a historical discussion board.
 

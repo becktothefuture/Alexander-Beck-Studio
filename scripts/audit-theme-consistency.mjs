@@ -98,7 +98,6 @@ async function readThemeState(page) {
       return normalized;
     };
     const browserChrome = getComputedStyle(root).getPropertyValue('--abs-browser-chrome').trim();
-    const scene = document.querySelector('[data-portfolio-gate-scene]');
     return {
       path: location.pathname,
       phase: root.dataset.absTransitionPhase || 'idle',
@@ -121,8 +120,6 @@ async function readThemeState(page) {
       storedPreference: localStorage.getItem('theme-preference-v3'),
       legacyV2Preference: localStorage.getItem('theme-preference-v2'),
       activeRoute: document.querySelector('[data-route-tab][aria-current="page"]')?.getAttribute('data-route-tab') || '',
-      gateScenePresent: Boolean(scene),
-      gateSceneImageCount: scene?.querySelectorAll('img, picture, source').length || 0,
     };
   });
 }
@@ -216,12 +213,6 @@ async function navigateByTab(page, step, expectedTheme, expectedFrame, viewportN
   assert(state.path === step.path, `${viewportName}/${step.id}: unexpected route`, state);
   assertFrameMatches(state, expectedFrame, `${viewportName}/${step.id}`);
 
-  if (step.id === 'portfolio') {
-    await page.waitForFunction(() => {
-      const scene = document.querySelector('[data-portfolio-gate-scene]');
-      return Boolean(scene) && scene.querySelectorAll('img, picture, source').length === 0;
-    }, undefined, { timeout: waitMs });
-  }
 }
 
 async function navigateDirect(page, step, expectedTheme, expectedFrame, viewportName) {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { withBasePath } from '../../lib/base-path.js';
+import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import {
   easeSimulationVisualProgress,
   publishSimulationVisualTransitionSnapshot,
@@ -549,6 +550,7 @@ export function NapoleonPointCloud({
     let resizeObserver = null;
     let intersectionObserver = null;
     let destroyed = false;
+    let mobileBodyScale = 1;
 
     const backScene = new THREE.Scene();
     const frontScene = new THREE.Scene();
@@ -570,13 +572,22 @@ export function NapoleonPointCloud({
     } catch {
       backRenderer?.dispose();
       frontRenderer?.dispose();
+      const fallbackRect = root.getBoundingClientRect();
+      mobileBodyScale = resolveMobileSimulationBodyScale(
+        theme?.mobileSimulationBodyScale,
+        { width: fallbackRect.width, height: fallbackRect.height },
+      );
+      root.dataset.mobileSimulationBodyScale = mobileBodyScale.toFixed(2);
       return startCanvas2dPointCloudFallback({
         root,
         backCanvas,
         frontCanvas,
         asset,
         groupColors,
-        settings: settingsRef.current,
+        settings: {
+          ...settingsRef.current,
+          dotSize: settingsRef.current.dotSize * mobileBodyScale,
+        },
         setError,
       });
     }
@@ -639,6 +650,7 @@ export function NapoleonPointCloud({
           depthFogStart: runtime.depthFogStart,
           depthFogMin: runtime.depthFogMin,
           depthFogRange: runtime.depthFogRange,
+          mobileSimulationBodyScale: mobileBodyScale,
           renderedFrames: runtime.renderedFrames,
           dpr: backRenderer.getPixelRatio(),
           canvasWidth: backCanvas.width,
@@ -783,6 +795,11 @@ export function NapoleonPointCloud({
       const rect = root.getBoundingClientRect();
       const width = Math.max(1, Math.round(rect.width));
       const height = Math.max(1, Math.round(rect.height));
+      mobileBodyScale = resolveMobileSimulationBodyScale(
+        theme?.mobileSimulationBodyScale,
+        { width, height },
+      );
+      root.dataset.mobileSimulationBodyScale = mobileBodyScale.toFixed(2);
       const dpr = resolveDpr(maxDpr);
       backRenderer.setPixelRatio(dpr);
       frontRenderer.setPixelRatio(dpr);
@@ -815,7 +832,7 @@ export function NapoleonPointCloud({
       const motionScale = reducedMotion ? 0 : 1;
       forEachPointCloudMaterial(runtime, (material) => {
         material.uniforms.uTime.value = elapsed * motionScale;
-        material.uniforms.uPointSize.value = settings.dotSize;
+        material.uniforms.uPointSize.value = settings.dotSize * mobileBodyScale;
         material.uniforms.uOpacity.value = clamp(settings.dotOpacity, 0.2, 1);
         material.uniforms.uSpread.value = reducedMotion ? 0 : settings.spread;
         material.uniforms.uFocus.value = clamp(settings.focus, 0.72, 1.35);
@@ -990,6 +1007,7 @@ export function NapoleonPointCloud({
       document.removeEventListener('visibilitychange', handleVisibility);
       resizeObserver?.disconnect();
       intersectionObserver?.disconnect();
+      delete root.dataset.mobileSimulationBodyScale;
       delete window.__ABS_NAPOLEON_POINT_CLOUD__;
       runtime.visualTransitionUnregister?.();
       runtime.visualTransitionUnregister = null;
@@ -1006,6 +1024,7 @@ export function NapoleonPointCloud({
     groupColors,
     maxDpr,
     reducedMotion,
+    theme?.mobileSimulationBodyScale,
   ]);
 
   return (

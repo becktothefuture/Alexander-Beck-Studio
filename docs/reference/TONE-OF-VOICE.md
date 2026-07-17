@@ -2,29 +2,35 @@
 
 Guide for all user-facing copy on the site. Single source of truth for how the site sounds and what it teaches.
 
-**Goal:** Pure information, almost as a style. Scientific where it helps. Friendly and human where it helps. No big words. Approachable and educational. The copy should show how you act and think.
+**Goal:** Confident, useful, and specific. The copy should sound like a capable creative technologist explaining what he does, why it matters, and how he thinks. It should have a point of view without becoming self-important.
+
+The current tonal anchor is the About narrative V13. Its useful pattern is:
+
+> Ambition is rarely the hard part. The hard part is giving ideas form people can understand, trust and use.
+
+That works because it makes a judgement, names a practical difficulty, and immediately connects design to use. Apply that structure across the site.
 
 ---
 
 ## Principles
 
-1. **Information first**  
-   Lead with what is true and useful. No filler, no hype. If a sentence doesn’t inform or clarify, cut it or rewrite.
+1. **Have an opinion**
+   Lead with a useful judgement, not a generic positioning line. A sentence should make the reader understand how you see the problem.
 
-2. **Scientific clarity**  
-   Prefer precise, observable language. Name things (methods, outcomes, constraints) so a reader can picture what you did or what they’ll get. Cause and effect over vague claims.
+2. **Make the judgement practical**
+   Follow the point of view with what it changes: form, behaviour, trust, use, implementation, or decision-making. Avoid abstract conclusions that cannot be seen in the work.
 
-3. **Friendly and human where it helps**  
-   Use “I” when it’s you acting or deciding. Use “you” when you’re talking to the reader. Short, direct invitations (“Get in touch”, “Let’s chat”) are fine. Warmth shows in clarity and respect for the reader’s time, not in extra adjectives.
+3. **Prove breadth through function**
+   Multidisciplinary language only works when each discipline earns its place. Product, brand, motion, code, systems, and AI should be described by what they make possible together.
 
-4. **No big words**  
-   Choose the simplest word that stays accurate. Avoid jargon unless it’s the standard term (e.g. “design system”, “prototype”). If you use a term, briefly show what it means in practice.
+4. **Use plain words with professional weight**
+   Choose the simplest word that stays accurate. Avoid inflated adjectives, startup slogans, and casual filler. The voice can be warm, but it should not sound chatty for its own sake.
 
-5. **Approachable and educational**  
-   Explain enough that a thoughtful reader can follow. One idea per sentence where possible. Use concrete examples or outcomes instead of abstract labels.
+5. **Let biography and proof carry confidence**
+   Career history, project domains, roles, tools, and constraints make the claims credible. Avoid announcing confidence; write sentences that earn it.
 
-6. **Show how you act and think**  
-   Copy should reflect your way of working: evidence-based, systematic, end-to-end (concept to build), and willing to use AI and new tools where they help. Show decisions and tradeoffs, not only results.
+6. **Show how you act and think**
+   Copy should reflect your way of working: systematic, end-to-end, visually literate, technically capable, and willing to use AI and new tools where they help. Show decisions and tradeoffs, not only results.
 
 ---
 
@@ -33,12 +39,12 @@ Guide for all user-facing copy on the site. Single source of truth for how the s
 | Do | Don’t |
 |----|--------|
 | Short sentences. One main idea per sentence. | Long chains of clauses and qualifiers. |
-| Concrete outcomes: “so teams could ship motion with clarity”. | Vague value: “world-class craft”, “high-impact”. |
-| Plain verbs: “map”, “ship”, “test”, “align”. | Fancy verbs: “choreograph”, “orchestrate”, “leverage”. |
-| Name the method or artifact: “token strategy”, “opportunity map”. | Jargon without context: “decision-grade”, “cohesive experience strategy”. |
+| Concrete outcomes: “so teams could understand, trust and use it”. | Vague value: “world-class craft”, “high-impact”. |
+| Plain verbs: “map”, “build”, “test”, “shape”, “define”. | Fancy verbs: “choreograph”, “orchestrate”, “leverage”. |
+| Name the material or artifact: “interface”, “motion study”, “prototype”, “tool”, “system”. | Jargon without context: “decision-grade”, “cohesive experience strategy”. |
 | “I” when it’s your action; “you” when addressing the reader. | Royal “we” or passive everywhere. |
-| One clear CTA: “Get in touch”, “Enter the code”, “Let’s chat”. | Multiple competing asks in one block. |
-| Explain the “why” in one line where it helps. | Assume the reader knows your context. |
+| One clear CTA: “Let’s talk”, “Enter the code”, “Copy email address”. | Multiple competing asks in one block. |
+| Explain the “why” in one line where it helps. | Decorative contrast pairs like “precise yet human” unless the next sentence proves them. |
 
 ---
 
@@ -49,13 +55,13 @@ Guide for all user-facing copy on the site. Single source of truth for how the s
 - Description: one clear sentence: who, what, where, and one outcome or offer. No superlatives.
 
 **Edge (footer tagline)**  
-- One continuous line. Factual and confident. Disciplines + place + one clear idea (e.g. intent, clarity, or outcome). No “love” or “satisfying” unless you’re sure it fits the rest of the site tone.
+- One continuous line. Factual and confident. Role + place + working territory. Avoid poetic inevitability, broad claims about humanity, or adjective stacks.
 
 **Legend (expertise tooltips)**  
 - One sentence per item. What you do in practice, not a slogan. Prefer “I [verb] [object] so that [outcome]” or “I [verb] [object]—[concrete example].” Replace jargon with plain language where possible (e.g. “guide behavior” instead of “choreograph”; “keep quality consistent” instead of “cohesive experience strategy”).
 
 **Philosophy (home intro)**  
-- One or two sentences. Overlap of disciplines + your role + one concrete outcome. Link text: short and human (“Let’s chat.”).
+- One or two sentences. State the professional point of view behind the site: disciplines become useful when they affect one another and give ideas form. Avoid “innovation happens when...” slogans.
 
 **Portfolio (blurb, summaries, overviews, takeaways)**  
 - **Blurb:** What the selection is, who it’s for, one concrete note (e.g. “Currently designing for neurodivergent users”) if true.
@@ -69,7 +75,7 @@ Guide for all user-facing copy on the site. Single source of truth for how the s
 - **Buttons:** “Back”, “Submit”, etc. Functional only.
 
 **Contact route (intro, email, copy feedback)**
-- **Intro:** An open invite for collaborations and hiring; no generic “product design / AI prototyping” filler.
+- **Intro:** A direct invitation for teams building something new. Name the kind of help: direction, design, creative technology, AI, products, services, experiences. Avoid “hit me up”, “creative mind”, and generic “job opportunities”.
 - “Copy email address”, “Copied”, “Copy failed”. Minimal. No jokes.
 
 **Captions (portfolio images/videos)**  
@@ -80,26 +86,30 @@ Guide for all user-facing copy on the site. Single source of truth for how the s
 ## Vocabulary
 
 **Use**  
-- build, ship, test, map, define, align, prototype, validate, document  
-- clear, usable, consistent, repeatable, measurable  
-- so that …, which means …, in practice …
+- build, test, map, define, shape, translate, prototype, document, understand, trust, use
+- form, behaviour, character, direction, system, interface, motion, tool, implementation
+- so that ..., which means ..., in practice ...
 
 **Use sparingly or only with explanation**  
 - design system, tokens, governance, motion language, experience strategy (if you add one concrete line)  
-- AI, applied AI, generative (when you say what you did with it)
+- AI, applied AI, generative, creative technology (when you say what you did with it)
 
 **Avoid**  
 - choreograph, orchestrate, leverage, synergistic, holistic, world-class, best-in-class, high-impact, cutting-edge  
 - decision-grade, cohesive (without saying what’s cohesive), scalable (without saying what scales)  
 - filler adjectives: “incredibly”, “really”, “truly”, “deeply”
+- soft filler: “I like”, “I enjoy”, “I have always been drawn to” unless the sentence immediately becomes concrete
+- over-polished slogans: “familiar and entirely new”, “precise through constraint”, “expressive through humanity”
 
 ---
 
 ## Checklist before publishing copy
 
 - [ ] Every sentence adds information or a clear next step.
+- [ ] The most important block has a point of view, not just a description.
+- [ ] Abstract words are followed by concrete consequences.
 - [ ] No word used that a careful non-expert couldn’t follow (or that isn’t explained in the same block).
 - [ ] “I” / “you” used where it’s you or the reader; no unnecessary “we”.
 - [ ] One idea per sentence where possible.
 - [ ] CTAs are single, clear actions.
-- [ ] Tone matches this doc: information-first, scientific clarity, friendly where it helps, approachable and educational, and reflects how you work.
+- [ ] Tone matches V13: confident, specific, practical, warm, and earned through evidence.

@@ -29,12 +29,12 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
   '--ball-6',
 ]);
 export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = Object.freeze([
-  Object.freeze({ group: 1, x: 0.36, y: 0.54 }),
-  Object.freeze({ group: 2, x: 0.52, y: 0.575 }),
-  Object.freeze({ group: 3, x: 0.66, y: 0.61 }),
-  Object.freeze({ group: 4, x: 0.4, y: 0.645 }),
-  Object.freeze({ group: 5, x: 0.55, y: 0.68 }),
-  Object.freeze({ group: 6, x: 0.7, y: 0.715 }),
+  Object.freeze({ group: 1, x: 0.35, y: 0.23 }),
+  Object.freeze({ group: 2, x: 0.54, y: 0.268 }),
+  Object.freeze({ group: 3, x: 0.43, y: 0.306 }),
+  Object.freeze({ group: 4, x: 0.58, y: 0.344 }),
+  Object.freeze({ group: 5, x: 0.36, y: 0.382 }),
+  Object.freeze({ group: 6, x: 0.52, y: 0.42 }),
 ]);
 export const ABOUT_NARRATIVE_TRANSITION_TYPES = Object.freeze([
   'morph',
@@ -247,6 +247,18 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
     reducedMotion: 'settled',
     parameters: Object.freeze([
       numberControl('strength', 'Strength', 0, 4, 0.05),
+    ]),
+  }),
+  'discipline-isolation-v1': Object.freeze({
+    id: 'discipline-isolation-v1',
+    label: 'Discipline isolation',
+    version: 1,
+    cost: 1,
+    reducedMotion: 'settled',
+    parameters: Object.freeze([
+      numberControl('strength', 'Isolation', 0, 1, 0.01),
+      numberControl('backgroundOpacity', 'Background opacity', 0, 1, 0.01),
+      numberControl('backgroundScale', 'Background point scale', 0.1, 1, 0.01, '×'),
     ]),
   }),
   'living-wave-v1': Object.freeze({

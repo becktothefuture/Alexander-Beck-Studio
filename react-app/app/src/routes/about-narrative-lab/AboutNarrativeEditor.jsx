@@ -39,6 +39,7 @@ const TRACKS = Object.freeze([
 const TRACK_BY_ID = Object.freeze(Object.fromEntries(TRACKS.map((track) => [track.id, track])));
 const MIN_TIMELINE_WIDTH = 920;
 const BASE_PIXELS_PER_WU = 66;
+const TEXT_CONNECTION_EPSILON_WU = 0.0001;
 const PREVIEW_ASPECT_RATIOS = Object.freeze({
   tablet: Object.freeze({ portrait: 820 / 1180, landscape: 1180 / 820 }),
   mobile: Object.freeze({ portrait: 390 / 844, landscape: 844 / 390 }),
@@ -74,6 +75,26 @@ function getObjectLabel(object, type) {
 
 function getObjectStart(object, type) {
   return Number(type === 'camera-key' ? object.atWU : object.startWU);
+}
+
+function getEditorialTextConnections(fields) {
+  const connections = new Map();
+  const editorialFields = fields
+    .filter((field) => field.kind === 'scroll-block')
+    .sort((left, right) => Number(left.startWU) - Number(right.startWU)
+      || left.id.localeCompare(right.id));
+
+  editorialFields.forEach((field, index) => {
+    const next = editorialFields[index + 1];
+    const sharesEditorialLayout = field.presentation?.layout === next?.presentation?.layout;
+    if (!next
+      || !sharesEditorialLayout
+      || Math.abs(Number(field.endWU) - Number(next.startWU)) > TEXT_CONNECTION_EPSILON_WU) return;
+    connections.set(field.id, { ...connections.get(field.id), after: true });
+    connections.set(next.id, { ...connections.get(next.id), before: true });
+  });
+
+  return connections;
 }
 
 function NumberField({ label, value, disabled = false, step = 0.01, min, max, onCommit }) {
@@ -161,6 +182,8 @@ function TrackObject({
   selected,
   store,
   onOpenTextEditor,
+  connectedBefore = false,
+  connectedAfter = false,
 }) {
   const pointerRef = useRef(null);
   const range = getAboutNarrativeTrackObjectRange(document, { type: track.type, id: object.id });
@@ -197,7 +220,7 @@ function TrackObject({
   return (
     <button
       type="button"
-      className={`about-track-editor-clip is-${track.colour}${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}${object.kind === 'stub' ? ' is-draft' : ''}`}
+      className={`about-track-editor-clip is-${track.colour}${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}${object.kind === 'stub' ? ' is-draft' : ''}${connectedBefore ? ' is-connected-before' : ''}${connectedAfter ? ' is-connected-after' : ''}`}
       style={{ left, width }}
       data-track-object-type={track.type}
       data-track-object-id={object.id}
@@ -234,6 +257,10 @@ function Timeline({ snapshot, store, zoom, setZoom, textMenu, setTextMenu, onOpe
     [durationWU],
   );
   const worlds = snapshot.document.tracks.worlds.objects;
+  const editorialTextConnections = useMemo(
+    () => getEditorialTextConnections(snapshot.document.tracks.text.fields),
+    [snapshot.document],
+  );
 
   const seekFromEvent = (event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -339,18 +366,25 @@ function Timeline({ snapshot, store, zoom, setZoom, textMenu, setTextMenu, onOpe
             ))}
             {TRACKS.map((track) => (
               <div className={`about-track-editor-lane is-${track.colour}`} key={track.id} data-track-lane={track.id}>
-                {getTrackItems(snapshot.document, track.id).map((object) => (
-                  <TrackObject
-                    key={object.id}
-                    document={snapshot.document}
-                    object={object}
-                    track={track}
-                    pixelsPerWU={pixelsPerWU}
+                {getTrackItems(snapshot.document, track.id).map((object) => {
+                  const connection = track.id === 'text'
+                    ? editorialTextConnections.get(object.id)
+                    : null;
+                  return (
+                    <TrackObject
+                      key={object.id}
+                      document={snapshot.document}
+                      object={object}
+                      track={track}
+                      pixelsPerWU={pixelsPerWU}
                       selected={snapshot.selection.type === track.type && snapshot.selection.id === object.id}
                       store={store}
                       onOpenTextEditor={onOpenTextEditor}
+                      connectedBefore={connection?.before}
+                      connectedAfter={connection?.after}
                     />
-                ))}
+                  );
+                })}
               </div>
             ))}
             <div

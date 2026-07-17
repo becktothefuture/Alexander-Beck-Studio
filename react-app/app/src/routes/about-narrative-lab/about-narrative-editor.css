@@ -359,6 +359,18 @@
 .about-track-editor-clip.is-world { --lane-colour: var(--editor-world); }
 .about-track-editor-clip.is-text { --lane-colour: var(--editor-text); }
 .about-track-editor-clip.is-interaction { --lane-colour: var(--editor-interaction); }
+.about-track-editor-clip.is-text[data-text-kind='scroll-block'] {
+  border-radius: 5px;
+}
+.about-track-editor-clip.is-text.is-connected-before {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left-color: transparent !important;
+}
+.about-track-editor-clip.is-text.is-connected-after {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
 .about-track-editor-clip.is-selected { outline: 2px solid var(--lane-colour); outline-offset: 1px; }
 .about-track-editor-clip.is-locked { background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgb(255 255 255 / 6%) 5px 7px) !important; cursor: default; }
 .about-track-editor-clip.is-draft { border-style: dashed !important; }

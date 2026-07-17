@@ -50,7 +50,34 @@
       "storyDurationWU": 21.8,
       "scrollDurationWU": 21.8,
       "overrides": {
-        "camera": {},
+        "camera": {
+          "camera-disciplines-0": {
+            "offset": [
+              0,
+              6.4,
+              3.2
+            ],
+            "lookAtOffset": [
+              0,
+              -6.4,
+              -0.45
+            ],
+            "fov": 48
+          },
+          "camera-practice-reveal-0": {
+            "offset": [
+              0,
+              6.4,
+              2.2
+            ],
+            "lookAtOffset": [
+              0,
+              -6.4,
+              -0.45
+            ],
+            "fov": 48
+          }
+        },
         "worlds": {},
         "text": {},
         "interactions": {}
@@ -60,7 +87,34 @@
       "storyDurationWU": 21.8,
       "scrollDurationWU": 22.65,
       "overrides": {
-        "camera": {},
+        "camera": {
+          "camera-disciplines-0": {
+            "offset": [
+              0,
+              4.3,
+              3.2
+            ],
+            "lookAtOffset": [
+              0,
+              -4.3,
+              -0.45
+            ],
+            "fov": 55
+          },
+          "camera-practice-reveal-0": {
+            "offset": [
+              0,
+              4.3,
+              2.2
+            ],
+            "lookAtOffset": [
+              0,
+              -4.3,
+              -0.45
+            ],
+            "fov": 55
+          }
+        },
         "worlds": {},
         "text": {},
         "interactions": {}
@@ -112,7 +166,7 @@
         },
         {
           "id": "camera-complexity-0",
-          "atWU": 1.7,
+          "atWU": 2.56,
           "offset": [
             0,
             0,
@@ -166,7 +220,7 @@
         },
         {
           "id": "camera-background-1",
-          "atWU": 6.425,
+          "atWU": 6.35,
           "offset": [
             0,
             0,
@@ -183,35 +237,35 @@
           "locked": false
         },
         {
-          "id": "camera-background-2",
-          "atWU": 7.013,
+          "id": "camera-background-1-2",
+          "atWU": 8.165,
           "offset": [
             0,
-            2.8,
+            0,
             0
           ],
           "lookAtOffset": [
             0,
-            -2.55,
-            -0.92
+            0,
+            -1
           ],
-          "fov": 47.5,
+          "fov": 48,
           "roll": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
-          "id": "camera-background-3",
-          "atWU": 7.65,
+          "id": "camera-grid-bookend-0",
+          "atWU": 9.602,
           "offset": [
             0,
-            6.4,
+            0,
             0
           ],
           "lookAtOffset": [
             0,
-            -6.4,
-            -0.45
+            0,
+            -1
           ],
           "fov": 48,
           "roll": 0,
@@ -220,29 +274,11 @@
         },
         {
           "id": "camera-practice-reveal-0",
-          "atWU": 8.65,
-          "offset": [
-            0,
-            6.4,
-            0
-          ],
-          "lookAtOffset": [
-            0,
-            -6.4,
-            -0.45
-          ],
-          "fov": 48,
-          "roll": 0,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "camera-practice-reveal-1",
           "atWU": 10.45,
           "offset": [
             0,
             6.4,
-            0
+            -0.25
           ],
           "lookAtOffset": [
             0,
@@ -260,43 +296,7 @@
           "offset": [
             0,
             6.4,
-            0
-          ],
-          "lookAtOffset": [
-            0,
-            -6.4,
-            -0.45
-          ],
-          "fov": 48,
-          "roll": 0,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "camera-disciplines-1",
-          "atWU": 13.95,
-          "offset": [
-            0,
-            6.4,
-            0
-          ],
-          "lookAtOffset": [
-            0,
-            -6.4,
-            -0.45
-          ],
-          "fov": 48,
-          "roll": 0,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "camera-bringing-life-0",
-          "atWU": 14.95,
-          "offset": [
-            0,
-            6.4,
-            0
+            0.75
           ],
           "lookAtOffset": [
             0,
@@ -322,60 +322,6 @@
             -1
           ],
           "fov": 49,
-          "roll": 0,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "camera-bringing-life-2",
-          "atWU": 16.318,
-          "offset": [
-            0,
-            0.08,
-            0
-          ],
-          "lookAtOffset": [
-            0,
-            0,
-            -1
-          ],
-          "fov": 48,
-          "roll": 0.035,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "camera-bringing-life-3",
-          "atWU": 16.85,
-          "offset": [
-            0,
-            0,
-            0
-          ],
-          "lookAtOffset": [
-            0,
-            0,
-            -1
-          ],
-          "fov": 48,
-          "roll": 0,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "camera-role-0",
-          "atWU": 17.85,
-          "offset": [
-            0,
-            0,
-            0
-          ],
-          "lookAtOffset": [
-            0,
-            0,
-            -1
-          ],
-          "fov": 48,
           "roll": 0,
           "easing": "smoothstep",
           "locked": false
@@ -588,8 +534,8 @@
         {
           "id": "world-background",
           "label": "Curiosity across aesthetics and technology",
-          "startWU": 5.2,
-          "anchorWU": 5.2,
+          "startWU": 4.595,
+          "anchorWU": 4.595,
           "adapterId": "point-field-v1",
           "shapeId": "calm-field-v1",
           "seed": 506832829,
@@ -609,8 +555,8 @@
             "mobileScale": 0.55
           },
           "transitionIn": {
-            "startWU": 5.2,
-            "endWU": 6.5475,
+            "startWU": 4.595,
+            "endWU": 5.9425,
             "type": "morph",
             "easing": "smoothstep",
             "correspondence": "spatial-nearest-v1"
@@ -622,12 +568,53 @@
             "jitter": 0.035,
             "density": 0.22
           },
+          "modifiers": []
+        },
+        {
+          "id": "world-discipline-isolation",
+          "label": "Discipline isolation",
+          "startWU": 9.602,
+          "anchorWU": 4.595,
+          "adapterId": "point-field-v1",
+          "shapeId": "calm-field-v1",
+          "seed": 506832829,
+          "entryDistanceWU": 1.8,
+          "transform": {
+            "position": [
+              0,
+              0.2,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": 1,
+            "mobileScale": 0.55
+          },
+          "transitionIn": {
+            "startWU": 9.602,
+            "endWU": 10.45,
+            "type": "morph",
+            "easing": "smoothstep",
+            "correspondence": "index-v1"
+          },
+          "shapeParameters": {
+            "width": 13.5,
+            "depth": 24,
+            "height": -1.72,
+            "jitter": 0.035,
+            "density": 0.22
+          },
           "modifiers": [
             {
-              "id": "swarm-life-v1",
+              "id": "discipline-isolation-v1",
               "enabled": true,
               "parameters": {
-                "strength": 0.18
+                "strength": 1,
+                "backgroundOpacity": 0.2,
+                "backgroundScale": 0.58
               }
             }
           ]
@@ -635,12 +622,12 @@
         {
           "id": "world-bringing-life",
           "label": "Bringing the idea to life",
-          "startWU": 14.95,
-          "anchorWU": 14.95,
+          "startWU": 14.145,
+          "anchorWU": 14.145,
           "adapterId": "point-field-v1",
           "shapeId": "living-field-v1",
           "seed": 506832829,
-          "entryDistanceWU": 0.8,
+          "entryDistanceWU": 6,
           "transform": {
             "position": [
               0,
@@ -655,8 +642,8 @@
             "scale": 1
           },
           "transitionIn": {
-            "startWU": 14.988,
-            "endWU": 15.805,
+            "startWU": 14.183,
+            "endWU": 15,
             "type": "morph",
             "easing": "smoothstep",
             "correspondence": "spatial-nearest-v1"
@@ -987,9 +974,9 @@
         {
           "id": "text-complexity-curiosity",
           "kind": "title",
-          "startWU": 8.65,
-          "focusWU": 8.884,
-          "endWU": 9.1594,
+          "startWU": 8.095,
+          "focusWU": 8.329,
+          "endWU": 8.6044,
           "publishable": true,
           "presentation": {
             "layout": "constellation"
@@ -1001,9 +988,9 @@
         {
           "id": "text-complexity-listen",
           "kind": "title",
-          "startWU": 9.0046,
-          "focusWU": 9.28,
-          "endWU": 9.5554,
+          "startWU": 8.5496,
+          "focusWU": 8.825,
+          "endWU": 9.1004,
           "publishable": true,
           "presentation": {
             "layout": "constellation"
@@ -1015,9 +1002,9 @@
         {
           "id": "text-complexity-focus",
           "kind": "title",
-          "startWU": 9.4006,
-          "focusWU": 9.676,
-          "endWU": 9.982,
+          "startWU": 9.0206,
+          "focusWU": 9.296,
+          "endWU": 9.602,
           "publishable": true,
           "presentation": {
             "layout": "constellation"
@@ -1029,8 +1016,8 @@
         {
           "id": "text-practice-disciplines",
           "kind": "discipline-reveal",
-          "startWU": 9.982,
-          "focusWU": 11.026,
+          "startWU": 10.45,
+          "focusWU": 11.26,
           "endWU": 12.07,
           "publishable": true,
           "protected": true,
@@ -1147,8 +1134,7 @@
           "block": {
             "id": "disciplines-synthesis",
             "kind": "prose",
-            "text": "The point is not breadth for its own sake. It is creating enough contact between strategy, design and implementation that the idea does not flatten as it moves through the project.",
-            "worldInfluence": true
+            "text": "The point is not breadth for its own sake. It is creating enough contact between strategy, design and implementation that the idea does not flatten as it moves through the project."
           }
         },
         {

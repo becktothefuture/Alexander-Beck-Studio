@@ -3,6 +3,7 @@ import {
   DEFAULT_CONTACT_RIPPLE_CONFIG,
   normalizeContactRippleConfig,
 } from './contactRippleConfig.js';
+import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 
 const TAU = Math.PI * 2;
 const REDUCED_BURST_MS = 620;
@@ -220,17 +221,22 @@ export function createContactRippleRenderer({
     return { inner, outer };
   }
 
-  function getKaleidoscopeRadiusMetrics(height) {
+  function getKaleidoscopeRadiusMetrics(width, height) {
     const base = Math.max(
       1,
       (KALEIDOSCOPE_DOT_SIZE_VH * 0.01) * height * Math.sqrt(KALEIDOSCOPE_DOT_AREA_MUL),
     );
     const variance = clamp(KALEIDOSCOPE_DOT_SIZE_VARIANCE * 0.5, 0, 0.2);
+    const mobileBodyScale = resolveMobileSimulationBodyScale(
+      getTheme?.()?.mobileSimulationBodyScale,
+      { width, height },
+    );
     return {
-      base: clamp(base, config.minBodyRadius, config.maxBodyRadius),
-      min: clamp(base * (1 - variance), config.minBodyRadius, config.maxBodyRadius),
-      max: clamp(base * (1 + variance), config.minBodyRadius, config.maxBodyRadius),
+      base: clamp(base, config.minBodyRadius, config.maxBodyRadius) * mobileBodyScale,
+      min: clamp(base * (1 - variance), config.minBodyRadius, config.maxBodyRadius) * mobileBodyScale,
+      max: clamp(base * (1 + variance), config.minBodyRadius, config.maxBodyRadius) * mobileBodyScale,
       variance,
+      mobileBodyScale,
     };
   }
 
@@ -259,7 +265,7 @@ export function createContactRippleRenderer({
     }
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const radiusMetrics = getKaleidoscopeRadiusMetrics(height);
+    const radiusMetrics = getKaleidoscopeRadiusMetrics(width, height);
     const bodyRadius = radiusMetrics.base;
     const contentZone = getQuietZone(canvas, getQuietZoneElement?.());
     const contentCoreRadius = contentZone
@@ -280,6 +286,7 @@ export function createContactRippleRenderer({
       coreFadeStart: Math.max(bodyRadius * 4.25, coreFadeEnd - (bodyRadius * config.ringGapScale * 1.25)),
       coreFadeEnd,
       dpr,
+      mobileSimulationBodyScale: radiusMetrics.mobileBodyScale,
     };
 
     canvas.dataset.contactRippleBuffer = `${bufferWidth}x${bufferHeight}`;
@@ -292,6 +299,7 @@ export function createContactRippleRenderer({
     stage.dataset.contactRippleIdleOuterAlpha = idleAlphaRange.outer.toFixed(2);
     stage.dataset.contactRippleBurstPeakAlpha = BURST_RING_ALPHA_PEAK.toFixed(2);
     stage.dataset.contactRippleCoreFadeRadius = metrics.coreFadeEnd.toFixed(2);
+    stage.dataset.mobileSimulationBodyScale = metrics.mobileSimulationBodyScale.toFixed(2);
     stage.dataset.contactRippleBurstRelease = 'smoothstep-tail';
     stage.dataset.contactRippleBallFinish = 'flat-fill';
     stage.dataset.contactRippleConfigControls = String(CONTACT_RIPPLE_CONTROL_COUNT);

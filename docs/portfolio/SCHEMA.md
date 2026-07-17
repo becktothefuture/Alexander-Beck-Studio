@@ -27,6 +27,26 @@ Allowed confidence values: `low`, `medium`, `high`.
 
 Allowed sensitivity values: `public`, `internal`, `confidential`, `personal`, `restricted`.
 
+## Organising idea
+
+Every project has one editorial hypothesis connecting the interesting observation, the mechanism of the response, and the proof that would make the story credible.
+
+```json
+{
+  "statement": "Make index logic visible and teachable without removing expert control.",
+  "status": "candidate",
+  "evidenceBasis": "source_backed",
+  "sourceClaimIds": ["claim-sp-001", "claim-sp-006"],
+  "lastReviewed": "2026-07-17"
+}
+```
+
+Allowed statuses: `hypothesis`, `candidate`, `confirmed`, `rejected`, `on_hold`.
+
+Allowed evidence bases: `source_backed`, `interview_needed`, `interview_confirmed`, `interview_deferred`.
+
+`hypothesis` means the idea is a useful, falsifiable interview direction but is not supported by enough project evidence. `candidate` means supplied evidence supports the direction but Alexander has not confirmed it. A project cannot become copy-ready until its organising idea is `confirmed`.
+
 ## Conflict
 
 ```json
@@ -56,11 +76,10 @@ Allowed sensitivity values: `public`, `internal`, `confidential`, `personal`, `r
 
 ## Open question
 
-Open-question statuses are `open`, `deferred`, `resolved`, or `discarded`. A resolved question must cite the source IDs that contain its answer.
+Open-question statuses are `open`, `deferred`, `resolved`, or `discarded`. A resolved question must cite the source IDs that contain its answer. These entries track every factual gap; they are not necessarily the questions to ask verbatim. The narrative interview prompts live in `INTERVIEW-ROADMAP.md`.
 
 ## Readiness values
 
 - Source, interview, and media coverage: `not_assessed`, `not_started`, `partial`, `complete`, or `deferred` where applicable.
 - Copy status: `blocked_missing_facts`, `blocked_on_hold`, `ready_for_draft`, `drafting`, or `approved`.
 - Copy eligibility in the catalogue: `blocked_missing_facts`, `blocked_on_hold`, `ready_for_draft`, or `approved`.
-

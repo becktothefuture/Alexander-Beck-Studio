@@ -8,6 +8,7 @@ import {
   triggerPressure,
   triggerRelease,
 } from '../../legacy/modules/audio/simulation-audio-adapter.js';
+import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -124,20 +125,39 @@ function resizeCanvasToDisplaySize(canvas, dpr) {
   };
 }
 
-function getScaledRadius(config, metrics) {
+function getScaledRadius(config, metrics, theme) {
   const areaScale = Math.sqrt((metrics.cssWidth * metrics.cssHeight) / REFERENCE_AREA);
   const mobileScale = metrics.cssWidth < 680 ? Number(config.mobileRadiusScale || 0.86) : 1;
   const minRadius = metrics.cssWidth < 680 ? 6.2 : 5.8;
-  return clamp(Number(config.bodyRadius || 9) * areaScale * mobileScale, minRadius, 17);
+  const responsiveRadius = clamp(
+    Number(config.bodyRadius || 9) * areaScale * mobileScale,
+    minRadius,
+    17,
+  );
+  return responsiveRadius * resolveMobileSimulationBodyScale(
+    theme?.mobileSimulationBodyScale,
+    metrics,
+  );
 }
 
-function getScaledRadiusRange(config, metrics) {
+function getScaledRadiusRange(config, metrics, theme) {
   const areaScale = Math.sqrt((metrics.cssWidth * metrics.cssHeight) / REFERENCE_AREA);
   const mobileScale = metrics.cssWidth < 680 ? Number(config.mobileRadiusScale || 0.86) : 1;
-  const minRadius = clamp(Number(config.minRadius || 6.8) * areaScale * mobileScale, 4.8, 13);
-  const maxRadius = clamp(Number(config.maxRadius || 11.8) * areaScale * mobileScale, minRadius + 0.8, 18);
+  const responsiveMinRadius = clamp(Number(config.minRadius || 6.8) * areaScale * mobileScale, 4.8, 13);
+  const responsiveMaxRadius = clamp(
+    Number(config.maxRadius || 11.8) * areaScale * mobileScale,
+    responsiveMinRadius + 0.8,
+    18,
+  );
+  const mobileBodyScale = resolveMobileSimulationBodyScale(
+    theme?.mobileSimulationBodyScale,
+    metrics,
+  );
 
-  return { minRadius, maxRadius };
+  return {
+    minRadius: responsiveMinRadius * mobileBodyScale,
+    maxRadius: responsiveMaxRadius * mobileBodyScale,
+  };
 }
 
 function getMobileDensityScale(config, metrics) {
@@ -316,7 +336,7 @@ function buildApertureBodies(random, config, theme, metrics) {
   const bodies = [];
   const cx = metrics.cssWidth * 0.5;
   const cy = metrics.cssHeight * 0.5;
-  const r = getScaledRadius(config, metrics);
+  const r = getScaledRadius(config, metrics, theme);
   const reserve = getTitleReserveZone(config, metrics);
   const outer = getOuterSimulationZone(metrics, reserve);
   const rings = Math.round(config.rings || 6);
@@ -355,7 +375,7 @@ function buildConfluenceBridgeBodies(random, config, theme, metrics) {
   const densityScale = getMobileDensityScale(config, metrics);
   const requestedCount = Math.round(clamp(Number(config.ballCount || 112), 36, 180));
   const bridgeCount = Math.max(outerHubCount * 7, Math.round((requestedCount - outerHubCount - 1) * densityScale));
-  const { minRadius, maxRadius } = getScaledRadiusRange(config, metrics);
+  const { minRadius, maxRadius } = getScaledRadiusRange(config, metrics, theme);
   const cx = metrics.cssWidth * 0.5;
   const cy = metrics.cssHeight * (metrics.cssWidth < 680 ? 0.49 : 0.48);
   const isMobile = metrics.cssWidth < 680;
@@ -431,7 +451,7 @@ function buildRiftRingBodies(random, config, theme, metrics) {
     : 1;
   const cx = metrics.cssWidth * 0.5;
   const cy = metrics.cssHeight * 0.5;
-  const baseRadius = getScaledRadius(config, metrics);
+  const baseRadius = getScaledRadius(config, metrics, theme);
   const minDim = Math.min(metrics.cssWidth, metrics.cssHeight);
   const diagonal = Math.hypot(metrics.cssWidth, metrics.cssHeight);
   const innerRadius = minDim * (metrics.cssWidth < 680 ? 0.18 : 0.14);
@@ -806,6 +826,10 @@ export function createConceptSimulationRenderer({
   unregisterVisualTransition = registerSimulationVisualTransition(simulationId, visualTransition);
 
   function getLayoutKey(config, theme) {
+    const mobileBodyScale = resolveMobileSimulationBodyScale(
+      theme?.mobileSimulationBodyScale,
+      metrics,
+    );
     return [
       simulationId,
       Math.round(metrics?.cssWidth || 0),
@@ -831,6 +855,7 @@ export function createConceptSimulationRenderer({
       Number(config.titleReserveWidth || 0).toFixed(3),
       Number(config.titleReserveHeight || 0).toFixed(3),
       Number(config.titleReserveY || 0).toFixed(3),
+      mobileBodyScale.toFixed(2),
       resolvePalette(theme).join(','),
     ].join(':');
   }
@@ -854,6 +879,10 @@ export function createConceptSimulationRenderer({
     bodies.forEach((body, index) => {
       body.bodyIndex = index;
     });
+    let radiusTotal = 0;
+    for (const body of bodies) radiusTotal += Number(body.r) || 0;
+    metrics.simulationBodyRadius = bodies.length ? radiusTotal / bodies.length : 0;
+    canvas.dataset.simulationBodyRadius = metrics.simulationBodyRadius.toFixed(2);
   }
 
   function syncLayout() {
@@ -861,6 +890,11 @@ export function createConceptSimulationRenderer({
     const theme = getTheme() || DEFAULT_THEME;
     const dpr = resolveDpr(config);
     metrics = resizeCanvasToDisplaySize(canvas, dpr);
+    metrics.mobileSimulationBodyScale = resolveMobileSimulationBodyScale(
+      theme?.mobileSimulationBodyScale,
+      metrics,
+    );
+    canvas.dataset.mobileSimulationBodyScale = metrics.mobileSimulationBodyScale.toFixed(2);
     if (!pointer.x && !pointer.y) {
       pointer.x = metrics.cssWidth * 0.5;
       pointer.y = metrics.cssHeight * 0.5;

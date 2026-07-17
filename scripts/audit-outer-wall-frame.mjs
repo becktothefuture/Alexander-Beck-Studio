@@ -339,12 +339,13 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
   }
 
   const expectedFrameRgb = hexToRgb(expectedHex);
+  const expectedWindowRgb = hexToRgb(expectedWindow);
   const inactiveBackground = cssColorToRgba(actual.inactiveTabBackground);
   const buttonBarBackground = cssColorToRgba(actual.buttonBarBackground);
   const bodyBackground = cssColorToRgba(actual.bodyBackground);
   const activeBackground = cssColorToRgba(actual.activePillBackground || actual.activeTabBackground);
   const activeForeground = cssColorToRgba(actual.activeTabColor);
-  if (!expectedFrameRgb || !inactiveBackground || !buttonBarBackground || !bodyBackground || !activeBackground || !activeForeground) {
+  if (!expectedFrameRgb || !expectedWindowRgb || !inactiveBackground || !buttonBarBackground || !bodyBackground || !activeBackground || !activeForeground) {
     throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse Button Bar colours: ${JSON.stringify({
       expectedHex,
       inactiveTabBackground: actual.inactiveTabBackground,
@@ -365,7 +366,15 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
     throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar surface must be an opaque selected state: got ${actual.activePillBackground || actual.activeTabBackground}`);
   }
 
+  if (pixelDistance(activeBackground.slice(0, 3), expectedWindowRgb) > 2) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar surface must match the studio window: expected ${expectedWindowRgb.join(',')}, got ${activeBackground.join(',')}`);
+  }
+
   const compositedForeground = compositeRgba(activeForeground, activeBackground);
+  const expectedActiveInk = siteTheme === 'dark' ? [255, 255, 255] : [0, 0, 0];
+  if (activeForeground[3] < 0.99 || pixelDistance(compositedForeground, expectedActiveInk) > 2) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar ink must be fully opaque inverse theme ink: expected ${expectedActiveInk.join(',')}, got ${actual.activeTabColor}`);
+  }
   const activeContrast = contrastRatio(compositedForeground, activeBackground);
   if (activeContrast < 4.5) {
     throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar contrast ${activeContrast.toFixed(2)} is below 4.5:1: foreground=${actual.activeTabColor} background=${actual.activePillBackground || actual.activeTabBackground}`);
@@ -468,7 +477,7 @@ async function run() {
     await server?.stop();
   }
 
-  log(`PASS (${browserName}): site theme changes only the studio window; the outer frame and Button Bar remain dark.`);
+  log(`PASS (${browserName}): site theme changes the studio window and active primary tab only; the outer frame and Button Bar base remain dark.`);
 }
 
 run().catch((error) => {

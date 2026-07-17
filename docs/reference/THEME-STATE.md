@@ -39,7 +39,7 @@ The early inline script in each boot-overlay HTML entry is a first-paint mirror,
 | Shell wall | `--shell-wall-bg`, `--abs-wall-base` | Stable authored dark wall |
 | Studio-window interior | `--studio-window-bg`, `--frame-inner-surface` | Resolved site theme |
 | In-window contrast finish | `--simulation-contrast-veil-rgb` and finish opacities | Resolved site theme |
-| Persistent Button Bar | `--button-bar-outer-ink*`, outer-shell material tokens | Dark-only outer-shell policy |
+| Persistent Button Bar | Outer-shell tokens; active primary pill consumes `--studio-window-bg` | Dark outer shell with one selected-tab theme projection |
 
 Never alias the window-interior tokens back to `--abs-wall-base`; keep each surface token explicit even when they share the same active light/dark endpoint.
 
@@ -56,7 +56,7 @@ Site theme, browser scheme, browser family, and display gamut are not inputs to 
 
 ## Button Bar
 
-The Button Bar sits outside the studio window. Primary route material and secondary sound/theme/reset controls derive from the active dark outer frame and outer-shell ink. Theme changes may move the switch thumb, change its icon/label, and update route content; they must not recolour Button Bar material, borders, focus treatment, or ink.
+The Button Bar sits outside the studio window. Its base, unselected primary tabs, and secondary sound/theme/reset controls derive from the active dark outer frame and outer-shell ink. The selected primary tab is the single exception: its moving pill exactly matches `--studio-window-bg`, while its label/icon use fully opaque inverse theme ink—black in light mode and white in dark mode. Unselected route labels remain faded outer-shell ink. Theme changes must not recolour the Button Bar base, utility controls, borders, or focus treatment.
 
 ## Portfolio Gate
 

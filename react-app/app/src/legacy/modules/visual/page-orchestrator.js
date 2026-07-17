@@ -3,7 +3,7 @@ import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transit
 
 const DEFAULT_BOOT_SELECTORS = ['#abs-scene', '#app-frame'];
 const BOOT_READY_STATES = new Set(['revealing', 'ready', 'failed']);
-const BOOT_OVERLAY_EXIT_FALLBACK_MS = 420;
+const BOOT_OVERLAY_EXIT_FALLBACK_MS = 720;
 const DIRECT_BOOT_MIN_VISIBLE_MS = 750;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -181,6 +181,7 @@ export async function completeDirectBoot(options = {}) {
   }
 
   setPageBootState('revealing', detail);
+  runBootCompletionCallback(options.onRevealStart, detail);
   overlay.setAttribute('aria-hidden', 'true');
   overlay.classList.add('is-exiting');
 

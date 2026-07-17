@@ -1034,6 +1034,24 @@ export const CONTROL_SECTIONS = {
         }
       },
       {
+        id: 'mobileSimulationBodyScale',
+        label: 'Mobile Body Size',
+        stateKey: 'mobileSimulationBodyScale',
+        type: 'range',
+        min: 0.5, max: 1, step: 0.05,
+        default: 0.8,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Scales simulation body radii on mobile after responsive sizing. Resets the current mode.',
+        onChange: (g, _val) => {
+          import('../core/state.js').then(({ updateBallSizes }) => {
+            updateBallSizes();
+            setMode(g.currentMode);
+          });
+          updateCursorSize();
+        }
+      },
+      {
         id: 'ballSoftnessGlobal',
         label: 'Softness',
         stateKey: 'ballSoftness',

@@ -74,6 +74,9 @@ const themeVariantKeys = new Set([
   'frameInnerSurface',
   'simulationContrastVeilRgb',
   'studioWindowColorScheme',
+  'studioWindowBackgroundResolved',
+  'activePrimaryPillBackground',
+  'activePrimaryInk',
   'wallBackgroundImage',
 ]);
 const maxGeometryDeltaPx = 1.5;
@@ -339,6 +342,32 @@ async function readInvariantState(page) {
     const rect = wall.getBoundingClientRect();
     const canvas = document.querySelector('#c');
     const canvasRect = canvas?.getBoundingClientRect();
+    const activePrimaryTab = document.querySelector('[data-route-tab][aria-current="page"]');
+    const activePrimaryContent = activePrimaryTab?.querySelector('.shell-tab__label, .shell-tab__icon');
+    const activePrimaryVisibleContent = activePrimaryTab
+      ? [...activePrimaryTab.querySelectorAll('.shell-tab__label, .shell-tab__icon')]
+        .find((content) => {
+          const contentRect = content.getBoundingClientRect();
+          return contentRect.width > 0 && contentRect.height > 0;
+        })
+      : null;
+    const buttonBar = activePrimaryTab?.closest('.button-bar');
+    const activePrimaryPill = buttonBar?.querySelector('.button-bar__active-pill');
+    const activePrimaryTabRect = activePrimaryTab?.getBoundingClientRect();
+    const activePrimaryContentRect = activePrimaryVisibleContent?.getBoundingClientRect();
+    const activePrimaryPillRect = activePrimaryPill?.getBoundingClientRect();
+    const activePrimaryTabStyle = activePrimaryTab ? getComputedStyle(activePrimaryTab) : null;
+    const roundGeometry = (value) => Math.round(value * 100) / 100;
+    const resolveColor = (value) => {
+      const probe = document.createElement('span');
+      probe.style.position = 'fixed';
+      probe.style.visibility = 'hidden';
+      probe.style.backgroundColor = value;
+      document.body.appendChild(probe);
+      const resolved = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return resolved;
+    };
     const radiusSelectors = {
       canvasBorderRadius: '#simulations canvas',
       overlayBorderRadius: '.window-overlay-layer',
@@ -360,14 +389,31 @@ async function readInvariantState(page) {
       wallOverflow: wallStyle.overflow,
       wallBackgroundImage: wallStyle.backgroundImage,
       studioWindowBackground: rootStyle.getPropertyValue('--studio-window-bg').trim(),
+      studioWindowBackgroundResolved: resolveColor(rootStyle.getPropertyValue('--studio-window-bg').trim()),
       frameInnerSurface: rootStyle.getPropertyValue('--frame-inner-surface').trim(),
       simulationContrastVeilRgb: rootStyle.getPropertyValue('--simulation-contrast-veil-rgb').trim(),
       rootColorScheme: rootStyle.colorScheme,
       studioWindowColorScheme: getComputedStyle(wall).colorScheme,
-      tabStyles: [...document.querySelectorAll('[data-route-tab]')].map((tab) => {
+      inactiveTabStyles: [...document.querySelectorAll('[data-route-tab]:not([aria-current="page"])')].map((tab) => {
         const style = getComputedStyle(tab);
         return [tab.dataset.routeTab, style.color, style.backgroundColor, style.borderColor].join('|');
       }).join(';'),
+      activePrimaryPillBackground: activePrimaryPill ? getComputedStyle(activePrimaryPill).backgroundColor : '',
+      activePrimaryInk: activePrimaryContent ? getComputedStyle(activePrimaryContent).color : '',
+      activePrimaryRouteId: activePrimaryTab?.dataset.routeTab || '',
+      activePrimaryTabX: activePrimaryTabRect ? roundGeometry(activePrimaryTabRect.x) : '',
+      activePrimaryTabWidth: activePrimaryTabRect ? roundGeometry(activePrimaryTabRect.width) : '',
+      activePrimaryTabHeight: activePrimaryTabRect ? roundGeometry(activePrimaryTabRect.height) : '',
+      activePrimaryContentWidth: activePrimaryContentRect ? roundGeometry(activePrimaryContentRect.width) : '',
+      activePrimaryInlinePadding: activePrimaryTabStyle
+        ? roundGeometry(
+          Number.parseFloat(activePrimaryTabStyle.paddingLeft)
+          + Number.parseFloat(activePrimaryTabStyle.paddingRight)
+        )
+        : '',
+      activePrimaryPillX: activePrimaryPillRect ? roundGeometry(activePrimaryPillRect.x) : '',
+      activePrimaryPillWidth: activePrimaryPillRect ? roundGeometry(activePrimaryPillRect.width) : '',
+      activePrimaryPillHeight: activePrimaryPillRect ? roundGeometry(activePrimaryPillRect.height) : '',
       utilityStyles: [...document.querySelectorAll('.button-bar__sound-toggle, .button-bar__theme-toggle, .button-bar__theme-thumb')].map((control) => {
         const style = getComputedStyle(control);
         return [control.className, style.color, style.backgroundColor, style.borderColor, style.boxShadow].join('|');
@@ -673,6 +719,84 @@ function diffInvariantState(before, after, { includePhysicalBoundary = false } =
   return diffs;
 }
 
+function assertActivePrimaryTabThemeContract(state, theme, route, viewport) {
+  if (normalize(state.activePrimaryPillBackground) !== normalize(state.studioWindowBackgroundResolved)) {
+    throw new Error(`${route} ${viewport.name} ${theme} active primary pill did not match the studio-window surface`);
+  }
+  const expectedInk = theme === 'dark' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)';
+  if (normalize(state.activePrimaryInk) !== expectedInk) {
+    throw new Error(`${route} ${viewport.name} ${theme} active primary ink expected ${expectedInk}, got ${state.activePrimaryInk}`);
+  }
+}
+
+function assertActivePrimaryPillGeometryContract(state, route, viewport) {
+  const requiredValues = [
+    'activePrimaryTabX',
+    'activePrimaryTabWidth',
+    'activePrimaryTabHeight',
+    'activePrimaryContentWidth',
+    'activePrimaryInlinePadding',
+    'activePrimaryPillX',
+    'activePrimaryPillWidth',
+    'activePrimaryPillHeight',
+  ];
+  if (!state.activePrimaryRouteId || requiredValues.some((key) => !Number.isFinite(Number(state[key])))) {
+    throw new Error(`${route} ${viewport.name} active primary pill geometry was unavailable`);
+  }
+
+  const geometryTolerance = 1;
+  const expectedHeight = Number(state.activePrimaryTabHeight) * 0.8;
+  const expectedWidth = state.activePrimaryRouteId === 'home'
+    ? Number(state.activePrimaryPillHeight)
+    : Math.min(
+      Number(state.activePrimaryTabWidth),
+      Number(state.activePrimaryContentWidth) + Number(state.activePrimaryInlinePadding),
+    );
+  const expectedX = Number(state.activePrimaryTabX)
+    + ((Number(state.activePrimaryTabWidth) - Number(state.activePrimaryPillWidth)) / 2);
+  const failures = [];
+
+  if (Math.abs(Number(state.activePrimaryPillHeight) - expectedHeight) > geometryTolerance) {
+    failures.push(`height expected ${expectedHeight.toFixed(2)}px, got ${state.activePrimaryPillHeight}px`);
+  }
+  if (Math.abs(Number(state.activePrimaryPillWidth) - expectedWidth) > geometryTolerance) {
+    failures.push(`width expected ${expectedWidth.toFixed(2)}px, got ${state.activePrimaryPillWidth}px`);
+  }
+  if (Math.abs(Number(state.activePrimaryPillX) - expectedX) > geometryTolerance) {
+    failures.push(`centered x expected ${expectedX.toFixed(2)}px, got ${state.activePrimaryPillX}px`);
+  }
+  if (state.activePrimaryRouteId === 'home'
+    && Math.abs(Number(state.activePrimaryPillWidth) - Number(state.activePrimaryPillHeight)) > geometryTolerance) {
+    failures.push(`Home must be circular, got ${state.activePrimaryPillWidth}px × ${state.activePrimaryPillHeight}px`);
+  }
+  if (failures.length > 0) {
+    throw new Error(`${route} ${viewport.name} active primary pill geometry contract failed:\n${failures.join('\n')}`);
+  }
+}
+
+async function waitForActivePrimaryTabThemeContract(page, theme) {
+  await page.waitForFunction((expectedTheme) => {
+    const root = document.documentElement;
+    const activePrimaryTab = document.querySelector('[data-route-tab][aria-current="page"]');
+    const activePrimaryContent = activePrimaryTab?.querySelector('.shell-tab__label, .shell-tab__icon');
+    const buttonBar = activePrimaryTab?.closest('.button-bar');
+    const activePrimaryPill = buttonBar?.querySelector('.button-bar__active-pill');
+    if (!activePrimaryContent || !activePrimaryPill) return false;
+
+    const probe = document.createElement('span');
+    probe.style.position = 'fixed';
+    probe.style.visibility = 'hidden';
+    probe.style.backgroundColor = getComputedStyle(root).getPropertyValue('--studio-window-bg').trim();
+    document.body.appendChild(probe);
+    const expectedSurface = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+
+    const expectedInk = expectedTheme === 'dark' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)';
+    return getComputedStyle(activePrimaryPill).backgroundColor === expectedSurface
+      && getComputedStyle(activePrimaryContent).color === expectedInk;
+  }, theme, { timeout: 5000 });
+}
+
 async function auditRoute(browser, route, viewport) {
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
@@ -690,6 +814,7 @@ async function auditRoute(browser, route, viewport) {
   try {
     await page.goto(routeUrl(route), { waitUntil: 'domcontentloaded', timeout: NAVIGATION_TIMEOUT_MS });
     await waitForWallReady(page, `${route} ${viewport.name} light`);
+    await waitForActivePrimaryTabThemeContract(page, 'light');
     await page.waitForFunction(() => Boolean(window.__ABS_FRAME_RADIUS_AUDIT__?.getSnapshot), undefined, {
       timeout: 15000,
     });
@@ -699,6 +824,8 @@ async function auditRoute(browser, route, viewport) {
     assertExactSimulationRadiusContract(lightState, route, viewport);
     assertExactFrameSizeContract(lightState, route, viewport);
     assertExactRenderedBoundary(lightState, route, viewport);
+    assertActivePrimaryTabThemeContract(lightState, 'light', route, viewport);
+    assertActivePrimaryPillGeometryContract(lightState, route, viewport);
     const themeToggle = page.locator('.button-bar__theme-toggle');
     if (await themeToggle.isVisible()) {
       await themeToggle.click();
@@ -709,11 +836,14 @@ async function auditRoute(browser, route, viewport) {
       document.querySelector('.button-bar__theme-toggle')?.getAttribute('aria-label') === 'Switch to light mode'
     ), undefined, { timeout: 5000 });
     await waitForWallReady(page, `${route} ${viewport.name} dark`);
+    await waitForActivePrimaryTabThemeContract(page, 'dark');
     const darkState = await readInvariantState(page);
     assertExactRadiusContract(darkState, route, viewport);
     assertExactSimulationRadiusContract(darkState, route, viewport);
     assertExactFrameSizeContract(darkState, route, viewport);
     assertExactRenderedBoundary(darkState, route, viewport);
+    assertActivePrimaryTabThemeContract(darkState, 'dark', route, viewport);
+    assertActivePrimaryPillGeometryContract(darkState, route, viewport);
 
     const diffs = diffInvariantState(lightState, darkState);
     if (diffs.length > 0) {

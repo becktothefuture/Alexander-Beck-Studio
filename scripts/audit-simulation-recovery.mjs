@@ -23,7 +23,7 @@ async function openFlies(page) {
     const snapshot = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
     return snapshot?.mode === 'flies'
       && document.querySelector('.simulation-focus-switcher')?.dataset.simulationId === 'flies';
-  }, { timeout: waitMs });
+  }, null, { timeout: waitMs });
 }
 
 async function chooseRepelRoom(page) {
@@ -108,7 +108,7 @@ async function main() {
       await page.waitForFunction(() => (
         document.documentElement.dataset.absBootState !== 'booting'
         && !document.getElementById('abs-boot-overlay')
-      ), { timeout: waitMs });
+      ), null, { timeout: waitMs });
       const failureUi = await page.locator('.daily-focus-runtime-status[data-runtime-status="failed"]').evaluate((element) => ({
         text: element.textContent?.replace(/\s+/g, ' ').trim() || '',
         retryVisible: Boolean(element.querySelector('button')?.getBoundingClientRect().width),
@@ -119,7 +119,7 @@ async function main() {
       await page.waitForFunction(() => (
         document.querySelector('#simulation-stage')?.dataset.simulationId === 'repel-room'
         && document.querySelector('#repel-room-canvas')?.width >= 64
-      ), { timeout: waitMs });
+      ), null, { timeout: waitMs });
       proof.directFailureExposedRetry = failureUi;
       await context.close();
     }
@@ -149,9 +149,12 @@ async function main() {
       await chooseRepelRoom(page);
       await page.waitForFunction(() => (
         document.querySelector('.simulation-transaction-snapshot')?.dataset.state === 'visible'
-      ), { timeout: waitMs });
+      ), null, { timeout: waitMs });
       const retainedFrame = await page.locator('.simulation-transaction-snapshot').evaluate((canvas) => {
         const context = canvas.getContext('2d');
+        const styles = getComputedStyle(canvas);
+        const blurLayer = document.getElementById('window-overlay-blur-layer');
+        const blurStyles = blurLayer ? getComputedStyle(blurLayer) : null;
         const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
         let nonTransparentSamples = 0;
         const pixelCount = canvas.width * canvas.height;
@@ -165,13 +168,20 @@ async function main() {
           width: canvas.width,
           height: canvas.height,
           nonTransparentSamples,
+          insideScene: Boolean(document.getElementById('abs-scene')?.contains(canvas)),
+          hostId: canvas.parentElement?.id || '',
+          zIndex: Number.parseFloat(styles.zIndex || '0'),
+          blurZIndex: Number.parseFloat(blurStyles?.zIndex || '0'),
         };
       });
       assert(
         retainedFrame.state === 'visible'
           && retainedFrame.capturedLayers > 0
-          && retainedFrame.nonTransparentSamples > 0,
-        'Last-known-good simulation frame was not retained while the target was unready',
+          && retainedFrame.nonTransparentSamples > 0
+          && retainedFrame.insideScene
+          && retainedFrame.hostId === 'simulation-transaction-snapshot-host'
+          && retainedFrame.zIndex < retainedFrame.blurZIndex,
+        'Last-known-good simulation frame was not retained below the in-window blur during recovery',
         retainedFrame,
       );
       await waitForRestoredFlies(page);
@@ -190,7 +200,7 @@ async function main() {
         window.__ABS_SIMULATION_SWITCH__?.status === 'ready'
         && document.querySelector('#simulation-stage')?.dataset.simulationId === 'repel-room'
         && document.querySelector('.simulation-focus-switcher')?.dataset.simulationId === 'repel-room'
-      ), { timeout: waitMs });
+      ), null, { timeout: waitMs });
       await page.waitForFunction(() => (
         (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
         && (document.documentElement.dataset.absSimulationFocusTransition || 'idle') === 'idle'

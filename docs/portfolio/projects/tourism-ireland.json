@@ -15,6 +15,13 @@
   "workingHypotheses": [
     "Tourism Ireland may be a client credit embedded in an older personal-site design rather than a current portfolio candidate."
   ],
+  "organisingIdea": {
+    "statement": "Help someone move from broad destination inspiration to a specific choice without flattening what makes the place distinctive.",
+    "status": "hypothesis",
+    "evidenceBasis": "interview_needed",
+    "sourceClaimIds": [],
+    "lastReviewed": "2026-07-17"
+  },
   "claims": [
     {
       "id": "claim-tourism-ireland-001",

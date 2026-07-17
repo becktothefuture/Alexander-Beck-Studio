@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { withBasePath } from '../../lib/base-path.js';
+import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { triggerDetent } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import './spatial-scan.css';
 
@@ -416,6 +417,7 @@ export function SpatialScanPointCloud({
     let resizeObserver = null;
     let intersectionObserver = null;
     let destroyed = false;
+    let mobileBodyScale = 1;
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(48, 1, 0.05, 80);
@@ -483,6 +485,7 @@ export function SpatialScanPointCloud({
           pointCount: runtime.pointCount,
           visiblePointCount: runtime.visiblePointCount,
           pointDensity: runtime.pointDensity,
+          mobileSimulationBodyScale: mobileBodyScale,
           renderedFrames: runtime.renderedFrames,
           dpr: renderer.getPixelRatio(),
           canvasWidth: canvas.width,
@@ -499,6 +502,11 @@ export function SpatialScanPointCloud({
       const rect = root.getBoundingClientRect();
       const width = Math.max(1, Math.round(rect.width));
       const height = Math.max(1, Math.round(rect.height));
+      mobileBodyScale = resolveMobileSimulationBodyScale(
+        theme?.mobileSimulationBodyScale,
+        { width, height },
+      );
+      root.dataset.mobileSimulationBodyScale = mobileBodyScale.toFixed(2);
       const dpr = resolveDpr(maxDpr);
       renderer.setPixelRatio(dpr);
       renderer.setSize(width, height, false);
@@ -561,7 +569,7 @@ export function SpatialScanPointCloud({
       runtime.lastFrameAt = now;
       const motionScale = reducedMotion ? 0 : 1;
       material.uniforms.uTime.value = elapsed * motionScale;
-      material.uniforms.uPointSize.value = settings.dotSize;
+      material.uniforms.uPointSize.value = settings.dotSize * mobileBodyScale;
       material.uniforms.uOpacity.value = clamp(settings.dotOpacity, 0.18, 1);
       material.uniforms.uSpread.value = reducedMotion ? 0 : settings.spread;
       material.uniforms.uBreathing.value = reducedMotion ? 0 : settings.breathingMotion;
@@ -724,6 +732,7 @@ export function SpatialScanPointCloud({
       document.removeEventListener('visibilitychange', handleVisibility);
       resizeObserver?.disconnect();
       intersectionObserver?.disconnect();
+      delete root.dataset.mobileSimulationBodyScale;
       delete window.__ABS_SPATIAL_SCAN_POINT_CLOUD__;
       disposeRuntime(runtime);
       runtimeRef.current = null;
@@ -735,6 +744,7 @@ export function SpatialScanPointCloud({
     groupColors,
     maxDpr,
     reducedMotion,
+    theme?.mobileSimulationBodyScale,
   ]);
 
   const attribution = meta?.source?.status === 'procedural-placeholder'

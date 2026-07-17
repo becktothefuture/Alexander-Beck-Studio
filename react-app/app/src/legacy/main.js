@@ -104,6 +104,33 @@ function setHomeRouteReadyState(ready) {
   } catch (e) {}
 }
 
+function setHomeSimulationReadyState(state) {
+  try {
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.absHomeSimulationReady = String(state || 'false');
+    }
+  } catch (e) {}
+}
+
+function setHomeCanvasTitlePreparedState(ready) {
+  try {
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.absHomeCanvasTitlePrepared = ready ? 'true' : 'false';
+    }
+  } catch (e) {}
+}
+
+function isCanvasHomeTitlePrepared() {
+  const titleState = getGlobals().canvasTitleRenderState || {};
+  return (
+    titleState.active === true
+    && Number(titleState.lineCount) >= 2
+    && Number(titleState.firstLineFontSizeCssPx) > 0
+    && Number.isFinite(Number(titleState.firstLineX))
+    && Number.isFinite(Number(titleState.firstLineY))
+  );
+}
+
 function isCanvasHomeTitleDrawn() {
   const titleState = getGlobals().canvasTitleRenderState || {};
   return (
@@ -333,6 +360,8 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     setBootLifecycleState('booting');
   }
   setHomeRouteReadyState(false);
+  setHomeSimulationReadyState('false');
+  setHomeCanvasTitlePreparedState(false);
   document.documentElement.dataset.absHomeCanvasTitleReady = 'false';
 
   // Mark JS as enabled (for CSS fallback detection)
@@ -490,6 +519,9 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     initModeSystem();
     await setMode(startMode);
     if (!isCurrent()) return cleanup;
+    if (!shellRouteTransitionActiveAtStart || startupReduceMotion) {
+      setInitialSimulationVisualScale(1);
+    }
 
     if (isHomeRuntimeAuditEnabled() && typeof window !== 'undefined') {
       window.__ABS_HOME_AUDIT__ = {
@@ -692,31 +724,62 @@ export async function bootstrapHomePage(runtimeContext = {}) {
       const skipEntrance = didViewTransitionRun();
       const warmupMs = (skipWall || skipEntrance) ? 0 : getPageWarmupMs({ config: shellConfig });
       const waitForVisualReady = async () => {
+        let fontsReady = false;
         await waitForPageReadyBarrier({
           waitForFonts: async () => {
             try {
-              await waitForFonts();
+              fontsReady = await waitForFonts();
             } catch {
               return false;
             }
-            return true;
+            return fontsReady;
           },
           minimumMs: warmupMs
         });
         if (!isCurrent()) return;
+        if (!fontsReady) {
+          throw new Error('Home fonts did not become ready');
+        }
+
         try {
           resize();
           render();
         } catch (error) {
           void error;
         }
-        await waitForCanvasReady({ selector: '#c', timeoutMs: 3200 });
+
+        const bootStartedAt = Number(window.__ABS_BOOT_STARTED_AT__);
+        const bootClockNow = bootStartedAt > 100000000000
+          ? () => Date.now()
+          : () => performance.now();
+        const elapsedMs = Number.isFinite(bootStartedAt) && bootStartedAt > 0
+          ? Math.max(0, bootClockNow() - bootStartedAt)
+          : 0;
+        const readinessTimeoutMs = Math.max(250, 45000 - elapsedMs);
+        const readinessDeadline = performance.now() + readinessTimeoutMs;
+
+        const canvasReady = await waitForCanvasReady({
+          selector: '#c',
+          timeoutMs: readinessTimeoutMs,
+        });
+        if (!canvasReady) {
+          throw new Error('Home canvas backing store did not become ready');
+        }
         if (!isCurrent()) return;
+
         await waitForFrames(2);
         if (!isCurrent()) return;
-        document.documentElement.dataset.absHomeCanvasTitleReady = isCanvasHomeTitleDrawn()
-          ? 'true'
-          : 'false';
+
+        while (isCurrent() && performance.now() < readinessDeadline) {
+          if (isCanvasHomeTitlePrepared()) {
+            setHomeCanvasTitlePreparedState(true);
+            setHomeSimulationReadyState('true');
+            return;
+          }
+          await waitForFrames(1);
+        }
+
+        throw new Error('Home canvas title geometry did not become ready');
       };
 
       // Handle bfcache restore (browser back/forward with cached page)
@@ -740,12 +803,13 @@ export async function bootstrapHomePage(runtimeContext = {}) {
         isRouteTransitionPhase(getTransitionPhase())
         || isSimulationFocusTransitionActive()
       );
-      const shouldRunHomePostBootEntrance = !reduceMotion && !shellRouteTransitionActive;
+      const shouldRunHomePostBootEntrance = !shellRouteTransitionActive;
       const runHomeBootSimulationEnter = () => {
         if (reduceMotion || shellRouteTransitionActive) {
           setInitialSimulationVisualScale(1);
           return;
         }
+        setInitialSimulationVisualScale(0);
         void runSimulationVisualTransition('in', {
           durationMs: 760,
           localDurationMs: 420,
@@ -760,7 +824,6 @@ export async function bootstrapHomePage(runtimeContext = {}) {
         } else {
           clearHomePostBootEntrance();
         }
-        runHomeBootSimulationEnter();
       };
 
       if (shellRouteTransitionActive) {
@@ -800,6 +863,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
                 ? 'home-ready-return'
                 : 'home-ready',
           onOverlayHidden: onHomeOverlayHidden,
+          onRevealStart: runHomeBootSimulationEnter,
         });
         if (!isCurrent()) return cleanup;
         setHomeRouteReadyState(true);
@@ -812,13 +876,16 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     } catch (e) {
       if (!isCurrent()) return cleanup;
       console.warn('⚠️ Direct boot reveal failed, forcing settled content visible:', e);
-      clearHomePostBootEntrance();
+      setHomeSimulationReadyState('failed');
+      setInitialSimulationVisualScale(1);
       await failDirectBoot({
         selectors: ['#abs-scene', '#app-frame'],
         detail: 'home-reveal-failed',
+        onOverlayHidden: () => {
+          if (isCurrent()) startHomePostBootEntrance();
+        },
       });
       if (!isCurrent()) return cleanup;
-      setInitialSimulationVisualScale(1);
       setHomeRouteReadyState(true);
     }
 

@@ -9,6 +9,7 @@ The live reference is `/styleguide.html`. It must describe production components
 - Route buttons: Home, Work (Portfolio route), About Me, Contact
 - States: idle, hover/focus, pressed, active/current
 - Secondary controls: sound and theme
+- Active geometry: one shared pill matches the studio-window background, centres inside the stable full target, and measures the selected label plus inline padding; Home is a true visual circle
 - Mobile: Home gains a visible label; all controls remain keyboard and touch accessible
 - Primary navigation never moves into a route top bar
 

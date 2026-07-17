@@ -11,13 +11,42 @@ import {
 import { applyExpertiseLegendColors } from '../../legacy/modules/ui/legend-colors.js';
 import { initLegendFilterSystem } from '../../legacy/modules/ui/legend-filter.js';
 import { initModalOverlay } from '../../legacy/modules/ui/modal-overlay.js';
-import { isSimulationVisualTransitionSourceActive } from '../../lib/simulationVisualTransition.js';
+import {
+  isSimulationVisualTransitionSourceActive,
+  runSimulationVisualTransition,
+  setInitialSimulationVisualScale,
+} from '../../lib/simulationVisualTransition.js';
 
 let runtimeConfigPromise = null;
 let runtimeTextPromise = null;
 const DAILY_FOCUS_READY_TIMEOUT_MS = 12000;
 const DAILY_FOCUS_READY_POLL_MS = 50;
-const DAILY_FOCUS_BOOT_SELECTORS = ['#abs-scene', '#app-frame', '#simulation-stage'];
+const DAILY_FOCUS_BOOT_SELECTORS = ['#abs-scene', '#app-frame', '#simulation-stage', '#hero-title'];
+const DAILY_FOCUS_HOME_ENTER_COMPLETE_MS = 3900;
+
+function stageDailyFocusHomeEntrance() {
+  const root = document.documentElement;
+  root.classList.remove('abs-home-post-boot-enter', 'abs-home-post-boot-complete');
+  root.classList.add('abs-home-post-boot-pending');
+}
+
+function startDailyFocusHomeEntrance(onTimer) {
+  return window.requestAnimationFrame(() => {
+    const root = document.documentElement;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+      root.classList.remove('abs-home-post-boot-pending', 'abs-home-post-boot-enter');
+      root.classList.add('abs-home-post-boot-complete');
+      return;
+    }
+
+    root.classList.add('abs-home-post-boot-enter');
+    root.classList.remove('abs-home-post-boot-pending');
+    onTimer(window.setTimeout(() => {
+      root.classList.remove('abs-home-post-boot-enter');
+      root.classList.add('abs-home-post-boot-complete');
+    }, DAILY_FOCUS_HOME_ENTER_COMPLETE_MS));
+  });
+}
 
 function loadDailyFocusRuntimeConfig() {
   if (!runtimeConfigPromise) {
@@ -192,6 +221,38 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
     let cancelled = false;
     let runtimeConfig = null;
     let modalSystemsInitialized = false;
+    let entranceRaf = 0;
+    let entranceTimer = 0;
+    let runtimeWasReady = false;
+    const directBoot = Boolean(document.getElementById('abs-boot-overlay'));
+
+    const startHomeEntrance = () => {
+      if (cancelled) return;
+      entranceRaf = startDailyFocusHomeEntrance((timer) => {
+        entranceTimer = timer;
+      });
+    };
+
+    const startMaterialEntrance = () => {
+      if (cancelled) return;
+      if (!runtimeWasReady || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+        setInitialSimulationVisualScale(1);
+        return;
+      }
+      setInitialSimulationVisualScale(0);
+      void runSimulationVisualTransition('in', {
+        durationMs: 760,
+        localDurationMs: 420,
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        reason: 'daily-focus-direct-boot',
+      });
+    };
+
+    if (directBoot) {
+      stageDailyFocusHomeEntrance();
+      document.documentElement.dataset.absHomeSimulationReady = 'false';
+      document.documentElement.dataset.absHomeCanvasTitlePrepared = 'false';
+    }
 
     const initializeRouteChrome = () => {
       if (cancelled || !runtimeConfig) return;
@@ -224,22 +285,30 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
       });
       if (cancelled) return;
 
-      await waitForUsableRects(DAILY_FOCUS_BOOT_SELECTORS, {
+      const surfacesReady = await waitForUsableRects(DAILY_FOCUS_BOOT_SELECTORS, {
         timeoutMs: 2600,
       });
-      const runtimeReady = await waitForDailyFocusRuntimeReady(simulationId, {
-        timeoutMs: DAILY_FOCUS_READY_TIMEOUT_MS,
-      });
+      const runtimeReady = surfacesReady
+        && await waitForDailyFocusRuntimeReady(simulationId, {
+          timeoutMs: DAILY_FOCUS_READY_TIMEOUT_MS,
+        });
       await waitForFrames(2);
       if (cancelled) return;
 
+      runtimeWasReady = runtimeReady;
+      document.documentElement.dataset.absHomeCanvasTitlePrepared = surfacesReady ? 'true' : 'false';
+      document.documentElement.dataset.absHomeSimulationReady = runtimeReady ? 'true' : 'failed';
+      if (directBoot && runtimeReady) setInitialSimulationVisualScale(1);
+
       const bootState = document.documentElement.dataset.absBootState || '';
-      if (document.getElementById('abs-boot-overlay') || bootState === 'booting') {
+      if (directBoot && (document.getElementById('abs-boot-overlay') || bootState === 'booting')) {
         await completeDirectBoot({
           selectors: DAILY_FOCUS_BOOT_SELECTORS,
           detail: runtimeReady
             ? `daily-focus-${simulationId}-ready`
             : `daily-focus-${simulationId}-fallback`,
+          onRevealStart: startMaterialEntrance,
+          onOverlayHidden: startHomeEntrance,
         });
       }
       if (runtimeReady) {
@@ -252,16 +321,23 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
 
     revealDailyFocusRoute().catch((error) => {
       if (!cancelled) {
+        document.documentElement.dataset.absHomeSimulationReady = 'failed';
+        setInitialSimulationVisualScale(1);
         signalDailyFocusRouteFailed(simulationId, error?.message || 'runtime-error');
-        void completeDirectBoot({
-          selectors: DAILY_FOCUS_BOOT_SELECTORS,
-          detail: `daily-focus-${simulationId}-failed`,
-        });
+        if (directBoot) {
+          void completeDirectBoot({
+            selectors: DAILY_FOCUS_BOOT_SELECTORS,
+            detail: `daily-focus-${simulationId}-failed`,
+            onOverlayHidden: startHomeEntrance,
+          });
+        }
       }
     });
 
     return () => {
       cancelled = true;
+      window.cancelAnimationFrame(entranceRaf);
+      window.clearTimeout(entranceTimer);
       delete document.documentElement.dataset.absDailyFocusStatus;
     };
   }, [simulationId]);

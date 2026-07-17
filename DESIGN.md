@@ -55,7 +55,7 @@ The system is distributed across these production surfaces. A design change is c
 | Footer signature, social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
 | Theme, frame, wall, noise, contrast veil, and browser harmony | `dark-mode-v2.js`, `site-shell.js`, `chrome-harmony.js`, `tokens.css` |
 | Cursor states and pointer mapping | `cursor.js`, `main.css`, `CUSTOM-CURSOR.md` |
-| Copy tone and content ownership | `TONE-OF-VOICE.md`, `SITE-COPY.md`, production content JSON |
+| Copy tone and content ownership | `docs/reference/TONE-OF-VOICE.md`, `docs/reference/SITE-COPY.md`, production content JSON |
 
 Paths above are relative to `react-app/app/` unless they start with `docs/`.
 
@@ -82,7 +82,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 - Preserve distinct layers for the browser/page band, outer wall, physical frame, studio-window interior, in-window finish, controls, and route content.
 - Manual site theme affects the studio-window interior only. The exposed band, physical frame, preloader, and stable outer shell use opaque true black (`#000000`) in every site theme, browser scheme, browser family, and display gamut. The separate wall surface remains `#141414`.
-- The Button Bar belongs to the dark outer shell. Route tabs, sound, theme, and reset controls must not derive material or ink from the studio window or route body text.
+- The Button Bar belongs to the dark outer shell. Its unselected route tabs, sound, theme, and reset controls must not derive material or ink from the studio window or route body text. The active primary route pill is the explicit exception: it matches the resolved studio-window background and carries fully opaque inverse theme ink; unselected route labels remain visibly faded on the outer shell.
 - Route accents remain stable: Home green, Work acid, About blue, Contact orange.
 - Neutrals dominate simulations. Use acid, blue, orange, and green as controlled focal material.
 - Grain, vignette, and the contrast veil should make the window feel physical without muddying type or flattening surface separation.
@@ -112,7 +112,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 - Tabler Outline is the default icon language. Use custom SVG only where exact brand or control geometry is required.
 - Every icon-only control has an accessible name, a visible keyboard focus state, and an effective target of at least 44px.
-- The Button Bar is the only primary navigation. Its moving pill is one shared object, not four independent selected backgrounds.
+- The Button Bar is the only primary navigation. Its moving pill is one shared object, not four independent selected backgrounds. It is centred within the stable full-size target and measures the selected label’s rendered width plus its inline padding; Home’s selected target is a true circle, with equal visual width and height.
 - Route top bars are local utility/back strips only.
 - Sound and haptics reinforce a state change but never carry its meaning alone.
 

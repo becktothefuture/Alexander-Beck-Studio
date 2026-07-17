@@ -15,6 +15,13 @@
   "workingHypotheses": [
     "Gen Digital may be a client credit rather than a project that belongs in the public portfolio."
   ],
+  "organisingIdea": {
+    "statement": "Turn an invisible digital risk into a protective action that feels understandable and ordinary rather than frightening.",
+    "status": "hypothesis",
+    "evidenceBasis": "interview_needed",
+    "sourceClaimIds": [],
+    "lastReviewed": "2026-07-17"
+  },
   "claims": [
     {
       "id": "claim-gen-digital-001",

@@ -1,26 +1,28 @@
 # Portfolio Interview Roadmap
 
-## Method
+## Interview principle
 
-Work on one project at a time. Before each round, show Alexander the relevant candidate facts and ask him to confirm, correct, reject, or withhold them. Ask only two or three questions per round.
+Every project needs one organising idea: a specific tension that explains why the challenge was fascinating and why the solution was more than a collection of screens.
 
-Each full case study uses three rounds:
+An organising idea is not a slogan or generic theme. It should connect:
 
-1. **Reality and tension** — establish the actual brief, audience, timeframe, delivery state, and the difficult question that made the work interesting.
-2. **Contribution and decisions** — separate Alexander's hands-on work from team work, identify the closest collaborators, and reconstruct one consequential decision with alternatives and evidence.
-3. **Outcome and proof** — establish what shipped or changed, state limitations honestly, approve credits and confidentiality boundaries, and select at least ten genuine media items.
+- a surprising observation about the problem;
+- the mechanism of the design response;
+- the evidence that the response changed understanding, behaviour, or direction.
 
-After every round:
+Each idea below is a candidate, not approved copy. The interview should test it. If Alexander's answer does not support the idea, replace it rather than forcing the project into a neat story.
 
-- register the interview record as a new source;
-- add exact question-and-answer locators;
-- promote, dispute, reject, or withhold candidate claims;
-- update the next questions from the remaining gaps;
-- stop when the copy gate is satisfied rather than asking the whole questionnaire mechanically.
+Work on one project at a time and ask only two or three questions per round. The first round should pursue three kinds of evidence:
+
+1. **Observation** — the incident, contradiction, behaviour, or detail that made the problem interesting.
+2. **Mechanism** — the particular model, interaction, sequence, or craft decision that answered it.
+3. **Proof** — the user response, stakeholder decision, shipped behaviour, limitation, or artefact that shows what the solution achieved.
+
+Administrative facts such as dates, credits, permissions, and exact delivery status remain required, but collect them as targeted follow-ups after the story has a spine.
+
+After every round, register the answers as a source, update the project claims, and either confirm, refine, or reject the organising idea.
 
 ## Recommended order
-
-Start with the projects that have enough supplied evidence to make the conversation concrete:
 
 1. S&P Global
 2. Bentley
@@ -33,97 +35,99 @@ Start with the projects that have enough supplied evidence to make the conversat
 9. ProKeyboard
 10. Gen Digital and Tourism Ireland triage
 
-American Heart Association remains on hold and is excluded from this sequence.
+American Heart Association remains on hold and is excluded from copy interviews.
 
-## First interview round by project
+## Project interviews
 
 ### S&P Global
 
-Current evidence is rich, but naming, delivery status, contribution boundaries, and the launch-time claim are unresolved.
+**Candidate organising idea:** Make index logic visible and teachable without taking authorship or expert control away from the people building it.
 
-1. What is the canonical project and product name, who was the primary user, and what state was the workflow in when you joined?
-2. Of workflow mapping, language, modular rules, screens, prototypes, workshops, and testing, what did you personally lead or make—and what did Tom, Claudia, Andy, Martin, and others own?
-3. What actually shipped, and can the “three weeks to a few days” improvement be evidenced or should it be removed?
+1. Take me to the moment you realised the problem was not simply “there is no interface,” but that the rules lived inside people's heads, spreadsheets, and Python. What did you watch an analyst or index engineer do that made this hidden-logic problem tangible to you?
+2. Why did **foundation, schedule, and method** become the right building blocks? Describe one earlier model that failed, what you personally changed or named, and what a user could suddenly understand or rearrange once the modular model appeared.
+3. In the power-user sessions, what was the most surprising objection or edge case? Which default, grouping, piece of language, or moment of progressive disclosure changed because of it—and what evidence do we have that the final model made the work faster, safer, or easier to explain?
 
 ### Bentley
 
-The vision and interaction principles are well documented; implementation and personal authorship are not.
+**Candidate organising idea:** Express luxury through timing—turn the wait for a hand-built car into part of the ownership experience.
 
-1. Was the two-month brief primarily My Bentley World, a broader digital vision, or both—and what deliverable did the client actually ask for?
-2. Which visible flows, Blender garage work, motion studies, and microsite elements were personally yours versus the work of Tom, Jude, Russel, Paohan, and others?
-3. Which direction did Bentley accept, test, reuse, or implement, and which parts remained provocative vision work?
+1. What was emotionally missing between configuring a Bentley and receiving it? Describe the customer moment that made you see waiting as a design material rather than merely an order-status problem.
+2. Walk me through the digital garage as a changing experience: what did the owner see on day one, what unlocked later, and what information or feeling did each stage provide? Which parts of the Blender scene and interaction were yours, and which came from the wider team?
+3. Show me one version that felt too busy, too immediate, or too much like a conventional automotive app. What did you deliberately remove, delay, or quieten—and how did the client respond to the idea that restraint and anticipation could carry the brand?
 
 ### Yoti
 
-The source contains many strong artefacts but no single bounded case study, and the stated duration conflicts.
+**Candidate organising idea:** Make invisible digital proof feel trustworthy at the exact moment a person or verifier has to act on it.
 
-1. Should the story centre on one product or present three connected artefacts—and which artefacts best represent your contribution?
-2. For the hologram, physical scanner, QR integration, age-verification flow, design system, and website, what did you personally design, prototype, write, or test and with whom?
-3. Were you there from December 2017 to November 2019 or for more than two and a half years, and which “still in use” or reduced-drop-off claims can be verified?
+1. Choose the moment where trust was most fragile: the user sharing data through a QR handoff, a shop worker checking an age credential, or someone entering an age-verification flow. What could that person not see or understand, and what were they being asked to trust anyway?
+2. Use the anti-spoof hologram as a concrete example. What did the gyroscope, daily-changing pattern, motion, and at-a-glance verification each contribute? Which parts did you personally conceive and prototype, and what failed before the interaction became credible?
+3. Across the hologram, physical scanner, QR modal, and age-verification work, which failure mode taught you the most—spoofing, privacy anxiety, partner inconsistency, or confusing language? What changed because of it, and which artefact best proves that the trust model reached production rather than remaining a concept?
 
 ### SunExpress
 
-The design rationale is usable, but exact dates, collaborators, shipped scope, and the revenue claim are weak.
+**Candidate organising idea:** Sequence a branching booking journey so travellers see the right choice at the right moment without hiding commercial options.
 
-1. When did the engagement happen, how long did it last, and which markets, languages, booking stages, and site areas were actually in scope?
-2. What did you personally own across research, end-to-end UX, the design system, icons, and booking screens—and who were the actual collaborators?
-3. What shipped or was tested, and is there a defensible source for the claimed 15% revenue increase?
+1. Which analytics finding most clearly contradicted the team's assumptions: users not scrolling, promotions being missed, or a specific mid-booking drop-off? Locate the exact page or booking step and describe what you originally thought users were doing versus what the data revealed.
+2. Pick one genuinely messy itinerary—flexible dates, a return journey, extras, or a one-way trip—and walk through the old and redesigned flows step by step. What did you reveal later, combine, or remove, and why was that sequence better than simply putting every choice on screen?
+3. Where did traveller clarity conflict with upsell targets, airline operations, or multilingual consistency? Describe the disagreement, the prototype that helped resolve it, what shipped, and whether the claimed revenue effect can honestly be connected to the design.
 
 ### Personal Website
 
-The supplied portfolio documents a discontinued Webflow-era version. The interview should reconstruct the evolution into the current site.
+**Candidate organising idea:** Treat the browser's limitations as a creative collaborator that determines which expressive ideas deserve to survive.
 
-1. What was the first version trying to prove, and which major rebuilds led from the Webflow spatial site to the current React, framed-window, and simulation system?
-2. Which discarded experiments most changed your design principles, and what performance or accessibility constraint caused each change?
-3. What should count as the outcome: a working portfolio, a creative coding practice, a reusable design system, external response, or the evolution itself?
+1. Which prototype broke first, on what device, and what visual ambition caused the failure? Reconstruct the moment when performance stopped being an implementation problem and began changing the design itself.
+2. Name one experiment you loved but removed and one technical constraint you converted into a lasting design rule. How did those two decisions lead from the Webflow-era spatial site toward the current framed window, simulation language, and route system?
+3. Beyond “I built my portfolio,” what capability did the project create in you or in the codebase? Point to the current interaction, system, or production discipline that could not have existed without the failed versions.
 
 ### McCann
 
-The files confirm MRM (McCann) employment but contain no evidence for the intended McCann project.
+**Hypothesis to test:** A single restrained interaction can give a website a memorable identity more effectively than a feature-heavy experience.
 
-1. What exact McCann organisation, website, campaign, or initiative do you mean, and why does it deserve a portfolio place?
-2. What was the brief, audience, timeframe, team, and your personal contribution?
-3. What shipped, where can it be seen, and which assets or outcomes may be shown publicly?
+1. Identify the exact McCann organisation and page. Then describe the interaction in its resting and active states: what does the visitor do, what moves or changes, and why was that tiny gesture the right expression of McCann rather than a generic flourish?
+2. What larger, louder, or more conventional directions were considered? Choose one and explain precisely what made it less effective—did it compete with the work, weaken the hierarchy, slow the site, or make the identity feel performative?
+3. What did you personally craft in the interaction, typography, rhythm, or prototype, and what reaction from the client, team, or audience convinced you that the restrained idea was enough?
 
 ### Swiss Re
 
-Only the client name is supported. Begin with factual reconstruction and confidentiality boundaries.
+**Hypothesis to test:** Find the human decision hidden inside an institutional system and make the information around that decision graspable.
 
-1. What product, service, platform, or initiative was this; who used it; and what problem created the brief?
-2. What did you personally make, who worked with you, and which constraint or decision made the work distinctive?
-3. What shipped or changed, and what can be described or shown without breaching confidentiality?
+1. Name the specific person and decision at the centre of the work—not the platform or business unit. What did that person need to decide, what information were they juggling, and what made the existing process unusually difficult?
+2. Show me the messiest source artefact, model, or workflow you encountered. What relationship or hierarchy did you discover inside it, and how did that become a screen, prototype, service model, or design-system decision?
+3. Was there a moment when a stakeholder or user said, in effect, “now I understand it”? What exactly were they looking at, what had changed from before, and did that understanding lead to an implemented decision or remain a promising concept?
 
 ### Impressions
 
-Treat this as a collection of small factual records, not one invented narrative.
+**Candidate organising idea:** A small piece earns its place through one decisive creative move, not through the amount of process surrounding it.
 
-1. Confirm the inventory and exact names: Jaguar Land Rover, Maybourne Hotels, posters, and which other small projects—including whether Tourism Ireland, Gen Digital, or ProKeyboard belong here.
-2. For each selected artefact, state the year, employer context, brief, personal contribution, collaborators, and one detail that makes it worth showing.
-3. Which ten artefacts form the strongest varied sequence, and which have public-use permission and original-resolution files?
+1. For Jaguar Land Rover and Maybourne, choose one artefact from each. What is the single visual, interaction, material, or storytelling decision that stops it from feeling like conventional automotive or hospitality work?
+2. Choose two posters or smaller experiments that reveal something different about your taste. What constraint produced each one, what did you do that surprised you, and which detail would disappear if the work were reduced to a thumbnail?
+3. Imagine the ten artefacts laid out as a flick-through stack. Which image opens it, which image creates the biggest change of pace, and which image closes it? What should that sequence reveal about you that the full case studies do not?
 
 ### ProKeyboard
 
-The sources establish the idea but not its current state, research basis, or demonstrated value.
+**Candidate organising idea:** The keyboard should adapt to a person's cognitive or physical state instead of demanding that the person adapt to a fixed keyboard.
 
-1. What exists now: sketches, Figma prototype, coded keyboard, user test, paused experiment, or something else?
-2. Which neurodivergent needs shaped the idea, and what evidence or lived observation supports the proposed interaction changes?
-3. Which single feature best proves the concept, and should this become a full case study, an Impressions item, or remain private?
+1. What specific failure in an ordinary mobile keyboard started the project? Describe one real moment—losing focus, using one hand, correcting repeatedly, or feeling overloaded—and what the keyboard forces the person to do against their natural behaviour.
+2. Choose the one feature that best answers that failure. Walk through a single keystroke or short phrase: what does the keyboard sense, what changes in its shape or feedback, and how does the user remain in control rather than feeling unpredictably “assisted”?
+3. What did the earliest prototype reveal that the idea in your head did not? Which behaviour became more promising, which assumption failed, and what evidence would you need before claiming the design genuinely supports neurodivergent users?
 
 ### Gen Digital
 
-Run a short inclusion triage before investing in a full interview.
+**Hypothesis to test:** Turn an invisible digital risk into a protective action that feels understandable and ordinary rather than frightening.
 
-1. What product or engagement was this, under which brand, and what did you personally contribute?
-2. Is there enough showable work and a distinctive decision to justify a case study or Impressions item?
+1. Which Gen Digital brand and product was this, and what exact risk or protective behaviour was the user dealing with? Describe the moment where the user ignored, misunderstood, or abandoned the existing experience.
+2. What did the new design make visible or actionable without resorting to fear? Walk through one before-and-after interaction and identify the part you personally designed.
+3. Which artefact and outcome would prove that this is a distinct portfolio story rather than only a client credit—and is that evidence public enough to show?
 
 ### Tourism Ireland
 
-Run the same inclusion triage; the source currently contains only a misspelled client credit.
+**Hypothesis to test:** Help someone move from broad destination inspiration to a specific choice without flattening what makes the place distinctive.
 
-1. What engagement does the credit refer to, when was it, and what did you make?
-2. Is it showable and narratively useful, or should it remain only a client credit?
+1. At what point in the travel journey did the work intervene—dreaming, comparing, planning, or booking—and what precise choice was the visitor struggling to make?
+2. What content, interaction, or visual decision made Ireland feel particular rather than like interchangeable destination marketing? Name the source material and the design move that protected its specificity.
+3. What did you personally make, and what response or artefact would justify including it in Impressions rather than leaving it as a client credit?
 
 ### American Heart Association
 
-Do not run a copy interview while the project is ongoing. Source intake may continue. Resume only after Alexander defines a milestone and publication boundary that remove the hold.
+**On hold:** Do not define an organising idea or run a copy interview while the work is ongoing. Continue cataloguing sources only. Resume when Alexander defines the milestone and publication boundary that make reflection possible.
 

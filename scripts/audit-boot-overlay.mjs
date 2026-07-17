@@ -136,6 +136,10 @@ function assertCriticalBootSource() {
     assert(source.includes('@keyframes absBootSpin'), `${file}: missing supplied shadow-spinner keyframes`);
     assert(source.includes('animation: absBootSpin 1.1s infinite ease'), `${file}: boot spinner cadence drifted`);
     assert(source.includes('--abs-boot-loader-size: 0.7px'), `${file}: boot spinner size drifted`);
+    assert(source.includes('--abs-boot-overlay-out-ms: 640ms'), `${file}: boot handoff duration drifted`);
+    assert(source.includes('transition: opacity var(--abs-boot-overlay-out-ms, 480ms) cubic-bezier(0.45, 0, 0.55, 1)'), `${file}: boot crossfade easing drifted`);
+    assert(source.includes('transform: scale(2.4) translateZ(0)'), `${file}: loader exit scale drifted`);
+    assert(source.includes('opacity: 0.72; transform: scale(0.97)'), `${file}: studio-window reveal depth drifted`);
     assert(source.includes("var bootLoaderColors = ['rgba(255, 255, 255, 0.92)'"), `${file}: missing fixed dark-surface loader palette`);
     assert(!source.includes("rgba(32, 33, 36, 0.9)"), `${file}: light-surface loader branch must be removed`);
     assert(!source.includes('var(--ball-'), `${file}: boot loader must not inherit ball palette colors`);
@@ -160,7 +164,7 @@ function assertCriticalBootSource() {
     assert(!source.includes('updateLongBootMessage'), `${file}: long-wait copy must not use a timer script`);
     assert(source.includes('@keyframes absBootLoaderExit'), `${file}: missing loader scale-out handoff`);
     assert(source.includes('@keyframes absBootSceneReveal'), `${file}: missing studio-window material handoff`);
-    assert(source.includes('transform: scale(0.985)'), `${file}: studio-window reveal depth drifted`);
+    assert(source.includes('transform: scale(0.97)'), `${file}: studio-window reveal depth drifted`);
     assert(!source.includes('@keyframes absBootWorldReveal'), `${file}: fixed outer shell must not scale during boot`);
     assert(source.includes("window.location.protocol === 'file:'"), `${file}: missing raw-file preview detection`);
     assert(source.includes('This preview needs the dev server.'), `${file}: missing raw-file preview guidance`);
@@ -168,10 +172,7 @@ function assertCriticalBootSource() {
       source.includes('#abs-boot-overlay.is-exiting #abs-boot-spinner'),
       `${file}: missing spinner hide rule during boot overlay exit`
     );
-    assert(
-      source.includes('#abs-boot-overlay.is-exiting #abs-boot-stage'),
-      `${file}: missing loader-stage hide rule during boot overlay exit`
-    );
+    assert(!source.includes('animation: absBootStageExit'), `${file}: redundant loader-stage fade returned`);
     assert(
       source.includes(`wallBase: '${canonicalWall}'`),
       `${file}: inline wall fallback does not match canonical ${canonicalWall}`
@@ -420,6 +421,34 @@ async function auditBootHandoff(browser, { reducedMotion = false }) {
     assert(snapshot.sceneTransform !== 'none', `${label}: studio-window reveal transform did not resolve`);
     assert(snapshot.spinnerTransform !== 'none', `${label}: loader exit transform did not resolve`);
     assert(snapshot.materialPhase === 'in', `${label}: simulation material bloom did not start with overlay exit`);
+
+    await page.waitForFunction(() => {
+      const overlay = document.getElementById('abs-boot-overlay');
+      if (!overlay) return false;
+      const opacity = Number(getComputedStyle(overlay).opacity);
+      return opacity >= 0.3 && opacity <= 0.7;
+    }, null, { polling: 'raf', timeout: 1200 });
+    const midpoint = await page.evaluate(() => {
+      const overlay = document.getElementById('abs-boot-overlay');
+      const spinner = document.getElementById('abs-boot-spinner');
+      const scene = document.getElementById('shell-wall-slot');
+      const readScale = (node) => {
+        const transform = node ? getComputedStyle(node).transform : 'none';
+        return !transform || transform === 'none' ? 1 : new DOMMatrixReadOnly(transform).a;
+      };
+      return {
+        overlayPresent: Boolean(overlay),
+        overlayOpacity: overlay ? Number(getComputedStyle(overlay).opacity) : 0,
+        spinnerOpacity: spinner ? Number(getComputedStyle(spinner).opacity) : 0,
+        spinnerScale: readScale(spinner),
+        sceneScale: readScale(scene),
+      };
+    });
+    assert(midpoint.overlayPresent, `${label}: overlay detached before the handoff midpoint`);
+    assert(midpoint.overlayOpacity >= 0.3 && midpoint.overlayOpacity <= 0.7, `${label}: midpoint crossfade opacity drifted to ${midpoint.overlayOpacity}`);
+    assert(midpoint.spinnerOpacity >= 0.75, `${label}: spinner disappeared before its scale-out became visible`);
+    assert(midpoint.spinnerScale >= 1.08 && midpoint.spinnerScale < 2, `${label}: spinner midpoint scale drifted to ${midpoint.spinnerScale}`);
+    assert(midpoint.sceneScale > 0.97 && midpoint.sceneScale < 1, `${label}: studio-window midpoint scale drifted to ${midpoint.sceneScale}`);
   }
 
   await page.waitForSelector('#abs-boot-overlay', { state: 'detached', timeout: timeoutMs });
@@ -613,6 +642,7 @@ async function readHomeRevealSnapshot(page) {
         meta: read('#site-year.abs-meta-btn'),
         edge: read('#edge-caption'),
         quote: read('#quote-display'),
+        simulationTab: read('.simulation-focus-switcher-slot'),
       },
     };
   });
@@ -640,6 +670,7 @@ async function readHomeRevealTimingSnapshot(page) {
       context: readDelayList('#app-frame .ui-top-right .decorative-script'),
       action: readDelayList('[data-route-tab]'),
       footer: readDelayList('#social-links .footer_icon-link, #site-year.abs-meta-btn, #edge-caption, #quote-display'),
+      simulationTab: readDelayList('.simulation-focus-switcher-slot'),
     };
   });
 }
@@ -698,6 +729,7 @@ function assertHomeRevealOrder(snapshot, label) {
   assert(snapshot.context.length > 0, `${label}: expected top-right context transition delays`);
   assert(snapshot.action.length > 0, `${label}: expected action nav transition delays`);
   assert(snapshot.footer.length > 0, `${label}: expected footer transition delays`);
+  assert(snapshot.simulationTab.length > 0, `${label}: expected simulation tab transition delay`);
 
   const firstLegendDelay = Math.min(...snapshot.legend.slice(0, 6));
   const lastLegendDelay = Math.max(...snapshot.legend.slice(0, 6));
@@ -705,6 +737,8 @@ function assertHomeRevealOrder(snapshot, label) {
   const firstContextDelay = Math.min(...snapshot.context);
   const firstActionDelay = Math.min(...snapshot.action);
   const firstFooterDelay = Math.min(...snapshot.footer);
+  const lastFooterDelay = Math.max(...snapshot.footer);
+  const firstSimulationTabDelay = Math.min(...snapshot.simulationTab);
 
   assert(
     firstLegendDelay > lastIdentityDelay,
@@ -722,6 +756,10 @@ function assertHomeRevealOrder(snapshot, label) {
     firstFooterDelay > lastLegendDelay,
     `${label}: footer starts at ${firstFooterDelay}ms before top-left labels finish staging at ${lastLegendDelay}ms`
   );
+  assert(
+    firstSimulationTabDelay > Math.max(lastIdentityDelay, lastLegendDelay, firstContextDelay, firstActionDelay, lastFooterDelay),
+    `${label}: simulation tab starts at ${firstSimulationTabDelay}ms before every Home entrance group is staged`
+  );
 }
 
 async function readHomeRevealVisibleOrder(page) {
@@ -735,6 +773,7 @@ async function readHomeRevealVisibleOrder(page) {
       context: [],
       action: [],
       footer: [],
+      simulationTab: [],
     };
 
     const overlayAllowsVisibility = () => {
@@ -788,6 +827,7 @@ async function readHomeRevealVisibleOrder(page) {
         collect('context', '#app-frame .ui-top-right .decorative-script');
         collect('action', '[data-route-tab]');
         collect('footer', '#social-links .footer_icon-link, #site-year.abs-meta-btn, #edge-caption, #quote-display');
+        collect('simulationTab', '.simulation-focus-switcher-slot');
       }
 
       if (
@@ -819,6 +859,7 @@ function assertHomeRevealUserVisibleOrder(snapshot, label) {
   assert(snapshot.context.length > 0, `${label}: expected top-right context to become visible to the user`);
   assert(snapshot.action.length > 0, `${label}: expected action nav to become visible to the user`);
   assert(snapshot.footer.length > 0, `${label}: expected footer/support chrome to become visible to the user`);
+  assert(snapshot.simulationTab.length > 0, `${label}: expected simulation tab to become visible to the user`);
 
   const firstIdentity = firstSeenAt(snapshot.identity);
   const firstLegend = firstSeenAt(snapshot.legend);
@@ -826,6 +867,8 @@ function assertHomeRevealUserVisibleOrder(snapshot, label) {
   const firstContext = firstSeenAt(snapshot.context);
   const firstAction = firstSeenAt(snapshot.action);
   const firstFooter = firstSeenAt(snapshot.footer);
+  const lastFooter = lastSeenAt(snapshot.footer);
+  const firstSimulationTab = firstSeenAt(snapshot.simulationTab);
 
   assert(
     firstIdentity <= firstLegend,
@@ -842,6 +885,10 @@ function assertHomeRevealUserVisibleOrder(snapshot, label) {
   assert(
     firstFooter > lastLegend,
     `${label}: footer/support chrome became user-visible at ${Math.round(firstFooter)}ms before all legend labels at ${Math.round(lastLegend)}ms`
+  );
+  assert(
+    firstSimulationTab > Math.max(lastSeenAt(snapshot.identity), lastLegend, lastSeenAt(snapshot.context), lastSeenAt(snapshot.action), lastFooter),
+    `${label}: simulation tab became user-visible at ${Math.round(firstSimulationTab)}ms before the rest of Home finished entering`
   );
 }
 
@@ -861,6 +908,7 @@ function assertHomeRevealSettled(snapshot, { allowHiddenEdge = false, allowHidde
   assertHomeTargetVisible(snapshot.targets.script, 'script', 0.69);
   assertHomeTargetVisible(snapshot.targets.social, 'social', 0.69);
   assertHomeTargetVisible(snapshot.targets.meta, 'meta', 0.69);
+  assertHomeTargetVisible(snapshot.targets.simulationTab, 'simulationTab');
   if (!(allowHiddenEdge && targetIsIntentionallyNonRenderable(snapshot.targets.edge))) {
     assertHomeTargetVisible(snapshot.targets.edge, 'edge', 0.5);
   }

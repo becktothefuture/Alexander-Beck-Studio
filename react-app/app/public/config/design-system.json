@@ -16,6 +16,7 @@
     "ballSizeMax": 14.4,
     "ballSizeCurve": 1.6,
     "mobileObjectReductionFactor": 0.74,
+    "mobileSimulationBodyScale": 0.8,
     "ballSoftness": 0,
     "pebbleBlend": 0,
     "pebbleStretch": 0.14,

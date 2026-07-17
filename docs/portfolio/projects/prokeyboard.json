@@ -15,6 +15,13 @@
   "workingHypotheses": [
     "This may work better as an Impressions item or side-project note than as a full case study."
   ],
+  "organisingIdea": {
+    "statement": "The keyboard should adapt to a person's cognitive or physical state instead of demanding that the person adapt to a fixed keyboard.",
+    "status": "candidate",
+    "evidenceBasis": "source_backed",
+    "sourceClaimIds": ["claim-prokeyboard-002", "claim-prokeyboard-003", "claim-prokeyboard-004"],
+    "lastReviewed": "2026-07-17"
+  },
   "claims": [
     {
       "id": "claim-prokeyboard-001",

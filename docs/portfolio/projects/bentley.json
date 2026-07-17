@@ -10,6 +10,13 @@
   "workingHypotheses": [
     "The story is a short vision engagement about making digital ownership feel anticipatory rather than transactional."
   ],
+  "organisingIdea": {
+    "statement": "Express luxury through timing—turn the wait for a hand-built car into part of the ownership experience.",
+    "status": "candidate",
+    "evidenceBasis": "source_backed",
+    "sourceClaimIds": ["claim-bentley-006", "claim-bentley-007", "claim-bentley-008"],
+    "lastReviewed": "2026-07-17"
+  },
   "claims": [
     {
       "id": "claim-bentley-001",
