@@ -34,6 +34,7 @@ const browser = await chromium.launch({
   ],
 });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await page.emulateMedia({ reducedMotion: 'reduce' });
 const consoleErrors = [];
 page.on('console', (message) => {
   if (message.type() === 'error') consoleErrors.push(message.text());
@@ -47,19 +48,8 @@ try {
     && document.querySelector('.about-narrative-lab')?.dataset.worldPrepare === 'ready'
   ), { timeout: 60_000 });
 
-  const ambientButton = page.getByRole('button', { name: 'Live ambient' });
-  if (await ambientButton.evaluate((button) => button.classList.contains('is-active'))) {
-    await ambientButton.click();
-  }
-  const transport = page.locator('.about-editor-transport input[type="range"]');
-  await transport.evaluate((input, value) => {
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-    setter.call(input, String(value));
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  }, 3.2);
   await page.waitForFunction(() => (
-    document.querySelector('.about-narrative-lab')?.dataset.worldStage === 'turbulent-field-v1'
+    document.querySelector('.about-narrative-lab')?.dataset.worldStage === 'cluster-v1'
     && window.__aboutNarrativeRuntime?.getMetrics?.().fixedAttributeIdentityStable === true
   ), { timeout: 60_000 });
 
@@ -84,8 +74,9 @@ try {
     `${JSON.stringify({
       baseUrl,
       recordedAt: new Date().toISOString(),
-      storyWU: 3.2,
+      storyWU: 0,
       liveAmbient: false,
+      reducedMotion: true,
       metrics,
       consoleErrors,
     }, null, 2)}\n`,

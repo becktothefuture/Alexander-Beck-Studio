@@ -39,6 +39,10 @@ export function createAboutNarrativeRuntimeObserver({
   let workerTerminations = 0;
   let workerTimeouts = 0;
   let lastFrameTime = 0;
+  let hotFrameCount = 0;
+  let hotFrameOwnedAllocations = 0;
+  let hotFrameDomQueries = 0;
+  let hotFrameDomWrites = 0;
 
   const pairInstalled = (durationMs) => {
     const installDurationMs = Math.max(0, Number(durationMs) || 0);
@@ -52,6 +56,16 @@ export function createAboutNarrativeRuntimeObserver({
   const workerStarted = () => { workerStarts += 1; };
   const workerTerminated = () => { workerTerminations += 1; };
   const workerTimedOut = () => { workerTimeouts += 1; };
+  const hotFrameStarted = () => { hotFrameCount += 1; };
+  const hotFrameOwnedAllocation = (count = 1) => {
+    hotFrameOwnedAllocations += Math.max(0, Number(count) || 0);
+  };
+  const hotFrameDomQuery = (count = 1) => {
+    hotFrameDomQueries += Math.max(0, Number(count) || 0);
+  };
+  const hotFrameDomWrite = (count = 1) => {
+    hotFrameDomWrites += Math.max(0, Number(count) || 0);
+  };
 
   const workerMessage = (patch = {}) => {
     const messageDurationMs = Math.max(0, Number(patch.messageDurationMs) || 0);
@@ -83,6 +97,13 @@ export function createAboutNarrativeRuntimeObserver({
     maxInstallDurationMs = 0;
     maxWorkerMessageDurationMs = 0;
     maxFirstUploadDurationMs = 0;
+  };
+
+  const resetHotFrameMetrics = () => {
+    hotFrameCount = 0;
+    hotFrameOwnedAllocations = 0;
+    hotFrameDomQueries = 0;
+    hotFrameDomWrites = 0;
   };
 
   const getLifecycleFields = () => Object.freeze({
@@ -117,6 +138,10 @@ export function createAboutNarrativeRuntimeObserver({
       maxInstallDurationMs,
       maxWorkerMessageDurationMs,
       maxFirstUploadDurationMs,
+      hotFrameCount,
+      hotFrameOwnedAllocations,
+      hotFrameDomQueries,
+      hotFrameDomWrites,
       workerStarts,
       workerTerminations,
       workerTimeouts,
@@ -152,6 +177,7 @@ export function createAboutNarrativeRuntimeObserver({
       correspondenceLongPathRatio25: Number(installedPair?.metrics?.longPathRatio25 || 0),
       correspondenceLongPathRatio50: Number(installedPair?.metrics?.longPathRatio50 || 0),
       correspondencePreparationDurationMs: Number(readySequence?.preparationDurationMs || 0),
+      correspondenceMainThreadApplicationMs: maxInstallDurationMs,
       shapeGenerationDurationMs: Number(readySequence?.generationDurationMs || 0),
       correspondenceWorkerDurationMs: Number(readySequence?.correspondenceDurationMs || 0),
       preparedWorldIds: readySequence?.worldIds || [],
@@ -162,9 +188,14 @@ export function createAboutNarrativeRuntimeObserver({
   return Object.freeze({
     getLifecycleFields,
     getMetrics,
+    hotFrameDomQuery,
+    hotFrameDomWrite,
+    hotFrameOwnedAllocation,
+    hotFrameStarted,
     pairInstalled,
     render,
     reset,
+    resetHotFrameMetrics,
     workerMessage,
     workerStarted,
     workerTerminated,

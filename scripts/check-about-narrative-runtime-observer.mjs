@@ -21,6 +21,8 @@ test('production observer renders without exposing certification telemetry', () 
   const renderer = createRenderer();
   const observer = createProductionObserver({ renderer, scene: {}, camera: {} });
   observer.workerStarted();
+  observer.hotFrameStarted();
+  observer.hotFrameDomWrite(2);
   observer.pairInstalled(20);
   observer.render();
   assert.equal(renderer.info.render.calls, 1);
@@ -63,6 +65,8 @@ test('certification observer records lifecycle, timing, and resource metrics', (
   observer.workerStarted();
   observer.workerTerminated();
   observer.workerTimedOut();
+  observer.hotFrameStarted();
+  observer.hotFrameDomWrite(2);
   observer.workerMessage({ messageDurationMs: 4 });
   observer.pairInstalled(3);
   observer.render();
@@ -74,9 +78,13 @@ test('certification observer records lifecycle, timing, and resource metrics', (
   assert.equal(metrics.maxWorkerMessageDurationMs, 4);
   assert.equal(metrics.frameTimeMs, 2);
   assert.equal(metrics.maxFirstUploadDurationMs, 0.75);
+  assert.equal(metrics.hotFrameCount, 1);
+  assert.equal(metrics.hotFrameDomWrites, 2);
+  assert.equal(metrics.correspondenceMainThreadApplicationMs, 3);
   assert.equal(metrics.fixedAttributeIdentityStable, true);
   assert.equal(metrics.resourceDiagnosticCount, 0);
   observer.reset();
+  observer.resetHotFrameMetrics();
   assert.equal(observer.getMetrics().maxInstallDurationMs, 0);
 });
 

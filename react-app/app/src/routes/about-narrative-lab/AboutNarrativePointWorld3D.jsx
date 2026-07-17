@@ -15,10 +15,7 @@ import {
   ABOUT_NARRATIVE_CACHE_LIMITS,
   ABOUT_NARRATIVE_POINT_PROFILES,
 } from './aboutNarrativeRuntimeConstants.js';
-import {
-  createAboutNarrativeRuntimeDiagnostics,
-  projectAboutNarrativeRuntimeMetrics,
-} from './aboutNarrativeRuntimeDiagnostics.js';
+import { createAboutNarrativeRuntimeDiagnostics } from './aboutNarrativeRuntimeDiagnostics.js';
 import {
   ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
 } from './aboutNarrativeWorkerProtocol.js';
@@ -30,6 +27,7 @@ import {
 } from './aboutNarrativeModifierSampling.js';
 import { getGlobals } from '../../legacy/modules/core/state.js';
 import { createAboutNarrativeRuntimeResources } from 'virtual:about-narrative-resource-tools';
+import { createAboutNarrativeRuntimeObserver } from 'virtual:about-narrative-runtime-observer';
 
 const MATERIAL_SLOT_COUNT = 6;
 const RUNTIME_DIAGNOSTICS_ENABLED = import.meta.env.DEV || __CERTIFY__;
@@ -549,6 +547,20 @@ function createPointFieldAdapter({
     ...ABOUT_NARRATIVE_CACHE_LIMITS.sequence,
     onEvent: recordCacheEvent,
   });
+  const runtimeObserver = createAboutNarrativeRuntimeObserver({
+    root,
+    diagnostics,
+    renderer,
+    scene,
+    camera,
+    geometry,
+    fixedAttributes,
+    pointCount,
+    shapeCache,
+    sequenceCache,
+    resourceLedger,
+    webglTracker,
+  });
   let installedPair = null;
   let readySequence = null;
   let activePreparation = null;
@@ -557,7 +569,6 @@ function createPointFieldAdapter({
   let bootstrapRequestId = 0;
   let correspondenceWorker = null;
   let sequenceState = 'idle';
-  let sequencePreparationDurationMs = 0;
   let disposed = false;
   let contextAvailable = true;
   let width = 1;
@@ -581,16 +592,6 @@ function createPointFieldAdapter({
   let lastBustAmbientTime = 0;
   let dragging = false;
   let dragStart = null;
-  let bufferRebuilds = 0;
-  let maxInstallDurationMs = 0;
-  let maxWorkerMessageDurationMs = 0;
-  let maxFirstUploadDurationMs = 0;
-  let pendingFirstUpload = false;
-  let workerStarts = 0;
-  let workerTerminations = 0;
-  let workerTimeouts = 0;
-  let frameStartedAt = performance.now();
-  let lastFrameTime = 0;
   const director = { active: false, yaw: 0, pitch: 0, distance: 0 };
   const modifierSlotsCache = new WeakMap();
   const directorTarget = new THREE.Vector3();
@@ -655,17 +656,12 @@ function createPointFieldAdapter({
   let lastCameraRoll = Number.NaN;
   let lastCameraFov = Number.NaN;
   let lastBustStyleYaw = Number.NaN;
-  let hotFrameCount = 0;
-  let hotFrameOwnedAllocations = 0;
-  let hotFrameDomQueries = 0;
-  let hotFrameDomWrites = 0;
-
   const getModifierSlots = (world, globals) => {
     if (!world) return null;
     const cached = modifierSlotsCache.get(world);
     if (cached) return cached;
     const swarm = modifier(world, 'swarm-life-v1');
-    hotFrameOwnedAllocations += 1;
+    runtimeObserver.hotFrameOwnedAllocation();
     const slots = {
       swarm: swarm ? resolveAboutNarrativeSwarmMotion(swarm, globals.swarmTurbulence) : null,
       drift: modifier(world, 'ambient-drift-v1'),
@@ -684,10 +680,10 @@ function createPointFieldAdapter({
     cachedDisciplineOverlay = overlay || null;
     cachedDisciplineChildCount = childCount;
     lastDisciplineAriaHidden = '';
-    hotFrameOwnedAllocations += 1;
+    runtimeObserver.hotFrameOwnedAllocation();
     for (let index = 0; index < disciplineLabels.length; index += 1) {
       disciplineLabels[index] = overlay?.querySelector(DISCIPLINE_LABEL_SELECTORS[index]) || null;
-      hotFrameDomQueries += overlay ? 1 : 0;
+      if (overlay) runtimeObserver.hotFrameDomQuery();
       disciplineLabelReveal[index] = Number.NaN;
       disciplineLabelX[index] = Number.NaN;
       disciplineLabelY[index] = Number.NaN;
@@ -703,7 +699,7 @@ function createPointFieldAdapter({
     label.style.setProperty('--discipline-reveal', value.toFixed(4));
     label.style.setProperty('--discipline-blur', `${((1 - value) * 4.5).toFixed(2)}px`);
     label.style.setProperty('--discipline-shift', `${((1 - value) * 8).toFixed(2)}px`);
-    hotFrameDomWrites += 3;
+    runtimeObserver.hotFrameDomWrite(3);
   };
 
   const writeDisciplinePosition = (index, x, y, unit) => {
@@ -724,7 +720,7 @@ function createPointFieldAdapter({
       label.style.setProperty('--discipline-x', `${x}%`);
       label.style.setProperty('--discipline-y', `${y}%`);
     }
-    hotFrameDomWrites += 2;
+    runtimeObserver.hotFrameDomWrite(2);
   };
 
   const updateTheme = () => {
@@ -812,8 +808,6 @@ function createPointFieldAdapter({
     resourceLedger?.releaseOwner('installed-pair');
     resourceLedger?.retain('installed-pair', [pair.fromOutput, pair.toOutput]);
     installedPair = { ...pair, progress: 0 };
-    bufferRebuilds += 1;
-    root.dataset.worldBufferRebuilds = String(bufferRebuilds);
     root.dataset.pointAsset = pair.toOutput.fallbackReason ? 'procedural-fallback' : pair.toWorld.shapeId;
     if (sequenceState !== 'loading') root.dataset.worldPrepare = 'ready';
     root.dataset.worldFrom = pair.fromWorld.shapeId;
@@ -825,10 +819,7 @@ function createPointFieldAdapter({
     root.dataset.worldCorrespondenceMax = Number(pair.metrics.maxDistance || 0).toFixed(4);
     root.dataset.worldCorrespondenceFallback = pair.fallbackReason || '';
     root.dataset.worldCorrespondencePair = pair.key;
-    const installDurationMs = performance.now() - installStartedAt;
-    maxInstallDurationMs = Math.max(maxInstallDurationMs, installDurationMs);
-    pendingFirstUpload = true;
-    diagnostics.recordMetrics({ installDurationMs, maxInstallDurationMs });
+    runtimeObserver.pairInstalled(performance.now() - installStartedAt);
     diagnostics.recordLifecycle('pair-installed', {
       installedPairId: installedPair.key,
       installedWorldId: installedPair.toWorld.sectionId,
@@ -882,12 +873,12 @@ function createPointFieldAdapter({
       reject(error);
       return;
     }
-    workerStarts += 1;
+    runtimeObserver.workerStarted();
     correspondenceWorker = worker;
     let released = false;
     const publicationController = new AbortController();
     const timeout = window.setTimeout(() => {
-      workerTimeouts += 1;
+      runtimeObserver.workerTimedOut();
       const error = new Error('The correspondence Worker timed out.');
       error.category = 'workerTimeout';
       release();
@@ -903,7 +894,7 @@ function createPointFieldAdapter({
       worker.onerror = null;
       worker.onmessageerror = null;
       worker.terminate();
-      workerTerminations += 1;
+      runtimeObserver.workerTerminated();
       signal.removeEventListener('abort', handleAbort);
     };
     const handleAbort = () => {
@@ -950,10 +941,8 @@ function createPointFieldAdapter({
         release({ abortPublication: false });
         const publicationValidationTotalMs = performance.now() - messageStartedAt;
         const messageDurationMs = Math.max(maximumPublicationTaskMs, publication.chunks ? 0 : publicationValidationTotalMs);
-        maxWorkerMessageDurationMs = Math.max(maxWorkerMessageDurationMs, messageDurationMs);
-        diagnostics.recordMetrics({
+        runtimeObserver.workerMessage({
           messageDurationMs,
-          maxWorkerMessageDurationMs,
           publicationValidationTotalMs,
           publicationValidationDurationMs: publication.durationMs,
           publicationValuesScanned: publication.valuesScanned,
@@ -1023,7 +1012,6 @@ function createPointFieldAdapter({
           dispose: (value) => resourceLedger?.release('sequence-cache', value),
         });
         readySequence = prepared;
-        sequencePreparationDurationMs = prepared.preparationDurationMs;
         sequenceState = 'ready';
         root.dataset.worldPrepare = 'ready';
         root.dataset.worldShapeGenerationMs = prepared.generationDurationMs.toFixed(2);
@@ -1125,26 +1113,35 @@ function createPointFieldAdapter({
       seed: world.seed,
       parameters: world.shapeParameters || {},
     }));
-    activePreparation = {
+    const previousPreparation = activePreparation;
+    const nextPreparation = {
       sequenceKey,
       inputFingerprint: descriptor.inputFingerprint || sequenceKey,
       sequence,
       entries,
       startedAt: performance.now(),
     };
-    sequenceState = 'loading';
-    root.dataset.worldPrepare = 'loading';
-    const targetWorld = sequence.find((world) => world.sectionId === targetWorldId) || sequence[0];
-    bootstrapTarget(sequenceKey, targetWorld);
-    return preparationController.requestPreparation({
+    activePreparation = nextPreparation;
+    const request = preparationController.requestPreparation({
       sequenceKey,
       // Preparation ownership follows the immutable sequence. The current
       // target World is only a bootstrap hint and must not reset a failed
       // sequence's retry latch as the playhead moves.
       pairId: `sequence:${sequenceKey}`,
       inputFingerprint: descriptor.inputFingerprint || sequenceKey,
-      input: activePreparation,
-    }, { trigger: 'compiled-plan' }).accepted;
+      input: nextPreparation,
+    }, { trigger: 'compiled-plan' });
+    if (!request.accepted) {
+      activePreparation = previousPreparation;
+      sequenceState = request.reason === 'failed-latched' ? 'failed' : 'idle';
+      root.dataset.worldPrepare = sequenceState;
+      return false;
+    }
+    sequenceState = 'loading';
+    root.dataset.worldPrepare = 'loading';
+    const targetWorld = sequence.find((world) => world.sectionId === targetWorldId) || sequence[0];
+    bootstrapTarget(sequenceKey, targetWorld);
+    return true;
   };
 
   const setModifierUniforms = (target, world, globals) => {
@@ -1251,7 +1248,7 @@ function createPointFieldAdapter({
       if (nextAriaHidden !== lastDisciplineAriaHidden) {
         overlay.setAttribute('aria-hidden', nextAriaHidden);
         lastDisciplineAriaHidden = nextAriaHidden;
-        hotFrameDomWrites += 1;
+        runtimeObserver.hotFrameDomWrite();
       }
       if (revealAvailable && anchorSamplingExact) {
         camera.updateMatrixWorld(true);
@@ -1334,17 +1331,17 @@ function createPointFieldAdapter({
     if (visibleDisciplineCount !== lastDisciplineVisibleCount) {
       root.dataset.worldDisciplineVisible = String(visibleDisciplineCount);
       lastDisciplineVisibleCount = visibleDisciplineCount;
-      hotFrameDomWrites += 1;
+      runtimeObserver.hotFrameDomWrite();
     }
     if (visibleLabels !== lastDisciplineLabelCount) {
       root.dataset.worldDisciplineLabels = String(visibleLabels);
       lastDisciplineLabelCount = visibleLabels;
-      hotFrameDomWrites += 1;
+      runtimeObserver.hotFrameDomWrite();
     }
     if (backgroundWeight !== lastGridBackground) {
       root.dataset.worldGridBackground = backgroundWeight.toFixed(4);
       lastGridBackground = backgroundWeight;
-      hotFrameDomWrites += 1;
+      runtimeObserver.hotFrameDomWrite();
     }
   };
 
@@ -1366,7 +1363,7 @@ function createPointFieldAdapter({
       installPreparedPair(preparedPair);
     }
     if (!installedPair) return;
-    hotFrameCount += 1;
+    runtimeObserver.hotFrameStarted();
     const pairMatchesRequest = installedPair.fromWorld.sectionId === requestedFromWorld.sectionId
       && installedPair.toWorld.sectionId === requestedToWorld.sectionId;
     if (pairMatchesRequest) {
@@ -1458,7 +1455,7 @@ function createPointFieldAdapter({
     if (disciplineRise !== lastDisciplineRise) {
       root.dataset.worldDisciplineRise = disciplineRise.toFixed(4);
       lastDisciplineRise = disciplineRise;
-      hotFrameDomWrites += 1;
+      runtimeObserver.hotFrameDomWrite();
     }
     uniforms.morphProgress.value = transitionProgress;
     uniforms.storyTime.value = frame.storyTime;
@@ -1479,7 +1476,7 @@ function createPointFieldAdapter({
     if (bustYaw !== lastBustShaderYaw) {
       root.dataset.worldBustShaderYaw = bustYaw.toFixed(5);
       lastBustShaderYaw = bustYaw;
-      hotFrameDomWrites += 1;
+      runtimeObserver.hotFrameDomWrite();
     }
     uniforms.disciplineFocus.value = Number(frame.editorialSignals?.disciplineFocus || 0);
     uniforms.gridInfluence.value = frame.reducedMotion
@@ -1488,12 +1485,12 @@ function createPointFieldAdapter({
     if (uniforms.disciplineFocus.value !== lastGroupFocus) {
       root.dataset.worldGroupFocus = String(uniforms.disciplineFocus.value);
       lastGroupFocus = uniforms.disciplineFocus.value;
-      hotFrameDomWrites += 1;
+      runtimeObserver.hotFrameDomWrite();
     }
     if (uniforms.gridInfluence.value !== lastGridInfluence) {
       root.dataset.worldGridInfluence = uniforms.gridInfluence.value.toFixed(4);
       lastGridInfluence = uniforms.gridInfluence.value;
-      hotFrameDomWrites += 1;
+      runtimeObserver.hotFrameDomWrite();
     }
     updateDisciplineReveal(frame, fromWorld, toWorld);
 
@@ -1506,12 +1503,12 @@ function createPointFieldAdapter({
       interaction.dataset.active = interactionEnabled ? 'true' : 'false';
       interaction.tabIndex = interactionEnabled ? 0 : -1;
       lastInteractionEnabled = interactionEnabled;
-      hotFrameDomWrites += 2;
+      runtimeObserver.hotFrameDomWrite(2);
     }
     if (toWorld.shapeId !== lastWorldStage) {
       root.dataset.worldStage = toWorld.shapeId;
       lastWorldStage = toWorld.shapeId;
-      hotFrameDomWrites += 1;
+      runtimeObserver.hotFrameDomWrite();
     }
     const cameraCadence = frame.globals.camera.cadenceLocked
       ? 'locked-world-units-v1'
@@ -1519,40 +1516,30 @@ function createPointFieldAdapter({
     if (cameraCadence !== lastCameraCadence) {
       root.dataset.cameraCadence = cameraCadence;
       lastCameraCadence = cameraCadence;
-      hotFrameDomWrites += 1;
+      runtimeObserver.hotFrameDomWrite();
     }
     const cameraForward = frame.globals.camera.startZ - frame.camera.position[2];
     if (cameraForward !== lastCameraForward) {
       root.style.setProperty('--narrative-camera-forward', cameraForward.toFixed(4));
       lastCameraForward = cameraForward;
-      hotFrameDomWrites += 1;
+      runtimeObserver.hotFrameDomWrite();
     }
     if (frame.camera.roll !== lastCameraRoll) {
       root.style.setProperty('--narrative-camera-roll', frame.camera.roll.toFixed(4));
       lastCameraRoll = frame.camera.roll;
-      hotFrameDomWrites += 1;
+      runtimeObserver.hotFrameDomWrite();
     }
     if (frame.camera.fov !== lastCameraFov) {
       root.style.setProperty('--narrative-camera-fov', frame.camera.fov.toFixed(2));
       lastCameraFov = frame.camera.fov;
-      hotFrameDomWrites += 1;
+      runtimeObserver.hotFrameDomWrite();
     }
     if (bustYaw !== lastBustStyleYaw) {
       root.style.setProperty('--narrative-bust-yaw', bustYaw.toFixed(4));
       lastBustStyleYaw = bustYaw;
-      hotFrameDomWrites += 1;
+      runtimeObserver.hotFrameDomWrite();
     }
-    frameStartedAt = performance.now();
-    renderer.render(scene, camera);
-    lastFrameTime = performance.now() - frameStartedAt;
-    if (pendingFirstUpload) {
-      pendingFirstUpload = false;
-      maxFirstUploadDurationMs = Math.max(maxFirstUploadDurationMs, lastFrameTime);
-      diagnostics.recordMetrics({
-        firstUploadDurationMs: lastFrameTime,
-        maxFirstUploadDurationMs,
-      });
-    }
+    runtimeObserver.render();
   };
 
   const handlePointerDown = (event) => {
@@ -1668,9 +1655,7 @@ function createPointFieldAdapter({
       failedSequenceKey: lifecycle.state === 'failed' ? lifecycle.sequenceKey || '' : '',
       installedPairId: installedPair?.key || '',
       installedWorldId: installedPair?.toWorld?.sectionId || '',
-      workerStarts,
-      workerTerminations,
-      workerTimeouts,
+      ...runtimeObserver.getLifecycleFields(),
       shapeCache: shapeCacheSnapshot,
       sequenceCache: sequenceCacheSnapshot,
       resources: resourceSnapshot || null,
@@ -1685,84 +1670,15 @@ function createPointFieldAdapter({
     setVisible: preparationController.setVisible,
     getDiagnosticsSnapshot: getRuntimeDiagnosticsSnapshot,
     subscribeDiagnostics: diagnostics.subscribe,
-    resetPerformanceMetrics: () => {
-      maxInstallDurationMs = 0;
-      maxWorkerMessageDurationMs = 0;
-      maxFirstUploadDurationMs = 0;
-    },
-    resetHotFrameMetrics: () => {
-      hotFrameCount = 0;
-      hotFrameOwnedAllocations = 0;
-      hotFrameDomQueries = 0;
-      hotFrameDomWrites = 0;
-    },
+    resetPerformanceMetrics: runtimeObserver.reset,
+    resetHotFrameMetrics: runtimeObserver.resetHotFrameMetrics,
     render,
-    getMetrics: () => {
-      const shapeCacheSnapshot = shapeCache.getSnapshot();
-      const sequenceCacheSnapshot = sequenceCache.getSnapshot();
-      const resourceSnapshot = resourceLedger?.getSnapshot('metrics');
-      const webglSnapshot = webglTracker?.getSnapshot();
-      return {
-        ...projectAboutNarrativeRuntimeMetrics(
-          diagnostics.getSnapshot(),
-          diagnostics.getMetricsSnapshot(),
-        ),
-        adapterId: 'point-field-v1',
-        pointCount,
-        drawCalls: renderer.info.render.calls,
-        frameTimeMs: lastFrameTime,
-        bufferRebuilds,
-        fixedAttributeCount: Object.keys(fixedAttributes).length,
-        fixedAttributeIdentityStable: Object.entries(fixedAttributes)
-          .every(([name, attribute]) => geometry.getAttribute(name) === attribute),
-        maxInstallDurationMs,
-        maxWorkerMessageDurationMs,
-        maxFirstUploadDurationMs,
-        hotFrameCount,
-        hotFrameOwnedAllocations,
-        hotFrameDomQueries,
-        hotFrameDomWrites,
-        workerStarts,
-        workerTerminations,
-        workerTimeouts,
-        cacheEntries: shapeCacheSnapshot.entries,
-        cacheBytes: shapeCacheSnapshot.uniqueBytes,
-        sequenceCacheEntries: sequenceCacheSnapshot.entries,
-        sequenceCacheBytes: sequenceCacheSnapshot.uniqueBytes,
-        gpuBufferCount: webglSnapshot?.liveCount ?? resourceSnapshot?.gpu.liveCount ?? 9,
-        gpuBufferBytes: webglSnapshot?.liveBytes ?? resourceSnapshot?.gpu.liveBytes ?? Object.values(fixedAttributes)
-          .reduce((sum, attribute) => sum + attribute.array.byteLength, 0),
-        gpuBufferCreates: webglSnapshot?.created || 0,
-        gpuBufferDeletes: webglSnapshot?.deleted || 0,
-        gpuBufferAllocations: webglSnapshot?.allocations || 0,
-        gpuBufferReallocations: webglSnapshot?.reallocations || 0,
-        gpuBufferUploads: webglSnapshot?.uploads || 0,
-        webglUnobservedDeletes: webglSnapshot?.unobservedDeletes || 0,
-        webglUnboundMutations: webglSnapshot?.unboundMutations || 0,
-        generatedBufferCount: resourceSnapshot?.buffers.uniqueCount || 0,
-        generatedBufferBytes: resourceSnapshot?.buffers.uniqueBytes || 0,
-        resourceDiagnosticCount: (resourceSnapshot?.diagnostics.count || 0)
-          + (webglSnapshot?.diagnostics.length || 0),
-        correspondenceSequenceState: sequenceState,
-        correspondencePairId: installedPair?.key || '',
-        correspondenceToWorldId: installedPair?.toWorld?.sectionId || '',
-        correspondenceRequestedStrategy: installedPair?.requestedStrategy || '',
-        correspondenceInstalledStrategy: installedPair?.installedStrategy || '',
-        correspondenceFallback: installedPair?.fallbackReason || '',
-        correspondenceImprovement: Number(installedPair?.metrics?.improvement || 0),
-        correspondenceWeightedRms: Number(installedPair?.metrics?.weightedRmsDistance || 0),
-        correspondenceP95: Number(installedPair?.metrics?.p95Distance || 0),
-        correspondenceMax: Number(installedPair?.metrics?.maxDistance || 0),
-        correspondenceLongPathRatio25: Number(installedPair?.metrics?.longPathRatio25 || 0),
-        correspondenceLongPathRatio50: Number(installedPair?.metrics?.longPathRatio50 || 0),
-        correspondencePreparationDurationMs: sequencePreparationDurationMs,
-        correspondenceMainThreadApplicationMs: 0,
-        shapeGenerationDurationMs: Number(readySequence?.generationDurationMs || 0),
-        correspondenceWorkerDurationMs: Number(readySequence?.correspondenceDurationMs || 0),
-        preparedWorldIds: readySequence?.worldIds || [],
-        activeModifiers: latestFrame?.world?.to?.modifiers?.filter((item) => item.enabled).length || 0,
-      };
-    },
+    getMetrics: () => runtimeObserver.getMetrics({
+      sequenceState,
+      installedPair,
+      readySequence,
+      latestFrame,
+    }),
     frameSelectedWorld: () => null,
     setDirectorView: (active) => { director.active = Boolean(active); },
     nudgeDirector: ({ yaw = 0, pitch = 0, distance = 0 }) => {
