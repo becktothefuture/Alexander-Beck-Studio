@@ -210,6 +210,11 @@ export function StudioShell({
         </div>
       </RouteSceneMount>
 
+      <div
+        id="shell-persistent-route-ui-host"
+        className="shell-persistent-route-ui-host"
+      />
+
       <div id="modal-blur-layer" className="modal-layer modal-blur-layer" aria-hidden="true" />
 
       <div id="modal-content-layer" className="modal-layer modal-content-layer" aria-hidden="true">

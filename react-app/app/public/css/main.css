@@ -2804,6 +2804,19 @@ button.abs-meta-btn,
   z-index: 250;
 }
 
+/* Shell-owned route instruments that must remain stable while #abs-scene and
+   #app-frame run their independent boot and route transitions. */
+#shell-persistent-route-ui-host.shell-persistent-route-ui-host {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom));
+  left: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 /* Viewport layer: full frame. One child (quote). Fixed + inset:0 so it spans entire area. */
 .quote-viewport-layer {
   position: fixed;

@@ -378,7 +378,7 @@ function ScrollProgressIndicator({ activeSectionIndex, activeStartIndex, section
           const isActive = index >= activeStartIndex
             && index < activeStartIndex + ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT;
           return (
-            <span
+            <div
               aria-hidden="true"
               className={`about-narrative-indicator__line${isActive ? ' is-active' : ''}`}
               data-active={isActive ? 'true' : 'false'}
@@ -418,7 +418,7 @@ export function AboutNarrativeLabExperience({
 
   useLayoutEffect(() => {
     if (!showIndicator || typeof document === 'undefined') return undefined;
-    const host = document.querySelector('#abs-scene > .ui-layer');
+    const host = document.getElementById('shell-persistent-route-ui-host');
     setIndicatorHost(host);
     return undefined;
   }, [routeContentId, showIndicator]);
@@ -482,9 +482,9 @@ export function AboutNarrativeLabExperience({
           })}
         </main>
       </div>
-      {showIndicator && !editorStore && indicatorHost
+      {showIndicator && indicatorHost
         ? createPortal(
-          <div className="about-narrative-indicator-layer" data-about-indicator-host="ui">
+          <div className="about-narrative-indicator-layer" data-about-indicator-host="shell-persistent">
             <ScrollProgressIndicator
               activeSectionIndex={activeSectionIndex}
               activeStartIndex={activeIndicatorStartIndex}

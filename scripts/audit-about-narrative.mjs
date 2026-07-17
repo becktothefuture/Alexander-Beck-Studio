@@ -17,13 +17,99 @@ function formatWU(value) {
   return String(Number((Math.round(value / 0.002) * 0.002).toFixed(3)));
 }
 
+async function installIndicatorTimeline(page) {
+  await page.addInitScript(() => {
+    window.__startAboutIndicatorTimeline = () => {
+      const startedAt = performance.now();
+      const timeline = [];
+      let previousState = '';
+      let continuouslyVisibleSince = null;
+
+      window.__aboutIndicatorTimeline = timeline;
+      window.__aboutIndicatorTimelineDone = false;
+
+      const sample = () => {
+        const node = document.querySelector('.about-narrative-indicator');
+        let effectiveOpacity = 0;
+        let host = 'missing';
+        let state = 'missing';
+
+        if (node) {
+          effectiveOpacity = 1;
+          host = node.parentElement?.dataset.aboutIndicatorHost || 'unknown';
+          let current = node;
+          while (current instanceof Element) {
+            const style = getComputedStyle(current);
+            if (style.display === 'none' || style.visibility === 'hidden') {
+              effectiveOpacity = 0;
+              break;
+            }
+            effectiveOpacity *= Number(style.opacity || 1);
+            current = current.parentElement;
+          }
+          const rect = node.getBoundingClientRect();
+          state = rect.width > 0 && rect.height > 0 && effectiveOpacity >= 0.95 ? 'visible' : 'hidden';
+        }
+
+        const stateKey = `${state}:${host}`;
+        if (stateKey !== previousState) {
+          timeline.push({
+            effectiveOpacity: Number(effectiveOpacity.toFixed(3)),
+            host,
+            state,
+            timeMs: Math.round(performance.now() - startedAt),
+          });
+          previousState = stateKey;
+        }
+
+        const now = performance.now();
+        if (state === 'visible') {
+          continuouslyVisibleSince ??= now;
+        } else {
+          continuouslyVisibleSince = null;
+        }
+        const stableWindowComplete = continuouslyVisibleSince !== null
+          && now - continuouslyVisibleSince >= 900;
+        if (!stableWindowComplete && now - startedAt < 6500) {
+          requestAnimationFrame(sample);
+        } else {
+          window.__aboutIndicatorTimelineDone = true;
+        }
+      };
+
+      requestAnimationFrame(sample);
+    };
+
+    window.__startAboutIndicatorTimeline();
+  });
+}
+
+async function restartIndicatorTimeline(page) {
+  await page.evaluate(() => window.__startAboutIndicatorTimeline());
+}
+
+async function assertStableIndicatorTimeline(page, label) {
+  await page.waitForFunction(() => window.__aboutIndicatorTimelineDone === true);
+  const timeline = await page.evaluate(() => window.__aboutIndicatorTimeline);
+  const firstVisibleIndex = timeline.findIndex((entry) => entry.state === 'visible');
+  assert.notEqual(firstVisibleIndex, -1, `${label}: indicator never became visible: ${JSON.stringify(timeline)}`);
+  assert.deepEqual(
+    timeline.slice(firstVisibleIndex + 1).filter((entry) => entry.state !== 'visible'),
+    [],
+    `${label}: indicator disappeared after first becoming visible: ${JSON.stringify(timeline)}`,
+  );
+  assert.equal(timeline[firstVisibleIndex].host, 'shell-persistent');
+  return timeline;
+}
+
 async function auditProductionIndicator(viewport, label) {
   const page = await browser.newPage({ viewport });
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+  await installIndicatorTimeline(page);
   await page.goto(`${baseUrl}/about.html`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(900);
+  await assertStableIndicatorTimeline(page, `production ${label} direct load`);
 
   const indicator = page.locator('.about-narrative-indicator');
   const lines = indicator.locator('.about-narrative-indicator__line');
@@ -47,12 +133,20 @@ async function auditProductionIndicator(viewport, label) {
       activeOpacity: Number(getComputedStyle(activeLine).opacity),
       expectedThickness: Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--abs-indicator-line-thickness')),
       height: Number.parseFloat(lineStyle.height),
+      host: node.parentElement?.dataset.aboutIndicatorHost,
+      inPersistentHost: Boolean(node.closest('#shell-persistent-route-ui-host')),
       inSimulationLayer: Boolean(node.closest('.route-simulation-layer')),
       inUiLayer: Boolean(node.closest('.ui-layer')),
       layer: node.dataset.aboutIndicatorLayer,
+      lineTagNames: [...node.children].map((child) => child.tagName),
       leftInset: indicatorRect.left - rootRect.left,
+      physicalPixelOffset: Math.abs(
+        (indicatorRect.top * window.devicePixelRatio) - Math.round(indicatorRect.top * window.devicePixelRatio),
+      ),
       restingColor: getComputedStyle(restingLine).backgroundColor,
       restingOpacity: Number(getComputedStyle(restingLine).opacity),
+      transitionDuration: lineStyle.transitionDuration,
+      transitionProperty: lineStyle.transitionProperty,
       verticalCenterDelta: Math.abs(
         (indicatorRect.top + (indicatorRect.height / 2)) - (rootRect.top + (rootRect.height / 2)),
       ),
@@ -63,13 +157,19 @@ async function auditProductionIndicator(viewport, label) {
   assert.ok(geometry.verticalCenterDelta <= 1);
   assert.ok(Math.abs(geometry.height - geometry.expectedThickness) <= 0.05);
   assert.ok(geometry.width >= geometry.height * 2);
+  assert.equal(geometry.host, 'shell-persistent');
+  assert.equal(geometry.inPersistentHost, true);
   assert.equal(geometry.inSimulationLayer, false);
-  assert.equal(geometry.inUiLayer, true);
+  assert.equal(geometry.inUiLayer, false);
   assert.equal(geometry.layer, 'ui');
+  assert.ok(geometry.lineTagNames.every((tagName) => tagName === 'DIV'));
+  assert.ok(geometry.physicalPixelOffset <= 0.25);
   assert.equal(geometry.activeColor, 'rgb(0, 0, 0)');
   assert.equal(geometry.restingColor, 'rgb(0, 0, 0)');
   assert.equal(geometry.activeOpacity, 1);
   assert.ok(Math.abs(geometry.restingOpacity - 0.22) <= 0.01);
+  assert.equal(geometry.transitionDuration, '0.14s');
+  assert.equal(geometry.transitionProperty, 'opacity');
 
   await page.locator('.about-narrative-scrollport').evaluate((node) => {
     node.scrollTop = node.scrollHeight - node.clientHeight;
@@ -92,17 +192,18 @@ async function auditProductionIndicator(viewport, label) {
     await indicator.locator('.about-narrative-indicator__line.is-active').first().evaluate((node) => getComputedStyle(node).backgroundColor),
     'rgb(255, 255, 255)',
   );
+  await page.screenshot({ path: `output/playwright/about-narrative/${browserName}-production-${label}-dark.png` });
 
   await page.reload({ waitUntil: 'domcontentloaded' });
+  await assertStableIndicatorTimeline(page, `production ${label} reload`);
   await indicator.waitFor({ state: 'visible' });
-  await page.waitForTimeout(1200);
   const reloadVisibility = await indicator.evaluate((node) => {
     let effectiveOpacity = 1;
     let current = node;
     while (current instanceof Element) {
       const style = getComputedStyle(current);
       if (style.display === 'none' || style.visibility === 'hidden') {
-        return { effectiveOpacity: 0, inSimulationLayer: false, inUiLayer: false, visible: false };
+        return { effectiveOpacity: 0, inPersistentHost: false, inSimulationLayer: false, inUiLayer: false, visible: false };
       }
       effectiveOpacity *= Number(style.opacity || 1);
       current = current.parentElement;
@@ -110,13 +211,15 @@ async function auditProductionIndicator(viewport, label) {
     const rect = node.getBoundingClientRect();
     return {
       effectiveOpacity,
+      inPersistentHost: Boolean(node.closest('#shell-persistent-route-ui-host')),
       inSimulationLayer: Boolean(node.closest('.route-simulation-layer')),
       inUiLayer: Boolean(node.closest('.ui-layer')),
       visible: rect.width > 0 && rect.height > 0,
     };
   });
+  assert.equal(reloadVisibility.inPersistentHost, true);
   assert.equal(reloadVisibility.inSimulationLayer, false);
-  assert.equal(reloadVisibility.inUiLayer, true);
+  assert.equal(reloadVisibility.inUiLayer, false);
   assert.equal(reloadVisibility.visible, true);
   assert.ok(reloadVisibility.effectiveOpacity >= 0.95);
 
@@ -125,13 +228,33 @@ async function auditProductionIndicator(viewport, label) {
   await page.close();
 }
 
+async function auditSpaIndicator(viewport, label) {
+  const page = await browser.newPage({ viewport });
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+  await installIndicatorTimeline(page);
+  await page.goto(`${baseUrl}/index.html`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => window.__aboutIndicatorTimelineDone === true);
+  await restartIndicatorTimeline(page);
+  await page.locator('[data-button-bar] a[href*="about.html"]').click();
+  await page.waitForURL(/about\.html/);
+  await assertStableIndicatorTimeline(page, `production ${label} SPA navigation`);
+  assert.equal(await page.locator('#shell-persistent-route-ui-host .about-narrative-indicator').count(), 1);
+  assert.equal(await page.locator('.about-narrative-indicator').isVisible(), true);
+  assert.deepEqual(errors, []);
+  await page.screenshot({ path: `output/playwright/about-narrative/${browserName}-production-${label}-spa.png` });
+  await page.close();
+}
+
 async function audit(viewport, label) {
   const page = await browser.newPage({ viewport });
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+  await installIndicatorTimeline(page);
   await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1200);
+  await assertStableIndicatorTimeline(page, `editor ${label} direct load`);
   assert.equal(new URL(page.url()).searchParams.get('edit'), '1');
   assert.equal(await page.locator('[data-narrative-section]').count(), 8);
   assert.equal(await page.locator('.about-editor').count(), 1);
@@ -139,6 +262,8 @@ async function audit(viewport, label) {
   assert.equal(await page.locator('body > .about-editor').count(), 1);
   assert.equal(await page.locator('.about-editor .ti').count(), 0);
   assert.equal(await page.locator('.about-editor-transport > button svg').count(), 5);
+  assert.equal(await page.locator('#shell-persistent-route-ui-host .about-narrative-indicator').count(), 1);
+  assert.equal(await page.locator('.about-narrative-indicator').isVisible(), true);
   const root = page.locator('.about-narrative-lab');
   assert.equal(await root.getAttribute('data-point-world-state'), 'ready');
   await page.waitForFunction(() => document.querySelector('.about-narrative-lab')?.dataset.worldPrepare === 'ready');
@@ -751,6 +876,8 @@ async function auditReducedMotionCorrespondence() {
 try {
   await auditProductionIndicator({ width: 1440, height: 1000 }, 'desktop');
   await auditProductionIndicator({ width: 390, height: 844 }, 'mobile');
+  await auditSpaIndicator({ width: 1440, height: 1000 }, 'desktop');
+  await auditSpaIndicator({ width: 390, height: 844 }, 'mobile');
   if (!productionIndicatorOnly) {
     await audit({ width: 1440, height: 1000 }, 'desktop');
     await audit({ width: 390, height: 844 }, 'mobile');

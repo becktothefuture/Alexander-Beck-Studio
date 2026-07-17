@@ -767,7 +767,7 @@ body.about-narrative-page .route-simulation-layer {
   display: grid;
   gap: var(--abs-indicator-line-gap, 9px);
   pointer-events: none;
-  transform: translateY(-50%);
+  transform: translateY(calc(-50% + 0.5px));
 }
 
 .about-narrative-indicator__line {
@@ -777,10 +777,17 @@ body.about-narrative-page .route-simulation-layer {
   border-radius: 999px;
   background: var(--abs-indicator-ink, rgb(var(--abs-rgb-black)));
   opacity: var(--abs-indicator-rest-opacity, 0.22);
+  transition: opacity 140ms ease-out;
 }
 
 .about-narrative-indicator__line.is-active {
   opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-narrative-indicator__line {
+    transition: none;
+  }
 }
 
 .about-narrative-controls {
