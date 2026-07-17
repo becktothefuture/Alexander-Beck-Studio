@@ -11,10 +11,16 @@ import {
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCompiler.js';
 import { createAboutNarrativeEditorStore } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeEditorStore.js';
 import {
+  captureAboutNarrativePlayheadContext,
   getAboutNarrativeCameraKeyTimingBounds,
   getAboutNarrativeCueTimingBounds,
+  getAboutNarrativeExtentField,
+  getAboutNarrativeSelectionMembers,
   moveAboutNarrativeCueTiming,
+  remapAboutNarrativePlayheadContext,
   resolveAboutNarrativeCameraKeyDrop,
+  resolveAboutNarrativeCueGroupMove,
+  toggleAboutNarrativeCueSelection,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTimeline.js';
 import {
   migrateAboutNarrativeDocument,
@@ -120,14 +126,16 @@ test('canonical sequence opts exactly five inter-Shape transitions into local tr
   assert.deepEqual(sampleAboutNarrativePlan(plan, 0).world.sequence, plan.worldSequence);
 });
 
-test('discipline reveal owns one clip, a top-down camera handoff, and six editorially spaced anchors', () => {
+test('discipline reveal owns one extended clip, a paced top-down camera handoff, and six editorially spaced anchors', () => {
   const plan = compileAboutNarrativeDocument(canonical);
   const background = plan.sections[2];
   const practice = plan.sections[3];
   const disciplines = plan.sections[4];
   assert.equal(plan.disciplineReveal.sectionId, practice.id);
-  assert.deepEqual(background.camera.keys.at(-1).offset, [0, 9, 0]);
-  assert.deepEqual(background.camera.keys.at(-1).lookAtOffset, [0, -9, -0.55]);
+  assert.deepEqual(background.camera.keys.map((key) => key.at), [0, 0.5, 0.74, 1]);
+  assert.deepEqual(background.camera.keys.at(-1).offset, [0, 7.2, 0]);
+  assert.deepEqual(background.camera.keys.at(-1).lookAtOffset, [0, -7.2, -0.45]);
+  assert.equal(background.camera.keys.at(-1).fov, 48);
   assert.deepEqual(practice.camera.keys[0].offset, background.camera.keys.at(-1).offset);
   assert.deepEqual(disciplines.camera.keys[0].offset, practice.camera.keys.at(-1).offset);
   assert.ok(Math.abs(practice.world.transform.rotation[0] + (Math.PI / 2)) < 0.0001);
@@ -138,6 +146,10 @@ test('discipline reveal owns one clip, a top-down camera handoff, and six editor
   );
   assert.equal(revealFrame.disciplineReveal.sectionIndex, 3);
   assert.ok(Math.abs(revealFrame.disciplineReveal.localProgress - 0.7) < 1e-9);
+  assert.ok(practice.text.disciplineReveal.end > 1);
+  const editorialHandoffFrame = sampleAboutNarrativePlan(plan, disciplines.startWU + 0.08);
+  assert.ok(editorialHandoffFrame.disciplineReveal.localProgress > 1);
+  assert.ok(editorialHandoffFrame.disciplineReveal.localProgress < practice.text.disciplineReveal.end);
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
   assert.equal(new Set(verticalPositions).size, 6);
   verticalPositions.slice(1).forEach((value, index) => assert.ok(value - verticalPositions[index] >= 0.14));
@@ -164,6 +176,10 @@ test('editorial emphasis stays structured, sparse, and attached to authored copy
     assert.ok(block.text.includes(item.text), `${block.id} should contain highlighted phrase “${item.text}”`);
     assert.ok(['blue', 'green', 'orange'].includes(item.tone));
   });
+  const disciplineBlocks = canonical.sections.find((section) => section.id === 'disciplines').text.blocks;
+  assert.equal(disciplineBlocks.flatMap((block) => block.emphasis || []).length, 1);
+  assert.deepEqual(disciplineBlocks[0].emphasis.map((item) => item.text), ['different way of thinking']);
+  assert.ok(disciplineBlocks.slice(1).every((block) => !block.emphasis?.length));
 });
 
 test('spatial copy is authored as single-sentence beats', () => {
@@ -240,6 +256,108 @@ test('one text timing marker moves the complete Cue envelope', () => {
   assert.ok(atEnd.exit > 1);
   assert.ok(Math.abs((atEnd.hold - atEnd.enter) - (cue.hold - cue.enter)) < 1e-9);
   assert.ok(Math.abs((atEnd.exit - atEnd.hold) - (cue.exit - cue.hold)) < 1e-9);
+});
+
+test('Section extent fields follow the active preview profile', () => {
+  assert.equal(getAboutNarrativeExtentField('desktop'), 'extentWU');
+  assert.equal(getAboutNarrativeExtentField('reduced-motion'), 'extentWU');
+  assert.equal(getAboutNarrativeExtentField('mobile'), 'mobileExtentWU');
+});
+
+test('Section resizing preserves the semantic playhead context', () => {
+  const before = compileAboutNarrativeDocument(canonical);
+  const resizedDocument = structuredClone(canonical);
+  resizedDocument.sections[1].extentWU = 1.8;
+  const after = compileAboutNarrativeDocument(resizedDocument);
+  const resizedSection = before.sections[1];
+  const laterSection = before.sections[4];
+
+  const beforeContext = captureAboutNarrativePlayheadContext({
+    plan: before,
+    storyWU: before.sections[0].startWU + 0.2,
+    resizedSectionId: resizedSection.id,
+  });
+  assert.equal(beforeContext.mode, 'absolute');
+  assert.equal(remapAboutNarrativePlayheadContext(beforeContext, after), beforeContext.storyWU);
+
+  const insideContext = captureAboutNarrativePlayheadContext({
+    plan: before,
+    storyWU: resizedSection.startWU + (resizedSection.travelWU * 0.37),
+    resizedSectionId: resizedSection.id,
+  });
+  const remappedInside = remapAboutNarrativePlayheadContext(insideContext, after);
+  assert.equal(insideContext.sectionId, resizedSection.id);
+  assert.ok(Math.abs(
+    remappedInside - (after.sections[1].startWU + (after.sections[1].travelWU * 0.37)),
+  ) < 0.000001);
+
+  const laterContext = captureAboutNarrativePlayheadContext({
+    plan: before,
+    storyWU: laterSection.startWU + (laterSection.travelWU * 0.62),
+    resizedSectionId: resizedSection.id,
+  });
+  const remappedLater = remapAboutNarrativePlayheadContext(laterContext, after);
+  assert.equal(laterContext.sectionId, laterSection.id);
+  assert.ok(Math.abs(
+    remappedLater - (after.sections[4].startWU + (after.sections[4].travelWU * 0.62)),
+  ) < 0.000001);
+});
+
+test('Cue multi-selection remains backward-compatible and toggles deterministically', () => {
+  const first = { type: 'cue', sectionId: 'promise', cueId: 'promise-main', keyPart: 'focus' };
+  const second = { type: 'cue', sectionId: 'complexity', cueId: 'complexity-fragmented', keyPart: 'focus' };
+  assert.deepEqual(getAboutNarrativeSelectionMembers(first), [first]);
+
+  const combined = toggleAboutNarrativeCueSelection(first, second);
+  assert.equal(combined.cueId, second.cueId);
+  assert.deepEqual(getAboutNarrativeSelectionMembers(combined), [second, first]);
+
+  const withoutSecond = toggleAboutNarrativeCueSelection(combined, second);
+  assert.deepEqual(withoutSecond, first);
+  assert.deepEqual(getAboutNarrativeSelectionMembers({
+    ...combined,
+    members: [first, first, { type: 'section', sectionId: 'promise' }],
+  }), [second, first]);
+});
+
+test('Cue groups move in global WU, clamp as one group, and preserve envelopes', () => {
+  const plan = compileAboutNarrativeDocument(canonical);
+  const members = [
+    { type: 'cue', sectionId: 'promise', cueId: 'complexity-idea', keyPart: 'focus' },
+    { type: 'cue', sectionId: 'complexity', cueId: 'complexity-fragmented', keyPart: 'focus' },
+  ];
+  const result = resolveAboutNarrativeCueGroupMove({
+    document: canonical,
+    plan,
+    members,
+    primary: members[0],
+    deltaWU: 0.5,
+  });
+  assert.equal(result.valid, true);
+  assert.equal(result.deltaWU, result.maxDeltaWU);
+  assert.ok(result.deltaWU < 0.5);
+  assert.equal(result.moves[0].sectionId, members[0].sectionId);
+  assert.equal(result.moves[1].sectionId, members[1].sectionId);
+
+  const originalGlobalWU = members.map((member) => {
+    const section = canonical.sections.find((item) => item.id === member.sectionId);
+    const compiled = plan.sections.find((item) => item.id === member.sectionId);
+    const cue = section.text.cues.find((item) => item.id === member.cueId);
+    return compiled.startWU + (cue.hold * compiled.travelWU);
+  });
+  const movedGlobalWU = result.moves.map((move) => {
+    const compiled = plan.sections.find((item) => item.id === move.sectionId);
+    return compiled.startWU + (move.hold * compiled.travelWU);
+  });
+  assert.ok(Math.abs(
+    (movedGlobalWU[1] - movedGlobalWU[0]) - (originalGlobalWU[1] - originalGlobalWU[0]),
+  ) < 0.00001);
+  result.moves.forEach((move) => {
+    const section = canonical.sections.find((item) => item.id === move.sectionId);
+    const cue = section.text.cues.find((item) => item.id === move.cueId);
+    assert.ok(Math.abs((move.hold - move.enter) - (cue.hold - cue.enter)) < 0.00001);
+    assert.ok(Math.abs((move.exit - move.hold) - (cue.exit - cue.hold)) < 0.00001);
+  });
 });
 
 test('protected base camera advances at constant cadence', () => {
@@ -529,6 +647,51 @@ test('editor commands are atomic and undoable', () => {
   assert.equal(store.getSnapshot().document.sections[0].label, previous);
   store.redo();
   assert.equal(store.getSnapshot().document.sections[0].label, 'Temporary');
+});
+
+test('editor previews commit one history entry and cancel back to their starting state', () => {
+  const store = createAboutNarrativeEditorStore(canonical);
+  const originalExtent = store.getSnapshot().document.sections[0].extentWU;
+  const originalTransport = structuredClone(store.getSnapshot().transport);
+
+  assert.equal(store.beginPreview('Resize Intro'), true);
+  assert.equal(store.updatePreview((draft) => {
+    draft.sections[0].extentWU = 1.45;
+  }, { owner: 'timeline', storyWU: 0.3 }), true);
+  assert.equal(store.getSnapshot().document.sections[0].extentWU, 1.45);
+  assert.equal(store.getSnapshot().transport.storyWU, 0.3);
+  assert.equal(store.commitPreview({ type: 'section', sectionId: 'promise' }), true);
+  assert.equal(store.getSnapshot().previewState, null);
+  store.undo();
+  assert.equal(store.getSnapshot().document.sections[0].extentWU, originalExtent);
+  assert.equal(store.getSnapshot().history.canUndo, false, 'One Undo should consume the complete preview gesture.');
+  store.redo();
+  assert.equal(store.getSnapshot().document.sections[0].extentWU, 1.45);
+
+  assert.equal(store.beginPreview('Resize Intro again'), true);
+  store.updatePreview((draft) => {
+    draft.sections[0].extentWU = 1.2;
+  }, { storyWU: 0.1 });
+  assert.equal(store.cancelPreview(), true);
+  assert.equal(store.getSnapshot().document.sections[0].extentWU, 1.45);
+  assert.equal(store.getSnapshot().transport.storyWU, 0.3);
+  assert.equal(store.getSnapshot().transport.owner, 'timeline');
+  assert.notDeepEqual(store.getSnapshot().transport, originalTransport);
+});
+
+test('invalid editor previews keep the last-known-good plan and cannot commit', () => {
+  const store = createAboutNarrativeEditorStore(canonical);
+  const approvedPlan = store.getSnapshot().compiledPlan;
+  store.beginPreview('Invalid resize');
+  assert.equal(store.updatePreview((draft) => {
+    draft.sections[0].extentWU = 0;
+  }), false);
+  assert.equal(store.getSnapshot().compiledPlan, approvedPlan);
+  assert.ok(store.getSnapshot().diagnostics.some((item) => item.level === 'error'));
+  assert.equal(store.commitPreview(), false);
+  assert.equal(store.cancelPreview(), true);
+  assert.equal(store.getSnapshot().document.sections[0].extentWU, canonical.sections[0].extentWU);
+  assert.equal(store.getSnapshot().compiledPlan, approvedPlan);
 });
 
 test('editor correspondence changes survive serialization and undo cleanly', () => {

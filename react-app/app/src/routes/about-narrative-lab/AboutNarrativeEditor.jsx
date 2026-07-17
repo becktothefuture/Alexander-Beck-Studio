@@ -20,7 +20,6 @@ import {
   ABOUT_NARRATIVE_GLOBAL_CONTROLS,
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
   ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS,
-  ABOUT_NARRATIVE_DISCIPLINE_TONES,
   ABOUT_NARRATIVE_EMPHASIS_TONES,
   ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
   ABOUT_NARRATIVE_SHAPE_DEFINITIONS,
@@ -46,11 +45,17 @@ import {
   sampleAboutNarrativePlan,
 } from './aboutNarrativeCompiler.js';
 import {
+  captureAboutNarrativePlayheadContext,
   getAboutNarrativeCameraKeyTimingBounds,
   getAboutNarrativeCueTimingBounds,
+  getAboutNarrativeExtentField,
+  getAboutNarrativeSelectionMembers,
   moveAboutNarrativeCueTiming,
+  remapAboutNarrativePlayheadContext,
   resolveAboutNarrativeCameraKeyDrop,
+  resolveAboutNarrativeCueGroupMove,
   snapAboutNarrativeTimelineValue,
+  toggleAboutNarrativeCueSelection,
 } from './aboutNarrativeTimeline.js';
 import './about-narrative-editor.css';
 
@@ -59,6 +64,23 @@ const ABOUT_EDITOR_TIMELINE_STORAGE_KEY = 'abs:about-narrative:timeline-open:v1'
 const TIMELINE_KEY_EPSILON = 0.004;
 const INSPECTOR_EDGE_GAP = 8;
 const CAMERA_POSE_FIELDS = new Set(['offset', 'lookAtOffset', 'fov', 'roll']);
+const DISCIPLINE_REVEAL_MAX = ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS
+  .find((control) => control.id === 'end')?.max || 4;
+const DISCIPLINE_BALL_TOKEN_BY_GROUP = Object.freeze({
+  1: '--ball-1',
+  2: '--ball-4',
+  3: '--ball-3',
+  4: '--ball-7',
+  5: '--ball-8',
+  6: '--ball-6',
+});
+
+function cameraPoseChanges(from, to) {
+  if (!from || !to) return false;
+  return ['offset', 'lookAtOffset'].some((field) => (
+    from[field].some((value, index) => Math.abs(value - to[field][index]) > 0.0001)
+  )) || Math.abs(from.fov - to.fov) > 0.0001 || Math.abs(from.roll - to.roll) > 0.0001;
+}
 
 function copyCameraPose(target, source) {
   target.offset = [...source.offset];
@@ -387,12 +409,55 @@ function Transport({ store, snapshot }) {
 
 function Timeline({ store, snapshot }) {
   const { document, compiledPlan, selection, transport } = snapshot;
+  const selectedCueMembers = getAboutNarrativeSelectionMembers(selection);
   const maxWU = Math.max(0.001, compiledPlan?.maxStoryWU || document.sections.reduce((sum, section) => sum + section.extentWU, 0));
   const playhead = `${(transport.storyWU / maxWU) * 100}%`;
   const lanesRef = useRef(null);
   const timingDragRef = useRef(null);
+  const previewFrameRef = useRef(null);
+  const pendingPreviewRef = useRef(null);
   const suppressedClickRef = useRef(null);
   const [cameraDragPreview, setCameraDragPreview] = useState(null);
+  const [sectionResizePreview, setSectionResizePreview] = useState(null);
+  const [marquee, setMarquee] = useState(null);
+
+  const queuePreviewFrame = (callback) => {
+    pendingPreviewRef.current = callback;
+    if (previewFrameRef.current) return;
+    previewFrameRef.current = requestAnimationFrame(() => {
+      previewFrameRef.current = null;
+      const pending = pendingPreviewRef.current;
+      pendingPreviewRef.current = null;
+      pending?.();
+    });
+  };
+  const flushPreviewFrame = () => {
+    if (previewFrameRef.current) cancelAnimationFrame(previewFrameRef.current);
+    previewFrameRef.current = null;
+    const pending = pendingPreviewRef.current;
+    pendingPreviewRef.current = null;
+    pending?.();
+  };
+
+  const zoomTimeline = (event) => {
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    const lanes = lanesRef.current;
+    if (!lanes) return;
+    const rect = lanes.getBoundingClientRect();
+    const pointerX = Math.min(rect.width, Math.max(0, event.clientX - rect.left));
+    const storyRatio = (lanes.scrollLeft + pointerX) / Math.max(1, lanes.scrollWidth);
+    const currentZoom = Math.max(1, Number(transport.zoom) || 1);
+    const nextZoom = Math.min(8, Math.max(1, currentZoom * Math.exp(-event.deltaY * 0.0025)));
+    store.setTransport({ zoom: Number(nextZoom.toFixed(3)) });
+    requestAnimationFrame(() => {
+      lanes.scrollLeft = (storyRatio * lanes.scrollWidth) - pointerX;
+    });
+  };
+
+  useEffect(() => () => {
+    if (previewFrameRef.current) cancelAnimationFrame(previewFrameRef.current);
+  }, []);
 
   const resolveCameraDropAtClientX = (clientX) => {
     const lanes = lanesRef.current;
@@ -424,8 +489,26 @@ function Timeline({ store, snapshot }) {
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
+    let nextSelection = drag.selection;
+    if (drag.type === 'cue') {
+      const currentSelection = store.getSnapshot().selection;
+      const currentMembers = getAboutNarrativeSelectionMembers(currentSelection);
+      const alreadySelected = currentMembers.some((member) => (
+        member.sectionId === drag.selection.sectionId && member.cueId === drag.selection.cueId
+      ));
+      nextSelection = event.shiftKey
+        ? toggleAboutNarrativeCueSelection(currentSelection, drag.selection)
+        : alreadySelected && currentMembers.length > 1
+          ? { ...drag.selection, members: currentMembers }
+          : drag.selection;
+      store.beginPreview('Move text Cues');
+    }
     timingDragRef.current = {
       ...drag,
+      selection: nextSelection,
+      members: drag.type === 'cue' ? getAboutNarrativeSelectionMembers(nextSelection) : null,
+      startDocument: drag.type === 'cue' ? cloneAboutNarrativeDocument(store.getSnapshot().document) : null,
+      startPlan: drag.type === 'cue' ? store.getSnapshot().compiledPlan : null,
       pointerId: event.pointerId,
       rect,
       startX: event.clientX,
@@ -433,7 +516,7 @@ function Timeline({ store, snapshot }) {
       lastAt: drag.at,
       lastDrop: null,
     };
-    store.setSelection(drag.selection);
+    store.setSelection(nextSelection);
     store.setTransport({ owner: 'timeline', playing: false, storyWU: drag.storyWU });
   };
 
@@ -473,21 +556,27 @@ function Timeline({ store, snapshot }) {
       });
       return;
     }
-    const deltaLane = (event.clientX - drag.startX) / drag.rect.width;
-    const nextAt = Math.min(drag.max, Math.max(
-      drag.min,
-      snapAboutNarrativeTimelineValue(drag.at + deltaLane),
-    ));
-    if (Math.abs(nextAt - drag.lastAt) < 0.000001) return;
-    store.commit('Move text Cue', (draft) => {
-      const cue = draft.sections[drag.sectionIndex].text.cues.find((item) => item.id === drag.cueId);
-      if (cue) Object.assign(cue, moveAboutNarrativeCueTiming(cue, nextAt));
-    }, { coalesceKey: drag.coalesceKey, selection: drag.selection });
-    drag.lastAt = nextAt;
-    store.setTransport({
-      owner: 'timeline',
-      playing: false,
-      storyWU: drag.sectionStartWU + (nextAt * drag.travelWU),
+    const localDelta = (event.clientX - drag.startX) / drag.rect.width;
+    const movement = resolveAboutNarrativeCueGroupMove({
+      document: drag.startDocument,
+      plan: drag.startPlan,
+      members: drag.members,
+      primary: drag.selection,
+      localDelta,
+    });
+    if (!movement.valid || Math.abs(movement.deltaWU - (drag.lastDeltaWU || 0)) < 0.000001) return;
+    drag.lastDeltaWU = movement.deltaWU;
+    queuePreviewFrame(() => {
+      store.updatePreview((draft) => {
+        movement.moves.forEach((move) => {
+          const cue = draft.sections[move.sectionIndex]?.text?.cues?.find((item) => item.id === move.cueId);
+          if (cue) Object.assign(cue, { enter: move.enter, hold: move.hold, exit: move.exit });
+        });
+      }, {
+        owner: 'timeline',
+        playing: false,
+        storyWU: drag.storyWU + movement.deltaWU,
+      });
     });
   };
 
@@ -495,6 +584,11 @@ function Timeline({ store, snapshot }) {
     const drag = timingDragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (drag.type === 'cue') {
+      flushPreviewFrame();
+      if (event.type === 'pointercancel' || !drag.moved) store.cancelPreview();
+      else store.commitPreview(drag.selection);
+    }
     if (drag.type === 'camera' && drag.moved && event.type !== 'pointercancel') {
       const drop = drag.lastDrop || resolveCameraDropAtClientX(event.clientX);
       if (drop.valid) {
@@ -532,14 +626,161 @@ function Timeline({ store, snapshot }) {
     action();
   };
 
+  const beginSectionResize = (event, data) => {
+    if (data.locked || event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const current = store.getSnapshot();
+    const field = getAboutNarrativeExtentField(current.previewProfile);
+    store.beginPreview(`Resize ${data.sectionLabel}`);
+    store.setSelection({ type: 'section', sectionId: data.sectionId });
+    timingDragRef.current = {
+      type: 'section-resize',
+      token: `section-resize:${data.sectionId}`,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      moved: false,
+      sectionId: data.sectionId,
+      sectionIndex: data.sectionIndex,
+      sectionLabel: data.sectionLabel,
+      field,
+      startExtent: Number(current.document.sections[data.sectionIndex][field]),
+      startMaxWU: Math.max(0.001, current.compiledPlan?.maxStoryWU || maxWU),
+      startScrollWidth: Math.max(1, lanesRef.current?.scrollWidth || 1),
+      playheadContext: captureAboutNarrativePlayheadContext({
+        plan: current.compiledPlan,
+        storyWU: current.transport.storyWU,
+        resizedSectionId: data.sectionId,
+      }),
+      selection: { type: 'section', sectionId: data.sectionId },
+    };
+    setSectionResizePreview({ sectionId: data.sectionId, extent: Number(current.document.sections[data.sectionIndex][field]) });
+  };
+
+  const moveSectionResize = (event) => {
+    const drag = timingDragRef.current;
+    if (drag?.type !== 'section-resize' || drag.pointerId !== event.pointerId) return;
+    if (!drag.moved && Math.abs(event.clientX - drag.startX) < 3) return;
+    drag.moved = true;
+    const rawExtent = drag.startExtent + (((event.clientX - drag.startX) / drag.startScrollWidth) * drag.startMaxWU);
+    const step = event.altKey ? 0.01 : event.shiftKey ? 0.25 : 0.05;
+    const extent = Math.min(8, Math.max(1, Math.round(rawExtent / step) * step));
+    if (Math.abs(extent - (drag.lastExtent ?? drag.startExtent)) < 0.000001) return;
+    drag.lastExtent = Number(extent.toFixed(2));
+    setSectionResizePreview({ sectionId: drag.sectionId, extent: drag.lastExtent });
+    queuePreviewFrame(() => {
+      store.updatePreview((draft) => {
+        draft.sections[drag.sectionIndex][drag.field] = drag.lastExtent;
+      });
+      store.setTransport({
+        owner: 'timeline',
+        playing: false,
+        storyWU: remapAboutNarrativePlayheadContext(drag.playheadContext, store.getSnapshot().compiledPlan),
+      });
+    });
+  };
+
+  const endSectionResize = (event) => {
+    const drag = timingDragRef.current;
+    if (drag?.type !== 'section-resize' || drag.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    flushPreviewFrame();
+    if (event.type === 'pointercancel' || !drag.moved) store.cancelPreview();
+    else store.commitPreview(drag.selection);
+    timingDragRef.current = null;
+    setSectionResizePreview(null);
+  };
+
+  const resetSectionExtent = (sectionId, sectionIndex) => {
+    const current = store.getSnapshot();
+    const field = getAboutNarrativeExtentField(current.previewProfile);
+    const baselineSection = current.baselineDocument.sections.find((item) => item.id === sectionId);
+    if (!baselineSection || baselineSection[field] === current.document.sections[sectionIndex][field]) return;
+    const context = captureAboutNarrativePlayheadContext({
+      plan: current.compiledPlan,
+      storyWU: current.transport.storyWU,
+      resizedSectionId: sectionId,
+    });
+    store.beginPreview('Restore saved Section length');
+    store.updatePreview((draft) => { draft.sections[sectionIndex][field] = baselineSection[field]; });
+    store.setTransport({ storyWU: remapAboutNarrativePlayheadContext(context, store.getSnapshot().compiledPlan) });
+    store.commitPreview({ type: 'section', sectionId });
+  };
+
+  const beginMarquee = (event) => {
+    if (event.button !== 0 || event.target !== event.currentTarget) return;
+    const canvas = lanesRef.current?.querySelector('.about-editor-timeline-canvas');
+    if (!canvas) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const rect = canvas.getBoundingClientRect();
+    timingDragRef.current = {
+      type: 'marquee',
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      canvasRect: rect,
+      additive: event.shiftKey,
+    };
+    setMarquee({ left: event.clientX - rect.left, top: event.clientY - rect.top, width: 0, height: 0 });
+  };
+
+  const moveMarquee = (event) => {
+    const drag = timingDragRef.current;
+    if (drag?.type !== 'marquee' || drag.pointerId !== event.pointerId) return;
+    const left = Math.min(drag.startClientX, event.clientX) - drag.canvasRect.left;
+    const top = Math.min(drag.startClientY, event.clientY) - drag.canvasRect.top;
+    setMarquee({
+      left,
+      top,
+      width: Math.abs(event.clientX - drag.startClientX),
+      height: Math.abs(event.clientY - drag.startClientY),
+    });
+  };
+
+  const endMarquee = (event) => {
+    const drag = timingDragRef.current;
+    if (drag?.type !== 'marquee' || drag.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (event.type !== 'pointercancel') {
+      const selectionRect = {
+        left: Math.min(drag.startClientX, event.clientX),
+        right: Math.max(drag.startClientX, event.clientX),
+        top: Math.min(drag.startClientY, event.clientY),
+        bottom: Math.max(drag.startClientY, event.clientY),
+      };
+      const laneRect = lanesRef.current?.getBoundingClientRect();
+      const hits = [...(lanesRef.current?.querySelectorAll('.about-editor-cue[data-cue-id]') || [])]
+        .filter((node) => {
+          const rect = node.getBoundingClientRect();
+          const visible = laneRect && rect.right >= laneRect.left && rect.left <= laneRect.right;
+          return visible && rect.right >= selectionRect.left && rect.left <= selectionRect.right
+            && rect.bottom >= selectionRect.top && rect.top <= selectionRect.bottom;
+        })
+        .map((node) => ({ type: 'cue', sectionId: node.dataset.sectionId, cueId: node.dataset.cueId, keyPart: 'focus' }));
+      if (hits.length) {
+        let nextSelection = drag.additive ? store.getSnapshot().selection : hits[0];
+        hits.slice(drag.additive ? 0 : 1).forEach((hit) => {
+          nextSelection = toggleAboutNarrativeCueSelection(nextSelection, hit);
+        });
+        store.setSelection(nextSelection);
+      }
+    }
+    timingDragRef.current = null;
+    setMarquee(null);
+  };
+
   return (
     <div className="about-editor-timeline">
       <div className="about-editor-lane-labels" aria-hidden="true">
         <span>Sections</span><span>Camera</span><span>World</span><span>Text</span><span>Interaction</span>
       </div>
-      <div ref={lanesRef} className="about-editor-lanes" data-solo-track={transport.soloTrack || ''} style={{ '--about-editor-playhead': playhead }}>
-        <div className="about-editor-playhead" />
-        {cameraDragPreview ? (
+      <div ref={lanesRef} className="about-editor-lanes" data-solo-track={transport.soloTrack || ''} onWheel={zoomTimeline}>
+        <div className="about-editor-timeline-canvas" style={{ '--about-editor-playhead': playhead, '--about-editor-timeline-zoom': Math.max(1, Number(transport.zoom) || 1) }}>
+          <div className="about-editor-playhead" />
+          {marquee ? <div className="about-editor-marquee" style={marquee} aria-hidden="true" /> : null}
+          {cameraDragPreview ? (
           <div
             className={`about-editor-camera-drag-ghost${cameraDragPreview.valid ? '' : ' is-invalid'}`}
             style={{ left: `${cameraDragPreview.contentX}px` }}
@@ -548,8 +789,8 @@ function Timeline({ store, snapshot }) {
             <i />
             <span>{cameraDragPreview.valid ? `${cameraDragPreview.sectionLabel} · ${formatCameraPercent(cameraDragPreview.at)}` : cameraDragPreview.reason}</span>
           </div>
-        ) : null}
-        {['section', 'camera', 'world', 'text', 'interaction'].map((lane) => (
+          ) : null}
+          {['section', 'camera', 'world', 'text', 'interaction'].map((lane) => (
           <div className={`about-editor-lane about-editor-lane--${lane}`} key={lane}>
             {document.sections.map((section, sectionIndex) => {
               const compiled = compiledPlan?.sections?.[sectionIndex];
@@ -558,10 +799,11 @@ function Timeline({ store, snapshot }) {
               const spanWU = Math.max(0.001, nextStartWU - startWU);
               const width = `${(spanWU / maxWU) * 100}%`;
               const inSelectedSection = selection.sectionId === section.id;
-              const localPosition = (at) => `${Math.min(100, (Number(at || 0) * (compiled?.travelWU || spanWU) / spanWU) * 100)}%`;
+              const localPercent = (at) => Math.min(100, (Number(at || 0) * (compiled?.travelWU || spanWU) / spanWU) * 100);
+              const localPosition = (at) => `${localPercent(at)}%`;
               const extendedLocalPosition = (at) => `${(Number(at || 0) * (compiled?.travelWU || spanWU) / spanWU) * 100}%`;
+              const extendedLocalWidth = (from, to) => `${Math.max(0.35, (Number(to) - Number(from)) * (compiled?.travelWU || spanWU) / spanWU * 100)}%`;
               const textPosition = (at) => `${clamp01(Number(at || 0)) * 100}%`;
-              const textWidth = (from, to) => `${Math.max(0.35, (Number(to) - Number(from)) * 100)}%`;
               const selectAt = (nextSelection, at = 0) => {
                 store.setSelection({ sectionId: section.id, ...nextSelection });
                 store.setTransport({
@@ -572,47 +814,70 @@ function Timeline({ store, snapshot }) {
               };
               if (lane === 'section') {
                 const isSelected = inSelectedSection && selection.type === 'section';
+                const resizeExtent = sectionResizePreview?.sectionId === section.id
+                  ? sectionResizePreview.extent
+                  : Number(section[getAboutNarrativeExtentField(snapshot.previewProfile)]);
                 return (
-                  <button
-                    type="button"
+                  <div
                     key={section.id}
-                    className={`${isSelected ? 'is-selected' : ''}${inSelectedSection ? ' is-context' : ''}`}
+                    className={`about-editor-section-clip${isSelected ? ' is-selected' : ''}${inSelectedSection ? ' is-context' : ''}`}
                     style={{ width }}
-                    aria-pressed={isSelected}
-                    onClick={() => selectAt({ type: 'section' })}
                     title={`${section.label} · ${formatWU(compiled?.resolvedExtentWU || section.extentWU)}`}
-                  ><span>{String(sectionIndex + 1).padStart(2, '0')}</span>{section.label}</button>
+                  >
+                    <button type="button" aria-pressed={isSelected} onClick={() => selectAt({ type: 'section' })}>
+                      <span>{String(sectionIndex + 1).padStart(2, '0')}</span>{section.label}
+                    </button>
+                    {sectionResizePreview?.sectionId === section.id ? <output>{formatWU(Math.max(0, resizeExtent - 1))} scroll · {formatWU(resizeExtent)} total</output> : null}
+                    <button
+                      type="button"
+                      className="about-editor-section-resize"
+                      disabled={section.locked}
+                      aria-label={`Resize ${section.label}`}
+                      title={section.locked ? 'Unlock this protected Section to resize it' : `Drag to change ${snapshot.previewProfile === 'mobile' ? 'mobile' : 'desktop'} scroll length · double-click to restore saved length`}
+                      onDoubleClick={(event) => { event.preventDefault(); event.stopPropagation(); resetSectionExtent(section.id, sectionIndex); }}
+                      onPointerDown={(event) => beginSectionResize(event, { sectionId: section.id, sectionIndex, sectionLabel: section.label, locked: section.locked })}
+                      onPointerMove={moveSectionResize}
+                      onPointerUp={endSectionResize}
+                      onPointerCancel={endSectionResize}
+                    />
+                  </div>
                 );
               }
               if (lane === 'camera') {
                 return (
                   <div className="about-editor-clip" key={section.id} style={{ width }}>
+                    <div className="about-editor-camera-rail" aria-hidden="true">
+                      {section.camera.keys.slice(1).map((key, keyIndex) => {
+                        const fromKey = section.camera.keys[keyIndex];
+                        const left = localPercent(fromKey.at);
+                        const right = localPercent(key.at);
+                        return (
+                          <span
+                            className={cameraPoseChanges(fromKey, key) ? 'is-authored-motion' : 'is-base-dolly'}
+                            key={`${section.id}:camera-span:${keyIndex}`}
+                            style={{ left: `${left}%`, width: `${Math.max(0.5, right - left)}%` }}
+                          />
+                        );
+                      })}
+                    </div>
                     {section.camera.keys.map((key, keyIndex) => {
                       const timingBounds = getAboutNarrativeCameraKeyTimingBounds(section.camera.keys, keyIndex);
                       const token = `camera:${section.id}:${keyIndex}`;
-                      if (timingBounds.locked) {
-                        return (
-                          <span
-                            className="about-editor-camera-anchor"
-                            key={token}
-                            style={{ left: localPosition(key.at) }}
-                            title="Automatic camera continuity anchor"
-                            aria-hidden="true"
-                          />
-                        );
-                      }
                       const keySelection = { type: 'camera-key', sectionId: section.id, keyIndex };
                       const isSelected = inSelectedSection && selection.type === 'camera-key' && selection.keyIndex === keyIndex;
+                      const required = timingBounds.locked;
                       return (
                         <button
                           type="button"
                           key={token}
-                          className={`about-editor-key is-draggable${isSelected ? ' is-selected' : ''}${cameraDragPreview?.token === token ? ' is-drag-source' : ''}`}
+                          className={`about-editor-key${required ? ' is-boundary' : ' is-draggable'}${isSelected ? ' is-selected' : ''}${cameraDragPreview?.token === token ? ' is-drag-source' : ''}`}
                           style={{ left: localPosition(key.at) }}
-                          title={`Camera key at ${formatCameraPercent(key.at)} · drag anywhere on the Camera track`}
-                          aria-label={`Camera key at ${formatCameraPercent(key.at)} through ${section.label}`}
+                          title={required
+                            ? `Protected Camera key at ${formatCameraPercent(key.at)} · select to inspect`
+                            : `Camera key at ${formatCameraPercent(key.at)} · drag anywhere on the Camera track`}
+                          aria-label={`${required ? 'Protected ' : ''}Camera key at ${formatCameraPercent(key.at)} through ${section.label}`}
                           aria-pressed={isSelected}
-                          onPointerDown={(event) => beginTimingDrag(event, {
+                          onPointerDown={required ? undefined : (event) => beginTimingDrag(event, {
                             type: 'camera',
                             token,
                             locked: false,
@@ -626,9 +891,9 @@ function Timeline({ store, snapshot }) {
                             selection: keySelection,
                             coalesceKey: `timeline:${token}`,
                           })}
-                          onPointerMove={moveTimingDrag}
-                          onPointerUp={endTimingDrag}
-                          onPointerCancel={endTimingDrag}
+                          onPointerMove={required ? undefined : moveTimingDrag}
+                          onPointerUp={required ? undefined : endTimingDrag}
+                          onPointerCancel={required ? undefined : endTimingDrag}
                           onClick={() => handleTimingClick(token, () => selectAt({ type: 'camera-key', keyIndex }, key.at))}
                         />
                       );
@@ -665,9 +930,18 @@ function Timeline({ store, snapshot }) {
               }
               if (lane === 'text') {
                 return (
-                  <div className="about-editor-clip" key={section.id} style={{ width }}>
+                  <div
+                    className={`about-editor-clip${section.text.disciplineReveal ? ' has-extended-discipline' : ''}`}
+                    key={section.id}
+                    style={{ width }}
+                    onPointerDown={beginMarquee}
+                    onPointerMove={moveMarquee}
+                    onPointerUp={endMarquee}
+                    onPointerCancel={endMarquee}
+                  >
                     {(section.text.cues || []).map((cue) => {
-                      const isSelected = inSelectedSection && selection.type === 'cue' && selection.cueId === cue.id;
+                      const isSelected = selectedCueMembers.some((member) => member.sectionId === section.id && member.cueId === cue.id);
+                      const isPrimary = selection.type === 'cue' && selection.sectionId === section.id && selection.cueId === cue.id;
                       const movement = getAboutNarrativeCueMovement(cue);
                       const timingBounds = getAboutNarrativeCueTimingBounds(cue);
                       const token = `cue:${section.id}:${cue.id}`;
@@ -675,8 +949,10 @@ function Timeline({ store, snapshot }) {
                       return (
                         <button
                           type="button"
-                          className={`about-editor-cue is-${movement}${timingBounds.min === timingBounds.max ? ' is-boundary' : ' is-draggable'}${isSelected ? ' is-selected' : ''}`}
+                          className={`about-editor-cue is-${movement}${timingBounds.min === timingBounds.max ? ' is-boundary' : ' is-draggable'}${isSelected ? ' is-selected' : ''}${isPrimary ? ' is-primary-selection' : ''}`}
                           key={cue.id}
+                          data-section-id={section.id}
+                          data-cue-id={cue.id}
                           style={{ left: textPosition(cue.hold) }}
                           aria-label={`${movement === 'vertical' ? 'Vertical' : 'Spatial'} text at ${Math.round(cue.hold * 100)}% · ${cue.text}`}
                           aria-pressed={isSelected}
@@ -700,7 +976,17 @@ function Timeline({ store, snapshot }) {
                           onPointerMove={moveTimingDrag}
                           onPointerUp={endTimingDrag}
                           onPointerCancel={endTimingDrag}
-                          onClick={() => handleTimingClick(token, () => selectAt({ type: 'cue', cueId: cue.id, keyPart: 'focus' }, cue.hold))}
+                          onKeyDown={(event) => {
+                            if (event.shiftKey && event.code === 'Space') {
+                              event.preventDefault();
+                              const nextSelection = toggleAboutNarrativeCueSelection(store.getSnapshot().selection, cueSelection);
+                              store.setSelection(nextSelection);
+                              store.setTransport({ owner: 'timeline', playing: false, storyWU: startWU + (Number(cue.hold) * (compiled?.travelWU || 0)) });
+                            }
+                          }}
+                          onClick={() => handleTimingClick(token, () => {
+                            store.setTransport({ owner: 'timeline', playing: false, storyWU: startWU + (Number(cue.hold) * (compiled?.travelWU || 0)) });
+                          })}
                         />
                       );
                     })}
@@ -715,7 +1001,7 @@ function Timeline({ store, snapshot }) {
                         <button
                           type="button"
                           className={`about-editor-discipline-reveal is-draggable${isSelected ? ' is-selected' : ''}`}
-                          style={{ left: textPosition(reveal.start), width: textWidth(reveal.start, reveal.end) }}
+                          style={{ left: extendedLocalPosition(reveal.start), width: extendedLocalWidth(reveal.start, reveal.end) }}
                           aria-label={`Discipline reveal from ${Math.round(reveal.start * 100)}% to ${Math.round(reveal.end * 100)}%`}
                           aria-pressed={isSelected}
                           title="Discipline reveal · drag the complete clip to retime"
@@ -724,7 +1010,7 @@ function Timeline({ store, snapshot }) {
                             token,
                             locked: false,
                             min: duration * 0.5,
-                            max: 1 - (duration * 0.5),
+                            max: DISCIPLINE_REVEAL_MAX - (duration * 0.5),
                             at: centre,
                             sectionIndex,
                             sectionStartWU: startWU,
@@ -773,7 +1059,8 @@ function Timeline({ store, snapshot }) {
               );
             })}
           </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -820,6 +1107,12 @@ function SequenceInspector({ store, snapshot }) {
 
 function SectionInspector({ store, snapshot, section }) {
   const sectionIndex = getSectionIndex(snapshot.document, section.id);
+  const compiledSection = snapshot.compiledPlan?.sections?.[sectionIndex];
+  const activeExtentField = snapshot.previewProfile === 'mobile' ? 'mobileExtentWU' : 'extentWU';
+  const activeExtent = Number(section[activeExtentField]);
+  const resolvedExtent = Number(compiledSection?.resolvedExtentWU ?? activeExtent);
+  const contentMinimumActive = resolvedExtent > activeExtent + 0.001;
+  const baselineSection = snapshot.baselineDocument.sections.find((item) => item.id === section.id);
   const update = (label, mutate, coalesceKey = null) => store.commit(label, (draft) => {
     mutate(draft.sections[sectionIndex]);
   }, { coalesceKey, selection: snapshot.selection });
@@ -846,8 +1139,21 @@ function SectionInspector({ store, snapshot, section }) {
           <option value="spatial">Spatial</option><option value="editorial">Editorial</option><option value="finale">Finale</option>
         </select>
       </Property>
-      <NumberProperty label="Authored extent" value={section.extentWU} min={1} max={8} step={0.05} unit="WU" onChange={(value) => update('Change Section extent', (draft) => { draft.extentWU = value; }, `section:${section.id}:extent`)} />
-      <NumberProperty label="Mobile extent" value={section.mobileExtentWU} min={1} max={8} step={0.05} unit="WU" onChange={(value) => update('Change mobile extent', (draft) => { draft.mobileExtentWU = value; }, `section:${section.id}:mobile`)} />
+      <details open>
+        <summary>Section timing</summary>
+        <Property label="Scroll travel"><output className="about-editor-readout">{formatWU(Math.max(0, activeExtent - 1))}</output></Property>
+        <Property label="Total height"><output className="about-editor-readout">{formatWU(activeExtent)}</output></Property>
+        <NumberProperty label="Desktop length" value={section.extentWU} min={1} max={8} step={0.05} unit="WU" onChange={(value) => update('Change desktop Section length', (draft) => { draft.extentWU = value; }, `section:${section.id}:extent`)} />
+        <NumberProperty label="Mobile length" value={section.mobileExtentWU} min={1} max={8} step={0.05} unit="WU" onChange={(value) => update('Change mobile Section length', (draft) => { draft.mobileExtentWU = value; }, `section:${section.id}:mobile`)} />
+        <Property label="Resolved height"><output className="about-editor-readout">{formatWU(resolvedExtent)}</output></Property>
+        {contentMinimumActive ? <p className="about-editor-timing-warning">Content minimum in effect. The rendered copy needs {formatWU(resolvedExtent)} in this profile.</p> : null}
+        <button
+          type="button"
+          className="about-editor-wide-action"
+          disabled={!baselineSection || baselineSection[activeExtentField] === section[activeExtentField]}
+          onClick={() => update('Restore saved Section length', (draft) => { draft[activeExtentField] = baselineSection[activeExtentField]; })}
+        >Reset {snapshot.previewProfile === 'mobile' ? 'mobile' : 'desktop'} length</button>
+      </details>
       {section.type === 'editorial' ? <EditorialBlocks store={store} snapshot={snapshot} section={section} /> : null}
       {section.type !== 'editorial' ? (
         <button
@@ -921,6 +1227,7 @@ function EditorialBlocks({ store, snapshot, section }) {
 }
 
 function CueInspector({ store, snapshot, section }) {
+  const selectedMembers = getAboutNarrativeSelectionMembers(snapshot.selection);
   const sectionIndex = getSectionIndex(snapshot.document, section.id);
   const cueIndex = section.text.cues.findIndex((cue) => cue.id === snapshot.selection.cueId);
   const cue = section.text.cues[cueIndex];
@@ -945,6 +1252,17 @@ function CueInspector({ store, snapshot, section }) {
   return (
     <>
       <header><span>Text Cue</span><strong>{cue.id}</strong></header>
+      {selectedMembers.length > 1 ? (
+        <div className="about-editor-group-summary">
+          <strong>{selectedMembers.length} titles selected</strong>
+          <ol>{selectedMembers.map((member) => {
+            const memberSection = snapshot.document.sections.find((item) => item.id === member.sectionId);
+            const memberCue = memberSection?.text?.cues?.find((item) => item.id === member.cueId);
+            return <li key={`${member.sectionId}:${member.cueId}`}><span>{memberSection?.label}</span>{memberCue?.text}</li>;
+          })}</ol>
+          <button type="button" onClick={() => store.setSelection({ type: 'cue', sectionId: section.id, cueId: cue.id, keyPart: 'focus' })}>Keep primary only</button>
+        </div>
+      ) : null}
       <p className="about-editor-help">Drag the pink timing marker anywhere from 0–100% of its Section. This moves the title's focus time only. Its travel duration, speed, blur, and in/out cadence remain controlled globally under Spatial titles.</p>
       <Property label="Statement"><textarea rows="7" value={cue.text} onChange={(event) => update('text', event.target.value)} /></Property>
       <Property label="Movement"><select value={movement} onChange={(event) => updateMovement(event.target.value)}><option value="spatial">Spatial travel</option><option value="vertical">Vertical scroll</option></select></Property>
@@ -1021,9 +1339,10 @@ function DisciplineRevealInspector({ store, snapshot, section }) {
             <div className="about-editor-discipline-item" key={item.group}>
               <code>{String(itemIndex + 1).padStart(2, '0')}</code>
               <input value={item.label} aria-label={`Discipline ${itemIndex + 1} label`} onChange={(event) => update('Edit discipline label', (draft) => { draft.items[itemIndex].label = event.target.value; }, `discipline-reveal:${section.id}:item:${item.group}:label`)} />
-              <select value={item.tone} aria-label={`${item.label} colour`} onChange={(event) => update('Change discipline colour', (draft) => { draft.items[itemIndex].tone = event.target.value; })}>
-                {ABOUT_NARRATIVE_DISCIPLINE_TONES.map((tone) => <option key={tone}>{tone}</option>)}
-              </select>
+              <div className="about-editor-discipline-palette" title={`${item.label} uses the Home simulation ${DISCIPLINE_BALL_TOKEN_BY_GROUP[item.group]}`}>
+                <i style={{ background: `var(${DISCIPLINE_BALL_TOKEN_BY_GROUP[item.group]})` }} />
+                <code>{DISCIPLINE_BALL_TOKEN_BY_GROUP[item.group]}</code>
+              </div>
               <span>
                 <button type="button" disabled={itemIndex === 0} aria-label={`Reveal ${item.label} earlier`} onClick={() => update('Reorder discipline reveal', (draft) => { const [moved] = draft.items.splice(itemIndex, 1); draft.items.splice(itemIndex - 1, 0, moved); })}>↑</button>
                 <button type="button" disabled={itemIndex === reveal.items.length - 1} aria-label={`Reveal ${item.label} later`} onClick={() => update('Reorder discipline reveal', (draft) => { const [moved] = draft.items.splice(itemIndex, 1); draft.items.splice(itemIndex + 1, 0, moved); })}>↓</button>
@@ -1431,9 +1750,9 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
     const root = rootRef.current;
     if (!root) return undefined;
     root.querySelectorAll('.is-editor-selected').forEach((node) => node.classList.remove('is-editor-selected'));
-    if (activeSelection.type === 'cue' && activeSelection.cueId) {
-      root.querySelector(`[data-text-cue="${CSS.escape(activeSelection.cueId)}"]`)?.classList.add('is-editor-selected');
-    }
+    getAboutNarrativeSelectionMembers(activeSelection).forEach((member) => {
+      root.querySelector(`[data-text-cue="${CSS.escape(member.cueId)}"]`)?.classList.add('is-editor-selected');
+    });
     root.dataset.editorSelectionType = activeSelection.type || '';
     return () => {
       root.querySelectorAll('.is-editor-selected').forEach((node) => node.classList.remove('is-editor-selected'));
@@ -1486,7 +1805,16 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
       }
       if (event.key === 'Escape') {
         const current = store.getSnapshot();
-        if (current.tryState) store.cancelTry();
+        if (current.previewState) store.cancelPreview();
+        else if (current.tryState) store.cancelTry();
+        else if (getAboutNarrativeSelectionMembers(current.selection).length > 1) {
+          store.setSelection({
+            type: 'cue',
+            sectionId: current.selection.sectionId,
+            cueId: current.selection.cueId,
+            keyPart: current.selection.keyPart || 'focus',
+          });
+        }
         else if (current.selection.type !== 'section') store.setSelection({ type: 'section', sectionId: current.selection.sectionId });
         else store.setSelection({ type: 'sequence' });
       }
@@ -1533,6 +1861,10 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
   const selected = getSection(snapshot.document, snapshot.selection);
   const compiledSelected = snapshot.compiledPlan?.sections.find((section) => section.id === selected?.id);
   const resolvedExtent = compiledSelected?.resolvedExtentWU || selected?.extentWU || 0;
+  const selectedExtent = selected
+    ? Number(snapshot.previewProfile === 'mobile' ? selected.mobileExtentWU : selected.extentWU)
+    : 0;
+  const selectedCueCount = getAboutNarrativeSelectionMembers(snapshot.selection).length;
   const loopActive = Boolean(snapshot.transport.loop?.sectionId === selected?.id);
   const timelineDeletion = getTimelineDeletion(snapshot);
   const toggleLoop = () => store.setTransport({
@@ -1545,6 +1877,25 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
   const toggleSolo = (track) => store.setTransport({
     soloTrack: snapshot.transport.soloTrack === track ? null : track,
   });
+  const fitSequence = () => {
+    store.setTransport({ zoom: 1 });
+    requestAnimationFrame(() => {
+      const lanes = document.querySelector('.about-editor-lanes');
+      if (lanes) lanes.scrollLeft = 0;
+    });
+  };
+  const fitSection = () => {
+    if (!compiledSelected || !snapshot.compiledPlan?.maxStoryWU) return;
+    const sectionSpan = Math.max(0.001, compiledSelected.resolvedExtentWU);
+    const zoom = Math.min(8, Math.max(1, (snapshot.compiledPlan.maxStoryWU / sectionSpan) * 0.82));
+    store.setTransport({ zoom: Number(zoom.toFixed(3)) });
+    requestAnimationFrame(() => {
+      const lanes = document.querySelector('.about-editor-lanes');
+      if (!lanes) return;
+      const startRatio = compiledSelected.startWU / snapshot.compiledPlan.maxStoryWU;
+      lanes.scrollLeft = Math.max(0, (startRatio * lanes.scrollWidth) - (lanes.clientWidth * 0.08));
+    });
+  };
   const toggleDirector = () => {
     const next = !directorView;
     setDirectorView(next);
@@ -1618,10 +1969,13 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
       >{timelineOpen ? <ChevronDown aria-hidden="true" /> : <ChevronUp aria-hidden="true" />}<span>{timelineOpen ? 'Hide timeline' : 'Show timeline'}</span></button>
       <div id="about-editor-timeline-panel" className="about-editor-bottom" aria-hidden={!timelineOpen}>
         <div className="about-editor-contextbar">
-          <span><strong>{selected?.label || 'Sequence'}</strong> {selected ? `${selected.type} · authored ${formatWU(selected.extentWU)} · resolved ${formatWU(resolvedExtent)}` : ''}</span>
+          <span><strong>{selected?.label || 'Sequence'}</strong> {selected ? `${selected.type} · ${formatWU(Math.max(0, selectedExtent - 1))} scroll · ${formatWU(selectedExtent)} total${resolvedExtent > selectedExtent + 0.001 ? ` · ${formatWU(resolvedExtent)} resolved` : ''}` : ''}</span>
+          {selectedCueCount > 1 ? <span className="about-editor-selection-count">{selectedCueCount} titles selected</span> : null}
           <span>{snapshot.autoKey ? 'Auto-key armed' : 'Auto-key off'}</span>
           <button type="button" className={snapshot.autoKey ? 'is-active' : ''} onClick={() => store.setAutoKey(!snapshot.autoKey)}>◆ Auto-key</button>
           <button type="button" className={loopActive ? 'is-active' : ''} onClick={toggleLoop}>Loop Section</button>
+          <button type="button" onClick={fitSequence}>Fit sequence</button>
+          <button type="button" disabled={!compiledSelected} onClick={fitSection}>Fit Section</button>
           {['camera', 'world', 'text'].map((track) => <button type="button" key={track} className={snapshot.transport.soloTrack === track ? 'is-active' : ''} onClick={() => toggleSolo(track)}>Solo {track}</button>)}
           {timelineDeletion ? <button type="button" className="about-editor-delete-key" disabled={timelineDeletion.disabled} title={timelineDeletion.message || `${timelineDeletion.label} · Delete/Backspace`} onClick={() => deleteTimelineSelection(store, snapshot)}><Trash2 aria-hidden="true" />{timelineDeletion.label}</button> : null}
           {runtimeMetrics ? <span className="about-editor-hud">{runtimeMetrics.frameTimeMs.toFixed(2)}ms · {runtimeMetrics.drawCalls} draw · {runtimeMetrics.pointCount.toLocaleString()} pts · {runtimeMetrics.activeModifiers} modifiers · {runtimeMetrics.bufferRebuilds} rebuilds</span> : null}

@@ -424,7 +424,7 @@
             "easing": "smoothstep"
           },
           {
-            "at": 0.72,
+            "at": 0.5,
             "offset": [
               0,
               0,
@@ -440,18 +440,34 @@
             "easing": "smoothstep"
           },
           {
-            "at": 1,
+            "at": 0.74,
             "offset": [
               0,
-              9,
+              3.2,
               0
             ],
             "lookAtOffset": [
               0,
-              -9,
-              -0.55
+              -2.9,
+              -0.92
             ],
-            "fov": 50,
+            "fov": 47.5,
+            "roll": 0,
+            "easing": "smoothstep"
+          },
+          {
+            "at": 1,
+            "offset": [
+              0,
+              7.2,
+              0
+            ],
+            "lookAtOffset": [
+              0,
+              -7.2,
+              -0.45
+            ],
+            "fov": 48,
             "roll": 0,
             "easing": "smoothstep"
           }
@@ -515,14 +531,14 @@
         "disciplineReveal": {
           "id": "practice-disciplines",
           "start": 0.32,
-          "end": 0.98,
-          "stagger": 0.085,
+          "end": 2.9,
+          "stagger": 0.075,
           "backgroundFade": 0.12,
           "backgroundOpacity": 0.06,
-          "pointScale": 5.2,
-          "labelOffsetPx": 18,
-          "labelDuration": 0.07,
-          "hold": 0.08,
+          "pointScale": 1.35,
+          "labelOffsetPx": 10,
+          "labelDuration": 0.06,
+          "hold": 1.45,
           "items": [
             {
               "group": 1,
@@ -563,15 +579,15 @@
             "at": 0,
             "offset": [
               0,
-              9,
+              7.2,
               0
             ],
             "lookAtOffset": [
               0,
-              -9,
-              -0.55
+              -7.2,
+              -0.45
             ],
-            "fov": 50,
+            "fov": 48,
             "roll": 0,
             "easing": "smoothstep"
           },
@@ -579,15 +595,15 @@
             "at": 1,
             "offset": [
               0,
-              9,
+              7.2,
               0
             ],
             "lookAtOffset": [
               0,
-              -9,
-              -0.55
+              -7.2,
+              -0.45
             ],
-            "fov": 50,
+            "fov": 48,
             "roll": 0,
             "easing": "smoothstep"
           }
@@ -658,74 +674,32 @@
       "mobileExtentWU": 4,
       "text": {
         "blocks": [
-        {
-          "id": "disciplines-title",
-          "kind": "highlight",
-          "text": "Each brings a different way of thinking to the work.",
-          "emphasis": [
-            {
-              "text": "different way of thinking",
-              "tone": "green"
-            }
-          ]
+          {
+            "id": "disciplines-title",
+            "kind": "highlight",
+            "text": "Each brings a different way of thinking to the work.",
+            "emphasis": [
+              {
+                "text": "different way of thinking",
+                "tone": "green"
+              }
+            ]
           },
-        {
-          "id": "disciplines-practice",
-          "kind": "prose",
-          "text": "Their different perspectives help me understand an opportunity, shape how an experience works, give it character, make behaviour and feeling tangible, and explore directly through code, tools and working systems.",
-          "emphasis": [
-            {
-              "text": "understand an opportunity",
-              "tone": "blue"
-            },
-            {
-              "text": "give it character",
-              "tone": "orange"
-            },
-            {
-              "text": "code, tools and working systems",
-              "tone": "green"
-            }
-          ]
-        },
-        {
-          "id": "disciplines-ai",
-          "kind": "prose",
-          "text": "AI runs through all of this as a creative material and a practical capability, expanding what I can explore, generate and build.",
-          "emphasis": [
-            {
-              "text": "AI",
-              "tone": "orange"
-            },
-            {
-              "text": "creative material",
-              "tone": "green"
-            },
-            {
-              "text": "practical capability",
-              "tone": "blue"
-            }
-          ]
-        },
-        {
-          "id": "disciplines-synthesis",
-          "kind": "prose",
-          "text": "Moving between disciplines lets one kind of thinking affect another. An insight can reshape a product. A technical experiment can unlock a visual language. Motion can make an interaction easier to understand.",
-          "emphasis": [
-            {
-              "text": "An insight",
-              "tone": "blue"
-            },
-            {
-              "text": "A technical experiment",
-              "tone": "orange"
-            },
-            {
-              "text": "Motion",
-              "tone": "green"
-            }
-          ],
-          "worldInfluence": true
+          {
+            "id": "disciplines-practice",
+            "kind": "prose",
+            "text": "Their different perspectives help me understand an opportunity, shape how an experience works, give it character, make behaviour and feeling tangible, and explore directly through code, tools and working systems."
+          },
+          {
+            "id": "disciplines-ai",
+            "kind": "prose",
+            "text": "AI runs through all of this as a creative material and a practical capability, expanding what I can explore, generate and build."
+          },
+          {
+            "id": "disciplines-synthesis",
+            "kind": "prose",
+            "text": "Moving between disciplines lets one kind of thinking affect another. An insight can reshape a product. A technical experiment can unlock a visual language. Motion can make an interaction easier to understand.",
+            "worldInfluence": true
           }
         ]
       },
@@ -735,15 +709,15 @@
             "at": 0,
             "offset": [
               0,
-              9,
+              7.2,
               0
             ],
             "lookAtOffset": [
               0,
-              -9,
-              -0.55
+              -7.2,
+              -0.45
             ],
-            "fov": 50,
+            "fov": 48,
             "roll": 0,
             "easing": "smoothstep"
           },
@@ -751,15 +725,15 @@
             "at": 1,
             "offset": [
               0,
-              9,
+              7.2,
               0
             ],
             "lookAtOffset": [
               0,
-              -9,
-              -0.55
+              -7.2,
+              -0.45
             ],
-            "fov": 50,
+            "fov": 48,
             "roll": 0,
             "easing": "smoothstep"
           }
@@ -844,15 +818,15 @@
             "at": 0,
             "offset": [
               0,
-              9,
+              7.2,
               0
             ],
             "lookAtOffset": [
               0,
-              -9,
-              -0.55
+              -7.2,
+              -0.45
             ],
-            "fov": 50,
+            "fov": 48,
             "roll": 0,
             "easing": "smoothstep"
           },

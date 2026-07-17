@@ -465,6 +465,94 @@ async function audit(viewport, label) {
     await page.waitForTimeout(100);
     assert.equal(await movableTextCue.getAttribute('aria-label'), textLabelBeforeDrag);
 
+    const introGroupCue = page.locator('[data-cue-id="complexity-idea"]');
+    const complexityGroupCue = page.locator('[data-cue-id="complexity-curiosity"]');
+    await introGroupCue.click();
+    await complexityGroupCue.click({ modifiers: ['Shift'] });
+    assert.equal(await page.locator('.about-editor-cue.is-selected').count(), 2);
+    assert.match(await page.locator('.about-editor-selection-count').textContent(), /2 titles selected/i);
+    const groupLabelsBefore = await Promise.all([
+      introGroupCue.getAttribute('aria-label'),
+      complexityGroupCue.getAttribute('aria-label'),
+    ]);
+    const groupWidthsBefore = await Promise.all([
+      introGroupCue.boundingBox().then((box) => box.width),
+      complexityGroupCue.boundingBox().then((box) => box.width),
+    ]);
+    const complexityGroupBox = await complexityGroupCue.boundingBox();
+    assert.ok(complexityGroupBox);
+    await page.mouse.move(complexityGroupBox.x + (complexityGroupBox.width / 2), complexityGroupBox.y + (complexityGroupBox.height / 2));
+    await page.mouse.down();
+    await page.mouse.move(complexityGroupBox.x + (complexityGroupBox.width / 2) + 22, complexityGroupBox.y + (complexityGroupBox.height / 2), { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(120);
+    const groupLabelsAfter = await Promise.all([
+      introGroupCue.getAttribute('aria-label'),
+      complexityGroupCue.getAttribute('aria-label'),
+    ]);
+    assert.notDeepEqual(groupLabelsAfter, groupLabelsBefore);
+    const groupWidthsAfter = await Promise.all([
+      introGroupCue.boundingBox().then((box) => box.width),
+      complexityGroupCue.boundingBox().then((box) => box.width),
+    ]);
+    groupWidthsAfter.forEach((width, index) => assert.ok(Math.abs(width - groupWidthsBefore[index]) < 0.1));
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await page.waitForTimeout(120);
+    assert.deepEqual(await Promise.all([
+      introGroupCue.getAttribute('aria-label'),
+      complexityGroupCue.getAttribute('aria-label'),
+    ]), groupLabelsBefore);
+
+    const complexityTextClip = page.locator('.about-editor-lane--text .about-editor-clip').nth(1);
+    const complexityTextBox = await complexityTextClip.boundingBox();
+    assert.ok(complexityTextBox);
+    await page.locator('.about-editor-lane--section button').nth(1).click();
+    await page.mouse.move(complexityTextBox.x + 4, complexityTextBox.y + (complexityTextBox.height / 2));
+    await page.mouse.down();
+    await page.mouse.move(complexityTextBox.x + (complexityTextBox.width * 0.96), complexityTextBox.y + (complexityTextBox.height / 2), { steps: 8 });
+    assert.equal(await page.locator('.about-editor-marquee').count(), 1);
+    await page.mouse.up();
+    assert.ok(await complexityTextClip.locator('.about-editor-cue.is-selected').count() >= 4);
+
+    const sectionClip = page.locator('.about-editor-lane--section .about-editor-section-clip').nth(1);
+    const sectionHandle = sectionClip.locator('.about-editor-section-resize');
+    await sectionClip.locator('button').first().click();
+    const sectionTiming = page.locator('.about-editor-inspector details').filter({ hasText: 'Section timing' });
+    const sectionTravel = sectionTiming.locator('.about-editor-property').filter({ hasText: /^Scroll travel/ }).locator('output');
+    const extentBefore = Number.parseFloat(await sectionTravel.textContent());
+    const maxStoryWU = Number(await transport.getAttribute('max'));
+    const sectionStartRatio = await sectionClip.evaluate((node) => (
+      [...node.parentElement.children]
+        .slice(0, [...node.parentElement.children].indexOf(node))
+        .reduce((sum, sibling) => sum + (Number.parseFloat(sibling.style.width) || 0), 0) / 100
+    ));
+    const sectionStartWU = sectionStartRatio * maxStoryWU;
+    await transport.fill(formatWU(sectionStartWU + (extentBefore * 0.42)));
+    const handleBox = await sectionHandle.boundingBox();
+    assert.ok(handleBox);
+    await page.mouse.move(handleBox.x + (handleBox.width / 2), handleBox.y + (handleBox.height / 2));
+    await page.mouse.down();
+    await page.mouse.move(handleBox.x + (handleBox.width / 2) + 48, handleBox.y + (handleBox.height / 2), { steps: 8 });
+    assert.equal(await sectionClip.locator('output').count(), 1);
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+    const extentAfter = Number.parseFloat(await sectionTravel.textContent());
+    assert.notEqual(extentAfter, extentBefore);
+    const localAfterResize = (Number(await transport.inputValue()) - sectionStartWU) / extentAfter;
+    assert.ok(Math.abs(localAfterResize - 0.42) < 0.02);
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await page.waitForTimeout(120);
+    assert.equal(Number.parseFloat(await sectionTravel.textContent()), extentBefore);
+
+    const timelineCanvas = page.locator('.about-editor-timeline-canvas');
+    const timelineWidthBefore = await timelineCanvas.evaluate((node) => node.scrollWidth);
+    await page.locator('.about-editor-contextbar button').filter({ hasText: 'Fit Section' }).click();
+    await page.waitForTimeout(120);
+    assert.ok(await timelineCanvas.evaluate((node) => node.scrollWidth) > timelineWidthBefore);
+    await page.locator('.about-editor-contextbar button').filter({ hasText: 'Fit sequence' }).click();
+    await page.waitForTimeout(120);
+    assert.ok(Math.abs((await timelineCanvas.evaluate((node) => node.scrollWidth)) - timelineWidthBefore) <= 1);
+
     const revealTextClip = page.locator('.about-editor-lane--text .about-editor-clip').nth(3);
     const revealClip = revealTextClip.locator('.about-editor-discipline-reveal');
     await revealClip.click();

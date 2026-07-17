@@ -272,8 +272,8 @@ function syncMaterialPalette(uniforms, styles) {
       uniforms[`materialThreshold${index + 1}`].value = cumulative;
     }
   });
-  const disciplineTokens = ['--ball-5', '--ball-4', '--ball-1', '--ball-8', '--ball-6', '--ball-5'];
-  const disciplineFallbacks = ['#07111b', '#1768ff', '#c0bfbf', '#d8ff38', '#ff6a00', '#07111b'];
+  const disciplineTokens = ['--ball-1', '--ball-4', '--ball-3', '--ball-7', '--ball-8', '--ball-6'];
+  const disciplineFallbacks = ['#b5b7b6', '#00695c', '#ffffff', '#0d5cb6', '#ffa000', '#d7ff2f'];
   disciplineTokens.forEach((token, index) => {
     uniforms[`disciplineColor${index + 1}`].value.setStyle(
       readColorToken(styles, token, disciplineFallbacks[index]),
@@ -322,7 +322,7 @@ function touchBoundedCache(cache, key, value) {
   while (cache.size > SEQUENCE_CACHE_LIMIT) cache.delete(cache.keys().next().value);
 }
 
-function writeWorldTransform(target, world, globals, compact, scratch) {
+function writeWorldTransform(target, world, globals, compact, scratch, storyOffset = null) {
   if (!world) return target.identity();
   const transform = world.transform || {};
   const position = transform.position || [0, 0, 0];
@@ -337,6 +337,7 @@ function writeWorldTransform(target, world, globals, compact, scratch) {
     position[1] + (compact ? Number(transform.mobileYOffset || 0) : 0),
     entryCameraZ - Number(world.entryDistanceWU || 0) + position[2],
   );
+  if (storyOffset) scratch.position.add(storyOffset);
   scratch.euler.set(
     rotation[0],
     rotation[1],
@@ -445,12 +446,12 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     materialColor4: { value: new THREE.Color('#0d5cb6') },
     materialColor5: { value: new THREE.Color('#ffa000') },
     materialColor6: { value: new THREE.Color('#d7ff2f') },
-    disciplineColor1: { value: new THREE.Color('#07111b') },
-    disciplineColor2: { value: new THREE.Color('#1768ff') },
-    disciplineColor3: { value: new THREE.Color('#c0bfbf') },
-    disciplineColor4: { value: new THREE.Color('#d8ff38') },
-    disciplineColor5: { value: new THREE.Color('#ff6a00') },
-    disciplineColor6: { value: new THREE.Color('#07111b') },
+    disciplineColor1: { value: new THREE.Color('#b5b7b6') },
+    disciplineColor2: { value: new THREE.Color('#00695c') },
+    disciplineColor3: { value: new THREE.Color('#ffffff') },
+    disciplineColor4: { value: new THREE.Color('#0d5cb6') },
+    disciplineColor5: { value: new THREE.Color('#ffa000') },
+    disciplineColor6: { value: new THREE.Color('#d7ff2f') },
     materialThreshold1: { value: 0.31 },
     materialThreshold2: { value: 0.44 },
     materialThreshold3: { value: 0.60 },
@@ -517,6 +518,9 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
   const correspondenceFromScratch = createTransformScratch();
   const correspondenceToScratch = createTransformScratch();
   const disciplinePointScratch = new THREE.Vector3();
+  const fromStoryOffset = new THREE.Vector3();
+  const toStoryOffset = new THREE.Vector3();
+  const cameraUpScratch = new THREE.Vector3();
   const disciplineWeights = new Float32Array(6);
   const fromDisciplinePositions = new Float32Array(18).fill(Number.NaN);
   const toDisciplinePositions = new Float32Array(18).fill(Number.NaN);
@@ -790,6 +794,20 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     uniforms[`${prefix}LivingColour`].value = Number(colour?.strength || 0);
   };
 
+  const resolveDisciplineStoryOffset = (frame, world, target) => {
+    target.set(0, 0, 0);
+    if (frame.reducedMotion || world?.shapeId !== 'discipline-grid-v1') return 0;
+    const storyTravel = Math.max(0, frame.storyWU - Number(world.startWU || 0))
+      * Number(frame.camera.cadence || 1);
+    const riseStart = Math.max(0.04, Number(world.travelWU || 0.8) * 0.2);
+    const extraRise = (compact ? 0.72 : 1.1)
+      * smoothRange(storyTravel, riseStart, riseStart + (compact ? 0.9 : 1.15));
+    const rise = storyTravel + extraRise;
+    cameraUpScratch.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
+    target.copy(cameraUpScratch).multiplyScalar(rise);
+    return rise;
+  };
+
   const updateDisciplineReveal = (frame, fromWorld, toWorld) => {
     const revealState = frame.disciplineReveal;
     const reveal = revealState?.config;
@@ -941,8 +959,26 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
       camera.fov = frame.camera.fov;
       camera.updateProjectionMatrix();
     }
-    writeWorldTransform(uniforms.fromTransform.value, fromWorld, frame.globals, compact, fromTransformScratch);
-    writeWorldTransform(uniforms.toTransform.value, toWorld, frame.globals, compact, toTransformScratch);
+    camera.updateMatrixWorld(true);
+    const fromDisciplineRise = resolveDisciplineStoryOffset(frame, fromWorld, fromStoryOffset);
+    const toDisciplineRise = resolveDisciplineStoryOffset(frame, toWorld, toStoryOffset);
+    writeWorldTransform(
+      uniforms.fromTransform.value,
+      fromWorld,
+      frame.globals,
+      compact,
+      fromTransformScratch,
+      fromStoryOffset,
+    );
+    writeWorldTransform(
+      uniforms.toTransform.value,
+      toWorld,
+      frame.globals,
+      compact,
+      toTransformScratch,
+      toStoryOffset,
+    );
+    root.dataset.worldDisciplineRise = Math.max(fromDisciplineRise, toDisciplineRise).toFixed(4);
     uniforms.morphProgress.value = transitionProgress;
     uniforms.storyTime.value = frame.storyTime;
     uniforms.ambientTime.value = frame.ambientTime;
@@ -1125,6 +1161,7 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     delete root.dataset.worldDisciplineVisible;
     delete root.dataset.worldDisciplineLabels;
     delete root.dataset.worldGridBackground;
+    delete root.dataset.worldDisciplineRise;
     root.style.removeProperty('--narrative-camera-forward');
     root.style.removeProperty('--narrative-camera-roll');
     root.style.removeProperty('--narrative-camera-fov');

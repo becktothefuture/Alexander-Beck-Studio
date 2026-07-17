@@ -6,6 +6,121 @@ function cleanTimelineValue(value) {
   return Number(Number(value).toFixed(6));
 }
 
+function getSectionAtStoryWU(plan, storyWU) {
+  if (!plan?.sections?.length) return { section: null, sectionIndex: -1 };
+  const clampedStoryWU = clamp(Number(storyWU) || 0, 0, Number(plan.maxStoryWU || 0));
+  let sectionIndex = plan.sections.findIndex((section, index) => {
+    const nextStartWU = plan.sections[index + 1]?.startWU ?? Number.POSITIVE_INFINITY;
+    return clampedStoryWU >= section.startWU && clampedStoryWU < nextStartWU;
+  });
+  if (sectionIndex < 0) sectionIndex = plan.sections.length - 1;
+  return { section: plan.sections[sectionIndex], sectionIndex, storyWU: clampedStoryWU };
+}
+
+function cueMemberKey(member) {
+  return `${member.sectionId}:${member.cueId}`;
+}
+
+function normalizeCueMember(member) {
+  if (member?.type !== 'cue' || !member.sectionId || !member.cueId) return null;
+  return {
+    type: 'cue',
+    sectionId: member.sectionId,
+    cueId: member.cueId,
+    keyPart: member.keyPart || 'focus',
+  };
+}
+
+function makeCueSelection(primary, members) {
+  const selection = { ...primary };
+  delete selection.members;
+  if (members.length > 1) selection.members = members;
+  return selection;
+}
+
+export function getAboutNarrativeExtentField(profile) {
+  return profile === 'mobile' ? 'mobileExtentWU' : 'extentWU';
+}
+
+export function captureAboutNarrativePlayheadContext({
+  plan,
+  storyWU,
+  resizedSectionId,
+}) {
+  const { section, sectionIndex, storyWU: clampedStoryWU } = getSectionAtStoryWU(plan, storyWU);
+  const resizedSectionIndex = plan?.sections?.findIndex((item) => item.id === resizedSectionId) ?? -1;
+  if (!section || resizedSectionIndex < 0 || sectionIndex < resizedSectionIndex) {
+    return {
+      mode: 'absolute',
+      storyWU: cleanTimelineValue(clampedStoryWU || 0),
+    };
+  }
+  return {
+    mode: 'section',
+    storyWU: cleanTimelineValue(clampedStoryWU),
+    sectionId: section.id,
+    localProgress: cleanTimelineValue(clamp(
+      (clampedStoryWU - section.startWU) / Math.max(0.001, section.travelWU),
+      0,
+      1,
+    )),
+  };
+}
+
+export function remapAboutNarrativePlayheadContext(context, plan) {
+  if (!plan?.sections?.length) return 0;
+  if (context?.mode !== 'section') {
+    return cleanTimelineValue(clamp(Number(context?.storyWU) || 0, 0, Number(plan.maxStoryWU || 0)));
+  }
+  const section = plan.sections.find((item) => item.id === context.sectionId);
+  if (!section) {
+    return cleanTimelineValue(clamp(Number(context.storyWU) || 0, 0, Number(plan.maxStoryWU || 0)));
+  }
+  return cleanTimelineValue(clamp(
+    section.startWU + (clamp(Number(context.localProgress) || 0, 0, 1) * section.travelWU),
+    0,
+    Number(plan.maxStoryWU || 0),
+  ));
+}
+
+export function getAboutNarrativeSelectionMembers(selection) {
+  const primary = normalizeCueMember(selection);
+  if (!primary) return [];
+  const candidates = Array.isArray(selection.members) ? selection.members : [];
+  const members = [];
+  const seen = new Set();
+  [primary, ...candidates].forEach((candidate) => {
+    const member = normalizeCueMember(candidate);
+    if (!member) return;
+    const key = cueMemberKey(member);
+    if (seen.has(key)) return;
+    seen.add(key);
+    members.push(member);
+  });
+  return members;
+}
+
+export function toggleAboutNarrativeCueSelection(selection, cueSelection, {
+  additive = true,
+} = {}) {
+  const target = normalizeCueMember(cueSelection);
+  if (!target) return selection;
+  if (!additive || selection?.type !== 'cue') return target;
+
+  const targetKey = cueMemberKey(target);
+  const current = getAboutNarrativeSelectionMembers(selection);
+  const targetIndex = current.findIndex((member) => cueMemberKey(member) === targetKey);
+  if (targetIndex < 0) return makeCueSelection(target, [...current, target]);
+  if (current.length === 1) return target;
+
+  const members = current.filter((_, index) => index !== targetIndex);
+  const currentPrimaryKey = cueMemberKey(normalizeCueMember(selection));
+  const primary = currentPrimaryKey === targetKey
+    ? members.at(-1)
+    : members.find((member) => cueMemberKey(member) === currentPrimaryKey) || members.at(-1);
+  return makeCueSelection(primary, members);
+}
+
 export function snapAboutNarrativeTimelineValue(value, step = ABOUT_NARRATIVE_TIMELINE_STEP) {
   return cleanTimelineValue(Math.round(Number(value) / step) * step);
 }
@@ -105,5 +220,73 @@ export function moveAboutNarrativeCueTiming(cue, nextFocus) {
     enter: cleanTimelineValue(hold - bounds.lead),
     hold,
     exit: cleanTimelineValue(hold + bounds.trail),
+  };
+}
+
+export function resolveAboutNarrativeCueGroupMove({
+  document,
+  plan,
+  members,
+  primary,
+  deltaWU,
+  localDelta,
+}) {
+  if (!document?.sections?.length || !plan?.valid || !plan.sections?.length) {
+    return { valid: false, reason: 'The text timeline is not ready.' };
+  }
+
+  const normalizedMembers = getAboutNarrativeSelectionMembers({
+    ...(normalizeCueMember(primary) || normalizeCueMember(members?.[0]) || {}),
+    members,
+  });
+  if (!normalizedMembers.length) {
+    return { valid: false, reason: 'Select at least one title Cue.' };
+  }
+
+  const entries = [];
+  for (const member of normalizedMembers) {
+    const sectionIndex = document.sections.findIndex((section) => section.id === member.sectionId);
+    const section = document.sections[sectionIndex];
+    const compiled = plan.sections.find((item) => item.id === member.sectionId);
+    const cue = section?.text?.cues?.find((item) => item.id === member.cueId);
+    if (!section || !compiled || !cue || !(compiled.travelWU > 0)) {
+      return { valid: false, reason: `Title Cue ${member.cueId} is no longer available.` };
+    }
+    const hold = Number(cue.hold);
+    const bounds = getAboutNarrativeCueTimingBounds(cue);
+    entries.push({ member, sectionIndex, compiled, cue, hold, bounds });
+  }
+
+  const primaryMember = normalizeCueMember(primary) || entries[0].member;
+  const primaryEntry = entries.find((entry) => cueMemberKey(entry.member) === cueMemberKey(primaryMember)) || entries[0];
+  const requestedDeltaWU = Number.isFinite(Number(deltaWU))
+    ? Number(deltaWU)
+    : Number(localDelta || 0) * primaryEntry.compiled.travelWU;
+  const minDeltaWU = Math.max(...entries.map((entry) => -entry.hold * entry.compiled.travelWU));
+  const maxDeltaWU = Math.min(...entries.map((entry) => (1 - entry.hold) * entry.compiled.travelWU));
+  const appliedDeltaWU = cleanTimelineValue(clamp(requestedDeltaWU, minDeltaWU, maxDeltaWU));
+  const moves = entries.map((entry) => {
+    const hold = cleanTimelineValue(clamp(
+      entry.hold + (appliedDeltaWU / entry.compiled.travelWU),
+      0,
+      1,
+    ));
+    return {
+      sectionId: entry.member.sectionId,
+      sectionIndex: entry.sectionIndex,
+      cueId: entry.member.cueId,
+      enter: cleanTimelineValue(hold - entry.bounds.lead),
+      hold,
+      exit: cleanTimelineValue(hold + entry.bounds.trail),
+    };
+  });
+
+  return {
+    valid: true,
+    requestedDeltaWU: cleanTimelineValue(requestedDeltaWU),
+    deltaWU: appliedDeltaWU,
+    minDeltaWU: cleanTimelineValue(minDeltaWU),
+    maxDeltaWU: cleanTimelineValue(maxDeltaWU),
+    moves,
   };
 }

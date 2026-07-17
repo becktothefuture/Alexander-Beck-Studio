@@ -55,14 +55,14 @@ function numberControl(id, label, min, max, step, unit = '') {
 
 export const ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS = Object.freeze([
   numberControl('start', 'Reveal start', 0, 0.8, 0.005),
-  numberControl('end', 'Label exit', 0.2, 1, 0.005),
+  numberControl('end', 'Label exit', 0.2, 4, 0.005),
   numberControl('stagger', 'Stagger', 0.02, 0.16, 0.005),
   numberControl('backgroundFade', 'Grid fade duration', 0.02, 0.4, 0.005),
   numberControl('backgroundOpacity', 'Resting grid opacity', 0, 0.4, 0.01),
   numberControl('pointScale', 'Active point size', 1, 8, 0.05, '×'),
   numberControl('labelOffsetPx', 'Label offset', 0, 64, 1, 'px'),
   numberControl('labelDuration', 'Label reveal duration', 0.02, 0.25, 0.005),
-  numberControl('hold', 'Six-point hold', 0, 0.4, 0.005),
+  numberControl('hold', 'Editorial hold', 0, 2, 0.005),
 ]);
 
 export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([

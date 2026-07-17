@@ -30,6 +30,7 @@ export function createAboutNarrativeEditorStore(initialDocument, {
   let historyIndex = -1;
   let historyBytes = 0;
   let tryState = null;
+  let previewState = null;
   let snapshot = {
     document: cloneAboutNarrativeDocument(initialDocument),
     baselineDocument: cloneAboutNarrativeDocument(initialDocument),
@@ -53,6 +54,7 @@ export function createAboutNarrativeEditorStore(initialDocument, {
     recoveryState: { available: false, error: '' },
     autoKey: false,
     tryState: null,
+    previewState: null,
     dirty: false,
   };
 
@@ -127,7 +129,8 @@ export function createAboutNarrativeEditorStore(initialDocument, {
       if (JSON.stringify(before) === JSON.stringify(after)) return false;
       pushHistory(makeHistoryEntry(label, before, cloneAboutNarrativeDocument(after), selection, coalesceKey));
       tryState = null;
-      compileAndSet(after, { selection, tryState: null });
+      previewState = null;
+      compileAndSet(after, { selection, tryState: null, previewState: null });
       emit();
       return true;
     },
@@ -156,6 +159,90 @@ export function createAboutNarrativeEditorStore(initialDocument, {
       tryState = null;
       snapshot = { ...snapshot, tryState: null, diagnostics: snapshot.compiledPlan?.diagnostics || [] };
       emit();
+    },
+    beginPreview(label) {
+      if (previewState) return false;
+      previewState = {
+        label,
+        startDocument: cloneAboutNarrativeDocument(snapshot.document),
+        startTransport: cloneAboutNarrativeDocument(snapshot.transport),
+        startCompiledPlan: snapshot.compiledPlan,
+        startDiagnostics: snapshot.diagnostics,
+        startDirty: snapshot.dirty,
+        startSaveState: { ...snapshot.saveState },
+        plan: snapshot.compiledPlan,
+      };
+      snapshot = {
+        ...snapshot,
+        previewState: { label, valid: Boolean(previewState.plan?.valid) },
+      };
+      emit();
+      return true;
+    },
+    updatePreview(mutate, transportPatch = null) {
+      if (!previewState || typeof mutate !== 'function') return false;
+      const document = cloneAboutNarrativeDocument(snapshot.document);
+      mutate(document);
+      const plan = compileAboutNarrativeDocument(document, { profile: snapshot.previewProfile });
+      previewState.plan = plan;
+      const resolvedTransportPatch = typeof transportPatch === 'function'
+        ? transportPatch(snapshot.transport)
+        : transportPatch;
+      snapshot = {
+        ...snapshot,
+        document,
+        compiledPlan: plan.valid ? plan : snapshot.compiledPlan,
+        diagnostics: plan.diagnostics,
+        transport: resolvedTransportPatch
+          ? { ...snapshot.transport, ...resolvedTransportPatch }
+          : snapshot.transport,
+        dirty: JSON.stringify(document) !== JSON.stringify(snapshot.baselineDocument),
+        saveState: snapshot.saveState.status === 'saving'
+          ? snapshot.saveState
+          : { ...snapshot.saveState, status: 'draft' },
+        previewState: { label: previewState.label, valid: plan.valid },
+      };
+      emit();
+      return plan.valid;
+    },
+    commitPreview(selection = snapshot.selection) {
+      if (!previewState?.plan?.valid) return false;
+      const before = previewState.startDocument;
+      const after = cloneAboutNarrativeDocument(snapshot.document);
+      const changed = JSON.stringify(before) !== JSON.stringify(after);
+      const label = previewState.label;
+      previewState = null;
+      if (!changed) {
+        snapshot = { ...snapshot, selection, previewState: null };
+        emit();
+        return false;
+      }
+      pushHistory(makeHistoryEntry(
+        label,
+        cloneAboutNarrativeDocument(before),
+        cloneAboutNarrativeDocument(after),
+        selection,
+      ));
+      compileAndSet(after, { selection, previewState: null });
+      emit();
+      return true;
+    },
+    cancelPreview() {
+      if (!previewState) return false;
+      const start = previewState;
+      previewState = null;
+      snapshot = {
+        ...snapshot,
+        document: cloneAboutNarrativeDocument(start.startDocument),
+        compiledPlan: start.startCompiledPlan,
+        diagnostics: start.startDiagnostics,
+        transport: cloneAboutNarrativeDocument(start.startTransport),
+        dirty: start.startDirty,
+        saveState: start.startSaveState,
+        previewState: null,
+      };
+      emit();
+      return true;
     },
     undo() {
       if (historyIndex < 0) return;

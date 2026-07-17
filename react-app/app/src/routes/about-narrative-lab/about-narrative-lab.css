@@ -63,8 +63,8 @@ body.about-narrative-page .route-simulation-layer {
   opacity: var(--discipline-reveal);
   color: var(--text-primary);
   font-family: var(--abs-font-sans);
-  font-size: clamp(1rem, 1.7vw, 1.6rem);
-  font-weight: 560;
+  font-size: clamp(0.84rem, 1.2vw, 1.12rem);
+  font-weight: 540;
   letter-spacing: -0.035em;
   line-height: 1.05;
   text-wrap: balance;
@@ -73,24 +73,28 @@ body.about-narrative-page .route-simulation-layer {
   will-change: opacity, transform;
 }
 
-.about-narrative-discipline-reveal li[data-discipline-tone='green'] {
-  --discipline-color: var(--ball-5, #07111b);
-}
-
-.about-narrative-discipline-reveal li[data-discipline-tone='blue'] {
-  --discipline-color: var(--ball-4, #1768ff);
-}
-
-.about-narrative-discipline-reveal li[data-discipline-tone='neutral'] {
+.about-narrative-discipline-reveal li[data-discipline-group='1'] {
   --discipline-color: var(--ball-1, #b5b7b6);
 }
 
-.about-narrative-discipline-reveal li[data-discipline-tone='acid'] {
-  --discipline-color: var(--ball-8, #d8ff38);
+.about-narrative-discipline-reveal li[data-discipline-group='2'] {
+  --discipline-color: var(--ball-4, #00695c);
 }
 
-.about-narrative-discipline-reveal li[data-discipline-tone='orange'] {
-  --discipline-color: var(--ball-6, #ff6a00);
+.about-narrative-discipline-reveal li[data-discipline-group='3'] {
+  --discipline-color: var(--ball-3, #ffffff);
+}
+
+.about-narrative-discipline-reveal li[data-discipline-group='4'] {
+  --discipline-color: var(--ball-7, #0d5cb6);
+}
+
+.about-narrative-discipline-reveal li[data-discipline-group='5'] {
+  --discipline-color: var(--ball-8, #ffa000);
+}
+
+.about-narrative-discipline-reveal li[data-discipline-group='6'] {
+  --discipline-color: var(--ball-6, #d7ff2f);
 }
 
 .about-narrative-discipline-reveal__label {
@@ -272,9 +276,9 @@ body.about-narrative-page .route-simulation-layer {
   }
 }
 
-.about-narrative-section--disciplines {
+.about-narrative-section--editorial.about-narrative-section--disciplines {
   align-items: flex-start;
-  padding-top: clamp(7rem, 16cqh, 11rem);
+  padding-top: clamp(34rem, 92cqh, 52rem);
   padding-bottom: clamp(8rem, 18cqh, 13rem);
 }
 
@@ -536,8 +540,11 @@ body.about-narrative-page .route-simulation-layer {
   --discipline-color: var(--ball-6, #d7ff2f);
 }
 
+.about-narrative-section--disciplines .about-narrative-editorial-title,
 .about-narrative-section--disciplines .about-narrative-editorial-copy {
-  margin-inline-start: auto;
+  max-width: 48ch;
+  margin-inline: 0;
+  text-align: left;
 }
 
 .about-narrative-inline-study {
@@ -983,7 +990,7 @@ body.about-narrative-page .route-simulation-layer {
   .about-narrative-discipline-reveal li {
     transform: translate3d(min(var(--discipline-label-offset, 18px), 10px), -50%, 0);
     max-width: min(11rem, calc(100% - var(--discipline-x) - 0.5rem));
-    font-size: clamp(0.82rem, 3.6vw, 1rem);
+    font-size: clamp(0.76rem, 3.2vw, 0.9rem);
   }
 
   .about-narrative-spatial-stage {
