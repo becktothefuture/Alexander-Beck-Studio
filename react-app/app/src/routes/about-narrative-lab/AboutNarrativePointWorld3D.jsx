@@ -4,7 +4,10 @@ import {
   createAboutNarrativeSeeds,
   generateAboutNarrativeShape,
 } from './aboutNarrativePointShapes.js';
-import { resolveAboutNarrativeSwarmMotion } from './aboutNarrativeDefinitions.js';
+import {
+  ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS,
+  resolveAboutNarrativeSwarmMotion,
+} from './aboutNarrativeDefinitions.js';
 import { createAboutNarrativeBufferLru } from './aboutNarrativeBufferLru.js';
 import { createAboutNarrativeBustController } from './aboutNarrativeBustController.js';
 import { createAboutNarrativePreparationController } from './aboutNarrativePreparationController.js';
@@ -18,11 +21,26 @@ import {
 } from './aboutNarrativeRuntimeDiagnostics.js';
 import {
   ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
-  validateAboutNarrativeWorkerResponse,
 } from './aboutNarrativeWorkerProtocol.js';
+import { validateAboutNarrativeWorkerPublication } from './aboutNarrativeWorkerPublicationValidator.js';
+import {
+  ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT,
+  inspectAboutNarrativeAnchorSampling,
+  sampleAboutNarrativeAnchorPosition,
+} from './aboutNarrativeModifierSampling.js';
 import { getGlobals } from '../../legacy/modules/core/state.js';
+import { createAboutNarrativeRuntimeResources } from 'virtual:about-narrative-resource-tools';
 
 const MATERIAL_SLOT_COUNT = 6;
+const RUNTIME_DIAGNOSTICS_ENABLED = import.meta.env.DEV || __CERTIFY__;
+const DISCIPLINE_LABEL_SELECTORS = Object.freeze([
+  '[data-discipline-group="1"]',
+  '[data-discipline-group="2"]',
+  '[data-discipline-group="3"]',
+  '[data-discipline-group="4"]',
+  '[data-discipline-group="5"]',
+  '[data-discipline-group="6"]',
+]);
 const FALLBACK_MATERIAL_DISTRIBUTION = Object.freeze([
   Object.freeze({ colorIndex: 0, weight: 31 }),
   Object.freeze({ colorIndex: 3, weight: 13 }),
@@ -77,6 +95,7 @@ const VERTEX_SHADER = `
   uniform float disciplineRevealActive;
   uniform float disciplineBackgroundWeight;
   uniform float disciplineBackgroundOpacity;
+  uniform float disciplineReconnectOpacity;
   uniform float disciplinePointScale;
   uniform float fromLivingColour;
   uniform float toLivingColour;
@@ -217,8 +236,8 @@ const VERTEX_SHADER = `
     float reconnect = clamp(gridInfluence, 0.0, 1.0);
     float backgroundVisibility = mix(
       1.0,
-      disciplineBackgroundOpacity,
-      disciplineBackgroundWeight * (1.0 - reconnect)
+      mix(disciplineBackgroundOpacity, disciplineReconnectOpacity, reconnect),
+      disciplineBackgroundWeight
     );
     float revealVisibility = mix(backgroundVisibility, 1.0, revealedGroupWeight);
     presence *= mix(1.0, revealVisibility, disciplineRevealActive);
@@ -282,9 +301,8 @@ function syncMaterialPalette(uniforms, styles) {
       uniforms[`materialThreshold${index + 1}`].value = cumulative;
     }
   });
-  const disciplineTokens = ['--ball-1', '--ball-4', '--ball-3', '--ball-7', '--ball-8', '--ball-6'];
   const disciplineFallbacks = ['#b5b7b6', '#00695c', '#ffffff', '#0d5cb6', '#ffa000', '#d7ff2f'];
-  disciplineTokens.forEach((token, index) => {
+  ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS.forEach((token, index) => {
     uniforms[`disciplineColor${index + 1}`].value.setStyle(
       readColorToken(styles, token, disciplineFallbacks[index]),
     );
@@ -346,8 +364,9 @@ function smoothRange(value, from, to) {
   return progress * progress * (3 - (2 * progress));
 }
 
-function captureDisciplinePositions(output, target) {
+function captureDisciplinePositions(output, target, indices = null) {
   target.fill(Number.NaN);
+  indices?.fill(-1);
   const groups = output.attributes?.disciplineGroup;
   if (!groups) return;
   for (let index = 0; index < groups.length; index += 1) {
@@ -358,19 +377,39 @@ function captureDisciplinePositions(output, target) {
     target[targetOffset] = output.positions[sourceOffset];
     target[targetOffset + 1] = output.positions[sourceOffset + 1];
     target[targetOffset + 2] = output.positions[sourceOffset + 2];
+    if (indices) indices[group - 1] = index;
   }
 }
 
-function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayRef, runtimeRef }) {
+function createPointFieldAdapter({
+  canvas,
+  root,
+  interaction,
+  disciplineOverlayRef,
+  runtimeRef,
+}) {
   const compact = window.matchMedia('(max-width: 600px), (pointer: coarse)').matches;
   const quality = compact ? 'mobile' : 'desktop';
   const pointProfile = ABOUT_NARRATIVE_POINT_PROFILES[quality];
   const pointCount = pointProfile.pointCount;
-  const renderer = new THREE.WebGLRenderer({
-    canvas,
+  const diagnostics = createAboutNarrativeRuntimeDiagnostics({
+    initial: { state: 'idle', generation: 0, attemptCount: 0 },
+  });
+  const rendererAttributes = {
     alpha: true,
     antialias: false,
     powerPreference: 'high-performance',
+  };
+  const runtimeResources = createAboutNarrativeRuntimeResources({ canvas, rendererAttributes });
+  const {
+    context: instrumentedContext,
+    resourceLedger,
+    webglTracker,
+  } = runtimeResources;
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    ...rendererAttributes,
+    ...(instrumentedContext ? { context: instrumentedContext } : {}),
   });
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(48, 1, 0.08, 80);
@@ -417,6 +456,7 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     disciplineRevealActive: { value: 0 },
     disciplineBackgroundWeight: { value: 0 },
     disciplineBackgroundOpacity: { value: 0.06 },
+    disciplineReconnectOpacity: { value: 0.24 },
     disciplinePointScale: { value: 3.6 },
     fromLivingColour: { value: 0 },
     toLivingColour: { value: 0 },
@@ -442,6 +482,36 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     materialThreshold5: { value: 0.90 },
     fieldOpacity: { value: 0.96 },
   };
+  const modifierUniformTargets = Object.freeze({
+    from: Object.freeze({
+      driftAmplitude: uniforms.fromDriftAmplitude,
+      driftSpeed: uniforms.fromDriftSpeed,
+      driftIrregularity: uniforms.fromDriftIrregularity,
+      driftIndividuality: uniforms.fromDriftIndividuality,
+      driftAxisSpread: uniforms.fromDriftAxisSpread,
+      driftStoryMix: uniforms.fromDriftStoryMix,
+      waveWeight: uniforms.fromWaveWeight,
+      waveAmplitude: uniforms.fromWaveAmplitude,
+      waveSpeed: uniforms.fromWaveSpeed,
+      waveFrequency: uniforms.fromWaveFrequency,
+      groupStrength: uniforms.fromGroupStrength,
+      livingColour: uniforms.fromLivingColour,
+    }),
+    to: Object.freeze({
+      driftAmplitude: uniforms.toDriftAmplitude,
+      driftSpeed: uniforms.toDriftSpeed,
+      driftIrregularity: uniforms.toDriftIrregularity,
+      driftIndividuality: uniforms.toDriftIndividuality,
+      driftAxisSpread: uniforms.toDriftAxisSpread,
+      driftStoryMix: uniforms.toDriftStoryMix,
+      waveWeight: uniforms.toWaveWeight,
+      waveAmplitude: uniforms.toWaveAmplitude,
+      waveSpeed: uniforms.toWaveSpeed,
+      waveFrequency: uniforms.toWaveFrequency,
+      groupStrength: uniforms.toGroupStrength,
+      livingColour: uniforms.toLivingColour,
+    }),
+  });
   const material = new THREE.ShaderMaterial({
     uniforms,
     vertexShader: VERTEX_SHADER,
@@ -458,7 +528,7 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     toPresence: new THREE.BufferAttribute(emptyPresence.slice(), 1).setUsage(THREE.DynamicDrawUsage),
     fromPointSize: new THREE.BufferAttribute(emptySize, 1).setUsage(THREE.DynamicDrawUsage),
     toPointSize: new THREE.BufferAttribute(emptySize.slice(), 1).setUsage(THREE.DynamicDrawUsage),
-    fromGroup: new THREE.BufferAttribute(emptyGroup, 1).setUsage(THREE.DynamicDrawUsage),
+    fromGroup: new THREE.BufferAttribute(emptyGroup.slice(), 1).setUsage(THREE.DynamicDrawUsage),
     toGroup: new THREE.BufferAttribute(emptyGroup.slice(), 1).setUsage(THREE.DynamicDrawUsage),
   });
   Object.entries(fixedAttributes).forEach(([name, attribute]) => geometry.setAttribute(name, attribute));
@@ -466,9 +536,8 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
   points.frustumCulled = false;
   scene.add(points);
 
-  const diagnostics = createAboutNarrativeRuntimeDiagnostics({
-    initial: { state: 'idle', generation: 0, attemptCount: 0 },
-  });
+  resourceLedger?.retain('fixed-attributes', fixedAttributes);
+  if (resourceLedger) diagnostics.recordLifecycle('resource-ledger-ready');
   const recordCacheEvent = () => {};
   const shapeCache = createAboutNarrativeBufferLru({
     name: 'about-shapes',
@@ -483,6 +552,9 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
   let installedPair = null;
   let readySequence = null;
   let activePreparation = null;
+  let lastPreparationRequest = null;
+  let bootstrapController = null;
+  let bootstrapRequestId = 0;
   let correspondenceWorker = null;
   let sequenceState = 'idle';
   let sequencePreparationDurationMs = 0;
@@ -494,13 +566,33 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
   let viewportOffsetY = 0;
   let latestFrame = null;
   const bustController = createAboutNarrativeBustController();
+  const bustSampleInput = {
+    active: false,
+    transitionProgress: 0,
+    deltaSeconds: 0,
+    speed: 0,
+    resumeDelay: 0,
+    liveAmbient: false,
+    deterministicScrub: true,
+    reducedMotion: false,
+    hidden: false,
+  };
   let bustYaw = 0;
+  let lastBustAmbientTime = 0;
   let dragging = false;
   let dragStart = null;
   let bufferRebuilds = 0;
+  let maxInstallDurationMs = 0;
+  let maxWorkerMessageDurationMs = 0;
+  let maxFirstUploadDurationMs = 0;
+  let pendingFirstUpload = false;
+  let workerStarts = 0;
+  let workerTerminations = 0;
+  let workerTimeouts = 0;
   let frameStartedAt = performance.now();
   let lastFrameTime = 0;
   const director = { active: false, yaw: 0, pitch: 0, distance: 0 };
+  const modifierSlotsCache = new WeakMap();
   const directorTarget = new THREE.Vector3();
   const directorOffset = new THREE.Vector3();
   const directorEuler = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -517,6 +609,123 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
   const disciplineWeights = new Float32Array(6);
   const fromDisciplinePositions = new Float32Array(18).fill(Number.NaN);
   const toDisciplinePositions = new Float32Array(18).fill(Number.NaN);
+  const fromDisciplineIndices = new Int32Array(6).fill(-1);
+  const toDisciplineIndices = new Int32Array(6).fill(-1);
+  const anchorSampleTarget = { x: 0, y: 0, z: 0 };
+  const anchorFromWorldScratch = { x: 0, y: 0, z: 0 };
+  const anchorToWorldScratch = { x: 0, y: 0, z: 0 };
+  const anchorFromPosition = { x: 0, y: 0, z: 0 };
+  const anchorToPosition = { x: 0, y: 0, z: 0 };
+  const anchorSampleInput = {
+    fromPosition: anchorFromPosition,
+    toPosition: anchorToPosition,
+    fromTransform: null,
+    toTransform: null,
+    fromWorldScratch: anchorFromWorldScratch,
+    toWorldScratch: anchorToWorldScratch,
+    fromDrift: {},
+    toDrift: {},
+    fromWave: {},
+    toWave: {},
+  };
+  const anchorCapability = { capability: ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT, unsupportedCount: 0, unsupported: [] };
+  const anchorCapabilityTarget = { capability: ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT, unsupportedCount: 0, unsupported: [] };
+  let anchorSamplingExact = true;
+  let lastAnchorFromWorld = null;
+  let lastAnchorToWorld = null;
+  const disciplineLabels = new Array(6).fill(null);
+  const disciplineLabelReveal = new Float64Array(6).fill(Number.NaN);
+  const disciplineLabelX = new Float64Array(6).fill(Number.NaN);
+  const disciplineLabelY = new Float64Array(6).fill(Number.NaN);
+  const disciplineLabelPositionUnit = new Uint8Array(6);
+  let cachedDisciplineOverlay = null;
+  let cachedDisciplineChildCount = -1;
+  let lastDisciplineAriaHidden = '';
+  let lastDisciplineVisibleCount = Number.NaN;
+  let lastDisciplineLabelCount = Number.NaN;
+  let lastGridBackground = Number.NaN;
+  let lastDisciplineRise = Number.NaN;
+  let lastBustShaderYaw = Number.NaN;
+  let lastGroupFocus = Number.NaN;
+  let lastGridInfluence = Number.NaN;
+  let lastInteractionEnabled = null;
+  let lastWorldStage = '';
+  let lastCameraCadence = '';
+  let lastCameraForward = Number.NaN;
+  let lastCameraRoll = Number.NaN;
+  let lastCameraFov = Number.NaN;
+  let lastBustStyleYaw = Number.NaN;
+  let hotFrameCount = 0;
+  let hotFrameOwnedAllocations = 0;
+  let hotFrameDomQueries = 0;
+  let hotFrameDomWrites = 0;
+
+  const getModifierSlots = (world, globals) => {
+    if (!world) return null;
+    const cached = modifierSlotsCache.get(world);
+    if (cached) return cached;
+    const swarm = modifier(world, 'swarm-life-v1');
+    hotFrameOwnedAllocations += 1;
+    const slots = {
+      swarm: swarm ? resolveAboutNarrativeSwarmMotion(swarm, globals.swarmTurbulence) : null,
+      drift: modifier(world, 'ambient-drift-v1'),
+      wave: modifier(world, 'living-wave-v1'),
+      group: modifier(world, 'group-emphasis-v1'),
+      colour: modifier(world, 'living-colour-v1'),
+      bust: modifier(world, 'bust-yaw-v1'),
+    };
+    modifierSlotsCache.set(world, slots);
+    return slots;
+  };
+
+  const syncDisciplineLabels = (overlay) => {
+    const childCount = overlay?.childElementCount ?? -1;
+    if (overlay === cachedDisciplineOverlay && childCount === cachedDisciplineChildCount) return;
+    cachedDisciplineOverlay = overlay || null;
+    cachedDisciplineChildCount = childCount;
+    lastDisciplineAriaHidden = '';
+    hotFrameOwnedAllocations += 1;
+    for (let index = 0; index < disciplineLabels.length; index += 1) {
+      disciplineLabels[index] = overlay?.querySelector(DISCIPLINE_LABEL_SELECTORS[index]) || null;
+      hotFrameDomQueries += overlay ? 1 : 0;
+      disciplineLabelReveal[index] = Number.NaN;
+      disciplineLabelX[index] = Number.NaN;
+      disciplineLabelY[index] = Number.NaN;
+      disciplineLabelPositionUnit[index] = 0;
+    }
+  };
+
+  const writeDisciplineRevealStyles = (index, value) => {
+    if (disciplineLabelReveal[index] === value) return;
+    const label = disciplineLabels[index];
+    disciplineLabelReveal[index] = value;
+    if (!label) return;
+    label.style.setProperty('--discipline-reveal', value.toFixed(4));
+    label.style.setProperty('--discipline-blur', `${((1 - value) * 4.5).toFixed(2)}px`);
+    label.style.setProperty('--discipline-shift', `${((1 - value) * 8).toFixed(2)}px`);
+    hotFrameDomWrites += 3;
+  };
+
+  const writeDisciplinePosition = (index, x, y, unit) => {
+    if (
+      disciplineLabelPositionUnit[index] === unit
+      && disciplineLabelX[index] === x
+      && disciplineLabelY[index] === y
+    ) return;
+    const label = disciplineLabels[index];
+    disciplineLabelPositionUnit[index] = unit;
+    disciplineLabelX[index] = x;
+    disciplineLabelY[index] = y;
+    if (!label) return;
+    if (unit === 1) {
+      label.style.setProperty('--discipline-x', `${x}px`);
+      label.style.setProperty('--discipline-y', `${y}px`);
+    } else {
+      label.style.setProperty('--discipline-x', `${x}%`);
+      label.style.setProperty('--discipline-y', `${y}%`);
+    }
+    hotFrameDomWrites += 2;
+  };
 
   const updateTheme = () => {
     const styles = getComputedStyle(root);
@@ -554,6 +763,10 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     return shapeCache.trackPromise(key, promise, {
       owner: 'shape-cache',
       pinOwner: 'bootstrap-pending',
+      dispose: (value) => resourceLedger?.release('shape-cache', value),
+    }).then((output) => {
+      resourceLedger?.retain('shape-cache', output);
+      return output;
     });
   };
 
@@ -577,8 +790,10 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
   const installPreparedPair = (pair) => {
     if (disposed || !pair || installedPair?.key === pair.key) return;
     const installStartedAt = performance.now();
-    assertInstallOutput(pair.fromOutput, 'Source Shape');
-    assertInstallOutput(pair.toOutput, 'Target Shape');
+    if (!pair.validated) {
+      assertInstallOutput(pair.fromOutput, 'Source Shape');
+      assertInstallOutput(pair.toOutput, 'Target Shape');
+    }
     const fromGroup = pair.fromOutput.attributes.disciplineGroup || emptyGroup;
     const toGroup = pair.toOutput.attributes.disciplineGroup || emptyGroup;
     fixedAttributes.position.array.set(pair.fromOutput.positions);
@@ -592,8 +807,10 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     Object.entries(fixedAttributes).forEach(([name, attribute]) => {
       if (name !== 'pointSeed') attribute.needsUpdate = true;
     });
-    captureDisciplinePositions(pair.fromOutput, fromDisciplinePositions);
-    captureDisciplinePositions(pair.toOutput, toDisciplinePositions);
+    captureDisciplinePositions(pair.fromOutput, fromDisciplinePositions, fromDisciplineIndices);
+    captureDisciplinePositions(pair.toOutput, toDisciplinePositions, toDisciplineIndices);
+    resourceLedger?.releaseOwner('installed-pair');
+    resourceLedger?.retain('installed-pair', [pair.fromOutput, pair.toOutput]);
     installedPair = { ...pair, progress: 0 };
     bufferRebuilds += 1;
     root.dataset.worldBufferRebuilds = String(bufferRebuilds);
@@ -608,7 +825,17 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     root.dataset.worldCorrespondenceMax = Number(pair.metrics.maxDistance || 0).toFixed(4);
     root.dataset.worldCorrespondenceFallback = pair.fallbackReason || '';
     root.dataset.worldCorrespondencePair = pair.key;
-    diagnostics.recordMetrics({ installDurationMs: performance.now() - installStartedAt });
+    const installDurationMs = performance.now() - installStartedAt;
+    maxInstallDurationMs = Math.max(maxInstallDurationMs, installDurationMs);
+    pendingFirstUpload = true;
+    diagnostics.recordMetrics({ installDurationMs, maxInstallDurationMs });
+    diagnostics.recordLifecycle('pair-installed', {
+      installedPairId: installedPair.key,
+      installedWorldId: installedPair.toWorld.sectionId,
+      requestedStrategy: installedPair.requestedStrategy,
+      installedStrategy: installedPair.installedStrategy,
+      fallbackReason: installedPair.fallbackReason,
+    });
   };
 
   const createPreparedSequence = (key, sequence, outputs, workerPairs, timings, startedAt) => {
@@ -628,6 +855,7 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
         installedStrategy: workerPair.installedStrategy,
         fallbackReason: workerPair.fallbackReason,
         metrics: workerPair.metrics,
+        validated: true,
       });
     });
     return {
@@ -654,10 +882,28 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
       reject(error);
       return;
     }
+    workerStarts += 1;
     correspondenceWorker = worker;
-    const release = () => {
+    let released = false;
+    const publicationController = new AbortController();
+    const timeout = window.setTimeout(() => {
+      workerTimeouts += 1;
+      const error = new Error('The correspondence Worker timed out.');
+      error.category = 'workerTimeout';
+      release();
+      reject(error);
+    }, 15_000);
+    const release = ({ abortPublication = true } = {}) => {
+      if (released) return;
+      released = true;
+      if (abortPublication) publicationController.abort();
+      window.clearTimeout(timeout);
       if (correspondenceWorker === worker) correspondenceWorker = null;
+      worker.onmessage = null;
+      worker.onerror = null;
+      worker.onmessageerror = null;
       worker.terminate();
+      workerTerminations += 1;
       signal.removeEventListener('abort', handleAbort);
     };
     const handleAbort = () => {
@@ -665,23 +911,57 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
       reject(new DOMException('Preparation was aborted.', 'AbortError'));
     };
     signal.addEventListener('abort', handleAbort, { once: true });
-    worker.onmessage = (event) => {
+    worker.onmessage = async (event) => {
+      const messageStartedAt = performance.now();
+      let maximumPublicationTaskMs = 0;
+      let ownsPendingPublication = false;
+      const releasePendingPublication = () => {
+        if (!ownsPendingPublication) return;
+        ownsPendingPublication = false;
+        resourceLedger?.releaseOwner('pending-publication');
+      };
       try {
-        const response = validateAboutNarrativeWorkerResponse(event.data, {
-          generation,
-          sequenceKey,
-          pointCount,
-          entries,
+        if (resourceLedger) {
+          resourceLedger.retain('pending-publication', event.data);
+          ownsPendingPublication = true;
+        }
+        const publication = await validateAboutNarrativeWorkerPublication(event.data, {
+          generation, sequenceKey, pointCount, entries,
+        }, {
+          signal: publicationController.signal,
+          onChunk: (chunk) => {
+            maximumPublicationTaskMs = Math.max(
+              maximumPublicationTaskMs,
+              chunk.chunk === 1 ? performance.now() - messageStartedAt : chunk.durationMs,
+            );
+          },
         });
+        if (disposed || signal.aborted || correspondenceWorker !== worker
+          || activePreparation?.sequenceKey !== sequenceKey) {
+          throw new DOMException('Preparation was superseded during validation.', 'AbortError');
+        }
+        const { response } = publication;
         if (response.status === 'failure') {
           const error = new Error(response.error.message);
           error.category = response.error.category;
           error.code = response.error.code;
           throw error;
         }
-        release();
-        resolve(response);
+        release({ abortPublication: false });
+        const publicationValidationTotalMs = performance.now() - messageStartedAt;
+        const messageDurationMs = Math.max(maximumPublicationTaskMs, publication.chunks ? 0 : publicationValidationTotalMs);
+        maxWorkerMessageDurationMs = Math.max(maxWorkerMessageDurationMs, messageDurationMs);
+        diagnostics.recordMetrics({
+          messageDurationMs,
+          maxWorkerMessageDurationMs,
+          publicationValidationTotalMs,
+          publicationValidationDurationMs: publication.durationMs,
+          publicationValuesScanned: publication.valuesScanned,
+          publicationValidationChunks: publication.chunks,
+        });
+        resolve(Object.freeze({ response, releasePendingPublication }));
       } catch (error) {
+        releasePendingPublication();
         release();
         reject(error);
       }
@@ -692,52 +972,72 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
       release();
       reject(error);
     };
-    worker.postMessage({
-      protocolVersion: ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
-      generation,
-      sequenceKey,
-      pointCount,
-      quality,
-      entries,
-    });
+    worker.onmessageerror = () => {
+      const error = new Error('The correspondence Worker returned an unreadable message.');
+      error.category = 'workerProtocol';
+      release();
+      reject(error);
+    };
+    try {
+      worker.postMessage({
+        protocolVersion: ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
+        generation,
+        sequenceKey,
+        pointCount,
+        quality,
+        entries,
+      });
+    } catch (error) {
+      error.category = 'transfer';
+      release();
+      reject(error);
+    }
   });
 
   const preparationController = createAboutNarrativePreparationController({
     diagnostics,
+    retainReadyCandidate: false,
     startPreparation: prepareWithWorker,
     validateCandidate: (candidate) => candidate,
     publishReady: (candidate, identity) => {
-      const request = activePreparation;
-      if (!request || request.sequenceKey !== identity.sequenceKey) throw new Error('Preparation intent became stale.');
-      const prepared = createPreparedSequence(
-        request.sequenceKey,
-        request.sequence,
-        candidate.outputs,
-        candidate.pairs,
-        candidate.timings,
-        request.startedAt,
-      );
-      if (readySequence?.key && readySequence.key !== request.sequenceKey) {
-        sequenceCache.unpin(readySequence.key, 'ready-sequence');
+      try {
+        const request = activePreparation;
+        if (!request || request.sequenceKey !== identity.sequenceKey) throw new Error('Preparation intent became stale.');
+        const response = candidate.response;
+        const prepared = createPreparedSequence(
+          request.sequenceKey,
+          request.sequence,
+          response.outputs,
+          response.pairs,
+          response.timings,
+          request.startedAt,
+        );
+        if (readySequence?.key && readySequence.key !== request.sequenceKey) {
+          sequenceCache.unpin(readySequence.key, 'ready-sequence');
+        }
+        resourceLedger?.retain('sequence-cache', prepared);
+        sequenceCache.set(request.sequenceKey, prepared, {
+          owner: 'sequence-cache',
+          pins: ['ready-sequence'],
+          active: true,
+          dispose: (value) => resourceLedger?.release('sequence-cache', value),
+        });
+        readySequence = prepared;
+        sequencePreparationDurationMs = prepared.preparationDurationMs;
+        sequenceState = 'ready';
+        root.dataset.worldPrepare = 'ready';
+        root.dataset.worldShapeGenerationMs = prepared.generationDurationMs.toFixed(2);
+        root.dataset.worldCorrespondenceWorkerMs = prepared.correspondenceDurationMs.toFixed(2);
+        root.dataset.worldCorrespondencePrepareMs = prepared.preparationDurationMs.toFixed(2);
+        root.dataset.worldCorrespondenceApplyMs = '0.00';
+        delete root.dataset.worldError;
+        diagnostics.recordMetrics({
+          preparationDurationMs: prepared.preparationDurationMs,
+          workerDurationMs: prepared.correspondenceDurationMs,
+        });
+      } finally {
+        candidate.releasePendingPublication();
       }
-      sequenceCache.set(request.sequenceKey, prepared, {
-        owner: 'sequence-cache',
-        pins: ['ready-sequence'],
-        active: true,
-      });
-      readySequence = prepared;
-      sequencePreparationDurationMs = prepared.preparationDurationMs;
-      sequenceState = 'ready';
-      root.dataset.worldPrepare = 'ready';
-      root.dataset.worldShapeGenerationMs = prepared.generationDurationMs.toFixed(2);
-      root.dataset.worldCorrespondenceWorkerMs = prepared.correspondenceDurationMs.toFixed(2);
-      root.dataset.worldCorrespondencePrepareMs = prepared.preparationDurationMs.toFixed(2);
-      root.dataset.worldCorrespondenceApplyMs = '0.00';
-      delete root.dataset.worldError;
-      diagnostics.recordMetrics({
-        preparationDurationMs: prepared.preparationDurationMs,
-        workerDurationMs: prepared.correspondenceDurationMs,
-      });
     },
     classifyFailure: (error) => ({ category: error?.category || (error?.name === 'AbortError' ? 'aborted' : 'validation') }),
   });
@@ -758,9 +1058,16 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
 
   const bootstrapTarget = (sequenceKey, targetWorld) => {
     if (installedPair || !targetWorld) return;
+    bootstrapRequestId += 1;
+    const requestId = bootstrapRequestId;
+    bootstrapController?.abort();
+    bootstrapController = new AbortController();
     const startedAt = performance.now();
-    getShape(targetWorld).then((output) => {
-      if (disposed || installedPair || activePreparation?.sequenceKey !== sequenceKey) return;
+    const targetPromise = getShape(targetWorld, bootstrapController.signal);
+    root.dataset.worldBootstrapGenerationMs = (performance.now() - startedAt).toFixed(2);
+    targetPromise.then((output) => {
+      if (disposed || installedPair || requestId !== bootstrapRequestId
+        || activePreparation?.sequenceKey !== sequenceKey) return;
       installPreparedPair({
         key: `${sequenceKey}:${targetWorld.sectionId}:bootstrap`,
         fromWorld: targetWorld,
@@ -771,24 +1078,35 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
         installedStrategy: 'index-v1',
         fallbackReason: output.fallbackReason || '',
         metrics: { improvement: 0, p95Distance: 0, maxDistance: 0, weightedRmsDistance: 0 },
+        validated: true,
       });
-      root.dataset.worldBootstrapGenerationMs = (performance.now() - startedAt).toFixed(2);
+      root.dataset.worldBootstrapReadyMs = (performance.now() - startedAt).toFixed(2);
     }).catch((error) => {
       if (error?.name !== 'AbortError') root.dataset.worldError = error?.message || String(error);
     });
   };
 
   const preparePlan = ({ sequenceKey, descriptor, targetWorldId = '' } = {}) => {
+    lastPreparationRequest = { sequenceKey, descriptor, targetWorldId };
     const sequence = descriptor?.runtimeWorlds || descriptor?.worlds;
     const globals = descriptor?.globals || { camera: descriptor?.camera };
     if (!sequenceKey || !Array.isArray(sequence) || !sequence.length || !globals?.camera) return false;
     if (readySequence?.key === sequenceKey) return true;
     const cached = sequenceCache.get(sequenceKey);
     if (cached) {
+      if (readySequence?.key && readySequence.key !== sequenceKey) {
+        sequenceCache.unpin(readySequence.key, 'ready-sequence');
+      }
       readySequence = cached;
+      sequenceCache.pin(sequenceKey, 'ready-sequence');
       sequenceCache.activate(sequenceKey);
       sequenceState = 'ready';
       root.dataset.worldPrepare = 'ready';
+      return true;
+    }
+    if (activePreparation?.sequenceKey === sequenceKey && sequenceState === 'loading') {
+      const nextTarget = sequence.find((world) => world.sectionId === targetWorldId) || sequence[0];
+      bootstrapTarget(sequenceKey, nextTarget);
       return true;
     }
     const entries = sequence.map((world, index) => ({
@@ -809,6 +1127,7 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     }));
     activePreparation = {
       sequenceKey,
+      inputFingerprint: descriptor.inputFingerprint || sequenceKey,
       sequence,
       entries,
       startedAt: performance.now(),
@@ -816,42 +1135,42 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     sequenceState = 'loading';
     root.dataset.worldPrepare = 'loading';
     const targetWorld = sequence.find((world) => world.sectionId === targetWorldId) || sequence[0];
-    const targetPair = descriptor.pairs?.find((pair) => pair.toWorldId === targetWorld.sectionId);
     bootstrapTarget(sequenceKey, targetWorld);
     return preparationController.requestPreparation({
       sequenceKey,
-      pairId: targetPair?.id || `${targetWorld.sectionId}->${targetWorld.sectionId}`,
-      inputFingerprint: targetPair?.inputFingerprint || descriptor.inputFingerprint || sequenceKey,
+      // Preparation ownership follows the immutable sequence. The current
+      // target World is only a bootstrap hint and must not reset a failed
+      // sequence's retry latch as the playhead moves.
+      pairId: `sequence:${sequenceKey}`,
+      inputFingerprint: descriptor.inputFingerprint || sequenceKey,
       input: activePreparation,
     }, { trigger: 'compiled-plan' }).accepted;
   };
 
-  const setModifierUniforms = (prefix, world, globals) => {
-    const swarm = modifier(world, 'swarm-life-v1');
-    const sharedSwarm = swarm
-      ? resolveAboutNarrativeSwarmMotion(swarm, globals.swarmTurbulence)
-      : null;
-    const drift = sharedSwarm || modifier(world, 'ambient-drift-v1');
-    const wave = modifier(world, 'living-wave-v1');
-    const group = modifier(world, 'group-emphasis-v1');
-    const colour = modifier(world, 'living-colour-v1');
-    uniforms[`${prefix}DriftAmplitude`].value = Number(drift?.amplitude || 0);
-    uniforms[`${prefix}DriftSpeed`].value = Number(drift?.speed || 0);
-    uniforms[`${prefix}DriftIrregularity`].value = Number(sharedSwarm?.irregularity || 0);
-    uniforms[`${prefix}DriftIndividuality`].value = Number(sharedSwarm?.individuality || 0);
-    uniforms[`${prefix}DriftAxisSpread`].value = Number(sharedSwarm?.axisSpread || 0);
-    uniforms[`${prefix}DriftStoryMix`].value = sharedSwarm
+  const setModifierUniforms = (target, world, globals) => {
+    const slots = getModifierSlots(world, globals);
+    const sharedSwarm = slots?.swarm;
+    const drift = sharedSwarm || slots?.drift;
+    const wave = slots?.wave;
+    const group = slots?.group;
+    const colour = slots?.colour;
+    target.driftAmplitude.value = Number(drift?.amplitude || 0);
+    target.driftSpeed.value = Number(drift?.speed || 0);
+    target.driftIrregularity.value = Number(sharedSwarm?.irregularity || 0);
+    target.driftIndividuality.value = Number(sharedSwarm?.individuality || 0);
+    target.driftAxisSpread.value = Number(sharedSwarm?.axisSpread || 0);
+    target.driftStoryMix.value = sharedSwarm
       ? sharedSwarm.storyMix
       : drift?.timeMode === 'story' ? 1 : drift?.timeMode === 'mixed' ? 0.08 : 0;
-    uniforms[`${prefix}WaveWeight`].value = wave ? Number(wave.strength ?? 1) : 0;
-    uniforms[`${prefix}WaveAmplitude`].value = Number(wave?.amplitude || 0);
-    uniforms[`${prefix}WaveSpeed`].value = Number(wave?.speed || 0);
-    uniforms[`${prefix}WaveFrequency`].value.set(
+    target.waveWeight.value = wave ? Number(wave.strength ?? 1) : 0;
+    target.waveAmplitude.value = Number(wave?.amplitude || 0);
+    target.waveSpeed.value = Number(wave?.speed || 0);
+    target.waveFrequency.value.set(
       Number(wave?.frequencyX || 1),
       Number(wave?.frequencyZ || 1),
     );
-    uniforms[`${prefix}GroupStrength`].value = Number(group?.strength || 0);
-    uniforms[`${prefix}LivingColour`].value = Number(colour?.strength || 0);
+    target.groupStrength.value = Number(group?.strength || 0);
+    target.livingColour.value = Number(colour?.strength || 0);
   };
 
   const resolveDisciplineStoryOffset = (frame, world, target) => {
@@ -872,15 +1191,16 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     const revealState = frame.disciplineReveal;
     const reveal = revealState?.config;
     const overlay = disciplineOverlayRef?.current;
+    syncDisciplineLabels(overlay);
     const gridWorld = toWorld.shapeId === 'discipline-grid-v1'
       ? toWorld
       : fromWorld.shapeId === 'discipline-grid-v1' ? fromWorld : null;
-    const gridTransform = gridWorld === toWorld
-      ? uniforms.toTransform.value
-      : uniforms.fromTransform.value;
     const gridDisciplinePositions = gridWorld === toWorld
       ? toDisciplinePositions
       : fromDisciplinePositions;
+    const gridDisciplineIndices = gridWorld === toWorld
+      ? toDisciplineIndices
+      : fromDisciplineIndices;
     const local = Number(revealState?.localProgress ?? -1);
     const revealAvailable = Boolean(reveal && gridWorld && local >= 0);
     const reducedActive = frame.reducedMotion && frame.sectionIndex === revealState?.sectionIndex;
@@ -897,21 +1217,17 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
         + reveal.labelDuration;
       const exitStart = Math.min(reveal.end, lastRevealEnd + reveal.hold);
       const exitProgress = reducedActive ? 0 : smoothRange(local, exitStart, reveal.end);
-      reveal.items.forEach((item, orderIndex) => {
+      for (let orderIndex = 0; orderIndex < reveal.items.length; orderIndex += 1) {
+        const item = reveal.items[orderIndex];
         const itemStart = reveal.start + (orderIndex * reveal.stagger);
         const itemReveal = reducedActive
           ? 1
           : smoothRange(local, itemStart, itemStart + reveal.labelDuration);
         disciplineWeights[item.group - 1] = itemReveal;
         const labelReveal = local <= reveal.end ? itemReveal * (1 - exitProgress) : 0;
-        const label = overlay?.querySelector(`[data-discipline-group="${item.group}"]`);
-        if (label) {
-          label.style.setProperty('--discipline-reveal', labelReveal.toFixed(4));
-          label.style.setProperty('--discipline-blur', `${((1 - labelReveal) * 7).toFixed(2)}px`);
-          label.style.setProperty('--discipline-shift', `${((1 - labelReveal) * 12).toFixed(2)}px`);
-        }
+        writeDisciplineRevealStyles(item.group - 1, labelReveal);
         if (labelReveal > 0.05) visibleLabels += 1;
-      });
+      }
     }
 
     uniforms.disciplineRevealA.value.set(
@@ -927,30 +1243,109 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     uniforms.disciplineRevealActive.value = revealAvailable ? 1 : 0;
     uniforms.disciplineBackgroundWeight.value = backgroundWeight;
     uniforms.disciplineBackgroundOpacity.value = Number(reveal?.backgroundOpacity ?? 0.06);
+    uniforms.disciplineReconnectOpacity.value = Number(reveal?.reconnectOpacity ?? 0.24);
     uniforms.disciplinePointScale.value = Number(reveal?.pointScale ?? 3.6);
 
     if (overlay) {
-      overlay.setAttribute('aria-hidden', visibleLabels > 0 ? 'false' : 'true');
-      if (revealAvailable) {
+      const nextAriaHidden = visibleLabels > 0 ? 'false' : 'true';
+      if (nextAriaHidden !== lastDisciplineAriaHidden) {
+        overlay.setAttribute('aria-hidden', nextAriaHidden);
+        lastDisciplineAriaHidden = nextAriaHidden;
+        hotFrameDomWrites += 1;
+      }
+      if (revealAvailable && anchorSamplingExact) {
         camera.updateMatrixWorld(true);
+        anchorSampleInput.fromTransform = uniforms.fromTransform.value;
+        anchorSampleInput.toTransform = uniforms.toTransform.value;
+        anchorSampleInput.morphProgress = uniforms.morphProgress.value;
+        anchorSampleInput.bustYaw = uniforms.bustYaw.value;
+        anchorSampleInput.fromBust = uniforms.fromBust.value;
+        anchorSampleInput.toBust = uniforms.toBust.value;
+        anchorSampleInput.storyTime = uniforms.storyTime.value;
+        anchorSampleInput.ambientTime = uniforms.ambientTime.value;
+        anchorSampleInput.gridInfluence = uniforms.gridInfluence.value;
+        anchorSampleInput.fromGroupStrength = uniforms.fromGroupStrength.value;
+        anchorSampleInput.toGroupStrength = uniforms.toGroupStrength.value;
+        anchorSampleInput.fromDrift.amplitude = uniforms.fromDriftAmplitude.value;
+        anchorSampleInput.fromDrift.speed = uniforms.fromDriftSpeed.value;
+        anchorSampleInput.fromDrift.irregularity = uniforms.fromDriftIrregularity.value;
+        anchorSampleInput.fromDrift.individuality = uniforms.fromDriftIndividuality.value;
+        anchorSampleInput.fromDrift.axisSpread = uniforms.fromDriftAxisSpread.value;
+        anchorSampleInput.fromDrift.storyMix = uniforms.fromDriftStoryMix.value;
+        anchorSampleInput.toDrift.amplitude = uniforms.toDriftAmplitude.value;
+        anchorSampleInput.toDrift.speed = uniforms.toDriftSpeed.value;
+        anchorSampleInput.toDrift.irregularity = uniforms.toDriftIrregularity.value;
+        anchorSampleInput.toDrift.individuality = uniforms.toDriftIndividuality.value;
+        anchorSampleInput.toDrift.axisSpread = uniforms.toDriftAxisSpread.value;
+        anchorSampleInput.toDrift.storyMix = uniforms.toDriftStoryMix.value;
+        anchorSampleInput.fromWave.weight = uniforms.fromWaveWeight.value;
+        anchorSampleInput.fromWave.amplitude = uniforms.fromWaveAmplitude.value;
+        anchorSampleInput.fromWave.speed = uniforms.fromWaveSpeed.value;
+        anchorSampleInput.fromWave.frequencyX = uniforms.fromWaveFrequency.value.x;
+        anchorSampleInput.fromWave.frequencyZ = uniforms.fromWaveFrequency.value.y;
+        anchorSampleInput.toWave.weight = uniforms.toWaveWeight.value;
+        anchorSampleInput.toWave.amplitude = uniforms.toWaveAmplitude.value;
+        anchorSampleInput.toWave.speed = uniforms.toWaveSpeed.value;
+        anchorSampleInput.toWave.frequencyX = uniforms.toWaveFrequency.value.x;
+        anchorSampleInput.toWave.frequencyZ = uniforms.toWaveFrequency.value.y;
         for (let group = 1; group <= 6; group += 1) {
-          const label = overlay.querySelector(`[data-discipline-group="${group}"]`);
+          const label = disciplineLabels[group - 1];
           if (!label) continue;
           const offset = (group - 1) * 3;
           if (!Number.isFinite(gridDisciplinePositions[offset])) continue;
+          const pointIndex = gridDisciplineIndices[group - 1];
+          if (pointIndex < 0) continue;
+          const pointOffset = pointIndex * 3;
+          anchorFromPosition.x = fixedAttributes.position.array[pointOffset];
+          anchorFromPosition.y = fixedAttributes.position.array[pointOffset + 1];
+          anchorFromPosition.z = fixedAttributes.position.array[pointOffset + 2];
+          anchorToPosition.x = fixedAttributes.targetPosition.array[pointOffset];
+          anchorToPosition.y = fixedAttributes.targetPosition.array[pointOffset + 1];
+          anchorToPosition.z = fixedAttributes.targetPosition.array[pointOffset + 2];
+          anchorSampleInput.pointSeed = fixedAttributes.pointSeed.array[pointIndex];
+          sampleAboutNarrativeAnchorPosition(anchorSampleInput, anchorSampleTarget);
           disciplinePointScratch.set(
-            gridDisciplinePositions[offset],
-            gridDisciplinePositions[offset + 1],
-            gridDisciplinePositions[offset + 2],
-          ).applyMatrix4(gridTransform).project(camera);
-          label.style.setProperty('--discipline-x', `${viewportOffsetX + (((disciplinePointScratch.x * 0.5) + 0.5) * width)}px`);
-          label.style.setProperty('--discipline-y', `${viewportOffsetY + (((-disciplinePointScratch.y * 0.5) + 0.5) * height)}px`);
+            anchorSampleTarget.x,
+            anchorSampleTarget.y,
+            anchorSampleTarget.z,
+          ).project(camera);
+          writeDisciplinePosition(
+            group - 1,
+            viewportOffsetX + (((disciplinePointScratch.x * 0.5) + 0.5) * width),
+            viewportOffsetY + (((-disciplinePointScratch.y * 0.5) + 0.5) * height),
+            1,
+          );
+        }
+      } else if (revealAvailable) {
+        for (let group = 1; group <= 6; group += 1) {
+          writeDisciplinePosition(
+            group - 1,
+            group % 2 === 0 ? 62 : 26,
+            14 + (group * 11),
+            2,
+          );
         }
       }
     }
-    root.dataset.worldDisciplineVisible = String(disciplineWeights.reduce((count, value) => count + (value > 0.95 ? 1 : 0), 0));
-    root.dataset.worldDisciplineLabels = String(visibleLabels);
-    root.dataset.worldGridBackground = backgroundWeight.toFixed(4);
+    let visibleDisciplineCount = 0;
+    for (let index = 0; index < disciplineWeights.length; index += 1) {
+      if (disciplineWeights[index] > 0.95) visibleDisciplineCount += 1;
+    }
+    if (visibleDisciplineCount !== lastDisciplineVisibleCount) {
+      root.dataset.worldDisciplineVisible = String(visibleDisciplineCount);
+      lastDisciplineVisibleCount = visibleDisciplineCount;
+      hotFrameDomWrites += 1;
+    }
+    if (visibleLabels !== lastDisciplineLabelCount) {
+      root.dataset.worldDisciplineLabels = String(visibleLabels);
+      lastDisciplineLabelCount = visibleLabels;
+      hotFrameDomWrites += 1;
+    }
+    if (backgroundWeight !== lastGridBackground) {
+      root.dataset.worldGridBackground = backgroundWeight.toFixed(4);
+      lastGridBackground = backgroundWeight;
+      hotFrameDomWrites += 1;
+    }
   };
 
   const render = (frame) => {
@@ -966,23 +1361,47 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     if (preparedPair
       && preparedPair.fromWorld.sectionId === requestedFromWorld.sectionId
       && preparedPair.toWorld.sectionId === requestedToWorld.sectionId) {
+      preparedPair.fromWorld = requestedFromWorld;
+      preparedPair.toWorld = requestedToWorld;
       installPreparedPair(preparedPair);
     }
     if (!installedPair) return;
     const pairMatchesRequest = installedPair.fromWorld.sectionId === requestedFromWorld.sectionId
       && installedPair.toWorld.sectionId === requestedToWorld.sectionId;
+    if (pairMatchesRequest) {
+      installedPair.fromWorld = requestedFromWorld;
+      installedPair.toWorld = requestedToWorld;
+    }
     const fromWorld = installedPair.fromWorld;
     const toWorld = installedPair.toWorld;
+    if (fromWorld !== lastAnchorFromWorld || toWorld !== lastAnchorToWorld) {
+      inspectAboutNarrativeAnchorSampling(fromWorld.modifiers, anchorCapability);
+      inspectAboutNarrativeAnchorSampling(toWorld.modifiers, anchorCapabilityTarget);
+      anchorSamplingExact = anchorCapability.capability === ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT
+        && anchorCapabilityTarget.capability === ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT;
+      lastAnchorFromWorld = fromWorld;
+      lastAnchorToWorld = toWorld;
+      root.dataset.worldAnchorSampling = anchorSamplingExact ? 'exact' : 'editorial-fallback';
+      if (!anchorSamplingExact) {
+        diagnostics.recordLifecycle('anchor-sampling-unsupported', {
+          unsupportedModifierCount: anchorCapability.unsupportedCount + anchorCapabilityTarget.unsupportedCount,
+        });
+      }
+    }
     const transitionProgress = pairMatchesRequest
       ? frame.world.transitionProgress
       : installedPair.progress;
     if (pairMatchesRequest) installedPair.progress = transitionProgress;
-    const bust = modifier(toWorld, 'bust-yaw-v1');
+    const bust = getModifierSlots(toWorld, frame.globals)?.bust;
     const formingBust = toWorld.shapeId === 'bust-v1' && transitionProgress < 0.9999;
+    const bustDeltaSeconds = frame.ambientTime > 0 && lastBustAmbientTime > 0
+      ? Math.min(0.5, Math.max(0, frame.ambientTime - lastBustAmbientTime))
+      : 0;
+    lastBustAmbientTime = frame.ambientTime;
     const bustState = bustController.sample({
       active: toWorld.shapeId === 'bust-v1',
       transitionProgress,
-      deltaSeconds: frame.deltaSeconds,
+      deltaSeconds: bustDeltaSeconds,
       speed: Number(bust?.speed || 0),
       resumeDelay: Number(bust?.resumeDelay || 0),
       liveAmbient: frame.ambientTime > 0,
@@ -991,6 +1410,13 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
       hidden: document.hidden,
     });
     bustYaw = bustState.yaw;
+    if (toWorld.shapeId !== 'bust-v1' && dragStart) {
+      if (interaction.hasPointerCapture(dragStart.pointerId)) {
+        interaction.releasePointerCapture(dragStart.pointerId);
+      }
+      dragStart = null;
+      dragging = false;
+    }
 
     camera.position.fromArray(frame.camera.position);
     camera.up.set(Math.sin(frame.camera.roll), Math.cos(frame.camera.roll), 0);
@@ -1070,6 +1496,14 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     frameStartedAt = performance.now();
     renderer.render(scene, camera);
     lastFrameTime = performance.now() - frameStartedAt;
+    if (pendingFirstUpload) {
+      pendingFirstUpload = false;
+      maxFirstUploadDurationMs = Math.max(maxFirstUploadDurationMs, lastFrameTime);
+      diagnostics.recordMetrics({
+        firstUploadDurationMs: lastFrameTime,
+        maxFirstUploadDurationMs,
+      });
+    }
   };
 
   const handlePointerDown = (event) => {
@@ -1082,7 +1516,7 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     const deltaX = event.clientX - dragStart.x;
     const deltaY = event.clientY - dragStart.y;
     if (!dragging && Math.abs(deltaX) > 6 && Math.abs(deltaX) > Math.abs(deltaY)) {
-      const bust = modifier(latestFrame?.world?.to, 'bust-yaw-v1');
+      const bust = getModifierSlots(latestFrame?.world?.to, latestFrame?.globals)?.bust;
       dragging = bustController.beginDrag({
         pointerId: event.pointerId,
         x: dragStart.x,
@@ -1104,6 +1538,7 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     dragging = false;
   };
   const handleKeyDown = (event) => {
+    if (interaction.dataset.active !== 'true') return;
     if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
     event.preventDefault();
     bustController.rotateByKeyboard(event.key === 'ArrowLeft' ? 'left' : 'right');
@@ -1112,13 +1547,24 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
   const handleContextLost = (event) => {
     event.preventDefault();
     contextAvailable = false;
+    preparationController.setVisible(false);
+    bootstrapController?.abort();
+    bootstrapRequestId += 1;
+    bustController.cancelInteraction();
     root.dataset.pointWorldState = 'context-lost';
+    diagnostics.recordLifecycle('context-lost', { contextAvailable: false });
   };
   const handleContextRestored = () => {
     contextAvailable = true;
     root.dataset.pointWorldState = 'ready';
     resize();
     updateTheme();
+    Object.entries(fixedAttributes).forEach(([name, attribute]) => {
+      if (name !== 'pointSeed') attribute.needsUpdate = true;
+    });
+    preparationController.setVisible(true);
+    if (lastPreparationRequest) preparePlan(lastPreparationRequest);
+    diagnostics.recordLifecycle('context-restored', { contextAvailable: true, lastFailure: null });
   };
 
   const resizeObserver = new ResizeObserver(resize);
@@ -1137,28 +1583,107 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
   window.addEventListener('abs:theme-changed', updateTheme);
   resize();
   updateTheme();
+  renderer.compile(scene, camera);
+  renderer.render(scene, camera);
   root.dataset.pointWorldState = 'ready';
-  runtimeRef.current = {
+  let cachedRuntimeDiagnosticsSnapshot = null;
+  let cachedRuntimeLifecycle = null;
+  const getRuntimeDiagnosticsSnapshot = () => {
+    const lifecycle = diagnostics.getSnapshot();
+    // `subscribeDiagnostics` is lifecycle-only. A snapshot therefore remains
+    // identical until that store emits, even while pull-only performance
+    // counters continue changing.
+    if (cachedRuntimeDiagnosticsSnapshot && cachedRuntimeLifecycle === lifecycle) {
+      return cachedRuntimeDiagnosticsSnapshot;
+    }
+    const shapeCacheSnapshot = shapeCache.getSnapshot();
+    const sequenceCacheSnapshot = sequenceCache.getSnapshot();
+    const resourceSnapshot = resourceLedger?.getSnapshot('diagnostics');
+    const webglSnapshot = webglTracker?.getSnapshot();
+    const pairs = readySequence
+      ? [...readySequence.pairs.values()].map((pair) => Object.freeze({
+        pairId: `${pair.fromWorld.sectionId}->${pair.toWorld.sectionId}`,
+        inputFingerprint: activePreparation?.inputFingerprint || '',
+        state: 'ready',
+        source: 'worker',
+        requestedStrategy: pair.requestedStrategy,
+        installedStrategy: pair.installedStrategy,
+        fallbackReason: pair.fallbackReason,
+      }))
+      : [];
+    cachedRuntimeLifecycle = lifecycle;
+    cachedRuntimeDiagnosticsSnapshot = Object.freeze({
+      ...lifecycle,
+      activeSequenceKey: readySequence?.key || '',
+      pendingSequenceKey: lifecycle.state === 'preparing' ? lifecycle.sequenceKey || '' : '',
+      failedSequenceKey: lifecycle.state === 'failed' ? lifecycle.sequenceKey || '' : '',
+      installedPairId: installedPair?.key || '',
+      installedWorldId: installedPair?.toWorld?.sectionId || '',
+      workerStarts,
+      workerTerminations,
+      workerTimeouts,
+      shapeCache: shapeCacheSnapshot,
+      sequenceCache: sequenceCacheSnapshot,
+      resources: resourceSnapshot || null,
+      webgl: webglSnapshot || null,
+      pairs: Object.freeze(pairs),
+    });
+    return cachedRuntimeDiagnosticsSnapshot;
+  };
+  const runtimeApi = {
     preparePlan,
     retryPreparation: preparationController.retryPreparation,
     setVisible: preparationController.setVisible,
-    getDiagnosticsSnapshot: diagnostics.getSnapshot,
+    getDiagnosticsSnapshot: getRuntimeDiagnosticsSnapshot,
     subscribeDiagnostics: diagnostics.subscribe,
+    resetPerformanceMetrics: () => {
+      maxInstallDurationMs = 0;
+      maxWorkerMessageDurationMs = 0;
+      maxFirstUploadDurationMs = 0;
+    },
     render,
     getMetrics: () => {
       const shapeCacheSnapshot = shapeCache.getSnapshot();
       const sequenceCacheSnapshot = sequenceCache.getSnapshot();
+      const resourceSnapshot = resourceLedger?.getSnapshot('metrics');
+      const webglSnapshot = webglTracker?.getSnapshot();
       return {
-        ...projectAboutNarrativeRuntimeMetrics(diagnostics.getSnapshot()),
+        ...projectAboutNarrativeRuntimeMetrics(
+          diagnostics.getSnapshot(),
+          diagnostics.getMetricsSnapshot(),
+        ),
         adapterId: 'point-field-v1',
         pointCount,
         drawCalls: renderer.info.render.calls,
         frameTimeMs: lastFrameTime,
         bufferRebuilds,
+        fixedAttributeCount: Object.keys(fixedAttributes).length,
+        fixedAttributeIdentityStable: Object.entries(fixedAttributes)
+          .every(([name, attribute]) => geometry.getAttribute(name) === attribute),
+        maxInstallDurationMs,
+        maxWorkerMessageDurationMs,
+        maxFirstUploadDurationMs,
+        workerStarts,
+        workerTerminations,
+        workerTimeouts,
         cacheEntries: shapeCacheSnapshot.entries,
         cacheBytes: shapeCacheSnapshot.uniqueBytes,
         sequenceCacheEntries: sequenceCacheSnapshot.entries,
         sequenceCacheBytes: sequenceCacheSnapshot.uniqueBytes,
+        gpuBufferCount: webglSnapshot?.liveCount ?? resourceSnapshot?.gpu.liveCount ?? 9,
+        gpuBufferBytes: webglSnapshot?.liveBytes ?? resourceSnapshot?.gpu.liveBytes ?? Object.values(fixedAttributes)
+          .reduce((sum, attribute) => sum + attribute.array.byteLength, 0),
+        gpuBufferCreates: webglSnapshot?.created || 0,
+        gpuBufferDeletes: webglSnapshot?.deleted || 0,
+        gpuBufferAllocations: webglSnapshot?.allocations || 0,
+        gpuBufferReallocations: webglSnapshot?.reallocations || 0,
+        gpuBufferUploads: webglSnapshot?.uploads || 0,
+        webglUnobservedDeletes: webglSnapshot?.unobservedDeletes || 0,
+        webglUnboundMutations: webglSnapshot?.unboundMutations || 0,
+        generatedBufferCount: resourceSnapshot?.buffers.uniqueCount || 0,
+        generatedBufferBytes: resourceSnapshot?.buffers.uniqueBytes || 0,
+        resourceDiagnosticCount: (resourceSnapshot?.diagnostics.count || 0)
+          + (webglSnapshot?.diagnostics.length || 0),
         correspondenceSequenceState: sequenceState,
         correspondencePairId: installedPair?.key || '',
         correspondenceToWorldId: installedPair?.toWorld?.sectionId || '',
@@ -1188,18 +1713,29 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     },
     resetDirector: () => { director.yaw = 0; director.pitch = 0; director.distance = 0; },
   };
+  runtimeRef.current = runtimeApi;
+  if (RUNTIME_DIAGNOSTICS_ENABLED) window.__aboutNarrativeRuntime = runtimeApi;
+  const runtimeReadyTimer = window.setTimeout(() => {
+    if (!disposed) root.dispatchEvent(new CustomEvent('about:world-runtime-ready'));
+  }, 0);
 
   return () => {
     disposed = true;
+    window.clearTimeout(runtimeReadyTimer);
     unsubscribePreparation();
     preparationController.dispose();
     correspondenceWorker?.terminate();
     correspondenceWorker = null;
+    bootstrapController?.abort();
+    bootstrapRequestId += 1;
     bustController.cancelInteraction();
     shapeCache.dispose();
     sequenceCache.dispose();
     diagnostics.dispose({ emit: false });
     runtimeRef.current = null;
+    if (RUNTIME_DIAGNOSTICS_ENABLED && window.__aboutNarrativeRuntime === runtimeApi) {
+      delete window.__aboutNarrativeRuntime;
+    }
     resizeObserver.disconnect();
     themeObserver.disconnect();
     interaction.removeEventListener('pointerdown', handlePointerDown);
@@ -1214,6 +1750,12 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     geometry.dispose();
     material.dispose();
     renderer.dispose();
+    webglTracker?.dispose();
+    if (resourceLedger) {
+      resourceLedger.releaseOwner('installed-pair');
+      resourceLedger.releaseOwner('fixed-attributes');
+      resourceLedger.dispose();
+    }
     delete root.dataset.worldStage;
     delete root.dataset.cameraCadence;
     delete root.dataset.pointAsset;
@@ -1254,7 +1796,13 @@ export function AboutNarrativePointWorld3D({ rootRef, interactionRef, discipline
     const interaction = interactionRef.current;
     if (!canvas || !root || !interaction) return undefined;
     try {
-      return createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayRef, runtimeRef });
+      return createPointFieldAdapter({
+        canvas,
+        root,
+        interaction,
+        disciplineOverlayRef,
+        runtimeRef,
+      });
     } catch (error) {
       root.dataset.pointWorldState = 'unavailable';
       console.warn('[About narrative] Point world unavailable; continuing with editorial content.', error);

@@ -73,6 +73,19 @@ body.about-narrative-page .route-simulation-layer {
   will-change: opacity, transform;
 }
 
+.about-narrative-discipline-reveal li::before {
+  position: absolute;
+  top: 50%;
+  left: calc(-1 * var(--discipline-label-offset, 18px));
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--discipline-color);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--text-primary) 26%, transparent);
+  content: '';
+  transform: translate(-50%, -50%);
+}
+
 .about-narrative-discipline-reveal li[data-discipline-group='1'] {
   --discipline-color: var(--ball-1, #b5b7b6);
 }
@@ -1045,7 +1058,7 @@ body.about-narrative-page .route-simulation-layer {
   }
 
   .about-narrative-section--editorial {
-    padding: 6.5rem 1rem 7.5rem;
+    padding: 6.5rem 1rem 7.5rem 3rem;
   }
 
   .about-narrative-editorial-copy {

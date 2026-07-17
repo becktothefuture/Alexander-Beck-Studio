@@ -1,0 +1,955 @@
+/* ╔══════════════════════════════════════════════════════════════════════════════╗
+   ║                    ALEXANDER BECK STUDIO - DESIGN TOKENS                    ║
+   ║   Central palette, typography, spacing, radii, opacities, and surfaces      ║
+   ╚══════════════════════════════════════════════════════════════════════════════╝ */
+
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("../fonts/instrument-serif/InstrumentSerif-Regular.woff2") format("woff2");
+}
+
+:root {
+  color-scheme: light;
+  
+  /* Utility RGB (required by existing rgba(var(--abs-rgb-*), ...) usage) */
+  --abs-rgb-white: 255, 255, 255;
+  --abs-rgb-black: 0, 0, 0;
+
+  /* Essentials */
+  --color-bg-light: #efefef;
+  --color-bg-dark: #141414;
+  --color-accent: #f03030;
+  --color-success: #22c55e;
+  --color-error: #ef4444;
+  --color-success-rgb: 34, 197, 94;
+  --color-error-rgb: 239, 68, 68;
+
+  /* Theme bridge (JS writes these; keep names stable) */
+  --bg-light: var(--color-bg-light);
+  --bg-dark: var(--color-bg-dark);
+  --abs-wall-base-light: #efefef;
+  --abs-wall-base-dark: #141414;
+  --abs-wall-base: var(--abs-wall-base-dark);
+  --shell-wall-bg: #141414;
+  --studio-window-bg-light: var(--bg-light);
+  --studio-window-bg-dark: var(--bg-dark);
+  --studio-window-bg: var(--studio-window-bg-light);
+  --frame-color-site-light: #202124;
+  --frame-color-site-dark: #121314;
+  --frame-color-light: #202124;
+  --frame-color-dark: #121314;
+  --frame-color: var(--frame-color-dark);
+  --wall-color-light: var(--frame-color-light);
+  --wall-color-dark: var(--frame-color-dark);
+  --wall-color: var(--frame-color);
+  --abs-browser-chrome: var(--frame-color);
+  --abs-frame-inset-desktop: 16px;
+  --abs-frame-inset-mobile: 10px;
+  --abs-frame-inset-value: clamp(10px, calc(4.363992172px + 1.174168297vw), 16px);
+  --abs-content-inset-desktop: 28px;
+  --abs-content-inset-tablet: 22px;
+  --abs-content-inset-mobile: 16px;
+  --abs-frame-radius-value: clamp(32px, calc(-5.573385519px + 7.82778865vw), 72px);
+  --abs-frame-radius-desktop: 72px;
+  --abs-frame-radius-mobile: 32px;
+  --abs-frame-inset: var(--abs-frame-inset-value);
+  --abs-content-inset: var(--abs-content-inset-desktop);
+  --abs-frame-radius: var(--abs-frame-radius-value);
+  --abs-safe-top: env(safe-area-inset-top, 0px);
+  --abs-safe-right: env(safe-area-inset-right, 0px);
+  --abs-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --abs-safe-left: env(safe-area-inset-left, 0px);
+  --abs-shell-reveal-ms: 180ms;
+  --abs-content-reveal-ms: 420ms;
+  --chrome-bg: var(--abs-browser-chrome);
+  --chrome-bg-light: var(--frame-color-light);
+  --chrome-bg-dark: var(--frame-color-dark);
+  /* Simplified frame geometry + effects */
+  --frame-outer-radius: var(--abs-frame-radius);
+  --frame-inner-radius: var(--abs-frame-radius);
+  --frame-inner-surface: var(--studio-window-bg);
+  --frame-border-gradient-rgb-dark: 153, 153, 153;
+  --frame-border-gradient-rgb-light: 255, 255, 255;
+  --frame-border-gradient-edge-opacity: 0.012;
+  --frame-border-gradient-mid-opacity: 0.025;
+  --frame-vignette-edge-rgb: 205, 210, 216;
+  --frame-vignette-ambient-rgb: 255, 255, 255;
+  --frame-vignette-edge-offset-y: 5px;
+  --frame-vignette-edge-blur: 30px;
+  --abs-scene-highlight: 0.3;
+  --abs-scene-depth: 0.14;
+  --abs-scene-softness: 0.45;
+  --frame-vignette-edge-opacity: 0.18;
+  --frame-vignette-ambient-blur: 250px;
+  --frame-vignette-ambient-opacity: 0.12;
+  --frame-vignette-dither-size: 72px;
+  --frame-vignette-dither-opacity: 0.08;
+  --frame-soft-border-light-opacity: 0.14;
+  --frame-soft-border-shadow-opacity: 0.2;
+  --frame-soft-border-ring-opacity: 0.12;
+  --simulation-contrast-veil-rgb: 20, 20, 20; /* JS stamps this from the active inner-wall background. */
+  --simulation-contrast-veil-opacity: 0.216;
+  --simulation-contrast-veil-reach-x: 25vw;
+  --simulation-contrast-veil-reach-y: 25vh;
+  --simulation-contrast-veil-blur: clamp(42px, 7vmax, 120px);
+  --simulation-contrast-veil-dither-opacity: 0.035;
+  --simulation-contrast-veil-dither-size: 96px;
+  --simulation-contrast-veil-dither-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2' seed='37' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='96' height='96' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* Single stroke color (keep this token; override in :root.dark-mode) */
+  --abs-stroke-medium: rgba(var(--abs-rgb-black), 0.18);
+
+  /* Shared quiet control material: theme surface, darkened by at most 5%. */
+  --abs-soft-control-darken: 5%;
+  --abs-soft-control-fill-opacity: 72%;
+  --abs-soft-control-outline-opacity: 12%;
+  --abs-soft-control-outline-active-opacity: 15%;
+  --abs-soft-control-emphasis-rgb: var(--abs-rgb-white);
+  --abs-soft-control-emphasis-opacity: 86%;
+  --abs-soft-control-edge-width: 0.5px;
+  --abs-soft-control-blur: 18px;
+  --abs-soft-control-saturation: 1.08;
+  --abs-soft-control-surface:
+    color-mix(
+      in srgb,
+      var(--frame-inner-surface) calc(100% - var(--abs-soft-control-darken)),
+      rgba(var(--abs-rgb-black), 1) var(--abs-soft-control-darken)
+    );
+  --abs-soft-control-fill:
+    color-mix(
+      in srgb,
+      var(--abs-soft-control-surface) var(--abs-soft-control-fill-opacity),
+      transparent
+    );
+  --abs-soft-control-outline:
+    color-mix(
+      in srgb,
+      var(--text-primary) var(--abs-soft-control-outline-opacity),
+      transparent
+    );
+  --abs-soft-control-outline-active:
+    color-mix(
+      in srgb,
+      var(--text-primary) var(--abs-soft-control-outline-active-opacity),
+      transparent
+    );
+  --abs-soft-control-emphasis-fill:
+    rgba(var(--abs-soft-control-emphasis-rgb), var(--abs-soft-control-emphasis-opacity));
+
+  /* Shared progress/pagination line language. Thickness is projected from shell config. */
+  --abs-indicator-line-width: 8px;
+  --abs-indicator-line-thickness: 3px;
+  --abs-indicator-line-gap: 9px;
+  --abs-indicator-rest-opacity: 0.22;
+  --abs-indicator-ink: rgb(var(--abs-rgb-black));
+
+  /* Ball colors (preserved) */
+  --ball-1: #b5b7b6;
+  --ball-2: #bbbdbd;
+  --ball-3: #ffffff;
+  --ball-4: #00695c;
+  --ball-5: #000000;
+  --ball-6: #d7ff2f;
+  --ball-7: #0d5cb6;
+  --ball-8: #ffa000;
+
+  /* Typography Tokens */
+  --abs-font-sans: "Geist", system-ui, sans-serif;
+  --abs-font-mono: "Geist Mono", ui-monospace, monospace;
+  --abs-font-headline: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --abs-font-headline-scale: 1.22;
+  --abs-font-headline-line-height-scale: 0.92;
+  --abs-font-headline-letter-spacing: -0.01ch;
+  --abs-font-display: "Snell Roundhand", "Apple Chancery", "Segoe Script", "Bradley Hand", cursive;
+  --abs-font-display-scale: 1.22;
+  --abs-weight-regular: 400;
+  --abs-weight-medium: 600;
+  --abs-weight-semibold: 700;
+
+  --abs-text-xs: clamp(9px, 1vw, 11px);
+  --abs-text-sm: clamp(11px, 1.2vw, 13px);
+  --abs-text-md: clamp(12px, 1.4vw, 15px);
+  --abs-text-lg: clamp(0.85rem, 1.5vw, 1.05rem);
+  --abs-text-xl: clamp(1.2rem, 1.8vw, 1.35rem);
+
+  --abs-line-display: 0.95;
+  --abs-line-title: 1.1;
+  --abs-line-tight: 1.3;
+  --abs-line-base: 1.35;
+  --abs-line-relaxed: 1.4;
+  --abs-line-body: 1.6;
+  --abs-line-body-relaxed: 1.7;
+  --abs-line-loose: 1.75;
+  --abs-line-summary: 1.2;
+
+  /* Letter spacing (ch): site-wide ~40% tighter vs legacy — positive ×0.6, negative ×1.4 */
+  /* Default tracking for UI sans; set on body — mono/script reset locally */
+  --abs-letter-spacing-global: -0.07ch;
+  --abs-letter-spacing-tight: -0.014ch;
+  --abs-letter-spacing-normal: 0.03ch;
+  --abs-letter-spacing-loose: 0.24ch;
+
+  /* Spacing & Sizing */
+  --abs-space-unit: 1vmin;
+  --abs-space-2xs: calc(var(--abs-space-unit) * 0.5);
+  --abs-space-xs: calc(var(--abs-space-unit) * 1);
+  --abs-space-sm: calc(var(--abs-space-unit) * 2);
+  --abs-space-md: calc(var(--abs-space-unit) * 4);
+  --abs-space-lg: calc(var(--abs-space-unit) * 6);
+  --abs-space-xl: calc(var(--abs-space-unit) * 8);
+
+  /* Pre-JS chrome inset; runtime overwrites --content-padding-*. Width-based vw only; min 24px on wide screens via breakpoint below. */
+  --abs-content-padding: clamp(8px, 10px + 2vw, 28px);
+  --abs-content-pad-mul-bottom: 1.3;
+  --abs-gap-xs: clamp(4px, 0.5vmin, 8px);
+  --abs-gap-sm: clamp(8px, 1vmin, 12px);
+  --abs-gap-md: clamp(12px, 1.5vmin, 20px);
+  --abs-gap-lg: clamp(16px, 2vw, 24px);
+  --abs-gap-xl: clamp(24px, 2.5vw, 40px);
+  --abs-gap-fixed-24: 24px;
+
+  --abs-size-icon: clamp(14px, 1.5vw, 16px);
+  --abs-size-icon-lg: clamp(24px, 2.5vw, 28px);
+  --abs-size-dot: clamp(3px, 0.4vmin, 4px);
+  --abs-tap-target: clamp(12px, 2.5vmin, 30px);
+  --abs-size-1px: 1px;
+
+  /* Radii & Layout Metrics */
+  --abs-radius-1: 1px;
+  --abs-radius-9: 9px;
+  --abs-radius-card: 3vmin;
+  --abs-radius-input: 8px;
+  --abs-radius-cta: 10px;
+  --abs-radius-pill: 999px;
+
+  --abs-layout-min-padding: 16px;
+
+  /* Opacity Scale */
+  --abs-opacity-strong: 0.9;
+  --abs-opacity-muted: 0.7;
+  --abs-opacity-soft: 0.55;
+  --abs-opacity-quiet: 0.38;
+  --abs-opacity-faint: 0.25;
+  --abs-opacity-ghost: 0.12;
+
+  /* Hover Target Effect Intensities (color-mix percentages; reserved for future / saved config) */
+  --abs-hover-intensity-light: 42%;
+  --abs-hover-intensity-dark: 48%;
+  --abs-hover-intensity-active: 27%;
+  --abs-button-hover-darken-mix: 10%;
+
+  /* Chrome buttons: inset rim — strengths follow Light Group via --ui-chrome-rim-* (applyLayoutCSSVars) */
+  --ui-chrome-rim-light-opacity: 0.55;
+  --ui-chrome-rim-dark-opacity: 0.2;
+  --ui-chrome-button-edge:
+    inset 0 1px 0 rgba(var(--abs-rgb-white), var(--ui-chrome-rim-light-opacity)),
+    inset 0 -1px 0 rgba(var(--abs-rgb-black), var(--ui-chrome-rim-dark-opacity));
+  --ui-chrome-fill-transition-duration: 120ms;
+  --abs-hover-opacity-ui-light: 0.27;   /* UI mode opacity (light mode) */
+  --abs-hover-opacity-ui-dark: 0.33;   /* UI mode opacity (dark mode) */
+
+  /* Hover Edge Lighting - Radial gradient stroke on hover backgrounds
+     Mirrors the wall gradient stroke system for visual consistency */
+  --hover-edge-enabled: 1;                  /* Master toggle (1=on, 0=off) */
+  --hover-edge-width: 1px;                  /* Stroke width */
+  --hover-edge-inset: 0px;                  /* How far inside the border radius to draw */
+  
+  /* Bottom Light - Primary upward light source */
+  --hover-edge-bottom-enabled: 1;           /* 1=on, 0=off */
+  --hover-edge-bottom-radius: 1.2;          /* Gradient radius multiplier (1.0 = element height) */
+  --hover-edge-bottom-opacity: 0.6;         /* Light intensity at center */
+  --hover-edge-bottom-color-mix: 70%;       /* How much cursor color vs white (70% = mostly cursor) */
+  
+  /* Top Light - Ambient downward light source */
+  --hover-edge-top-enabled: 1;              /* 1=on, 0=off */
+  --hover-edge-top-radius: 1.0;             /* Gradient radius multiplier */
+  --hover-edge-top-opacity: 0.3;            /* Light intensity at center (dimmer than bottom) */
+  --hover-edge-top-color-mix: 50%;          /* How much cursor color vs white */
+
+  /* Power Transfer (cursor implode + button swell) — transition-only, no keyframes */
+  --abs-power-transfer-duration: 300ms;
+  --abs-cursor-shrink-duration: 200ms;
+  --abs-button-swell-in-duration: 200ms;   /* Hover-in: snappy */
+  --abs-button-swell-out-duration: 420ms;  /* Hover-out: longer, visible release */
+  --abs-button-swell-scale: 1.06;          /* Hover scale (subtle) */
+  /* Slight undershoot on release so hover-out is visible */
+  --ease-release: cubic-bezier(0.33, 1.12, 0.68, 0.98);
+
+  /* Hover Target "Snap" Bounce (scale-only; color remains instant) */
+  --abs-hover-snap-enabled: 1;           /* 1 = on, 0 = off */
+  --abs-hover-snap-duration: 450ms;      /* Total bounce duration */
+  --abs-hover-grow-duration: 220ms;     /* Hover-in: fast grow with overshoot */
+  --abs-hover-snap-overshoot: 0.88;      /* Peak scale */
+  --abs-hover-snap-undershoot: 0.78;     /* Small recoil before settling */
+  --ease-soft-bounce: cubic-bezier(0.34, 1.38, 0.64, 1); /* Overshoot + soft settle */
+
+  /* Typography Aliases */
+  --text-xs: var(--abs-text-xs);
+  --text-sm: var(--abs-text-sm);
+  --text-md: var(--abs-text-md);
+  --text-lg: var(--abs-text-lg);
+  --text-xl: var(--abs-text-xl);
+  /* Body UI (section titles, forms): alias of md */
+  --text-base: var(--abs-text-md);
+  --line-height-display: var(--abs-line-display);
+  --line-height-title: var(--abs-line-title);
+  --line-height-tight: var(--abs-line-tight);
+  --line-height-base: var(--abs-line-base);
+  --line-height-relaxed: var(--abs-line-relaxed);
+  --line-height-body: var(--abs-line-body);
+  --line-height-body-relaxed: var(--abs-line-body-relaxed);
+  --line-height-loose: var(--abs-line-loose);
+  --line-height-summary: var(--abs-line-summary);
+  --letter-spacing-global: var(--abs-letter-spacing-global);
+  --letter-spacing-tight: var(--abs-letter-spacing-tight);
+  --letter-spacing-normal: var(--abs-letter-spacing-normal);
+  --letter-spacing-loose: var(--abs-letter-spacing-loose);
+
+  /* Spacing Aliases */
+  --space-xs: var(--abs-space-xs);
+  --space-sm: var(--abs-space-sm);
+  --space-md: var(--abs-space-md);
+  --space-lg: var(--abs-space-lg);
+  --space-xl: var(--abs-space-xl);
+
+  --content-padding: var(--abs-content-padding);
+  --content-padding-x: var(--abs-content-padding);
+  --content-padding-y: var(--abs-content-padding);
+  --content-padding-y-bottom: calc(var(--abs-content-padding) * var(--abs-content-pad-mul-bottom));
+  --button-bar-inset: 10px;
+  --button-bar-padding-y: var(--button-bar-inset);
+  --button-bar-width: 2400px;
+  --button-bar-gap: 16px;
+  --button-bar-button-height: 40.8px;
+  --button-bar-height: calc(var(--button-bar-button-height) + (var(--button-bar-padding-y) * 2));
+  --button-bar-responsive-height: var(--button-bar-height);
+  --button-bar-button-padding-x: 16px;
+  --button-bar-button-radius: 999px;
+  --button-bar-font-size: 1.032rem;
+  --button-bar-max-width: 2400px;
+  --button-bar-bg: color-mix(in srgb, var(--abs-browser-chrome) 88%, rgba(var(--abs-rgb-black), 1) 12%);
+  --button-bar-shadow:
+    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.08),
+    inset 0 14px 30px rgba(var(--abs-rgb-black), 0.18);
+  --button-bar-top-bevel: rgba(var(--abs-rgb-white), 0.1);
+  --button-bar-ink: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 88%, var(--cursor-color) 12%);
+  --button-bar-ink-muted: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 62%, var(--studio-window-bg) 38%);
+  --button-bar-button-bg-window-mix: 100%;
+  --button-bar-button-bg-white-mix: 0%;
+  --button-bar-button-hover-white-mix: 2%;
+  --button-bar-button-active-window-mix: 100%;
+  --button-bar-button-active-white-mix: 0%;
+  --button-bar-button-bg: color-mix(in srgb, var(--studio-window-bg) var(--button-bar-button-bg-window-mix), rgba(var(--abs-rgb-white), 1) var(--button-bar-button-bg-white-mix));
+  --button-bar-button-bg-hover: color-mix(in srgb, var(--button-bar-button-bg) calc(100% - var(--abs-button-hover-darken-mix)), rgba(var(--abs-rgb-black), 1) var(--abs-button-hover-darken-mix));
+  --button-bar-button-bg-active: color-mix(in srgb, var(--studio-window-bg) var(--button-bar-button-active-window-mix), rgba(var(--abs-rgb-white), 1) var(--button-bar-button-active-white-mix));
+  --button-bar-button-inner-shine: rgba(var(--abs-rgb-white), 0.12);
+  --button-bar-button-inner-shadow: rgba(var(--abs-rgb-black), 0.24);
+  --button-bar-button-light-color: color-mix(in srgb, var(--cursor-color) 72%, rgba(var(--abs-rgb-white), 1) 28%);
+  --button-bar-indicator-opacity: 0.5;
+  --button-bar-shadow-opacity: 0;
+  --button-bar-active-glow: 0px;
+  --button-bar-active-drop: 0px;
+  --button-bar-transition-ms: 140ms;
+  --shell-bottom-tabs-gap: var(--button-bar-inset);
+  --shell-bottom-tabs-padding-y: var(--button-bar-padding-y);
+  --shell-tab-nav-width: var(--button-bar-width);
+  --shell-tab-gap: var(--button-bar-gap);
+  --shell-tab-height: var(--button-bar-button-height);
+  --shell-bottom-band-height: var(--button-bar-responsive-height);
+  --shell-tab-padding-x: var(--button-bar-button-padding-x);
+  --shell-tab-radius: var(--button-bar-button-radius);
+  --shell-tab-font-size: var(--button-bar-font-size);
+  --shell-bottom-band-bg: var(--button-bar-bg);
+  --shell-bottom-band-shadow: var(--button-bar-shadow);
+  --shell-bottom-band-top-bevel: var(--button-bar-top-bevel);
+  --shell-tab-ink: var(--button-bar-ink);
+  --shell-tab-ink-muted: var(--button-bar-ink-muted);
+  --shell-tab-bg-wall-mix: var(--button-bar-button-bg-window-mix);
+  --shell-tab-bg-white-mix: var(--button-bar-button-bg-white-mix);
+  --shell-tab-hover-white-mix: var(--button-bar-button-hover-white-mix);
+  --shell-tab-active-wall-mix: var(--button-bar-button-active-window-mix);
+  --shell-tab-active-white-mix: var(--button-bar-button-active-white-mix);
+  --shell-tab-bg: var(--button-bar-button-bg);
+  --shell-tab-bg-hover: var(--button-bar-button-bg-hover);
+  --shell-tab-bg-active: var(--button-bar-button-bg-active);
+  --shell-tab-inner-shine: var(--button-bar-button-inner-shine);
+  --shell-tab-inner-shadow: var(--button-bar-button-inner-shadow);
+  --shell-tab-light-color: var(--button-bar-button-light-color);
+  --shell-tab-indicator-opacity: var(--button-bar-indicator-opacity);
+  --shell-tab-shadow-opacity: var(--button-bar-shadow-opacity);
+  --shell-tab-active-glow: var(--button-bar-active-glow);
+  --shell-tab-active-drop: var(--button-bar-active-drop);
+  --shell-tab-transition-ms: var(--button-bar-transition-ms);
+  --instrument-wake-duration-out: 110ms;
+  --instrument-wake-duration-in: 165ms;
+  --instrument-wake-duration-pass: 245ms;
+  --instrument-wake-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --instrument-wake-blur: 2px;
+  --instrument-wake-recede-scale: 0.992;
+  --instrument-wake-resolve-scale: 0.996;
+  --instrument-wake-pass-opacity: 0.58;
+  /* Edge inset: wall thickness + content padding (set via JS in applyLayoutCSSVars) */
+  --edge-inset: 0px;
+  --edge-inset-lg: 0px;
+
+  --gap-xs: var(--abs-gap-xs);
+  --gap-sm: var(--abs-gap-sm);
+  --gap-md: var(--abs-gap-md);
+  --gap-lg: var(--abs-gap-lg);
+  --gap-xl: var(--abs-gap-xl);
+  --gap-24: var(--abs-gap-fixed-24);
+
+  --size-icon: var(--abs-size-icon);
+  --size-icon-lg: var(--abs-size-icon-lg);
+  --icon-size-base: var(--abs-size-icon);
+  --icon-size-lg: var(--abs-size-icon-lg);
+  --size-dot: var(--abs-size-dot);
+  --tap-target: var(--abs-tap-target);
+
+  /* Text Colors — Light mode defaults */
+  --text-color-light: #454545;
+  --text-color-light-muted: #454545;
+  --text-color-dark: #f0f0f0;
+  --text-color-dark-muted: #c8c8c8;
+  
+  --text-primary: var(--text-color-light);
+  --text-muted: var(--text-color-light-muted);
+  --text-quiet: var(--text-primary);
+  --text-strong: var(--text-primary);
+  --text-input: var(--text-primary);
+  --text-placeholder: var(--text-primary);
+  --text-action: var(--text-primary);
+  --text-logo: #161616;
+  --shell-chrome-ink: var(--text-logo);
+  --abs-fg-primary: var(--text-primary);
+  --abs-fg-secondary: var(--text-muted);
+  --abs-fg-muted: var(--text-muted);
+
+  /* Link + Accent Colors (hover system depends on these vars) */
+  --link-hover-color: var(--color-accent);
+  --cursor-color: var(--ball-6);
+
+  /* Layout + Radius */
+  --container-border-vw: 0;
+  --wall-thickness-vw: 0;
+  --layout-min-content-padding: var(--abs-layout-min-padding);
+  --wall-thickness: var(--abs-frame-inset);
+  --wall-radius: var(--abs-frame-radius);
+  --outer-wall-radius: var(--abs-frame-radius);
+  --container-radius: var(--wall-radius);
+  --container-border: var(--abs-frame-inset);
+  --simulation-padding: 0px;
+  --canvas-radius: var(--wall-radius);
+
+  /* Noise + Grain */
+  --noise-size: 85px;
+  --noise-size-scale: 1;
+  --noise-opacity-light: 0.04;
+  --noise-opacity-dark: 0.04;
+  --noise-blend-mode: normal;
+  --noise-color-light: #2a2a2e;
+  --noise-color-dark: #d4d4d8;
+  --detail-noise-opacity: 1; /* Overall opacity multiplier for detail page noise */
+  /* Procedural noise (generated at runtime; motion is CSS-only). */
+  --abs-noise-enabled: 1;
+  --abs-noise-texture: none;
+  --abs-noise-keyframes: abs-noise-jitter;
+  --abs-noise-timing: steps(1, end);
+  --abs-noise-speed: 1100ms;
+  --abs-noise-speed-variance: 0;
+  --abs-noise-motion-amount: 1;
+  --abs-noise-overscan: -220px;
+  --abs-noise-flicker: 0.12;
+  --abs-noise-flicker-speed: 220ms;
+  --abs-noise-filter: none;
+  --abs-noise-blur: 0px;
+  --abs-noise-contrast: 1.35;
+  --abs-noise-brightness: 1;
+  --abs-noise-saturation: 1;
+  --abs-noise-drift-x: 0px;
+  --abs-noise-drift-y: 0px;
+  --abs-noise-inset: 0px;        /* Base inset from frame interior edge (0 = full interior coverage) */
+  --abs-noise-edge-overlap: 0px; /* How far noise extends past inner wall edge */
+  --abs-noise-offset-y: 0px;     /* Vertical offset for noise layer (positive = down) */
+
+  /* Grunge Video Overlay (see docs/grunge-video-overlay.md) */
+  --grunge-video-edge-overlap: 0px;                   /* How far video extends past inner wall edge */
+  --grunge-video-offset-y: 0px;                       /* Vertical offset for video layer (positive = down) */
+  --grunge-video-enabled: 1;                          /* 0 = off, 1 = on */
+  --grunge-video-opacity: 0.8;                        /* Final opacity (0-1) */
+  --grunge-video-blend-mode-light: overlay;           /* Light mode blend */
+  --grunge-video-blend-mode-dark: screen;             /* Dark mode blend */
+  --grunge-video-fade-duration: 2000ms;               /* Fade-in duration */
+  --grunge-video-fade-easing: cubic-bezier(0.16, 1, 0.3, 1); /* Easing curve */
+
+  /* Wall Frame Inset (space between viewport edge and wall outer edge) */
+  --safari-tint-inset: var(--container-border);
+  --safari-tint-inset-x: var(--container-border);
+  --safari-tint-inset-y: var(--container-border);
+
+  --shadow-input-dark: 0 2px 8px rgba(var(--abs-rgb-black), 0.4);
+
+  /* Interaction + Motion Tokens */
+  --edge-label-inset-gap: 8px; /* Gap between wall and label */
+  --edge-label-inset-adjust: 0px;
+  --edge-label-inset: calc(var(--wall-thickness) + var(--edge-label-inset-gap) + var(--edge-label-inset-adjust));
+  --edge-label-opacity: var(--abs-opacity-quiet);
+  /* Core easings (tokenized everywhere). */
+  --ease-organic: cubic-bezier(0.22, 1.28, 0.36, 1);
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-hesitant: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-magnetic: cubic-bezier(0.25, 1.4, 0.3, 1);
+  /* Safari-safe: smooth ease-out without overshoot (Safari/iOS backdrop-filter transitions poorly with overshoot) */
+  --ease-safari-safe: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-gate: var(--ease-magnetic);
+  /* Modals + scene depth: same settle as --ease-safari-safe — magnetic overshoot reads as end-of-transition snap */
+  --ease-gate-motion: var(--ease-settle);
+  --ease-fade: var(--ease-settle);
+  --duration-resize: 600ms;
+  --duration-settle: 400ms;
+  --duration-quick: 200ms;
+  --duration-link-hover: 30ms;
+  --dot-bounce-duration: 500ms;
+  --hit-area-padding: clamp(20px, 3vmin, 30px);
+  --hit-area-padding-neg: calc(var(--hit-area-padding) * -1);
+  --link-nudge: 1px; /* Subtle downward shift on hover/focus/active for corner links */
+
+  --abs-brand-logo-impact: 0;
+  --abs-brand-logo-squash: 0;
+  --abs-brand-logo-impact-dur: 100ms;
+  --abs-brand-logo-impact-mul: 0.014;
+  --abs-brand-logo-squash-x-mul: 0.009;
+  --abs-brand-logo-squash-y-mul: 0.015;
+  --abs-brand-logo-tilt-deg: 0;
+  --abs-brand-logo-skew-deg: 0;
+  --abs-scene-impact: 0;
+  --abs-scene-impact-dur: 100ms;
+  --abs-scene-impact-logo-scale: 1;
+  --abs-scene-impact-ease: var(--ease-gate);
+  --abs-scene-impact-mul: 0.005;
+  --abs-scene-impact-logo-comp-mul: 1.0;
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     WALL INNER SHADOW - Depth effect on wall interior
+     Light source simulated from top-left, shadow falls toward bottom-right
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  /* Light mode: soft darker vignette for depth (subtle recessed look) */
+  --wall-shadow-color-light: var(--abs-rgb-black);
+  --wall-shadow-intensity-light: 0.15;        /* Base opacity (0-1) */
+  --wall-shadow-intensity-edge-light: 0.10;   /* Tight edge shadow opacity */
+  --wall-shadow-intensity-ambient-light: 0.08; /* Soft ambient spread opacity */
+  
+  /* Dark mode: deeper shadow (appears recessed) */
+  --wall-shadow-color-dark: var(--abs-rgb-black);
+  --wall-shadow-intensity-dark: 0.60;         /* Base opacity (0-1) */
+  --wall-shadow-intensity-edge-dark: 0.50;    /* Tight edge shadow opacity */
+  --wall-shadow-intensity-ambient-dark: 0.35; /* Soft ambient spread opacity */
+  
+  /* Shadow geometry (shared between modes) */
+  --wall-shadow-blur-tight: 25px;             /* Tight edge blur */
+  --wall-shadow-spread-tight: 0px;            /* Tight edge spread */
+  --wall-shadow-blur-mid: 80px;               /* Mid-range blur */
+  --wall-shadow-spread-mid: 10px;             /* Mid-range spread */
+  --wall-shadow-blur-ambient: 150px;          /* Ambient blur */
+  --wall-shadow-spread-ambient: 40px;         /* Ambient spread */
+  
+  /* Light direction offset (positive = shadow falls toward bottom-right) */
+  --wall-shadow-offset-x: 2px;                /* Horizontal offset */
+  --wall-shadow-offset-y: 3px;                /* Vertical offset */
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     OUTER WALL EDGE LIGHTING - Edge highlights on the outer wall boundary
+     Creates double-wall effect with consistent lighting direction
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  --wall-edge-end-fade: 15%;                  /* How much edges fade at left/right (0-50%) */
+
+  --outer-wall-bottom-light-offset: 0.5px;    /* Bottom light Y offset */
+  --outer-wall-bottom-light-blur: 0px;        /* Bottom light blur (0 = crisp 1px line) */
+  --outer-wall-bottom-light-spread: 0px;      /* Bottom light spread */
+  --outer-wall-bottom-light-opacity: 0.55;    /* Bottom light opacity */
+  --outer-wall-bottom-light-rgb: 255, 255, 255; /* Bottom light RGB (editable via color picker) */
+  --outer-wall-edge-width: 2px;               /* Height of outer wall gradient edges */
+  --outer-wall-top-bevel-rgb: 0, 0, 0;        /* Top bevel RGB (editable via color picker) */
+  
+  /* Inner wall inner glow (inset) — RGB used by main.css box-shadow on #simulations */
+  --inner-wall-inner-glow-rgb: 255, 255, 255;
+
+  /* Inner wall outward shadow - cast onto wall surface and background */
+  --inner-wall-outward-shadow-offset: 2px;    /* Shadow Y offset */
+  --inner-wall-outward-shadow-blur: 10px;     /* Shadow blur */
+  --inner-wall-outward-shadow-spread: 2px;    /* Shadow spread */
+  --inner-wall-outward-shadow-opacity: 0.14;  /* Light mode opacity */
+  --inner-wall-outward-shadow-opacity-dark: 0.24; /* Dark mode opacity */
+  --inner-wall-outward-shadow-rgb: 0, 0, 0;   /* Shadow RGB (editable via color picker) */
+  
+  /* Inner wall outer glow (all-around shadow) */
+  --inner-wall-outer-shadow-blur: 12px;       /* Outer glow blur */
+  --inner-wall-outer-shadow-spread: 4px;      /* Outer glow spread */
+  --inner-wall-outer-shadow-opacity: 0.15;    /* Outer glow opacity light mode */
+  --inner-wall-outer-shadow-opacity-dark: 0.25; /* Outer glow opacity dark mode */
+  
+  /* Top bevel - thick visible lip at top edge of walls */
+  --outer-wall-top-bevel-width: 3px;          /* Outer wall bevel thickness */
+  --outer-wall-top-bevel-opacity: 0.25;       /* Outer wall bevel opacity (light mode) */
+  --outer-wall-top-bevel-opacity-dark: 0.35;  /* Outer wall bevel opacity (dark mode) */
+  
+  /* Inner wall gradient edge - radial gradient light/shadow edges */
+  --inner-wall-gradient-edge-width: 0px;
+  --inner-wall-rim-focus-x: 50%;
+  --inner-wall-rim-focus-y: 50%;
+  --inner-wall-rim-falloff-stop: 60%;
+  --inner-wall-rim-falloff-opacity-mul: 0.3;
+  --inner-wall-gradient-radius: 70;           /* Percentage of width for gradient spread */
+  --inner-wall-top-bevel-width: 2px;          /* Inner wall top light edge thickness */
+  --inner-wall-top-light-opacity: 0.22;       /* Inner wall top light edge opacity (light mode) */
+  --inner-wall-top-light-opacity-dark: 0.28;  /* Inner wall top light edge opacity (dark mode) */
+  --inner-wall-top-light-rgb: 255, 255, 255;  /* Inner wall top light color RGB */
+  --inner-wall-bottom-bevel-width: 2px;       /* Inner wall bottom shadow thickness */
+  --inner-wall-bottom-shadow-opacity: 0.13;   /* Inner wall bottom shadow opacity (light mode) */
+  --inner-wall-bottom-shadow-opacity-dark: 0.17; /* Inner wall bottom shadow opacity (dark mode) */
+  --inner-wall-bottom-shadow-rgb: 0, 0, 0;    /* Inner wall bottom shadow color RGB */
+
+  /* Gradient edge per-side opacities (bottom/sides: light rim; top: shadow rim — overridden by JS) */
+  --inner-wall-gradient-edge-top-shadow-opacity: 0;
+  --inner-wall-gradient-edge-bottom-opacity: 0;
+  --inner-wall-gradient-edge-side-opacity: 0;
+  --inner-wall-gradient-edge-side-shadow-opacity: 0;
+
+  /* Inner wall shine - strong blur from all sides (background colored) */
+  --inner-wall-shine-blur: 20px;
+  --inner-wall-shine-spread: 4px;
+  --inner-wall-shine-opacity: 0.14;
+  --inner-wall-shine-overshoot: -10px;
+  --inner-wall-shine-color: var(--bg-light);
+
+  /* Gate Defaults */
+  --abs-gate-mobile-pad-x: 20px;
+  --modal-overlay-opacity: 0.01;
+  --modal-overlay-transition-duration: 800ms;
+  --modal-overlay-transition-out-duration: 600ms;
+  --modal-content-delay: 200ms;
+  --modal-overlay-blur: 13.2px;
+  --modal-overlay-mobile-blur: 24px;
+  --modal-depth-scale: 0.96;
+  --modal-depth-translate-y: 8px;
+  --modal-depth-duration: 800ms;
+  --modal-depth-out-duration: 600ms;
+
+  --logo-blur-inactive: 0px;
+  --logo-blur-active-target: 12px;
+  --logo-blur-active: 0px;
+
+  /* Modal hide effect for logo/nav (inverse of entrance animation) */
+  --modal-hide-scale: 0.92;
+  --modal-hide-duration: 500ms;
+  --modal-hide-delay: 150ms;
+  --modal-show-duration: 400ms;
+  --modal-show-delay: 100ms;
+
+  /* Accent Palette (Legend / Balls) */
+  /* Defined earlier in this file as part of the minimal color system. */
+
+  /* Semantic Aliases */
+  --legend-gap-row: var(--gap-xs);
+  --legend-gap-col: var(--gap-lg);
+  --legend-item-gap: var(--gap-sm);
+  --legend-circle-size: calc(var(--gap-sm) * 0.8 + 2 * var(--abs-size-1px));
+  --legend-item-radius: var(--abs-radius-9);
+  --legend-font-size: clamp(13px, 2vw, 14px);
+  --legend-font-weight: 400;
+  --legend-letter-spacing: 0.021ch;
+  --legend-line-height: var(--line-height-loose);
+  --legend-opacity: 1;
+
+  --decorative-script-max-width: clamp(356px, 37vw, 497px);
+  --decorative-script-font-size: calc(var(--text-sm) + var(--abs-size-1px));
+  --decorative-script-line-height: var(--line-height-base);
+  --decorative-script-letter-spacing: var(--letter-spacing-normal);
+  --decorative-script-padding-left: 0px;
+  --decorative-script-padding-vertical: 0px;
+
+  --supporting-description-font-size: calc(var(--legend-font-size) + var(--abs-size-1px));
+  --supporting-description-line-height: var(--decorative-script-line-height);
+  --supporting-description-letter-spacing: var(--decorative-script-letter-spacing);
+  --supporting-description-color: var(--text-muted);
+  --supporting-description-opacity: var(--abs-opacity-muted);
+
+  --cv-route-body-font-size: clamp(1.08rem, 1.3vw, 1.2rem);
+  --cv-route-body-line-height: 1.88;
+
+  --footer-icon-gap: var(--gap-lg);
+  --footer-icon-size: var(--size-icon);
+  --footer-links-padding: var(--tap-target);
+  --footer-links-font-size: clamp(14px, 1.4vw, 15px);
+  --footer-links-letter-spacing: var(--letter-spacing-normal);
+  --ui-main-nav-link-font-size: calc(var(--legend-font-size) * 1.35);
+  --meta-time-letter-spacing: 0.02em;
+  --footer-link-dot-size: 4px;
+  --footer-link-dot-offset: 8px;
+
+  /* Link Controls (Panel Tunable) */
+  --link-text-padding: var(--hit-area-lg);
+  --link-text-margin: calc(var(--link-text-padding) * -1);
+  --link-icon-padding: var(--gap-lg);
+  --link-icon-margin: calc(var(--link-icon-padding) * -1);
+  --link-color-influence: 1;
+  --link-impact-scale: 0.95;
+  --link-impact-blur: 0px;
+  --link-impact-duration: 0.15s;
+
+  /* Icon buttons (square): frame size + glyph size are separate, with a computed default */
+  --ui-icon-glyph-size: var(--abs-size-icon-lg);
+  --ui-icon-frame-size: calc(var(--ui-icon-glyph-size) + (var(--link-icon-padding) * 2));
+
+  --caption-font-size: var(--text-lg);
+  --caption-font-weight: 400;
+  --caption-line-height: var(--line-height-tight);
+  --caption-letter-spacing: var(--letter-spacing-normal);
+  --caption-offset: var(--gap-sm);
+
+  /* Quote round button (overhang) */
+  --abs-quote-button-size: 224px;
+
+  /* Quote puck disk edge */
+  --puck-edge-width: 1px;
+  --puck-edge-light-opacity: 0.3;
+  --puck-edge-shadow-opacity: 0.15;
+
+  /* Quote card glass surface */
+  --quote-glass-blur: clamp(6px, 0.9vmin, 10px);
+  --quote-glass-saturation: 1.12;
+  --quote-glass-fill-opacity: 0.02;
+  --quote-glass-sheen-top-opacity: 0.035;
+  --quote-glass-sheen-mid-opacity: 0.012;
+  --quote-glass-edge-opacity: 0.24;
+  --quote-glass-inner-shadow-opacity: 0.1;
+  --quote-glass-shadow-opacity: 0.27;
+  --quote-glass-shadow-offset-y: clamp(5px, 0.8vmin, 7px);
+  --quote-glass-shadow-blur: clamp(14px, 2.2vmin, 20px);
+  --quote-glass-bottom-edge-opacity: 0.1;
+
+  /* UI hit areas (links/buttons) */
+  --ui-hit-area-mul: 1;
+  --hit-area-sm-base: var(--gap-sm);
+  --hit-area-md-base: var(--gap-md);
+  --hit-area-lg-base: var(--tap-target);
+  --hit-area-sm: calc(var(--hit-area-sm-base) * var(--ui-hit-area-mul, 1));
+  --hit-area-md: calc(var(--hit-area-md-base) * var(--ui-hit-area-mul, 1));
+  --hit-area-lg: calc(var(--hit-area-lg-base) * var(--ui-hit-area-mul, 1));
+  --dot-indicator-size: var(--size-dot);
+  --dot-indicator-offset: var(--gap-xs);
+
+  /* Unified icon button geometry (used across header/footer/dialogs). */
+  --ui-icon-frame-size: calc(var(--abs-size-icon-lg) + (var(--link-icon-padding) * 2));
+  --ui-icon-glyph-size: var(--abs-size-icon-lg);
+  --abs-window-control-offset: clamp(18px, 2.8vw, 38px);
+  --abs-window-control-seat-inset: 3px;
+  --shell-control-icon-size: clamp(20px, 1.4vw, 24px);
+  --ui-icon-corner-radius-mul: 0.5; /* fraction of wall radius; buttons track wall roundness */
+  /* Directly correlated to wall: radius = wall-radius × mul. 4px min avoids degenerate when wall is tiny. */
+  --ui-icon-corner-radius: clamp(
+    4px,
+    calc(var(--wall-radius) * var(--ui-icon-corner-radius-mul, 0.5)),
+    999px
+  );
+
+  /* Home header: right column (supporting description + sound) — at least token script width + gap + icon frame */
+  --ui-top-right-col-min: min(
+    100%,
+    calc(var(--decorative-script-max-width) + var(--gap-lg) + var(--ui-icon-frame-size))
+  );
+
+  /* Legacy aliases (kept): these now just mirror the derived hit areas above. */
+  --ui-link-hit-pad: var(--hit-area-lg);
+  --ui-icon-hit-pad: var(--hit-area-md);
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     Z-INDEX STACKING ORDER (bottom to top)
+     ═══════════════════════════════════════════════════════════════════════════════
+     
+     All visual layers are inside #abs-scene / .app-scene for unified transform.
+     
+     INSIDE #abs-scene (scene stacking context):
+     ─────────────────────────────────────────────────────────────────────────────
+     Wall + scene effects     100        #simulations / .simulation-wall-layer
+     Video Overlays           150        .grunge-video-overlay (above wall, below UI)
+     Frame vignette           175        .frame-vignette
+     Contrast veil            180        .simulation-contrast-veil
+     UI Layer                 200        .fade-content.ui-layer (header + nav + footer)
+     Button Bar               205        .shell-bottom-band (outside window bounds)
+     Portfolio sheet          220 / 260  #portfolio-sheet-host (260 when body.portfolio-project-open; above chrome)
+     Quote host               250        #quote-viewport-host
+     Window modal blur        270        #window-overlay-blur-layer
+     Window modal content     280        #window-overlay-content-layer
+     
+     INSIDE #simulations (wall interior stacking context):
+     ─────────────────────────────────────────────────────────────────────────────
+     Scene / noise            1          #simulations > .scene-effects (under simulation)
+     Wall route + canvas      2+         .shell-wall-slot, then #c / .ball-canvas-layer
+     CV scroll surface        10        .cv-scroll-container (above in-wall noise)
+     CV wall ring canvas      15        .cv-wall-canvas
+     Live wall edge           170       .inner-wall-gradient-edge
+     
+     OUTSIDE #abs-scene (modal layer):
+     ─────────────────────────────────────────────────────────────────────────────
+     Dev Panel                9999       .abs-control-panel
+     Modal Blur               19998      #modal-blur-layer
+     Modal Content            19999      #modal-content-layer
+     ═══════════════════════════════════════════════════════════════════════════════
+     Canonical prose + rules: docs/reference/LAYER-STACKING.md */
+  --z-text-content: 200;
+  --z-wall: 100;
+  --z-contrast-veil: 180;
+  --z-canvas: 10;
+  --z-window-overlay-blur: 270;
+  --z-window-overlay-content: 280;
+  --z-noise: 25;
+  --z-wall-edge: 30;
+  --z-wall-stroke: 40;
+  --z-panel: 9999;
+  --z-modal-blur: 19998;
+  --z-modal-content: 19999;
+
+  /* Brand logo sizing (driven by the dev panel slider via `--top-logo-width-vw`). */
+  /* Scaled 1.6x from original (42vw, 360px, 600px) */
+  --top-logo-width-vw: 67;
+  --brand-logo-width-min: 576px;
+  --brand-logo-width-max: 960px;
+  --abs-brand-logo-width: clamp(
+    var(--brand-logo-width-min),
+    calc(var(--top-logo-width-vw, 35) * 1vw),
+    var(--brand-logo-width-max)
+  );
+  --brand-logo-secondary-opacity: 1;
+  /* Index logo SVG viewBox: 511×101. */
+  --abs-brand-logo-height: calc(var(--abs-brand-logo-width) * 101 / 511);
+
+  /* Index: primary (main) links positioned under logo. */
+  --home-main-links-below-logo-px: 96px;
+  --home-simulation-switcher-above-logo-px: clamp(124px, 13vh, 136px);
+
+  /* Main Links Navigation Bar - Full-width nav bar positioning */
+  --footer-nav-bar-top: 50vh;
+  --footer-nav-bar-top-svh: 50svh;
+  --footer-nav-bar-top-dvh: 50dvh;
+  --footer-nav-bar-height: var(--hit-area-lg);
+  /* Gap between nav bar links (configurable, defaults to --gap-xl) */
+  --footer-nav-bar-gap: var(--gap-xl);
+
+  /* Global hero logo size (canvas + DOM); 0.936 = 20% larger than 0.78. */
+  --brand-logo-user-scale: 0.936;
+  /* Home hero wordmark / styleguide hero specimens (Geist). */
+  --hero-title-letter-spacing: -0.027ch; /* ~35% tighter than -0.02ch */
+  --hero-role-accent: #e10600;
+
+  --breakpoint-tablet: 991px;
+  --breakpoint-mobile-l: 767px;
+  --breakpoint-mobile-p: 480px;
+}
+
+@media (min-width: 641px) {
+  :root {
+    --abs-content-padding: clamp(24px, 22px + 1vw, 48px);
+  }
+}
+
+@media (max-width: 600px) {
+  :root {
+    --safari-tint-inset-x: var(--container-border);
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --cv-route-body-font-size: clamp(1.03rem, 3.8vw, 1.12rem);
+    --cv-route-body-line-height: 1.78;
+  }
+}
+
+:root.dark-mode,
+:root[data-abs-theme='dark'],
+body.dark-mode,
+body[data-abs-theme='dark'] {
+  color-scheme: dark;
+  --abs-soft-control-emphasis-rgb: var(--abs-rgb-black);
+  --abs-soft-control-emphasis-opacity: 72%;
+  --abs-indicator-ink: rgb(var(--abs-rgb-white));
+  /* Theme changes the studio-window interior, never the outer wall/frame. */
+  --studio-window-bg: var(--studio-window-bg-dark);
+  --frame-inner-surface: var(--studio-window-bg);
+  --frame-vignette-edge-rgb: 16, 17, 19;
+  --frame-vignette-ambient-rgb: 10, 10, 10;
+  --frame-vignette-edge-opacity: 0.66;
+  --frame-vignette-ambient-opacity: 0.4;
+  --simulation-contrast-veil-rgb: 20, 20, 20;
+  --simulation-contrast-veil-opacity: 0.348;
+
+  /* Text — Dark mode overrides (JS may override --text-color-dark* from config) */
+  --text-primary: var(--text-color-dark);
+  --text-muted: var(--text-color-dark-muted);
+  --text-logo: #f0f0f0;
+  --shell-chrome-ink: var(--text-primary);
+  --button-bar-ink: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 88%, var(--cursor-color) 12%);
+  --button-bar-ink-muted: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 62%, var(--studio-window-bg) 38%);
+  --button-bar-button-bg-window-mix: 100%;
+  --button-bar-button-bg-white-mix: 0%;
+  --button-bar-button-hover-white-mix: 2%;
+  --button-bar-button-active-window-mix: 100%;
+  --button-bar-button-active-white-mix: 0%;
+
+  /* Single stroke color override for dark mode */
+  --abs-stroke-medium: rgba(var(--abs-rgb-white), 0.25);
+
+  /* Chrome rim: defaults when JS has not stamped --ui-chrome-rim-* yet */
+  --ui-chrome-rim-light-opacity: 0.42;
+  --ui-chrome-rim-dark-opacity: 0.35;
+  --ui-chrome-button-edge:
+    inset 0 1px 0 rgba(var(--abs-rgb-white), var(--ui-chrome-rim-light-opacity)),
+    inset 0 -1px 0 rgba(var(--abs-rgb-black), var(--ui-chrome-rim-dark-opacity));
+
+  /* Quote card glass surface - dark mode tuning */
+  --quote-glass-fill-opacity: 0.03;
+  --quote-glass-edge-opacity: 0.36;
+  --quote-glass-inner-shadow-opacity: 0.15;
+  --quote-glass-shadow-opacity: 0.44;
+  --quote-glass-bottom-edge-opacity: 0.22;
+  --inner-wall-shine-color: var(--bg-dark);
+
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════════╗
+   ║  Squircle corners (CSS Borders 4): iOS-like continuous curvature where        ║
+   ║  supported. Enabled when <html> has .abs-corner-shape-squircle (runtime       ║
+   ║  config: cornerShapeSquircleEnabled). `corner-shape` is not inherited        ║
+   ║  (MDN), so descendants + common pseudos are included explicitly.              ║
+   ╚══════════════════════════════════════════════════════════════════════════════╝ */
+@supports (corner-shape: squircle) {
+  html.abs-corner-shape-squircle,
+  html.abs-corner-shape-squircle *,
+  html.abs-corner-shape-squircle *::before,
+  html.abs-corner-shape-squircle *::after {
+    corner-shape: squircle;
+  }
+
+  /* Keep perfect circles: palette dots + custom cursor (home dot + tap ring). */
+  html.abs-corner-shape-squircle #custom-cursor,
+  html.abs-corner-shape-squircle #custom-cursor::before,
+  html.abs-corner-shape-squircle #custom-cursor::after,
+  html.abs-corner-shape-squircle .legend .circle,
+  html.abs-corner-shape-squircle .legend .circle::before,
+  html.abs-corner-shape-squircle .legend .circle::after,
+  html.abs-corner-shape-squircle .portfolio-carousel-dot,
+  html.abs-corner-shape-squircle .portfolio-carousel-dot::before,
+  html.abs-corner-shape-squircle .portfolio-carousel-dot::after,
+  html.abs-corner-shape-squircle #quote-display,
+  html.abs-corner-shape-squircle #quote-display .quote-display__disk {
+    corner-shape: round;
+  }
+}

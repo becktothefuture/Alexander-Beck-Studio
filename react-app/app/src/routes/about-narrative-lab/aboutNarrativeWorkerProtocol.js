@@ -7,6 +7,7 @@ import { ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION } from './aboutNarrativeRuntime
 export { ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION };
 export const ABOUT_NARRATIVE_WORKER_MAX_ENTRIES = 64;
 export const ABOUT_NARRATIVE_WORKER_MAX_POINT_COUNT = 12000;
+export const ABOUT_NARRATIVE_WORKER_MAX_ATTRIBUTES = 32;
 
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const PROPERTY_PATTERN = /^[A-Za-z][A-Za-z0-9]*$/;
@@ -161,7 +162,7 @@ export function validateAboutNarrativeWorkerRequest(value) {
   return value;
 }
 
-function validateTypedOutput(output, pointCount, label) {
+function validateTypedOutput(output, pointCount, label, { scanValues = true } = {}) {
   assertExactKeys(output, OUTPUT_KEYS, label);
   if (!(output.positions instanceof Float32Array) || output.positions.length !== pointCount * 3) {
     throw new Error(`${label} positions are invalid.`);
@@ -172,25 +173,33 @@ function validateTypedOutput(output, pointCount, label) {
   if (!(output.size instanceof Float32Array) || output.size.length !== pointCount) {
     throw new Error(`${label} size is invalid.`);
   }
-  [output.positions, output.presence, output.size].forEach((array) => {
-    for (let index = 0; index < array.length; index += 1) {
-      if (!Number.isFinite(array[index])) throw new Error(`${label} contains non-finite typed-array data.`);
+  if (scanValues) {
+    [output.positions, output.presence, output.size].forEach((array) => {
+      for (let index = 0; index < array.length; index += 1) {
+        if (!Number.isFinite(array[index])) throw new Error(`${label} contains non-finite typed-array data.`);
+      }
+    });
+    for (let index = 0; index < pointCount; index += 1) {
+      if (output.presence[index] < 0 || output.presence[index] > 1) {
+        throw new Error(`${label} presence must stay between 0 and 1.`);
+      }
+      if (output.size[index] < 0) throw new Error(`${label} size must be non-negative.`);
     }
-  });
-  for (let index = 0; index < pointCount; index += 1) {
-    if (output.presence[index] < 0 || output.presence[index] > 1) {
-      throw new Error(`${label} presence must stay between 0 and 1.`);
-    }
-    if (output.size[index] < 0) throw new Error(`${label} size must be non-negative.`);
   }
   assertPlainObject(output.attributes, `${label} attributes`);
-  Object.entries(output.attributes).forEach(([name, attribute]) => {
+  const attributes = Object.entries(output.attributes);
+  if (attributes.length > ABOUT_NARRATIVE_WORKER_MAX_ATTRIBUTES) {
+    throw new Error(`${label} has too many attributes.`);
+  }
+  attributes.forEach(([name, attribute]) => {
     assertBoundedString(name, `${label} attribute name`, 128, PROPERTY_PATTERN);
     if (!(attribute instanceof Float32Array) || attribute.length !== pointCount) {
       throw new Error(`${label} attribute ${name} is invalid.`);
     }
-    for (let index = 0; index < attribute.length; index += 1) {
-      if (!Number.isFinite(attribute[index])) throw new Error(`${label} attribute ${name} contains non-finite data.`);
+    if (scanValues) {
+      for (let index = 0; index < attribute.length; index += 1) {
+        if (!Number.isFinite(attribute[index])) throw new Error(`${label} attribute ${name} contains non-finite data.`);
+      }
     }
   });
   assertExactKeys(output.bounds, BOUNDS_KEYS, `${label} bounds`);
@@ -230,6 +239,7 @@ export function validateAboutNarrativeWorkerResponse(value, {
   sequenceKey,
   pointCount,
   entries,
+  scanValues = true,
 } = {}) {
   assertPlainObject(value, 'Worker response');
   if (value.protocolVersion !== ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION) {
@@ -253,7 +263,7 @@ export function validateAboutNarrativeWorkerResponse(value, {
   value.outputs.forEach((item, index) => {
     assertExactKeys(item, OUTPUT_WRAPPER_KEYS, `Worker output ${index}`);
     if (item.id !== entries[index].id) throw new Error(`Worker output ${index} is out of order.`);
-    validateTypedOutput(item.output, pointCount, `Worker output ${item.id}`);
+    validateTypedOutput(item.output, pointCount, `Worker output ${item.id}`, { scanValues });
   });
   if (!Array.isArray(value.pairs) || value.pairs.length !== entries.length) {
     throw new Error('Worker response pairs do not match the requested sequence.');

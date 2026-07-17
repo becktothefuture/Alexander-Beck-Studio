@@ -4973,7 +4973,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'sphere3dAlphaMax',
         type: 'range',
         min: 0.2, max: 1, step: 0.01,
-        default: 0.9,
+        default: 1,
         format: v => Math.round(v * 100) + '%',
         parse: parseFloat
       },

@@ -51,12 +51,15 @@ import {
   validateAboutNarrativePermutation,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCorrespondence.js';
 import {
+  ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS,
   ABOUT_NARRATIVE_DISCIPLINE_ANCHORS,
   resolveAboutNarrativeSwarmMotion,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDefinitions.js';
 
 const configPath = resolve('react-app/app/public/config/contents-about.json');
+const designSystemPath = resolve('react-app/app/public/config/design-system.json');
 const canonical = normalizeAboutNarrativeDocument(JSON.parse(await readFile(configPath, 'utf8')));
+const designSystem = JSON.parse(await readFile(designSystemPath, 'utf8'));
 
 function createPointFixture(points, {
   presence = null,
@@ -148,13 +151,16 @@ test('discipline reveal owns one extended clip, a paced top-down camera handoff,
   const disciplines = plan.sections[4];
   assert.equal(plan.disciplineReveal.sectionId, practice.id);
   assert.deepEqual(background.camera.keys.map((key) => key.at), [0, 0.5, 0.74, 1]);
-  assert.deepEqual(background.camera.keys.at(-1).offset, [0, 7.2, 0]);
-  assert.deepEqual(background.camera.keys.at(-1).lookAtOffset, [0, -7.2, -0.45]);
+  assert.deepEqual(background.camera.keys.at(-1).offset, [0, 6.4, 0]);
+  assert.deepEqual(background.camera.keys.at(-1).lookAtOffset, [0, -6.4, -0.45]);
   assert.equal(background.camera.keys.at(-1).fov, 48);
   assert.deepEqual(practice.camera.keys[0].offset, background.camera.keys.at(-1).offset);
   assert.deepEqual(disciplines.camera.keys[0].offset, practice.camera.keys.at(-1).offset);
   assert.ok(Math.abs(practice.world.transform.rotation[0] + (Math.PI / 2)) < 0.0001);
   assert.equal(practice.world.transitionIn.end < practice.text.disciplineReveal.start, true);
+  assert.equal(practice.world.transform.mobileScale, 0.15);
+  assert.equal(practice.text.disciplineReveal.backgroundOpacity, 0.1);
+  assert.equal(practice.text.disciplineReveal.reconnectOpacity, 0.24);
   const revealFrame = sampleAboutNarrativePlan(
     plan,
     practice.startWU + (practice.travelWU * 0.7),
@@ -168,6 +174,15 @@ test('discipline reveal owns one extended clip, a paced top-down camera handoff,
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
   assert.equal(new Set(verticalPositions).size, 6);
   verticalPositions.slice(1).forEach((value, index) => assert.ok(value - verticalPositions[index] >= 0.14));
+});
+
+test('discipline colours follow the canonical Home simulation distribution', () => {
+  const distributionTokens = designSystem.runtime.colorDistribution.map(({ colorIndex }) => `--ball-${colorIndex + 1}`);
+  assert.deepEqual(ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS, distributionTokens);
+  assert.deepEqual(
+    canonical.sections[3].text.disciplineReveal.items.map(({ label }) => label),
+    designSystem.runtime.colorDistribution.map(({ label }) => label),
+  );
 });
 
 test('cluster turbulence stays shared and tapers into the calm field', () => {

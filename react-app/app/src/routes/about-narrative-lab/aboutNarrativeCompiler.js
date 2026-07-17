@@ -20,36 +20,42 @@ export function applyAboutNarrativeEasing(name, value) {
   return progress * progress * (3 - (2 * progress));
 }
 
-function mixVector(from, to, progress) {
-  return [
-    mix(from[0], to[0], progress),
-    mix(from[1], to[1], progress),
-    mix(from[2], to[2], progress),
-  ];
+function writeVectorMix(target, from, to, progress) {
+  target[0] = mix(from[0], to[0], progress);
+  target[1] = mix(from[1], to[1], progress);
+  target[2] = mix(from[2], to[2], progress);
 }
 
-function sampleCameraKeys(keys, localProgress, fallbackFov) {
-  const fallback = {
-    offset: [0, 0, 0],
-    lookAtOffset: [0, 0, -1],
-    fov: fallbackFov,
-    roll: 0,
-  };
-  if (!keys.length) return fallback;
-  if (localProgress <= keys[0].at) return { ...fallback, ...keys[0] };
-  if (localProgress >= keys.at(-1).at) return { ...fallback, ...keys.at(-1) };
+function writeCameraKey(target, key, fallbackFov) {
+  const offset = key?.offset;
+  const lookAtOffset = key?.lookAtOffset;
+  target.offset[0] = offset?.[0] ?? 0;
+  target.offset[1] = offset?.[1] ?? 0;
+  target.offset[2] = offset?.[2] ?? 0;
+  target.lookAtOffset[0] = lookAtOffset?.[0] ?? 0;
+  target.lookAtOffset[1] = lookAtOffset?.[1] ?? 0;
+  target.lookAtOffset[2] = lookAtOffset?.[2] ?? -1;
+  target.fov = key?.fov ?? fallbackFov;
+  target.roll = key?.roll ?? 0;
+  return target;
+}
+
+function sampleCameraKeysInto(keys, localProgress, fallbackFov, target) {
+  if (!keys.length) return writeCameraKey(target, null, fallbackFov);
+  if (localProgress <= keys[0].at) return writeCameraKey(target, keys[0], fallbackFov);
+  const last = keys[keys.length - 1];
+  if (localProgress >= last.at) return writeCameraKey(target, last, fallbackFov);
   let toIndex = 1;
   while (toIndex < keys.length && localProgress > keys[toIndex].at) toIndex += 1;
   const from = keys[toIndex - 1];
   const to = keys[toIndex];
   const span = Math.max(0.00001, to.at - from.at);
   const progress = applyAboutNarrativeEasing(from.easing, (localProgress - from.at) / span);
-  return {
-    offset: mixVector(from.offset, to.offset, progress),
-    lookAtOffset: mixVector(from.lookAtOffset, to.lookAtOffset, progress),
-    fov: mix(from.fov, to.fov, progress),
-    roll: mix(from.roll, to.roll, progress),
-  };
+  writeVectorMix(target.offset, from.offset, to.offset, progress);
+  writeVectorMix(target.lookAtOffset, from.lookAtOffset, to.lookAtOffset, progress);
+  target.fov = mix(from.fov, to.fov, progress);
+  target.roll = mix(from.roll, to.roll, progress);
+  return target;
 }
 
 function findSectionIndex(sections, storyWU) {
@@ -307,12 +313,91 @@ export function compileAboutNarrativeDocument(input, {
   });
 }
 
-export function sampleAboutNarrativePlan(plan, storyWU, {
-  ambientSeconds = 0,
-  reducedMotion = false,
-  liveAmbient = true,
-} = {}) {
+const EMPTY_SAMPLE_OPTIONS = Object.freeze({});
+const CUT_TRANSITION = Object.freeze({
+  start: 0,
+  end: 0,
+  type: 'cut',
+  easing: 'linear',
+  correspondence: 'index-v1',
+});
+
+export function createAboutNarrativeFrameSample() {
+  const cameraKey = {
+    offset: [0, 0, 0],
+    lookAtOffset: [0, 0, -1],
+    fov: 48,
+    roll: 0,
+  };
+  const disciplineReveal = {
+    sectionId: '',
+    sectionIndex: -1,
+    startWU: 0,
+    travelWU: 1,
+    config: null,
+    localProgress: -1,
+  };
+  const frame = {
+    globals: null,
+    storyWU: 0,
+    storyTime: 0,
+    ambientTime: 0,
+    reducedMotion: false,
+    sectionIndex: 0,
+    section: null,
+    localProgress: 0,
+    deltaSeconds: 0,
+    camera: {
+      position: [0, 0, 0],
+      target: [0, 0, -1],
+      fov: 48,
+      roll: 0,
+      cadence: 1,
+    },
+    world: {
+      from: null,
+      to: null,
+      sequence: null,
+      sequenceKey: '',
+      preparationDescriptor: null,
+      changes: false,
+      transitionProgress: 1,
+      transition: {
+        start: 0,
+        end: 0,
+        type: 'cut',
+        easing: 'linear',
+        correspondence: 'index-v1',
+        startWU: 0,
+        endWU: 0,
+      },
+    },
+    disciplineReveal: null,
+    editorialSignals: {
+      disciplineFocus: 0,
+      gridInfluence: 0,
+    },
+  };
+  Object.defineProperties(frame, {
+    _cameraKey: { value: cameraKey },
+    _disciplineReveal: { value: disciplineReveal },
+  });
+  return frame;
+}
+
+export function sampleAboutNarrativePlanInto(
+  plan,
+  storyWU,
+  target,
+  options = EMPTY_SAMPLE_OPTIONS,
+) {
   if (!plan?.valid || !plan.sections.length) return null;
+  if (!target?._cameraKey || !target?._disciplineReveal) {
+    throw new TypeError('sampleAboutNarrativePlanInto requires a frame from createAboutNarrativeFrameSample().');
+  }
+  const ambientSeconds = Number(options.ambientSeconds) || 0;
+  const reducedMotion = Boolean(options.reducedMotion);
+  const liveAmbient = options.liveAmbient !== false;
   const clampedStoryWU = Math.max(0, Math.min(plan.maxStoryWU, Number(storyWU) || 0));
   const sectionIndex = findSectionIndex(plan.sections, clampedStoryWU);
   const section = plan.sections[sectionIndex];
@@ -321,24 +406,23 @@ export function sampleAboutNarrativePlan(plan, storyWU, {
   const cadence = Number.isFinite(section.camera.cadenceOverride)
     ? section.camera.cadenceOverride
     : globalCamera.cadence;
-  const cameraKey = sampleCameraKeys(
+  const cameraKey = sampleCameraKeysInto(
     section.camera.keys,
     reducedMotion ? 0 : localProgress,
     globalCamera.fov,
+    target._cameraKey,
   );
   const cameraStoryWU = reducedMotion ? section.startWU : clampedStoryWU;
-  const cameraPosition = [
-    cameraKey.offset[0],
-    cameraKey.offset[1],
-    globalCamera.startZ - (cameraStoryWU * cadence) + cameraKey.offset[2],
-  ];
-  const cameraTarget = [
-    cameraPosition[0] + cameraKey.lookAtOffset[0],
-    cameraPosition[1] + cameraKey.lookAtOffset[1],
-    cameraPosition[2] + cameraKey.lookAtOffset[2],
-  ];
+  const cameraPosition = target.camera.position;
+  cameraPosition[0] = cameraKey.offset[0];
+  cameraPosition[1] = cameraKey.offset[1];
+  cameraPosition[2] = globalCamera.startZ - (cameraStoryWU * cadence) + cameraKey.offset[2];
+  const cameraTarget = target.camera.target;
+  cameraTarget[0] = cameraPosition[0] + cameraKey.lookAtOffset[0];
+  cameraTarget[1] = cameraPosition[1] + cameraKey.lookAtOffset[1];
+  cameraTarget[2] = cameraPosition[2] + cameraKey.lookAtOffset[2];
   const worldState = section.worldState;
-  const transition = worldState.activeWorld?.transitionIn || { start: 0, end: 0, type: 'cut', easing: 'linear' };
+  const transition = worldState.activeWorld?.transitionIn || CUT_TRANSITION;
   const compiledTransition = worldState.transition;
   const transitionSpanWU = Math.max(0.00001, (compiledTransition?.endWU || 0) - (compiledTransition?.startWU || 0));
   const transitionProgress = transition.type === 'cut' || !compiledTransition
@@ -347,45 +431,56 @@ export function sampleAboutNarrativePlan(plan, storyWU, {
       transition.easing,
       (clampedStoryWU - compiledTransition.startWU) / transitionSpanWU,
     );
-  const disciplineReveal = plan.disciplineReveal
-    ? {
-      ...plan.disciplineReveal,
-      localProgress: (clampedStoryWU - plan.disciplineReveal.startWU) / plan.disciplineReveal.travelWU,
-    }
-    : null;
+  target.globals = plan.document.globals;
+  target.storyWU = clampedStoryWU;
+  target.storyTime = clampedStoryWU;
+  target.ambientTime = reducedMotion || !liveAmbient ? 0 : ambientSeconds;
+  target.reducedMotion = reducedMotion;
+  target.sectionIndex = sectionIndex;
+  target.section = section;
+  target.localProgress = localProgress;
+  target.camera.fov = reducedMotion ? globalCamera.fov : cameraKey.fov;
+  target.camera.roll = reducedMotion ? 0 : cameraKey.roll;
+  target.camera.cadence = cadence;
+  target.world.from = worldState.previousWorld;
+  target.world.to = worldState.activeWorld;
+  target.world.sequence = plan.worldSequence;
+  target.world.sequenceKey = plan.worldSequenceKey;
+  target.world.preparationDescriptor = plan.worldPreparationDescriptor;
+  target.world.changes = worldState.changesWorld;
+  target.world.transitionProgress = reducedMotion ? 1 : transitionProgress;
+  target.world.transition.start = transition.start;
+  target.world.transition.end = transition.end;
+  target.world.transition.type = transition.type;
+  target.world.transition.easing = transition.easing;
+  target.world.transition.correspondence = transition.correspondence;
+  target.world.transition.startWU = compiledTransition?.startWU ?? section.startWU;
+  target.world.transition.endWU = compiledTransition?.endWU ?? section.startWU;
 
-  return {
-    globals: plan.document.globals,
-    storyWU: clampedStoryWU,
-    storyTime: clampedStoryWU,
-    ambientTime: reducedMotion || !liveAmbient ? 0 : ambientSeconds,
-    reducedMotion,
-    sectionIndex,
-    section,
-    localProgress,
-    camera: {
-      position: cameraPosition,
-      target: cameraTarget,
-      fov: reducedMotion ? globalCamera.fov : cameraKey.fov,
-      roll: reducedMotion ? 0 : cameraKey.roll,
-      cadence,
-    },
-    world: {
-      from: worldState.previousWorld,
-      to: worldState.activeWorld,
-      sequence: plan.worldSequence,
-      sequenceKey: plan.worldSequenceKey,
-      preparationDescriptor: plan.worldPreparationDescriptor,
-      changes: worldState.changesWorld,
-      transitionProgress: reducedMotion ? 1 : transitionProgress,
-      transition: {
-        ...transition,
-        startWU: compiledTransition?.startWU ?? section.startWU,
-        endWU: compiledTransition?.endWU ?? section.startWU,
-      },
-    },
-    disciplineReveal,
-  };
+  if (plan.disciplineReveal) {
+    const revealTarget = target._disciplineReveal;
+    revealTarget.sectionId = plan.disciplineReveal.sectionId;
+    revealTarget.sectionIndex = plan.disciplineReveal.sectionIndex;
+    revealTarget.startWU = plan.disciplineReveal.startWU;
+    revealTarget.travelWU = plan.disciplineReveal.travelWU;
+    revealTarget.config = plan.disciplineReveal.config;
+    revealTarget.localProgress = (
+      clampedStoryWU - plan.disciplineReveal.startWU
+    ) / plan.disciplineReveal.travelWU;
+    target.disciplineReveal = revealTarget;
+  } else {
+    target.disciplineReveal = null;
+  }
+  return target;
+}
+
+export function sampleAboutNarrativePlan(plan, storyWU, options = EMPTY_SAMPLE_OPTIONS) {
+  return sampleAboutNarrativePlanInto(
+    plan,
+    storyWU,
+    createAboutNarrativeFrameSample(),
+    options,
+  );
 }
 
 export function getAboutNarrativePreparationRequest(plan, storyWU) {

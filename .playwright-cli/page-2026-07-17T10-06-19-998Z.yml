@@ -1,0 +1,90 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e12]:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic "Portfolio projects":
+              - region:
+                - generic:
+                  - region:
+                    - heading [level=2]: Selected design work.
+                    - paragraph: From early concepts to shipped websites, apps, tools, and platforms.
+                  - generic:
+                    - button:
+                      - generic:
+                        - generic:
+                          - figure
+                        - generic:
+                          - paragraph: S&P Global
+                          - heading [level=3]: Making financial indexes visible
+                    - button [expanded]:
+                      - generic:
+                        - generic:
+                          - figure
+                        - generic:
+                          - paragraph: SunExpress
+                          - heading [level=3]: Clearer flight booking
+                    - button:
+                      - generic:
+                        - generic:
+                          - figure
+                        - generic:
+                          - paragraph: Yoti
+                          - heading [level=3]: Designing trust flows
+                  - status: "SunExpress: Clearer flight booking. Project 2 of 6."
+    - generic [ref=f1e31]:
+      - navigation "Primary buttons" [ref=f1e32]:
+        - link "Home" [ref=f1e33]:
+          - /url: /index.html
+          - generic: 
+        - link "Work" [ref=f1e35]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About Me" [ref=f1e37]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=f1e39]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=f1e41]:
+        - button "Sound off" [ref=f1e42]:
+          - generic: 
+        - button "Switch to dark mode" [ref=f1e44]
+    - generic:
+      - dialog "SunExpress Clearer flight booking":
+        - generic [ref=f1e71]:
+          - button "Back to portfolio projects" [active] [ref=f1e72]:
+            - generic: 
+          - region "Project details" [ref=f1e73]:
+            - generic [ref=f1e74]:
+              - generic [ref=f1e75]:
+                - 'img "SunExpress: Clearer flight booking cover" [ref=f1e137]'
+                - generic: 
+              - generic [ref=f1e79]:
+                - paragraph [ref=f1e80]: SunExpress
+                - heading "Clearer flight booking" [level=1] [ref=f1e138]
+            - generic [ref=f1e83]:
+              - paragraph [ref=f1e140]: An early travel UX project that made a multilingual booking journey clearer across search, selection, and upsell moments.
+              - generic [ref=f1e141]:
+                - paragraph [ref=f1e142]: Overview
+                - paragraph [ref=f1e143]: Mapped booking paths, audited existing interactions, restructured decision points, and built a custom design system and icon set for a large transactional airline site.
+              - generic [ref=f1e144]:
+                - paragraph [ref=f1e146]: This stays in the portfolio as an archive project. The visual language belongs to an earlier web era, but the work is still useful because it shows large-scale transactional UX, multilingual constraints, and design-system thinking.
+                - figure "Role and lessons from a large-scale airline booking project." [ref=f1e147]:
+                  - img "Case-study slide describing UX and web design responsibilities for SunExpress." [ref=f1e149]
+                - figure "Booking and destination-page explorations for the SunExpress website." [ref=f1e151]:
+                  - img "SunExpress website screens showing homepage, destination, and booking interface explorations." [ref=f1e153]
+                - figure "Transactional screens across outbound and inbound flight choices." [ref=f1e155]:
+                  - img "SunExpress booking screens for outbound and inbound flight choices." [ref=f1e158]
+                - figure "Project notes on accessibility, language, and scalable interaction patterns." [ref=f1e160]:
+                  - img "Project notes about SunExpress accessibility, language, and scalable interaction patterns." [ref=f1e162]
+                - figure "Project reflection" [ref=f1e164]:
+                  - blockquote [ref=f1e165]: A booking flow becomes calmer when every choice arrives in the right order and every next step feels expected.
+              - generic [ref=f1e167]:
+                - paragraph [ref=f1e168]: Personal takeaways
+                - list [ref=f1e169]:
+                  - listitem [ref=f1e170]: Structure affects confidence in transactional flows.
+                  - listitem [ref=f1e171]: Small content and ordering changes can reduce confusion without a full rebuild.
+                  - listitem [ref=f1e172]: A design system is useful only when tested against real booking cases.
+  - status [ref=f1e50]: "Opened project: SunExpress: Clearer flight booking"

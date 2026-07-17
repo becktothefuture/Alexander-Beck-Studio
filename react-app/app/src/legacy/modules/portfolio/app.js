@@ -8,7 +8,7 @@ import { applyRuntimeTextToDOM } from '../ui/apply-text.js';
 import { waitForFonts } from '../utils/font-loader.js';
 import * as SoundEngine from '../audio/sound-engine.js';
 import { triggerDetent } from '../audio/simulation-audio-adapter.js';
-import { completeDirectBoot, waitForFrames, waitForPageReadyBarrier } from '../visual/page-orchestrator.js';
+import { completeDirectBoot, waitForPageReadyBarrier } from '../visual/page-orchestrator.js';
 import { resetTransitionState, setupPrefetchOnHover, setupTransitionNavigationLinks } from '../utils/page-nav.js';
 import {
   setupRenderer,
@@ -30,6 +30,7 @@ import { PortfolioProjectDrawer, getProjectContentBlocks } from './project-drawe
 import { PortfolioProjectHandoff } from './project-handoff.js';
 import { PortfolioParticleField } from './portfolio-speed-field.js';
 import { getBasePathWithTrailingSlash } from '../../../lib/base-path.js';
+import { hasGateAccess } from '../../../lib/access-gates.js';
 import { triggerHaptic } from '../../../lib/haptics.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
 
@@ -51,6 +52,9 @@ const CONFIG = {
 };
 
 let activePortfolioBootstrapRunId = 0;
+let portfolioDataPromise = null;
+let portfolioConfigPromise = null;
+let portfolioThumbnailPreloadPromise = null;
 
 const PORTFOLIO_CLICK_DRAG_THRESHOLD_PX = 12;
 const PORTFOLIO_ACTION_SOUND_MIN_INTERVAL_MS = 90;
@@ -62,6 +66,8 @@ const PORTFOLIO_CAROUSEL_DETENT_FILTER_HZ = 3300;
 const PORTFOLIO_RING_MAX_VISIBLE_OFFSET = 3;
 const PORTFOLIO_RING_GUARD_SLOTS = 2;
 const PORTFOLIO_THUMBNAIL_READY_TIMEOUT_MS = 1800;
+const PORTFOLIO_CARD_ENTRANCE_DELAY_MS = 300;
+const PORTFOLIO_ENTRANCE_COMPLETE_MS = 1080;
 const PORTFOLIO_CARD_EDGE_MIN_OPACITY = 0.8;
 const PORTFOLIO_INDICATOR_REST_OPACITY = 0.22;
 const PORTFOLIO_INDICATOR_ACTIVE_RADIUS = 2;
@@ -334,27 +340,85 @@ function shouldRotatePortfolioLabels() {
   return true;
 }
 
-async function fetchPortfolioData(signal) {
+async function loadPortfolioData() {
   // Portfolio remains runtime-fetched because the legacy deck/drawer runtime
   // consumes project data outside the Vite virtual content path.
+  if (portfolioDataPromise) return portfolioDataPromise;
   const paths = [
     CONFIG.dataPath,
     `${CONFIG.basePath}js/contents-portfolio.json`,
     '../dist/js/contents-portfolio.json',
   ];
 
-  for (const path of paths) {
-    try {
-      const response = await fetch(path, { cache: 'no-cache', signal });
-      if (!response.ok) continue;
-      return await response.json();
-    } catch (error) {
-      if (signal?.aborted) throw error;
-      continue;
+  portfolioDataPromise = (async () => {
+    for (const path of paths) {
+      try {
+        const response = await fetch(path, { cache: 'no-cache' });
+        if (!response.ok) continue;
+        return await response.json();
+      } catch (error) {
+        continue;
+      }
     }
-  }
+    throw new Error('No portfolio data found');
+  })().catch((error) => {
+    portfolioDataPromise = null;
+    throw error;
+  });
 
-  throw new Error('No portfolio data found');
+  return portfolioDataPromise;
+}
+
+async function fetchPortfolioData(signal) {
+  const data = await loadPortfolioData();
+  if (signal?.aborted) throw new DOMException('Portfolio load aborted', 'AbortError');
+  return data;
+}
+
+function loadPortfolioRuntimeConfig() {
+  if (!portfolioConfigPromise) portfolioConfigPromise = loadPortfolioConfig();
+  return portfolioConfigPromise;
+}
+
+function warmPortfolioThumbnail(src) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      image.onload = null;
+      image.onerror = null;
+      resolve();
+    };
+    image.onload = finish;
+    image.onerror = finish;
+    image.decoding = 'async';
+    image.src = src;
+    if (image.complete) finish();
+  });
+}
+
+export async function preloadPortfolioRoute() {
+  try {
+    const [data] = await Promise.all([loadPortfolioData(), loadPortfolioRuntimeConfig()]);
+    if (!portfolioThumbnailPreloadPromise) {
+      const sources = Array.from(new Set(
+        (Array.isArray(data?.projects) ? data.projects : [])
+          .map((project) => getProjectImageSrc(project))
+          .filter(Boolean)
+          .map((src) => resolveAsset(src))
+      ));
+      portfolioThumbnailPreloadPromise = Promise.all(sources.map(warmPortfolioThumbnail));
+    }
+    await Promise.race([
+      portfolioThumbnailPreloadPromise,
+      new Promise((resolve) => window.setTimeout(resolve, 650)),
+    ]);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 function resolveAsset(src) {
@@ -374,6 +438,10 @@ function getProjectAccentColor(projectIndex, projectCount) {
 
 function getProjectTags(project) {
   return Array.isArray(project?.tags) ? project.tags.slice(0, 3) : [];
+}
+
+function getProjectAccessMode(project) {
+  return project?.access === 'public' ? 'public' : 'protected';
 }
 
 function getProjectImageSrc(project) {
@@ -453,6 +521,8 @@ class PortfolioScrollApp {
     this.projectHandoff = null;
     this.projectOpenPhase = 'closed';
     this.projectOpenDebug = null;
+    this.pendingProjectIntent = null;
+    this.destroyed = false;
     this.pointerState = null;
     this.isProjectOpen = false;
     this.selectedProjectIndex = -1;
@@ -482,6 +552,8 @@ class PortfolioScrollApp {
       const index = Number(requestedIndex ?? 0);
       if (Number.isInteger(index) && index >= 0) this.openProjectByIndex(index);
     };
+    this.boundAccessGranted = (event) => this.handleProjectAccessGranted(event);
+    this.boundAccessDismissed = (event) => this.handleProjectAccessDismissed(event);
     this.boundResize = () => {
       if (this.projectHandoff?.state === 'opening' || this.projectHandoff?.state === 'preparing') {
         this.projectHandoff.abort({ settle: 'open', reason: 'resize-settle-open' });
@@ -498,6 +570,7 @@ class PortfolioScrollApp {
   }
 
   async init(signal) {
+    this.destroyed = false;
     if (signal?.aborted) return false;
     this.ensureAnnouncer();
     this.configurePortfolioSfx();
@@ -518,6 +591,8 @@ class PortfolioScrollApp {
     this.setActiveProject(0, { immediate: true });
     this.setupVideoObserver();
     document.addEventListener('abs:portfolio:open-project', this.boundAuditOpenProject);
+    window.addEventListener('abs:portfolio:access-granted', this.boundAccessGranted);
+    window.addEventListener('abs:portfolio:access-dismissed', this.boundAccessDismissed);
     window.addEventListener('resize', this.boundResize, { passive: true });
     window.addEventListener('bb:paletteChanged', this.boundPaletteChange);
 
@@ -531,8 +606,11 @@ class PortfolioScrollApp {
   }
 
   destroy() {
+    this.destroyed = true;
     removePortfolioAuditBridge(this);
     document.removeEventListener('abs:portfolio:open-project', this.boundAuditOpenProject);
+    window.removeEventListener('abs:portfolio:access-granted', this.boundAccessGranted);
+    window.removeEventListener('abs:portfolio:access-dismissed', this.boundAccessDismissed);
     document.removeEventListener('keydown', this.boundProjectKeydown, true);
     window.removeEventListener('resize', this.boundResize);
     window.removeEventListener('bb:paletteChanged', this.boundPaletteChange);
@@ -550,6 +628,7 @@ class PortfolioScrollApp {
     this.particleField = null;
     this.projectDrawerView?.destroy();
     this.restoreBackgroundInteractivity();
+    this.clearPendingProjectIntent({ restoreFocus: false, resume: false });
     if (this.mount) {
       delete this.mount.dataset.portfolioMediaReady;
       this.mount.classList.remove('is-ring-rebasing');
@@ -746,13 +825,10 @@ class PortfolioScrollApp {
     const heading = document.createElement('h2');
     heading.id = 'portfolioDeckIntroTitle';
     heading.className = 'portfolio-deck-intro__title route-centered-page__title';
-    heading.dataset.routeEnter = 'identity';
-    heading.dataset.routeEnterOrder = '0';
     heading.textContent = title;
 
     const copy = document.createElement('p');
     copy.className = 'portfolio-deck-intro__body route-centered-page__description';
-    copy.dataset.routeEnter = 'context';
     copy.textContent = body;
 
     intro.append(heading, copy);
@@ -833,6 +909,7 @@ class PortfolioScrollApp {
     card.dataset.continuousIndex = String(continuousIndex);
     card.dataset.projectIndex = String(projectIndex);
     card.dataset.projectId = String(project?.id || `project-${projectIndex + 1}`);
+    card.dataset.projectAccess = getProjectAccessMode(project);
     applyProjectCardTheme(card, project, projectIndex, this.projects.length);
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '-1');
@@ -1710,7 +1787,10 @@ class PortfolioScrollApp {
     const revealOrder = (pose.visualSlot || pose.slot) === 'front'
       ? 0
       : Math.max(1, Math.min(5, Math.round(visualDepth)));
-    card.style.setProperty('--portfolio-card-reveal-delay', `${revealOrder * 40}ms`);
+    card.style.setProperty(
+      '--portfolio-card-reveal-delay',
+      `${PORTFOLIO_CARD_ENTRANCE_DELAY_MS + (revealOrder * 40)}ms`
+    );
     card.style.removeProperty('opacity');
     card.style.removeProperty('transform');
     card.style.removeProperty('filter');
@@ -1843,6 +1923,16 @@ class PortfolioScrollApp {
       settled: this.isDeckPositionSettled(),
       isSettled: this.isDeckPositionSettled(),
       inputState: this.deckInputState,
+      entrance: {
+        phase: this.mount?.dataset?.portfolioEntrancePhase || 'unknown',
+        reason: this.mount?.dataset?.portfolioEntranceReason || '',
+      },
+      access: {
+        pending: Boolean(this.pendingProjectIntent),
+        projectId: this.pendingProjectIntent?.projectId || '',
+        projectIndex: this.pendingProjectIntent?.projectIndex ?? -1,
+        hasPortfolioAccess: hasGateAccess('portfolio'),
+      },
       open: {
         phase: this.projectOpenPhase,
         isProjectOpen: this.isProjectOpen,
@@ -2423,7 +2513,6 @@ class PortfolioScrollApp {
       return;
     }
     event.preventDefault();
-    this.playPortfolioActionSound();
     const originRect = card?.getBoundingClientRect() || null;
     this.openProjectByIndex(index, { originRect, inputType: 'synthetic-click' });
   }
@@ -2437,7 +2526,6 @@ class PortfolioScrollApp {
         this.setActiveProject(index, { focus: true, announce: true });
         return;
       }
-      this.playPortfolioActionSound();
       this.openProjectByIndex(index, { inputType: 'keyboard' });
       return;
     }
@@ -2545,12 +2633,111 @@ class PortfolioScrollApp {
     }
   }
 
+  requestProjectAccess(projectIndex, project, options = {}, originCard = null) {
+    if (this.pendingProjectIntent || this.isProjectOpen || !project) return false;
+    this.clearPressedCard();
+    this.clearDeckSettleTimer();
+    this.stopDeckAnimation();
+    this.deckIsSettling = false;
+    this.deckTargetPosition = this.deckDisplayPosition;
+    this.pendingDeckFocusIndex = -1;
+    this.pendingDeckAnnounce = false;
+    this.stopPortfolioCarouselSfx();
+    this.pauseAllVideos();
+    this.particleField?.setSuspended(true);
+    this.setDeckInputState('access-pending');
+    this.pendingProjectIntent = {
+      projectId: String(project.id || ''),
+      projectIndex,
+      inputType: options.inputType || 'pointer',
+      focusSource: originCard || (document.activeElement instanceof HTMLElement ? document.activeElement : null),
+    };
+    if (this.deckStage) {
+      this.deckStage.inert = true;
+      this.deckStage.setAttribute('aria-hidden', 'true');
+    }
+    if (this.mount) this.mount.dataset.portfolioAccessPending = 'true';
+    announceToScreenReader('This project requires a portfolio invite code.');
+    window.dispatchEvent(new CustomEvent('abs:portfolio:request-access', {
+      detail: {
+        gateId: 'portfolio',
+        projectId: this.pendingProjectIntent.projectId,
+        projectIndex,
+      },
+    }));
+    return true;
+  }
+
+  clearPendingProjectIntent({ restoreFocus = false, resume = true } = {}) {
+    const intent = this.pendingProjectIntent;
+    this.pendingProjectIntent = null;
+    if (this.mount) delete this.mount.dataset.portfolioAccessPending;
+    if (!this.isProjectOpen) {
+      this.deckStage?.removeAttribute('aria-hidden');
+      if (this.deckStage) this.deckStage.inert = false;
+      this.setDeckInputState('idle');
+    }
+    if (resume) {
+      this.particleField?.setSuspended(false);
+      this.resumeVisibleVideos();
+    }
+    if (restoreFocus && intent?.focusSource?.isConnected) {
+      window.requestAnimationFrame(() => intent.focusSource?.focus?.({ preventScroll: true }));
+    }
+    return intent;
+  }
+
+  handleProjectAccessDismissed(event) {
+    if ((event?.detail?.gateId || '') !== 'portfolio') return;
+    if (!this.pendingProjectIntent) return;
+    this.clearPendingProjectIntent({ restoreFocus: true, resume: true });
+  }
+
+  handleProjectAccessGranted(event) {
+    if ((event?.detail?.gateId || '') !== 'portfolio') return;
+    const pendingIntent = this.pendingProjectIntent;
+    if (!pendingIntent) return;
+    if (!hasGateAccess('portfolio')) {
+      this.handleProjectAccessDismissed(event);
+      return;
+    }
+
+    const projectIndex = this.projects.findIndex((project) => (
+      String(project?.id || '') === pendingIntent.projectId
+    ));
+    if (projectIndex < 0) {
+      this.handleProjectAccessDismissed(event);
+      return;
+    }
+
+    const intent = this.clearPendingProjectIntent({ restoreFocus: false, resume: false });
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (this.destroyed || !hasGateAccess('portfolio')) {
+          this.particleField?.setSuspended(false);
+          this.resumeVisibleVideos();
+          return;
+        }
+        const opened = this.openProjectByIndex(projectIndex, {
+          inputType: intent?.inputType || 'access-granted',
+        });
+        if (!opened) {
+          this.particleField?.setSuspended(false);
+          this.resumeVisibleVideos();
+        }
+      });
+    });
+  }
+
   openProjectByIndex(index, options = {}) {
-    if (this.isProjectOpen) return;
+    if (this.isProjectOpen) return false;
     const projectIndex = clamp(index, 0, this.projects.length - 1);
     const project = this.projects[projectIndex];
-    if (!project) return;
+    if (!project) return false;
     const originCard = this.getActiveProjectCard(projectIndex);
+    if (getProjectAccessMode(project) === 'protected' && !hasGateAccess('portfolio')) {
+      return this.requestProjectAccess(projectIndex, project, options, originCard);
+    }
     const originRect = options?.originRect || originCard?.getBoundingClientRect() || null;
     const timings = this.getProjectOpenTimings();
     this.clearPressedCard();
@@ -2559,6 +2746,7 @@ class PortfolioScrollApp {
       ? `${labelContent.eyebrow}: ${labelContent.title}`
       : labelContent.title;
 
+    this.playPortfolioActionSound();
     this.clearDeckSettleTimer();
     this.stopDeckAnimation();
     this.particleField?.setSuspended(true);
@@ -2596,6 +2784,7 @@ class PortfolioScrollApp {
       this.projectOpenPhase = 'open';
       this.focusProjectBackButton();
     });
+    return true;
   }
 
   finishProjectClose() {
@@ -2885,7 +3074,7 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
   const bootstrapRunId = activePortfolioBootstrapRunId + 1;
   activePortfolioBootstrapRunId = bootstrapRunId;
   const root = document.documentElement;
-  const waitForGateReveal = shellRouteTransitionActive && root.dataset.absGateTransition === 'active';
+  const waitForShellRelease = shellRouteTransitionActive;
   let disposed = false;
   let rendererOwner = null;
   let pitCanvas = null;
@@ -2920,6 +3109,10 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
     delete document.body.dataset.portfolioLoadState;
     if (pitMount) {
       delete pitMount.dataset.portfolioMediaReady;
+      delete pitMount.dataset.portfolioEntrancePhase;
+      delete pitMount.dataset.portfolioEntranceReason;
+      pitMount.inert = false;
+      pitMount.removeAttribute('aria-busy');
       pitMount.classList.remove(
         'is-portfolio-boot-preparing',
         'is-portfolio-deck-visible',
@@ -2995,10 +3188,14 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
     if (pitMount) {
       pitMount.classList.add('is-portfolio-boot-preparing');
       pitMount.classList.remove('is-portfolio-deck-visible', 'is-portfolio-deck-revealing');
+      pitMount.dataset.portfolioEntrancePhase = 'preparing';
+      delete pitMount.dataset.portfolioEntranceReason;
+      pitMount.inert = true;
+      pitMount.setAttribute('aria-busy', 'true');
       pitMount.style.opacity = '1';
     }
   };
-  const revealPortfolioLayers = () => {
+  const revealPortfolioLayers = (reason = 'runtime') => {
     if (!isCurrentBootstrapRun()) return;
     if (portfolioLayersRevealed) return;
     portfolioLayersRevealed = true;
@@ -3010,14 +3207,20 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
     if (pitMount) {
       pitMount.classList.remove('is-portfolio-boot-preparing');
       pitMount.classList.add('is-portfolio-deck-visible', 'is-portfolio-deck-revealing');
+      pitMount.dataset.portfolioEntrancePhase = 'entering';
+      pitMount.dataset.portfolioEntranceReason = reason;
       pitMount.style.opacity = '1';
       window.clearTimeout(deckRevealTimer);
       deckRevealTimer = window.setTimeout(() => {
         pitMount.classList.remove('is-portfolio-deck-revealing');
-      }, 900);
+        pitMount.dataset.portfolioEntrancePhase = 'complete';
+        pitMount.inert = false;
+        pitMount.removeAttribute('aria-busy');
+        app?.resumeVisibleVideos();
+      }, shouldReducePortfolioMotion() ? 1 : PORTFOLIO_ENTRANCE_COMPLETE_MS);
     }
   };
-  const scheduleHardReveal = (timeoutMs = 1200) => {
+  const scheduleHardReveal = (timeoutMs = 1200, { waitForTimeout = false } = {}) => {
     window.clearTimeout(hardRevealTimer);
     const startedAt = performance.now();
     const tick = () => {
@@ -3025,8 +3228,8 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
       if (portfolioLayersRevealed) return;
       const deckMediaReady = pitMount?.dataset.portfolioMediaReady === 'true';
       const timedOut = (performance.now() - startedAt) >= timeoutMs;
-      if (deckMediaReady || timedOut) {
-        revealPortfolioLayers();
+      if ((!waitForTimeout && deckMediaReady) || timedOut) {
+        revealPortfolioLayers('fallback');
         return;
       }
       hardRevealTimer = window.setTimeout(tick, 80);
@@ -3034,9 +3237,6 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
     hardRevealTimer = window.setTimeout(tick, 180);
   };
   preparePortfolioLayers();
-  if (!waitForGateReveal) {
-    scheduleHardReveal(shellRouteTransitionActive ? 2400 : 2200);
-  }
   // Deck mount stays invisible; revealed after the first stable presentation.
   const hostLaidOut = await waitForPitSimulationHostReady();
   if (!isCurrentBootstrapRun()) return cleanup;
@@ -3071,7 +3271,7 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
   }
   maybeAutoPickCursorColor('startup');
 
-  const loadedPortfolioConfig = await loadPortfolioConfig();
+  const loadedPortfolioConfig = await loadPortfolioRuntimeConfig();
   if (!isCurrentBootstrapRun()) return cleanup;
   const portfolioConfig = applyPortfolioConfig(loadedPortfolioConfig);
   const data = await fetchPortfolioData(signal);
@@ -3091,7 +3291,7 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
     document.body.classList.add('portfolio-deck-failed');
     root.classList.remove('portfolio-booting');
     document.body.dataset.portfolioLoadState = 'loaded';
-    revealPortfolioLayers();
+    revealPortfolioLayers('failed');
     if (!shellRouteTransitionActive) {
       await completeDirectBoot({
         selectors: ['#abs-scene', '#app-frame'],
@@ -3102,9 +3302,7 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
   }
   installPortfolioAuditBridge(app);
   updateCursorSize();
-  if (!waitForGateReveal) {
-    scheduleHardReveal(shellRouteTransitionActive ? 900 : 520);
-  }
+  if (waitForShellRelease) scheduleHardReveal(2400, { waitForTimeout: true });
 
   const settlePortfolioPresentation = () => {
     try {
@@ -3125,27 +3323,44 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
   if (!isCurrentBootstrapRun()) return cleanup;
   settlePortfolioPresentation();
 
-  if (waitForGateReveal) {
+  const presentationPrepared = await waitForStablePortfolioPresentation({
+    timeoutMs: shellRouteTransitionActive ? 700 : 900,
+  });
+  if (!isCurrentBootstrapRun()) return cleanup;
+
+  if (waitForShellRelease) {
     markReady?.();
-    await new Promise((resolve) => {
+    const releaseReason = await new Promise((resolve) => {
       let settled = false;
       const release = (event) => {
-        const eventGeneration = Number(event?.detail?.generation || 0);
+        const eventGeneration = Number(
+          event?.detail?.generation || root.dataset.absPortfolioRevealGeneration || 0
+        );
         if (eventGeneration && eventGeneration !== Number(generation || 0)) return;
         if (settled) return;
         settled = true;
         window.removeEventListener('abs:portfolio:reveal', release);
         removeGateRevealListener = null;
-        resolve();
+        const reason = event?.detail?.reason || root.dataset.absPortfolioReveal || 'route-in';
+        delete root.dataset.absPortfolioReveal;
+        delete root.dataset.absPortfolioRevealGeneration;
+        resolve(reason);
       };
       removeGateRevealListener = () => window.removeEventListener('abs:portfolio:reveal', release);
       window.addEventListener('abs:portfolio:reveal', release);
-      if (root.dataset.absPortfolioGateReveal === 'ready') release();
+      if (root.dataset.absPortfolioReveal) release();
+    });
+    if (!isCurrentBootstrapRun()) return cleanup;
+    revealPortfolioLayers(releaseReason);
+  } else {
+    await completeDirectBoot({
+      selectors: ['#abs-scene', '#app-frame'],
+      detail: presentationPrepared ? 'portfolio-ready' : 'portfolio-ready-timeout',
+      onOverlayHidden: () => revealPortfolioLayers('direct'),
     });
     if (!isCurrentBootstrapRun()) return cleanup;
   }
 
-  revealPortfolioLayers();
   const presentationSettled = await waitForStablePortfolioPresentation({
     timeoutMs: shellRouteTransitionActive ? 700 : 520,
   });
@@ -3154,18 +3369,8 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
     console.warn('[portfolio] Presentation did not fully settle after reveal; using latest measured layout.');
   }
 
-  if (!shellRouteTransitionActive) {
-    await waitForFrames(2);
-    if (!isCurrentBootstrapRun()) return cleanup;
-    await completeDirectBoot({
-      selectors: ['#abs-scene', '#app-frame'],
-      detail: presentationSettled ? 'portfolio-ready' : 'portfolio-ready-timeout',
-    });
-    if (!isCurrentBootstrapRun()) return cleanup;
-  }
-
-  // During shell route-in, route-ready is emitted after the deck is visible and
-  // at least one post-reveal stability pass has had a chance to complete.
+  // Route readiness is emitted from prepared final geometry; the shell then
+  // releases Portfolio-owned material from its route-in preparation boundary.
   const ABS_DEV = import.meta.env.DEV;
   if (ABS_DEV) {
     try {

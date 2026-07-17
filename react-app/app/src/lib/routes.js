@@ -17,7 +17,7 @@ const ROUTE_DEFS = {
     id: 'portfolio',
     path: '/portfolio.html',
     aliases: ['/portfolio.html', '/portfolio'],
-    gated: true,
+    gated: false,
   },
   about: {
     id: 'about',

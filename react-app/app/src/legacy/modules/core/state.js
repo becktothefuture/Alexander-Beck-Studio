@@ -152,7 +152,7 @@ const state = {
   sphere3dReleaseSpinGain: 1.05,
   sphere3dFogStart: 0.9,
   sphere3dFogMin: 0.42,
-  sphere3dAlphaMax: 0.9,
+  sphere3dAlphaMax: 1,
   sphere3dMinDotRadiusPx: 1.8,
   sphere3dSpinStrainMax: 0.055,
   sphere3dSpinStrainStart: 3,

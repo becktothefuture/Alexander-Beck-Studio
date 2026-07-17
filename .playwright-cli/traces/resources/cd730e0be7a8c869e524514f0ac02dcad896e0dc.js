@@ -1,0 +1,6 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/routes/contact/contact-route.css");import { updateStyle as __vite__updateStyle, removeStyle as __vite__removeStyle } from "/@vite/client"
+const __vite__id = "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/react-app/app/src/routes/contact/contact-route.css"
+const __vite__css = ".contact-route {\n  isolation: isolate;\n  overflow: hidden;\n}\n\n#simulations .contact-ripple-stage {\n  position: absolute;\n  inset: 0;\n  z-index: 0;\n  overflow: hidden;\n  pointer-events: none;\n  contain: strict;\n}\n\n#simulations .contact-ripple-canvas {\n  display: block;\n  width: 100%;\n  height: 100%;\n  background: transparent;\n  pointer-events: none;\n}\n\n.contact-route__inner {\n  position: relative;\n  z-index: 1;\n}\n\n.contact-route .route-centered-page__description {\n  max-width: 50.4ch;\n  line-height: 1.485;\n  text-wrap: balance;\n}\n\n@media (prefers-reduced-motion: reduce) {\n  #simulations .contact-ripple-canvas {\n    transform: none;\n  }\n}\n"
+__vite__updateStyle(__vite__id, __vite__css)
+import.meta.hot.accept()
+import.meta.hot.prune(() => __vite__removeStyle(__vite__id))

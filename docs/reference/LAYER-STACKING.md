@@ -29,4 +29,8 @@ The Portfolio project drawer repeats the same local order. Its media and scrolli
 
 `#portfolio-sheet-host` is a sibling overlay host within `#abs-scene`, after route content. The open Portfolio sheet covers the route header/footer/content but stops above the Button Bar. Preserve the host radius and clipping contract.
 
+The protected-project access gate uses the shell-owned `.window-overlay-layer` inside the same studio-window clip. It blurs the live Portfolio deck but never the Button Bar. The legacy fixed `#modal-blur-layer` and `#modal-content-layer` may retain modal timing/depth state, but they must not paint while the project gate is open or closing. The project sheet may begin opening only after the access overlay is fully closed.
+
+`#shell-persistent-route-ui-host` is a shell-owned sibling outside `#abs-scene` and `#app-frame`. Route instruments that must not disappear during scene boot or route-content transitions mount here, remain clipped to the studio-window viewport above the Button Bar, and stay pointer-transparent.
+
 Do not move `#portfolioProjectView` back inside the simulation/content subtree. Do not solve stacking bugs with arbitrary higher z-indexes; preserve this ownership order.

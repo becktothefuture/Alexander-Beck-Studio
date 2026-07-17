@@ -1,0 +1,3 @@
+{"type":"receive","time":1784283498781.5278,"opcode":1,"data":"{\"type\":\"connected\"}"}
+{"type":"send","time":1784283528775.846,"opcode":1,"data":"{\"type\":\"ping\"}"}
+{"type":"receive","time":1784283529806.418,"opcode":1,"data":"{\"type\":\"full-reload\",\"triggeredBy\":\"/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/react-app/app/src/routes/about-narrative-lab/aboutNarrativeCorrespondence.worker.js\",\"path\":\"*\"}"}

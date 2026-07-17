@@ -6,10 +6,11 @@ import {
 } from '../../lib/smooth-scroll.js';
 import {
   compileAboutNarrativeDocument,
+  createAboutNarrativeFrameSample,
   getAboutNarrativePreparationRequest,
   getAboutNarrativeCueMovement,
   sampleAboutNarrativeCue,
-  sampleAboutNarrativePlan,
+  sampleAboutNarrativePlanInto,
 } from './aboutNarrativeCompiler.js';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
@@ -36,6 +37,16 @@ export function useAboutNarrativeTimeline({
   const activeIndicatorStartIndexRef = useRef(0);
   const documentRef = useRef(document);
   const planRef = useRef(compileAboutNarrativeDocument(document));
+  const frameSampleRef = useRef(null);
+  const frameSampleOptionsRef = useRef(null);
+  if (frameSampleRef.current == null) frameSampleRef.current = createAboutNarrativeFrameSample();
+  if (frameSampleOptionsRef.current == null) {
+    frameSampleOptionsRef.current = {
+      ambientSeconds: 0,
+      reducedMotion: false,
+      liveAmbient: true,
+    };
+  }
   const measurementsRef = useRef({ dirty: true, sections: [], editorialLines: [] });
   const requestMeasureRef = useRef(() => {});
 
@@ -173,7 +184,7 @@ export function useAboutNarrativeTimeline({
       });
     };
 
-    const updateEditorialCopy = (scrollTop, viewportHeight, reducedMotion) => {
+    const updateEditorialCopy = (scrollTop, viewportHeight, reducedMotion, target) => {
       const threshold = documentRef.current.globals.editorialRevealThreshold;
       let disciplineFocus = 0;
       let gridInfluence = 0;
@@ -188,7 +199,9 @@ export function useAboutNarrativeTimeline({
         if (group > 0 && progress >= 0.24) disciplineFocus = group;
         if (node.dataset.worldInfluence === 'true') gridInfluence = Math.max(gridInfluence, progress);
       });
-      return { disciplineFocus, gridInfluence };
+      target.disciplineFocus = disciplineFocus;
+      target.gridInfluence = gridInfluence;
+      return target;
     };
 
     const readTransport = (deltaSeconds) => {
@@ -233,11 +246,16 @@ export function useAboutNarrativeTimeline({
       const reducedMotion = reducedMotionQuery.matches
         || editorStore?.getSnapshot().previewProfile === 'reduced-motion';
       const storyWU = readTransport(deltaSeconds);
-      const frame = sampleAboutNarrativePlan(planRef.current, storyWU, {
-        ambientSeconds: time / 1000,
-        reducedMotion,
-        liveAmbient: editorStore?.getSnapshot().transport.liveAmbient !== false,
-      });
+      const sampleOptions = frameSampleOptionsRef.current;
+      sampleOptions.ambientSeconds = time / 1000;
+      sampleOptions.reducedMotion = reducedMotion;
+      sampleOptions.liveAmbient = editorStore?.getSnapshot().transport.liveAmbient !== false;
+      const frame = sampleAboutNarrativePlanInto(
+        planRef.current,
+        storyWU,
+        frameSampleRef.current,
+        sampleOptions,
+      );
 
       if (frame) {
         frame.deltaSeconds = deltaSeconds;
@@ -251,7 +269,12 @@ export function useAboutNarrativeTimeline({
         root.style.setProperty('--opening-scroll-cue-opacity', openingScrollCueVisible ? '1' : '0');
         root.style.setProperty('--narrative-story-wu', frame.storyWU.toFixed(4));
         updateTextCues(frame, reducedMotion);
-        frame.editorialSignals = updateEditorialCopy(scrollport.scrollTop, viewportHeight, reducedMotion);
+        updateEditorialCopy(
+          scrollport.scrollTop,
+          viewportHeight,
+          reducedMotion,
+          frame.editorialSignals,
+        );
         worldRuntimeRef.current?.render(frame);
         if (editorStore && time - lastTransportPublish > 80) {
           const current = editorStore.getSnapshot().transport;
@@ -301,6 +324,7 @@ export function useAboutNarrativeTimeline({
       worldRuntimeRef.current?.setVisible?.(!window.document.hidden);
       if (!window.document.hidden) schedulePreparationHandoff(getCurrentStoryWU(), { force: true });
     };
+    const handleRuntimeReady = () => schedulePreparationHandoff(getCurrentStoryWU(), { force: true });
 
     const resizeObserver = new ResizeObserver(markDirty);
     resizeObserver.observe(scrollport);
@@ -311,6 +335,7 @@ export function useAboutNarrativeTimeline({
     scrollport.addEventListener('touchstart', cancelPlayback, { passive: true });
     scrollport.addEventListener('scroll', handleScrollPreparation, { passive: true });
     window.document.addEventListener('visibilitychange', handleVisibilityChange);
+    root.addEventListener('about:world-runtime-ready', handleRuntimeReady);
     const unsubscribe = editorStore?.subscribe(handleStoreChange);
     window.document.fonts?.ready?.then(markDirty).catch(() => {});
     rebuildLenis();
@@ -330,6 +355,7 @@ export function useAboutNarrativeTimeline({
       scrollport.removeEventListener('touchstart', cancelPlayback);
       scrollport.removeEventListener('scroll', handleScrollPreparation);
       window.document.removeEventListener('visibilitychange', handleVisibilityChange);
+      root.removeEventListener('about:world-runtime-ready', handleRuntimeReady);
       requestMeasureRef.current = () => {};
       delete root.dataset.activeNarrativeSection;
       delete root.dataset.openingScrollCue;

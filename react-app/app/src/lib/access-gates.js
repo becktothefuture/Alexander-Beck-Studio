@@ -50,18 +50,6 @@ function consumeGateAccessFromUrl(gateId) {
   }
 }
 
-function isDevGatePreview(gateId) {
-  if (!import.meta.env.DEV) return false;
-
-  try {
-    const expectedPath = GATE_PAGE_PATHS[gateId];
-    const currentPath = String(window.location.pathname || '').toLowerCase();
-    return Boolean(expectedPath && currentPath.endsWith(expectedPath));
-  } catch {
-    return false;
-  }
-}
-
 function getHomeUrl() {
   try {
     return new URL(withBasePath('/'), window.location.origin);
@@ -114,12 +102,7 @@ export function hasGateAccess(gateId) {
       return true;
     }
   } catch {
-    return isDevGatePreview(gateId);
-  }
-
-  if (isDevGatePreview(gateId)) {
-    markGateAccess(gateId);
-    return true;
+    return false;
   }
 
   return false;

@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'dist-certify']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -18,6 +18,7 @@ export default defineConfig([
       globals: {
         ...globals.browser,
         __DEV__: 'readonly',
+        __CERTIFY__: 'readonly',
         __PANEL_INITIALLY_VISIBLE__: 'readonly',
         UnicornStudio: 'readonly',
       },

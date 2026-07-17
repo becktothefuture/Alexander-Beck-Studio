@@ -53,7 +53,7 @@ import {
   SIMULATION_FOCUS_CHANGED_EVENT,
   SIMULATION_FOCUS_STORAGE_KEY,
 } from '../../data/simulationCatalog.js';
-import { completeDirectBoot } from '../../legacy/modules/visual/page-orchestrator.js';
+import { completeDirectBoot, failDirectBoot } from '../../legacy/modules/visual/page-orchestrator.js';
 import { applyLayoutCSSVars, initState } from '../../legacy/modules/core/state.js';
 import { waitForFonts } from '../../legacy/modules/utils/font-loader.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
@@ -220,8 +220,11 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
   const fontsReady = await waitForFonts();
   if (options.isCancelled?.()) return;
   if (!fontsReady) {
-    console.error('[shell] Critical fonts failed to load before direct-route reveal');
-    document.documentElement.dataset.absBootDetail = 'critical-fonts-unavailable';
+    console.warn('[shell] Critical fonts unavailable; revealing the route with fallback fonts');
+    await failDirectBoot({
+      detail: 'critical-fonts-unavailable',
+      selectors: ['#abs-scene', '#app-frame'],
+    });
     return;
   }
 
@@ -237,6 +240,14 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
     'abs-home-post-boot-pending',
     'abs-home-post-boot-enter',
   );
+
+  // Portfolio owns its direct-load release because its measured card geometry
+  // and authored entrance must be ready before the boot overlay leaves.
+  if (routeId === 'portfolio') {
+    root.dataset.absBootDetail = 'portfolio-preparing';
+    return;
+  }
+
   root.classList.add('abs-direct-boot-ready', 'entrance-complete', 'ui-entered');
 
   if (options.deferBootState === true) return;

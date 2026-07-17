@@ -41,6 +41,7 @@ async function waitForCarousel(page) {
       app
       && snapshot?.isSettled
       && snapshot?.inputState === 'idle'
+      && document.getElementById('portfolioProjectMount')?.dataset?.portfolioEntrancePhase === 'complete'
       && document.body.dataset.portfolioLoadState === 'loaded'
     );
   }, null, { timeout: WAIT_MS });
@@ -74,8 +75,21 @@ async function startFrameSampler(page, durationMs = 1200) {
       };
     };
     const start = performance.now();
+    const generation = (window.__ABS_PORTFOLIO_TRANSITION_SAMPLE_GENERATION__ || 0) + 1;
+    window.__ABS_PORTFOLIO_TRANSITION_SAMPLE_GENERATION__ = generation;
     window.__ABS_PORTFOLIO_TRANSITION_SAMPLES__ = [];
-    const sample = (now) => {
+    let bridgeObserver = null;
+    let sampleInterval = null;
+    const stopSampling = () => {
+      bridgeObserver?.disconnect();
+      if (sampleInterval !== null) window.clearInterval(sampleInterval);
+      sampleInterval = null;
+    };
+    const sample = (now, scheduleNext = true) => {
+      if (window.__ABS_PORTFOLIO_TRANSITION_SAMPLE_GENERATION__ !== generation) {
+        stopSampling();
+        return;
+      }
       const bridge = document.querySelector('.portfolio-project-media-bridge');
       const bridgeVisual = bridge?.querySelector('.portfolio-project-view__image');
       const bridgeMedia = bridge?.querySelector('.portfolio-project-view__image-motion');
@@ -116,10 +130,44 @@ async function startFrameSampler(page, durationMs = 1200) {
         deckOpacity: deckStyle ? Number(deckStyle.opacity) : 0,
         heroMotionActive: Boolean(root?.classList.contains('is-hero-motion-active')),
       });
-      if (now - start < duration) requestAnimationFrame(sample);
+      if (scheduleNext && now - start < duration) requestAnimationFrame(sample);
+      else if (now - start >= duration) stopSampling();
     };
-    requestAnimationFrame(sample);
+    bridgeObserver = new MutationObserver(() => {
+      if (!document.querySelector('.portfolio-project-media-bridge')) return;
+      sample(performance.now(), false);
+      bridgeObserver.disconnect();
+    });
+    bridgeObserver.observe(document.body, { childList: true, subtree: true });
+    // WebKit can heavily coalesce requestAnimationFrame callbacks in headless mode.
+    // Keep an independent cadence so the audit still observes intermediate WAAPI geometry.
+    sampleInterval = window.setInterval(() => sample(performance.now(), false), 32);
+    sample(performance.now());
   }, durationMs);
+}
+
+async function appendSettledFrameSample(page) {
+  await page.evaluate(() => {
+    window.__ABS_PORTFOLIO_TRANSITION_SAMPLE_GENERATION__ = (
+      window.__ABS_PORTFOLIO_TRANSITION_SAMPLE_GENERATION__ || 0
+    ) + 1;
+    const samples = window.__ABS_PORTFOLIO_TRANSITION_SAMPLES__ || [];
+    const previous = samples.at(-1) || {};
+    const hero = document.querySelector('.portfolio-project-view__image-shell');
+    const deck = document.querySelector('.portfolio-deck-stage');
+    const root = document.getElementById('portfolioProjectView');
+    samples.push({
+      ...previous,
+      atMs: Number((Number(previous.atMs) + 1 || 0).toFixed(2)),
+      phase: window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.projectOpenPhase || '',
+      bridgeRect: null,
+      bridgeOpacity: 0,
+      heroOpacity: hero ? Number(getComputedStyle(hero).opacity) : 0,
+      deckOpacity: deck ? Number(getComputedStyle(deck).opacity) : 0,
+      heroMotionActive: Boolean(root?.classList.contains('is-hero-motion-active')),
+    });
+    window.__ABS_PORTFOLIO_TRANSITION_SAMPLES__ = samples;
+  });
 }
 
 async function captureTimedFrames(page, prefix, times) {
@@ -328,7 +376,10 @@ async function main() {
   const summary = { browser: BROWSER_NAME, viewports: {}, failures };
   page.on('pageerror', (error) => pageErrors.push(String(error?.stack || error)));
   page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
+    if (message.type() !== 'error') return;
+    const location = message.location();
+    const source = location?.url ? ` (${location.url})` : '';
+    consoleErrors.push(`${message.text()}${source}`);
   });
 
   for (const viewport of VIEWPORTS) {
@@ -357,7 +408,14 @@ async function main() {
           null,
           { timeout: WAIT_MS },
         );
+        await page.waitForFunction(() => {
+          const root = document.getElementById('portfolioProjectView');
+          const hero = document.querySelector('.portfolio-project-view__image-shell');
+          return root?.classList.contains('is-hero-motion-active')
+            && Number.parseFloat(getComputedStyle(hero).opacity || '0') > 0.95;
+        }, null, { timeout: WAIT_MS });
         await page.waitForTimeout(320);
+        await appendSettledFrameSample(page);
         const openSamples = await page.evaluate(() => window.__ABS_PORTFOLIO_TRANSITION_SAMPLES__ || []);
         validateOpenSamples(
           openSamples,

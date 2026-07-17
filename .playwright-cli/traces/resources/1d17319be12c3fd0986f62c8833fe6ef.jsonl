@@ -1,0 +1,4 @@
+{"type":"receive","time":1784283586486.6821,"opcode":1,"data":"{\"type\":\"connected\"}"}
+{"type":"send","time":1784283616495.4373,"opcode":1,"data":"{\"type\":\"ping\"}"}
+{"type":"send","time":1784283646493.8691,"opcode":1,"data":"{\"type\":\"ping\"}"}
+{"type":"receive","time":1784283666239.257,"opcode":1,"data":"{\"type\":\"full-reload\",\"triggeredBy\":\"/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/react-app/app/src/routes/about-narrative-lab/aboutNarrativeWorkerProtocol.js\",\"path\":\"*\"}"}

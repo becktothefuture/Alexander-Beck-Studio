@@ -60,9 +60,9 @@ The Button Bar sits outside the studio window. Primary route material derives fr
 
 ## Portfolio Gate
 
-The locked Portfolio route uses one token-driven CSS/DOM ghost scene with the same fixed poster frames as the live deck. Its card planes adapt through responsive CSS and resolved theme tokens; theme switching does not request a second preview asset.
+Portfolio is no longer theme-tested as a separate locked route. The live deck renders in the current studio-window theme for every visitor, and the protected-project gate appears only after an unauthorised project-open intent.
 
-The scene never starts the live deck, title/copy, project JSON, or video runtime. It uses four explicitly named static poster files and no per-card titles; removing CSS blur reveals those poster frames plus the harmless intercept: “Ah, ah, ah. You didn’t say the magic word.” The shared modal and simulation-focus backdrop blur is 13.2px desktop / 24px touch-mobile; the locked Portfolio gate remains 30% stronger at 17.16px desktop / 31.2px touch-mobile.
+The gate uses the shell-owned in-window overlay and therefore inherits the manual site theme, not browser-aware wall colors. Its live-deck backdrop resolves to an `11px` blur on desktop and `16px` on touch/mobile, with a light or dark tonal wash from the active window theme. The Button Bar remains outside the overlay. The dormant `PortfolioGateScene` is not production or theme evidence.
 
 ## Verification
 

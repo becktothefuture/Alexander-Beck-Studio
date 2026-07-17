@@ -226,12 +226,26 @@ export class PortfolioParticleField {
     return Boolean(this.reducedMotionQuery?.matches);
   }
 
-  isLifecycleSuspended() {
+  isRouteTransitionPaused() {
     const transitionPhase = document.documentElement.dataset.absTransitionPhase || 'idle';
+    return transitionPhase === 'route-out' || transitionPhase === 'route-in';
+  }
+
+  isLifecycleSuspended() {
     return this.suspended
-      || document.hidden
-      || transitionPhase === 'route-out'
-      || transitionPhase === 'route-in';
+      || document.hidden;
+  }
+
+  isMotionPaused() {
+    return this.isLifecycleSuspended() || this.isRouteTransitionPaused();
+  }
+
+  drawStaticFrame(timestamp = performance.now()) {
+    const previousVelocity = this.filteredVelocity;
+    const direction = previousVelocity < 0 ? -1 : 1;
+    this.filteredVelocity = direction * FULL_INTENSITY_VELOCITY * 0.12;
+    this.drawFrame(timestamp, 0);
+    this.filteredVelocity = previousVelocity;
   }
 
   syncLifecycle() {
@@ -245,19 +259,21 @@ export class PortfolioParticleField {
     }
 
     this.canvas.classList.remove('is-suspended');
-    if (this.isReducedMotion()) {
+    if (this.isReducedMotion() || this.isRouteTransitionPaused()) {
       this.cancelScheduledFrame();
       this.running = false;
-      this.filteredVelocity = 0;
-      this.targetVelocity = 0;
-      this.drawFrame(performance.now(), 0);
+      if (this.isReducedMotion()) {
+        this.filteredVelocity = 0;
+        this.targetVelocity = 0;
+      }
+      this.drawStaticFrame();
       return;
     }
     this.scheduleFrame({ immediate: true });
   }
 
   scheduleFrame({ immediate = false } = {}) {
-    if (!this.started || this.isLifecycleSuspended() || this.isReducedMotion()) return;
+    if (!this.started || this.isMotionPaused() || this.isReducedMotion()) return;
     if (this.animationFrame || this.frameTimer) return;
     const hasVelocity = Math.abs(this.targetVelocity) >= VELOCITY_EPSILON
       || Math.abs(this.filteredVelocity) >= VELOCITY_EPSILON;
@@ -287,7 +303,7 @@ export class PortfolioParticleField {
 
   tick(timestamp) {
     this.animationFrame = 0;
-    if (!this.started || this.isLifecycleSuspended() || this.isReducedMotion()) {
+    if (!this.started || this.isMotionPaused() || this.isReducedMotion()) {
       this.syncLifecycle();
       return;
     }
@@ -374,10 +390,12 @@ export class PortfolioParticleField {
   }
 
   getSnapshot() {
+    const transitionPaused = this.isRouteTransitionPaused();
     return {
       active: this.started && !this.isLifecycleSuspended(),
       running: this.running,
       suspended: this.isLifecycleSuspended(),
+      transitionPaused,
       reducedMotion: this.isReducedMotion(),
       targetVelocity: this.targetVelocity,
       filteredVelocity: this.filteredVelocity,
@@ -394,7 +412,7 @@ export class PortfolioParticleField {
       motionResponse: this.options.motionResponse,
       parallaxDepth: this.options.parallaxDepth,
       arcMotion: true,
-      cadence: this.isReducedMotion()
+      cadence: this.isReducedMotion() || transitionPaused
         ? 'static'
         : (Math.abs(this.targetVelocity) >= VELOCITY_EPSILON
           || Math.abs(this.filteredVelocity) >= VELOCITY_EPSILON ? 'motion' : 'idle'),

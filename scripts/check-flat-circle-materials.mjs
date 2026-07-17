@@ -23,6 +23,7 @@ const circleRendererFiles = [
   'react-app/app/src/routes/flock-of-birds/flockOfBirdsRenderer.js',
   'react-app/app/src/routes/mineral-growth/mineralGrowthRenderer.js',
   'react-app/app/src/routes/repel-room/repelRoomRenderer.js',
+  'react-app/app/src/legacy/modules/modes/pressure-crucible.js',
 ];
 
 const forbiddenSourcePatterns = [
@@ -97,6 +98,47 @@ if (!/renderer\.shadowMap\.enabled\s*=\s*false/.test(beachBallRuntime)) {
   failures.push('react-app/app/src/routes/beach-ball-room/BeachBallRoomRuntime.jsx: shadow maps must remain disabled');
 }
 
+const flockOpacityFiles = [
+  'react-app/app/public/config/flock-of-birds-demo.json',
+  'react-app/app/src/routes/flock-of-birds/flockOfBirdsControls.js',
+  'react-app/app/src/routes/flock-of-birds/flockOfBirdsRenderer.js',
+];
+for (const relativePath of flockOpacityFiles) {
+  const source = readFileSync(resolve(root, relativePath), 'utf8');
+  reportMatches(relativePath, source, [
+    { label: 'Convergence must use direct opaque palette fills', pattern: /\b(?:colorOpacity|depthOpacity|mutedAmount)\b/g },
+  ]);
+}
+
+const pressureField = readFileSync(
+  resolve(root, 'react-app/app/src/legacy/modules/modes/pressure-crucible.js'),
+  'utf8',
+);
+reportMatches('react-app/app/src/legacy/modules/modes/pressure-crucible.js', pressureField, [
+  { label: 'Pressure Field bodies must remain opaque', pattern: /\b(?:ball\.alpha|globalAlpha)\b/g },
+]);
+
+const opaqueDefaultFiles = [
+  'react-app/app/public/config/design-system.json',
+  'react-app/app/public/config/napoleon-point-cloud-demo.json',
+  'react-app/app/public/config/spatial-scan-demo.json',
+  'react-app/app/src/legacy/modules/core/state.js',
+  'react-app/app/src/legacy/modules/modes/3d-sphere.js',
+  'react-app/app/src/legacy/modules/ui/control-registry.js',
+  'react-app/app/src/routes/concept-simulations/conceptSimulationConfigs.js',
+  'react-app/app/src/routes/napoleon-point-cloud/NapoleonPointCloud.jsx',
+  'react-app/app/src/routes/spatial-scan/SpatialScanPointCloud.jsx',
+];
+const softDefaultPatterns = [
+  { label: 'point-cloud front/default opacity must be 1', pattern: /\bdotOpacity["']?\s*[:=]\s*0\./g },
+  { label: 'point-cloud material opacity must initialize at 1', pattern: /\buOpacity\s*:\s*\{\s*value\s*:\s*0\./g },
+  { label: 'Continuity front opacity must default to 1', pattern: /\bsphere3dAlphaMax["']?\s*[:=]\s*0\./g },
+  { label: 'Continuity front opacity fallback must be 1', pattern: /\bDEFAULT_ALPHA_MAX\s*=\s*0\./g },
+];
+for (const relativePath of opaqueDefaultFiles) {
+  reportMatches(relativePath, readFileSync(resolve(root, relativePath), 'utf8'), softDefaultPatterns);
+}
+
 walkMarkdown(resolve(root, 'docs'));
 
 if (failures.length) {
@@ -105,4 +147,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('PASS: all circle and pebble renderers use flat, unshaded materials');
+console.log('PASS: all circle and pebble renderers use clean, flat materials');

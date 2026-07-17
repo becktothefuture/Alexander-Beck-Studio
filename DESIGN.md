@@ -49,7 +49,7 @@ The system is distributed across these production surfaces. A design change is c
 | Persistent shell, surface slots, footer, overlay hosts, and Button Bar | `StudioShell.jsx`, `ShellButtonBar.jsx`, `SiteFooter.jsx`, `main.css`, `shell-button-bar-dominant.css` |
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
-| Portfolio intro, orbital deck, gate, cards, project drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `PortfolioGateScene.jsx`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
+| Portfolio intro, orbital deck, project access gate, cards, project drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
 | About Me scroll narrative, editorial sections, point field, and bust resolution | `AboutRoute.jsx`, `routes/about-narrative-lab/`, `about-narrative-lab.css` |
 | Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
 | Footer signature, social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
@@ -157,9 +157,11 @@ The outer shell is one stable instrument: exposed band, wall, frame, studio wind
 ### Work / Portfolio
 
 - “Work” is the Button Bar label; “Portfolio” is the route and experience name.
-- The live route is an orbital, drag/scroll-controlled media deck. It is not a grid or a physics pit.
+- The live route is an orbital, drag/scroll-controlled media deck available as the unauthorised preview. It is not a grid or a physics pit.
 - The route intro and gate use the editorial route-entry voice. Card and project-detail titles remain Geist.
-- The locked gate is an inert blurred ghost scene and code form; it does not boot private project content.
+- Every project declares `access: "public" | "protected"`. Missing or unsupported runtime values fail closed as protected.
+- The access gate appears only when an unauthorised visitor opens a protected project. It blurs the live deck inside the studio window, stores one Portfolio-wide grant, closes completely, then continues the exact selected card through the existing drawer handoff. Public projects bypass it.
+- This gate is client-side access friction, not secure authentication; truly private assets require server or edge enforcement.
 - The drawer covers route content, stops above the Button Bar, supports native reading/selection behavior, and preserves focus restoration.
 - Project-specific editorial treatments must be named content variants, not selector rules tied only to a project ID.
 
@@ -168,7 +170,9 @@ The outer shell is one stable instrument: exposed band, wall, frame, studio wind
 - About is one continuous scroll narrative inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, footer, and Button Bar remain stable.
 - The narrative moves from a dense idea cloud through a calm field, a six-discipline grid, a living wave field, and a large point-cloud bust. These are transformations of one material, not separate decorative scenes.
 - Two vertically scrolling editorial areas carry the background, client context, reflections on the practice, AI, and multidisciplinary synthesis. Spatial copy between them must advance the argument rather than act as detachable captions.
-- The six disciplines are named once through a world-linked reveal projected from exactly six emphasized grid points. They do not repeat as a scrolling list. The labels leave while the six points persist; the following editorial synthesis reconnects the surrounding grid before it becomes the living field.
+- The calm field moves through an explicit, paced two-stage camera pitch into a near-top-down grid; the closer framing must keep its material legible rather than miniaturising the points.
+- The six disciplines are named once through a world-linked reveal projected from exactly six emphasized grid points. Their colours are fixed to the Home simulation ball palette in category order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`, `--ball-8`, `--ball-6`. The labelled grid rises into the opening of the second editorial area, then the labels leave while the six points persist.
+- The second editorial area follows that upward motion on one left-aligned measure. Its discipline copy uses one intentional highlighted phrase; the body remains unhighlighted. The final synthesis reconnects the surrounding grid before it becomes the living field.
 - The bust is the quiet epilogue. It may rotate or respond horizontally, while the final profile, statement, and contact actions remain readable without covering the sculpture.
 - The creative toolkit belongs to the development lab route with `?edit=1`. The production About route and production lab build use the same validated authored document but expose no tuning interface.
 

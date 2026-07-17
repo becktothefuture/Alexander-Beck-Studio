@@ -1,0 +1,73 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e12]:
+    - generic "Portfolio projects" [ref=f1e13]:
+      - region "Selected portfolio projects" [ref=f1e132]:
+        - generic:
+          - region "Selected design work.":
+            - heading "Selected design work." [level=2]
+            - paragraph: From early concepts to shipped websites, apps, tools, and platforms.
+          - generic "Selected design work.":
+            - button [ref=f1e134]:
+              - generic:
+                - generic:
+                  - figure
+                - generic:
+                  - paragraph: S&P Global
+                  - heading [level=3]: Making financial indexes visible
+            - 'button "Open project 2: SunExpress: Clearer flight booking" [active] [ref=f1e135]':
+              - generic:
+                - generic:
+                  - figure
+                - generic:
+                  - paragraph: SunExpress
+                  - heading "Clearer flight booking" [level=3]
+              - generic: View
+            - button [ref=f1e136]:
+              - generic:
+                - generic:
+                  - figure
+                - generic:
+                  - paragraph: Yoti
+                  - heading [level=3]: Designing trust flows
+          - status: "SunExpress: Clearer flight booking. Project 2 of 6."
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - banner
+        - generic:
+          - contentinfo:
+            - generic:
+              - group "Social media links" [ref=f1e19]:
+                - link "Apple Music" [ref=f1e20]:
+                  - /url: https://music.apple.com/profile/beckandeggs
+                  - generic: 
+                - link "LinkedIn" [ref=f1e22]:
+                  - /url: https://www.linkedin.com/in/thisisbeck/
+                  - generic: 
+              - generic "London local time" [ref=f1e25]:
+                - generic [ref=f1e26]:
+                  - generic [ref=f1e27]:
+                    - strong [ref=f1e28]: London
+                    - generic [ref=f1e29]: ·
+                  - time [ref=f1e30]: 11:06:07 AM
+    - generic [ref=f1e31]:
+      - navigation "Primary buttons" [ref=f1e32]:
+        - link "Home" [ref=f1e33]:
+          - /url: /index.html
+          - generic: 
+        - link "Work" [ref=f1e35]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About Me" [ref=f1e37]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=f1e39]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=f1e41]:
+        - button "Sound off" [ref=f1e42]:
+          - generic: 
+        - button "Switch to dark mode" [ref=f1e44]
+  - status [ref=f1e50]: "Selected project 1 of 6: Making financial indexes visible"

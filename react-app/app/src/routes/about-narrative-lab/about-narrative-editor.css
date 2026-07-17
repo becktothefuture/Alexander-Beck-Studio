@@ -1055,6 +1055,28 @@
   box-shadow: 0 0 7px color-mix(in srgb, var(--editor-camera) 36%, transparent);
 }
 
+.about-editor-camera-hold {
+  position: absolute;
+  top: 50%;
+  height: 12px;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--editor-camera) 62%, var(--editor-muted));
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--editor-camera) 10%, transparent) 0 3px,
+    transparent 3px 6px
+  );
+  font-family: var(--abs-font-mono);
+  font-size: 7px;
+  line-height: 12px;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .about-editor-key {
   position: absolute;
   top: 50%;
@@ -1307,8 +1329,9 @@
 .about-editor-discipline-reveal {
   position: absolute;
   z-index: 3;
-  top: 5px;
-  bottom: 5px;
+  top: 3px;
+  bottom: auto;
+  height: 13px;
   min-width: 34px;
   overflow: hidden;
   padding: 0 7px;
@@ -1323,6 +1346,7 @@
     ) !important;
   font-size: 8px;
   font-weight: 650;
+  line-height: 13px;
   letter-spacing: 0.025em;
   text-align: center;
   text-overflow: ellipsis;
@@ -1380,6 +1404,8 @@ body.abs-in-simulation .about-editor-timeline-toggle {
 }
 
 .about-editor-editorial-clip {
+  top: 20px;
+  bottom: 3px;
   right: 3px;
   left: 3px;
   width: auto;

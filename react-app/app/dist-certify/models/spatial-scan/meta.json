@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "generatedAt": "2026-06-24T21:19:04.258Z",
+  "generator": "model-to-point-cloud/scripts/convert-model-to-point-cloud.mjs",
+  "asset": {
+    "name": "Korea Apartment (Free raw scan)",
+    "slug": "spatial-scan"
+  },
+  "source": {
+    "status": "mesh-sampled",
+    "sourceFile": "korea-apartment-clean.glb",
+    "input": "korea-apartment-clean.glb",
+    "title": "Korea Apartment (Free raw scan)",
+    "creator": "skelee_kor",
+    "license": "CC-BY-NC-SA-4.0",
+    "sourceUrl": "https://sketchfab.com/3d-models/korea-apartment-free-raw-scan-cac15ea497624d3bba1189f7cdf6e7bb",
+    "notes": "Cleaned in Blender from the downloaded Sketchfab glTF package, stripped of materials/textures/cameras/lights, then surface-sampled into flat circular point-cloud LODs for the spatial scan lab. Attribution required; no commercial use; share-alike applies.",
+    "transformation": "Source mesh normalized, material data ignored, and surface area sampled into flat point-cloud data.",
+    "colorMapping": "Spatial scan color groups remapped from normalized position and surface normal so room planes remain coherent in the site-circle palette.",
+    "cameraPathOrientation": "Camera quaternions are recomputed from the normalized camera path positions during the website asset build."
+  },
+  "normalization": {
+    "largestAxisSize": 7.2,
+    "sourceBounds": {
+      "min": [
+        -2.7050204277038574,
+        -1.4299366474151611,
+        -5.077200889587402
+      ],
+      "max": [
+        2.7050204277038574,
+        1.4299366474151611,
+        5.077200889587402
+      ],
+      "size": [
+        5.410040855407715,
+        2.8598732948303223,
+        10.154401779174805
+      ],
+      "center": [
+        0,
+        0,
+        0
+      ]
+    },
+    "scaleFactor": 0.7090521092799528
+  },
+  "layout": {
+    "format": "float32-little-endian",
+    "strideBytes": 32,
+    "attributes": [
+      {
+        "name": "position",
+        "offsetFloats": 0,
+        "components": 3
+      },
+      {
+        "name": "normal",
+        "offsetFloats": 3,
+        "components": 3,
+        "usage": "displacement and interaction only"
+      },
+      {
+        "name": "seed",
+        "offsetFloats": 6,
+        "components": 1
+      },
+      {
+        "name": "colorGroup",
+        "offsetFloats": 7,
+        "components": 1
+      }
+    ]
+  },
+  "lods": {
+    "low": {
+      "file": "spatial-scan-points-low.bin",
+      "count": 40000,
+      "bytes": 1280000
+    },
+    "medium": {
+      "file": "spatial-scan-points-medium.bin",
+      "count": 120000,
+      "bytes": 3840000
+    },
+    "high": {
+      "file": "spatial-scan-points-high.bin",
+      "count": 260000,
+      "bytes": 8320000
+    }
+  }
+}

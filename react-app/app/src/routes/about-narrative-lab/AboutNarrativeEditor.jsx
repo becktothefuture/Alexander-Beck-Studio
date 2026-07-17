@@ -19,6 +19,7 @@ import {
 import {
   ABOUT_NARRATIVE_GLOBAL_CONTROLS,
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
+  ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS,
   ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS,
   ABOUT_NARRATIVE_EMPHASIS_TONES,
   ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
@@ -76,14 +77,6 @@ const INSPECTOR_EDGE_GAP = 8;
 const CAMERA_POSE_FIELDS = new Set(['offset', 'lookAtOffset', 'fov', 'roll']);
 const DISCIPLINE_REVEAL_MAX = ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS
   .find((control) => control.id === 'end')?.max || 4;
-const DISCIPLINE_BALL_TOKEN_BY_GROUP = Object.freeze({
-  1: '--ball-1',
-  2: '--ball-4',
-  3: '--ball-3',
-  4: '--ball-7',
-  5: '--ball-8',
-  6: '--ball-6',
-});
 const TIMELINE_GLOBAL_TRACKS = Object.freeze([
   Object.freeze({ lane: 'section', label: 'Sections', groupIds: Object.freeze(['sequence']) }),
   Object.freeze({ lane: 'camera', label: 'Camera', groupIds: Object.freeze(['camera']) }),
@@ -864,6 +857,7 @@ function Timeline({ store, snapshot, onOpenGlobal }) {
               const width = `${(spanWU / maxWU) * 100}%`;
               const inSelectedSection = selection.sectionId === section.id;
               const localPercent = (at) => Math.min(100, (Number(at || 0) * (compiled?.travelWU || spanWU) / spanWU) * 100);
+              const travelPercent = Math.min(100, ((compiled?.travelWU || spanWU) / spanWU) * 100);
               const localPosition = (at) => `${localPercent(at)}%`;
               const extendedLocalPosition = (at) => `${(Number(at || 0) * (compiled?.travelWU || spanWU) / spanWU) * 100}%`;
               const extendedLocalWidth = (from, to) => `${Math.max(0.35, (Number(to) - Number(from)) * (compiled?.travelWU || spanWU) / spanWU * 100)}%`;
@@ -924,6 +918,13 @@ function Timeline({ store, snapshot, onOpenGlobal }) {
                         );
                       })}
                     </div>
+                    {travelPercent < 99.5 ? (
+                      <span
+                        className="about-editor-camera-hold"
+                        style={{ left: `${travelPercent}%`, width: `${100 - travelPercent}%` }}
+                        title={`${section.label} camera is settled while the Section remains on screen`}
+                      >settled hold</span>
+                    ) : null}
                     {section.camera.keys.map((key, keyIndex) => {
                       const timingBounds = getAboutNarrativeCameraKeyTimingBounds(section.camera.keys, keyIndex);
                       const token = `camera:${section.id}:${keyIndex}`;
@@ -1059,7 +1060,8 @@ function Timeline({ store, snapshot, onOpenGlobal }) {
                               store.setTransport({ owner: 'timeline', playing: false, storyWU: startWU + (Number(cue.hold) * (compiled?.travelWU || 0)) });
                             }
                           }}
-                          onClick={() => handleTimingClick(token, () => {
+                          onClick={(event) => handleTimingClick(token, () => {
+                            if (event.detail === 0) store.setSelection(cueSelection);
                             store.setTransport({ owner: 'timeline', playing: false, storyWU: startWU + (Number(cue.hold) * (compiled?.travelWU || 0)) });
                           })}
                         ><span className="about-editor-cue-focus" style={{ left: focusPosition }} aria-hidden="true" /></button>
@@ -1582,9 +1584,9 @@ function DisciplineRevealInspector({ store, snapshot, section }) {
             <div className="about-editor-discipline-item" key={item.group}>
               <code>{String(itemIndex + 1).padStart(2, '0')}</code>
               <input value={item.label} aria-label={`Discipline ${itemIndex + 1} label`} onChange={(event) => update('Edit discipline label', (draft) => { draft.items[itemIndex].label = event.target.value; }, `discipline-reveal:${section.id}:item:${item.group}:label`)} />
-              <div className="about-editor-discipline-palette" title={`${item.label} uses the Home simulation ${DISCIPLINE_BALL_TOKEN_BY_GROUP[item.group]}`}>
-                <i style={{ background: `var(${DISCIPLINE_BALL_TOKEN_BY_GROUP[item.group]})` }} />
-                <code>{DISCIPLINE_BALL_TOKEN_BY_GROUP[item.group]}</code>
+              <div className="about-editor-discipline-palette" title={`${item.label} uses the Home simulation ${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]}`}>
+                <i style={{ background: `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})` }} />
+                <code>{ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]}</code>
               </div>
               <span>
                 <button type="button" disabled={itemIndex === 0} aria-label={`Reveal ${item.label} earlier`} onClick={() => update('Reorder discipline reveal', (draft) => { const [moved] = draft.items.splice(itemIndex, 1); draft.items.splice(itemIndex - 1, 0, moved); })}>↑</button>
@@ -1603,7 +1605,7 @@ function CameraInspector({ store, snapshot, section }) {
   const sectionIndex = getSectionIndex(snapshot.document, section.id);
   const keyIndex = snapshot.selection.keyIndex;
   const selectedKey = section.camera.keys[keyIndex];
-  const key = selectedKey && selectedKey.at > 0 && selectedKey.at < 1 ? selectedKey : null;
+  const key = selectedKey || null;
   const local = getLocalProgress(snapshot.compiledPlan, section, snapshot.transport.storyWU);
   const targetAt = Math.min(0.995, Math.max(0.005, snapAboutNarrativeTimelineValue(local)));
   const applyPreset = (preset) => store.commit(`Apply ${preset} camera recipe`, (draft) => {
@@ -1672,6 +1674,7 @@ function CameraInspector({ store, snapshot, section }) {
     update(field, next);
   };
   const timingBounds = getAboutNarrativeCameraKeyTimingBounds(section.camera.keys, keyIndex);
+  const boundaryKey = timingBounds.locked;
   const extentField = snapshot.previewProfile === 'mobile' ? 'mobileExtentWU' : 'extentWU';
   const extentLabel = snapshot.previewProfile === 'mobile' ? 'Mobile length' : 'Section length';
   const updateExtent = (value) => store.commit('Change Section extent', (draft) => {
@@ -1680,6 +1683,7 @@ function CameraInspector({ store, snapshot, section }) {
   return (
     <>
       <header><span>Camera key</span><strong>{formatCameraPercent(key.at)} through {section.label}</strong></header>
+      {boundaryKey ? <p className="about-editor-help">This protected boundary preserves continuity with the neighbouring Section. Its timing is fixed, but changing its framing updates the linked boundary too.</p> : null}
       {recipes}
       <NumberProperty
         label="Position"
@@ -1688,6 +1692,7 @@ function CameraInspector({ store, snapshot, section }) {
         max={Number((timingBounds.max * 100).toFixed(1))}
         step={0.5}
         unit="%"
+        disabled={boundaryKey}
         onChange={(value) => update('at', Math.min(timingBounds.max, Math.max(timingBounds.min, snapAboutNarrativeTimelineValue(value / 100))))}
       />
       <NumberProperty label={extentLabel} value={section[extentField]} min={1} max={8} step={0.05} unit="WU" onChange={updateExtent} />
@@ -1697,7 +1702,7 @@ function CameraInspector({ store, snapshot, section }) {
       <NumberProperty label="Roll" value={key.roll} min={-1.2} max={1.2} step={0.01} unit="rad" onChange={(value) => update('roll', value)} />
       <Property label="Easing"><select value={key.easing} onChange={(event) => update('easing', event.target.value)}><option value="smoothstep">Smoothstep</option><option value="ease-in-out">Ease in out</option></select></Property>
       <button type="button" className="about-editor-wide-action" disabled={existingKeyAtPlayhead >= 0} onClick={setKey}>{existingKeyAtPlayhead >= 0 ? `Camera key already at ${formatCameraPercent(targetAt)}` : `Set another key at ${formatCameraPercent(targetAt)}`}</button>
-      <button type="button" className="about-editor-danger" onClick={() => store.commit('Delete camera key', (draft) => { draft.sections[sectionIndex].camera.keys.splice(keyIndex, 1); }, { selection: { type: 'section', sectionId: section.id } })}>Delete key</button>
+      <button type="button" className="about-editor-danger" disabled={boundaryKey} onClick={() => store.commit('Delete camera key', (draft) => { draft.sections[sectionIndex].camera.keys.splice(keyIndex, 1); }, { selection: { type: 'section', sectionId: section.id } })}>{boundaryKey ? 'Protected boundary key' : 'Delete key'}</button>
     </>
   );
 }

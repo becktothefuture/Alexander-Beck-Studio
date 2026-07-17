@@ -49,6 +49,7 @@ export function createAboutNarrativePreparationController({
   publishReady = () => {},
   classifyFailure = null,
   diagnostics = null,
+  retainReadyCandidate = true,
   timers = globalThis,
   retryPolicy = ABOUT_NARRATIVE_RETRY_POLICY,
 } = {}) {
@@ -172,7 +173,7 @@ export function createAboutNarrativePreparationController({
         generation: runGeneration,
       });
       if (!isCurrentRun(runGeneration, intent)) return;
-      readyCandidate = validated;
+      readyCandidate = retainReadyCandidate ? validated : null;
       activeRun = null;
       clearRetryTimer();
       state = 'ready';

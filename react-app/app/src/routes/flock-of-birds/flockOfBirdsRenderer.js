@@ -219,18 +219,8 @@ function drawBackground(ctx, metrics, theme, config) {
   ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
 }
 
-function createBirdColorCache(theme, config) {
-  const active = parseHexColor(theme.active || DEFAULT_THEME.active);
-  const white = { r: 255, g: 255, b: 255 };
-  const shade = theme.active === theme.light ? active : white;
-  const mutedAmount = theme.active === theme.light ? 0.12 : 0.04;
-  const alpha = clamp(Number(config.colorOpacity) || 0.9, 0.2, 1);
-  const palette = resolvePalette(theme);
-
-  return palette.map((hex) => ({
-    rgb: mixColor(parseHexColor(hex), shade, mutedAmount),
-    alpha,
-  }));
+function createBirdColorCache(theme) {
+  return resolvePalette(theme).map((hex) => parseHexColor(hex));
 }
 
 export function createFlockOfBirdsRenderer({
@@ -1220,21 +1210,19 @@ export function createFlockOfBirdsRenderer({
   }
 
   function drawBirds(config, theme) {
-    const colors = createBirdColorCache(theme, config);
+    const colors = createBirdColorCache(theme);
     const baseRadius = config.birdRadius;
     const depthSize = config.depthSize;
-    const depthOpacity = config.depthOpacity;
 
     for (let i = 0; i < state.count; i += 1) {
       const depth = clamp(state.depth[i], -1, 1);
       const radius = Math.max(1, baseRadius * (1 + depth * depthSize)) * visualTransition.getScaleAt(i);
       if (radius <= 0.05) continue;
       const color = colors[state.colorIndex[i] % colors.length];
-      const alpha = clamp(color.alpha * (1 + depth * depthOpacity), 0.08, 1);
 
       ctx.beginPath();
       ctx.arc(state.x[i], state.y[i], radius, 0, TAU);
-      ctx.fillStyle = rgbString(color.rgb, alpha);
+      ctx.fillStyle = rgbString(color, 1);
       ctx.fill();
     }
   }

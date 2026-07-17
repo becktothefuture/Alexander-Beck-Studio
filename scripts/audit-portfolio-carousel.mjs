@@ -42,6 +42,7 @@ async function waitForCarousel(page) {
         && snapshot?.isSettled
         && snapshot?.inputState === 'idle'
         && document.body.dataset.portfolioLoadState === 'loaded'
+        && document.getElementById('portfolioProjectMount')?.dataset.portfolioEntrancePhase === 'complete'
         && document.getElementById('portfolioProjectMount')?.dataset.portfolioMediaReady === 'true'
       );
     },
@@ -326,7 +327,11 @@ async function waitForParticleIdle(page) {
   await page.waitForFunction(
     () => {
       const field = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.()?.particleField;
-      return !field || (!field.running && !field.visible && (field.opacity || 0) <= 0.02);
+      if (!field) return true;
+      if (field.reducedMotion) {
+        return field.cadence === 'static' && !field.running && !field.scheduled && field.visible;
+      }
+      return !field.running && !field.visible && (field.opacity || 0) <= 0.02;
     },
     null,
     { timeout: Math.min(WAIT_MS, 5000) }
@@ -1241,8 +1246,10 @@ async function main() {
           failures.push(`${label}: carousel settled without a valid active project`);
         }
         if (groupName === 'reduced motion') {
-          if (result.fieldActivated) failures.push(`${label}: particle field became visible under reduced motion`);
           if (result.after?.particleField?.running) failures.push(`${label}: particle field animated under reduced motion`);
+          if (result.after?.particleField?.scheduled) failures.push(`${label}: particle field scheduled frames under reduced motion`);
+          if (result.after?.particleField?.cadence !== 'static') failures.push(`${label}: particle field did not retain static cadence under reduced motion`);
+          if (!result.after?.particleField?.visible) failures.push(`${label}: particle field lost its static reduced-motion composition`);
         } else {
           if (!result.fieldActivated) failures.push(`${label}: sustained input did not reveal the particle field`);
           if (!result.fieldParticleCountStable || (result.fieldParticleCount || 0) < 1) failures.push(`${label}: particle field count was not fixed`);

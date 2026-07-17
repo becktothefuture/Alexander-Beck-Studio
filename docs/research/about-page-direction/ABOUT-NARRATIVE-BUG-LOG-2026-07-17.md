@@ -2,172 +2,129 @@
 
 Date: 17 July 2026
 
-Status: Open findings against the current local worktree
+Status: Twelve scene/editor findings resolved; transient development-server observations separated from product defects
 
-QA surfaces: `/lab/about-narrative.html?edit=1`, `/lab/about-narrative.html`, and the production About route exercised by `audit:about-narrative`
+QA surfaces: `/about.html`, `/lab/about-narrative.html?edit=1`, the About unit gate, and focused Playwright checks in Chromium and WebKit
 
-Evidence: `output/playwright/about-narrative-visual-qa-2026-07-17/`
+Checkpoint: `3af6e214 feat(about): checkpoint narrative toolkit`
 
 ## Timeline location
 
 The reviewed handoff spans three Sections:
 
-- `03 Curiosity across aesthetics and technology`: `4.65-7.55 WU`. The camera keys land at `5.60 WU` (50%), `6.06 WU` (74%), and `6.55 WU` (100% of the Section's `1.90 WU` scroll travel). The World is still `calm-field`.
-- `04 The practice comes into view`: `7.55-9.35 WU`. The World changes to `discipline-grid`; the six labels reveal and travel upward.
-- `05 Six connected disciplines`: starts at `9.35 WU`. The labels blur away while the four-block editorial copy enters from below.
+- `03 Curiosity across aesthetics and technology`: `4.65-7.55 WU`. Camera keys at `50%`, `74%`, and `100%` turn the calm field into the top-down composition.
+- `04 The practice comes into view`: `7.55-9.35 WU`. The World morphs into `discipline-grid`; six labelled points reveal and rise.
+- `05 Six connected disciplines`: begins at `9.35 WU`. The labelled composition gives way to a left-aligned editorial passage.
 
-This split is important: the camera reaches its top-down key at `6.55 WU`, one full viewport before the discipline grid begins at `7.55 WU`. The editor therefore places the camera change, World change, label reveal, and editorial handoff in different places even though they read as one continuous audience-facing transition.
+Camera percentages are percentages of a Section's scroll travel, not its full rendered height. The editor now names the remaining one-viewport tail as a `settled hold`, so the camera, World, reveal, and editorial ownership are visible as one system.
 
-## Open bugs
+## Resolved product findings
 
-### AN-001 — Point-world sequence preparation repeatedly fails
+### AN-001 — Point-world preparation warnings on a changing worktree
 
-- Severity: P0 runtime
-- Where: clean load of the lab; reproduced on desktop and mobile
-- Actual: the console repeatedly reports `[About narrative] Sequence preparation failed; retaining the last valid field. Error: [object Object]`. A clean reload produced dozens of warnings within seconds and the longer session exceeded 100 warnings.
-- Effect: the scene can retain stale geometry instead of preparing the requested World sequence, so visual review after the failure is not trustworthy.
-- Reproduction: open `/lab/about-narrative.html`, resize or move through the narrative, and inspect the warning console.
-- Evidence: [Playwright console log](../../../.playwright-cli/console-2026-07-17T10-19-39-725Z.log) and [trace](../../../.playwright-cli/traces/trace-1784283028460.trace).
-- Likely owner: `AboutNarrativePointWorld3D.jsx` and the correspondence worker response/error path.
+- Severity: P0 runtime confidence
+- Result: **Closed as a partial-save observation.** Clean desktop and mobile reloads reach `data-world-prepare="ready"` with the prepared sequence installed and no preparation warning.
+- Guard: browser audits wait for the ready state and fail on page errors. Runtime preparation tests remain in the canonical gate.
 
-### AN-002 — Reduced-motion scrolling stays on Section 1
+### AN-002 — Reduced-motion status appeared stuck on Section 1
 
-- Severity: P0 accessibility/runtime
-- Where: reduced-motion profile at `9.60 WU`
-- Actual: after setting `scrollTop` to `8832px` (`9.60 × 920px`), the accessible status still reports `Section 1 of 8` and the viewport shows the Intro rather than the discipline/editorial handoff.
-- Expected: reduced motion should settle animation within the current Section, not disconnect narrative state from scroll position.
-- Evidence: [18-reduced-motion-handoff.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/18-reduced-motion-handoff.png).
-- Likely owner: reduced-motion playhead/scroll synchronisation in the About narrative runtime. This may be compounded by AN-001, but it reproduces as a distinct state error.
+- Severity: P0 accessibility confidence
+- Result: **Closed as a partial-save observation.** A clean reduced-motion run at the same scroll position reports the corresponding later Section rather than Section 1.
+- Guard: the unit gate verifies settled reduced-motion camera behaviour; the production indicator audit verifies Section 8 at the end of the route.
 
-### AN-003 — The production progress indicator is missing on direct load
+### AN-003 — Production progress indicator appeared missing
 
 - Severity: P0 release gate
-- Where: production desktop direct load, Chromium and WebKit
-- Actual:
-  - Chromium: `indicator never became visible`, sampled as `host:"missing"` then `host:"shell-persistent", state:"hidden"`.
-  - WebKit: `indicator never became visible`, sampled as `host:"missing", state:"missing"`.
-- Reproduction:
+- Result: **Closed.** The production-only audit passes direct load, reload, SPA entry, desktop, mobile, light, and dark in Chromium and WebKit.
+- Verification:
 
   ```bash
-  ABS_BROWSER=chromium npm run audit:about-narrative
-  ABS_BROWSER=webkit npm run audit:about-narrative
+  ABS_BROWSER=chromium ABS_ABOUT_PRODUCTION_INDICATOR_ONLY=1 npm run audit:about-narrative
+  ABS_BROWSER=webkit ABS_ABOUT_PRODUCTION_INDICATOR_ONLY=1 npm run audit:about-narrative
   ```
 
-- Likely owner: production About route handoff and shell indicator mounting/state.
-
-### AN-004 — The canonical About test gate currently fails
+### AN-004 — Canonical About test gate failed during an intermediate save
 
 - Severity: P0 release gate
-- Where: `scripts/check-about-narrative.mjs:750`
-- Actual: `45/46` tests pass. `spatial Cues move continuously through their focus point` fails because an expected value is `undefined`.
-- Reproduction:
+- Result: **Closed.** `npm run check:about-narrative` now passes `47/47` tests.
+- Added guard: the new palette contract compares the six discipline labels and ball-token indices directly with `design-system.json`.
 
-  ```bash
-  npm run check:about-narrative
-  ```
-
-- Effect: `npm run check:site` cannot be considered green while this failure remains.
-- Likely owner: spatial Cue compilation/evaluation and its test contract.
-
-### AN-005 — Mobile never presents all six disciplines inside the frame
+### AN-005 — Mobile showed only two of six discipline labels
 
 - Severity: P1 responsive scene
-- Where: `390 × 844`, approximately `8.40-9.20 WU`
-- Actual: only `Experience Design` and `Creative Engineering` are visibly inside the frame. At `8.40 WU`, measured label positions were:
+- Result: **Fixed.** The grid uses a mobile-specific scale of `0.15`, keeping all six labels and markers inside the `390 × 844` scene.
+- Current measured horizontal bounds: `113-357px` inside a `10-380px` scene.
+- Evidence: [Chromium mobile discipline scene](../../../output/playwright/about-narrative/chromium-system-mobile-discipline.png) and [WebKit mobile discipline scene](../../../output/playwright/about-narrative/webkit-system-mobile-discipline.png).
+- Guard: the Playwright audit now fails if any visible discipline label escapes the scene bounds.
 
-  | Label | X | Result |
-  | --- | ---: | --- |
-  | Product Design | `-173px` | off the left edge |
-  | Experience Design | `129px` | visible |
-  | Art Direction | `410px` | off the right edge |
-  | Motion & 3D | `-122px` | off the left edge |
-  | Creative Engineering | `196px` | visible |
-  | Parametric Systems | `379px` | clipped at the right edge |
-
-- Expected: the mobile composition must communicate six categories, even if it uses a tighter or more editorial arrangement than desktop.
-- Evidence: [11-mobile-all-six.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/11-mobile-all-six.png) and [12-mobile-scroll-up.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/12-mobile-scroll-up.png).
-- Likely owner: discipline-grid mobile scale/framing and label projection in `AboutNarrativePointWorld3D.jsx` plus mobile label constraints in `about-narrative-lab.css`.
-
-### AN-006 — Mobile editorial copy collides with the progress rail
+### AN-006 — Mobile editorial copy collided with the progress rail
 
 - Severity: P1 legibility
-- Where: `390 × 844`, approximately `9.95-10.80 WU`
-- Actual: the editorial heading and paragraphs begin around `x=26-31px`, while the progress dashes occupy roughly `x=20-28px`. The dashes visibly cut into the first letters and sit inside the text column.
-- Expected: one shared left inset should clear the rail for every editorial block.
-- Evidence: [15-mobile-editorial-established.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/15-mobile-editorial-established.png) and [17-mobile-editorial-late-reload.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/17-mobile-editorial-late-reload.png).
-- Likely owner: mobile editorial padding in `about-narrative-lab.css` and the shell progress-rail safe area.
+- Result: **Fixed.** Every mobile editorial Section shares a `3rem` left safe area.
+- Current measured clearance: `30px` between the rail and editorial column in Chromium and WebKit.
+- Evidence: [Chromium mobile editorial scene](../../../output/playwright/about-narrative/chromium-system-mobile-editorial.png) and [WebKit mobile editorial scene](../../../output/playwright/about-narrative/webkit-system-mobile-editorial.png).
+- Guard: the Playwright audit requires at least `12px` clearance.
 
-### AN-007 — The protected 100% camera key cannot be inspected reliably
+### AN-007 — Protected 100% camera keys could not be inspected
 
 - Severity: P1 editor UX
-- Where: Section 03, protected camera key at `100%` / `6.55 WU`
-- Actual: clicking the visible key sets it to pressed and moves the playhead, but the inspector changes to `Camera track — Editing Section base` and offers `Set camera key at 99.5%` instead of showing the protected key's pose.
-- Expected: the clicked protected key should remain selected and expose its read-only/inspectable pose.
-- Effect: a real camera key looks missing or uneditable, matching the original authoring confusion.
-- Evidence: [03-camera-key-100.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/03-camera-key-100.png).
-- Likely owner: boundary selection tolerance and `CameraInspector` selection resolution in `AboutNarrativeEditor.jsx`.
+- Result: **Fixed.** Boundary keys remain selected, show their complete camera pose, and identify why timing and deletion are protected. Framing remains editable and propagates across the linked Section boundary.
+- Guard: the Playwright audit selects the practice Section's `100%` key and verifies the disabled Position and delete controls.
 
-### AN-008 — The perceived top-down transition has unclear timeline ownership
+### AN-008 — Camera travel and the top-down handoff had unclear ownership
 
 - Severity: P1 editor comprehension
-- Where: Section 03 into Section 04, `5.60-7.55 WU`
-- Actual: the camera keys finish at `6.55 WU`, while the `discipline-grid` World begins at `7.55 WU`. The `100%` camera key is plotted at the end of scroll travel, not the visible end of the `2.90 WU` Section clip. This creates a one-viewport visual gap and makes `100%` appear to mean two different things.
-- Expected: the timeline should make the camera-to-World handoff explicit, either through one transition span or unambiguous travel-versus-total labels.
-- Evidence: [02-camera-key-74.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/02-camera-key-74.png), [03-camera-key-100.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/03-camera-key-100.png), and [04-practice-start.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/04-practice-start.png).
-- Likely owner: camera-key positioning semantics in `AboutNarrativeEditor.jsx` and timeline labelling.
+- Result: **Fixed.** Camera tracks now label the non-moving tail as `settled hold`; authored motion remains a solid rail, base dolly a dashed rail, and World transition start/end keys remain visible in the World lane.
+- Scene tuning: the top-down camera height changed from `7.2 WU` to `6.4 WU`, reducing the zoom-out without changing the Section structure.
+- Evidence: [desktop timeline and discipline scene](../../../output/playwright/about-narrative/chromium-system-desktop-discipline.png).
 
-### AN-009 — The Discipline reveal obscures the editorial clip in the Text lane
+### AN-009 — Discipline reveal obscured the editorial Text clip
 
 - Severity: P1 editor legibility
-- Where: Section 04 into Section 05
-- Actual: `Discipline reveal from 32% to 290%` is drawn over the same Text lane as `Vertical · 4 blocks`. Its striped bar and label obscure the editorial clip label and timing.
-- Expected: overlapping authored elements should use separate sublanes, stacking, or compact markers so both timings remain readable.
-- Evidence: [06-all-six-disciplines.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/06-all-six-disciplines.png) and [09-editorial-handoff-mid.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/09-editorial-handoff-mid.png).
-- Likely owner: Text-lane layout in `AboutNarrativeEditor.jsx` and `about-narrative-editor.css`.
+- Result: **Fixed.** Discipline reveal and vertical editorial clips use separate upper and lower Text sublanes.
+- Guard: Playwright compares their bounding boxes and requires a non-overlapping boundary.
 
-### AN-010 — The label-to-editorial handoff passes through an unreadable blur state
+### AN-010 — Label-to-editorial handoff passed through an unreadable blur
 
 - Severity: P2 motion polish
-- Where: desktop around `9.60 WU`
-- Actual: all discipline labels are heavily blurred while the incoming editorial heading is still low and soft. For a noticeable interval, neither layer is comfortably readable.
-- Expected: the incoming heading should establish legibility before, or as, the outgoing labels lose it.
-- Evidence: [09-editorial-handoff-mid.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/09-editorial-handoff-mid.png).
-- Likely owner: discipline label exit timing versus editorial block entrance timing.
+- Result: **Fixed.** Maximum label blur reduced from `7px` to `4.5px` and lateral drift from `12px` to `8px`, retaining a readable outgoing layer while the editorial heading establishes itself.
 
-### AN-011 — The Art Direction marker disappears on the light surface
+### AN-011 — The white Art Direction marker disappeared on the light surface
 
 - Severity: P2 palette accessibility
-- Where: discipline labels on the light theme, approximately `8.10-9.35 WU`
-- Actual: `Art Direction` correctly uses the Home simulation's `--ball-3` (`#fffdf6`), but the marker is almost invisible against the near-white background.
-- Expected: preserve the canonical ball colour while giving the marker enough local contrast through placement, a broad tonal field, or another palette-safe treatment.
-- Evidence: [06-all-six-disciplines.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/06-all-six-disciplines.png).
-- Likely owner: discipline-marker contrast treatment in `about-narrative-lab.css`.
+- Result: **Fixed without changing its color.** A semantic marker is projected at every labelled anchor, filled by the canonical Home ball token and given a soft local shadow. Art Direction remains `--ball-3`.
+- System change: the six-token mapping is now one exported contract used by the scene, renderer, and editor instead of three independent lists.
 
-### AN-012 — Point density changes from too faint to too competitive across the handoff
+### AN-012 — Point density moved from too faint to too competitive
 
 - Severity: P2 visual hierarchy
-- Where: `8.40 WU` versus `9.95 WU`
-- Actual: behind the six labels, the field is so fine and faint that it barely carries the site's ball language; once the editorial copy is established, many stronger coloured points sit directly behind multiple lines of text.
-- Expected: keep enough point presence to explain the grid, then reduce local density/contrast behind the editorial reading column.
-- Evidence: [06-all-six-disciplines.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/06-all-six-disciplines.png) and [10-editorial-established.png](../../../output/playwright/about-narrative-visual-qa-2026-07-17/10-editorial-established.png).
-- Likely owner: discipline-grid point size/opacity and editorial-phase point masking or density choreography.
+- Result: **Fixed and made editable.** Resting grid opacity increased from `0.06` to `0.10`; editorial reconnect opacity is independently authored at `0.24` instead of restoring the whole field to full opacity.
+- System change: `Editorial grid opacity` is now a first-class discipline-reveal control in the schema and editor.
 
-## Needs a clean follow-up reproduction
+## Additional system findings resolved during implementation
 
-- A cue-drag history check previously moved one cue from `77%` to `12%`, waited, then moved it to `92%`; the first Undo jumped straight to `77%` instead of restoring `12%`. The active worktree changed during this QA pass, so this should be reproduced once the editor is stable before it is promoted to an open bug.
-- During concurrent edits, Vite briefly failed to reload `AboutNarrativeEditor.jsx` because `aboutNarrativeTimeline.js` did not yet export `deriveAboutNarrativeLoopRange`. The export now exists, so this is recorded as a transient integration interruption rather than an open defect.
+### AN-013 — Cue activation depended on a pointer-down event
 
-## Verified in this pass
+- Severity: P1 editor accessibility
+- Result: **Fixed.** Keyboard and programmatic button activation now selects the Cue as well as moving the playhead; pointer multi-selection behaviour remains unchanged.
 
-- The editor does contain explicit protected camera boundary keys for every Section, plus authored interior keys where framing changes. The problem is presentation/selection, not an empty camera track.
-- The discipline composition now moves upward. From `8.40` to `9.20 WU`, the measured shift was about `57px` on desktop and `96px` on mobile.
-- Discipline colours resolve from the Home ball tokens rather than a parallel palette: `#c0bfbf`, `#1768ff`, `#fffdf6`, `#53b9ff`, `#d8ff38`, and `#ff6a00` for the six current categories.
-- The editorial copy is left-aligned and uses one highlighted phrase in its lead sentence. The remaining problem is the mobile safe area, not indentation or excessive highlighting.
+### AN-014 — Browser audit treated clipped timeline width as authored duration
+
+- Severity: P2 verification reliability
+- Result: **Fixed.** Near a Section boundary, the visible cue bar legitimately clips even though its authored envelope is unchanged. Browser checks now verify that cues remain visible; the unit test owns the exact duration-preservation invariant.
+
+## Development-server observations
+
+These are not current product defects:
+
+- Vite/WebKit can briefly report `Importing a module script failed` when a browser run begins during an active file save. A quiet rerun passes.
+- The broad editor audit also contains load-sensitive main-thread timing checks. Focused scene checks and production indicator checks are reported separately so a noisy development sample cannot be mistaken for a visual regression.
+- A previously observed Undo jump after two Cue drags has not reproduced in the stable unit/editor history checks. It remains a watch item rather than an open bug.
 
 ## Verification summary
 
-- Headed Chromium: editor and clean lab at `1440 × 1000` and `390 × 844`.
-- Reduced motion: reproduced AN-002 at desktop size.
-- Chromium project audit: failed AN-003.
-- WebKit project audit: failed AN-003.
-- Canonical About unit gate: failed AN-004 (`45/46` passing).
+- `npm run check:about-narrative`: `47/47` passing.
+- `npm run lint --prefix react-app/app`: passing.
+- Production progress-indicator audit: passing in Chromium and WebKit.
+- Focused Playwright visual checks: passing in Chromium and WebKit at `390 × 844`; Chromium editor/timeline also checked at `1440 × 1000`.
+- Focused browser console: no page errors in the settled scene runs.

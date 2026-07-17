@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en" class="fonts-loading dominant-tab-lab-document">
+  <head>
+    <style id="abs-critical-shell">
+      html,
+      body,
+      #root {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+        background: #111315;
+        background-color: #111315;
+      }
+
+      html[data-dominant-tab-lab-theme='light'],
+      html[data-dominant-tab-lab-theme='light'] body,
+      html[data-dominant-tab-lab-theme='light'] #root {
+        background: #e8e8e3;
+      }
+    </style>
+    <script>
+      try {
+        const savedTheme = localStorage.getItem('dominant-tab-lab-theme-v1');
+        document.documentElement.dataset.dominantTabLabTheme =
+          savedTheme === 'light' ? 'light' : 'dark';
+      } catch {
+        document.documentElement.dataset.dominantTabLabTheme = 'dark';
+      }
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" href="/../images/favicon.ico" sizes="any" />
+    <title>Dominant Tab Lab - Alexander Beck Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/tokens.css" />
+    <link rel="stylesheet" href="/css/normalize.css" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <script type="module" crossorigin src="/assets/lab/dominant-tab-CdNA0q5t.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/index-CXXnCbMR.js">
+    <link rel="modulepreload" crossorigin href="/assets/sound-engine-Csl6664y.js">
+    <link rel="modulepreload" crossorigin href="/assets/ShellButtonBar-Dx23hV_2.js">
+    <link rel="stylesheet" crossorigin href="/assets/ShellButtonBar-kSDJdp1A.css">
+    <link rel="stylesheet" crossorigin href="/assets/dominant-tab-ulsW7hix.css">
+  </head>
+  <body class="body dominant-tab-lab-page">
+    <div id="root"></div>
+  </body>
+</html>

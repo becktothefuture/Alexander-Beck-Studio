@@ -1,0 +1,384 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - list:
+          - listitem:
+            - generic: Product Design
+          - listitem:
+            - generic: Experience Design
+          - listitem:
+            - generic: Art Direction
+          - listitem:
+            - generic: Motion & 3D
+          - listitem:
+            - generic: Creative Engineering
+          - listitem:
+            - generic: Parametric Systems
+        - generic "About Alexander narrative" [ref=e6]:
+          - main [ref=e7]:
+            - region [ref=e8]:
+              - generic [ref=e10]:
+                - heading "I help shape complex ideas into emotionally compelling experiences. At the start, an idea can feel like everything at once." [level=1] [ref=e11]:
+                  - generic [ref=e12]: I help shape complex ideas into emotionally compelling experiences.
+                  - generic [ref=e13]: At the start, an idea can feel like everything at once.
+                - generic: 
+            - region [ref=e14]:
+              - heading "It has to be useful, original, technically possible and emotionally right. Its shape is still fragmented. This stage of an idea has always captivated me. I learn what is there and what matters to the people involved. Then I look for the organising thought that can bring it into focus." [level=2] [ref=e17]:
+                - generic [ref=e18]: It has to be useful, original, technically possible and emotionally right.
+                - generic [ref=e19]: Its shape is still fragmented.
+                - generic [ref=e20]: This stage of an idea has always captivated me.
+                - generic [ref=e21]: I learn what is there and what matters to the people involved.
+                - generic [ref=e22]: Then I look for the organising thought that can bring it into focus.
+            - region [ref=e23]:
+              - generic [ref=e24]:
+                - heading [level=2] [ref=e25]:
+                  - text: Perhaps that is why I have always been drawn to the space between
+                  - strong [ref=e26]: aesthetics and technology
+                  - text: .
+                - paragraph [ref=e27]:
+                  - text: I studied
+                  - strong [ref=e28]: Communication Design
+                  - text: ", then built my work across digital products, web design, identity, interfaces, motion, and creative uses of"
+                  - strong [ref=e29]: AI and technology
+                  - text: .
+                - paragraph [ref=e30]:
+                  - text: At the centre of it is
+                  - strong [ref=e31]: curiosity
+                  - text: ":"
+                  - strong [ref=e32]: how things work
+                  - text: ", how they feel and how those qualities can strengthen one another."
+                - paragraph [ref=e33]:
+                  - text: This is what draws me to
+                  - strong [ref=e34]: emerging technology
+                  - text: . I see the opportunity for it to play a useful role in people’s lives once it has been deconstructed,
+                  - strong [ref=e35]: made tangible
+                  - text: ", made visual and"
+                  - strong [ref=e36]: made interactive
+                  - text: enough to resonate.
+                - paragraph [ref=e37]:
+                  - text: That curiosity has shaped my work with
+                  - strong [ref=e38]: technology start-ups
+                  - text: and
+                  - strong [ref=e39]: creative agencies
+                  - text: ", on"
+                  - strong [ref=e40]: ambitious projects
+                  - text: across identity, finance, mobility, healthcare and digital products.
+                - list "Selected clients" [ref=e41]:
+                  - listitem [ref=e42]: Yoti
+                  - listitem [ref=e43]: S&P Global
+                  - listitem [ref=e44]: Bentley
+                  - listitem [ref=e45]: SunExpress
+                  - listitem [ref=e46]: McCann
+                  - listitem [ref=e47]: American Heart Association
+            - region "The practice comes into view" [ref=e48]
+            - region [ref=e49]:
+              - generic [ref=e50]:
+                - heading [level=2] [ref=e51]:
+                  - text: Each brings a
+                  - strong [ref=e52]: different way of thinking
+                  - text: to the work.
+                - paragraph [ref=e53]: Their different perspectives help me understand an opportunity, shape how an experience works, give it character, make behaviour and feeling tangible, and explore directly through code, tools and working systems.
+                - paragraph [ref=e54]: AI runs through all of this as a creative material and a practical capability, expanding what I can explore, generate and build.
+                - paragraph [ref=e55]: Moving between disciplines lets one kind of thinking affect another. An insight can reshape a product. A technical experiment can unlock a visual language. Motion can make an interaction easier to understand.
+            - region [ref=e56]:
+              - heading "As those ways of thinking begin to influence one another, complexity starts to cohere. It takes on clear form and intuitive behaviour. It gains a character people can trust. It becomes something they can relate to, interact with and feel. That is what excites me about bringing an idea to life." [level=2] [ref=e59]:
+                - generic [ref=e60]: As those ways of thinking begin to influence one another, complexity starts to cohere.
+                - generic [ref=e61]: It takes on clear form and intuitive behaviour.
+                - generic [ref=e62]: It gains a character people can trust.
+                - generic [ref=e63]: It becomes something they can relate to, interact with and feel.
+                - generic [ref=e64]: That is what excites me about bringing an idea to life.
+            - region [ref=e65]:
+              - heading [level=2] [ref=e67]:
+                - text: "That is the work I do with ambitious teams: bringing"
+                - strong [ref=e68]: design
+                - text: ","
+                - strong [ref=e69]: creative technology
+                - text: and
+                - strong [ref=e70]: AI
+                - text: together to give early ideas a form people can understand, trust and want to engage with.
+            - region [ref=e71]:
+              - generic [ref=e73]:
+                - heading "If you are building something new, let’s talk." [level=2] [ref=e74]
+                - group "Rotate the point-cloud bust horizontally"
+                - navigation "Contact Alexander" [ref=e77]:
+                  - link "Email" [ref=e78] [cursor=pointer]:
+                    - /url: mailto:alexander@beck.fyi
+                  - link "LinkedIn" [ref=e79] [cursor=pointer]:
+                    - /url: https://www.linkedin.com/in/thisisbeck/
+      - generic:
+        - generic:
+          - generic:
+            - contentinfo:
+              - generic:
+                - group "Social media links" [ref=e81]:
+                  - link "Apple Music" [ref=e82] [cursor=pointer]:
+                    - /url: https://music.apple.com/profile/beckandeggs
+                    - generic: 
+                  - link "LinkedIn" [ref=e84] [cursor=pointer]:
+                    - /url: https://www.linkedin.com/in/thisisbeck/
+                    - generic: 
+                - generic "London local time" [ref=e87]:
+                  - generic [ref=e88]:
+                    - generic [ref=e89]:
+                      - strong [ref=e90]: London
+                      - generic [ref=e91]: ·
+                    - time [ref=e92]: 11:32:03 AM
+            - status:
+              - generic: A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable. © 2026 Alexander Beck
+      - generic [ref=e93]:
+        - navigation "Primary buttons" [ref=e94]:
+          - link "Home" [ref=e95] [cursor=pointer]:
+            - /url: /index.html
+            - generic: 
+          - link "Work" [ref=e97] [cursor=pointer]:
+            - /url: /portfolio.html
+            - text: 
+          - link "About Me" [ref=e99]:
+            - /url: /about.html
+            - text: 
+          - link "Contact" [ref=e101] [cursor=pointer]:
+            - /url: /contact.html
+            - text: 
+        - group "Secondary buttons" [ref=e103]:
+          - button "Sound off" [ref=e104] [cursor=pointer]:
+            - generic: 
+          - button "Switch to dark mode" [ref=e106] [cursor=pointer]
+    - generic:
+      - generic:
+        - progressbar "About page scroll progress"
+        - status: Section 1 of 8
+  - region "About Narrative creative toolkit":
+    - generic [ref=e112]:
+      - button "About Narrative Creative toolkit" [ref=e113] [cursor=pointer]:
+        - generic [ref=e116]: About Narrative
+        - generic [ref=e117]: Creative toolkit
+      - generic [ref=e118]:
+        - button "Previous Section" [ref=e119] [cursor=pointer]
+        - button "Previous keyframe" [ref=e122] [cursor=pointer]
+        - button "Play" [ref=e125] [cursor=pointer]
+        - button "Next Section" [ref=e128] [cursor=pointer]
+        - button "Next keyframe" [ref=e131] [cursor=pointer]
+        - status [ref=e134]: 0.00 WU
+        - slider "Global narrative playhead" [ref=e135]: "0"
+        - button "Follow scroll" [ref=e136] [cursor=pointer]
+        - button "Live ambient" [ref=e137] [cursor=pointer]
+        - combobox "Preview profile" [ref=e138]:
+          - option "Desktop" [selected]
+          - option "Mobile"
+          - option "Reduced motion"
+      - generic [ref=e139]:
+        - button "Undo" [disabled] [ref=e140]: ↶
+        - button "Redo" [disabled] [ref=e141]: ↷
+        - button "Path" [ref=e142] [cursor=pointer]
+        - button "Camera" [ref=e143] [cursor=pointer]
+        - button "After" [ref=e144] [cursor=pointer]
+        - group [ref=e145]:
+          - generic "More" [ref=e146] [cursor=pointer]
+        - button "Saved ⌘S" [ref=e147] [cursor=pointer]:
+          - generic [ref=e148]: Saved
+          - generic [ref=e149]: ⌘S
+    - complementary [ref=e150]:
+      - generic [ref=e151]:
+        - generic [ref=e152]:
+          - generic [ref=e153]: Section 01
+          - strong [ref=e154]: Intro
+        - generic [ref=e155]:
+          - button "Move earlier" [disabled] [ref=e156]
+          - button "Move later" [ref=e157] [cursor=pointer]
+          - button "Duplicate" [ref=e158] [cursor=pointer]
+        - generic [ref=e159]:
+          - generic [ref=e160]: Section name
+          - textbox "Section name" [ref=e161]: Intro
+        - generic [ref=e162]:
+          - generic [ref=e163]: Stable ID
+          - textbox "Stable ID References this Section without tying it to its current meaning." [ref=e164]: promise
+          - generic [ref=e165]: References this Section without tying it to its current meaning.
+        - generic [ref=e166]:
+          - generic [ref=e167]: Type
+          - combobox "Type" [ref=e168]:
+            - option "Spatial" [selected]
+            - option "Editorial"
+            - option "Finale"
+        - group [ref=e169]:
+          - generic "Section timing" [ref=e170] [cursor=pointer]
+          - generic [ref=e171]:
+            - generic [ref=e172]: Scroll travel
+            - status "Scroll travel" [ref=e173]: 0.70 WU
+          - generic [ref=e174]:
+            - generic [ref=e175]: Total height
+            - status "Total height" [ref=e176]: 1.70 WU
+          - generic [ref=e177]:
+            - generic [ref=e178]: Desktop length
+            - generic [ref=e179]:
+              - slider "Desktop length 1.7 WU" [ref=e180]: "1.7"
+              - spinbutton [ref=e181]: "1.7"
+              - emphasis [ref=e182]: WU
+          - generic [ref=e183]:
+            - generic [ref=e184]: Mobile length
+            - generic [ref=e185]:
+              - slider "Mobile length 1.65 WU" [ref=e186]: "1.65"
+              - spinbutton [ref=e187]: "1.65"
+              - emphasis [ref=e188]: WU
+          - generic [ref=e189]:
+            - generic [ref=e190]: Resolved height
+            - status "Resolved height" [ref=e191]: 1.70 WU
+          - button "Reset desktop length" [disabled] [ref=e192]
+        - button "Add text cue at playhead" [ref=e193] [cursor=pointer]
+        - group [ref=e194]:
+          - generic "Boundary audition" [ref=e195] [cursor=pointer]
+        - generic [ref=e196]: No diagnostics
+    - button "Hide timeline" [expanded] [ref=e199] [cursor=pointer]
+    - generic [ref=e203]:
+      - generic [ref=e204]:
+        - generic [ref=e205]:
+          - strong [ref=e206]: Intro
+          - text: spatial · 0.70 WU scroll · 1.70 WU total
+        - generic [ref=e207]: Auto-key off
+        - button "◆ Auto-key" [ref=e208] [cursor=pointer]
+        - button "Loop Section" [ref=e209] [cursor=pointer]
+        - button "Fit sequence" [ref=e210] [cursor=pointer]
+        - button "Fit Section" [ref=e211] [cursor=pointer]
+        - button "Solo camera" [ref=e212] [cursor=pointer]
+        - button "Solo world" [ref=e213] [cursor=pointer]
+        - button "Solo text" [ref=e214] [cursor=pointer]
+      - generic [ref=e215]:
+        - generic "Timeline tracks" [ref=e216]:
+          - button "Open global Sections controls" [ref=e217] [cursor=pointer]: Sections
+          - button "Open global Camera controls" [ref=e218] [cursor=pointer]: Camera
+          - button "Open global World controls" [ref=e219] [cursor=pointer]: World
+          - button "Open global Text controls" [ref=e220] [cursor=pointer]: Text
+          - generic [ref=e221]: Interaction
+        - generic [ref=e223]:
+          - generic [ref=e224]:
+            - generic "Intro · 1.70 WU" [ref=e225]:
+              - button "01 Intro" [pressed] [ref=e226] [cursor=pointer]:
+                - generic [ref=e227]: "01"
+                - text: Intro
+              - button "Resize Intro" [ref=e228]
+            - generic "Entering complexity · 2.95 WU" [ref=e229]:
+              - button "02 Entering complexity" [ref=e230] [cursor=pointer]:
+                - generic [ref=e231]: "02"
+                - text: Entering complexity
+              - button "Resize Entering complexity" [ref=e232]
+            - generic "Curiosity across aesthetics and technology · 2.90 WU" [ref=e233]:
+              - button "03 Curiosity across aesthetics and technology" [ref=e234] [cursor=pointer]:
+                - generic [ref=e235]: "03"
+                - text: Curiosity across aesthetics and technology
+              - button "Resize Curiosity across aesthetics and technology" [ref=e236]
+            - generic "The practice comes into view · 1.80 WU" [ref=e237]:
+              - button "04 The practice comes into view" [ref=e238] [cursor=pointer]:
+                - generic [ref=e239]: "04"
+                - text: The practice comes into view
+              - button "Resize The practice comes into view" [ref=e240]
+            - generic "Six connected disciplines · 3.20 WU" [ref=e241]:
+              - button "05 Six connected disciplines" [ref=e242] [cursor=pointer]:
+                - generic [ref=e243]: "05"
+                - text: Six connected disciplines
+              - button "Resize Six connected disciplines" [ref=e244]
+            - generic "Bringing the idea to life · 3.10 WU" [ref=e245]:
+              - button "06 Bringing the idea to life" [ref=e246] [cursor=pointer]:
+                - generic [ref=e247]: "06"
+                - text: Bringing the idea to life
+              - button "Resize Bringing the idea to life" [ref=e248]
+            - generic "Service proposition · 1.35 WU" [ref=e249]:
+              - button "07 Service proposition" [ref=e250] [cursor=pointer]:
+                - generic [ref=e251]: "07"
+                - text: Service proposition
+              - button "Resize Service proposition" [ref=e252]
+            - generic "Invitation · 2.50 WU" [ref=e253]:
+              - button "08 Invitation" [ref=e254] [cursor=pointer]:
+                - generic [ref=e255]: "08"
+                - text: Invitation
+              - button "Resize Invitation" [disabled] [ref=e256]
+          - generic [ref=e257]:
+            - generic [ref=e258]:
+              - button "Protected Camera key at 0% through Intro" [ref=e259] [cursor=pointer]
+              - button "Protected Camera key at 100% through Intro" [ref=e260] [cursor=pointer]
+            - generic [ref=e261]:
+              - button "Protected Camera key at 0% through Entering complexity" [ref=e262] [cursor=pointer]
+              - button "Protected Camera key at 100% through Entering complexity" [ref=e263] [cursor=pointer]
+            - generic [ref=e264]:
+              - button "Protected Camera key at 0% through Curiosity across aesthetics and technology" [ref=e265] [cursor=pointer]
+              - button "Camera key at 50% through Curiosity across aesthetics and technology" [ref=e266] [cursor=pointer]
+              - button "Camera key at 74% through Curiosity across aesthetics and technology" [ref=e267] [cursor=pointer]
+              - button "Protected Camera key at 100% through Curiosity across aesthetics and technology" [ref=e268] [cursor=pointer]
+            - generic [ref=e269]:
+              - button "Protected Camera key at 0% through The practice comes into view" [ref=e270] [cursor=pointer]
+              - button "Protected Camera key at 100% through The practice comes into view" [ref=e271] [cursor=pointer]
+            - generic [ref=e272]:
+              - button "Protected Camera key at 0% through Six connected disciplines" [ref=e273] [cursor=pointer]
+              - button "Protected Camera key at 100% through Six connected disciplines" [ref=e274] [cursor=pointer]
+            - generic [ref=e275]:
+              - button "Protected Camera key at 0% through Bringing the idea to life" [ref=e276] [cursor=pointer]
+              - button "Camera key at 34% through Bringing the idea to life" [ref=e277] [cursor=pointer]
+              - button "Camera key at 72% through Bringing the idea to life" [ref=e278] [cursor=pointer]
+              - button "Protected Camera key at 100% through Bringing the idea to life" [ref=e279] [cursor=pointer]
+            - generic [ref=e280]:
+              - button "Protected Camera key at 0% through Service proposition" [ref=e281] [cursor=pointer]
+              - button "Protected Camera key at 100% through Service proposition" [ref=e282] [cursor=pointer]
+            - generic [ref=e283]:
+              - button "Protected Camera key at 0% through Invitation" [ref=e284] [cursor=pointer]
+              - button "Camera key at 8% through Invitation" [ref=e285] [cursor=pointer]
+              - button "Camera key at 38% through Invitation" [ref=e286] [cursor=pointer]
+              - button "Camera key at 68% through Invitation" [ref=e287] [cursor=pointer]
+              - button "Protected Camera key at 100% through Invitation" [ref=e288] [cursor=pointer]
+          - generic [ref=e289]:
+            - generic [ref=e290]:
+              - button "cluster" [ref=e291] [cursor=pointer]
+              - button "Intro World transition start" [ref=e292] [cursor=pointer]
+              - button "Intro World transition end" [ref=e293] [cursor=pointer]
+            - generic [ref=e294]:
+              - button "turbulent-field" [ref=e295] [cursor=pointer]
+              - button "Entering complexity World transition start" [ref=e296] [cursor=pointer]
+              - button "Entering complexity World transition end" [ref=e297] [cursor=pointer]
+            - generic [ref=e298]:
+              - button "calm-field" [ref=e299] [cursor=pointer]
+              - button "Curiosity across aesthetics and technology World transition start" [ref=e300] [cursor=pointer]
+              - button "Curiosity across aesthetics and technology World transition end" [ref=e301] [cursor=pointer]
+            - generic [ref=e302]:
+              - button "discipline-grid" [ref=e303] [cursor=pointer]
+              - button "The practice comes into view World transition start" [ref=e304] [cursor=pointer]
+              - button "The practice comes into view World transition end" [ref=e305] [cursor=pointer]
+            - button "continue" [ref=e307] [cursor=pointer]
+            - generic [ref=e308]:
+              - button "living-field" [ref=e309] [cursor=pointer]
+              - button "Bringing the idea to life World transition start" [ref=e310] [cursor=pointer]
+              - button "Bringing the idea to life World transition end" [ref=e311] [cursor=pointer]
+            - button "continue" [ref=e313] [cursor=pointer]
+            - generic [ref=e314]:
+              - button "bust" [ref=e315] [cursor=pointer]
+              - button "Invitation World transition start" [ref=e316] [cursor=pointer]
+              - button "Invitation World transition end" [ref=e317] [cursor=pointer]
+          - generic [ref=e318]:
+            - generic [ref=e319]:
+              - button "Spatial text at 23% · travels 0–46% · I help shape complex ideas into emotionally compelling experiences." [ref=e320] [cursor=pointer]
+              - button "Spatial text at 77% · travels 50–100% · At the start, an idea can feel like everything at once." [ref=e321] [cursor=pointer]
+            - generic [ref=e322]:
+              - button "Spatial text at 24% · travels 12–35% · It has to be useful, original, technically possible and emotionally right." [ref=e323] [cursor=pointer]
+              - button "Spatial text at 41% · travels 29–52% · Its shape is still fragmented." [ref=e324] [cursor=pointer]
+              - button "Spatial text at 57% · travels 46–69% · This stage of an idea has always captivated me." [ref=e325] [cursor=pointer]
+              - button "Spatial text at 75% · travels 63–86% · I learn what is there and what matters to the people involved." [ref=e326] [cursor=pointer]
+              - button "Spatial text at 93% · travels 80–100% · Then I look for the organising thought that can bring it into focus." [ref=e327] [cursor=pointer]
+            - button "Vertical · 6 blocks" [ref=e329] [cursor=pointer]
+            - button "Discipline reveal from 32% to 290%" [ref=e331] [cursor=pointer]: Discipline reveal
+            - button "Vertical · 4 blocks" [ref=e333] [cursor=pointer]
+            - generic [ref=e334]:
+              - button "Spatial text at 8% · travels 0–22% · As those ways of thinking begin to influence one another, complexity starts to cohere." [ref=e335] [cursor=pointer]
+              - button "Spatial text at 28% · travels 14–42% · It takes on clear form and intuitive behaviour." [ref=e336] [cursor=pointer]
+              - button "Spatial text at 48% · travels 34–62% · It gains a character people can trust." [ref=e337] [cursor=pointer]
+              - button "Spatial text at 68% · travels 54–82% · It becomes something they can relate to, interact with and feel." [ref=e338] [cursor=pointer]
+              - button "Spatial text at 91% · travels 76–100% · That is what excites me about bringing an idea to life." [ref=e339] [cursor=pointer]
+            - button "Vertical · 1 blocks" [ref=e341] [cursor=pointer]
+            - button "Spatial text at 34% · travels 7–100% · If you are building something new, let’s talk." [ref=e343] [cursor=pointer]
+          - generic [ref=e344]:
+            - button [ref=e346] [cursor=pointer]
+            - button [ref=e348] [cursor=pointer]
+            - button [ref=e350] [cursor=pointer]
+            - button [ref=e352] [cursor=pointer]
+            - button [ref=e354] [cursor=pointer]
+            - button [ref=e356] [cursor=pointer]
+            - button [ref=e358] [cursor=pointer]
+            - generic [ref=e359]:
+              - button "horizontal-spin" [ref=e360] [cursor=pointer]
+              - button "Invitation interaction activation keyframe" [ref=e361] [cursor=pointer]

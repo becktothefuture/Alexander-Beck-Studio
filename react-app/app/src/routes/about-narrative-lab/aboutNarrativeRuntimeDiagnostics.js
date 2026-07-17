@@ -24,6 +24,7 @@ export function createAboutNarrativeRuntimeDiagnostics({
   let revision = 0;
   let recordId = 0;
   let cachedSnapshot = null;
+  let cachedMetricsSnapshot = null;
   let disposed = false;
 
   const invalidate = () => {
@@ -62,8 +63,14 @@ export function createAboutNarrativeRuntimeDiagnostics({
   const recordMetrics = (patch = {}) => {
     if (disposed || !changed(metrics, patch)) return false;
     Object.assign(metrics, patch);
-    invalidate();
+    cachedMetricsSnapshot = null;
     return true;
+  };
+
+  const getMetricsSnapshot = () => {
+    if (cachedMetricsSnapshot) return cachedMetricsSnapshot;
+    cachedMetricsSnapshot = Object.freeze({ ...metrics });
+    return cachedMetricsSnapshot;
   };
 
   const subscribe = (listener) => {
@@ -83,6 +90,7 @@ export function createAboutNarrativeRuntimeDiagnostics({
 
   return Object.freeze({
     dispose,
+    getMetricsSnapshot,
     getSnapshot,
     recordLifecycle,
     recordMetrics,
@@ -90,8 +98,8 @@ export function createAboutNarrativeRuntimeDiagnostics({
   });
 }
 
-export function projectAboutNarrativeRuntimeMetrics(snapshot = {}) {
-  const metrics = snapshot.metrics || {};
+export function projectAboutNarrativeRuntimeMetrics(snapshot = {}, metricsOverride = null) {
+  const metrics = metricsOverride || snapshot.metrics || {};
   return {
     correspondenceSequenceState: snapshot.state || 'idle',
     correspondencePairId: snapshot.installedPairId || '',

@@ -9,6 +9,7 @@ export const ABOUT_NARRATIVE_BUST_STATES = Object.freeze({
 
 const SETTLED_PROGRESS = 0.9999;
 const DEFAULT_KEYBOARD_STEP = 0.16;
+const EMPTY_SAMPLE_INPUT = Object.freeze({});
 
 function finiteOr(value, fallback = 0) {
   const number = Number(value);
@@ -48,15 +49,6 @@ export function createAboutNarrativeBustController({
   let dragWidth = 320;
   let dragSensitivity = 1;
 
-  const canAutoRotate = ({ liveAmbient, deterministicScrub }) => (
-    isBust
-    && settled
-    && !snapshot.hidden
-    && !snapshot.reducedMotion
-    && Boolean(liveAmbient)
-    && !deterministicScrub
-  );
-
   const leave = () => {
     isBust = false;
     settled = false;
@@ -71,17 +63,16 @@ export function createAboutNarrativeBustController({
     return snapshot;
   };
 
-  const sample = ({
-    active = false,
-    transitionProgress = 0,
-    deltaSeconds = 0,
-    speed: nextSpeed = speed,
-    resumeDelay: nextResumeDelay = resumeDelay,
-    liveAmbient = true,
-    deterministicScrub = false,
-    reducedMotion = false,
-    hidden = false,
-  } = {}) => {
+  const sample = (input = EMPTY_SAMPLE_INPUT) => {
+    const active = input.active === true;
+    const transitionProgress = input.transitionProgress ?? 0;
+    const deltaSeconds = input.deltaSeconds ?? 0;
+    const nextSpeed = input.speed ?? speed;
+    const nextResumeDelay = input.resumeDelay ?? resumeDelay;
+    const liveAmbient = input.liveAmbient !== false;
+    const deterministicScrub = input.deterministicScrub === true;
+    const reducedMotion = input.reducedMotion === true;
+    const hidden = input.hidden === true;
     if (!active) return leave();
 
     const wasBust = isBust;
@@ -128,7 +119,12 @@ export function createAboutNarrativeBustController({
 
     if (snapshot.state === ABOUT_NARRATIVE_BUST_STATES.DRAGGING) return snapshot;
 
-    const autoAllowed = canAutoRotate({ liveAmbient, deterministicScrub });
+    const autoAllowed = isBust
+      && settled
+      && !snapshot.hidden
+      && !snapshot.reducedMotion
+      && liveAmbient
+      && !deterministicScrub;
     if (!autoAllowed) {
       snapshot.state = ABOUT_NARRATIVE_BUST_STATES.SETTLED;
       return snapshot;

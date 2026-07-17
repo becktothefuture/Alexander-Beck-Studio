@@ -221,7 +221,7 @@ export class PortfolioProjectHandoff {
   buildBridge({ atTarget }) {
     this.removeBridge({ keepMedia: true });
     const sourceStyle = getComputedStyle(this.sourceMedia);
-    const sourceMaterial = this.sourceCard.querySelector('.portfolio-project-card__material') || this.sourceCard;
+    const sourceMaterial = this.sourceCard.querySelector('.portfolio-project-card__surface') || this.sourceCard;
     const sourceMaterialStyle = getComputedStyle(sourceMaterial);
     const targetStyle = getComputedStyle(this.drawerView.getHeroImageShell?.() || this.sourceMedia);
     const bridge = document.createElement('div');
@@ -275,7 +275,7 @@ export class PortfolioProjectHandoff {
     this.animations = [];
     this.durationMs = durationMs;
     const sourceStyle = getComputedStyle(this.sourceMedia);
-    const sourceMaterial = this.sourceCard.querySelector('.portfolio-project-card__material') || this.sourceCard;
+    const sourceMaterial = this.sourceCard.querySelector('.portfolio-project-card__surface') || this.sourceCard;
     const sourceMaterialStyle = getComputedStyle(sourceMaterial);
     const targetStyle = getComputedStyle(this.drawerView.getHeroImageShell?.() || this.sourceMedia);
     const animationOptions = {

@@ -19,7 +19,7 @@ const BROWSERS = { chromium, firefox, webkit };
 
 const ROUTE_STEPS = [
   { id: 'contact', href: '/contact.html', ready: '[data-route-content="contact"]' },
-  { id: 'portfolio', href: '/portfolio.html', ready: '[data-route-content="portfolio-gate"]' },
+  { id: 'portfolio', href: '/portfolio.html', ready: '#portfolioProjectMount' },
   { id: 'home', href: '/index.html', ready: '#c' },
 ];
 
@@ -138,6 +138,64 @@ async function sampleHomeReturnEntrance(page, eventBaselineWallTime = 0) {
   }, eventBaselineWallTime);
 }
 
+async function samplePortfolioEntrance(page) {
+  return page.evaluate(async () => {
+    const samples = [];
+    const startedAt = performance.now();
+    const read = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const styles = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      let effectiveOpacity = 1;
+      let effectivelyVisible = true;
+      for (let current = element; current; current = current.parentElement) {
+        const currentStyles = getComputedStyle(current);
+        const opacity = Number.parseFloat(currentStyles.opacity || '1');
+        effectiveOpacity *= Number.isFinite(opacity) ? opacity : 1;
+        if (currentStyles.display === 'none' || currentStyles.visibility === 'hidden') {
+          effectivelyVisible = false;
+          break;
+        }
+      }
+      return {
+        opacity: Number.parseFloat(styles.opacity || '0'),
+        visibility: styles.visibility,
+        effectiveOpacity,
+        effectivelyVisible,
+        rect: {
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        },
+      };
+    };
+    await new Promise((resolveSample) => {
+      const sample = (now) => {
+        const mount = document.getElementById('portfolioProjectMount');
+        const particleField = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.()?.particleField || null;
+        samples.push({
+          elapsedMs: now - startedAt,
+          transitionPhase: document.documentElement.dataset.absTransitionPhase || 'idle',
+          entrancePhase: mount?.dataset?.portfolioEntrancePhase || '',
+          entranceReason: mount?.dataset?.portfolioEntranceReason || '',
+          title: read('.portfolio-deck-intro__title'),
+          context: read('.portfolio-deck-intro__body'),
+          card: read('.portfolio-project-card.is-active'),
+          dial: read('.portfolio-carousel-dot-dial'),
+          field: read('.portfolio-speed-field-canvas'),
+          particleField,
+        });
+        if (mount?.dataset?.portfolioEntrancePhase === 'complete' || now - startedAt >= 5000) resolveSample();
+        else requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
+    return { samples };
+  });
+}
+
 async function captureCheckpoint(page, label, checkpoint) {
   const frame = await readFrame(page);
   const screenshotPath = resolve(outputRoot, `${label}-${checkpoint}.png`);
@@ -176,12 +234,17 @@ async function main() {
       const eventBaselineWallTime = step.id === 'home'
         ? await page.evaluate(() => Math.max(0, ...(window.__ABS_SIMULATION_VISUAL_TRANSITION__?.events || []).map((event) => Number(event.wallTime) || 0)))
         : 0;
+      const portfolioEntrancePromise = step.id === 'portfolio'
+        ? samplePortfolioEntrance(page)
+        : null;
       await clickRouteTab(page, step.id);
       const inFlight = await captureCheckpoint(page, `${step.id}`, 'in-flight');
       assert(inFlight.frame.activeRoute === step.id, `Active tab did not lead transition for ${step.id}`, inFlight);
       assert(inFlight.frame.bandVisible, `Bottom band hidden during ${step.id} transition`, inFlight);
       assert(inFlight.frame.windowAboveBand, `Window overlapped bottom band during ${step.id} transition`, inFlight);
       let homeEntrance = null;
+      let portfolioEntrance = null;
+      if (portfolioEntrancePromise) portfolioEntrance = await portfolioEntrancePromise;
       if (step.id === 'home') {
         try {
           homeEntrance = await sampleHomeReturnEntrance(page, eventBaselineWallTime);
@@ -193,6 +256,11 @@ async function main() {
         }
       }
       await waitForReady(page, step.ready);
+      if (step.id === 'portfolio') {
+        await page.waitForFunction(() => (
+          document.getElementById('portfolioProjectMount')?.dataset?.portfolioEntrancePhase === 'complete'
+        ), null, { timeout: WAIT_MS, polling: STRICT_RAF ? 'raf' : 50 });
+      }
       const settled = await captureCheckpoint(page, `${step.id}`, 'settled');
       assert(settled.frame.path === step.href, `Route path mismatch after ${step.id}`, settled);
       assert(settled.frame.phase === 'idle' && settled.frame.wake === '', `Transition did not settle to idle for ${step.id}`, settled);
@@ -214,6 +282,26 @@ async function main() {
         assert(scales.length > 0 && scales.every((scale) => scale >= 0.999), 'Reduced-motion Home return did not settle immediately', homeEntrance);
       }
       if (homeEntrance) settled.homeEntrance = homeEntrance;
+      if (portfolioEntrance) {
+        const readableAt = (key, threshold = 0.02) => portfolioEntrance.samples.findIndex((sample) => (
+          sample[key]?.effectivelyVisible && (sample[key]?.effectiveOpacity || 0) > threshold
+        ));
+        const titleStart = readableAt('title');
+        const contextStart = readableAt('context');
+        const cardStart = readableAt('card');
+        const cardComplete = readableAt('card', 0.9);
+        assert(titleStart >= 0 && cardStart >= 0 && titleStart <= cardStart, 'Portfolio card became readable before its title', portfolioEntrance);
+        assert(contextStart >= 0 && cardComplete >= 0 && contextStart <= cardComplete, 'Portfolio card completed before context began', portfolioEntrance);
+        if (!REDUCED_MOTION) {
+          assert(portfolioEntrance.samples.some((sample) => (
+            sample.transitionPhase !== 'idle'
+            && sample.particleField?.visible
+            && sample.particleField?.cadence === 'static'
+          )), 'Portfolio field did not establish a static route-in frame before idle', portfolioEntrance);
+        }
+        assert(portfolioEntrance.samples.at(-1)?.entrancePhase === 'complete', 'Portfolio entrance did not reach complete', portfolioEntrance);
+        settled.portfolioEntrance = portfolioEntrance;
+      }
       results.push(inFlight, settled);
     }
   } finally {

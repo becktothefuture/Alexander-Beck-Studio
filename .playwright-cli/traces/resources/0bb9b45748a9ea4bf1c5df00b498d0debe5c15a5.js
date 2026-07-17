@@ -1,0 +1,10 @@
+import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=6e8fde4d"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import __vite__cjsImport1_reactDom_client from "/node_modules/.vite/deps/react-dom_client.js?v=6e8fde4d"; const createRoot = __vite__cjsImport1_reactDom_client["createRoot"];
+import { SiteApp } from "/src/components/app/SiteApp.jsx?t=1784283357042";
+createRoot(document.getElementById("root")).render(/* @__PURE__ */ jsxDEV(SiteApp, {}, void 0, false, {
+  fileName: "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/react-app/app/src/entries/about-narrative.jsx",
+  lineNumber: 4,
+  columnNumber: 52
+}, this));
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBR21EO0FBSG5ELFNBQVNBLGtCQUFrQjtBQUMzQixTQUFTQyxlQUFlO0FBRXhCRCxXQUFXRSxTQUFTQyxlQUFlLE1BQU0sQ0FBQyxFQUFFQyxPQUFPLHVCQUFDLGFBQUQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxPQUFRLENBQUciLCJuYW1lcyI6WyJjcmVhdGVSb290IiwiU2l0ZUFwcCIsImRvY3VtZW50IiwiZ2V0RWxlbWVudEJ5SWQiLCJyZW5kZXIiXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiYWJvdXQtbmFycmF0aXZlLmpzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBjcmVhdGVSb290IH0gZnJvbSAncmVhY3QtZG9tL2NsaWVudCc7XG5pbXBvcnQgeyBTaXRlQXBwIH0gZnJvbSAnLi4vY29tcG9uZW50cy9hcHAvU2l0ZUFwcC5qc3gnO1xuXG5jcmVhdGVSb290KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdyb290JykpLnJlbmRlcig8U2l0ZUFwcCAvPik7XG4iXSwiZmlsZSI6Ii9Vc2Vycy9hbGV4YW5kZXJiZWNrL1Byb2plY3RzLWNvZGUvQWxleGFuZGVyIEJlY2sgU3R1ZGlvIFdlYnNpdGUvcmVhY3QtYXBwL2FwcC9zcmMvZW50cmllcy9hYm91dC1uYXJyYXRpdmUuanN4In0=

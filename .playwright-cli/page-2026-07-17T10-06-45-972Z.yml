@@ -1,0 +1,101 @@
+- generic [ref=e1]:
+  - generic [ref=e12]:
+    - generic "Portfolio projects" [ref=e51]:
+      - region [ref=e52]:
+        - generic:
+          - region:
+            - heading [level=2]: Selected design work.
+            - paragraph: From early concepts to shipped websites, apps, tools, and platforms.
+          - generic:
+            - button [ref=e13]:
+              - generic:
+                - generic:
+                  - figure
+                - generic:
+                  - paragraph: Personal
+                  - heading [level=3]: A portfolio built as an environment
+            - button [ref=e14]:
+              - generic:
+                - generic:
+                  - figure
+                - generic:
+                  - paragraph: Pro Keyboard
+                  - heading [level=3]: Touch typing refined
+            - button [ref=e53]:
+              - generic:
+                - generic:
+                  - figure
+                - generic:
+                  - paragraph: S&P Global
+                  - heading [level=3]: Making financial indexes visible
+              - generic: View
+            - button [ref=e16]:
+              - generic:
+                - generic:
+                  - figure
+                - generic:
+                  - paragraph: SunExpress
+                  - heading [level=3]: Clearer flight booking
+            - button [ref=e17]:
+              - generic:
+                - generic:
+                  - figure
+                - generic:
+                  - paragraph: Yoti
+                  - heading [level=3]: Designing trust flows
+          - status: "S&P Global: Making financial indexes visible. Project 1 of 6."
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - banner
+        - generic:
+          - contentinfo:
+            - generic:
+              - group "Social media links" [ref=e19]:
+                - link "Apple Music" [ref=e20]:
+                  - /url: https://music.apple.com/profile/beckandeggs
+                  - generic: 
+                - link "LinkedIn" [ref=e22]:
+                  - /url: https://www.linkedin.com/in/thisisbeck/
+                  - generic: 
+              - generic "London local time" [ref=e25]:
+                - generic [ref=e26]:
+                  - generic [ref=e27]:
+                    - strong [ref=e28]: London
+                    - generic [ref=e29]: ·
+                  - time [ref=e30]: 11:06:45 AM
+    - dialog [ref=e55]:
+      - button "Close portfolio access prompt" [ref=e56]
+      - generic [ref=e59]:
+        - paragraph [ref=e60]: Private project
+        - heading "View Portfolio" [level=1] [ref=e61]
+        - paragraph [ref=e62]: Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated.
+        - group "Portfolio invite code" [ref=e63]:
+          - textbox "Portfolio invite code digit 1 of 6" [active] [ref=e64]
+          - textbox "Portfolio invite code digit 2 of 6" [ref=e65]
+          - textbox "Portfolio invite code digit 3 of 6" [ref=e66]
+          - textbox "Portfolio invite code digit 4 of 6" [ref=e67]
+          - textbox "Portfolio invite code digit 5 of 6" [ref=e68]
+          - textbox "Portfolio invite code digit 6 of 6" [ref=e69]
+        - status
+    - generic [ref=e31]:
+      - navigation "Primary buttons" [ref=e32]:
+        - link "Home" [ref=e33]:
+          - /url: /index.html
+          - generic: 
+        - link "Work" [ref=e35]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About Me" [ref=e37]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=e39]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=e41]:
+        - button "Sound off" [ref=e42]:
+          - generic: 
+        - button "Switch to dark mode" [ref=e44]
+  - status [ref=e50]: This project requires a portfolio invite code.

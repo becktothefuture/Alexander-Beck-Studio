@@ -4,7 +4,6 @@ import {
   ABOUT_NARRATIVE_CAMERA_EASINGS,
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
   ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS,
-  ABOUT_NARRATIVE_DISCIPLINE_TONES,
   ABOUT_NARRATIVE_EASINGS,
   ABOUT_NARRATIVE_EMPHASIS_TONES,
   ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES,
@@ -31,8 +30,8 @@ const CUE_KEYS = new Set(['id', 'text', 'enter', 'hold', 'exit', 'preset', 'anch
 const CUE_MOTION_KEYS = new Set(['mode']);
 const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'emphasis', 'worldInfluence']);
 const EMPHASIS_KEYS = new Set(['text', 'tone']);
-const DISCIPLINE_REVEAL_KEYS = new Set(['id', 'start', 'end', 'stagger', 'backgroundFade', 'backgroundOpacity', 'pointScale', 'labelOffsetPx', 'labelDuration', 'hold', 'items']);
-const DISCIPLINE_REVEAL_ITEM_KEYS = new Set(['group', 'label', 'tone']);
+const DISCIPLINE_REVEAL_KEYS = new Set(['id', 'start', 'end', 'stagger', 'backgroundFade', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelDuration', 'hold', 'items']);
+const DISCIPLINE_REVEAL_ITEM_KEYS = new Set(['group', 'label']);
 const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 'mobileYOffset']);
 const MODIFIER_KEYS = new Set(['id', 'enabled', 'parameters']);
 const INTERACTION_KEYS = new Set(['type', 'activationStart']);
@@ -126,6 +125,7 @@ function normalizeDisciplineReveal(reveal = {}) {
     stagger: Number(reveal.stagger ?? 0.085),
     backgroundFade: Number(reveal.backgroundFade ?? 0.12),
     backgroundOpacity: Number(reveal.backgroundOpacity ?? 0.06),
+    reconnectOpacity: Number(reveal.reconnectOpacity ?? 0.24),
     pointScale: Number(reveal.pointScale ?? 3.6),
     labelOffsetPx: Number(reveal.labelOffsetPx ?? 18),
     labelDuration: Number(reveal.labelDuration ?? 0.07),
@@ -133,7 +133,6 @@ function normalizeDisciplineReveal(reveal = {}) {
     items: Array.isArray(reveal.items) ? reveal.items.map((item, index) => ({
       group: Math.round(Number(item?.group ?? index + 1)),
       label: String(item?.label || ''),
-      tone: ABOUT_NARRATIVE_DISCIPLINE_TONES.includes(item?.tone) ? item.tone : 'neutral',
     })) : [],
   };
 }
@@ -421,9 +420,6 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
         groups.add(item.group);
         if (!item.label?.trim() || item.label.length > 80 || UNSAFE_TEXT_PATTERN.test(item.label)) {
           diagnostics.push({ level: 'error', code: 'discipline-reveal-label', path: `${itemPath}.label`, message: 'Discipline labels must be safe, concise, and non-empty.' });
-        }
-        if (!ABOUT_NARRATIVE_DISCIPLINE_TONES.includes(item.tone)) {
-          diagnostics.push({ level: 'error', code: 'discipline-reveal-tone', path: `${itemPath}.tone`, message: 'Unsupported discipline point colour.' });
         }
       });
       const lastRevealEnd = Number(disciplineReveal.start)

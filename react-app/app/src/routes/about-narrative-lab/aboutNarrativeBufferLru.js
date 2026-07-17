@@ -30,6 +30,17 @@ export function collectAboutNarrativeArrayBuffers(value) {
       return;
     }
     if (candidate instanceof Promise) return;
+    if (candidate instanceof Map) {
+      candidate.forEach((item, key) => {
+        visit(key);
+        visit(item);
+      });
+      return;
+    }
+    if (candidate instanceof Set) {
+      candidate.forEach(visit);
+      return;
+    }
     if (Array.isArray(candidate)) {
       candidate.forEach(visit);
       return;
@@ -62,8 +73,16 @@ export function createAboutNarrativeBufferLru({
   let uniqueBytes = 0;
   let activeKey = '';
   let disposed = false;
+  let cachedSnapshot = null;
 
-  const notify = (type, fields = {}) => onEvent?.({ cache: name, type, ...fields });
+  const invalidateSnapshot = () => {
+    cachedSnapshot = null;
+  };
+
+  const notify = (type, fields = {}) => {
+    invalidateSnapshot();
+    onEvent?.({ cache: name, type, ...fields });
+  };
 
   const assertUsable = () => {
     if (disposed) throw new Error(`Buffer LRU ${name} has been disposed.`);
@@ -162,10 +181,12 @@ export function createAboutNarrativeBufferLru({
     const entry = entries.get(key);
     if (!entry) {
       counters.misses += 1;
+      invalidateSnapshot();
       return undefined;
     }
     counters.hits += 1;
     touch(entry);
+    invalidateSnapshot();
     return entry.value;
   };
 
@@ -187,6 +208,7 @@ export function createAboutNarrativeBufferLru({
     entry.pins.add(owner);
     touch(entry);
     enforceLimits();
+    invalidateSnapshot();
     return true;
   };
 
@@ -197,6 +219,7 @@ export function createAboutNarrativeBufferLru({
     if (!entry) return false;
     const removed = entry.pins.delete(owner);
     enforceLimits();
+    if (removed) invalidateSnapshot();
     return removed;
   };
 
@@ -206,6 +229,7 @@ export function createAboutNarrativeBufferLru({
     if (!entry) return false;
     entry.inFlight = Boolean(inFlight);
     enforceLimits();
+    invalidateSnapshot();
     return true;
   };
 
@@ -216,6 +240,7 @@ export function createAboutNarrativeBufferLru({
     activeKey = key || '';
     if (key) touch(entries.get(key));
     enforceLimits();
+    invalidateSnapshot();
     return true;
   };
 
@@ -260,6 +285,7 @@ export function createAboutNarrativeBufferLru({
   };
 
   const getSnapshot = () => {
+    if (cachedSnapshot) return cachedSnapshot;
     const owners = new Map();
     entries.forEach((entry) => {
       const current = owners.get(entry.owner) || { entries: 0, entryBytes: 0 };
@@ -271,7 +297,7 @@ export function createAboutNarrativeBufferLru({
     const activeBytes = active
       ? [...active.buffers].reduce((sum, buffer) => sum + buffer.byteLength, 0)
       : 0;
-    return Object.freeze({
+    cachedSnapshot = Object.freeze({
       name,
       disposed,
       entries: entries.size,
@@ -302,6 +328,7 @@ export function createAboutNarrativeBufferLru({
         active: entry.active,
       }))),
     });
+    return cachedSnapshot;
   };
 
   const dispose = () => {

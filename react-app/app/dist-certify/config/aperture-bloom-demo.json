@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "enabled": true,
+  "rings": 6,
+  "ringSpacing": 2.85,
+  "bodyRadius": 9.6,
+  "mobileRadiusScale": 0.84,
+  "speed": 0.58,
+  "openStrength": 0.28,
+  "twistStrength": 0.52,
+  "pointerRadius": 260,
+  "pointerPush": 42,
+  "titleReserveWidth": 0.6,
+  "titleReserveHeight": 0.27,
+  "titleReserveY": 0.5,
+  "damping": 0.84,
+  "spring": 0.094,
+  "maxDpr": 1.5,
+  "pauseWhenHidden": true
+}

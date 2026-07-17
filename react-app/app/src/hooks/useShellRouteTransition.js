@@ -78,6 +78,7 @@ function computeRouteState(href) {
 
   const lockedGateId = requestedRoute.gated && !hasGateAccess(requestedRoute.id) ? requestedRoute.id : null;
   if (!lockedGateId && requestedRoute.id === 'portfolio') {
+    hasGateAccess('portfolio');
     ['portfolio', 'portfolioCode', 'access'].forEach((key) => url.searchParams.delete(key));
   }
 
@@ -157,7 +158,6 @@ const GROUPED_ROUTE_OFFSET_MS = 80;
 const ROUTE_ENTER_SELECTOR = '[data-route-enter]';
 const ROUTE_ENTER_TOTAL_MS = 720;
 const PORTFOLIO_GATE_SCENE_FADE_MS = 480;
-const PORTFOLIO_GATE_DECK_REVEAL_DELAY_MS = 160;
 const ROUTE_ENTER_GROUPS = {
   identity: {
     startMs: 0,
@@ -716,17 +716,19 @@ function dismissPortfolioGateSceneBridge({
   setStableTimeout(remove, totalMs + 80);
 }
 
-function releasePortfolioGateDeck() {
+function releasePortfolioDeck(reason = 'route-in') {
   const root = document.documentElement;
-  root.dataset.absPortfolioGateReveal = 'ready';
   const generation = getActiveLegacyRuntimeSnapshot().generation;
+  root.dataset.absPortfolioReveal = reason;
+  root.dataset.absPortfolioRevealGeneration = String(generation || 0);
   window.dispatchEvent(new CustomEvent('abs:portfolio:reveal', {
-    detail: { generation },
+    detail: { generation, reason },
   }));
 }
 
-function clearPortfolioGateDeckRelease() {
-  delete document.documentElement.dataset.absPortfolioGateReveal;
+function clearPortfolioDeckRelease() {
+  delete document.documentElement.dataset.absPortfolioReveal;
+  delete document.documentElement.dataset.absPortfolioRevealGeneration;
 }
 
 function setSimulationFocusTransitionState(state) {
@@ -1026,8 +1028,7 @@ function isPortfolioScrollRailReady() {
   if (!wall || !mount || !firstCard) return false;
   const wallRect = wall.getBoundingClientRect();
   const cardRect = firstCard.getBoundingClientRect();
-  const gatePrepared = document.documentElement.dataset.absGateTransition === 'active'
-    && mount.classList.contains('is-portfolio-boot-preparing');
+  const deckPrepared = mount.classList.contains('is-portfolio-boot-preparing');
   const hasUsableGeometry = (
     isRectUsable(wallRect)
     && isRectUsable(cardRect)
@@ -1038,7 +1039,7 @@ function isPortfolioScrollRailReady() {
   return (
     hasUsableGeometry
     && (
-      gatePrepared
+      deckPrepared
       || (isElementVisiblyRevealed(mount) && isElementVisiblyRevealed(firstCard))
     )
   );
@@ -1137,6 +1138,7 @@ function isRouteBaselineReady(routeId, options = {}) {
   if (routeId === 'portfolio') {
     const deckFailed = body.classList.contains('portfolio-deck-failed');
     const lockedGate = document.querySelector('[data-route-content="portfolio-gate"]');
+    const runtime = getActiveLegacyRuntimeSnapshot();
     if (options.lockedGateId === 'portfolio') {
       return Boolean(body.classList.contains('portfolio-page') && lockedGate);
     }
@@ -1148,7 +1150,9 @@ function isRouteBaselineReady(routeId, options = {}) {
       && (
         lockedGate
         || (
-          hasCanvasBufferReady()
+          runtime.routeId === 'portfolio'
+          && runtime.status === 'ready'
+          && hasCanvasBufferReady()
           && (
           document.getElementById('portfolioProjectMount')
           && (deckFailed || isPortfolioScrollRailReady())
@@ -1489,7 +1493,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
     }
     const readyMs = options.readyFallbackMs
-      ?? (isGate ? 850 : (nextRouteId === 'home' ? 500 : 700));
+      ?? (isGate ? 850 : (nextRouteId === 'home' ? 500 : (nextRouteId === 'portfolio' ? 2400 : 700)));
     const routeTimings = getRouteTransitionTimings({
       fadeMs: options.exitMs,
       staggerMs: options.staggerMs,
@@ -1533,9 +1537,12 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       } else {
         syncSteadyTransitionPhase();
       }
+      // Portfolio consumes its release marker itself. Keeping the marker until
+      // then makes the shell/runtime handshake replayable when module setup is
+      // slower than the shell entrance preparation.
+      if (activeRouteIdRef.current !== 'portfolio') clearPortfolioDeckRelease();
       if (isGateTransition) {
         removePortfolioGateSceneBridge();
-        clearPortfolioGateDeckRelease();
       }
       try {
         options.onComplete?.(activeRouteStateRef.current);
@@ -1793,10 +1800,8 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
                 easing: 'linear',
               });
               dismissGateBackdropOnce();
-              if (isGate && nextRouteId === 'portfolio') {
-                setStableTimeout(() => {
-                  if (!stale()) releasePortfolioGateDeck();
-                }, PORTFOLIO_GATE_DECK_REVEAL_DELAY_MS);
+              if (nextRouteId === 'portfolio') {
+                releasePortfolioDeck(isGate ? 'gate-success' : 'route-in');
               }
             },
           });
@@ -1860,7 +1865,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           }
           setTransitionPhase(TRANSITION_PHASES.ROUTE_IN);
           setRouteLayerVisibility(true, surfaceRefs);
-          releasePortfolioGateDeck();
+          releasePortfolioDeck('reduced-motion');
           dismissPortfolioGateSceneBridge({ instant: true });
           dismissGateBackdropOnce();
           return undefined;

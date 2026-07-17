@@ -55,9 +55,28 @@ function absContentVirtualPlugin() {
 export default defineConfig(({ mode }) => ({
   base: '/',
   plugins: [react(), absContentVirtualPlugin(), createDevAdminPlugin({ publicConfigDir })],
+  resolve: {
+    alias: {
+      'virtual:about-narrative-resource-tools': resolve(
+        __dirname,
+        'src/routes/about-narrative-lab',
+        mode === 'production'
+          ? 'aboutNarrativeResourceTools.production.js'
+          : 'aboutNarrativeResourceTools.certification.js',
+      ),
+      'virtual:about-narrative-runtime-observer': resolve(
+        __dirname,
+        'src/routes/about-narrative-lab',
+        mode === 'production'
+          ? 'aboutNarrativeRuntimeObserver.production.js'
+          : 'aboutNarrativeRuntimeObserver.certification.js',
+      ),
+    },
+  },
   // Legacy bundles gate the dock + authoring UI on `__DEV__` (see main.js / portfolio app).
   define: {
     __DEV__: mode === 'development',
+    __CERTIFY__: mode === 'certification',
   },
   build: {
     rollupOptions: {

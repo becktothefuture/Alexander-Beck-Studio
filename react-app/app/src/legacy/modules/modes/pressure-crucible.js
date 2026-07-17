@@ -457,7 +457,6 @@ function seedFluxParticle(g, canvas, index, count, particleSize) {
   ball.m = 1;
   ball.vx = signedHash(index * 2.31 + 4.7) * (38 + home.spreadT * 44) * dpr;
   ball.vy = signedHash(index * 3.03 + 1.2) * (30 + home.spreadT * 34) * dpr;
-  ball.alpha = 0.92;
   ball.isSleeping = false;
   ball.sleepTimer = 0;
   ball._pressureFlux = {
@@ -549,10 +548,8 @@ export function applyPressureCrucibleForces(ball, dt) {
     ball.vx += state.axisX * maxSpeed * 1.05 * state.pointerSpeed01 * pointerQ * step;
     ball.vy += state.axisY * maxSpeed * 1.05 * state.pointerSpeed01 * pointerQ * step;
     ball.r = meta.baseRadius * (1 + pointerQ * 1.38 + state.pointerSpeed01 * 0.42);
-    ball.alpha = clamp(0.58 + pointerQ * 0.42, 0.58, 1);
   } else {
     ball.r = meta.baseRadius * (1 + (state.pointerActive ? 0 : influence * 0.08));
-    ball.alpha = state.reducedMotion ? 0.78 : 0.86;
   }
 
   applyLocalSwarmSteering(ball, state, step, maxSpeed, dpr, pointerQ);
@@ -607,12 +604,7 @@ export function applyPressureCrucibleForces(ball, dt) {
   ball.sleepTimer = 0;
 }
 
-function fillColorWithAlpha(ctx, color, alpha) {
-  ctx.fillStyle = color;
-  ctx.globalAlpha = alpha;
-}
-
-function drawFluxParticles(ctx, balls, state) {
+function drawFluxParticles(ctx, balls) {
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
   for (let i = 0; i < balls.length; i += 1) {
@@ -620,18 +612,16 @@ function drawFluxParticles(ctx, balls, state) {
     const meta = ball._pressureFlux;
     if (!meta) continue;
     ctx.beginPath();
-    fillColorWithAlpha(ctx, ball.color, ball.alpha ?? 0.9);
+    ctx.fillStyle = ball.color;
     ctx.arc(ball.x, ball.y, ball.r, 0, TAU);
     ctx.fill();
   }
   ctx.restore();
-  ctx.globalAlpha = 1;
 }
 
 export function renderPressureCrucible(ctx) {
   const g = getGlobals();
   if (g.currentMode !== MODES.PRESSURE_CRUCIBLE) return;
-  const state = getFluxState();
   const balls = g.balls || [];
-  drawFluxParticles(ctx, balls, state);
+  drawFluxParticles(ctx, balls);
 }

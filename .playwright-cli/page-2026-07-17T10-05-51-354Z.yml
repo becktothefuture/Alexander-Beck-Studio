@@ -1,0 +1,101 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e12]:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic "Portfolio projects":
+              - region:
+                - generic:
+                  - region:
+                    - heading [level=2]: Selected design work.
+                    - paragraph: From early concepts to shipped websites, apps, tools, and platforms.
+                  - generic:
+                    - button:
+                      - generic:
+                        - generic:
+                          - figure
+                        - generic:
+                          - paragraph: Pro Keyboard
+                          - heading [level=3]: Touch typing refined
+                    - button [expanded]:
+                      - generic:
+                        - generic:
+                          - figure
+                        - generic:
+                          - paragraph: S&P Global
+                          - heading [level=3]: Making financial indexes visible
+                    - button:
+                      - generic:
+                        - generic:
+                          - figure
+                        - generic:
+                          - paragraph: SunExpress
+                          - heading [level=3]: Clearer flight booking
+                  - status: "S&P Global: Making financial indexes visible. Project 1 of 6."
+    - generic [ref=f1e31]:
+      - navigation "Primary buttons" [ref=f1e32]:
+        - link "Home" [ref=f1e33]:
+          - /url: /index.html
+          - generic: 
+        - link "Work" [ref=f1e35]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About Me" [ref=f1e37]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=f1e39]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=f1e41]:
+        - button "Sound off" [ref=f1e42]:
+          - generic: 
+        - button "Switch to dark mode" [ref=f1e44]
+    - generic:
+      - dialog "S&P Global Making financial indexes visible":
+        - generic [ref=f1e71]:
+          - button "Back to portfolio projects" [active] [ref=f1e72]:
+            - generic: 
+          - region "Project details" [ref=f1e73]:
+            - generic [ref=f1e74]:
+              - generic [ref=f1e75]: 
+              - generic [ref=f1e79]:
+                - paragraph [ref=f1e80]: S&P Global
+                - heading "Making financial indexes visible" [level=1] [ref=f1e81]
+            - generic [ref=f1e83]:
+              - paragraph [ref=f1e85]: A product interface that turned index-building from emails, spreadsheets, and scripts into a visual workflow.
+              - generic [ref=f1e86]:
+                - paragraph [ref=f1e87]: Overview
+                - paragraph [ref=f1e88]: Mapped the index-building process, shaped a modular interaction model, and designed screens that helped users build, validate, and launch strategies in days instead of weeks.
+              - generic [ref=f1e89]:
+                - paragraph [ref=f1e91]: S&P Dow Jones Indexes needed a clearer way to turn a complex, rule-based financial process into a product. The work focused on making the logic visible without making the interface feel heavy.
+                - figure "Project framing for a financial-index builder." [ref=f1e92]:
+                  - img "Case-study slide explaining the challenge behind the S&P index builder platform." [ref=f1e94]
+                - figure "Role, design rationale, and lessons from translating financial logic into UI." [ref=f1e96]:
+                  - img "Case-study slide describing role, collaborators, and lessons from the index builder project." [ref=f1e98]
+                - figure [ref=f1e100]:
+                  - img "Python development environment showing the legacy index-building workflow." [ref=f1e103]
+                - region "Project stats" [ref=f1e104]:
+                  - list [ref=f1e105]:
+                    - listitem [ref=f1e106]:
+                      - generic [ref=f1e107]: Email + Excel + Python
+                      - generic [ref=f1e108]: Old workflow
+                    - listitem [ref=f1e109]:
+                      - generic [ref=f1e110]: Weeks to days
+                      - generic [ref=f1e111]: Launch time
+                    - listitem [ref=f1e112]:
+                      - generic [ref=f1e113]: Modular index blocks
+                      - generic [ref=f1e114]: Core model
+                - figure "Interface states for building and validating index strategies." [ref=f1e115]:
+                  - img "Product interface screens for building and validating financial index strategies." [ref=f1e117]
+                - figure "Landing screen for building, validating, and deploying a strategic index." [ref=f1e119]:
+                  - img "Index builder landing screen with options to build, validate, and deploy an index." [ref=f1e121]
+                - figure "Project reflection" [ref=f1e123]:
+                  - blockquote [ref=f1e124]: The interface had to make the rules feel inspectable, so a complex financial process could become something people could build with.
+              - generic [ref=f1e126]:
+                - paragraph [ref=f1e127]: Personal takeaways
+                - list [ref=f1e128]:
+                  - listitem [ref=f1e129]: Make abstract rules visible before asking users to act.
+                  - listitem [ref=f1e130]: A strong model helps technical and non-technical users work from the same idea.
+                  - listitem [ref=f1e131]: Visual design can reduce ambiguity in complex financial tools.
+  - status [ref=f1e50]: "Opened project: S&P Global: Making financial indexes visible"

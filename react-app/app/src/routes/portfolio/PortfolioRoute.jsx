@@ -1,28 +1,17 @@
 import homeContent from 'virtual:abs-content/home';
 import { PortfolioGateRoute } from './PortfolioGateRoute.jsx';
-import { PortfolioGateScene } from './PortfolioGateScene.jsx';
 
 export const PORTFOLIO_ROUTE_RUNTIME = {
   exportName: 'bootstrapPortfolio',
-  loadModule: () => import('../../legacy/modules/portfolio/app.js')
+  loadModule: () => import('../../legacy/modules/portfolio/app.js').then(async (module) => {
+    await module.preloadPortfolioRoute?.();
+    return module;
+  })
 };
 
 export function getPortfolioRouteView(canonicalHref, routeState = {}) {
   void canonicalHref;
-  if (routeState.lockedGateId === 'portfolio') {
-    return {
-      bodyClass: 'body portfolio-page portfolio-page--locked',
-      legacyRuntime: false,
-      footerVariant: 'portfolio',
-      studioWindowClassName: 'portfolio-simulation portfolio-simulation--locked route-page-window w-embed',
-      simulationLayer: <PortfolioGateScene />,
-      windowOverlayContent: <PortfolioGateRoute />,
-      uiLayer: {
-        chrome: null,
-        secondary: null,
-      },
-    };
-  }
+  void routeState;
 
   const portfolioBlurb = homeContent.portfolio?.blurb
     || 'From early concepts to shipped websites, apps, tools, and platforms.';
@@ -39,6 +28,7 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
     bodyClass: 'body portfolio-page',
     footerVariant: 'portfolio',
     studioWindowClassName: 'portfolio-simulation w-embed',
+    windowOverlayContent: <PortfolioGateRoute />,
     simulationLayer: (
       <div className="portfolio-slider-layer">
         <canvas

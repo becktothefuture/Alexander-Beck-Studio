@@ -38,6 +38,7 @@ Canonical engineering contract for route and modal transitions.
 
 ## 4) Direct-load boot overlay
 - Direct document loads start behind `#abs-boot-overlay`, with `<html data-abs-boot-state="booting">` and `#root` hidden/inert.
+- Portfolio prepares its route content behind the overlay and releases its local entrance from `completeDirectBoot()` only after `onOverlayHidden`; its cards must not finish while the overlay is still visible.
 - A CSS-generated `html::before` / `html::after` bridge covers the viewport from the critical head style before the body overlay DOM exists; the first-paint browser chrome fallback starts from the browser-scheme dark frame color until the boot script resolves the active browser/OS scheme, and `#abs-boot-overlay` remains the main release/fade layer.
 - The first-paint loader is a compact 36px six-dot spinner derived from the exact simulation-system ball palette slots, excluding only the pure white and pure black ball slots. The dots use the loader playground's Fluid Sweep cadence: a roughly 2.24s eased orbit and 4.8px dots on a 14.25px radius. Colour changes are intentionally less frequent: the dots hold a stable palette through most of a roughly 6.72s colour cycle, then run a short stepped burst around the ring using 160ms phase offsets. Saved light and dark themes use the same simulation-system dot palette.
 - The overlay must remain visible for at least 750ms on every direct document load before it can begin its exit fade.
@@ -72,7 +73,8 @@ Canonical engineering contract for route and modal transitions.
 - Route-in restores readable groups first, then animates route-owned children marked with `[data-route-enter]`.
 - `[data-route-enter]` accepts the named groups `identity`, `legend`, `context`, `action`, and `footer`; `data-route-enter-order` controls order inside a group. Add these markers to route content instead of adding new shell selectors when a view needs child-level entrance motion.
 - After `abs:route-ready`, route-in must wait for a short paint barrier before preparing child entrances so destination refs, layout, and `[data-route-enter]` markers belong to the new route.
-- Portfolio route-in must restore hero + route UI together before deck labels and speed-field accents become readable.
+- Portfolio route-in prepares final deck geometry, restores hero + route UI together, then uses the shell-owned `abs:portfolio:reveal` boundary to start its local cards/dial reveal. Title and description retain the shared `identity` and `context` groups; card transforms remain Portfolio-owned.
+- During Portfolio route-in the speed field may paint a deterministic static frame, but it must not schedule drift until the global phase returns to `idle`.
 - First readable route-in frame must already have final geometry for the hero surface inside the inner wall.
 
 ## 7) Instrument Wake
@@ -87,6 +89,8 @@ Canonical engineering contract for route and modal transitions.
 
 The portfolio card/project handoff is a local overlay state machine, not a route-transition owner. It may coordinate the deck, project drawer, and temporary media bridge, but it must not mutate `<html data-abs-transition-phase>` or compete with `useShellRouteTransition`. Route change or unmount must abort the local handoff and remove its temporary bridge.
 
+The protected-project gate is also local to Portfolio. It may use the established modal phase/depth helpers, but it must keep the live route mounted, retain only one pending project intent in `PortfolioScrollApp`, fully close before drawer handoff begins, and cancel on dismissal or route unmount. Successful access never performs a same-route navigation.
+
 Run on preview or dev server (serially, not in parallel):
 
 ```bash
@@ -95,7 +99,8 @@ ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium npm run audit:transition-
 ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=webkit npm run audit:transition-flows
 ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium ABS_TRANSITION_STRICT_RAF=1 npm run audit:transition-flows
 ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=webkit ABS_TRANSITION_STRICT_RAF=1 ABS_TRANSITION_HARD_TIMEOUT_MS=300000 npm run audit:transition-flows
-ABS_DEV_URL=http://localhost:8013 npm run audit:portfolio-gate
+ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium npm run audit:portfolio-gate
+ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=webkit npm run audit:portfolio-gate
 ABS_DEV_URL=http://localhost:8013 npm run certify:screens
 ```
 
@@ -104,7 +109,7 @@ ABS_DEV_URL=http://localhost:8013 npm run certify:screens
 - [ ] No new direct orchestration class/dataset toggles in legacy modules.
 - [ ] SPA bootstraps do not call boot-only reveal helpers during active route phases.
 - [ ] Direct document loads hold `#abs-boot-overlay` until the route is visually ready.
-- [ ] First readable gated home → portfolio frame has hero inside the inner wall and no geometry snap afterward.
+- [ ] First readable Home → Portfolio preview frame has final deck geometry, title before card action, and no geometry snap afterward.
 - [ ] Chromium/WebKit audits pass (normal + strict RAF).
 - [ ] In-flight and settled checkpoint artifacts are generated.
 - [ ] `certify:screens` passes.

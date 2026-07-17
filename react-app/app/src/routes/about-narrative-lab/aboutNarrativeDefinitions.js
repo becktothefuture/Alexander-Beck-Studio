@@ -14,7 +14,14 @@ export const ABOUT_NARRATIVE_BLOCK_KINDS = Object.freeze([
   'disciplines',
 ]);
 export const ABOUT_NARRATIVE_EMPHASIS_TONES = Object.freeze(['blue', 'green', 'orange']);
-export const ABOUT_NARRATIVE_DISCIPLINE_TONES = Object.freeze(['green', 'blue', 'neutral', 'acid', 'orange']);
+export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
+  '--ball-1',
+  '--ball-4',
+  '--ball-3',
+  '--ball-7',
+  '--ball-8',
+  '--ball-6',
+]);
 export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = Object.freeze([
   Object.freeze({ group: 1, x: 0.14, y: 0.12 }),
   Object.freeze({ group: 2, x: 0.43, y: 0.27 }),
@@ -59,6 +66,7 @@ export const ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS = Object.freeze([
   numberControl('stagger', 'Stagger', 0.02, 0.16, 0.005),
   numberControl('backgroundFade', 'Grid fade duration', 0.02, 0.4, 0.005),
   numberControl('backgroundOpacity', 'Resting grid opacity', 0, 0.4, 0.01),
+  numberControl('reconnectOpacity', 'Editorial grid opacity', 0, 0.6, 0.01),
   numberControl('pointScale', 'Active point size', 1, 8, 0.05, '×'),
   numberControl('labelOffsetPx', 'Label offset', 0, 64, 1, 'px'),
   numberControl('labelDuration', 'Label reveal duration', 0.02, 0.25, 0.005),

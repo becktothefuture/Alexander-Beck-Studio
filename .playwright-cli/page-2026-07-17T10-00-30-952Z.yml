@@ -1,0 +1,87 @@
+- generic [ref=e1]:
+  - generic [ref=e12]:
+    - generic "Portfolio projects" [ref=e13]:
+      - region [ref=e51]:
+        - generic:
+          - region:
+            - heading [level=2]: Selected design work.
+            - paragraph: From early concepts to shipped websites, apps, tools, and platforms.
+          - generic:
+            - button [ref=e15]:
+              - generic:
+                - generic:
+                  - figure
+                - generic:
+                  - paragraph: Pro Keyboard
+                  - heading [level=3]: Touch typing refined
+            - button [ref=e52]:
+              - generic:
+                - generic:
+                  - figure
+                - generic:
+                  - paragraph: S&P Global
+                  - heading [level=3]: Making financial indexes visible
+              - generic: View
+            - button [ref=e17]:
+              - generic:
+                - generic:
+                  - figure
+                - generic:
+                  - paragraph: SunExpress
+                  - heading [level=3]: Clearer flight booking
+          - status: "S&P Global: Making financial indexes visible. Project 1 of 6."
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - banner
+        - generic:
+          - contentinfo:
+            - generic:
+              - group "Social media links" [ref=e19]:
+                - link "Apple Music" [ref=e20]:
+                  - /url: https://music.apple.com/profile/beckandeggs
+                  - generic: 
+                - link "LinkedIn" [ref=e22]:
+                  - /url: https://www.linkedin.com/in/thisisbeck/
+                  - generic: 
+              - generic "London local time" [ref=e25]:
+                - generic [ref=e26]:
+                  - generic [ref=e27]:
+                    - strong [ref=e28]: London
+                    - generic [ref=e29]: ·
+                  - time [ref=e30]: 11:00:30 AM
+    - dialog [ref=e54]:
+      - button "Close portfolio access prompt" [ref=e55]
+      - generic [ref=e58]:
+        - paragraph [ref=e59]: Private project
+        - heading "View Portfolio" [level=1] [ref=e60]
+        - paragraph [ref=e61]: Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated.
+        - group "Portfolio invite code" [ref=e62]:
+          - textbox "Portfolio invite code digit 1 of 6" [active] [ref=e63]
+          - textbox "Portfolio invite code digit 2 of 6" [ref=e64]
+          - textbox "Portfolio invite code digit 3 of 6" [ref=e65]
+          - textbox "Portfolio invite code digit 4 of 6" [ref=e66]
+          - textbox "Portfolio invite code digit 5 of 6" [ref=e67]
+          - textbox "Portfolio invite code digit 6 of 6" [ref=e68]
+        - status
+    - generic [ref=e31]:
+      - navigation "Primary buttons" [ref=e32]:
+        - link "Home" [ref=e33]:
+          - /url: /index.html
+          - generic: 
+        - link "Work" [ref=e35]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About Me" [ref=e37]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=e39]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=e41]:
+        - button "Sound off" [ref=e42]:
+          - generic: 
+        - button "Switch to dark mode" [ref=e44]
+  - status [ref=e50]: This project requires a portfolio invite code.

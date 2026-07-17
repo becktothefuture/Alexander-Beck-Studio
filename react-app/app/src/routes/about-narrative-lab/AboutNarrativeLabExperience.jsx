@@ -4,6 +4,7 @@ import {
   ABOUT_NARRATIVE_CONTACT,
   ABOUT_NARRATIVE_DOCUMENT,
 } from './aboutNarrativeLabData.js';
+import { ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS } from './aboutNarrativeDefinitions.js';
 import { getAboutNarrativeCueMovement } from './aboutNarrativeCompiler.js';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
 import {
@@ -166,8 +167,10 @@ function DisciplineRevealOverlay({ reveal, overlayRef }) {
         <li
           key={item.group}
           data-discipline-group={item.group}
-          data-discipline-tone={item.tone}
-          style={{ '--discipline-label-offset': `${reveal.labelOffsetPx}px` }}
+          style={{
+            '--discipline-color': `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})`,
+            '--discipline-label-offset': `${reveal.labelOffsetPx}px`,
+          }}
         >
           <span className="about-narrative-discipline-reveal__label">{item.label}</span>
         </li>
@@ -424,7 +427,7 @@ export function AboutNarrativeLabExperience({
   }, [routeContentId, showIndicator]);
 
   useEffect(() => {
-    if (!__DEV__ || !editorRequested) return undefined;
+    if ((!__DEV__ && !__CERTIFY__) || !editorRequested) return undefined;
     let active = true;
     Promise.all([
       import('./AboutNarrativeEditor.jsx'),

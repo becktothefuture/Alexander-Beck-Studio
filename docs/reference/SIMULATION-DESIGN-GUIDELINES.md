@@ -281,6 +281,8 @@ Daily simulations are the live homepage system. They must behave as one product 
 
 Daily visuals use the site ball/pebble language:
 - flat palette fills from `design-system.json` / `colorDistribution`;
+- normal bodies use those palette colours directly at full opacity; renderer-level whitening and global material translucency are forbidden;
+- reserve opacity changes for explicit spatial depth fog, spawn/retire lifecycles, and shared transitions—not for the settled front/default material;
 - no cast shadows, drop shadows, local lights, highlights, bevels, glows, or 3D material shading;
 - this flat-fill rule applies to every shared ball, circle fallback, pebble, portfolio body, and route-specific circle renderer; disabled flags and dormant secondary edge passes are not allowed;
 - no helper scaffolding such as guide lines, field lines, construction strokes, underlay blobs, tubes, silhouettes, or trails carrying the concept;

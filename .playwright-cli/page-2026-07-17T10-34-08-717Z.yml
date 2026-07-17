@@ -1,0 +1,149 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e5]:
+      - list:
+        - listitem:
+          - generic: Product Design
+        - listitem:
+          - generic: Experience Design
+        - listitem:
+          - generic: Art Direction
+        - listitem:
+          - generic: Motion & 3D
+        - listitem:
+          - generic: Creative Engineering
+        - listitem:
+          - generic: Parametric Systems
+      - generic "About Alexander narrative" [ref=e7]:
+        - main [ref=e8]:
+          - region [ref=e9]:
+            - generic [ref=e11]:
+              - heading "I help shape complex ideas into emotionally compelling experiences. At the start, an idea can feel like everything at once." [level=1] [ref=e12]:
+                - generic [ref=e13]: I help shape complex ideas into emotionally compelling experiences.
+                - generic [ref=e14]: At the start, an idea can feel like everything at once.
+              - generic: 
+          - region [ref=e15]:
+            - heading "It has to be useful, original, technically possible and emotionally right. Its shape is still fragmented. This stage of an idea has always captivated me. I learn what is there and what matters to the people involved. Then I look for the organising thought that can bring it into focus." [level=2] [ref=e18]:
+              - generic [ref=e19]: It has to be useful, original, technically possible and emotionally right.
+              - generic [ref=e20]: Its shape is still fragmented.
+              - generic [ref=e21]: This stage of an idea has always captivated me.
+              - generic [ref=e22]: I learn what is there and what matters to the people involved.
+              - generic [ref=e23]: Then I look for the organising thought that can bring it into focus.
+          - region [ref=e24]:
+            - generic [ref=e25]:
+              - heading [level=2] [ref=e26]:
+                - text: Perhaps that is why I have always been drawn to the space between
+                - strong [ref=e27]: aesthetics and technology
+                - text: .
+              - paragraph [ref=e28]:
+                - text: I studied
+                - strong [ref=e29]: Communication Design
+                - text: ", then built my work across digital products, web design, identity, interfaces, motion, and creative uses of"
+                - strong [ref=e30]: AI and technology
+                - text: .
+              - paragraph [ref=e31]:
+                - text: At the centre of it is
+                - strong [ref=e32]: curiosity
+                - text: ":"
+                - strong [ref=e33]: how things work
+                - text: ", how they feel and how those qualities can strengthen one another."
+              - paragraph [ref=e34]:
+                - text: This is what draws me to
+                - strong [ref=e35]: emerging technology
+                - text: . I see the opportunity for it to play a useful role in people’s lives once it has been deconstructed,
+                - strong [ref=e36]: made tangible
+                - text: ", made visual and"
+                - strong [ref=e37]: made interactive
+                - text: enough to resonate.
+              - paragraph [ref=e38]:
+                - text: That curiosity has shaped my work with
+                - strong [ref=e39]: technology start-ups
+                - text: and
+                - strong [ref=e40]: creative agencies
+                - text: ", on"
+                - strong [ref=e41]: ambitious projects
+                - text: across identity, finance, mobility, healthcare and digital products.
+              - list "Selected clients" [ref=e42]:
+                - listitem [ref=e43]: Yoti
+                - listitem [ref=e44]: S&P Global
+                - listitem [ref=e45]: Bentley
+                - listitem [ref=e46]: SunExpress
+                - listitem [ref=e47]: McCann
+                - listitem [ref=e48]: American Heart Association
+          - region "The practice comes into view" [ref=e49]
+          - region [ref=e50]:
+            - generic [ref=e51]:
+              - heading [level=2] [ref=e52]:
+                - text: Each brings a
+                - strong [ref=e53]: different way of thinking
+                - text: to the work.
+              - paragraph [ref=e54]: Their different perspectives help me understand an opportunity, shape how an experience works, give it character, make behaviour and feeling tangible, and explore directly through code, tools and working systems.
+              - paragraph [ref=e55]: AI runs through all of this as a creative material and a practical capability, expanding what I can explore, generate and build.
+              - paragraph [ref=e56]: Moving between disciplines lets one kind of thinking affect another. An insight can reshape a product. A technical experiment can unlock a visual language. Motion can make an interaction easier to understand.
+          - region [ref=e57]:
+            - heading "As those ways of thinking begin to influence one another, complexity starts to cohere. It takes on clear form and intuitive behaviour. It gains a character people can trust. It becomes something they can relate to, interact with and feel. That is what excites me about bringing an idea to life." [level=2] [ref=e60]:
+              - generic [ref=e61]: As those ways of thinking begin to influence one another, complexity starts to cohere.
+              - generic [ref=e62]: It takes on clear form and intuitive behaviour.
+              - generic [ref=e63]: It gains a character people can trust.
+              - generic [ref=e64]: It becomes something they can relate to, interact with and feel.
+              - generic [ref=e65]: That is what excites me about bringing an idea to life.
+          - region [ref=e66]:
+            - heading [level=2] [ref=e68]:
+              - text: "That is the work I do with ambitious teams: bringing"
+              - strong [ref=e69]: design
+              - text: ","
+              - strong [ref=e70]: creative technology
+              - text: and
+              - strong [ref=e71]: AI
+              - text: together to give early ideas a form people can understand, trust and want to engage with.
+          - region [ref=e72]:
+            - generic [ref=e74]:
+              - heading "If you are building something new, let’s talk." [level=2] [ref=e75]
+              - group "Rotate the point-cloud bust horizontally"
+              - navigation "Contact Alexander" [ref=e78]:
+                - link "Email" [ref=e79] [cursor=pointer]:
+                  - /url: mailto:alexander@beck.fyi
+                - link "LinkedIn" [ref=e80] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/in/thisisbeck/
+    - generic:
+      - generic:
+        - generic:
+          - contentinfo:
+            - generic:
+              - group "Social media links" [ref=e82]:
+                - link "Apple Music" [ref=e83] [cursor=pointer]:
+                  - /url: https://music.apple.com/profile/beckandeggs
+                  - generic: 
+                - link "LinkedIn" [ref=e85] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/in/thisisbeck/
+                  - generic: 
+              - generic "London local time" [ref=e88]:
+                - generic [ref=e89]:
+                  - generic [ref=e90]:
+                    - strong [ref=e91]: London
+                    - generic [ref=e92]: ·
+                  - time [ref=e93]: 11:34:08 AM
+          - status:
+            - generic: A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable. © 2026 Alexander Beck
+    - generic [ref=e94]:
+      - navigation "Primary buttons" [ref=e95]:
+        - link "Home" [ref=e96] [cursor=pointer]:
+          - /url: /index.html
+          - generic: 
+        - link "Work" [ref=e98] [cursor=pointer]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About Me" [ref=e100]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=e102] [cursor=pointer]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=e104]:
+        - button "Sound off" [ref=e105] [cursor=pointer]:
+          - generic: 
+        - button "Switch to dark mode" [ref=e107] [cursor=pointer]
+  - generic:
+    - generic:
+      - progressbar "About page scroll progress"
+      - status: Section 1 of 8

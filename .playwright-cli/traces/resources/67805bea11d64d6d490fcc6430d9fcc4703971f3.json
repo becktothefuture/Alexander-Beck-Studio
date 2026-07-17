@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "generatedAt": "2026-06-24T07:04:58.083Z",
+  "generator": "scripts/process-napoleon-bust.mjs",
+  "source": {
+    "title": "The bust of Napoleon Bonaparte",
+    "creator": "Virtual Museums of Małopolska",
+    "institution": "National Museum in Kraków",
+    "license": "Creative Commons Attribution 4.0 International",
+    "licenseShort": "CC BY 4.0",
+    "sketchfabUrl": "https://sketchfab.com/3d-models/the-bust-of-napoleon-bonaparte-a177bf0e121641bea6cf1d58ad3efc5b",
+    "sourceObjectUrl": "https://muzea.malopolska.pl/en/objects-list/1869",
+    "inventoryNumber": "MNK XII-A-810",
+    "status": "mesh-sampled",
+    "sourceFile": "3D_MNK_A_810_Popiersie_Napoleona.obj",
+    "transformation": "Original mesh normalized, material data ignored, and surface area sampled into flat coloured point data for beck.fyi."
+  },
+  "layout": {
+    "format": "float32-little-endian",
+    "strideBytes": 32,
+    "attributes": [
+      {
+        "name": "position",
+        "offsetFloats": 0,
+        "components": 3
+      },
+      {
+        "name": "normal",
+        "offsetFloats": 3,
+        "components": 3,
+        "usage": "displacement and interaction only"
+      },
+      {
+        "name": "seed",
+        "offsetFloats": 6,
+        "components": 1
+      },
+      {
+        "name": "colorGroup",
+        "offsetFloats": 7,
+        "components": 1
+      }
+    ]
+  },
+  "lods": {
+    "low": {
+      "file": "napoleon-points-low.bin",
+      "count": 5000,
+      "bytes": 160000
+    },
+    "medium": {
+      "file": "napoleon-points-medium.bin",
+      "count": 12000,
+      "bytes": 384000
+    },
+    "high": {
+      "file": "napoleon-points-high.bin",
+      "count": 24000,
+      "bytes": 768000
+    }
+  }
+}
