@@ -159,6 +159,10 @@
 
 .about-track-editor-preview button,
 .about-track-editor-preview select { min-height: 34px; }
+.about-track-editor-preview > button,
+.about-track-editor-preview > select,
+.about-track-editor-preview > label { flex: 0 0 auto; }
+.about-track-editor-preview > select { width: auto; }
 .about-track-editor-preview select,
 .about-track-editor-field select,
 .about-track-editor-field input,

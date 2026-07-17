@@ -544,12 +544,16 @@ function ObjectInspector({ snapshot, store, onMessage }) {
   );
 }
 
-export default function AboutNarrativeEditor({ store, rootRef }) {
+const PUBLIC_PREVIEW_BASELINE_HASH = 'public-editor-preview-v3';
+
+export default function AboutNarrativeEditor({ store, rootRef, previewOnly = false }) {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
   const [zoom, setZoom] = useState(1);
   const [textMenu, setTextMenu] = useState(false);
-  const [baselineHash, setBaselineHash] = useState('');
-  const [message, setMessage] = useState('Loading canonical source…');
+  const [baselineHash, setBaselineHash] = useState(previewOnly ? PUBLIC_PREVIEW_BASELINE_HASH : '');
+  const [message, setMessage] = useState(previewOnly
+    ? 'Public preview: changes stay on this device until exported.'
+    : 'Loading canonical source…');
   const [saving, setSaving] = useState(false);
   const [recovery, setRecovery] = useState(null);
   const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false);
@@ -559,6 +563,11 @@ export default function AboutNarrativeEditor({ store, rootRef }) {
 
   const save = useCallback(async () => {
     if (saving || !baselineHash) return;
+    if (previewOnly) {
+      exportAboutNarrativeDocument(store.getSnapshot().document, 'contents-about-preview.json');
+      setMessage('Exported this phone preview as contents-about-preview.json.');
+      return;
+    }
     setSaving(true);
     setMessage('Validating and saving v3…');
     try {
@@ -576,7 +585,7 @@ export default function AboutNarrativeEditor({ store, rootRef }) {
     } finally {
       setSaving(false);
     }
-  }, [baselineHash, saving, store]);
+  }, [baselineHash, previewOnly, saving, store]);
   saveRef.current = save;
 
   useEffect(() => {
@@ -626,6 +635,16 @@ export default function AboutNarrativeEditor({ store, rootRef }) {
   }, [rootRef, snapshot.previewState.layoutProfile, snapshot.previewState.orientation]);
 
   useEffect(() => {
+    if (previewOnly) {
+      const source = store.getSnapshot().document;
+      store.markBaseline(source);
+      setBaselineHash(PUBLIC_PREVIEW_BASELINE_HASH);
+      setRecovery(readAboutNarrativeRecoveryDraft({
+        baselineHash: PUBLIC_PREVIEW_BASELINE_HASH,
+      }));
+      setMessage('Public preview: changes stay on this device until exported.');
+      return undefined;
+    }
     let active = true;
     loadAboutNarrativeSource().then((source) => {
       if (!active) return;
@@ -639,7 +658,7 @@ export default function AboutNarrativeEditor({ store, rootRef }) {
       if (active) setMessage(`Canonical load failed: ${error.message}`);
     });
     return () => { active = false; };
-  }, [store]);
+  }, [previewOnly, store]);
 
   useEffect(() => {
     if (!snapshot.dirty || !baselineHash) return undefined;
@@ -809,7 +828,9 @@ export default function AboutNarrativeEditor({ store, rootRef }) {
             }}
           >Checkpoint</button>
           <button type="button" className="is-save" disabled={!snapshot.dirty || saving || errors.length > 0 || !baselineHash} onClick={save}>
-            {saving ? 'Saving…' : snapshot.dirty ? 'Save v3' : 'Saved'}
+            {previewOnly
+              ? snapshot.dirty ? 'Export draft' : 'Preview ready'
+              : saving ? 'Saving…' : snapshot.dirty ? 'Save v3' : 'Saved'}
           </button>
         </div>
       </header>
@@ -868,7 +889,9 @@ export default function AboutNarrativeEditor({ store, rootRef }) {
       </section>
 
       <div className="about-track-editor-status" role="status" aria-live="polite">
-        <span className={snapshot.dirty ? 'is-dirty' : 'is-clean'}>{snapshot.dirty ? 'Unsaved' : 'Canonical'}</span>
+        <span className={snapshot.dirty ? 'is-dirty' : 'is-clean'}>
+          {snapshot.dirty ? 'Unsaved' : previewOnly ? 'Preview' : 'Canonical'}
+        </span>
         <p>{snapshot.rejectedEdit?.reason || message}</p>
         {diagnostics.length ? <b>{errors.length} errors · {diagnostics.length - errors.length} notices</b> : <b>Plan valid</b>}
       </div>

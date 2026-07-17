@@ -337,11 +337,13 @@ export function AboutNarrativeLabExperience({
   routeContentId = 'about-narrative-lab',
   showIndicator = true,
 }) {
-  const editorRequested = useMemo(() => (
-    typeof window !== 'undefined'
-    && routeContentId === 'about-narrative-lab'
-    && new URLSearchParams(window.location.search).get('edit') === '1'
-  ), [routeContentId]);
+  const editorRequested = useMemo(() => {
+    if (typeof window === 'undefined' || routeContentId !== 'about-narrative-lab') return false;
+    const queryRequested = new URLSearchParams(window.location.search).get('edit') === '1';
+    const publicPreviewRequested = __CERTIFY__
+      && window.location.pathname.startsWith('/editor-preview/');
+    return queryRequested || publicPreviewRequested;
+  }, [routeContentId]);
   const [editorModule, setEditorModule] = useState(null);
   const [editorStore, setEditorStore] = useState(null);
   const [indicatorHost, setIndicatorHost] = useState(null);
@@ -475,7 +477,12 @@ export function AboutNarrativeLabExperience({
         : null}
       {Editor && editorStore && typeof document !== 'undefined'
         ? createPortal(
-          <Editor store={editorStore} runtimeRef={worldRuntimeRef} rootRef={rootRef} />,
+          <Editor
+            store={editorStore}
+            runtimeRef={worldRuntimeRef}
+            rootRef={rootRef}
+            previewOnly={__CERTIFY__ && !__DEV__}
+          />,
           document.body,
         )
         : null}
