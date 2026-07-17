@@ -636,6 +636,20 @@ async function audit(viewport, label) {
     assert.equal(await practiceCameraClip.locator('.about-editor-key').count(), destinationKeyCountBefore);
     assert.equal(await backgroundCameraClip.locator('.about-editor-key.is-draggable').first().getAttribute('aria-label'), cameraLabelBeforeDrag);
 
+    const movableWorldTransition = page.locator('.about-editor-timing-key.is-world').first();
+    const worldTransitionStyleBefore = await movableWorldTransition.getAttribute('style');
+    const worldTransitionBox = await movableWorldTransition.boundingBox();
+    assert.ok(worldTransitionBox);
+    await page.mouse.move(worldTransitionBox.x + (worldTransitionBox.width / 2), worldTransitionBox.y + (worldTransitionBox.height / 2));
+    await page.mouse.down();
+    await page.mouse.move(worldTransitionBox.x + (worldTransitionBox.width / 2) + 14, worldTransitionBox.y + (worldTransitionBox.height / 2), { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(100);
+    assert.notEqual(await page.locator('.about-editor-timing-key.is-world.is-selected').getAttribute('style'), worldTransitionStyleBefore);
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await page.waitForTimeout(100);
+    assert.equal(await movableWorldTransition.getAttribute('style'), worldTransitionStyleBefore);
+
     const introTextClip = page.locator('.about-editor-lane--text .about-editor-clip').first();
     const movableTextCue = introTextClip.locator('.about-editor-cue.is-draggable').nth(1);
     const textLabelBeforeDrag = await movableTextCue.getAttribute('aria-label');
@@ -904,7 +918,7 @@ async function audit(viewport, label) {
     assert.ok(extendedClipBox && transitionEndBox);
     assert.ok(transitionEndBox.x > extendedClipBox.x + extendedClipBox.width);
     await transitionKeys.nth(1).click({ force: true });
-    await page.keyboard.press('Delete');
+    await page.locator('.about-editor-delete-key').click();
     await page.waitForTimeout(120);
     assert.equal(await transitionKeys.count(), 0);
     assert.match(await transitionDetails.textContent(), /cuts in/i);
