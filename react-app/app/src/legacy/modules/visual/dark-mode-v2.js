@@ -150,9 +150,14 @@ function updateThemeColor(isDark) {
  */
 function applyDarkModeToDOM(isDark) {
   const globals = getGlobals();
+  const root = document.documentElement;
   globals.isDarkMode = isDark;
   
   applyThemeState(isDark, { container: globals.container });
+  root.style.setProperty(
+    '--abs-indicator-ink',
+    isDark ? 'rgb(var(--abs-rgb-white))' : 'rgb(var(--abs-rgb-black))'
+  );
 
   applyLayoutCSSVars();
 
