@@ -5,6 +5,7 @@ import { chromium, webkit } from 'playwright';
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
 const browserName = process.env.ABS_BROWSER || 'chromium';
 const productionIndicatorOnly = process.env.ABS_ABOUT_PRODUCTION_INDICATOR_ONLY === '1';
+const editorOnly = process.env.ABS_ABOUT_EDITOR_ONLY === '1';
 const browserType = browserName === 'webkit' ? webkit : chromium;
 const launchOptions = browserName === 'chromium' ? {
   headless: true,
@@ -335,14 +336,27 @@ async function audit(viewport, label) {
       && getComputedStyle(node).color !== getComputedStyle(node.parentElement).color
       && ['blue', 'green', 'orange'].includes(node.dataset.emphasisTone)
   ))));
+  assert.equal(
+    await page.locator('[data-narrative-section="disciplines"] .about-narrative-editorial-emphasis').count(),
+    1,
+    'The discipline editorial passage should carry one intentional highlight only',
+  );
   const cameraClips = page.locator('.about-editor-lane--camera .about-editor-clip');
   for (let index = 0; index < await cameraClips.count(); index += 1) {
-    assert.equal(await cameraClips.nth(index).locator('.about-editor-camera-anchor').count(), 2);
-    assert.equal(await cameraClips.nth(index).locator('.about-editor-key.is-boundary').count(), 0);
+    const cameraClip = cameraClips.nth(index);
+    const cameraKeys = cameraClip.locator('.about-editor-key');
+    assert.equal(await cameraClip.locator('.about-editor-camera-anchor').count(), 0);
+    assert.equal(await cameraClip.locator('.about-editor-key.is-boundary').count(), 2);
+    assert.equal(await cameraClip.locator('.about-editor-camera-rail span').count(), (await cameraKeys.count()) - 1);
   }
-  assert.ok(await page.locator('.about-editor-camera-anchor').evaluateAll((nodes) => (
+  assert.ok(await page.locator('.about-editor-camera-rail').evaluateAll((nodes) => (
     nodes.every((node) => getComputedStyle(node).pointerEvents === 'none')
   )));
+  assert.equal(
+    await cameraClips.nth(2).locator('.about-editor-camera-rail .is-authored-motion').count(),
+    2,
+    'The calm-field to top-down camera move should read as two authored motion spans',
+  );
   if (viewport.width >= 760) {
     await page.locator('.about-editor-brand').click();
     const sequenceInspector = page.locator('.about-editor-inspector');
@@ -352,6 +366,35 @@ async function audit(viewport, label) {
     assert.match(await sequenceInspector.textContent(), /Erratic motion/i);
     assert.match(await sequenceInspector.textContent(), /Individuality/i);
     assert.match(await sequenceInspector.textContent(), /3D spread/i);
+
+    await page.locator('[data-global-track="text"]').click();
+    const textInspectorCopy = await sequenceInspector.textContent();
+    assert.match(textInspectorCopy, /Text track/i);
+    assert.match(textInspectorCopy, /Spatial titles/i);
+    assert.match(textInspectorCopy, /Clear window/i);
+    assert.match(textInspectorCopy, /Perspective/i);
+    assert.match(textInspectorCopy, /Depth moves; blur softens/i);
+    assert.doesNotMatch(textInspectorCopy, /Entry scale|Exit scale/i);
+    assert.equal(await sequenceInspector.locator('[data-global-control="clearWindow"] input[type="range"]').count(), 2);
+
+    const spatialCueWidthsBefore = await page.locator('.about-editor-cue.is-spatial').evaluateAll((nodes) => (
+      nodes.map((node) => node.getBoundingClientRect().width)
+    ));
+    const durationSlider = sequenceInspector.locator('.about-editor-property').filter({ hasText: 'Travel duration' }).locator('input[type="range"]');
+    await durationSlider.fill('1.2');
+    await page.waitForTimeout(80);
+    const spatialCueWidthsAfter = await page.locator('.about-editor-cue.is-spatial').evaluateAll((nodes) => (
+      nodes.map((node) => node.getBoundingClientRect().width)
+    ));
+    assert.ok(spatialCueWidthsAfter.some((width, index) => Math.abs(width - spatialCueWidthsBefore[index]) > 1));
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+
+    await page.locator('[data-global-track="camera"]').click();
+    assert.match(await sequenceInspector.textContent(), /Camera track[\s\S]*Forward cadence[\s\S]*Field of view/i);
+    await page.locator('[data-global-track="section"]').click();
+    assert.match(await sequenceInspector.textContent(), /Sections track[\s\S]*Scroll smoothing[\s\S]*Reading width/i);
+    await page.locator('[data-global-track="world"]').click();
+    assert.match(await sequenceInspector.textContent(), /World track[\s\S]*Point material[\s\S]*Shared turbulence/i);
   }
   const worldClips = page.locator('.about-editor-lane--world .about-editor-clip');
   assert.match(await worldClips.nth(1).textContent(), /turbulent-field/i);
@@ -379,7 +422,7 @@ async function audit(viewport, label) {
   });
   assert.notEqual(textLaneTones.spatial, textLaneTones.vertical);
   assert.ok(textLaneTones.spatialLightness < textLaneTones.verticalLightness, 'Spatial Cue blocks should be darker than vertical Text blocks');
-  const hoverKey = page.locator('.about-editor-key').first();
+  const hoverKey = page.locator('.about-editor-key.is-draggable').first();
   const keyBeforeHover = await hoverKey.evaluate((node) => ({
     transform: getComputedStyle(node).transform,
     rect: node.getBoundingClientRect().toJSON(),
@@ -553,7 +596,7 @@ async function audit(viewport, label) {
     await page.waitForTimeout(100);
     assert.equal(await backgroundCameraClip.locator('.about-editor-key').count(), sourceKeyCountBefore);
     assert.equal(await practiceCameraClip.locator('.about-editor-key').count(), destinationKeyCountBefore);
-    assert.equal(await backgroundCameraClip.locator('.about-editor-key').first().getAttribute('aria-label'), cameraLabelBeforeDrag);
+    assert.equal(await backgroundCameraClip.locator('.about-editor-key.is-draggable').first().getAttribute('aria-label'), cameraLabelBeforeDrag);
 
     const introTextClip = page.locator('.about-editor-lane--text .about-editor-clip').first();
     const movableTextCue = introTextClip.locator('.about-editor-cue.is-draggable').nth(1);
@@ -678,6 +721,64 @@ async function audit(viewport, label) {
     await page.waitForTimeout(120);
     assert.ok(Math.abs((await timelineCanvas.evaluate((node) => node.scrollWidth)) - timelineWidthBefore) <= 1);
 
+    const rhythmCueA = page.locator('[data-cue-id="complexity-idea"]');
+    const rhythmCueB = page.locator('[data-cue-id="complexity-curiosity"]');
+    const rhythmCueC = page.locator('[data-cue-id="complexity-focus"]');
+    await rhythmCueA.click();
+    await rhythmCueB.click({ modifiers: ['Shift'] });
+    await rhythmCueC.click({ modifiers: ['Shift'] });
+    const rhythmPanel = page.locator('.about-editor-rhythm');
+    assert.match(await rhythmPanel.textContent(), /3 titles selected|Distribute evenly/i);
+    const rhythmLabelsBefore = await Promise.all([rhythmCueA, rhythmCueB, rhythmCueC].map((cue) => cue.getAttribute('aria-label')));
+    await rhythmPanel.getByRole('button', { name: 'Distribute evenly' }).click();
+    assert.equal(await rhythmPanel.locator('.about-editor-rhythm-preview i').count(), 3);
+    await rhythmPanel.getByRole('button', { name: 'Cancel' }).click();
+    assert.deepEqual(await Promise.all([rhythmCueA, rhythmCueB, rhythmCueC].map((cue) => cue.getAttribute('aria-label'))), rhythmLabelsBefore);
+    await rhythmPanel.getByRole('button', { name: 'Distribute evenly' }).click();
+    await rhythmPanel.getByRole('button', { name: 'Apply' }).click();
+    await page.waitForTimeout(120);
+    assert.notDeepEqual(await Promise.all([rhythmCueA, rhythmCueB, rhythmCueC].map((cue) => cue.getAttribute('aria-label'))), rhythmLabelsBefore);
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await page.waitForTimeout(120);
+    assert.deepEqual(await Promise.all([rhythmCueA, rhythmCueB, rhythmCueC].map((cue) => cue.getAttribute('aria-label'))), rhythmLabelsBefore);
+
+    const exactGap = rhythmPanel.locator('.about-editor-property').filter({ hasText: 'Exact gap' }).locator('input');
+    await exactGap.fill('8');
+    await rhythmPanel.getByRole('button', { name: 'Preview exact gap' }).click();
+    assert.match(await rhythmPanel.locator('.about-editor-rhythm-message').textContent(), /limit|boundar|require/i);
+    assert.equal(await rhythmPanel.getByRole('button', { name: 'Apply' }).count(), 0);
+    await rhythmPanel.getByRole('button', { name: 'Copy' }).click();
+    const destinationCue = page.locator('[data-cue-id="life-form"]');
+    await destinationCue.click();
+    const destinationClip = page.locator('.about-editor-lane--text .about-editor-clip').nth(5);
+    const destinationCount = await destinationClip.locator('.about-editor-cue').count();
+    await page.locator('.about-editor-rhythm').getByRole('button', { name: 'Paste at playhead' }).click();
+    await page.waitForTimeout(120);
+    assert.equal(await destinationClip.locator('.about-editor-cue').count(), destinationCount + 3);
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await page.waitForTimeout(120);
+    assert.equal(await destinationClip.locator('.about-editor-cue').count(), destinationCount);
+
+    const sectionCountBeforeDuplicate = await page.locator('.about-editor-lane--section .about-editor-section-clip').count();
+    await page.locator('.about-editor-lane--section .about-editor-section-clip').nth(1).locator('button').first().click();
+    await page.locator('.about-editor-inspector .about-editor-inline-actions').getByRole('button', { name: 'Duplicate' }).click();
+    await page.waitForTimeout(120);
+    assert.equal(await page.locator('.about-editor-lane--section .about-editor-section-clip').count(), sectionCountBeforeDuplicate + 1);
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await page.waitForTimeout(120);
+    assert.equal(await page.locator('.about-editor-lane--section .about-editor-section-clip').count(), sectionCountBeforeDuplicate);
+
+    await destinationCue.click();
+    const audition = page.locator('.about-editor-audition');
+    await audition.locator('summary').click();
+    await audition.getByRole('button', { name: 'Loop this selection' }).click();
+    await page.waitForTimeout(120);
+    assert.equal(await page.locator('.about-editor-transport button[aria-label="Pause"]').count(), 1);
+    await page.locator('.about-narrative-scrollport').hover();
+    await page.mouse.wheel(0, 80);
+    await page.waitForTimeout(120);
+    assert.equal(await page.locator('.about-editor-transport button[aria-label="Play"]').count(), 1);
+
     const revealTextClip = page.locator('.about-editor-lane--text .about-editor-clip').nth(3);
     const revealClip = revealTextClip.locator('.about-editor-discipline-reveal');
     await revealClip.click();
@@ -779,12 +880,14 @@ async function audit(viewport, label) {
       }).sort((a, b) => a - b);
       return {
         centres,
-        tones: [...new Set(nodes.map((node) => node.dataset.disciplineTone))],
+        palette: nodes.map((node) => getComputedStyle(node).getPropertyValue('--discipline-color').trim()),
+        expectedPalette: ['--ball-1', '--ball-4', '--ball-3', '--ball-7', '--ball-8', '--ball-6']
+          .map((token) => getComputedStyle(document.documentElement).getPropertyValue(token).trim()),
         opacities: nodes.map((node) => Number(getComputedStyle(node).opacity)),
       };
     });
     assert.ok(revealGeometry.opacities.every((opacity) => opacity > 0.8));
-    assert.ok(revealGeometry.tones.length >= 5);
+    assert.deepEqual(revealGeometry.palette, revealGeometry.expectedPalette);
     assert.ok(revealGeometry.centres.at(-1) - revealGeometry.centres[0] > 220);
     revealGeometry.centres.slice(1).forEach((value, index) => assert.ok(value - revealGeometry.centres[index] > 24));
     await page.screenshot({ path: `output/playwright/about-narrative/${browserName}-${label}-discipline-reveal.png` });
@@ -792,6 +895,13 @@ async function audit(viewport, label) {
     const disciplinesSection = page.locator('[data-narrative-section="disciplines"]');
     const disciplinesWU = await disciplinesSection.evaluate((node) => node.offsetTop / document.querySelector('.about-narrative-scrollport').clientHeight);
     await transport.fill(formatWU(disciplinesWU + 0.08));
+    await page.waitForFunction(() => (
+      Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels) > 0
+    ));
+    assert.equal(await root.getAttribute('data-world-discipline-visible'), '6');
+    assert.equal(await root.getAttribute('data-world-discipline-labels'), '6');
+    assert.ok(Number(await root.getAttribute('data-world-discipline-rise')) > 0);
+    await transport.fill(formatWU(disciplinesWU + 0.7));
     await page.waitForFunction(() => (
       document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels === '0'
     ));
@@ -874,10 +984,12 @@ async function auditReducedMotionCorrespondence() {
 }
 
 try {
-  await auditProductionIndicator({ width: 1440, height: 1000 }, 'desktop');
-  await auditProductionIndicator({ width: 390, height: 844 }, 'mobile');
-  await auditSpaIndicator({ width: 1440, height: 1000 }, 'desktop');
-  await auditSpaIndicator({ width: 390, height: 844 }, 'mobile');
+  if (!editorOnly) {
+    await auditProductionIndicator({ width: 1440, height: 1000 }, 'desktop');
+    await auditProductionIndicator({ width: 390, height: 844 }, 'mobile');
+    await auditSpaIndicator({ width: 1440, height: 1000 }, 'desktop');
+    await auditSpaIndicator({ width: 390, height: 844 }, 'mobile');
+  }
   if (!productionIndicatorOnly) {
     await audit({ width: 1440, height: 1000 }, 'desktop');
     await audit({ width: 390, height: 844 }, 'mobile');

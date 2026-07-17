@@ -5,14 +5,24 @@ import {
   generateAboutNarrativeShape,
 } from './aboutNarrativePointShapes.js';
 import { resolveAboutNarrativeSwarmMotion } from './aboutNarrativeDefinitions.js';
-import { applyAboutNarrativePermutation } from './aboutNarrativeCorrespondence.js';
+import { createAboutNarrativeBufferLru } from './aboutNarrativeBufferLru.js';
+import { createAboutNarrativeBustController } from './aboutNarrativeBustController.js';
+import { createAboutNarrativePreparationController } from './aboutNarrativePreparationController.js';
+import {
+  ABOUT_NARRATIVE_CACHE_LIMITS,
+  ABOUT_NARRATIVE_POINT_PROFILES,
+} from './aboutNarrativeRuntimeConstants.js';
+import {
+  createAboutNarrativeRuntimeDiagnostics,
+  projectAboutNarrativeRuntimeMetrics,
+} from './aboutNarrativeRuntimeDiagnostics.js';
+import {
+  ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
+  validateAboutNarrativeWorkerResponse,
+} from './aboutNarrativeWorkerProtocol.js';
 import { getGlobals } from '../../legacy/modules/core/state.js';
 
-const DESKTOP_POINT_COUNT = 12000;
-const MOBILE_POINT_COUNT = 5000;
 const MATERIAL_SLOT_COUNT = 6;
-const SEQUENCE_CACHE_LIMIT = 3;
-const CORRESPONDENCE_VERSION = 'spatial-nearest-v1.0.0';
 const FALLBACK_MATERIAL_DISTRIBUTION = Object.freeze([
   Object.freeze({ colorIndex: 0, weight: 31 }),
   Object.freeze({ colorIndex: 3, weight: 13 }),
@@ -294,34 +304,6 @@ function shapeCacheKey(world, quality) {
   ]);
 }
 
-function createSequenceCacheKey(sequence, globals, quality, compact) {
-  return JSON.stringify([
-    CORRESPONDENCE_VERSION,
-    quality,
-    compact,
-    globals.camera.startZ,
-    globals.camera.cadence,
-    sequence.map((world) => [
-      world.sectionId,
-      shapeCacheKey(world, quality),
-      world.transitionIn?.correspondence || 'index-v1',
-      world.startWU,
-      world.entryDistanceWU,
-      world.transform?.position,
-      world.transform?.rotation,
-      world.transform?.scale,
-      world.transform?.mobileScale,
-      world.transform?.mobileYOffset,
-    ]),
-  ]);
-}
-
-function touchBoundedCache(cache, key, value) {
-  cache.delete(key);
-  cache.set(key, value);
-  while (cache.size > SEQUENCE_CACHE_LIMIT) cache.delete(cache.keys().next().value);
-}
-
 function writeWorldTransform(target, world, globals, compact, scratch, storyOffset = null) {
   if (!world) return target.identity();
   const transform = world.transform || {};
@@ -382,7 +364,8 @@ function captureDisciplinePositions(output, target) {
 function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayRef, runtimeRef }) {
   const compact = window.matchMedia('(max-width: 600px), (pointer: coarse)').matches;
   const quality = compact ? 'mobile' : 'desktop';
-  const pointCount = compact ? MOBILE_POINT_COUNT : DESKTOP_POINT_COUNT;
+  const pointProfile = ABOUT_NARRATIVE_POINT_PROFILES[quality];
+  const pointCount = pointProfile.pointCount;
   const renderer = new THREE.WebGLRenderer({
     canvas,
     alpha: true,
@@ -467,27 +450,40 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     depthWrite: true,
     blending: THREE.NormalBlending,
   });
-  geometry.setAttribute('position', new THREE.BufferAttribute(emptyPositions, 3));
-  geometry.setAttribute('targetPosition', new THREE.BufferAttribute(emptyPositions.slice(), 3));
-  geometry.setAttribute('pointSeed', new THREE.BufferAttribute(seeds, 1));
-  geometry.setAttribute('fromPresence', new THREE.BufferAttribute(emptyPresence, 1));
-  geometry.setAttribute('toPresence', new THREE.BufferAttribute(emptyPresence.slice(), 1));
-  geometry.setAttribute('fromPointSize', new THREE.BufferAttribute(emptySize, 1));
-  geometry.setAttribute('toPointSize', new THREE.BufferAttribute(emptySize.slice(), 1));
-  geometry.setAttribute('fromGroup', new THREE.BufferAttribute(emptyGroup, 1));
-  geometry.setAttribute('toGroup', new THREE.BufferAttribute(emptyGroup.slice(), 1));
+  const fixedAttributes = Object.freeze({
+    position: new THREE.BufferAttribute(emptyPositions, 3).setUsage(THREE.DynamicDrawUsage),
+    targetPosition: new THREE.BufferAttribute(emptyPositions.slice(), 3).setUsage(THREE.DynamicDrawUsage),
+    pointSeed: new THREE.BufferAttribute(seeds, 1),
+    fromPresence: new THREE.BufferAttribute(emptyPresence, 1).setUsage(THREE.DynamicDrawUsage),
+    toPresence: new THREE.BufferAttribute(emptyPresence.slice(), 1).setUsage(THREE.DynamicDrawUsage),
+    fromPointSize: new THREE.BufferAttribute(emptySize, 1).setUsage(THREE.DynamicDrawUsage),
+    toPointSize: new THREE.BufferAttribute(emptySize.slice(), 1).setUsage(THREE.DynamicDrawUsage),
+    fromGroup: new THREE.BufferAttribute(emptyGroup, 1).setUsage(THREE.DynamicDrawUsage),
+    toGroup: new THREE.BufferAttribute(emptyGroup.slice(), 1).setUsage(THREE.DynamicDrawUsage),
+  });
+  Object.entries(fixedAttributes).forEach(([name, attribute]) => geometry.setAttribute(name, attribute));
   const points = new THREE.Points(geometry, material);
   points.frustumCulled = false;
   scene.add(points);
 
-  const shapeCache = new Map();
-  const sequenceCache = new Map();
+  const diagnostics = createAboutNarrativeRuntimeDiagnostics({
+    initial: { state: 'idle', generation: 0, attemptCount: 0 },
+  });
+  const recordCacheEvent = () => {};
+  const shapeCache = createAboutNarrativeBufferLru({
+    name: 'about-shapes',
+    ...ABOUT_NARRATIVE_CACHE_LIMITS.shape,
+    onEvent: recordCacheEvent,
+  });
+  const sequenceCache = createAboutNarrativeBufferLru({
+    name: 'about-sequences',
+    ...ABOUT_NARRATIVE_CACHE_LIMITS.sequence,
+    onEvent: recordCacheEvent,
+  });
   let installedPair = null;
   let readySequence = null;
-  let pendingSequenceKey = '';
-  let generationController = null;
+  let activePreparation = null;
   let correspondenceWorker = null;
-  let preparationGeneration = 0;
   let sequenceState = 'idle';
   let sequencePreparationDurationMs = 0;
   let disposed = false;
@@ -497,16 +493,13 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
   let viewportOffsetX = 0;
   let viewportOffsetY = 0;
   let latestFrame = null;
+  const bustController = createAboutNarrativeBustController();
   let bustYaw = 0;
-  let bustFormationHoldYaw = 0;
-  let lastBustProgress = 0;
   let dragging = false;
   let dragStart = null;
-  let resumeAt = 0;
   let bufferRebuilds = 0;
   let frameStartedAt = performance.now();
   let lastFrameTime = 0;
-  let bustFormationActive = false;
   const director = { active: false, yaw: 0, pitch: 0, distance: 0 };
   const directorTarget = new THREE.Vector3();
   const directorOffset = new THREE.Vector3();
@@ -537,7 +530,7 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     height = Math.max(1, canvasRect.height);
     viewportOffsetX = canvasRect.left - rootRect.left;
     viewportOffsetY = canvasRect.top - rootRect.top;
-    const ratio = Math.min(window.devicePixelRatio || 1, compact ? 1.25 : 1.5);
+    const ratio = Math.min(window.devicePixelRatio || 1, pointProfile.maximumPixelRatio);
     renderer.setPixelRatio(ratio);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
@@ -547,7 +540,8 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
 
   const getShape = async (world, signal) => {
     const key = shapeCacheKey(world, quality);
-    if (shapeCache.has(key)) return shapeCache.get(key);
+    const cached = shapeCache.get(key);
+    if (cached) return cached;
     const worldSeeds = createAboutNarrativeSeeds(pointCount, world.seed);
     const promise = generateAboutNarrativeShape({
       shapeId: world.shapeId,
@@ -556,27 +550,48 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
       quality,
       parameters: world.shapeParameters,
       signal,
-    }).catch((error) => {
-      shapeCache.delete(key);
-      throw error;
     });
-    shapeCache.set(key, promise);
-    return promise;
+    return shapeCache.trackPromise(key, promise, {
+      owner: 'shape-cache',
+      pinOwner: 'bootstrap-pending',
+    });
+  };
+
+  const assertInstallOutput = (output, label) => {
+    const expectedPositionLength = pointCount * 3;
+    const group = output?.attributes?.disciplineGroup;
+    if (!(output?.positions instanceof Float32Array) || output.positions.length !== expectedPositionLength
+      || !(output?.presence instanceof Float32Array) || output.presence.length !== pointCount
+      || !(output?.size instanceof Float32Array) || output.size.length !== pointCount
+      || (group && (!(group instanceof Float32Array) || group.length !== pointCount))) {
+      throw new Error(`${label} has invalid fixed point buffers.`);
+    }
+    const arrays = [output.positions, output.presence, output.size, ...(group ? [group] : [])];
+    arrays.forEach((array) => {
+      for (let index = 0; index < array.length; index += 1) {
+        if (!Number.isFinite(array[index])) throw new Error(`${label} contains a non-finite point value.`);
+      }
+    });
   };
 
   const installPreparedPair = (pair) => {
     if (disposed || !pair || installedPair?.key === pair.key) return;
-    const attributes = {
-      position: new THREE.BufferAttribute(pair.fromOutput.positions, 3),
-      targetPosition: new THREE.BufferAttribute(pair.toOutput.positions, 3),
-      fromPresence: new THREE.BufferAttribute(pair.fromOutput.presence, 1),
-      toPresence: new THREE.BufferAttribute(pair.toOutput.presence, 1),
-      fromPointSize: new THREE.BufferAttribute(pair.fromOutput.size, 1),
-      toPointSize: new THREE.BufferAttribute(pair.toOutput.size, 1),
-      fromGroup: new THREE.BufferAttribute(pair.fromOutput.attributes.disciplineGroup || emptyGroup, 1),
-      toGroup: new THREE.BufferAttribute(pair.toOutput.attributes.disciplineGroup || emptyGroup, 1),
-    };
-    Object.entries(attributes).forEach(([name, attribute]) => geometry.setAttribute(name, attribute));
+    const installStartedAt = performance.now();
+    assertInstallOutput(pair.fromOutput, 'Source Shape');
+    assertInstallOutput(pair.toOutput, 'Target Shape');
+    const fromGroup = pair.fromOutput.attributes.disciplineGroup || emptyGroup;
+    const toGroup = pair.toOutput.attributes.disciplineGroup || emptyGroup;
+    fixedAttributes.position.array.set(pair.fromOutput.positions);
+    fixedAttributes.targetPosition.array.set(pair.toOutput.positions);
+    fixedAttributes.fromPresence.array.set(pair.fromOutput.presence);
+    fixedAttributes.toPresence.array.set(pair.toOutput.presence);
+    fixedAttributes.fromPointSize.array.set(pair.fromOutput.size);
+    fixedAttributes.toPointSize.array.set(pair.toOutput.size);
+    fixedAttributes.fromGroup.array.set(fromGroup);
+    fixedAttributes.toGroup.array.set(toGroup);
+    Object.entries(fixedAttributes).forEach(([name, attribute]) => {
+      if (name !== 'pointSeed') attribute.needsUpdate = true;
+    });
     captureDisciplinePositions(pair.fromOutput, fromDisciplinePositions);
     captureDisciplinePositions(pair.toOutput, toDisciplinePositions);
     installedPair = { ...pair, progress: 0 };
@@ -593,177 +608,222 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     root.dataset.worldCorrespondenceMax = Number(pair.metrics.maxDistance || 0).toFixed(4);
     root.dataset.worldCorrespondenceFallback = pair.fallbackReason || '';
     root.dataset.worldCorrespondencePair = pair.key;
+    diagnostics.recordMetrics({ installDurationMs: performance.now() - installStartedAt });
   };
 
-  const createPreparedSequence = (key, sequence, outputs, workerPairs, startedAt) => {
+  const createPreparedSequence = (key, sequence, outputs, workerPairs, timings, startedAt) => {
     const pairs = new Map();
-    let orderedSource = outputs[0];
-    let mainThreadApplicationMs = 0;
     workerPairs.forEach((workerPair, index) => {
-      const toOutput = index === 0
-        ? outputs[0]
-        : (() => {
-          const applyStartedAt = performance.now();
-          const mapped = applyAboutNarrativePermutation(outputs[index], workerPair.permutation);
-          mainThreadApplicationMs += performance.now() - applyStartedAt;
-          return mapped;
-        })();
+      const toOutput = outputs[index].output;
+      const fromOutput = outputs[Math.max(0, index - 1)].output;
       const fromWorld = sequence[Math.max(0, index - 1)];
       const toWorld = sequence[index];
       pairs.set(toWorld.sectionId, {
         key: `${key}:${toWorld.sectionId}`,
         fromWorld,
         toWorld,
-        fromOutput: orderedSource,
+        fromOutput,
         toOutput,
         requestedStrategy: workerPair.requestedStrategy,
         installedStrategy: workerPair.installedStrategy,
         fallbackReason: workerPair.fallbackReason,
         metrics: workerPair.metrics,
       });
-      orderedSource = toOutput;
     });
     return {
       key,
       pairs,
       worldIds: sequence.map((world) => world.sectionId),
       preparationDurationMs: performance.now() - startedAt,
-      mainThreadApplicationMs,
+      mainThreadApplicationMs: 0,
+      generationDurationMs: Number(timings?.generationMs || 0),
+      correspondenceDurationMs: Number(timings?.correspondenceMs || 0),
     };
   };
 
-  const failPreparation = (generation, error) => {
-    if (disposed || generation !== preparationGeneration) return;
-    pendingSequenceKey = '';
-    sequenceState = 'failed';
-    correspondenceWorker?.terminate();
-    correspondenceWorker = null;
-    root.dataset.worldPrepare = 'failed';
-    root.dataset.worldError = error?.message || String(error);
-    console.warn('[About narrative] Sequence preparation failed; retaining the last valid field.', error);
-  };
-
-  const prepareSequence = (sequence, globals) => {
-    if (!sequence?.length) return '';
-    const nextKey = createSequenceCacheKey(sequence, globals, quality, compact);
-    if (pendingSequenceKey && pendingSequenceKey !== nextKey
-      && (readySequence?.key === nextKey || sequenceCache.has(nextKey))) {
-      preparationGeneration += 1;
-      generationController?.abort();
-      correspondenceWorker?.terminate();
-      correspondenceWorker = null;
-      pendingSequenceKey = '';
-    }
-    if (readySequence?.key === nextKey || pendingSequenceKey === nextKey) return nextKey;
-    if (sequenceCache.has(nextKey)) {
-      readySequence = sequenceCache.get(nextKey);
-      touchBoundedCache(sequenceCache, nextKey, readySequence);
-      sequenceState = 'ready';
-      root.dataset.worldPrepare = 'ready';
-      delete root.dataset.worldError;
-      return nextKey;
-    }
-
-    const generation = ++preparationGeneration;
-    const startedAt = performance.now();
-    pendingSequenceKey = nextKey;
-    sequenceState = 'loading';
-    generationController?.abort();
-    correspondenceWorker?.terminate();
-    correspondenceWorker = null;
-    generationController = new AbortController();
-    root.dataset.worldPrepare = 'loading';
-    const firstShapeStartedAt = performance.now();
-    const firstShape = getShape(sequence[0], generationController.signal);
-    root.dataset.worldBootstrapGenerationMs = (performance.now() - firstShapeStartedAt).toFixed(2);
-
-    if (!installedPair) {
-      firstShape.then((output) => {
-        if (disposed || generation !== preparationGeneration || installedPair) return;
-        installPreparedPair({
-          key: `${nextKey}:${sequence[0].sectionId}:bootstrap`,
-          fromWorld: sequence[0],
-          toWorld: sequence[0],
-          fromOutput: output,
-          toOutput: output,
-          requestedStrategy: 'index-v1',
-          installedStrategy: 'index-v1',
-          fallbackReason: '',
-          metrics: {
-            improvement: 0,
-            p95Distance: 0,
-            maxDistance: 0,
-            weightedRmsDistance: 0,
-            preparationDurationMs: 0,
-          },
-        });
-      }).catch(() => {});
-    }
-
-    firstShape.then(() => {
-      if (disposed || generation !== preparationGeneration) return;
-      const entries = sequence.map((world, index) => {
-        const matrix = writeWorldTransform(
-          index === 0 ? correspondenceFromTransform : correspondenceToTransform,
-          world,
-          globals,
-          compact,
-          index === 0 ? correspondenceFromScratch : correspondenceToScratch,
-        ).elements.slice();
-        return {
-          id: world.sectionId,
-          mode: index === 0 ? 'index-v1' : world.transitionIn?.correspondence || 'index-v1',
-          matrix,
-          shapeId: world.shapeId,
-          seed: world.seed,
-          parameters: world.shapeParameters,
-        };
-      });
-      correspondenceWorker = new Worker(
+  const prepareWithWorker = ({ sequenceKey, input, generation, signal }) => new Promise((resolve, reject) => {
+    const { entries } = input;
+    let worker;
+    try {
+      worker = new Worker(
         new URL('./aboutNarrativeCorrespondence.worker.js', import.meta.url),
         { type: 'module', name: 'about-narrative-correspondence' },
       );
-      correspondenceWorker.onmessage = (event) => {
-        if (disposed || event.data?.generation !== preparationGeneration || generation !== preparationGeneration) return;
-        if (event.data.error) {
-          failPreparation(generation, new Error(event.data.error));
-          return;
+    } catch (error) {
+      error.category = 'workerConstruction';
+      reject(error);
+      return;
+    }
+    correspondenceWorker = worker;
+    const release = () => {
+      if (correspondenceWorker === worker) correspondenceWorker = null;
+      worker.terminate();
+      signal.removeEventListener('abort', handleAbort);
+    };
+    const handleAbort = () => {
+      release();
+      reject(new DOMException('Preparation was aborted.', 'AbortError'));
+    };
+    signal.addEventListener('abort', handleAbort, { once: true });
+    worker.onmessage = (event) => {
+      try {
+        const response = validateAboutNarrativeWorkerResponse(event.data, {
+          generation,
+          sequenceKey,
+          pointCount,
+          entries,
+        });
+        if (response.status === 'failure') {
+          const error = new Error(response.error.message);
+          error.category = response.error.category;
+          error.code = response.error.code;
+          throw error;
         }
-        try {
-          const prepared = createPreparedSequence(nextKey, sequence, event.data.outputs, event.data.pairs, startedAt);
-          prepared.generationDurationMs = Number(event.data.generationDurationMs || 0);
-          prepared.correspondenceDurationMs = Number(event.data.correspondenceDurationMs || 0);
-          readySequence = prepared;
-          sequencePreparationDurationMs = prepared.preparationDurationMs;
-          touchBoundedCache(sequenceCache, nextKey, prepared);
-          pendingSequenceKey = '';
-          sequenceState = 'ready';
-          correspondenceWorker?.terminate();
-          correspondenceWorker = null;
-          root.dataset.worldPrepare = 'ready';
-          root.dataset.worldShapeGenerationMs = prepared.generationDurationMs.toFixed(2);
-          root.dataset.worldCorrespondenceWorkerMs = prepared.correspondenceDurationMs.toFixed(2);
-          root.dataset.worldCorrespondencePrepareMs = prepared.preparationDurationMs.toFixed(2);
-          root.dataset.worldCorrespondenceApplyMs = prepared.mainThreadApplicationMs.toFixed(2);
-          delete root.dataset.worldError;
-        } catch (error) {
-          failPreparation(generation, error);
-        }
-      };
-      correspondenceWorker.onerror = (event) => failPreparation(generation, new Error(event.message));
-      correspondenceWorker.postMessage({ generation, entries, pointCount, quality });
-    }).catch((error) => {
-      if (error?.name === 'AbortError') {
-        if (!disposed && generation === preparationGeneration) {
-          pendingSequenceKey = '';
-          sequenceState = 'idle';
-        }
-        return;
+        release();
+        resolve(response);
+      } catch (error) {
+        release();
+        reject(error);
       }
-      if (disposed || generation !== preparationGeneration) return;
-      failPreparation(generation, error);
+    };
+    worker.onerror = (event) => {
+      const error = new Error(event.message || 'The correspondence Worker crashed.');
+      error.category = 'workerCrash';
+      release();
+      reject(error);
+    };
+    worker.postMessage({
+      protocolVersion: ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
+      generation,
+      sequenceKey,
+      pointCount,
+      quality,
+      entries,
     });
-    return nextKey;
+  });
+
+  const preparationController = createAboutNarrativePreparationController({
+    diagnostics,
+    startPreparation: prepareWithWorker,
+    validateCandidate: (candidate) => candidate,
+    publishReady: (candidate, identity) => {
+      const request = activePreparation;
+      if (!request || request.sequenceKey !== identity.sequenceKey) throw new Error('Preparation intent became stale.');
+      const prepared = createPreparedSequence(
+        request.sequenceKey,
+        request.sequence,
+        candidate.outputs,
+        candidate.pairs,
+        candidate.timings,
+        request.startedAt,
+      );
+      if (readySequence?.key && readySequence.key !== request.sequenceKey) {
+        sequenceCache.unpin(readySequence.key, 'ready-sequence');
+      }
+      sequenceCache.set(request.sequenceKey, prepared, {
+        owner: 'sequence-cache',
+        pins: ['ready-sequence'],
+        active: true,
+      });
+      readySequence = prepared;
+      sequencePreparationDurationMs = prepared.preparationDurationMs;
+      sequenceState = 'ready';
+      root.dataset.worldPrepare = 'ready';
+      root.dataset.worldShapeGenerationMs = prepared.generationDurationMs.toFixed(2);
+      root.dataset.worldCorrespondenceWorkerMs = prepared.correspondenceDurationMs.toFixed(2);
+      root.dataset.worldCorrespondencePrepareMs = prepared.preparationDurationMs.toFixed(2);
+      root.dataset.worldCorrespondenceApplyMs = '0.00';
+      delete root.dataset.worldError;
+      diagnostics.recordMetrics({
+        preparationDurationMs: prepared.preparationDurationMs,
+        workerDurationMs: prepared.correspondenceDurationMs,
+      });
+    },
+    classifyFailure: (error) => ({ category: error?.category || (error?.name === 'AbortError' ? 'aborted' : 'validation') }),
+  });
+  let warnedFailureRecordId = 0;
+  const unsubscribePreparation = preparationController.subscribe(() => {
+    const snapshot = preparationController.getSnapshot();
+    sequenceState = snapshot.state === 'preparing' ? 'loading' : snapshot.state;
+    root.dataset.worldPrepare = sequenceState;
+    if (snapshot.lastFailure) {
+      root.dataset.worldError = snapshot.lastFailure.message;
+      const failureRecord = [...snapshot.records].reverse().find((record) => record.type === 'preparation-failed');
+      if (failureRecord && failureRecord.id !== warnedFailureRecordId) {
+        warnedFailureRecordId = failureRecord.id;
+        console.warn('[About narrative] Sequence preparation failed; retaining the last valid field.', snapshot.lastFailure);
+      }
+    }
+  });
+
+  const bootstrapTarget = (sequenceKey, targetWorld) => {
+    if (installedPair || !targetWorld) return;
+    const startedAt = performance.now();
+    getShape(targetWorld).then((output) => {
+      if (disposed || installedPair || activePreparation?.sequenceKey !== sequenceKey) return;
+      installPreparedPair({
+        key: `${sequenceKey}:${targetWorld.sectionId}:bootstrap`,
+        fromWorld: targetWorld,
+        toWorld: targetWorld,
+        fromOutput: output,
+        toOutput: output,
+        requestedStrategy: 'index-v1',
+        installedStrategy: 'index-v1',
+        fallbackReason: output.fallbackReason || '',
+        metrics: { improvement: 0, p95Distance: 0, maxDistance: 0, weightedRmsDistance: 0 },
+      });
+      root.dataset.worldBootstrapGenerationMs = (performance.now() - startedAt).toFixed(2);
+    }).catch((error) => {
+      if (error?.name !== 'AbortError') root.dataset.worldError = error?.message || String(error);
+    });
+  };
+
+  const preparePlan = ({ sequenceKey, descriptor, targetWorldId = '' } = {}) => {
+    const sequence = descriptor?.runtimeWorlds || descriptor?.worlds;
+    const globals = descriptor?.globals || { camera: descriptor?.camera };
+    if (!sequenceKey || !Array.isArray(sequence) || !sequence.length || !globals?.camera) return false;
+    if (readySequence?.key === sequenceKey) return true;
+    const cached = sequenceCache.get(sequenceKey);
+    if (cached) {
+      readySequence = cached;
+      sequenceCache.activate(sequenceKey);
+      sequenceState = 'ready';
+      root.dataset.worldPrepare = 'ready';
+      return true;
+    }
+    const entries = sequence.map((world, index) => ({
+      id: world.sectionId,
+      mode: index === 0
+        ? 'index-v1'
+        : world.transitionIn?.correspondence || world.correspondence || 'index-v1',
+      matrix: writeWorldTransform(
+        index === 0 ? correspondenceFromTransform : correspondenceToTransform,
+        world,
+        globals,
+        compact,
+        index === 0 ? correspondenceFromScratch : correspondenceToScratch,
+      ).elements.slice(),
+      shapeId: world.shapeId,
+      seed: world.seed,
+      parameters: world.shapeParameters || {},
+    }));
+    activePreparation = {
+      sequenceKey,
+      sequence,
+      entries,
+      startedAt: performance.now(),
+    };
+    sequenceState = 'loading';
+    root.dataset.worldPrepare = 'loading';
+    const targetWorld = sequence.find((world) => world.sectionId === targetWorldId) || sequence[0];
+    const targetPair = descriptor.pairs?.find((pair) => pair.toWorldId === targetWorld.sectionId);
+    bootstrapTarget(sequenceKey, targetWorld);
+    return preparationController.requestPreparation({
+      sequenceKey,
+      pairId: targetPair?.id || `${targetWorld.sectionId}->${targetWorld.sectionId}`,
+      inputFingerprint: targetPair?.inputFingerprint || descriptor.inputFingerprint || sequenceKey,
+      input: activePreparation,
+    }, { trigger: 'compiled-plan' }).accepted;
   };
 
   const setModifierUniforms = (prefix, world, globals) => {
@@ -899,7 +959,7 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     const requestedFromWorld = frame.world.from || frame.world.to;
     const requestedToWorld = frame.world.to || requestedFromWorld;
     if (!requestedFromWorld || !requestedToWorld) return;
-    const requestedSequenceKey = prepareSequence(frame.world.sequence, frame.globals);
+    const requestedSequenceKey = frame.world.sequenceKey;
     const preparedPair = readySequence?.key === requestedSequenceKey
       ? readySequence.pairs.get(requestedToWorld.sectionId)
       : null;
@@ -918,29 +978,19 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
       : installedPair.progress;
     if (pairMatchesRequest) installedPair.progress = transitionProgress;
     const bust = modifier(toWorld, 'bust-yaw-v1');
-    const now = performance.now() / 1000;
     const formingBust = toWorld.shapeId === 'bust-v1' && transitionProgress < 0.9999;
-    if (formingBust) {
-      if (!bustFormationActive) {
-        bustFormationHoldYaw = lastBustProgress >= 0.9999 ? bustYaw : 0;
-      }
-      bustYaw = bustFormationHoldYaw;
-      bustFormationActive = true;
-    } else if (bustFormationActive) {
-      bustYaw = bustFormationHoldYaw;
-      bustFormationActive = false;
-      resumeAt = now + Number(bust?.resumeDelay || 0);
-    } else if (!dragging && bust && !frame.reducedMotion && now >= resumeAt) {
-      bustYaw += frame.deltaSeconds * Number(bust.speed || 0);
-    }
-    if (toWorld.shapeId === 'bust-v1') {
-      lastBustProgress = transitionProgress;
-    } else {
-      bustFormationActive = false;
-      bustFormationHoldYaw = 0;
-      lastBustProgress = 0;
-      bustYaw = 0;
-    }
+    const bustState = bustController.sample({
+      active: toWorld.shapeId === 'bust-v1',
+      transitionProgress,
+      deltaSeconds: frame.deltaSeconds,
+      speed: Number(bust?.speed || 0),
+      resumeDelay: Number(bust?.resumeDelay || 0),
+      liveAmbient: frame.ambientTime > 0,
+      deterministicScrub: frame.ambientTime === 0,
+      reducedMotion: frame.reducedMotion,
+      hidden: document.hidden,
+    });
+    bustYaw = bustState.yaw;
 
     camera.position.fromArray(frame.camera.position);
     camera.up.set(Math.sin(frame.camera.roll), Math.cos(frame.camera.roll), 0);
@@ -1005,6 +1055,7 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     updateDisciplineReveal(frame, fromWorld, toWorld);
 
     const interactionEnabled = pairMatchesRequest
+      && bustController.interactive
       && !formingBust
       && frame.section.interaction?.type === 'horizontal-spin'
       && frame.localProgress >= Number(frame.section.interaction.activationStart || 0);
@@ -1031,25 +1082,32 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
     const deltaX = event.clientX - dragStart.x;
     const deltaY = event.clientY - dragStart.y;
     if (!dragging && Math.abs(deltaX) > 6 && Math.abs(deltaX) > Math.abs(deltaY)) {
-      dragging = true;
-      interaction.setPointerCapture(event.pointerId);
+      const bust = modifier(latestFrame?.world?.to, 'bust-yaw-v1');
+      dragging = bustController.beginDrag({
+        pointerId: event.pointerId,
+        x: dragStart.x,
+        width,
+        sensitivity: Number(bust?.dragSensitivity || 1),
+      });
+      if (dragging) interaction.setPointerCapture(event.pointerId);
     }
     if (!dragging) return;
     event.preventDefault();
-    const bust = modifier(latestFrame?.world?.to, 'bust-yaw-v1');
-    bustYaw = dragStart.yaw + ((deltaX / Math.max(320, width)) * Math.PI * 2 * Number(bust?.dragSensitivity || 1));
+    bustController.dragTo({ pointerId: event.pointerId, x: event.clientX });
+    bustYaw = bustController.yaw;
   };
   const handlePointerEnd = (event) => {
     if (dragging && interaction.hasPointerCapture(event.pointerId)) interaction.releasePointerCapture(event.pointerId);
-    const bust = modifier(latestFrame?.world?.to, 'bust-yaw-v1');
-    resumeAt = (performance.now() / 1000) + Number(bust?.resumeDelay || 0);
+    bustController.endDrag({ pointerId: event.pointerId });
+    bustYaw = bustController.yaw;
     dragStart = null;
     dragging = false;
   };
   const handleKeyDown = (event) => {
     if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
     event.preventDefault();
-    bustYaw += event.key === 'ArrowLeft' ? -0.16 : 0.16;
+    bustController.rotateByKeyboard(event.key === 'ArrowLeft' ? 'left' : 'right');
+    bustYaw = bustController.yaw;
   };
   const handleContextLost = (event) => {
     event.preventDefault();
@@ -1081,34 +1139,46 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
   updateTheme();
   root.dataset.pointWorldState = 'ready';
   runtimeRef.current = {
+    preparePlan,
+    retryPreparation: preparationController.retryPreparation,
+    setVisible: preparationController.setVisible,
+    getDiagnosticsSnapshot: diagnostics.getSnapshot,
+    subscribeDiagnostics: diagnostics.subscribe,
     render,
-    getMetrics: () => ({
-      adapterId: 'point-field-v1',
-      pointCount,
-      drawCalls: renderer.info.render.calls,
-      frameTimeMs: lastFrameTime,
-      bufferRebuilds,
-      cacheEntries: shapeCache.size,
-      sequenceCacheEntries: sequenceCache.size,
-      correspondenceSequenceState: sequenceState,
-      correspondencePairId: installedPair?.key || '',
-      correspondenceToWorldId: installedPair?.toWorld?.sectionId || '',
-      correspondenceRequestedStrategy: installedPair?.requestedStrategy || '',
-      correspondenceInstalledStrategy: installedPair?.installedStrategy || '',
-      correspondenceFallback: installedPair?.fallbackReason || '',
-      correspondenceImprovement: Number(installedPair?.metrics?.improvement || 0),
-      correspondenceWeightedRms: Number(installedPair?.metrics?.weightedRmsDistance || 0),
-      correspondenceP95: Number(installedPair?.metrics?.p95Distance || 0),
-      correspondenceMax: Number(installedPair?.metrics?.maxDistance || 0),
-      correspondenceLongPathRatio25: Number(installedPair?.metrics?.longPathRatio25 || 0),
-      correspondenceLongPathRatio50: Number(installedPair?.metrics?.longPathRatio50 || 0),
-      correspondencePreparationDurationMs: sequencePreparationDurationMs,
-      correspondenceMainThreadApplicationMs: Number(readySequence?.mainThreadApplicationMs || 0),
-      shapeGenerationDurationMs: Number(readySequence?.generationDurationMs || 0),
-      correspondenceWorkerDurationMs: Number(readySequence?.correspondenceDurationMs || 0),
-      preparedWorldIds: readySequence?.worldIds || [],
-      activeModifiers: latestFrame?.world?.to?.modifiers?.filter((item) => item.enabled).length || 0,
-    }),
+    getMetrics: () => {
+      const shapeCacheSnapshot = shapeCache.getSnapshot();
+      const sequenceCacheSnapshot = sequenceCache.getSnapshot();
+      return {
+        ...projectAboutNarrativeRuntimeMetrics(diagnostics.getSnapshot()),
+        adapterId: 'point-field-v1',
+        pointCount,
+        drawCalls: renderer.info.render.calls,
+        frameTimeMs: lastFrameTime,
+        bufferRebuilds,
+        cacheEntries: shapeCacheSnapshot.entries,
+        cacheBytes: shapeCacheSnapshot.uniqueBytes,
+        sequenceCacheEntries: sequenceCacheSnapshot.entries,
+        sequenceCacheBytes: sequenceCacheSnapshot.uniqueBytes,
+        correspondenceSequenceState: sequenceState,
+        correspondencePairId: installedPair?.key || '',
+        correspondenceToWorldId: installedPair?.toWorld?.sectionId || '',
+        correspondenceRequestedStrategy: installedPair?.requestedStrategy || '',
+        correspondenceInstalledStrategy: installedPair?.installedStrategy || '',
+        correspondenceFallback: installedPair?.fallbackReason || '',
+        correspondenceImprovement: Number(installedPair?.metrics?.improvement || 0),
+        correspondenceWeightedRms: Number(installedPair?.metrics?.weightedRmsDistance || 0),
+        correspondenceP95: Number(installedPair?.metrics?.p95Distance || 0),
+        correspondenceMax: Number(installedPair?.metrics?.maxDistance || 0),
+        correspondenceLongPathRatio25: Number(installedPair?.metrics?.longPathRatio25 || 0),
+        correspondenceLongPathRatio50: Number(installedPair?.metrics?.longPathRatio50 || 0),
+        correspondencePreparationDurationMs: sequencePreparationDurationMs,
+        correspondenceMainThreadApplicationMs: 0,
+        shapeGenerationDurationMs: Number(readySequence?.generationDurationMs || 0),
+        correspondenceWorkerDurationMs: Number(readySequence?.correspondenceDurationMs || 0),
+        preparedWorldIds: readySequence?.worldIds || [],
+        activeModifiers: latestFrame?.world?.to?.modifiers?.filter((item) => item.enabled).length || 0,
+      };
+    },
     frameSelectedWorld: () => null,
     setDirectorView: (active) => { director.active = Boolean(active); },
     nudgeDirector: ({ yaw = 0, pitch = 0, distance = 0 }) => {
@@ -1121,8 +1191,14 @@ function createPointFieldAdapter({ canvas, root, interaction, disciplineOverlayR
 
   return () => {
     disposed = true;
-    generationController?.abort();
+    unsubscribePreparation();
+    preparationController.dispose();
     correspondenceWorker?.terminate();
+    correspondenceWorker = null;
+    bustController.cancelInteraction();
+    shapeCache.dispose();
+    sequenceCache.dispose();
+    diagnostics.dispose({ emit: false });
     runtimeRef.current = null;
     resizeObserver.disconnect();
     themeObserver.disconnect();

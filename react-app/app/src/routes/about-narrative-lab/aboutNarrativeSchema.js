@@ -225,8 +225,7 @@ export function normalizeAboutNarrativeDocument(input = {}) {
         endY: Number(textMotion.endY ?? 130),
         readableStart: Number(textMotion.readableStart ?? 0.24),
         readableEnd: Number(textMotion.readableEnd ?? 0.76),
-        farScale: Number(textMotion.farScale ?? 0.78),
-        nearScale: Number(textMotion.nearScale ?? 1.14),
+        perspective: Number(textMotion.perspective ?? 1600),
         entryDepth: Number(textMotion.entryDepth ?? 360),
         exitDepth: Number(textMotion.exitDepth ?? 220),
         maxBlur: Number(textMotion.maxBlur ?? 22),
@@ -315,8 +314,7 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
     ['textMotion.endY', globals.textMotion?.endY, -500, 500],
     ['textMotion.readableStart', globals.textMotion?.readableStart, 0, 1],
     ['textMotion.readableEnd', globals.textMotion?.readableEnd, 0, 1],
-    ['textMotion.farScale', globals.textMotion?.farScale, 0.05, 5],
-    ['textMotion.nearScale', globals.textMotion?.nearScale, 0.05, 5],
+    ['textMotion.perspective', globals.textMotion?.perspective, 1400, 3200],
     ['textMotion.entryDepth', globals.textMotion?.entryDepth, 0, 3000],
     ['textMotion.exitDepth', globals.textMotion?.exitDepth, 0, 3000],
     ['textMotion.maxBlur', globals.textMotion?.maxBlur, 0, 100],
@@ -330,15 +328,14 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
     diagnostics.push({ level: 'error', code: 'global-camera-lock', path: 'globals.camera.cadenceLocked', message: 'Camera cadence lock must be true or false.' });
   }
   if (Number(globals.textMotion?.readableStart) >= Number(globals.textMotion?.readableEnd)) {
-    diagnostics.push({ level: 'error', code: 'text-readable-window', path: 'globals.textMotion', message: 'Clear from must come before Clear until.' });
+    diagnostics.push({ level: 'error', code: 'text-readable-window', path: 'globals.textMotion', message: 'The Clear window start must come before its end.' });
   }
   if (
     Number(globals.textMotion?.startY) === Number(globals.textMotion?.endY)
     && Number(globals.textMotion?.entryDepth) === 0
     && Number(globals.textMotion?.exitDepth) === 0
-    && Number(globals.textMotion?.farScale) === Number(globals.textMotion?.nearScale)
   ) {
-    diagnostics.push({ level: 'warning', code: 'text-static-path', path: 'globals.textMotion', message: 'The spatial-title path has no movement on Y, depth, or scale.' });
+    diagnostics.push({ level: 'warning', code: 'text-static-path', path: 'globals.textMotion', message: 'The spatial-title path has no movement on Y or Z.' });
   }
   if (!Array.isArray(document.sections) || document.sections.length === 0) {
     diagnostics.push({ level: 'error', code: 'missing-sections', path: 'sections', message: 'At least one Section is required.' });
@@ -646,8 +643,6 @@ export function applyLegacyAboutNarrativeSettings(document, legacy = {}) {
   if (finite(legacy.cameraSpeed)) globals.camera.cadence = Number(legacy.cameraSpeed);
   if (finite(legacy.pointSize)) globals.pointMaterial.pointSize = Number(legacy.pointSize);
   if (finite(legacy.fieldOpacity)) globals.pointMaterial.opacity = Number(legacy.fieldOpacity);
-  if (finite(legacy.farScale)) globals.textMotion.farScale = Number(legacy.farScale);
-  if (finite(legacy.nearScale)) globals.textMotion.nearScale = Number(legacy.nearScale);
   if (finite(legacy.entryDepth)) globals.textMotion.entryDepth = Number(legacy.entryDepth);
   if (finite(legacy.exitDepth)) globals.textMotion.exitDepth = Number(legacy.exitDepth);
   if (finite(legacy.exitDrift)) globals.textMotion.endY = -Number(legacy.exitDrift);

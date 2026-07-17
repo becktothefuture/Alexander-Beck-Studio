@@ -46,6 +46,10 @@ import {
 } from './aboutNarrativeCompiler.js';
 import {
   captureAboutNarrativePlayheadContext,
+  createAboutNarrativeCueClipboardPayload,
+  deriveAboutNarrativeLoopRange,
+  duplicateAboutNarrativeCueGroup,
+  duplicateAboutNarrativeSection,
   getAboutNarrativeCameraKeyTimingBounds,
   getAboutNarrativeCueTimingBounds,
   getAboutNarrativeExtentField,
@@ -53,9 +57,15 @@ import {
   moveAboutNarrativeCueTiming,
   remapAboutNarrativePlayheadContext,
   resolveAboutNarrativeCameraKeyDrop,
+  resolveAboutNarrativeCueDistribution,
+  resolveAboutNarrativeCueExactGap,
   resolveAboutNarrativeCueGroupMove,
+  resolveAboutNarrativeCueGroupAlign,
+  resolveAboutNarrativeCueGroupPaste,
   snapAboutNarrativeTimelineValue,
+  stitchAboutNarrativeCameraBoundaries,
   toggleAboutNarrativeCueSelection,
+  validateAboutNarrativeCueClipboardPayload,
 } from './aboutNarrativeTimeline.js';
 import './about-narrative-editor.css';
 
@@ -74,6 +84,13 @@ const DISCIPLINE_BALL_TOKEN_BY_GROUP = Object.freeze({
   5: '--ball-8',
   6: '--ball-6',
 });
+const TIMELINE_GLOBAL_TRACKS = Object.freeze([
+  Object.freeze({ lane: 'section', label: 'Sections', groupIds: Object.freeze(['sequence']) }),
+  Object.freeze({ lane: 'camera', label: 'Camera', groupIds: Object.freeze(['camera']) }),
+  Object.freeze({ lane: 'world', label: 'World', groupIds: Object.freeze(['material', 'swarmTurbulence']) }),
+  Object.freeze({ lane: 'text', label: 'Text', groupIds: Object.freeze(['textMotion']) }),
+  Object.freeze({ lane: 'interaction', label: 'Interaction', groupIds: Object.freeze([]) }),
+]);
 
 function cameraPoseChanges(from, to) {
   if (!from || !to) return false;
@@ -106,12 +123,6 @@ function bridgeCameraSection(document, sectionIndex) {
   if (!section?.camera.keys.length) return;
   if (sectionIndex > 0) copyCameraPose(section.camera.keys[0], document.sections[sectionIndex - 1].camera.keys.at(-1));
   if (sectionIndex < document.sections.length - 1) copyCameraPose(section.camera.keys.at(-1), document.sections[sectionIndex + 1].camera.keys[0]);
-}
-
-function stitchCameraBoundaries(document) {
-  for (let sectionIndex = 1; sectionIndex < document.sections.length; sectionIndex += 1) {
-    copyCameraPose(document.sections[sectionIndex].camera.keys[0], document.sections[sectionIndex - 1].camera.keys.at(-1));
-  }
 }
 
 function getInspectorVerticalBounds(inspector, timelineOpen) {
@@ -312,6 +323,19 @@ function nextId(document, base) {
   return id;
 }
 
+function replaceDraftDocument(draft, nextDocument) {
+  Object.keys(draft).forEach((key) => delete draft[key]);
+  Object.assign(draft, cloneAboutNarrativeDocument(nextDocument));
+}
+
+function applyCueMoves(draft, moves) {
+  moves.forEach((move) => {
+    const section = draft.sections.find((item) => item.id === move.sectionId);
+    const cue = section?.text?.cues?.find((item) => item.id === move.cueId);
+    if (cue) Object.assign(cue, { enter: move.enter, hold: move.hold, exit: move.exit });
+  });
+}
+
 function Property({ label, children, hint = '' }) {
   return (
     <label className="about-editor-property">
@@ -347,6 +371,34 @@ function NumberProperty({ label, value, min, max, step, onChange, unit = '', dis
         {unit ? <em>{unit}</em> : null}
       </div>
     </Property>
+  );
+}
+
+function RangeProperty({ label, start, end, min, max, step, onStartChange, onEndChange, hint = '' }) {
+  const startPercent = ((start - min) / Math.max(0.00001, max - min)) * 100;
+  const endPercent = ((end - min) / Math.max(0.00001, max - min)) * 100;
+  const percentageStep = step * 100;
+  const setStart = (value) => onStartChange(Math.min(end - step, Math.max(min, Number(value) || 0)));
+  const setEnd = (value) => onEndChange(Math.max(start + step, Math.min(max, Number(value) || 0)));
+  return (
+    <fieldset
+      className="about-editor-range-property"
+      data-global-control="clearWindow"
+      style={{ '--about-range-start': `${startPercent}%`, '--about-range-end': `${endPercent}%` }}
+    >
+      <legend>{label}</legend>
+      <div className="about-editor-dual-range">
+        <span aria-hidden="true" />
+        <input type="range" aria-label={`${label} start`} min={min} max={end - step} step={step} value={start} onChange={(event) => setStart(event.target.value)} />
+        <input type="range" aria-label={`${label} end`} min={start + step} max={max} step={step} value={end} onChange={(event) => setEnd(event.target.value)} />
+      </div>
+      <div className="about-editor-range-values">
+        <label><span>Starts</span><input type="number" min={min * 100} max={(end - step) * 100} step={percentageStep} value={Math.round(start * 100)} onChange={(event) => setStart(Number(event.target.value) / 100)} /><em>%</em></label>
+        <i aria-hidden="true">→</i>
+        <label><span>Ends</span><input type="number" min={(start + step) * 100} max={max * 100} step={percentageStep} value={Math.round(end * 100)} onChange={(event) => setEnd(Number(event.target.value) / 100)} /><em>%</em></label>
+      </div>
+      {hint ? <small>{hint}</small> : null}
+    </fieldset>
   );
 }
 
@@ -407,7 +459,7 @@ function Transport({ store, snapshot }) {
   );
 }
 
-function Timeline({ store, snapshot }) {
+function Timeline({ store, snapshot, onOpenGlobal }) {
   const { document, compiledPlan, selection, transport } = snapshot;
   const selectedCueMembers = getAboutNarrativeSelectionMembers(selection);
   const maxWU = Math.max(0.001, compiledPlan?.maxStoryWU || document.sections.reduce((sum, section) => sum + section.extentWU, 0));
@@ -773,8 +825,20 @@ function Timeline({ store, snapshot }) {
 
   return (
     <div className="about-editor-timeline">
-      <div className="about-editor-lane-labels" aria-hidden="true">
-        <span>Sections</span><span>Camera</span><span>World</span><span>Text</span><span>Interaction</span>
+      <div className="about-editor-lane-labels" aria-label="Timeline tracks">
+        {TIMELINE_GLOBAL_TRACKS.map((track) => (
+          track.groupIds.length ? (
+            <button
+              type="button"
+              key={track.lane}
+              className={selection.type === 'sequence' && selection.track === track.lane ? 'is-active' : ''}
+              data-global-track={track.lane}
+              aria-label={`Open global ${track.label} controls`}
+              aria-pressed={selection.type === 'sequence' && selection.track === track.lane}
+              onClick={() => onOpenGlobal?.({ type: 'sequence', track: track.lane, trackLabel: track.label, groupIds: track.groupIds })}
+            >{track.label}</button>
+          ) : <span key={track.lane}>{track.label}</span>
+        ))}
       </div>
       <div ref={lanesRef} className="about-editor-lanes" data-solo-track={transport.soloTrack || ''} onWheel={zoomTimeline}>
         <div className="about-editor-timeline-canvas" style={{ '--about-editor-playhead': playhead, '--about-editor-timeline-zoom': Math.max(1, Number(transport.zoom) || 1) }}>
@@ -943,6 +1007,17 @@ function Timeline({ store, snapshot }) {
                       const isSelected = selectedCueMembers.some((member) => member.sectionId === section.id && member.cueId === cue.id);
                       const isPrimary = selection.type === 'cue' && selection.sectionId === section.id && selection.cueId === cue.id;
                       const movement = getAboutNarrativeCueMovement(cue);
+                      const motionInterval = movement === 'spatial'
+                        ? getAboutNarrativeCueMotionInterval(cue, document.globals.textMotion)
+                        : null;
+                      const motionSpan = motionInterval ? Math.max(0.00001, motionInterval.end - motionInterval.start) : 0;
+                      const cueStyle = motionInterval ? {
+                        left: textPosition(motionInterval.start),
+                        width: `${Math.max(0.5, motionSpan * 100)}%`,
+                      } : { left: textPosition(cue.hold) };
+                      const focusPosition = motionInterval
+                        ? `${((cue.hold - motionInterval.start) / motionSpan) * 100}%`
+                        : '50%';
                       const timingBounds = getAboutNarrativeCueTimingBounds(cue);
                       const token = `cue:${section.id}:${cue.id}`;
                       const cueSelection = { type: 'cue', sectionId: section.id, cueId: cue.id, keyPart: 'focus' };
@@ -953,8 +1028,8 @@ function Timeline({ store, snapshot }) {
                           key={cue.id}
                           data-section-id={section.id}
                           data-cue-id={cue.id}
-                          style={{ left: textPosition(cue.hold) }}
-                          aria-label={`${movement === 'vertical' ? 'Vertical' : 'Spatial'} text at ${Math.round(cue.hold * 100)}% · ${cue.text}`}
+                          style={cueStyle}
+                          aria-label={`${movement === 'vertical' ? 'Vertical' : 'Spatial'} text at ${Math.round(cue.hold * 100)}%${motionInterval ? ` · travels ${Math.round(motionInterval.start * 100)}–${Math.round(motionInterval.end * 100)}%` : ''} · ${cue.text}`}
                           aria-pressed={isSelected}
                           title={`${movement === 'vertical' ? 'Vertical' : 'Spatial'} title · drag to move it; duration stays global · ${cue.text}`}
                           onPointerDown={(event) => beginTimingDrag(event, {
@@ -987,7 +1062,7 @@ function Timeline({ store, snapshot }) {
                           onClick={() => handleTimingClick(token, () => {
                             store.setTransport({ owner: 'timeline', playing: false, storyWU: startWU + (Number(cue.hold) * (compiled?.travelWU || 0)) });
                           })}
-                        />
+                        ><span className="about-editor-cue-focus" style={{ left: focusPosition }} aria-hidden="true" /></button>
                       );
                     })}
                     {section.text.disciplineReveal ? (() => {
@@ -1074,18 +1149,44 @@ function SequenceInspector({ store, snapshot }) {
       draft.globals[targetKey][key] = value;
     }
   }, { coalesceKey: `global:${group}:${key}` });
+  const requestedGroupIds = snapshot.selection.type === 'sequence'
+    ? snapshot.selection.groupIds || []
+    : [];
+  const groups = requestedGroupIds.length
+    ? ABOUT_NARRATIVE_GLOBAL_CONTROLS.filter((group) => requestedGroupIds.includes(group.id))
+    : ABOUT_NARRATIVE_GLOBAL_CONTROLS;
+  const heading = snapshot.selection.trackLabel
+    ? `${snapshot.selection.trackLabel} track`
+    : 'Sequence';
   return (
     <>
-      <header><span>Sequence</span><strong>Global controls</strong></header>
-      {ABOUT_NARRATIVE_GLOBAL_CONTROLS.map((group) => (
-        <details open key={group.id}>
+      <header><span>{heading}</span><strong>Global controls</strong></header>
+      {groups.map((group) => (
+        <details open key={group.id} data-global-group={group.id}>
           <summary>{group.label}</summary>
-          {group.id === 'textMotion' ? <p className="about-editor-help">Every title follows this path continuously. Negative Y is higher, positive Y is lower. The opener starts sharp at its own Y position; Clear from and Clear until set the sharp window for later titles.</p> : null}
+          {group.id === 'textMotion' ? <p className="about-editor-help">Every title follows one continuous Y and Z path. Negative Y is higher; positive Y is lower. Travel duration changes the width of every Spatial title block in the Text timeline.</p> : null}
           {group.id === 'swarmTurbulence' ? <p className="about-editor-help">One ambient motion profile drives both the cluster and turbulent field. Each World only scales its strength, so the motion stays continuous while Shapes change.</p> : null}
           {group.controls.map((control) => {
             const target = group.id === 'sequence'
               ? snapshot.document.globals
               : snapshot.document.globals[group.id === 'material' ? 'pointMaterial' : group.id];
+            if (group.id === 'textMotion' && control.id === 'readableEnd') return null;
+            if (group.id === 'textMotion' && control.id === 'readableStart') {
+              return (
+                <RangeProperty
+                  key="clearWindow"
+                  label="Clear window"
+                  start={target.readableStart}
+                  end={target.readableEnd}
+                  min={control.min}
+                  max={control.max}
+                  step={control.step}
+                  onStartChange={(value) => commitGlobal(group.id, 'readableStart', value)}
+                  onEndChange={(value) => commitGlobal(group.id, 'readableEnd', value)}
+                  hint="The title is fully clear inside this part of its own travel. Outside it, blur and opacity build toward the ends."
+                />
+              );
+            }
             return (
               <NumberProperty
                 key={control.id}
@@ -1099,6 +1200,7 @@ function SequenceInspector({ store, snapshot }) {
               />
             );
           })}
+          {group.id === 'textMotion' ? <p className="about-editor-help about-editor-depth-help"><strong>Depth moves; blur softens.</strong> Entry depth starts behind the screen on −Z and Exit depth finishes toward you on +Z. Perspective controls how strongly that Z travel changes apparent size; Maximum blur only changes sharpness.</p> : null}
         </details>
       ))}
     </>
@@ -1121,8 +1223,18 @@ function SectionInspector({ store, snapshot, section }) {
     if (toIndex < 0 || toIndex >= draft.sections.length) return;
     const [moved] = draft.sections.splice(sectionIndex, 1);
     draft.sections.splice(toIndex, 0, moved);
-    stitchCameraBoundaries(draft);
+    replaceDraftDocument(draft, stitchAboutNarrativeCameraBoundaries(draft));
   }, { selection: { type: 'section', sectionId: section.id } });
+  const duplicate = () => {
+    const result = duplicateAboutNarrativeSection({ document: snapshot.document, sectionId: section.id });
+    if (!result.valid) {
+      store.setSaveState({ message: result.reason || 'This Section cannot be duplicated.' });
+      return;
+    }
+    store.commit('Duplicate Section', (draft) => replaceDraftDocument(draft, result.document), {
+      selection: result.selection,
+    });
+  };
 
   return (
     <>
@@ -1131,6 +1243,7 @@ function SectionInspector({ store, snapshot, section }) {
       <div className="about-editor-inline-actions">
         <button type="button" disabled={section.locked || sectionIndex === 0} onClick={() => move(-1)}>Move earlier</button>
         <button type="button" disabled={section.locked || sectionIndex === snapshot.document.sections.length - 1} onClick={() => move(1)}>Move later</button>
+        <button type="button" disabled={section.locked || section.type === 'finale'} onClick={duplicate}>Duplicate</button>
       </div>
       <Property label="Section name"><input value={section.label} onChange={(event) => update('Rename Section', (draft) => { draft.label = event.target.value; }, `section:${section.id}:label`)} /></Property>
       <Property label="Stable ID"><input value={section.id} readOnly /><small>References this Section without tying it to its current meaning.</small></Property>
@@ -1226,7 +1339,136 @@ function EditorialBlocks({ store, snapshot, section }) {
   );
 }
 
-function CueInspector({ store, snapshot, section }) {
+function CueRhythmAndReuse({ store, snapshot, clipboard, setClipboard }) {
+  const members = getAboutNarrativeSelectionMembers(snapshot.selection);
+  const [gapWU, setGapWU] = useState(0.35);
+  const [anchor, setAnchor] = useState('primary');
+  const [preview, setPreview] = useState(null);
+  const [message, setMessage] = useState('');
+
+  const previewMoves = (label, result) => {
+    if (!result.valid) {
+      if (snapshot.tryState) store.cancelTry();
+      setPreview(result);
+      setMessage(result.reason || 'This arrangement does not fit the selected Sections.');
+      return;
+    }
+    if (snapshot.tryState) store.cancelTry();
+    store.beginTry(label, (draft) => applyCueMoves(draft, result.moves));
+    setPreview({ ...result, label });
+    setMessage('');
+  };
+  const cancelPreview = () => {
+    if (snapshot.tryState) store.cancelTry();
+    setPreview(null);
+    setMessage('');
+  };
+  const applyPreview = () => {
+    if (!preview?.valid || !snapshot.tryState) return;
+    store.applyTry();
+    setPreview(null);
+    setMessage('');
+  };
+  const commitCandidate = (label, result) => {
+    if (!result?.valid || !result.document) {
+      setMessage(result?.reason || 'This operation could not be completed safely.');
+      return;
+    }
+    store.commit(label, (draft) => replaceDraftDocument(draft, result.document), {
+      selection: result.selection || snapshot.selection,
+    });
+    setMessage('');
+  };
+
+  const distribute = () => previewMoves('Distribute title rhythm', resolveAboutNarrativeCueDistribution({
+    document: snapshot.document,
+    plan: snapshot.compiledPlan,
+    members,
+    primary: snapshot.selection,
+  }));
+  const exactGap = () => previewMoves('Set exact title gap', resolveAboutNarrativeCueExactGap({
+    document: snapshot.document,
+    plan: snapshot.compiledPlan,
+    members,
+    primary: snapshot.selection,
+    gapWU,
+    anchor,
+  }));
+  const alignPrimary = () => previewMoves('Align titles to playhead', resolveAboutNarrativeCueGroupAlign({
+    document: snapshot.document,
+    plan: snapshot.compiledPlan,
+    members,
+    primary: snapshot.selection,
+    playheadWU: snapshot.transport.storyWU,
+  }));
+  const duplicate = () => commitCandidate('Duplicate title Cues', duplicateAboutNarrativeCueGroup({
+    document: snapshot.document,
+    members,
+    primary: snapshot.selection,
+  }));
+  const copy = () => {
+    const result = createAboutNarrativeCueClipboardPayload({
+      document: snapshot.document,
+      plan: snapshot.compiledPlan,
+      members,
+      primary: snapshot.selection,
+    });
+    const payload = result?.payload || result;
+    const validation = validateAboutNarrativeCueClipboardPayload(payload);
+    if (result?.valid === false || validation?.valid === false) {
+      setMessage(result?.reason || validation?.reason || 'These titles cannot be copied.');
+      return;
+    }
+    setClipboard(payload);
+    setMessage(`${members.length} title${members.length === 1 ? '' : 's'} copied for this editor session.`);
+  };
+  const paste = () => commitCandidate('Paste title Cues', resolveAboutNarrativeCueGroupPaste({
+    document: snapshot.document,
+    plan: snapshot.compiledPlan,
+    payload: clipboard,
+    destinationSectionId: snapshot.selection.sectionId,
+    playheadWU: snapshot.transport.storyWU,
+  }));
+
+  const ghostMoves = preview?.valid ? preview.moves : [];
+  const maxWU = Math.max(0.001, snapshot.compiledPlan?.maxStoryWU || 1);
+  return (
+    <details className="about-editor-rhythm" open={members.length > 1}>
+      <summary>Rhythm and reuse</summary>
+      {members.length > 1 ? (
+        <>
+          <div className="about-editor-rhythm-actions">
+            <button type="button" onClick={distribute}>Distribute evenly</button>
+            <button type="button" onClick={alignPrimary}>Align primary to playhead</button>
+          </div>
+          <div className="about-editor-rhythm-gap">
+            <Property label="Exact gap"><input type="number" min="0" max="8" step="0.05" value={gapWU} onChange={(event) => setGapWU(Math.max(0, Number(event.target.value) || 0))} /></Property>
+            <Property label="Anchor"><select value={anchor} onChange={(event) => setAnchor(event.target.value)}><option value="primary">Primary</option><option value="first">First</option><option value="last">Last</option></select></Property>
+            <button type="button" onClick={exactGap}>Preview exact gap</button>
+          </div>
+        </>
+      ) : null}
+      {ghostMoves.length ? (
+        <div className="about-editor-rhythm-preview" aria-label="Proposed title rhythm">
+          {ghostMoves.map((move) => {
+            const compiled = snapshot.compiledPlan.sections.find((item) => item.id === move.sectionId);
+            const storyWU = Number(compiled?.startWU || 0) + (move.hold * Number(compiled?.travelWU || 0));
+            return <i key={`${move.sectionId}:${move.cueId}`} style={{ left: `${(storyWU / maxWU) * 100}%` }} title={`${move.cueId} · ${formatWU(storyWU)}`} />;
+          })}
+        </div>
+      ) : null}
+      {message ? <p className={`about-editor-rhythm-message${preview && !preview.valid ? ' is-error' : ''}`}>{message}</p> : null}
+      {preview?.valid && snapshot.tryState ? <div className="about-editor-try"><span>Previewing {preview.label}</span><button type="button" onClick={cancelPreview}>Cancel</button><button type="button" className="is-primary" onClick={applyPreview}>Apply</button></div> : null}
+      <div className="about-editor-rhythm-actions">
+        <button type="button" onClick={duplicate}>Duplicate {members.length > 1 ? 'selection' : 'title'}</button>
+        <button type="button" onClick={copy}>Copy</button>
+        <button type="button" disabled={!clipboard} onClick={paste}>Paste at playhead</button>
+      </div>
+    </details>
+  );
+}
+
+function CueInspector({ store, snapshot, section, clipboard, setClipboard }) {
   const selectedMembers = getAboutNarrativeSelectionMembers(snapshot.selection);
   const sectionIndex = getSectionIndex(snapshot.document, section.id);
   const cueIndex = section.text.cues.findIndex((cue) => cue.id === snapshot.selection.cueId);
@@ -1282,6 +1524,7 @@ function CueInspector({ store, snapshot, section }) {
           <Property label="Motion preset"><select value={cue.preset} onChange={(event) => update('preset', event.target.value)}><option value="travelling-title-v1">Travelling title</option><option value="opener-v1">Opener</option><option value="finale-v1">Finale</option></select></Property>
         </>
       ) : <Property label="Reveal"><output className="about-editor-readout">Editorial vertical scroll</output></Property>}
+      <CueRhythmAndReuse store={store} snapshot={snapshot} clipboard={clipboard} setClipboard={setClipboard} />
       <button type="button" className="about-editor-danger" disabled={section.type === 'finale'} onClick={remove}>Delete Cue</button>
     </>
   );
@@ -1569,7 +1812,54 @@ function Diagnostics({ diagnostics }) {
   })}</div>;
 }
 
-function Inspector({ store, snapshot, timelineOpen, runtimeMetrics }) {
+function AuditionControls({ store, snapshot }) {
+  const [preRollWU, setPreRollWU] = useState(0.18);
+  const [postRollWU, setPostRollWU] = useState(0.18);
+  const members = getAboutNarrativeSelectionMembers(snapshot.selection);
+  const source = snapshot.selection.type === 'cue'
+    ? { type: 'cue-group', sectionId: snapshot.selection.sectionId, members, primary: snapshot.selection }
+    : ['section', 'world', 'camera-key'].includes(snapshot.selection.type)
+      ? snapshot.selection
+      : null;
+  if (!source) return null;
+  const range = deriveAboutNarrativeLoopRange({
+    document: snapshot.document,
+    plan: snapshot.compiledPlan,
+    source,
+    preRollWU,
+    postRollWU,
+  });
+  const active = range.valid
+    && snapshot.transport.loop?.sourceType === range.sourceType
+    && snapshot.transport.loop?.sourceId === range.sourceId;
+  const toggle = () => {
+    if (active) {
+      store.setTransport({ owner: 'timeline', playing: false, loop: null });
+      return;
+    }
+    if (!range.valid) return;
+    store.setTransport({
+      owner: 'playback',
+      playing: true,
+      liveAmbient: false,
+      storyWU: range.startWU,
+      loop: range,
+    });
+  };
+  return (
+    <details className="about-editor-audition">
+      <summary>Boundary audition</summary>
+      <div className="about-editor-audition-range">
+        <Property label="Pre-roll"><input type="number" min="0" max="2" step="0.05" value={preRollWU} onChange={(event) => setPreRollWU(Math.max(0, Number(event.target.value) || 0))} /></Property>
+        <Property label="Post-roll"><input type="number" min="0" max="2" step="0.05" value={postRollWU} onChange={(event) => setPostRollWU(Math.max(0, Number(event.target.value) || 0))} /></Property>
+      </div>
+      {range.valid ? <p className="about-editor-help">{formatWU(range.startWU)} → {formatWU(range.endWU)} · ambient motion freezes for a repeatable review.</p> : <p className="about-editor-rhythm-message is-error">{range.reason}</p>}
+      <button type="button" className={active ? 'is-active about-editor-wide-action' : 'about-editor-wide-action'} disabled={!range.valid} onClick={toggle}>{active ? 'Stop audition' : 'Loop this selection'}</button>
+    </details>
+  );
+}
+
+function Inspector({ store, snapshot, timelineOpen, runtimeMetrics, clipboard, setClipboard }) {
   const inspectorRef = useRef(null);
   const dragRef = useRef(null);
   const lastHeaderClickRef = useRef(null);
@@ -1578,7 +1868,7 @@ function Inspector({ store, snapshot, timelineOpen, runtimeMetrics }) {
   const section = getSection(snapshot.document, snapshot.selection);
   let content = <SectionInspector store={store} snapshot={snapshot} section={section} />;
   if (snapshot.selection.type === 'sequence') content = <SequenceInspector store={store} snapshot={snapshot} />;
-  if (snapshot.selection.type === 'cue') content = <CueInspector store={store} snapshot={snapshot} section={section} />;
+  if (snapshot.selection.type === 'cue') content = <CueInspector store={store} snapshot={snapshot} section={section} clipboard={clipboard} setClipboard={setClipboard} />;
   if (snapshot.selection.type === 'discipline-reveal') content = <DisciplineRevealInspector store={store} snapshot={snapshot} section={section} />;
   if (snapshot.selection.type === 'camera-key') content = <CameraInspector store={store} snapshot={snapshot} section={section} />;
   if (snapshot.selection.type === 'world') content = <WorldInspector store={store} snapshot={snapshot} section={section} runtimeMetrics={runtimeMetrics} />;
@@ -1682,7 +1972,7 @@ function Inspector({ store, snapshot, timelineOpen, runtimeMetrics }) {
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
       onDoubleClick={resetPosition}
-    ><div className="about-editor-inspector-scroll">{content}<Diagnostics diagnostics={snapshot.diagnostics} /></div></aside>
+    ><div className="about-editor-inspector-scroll">{content}<AuditionControls store={store} snapshot={snapshot} /><Diagnostics diagnostics={snapshot.diagnostics} /></div></aside>
   );
 }
 
@@ -1708,6 +1998,7 @@ function CameraPathOverlay({ snapshot }) {
 export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const [checkpoints, setCheckpoints] = useState(() => readAboutNarrativeCheckpoints());
+  const [clipboard, setClipboard] = useState(null);
   const [runtimeMetrics, setRuntimeMetrics] = useState(null);
   const [pathVisible, setPathVisible] = useState(false);
   const [directorView, setDirectorView] = useState(false);
@@ -1858,22 +2149,29 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
     : snapshot.saveState.status === 'conflict' ? 'Source changed'
       : snapshot.saveState.status === 'failed' ? 'Save failed'
         : snapshot.dirty ? 'Draft' : 'Saved';
-  const selected = getSection(snapshot.document, snapshot.selection);
+  const selected = snapshot.selection.type === 'sequence'
+    ? null
+    : getSection(snapshot.document, snapshot.selection);
   const compiledSelected = snapshot.compiledPlan?.sections.find((section) => section.id === selected?.id);
   const resolvedExtent = compiledSelected?.resolvedExtentWU || selected?.extentWU || 0;
   const selectedExtent = selected
     ? Number(snapshot.previewProfile === 'mobile' ? selected.mobileExtentWU : selected.extentWU)
     : 0;
   const selectedCueCount = getAboutNarrativeSelectionMembers(snapshot.selection).length;
-  const loopActive = Boolean(snapshot.transport.loop?.sectionId === selected?.id);
+  const loopActive = Boolean(snapshot.transport.loop);
   const timelineDeletion = getTimelineDeletion(snapshot);
-  const toggleLoop = () => store.setTransport({
-    loop: loopActive || !compiledSelected ? null : {
-      sectionId: selected.id,
-      startWU: compiledSelected.startWU,
-      endWU: compiledSelected.startWU + compiledSelected.travelWU,
-    },
-  });
+  const toggleLoop = () => {
+    if (loopActive) {
+      store.setTransport({ owner: 'timeline', playing: false, loop: null });
+      return;
+    }
+    const range = deriveAboutNarrativeLoopRange({
+      document: snapshot.document,
+      plan: snapshot.compiledPlan,
+      source: selected ? { type: 'section', sectionId: selected.id } : null,
+    });
+    if (range.valid) store.setTransport({ loop: range });
+  };
   const toggleSolo = (track) => store.setTransport({
     soloTrack: snapshot.transport.soloTrack === track ? null : track,
   });
@@ -1958,7 +2256,7 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
       {pathVisible ? <CameraPathOverlay snapshot={snapshot} /> : null}
       {directorView ? <div className="about-editor-director-controls"><strong>Director View</strong><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ yaw: -0.08 })}>←</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ pitch: 0.08 })}>↑</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ pitch: -0.08 })}>↓</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ yaw: 0.08 })}>→</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ distance: -0.2 })}>＋</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ distance: 0.2 })}>−</button><button type="button" onClick={() => runtimeRef.current?.resetDirector?.()}>Reset</button><small>Temporary inspection only. Published Camera keys are unchanged.</small></div> : null}
 
-      <Inspector store={store} snapshot={snapshot} timelineOpen={timelineOpen} runtimeMetrics={runtimeMetrics} />
+      <Inspector store={store} snapshot={snapshot} timelineOpen={timelineOpen} runtimeMetrics={runtimeMetrics} clipboard={clipboard} setClipboard={setClipboard} />
       <button
         type="button"
         className="about-editor-timeline-toggle"
@@ -1973,7 +2271,7 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
           {selectedCueCount > 1 ? <span className="about-editor-selection-count">{selectedCueCount} titles selected</span> : null}
           <span>{snapshot.autoKey ? 'Auto-key armed' : 'Auto-key off'}</span>
           <button type="button" className={snapshot.autoKey ? 'is-active' : ''} onClick={() => store.setAutoKey(!snapshot.autoKey)}>◆ Auto-key</button>
-          <button type="button" className={loopActive ? 'is-active' : ''} onClick={toggleLoop}>Loop Section</button>
+          <button type="button" className={loopActive ? 'is-active' : ''} disabled={!selected} onClick={toggleLoop}>{loopActive ? 'Stop audition' : 'Loop Section'}</button>
           <button type="button" onClick={fitSequence}>Fit sequence</button>
           <button type="button" disabled={!compiledSelected} onClick={fitSection}>Fit Section</button>
           {['camera', 'world', 'text'].map((track) => <button type="button" key={track} className={snapshot.transport.soloTrack === track ? 'is-active' : ''} onClick={() => toggleSolo(track)}>Solo {track}</button>)}
@@ -1981,7 +2279,14 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
           {runtimeMetrics ? <span className="about-editor-hud">{runtimeMetrics.frameTimeMs.toFixed(2)}ms · {runtimeMetrics.drawCalls} draw · {runtimeMetrics.pointCount.toLocaleString()} pts · {runtimeMetrics.activeModifiers} modifiers · {runtimeMetrics.bufferRebuilds} rebuilds</span> : null}
           {checkpoints.length ? <select aria-label="Restore checkpoint" defaultValue="" onChange={(event) => { const found = checkpoints.find((item) => item.id === event.target.value); if (found) { store.replaceDocument(`Restore ${found.name}`, found.document); store.setTransport({ owner: 'timeline', storyWU: found.storyWU, playing: false }); } event.target.value = ''; }}><option value="">Checkpoints ({checkpoints.length})</option>{checkpoints.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select> : null}
         </div>
-        <Timeline store={store} snapshot={snapshot} />
+        <Timeline
+          store={store}
+          snapshot={snapshot}
+          onOpenGlobal={(selection) => {
+            store.setSelection(selection);
+            setMobilePane('inspect');
+          }}
+        />
       </div>
       <nav className="about-editor-mobile-tabs" aria-label="Editor panel"><button type="button" className={mobilePane === 'sequence' ? 'is-active' : ''} onClick={() => setMobilePane('sequence')}>Sequence</button><button type="button" className={mobilePane === 'inspect' ? 'is-active' : ''} onClick={() => setMobilePane('inspect')}>Inspect</button><button type="button" className={mobilePane === 'preview' ? 'is-active' : ''} onClick={() => setMobilePane('preview')}>Preview</button></nav>
     </div>

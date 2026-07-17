@@ -6,6 +6,7 @@ import {
 } from '../../lib/smooth-scroll.js';
 import {
   compileAboutNarrativeDocument,
+  getAboutNarrativePreparationRequest,
   getAboutNarrativeCueMovement,
   sampleAboutNarrativeCue,
   sampleAboutNarrativePlan,
@@ -36,10 +37,12 @@ export function useAboutNarrativeTimeline({
   const documentRef = useRef(document);
   const planRef = useRef(compileAboutNarrativeDocument(document));
   const measurementsRef = useRef({ dirty: true, sections: [], editorialLines: [] });
+  const requestMeasureRef = useRef(() => {});
 
   useLayoutEffect(() => {
     documentRef.current = document;
     measurementsRef.current.dirty = true;
+    requestMeasureRef.current();
   }, [document]);
 
   useEffect(() => {
@@ -55,6 +58,34 @@ export function useAboutNarrativeTimeline({
     let lastTransportPublish = 0;
     let playbackWU = 0;
     let previousTransportOwner = 'scroll';
+    let measureTimer = 0;
+    let preparationTimer = 0;
+    let lastPreparationIdentity = '';
+
+    const getCurrentStoryWU = () => {
+      const transport = editorStore?.getSnapshot().transport;
+      if (transport && transport.owner !== 'scroll') return Number(transport.storyWU || 0);
+      return scrollport.scrollTop / Math.max(1, scrollport.clientHeight);
+    };
+
+    const handoffPreparation = (storyWU, { force = false } = {}) => {
+      const request = getAboutNarrativePreparationRequest(planRef.current, storyWU);
+      const runtime = worldRuntimeRef.current;
+      if (!request || typeof runtime?.preparePlan !== 'function') return false;
+      const identity = `${request.sequenceKey}:${request.targetWorldId}`;
+      if (!force && identity === lastPreparationIdentity) return false;
+      runtime.preparePlan(request);
+      lastPreparationIdentity = identity;
+      return true;
+    };
+
+    const schedulePreparationHandoff = (storyWU = getCurrentStoryWU(), options) => {
+      window.clearTimeout(preparationTimer);
+      preparationTimer = window.setTimeout(() => {
+        preparationTimer = 0;
+        handoffPreparation(storyWU, options);
+      }, 0);
+    };
 
     const measure = () => {
       const viewportHeight = Math.max(1, scrollport.clientHeight);
@@ -89,7 +120,18 @@ export function useAboutNarrativeTimeline({
       });
       measurementsRef.current = { dirty: false, sections, editorialLines };
       editorStore?.setRuntimePlan?.(planRef.current);
+      schedulePreparationHandoff(getCurrentStoryWU(), { force: true });
     };
+
+    const scheduleMeasure = () => {
+      measurementsRef.current.dirty = true;
+      window.clearTimeout(measureTimer);
+      measureTimer = window.setTimeout(() => {
+        measureTimer = 0;
+        if (measurementsRef.current.dirty) measure();
+      }, 0);
+    };
+    requestMeasureRef.current = scheduleMeasure;
 
     const updateTextCues = (frame, reducedMotion) => {
       documentRef.current.sections.forEach((section) => {
@@ -117,7 +159,6 @@ export function useAboutNarrativeTimeline({
           node.style.setProperty('--fragment-x', `${state.x.toFixed(2)}px`);
           node.style.setProperty('--fragment-y', `${state.y.toFixed(2)}px`);
           node.style.setProperty('--fragment-z', `${state.z.toFixed(2)}px`);
-          node.style.setProperty('--fragment-scale', state.scale.toFixed(4));
           node.style.setProperty('--fragment-blur', `${state.blur.toFixed(2)}px`);
           node.style.setProperty('--fragment-opacity', visible ? state.opacity.toFixed(4) : '0');
         });
@@ -177,7 +218,6 @@ export function useAboutNarrativeTimeline({
 
     const renderFrame = (time) => {
       lenis?.raf(time);
-      if (measurementsRef.current.dirty) measure();
       const deltaSeconds = Math.min(0.05, Math.max(0, (time - previousTime) / 1000));
       previousTime = time;
       const viewportHeight = Math.max(1, scrollport.clientHeight);
@@ -234,7 +274,7 @@ export function useAboutNarrativeTimeline({
         smoothing: documentRef.current.globals.scrollSmoothing,
       });
     };
-    const markDirty = () => { measurementsRef.current.dirty = true; };
+    const markDirty = () => { scheduleMeasure(); };
     const handleMediaChange = () => { rebuildLenis(); markDirty(); };
     const cancelPlayback = () => {
       const transport = editorStore?.getSnapshot().transport;
@@ -250,10 +290,16 @@ export function useAboutNarrativeTimeline({
       const state = editorStore?.getSnapshot();
       if (!state) return;
       if (state.compiledPlan?.document !== planRef.current.document) markDirty();
+      else schedulePreparationHandoff(state.transport.storyWU);
       if (state.transport.owner === 'scroll') {
         if (lenis) lenis.start?.();
         else rebuildLenis();
       }
+    };
+    const handleScrollPreparation = () => schedulePreparationHandoff();
+    const handleVisibilityChange = () => {
+      worldRuntimeRef.current?.setVisible?.(!window.document.hidden);
+      if (!window.document.hidden) schedulePreparationHandoff(getCurrentStoryWU(), { force: true });
     };
 
     const resizeObserver = new ResizeObserver(markDirty);
@@ -263,6 +309,8 @@ export function useAboutNarrativeTimeline({
     nativeScrollQuery.addEventListener('change', handleMediaChange);
     scrollport.addEventListener('wheel', cancelPlayback, { passive: true });
     scrollport.addEventListener('touchstart', cancelPlayback, { passive: true });
+    scrollport.addEventListener('scroll', handleScrollPreparation, { passive: true });
+    window.document.addEventListener('visibilitychange', handleVisibilityChange);
     const unsubscribe = editorStore?.subscribe(handleStoreChange);
     window.document.fonts?.ready?.then(markDirty).catch(() => {});
     rebuildLenis();
@@ -271,6 +319,8 @@ export function useAboutNarrativeTimeline({
 
     return () => {
       window.cancelAnimationFrame(raf);
+      window.clearTimeout(measureTimer);
+      window.clearTimeout(preparationTimer);
       lenis?.destroy();
       resizeObserver.disconnect();
       unsubscribe?.();
@@ -278,6 +328,9 @@ export function useAboutNarrativeTimeline({
       nativeScrollQuery.removeEventListener('change', handleMediaChange);
       scrollport.removeEventListener('wheel', cancelPlayback);
       scrollport.removeEventListener('touchstart', cancelPlayback);
+      scrollport.removeEventListener('scroll', handleScrollPreparation);
+      window.document.removeEventListener('visibilitychange', handleVisibilityChange);
+      requestMeasureRef.current = () => {};
       delete root.dataset.activeNarrativeSection;
       delete root.dataset.openingScrollCue;
       root.style.removeProperty('--opening-scroll-cue-opacity');

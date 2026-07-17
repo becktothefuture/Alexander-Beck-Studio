@@ -182,7 +182,7 @@ body.about-narrative-page .route-simulation-layer {
   box-sizing: border-box;
   padding: clamp(4.5rem, 9vw, 8.5rem) clamp(1.25rem, 7vw, 7rem);
   overflow: hidden;
-  perspective: 1600px;
+  perspective: var(--about-text-perspective, 1600px);
   perspective-origin: 50% 46%;
   transform-style: preserve-3d;
 }
@@ -220,8 +220,7 @@ body.about-narrative-page .route-simulation-layer {
       var(--fragment-x, 0px),
       var(--fragment-y, -110px),
       var(--fragment-z, -360px)
-    )
-    scale(var(--fragment-scale, 0.78));
+    );
   transform-origin: center;
   backface-visibility: hidden;
   will-change: opacity, filter, transform;

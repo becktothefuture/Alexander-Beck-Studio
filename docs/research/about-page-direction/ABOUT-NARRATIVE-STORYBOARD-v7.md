@@ -81,7 +81,7 @@ The calm field remains broad and still enough to read. It is a pause after the c
 
 **Visual direction**
 
-At the end of the calm field, the camera pitches into a near-perpendicular view while its forward cadence continues. The field resolves into a horizontal grid. Its ordinary points recede, then six exact coloured points and their labels appear sequentially with generous vertical rhythm. This is one world-linked reveal clip, not six spatial-title Cues.
+At the end of the calm field, the camera pitches into a near-perpendicular view through two readable authored stages while its forward cadence continues. It stays closer than the earlier wide framing so the material does not collapse into tiny dots. The field resolves into a horizontal grid, then the grid begins travelling upward like the opening of an editorial page. Its ordinary points recede while six exact coloured points and their labels appear sequentially with generous vertical rhythm. The six category colours come only from the Home simulation ball palette, in this fixed order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`, `--ball-8`, `--ball-6`. This is one world-linked reveal clip, not six spatial-title Cues.
 
 ### 05 — Editorial area two
 
@@ -101,7 +101,7 @@ At the end of the calm field, the camera pitches into a near-perpendicular view 
 
 **Visual direction**
 
-The six labels leave before this editorial section begins, but their coloured points remain. During the final paragraph, the surrounding grid reconnects and influence begins travelling through it so the points behave as one connected field.
+The labelled grid continues upward into the opening of this editorial section, with the title and body following beneath it on one left-aligned measure. The labels then fade while their coloured points remain. Only “different way of thinking” is highlighted; the three body paragraphs remain unhighlighted. During the final paragraph, the surrounding grid reconnects and influence begins travelling through it so the points behave as one connected field.
 
 ### 06 — Bringing the idea to life
 

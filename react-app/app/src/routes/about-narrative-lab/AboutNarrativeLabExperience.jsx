@@ -460,7 +460,8 @@ export function AboutNarrativeLabExperience({
 
   const rootStyle = useMemo(() => ({
     '--about-reading-width': `${playbackDocument.globals.readingWidthRem}rem`,
-  }), [playbackDocument.globals.readingWidthRem]);
+    '--about-text-perspective': `${playbackDocument.globals.textMotion.perspective}px`,
+  }), [playbackDocument.globals.readingWidthRem, playbackDocument.globals.textMotion.perspective]);
   const disciplineReveal = useMemo(() => (
     playbackDocument.sections.find((section) => section.text?.disciplineReveal)?.text.disciplineReveal || null
   ), [playbackDocument]);

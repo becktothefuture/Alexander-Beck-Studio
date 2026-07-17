@@ -1,46 +1,112 @@
-import { createAboutNarrativeSequenceCorrespondence } from './aboutNarrativeCorrespondence.js';
+import { createAboutNarrativeCumulativeSequence } from './aboutNarrativeCorrespondence.js';
 import {
   createAboutNarrativeSeeds,
   generateAboutNarrativeShape,
 } from './aboutNarrativePointShapes.js';
+import {
+  ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
+  collectAboutNarrativeWorkerTransferables,
+  createAboutNarrativeWorkerFailure,
+  validateAboutNarrativeWorkerRequest,
+  validateAboutNarrativeWorkerResponse,
+} from './aboutNarrativeWorkerProtocol.js';
 
-function collectTransferables(outputs, pairs) {
-  const transferables = pairs.map((pair) => pair.permutation.buffer);
-  outputs.forEach((output) => {
-    transferables.push(output.positions.buffer, output.presence.buffer, output.size.buffer);
-    Object.values(output.attributes || {}).forEach((value) => transferables.push(value.buffer));
-  });
-  return transferables;
+function createPairDiagnostics(pair) {
+  return {
+    pairId: `${pair.fromId}->${pair.toId}`,
+    fromId: pair.fromId,
+    toId: pair.toId,
+    requestedStrategy: pair.requestedStrategy,
+    installedStrategy: pair.installedStrategy,
+    fallbackReason: pair.fallbackReason,
+    metrics: pair.metrics,
+  };
 }
 
-globalThis.onmessage = async (event) => {
-  const { generation, entries, pointCount, quality } = event.data || {};
+export async function prepareAboutNarrativeWorkerResponse(value, {
+  generateShape = generateAboutNarrativeShape,
+  createSeeds = createAboutNarrativeSeeds,
+  now = () => performance.now(),
+} = {}) {
+  let request;
   try {
-    const generationStartedAt = performance.now();
-    const outputs = await Promise.all(entries.map((entry) => generateAboutNarrativeShape({
+    request = validateAboutNarrativeWorkerRequest(value);
+  } catch {
+    return createAboutNarrativeWorkerFailure({
+      generation: value?.generation,
+      sequenceKey: value?.sequenceKey,
+      category: 'validation',
+      code: 'invalid-request',
+      message: 'The point-field preparation request was invalid.',
+    });
+  }
+
+  const totalStartedAt = now();
+  let outputs;
+  let generationMs;
+  try {
+    const generationStartedAt = now();
+    outputs = await Promise.all(request.entries.map((entry) => generateShape({
       shapeId: entry.shapeId,
-      pointCount,
-      seeds: createAboutNarrativeSeeds(pointCount, entry.seed),
-      quality,
+      pointCount: request.pointCount,
+      seeds: createSeeds(request.pointCount, entry.seed),
+      quality: request.quality,
       parameters: entry.parameters,
     })));
-    const generationDurationMs = performance.now() - generationStartedAt;
-    const correspondenceStartedAt = performance.now();
-    const pairs = createAboutNarrativeSequenceCorrespondence(entries.map((entry, index) => ({
+    generationMs = Math.max(0, now() - generationStartedAt);
+  } catch {
+    return createAboutNarrativeWorkerFailure({
+      generation: request.generation,
+      sequenceKey: request.sequenceKey,
+      category: 'generation',
+      code: 'shape-generation-failed',
+      message: 'A point-field Shape could not be prepared.',
+    });
+  }
+
+  try {
+    const correspondenceStartedAt = now();
+    const cumulative = createAboutNarrativeCumulativeSequence(request.entries.map((entry, index) => ({
       id: entry.id,
       mode: entry.mode,
       matrix: entry.matrix,
       output: outputs[index],
     })));
-    const correspondenceDurationMs = performance.now() - correspondenceStartedAt;
-    globalThis.postMessage(
-      { generation, outputs, pairs, generationDurationMs, correspondenceDurationMs },
-      collectTransferables(outputs, pairs),
-    );
-  } catch (error) {
-    globalThis.postMessage({
-      generation,
-      error: error?.message || 'Correspondence preparation failed.',
+    const correspondenceMs = Math.max(0, now() - correspondenceStartedAt);
+    const response = {
+      protocolVersion: ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
+      generation: request.generation,
+      sequenceKey: request.sequenceKey,
+      status: 'success',
+      outputs: cumulative.outputs.map((output, index) => ({
+        id: request.entries[index].id,
+        output,
+      })),
+      pairs: cumulative.pairs.map(createPairDiagnostics),
+      timings: {
+        generationMs,
+        correspondenceMs,
+        totalMs: Math.max(0, now() - totalStartedAt),
+      },
+    };
+    return validateAboutNarrativeWorkerResponse(response, request);
+  } catch {
+    return createAboutNarrativeWorkerFailure({
+      generation: request.generation,
+      sequenceKey: request.sequenceKey,
+      category: 'correspondence',
+      code: 'sequence-correspondence-failed',
+      message: 'The point-field sequence could not be prepared.',
     });
   }
-};
+}
+
+const isWorkerScope = typeof globalThis.WorkerGlobalScope !== 'undefined'
+  && globalThis instanceof globalThis.WorkerGlobalScope;
+
+if (isWorkerScope) {
+  globalThis.onmessage = async (event) => {
+    const response = await prepareAboutNarrativeWorkerResponse(event.data);
+    globalThis.postMessage(response, collectAboutNarrativeWorkerTransferables(response));
+  };
+}

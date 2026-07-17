@@ -484,9 +484,10 @@ export function applyAboutNarrativeCorrespondence(fromOutput, toOutput, mode = '
   return mapped;
 }
 
-export function createAboutNarrativeSequenceCorrespondence(entries) {
+export function createAboutNarrativeCumulativeSequence(entries) {
   if (!Array.isArray(entries) || !entries.length) throw new Error('A correspondence sequence needs at least one World.');
   let orderedSource = entries[0].output;
+  const outputs = [orderedSource];
   const pairs = [{
     fromId: entries[0].id,
     toId: entries[0].id,
@@ -522,6 +523,11 @@ export function createAboutNarrativeSequenceCorrespondence(entries) {
     result.metrics.preparationDurationMs = (globalThis.performance?.now?.() ?? Date.now()) - startedAt;
     pairs.push({ fromId: fromEntry.id, toId: toEntry.id, ...result });
     orderedSource = applyAboutNarrativePermutation(toEntry.output, result.permutation);
+    outputs.push(orderedSource);
   }
-  return pairs;
+  return { outputs, pairs };
+}
+
+export function createAboutNarrativeSequenceCorrespondence(entries) {
+  return createAboutNarrativeCumulativeSequence(entries).pairs;
 }

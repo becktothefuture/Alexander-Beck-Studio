@@ -29,8 +29,7 @@
       "endY": 130,
       "readableStart": 0.24,
       "readableEnd": 0.76,
-      "farScale": 0.78,
-      "nearScale": 1.14,
+      "perspective": 1600,
       "entryDepth": 360,
       "exitDepth": 220,
       "maxBlur": 22

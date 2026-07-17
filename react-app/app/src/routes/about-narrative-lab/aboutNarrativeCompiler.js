@@ -3,6 +3,7 @@ import {
   normalizeAboutNarrativeDocument,
   validateAboutNarrativeDocument,
 } from './aboutNarrativeSchema.js';
+import { createAboutNarrativeWorldPreparationDescriptor } from './aboutNarrativeSequenceIdentity.js';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
 const mix = (from, to, progress) => from + ((to - from) * progress);
@@ -237,6 +238,8 @@ export function compileAboutNarrativeDocument(input, {
       diagnostics: Object.freeze(diagnostics),
       profile,
       sections: Object.freeze([]),
+      worldSequenceKey: '',
+      worldPreparationDescriptor: null,
       totalExtentWU: 0,
     });
   }
@@ -273,6 +276,8 @@ export function compileAboutNarrativeDocument(input, {
       diagnostics: Object.freeze(completeDiagnostics),
       profile,
       sections: Object.freeze([]),
+      worldSequenceKey: '',
+      worldPreparationDescriptor: null,
       totalExtentWU: 0,
       maxStoryWU: 0,
     });
@@ -281,6 +286,11 @@ export function compileAboutNarrativeDocument(input, {
   const worldSequence = Object.freeze(sections
     .filter((section) => section.worldState.changesWorld)
     .map((section) => section.worldState.activeWorld));
+  const preparation = createAboutNarrativeWorldPreparationDescriptor({
+    worldSequence,
+    globals: document.globals,
+    profile,
+  });
 
   return Object.freeze({
     valid: true,
@@ -289,6 +299,8 @@ export function compileAboutNarrativeDocument(input, {
     diagnostics: Object.freeze(completeDiagnostics),
     sections: Object.freeze(sections),
     worldSequence,
+    worldSequenceKey: preparation.worldSequenceKey,
+    worldPreparationDescriptor: preparation.descriptor,
     disciplineReveal,
     totalExtentWU: sections.at(-1)?.endWU || 0,
     maxStoryWU,
@@ -362,6 +374,8 @@ export function sampleAboutNarrativePlan(plan, storyWU, {
       from: worldState.previousWorld,
       to: worldState.activeWorld,
       sequence: plan.worldSequence,
+      sequenceKey: plan.worldSequenceKey,
+      preparationDescriptor: plan.worldPreparationDescriptor,
       changes: worldState.changesWorld,
       transitionProgress: reducedMotion ? 1 : transitionProgress,
       transition: {
@@ -371,6 +385,19 @@ export function sampleAboutNarrativePlan(plan, storyWU, {
       },
     },
     disciplineReveal,
+  };
+}
+
+export function getAboutNarrativePreparationRequest(plan, storyWU) {
+  if (!plan?.valid || !plan.sections.length || !plan.worldPreparationDescriptor) return null;
+  const clampedStoryWU = Math.max(0, Math.min(plan.maxStoryWU, Number(storyWU) || 0));
+  const sectionIndex = findSectionIndex(plan.sections, clampedStoryWU);
+  const targetWorldId = plan.sections[sectionIndex].worldState.activeWorld?.sectionId || '';
+  if (!targetWorldId) return null;
+  return {
+    sequenceKey: plan.worldSequenceKey,
+    descriptor: plan.worldPreparationDescriptor,
+    targetWorldId,
   };
 }
 
@@ -394,21 +421,18 @@ export function sampleAboutNarrativeCue(cue, localProgress, textMotion, reducedM
   const isOpener = cue.preset === 'opener-v1';
   const openerStartY = Number(textMotion.openerStartY ?? 36);
   if (reducedMotion) {
-    return { opacity: 1, scale: 1, blur: 0, x: 0, y: isOpener ? openerStartY : 0, z: 0 };
+    return { opacity: 1, blur: 0, x: 0, y: isOpener ? openerStartY : 0, z: 0 };
   }
   const interval = getAboutNarrativeCueMotionInterval(cue, textMotion);
   const startY = Number(textMotion.startY ?? -110);
   const endY = Number(textMotion.endY ?? 130);
   const entryDepth = Number(textMotion.entryDepth ?? 360);
   const exitDepth = Number(textMotion.exitDepth ?? 220);
-  const farScale = Number(textMotion.farScale ?? 0.78);
-  const nearScale = Number(textMotion.nearScale ?? 1.14);
   const maxBlur = Number(textMotion.maxBlur ?? 22);
   if (localProgress < interval.start || localProgress > interval.end) {
     const before = localProgress < interval.start;
     return {
       opacity: 0,
-      scale: before ? farScale : nearScale,
       blur: maxBlur,
       x: 0,
       y: before ? startY : endY,
@@ -426,7 +450,6 @@ export function sampleAboutNarrativeCue(cue, localProgress, textMotion, reducedM
     const clarity = 1 - applyAboutNarrativeEasing('smoothstep', fadeOutProgress);
     return {
       opacity: clarity,
-      scale: mix(1, nearScale, progress),
       blur: mix(maxBlur, 0, clarity),
       x: 0,
       y: mix(openerStartY, endY, progress),
@@ -442,7 +465,6 @@ export function sampleAboutNarrativeCue(cue, localProgress, textMotion, reducedM
   const clarity = Math.min(clearIn, clearOut);
   return {
     opacity: clarity,
-    scale: mix(farScale, nearScale, progress),
     blur: mix(maxBlur, 0, clarity),
     x: 0,
     y: mix(startY, endY, progress),

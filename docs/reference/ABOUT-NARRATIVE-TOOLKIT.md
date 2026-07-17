@@ -80,7 +80,7 @@ The runtime has one `storyWU` value. Three sources can own it:
 
 Only one owner is active at a time. Scrubbing stops Lenis. Choosing **Follow scroll** resumes it without resetting the current page position. Wheel or touch input cancels playback.
 
-The timeline is a collapsible, development-only overlay with its own fixed palette: amber for Sequence/playhead, cyan for Camera, violet for World, coral for Text, and green for Interaction. This palette does not inherit route or website theme colours. Left and Right arrow keys jump to the previous or next timing point unless a text field or numeric control has focus.
+The timeline is a collapsible, development-only overlay with its own fixed palette: amber for Sequence/playhead, cyan for Camera, violet for World, coral for Text, and green for Interaction. This palette does not inherit route or website theme colours. Every Camera boundary is a visible locked diamond. A quiet dashed cyan rail shows continuous base-dolly travel; brighter solid spans show authored framing changes between keys. Left and Right arrow keys jump to the previous or next timing point unless a text field or numeric control has focus.
 
 The compiler converts `storyWU` into:
 
@@ -124,7 +124,7 @@ The editor interpolates aim and lens independently from the protected base dolly
 
 Use **Set camera key** to make a change permanent. Camera recipes—Push, Glide, Orbit, Reveal, and Resolve—create normal visible keys that can be edited or deleted.
 
-Every Section always has protected Camera keys at `0` and `1`. Existing authored framing is copied to those boundaries, so adding the keys does not change the approved camera path. Intermediate keys remain freely editable and removable.
+Every Section always has protected Camera keys at `0` and `1`. They remain visible and selectable as smaller locked diamonds but cannot be dragged or deleted. Existing authored framing is copied to those boundaries, so adding the keys does not change the approved camera path. Intermediate keys remain freely editable and removable.
 
 **Camera View** shows the published camera. **Director View** temporarily orbits, tilts, and zooms around the sampled target without writing keys. Resetting or leaving Director View restores the published framing.
 
@@ -217,15 +217,15 @@ During living-field → bust formation, bust yaw is held at its entry value. Aut
 4. Select the new Text clip in the Text lane.
 5. Edit the statement, then drag its pink block to the desired focus point.
 
-Clicking a clip selects and highlights it. Clicking a Camera diamond, World transition marker, Text block, or Interaction activation marker also snaps the global playhead to that exact WU.
+Clicking a clip selects and highlights it. Clicking a Camera diamond, World transition marker, Text block, or Interaction activation marker also snaps the global playhead to that exact WU. Clicking the **Sections**, **Camera**, **World**, or **Text** track name opens that track's global controls without requiring an empty-canvas click.
 
-A Text block is a fixed-size timing marker, not a duration bar. It maps directly to 0–100% of its owning Section and keeps the point where that sentence is most readable. Dragging preserves the complete automatic travel envelope, including its speed and blur cadence; those values remain global under **Spatial titles**. When the envelope crosses a Section edge, the off-section portion is cropped instead of resizing or restricting the marker.
+A Spatial Text block is a duration bar with a brighter focus marker. The bar shows the title's effective travel span across 0–100% of its owning Section, so changing **Spatial titles → Travel duration** resizes every affected block in the timeline immediately. Dragging the bar moves its focus point while preserving the automatic travel envelope. Travel remains cropped to the owning Section at its edges.
 
 The saved Cue is in the same Section object as its timing. No second file or JavaScript array needs editing.
 
-The DOM contains one semantic sentence per Cue. Visual depth, blur, and scale are presentation only.
+The DOM contains one semantic sentence per Cue. Visual Z depth and blur are presentation only. The Spatial-title wrapper owns one shared CSS perspective, while every title travels from the shared negative-Z entry depth to the shared positive-Z exit depth. Maximum blur changes sharpness only; it does not move the title.
 
-The single `opener-v1` Cue is already sharp at `0 WU` and begins from **Spatial titles → Opener start Y**. It then continues moving toward the shared exit position. Later travelling titles continue to use the shared Start Y, readable window, and blur-in/blur-out behaviour.
+The single `opener-v1` Cue is already sharp at `0 WU` and begins from **Spatial titles → Opener start Y**. It then continues moving toward the shared exit position. Later travelling titles continue to use the shared Start Y, dual-handle **Clear window**, depth path, and blur-in/blur-out behaviour.
 
 ### Edit editorial prose
 
@@ -233,9 +233,9 @@ Select an editorial Section, then edit its blocks under **Editorial content**. P
 
 ### Edit the six-discipline reveal
 
-Select the striped **Discipline reveal** clip in the Text lane. Its inspector controls reveal start and label exit, stagger, grid fade, resting grid opacity, point size, label offset, label reveal duration, and the final six-point hold. Reorder the six rows to change reveal order without remapping their stable point groups.
+Select the striped **Discipline reveal** clip in the Text lane. The clip may extend across its owning Section boundary so its striped bar visibly describes the handoff into editorial content. Its inspector controls reveal start and label exit, stagger, grid fade, resting grid opacity, point size, label offset, label reveal duration, and the editorial hold. Reorder the six rows to change reveal order without remapping their stable point groups.
 
-The clip is one draggable timing object. Moving it shifts the complete sequence while preserving all internal spacing. The labels are native DOM text, but their positions are projected each frame from the corresponding Three.js grid points. After the labels leave, the six coloured points remain. Marking an editorial prose block **Reconnect point grid** restores the surrounding grid as that paragraph enters.
+The clip is one draggable timing object. Moving it shifts the complete sequence while preserving all internal spacing. The labels are native DOM text, but their positions are projected each frame from the corresponding Three.js grid points. The grid and labels rise together into the beginning of the next editorial Section, then the labels leave while the six coloured points remain. Their palette is fixed to the actual Home simulation ball tokens by semantic group: `1 → --ball-1`, `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`; the editor shows these assignments rather than offering unrelated colour names. Marking an editorial prose block **Reconnect point grid** restores the surrounding grid as that paragraph enters.
 
 ## History, comparison, and checkpoints
 
@@ -305,4 +305,4 @@ ABS_BROWSER=webkit npm run audit:about-narrative
 npm run check:site
 ```
 
-The browser audit verifies exact-WU sampling, constant cadence, editor/playback presence, Instrument Serif titles, portal placement, complete Camera boundary keys, click/keyboard keyframe navigation, text edit and undo, WebGL readiness in Chromium, timeline collapse, and editor clearance above the persistent Button Bar at desktop and mobile sizes.
+The browser audit verifies exact-WU sampling, constant cadence, editor/playback presence, Instrument Serif titles, portal placement, visible locked Camera boundary keys and authored-motion spans, click/keyboard keyframe navigation, the extended discipline reveal and fixed Home palette mapping, text edit and undo, WebGL readiness in Chromium, timeline collapse, and editor clearance above the persistent Button Bar at desktop and mobile sizes.

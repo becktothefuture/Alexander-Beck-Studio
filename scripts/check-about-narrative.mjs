@@ -12,6 +12,11 @@ import {
 import { createAboutNarrativeEditorStore } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeEditorStore.js';
 import {
   captureAboutNarrativePlayheadContext,
+  createAboutNarrativeCueClipboardPayload,
+  createAboutNarrativeDuplicateId,
+  deriveAboutNarrativeLoopRange,
+  duplicateAboutNarrativeCueGroup,
+  duplicateAboutNarrativeSection,
   getAboutNarrativeCameraKeyTimingBounds,
   getAboutNarrativeCueTimingBounds,
   getAboutNarrativeExtentField,
@@ -19,8 +24,14 @@ import {
   moveAboutNarrativeCueTiming,
   remapAboutNarrativePlayheadContext,
   resolveAboutNarrativeCameraKeyDrop,
+  resolveAboutNarrativeCueDistribution,
+  resolveAboutNarrativeCueExactGap,
+  resolveAboutNarrativeCueGroupAlign,
   resolveAboutNarrativeCueGroupMove,
+  resolveAboutNarrativeCueGroupPaste,
+  stitchAboutNarrativeCameraBoundaries,
   toggleAboutNarrativeCueSelection,
+  validateAboutNarrativeCueClipboardPayload,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTimeline.js';
 import {
   migrateAboutNarrativeDocument,
@@ -64,7 +75,11 @@ function createPointFixture(points, {
 
 test('canonical About document validates and serializes deterministically', () => {
   assert.deepEqual(validateAboutNarrativeDocument(canonical).filter((item) => item.level === 'error'), []);
-  assert.equal(serializeAboutNarrativeDocument(JSON.parse(serializeAboutNarrativeDocument(canonical))), serializeAboutNarrativeDocument(canonical));
+  const serialized = serializeAboutNarrativeDocument(canonical);
+  assert.equal(serializeAboutNarrativeDocument(JSON.parse(serialized)), serialized);
+  assert.equal(serialized.includes('farScale'), false);
+  assert.equal(serialized.includes('nearScale'), false);
+  assert.equal(JSON.parse(serialized).globals.textMotion.perspective, 1600);
 });
 
 test('future schema versions stay read-only', () => {
@@ -360,6 +375,315 @@ test('Cue groups move in global WU, clamp as one group, and preserve envelopes',
   });
 });
 
+test('Cue rhythm distribution is even in global WU and preserves envelopes and ownership', () => {
+  const document = structuredClone(canonical);
+  const section = document.sections.find((item) => item.id === 'complexity');
+  section.text.cues[1] = moveAboutNarrativeCueTiming(section.text.cues[1], 0.48, { snap: false });
+  const plan = compileAboutNarrativeDocument(document);
+  const members = [0, 1, 2].map((cueIndex) => ({
+    type: 'cue',
+    sectionId: section.id,
+    cueId: section.text.cues[cueIndex].id,
+    keyPart: 'focus',
+  }));
+  const result = resolveAboutNarrativeCueDistribution({
+    document,
+    plan,
+    members,
+    primary: members[1],
+  });
+  assert.equal(result.valid, true);
+  assert.equal(result.moves.length, 3);
+  const gaps = result.moves.slice(1).map((move, index) => (
+    move.storyWU - result.moves[index].storyWU
+  ));
+  assert.ok(Math.abs(gaps[0] - gaps[1]) < 0.000001);
+  result.moves.forEach((move, index) => {
+    const cue = section.text.cues[index];
+    assert.equal(move.sectionId, section.id);
+    assert.ok(Math.abs((move.hold - move.enter) - (cue.hold - cue.enter)) < 0.000001);
+    assert.ok(Math.abs((move.exit - move.hold) - (cue.exit - cue.hold)) < 0.000001);
+  });
+});
+
+test('exact Cue gaps honour primary, first, and last anchors and report boundary limits', () => {
+  const plan = compileAboutNarrativeDocument(canonical);
+  const members = [
+    { type: 'cue', sectionId: 'complexity', cueId: 'complexity-conditions', keyPart: 'focus' },
+    { type: 'cue', sectionId: 'complexity', cueId: 'complexity-fragmented', keyPart: 'focus' },
+    { type: 'cue', sectionId: 'complexity', cueId: 'complexity-curiosity', keyPart: 'focus' },
+  ];
+  ['primary', 'first', 'last'].forEach((anchor) => {
+    const result = resolveAboutNarrativeCueExactGap({
+      document: canonical,
+      plan,
+      members,
+      primary: members[1],
+      gapWU: 0.2,
+      anchor,
+    });
+    assert.equal(result.valid, true, `${anchor} should produce a valid exact gap`);
+    const gaps = result.moves.slice(1).map((move, index) => move.storyWU - result.moves[index].storyWU);
+    gaps.forEach((gap) => assert.ok(Math.abs(gap - 0.2) < 0.000001));
+    const anchorCueId = anchor === 'first'
+      ? members[0].cueId
+      : anchor === 'last'
+        ? members[2].cueId
+        : members[1].cueId;
+    assert.equal(result.anchorCueId, anchorCueId);
+  });
+
+  const tooWide = resolveAboutNarrativeCueExactGap({
+    document: canonical,
+    plan,
+    members,
+    primary: members[0],
+    gapWU: 10,
+    anchor: 'first',
+  });
+  assert.equal(tooWide.valid, false);
+  assert.ok(Number.isFinite(tooWide.maximumValidGapWU));
+  assert.ok(tooWide.maximumValidGapWU < 10);
+  assert.match(tooWide.reason, /Section boundaries/);
+
+  const tooNarrow = resolveAboutNarrativeCueExactGap({
+    document: canonical,
+    plan,
+    members: [
+      { type: 'cue', sectionId: 'promise', cueId: 'complexity-idea', keyPart: 'focus' },
+      members[0],
+    ],
+    primary: { type: 'cue', sectionId: 'promise', cueId: 'complexity-idea', keyPart: 'focus' },
+    gapWU: 0.1,
+    anchor: 'first',
+  });
+  assert.equal(tooNarrow.valid, false);
+  assert.ok(tooNarrow.minimumValidGapWU > 0.1);
+});
+
+test('aligning a primary Cue to the playhead moves its complete group atomically', () => {
+  const plan = compileAboutNarrativeDocument(canonical);
+  const members = [
+    { type: 'cue', sectionId: 'complexity', cueId: 'complexity-fragmented', keyPart: 'focus' },
+    { type: 'cue', sectionId: 'complexity', cueId: 'complexity-curiosity', keyPart: 'focus' },
+  ];
+  const compiled = plan.sections.find((section) => section.id === 'complexity');
+  const playheadWU = compiled.startWU + (0.62 * compiled.travelWU);
+  const aligned = resolveAboutNarrativeCueGroupAlign({
+    document: canonical,
+    plan,
+    members,
+    primary: members[0],
+    playheadWU,
+  });
+  assert.equal(aligned.valid, true);
+  assert.equal(aligned.aligned, true);
+  assert.ok(Math.abs(aligned.moves[0].storyWU - playheadWU) < 0.000001);
+  const beforeGap = (0.575 - 0.405) * compiled.travelWU;
+  const afterGap = aligned.moves[1].storyWU - aligned.moves[0].storyWU;
+  assert.ok(Math.abs(afterGap - beforeGap) < 0.000001);
+
+  const clamped = resolveAboutNarrativeCueGroupAlign({
+    document: canonical,
+    plan,
+    members,
+    primary: members[0],
+    playheadWU: plan.maxStoryWU + 20,
+  });
+  assert.equal(clamped.valid, true);
+  assert.equal(clamped.aligned, false);
+  assert.equal(clamped.deltaWU, clamped.maxDeltaWU);
+});
+
+test('Cue duplication allocates deterministic IDs, remaps group references, and preserves unrelated tracks', () => {
+  const document = structuredClone(canonical);
+  const section = document.sections.find((item) => item.id === 'complexity');
+  section.text.cues[1].anchor = section.text.cues[0].id;
+  const members = section.text.cues.slice(0, 2).map((cue) => ({
+    type: 'cue',
+    sectionId: section.id,
+    cueId: cue.id,
+    keyPart: 'focus',
+  }));
+  assert.equal(createAboutNarrativeDuplicateId(document, 'complexity-conditions'), 'complexity-conditions-2');
+  assert.equal(createAboutNarrativeDuplicateId(document, 'complexity-conditions', {
+    reservedIds: ['complexity-conditions-2'],
+  }), 'complexity-conditions-3');
+
+  const result = duplicateAboutNarrativeCueGroup({
+    document,
+    members,
+    primary: members[1],
+  });
+  assert.equal(result.valid, true);
+  assert.deepEqual(
+    result.items.map((item) => item.cueId),
+    ['complexity-conditions-2', 'complexity-fragmented-2'],
+  );
+  assert.equal(result.items[1].cue.anchor, 'complexity-conditions-2');
+  assert.equal(result.selection.cueId, 'complexity-fragmented-2');
+  assert.deepEqual(result.document.sections[5].world, document.sections[5].world);
+  assert.deepEqual(result.document.sections[5].camera, document.sections[5].camera);
+  assert.deepEqual(validateAboutNarrativeDocument(result.document).filter((item) => item.level === 'error'), []);
+});
+
+test('Section duplication remaps internal IDs, stitches only new boundaries, and rejects protected sources', () => {
+  const document = structuredClone(canonical);
+  const source = document.sections.find((section) => section.id === 'complexity');
+  source.text.cues[1].anchor = source.text.cues[0].id;
+  const unrelatedSection = structuredClone(document.sections[5]);
+  const result = duplicateAboutNarrativeSection({ document, sectionId: source.id });
+  assert.equal(result.valid, true);
+  assert.equal(result.sectionIndex, 2);
+  assert.equal(result.sectionId, 'complexity-2');
+  assert.equal(result.document.sections[1].id, 'complexity');
+  assert.equal(result.document.sections[2].id, 'complexity-2');
+  assert.equal(result.document.sections[3].id, 'background');
+  assert.equal(result.section.text.cues[0].id, 'complexity-conditions-2');
+  assert.equal(result.section.text.cues[1].anchor, 'complexity-conditions-2');
+  ['offset', 'lookAtOffset', 'fov', 'roll'].forEach((field) => {
+    assert.deepEqual(result.section.camera.keys[0][field], source.camera.keys.at(-1)[field]);
+  });
+  assert.deepEqual(result.document.sections[6], unrelatedSection);
+  assert.deepEqual(validateAboutNarrativeDocument(result.document).filter((item) => item.level === 'error'), []);
+
+  const protectedResult = duplicateAboutNarrativeSection({
+    document,
+    sectionId: 'epilogue',
+  });
+  assert.equal(protectedResult.valid, false);
+  assert.match(protectedResult.reason, /Unlock|finale/);
+
+  const mismatched = structuredClone(canonical);
+  mismatched.sections[1].camera.keys[0].offset[0] = 11;
+  mismatched.sections[2].camera.keys[0].offset[0] = 22;
+  const stitched = stitchAboutNarrativeCameraBoundaries(mismatched, { boundaryIndexes: [2] });
+  assert.equal(stitched.sections[1].camera.keys[0].offset[0], 11);
+  ['offset', 'lookAtOffset', 'fov', 'roll'].forEach((field) => {
+    assert.deepEqual(stitched.sections[2].camera.keys[0][field], mismatched.sections[1].camera.keys.at(-1)[field]);
+  });
+  assert.equal(mismatched.sections[2].camera.keys[0].offset[0], 22);
+});
+
+test('session Cue clipboard validates and pastes relative WU offsets into compatible Sections', () => {
+  const plan = compileAboutNarrativeDocument(canonical);
+  const members = [
+    { type: 'cue', sectionId: 'complexity', cueId: 'complexity-conditions', keyPart: 'focus' },
+    { type: 'cue', sectionId: 'complexity', cueId: 'complexity-fragmented', keyPart: 'focus' },
+  ];
+  const payload = createAboutNarrativeCueClipboardPayload({
+    document: canonical,
+    plan,
+    members,
+    primary: members[0],
+  });
+  assert.equal(payload.version, 1);
+  assert.equal(payload.kind, 'cue-group');
+  assert.equal(validateAboutNarrativeCueClipboardPayload(payload).valid, true);
+  assert.equal(validateAboutNarrativeCueClipboardPayload({ ...payload, version: 2 }).valid, false);
+  assert.equal(validateAboutNarrativeCueClipboardPayload({
+    ...payload,
+    items: [{ ...payload.items[0], cue: { ...payload.items[0].cue, unexpected: true } }],
+  }).valid, false);
+  assert.equal(validateAboutNarrativeCueClipboardPayload({
+    ...payload,
+    items: payload.items.map((item) => ({ ...item, offsetWU: item.offsetWU + 1 })),
+  }).valid, false);
+
+  const compiled = plan.sections.find((section) => section.id === 'complexity');
+  const pasted = resolveAboutNarrativeCueGroupPaste({
+    document: canonical,
+    plan,
+    payload,
+    destinationSectionId: 'complexity',
+    playheadWU: compiled.startWU + compiled.travelWU,
+  });
+  assert.equal(pasted.valid, true);
+  assert.equal(pasted.clamped, true);
+  assert.equal(pasted.items.length, 2);
+  assert.ok(Math.abs(
+    (pasted.items[1].storyWU - pasted.items[0].storyWU) - payload.items[1].offsetWU,
+  ) < 0.000001);
+  assert.deepEqual(validateAboutNarrativeDocument(pasted.document).filter((item) => item.level === 'error'), []);
+  assert.deepEqual(pasted.document.sections[5].world, canonical.sections[5].world);
+
+  const before = structuredClone(canonical);
+  const incompatible = resolveAboutNarrativeCueGroupPaste({
+    document: canonical,
+    plan,
+    payload,
+    destinationSectionId: 'background',
+    playheadWU: plan.sections[2].startWU,
+  });
+  assert.equal(incompatible.valid, false);
+  assert.match(incompatible.reason, /does not contain a title Cue track/);
+  assert.deepEqual(canonical, before);
+});
+
+test('one loop range derives from Sections, Cue groups, World transitions, and Camera keys with roll', () => {
+  const plan = compileAboutNarrativeDocument(canonical);
+  const section = deriveAboutNarrativeLoopRange({
+    document: canonical,
+    plan,
+    source: { type: 'section', sectionId: 'complexity' },
+    preRollWU: 0.2,
+    postRollWU: 0.3,
+  });
+  assert.deepEqual(section, {
+    valid: true,
+    startWU: 1.5,
+    endWU: 4.95,
+    sourceType: 'section',
+    sourceId: 'complexity',
+  });
+
+  const cueMembers = [
+    { type: 'cue', sectionId: 'complexity', cueId: 'complexity-conditions', keyPart: 'focus' },
+    { type: 'cue', sectionId: 'complexity', cueId: 'complexity-fragmented', keyPart: 'focus' },
+  ];
+  const cues = deriveAboutNarrativeLoopRange({
+    document: canonical,
+    plan,
+    source: { type: 'cue-group', members: cueMembers, primary: cueMembers[0] },
+    preRollWU: 0.1,
+    postRollWU: 0.2,
+  });
+  assert.equal(cues.valid, true);
+  assert.equal(cues.sourceType, 'cue-group');
+  assert.ok(cues.startWU < cues.endWU);
+
+  const world = deriveAboutNarrativeLoopRange({
+    document: canonical,
+    plan,
+    source: { type: 'world', sectionId: 'complexity' },
+    preRollWU: 0.05,
+    postRollWU: 0.1,
+  });
+  const transition = plan.sections[1].worldState.transition;
+  assert.equal(world.valid, true);
+  assert.equal(world.startWU, Number((transition.startWU - 0.05).toFixed(6)));
+  assert.equal(world.endWU, Number((transition.endWU + 0.1).toFixed(6)));
+
+  const camera = deriveAboutNarrativeLoopRange({
+    document: canonical,
+    plan,
+    source: { type: 'camera-key', sectionId: 'background', keyIndex: 1 },
+    cameraKeyWindowWU: 0.25,
+    preRollWU: 0.1,
+    postRollWU: 0.2,
+  });
+  assert.equal(camera.valid, true);
+  assert.equal(camera.sourceType, 'camera-key');
+  assert.ok(Math.abs((camera.endWU - camera.startWU) - 0.8) < 0.000001);
+
+  const noDuration = deriveAboutNarrativeLoopRange({
+    document: canonical,
+    plan,
+    source: { type: 'world', sectionId: 'promise' },
+  });
+  assert.equal(noDuration.valid, false);
+});
+
 test('protected base camera advances at constant cadence', () => {
   const plan = compileAboutNarrativeDocument(canonical);
   const first = sampleAboutNarrativePlan(plan, 2.1);
@@ -435,8 +759,10 @@ test('spatial Cues move continuously through their focus point', () => {
   const after = sampleAboutNarrativeCue(cue, cue.hold + 0.01, motion, false);
   assert.ok(before.y < focus.y && focus.y < after.y);
   assert.ok(before.z < focus.z && focus.z < after.z);
-  assert.notEqual(before.scale, focus.scale);
-  assert.notEqual(focus.scale, after.scale);
+  assert.equal('scale' in before, false);
+  assert.equal('scale' in focus, false);
+  assert.equal('scale' in after, false);
+  assert.equal(motion.perspective, 1600);
 });
 
 test('travelling Cues visibly blur in and blur out within their Section', () => {
