@@ -10,6 +10,7 @@ export function createAboutNarrativeRuntimeObserver({ renderer, scene, camera } 
     throw new TypeError('Runtime observers need a renderer.');
   }
   return Object.freeze({
+    dispose: NOOP,
     getLifecycleFields: () => EMPTY_FIELDS,
     getMetrics: () => EMPTY_FIELDS,
     hotFrameDomQuery: NOOP,

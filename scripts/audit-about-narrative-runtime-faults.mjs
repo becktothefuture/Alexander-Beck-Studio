@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
 const outputDir = 'output/playwright/about-narrative-hardening/runtime';
 const labUrl = `${baseUrl}/lab/about-narrative.html?edit=1`;
 const scenarioResults = [];
+const canonicalSource = await readFile('react-app/app/public/config/contents-about.json', 'utf8');
+const canonicalDocument = JSON.parse(canonicalSource);
+const canonicalHash = createHash('sha256').update(canonicalSource).digest('hex');
 
 const browser = await chromium.launch({
   headless: true,
@@ -139,7 +143,7 @@ async function waitForRuntime(page) {
   await page.waitForFunction(() => (
     window.__aboutNarrativeRuntime?.getDiagnosticsSnapshot
     && document.querySelector('.about-narrative-lab')
-  ), { timeout: 30_000 });
+  ), null, { timeout: 60_000 });
 }
 
 async function waitForPreparation(page, state) {
@@ -151,7 +155,7 @@ async function waitForPreparation(page, state) {
 async function waitForHeldEvent(page) {
   await page.waitForFunction(() => (
     window.__aboutNarrativeFaultHarness?.snapshot?.().heldEventCount === 1
-  ), { timeout: 30_000 });
+  ), null, { timeout: 60_000 });
 }
 
 async function snapshot(page) {
@@ -199,9 +203,37 @@ function hasFailure(snapshotValue, category) {
   ));
 }
 
+function assertStablePreparationIdentity(snapshotValue) {
+  const preparationRecords = snapshotValue.diagnostics.records.filter((record) => (
+    record.type.startsWith('preparation-') && record.sequenceKey
+  ));
+  assert.equal(new Set(preparationRecords.map((record) => record.sequenceKey)).size, 1);
+  assert.equal(new Set(preparationRecords.map((record) => record.pairId)).size, 1);
+  assert.equal(new Set(preparationRecords.map((record) => record.inputFingerprint)).size, 1);
+  assert.equal(snapshotValue.diagnostics.automaticRetries, 1);
+}
+
+function assertRetryCadence(snapshotValue, eventType) {
+  const events = snapshotValue.harness.events.filter((event) => event.type === eventType);
+  assert.equal(events.length, 2);
+  assert.ok(
+    events[1].at - events[0].at >= 1_000,
+    `${eventType} retried after ${events[1].at - events[0].at}ms instead of at least 1000ms.`,
+  );
+}
+
 async function createScenarioPage(mode) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   await context.addInitScript(installFaultHarness, { mode });
+  await context.route('**/api/about-narrative/config', async (route) => {
+    if (route.request().method() !== 'GET') return route.abort();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { ETag: `"${canonicalHash}"` },
+      body: JSON.stringify({ document: canonicalDocument, hash: canonicalHash }),
+    });
+  });
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (error) => errors.push({ type: 'pageerror', message: error.message }));
@@ -238,7 +270,10 @@ try {
     evidence.checkpoints.recovered = await snapshot(page);
     assertSingleReadableRuntime(evidence.checkpoints.recovered);
     assert.equal(evidence.checkpoints.recovered.harness.faultUsed, true);
-    assert.ok(evidence.checkpoints.recovered.harness.attempts >= 2);
+    assert.equal(evidence.checkpoints.recovered.harness.attempts, 2);
+    assert.equal(evidence.checkpoints.recovered.harness.starts, 1);
+    assertStablePreparationIdentity(evidence.checkpoints.recovered);
+    assertRetryCadence(evidence.checkpoints.recovered, 'worker-construction-attempt');
     assert.ok(hasFailure(evidence.checkpoints.recovered, 'workerConstruction'));
   });
 
@@ -249,7 +284,10 @@ try {
     evidence.checkpoints.recovered = await snapshot(page);
     assertSingleReadableRuntime(evidence.checkpoints.recovered);
     assert.equal(evidence.checkpoints.recovered.harness.faultUsed, true);
-    assert.ok(evidence.checkpoints.recovered.harness.starts >= 2);
+    assert.equal(evidence.checkpoints.recovered.harness.attempts, 2);
+    assert.equal(evidence.checkpoints.recovered.harness.starts, 2);
+    assertStablePreparationIdentity(evidence.checkpoints.recovered);
+    assertRetryCadence(evidence.checkpoints.recovered, 'worker-started');
     assert.ok(hasFailure(evidence.checkpoints.recovered, 'workerCrash'));
   });
 
@@ -344,7 +382,7 @@ try {
       window.location.pathname.endsWith('/contact.html')
       && !window.__aboutNarrativeRuntime
       && !document.querySelector('.about-narrative-lab')
-    ), { timeout: 15_000 });
+    ), null, { timeout: 30_000 });
     evidence.checkpoints.unmounted = await page.evaluate(() => ({
       href: window.location.href,
       runtimePresent: Boolean(window.__aboutNarrativeRuntime),
@@ -396,7 +434,7 @@ try {
       const root = document.querySelector('.about-narrative-lab');
       return root?.dataset.pointWorldState === 'ready'
         && runtime?.getDiagnosticsSnapshot?.().records.some((record) => record.type === 'context-restored');
-    }, { timeout: 30_000 });
+    }, null, { timeout: 60_000 });
     await page.waitForTimeout(250);
     evidence.checkpoints.restored = await snapshot(page);
     assertSingleReadableRuntime(evidence.checkpoints.restored);

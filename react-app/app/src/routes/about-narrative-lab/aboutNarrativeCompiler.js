@@ -4,6 +4,7 @@ import {
   validateAboutNarrativeDocument,
 } from './aboutNarrativeSchema.js';
 import { createAboutNarrativeWorldPreparationDescriptor } from './aboutNarrativeSequenceIdentity.js';
+import { resolveAboutNarrativeCapabilities } from './aboutNarrativeCapabilities.js';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
 const mix = (from, to, progress) => from + ((to - from) * progress);
@@ -207,6 +208,45 @@ function compileContinuityDiagnostics(sections) {
   return diagnostics;
 }
 
+function compileWorldCapabilityDiagnostics(sections, profile) {
+  const diagnostics = [];
+  let previousWorld = null;
+  sections.forEach((section, sectionIndex) => {
+    if (section.world.mode !== 'set') return;
+    const targetWorld = section.world;
+    const sourceWorld = previousWorld || targetWorld;
+    const result = resolveAboutNarrativeCapabilities({
+      sourceAdapterId: sourceWorld.adapterId,
+      targetAdapterId: targetWorld.adapterId,
+      sourceShapeId: sourceWorld.shapeId,
+      targetShapeId: targetWorld.shapeId,
+      transition: targetWorld.transitionIn,
+      interaction: section.interaction,
+      rendererProfile: {
+        maximumConcurrentGroups: 1,
+        maximumDrawCalls: 1,
+        pointPoolContract: 'fixed-point-pool-v1',
+      },
+      reducedMotion: profile === 'reduced-motion',
+    });
+    result.reasons.forEach((reason) => diagnostics.push({
+      level: 'error',
+      code: `capability-${reason.code}`,
+      path: `sections.${sectionIndex}.world.${reason.path || 'transitionIn'}`,
+      message: reason.message,
+      alternatives: result.alternatives,
+    }));
+    result.warnings.forEach((warning) => diagnostics.push({
+      level: 'warning',
+      code: `capability-${warning.code}`,
+      path: `sections.${sectionIndex}.world.${warning.path || 'transitionIn'}`,
+      message: warning.message,
+    }));
+    previousWorld = targetWorld;
+  });
+  return diagnostics;
+}
+
 function inheritCameraPose(target, source) {
   return {
     ...target,
@@ -234,6 +274,21 @@ export function compileAboutNarrativeDocument(input, {
   profile = 'desktop',
   measurements = null,
 } = {}) {
+  const sourceDiagnostics = validateAboutNarrativeDocument(input);
+  const sourceErrors = sourceDiagnostics.filter((item) => item.level === 'error');
+  if (sourceErrors.length) {
+    return Object.freeze({
+      valid: false,
+      document: cloneAboutNarrativeDocument(input),
+      diagnostics: Object.freeze(sourceDiagnostics),
+      profile,
+      sections: Object.freeze([]),
+      worldSequenceKey: '',
+      worldPreparationDescriptor: null,
+      totalExtentWU: 0,
+      maxStoryWU: 0,
+    });
+  }
   const document = normalizeAboutNarrativeDocument(input);
   const diagnostics = validateAboutNarrativeDocument(document);
   const errors = diagnostics.filter((item) => item.level === 'error');
@@ -273,6 +328,7 @@ export function compileAboutNarrativeDocument(input, {
   const completeDiagnostics = [
     ...diagnostics,
     ...continuityDiagnostics,
+    ...compileWorldCapabilityDiagnostics(sections, profile),
     ...compileWorldTransitionDiagnostics(sections, maxStoryWU),
   ];
   if (completeDiagnostics.some((item) => item.level === 'error')) {
@@ -425,12 +481,19 @@ export function sampleAboutNarrativePlanInto(
   const transition = worldState.activeWorld?.transitionIn || CUT_TRANSITION;
   const compiledTransition = worldState.transition;
   const transitionSpanWU = Math.max(0.00001, (compiledTransition?.endWU || 0) - (compiledTransition?.startWU || 0));
-  const transitionProgress = transition.type === 'cut' || !compiledTransition
-    ? 1
-    : applyAboutNarrativeEasing(
-      transition.easing,
-      (clampedStoryWU - compiledTransition.startWU) / transitionSpanWU,
-    );
+  let transitionProgress = 1;
+  if (compiledTransition) {
+    if (transition.type === 'cut') {
+      transitionProgress = clampedStoryWU < compiledTransition.startWU ? 0 : 1;
+    } else if (transition.type === 'hold') {
+      transitionProgress = clampedStoryWU < compiledTransition.endWU ? 0 : 1;
+    } else {
+      transitionProgress = applyAboutNarrativeEasing(
+        transition.easing,
+        (clampedStoryWU - compiledTransition.startWU) / transitionSpanWU,
+      );
+    }
+  }
   target.globals = plan.document.globals;
   target.storyWU = clampedStoryWU;
   target.storyTime = clampedStoryWU;

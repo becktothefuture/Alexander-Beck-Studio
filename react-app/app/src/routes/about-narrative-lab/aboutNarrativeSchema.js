@@ -30,11 +30,18 @@ const CUE_KEYS = new Set(['id', 'text', 'enter', 'hold', 'exit', 'preset', 'anch
 const CUE_MOTION_KEYS = new Set(['mode']);
 const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'emphasis', 'worldInfluence']);
 const EMPHASIS_KEYS = new Set(['text', 'tone']);
-const DISCIPLINE_REVEAL_KEYS = new Set(['id', 'start', 'end', 'stagger', 'backgroundFade', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelDuration', 'hold', 'items']);
+const DISCIPLINE_REVEAL_KEYS = new Set(['id', 'fieldTravelStart', 'fieldTravelEnd', 'fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'start', 'end', 'stagger', 'backgroundFade', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelDuration', 'hold', 'items']);
+const OPTIONAL_DISCIPLINE_REVEAL_CONTROL_KEYS = new Set(['fieldTravelStart', 'fieldTravelEnd', 'fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength']);
 const DISCIPLINE_REVEAL_ITEM_KEYS = new Set(['group', 'label']);
 const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 'mobileYOffset']);
 const MODIFIER_KEYS = new Set(['id', 'enabled', 'parameters']);
 const INTERACTION_KEYS = new Set(['type', 'activationStart']);
+const ABOUT_NARRATIVE_SCHEMA_V1_CORRESPONDENCE_MODES = Object.freeze([
+  'index-v1',
+  'stable-seed',
+  'spatial-nearest-v1',
+  'group-aware',
+]);
 
 export function cloneAboutNarrativeDocument(value) {
   return JSON.parse(JSON.stringify(value));
@@ -120,6 +127,12 @@ function normalizeBlock(block = {}, index = 0) {
 function normalizeDisciplineReveal(reveal = {}) {
   return {
     id: String(reveal.id || 'discipline-reveal'),
+    fieldTravelStart: Number(reveal.fieldTravelStart ?? 0.06),
+    fieldTravelEnd: Number(reveal.fieldTravelEnd ?? 2.7),
+    fieldTravelWU: Number(reveal.fieldTravelWU ?? 6.8),
+    fieldFogStartWU: Number(reveal.fieldFogStartWU ?? 4.8),
+    fieldFogEndWU: Number(reveal.fieldFogEndWU ?? 10.5),
+    fieldFogStrength: Number(reveal.fieldFogStrength ?? 0.8),
     start: Number(reveal.start ?? 0.32),
     end: Number(reveal.end ?? 0.98),
     stagger: Number(reveal.stagger ?? 0.085),
@@ -277,18 +290,22 @@ function validateControlValue(diagnostics, path, value, control) {
   }
 }
 
-export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true } = {}) {
+export function validateAboutNarrativeDocument(input, {
+  strictUnknownKeys = true,
+  expectedSchemaVersion = ABOUT_NARRATIVE_SCHEMA_VERSION,
+  correspondenceModes = ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
+} = {}) {
   const diagnostics = [];
   const document = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   if (strictUnknownKeys) pushUnknownKeys(diagnostics, document, TOP_LEVEL_KEYS, 'document');
-  if (Number(document.schemaVersion) !== ABOUT_NARRATIVE_SCHEMA_VERSION) {
+  if (Number(document.schemaVersion) !== expectedSchemaVersion) {
     diagnostics.push({
       level: 'error',
       code: 'schema-version',
       path: 'schemaVersion',
       message: Number(document.schemaVersion) > ABOUT_NARRATIVE_SCHEMA_VERSION
         ? 'This document was created by a newer editor and is read-only here.'
-        : `Schema version ${ABOUT_NARRATIVE_SCHEMA_VERSION} is required.`,
+        : `Schema version ${expectedSchemaVersion} is required.`,
     });
   }
   if (strictUnknownKeys) pushUnknownKeys(diagnostics, document.globals, GLOBAL_KEYS, 'globals');
@@ -400,12 +417,16 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
         diagnostics.push({ level: 'error', code: 'discipline-reveal-id', path: `${revealPath}.id`, message: 'The Discipline reveal ID must be a unique lower-case slug.' });
       }
       seenContentIds.add(disciplineReveal.id);
-      ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS.forEach((control) => validateControlValue(
-        diagnostics,
-        `${revealPath}.${control.id}`,
-        disciplineReveal[control.id],
-        control,
-      ));
+      ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS.forEach((control) => {
+        if (disciplineReveal[control.id] == null
+          && OPTIONAL_DISCIPLINE_REVEAL_CONTROL_KEYS.has(control.id)) return;
+        validateControlValue(
+          diagnostics,
+          `${revealPath}.${control.id}`,
+          disciplineReveal[control.id],
+          control,
+        );
+      });
       const items = disciplineReveal.items || [];
       const groups = new Set();
       if (items.length !== 6) {
@@ -428,6 +449,12 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
       if (Number(disciplineReveal.start) >= Number(disciplineReveal.end)
         || lastRevealEnd + Number(disciplineReveal.hold) > Number(disciplineReveal.end) + 0.00001) {
         diagnostics.push({ level: 'error', code: 'discipline-reveal-timing', path: revealPath, message: 'Reveal start, stagger, duration, hold, and label exit must fit inside the clip.' });
+      }
+      if (Number(disciplineReveal.fieldTravelStart) >= Number(disciplineReveal.fieldTravelEnd)) {
+        diagnostics.push({ level: 'error', code: 'discipline-field-travel', path: revealPath, message: 'Field scroll start must come before field scroll end.' });
+      }
+      if (Number(disciplineReveal.fieldFogStartWU) >= Number(disciplineReveal.fieldFogEndWU)) {
+        diagnostics.push({ level: 'error', code: 'discipline-field-fog', path: revealPath, message: 'Distance fog must begin before it fully resolves.' });
       }
     }
     const previousCueExit = { spatial: -1, vertical: -1 };
@@ -547,14 +574,8 @@ export function validateAboutNarrativeDocument(input, { strictUnknownKeys = true
       }
       if (!ABOUT_NARRATIVE_TRANSITION_TYPES.includes(transition.type)
         || !ABOUT_NARRATIVE_EASINGS.includes(transition.easing)
-        || !ABOUT_NARRATIVE_CORRESPONDENCE_MODES.includes(transition.correspondence)) {
+        || !correspondenceModes.includes(transition.correspondence)) {
         diagnostics.push({ level: 'error', code: 'transition-mode', path: `${path}.world.transitionIn`, message: 'Unknown transition setting.' });
-      }
-      if (adapter && ['morph', 'dissolve-morph'].includes(transition.type) && !adapter.capabilities.morph) {
-        diagnostics.push({ level: 'error', code: 'transition-capability', path: `${path}.world.transitionIn.type`, message: 'This World adapter cannot morph Shapes.' });
-      }
-      if (adapter && transition.type === 'crossfade' && !adapter.capabilities.crossfade) {
-        diagnostics.push({ level: 'error', code: 'transition-capability', path: `${path}.world.transitionIn.type`, message: 'This World adapter cannot crossfade in the shared renderer.' });
       }
       const modifierIds = new Set();
       (section.world.modifiers || []).forEach((modifier, modifierIndex) => {
@@ -621,13 +642,100 @@ export function serializeAboutNarrativeDocument(input) {
   return `${JSON.stringify(document, null, 2)}\n`;
 }
 
-export function migrateAboutNarrativeDocument(input) {
-  const source = cloneAboutNarrativeDocument(input || {});
-  if (Number(source.schemaVersion ?? 1) > ABOUT_NARRATIVE_SCHEMA_VERSION) {
-    return { document: source, readOnly: true, migrations: [] };
+function assertDocumentEnvelope(source) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) {
+    const error = new Error('The About document must be a JSON object.');
+    error.name = 'AboutNarrativeValidationError';
+    error.diagnostics = [{ level: 'error', code: 'document-envelope', path: 'document', message: error.message }];
+    error.original = source;
+    throw error;
   }
-  const document = normalizeAboutNarrativeDocument(source);
-  return { document, readOnly: false, migrations: [] };
+  const serialized = JSON.stringify(source);
+  if (new TextEncoder().encode(serialized).byteLength > ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES) {
+    const error = new Error('The About document exceeds the 1MiB safety limit.');
+    error.name = 'AboutNarrativeValidationError';
+    error.diagnostics = [{ level: 'error', code: 'document-size', path: 'document', message: error.message }];
+    error.original = source;
+    throw error;
+  }
+}
+
+function assertSourceVersionDocument(source, version) {
+  const options = {
+    expectedSchemaVersion: version,
+    correspondenceModes: version === 1
+      ? ABOUT_NARRATIVE_SCHEMA_V1_CORRESPONDENCE_MODES
+      : ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
+  };
+  const diagnostics = validateAboutNarrativeDocument(source, options);
+  const errors = diagnostics.filter((item) => item.level === 'error');
+  if (errors.length) {
+    const error = new Error(errors.map((item) => `${item.path}: ${item.message}`).join('\n'));
+    error.name = 'AboutNarrativeValidationError';
+    error.diagnostics = diagnostics;
+    error.original = source;
+    throw error;
+  }
+  return diagnostics;
+}
+
+function migrateVersion1To2(source) {
+  const migrated = cloneAboutNarrativeDocument(source);
+  migrated.schemaVersion = 2;
+  migrated.sections?.forEach((section) => {
+    const transition = section.world?.mode === 'set' ? section.world.transitionIn : null;
+    if (!transition) return;
+    // Schema v1 treated `hold` as an ordinary morph unless its easing was also
+    // `hold`. Preserve those sampled frames while schema v2 gives the type its
+    // explicit source-until-end meaning.
+    if (transition.type === 'hold' && transition.easing !== 'hold') transition.type = 'morph';
+  });
+  return normalizeAboutNarrativeDocument(migrated);
+}
+
+const ABOUT_NARRATIVE_MIGRATIONS = Object.freeze({
+  1: migrateVersion1To2,
+});
+
+export function migrateAboutNarrativeDocument(input) {
+  const original = cloneAboutNarrativeDocument(input ?? {});
+  assertDocumentEnvelope(original);
+  const sourceVersion = Number(original.schemaVersion ?? 1);
+  if (!Number.isInteger(sourceVersion) || sourceVersion < 1) {
+    const error = new Error('The About document schema version must be a positive integer.');
+    error.name = 'AboutNarrativeValidationError';
+    error.diagnostics = [{ level: 'error', code: 'schema-version', path: 'schemaVersion', message: error.message }];
+    error.original = original;
+    throw error;
+  }
+  if (sourceVersion > ABOUT_NARRATIVE_SCHEMA_VERSION) {
+    return { document: original, original, readOnly: true, migrations: [], sourceVersion };
+  }
+
+  let document = original;
+  let version = sourceVersion;
+  const migrations = [];
+  assertSourceVersionDocument(document, version);
+  while (version < ABOUT_NARRATIVE_SCHEMA_VERSION) {
+    const migrate = ABOUT_NARRATIVE_MIGRATIONS[version];
+    if (!migrate) {
+      const error = new Error(`No migration is registered from schema version ${version}.`);
+      error.name = 'AboutNarrativeValidationError';
+      error.original = original;
+      throw error;
+    }
+    document = migrate(document);
+    version += 1;
+    assertSourceVersionDocument(document, version);
+    migrations.push(`${version - 1}->${version}`);
+  }
+  return {
+    document: cloneAboutNarrativeDocument(document),
+    original,
+    readOnly: false,
+    migrations,
+    sourceVersion,
+  };
 }
 
 export function applyLegacyAboutNarrativeSettings(document, legacy = {}) {

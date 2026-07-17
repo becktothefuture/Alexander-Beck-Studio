@@ -42,22 +42,22 @@ page.on('console', (message) => {
 page.on('pageerror', (error) => consoleErrors.push(error.message));
 
 try {
-  await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/lab/about-narrative.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => (
     typeof window.__aboutNarrativeRuntime?.resetHotFrameMetrics === 'function'
     && document.querySelector('.about-narrative-lab')?.dataset.worldPrepare === 'ready'
-  ), { timeout: 60_000 });
+  ), null, { timeout: 60_000 });
 
   await page.waitForFunction(() => (
     document.querySelector('.about-narrative-lab')?.dataset.worldStage === 'cluster-v1'
     && window.__aboutNarrativeRuntime?.getMetrics?.().fixedAttributeIdentityStable === true
-  ), { timeout: 60_000 });
+  ), null, { timeout: 60_000 });
 
   await page.waitForTimeout(500);
   await page.evaluate(() => window.__aboutNarrativeRuntime.resetHotFrameMetrics());
   await page.waitForFunction(() => (
     window.__aboutNarrativeRuntime.getMetrics().hotFrameCount >= 600
-  ), { timeout: 60_000, polling: 100 });
+  ), null, { timeout: 60_000, polling: 100 });
 
   const metrics = await page.evaluate(() => window.__aboutNarrativeRuntime.getMetrics());
   assert.ok(metrics.hotFrameCount >= 600);

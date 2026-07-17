@@ -185,7 +185,23 @@ export function createAboutNarrativeRuntimeObserver({
     });
   };
 
+  const dispose = () => {
+    const resourceSnapshot = readSnapshot(resourceLedger, 'disposed');
+    const webglSnapshot = readSnapshot(webglTracker);
+    window.__aboutNarrativeLastDispose = Object.freeze({
+      resourceLiveBufferCount: resourceSnapshot?.buffers?.uniqueCount || 0,
+      resourceLiveBufferBytes: resourceSnapshot?.buffers?.uniqueBytes || 0,
+      gpuLiveBufferCount: webglSnapshot?.liveCount || 0,
+      gpuLiveBufferBytes: webglSnapshot?.liveBytes || 0,
+      gpuCreated: webglSnapshot?.created || 0,
+      gpuDeleted: webglSnapshot?.deleted || 0,
+      diagnosticCount: (resourceSnapshot?.diagnostics?.count || 0)
+        + (webglSnapshot?.diagnostics?.length || 0),
+    });
+  };
+
   return Object.freeze({
+    dispose,
     getLifecycleFields,
     getMetrics,
     hotFrameDomQuery,

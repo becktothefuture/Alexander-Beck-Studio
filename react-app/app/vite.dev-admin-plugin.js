@@ -1,12 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { spawn } from 'node:child_process';
-import { createHash, randomBytes } from 'node:crypto';
 import {
-  open,
-  readFile,
-  readdir,
-  rename,
-  unlink,
   writeFile,
 } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -28,11 +22,7 @@ import {
   ABOUT_NARRATIVE_EDITOR_HEADER,
   ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES,
 } from './src/routes/about-narrative-lab/aboutNarrativeDefinitions.js';
-import {
-  assertValidAboutNarrativeDocument,
-  migrateAboutNarrativeDocument,
-  serializeAboutNarrativeDocument,
-} from './src/routes/about-narrative-lab/aboutNarrativeSchema.js';
+import { createAboutNarrativePersistenceService } from './src/routes/about-narrative-lab/aboutNarrativePersistenceServer.js';
 
 const repoRoot = SIMULATION_ADMIN_PATHS.repoRoot;
 let aboutNarrativeEditorWrite = null;
@@ -77,11 +67,12 @@ async function readLimitedRequestJson(req, maxBytes) {
     }
     chunks.push(Buffer.from(chunk));
   }
-  return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
-}
-
-function createDocumentHash(serialized) {
-  return createHash('sha256').update(serialized).digest('hex');
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+  } catch (error) {
+    error.statusCode = 400;
+    throw error;
+  }
 }
 
 function requestIsSameOrigin(req) {
@@ -130,61 +121,21 @@ function runRepoCommand(command, args, { timeoutMs = 120000 } = {}) {
   });
 }
 
-export function createDevAdminPlugin({ publicConfigDir }) {
-  const aboutNarrativeConfigPath = resolve(publicConfigDir, 'contents-about.json');
+export function createDevAdminPlugin({ publicConfigDir, aboutNarrativeConfigPath: aboutNarrativeConfigPathOverride = null }) {
+  const aboutNarrativeConfigPath = aboutNarrativeConfigPathOverride
+    ? resolve(aboutNarrativeConfigPathOverride)
+    : resolve(publicConfigDir, 'contents-about.json');
   const flockOfBirdsConfigPath = resolve(publicConfigDir, 'flock-of-birds-demo.json');
   const repelRoomConfigPath = resolve(publicConfigDir, 'repel-room-demo.json');
   const wallRepelConfigPath = resolve(publicConfigDir, 'wall-repel-demo.json');
   const mineralGrowthConfigPath = resolve(publicConfigDir, 'mineral-growth-demo.json');
   const loaderPlaygroundConfigPath = resolve(publicConfigDir, 'loader-playground-demo.json');
-  let aboutSaveQueue = Promise.resolve();
-
-  const readCanonicalAboutDocument = async () => {
-    const raw = await readFile(aboutNarrativeConfigPath, 'utf8');
-    const { document, readOnly } = migrateAboutNarrativeDocument(JSON.parse(raw));
-    if (readOnly) throw new Error('The canonical About document uses a newer schema.');
-    const serialized = serializeAboutNarrativeDocument(document);
-    return { document: JSON.parse(serialized), serialized, hash: createDocumentHash(serialized) };
-  };
-
-  const saveCanonicalAboutDocument = async (document, ifMatch) => {
-    const current = await readCanonicalAboutDocument();
-    const expected = String(ifMatch || '').replaceAll('"', '');
-    if (!expected || expected !== current.hash) {
-      const error = new Error('The source changed on disk. Reload it or export your draft before retrying.');
-      error.statusCode = 409;
-      error.currentHash = current.hash;
-      throw error;
-    }
-    assertValidAboutNarrativeDocument(document);
-    const serialized = serializeAboutNarrativeDocument(document);
-    const tempPath = `${aboutNarrativeConfigPath}.tmp-${process.pid}-${randomBytes(6).toString('hex')}`;
-    let handle;
-    try {
-      handle = await open(tempPath, 'wx');
-      await handle.writeFile(serialized, 'utf8');
-      await handle.sync();
-      await handle.close();
-      handle = null;
-      aboutNarrativeEditorWrite = {
-        file: aboutNarrativeConfigPath,
-        expiresAt: Date.now() + 1500,
-      };
-      await rename(tempPath, aboutNarrativeConfigPath);
-    } catch (error) {
-      await handle?.close().catch(() => {});
-      await unlink(tempPath).catch(() => {});
-      throw error;
-    }
-    return { hash: createDocumentHash(serialized) };
-  };
+  const aboutPersistence = createAboutNarrativePersistenceService({ configPath: aboutNarrativeConfigPath });
 
   return {
     name: 'design-system-dev-plugin',
     configureServer(server) {
-      readdir(publicConfigDir).then((files) => Promise.all(files
-        .filter((name) => name.startsWith('contents-about.json.tmp-'))
-        .map((name) => unlink(resolve(publicConfigDir, name)).catch(() => {})))).catch(() => {});
+      aboutPersistence.cleanup().catch(() => {});
 
       server.middlewares.use('/api/about-narrative/config', async (req, res) => {
         if (!['GET', 'POST'].includes(req.method)) {
@@ -206,19 +157,20 @@ export function createDevAdminPlugin({ publicConfigDir }) {
 
         try {
           if (req.method === 'GET') {
-            const current = await readCanonicalAboutDocument();
+            const current = await aboutPersistence.read();
             res.setHeader('ETag', `"${current.hash}"`);
             res.setHeader('Cache-Control', 'no-store');
             sendJson(res, 200, { ok: true, document: current.document, hash: current.hash });
             return;
           }
           const document = await readLimitedRequestJson(req, ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES);
-          const task = () => saveCanonicalAboutDocument(document, req.headers['if-match']);
-          const save = aboutSaveQueue.then(task, task);
-          aboutSaveQueue = save.catch(() => {});
-          const result = await save;
+          const result = await aboutPersistence.save(document, req.headers['if-match']);
+          aboutNarrativeEditorWrite = {
+            file: aboutNarrativeConfigPath,
+            expiresAt: Date.now() + 1500,
+          };
           res.setHeader('ETag', `"${result.hash}"`);
-          sendJson(res, 200, { ok: true, hash: result.hash });
+          sendJson(res, 200, { ok: true, document: result.document, hash: result.hash });
         } catch (error) {
           const validation = error?.name === 'AboutNarrativeValidationError';
           const statusCode = error?.statusCode || (validation ? 422 : 500);

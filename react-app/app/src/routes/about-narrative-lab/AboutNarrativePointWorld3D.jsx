@@ -95,6 +95,10 @@ const VERTEX_SHADER = `
   uniform float disciplineBackgroundOpacity;
   uniform float disciplineReconnectOpacity;
   uniform float disciplinePointScale;
+  uniform float disciplineFieldFogStartWU;
+  uniform float disciplineFieldFogEndWU;
+  uniform float disciplineFieldFogStrength;
+  uniform float disciplineFieldFogWeight;
   uniform float fromLivingColour;
   uniform float toLivingColour;
   uniform float fromBust;
@@ -205,10 +209,11 @@ const VERTEX_SHADER = `
 
     float group = mix(fromGroup, toGroup, morph);
     float groupStrength = mix(fromGroupStrength, toGroupStrength, morph);
-    float groupExists = step(0.5, group) * step(0.001, groupStrength);
+    float groupExists = step(0.5, group);
     float focusActive = step(0.5, disciplineFocus);
     float focusMatch = 1.0 - step(0.45, abs(group - disciplineFocus));
-    float legacyGroupWeight = groupExists * mix(1.0, mix(0.28, 1.0, focusMatch), focusActive);
+    float legacyGroupWeight = groupExists * step(0.001, groupStrength)
+      * mix(1.0, mix(0.28, 1.0, focusMatch), focusActive);
     float revealedGroupWeight = groupExists * disciplineRevealForGroup(group);
     float groupWeight = mix(legacyGroupWeight, revealedGroupWeight, disciplineRevealActive);
     worldPoint.z += gridInfluence * step(0.001, groupStrength) * 0.22 * sin(
@@ -239,6 +244,13 @@ const VERTEX_SHADER = `
     );
     float revealVisibility = mix(backgroundVisibility, 1.0, revealedGroupWeight);
     presence *= mix(1.0, revealVisibility, disciplineRevealActive);
+    float fieldFogDistance = abs(worldPoint.z - cameraPosition.z);
+    float fieldFog = smoothstep(
+      disciplineFieldFogStartWU,
+      max(disciplineFieldFogStartWU + 0.001, disciplineFieldFogEndWU),
+      fieldFogDistance
+    ) * disciplineFieldFogStrength * disciplineFieldFogWeight;
+    presence *= 1.0 - clamp(fieldFog, 0.0, 0.999);
     float sizeWeight = mix(fromPointSize, toPointSize, morph);
     float groupScale = mix(groupStrength, max(0.0, disciplinePointScale - 1.0), disciplineRevealActive);
     float emphasis = 1.0 + (groupWeight * groupScale) + (waveWeight * 0.18);
@@ -379,6 +391,13 @@ function captureDisciplinePositions(output, target, indices = null) {
   }
 }
 
+function hasAllDisciplineAnchors(indices) {
+  for (let index = 0; index < indices.length; index += 1) {
+    if (indices[index] < 0) return false;
+  }
+  return true;
+}
+
 function createPointFieldAdapter({
   canvas,
   root,
@@ -456,6 +475,10 @@ function createPointFieldAdapter({
     disciplineBackgroundOpacity: { value: 0.06 },
     disciplineReconnectOpacity: { value: 0.24 },
     disciplinePointScale: { value: 3.6 },
+    disciplineFieldFogStartWU: { value: 4.8 },
+    disciplineFieldFogEndWU: { value: 10.5 },
+    disciplineFieldFogStrength: { value: 0.8 },
+    disciplineFieldFogWeight: { value: 0 },
     fromLivingColour: { value: 0 },
     toLivingColour: { value: 0 },
     fromBust: { value: 0 },
@@ -608,6 +631,7 @@ function createPointFieldAdapter({
   const toStoryOffset = new THREE.Vector3();
   const cameraUpScratch = new THREE.Vector3();
   const disciplineWeights = new Float32Array(6);
+  const disciplineLabelBaseReveal = new Float64Array(6);
   const fromDisciplinePositions = new Float32Array(18).fill(Number.NaN);
   const toDisciplinePositions = new Float32Array(18).fill(Number.NaN);
   const fromDisciplineIndices = new Int32Array(6).fill(-1);
@@ -646,6 +670,7 @@ function createPointFieldAdapter({
   let lastDisciplineLabelCount = Number.NaN;
   let lastGridBackground = Number.NaN;
   let lastDisciplineRise = Number.NaN;
+  let lastDisciplineFog = Number.NaN;
   let lastBustShaderYaw = Number.NaN;
   let lastGroupFocus = Number.NaN;
   let lastGridInfluence = Number.NaN;
@@ -1170,15 +1195,16 @@ function createPointFieldAdapter({
     target.livingColour.value = Number(colour?.strength || 0);
   };
 
-  const resolveDisciplineStoryOffset = (frame, world, target) => {
+  const resolveDisciplineStoryOffset = (frame, target, hasDisciplineAnchors) => {
     target.set(0, 0, 0);
-    if (frame.reducedMotion || world?.shapeId !== 'discipline-grid-v1') return 0;
-    const storyTravel = Math.max(0, frame.storyWU - Number(world.startWU || 0))
-      * Number(frame.camera.cadence || 1);
-    const riseStart = Math.max(0.04, Number(world.travelWU || 0.8) * 0.2);
-    const extraRise = (compact ? 0.72 : 1.1)
-      * smoothRange(storyTravel, riseStart, riseStart + (compact ? 0.9 : 1.15));
-    const rise = storyTravel + extraRise;
+    const revealState = frame.disciplineReveal;
+    const reveal = revealState?.config;
+    const local = Number(revealState?.localProgress ?? -1);
+    if (frame.reducedMotion || !hasDisciplineAnchors || !reveal || local < 0) return 0;
+    const travelStart = Number(reveal.fieldTravelStart ?? 0.06);
+    const travelEnd = Number(reveal.fieldTravelEnd ?? 2.7);
+    const travelDistance = Number(reveal.fieldTravelWU ?? 6.8) * (compact ? 0.72 : 1);
+    const rise = travelDistance * smoothRange(local, travelStart, travelEnd);
     cameraUpScratch.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
     target.copy(cameraUpScratch).multiplyScalar(rise);
     return rise;
@@ -1189,26 +1215,34 @@ function createPointFieldAdapter({
     const reveal = revealState?.config;
     const overlay = disciplineOverlayRef?.current;
     syncDisciplineLabels(overlay);
-    const gridWorld = toWorld.shapeId === 'discipline-grid-v1'
+    const toWorldHasDisciplineAnchors = hasAllDisciplineAnchors(toDisciplineIndices);
+    const fromWorldHasDisciplineAnchors = hasAllDisciplineAnchors(fromDisciplineIndices);
+    const disciplineWorld = toWorldHasDisciplineAnchors
       ? toWorld
-      : fromWorld.shapeId === 'discipline-grid-v1' ? fromWorld : null;
-    const gridDisciplinePositions = gridWorld === toWorld
+      : fromWorldHasDisciplineAnchors ? fromWorld : null;
+    const gridDisciplinePositions = disciplineWorld === toWorld
       ? toDisciplinePositions
       : fromDisciplinePositions;
-    const gridDisciplineIndices = gridWorld === toWorld
+    const gridDisciplineIndices = disciplineWorld === toWorld
       ? toDisciplineIndices
       : fromDisciplineIndices;
     const local = Number(revealState?.localProgress ?? -1);
-    const revealAvailable = Boolean(reveal && gridWorld && local >= 0);
+    const revealAvailable = Boolean(reveal && disciplineWorld && local >= 0);
     const reducedActive = frame.reducedMotion && frame.sectionIndex === revealState?.sectionIndex;
     disciplineWeights.fill(0);
+    disciplineLabelBaseReveal.fill(0);
 
     let backgroundWeight = 0;
     let visibleLabels = 0;
+    let fieldFogWeight = 0;
     if (revealAvailable) {
       backgroundWeight = reducedActive
         ? 1
         : smoothRange(local, reveal.start, reveal.start + reveal.backgroundFade);
+      fieldFogWeight = reducedActive
+        ? 0
+        : smoothRange(local, reveal.fieldTravelStart, reveal.fieldTravelStart + 0.18)
+          * (1 - smoothRange(local, reveal.end, reveal.end + 0.2));
       const lastRevealEnd = reveal.start
         + (Math.max(0, reveal.items.length - 1) * reveal.stagger)
         + reveal.labelDuration;
@@ -1222,8 +1256,7 @@ function createPointFieldAdapter({
           : smoothRange(local, itemStart, itemStart + reveal.labelDuration);
         disciplineWeights[item.group - 1] = itemReveal;
         const labelReveal = local <= reveal.end ? itemReveal * (1 - exitProgress) : 0;
-        writeDisciplineRevealStyles(item.group - 1, labelReveal);
-        if (labelReveal > 0.05) visibleLabels += 1;
+        disciplineLabelBaseReveal[item.group - 1] = labelReveal;
       }
     }
 
@@ -1242,14 +1275,12 @@ function createPointFieldAdapter({
     uniforms.disciplineBackgroundOpacity.value = Number(reveal?.backgroundOpacity ?? 0.06);
     uniforms.disciplineReconnectOpacity.value = Number(reveal?.reconnectOpacity ?? 0.24);
     uniforms.disciplinePointScale.value = Number(reveal?.pointScale ?? 3.6);
+    uniforms.disciplineFieldFogStartWU.value = Number(reveal?.fieldFogStartWU ?? 4.8);
+    uniforms.disciplineFieldFogEndWU.value = Number(reveal?.fieldFogEndWU ?? 10.5);
+    uniforms.disciplineFieldFogStrength.value = Number(reveal?.fieldFogStrength ?? 0.8);
+    uniforms.disciplineFieldFogWeight.value = fieldFogWeight;
 
     if (overlay) {
-      const nextAriaHidden = visibleLabels > 0 ? 'false' : 'true';
-      if (nextAriaHidden !== lastDisciplineAriaHidden) {
-        overlay.setAttribute('aria-hidden', nextAriaHidden);
-        lastDisciplineAriaHidden = nextAriaHidden;
-        runtimeObserver.hotFrameDomWrite();
-      }
       if (revealAvailable && anchorSamplingExact) {
         camera.updateMatrixWorld(true);
         anchorSampleInput.fromTransform = uniforms.fromTransform.value;
@@ -1301,6 +1332,16 @@ function createPointFieldAdapter({
           anchorToPosition.z = fixedAttributes.targetPosition.array[pointOffset + 2];
           anchorSampleInput.pointSeed = fixedAttributes.pointSeed.array[pointIndex];
           sampleAboutNarrativeAnchorPosition(anchorSampleInput, anchorSampleTarget);
+          const fogProgress = smoothRange(
+            Math.abs(anchorSampleTarget.z - camera.position.z),
+            uniforms.disciplineFieldFogStartWU.value,
+            uniforms.disciplineFieldFogEndWU.value,
+          );
+          const labelReveal = disciplineLabelBaseReveal[group - 1] * (1 - (
+            fieldFogWeight * uniforms.disciplineFieldFogStrength.value * fogProgress
+          ));
+          writeDisciplineRevealStyles(group - 1, labelReveal);
+          if (labelReveal > 0.05) visibleLabels += 1;
           disciplinePointScratch.set(
             anchorSampleTarget.x,
             anchorSampleTarget.y,
@@ -1315,6 +1356,9 @@ function createPointFieldAdapter({
         }
       } else if (revealAvailable) {
         for (let group = 1; group <= 6; group += 1) {
+          const labelReveal = disciplineLabelBaseReveal[group - 1];
+          writeDisciplineRevealStyles(group - 1, labelReveal);
+          if (labelReveal > 0.05) visibleLabels += 1;
           writeDisciplinePosition(
             group - 1,
             group % 2 === 0 ? 62 : 26,
@@ -1322,6 +1366,16 @@ function createPointFieldAdapter({
             2,
           );
         }
+      } else {
+        for (let group = 1; group <= 6; group += 1) {
+          writeDisciplineRevealStyles(group - 1, 0);
+        }
+      }
+      const nextAriaHidden = visibleLabels > 0 ? 'false' : 'true';
+      if (nextAriaHidden !== lastDisciplineAriaHidden) {
+        overlay.setAttribute('aria-hidden', nextAriaHidden);
+        lastDisciplineAriaHidden = nextAriaHidden;
+        runtimeObserver.hotFrameDomWrite();
       }
     }
     let visibleDisciplineCount = 0;
@@ -1341,6 +1395,11 @@ function createPointFieldAdapter({
     if (backgroundWeight !== lastGridBackground) {
       root.dataset.worldGridBackground = backgroundWeight.toFixed(4);
       lastGridBackground = backgroundWeight;
+      runtimeObserver.hotFrameDomWrite();
+    }
+    if (fieldFogWeight !== lastDisciplineFog) {
+      root.dataset.worldDisciplineFog = fieldFogWeight.toFixed(4);
+      lastDisciplineFog = fieldFogWeight;
       runtimeObserver.hotFrameDomWrite();
     }
   };
@@ -1433,8 +1492,18 @@ function createPointFieldAdapter({
       camera.updateProjectionMatrix();
     }
     camera.updateMatrixWorld(true);
-    const fromDisciplineRise = resolveDisciplineStoryOffset(frame, fromWorld, fromStoryOffset);
-    const toDisciplineRise = resolveDisciplineStoryOffset(frame, toWorld, toStoryOffset);
+    const fromWorldHasDisciplineAnchors = hasAllDisciplineAnchors(fromDisciplineIndices);
+    const toWorldHasDisciplineAnchors = hasAllDisciplineAnchors(toDisciplineIndices);
+    const fromDisciplineRise = resolveDisciplineStoryOffset(
+      frame,
+      fromStoryOffset,
+      fromWorldHasDisciplineAnchors,
+    );
+    const toDisciplineRise = resolveDisciplineStoryOffset(
+      frame,
+      toStoryOffset,
+      toWorldHasDisciplineAnchors,
+    );
     writeWorldTransform(
       uniforms.fromTransform.value,
       fromWorld,
@@ -1731,6 +1800,7 @@ function createPointFieldAdapter({
       resourceLedger.releaseOwner('fixed-attributes');
       resourceLedger.dispose();
     }
+    runtimeObserver.dispose();
     delete root.dataset.worldStage;
     delete root.dataset.cameraCadence;
     delete root.dataset.pointAsset;
@@ -1755,6 +1825,7 @@ function createPointFieldAdapter({
     delete root.dataset.worldDisciplineLabels;
     delete root.dataset.worldGridBackground;
     delete root.dataset.worldDisciplineRise;
+    delete root.dataset.worldDisciplineFog;
     root.style.removeProperty('--narrative-camera-forward');
     root.style.removeProperty('--narrative-camera-roll');
     root.style.removeProperty('--narrative-camera-fov');

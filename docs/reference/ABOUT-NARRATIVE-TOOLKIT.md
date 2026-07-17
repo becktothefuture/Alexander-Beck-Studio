@@ -167,7 +167,7 @@ Correspondence modes are:
 - `spatial-nearest-v1`: the editor's **Local travel (approx.)** mode; it matches visible points in world space, protects semantic anchors, and accepts only a visibility-aware improvement over the compatible baseline
 - `group-aware`: additionally preserves declared semantic groups such as the six discipline anchors
 
-The current narrative uses Local travel for its five inter-Shape transitions. The mapping is approximate rather than a mathematically global optimum: a deterministic Morton ordering and bounded local repair reduce aggregate and outlier travel without an impractical 12,000-point exact solver.
+The current narrative uses Local travel for its four inter-Shape transitions. The mapping is approximate rather than a mathematically global optimum: a deterministic Morton ordering and bounded local repair reduce aggregate and outlier travel without an impractical 12,000-point exact solver.
 
 Procedural Shape generation and correspondence are prepared cumulatively in a module Worker, never in the RAF loop. The mapped endpoint of A → B becomes the exact source ordering for B → C, keeping point colour, drift phase, presence, and semantic identity continuous across the complete story. Direct seeking compiles the same chain. A complete last-known-good pair stays installed while an edited sequence prepares or fails.
 
@@ -177,7 +177,7 @@ Select a World clip and open **Transition in → Correspondence** to compare Ind
 
 - `cluster-v1`: a spherical complexity cloud
 - `turbulent-field-v1`: an uneven volumetric cloud assembled from weighted chunks, sparse pockets, loose particles, and an organic coordinate warp
-- `calm-field-v1`: a wide horizontal clearing
+- `calm-field-v1`: a wide horizontal clearing whose existing points also provide the six semantic discipline anchors
 - `discipline-grid-v1`: a frontal field with six semantic anchors
 - `living-field-v1`: terrain designed for wave and colour modifiers
 - `bust-v1`: the loaded point bust, with a procedural fallback if its asset fails
@@ -233,7 +233,7 @@ Select an editorial Section, then edit its blocks under **Editorial content**. P
 
 ### Edit the six-discipline reveal
 
-Select the striped **Discipline reveal** clip in the Text lane. The clip may extend across its owning Section boundary so its striped bar visibly describes the handoff into editorial content. Its inspector controls reveal start and label exit, stagger, grid fade, resting grid opacity, point size, label offset, label reveal duration, and the editorial hold. Reorder the six rows to change reveal order without remapping their stable point groups.
+Select the striped **Discipline reveal** clip in the Text lane. The clip may extend across its owning Section boundary so its striped bar visibly describes the handoff into editorial content. **Field handoff** controls set when the unchanged calm field begins and ends its screen-up travel, how far it moves, and where distance fog begins, resolves, and reaches full strength. **Reveal choreography** controls reveal start and label exit, stagger, grid fade, resting grid opacity, point size, label offset, label reveal duration, and the editorial hold. Reorder the six rows to change reveal order without remapping their stable point groups.
 
 The clip is one draggable timing object. Moving it shifts the complete sequence while preserving all internal spacing. The labels are native DOM text, but their positions are projected each frame from the corresponding Three.js grid points. The grid and labels rise together into the beginning of the next editorial Section, then the labels leave while the six coloured points remain. Their palette is fixed to the actual Home simulation ball tokens by semantic group: `1 → --ball-1`, `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`; the editor shows these assignments rather than offering unrelated colour names. Marking an editorial prose block **Reconnect point grid** restores the surrounding grid as that paragraph enters.
 

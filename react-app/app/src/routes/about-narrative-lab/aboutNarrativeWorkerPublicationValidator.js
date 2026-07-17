@@ -49,7 +49,12 @@ function createArrayDescriptors(response) {
     descriptors.push({ outputId: id, attribute: 'presence', kind: 'presence', array: output.presence });
     descriptors.push({ outputId: id, attribute: 'size', kind: 'size', array: output.size });
     Object.entries(output.attributes).forEach(([name, array]) => {
-      descriptors.push({ outputId: id, attribute: name, kind: 'finite', array });
+      descriptors.push({
+        outputId: id,
+        attribute: name,
+        kind: name === 'disciplineGroup' ? 'disciplineGroup' : 'finite',
+        array,
+      });
     });
   });
   return descriptors;
@@ -78,6 +83,13 @@ function validateScalar(descriptor, index) {
   if (descriptor.kind === 'size' && value < 0) {
     throw new AboutNarrativePublicationValidationError(
       `Worker output ${descriptor.outputId} size is negative at index ${index}.`,
+      details,
+    );
+  }
+  if (descriptor.kind === 'disciplineGroup'
+    && (!Number.isInteger(value) || value < 0 || value > 6)) {
+    throw new AboutNarrativePublicationValidationError(
+      `Worker output ${descriptor.outputId} disciplineGroup is invalid at index ${index}.`,
       details,
     );
   }

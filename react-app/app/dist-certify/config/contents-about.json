@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "globals": {
     "scrollSmoothing": 0.82,
     "readingWidthRem": 58,
@@ -499,11 +499,11 @@
           "correspondence": "spatial-nearest-v1"
         },
         "shapeParameters": {
-          "width": 13,
-          "depth": 17,
+          "width": 13.5,
+          "depth": 24,
           "height": -1.72,
           "jitter": 0.035,
-          "density": 0.14
+          "density": 0.18
         },
         "modifiers": [
           {
@@ -529,11 +529,17 @@
       "text": {
         "disciplineReveal": {
           "id": "practice-disciplines",
+          "fieldTravelStart": 0.06,
+          "fieldTravelEnd": 2.7,
+          "fieldTravelWU": 6.8,
+          "fieldFogStartWU": 4.8,
+          "fieldFogEndWU": 10.5,
+          "fieldFogStrength": 0.8,
           "start": 0.32,
           "end": 2.9,
           "stagger": 0.075,
           "backgroundFade": 0.12,
-          "backgroundOpacity": 0.1,
+          "backgroundOpacity": 0.22,
           "reconnectOpacity": 0.24,
           "pointScale": 1.35,
           "labelOffsetPx": 10,
@@ -604,56 +610,7 @@
         ]
       },
       "world": {
-        "mode": "set",
-        "adapterId": "point-field-v1",
-        "shapeId": "discipline-grid-v1",
-        "seed": 506832829,
-        "entryDistanceWU": 0.45,
-        "transform": {
-          "position": [
-            0,
-            0,
-            0
-          ],
-          "rotation": [
-            -1.5708,
-            0,
-            0
-          ],
-          "scale": 0.72,
-          "mobileScale": 0.15
-        },
-        "transitionIn": {
-          "start": 0.02,
-          "end": 0.28,
-          "type": "morph",
-          "easing": "smoothstep",
-          "correspondence": "spatial-nearest-v1"
-        },
-        "shapeParameters": {
-          "width": 12.5,
-          "height": 7.5,
-          "depthJitter": 0.04,
-          "density": 0.18
-        },
-        "modifiers": [
-          {
-            "id": "ambient-drift-v1",
-            "enabled": true,
-            "parameters": {
-              "amplitude": 0.025,
-              "speed": 0.62,
-              "timeMode": "mixed"
-            }
-          },
-          {
-            "id": "group-emphasis-v1",
-            "enabled": true,
-            "parameters": {
-              "strength": 2.8
-            }
-          }
-        ]
+        "mode": "continue"
       },
       "interaction": {
         "type": "none"

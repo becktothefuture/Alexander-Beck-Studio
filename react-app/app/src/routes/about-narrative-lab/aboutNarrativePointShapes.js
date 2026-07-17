@@ -154,7 +154,7 @@ function createCalmField(count, seeds, parameters) {
     positions[offset + 1] = height;
     positions[offset + 2] = z + ((((seeds[index] * 13) % 1) - 0.5) * jitter);
   }
-  return { positions };
+  return { positions, attributes: { disciplineGroup: createDisciplineGroups(count) } };
 }
 
 function createDisciplineGroups(count) {

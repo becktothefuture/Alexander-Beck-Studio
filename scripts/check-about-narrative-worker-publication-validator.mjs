@@ -9,6 +9,13 @@ import {
   AboutNarrativePublicationValidationError,
   validateAboutNarrativeWorkerPublication,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeWorkerPublicationValidator.js';
+import {
+  fingerprintAboutNarrativeOutput,
+  fingerprintAboutNarrativePairInput,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCorrespondenceFingerprint.js';
+import {
+  ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCorrespondenceRegistry.js';
 
 const MATRIX = [
   1, 0, 0, 0,
@@ -51,24 +58,61 @@ function createMetrics(pointCount) {
     totalSquaredDistance: 0,
     rmsDistance: 0,
     weightedRmsDistance: 0,
+    meanDistance: 0,
+    p50Distance: 0,
+    p90Distance: 0,
     p95Distance: 0,
+    p99Distance: 0,
     maxDistance: 0,
+    visibleOnlyTotalDistance: 0,
+    visibleOnlyMeanDistance: 0,
     longPathRatio25: 0,
     longPathRatio50: 0,
     visiblePointCount: pointCount,
     sharedBoundsDiagonal: 1,
+    normalizationScale: 1,
+    normalizedTotalDistance: 0,
+    normalizedMeanDistance: 0,
+    normalizedP50Distance: 0,
+    normalizedP90Distance: 0,
+    normalizedP95Distance: 0,
+    normalizedP99Distance: 0,
+    normalizedMaxDistance: 0,
+    groupMismatchCount: 0,
+    visibleToHiddenCount: 0,
     improvement: 0,
     preparationDurationMs: 0,
+    metricsVersion: ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA.id,
+    units: ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA.distanceUnits,
+    normalizedUnits: ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA.normalizedDistanceUnits,
+    baselineMode: ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA.baselineMode,
+    requestedAlgorithmVersion: '1.0.0',
+    installedAlgorithmVersion: '1.0.0',
+    anchorCount: 0,
+    anchorTotalNormalizedSquaredDistance: 0,
+    anchorMaximumNormalizedDistance: 0,
+    anchorSourceIndices: [],
+    tailGuardCount: 0,
   };
 }
 
 function createResponse(pointCount) {
+  const output = createOutput(pointCount);
+  const fingerprint = fingerprintAboutNarrativeOutput(output);
+  const inputFingerprint = fingerprintAboutNarrativePairInput({
+    fromFingerprint: fingerprint,
+    targetFingerprint: fingerprint,
+    strategyId: 'index-v1',
+    strategyVersion: '1.0.0',
+    fromMatrix: MATRIX,
+    toMatrix: MATRIX,
+  });
   return {
     protocolVersion: ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
     generation: 4,
     sequenceKey: 'publication-validation',
     status: 'success',
-    outputs: [{ id: 'promise', output: createOutput(pointCount) }],
+    outputs: [{ id: 'promise', fingerprint, output }],
     pairs: [{
       pairId: 'promise->promise',
       fromId: 'promise',
@@ -76,6 +120,9 @@ function createResponse(pointCount) {
       requestedStrategy: 'index-v1',
       installedStrategy: 'index-v1',
       fallbackReason: '',
+      inputFingerprint,
+      fromFingerprint: fingerprint,
+      toFingerprint: fingerprint,
       metrics: createMetrics(pointCount),
     }],
     timings: { generationMs: 1, correspondenceMs: 1, totalMs: 2 },
@@ -129,6 +176,7 @@ test('publication scan rejects presence, size, and custom-attribute range failur
     ['presence', 1.1, /presence is outside/],
     ['size', -0.1, /size is negative/],
     ['disciplineGroup', Number.POSITIVE_INFINITY, /non-finite/],
+    ['disciplineGroup', 1.5, /disciplineGroup is invalid/],
   ];
   for (const [attribute, value, pattern] of cases) {
     const response = createResponse(128);

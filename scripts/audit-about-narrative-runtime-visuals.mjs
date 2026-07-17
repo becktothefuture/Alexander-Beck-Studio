@@ -18,10 +18,10 @@ await mkdir(outputDir, { recursive: true });
 
 const checkpoints = [
   { id: 'desktop-turbulent', storyWU: 3.2, sectionId: 'complexity', localProgress: 0.77, stage: 'turbulent-field-v1', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-discipline', storyWU: 8.4, sectionId: 'practice-reveal', localProgress: 0.95, stage: 'discipline-grid-v1', viewport: { width: 1440, height: 1000 } },
-  { id: 'mobile-discipline', storyWU: 8.4, sectionId: 'practice-reveal', localProgress: 0.95, stage: 'discipline-grid-v1', viewport: { width: 390, height: 844 } },
+  { id: 'desktop-discipline', storyWU: 8.4, sectionId: 'practice-reveal', localProgress: 0.95, stage: 'calm-field-v1', viewport: { width: 1440, height: 1000 } },
+  { id: 'mobile-discipline', storyWU: 8.4, sectionId: 'practice-reveal', localProgress: 0.95, stage: 'calm-field-v1', viewport: { width: 390, height: 844 } },
   { id: 'desktop-bust', storyWU: 18.3, sectionId: 'epilogue', localProgress: 0.87, stage: 'bust-v1', viewport: { width: 1440, height: 1000 } },
-  { id: 'reduced-motion-discipline', storyWU: 8.4, sectionId: 'practice-reveal', localProgress: 0.95, stage: 'discipline-grid-v1', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' },
+  { id: 'reduced-motion-discipline', storyWU: 8.4, sectionId: 'practice-reveal', localProgress: 0.95, stage: 'calm-field-v1', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' },
 ];
 
 const evidence = [];
@@ -77,7 +77,7 @@ for (const checkpoint of checkpoints) {
   assert.equal(state.drawCalls, 1);
   assert.equal(state.fixedAttributeIdentityStable, true);
   assert.equal(state.resourceDiagnosticCount, 0);
-  if (checkpoint.stage === 'discipline-grid-v1') assert.equal(state.anchorSampling, 'exact');
+  if (checkpoint.sectionId === 'practice-reveal') assert.equal(state.anchorSampling, 'exact');
   assert.deepEqual(consoleErrors, []);
 
   evidence.push({ ...checkpoint, state, consoleErrors, screenshot });

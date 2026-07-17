@@ -3,6 +3,9 @@ import {
   getAboutNarrativeShapeDefinition,
 } from './aboutNarrativeDefinitions.js';
 import { ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION } from './aboutNarrativeRuntimeConstants.js';
+import {
+  ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA,
+} from './aboutNarrativeCorrespondenceRegistry.js';
 
 export { ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION };
 export const ABOUT_NARRATIVE_WORKER_MAX_ENTRIES = 64;
@@ -37,7 +40,7 @@ const FAILURE_KEYS = new Set([
   'status',
   'error',
 ]);
-const OUTPUT_WRAPPER_KEYS = new Set(['id', 'output']);
+const OUTPUT_WRAPPER_KEYS = new Set(['id', 'fingerprint', 'output']);
 const OUTPUT_KEYS = new Set(['positions', 'presence', 'size', 'attributes', 'bounds', 'fallbackReason']);
 const BOUNDS_KEYS = new Set(['min', 'max']);
 const PAIR_KEYS = new Set([
@@ -47,28 +50,66 @@ const PAIR_KEYS = new Set([
   'requestedStrategy',
   'installedStrategy',
   'fallbackReason',
+  'inputFingerprint',
+  'fromFingerprint',
+  'toFingerprint',
   'metrics',
 ]);
-const METRIC_KEYS = new Set([
+const NUMERIC_METRIC_KEYS = new Set([
   'totalDistance',
   'totalSquaredDistance',
   'rmsDistance',
   'weightedRmsDistance',
+  'meanDistance',
+  'p50Distance',
+  'p90Distance',
   'p95Distance',
+  'p99Distance',
   'maxDistance',
+  'visibleOnlyTotalDistance',
+  'visibleOnlyMeanDistance',
   'longPathRatio25',
   'longPathRatio50',
   'visiblePointCount',
   'sharedBoundsDiagonal',
+  'normalizationScale',
+  'normalizedTotalDistance',
+  'normalizedMeanDistance',
+  'normalizedP50Distance',
+  'normalizedP90Distance',
+  'normalizedP95Distance',
+  'normalizedP99Distance',
+  'normalizedMaxDistance',
+  'groupMismatchCount',
+  'visibleToHiddenCount',
   'improvement',
   'preparationDurationMs',
+  'anchorCount',
+  'anchorTotalNormalizedSquaredDistance',
+  'anchorMaximumNormalizedDistance',
+  'tailGuardCount',
+]);
+const STRING_METRIC_KEYS = new Set([
+  'metricsVersion',
+  'units',
+  'normalizedUnits',
+  'baselineMode',
+  'requestedAlgorithmVersion',
+  'installedAlgorithmVersion',
+]);
+const METRIC_KEYS = new Set([
+  ...NUMERIC_METRIC_KEYS,
+  ...STRING_METRIC_KEYS,
+  'anchorSourceIndices',
 ]);
 const TIMING_KEYS = new Set(['generationMs', 'correspondenceMs', 'totalMs']);
 const ERROR_KEYS = new Set(['category', 'code', 'message']);
 const INSTALLED_STRATEGIES = new Set([
   ...ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
   'constrained-index-v1',
+  'constrained-index-v2',
 ]);
+const FINGERPRINT_PATTERN = /^fnv1a32-v1:[0-9a-f]{8}$/;
 
 function isPlainObject(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -199,6 +240,10 @@ function validateTypedOutput(output, pointCount, label, { scanValues = true } = 
     if (scanValues) {
       for (let index = 0; index < attribute.length; index += 1) {
         if (!Number.isFinite(attribute[index])) throw new Error(`${label} attribute ${name} contains non-finite data.`);
+        if (name === 'disciplineGroup'
+          && (!Number.isInteger(attribute[index]) || attribute[index] < 0 || attribute[index] > 6)) {
+          throw new Error(`${label} attribute disciplineGroup contains invalid group ${String(attribute[index])} at index ${index}.`);
+        }
       }
     }
   });
@@ -213,17 +258,35 @@ function validateTypedOutput(output, pointCount, label, { scanValues = true } = 
   }
 }
 
-function validateMetrics(metrics, label) {
+function validateMetrics(metrics, label, pointCount) {
   assertExactKeys(metrics, METRIC_KEYS, label);
-  METRIC_KEYS.forEach((key) => {
+  NUMERIC_METRIC_KEYS.forEach((key) => {
     if (!Object.hasOwn(metrics, key) || !Number.isFinite(metrics[key]) || metrics[key] < 0) {
       throw new Error(`${label} metric ${key} is invalid.`);
     }
   });
   if (!Number.isInteger(metrics.visiblePointCount)) throw new Error(`${label} visible point count is invalid.`);
+  ['groupMismatchCount', 'visibleToHiddenCount', 'anchorCount', 'tailGuardCount'].forEach((key) => {
+    if (!Number.isInteger(metrics[key])) throw new Error(`${label} metric ${key} must be an integer.`);
+  });
   ['longPathRatio25', 'longPathRatio50', 'improvement'].forEach((key) => {
     if (metrics[key] > 1) throw new Error(`${label} metric ${key} is invalid.`);
   });
+  if (metrics.metricsVersion !== ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA.id
+    || metrics.units !== ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA.distanceUnits
+    || metrics.normalizedUnits !== ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA.normalizedDistanceUnits
+    || metrics.baselineMode !== ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA.baselineMode) {
+    throw new Error(`${label} metrics contract is unsupported.`);
+  }
+  ['requestedAlgorithmVersion', 'installedAlgorithmVersion'].forEach((key) => {
+    assertBoundedString(metrics[key], `${label} ${key}`, 64);
+  });
+  if (!Array.isArray(metrics.anchorSourceIndices)
+    || metrics.anchorSourceIndices.length !== metrics.anchorCount
+    || metrics.anchorSourceIndices.some((value) => !Number.isSafeInteger(value) || value < 0 || value >= pointCount)
+    || new Set(metrics.anchorSourceIndices).size !== metrics.anchorSourceIndices.length) {
+    throw new Error(`${label} anchor source indices are invalid.`);
+  }
 }
 
 function validateFailureResponse(value) {
@@ -263,6 +326,7 @@ export function validateAboutNarrativeWorkerResponse(value, {
   value.outputs.forEach((item, index) => {
     assertExactKeys(item, OUTPUT_WRAPPER_KEYS, `Worker output ${index}`);
     if (item.id !== entries[index].id) throw new Error(`Worker output ${index} is out of order.`);
+    assertBoundedString(item.fingerprint, `Worker output ${index} fingerprint`, 32, FINGERPRINT_PATTERN);
     validateTypedOutput(item.output, pointCount, `Worker output ${item.id}`, { scanValues });
   });
   if (!Array.isArray(value.pairs) || value.pairs.length !== entries.length) {
@@ -280,7 +344,14 @@ export function validateAboutNarrativeWorkerResponse(value, {
     if (typeof pair.fallbackReason !== 'string' || pair.fallbackReason.length > 512) {
       throw new Error(`Worker pair ${index} fallback reason is invalid.`);
     }
-    validateMetrics(pair.metrics, `Worker pair ${index}`);
+    [pair.inputFingerprint, pair.fromFingerprint, pair.toFingerprint].forEach((fingerprint, fingerprintIndex) => {
+      assertBoundedString(fingerprint, `Worker pair ${index} fingerprint ${fingerprintIndex}`, 32, FINGERPRINT_PATTERN);
+    });
+    if (pair.fromFingerprint !== value.outputs[Math.max(0, index - 1)].fingerprint
+      || pair.toFingerprint !== value.outputs[index].fingerprint) {
+      throw new Error(`Worker pair ${index} cumulative fingerprints are inconsistent.`);
+    }
+    validateMetrics(pair.metrics, `Worker pair ${index}`, pointCount);
   });
   assertExactKeys(value.timings, TIMING_KEYS, 'Worker timings');
   TIMING_KEYS.forEach((key) => {

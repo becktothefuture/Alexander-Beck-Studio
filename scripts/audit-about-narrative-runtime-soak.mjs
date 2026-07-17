@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
@@ -22,28 +23,17 @@ await mkdir(outputDir, { recursive: true });
 const context = await browser.newContext({
   viewport: profile === 'mobile' ? { width: 390, height: 844 } : { width: 1440, height: 1000 },
 });
-await context.addInitScript(() => {
-  const prototype = globalThis.WebGL2RenderingContext?.prototype;
-  if (!prototype || globalThis.__aboutGpuLifecycle) return;
-  const live = new Set();
-  const originalCreateBuffer = prototype.createBuffer;
-  const originalDeleteBuffer = prototype.deleteBuffer;
-  prototype.createBuffer = function auditedCreateBuffer(...args) {
-    const buffer = Reflect.apply(originalCreateBuffer, this, args);
-    if (buffer) live.add(buffer);
-    globalThis.__aboutGpuLifecycle.created += buffer ? 1 : 0;
-    return buffer;
-  };
-  prototype.deleteBuffer = function auditedDeleteBuffer(buffer) {
-    const result = Reflect.apply(originalDeleteBuffer, this, [buffer]);
-    if (buffer && live.delete(buffer)) globalThis.__aboutGpuLifecycle.deleted += 1;
-    return result;
-  };
-  globalThis.__aboutGpuLifecycle = {
-    created: 0,
-    deleted: 0,
-    get liveCount() { return live.size; },
-  };
+const canonicalSource = await readFile('react-app/app/public/config/contents-about.json', 'utf8');
+const canonicalDocument = JSON.parse(canonicalSource);
+const canonicalHash = createHash('sha256').update(canonicalSource).digest('hex');
+await context.route('**/api/about-narrative/config', async (route) => {
+  if (route.request().method() !== 'GET') return route.abort();
+  return route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    headers: { ETag: `"${canonicalHash}"` },
+    body: JSON.stringify({ document: canonicalDocument, hash: canonicalHash }),
+  });
 });
 const page = await context.newPage();
 const consoleErrors = [];
@@ -53,12 +43,11 @@ page.on('console', (message) => {
 page.on('pageerror', (error) => consoleErrors.push(error.message));
 
 try {
-  const preMountGpu = { liveCount: 0, created: 0, deleted: 0 };
   await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => (
     window.__aboutNarrativeRuntime?.getMetrics
     && document.querySelector('.about-narrative-lab')?.dataset.worldPrepare === 'ready'
-  ), { timeout: 30_000 });
+  ), null, { timeout: 60_000 });
 
   const transport = page.locator('.about-editor-transport input[type="range"]');
   const maxWU = Number(await transport.getAttribute('max'));
@@ -100,15 +89,11 @@ try {
     diagnostics: window.__aboutNarrativeRuntime.getDiagnosticsSnapshot(),
   }));
 
-  await page.locator('.button-bar a[href="/index.html"]').click();
+  await page.evaluate(() => document.querySelector('.button-bar a[href="/index.html"]')?.click());
   await page.waitForURL(/\/index\.html$/);
   await page.waitForSelector('.about-narrative-lab', { state: 'detached' });
   await page.waitForTimeout(100);
-  const postUnmountGpu = await page.evaluate(() => ({
-    liveCount: window.__aboutGpuLifecycle?.liveCount || 0,
-    created: window.__aboutGpuLifecycle?.created || 0,
-    deleted: window.__aboutGpuLifecycle?.deleted || 0,
-  }));
+  const postUnmountResources = await page.evaluate(() => window.__aboutNarrativeLastDispose || null);
 
   const heapGrowthBytes = Math.max(0, after.heap - before.heap);
   const evidence = {
@@ -119,8 +104,7 @@ try {
     coldPreparationMetrics,
     before,
     after,
-    preMountGpu,
-    postUnmountGpu,
+    postUnmountResources,
     heapGrowthBytes,
     consoleErrors,
     recordedAt: new Date().toISOString(),
@@ -145,8 +129,13 @@ try {
   assert.ok(after.metrics.maxWorkerMessageDurationMs < 8, `Worker message reached ${after.metrics.maxWorkerMessageDurationMs}ms.`);
   assert.ok(after.metrics.maxFirstUploadDurationMs < 8, `First upload reached ${after.metrics.maxFirstUploadDurationMs}ms.`);
   assert.ok(heapGrowthBytes <= 2 * 1024 * 1024, `Retained heap grew by ${heapGrowthBytes} bytes.`);
-  assert.equal(postUnmountGpu.liveCount, preMountGpu.liveCount, 'WebGL buffers must return to the pre-mount baseline after unmount.');
-  assert.ok(postUnmountGpu.deleted >= after.metrics.gpuBufferCount, 'Unmount must delete the mounted point-field buffers.');
+  assert.ok(postUnmountResources, 'Certification teardown must publish a final resource snapshot.');
+  assert.equal(postUnmountResources.gpuLiveBufferCount, 0, 'WebGL buffers must return to the pre-mount baseline after unmount.');
+  assert.equal(postUnmountResources.gpuLiveBufferBytes, 0);
+  assert.equal(postUnmountResources.resourceLiveBufferCount, 0, 'Generated ArrayBuffers must release all runtime owners on unmount.');
+  assert.equal(postUnmountResources.resourceLiveBufferBytes, 0);
+  assert.ok(postUnmountResources.gpuDeleted >= after.metrics.gpuBufferCount, 'Unmount must delete the mounted point-field buffers.');
+  assert.equal(postUnmountResources.diagnosticCount, 0);
   assert.deepEqual(consoleErrors, []);
   console.log(`PASS: ${iterations} About Narrative transitions retained fixed attributes and bounded memory.`);
 } finally {

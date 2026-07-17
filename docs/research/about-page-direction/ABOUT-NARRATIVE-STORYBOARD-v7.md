@@ -68,7 +68,7 @@ The calm field remains broad and still enough to read. It is a pause after the c
 
 ### 04 — Practice reveal
 
-**Existing route section:** `practice-reveal` · spatial constellation · `calm-field-v1` to `discipline-grid-v1`
+**Existing route section:** `practice-reveal` · spatial constellation · continuing `calm-field-v1`
 
 **World-linked labels, in order**
 
@@ -81,11 +81,11 @@ The calm field remains broad and still enough to read. It is a pause after the c
 
 **Visual direction**
 
-At the end of the calm field, the camera pitches into a near-perpendicular view through two readable authored stages while its forward cadence continues. It stays closer than the earlier wide framing so the material does not collapse into tiny dots. The field resolves into a horizontal grid, then the grid begins travelling upward like the opening of an editorial page. Its ordinary points recede while six exact coloured points and their labels appear sequentially with generous vertical rhythm. The six category colours come only from the Home simulation ball palette, in this fixed order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`, `--ball-8`, `--ball-6`. This is one world-linked reveal clip, not six spatial-title Cues.
+At the end of the calm field, the camera pitches into a near-perpendicular view through two readable authored stages while its forward cadence continues. It stays closer than the earlier wide framing so the material does not collapse into tiny dots. The existing field continues without rearranging its points, expands into a deeper sheet, and travels upward through the viewport like the editorial content that follows. Distance fog hides the remote edge so the grid feels continuous rather than visibly finite. Six existing points in the trailing portion of the field gain colour and reveal their labels sequentially with generous vertical rhythm. The grid and labels scroll out together as the next editorial heading enters. The six category colours come only from the Home simulation ball palette, in this fixed order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`, `--ball-8`, `--ball-6`. This is one world-linked reveal clip, not six spatial-title Cues.
 
 ### 05 — Editorial area two
 
-**Existing route section:** `disciplines` · editorial disciplines · continuing `discipline-grid-v1`
+**Existing route section:** `disciplines` · editorial disciplines · continuing `calm-field-v1`
 
 **Visible title**
 
@@ -105,7 +105,7 @@ The labelled grid continues upward into the opening of this editorial section, w
 
 ### 06 — Bringing the idea to life
 
-**Existing route section:** `bringing-life` · spatial living field · `discipline-grid-v1` to `living-field-v1`
+**Existing route section:** `bringing-life` · spatial living field · `calm-field-v1` to `living-field-v1`
 
 **Display copy, in order**
 

@@ -86,6 +86,17 @@ test('canonical About document validates and serializes deterministically', () =
   assert.equal(JSON.parse(serialized).globals.textMotion.perspective, 1600);
 });
 
+test('older drafts inherit new discipline field-handoff controls without becoming invalid', () => {
+  const legacyDraft = structuredClone(canonical);
+  const reveal = legacyDraft.sections[3].text.disciplineReveal;
+  ['fieldTravelStart', 'fieldTravelEnd', 'fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength']
+    .forEach((key) => { delete reveal[key]; });
+  assert.deepEqual(validateAboutNarrativeDocument(legacyDraft).filter((item) => item.level === 'error'), []);
+  const normalized = normalizeAboutNarrativeDocument(legacyDraft).sections[3].text.disciplineReveal;
+  assert.equal(normalized.fieldTravelWU, 6.8);
+  assert.equal(normalized.fieldFogStrength, 0.8);
+});
+
 test('future schema versions stay read-only', () => {
   const future = structuredClone(canonical);
   future.schemaVersion = canonical.schemaVersion + 1;
@@ -116,7 +127,7 @@ test('canonical document preserves the approved eight-part storyboard allocation
   );
   assert.deepEqual(
     canonical.sections.map((section) => section.world.mode === 'set' ? section.world.shapeId : 'continue'),
-    ['cluster-v1', 'turbulent-field-v1', 'calm-field-v1', 'discipline-grid-v1', 'continue', 'living-field-v1', 'continue', 'bust-v1'],
+    ['cluster-v1', 'turbulent-field-v1', 'calm-field-v1', 'continue', 'continue', 'living-field-v1', 'continue', 'bust-v1'],
   );
   assert.equal(canonical.sections[0].text.cues[0].text, 'I help shape complex ideas into emotionally compelling experiences.');
   assert.equal(canonical.sections[2].text.blocks[0].text, 'Perhaps that is why I have always been drawn to the space between aesthetics and technology.');
@@ -133,12 +144,12 @@ test('canonical document preserves the approved eight-part storyboard allocation
   assert.equal(canonical.sections[7].text.prompt, undefined);
 });
 
-test('canonical sequence opts exactly five inter-Shape transitions into local travel', () => {
+test('canonical sequence opts exactly four inter-Shape transitions into local travel', () => {
   const setWorlds = canonical.sections.filter((section) => section.world.mode === 'set');
   assert.equal(setWorlds[0].world.transitionIn.correspondence, 'index-v1');
   assert.deepEqual(
     setWorlds.slice(1).map((section) => section.world.transitionIn.correspondence),
-    new Array(5).fill('spatial-nearest-v1'),
+    new Array(4).fill('spatial-nearest-v1'),
   );
   const plan = compileAboutNarrativeDocument(canonical);
   assert.deepEqual(plan.worldSequence.map((world) => world.sectionId), setWorlds.map((section) => section.id));
@@ -157,10 +168,16 @@ test('discipline reveal owns one extended clip, a paced top-down camera handoff,
   assert.equal(background.camera.keys.at(-1).fov, 48);
   assert.deepEqual(practice.camera.keys[0].offset, background.camera.keys.at(-1).offset);
   assert.deepEqual(disciplines.camera.keys[0].offset, practice.camera.keys.at(-1).offset);
-  assert.ok(Math.abs(practice.world.transform.rotation[0] + (Math.PI / 2)) < 0.0001);
-  assert.equal(practice.world.transitionIn.end < practice.text.disciplineReveal.start, true);
-  assert.equal(practice.world.transform.mobileScale, 0.15);
-  assert.equal(practice.text.disciplineReveal.backgroundOpacity, 0.1);
+  assert.equal(practice.world.mode, 'continue');
+  assert.equal(practice.worldState.changesWorld, false);
+  assert.equal(practice.worldState.activeWorld.sectionId, background.id);
+  assert.equal(background.world.shapeParameters.depth, 24);
+  assert.equal(practice.text.disciplineReveal.fieldTravelStart, 0.06);
+  assert.equal(practice.text.disciplineReveal.fieldTravelEnd, 2.7);
+  assert.equal(practice.text.disciplineReveal.fieldTravelWU, 6.8);
+  assert.ok(practice.text.disciplineReveal.fieldFogStartWU < practice.text.disciplineReveal.fieldFogEndWU);
+  assert.equal(practice.text.disciplineReveal.fieldFogStrength, 0.8);
+  assert.equal(practice.text.disciplineReveal.backgroundOpacity, 0.22);
   assert.equal(practice.text.disciplineReveal.reconnectOpacity, 0.24);
   const revealFrame = sampleAboutNarrativePlan(
     plan,
@@ -174,7 +191,8 @@ test('discipline reveal owns one extended clip, a paced top-down camera handoff,
   assert.ok(editorialHandoffFrame.disciplineReveal.localProgress < practice.text.disciplineReveal.end);
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
   assert.equal(new Set(verticalPositions).size, 6);
-  verticalPositions.slice(1).forEach((value, index) => assert.ok(value - verticalPositions[index] >= 0.14));
+  assert.ok(verticalPositions[0] >= 0.5);
+  verticalPositions.slice(1).forEach((value, index) => assert.ok(value - verticalPositions[index] >= 0.034));
 });
 
 test('discipline colours follow the canonical Home simulation distribution', () => {
@@ -734,7 +752,7 @@ test('World transitions can continue through inherited Sections', () => {
   const sample = sampleAboutNarrativePlan(plan, halfwayWU);
   assert.equal(sample.section.id, extended.sections[6].id);
   assert.ok(Math.abs(sample.world.transitionProgress - 0.5) < 1e-9);
-  assert.equal(sample.world.from.shapeId, extended.sections[3].world.shapeId);
+  assert.equal(sample.world.from.shapeId, extended.sections[2].world.shapeId);
   assert.equal(sample.world.to.shapeId, extended.sections[5].world.shapeId);
 });
 
@@ -849,14 +867,14 @@ test('procedural Shape density preserves the fixed point pool', async () => {
   assert.ok(sparse.presence.reduce((sum, value) => sum + value, 0) < pointCount);
 });
 
-test('discipline grid preserves exactly six visible semantic anchor points', async () => {
+test('calm field preserves exactly six visible semantic anchor points without changing its positions', async () => {
   const pointCount = 5000;
   const output = await generateAboutNarrativeShape({
-    shapeId: 'discipline-grid-v1',
+    shapeId: 'calm-field-v1',
     pointCount,
     seeds: createAboutNarrativeSeeds(pointCount, 506832829),
     quality: 'mobile',
-    parameters: { width: 12.5, height: 7.5, depthJitter: 0.04, density: 0.18 },
+    parameters: { width: 13, depth: 17, height: -1.72, jitter: 0.035, density: 0.14 },
   });
   const groups = [];
   output.attributes.disciplineGroup.forEach((group, index) => {

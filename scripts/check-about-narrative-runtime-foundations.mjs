@@ -68,7 +68,7 @@ function failure(category, message = category) {
 }
 
 test('runtime constants protect point profiles, caches, retry policy, and nine fixed attributes', () => {
-  assert.equal(ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION, 1);
+  assert.equal(ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION, 2);
   assert.equal(ABOUT_NARRATIVE_POINT_PROFILES.desktop.pointCount, 12000);
   assert.equal(ABOUT_NARRATIVE_POINT_PROFILES.mobile.pointCount, 5000);
   assert.deepEqual(ABOUT_NARRATIVE_CACHE_LIMITS.shape, { maxEntries: 8, maxBytes: 4 * 1024 * 1024 });

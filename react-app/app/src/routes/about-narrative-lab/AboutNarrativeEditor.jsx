@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import {
   ABOUT_NARRATIVE_GLOBAL_CONTROLS,
-  ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
   ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS,
   ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS,
   ABOUT_NARRATIVE_EMPHASIS_TONES,
@@ -34,11 +33,21 @@ import {
   saveAboutNarrativeSource,
   writeAboutNarrativeCheckpoint,
   writeAboutNarrativeRecoveryDraft,
+  compareAboutNarrativeDocuments,
 } from './aboutNarrativePersistence.js';
 import {
   assertValidAboutNarrativeDocument,
   cloneAboutNarrativeDocument,
+  migrateAboutNarrativeDocument,
 } from './aboutNarrativeSchema.js';
+import { resolveAboutNarrativeCapabilities } from './aboutNarrativeCapabilities.js';
+import {
+  createAboutNarrativeDiagnosticExport,
+  resolveAboutNarrativePairStatus,
+} from './aboutNarrativePairStatus.js';
+import {
+  ABOUT_NARRATIVE_CORRESPONDENCE_STRATEGIES,
+} from './aboutNarrativeCorrespondenceRegistry.js';
 import {
   getAboutNarrativeCueMovement,
   getAboutNarrativeCueMotionInterval,
@@ -1532,6 +1541,15 @@ function CueInspector({ store, snapshot, section, clipboard, setClipboard }) {
   );
 }
 
+const DISCIPLINE_FIELD_HANDOFF_CONTROL_IDS = new Set([
+  'fieldTravelStart',
+  'fieldTravelEnd',
+  'fieldTravelWU',
+  'fieldFogStartWU',
+  'fieldFogEndWU',
+  'fieldFogStrength',
+]);
+
 function DisciplineRevealInspector({ store, snapshot, section }) {
   const sectionIndex = getSectionIndex(snapshot.document, section.id);
   const reveal = section.text.disciplineReveal;
@@ -1541,6 +1559,10 @@ function DisciplineRevealInspector({ store, snapshot, section }) {
   }, { coalesceKey, selection: snapshot.selection });
   const occupied = ((reveal.items.length - 1) * reveal.stagger) + reveal.labelDuration + reveal.hold;
   const limitsFor = (control) => {
+    if (control.id === 'fieldTravelStart') return { min: control.min, max: Math.max(control.min, reveal.fieldTravelEnd - control.step) };
+    if (control.id === 'fieldTravelEnd') return { min: Math.min(control.max, reveal.fieldTravelStart + control.step), max: control.max };
+    if (control.id === 'fieldFogStartWU') return { min: control.min, max: Math.max(control.min, reveal.fieldFogEndWU - control.step) };
+    if (control.id === 'fieldFogEndWU') return { min: Math.min(control.max, reveal.fieldFogStartWU + control.step), max: control.max };
     if (control.id === 'start') return { min: control.min, max: Math.max(control.min, reveal.end - occupied) };
     if (control.id === 'end') return { min: Math.min(control.max, reveal.start + occupied), max: control.max };
     if (control.id === 'stagger') return {
@@ -1557,26 +1579,35 @@ function DisciplineRevealInspector({ store, snapshot, section }) {
     };
     return { min: control.min, max: control.max };
   };
+  const renderControl = (control) => {
+    const limits = limitsFor(control);
+    return (
+      <NumberProperty
+        key={control.id}
+        label={control.label}
+        value={reveal[control.id]}
+        min={limits.min}
+        max={limits.max}
+        step={control.step}
+        unit={control.unit}
+        onChange={(value) => update(`Change ${control.label}`, (draft) => { draft[control.id] = value; }, `discipline-reveal:${section.id}:${control.id}`)}
+      />
+    );
+  };
   return (
     <>
       <header><span>Text sequence</span><strong>Discipline reveal</strong></header>
       <p className="about-editor-help">One clip controls the complete six-point sequence. Drag its striped block in the Text lane to move every reveal together.</p>
+      <details open><summary>Field handoff</summary>
+        <p className="about-editor-help">The camera creates the tilt. These controls move the unchanged field upward like an editorial sheet and hide its distant edge in fog.</p>
+        {ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS
+          .filter((control) => DISCIPLINE_FIELD_HANDOFF_CONTROL_IDS.has(control.id))
+          .map(renderControl)}
+      </details>
       <details open><summary>Reveal choreography</summary>
-        {ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS.map((control) => {
-          const limits = limitsFor(control);
-          return (
-            <NumberProperty
-              key={control.id}
-              label={control.label}
-              value={reveal[control.id]}
-              min={limits.min}
-              max={limits.max}
-              step={control.step}
-              unit={control.unit}
-              onChange={(value) => update(`Change ${control.label}`, (draft) => { draft[control.id] = value; }, `discipline-reveal:${section.id}:${control.id}`)}
-            />
-          );
-        })}
+        {ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS
+          .filter((control) => !DISCIPLINE_FIELD_HANDOFF_CONTROL_IDS.has(control.id))
+          .map(renderControl)}
       </details>
       <details open><summary>Reveal order and labels</summary>
         <div className="about-editor-discipline-items">
@@ -1707,14 +1738,11 @@ function CameraInspector({ store, snapshot, section }) {
   );
 }
 
-const CORRESPONDENCE_LABELS = Object.freeze({
-  'index-v1': 'Index order',
-  'stable-seed': 'Stable seed',
-  'spatial-nearest-v1': 'Local travel (approx.)',
-  'group-aware': 'Group aware',
-});
+const CORRESPONDENCE_LABELS = Object.freeze(Object.fromEntries(
+  ABOUT_NARRATIVE_CORRESPONDENCE_STRATEGIES.map((strategy) => [strategy.id, strategy.label]),
+));
 
-function WorldInspector({ store, snapshot, section, runtimeMetrics }) {
+function WorldInspector({ store, snapshot, section, runtimeMetrics, runtime }) {
   const sectionIndex = getSectionIndex(snapshot.document, section.id);
   if (section.world.mode !== 'set') {
     return <><header><span>World track</span><strong>Inherited World</strong></header><p className="about-editor-help">This Section keeps the previous World. Choose “Create World clip” only when the shape should change here.</p><button type="button" className="about-editor-wide-action" onClick={() => store.commit('Create World clip', (draft) => {
@@ -1732,16 +1760,24 @@ function WorldInspector({ store, snapshot, section, runtimeMetrics }) {
     .reverse()
     .find((item) => item.world.mode === 'set');
   const sourceShape = ABOUT_NARRATIVE_SHAPE_DEFINITIONS[previousWorldSection?.world.shapeId || world.shapeId];
-  const prepared = runtimeMetrics?.preparedWorldIds?.includes(section.id);
-  const correspondenceStatus = runtimeMetrics?.correspondenceSequenceState === 'failed'
-    ? 'Failed'
-    : runtimeMetrics?.correspondenceSequenceState === 'loading'
-      ? 'Preparing'
-      : prepared
-        ? runtimeMetrics?.correspondenceFallback && runtimeMetrics?.correspondenceToWorldId === section.id
-          ? 'Baseline fallback'
-          : 'Ready'
-        : 'Preparing';
+  const pairStatus = resolveAboutNarrativePairStatus({
+    plan: snapshot.compiledPlan,
+    sectionId: section.id,
+    diagnostics: runtimeMetrics?.diagnostics,
+  });
+  const transitionOptions = ['morph', 'dissolve-morph', 'crossfade', 'hold', 'cut'].map((type) => ({
+    type,
+    capability: resolveAboutNarrativeCapabilities({
+      sourceAdapterId: previousWorldSection?.world.adapterId || world.adapterId,
+      targetAdapterId: world.adapterId,
+      sourceShapeId: previousWorldSection?.world.shapeId || world.shapeId,
+      targetShapeId: world.shapeId,
+      transition: { ...world.transitionIn, type },
+      interaction: section.interaction,
+      rendererProfile: { maximumConcurrentGroups: 1, maximumDrawCalls: 1, pointPoolContract: 'fixed-point-pool-v1' },
+      reducedMotion: snapshot.previewProfile === 'reduced-motion',
+    }),
+  }));
   const update = (label, mutate, coalesceKey = null) => store.commit(label, (draft) => mutate(draft.sections[sectionIndex].world), { coalesceKey, selection: snapshot.selection });
   const tryShape = (shapeId) => store.beginTry(`Replace Shape with ${ABOUT_NARRATIVE_SHAPE_DEFINITIONS[shapeId].label}`, (draft) => {
     const target = draft.sections[sectionIndex].world;
@@ -1772,11 +1808,36 @@ function WorldInspector({ store, snapshot, section, runtimeMetrics }) {
           <p className="about-editor-help">Timing is relative to this Section: 1 is its end; values above 1 continue across inherited World Sections. The next World begins at {transitionLimit.toFixed(3)}.</p>
           <NumberProperty label="Start" value={world.transitionIn.start} min={0} max={transitionMax} step={0.005} unit="× section" onChange={(value) => update('Change transition start', (draft) => { draft.transitionIn.start = Math.min(value, draft.transitionIn.end); })} />
           <NumberProperty label="End" value={world.transitionIn.end} min={0} max={transitionMax} step={0.005} unit="× section" onChange={(value) => update('Change transition end', (draft) => { draft.transitionIn.end = Math.max(value, draft.transitionIn.start); })} />
-          <Property label="Type"><select value={world.transitionIn.type} onChange={(event) => update('Change transition type', (draft) => { draft.transitionIn.type = event.target.value; })}><option value="morph">Morph</option><option value="dissolve-morph">Dissolve morph</option><option value="crossfade">Crossfade</option><option value="hold">Hold</option></select></Property>
+          <Property label="Type"><select aria-describedby={`about-transition-help-${section.id}`} value={world.transitionIn.type} onChange={(event) => update('Change transition type', (draft) => { draft.transitionIn.type = event.target.value; })}>{transitionOptions.map(({ type, capability }) => <option value={type} key={type} disabled={!capability.supported}>{type === 'dissolve-morph' ? 'Dissolve morph' : `${type[0].toUpperCase()}${type.slice(1)}`}{capability.supported ? '' : ' — unavailable'}</option>)}</select></Property>
+          <p id={`about-transition-help-${section.id}`} className="about-editor-help">Start marks where an animated overlap begins. Cut switches at Start; Hold keeps the source until End. Morph moves compatible points, while Dissolve morph also resolves density through presence and size. Unavailable choices fail capability preflight and are never substituted.</p>
           <Property label="Easing"><select value={world.transitionIn.easing} onChange={(event) => update('Change transition easing', (draft) => { draft.transitionIn.easing = event.target.value; })}><option value="linear">Linear</option><option value="smoothstep">Smoothstep</option><option value="ease-in">Ease in</option><option value="ease-out">Ease out</option><option value="ease-in-out">Ease in out</option><option value="hold">Hold</option></select></Property>
           <p className="about-editor-help">Maps {sourceShape?.label || 'previous Shape'} → {shape?.label || world.shapeId}.</p>
-          <Property label="Correspondence"><select aria-label="Correspondence" value={world.transitionIn.correspondence} disabled={!correspondenceEnabled} title={correspondenceEnabled ? 'Choose how source points are assigned to target points.' : 'Correspondence applies to Morph and Dissolve morph transitions.'} onChange={(event) => update('Change correspondence', (draft) => { draft.transitionIn.correspondence = event.target.value; })}>{ABOUT_NARRATIVE_CORRESPONDENCE_MODES.map((mode) => <option value={mode} key={mode}>{CORRESPONDENCE_LABELS[mode] || mode}</option>)}</select></Property>
-          <p className="about-editor-help" role="status" aria-live="polite">Correspondence: {correspondenceStatus}{prepared && runtimeMetrics?.correspondenceToWorldId === section.id && Number.isFinite(runtimeMetrics?.correspondenceImprovement) ? ` · ${Math.round(runtimeMetrics.correspondenceImprovement * 100)}% RMS improvement` : ''}.</p>
+          <Property label="Correspondence"><select aria-label="Correspondence" value={world.transitionIn.correspondence} disabled={!correspondenceEnabled} title={correspondenceEnabled ? 'Choose how source points are assigned to target points.' : 'Correspondence applies to Morph and Dissolve morph transitions.'} onChange={(event) => update('Change correspondence', (draft) => { draft.transitionIn.correspondence = event.target.value; })}>{ABOUT_NARRATIVE_CORRESPONDENCE_STRATEGIES.map((strategy) => <option value={strategy.id} key={strategy.id}>{CORRESPONDENCE_LABELS[strategy.id] || strategy.id}</option>)}</select></Property>
+          <p className={`about-editor-help is-pair-${pairStatus.state}`}>Correspondence: {pairStatus.state}. {pairStatus.message}</p>
+          {['failed', 'fallback'].includes(pairStatus.state) ? <><div className="about-editor-inline-actions">
+            {pairStatus.state === 'failed' ? <button type="button" onClick={() => {
+              const diagnostics = runtime?.getDiagnosticsSnapshot?.();
+              runtime?.retryPreparation?.({
+                sequenceKey: diagnostics?.sequenceKey || snapshot.compiledPlan?.worldSequenceKey,
+                pairId: diagnostics?.pairId || `sequence:${snapshot.compiledPlan?.worldSequenceKey}`,
+                inputFingerprint: diagnostics?.inputFingerprint || snapshot.compiledPlan?.worldSequenceKey,
+              });
+            }}>Retry this pair</button> : null}
+            {pairStatus.state === 'fallback' && pairStatus.record?.installedStrategy && pairStatus.record.installedStrategy !== world.transitionIn.correspondence ? <button type="button" onClick={() => update('Adopt compatible fallback', (draft) => { draft.transitionIn.correspondence = pairStatus.record.installedStrategy; })}>Adopt compatible fallback</button> : null}
+            <button type="button" onClick={() => store.commit('Revert World edit', (draft) => {
+              const baselineWorld = snapshot.baselineDocument.sections.find((item) => item.id === section.id)?.world;
+              if (baselineWorld) draft.sections[sectionIndex].world = cloneAboutNarrativeDocument(baselineWorld);
+            }, { selection: snapshot.selection })}>Revert World edit</button>
+            <button type="button" onClick={() => {
+              const serialized = createAboutNarrativeDiagnosticExport(pairStatus);
+              const url = URL.createObjectURL(new Blob([serialized], { type: 'application/json' }));
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `about-pair-${pairStatus.descriptor?.id || section.id}.json`;
+              link.click();
+              URL.revokeObjectURL(url);
+            }}>Export diagnostics</button>
+          </div><p className="about-editor-help">Retry is targeted at this boundary; because point identity is cumulative, the runtime may rebuild the remaining sequence.</p></> : null}
           <button type="button" className="about-editor-danger" onClick={() => store.commit('Remove World transition', (draft) => {
             const transition = draft.sections[sectionIndex].world.transitionIn;
             transition.start = 0;
@@ -1864,7 +1925,7 @@ function AuditionControls({ store, snapshot }) {
   );
 }
 
-function Inspector({ store, snapshot, timelineOpen, runtimeMetrics, clipboard, setClipboard }) {
+function Inspector({ store, snapshot, timelineOpen, runtimeMetrics, runtime, clipboard, setClipboard }) {
   const inspectorRef = useRef(null);
   const dragRef = useRef(null);
   const lastHeaderClickRef = useRef(null);
@@ -1876,7 +1937,7 @@ function Inspector({ store, snapshot, timelineOpen, runtimeMetrics, clipboard, s
   if (snapshot.selection.type === 'cue') content = <CueInspector store={store} snapshot={snapshot} section={section} clipboard={clipboard} setClipboard={setClipboard} />;
   if (snapshot.selection.type === 'discipline-reveal') content = <DisciplineRevealInspector store={store} snapshot={snapshot} section={section} />;
   if (snapshot.selection.type === 'camera-key') content = <CameraInspector store={store} snapshot={snapshot} section={section} />;
-  if (snapshot.selection.type === 'world') content = <WorldInspector store={store} snapshot={snapshot} section={section} runtimeMetrics={runtimeMetrics} />;
+  if (snapshot.selection.type === 'world') content = <WorldInspector store={store} snapshot={snapshot} section={section} runtimeMetrics={runtimeMetrics} runtime={runtime} />;
   if (snapshot.selection.type === 'interaction') content = <SectionInspector store={store} snapshot={snapshot} section={section} />;
 
   useEffect(() => {
@@ -2008,16 +2069,34 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
   const [pathVisible, setPathVisible] = useState(false);
   const [directorView, setDirectorView] = useState(false);
   const [mobilePane, setMobilePane] = useState('sequence');
+  const [politeAnnouncement, setPoliteAnnouncement] = useState('');
+  const [assertiveAnnouncement, setAssertiveAnnouncement] = useState('');
   const [timelineOpen, setTimelineOpen] = useState(() => (
     window.localStorage.getItem(ABOUT_EDITOR_TIMELINE_STORAGE_KEY) !== 'closed'
   ));
   const importRef = useRef(null);
+  const recoveryRef = useRef(null);
+  const conflictRef = useRef(null);
   const snapshotRef = useRef(snapshot);
   const activeSelection = snapshot.selection;
 
   useEffect(() => {
     snapshotRef.current = snapshot;
   }, [snapshot]);
+
+  useEffect(() => {
+    if (snapshot.saveState.status === 'saved') setPoliteAnnouncement('About Narrative saved.');
+    if (snapshot.saveState.status === 'failed') setAssertiveAnnouncement(`Save failed. ${snapshot.saveState.message || ''}`.trim());
+    if (snapshot.saveState.status === 'conflict') setAssertiveAnnouncement('Source changed. Local work is preserved; choose how to continue.');
+  }, [snapshot.saveState.message, snapshot.saveState.status]);
+
+  useEffect(() => {
+    if (snapshot.recoveryState.available) recoveryRef.current?.focus();
+  }, [snapshot.recoveryState.available]);
+
+  useEffect(() => {
+    if (snapshot.conflictState.available) conflictRef.current?.focus();
+  }, [snapshot.conflictState.available]);
 
   useEffect(() => {
     window.localStorage.setItem(ABOUT_EDITOR_TIMELINE_STORAGE_KEY, timelineOpen ? 'open' : 'closed');
@@ -2031,9 +2110,9 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
       const current = store.getSnapshot();
       if (!current.dirty) store.replaceDocument('Refresh canonical source', document);
       store.setBaseline(document, hash);
-      const recovery = readAboutNarrativeRecoveryDraft();
-      if (recovery && recovery.timestamp > Date.now() - (14 * 86400000)) {
-        store.setRecoveryState({ available: true, draft: recovery, error: '' });
+      const recovery = readAboutNarrativeRecoveryDraft({ baselineHash: hash });
+      if (recovery?.available) {
+        store.setRecoveryState({ available: true, draft: recovery, source: 'storage', error: '' });
       }
     }).catch((error) => store.setSaveState({ status: 'failed', message: error.message }));
     return () => {
@@ -2057,7 +2136,12 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
   }, [activeSelection, rootRef]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setRuntimeMetrics(runtimeRef.current?.getMetrics?.() || null), 500);
+    const interval = window.setInterval(() => {
+      const runtime = runtimeRef.current;
+      const metrics = runtime?.getMetrics?.() || null;
+      const diagnostics = runtime?.getDiagnosticsSnapshot?.() || null;
+      setRuntimeMetrics(metrics ? { ...metrics, diagnostics } : diagnostics ? { diagnostics } : null);
+    }, 500);
     return () => window.clearInterval(interval);
   }, [runtimeRef]);
 
@@ -2065,19 +2149,27 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
     if (!snapshot.dirty) return undefined;
     const timer = window.setTimeout(() => {
       try {
-        writeAboutNarrativeRecoveryDraft(snapshot.document, snapshot.baselineHash);
+        writeAboutNarrativeRecoveryDraft(snapshot.document, snapshot.baselineHash, {
+          selection: snapshot.selection,
+          storyWU: snapshot.transport.storyWU,
+        });
       } catch (error) {
         store.setRecoveryState({ error: `Draft storage failed: ${error.message}` });
       }
     }, 900);
     return () => window.clearTimeout(timer);
-  }, [snapshot.baselineHash, snapshot.dirty, snapshot.document, store]);
+  }, [snapshot.baselineHash, snapshot.dirty, snapshot.document, snapshot.selection, snapshot.transport.storyWU, store]);
 
   useEffect(() => {
     const pagehide = () => {
       const current = snapshotRef.current;
       if (current.dirty) {
-        try { writeAboutNarrativeRecoveryDraft(current.document, current.baselineHash); } catch { /* surfaced by normal autosave */ }
+        try {
+          writeAboutNarrativeRecoveryDraft(current.document, current.baselineHash, {
+            selection: current.selection,
+            storyWU: current.transport.storyWU,
+          });
+        } catch { /* surfaced by normal autosave */ }
       }
     };
     const keydown = (event) => {
@@ -2124,18 +2216,57 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
     const editorUrl = new URL(window.location.href);
     editorUrl.searchParams.set('edit', '1');
     window.history.replaceState(window.history.state, '', `${editorUrl.pathname}${editorUrl.search}${editorUrl.hash}`);
-    const sent = cloneAboutNarrativeDocument(snapshot.document);
+    const submission = store.createSaveSubmission();
     if (snapshot.diagnostics.some((item) => item.level === 'error')) {
       store.setSaveState({ status: 'failed', message: 'Resolve validation errors before saving.' });
       return;
     }
     store.setSaveState({ status: 'saving', message: '' });
     try {
-      const result = await saveAboutNarrativeSource(sent, snapshot.baselineHash);
-      store.markSaved(sent, result.hash);
-      clearAboutNarrativeRecoveryDraft();
+      const result = await saveAboutNarrativeSource(submission.document, submission.baselineHash);
+      const reconciliation = store.markSaved(result.document, result.hash, submission.revision);
+      if (reconciliation.clean) clearAboutNarrativeRecoveryDraft();
+      else {
+        const current = store.getSnapshot();
+        writeAboutNarrativeRecoveryDraft(current.document, current.baselineHash, {
+          selection: current.selection,
+          storyWU: current.transport.storyWU,
+        });
+      }
     } catch (error) {
       store.setSaveState({ status: error.status === 409 ? 'conflict' : 'failed', message: error.message });
+      if (error.status === 409) {
+        store.setConflictState({ available: true, currentHash: error.currentHash || '', remote: null, comparison: null });
+      }
+    }
+  };
+
+  const compareConflictWithSource = async () => {
+    try {
+      const remote = await loadAboutNarrativeSource();
+      const comparison = compareAboutNarrativeDocuments({
+        baseline: snapshot.baselineDocument,
+        local: snapshot.document,
+        remote: remote.document,
+      });
+      store.setConflictState({ available: true, remote, comparison });
+      setPoliteAnnouncement('Source comparison ready. No documents were changed.');
+    } catch (error) {
+      store.setSaveState({ status: 'conflict', message: `Could not compare source: ${error.message}` });
+    }
+  };
+
+  const reloadConflictSource = async () => {
+    if (snapshot.dirty && !window.confirm('Reload the canonical source and leave this local draft available only through Export or recovery?')) return;
+    try {
+      const remote = snapshot.conflictState.remote || await loadAboutNarrativeSource();
+      store.replaceDocument('Reload changed source', remote.document);
+      store.setBaseline(remote.document, remote.hash);
+      store.setConflictState({ available: false, remote: null, comparison: null });
+      store.setSaveState({ status: 'saved', message: '' });
+      setPoliteAnnouncement('Canonical source reloaded.');
+    } catch (error) {
+      store.setSaveState({ status: 'conflict', message: `Could not reload source: ${error.message}` });
     }
   };
 
@@ -2244,24 +2375,65 @@ export default function AboutNarrativeEditor({ store, runtimeRef, rootRef }) {
           <input ref={importRef} hidden type="file" accept="application/json" onChange={async (event) => {
             const file = event.target.files?.[0];
             if (!file) return;
+            let importedOriginal;
             try {
-              const imported = JSON.parse(await file.text());
-              assertValidAboutNarrativeDocument(imported);
-              store.replaceDocument('Import document', imported);
-            } catch (error) { store.setSaveState({ status: 'failed', message: error.message }); }
+              importedOriginal = JSON.parse(await file.text());
+              const loaded = migrateAboutNarrativeDocument(importedOriginal);
+              if (loaded.readOnly) throw Object.assign(new Error('This imported document uses a newer schema and cannot enter editable playback.'), { original: loaded.original });
+              assertValidAboutNarrativeDocument(loaded.document);
+              store.replaceDocument('Import document', loaded.document);
+            } catch (error) {
+              store.setRecoveryState({
+                available: true,
+                draft: {
+                  status: Number(error.original?.schemaVersion) > snapshot.document.schemaVersion ? 'future' : 'invalid',
+                  original: error.original ?? importedOriginal,
+                  reason: error.message,
+                },
+                source: 'import',
+                error: '',
+              });
+              store.setSaveState({ status: 'failed', message: error.message });
+            }
             event.target.value = '';
           }} />
           <button type="button" data-about-editor-save className="is-save" disabled={snapshot.saveState.status === 'saving'} onClick={save}><span>{statusLabel}</span><kbd>⌘S</kbd></button>
         </div>
       </header>
 
-      {snapshot.recoveryState.available ? <div className="about-editor-recovery"><span>An unsaved draft from {new Date(snapshot.recoveryState.draft.timestamp).toLocaleString()} is available.</span><button type="button" onClick={() => { store.replaceDocument('Recover draft', snapshot.recoveryState.draft.document); store.setRecoveryState({ available: false }); }}>Recover as unsaved copy</button><button type="button" onClick={() => { exportAboutNarrativeDocument(snapshot.recoveryState.draft.document, 'contents-about-recovered.json'); }}>Export</button><button type="button" onClick={() => { clearAboutNarrativeRecoveryDraft(); store.setRecoveryState({ available: false }); }}>Discard</button></div> : null}
+      {snapshot.recoveryState.available ? (() => {
+        const recovery = snapshot.recoveryState.draft;
+        const envelope = recovery.envelope || {};
+        const recoverable = ['current', 'stale'].includes(recovery.status) && recovery.document;
+        return <div ref={recoveryRef} tabIndex="-1" className="about-editor-recovery" role="region" aria-labelledby="about-editor-recovery-title">
+          <span id="about-editor-recovery-title"><strong>{recovery.status === 'current' ? 'Current draft available.' : `${recovery.status[0]?.toUpperCase() || ''}${recovery.status.slice(1)} draft.`}</strong> {envelope.timestamp ? `Saved ${new Date(envelope.timestamp).toLocaleString()}. ` : ''}{recovery.reason || ''}</span>
+          {recoverable ? <button type="button" onClick={() => {
+            store.replaceDocument('Recover draft', recovery.document);
+            if (envelope.selection) store.setSelection(envelope.selection);
+            if (Number.isFinite(envelope.storyWU)) store.setTransport({ owner: 'timeline', storyWU: envelope.storyWU, playing: false });
+            store.setRecoveryState({ available: false });
+            setPoliteAnnouncement('Draft recovered as an unsaved copy.');
+          }}>Recover as unsaved copy</button> : null}
+          {recovery.original !== undefined ? <button type="button" onClick={() => exportAboutNarrativeDocument(recovery.original, 'contents-about-recovered.json', { preserveOriginal: true })}>Export original</button> : null}
+          <button type="button" onClick={() => { if (snapshot.recoveryState.source === 'storage') clearAboutNarrativeRecoveryDraft(); store.setRecoveryState({ available: false }); setPoliteAnnouncement('Recovery draft discarded.'); }}>Discard</button>
+        </div>;
+      })() : null}
+      {snapshot.conflictState.available ? <div ref={conflictRef} tabIndex="-1" className="about-editor-save-message is-conflict" role="region" aria-labelledby="about-editor-conflict-title">
+        <strong id="about-editor-conflict-title">Source changed</strong>
+        <span>Local work is untouched. Baseline {snapshot.baselineHash.slice(0, 8) || 'unknown'} · remote {(snapshot.conflictState.remote?.hash || snapshot.conflictState.currentHash || 'unknown').slice(0, 8)}.</span>
+        <button type="button" onClick={() => exportAboutNarrativeDocument(snapshot.document, 'contents-about-local-conflict.json')}>Export local</button>
+        <button type="button" onClick={compareConflictWithSource}>Compare with source</button>
+        <button type="button" onClick={reloadConflictSource}>Reload source</button>
+        {snapshot.conflictState.comparison ? <details><summary>Changed fields</summary><p>Local: {snapshot.conflictState.comparison.localChanges.length}. Remote: {snapshot.conflictState.comparison.remoteChanges.length}.</p><ul>{snapshot.conflictState.comparison.localChanges.slice(0, 12).map((path) => <li key={`local-${path}`}>Local · {path}</li>)}{snapshot.conflictState.comparison.remoteChanges.slice(0, 12).map((path) => <li key={`remote-${path}`}>Remote · {path}</li>)}</ul></details> : null}
+      </div> : null}
       {snapshot.saveState.message ? <div className={`about-editor-save-message is-${snapshot.saveState.status}`}>{snapshot.saveState.message}<button type="button" aria-label="Dismiss message" onClick={() => store.setSaveState({ message: '' })}>×</button></div> : null}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">{politeAnnouncement}</div>
+      <div className="sr-only" role="alert" aria-atomic="true">{assertiveAnnouncement}</div>
 
       {pathVisible ? <CameraPathOverlay snapshot={snapshot} /> : null}
       {directorView ? <div className="about-editor-director-controls"><strong>Director View</strong><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ yaw: -0.08 })}>←</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ pitch: 0.08 })}>↑</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ pitch: -0.08 })}>↓</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ yaw: 0.08 })}>→</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ distance: -0.2 })}>＋</button><button type="button" onClick={() => runtimeRef.current?.nudgeDirector?.({ distance: 0.2 })}>−</button><button type="button" onClick={() => runtimeRef.current?.resetDirector?.()}>Reset</button><small>Temporary inspection only. Published Camera keys are unchanged.</small></div> : null}
 
-      <Inspector store={store} snapshot={snapshot} timelineOpen={timelineOpen} runtimeMetrics={runtimeMetrics} clipboard={clipboard} setClipboard={setClipboard} />
+      <Inspector store={store} snapshot={snapshot} timelineOpen={timelineOpen} runtimeMetrics={runtimeMetrics} runtime={runtimeRef.current} clipboard={clipboard} setClipboard={setClipboard} />
       <button
         type="button"
         className="about-editor-timeline-toggle"

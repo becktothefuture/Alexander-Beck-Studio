@@ -40,6 +40,17 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
+// Layout hydration can vary by a few sub-pixel fractions while fonts settle.
+// Preparation identity is spatial, so retain meaningful 0.001 WU changes but
+// collapse measurement noise that would otherwise supersede the same Worker.
+function canonicalStoryWU(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    throw new TypeError('About narrative sequence identity requires finite World timing.');
+  }
+  return Math.round(number * 1_000) / 1_000;
+}
+
 function createWorldPreparationInput(world) {
   const transform = world.transform || {};
   return {
@@ -50,8 +61,8 @@ function createWorldPreparationInput(world) {
     shapeId: world.shapeId,
     seed: world.seed,
     shapeParameters: cloneIdentityValue(world.shapeParameters || {}),
-    startWU: world.startWU,
-    travelWU: world.travelWU,
+    startWU: canonicalStoryWU(world.startWU),
+    travelWU: canonicalStoryWU(world.travelWU),
     entryDistanceWU: world.entryDistanceWU,
     transform: {
       position: [...(transform.position || [0, 0, 0])],

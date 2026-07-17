@@ -1,3 +1,19 @@
+import {
+  ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA,
+  getAboutNarrativeCorrespondenceStrategyVersion,
+} from './aboutNarrativeCorrespondenceRegistry.js';
+import {
+  getAboutNarrativeCorrespondenceDispatchKey,
+} from './aboutNarrativeCorrespondenceStrategyDispatch.js';
+import {
+  fingerprintAboutNarrativeOutput,
+  fingerprintAboutNarrativePairInput,
+} from './aboutNarrativeCorrespondenceFingerprint.js';
+import {
+  createAboutNarrativeSpatialNearestV2,
+  validateAboutNarrativeV2Output,
+} from './aboutNarrativeCorrespondenceV2.js';
+
 const VISIBLE_THRESHOLD = 0.001;
 const MORTON_SCALE = 1023;
 const COST_EPSILON = 1e-8;
@@ -342,6 +358,9 @@ function calculateMetrics(fromOutput, toOutput, permutation, fromPositions, toPo
   let totalSquaredDistance = 0;
   let weightedSquaredDistance = 0;
   let totalVisibilityWeight = 0;
+  let visibleOnlyTotalDistance = 0;
+  let groupMismatchCount = 0;
+  let visibleToHiddenCount = 0;
   const visibleDistances = [];
   const allIndices = Array.from({ length: permutation.length }, (_, index) => index);
   const sharedBounds = calculateSharedBounds(fromPositions, allIndices, toPositions, allIndices);
@@ -359,12 +378,18 @@ function calculateMetrics(fromOutput, toOutput, permutation, fromPositions, toPo
     const visibilityWeight = Math.max(fromOutput.presence[sourceIndex], toOutput.presence[targetIndex]);
     if (visibilityWeight > VISIBLE_THRESHOLD) {
       visibleDistances.push(distance);
+      visibleOnlyTotalDistance += distance;
       weightedSquaredDistance += squared * visibilityWeight;
       totalVisibilityWeight += visibilityWeight;
     }
+    const sourceGroup = fromOutput.attributes?.disciplineGroup?.[sourceIndex] || 0;
+    const targetGroup = toOutput.attributes?.disciplineGroup?.[targetIndex] || 0;
+    if (sourceGroup !== targetGroup) groupMismatchCount += 1;
+    if (fromOutput.presence[sourceIndex] > VISIBLE_THRESHOLD
+      && toOutput.presence[targetIndex] <= VISIBLE_THRESHOLD) visibleToHiddenCount += 1;
   }
   visibleDistances.sort((a, b) => a - b);
-  const percentileIndex = Math.max(0, Math.ceil(visibleDistances.length * 0.95) - 1);
+  const percentile = (values, quantile) => values[Math.max(0, Math.ceil(values.length * quantile) - 1)] || 0;
   const threshold25 = diagonal * 0.25;
   const threshold50 = diagonal * 0.5;
   const divisor = Math.max(1, visibleDistances.length);
@@ -373,12 +398,51 @@ function calculateMetrics(fromOutput, toOutput, permutation, fromPositions, toPo
     totalSquaredDistance,
     rmsDistance: Math.sqrt(totalSquaredDistance / Math.max(1, permutation.length)),
     weightedRmsDistance: Math.sqrt(weightedSquaredDistance / Math.max(COST_EPSILON, totalVisibilityWeight)),
-    p95Distance: visibleDistances[percentileIndex] || 0,
+    meanDistance: totalDistance / Math.max(1, permutation.length),
+    p50Distance: percentile(visibleDistances, 0.5),
+    p90Distance: percentile(visibleDistances, 0.9),
+    p95Distance: percentile(visibleDistances, 0.95),
+    p99Distance: percentile(visibleDistances, 0.99),
     maxDistance: visibleDistances.at(-1) || 0,
+    visibleOnlyTotalDistance,
+    visibleOnlyMeanDistance: visibleOnlyTotalDistance / Math.max(1, visibleDistances.length),
     longPathRatio25: visibleDistances.filter((distance) => distance > threshold25).length / divisor,
     longPathRatio50: visibleDistances.filter((distance) => distance > threshold50).length / divisor,
     visiblePointCount: visibleDistances.length,
     sharedBoundsDiagonal: diagonal,
+    normalizationScale: diagonal > Number.EPSILON ? diagonal : 1,
+    normalizedTotalDistance: totalDistance / (diagonal > Number.EPSILON ? diagonal : 1),
+    normalizedMeanDistance: (totalDistance / Math.max(1, permutation.length))
+      / (diagonal > Number.EPSILON ? diagonal : 1),
+    normalizedP50Distance: percentile(visibleDistances, 0.5) / (diagonal > Number.EPSILON ? diagonal : 1),
+    normalizedP90Distance: percentile(visibleDistances, 0.9) / (diagonal > Number.EPSILON ? diagonal : 1),
+    normalizedP95Distance: percentile(visibleDistances, 0.95) / (diagonal > Number.EPSILON ? diagonal : 1),
+    normalizedP99Distance: percentile(visibleDistances, 0.99) / (diagonal > Number.EPSILON ? diagonal : 1),
+    normalizedMaxDistance: (visibleDistances.at(-1) || 0) / (diagonal > Number.EPSILON ? diagonal : 1),
+    groupMismatchCount,
+    visibleToHiddenCount,
+  };
+}
+
+function finalizeMetrics(metrics, {
+  requestedStrategy,
+  installedStrategy,
+  anchorObjective = null,
+  tailGuardCount = 0,
+} = {}) {
+  return {
+    ...metrics,
+    metricsVersion: ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA.id,
+    units: ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA.distanceUnits,
+    normalizedUnits: ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA.normalizedDistanceUnits,
+    baselineMode: ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA.baselineMode,
+    requestedAlgorithmVersion: getAboutNarrativeCorrespondenceStrategyVersion(requestedStrategy) || 'runtime-only',
+    installedAlgorithmVersion: getAboutNarrativeCorrespondenceStrategyVersion(installedStrategy) || 'runtime-only',
+    anchorCount: anchorObjective?.sourceIndices?.length || 0,
+    anchorTotalNormalizedSquaredDistance: Number(anchorObjective?.totalNormalizedSquaredDistance || 0),
+    anchorMaximumNormalizedDistance: Number(anchorObjective?.maximumNormalizedDistance || 0),
+    anchorSourceIndices: [...(anchorObjective?.sourceIndices || [])],
+    tailGuardCount,
   };
 }
 
@@ -399,7 +463,17 @@ function candidateIsProtected(candidate, baseline) {
 export function createAboutNarrativeCorrespondence(fromOutput, toOutput, mode = 'index-v1', {
   fromMatrix = IDENTITY_MATRIX,
   toMatrix = IDENTITY_MATRIX,
+  fromId = 'source',
+  toId = 'target',
 } = {}) {
+  const dispatchKey = getAboutNarrativeCorrespondenceDispatchKey(mode);
+  if (dispatchKey === 'spatialV2') {
+    const sourceValidation = validateAboutNarrativeV2Output(fromOutput, `Source Shape ${fromId}`);
+    const targetValidation = validateAboutNarrativeV2Output(toOutput, `Target Shape ${toId}`);
+    if (sourceValidation.count !== targetValidation.count) {
+      throw new Error('Correspondence Shapes must use the same point count.');
+    }
+  }
   const count = validateOutput(fromOutput, 'Source Shape');
   if (validateOutput(toOutput, 'Target Shape') !== count) throw new Error('Correspondence Shapes must use the same point count.');
   const fromPositions = transformPositions(fromOutput.positions, normalizeMatrix(fromMatrix));
@@ -410,10 +484,12 @@ export function createAboutNarrativeCorrespondence(fromOutput, toOutput, mode = 
   let fallbackReason = '';
   let baselinePermutation = identity;
   let candidateMetrics = null;
+  let anchorObjective = null;
+  let tailGuardCount = 0;
 
-  if (mode === 'group-aware') {
+  if (dispatchKey === 'groupAwareV1') {
     permutation = createLegacyGroupAwarePermutation(fromOutput, toOutput);
-  } else if (mode === 'spatial-nearest-v1') {
+  } else if (dispatchKey === 'spatialV1') {
     baselinePermutation = createConstrainedPermutation(fromOutput, toOutput, fromPositions, toPositions, false);
     const candidatePermutation = createConstrainedPermutation(fromOutput, toOutput, fromPositions, toPositions, true);
     const baselineMetrics = calculateMetrics(fromOutput, toOutput, baselinePermutation, fromPositions, toPositions);
@@ -425,6 +501,36 @@ export function createAboutNarrativeCorrespondence(fromOutput, toOutput, mode = 
       installedStrategy = 'constrained-index-v1';
       fallbackReason = 'Spatial candidate regressed a protected travel metric.';
     }
+  } else if (dispatchKey === 'spatialV2') {
+    const candidate = createAboutNarrativeSpatialNearestV2({
+      fromOutput,
+      toOutput,
+      fromPositions,
+      toPositions,
+      fromLabel: `Source Shape ${fromId}`,
+      toLabel: `Target Shape ${toId}`,
+    });
+    anchorObjective = candidate.anchorObjective;
+    baselinePermutation = createConstrainedPermutation(fromOutput, toOutput, fromPositions, toPositions, false);
+    const baselineMetrics = calculateMetrics(fromOutput, toOutput, baselinePermutation, fromPositions, toPositions);
+    candidateMetrics = calculateMetrics(fromOutput, toOutput, candidate.permutation, fromPositions, toPositions);
+    const semanticGuard = candidateMetrics.groupMismatchCount <= baselineMetrics.groupMismatchCount;
+    const visibilityGuard = candidateMetrics.visibleToHiddenCount <= baselineMetrics.visibleToHiddenCount;
+    const continuityImproved = candidateMetrics.groupMismatchCount < baselineMetrics.groupMismatchCount
+      || candidateMetrics.visibleToHiddenCount < baselineMetrics.visibleToHiddenCount;
+    const safeguards = [
+      semanticGuard,
+      visibilityGuard,
+      continuityImproved || candidateIsProtected(candidateMetrics, baselineMetrics),
+    ];
+    tailGuardCount = safeguards.filter((passed) => !passed).length;
+    if (tailGuardCount === 0) {
+      permutation = candidate.permutation;
+    } else {
+      permutation = baselinePermutation;
+      installedStrategy = 'constrained-index-v2';
+      fallbackReason = 'Spatial v2 candidate regressed a semantic, visibility, or protected travel safeguard.';
+    }
   }
 
   validateAboutNarrativePermutation(permutation, count);
@@ -434,9 +540,15 @@ export function createAboutNarrativeCorrespondence(fromOutput, toOutput, mode = 
   const installedRms = metrics.weightedRmsDistance;
   metrics.improvement = baselineRms <= COST_EPSILON ? 0 : Math.max(0, 1 - (installedRms / baselineRms));
   metrics.preparationDurationMs = 0;
+  const completeMetrics = finalizeMetrics(metrics, {
+    requestedStrategy: mode,
+    installedStrategy,
+    anchorObjective,
+    tailGuardCount,
+  });
   return {
     permutation,
-    metrics,
+    metrics: completeMetrics,
     requestedStrategy: mode,
     installedStrategy,
     fallbackReason,
@@ -488,44 +600,83 @@ export function createAboutNarrativeCumulativeSequence(entries) {
   if (!Array.isArray(entries) || !entries.length) throw new Error('A correspondence sequence needs at least one World.');
   let orderedSource = entries[0].output;
   const outputs = [orderedSource];
+  let orderedSourceFingerprint = fingerprintAboutNarrativeOutput(orderedSource);
+  const fingerprints = [orderedSourceFingerprint];
+  const initialMatrix = entries[0].matrix || IDENTITY_MATRIX;
+  const initialPermutation = Uint32Array.from({ length: orderedSource.presence.length }, (_, index) => index);
+  const initialPositions = transformPositions(orderedSource.positions, normalizeMatrix(initialMatrix));
+  const initialMetrics = calculateMetrics(
+    orderedSource,
+    orderedSource,
+    initialPermutation,
+    initialPositions,
+    initialPositions,
+  );
+  initialMetrics.improvement = 0;
+  initialMetrics.preparationDurationMs = 0;
   const pairs = [{
     fromId: entries[0].id,
     toId: entries[0].id,
-    permutation: Uint32Array.from({ length: orderedSource.presence.length }, (_, index) => index),
+    permutation: initialPermutation,
     requestedStrategy: 'index-v1',
     installedStrategy: 'index-v1',
     fallbackReason: '',
-    metrics: {
-      totalDistance: 0,
-      totalSquaredDistance: 0,
-      rmsDistance: 0,
-      weightedRmsDistance: 0,
-      p95Distance: 0,
-      maxDistance: 0,
-      longPathRatio25: 0,
-      longPathRatio50: 0,
-      visiblePointCount: orderedSource.presence.length,
-      sharedBoundsDiagonal: 0,
-      improvement: 0,
-      preparationDurationMs: 0,
-    },
+    inputFingerprint: fingerprintAboutNarrativePairInput({
+      fromFingerprint: orderedSourceFingerprint,
+      targetFingerprint: orderedSourceFingerprint,
+      strategyId: 'index-v1',
+      strategyVersion: getAboutNarrativeCorrespondenceStrategyVersion('index-v1'),
+      fromMatrix: initialMatrix,
+      toMatrix: initialMatrix,
+    }),
+    fromFingerprint: orderedSourceFingerprint,
+    toFingerprint: orderedSourceFingerprint,
+    metrics: finalizeMetrics(initialMetrics, {
+      requestedStrategy: 'index-v1',
+      installedStrategy: 'index-v1',
+    }),
   }];
   for (let index = 1; index < entries.length; index += 1) {
     const fromEntry = entries[index - 1];
     const toEntry = entries[index];
+    const targetFingerprint = fingerprintAboutNarrativeOutput(toEntry.output);
+    const strategyVersion = getAboutNarrativeCorrespondenceStrategyVersion(toEntry.mode);
+    const pairInputFingerprint = fingerprintAboutNarrativePairInput({
+      fromFingerprint: orderedSourceFingerprint,
+      targetFingerprint,
+      strategyId: toEntry.mode,
+      strategyVersion,
+      fromMatrix: fromEntry.matrix || IDENTITY_MATRIX,
+      toMatrix: toEntry.matrix || IDENTITY_MATRIX,
+    });
     const startedAt = globalThis.performance?.now?.() ?? Date.now();
     const result = createAboutNarrativeCorrespondence(
       orderedSource,
       toEntry.output,
       toEntry.mode,
-      { fromMatrix: fromEntry.matrix, toMatrix: toEntry.matrix },
+      {
+        fromMatrix: fromEntry.matrix,
+        toMatrix: toEntry.matrix,
+        fromId: fromEntry.id,
+        toId: toEntry.id,
+      },
     );
     result.metrics.preparationDurationMs = (globalThis.performance?.now?.() ?? Date.now()) - startedAt;
-    pairs.push({ fromId: fromEntry.id, toId: toEntry.id, ...result });
+    const fromFingerprint = orderedSourceFingerprint;
     orderedSource = applyAboutNarrativePermutation(toEntry.output, result.permutation);
+    orderedSourceFingerprint = fingerprintAboutNarrativeOutput(orderedSource);
+    pairs.push({
+      fromId: fromEntry.id,
+      toId: toEntry.id,
+      inputFingerprint: pairInputFingerprint,
+      fromFingerprint,
+      toFingerprint: orderedSourceFingerprint,
+      ...result,
+    });
     outputs.push(orderedSource);
+    fingerprints.push(orderedSourceFingerprint);
   }
-  return { outputs, pairs };
+  return { outputs, fingerprints, pairs };
 }
 
 export function createAboutNarrativeSequenceCorrespondence(entries) {

@@ -19,6 +19,9 @@ function createPairDiagnostics(pair) {
     requestedStrategy: pair.requestedStrategy,
     installedStrategy: pair.installedStrategy,
     fallbackReason: pair.fallbackReason,
+    inputFingerprint: pair.inputFingerprint,
+    fromFingerprint: pair.fromFingerprint,
+    toFingerprint: pair.toFingerprint,
     metrics: pair.metrics,
   };
 }
@@ -80,6 +83,7 @@ export async function prepareAboutNarrativeWorkerResponse(value, {
       status: 'success',
       outputs: cumulative.outputs.map((output, index) => ({
         id: request.entries[index].id,
+        fingerprint: cumulative.fingerprints[index],
         output,
       })),
       pairs: cumulative.pairs.map(createPairDiagnostics),

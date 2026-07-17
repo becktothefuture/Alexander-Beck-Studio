@@ -717,6 +717,8 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-finale-cta.is-actions-only {
+  bottom: clamp(2.25rem, 4.75cqh, 3.75rem);
+  z-index: 3;
   display: flex;
   justify-content: center;
   width: min(calc(100% - 2rem), 32rem);
@@ -738,16 +740,26 @@ body.about-narrative-page .route-simulation-layer {
   justify-content: center;
   min-height: 2.75rem;
   padding: 0.72rem 1rem;
-  border: 1px solid color-mix(in srgb, var(--text-primary) 22%, transparent);
+  border: var(--abs-soft-control-edge-width, 1px) solid color-mix(
+    in srgb,
+    var(--text-primary) var(--abs-soft-control-outline-opacity, 22%),
+    transparent
+  );
   border-radius: 999px;
-  background: color-mix(in srgb, var(--studio-window-bg) 76%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--studio-window-bg) var(--abs-soft-control-fill-opacity, 76%),
+    transparent
+  );
+  box-shadow: 0 0.45rem 1.35rem color-mix(in srgb, var(--text-primary) 8%, transparent);
   color: var(--text-primary);
   font-family: var(--abs-font-mono);
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1;
   text-decoration: none;
-  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(var(--abs-soft-control-blur, 14px)) saturate(var(--abs-soft-control-saturation, 1));
+  backdrop-filter: blur(var(--abs-soft-control-blur, 14px)) saturate(var(--abs-soft-control-saturation, 1));
   transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
 }
 

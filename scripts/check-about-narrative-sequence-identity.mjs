@@ -7,7 +7,10 @@ import {
   getAboutNarrativePreparationRequest,
   sampleAboutNarrativePlan,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCompiler.js';
-import { serializeAboutNarrativeSequenceIdentity } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeSequenceIdentity.js';
+import {
+  createAboutNarrativeWorldPreparationDescriptor,
+  serializeAboutNarrativeSequenceIdentity,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeSequenceIdentity.js';
 
 const configPath = resolve('react-app/app/public/config/contents-about.json');
 const canonical = JSON.parse(await readFile(configPath, 'utf8'));
@@ -23,6 +26,45 @@ test('canonical identity is independent of object key insertion order', () => {
   });
   assert.equal(first, second);
   assert.throws(() => serializeAboutNarrativeSequenceIdentity(Number.NaN), /finite numbers/);
+});
+
+test('sub-pixel layout hydration noise does not restart preparation identity', () => {
+  const baseline = compileAboutNarrativeDocument(canonical, {
+    measurements: {
+      complexity: { topWU: 1.6999931917, extentWU: 2.95 },
+    },
+  });
+  const hydrated = compileAboutNarrativeDocument(canonical, {
+    measurements: {
+      complexity: { topWU: 1.6999965996, extentWU: 2.95 },
+    },
+  });
+  const meaningful = compileAboutNarrativeDocument(canonical, {
+    measurements: {
+      complexity: { topWU: 1.702, extentWU: 2.95 },
+    },
+  });
+
+  assert.equal(hydrated.worldSequenceKey, baseline.worldSequenceKey);
+  assert.notEqual(meaningful.worldSequenceKey, baseline.worldSequenceKey);
+});
+
+test('cumulative end-of-story hydration jitter stays inside one preparation key', () => {
+  const plan = compileAboutNarrativeDocument(canonical);
+  const createSequence = (epilogueStartWU) => plan.worldSequence.map((world) => ({
+    ...world,
+    startWU: world.sectionId === 'epilogue' ? epilogueStartWU : world.startWU,
+  }));
+  const beforeBoundary = createAboutNarrativeWorldPreparationDescriptor({
+    worldSequence: createSequence(16.99994),
+    globals: canonical.globals,
+  });
+  const afterBoundary = createAboutNarrativeWorldPreparationDescriptor({
+    worldSequence: createSequence(17.00001),
+    globals: canonical.globals,
+  });
+
+  assert.equal(beforeBoundary.worldSequenceKey, afterBoundary.worldSequenceKey);
 });
 
 test('compiler creates one deterministic immutable preparation descriptor', () => {

@@ -52,10 +52,12 @@ export function createAboutNarrativeEditorStore(initialDocument, {
     history: { canUndo: false, canRedo: false, undoLabel: '', redoLabel: '' },
     saveState: { status: 'saved', message: '', savedAt: null },
     recoveryState: { available: false, error: '' },
+    conflictState: { available: false, remote: null, comparison: null },
     autoKey: false,
     tryState: null,
     previewState: null,
     dirty: false,
+    revision: 0,
   };
 
   const emit = () => listeners.forEach((listener) => listener());
@@ -72,7 +74,7 @@ export function createAboutNarrativeEditorStore(initialDocument, {
     };
   };
 
-  const compileAndSet = (document, extra = {}) => {
+  const compileAndSet = (document, extra = {}, { incrementRevision = true } = {}) => {
     const plan = compileAboutNarrativeDocument(document, { profile: snapshot.previewProfile });
     snapshot = {
       ...snapshot,
@@ -83,6 +85,7 @@ export function createAboutNarrativeEditorStore(initialDocument, {
       saveState: snapshot.saveState.status === 'saving'
         ? snapshot.saveState
         : { ...snapshot.saveState, status: 'draft' },
+      revision: incrementRevision ? snapshot.revision + 1 : snapshot.revision,
       ...extra,
     };
   };
@@ -291,25 +294,43 @@ export function createAboutNarrativeEditorStore(initialDocument, {
       snapshot = { ...snapshot, saveState: { ...snapshot.saveState, ...saveState } };
       emit();
     },
-    markSaved(document, baselineHash) {
+    createSaveSubmission() {
+      return Object.freeze({
+        document: cloneAboutNarrativeDocument(snapshot.document),
+        baselineHash: snapshot.baselineHash,
+        revision: snapshot.revision,
+      });
+    },
+    markSaved(document, baselineHash, submittedRevision = snapshot.revision) {
       const baselineDocument = cloneAboutNarrativeDocument(document);
+      const newerEditsExist = snapshot.revision !== submittedRevision;
+      const dirty = JSON.stringify(snapshot.document) !== JSON.stringify(baselineDocument);
       snapshot = {
         ...snapshot,
         baselineDocument,
         baselineHash,
-        dirty: JSON.stringify(snapshot.document) !== JSON.stringify(baselineDocument),
-        saveState: { status: 'saved', message: '', savedAt: Date.now() },
+        dirty,
+        saveState: {
+          status: dirty ? 'draft' : 'saved',
+          message: newerEditsExist && dirty ? 'The submitted revision was saved. Newer edits remain in this draft.' : '',
+          savedAt: Date.now(),
+          submittedRevision,
+          persistedRevision: submittedRevision,
+        },
+        conflictState: { available: false, remote: null, comparison: null },
       };
       emit();
+      return Object.freeze({ clean: !dirty, newerEditsExist });
     },
     setBaseline(document, baselineHash) {
       const baselineDocument = cloneAboutNarrativeDocument(document);
+      const dirty = JSON.stringify(snapshot.document) !== JSON.stringify(baselineDocument);
       snapshot = {
         ...snapshot,
         baselineDocument,
         baselineHash,
-        dirty: JSON.stringify(snapshot.document) !== JSON.stringify(baselineDocument),
-        saveState: { status: 'saved', message: '', savedAt: Date.now() },
+        dirty,
+        saveState: { status: dirty ? 'draft' : 'saved', message: '', savedAt: Date.now() },
       };
       emit();
     },
@@ -318,6 +339,10 @@ export function createAboutNarrativeEditorStore(initialDocument, {
     },
     setRecoveryState(recoveryState) {
       snapshot = { ...snapshot, recoveryState: { ...snapshot.recoveryState, ...recoveryState } };
+      emit();
+    },
+    setConflictState(conflictState) {
+      snapshot = { ...snapshot, conflictState: { ...snapshot.conflictState, ...conflictState } };
       emit();
     },
   };

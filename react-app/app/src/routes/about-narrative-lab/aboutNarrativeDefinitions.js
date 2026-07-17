@@ -1,4 +1,10 @@
-export const ABOUT_NARRATIVE_SCHEMA_VERSION = 1;
+import {
+  ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
+} from './aboutNarrativeCorrespondenceRegistry.js';
+
+export { ABOUT_NARRATIVE_CORRESPONDENCE_MODES };
+
+export const ABOUT_NARRATIVE_SCHEMA_VERSION = 2;
 export const ABOUT_NARRATIVE_EDITOR_HEADER = 'about-narrative-v1';
 export const ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES = 1024 * 1024;
 export const ABOUT_NARRATIVE_MAX_TRANSITION_LOCAL = 16;
@@ -23,12 +29,12 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
   '--ball-6',
 ]);
 export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = Object.freeze([
-  Object.freeze({ group: 1, x: 0.14, y: 0.12 }),
-  Object.freeze({ group: 2, x: 0.43, y: 0.27 }),
-  Object.freeze({ group: 3, x: 0.69, y: 0.42 }),
-  Object.freeze({ group: 4, x: 0.2, y: 0.58 }),
-  Object.freeze({ group: 5, x: 0.49, y: 0.73 }),
-  Object.freeze({ group: 6, x: 0.66, y: 0.88 }),
+  Object.freeze({ group: 1, x: 0.36, y: 0.54 }),
+  Object.freeze({ group: 2, x: 0.52, y: 0.575 }),
+  Object.freeze({ group: 3, x: 0.66, y: 0.61 }),
+  Object.freeze({ group: 4, x: 0.4, y: 0.645 }),
+  Object.freeze({ group: 5, x: 0.55, y: 0.68 }),
+  Object.freeze({ group: 6, x: 0.7, y: 0.715 }),
 ]);
 export const ABOUT_NARRATIVE_TRANSITION_TYPES = Object.freeze([
   'morph',
@@ -49,18 +55,17 @@ export const ABOUT_NARRATIVE_CAMERA_EASINGS = Object.freeze([
   'smoothstep',
   'ease-in-out',
 ]);
-export const ABOUT_NARRATIVE_CORRESPONDENCE_MODES = Object.freeze([
-  'index-v1',
-  'stable-seed',
-  'spatial-nearest-v1',
-  'group-aware',
-]);
-
 function numberControl(id, label, min, max, step, unit = '') {
   return Object.freeze({ id, label, type: 'range', min, max, step, unit });
 }
 
 export const ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS = Object.freeze([
+  numberControl('fieldTravelStart', 'Field scroll start', 0, 3.8, 0.01, '× section'),
+  numberControl('fieldTravelEnd', 'Field scroll end', 0.1, 4, 0.01, '× section'),
+  numberControl('fieldTravelWU', 'Field scroll distance', 0, 12, 0.1, 'WU'),
+  numberControl('fieldFogStartWU', 'Distance fog begins', 0, 20, 0.1, 'WU'),
+  numberControl('fieldFogEndWU', 'Distance fog resolves', 0.5, 30, 0.1, 'WU'),
+  numberControl('fieldFogStrength', 'Distance fog strength', 0, 1, 0.01),
   numberControl('start', 'Reveal start', 0, 0.8, 0.005),
   numberControl('end', 'Label exit', 0.2, 4, 0.005),
   numberControl('stagger', 'Stagger', 0.02, 0.16, 0.005),
