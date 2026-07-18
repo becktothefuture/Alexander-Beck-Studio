@@ -62,6 +62,7 @@ const htmlEntryFiles = [
   'react-app/app/palette-lab.html',
 ];
 const designConfigFile = 'react-app/app/public/config/design-system.json';
+const homeRuntimeFile = 'react-app/app/src/legacy/main.js';
 
 function buildRouteUrl(path) {
   const url = new URL(path, `${baseUrl}/`);
@@ -186,6 +187,11 @@ function assertCriticalBootSource() {
     assert(!source.includes('detectBrowserFamily'), `${file}: first paint must not branch frame color by browser`);
     assert(!source.includes('data-abs-light-browser-chrome'), `${file}: obsolete light browser chrome marker returned`);
   }
+
+  const homeRuntimeSource = readFileSync(homeRuntimeFile, 'utf8');
+  assert(homeRuntimeSource.includes('const HOME_CANVAS_READY_TIMEOUT_MS = 3200'), `${homeRuntimeFile}: canvas readiness timeout drifted`);
+  assert(homeRuntimeSource.includes('const HOME_TITLE_PREPARE_GRACE_MS = 1200'), `${homeRuntimeFile}: title preparation grace drifted`);
+  assert(!homeRuntimeSource.includes('45000'), `${homeRuntimeFile}: blocking 45-second runtime readiness loop returned`);
 }
 
 async function readBootSnapshot(page) {
@@ -1008,10 +1014,11 @@ async function auditHomeDirectReplay(browser, profile) {
   const context = await browser.newContext(buildContextOptions(profile));
   const page = await context.newPage();
 
-  await page.goto(buildPlainRouteUrl('/index.html'), { waitUntil: 'domcontentloaded', timeout: timeoutMs });
+  const homeUrl = buildPlainRouteUrl('/index.html?mode=pit');
+  await page.goto(homeUrl, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
   await waitForHomeBootReplay(page, routeLabel, profile);
 
-  await page.reload({ waitUntil: 'domcontentloaded', timeout: timeoutMs });
+  await page.goto(homeUrl, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
   await waitForHomeBootReplay(page, `${routeLabel}-reload`, profile);
 
   await context.close();

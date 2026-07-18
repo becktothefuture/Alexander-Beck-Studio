@@ -230,6 +230,8 @@ function applyHomeHeroRuntimeConfig() {
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 const HOME_POST_BOOT_ENTER_COMPLETE_MS = 3900;
+const HOME_CANVAS_READY_TIMEOUT_MS = 3200;
+const HOME_TITLE_PREPARE_GRACE_MS = 1200;
 let homePostBootEntranceTimer = 0;
 let homePostBootEntranceRaf = 0;
 
@@ -748,19 +750,9 @@ export async function bootstrapHomePage(runtimeContext = {}) {
           void error;
         }
 
-        const bootStartedAt = Number(window.__ABS_BOOT_STARTED_AT__);
-        const bootClockNow = bootStartedAt > 100000000000
-          ? () => Date.now()
-          : () => performance.now();
-        const elapsedMs = Number.isFinite(bootStartedAt) && bootStartedAt > 0
-          ? Math.max(0, bootClockNow() - bootStartedAt)
-          : 0;
-        const readinessTimeoutMs = Math.max(250, 45000 - elapsedMs);
-        const readinessDeadline = performance.now() + readinessTimeoutMs;
-
         const canvasReady = await waitForCanvasReady({
           selector: '#c',
-          timeoutMs: readinessTimeoutMs,
+          timeoutMs: HOME_CANVAS_READY_TIMEOUT_MS,
         });
         if (!canvasReady) {
           throw new Error('Home canvas backing store did not become ready');
@@ -769,17 +761,19 @@ export async function bootstrapHomePage(runtimeContext = {}) {
 
         await waitForFrames(2);
         if (!isCurrent()) return;
+        setHomeSimulationReadyState('true');
 
-        while (isCurrent() && performance.now() < readinessDeadline) {
+        const titlePrepareDeadline = performance.now() + HOME_TITLE_PREPARE_GRACE_MS;
+
+        while (isCurrent() && performance.now() < titlePrepareDeadline) {
           if (isCanvasHomeTitlePrepared()) {
             setHomeCanvasTitlePreparedState(true);
-            setHomeSimulationReadyState('true');
             return;
           }
           await waitForFrames(1);
         }
 
-        throw new Error('Home canvas title geometry did not become ready');
+        setHomeCanvasTitlePreparedState(false);
       };
 
       // Handle bfcache restore (browser back/forward with cached page)
