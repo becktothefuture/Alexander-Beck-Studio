@@ -6,7 +6,10 @@ import {
   getLondonWeatherPaletteAccents,
   resolveLondonWeatherPaletteId,
 } from '../../../palette/londonPalettes.js';
-import { getTimeOfDayPaletteId } from '../../../palette/timeOfDayPalette.js';
+import {
+  TIME_OF_DAY_PALETTE_PERIODS,
+  getTimeOfDayPaletteId,
+} from '../../../palette/timeOfDayPalette.js';
 
 function clamp01(t) {
   const n = Number(t);
@@ -40,29 +43,6 @@ function hexToRgbaString(hex, alpha = 1) {
   if (!rgb) return alpha >= 1 ? '#ffffff' : `rgba(255, 255, 255, ${alpha})`;
   if (alpha >= 1) return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
-}
-
-function rgb01ToHsv({ r, g, b }) {
-  const rr = clamp01(r);
-  const gg = clamp01(g);
-  const bb = clamp01(b);
-
-  const max = Math.max(rr, gg, bb);
-  const min = Math.min(rr, gg, bb);
-  const d = max - min;
-
-  let h = 0;
-  if (d > 0) {
-    if (max === rr) h = ((gg - bb) / d) % 6;
-    else if (max === gg) h = (bb - rr) / d + 2;
-    else h = (rr - gg) / d + 4;
-    h *= 60;
-    if (h < 0) h += 360;
-  }
-
-  const s = max <= 0 ? 0 : (d / max);
-  const v = max;
-  return { h, s, v };
 }
 
 function hsvToRgb01({ h, s, v }) {
@@ -106,9 +86,9 @@ export const COLOR_TEMPLATES = {
   }, {})
 };
 
-export const PALETTE_CHAPTER_ORDER = LONDON_WEATHER_PALETTES.map((palette) => palette.id);
-
-const PALETTE_ROTATION_STORAGE_KEY = 'abs_palette_chapter';
+export const PALETTE_CHAPTER_ORDER = TIME_OF_DAY_PALETTE_PERIODS.map(
+  (period) => period.paletteId,
+);
 
 // Legacy fallback weights (only used if no valid `colorDistribution` is present).
 const LEGACY_COLOR_WEIGHTS = [0.50, 0.25, 0.12, 0.06, 0.03, 0.02, 0.01, 0.01];
@@ -170,16 +150,6 @@ export function resetColorDistributionCoverage() {
 
 export function resolveColorTemplateName(templateName) {
   return resolveLondonWeatherPaletteId(templateName) || DEFAULT_LONDON_WEATHER_PALETTE_ID;
-}
-
-export function getPaletteTemplateOverrideFromUrl() {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = new URLSearchParams(window.location.search).get('palette');
-    return resolveLondonWeatherPaletteId(raw);
-  } catch (_) {
-    return null;
-  }
 }
 
 export function getTimeOfDayPaletteTemplate() {
@@ -294,65 +264,6 @@ function computeRelativeLuminance({ r, g, b }) {
     return val <= 0.04045 ? val / 12.92 : Math.pow((val + 0.055) / 1.055, 2.4);
   };
   return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-}
-
-/**
- * Desaturate greys (indices 0, 1) and align them with background hue
- * This makes greys less colored and more harmonious with the background
- * In dark mode, also darkens the greys for better contrast
- */
-function desaturateGreysToBackground(palette, bgHex, isDarkMode = false) {
-  if (!palette || !Array.isArray(palette)) return palette;
-  const out = [...palette];
-  
-  // Extract hue from background color
-  const bgRgb = hexToRgb01(bgHex);
-  if (!bgRgb) return out;
-  const bgHsv = rgb01ToHsv(bgRgb);
-  
-  // If background is too desaturated (pure grey), use a neutral hue (0)
-  // Otherwise use the background's hue for harmony
-  const bgHue = bgHsv.s < 0.05 ? 0 : bgHsv.h;
-  
-  // Process grey indices (0, 1) - skip neutrals (2 = white, 4 = black)
-  const greyIndices = [0, 1];
-  for (const idx of greyIndices) {
-    const greyHex = out[idx];
-    if (!greyHex) continue;
-    
-    const greyRgb = hexToRgb01(greyHex);
-    if (!greyRgb) continue;
-    const greyHsv = rgb01ToHsv(greyRgb);
-    
-    // Desaturate significantly (reduce to 5-10% of original saturation)
-    // but shift hue to match background for harmony
-    const desaturatedSat = Math.max(0, Math.min(0.15, greyHsv.s * 0.1));
-    
-    // In dark mode, darken the greys (reduce value/lightness by ~40-45%)
-    // This makes them more subtle and better integrated with dark backgrounds
-    let adjustedValue = greyHsv.v;
-    if (isDarkMode) {
-      // Darken: reduce value by ~45% (multiply by 0.55)
-      // Keep a minimum value to ensure they're still visible
-      adjustedValue = Math.max(0.15, greyHsv.v * 0.55);
-    }
-    
-    // Convert back to RGB with desaturated saturation and background hue
-    const desaturatedHsv = {
-      h: bgHue,
-      s: desaturatedSat,
-      v: adjustedValue
-    };
-    
-    const desaturatedRgb = hsvToRgb01(desaturatedHsv);
-    out[idx] = rgb255ToHex({
-      r: Math.round(desaturatedRgb.r * 255),
-      g: Math.round(desaturatedRgb.g * 255),
-      b: Math.round(desaturatedRgb.b * 255)
-    });
-  }
-  
-  return out;
 }
 
 function applyCursorHoverFgVars(cursorHex) {
@@ -591,19 +502,14 @@ export function maybeAutoPickCursorColor(reason = 'auto') {
 }
 
 export function getCurrentPalette(templateName, isDarkOverride) {
-  const globals = getGlobals();
   const template = COLOR_TEMPLATES[resolveColorTemplateName(templateName)];
-  if (!template) return COLOR_TEMPLATES[DEFAULT_LONDON_WEATHER_PALETTE_ID].light;
+  if (!template) return COLOR_TEMPLATES[DEFAULT_LONDON_WEATHER_PALETTE_ID].light.slice();
 
   const isDarkMode = typeof isDarkOverride === 'boolean'
     ? isDarkOverride
-    : Boolean(globals.isDarkMode);
+    : Boolean(getGlobals().isDarkMode);
   const rawPalette = isDarkMode ? template.dark : template.light;
-  
-  // Desaturate greys to align with background hue (all palettes)
-  // In dark mode, also darken the greys for better contrast
-  const bgColor = isDarkMode ? (globals.bgDark || '#181818') : (globals.bgLight || '#efefef');
-  return desaturateGreysToBackground(rawPalette, bgColor, isDarkMode);
+  return rawPalette.slice();
 }
 
 /**
@@ -845,10 +751,7 @@ export function applyColorTemplate(templateName) {
   applyPaletteTheme(resolvedTemplateName);
   globals.currentColors = getCurrentPalette(resolvedTemplateName);
 
-  // Persist for chapter rotation and keep any UI selects in sync.
-  try {
-    localStorage.setItem(PALETTE_ROTATION_STORAGE_KEY, String(resolvedTemplateName || ''));
-  } catch (_) { /* no-op */ }
+  // Keep any development UI selects in sync with the shared schedule.
   try {
     forEachPanelUiDocument((uiDocument) => {
       const select = uiDocument.getElementById('colorSelect');
@@ -886,10 +789,22 @@ export function applyColorTemplate(templateName) {
 function updateExistingBallColors() {
   const globals = getGlobals();
   const balls = globals.balls;
+  const distribution = getDistribution(globals);
 
   for (let i = 0; i < balls.length; i++) {
-    if (balls[i]?._preserveColor) continue;
-    balls[i].color = pickRandomColor();
+    const ball = balls[i];
+    if (!ball) continue;
+    if (ball._preserveColor) {
+      const distributionIndex = Number(ball.distributionIndex);
+      const paletteIndex = Number.isInteger(distributionIndex)
+        ? Number(distribution?.[distributionIndex]?.colorIndex)
+        : NaN;
+      if (Number.isInteger(paletteIndex) && globals.currentColors[paletteIndex]) {
+        ball.color = globals.currentColors[paletteIndex];
+        continue;
+      }
+    }
+    ball.color = pickRandomColor();
   }
 }
 
@@ -951,32 +866,4 @@ export function populateColorSelect() {
 
     select.value = resolveColorTemplateName(globals.currentTemplate);
   });
-}
-
-/**
- * Rotate to the next palette chapter.
- * - Intended to be called once on each page load (before initializeDarkMode()).
- * - Applies only to cursor + balls (via applyColorTemplate in dark-mode init).
- */
-export function rotatePaletteChapterOnReload() {
-  const globals = getGlobals();
-  const order = Array.isArray(PALETTE_CHAPTER_ORDER) && PALETTE_CHAPTER_ORDER.length
-    ? PALETTE_CHAPTER_ORDER
-    : Object.keys(COLOR_TEMPLATES);
-  if (!order.length) return null;
-
-  let lastKey = null;
-  try { lastKey = localStorage.getItem(PALETTE_ROTATION_STORAGE_KEY); } catch (_) {}
-
-  const lastIndex = typeof lastKey === 'string' ? order.indexOf(lastKey) : -1;
-  // First visit (or invalid stored key): start on a random chapter for surprise,
-  // then continue rotating in story order on subsequent reloads.
-  const nextIndex = lastIndex >= 0
-    ? (lastIndex + 1) % order.length
-    : ((Math.random() * order.length) | 0);
-  const nextKey = order[nextIndex];
-
-  globals.currentTemplate = nextKey;
-  try { localStorage.setItem(PALETTE_ROTATION_STORAGE_KEY, nextKey); } catch (_) {}
-  return nextKey;
 }

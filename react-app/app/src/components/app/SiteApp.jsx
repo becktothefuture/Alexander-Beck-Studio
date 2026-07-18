@@ -40,6 +40,7 @@ import {
 import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
 import { useShellRouteTransition } from '../../hooks/useShellRouteTransition.js';
 import { useSiteHaptics } from '../../hooks/useSiteHaptics.js';
+import { useTimeOfDayPaletteSync } from '../../hooks/useTimeOfDayPaletteSync.js';
 import { DevConfigPanelBridge } from './DevConfigPanelBridge.jsx';
 import {
   SimulationFocusChooser,
@@ -65,6 +66,9 @@ import { setupCustomCursor } from '../../legacy/modules/rendering/cursor.js';
 import { applyActiveRouteCursorColor } from '../../legacy/modules/visual/colors.js';
 import { isDarkThemeDocument } from '../../lib/theme-state.js';
 import { getRouteById } from '../../lib/routes.js';
+import { syncTimeOfDayPaletteCssVars } from '../../palette/timeOfDayPalette.js';
+
+syncTimeOfDayPaletteCssVars({ isDarkMode: isDarkThemeDocument() });
 
 function defineRouteDescriptor(routeId, definition) {
   return Object.freeze({ ...getRouteById(routeId), ...definition });
@@ -326,6 +330,7 @@ export function SiteApp() {
   );
 
   useSiteHaptics({ routeId: routeState.route.id });
+  useTimeOfDayPaletteSync(shellRuntimeReady && !isStandaloneRoute);
 
   useLayoutEffect(() => {
     if (isStandaloneRoute) return;

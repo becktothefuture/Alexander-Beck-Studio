@@ -265,20 +265,6 @@ export function setTheme(theme) {
 }
 
 /**
- * Clear color-related localStorage cache
- * Called when wall color system changes to prevent stale color values
- */
-function clearColorCache() {
-  try {
-    // Keep the explicit theme choice; only clear derived palette caches.
-    localStorage.removeItem('abs_palette_chapter');
-    devLog('🗑️ Cleared color-related localStorage cache');
-  } catch (e) {
-    // localStorage unavailable or error
-  }
-}
-
-/**
  * Initialize dark mode system
  */
 export function initializeDarkMode() {
@@ -294,8 +280,6 @@ export function initializeDarkMode() {
   isDarkModeInitialized = true;
 
   // Clear color cache to prevent stale wall color values
-  clearColorCache();
-
   // Sync CSS variables from config FIRST (before theme application)
   syncCssVarsFromConfig();
 

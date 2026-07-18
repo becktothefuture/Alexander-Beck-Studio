@@ -4,6 +4,7 @@ import {
 } from '../../lib/simulationVisualTransition.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { triggerPressure } from '../../legacy/modules/audio/simulation-audio-adapter.js';
+import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
 
 const TAU = Math.PI * 2;
 const SPEED_BUCKET_COUNT = 18;
@@ -11,7 +12,7 @@ const DEFAULT_THEME = {
   light: '#efefef',
   dark: '#202020',
   active: '#202020',
-  palette: ['#a7afb0', '#c6cecf', '#f5f8f6', '#00a5a0', '#031210', '#d7ff2f', '#2c96ff', '#ff7e4a'],
+  palette: getTimeOfDayPaletteColors(),
   colorDistribution: [
     { colorIndex: 0, weight: 31 },
     { colorIndex: 3, weight: 13 },

@@ -6,7 +6,7 @@
 import { CONSTANTS, MODES, NARRATIVE_MODE_SEQUENCE } from './modules/core/constants.js';
 import { setCanvas, getGlobals } from './modules/core/state.js';
 import { getDailyMode } from './modules/core/daily-scheduler.js';
-import { getPaletteTemplateOverrideFromUrl, getTimeOfDayPaletteTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './modules/visual/colors.js';
+import { maybeAutoPickCursorColor } from './modules/visual/colors.js';
 import {
   setupRenderer,
   getCanvas,
@@ -413,14 +413,6 @@ export async function bootstrapHomePage(runtimeContext = {}) {
 
     // Load any saved settings
     loadSettings();
-
-    // Palette chapters: URL override wins for review/screenshot flows.
-    const paletteOverride = getPaletteTemplateOverrideFromUrl();
-    if (paletteOverride) {
-      getGlobals().currentTemplate = paletteOverride;
-    } else {
-      getGlobals().currentTemplate = getTimeOfDayPaletteTemplate() || rotatePaletteChapterOnReload();
-    }
 
     // Initialize sound engine once (no AudioContext yet; unlock requires user gesture)
     initSoundEngine();

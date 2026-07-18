@@ -1,7 +1,7 @@
 import { loadRuntimeConfig } from '../utils/runtime-config.js';
 import { applyPortfolioConfig, loadPortfolioConfig, normalizePortfolioConfig } from './portfolio-config.js';
 import { resolvePortfolioLabelContent } from './portfolio-content.js';
-import { getPaletteTemplateOverrideFromUrl, getPortfolioProjectPaletteColor, getTimeOfDayPaletteTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
+import { getPortfolioProjectPaletteColor, maybeAutoPickCursorColor } from '../visual/colors.js';
 import { getGlobals } from '../core/state.js';
 import { loadRuntimeText } from '../utils/text-loader.js';
 import { applyRuntimeTextToDOM } from '../ui/apply-text.js';
@@ -3250,12 +3250,6 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
   setupOverscrollLock();
   setupCustomCursor();
 
-  const paletteOverride = getPaletteTemplateOverrideFromUrl();
-  if (paletteOverride) {
-    getGlobals().currentTemplate = paletteOverride;
-  } else {
-    getGlobals().currentTemplate = getTimeOfDayPaletteTemplate() || rotatePaletteChapterOnReload();
-  }
   maybeAutoPickCursorColor('startup');
 
   const loadedPortfolioConfig = await loadPortfolioRuntimeConfig();

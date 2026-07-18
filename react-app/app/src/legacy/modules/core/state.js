@@ -15,7 +15,10 @@ import {
   DEFAULT_FRAME_INSET_MOBILE_PX,
   resolveResponsiveFrameInsetPx,
 } from '../visual/frame-inset.js';
-import { getTimeOfDayPalette } from '../../../palette/timeOfDayPalette.js';
+import {
+  getTimeOfDayPalette,
+  getTimeOfDayPaletteColors,
+} from '../../../palette/timeOfDayPalette.js';
 import { getLondonWeatherPaletteAccents } from '../../../palette/londonPalettes.js';
 import {
   BUTTON_BAR_DEFAULTS,
@@ -28,6 +31,7 @@ import {
 } from '../../../lib/mobileSimulationSizing.js';
 
 const timeOfDayPalette = getTimeOfDayPalette();
+const timeOfDayPaletteColors = getTimeOfDayPaletteColors();
 const timeOfDayAccents = getLondonWeatherPaletteAccents(timeOfDayPalette?.id) || {};
 
 // Helper: Convert hex color to "r, g, b" string for CSS rgba()
@@ -482,11 +486,8 @@ const state = {
   // Keep these aligned with the palette selected from the visitor's local time so:
   // - CSS fallback matches JS-driven palette chapters
   // - early paints (before JS applies templates) look correct
-  currentColors: Array.isArray(timeOfDayPalette?.light) ? timeOfDayPalette.light.slice() : ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#f03030', '#0d5cb6', '#ffa000'],
+  currentColors: timeOfDayPaletteColors,
   currentTemplate: timeOfDayPalette?.id || 'portlandHaze',
-  // If true, rotate to the next palette chapter on each reload.
-  // If false, respect `currentTemplate` from runtime config.
-  paletteRotateOnReload: false,
   // Color Distribution (labels ↔ palette indices ↔ weights)
   // Used by `pickRandomColor()` for ALL modes.
   // NOTE: 6 disciplines choose 6 distinct palette indices (0..7). Neutral slots stay dominant.

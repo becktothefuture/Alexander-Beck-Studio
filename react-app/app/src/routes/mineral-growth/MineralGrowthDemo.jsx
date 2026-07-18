@@ -12,7 +12,6 @@ import {
   getLondonWeatherPalette,
   resolveLondonWeatherPaletteId,
 } from '../../palette/londonPalettes.js';
-import { desaturateGreysToBackground } from '../../palette/paletteTransforms.js';
 import { getTimeOfDayPaletteId } from '../../palette/timeOfDayPalette.js';
 import { withBasePath } from '../../lib/base-path.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
@@ -26,17 +25,8 @@ import './mineral-growth.css';
 const CONFIG_URL = withBasePath('/config/mineral-growth-demo.json');
 const DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
 const DEFAULT_MINERAL_GROWTH_PALETTE_ID = getTimeOfDayPaletteId();
-const RAW_DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_MINERAL_GROWTH_PALETTE_ID)?.dark || [
-  '#a7afb0',
-  '#c6cecf',
-  '#f5f8f6',
-  '#00a5a0',
-  '#031210',
-  '#d7ff2f',
-  '#2c96ff',
-  '#ff7e4a',
-];
-const DEFAULT_PALETTE = desaturateGreysToBackground(RAW_DEFAULT_PALETTE, '#f5f5f5', false);
+const RAW_DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_MINERAL_GROWTH_PALETTE_ID)?.dark || [];
+const DEFAULT_PALETTE = RAW_DEFAULT_PALETTE.slice();
 const DEFAULT_COLOR_DISTRIBUTION = [
   { label: 'Product Design', colorIndex: 0, weight: 31 },
   { label: 'Experience Design', colorIndex: 3, weight: 13 },
@@ -97,7 +87,7 @@ function resolveMineralGrowthTheme(designSystem, isDarkMode) {
     light: bgLight,
     dark: bgDark,
     active: activeBg,
-    palette: desaturateGreysToBackground(rawPalette, activeBg, isDarkMode),
+    palette: rawPalette.slice(),
     colorDistribution: Array.isArray(runtime.colorDistribution)
       ? runtime.colorDistribution
       : DEFAULT_THEME_COLORS.colorDistribution,

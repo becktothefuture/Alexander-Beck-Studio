@@ -4,6 +4,7 @@ import {
   normalizeContactRippleConfig,
 } from './contactRippleConfig.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
+import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
 
 const TAU = Math.PI * 2;
 const REDUCED_BURST_MS = 620;
@@ -14,9 +15,8 @@ const BURST_RING_ALPHA_PEAK = 1;
 const KALEIDOSCOPE_DOT_SIZE_VH = 0.6;
 const KALEIDOSCOPE_DOT_AREA_MUL = 1.15;
 const KALEIDOSCOPE_DOT_SIZE_VARIANCE = 0.38;
-const CONFIRMATION_GREEN = '#22c55e';
+const CONFIRMATION_PALETTE_INDEX = 7;
 const COLOR_WAVE_PEAK = 0.94;
-const DEFAULT_PALETTE = ['#a7afb0', '#c6cecf', '#f5f8f6', '#00a5a0', '#031210', '#d7ff2f', '#2c96ff', '#ff7e4a'];
 const DEFAULT_DISTRIBUTION = [
   { colorIndex: 0, weight: 31 },
   { colorIndex: 3, weight: 13 },
@@ -80,7 +80,9 @@ function resolvePalette(theme) {
   const palette = Array.isArray(theme?.palette)
     ? theme.palette.filter(isHexColor)
     : [];
-  return palette.length ? palette : DEFAULT_PALETTE;
+  return palette.length
+    ? palette
+    : getTimeOfDayPaletteColors(new Date(), Boolean(theme?.isDark));
 }
 
 function resolveColorSequence(theme, paletteLength) {
@@ -102,12 +104,16 @@ function resolveColorSequence(theme, paletteLength) {
 
 function createSpriteSet(theme) {
   const palette = resolvePalette(theme);
+  const confirmationColor = palette[CONFIRMATION_PALETTE_INDEX]
+    || palette[palette.length - 1]
+    || '#ffffff';
   return {
     key: getThemeKey(theme, palette),
     palette,
     sequence: resolveColorSequence(theme, palette.length),
     sprites: palette.map(createBallSprite),
-    confirmationSprite: createBallSprite(CONFIRMATION_GREEN),
+    confirmationColor,
+    confirmationSprite: createBallSprite(confirmationColor),
   };
 }
 
@@ -196,7 +202,7 @@ export function createContactRippleRenderer({
   stage.dataset.contactRippleMaxActiveBursts = '0';
   stage.dataset.contactRippleInstance = String(instanceId);
   stage.dataset.contactRippleBurstMode = 'additive-wavefronts';
-  stage.dataset.contactRippleBurstColor = CONFIRMATION_GREEN;
+  stage.dataset.contactRippleBurstColor = spriteSet.confirmationColor;
   stage.dataset.contactRippleBurstOrigin = 'center';
   stage.dataset.contactRipplePointerMode = reducedMotion ? 'disabled-reduced-motion' : 'autonomous-drift';
   stage.dataset.contactRippleRingDirections = 'alternating';
@@ -242,8 +248,14 @@ export function createContactRippleRenderer({
 
   function syncTheme() {
     const theme = getTheme?.();
+    const nextPalette = resolvePalette(theme);
     stage.dataset.contactRippleSurface = String(theme?.active || '');
-    const nextKey = getThemeKey(theme);
+    stage.dataset.contactRipplePaletteId = String(theme?.paletteId || '');
+    stage.dataset.contactRipplePalette = nextPalette.join(',');
+    stage.dataset.contactRippleBurstColor = nextPalette[CONFIRMATION_PALETTE_INDEX]
+      || nextPalette[nextPalette.length - 1]
+      || '';
+    const nextKey = getThemeKey(theme, nextPalette);
     if (nextKey === spriteSet.key) return;
     spriteSet = createSpriteSet(theme);
     stage.dataset.contactRipplePaletteSize = String(spriteSet.palette.length);

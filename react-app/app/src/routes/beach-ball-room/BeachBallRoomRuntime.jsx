@@ -3,7 +3,6 @@ import * as THREE from 'three';
 import { getGlobals } from '../../legacy/modules/core/state.js';
 import {
   getCurrentPalette,
-  getPaletteTemplateOverrideFromUrl,
   getTimeOfDayPaletteTemplate,
   resolveColorTemplateName,
 } from '../../legacy/modules/visual/colors.js';
@@ -17,6 +16,7 @@ import {
 } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
+import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
 import {
   BEACH_BALL_ROOM_DEFAULT_SETTINGS,
   clampBeachBallRoomInteger,
@@ -44,7 +44,7 @@ const IDLE_REST_ANGULAR_SPEED = 0.08;
 const IDLE_REST_HOLD_SECONDS = 0.8;
 const MOTION_DEBUG_INTERVAL_FRAMES = 12;
 const FALLBACK_APPROVED_COLOR_INDICES = Object.freeze([0, 1, 2, 3, 6, 5, 7]);
-const FALLBACK_PALETTE_COLORS = Object.freeze(['#a7afb0', '#c6cecf', '#f5f8f6', '#00a5a0', '#031210', '#d7ff2f', '#2c96ff', '#ff7e4a']);
+const FALLBACK_PALETTE_COLORS = Object.freeze(getTimeOfDayPaletteColors());
 
 const ROOM_SETTING_KEYS = new Set([
   'showRoomLines',
@@ -188,8 +188,7 @@ function buildStripColorSequence(approvedColors, white, allowBlack) {
 function resolvePalette(isDarkMode) {
   const globals = getGlobals();
   const templateId = resolveColorTemplateName(
-    getPaletteTemplateOverrideFromUrl()
-      || globals.currentTemplate
+    globals.currentTemplate
       || getTimeOfDayPaletteTemplate(),
   );
   const colors = getCurrentPalette(templateId, isDarkMode)

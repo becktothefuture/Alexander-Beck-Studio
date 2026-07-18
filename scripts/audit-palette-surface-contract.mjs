@@ -5,12 +5,16 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 import { chromium } from 'playwright';
+import {
+  LONDON_WEATHER_PALETTES,
+  LONDON_WEATHER_PALETTE_MAP,
+} from '../react-app/app/src/palette/londonPalettes.js';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const designSystemPath = resolve(repoRoot, 'react-app/app/public/config/design-system.json');
 const baseUrl = process.env.ABS_PALETTE_AUDIT_URL || 'http://localhost:8012/';
 const shouldStartDevServer = !process.env.ABS_PALETTE_AUDIT_URL;
-const palettes = ['riverMist', 'portlandHaze', 'blueBreak', 'sodiumRain'];
+const palettes = LONDON_WEATHER_PALETTES.map((palette) => palette.id);
 const themes = ['light', 'dark'];
 
 function log(message) {
@@ -149,6 +153,10 @@ async function readContractState(page, palette) {
       colorAccent: cs.getPropertyValue('--color-accent').trim(),
       heroRoleAccent: cs.getPropertyValue('--hero-role-accent').trim(),
       cursorColor: cs.getPropertyValue('--cursor-color').trim(),
+      ballColors: Array.from(
+        { length: 8 },
+        (_, index) => cs.getPropertyValue(`--ball-${index + 1}`).trim(),
+      ),
     };
   }, palette);
 }
@@ -175,6 +183,15 @@ function assertPaletteVariation(rows) {
   }
 }
 
+function assertAuthoredPalette(theme, paletteId, actual) {
+  const expected = LONDON_WEATHER_PALETTE_MAP[paletteId]?.light || [];
+  if (JSON.stringify(actual.ballColors) !== JSON.stringify(expected)) {
+    throw new Error(
+      `${theme}/${paletteId} ball palette drifted: expected ${expected.join(',')}, got ${actual.ballColors.join(',')}`,
+    );
+  }
+}
+
 async function run() {
   const expectedByTheme = loadExpectations();
   const server = await ensureDevServer();
@@ -187,7 +204,6 @@ async function run() {
       await context.addInitScript((forcedTheme) => {
         localStorage.setItem('theme-preference-v3', forcedTheme);
         localStorage.removeItem('theme-preference');
-        localStorage.removeItem('abs_palette_chapter');
       }, theme);
       const page = await context.newPage();
       await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
@@ -200,6 +216,7 @@ async function run() {
       for (const palette of palettes) {
         const actual = await readContractState(page, palette);
         assertSurfaceContract(theme, palette, actual, expectedByTheme[theme]);
+        assertAuthoredPalette(theme, palette, actual);
         rows.push({ theme, palette, ...actual });
       }
 

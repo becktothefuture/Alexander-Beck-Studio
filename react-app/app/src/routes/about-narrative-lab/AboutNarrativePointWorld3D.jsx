@@ -38,6 +38,7 @@ import {
 } from './aboutNarrativeWorldIdentity.js';
 import { getGlobals } from '../../legacy/modules/core/state.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
+import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
 import { createAboutNarrativeRuntimeResources } from 'virtual:about-narrative-resource-tools';
 import { createAboutNarrativeRuntimeObserver } from 'virtual:about-narrative-runtime-observer';
 
@@ -328,6 +329,10 @@ function getMaterialDistribution() {
 
 function syncMaterialPalette(uniforms, styles) {
   const distribution = getMaterialDistribution();
+  const fallbackPalette = getTimeOfDayPaletteColors(
+    new Date(),
+    document.documentElement.classList.contains('dark-mode'),
+  );
   const weights = distribution.map((row) => Number(row.weight));
   const total = weights.reduce((sum, weight) => sum + weight, 0) || 1;
   let cumulative = 0;
@@ -338,7 +343,11 @@ function syncMaterialPalette(uniforms, styles) {
     const color = readColorToken(
       styles,
       `--ball-${colorIndex + 1}`,
-      readColorToken(styles, `--ball-${fallbackIndex + 1}`, '#ffffff'),
+      readColorToken(
+        styles,
+        `--ball-${fallbackIndex + 1}`,
+        fallbackPalette[colorIndex] || fallbackPalette[fallbackIndex] || '#ffffff',
+      ),
     );
     uniforms[`materialColor${index + 1}`].value.setStyle(color);
     cumulative += weights[index] / total;
@@ -346,7 +355,9 @@ function syncMaterialPalette(uniforms, styles) {
       uniforms[`materialThreshold${index + 1}`].value = cumulative;
     }
   });
-  const disciplineFallbacks = ['#b5b7b6', '#00695c', '#ffffff', '#0d5cb6', '#ffa000', '#d7ff2f'];
+  const disciplineFallbacks = [0, 3, 2, 6, 7, 5].map(
+    (paletteIndex) => fallbackPalette[paletteIndex] || '#ffffff',
+  );
   ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS.forEach((token, index) => {
     uniforms[`disciplineColor${index + 1}`].value.setStyle(
       readColorToken(styles, token, disciplineFallbacks[index]),
@@ -543,18 +554,18 @@ function createPointFieldAdapter({
     fromBust: { value: 0 },
     toBust: { value: 0 },
     bustYaw: { value: 0 },
-    materialColor1: { value: new THREE.Color('#b5b7b6') },
-    materialColor2: { value: new THREE.Color('#00695c') },
-    materialColor3: { value: new THREE.Color('#ffffff') },
-    materialColor4: { value: new THREE.Color('#0d5cb6') },
-    materialColor5: { value: new THREE.Color('#ffa000') },
-    materialColor6: { value: new THREE.Color('#d7ff2f') },
-    disciplineColor1: { value: new THREE.Color('#b5b7b6') },
-    disciplineColor2: { value: new THREE.Color('#00695c') },
-    disciplineColor3: { value: new THREE.Color('#ffffff') },
-    disciplineColor4: { value: new THREE.Color('#0d5cb6') },
-    disciplineColor5: { value: new THREE.Color('#ffa000') },
-    disciplineColor6: { value: new THREE.Color('#d7ff2f') },
+    materialColor1: { value: new THREE.Color() },
+    materialColor2: { value: new THREE.Color() },
+    materialColor3: { value: new THREE.Color() },
+    materialColor4: { value: new THREE.Color() },
+    materialColor5: { value: new THREE.Color() },
+    materialColor6: { value: new THREE.Color() },
+    disciplineColor1: { value: new THREE.Color() },
+    disciplineColor2: { value: new THREE.Color() },
+    disciplineColor3: { value: new THREE.Color() },
+    disciplineColor4: { value: new THREE.Color() },
+    disciplineColor5: { value: new THREE.Color() },
+    disciplineColor6: { value: new THREE.Color() },
     disciplineBackgroundColor: { value: new THREE.Color('#8b8f92') },
     materialThreshold1: { value: 0.31 },
     materialThreshold2: { value: 0.44 },

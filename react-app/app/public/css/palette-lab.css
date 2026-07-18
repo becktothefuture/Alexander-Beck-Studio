@@ -141,7 +141,7 @@ body.palette-lab-page .palette-lab-card__name {
 body.palette-lab-page .palette-lab__lede,
 body.palette-lab-page .palette-lab__strapline,
 body.palette-lab-page .palette-lab__story,
-body.palette-lab-page .palette-lab__open-link {
+body.palette-lab-page .palette-lab__schedule {
   margin: 0;
   font-family: var(--abs-font-sans);
 }
@@ -276,28 +276,18 @@ body.palette-lab-page .palette-lab-band__swatch {
   background: var(--palette-lab-swatch);
 }
 
-body.palette-lab-page .palette-lab__open-link {
+body.palette-lab-page .palette-lab__schedule {
   display: inline-flex;
   width: fit-content;
   align-items: center;
   min-height: var(--ui-icon-frame-size);
+  margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
+  font-family: var(--abs-font-mono);
   font-size: var(--text-sm);
   color: rgba(var(--abs-rgb-white), 0.82);
-  text-decoration: underline;
-  text-decoration-color: rgba(var(--abs-rgb-white), 0.28);
-  text-underline-offset: var(--size-0.28);
-  transition:
-    color var(--ui-chrome-fill-transition-duration),
-    text-decoration-color var(--ui-chrome-fill-transition-duration);
-}
-
-body.palette-lab-page .palette-lab__open-link:hover,
-body.palette-lab-page .palette-lab__open-link:focus-visible {
-  color: rgba(var(--abs-rgb-white), 0.98);
-  text-decoration-color: rgba(var(--abs-rgb-white), 0.62);
 }
 
 body.palette-lab-page .palette-lab__preview {
@@ -316,6 +306,24 @@ body.palette-lab-page .palette-lab-still__image {
   width: 100%;
   aspect-ratio: 4 / 5;
   object-fit: cover;
+}
+
+body.palette-lab-page .palette-lab-still__palette {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(var(--space-ms), 2vw, var(--space-xl));
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  padding: clamp(var(--space-lg), 4vw, var(--space-3xl));
+  align-content: center;
+}
+
+body.palette-lab-page .palette-lab-still__swatch {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--palette-lab-swatch);
 }
 
 body.palette-lab-page .palette-lab__preview-caption {

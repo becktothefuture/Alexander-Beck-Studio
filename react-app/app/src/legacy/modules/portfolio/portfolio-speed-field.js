@@ -1,3 +1,5 @@
+import { getTimeOfDayPaletteColors } from '../../../palette/timeOfDayPalette.js';
+
 const DPR_CAP = 2;
 const REFERENCE_AREA = 1440 * 900;
 const FULL_INTENSITY_VELOCITY = 7;
@@ -118,7 +120,10 @@ export class PortfolioParticleField {
       if (color) this.colors.push(color);
     }
     if (!this.colors.length) {
-      this.colors.push('#b5b7b6', '#00695c', '#d7ff2f', '#0d5cb6', '#ffa000');
+      this.colors.push(...getTimeOfDayPaletteColors(
+        new Date(),
+        document.documentElement.classList.contains('dark-mode'),
+      ));
     }
     if (this.width && this.height) {
       this.seedParticles();

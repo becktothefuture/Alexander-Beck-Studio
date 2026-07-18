@@ -12,12 +12,13 @@ import {
   isMobileSimulationViewport,
   resolveMobileSimulationBodyScale,
 } from '../../lib/mobileSimulationSizing.js';
+import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
 const DEFAULT_THEME = {
   active: '#202020',
-  palette: ['#a7afb0', '#c6cecf', '#f5f8f6', '#00a5a0', '#031210', '#d7ff2f', '#2c96ff', '#ff7e4a'],
+  palette: getTimeOfDayPaletteColors(),
   colorDistribution: [
     { colorIndex: 0, weight: 31 },
     { colorIndex: 3, weight: 13 },

@@ -22,16 +22,7 @@ import './concept-simulations-runtime.css';
 import './concept-simulations.css';
 
 const DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
-const DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_LONDON_WEATHER_PALETTE_ID)?.dark || [
-  '#a7afb0',
-  '#c6cecf',
-  '#f5f8f6',
-  '#00a5a0',
-  '#031210',
-  '#d7ff2f',
-  '#2c96ff',
-  '#ff7e4a',
-];
+const DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_LONDON_WEATHER_PALETTE_ID)?.dark || [];
 const DEFAULT_COLOR_DISTRIBUTION = [
   { label: 'Product Design', colorIndex: 0, weight: 31 },
   { label: 'Experience Design', colorIndex: 3, weight: 13 },

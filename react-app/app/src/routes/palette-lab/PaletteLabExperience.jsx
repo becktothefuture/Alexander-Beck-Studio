@@ -1,8 +1,25 @@
 import { startTransition, useState } from 'react';
-import { buildRouteHref } from '../../lib/routes.js';
 import { LONDON_WEATHER_PALETTES } from './palette-lab-data.js';
 
 function PaletteLabStill({ concept }) {
+  if (!concept.screenshot) {
+    return (
+      <div
+        className="palette-lab-still__palette"
+        role="img"
+        aria-label={`${concept.name} exact production palette`}
+      >
+        {concept.palette.light.map((color) => (
+          <span
+            key={`${concept.id}-preview-${color}`}
+            className="palette-lab-still__swatch"
+            style={{ '--palette-lab-swatch': color }}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="palette-lab-still">
       <img
@@ -105,17 +122,16 @@ export function PaletteLabExperience() {
             <PaletteBand label="Day" colors={active.palette.light} />
             <PaletteBand label="Night" colors={active.palette.dark} />
           </div>
-          <a
-            className="palette-lab__open-link"
-            href={buildRouteHref('home', { searchParams: { palette: active.slug } })}
-          >
-            Open live simulation with this palette
-          </a>
+          <p className="palette-lab__schedule">
+            Live globally {active.schedule?.hours || 'outside the scheduled cycle'}
+          </p>
         </div>
         <div className="palette-lab__preview">
           <PaletteLabStill concept={active} />
           <div className="palette-lab__preview-caption">
-            Live still from the home simulation, forced into the palette-aware pit scene.
+            {active.screenshot
+              ? 'Live still from the Home simulation.'
+              : 'Exact production colours; the live simulation follows the global schedule.'}
           </div>
         </div>
       </section>

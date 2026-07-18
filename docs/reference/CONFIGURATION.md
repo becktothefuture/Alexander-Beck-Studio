@@ -39,6 +39,8 @@ The root build checks the shared HTML entry shell before flattening and Vite. A 
 
 Shared visual finish belongs in `shell`. Page namespaces own composition, page-specific motion, and content geometry. When one value renders through multiple paths—such as DOM plus Canvas—update and verify every path.
 
+The production ball palette is resolved once by the shared shell from the visitor's local time of day. Eight palettes fill the 24-hour cycle in three-hour periods beginning at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00. Home, Portfolio, About, and Contact consume that live result; route config and URL parameters do not override it. The Palette Lab documents the same schedule and specimens, but it is not production design truth.
+
 Loaders and normalizers live under `src/legacy/modules/utils/` and route-specific runtime folders. Flattening is implemented in `scripts/lib/flatten-design-config.mjs`; the no-write comparison is `scripts/check-design-config.mjs`.
 
 ### Theme and browser-frame token boundary

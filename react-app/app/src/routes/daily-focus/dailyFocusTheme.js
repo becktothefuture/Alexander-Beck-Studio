@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   getLondonWeatherPalette,
-  resolveLondonWeatherPaletteId,
 } from '../../palette/londonPalettes.js';
-import { desaturateGreysToBackground } from '../../palette/paletteTransforms.js';
 import { getTimeOfDayPaletteId } from '../../palette/timeOfDayPalette.js';
 import { withBasePath } from '../../lib/base-path.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
@@ -14,19 +12,8 @@ import {
 
 export const DAILY_FOCUS_DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
 
-const DEFAULT_DAILY_FOCUS_PALETTE_ID = getTimeOfDayPaletteId();
-
-const RAW_DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_DAILY_FOCUS_PALETTE_ID)?.dark || [
-  '#a7afb0',
-  '#c6cecf',
-  '#f5f8f6',
-  '#00a5a0',
-  '#031210',
-  '#d7ff2f',
-  '#2c96ff',
-  '#ff7e4a',
-];
-const DEFAULT_PALETTE = desaturateGreysToBackground(RAW_DEFAULT_PALETTE, '#f5f5f5', false);
+const RAW_DEFAULT_PALETTE = getLondonWeatherPalette(getTimeOfDayPaletteId())?.dark || [];
+const DEFAULT_PALETTE = RAW_DEFAULT_PALETTE.slice();
 
 const DEFAULT_COLOR_DISTRIBUTION = [
   { label: 'Product Design', colorIndex: 0, weight: 31 },
@@ -56,15 +43,12 @@ export async function loadDailyFocusJson(url, fallback) {
   }
 }
 
-export function resolveDailyFocusTheme(designSystem, isDarkMode = false) {
+export function resolveDailyFocusTheme(
+  designSystem,
+  isDarkMode = false,
+  paletteId = getTimeOfDayPaletteId(),
+) {
   const runtime = designSystem?.runtime || {};
-  const paletteId = resolveLondonWeatherPaletteId(
-    runtime.paletteId
-      || runtime.palette
-      || runtime.paletteTemplate
-      || runtime.paletteSlug
-      || DEFAULT_DAILY_FOCUS_PALETTE_ID,
-  ) || DEFAULT_DAILY_FOCUS_PALETTE_ID;
   const palette = getLondonWeatherPalette(paletteId);
   const bgLight = runtime.bgLight || DEFAULT_DAILY_FOCUS_THEME.light;
   const bgDark = runtime.bgDark || DEFAULT_DAILY_FOCUS_THEME.dark;
@@ -77,7 +61,9 @@ export function resolveDailyFocusTheme(designSystem, isDarkMode = false) {
     light: bgLight,
     dark: bgDark,
     active: activeBg,
-    palette: desaturateGreysToBackground(rawPalette, activeBg, isDarkMode),
+    isDark: isDarkMode,
+    paletteId,
+    palette: rawPalette.slice(),
     colorDistribution: Array.isArray(runtime.colorDistribution)
       ? runtime.colorDistribution
       : DEFAULT_DAILY_FOCUS_THEME.colorDistribution,
@@ -89,9 +75,17 @@ export function resolveDailyFocusTheme(designSystem, isDarkMode = false) {
 
 export function useDailyFocusTheme(designSystem) {
   const isDark = useRenderedThemeIsDark();
+  const [paletteId, setPaletteId] = useState(() => getTimeOfDayPaletteId());
+
+  useEffect(() => {
+    const handlePaletteChange = () => setPaletteId(getTimeOfDayPaletteId());
+    window.addEventListener('bb:paletteChanged', handlePaletteChange);
+    return () => window.removeEventListener('bb:paletteChanged', handlePaletteChange);
+  }, []);
+
   return useMemo(
-    () => resolveDailyFocusTheme(designSystem, isDark),
-    [designSystem, isDark],
+    () => resolveDailyFocusTheme(designSystem, isDark, paletteId),
+    [designSystem, isDark, paletteId],
   );
 }
 

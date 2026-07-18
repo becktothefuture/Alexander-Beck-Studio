@@ -144,6 +144,8 @@ async function readRippleState(page) {
       maxActiveBursts: Number(stage?.dataset.contactRippleMaxActiveBursts || 0),
       burstMode: stage?.dataset.contactRippleBurstMode || '',
       burstColor: stage?.dataset.contactRippleBurstColor || '',
+      paletteId: stage?.dataset.contactRipplePaletteId || '',
+      palette: (stage?.dataset.contactRipplePalette || '').split(',').filter(Boolean),
       burstOrigin: stage?.dataset.contactRippleBurstOrigin || '',
       lastBurstOrigin: stage?.dataset.contactRippleLastBurstOrigin || '',
       bodyCount: Number(stage?.dataset.contactRippleBodyCount || 0),
@@ -249,7 +251,12 @@ function assertLayout(state, viewport) {
   assert(state.coreFadeRadius > state.bodyRadius * 10, 'Contact core fade is unexpectedly narrow', state);
   assert(state.burstRelease === 'smoothstep-tail', 'Contact burst is missing its eased release phase', state);
   assert(state.burstMode === 'additive-wavefronts', 'Contact ripple does not use additive wavefront launches', state);
-  assert(state.burstColor.toLowerCase() === '#22c55e', 'Contact ripple burst is not using the confirmation green wave color', state);
+  assert(state.paletteId, 'Contact ripple did not expose the shared time-of-day palette', state);
+  assert(
+    state.palette.map((color) => color.toLowerCase()).includes(state.burstColor.toLowerCase()),
+    'Contact ripple burst color is outside the shared time-of-day palette',
+    state,
+  );
   assert(state.burstOrigin === 'center', 'Contact ripple burst is not configured to originate from the Contact field center', state);
   assert(state.ballFinish === 'flat-fill', 'Contact balls still expose a shaded rim treatment', state);
   assert(state.pointerMode === 'autonomous-drift', 'Contact pointer influence is still active', state);

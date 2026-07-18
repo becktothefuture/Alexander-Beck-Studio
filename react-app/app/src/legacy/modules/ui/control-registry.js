@@ -5941,17 +5941,10 @@ export function generateColorTemplateSectionHTML({ open = false } = {}) {
       <div class="panel-section-content">
         <label class="control-row">
           <div class="control-row-header">
-            <span class="control-label">Color Template</span>
+            <span class="control-label">Scheduled Palette</span>
             <span class="control-value"></span>
           </div>
-          <select id="colorSelect"></select>
-        </label>
-        <label class="control-row">
-          <div class="control-row-header">
-            <span class="control-label">Rotate on Reload</span>
-            <span class="control-value"></span>
-          </div>
-          <input id="paletteRotateOnReload" type="checkbox" />
+          <select id="colorSelect" aria-label="Current scheduled palette" disabled></select>
         </label>
       </div>
     </details>`;

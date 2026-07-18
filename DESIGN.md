@@ -84,6 +84,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 - Manual site theme affects the studio-window interior only. The exposed band, physical frame, preloader, and stable outer shell use opaque true black (`#000000`) in every site theme, browser scheme, browser family, and display gamut. The separate wall surface remains `#141414`.
 - The Button Bar belongs to the dark outer shell. Its unselected route tabs, sound, theme, and reset controls must not derive material or ink from the studio window or route body text. The active primary route pill is the explicit exception: it matches the resolved studio-window background and carries fully opaque inverse theme ink; unselected route labels remain visibly faded on the outer shell.
 - Route accents remain stable: Home green, Work acid, About blue, Contact orange.
+- Simulation colours have one time-of-day owner. Home, Work, About Me, and Contact consume the same resolved ball palette, update together on the eight three-hour boundaries at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00 visitor-local time, and do not select route- or config-specific palette overrides.
 - Neutrals dominate simulations. Use acid, blue, orange, and green as controlled focal material.
 - Grain, vignette, and the contrast veil should make the window feel physical without muddying type or flattening surface separation.
 - All normal text must meet WCAG 2.2 AA contrast in both themes. Do not use opacity as the only way to create hierarchy when it makes the resolved color fail.
