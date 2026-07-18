@@ -4858,7 +4858,6 @@ html[data-abs-instrument-wake] #simulations::after {
 }
 
 html.simulation-focus-modal-open .window-overlay-layer,
-html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-layer,
 body.portfolio-page--locked .window-overlay-layer {
   opacity: 1;
   visibility: visible;
@@ -4866,7 +4865,6 @@ body.portfolio-page--locked .window-overlay-layer {
 }
 
 html.simulation-focus-modal-open .window-overlay-blur-layer,
-html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-blur-layer,
 body.portfolio-page--locked .window-overlay-blur-layer {
   -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
   backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
@@ -4888,6 +4886,22 @@ body.portfolio-page--locked .window-overlay-content-layer {
   pointer-events: auto;
 }
 
+/* A chooser selection hands straight back to the live simulation. Keep the
+   modal layers fully out of the scale-down/scale-up transition, even before
+   React has finished unmounting the chooser from the persistent shell. */
+html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-layer {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: none;
+}
+
+html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-blur-layer {
+  -webkit-backdrop-filter: blur(0);
+  backdrop-filter: blur(0);
+  background-color: transparent;
+}
+
 /* The legacy controller still owns chooser phase/depth timing, but its
    viewport layers must not paint above the in-window overlay system. */
 html.simulation-focus-modal-open #modal-blur-layer,
@@ -4905,7 +4919,6 @@ html.portfolio-access-gate-closing #modal-content-layer {
 
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
   html.simulation-focus-modal-open .window-overlay-blur-layer,
-  html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-blur-layer,
   body.portfolio-page--locked .window-overlay-blur-layer {
     -webkit-backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
     backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));

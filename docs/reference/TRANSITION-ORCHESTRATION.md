@@ -32,8 +32,9 @@ Canonical engineering contract for route and modal transitions.
 
 - `useShellRouteTransition` is the sole owner of simulation handoff state through `<html data-abs-simulation-focus-transition="prepare|out|hold|in">`.
 - The chooser may own `simulation-focus-modal-open` only while its dialog is mounted. Providers must not create a second global handoff or blur-suppression class.
+- Selecting a different simulation dismisses the chooser and its backdrop immediately. The `out|hold|in` handoff stays unobscured so the existing material scale-down/scale-up transition remains visible.
 - Route-backed runtime preloading runs inside the transition transaction so load failure, history navigation, preemption, and unmount share the same cleanup path.
-- The handoff blur is scoped to `data-shell-route="home"`; it must never affect Portfolio, About Me, Contact, or another route if state becomes stale.
+- Simulation handoff state must never paint a modal blur on Home or affect Portfolio, About Me, Contact, or another route if state becomes stale.
 - Completion, failure, normal route navigation, `popstate`, and unmount all remove the simulation phase, discard retained snapshots when interrupted, restore shell surfaces, and dismiss the legacy backdrop. The in-window layer is the only visible fade surface.
 
 ## 4) Direct-load boot overlay

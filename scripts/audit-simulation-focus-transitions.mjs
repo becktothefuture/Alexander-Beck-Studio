@@ -493,8 +493,11 @@ function checkFrame(frame, imageStats, { enforceShellUi = true } = {}) {
     if (legacyBlurVisible) {
       issues.push('legacy-fullpage-blur-visible-during-simulation-handoff');
     }
-    if (!windowBlurVisible) {
-      issues.push('window-blur-missing-during-simulation-handoff');
+    if (windowBlurVisible) {
+      issues.push('window-blur-visible-during-simulation-handoff');
+    }
+    if (state.modalActive || state.modalClosing) {
+      issues.push('simulation-chooser-visible-during-simulation-handoff');
     }
   }
 

@@ -119,7 +119,7 @@ export function SimulationFocusProvider({
   const routeIdRef = useRef(routeId);
   const returnFocusRef = useRef(null);
   const closeTimerRef = useRef(null);
-  const selectionTimerRef = useRef(null);
+  const selectionFrameRef = useRef(null);
   const [focusState, setFocusState] = useState(() => getResolvedSimulationFocus());
   const [homeMode, setHomeMode] = useState(readUrlMode);
   const [optimisticActiveId, setOptimisticActiveId] = useState(null);
@@ -133,9 +133,9 @@ export function SimulationFocusProvider({
 
   useEffect(() => {
     routeIdRef.current = routeId;
-    if (selectionTimerRef.current !== null) {
-      window.clearTimeout(selectionTimerRef.current);
-      selectionTimerRef.current = null;
+    if (selectionFrameRef.current !== null) {
+      window.cancelAnimationFrame(selectionFrameRef.current);
+      selectionFrameRef.current = null;
       dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
     }
     const syncTimer = window.setTimeout(() => {
@@ -197,23 +197,30 @@ export function SimulationFocusProvider({
   }, [routeIsDailyFocus, surfaceRouteId]);
 
   const closeChooser = useCallback((options = {}) => {
-    const { haptic = true, restoreFocus = true, keepBackdrop = false } = options;
+    const {
+      haptic = true,
+      restoreFocus = true,
+      keepBackdrop = false,
+      instant = false,
+    } = options;
     if (closeTimerRef.current !== null) {
       window.clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
-    const closeDurationMs = getGateModalCloseDurationMs({ keepBackdrop });
     setChooserActive(false);
-    setChooserClosing(true);
+    setChooserClosing(!instant);
     setChooserOpen(false);
     if (haptic) triggerHaptic('close');
     if (!keepBackdrop) {
-      dismissGateBackdrop();
+      dismissGateBackdrop({ instant });
     }
-    closeTimerRef.current = window.setTimeout(() => {
-      setChooserClosing(false);
-      closeTimerRef.current = null;
-    }, closeDurationMs);
+    if (!instant) {
+      const closeDurationMs = getGateModalCloseDurationMs({ keepBackdrop });
+      closeTimerRef.current = window.setTimeout(() => {
+        setChooserClosing(false);
+        closeTimerRef.current = null;
+      }, closeDurationMs);
+    }
     if (!restoreFocus) return;
 
     const restoreTriggerFocus = () => {
@@ -268,8 +275,8 @@ export function SimulationFocusProvider({
     if (closeTimerRef.current !== null) {
       window.clearTimeout(closeTimerRef.current);
     }
-    if (selectionTimerRef.current !== null) {
-      window.clearTimeout(selectionTimerRef.current);
+    if (selectionFrameRef.current !== null) {
+      window.cancelAnimationFrame(selectionFrameRef.current);
     }
     dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
   }, []);
@@ -293,22 +300,20 @@ export function SimulationFocusProvider({
 
     triggerHaptic('step');
     setOptimisticActiveId(simulationId);
-    closeChooser({ haptic: false, restoreFocus: false, keepBackdrop: true });
+    closeChooser({ haptic: false, restoreFocus: false, instant: true });
 
-    const closeSettleMs = getGateModalCloseDurationMs({ keepBackdrop: true });
     const transitionOptions = {
       transitionStyle: 'simulation-focus',
       readyFallbackMs: target.routeBacked
         ? ROUTE_BACKED_SIMULATION_READY_FALLBACK_MS
         : SIMULATION_FOCUS_READY_FALLBACK_MS,
-      releaseGateBackdropOnComplete: true,
     };
 
-    if (selectionTimerRef.current !== null) {
-      window.clearTimeout(selectionTimerRef.current);
+    if (selectionFrameRef.current !== null) {
+      window.cancelAnimationFrame(selectionFrameRef.current);
     }
-    selectionTimerRef.current = window.setTimeout(() => {
-      selectionTimerRef.current = null;
+    selectionFrameRef.current = window.requestAnimationFrame(() => {
+      selectionFrameRef.current = null;
       const runSelection = () => {
         const cleanHomeHref = buildRouteHref('home');
         const targetHomeHref = `${cleanHomeHref}?mode=${encodeURIComponent(target.mode || '')}`;
@@ -397,7 +402,7 @@ export function SimulationFocusProvider({
         }
       };
       runSelection();
-    }, closeSettleMs);
+    });
 
     return true;
   }, [activeId, closeChooser, homeMode, refreshFocusState, routeIsDailyFocus, transitionCurrentRoute]);
