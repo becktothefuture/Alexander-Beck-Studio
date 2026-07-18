@@ -2365,7 +2365,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 .simulation-focus-pill {
   position: relative;
   appearance: none;
-  border: var(--abs-soft-control-edge-width, 0.5px) solid var(--abs-soft-control-outline);
+  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
   border-radius: 999px;
   background: var(--abs-soft-control-fill);
   color: var(--text-logo);
@@ -2396,7 +2396,6 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   -webkit-tap-highlight-color: transparent;
   box-shadow: none;
   transition:
-    border-color 180ms var(--ease-organic),
     color 180ms var(--ease-organic),
     background-color 180ms var(--ease-organic),
     transform 140ms var(--ease-organic),
@@ -2429,7 +2428,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 
 .simulation-focus-switcher {
   align-items: center;
-  border-color: var(--abs-soft-control-outline);
+  border-color: transparent;
   border-radius: var(--abs-radius-pill);
   background: var(--abs-soft-control-fill);
   gap: calc(var(--gap-xs) * 0.7);
@@ -2458,7 +2457,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 }
 
 .simulation-focus-pill.simulation-focus-switcher:hover {
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
 }
 
 .simulation-focus-switcher .simulation-focus-pill__icon {
@@ -2474,7 +2473,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 .simulation-focus-pill:focus-visible,
 .simulation-focus-pill:active,
 .simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill {
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
   background: var(--abs-soft-control-emphasis-fill);
   color: var(--text-primary);
 }
@@ -2482,7 +2481,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 .simulation-focus-pill.simulation-focus-switcher:hover,
 .simulation-focus-pill.simulation-focus-switcher:focus-visible,
 .simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill.simulation-focus-switcher {
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
 }
 
 .simulation-focus-pill:hover::before,
@@ -6183,7 +6182,6 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   opacity: 0.75;
   -webkit-tap-highlight-color: transparent;
   transition:
-    border-color 160ms var(--ease-organic),
     color 160ms var(--ease-organic),
     opacity 160ms var(--ease-organic),
     transform 140ms var(--ease-organic),
@@ -6223,7 +6221,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .simulation-focus-row:focus-visible,
 .simulation-focus-row:active,
 .simulation-focus-row[aria-current='true'] {
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
   color: var(--text-primary);
   opacity: 1;
 }
@@ -6241,7 +6239,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 @media (hover: hover) and (pointer: fine) {
   .simulation-focus-row:hover {
-    border-color: var(--abs-soft-control-outline-active);
+    border-color: transparent;
     color: var(--text-primary);
     opacity: 1;
   }
@@ -6267,7 +6265,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .simulation-focus-row[aria-current='true'] {
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
   background: transparent;
   opacity: 1;
 }
@@ -6386,7 +6384,6 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
     blur(var(--abs-soft-control-blur, 18px))
     saturate(var(--abs-soft-control-saturation, 1.08));
   transition:
-    border-color 160ms var(--ease-organic),
     background-color 160ms var(--ease-organic),
     color 160ms var(--ease-organic),
     transform 0.15s var(--ease-organic),
@@ -6396,7 +6393,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .simulation-focus-modal .gate-back:hover,
 .simulation-focus-modal .gate-back:focus-visible,
 .simulation-focus-modal .gate-back:active {
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
   background: var(--abs-soft-control-emphasis-fill);
   color: var(--text-primary);
 }
