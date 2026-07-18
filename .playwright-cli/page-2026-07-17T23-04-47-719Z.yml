@@ -1,0 +1,74 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e12]:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic "Portfolio projects":
+              - region "Selected portfolio projects":
+                - generic:
+                  - region "Selected design work.":
+                    - heading "Selected design work." [level=2]
+                    - paragraph: From early concepts to shipped websites, apps, tools, and platforms.
+                  - generic "Selected design work.":
+                    - button [ref=f2e71] [cursor=pointer]:
+                      - generic:
+                        - generic:
+                          - figure
+                        - generic:
+                          - paragraph: Pro Keyboard
+                          - heading [level=3]: Touch typing refined
+                    - 'button "Open project 1: S&P Global: Making financial indexes visible" [ref=f2e72] [cursor=pointer]':
+                      - generic:
+                        - generic:
+                          - figure
+                        - generic:
+                          - paragraph: S&P Global
+                          - heading "Making financial indexes visible" [level=3]
+                      - generic: View
+                    - button [ref=f2e73] [cursor=pointer]:
+                      - generic:
+                        - generic:
+                          - figure
+                        - generic:
+                          - paragraph: SunExpress
+                          - heading [level=3]: Clearer flight booking
+                  - status: "S&P Global: Making financial indexes visible. Project 1 of 6."
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - banner
+        - generic:
+          - contentinfo:
+            - generic:
+              - group "Social media links" [ref=f2e46]:
+                - link "Apple Music" [ref=f2e47] [cursor=pointer]:
+                  - /url: https://music.apple.com/profile/beckandeggs
+                  - generic: 
+                - link "LinkedIn" [ref=f2e49] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/in/thisisbeck/
+                  - generic: 
+              - generic "London local time" [ref=f2e52]:
+                - generic [ref=f2e53]:
+                  - strong [ref=f2e55]: London
+                  - time [ref=f2e56]: 12:04:47 AM
+    - generic [ref=f2e57]:
+      - navigation "Primary buttons" [ref=f2e58]:
+        - link "Home" [ref=f2e59] [cursor=pointer]:
+          - /url: /index.html
+          - generic: 
+        - link "Work" [ref=f2e61]:
+          - /url: /portfolio.html
+          - text: 
+        - link "About Me" [ref=f2e63] [cursor=pointer]:
+          - /url: /about.html
+          - text: 
+        - link "Contact" [ref=f2e65] [cursor=pointer]:
+          - /url: /contact.html
+          - text: 
+      - group "Secondary buttons" [ref=f2e67]:
+        - button "Sound off" [ref=f2e68] [cursor=pointer]:
+          - generic: 
+  - status [ref=f2e74]

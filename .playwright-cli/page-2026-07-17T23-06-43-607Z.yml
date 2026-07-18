@@ -1,0 +1,62 @@
+- generic [ref=f13e3]:
+  - generic:
+    - status [ref=f13e6]:
+      - generic [ref=f13e7]: Loading simulation…
+    - generic:
+      - generic:
+        - heading "Alexander Beck. Designer and technologist." [level=1]:
+          - generic: Alexander Beck.
+          - generic: Designer & Technologist.
+    - button "Convergence" [ref=f13e9] [cursor=pointer]
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - banner:
+              - generic:
+                - navigation "Areas of expertise" [ref=f13e14]:
+                  - generic [ref=f13e15]: Product Design
+                  - generic [ref=f13e18]: Experience Design
+                  - generic [ref=f13e21]: Art Direction
+                  - generic [ref=f13e24]: Motion & 3D
+                  - generic [ref=f13e27]: Creative Engineering
+                  - generic [ref=f13e30]: Parametric Systems
+                - blockquote [ref=f13e33]:
+                  - paragraph [ref=f13e34]:
+                    - text: Innovation happens when different creative disciplines collide. I bring together design, technology, and storytelling to create experiences that feel familiar and entirely new.
+                    - link "Let's chat." [ref=f13e35] [cursor=pointer]:
+                      - /url: /contact.html
+          - generic:
+            - main
+      - generic:
+        - contentinfo:
+          - generic:
+            - group "Social media links" [ref=f13e37]:
+              - link "Apple Music" [ref=f13e38] [cursor=pointer]:
+                - /url: https://music.apple.com/profile/beckandeggs
+                - generic: 
+              - link "LinkedIn" [ref=f13e40] [cursor=pointer]:
+                - /url: https://www.linkedin.com/in/thisisbeck/
+                - generic: 
+            - generic "London local time" [ref=f13e43]:
+              - generic [ref=f13e44]:
+                - strong [ref=f13e46]: London
+                - time [ref=f13e47]: 12:06:43 AM
+  - generic [ref=f13e48]:
+    - navigation "Primary buttons" [ref=f13e49]:
+      - link "Home" [ref=f13e50]:
+        - /url: /index.html
+        - generic: 
+      - link "Work" [ref=f13e52] [cursor=pointer]:
+        - /url: /portfolio.html
+        - text: 
+      - link "About Me" [ref=f13e54] [cursor=pointer]:
+        - /url: /about.html
+        - text: 
+      - link "Contact" [ref=f13e56] [cursor=pointer]:
+        - /url: /contact.html
+        - text: 
+    - group "Secondary buttons" [ref=f13e58]:
+      - button "Sound off" [ref=f13e59] [cursor=pointer]:
+        - generic: 

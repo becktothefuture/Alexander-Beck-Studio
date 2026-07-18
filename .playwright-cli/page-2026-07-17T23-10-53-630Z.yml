@@ -1,0 +1,67 @@
+- generic [ref=f7e3]:
+  - generic:
+    - status [ref=f7e6]:
+      - generic [ref=f7e7]: Loading simulation…
+    - generic:
+      - generic:
+        - heading "Alexander Beck. Designer and technologist." [level=1]:
+          - generic: Alexander Beck.
+          - generic: Designer & Technologist.
+    - button "Tension" [ref=f7e9] [cursor=pointer]
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - banner:
+              - generic:
+                - navigation "Areas of expertise" [ref=f7e14]:
+                  - generic [ref=f7e15]: Product Design
+                  - generic [ref=f7e18]: Experience Design
+                  - generic [ref=f7e21]: Art Direction
+                  - generic [ref=f7e24]: Motion & 3D
+                  - generic [ref=f7e27]: Creative Engineering
+                  - generic [ref=f7e30]: Parametric Systems
+                - blockquote [ref=f7e33]:
+                  - paragraph [ref=f7e34]:
+                    - text: Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity.
+                    - link "Let's chat." [ref=f7e35] [cursor=pointer]:
+                      - /url: /contact.html
+          - generic:
+            - main
+      - generic:
+        - contentinfo:
+          - generic:
+            - group "Social media links" [ref=f7e37]:
+              - link "Apple Music" [ref=f7e38] [cursor=pointer]:
+                - /url: https://music.apple.com/profile/beckandeggs
+                - generic: 
+              - link "LinkedIn" [ref=f7e40] [cursor=pointer]:
+                - /url: https://www.linkedin.com/in/thisisbeck/
+                - generic: 
+            - generic "London local time" [ref=f7e43]:
+              - generic [ref=f7e44]:
+                - generic [ref=f7e45]:
+                  - strong [ref=f7e46]: London
+                  - generic [ref=f7e47]: ·
+                - time [ref=f7e48]: 12:10:53 AM
+        - status:
+          - generic: A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable. © 2026 Alexander Beck
+  - generic [ref=f7e49]:
+    - navigation "Primary buttons" [ref=f7e50]:
+      - link "Home" [ref=f7e51]:
+        - /url: /index.html
+        - generic: 
+      - link "Work" [ref=f7e53] [cursor=pointer]:
+        - /url: /portfolio.html
+        - text: 
+      - link "About Me" [ref=f7e55] [cursor=pointer]:
+        - /url: /about.html
+        - text: 
+      - link "Contact" [ref=f7e57] [cursor=pointer]:
+        - /url: /contact.html
+        - text: 
+    - group "Secondary buttons" [ref=f7e59]:
+      - button "Sound off" [ref=f7e60] [cursor=pointer]:
+        - generic: 
+      - button "Switch to dark mode" [ref=f7e62] [cursor=pointer]
