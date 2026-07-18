@@ -192,7 +192,7 @@ function TrackObject({
   const locked = object.locked === true || object.protected === true;
   const pointLike = track.type === 'camera-key';
   const left = startWU * pixelsPerWU;
-  const width = pointLike ? 16 : Math.max(18, (endWU - startWU) * pixelsPerWU);
+  const width = pointLike ? 18 : Math.max(18, (endWU - startWU) * pixelsPerWU);
 
   const beginDrag = (event) => {
     if (event.button !== 0) return;
@@ -237,7 +237,7 @@ function TrackObject({
         onOpenTextEditor?.(object);
       }}
     >
-      <span className="about-track-editor-clip__label">{getObjectLabel(object, track.type)}</span>
+      {!pointLike ? <span className="about-track-editor-clip__label">{getObjectLabel(object, track.type)}</span> : null}
       {object.kind === 'stub' ? <span className="about-track-editor-clip__badge">Draft · Not published</span> : null}
       {pointLike ? <span className="about-track-editor-clip__point" aria-hidden="true" /> : null}
     </button>

@@ -355,7 +355,7 @@
   touch-action: none;
 }
 
-.about-track-editor-clip.is-camera { --lane-colour: var(--editor-camera); min-width: 16px; width: 16px !important; padding: 0 !important; overflow: visible; border: 0 !important; background: transparent !important; }
+.about-track-editor-clip.is-camera { --lane-colour: var(--editor-camera); min-width: 18px; width: 18px !important; padding: 0 !important; justify-content: center; overflow: visible; border: 0 !important; background: transparent !important; }
 .about-track-editor-clip.is-world { --lane-colour: var(--editor-world); }
 .about-track-editor-clip.is-text { --lane-colour: var(--editor-text); }
 .about-track-editor-clip.is-interaction { --lane-colour: var(--editor-interaction); }
@@ -372,11 +372,14 @@
   border-bottom-right-radius: 0;
 }
 .about-track-editor-clip.is-selected { outline: 2px solid var(--lane-colour); outline-offset: 1px; }
+.about-track-editor-clip.is-camera:is(.is-selected, :focus-visible) { outline: 0; }
 .about-track-editor-clip.is-locked { background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgb(255 255 255 / 6%) 5px 7px) !important; cursor: default; }
 .about-track-editor-clip.is-draft { border-style: dashed !important; }
 .about-track-editor-clip__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .about-track-editor-clip__badge { flex: 0 0 auto; color: var(--editor-muted); font-size: 8px; white-space: nowrap; }
-.about-track-editor-clip__point { display: block; width: 13px; height: 13px; border: 2px solid var(--editor-camera); border-radius: 50%; background: var(--editor-bg); box-shadow: 0 0 0 3px rgb(88 212 255 / 14%); }
+.about-track-editor-clip__point { display: block; width: 12px; height: 12px; border: 2px solid var(--editor-camera); border-radius: 1px; background: var(--editor-bg); box-shadow: 0 0 0 3px rgb(88 212 255 / 14%); transform: rotate(45deg); }
+.about-track-editor-clip.is-camera:hover .about-track-editor-clip__point { background: color-mix(in srgb, var(--editor-camera) 18%, var(--editor-bg)); }
+.about-track-editor-clip.is-camera:is(.is-selected, :focus-visible) .about-track-editor-clip__point { box-shadow: 0 0 0 2px var(--editor-bg), 0 0 0 4px var(--editor-camera); }
 
 .about-track-editor-playhead {
   position: absolute;
