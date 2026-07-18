@@ -37,14 +37,6 @@ function getRouteTabById(routeId) {
   return SHELL_ROUTE_TABS.find((tab) => tab.routeId === routeId);
 }
 
-function getVisibleRouteTabContent(routeTab) {
-  return [...routeTab.querySelectorAll('.shell-tab__label, .shell-tab__icon')]
-    .find((element) => {
-      const rect = element.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0;
-    }) || null;
-}
-
 function syncActivePillGeometry(primaryNav, activeRouteId) {
   const activeTab = [...primaryNav.querySelectorAll('[data-route-tab]')]
     .find((tab) => tab.dataset.routeTab === activeRouteId);
@@ -56,14 +48,8 @@ function syncActivePillGeometry(primaryNav, activeRouteId) {
   const visualHeight = activePill.getBoundingClientRect().height;
   if (!primaryNavRect.width || !activeTabRect.width || !visualHeight) return;
 
-  const activeContent = getVisibleRouteTabContent(activeTab);
-  const activeTabStyle = getComputedStyle(activeTab);
-  const inlinePadding = Number.parseFloat(activeTabStyle.paddingLeft)
-    + Number.parseFloat(activeTabStyle.paddingRight);
-  const contentWidth = activeContent?.getBoundingClientRect().width || 0;
   const isHomeTab = activeTab.dataset.routeTab === 'home';
-  const desiredWidth = isHomeTab ? visualHeight : contentWidth + inlinePadding;
-  const width = Math.min(activeTabRect.width, desiredWidth);
+  const width = isHomeTab ? visualHeight : activeTabRect.width;
   const x = activeTabRect.left - primaryNavRect.left + ((activeTabRect.width - width) / 2);
 
   primaryNav.style.setProperty('--button-bar-active-pill-x', `${x.toFixed(3)}px`);
@@ -91,13 +77,11 @@ function useActivePillGeometry(primaryNavRef, activeRouteId, enabled) {
 
     const activeTab = [...primaryNav.querySelectorAll('[data-route-tab]')]
       .find((tab) => tab.dataset.routeTab === activeRouteId);
-    const activeContent = activeTab ? getVisibleRouteTabContent(activeTab) : null;
     const resizeObserver = typeof ResizeObserver === 'undefined'
       ? null
       : new ResizeObserver(scheduleUpdate);
     resizeObserver?.observe(primaryNav);
     if (activeTab) resizeObserver?.observe(activeTab);
-    if (activeContent) resizeObserver?.observe(activeContent);
     window.addEventListener('resize', scheduleUpdate);
     document.fonts?.ready?.then(scheduleUpdate);
 

@@ -112,7 +112,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 - Tabler Outline is the default icon language. Use custom SVG only where exact brand or control geometry is required.
 - Every icon-only control has an accessible name, a visible keyboard focus state, and an effective target of at least 44px.
-- The Button Bar is the only primary navigation. Its moving pill is one shared object, not four independent selected backgrounds. It is centred within the stable full-size target and measures the selected label’s rendered width plus its inline padding; Home’s selected target is a true circle, with equal visual width and height.
+- The Button Bar is the only primary navigation. Its moving pill is one shared object, not four independent selected backgrounds. Primary tab cells use their rendered label width plus inline padding; the pill follows that padded cell with a controlled rounded-rectangle radius. Home is the sole circular exception.
 - Route top bars are local utility/back strips only.
 - Sound and haptics reinforce a state change but never carry its meaning alone.
 
