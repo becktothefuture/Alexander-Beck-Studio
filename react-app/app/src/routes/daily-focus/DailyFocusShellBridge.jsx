@@ -25,7 +25,8 @@ let runtimeConfigPromise = null;
 let runtimeTextPromise = null;
 const DAILY_FOCUS_READY_TIMEOUT_MS = 12000;
 const DAILY_FOCUS_READY_POLL_MS = 50;
-const DAILY_FOCUS_BOOT_SELECTORS = ['#abs-scene', '#app-frame', '#simulation-stage', '#hero-title'];
+const DAILY_FOCUS_BOOT_SELECTORS = ['#abs-scene', '#app-frame', '#simulation-stage'];
+const DAILY_FOCUS_READY_SELECTORS = [...DAILY_FOCUS_BOOT_SELECTORS, '#hero-title'];
 
 function loadDailyFocusRuntimeConfig() {
   if (!runtimeConfigPromise) {
@@ -275,7 +276,7 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
       if (cancelled) return;
       document.documentElement.classList.remove('fonts-loading');
 
-      const surfacesReady = await waitForUsableRects(DAILY_FOCUS_BOOT_SELECTORS, {
+      const surfacesReady = await waitForUsableRects(DAILY_FOCUS_READY_SELECTORS, {
         timeoutMs: 2600,
       });
       const runtimeReady = surfacesReady
