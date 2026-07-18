@@ -100,7 +100,9 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   mobileCenterYPercent: 58,
   desktopViewportYOffsetDvh: 3,
   largeViewportOrbitCapStartProgress: 0.6,
-  largeViewportTitleCardGapDvh: 4,
+  largeViewportTitleCardGapDvh: 8,
+  largeViewportGroupOffsetHeightEndPx: 1800,
+  largeViewportGroupOffsetMaxDvh: 6,
   perspectivePx: 1600,
   pathRadiusPx: 2600,
   mobilePathRadiusPx: 820,
@@ -1295,19 +1297,21 @@ class PortfolioScrollApp {
       1,
       1.8
     );
+    const largeViewportWidthProgress = clamp(
+      (stageWidth - largeViewportWidthStartPx)
+        / (largeViewportWidthEndPx - largeViewportWidthStartPx),
+      0,
+      1
+    );
+    const largeViewportHeightProgress = clamp(
+      ((window.innerHeight || stageHeight) - largeViewportHeightStartPx)
+        / (largeViewportHeightEndPx - largeViewportHeightStartPx),
+      0,
+      1
+    );
     const largeViewportProgress = Math.min(
-      clamp(
-        (stageWidth - largeViewportWidthStartPx)
-          / (largeViewportWidthEndPx - largeViewportWidthStartPx),
-        0,
-        1
-      ),
-      clamp(
-        ((window.innerHeight || stageHeight) - largeViewportHeightStartPx)
-          / (largeViewportHeightEndPx - largeViewportHeightStartPx),
-        0,
-        1
-      )
+      largeViewportWidthProgress,
+      largeViewportHeightProgress
     );
     const largeViewportCardScale = lerp(1, largeViewportCardScaleMax, largeViewportProgress);
     const largeViewportContentScale = lerp(1, largeViewportContentScaleMax, largeViewportProgress);
@@ -1349,8 +1353,36 @@ class PortfolioScrollApp {
         this.deckOptions.largeViewportTitleCardGapDvh,
         PORTFOLIO_DECK_DEFAULTS.largeViewportTitleCardGapDvh
       ),
-      3,
-      5
+      4,
+      12
+    );
+    const largeViewportGroupOffsetHeightEndPx = clamp(
+      toNumber(
+        this.deckOptions.largeViewportGroupOffsetHeightEndPx,
+        PORTFOLIO_DECK_DEFAULTS.largeViewportGroupOffsetHeightEndPx
+      ),
+      largeViewportHeightEndPx + 1,
+      2400
+    );
+    const largeViewportGroupOffsetMaxDvh = clamp(
+      toNumber(
+        this.deckOptions.largeViewportGroupOffsetMaxDvh,
+        PORTFOLIO_DECK_DEFAULTS.largeViewportGroupOffsetMaxDvh
+      ),
+      0,
+      12
+    );
+    const largeViewportGroupOffsetProgress = smoothstep(
+      largeViewportHeightEndPx,
+      largeViewportGroupOffsetHeightEndPx,
+      viewportHeight
+    ) * smoothstep(0.85, 1, largeViewportWidthProgress);
+    const largeViewportGroupOffsetDvh = stageWidth > 900
+      ? largeViewportGroupOffsetMaxDvh * largeViewportGroupOffsetProgress
+      : 0;
+    this.mount.style.setProperty(
+      '--portfolio-deck-intro-y-offset',
+      `${largeViewportGroupOffsetDvh.toFixed(4)}dvh`
     );
     const perspectivePx = clamp(toNumber(this.deckOptions.perspectivePx, PORTFOLIO_DECK_DEFAULTS.perspectivePx), 500, 2600);
     const configuredPathRadius = lerp(

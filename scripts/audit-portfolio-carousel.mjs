@@ -171,6 +171,9 @@ async function collectGeometry(page) {
         : null,
       activeCardWidth: activeCardRect ? Number(activeCardRect.width.toFixed(3)) : null,
       activeCardHeight: activeCardRect ? Number(activeCardRect.height.toFixed(3)) : null,
+      activeCardTopDvh: activeCardRect
+        ? Number(((activeCardRect.top / window.innerHeight) * 100).toFixed(3))
+        : null,
       activeTitleFontSize: activeCard
         ? Number.parseFloat(getComputedStyle(activeCard.querySelector('.portfolio-project-card__title')).fontSize)
         : null,
@@ -1195,11 +1198,17 @@ async function main() {
         ['desktop-wide', 'desktop-tall'].includes(name)
         && (
           result.geometry.introCardGapDvh === null
-          || result.geometry.introCardGapDvh < 3
-          || result.geometry.introCardGapDvh > 5
+          || result.geometry.introCardGapDvh < 7
+          || result.geometry.introCardGapDvh > 9
         )
       ) {
-        failures.push(`${name}: capped title-to-card gap is outside the 3–5dvh target`);
+        failures.push(`${name}: capped title-to-card gap is outside the 7–9dvh target`);
+      }
+      if (
+        name === 'desktop-tall'
+        && (result.geometry.activeCardTopDvh === null || result.geometry.activeCardTopDvh < 20)
+      ) {
+        failures.push('desktop-tall: title/card composition remains too high in the viewport');
       }
       if (result.dots.count !== 5) failures.push(`${name}: line track should render exactly five lines`);
       if (result.dots.markHeight === null || result.dots.markHeight > 10) failures.push(`${name}: line track marks are too tall`);
