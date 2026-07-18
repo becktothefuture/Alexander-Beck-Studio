@@ -741,7 +741,9 @@ function captureSimulationTransactionSnapshot() {
 
   snapshot.dataset.capturedLayers = String(capturedLayers);
   let released = false;
-  return {
+  let releaseScheduled = false;
+  let visibleAt = 0;
+  const snapshotHandle = {
     node: snapshot,
     show() {
       if (released || !snapshotHost.isConnected) return;
@@ -750,9 +752,23 @@ function captureSimulationTransactionSnapshot() {
         snapshot.getBoundingClientRect();
       }
       snapshot.dataset.state = 'visible';
+      visibleAt = performance.now();
     },
     release({ immediate = false } = {}) {
       if (released) return;
+      if (!immediate && visibleAt > 0) {
+        const remainingRecoveryHold = 2500 - (performance.now() - visibleAt);
+        if (remainingRecoveryHold > 0) {
+          if (!releaseScheduled) {
+            releaseScheduled = true;
+            setStableTimeout(() => {
+              releaseScheduled = false;
+              snapshotHandle.release();
+            }, remainingRecoveryHold);
+          }
+          return;
+        }
+      }
       released = true;
       if (immediate || !snapshot.isConnected) {
         snapshot.remove();
@@ -762,6 +778,7 @@ function captureSimulationTransactionSnapshot() {
       setStableTimeout(() => snapshot.remove(), 200);
     },
   };
+  return snapshotHandle;
 }
 
 function animateSimulationFocusLayer(surfaceRefs, {
