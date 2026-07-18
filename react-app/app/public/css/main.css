@@ -8029,13 +8029,18 @@ body.dark-mode .cv-photo {
   }
 
   html[data-shell-route='home'] body .legend__item {
-    min-height: 28px;
+    min-height: 24px;
     padding: 4px 0;
     font-size: clamp(
       0.72rem,
       2.6vw,
       0.82rem
     );
+  }
+
+  html[data-shell-route='home'] body .legend__item .circle {
+    position: relative;
+    top: var(--abs-size-1px);
   }
 
   html[data-shell-route='home'] body .decorative-script {
