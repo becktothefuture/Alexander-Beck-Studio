@@ -706,6 +706,9 @@ function assertHomeRevealHeld(snapshot, { allowHiddenEdge = false, allowHiddenQu
   assert(!snapshot.complete, 'home: post-boot reveal completed before overlay release');
 
   for (const [label, target] of Object.entries(snapshot.targets)) {
+    // The Button Bar belongs to the stable shell and is covered by the boot
+    // overlay, not staged as route-owned entrance content.
+    if (label === 'nav') continue;
     if (label === 'edge' && allowHiddenEdge && targetIsIntentionallyNonRenderable(target)) continue;
     if (label === 'quote' && allowHiddenQuote && targetIsIntentionallyNonRenderable(target)) continue;
     if (label === 'quote' && !target) continue;

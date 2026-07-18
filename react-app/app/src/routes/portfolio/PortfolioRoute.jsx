@@ -19,14 +19,13 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
   const portfolioHeroLines = Array.isArray(homeContent.portfolio?.heroLines)
     ? homeContent.portfolio.heroLines
     : [
-        'Selected design work.'
+        'Selected design work'
       ];
   const portfolioHeroAria = [portfolioHeroEyebrow, ...portfolioHeroLines].filter(Boolean).join(' ');
   const portfolioHeroSecondary = portfolioHeroLines[1] || '';
 
   return {
     bodyClass: 'body portfolio-page',
-    footerVariant: 'portfolio',
     studioWindowClassName: 'portfolio-simulation w-embed',
     windowOverlayContent: <PortfolioGateRoute />,
     simulationLayer: (

@@ -142,11 +142,11 @@ function shouldRefreshEveryFrame(root, scene) {
   const sceneAnimationRunning = scene?.classList?.contains('abs-scene--animating')
     && scene.getAnimations?.({ subtree: true })?.some((animation) => animation.playState === 'running');
   if (!root?.classList) return Boolean(sceneAnimationRunning);
-  const bootEntranceActive = !root.classList.contains('entrance-complete')
-    && (
-      root.classList.contains('abs-home-post-boot-enter')
-      || root.classList.contains('abs-home-post-boot-pending')
-    );
+  // The stable shell is marked entrance-complete before the route-owned Home
+  // content enters. Follow the dedicated content phase so the canvas-rendered
+  // title mirrors every semantic DOM opacity frame after the loader detaches.
+  const bootEntranceActive = root.classList.contains('abs-home-post-boot-enter')
+    || root.classList.contains('abs-home-post-boot-pending');
   return root.classList.contains('entrance-transitioning')
     || bootEntranceActive
     || root.dataset?.absTransitionPhase === 'route-in'

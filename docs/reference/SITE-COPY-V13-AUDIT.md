@@ -109,7 +109,7 @@ Issue: too casual at the start and too generic afterwards. “Innovative thinkin
 
 Recommended direction:
 
-> If you’re building a new product, service or experience and need design, technology and AI to move together, send me a note.
+> If you’re building a product, service or experience that needs design, technology and AI to move together, send me a note.
 
 Alternative:
 
@@ -129,7 +129,7 @@ Recommended direction:
 
 > Some projects include confidential finance, mobility, identity and product work. Enter the access code to view the selected case studies.
 
-Status: apply this.
+Status: applied in `contents-home.json`.
 
 ## No action - About gate
 

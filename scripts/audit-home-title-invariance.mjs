@@ -150,6 +150,205 @@ async function visitSimulation(page, entry) {
   return metrics;
 }
 
+async function auditDailyFocusTitleEntrance(browser, entry) {
+  assert(entry, 'Daily Focus title entrance audit requires a lab-route simulation');
+  const context = await browser.newContext({
+    viewport,
+    colorScheme: 'light',
+    isMobile: true,
+    hasTouch: true,
+    reducedMotion: 'no-preference',
+  });
+  await context.addInitScript(() => {
+    window.__ABS_DAILY_TITLE_ENTRANCE_AUDIT__ = {
+      sawPendingHidden: false,
+      sawEnterIntermediate: false,
+      sawEnterWithoutOverlay: false,
+      sawEdgeCaptionPending: false,
+      sawEdgeCaptionIntermediate: false,
+      edgeCaptionMaxCenterDelta: 0,
+    };
+
+    const sample = () => {
+      const audit = window.__ABS_DAILY_TITLE_ENTRANCE_AUDIT__;
+      const root = document.documentElement;
+      const titleLine = document.querySelector('#hero-title .hero-title__name');
+      if (audit && titleLine) {
+        const opacity = Number.parseFloat(getComputedStyle(titleLine).opacity || '1');
+        if (root.classList.contains('abs-home-post-boot-pending') && opacity <= 0.02) {
+          audit.sawPendingHidden = true;
+        }
+        if (root.classList.contains('abs-home-post-boot-enter')) {
+          if (!document.getElementById('abs-boot-overlay')) audit.sawEnterWithoutOverlay = true;
+          if (opacity > 0.02 && opacity < 0.98) audit.sawEnterIntermediate = true;
+        }
+      }
+      const edgeCaption = document.getElementById('edge-caption');
+      if (audit && edgeCaption && (
+        root.classList.contains('abs-home-post-boot-pending')
+        || root.classList.contains('abs-home-post-boot-enter')
+      )) {
+        const rect = edgeCaption.getBoundingClientRect();
+        const opacity = Number.parseFloat(getComputedStyle(edgeCaption).opacity || '1');
+        const centerDelta = Math.abs((rect.left + rect.width * 0.5) - window.innerWidth * 0.5);
+        audit.edgeCaptionMaxCenterDelta = Math.max(audit.edgeCaptionMaxCenterDelta, centerDelta);
+        if (root.classList.contains('abs-home-post-boot-pending') && opacity <= 0.02) {
+          audit.sawEdgeCaptionPending = true;
+        }
+        if (
+          root.classList.contains('abs-home-post-boot-enter')
+          && opacity > 0.02
+          && opacity < 0.5
+        ) {
+          audit.sawEdgeCaptionIntermediate = true;
+        }
+      }
+      requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+
+  const page = await context.newPage();
+  try {
+    await page.goto(pageUrl(entry.dailyHref), { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.waitForFunction((id) => (
+      document.body.classList.contains('daily-focus-page')
+      && document.querySelector('#simulation-stage')?.dataset?.simulationId === id
+      && document.documentElement.dataset.absDailyFocusStatus === 'ready'
+      && document.documentElement.dataset.absHomeSimulationReady === 'true'
+      && document.documentElement.classList.contains('abs-direct-boot-ready')
+      && document.documentElement.classList.contains('abs-home-post-boot-complete')
+      && document.documentElement.dataset.absBootState !== 'booting'
+    ), entry.id, { timeout: waitMs });
+
+    const result = await page.evaluate(() => {
+      const name = document.querySelector('#hero-title .hero-title__name');
+      const role = document.querySelector('#hero-title .hero-title__role');
+      return {
+        ...window.__ABS_DAILY_TITLE_ENTRANCE_AUDIT__,
+        nameOpacity: Number.parseFloat(getComputedStyle(name).opacity || '0'),
+        roleOpacity: Number.parseFloat(getComputedStyle(role).opacity || '0'),
+      };
+    });
+
+    assert(result.sawPendingHidden, `${entry.id}: title was not staged hidden before its entrance`, result);
+    assert(result.sawEnterIntermediate, `${entry.id}: title did not visibly interpolate into view`, result);
+    assert(result.sawEnterWithoutOverlay, `${entry.id}: title entrance began before the loader detached`, result);
+    assert(result.nameOpacity >= 0.99 && result.roleOpacity >= 0.99, `${entry.id}: title did not settle visible`, result);
+    assert(result.sawEdgeCaptionPending, `${entry.id}: edge caption was not staged for entrance`, result);
+    assert(result.sawEdgeCaptionIntermediate, `${entry.id}: edge caption did not visibly fade into view`, result);
+    assert(
+      result.edgeCaptionMaxCenterDelta <= tolerance.center,
+      `${entry.id}: edge caption moved horizontally during its entrance`,
+      result,
+    );
+    return { id: entry.id, ...result };
+  } finally {
+    await context.close();
+  }
+}
+
+async function auditHomeCanvasTitleEntrance(browser) {
+  const context = await browser.newContext({
+    viewport,
+    colorScheme: 'light',
+    isMobile: true,
+    hasTouch: true,
+    reducedMotion: 'no-preference',
+  });
+  await context.addInitScript(() => {
+    window.__ABS_HOME_CANVAS_TITLE_ENTRANCE_AUDIT__ = {
+      sawPendingHidden: false,
+      sawDomIntermediate: false,
+      sawCanvasIntermediate: false,
+      sawEnterWithoutOverlay: false,
+      sawDelayedControlInert: false,
+      delayedControlEscapedInert: false,
+      escapedTargets: [],
+    };
+
+    const focusableSelector = [
+      'a[href]',
+      'button:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[contenteditable="true"]',
+      '[tabindex]:not([tabindex="-1"])',
+    ].join(',');
+
+    const sample = () => {
+      const audit = window.__ABS_HOME_CANVAS_TITLE_ENTRANCE_AUDIT__;
+      const root = document.documentElement;
+      const titleLine = document.querySelector('#hero-title .hero-title__name');
+      const domOpacity = titleLine
+        ? Number.parseFloat(getComputedStyle(titleLine).opacity || '1')
+        : 1;
+      const snapshot = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
+      const canvasOpacity = Number(snapshot?.canvasTitleMaxOpacity) || 0;
+
+      if (root.classList.contains('abs-home-post-boot-pending') && domOpacity <= 0.02) {
+        audit.sawPendingHidden = true;
+      }
+      if (root.classList.contains('abs-home-post-boot-enter')) {
+        if (!document.getElementById('abs-boot-overlay')) audit.sawEnterWithoutOverlay = true;
+        if (domOpacity > 0.02 && domOpacity < 0.98) audit.sawDomIntermediate = true;
+        if (canvasOpacity > 0.02 && canvasOpacity < 0.98) audit.sawCanvasIntermediate = true;
+      }
+
+      if (root.dataset.absBootState === 'revealing' && !document.getElementById('abs-boot-overlay')) {
+        document.querySelectorAll('[data-route-enter]').forEach((target) => {
+          const containsControl = target.matches(focusableSelector)
+            || target.querySelector(focusableSelector);
+          if (!containsControl || Number.parseFloat(getComputedStyle(target).opacity || '1') > 0.02) return;
+          if (target.inert) audit.sawDelayedControlInert = true;
+          else {
+            audit.delayedControlEscapedInert = true;
+            const label = target.id || target.className || target.tagName;
+            if (!audit.escapedTargets.includes(label)) audit.escapedTargets.push(label);
+          }
+        });
+      }
+      requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+
+  const page = await context.newPage();
+  try {
+    await page.goto(pageUrl('/index.html?mode=pit&absAudit=1'), {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    await page.waitForFunction(() => (
+      document.documentElement.classList.contains('abs-home-post-boot-complete')
+      && document.documentElement.dataset.absBootState === 'ready'
+      && window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.().canvasTitleVisible === true
+    ), null, { timeout: waitMs });
+
+    const result = await page.evaluate(() => ({
+      ...window.__ABS_HOME_CANVAS_TITLE_ENTRANCE_AUDIT__,
+      canvasOpacity: Number(
+        window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.().canvasTitleMaxOpacity,
+      ) || 0,
+      stuckInertTargets: Array.from(document.querySelectorAll('[data-route-enter][inert]'))
+        .map((target) => target.id || target.className || target.tagName),
+    }));
+
+    assert(result.sawPendingHidden, 'Home title was not staged hidden before its entrance', result);
+    assert(result.sawDomIntermediate, 'Home semantic title did not interpolate after the loader', result);
+    assert(result.sawCanvasIntermediate, 'Home canvas title did not mirror the semantic title entrance', result);
+    assert(result.sawEnterWithoutOverlay, 'Home title entrance began before the loader detached', result);
+    assert(result.sawDelayedControlInert, 'Home delayed controls were not removed from keyboard navigation', result);
+    assert(!result.delayedControlEscapedInert, 'A hidden Home entrance control remained keyboard-focusable', result);
+    assert(result.stuckInertTargets.length === 0, 'Home entrance left controls inert after settling', result);
+    assert(result.canvasOpacity >= 0.99, 'Home canvas title did not settle visible', result);
+    return result;
+  } finally {
+    await context.close();
+  }
+}
+
 async function main() {
   const server = await ensureServer();
   const entries = await readCatalog();
@@ -157,6 +356,21 @@ async function main() {
   const byTheme = {};
 
   try {
+    const homeCanvasEntrance = await auditHomeCanvasTitleEntrance(browser);
+    const dailyFocusEntrance = await auditDailyFocusTitleEntrance(
+      browser,
+      entries.find((entry) => entry.surface === 'lab-route'),
+    );
+    if (process.env.ABS_TITLE_ENTRANCE_ONLY === '1') {
+      console.log(JSON.stringify({
+        ok: true,
+        browser: browserName,
+        viewport,
+        homeCanvasEntrance,
+        dailyFocusEntrance,
+      }, null, 2));
+      return;
+    }
     for (const theme of ['light', 'dark']) {
       const context = await browser.newContext({ viewport, colorScheme: theme, reducedMotion: 'reduce' });
       await context.addInitScript(() => {
@@ -193,6 +407,8 @@ async function main() {
       canonicalEffectiveFontSize: byTheme.light[0]?.effectiveFontSize,
       titleRect: byTheme.light[0]?.titleRect,
       depthModes: entries.filter((entry) => entry.id === '3d-sphere' || entry.id === '3d-cube').map((entry) => entry.id),
+      homeCanvasEntrance,
+      dailyFocusEntrance,
     };
     if (process.env.ABS_TITLE_AUDIT_DETAILS === '1') output.results = byTheme;
     console.log(JSON.stringify(output, null, 2));

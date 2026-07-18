@@ -27,6 +27,8 @@ Canonical engineering contract for route and modal transitions.
 - Runtime-backed `abs:route-ready` events include a generation. Readiness consumers compare it with the authoritative module-local runtime snapshot and ignore stale events.
 - Home readiness requires the current runtime snapshot, `data-abs-home-route-ready="true"`, and either a confirmed canvas-title draw or the restored two-line semantic title fallback. Canvas allocation alone is not readiness.
 - First-load entrance choreography and SPA route choreography are separate systems. Direct-load helpers must not mutate route-in visibility.
+- Both systems execute route-owned child reveals through `src/lib/motion/entrance-sequence.js`. Routes declare targets; boot and route owners decide when the shared executor may run.
+- A motion target may animate opacity and filter, but never its layout `transform`. Positioned or centred elements retain their settled geometry for the complete transaction; expressive scale belongs to the route surface or simulation material layer.
 
 ### Simulation focus overlay ownership
 
@@ -50,6 +52,7 @@ Canonical engineering contract for route and modal transitions.
 - Home and route-backed Daily Focus loads may release only after fonts, usable route geometry, the active simulation surface, and two render frames are ready. Home gives the canvas-title geometry a bounded grace period, then releases with the semantic DOM title as its visual fallback. `data-abs-home-simulation-ready` and `data-abs-home-canvas-title-prepared` expose those independent states for diagnostics.
 - Direct boot completion first composes the route at full material scale behind the opaque cover. At `data-abs-boot-state="revealing"`, `onRevealStart` resets and blooms the simulation material while only the route-owned studio-window surface eases from `0.97` to `1`; the physical window, outer frame, and Button Bar remain fixed.
 - Home direct loads begin the non-canvas UI entrance one RAF after `#abs-boot-overlay` has been removed. Reduced motion preserves the same ordering but settles the scene and copy without scale, blur, or stagger.
+- `abs-home-post-boot-pending|enter|complete` and `data-abs-intro-phase` are diagnostics only. CSS must not use those markers to replace target geometry or run a competing transition.
 - Once the Home runtime is executing, canvas backing-store readiness is bounded to 3.2 seconds and canvas-title preparation receives a further 1.2-second grace period. Known failures fail open immediately. The CSS-only 5/10/20/30/40-second reassurance remains available while assets are genuinely still downloading, but runtime geometry can never hold the overlay for that duration.
 - Bottom-tab SPA route transitions replay route-owned child entrances through `[data-route-enter]` markers after the destination route is layout-ready. This is the reusable route entrance system, not legacy boot ownership.
 - Returning to Home through the SPA runs a compact `home-route-return` simulation-material grow after the new canvas is visually ready. It does not replay the direct-load Home UI choreography; reduced motion settles the simulation immediately.
@@ -72,10 +75,11 @@ Canonical engineering contract for route and modal transitions.
 
 ## 6) Surface grouping contract
 - Route view ownership is intentionally two-slot: `simulationLayer` for page-owned wall/content, and `uiLayer` for page-owned chrome/actions. Optional `heroLayer` belongs to the route simulation/content side.
-- Button Bar and the footer are stable shell controls; route transitions must not animate or hide them.
+- The Button Bar is a stable shell control; route transitions must not animate or hide it. The footer is Home-only content and remains absent on the other routes.
 - The stable shell preserves explicit transition surfaces as implementation details: wall, hero, chrome, and route secondary content.
 - Route-in restores readable groups first, then animates route-owned children marked with `[data-route-enter]`.
-- `[data-route-enter]` accepts the named groups `identity`, `legend`, `context`, `action`, and `footer`; `data-route-enter-order` controls order inside a group. Add these markers to route content instead of adding new shell selectors when a view needs child-level entrance motion.
+- `[data-route-enter]` accepts the named groups `identity`, `legend`, `context`, `action`, `footer`, and `control`; `data-route-enter-order` controls order inside a group. The same declaration is used by direct-load and SPA profiles. Add these markers to route content instead of adding new shell selectors when a view needs child-level entrance motion.
+- Route-out animates route-owned surfaces as a unit. It does not reverse or replay child staggers; any active child entrance is cancelled and settled before the destination transaction proceeds.
 - After `abs:route-ready`, route-in must wait for a short paint barrier before preparing child entrances so destination refs, layout, and `[data-route-enter]` markers belong to the new route.
 - Portfolio route-in prepares final deck geometry, restores hero + route UI together, then uses the shell-owned `abs:portfolio:reveal` boundary to start its local cards/dial reveal. Title and description retain the shared `identity` and `context` groups; card transforms remain Portfolio-owned.
 - During Portfolio route-in the speed field may paint a deterministic static frame, but it must not schedule drift until the global phase returns to `idle`.
@@ -111,6 +115,8 @@ ABS_DEV_URL=http://localhost:8013 npm run certify:screens
 ## 9) PR acceptance checklist (transition-related work)
 - [ ] Transition owner remains centralized in shell hook/FSM.
 - [ ] No new direct orchestration class/dataset toggles in legacy modules.
+- [ ] Child entrance mechanics remain in `entrance-sequence.js`; route and boot modules only stage, start, cancel, or settle a transaction.
+- [ ] No `[data-route-enter]` animation writes `transform`; responsive positioning remains byte-stable throughout the transition.
 - [ ] SPA bootstraps do not call boot-only reveal helpers during active route phases.
 - [ ] Direct document loads hold `#abs-boot-overlay` until the route is visually ready.
 - [ ] First readable Home → Portfolio preview frame has final deck geometry, title before card action, and no geometry snap afterward.

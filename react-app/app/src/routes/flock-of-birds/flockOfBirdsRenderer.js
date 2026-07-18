@@ -369,6 +369,13 @@ export function createFlockOfBirdsRenderer({
     const count = resolveBirdCount(config, metrics, reducedMotion);
     const width = metrics.cssWidth;
     const height = metrics.cssHeight;
+    const mobileFlight = isMobileRuntime() || width < 720;
+    const verticalSpreadScale = mobileFlight
+      ? clamp(Number(config.mobileVerticalSpreadScale) || 1, 0.75, 2)
+      : 1;
+    const cruiseSpeed = mobileFlight
+      ? clamp(Number(config.mobileCruiseSpeed) || config.cruiseSpeed, 24, 230)
+      : config.cruiseSpeed;
     const sizeChanged = Math.abs(width - state.initWidth) > 32 || Math.abs(height - state.initHeight) > 32;
     if (count === state.count && state.initialized && !sizeChanged) return false;
 
@@ -390,12 +397,15 @@ export function createFlockOfBirdsRenderer({
     const flockCenterX = width * 0.5;
     const flockCenterY = resolveInitialFlockCenterY(config, height, groundY);
     const spreadX = Math.min(config.flockSpread * 0.7, width * 0.34);
-    const spreadY = Math.min(config.flockSpread * 0.15, height * 0.11);
+    const spreadY = Math.min(
+      Math.min(config.flockSpread * 0.15, height * 0.11) * verticalSpreadScale,
+      height * 0.18,
+    );
     const baseHeadingX = Math.cos(-0.08);
     const baseHeadingY = Math.sin(-0.08);
 
     for (let i = 0; i < count; i += 1) {
-      const speed = config.cruiseSpeed * (0.76 + rand() * 0.42);
+      const speed = cruiseSpeed * (0.76 + rand() * 0.42);
       const lane = (rand() + rand() + rand() - 1.5) / 1.5;
       const cloudX = (rand() + rand() + rand() + rand() - 2) * 0.5;
       const cloudY = (rand() + rand() + rand() + rand() - 2) * 0.5;
@@ -573,19 +583,42 @@ export function createFlockOfBirdsRenderer({
     const count = state.count;
     const width = metrics.cssWidth;
     const height = metrics.cssHeight;
-    const flightLeft = -width * 0.5;
-    const flightRight = width * 1.5;
+    const mobileFlight = isMobileRuntime() || width < 720;
+    const mobileOverscan = clamp(Number(config.mobileHorizontalOverscan) || 0.05, 0, 0.5);
+    const mobileSpacingScale = mobileFlight
+      ? clamp(Number(config.mobileSpacingScale) || 1, 0.75, 1.75)
+      : 1;
+    const flightLeft = mobileFlight ? -width * mobileOverscan : -width * 0.5;
+    const flightRight = mobileFlight ? width * (1 + mobileOverscan) : width * 1.5;
     const flightCenterX = width * 0.5;
     const horizontalTurnBand = clamp(width * 0.26 + Math.min(config.edgeMargin, width * 0.18), 120, 560);
     const groundY = height * config.groundLine;
     const responsiveSpreadLimit = width < 720 ? width * 0.56 : width * 0.64;
-    const effectiveFlockSpread = Math.min(config.flockSpread, Math.max(150, responsiveSpreadLimit));
+    const effectiveFlockSpread = Math.min(
+      config.flockSpread,
+      Math.max(150, responsiveSpreadLimit * mobileSpacingScale),
+    );
     const homeHalfWidth = Math.min(width * 0.36, Math.max(width * 0.24, effectiveFlockSpread * 0.46));
     const neighborRadius = config.neighborRadius;
-    const separationRadius = Math.min(config.separationRadius, neighborRadius - 4);
+    const separationRadius = Math.min(
+      config.separationRadius * Math.sqrt(mobileSpacingScale),
+      neighborRadius - 4,
+    );
     const neighborR2 = neighborRadius * neighborRadius;
     const separationR2 = separationRadius * separationRadius;
-    const cruiseSpeed = reducedMotion ? config.cruiseSpeed * 0.62 : config.cruiseSpeed;
+    const configuredCruiseSpeed = mobileFlight
+      ? clamp(Number(config.mobileCruiseSpeed) || config.cruiseSpeed, 24, 230)
+      : config.cruiseSpeed;
+    const cruiseSpeed = reducedMotion ? configuredCruiseSpeed * 0.62 : configuredCruiseSpeed;
+    const courseStrength = mobileFlight
+      ? clamp(Number(config.mobileCourseStrength) || config.courseStrength, 0, 1.8)
+      : config.courseStrength;
+    const strayRecovery = mobileFlight
+      ? clamp(Number(config.mobileStrayRecovery) || config.strayRecovery, 0, 2.2)
+      : config.strayRecovery;
+    const verticalSpreadScale = mobileFlight
+      ? clamp(Number(config.mobileVerticalSpreadScale) || 1, 0.75, 2)
+      : 1;
     const minSpeed = reducedMotion ? config.minSpeed * 0.56 : config.minSpeed;
     const maxSpeed = reducedMotion ? config.maxSpeed * 0.72 : config.maxSpeed;
     const forceLimit = config.maxForce * config.turnAgility * motionScale;
@@ -614,7 +647,11 @@ export function createFlockOfBirdsRenderer({
       Math.min(width, height) * 0.38,
     );
     const orbitRx = clamp(orbitRadius * 1.08, width * 0.16, Math.min(width * 0.44, effectiveFlockSpread * 0.86));
-    const orbitRy = clamp(orbitRadius * 0.52, height * 0.12, Math.max(36, (courseSkyBottom - courseSkyTop) * 0.52));
+    const orbitRy = clamp(
+      orbitRadius * 0.52 * verticalSpreadScale,
+      height * 0.12,
+      Math.max(36, (courseSkyBottom - courseSkyTop) * 0.72),
+    );
     const localCirculation = clamp(Number(config.orbitLocality) || 0, 0, 1);
     let centerX = 0;
     let centerY = 0;
@@ -765,7 +802,7 @@ export function createFlockOfBirdsRenderer({
         if (mag > 0.0001) {
           const desiredX = ((avgX - xi) / mag) * energyTargetSpeed * 0.82;
           const desiredY = ((avgY - yi) / mag) * energyTargetSpeed * 0.82;
-          const cohesionWeight = config.cohesion * (1 - crowdPressure * 0.72);
+          const cohesionWeight = (config.cohesion / mobileSpacingScale) * (1 - crowdPressure * 0.72);
           ax += (desiredX - vxi) * cohesionWeight;
           ay += (desiredY - vyi) * cohesionWeight;
         }
@@ -827,7 +864,7 @@ export function createFlockOfBirdsRenderer({
       courseVy += verticalBias;
       const courseMag = Math.hypot(courseVx, courseVy);
       const edgeCorrection = ellipseDistance > 1.08 ? smoothStep((ellipseDistance - 1.08) / 0.52) : 0;
-      const courseWeight = config.courseStrength * (0.72 + edgeCorrection * 0.45 + (neighbors === 0 ? 0.24 : 0));
+      const courseWeight = courseStrength * (0.72 + edgeCorrection * 0.45 + (neighbors === 0 ? 0.24 : 0));
 
       if (courseMag > 0.0001) {
         const desiredX = (courseVx / courseMag) * energyTargetSpeed;
@@ -861,7 +898,7 @@ export function createFlockOfBirdsRenderer({
         const gatherY = mag > 0.0001 ? ((centerY - yi) / mag) * energyTargetSpeed * 0.78 : 0;
         const desiredX = gatherX + followX * 0.46;
         const desiredY = gatherY + followY * 0.46;
-        const recovery = config.strayRecovery * t * (neighbors === 0 ? 1.28 : 1);
+        const recovery = strayRecovery * t * (neighbors === 0 ? 1.28 : 1);
         ax += (desiredX - vxi) * recovery;
         ay += (desiredY - vyi) * recovery;
       }
@@ -1241,6 +1278,17 @@ export function createFlockOfBirdsRenderer({
     canvas.dataset.simulationBodyRadius = metrics.simulationBodyRadius.toFixed(2);
     initializeBirds(config, theme);
     metrics.birdCount = state.count;
+    canvas.dataset.simulationBodyCount = String(state.count);
+    const mobileFlight = isMobileRuntime() || metrics.cssWidth < 720;
+    canvas.dataset.simulationCruiseSpeed = String(Math.round(mobileFlight
+      ? config.mobileCruiseSpeed
+      : config.cruiseSpeed));
+    canvas.dataset.simulationVerticalSpreadScale = Number(mobileFlight
+      ? config.mobileVerticalSpreadScale
+      : 1).toFixed(2);
+    canvas.dataset.simulationSpacingScale = Number(mobileFlight
+      ? config.mobileSpacingScale
+      : 1).toFixed(2);
     metrics.targetFps = resolveTargetFps(config, reducedMotion);
   }
 

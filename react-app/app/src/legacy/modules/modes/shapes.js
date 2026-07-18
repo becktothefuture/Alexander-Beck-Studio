@@ -1117,8 +1117,14 @@ export function initializeShapes() {
   const dotSizeMul = clamp(Number(g.shapesDotSizeMul ?? 1), 0.5, 1.2);
   const dotRadius = randomRadiusForMode(g, MODES.PIT) * dotSizeMul;
   const baseCount = clampInt(g.shapesBallCount ?? 168, 72, 320, 168);
-  const count = getMobileAdjustedCount(baseCount);
+  const mobileCountScale = g.isMobile || g.isMobileViewport
+    ? clamp(Number(g.shapesMobileCountScale ?? 1), 0.25, 1)
+    : 1;
+  const count = Math.round(getMobileAdjustedCount(baseCount) * mobileCountScale);
   const { bodies, targets } = createShapeBodies(g, count, dotRadius);
+
+  canvas.dataset.simulationBodyCount = String(targets.length);
+  canvas.dataset.simulationRequestedBodyCount = String(count);
 
   g.shapesState = {
     time: 0,

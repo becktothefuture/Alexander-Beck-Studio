@@ -86,12 +86,12 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   cardMaxWidthPx: 316,
   cardHeightCqh: 58,
   cardMaxHeightPx: 461,
-  mobileCardWidthPercent: 76,
-  mobileCardMaxWidthPx: 342,
+  mobileCardWidthPercent: 64,
+  mobileCardMaxWidthPx: 300,
   mobileCardHeightCqh: 58,
   mobileCardMaxHeightPx: 500,
   centerYPercent: 50,
-  mobileCenterYPercent: 50,
+  mobileCenterYPercent: 58,
   perspectivePx: 1600,
   pathRadiusPx: 2600,
   mobilePathRadiusPx: 820,
@@ -138,8 +138,8 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
 });
 
 const PORTFOLIO_DECK_INTRO_FALLBACK = Object.freeze({
-  title: 'I design digital experiences around human response.',
-  body: 'A curated selection of product projects across product systems, interaction models, and shipped digital experiences.',
+  title: 'Selected design work',
+  body: 'From early concepts to shipped websites, apps, tools, and platforms.',
 });
 const PORTFOLIO_CARD_DARK_INK = Object.freeze({
   css: '#111111',
@@ -933,14 +933,6 @@ class PortfolioScrollApp {
     titleText.textContent = project?.displayTitle || project?.title || labelContent.title;
     title.append(titleText);
 
-    const cta = document.createElement('span');
-    cta.className = 'portfolio-project-card__cta';
-    cta.setAttribute('aria-hidden', 'true');
-    const ctaLabel = document.createElement('span');
-    ctaLabel.className = 'portfolio-project-card__cta-label';
-    ctaLabel.textContent = 'View';
-    cta.appendChild(ctaLabel);
-
     const tags = document.createElement('ul');
     tags.className = 'portfolio-project-card__tags';
     tags.setAttribute('aria-label', 'Project tags');
@@ -967,7 +959,7 @@ class PortfolioScrollApp {
     surface.className = 'portfolio-project-card__surface';
     surface.append(material, copy);
 
-    card.append(surface, cta);
+    card.appendChild(surface);
     card.addEventListener('click', (event) => this.handleCardClick(event, card));
     card.addEventListener('keydown', (event) => this.handleCardKeydown(event, card));
     card.addEventListener('pointerenter', () => {
@@ -1222,25 +1214,20 @@ class PortfolioScrollApp {
     if (!intro || !stage || !(stageHeight > 0) || !(cardHeight > 0)) return 0;
 
     const introRect = intro.getBoundingClientRect?.();
-    const title = intro.querySelector('.portfolio-deck-intro__title');
-    const titleRect = title?.getBoundingClientRect?.();
     const stageRect = stage.getBoundingClientRect?.();
-    const titleLineHeight = Number.parseFloat(title ? getComputedStyle(title).lineHeight : '');
     if (
       !introRect ||
-      !titleRect ||
       !stageRect ||
       introRect.width <= 0 ||
       introRect.height <= 0 ||
-      titleRect.height <= titleLineHeight * 1.5 ||
       stageRect.height <= 0
     ) {
       return 0;
     }
 
-    // Keep the carousel's canonical centred seat for the normal one-line intro.
-    // Only a wrapped Contact-sized title needs to displace the deck for clearance.
-    const clearancePx = clamp(stageHeight * 0.035, 18, 42);
+    // Keep every responsive orbit seat below the complete intro block. The
+    // configured seat still wins whenever it already provides more breathing room.
+    const clearancePx = clamp(stageHeight * 0.02, 12, 24);
     const introBottom = introRect.bottom - stageRect.top;
     return ((introBottom + clearancePx + (cardHeight * 0.5)) / stageHeight) * 100;
   }

@@ -16,37 +16,16 @@ import {
   runSimulationVisualTransition,
   setInitialSimulationVisualScale,
 } from '../../lib/simulationVisualTransition.js';
+import {
+  clearHomeEntrancePhase,
+  createEntranceSequence,
+} from '../../lib/motion/entrance-sequence.js';
 
 let runtimeConfigPromise = null;
 let runtimeTextPromise = null;
 const DAILY_FOCUS_READY_TIMEOUT_MS = 12000;
 const DAILY_FOCUS_READY_POLL_MS = 50;
 const DAILY_FOCUS_BOOT_SELECTORS = ['#abs-scene', '#app-frame', '#simulation-stage', '#hero-title'];
-const DAILY_FOCUS_HOME_ENTER_COMPLETE_MS = 3900;
-
-function stageDailyFocusHomeEntrance() {
-  const root = document.documentElement;
-  root.classList.remove('abs-home-post-boot-enter', 'abs-home-post-boot-complete');
-  root.classList.add('abs-home-post-boot-pending');
-}
-
-function startDailyFocusHomeEntrance(onTimer) {
-  return window.requestAnimationFrame(() => {
-    const root = document.documentElement;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
-      root.classList.remove('abs-home-post-boot-pending', 'abs-home-post-boot-enter');
-      root.classList.add('abs-home-post-boot-complete');
-      return;
-    }
-
-    root.classList.add('abs-home-post-boot-enter');
-    root.classList.remove('abs-home-post-boot-pending');
-    onTimer(window.setTimeout(() => {
-      root.classList.remove('abs-home-post-boot-enter');
-      root.classList.add('abs-home-post-boot-complete');
-    }, DAILY_FOCUS_HOME_ENTER_COMPLETE_MS));
-  });
-}
 
 function loadDailyFocusRuntimeConfig() {
   if (!runtimeConfigPromise) {
@@ -221,16 +200,26 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
     let cancelled = false;
     let runtimeConfig = null;
     let modalSystemsInitialized = false;
-    let entranceRaf = 0;
-    let entranceTimer = 0;
+    let directEntrance = null;
     let runtimeWasReady = false;
-    const directBoot = Boolean(document.getElementById('abs-boot-overlay'));
+    const directBoot = Boolean(
+      document.getElementById('abs-boot-overlay')
+      || document.documentElement.dataset.absBootState === 'booting'
+    );
+
+    const stageHomeEntrance = () => {
+      directEntrance?.cancel({ clearPhase: true });
+      directEntrance = createEntranceSequence({
+        scopes: document,
+        profile: 'direct',
+        diagnosticRoot: document.documentElement,
+      });
+      directEntrance.stage();
+    };
 
     const startHomeEntrance = () => {
-      if (cancelled) return;
-      entranceRaf = startDailyFocusHomeEntrance((timer) => {
-        entranceTimer = timer;
-      });
+      if (cancelled) return undefined;
+      return directEntrance?.play();
     };
 
     const startMaterialEntrance = () => {
@@ -249,7 +238,7 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
     };
 
     if (directBoot) {
-      stageDailyFocusHomeEntrance();
+      stageHomeEntrance();
       document.documentElement.dataset.absHomeSimulationReady = 'false';
       document.documentElement.dataset.absHomeCanvasTitlePrepared = 'false';
     }
@@ -284,6 +273,7 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
         minimumMs: 80,
       });
       if (cancelled) return;
+      document.documentElement.classList.remove('fonts-loading');
 
       const surfacesReady = await waitForUsableRects(DAILY_FOCUS_BOOT_SELECTORS, {
         timeoutMs: 2600,
@@ -298,10 +288,14 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
       runtimeWasReady = runtimeReady;
       document.documentElement.dataset.absHomeCanvasTitlePrepared = surfacesReady ? 'true' : 'false';
       document.documentElement.dataset.absHomeSimulationReady = runtimeReady ? 'true' : 'failed';
-      if (directBoot && runtimeReady) setInitialSimulationVisualScale(1);
 
       const bootState = document.documentElement.dataset.absBootState || '';
-      if (directBoot && (document.getElementById('abs-boot-overlay') || bootState === 'booting')) {
+      const shouldCompleteDirectBoot = directBoot
+        || Boolean(document.getElementById('abs-boot-overlay'))
+        || bootState === 'booting';
+      if (shouldCompleteDirectBoot && runtimeReady) setInitialSimulationVisualScale(1);
+      if (shouldCompleteDirectBoot) {
+        if (!directBoot) stageHomeEntrance();
         await completeDirectBoot({
           selectors: DAILY_FOCUS_BOOT_SELECTORS,
           detail: runtimeReady
@@ -324,7 +318,11 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
         document.documentElement.dataset.absHomeSimulationReady = 'failed';
         setInitialSimulationVisualScale(1);
         signalDailyFocusRouteFailed(simulationId, error?.message || 'runtime-error');
-        if (directBoot) {
+        const shouldReleaseBoot = directBoot
+          || Boolean(document.getElementById('abs-boot-overlay'))
+          || document.documentElement.dataset.absBootState === 'booting';
+        if (shouldReleaseBoot) {
+          if (!directEntrance) stageHomeEntrance();
           void completeDirectBoot({
             selectors: DAILY_FOCUS_BOOT_SELECTORS,
             detail: `daily-focus-${simulationId}-failed`,
@@ -336,8 +334,8 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
 
     return () => {
       cancelled = true;
-      window.cancelAnimationFrame(entranceRaf);
-      window.clearTimeout(entranceTimer);
+      directEntrance?.cancel({ clearPhase: true });
+      clearHomeEntrancePhase();
       delete document.documentElement.dataset.absDailyFocusStatus;
     };
   }, [simulationId]);

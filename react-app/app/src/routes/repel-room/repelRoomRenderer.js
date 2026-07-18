@@ -2,7 +2,10 @@ import {
   createIndexedSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
-import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
+import {
+  isMobileSimulationViewport,
+  resolveMobileSimulationBodyScale,
+} from '../../lib/mobileSimulationSizing.js';
 import { triggerPressure } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 
 const TAU = Math.PI * 2;
@@ -136,6 +139,7 @@ function getConfigKey(config, count, theme, metrics) {
     Number(config.ballRadius).toFixed(3),
     Number(config.sizeVariation).toFixed(3),
     Number(config.initialSpeed).toFixed(3),
+    Number(config.mobileInitialSpeed).toFixed(3),
     Number(config.directionalBias).toFixed(3),
     Number(config.spinBias).toFixed(3),
     mobileBodyScale.toFixed(2),
@@ -184,7 +188,9 @@ function resizeCanvasToDisplaySize(canvas, dpr) {
 function resolveBallCount(config, metrics, reducedMotion) {
   const baseCount = clamp(Math.round(Number(config.ballCount) || 220), 40, 520);
   const areaScale = clamp((metrics.cssWidth * metrics.cssHeight) / REFERENCE_AREA, 0.35, 1);
-  const mobileScale = metrics.cssWidth < 720 ? clamp(Number(config.mobileCountScale) || 0.62, 0.25, 1) : 1;
+  const mobileScale = isMobileSimulationViewport(metrics)
+    ? clamp(Number(config.mobileCountScale) || 0.82, 0.25, 1)
+    : 1;
   const motionScale = reducedMotion ? 0.72 : 1;
   const dprScale = clamp(1.5 / Math.max(metrics.dpr, 0.75), 0.78, 1.08);
   return Math.max(28, Math.round(baseCount * areaScale * mobileScale * motionScale * dprScale));
@@ -193,7 +199,7 @@ function resolveBallCount(config, metrics, reducedMotion) {
 function resolveWallRange(config, metrics) {
   const configuredRange = clamp(Number(config.wallRange) || 210, 40, 520);
   const shortSide = Math.max(1, Math.min(metrics.cssWidth, metrics.cssHeight));
-  const mobileLimit = metrics.cssWidth < 720
+  const mobileLimit = isMobileSimulationViewport(metrics)
     ? shortSide * 0.48
     : shortSide * 0.72;
   return clamp(Math.min(configuredRange, mobileLimit), 40, 520);
@@ -207,7 +213,9 @@ function createState(count, metrics, theme, config) {
   );
   const baseRadius = clamp(Number(config.ballRadius) || 12.4, 6, 22) * mobileBodyScale;
   const sizeVariation = clamp(Number(config.sizeVariation) || 0, 0, 0.28);
-  const initialSpeed = clamp(Number(config.initialSpeed) || 820, 0, 1800);
+  const initialSpeed = clamp(Number(isMobileSimulationViewport(metrics)
+    ? config.mobileInitialSpeed ?? config.initialSpeed
+    : config.initialSpeed) || 820, 0, 1800);
   const directionalBias = clamp(Number(config.directionalBias) || 0, 0, 1);
   const spinBias = clamp(Number(config.spinBias) || 0, 0, 1);
   const maxRadius = baseRadius * (1 + sizeVariation);
@@ -229,6 +237,7 @@ function createState(count, metrics, theme, config) {
     gridRows,
     cellSize,
     baseRadius,
+    initialSpeed,
     mobileSimulationBodyScale: mobileBodyScale,
     configKey: getConfigKey(config, count, theme, metrics),
   };
@@ -649,6 +658,8 @@ export function createRepelRoomRenderer({
     ensureState(config, theme);
     canvas.dataset.mobileSimulationBodyScale = state.mobileSimulationBodyScale.toFixed(2);
     canvas.dataset.simulationBodyRadius = state.baseRadius.toFixed(2);
+    canvas.dataset.simulationBodyCount = String(state.count);
+    canvas.dataset.simulationInitialSpeed = state.initialSpeed.toFixed(0);
     return { config, theme };
   }
 

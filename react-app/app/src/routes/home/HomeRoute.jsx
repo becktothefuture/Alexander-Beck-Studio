@@ -38,6 +38,7 @@ export function getHomeRouteView() {
   return {
     bodyClass: 'body',
     contentRenderKey: 'home-shell',
+    showFooter: true,
     studioWindowClassName: 'ball-simulation w-embed',
     simulationLayer: (
       <canvas id="c" className="ball-canvas-layer" aria-label="Bouncy balls" role="img" draggable="false" />

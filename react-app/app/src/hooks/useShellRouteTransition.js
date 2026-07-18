@@ -22,6 +22,10 @@ import {
   syncTransitionPhaseFromDom,
   TRANSITION_PHASES
 } from '../lib/transition-phase.js';
+import {
+  createEntranceSequence,
+  resetEntranceTargets,
+} from '../lib/motion/entrance-sequence.js';
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    ROUTE STATE
@@ -155,41 +159,7 @@ const ELEMENT_REVEAL_MS = 165;
 const EASE_OUT = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 const READY_FALLBACK_MS = 900;
 const GROUPED_ROUTE_OFFSET_MS = 80;
-const ROUTE_ENTER_SELECTOR = '[data-route-enter]';
-const ROUTE_ENTER_TOTAL_MS = 720;
 const PORTFOLIO_GATE_SCENE_FADE_MS = 480;
-const ROUTE_ENTER_GROUPS = {
-  identity: {
-    startMs: 0,
-    stepMs: 58,
-    durationMs: 420,
-    slide: true,
-  },
-  legend: {
-    startMs: 90,
-    stepMs: 36,
-    durationMs: 460,
-    slide: true,
-  },
-  context: {
-    startMs: 210,
-    stepMs: 54,
-    durationMs: 480,
-    slide: true,
-  },
-  action: {
-    startMs: 300,
-    stepMs: 54,
-    durationMs: 440,
-    slide: false,
-  },
-  footer: {
-    startMs: 360,
-    stepMs: 48,
-    durationMs: 420,
-    slide: true,
-  },
-};
 const SIMULATION_FOCUS_EXIT_MS = 520;
 const SIMULATION_FOCUS_ENTER_MS = 500;
 const SIMULATION_FOCUS_ZERO_HOLD_MS = 48;
@@ -206,6 +176,7 @@ const DAILY_LAB_ROUTE_IDS = new Set([
 
 let transitionToken = 0;
 let activeAnimations = [];
+let activeEntranceSequence = null;
 
 function readRootMs(name, fallback) {
   try {
@@ -404,101 +375,6 @@ function getGroupedTransitionItems(routeId, surfaceRefs) {
   return items;
 }
 
-function readRouteEnterMotion() {
-  return {
-    y: getComputedStyle(document.documentElement).getPropertyValue('--route-enter-ty').trim() || '3px',
-    blur: getComputedStyle(document.documentElement).getPropertyValue('--route-enter-blur').trim() || '1.5px',
-    scale: getComputedStyle(document.documentElement).getPropertyValue('--route-enter-scale').trim() || '0.994',
-    easing: readRootEasing('--route-enter-ease', 'cubic-bezier(0.22, 0, 0.16, 1)'),
-  };
-}
-
-function getRouteEnterGroupConfig(groupName) {
-  return ROUTE_ENTER_GROUPS[groupName] || ROUTE_ENTER_GROUPS.context;
-}
-
-function parseRouteEnterOrder(el, fallback) {
-  const raw = el?.dataset?.routeEnterOrder ?? el?.style?.getPropertyValue('--i') ?? '';
-  const parsed = Number.parseInt(String(raw), 10);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function getRouteEnterTargets(surfaceRefs) {
-  const { wall, hero, chrome, secondary } = getContentLayers(surfaceRefs);
-  const scopeNodes = [wall, hero, chrome, secondary].filter(Boolean);
-  const seen = new Set();
-  const targets = [];
-  const groupCounts = new Map();
-
-  scopeNodes.forEach((scope) => {
-    const candidates = [
-      ...(scope.matches?.(ROUTE_ENTER_SELECTOR) ? [scope] : []),
-      ...Array.from(scope.querySelectorAll?.(ROUTE_ENTER_SELECTOR) || []),
-    ];
-
-    candidates.forEach((el) => {
-      if (!el || seen.has(el)) return;
-      seen.add(el);
-      const group = el.dataset.routeEnter || 'context';
-      const fallbackOrder = groupCounts.get(group) || 0;
-      const order = parseRouteEnterOrder(el, fallbackOrder);
-      groupCounts.set(group, Math.max(fallbackOrder + 1, order + 1));
-      const config = getRouteEnterGroupConfig(group);
-      const finalOpacity = getComputedStyle(el).opacity || '1';
-      targets.push({
-        el,
-        group,
-        order,
-        delayMs: config.startMs + (config.stepMs * order),
-        durationMs: config.durationMs,
-        finalOpacity,
-        slide: el.dataset.routeEnterSlide === 'false' ? false : config.slide,
-      });
-    });
-  });
-
-  return targets.sort((a, b) => (
-    a.delayMs - b.delayMs
-    || a.group.localeCompare(b.group)
-    || a.order - b.order
-  ));
-}
-
-function setRouteEnterInitialState(targets, routeEnterMotion) {
-  targets.forEach(({ el, slide }) => {
-    el.style.transition = 'none';
-    el.style.opacity = '0';
-    el.style.filter = `blur(${routeEnterMotion.blur})`;
-    el.style.transform = slide
-      ? `translateY(${routeEnterMotion.y}) scale(${routeEnterMotion.scale})`
-      : 'translateY(0) scale(1)';
-    el.style.pointerEvents = 'none';
-    el.style.willChange = 'opacity, transform, filter';
-  });
-}
-
-function playRouteEnterTargets(targets, routeEnterMotion) {
-  targets.forEach(({ el, delayMs, durationMs, finalOpacity }) => {
-    el.style.transition = [
-      `opacity ${durationMs}ms ${routeEnterMotion.easing} ${delayMs}ms`,
-      `transform ${durationMs}ms ${routeEnterMotion.easing} ${delayMs}ms`,
-      `filter ${durationMs}ms ${routeEnterMotion.easing} ${delayMs}ms`,
-    ].join(', ');
-    el.style.opacity = finalOpacity || '1';
-    el.style.filter = 'blur(0)';
-    el.style.transform = 'translateY(0) scale(1)';
-    setStableTimeout(() => {
-      el.style.opacity = '';
-      el.style.transform = '';
-      el.style.filter = '';
-      el.style.transition = '';
-      el.style.transitionDelay = '';
-      el.style.pointerEvents = '';
-      el.style.willChange = '';
-    }, delayMs + durationMs + 80);
-  });
-}
-
 /* ── backdrop cleanup (with direct-DOM fallback) ─────────────────────────── */
 
 function forceBackdropDismiss({ instant = false } = {}) {
@@ -542,6 +418,8 @@ function dismissGateBackdrop(options = {}) {
 /* ── animation tracking ──────────────────────────────────────────────────── */
 
 function cancelActiveAnimations() {
+  activeEntranceSequence?.cancel();
+  activeEntranceSequence = null;
   activeAnimations.forEach((a) => {
     try {
       a.cancel();
@@ -559,15 +437,8 @@ function commitStaggerStyles(routeId, surfaceRefs) {
     el.style.filter = '';
     el.style.willChange = 'auto';
   });
-  getRouteEnterTargets(surfaceRefs).forEach(({ el }) => {
-    el.style.opacity = '';
-    el.style.transform = '';
-    el.style.filter = '';
-    el.style.transition = '';
-    el.style.transitionDelay = '';
-    el.style.pointerEvents = '';
-    el.style.willChange = '';
-  });
+  const { wall, hero, chrome, secondary, footer } = getContentLayers(surfaceRefs);
+  resetEntranceTargets([wall, hero, chrome, secondary, footer]);
 }
 
 /* ── single cleanup path (idempotent, always safe to call) ───────────────── */
@@ -952,11 +823,20 @@ function waitForRoutePaintFrames(count = 2) {
   }
 
   return new Promise((resolve) => {
+    let settled = false;
     let remaining = Math.max(1, count);
+    const fallbackId = setStableTimeout(finish, Math.max(80, remaining * 34));
+    function finish() {
+      if (settled) return;
+      settled = true;
+      clearStableTimeout(fallbackId);
+      resolve();
+    }
     const tick = () => {
+      if (settled) return;
       remaining -= 1;
       if (remaining <= 0) {
-        resolve();
+        finish();
         return;
       }
       window.requestAnimationFrame(tick);
@@ -1276,11 +1156,8 @@ function staggeredEntrance({
   return new Promise((resolve) => {
     const groups = buildRouteTransitionGroups(routeId, surfaceRefs);
     const targets = getGroupedTransitionItems(routeId, surfaceRefs);
-    const routeEnterTargets = getRouteEnterTargets(surfaceRefs);
-    const { wall, hero, ui } = getContentLayers(surfaceRefs);
+    const { wall, hero, ui, chrome, secondary, footer } = getContentLayers(surfaceRefs);
     const isRouteTransition = isRouteTransitionPhase(getTransitionPhase());
-    const routeEnterMotion = readRouteEnterMotion();
-
     // Safety: if DOM is unexpectedly empty, just restore layers.
     if (targets.length === 0) {
       cancelActiveAnimations();
@@ -1299,8 +1176,6 @@ function staggeredEntrance({
       el.style.opacity = '0';
       el.style.willChange = 'opacity, transform';
     });
-    setRouteEnterInitialState(routeEnterTargets, routeEnterMotion);
-
     // Pin window content layers to opacity 0 via inline style BEFORE cancelling WAAPI.
     // This prevents a single-frame flash where the WAAPI fill:forwards is removed
     // and the element reverts to CSS opacity 1 before the new inline value applies.
@@ -1311,6 +1186,14 @@ function staggeredEntrance({
     if (wall) wall.style.removeProperty('pointer-events');
     if (hero) hero.style.removeProperty('pointer-events');
     cancelActiveAnimations();
+
+    const routeEntrance = createEntranceSequence({
+      scopes: [wall, hero, chrome, secondary, footer],
+      profile: 'route',
+      onAnimation: (animation) => activeAnimations.push(animation),
+    });
+    activeEntranceSequence = routeEntrance;
+    routeEntrance.stage();
 
     // Keep the .fade-content container visible: footer and bottom tabs live inside it.
     if (ui) {
@@ -1369,14 +1252,10 @@ function staggeredEntrance({
       });
     });
 
-    window.requestAnimationFrame(() => {
-      playRouteEnterTargets(routeEnterTargets, routeEnterMotion);
-    });
+    window.requestAnimationFrame(() => void routeEntrance.play());
 
     const surfaceTotal = Math.max(0, ...groups.map((group) => group.delayMs)) + enterMs;
-    const routeEnterTotal = routeEnterTargets.length > 0
-      ? Math.max(ROUTE_ENTER_TOTAL_MS, ...routeEnterTargets.map((target) => target.delayMs + target.durationMs))
-      : 0;
+    const routeEnterTotal = routeEntrance.totalMs;
     setStableTimeout(resolve, Math.max(surfaceTotal, routeEnterTotal) + 50);
   });
 }

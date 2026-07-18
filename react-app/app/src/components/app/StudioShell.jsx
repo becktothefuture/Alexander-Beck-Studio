@@ -92,7 +92,7 @@ export function StudioShell({
   headerContent,
   mainContent,
   heroTitle,
-  footerVariant = 'standard',
+  showFooter = false,
   windowOverlayContent,
   simulationFocusControls,
   simulationFocusModal,
@@ -184,7 +184,7 @@ export function StudioShell({
                   ref={surfaceRefs?.footer}
                   className="shell-transition-surface shell-transition-surface--footer"
                 >
-                  <SiteFooter variant={footerVariant} />
+                  {showFooter ? <SiteFooter /> : null}
                 </div>
               </div>
             </div>
@@ -196,7 +196,7 @@ export function StudioShell({
             materialVariant="dominant-tab"
             onRouteNavigate={(href, tab, options) => trySpaNavigate(href, options)}
           />
-          {/* Portfolio drawer: MUST stack above header/footer — see docs/reference/LAYER-STACKING.md (never mount only inside #simulations). */}
+          {/* Portfolio drawer: keep its route content and scroll cue above the window UI but below the Button Bar. */}
           <div
             id="portfolio-sheet-host"
             className="portfolio-sheet-host"

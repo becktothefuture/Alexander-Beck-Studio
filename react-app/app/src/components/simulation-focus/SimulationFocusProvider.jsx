@@ -462,7 +462,11 @@ export function SimulationFocusSwitcher() {
   if (!shouldShowSwitcher || !activeSimulation) return null;
 
   return (
-    <div className="simulation-focus-switcher-slot" data-open={String(isChooserOpen)}>
+    <div
+      className="simulation-focus-switcher-slot"
+      data-open={String(isChooserOpen)}
+      data-route-enter="control"
+    >
       <button
         ref={buttonRef}
         type="button"

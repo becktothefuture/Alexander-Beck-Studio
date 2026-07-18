@@ -441,7 +441,7 @@ export function SiteApp() {
             headerContent={routeView.headerContent}
             mainContent={routeView.mainContent}
             heroTitle={routeView.heroTitle}
-            footerVariant={routeView.footerVariant}
+            showFooter={routeView.showFooter}
             windowOverlayContent={routeView.windowOverlayContent}
             simulationFocusControls={<SimulationFocusSwitcher />}
             simulationFocusModal={<SimulationFocusChooser />}

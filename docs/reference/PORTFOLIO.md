@@ -6,7 +6,9 @@ Production design intent and shared responsive rules live in [`DESIGN.md`](../..
 
 Portfolio is an orbital, scroll/drag-controlled DOM card deck managed by `PortfolioScrollApp`. Selecting a card opens a project drawer mounted in `#portfolio-sheet-host`.
 
-The five-item pagination track uses short horizontal lines arranged on the existing shallow arc. The active line is fully opaque; the remaining lines share the site-wide quiet indicator material and thickness.
+The five-item pagination track uses tall, narrow vertical capsules arranged on the existing shallow arc. The active mark is fully opaque; the remaining marks share the site-wide quiet indicator material and thickness.
+
+On narrow portrait viewports, the intro inset follows the available window height, the cards use the reduced mobile endpoint on a lower orbit seat, and the pagination track remains anchored near the bottom of the studio window. The three regions must keep visible separation without borrowing space from the persistent Button Bar.
 
 The deck uses a fixed repeated-card pool rather than growing the DOM. Sustained wheel or trackpad input advances through rebased project coordinates indefinitely while a bounded target lead prevents an unbounded catch-up queue. A Portfolio-owned Canvas 2D field continuously draws three deterministic layers of solid circles behind the cards. It drifts slowly at rest, responds to signed measured deck velocity, and remains visible as a static composition under reduced motion.
 
@@ -21,7 +23,9 @@ There is no visible Portfolio physics pit or archived slider pipeline.
 Portfolio deliberately separates the route voice from the project-information voice.
 
 - The deck intro and protected-project access title are route-entry headlines, so they use Instrument Serif through `.route-centered-page__title` and the shared headline tokens.
+- The deck intro description uses the same Geist size, weight, leading, tracking, measure, colour, and quiet opacity as the Contact description.
 - Portfolio card titles and the project-drawer title remain Geist. They identify work and support interaction, so they should retain the site's precise structural voice.
+- Portfolio cards are the complete interaction target and do not carry a separate visible “View” pill.
 - Do not make the drawer title serif merely to create continuity with the route intro. The contrast is the hierarchy: editorial arrival first, clear project information second.
 - Instrument Serif may be considered later for an occasional pull quote or chapter opener inside a case study, but only as an explicitly art-directed exception.
 

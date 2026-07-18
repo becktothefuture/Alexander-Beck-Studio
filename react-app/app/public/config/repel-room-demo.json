@@ -13,6 +13,7 @@
   "mouseCurve": 4,
   "mouseWakeDecay": 2600,
   "initialSpeed": 1291,
+  "mobileInitialSpeed": 1050,
   "directionalBias": 0.45,
   "spinBias": 0.58,
   "idleDrift": 0.32,
@@ -23,6 +24,6 @@
   "collisionIterations": 2,
   "targetFps": 60,
   "maxDpr": 1.5,
-  "mobileCountScale": 0.62,
+  "mobileCountScale": 0.82,
   "pauseWhenHidden": true
 }

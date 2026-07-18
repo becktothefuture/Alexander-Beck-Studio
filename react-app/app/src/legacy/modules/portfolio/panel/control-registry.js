@@ -108,8 +108,8 @@ const CONTROL_SECTIONS = {
           { id: 'carouselCardMaxWidthPx', label: 'Desktop max width', configKey: 'runtime.carousel.cardMaxWidthPx', type: 'range', min: 220, max: 620, step: 2, unit: 'px', default: 316, refresh: true },
           { id: 'carouselCardHeightCqh', label: 'Desktop height', configKey: 'runtime.carousel.cardHeightCqh', type: 'range', min: 36, max: 68, step: 0.5, unit: 'cqh', default: 58, refresh: true },
           { id: 'carouselCardMaxHeightPx', label: 'Desktop max height', configKey: 'runtime.carousel.cardMaxHeightPx', type: 'range', min: 340, max: 620, step: 2, unit: 'px', default: 461, refresh: true },
-          { id: 'carouselMobileCardWidthPercent', label: 'Mobile width', configKey: 'runtime.carousel.mobileCardWidthPercent', type: 'range', min: 60, max: 92, step: 0.5, unit: '%', default: 73, refresh: true },
-          { id: 'carouselMobileCardMaxWidthPx', label: 'Mobile max width', configKey: 'runtime.carousel.mobileCardMaxWidthPx', type: 'range', min: 240, max: 520, step: 2, unit: 'px', default: 342, refresh: true },
+          { id: 'carouselMobileCardWidthPercent', label: 'Mobile width', configKey: 'runtime.carousel.mobileCardWidthPercent', type: 'range', min: 60, max: 92, step: 0.5, unit: '%', default: 64, refresh: true },
+          { id: 'carouselMobileCardMaxWidthPx', label: 'Mobile max width', configKey: 'runtime.carousel.mobileCardMaxWidthPx', type: 'range', min: 240, max: 520, step: 2, unit: 'px', default: 300, refresh: true },
         ],
       },
       {
@@ -118,7 +118,7 @@ const CONTROL_SECTIONS = {
         defaultOpen: true,
         controls: [
           { id: 'carouselCenterYPercent', label: 'Orbit Y', configKey: 'runtime.carousel.centerYPercent', type: 'range', min: 45, max: 74, step: 0.25, unit: '%', default: 50, refresh: true },
-          { id: 'carouselMobileCenterYPercent', label: 'Mobile orbit Y', configKey: 'runtime.carousel.mobileCenterYPercent', type: 'range', min: 48, max: 72, step: 0.25, unit: '%', default: 50, refresh: true },
+          { id: 'carouselMobileCenterYPercent', label: 'Mobile orbit Y', configKey: 'runtime.carousel.mobileCenterYPercent', type: 'range', min: 48, max: 72, step: 0.25, unit: '%', default: 58, refresh: true },
           { id: 'carouselPathRadiusPx', label: 'Desktop radius', configKey: 'runtime.carousel.pathRadiusPx', type: 'range', min: 900, max: 3200, step: 10, unit: 'px', default: 2600, refresh: true, hint: 'Controls the orbit curve directly. Card spacing widens automatically when needed to prevent overlap.' },
           { id: 'carouselMobilePathRadiusPx', label: 'Mobile radius', configKey: 'runtime.carousel.mobilePathRadiusPx', type: 'range', min: 420, max: 1400, step: 10, unit: 'px', default: 820, refresh: true, hint: 'Controls the mobile orbit curve directly. Card spacing widens automatically when needed to prevent overlap.' },
           { id: 'carouselAngleStepDeg', label: 'Minimum desktop spacing', configKey: 'runtime.carousel.angleStepDeg', type: 'range', min: 6, max: 18, step: 0.25, unit: 'deg', default: 10.25, refresh: true, hint: 'Minimum angle between cards. The collision guard may use a larger effective angle.' },

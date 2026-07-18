@@ -55,6 +55,10 @@ import {
   setInitialSimulationVisualScale,
 } from '../lib/simulationVisualTransition.js';
 import {
+  clearHomeEntrancePhase,
+  createEntranceSequence,
+} from '../lib/motion/entrance-sequence.js';
+import {
   initConsolePolicy,
   printConsoleBanner,
   group,
@@ -223,86 +227,14 @@ function applyHomeHeroRuntimeConfig() {
   } catch (e) {}
 }
 
-// ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                 HOME POST-BOOT UI ENTRANCE                                  ║
-// ║  Direct-load only. The wall/canvas compose behind the boot overlay; these   ║
-// ║  helpers reveal the non-canvas homepage UI after the overlay has gone.      ║
-// ╚══════════════════════════════════════════════════════════════════════════════╝
-
-const HOME_POST_BOOT_ENTER_COMPLETE_MS = 3900;
 const HOME_CANVAS_READY_TIMEOUT_MS = 3200;
 const HOME_TITLE_PREPARE_GRACE_MS = 1200;
-let homePostBootEntranceTimer = 0;
-let homePostBootEntranceRaf = 0;
-
-function shouldReduceMotion() {
-  return !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-}
 
 function isSimulationFocusTransitionActive() {
   const phase = document.documentElement.dataset.absSimulationFocusTransition
     || window.__ABS_SIMULATION_FOCUS_TRANSITION__?.phase
     || 'idle';
   return phase === 'out' || phase === 'hold' || phase === 'in';
-}
-
-function clearHomePostBootEntranceTimer() {
-  if (homePostBootEntranceTimer) {
-    window.clearTimeout(homePostBootEntranceTimer);
-    homePostBootEntranceTimer = 0;
-  }
-
-  if (homePostBootEntranceRaf) {
-    window.cancelAnimationFrame(homePostBootEntranceRaf);
-    homePostBootEntranceRaf = 0;
-  }
-}
-
-function clearHomePostBootEntrance() {
-  clearHomePostBootEntranceTimer();
-  const root = document.documentElement;
-  root.classList.remove(
-    'abs-home-post-boot-pending',
-    'abs-home-post-boot-enter',
-    'abs-home-post-boot-complete'
-  );
-}
-
-function stageHomePostBootEntrance() {
-  clearHomePostBootEntranceTimer();
-  const root = document.documentElement;
-  root.classList.remove('abs-home-post-boot-enter', 'abs-home-post-boot-complete');
-  root.classList.add('abs-home-post-boot-pending');
-}
-
-function startHomePostBootEntrance() {
-  clearHomePostBootEntranceTimer();
-  const root = document.documentElement;
-
-  homePostBootEntranceRaf = window.requestAnimationFrame(() => {
-    homePostBootEntranceRaf = 0;
-
-    if (isRouteTransitionPhase(getTransitionPhase()) || isSimulationFocusTransitionActive()) {
-      clearHomePostBootEntrance();
-      return;
-    }
-
-    if (shouldReduceMotion()) {
-      root.classList.remove('abs-home-post-boot-pending', 'abs-home-post-boot-enter');
-      root.classList.add('abs-home-post-boot-complete');
-      return;
-    }
-
-    root.classList.add('abs-home-post-boot-enter');
-    root.classList.remove('abs-home-post-boot-pending');
-
-    homePostBootEntranceTimer = window.setTimeout(() => {
-      homePostBootEntranceTimer = 0;
-      if (!root.classList.contains('abs-home-post-boot-enter')) return;
-      root.classList.remove('abs-home-post-boot-enter');
-      root.classList.add('abs-home-post-boot-complete');
-    }, HOME_POST_BOOT_ENTER_COMPLETE_MS);
-  });
 }
 
 // Global error handler for unhandled rejections and errors
@@ -329,6 +261,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
   } = runtimeContext;
   let disposed = false;
   let rendererOwner = null;
+  let directEntrance = null;
   const isCurrent = () => (
     !disposed
     && !signal?.aborted
@@ -337,6 +270,8 @@ export async function bootstrapHomePage(runtimeContext = {}) {
   const cleanup = () => {
     if (disposed) return;
     disposed = true;
+    directEntrance?.cancel({ clearPhase: true });
+    clearHomeEntrancePhase();
     try {
       disposeModeSystem();
     } catch (e) {
@@ -780,7 +715,8 @@ export async function bootstrapHomePage(runtimeContext = {}) {
       window.addEventListener('pageshow', (event) => {
         if (event.persisted) {
           resetTransitionState();
-          clearHomePostBootEntrance();
+          directEntrance?.cancel({ clearPhase: true });
+          clearHomeEntrancePhase();
           forceBootVisible(['#abs-scene', '#app-frame']);
         }
       });
@@ -814,14 +750,16 @@ export async function bootstrapHomePage(runtimeContext = {}) {
       const onHomeOverlayHidden = () => {
         if (!isCurrent()) return;
         if (shouldRunHomePostBootEntrance) {
-          startHomePostBootEntrance();
+          return directEntrance?.play();
         } else {
-          clearHomePostBootEntrance();
+          clearHomeEntrancePhase();
         }
+        return undefined;
       };
 
       if (shellRouteTransitionActive) {
-        clearHomePostBootEntrance();
+        directEntrance?.cancel({ clearPhase: true });
+        clearHomeEntrancePhase();
         await waitForVisualReady();
         if (!isCurrent()) return cleanup;
         setBootLifecycleState('ready');
@@ -841,9 +779,16 @@ export async function bootstrapHomePage(runtimeContext = {}) {
         console.log('✓ Home simulation route-return entrance completed');
       } else {
         if (shouldRunHomePostBootEntrance) {
-          stageHomePostBootEntrance();
+          directEntrance?.cancel({ clearPhase: true });
+          directEntrance = createEntranceSequence({
+            scopes: document,
+            profile: 'direct',
+            diagnosticRoot: document.documentElement,
+            reducedMotion: reduceMotion,
+          });
+          directEntrance.stage();
         } else {
-          clearHomePostBootEntrance();
+          clearHomeEntrancePhase();
         }
         await waitForVisualReady();
         if (!isCurrent()) return cleanup;
@@ -876,7 +821,8 @@ export async function bootstrapHomePage(runtimeContext = {}) {
         selectors: ['#abs-scene', '#app-frame'],
         detail: 'home-reveal-failed',
         onOverlayHidden: () => {
-          if (isCurrent()) startHomePostBootEntrance();
+          if (!isCurrent()) return undefined;
+          return directEntrance?.play();
         },
       });
       if (!isCurrent()) return cleanup;

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import homeContent from 'virtual:abs-content/home';
 
 /**
- * SiteFooter – shared footer + edge caption for home, portfolio, and CV.
- * Rendered by StudioShell as the shared site footer.
+ * SiteFooter – Home-only footer and edge caption.
+ * StudioShell keeps the footer surface stable but mounts this content only for Home.
  */
 
 const SOCIAL_ICON_BY_KEY = Object.freeze({
@@ -33,8 +33,7 @@ function getLondonTime() {
   return LONDON_TIME_FORMAT.format(new Date()).toUpperCase();
 }
 
-export function SiteFooter({ variant = 'standard' }) {
-  const showsEdgeCaption = variant !== 'portfolio';
+export function SiteFooter() {
   const [londonTime, setLondonTime] = useState(getLondonTime);
 
   useEffect(() => {
@@ -46,10 +45,7 @@ export function SiteFooter({ variant = 'standard' }) {
 
   return (
     <>
-      <footer
-        className="ui-bottom portfolio-footer"
-        data-portfolio-ui
-      >
+      <footer className="ui-bottom home-footer">
         <div className="ui-meta-row">
           <div className="ui-meta-left">
             <div
@@ -58,7 +54,7 @@ export function SiteFooter({ variant = 'standard' }) {
               role="group"
               aria-label={homeContent.socials.ariaLabel}
             >
-              {SOCIAL_LINKS.map(({ href, label, screenReaderText, icon }) => (
+              {SOCIAL_LINKS.map(({ href, label, screenReaderText, icon }, index) => (
                 <a
                   key={label}
                   href={href}
@@ -66,6 +62,8 @@ export function SiteFooter({ variant = 'standard' }) {
                   rel="noopener noreferrer"
                   className="footer_icon-link w-inline-block abs-icon-btn"
                   aria-label={label}
+                  data-route-enter="footer"
+                  data-route-enter-order={index}
                 >
                   <i className={`ti ${icon}`} aria-hidden="true" />
                   <span className="screen-reader">{screenReaderText}</span>
@@ -79,6 +77,8 @@ export function SiteFooter({ variant = 'standard' }) {
               id="site-year"
               className="caption meta-caption abs-meta-btn"
               aria-label="London local time"
+              data-route-enter="footer"
+              data-route-enter-order="2"
             >
               <span className="meta-stack">
                 <span className="meta-location">
@@ -91,22 +91,22 @@ export function SiteFooter({ variant = 'standard' }) {
           </div>
         </div>
       </footer>
-      {showsEdgeCaption ? (
-        <div
-          id="edge-caption"
-          className="edge-caption"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
+      <div
+        id="edge-caption"
+        className="edge-caption"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        data-route-enter="footer"
+        data-route-enter-order="3"
+      >
+        <span
+          id="edge-caption-tagline"
+          className="edge-caption__line edge-caption__line--tagline"
         >
-          <span
-            id="edge-caption-tagline"
-            className="edge-caption__line edge-caption__line--tagline"
-          >
-            {EDGE_CAPTION}
-          </span>
-        </div>
-      ) : null}
+          {EDGE_CAPTION}
+        </span>
+      </div>
     </>
   );
 }

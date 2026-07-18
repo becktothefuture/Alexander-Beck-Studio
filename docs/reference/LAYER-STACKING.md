@@ -4,7 +4,7 @@ Every `StudioShell` window uses the same three-layer content contract:
 
 1. route scene/content at `100`;
 2. the pointer-transparent contrast veil at `180`;
-3. route UI, footer, and overlays at `200+`.
+3. route UI, the Home footer, and overlays at `200+`.
 
 The expanded physical order is:
 
@@ -14,20 +14,20 @@ The expanded physical order is:
 4. simulation wall/effects;
 5. Home ball canvas and visual title path;
 6. pointer-transparent inner-shadow/contrast veil;
-7. route UI and footer;
+7. route UI and the Home footer when Home is active;
 8. window overlays and Portfolio project sheet;
 9. modal/focus overlays;
 10. persistent Button Bar and its finish layer.
 
 ## Ownership
 
-`StudioShell.jsx` owns the physical window, overlay hosts, footer, and Button Bar. Route content stays inside the studio window. The Button Bar is outside the window and must never be covered by route content or a project sheet.
+`StudioShell.jsx` owns the physical window, overlay hosts, Home-only footer surface, and Button Bar. Route content stays inside the studio window. The Button Bar is outside the window and must never be covered by route content or a project sheet.
 
 `simulationLayer` and optional `heroLayer` content are scene-side and therefore below the shared veil. Visible route copy and controls belong in `uiLayer`, above the veil. The centered Home title is the sole intentional text exception: its semantic DOM source remains accessible while its visible Canvas path stays below the veil with the balls.
 
 The Portfolio project drawer repeats the same local order. Its media and scrolling case-study content sit below the drawer veil; its project title, eyebrow, scroll cue, and Back control sit above it. The drawer veil remains present for the full visible lifecycle, including opening and closing.
 
-`#portfolio-sheet-host` is a sibling overlay host within `#abs-scene`, after route content. The open Portfolio sheet covers the route header/footer/content but stops above the Button Bar. Preserve the host radius and clipping contract.
+`#portfolio-sheet-host` is a sibling overlay host within `#abs-scene`, after route content. The open Portfolio sheet covers the Portfolio route content but stops above the Button Bar. Its project scroll cue is drawer-owned and independent of the Home footer. Preserve the host radius and clipping contract.
 
 The protected-project access gate uses the shell-owned `.window-overlay-layer` inside the same studio-window clip. It blurs the live Portfolio deck but never the Button Bar. The legacy fixed `#modal-blur-layer` and `#modal-content-layer` may retain modal timing/depth state, but they must not paint while the project gate is open or closing. The project sheet may begin opening only after the access overlay is fully closed.
 

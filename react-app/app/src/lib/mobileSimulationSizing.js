@@ -51,3 +51,18 @@ export function resolveMobileSimulationBodyScale(configuredScale, metrics = {}) 
   if (!isMobileSimulationViewport(metrics)) return 1;
   return normalizeMobileSimulationBodyScale(configuredScale);
 }
+
+export function resolveMobileSimulationMultiplier(
+  value,
+  metrics = {},
+  { fallback = 1, min = 0.5, max = 1.5 } = {},
+) {
+  if (!isMobileSimulationViewport(metrics)) return 1;
+  const normalizedMin = Number.isFinite(Number(min)) ? Number(min) : 0.5;
+  const normalizedMax = Number.isFinite(Number(max))
+    ? Math.max(normalizedMin, Number(max))
+    : Math.max(normalizedMin, 1.5);
+  const normalizedFallback = Number.isFinite(Number(fallback)) ? Number(fallback) : 1;
+  const numeric = Number.isFinite(Number(value)) ? Number(value) : normalizedFallback;
+  return Math.min(normalizedMax, Math.max(normalizedMin, numeric));
+}

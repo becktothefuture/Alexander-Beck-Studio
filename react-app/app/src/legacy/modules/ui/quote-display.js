@@ -61,6 +61,8 @@ function createQuoteElement() {
   quoteContainer = document.createElement('div');
   quoteContainer.id = 'quote-display';
   quoteContainer.className = 'quote-display';
+  quoteContainer.dataset.routeEnter = 'footer';
+  quoteContainer.dataset.routeEnterOrder = '4';
   quoteContainer.setAttribute('role', 'button');
   quoteContainer.setAttribute('aria-live', 'polite');
   quoteContainer.setAttribute('aria-atomic', 'true');

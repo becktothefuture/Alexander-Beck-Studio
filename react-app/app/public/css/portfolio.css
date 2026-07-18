@@ -277,8 +277,8 @@ html:not([data-abs-boot-state='booting']) .portfolio-gate-scene--transition-brid
 .portfolio-gate-scene__dot {
   position: absolute;
   top: 0;
-  width: var(--abs-indicator-line-width, 8px);
-  height: var(--abs-indicator-line-thickness, 3px);
+  width: var(--abs-indicator-line-thickness, 3px);
+  height: var(--abs-indicator-line-width, 8px);
   border-radius: 999px;
   background: var(--abs-indicator-ink, rgb(var(--abs-rgb-black)));
   opacity: var(--abs-indicator-rest-opacity, 0.22);
@@ -712,7 +712,7 @@ body.portfolio-page .ui-center-spacer {
 /*
   Stacking order is mandatory: see docs/reference/LAYER-STACKING.md.
   Host is a sibling AFTER `.fade-content` in `#abs-scene` (StudioShell.jsx) so z-index can exceed route chrome (200).
-  Do not mount `#portfolio-sheet-host` only inside `#simulations` — that keeps the drawer under header/footer.
+  Do not mount `#portfolio-sheet-host` only inside `#simulations` — that keeps the drawer under route UI.
 */
 #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-host-bottom-reserve: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom));
@@ -911,7 +911,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   left: 50%;
   box-sizing: border-box;
   display: grid;
-  gap: clamp(7px, 1cqh, 12px);
+  gap: clamp(10px, 1.6vmin, 18px);
   width: min(760px, 76%);
   transform: translate3d(-50%, 0, 0);
   text-align: center;
@@ -946,8 +946,17 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__title,
-.portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__body {
+.portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-deck-intro__title {
   opacity: 1;
+}
+
+.portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__body,
+.portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-deck-intro__body {
+  opacity: 0.64;
+}
+
+.portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__title,
+.portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__body {
   filter: blur(0);
   transform: translateY(0) scale(1);
 }
@@ -956,7 +965,6 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   .portfolio-deck-intro__title,
 .portfolio-deck-mount.is-portfolio-deck-revealing
   .portfolio-deck-intro__body {
-  opacity: 1;
   filter: blur(0);
   transform: translateY(0) scale(1);
   transition-property: opacity, filter, transform;
@@ -1246,7 +1254,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   position: absolute;
   z-index: 2;
   top: auto;
-  bottom: clamp(36px, 8.5%, 40px);
+  bottom: clamp(24px, 6.5%, 30px);
   left: 20px;
   width: min(290px, calc(100% - 40px));
   min-width: 0;
@@ -1293,89 +1301,6 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-project-card__title-text {
   display: inline;
-}
-
-.portfolio-project-card__cta {
-  --portfolio-card-cta-fill: var(--abs-soft-control-fill);
-  position: absolute;
-  z-index: 3;
-  left: 50%;
-  bottom: -3.42%;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44.86%;
-  height: 8.2%;
-  min-height: 0;
-  margin: 0;
-  padding: 0 16px;
-  border: var(--abs-soft-control-edge-width, 0.5px) solid var(--abs-soft-control-outline);
-  border-radius: var(--abs-radius-pill);
-  background: transparent;
-  isolation: isolate;
-  overflow: visible;
-  box-shadow: none;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translate3d(-50%, 4px, 0);
-  transition:
-    opacity 160ms ease,
-    transform 180ms var(--ease-organic, ease),
-    visibility 0s linear 180ms;
-}
-
-.portfolio-project-card__cta::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  border-radius: inherit;
-  background: var(--portfolio-card-cta-fill);
-  -webkit-backdrop-filter:
-    blur(var(--abs-soft-control-blur, 18px))
-    saturate(var(--abs-soft-control-saturation, 1.08));
-  backdrop-filter:
-    blur(var(--abs-soft-control-blur, 18px))
-    saturate(var(--abs-soft-control-saturation, 1.08));
-  pointer-events: none;
-  transition: background-color 160ms var(--ease-organic, ease);
-}
-
-.portfolio-project-card__cta-label {
-  position: relative;
-  z-index: 1;
-  display: block;
-  color: var(--text-primary);
-  font-family: var(--abs-font-sans);
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 18px;
-  letter-spacing: 0;
-  text-align: center;
-  text-shadow: none;
-  filter: none;
-}
-
-@supports (text-box: trim-both cap alphabetic) {
-  .portfolio-project-card__cta-label {
-    text-box: trim-both cap alphabetic;
-  }
-}
-
-.portfolio-deck-mount .portfolio-project-card.is-active:not(.is-handoff-source-hidden) .portfolio-project-card__cta {
-  opacity: 1;
-  visibility: visible;
-  transform: translate3d(-50%, 0, 0);
-  transition-delay: 0s;
-}
-
-.portfolio-deck-mount .portfolio-project-card:hover .portfolio-project-card__cta,
-.portfolio-deck-mount .portfolio-project-card.is-keyboard-focused .portfolio-project-card__cta,
-.portfolio-deck-mount .portfolio-project-card.is-pressing .portfolio-project-card__cta {
-  --portfolio-card-cta-fill: var(--abs-soft-control-emphasis-fill);
-  border-color: var(--abs-soft-control-outline-active);
 }
 
 .portfolio-project-card__tags {
@@ -1474,15 +1399,15 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   position: absolute;
   left: 0;
   top: 0;
-  width: var(--abs-indicator-line-width, 8px);
-  height: var(--abs-indicator-line-thickness, 3px);
+  width: var(--abs-indicator-line-thickness, 3px);
+  height: var(--abs-indicator-line-width, 8px);
   border-radius: 999px;
   background: var(--abs-indicator-ink, rgb(var(--abs-rgb-black)));
   opacity: var(--portfolio-dot-opacity, var(--abs-indicator-rest-opacity, 0.22));
   transform:
     translate3d(
-      calc(var(--portfolio-dot-x, 0px) - (var(--abs-indicator-line-width, 8px) / 2)),
-      calc(var(--portfolio-dot-y, 0px) - (var(--abs-indicator-line-thickness, 3px) / 2)),
+      calc(var(--portfolio-dot-x, 0px) - (var(--abs-indicator-line-thickness, 3px) / 2)),
+      calc(var(--portfolio-dot-y, 0px) - (var(--abs-indicator-line-width, 8px) / 2)),
       0
     );
   transform-origin: 50% 50%;
@@ -2645,7 +2570,7 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
   }
 
   .portfolio-deck-intro {
-    top: clamp(60px, 7cqh, 80px);
+    top: clamp(32px, calc(7cqh + 8px), 68px);
     width: min(42rem, 88%);
   }
 
@@ -2659,7 +2584,7 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
 
   .portfolio-project-card__copy {
     top: auto;
-    bottom: clamp(36px, 8.5%, 40px);
+    bottom: clamp(24px, 6.5%, 30px);
     left: clamp(16px, 5vw, 20px);
     width: calc(100% - clamp(32px, 10vw, 40px));
     gap: 12px;
@@ -2758,7 +2683,7 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
 
 @media (max-width: 420px) {
   .portfolio-deck-mount {
-    --portfolio-carousel-mobile-dot-row-offset: clamp(120px, 16cqh, 132px);
+    --portfolio-carousel-mobile-dot-row-offset: clamp(36px, 5cqh, 44px);
   }
 
   .portfolio-carousel-dot-dial {
@@ -2775,20 +2700,8 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
   }
 }
 
-@media (max-width: 420px) and (max-height: 700px) {
-  .portfolio-carousel-dot-dial {
-    display: none;
-  }
-}
-
-@media (max-width: 420px) and (min-height: 701px) and (max-height: 760px) {
-  .portfolio-deck-mount {
-    --portfolio-carousel-mobile-dot-row-offset: clamp(92px, 13cqh, 100px);
-  }
-}
-
-@media (max-height: 600px),
-  (max-width: 900px) and (max-height: 680px) {
+@media (max-height: 600px) and (orientation: landscape),
+  (max-width: 900px) and (max-height: 680px) and (orientation: landscape) {
   .portfolio-carousel-dot-dial {
     display: none;
   }
@@ -2824,14 +2737,6 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
   .portfolio-project-card__tags {
     display: none;
   }
-}
-
-@media (max-width: 600px) and (max-height: 700px) and (orientation: portrait) {
-  .portfolio-deck-intro {
-    top: clamp(8px, 2svh, 16px);
-    width: min(82vw, 30ch);
-  }
-
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2875,8 +2780,7 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
   body.portfolio-page .route-topbar__left,
   body.portfolio-page .route-topbar__right .portfolio-topnav,
   .portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-project-card,
-  .portfolio-deck-mount .portfolio-project-card,
-  .portfolio-project-card__cta {
+  .portfolio-deck-mount .portfolio-project-card {
     --portfolio-card-press-scale: 1;
     transition-duration: 1ms;
     transition-delay: 0ms;

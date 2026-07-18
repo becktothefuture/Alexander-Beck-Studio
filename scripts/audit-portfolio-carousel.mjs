@@ -141,10 +141,26 @@ async function collectGeometry(page) {
         - (stageRect.top + (stageRect.height / 2))
       )
       : null;
+    const deckMount = document.querySelector('.portfolio-deck-mount');
+    const configuredCenterYPercent = deckMount instanceof HTMLElement
+      ? Number.parseFloat(getComputedStyle(deckMount).getPropertyValue('--portfolio-deck-center-y'))
+      : Number.NaN;
+    const activeSeatDeltaY = activeCardRect && Number.isFinite(configuredCenterYPercent)
+      ? Math.abs(
+        (activeCardRect.top + (activeCardRect.height / 2))
+        - (stageRect.top + (stageRect.height * configuredCenterYPercent / 100))
+      )
+      : null;
     return {
       cards,
       overlaps,
+      cardCtaCount: document.querySelectorAll('.portfolio-project-card__cta').length,
+      introTitleText: (intro?.querySelector('.portfolio-deck-intro__title')?.textContent || '').trim(),
+      introDescriptionOpacity: intro
+        ? Number.parseFloat(getComputedStyle(intro.querySelector('.portfolio-deck-intro__body')).opacity)
+        : null,
       activeCenterDeltaY: activeCenterDeltaY === null ? null : Number(activeCenterDeltaY.toFixed(3)),
+      activeSeatDeltaY: activeSeatDeltaY === null ? null : Number(activeSeatDeltaY.toFixed(3)),
       introCardGap: activeCardRect && introRect
         ? Number((activeCardRect.top - introRect.bottom).toFixed(3))
         : null,
@@ -178,6 +194,11 @@ async function collectDotAppearance(page) {
     const activeCardRect = document.querySelector('.portfolio-project-card.is-active')?.getBoundingClientRect?.();
     const dotDial = document.querySelector('.portfolio-carousel-dot-dial');
     const dotDialVisible = dotDial ? getComputedStyle(dotDial).display !== 'none' : false;
+    const stageRect = document.querySelector('.portfolio-deck-stage')?.getBoundingClientRect?.();
+    const dotDialRect = dotDial?.getBoundingClientRect?.();
+    const bottomClearance = dotDialVisible && stageRect && dotDialRect
+      ? stageRect.bottom - dotDialRect.top
+      : null;
     const sharedThickness = Number.parseFloat(
       getComputedStyle(document.documentElement).getPropertyValue('--abs-indicator-line-thickness')
     );
@@ -195,19 +216,20 @@ async function collectDotAppearance(page) {
       maxOpacity: samples.length ? Math.max(...samples.map((sample) => sample.opacity)) : null,
       opacities: samples.map((sample) => Number(sample.opacity.toFixed(3))).sort((a, b) => a - b),
       dotDialVisible,
+      bottomClearance: bottomClearance === null ? null : Number(bottomClearance.toFixed(3)),
       cornerShapes: Array.from(new Set(samples.map((sample) => sample.cornerShape).filter(Boolean))),
       maxThicknessDelta: samples.length && Number.isFinite(sharedThickness)
-        ? Math.max(...samples.map((sample) => Math.abs(sample.height - sharedThickness)))
+        ? Math.max(...samples.map((sample) => Math.abs(sample.width - sharedThickness)))
         : null,
-      minAspectRatio: samples.length
-        ? Math.min(...samples.map((sample) => sample.width / Math.max(1, sample.height)))
+      minVerticalAspectRatio: samples.length
+        ? Math.min(...samples.map((sample) => sample.height / Math.max(1, sample.width)))
         : null,
       minPillRadiusRatio: samples.length
-        ? Math.min(...samples.map((sample) => sample.borderRadius / Math.max(0.5, sample.height / 2)))
+        ? Math.min(...samples.map((sample) => sample.borderRadius / Math.max(0.5, Math.min(sample.width, sample.height) / 2)))
         : null,
       minCenterGap: centerGaps.length ? Math.min(...centerGaps) : null,
-      lineLength: samples[0]?.width ?? null,
-      lineThickness: samples[0]?.height ?? null,
+      markWidth: samples[0]?.width ?? null,
+      markHeight: samples[0]?.height ?? null,
       sharedThickness: Number.isFinite(sharedThickness) ? sharedThickness : null,
       activeCardOverlaps,
     };
@@ -1137,8 +1159,13 @@ async function main() {
     const failures = [];
     for (const [name, result] of Object.entries(summary.viewports)) {
       if (result.geometry.overlaps.length) failures.push(`${name}: ${result.geometry.overlaps.length} visible overlap(s)`);
-      if (result.geometry.activeCenterDeltaY === null || result.geometry.activeCenterDeltaY > 1) {
-        failures.push(`${name}: active card is not vertically centered in the stage`);
+      if (result.geometry.cardCtaCount !== 0) failures.push(`${name}: card View CTAs are still rendered`);
+      if (/[.!?]$/.test(result.geometry.introTitleText)) failures.push(`${name}: intro title still has terminal punctuation`);
+      if (Math.abs((result.geometry.introDescriptionOpacity ?? 0) - 0.64) > 0.01) {
+        failures.push(`${name}: intro description opacity does not match Contact`);
+      }
+      if (result.geometry.activeSeatDeltaY === null || result.geometry.activeSeatDeltaY > 1) {
+        failures.push(`${name}: active card is not aligned to its configured orbit seat`);
       }
       if (result.geometry.introCardGap !== null && result.geometry.introCardGap < 8) {
         failures.push(`${name}: intro overlaps or crowds the active card`);
@@ -1147,18 +1174,24 @@ async function main() {
         failures.push('desktop-wide: ultra-wide layout does not expose all seven project cards');
       }
       if (result.dots.count !== 5) failures.push(`${name}: line track should render exactly five lines`);
-      if (result.dots.lineLength === null || result.dots.lineLength > 10) failures.push(`${name}: line track marks are too long`);
-      if (result.dots.lineThickness === null || result.dots.sharedThickness === null || result.dots.maxThicknessDelta > 0.05) {
+      if (result.dots.markHeight === null || result.dots.markHeight > 10) failures.push(`${name}: line track marks are too tall`);
+      if (result.dots.markWidth === null || result.dots.sharedThickness === null || result.dots.maxThicknessDelta > 0.05) {
         failures.push(`${name}: line track does not use the shared thickness`);
       }
       if (result.dots.maxOpacity === null || result.dots.maxOpacity < 0.99) failures.push(`${name}: active line is not fully opaque`);
       if (result.dots.minOpacity === null || result.dots.minOpacity < 0.2 || result.dots.minOpacity > 0.24) failures.push(`${name}: resting lines do not use the quiet opacity`);
       if (result.dots.uniqueColors !== 1) failures.push(`${name}: line track uses inconsistent ink colours`);
       if (result.dots.cornerShapes.includes('squircle')) failures.push(`${name}: lines use squircle corners`);
-      if (result.dots.minAspectRatio === null || result.dots.minAspectRatio < 2) failures.push(`${name}: line track marks are not horizontally proportioned`);
+      if (result.dots.minVerticalAspectRatio === null || result.dots.minVerticalAspectRatio < 2) failures.push(`${name}: line track marks are not vertically proportioned`);
       if (result.dots.minPillRadiusRatio === null || result.dots.minPillRadiusRatio < 0.99) failures.push(`${name}: line track marks do not have pill ends`);
-      if (result.dots.dotDialVisible && (result.dots.minCenterGap === null || result.dots.minCenterGap < result.dots.lineLength * 1.35)) {
+      if (result.dots.dotDialVisible && (result.dots.minCenterGap === null || result.dots.minCenterGap < result.dots.markWidth * 1.35)) {
         failures.push(`${name}: lines are not spaced clearly apart`);
+      }
+      if (['mobile-small', 'mobile', 'mobile-large'].includes(name)) {
+        if (!result.dots.dotDialVisible) failures.push(`${name}: line track is hidden in portrait`);
+        if (result.dots.bottomClearance === null || result.dots.bottomClearance < 20 || result.dots.bottomClearance > 80) {
+          failures.push(`${name}: line track is not anchored near the bottom of the studio window`);
+        }
       }
       if (result.dots.activeCardOverlaps === null || result.dots.activeCardOverlaps > 0) {
         failures.push(`${name}: line track overlaps the active card`);

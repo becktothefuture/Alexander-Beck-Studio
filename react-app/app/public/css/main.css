@@ -351,10 +351,10 @@ body.body.dark-mode {
    ───────────────────────────────────────────────────────────────────────────── */
 .edge-caption {
   position: absolute;
-  /* Distance from bottom: clamps between min and max; 2vh scales with viewport, max caps at largest breakpoints */
-  bottom: clamp(var(--edge-caption-distance-min, 8px), 2vh, var(--edge-caption-distance-max, 48px));
+  top: 50%;
+  bottom: auto;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   z-index: 3; /* Within .fade-content stacking context */
   pointer-events: none;
   display: inline-flex;
@@ -515,6 +515,11 @@ html.fonts-loading .project-detail {
     opacity var(--duration-settle) var(--ease-settle),
     transform var(--duration-settle) var(--ease-settle);
   will-change: opacity, transform;
+}
+
+/* The footer belongs to Home; keep its control row slightly closer to the window edge. */
+html[data-shell-route='home'] .page-content {
+  padding-bottom: max(calc(var(--abs-safe-bottom) + 8px), min(var(--content-padding-y-bottom), 1.5dvh));
 }
 
 .shell-wall-slot {
@@ -2612,6 +2617,8 @@ body.dark-mode .ui-main-nav .footer_link {
 
 /* Row 2: Socials + Meta (Space Between) */
 .ui-meta-row {
+  --home-footer-control-frame-size: var(--ui-icon-frame-size);
+
   display: flex;
   justify-content: space-between;
   align-items: flex-end; /* Bottom-align so Apple/LinkedIn icons match London button level */
@@ -2746,6 +2753,11 @@ button.abs-meta-btn,
   width: var(--shell-control-icon-size);
   height: var(--shell-control-icon-size);
   font-size: var(--shell-control-icon-size);
+}
+
+#social-links .abs-icon-btn {
+  inline-size: var(--home-footer-control-frame-size);
+  block-size: var(--home-footer-control-frame-size);
 }
 
 
@@ -3191,6 +3203,30 @@ html[data-shell-route='home'] body:not(.daily-focus-page) .hero-title--canvas-so
   transition: none;
 }
 
+/* Promoted Daily Simulations keep the semantic title visible instead of
+   redrawing it on Canvas. Centre that mobile DOM layer through layout so iOS
+   browsers do not have to composite a percentage-translated text surface. */
+@media (max-width: 600px) {
+  body.daily-focus-page .shell-hero-surface {
+    display: grid;
+    place-items: center;
+  }
+
+  body.daily-focus-page .hero-title--canvas-source {
+    position: relative;
+    top: auto;
+    left: var(--home-hero-title-optical-offset-x, 0px);
+    width: max-content;
+    max-width: calc(100% - (var(--content-padding-x) * 2));
+    transform:
+      translateY(calc(clamp(20px, 5vh, 52px) - 4vh))
+      scale(calc(
+        var(--abs-scene-impact-logo-scale, 1) *
+        var(--brand-logo-user-scale, 1)
+      ));
+  }
+}
+
 html[data-abs-simulation-shell-stable='true'] #shell-hero-slot {
   opacity: 1;
   visibility: visible;
@@ -3376,140 +3412,9 @@ html.abs-direct-boot-staging .ui-main-nav .footer_link {
   transition: none;
 }
 
-/* Home post-boot UI entrance: starts only after #abs-boot-overlay is gone.
-   The canvas and wall stay out of scope; this is a short text/chrome reveal. */
-:root {
-  --home-post-boot-ease: cubic-bezier(0.22, 0, 0.16, 1);
-  --home-post-boot-duration-identity: 420ms;
-  --home-post-boot-duration-support: 480ms;
-  --home-post-boot-delay-identity-name: 0ms;
-  --home-post-boot-delay-identity-role: 90ms;
-  --home-post-boot-delay-legend-start: 900ms;
-  --home-post-boot-delay-legend-step: 90ms;
-  --home-post-boot-delay-context-start: 1650ms;
-  --home-post-boot-delay-context-step: 110ms;
-  --home-post-boot-delay-action-start: 2000ms;
-  --home-post-boot-delay-action-step: 110ms;
-  --home-post-boot-delay-footer-start: 2350ms;
-  --home-post-boot-delay-footer-step: 100ms;
-  --home-post-boot-delay-simulation-tab: 3000ms;
-  --home-post-boot-ty: 3px;
-  --home-post-boot-blur: 1.5px;
-  --home-post-boot-scale: 0.994;
-  --route-enter-ty: 3px;
-  --route-enter-blur: 1.5px;
-  --route-enter-scale: 0.994;
-  --route-enter-ease: var(--home-post-boot-ease);
-}
-
-html.abs-home-post-boot-pending #hero-title .hero-title__name,
-html.abs-home-post-boot-pending #hero-title .hero-title__role,
-html.abs-home-post-boot-pending #expertise-legend .legend__item,
-html.abs-home-post-boot-pending #main-links .footer_link,
-html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
-html.abs-home-post-boot-pending #social-links .footer_icon-link,
-html.abs-home-post-boot-pending #site-year.abs-meta-btn,
-html.abs-home-post-boot-pending #edge-caption,
-html.abs-home-post-boot-pending #quote-display,
-html.abs-home-post-boot-pending .simulation-focus-switcher-slot {
-  opacity: 0;
-  filter: blur(var(--home-post-boot-blur));
-  transform: translateY(var(--home-post-boot-ty)) scale(var(--home-post-boot-scale));
-  pointer-events: none;
-  transition: none;
-}
-
-html.abs-home-post-boot-pending #main-links .footer_link {
-  transform: translateY(0) scale(1);
-}
-
-html.abs-home-post-boot-pending .simulation-focus-switcher-slot {
-  transform: translateX(-50%) translateY(var(--home-post-boot-ty)) scale(var(--home-post-boot-scale));
-}
-
-html.abs-home-post-boot-enter #hero-title .hero-title__name,
-html.abs-home-post-boot-enter #hero-title .hero-title__role,
-html.abs-home-post-boot-enter #expertise-legend .legend__item,
-html.abs-home-post-boot-enter #main-links .footer_link,
-html.abs-home-post-boot-enter #app-frame .ui-top-right .decorative-script,
-html.abs-home-post-boot-enter #social-links .footer_icon-link,
-html.abs-home-post-boot-enter #site-year.abs-meta-btn,
-html.abs-home-post-boot-enter #edge-caption,
-html.abs-home-post-boot-enter #quote-display,
-html.abs-home-post-boot-enter .simulation-focus-switcher-slot {
-  transition:
-    opacity var(--home-post-boot-duration-support) var(--home-post-boot-ease),
-    filter var(--home-post-boot-duration-support) var(--home-post-boot-ease),
-    transform var(--home-post-boot-duration-support) var(--home-post-boot-ease);
-}
-
-html.abs-home-post-boot-enter #hero-title .hero-title__name {
-  transition-duration: var(--home-post-boot-duration-identity);
-  transition-delay: var(--home-post-boot-delay-identity-name);
-}
-
-html.abs-home-post-boot-enter #hero-title .hero-title__role {
-  transition-duration: var(--home-post-boot-duration-identity);
-  transition-delay: var(--home-post-boot-delay-identity-role);
-}
-
-html.abs-home-post-boot-enter #main-links .footer_link {
-  transition-property: opacity, filter;
-  transition-delay: calc(var(--home-post-boot-delay-action-start) + (var(--home-post-boot-delay-action-step) * var(--i, 0)));
-}
-
-html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(1) {
-  transition-delay: var(--home-post-boot-delay-legend-start);
-}
-
-html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(2) {
-  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 1));
-}
-
-html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(3) {
-  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 2));
-}
-
-html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(4) {
-  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 3));
-}
-
-html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(5) {
-  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 4));
-}
-
-html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(6) {
-  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 5));
-}
-
-html.abs-home-post-boot-enter #app-frame .ui-top-right .decorative-script {
-  transition-delay: var(--home-post-boot-delay-context-start);
-}
-
-html.abs-home-post-boot-enter[data-shell-route='home'] body:not(.detail-open) #app-frame .ui-top-right .decorative-script:hover,
-html.abs-home-post-boot-enter[data-shell-route='home'] body:not(.detail-open) #app-frame .ui-top-right .decorative-script:focus-within {
-  transition-delay: 0s;
-}
-
-html.abs-home-post-boot-enter #social-links .footer_icon-link {
-  transition-delay: var(--home-post-boot-delay-footer-start);
-}
-
-html.abs-home-post-boot-enter #site-year.abs-meta-btn {
-  transition-delay: calc(var(--home-post-boot-delay-footer-start) + var(--home-post-boot-delay-footer-step));
-}
-
-html.abs-home-post-boot-enter #edge-caption {
-  transition-delay: calc(var(--home-post-boot-delay-footer-start) + (var(--home-post-boot-delay-footer-step) * 2));
-}
-
-html.abs-home-post-boot-enter #quote-display {
-  transition-delay: calc(var(--home-post-boot-delay-footer-start) + (var(--home-post-boot-delay-footer-step) * 3));
-}
-
-html.abs-home-post-boot-enter .simulation-focus-switcher-slot {
-  transition-delay: var(--home-post-boot-delay-simulation-tab);
-}
+/* Direct-load and route child entrances are executed by entrance-sequence.js.
+   CSS owns only settled layout, so responsive transforms cannot be overwritten
+   by animation state selectors. The phase classes remain diagnostic markers. */
 
 /* Reduced motion: instant transitions */
 @media (prefers-reduced-motion: reduce) {
@@ -3545,30 +3450,6 @@ html.abs-home-post-boot-enter .simulation-focus-switcher-slot {
     opacity: var(--brand-logo-secondary-opacity, 0.66);
   }
 
-  html.abs-home-post-boot-pending #hero-title .hero-title__name,
-  html.abs-home-post-boot-pending #hero-title .hero-title__role,
-  html.abs-home-post-boot-pending #expertise-legend .legend__item,
-  html.abs-home-post-boot-pending #main-links .footer_link,
-  html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
-  html.abs-home-post-boot-pending #quote-display,
-  html.abs-home-post-boot-pending .simulation-focus-switcher-slot {
-    opacity: 1;
-    filter: none;
-    transform: none;
-    transition: none;
-  }
-
-  html.abs-home-post-boot-pending #hero-title .hero-title__role {
-    opacity: var(--brand-logo-secondary-opacity, 0.66);
-  }
-
-  html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script {
-    opacity: var(--supporting-description-opacity);
-  }
-
-  html.abs-home-post-boot-pending .simulation-focus-switcher-slot {
-    transform: translateX(-50%);
-  }
 }
 
 /* Legacy #brand-logo state-driven rules removed — replaced by .hero-title above */
@@ -3674,14 +3555,6 @@ html[data-abs-transition-phase='modal-open'] #main-links .footer_link {
   transition-duration: var(--ui-duration-out);
   transition-timing-function: var(--ui-ease-out);
   transition-delay: calc(var(--ui-stagger) * var(--ri, 0));
-}
-
-html[data-abs-transition-phase='modal-open'].abs-home-post-boot-pending #main-links .footer_link,
-html[data-abs-transition-phase='modal-open'].abs-home-post-boot-enter #main-links .footer_link {
-  opacity: 0;
-  filter: none;
-  transform: translateY(0) scale(1);
-  transition: none;
 }
 
 html[data-abs-transition-phase='modal-open'] .ui-main-nav .footer_link:focus-visible,
@@ -5927,12 +5800,13 @@ body.dark-mode .ui-main-nav .footer_link:active {
 #site-year.meta-caption:hover,
 #site-year.meta-caption:focus,
 #site-year.meta-caption:active {
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  block-size: var(--ui-icon-frame-size);
-  height: var(--ui-icon-frame-size);
-  min-height: var(--ui-icon-frame-size);
+  block-size: var(--home-footer-control-frame-size, var(--ui-icon-frame-size));
+  height: var(--home-footer-control-frame-size, var(--ui-icon-frame-size));
+  min-height: var(--home-footer-control-frame-size, var(--ui-icon-frame-size));
   margin: 0;
   padding: var(--abs-space-2xs) var(--abs-space-sm);
   color: var(--text-primary);
@@ -8098,6 +7972,8 @@ body.dark-mode .cv-photo {
   }
 
   .ui-meta-row {
+    --home-footer-control-frame-size: calc(var(--ui-icon-frame-size) * 0.75);
+
     gap: clamp(12px, 4vw, 18px);
   }
 
@@ -8109,11 +7985,11 @@ body.dark-mode .cv-photo {
     gap: 4px;
   }
 
-  #site-year {
+  #site-year.meta-caption {
     box-sizing: border-box;
-    block-size: calc(var(--ui-icon-frame-size) * 0.75);
-    height: calc(var(--ui-icon-frame-size) * 0.75);
-    min-height: calc(var(--ui-icon-frame-size) * 0.75);
+    block-size: var(--home-footer-control-frame-size);
+    height: var(--home-footer-control-frame-size);
+    min-height: var(--home-footer-control-frame-size);
     padding-block: 0;
     font-size: max(calc(var(--text-sm) * 1.08), 14px);
   }
@@ -8123,10 +7999,6 @@ body.dark-mode .cv-photo {
     min-width: 8ch;
   }
 
-  .edge-caption {
-    bottom: calc(var(--abs-safe-bottom) + (var(--ui-icon-frame-size) * 0.375));
-    transform: translate(-50%, 50%);
-  }
 }
 
 @media (max-width: 475px) {

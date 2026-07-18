@@ -1,0 +1,305 @@
+const ENTRANCE_SELECTOR = '[data-route-enter]';
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[contenteditable="true"]',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
+const HOME_PHASE_CLASSES = Object.freeze([
+  'abs-home-post-boot-pending',
+  'abs-home-post-boot-enter',
+  'abs-home-post-boot-complete',
+]);
+const styleCleanupGeneration = new WeakMap();
+const entranceManagedInertTargets = new WeakSet();
+
+const PROFILES = Object.freeze({
+  direct: Object.freeze({
+    easing: 'cubic-bezier(0.22, 0, 0.16, 1)',
+    blurPx: 1.5,
+    groups: Object.freeze({
+      identity: Object.freeze({ startMs: 0, stepMs: 90, durationMs: 420 }),
+      legend: Object.freeze({ startMs: 900, stepMs: 90, durationMs: 480 }),
+      context: Object.freeze({ startMs: 1650, stepMs: 110, durationMs: 480 }),
+      action: Object.freeze({ startMs: 2000, stepMs: 110, durationMs: 480 }),
+      footer: Object.freeze({ startMs: 2350, stepMs: 100, durationMs: 480 }),
+      control: Object.freeze({ startMs: 3000, stepMs: 0, durationMs: 480 }),
+    }),
+  }),
+  route: Object.freeze({
+    easing: 'cubic-bezier(0.22, 0, 0.16, 1)',
+    blurPx: 1.5,
+    groups: Object.freeze({
+      identity: Object.freeze({ startMs: 0, stepMs: 58, durationMs: 420 }),
+      legend: Object.freeze({ startMs: 90, stepMs: 36, durationMs: 460 }),
+      context: Object.freeze({ startMs: 210, stepMs: 54, durationMs: 480 }),
+      action: Object.freeze({ startMs: 300, stepMs: 54, durationMs: 440 }),
+      footer: Object.freeze({ startMs: 360, stepMs: 48, durationMs: 420 }),
+      control: Object.freeze({ startMs: 420, stepMs: 0, durationMs: 420 }),
+    }),
+  }),
+});
+
+function prefersReducedMotion() {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+}
+
+function asScopeElements(scopes) {
+  const values = Array.isArray(scopes) ? scopes : [scopes || document];
+  return values
+    .map((value) => value?.current || value)
+    .filter(Boolean);
+}
+
+function readOrder(element, fallback) {
+  const raw = element.dataset.routeEnterOrder ?? element.style.getPropertyValue('--i') ?? '';
+  const parsed = Number.parseInt(String(raw), 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function readFinalOpacity(element) {
+  const explicit = Number.parseFloat(element.dataset.routeEnterOpacity || '');
+  if (Number.isFinite(explicit)) return explicit;
+  const computed = Number.parseFloat(getComputedStyle(element).opacity || '');
+  return Number.isFinite(computed) && computed > 0.02 ? computed : 1;
+}
+
+function resolveProfile(name) {
+  return PROFILES[name] || PROFILES.route;
+}
+
+function readGroup(profile, name) {
+  return profile.groups[name] || profile.groups.context;
+}
+
+function collectTargets(scopes, profile) {
+  const groupCounts = new Map();
+  const seen = new Set();
+  const targets = [];
+
+  asScopeElements(scopes).forEach((scope) => {
+    const elements = [
+      ...(scope.matches?.(ENTRANCE_SELECTOR) ? [scope] : []),
+      ...Array.from(scope.querySelectorAll?.(ENTRANCE_SELECTOR) || []),
+    ];
+
+    elements.forEach((element) => {
+      if (seen.has(element)) return;
+      seen.add(element);
+      const groupName = element.dataset.routeEnter || 'context';
+      const fallbackOrder = groupCounts.get(groupName) || 0;
+      const order = readOrder(element, fallbackOrder);
+      groupCounts.set(groupName, Math.max(fallbackOrder + 1, order + 1));
+      const group = readGroup(profile, groupName);
+      targets.push({
+        element,
+        groupName,
+        order,
+        delayMs: group.startMs + (group.stepMs * order),
+        durationMs: group.durationMs,
+        finalOpacity: readFinalOpacity(element),
+      });
+    });
+  });
+
+  return targets.sort((a, b) => (
+    a.delayMs - b.delayMs
+    || a.groupName.localeCompare(b.groupName)
+    || a.order - b.order
+  ));
+}
+
+function setHomePhase(root, phase) {
+  if (!root) return;
+  root.classList.remove(...HOME_PHASE_CLASSES);
+  if (phase) root.classList.add(`abs-home-post-boot-${phase}`);
+  if (phase) root.dataset.absIntroPhase = phase;
+  else delete root.dataset.absIntroPhase;
+}
+
+function clearTargetStyles(target) {
+  const { element } = target;
+  const generation = (styleCleanupGeneration.get(element) || 0) + 1;
+  styleCleanupGeneration.set(element, generation);
+  // Keep transitions disabled through the first settled paint. Several targets
+  // have hover transitions in their component CSS; removing the inline opacity
+  // and `transition: none` together would accidentally animate that cleanup.
+  element.style.transition = 'none';
+  element.style.removeProperty('opacity');
+  element.style.removeProperty('filter');
+  element.style.removeProperty('pointer-events');
+  element.style.removeProperty('will-change');
+  window.requestAnimationFrame(() => {
+    if (styleCleanupGeneration.get(element) !== generation) return;
+    element.style.removeProperty('transition');
+    element.style.removeProperty('transition-delay');
+  });
+}
+
+function restoreTargetInert(element) {
+  if (!entranceManagedInertTargets.has(element)) return;
+  element.inert = false;
+  entranceManagedInertTargets.delete(element);
+}
+
+function settleTarget(target) {
+  target.element.style.opacity = String(target.finalOpacity);
+  target.element.style.filter = 'blur(0)';
+  target.element.style.pointerEvents = '';
+  restoreTargetInert(target.element);
+}
+
+function stageTarget(target, blurPx) {
+  styleCleanupGeneration.set(
+    target.element,
+    (styleCleanupGeneration.get(target.element) || 0) + 1,
+  );
+  target.element.style.transition = 'none';
+  target.element.style.transitionDelay = `${target.delayMs}ms`;
+  target.element.style.opacity = '0';
+  target.element.style.filter = `blur(${blurPx}px)`;
+  target.element.style.pointerEvents = 'none';
+  target.element.style.willChange = 'opacity, filter';
+  // Opacity and pointer-events do not remove delayed controls from sequential
+  // keyboard navigation. Scope inert to targets that actually contain controls,
+  // then restore their original state on completion or cancellation.
+  if (
+    'inert' in target.element
+    && !target.element.inert
+    && !entranceManagedInertTargets.has(target.element)
+    && (
+      target.element.matches?.(FOCUSABLE_SELECTOR)
+      || target.element.querySelector?.(FOCUSABLE_SELECTOR)
+    )
+  ) {
+    target.element.inert = true;
+    entranceManagedInertTargets.add(target.element);
+  }
+}
+
+/**
+ * Creates one cancellable entrance transaction.
+ *
+ * Layout transforms are deliberately out of scope: anchored elements keep their
+ * final geometry while this runner owns only opacity and blur. This separation is
+ * what prevents centering, responsive placement, and motion from overwriting one
+ * another on WebKit and other composited browsers.
+ */
+export function createEntranceSequence({
+  scopes = document,
+  profile: profileName = 'route',
+  diagnosticRoot = null,
+  reducedMotion = prefersReducedMotion(),
+  onAnimation,
+} = {}) {
+  const profile = resolveProfile(profileName);
+  let targets = collectTargets(scopes, profile);
+  let animations = [];
+  let staged = false;
+  let settled = false;
+
+  const totalMs = () => reducedMotion ? 0 : Math.max(
+    0,
+    ...targets.map((target) => target.delayMs + target.durationMs),
+  );
+
+  const stage = () => {
+    if (settled) return false;
+    targets.forEach((target) => stageTarget(target, reducedMotion ? 0 : profile.blurPx));
+    staged = true;
+    if (diagnosticRoot) setHomePhase(diagnosticRoot, 'pending');
+    return true;
+  };
+
+  const finish = ({ clearPhase = false } = {}) => {
+    if (settled) return;
+    settled = true;
+    if (diagnosticRoot) setHomePhase(diagnosticRoot, clearPhase ? '' : 'complete');
+    targets.forEach(settleTarget);
+    animations.forEach((animation) => {
+      try {
+        animation.cancel();
+      } catch {
+        /* The animation may already have been detached with its route. */
+      }
+    });
+    animations = [];
+    targets.forEach(clearTargetStyles);
+    // Commit every target at its CSS endpoint before component-level hover
+    // transitions are restored on the next frame. One shared read avoids a
+    // layout flush per target and prevents a cleanup fade in reduced motion.
+    void document.documentElement.offsetWidth;
+  };
+
+  const play = async () => {
+    if (settled) return false;
+    if (!staged) stage();
+
+    // Include controls or runtime-owned footer elements mounted while the cover
+    // was still visible, then give the hidden state one paint before revealing.
+    const known = new Set(targets.map((target) => target.element));
+    collectTargets(scopes, profile).forEach((target) => {
+      if (known.has(target.element)) return;
+      targets.push(target);
+      stageTarget(target, reducedMotion ? 0 : profile.blurPx);
+    });
+
+    if (reducedMotion || targets.length === 0 || typeof Element.prototype.animate !== 'function') {
+      finish();
+      return true;
+    }
+
+    await new Promise((resolve) => window.requestAnimationFrame(resolve));
+    if (settled) return false;
+    if (diagnosticRoot) setHomePhase(diagnosticRoot, 'enter');
+
+    animations = targets.map((target) => {
+      const animation = target.element.animate(
+        [
+          { opacity: 0, filter: `blur(${profile.blurPx}px)` },
+          { opacity: target.finalOpacity, filter: 'blur(0)' },
+        ],
+        {
+          duration: target.durationMs,
+          delay: target.delayMs,
+          easing: profile.easing,
+          fill: 'both',
+        },
+      );
+      onAnimation?.(animation);
+      return animation;
+    });
+
+    await Promise.all(animations.map((animation) => animation.finished.catch(() => undefined)));
+    if (!settled) finish();
+    return true;
+  };
+
+  return {
+    stage,
+    play,
+    cancel: (options) => finish(options),
+    get targets() {
+      return targets;
+    },
+    get totalMs() {
+      return totalMs();
+    },
+  };
+}
+
+export function resetEntranceTargets(scopes = document) {
+  const targets = collectTargets(scopes, PROFILES.route);
+  targets.forEach((target) => {
+    restoreTargetInert(target.element);
+    clearTargetStyles(target);
+  });
+  if (targets.length > 0) void document.documentElement.offsetWidth;
+}
+
+export function clearHomeEntrancePhase(root = document.documentElement) {
+  setHomePhase(root, '');
+}

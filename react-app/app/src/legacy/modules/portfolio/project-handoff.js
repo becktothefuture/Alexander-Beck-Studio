@@ -329,11 +329,6 @@ export class PortfolioProjectHandoff {
       { opacity: 0, offset: 0.48 },
       { opacity: 0, offset: 1 },
     ]);
-    add(this.sourceCard?.querySelector('.portfolio-project-card__cta'), [
-      { opacity: 1, offset: 0 },
-      { opacity: 0, offset: 0.14 },
-      { opacity: 0, offset: 1 },
-    ]);
     add(this.sourceCard?.querySelector('.portfolio-project-card__copy'), [
       { opacity: 1, offset: 0 },
       { opacity: 1, offset: 0.06 },
@@ -413,20 +408,11 @@ export class PortfolioProjectHandoff {
     if (durationMs > REDUCED_MOTION_DURATION_MS) {
       const staggerOptions = { duration: durationMs, easing: HANDOFF_EASING, fill: 'forwards' };
       const sourceCopy = this.sourceCard?.querySelector('.portfolio-project-card__copy');
-      const sourceCta = this.sourceCard?.querySelector('.portfolio-project-card__cta');
       if (sourceCopy) {
         animations.push(sourceCopy.animate([
           { opacity: 0, offset: 0 },
           { opacity: 0, offset: 0.28 },
           { opacity: 1, offset: 0.72 },
-          { opacity: 1, offset: 1 },
-        ], staggerOptions));
-      }
-      if (sourceCta) {
-        animations.push(sourceCta.animate([
-          { opacity: 0, offset: 0 },
-          { opacity: 0, offset: 0.58 },
-          { opacity: 1, offset: 0.92 },
           { opacity: 1, offset: 1 },
         ], staggerOptions));
       }

@@ -11,7 +11,7 @@ HTML entry
   → StudioShell
      ├── physical window and frame
      ├── route view
-     ├── shared footer
+     ├── Home-only footer
      ├── persistent ShellButtonBar
      └── overlay hosts
   → optional route runtime bootstrap
@@ -32,7 +32,7 @@ There is no second static page/template pipeline.
 
 ## Shared shell
 
-`StudioShell.jsx` owns the physical frame, studio window, footer, Button Bar, and overlay mount points. The Button Bar is the only primary route navigation. A route top bar may provide a back or local utility action but must not duplicate primary navigation.
+`StudioShell.jsx` owns the physical frame, studio window, Home-only footer surface, Button Bar, and overlay mount points. The Button Bar is the only primary route navigation. A route top bar may provide a back or local utility action but must not duplicate primary navigation.
 
 The shell is persistent across SPA transitions. Route content inside the window may animate; the frame and Button Bar must remain materially continuous.
 

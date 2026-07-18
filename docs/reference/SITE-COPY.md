@@ -7,7 +7,7 @@ This document is an index, not a duplicate copy deck. Edit the source named belo
 | Route paths, Button Bar labels, ARIA labels | `src/lib/routes.js` |
 | Document titles and route descriptors | `src/components/app/SiteApp.jsx` and initial HTML titles |
 | Home identity, legend, philosophy, edge captions | `public/config/contents-home.json` |
-| Shared footer edge/social content | `public/config/contents-home.json` → `SiteFooter.jsx` |
+| Home footer edge/social content | `public/config/contents-home.json` → `SiteFooter.jsx` |
 | Contact title, description, email, copied feedback | `contents-home.json.contact` → `ContactRouteContent.jsx` |
 | Portfolio gate text | `contents-home.json.gates.portfolio` |
 | Portfolio route blurb | `contents-home.json.portfolio` |

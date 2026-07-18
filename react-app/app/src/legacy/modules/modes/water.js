@@ -22,8 +22,14 @@ export function initializeWater() {
   
   const w = canvas.width;
   const h = canvas.height;
-  const count = getMobileAdjustedCount(globals.waterBallCount || 100);
+  const mobileCountScale = globals.isMobile || globals.isMobileViewport
+    ? Math.max(0.25, Math.min(1, Number(globals.waterMobileCountScale ?? 1)))
+    : 1;
+  const count = Math.round(
+    getMobileAdjustedCount(globals.waterBallCount || 100) * mobileCountScale,
+  );
   if (count <= 0) return;
+  canvas.dataset.simulationBodyCount = String(count);
   
   // Initial velocity (DPR-scaled)
   const DPR = globals.DPR || 1;

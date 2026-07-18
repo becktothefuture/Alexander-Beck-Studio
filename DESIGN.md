@@ -46,13 +46,13 @@ The system is distributed across these production surfaces. A design change is c
 | --- | --- |
 | Core tokens, palette, type roles, spacing, radii, finish, and motion values | `public/config/design-system.json`, `public/css/tokens.css` |
 | Font loading and first-paint shell | `index.html`, `portfolio.html`, `about.html`, `contact.html` |
-| Persistent shell, surface slots, footer, overlay hosts, and Button Bar | `StudioShell.jsx`, `ShellButtonBar.jsx`, `SiteFooter.jsx`, `main.css`, `shell-button-bar-dominant.css` |
+| Persistent shell, surface slots, Home footer, overlay hosts, and Button Bar | `StudioShell.jsx`, `ShellButtonBar.jsx`, `SiteFooter.jsx`, `main.css`, `shell-button-bar-dominant.css` |
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
 | Portfolio intro, orbital deck, project access gate, cards, project drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
 | About Me scroll narrative, editorial sections, point field, and bust resolution | `AboutRoute.jsx`, `routes/about-narrative-lab/`, `about-narrative-lab.css` |
 | Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
-| Footer signature, social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
+| Home footer signature, social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
 | Theme, frame, wall, noise, contrast veil, and browser harmony | `dark-mode-v2.js`, `site-shell.js`, `chrome-harmony.js`, `tokens.css` |
 | Cursor states and pointer mapping | `cursor.js`, `main.css`, `CUSTOM-CURSOR.md` |
 | Copy tone and content ownership | `docs/reference/TONE-OF-VOICE.md`, `docs/reference/SITE-COPY.md`, production content JSON |
@@ -118,7 +118,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 #### Quiet control material and emphasis
 
-The Home simulation switcher, Portfolio card CTA, Portfolio drawer back control, and Contact email/copy action are one material family. They consume the semantic `--abs-soft-control-*` tokens while retaining their own pill, circle, or box geometry.
+The Home simulation switcher, Portfolio drawer back control, and Contact email/copy action are one material family. They consume the semantic `--abs-soft-control-*` tokens while retaining their own pill, circle, or box geometry.
 
 - The resting material follows the current studio-window theme, darkens its surface by no more than 5%, and remains translucent enough for the 18px backdrop blur and gentle saturation to preserve local context.
 - The edge is 0.5px at 12% opacity in the resting state and may rise to no more than 15% for hover, keyboard focus, pressed, open, or selected states.
@@ -144,12 +144,13 @@ Inside the simulation chooser, option rows are transparent at rest. The current 
 
 ### Persistent shell
 
-The shell is one stable instrument: exposed band, wall/frame geometry, studio-window host, footer, Button Bar, modal hosts, and Portfolio sheet host. Page changes must not recreate or reanimate it; only the studio-window interior surface and content change theme.
+The shell is one stable instrument: exposed band, wall/frame geometry, studio-window host, Button Bar, modal hosts, and Portfolio sheet host. Page changes must not recreate or reanimate it; only the studio-window interior surface and content change theme. The social/time footer and edge caption are Home-owned content and are not shown on Portfolio, About Me, or Contact.
 
 ### Home
 
 - Home is the baseline for shell geometry, finish, content inset, and simulation material.
 - The top composition is intentionally asymmetric: expertise at left, philosophy at right, identity centered in the field.
+- The social/time footer and edge caption appear only on Home.
 - The visible title belongs to the Canvas path; semantic DOM copy remains the metric and accessibility source.
 - The settled/default simulation must leave both title lines legible. Solve occlusion with density, placement, color, and motion—not text outlines, shadows, or a plate.
 - Expertise filtering is a real interaction and must have full keyboard and assistive-technology semantics.
@@ -167,7 +168,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ### About Me
 
-- About is one continuous scroll narrative inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, footer, and Button Bar remain stable.
+- About is one continuous scroll narrative inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, and Button Bar remain stable.
 - The narrative moves from a dense idea cloud through a calm field, a six-discipline grid, a living wave field, and a large point-cloud bust. These are transformations of one material, not separate decorative scenes.
 - Two vertically scrolling editorial areas carry the background, client context, reflections on the practice, AI, and multidisciplinary synthesis. Spatial copy between them must advance the argument rather than act as detachable captions.
 - The calm field moves through an explicit, paced two-stage camera pitch into a near-top-down grid; the closer framing must keep its material legible rather than miniaturising the points.

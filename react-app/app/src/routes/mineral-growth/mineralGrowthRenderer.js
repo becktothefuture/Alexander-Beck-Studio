@@ -2,7 +2,11 @@ import {
   createIndexedSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
-import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
+import {
+  isMobileSimulationViewport,
+  resolveMobileSimulationBodyScale,
+  resolveMobileSimulationMultiplier,
+} from '../../lib/mobileSimulationSizing.js';
 import {
   triggerImpact,
   triggerPressure,
@@ -27,6 +31,7 @@ const DEFAULT_THEME = {
 
 const BODY_KIND_STEM = 0;
 const BODY_KIND_LEAFLET = 1;
+const MOBILE_GROWTH_BIRTH_EXPONENT = 1.45;
 
 const SOURCE_BOTTOM = 0;
 const SOURCE_LEFT = 1;
@@ -321,9 +326,13 @@ function resolveBodyCount(config, metrics, reducedMotion) {
 
 function resolveSeedCount(config, metrics, countLimit, reducedMotion) {
   const requested = clamp(Math.round(numberOr(config.seedCount, 4)), 1, 4);
-  const viewportMax = metrics.cssWidth < 560 ? 2 : metrics.cssWidth < 980 ? 3 : 4;
+  const isMobile = isMobileSimulationViewport(metrics);
+  const viewportMax = isMobile
+    ? clamp(Math.round(numberOr(config.mobileSeedCap, 3)), 1, 4)
+    : metrics.cssWidth < 980 ? 3 : 4;
   const motionMax = reducedMotion ? Math.min(3, viewportMax) : viewportMax;
-  const countMax = Math.max(1, Math.min(4, Math.floor(countLimit / 130)));
+  const bodiesPerSeed = isMobile ? 110 : 130;
+  const countMax = Math.max(1, Math.min(4, Math.floor(countLimit / bodiesPerSeed)));
   return Math.max(1, Math.min(requested, motionMax, countMax));
 }
 
@@ -332,6 +341,7 @@ function resolveRadius(
   config,
   reducedMotion,
   mobileBodyScale,
+  mobileBodyCompensation,
   kind = BODY_KIND_STEM,
   isRoot = false,
 ) {
@@ -339,13 +349,24 @@ function resolveRadius(
   const base = 7.5 + (random() - 0.5) * 0.62;
   const kindScale = kind === BODY_KIND_LEAFLET ? 0.72 + random() * 0.1 : 1;
   const rootScale = isRoot ? 1.08 : 1;
-  return base * scale * mobileBodyScale * kindScale * rootScale * (reducedMotion ? 0.96 : 1);
+  return base
+    * scale
+    * mobileBodyScale
+    * mobileBodyCompensation
+    * kindScale
+    * rootScale
+    * (reducedMotion ? 0.96 : 1);
 }
 
 function getFormationKey(config, theme, metrics, seed, reducedMotion) {
   const mobileBodyScale = resolveMobileSimulationBodyScale(
     theme?.mobileSimulationBodyScale,
     metrics,
+  );
+  const mobileBodyCompensation = resolveMobileSimulationMultiplier(
+    config.mobileBodyScaleCompensation,
+    metrics,
+    { fallback: 1, min: 1, max: 1.25 },
   );
   return [
     seed,
@@ -356,7 +377,9 @@ function getFormationKey(config, theme, metrics, seed, reducedMotion) {
     config.seedPlacement,
     Math.round(numberOr(config.bodyCount, 0)),
     numberOr(config.bodyScale, 1).toFixed(3),
+    mobileBodyCompensation.toFixed(3),
     Math.round(numberOr(config.seedCount, 0)),
+    Math.round(numberOr(config.mobileSeedCap, 0)),
     numberOr(config.forkRate, 0).toFixed(3),
     numberOr(config.wallFollow, 0).toFixed(3),
     numberOr(config.openSpaceBias, 0).toFixed(3),
@@ -364,6 +387,7 @@ function getFormationKey(config, theme, metrics, seed, reducedMotion) {
     numberOr(config.branchClearance, 0).toFixed(3),
     numberOr(config.leafletDensity, 0).toFixed(3),
     numberOr(config.packingGap, 0).toFixed(3),
+    numberOr(config.mobilePackingGap, 0).toFixed(3),
     numberOr(config.colorSpread, 0).toFixed(3),
     mobileBodyScale.toFixed(2),
     getThemeKey(theme),
@@ -536,10 +560,14 @@ function branchBaseAngle(source, slot, total, profile, random) {
 
 function buildFormation(metrics, theme, config, seed, reducedMotion) {
   const random = mulberry32(seed || 1);
+  const isMobile = isMobileSimulationViewport(metrics);
   const countLimit = resolveBodyCount(config, metrics, reducedMotion);
   const rootLimit = resolveSeedCount(config, metrics, countLimit, reducedMotion);
   const profile = getPresetProfile(config);
-  const gap = clamp(numberOr(config.packingGap, 5.5), 2, 10);
+  const gap = clamp(numberOr(
+    isMobile ? config.mobilePackingGap : config.packingGap,
+    isMobile ? 4.5 : 5.5,
+  ), 2, 10);
   const forkRate = clamp(numberOr(config.forkRate, 0.72), 0, 1);
   const wallFollow = clamp(numberOr(config.wallFollow, 0.78), 0, 1);
   const openSpaceBias = clamp(numberOr(config.openSpaceBias, 0.64), 0, 1);
@@ -553,12 +581,21 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     theme?.mobileSimulationBodyScale,
     metrics,
   );
+  const mobileBodyCompensation = resolveMobileSimulationMultiplier(
+    config.mobileBodyScaleCompensation,
+    metrics,
+    { fallback: 1, min: 1, max: 1.25 },
+  );
   const maxRadius = drawEnvelopeRadius(
-    8.7 * clamp(numberOr(config.bodyScale, 1), 0.8, 1.8) * mobileBodyScale,
+    8.7
+      * clamp(numberOr(config.bodyScale, 1), 0.8, 1.8)
+      * mobileBodyScale
+      * mobileBodyCompensation,
   );
   const nominalBodyRadius = 7.5
     * clamp(numberOr(config.bodyScale, 1), 0.8, 1.8)
     * mobileBodyScale
+    * mobileBodyCompensation
     * (reducedMotion ? 0.96 : 1);
   const cellSize = Math.max(28, maxRadius * 2 + gap + 16);
   const gridCols = Math.max(1, Math.ceil(metrics.cssWidth / cellSize));
@@ -781,6 +818,7 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
         config,
         reducedMotion,
         mobileBodyScale,
+        mobileBodyCompensation,
         BODY_KIND_STEM,
         true,
       );
@@ -884,6 +922,7 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
       config,
       reducedMotion,
       mobileBodyScale,
+      mobileBodyCompensation,
       BODY_KIND_STEM,
       false,
     );
@@ -945,6 +984,7 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
       config,
       reducedMotion,
       mobileBodyScale,
+      mobileBodyCompensation,
       BODY_KIND_LEAFLET,
       false,
     );
@@ -1132,6 +1172,7 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
   }
 
   const bodyCount = Math.max(1, state.count - state.rootCount);
+  const birthExponent = isMobile ? MOBILE_GROWTH_BIRTH_EXPONENT : 0.82;
   for (let i = 0; i < state.count; i += 1) {
     if (state.parent[i] < 0) {
       state.birth[i] = 0;
@@ -1139,16 +1180,24 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     }
     const normalized = clamp((i - state.rootCount) / bodyCount, 0, 1);
     const leafDelay = state.kind[i] === BODY_KIND_LEAFLET ? 0.018 : 0;
-    state.birth[i] = clamp(0.018 + Math.pow(normalized, 0.82) * 0.962 + leafDelay, 0, 0.995);
+    state.birth[i] = clamp(
+      0.018 + Math.pow(normalized, birthExponent) * 0.962 + leafDelay,
+      0,
+      0.995,
+    );
   }
 
   state.minGapPx = computeMinGap(state);
   return state;
 }
 
-function resolveGrowthDuration(config, reducedMotion) {
+function resolveGrowthDuration(config, reducedMotion, metrics) {
   if (config.enabled === false || reducedMotion) return 0;
-  return clamp(numberOr(config.growthDuration, 28), 20, 48);
+  const isMobile = isMobileSimulationViewport(metrics);
+  return clamp(numberOr(
+    isMobile ? config.mobileGrowthDuration : config.growthDuration,
+    isMobile ? 14 : 28,
+  ), isMobile ? 8 : 20, 48);
 }
 
 function updateGrowthScales(state, elapsed, duration) {
@@ -1559,12 +1608,15 @@ export function createMineralGrowthRenderer({
     }
     canvas.dataset.mobileSimulationBodyScale = state.mobileSimulationBodyScale.toFixed(2);
     canvas.dataset.simulationBodyRadius = state.nominalBodyRadius.toFixed(2);
+    canvas.dataset.simulationBodyCount = String(state.count);
+    canvas.dataset.simulationSeedCount = String(state.rootCount);
     return { config, theme };
   }
 
   function resolveRenderFrame(now = performance.now()) {
     const { config, theme } = ensureState();
-    const duration = resolveGrowthDuration(config, reducedMotion);
+    const duration = resolveGrowthDuration(config, reducedMotion, metrics);
+    canvas.dataset.simulationGrowthDuration = duration.toFixed(1);
     const elapsed = duration <= 0 ? duration + 2 : (now - startedAt) / 1000;
     const activeCount = updateGrowthScales(state, elapsed, duration);
     const growthProgress = duration <= 0 ? 1 : clamp(elapsed / duration, 0, 1);

@@ -1039,7 +1039,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'mobileSimulationBodyScale',
         type: 'range',
         min: 0.5, max: 1, step: 0.05,
-        default: 0.8,
+        default: 0.65,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Scales simulation body radii on mobile after responsive sizing. Resets the current mode.',
@@ -3701,6 +3701,18 @@ export const CONTROL_SECTIONS = {
         reinitMode: true
       },
       {
+        id: 'waterMobileCountScale',
+        label: 'Mobile Count',
+        stateKey: 'waterMobileCountScale',
+        type: 'range',
+        min: 0.25, max: 1, step: 0.01,
+        default: 0.8,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'Flow-only mobile count multiplier applied after the shared mobile performance reduction.'
+      },
+      {
         id: 'waterDrag',
         label: 'Water Resistance',
         stateKey: 'waterDrag',
@@ -3988,6 +4000,58 @@ export const CONTROL_SECTIONS = {
       warmupFramesControl('kaleidoscope3WarmupFrames')
     ]
   },
+  kaleidoscopeRift: {
+    title: 'Multiplicity',
+    icon: '✣',
+    mode: 'kaleidoscope-rift',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'kaleidoscopeRiftBallCount',
+        label: 'Desktop Sources',
+        stateKey: 'kaleidoscopeRiftBallCount',
+        type: 'range',
+        min: 8, max: 120, step: 1,
+        default: 28,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'kaleidoscopeRiftMobileBallCount',
+        label: 'Mobile Sources',
+        stateKey: 'kaleidoscopeRiftMobileBallCount',
+        type: 'range',
+        min: 8, max: 160, step: 1,
+        default: 32,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'kaleidoscopeRiftDotSizeVh',
+        label: 'Desktop Dot Size',
+        stateKey: 'kaleidoscopeRiftDotSizeVh',
+        type: 'range',
+        min: 0.1, max: 4, step: 0.05,
+        default: 0.82,
+        format: v => `${v.toFixed(2)}vh`,
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'kaleidoscopeRiftMobileDotSizeVh',
+        label: 'Mobile Dot Size',
+        stateKey: 'kaleidoscopeRiftMobileDotSizeVh',
+        type: 'range',
+        min: 0.1, max: 4, step: 0.05,
+        default: 1.15,
+        format: v => `${v.toFixed(2)}vh`,
+        parse: parseFloat,
+        reinitMode: true
+      }
+    ]
+  },
   starfield3d: {
     title: 'Perspective',
     icon: '✨',
@@ -4024,6 +4088,17 @@ export const CONTROL_SECTIONS = {
         min: 0.4, max: 3.5, step: 0.05,
         default: 2.05,
         format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'starfieldMobileSpanMultiplier',
+        label: 'Mobile Field Span',
+        stateKey: 'starfieldMobileSpanMultiplier',
+        type: 'range',
+        min: 1, max: 4, step: 0.05,
+        default: 2.6,
+        format: v => `${v.toFixed(2)}×`,
         parse: parseFloat,
         reinitMode: true
       },
@@ -4110,6 +4185,17 @@ export const CONTROL_SECTIONS = {
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Minimum opacity for stars deepest in the distance fog.'
+      },
+      {
+        id: 'starfieldMobileFogMin',
+        label: 'Mobile Fog Floor',
+        stateKey: 'starfieldMobileFogMin',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.3,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Mobile-only minimum opacity for stars deepest in the distance fog.'
       },
       {
         id: 'starfieldIdleJitter',
@@ -4407,6 +4493,18 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10),
         reinitMode: true,
         hint: 'Approximate dot budget used to choose crisp row patterns for the mixed-size primitives.'
+      },
+      {
+        id: 'shapesMobileCountScale',
+        label: 'Mobile Count',
+        stateKey: 'shapesMobileCountScale',
+        type: 'range',
+        min: 0.25, max: 1, step: 0.01,
+        default: 0.5,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'Assembly-only mobile count multiplier applied after the shared mobile performance reduction.'
       },
       {
         id: 'shapesDotSizeMul',

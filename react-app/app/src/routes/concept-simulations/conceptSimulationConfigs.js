@@ -113,21 +113,27 @@ export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
       version: 1,
       enabled: true,
       rings: 13,
+      mobileRings: 10,
       ringDensity: 0.92,
       ringSpacing: 1.42,
       outerRadiusScale: 1.5,
+      mobileOuterRadiusScale: 0.62,
       bodyRadius: 9.2,
       mobileRadiusScale: 0.9,
-      mobileDensityScale: 0.72,
+      mobileDensityScale: 0.45,
+      mobileBaseRadiusMin: 6.2,
       driftSpeed: 0.46,
       shearStrength: 0.58,
       expansionStrength: 0.72,
       idleMotion: 0.38,
       pointerStrength: 0.78,
       centerRadiusScale: 0.38,
+      mobileCenterRadiusScale: 0.55,
       centerFogMin: 0.12,
       centerFogStart: 0.68,
       centerFogRingCount: 3,
+      mobileCenterFogMin: 0.3,
+      mobileCenterFogRingCount: 2,
       damping: 0.9,
       spring: 0.075,
       maxDpr: 1.5,
@@ -227,19 +233,50 @@ export function normalizeConceptSimulationConfig(simulationId, input = {}) {
 
   if (simulationId === CONCEPT_SIMULATION_IDS.RIFT_RINGS) {
     next.rings = Math.round(clampNumber(next.rings, 6, 18, defaults.rings));
+    next.mobileRings = Math.round(clampNumber(next.mobileRings, 6, 18, defaults.mobileRings));
     next.ringDensity = clampNumber(next.ringDensity, 0.32, 1.2, defaults.ringDensity);
     next.ringSpacing = clampNumber(next.ringSpacing, 0.9, 2.1, defaults.ringSpacing);
     next.outerRadiusScale = clampNumber(next.outerRadiusScale, 1.25, 1.95, defaults.outerRadiusScale);
+    next.mobileOuterRadiusScale = clampNumber(
+      next.mobileOuterRadiusScale,
+      0.4,
+      1.1,
+      defaults.mobileOuterRadiusScale,
+    );
     next.mobileDensityScale = clampNumber(next.mobileDensityScale, 0.32, 0.9, defaults.mobileDensityScale);
+    next.mobileBaseRadiusMin = clampNumber(
+      next.mobileBaseRadiusMin,
+      4,
+      12,
+      defaults.mobileBaseRadiusMin,
+    );
     next.driftSpeed = clampNumber(next.driftSpeed, 0.05, 1.25, defaults.driftSpeed);
     next.shearStrength = clampNumber(next.shearStrength, 0, 1.2, defaults.shearStrength);
     next.expansionStrength = clampNumber(next.expansionStrength, 0, 1, defaults.expansionStrength);
     next.idleMotion = clampNumber(next.idleMotion, 0, 0.8, defaults.idleMotion);
     next.pointerStrength = clampNumber(next.pointerStrength, 0, 1.4, defaults.pointerStrength);
     next.centerRadiusScale = clampNumber(next.centerRadiusScale, 0.24, 0.9, defaults.centerRadiusScale);
+    next.mobileCenterRadiusScale = clampNumber(
+      next.mobileCenterRadiusScale,
+      0.24,
+      0.9,
+      defaults.mobileCenterRadiusScale,
+    );
     next.centerFogMin = clampNumber(next.centerFogMin, 0.08, 1, defaults.centerFogMin);
     next.centerFogStart = clampNumber(next.centerFogStart, 0, 1, defaults.centerFogStart);
     next.centerFogRingCount = Math.round(clampNumber(next.centerFogRingCount, 0, 4, defaults.centerFogRingCount));
+    next.mobileCenterFogMin = clampNumber(
+      next.mobileCenterFogMin,
+      0.08,
+      1,
+      defaults.mobileCenterFogMin,
+    );
+    next.mobileCenterFogRingCount = Math.round(clampNumber(
+      next.mobileCenterFogRingCount,
+      0,
+      4,
+      defaults.mobileCenterFogRingCount,
+    ));
   }
 
   if (simulationId === CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD) {

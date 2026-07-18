@@ -130,20 +130,26 @@ export function revealDirectBootSurface(selectors = DEFAULT_BOOT_SELECTORS, opti
   return true;
 }
 
-function runBootCompletionCallback(callback, detail) {
-  if (typeof callback !== 'function') return;
+async function runBootCompletionCallback(callback, detail) {
+  if (typeof callback !== 'function') return undefined;
   try {
-    callback({ detail });
+    return await callback({ detail });
   } catch (error) {
     console.warn('Direct boot completion callback failed', error);
+    return undefined;
   }
 }
 
-function finishBootOverlay(overlay, detail, options = {}) {
+async function finishBootOverlay(overlay, detail, options = {}) {
   overlay?.remove();
-  getRootElement().classList.remove('abs-direct-boot-staging');
+  const root = getRootElement();
+  root.classList.remove('abs-direct-boot-staging');
+  // Keep the app surface visible while route-owned content enters. Returning to
+  // `booting` here would hide #root again and make the whole stagger appear at
+  // once only after the entrance callback settles.
+  setPageBootState('revealing', detail || 'ready');
+  await runBootCompletionCallback(options.onOverlayHidden, detail || 'ready');
   setPageBootState(options.finalState || 'ready', detail || 'ready');
-  runBootCompletionCallback(options.onOverlayHidden, detail || 'ready');
 }
 
 export async function completeDirectBoot(options = {}) {
@@ -174,25 +180,26 @@ export async function completeDirectBoot(options = {}) {
 
   const overlay = getBootOverlay();
   if (!overlay) {
-    setPageBootState(options.finalState || 'ready', detail);
     getRootElement().classList.remove('abs-direct-boot-staging');
-    runBootCompletionCallback(options.onOverlayHidden, detail);
+    setPageBootState('revealing', detail);
+    await runBootCompletionCallback(options.onOverlayHidden, detail);
+    setPageBootState(options.finalState || 'ready', detail);
     return true;
   }
 
   setPageBootState('revealing', detail);
-  runBootCompletionCallback(options.onRevealStart, detail);
+  void runBootCompletionCallback(options.onRevealStart, detail);
   overlay.setAttribute('aria-hidden', 'true');
   overlay.classList.add('is-exiting');
 
   return new Promise((resolve) => {
     let finished = false;
-    const finalize = () => {
+    const finalize = async () => {
       if (finished) return;
       finished = true;
       overlay.removeEventListener('transitionend', finalize);
       window.clearTimeout(fallbackTimer);
-      finishBootOverlay(overlay, detail, options);
+      await finishBootOverlay(overlay, detail, options);
       resolve(true);
     };
     const fallbackTimer = window.setTimeout(finalize, BOOT_OVERLAY_EXIT_FALLBACK_MS);

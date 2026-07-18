@@ -15,6 +15,15 @@ const STARFIELD_BASE_SIZE_MULTIPLIER = 0.55;
 const STARFIELD_FAR_SIZE_RATIO = 0.68;
 const STARFIELD_NEAR_SIZE_RATIO = 1.18;
 
+function isMobileStarfield(g) {
+  return Boolean(g.isMobile || g.isMobileViewport);
+}
+
+function resolveSpanMultiplier(g) {
+  if (!isMobileStarfield(g)) return SPAN_MULTIPLIER;
+  return Math.max(1, Math.min(4, Number(g.starfieldMobileSpanMultiplier ?? SPAN_MULTIPLIER)));
+}
+
 // Smoothed mouse state for parallax panning
 let _smoothMouseX = 0;
 let _smoothMouseY = 0;
@@ -57,8 +66,9 @@ export function initializeStarfield3D() {
   const count = getMobileAdjustedCount(baseCount);
   const baseSpanX = Math.max(0.5, Math.min(4.0, g.starfieldSpanX ?? 1.5));
   const baseSpanY = Math.max(0.5, Math.min(4.0, g.starfieldSpanY ?? 1.2));
-  const spanX = baseSpanX * SPAN_MULTIPLIER;
-  const spanY = baseSpanY * SPAN_MULTIPLIER;
+  const spanMultiplier = resolveSpanMultiplier(g);
+  const spanX = baseSpanX * spanMultiplier;
+  const spanY = baseSpanY * spanMultiplier;
   const zNear = Math.max(20, g.starfieldZNear ?? 100);
   const zFar = Math.max(zNear + 200, g.starfieldZFar ?? 2000);
 
@@ -69,6 +79,9 @@ export function initializeStarfield3D() {
     star.fadeTimer = 0;
     _stars.push(star);
   }
+
+  canvas.dataset.simulationBodyCount = String(count);
+  canvas.dataset.starfieldSpanMultiplier = spanMultiplier.toFixed(2);
 
   _lastTime = performance.now();
   
@@ -97,8 +110,9 @@ export function renderStarfield3D(ctx) {
   // Config
   const baseSpanX = Math.max(0.5, Math.min(4.0, g.starfieldSpanX ?? 1.5));
   const baseSpanY = Math.max(0.5, Math.min(4.0, g.starfieldSpanY ?? 1.2));
-  const spanX = baseSpanX * SPAN_MULTIPLIER;
-  const spanY = baseSpanY * SPAN_MULTIPLIER;
+  const spanMultiplier = resolveSpanMultiplier(g);
+  const spanX = baseSpanX * spanMultiplier;
+  const spanY = baseSpanY * spanMultiplier;
   const zNear = Math.max(20, g.starfieldZNear ?? 100);
   const zFar = Math.max(zNear + 200, g.starfieldZFar ?? 2000);
   const focalLength = Math.max(100, g.starfieldFocalLength ?? 500);
@@ -106,7 +120,9 @@ export function renderStarfield3D(ctx) {
   const dotSizeMul = Math.max(0.2, Math.min(4.0, g.starfieldDotSizeMul ?? 1.0));
   const baseR = (g.R_MED || 20) * dotSizeMul * STARFIELD_BASE_SIZE_MULTIPLIER;
   const fogStart = Math.max(0, Math.min(1, g.starfieldFogStart ?? 0.86));
-  const fogMin = Math.max(0, Math.min(1, g.starfieldFogMin ?? 0.16));
+  const fogMin = Math.max(0, Math.min(1, isMobileStarfield(g)
+    ? g.starfieldMobileFogMin ?? g.starfieldFogMin ?? 0.16
+    : g.starfieldFogMin ?? 0.16));
 
   // Mouse parallax panning
   const parallaxStrength = Math.max(0, g.starfieldParallaxStrength ?? 320);

@@ -8,7 +8,10 @@ import {
   triggerPressure,
   triggerRelease,
 } from '../../legacy/modules/audio/simulation-audio-adapter.js';
-import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
+import {
+  isMobileSimulationViewport,
+  resolveMobileSimulationBodyScale,
+} from '../../lib/mobileSimulationSizing.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -444,23 +447,42 @@ function buildConfluenceBridgeBodies(random, config, theme, metrics) {
 
 function buildRiftRingBodies(random, config, theme, metrics) {
   const bodies = [];
-  const ringCount = Math.round(clamp(Number(config.rings || 11), 6, 18));
+  const isMobile = isMobileSimulationViewport(metrics);
+  const ringCount = Math.round(clamp(Number(
+    isMobile ? config.mobileRings : config.rings,
+  ) || (isMobile ? 10 : 11), 6, 18));
   const density = clamp(Number(config.ringDensity || 0.82), 0.32, 1.2);
-  const densityScale = metrics.cssWidth < 680
+  const densityScale = isMobile
     ? clamp(Number(config.mobileDensityScale || 0.58), 0.32, 0.9)
     : 1;
   const cx = metrics.cssWidth * 0.5;
   const cy = metrics.cssHeight * 0.5;
-  const baseRadius = getScaledRadius(config, metrics, theme);
+  const responsiveBaseRadius = getScaledRadius(config, metrics, theme);
+  const baseRadius = isMobile
+    ? Math.max(
+      responsiveBaseRadius,
+      clamp(Number(config.mobileBaseRadiusMin ?? 6.2), 4, 12),
+    )
+    : responsiveBaseRadius;
   const minDim = Math.min(metrics.cssWidth, metrics.cssHeight);
-  const diagonal = Math.hypot(metrics.cssWidth, metrics.cssHeight);
-  const innerRadius = minDim * (metrics.cssWidth < 680 ? 0.18 : 0.14);
-  const outerRadius = diagonal * 0.5 * clamp(Number(config.outerRadiusScale || 1.62), 1.25, 1.95);
+  const innerRadius = minDim * (isMobile ? 0.18 : 0.14);
+  const outerRadius = isMobile
+    ? minDim * clamp(Number(config.mobileOuterRadiusScale || 0.62), 0.4, 1.1)
+    : Math.hypot(metrics.cssWidth, metrics.cssHeight)
+      * 0.5
+      * clamp(Number(config.outerRadiusScale || 1.62), 1.25, 1.95);
   const ringSpacing = clamp(Number(config.ringSpacing || 1.42), 0.9, 2.1);
-  const centerRadiusScale = clamp(Number(config.centerRadiusScale ?? 0.46), 0.24, 0.9);
-  const centerFogMin = clamp(Number(config.centerFogMin ?? 0.24), 0.08, 1);
+  const centerRadiusScale = clamp(Number(
+    isMobile ? config.mobileCenterRadiusScale : config.centerRadiusScale,
+  ) || (isMobile ? 0.55 : 0.46), 0.24, 0.9);
+  const centerFogMin = clamp(Number(
+    (isMobile ? config.mobileCenterFogMin : config.centerFogMin)
+      ?? (isMobile ? 0.3 : 0.24),
+  ), 0.08, 1);
   const centerFogStart = clamp(Number(config.centerFogStart ?? 0.82), 0, 1);
-  const centerFogRingCount = Math.round(clamp(Number(config.centerFogRingCount ?? 2), 0, 4));
+  const centerFogRingCount = Math.round(clamp(Number(
+    (isMobile ? config.mobileCenterFogRingCount : config.centerFogRingCount) ?? 2,
+  ), 0, 4));
 
   for (let ring = 0; ring < ringCount; ring += 1) {
     const ringT = ringCount <= 1 ? 0 : ring / (ringCount - 1);
@@ -476,7 +498,7 @@ function buildRiftRingBodies(random, config, theme, metrics) {
     const bodySpacing = baseRadius * 2 * ringSpacing * 1.86;
     let count = Math.max(14, Math.round(circumference / Math.max(1, bodySpacing) * density * densityScale));
     if (count % 2 !== 0) count += 1;
-    count = Math.min(metrics.cssWidth < 680 ? 96 : 164, count);
+    count = Math.min(isMobile ? 96 : 164, count);
     const ringOffset = ring % 2 === 0 ? 0 : TAU / (count * 2);
     const direction = ring % 2 === 0 ? 1 : -1;
     const ringPhase = ring * 0.73;
@@ -837,13 +859,19 @@ export function createConceptSimulationRenderer({
       Number(config.bodyRadius).toFixed(3),
       Number(config.mobileRadiusScale).toFixed(3),
       Number(config.rings || 0),
+      Number(config.mobileRings || 0),
       Number(config.ringDensity || 0).toFixed(3),
       Number(config.ringSpacing || 0).toFixed(3),
       Number(config.outerRadiusScale || 0).toFixed(3),
+      Number(config.mobileOuterRadiusScale || 0).toFixed(3),
+      Number(config.mobileBaseRadiusMin || 0).toFixed(3),
       Number(config.centerRadiusScale || 0).toFixed(3),
+      Number(config.mobileCenterRadiusScale || 0).toFixed(3),
       Number(config.centerFogMin || 0).toFixed(3),
       Number(config.centerFogStart || 0).toFixed(3),
       Number(config.centerFogRingCount || 0),
+      Number(config.mobileCenterFogMin || 0).toFixed(3),
+      Number(config.mobileCenterFogRingCount || 0),
       Number(config.spacing || 0).toFixed(3),
       Number(config.rowDensity || 0).toFixed(3),
       Number(config.ballCount || 0),
@@ -883,6 +911,7 @@ export function createConceptSimulationRenderer({
     for (const body of bodies) radiusTotal += Number(body.r) || 0;
     metrics.simulationBodyRadius = bodies.length ? radiusTotal / bodies.length : 0;
     canvas.dataset.simulationBodyRadius = metrics.simulationBodyRadius.toFixed(2);
+    canvas.dataset.simulationBodyCount = String(bodies.length);
   }
 
   function syncLayout() {

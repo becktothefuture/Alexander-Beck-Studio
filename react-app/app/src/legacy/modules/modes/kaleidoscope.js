@@ -29,7 +29,6 @@ const MOBILE_IDLE_DRIFT_SCALE = 1.45;
 const MOBILE_IDLE_PHASE_SCALE = 1.72;
 const MOBILE_RENDER_FILL_SCALE = 2.15;
 const DESKTOP_RENDER_FILL_SCALE = 3.35;
-const RIFT_MOBILE_COUNT_FACTOR = 0.68;
 
 // Render-time smoothing state (mouse-driven rotation should ease-in/out)
 let _lastRenderMs = 0;
@@ -172,12 +171,14 @@ function getKaleidoscopeParams(g) {
 function getKaleidoscopeRiftParams(g) {
   return {
     count: g.kaleidoscopeRiftBallCount ?? 48,
+    mobileCount: g.kaleidoscopeRiftMobileBallCount ?? g.kaleidoscopeRiftBallCount ?? 48,
     spokes: g.kaleidoscopeRiftSpokes ?? 8,
     mobileSpokes: g.kaleidoscopeRiftSpokesMobile ?? 5,
     rings: g.kaleidoscopeRiftRings ?? 5,
     speed: g.kaleidoscopeRiftSpeed ?? 1.15,
     shear: g.kaleidoscopeRiftShear ?? 0.72,
     dotSizeVh: g.kaleidoscopeRiftDotSizeVh ?? 1.05,
+    mobileDotSizeVh: g.kaleidoscopeRiftMobileDotSizeVh ?? g.kaleidoscopeRiftDotSizeVh ?? 1.05,
     dotAreaMul: g.kaleidoscopeRiftDotAreaMul ?? 1.05,
     sizeVariance: g.kaleidoscopeRiftSizeVariance ?? 0.24
   };
@@ -190,16 +191,17 @@ function getKaleidoscopeAdjustedCount(g, baseCount) {
 }
 
 function getKaleidoscopeRiftAdjustedCount(g, baseCount) {
-  const count = getMobileAdjustedCount(baseCount);
-  if (!(g.isMobile || g.isMobileViewport)) return count;
-  return Math.max(0, Math.round(count * RIFT_MOBILE_COUNT_FACTOR));
+  if (!(g.isMobile || g.isMobileViewport)) return getMobileAdjustedCount(baseCount);
+  const params = getKaleidoscopeRiftParams(g);
+  return getMobileAdjustedCount(params.mobileCount);
 }
 
 function randomRadiusForKaleidoscopeRift(g) {
   const canvas = g?.canvas;
   const h = canvas?.height || 0;
   const params = getKaleidoscopeRiftParams(g);
-  const vh = clamp(Number(params.dotSizeVh), 0.1, 4.0);
+  const isMobile = g.isMobile || g.isMobileViewport;
+  const vh = clamp(Number(isMobile ? params.mobileDotSizeVh : params.dotSizeVh), 0.1, 4.0);
   const areaMul = clamp(Number(params.dotAreaMul), 0.1, 2.0);
   const base = Math.max(1, (vh * 0.01) * h * Math.sqrt(areaMul));
   const variance = clamp(Number(params.sizeVariance) * 0.5, 0, 0.2);
@@ -416,6 +418,10 @@ export function initializeKaleidoscopeRift() {
     b.vy = 0;
     g.balls.push(b);
   }
+
+  canvas.dataset.simulationBodyCount = String(clampedCount);
+  const meanRadius = g.balls.reduce((total, ball) => total + ball.r, 0) / g.balls.length;
+  canvas.dataset.simulationBodyRadius = meanRadius.toFixed(2);
 }
 
 // Helper to check if we're in kaleidoscope mode

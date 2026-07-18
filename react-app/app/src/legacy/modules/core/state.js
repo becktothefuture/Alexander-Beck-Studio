@@ -180,6 +180,7 @@ const state = {
   starfieldCount: 200,
   starfieldSpanX: 1.5,
   starfieldSpanY: 1.2,
+  starfieldMobileSpanMultiplier: 4,
   starfieldZNear: 100,
   starfieldZFar: 2000,
   starfieldFocalLength: 500,
@@ -188,6 +189,7 @@ const state = {
   starfieldDotSizeMul: 1.35,
   starfieldFogStart: 0.86,
   starfieldFogMin: 0.16,
+  starfieldMobileFogMin: 0.16,
   starfieldIdleJitter: 0,
   starfieldFadeDuration: 0.5,
   starfield3dWarmupFrames: 10,
@@ -241,7 +243,7 @@ const state = {
     [MODES.MAGNETIC]: { desktop: 220, mobile: 140 },
     [MODES.BUBBLES]: { desktop: 260, mobile: 180 },
     [MODES.KALEIDOSCOPE]: { desktop: 170, mobile: 70 },
-    [MODES.KALEIDOSCOPE_RIFT]: { desktop: 34, mobile: 24 },
+    [MODES.KALEIDOSCOPE_RIFT]: { desktop: 34, mobile: 32 },
     [MODES.CRITTERS]: { desktop: 140, mobile: 95 },
     [MODES.ELASTIC_CENTER]: { desktop: 240, mobile: 150 },
     [MODES.FLUBBER_BLOB]: { desktop: 120, mobile: 52 },
@@ -584,6 +586,7 @@ const state = {
 
   // Shapes mode
   shapesBallCount: 168,
+  shapesMobileCountScale: 1,
   shapesDotSizeMul: 1,
   shapesDotSpacingMul: 2.34,
   shapesGravityScale: 0.92,
@@ -643,12 +646,14 @@ const state = {
   kaleidoscope3SpawnAreaMul: 0.9,
   kaleidoscope3SizeVariance: 0.38,
   kaleidoscopeRiftBallCount: 28,
+  kaleidoscopeRiftMobileBallCount: 32,
   kaleidoscopeRiftSpokes: 8,
   kaleidoscopeRiftSpokesMobile: 4,
   kaleidoscopeRiftRings: 4,
   kaleidoscopeRiftSpeed: 1.2,
   kaleidoscopeRiftShear: 0.9,
   kaleidoscopeRiftDotSizeVh: 0.82,
+  kaleidoscopeRiftMobileDotSizeVh: 0.82,
   kaleidoscopeRiftDotAreaMul: 0.74,
   kaleidoscopeRiftSizeVariance: 0.18,
   kaleidoscopeRiftWarmupFrames: 45,
@@ -673,6 +678,7 @@ const state = {
   
   // Water mode
   waterBallCount: 300,
+  waterMobileCountScale: 1,
   waterDrag: 0.015,
   waterRippleSpeed: 300,
   waterRippleStrength: 18000,
@@ -1803,12 +1809,14 @@ export function initState(config) {
   if (config.kaleidoscope3SpawnAreaMul !== undefined) state.kaleidoscope3SpawnAreaMul = clampNumber(config.kaleidoscope3SpawnAreaMul, 0.2, 2.0, state.kaleidoscope3SpawnAreaMul);
   if (config.kaleidoscope3SizeVariance !== undefined) state.kaleidoscope3SizeVariance = clampNumber(config.kaleidoscope3SizeVariance, 0, 1, state.kaleidoscope3SizeVariance);
   if (config.kaleidoscopeRiftBallCount !== undefined) state.kaleidoscopeRiftBallCount = clampNumber(config.kaleidoscopeRiftBallCount, 8, 120, state.kaleidoscopeRiftBallCount);
+  if (config.kaleidoscopeRiftMobileBallCount !== undefined) state.kaleidoscopeRiftMobileBallCount = clampNumber(config.kaleidoscopeRiftMobileBallCount, 8, 160, state.kaleidoscopeRiftMobileBallCount);
   if (config.kaleidoscopeRiftSpokes !== undefined) state.kaleidoscopeRiftSpokes = clampNumber(config.kaleidoscopeRiftSpokes, 3, 16, state.kaleidoscopeRiftSpokes);
   if (config.kaleidoscopeRiftSpokesMobile !== undefined) state.kaleidoscopeRiftSpokesMobile = clampNumber(config.kaleidoscopeRiftSpokesMobile, 3, 10, state.kaleidoscopeRiftSpokesMobile);
   if (config.kaleidoscopeRiftRings !== undefined) state.kaleidoscopeRiftRings = clampNumber(config.kaleidoscopeRiftRings, 2, 9, state.kaleidoscopeRiftRings);
   if (config.kaleidoscopeRiftSpeed !== undefined) state.kaleidoscopeRiftSpeed = clampNumber(config.kaleidoscopeRiftSpeed, 0.2, 2.4, state.kaleidoscopeRiftSpeed);
   if (config.kaleidoscopeRiftShear !== undefined) state.kaleidoscopeRiftShear = clampNumber(config.kaleidoscopeRiftShear, 0, 2, state.kaleidoscopeRiftShear);
   if (config.kaleidoscopeRiftDotSizeVh !== undefined) state.kaleidoscopeRiftDotSizeVh = clampNumber(config.kaleidoscopeRiftDotSizeVh, 0.1, 4.0, state.kaleidoscopeRiftDotSizeVh);
+  if (config.kaleidoscopeRiftMobileDotSizeVh !== undefined) state.kaleidoscopeRiftMobileDotSizeVh = clampNumber(config.kaleidoscopeRiftMobileDotSizeVh, 0.1, 4.0, state.kaleidoscopeRiftMobileDotSizeVh);
   if (config.kaleidoscopeRiftDotAreaMul !== undefined) state.kaleidoscopeRiftDotAreaMul = clampNumber(config.kaleidoscopeRiftDotAreaMul, 0.1, 2.0, state.kaleidoscopeRiftDotAreaMul);
   if (config.kaleidoscopeRiftSizeVariance !== undefined) state.kaleidoscopeRiftSizeVariance = clampNumber(config.kaleidoscopeRiftSizeVariance, 0, 1, state.kaleidoscopeRiftSizeVariance);
   // New key: kaleidoscopeWedges (preferred). Back-compat: kaleidoscopeSegments.
@@ -1943,6 +1951,7 @@ export function initState(config) {
   if (config.starfieldCount !== undefined) state.starfieldCount = clampInt(config.starfieldCount, 20, 500, state.starfieldCount);
   if (config.starfieldSpanX !== undefined) state.starfieldSpanX = clampNumber(config.starfieldSpanX, 0.4, 4.0, state.starfieldSpanX);
   if (config.starfieldSpanY !== undefined) state.starfieldSpanY = clampNumber(config.starfieldSpanY, 0.4, 4.0, state.starfieldSpanY);
+  if (config.starfieldMobileSpanMultiplier !== undefined) state.starfieldMobileSpanMultiplier = clampNumber(config.starfieldMobileSpanMultiplier, 1, 4, state.starfieldMobileSpanMultiplier);
   if (config.starfieldZNear !== undefined) state.starfieldZNear = clampInt(config.starfieldZNear, 20, 800, state.starfieldZNear);
   if (config.starfieldZFar !== undefined) state.starfieldZFar = clampInt(config.starfieldZFar, 400, 4000, state.starfieldZFar);
   if (config.starfieldFocalLength !== undefined) state.starfieldFocalLength = clampInt(config.starfieldFocalLength, 100, 2000, state.starfieldFocalLength);
@@ -1951,6 +1960,7 @@ export function initState(config) {
   if (config.starfieldDotSizeMul !== undefined) state.starfieldDotSizeMul = clampNumber(config.starfieldDotSizeMul, 0.2, 4.0, state.starfieldDotSizeMul);
   if (config.starfieldFogStart !== undefined) state.starfieldFogStart = clampNumber(config.starfieldFogStart, 0, 1, state.starfieldFogStart);
   if (config.starfieldFogMin !== undefined) state.starfieldFogMin = clampNumber(config.starfieldFogMin, 0, 1, state.starfieldFogMin);
+  if (config.starfieldMobileFogMin !== undefined) state.starfieldMobileFogMin = clampNumber(config.starfieldMobileFogMin, 0, 1, state.starfieldMobileFogMin);
   if (config.starfieldIdleJitter !== undefined) state.starfieldIdleJitter = clampNumber(config.starfieldIdleJitter, 0, 20, state.starfieldIdleJitter);
   if (config.starfieldFadeDuration !== undefined) state.starfieldFadeDuration = clampNumber(config.starfieldFadeDuration, 0, 3, state.starfieldFadeDuration);
   if (config.starfield3dWarmupFrames !== undefined) state.starfield3dWarmupFrames = clampInt(config.starfield3dWarmupFrames, 0, 240, state.starfield3dWarmupFrames);
@@ -2023,8 +2033,12 @@ export function initState(config) {
   if (config.weaveFieldMaxSpeed !== undefined) state.weaveFieldMaxSpeed = clampInt(config.weaveFieldMaxSpeed, 220, 2200, state.weaveFieldMaxSpeed);
   if (config.weaveFieldCollisionIterations !== undefined) state.weaveFieldCollisionIterations = clampInt(config.weaveFieldCollisionIterations, 0, 6, state.weaveFieldCollisionIterations);
 
+  // Mobile count overrides
+  if (config.waterMobileCountScale !== undefined) state.waterMobileCountScale = clampNumber(config.waterMobileCountScale, 0.25, 1, state.waterMobileCountScale);
+
   // Shapes mode
   if (config.shapesBallCount !== undefined) state.shapesBallCount = clampInt(config.shapesBallCount, 72, 320, state.shapesBallCount);
+  if (config.shapesMobileCountScale !== undefined) state.shapesMobileCountScale = clampNumber(config.shapesMobileCountScale, 0.25, 1, state.shapesMobileCountScale);
   if (config.shapesDotSizeMul !== undefined) state.shapesDotSizeMul = clampNumber(config.shapesDotSizeMul, 0.5, 1.2, state.shapesDotSizeMul);
   if (config.shapesDotSpacingMul !== undefined) state.shapesDotSpacingMul = clampNumber(config.shapesDotSpacingMul, 1.95, 2.8, state.shapesDotSpacingMul);
   if (config.shapesGravityScale !== undefined) state.shapesGravityScale = clampNumber(config.shapesGravityScale, 0, 1.4, state.shapesGravityScale);
