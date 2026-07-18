@@ -790,6 +790,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-deck-card-height-fluid: 58vh;
   --portfolio-deck-card-height-fluid: 58cqh;
   --portfolio-deck-card-height-max: 461px;
+  --portfolio-card-content-scale: 1;
   --portfolio-deck-card-width: min(
     var(--portfolio-deck-card-width-fluid),
     var(--portfolio-deck-card-width-max)
@@ -820,6 +821,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
       rgba(0, 0, 0, calc(var(--portfolio-card-contact-shadow-opacity) * 0.18)),
     var(--ui-chrome-button-edge);
   --portfolio-deck-center-y: 50%;
+  --portfolio-deck-viewport-y-offset: 0dvh;
   --portfolio-deck-depth-gap-1: clamp(34px, 4.1vh, 42px);
   --portfolio-deck-depth-gap-2: clamp(68px, 8vh, 82px);
   --portfolio-deck-depth-scale-1: 0.945;
@@ -830,7 +832,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-deck-depth-blur-2: 0.95px;
   --portfolio-deck-hidden-y: 0px;
   --portfolio-deck-perspective: 1200px;
-  --portfolio-card-radius: 24px;
+  --portfolio-card-radius: calc(24px * var(--portfolio-card-content-scale));
   --portfolio-card-media-radius: var(--portfolio-card-radius);
   --portfolio-card-pad: 0px;
   --portfolio-card-copy-pad-x: 20px;
@@ -1013,7 +1015,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   --portfolio-card-pose-saturate: 0.76;
   position: absolute;
   left: 50%;
-  top: var(--portfolio-deck-center-y);
+  top: calc(var(--portfolio-deck-center-y) + var(--portfolio-deck-viewport-y-offset));
   z-index: 1;
   width: var(--portfolio-deck-card-width);
   aspect-ratio: var(--portfolio-deck-card-aspect);
@@ -1045,6 +1047,12 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   will-change: transform, opacity;
   backface-visibility: hidden;
   transition: opacity 160ms ease;
+}
+
+@media (min-width: 901px) {
+  .portfolio-deck-mount {
+    --portfolio-deck-viewport-y-offset: 3dvh;
+  }
 }
 
 .portfolio-project-card__surface {
@@ -1254,15 +1262,22 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   position: absolute;
   z-index: 2;
   top: auto;
-  bottom: clamp(24px, 6.5%, 30px);
-  left: 20px;
-  width: min(290px, calc(100% - 40px));
+  bottom: clamp(
+    calc(24px * var(--portfolio-card-content-scale)),
+    6.5%,
+    calc(30px * var(--portfolio-card-content-scale))
+  );
+  left: calc(20px * var(--portfolio-card-content-scale));
+  width: min(
+    calc(290px * var(--portfolio-card-content-scale)),
+    calc(100% - (40px * var(--portfolio-card-content-scale)))
+  );
   min-width: 0;
   display: flex;
   flex-direction: column;
   align-content: start;
   justify-items: start;
-  gap: 12px;
+  gap: calc(12px * var(--portfolio-card-content-scale));
   padding: 0;
   max-width: none;
   pointer-events: none;
@@ -1271,9 +1286,9 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 .portfolio-project-card__client {
   margin: 0;
   font-family: var(--abs-font-sans);
-  font-size: 15px;
+  font-size: calc(15px * var(--portfolio-card-content-scale));
   font-weight: 600;
-  line-height: 20.531px;
+  line-height: calc(20.531px * var(--portfolio-card-content-scale));
   letter-spacing: 0.3px;
   text-transform: none;
   color: #f5f1ea;
@@ -1289,9 +1304,9 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   padding: 0;
   text-align: left;
   font-family: var(--abs-font-sans);
-  font-size: 29px;
+  font-size: calc(29px * var(--portfolio-card-content-scale));
   font-weight: 500;
-  line-height: 32px;
+  line-height: calc(32px * var(--portfolio-card-content-scale));
   letter-spacing: 0;
   color: #f5f1ea;
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.26);

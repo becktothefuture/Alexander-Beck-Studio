@@ -107,6 +107,12 @@ const VERTEX_SHADER = `
   uniform float toDisciplineBackgroundScale;
   uniform float disciplineFocus;
   uniform float gridInfluence;
+  uniform float gridRippleWeight;
+  uniform float gridRippleAmplitude;
+  uniform float gridRippleSpeed;
+  uniform float gridRippleFrequency;
+  uniform float gridRippleStoryMix;
+  uniform vec2 gridRippleCenter;
   uniform vec3 disciplineRevealA;
   uniform vec3 disciplineRevealB;
   uniform float disciplineRevealActive;
@@ -226,6 +232,14 @@ const VERTEX_SHADER = `
       + (worldPoint.z * waveFrequency.y)
       + (ambientTime * waveSpeed)
     );
+
+    float rippleClock = mix(ambientTime, storyTime, gridRippleStoryMix);
+    float rippleDistance = length(worldPoint.xz - gridRippleCenter);
+    float ripple = sin(
+      (rippleDistance * gridRippleFrequency)
+      - (rippleClock * gridRippleSpeed * 6.2831853)
+    );
+    worldPoint.y += gridRippleWeight * gridRippleAmplitude * ripple;
 
     float group = mix(fromGroup, toGroup, morph);
     float groupStrength = mix(fromGroupStrength, toGroupStrength, morph);
@@ -538,6 +552,12 @@ function createPointFieldAdapter({
     toDisciplineBackgroundScale: { value: 1 },
     disciplineFocus: { value: 0 },
     gridInfluence: { value: 0 },
+    gridRippleWeight: { value: 0 },
+    gridRippleAmplitude: { value: 0 },
+    gridRippleSpeed: { value: 0 },
+    gridRippleFrequency: { value: 1 },
+    gridRippleStoryMix: { value: 0 },
+    gridRippleCenter: { value: new THREE.Vector2() },
     disciplineRevealA: { value: new THREE.Vector3() },
     disciplineRevealB: { value: new THREE.Vector3() },
     disciplineRevealActive: { value: 0 },
@@ -726,6 +746,7 @@ function createPointFieldAdapter({
     toDrift: {},
     fromWave: {},
     toWave: {},
+    gridRipple: {},
   };
   const anchorCapability = { capability: ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT, unsupportedCount: 0, unsupported: [] };
   const anchorCapabilityTarget = { capability: ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT, unsupportedCount: 0, unsupported: [] };
@@ -1382,6 +1403,13 @@ function createPointFieldAdapter({
         anchorSampleInput.toWave.speed = uniforms.toWaveSpeed.value;
         anchorSampleInput.toWave.frequencyX = uniforms.toWaveFrequency.value.x;
         anchorSampleInput.toWave.frequencyZ = uniforms.toWaveFrequency.value.y;
+        anchorSampleInput.gridRipple.weight = uniforms.gridRippleWeight.value;
+        anchorSampleInput.gridRipple.amplitude = uniforms.gridRippleAmplitude.value;
+        anchorSampleInput.gridRipple.speed = uniforms.gridRippleSpeed.value;
+        anchorSampleInput.gridRipple.frequency = uniforms.gridRippleFrequency.value;
+        anchorSampleInput.gridRipple.storyMix = uniforms.gridRippleStoryMix.value;
+        anchorSampleInput.gridRipple.centerX = uniforms.gridRippleCenter.value.x;
+        anchorSampleInput.gridRipple.centerZ = uniforms.gridRippleCenter.value.y;
         for (let group = 1; group <= 6; group += 1) {
           const label = disciplineLabels[group - 1];
           if (!label) continue;
@@ -1613,9 +1641,27 @@ function createPointFieldAdapter({
       lastGridInfluence = uniforms.gridInfluence.value;
       runtimeObserver.hotFrameDomWrite();
     }
+    const activeInteraction = frame.interactions?.activeInteraction;
+    const rippleParameters = pairMatchesRequest
+      && activeInteraction?.type === 'grid-ripple'
+      && activeInteraction.targetWorldId === requestedToWorldId
+      ? activeInteraction.parameters
+      : null;
+    uniforms.gridRippleWeight.value = frame.reducedMotion || !rippleParameters
+      ? 0
+      : Number(frame.interactions.effectWeight || 0);
+    uniforms.gridRippleAmplitude.value = Number(rippleParameters?.amplitude || 0);
+    uniforms.gridRippleSpeed.value = Number(rippleParameters?.speed || 0);
+    uniforms.gridRippleFrequency.value = Number(rippleParameters?.frequency || 1);
+    uniforms.gridRippleStoryMix.value = rippleParameters?.timeMode === 'story'
+      ? 1
+      : rippleParameters?.timeMode === 'mixed' ? 0.12 : 0;
+    uniforms.gridRippleCenter.value.set(
+      Number(rippleParameters?.centerX || 0),
+      Number(rippleParameters?.centerZ || 0),
+    );
     updateDisciplineReveal(frame, fromWorld, toWorld);
 
-    const activeInteraction = frame.interactions?.activeInteraction;
     const interactionEnabled = pairMatchesRequest
       && bustController.interactive
       && !formingBust

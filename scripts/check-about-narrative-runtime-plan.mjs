@@ -237,7 +237,8 @@ test('absolute spatial Title sampling matches legacy motion at randomized and bo
 
 test('interaction activation is absolute, targeted, and half-open', () => {
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
-  const clip = plan.interactionClips[0];
+  const clip = plan.interactionClips.find((item) => item.type === 'horizontal-spin');
+  assert.ok(clip);
   const before = sampleAboutNarrativeRuntimePlan(plan, clip.activationWU - 0.000001);
   const at = sampleAboutNarrativeRuntimePlan(plan, clip.activationWU);
   const after = sampleAboutNarrativeRuntimePlan(plan, clip.activationWU + 0.000001);
@@ -254,6 +255,32 @@ test('interaction activation is absolute, targeted, and half-open', () => {
     const end = sampleAboutNarrativeRuntimePlan(plan, plan.durationWU);
     assert.equal(end.interactions.activeClipIds.includes(clip.id), true);
   }
+});
+
+test('grid ripple attacks, sustains, releases, and settles for Reduced Motion', () => {
+  const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  const clip = plan.interactionClips.find((item) => item.type === 'grid-ripple');
+  assert.ok(clip);
+  const releaseStartWU = clip.endWU - clip.parameters.releaseWU;
+  const before = sampleAboutNarrativeRuntimePlan(plan, clip.startWU - 0.000001);
+  const attack = sampleAboutNarrativeRuntimePlan(plan, (clip.startWU + clip.activationWU) / 2);
+  const activated = sampleAboutNarrativeRuntimePlan(plan, clip.activationWU);
+  const sustain = sampleAboutNarrativeRuntimePlan(plan, (clip.activationWU + releaseStartWU) / 2);
+  const release = sampleAboutNarrativeRuntimePlan(plan, (releaseStartWU + clip.endWU) / 2);
+  const end = sampleAboutNarrativeRuntimePlan(plan, clip.endWU);
+  assert.equal(before.interactions.effectWeight, 0);
+  assert.ok(attack.interactions.effectWeight > 0 && attack.interactions.effectWeight < 1);
+  assert.equal(activated.interactions.effectWeight, 1);
+  assert.equal(sustain.interactions.effectWeight, 1);
+  assert.ok(release.interactions.effectWeight > 0 && release.interactions.effectWeight < 1);
+  assert.equal(end.interactions.effectWeight, 0);
+
+  const reducedPlan = compileAboutNarrativeRuntimePlan(canonical, {
+    layoutProfile: 'desktop',
+    motionProfile: 'reduced',
+  });
+  const reduced = sampleAboutNarrativeRuntimePlan(reducedPlan, clip.activationWU);
+  assert.equal(reduced.interactions.effectWeight, 0);
 });
 
 test('Discipline reveal exposes absolute WU choreography and extended effect checkpoints', () => {

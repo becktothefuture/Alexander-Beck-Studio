@@ -29,12 +29,12 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
   '--ball-6',
 ]);
 export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = Object.freeze([
-  Object.freeze({ group: 1, x: 0.35, y: 0.23 }),
-  Object.freeze({ group: 2, x: 0.54, y: 0.268 }),
-  Object.freeze({ group: 3, x: 0.43, y: 0.306 }),
-  Object.freeze({ group: 4, x: 0.58, y: 0.344 }),
-  Object.freeze({ group: 5, x: 0.36, y: 0.382 }),
-  Object.freeze({ group: 6, x: 0.52, y: 0.42 }),
+  Object.freeze({ group: 1, x: 0.35, y: 0.58 }),
+  Object.freeze({ group: 2, x: 0.54, y: 0.646 }),
+  Object.freeze({ group: 3, x: 0.43, y: 0.712 }),
+  Object.freeze({ group: 4, x: 0.58, y: 0.778 }),
+  Object.freeze({ group: 5, x: 0.36, y: 0.844 }),
+  Object.freeze({ group: 6, x: 0.52, y: 0.91 }),
 ]);
 export const ABOUT_NARRATIVE_TRANSITION_TYPES = Object.freeze([
   'morph',
@@ -52,12 +52,32 @@ export const ABOUT_NARRATIVE_EASINGS = Object.freeze([
   'hold',
 ]);
 export const ABOUT_NARRATIVE_CAMERA_EASINGS = Object.freeze([
+  'linear',
   'smoothstep',
   'ease-in-out',
 ]);
-function numberControl(id, label, min, max, step, unit = '') {
-  return Object.freeze({ id, label, type: 'range', min, max, step, unit });
+function numberControl(id, label, min, max, step, unit = '', group = '') {
+  return Object.freeze({ id, label, type: 'range', min, max, step, unit, group });
 }
+
+export const ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS = Object.freeze([
+  Object.freeze({ id: 'world-setup', label: 'World setup' }),
+  Object.freeze({ id: 'world-placement', label: 'Placement & scale' }),
+  Object.freeze({ id: 'world-transition', label: 'Transition' }),
+  Object.freeze({ id: 'shape-dimensions', label: 'Shape · Dimensions' }),
+  Object.freeze({ id: 'shape-distribution', label: 'Shape · Distribution' }),
+  Object.freeze({ id: 'shape-surface', label: 'Shape · Surface' }),
+  Object.freeze({ id: 'modifier-motion', label: 'Modifiers · Motion' }),
+  Object.freeze({ id: 'modifier-appearance', label: 'Modifiers · Appearance' }),
+  Object.freeze({ id: 'modifier-timing', label: 'Modifiers · Timing & input' }),
+]);
+
+export const ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS = Object.freeze([
+  Object.freeze({ id: 'text-path', label: 'Titles · Travel path' }),
+  Object.freeze({ id: 'text-clarity', label: 'Titles · Clarity' }),
+  Object.freeze({ id: 'text-depth', label: 'Titles · Depth' }),
+  Object.freeze({ id: 'text-editorial', label: 'Editorial · Reveal & layout' }),
+]);
 
 export const ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS = Object.freeze([
   numberControl('fieldTravelStart', 'Field scroll start', 0, 3.8, 0.01, '× section'),
@@ -84,8 +104,8 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     label: 'Sequence',
     controls: Object.freeze([
       numberControl('scrollSmoothing', 'Scroll smoothing', 0, 1, 0.01),
-      numberControl('readingWidthRem', 'Reading width', 42, 72, 1, 'rem'),
-      numberControl('editorialRevealThreshold', 'Text reveal', 0.6, 0.9, 0.01),
+      numberControl('readingWidthRem', 'Reading width', 30, 90, 1, 'rem', 'text-editorial'),
+      numberControl('editorialRevealThreshold', 'Reveal viewport line', 0.5, 0.95, 0.01, '×H', 'text-editorial'),
     ]),
   }),
   Object.freeze({
@@ -120,15 +140,15 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     label: 'Spatial titles',
     controls: Object.freeze([
       numberControl('durationScale', 'Travel duration', 0.75, 2.5, 0.05, '×'),
-      numberControl('startY', 'Start Y', -240, 240, 2, 'px'),
-      numberControl('openerStartY', 'Opener start Y', -120, 180, 2, 'px'),
-      numberControl('endY', 'End Y', -240, 240, 2, 'px'),
-      numberControl('readableStart', 'Clear window start', 0, 1, 0.01),
-      numberControl('readableEnd', 'Clear window end', 0, 1, 0.01),
-      numberControl('perspective', 'Perspective', 1400, 3200, 20, 'px'),
-      numberControl('entryDepth', 'Entry depth (−Z)', 0, 1200, 10, 'px'),
-      numberControl('exitDepth', 'Exit depth (+Z)', 0, 1200, 10, 'px'),
-      numberControl('maxBlur', 'Maximum blur', 0, 40, 1, 'px'),
+      numberControl('startY', 'Entry Y', -500, 500, 2, 'px', 'text-path'),
+      numberControl('openerStartY', 'Opener Y', -500, 500, 2, 'px', 'text-path'),
+      numberControl('endY', 'Exit Y', -500, 500, 2, 'px', 'text-path'),
+      numberControl('readableStart', 'Clear-in point', 0, 1, 0.01, '', 'text-clarity'),
+      numberControl('readableEnd', 'Clear-out point', 0, 1, 0.01, '', 'text-clarity'),
+      numberControl('maxBlur', 'Maximum blur', 0, 100, 1, 'px', 'text-clarity'),
+      numberControl('perspective', 'Perspective', 1400, 3200, 20, 'px', 'text-depth'),
+      numberControl('entryDepth', 'Entry depth (−Z)', 0, 3000, 10, 'px', 'text-depth'),
+      numberControl('exitDepth', 'Exit depth (+Z)', 0, 3000, 10, 'px', 'text-depth'),
     ]),
   }),
 ]);
@@ -141,8 +161,8 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
     adapterId: 'point-field-v1',
     cost: 1,
     parameters: Object.freeze([
-      numberControl('radius', 'Radius', 0.8, 6, 0.05, 'WU'),
-      numberControl('density', 'Presence', 0.1, 1, 0.01),
+      numberControl('radius', 'Radius', 0.1, 16, 0.05, 'WU', 'shape-dimensions'),
+      numberControl('density', 'Presence', 0.02, 1, 0.01, '', 'shape-distribution'),
     ]),
   }),
   'turbulent-field-v1': Object.freeze({
@@ -152,14 +172,14 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
     adapterId: 'point-field-v1',
     cost: 1,
     parameters: Object.freeze([
-      numberControl('width', 'Width', 4, 24, 0.1, 'WU'),
-      numberControl('height', 'Height', 2, 14, 0.1, 'WU'),
-      numberControl('depth', 'Depth', 4, 28, 0.1, 'WU'),
-      numberControl('chunkCount', 'Cloud chunks', 3, 14, 1),
-      numberControl('chunkSize', 'Chunk size', 0.4, 4, 0.05, 'WU'),
-      numberControl('scatter', 'Loose particles', 0, 0.6, 0.01),
-      numberControl('turbulence', 'Organic warp', 0, 1.5, 0.01, 'WU'),
-      numberControl('density', 'Presence', 0.1, 1, 0.01),
+      numberControl('width', 'Width', 1, 48, 0.1, 'WU', 'shape-dimensions'),
+      numberControl('height', 'Height', 0.5, 28, 0.1, 'WU', 'shape-dimensions'),
+      numberControl('depth', 'Depth', 1, 56, 0.1, 'WU', 'shape-dimensions'),
+      numberControl('chunkCount', 'Cloud chunks', 3, 32, 1, '', 'shape-distribution'),
+      numberControl('chunkSize', 'Chunk size', 0.1, 8, 0.05, 'WU', 'shape-distribution'),
+      numberControl('scatter', 'Loose particles', 0, 1.5, 0.01, '', 'shape-distribution'),
+      numberControl('density', 'Presence', 0.02, 1, 0.01, '', 'shape-distribution'),
+      numberControl('turbulence', 'Organic warp', 0, 4, 0.01, 'WU', 'shape-surface'),
     ]),
   }),
   'calm-field-v1': Object.freeze({
@@ -169,11 +189,11 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
     adapterId: 'point-field-v1',
     cost: 1,
     parameters: Object.freeze([
-      numberControl('width', 'Width', 4, 24, 0.1, 'WU'),
-      numberControl('depth', 'Depth', 4, 28, 0.1, 'WU'),
-      numberControl('height', 'Height', -5, 4, 0.05, 'WU'),
-      numberControl('jitter', 'Jitter', 0, 0.4, 0.005, 'WU'),
-      numberControl('density', 'Presence', 0.1, 1, 0.01),
+      numberControl('width', 'Width', 1, 48, 0.1, 'WU', 'shape-dimensions'),
+      numberControl('depth', 'Depth', 1, 56, 0.1, 'WU', 'shape-dimensions'),
+      numberControl('height', 'Height', -16, 16, 0.05, 'WU', 'shape-dimensions'),
+      numberControl('jitter', 'Jitter', 0, 2, 0.005, 'WU', 'shape-distribution'),
+      numberControl('density', 'Presence', 0.02, 1, 0.01, '', 'shape-distribution'),
     ]),
   }),
   'discipline-grid-v1': Object.freeze({
@@ -183,10 +203,10 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
     adapterId: 'point-field-v1',
     cost: 1,
     parameters: Object.freeze([
-      numberControl('width', 'Width', 4, 24, 0.1, 'WU'),
-      numberControl('height', 'Height', 3, 16, 0.1, 'WU'),
-      numberControl('depthJitter', 'Depth jitter', 0, 0.5, 0.005, 'WU'),
-      numberControl('density', 'Presence', 0.1, 1, 0.01),
+      numberControl('width', 'Width', 1, 48, 0.1, 'WU', 'shape-dimensions'),
+      numberControl('height', 'Height', 1, 32, 0.1, 'WU', 'shape-dimensions'),
+      numberControl('depthJitter', 'Depth jitter', 0, 3, 0.005, 'WU', 'shape-surface'),
+      numberControl('density', 'Presence', 0.02, 1, 0.01, '', 'shape-distribution'),
     ]),
   }),
   'living-field-v1': Object.freeze({
@@ -196,12 +216,12 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
     adapterId: 'point-field-v1',
     cost: 2,
     parameters: Object.freeze([
-      numberControl('width', 'Width', 4, 24, 0.1, 'WU'),
-      numberControl('depth', 'Depth', 4, 30, 0.1, 'WU'),
-      numberControl('baseY', 'Base height', -5, 3, 0.05, 'WU'),
-      numberControl('terrainX', 'X terrain', 0, 1.2, 0.01),
-      numberControl('terrainZ', 'Z terrain', 0, 1.2, 0.01),
-      numberControl('density', 'Presence', 0.1, 1, 0.01),
+      numberControl('width', 'Width', 1, 48, 0.1, 'WU', 'shape-dimensions'),
+      numberControl('depth', 'Depth', 1, 60, 0.1, 'WU', 'shape-dimensions'),
+      numberControl('baseY', 'Base height', -16, 16, 0.05, 'WU', 'shape-dimensions'),
+      numberControl('density', 'Presence', 0.02, 1, 0.01, '', 'shape-distribution'),
+      numberControl('terrainX', 'X terrain', 0, 4, 0.01, '', 'shape-surface'),
+      numberControl('terrainZ', 'Z terrain', 0, 4, 0.01, '', 'shape-surface'),
     ]),
   }),
   'bust-v1': Object.freeze({
@@ -211,7 +231,7 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
     adapterId: 'point-field-v1',
     cost: 2,
     parameters: Object.freeze([
-      numberControl('density', 'Presence', 0.2, 1, 0.01),
+      numberControl('density', 'Presence', 0.05, 1, 0.01, '', 'shape-distribution'),
     ]),
   }),
 });
@@ -224,9 +244,9 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
     cost: 1,
     reducedMotion: 'disabled',
     parameters: Object.freeze([
-      numberControl('amplitude', 'Amplitude', 0, 0.2, 0.001, 'WU'),
-      numberControl('speed', 'Speed', 0, 2, 0.01),
-      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', options: Object.freeze(['story', 'ambient', 'mixed']) }),
+      numberControl('amplitude', 'Amplitude', 0, 1.5, 0.001, 'WU', 'modifier-motion'),
+      numberControl('speed', 'Speed', 0, 8, 0.01, '', 'modifier-motion'),
+      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
     ]),
   }),
   'swarm-life-v1': Object.freeze({
@@ -236,7 +256,7 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
     cost: 1,
     reducedMotion: 'disabled',
     parameters: Object.freeze([
-      numberControl('strength', 'Local strength', 0, 1.5, 0.01),
+      numberControl('strength', 'Local strength', 0, 4, 0.01, '', 'modifier-motion'),
     ]),
   }),
   'group-emphasis-v1': Object.freeze({
@@ -246,7 +266,7 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
     cost: 1,
     reducedMotion: 'settled',
     parameters: Object.freeze([
-      numberControl('strength', 'Strength', 0, 4, 0.05),
+      numberControl('strength', 'Strength', 0, 8, 0.05, '', 'modifier-appearance'),
     ]),
   }),
   'discipline-isolation-v1': Object.freeze({
@@ -256,9 +276,9 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
     cost: 1,
     reducedMotion: 'settled',
     parameters: Object.freeze([
-      numberControl('strength', 'Isolation', 0, 1, 0.01),
-      numberControl('backgroundOpacity', 'Background opacity', 0, 1, 0.01),
-      numberControl('backgroundScale', 'Background point scale', 0.1, 1, 0.01, '×'),
+      numberControl('strength', 'Isolation', 0, 1, 0.01, '', 'modifier-appearance'),
+      numberControl('backgroundOpacity', 'Background opacity', 0, 1, 0.01, '', 'modifier-appearance'),
+      numberControl('backgroundScale', 'Background point scale', 0.02, 2.5, 0.01, '×', 'modifier-appearance'),
     ]),
   }),
   'living-wave-v1': Object.freeze({
@@ -268,12 +288,12 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
     cost: 2,
     reducedMotion: 'settled',
     parameters: Object.freeze([
-      numberControl('strength', 'Strength', 0, 1.4, 0.01),
-      numberControl('amplitude', 'Amplitude', 0, 0.6, 0.01, 'WU'),
-      numberControl('speed', 'Speed', 0, 2, 0.01),
-      numberControl('frequencyX', 'X frequency', 0.1, 3, 0.01),
-      numberControl('frequencyZ', 'Z frequency', 0.1, 3, 0.01),
-      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', options: Object.freeze(['story', 'ambient', 'mixed']) }),
+      numberControl('strength', 'Strength', 0, 3, 0.01, '', 'modifier-motion'),
+      numberControl('amplitude', 'Amplitude', 0, 3, 0.01, 'WU', 'modifier-motion'),
+      numberControl('speed', 'Speed', 0, 8, 0.01, '', 'modifier-motion'),
+      numberControl('frequencyX', 'X frequency', 0.02, 8, 0.01, '', 'modifier-motion'),
+      numberControl('frequencyZ', 'Z frequency', 0.02, 8, 0.01, '', 'modifier-motion'),
+      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
     ]),
   }),
   'living-colour-v1': Object.freeze({
@@ -283,8 +303,8 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
     cost: 1,
     reducedMotion: 'settled',
     parameters: Object.freeze([
-      numberControl('strength', 'Strength', 0, 1, 0.01),
-      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', options: Object.freeze(['story', 'ambient', 'mixed']) }),
+      numberControl('strength', 'Strength', 0, 1, 0.01, '', 'modifier-appearance'),
+      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
     ]),
   }),
   'bust-yaw-v1': Object.freeze({
@@ -294,12 +314,43 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
     cost: 1,
     reducedMotion: 'manual-only',
     parameters: Object.freeze([
-      numberControl('speed', 'Auto rotation', 0, 0.12, 0.001),
-      numberControl('dragSensitivity', 'Drag sensitivity', 0.3, 1.8, 0.05),
-      numberControl('resumeDelay', 'Resume delay', 0, 5, 0.1, 's'),
-      numberControl('resumeBlend', 'Resume blend', 0.1, 5, 0.1, 's'),
-      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', options: Object.freeze(['ambient']) }),
+      numberControl('speed', 'Auto rotation', 0, 0.5, 0.001, '', 'modifier-motion'),
+      numberControl('dragSensitivity', 'Drag sensitivity', 0.05, 5, 0.05, '', 'modifier-timing'),
+      numberControl('resumeDelay', 'Resume delay', 0, 15, 0.1, 's', 'modifier-timing'),
+      numberControl('resumeBlend', 'Resume blend', 0.05, 15, 0.05, 's', 'modifier-timing'),
+      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['ambient']) }),
     ]),
+  }),
+});
+
+export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
+  'grid-ripple': Object.freeze({
+    id: 'grid-ripple',
+    label: 'Grid ripple',
+    defaultParameters: Object.freeze({
+      amplitude: 0.28,
+      speed: 1.15,
+      frequency: 1.3,
+      centerX: 0,
+      centerZ: -2.8,
+      releaseWU: 0.65,
+      timeMode: 'mixed',
+    }),
+    parameters: Object.freeze([
+      numberControl('amplitude', 'Amplitude', 0, 1.5, 0.01, 'WU', 'modifier-motion'),
+      numberControl('speed', 'Speed', 0, 6, 0.01, '', 'modifier-motion'),
+      numberControl('frequency', 'Ring frequency', 0.1, 4, 0.01, '', 'modifier-motion'),
+      numberControl('centerX', 'Centre X', -12, 12, 0.1, 'WU', 'modifier-motion'),
+      numberControl('centerZ', 'Centre Z', -16, 16, 0.1, 'WU', 'modifier-motion'),
+      numberControl('releaseWU', 'Fade-out', 0, 2, 0.05, 'WU', 'modifier-timing'),
+      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
+    ]),
+  }),
+  'horizontal-spin': Object.freeze({
+    id: 'horizontal-spin',
+    label: 'Horizontal spin',
+    defaultParameters: Object.freeze({}),
+    parameters: Object.freeze([]),
   }),
 });
 

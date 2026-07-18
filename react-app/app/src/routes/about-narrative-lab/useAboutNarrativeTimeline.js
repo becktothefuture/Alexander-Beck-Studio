@@ -62,16 +62,15 @@ function isFieldActive(field, storyWU, durationWU) {
     && Math.abs(Number(field.endWU) - durationWU) <= 0.000001;
 }
 
-function getEditorialReveal(field, lineIndex, lineCount, storyWU, reducedMotion) {
-  const startWU = Number(field.startWU);
-  const focusWU = Number(field.focusWU);
-  if (reducedMotion) return storyWU >= startWU ? 1 : 0;
-  if (focusWU <= startWU) return storyWU >= startWU ? 1 : 0;
-  const count = Math.max(1, lineCount);
-  const spanWU = Math.max(0.000001, focusWU - startWU);
-  const revealStartWU = startWU + (spanWU * (lineIndex / count));
-  const revealEndWU = startWU + (spanWU * ((lineIndex + 1) / count));
-  return clamp01((storyWU - revealStartWU) / Math.max(0.000001, revealEndWU - revealStartWU));
+function getEditorialReveal(record, scrollWU, viewportHeight, viewportThreshold, reducedMotion) {
+  const threshold = Math.min(0.95, Math.max(0.05, Number(viewportThreshold) || 0.8));
+  const triggerY = viewportHeight * threshold;
+  const lineTop = (
+    (Number(record.field.focusWU) + threshold - scrollWU) * viewportHeight
+  ) + record.layoutOffsetPx;
+  if (reducedMotion) return lineTop <= triggerY ? 1 : 0;
+  const revealTravel = Math.max(48, viewportHeight * 0.08);
+  return clamp01((triggerY - lineTop) / revealTravel);
 }
 
 export function useAboutNarrativeTimeline({
@@ -185,6 +184,7 @@ export function useAboutNarrativeTimeline({
 
     const collectContentPressure = (viewportHeight) => {
       const pressure = {};
+      const editorialOffsets = new Map();
       content.querySelectorAll('[data-text-field-id]').forEach((node) => {
         const fieldId = node.dataset.textFieldId;
         if (!fieldId) return;
@@ -194,28 +194,35 @@ export function useAboutNarrativeTimeline({
           measuredHeightPx: Math.max(previous, measuredHeightPx),
           viewportHeightPx: viewportHeight,
         };
+        const editorialNodes = node.matches('[data-editorial-line]')
+          ? [node]
+          : Array.from(node.querySelectorAll('[data-editorial-line]'));
+        editorialNodes.forEach((editorialNode) => {
+          editorialOffsets.set(
+            editorialNode,
+            editorialNode === node ? 0 : Math.max(0, editorialNode.offsetTop - node.offsetTop),
+          );
+        });
       });
+      measurementsRef.current.editorialOffsets = editorialOffsets;
       return pressure;
     };
 
     const cacheSemanticNodes = (plan) => {
       const fieldsById = new Map(plan.textFields.map((field) => [field.id, field]));
-      const editorialCounts = new Map();
-      const editorialIndexes = new Map();
       const editorialNodes = Array.from(content.querySelectorAll('[data-editorial-line]'));
-      editorialNodes.forEach((node) => {
-        const fieldId = node.closest('[data-text-field-id]')?.dataset.textFieldId;
-        if (fieldId) editorialCounts.set(fieldId, (editorialCounts.get(fieldId) || 0) + 1);
-      });
       const editorialLines = editorialNodes.flatMap((node) => {
         const fieldId = node.closest('[data-text-field-id]')?.dataset.textFieldId;
         const field = fieldsById.get(fieldId);
         const isEditorialField = field?.kind === 'scroll-block'
           || (field?.kind === 'title' && field.movement === 'vertical');
         if (!isEditorialField) return [];
-        const lineIndex = editorialIndexes.get(fieldId) || 0;
-        editorialIndexes.set(fieldId, lineIndex + 1);
-        return [{ node, field, lineIndex, lineCount: editorialCounts.get(fieldId) || 1 }];
+        return [{
+          node,
+          field,
+          layoutOffsetPx: measurementsRef.current.editorialOffsets?.get(node) || 0,
+          progress: 0,
+        }];
       });
       const titleFields = [];
       const contextFields = [];
@@ -329,15 +336,20 @@ export function useAboutNarrativeTimeline({
 
       let disciplineFocus = 0;
       let gridInfluence = 0;
-      for (const record of measurementsRef.current.editorialLines) {
-        const { node, field, lineIndex, lineCount } = record;
-        const progress = getEditorialReveal(
-          field,
-          lineIndex,
-          lineCount,
-          frame.storyWU,
+      const editorialLines = measurementsRef.current.editorialLines;
+      const viewportThreshold = frame.globals.editorialRevealThreshold;
+      const viewportHeight = Math.max(1, measurementsRef.current.viewportHeight);
+      const scrollWU = planRef.current.resolver.scrollWUFromStoryWU(frame.storyWU);
+      for (const record of editorialLines) {
+        record.progress = getEditorialReveal(
+          record,
+          scrollWU,
+          viewportHeight,
+          viewportThreshold,
           reducedMotion,
         );
+      }
+      for (const { node, progress } of editorialLines) {
         node.style.setProperty('--editorial-reveal', progress.toFixed(4));
         node.style.setProperty('--editorial-blur', `${((1 - progress) * 3).toFixed(2)}px`);
         node.style.setProperty('--editorial-y', `${((1 - progress) * 12).toFixed(2)}px`);

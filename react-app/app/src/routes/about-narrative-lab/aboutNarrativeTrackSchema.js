@@ -5,6 +5,7 @@ import {
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
   ABOUT_NARRATIVE_EASINGS,
   ABOUT_NARRATIVE_EMPHASIS_TONES,
+  ABOUT_NARRATIVE_INTERACTION_DEFINITIONS,
   ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES,
   ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
   ABOUT_NARRATIVE_SHAPE_DEFINITIONS,
@@ -62,7 +63,7 @@ const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'emphasis', 
 const EMPHASIS_KEYS = new Set(['text', 'tone']);
 const CHOREOGRAPHY_KEYS = new Set(['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'staggerWU', 'backgroundFadeWU', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelDurationWU', 'holdWU', 'items']);
 const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label']);
-const INTERACTION_KEYS = new Set(['id', 'type', 'startWU', 'activationWU', 'endWU', 'targetWorldId', 'protected']);
+const INTERACTION_KEYS = new Set(['id', 'type', 'startWU', 'activationWU', 'endWU', 'targetWorldId', 'parameters', 'protected']);
 const LIBRARY_KEYS = new Set(['presets']);
 const PRESET_KEYS = new Set(['id', 'label', 'scope', 'protected']);
 const CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'easing']);
@@ -566,7 +567,22 @@ export function validateAboutNarrativeTrackDocument(input) {
       const worldEnd = Number(worlds[worldIndex + 1]?.startWU ?? durationWU);
       if (Number(clip.startWU) < worldStart || Number(clip.endWU) > worldEnd) diagnostic(diagnostics, 'interaction-world-window', path, 'Interaction clip must remain inside its target World active window.');
     }
-    if (clip.type !== 'horizontal-spin') diagnostic(diagnostics, 'interaction-type', `${path}.type`, 'Unsupported interaction type.');
+    const interactionDefinition = ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[clip.type];
+    if (!interactionDefinition) {
+      diagnostic(diagnostics, 'interaction-type', `${path}.type`, 'Unsupported interaction type.');
+    } else if (interactionDefinition.parameters.length && !isObject(clip.parameters)) {
+      diagnostic(diagnostics, 'interaction-parameters', `${path}.parameters`, 'Interaction parameters must be an object.');
+    } else if (isObject(clip.parameters)) {
+      unknownKeys(
+        diagnostics,
+        clip.parameters,
+        new Set(interactionDefinition.parameters.map((control) => control.id)),
+        `${path}.parameters`,
+      );
+      interactionDefinition.parameters.forEach((control) => (
+        validateControlValue(clip.parameters[control.id], control, diagnostics, `${path}.parameters.${control.id}`)
+      ));
+    }
   });
 
   const indexes = {

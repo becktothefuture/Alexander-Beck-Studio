@@ -380,6 +380,22 @@ function smoothRange(value, start, end) {
   return applyEasing('smoothstep', (value - start) / span);
 }
 
+function getInteractionEffectWeight(clip, storyWU, reducedMotion) {
+  if (!clip || reducedMotion || clip.type !== 'grid-ripple') return 0;
+  const startWU = Number(clip.startWU);
+  const activationWU = Number(clip.activationWU);
+  const endWU = Number(clip.endWU);
+  const releaseWU = Math.max(0, Number(clip.parameters?.releaseWU) || 0);
+  const attack = activationWU <= startWU
+    ? 1
+    : smoothRange(storyWU, startWU, activationWU);
+  const releaseStartWU = Math.max(activationWU, endWU - releaseWU);
+  const release = releaseWU <= TIME_EPSILON
+    ? 1
+    : 1 - smoothRange(storyWU, releaseStartWU, endWU);
+  return Math.max(0, Math.min(1, attack * release));
+}
+
 export function createAboutNarrativeTitleFieldSample() {
   const target = {
     opacity: 0,
@@ -566,6 +582,7 @@ export function createAboutNarrativeRuntimeFrameSample() {
       activatedClipIds: [],
       activeInteraction: null,
       interactionActivated: false,
+      effectWeight: 0,
     },
     disciplineReveal: null,
     editorialSignals: {
@@ -659,11 +676,17 @@ export function sampleAboutNarrativeRuntimePlanInto(
   );
   target.interactions.activeInteraction = null;
   target.interactions.interactionActivated = false;
+  target.interactions.effectWeight = 0;
   for (const clip of plan.interactionClips) {
     if (!isActiveAt(clampedStoryWU, clip.startWU, clip.endWU, plan.durationWU)) continue;
     if (clip.targetWorldId !== toWorld?.id) continue;
     target.interactions.activeInteraction = clip;
     target.interactions.interactionActivated = clampedStoryWU >= Number(clip.activationWU);
+    target.interactions.effectWeight = getInteractionEffectWeight(
+      clip,
+      clampedStoryWU,
+      reducedMotion,
+    );
     break;
   }
 

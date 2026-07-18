@@ -11,8 +11,13 @@ import {
   ABOUT_NARRATIVE_BLOCK_KINDS,
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
   ABOUT_NARRATIVE_EASINGS,
+  ABOUT_NARRATIVE_GLOBAL_CONTROLS,
+  ABOUT_NARRATIVE_INTERACTION_DEFINITIONS,
+  ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
   ABOUT_NARRATIVE_SHAPE_DEFINITIONS,
+  ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS,
   ABOUT_NARRATIVE_TRANSITION_TYPES,
+  ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS,
 } from './aboutNarrativeDefinitions.js';
 import {
   deriveAboutNarrativeTrackLoopRange,
@@ -44,6 +49,25 @@ const PREVIEW_ASPECT_RATIOS = Object.freeze({
   tablet: Object.freeze({ portrait: 820 / 1180, landscape: 1180 / 820 }),
   mobile: Object.freeze({ portrait: 390 / 844, landscape: 844 / 390 }),
 });
+const WORLD_CONTROL_GROUP_BY_ID = Object.freeze(Object.fromEntries(
+  ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS.map((group) => [group.id, group]),
+));
+const WORLD_PARAMETER_GROUP_IDS = Object.freeze(
+  ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS
+    .map((group) => group.id)
+    .filter((id) => id.startsWith('shape-') || id.startsWith('modifier-')),
+);
+const TEXT_TRACK_CONTROL_GROUP_BY_ID = Object.freeze(Object.fromEntries(
+  ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS.map((group) => [group.id, group]),
+));
+const TEXT_TRACK_CONTROLS = Object.freeze(ABOUT_NARRATIVE_GLOBAL_CONTROLS.flatMap((owner) => (
+  owner.controls
+    .filter((control) => control.group?.startsWith('text-'))
+    .map((control) => Object.freeze({
+      control,
+      scope: owner.id === 'textMotion' ? 'textMotion' : 'globals',
+    }))
+)));
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -150,6 +174,448 @@ function SelectField({ label, value, disabled = false, options, onCommit }) {
   );
 }
 
+function getControlPrecision(step) {
+  const value = String(step);
+  if (value.includes('e-')) return Number(value.split('e-')[1]) || 0;
+  return value.includes('.') ? value.split('.')[1].length : 0;
+}
+
+function normalizeControlValue(value, control) {
+  const next = Number(value);
+  if (!Number.isFinite(next)) return Number(control.min);
+  const precision = Math.max(getControlPrecision(control.step), 0);
+  return Number(clamp(next, Number(control.min), Number(control.max)).toFixed(precision));
+}
+
+function RangeParameterField({
+  label,
+  ariaLabel = label,
+  value,
+  control,
+  disabled = false,
+  onBegin,
+  onPreview,
+  onFinish,
+  onCancel,
+  onCommit,
+}) {
+  const gestureRef = useRef(false);
+  const normalizedValue = normalizeControlValue(value, control);
+  const span = Number(control.max) - Number(control.min);
+  const progress = span > 0
+    ? ((normalizedValue - Number(control.min)) / span) * 100
+    : 0;
+
+  const begin = () => {
+    if (disabled || gestureRef.current) return gestureRef.current;
+    gestureRef.current = onBegin?.() !== false;
+    return gestureRef.current;
+  };
+  const preview = (nextValue) => {
+    if (!begin()) return;
+    onPreview?.(normalizeControlValue(nextValue, control));
+  };
+  const finish = () => {
+    if (!gestureRef.current) return;
+    gestureRef.current = false;
+    onFinish?.();
+  };
+  const cancelGesture = () => {
+    if (!gestureRef.current) return;
+    gestureRef.current = false;
+    onCancel?.();
+  };
+
+  return (
+    <div
+      className="about-track-editor-parameter"
+      role="group"
+      aria-label={ariaLabel}
+      data-parameter-id={control.id}
+    >
+      <div className="about-track-editor-parameter__meta">
+        <span>{label}</span>
+        <small>{control.min}–{control.max}</small>
+      </div>
+      <div className="about-track-editor-parameter__controls">
+        <input
+          className="about-track-editor-parameter__slider"
+          aria-label={`${ariaLabel} slider`}
+          type="range"
+          min={control.min}
+          max={control.max}
+          step={control.step}
+          value={normalizedValue}
+          disabled={disabled}
+          style={{ '--parameter-progress': `${progress}%` }}
+          onPointerDown={begin}
+          onFocus={begin}
+          onChange={(event) => preview(event.currentTarget.value)}
+          onPointerUp={finish}
+          onPointerCancel={cancelGesture}
+          onBlur={finish}
+          onKeyDown={(event) => {
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            cancelGesture();
+            event.currentTarget.blur();
+          }}
+        />
+        <label className="about-track-editor-parameter__exact">
+          <span className="about-track-editor-sr-only">{ariaLabel} exact value</span>
+          <input
+            key={`${ariaLabel}-${normalizedValue}`}
+            aria-label={`${ariaLabel} exact value`}
+            type="number"
+            defaultValue={normalizedValue}
+            min={control.min}
+            max={control.max}
+            step={control.step}
+            disabled={disabled}
+            onBlur={(event) => {
+              const next = normalizeControlValue(event.currentTarget.value, control);
+              if (next !== normalizedValue) onCommit?.(next);
+              else event.currentTarget.value = String(normalizedValue);
+            }}
+          />
+          {control.unit ? <em>{control.unit}</em> : null}
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function InspectorFolder({ group, count, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <details
+      className="about-track-editor-folder"
+      data-inspector-group={group.id}
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary>
+        <span>{group.label}</span>
+        <small>{count}</small>
+        <i aria-hidden="true" />
+      </summary>
+      <div className="about-track-editor-folder__body">{children}</div>
+    </details>
+  );
+}
+
+function ModifierParameterGroup({
+  groupId,
+  entries,
+  firstGroupByModifier,
+  locked,
+  bindRange,
+  commit,
+}) {
+  const entriesByModifier = new Map();
+  entries.forEach((entry) => {
+    if (!entriesByModifier.has(entry.modifierIndex)) entriesByModifier.set(entry.modifierIndex, []);
+    entriesByModifier.get(entry.modifierIndex).push(entry);
+  });
+
+  return [...entriesByModifier.entries()].map(([modifierIndex, modifierEntries]) => {
+    const { modifier, definition } = modifierEntries[0];
+    const isPrimaryGroup = firstGroupByModifier.get(modifierIndex) === groupId;
+    return (
+      <section className="about-track-editor-modifier" key={`${modifier.id}-${groupId}`}>
+        <header className="about-track-editor-modifier__header">
+          <strong>{definition.label}</strong>
+          {isPrimaryGroup ? (
+            <label>
+              <input
+                type="checkbox"
+                checked={modifier.enabled === true}
+                disabled={locked}
+                onChange={(event) => commit(`Toggle ${definition.label}`, (target) => {
+                  target.modifiers[modifierIndex].enabled = event.target.checked;
+                })}
+              />
+              {modifier.enabled ? 'On' : 'Off'}
+            </label>
+          ) : <span>{modifier.enabled ? 'On' : 'Off'}</span>}
+        </header>
+        <div className="about-track-editor-modifier__controls">
+          {modifierEntries.map(({ control }) => {
+            const controlValue = modifier.parameters?.[control.id];
+            const controlName = `${definition.label} ${control.label}`;
+            if (control.type === 'select') {
+              return (
+                <SelectField
+                  key={`${modifier.id}-${control.id}`}
+                  label={control.label}
+                  value={controlValue}
+                  disabled={locked}
+                  options={control.options.map((value) => ({ value, label: value }))}
+                  onCommit={(value) => commit(`Edit ${controlName}`, (target) => {
+                    target.modifiers[modifierIndex].parameters[control.id] = value;
+                  })}
+                />
+              );
+            }
+            const binding = bindRange(`Edit ${controlName}`, (target, value) => {
+              target.modifiers[modifierIndex].parameters[control.id] = value;
+            });
+            return (
+              <RangeParameterField
+                key={`${modifier.id}-${control.id}`}
+                label={control.label}
+                ariaLabel={controlName}
+                value={controlValue}
+                control={control}
+                disabled={locked}
+                {...binding}
+              />
+            );
+          })}
+        </div>
+      </section>
+    );
+  });
+}
+
+function WorldInspector({ object, selection, store, locked, commit }) {
+  const shapeDefinition = ABOUT_NARRATIVE_SHAPE_DEFINITIONS[object.shapeId];
+  const shapeControlsByGroup = new Map();
+  shapeDefinition?.parameters.forEach((control) => {
+    if (!shapeControlsByGroup.has(control.group)) shapeControlsByGroup.set(control.group, []);
+    shapeControlsByGroup.get(control.group).push(control);
+  });
+
+  const modifierEntriesByGroup = new Map();
+  const firstGroupByModifier = new Map();
+  object.modifiers.forEach((modifier, modifierIndex) => {
+    const definition = ABOUT_NARRATIVE_MODIFIER_DEFINITIONS[modifier.id];
+    if (!definition) return;
+    definition.parameters.forEach((control) => {
+      const groupId = control.group || 'modifier-motion';
+      if (!modifierEntriesByGroup.has(groupId)) modifierEntriesByGroup.set(groupId, []);
+      modifierEntriesByGroup.get(groupId).push({ modifier, modifierIndex, definition, control });
+    });
+    const firstGroup = WORLD_PARAMETER_GROUP_IDS.find((groupId) => (
+      definition.parameters.some((control) => (control.group || 'modifier-motion') === groupId)
+    ));
+    if (firstGroup) firstGroupByModifier.set(modifierIndex, firstGroup);
+  });
+
+  const firstShapeGroup = WORLD_PARAMETER_GROUP_IDS.find((groupId) => shapeControlsByGroup.has(groupId));
+  const firstModifierGroup = WORLD_PARAMETER_GROUP_IDS.find((groupId) => modifierEntriesByGroup.has(groupId));
+  const bindRange = (label, mutate) => ({
+    onBegin: () => store.beginGesture(label, { selection }),
+    onPreview: (value) => store.updateGesture((draft) => {
+      const target = getAboutNarrativeTrackObject(draft, selection);
+      if (target) mutate(target, value, draft);
+    }, { selection }),
+    onFinish: () => store.commitGesture({ selectionAfter: selection, requireValid: true }),
+    onCancel: () => store.cancelGesture(),
+    onCommit: (value) => commit(label, (target, draft) => mutate(target, value, draft)),
+  });
+
+  return (
+    <div className="about-track-editor-world-folders">
+      <p className="about-track-editor-parameter-note">
+        Drag any slider for a live preview. Use the value field for exact input.
+      </p>
+
+      <InspectorFolder
+        key={`${object.id}-world-setup`}
+        group={WORLD_CONTROL_GROUP_BY_ID['world-setup']}
+        count={6}
+      >
+        <div className="about-track-editor-folder__grid">
+          <TextField label="Label" value={object.label} disabled={locked} onCommit={(value) => commit('Rename World', (target) => { target.label = value; })} />
+          <NumberField label="startWU" value={object.startWU} disabled={locked} onCommit={(value) => commit('Edit startWU', (target) => { target.startWU = cleanWU(value); })} />
+          <NumberField label="anchorWU" value={object.anchorWU} disabled={locked} onCommit={(value) => commit('Edit anchorWU', (target) => { target.anchorWU = cleanWU(value); })} />
+          <SelectField
+            label="Shape"
+            value={object.shapeId}
+            disabled={locked}
+            options={Object.values(ABOUT_NARRATIVE_SHAPE_DEFINITIONS).map((shape) => ({ value: shape.id, label: shape.label }))}
+            onCommit={(value) => commit('Change World Shape', (target) => {
+              const definition = ABOUT_NARRATIVE_SHAPE_DEFINITIONS[value];
+              target.shapeId = value;
+              target.adapterId = definition.adapterId;
+              target.shapeParameters = Object.fromEntries(definition.parameters.map((control) => [
+                control.id,
+                normalizeControlValue(target.shapeParameters?.[control.id], control),
+              ]));
+            })}
+          />
+          <NumberField label="Seed" value={object.seed} disabled={locked} step={1} min={0} onCommit={(value) => commit('Edit World seed', (target) => { target.seed = Math.round(value); })} />
+          <NumberField label="Entry distance WU" value={object.entryDistanceWU} disabled={locked} onCommit={(value) => commit('Edit World entry distance', (target) => { target.entryDistanceWU = value; })} />
+        </div>
+      </InspectorFolder>
+
+      <InspectorFolder
+        key={`${object.id}-world-placement`}
+        group={WORLD_CONTROL_GROUP_BY_ID['world-placement']}
+        count={9}
+      >
+        <div className="about-track-editor-folder__grid">
+          {[0, 1, 2].map((axis) => (
+            <NumberField key={`position-${axis}`} label={`Position ${'XYZ'[axis]}`} value={object.transform.position[axis]} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World position', (target) => { target.transform.position[axis] = value; })} />
+          ))}
+          {[0, 1, 2].map((axis) => (
+            <NumberField key={`rotation-${axis}`} label={`Rotation ${'XYZ'[axis]}`} value={object.transform.rotation[axis]} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World rotation', (target) => { target.transform.rotation[axis] = value; })} />
+          ))}
+          <NumberField label="Scale" value={object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World scale', (target) => { target.transform.scale = value; })} />
+          <NumberField label="Mobile scale" value={object.transform.mobileScale ?? object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World mobile scale', (target) => { target.transform.mobileScale = value; })} />
+          <NumberField label="Mobile Y offset" value={object.transform.mobileYOffset ?? 0} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World mobile offset', (target) => { target.transform.mobileYOffset = value; })} />
+        </div>
+      </InspectorFolder>
+
+      <InspectorFolder
+        key={`${object.id}-world-transition`}
+        group={WORLD_CONTROL_GROUP_BY_ID['world-transition']}
+        count={5}
+      >
+        <div className="about-track-editor-folder__grid">
+          <NumberField label="Transition start WU" value={object.transitionIn.startWU} disabled={locked} onCommit={(value) => commit('Edit World transition', (target) => { target.transitionIn.startWU = value; })} />
+          <NumberField label="Transition end WU" value={object.transitionIn.endWU} disabled={locked} onCommit={(value) => commit('Edit World transition', (target) => { target.transitionIn.endWU = value; })} />
+          <SelectField label="Transition type" value={object.transitionIn.type} disabled={locked} options={ABOUT_NARRATIVE_TRANSITION_TYPES.map((value) => ({ value, label: value }))} onCommit={(value) => commit('Edit World transition type', (target) => { target.transitionIn.type = value; })} />
+          <SelectField label="Transition easing" value={object.transitionIn.easing} disabled={locked} options={ABOUT_NARRATIVE_EASINGS.map((value) => ({ value, label: value }))} onCommit={(value) => commit('Edit World transition easing', (target) => { target.transitionIn.easing = value; })} />
+          <SelectField label="Correspondence" value={object.transitionIn.correspondence} disabled={locked} options={ABOUT_NARRATIVE_CORRESPONDENCE_MODES.map((value) => ({ value, label: value }))} onCommit={(value) => commit('Edit World correspondence', (target) => { target.transitionIn.correspondence = value; })} />
+        </div>
+      </InspectorFolder>
+
+      {WORLD_PARAMETER_GROUP_IDS.map((groupId) => {
+        const shapeControls = shapeControlsByGroup.get(groupId) || [];
+        const modifierEntries = modifierEntriesByGroup.get(groupId) || [];
+        const count = shapeControls.length || modifierEntries.length;
+        if (!count) return null;
+        const group = WORLD_CONTROL_GROUP_BY_ID[groupId];
+        return (
+          <InspectorFolder
+            key={`${object.id}-${groupId}`}
+            group={group}
+            count={count}
+            defaultOpen={groupId === firstShapeGroup || groupId === firstModifierGroup}
+          >
+            {shapeControls.length ? (
+              <div className="about-track-editor-shape-controls">
+                {groupId === firstShapeGroup ? <p>{shapeDefinition.description}</p> : null}
+                {shapeControls.map((control) => {
+                  const binding = bindRange(`Edit ${shapeDefinition.label} ${control.label}`, (target, value) => {
+                    target.shapeParameters[control.id] = value;
+                  });
+                  return (
+                    <RangeParameterField
+                      key={`${object.shapeId}-${control.id}`}
+                      label={control.label}
+                      ariaLabel={`${shapeDefinition.label} ${control.label}`}
+                      value={object.shapeParameters?.[control.id]}
+                      control={control}
+                      disabled={locked}
+                      {...binding}
+                    />
+                  );
+                })}
+              </div>
+            ) : null}
+            {modifierEntries.length ? (
+              <ModifierParameterGroup
+                groupId={groupId}
+                entries={modifierEntries}
+                firstGroupByModifier={firstGroupByModifier}
+                locked={locked}
+                bindRange={bindRange}
+                commit={commit}
+              />
+            ) : null}
+          </InspectorFolder>
+        );
+      })}
+    </div>
+  );
+}
+
+function TextTrackInspector({ snapshot, store }) {
+  const selection = { type: 'track', id: 'text' };
+  const globals = snapshot.document.globals;
+  const controlsByGroup = new Map();
+  TEXT_TRACK_CONTROLS.forEach((item) => {
+    if (!controlsByGroup.has(item.control.group)) controlsByGroup.set(item.control.group, []);
+    controlsByGroup.get(item.control.group).push(item);
+  });
+
+  const getValue = ({ control, scope }) => (
+    scope === 'textMotion' ? globals.textMotion[control.id] : globals[control.id]
+  );
+  const getBoundedControl = ({ control }) => {
+    if (control.id === 'readableStart') {
+      return { ...control, max: Math.max(control.min, Number(globals.textMotion.readableEnd) - control.step) };
+    }
+    if (control.id === 'readableEnd') {
+      return { ...control, min: Math.min(control.max, Number(globals.textMotion.readableStart) + control.step) };
+    }
+    return control;
+  };
+  const mutateGlobal = (draft, item, value) => {
+    if (item.scope === 'textMotion') draft.globals.textMotion[item.control.id] = value;
+    else draft.globals[item.control.id] = value;
+  };
+  const bindRange = (item) => {
+    const label = `Edit global ${item.control.label}`;
+    return {
+      onBegin: () => store.beginGesture(label, { selection }),
+      onPreview: (value) => store.updateGesture((draft) => mutateGlobal(draft, item, value), { selection }),
+      onFinish: () => store.commitGesture({ selectionAfter: selection, requireValid: true }),
+      onCancel: () => store.cancelGesture(),
+      onCommit: (value) => store.commit(label, (draft) => mutateGlobal(draft, item, value), {
+        selectionAfter: selection,
+        requireValid: true,
+      }),
+    };
+  };
+
+  return (
+    <div className="about-track-editor-inspector__content" data-track-settings="text">
+      <header>
+        <span>Track settings</span>
+        <h2>Global text animation</h2>
+        <code>globals.textMotion</code>
+      </header>
+      <div className="about-track-editor-world-folders about-track-editor-global-folders">
+        <p className="about-track-editor-parameter-note">
+          These controls affect every spatial Title. Each Title’s duration remains its start–end width on the timeline.
+        </p>
+        {ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS.map((group, index) => {
+          const items = controlsByGroup.get(group.id) || [];
+          if (!items.length) return null;
+          return (
+            <InspectorFolder
+              key={group.id}
+              group={TEXT_TRACK_CONTROL_GROUP_BY_ID[group.id]}
+              count={items.length}
+              defaultOpen={index === 0}
+            >
+              <div className="about-track-editor-shape-controls">
+                {items.map((item) => {
+                  const control = getBoundedControl(item);
+                  return (
+                    <RangeParameterField
+                      key={control.id}
+                      label={control.label}
+                      ariaLabel={`Global text ${control.label}`}
+                      value={getValue(item)}
+                      control={control}
+                      {...bindRange(item)}
+                    />
+                  );
+                })}
+              </div>
+            </InspectorFolder>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function JsonField({ label, value, disabled = false, focusId, onCommit, onError }) {
   return (
     <label className="about-track-editor-field is-wide">
@@ -244,7 +710,17 @@ function TrackObject({
   );
 }
 
-function Timeline({ snapshot, store, zoom, setZoom, textMenu, setTextMenu, onOpenTextEditor }) {
+function Timeline({
+  snapshot,
+  store,
+  zoom,
+  setZoom,
+  textMenu,
+  setTextMenu,
+  interactionMenu,
+  setInteractionMenu,
+  onOpenTextEditor,
+}) {
   const scrollRef = useRef(null);
   const scrubRef = useRef(null);
   const durationWU = Number(snapshot.compiledPlan?.durationWU
@@ -282,14 +758,23 @@ function Timeline({ snapshot, store, zoom, setZoom, textMenu, setTextMenu, onOpe
     if (scrubRef.current === event.pointerId) scrubRef.current = null;
   };
 
-  const createAtPlayhead = (trackId, kind = null) => {
+  const createAtPlayhead = (trackId, kind = null, interactionType = null) => {
+    const interactionDefinition = interactionType
+      ? ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[interactionType]
+      : null;
     store.createObject({
       track: trackId,
       kind,
       atWU: snapshot.transport.storyWU,
-      ...(trackId === 'interaction' ? { interactionType: 'horizontal-spin' } : {}),
+      ...(trackId === 'interaction' ? {
+        interactionType: interactionType || 'horizontal-spin',
+        template: {
+          parameters: { ...(interactionDefinition?.defaultParameters || {}) },
+        },
+      } : {}),
     });
     setTextMenu(false);
+    setInteractionMenu(false);
   };
 
   return (
@@ -315,17 +800,32 @@ function Timeline({ snapshot, store, zoom, setZoom, textMenu, setTextMenu, onOpe
         <div className="about-track-editor-headers" aria-hidden="false">
           <div className="about-track-editor-ruler-corner">WU</div>
           {TRACKS.map((track) => (
-            <div className={`about-track-editor-row-head is-${track.colour}`} key={track.id}>
-              <button type="button" onClick={() => store.setSelection({ type: 'track', id: track.id })}>
+            <div
+              className={`about-track-editor-row-head is-${track.colour}${snapshot.selection.type === 'track' && snapshot.selection.id === track.id ? ' is-selected' : ''}`}
+              key={track.id}
+            >
+              <button
+                type="button"
+                aria-pressed={snapshot.selection.type === 'track' && snapshot.selection.id === track.id}
+                onClick={() => store.setSelection({ type: 'track', id: track.id })}
+              >
                 {track.label}
               </button>
               <button
                 type="button"
                 className="about-track-editor-add"
                 aria-label={`Add ${track.label} object at playhead`}
-                aria-expanded={track.id === 'text' ? textMenu : undefined}
+                aria-expanded={track.id === 'text'
+                  ? textMenu
+                  : track.id === 'interaction' ? interactionMenu : undefined}
                 onClick={() => {
-                  if (track.id === 'text') setTextMenu((open) => !open);
+                  if (track.id === 'text') {
+                    setInteractionMenu(false);
+                    setTextMenu((open) => !open);
+                  } else if (track.id === 'interaction') {
+                    setTextMenu(false);
+                    setInteractionMenu((open) => !open);
+                  }
                   else createAtPlayhead(track.id);
                 }}
               >+</button>
@@ -336,6 +836,12 @@ function Timeline({ snapshot, store, zoom, setZoom, textMenu, setTextMenu, onOpe
                   <button type="button" role="menuitem" onClick={() => createAtPlayhead('text', 'stub')}>
                     Third type <span>Stub · Draft</span>
                   </button>
+                </div>
+              ) : null}
+              {track.id === 'interaction' && interactionMenu ? (
+                <div className="about-track-editor-create-menu" role="menu" aria-label="Create Interaction effect">
+                  <button type="button" role="menuitem" onClick={() => createAtPlayhead('interaction', null, 'grid-ripple')}>Grid ripple</button>
+                  <button type="button" role="menuitem" onClick={() => createAtPlayhead('interaction', null, 'horizontal-spin')}>Horizontal spin</button>
                 </div>
               ) : null}
             </div>
@@ -402,6 +908,9 @@ function ObjectInspector({ snapshot, store, onMessage }) {
   const selection = snapshot.selection;
   const object = getAboutNarrativeTrackObject(snapshot.document, selection);
   const track = TRACK_BY_ID[selection.id];
+  if (!object && selection.type === 'track' && selection.id === 'text') {
+    return <TextTrackInspector snapshot={snapshot} store={store} />;
+  }
   if (!object) {
     return (
       <div className="about-track-editor-inspector__empty">
@@ -422,6 +931,16 @@ function ObjectInspector({ snapshot, store, onMessage }) {
     value,
     disabled: locked,
     onCommit: (next) => commit(`Edit ${path}`, (target) => { target[path] = cleanWU(next); }),
+  });
+  const bindObjectRange = (label, mutate) => ({
+    onBegin: () => store.beginGesture(label, { selection }),
+    onPreview: (value) => store.updateGesture((draft) => {
+      const target = getAboutNarrativeTrackObject(draft, selection);
+      if (target) mutate(target, value);
+    }, { selection }),
+    onFinish: () => store.commitGesture({ selectionAfter: selection, requireValid: true }),
+    onCancel: () => store.cancelGesture(),
+    onCommit: (value) => commit(label, (target) => mutate(target, value)),
   });
 
   return (
@@ -455,46 +974,14 @@ function ObjectInspector({ snapshot, store, onMessage }) {
       ) : null}
 
       {selection.type === 'world' ? (
-        <div className="about-track-editor-fields">
-          <TextField label="Label" value={object.label} disabled={locked} onCommit={(value) => commit('Rename World', (target) => { target.label = value; })} />
-          {number('startWU', object.startWU)}
-          {number('anchorWU', object.anchorWU)}
-          <SelectField
-            label="Shape"
-            value={object.shapeId}
-            disabled={locked}
-            options={Object.values(ABOUT_NARRATIVE_SHAPE_DEFINITIONS).map((shape) => ({ value: shape.id, label: shape.label }))}
-            onCommit={(value) => commit('Change World Shape', (target) => {
-              const definition = ABOUT_NARRATIVE_SHAPE_DEFINITIONS[value];
-              target.shapeId = value;
-              target.adapterId = definition.adapterId;
-              target.shapeParameters = Object.fromEntries(definition.parameters.map((control) => [
-                control.id,
-                Number.isFinite(Number(target.shapeParameters?.[control.id]))
-                  ? Number(target.shapeParameters[control.id])
-                  : Number(control.min),
-              ]));
-            })}
-          />
-          <NumberField label="Seed" value={object.seed} disabled={locked} step={1} min={0} onCommit={(value) => commit('Edit World seed', (target) => { target.seed = Math.round(value); })} />
-          <NumberField label="Entry distance WU" value={object.entryDistanceWU} disabled={locked} onCommit={(value) => commit('Edit World entry distance', (target) => { target.entryDistanceWU = value; })} />
-          {[0, 1, 2].map((axis) => (
-            <NumberField key={`position-${axis}`} label={`Position ${'XYZ'[axis]}`} value={object.transform.position[axis]} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World position', (target) => { target.transform.position[axis] = value; })} />
-          ))}
-          {[0, 1, 2].map((axis) => (
-            <NumberField key={`rotation-${axis}`} label={`Rotation ${'XYZ'[axis]}`} value={object.transform.rotation[axis]} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World rotation', (target) => { target.transform.rotation[axis] = value; })} />
-          ))}
-          <NumberField label="Scale" value={object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World scale', (target) => { target.transform.scale = value; })} />
-          <NumberField label="Mobile scale" value={object.transform.mobileScale ?? object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World mobile scale', (target) => { target.transform.mobileScale = value; })} />
-          <NumberField label="Mobile Y offset" value={object.transform.mobileYOffset ?? 0} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World mobile offset', (target) => { target.transform.mobileYOffset = value; })} />
-          <NumberField label="Transition start WU" value={object.transitionIn.startWU} disabled={locked} onCommit={(value) => commit('Edit World transition', (target) => { target.transitionIn.startWU = value; })} />
-          <NumberField label="Transition end WU" value={object.transitionIn.endWU} disabled={locked} onCommit={(value) => commit('Edit World transition', (target) => { target.transitionIn.endWU = value; })} />
-          <SelectField label="Transition type" value={object.transitionIn.type} disabled={locked} options={ABOUT_NARRATIVE_TRANSITION_TYPES.map((value) => ({ value, label: value }))} onCommit={(value) => commit('Edit World transition type', (target) => { target.transitionIn.type = value; })} />
-          <SelectField label="Transition easing" value={object.transitionIn.easing} disabled={locked} options={ABOUT_NARRATIVE_EASINGS.map((value) => ({ value, label: value }))} onCommit={(value) => commit('Edit World transition easing', (target) => { target.transitionIn.easing = value; })} />
-          <SelectField label="Correspondence" value={object.transitionIn.correspondence} disabled={locked} options={ABOUT_NARRATIVE_CORRESPONDENCE_MODES.map((value) => ({ value, label: value }))} onCommit={(value) => commit('Edit World correspondence', (target) => { target.transitionIn.correspondence = value; })} />
-          <JsonField label="Shape parameters" value={object.shapeParameters} disabled={locked} onCommit={(value) => commit('Edit Shape parameters', (target) => { target.shapeParameters = value; })} onError={onMessage} />
-          <JsonField label="Modifier stack" value={object.modifiers} disabled={locked} onCommit={(value) => commit('Edit World modifiers', (target) => { target.modifiers = value; })} onError={onMessage} />
-        </div>
+        <WorldInspector
+          key={object.id}
+          object={object}
+          selection={selection}
+          store={store}
+          locked={locked}
+          commit={commit}
+        />
       ) : null}
 
       {selection.type === 'text-field' ? (
@@ -562,7 +1049,20 @@ function ObjectInspector({ snapshot, store, onMessage }) {
           {number('startWU', object.startWU)}
           {number('activationWU', object.activationWU)}
           {number('endWU', object.endWU)}
-          <TextField label="Interaction type" value={object.type} disabled={locked} onCommit={(value) => commit('Edit Interaction type', (target) => { target.type = value; })} />
+          <SelectField
+            label="Interaction type"
+            value={object.type}
+            disabled={locked}
+            options={Object.values(ABOUT_NARRATIVE_INTERACTION_DEFINITIONS).map((definition) => ({
+              value: definition.id,
+              label: definition.label,
+            }))}
+            onCommit={(value) => commit('Edit Interaction type', (target) => {
+              const definition = ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[value];
+              target.type = value;
+              target.parameters = { ...(definition?.defaultParameters || {}) };
+            })}
+          />
           <SelectField
             label="Target World"
             value={object.targetWorldId}
@@ -570,6 +1070,35 @@ function ObjectInspector({ snapshot, store, onMessage }) {
             options={snapshot.document.tracks.worlds.objects.map((world) => ({ value: world.id, label: world.label || world.id }))}
             onCommit={(value) => commit('Retarget Interaction', (target) => { target.targetWorldId = value; })}
           />
+          {ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[object.type]?.parameters.map((control) => {
+            if (control.type === 'select') {
+              return (
+                <SelectField
+                  key={control.id}
+                  label={control.label}
+                  value={object.parameters?.[control.id]}
+                  disabled={locked}
+                  options={control.options.map((value) => ({ value, label: value }))}
+                  onCommit={(value) => commit(`Edit ${control.label}`, (target) => {
+                    target.parameters[control.id] = value;
+                  })}
+                />
+              );
+            }
+            return (
+              <RangeParameterField
+                key={control.id}
+                label={control.label}
+                ariaLabel={`Interaction ${control.label}`}
+                value={object.parameters?.[control.id]}
+                control={control}
+                disabled={locked}
+                {...bindObjectRange(`Edit ${control.label}`, (target, value) => {
+                  target.parameters[control.id] = value;
+                })}
+              />
+            );
+          })}
         </div>
       ) : null}
     </div>
@@ -582,6 +1111,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
   const [zoom, setZoom] = useState(1);
   const [textMenu, setTextMenu] = useState(false);
+  const [interactionMenu, setInteractionMenu] = useState(false);
   const [baselineHash, setBaselineHash] = useState(previewOnly ? PUBLIC_PREVIEW_BASELINE_HASH : '');
   const [message, setMessage] = useState(previewOnly
     ? 'Public preview: changes stay on this device until exported.'
@@ -901,6 +1431,8 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         setZoom={setZoom}
         textMenu={textMenu}
         setTextMenu={setTextMenu}
+        interactionMenu={interactionMenu}
+        setInteractionMenu={setInteractionMenu}
         onOpenTextEditor={openTextEditor}
       />
 

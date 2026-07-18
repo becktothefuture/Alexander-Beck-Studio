@@ -176,9 +176,9 @@ test('store-backed pure operations create, move, copy, paste, duplicate, and del
   assert.equal(store.createObject({ track: 'text', kind: 'scroll-block', atWU: 8.2 }), true);
   assert.equal(store.createObject({ track: 'text', kind: 'stub', atWU: 9.2 }), true);
   assert.equal(store.createObject({ track: 'camera', atWU: 0.8 }), true);
-  assert.equal(store.createObject({ track: 'world', atWU: 10.8 }), true);
+  assert.equal(store.createObject({ track: 'world', atWU: 18 }), true);
   const worldId = store.getSnapshot().selection.id;
-  assert.equal(store.createObject({ track: 'interaction', atWU: 11, targetWorldId: worldId }), true);
+  assert.equal(store.createObject({ track: 'interaction', atWU: 18.2, targetWorldId: worldId }), true);
   assert.equal(compileAboutNarrativeTrackModel(store.getSnapshot().document).valid, true);
 
   store.setSelection({ type: 'text-field', id: titleId });

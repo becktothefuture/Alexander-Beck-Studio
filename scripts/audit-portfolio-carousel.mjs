@@ -16,6 +16,7 @@ const ARTIFACT_ROOT = path.resolve(
 );
 const VIEWPORTS = [
   { name: 'desktop-wide', width: 3440, height: 1440 },
+  { name: 'desktop-tall', width: 3440, height: 1800 },
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'tablet', width: 1024, height: 768 },
   { name: 'mobile-landscape', width: 844, height: 390 },
@@ -59,6 +60,15 @@ async function waitForCarousel(page) {
         && (!image || (image.complete && image.naturalWidth > 0))
         && (!video || video.readyState >= 2)
       );
+    },
+    null,
+    { timeout: WAIT_MS }
+  );
+  await page.waitForFunction(
+    () => {
+      const description = document.querySelector('.portfolio-deck-intro__body');
+      return description
+        && Math.abs(Number.parseFloat(getComputedStyle(description).opacity) - 0.64) <= 0.01;
     },
     null,
     { timeout: WAIT_MS }
@@ -130,7 +140,8 @@ async function collectGeometry(page) {
         }
       }
     }
-    const activeCardRect = document.querySelector('.portfolio-project-card.is-active')?.getBoundingClientRect?.();
+    const activeCard = document.querySelector('.portfolio-project-card.is-active');
+    const activeCardRect = activeCard?.getBoundingClientRect?.();
     const intro = document.querySelector('.portfolio-deck-intro');
     const introRect = intro instanceof HTMLElement && getComputedStyle(intro).display !== 'none'
       ? intro.getBoundingClientRect()
@@ -141,14 +152,13 @@ async function collectGeometry(page) {
         - (stageRect.top + (stageRect.height / 2))
       )
       : null;
-    const deckMount = document.querySelector('.portfolio-deck-mount');
-    const configuredCenterYPercent = deckMount instanceof HTMLElement
-      ? Number.parseFloat(getComputedStyle(deckMount).getPropertyValue('--portfolio-deck-center-y'))
+    const resolvedSeatTopPx = activeCard instanceof HTMLElement
+      ? Number.parseFloat(getComputedStyle(activeCard).top)
       : Number.NaN;
-    const activeSeatDeltaY = activeCardRect && Number.isFinite(configuredCenterYPercent)
+    const activeSeatDeltaY = activeCardRect && Number.isFinite(resolvedSeatTopPx)
       ? Math.abs(
         (activeCardRect.top + (activeCardRect.height / 2))
-        - (stageRect.top + (stageRect.height * configuredCenterYPercent / 100))
+        - (stageRect.top + resolvedSeatTopPx)
       )
       : null;
     return {
@@ -159,10 +169,18 @@ async function collectGeometry(page) {
       introDescriptionOpacity: intro
         ? Number.parseFloat(getComputedStyle(intro.querySelector('.portfolio-deck-intro__body')).opacity)
         : null,
+      activeCardWidth: activeCardRect ? Number(activeCardRect.width.toFixed(3)) : null,
+      activeCardHeight: activeCardRect ? Number(activeCardRect.height.toFixed(3)) : null,
+      activeTitleFontSize: activeCard
+        ? Number.parseFloat(getComputedStyle(activeCard.querySelector('.portfolio-project-card__title')).fontSize)
+        : null,
       activeCenterDeltaY: activeCenterDeltaY === null ? null : Number(activeCenterDeltaY.toFixed(3)),
       activeSeatDeltaY: activeSeatDeltaY === null ? null : Number(activeSeatDeltaY.toFixed(3)),
       introCardGap: activeCardRect && introRect
         ? Number((activeCardRect.top - introRect.bottom).toFixed(3))
+        : null,
+      introCardGapDvh: activeCardRect && introRect
+        ? Number((((activeCardRect.top - introRect.bottom) / window.innerHeight) * 100).toFixed(3))
         : null,
     };
   });
@@ -1170,8 +1188,18 @@ async function main() {
       if (result.geometry.introCardGap !== null && result.geometry.introCardGap < 8) {
         failures.push(`${name}: intro overlaps or crowds the active card`);
       }
-      if (name === 'desktop-wide' && result.geometry.cards.length < 7) {
-        failures.push('desktop-wide: ultra-wide layout does not expose all seven project cards');
+      if (name === 'desktop-wide' && result.geometry.cards.length < 5) {
+        failures.push('desktop-wide: enlarged ultra-wide layout does not expose five project cards');
+      }
+      if (
+        ['desktop-wide', 'desktop-tall'].includes(name)
+        && (
+          result.geometry.introCardGapDvh === null
+          || result.geometry.introCardGapDvh < 3
+          || result.geometry.introCardGapDvh > 5
+        )
+      ) {
+        failures.push(`${name}: capped title-to-card gap is outside the 3–5dvh target`);
       }
       if (result.dots.count !== 5) failures.push(`${name}: line track should render exactly five lines`);
       if (result.dots.markHeight === null || result.dots.markHeight > 10) failures.push(`${name}: line track marks are too tall`);
@@ -1222,6 +1250,15 @@ async function main() {
       }
     }
     if ((summary.viewports.desktop.press?.delta ?? Infinity) > 2) failures.push('desktop: pointer-down center delta exceeded 2px');
+    const wideCard = summary.viewports['desktop-wide'].geometry;
+    const desktopCard = summary.viewports.desktop.geometry;
+    if (
+      (wideCard.activeCardWidth ?? 0) < (desktopCard.activeCardWidth ?? Infinity) * 1.7
+      || (wideCard.activeCardHeight ?? 0) < (desktopCard.activeCardHeight ?? Infinity) * 1.7
+      || (wideCard.activeTitleFontSize ?? 0) < (desktopCard.activeTitleFontSize ?? Infinity) * 1.4
+    ) {
+      failures.push('desktop-wide: card geometry and content do not scale up with the available viewport');
+    }
     if (/view project/i.test(summary.viewports.desktop.cursor?.text || '')) failures.push('desktop: cursor still contains View Project');
     if (/abs-cursor-project-hover/.test(summary.viewports.desktop.cursor?.className || '')) failures.push('desktop: project-hover cursor class still active');
     if (summary.viewports.desktop.wheel?.before.activeIndex === summary.viewports.desktop.wheel?.after.activeIndex) failures.push('desktop: wheel did not advance');

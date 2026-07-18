@@ -72,7 +72,6 @@ function EditorialText({ text = '', emphasis = [] }) {
     parts.push(
       <strong
         className="about-narrative-editorial-emphasis"
-        data-emphasis-tone={match.tone}
         key={`${match.start}-${match.end}`}
       >
         {text.slice(match.start, match.end)}
@@ -82,6 +81,13 @@ function EditorialText({ text = '', emphasis = [] }) {
   });
   if (cursor < text.length) parts.push(text.slice(cursor));
   return parts;
+}
+
+function getEditorialLines(text = '') {
+  return String(text)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 function ScrollBlockField({ field, onSelect }) {
@@ -145,6 +151,21 @@ function ScrollBlockField({ field, onSelect }) {
         {block.label ? <p id={labelId} className="about-narrative-editorial-list__label" data-editorial-line>{block.label}</p> : null}
         <ul>{(block.items || []).map((item) => <li key={item} data-editorial-line>{item}</li>)}</ul>
       </section>
+    );
+  }
+  const lines = getEditorialLines(block.text);
+  if (lines.length > 1) {
+    return (
+      <p
+        {...commonProps}
+        className="about-narrative-editorial-copy about-narrative-editorial-passage"
+      >
+        {lines.map((line, lineIndex) => (
+          <span data-editorial-line key={`${lineIndex}-${line}`}>
+            <EditorialText text={line} emphasis={block.emphasis} />
+          </span>
+        ))}
+      </p>
     );
   }
   return (
@@ -419,7 +440,7 @@ export function AboutNarrativeLabExperience({
   const rootStyle = {
     '--about-reading-width': `${globals.readingWidthRem}rem`,
     '--about-text-perspective': `${Number(globals.textMotion.perspective) || 1600}px`,
-    '--about-editorial-reveal-threshold': Number(globals.editorialRevealThreshold) || 0.74,
+    '--about-editorial-reveal-threshold': Number(globals.editorialRevealThreshold) || 0.8,
   };
   const contentStyle = {
     '--narrative-content-extent-wu': contentExtentWU,

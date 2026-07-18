@@ -86,12 +86,21 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   cardMaxWidthPx: 316,
   cardHeightCqh: 58,
   cardMaxHeightPx: 461,
+  largeViewportWidthStartPx: 1440,
+  largeViewportWidthEndPx: 2560,
+  largeViewportHeightStartPx: 900,
+  largeViewportHeightEndPx: 1440,
+  largeViewportCardScaleMax: 1.75,
+  largeViewportContentScaleMax: 1.45,
   mobileCardWidthPercent: 64,
   mobileCardMaxWidthPx: 300,
   mobileCardHeightCqh: 58,
   mobileCardMaxHeightPx: 500,
   centerYPercent: 50,
   mobileCenterYPercent: 58,
+  desktopViewportYOffsetDvh: 3,
+  largeViewportOrbitCapStartProgress: 0.6,
+  largeViewportTitleCardGapDvh: 4,
   perspectivePx: 1600,
   pathRadiusPx: 2600,
   mobilePathRadiusPx: 820,
@@ -1208,7 +1217,12 @@ class PortfolioScrollApp {
     }) || null;
   }
 
-  getTitleClearanceCenterYPercent({ stageHeight, cardHeight }) {
+  getTitleClearanceCenterYPercent({
+    stageHeight,
+    cardHeight,
+    clearancePx = null,
+    viewportOffsetPx = 0,
+  }) {
     const stage = this.deckStage || this.mount;
     const intro = stage?.querySelector?.('.portfolio-deck-intro');
     if (!intro || !stage || !(stageHeight > 0) || !(cardHeight > 0)) return 0;
@@ -1227,9 +1241,19 @@ class PortfolioScrollApp {
 
     // Keep every responsive orbit seat below the complete intro block. The
     // configured seat still wins whenever it already provides more breathing room.
-    const clearancePx = clamp(stageHeight * 0.02, 12, 24);
+    const resolvedClearancePx = Number.isFinite(clearancePx)
+      ? clearancePx
+      : clamp(stageHeight * 0.02, 12, 24);
     const introBottom = introRect.bottom - stageRect.top;
-    return ((introBottom + clearancePx + (cardHeight * 0.5)) / stageHeight) * 100;
+    return (
+      (
+        introBottom
+        + resolvedClearancePx
+        + (cardHeight * 0.5)
+        - viewportOffsetPx
+      )
+      / stageHeight
+    ) * 100;
   }
 
   applyDeckTuning() {
@@ -1241,18 +1265,93 @@ class PortfolioScrollApp {
     const desktopCardWidthPercent = clamp(toNumber(this.deckOptions.cardWidthPercent, PORTFOLIO_DECK_DEFAULTS.cardWidthPercent), 16, 42);
     const mobileCardWidthPercent = clamp(toNumber(this.deckOptions.mobileCardWidthPercent, PORTFOLIO_DECK_DEFAULTS.mobileCardWidthPercent), 60, 92);
     const cardWidthPercent = lerp(mobileCardWidthPercent, desktopCardWidthPercent, responsiveT);
-    const desktopCardMaxWidthPx = clamp(toNumber(this.deckOptions.cardMaxWidthPx, PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx), 220, 620);
+    const largeViewportWidthStartPx = clamp(
+      toNumber(this.deckOptions.largeViewportWidthStartPx, PORTFOLIO_DECK_DEFAULTS.largeViewportWidthStartPx),
+      900,
+      2200
+    );
+    const largeViewportWidthEndPx = clamp(
+      toNumber(this.deckOptions.largeViewportWidthEndPx, PORTFOLIO_DECK_DEFAULTS.largeViewportWidthEndPx),
+      largeViewportWidthStartPx + 1,
+      3840
+    );
+    const largeViewportHeightStartPx = clamp(
+      toNumber(this.deckOptions.largeViewportHeightStartPx, PORTFOLIO_DECK_DEFAULTS.largeViewportHeightStartPx),
+      600,
+      1200
+    );
+    const largeViewportHeightEndPx = clamp(
+      toNumber(this.deckOptions.largeViewportHeightEndPx, PORTFOLIO_DECK_DEFAULTS.largeViewportHeightEndPx),
+      largeViewportHeightStartPx + 1,
+      2160
+    );
+    const largeViewportCardScaleMax = clamp(
+      toNumber(this.deckOptions.largeViewportCardScaleMax, PORTFOLIO_DECK_DEFAULTS.largeViewportCardScaleMax),
+      1,
+      2.4
+    );
+    const largeViewportContentScaleMax = clamp(
+      toNumber(this.deckOptions.largeViewportContentScaleMax, PORTFOLIO_DECK_DEFAULTS.largeViewportContentScaleMax),
+      1,
+      1.8
+    );
+    const largeViewportProgress = Math.min(
+      clamp(
+        (stageWidth - largeViewportWidthStartPx)
+          / (largeViewportWidthEndPx - largeViewportWidthStartPx),
+        0,
+        1
+      ),
+      clamp(
+        ((window.innerHeight || stageHeight) - largeViewportHeightStartPx)
+          / (largeViewportHeightEndPx - largeViewportHeightStartPx),
+        0,
+        1
+      )
+    );
+    const largeViewportCardScale = lerp(1, largeViewportCardScaleMax, largeViewportProgress);
+    const largeViewportContentScale = lerp(1, largeViewportContentScaleMax, largeViewportProgress);
+    const desktopCardMaxWidthPx = clamp(toNumber(this.deckOptions.cardMaxWidthPx, PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx), 220, 620)
+      * largeViewportCardScale;
     const mobileCardMaxWidthPx = clamp(toNumber(this.deckOptions.mobileCardMaxWidthPx, PORTFOLIO_DECK_DEFAULTS.mobileCardMaxWidthPx), 240, 520);
     const cardMaxWidthPx = lerp(mobileCardMaxWidthPx, desktopCardMaxWidthPx, responsiveT);
     const desktopCardHeightCqh = clamp(toNumber(this.deckOptions.cardHeightCqh, PORTFOLIO_DECK_DEFAULTS.cardHeightCqh), 36, 68);
     const mobileCardHeightCqh = clamp(toNumber(this.deckOptions.mobileCardHeightCqh, PORTFOLIO_DECK_DEFAULTS.mobileCardHeightCqh), 42, 72);
     const cardHeightCqh = lerp(mobileCardHeightCqh, desktopCardHeightCqh, responsiveT);
-    const desktopCardMaxHeightPx = clamp(toNumber(this.deckOptions.cardMaxHeightPx, PORTFOLIO_DECK_DEFAULTS.cardMaxHeightPx), 340, 620);
+    const desktopCardMaxHeightPx = clamp(toNumber(this.deckOptions.cardMaxHeightPx, PORTFOLIO_DECK_DEFAULTS.cardMaxHeightPx), 340, 620)
+      * largeViewportCardScale;
     const mobileCardMaxHeightPx = clamp(toNumber(this.deckOptions.mobileCardMaxHeightPx, PORTFOLIO_DECK_DEFAULTS.mobileCardMaxHeightPx), 380, 620);
     const cardMaxHeightPx = lerp(mobileCardMaxHeightPx, desktopCardMaxHeightPx, responsiveT);
     const desktopCenterYPercent = clamp(toNumber(this.deckOptions.centerYPercent, PORTFOLIO_DECK_DEFAULTS.centerYPercent), 45, 85);
     const mobileCenterYPercent = clamp(toNumber(this.deckOptions.mobileCenterYPercent, PORTFOLIO_DECK_DEFAULTS.mobileCenterYPercent), 48, 78);
     const configuredCenterYPercent = lerp(mobileCenterYPercent, desktopCenterYPercent, responsiveT);
+    const viewportHeight = window.innerHeight || stageHeight;
+    const desktopViewportYOffsetDvh = clamp(
+      toNumber(this.deckOptions.desktopViewportYOffsetDvh, PORTFOLIO_DECK_DEFAULTS.desktopViewportYOffsetDvh),
+      0,
+      8
+    );
+    const viewportYOffsetDvh = stageWidth > 900 ? desktopViewportYOffsetDvh : 0;
+    const viewportYOffsetPx = viewportHeight * viewportYOffsetDvh / 100;
+    const largeViewportOrbitCapStartProgress = clamp(
+      toNumber(
+        this.deckOptions.largeViewportOrbitCapStartProgress,
+        PORTFOLIO_DECK_DEFAULTS.largeViewportOrbitCapStartProgress
+      ),
+      0,
+      0.95
+    );
+    const largeViewportOrbitCapProgress = stageWidth > 900
+      ? smoothstep(largeViewportOrbitCapStartProgress, 1, largeViewportProgress)
+      : 0;
+    const largeViewportTitleCardGapDvh = clamp(
+      toNumber(
+        this.deckOptions.largeViewportTitleCardGapDvh,
+        PORTFOLIO_DECK_DEFAULTS.largeViewportTitleCardGapDvh
+      ),
+      3,
+      5
+    );
     const perspectivePx = clamp(toNumber(this.deckOptions.perspectivePx, PORTFOLIO_DECK_DEFAULTS.perspectivePx), 500, 2600);
     const configuredPathRadius = lerp(
       clamp(toNumber(this.deckOptions.mobilePathRadiusPx, PORTFOLIO_DECK_DEFAULTS.mobilePathRadiusPx), 420, 1400),
@@ -1297,10 +1396,21 @@ class PortfolioScrollApp {
       ? cardWidth * (461 / 316)
       : clamp(stageHeight * cardHeightCqh / 100, 260, cardMaxHeightPx);
     const titleClearanceCenterYPercent = this.getTitleClearanceCenterYPercent({ stageHeight, cardHeight });
-    const centerYPercent = clamp(
+    const uncappedCenterYPercent = clamp(
       Math.max(configuredCenterYPercent, titleClearanceCenterYPercent),
       45,
       stageWidth <= 900 ? 82 : 85
+    );
+    const largeViewportCappedCenterYPercent = this.getTitleClearanceCenterYPercent({
+      stageHeight,
+      cardHeight,
+      clearancePx: viewportHeight * largeViewportTitleCardGapDvh / 100,
+      viewportOffsetPx: viewportYOffsetPx,
+    });
+    const centerYPercent = lerp(
+      uncappedCenterYPercent,
+      Math.min(uncappedCenterYPercent, largeViewportCappedCenterYPercent),
+      largeViewportOrbitCapProgress
     );
     this.particleField?.configure({
       ...this.deckOptions.particleField,
@@ -1383,7 +1493,9 @@ class PortfolioScrollApp {
     this.mount.style.setProperty('--portfolio-deck-card-height-fluid', `${cardHeightCqh}cqh`);
     this.mount.style.setProperty('--portfolio-deck-card-height-max', `${cardMaxHeightPx}px`);
     this.mount.style.setProperty('--portfolio-deck-center-y', `${centerYPercent}%`);
+    this.mount.style.setProperty('--portfolio-deck-viewport-y-offset', `${viewportYOffsetDvh}dvh`);
     this.mount.style.setProperty('--portfolio-deck-perspective', `${perspectivePx}px`);
+    this.mount.style.setProperty('--portfolio-card-content-scale', largeViewportContentScale.toFixed(4));
     this.mount.style.setProperty('--portfolio-carousel-path-radius', `${pathRadius}px`);
     this.mount.style.setProperty('--portfolio-carousel-dot-radius', `${dotDialRadius}px`);
     const dotCount = Math.round(toNumber(this.deckOptions.dotDensity, PORTFOLIO_DECK_DEFAULTS.dotDensity));

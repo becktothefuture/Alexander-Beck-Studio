@@ -1,3 +1,5 @@
+import { ABOUT_NARRATIVE_INTERACTION_DEFINITIONS } from './aboutNarrativeDefinitions.js';
+
 export const ABOUT_NARRATIVE_TRACK_EDITING_STEP_WU = 0.005;
 export const ABOUT_NARRATIVE_TRACK_CLIPBOARD_VERSION = 1;
 
@@ -511,7 +513,7 @@ export function createAboutNarrativeInteractionAtWU({
   model,
   atWU,
   id = null,
-  interactionType = 'bust-spin',
+  interactionType = 'horizontal-spin',
   targetWorldId = null,
   template = {},
 }) {
@@ -522,6 +524,10 @@ export function createAboutNarrativeInteractionAtWU({
     : getAboutNarrativeActiveWorld(model, activationWU);
   if (!activeWorld) return resultError('Create a World Start before adding an Interaction.', 'interaction-target');
   const worldRange = getAboutNarrativeTrackObjectRange(model, { type: 'world', id: activeWorld.id });
+  const definition = ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[interactionType];
+  const parameters = definition?.parameters.length
+    ? { ...definition.defaultParameters, ...(template.parameters || {}) }
+    : template.parameters;
   return addCreatedObject(model, 'interaction', {
     ...clone(template),
     id: createUniqueId(model, id, 'interaction'),
@@ -530,6 +536,7 @@ export function createAboutNarrativeInteractionAtWU({
     activationWU,
     endWU: cleanWU(Math.min(worldRange.endWU, activationWU + 0.5)),
     targetWorldId: activeWorld.id,
+    ...(parameters ? { parameters } : {}),
   });
 }
 
