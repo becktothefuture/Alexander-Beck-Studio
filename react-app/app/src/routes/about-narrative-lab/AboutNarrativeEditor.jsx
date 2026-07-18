@@ -240,7 +240,6 @@ function TrackObject({
       <span className="about-track-editor-clip__label">{getObjectLabel(object, track.type)}</span>
       {object.kind === 'stub' ? <span className="about-track-editor-clip__badge">Draft · Not published</span> : null}
       {pointLike ? <span className="about-track-editor-clip__point" aria-hidden="true" /> : null}
-      {track.type === 'world' ? <span className="about-track-editor-clip__derived">Derived to next World Start</span> : null}
     </button>
   );
 }
@@ -495,7 +494,6 @@ function ObjectInspector({ snapshot, store, onMessage }) {
           <SelectField label="Correspondence" value={object.transitionIn.correspondence} disabled={locked} options={ABOUT_NARRATIVE_CORRESPONDENCE_MODES.map((value) => ({ value, label: value }))} onCommit={(value) => commit('Edit World correspondence', (target) => { target.transitionIn.correspondence = value; })} />
           <JsonField label="Shape parameters" value={object.shapeParameters} disabled={locked} onCommit={(value) => commit('Edit Shape parameters', (target) => { target.shapeParameters = value; })} onError={onMessage} />
           <JsonField label="Modifier stack" value={object.modifiers} disabled={locked} onCommit={(value) => commit('Edit World modifiers', (target) => { target.modifiers = value; })} onError={onMessage} />
-          <p className="about-track-editor-derived-note">World width is derived from this start to the next World Start. It is never stored.</p>
         </div>
       ) : null}
 

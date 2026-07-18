@@ -87,6 +87,14 @@ test('the grid and discipline-isolation moments share one fixed World surface', 
   assert.match(liveSources.world, /camera\.position\.fromArray\(frame\.camera\.position\)/);
 });
 
+test('editor World labels use the sequential taxonomy without derived-span copy', () => {
+  assert.deepEqual(
+    canonical.tracks.worlds.objects.map((world) => world.label),
+    ['A', 'B', 'C', 'D', 'E', 'F'],
+  );
+  assert.doesNotMatch(liveSources.editor, /Derived to next World Start|World width is derived/);
+});
+
 test('discipline isolation bookends the grid and the Camera owns the handoff', () => {
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const bookend = keys.get('camera-grid-bookend-0');
@@ -145,6 +153,5 @@ test('editor exposes exactly four independent lanes and all Text creation kinds'
   assert.match(liveSources.editor, /createAtPlayhead\('text', 'scroll-block'\)/);
   assert.match(liveSources.editor, /createAtPlayhead\('text', 'stub'\)/);
   assert.match(liveSources.editor, /Draft · Not published/);
-  assert.match(liveSources.editor, /World width is derived/);
   assert.match(liveSources.editor, /Reduced Motion/);
 });

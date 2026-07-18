@@ -375,8 +375,7 @@
 .about-track-editor-clip.is-locked { background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgb(255 255 255 / 6%) 5px 7px) !important; cursor: default; }
 .about-track-editor-clip.is-draft { border-style: dashed !important; }
 .about-track-editor-clip__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.about-track-editor-clip__badge,
-.about-track-editor-clip__derived { flex: 0 0 auto; color: var(--editor-muted); font-size: 8px; white-space: nowrap; }
+.about-track-editor-clip__badge { flex: 0 0 auto; color: var(--editor-muted); font-size: 8px; white-space: nowrap; }
 .about-track-editor-clip__point { display: block; width: 13px; height: 13px; border: 2px solid var(--editor-camera); border-radius: 50%; background: var(--editor-bg); box-shadow: 0 0 0 3px rgb(88 212 255 / 14%); }
 
 .about-track-editor-playhead {
@@ -444,14 +443,12 @@
 .about-track-editor-field.is-wide,
 .about-track-editor-check,
 .about-track-editor-kind-row,
-.about-track-editor-derived-note { grid-column: 1 / -1; }
 .about-track-editor-field textarea { resize: vertical; font-family: var(--abs-font-mono); font-size: 10px; }
 .about-track-editor-field input:disabled,
 .about-track-editor-field select:disabled,
 .about-track-editor-field textarea:disabled { opacity: 0.54; }
 .about-track-editor-kind-row { display: flex; justify-content: space-between; padding: 8px; border: 1px solid var(--editor-line); border-radius: 5px; background: var(--editor-field); text-transform: capitalize; }
 .about-track-editor-kind-row b { color: var(--editor-text); font-size: 9px; }
-.about-track-editor-derived-note { margin: 2px 0 0; padding: 8px; border-left: 2px solid var(--editor-world); background: rgb(167 139 250 / 8%); }
 
 .about-track-editor-inspector > footer {
   display: grid;

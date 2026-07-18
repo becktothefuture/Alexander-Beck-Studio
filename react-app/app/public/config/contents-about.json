@@ -440,7 +440,7 @@
       "objects": [
         {
           "id": "world-promise",
-          "label": "Intro",
+          "label": "A",
           "startWU": 0,
           "anchorWU": 0,
           "adapterId": "point-field-v1",
@@ -484,7 +484,7 @@
         },
         {
           "id": "world-complexity",
-          "label": "Entering complexity",
+          "label": "B",
           "startWU": 1.7,
           "anchorWU": 1.7,
           "adapterId": "point-field-v1",
@@ -533,7 +533,7 @@
         },
         {
           "id": "world-background",
-          "label": "Curiosity across aesthetics and technology",
+          "label": "C",
           "startWU": 4.595,
           "anchorWU": 4.595,
           "adapterId": "point-field-v1",
@@ -572,7 +572,7 @@
         },
         {
           "id": "world-discipline-isolation",
-          "label": "Discipline isolation",
+          "label": "D",
           "startWU": 9.602,
           "anchorWU": 4.595,
           "adapterId": "point-field-v1",
@@ -621,7 +621,7 @@
         },
         {
           "id": "world-bringing-life",
-          "label": "Bringing the idea to life",
+          "label": "E",
           "startWU": 14.145,
           "anchorWU": 14.145,
           "adapterId": "point-field-v1",
@@ -690,7 +690,7 @@
         },
         {
           "id": "world-epilogue",
-          "label": "Invitation",
+          "label": "F",
           "startWU": 20.3,
           "anchorWU": 20.3,
           "adapterId": "point-field-v1",
