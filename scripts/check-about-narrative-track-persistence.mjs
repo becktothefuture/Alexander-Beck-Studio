@@ -23,22 +23,24 @@ import {
 import {
   migrateAboutNarrativeVersion2To3,
   migrateAboutNarrativeVersion2To4,
+  migrateAboutNarrativeVersion2To5,
   migrateAboutNarrativeVersion3To4,
+  migrateAboutNarrativeVersion4To5,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
 
 const canonicalPath = new URL('./fixtures/about-narrative/contents-about-v2.json', import.meta.url);
 const canonicalV2 = JSON.parse(await readFile(canonicalPath, 'utf8'));
 const clone = (value) => structuredClone(value);
 
-test('raw schema v1 migrates through the established semantics into deterministic v4', () => {
+test('raw schema v1 migrates through the established semantics into deterministic v5', () => {
   const v1 = clone(canonicalV2);
   v1.schemaVersion = 1;
   const result = loadAboutNarrativeTrackSource(v1);
   assert.equal(result.valid, true);
   assert.equal(result.status, 'migrated');
   assert.equal(result.sourceVersion, 1);
-  assert.deepEqual(result.migrations, ['1->2', '2->3', '3->4']);
-  assert.equal(result.document.schemaVersion, 4);
+  assert.deepEqual(result.migrations, ['1->2', '2->3', '3->4', '4->5']);
+  assert.equal(result.document.schemaVersion, 5);
   assert.equal(result.document.sections, undefined);
   assert.deepEqual(v1, { ...canonicalV2, schemaVersion: 1 }, 'migration must not mutate raw v1 input');
 });
@@ -48,29 +50,155 @@ test('raw schema v2 migrates directly and leaves the exact source untouched', ()
   const before = JSON.stringify(source);
   const result = loadAboutNarrativeTrackSource(source);
   assert.equal(result.valid, true);
-  assert.deepEqual(result.migrations, ['2->3', '3->4']);
-  assert.deepEqual(result.document, migrateAboutNarrativeVersion2To4(canonicalV2));
+  assert.deepEqual(result.migrations, ['2->3', '3->4', '4->5']);
+  assert.deepEqual(result.document, migrateAboutNarrativeVersion2To5(canonicalV2));
   assert.equal(JSON.stringify(source), before);
   assert.deepEqual(result.original, source);
   assert.notEqual(result.original, source);
 });
 
-test('valid schema v4 is validated raw, normalized, and serialized byte-deterministically', () => {
+test('schema v4 migrates to current v5, which serializes byte-deterministically', () => {
   const v3 = migrateAboutNarrativeVersion2To3(canonicalV2);
   const v4 = migrateAboutNarrativeVersion3To4(v3);
+  const v5 = migrateAboutNarrativeVersion4To5(v4);
   const migrated = loadAboutNarrativeTrackSource(v3);
   assert.equal(migrated.status, 'migrated');
-  assert.deepEqual(migrated.migrations, ['3->4']);
-  assert.deepEqual(migrated.document, v4);
+  assert.deepEqual(migrated.migrations, ['3->4', '4->5']);
+  assert.deepEqual(migrated.document, v5);
   const loaded = loadAboutNarrativeTrackSource(v4);
   assert.equal(loaded.valid, true);
-  assert.equal(loaded.status, 'current');
-  assert.deepEqual(loaded.migrations, []);
-  const first = serializeAboutNarrativeTrackSource(v4);
+  assert.equal(loaded.status, 'migrated');
+  assert.deepEqual(loaded.migrations, ['4->5']);
+  const current = loadAboutNarrativeTrackSource(v5);
+  assert.equal(current.status, 'current');
+  assert.deepEqual(current.migrations, []);
+  const first = serializeAboutNarrativeTrackSource(v5);
   const second = serializeAboutNarrativeTrackSource(JSON.parse(first));
   assert.equal(second, first);
   assert.deepEqual(JSON.parse(first), loaded.document);
-  assert.throws(() => serializeAboutNarrativeTrackSource(canonicalV2), /explicitly migrated schema v4/);
+  assert.throws(() => serializeAboutNarrativeTrackSource(canonicalV2), /explicitly migrated schema v5/);
+});
+
+test('the opener description survives migration, normalization, and serialization', () => {
+  const v4 = migrateAboutNarrativeVersion3To4(migrateAboutNarrativeVersion2To3(canonicalV2));
+  const opener = v4.tracks.text.fields.find((field) => field.preset === 'opener-v1');
+  opener.text = 'About Me';
+  opener.description = 'I help shape complexity into compelling experiences';
+  const loaded = loadAboutNarrativeTrackSource(v4);
+  assert.equal(loaded.valid, true);
+  const serialized = JSON.parse(serializeAboutNarrativeTrackSource(loaded.document));
+  const persistedOpener = serialized.tracks.text.fields.find((field) => field.id === opener.id);
+  assert.equal(persistedOpener.text, 'About Me');
+  assert.equal(persistedOpener.description, opener.description);
+});
+
+test('v5 Visibility keys and profile overrides roundtrip without loss', () => {
+  const source = migrateAboutNarrativeVersion2To5(canonicalV2);
+  const durationWU = source.profiles.desktop.storyDurationWU;
+  source.tracks.visibility.keys.splice(1, 0, {
+    id: 'visibility-midpoint',
+    atWU: durationWU / 2,
+    visibility: 0.25,
+    easing: 'ease-in-out',
+    locked: false,
+  });
+  source.profiles.mobile.overrides.visibility['visibility-midpoint'] = {
+    visibility: 0.6,
+    easing: 'smoothstep',
+  };
+
+  const serialized = serializeAboutNarrativeTrackSource(source);
+  const loaded = loadAboutNarrativeTrackSource(serialized);
+  assert.equal(loaded.status, 'current');
+  assert.deepEqual(loaded.document.tracks.visibility.keys, source.tracks.visibility.keys);
+  assert.deepEqual(
+    loaded.document.profiles.mobile.overrides.visibility['visibility-midpoint'],
+    source.profiles.mobile.overrides.visibility['visibility-midpoint'],
+  );
+  assert.equal(serializeAboutNarrativeTrackSource(loaded.document), serialized);
+});
+
+test('known transitional v5 residue is repaired without weakening strict validation', () => {
+  const hybrid = migrateAboutNarrativeVersion2To5(canonicalV2);
+  const firstCameraKey = hybrid.tracks.camera.keys[0];
+  delete hybrid.tracks.visibility;
+  hybrid.globals.camera.fov = firstCameraKey.fov;
+  firstCameraKey.distanceFogStartWU = hybrid.globals.camera.distanceFogStartWU;
+  firstCameraKey.distanceFogEndWU = hybrid.globals.camera.distanceFogEndWU;
+  hybrid.profiles.mobile.overrides.camera['deleted-camera-key'] = { fov: 52 };
+
+  const loaded = loadAboutNarrativeTrackSource(hybrid);
+  assert.equal(loaded.valid, true);
+  assert.equal(loaded.status, 'migrated');
+  assert.deepEqual(loaded.migrations, ['5-hybrid-repair']);
+  assert.deepEqual(loaded.document.tracks.visibility.keys, [
+    { id: 'visibility-start', atWU: 0, visibility: 1, easing: 'linear', locked: true },
+    {
+      id: 'visibility-end',
+      atWU: loaded.document.profiles.desktop.storyDurationWU,
+      visibility: 1,
+      easing: 'linear',
+      locked: true,
+    },
+  ]);
+  assert.equal(loaded.document.globals.camera.fov, undefined);
+  assert.equal(loaded.document.tracks.camera.keys[0].distanceFogStartWU, undefined);
+  assert.equal(loaded.document.tracks.camera.keys[0].distanceFogEndWU, undefined);
+  assert.equal(loaded.document.profiles.mobile.overrides.camera['deleted-camera-key'], undefined);
+  assert.equal(loaded.original.tracks.visibility, undefined, 'repair must not mutate the recovery source');
+
+  const unrelatedInvalid = migrateAboutNarrativeVersion2To5(canonicalV2);
+  unrelatedInvalid.tracks.camera.keys[0].legacySectionId = 'promise';
+  const rejected = loadAboutNarrativeTrackSource(unrelatedInvalid);
+  assert.equal(rejected.valid, false);
+  assert.equal(rejected.status, 'invalid');
+  assert.ok(rejected.diagnostics.some((item) => (
+    item.code === 'unknown-key'
+    && item.path === 'tracks.camera.keys.0.legacySectionId'
+  )));
+});
+
+test('v4 to v5 consolidates Camera fog and rejects divergent key or profile fog', () => {
+  const v4 = migrateAboutNarrativeVersion2To4(canonicalV2);
+  const v5 = migrateAboutNarrativeVersion4To5(v4);
+  assert.deepEqual(Object.keys(v5.globals.camera).sort(), ['distanceFogEndWU', 'distanceFogStartWU']);
+  assert.deepEqual(
+    Object.keys(v5.tracks.camera.keys[0]).sort(),
+    ['atWU', 'easing', 'fov', 'id', 'locked', 'position', 'rotation'],
+  );
+  assert.deepEqual(v5.tracks.visibility.keys, [
+    { id: 'visibility-start', atWU: 0, visibility: 1, easing: 'linear', locked: true },
+    {
+      id: 'visibility-end',
+      atWU: v5.profiles.desktop.storyDurationWU,
+      visibility: 1,
+      easing: 'linear',
+      locked: true,
+    },
+  ]);
+
+  const divergentKey = clone(v4);
+  divergentKey.tracks.camera.keys[0].distanceFogStartWU += 1;
+  assert.throws(() => migrateAboutNarrativeVersion4To5(divergentKey), (error) => (
+    error.name === 'AboutNarrativeTrackMigrationError'
+    && error.diagnostics.some((item) => (
+      item.code === 'camera-fog-migration-divergence'
+      && item.path === 'tracks.camera.keys.0.distanceFogStartWU'
+    ))
+  ));
+
+  const divergentOverride = clone(v4);
+  const cameraId = divergentOverride.tracks.camera.keys[0].id;
+  divergentOverride.profiles.mobile.overrides.camera[cameraId] = {
+    distanceFogEndWU: divergentOverride.globals.camera.distanceFogEndWU + 1,
+  };
+  assert.throws(() => migrateAboutNarrativeVersion4To5(divergentOverride), (error) => (
+    error.name === 'AboutNarrativeTrackMigrationError'
+    && error.diagnostics.some((item) => (
+      item.code === 'camera-fog-migration-divergence'
+      && item.path === `profiles.mobile.overrides.camera.${cameraId}.distanceFogEndWU`
+    ))
+  ));
 });
 
 test('future documents stay read-only with their exact original representation preserved', () => {
@@ -124,11 +252,11 @@ test('recovery envelopes migrate document and selection metadata on independent 
   assert.equal(result.envelope.envelopeVersion, ABOUT_NARRATIVE_TRACK_ENVELOPE_VERSION);
   assert.equal(result.envelope.kind, 'recovery');
   assert.equal(result.envelope.schemaVersion, undefined);
-  assert.equal(result.envelope.document.schemaVersion, 4);
+  assert.equal(result.envelope.document.schemaVersion, 5);
   assert.deepEqual(result.envelope.selection, { type: 'text-field', id: 'text-promise-main' });
   assert.equal(result.envelope.storyWU, 3.25);
   assert.equal(result.envelope.baseSourceHash, 'source-hash');
-  assert.deepEqual(result.migrations, ['legacy-envelope->1', '2->3', '3->4']);
+  assert.deepEqual(result.migrations, ['legacy-envelope->1', '2->3', '3->4', '4->5']);
   assert.deepEqual(result.original, legacyEnvelope);
 });
 
@@ -177,7 +305,7 @@ test('preflight failures reject candidates without mutating source or migrated o
   assert.equal(accepted.valid, true);
 });
 
-test('development persistence migrates v2 in memory and atomically roundtrips v4 across restart', async () => {
+test('development persistence migrates v2 in memory and atomically roundtrips v5 across restart', async () => {
   const canonicalBefore = await readFile(canonicalPath, 'utf8');
   const directory = await mkdtemp(join(tmpdir(), 'about-narrative-v3-persistence-'));
   const configPath = join(directory, 'contents-about-test.json');
@@ -188,8 +316,8 @@ test('development persistence migrates v2 in memory and atomically roundtrips v4
     assert.equal(loaded.readOnly, false);
     assert.equal(loaded.status, 'migrated');
     assert.equal(loaded.sourceVersion, 2);
-    assert.deepEqual(loaded.migrations, ['2->3', '3->4']);
-    assert.equal(loaded.document.schemaVersion, 4);
+    assert.deepEqual(loaded.migrations, ['2->3', '3->4', '4->5']);
+    assert.equal(loaded.document.schemaVersion, 5);
     assert.equal(loaded.document.sections, undefined);
 
     const changed = clone(loaded.document);
@@ -213,7 +341,7 @@ test('development persistence rejects conflicts, invalid candidates, future cand
   const directory = await mkdtemp(join(tmpdir(), 'about-narrative-v3-rejection-'));
   const configPath = join(directory, 'contents-about-test.json');
   const v4 = migrateAboutNarrativeVersion2To4(canonicalV2);
-  const initial = serializeAboutNarrativeTrackSource(v4);
+  const initial = serializeAboutNarrativeTrackSource(migrateAboutNarrativeVersion4To5(v4));
   await writeFile(configPath, initial, 'utf8');
   try {
     const service = createAboutNarrativePersistenceService({ configPath });

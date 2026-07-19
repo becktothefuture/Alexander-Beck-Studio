@@ -7,7 +7,6 @@ import {
   useSyncExternalStore,
 } from 'react';
 import {
-  ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS,
   ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS,
   ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS,
   ABOUT_NARRATIVE_BLOCK_KINDS,
@@ -20,6 +19,7 @@ import {
   ABOUT_NARRATIVE_TITLE_STYLES,
   ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS,
   ABOUT_NARRATIVE_TRANSITION_TYPES,
+  ABOUT_NARRATIVE_VISIBILITY_EASINGS,
   ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS,
 } from './aboutNarrativeDefinitions.js';
 import {
@@ -44,6 +44,7 @@ import './about-narrative-editor.css';
 
 const TRACKS = Object.freeze([
   { id: 'camera', label: 'Camera', type: 'camera-key', colour: 'camera' },
+  { id: 'visibility', label: 'Visibility', type: 'visibility-key', colour: 'visibility' },
   { id: 'world', label: 'World', type: 'world', colour: 'world' },
   { id: 'text', label: 'Text', type: 'text-field', colour: 'text' },
   { id: 'interaction', label: 'Motion', type: 'interaction', colour: 'interaction' },
@@ -73,6 +74,9 @@ const CAMERA_TRACK_CONTROL_GROUP_BY_ID = Object.freeze(Object.fromEntries(
 ));
 const CAMERA_TRACK_CONTROLS = Object.freeze(
   ABOUT_NARRATIVE_GLOBAL_CONTROLS.find((owner) => owner.id === 'camera')?.controls || [],
+);
+const VISIBILITY_TRACK_CONTROLS = Object.freeze(
+  ABOUT_NARRATIVE_GLOBAL_CONTROLS.find((owner) => owner.id === 'material')?.controls || [],
 );
 const TEXT_TRACK_CONTROLS = Object.freeze(ABOUT_NARRATIVE_GLOBAL_CONTROLS.flatMap((owner) => (
   owner.controls
@@ -112,6 +116,7 @@ function getGridRippleStartControl(document, clip) {
 
 function getTrackItems(document, trackId) {
   if (trackId === 'camera') return document.tracks.camera.keys;
+  if (trackId === 'visibility') return document.tracks.visibility.keys;
   if (trackId === 'world') return document.tracks.worlds.objects;
   if (trackId === 'text') return document.tracks.text.fields;
   return document.tracks.interactions.clips;
@@ -119,6 +124,7 @@ function getTrackItems(document, trackId) {
 
 function getObjectLabel(object, type) {
   if (type === 'camera-key') return object.id.replace(/^camera-/, '') || 'Camera key';
+  if (type === 'visibility-key') return object.id.replace(/^visibility-/, '') || 'Visibility key';
   if (type === 'world') return object.label || object.shapeId || object.id;
   if (type === 'interaction') {
     return ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[object.type]?.label || object.type || object.id;
@@ -133,7 +139,7 @@ function getObjectLabel(object, type) {
 }
 
 function getObjectStart(object, type) {
-  return Number(type === 'camera-key' ? object.atWU : object.startWU);
+  return Number(['camera-key', 'visibility-key'].includes(type) ? object.atWU : object.startWU);
 }
 
 function getEditorialTextConnections(fields) {
@@ -705,6 +711,15 @@ function CameraTrackInspector({ snapshot, store }) {
     if (camera[id] != null) return camera[id];
     return 0;
   };
+  const getBoundedControl = (control) => {
+    if (control.id === 'distanceFogStartWU') {
+      return { ...control, max: Math.max(control.min, Number(camera.distanceFogEndWU) - control.step) };
+    }
+    if (control.id === 'distanceFogEndWU') {
+      return { ...control, min: Math.min(control.max, Number(camera.distanceFogStartWU) + control.step) };
+    }
+    return control;
+  };
   const controlsByGroup = new Map();
   CAMERA_TRACK_CONTROLS.forEach((control) => {
     if (!controlsByGroup.has(control.group)) controlsByGroup.set(control.group, []);
@@ -736,7 +751,7 @@ function CameraTrackInspector({ snapshot, store }) {
       </header>
       <div className="about-track-editor-world-folders about-track-editor-global-folders">
         <p className="about-track-editor-parameter-note">
-          Select a Camera key to edit its pose and distance fog. Protected start/end keys keep their timing fixed, while their pose and fog remain editable.
+          Distance fog is global across the sequence. Select a Camera key to edit its pose, lens, and outgoing travel easing.
         </p>
         {ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS.map((group) => {
           const controls = controlsByGroup.get(group.id) || [];
@@ -749,7 +764,9 @@ function CameraTrackInspector({ snapshot, store }) {
               defaultOpen={group.id === 'camera-fog'}
             >
               <div className="about-track-editor-shape-controls">
-                {controls.map((control) => (
+                {controls.map((sourceControl) => {
+                  const control = getBoundedControl(sourceControl);
+                  return (
                     <RangeParameterField
                       key={control.id}
                       label={control.label}
@@ -758,11 +775,59 @@ function CameraTrackInspector({ snapshot, store }) {
                       control={control}
                       {...bindRange(control)}
                     />
-                ))}
+                  );
+                })}
               </div>
             </InspectorFolder>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function VisibilityTrackInspector({ snapshot, store }) {
+  const selection = { type: 'track', id: 'visibility' };
+  const pointMaterial = snapshot.document.globals.pointMaterial;
+  const bindRange = (control) => {
+    const label = `Edit global ${control.label}`;
+    const mutate = (draft, value) => { draft.globals.pointMaterial[control.id] = value; };
+    return {
+      onBegin: () => store.beginGesture(label, { selection }),
+      onPreview: (value) => store.updateGesture((draft) => mutate(draft, value), { selection }),
+      onFinish: () => store.commitGesture({ selectionAfter: selection, requireValid: true }),
+      onCancel: () => store.cancelGesture(),
+      onCommit: (value) => store.commit(label, (draft) => mutate(draft, value), {
+        selectionAfter: selection,
+        requireValid: true,
+      }),
+    };
+  };
+  return (
+    <div className="about-track-editor-inspector__content" data-track-settings="visibility">
+      <header>
+        <span>Track settings</span>
+        <h2>Simulation visibility</h2>
+        <code>globals.pointMaterial</code>
+      </header>
+      <div className="about-track-editor-world-folders about-track-editor-global-folders">
+        <p className="about-track-editor-parameter-note">
+          Visibility keys fade the whole simulation independently of the Camera. These settings control the point material at full visibility.
+        </p>
+        <InspectorFolder group={{ id: 'point-material', label: 'Point material' }} count={VISIBILITY_TRACK_CONTROLS.length} defaultOpen>
+          <div className="about-track-editor-shape-controls">
+            {VISIBILITY_TRACK_CONTROLS.map((control) => (
+              <RangeParameterField
+                key={control.id}
+                label={control.label}
+                ariaLabel={`Point material ${control.label}`}
+                value={pointMaterial[control.id]}
+                control={control}
+                {...bindRange(control)}
+              />
+            ))}
+          </div>
+        </InspectorFolder>
       </div>
     </div>
   );
@@ -816,7 +881,7 @@ function TextTrackInspector({ snapshot, store }) {
       </header>
       <div className="about-track-editor-world-folders about-track-editor-global-folders">
         <p className="about-track-editor-parameter-note">
-          These controls affect every spatial Title. Each Title’s duration remains its start–end width on the timeline.
+          Spatial Titles use this shared animation timing. Their edges are fixed; drag a Title clip to reposition its complete timing window.
         </p>
         {ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS.map((group, index) => {
           const items = controlsByGroup.get(group.id) || [];
@@ -892,7 +957,7 @@ function TrackObject({
   const startWU = range?.startWU ?? getObjectStart(object, track.type);
   const endWU = range?.endWU ?? startWU;
   const locked = object.locked === true || object.protected === true;
-  const pointLike = track.type === 'camera-key';
+  const pointLike = ['camera-key', 'visibility-key'].includes(track.type);
   const left = startWU * pixelsPerWU;
   const width = pointLike
     ? 18
@@ -908,7 +973,8 @@ function TrackObject({
     && !locked
     && worldIndex >= 0
     && worldIndex < document.tracks.worlds.objects.length - 1;
-  const durationEdges = !locked && ['text-field', 'interaction'].includes(track.type)
+  const durationEdges = !locked && (track.type === 'interaction'
+    || (track.type === 'text-field' && object.kind !== 'title'))
     ? ['start', 'end']
     : canResizeWorld ? ['end'] : [];
   const activationPercent = track.type === 'interaction' && endWU > startWU
@@ -1253,6 +1319,9 @@ function ObjectInspector({ snapshot, store, onMessage }) {
   if (!object && selection.type === 'track' && selection.id === 'camera') {
     return <CameraTrackInspector snapshot={snapshot} store={store} />;
   }
+  if (!object && selection.type === 'track' && selection.id === 'visibility') {
+    return <VisibilityTrackInspector snapshot={snapshot} store={store} />;
+  }
   if (!object && selection.type === 'track' && selection.id === 'text') {
     return <TextTrackInspector snapshot={snapshot} store={store} />;
   }
@@ -1261,7 +1330,7 @@ function ObjectInspector({ snapshot, store, onMessage }) {
       <div className="about-track-editor-inspector__empty">
         <span>{track?.label || 'Timeline'}</span>
         <h2>{track ? `${track.label} track` : 'Select an object'}</h2>
-        <p>Drag Text and Motion edges to set their windows. World ends ripple every later World without gaps; Camera keys remain points.</p>
+        <p>Drag Text and Motion edges to set their windows. World ends ripple every later World without gaps; Camera and Visibility keys remain points.</p>
       </div>
     );
   }
@@ -1294,7 +1363,7 @@ function ObjectInspector({ snapshot, store, onMessage }) {
         <span>{selection.type === 'interaction' ? 'motion' : selection.type}</span>
         <h2>{getObjectLabel(object, selection.type)}</h2>
         <code>{object.id}</code>
-        {locked ? <b>{selection.type === 'camera-key' ? 'Timing protected' : 'Protected'}</b> : null}
+        {locked ? <b>{['camera-key', 'visibility-key'].includes(selection.type) ? 'Timing protected' : 'Protected'}</b> : null}
       </header>
 
       {selection.type === 'camera-key' ? (
@@ -1334,24 +1403,6 @@ function ObjectInspector({ snapshot, store, onMessage }) {
               ))}
             </div>
           </InspectorFolder>
-          <InspectorFolder group={{ id: 'camera-fog', label: 'Distance fog' }} count={2}>
-            <p className="about-track-editor-parameter-note">This key’s fog transitions to the next key with the same camera easing.</p>
-            {ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS.map((sourceControl) => {
-              const control = sourceControl.id === 'distanceFogStartWU'
-                ? { ...sourceControl, max: Math.max(sourceControl.min, Number(object.distanceFogEndWU) - sourceControl.step) }
-                : { ...sourceControl, min: Math.min(sourceControl.max, Number(object.distanceFogStartWU) + sourceControl.step) };
-              return (
-                <RangeParameterField
-                  key={control.id}
-                  label={control.label}
-                  ariaLabel={`Camera ${control.label}`}
-                  value={object[control.id]}
-                  control={control}
-                  {...bindObjectRange(`Edit Camera ${control.label}`, (target, value) => { target[control.id] = value; })}
-                />
-              );
-            })}
-          </InspectorFolder>
           <InspectorFolder group={{ id: 'camera-easing', label: 'Travel easing' }} count={2}>
             <CameraBezierField
               value={object.easing}
@@ -1366,6 +1417,26 @@ function ObjectInspector({ snapshot, store, onMessage }) {
               onCommit={(value) => commit('Edit Camera travel easing', (target) => { target.easing = value; })}
             />
           </InspectorFolder>
+        </div>
+      ) : null}
+
+      {selection.type === 'visibility-key' ? (
+        <div className="about-track-editor-fields">
+          {number('atWU', object.atWU)}
+          {locked ? <p className="about-track-editor-parameter-note is-wide">This boundary key stays at its Story WU; its visibility and outgoing fade easing remain editable.</p> : null}
+          <RangeParameterField
+            label="Visibility"
+            ariaLabel="Simulation visibility"
+            value={object.visibility}
+            control={{ id: 'visibility', min: 0, max: 1, step: 0.01, unit: '' }}
+            {...bindObjectRange('Edit simulation visibility', (target, value) => { target.visibility = value; })}
+          />
+          <SelectField
+            label="Fade easing"
+            value={object.easing}
+            options={ABOUT_NARRATIVE_VISIBILITY_EASINGS.map((value) => ({ value, label: value }))}
+            onCommit={(value) => commit('Edit Visibility fade easing', (target) => { target.easing = value; })}
+          />
         </div>
       ) : null}
 
@@ -1393,6 +1464,18 @@ function ObjectInspector({ snapshot, store, onMessage }) {
           {object.kind === 'title' ? (
             <>
               <TextField label="Title" value={object.text} disabled={locked} multiline focusId="text-copy" onCommit={(value) => commit('Edit Title', (target) => { target.text = value; })} />
+              {object.preset === 'opener-v1' ? (
+                <TextField
+                  label="Description"
+                  value={object.description || ''}
+                  disabled={locked}
+                  multiline
+                  onCommit={(value) => commit('Edit Title description', (target) => {
+                    if (value.trim()) target.description = value;
+                    else delete target.description;
+                  })}
+                />
+              ) : null}
               <SelectField label="Movement" value={object.movement} disabled={locked} options={[{ value: 'spatial', label: 'Spatial' }, { value: 'vertical', label: 'Vertical' }]} onCommit={(value) => commit('Edit Title movement', (target) => { target.movement = value; })} />
               <SelectField label="Title style" value={object.titleStyle || (object.preset === 'opener-v1' || object.preset === 'finale-v1' ? 'display' : 'standard')} disabled={locked} options={ABOUT_NARRATIVE_TITLE_STYLES.map((value) => ({ value, label: value === 'display' ? 'Display · Instrument' : 'Standard · Geist' }))} onCommit={(value) => commit('Edit Title style', (target) => { target.titleStyle = value; })} />
               <TextField label="Motion preset" value={object.preset} disabled={locked} onCommit={(value) => commit('Edit Title preset', (target) => { target.preset = value; })} />
@@ -1492,7 +1575,7 @@ function ObjectInspector({ snapshot, store, onMessage }) {
           {object.type === 'discipline-reveal' ? (
             <>
               <p className="about-track-editor-parameter-note is-wide">
-                This Motion keeps the C grid geometry fixed. Start controls field travel, activation begins the discipline labels and grid isolation, and end holds that treatment until E.
+                Activation begins the discipline labels and grid isolation; end holds that treatment until the next handoff.
               </p>
               <JsonField
                 label="Discipline labels"
@@ -1538,7 +1621,7 @@ function ObjectInspector({ snapshot, store, onMessage }) {
   );
 }
 
-const PUBLIC_PREVIEW_BASELINE_HASH = 'public-editor-preview-v4';
+const PUBLIC_PREVIEW_BASELINE_HASH = 'public-editor-preview-v5';
 
 export default function AboutNarrativeEditor({ store, rootRef, previewOnly = false }) {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
@@ -1564,7 +1647,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       return;
     }
     setSaving(true);
-    setMessage('Validating and saving v4…');
+    setMessage('Validating and saving v5…');
     try {
       const persisted = await saveAboutNarrativeSource(store.getSnapshot().document, baselineHash);
       store.replaceDocument('Accept saved canonical source', persisted.document, { requireValid: true });
@@ -1572,7 +1655,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       setBaselineHash(persisted.hash);
       clearAboutNarrativeRecoveryDraft();
       setRecovery(null);
-      setMessage('Saved canonical v4.');
+      setMessage('Saved canonical v5.');
     } catch (error) {
       setMessage(error.status === 409
         ? 'Save conflict: canonical changed. Export this draft or reload before saving.'
@@ -1644,11 +1727,11 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
     loadAboutNarrativeSource().then((source) => {
       if (!active) return;
       const current = store.getSnapshot();
-      if (!current.dirty) store.replaceDocument('Load canonical v4', source.document, { requireValid: true });
+      if (!current.dirty) store.replaceDocument('Load canonical v5', source.document, { requireValid: true });
       store.markBaseline(source.document);
       setBaselineHash(source.hash);
       setRecovery(readAboutNarrativeRecoveryDraft({ baselineHash: source.hash }));
-      setMessage(source.migrations?.length ? 'Loaded and migrated canonical source to v4.' : 'Canonical v4 ready.');
+      setMessage(source.migrations?.length ? 'Loaded and migrated canonical source to v5.' : 'Canonical v5 ready.');
     }).catch((error) => {
       if (active) setMessage(`Canonical load failed: ${error.message}`);
     });
@@ -1761,14 +1844,14 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   return (
     <aside
       className="about-track-editor"
-      data-editor-version="sectionless-v4"
+      data-editor-version="sectionless-v5"
       data-mobile-inspector-open={mobileInspectorOpen ? 'true' : 'false'}
       aria-label="About narrative editor"
     >
       <header className="about-track-editor-topbar">
         <div className="about-track-editor-brand">
           <strong>About Timeline</strong>
-          <span>v4 · absolute camera</span>
+          <span>v5 · camera + visibility</span>
         </div>
         <div className="about-track-editor-transport" aria-label="Timeline transport">
           <button
@@ -1825,7 +1908,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
           <button type="button" className="is-save" disabled={!snapshot.dirty || saving || errors.length > 0 || !baselineHash} onClick={save}>
             {previewOnly
               ? snapshot.dirty ? 'Export draft' : 'Preview ready'
-              : saving ? 'Saving…' : snapshot.dirty ? 'Save v4' : 'Saved'}
+              : saving ? 'Saving…' : snapshot.dirty ? 'Save v5' : 'Saved'}
           </button>
         </div>
       </header>

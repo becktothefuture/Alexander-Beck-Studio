@@ -8,6 +8,7 @@ import {
   createAboutNarrativeTitleAtWU,
   createAboutNarrativeTrackClipboardPayload,
   createAboutNarrativeTrackObjectAtWU,
+  createAboutNarrativeVisibilityKeyAtWU,
   createAboutNarrativeWorldAtWU,
   deleteAboutNarrativeTrackObjects,
   deriveAboutNarrativeTrackLoopRange,
@@ -26,9 +27,9 @@ import {
 
 function createFixture() {
   return {
-    schemaVersion: 3,
+    schemaVersion: 5,
     modelVersion: 1,
-    globals: { camera: { fov: 48 } },
+    globals: { camera: { distanceFogStartWU: 8, distanceFogEndWU: 18 } },
     profiles: {
       desktop: { id: 'desktop', storyDurationWU: 10, scrollDurationWU: 10 },
       tablet: { id: 'tablet', storyDurationWU: 10, scrollDurationWU: 10 },
@@ -38,9 +39,16 @@ function createFixture() {
     tracks: {
       camera: {
         keys: [
-          { id: 'camera-start', atWU: 0, offset: [0, 0, 0], lookAtOffset: [0, 0, -1], fov: 48, roll: 0, easing: 'smoothstep', locked: true },
-          { id: 'camera-middle', atWU: 3, offset: [1, 0, 0], lookAtOffset: [0, 0, -1], fov: 45, roll: 0.1, easing: 'smoothstep', locked: false },
-          { id: 'camera-end', atWU: 10, offset: [0, 0, 0], lookAtOffset: [0, 0, -1], fov: 48, roll: 0, easing: 'smoothstep', locked: true },
+          { id: 'camera-start', atWU: 0, position: [0, 0, 0], rotation: [0, 0, 0], fov: 48, easing: 'smoothstep', locked: true },
+          { id: 'camera-middle', atWU: 3, position: [1, 0, 0], rotation: [0, 0, 5], fov: 45, easing: 'smoothstep', locked: false },
+          { id: 'camera-end', atWU: 10, position: [0, 0, 0], rotation: [0, 0, 0], fov: 48, easing: 'smoothstep', locked: true },
+        ],
+      },
+      visibility: {
+        keys: [
+          { id: 'visibility-start', atWU: 0, visibility: 1, easing: 'linear', locked: true },
+          { id: 'visibility-middle', atWU: 5, visibility: 0.4, easing: 'smoothstep', locked: false },
+          { id: 'visibility-end', atWU: 10, visibility: 1, easing: 'linear', locked: true },
         ],
       },
       worlds: {
@@ -107,12 +115,17 @@ test('stable object-ID selections normalize directly and migrate legacy editor s
 test('object lookup and ranges use global WU and derive World ends from the next World Start', () => {
   const model = createFixture();
   assert.equal(getAboutNarrativeTrackObject(model, { type: 'camera-key', id: 'camera-middle' }).atWU, 3);
+  assert.equal(getAboutNarrativeTrackObject(model, { type: 'visibility-key', id: 'visibility-middle' }).visibility, 0.4);
   assert.deepEqual(getAboutNarrativeTrackObjectRange(model, { type: 'world', id: 'world-one' }), { startWU: 0, endWU: 4 });
   assert.deepEqual(getAboutNarrativeTrackObjectRange(model, { type: 'world', id: 'world-three' }), { startWU: 8, endWU: 10 });
   assert.equal(getAboutNarrativeActiveWorld(model, 7.9).id, 'world-two');
   assert.deepEqual(getAboutNarrativeTrackObjectRange(model, { type: 'camera-key', id: 'camera-middle' }, null, { cameraWindowWU: 0.25 }), {
     startWU: 2.75,
     endWU: 3.25,
+  });
+  assert.deepEqual(getAboutNarrativeTrackObjectRange(model, { type: 'visibility-key', id: 'visibility-middle' }, null, { cameraWindowWU: 0.25 }), {
+    startWU: 4.75,
+    endWU: 5.25,
   });
 });
 
@@ -144,7 +157,7 @@ test('one or many Text fields move in absolute WU and leave every unrelated trac
   assert.equal(bytes(model.tracks.text), bytes(createFixture().tracks.text), 'The input model remains immutable.');
 });
 
-test('World and Camera movement shifts only selected object timing and rejects protected objects', () => {
+test('World, Camera, and Visibility movement shifts only selected timing and rejects protected objects', () => {
   const model = createFixture();
   const interactionsBefore = bytes(model.tracks.interactions);
   const movedWorld = moveAboutNarrativeTrackObjectsByWU({
@@ -170,6 +183,19 @@ test('World and Camera movement shifts only selected object timing and rejects p
   assert.equal(moveAboutNarrativeTrackObjectsByWU({
     model,
     selection: { type: 'camera-key', id: 'camera-start' },
+    deltaWU: 1,
+  }).valid, false);
+
+  const movedVisibility = moveAboutNarrativeTrackObjectsByWU({
+    model,
+    selection: { type: 'visibility-key', id: 'visibility-middle' },
+    deltaWU: 0.2,
+  });
+  assert.equal(movedVisibility.valid, true);
+  assert.equal(getAboutNarrativeTrackObject(movedVisibility.model, { type: 'visibility-key', id: 'visibility-middle' }).atWU, 5.2);
+  assert.equal(moveAboutNarrativeTrackObjectsByWU({
+    model,
+    selection: { type: 'visibility-key', id: 'visibility-start' },
     deltaWU: 1,
   }).valid, false);
 });
@@ -270,7 +296,7 @@ test('World end resizing clamps protected boundaries and rejects locked or final
   assert.equal(resizeAboutNarrativeWorldEnd({ model, id: 'world-three', atWU: 9 }).valid, false);
 });
 
-test('Title, Scroll block, Stub, Camera, World, and Interaction creation uses independent IDs and absolute WU', () => {
+test('Title, Scroll block, Stub, Camera, Visibility, World, and Interaction creation uses independent IDs and absolute WU', () => {
   const model = createFixture();
   const title = createAboutNarrativeTitleAtWU({ model, atWU: 2 });
   assert.equal(title.valid, true);
@@ -285,10 +311,23 @@ test('Title, Scroll block, Stub, Camera, World, and Interaction creation uses in
   assert.equal(stub.object.publishable, false);
   assert.equal(stub.object.endWU, 10);
 
-  const camera = createAboutNarrativeCameraKeyAtWU({ model, atWU: 2, cameraKey: { offset: [1, 2, 3], fov: 52 } });
+  const camera = createAboutNarrativeCameraKeyAtWU({ model, atWU: 2, cameraKey: { position: [1, 2, 3], fov: 52 } });
   assert.equal(camera.valid, true);
   assert.equal(camera.object.atWU, 2);
-  assert.deepEqual(camera.object.offset, [1, 2, 3]);
+  assert.deepEqual(camera.object.position, [1, 2, 3]);
+  assert.deepEqual(camera.object.rotation, [0, 0, 0]);
+  assert.equal('distanceFogStartWU' in camera.object, false);
+
+  const visibility = createAboutNarrativeVisibilityKeyAtWU({
+    model,
+    atWU: 2.5,
+    visibilityKey: { visibility: 0.25, easing: 'ease-in-out' },
+  });
+  assert.equal(visibility.valid, true);
+  assert.deepEqual(
+    [visibility.object.atWU, visibility.object.visibility, visibility.object.easing, visibility.object.locked],
+    [2.5, 0.25, 'ease-in-out', false],
+  );
 
   const world = createAboutNarrativeWorldAtWU({ model, atWU: 7.5 });
   assert.equal(world.valid, true);
@@ -327,6 +366,24 @@ test('delete and duplicate validate the complete graph and preserve unrelated tr
   assert.equal(bytes(duplicate.model.tracks.camera), bytes(model.tracks.camera));
   assert.equal(bytes(duplicate.model.tracks.worlds), bytes(model.tracks.worlds));
   assert.equal(bytes(duplicate.model.tracks.interactions), bytes(model.tracks.interactions));
+
+  const visibilityDuplicate = duplicateAboutNarrativeTrackObjects({
+    model,
+    selection: { type: 'visibility-key', id: 'visibility-middle' },
+    offsetWU: 0.25,
+  });
+  assert.equal(visibilityDuplicate.valid, true);
+  assert.equal(visibilityDuplicate.objects[0].atWU, 5.25);
+  assert.equal(visibilityDuplicate.objects[0].locked, false);
+  const visibilityRemoved = deleteAboutNarrativeTrackObjects({
+    model: visibilityDuplicate.model,
+    selection: { type: 'visibility-key', id: visibilityDuplicate.objects[0].id },
+  });
+  assert.equal(visibilityRemoved.valid, true);
+  assert.equal(deleteAboutNarrativeTrackObjects({
+    model,
+    selection: { type: 'visibility-key', id: 'visibility-start' },
+  }).valid, false);
 });
 
 test('generic clipboard validates strict envelopes, pastes by absolute WU, and remaps internal Text references', () => {
@@ -371,6 +428,8 @@ test('loop audition derives ranges for every global object type and same-track m
   });
   const camera = deriveAboutNarrativeTrackLoopRange({ model, selection: { type: 'camera-key', id: 'camera-middle' } });
   assert.deepEqual([camera.startWU, camera.endWU], [2.75, 3.25]);
+  const visibility = deriveAboutNarrativeTrackLoopRange({ model, selection: { type: 'visibility-key', id: 'visibility-middle' } });
+  assert.deepEqual([visibility.startWU, visibility.endWU], [4.75, 5.25]);
   const world = deriveAboutNarrativeTrackLoopRange({ model, selection: { type: 'world', id: 'world-two' } });
   assert.deepEqual([world.startWU, world.endWU], [4, 8]);
   const interaction = deriveAboutNarrativeTrackLoopRange({ model, selection: { type: 'interaction', id: 'interaction-spin' } });

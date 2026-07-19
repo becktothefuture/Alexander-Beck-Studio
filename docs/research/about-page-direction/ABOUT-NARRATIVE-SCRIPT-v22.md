@@ -4,9 +4,15 @@
 
 Current editable prose script. This version keeps the tighter V21 rhythm, but restores the connective tissue that made V19 feel human. It is written to work from two readings at once: an art-director reading, where every text beat has a visual reason to exist in the field; and a recruiter/client reading, where the page clearly explains Alexander’s background, disciplines, AI capability and value to teams.
 
-## 01 - Spatial title
+## 01 - Opener
 
-> I help shape complex ideas into compelling experiences.
+### Title
+
+> About Me
+
+### Description
+
+> I help shape complexity into compelling experiences
 
 ## 02 - Spatial title
 

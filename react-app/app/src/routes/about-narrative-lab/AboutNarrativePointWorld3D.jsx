@@ -38,6 +38,8 @@ import {
 } from './aboutNarrativeWorldIdentity.js';
 import { getGlobals } from '../../legacy/modules/core/state.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
+import { easeSimulationVisualProgress } from '../../lib/simulationVisualTransition.js';
+import { ROUTE_ENTRANCE_START_EVENT } from '../../lib/motion/route-entrance-events.js';
 import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
 import { createAboutNarrativeRuntimeResources } from 'virtual:about-narrative-resource-tools';
 import { createAboutNarrativeRuntimeObserver } from 'virtual:about-narrative-runtime-observer';
@@ -77,6 +79,8 @@ const VERTEX_SHADER = `
   uniform float ambientTime;
   uniform float pointSize;
   uniform float pixelRatio;
+  uniform float simulationVisibility;
+  uniform float sceneEntranceScale;
   uniform float distanceFogStartWU;
   uniform float distanceFogEndWU;
   uniform float fromDriftAmplitude;
@@ -105,8 +109,14 @@ const VERTEX_SHADER = `
   uniform float toDisciplineIsolation;
   uniform float fromDisciplineBackgroundOpacity;
   uniform float toDisciplineBackgroundOpacity;
-  uniform float fromDisciplineBackgroundScale;
-  uniform float toDisciplineBackgroundScale;
+  uniform float fromOrbitalWeight;
+  uniform float toOrbitalWeight;
+  uniform float fromOrbitalSpeed;
+  uniform float toOrbitalSpeed;
+  uniform float fromOrbitalStoryMix;
+  uniform float toOrbitalStoryMix;
+  uniform float fromOrbitalRadius;
+  uniform float toOrbitalRadius;
   uniform float disciplineFocus;
   uniform float gridInfluence;
   uniform float gridRippleWeight;
@@ -122,10 +132,6 @@ const VERTEX_SHADER = `
   uniform float disciplineBackgroundOpacity;
   uniform float disciplineReconnectOpacity;
   uniform float disciplinePointScale;
-  uniform float disciplineFieldFogStartWU;
-  uniform float disciplineFieldFogEndWU;
-  uniform float disciplineFieldFogStrength;
-  uniform float disciplineFieldFogWeight;
   uniform float fromLivingColour;
   uniform float toLivingColour;
   uniform float fromBust;
@@ -156,6 +162,76 @@ const VERTEX_SHADER = `
     );
   }
 
+  vec3 rotateX(vec3 value, float angle) {
+    float sine = sin(angle);
+    float cosine = cos(angle);
+    return vec3(
+      value.x,
+      (cosine * value.y) - (sine * value.z),
+      (sine * value.y) + (cosine * value.z)
+    );
+  }
+
+  vec3 orbitalCenter(float radius, float angle, float inclination) {
+    return rotateX(vec3(cos(angle) * radius, 0.0, sin(angle) * radius), inclination);
+  }
+
+  vec3 applyOrbitalLife(
+    vec3 value,
+    float seed,
+    float weight,
+    float speed,
+    float storyMix,
+    float orbitRadius
+  ) {
+    float amount = clamp(weight, 0.0, 1.0);
+    if (amount <= 0.0001) return value;
+    float clock = mix(ambientTime, storyTime, clamp(storyMix, 0.0, 1.0));
+    float orbitDelta = clock * speed * 6.2831853;
+    // Membership uses a seed decorrelated from density, mirroring the CPU
+    // generator so a sparse field still contains the core and every body.
+    float orbitalSeed = fract((seed * 7.31) + 0.17);
+    if (orbitalSeed < 0.30) {
+      return mix(value, rotateY(value, orbitDelta * 0.16), amount);
+    }
+
+    float basePhase = 0.0;
+    float inclination = 0.0;
+    float radiusScale = 1.0;
+    float speedScale = 1.0;
+    if (orbitalSeed < 0.50) {
+      basePhase = 0.18;
+      inclination = 0.22;
+      radiusScale = 0.45;
+      speedScale = 1.0;
+    } else if (orbitalSeed < 0.68) {
+      basePhase = 1.72;
+      inclination = -0.38;
+      radiusScale = 0.68;
+      speedScale = 0.78;
+    } else if (orbitalSeed < 0.84) {
+      basePhase = 3.42;
+      inclination = 0.52;
+      radiusScale = 0.85;
+      speedScale = 0.61;
+    } else {
+      basePhase = 5.08;
+      inclination = -0.28;
+      speedScale = 0.48;
+    }
+
+    vec3 baseCenter = orbitalCenter(orbitRadius * radiusScale, basePhase, inclination);
+    vec3 movingCenter = orbitalCenter(
+      orbitRadius * radiusScale,
+      basePhase + (orbitDelta * speedScale),
+      inclination
+    );
+    vec3 localPoint = value - baseCenter;
+    vec3 movingPoint = movingCenter
+      + rotateY(localPoint, orbitDelta * (1.35 + speedScale));
+    return mix(value, movingPoint, amount);
+  }
+
   float disciplineRevealForGroup(float index) {
     if (index < 1.5) return disciplineRevealA.x;
     if (index < 2.5) return disciplineRevealA.y;
@@ -176,8 +252,24 @@ const VERTEX_SHADER = `
 
   void main() {
     float morph = smoothstep(0.0, 1.0, morphProgress);
-    vec3 fromPoint = mix(position, rotateY(position, bustYaw), fromBust);
-    vec3 toPoint = mix(targetPosition, rotateY(targetPosition, bustYaw), toBust);
+    vec3 fromPoint = applyOrbitalLife(
+      position,
+      pointSeed,
+      fromOrbitalWeight,
+      fromOrbitalSpeed,
+      fromOrbitalStoryMix,
+      fromOrbitalRadius
+    );
+    vec3 toPoint = applyOrbitalLife(
+      targetPosition,
+      pointSeed,
+      toOrbitalWeight,
+      toOrbitalSpeed,
+      toOrbitalStoryMix,
+      toOrbitalRadius
+    );
+    fromPoint = mix(fromPoint, rotateY(fromPoint, bustYaw), fromBust);
+    toPoint = mix(toPoint, rotateY(toPoint, bustYaw), toBust);
     vec3 fromWorld = (fromTransform * vec4(fromPoint, 1.0)).xyz;
     vec3 toWorld = (toTransform * vec4(toPoint, 1.0)).xyz;
     vec3 worldPoint = mix(fromWorld, toWorld, morph);
@@ -221,15 +313,16 @@ const VERTEX_SHADER = `
     );
 
     float rippleClock = mix(ambientTime, storyTime, gridRippleStoryMix);
-    float rippleDistance = length(worldPoint.xz - gridRippleCenter);
+    vec2 ripplePoint = worldPoint.xz - gridRippleCenter;
+    float rippleDistance = length(ripplePoint);
     float ripplePhase = rippleClock * gridRippleSpeed * 6.2831853;
     float radialRipple = sin(
       (rippleDistance * gridRippleFrequency)
       - ripplePhase
     );
     float crossingRipple = sin(
-      (worldPoint.x * gridRippleFrequency * 0.68)
-      - (worldPoint.z * gridRippleFrequency * 0.51)
+      (ripplePoint.x * gridRippleFrequency * 0.68)
+      - (ripplePoint.y * gridRippleFrequency * 0.51)
       + (ripplePhase * 0.72)
     );
     float ripple = (radialRipple * 0.68) + (crossingRipple * 0.32);
@@ -246,11 +339,6 @@ const VERTEX_SHADER = `
     float isolatedBackgroundOpacity = mix(
       fromDisciplineBackgroundOpacity,
       toDisciplineBackgroundOpacity,
-      morph
-    );
-    float isolatedBackgroundScale = mix(
-      fromDisciplineBackgroundScale,
-      toDisciplineBackgroundScale,
       morph
     );
     float focusActive = step(0.5, disciplineFocus);
@@ -288,13 +376,6 @@ const VERTEX_SHADER = `
     float revealVisibility = mix(backgroundVisibility, 1.0, revealedGroupWeight);
     presence *= mix(1.0, revealVisibility, disciplineRevealActive);
     presence *= mix(1.0, isolatedBackgroundOpacity, isolatedBackground);
-    float fieldFogDistance = abs(worldPoint.z - cameraPosition.z);
-    float fieldFog = smoothstep(
-      disciplineFieldFogStartWU,
-      max(disciplineFieldFogStartWU + 0.001, disciplineFieldFogEndWU),
-      fieldFogDistance
-    ) * disciplineFieldFogStrength * disciplineFieldFogWeight;
-    presence *= 1.0 - clamp(fieldFog, 0.0, 0.999);
     float cameraDepth = max(0.0, -viewPoint.z);
     float distanceFog = smoothstep(
       distanceFogStartWU,
@@ -302,13 +383,15 @@ const VERTEX_SHADER = `
       cameraDepth
     );
     presence *= 1.0 - distanceFog;
+    presence *= clamp(simulationVisibility, 0.0, 1.0);
     float sizeWeight = mix(fromPointSize, toPointSize, morph);
     float groupScale = mix(groupStrength, max(0.0, disciplinePointScale - 1.0), disciplineRevealActive);
     float emphasis = 1.0 + (groupWeight * groupScale) + (waveWeight * 0.18);
-    float isolationScale = mix(1.0, isolatedBackgroundScale, isolatedBackground);
-    gl_PointSize = pointSize * sizeWeight * emphasis * isolationScale * pixelRatio
-      * clamp(5.0 / max(1.0, -viewPoint.z), 0.56, 3.2);
-    pointAlpha = presence;
+    float perspectiveScale = clamp(5.0 / max(1.0, -viewPoint.z), 0.56, 3.2);
+    float cssPointSize = pointSize * sizeWeight * emphasis * perspectiveScale;
+    float entranceScale = clamp(sceneEntranceScale, 0.0, 1.0);
+    gl_PointSize = max(0.01, clamp(cssPointSize, 3.0, 10.0) * entranceScale) * pixelRatio;
+    pointAlpha = presence * entranceScale;
   }
 `;
 
@@ -320,7 +403,7 @@ const FRAGMENT_SHADER = `
   void main() {
     vec2 center = gl_PointCoord - vec2(0.5);
     float radius = length(center);
-    if (radius > 0.5 || pointAlpha <= 0.001) discard;
+    if (radius > 0.5 || pointAlpha <= 0.001 || fieldOpacity <= 0.001) discard;
     float edge = 1.0 - smoothstep(0.44, 0.5, radius);
     gl_FragColor = vec4(pointTint, fieldOpacity * pointAlpha * edge);
   }
@@ -520,6 +603,8 @@ function createPointFieldAdapter({
     ambientTime: { value: 0 },
     pointSize: { value: 5.4 },
     pixelRatio: { value: 1 },
+    simulationVisibility: { value: 1 },
+    sceneEntranceScale: { value: 0 },
     distanceFogStartWU: { value: 8 },
     distanceFogEndWU: { value: 18 },
     fromDriftAmplitude: { value: 0 },
@@ -548,8 +633,14 @@ function createPointFieldAdapter({
     toDisciplineIsolation: { value: 0 },
     fromDisciplineBackgroundOpacity: { value: 1 },
     toDisciplineBackgroundOpacity: { value: 1 },
-    fromDisciplineBackgroundScale: { value: 1 },
-    toDisciplineBackgroundScale: { value: 1 },
+    fromOrbitalWeight: { value: 0 },
+    toOrbitalWeight: { value: 0 },
+    fromOrbitalSpeed: { value: 0 },
+    toOrbitalSpeed: { value: 0 },
+    fromOrbitalStoryMix: { value: 1 },
+    toOrbitalStoryMix: { value: 1 },
+    fromOrbitalRadius: { value: 5.8 },
+    toOrbitalRadius: { value: 5.8 },
     disciplineFocus: { value: 0 },
     gridInfluence: { value: 0 },
     gridRippleWeight: { value: 0 },
@@ -565,10 +656,6 @@ function createPointFieldAdapter({
     disciplineBackgroundOpacity: { value: 0.06 },
     disciplineReconnectOpacity: { value: 0.24 },
     disciplinePointScale: { value: 3.6 },
-    disciplineFieldFogStartWU: { value: 4.8 },
-    disciplineFieldFogEndWU: { value: 10.5 },
-    disciplineFieldFogStrength: { value: 0.8 },
-    disciplineFieldFogWeight: { value: 0 },
     fromLivingColour: { value: 0 },
     toLivingColour: { value: 0 },
     fromBust: { value: 0 },
@@ -603,7 +690,10 @@ function createPointFieldAdapter({
       groupStrength: uniforms.fromGroupStrength,
       disciplineIsolation: uniforms.fromDisciplineIsolation,
       disciplineBackgroundOpacity: uniforms.fromDisciplineBackgroundOpacity,
-      disciplineBackgroundScale: uniforms.fromDisciplineBackgroundScale,
+      orbitalWeight: uniforms.fromOrbitalWeight,
+      orbitalSpeed: uniforms.fromOrbitalSpeed,
+      orbitalStoryMix: uniforms.fromOrbitalStoryMix,
+      orbitalRadius: uniforms.fromOrbitalRadius,
       livingColour: uniforms.fromLivingColour,
     }),
     to: Object.freeze({
@@ -620,7 +710,10 @@ function createPointFieldAdapter({
       groupStrength: uniforms.toGroupStrength,
       disciplineIsolation: uniforms.toDisciplineIsolation,
       disciplineBackgroundOpacity: uniforms.toDisciplineBackgroundOpacity,
-      disciplineBackgroundScale: uniforms.toDisciplineBackgroundScale,
+      orbitalWeight: uniforms.toOrbitalWeight,
+      orbitalSpeed: uniforms.toOrbitalSpeed,
+      orbitalStoryMix: uniforms.toOrbitalStoryMix,
+      orbitalRadius: uniforms.toOrbitalRadius,
       livingColour: uniforms.toLivingColour,
     }),
   });
@@ -685,11 +778,65 @@ function createPointFieldAdapter({
   let sequenceState = 'idle';
   let disposed = false;
   let contextAvailable = true;
+  let sceneReady = false;
+  let entranceRequested = false;
+  let entranceStartedAt = -1;
+  let entranceComplete = false;
   let width = 1;
   let height = 1;
   let viewportOffsetX = 0;
   let viewportOffsetY = 0;
   let latestFrame = null;
+  root.dataset.aboutEntranceState = 'staged';
+  delete root.dataset.aboutSceneReady;
+
+  const completeSceneEntrance = () => {
+    uniforms.sceneEntranceScale.value = 1;
+    if (entranceComplete) return;
+    entranceComplete = true;
+    root.dataset.aboutEntranceState = 'complete';
+  };
+
+  const handleRouteEntranceStart = (event) => {
+    const routeId = event?.detail?.routeId || '';
+    if (routeId !== 'about' && routeId !== 'about-narrative-lab') return;
+    entranceRequested = true;
+    if (sceneReady && latestFrame?.reducedMotion) completeSceneEntrance();
+  };
+
+  const updateSceneEntrance = (frame) => {
+    if (entranceComplete) {
+      uniforms.sceneEntranceScale.value = 1;
+      return;
+    }
+    if (!entranceRequested || !sceneReady) {
+      uniforms.sceneEntranceScale.value = 0;
+      return;
+    }
+    if (frame.reducedMotion) {
+      completeSceneEntrance();
+      return;
+    }
+    const now = performance.now();
+    if (entranceStartedAt < 0) {
+      entranceStartedAt = now;
+      root.dataset.aboutEntranceState = 'entering';
+    }
+    const progress = Math.min(1, Math.max(0, (now - entranceStartedAt) / 480));
+    uniforms.sceneEntranceScale.value = easeSimulationVisualProgress(
+      'cubic-bezier(0.22, 0, 0.16, 1)',
+      progress,
+      'in',
+    );
+    if (progress >= 1) completeSceneEntrance();
+  };
+
+  const markSceneReady = () => {
+    if (sceneReady) return;
+    sceneReady = true;
+    root.dataset.aboutSceneReady = 'true';
+    window.dispatchEvent(new CustomEvent('abs:about-scene-ready'));
+  };
   const bustController = createAboutNarrativeBustController();
   const bustSampleInput = {
     active: false,
@@ -761,7 +908,7 @@ function createPointFieldAdapter({
   let lastDisciplineVisibleCount = Number.NaN;
   let lastDisciplineLabelCount = Number.NaN;
   let lastGridBackground = Number.NaN;
-  let lastDisciplineFog = Number.NaN;
+  let lastSimulationVisibility = Number.NaN;
   let lastBustShaderYaw = Number.NaN;
   let lastGroupFocus = Number.NaN;
   let lastGridInfluence = Number.NaN;
@@ -790,6 +937,7 @@ function createPointFieldAdapter({
       wave: modifier(world, 'living-wave-v1'),
       group: modifier(world, 'group-emphasis-v1'),
       isolation: modifier(world, 'discipline-isolation-v1'),
+      orbital: modifier(world, 'orbital-life-v1'),
       colour: modifier(world, 'living-colour-v1'),
       bust: modifier(world, 'bust-yaw-v1'),
     };
@@ -1417,6 +1565,7 @@ function createPointFieldAdapter({
     const wave = slots?.wave;
     const group = slots?.group;
     const isolation = slots?.isolation;
+    const orbital = slots?.orbital;
     const colour = slots?.colour;
     target.driftAmplitude.value = Number(drift?.amplitude || 0);
     target.driftSpeed.value = Number(drift?.speed || 0);
@@ -1436,7 +1585,12 @@ function createPointFieldAdapter({
     target.groupStrength.value = Number(group?.strength || 0);
     target.disciplineIsolation.value = Number(isolation?.strength || 0);
     target.disciplineBackgroundOpacity.value = Number(isolation?.backgroundOpacity ?? 1);
-    target.disciplineBackgroundScale.value = Number(isolation?.backgroundScale ?? 1);
+    target.orbitalWeight.value = Number(orbital?.strength || 0);
+    target.orbitalSpeed.value = Number(orbital?.speed || 0);
+    target.orbitalStoryMix.value = orbital?.timeMode === 'ambient'
+      ? 0
+      : orbital?.timeMode === 'mixed' ? 0.5 : 1;
+    target.orbitalRadius.value = Number(world?.shapeParameters?.orbitRadius ?? 5.8);
     target.livingColour.value = Number(colour?.strength || 0);
   };
 
@@ -1464,17 +1618,9 @@ function createPointFieldAdapter({
 
     let backgroundWeight = 0;
     let visibleLabels = 0;
-    let fieldFogWeight = 0;
     if (revealAvailable) {
       const restoreWeight = 1 - Number(revealState.restoreProgress || 0);
       backgroundWeight = Number(revealState.backgroundProgress || 0) * restoreWeight;
-      const travelSpanWU = Math.max(0.00001, revealState.fieldTravelEndWU - revealState.fieldTravelStartWU);
-      const fogInEndWU = revealState.fieldTravelStartWU + (travelSpanWU * 0.18);
-      fieldFogWeight = (reducedActive
-        ? 0
-        : smoothRange(storyWU, revealState.fieldTravelStartWU, fogInEndWU)
-          * (1 - smoothRange(storyWU, revealState.endWU, revealState.endWU + (travelSpanWU * 0.2))))
-        * restoreWeight;
       const exitStartWU = Math.min(revealState.endWU, Number(reveal.labelSequenceEndWU));
       const exitProgress = reducedActive ? 0 : smoothRange(storyWU, exitStartWU, revealState.endWU);
       for (let orderIndex = 0; orderIndex < reveal.items.length; orderIndex += 1) {
@@ -1505,23 +1651,16 @@ function createPointFieldAdapter({
       const isolationWeight = Number(revealState.backgroundProgress || 0)
         * (1 - Number(revealState.restoreProgress || 0));
       const backgroundOpacity = Number(reveal.backgroundOpacity ?? 0.2);
-      const backgroundScale = Number(reveal.backgroundScale ?? 0.58);
       uniforms.fromDisciplineIsolation.value = isolationWeight;
       uniforms.toDisciplineIsolation.value = isolationWeight;
       uniforms.fromDisciplineBackgroundOpacity.value = backgroundOpacity;
       uniforms.toDisciplineBackgroundOpacity.value = backgroundOpacity;
-      uniforms.fromDisciplineBackgroundScale.value = backgroundScale;
-      uniforms.toDisciplineBackgroundScale.value = backgroundScale;
     }
     uniforms.disciplineRevealActive.value = revealAvailable ? 1 : 0;
     uniforms.disciplineBackgroundWeight.value = backgroundWeight;
     uniforms.disciplineBackgroundOpacity.value = Number(reveal?.backgroundOpacity ?? 0.06);
     uniforms.disciplineReconnectOpacity.value = Number(reveal?.reconnectOpacity ?? 0.24);
     uniforms.disciplinePointScale.value = Number(reveal?.pointScale ?? 3.6);
-    uniforms.disciplineFieldFogStartWU.value = Number(reveal?.fieldFogStartWU ?? 4.8);
-    uniforms.disciplineFieldFogEndWU.value = Number(reveal?.fieldFogEndWU ?? 10.5);
-    uniforms.disciplineFieldFogStrength.value = Number(reveal?.fieldFogStrength ?? 0.8);
-    uniforms.disciplineFieldFogWeight.value = fieldFogWeight;
 
     if (overlay) {
       disciplineProjectedX.fill(Number.NaN);
@@ -1584,14 +1723,8 @@ function createPointFieldAdapter({
           anchorToPosition.z = fixedAttributes.targetPosition.array[pointOffset + 2];
           anchorSampleInput.pointSeed = fixedAttributes.pointSeed.array[pointIndex];
           sampleAboutNarrativeAnchorPosition(anchorSampleInput, anchorSampleTarget);
-          const fogProgress = smoothRange(
-            Math.abs(anchorSampleTarget.z - camera.position.z),
-            uniforms.disciplineFieldFogStartWU.value,
-            uniforms.disciplineFieldFogEndWU.value,
-          );
-          const labelReveal = disciplineLabelBaseReveal[group - 1] * (1 - (
-            fieldFogWeight * uniforms.disciplineFieldFogStrength.value * fogProgress
-          ));
+          const labelReveal = disciplineLabelBaseReveal[group - 1]
+            * uniforms.simulationVisibility.value;
           writeDisciplineRevealStyles(group - 1, labelReveal);
           if (labelReveal > 0.05) visibleLabels += 1;
           disciplinePointScratch.set(
@@ -1607,7 +1740,8 @@ function createPointFieldAdapter({
         placeDisciplineLabels(Number(reveal.labelOffsetPx ?? 18));
       } else if (revealAvailable) {
         for (let group = 1; group <= 6; group += 1) {
-          const labelReveal = disciplineLabelBaseReveal[group - 1];
+          const labelReveal = disciplineLabelBaseReveal[group - 1]
+            * uniforms.simulationVisibility.value;
           writeDisciplineRevealStyles(group - 1, labelReveal);
           if (labelReveal > 0.05) visibleLabels += 1;
           disciplineProjectedX[group - 1] = viewportOffsetX
@@ -1639,11 +1773,6 @@ function createPointFieldAdapter({
     if (backgroundWeight !== lastGridBackground) {
       root.dataset.worldGridBackground = backgroundWeight.toFixed(4);
       lastGridBackground = backgroundWeight;
-      runtimeObserver.hotFrameDomWrite();
-    }
-    if (fieldFogWeight !== lastDisciplineFog) {
-      root.dataset.worldDisciplineFog = fieldFogWeight.toFixed(4);
-      lastDisciplineFog = fieldFogWeight;
       runtimeObserver.hotFrameDomWrite();
     }
   };
@@ -1756,8 +1885,25 @@ function createPointFieldAdapter({
     uniforms.ambientTime.value = frame.ambientTime;
     uniforms.pointSize.value = frame.globals.pointMaterial.pointSize * mobileBodyScale;
     uniforms.fieldOpacity.value = frame.globals.pointMaterial.opacity;
-    uniforms.distanceFogStartWU.value = Number(frame.camera.distanceFogStartWU ?? 8);
-    uniforms.distanceFogEndWU.value = Number(frame.camera.distanceFogEndWU ?? 18);
+    const requestedVisibility = Number(frame.simulation?.visibility ?? 1);
+    const simulationVisibility = Number.isFinite(requestedVisibility)
+      ? Math.min(1, Math.max(0, requestedVisibility))
+      : 1;
+    uniforms.simulationVisibility.value = simulationVisibility;
+    points.visible = simulationVisibility > 0.001;
+    updateSceneEntrance(frame);
+    const globalCamera = frame.globals?.camera;
+    uniforms.distanceFogStartWU.value = Number(
+      globalCamera?.distanceFogStartWU ?? 8,
+    );
+    uniforms.distanceFogEndWU.value = Number(
+      globalCamera?.distanceFogEndWU ?? 18,
+    );
+    if (simulationVisibility !== lastSimulationVisibility) {
+      root.dataset.worldVisibility = simulationVisibility.toFixed(4);
+      lastSimulationVisibility = simulationVisibility;
+      runtimeObserver.hotFrameDomWrite();
+    }
     setModifierUniforms(modifierUniformTargets.from, fromWorld, frame.globals);
     setModifierUniforms(modifierUniformTargets.to, toWorld, frame.globals);
     const targetModifierSlots = getModifierSlots(toWorld, frame.globals);
@@ -1765,6 +1911,7 @@ function createPointFieldAdapter({
       targetModifierSlots?.swarm
       || targetModifierSlots?.drift
       || targetModifierSlots?.wave
+      || targetModifierSlots?.orbital
     );
     // A world with no positional motion modifier is an explicitly settled
     // field. Do not let its outgoing source keep moving through the morph.
@@ -1777,6 +1924,8 @@ function createPointFieldAdapter({
       uniforms.toDriftAmplitude.value = 0;
       uniforms.fromWaveSpeed.value = 0;
       uniforms.toWaveSpeed.value = 0;
+      uniforms.fromOrbitalWeight.value = 0;
+      uniforms.toOrbitalWeight.value = 0;
     }
     uniforms.fromBust.value = fromWorld.shapeId === 'bust-v1' ? 1 : 0;
     uniforms.toBust.value = toWorld.shapeId === 'bust-v1' ? 1 : 0;
@@ -1815,15 +1964,17 @@ function createPointFieldAdapter({
     uniforms.gridRippleStoryMix.value = rippleParameters?.timeMode === 'story'
       ? 1
       : rippleParameters?.timeMode === 'mixed' ? 0.12 : 0;
+    const targetTransformElements = uniforms.toTransform.value.elements;
     uniforms.gridRippleCenter.value.set(
-      Number(rippleParameters?.centerX || 0),
-      Number(rippleParameters?.centerZ || 0),
+      targetTransformElements[12],
+      targetTransformElements[14],
     );
     updateDisciplineReveal(frame, fromWorld, toWorld);
 
     const interactionEnabled = pairMatchesRequest
       && bustController.interactive
       && !formingBust
+      && simulationVisibility > 0.001
       && activeInteraction?.type === 'horizontal-spin'
       && activeInteraction.targetWorldId === requestedToWorldId
       && frame.interactions.interactionActivated;
@@ -1849,6 +2000,7 @@ function createPointFieldAdapter({
       runtimeObserver.hotFrameDomWrite();
     }
     runtimeObserver.render();
+    markSceneReady();
   };
 
   const handlePointerDown = (event) => {
@@ -1897,6 +2049,8 @@ function createPointFieldAdapter({
     bootstrapRequestId += 1;
     bustController.cancelInteraction();
     root.dataset.pointWorldState = 'context-lost';
+    sceneReady = false;
+    delete root.dataset.aboutSceneReady;
     diagnostics.recordLifecycle('context-lost', { contextAvailable: false });
   };
   const handleContextRestored = () => {
@@ -1916,7 +2070,7 @@ function createPointFieldAdapter({
   const themeObserver = new MutationObserver(updateTheme);
   resizeObserver.observe(root);
   resizeObserver.observe(canvas);
-  themeObserver.observe(root, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] });
+  themeObserver.observe(root, { attributes: true, attributeFilter: ['class', 'data-theme'] });
   interaction.addEventListener('pointerdown', handlePointerDown);
   interaction.addEventListener('pointermove', handlePointerMove, { passive: false });
   interaction.addEventListener('pointerup', handlePointerEnd);
@@ -1926,6 +2080,7 @@ function createPointFieldAdapter({
   canvas.addEventListener('webglcontextrestored', handleContextRestored);
   window.addEventListener('bb:paletteChanged', updateTheme);
   window.addEventListener('abs:theme-changed', updateTheme);
+  window.addEventListener(ROUTE_ENTRANCE_START_EVENT, handleRouteEntranceStart);
   document.fonts?.ready.then(() => {
     if (!disposed) measureDisciplineLabels();
   });
@@ -2027,6 +2182,7 @@ function createPointFieldAdapter({
     canvas.removeEventListener('webglcontextrestored', handleContextRestored);
     window.removeEventListener('bb:paletteChanged', updateTheme);
     window.removeEventListener('abs:theme-changed', updateTheme);
+    window.removeEventListener(ROUTE_ENTRANCE_START_EVENT, handleRouteEntranceStart);
     geometry.dispose();
     material.dispose();
     renderer.dispose();
@@ -2040,6 +2196,8 @@ function createPointFieldAdapter({
     delete root.dataset.worldStage;
     delete root.dataset.pointAsset;
     delete root.dataset.pointWorldState;
+    delete root.dataset.aboutSceneReady;
+    delete root.dataset.aboutEntranceState;
     delete root.dataset.mobileSimulationBodyScale;
     delete root.dataset.worldPrepare;
     delete root.dataset.worldError;
@@ -2060,7 +2218,7 @@ function createPointFieldAdapter({
     delete root.dataset.worldDisciplineVisible;
     delete root.dataset.worldDisciplineLabels;
     delete root.dataset.worldGridBackground;
-    delete root.dataset.worldDisciplineFog;
+    delete root.dataset.worldVisibility;
     root.style.removeProperty('--narrative-camera-fov');
     root.style.removeProperty('--narrative-bust-yaw');
   };

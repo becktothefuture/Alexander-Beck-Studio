@@ -2,7 +2,7 @@
 
 These files are retained as historical working material. They are not current instructions for writing, storyboarding or implementing the About Me page.
 
-The active prose source is `../ABOUT-NARRATIVE-SCRIPT-v19.md`, which includes the current visual allocation. Interviews, source material and tone guidance remain in `../supporting/`.
+The active prose source is `../ABOUT-NARRATIVE-SCRIPT-v23.md`. Visual allocation is documented separately in the current rhythm storyboard and implementation files. Interviews, source material and tone guidance remain in `../supporting/`.
 
 ## Narrative explorations
 

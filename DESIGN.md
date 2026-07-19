@@ -233,7 +233,7 @@ The route-entry title family is implemented. The remaining rows are proposals an
 | Status | Family | Merge | Exceptions to preserve |
 | --- | --- | --- | --- |
 | Implemented | Route-entry title | One resolved `--route-entry-title-size` used by Home, Portfolio intro/gate, About, and Contact | Home and centered routes keep separate optical leading; Home Canvas continues to read the DOM result. |
-| Proposed | Route description | One continuous size token and one optional editorial measure/leading modifier shared by Contact and Portfolio intro | About has no description yet; route copy may keep different content width where justified. |
+| Implemented | Route description | One continuous size token and one editorial measure/leading modifier shared by the Work, About Me, and Contact intros | The Portfolio access gate keeps its narrower description measure. |
 | Proposed | Centered route spacing | Shared content-only page padding, stack gap, description gap, and action gap tokens | Do not apply these tokens to the Button Bar, frame, deck geometry, or drawer handoff. |
 | Proposed | Home support system | Replace repeated tablet/mobile selectors with semantic legend-size, supporting-size, and top-gap tokens | Column count and short-height layout remain structural breakpoints. |
 | Proposed | Portfolio card type | Local fluid client/title tokens | Keep Geist and preserve fixed card geometry/legibility. |

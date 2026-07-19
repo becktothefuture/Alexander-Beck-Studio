@@ -11,6 +11,7 @@ import {
   ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
   migrateAboutNarrativeVersion2To4,
   migrateAboutNarrativeVersion3To4,
+  migrateAboutNarrativeVersion4To5,
   serializeAboutNarrativeTrackDocument,
   validateAboutNarrativeTrackDocument,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
@@ -30,7 +31,7 @@ function assertNoDeprecatedCameraFields(value, path = 'document') {
   if (!value || typeof value !== 'object') return;
   for (const [key, child] of Object.entries(value)) {
     if (['offset', 'lookAtOffset', 'roll', 'startZ', 'cadence', 'cadenceLocked'].includes(key)) {
-      fail(`Deprecated camera field "${path}.${key}" is forbidden in v4.`);
+      fail(`Deprecated camera field "${path}.${key}" is forbidden in v${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION}.`);
     }
     assertNoDeprecatedCameraFields(child, `${path}.${key}`);
   }
@@ -60,12 +61,14 @@ function preserveLegacyFixture(source) {
 }
 
 function writeCanonicalAtomically(serialized) {
-  const temporaryPath = `${canonicalPath}.v4-${process.pid}.tmp`;
+  const temporaryPath = `${canonicalPath}.v${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION}-${process.pid}.tmp`;
   try {
     writeFileSync(temporaryPath, serialized, 'utf8');
     const persisted = JSON.parse(readFileSync(temporaryPath, 'utf8'));
     certifyDocument(persisted);
-    if (serializeAboutNarrativeTrackDocument(persisted) !== serialized) fail('The temporary v4 file did not round-trip byte-for-byte.');
+    if (serializeAboutNarrativeTrackDocument(persisted) !== serialized) {
+      fail(`The temporary v${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION} file did not round-trip byte-for-byte.`);
+    }
     renameSync(temporaryPath, canonicalPath);
   } finally {
     if (existsSync(temporaryPath)) unlinkSync(temporaryPath);
@@ -74,14 +77,20 @@ function writeCanonicalAtomically(serialized) {
 
 const canonicalSource = readFileSync(canonicalPath, 'utf8');
 const canonicalDocument = JSON.parse(canonicalSource);
-let v4Document;
+let currentDocument;
 
 if (canonicalDocument.schemaVersion === ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) {
-  v4Document = canonicalDocument;
+  currentDocument = canonicalDocument;
+} else if (canonicalDocument.schemaVersion === 4) {
+  currentDocument = migrateAboutNarrativeVersion4To5(canonicalDocument);
 } else if (canonicalDocument.schemaVersion === 3) {
-  v4Document = migrateAboutNarrativeVersion3To4(canonicalDocument);
+  currentDocument = migrateAboutNarrativeVersion4To5(
+    migrateAboutNarrativeVersion3To4(canonicalDocument),
+  );
 } else if (canonicalDocument.schemaVersion === 2) {
-  v4Document = migrateAboutNarrativeVersion2To4(canonicalDocument);
+  currentDocument = migrateAboutNarrativeVersion4To5(
+    migrateAboutNarrativeVersion2To4(canonicalDocument),
+  );
 } else {
   fail(`Unsupported canonical schemaVersion ${String(canonicalDocument.schemaVersion)}.`);
 }
@@ -90,25 +99,29 @@ if (rebakeLegacyCameraRequested) {
   if (!writeRequested) fail('--rebake-legacy-camera requires --write.');
   if (!existsSync(legacyFixturePath)) fail('The preserved v3 fixture is required to rebake the legacy camera path.');
   const legacyDocument = JSON.parse(readFileSync(legacyFixturePath, 'utf8'));
-  const rebaked = migrateAboutNarrativeVersion3To4(legacyDocument);
-  v4Document = {
-    ...v4Document,
+  const rebaked = migrateAboutNarrativeVersion4To5(
+    migrateAboutNarrativeVersion3To4(legacyDocument),
+  );
+  currentDocument = {
+    ...currentDocument,
     tracks: {
-      ...v4Document.tracks,
+      ...currentDocument.tracks,
       camera: rebaked.tracks.camera,
     },
   };
 }
 
-certifyDocument(v4Document);
-const serialized = serializeAboutNarrativeTrackDocument(v4Document);
+certifyDocument(currentDocument);
+const serialized = serializeAboutNarrativeTrackDocument(currentDocument);
 
 if (!writeRequested) {
   if (canonicalDocument.schemaVersion !== ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) {
-    fail('Canonical contents-about.json is not v4. Run npm run migrate:about-narrative:v4.');
+    fail(`Canonical contents-about.json is not v${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION}. Run npm run migrate:about-narrative:v4.`);
   }
-  if (serialized !== canonicalSource) fail('Canonical v4 JSON is not in deterministic normalized order.');
-  console.log('About Narrative canonical v4 is deterministic and passes all profile preflights.');
+  if (serialized !== canonicalSource) {
+    fail(`Canonical v${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION} JSON is not in deterministic normalized order.`);
+  }
+  console.log(`About Narrative canonical v${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION} is deterministic and passes all profile preflights.`);
   process.exit(0);
 }
 

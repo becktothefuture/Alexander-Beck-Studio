@@ -19,11 +19,15 @@ import {
   createAboutNarrativeRuntimeFrameSample,
   sampleAboutNarrativeRuntimePlanInto,
 } from '../src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
+import { loadAboutNarrativeTrackSource } from '../src/routes/about-narrative-lab/aboutNarrativeTrackPersistence.js';
 
-const canonical = JSON.parse(await readFile(
+const canonicalSource = JSON.parse(await readFile(
   new URL('../public/config/contents-about.json', import.meta.url),
   'utf8',
 ));
+const loadedCanonical = loadAboutNarrativeTrackSource(canonicalSource);
+assert.equal(loadedCanonical.valid, true);
+const canonical = loadedCanonical.document;
 const legacy = JSON.parse(await readFile(
   new URL('../../../scripts/fixtures/about-narrative/contents-about-v2.json', import.meta.url),
   'utf8',

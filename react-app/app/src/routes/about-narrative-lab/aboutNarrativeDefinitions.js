@@ -57,6 +57,11 @@ export const ABOUT_NARRATIVE_CAMERA_EASINGS = Object.freeze([
   'smoothstep',
   'ease-in-out',
 ]);
+export const ABOUT_NARRATIVE_VISIBILITY_EASINGS = Object.freeze([
+  'linear',
+  'smoothstep',
+  'ease-in-out',
+]);
 function numberControl(id, label, min, max, step, unit = '', group = '') {
   return Object.freeze({ id, label, type: 'range', min, max, step, unit, group });
 }
@@ -81,13 +86,21 @@ export const ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS = Object.freeze([
 ]);
 
 export const ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS = Object.freeze([
-  Object.freeze({ id: 'camera-travel', label: 'Camera · Default lens' }),
+  Object.freeze({ id: 'camera-fog', label: 'Camera · Distance fog' }),
 ]);
 
-export const ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS = Object.freeze([
+export const ABOUT_NARRATIVE_VISIBILITY_TRACK_CONTROL_GROUPS = Object.freeze([
+  Object.freeze({ id: 'visibility-material', label: 'Visibility · Point material' }),
+]);
+
+export const ABOUT_NARRATIVE_CAMERA_FOG_CONTROLS = Object.freeze([
   numberControl('distanceFogStartWU', 'Fog begins', 0, 40, 0.1, 'WU'),
   numberControl('distanceFogEndWU', 'Fully faded', 0.1, 80, 0.1, 'WU'),
 ]);
+
+// Compatibility export for older contract checks. Camera keys no longer use
+// these controls; schema v5 owns fog once at globals.camera.
+export const ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS = ABOUT_NARRATIVE_CAMERA_FOG_CONTROLS;
 
 export const ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS = Object.freeze([
   numberControl('position.0', 'Position X', -40, 40, 0.01, 'WU', 'position'),
@@ -132,9 +145,10 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
   Object.freeze({
     id: 'camera',
     label: 'Camera',
-    controls: Object.freeze([
-      numberControl('fov', 'Default field of view', 25, 80, 1, '°', 'camera-travel'),
-    ]),
+    controls: Object.freeze(ABOUT_NARRATIVE_CAMERA_FOG_CONTROLS.map((control) => Object.freeze({
+      ...control,
+      group: 'camera-fog',
+    }))),
   }),
   Object.freeze({
     id: 'material',
@@ -244,6 +258,19 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
       numberControl('terrainZ', 'Z terrain', 0, 4, 0.01, '', 'shape-surface'),
     ]),
   }),
+  'orbital-system-v1': Object.freeze({
+    id: 'orbital-system-v1',
+    label: 'Orbital system',
+    description: 'A central point mass with four dimensional bodies moving around it.',
+    adapterId: 'point-field-v1',
+    cost: 2,
+    parameters: Object.freeze([
+      numberControl('orbitRadius', 'Orbit radius', 2, 12, 0.05, 'WU', 'shape-dimensions'),
+      numberControl('coreRadius', 'Core radius', 0.2, 3, 0.01, 'WU', 'shape-dimensions'),
+      numberControl('bodyRadius', 'Body radius', 0.1, 2, 0.01, 'WU', 'shape-dimensions'),
+      numberControl('density', 'Presence', 0.05, 1, 0.01, '', 'shape-distribution'),
+    ]),
+  }),
   'bust-v1': Object.freeze({
     id: 'bust-v1',
     label: 'Point bust',
@@ -327,6 +354,18 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
       Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
     ]),
   }),
+  'orbital-life-v1': Object.freeze({
+    id: 'orbital-life-v1',
+    label: 'Orbital life',
+    version: 1,
+    cost: 2,
+    reducedMotion: 'settled',
+    parameters: Object.freeze([
+      numberControl('strength', 'Strength', 0, 1, 0.01, '', 'modifier-motion'),
+      numberControl('speed', 'Speed', 0, 1, 0.005, '', 'modifier-motion'),
+      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
+    ]),
+  }),
   'bust-yaw-v1': Object.freeze({
     id: 'bust-yaw-v1',
     label: 'Bust rotation',
@@ -348,16 +387,10 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
     id: 'discipline-reveal',
     label: 'Discipline reveal',
     defaultParameters: Object.freeze({
-      fieldTravelDurationWU: 3.744,
-      fieldTravelWU: 9.6,
-      fieldFogStartWU: 4.2,
-      fieldFogEndWU: 8.4,
-      fieldFogStrength: 0.12,
       labelWindowWU: 1.35,
       staggerWU: 0.135,
       backgroundFadeWU: 0.216,
       backgroundOpacity: 0.2,
-      backgroundScale: 0.58,
       reconnectOpacity: 0.24,
       pointScale: 3.6,
       restoreDurationWU: 0.72,
@@ -375,16 +408,10 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       ]),
     }),
     parameters: Object.freeze([
-      numberControl('fieldTravelDurationWU', 'Field travel duration', 0.1, 10, 0.01, 'WU', 'modifier-timing'),
-      numberControl('fieldTravelWU', 'Field travel distance', 0, 20, 0.1, 'WU', 'modifier-motion'),
-      numberControl('fieldFogStartWU', 'Field fog begins', 0, 20, 0.1, 'WU', 'modifier-appearance'),
-      numberControl('fieldFogEndWU', 'Field fog resolves', 0.1, 30, 0.1, 'WU', 'modifier-appearance'),
-      numberControl('fieldFogStrength', 'Field fog strength', 0, 1, 0.01, '', 'modifier-appearance'),
       numberControl('labelWindowWU', 'Label window', 0.2, 6, 0.01, 'WU', 'modifier-timing'),
       numberControl('staggerWU', 'Label stagger', 0.01, 0.5, 0.005, 'WU', 'modifier-timing'),
       numberControl('backgroundFadeWU', 'Grid fade duration', 0.01, 1.5, 0.005, 'WU', 'modifier-timing'),
       numberControl('backgroundOpacity', 'Resting grid opacity', 0, 0.5, 0.01, '', 'modifier-appearance'),
-      numberControl('backgroundScale', 'Resting grid size', 0.1, 1, 0.01, '×', 'modifier-appearance'),
       numberControl('reconnectOpacity', 'Editorial grid opacity', 0, 0.8, 0.01, '', 'modifier-appearance'),
       numberControl('pointScale', 'Discipline point size', 1, 8, 0.05, '×', 'modifier-appearance'),
       numberControl('restoreDurationWU', 'Grid restore duration', 0, 4, 0.01, 'WU', 'modifier-timing'),
@@ -401,8 +428,6 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       amplitude: 1.15,
       speed: 0.42,
       frequency: 1.15,
-      centerX: 0,
-      centerZ: -2.8,
       releaseWU: 0.65,
       timeMode: 'mixed',
     }),
@@ -410,8 +435,6 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       numberControl('amplitude', 'Wave height', 0, 1.5, 0.01, 'WU', 'modifier-motion'),
       numberControl('speed', 'Speed', 0, 6, 0.01, '', 'modifier-motion'),
       numberControl('frequency', 'Ring frequency', 0.1, 4, 0.01, '', 'modifier-motion'),
-      numberControl('centerX', 'Centre X', -12, 12, 0.1, 'WU', 'modifier-motion'),
-      numberControl('centerZ', 'Centre Z', -16, 16, 0.1, 'WU', 'modifier-motion'),
       numberControl('releaseWU', 'Fade-out', 0, 2, 0.05, 'WU', 'modifier-timing'),
       Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
     ]),

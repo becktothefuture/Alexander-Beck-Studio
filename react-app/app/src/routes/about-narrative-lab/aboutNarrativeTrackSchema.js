@@ -12,6 +12,7 @@ import {
   ABOUT_NARRATIVE_TITLE_STYLES,
   ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES,
   ABOUT_NARRATIVE_TRANSITION_TYPES,
+  ABOUT_NARRATIVE_VISIBILITY_EASINGS,
 } from './aboutNarrativeDefinitions.js';
 import {
   applyAboutNarrativeCameraEasing,
@@ -30,7 +31,7 @@ import {
   writeAboutNarrativeCameraQuaternion,
 } from './aboutNarrativeCameraRig.js';
 
-export const ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION = 4;
+export const ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION = 5;
 export const ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS = Object.freeze(['desktop', 'tablet', 'mobile']);
 export const ABOUT_NARRATIVE_TRACK_PROFILE_IDS = Object.freeze([
   ...ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS,
@@ -54,7 +55,8 @@ const TOP_LEVEL_KEYS = new Set(['schemaVersion', 'globals', 'profiles', 'tracks'
 const GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'worldRail', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
 const LEGACY_GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
 const GLOBAL_WORLD_RAIL_KEYS = new Set(['originZ', 'unitsPerWU']);
-const GLOBAL_CAMERA_KEYS = new Set(['fov', 'distanceFogStartWU', 'distanceFogEndWU']);
+const GLOBAL_CAMERA_KEYS = new Set(['distanceFogStartWU', 'distanceFogEndWU']);
+const VERSION_4_GLOBAL_CAMERA_KEYS = new Set(['fov', 'distanceFogStartWU', 'distanceFogEndWU']);
 const LEGACY_GLOBAL_CAMERA_KEYS = new Set([
   'startZ',
   'cadence',
@@ -68,33 +70,42 @@ const SWARM_TURBULENCE_KEYS = new Set(['amplitude', 'speed', 'irregularity', 'in
 const TEXT_MOTION_KEYS = new Set(['preset', 'durationScale', 'startY', 'openerStartY', 'endY', 'readableStart', 'readableEnd', 'perspective', 'entryDepth', 'exitDepth', 'maxBlur']);
 const PROFILE_KEYS = new Set(['storyDurationWU', 'scrollDurationWU', 'overrides']);
 const REDUCED_PROFILE_KEYS = new Set(['mode', 'motionPolicy']);
-const OVERRIDE_TRACK_KEYS = new Set(['camera', 'worlds', 'text', 'interactions']);
-const TRACK_KEYS = new Set(['camera', 'worlds', 'text', 'interactions']);
+const OVERRIDE_TRACK_KEYS = new Set(['camera', 'visibility', 'worlds', 'text', 'interactions']);
+const LEGACY_OVERRIDE_TRACK_KEYS = new Set(['camera', 'worlds', 'text', 'interactions']);
+const TRACK_KEYS = new Set(['camera', 'visibility', 'worlds', 'text', 'interactions']);
+const LEGACY_TRACK_KEYS = new Set(['camera', 'worlds', 'text', 'interactions']);
 const CAMERA_TRACK_KEYS = new Set(['keys']);
+const VISIBILITY_TRACK_KEYS = new Set(['keys']);
 const WORLD_TRACK_KEYS = new Set(['objects']);
 const TEXT_TRACK_KEYS = new Set(['fields']);
 const INTERACTION_TRACK_KEYS = new Set(['clips']);
-const CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'position', 'rotation', 'fov', 'distanceFogStartWU', 'distanceFogEndWU', 'easing', 'locked']);
+const CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'position', 'rotation', 'fov', 'easing', 'locked']);
+const VERSION_4_CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'position', 'rotation', 'fov', 'distanceFogStartWU', 'distanceFogEndWU', 'easing', 'locked']);
 const LEGACY_CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'distanceFogStartWU', 'distanceFogEndWU', 'easing', 'locked']);
+const VISIBILITY_KEY_KEYS = new Set(['id', 'atWU', 'visibility', 'easing', 'locked']);
 const WORLD_KEYS = new Set(['id', 'label', 'startWU', 'anchorWU', 'adapterId', 'shapeId', 'seed', 'entryDistanceWU', 'transform', 'transitionIn', 'shapeParameters', 'modifiers', 'protected']);
 const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 'mobileXScale', 'mobileYOffset', 'mobileZOffset']);
 const TRANSITION_KEYS = new Set(['startWU', 'endWU', 'type', 'easing', 'correspondence']);
 const MODIFIER_KEYS = new Set(['id', 'enabled', 'parameters']);
 const TEXT_BASE_KEYS = new Set(['id', 'kind', 'startWU', 'focusWU', 'endWU', 'publishable', 'presentation', 'protected']);
-const TITLE_KEYS = new Set([...TEXT_BASE_KEYS, 'movement', 'preset', 'titleStyle', 'text', 'anchor']);
+const TITLE_KEYS = new Set([...TEXT_BASE_KEYS, 'movement', 'preset', 'titleStyle', 'text', 'description', 'anchor']);
 const SCROLL_BLOCK_KEYS = new Set([...TEXT_BASE_KEYS, 'block']);
 const STUB_KEYS = new Set([...TEXT_BASE_KEYS, 'label']);
-const DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'fieldTravelStartWU', 'fieldTravelEndWU', 'choreography']);
+const DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'choreography']);
+const LEGACY_DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'fieldTravelStartWU', 'fieldTravelEndWU', 'choreography']);
 const PRESENTATION_KEYS = new Set(['layout']);
 const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'emphasis', 'worldInfluence']);
 const EMPHASIS_KEYS = new Set(['text', 'tone']);
-const CHOREOGRAPHY_KEYS = new Set(['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'staggerWU', 'backgroundFadeWU', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale', 'labelDurationWU', 'holdWU', 'items']);
+const CHOREOGRAPHY_KEYS = new Set(['staggerWU', 'backgroundFadeWU', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale', 'labelDurationWU', 'holdWU', 'items']);
+const LEGACY_CHOREOGRAPHY_KEYS = new Set(['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', ...CHOREOGRAPHY_KEYS]);
 const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label']);
 const INTERACTION_KEYS = new Set(['id', 'type', 'startWU', 'activationWU', 'endWU', 'targetWorldId', 'parameters', 'protected']);
 const LIBRARY_KEYS = new Set(['presets']);
 const PRESET_KEYS = new Set(['id', 'label', 'scope', 'protected']);
-const CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'position', 'rotation', 'fov', 'distanceFogStartWU', 'distanceFogEndWU', 'easing']);
+const CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'position', 'rotation', 'fov', 'easing']);
+const VERSION_4_CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'position', 'rotation', 'fov', 'distanceFogStartWU', 'distanceFogEndWU', 'easing']);
 const LEGACY_CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'distanceFogStartWU', 'distanceFogEndWU', 'easing']);
+const VISIBILITY_OVERRIDE_KEYS = new Set(['atWU', 'visibility', 'easing']);
 const WORLD_OVERRIDE_KEYS = new Set(['startWU', 'anchorWU', 'transform', 'transitionIn']);
 const TEXT_OVERRIDE_KEYS = new Set(['startWU', 'focusWU', 'endWU']);
 const INTERACTION_OVERRIDE_KEYS = new Set(['startWU', 'activationWU', 'endWU']);
@@ -187,7 +198,10 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   unknownKeys(diagnostics, globals, legacy ? LEGACY_GLOBAL_KEYS : GLOBAL_KEYS, 'globals');
   if (!isObject(globals)) return;
   if (!legacy) unknownKeys(diagnostics, globals.worldRail, GLOBAL_WORLD_RAIL_KEYS, 'globals.worldRail');
-  unknownKeys(diagnostics, globals.camera, legacy ? LEGACY_GLOBAL_CAMERA_KEYS : GLOBAL_CAMERA_KEYS, 'globals.camera');
+  const cameraKeys = legacy
+    ? LEGACY_GLOBAL_CAMERA_KEYS
+    : schemaVersion === 4 ? VERSION_4_GLOBAL_CAMERA_KEYS : GLOBAL_CAMERA_KEYS;
+  unknownKeys(diagnostics, globals.camera, cameraKeys, 'globals.camera');
   unknownKeys(diagnostics, globals.pointMaterial, POINT_MATERIAL_KEYS, 'globals.pointMaterial');
   unknownKeys(diagnostics, globals.swarmTurbulence, SWARM_TURBULENCE_KEYS, 'globals.swarmTurbulence');
   unknownKeys(diagnostics, globals.textMotion, TEXT_MOTION_KEYS, 'globals.textMotion');
@@ -198,6 +212,17 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
     if (!finite(globals.worldRail?.unitsPerWU) || Number(globals.worldRail.unitsPerWU) < 0.01 || Number(globals.worldRail.unitsPerWU) > 5) {
       diagnostic(diagnostics, 'world-rail-cadence', 'globals.worldRail.unitsPerWU', 'World rail units per WU must stay between 0.01 and 5.');
     }
+  }
+  const fogStartWU = Number(globals.camera?.distanceFogStartWU);
+  const fogEndWU = Number(globals.camera?.distanceFogEndWU);
+  if (!finite(fogStartWU) || fogStartWU < 0 || fogStartWU > 40) {
+    diagnostic(diagnostics, 'camera-fog-start', 'globals.camera.distanceFogStartWU', 'Global camera fog start must stay between 0 and 40 WU.');
+  }
+  if (!finite(fogEndWU) || fogEndWU < 0.1 || fogEndWU > 80) {
+    diagnostic(diagnostics, 'camera-fog-end', 'globals.camera.distanceFogEndWU', 'Global camera fog end must stay between 0.1 and 80 WU.');
+  }
+  if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) {
+    diagnostic(diagnostics, 'camera-fog-order', 'globals.camera', 'Global camera fog must begin before circles are fully faded.');
   }
   const { worldRail, ...legacyCompatibleGlobals } = globals;
   // Reuse the established v2 global contract without allowing the legacy
@@ -210,6 +235,7 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
         startZ: Number(worldRail?.originZ ?? 8),
         cadence: Number(worldRail?.unitsPerWU ?? 1),
         cadenceLocked: true,
+        fov: Number(globals.camera?.fov ?? 48),
         ...globals.camera,
       },
     },
@@ -260,10 +286,14 @@ function validateOverrideObject(value, allowed, diagnostics, path) {
 
 function validateProfileOverrides(overrides, diagnostics, profilePath, durationWU, indexes, schemaVersion) {
   const path = `${profilePath}.overrides`;
-  unknownKeys(diagnostics, overrides, OVERRIDE_TRACK_KEYS, path);
+  const currentSchema = schemaVersion >= 5;
+  unknownKeys(diagnostics, overrides, currentSchema ? OVERRIDE_TRACK_KEYS : LEGACY_OVERRIDE_TRACK_KEYS, path);
   if (!isObject(overrides)) return;
   const definitions = [
-    ['camera', indexes.camera, schemaVersion === 3 ? LEGACY_CAMERA_OVERRIDE_KEYS : CAMERA_OVERRIDE_KEYS],
+    ['camera', indexes.camera, schemaVersion === 3
+      ? LEGACY_CAMERA_OVERRIDE_KEYS
+      : schemaVersion === 4 ? VERSION_4_CAMERA_OVERRIDE_KEYS : CAMERA_OVERRIDE_KEYS],
+    ...(currentSchema ? [['visibility', indexes.visibility, VISIBILITY_OVERRIDE_KEYS]] : []),
     ['worlds', indexes.worlds, WORLD_OVERRIDE_KEYS],
     ['text', indexes.text, TEXT_OVERRIDE_KEYS],
     ['interactions', indexes.interactions, INTERACTION_OVERRIDE_KEYS],
@@ -293,12 +323,22 @@ function validateProfileOverrides(overrides, diagnostics, profilePath, durationW
           if (override.rotation != null) validateVector(override.rotation, diagnostics, `${itemPath}.rotation`);
         }
         if (override.fov != null && (!finite(override.fov) || override.fov < 20 || override.fov > 90)) diagnostic(diagnostics, 'camera-fov', `${itemPath}.fov`, 'FOV must stay between 20 and 90.');
-        if (override.distanceFogStartWU != null && (!finite(override.distanceFogStartWU) || override.distanceFogStartWU < 0 || override.distanceFogStartWU > 40)) diagnostic(diagnostics, 'camera-fog-start', `${itemPath}.distanceFogStartWU`, 'Camera fog start must stay between 0 and 40 WU.');
-        if (override.distanceFogEndWU != null && (!finite(override.distanceFogEndWU) || override.distanceFogEndWU < 0.1 || override.distanceFogEndWU > 80)) diagnostic(diagnostics, 'camera-fog-end', `${itemPath}.distanceFogEndWU`, 'Camera fog end must stay between 0.1 and 80 WU.');
-        const fogStartWU = Number(override.distanceFogStartWU ?? base?.distanceFogStartWU);
-        const fogEndWU = Number(override.distanceFogEndWU ?? base?.distanceFogEndWU);
-        if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) diagnostic(diagnostics, 'camera-fog-order', itemPath, 'Camera fog must begin before circles are fully faded.');
+        if (schemaVersion <= 4) {
+          if (override.distanceFogStartWU != null && (!finite(override.distanceFogStartWU) || override.distanceFogStartWU < 0 || override.distanceFogStartWU > 40)) diagnostic(diagnostics, 'camera-fog-start', `${itemPath}.distanceFogStartWU`, 'Camera fog start must stay between 0 and 40 WU.');
+          if (override.distanceFogEndWU != null && (!finite(override.distanceFogEndWU) || override.distanceFogEndWU < 0.1 || override.distanceFogEndWU > 80)) diagnostic(diagnostics, 'camera-fog-end', `${itemPath}.distanceFogEndWU`, 'Camera fog end must stay between 0.1 and 80 WU.');
+          const fogStartWU = Number(override.distanceFogStartWU ?? base?.distanceFogStartWU);
+          const fogEndWU = Number(override.distanceFogEndWU ?? base?.distanceFogEndWU);
+          if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) diagnostic(diagnostics, 'camera-fog-order', itemPath, 'Camera fog must begin before circles are fully faded.');
+        }
         if (override.easing != null && !ABOUT_NARRATIVE_CAMERA_EASINGS.includes(override.easing) && !parseAboutNarrativeCameraEasing(override.easing)) diagnostic(diagnostics, 'camera-easing', `${itemPath}.easing`, 'Camera easing must be a soft cubic-bezier curve.');
+      }
+      if (track === 'visibility') {
+        if (override.visibility != null && (!finite(override.visibility) || Number(override.visibility) < 0 || Number(override.visibility) > 1)) {
+          diagnostic(diagnostics, 'visibility-range', `${itemPath}.visibility`, 'Visibility must stay between 0 and 1.');
+        }
+        if (override.easing != null && !ABOUT_NARRATIVE_VISIBILITY_EASINGS.includes(override.easing)) {
+          diagnostic(diagnostics, 'visibility-easing', `${itemPath}.easing`, 'Visibility easing must be linear, smoothstep, or ease-in-out.');
+        }
       }
       if (track === 'worlds') {
         if (override.transform != null) validateTransform(override.transform, diagnostics, `${itemPath}.transform`, true);
@@ -329,6 +369,19 @@ function validateProfileOverrides(overrides, diagnostics, profilePath, durationW
       diagnostic(diagnostics, 'profile-camera-endpoint', `${path}.camera.${key.id}.atWU`, 'Profile Camera overrides must preserve Story WU start and end keys.');
     }
   });
+
+  if (currentSchema) {
+    const visibilityKeys = [...indexes.visibility.values()];
+    let previousVisibilityWU = -1;
+    visibilityKeys.forEach((key, index) => {
+      const atWU = Number(overrides.visibility?.[key.id]?.atWU ?? key.atWU);
+      if (atWU <= previousVisibilityWU) diagnostic(diagnostics, 'profile-visibility-order', `${path}.visibility.${key.id}.atWU`, 'Profile Visibility keys must remain strictly ordered.');
+      previousVisibilityWU = atWU;
+      if ((index === 0 && atWU !== 0) || (index === visibilityKeys.length - 1 && Math.abs(atWU - durationWU) > 0.000001)) {
+        diagnostic(diagnostics, 'profile-visibility-endpoint', `${path}.visibility.${key.id}.atWU`, 'Profile Visibility overrides must preserve Story WU start and end keys.');
+      }
+    });
+  }
 
   const worlds = [...indexes.worlds.values()];
   const resolvedWorlds = worlds.map((world) => ({
@@ -428,12 +481,14 @@ function validateBlock(block, diagnostics, path) {
   if (block.worldInfluence != null && typeof block.worldInfluence !== 'boolean') diagnostic(diagnostics, 'world-influence', `${path}.worldInfluence`, 'worldInfluence must be boolean.');
 }
 
-function validateTextField(field, index, seen, diagnostics, durationWU) {
+function validateTextField(field, index, seen, diagnostics, durationWU, schemaVersion) {
   const path = `tracks.text.fields.${index}`;
   const allowed = field?.kind === 'title' ? TITLE_KEYS
     : field?.kind === 'scroll-block' ? SCROLL_BLOCK_KEYS
       : field?.kind === 'stub' ? STUB_KEYS
-        : field?.kind === 'discipline-reveal' ? DISCIPLINE_KEYS : TEXT_BASE_KEYS;
+        : field?.kind === 'discipline-reveal'
+          ? schemaVersion >= 5 ? DISCIPLINE_KEYS : LEGACY_DISCIPLINE_KEYS
+          : TEXT_BASE_KEYS;
   unknownKeys(diagnostics, field, allowed, path);
   if (!isObject(field)) return;
   validateId(field.id, seen, diagnostics, `${path}.id`);
@@ -447,6 +502,10 @@ function validateTextField(field, index, seen, diagnostics, durationWU) {
   }
   if (field.kind === 'title') {
     validateSafeText(field.text, diagnostics, `${path}.text`, { required: true });
+    if (field.description != null) {
+      validateSafeText(field.description, diagnostics, `${path}.description`, { required: true, maximum: 320 });
+      if (field.preset !== 'opener-v1') diagnostic(diagnostics, 'title-description-preset', `${path}.description`, 'Only the opener Title may include a description.');
+    }
     if (!ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES.includes(field.movement)) diagnostic(diagnostics, 'title-movement', `${path}.movement`, 'Title movement must be spatial or vertical.');
     validateSafeText(field.preset, diagnostics, `${path}.preset`, { required: true, maximum: 80 });
     if (field.titleStyle != null && !ABOUT_NARRATIVE_TITLE_STYLES.includes(field.titleStyle)) diagnostic(diagnostics, 'title-style', `${path}.titleStyle`, 'Title style must be standard or display.');
@@ -458,19 +517,23 @@ function validateTextField(field, index, seen, diagnostics, durationWU) {
     if (field.publishable !== false) diagnostic(diagnostics, 'stub-publishable', `${path}.publishable`, 'Stub fields cannot be published.');
   } else if (field.kind === 'discipline-reveal') {
     if (field.protected !== true) diagnostic(diagnostics, 'discipline-protected', `${path}.protected`, 'The migrated Discipline reveal must remain protected.');
-    validateTime(field.fieldTravelStartWU, diagnostics, `${path}.fieldTravelStartWU`, { max: durationWU });
-    validateTime(field.fieldTravelEndWU, diagnostics, `${path}.fieldTravelEndWU`, { max: durationWU });
-    if (Number(field.fieldTravelStartWU) >= Number(field.fieldTravelEndWU)) diagnostic(diagnostics, 'discipline-travel-order', path, 'Discipline field travel start must precede its end.');
-    unknownKeys(diagnostics, field.choreography, CHOREOGRAPHY_KEYS, `${path}.choreography`);
+    if (schemaVersion <= 4) {
+      validateTime(field.fieldTravelStartWU, diagnostics, `${path}.fieldTravelStartWU`, { max: durationWU });
+      validateTime(field.fieldTravelEndWU, diagnostics, `${path}.fieldTravelEndWU`, { max: durationWU });
+      if (Number(field.fieldTravelStartWU) >= Number(field.fieldTravelEndWU)) diagnostic(diagnostics, 'discipline-travel-order', path, 'Discipline field travel start must precede its end.');
+    }
+    unknownKeys(diagnostics, field.choreography, schemaVersion >= 5 ? CHOREOGRAPHY_KEYS : LEGACY_CHOREOGRAPHY_KEYS, `${path}.choreography`);
     const choreography = field.choreography;
     if (isObject(choreography)) {
-      ['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale'].forEach((key) => {
+      const finiteKeys = ['backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale'];
+      if (schemaVersion <= 4) finiteKeys.push('fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength');
+      finiteKeys.forEach((key) => {
         if (!finite(choreography[key])) diagnostic(diagnostics, 'discipline-number', `${path}.choreography.${key}`, 'Discipline choreography values must be finite.');
       });
       ['staggerWU', 'backgroundFadeWU', 'labelDurationWU', 'holdWU'].forEach((key) => {
         validateTime(choreography[key], diagnostics, `${path}.choreography.${key}`, { max: durationWU });
       });
-      if (Number(choreography.fieldFogStartWU) >= Number(choreography.fieldFogEndWU)) diagnostic(diagnostics, 'discipline-fog-order', `${path}.choreography`, 'Discipline fog start must precede its end.');
+      if (schemaVersion <= 4 && Number(choreography.fieldFogStartWU) >= Number(choreography.fieldFogEndWU)) diagnostic(diagnostics, 'discipline-fog-order', `${path}.choreography`, 'Discipline fog start must precede its end.');
       if (!Array.isArray(choreography.items) || choreography.items.length !== 6) diagnostic(diagnostics, 'discipline-items', `${path}.choreography.items`, 'Discipline reveal requires exactly six items.');
       else {
         const groups = new Set();
@@ -491,22 +554,26 @@ function validateTextField(field, index, seen, diagnostics, durationWU) {
   }
 }
 
-function validateDisciplineMotionParameters(clip, diagnostics, path) {
+function validateDisciplineMotionParameters(clip, diagnostics, path, schemaVersion) {
   const parameters = clip.parameters;
   if (!isObject(parameters)) return;
-  const clipDurationWU = Number(clip.endWU) - Number(clip.startWU);
-  const labelCapacityWU = Number(clip.endWU) - Number(clip.activationWU);
-  if (Number(parameters.fieldTravelDurationWU) > clipDurationWU + 0.000001) {
-    diagnostic(diagnostics, 'discipline-motion-travel', `${path}.parameters.fieldTravelDurationWU`, 'Field travel must fit inside the Discipline reveal Motion clip.');
+  if (schemaVersion <= 4) {
+    ['fieldTravelDurationWU', 'fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'backgroundScale'].forEach((key) => {
+      if (!finite(parameters[key])) diagnostic(diagnostics, 'discipline-motion-number', `${path}.parameters.${key}`, 'Legacy Discipline Motion values must be finite.');
+    });
+    if (Number(parameters.fieldTravelDurationWU) > Number(clip.endWU) - Number(clip.startWU) + 0.000001) {
+      diagnostic(diagnostics, 'discipline-motion-travel', `${path}.parameters.fieldTravelDurationWU`, 'Field travel must fit inside the Discipline reveal Motion clip.');
+    }
+    if (Number(parameters.fieldFogStartWU) >= Number(parameters.fieldFogEndWU)) {
+      diagnostic(diagnostics, 'discipline-motion-fog-order', `${path}.parameters`, 'Discipline field fog start must precede its end.');
+    }
   }
+  const labelCapacityWU = Number(clip.endWU) - Number(clip.activationWU);
   if (Number(parameters.labelWindowWU) > labelCapacityWU + 0.000001) {
     diagnostic(diagnostics, 'discipline-motion-label-window', `${path}.parameters.labelWindowWU`, 'The label window must fit between activationWU and the Motion clip end.');
   }
-  if (Number(parameters.restoreDurationWU) > clipDurationWU + 0.000001) {
+  if (Number(parameters.restoreDurationWU) > Number(clip.endWU) - Number(clip.startWU) + 0.000001) {
     diagnostic(diagnostics, 'discipline-motion-restore-window', `${path}.parameters.restoreDurationWU`, 'Grid restore duration must fit inside the Discipline reveal Motion clip.');
-  }
-  if (Number(parameters.fieldFogStartWU) >= Number(parameters.fieldFogEndWU)) {
-    diagnostic(diagnostics, 'discipline-motion-fog-order', `${path}.parameters`, 'Discipline field fog start must precede its end.');
   }
   const items = parameters.items;
   if (!Array.isArray(items) || items.length !== 6) {
@@ -560,21 +627,25 @@ export function validateAboutNarrativeTrackDocument(input, {
   if (input.schemaVersion !== expectedSchemaVersion) diagnostic(diagnostics, 'schema-version', 'schemaVersion', `Track schema version ${expectedSchemaVersion} is required.`);
   const schemaVersion = Number(input.schemaVersion);
   const legacyCamera = schemaVersion === 3;
+  const currentSchema = schemaVersion >= 5;
   validateGlobals(input.globals, diagnostics, schemaVersion);
 
   const tracks = input.tracks;
-  unknownKeys(diagnostics, tracks, TRACK_KEYS, 'tracks');
+  unknownKeys(diagnostics, tracks, currentSchema ? TRACK_KEYS : LEGACY_TRACK_KEYS, 'tracks');
   if (!isObject(tracks)) return diagnostics;
   unknownKeys(diagnostics, tracks.camera, CAMERA_TRACK_KEYS, 'tracks.camera');
+  if (currentSchema) unknownKeys(diagnostics, tracks.visibility, VISIBILITY_TRACK_KEYS, 'tracks.visibility');
   unknownKeys(diagnostics, tracks.worlds, WORLD_TRACK_KEYS, 'tracks.worlds');
   unknownKeys(diagnostics, tracks.text, TEXT_TRACK_KEYS, 'tracks.text');
   unknownKeys(diagnostics, tracks.interactions, INTERACTION_TRACK_KEYS, 'tracks.interactions');
 
   const cameraKeys = tracks.camera?.keys;
+  const visibilityKeys = tracks.visibility?.keys;
   const worlds = tracks.worlds?.objects;
   const textFields = tracks.text?.fields;
   const clips = tracks.interactions?.clips;
   if (!Array.isArray(cameraKeys) || cameraKeys.length < 2) diagnostic(diagnostics, 'camera-track', 'tracks.camera.keys', 'Camera track requires at least two keys.');
+  if (currentSchema && (!Array.isArray(visibilityKeys) || visibilityKeys.length < 2)) diagnostic(diagnostics, 'visibility-track', 'tracks.visibility.keys', 'Visibility track requires at least two keys.');
   if (!Array.isArray(worlds) || worlds.length < 1) diagnostic(diagnostics, 'world-track', 'tracks.worlds.objects', 'World track requires at least one World Start.');
   if (!Array.isArray(textFields)) diagnostic(diagnostics, 'text-track', 'tracks.text.fields', 'Text fields must be an array.');
   if (!Array.isArray(clips)) diagnostic(diagnostics, 'interaction-track', 'tracks.interactions.clips', 'Interaction clips must be an array.');
@@ -584,7 +655,9 @@ export function validateAboutNarrativeTrackDocument(input, {
   let previousCameraWU = -1;
   (cameraKeys || []).forEach((key, index) => {
     const path = `tracks.camera.keys.${index}`;
-    unknownKeys(diagnostics, key, legacyCamera ? LEGACY_CAMERA_KEY_KEYS : CAMERA_KEY_KEYS, path);
+    unknownKeys(diagnostics, key, legacyCamera
+      ? LEGACY_CAMERA_KEY_KEYS
+      : schemaVersion === 4 ? VERSION_4_CAMERA_KEY_KEYS : CAMERA_KEY_KEYS, path);
     if (!isObject(key)) return;
     validateId(key.id, seen, diagnostics, `${path}.id`);
     validateTime(key.atWU, diagnostics, `${path}.atWU`, { max: durationWU });
@@ -599,18 +672,38 @@ export function validateAboutNarrativeTrackDocument(input, {
       validateVector(key.rotation, diagnostics, `${path}.rotation`);
     }
     if (!finite(key.fov) || key.fov < 20 || key.fov > 90) diagnostic(diagnostics, 'camera-fov', `${path}.fov`, 'FOV must stay between 20 and 90.');
-    // Per-key fog is optional for existing v3 documents. When absent, the
-    // canonical global camera fog values are materialized by normalization.
-    if (key.distanceFogStartWU != null && (!finite(key.distanceFogStartWU) || key.distanceFogStartWU < 0 || key.distanceFogStartWU > 40)) diagnostic(diagnostics, 'camera-fog-start', `${path}.distanceFogStartWU`, 'Camera fog start must stay between 0 and 40 WU.');
-    if (key.distanceFogEndWU != null && (!finite(key.distanceFogEndWU) || key.distanceFogEndWU < 0.1 || key.distanceFogEndWU > 80)) diagnostic(diagnostics, 'camera-fog-end', `${path}.distanceFogEndWU`, 'Camera fog end must stay between 0.1 and 80 WU.');
-    const fogStartWU = Number(key.distanceFogStartWU ?? input.globals?.camera?.distanceFogStartWU ?? 8);
-    const fogEndWU = Number(key.distanceFogEndWU ?? input.globals?.camera?.distanceFogEndWU ?? 18);
-    if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) diagnostic(diagnostics, 'camera-fog-order', path, 'Camera fog must begin before circles are fully faded.');
+    if (schemaVersion <= 4) {
+      // Per-key fog is optional for existing v3 documents. When absent, the
+      // canonical global camera fog values are materialized by v4 normalization.
+      if (key.distanceFogStartWU != null && (!finite(key.distanceFogStartWU) || key.distanceFogStartWU < 0 || key.distanceFogStartWU > 40)) diagnostic(diagnostics, 'camera-fog-start', `${path}.distanceFogStartWU`, 'Camera fog start must stay between 0 and 40 WU.');
+      if (key.distanceFogEndWU != null && (!finite(key.distanceFogEndWU) || key.distanceFogEndWU < 0.1 || key.distanceFogEndWU > 80)) diagnostic(diagnostics, 'camera-fog-end', `${path}.distanceFogEndWU`, 'Camera fog end must stay between 0.1 and 80 WU.');
+      const fogStartWU = Number(key.distanceFogStartWU ?? input.globals?.camera?.distanceFogStartWU ?? 8);
+      const fogEndWU = Number(key.distanceFogEndWU ?? input.globals?.camera?.distanceFogEndWU ?? 18);
+      if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) diagnostic(diagnostics, 'camera-fog-order', path, 'Camera fog must begin before circles are fully faded.');
+    }
     if (!ABOUT_NARRATIVE_CAMERA_EASINGS.includes(key.easing) && !parseAboutNarrativeCameraEasing(key.easing)) diagnostic(diagnostics, 'camera-easing', `${path}.easing`, 'Camera easing must be a soft cubic-bezier curve.');
     if (typeof key.locked !== 'boolean') diagnostic(diagnostics, 'camera-locked', `${path}.locked`, 'Camera locked must be boolean.');
     if (key.locked !== (index === 0 || index === cameraKeys.length - 1)) diagnostic(diagnostics, 'camera-boundary-lock', `${path}.locked`, 'Only story start and story end Camera keys may be locked.');
   });
   if (cameraKeys?.length && (Number(cameraKeys[0].atWU) !== 0 || Math.abs(Number(cameraKeys.at(-1).atWU) - durationWU) > 0.000001)) diagnostic(diagnostics, 'camera-endpoints', 'tracks.camera.keys', 'Camera keys must cover Story WU 0 through the story duration.');
+
+  if (currentSchema) {
+    let previousVisibilityWU = -1;
+    (visibilityKeys || []).forEach((key, index) => {
+      const path = `tracks.visibility.keys.${index}`;
+      unknownKeys(diagnostics, key, VISIBILITY_KEY_KEYS, path);
+      if (!isObject(key)) return;
+      validateId(key.id, seen, diagnostics, `${path}.id`);
+      validateTime(key.atWU, diagnostics, `${path}.atWU`, { max: durationWU });
+      if (Number(key.atWU) <= previousVisibilityWU) diagnostic(diagnostics, 'visibility-order', `${path}.atWU`, 'Visibility keys must be strictly ordered by atWU.');
+      previousVisibilityWU = Number(key.atWU);
+      if (!finite(key.visibility) || Number(key.visibility) < 0 || Number(key.visibility) > 1) diagnostic(diagnostics, 'visibility-range', `${path}.visibility`, 'Visibility must stay between 0 and 1.');
+      if (!ABOUT_NARRATIVE_VISIBILITY_EASINGS.includes(key.easing)) diagnostic(diagnostics, 'visibility-easing', `${path}.easing`, 'Visibility easing must be linear, smoothstep, or ease-in-out.');
+      if (typeof key.locked !== 'boolean') diagnostic(diagnostics, 'visibility-locked', `${path}.locked`, 'Visibility locked must be boolean.');
+      if (key.locked !== (index === 0 || index === visibilityKeys.length - 1)) diagnostic(diagnostics, 'visibility-boundary-lock', `${path}.locked`, 'Only story start and story end Visibility keys may be locked.');
+    });
+    if (visibilityKeys?.length && (Number(visibilityKeys[0].atWU) !== 0 || Math.abs(Number(visibilityKeys.at(-1).atWU) - durationWU) > 0.000001)) diagnostic(diagnostics, 'visibility-endpoints', 'tracks.visibility.keys', 'Visibility keys must cover Story WU 0 through the story duration.');
+  }
 
   let previousWorldWU = -1;
   const worldIds = new Set();
@@ -664,7 +757,7 @@ export function validateAboutNarrativeTrackDocument(input, {
 
   let previousTextWU = -1;
   (textFields || []).forEach((field, index) => {
-    validateTextField(field, index, seen, diagnostics, durationWU);
+    validateTextField(field, index, seen, diagnostics, durationWU, schemaVersion);
     if (Number(field?.startWU) < previousTextWU) diagnostic(diagnostics, 'text-track-order', `tracks.text.fields.${index}.startWU`, 'Text fields must be ordered by startWU.');
     previousTextWU = Number(field?.startWU);
   });
@@ -694,7 +787,13 @@ export function validateAboutNarrativeTrackDocument(input, {
       diagnostic(diagnostics, 'interaction-parameters', `${path}.parameters`, 'Interaction parameters must be an object.');
     } else if (isObject(clip.parameters)) {
       const allowedParameterIds = new Set(interactionDefinition.parameters.map((control) => control.id));
-      if (clip.type === 'discipline-reveal') allowedParameterIds.add('items');
+      if (clip.type === 'discipline-reveal') {
+        allowedParameterIds.add('items');
+        if (schemaVersion <= 4) REMOVED_DISCIPLINE_PARAMETER_KEYS.forEach((key) => allowedParameterIds.add(key));
+      }
+      if (clip.type === 'grid-ripple' && schemaVersion <= 4) {
+        REMOVED_GRID_RIPPLE_PARAMETER_KEYS.forEach((key) => allowedParameterIds.add(key));
+      }
       unknownKeys(
         diagnostics,
         clip.parameters,
@@ -705,7 +804,7 @@ export function validateAboutNarrativeTrackDocument(input, {
         validateControlValue(clip.parameters[control.id], control, diagnostics, `${path}.parameters.${control.id}`)
       ));
       if (clip.type === 'discipline-reveal') {
-        validateDisciplineMotionParameters(clip, diagnostics, path);
+        validateDisciplineMotionParameters(clip, diagnostics, path, schemaVersion);
         if (worldIndex >= 0 && worlds[worldIndex].shapeId !== 'calm-field-v1') {
           diagnostic(diagnostics, 'discipline-motion-world', `${path}.targetWorldId`, 'Discipline reveal Motion must target the unchanged calm-field World.');
         }
@@ -721,6 +820,7 @@ export function validateAboutNarrativeTrackDocument(input, {
 
   const indexes = {
     camera: new Map((cameraKeys || []).map((item) => [item.id, item])),
+    visibility: new Map((visibilityKeys || []).map((item) => [item.id, item])),
     worlds: new Map((worlds || []).map((item) => [item.id, item])),
     text: new Map((textFields || []).map((item) => [item.id, item])),
     interactions: new Map((clips || []).map((item) => [item.id, item])),
@@ -755,12 +855,13 @@ function sortObjectKeys(value) {
   return Object.fromEntries(Object.entries(value || {}).sort(([left], [right]) => left.localeCompare(right)).map(([key, child]) => [key, cloneAboutNarrativeDocument(child)]));
 }
 
-function normalizeOverrides(overrides = {}) {
+function normalizeOverrides(overrides = {}, { includeVisibility = true } = {}) {
   return {
     camera: Object.fromEntries(Object.entries(overrides.camera || {}).sort(([left], [right]) => left.localeCompare(right)).map(([id, override]) => [id, {
       ...cloneAboutNarrativeDocument(override),
       ...(override.easing == null ? {} : { easing: normalizeAboutNarrativeCameraEasing(override.easing) }),
     }])),
+    ...(includeVisibility ? { visibility: sortObjectKeys(overrides.visibility) } : {}),
     worlds: sortObjectKeys(overrides.worlds),
     text: sortObjectKeys(overrides.text),
     interactions: sortObjectKeys(overrides.interactions),
@@ -776,6 +877,34 @@ export function normalizeAboutNarrativeTrackDocument(input) {
       desktop: { ...source.profiles.desktop, overrides: normalizeOverrides(source.profiles.desktop.overrides) },
       tablet: { ...source.profiles.tablet, overrides: normalizeOverrides(source.profiles.tablet.overrides) },
       mobile: { ...source.profiles.mobile, overrides: normalizeOverrides(source.profiles.mobile.overrides) },
+      'reduced-motion': { mode: 'overlay', motionPolicy: 'settled' },
+    },
+    tracks: {
+      camera: { keys: [...source.tracks.camera.keys]
+        .map((key) => ({
+          ...key,
+          easing: normalizeAboutNarrativeCameraEasing(key.easing),
+        }))
+        .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)) },
+      visibility: { keys: [...source.tracks.visibility.keys]
+        .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)) },
+      worlds: { objects: [...source.tracks.worlds.objects].sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id)) },
+      text: { fields: [...source.tracks.text.fields].sort((left, right) => left.startWU - right.startWU || left.focusWU - right.focusWU || left.id.localeCompare(right.id)) },
+      interactions: { clips: [...source.tracks.interactions.clips].sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id)) },
+    },
+    library: { presets: [...source.library.presets].sort((left, right) => left.id.localeCompare(right.id)) },
+  };
+}
+
+function normalizeAboutNarrativeVersion4TrackDocument(input) {
+  const source = cloneAboutNarrativeDocument(input);
+  return {
+    schemaVersion: 4,
+    globals: source.globals,
+    profiles: {
+      desktop: { ...source.profiles.desktop, overrides: normalizeOverrides(source.profiles.desktop.overrides, { includeVisibility: false }) },
+      tablet: { ...source.profiles.tablet, overrides: normalizeOverrides(source.profiles.tablet.overrides, { includeVisibility: false }) },
+      mobile: { ...source.profiles.mobile, overrides: normalizeOverrides(source.profiles.mobile.overrides, { includeVisibility: false }) },
       'reduced-motion': { mode: 'overlay', motionPolicy: 'settled' },
     },
     tracks: {
@@ -1014,9 +1143,9 @@ export function migrateAboutNarrativeVersion2To3(input) {
   return {
     ...migrated,
     profiles: {
-      desktop: { ...migrated.profiles.desktop, overrides: normalizeOverrides(migrated.profiles.desktop.overrides) },
-      tablet: { ...migrated.profiles.tablet, overrides: normalizeOverrides(migrated.profiles.tablet.overrides) },
-      mobile: { ...migrated.profiles.mobile, overrides: normalizeOverrides(migrated.profiles.mobile.overrides) },
+      desktop: { ...migrated.profiles.desktop, overrides: normalizeOverrides(migrated.profiles.desktop.overrides, { includeVisibility: false }) },
+      tablet: { ...migrated.profiles.tablet, overrides: normalizeOverrides(migrated.profiles.tablet.overrides, { includeVisibility: false }) },
+      mobile: { ...migrated.profiles.mobile, overrides: normalizeOverrides(migrated.profiles.mobile.overrides, { includeVisibility: false }) },
       'reduced-motion': { mode: 'overlay', motionPolicy: 'settled' },
     },
     tracks: {
@@ -1259,7 +1388,7 @@ export function migrateAboutNarrativeVersion3To4(input) {
     interactions: cloneAboutNarrativeDocument(overrides.interactions || {}),
   });
   const migrated = {
-    schemaVersion: ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+    schemaVersion: 4,
     globals: {
       scrollSmoothing: legacyGlobals.scrollSmoothing,
       readingWidthRem: legacyGlobals.readingWidthRem,
@@ -1287,11 +1416,268 @@ export function migrateAboutNarrativeVersion3To4(input) {
     },
     library: cloneAboutNarrativeDocument(raw.library),
   };
-  const normalized = normalizeAboutNarrativeTrackDocument(migrated);
-  assertValidAboutNarrativeTrackDocument(normalized);
+  const normalized = normalizeAboutNarrativeVersion4TrackDocument(migrated);
+  const diagnostics = validateAboutNarrativeTrackDocument(normalized, { expectedSchemaVersion: 4 });
+  const errors = diagnostics.filter((item) => item.level === 'error');
+  if (errors.length) {
+    const error = new Error(errors.map((item) => `${item.path}: ${item.message}`).join('\n'));
+    error.name = 'AboutNarrativeTrackMigrationError';
+    error.diagnostics = diagnostics;
+    error.original = raw;
+    throw error;
+  }
   return normalized;
 }
 
 export function migrateAboutNarrativeVersion2To4(input) {
   return migrateAboutNarrativeVersion3To4(migrateAboutNarrativeVersion2To3(input));
+}
+
+const REMOVED_DISCIPLINE_PARAMETER_KEYS = Object.freeze([
+  'fieldTravelDurationWU',
+  'fieldTravelWU',
+  'fieldFogStartWU',
+  'fieldFogEndWU',
+  'fieldFogStrength',
+  'backgroundScale',
+]);
+const REMOVED_GRID_RIPPLE_PARAMETER_KEYS = Object.freeze(['centerX', 'centerZ']);
+
+function stripRemovedDisciplineParameters(parameters) {
+  const next = cloneAboutNarrativeDocument(parameters || {});
+  REMOVED_DISCIPLINE_PARAMETER_KEYS.forEach((key) => delete next[key]);
+  return next;
+}
+
+function stripRemovedGridRippleParameters(parameters) {
+  const next = cloneAboutNarrativeDocument(parameters || {});
+  REMOVED_GRID_RIPPLE_PARAMETER_KEYS.forEach((key) => delete next[key]);
+  return next;
+}
+
+function stripLegacyDisciplineField(field) {
+  const next = cloneAboutNarrativeDocument(field);
+  delete next.fieldTravelStartWU;
+  delete next.fieldTravelEndWU;
+  next.choreography = stripRemovedDisciplineParameters(next.choreography);
+  return next;
+}
+
+function filterOverrideTargets(overrides, targetIds, transform = cloneAboutNarrativeDocument) {
+  return Object.fromEntries(Object.entries(overrides || {})
+    .filter(([id]) => targetIds.has(id))
+    .map(([id, override]) => [id, transform(override)]));
+}
+
+/**
+ * Repairs the one known transitional schema-v5 shape produced while the v4→v5
+ * editor migration was in flight. This is deliberately narrower than normal
+ * normalization: it removes only retired v4 fields, restores the required
+ * Visibility endpoints, and discards overrides whose target was deleted.
+ */
+export function repairAboutNarrativeVersion5Hybrid(input) {
+  const raw = cloneAboutNarrativeDocument(input);
+  if (Number(raw?.schemaVersion) !== ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) {
+    const error = new Error(`Hybrid repair requires schema v${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION}.`);
+    error.name = 'AboutNarrativeTrackMigrationError';
+    error.original = raw;
+    throw error;
+  }
+
+  const durationWU = Number(raw.profiles?.desktop?.storyDurationWU);
+  const visibilityKeys = Array.isArray(raw.tracks?.visibility?.keys)
+    && raw.tracks.visibility.keys.length >= 2
+    ? cloneAboutNarrativeDocument(raw.tracks.visibility.keys)
+    : [
+      { id: 'visibility-start', atWU: 0, visibility: 1, easing: 'linear', locked: true },
+      { id: 'visibility-end', atWU: durationWU, visibility: 1, easing: 'linear', locked: true },
+    ];
+  const cameraKeys = (raw.tracks?.camera?.keys || []).map((key) => {
+    const next = cloneAboutNarrativeDocument(key);
+    delete next.distanceFogStartWU;
+    delete next.distanceFogEndWU;
+    return next;
+  });
+  const textFields = (raw.tracks?.text?.fields || []).map((field) => (
+    field.kind === 'discipline-reveal'
+      ? stripLegacyDisciplineField(field)
+      : cloneAboutNarrativeDocument(field)
+  ));
+  const interactionClips = (raw.tracks?.interactions?.clips || []).map((clip) => {
+    if (clip.type === 'discipline-reveal') {
+      return { ...cloneAboutNarrativeDocument(clip), parameters: stripRemovedDisciplineParameters(clip.parameters) };
+    }
+    if (clip.type === 'grid-ripple') {
+      return { ...cloneAboutNarrativeDocument(clip), parameters: stripRemovedGridRippleParameters(clip.parameters) };
+    }
+    return cloneAboutNarrativeDocument(clip);
+  });
+  const worldObjects = cloneAboutNarrativeDocument(raw.tracks?.worlds?.objects || []);
+  const targetIds = {
+    camera: new Set(cameraKeys.map((item) => item.id)),
+    visibility: new Set(visibilityKeys.map((item) => item.id)),
+    worlds: new Set(worldObjects.map((item) => item.id)),
+    text: new Set(textFields.map((item) => item.id)),
+    interactions: new Set(interactionClips.map((item) => item.id)),
+  };
+  const repairOverrides = (overrides = {}) => ({
+    camera: filterOverrideTargets(overrides.camera, targetIds.camera, (override) => {
+      const next = cloneAboutNarrativeDocument(override);
+      delete next.distanceFogStartWU;
+      delete next.distanceFogEndWU;
+      return next;
+    }),
+    visibility: filterOverrideTargets(overrides.visibility, targetIds.visibility),
+    worlds: filterOverrideTargets(overrides.worlds, targetIds.worlds),
+    text: filterOverrideTargets(overrides.text, targetIds.text),
+    interactions: filterOverrideTargets(overrides.interactions, targetIds.interactions),
+  });
+  const fogStartWU = Number(raw.globals?.camera?.distanceFogStartWU
+    ?? raw.tracks?.camera?.keys?.[0]?.distanceFogStartWU
+    ?? 8);
+  const fogEndWU = Number(raw.globals?.camera?.distanceFogEndWU
+    ?? raw.tracks?.camera?.keys?.[0]?.distanceFogEndWU
+    ?? 18);
+  const repaired = {
+    schemaVersion: ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+    globals: {
+      ...cloneAboutNarrativeDocument(raw.globals),
+      camera: { distanceFogStartWU: fogStartWU, distanceFogEndWU: fogEndWU },
+    },
+    profiles: {
+      desktop: { ...cloneAboutNarrativeDocument(raw.profiles.desktop), overrides: repairOverrides(raw.profiles.desktop.overrides) },
+      tablet: { ...cloneAboutNarrativeDocument(raw.profiles.tablet), overrides: repairOverrides(raw.profiles.tablet.overrides) },
+      mobile: { ...cloneAboutNarrativeDocument(raw.profiles.mobile), overrides: repairOverrides(raw.profiles.mobile.overrides) },
+      'reduced-motion': { mode: 'overlay', motionPolicy: 'settled' },
+    },
+    tracks: {
+      camera: { keys: cameraKeys },
+      visibility: { keys: visibilityKeys },
+      worlds: { objects: worldObjects },
+      text: { fields: textFields },
+      interactions: { clips: interactionClips },
+    },
+    library: cloneAboutNarrativeDocument(raw.library),
+  };
+  const normalized = normalizeAboutNarrativeTrackDocument(repaired);
+  assertValidAboutNarrativeTrackDocument(normalized);
+  return normalized;
+}
+
+function migrationDiagnostic(path, commonStartWU, commonEndWU) {
+  return {
+    level: 'error',
+    code: 'camera-fog-migration-divergence',
+    path,
+    message: `Schema v4 camera fog must be constant at ${commonStartWU}/${commonEndWU} WU before migrating to the single schema v5 global fog contract.`,
+  };
+}
+
+export function migrateAboutNarrativeVersion4To5(input) {
+  const raw = cloneAboutNarrativeDocument(input);
+  const sourceErrors = validateAboutNarrativeTrackDocument(raw, { expectedSchemaVersion: 4 })
+    .filter((item) => item.level === 'error');
+  if (sourceErrors.length) {
+    const error = new Error(sourceErrors.map((item) => `${item.path}: ${item.message}`).join('\n'));
+    error.name = 'AboutNarrativeTrackMigrationError';
+    error.diagnostics = sourceErrors;
+    error.original = raw;
+    throw error;
+  }
+
+  const commonStartWU = Number(raw.globals.camera?.distanceFogStartWU ?? 8);
+  const commonEndWU = Number(raw.globals.camera?.distanceFogEndWU ?? 18);
+  const fogDiagnostics = [];
+  const differs = (value, expected) => value != null && Math.abs(Number(value) - expected) > 0.000001;
+  raw.tracks.camera.keys.forEach((key, index) => {
+    if (differs(key.distanceFogStartWU, commonStartWU)) fogDiagnostics.push(migrationDiagnostic(`tracks.camera.keys.${index}.distanceFogStartWU`, commonStartWU, commonEndWU));
+    if (differs(key.distanceFogEndWU, commonEndWU)) fogDiagnostics.push(migrationDiagnostic(`tracks.camera.keys.${index}.distanceFogEndWU`, commonStartWU, commonEndWU));
+  });
+  ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS.forEach((profileId) => {
+    Object.entries(raw.profiles[profileId].overrides.camera || {}).forEach(([id, override]) => {
+      if (differs(override.distanceFogStartWU, commonStartWU)) fogDiagnostics.push(migrationDiagnostic(`profiles.${profileId}.overrides.camera.${id}.distanceFogStartWU`, commonStartWU, commonEndWU));
+      if (differs(override.distanceFogEndWU, commonEndWU)) fogDiagnostics.push(migrationDiagnostic(`profiles.${profileId}.overrides.camera.${id}.distanceFogEndWU`, commonStartWU, commonEndWU));
+    });
+  });
+  if (fogDiagnostics.length) {
+    const error = new Error(fogDiagnostics.map((item) => `${item.path}: ${item.message}`).join('\n'));
+    error.name = 'AboutNarrativeTrackMigrationError';
+    error.diagnostics = fogDiagnostics;
+    error.original = raw;
+    throw error;
+  }
+
+  const durationWU = Number(raw.profiles.desktop.storyDurationWU);
+  const migrateOverrides = (overrides = {}) => ({
+    camera: Object.fromEntries(Object.entries(overrides.camera || {}).map(([id, override]) => {
+      const next = cloneAboutNarrativeDocument(override);
+      delete next.distanceFogStartWU;
+      delete next.distanceFogEndWU;
+      return [id, next];
+    })),
+    visibility: {},
+    worlds: cloneAboutNarrativeDocument(overrides.worlds || {}),
+    text: cloneAboutNarrativeDocument(overrides.text || {}),
+    interactions: cloneAboutNarrativeDocument(overrides.interactions || {}),
+  });
+  const cameraKeys = raw.tracks.camera.keys.map((key) => {
+    const next = cloneAboutNarrativeDocument(key);
+    delete next.distanceFogStartWU;
+    delete next.distanceFogEndWU;
+    return next;
+  });
+  const migrated = {
+    schemaVersion: ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+    globals: {
+      ...cloneAboutNarrativeDocument(raw.globals),
+      camera: {
+        distanceFogStartWU: commonStartWU,
+        distanceFogEndWU: commonEndWU,
+      },
+    },
+    profiles: {
+      desktop: { ...cloneAboutNarrativeDocument(raw.profiles.desktop), overrides: migrateOverrides(raw.profiles.desktop.overrides) },
+      tablet: { ...cloneAboutNarrativeDocument(raw.profiles.tablet), overrides: migrateOverrides(raw.profiles.tablet.overrides) },
+      mobile: { ...cloneAboutNarrativeDocument(raw.profiles.mobile), overrides: migrateOverrides(raw.profiles.mobile.overrides) },
+      'reduced-motion': { mode: 'overlay', motionPolicy: 'settled' },
+    },
+    tracks: {
+      camera: { keys: cameraKeys },
+      visibility: {
+        keys: [
+          { id: 'visibility-start', atWU: 0, visibility: 1, easing: 'linear', locked: true },
+          { id: 'visibility-end', atWU: durationWU, visibility: 1, easing: 'linear', locked: true },
+        ],
+      },
+      worlds: cloneAboutNarrativeDocument(raw.tracks.worlds),
+      text: {
+        fields: raw.tracks.text.fields.map((field) => (
+          field.kind === 'discipline-reveal' ? stripLegacyDisciplineField(field) : cloneAboutNarrativeDocument(field)
+        )),
+      },
+      interactions: {
+        clips: raw.tracks.interactions.clips.map((clip) => {
+          if (clip.type === 'discipline-reveal') {
+            return { ...cloneAboutNarrativeDocument(clip), parameters: stripRemovedDisciplineParameters(clip.parameters) };
+          }
+          if (clip.type === 'grid-ripple') {
+            return { ...cloneAboutNarrativeDocument(clip), parameters: stripRemovedGridRippleParameters(clip.parameters) };
+          }
+          return cloneAboutNarrativeDocument(clip);
+        }),
+      },
+    },
+    library: cloneAboutNarrativeDocument(raw.library),
+  };
+  const normalized = normalizeAboutNarrativeTrackDocument(migrated);
+  assertValidAboutNarrativeTrackDocument(normalized);
+  return normalized;
+}
+
+export function migrateAboutNarrativeVersion3To5(input) {
+  return migrateAboutNarrativeVersion4To5(migrateAboutNarrativeVersion3To4(input));
+}
+
+export function migrateAboutNarrativeVersion2To5(input) {
+  return migrateAboutNarrativeVersion3To5(migrateAboutNarrativeVersion2To3(input));
 }

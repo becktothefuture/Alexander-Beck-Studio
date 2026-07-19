@@ -930,9 +930,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-deck-intro__body {
   display: block;
-  max-width: min(50.4ch, 100%);
   justify-self: center;
-  line-height: 1.485;
 }
 
 .portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-deck-intro__title,

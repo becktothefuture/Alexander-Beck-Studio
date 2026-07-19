@@ -3,9 +3,11 @@ import {
 } from './aboutNarrativeSchema.js';
 import {
   ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
-  migrateAboutNarrativeVersion2To4,
-  migrateAboutNarrativeVersion3To4,
+  migrateAboutNarrativeVersion2To5,
+  migrateAboutNarrativeVersion3To5,
+  migrateAboutNarrativeVersion4To5,
   normalizeAboutNarrativeTrackDocument,
+  repairAboutNarrativeVersion5Hybrid,
   serializeAboutNarrativeTrackDocument,
   validateAboutNarrativeTrackDocument,
 } from './aboutNarrativeTrackSchema.js';
@@ -37,6 +39,19 @@ function parseRawInput(input) {
 
 function makeDiagnostic(code, path, message) {
   return Object.freeze({ level: 'error', code, path, message });
+}
+
+const RETIRED_V5_FIELD_PATH = /^(?:globals\.camera\.fov|tracks\.camera\.keys\.\d+\.distanceFog(?:Start|End)WU|tracks\.text\.fields\.\d+\.(?:fieldTravelStartWU|fieldTravelEndWU)|tracks\.text\.fields\.\d+\.choreography\.(?:fieldTravelDurationWU|fieldTravelWU|fieldFogStartWU|fieldFogEndWU|fieldFogStrength|backgroundScale)|tracks\.interactions\.clips\.\d+\.parameters\.(?:fieldTravelDurationWU|fieldTravelWU|fieldFogStartWU|fieldFogEndWU|fieldFogStrength|backgroundScale|centerX|centerZ))$/;
+const STALE_OVERRIDE_PATH = /^profiles\.(?:desktop|tablet|mobile)\.overrides\.(?:camera|visibility|worlds|text|interactions)\.[^.]+$/;
+
+function canRepairVersion5Hybrid(diagnostics) {
+  const errors = diagnostics.filter((item) => item.level === 'error');
+  return errors.length > 0 && errors.every((item) => (
+    (item.code === 'object-envelope' && item.path === 'tracks.visibility')
+    || (item.code === 'visibility-track' && item.path === 'tracks.visibility.keys')
+    || (item.code === 'unknown-key' && RETIRED_V5_FIELD_PATH.test(item.path))
+    || (item.code === 'override-target' && STALE_OVERRIDE_PATH.test(item.path))
+  ));
 }
 
 function invalidResult({ original, sourceVersion = null, diagnostics = [], message, migrations = [] }) {
@@ -175,26 +190,35 @@ export function loadAboutNarrativeTrackSource(input, { preflight = null } = {}) 
   try {
     if (sourceVersion === 1) {
       const legacy = migrateAboutNarrativeDocument(parsed);
-      document = migrateAboutNarrativeVersion2To4(legacy.document);
-      migrations = [...legacy.migrations, '2->3', '3->4'];
+      document = migrateAboutNarrativeVersion2To5(legacy.document);
+      migrations = [...legacy.migrations, '2->3', '3->4', '4->5'];
     } else if (sourceVersion === 2) {
-      document = migrateAboutNarrativeVersion2To4(parsed);
-      migrations = ['2->3', '3->4'];
+      document = migrateAboutNarrativeVersion2To5(parsed);
+      migrations = ['2->3', '3->4', '4->5'];
     } else if (sourceVersion === 3) {
-      document = migrateAboutNarrativeVersion3To4(parsed);
-      migrations = ['3->4'];
+      document = migrateAboutNarrativeVersion3To5(parsed);
+      migrations = ['3->4', '4->5'];
+    } else if (sourceVersion === 4) {
+      document = migrateAboutNarrativeVersion4To5(parsed);
+      migrations = ['4->5'];
     } else {
       const diagnostics = validateAboutNarrativeTrackDocument(parsed);
       const errors = diagnostics.filter((item) => item.level === 'error');
       if (errors.length) {
-        return invalidResult({
-          original,
-          sourceVersion,
-          diagnostics,
-          message: errors.map((item) => `${item.path}: ${item.message}`).join('\n'),
-        });
+        if (canRepairVersion5Hybrid(diagnostics)) {
+          document = repairAboutNarrativeVersion5Hybrid(parsed);
+          migrations = ['5-hybrid-repair'];
+        } else {
+          return invalidResult({
+            original,
+            sourceVersion,
+            diagnostics,
+            message: errors.map((item) => `${item.path}: ${item.message}`).join('\n'),
+          });
+        }
+      } else {
+        document = normalizeAboutNarrativeTrackDocument(parsed);
       }
-      document = normalizeAboutNarrativeTrackDocument(parsed);
     }
   } catch (error) {
     return invalidResult({

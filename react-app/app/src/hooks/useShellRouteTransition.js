@@ -26,6 +26,7 @@ import {
   createEntranceSequence,
   resetEntranceTargets,
 } from '../lib/motion/entrance-sequence.js';
+import { dispatchRouteEntranceStart } from '../lib/motion/route-entrance-events.js';
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    ROUTE STATE
@@ -1064,9 +1065,11 @@ function isRouteBaselineReady(routeId, options = {}) {
   }
 
   if (routeId === 'about') {
+    const aboutRoute = document.querySelector('[data-route-content="about"]');
     return Boolean(
       body.classList.contains('about-page')
-      && document.querySelector('[data-route-content="about"]')
+      && aboutRoute
+      && aboutRoute.dataset.aboutSceneReady === 'true'
     );
   }
 
@@ -1182,6 +1185,7 @@ function staggeredEntrance({
       if (hero) hero.style.opacity = '1';
       if (ui) ui.style.opacity = '1';
       if (typeof onPrepared === 'function') onPrepared();
+      dispatchRouteEntranceStart(routeId, 'route');
       resolve();
       return;
     }
@@ -1269,7 +1273,10 @@ function staggeredEntrance({
       });
     });
 
-    window.requestAnimationFrame(() => void routeEntrance.play());
+    window.requestAnimationFrame(() => {
+      dispatchRouteEntranceStart(routeId, 'route');
+      void routeEntrance.play();
+    });
 
     const surfaceTotal = Math.max(0, ...groups.map((group) => group.delayMs)) + enterMs;
     const routeEnterTotal = routeEntrance.totalMs;

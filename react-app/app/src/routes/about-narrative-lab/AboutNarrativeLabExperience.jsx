@@ -210,9 +210,11 @@ function TitleField({
   const headingId = isPrimaryTitle ? 'about-route-title' : `${field.id}-title`;
   const isFinale = field.preset === 'finale-v1'
     || field.presentation?.layout === 'text-bust-cta';
+  const isOpener = field.preset === 'opener-v1';
   const titleStyle = field.titleStyle
-    || (field.preset === 'opener-v1' || isFinale ? 'display' : 'standard');
+    || (isOpener || isFinale ? 'display' : 'standard');
   const bustInstructionsId = `${field.id}-bust-instructions`;
+  const descriptionId = `${field.id}-description`;
   return (
     <section
       className={`about-narrative-spatial-copy about-narrative-text-field${isFinale ? ' is-finale' : ''}`}
@@ -220,6 +222,7 @@ function TitleField({
       data-text-preset={field.preset}
       data-title-style={titleStyle}
       aria-labelledby={headingId}
+      aria-describedby={isOpener && field.description ? descriptionId : undefined}
       onClick={(event) => selectTextField(onSelect, field.id, event)}
     >
       {isFinale ? (
@@ -229,16 +232,39 @@ function TitleField({
           </Heading>
           <FinaleActions />
         </div>
+      ) : isOpener ? (
+        <div className="about-narrative-opening-copy about-narrative-spatial-fragment route-centered-page__inner">
+          <Heading
+            id={headingId}
+            className="route-centered-page__title"
+            data-primary-copy
+            data-route-enter="identity"
+            data-route-enter-order="0"
+          >
+            {field.text}
+          </Heading>
+          {field.description ? (
+            <p
+              id={descriptionId}
+              className="route-centered-page__description route-intro-description"
+              data-route-enter="context"
+            >
+              {field.description}
+            </p>
+          ) : null}
+          <div
+            className="about-narrative-opening-scroll-cue"
+            data-route-enter="action"
+            aria-hidden="true"
+          >
+            <i className="ti ti-arrow-left about-narrative-opening-scroll-cue__icon" />
+          </div>
+        </div>
       ) : (
         <Heading id={headingId} className="about-narrative-spatial-title about-narrative-spatial-fragment" data-primary-copy>
           {field.text}
         </Heading>
       )}
-      {field.preset === 'opener-v1' ? (
-        <div className="about-narrative-opening-scroll-cue" aria-hidden="true">
-          <i className="ti ti-arrow-left about-narrative-opening-scroll-cue__icon" />
-        </div>
-      ) : null}
       {isFinale ? (
         <>
           <div

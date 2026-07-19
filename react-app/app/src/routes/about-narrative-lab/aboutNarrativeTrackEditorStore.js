@@ -1,8 +1,11 @@
 import {
   compileAboutNarrativeTrackModel,
-  sampleAboutNarrativeTrackPlan,
 } from './aboutNarrativeTrackModel.js';
 import { getAboutNarrativeCameraRotationFromQuaternion } from './aboutNarrativeCameraRig.js';
+import {
+  compileAboutNarrativeRuntimePlan,
+  sampleAboutNarrativeRuntimePlan,
+} from './aboutNarrativeRuntimePlan.js';
 import {
   createAboutNarrativeTrackClipboardPayload,
   createAboutNarrativeTrackObjectAtWU,
@@ -56,6 +59,7 @@ function replaceDraft(draft, document) {
 function getAllIds(model) {
   return new Set([
     ...(model?.tracks?.camera?.keys || []).map((item) => item.id),
+    ...(model?.tracks?.visibility?.keys || []).map((item) => item.id),
     ...(model?.tracks?.worlds?.objects || []).map((item) => item.id),
     ...(model?.tracks?.text?.fields || []).map((item) => item.id),
     ...(model?.tracks?.interactions?.clips || []).map((item) => item.id),
@@ -100,6 +104,9 @@ function hasProtectedSelection(document, selection) {
 function prepareOperationDocument(input) {
   const document = clone(input);
   (document.tracks?.worlds?.objects || []).forEach((world) => delete world.locked);
+  (document.tracks?.visibility?.keys || []).forEach((key) => {
+    if (key.locked !== true) key.locked = false;
+  });
   (document.tracks?.text?.fields || []).forEach((field) => {
     delete field.locked;
     if (field.kind === 'stub') {
@@ -686,7 +693,9 @@ export function createAboutNarrativeTrackEditorStore(initialDocument, {
     },
     createObject({ track, kind = null, atWU, ...options }) {
       if (gesture || tryState) return rejectBusyEdit('Create track object');
-      const base = kind || (track === 'camera' ? 'camera-key' : track);
+      const base = kind || (track === 'camera'
+        ? 'camera-key'
+        : track === 'visibility' ? 'visibility-key' : track);
       const id = options.id || createUniqueId(snapshot.document, base);
       const operationOptions = { ...options, id };
       if (track === 'text' && kind === 'scroll-block') {
@@ -708,14 +717,21 @@ export function createAboutNarrativeTrackEditorStore(initialDocument, {
           ? { ...options.template, protected: false }
           : options.template;
       }
-      if (track === 'camera' && !operationOptions.cameraKey && snapshot.compiledPlan?.valid) {
-        const frame = sampleAboutNarrativeTrackPlan(snapshot.compiledPlan, atWU);
+      const publishedPlan = ['camera', 'visibility'].includes(track) && snapshot.compiledPlan?.valid
+        ? compileAboutNarrativeRuntimePlan(snapshot.document, snapshot.previewState)
+        : null;
+      if (track === 'camera' && !operationOptions.cameraKey && publishedPlan?.valid) {
+        const frame = sampleAboutNarrativeRuntimePlan(publishedPlan, atWU);
         operationOptions.cameraKey = {
           position: [...frame.camera.position],
           rotation: getAboutNarrativeCameraRotationFromQuaternion(frame.camera.quaternion),
           fov: frame.camera.fov,
-          distanceFogStartWU: frame.camera.distanceFogStartWU,
-          distanceFogEndWU: frame.camera.distanceFogEndWU,
+        };
+      }
+      if (track === 'visibility' && !operationOptions.visibilityKey && publishedPlan?.valid) {
+        const frame = sampleAboutNarrativeRuntimePlan(publishedPlan, atWU);
+        operationOptions.visibilityKey = {
+          visibility: frame.simulation.visibility,
         };
       }
       if (track === 'interaction') operationOptions.interactionType ||= 'horizontal-spin';

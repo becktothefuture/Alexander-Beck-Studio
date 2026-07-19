@@ -41,7 +41,7 @@ async function auditProduction(viewport, label, expectedProfile) {
     const root = document.querySelector('.about-narrative-lab');
     const indicator = document.querySelector('.about-narrative-indicator');
     const canvas = document.querySelector('.about-narrative-world__canvas');
-    const opener = document.querySelector('[data-text-field-id="text-promise-main"] .about-narrative-spatial-title')
+    const opener = document.querySelector('[data-text-field-id="text-promise-main"] .route-centered-page__title')
       ?.getBoundingClientRect();
     return {
       canvasCount: document.querySelectorAll('.about-narrative-world__canvas').length,
@@ -177,7 +177,15 @@ async function auditEditor() {
   const worldResizeHandles = page.getByRole('button', { name: /^Resize World .+ end$/ });
   assert.equal(await worldResizeHandles.count(), 4, 'Every non-final World needs one duration handle.');
   const textResizeHandles = page.getByRole('button', { name: /^Resize Text .+ (start|end)$/ });
-  assert.equal(await textResizeHandles.count(), 26, 'Every editable Text clip needs start and end duration handles.');
+  assert.equal(await textResizeHandles.count(), 8, 'Only editable non-Title Text clips need duration handles.');
+  assert.equal(
+    await page.locator('[data-track-object-type="text-field"][data-text-kind="title"]')
+      .locator('xpath=..')
+      .locator('[data-duration-edge]')
+      .count(),
+    0,
+    'Titles must use shared timing and expose no individual duration handles.',
+  );
   const motionResizeHandles = page.getByRole('button', { name: /^Resize Motion .+ (start|end)$/ });
   assert.equal(await motionResizeHandles.count(), 4, 'Every editable Motion clip needs start and end duration handles.');
   assert.equal(

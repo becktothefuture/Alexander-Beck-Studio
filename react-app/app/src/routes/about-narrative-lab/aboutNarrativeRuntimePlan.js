@@ -1,8 +1,5 @@
 import { cloneAboutNarrativeDocument } from './aboutNarrativeSchema.js';
 import {
-  ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
-  migrateAboutNarrativeVersion2To4,
-  migrateAboutNarrativeVersion3To4,
   normalizeAboutNarrativeTrackDocument,
   validateAboutNarrativeTrackDocument,
 } from './aboutNarrativeTrackSchema.js';
@@ -56,6 +53,7 @@ function invalidPlan({
     durationWU: 0,
     maxStoryWU: 0,
     cameraKeys: [],
+    visibilityKeys: [],
     worlds: [],
     textFields: [],
     interactionClips: [],
@@ -67,38 +65,16 @@ function invalidPlan({
 }
 
 function resolveTrackModel(input) {
-  if (input?.schemaVersion === ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) {
-    const candidate = clone(input);
-    const diagnostics = validateAboutNarrativeTrackDocument(candidate);
-    if (diagnostics.some((item) => item.level === 'error')) {
-      return { valid: false, model: candidate, diagnostics };
-    }
-    return {
-      valid: true,
-      model: normalizeAboutNarrativeTrackDocument(candidate),
-      diagnostics,
-    };
+  const candidate = clone(input);
+  const diagnostics = validateAboutNarrativeTrackDocument(candidate);
+  if (diagnostics.some((item) => item.level === 'error')) {
+    return { valid: false, model: candidate, diagnostics };
   }
-  try {
-    const migrated = input?.schemaVersion === 3
-      ? migrateAboutNarrativeVersion3To4(input)
-      : migrateAboutNarrativeVersion2To4(input);
-    return {
-      valid: true,
-      model: normalizeAboutNarrativeTrackDocument(migrated),
-      diagnostics: validateAboutNarrativeTrackDocument(migrated),
-    };
-  } catch (error) {
-    return {
-      valid: false,
-      model: null,
-      diagnostics: error?.diagnostics || [diagnostic(
-        'runtime-plan-input',
-        'document',
-        error?.message || 'The About Narrative document could not be compiled.',
-      )],
-    };
-  }
+  return {
+    valid: true,
+    model: normalizeAboutNarrativeTrackDocument(candidate),
+    diagnostics,
+  };
 }
 
 function resolveProfiles(model, options) {
@@ -151,9 +127,11 @@ function applyProfileOverrides(model, resolver) {
         ...merged,
         easingCurve: compileAboutNarrativeCameraEasing(merged.easing),
         quaternion: writeAboutNarrativeCameraQuaternion([0, 0, 0, 1], merged.rotation),
-        reducedQuaternion: writeAboutNarrativeCameraQuaternion([0, 0, 0, 1], merged.rotation, { zeroRoll: true }),
       };
     })
+    .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id));
+  const visibilityKeys = model.tracks.visibility.keys
+    .map((key) => ({ ...key, ...(overrides.visibility[key.id] || {}) }))
     .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id));
   const authoredWorlds = model.tracks.worlds.objects
     .map((world) => mergeWorld(world, overrides.worlds[world.id]))
@@ -174,7 +152,7 @@ function applyProfileOverrides(model, resolver) {
   const interactionClips = model.tracks.interactions.clips
     .map((clip) => ({ ...clip, ...(overrides.interactions[clip.id] || {}) }))
     .sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id));
-  return { cameraKeys, worlds, textFields, interactionClips };
+  return { cameraKeys, visibilityKeys, worlds, textFields, interactionClips };
 }
 
 function compileLegacyDisciplineReveal(textFields) {
@@ -194,14 +172,8 @@ function compileLegacyDisciplineReveal(textFields) {
     startWU: Number(field.startWU),
     focusWU: Number(field.focusWU),
     endWU: Number(field.endWU),
-    effectStartWU: Math.min(Number(field.startWU), Number(field.fieldTravelStartWU)),
-    effectEndWU: Math.max(Number(field.endWU), Number(field.fieldTravelEndWU)),
-    fieldTravelStartWU: Number(field.fieldTravelStartWU),
-    fieldTravelEndWU: Number(field.fieldTravelEndWU),
-    fieldTravelWU: Number(choreography.fieldTravelWU),
-    fieldFogStartWU: Number(choreography.fieldFogStartWU),
-    fieldFogEndWU: Number(choreography.fieldFogEndWU),
-    fieldFogStrength: Number(choreography.fieldFogStrength),
+    effectStartWU: Number(field.startWU),
+    effectEndWU: Number(field.endWU),
     staggerWU,
     backgroundFadeWU,
     backgroundFadeEndWU: Number(field.startWU) + backgroundFadeWU,
@@ -215,7 +187,6 @@ function compileLegacyDisciplineReveal(textFields) {
     holdWU,
     labelSequenceEndWU,
     items: choreography.items,
-    backgroundScale: 1,
     sourceType: 'legacy-text',
     source: field,
     field,
@@ -230,10 +201,6 @@ function compileDisciplineReveal(textFields, interactionClips) {
   const startWU = Number(clip.activationWU);
   const effectEndWU = Number(clip.endWU);
   const endWU = Math.min(effectEndWU, startWU + Number(parameters.labelWindowWU));
-  const fieldTravelEndWU = Math.min(
-    effectEndWU,
-    effectStartWU + Number(parameters.fieldTravelDurationWU),
-  );
   const staggerWU = Number(parameters.staggerWU);
   const backgroundFadeWU = Number(parameters.backgroundFadeWU);
   const labelDurationWU = Number(parameters.labelDurationWU);
@@ -245,17 +212,10 @@ function compileDisciplineReveal(textFields, interactionClips) {
     endWU,
     effectStartWU,
     effectEndWU,
-    fieldTravelStartWU: effectStartWU,
-    fieldTravelEndWU,
-    fieldTravelWU: Number(parameters.fieldTravelWU),
-    fieldFogStartWU: Number(parameters.fieldFogStartWU),
-    fieldFogEndWU: Number(parameters.fieldFogEndWU),
-    fieldFogStrength: Number(parameters.fieldFogStrength),
     staggerWU,
     backgroundFadeWU,
     backgroundFadeEndWU: startWU + backgroundFadeWU,
     backgroundOpacity: Number(parameters.backgroundOpacity),
-    backgroundScale: Number(parameters.backgroundScale),
     reconnectOpacity: Number(parameters.reconnectOpacity),
     pointScale: Number(parameters.pointScale),
     restoreDurationWU: Number(parameters.restoreDurationWU),
@@ -275,8 +235,8 @@ function compileDisciplineReveal(textFields, interactionClips) {
 }
 
 /**
- * Compiles either a strict v3 document or a validated v2 migration into the
- * single immutable sectionless plan consumed by live playback.
+ * Compiles one validated schema-v5 document into the immutable sectionless
+ * plan consumed by live playback. Legacy import belongs to persistence.
  */
 export function compileAboutNarrativeRuntimePlan(input, options = {}) {
   const resolvedInput = resolveTrackModel(input);
@@ -341,6 +301,7 @@ export function compileAboutNarrativeRuntimePlan(input, options = {}) {
     durationWU: resolver.storyDurationWU,
     maxStoryWU: resolver.storyDurationWU,
     cameraKeys: tracks.cameraKeys,
+    visibilityKeys: tracks.visibilityKeys,
     worlds: tracks.worlds,
     textFields: tracks.textFields,
     interactionClips: tracks.interactionClips,
@@ -367,18 +328,16 @@ function mix(from, to, progress) {
   return from + ((to - from) * progress);
 }
 
-function writeCameraKey(target, key, fallbackFov, reducedMotion = false) {
+function writeCameraKey(target, key) {
   target.position[0] = key?.position?.[0] ?? 0;
   target.position[1] = key?.position?.[1] ?? 0;
   target.position[2] = key?.position?.[2] ?? 0;
-  const quaternion = (reducedMotion ? key?.reducedQuaternion : key?.quaternion) || [0, 0, 0, 1];
+  const quaternion = key?.quaternion || [0, 0, 0, 1];
   target.quaternion[0] = quaternion[0];
   target.quaternion[1] = quaternion[1];
   target.quaternion[2] = quaternion[2];
   target.quaternion[3] = quaternion[3];
-  target.fov = key?.fov ?? fallbackFov;
-  target.distanceFogStartWU = key?.distanceFogStartWU ?? 8;
-  target.distanceFogEndWU = key?.distanceFogEndWU ?? 18;
+  target.fov = key?.fov ?? 48;
   return target;
 }
 
@@ -398,26 +357,35 @@ function findIndexAtWU(items, storyWU, key) {
   return result;
 }
 
-function sampleCameraInto(keys, storyWU, fallbackFov, reducedMotion, target) {
-  if (!keys.length) return writeCameraKey(target, null, fallbackFov, reducedMotion);
+function sampleCameraInto(keys, storyWU, reducedMotion, target) {
+  if (!keys.length) return writeCameraKey(target, null);
   const fromIndex = findIndexAtWU(keys, storyWU, 'atWU');
   const from = keys[fromIndex];
   const to = keys[Math.min(keys.length - 1, fromIndex + 1)];
   if (reducedMotion || from === to || storyWU <= Number(keys[0].atWU)) {
-    return writeCameraKey(target, storyWU <= Number(keys[0].atWU) ? keys[0] : from, fallbackFov, reducedMotion);
+    return writeCameraKey(target, storyWU <= Number(keys[0].atWU) ? keys[0] : from);
   }
   const spanWU = Math.max(TIME_EPSILON, Number(to.atWU) - Number(from.atWU));
   const progress = applyAboutNarrativeCameraEasing(from.easingCurve, (storyWU - Number(from.atWU)) / spanWU);
   target.position[0] = mix(from.position[0], to.position[0], progress);
   target.position[1] = mix(from.position[1], to.position[1], progress);
   target.position[2] = mix(from.position[2], to.position[2], progress);
-  const fromQuaternion = reducedMotion ? from.reducedQuaternion : from.quaternion;
-  const toQuaternion = reducedMotion ? to.reducedQuaternion : to.quaternion;
-  slerpAboutNarrativeCameraQuaternionInto(target.quaternion, fromQuaternion, toQuaternion, progress);
+  slerpAboutNarrativeCameraQuaternionInto(target.quaternion, from.quaternion, to.quaternion, progress);
   target.fov = mix(from.fov, to.fov, progress);
-  target.distanceFogStartWU = mix(from.distanceFogStartWU, to.distanceFogStartWU, progress);
-  target.distanceFogEndWU = mix(from.distanceFogEndWU, to.distanceFogEndWU, progress);
   return target;
+}
+
+function sampleVisibility(keys, storyWU, reducedMotion) {
+  if (!keys.length) return 1;
+  const fromIndex = findIndexAtWU(keys, storyWU, 'atWU');
+  const from = keys[fromIndex];
+  const to = keys[Math.min(keys.length - 1, fromIndex + 1)];
+  if (reducedMotion || from === to || storyWU <= Number(keys[0].atWU)) {
+    return Number(storyWU <= Number(keys[0].atWU) ? keys[0].visibility : from.visibility);
+  }
+  const spanWU = Math.max(TIME_EPSILON, Number(to.atWU) - Number(from.atWU));
+  const progress = applyEasing(from.easing, (storyWU - Number(from.atWU)) / spanWU);
+  return mix(Number(from.visibility), Number(to.visibility), progress);
 }
 
 function isActiveAt(storyWU, startWU, endWU, durationWU) {
@@ -594,8 +562,6 @@ function writeDisciplineReveal(target, config, storyWU, durationWU, reducedMotio
   target.storyWU = storyWU;
   target.startWU = config.startWU;
   target.endWU = config.endWU;
-  target.fieldTravelStartWU = config.fieldTravelStartWU;
-  target.fieldTravelEndWU = config.fieldTravelEndWU;
   target.staggerWU = config.staggerWU;
   target.backgroundFadeWU = config.backgroundFadeWU;
   target.labelDurationWU = config.labelDurationWU;
@@ -610,9 +576,6 @@ function writeDisciplineReveal(target, config, storyWU, durationWU, reducedMotio
   );
   target.labelActive = isActiveAt(storyWU, config.startWU, config.endWU, durationWU);
   target.settled = reducedMotion;
-  target.fieldTravelProgress = reducedMotion
-    ? (storyWU >= config.startWU ? 1 : 0)
-    : smoothRange(storyWU, config.fieldTravelStartWU, config.fieldTravelEndWU);
   target.backgroundProgress = reducedMotion
     ? (target.labelActive ? 1 : 0)
     : smoothRange(storyWU, config.startWU, config.backgroundFadeEndWU);
@@ -631,8 +594,6 @@ export function createAboutNarrativeRuntimeFrameSample() {
     position: [0, 0, 0],
     quaternion: [0, 0, 0, 1],
     fov: 48,
-    distanceFogStartWU: 8,
-    distanceFogEndWU: 18,
   };
   const disciplineReveal = {
     id: '',
@@ -640,8 +601,6 @@ export function createAboutNarrativeRuntimeFrameSample() {
     storyWU: 0,
     startWU: 0,
     endWU: 0,
-    fieldTravelStartWU: 0,
-    fieldTravelEndWU: 0,
     staggerWU: 0,
     backgroundFadeWU: 0,
     labelDurationWU: 0,
@@ -651,7 +610,6 @@ export function createAboutNarrativeRuntimeFrameSample() {
     active: false,
     labelActive: false,
     settled: false,
-    fieldTravelProgress: 0,
     backgroundProgress: 0,
     restoreProgress: 0,
   };
@@ -669,8 +627,9 @@ export function createAboutNarrativeRuntimeFrameSample() {
       position: [0, 0, 0],
       quaternion: [0, 0, 0, 1],
       fov: 48,
-      distanceFogStartWU: 8,
-      distanceFogEndWU: 18,
+    },
+    simulation: {
+      visibility: 1,
     },
     world: {
       from: null,
@@ -728,11 +687,9 @@ export function sampleAboutNarrativeRuntimePlanInto(
   const activeWorldIndex = findIndexAtWU(plan.worlds, clampedStoryWU, 'startWU');
   const toWorld = plan.worlds[activeWorldIndex] || null;
   const fromWorld = plan.worlds[Math.max(0, activeWorldIndex - 1)] || toWorld;
-  const cameraStoryWU = reducedMotion && toWorld ? Number(toWorld.startWU) : clampedStoryWU;
   const cameraKey = sampleCameraInto(
     plan.cameraKeys,
-    cameraStoryWU,
-    plan.model.globals.camera.fov,
+    clampedStoryWU,
     reducedMotion,
     target._cameraKey,
   );
@@ -743,9 +700,12 @@ export function sampleAboutNarrativeRuntimePlanInto(
   target.camera.quaternion[1] = cameraKey.quaternion[1];
   target.camera.quaternion[2] = cameraKey.quaternion[2];
   target.camera.quaternion[3] = cameraKey.quaternion[3];
-  target.camera.fov = reducedMotion ? plan.model.globals.camera.fov : cameraKey.fov;
-  target.camera.distanceFogStartWU = cameraKey.distanceFogStartWU;
-  target.camera.distanceFogEndWU = cameraKey.distanceFogEndWU;
+  target.camera.fov = cameraKey.fov;
+  target.simulation.visibility = sampleVisibility(
+    plan.visibilityKeys,
+    clampedStoryWU,
+    reducedMotion,
+  );
 
   target.globals = plan.model.globals;
   target.storyWU = clampedStoryWU;

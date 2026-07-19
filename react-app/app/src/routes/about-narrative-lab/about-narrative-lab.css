@@ -135,6 +135,24 @@ body.about-narrative-page .route-simulation-layer {
   transform-style: preserve-3d;
 }
 
+.about-narrative-opening-copy {
+  position: relative;
+  opacity: var(--fragment-opacity, 0);
+  filter: blur(var(--fragment-blur, 22px));
+  color: var(--text-primary);
+  text-shadow: 0 1px 24px color-mix(in srgb, var(--studio-window-bg) 52%, transparent);
+  transform:
+    translate3d(
+      var(--fragment-x, 0px),
+      var(--fragment-y, -110px),
+      var(--fragment-z, -360px)
+    );
+  transform-origin: center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: opacity, filter, transform;
+}
+
 .about-narrative-spatial-title {
   display: grid;
   grid-area: 1 / 1;
@@ -836,6 +854,7 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-lab[data-about-motion-profile='reduced'] [data-editorial-line],
+.about-narrative-lab[data-about-motion-profile='reduced'] .about-narrative-opening-copy,
 .about-narrative-lab[data-about-motion-profile='reduced'] .about-narrative-spatial-title,
 .about-narrative-lab[data-about-motion-profile='reduced'] .about-narrative-finale-cta {
   filter: none;
@@ -848,6 +867,11 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-lab[data-about-motion-profile='reduced'] .about-narrative-spatial-title {
+  opacity: var(--fragment-opacity, 0);
+  transform: none;
+}
+
+.about-narrative-lab[data-about-motion-profile='reduced'] .about-narrative-opening-copy {
   opacity: var(--fragment-opacity, 0);
   transform: none;
 }

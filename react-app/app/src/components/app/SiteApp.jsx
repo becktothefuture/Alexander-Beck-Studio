@@ -67,6 +67,8 @@ import { applyActiveRouteCursorColor } from '../../legacy/modules/visual/colors.
 import { isDarkThemeDocument } from '../../lib/theme-state.js';
 import { getRouteById } from '../../lib/routes.js';
 import { syncTimeOfDayPaletteCssVars } from '../../palette/timeOfDayPalette.js';
+import { createEntranceSequence } from '../../lib/motion/entrance-sequence.js';
+import { dispatchRouteEntranceStart } from '../../lib/motion/route-entrance-events.js';
 
 syncTimeOfDayPaletteCssVars({ isDarkMode: isDarkThemeDocument() });
 
@@ -217,6 +219,32 @@ function shouldDeferBootStateForHold() {
   }
 }
 
+const ABOUT_SCENE_READY_EVENT = 'abs:about-scene-ready';
+const ABOUT_SCENE_READY_TIMEOUT_MS = 3200;
+
+function isAboutNarrativeSceneReady() {
+  return document.querySelector('[data-route-content="about"], [data-route-content="about-narrative-lab"]')
+    ?.dataset.aboutSceneReady === 'true';
+}
+
+function waitForAboutNarrativeSceneReady(isCancelled) {
+  if (isAboutNarrativeSceneReady()) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let settled = false;
+    let timeoutId = 0;
+    const finish = (ready) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      window.removeEventListener(ABOUT_SCENE_READY_EVENT, handleReady);
+      resolve(ready);
+    };
+    const handleReady = () => finish(!isCancelled?.());
+    timeoutId = window.setTimeout(() => finish(false), ABOUT_SCENE_READY_TIMEOUT_MS);
+    window.addEventListener(ABOUT_SCENE_READY_EVENT, handleReady);
+  });
+}
+
 async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {}) {
   if (typeof document === 'undefined') return;
   if (isStandaloneRoute || routeId === 'home') return;
@@ -248,6 +276,18 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
     return;
   }
 
+  const isAboutNarrativeRoute = routeId === 'about' || routeId === 'about-narrative-lab';
+  if (isAboutNarrativeRoute) {
+    await waitForAboutNarrativeSceneReady(options.isCancelled);
+    if (options.isCancelled?.()) return;
+  }
+
+  const routeContent = document.querySelector(`[data-route-content="${routeId}"]`);
+  const directEntrance = (isAboutNarrativeRoute || routeId === 'contact') && routeContent
+    ? createEntranceSequence({ scopes: routeContent, profile: 'route' })
+    : null;
+  directEntrance?.stage();
+
   root.classList.add('abs-direct-boot-ready', 'entrance-complete', 'ui-entered');
 
   if (options.deferBootState === true) return;
@@ -261,6 +301,10 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
   void completeDirectBoot({
     detail: shouldDeferBootStateForHold() ? 'held' : 'shell-route-ready',
     selectors: ['#abs-scene', '#app-frame'],
+    onOverlayHidden: async () => {
+      dispatchRouteEntranceStart(routeId, 'direct');
+      await directEntrance?.play();
+    },
   });
 }
 

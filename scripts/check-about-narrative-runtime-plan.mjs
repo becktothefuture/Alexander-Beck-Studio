@@ -20,17 +20,14 @@ import {
 import {
   ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
   migrateAboutNarrativeVersion2To3,
+  migrateAboutNarrativeVersion3To4,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
+import { loadAboutNarrativeTrackSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackPersistence.js';
 import {
   migrateLegacyAboutNarrativeCameraPose,
   writeAboutNarrativeCameraQuaternion,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraRig.js';
-import {
-  applyAboutNarrativeCameraEasing,
-  compileAboutNarrativeCameraEasing,
-} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraEasing.js';
-
-const canonical = JSON.parse(await readFile(
+const canonicalSource = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
 ));
@@ -38,10 +35,12 @@ const legacy = JSON.parse(await readFile(
   new URL('./fixtures/about-narrative/contents-about-v2.json', import.meta.url),
   'utf8',
 ));
-const legacyV3 = JSON.parse(await readFile(
-  new URL('./fixtures/about-narrative/contents-about-v3.json', import.meta.url),
-  'utf8',
-));
+const loadCurrent = (source) => {
+  const loaded = loadAboutNarrativeTrackSource(source);
+  assert.equal(loaded.valid, true);
+  return loaded.document;
+};
+const canonical = loadCurrent(canonicalSource);
 
 function assertClose(actual, expected, label, tolerance = 0.00001) {
   assert.ok(
@@ -72,6 +71,7 @@ function seededStorySamples(durationWU, count = 500) {
 function boundarySamples(plan) {
   const boundaries = [0, plan.durationWU];
   plan.cameraKeys.forEach((key) => boundaries.push(key.atWU));
+  plan.visibilityKeys.forEach((key) => boundaries.push(key.atWU));
   plan.worlds.forEach((world) => boundaries.push(
     world.startWU,
     world.transitionIn.startWU,
@@ -86,51 +86,24 @@ function boundarySamples(plan) {
     .map((value) => Math.max(0, Math.min(plan.durationWU, value)));
 }
 
-function mix(from, to, progress) {
-  return Number(from) + ((Number(to) - Number(from)) * progress);
-}
-
-function sampleLegacyV3Camera(storyWU) {
-  const keys = legacyV3.tracks.camera.keys;
-  let fromIndex = 0;
-  while (fromIndex + 1 < keys.length && storyWU > Number(keys[fromIndex + 1].atWU)) fromIndex += 1;
-  const from = keys[fromIndex];
-  const to = keys[Math.min(keys.length - 1, fromIndex + 1)];
-  const rawProgress = from === to ? 0 : (storyWU - Number(from.atWU)) / (Number(to.atWU) - Number(from.atWU));
-  const progress = from === to ? 0 : applyAboutNarrativeCameraEasing(
-    compileAboutNarrativeCameraEasing(from.easing),
-    rawProgress,
-  );
-  const legacyKey = {
-    atWU: storyWU,
-    offset: from.offset.map((value, index) => mix(value, to.offset[index], progress)),
-    lookAtOffset: from.lookAtOffset.map((value, index) => mix(value, to.lookAtOffset[index], progress)),
-    roll: mix(from.roll, to.roll, progress),
-  };
-  const pose = migrateLegacyAboutNarrativeCameraPose(legacyKey, legacyV3.globals);
-  return {
-    position: pose.position,
-    quaternion: writeAboutNarrativeCameraQuaternion([0, 0, 0, 1], pose.rotation),
-    fov: mix(from.fov, to.fov, progress),
-  };
-}
-
-function quaternionDifferenceDegrees(left, right) {
-  const dot = Math.min(1, Math.abs(left.reduce((total, value, index) => (
-    total + (value * right[index])
-  ), 0)));
-  return (2 * Math.acos(dot) * 180) / Math.PI;
-}
-
-test('runtime plan migrates v2/v3 or accepts strict v4 without authored Section state', () => {
-  const fromV2 = compileAboutNarrativeRuntimePlan(legacy, { layoutProfile: 'desktop' });
+test('runtime accepts schema v5 only after legacy input crosses the persistence boundary', () => {
+  const rejectedV2 = compileAboutNarrativeRuntimePlan(legacy, { layoutProfile: 'desktop' });
   const migratedV3 = migrateAboutNarrativeVersion2To3(legacy);
-  const fromMigratedV3 = compileAboutNarrativeRuntimePlan(migratedV3, { layoutProfile: 'desktop' });
-  const fromCanonicalV4 = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  const rejectedV3 = compileAboutNarrativeRuntimePlan(migratedV3, { layoutProfile: 'desktop' });
+  const rejectedV4 = compileAboutNarrativeRuntimePlan(
+    migrateAboutNarrativeVersion3To4(migratedV3),
+    { layoutProfile: 'desktop' },
+  );
+  const fromV2 = compileAboutNarrativeRuntimePlan(loadCurrent(legacy), { layoutProfile: 'desktop' });
+  const fromMigratedV3 = compileAboutNarrativeRuntimePlan(loadCurrent(migratedV3), { layoutProfile: 'desktop' });
+  const fromCanonicalV5 = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
 
+  assert.equal(rejectedV2.valid, false);
+  assert.equal(rejectedV3.valid, false);
+  assert.equal(rejectedV4.valid, false);
   assert.equal(fromV2.valid, true);
   assert.equal(fromMigratedV3.valid, true);
-  assert.equal(fromCanonicalV4.valid, true);
+  assert.equal(fromCanonicalV5.valid, true);
   assert.equal(fromV2.model.schemaVersion, ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION);
   assert.equal(fromV2.layoutProfile, 'desktop');
   assert.equal(fromV2.pointProfile, 'desktop');
@@ -140,7 +113,7 @@ test('runtime plan migrates v2/v3 or accepts strict v4 without authored Section 
   assert.deepEqual(fromV2.cameraKeys, fromMigratedV3.cameraKeys);
   assert.deepEqual(fromV2.worlds, fromMigratedV3.worlds);
   assert.equal('sections' in fromV2, false);
-  assert.equal('sections' in fromCanonicalV4, false);
+  assert.equal('sections' in fromCanonicalV5, false);
   assert.equal('sectionIndex' in sampleAboutNarrativeRuntimePlan(fromV2, 0), false);
   assert.equal('localProgress' in sampleAboutNarrativeRuntimePlan(fromV2, 0), false);
 });
@@ -171,7 +144,7 @@ test('compiled Worlds derive endWU and anchorRailZ and preparation uses stable W
 test('legacy Camera migration preserves every authored key pose and World boundary', () => {
   const legacyPlan = compileAboutNarrativeDocument(legacy, { profile: 'desktop' });
   const migratedV3 = migrateAboutNarrativeVersion2To3(legacy);
-  const plan = compileAboutNarrativeRuntimePlan(legacy, { layoutProfile: 'desktop' });
+  const plan = compileAboutNarrativeRuntimePlan(loadCurrent(legacy), { layoutProfile: 'desktop' });
   const samples = migratedV3.tracks.camera.keys.map((key) => key.atWU);
 
   samples.forEach((storyWU) => {
@@ -187,61 +160,29 @@ test('legacy Camera migration preserves every authored key pose and World bounda
   });
 });
 
-test('absolute support keys retain the untouched opening camera span', () => {
-  const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
-  const legacyBoundaries = legacyV3.tracks.camera.keys.flatMap((key) => [
-    Math.max(0, key.atWU - 0.000001),
-    key.atWU,
-    Math.min(plan.durationWU, key.atWU + 0.000001),
-  ]);
-  const samples = [...seededStorySamples(plan.durationWU, 1000), ...legacyBoundaries]
-    .filter((storyWU) => storyWU <= 7.17);
-
-  samples.forEach((storyWU) => {
-    const expected = sampleLegacyV3Camera(storyWU);
-    const actual = sampleAboutNarrativeRuntimePlan(plan, storyWU).camera;
-    const positionError = Math.hypot(...expected.position.map((value, index) => (
-      value - actual.position[index]
-    )));
-    assert.ok(positionError <= 0.12, `Camera position drifted ${positionError} WU at ${storyWU} WU.`);
-    const rotationError = quaternionDifferenceDegrees(expected.quaternion, actual.quaternion);
-    assert.ok(rotationError <= 1.5, `Camera rotation drifted ${rotationError}° at ${storyWU} WU.`);
-    assertClose(actual.fov, expected.fov, `camera.fov @ ${storyWU}`, 0.25);
-  });
-
-  for (const storyWU of [10, 15, 21.8]) {
-    const expected = sampleLegacyV3Camera(storyWU);
-    const actual = sampleAboutNarrativeRuntimePlan(plan, storyWU).camera;
-    const positionError = Math.hypot(...expected.position.map((value, index) => (
-      value - actual.position[index]
-    )));
-    assert.ok(positionError > 0.5, `Camera should retain the art-directed pose at ${storyWU} WU.`);
-  }
-});
-
-test('Camera distance fog interpolates between consecutive keyframes', () => {
+test('Camera fog is one global pair and never interpolates per key', () => {
   const document = structuredClone(canonical);
   const [from, to] = document.tracks.camera.keys;
   from.easing = 'linear';
-  from.distanceFogStartWU = 4;
-  from.distanceFogEndWU = 10;
-  to.distanceFogStartWU = 12;
-  to.distanceFogEndWU = 22;
+  document.globals.camera.distanceFogStartWU = 4;
+  document.globals.camera.distanceFogEndWU = 22;
   const plan = compileAboutNarrativeRuntimePlan(document, { layoutProfile: 'desktop' });
   const midpoint = (Number(from.atWU) + Number(to.atWU)) / 2;
 
   assert.equal(plan.valid, true);
-  assertClose(sampleAboutNarrativeRuntimePlan(plan, Number(from.atWU)).camera.distanceFogStartWU, 4, 'fog start at first key');
-  assertClose(sampleAboutNarrativeRuntimePlan(plan, Number(from.atWU)).camera.distanceFogEndWU, 10, 'fog end at first key');
-  assertClose(sampleAboutNarrativeRuntimePlan(plan, midpoint).camera.distanceFogStartWU, 8, 'fog start at midpoint');
-  assertClose(sampleAboutNarrativeRuntimePlan(plan, midpoint).camera.distanceFogEndWU, 16, 'fog end at midpoint');
-  assertClose(sampleAboutNarrativeRuntimePlan(plan, Number(to.atWU)).camera.distanceFogStartWU, 12, 'fog start at second key');
-  assertClose(sampleAboutNarrativeRuntimePlan(plan, Number(to.atWU)).camera.distanceFogEndWU, 22, 'fog end at second key');
+  [Number(from.atWU), midpoint, Number(to.atWU)].forEach((storyWU) => {
+    const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
+    assertClose(frame.globals.camera.distanceFogStartWU, 4, `fog start at ${storyWU}`);
+    assertClose(frame.globals.camera.distanceFogEndWU, 22, `fog end at ${storyWU}`);
+    assert.equal('distanceFogStartWU' in frame.camera, false);
+    assert.equal('distanceFogEndWU' in frame.camera, false);
+  });
+  assert.deepEqual(Object.keys(from).sort(), ['atWU', 'easing', 'fov', 'id', 'locked', 'position', 'rotation']);
 });
 
 test('absolute title windows match migrated legacy Cue timing with half-open ends', () => {
   const legacyPlan = compileAboutNarrativeDocument(legacy, { profile: 'desktop' });
-  const plan = compileAboutNarrativeRuntimePlan(legacy, { layoutProfile: 'desktop' });
+  const plan = compileAboutNarrativeRuntimePlan(loadCurrent(legacy), { layoutProfile: 'desktop' });
   const titleIds = new Set(plan.textFields.filter((field) => field.kind === 'title').map((field) => field.id));
   const titleWindows = legacyPlan.sections.flatMap((section) => (
     (section.text.cues || []).map((cue) => {
@@ -278,7 +219,7 @@ test('absolute title windows match migrated legacy Cue timing with half-open end
 
 test('absolute spatial Title sampling matches legacy motion at randomized and boundary WU', () => {
   const legacyPlan = compileAboutNarrativeDocument(legacy, { profile: 'desktop' });
-  const plan = compileAboutNarrativeRuntimePlan(legacy, { layoutProfile: 'desktop' });
+  const plan = compileAboutNarrativeRuntimePlan(loadCurrent(legacy), { layoutProfile: 'desktop' });
   const textMotion = legacy.globals.textMotion;
   const target = createAboutNarrativeTitleFieldSample();
   let randomState = 0x243f6a88;
@@ -429,6 +370,38 @@ test('grid ripple attacks, sustains, releases, and settles for Reduced Motion', 
   assert.equal(reduced.interactions.effectWeight, 0);
 });
 
+test('Visibility uses outgoing-key easing, profile overrides, and Reduced Motion step sampling', () => {
+  const document = structuredClone(canonical);
+  const durationWU = document.profiles.desktop.storyDurationWU;
+  const middleWU = durationWU / 2;
+  document.tracks.visibility.keys = [
+    { id: 'visibility-start', atWU: 0, visibility: 0, easing: 'smoothstep', locked: true },
+    { id: 'visibility-middle', atWU: middleWU, visibility: 1, easing: 'ease-in-out', locked: false },
+    { id: 'visibility-end', atWU: durationWU, visibility: 0, easing: 'linear', locked: true },
+  ];
+  document.profiles.mobile.overrides.visibility['visibility-middle'] = { visibility: 0.6 };
+
+  const full = compileAboutNarrativeRuntimePlan(document, { layoutProfile: 'desktop' });
+  assert.equal(full.valid, true);
+  assertClose(
+    sampleAboutNarrativeRuntimePlan(full, middleWU * 0.25).simulation.visibility,
+    0.15625,
+    'outgoing smoothstep visibility',
+  );
+  assert.equal(sampleAboutNarrativeRuntimePlan(full, middleWU).simulation.visibility, 1);
+
+  const mobile = compileAboutNarrativeRuntimePlan(document, { layoutProfile: 'mobile' });
+  assert.equal(mobile.valid, true);
+  assert.equal(sampleAboutNarrativeRuntimePlan(mobile, middleWU).simulation.visibility, 0.6);
+
+  const reduced = compileAboutNarrativeRuntimePlan(document, {
+    layoutProfile: 'desktop',
+    motionProfile: 'reduced',
+  });
+  assert.equal(sampleAboutNarrativeRuntimePlan(reduced, middleWU - 0.000001).simulation.visibility, 0);
+  assert.equal(sampleAboutNarrativeRuntimePlan(reduced, middleWU).simulation.visibility, 1);
+});
+
 test('Discipline reveal exposes absolute WU choreography and extended effect checkpoints', () => {
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const reveal = plan.disciplineReveal;
@@ -436,15 +409,20 @@ test('Discipline reveal exposes absolute WU choreography and extended effect che
   assert.equal(reveal.sourceType, 'motion');
   assert.equal(reveal.motion.type, 'discipline-reveal');
   assert.equal(plan.textFields.some((field) => field.kind === 'discipline-reveal'), false);
-  assert.equal(reveal.motion.targetWorldId, 'world-background');
+  assert.equal(reveal.motion.targetWorldId, 'world-grid');
   assert.ok(reveal.staggerWU > 0);
   assert.ok(reveal.backgroundFadeWU > 0);
   assert.ok(reveal.labelDurationWU > 0);
   assert.ok(reveal.holdWU > 0);
   assert.ok(reveal.restoreDurationWU > 0);
   assert.ok(reveal.labelSequenceEndWU <= reveal.endWU + 0.000001);
+  assert.equal('fieldTravelStartWU' in reveal, false);
+  assert.equal('fieldTravelEndWU' in reveal, false);
+  ['fieldTravelDurationWU', 'fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'backgroundScale']
+    .forEach((key) => assert.equal(key in reveal.motion.parameters, false, `${key} must be removed`));
 
-  const travel = sampleAboutNarrativeRuntimePlan(plan, reveal.fieldTravelStartWU + 0.000001).disciplineReveal;
+  const entering = sampleAboutNarrativeRuntimePlan(plan, reveal.effectStartWU + 0.000001).disciplineReveal;
+  assert.equal('fieldTravelProgress' in entering, false);
   const labels = sampleAboutNarrativeRuntimePlan(plan, reveal.startWU + reveal.staggerWU).disciplineReveal;
   const restoring = sampleAboutNarrativeRuntimePlan(
     plan,
@@ -452,7 +430,7 @@ test('Discipline reveal exposes absolute WU choreography and extended effect che
   ).disciplineReveal;
   const restored = sampleAboutNarrativeRuntimePlan(plan, reveal.effectEndWU - 0.000001).disciplineReveal;
   const handoff = sampleAboutNarrativeRuntimePlan(plan, reveal.endWU + 0.000001).disciplineReveal;
-  assert.equal(travel.active, true);
+  assert.equal(entering.active, true);
   assert.equal(labels.labelActive, true);
   assertClose(labels.elapsedWU, reveal.staggerWU, 'discipline elapsed');
   assert.ok(restoring.restoreProgress > 0 && restoring.restoreProgress < 1);
@@ -461,21 +439,27 @@ test('Discipline reveal exposes absolute WU choreography and extended effect che
   assert.equal(handoff.active, reveal.endWU + 0.000001 < reveal.effectEndWU);
 });
 
-test('Reduced Motion settles Camera, transitions, and ambient time without dropping Text', () => {
-  const plan = compileAboutNarrativeRuntimePlan(canonical, {
+test('Reduced Motion step-samples the current authored Camera FOV and full roll', () => {
+  const document = structuredClone(canonical);
+  document.tracks.camera.keys[0].rotation = [12, -18, 37];
+  document.tracks.camera.keys[0].fov = 39;
+  const plan = compileAboutNarrativeRuntimePlan(document, {
     layoutProfile: 'desktop',
     motionProfile: 'reduced',
   });
-  const world = plan.worlds[1];
-  const firstWU = world.startWU + 0.1;
-  const secondWU = Math.min(world.endWU - 0.1, world.startWU + 0.4);
+  const [firstKey, secondKey] = plan.cameraKeys;
+  const firstWU = (firstKey.atWU + secondKey.atWU) / 2;
   const first = sampleAboutNarrativeRuntimePlan(plan, firstWU, { ambientSeconds: 10 });
-  const second = sampleAboutNarrativeRuntimePlan(plan, secondWU, { ambientSeconds: 20 });
+  const second = sampleAboutNarrativeRuntimePlan(plan, secondKey.atWU, { ambientSeconds: 20 });
   assert.equal(first.reducedMotion, true);
   assert.equal(first.ambientTime, 0);
   assert.equal(first.world.transitionProgress, 1);
-  assert.deepEqual(first.camera.position, second.camera.position);
-  assert.deepEqual(first.camera.quaternion, second.camera.quaternion);
+  assert.deepEqual(first.camera.position, firstKey.position);
+  assert.deepEqual(first.camera.quaternion, firstKey.quaternion);
+  assert.equal(first.camera.fov, 39);
+  assert.deepEqual(second.camera.position, secondKey.position);
+  assert.deepEqual(second.camera.quaternion, secondKey.quaternion);
+  assert.equal(second.camera.fov, secondKey.fov);
 
   const title = plan.textFields.find((field) => field.kind === 'title' && field.startWU < field.focusWU);
   const semanticFrame = sampleAboutNarrativeRuntimePlan(plan, title.focusWU);
@@ -486,6 +470,7 @@ test('layout profile overrides apply completely by stable object ID without sour
   const model = structuredClone(canonical);
   const original = structuredClone(model);
   const camera = model.tracks.camera.keys[1];
+  const visibility = model.tracks.visibility.keys[1] || model.tracks.visibility.keys[0];
   const world = model.tracks.worlds.objects[0];
   const text = model.tracks.text.fields.find((field) => field.kind === 'title' && !field.protected);
   const clip = model.tracks.interactions.clips[0];
@@ -494,6 +479,10 @@ test('layout profile overrides apply completely by stable object ID without sour
     rotation: [10, 20, 30],
     fov: 44,
     easing: 'ease-in-out',
+  };
+  model.profiles.mobile.overrides.visibility[visibility.id] = {
+    visibility: 0.35,
+    easing: 'linear',
   };
   model.profiles.mobile.overrides.worlds[world.id] = {
     anchorWU: world.anchorWU + 0.1,
@@ -516,6 +505,7 @@ test('layout profile overrides apply completely by stable object ID without sour
   assert.deepEqual(model, candidateBeforeCompile);
   assert.deepEqual(plan.cameraKeys.find((item) => item.id === camera.id).position, [2, 3, 4]);
   assert.deepEqual(plan.cameraKeys.find((item) => item.id === camera.id).rotation, [10, 20, 30]);
+  assert.equal(plan.visibilityKeys.find((item) => item.id === visibility.id).visibility, 0.35);
   const resolvedWorld = plan.worlds.find((item) => item.id === world.id);
   assert.deepEqual(resolvedWorld.transform.position, [1, 2, 3]);
   assert.deepEqual(resolvedWorld.transform.rotation, world.transform.rotation);
@@ -549,6 +539,7 @@ test('runtime sampling retains every caller-owned container identity', () => {
     camera: target.camera,
     cameraPosition: target.camera.position,
     cameraQuaternion: target.camera.quaternion,
+    simulation: target.simulation,
     world: target.world,
     transition: target.world.transition,
     text: target.text,
@@ -572,6 +563,7 @@ test('runtime sampling retains every caller-owned container identity', () => {
     assert.equal(sampled.camera, identities.camera);
     assert.equal(sampled.camera.position, identities.cameraPosition);
     assert.equal(sampled.camera.quaternion, identities.cameraQuaternion);
+    assert.equal(sampled.simulation, identities.simulation);
     assert.equal(sampled.world, identities.world);
     assert.equal(sampled.world.transition, identities.transition);
     assert.equal(sampled.text, identities.text);

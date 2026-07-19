@@ -6,17 +6,19 @@ import {
   createAboutNarrativeTrackModel,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackModel.js';
 import { createAboutNarrativeTrackEditorStore } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackEditorStore.js';
+import { loadAboutNarrativeTrackSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackPersistence.js';
 
-const canonical = JSON.parse(await readFile(
+const canonicalV4 = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
 ));
+const canonical = loadAboutNarrativeTrackSource(canonicalV4).document;
 
 const createModel = () => structuredClone(createAboutNarrativeTrackModel(canonical));
 const getTitle = (document, index = 0) => document.tracks.text.fields.filter((field) => field.kind === 'title')[index];
 const bytes = (value) => JSON.stringify(value);
 
-test('v4 store owns its input, compiles once, normalizes selection, and publishes subscriptions', () => {
+test('v5 store owns its input, compiles once, normalizes selection, and publishes subscriptions', () => {
   const input = createModel();
   const selected = getTitle(input);
   let publications = 0;
@@ -149,7 +151,7 @@ test('World end gestures ripple later Worlds, stay contiguous, and undo as one c
 
 test('Motion edge gestures preserve activation and commit repeated previews as one command', () => {
   const model = createModel();
-  const motion = model.tracks.interactions.clips.find((clip) => !clip.locked && !clip.protected);
+  const motion = model.tracks.interactions.clips.find((clip) => clip.type === 'grid-ripple');
   assert.ok(motion, 'The canonical editor model needs an editable Motion clip.');
   const original = {
     startWU: motion.startWU,
@@ -241,7 +243,7 @@ test('selection normalizes after object removal instead of retaining stale objec
   assert.deepEqual(store.getSnapshot().selection, { type: 'track', id: 'text' });
 });
 
-test('store-backed pure operations create, move, copy, paste, duplicate, and delete valid v4 objects', () => {
+test('store-backed pure operations create, move, copy, paste, duplicate, and delete valid v5 objects', () => {
   const store = createAboutNarrativeTrackEditorStore(createModel());
   assert.equal(store.createObject({ track: 'text', kind: 'title', atWU: 7.1 }), true);
   const titleId = store.getSnapshot().selection.id;
@@ -271,6 +273,29 @@ test('store-backed pure operations create, move, copy, paste, duplicate, and del
   assert.equal(store.deleteSelection(), true);
   assert.equal(store.getSnapshot().document.tracks.text.fields.some((field) => field.id === duplicatedId), false);
   assert.equal(compileAboutNarrativeTrackModel(store.getSnapshot().document).valid, true);
+});
+
+test('Visibility insertion samples the published value without a jump and remains undoable', () => {
+  const model = createModel();
+  const durationWU = model.profiles.desktop.storyDurationWU;
+  model.tracks.visibility.keys = [
+    { id: 'visibility-start', atWU: 0, visibility: 0.2, easing: 'linear', locked: true },
+    { id: 'visibility-end', atWU: durationWU, visibility: 0.8, easing: 'linear', locked: true },
+  ];
+  const store = createAboutNarrativeTrackEditorStore(model);
+  const atWU = durationWU / 2;
+
+  assert.equal(store.createObject({ track: 'visibility', atWU }), true);
+  const selection = store.getSnapshot().selection;
+  assert.equal(selection.type, 'visibility-key');
+  const inserted = store.getSnapshot().document.tracks.visibility.keys
+    .find((key) => key.id === selection.id);
+  assert.equal(inserted.atWU, atWU);
+  assert.ok(Math.abs(inserted.visibility - 0.5) < 0.000001);
+  assert.equal(store.getSnapshot().compiledPlan.valid, true);
+
+  assert.equal(store.undo(), true);
+  assert.equal(store.getSnapshot().document.tracks.visibility.keys.length, 2);
 });
 
 function getAboutNarrativeTrackObjectTime(document, id) {

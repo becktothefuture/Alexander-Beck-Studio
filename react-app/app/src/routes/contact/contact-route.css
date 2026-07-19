@@ -25,16 +25,6 @@
   z-index: 1;
 }
 
-.contact-route .route-centered-page__title {
-  font-size: calc(var(--route-entry-title-size) * 1.15);
-}
-
-.contact-route .route-centered-page__description {
-  max-width: 50.4ch;
-  line-height: 1.485;
-  text-wrap: balance;
-}
-
 @media (prefers-reduced-motion: reduce) {
   #simulations .contact-ripple-canvas {
     transform: none;

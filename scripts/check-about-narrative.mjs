@@ -64,7 +64,7 @@ import {
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeWorldClips.js';
 import {
   migrateAboutNarrativeVersion2To3,
-  migrateAboutNarrativeVersion2To4,
+  migrateAboutNarrativeVersion2To5,
   serializeAboutNarrativeTrackDocument,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
 import { migrateLegacyAboutNarrativeCameraPose } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraRig.js';
@@ -80,6 +80,7 @@ import {
 const configPath = resolve('scripts/fixtures/about-narrative/contents-about-v2.json');
 const designSystemPath = resolve('react-app/app/public/config/design-system.json');
 const canonical = normalizeAboutNarrativeDocument(JSON.parse(await readFile(configPath, 'utf8')));
+const canonicalTrack = migrateAboutNarrativeVersion2To5(canonical);
 const designSystem = JSON.parse(await readFile(designSystemPath, 'utf8'));
 const cueTrack = canonical.sections.find((section) => Array.isArray(section.text?.cues) && section.text.cues.length >= 3);
 assert.ok(cueTrack, 'Canonical document needs one multi-cue track for editor behavior fixtures.');
@@ -157,8 +158,8 @@ test('compiler derives a single ordered WU sequence', () => {
   assert.equal(plan.totalExtentWU, canonical.sections.reduce((sum, section) => sum + section.extentWU, 0));
 });
 
-test('sectionless track-model adapter emits a v4 graph without authored containers', () => {
-  const model = createAboutNarrativeTrackModel(canonical);
+test('sectionless track-model accepts a migrated v5 graph without authored containers', () => {
+  const model = createAboutNarrativeTrackModel(canonicalTrack);
   const validationErrors = validateAboutNarrativeTrackModel(model).filter((item) => item.level === 'error');
   assert.deepEqual(validationErrors, []);
   assert.equal(model.schemaVersion, ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION);
@@ -176,14 +177,14 @@ test('sectionless track-model adapter emits a v4 graph without authored containe
   ['sourceSchemaVersion', 'modelVersion'].forEach((key) => assert.equal(Object.hasOwn(model, key), false));
 });
 
-test('v2 to v4 migration and v4 serialization are byte-deterministic', () => {
-  const first = migrateAboutNarrativeVersion2To4(canonical);
-  const second = migrateAboutNarrativeVersion2To4(structuredClone(canonical));
+test('v2 to v5 migration and v5 serialization are byte-deterministic', () => {
+  const first = migrateAboutNarrativeVersion2To5(canonical);
+  const second = migrateAboutNarrativeVersion2To5(structuredClone(canonical));
   assert.deepEqual(second, first);
   const serialized = serializeAboutNarrativeTrackDocument(first);
   assert.equal(serializeAboutNarrativeTrackDocument(JSON.parse(serialized)), serialized);
   assert.deepEqual(JSON.parse(serialized), first);
-  assert.deepEqual(createAboutNarrativeTrackModel(canonical), first);
+  assert.deepEqual(createAboutNarrativeTrackModel(first), first);
   const forbidden = new Set(['sections', 'groups', 'bands', 'chapters', 'sourceSchemaVersion', 'modelVersion', 'orderIndex', 'endWU', 'baseProfile', 'layoutHint', 'renderSpans']);
   const visit = (value, path = 'document') => {
     if (!value || typeof value !== 'object') return;
@@ -210,16 +211,16 @@ test('v3 migration validates raw v2 before normalization and preserves the rejec
   });
 });
 
-test('strict v4 validation rejects unknown fields, invalid overrides, and publishable stubs', () => {
-  const unknown = migrateAboutNarrativeVersion2To4(canonical);
+test('strict v5 validation rejects unknown fields, invalid overrides, and publishable stubs', () => {
+  const unknown = migrateAboutNarrativeVersion2To5(canonical);
   unknown.tracks.camera.keys[0].sectionId = 'promise';
   assert.ok(validateAboutNarrativeTrackModel(unknown).some((item) => item.code === 'unknown-key'));
 
-  const override = migrateAboutNarrativeVersion2To4(canonical);
+  const override = migrateAboutNarrativeVersion2To5(canonical);
   override.profiles.mobile.overrides.text.missing = { startWU: 1 };
   assert.ok(validateAboutNarrativeTrackModel(override).some((item) => item.code === 'override-target'));
 
-  const stub = migrateAboutNarrativeVersion2To4(canonical);
+  const stub = migrateAboutNarrativeVersion2To5(canonical);
   stub.tracks.text.fields.push({
     id: 'text-planning-stub',
     kind: 'stub',
@@ -233,8 +234,8 @@ test('strict v4 validation rejects unknown fields, invalid overrides, and publis
   assert.ok(validateAboutNarrativeTrackModel(stub).some((item) => item.code === 'stub-publishable'));
 });
 
-test('compiling caller-owned v4 input never freezes it by reference', () => {
-  const document = migrateAboutNarrativeVersion2To4(canonical);
+test('compiling caller-owned v5 input never freezes it by reference', () => {
+  const document = migrateAboutNarrativeVersion2To5(canonical);
   const firstKey = document.tracks.camera.keys[0];
   const plan = compileAboutNarrativeTrackModel(document);
   assert.equal(plan.valid, true);
@@ -246,7 +247,7 @@ test('compiling caller-owned v4 input never freezes it by reference', () => {
 
 test('sectionless track-model adapter treats World starts as the only structural anchors', () => {
   const plan = compileAboutNarrativeDocument(canonical);
-  const model = createAboutNarrativeTrackModel(canonical);
+  const model = createAboutNarrativeTrackModel(canonicalTrack);
   const worldObjects = model.tracks.worlds.objects;
   const setWorldSections = canonical.sections.filter((section) => section.world.mode === 'set');
   assert.deepEqual(
@@ -273,7 +274,7 @@ test('sectionless track-model adapter treats World starts as the only structural
 
 test('sectionless track-model adapter flattens Camera keys into absolute WU', () => {
   const plan = compileAboutNarrativeDocument(canonical);
-  const model = createAboutNarrativeTrackModel(canonical);
+  const model = createAboutNarrativeTrackModel(canonicalTrack);
   const legacyTrack = migrateAboutNarrativeVersion2To3(canonical);
   const expectedKeyCount = canonical.sections.reduce((sum, section) => sum + section.camera.keys.length, 0);
   assert.ok(model.tracks.camera.keys.length >= expectedKeyCount);
@@ -298,7 +299,7 @@ test('sectionless track-model adapter flattens Camera keys into absolute WU', ()
 
 test('sectionless track-model adapter converts Text into independent absolute fields', () => {
   const plan = compileAboutNarrativeDocument(canonical);
-  const model = createAboutNarrativeTrackModel(canonical);
+  const model = createAboutNarrativeTrackModel(canonicalTrack);
   const cueCount = canonical.sections.reduce((sum, section) => sum + (section.text.cues || []).length, 0);
   const blockCount = canonical.sections.reduce((sum, section) => sum + (section.text.blocks || []).length, 0);
   assert.equal(model.tracks.text.fields.filter((field) => field.kind === 'title').length, cueCount);
@@ -331,7 +332,9 @@ test('sectionless track-model adapter converts Text into independent absolute fi
   verticalCue.motion.mode = 'vertical';
   const verticalPlan = compileAboutNarrativeDocument(verticalSource);
   const verticalCompiledSection = verticalPlan.sections.find((section) => section.id === verticalSection.id);
-  const verticalField = createAboutNarrativeTrackModel(verticalSource).tracks.text.fields.find((field) => field.id === `text-${verticalCue.id}`);
+  const verticalField = createAboutNarrativeTrackModel(
+    migrateAboutNarrativeVersion2To5(verticalSource),
+  ).tracks.text.fields.find((field) => field.id === `text-${verticalCue.id}`);
   assert.equal(verticalField.startWU, cleanWU(verticalCompiledSection.startWU + (verticalCue.enter * verticalCompiledSection.travelWU)));
   assert.equal(verticalField.focusWU, cleanWU(verticalCompiledSection.startWU + (verticalCue.hold * verticalCompiledSection.travelWU)));
   assert.equal(verticalField.endWU, cleanWU(verticalCompiledSection.startWU + (verticalCue.exit * verticalCompiledSection.travelWU)));
@@ -343,7 +346,7 @@ test('sectionless track-model adapter converts Text into independent absolute fi
   assert.equal(revealField.id, `text-${reveal.id}`);
   assert.equal(revealField.startWU, cleanWU(revealCompiled.startWU + (reveal.start * revealCompiled.travelWU)));
   assert.equal(revealField.endWU, cleanWU(revealCompiled.startWU + (reveal.end * revealCompiled.travelWU)));
-  assert.equal(revealField.fieldTravelEndWU, cleanWU(revealCompiled.startWU + (reveal.fieldTravelEnd * revealCompiled.travelWU)));
+  assert.equal(Object.hasOwn(revealField, 'fieldTravelEndWU'), false, 'v5 removes legacy discipline field travel');
   assert.equal(revealField.choreography.items.length, 6);
   const choreography = revealField.choreography;
   ['stagger', 'backgroundFade', 'labelDuration', 'hold'].forEach((legacyKey) => {
@@ -386,7 +389,7 @@ test('sectionless track-model adapter converts Text into independent absolute fi
 
 test('sectionless track-model adapter targets interactions at active World objects', () => {
   const plan = compileAboutNarrativeDocument(canonical);
-  const model = createAboutNarrativeTrackModel(canonical);
+  const model = createAboutNarrativeTrackModel(canonicalTrack);
   assert.equal(model.tracks.interactions.clips.length, 1);
   const clip = model.tracks.interactions.clips[0];
   const finale = canonical.sections.at(-1);
@@ -400,7 +403,7 @@ test('sectionless track-model adapter targets interactions at active World objec
 
 test('sectionless track sampler keeps Camera and World samples continuous at fixed WU checkpoints', () => {
   const legacyPlan = compileAboutNarrativeDocument(canonical);
-  const trackPlan = compileAboutNarrativeTrackModel(canonical);
+  const trackPlan = compileAboutNarrativeTrackModel(canonicalTrack);
   assert.equal(trackPlan.valid, true);
   const checkpoints = [
     0,
@@ -424,7 +427,7 @@ test('sectionless track sampler keeps Camera and World samples continuous at fix
 
 test('sectionless track sampler exposes text focus and interaction activation without Section state', () => {
   const legacyPlan = compileAboutNarrativeDocument(canonical);
-  const trackPlan = compileAboutNarrativeTrackModel(canonical);
+  const trackPlan = compileAboutNarrativeTrackModel(canonicalTrack);
   canonical.sections.forEach((section) => {
     const compiled = legacyPlan.sections.find((item) => item.id === section.id);
     (section.text.cues || []).forEach((cue) => {

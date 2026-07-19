@@ -7425,6 +7425,12 @@ body.portfolio-page--locked #simulations {
   text-wrap: pretty;
 }
 
+.route-centered-page__description.route-intro-description {
+  max-width: 50.4ch;
+  line-height: 1.485;
+  text-wrap: balance;
+}
+
 @media (max-width: 600px) {
   :root {
     --route-entry-title-size: calc(

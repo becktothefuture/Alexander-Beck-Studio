@@ -99,7 +99,7 @@ export function ContactRouteContent() {
         <h1 id="contact-route-title" className="route-centered-page__title" data-route-enter="identity" data-route-enter-order="0">
           {title}
         </h1>
-        <p id="contact-route-description" className="route-centered-page__description" data-route-enter="context">
+        <p id="contact-route-description" className="route-centered-page__description route-intro-description" data-route-enter="context">
           {description}
         </p>
         <div className="contact-route__copy" data-route-enter="action">

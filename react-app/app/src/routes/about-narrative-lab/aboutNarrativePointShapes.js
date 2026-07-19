@@ -4,6 +4,13 @@ import {
 } from './aboutNarrativeDefinitions.js';
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+const TWO_PI = Math.PI * 2;
+const ORBITAL_CORE_END = 0.30;
+const ORBITAL_BODY_ENDS = Object.freeze([0.50, 0.68, 0.84, 1.01]);
+const ORBITAL_BODY_ORBIT_SCALES = Object.freeze([0.45, 0.68, 0.85, 1]);
+const ORBITAL_BODY_RADIUS_SCALES = Object.freeze([0.98, 0.80, 0.68, 0.56]);
+const ORBITAL_BODY_PHASES = Object.freeze([0.18, 1.72, 3.42, 5.08]);
+const ORBITAL_BODY_INCLINATIONS = Object.freeze([0.22, -0.38, 0.52, -0.28]);
 
 export function createAboutNarrativeSeeds(count, seed = 0x1e35a7bd) {
   let state = Number(seed) >>> 0;
@@ -68,6 +75,40 @@ function createCluster(count, seeds, parameters) {
 function hash01(value) {
   const hashed = Math.sin((value * 12.9898) + 78.233) * 43758.5453123;
   return hashed - Math.floor(hashed);
+}
+
+function writeSpherePoint(positions, offset, index, radius, centerX = 0, centerY = 0, centerZ = 0) {
+  const vertical = (hash01((index + 1) * 11.71) * 2) - 1;
+  const ring = Math.sqrt(Math.max(0, 1 - (vertical * vertical)));
+  const angle = hash01((index + 1) * 5.93) * TWO_PI;
+  const distance = radius * Math.cbrt(hash01((index + 1) * 23.47));
+  positions[offset] = centerX + (Math.cos(angle) * ring * distance);
+  positions[offset + 1] = centerY + (vertical * distance);
+  positions[offset + 2] = centerZ + (Math.sin(angle) * ring * distance);
+}
+
+function writeOrbitalPlanePoint(target, radius, angle, inclination) {
+  const x = Math.cos(angle) * radius;
+  const y = 0;
+  const z = Math.sin(angle) * radius;
+  const sine = Math.sin(inclination);
+  const cosine = Math.cos(inclination);
+  target.x = x;
+  target.y = (cosine * y) - (sine * z);
+  target.z = (sine * y) + (cosine * z);
+  return target;
+}
+
+function getOrbitalGroupingSeed(seed) {
+  const value = (Number(seed) * 7.31) + 0.17;
+  return value - Math.floor(value);
+}
+
+function getOrbitalBodyIndex(seed) {
+  for (let index = 0; index < ORBITAL_BODY_ENDS.length; index += 1) {
+    if (seed < ORBITAL_BODY_ENDS[index]) return index;
+  }
+  return -1;
 }
 
 function createTurbulentField(count, seeds, parameters) {
@@ -265,6 +306,44 @@ function createLivingField(count, seeds, parameters) {
   return { positions };
 }
 
+export function createAboutNarrativeOrbitalSystemShape(count, seeds, parameters = {}) {
+  const positions = new Float32Array(count * 3);
+  const orbitRadius = Number(parameters.orbitRadius ?? 5.8);
+  const coreRadius = Number(parameters.coreRadius ?? 1.05);
+  const bodyRadius = Number(parameters.bodyRadius ?? 0.72);
+  const center = { x: 0, y: 0, z: 0 };
+
+  for (let index = 0; index < count; index += 1) {
+    // Shape membership is decorrelated from the raw seed because the raw seed
+    // also controls density. Every density level must retain the core and all
+    // four bodies instead of progressively deleting the outer system.
+    const seed = getOrbitalGroupingSeed(seeds[index]);
+    const offset = index * 3;
+    if (seed < ORBITAL_CORE_END) {
+      writeSpherePoint(positions, offset, index, coreRadius);
+      continue;
+    }
+
+    const bodyIndex = getOrbitalBodyIndex(seed);
+    writeOrbitalPlanePoint(
+      center,
+      orbitRadius * ORBITAL_BODY_ORBIT_SCALES[bodyIndex],
+      ORBITAL_BODY_PHASES[bodyIndex],
+      ORBITAL_BODY_INCLINATIONS[bodyIndex],
+    );
+    writeSpherePoint(
+      positions,
+      offset,
+      index,
+      bodyRadius * ORBITAL_BODY_RADIUS_SCALES[bodyIndex],
+      center.x,
+      center.y,
+      center.z,
+    );
+  }
+  return { positions };
+}
+
 function createBustFallback(count, seeds) {
   const output = createCluster(count, seeds, { radius: 2.7 });
   for (let index = 0; index < count; index += 1) {
@@ -352,6 +431,7 @@ const GENERATORS = Object.freeze({
   'calm-field-v1': createCalmField,
   'discipline-grid-v1': createDisciplineGrid,
   'living-field-v1': createLivingField,
+  'orbital-system-v1': createAboutNarrativeOrbitalSystemShape,
 });
 
 export async function generateAboutNarrativeShape({

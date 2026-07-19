@@ -839,7 +839,7 @@ class PortfolioScrollApp {
     heading.textContent = title;
 
     const copy = document.createElement('p');
-    copy.className = 'portfolio-deck-intro__body route-centered-page__description';
+    copy.className = 'portfolio-deck-intro__body route-centered-page__description route-intro-description';
     copy.textContent = body;
 
     intro.append(heading, copy);

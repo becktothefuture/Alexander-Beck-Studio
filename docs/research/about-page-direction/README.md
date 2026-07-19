@@ -4,11 +4,11 @@ This folder contains the current narrative source for the `beck.fyi` About Me pa
 
 ## Current source of truth
 
-`ABOUT-NARRATIVE-SCRIPT-v19.md` is the current editable prose script.
+`ABOUT-NARRATIVE-SCRIPT-v23.md` is the current editable prose script.
 
-`ABOUT-NARRATIVE-SCRIPT-v19.md` includes its visual allocation and global-track story beats.
+`ABOUT-NARRATIVE-SCRIPT-v23.md` is the approved clean narrative. Visual allocation and global-track story beats remain documented separately in the rhythm storyboard and implementation files.
 
-The current production route still uses the legacy section model while the lab migrates to independently authored Camera, World, Text and Interaction tracks. V19 is written for the target continuous journey: World starts are visual anchors, not containers for the narrative.
+The current production route still uses the legacy section model while the lab migrates to independently authored Camera, World, Text and Interaction tracks. V23 is written for the target continuous journey: World starts are visual anchors, not containers for the narrative.
 
 The experience is implemented by:
 
@@ -23,4 +23,4 @@ The production route and narrative lab share the same current experience. The la
 
 ## Archive
 
-`archive/` contains every superseded framework, script, implementation brief and storyboard asset from V1 through V11. The V12, V13, V15 and V16 files remain nearby as comparison drafts, with V19 now treated as the latest working script.
+`archive/` contains the superseded frameworks, implementation briefs and storyboard assets. Earlier scripts remain available as comparison drafts, with V23 now treated as the latest working script.
