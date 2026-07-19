@@ -220,7 +220,7 @@ test('grid displacement remains still when ambient time advances at a fixed stor
   assert.deepEqual(after, before);
 });
 
-test('grid ripple preserves its idle state, then moves only in height', () => {
+test('grid ripple expands from its center and displaces the field in depth and radius', () => {
   const first = { x: 0, y: 0, z: 0 };
   const second = { x: 0, y: 0, z: 0 };
   const input = createSamplingInput({
@@ -234,17 +234,22 @@ test('grid ripple preserves its idle state, then moves only in height', () => {
       centerX: -4,
       centerZ: 5,
       storyMix: 1,
+      progress: 0,
     },
     storyTime: 0.75,
     ambientTime: 12,
   });
   sampleAboutNarrativeAnchorPosition(input, first);
+  assert.deepEqual(first, { x: 1, y: 2, z: 3 });
+
+  input.gridRipple.progress = 1;
+  sampleAboutNarrativeAnchorPosition(input, first);
   input.storyTime = 0.81;
   sampleAboutNarrativeAnchorPosition(input, second);
-  assert.equal(first.x, 1);
-  assert.equal(first.z, 3);
-  assert.equal(second.x, 1);
-  assert.equal(second.z, 3);
+  assert.notEqual(first.x, 1);
+  assert.notEqual(first.z, 3);
+  assert.notEqual(second.x, first.x);
+  assert.notEqual(second.z, first.z);
   assert.notEqual(first.y, 2);
   assert.notEqual(second.y, first.y);
 

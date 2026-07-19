@@ -414,7 +414,7 @@
           "transform": {
             "position": [
               0,
-              1.55,
+              2.05,
               0
             ],
             "rotation": [
@@ -422,8 +422,8 @@
               0,
               0
             ],
-            "scale": 0.72,
-            "mobileScale": 0.58
+            "scale": 0.6,
+            "mobileScale": 0.5
           },
           "transitionIn": {
             "startWU": 0,
@@ -547,7 +547,7 @@
           "transform": {
             "position": [
               0,
-              0.95,
+              1.05,
               0
             ],
             "rotation": [
@@ -555,8 +555,8 @@
               0,
               0
             ],
-            "scale": 1,
-            "mobileScale": 0.48
+            "scale": 1.12,
+            "mobileScale": 0.68
           },
           "transitionIn": {
             "startWU": 17.7,
@@ -569,7 +569,7 @@
             "orbitRadius": 4.6,
             "coreRadius": 1.05,
             "bodyRadius": 0.72,
-            "density": 0.34
+            "density": 0.62
           },
           "modifiers": [
             {
@@ -595,7 +595,7 @@
           "transform": {
             "position": [
               0,
-              0.95,
+              1.3,
               0
             ],
             "rotation": [
@@ -603,8 +603,8 @@
               0,
               0
             ],
-            "scale": 0.9,
-            "mobileScale": 0.64
+            "scale": 0.5,
+            "mobileScale": 0.38
           },
           "transitionIn": {
             "startWU": 20.3,
@@ -688,7 +688,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "New technology. New behaviour. Questions of trust."
+          "text": "New technology. New behaviours. How to inspire trust."
         },
         {
           "id": "text-background-editorial",
@@ -703,7 +703,7 @@
           "block": {
             "id": "background-passage",
             "kind": "prose",
-            "text": "The interesting part is where those things meet: when a capability is powerful, but not yet obvious; when people need a reason to trust it; when a service has to explain itself without getting in the way.\nI studied Communication Design because I wanted to understand how ideas become clear. Words matter, but so do images, hierarchy, motion, systems and the small decisions between them. Agency work gave me visual culture, craft and pace. Product work brought the questions closer to use: how a screen earns trust, how a flow supports behaviour, how a system holds together under pressure.\nThat mix has shaped my work across startups and creative agencies, with projects in digital products, web, identity, interfaces, motion and creative technology across finance, mobility, healthcare, digital identity and product innovation.",
+            "text": "The interesting part is where those things meet: when a powerful capability is unfamiliar and a service has to explain what it changes without getting in the way.\nI studied Communication Design because I wanted to understand how ideas become clear through words, aesthetics, hierarchy, motion, systems and the interplay between them. Agency work gave me visual culture, craft and pace. Product work showed me that behaviour, brand and trust often belong to the same problem.",
             "emphasis": [
               {
                 "text": "Communication Design",
@@ -752,7 +752,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "The answer rarely sits inside one discipline."
+          "text": "Resolving complexity rarely sits within one discipline."
         },
         {
           "id": "text-complexity-listen",
@@ -782,7 +782,7 @@
           "block": {
             "id": "disciplines-passage",
             "kind": "prose",
-            "text": "Product and Experience Design help me make the question practical: who it is for, what needs to happen, and where the experience can become simpler, sharper or more useful. Art Direction gives the idea a recognisable point of view. Motion & 3D make timing, space and behaviour easier to feel. Creative Engineering and Parametric Systems let me test the idea through prototypes, tools, rules and working systems.\nAI runs through this as both a creative material and a practical capability. It helps me explore, generate and build around the task faster. The useful part is still judgement: knowing what to keep, what to question and what needs human taste.\nThe value is in how these disciplines affect one another. A product insight can change the visual language. A technical experiment can suggest a new interaction. A line of copy can make an interface feel more obvious. Motion can make behaviour easier to trust.",
+            "text": "I go deep into the problem, find the organising idea and make it tangible enough for a team to question, test and build.\nAI helps me explore and build faster, but its value depends on direction, human judgement and knowing when the work feels generic.",
             "emphasis": [
               {
                 "text": "AI",
@@ -808,18 +808,18 @@
           "block": {
             "id": "role-passage",
             "kind": "prose",
-            "text": "That is the kind of outcome I work towards: enough structure for a team to test, enough clarity for people to trust, and enough character for the experience to feel specific.\nSometimes that means a prototype. Sometimes it is a service map, a visual system, an interaction model, an AI workflow, a motion study or a small tool. The format changes with the question. The point is to help teams see what they are making, make better decisions and carry the idea into convincing detail.\nI work with ambitious teams who need design, creative technology and AI to move together early enough to shape direction and practically enough to build momentum.",
+            "text": "I work with ambitious teams on problems that are not neatly defined yet—especially where design, technology and AI need to shape direction together.",
             "emphasis": [
               {
-                "text": "structure",
+                "text": "design",
                 "tone": "blue"
               },
               {
-                "text": "clarity",
+                "text": "technology",
                 "tone": "blue"
               },
               {
-                "text": "character",
+                "text": "AI",
                 "tone": "blue"
               }
             ]
@@ -838,7 +838,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "Then the field starts to move with intention."
+          "text": "When ideas become intentional…"
         },
         {
           "id": "text-life-form",
@@ -853,7 +853,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "It finds rhythm, character and use."
+          "text": "…they find rhythm, character and use…"
         },
         {
           "id": "text-life-character",
@@ -868,7 +868,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "Something new starts to feel understandable."
+          "text": "…and something new emerges."
         },
         {
           "id": "text-epilogue-invitation",
@@ -947,7 +947,7 @@
             "amplitude": 1.25,
             "speed": 0.5,
             "frequency": 1.05,
-            "releaseWU": 0.45,
+            "releaseWU": 0.06,
             "timeMode": "story"
           }
         },

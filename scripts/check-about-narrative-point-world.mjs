@@ -121,5 +121,8 @@ test('point renderer keeps visibility, fog, sizing, ripple, and orbital motion o
   assert.match(source, /const targetTransformElements = uniforms\.toTransform\.value\.elements/);
   assert.match(source, /targetTransformElements\[12\],[\s\S]*targetTransformElements\[14\]/);
   assert.doesNotMatch(source, /rippleParameters\?\.center[XYZ]/);
+  assert.match(source, /uniform float gridRippleProgress/);
+  assert.match(source, /rippleReach \+ 1\.1/);
+  assert.match(source, /worldPoint\.xz \+= rippleDirection \* radialDisplacement/);
   assert.match(source, /attributeFilter: \['class', 'data-theme'\]/);
 });

@@ -205,6 +205,16 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
     target.x - numberOr(input?.gridRipple?.centerX),
     target.z - numberOr(input?.gridRipple?.centerZ),
   );
+  const rippleReach = mix(
+    0.35,
+    14.5,
+    smoothstep01(input?.gridRipple?.progress),
+  );
+  const rippleFrontProgress = Math.min(
+    1,
+    Math.max(0, (rippleDistance - rippleReach) / 1.1),
+  );
+  const rippleEnvelope = 1 - smoothstep01(rippleFrontProgress);
   const radialRipple = Math.sin((rippleDistance * rippleFrequency) - ripplePhase);
   const crossingRipple = Math.sin(
     (target.x * rippleFrequency * 0.68)
@@ -212,9 +222,17 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
     + (ripplePhase * 0.72),
   );
   const ripple = (radialRipple * 0.68) + (crossingRipple * 0.32);
-  target.y += numberOr(input?.gridRipple?.weight)
+  const rippleStrength = numberOr(input?.gridRipple?.weight)
     * numberOr(input?.gridRipple?.amplitude)
-    * ripple;
+    * rippleEnvelope;
+  target.y += rippleStrength * ripple;
+  if (rippleDistance > 0.0001) {
+    const radialDisplacement = rippleStrength * radialRipple * 0.52;
+    target.x += ((target.x - numberOr(input?.gridRipple?.centerX)) / rippleDistance)
+      * radialDisplacement;
+    target.z += ((target.z - numberOr(input?.gridRipple?.centerZ)) / rippleDistance)
+      * radialDisplacement;
+  }
 
   return target;
 }

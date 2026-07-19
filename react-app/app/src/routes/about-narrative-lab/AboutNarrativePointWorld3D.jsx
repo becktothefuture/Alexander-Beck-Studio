@@ -124,6 +124,7 @@ const VERTEX_SHADER = `
   uniform float gridRippleSpeed;
   uniform float gridRippleFrequency;
   uniform float gridRippleStoryMix;
+  uniform float gridRippleProgress;
   uniform vec2 gridRippleCenter;
   uniform vec3 disciplineRevealA;
   uniform vec3 disciplineRevealB;
@@ -326,10 +327,32 @@ const VERTEX_SHADER = `
       + (ripplePhase * 0.72)
     );
     float ripple = (radialRipple * 0.68) + (crossingRipple * 0.32);
-    float ripplePulse = gridRippleWeight * gridRippleAmplitude * ripple;
-    // The base X/Z layout and point material stay unchanged. Only height
-    // departs from the preserved idle state, with a zero-weight first frame.
+    float rippleReach = mix(
+      0.35,
+      14.5,
+      smoothstep(0.0, 1.0, gridRippleProgress)
+    );
+    float rippleEnvelope = 1.0 - smoothstep(
+      rippleReach,
+      rippleReach + 1.1,
+      rippleDistance
+    );
+    float ripplePulse = gridRippleWeight
+      * gridRippleAmplitude
+      * ripple
+      * rippleEnvelope;
+    vec2 rippleDirection = rippleDistance > 0.0001
+      ? ripplePoint / rippleDistance
+      : vec2(0.0);
+    float radialDisplacement = radialRipple
+      * gridRippleWeight
+      * gridRippleAmplitude
+      * rippleEnvelope
+      * 0.52;
+    // The height wave gives the oblique view volume; radial compression makes
+    // the same material wave legible from the exact bird's-eye camera.
     worldPoint.y += ripplePulse;
+    worldPoint.xz += rippleDirection * radialDisplacement;
 
     float group = mix(fromGroup, toGroup, morph);
     float groupStrength = mix(fromGroupStrength, toGroupStrength, morph);
@@ -648,6 +671,7 @@ function createPointFieldAdapter({
     gridRippleSpeed: { value: 0 },
     gridRippleFrequency: { value: 1 },
     gridRippleStoryMix: { value: 0 },
+    gridRippleProgress: { value: 0 },
     gridRippleCenter: { value: new THREE.Vector2() },
     disciplineRevealA: { value: new THREE.Vector3() },
     disciplineRevealB: { value: new THREE.Vector3() },
@@ -1705,6 +1729,7 @@ function createPointFieldAdapter({
         anchorSampleInput.gridRipple.speed = uniforms.gridRippleSpeed.value;
         anchorSampleInput.gridRipple.frequency = uniforms.gridRippleFrequency.value;
         anchorSampleInput.gridRipple.storyMix = uniforms.gridRippleStoryMix.value;
+        anchorSampleInput.gridRipple.progress = uniforms.gridRippleProgress.value;
         anchorSampleInput.gridRipple.centerX = uniforms.gridRippleCenter.value.x;
         anchorSampleInput.gridRipple.centerZ = uniforms.gridRippleCenter.value.y;
         for (let group = 1; group <= 6; group += 1) {
@@ -1964,6 +1989,15 @@ function createPointFieldAdapter({
     uniforms.gridRippleStoryMix.value = rippleParameters?.timeMode === 'story'
       ? 1
       : rippleParameters?.timeMode === 'mixed' ? 0.12 : 0;
+    const rippleActivationWU = Number(activeInteraction?.activationWU || 0);
+    const rippleDurationWU = Math.max(
+      0.0001,
+      Number(activeInteraction?.endWU || 0) - rippleActivationWU,
+    );
+    uniforms.gridRippleProgress.value = frame.reducedMotion || !rippleParameters
+      ? 0
+      : Math.min(1, Math.max(0, (Number(frame.storyWU || 0) - rippleActivationWU)
+        / rippleDurationWU));
     const targetTransformElements = uniforms.toTransform.value.elements;
     uniforms.gridRippleCenter.value.set(
       targetTransformElements[12],

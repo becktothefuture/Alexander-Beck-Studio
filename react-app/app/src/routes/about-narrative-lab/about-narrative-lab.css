@@ -807,7 +807,7 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-discipline-reveal li {
-  max-width: min(18rem, calc(100% - var(--discipline-x) - 1rem));
+  max-width: min(18rem, calc(100% - 2rem));
   font-size: clamp(
     calc(0.72rem * var(--discipline-label-scale, 1)),
     calc(3.1vw * var(--discipline-label-scale, 1)),
