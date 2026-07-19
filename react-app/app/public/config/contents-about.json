@@ -597,7 +597,7 @@
               "id": "bust-yaw-v1",
               "enabled": true,
               "parameters": {
-                "speed": 0.026,
+                "speed": 0.11,
                 "dragSensitivity": 1,
                 "resumeDelay": 1.2,
                 "resumeBlend": 1.4,
