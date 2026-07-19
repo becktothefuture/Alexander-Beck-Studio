@@ -196,6 +196,7 @@ function compileLegacyDisciplineReveal(textFields) {
     items: choreography.items,
     backgroundScale: 1,
     sourceType: 'legacy-text',
+    restoreDurationWU: 0,
     source: field,
     field,
   };
@@ -244,6 +245,7 @@ function compileDisciplineReveal(textFields, interactionClips) {
       + (Math.max(0, parameters.items.length - 1) * staggerWU)
       + labelDurationWU
       + holdWU,
+    restoreDurationWU: Number(parameters.restoreDurationWU),
     items: parameters.items,
     sourceType: 'motion',
     source: clip,
@@ -551,6 +553,7 @@ function writeDisciplineReveal(target, config, storyWU, durationWU, reducedMotio
   target.backgroundFadeWU = config.backgroundFadeWU;
   target.labelDurationWU = config.labelDurationWU;
   target.holdWU = config.holdWU;
+  target.restoreDurationWU = config.restoreDurationWU;
   target.elapsedWU = storyWU - config.startWU;
   target.active = isActiveAt(
     storyWU,
@@ -566,6 +569,13 @@ function writeDisciplineReveal(target, config, storyWU, durationWU, reducedMotio
   target.backgroundProgress = reducedMotion
     ? (target.labelActive ? 1 : 0)
     : smoothRange(storyWU, config.startWU, config.backgroundFadeEndWU);
+  const restoreStartWU = Math.max(
+    config.startWU,
+    config.effectEndWU - Math.max(0, config.restoreDurationWU),
+  );
+  target.restoreProgress = reducedMotion
+    ? (storyWU >= restoreStartWU ? 1 : 0)
+    : smoothRange(storyWU, restoreStartWU, config.effectEndWU);
   return target;
 }
 
@@ -588,12 +598,14 @@ export function createAboutNarrativeRuntimeFrameSample() {
     backgroundFadeWU: 0,
     labelDurationWU: 0,
     holdWU: 0,
+    restoreDurationWU: 0,
     elapsedWU: 0,
     active: false,
     labelActive: false,
     settled: false,
     fieldTravelProgress: 0,
     backgroundProgress: 0,
+    restoreProgress: 0,
   };
   const frame = {
     globals: null,

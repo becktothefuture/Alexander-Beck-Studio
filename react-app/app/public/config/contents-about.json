@@ -533,7 +533,7 @@
           "transitionIn": {
             "startWU": 14.183,
             "endWU": 15,
-            "type": "morph",
+            "type": "hold",
             "easing": "smoothstep",
             "correspondence": "spatial-nearest-v1"
           },
@@ -900,6 +900,7 @@
             "backgroundScale": 0.58,
             "reconnectOpacity": 0.24,
             "pointScale": 1.35,
+            "restoreDurationWU": 0.72,
             "labelOffsetPx": 10,
             "labelDurationWU": 0.162,
             "holdWU": 0.72,

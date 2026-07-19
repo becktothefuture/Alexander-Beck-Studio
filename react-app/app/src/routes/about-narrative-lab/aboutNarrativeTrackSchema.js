@@ -451,6 +451,9 @@ function validateDisciplineMotionParameters(clip, diagnostics, path) {
   if (Number(parameters.labelWindowWU) > labelCapacityWU + 0.000001) {
     diagnostic(diagnostics, 'discipline-motion-label-window', `${path}.parameters.labelWindowWU`, 'The label window must fit between activationWU and the Motion clip end.');
   }
+  if (Number(parameters.restoreDurationWU) > clipDurationWU + 0.000001) {
+    diagnostic(diagnostics, 'discipline-motion-restore-window', `${path}.parameters.restoreDurationWU`, 'Grid restore duration must fit inside the Discipline reveal Motion clip.');
+  }
   if (Number(parameters.fieldFogStartWU) >= Number(parameters.fieldFogEndWU)) {
     diagnostic(diagnostics, 'discipline-motion-fog-order', `${path}.parameters`, 'Discipline field fog start must precede its end.');
   }

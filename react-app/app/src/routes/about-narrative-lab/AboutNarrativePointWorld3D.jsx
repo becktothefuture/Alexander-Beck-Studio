@@ -1352,13 +1352,15 @@ function createPointFieldAdapter({
     let visibleLabels = 0;
     let fieldFogWeight = 0;
     if (revealAvailable) {
-      backgroundWeight = Number(revealState.backgroundProgress || 0);
+      const restoreWeight = 1 - Number(revealState.restoreProgress || 0);
+      backgroundWeight = Number(revealState.backgroundProgress || 0) * restoreWeight;
       const travelSpanWU = Math.max(0.00001, revealState.fieldTravelEndWU - revealState.fieldTravelStartWU);
       const fogInEndWU = revealState.fieldTravelStartWU + (travelSpanWU * 0.18);
-      fieldFogWeight = reducedActive
+      fieldFogWeight = (reducedActive
         ? 0
         : smoothRange(storyWU, revealState.fieldTravelStartWU, fogInEndWU)
-          * (1 - smoothRange(storyWU, revealState.endWU, revealState.endWU + (travelSpanWU * 0.2)));
+          * (1 - smoothRange(storyWU, revealState.endWU, revealState.endWU + (travelSpanWU * 0.2))))
+        * restoreWeight;
       const exitStartWU = Math.min(revealState.endWU, Number(reveal.labelSequenceEndWU));
       const exitProgress = reducedActive ? 0 : smoothRange(storyWU, exitStartWU, revealState.endWU);
       for (let orderIndex = 0; orderIndex < reveal.items.length; orderIndex += 1) {
@@ -1367,8 +1369,10 @@ function createPointFieldAdapter({
         const itemReveal = reducedActive
           ? 1
           : smoothRange(storyWU, itemStartWU, itemStartWU + revealState.labelDurationWU);
-        disciplineWeights[item.group - 1] = itemReveal;
-        const labelReveal = storyWU <= revealState.endWU ? itemReveal * (1 - exitProgress) : 0;
+        disciplineWeights[item.group - 1] = itemReveal * restoreWeight;
+        const labelReveal = storyWU <= revealState.endWU
+          ? itemReveal * (1 - exitProgress) * restoreWeight
+          : 0;
         disciplineLabelBaseReveal[item.group - 1] = labelReveal;
       }
     }
