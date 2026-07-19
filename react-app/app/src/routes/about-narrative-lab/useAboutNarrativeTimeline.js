@@ -62,11 +62,17 @@ function isFieldActive(field, storyWU, durationWU) {
     && Math.abs(Number(field.endWU) - durationWU) <= 0.000001;
 }
 
-function getEditorialReveal(record, scrollWU, viewportHeight, viewportThreshold, reducedMotion) {
+export function getAboutNarrativeEditorialReveal(
+  record,
+  scrollWU,
+  viewportHeight,
+  viewportThreshold,
+  reducedMotion,
+) {
   const threshold = Math.min(0.95, Math.max(0.05, Number(viewportThreshold) || 0.8));
   const triggerY = viewportHeight * threshold;
   const lineTop = (
-    (Number(record.field.focusWU) + threshold - scrollWU) * viewportHeight
+    (Number(record.startScrollWU) + threshold - scrollWU) * viewportHeight
   ) + record.layoutOffsetPx;
   if (reducedMotion) return lineTop <= triggerY ? 1 : 0;
   const revealTravel = Math.max(48, viewportHeight * 0.08);
@@ -210,16 +216,21 @@ export function useAboutNarrativeTimeline({
 
     const cacheSemanticNodes = (plan) => {
       const fieldsById = new Map(plan.textFields.map((field) => [field.id, field]));
+      const spansByFieldId = new Map(plan.renderSpans.flatMap((span) => (
+        span.fieldIds.map((fieldId) => [fieldId, span])
+      )));
       const editorialNodes = Array.from(content.querySelectorAll('[data-editorial-line]'));
       const editorialLines = editorialNodes.flatMap((node) => {
         const fieldId = node.closest('[data-text-field-id]')?.dataset.textFieldId;
         const field = fieldsById.get(fieldId);
+        const span = spansByFieldId.get(fieldId);
         const isEditorialField = field?.kind === 'scroll-block'
           || (field?.kind === 'title' && field.movement === 'vertical');
-        if (!isEditorialField) return [];
+        if (!isEditorialField || !span) return [];
         return [{
           node,
           field,
+          startScrollWU: Number(span.scrollBounds.startWU),
           layoutOffsetPx: measurementsRef.current.editorialOffsets?.get(node) || 0,
           progress: 0,
         }];
@@ -341,7 +352,7 @@ export function useAboutNarrativeTimeline({
       const viewportHeight = Math.max(1, measurementsRef.current.viewportHeight);
       const scrollWU = planRef.current.resolver.scrollWUFromStoryWU(frame.storyWU);
       for (const record of editorialLines) {
-        record.progress = getEditorialReveal(
+        record.progress = getAboutNarrativeEditorialReveal(
           record,
           scrollWU,
           viewportHeight,

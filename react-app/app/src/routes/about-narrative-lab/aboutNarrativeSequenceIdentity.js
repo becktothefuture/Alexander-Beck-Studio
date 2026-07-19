@@ -78,7 +78,9 @@ function createWorldPreparationInput(world, globals) {
       rotation: [...(transform.rotation || [0, 0, 0])],
       scale: Number(transform.scale ?? 1),
       mobileScale: Number(transform.mobileScale ?? transform.scale ?? 1),
+      mobileXScale: Number(transform.mobileXScale ?? transform.mobileScale ?? transform.scale ?? 1),
       mobileYOffset: Number(transform.mobileYOffset || 0),
+      mobileZOffset: Number(transform.mobileZOffset || 0),
     },
     correspondence: world.transitionIn?.correspondence || 'index-v1',
   };

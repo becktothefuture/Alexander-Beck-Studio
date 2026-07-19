@@ -287,6 +287,10 @@ test('Discipline reveal exposes absolute WU choreography and extended effect che
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const reveal = plan.disciplineReveal;
   assert.ok(reveal);
+  assert.equal(reveal.sourceType, 'motion');
+  assert.equal(reveal.motion.type, 'discipline-reveal');
+  assert.equal(plan.textFields.some((field) => field.kind === 'discipline-reveal'), false);
+  assert.equal(reveal.motion.targetWorldId, 'world-background');
   assert.ok(reveal.staggerWU > 0);
   assert.ok(reveal.backgroundFadeWU > 0);
   assert.ok(reveal.labelDurationWU > 0);

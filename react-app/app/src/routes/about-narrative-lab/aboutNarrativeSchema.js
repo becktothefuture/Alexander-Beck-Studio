@@ -33,7 +33,7 @@ const EMPHASIS_KEYS = new Set(['text', 'tone']);
 const DISCIPLINE_REVEAL_KEYS = new Set(['id', 'fieldTravelStart', 'fieldTravelEnd', 'fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'start', 'end', 'stagger', 'backgroundFade', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelDuration', 'hold', 'items']);
 const OPTIONAL_DISCIPLINE_REVEAL_CONTROL_KEYS = new Set(['fieldTravelStart', 'fieldTravelEnd', 'fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength']);
 const DISCIPLINE_REVEAL_ITEM_KEYS = new Set(['group', 'label']);
-const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 'mobileYOffset']);
+const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 'mobileXScale', 'mobileYOffset', 'mobileZOffset']);
 const MODIFIER_KEYS = new Set(['id', 'enabled', 'parameters']);
 const INTERACTION_KEYS = new Set(['type', 'activationStart']);
 const ABOUT_NARRATIVE_SCHEMA_V1_CORRESPONDENCE_MODES = Object.freeze([
@@ -179,7 +179,9 @@ function normalizeWorld(world = {}) {
       rotation: cloneVector(transform.rotation, [0, 0, 0]),
       scale: Number(transform.scale ?? 1),
       ...(finite(transform.mobileScale) ? { mobileScale: Number(transform.mobileScale) } : {}),
+      ...(finite(transform.mobileXScale) ? { mobileXScale: Number(transform.mobileXScale) } : {}),
       ...(finite(transform.mobileYOffset) ? { mobileYOffset: Number(transform.mobileYOffset) } : {}),
+      ...(finite(transform.mobileZOffset) ? { mobileZOffset: Number(transform.mobileZOffset) } : {}),
     },
     transitionIn: {
       start: Number(transition.start ?? 0.08),
@@ -217,6 +219,8 @@ export function normalizeAboutNarrativeDocument(input = {}) {
         cadence: Number(camera.cadence ?? 1),
         cadenceLocked: camera.cadenceLocked !== false,
         fov: fallbackFov,
+        distanceFogStartWU: Number(camera.distanceFogStartWU ?? 8),
+        distanceFogEndWU: Number(camera.distanceFogEndWU ?? 18),
       },
       pointMaterial: {
         opacity: Number(pointMaterial.opacity ?? 0.96),
@@ -340,6 +344,24 @@ export function validateAboutNarrativeDocument(input, {
       diagnostics.push({ level: 'error', code: 'global-range', path: `globals.${path}`, message: `Value must be finite and between ${min} and ${max}.` });
     }
   });
+  [
+    ['camera.distanceFogStartWU', globals.camera?.distanceFogStartWU, 0, 40],
+    ['camera.distanceFogEndWU', globals.camera?.distanceFogEndWU, 0.1, 80],
+  ].forEach(([path, value, min, max]) => {
+    if (value != null && (!finite(value) || Number(value) < min || Number(value) > max)) {
+      diagnostics.push({ level: 'error', code: 'global-range', path: `globals.${path}`, message: `Value must be finite and between ${min} and ${max}.` });
+    }
+  });
+  if (globals.camera?.distanceFogStartWU != null
+    && globals.camera?.distanceFogEndWU != null
+    && Number(globals.camera.distanceFogStartWU) >= Number(globals.camera.distanceFogEndWU)) {
+    diagnostics.push({
+      level: 'error',
+      code: 'global-camera-fog-order',
+      path: 'globals.camera',
+      message: 'Distance fog must begin before circles are fully faded.',
+    });
+  }
   if (typeof globals.camera?.cadenceLocked !== 'boolean') {
     diagnostics.push({ level: 'error', code: 'global-camera-lock', path: 'globals.camera.cadenceLocked', message: 'Camera cadence lock must be true or false.' });
   }

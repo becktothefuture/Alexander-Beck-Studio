@@ -36,7 +36,14 @@ const UNSAFE_TEXT_PATTERN = /<\/?(?:script|style|iframe)|\bon\w+\s*=|javascript:
 const SECTIONLIKE_KEYS = new Set(['sections', 'groups', 'bands', 'chapters']);
 const TOP_LEVEL_KEYS = new Set(['schemaVersion', 'globals', 'profiles', 'tracks', 'library']);
 const GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
-const GLOBAL_CAMERA_KEYS = new Set(['startZ', 'cadence', 'cadenceLocked', 'fov']);
+const GLOBAL_CAMERA_KEYS = new Set([
+  'startZ',
+  'cadence',
+  'cadenceLocked',
+  'fov',
+  'distanceFogStartWU',
+  'distanceFogEndWU',
+]);
 const POINT_MATERIAL_KEYS = new Set(['opacity', 'pointSize']);
 const SWARM_TURBULENCE_KEYS = new Set(['amplitude', 'speed', 'irregularity', 'individuality', 'axisSpread']);
 const TEXT_MOTION_KEYS = new Set(['preset', 'durationScale', 'startY', 'openerStartY', 'endY', 'readableStart', 'readableEnd', 'perspective', 'entryDepth', 'exitDepth', 'maxBlur']);
@@ -50,7 +57,7 @@ const TEXT_TRACK_KEYS = new Set(['fields']);
 const INTERACTION_TRACK_KEYS = new Set(['clips']);
 const CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'easing', 'locked']);
 const WORLD_KEYS = new Set(['id', 'label', 'startWU', 'anchorWU', 'adapterId', 'shapeId', 'seed', 'entryDistanceWU', 'transform', 'transitionIn', 'shapeParameters', 'modifiers', 'protected']);
-const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 'mobileYOffset']);
+const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 'mobileXScale', 'mobileYOffset', 'mobileZOffset']);
 const TRANSITION_KEYS = new Set(['startWU', 'endWU', 'type', 'easing', 'correspondence']);
 const MODIFIER_KEYS = new Set(['id', 'enabled', 'parameters']);
 const TEXT_BASE_KEYS = new Set(['id', 'kind', 'startWU', 'focusWU', 'endWU', 'publishable', 'presentation', 'protected']);
@@ -318,8 +325,14 @@ function validateTransform(transform, diagnostics, path, partial = false) {
   if (!partial || transform.scale != null) {
     if (!finite(transform.scale) || Number(transform.scale) <= 0) diagnostic(diagnostics, 'world-scale', `${path}.scale`, 'World scale must be positive and finite.');
   }
-  ['mobileScale', 'mobileYOffset'].forEach((key) => {
+  ['mobileScale', 'mobileXScale', 'mobileYOffset', 'mobileZOffset'].forEach((key) => {
     if (transform[key] != null && !finite(transform[key])) diagnostic(diagnostics, 'world-transform-number', `${path}.${key}`, 'Responsive transform values must be finite.');
+    if ((key === 'mobileScale' || key === 'mobileXScale')
+      && transform[key] != null
+      && finite(transform[key])
+      && Number(transform[key]) <= 0) {
+      diagnostic(diagnostics, 'world-scale', `${path}.${key}`, 'Responsive World scales must be positive.');
+    }
   });
 }
 
@@ -424,6 +437,43 @@ function validateTextField(field, index, seen, diagnostics, durationWU) {
         if (lastRevealEndWU > Number(field.endWU) + 0.000001) diagnostic(diagnostics, 'discipline-timing', `${path}.choreography`, 'Absolute stagger, label duration, and hold must fit inside the Discipline reveal field.');
       }
     }
+  }
+}
+
+function validateDisciplineMotionParameters(clip, diagnostics, path) {
+  const parameters = clip.parameters;
+  if (!isObject(parameters)) return;
+  const clipDurationWU = Number(clip.endWU) - Number(clip.startWU);
+  const labelCapacityWU = Number(clip.endWU) - Number(clip.activationWU);
+  if (Number(parameters.fieldTravelDurationWU) > clipDurationWU + 0.000001) {
+    diagnostic(diagnostics, 'discipline-motion-travel', `${path}.parameters.fieldTravelDurationWU`, 'Field travel must fit inside the Discipline reveal Motion clip.');
+  }
+  if (Number(parameters.labelWindowWU) > labelCapacityWU + 0.000001) {
+    diagnostic(diagnostics, 'discipline-motion-label-window', `${path}.parameters.labelWindowWU`, 'The label window must fit between activationWU and the Motion clip end.');
+  }
+  if (Number(parameters.fieldFogStartWU) >= Number(parameters.fieldFogEndWU)) {
+    diagnostic(diagnostics, 'discipline-motion-fog-order', `${path}.parameters`, 'Discipline field fog start must precede its end.');
+  }
+  const items = parameters.items;
+  if (!Array.isArray(items) || items.length !== 6) {
+    diagnostic(diagnostics, 'discipline-motion-items', `${path}.parameters.items`, 'Discipline reveal Motion requires exactly six labelled items.');
+    return;
+  }
+  const groups = new Set();
+  items.forEach((item, itemIndex) => {
+    const itemPath = `${path}.parameters.items.${itemIndex}`;
+    unknownKeys(diagnostics, item, DISCIPLINE_ITEM_KEYS, itemPath);
+    if (!Number.isInteger(item?.group) || item.group < 1 || item.group > 6 || groups.has(item.group)) {
+      diagnostic(diagnostics, 'discipline-motion-group', `${itemPath}.group`, 'Discipline groups must uniquely cover 1 through 6.');
+    }
+    groups.add(item?.group);
+    validateSafeText(item?.label, diagnostics, `${itemPath}.label`, { required: true, maximum: 80 });
+  });
+  const labelSequenceWU = (Math.max(0, items.length - 1) * Number(parameters.staggerWU))
+    + Number(parameters.labelDurationWU)
+    + Number(parameters.holdWU);
+  if (labelSequenceWU > Number(parameters.labelWindowWU) + 0.000001) {
+    diagnostic(diagnostics, 'discipline-motion-timing', `${path}.parameters`, 'Label stagger, reveal duration, and hold must fit inside the label window.');
   }
 }
 
@@ -573,17 +623,31 @@ export function validateAboutNarrativeTrackDocument(input) {
     } else if (interactionDefinition.parameters.length && !isObject(clip.parameters)) {
       diagnostic(diagnostics, 'interaction-parameters', `${path}.parameters`, 'Interaction parameters must be an object.');
     } else if (isObject(clip.parameters)) {
+      const allowedParameterIds = new Set(interactionDefinition.parameters.map((control) => control.id));
+      if (clip.type === 'discipline-reveal') allowedParameterIds.add('items');
       unknownKeys(
         diagnostics,
         clip.parameters,
-        new Set(interactionDefinition.parameters.map((control) => control.id)),
+        allowedParameterIds,
         `${path}.parameters`,
       );
       interactionDefinition.parameters.forEach((control) => (
         validateControlValue(clip.parameters[control.id], control, diagnostics, `${path}.parameters.${control.id}`)
       ));
+      if (clip.type === 'discipline-reveal') {
+        validateDisciplineMotionParameters(clip, diagnostics, path);
+        if (worldIndex >= 0 && worlds[worldIndex].shapeId !== 'calm-field-v1') {
+          diagnostic(diagnostics, 'discipline-motion-world', `${path}.targetWorldId`, 'Discipline reveal Motion must target the unchanged calm-field World.');
+        }
+      }
     }
   });
+
+  const disciplineMotionCount = (clips || []).filter((clip) => clip.type === 'discipline-reveal').length;
+  const legacyDisciplineFieldCount = (textFields || []).filter((field) => field.kind === 'discipline-reveal').length;
+  if (disciplineMotionCount > 1 || (disciplineMotionCount && legacyDisciplineFieldCount)) {
+    diagnostic(diagnostics, 'discipline-motion-owner', 'tracks', 'Discipline reveal choreography must have exactly one owner: Motion or legacy Text, never both.');
+  }
 
   const indexes = {
     camera: new Map((cameraKeys || []).map((item) => [item.id, item])),

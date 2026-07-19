@@ -77,6 +77,8 @@ const VERTEX_SHADER = `
   uniform float ambientTime;
   uniform float pointSize;
   uniform float pixelRatio;
+  uniform float distanceFogStartWU;
+  uniform float distanceFogEndWU;
   uniform float fromDriftAmplitude;
   uniform float toDriftAmplitude;
   uniform float fromDriftSpeed;
@@ -300,6 +302,13 @@ const VERTEX_SHADER = `
       fieldFogDistance
     ) * disciplineFieldFogStrength * disciplineFieldFogWeight;
     presence *= 1.0 - clamp(fieldFog, 0.0, 0.999);
+    float cameraDepth = max(0.0, -viewPoint.z);
+    float distanceFog = smoothstep(
+      distanceFogStartWU,
+      max(distanceFogStartWU + 0.001, distanceFogEndWU),
+      cameraDepth
+    );
+    presence *= 1.0 - distanceFog;
     float sizeWeight = mix(fromPointSize, toPointSize, morph);
     float groupScale = mix(groupStrength, max(0.0, disciplinePointScale - 1.0), disciplineRevealActive);
     float emphasis = 1.0 + (groupWeight * groupScale) + (waveWeight * 0.18);
@@ -404,11 +413,15 @@ function writeWorldTransform(target, world, globals, compact, scratch) {
   const scale = compact && Number.isFinite(transform.mobileScale)
     ? Number(transform.mobileScale)
     : baseScale;
+  const xScale = compact && Number.isFinite(transform.mobileXScale)
+    ? Number(transform.mobileXScale)
+    : scale;
   const anchorRailZ = resolveAboutNarrativeWorldAnchorRailZ(world, globals);
   scratch.position.set(
     position[0],
     position[1] + (compact ? Number(transform.mobileYOffset || 0) : 0),
-    anchorRailZ - Number(world.entryDistanceWU || 0) + position[2],
+    anchorRailZ - Number(world.entryDistanceWU || 0) + position[2]
+      + (compact ? Number(transform.mobileZOffset || 0) : 0),
   );
   scratch.euler.set(
     rotation[0],
@@ -417,7 +430,7 @@ function writeWorldTransform(target, world, globals, compact, scratch) {
     'YXZ',
   );
   scratch.quaternion.setFromEuler(scratch.euler);
-  scratch.scale.set(scale, scale, scale);
+  scratch.scale.set(xScale, scale, scale);
   return target.compose(scratch.position, scratch.quaternion, scratch.scale);
 }
 
@@ -522,6 +535,8 @@ function createPointFieldAdapter({
     ambientTime: { value: 0 },
     pointSize: { value: 5.4 },
     pixelRatio: { value: 1 },
+    distanceFogStartWU: { value: 8 },
+    distanceFogEndWU: { value: 18 },
     fromDriftAmplitude: { value: 0 },
     toDriftAmplitude: { value: 0 },
     fromDriftSpeed: { value: 0 },
@@ -758,6 +773,7 @@ function createPointFieldAdapter({
   const disciplineLabelX = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelY = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelPositionUnit = new Uint8Array(6);
+  const disciplineLabelSide = new Uint8Array(6).fill(255);
   let cachedDisciplineOverlay = null;
   let cachedDisciplineChildCount = -1;
   let lastDisciplineVisibleCount = Number.NaN;
@@ -806,6 +822,7 @@ function createPointFieldAdapter({
       disciplineLabelX[index] = Number.NaN;
       disciplineLabelY[index] = Number.NaN;
       disciplineLabelPositionUnit[index] = 0;
+      disciplineLabelSide[index] = 255;
     }
   };
 
@@ -839,6 +856,15 @@ function createPointFieldAdapter({
       label.style.setProperty('--discipline-y', `${y}%`);
     }
     runtimeObserver.hotFrameDomWrite(2);
+  };
+
+  const writeDisciplineSide = (index, side) => {
+    if (disciplineLabelSide[index] === side) return;
+    const label = disciplineLabels[index];
+    disciplineLabelSide[index] = side;
+    if (!label) return;
+    label.dataset.labelSide = side === 1 ? 'left' : 'right';
+    runtimeObserver.hotFrameDomWrite();
   };
 
   const updateTheme = () => {
@@ -1357,6 +1383,17 @@ function createPointFieldAdapter({
       disciplineWeights[4],
       disciplineWeights[5],
     );
+    if (revealAvailable) {
+      const isolationWeight = Number(revealState.backgroundProgress || 0);
+      const backgroundOpacity = Number(reveal.backgroundOpacity ?? 0.2);
+      const backgroundScale = Number(reveal.backgroundScale ?? 0.58);
+      uniforms.fromDisciplineIsolation.value = isolationWeight;
+      uniforms.toDisciplineIsolation.value = isolationWeight;
+      uniforms.fromDisciplineBackgroundOpacity.value = backgroundOpacity;
+      uniforms.toDisciplineBackgroundOpacity.value = backgroundOpacity;
+      uniforms.fromDisciplineBackgroundScale.value = backgroundScale;
+      uniforms.toDisciplineBackgroundScale.value = backgroundScale;
+    }
     uniforms.disciplineRevealActive.value = revealAvailable ? 1 : 0;
     uniforms.disciplineBackgroundWeight.value = backgroundWeight;
     uniforms.disciplineBackgroundOpacity.value = Number(reveal?.backgroundOpacity ?? 0.06);
@@ -1441,12 +1478,14 @@ function createPointFieldAdapter({
             anchorSampleTarget.y,
             anchorSampleTarget.z,
           ).project(camera);
+          const projectedX = viewportOffsetX + (((disciplinePointScratch.x * 0.5) + 0.5) * width);
           writeDisciplinePosition(
             group - 1,
-            viewportOffsetX + (((disciplinePointScratch.x * 0.5) + 0.5) * width),
+            projectedX,
             viewportOffsetY + (((-disciplinePointScratch.y * 0.5) + 0.5) * height),
             1,
           );
+          writeDisciplineSide(group - 1, compact && projectedX > width * 0.62 ? 1 : 0);
         }
       } else if (revealAvailable) {
         for (let group = 1; group <= 6; group += 1) {
@@ -1459,6 +1498,7 @@ function createPointFieldAdapter({
             14 + (group * 11),
             2,
           );
+          writeDisciplineSide(group - 1, 0);
         }
       } else {
         for (let group = 1; group <= 6; group += 1) {
@@ -1611,6 +1651,12 @@ function createPointFieldAdapter({
     uniforms.ambientTime.value = frame.ambientTime;
     uniforms.pointSize.value = frame.globals.pointMaterial.pointSize * mobileBodyScale;
     uniforms.fieldOpacity.value = frame.globals.pointMaterial.opacity;
+    uniforms.distanceFogStartWU.value = Number(
+      frame.globals.camera.distanceFogStartWU ?? 8,
+    );
+    uniforms.distanceFogEndWU.value = Number(
+      frame.globals.camera.distanceFogEndWU ?? 18,
+    );
     setModifierUniforms(modifierUniformTargets.from, fromWorld, frame.globals);
     setModifierUniforms(modifierUniformTargets.to, toWorld, frame.globals);
     if (frame.reducedMotion) {

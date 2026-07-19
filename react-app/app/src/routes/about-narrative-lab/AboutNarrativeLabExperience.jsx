@@ -36,6 +36,12 @@ function selectTextField(onSelect, fieldId, event) {
   onSelect({ type: 'text-field', id: fieldId });
 }
 
+function selectMotionClip(onSelect, clipId, event) {
+  if (!onSelect) return;
+  event?.stopPropagation();
+  onSelect({ type: 'interaction', id: clipId });
+}
+
 function EditorialText({ text = '', emphasis = [] }) {
   if (!emphasis.length) return text;
   const matches = [];
@@ -239,23 +245,25 @@ function TitleField({
   );
 }
 
-function DisciplineRevealField({ field, overlayRef, onSelect }) {
+function DisciplineRevealField({ reveal, overlayRef, onSelect, selectionType = 'interaction' }) {
+  const selectReveal = selectionType === 'text-field' ? selectTextField : selectMotionClip;
   return (
     <ol
       ref={overlayRef}
       className="about-narrative-discipline-reveal"
-      data-text-field-id={field.id}
-      data-discipline-reveal={field.id}
+      data-motion-clip-id={selectionType === 'interaction' ? reveal.id : undefined}
+      data-text-field-id={selectionType === 'text-field' ? reveal.id : undefined}
+      data-discipline-reveal={reveal.id}
       aria-label="Six connected disciplines"
-      onClick={(event) => selectTextField(onSelect, field.id, event)}
+      onClick={(event) => selectReveal(onSelect, reveal.id, event)}
     >
-      {(field.choreography?.items || []).map((item) => (
+      {(reveal.items || []).map((item) => (
         <li
           key={item.group}
           data-discipline-group={item.group}
           style={{
             '--discipline-color': `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})`,
-            '--discipline-label-offset': `${field.choreography.labelOffsetPx}px`,
+            '--discipline-label-offset': `${reveal.labelOffsetPx}px`,
           }}
         >
           <span className="about-narrative-discipline-reveal__label">{item.label}</span>
@@ -295,6 +303,11 @@ function TextRenderSpan({
     );
   }
   if (field.kind === 'discipline-reveal') {
+    const reveal = {
+      id: field.id,
+      items: field.choreography?.items || [],
+      labelOffsetPx: field.choreography?.labelOffsetPx || 0,
+    };
     return (
       <div
         className="about-narrative-render-span about-narrative-render-span--discipline"
@@ -302,7 +315,12 @@ function TextRenderSpan({
         data-presentation-layout={layout}
         style={getRenderSpanStyle(span)}
       >
-        <DisciplineRevealField field={field} overlayRef={disciplineOverlayRef} onSelect={onSelect} />
+        <DisciplineRevealField
+          reveal={reveal}
+          overlayRef={disciplineOverlayRef}
+          onSelect={onSelect}
+          selectionType="text-field"
+        />
       </div>
     );
   }
@@ -433,6 +451,9 @@ export function AboutNarrativeLabExperience({
       .find((field) => field?.kind === 'title' && field.publishable)?.id || ''
   ), [runtimePlan, textFieldsById]);
   const select = editorStore ? (selection) => editorStore.setSelection(selection) : null;
+  const disciplineRevealMotion = runtimePlan?.disciplineReveal?.sourceType === 'motion'
+    ? runtimePlan.disciplineReveal
+    : null;
   const Editor = editorModule;
   const globals = runtimePlan?.model?.globals || playbackDocument.globals;
   const contentExtentWU = runtimePlan?.resolver?.contentExtentWU
@@ -489,6 +510,15 @@ export function AboutNarrativeLabExperience({
           })}
         </main>
       </div>
+      {disciplineRevealMotion ? (
+        <div className="about-narrative-motion-layer about-narrative-motion-layer--discipline">
+          <DisciplineRevealField
+            reveal={disciplineRevealMotion}
+            overlayRef={disciplineOverlayRef}
+            onSelect={select}
+          />
+        </div>
+      ) : null}
       {showIndicator && indicatorHost
         ? createPortal(
           <div className="about-narrative-indicator-layer" data-about-indicator-host="shell-persistent">

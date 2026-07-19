@@ -158,7 +158,7 @@ function applyProfileOverrides(model, resolver) {
   return { cameraKeys, worlds, textFields, interactionClips };
 }
 
-function compileDisciplineReveal(textFields) {
+function compileLegacyDisciplineReveal(textFields) {
   const field = textFields.find((item) => item.kind === 'discipline-reveal');
   if (!field) return null;
   const choreography = field.choreography;
@@ -194,7 +194,60 @@ function compileDisciplineReveal(textFields) {
     holdWU,
     labelSequenceEndWU,
     items: choreography.items,
+    backgroundScale: 1,
+    sourceType: 'legacy-text',
+    source: field,
     field,
+  };
+}
+
+function compileDisciplineReveal(textFields, interactionClips) {
+  const clip = interactionClips.find((item) => item.type === 'discipline-reveal');
+  if (!clip) return compileLegacyDisciplineReveal(textFields);
+  const parameters = clip.parameters;
+  const effectStartWU = Number(clip.startWU);
+  const startWU = Number(clip.activationWU);
+  const effectEndWU = Number(clip.endWU);
+  const endWU = Math.min(effectEndWU, startWU + Number(parameters.labelWindowWU));
+  const fieldTravelEndWU = Math.min(
+    effectEndWU,
+    effectStartWU + Number(parameters.fieldTravelDurationWU),
+  );
+  const staggerWU = Number(parameters.staggerWU);
+  const backgroundFadeWU = Number(parameters.backgroundFadeWU);
+  const labelDurationWU = Number(parameters.labelDurationWU);
+  const holdWU = Number(parameters.holdWU);
+  return {
+    id: clip.id,
+    startWU,
+    focusWU: startWU + ((endWU - startWU) * 0.5),
+    endWU,
+    effectStartWU,
+    effectEndWU,
+    fieldTravelStartWU: effectStartWU,
+    fieldTravelEndWU,
+    fieldTravelWU: Number(parameters.fieldTravelWU),
+    fieldFogStartWU: Number(parameters.fieldFogStartWU),
+    fieldFogEndWU: Number(parameters.fieldFogEndWU),
+    fieldFogStrength: Number(parameters.fieldFogStrength),
+    staggerWU,
+    backgroundFadeWU,
+    backgroundFadeEndWU: startWU + backgroundFadeWU,
+    backgroundOpacity: Number(parameters.backgroundOpacity),
+    backgroundScale: Number(parameters.backgroundScale),
+    reconnectOpacity: Number(parameters.reconnectOpacity),
+    pointScale: Number(parameters.pointScale),
+    labelOffsetPx: Number(parameters.labelOffsetPx),
+    labelDurationWU,
+    holdWU,
+    labelSequenceEndWU: startWU
+      + (Math.max(0, parameters.items.length - 1) * staggerWU)
+      + labelDurationWU
+      + holdWU,
+    items: parameters.items,
+    sourceType: 'motion',
+    source: clip,
+    motion: clip,
   };
 }
 
@@ -271,7 +324,7 @@ export function compileAboutNarrativeRuntimePlan(input, options = {}) {
     renderSpans: renderSpanPlan.spans,
     worldSequenceKey: preparation.worldSequenceKey,
     worldPreparationDescriptor: preparation.descriptor,
-    disciplineReveal: compileDisciplineReveal(tracks.textFields),
+    disciplineReveal: compileDisciplineReveal(tracks.textFields, tracks.interactionClips),
   });
 }
 

@@ -8,7 +8,9 @@
       "startZ": 8,
       "cadence": 1,
       "cadenceLocked": true,
-      "fov": 48
+      "fov": 48,
+      "distanceFogStartWU": 8,
+      "distanceFogEndWU": 18
     },
     "pointMaterial": {
       "opacity": 0.96,
@@ -24,9 +26,9 @@
     "textMotion": {
       "preset": "travelling-title-v1",
       "durationScale": 1.7,
-      "startY": -110,
+      "startY": 100,
       "openerStartY": 36,
-      "endY": 130,
+      "endY": -100,
       "readableStart": 0.24,
       "readableEnd": 0.76,
       "perspective": 1600,
@@ -61,7 +63,13 @@
       "scrollDurationWU": 22.65,
       "overrides": {
         "camera": {},
-        "worlds": {},
+        "worlds": {
+          "world-background": {
+            "transform": {
+              "mobileXScale": 0.18
+            }
+          }
+        },
         "text": {},
         "interactions": {}
       }
@@ -80,7 +88,7 @@
           "offset": [
             0,
             0,
-            0
+            -2.4
           ],
           "lookAtOffset": [
             0,
@@ -89,7 +97,7 @@
           ],
           "fov": 48,
           "roll": 0,
-          "easing": "smoothstep",
+          "easing": "linear",
           "locked": true
         },
         {
@@ -98,7 +106,7 @@
           "offset": [
             0,
             1,
-            -2.8
+            -1
           ],
           "lookAtOffset": [
             0,
@@ -177,7 +185,7 @@
             -90,
             -6
           ],
-          "fov": 49,
+          "fov": 50,
           "roll": 0,
           "easing": "linear",
           "locked": false
@@ -195,7 +203,7 @@
             -90,
             -6
           ],
-          "fov": 52,
+          "fov": 54,
           "roll": 0,
           "easing": "linear",
           "locked": false
@@ -206,14 +214,14 @@
           "offset": [
             0,
             0.9,
-            6.65
+            6.35
           ],
           "lookAtOffset": [
             0,
             -90,
             -6
           ],
-          "fov": 56,
+          "fov": 66,
           "roll": 0,
           "easing": "linear",
           "locked": false
@@ -231,7 +239,7 @@
             -90,
             -6
           ],
-          "fov": 60,
+          "fov": 70,
           "roll": 0,
           "easing": "smoothstep",
           "locked": false
@@ -480,7 +488,9 @@
               0
             ],
             "scale": 1,
-            "mobileScale": 0.55
+            "mobileScale": 0.8,
+            "mobileXScale": 0.55,
+            "mobileZOffset": 2.4
           },
           "transitionIn": {
             "startWU": 4.595,
@@ -497,55 +507,6 @@
             "density": 0.22
           },
           "modifiers": []
-        },
-        {
-          "id": "world-discipline-isolation",
-          "label": "D",
-          "startWU": 9.602,
-          "anchorWU": 4.595,
-          "adapterId": "point-field-v1",
-          "shapeId": "calm-field-v1",
-          "seed": 506832829,
-          "entryDistanceWU": 12,
-          "transform": {
-            "position": [
-              0,
-              0.2,
-              0
-            ],
-            "rotation": [
-              0,
-              0,
-              0
-            ],
-            "scale": 1,
-            "mobileScale": 0.55
-          },
-          "transitionIn": {
-            "startWU": 9.602,
-            "endWU": 10.45,
-            "type": "morph",
-            "easing": "smoothstep",
-            "correspondence": "index-v1"
-          },
-          "shapeParameters": {
-            "width": 13.5,
-            "depth": 24,
-            "height": -1.72,
-            "jitter": 0.035,
-            "density": 0.22
-          },
-          "modifiers": [
-            {
-              "id": "discipline-isolation-v1",
-              "enabled": true,
-              "parameters": {
-                "strength": 1,
-                "backgroundOpacity": 0.2,
-                "backgroundScale": 0.58
-              }
-            }
-          ]
         },
         {
           "id": "world-bringing-life",
@@ -682,8 +643,8 @@
           "id": "text-promise-main",
           "kind": "title",
           "startWU": 0,
-          "focusWU": 0.161,
-          "endWU": 0.32165,
+          "focusWU": 0.4,
+          "endWU": 0.8,
           "publishable": true,
           "presentation": {
             "layout": "opener"
@@ -695,9 +656,9 @@
         {
           "id": "text-complexity-idea",
           "kind": "title",
-          "startWU": 1.7,
-          "focusWU": 2.1,
-          "endWU": 2.525,
+          "startWU": 1,
+          "focusWU": 1.4,
+          "endWU": 1.8,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -709,9 +670,9 @@
         {
           "id": "text-complexity-conditions",
           "kind": "title",
-          "startWU": 2.55,
-          "focusWU": 2.975,
-          "endWU": 3.4,
+          "startWU": 2.1,
+          "focusWU": 2.5,
+          "endWU": 2.9,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -723,9 +684,9 @@
         {
           "id": "text-complexity-direction",
           "kind": "title",
-          "startWU": 3.425,
-          "focusWU": 3.85,
-          "endWU": 4.19,
+          "startWU": 3.2,
+          "focusWU": 3.6,
+          "endWU": 4,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -737,9 +698,9 @@
         {
           "id": "text-background-editorial",
           "kind": "scroll-block",
-          "startWU": 5.2,
-          "focusWU": 5.375,
-          "endWU": 7.3,
+          "startWU": 4.745,
+          "focusWU": 4.92,
+          "endWU": 6.845,
           "publishable": true,
           "presentation": {
             "layout": "reading"
@@ -759,9 +720,9 @@
         {
           "id": "text-background-clients",
           "kind": "scroll-block",
-          "startWU": 7.3,
-          "focusWU": 7.475,
-          "endWU": 7.65,
+          "startWU": 6.945,
+          "focusWU": 7.12,
+          "endWU": 7.295,
           "publishable": true,
           "presentation": {
             "layout": "reading"
@@ -782,9 +743,9 @@
         {
           "id": "text-complexity-curiosity",
           "kind": "title",
-          "startWU": 8.095,
-          "focusWU": 8.329,
-          "endWU": 8.6044,
+          "startWU": 7.34,
+          "focusWU": 7.74,
+          "endWU": 8.14,
           "publishable": true,
           "presentation": {
             "layout": "constellation"
@@ -796,9 +757,9 @@
         {
           "id": "text-complexity-listen",
           "kind": "title",
-          "startWU": 8.5496,
-          "focusWU": 8.825,
-          "endWU": 9.1004,
+          "startWU": 8.44,
+          "focusWU": 8.84,
+          "endWU": 9.24,
           "publishable": true,
           "presentation": {
             "layout": "constellation"
@@ -810,9 +771,9 @@
         {
           "id": "text-complexity-focus",
           "kind": "title",
-          "startWU": 9.0206,
-          "focusWU": 9.296,
-          "endWU": 9.602,
+          "startWU": 9.54,
+          "focusWU": 9.94,
+          "endWU": 10.34,
           "publishable": true,
           "presentation": {
             "layout": "constellation"
@@ -822,26 +783,121 @@
           "text": "Together, they become a way to make the idea tangible."
         },
         {
-          "id": "text-practice-disciplines",
-          "kind": "discipline-reveal",
-          "startWU": 10.45,
-          "focusWU": 11.26,
-          "endWU": 12.07,
+          "id": "text-disciplines-title",
+          "kind": "scroll-block",
+          "startWU": 12.08,
+          "focusWU": 12.3925,
+          "endWU": 14.58,
           "publishable": true,
-          "protected": true,
           "presentation": {
-            "layout": "constellation"
+            "layout": "disciplines"
           },
-          "fieldTravelStartWU": 8.686,
-          "fieldTravelEndWU": 12.43,
-          "choreography": {
+          "block": {
+            "id": "disciplines-passage",
+            "kind": "prose",
+            "text": "Product and Experience Design give me the shape of the problem.\nUsers, needs, behaviour and structure. Art Direction gives it a point of view. Motion & 3D add timing, space and feel. Creative Engineering and Parametric Systems turn the idea into something that can be tested, changed and made real.\nAI belongs here as a working material. It helps me explore options, build tools around the task and push a direction further without handing over judgement.\nThe point is not breadth for its own sake. It is creating enough contact between strategy, design and implementation that the idea does not flatten as it moves through the project.",
+            "emphasis": [
+              {
+                "text": "shape",
+                "tone": "blue"
+              },
+              {
+                "text": "judgement",
+                "tone": "blue"
+              }
+            ]
+          }
+        },
+        {
+          "id": "text-life-momentum",
+          "kind": "title",
+          "startWU": 14.82,
+          "focusWU": 15.22,
+          "endWU": 15.62,
+          "publishable": true,
+          "presentation": {
+            "layout": "living-field"
+          },
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "text": "A good idea should not lose its character as it becomes usable."
+        },
+        {
+          "id": "text-life-form",
+          "kind": "title",
+          "startWU": 15.92,
+          "focusWU": 16.32,
+          "endWU": 16.72,
+          "publishable": true,
+          "presentation": {
+            "layout": "living-field"
+          },
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "text": "It should become easier to enter. That is when the experience starts to feel real."
+        },
+        {
+          "id": "text-role-highlight",
+          "kind": "scroll-block",
+          "startWU": 17.09,
+          "focusWU": 17.331667,
+          "endWU": 18.54,
+          "publishable": true,
+          "presentation": {
+            "layout": "exit"
+          },
+          "block": {
+            "id": "role-passage",
+            "kind": "prose",
+            "text": "I help teams do that.\nTurn uncertain territory into products, services and experiences.\nWith clear direction, useful behaviour and a character people can remember.",
+            "emphasis": [
+              {
+                "text": "uncertain",
+                "tone": "blue"
+              },
+              {
+                "text": "remember",
+                "tone": "blue"
+              }
+            ]
+          }
+        },
+        {
+          "id": "text-epilogue-invitation",
+          "kind": "title",
+          "startWU": 20.4,
+          "focusWU": 20.8,
+          "endWU": 21.2,
+          "publishable": true,
+          "presentation": {
+            "layout": "text-bust-cta"
+          },
+          "movement": "spatial",
+          "preset": "finale-v1",
+          "text": "If you are building something new, let's talk."
+        }
+      ]
+    },
+    "interactions": {
+      "clips": [
+        {
+          "id": "motion-discipline-reveal",
+          "type": "discipline-reveal",
+          "startWU": 8.686,
+          "activationWU": 10.45,
+          "endWU": 14.145,
+          "targetWorldId": "world-background",
+          "parameters": {
+            "fieldTravelDurationWU": 3.744,
             "fieldTravelWU": 9.6,
             "fieldFogStartWU": 4.2,
             "fieldFogEndWU": 8.4,
             "fieldFogStrength": 0.12,
+            "labelWindowWU": 1.62,
             "staggerWU": 0.135,
             "backgroundFadeWU": 0.216,
             "backgroundOpacity": 0.2,
+            "backgroundScale": 0.58,
             "reconnectOpacity": 0.24,
             "pointScale": 1.35,
             "labelOffsetPx": 10,
@@ -876,110 +932,12 @@
           }
         },
         {
-          "id": "text-disciplines-title",
-          "kind": "scroll-block",
-          "startWU": 11.45,
-          "focusWU": 11.7625,
-          "endWU": 13.95,
-          "publishable": true,
-          "presentation": {
-            "layout": "disciplines"
-          },
-          "block": {
-            "id": "disciplines-passage",
-            "kind": "prose",
-            "text": "Product and Experience Design give me the shape of the problem.\nUsers, needs, behaviour and structure. Art Direction gives it a point of view. Motion & 3D add timing, space and feel. Creative Engineering and Parametric Systems turn the idea into something that can be tested, changed and made real.\nAI belongs here as a working material. It helps me explore options, build tools around the task and push a direction further without handing over judgement.\nThe point is not breadth for its own sake. It is creating enough contact between strategy, design and implementation that the idea does not flatten as it moves through the project.",
-            "emphasis": [
-              {
-                "text": "shape",
-                "tone": "blue"
-              },
-              {
-                "text": "judgement",
-                "tone": "blue"
-              }
-            ]
-          }
-        },
-        {
-          "id": "text-life-momentum",
-          "kind": "title",
-          "startWU": 15.0203,
-          "focusWU": 15.311,
-          "endWU": 15.6017,
-          "publishable": true,
-          "presentation": {
-            "layout": "living-field"
-          },
-          "movement": "spatial",
-          "preset": "travelling-title-v1",
-          "text": "A good idea should not lose its character as it becomes usable."
-        },
-        {
-          "id": "text-life-form",
-          "kind": "title",
-          "startWU": 15.6473,
-          "focusWU": 16.24865,
-          "endWU": 16.85,
-          "publishable": true,
-          "presentation": {
-            "layout": "living-field"
-          },
-          "movement": "spatial",
-          "preset": "travelling-title-v1",
-          "text": "It should become easier to enter. That is when the experience starts to feel real."
-        },
-        {
-          "id": "text-role-highlight",
-          "kind": "scroll-block",
-          "startWU": 17.85,
-          "focusWU": 18.091667,
-          "endWU": 19.3,
-          "publishable": true,
-          "presentation": {
-            "layout": "exit"
-          },
-          "block": {
-            "id": "role-passage",
-            "kind": "prose",
-            "text": "I help teams do that.\nTurn uncertain territory into products, services and experiences.\nWith clear direction, useful behaviour and a character people can remember.",
-            "emphasis": [
-              {
-                "text": "uncertain",
-                "tone": "blue"
-              },
-              {
-                "text": "remember",
-                "tone": "blue"
-              }
-            ]
-          }
-        },
-        {
-          "id": "text-epilogue-invitation",
-          "kind": "title",
-          "startWU": 20.402,
-          "focusWU": 20.81,
-          "endWU": 21.8,
-          "publishable": true,
-          "presentation": {
-            "layout": "text-bust-cta"
-          },
-          "movement": "spatial",
-          "preset": "finale-v1",
-          "text": "If you are building something new, let's talk."
-        }
-      ]
-    },
-    "interactions": {
-      "clips": [
-        {
           "id": "interaction-grid-ripple",
           "type": "grid-ripple",
-          "startWU": 9.85,
-          "activationWU": 10.45,
-          "endWU": 14.145,
-          "targetWorldId": "world-discipline-isolation",
+          "startWU": 15.05,
+          "activationWU": 15.65,
+          "endWU": 18,
+          "targetWorldId": "world-bringing-life",
           "parameters": {
             "amplitude": 0.28,
             "speed": 1.15,

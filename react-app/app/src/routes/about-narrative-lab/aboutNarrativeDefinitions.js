@@ -29,12 +29,12 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
   '--ball-6',
 ]);
 export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = Object.freeze([
-  Object.freeze({ group: 1, x: 0.35, y: 0.58 }),
-  Object.freeze({ group: 2, x: 0.54, y: 0.646 }),
-  Object.freeze({ group: 3, x: 0.43, y: 0.712 }),
-  Object.freeze({ group: 4, x: 0.58, y: 0.778 }),
-  Object.freeze({ group: 5, x: 0.36, y: 0.844 }),
-  Object.freeze({ group: 6, x: 0.52, y: 0.91 }),
+  Object.freeze({ group: 1, x: 0.5, y: 0.918 }),
+  Object.freeze({ group: 2, x: 0.56, y: 0.934 }),
+  Object.freeze({ group: 3, x: 0.47, y: 0.95 }),
+  Object.freeze({ group: 4, x: 0.55, y: 0.967 }),
+  Object.freeze({ group: 5, x: 0.43, y: 0.984 }),
+  Object.freeze({ group: 6, x: 0.54, y: 0.999 }),
 ]);
 export const ABOUT_NARRATIVE_TRANSITION_TYPES = Object.freeze([
   'morph',
@@ -79,6 +79,11 @@ export const ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS = Object.freeze([
   Object.freeze({ id: 'text-editorial', label: 'Editorial · Reveal & layout' }),
 ]);
 
+export const ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS = Object.freeze([
+  Object.freeze({ id: 'camera-travel', label: 'Camera · Travel & lens' }),
+  Object.freeze({ id: 'camera-fog', label: 'Camera · Distance fog' }),
+]);
+
 export const ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS = Object.freeze([
   numberControl('fieldTravelStart', 'Field scroll start', 0, 3.8, 0.01, '× section'),
   numberControl('fieldTravelEnd', 'Field scroll end', 0.1, 4, 0.01, '× section'),
@@ -112,8 +117,10 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     id: 'camera',
     label: 'Camera',
     controls: Object.freeze([
-      numberControl('cadence', 'Forward cadence', 0.25, 2, 0.01, 'WU'),
-      numberControl('fov', 'Field of view', 25, 80, 1, '°'),
+      numberControl('cadence', 'Forward cadence', 0.25, 2, 0.01, 'WU', 'camera-travel'),
+      numberControl('fov', 'Field of view', 25, 80, 1, '°', 'camera-travel'),
+      numberControl('distanceFogStartWU', 'Fog begins', 0, 40, 0.1, 'WU', 'camera-fog'),
+      numberControl('distanceFogEndWU', 'Fully faded', 0.1, 80, 0.1, 'WU', 'camera-fog'),
     ]),
   }),
   Object.freeze({
@@ -324,6 +331,52 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
 });
 
 export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
+  'discipline-reveal': Object.freeze({
+    id: 'discipline-reveal',
+    label: 'Discipline reveal',
+    defaultParameters: Object.freeze({
+      fieldTravelDurationWU: 3.744,
+      fieldTravelWU: 9.6,
+      fieldFogStartWU: 4.2,
+      fieldFogEndWU: 8.4,
+      fieldFogStrength: 0.12,
+      labelWindowWU: 1.62,
+      staggerWU: 0.135,
+      backgroundFadeWU: 0.216,
+      backgroundOpacity: 0.2,
+      backgroundScale: 0.58,
+      reconnectOpacity: 0.24,
+      pointScale: 1.35,
+      labelOffsetPx: 10,
+      labelDurationWU: 0.162,
+      holdWU: 0.72,
+      items: Object.freeze([
+        Object.freeze({ group: 1, label: 'Product Design' }),
+        Object.freeze({ group: 2, label: 'Experience Design' }),
+        Object.freeze({ group: 3, label: 'Art Direction' }),
+        Object.freeze({ group: 4, label: 'Motion & 3D' }),
+        Object.freeze({ group: 5, label: 'Creative Engineering' }),
+        Object.freeze({ group: 6, label: 'Parametric Systems' }),
+      ]),
+    }),
+    parameters: Object.freeze([
+      numberControl('fieldTravelDurationWU', 'Field travel duration', 0.1, 10, 0.01, 'WU', 'modifier-timing'),
+      numberControl('fieldTravelWU', 'Field travel distance', 0, 20, 0.1, 'WU', 'modifier-motion'),
+      numberControl('fieldFogStartWU', 'Field fog begins', 0, 20, 0.1, 'WU', 'modifier-appearance'),
+      numberControl('fieldFogEndWU', 'Field fog resolves', 0.1, 30, 0.1, 'WU', 'modifier-appearance'),
+      numberControl('fieldFogStrength', 'Field fog strength', 0, 1, 0.01, '', 'modifier-appearance'),
+      numberControl('labelWindowWU', 'Label window', 0.2, 6, 0.01, 'WU', 'modifier-timing'),
+      numberControl('staggerWU', 'Label stagger', 0.01, 0.5, 0.005, 'WU', 'modifier-timing'),
+      numberControl('backgroundFadeWU', 'Grid fade duration', 0.01, 1.5, 0.005, 'WU', 'modifier-timing'),
+      numberControl('backgroundOpacity', 'Resting grid opacity', 0, 0.5, 0.01, '', 'modifier-appearance'),
+      numberControl('backgroundScale', 'Resting grid size', 0.1, 1, 0.01, '×', 'modifier-appearance'),
+      numberControl('reconnectOpacity', 'Editorial grid opacity', 0, 0.8, 0.01, '', 'modifier-appearance'),
+      numberControl('pointScale', 'Discipline point size', 1, 8, 0.05, '×', 'modifier-appearance'),
+      numberControl('labelOffsetPx', 'Label offset', 0, 64, 1, 'px', 'modifier-appearance'),
+      numberControl('labelDurationWU', 'Label reveal duration', 0.01, 1, 0.005, 'WU', 'modifier-timing'),
+      numberControl('holdWU', 'Label hold', 0, 3, 0.005, 'WU', 'modifier-timing'),
+    ]),
+  }),
   'grid-ripple': Object.freeze({
     id: 'grid-ripple',
     label: 'Grid ripple',

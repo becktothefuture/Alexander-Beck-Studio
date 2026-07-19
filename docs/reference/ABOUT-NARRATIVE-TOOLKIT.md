@@ -37,7 +37,7 @@ About Narrative
 - A **modifier** adds deterministic or ambient movement to a Shape.
 - A **Cue** is a large travelling statement.
 - An **editorial block** is native vertically scrolling prose, a list, or a detail.
-- A **Discipline reveal** is one movable Text clip that projects six labels from exact Three.js point anchors without creating six ordinary title keyframes.
+- A **Discipline reveal** is one movable Motion clip that isolates six existing points and projects their labels from exact Three.js anchors without creating another World or six ordinary title keyframes.
 
 “Stage” is not part of the authored vocabulary.
 
@@ -147,7 +147,7 @@ World Z = camera Z at Section entry - entryDistanceWU
 
 The camera then moves toward and through it. The World does not remain attached to the camera.
 
-Camera, World, Text, and Interaction are independent tracks. Replacing a middle Shape preserves Section timing, camera keys, text, World placement, and interaction unless a capability check says the replacement is incompatible.
+Camera, World, Text, and Motion are independent tracks. Replacing a middle Shape preserves camera keys, text, World placement, and motion unless a capability check says the replacement is incompatible.
 
 ## The point pool
 
@@ -233,9 +233,9 @@ Select an editorial Section, then edit its blocks under **Editorial content**. P
 
 ### Edit the six-discipline reveal
 
-Select the striped **Discipline reveal** clip in the Text lane. The clip may extend across its owning Section boundary so its striped bar visibly describes the handoff into editorial content. **Field handoff** controls set when the unchanged calm field begins and ends its screen-up travel, how far it moves, and where distance fog begins, resolves, and reaches full strength. **Reveal choreography** controls reveal start and label exit, stagger, grid fade, resting grid opacity, point size, label offset, label reveal duration, and the editorial hold. Reorder the six rows to change reveal order without remapping their stable point groups.
+Select **Discipline reveal** in the Motion lane. C remains one unchanged calm-field World for the complete grid and discipline sequence: the Motion clip owns field travel, label activation, grid isolation, resting opacity and size, point emphasis, fog, and the label hold. Its start controls field travel, activation begins the labels and isolation transition, and its end holds the treatment until E. Reorder the six labels to change reveal order without remapping their stable point groups.
 
-The clip is one draggable timing object. Moving it shifts the complete sequence while preserving all internal spacing. The unchanged grid begins its screen-up handoff behind the three spatial practice titles. Once the titles clear, the native DOM labels reveal from their corresponding Three.js grid points and continue with the grid into the beginning of the next editorial Section. The labels then leave while the six coloured points remain. Their palette is fixed to the actual Home simulation ball tokens by semantic group: `1 → --ball-1`, `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`; the editor shows these assignments rather than offering unrelated colour names. Marking an editorial prose block **Reconnect point grid** restores the surrounding grid as that paragraph enters.
+The clip is one draggable timing object. Moving it shifts the complete sequence while preserving its relative timing. The unchanged grid begins its screen-up handoff behind the three spatial practice titles. Once the titles clear, the native DOM labels reveal from their corresponding Three.js grid points and continue into the following editorial block. The labels then leave while the six coloured points remain. Their palette is fixed to the actual Home simulation ball tokens by semantic group: `1 → --ball-1`, `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`. The separate Grid ripple Motion targets E only, after C's discipline treatment has ended.
 
 ## History, comparison, and checkpoints
 

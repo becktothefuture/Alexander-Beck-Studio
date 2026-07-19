@@ -8,6 +8,7 @@ import {
 } from 'react';
 import {
   ABOUT_NARRATIVE_CAMERA_EASINGS,
+  ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS,
   ABOUT_NARRATIVE_BLOCK_KINDS,
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
   ABOUT_NARRATIVE_EASINGS,
@@ -39,12 +40,22 @@ const TRACKS = Object.freeze([
   { id: 'camera', label: 'Camera', type: 'camera-key', colour: 'camera' },
   { id: 'world', label: 'World', type: 'world', colour: 'world' },
   { id: 'text', label: 'Text', type: 'text-field', colour: 'text' },
-  { id: 'interaction', label: 'Interaction', type: 'interaction', colour: 'interaction' },
+  { id: 'interaction', label: 'Motion', type: 'interaction', colour: 'interaction' },
 ]);
 const TRACK_BY_ID = Object.freeze(Object.fromEntries(TRACKS.map((track) => [track.id, track])));
 const MIN_TIMELINE_WIDTH = 920;
 const BASE_PIXELS_PER_WU = 66;
 const TEXT_CONNECTION_EPSILON_WU = 0.0001;
+const CAMERA_DEPTH_OFFSET_CONTROL = Object.freeze({
+  id: 'offsetZ',
+  label: 'Depth offset (− = closer)',
+  type: 'range',
+  min: -40,
+  max: 40,
+  step: 0.05,
+  unit: 'WU',
+});
+const GRID_RIPPLE_START_STEP_WU = 0.05;
 const PREVIEW_ASPECT_RATIOS = Object.freeze({
   tablet: Object.freeze({ portrait: 820 / 1180, landscape: 1180 / 820 }),
   mobile: Object.freeze({ portrait: 390 / 844, landscape: 844 / 390 }),
@@ -60,6 +71,12 @@ const WORLD_PARAMETER_GROUP_IDS = Object.freeze(
 const TEXT_TRACK_CONTROL_GROUP_BY_ID = Object.freeze(Object.fromEntries(
   ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS.map((group) => [group.id, group]),
 ));
+const CAMERA_TRACK_CONTROL_GROUP_BY_ID = Object.freeze(Object.fromEntries(
+  ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS.map((group) => [group.id, group]),
+));
+const CAMERA_TRACK_CONTROLS = Object.freeze(
+  ABOUT_NARRATIVE_GLOBAL_CONTROLS.find((owner) => owner.id === 'camera')?.controls || [],
+);
 const TEXT_TRACK_CONTROLS = Object.freeze(ABOUT_NARRATIVE_GLOBAL_CONTROLS.flatMap((owner) => (
   owner.controls
     .filter((control) => control.group?.startsWith('text-'))
@@ -77,6 +94,25 @@ function cleanWU(value) {
   return Number(Number(value).toFixed(4));
 }
 
+function getGridRippleStartControl(document, clip) {
+  const targetWorld = document.tracks.worlds.objects.find((world) => world.id === clip.targetWorldId);
+  const worldStartWU = Number(targetWorld?.startWU ?? 0);
+  const attackWU = Math.max(0, Number(clip.activationWU) - Number(clip.startWU));
+  const earliestWU = Math.ceil(worldStartWU / GRID_RIPPLE_START_STEP_WU) * GRID_RIPPLE_START_STEP_WU;
+  const latestWU = Math.floor(
+    (Number(clip.endWU) - attackWU) / GRID_RIPPLE_START_STEP_WU,
+  ) * GRID_RIPPLE_START_STEP_WU;
+  return {
+    id: 'rippleStartWU',
+    label: 'Ripple starts',
+    type: 'range',
+    min: cleanWU(earliestWU),
+    max: cleanWU(Math.max(earliestWU, latestWU)),
+    step: GRID_RIPPLE_START_STEP_WU,
+    unit: 'WU',
+  };
+}
+
 function getTrackItems(document, trackId) {
   if (trackId === 'camera') return document.tracks.camera.keys;
   if (trackId === 'world') return document.tracks.worlds.objects;
@@ -87,7 +123,9 @@ function getTrackItems(document, trackId) {
 function getObjectLabel(object, type) {
   if (type === 'camera-key') return object.id.replace(/^camera-/, '') || 'Camera key';
   if (type === 'world') return object.label || object.shapeId || object.id;
-  if (type === 'interaction') return object.type || object.id;
+  if (type === 'interaction') {
+    return ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[object.type]?.label || object.type || object.id;
+  }
   if (object.kind === 'stub') return object.label || 'Untitled stub';
   if (object.kind === 'scroll-block') {
     if (object.block?.kind === 'clients') return 'Selected clients';
@@ -453,7 +491,7 @@ function WorldInspector({ object, selection, store, locked, commit }) {
       <InspectorFolder
         key={`${object.id}-world-placement`}
         group={WORLD_CONTROL_GROUP_BY_ID['world-placement']}
-        count={9}
+        count={11}
       >
         <div className="about-track-editor-folder__grid">
           {[0, 1, 2].map((axis) => (
@@ -464,7 +502,9 @@ function WorldInspector({ object, selection, store, locked, commit }) {
           ))}
           <NumberField label="Scale" value={object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World scale', (target) => { target.transform.scale = value; })} />
           <NumberField label="Mobile scale" value={object.transform.mobileScale ?? object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World mobile scale', (target) => { target.transform.mobileScale = value; })} />
+          <NumberField label="Mobile X scale" value={object.transform.mobileXScale ?? object.transform.mobileScale ?? object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World mobile X scale', (target) => { target.transform.mobileXScale = value; })} />
           <NumberField label="Mobile Y offset" value={object.transform.mobileYOffset ?? 0} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World mobile offset', (target) => { target.transform.mobileYOffset = value; })} />
+          <NumberField label="Mobile Z offset" value={object.transform.mobileZOffset ?? 0} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World mobile offset', (target) => { target.transform.mobileZOffset = value; })} />
         </div>
       </InspectorFolder>
 
@@ -529,6 +569,96 @@ function WorldInspector({ object, selection, store, locked, commit }) {
           </InspectorFolder>
         );
       })}
+    </div>
+  );
+}
+
+function CameraTrackInspector({ snapshot, store }) {
+  const selection = { type: 'track', id: 'camera' };
+  const camera = snapshot.document.globals.camera;
+  const getCameraValue = (id) => {
+    if (camera[id] != null) return camera[id];
+    if (id === 'distanceFogStartWU') return 8;
+    if (id === 'distanceFogEndWU') return 18;
+    return 0;
+  };
+  const controlsByGroup = new Map();
+  CAMERA_TRACK_CONTROLS.forEach((control) => {
+    if (!controlsByGroup.has(control.group)) controlsByGroup.set(control.group, []);
+    controlsByGroup.get(control.group).push(control);
+  });
+  const getBoundedControl = (control) => {
+    if (control.id === 'distanceFogStartWU') {
+      return {
+        ...control,
+        max: Math.max(control.min, Number(camera.distanceFogEndWU ?? 18) - control.step),
+      };
+    }
+    if (control.id === 'distanceFogEndWU') {
+      return {
+        ...control,
+        min: Math.min(control.max, Number(camera.distanceFogStartWU ?? 8) + control.step),
+      };
+    }
+    return control;
+  };
+  const bindRange = (control) => {
+    const label = `Edit global ${control.label}`;
+    const mutate = (draft, value) => {
+      draft.globals.camera[control.id] = value;
+    };
+    return {
+      onBegin: () => store.beginGesture(label, { selection }),
+      onPreview: (value) => store.updateGesture((draft) => mutate(draft, value), { selection }),
+      onFinish: () => store.commitGesture({ selectionAfter: selection, requireValid: true }),
+      onCancel: () => store.cancelGesture(),
+      onCommit: (value) => store.commit(label, (draft) => mutate(draft, value), {
+        selectionAfter: selection,
+        requireValid: true,
+      }),
+    };
+  };
+
+  return (
+    <div className="about-track-editor-inspector__content" data-track-settings="camera">
+      <header>
+        <span>Track settings</span>
+        <h2>Global camera &amp; depth fog</h2>
+        <code>globals.camera</code>
+      </header>
+      <div className="about-track-editor-world-folders about-track-editor-global-folders">
+        <p className="about-track-editor-parameter-note">
+          Fog fades circles by camera-space distance. Select a Camera key to edit its pose; protected start/end keys keep their timing fixed but their pose remains editable.
+        </p>
+        {ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS.map((group) => {
+          const controls = controlsByGroup.get(group.id) || [];
+          if (!controls.length) return null;
+          return (
+            <InspectorFolder
+              key={group.id}
+              group={CAMERA_TRACK_CONTROL_GROUP_BY_ID[group.id]}
+              count={controls.length}
+              defaultOpen={group.id === 'camera-fog'}
+            >
+              <div className="about-track-editor-shape-controls">
+                {controls.map((sourceControl) => {
+                  const control = getBoundedControl(sourceControl);
+                  return (
+                    <RangeParameterField
+                      key={control.id}
+                      label={control.label}
+                      ariaLabel={`Global camera ${control.label}`}
+                      value={getCameraValue(control.id)}
+                      control={control}
+                      {...bindRange(control)}
+                    />
+                  );
+                })}
+              </div>
+            </InspectorFolder>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -659,6 +789,9 @@ function TrackObject({
   const pointLike = track.type === 'camera-key';
   const left = startWU * pixelsPerWU;
   const width = pointLike ? 18 : Math.max(18, (endWU - startWU) * pixelsPerWU);
+  const activationPercent = track.type === 'interaction' && endWU > startWU
+    ? clamp(((Number(object.activationWU) - startWU) / (endWU - startWU)) * 100, 0, 100)
+    : null;
 
   const beginDrag = (event) => {
     if (event.button !== 0) return;
@@ -691,6 +824,7 @@ function TrackObject({
       data-track-object-type={track.type}
       data-track-object-id={object.id}
       data-text-kind={track.type === 'text-field' ? object.kind : undefined}
+      data-motion-type={track.type === 'interaction' ? object.type : undefined}
       aria-label={`${track.label}: ${getObjectLabel(object, track.type)} at ${getObjectStart(object, track.type).toFixed(3)} WU${locked ? ', protected' : ''}`}
       title={`${getObjectLabel(object, track.type)} · ${startWU.toFixed(3)}–${endWU.toFixed(3)} WU`}
       onPointerDown={beginDrag}
@@ -703,6 +837,14 @@ function TrackObject({
         onOpenTextEditor?.(object);
       }}
     >
+      {activationPercent != null ? (
+        <i
+          className="about-track-editor-clip__activation"
+          style={{ left: `${activationPercent}%` }}
+          title={`Activates at ${Number(object.activationWU).toFixed(3)} WU`}
+          aria-hidden="true"
+        />
+      ) : null}
       {!pointLike ? <span className="about-track-editor-clip__label">{getObjectLabel(object, track.type)}</span> : null}
       {object.kind === 'stub' ? <span className="about-track-editor-clip__badge">Draft · Not published</span> : null}
       {pointLike ? <span className="about-track-editor-clip__point" aria-hidden="true" /> : null}
@@ -839,7 +981,7 @@ function Timeline({
                 </div>
               ) : null}
               {track.id === 'interaction' && interactionMenu ? (
-                <div className="about-track-editor-create-menu" role="menu" aria-label="Create Interaction effect">
+                <div className="about-track-editor-create-menu" role="menu" aria-label="Create Motion clip">
                   <button type="button" role="menuitem" onClick={() => createAtPlayhead('interaction', null, 'grid-ripple')}>Grid ripple</button>
                   <button type="button" role="menuitem" onClick={() => createAtPlayhead('interaction', null, 'horizontal-spin')}>Horizontal spin</button>
                 </div>
@@ -908,6 +1050,9 @@ function ObjectInspector({ snapshot, store, onMessage }) {
   const selection = snapshot.selection;
   const object = getAboutNarrativeTrackObject(snapshot.document, selection);
   const track = TRACK_BY_ID[selection.id];
+  if (!object && selection.type === 'track' && selection.id === 'camera') {
+    return <CameraTrackInspector snapshot={snapshot} store={store} />;
+  }
   if (!object && selection.type === 'track' && selection.id === 'text') {
     return <TextTrackInspector snapshot={snapshot} store={store} />;
   }
@@ -946,29 +1091,36 @@ function ObjectInspector({ snapshot, store, onMessage }) {
   return (
     <div className="about-track-editor-inspector__content">
       <header>
-        <span>{selection.type}</span>
+        <span>{selection.type === 'interaction' ? 'motion' : selection.type}</span>
         <h2>{getObjectLabel(object, selection.type)}</h2>
         <code>{object.id}</code>
-        {locked ? <b>Protected</b> : null}
+        {locked ? <b>{selection.type === 'camera-key' ? 'Timing protected' : 'Protected'}</b> : null}
       </header>
 
       {selection.type === 'camera-key' ? (
         <div className="about-track-editor-fields">
           {number('atWU', object.atWU)}
-          <NumberField label="FOV" value={object.fov} disabled={locked} min={25} max={80} step={1} onCommit={(value) => commit('Edit Camera FOV', (target) => { target.fov = value; })} />
-          <NumberField label="Roll" value={object.roll} disabled={locked} step={0.01} onCommit={(value) => commit('Edit Camera roll', (target) => { target.roll = value; })} />
+          {locked ? <p className="about-track-editor-parameter-note is-wide">This boundary key stays at its Story WU, while its camera pose remains editable.</p> : null}
+          <NumberField label="FOV" value={object.fov} min={25} max={80} step={1} onCommit={(value) => commit('Edit Camera FOV', (target) => { target.fov = value; })} />
+          <NumberField label="Roll" value={object.roll} step={0.01} onCommit={(value) => commit('Edit Camera roll', (target) => { target.roll = value; })} />
           <SelectField
             label="Easing"
             value={object.easing}
-            disabled={locked}
             options={ABOUT_NARRATIVE_CAMERA_EASINGS.map((value) => ({ value, label: value }))}
             onCommit={(value) => commit('Edit Camera easing', (target) => { target.easing = value; })}
           />
-          {[0, 1, 2].map((axis) => (
-            <NumberField key={`offset-${axis}`} label={`Offset ${'XYZ'[axis]}`} value={object.offset[axis]} disabled={locked} step={0.01} onCommit={(value) => commit('Edit Camera offset', (target) => { target.offset[axis] = value; })} />
+          {[0, 1].map((axis) => (
+            <NumberField key={`offset-${axis}`} label={`Offset ${'XY'[axis]}`} value={object.offset[axis]} step={0.01} onCommit={(value) => commit('Edit Camera offset', (target) => { target.offset[axis] = value; })} />
           ))}
+          <RangeParameterField
+            label={CAMERA_DEPTH_OFFSET_CONTROL.label}
+            ariaLabel="Camera depth offset"
+            value={object.offset[2]}
+            control={CAMERA_DEPTH_OFFSET_CONTROL}
+            {...bindObjectRange('Edit Camera depth', (target, value) => { target.offset[2] = value; })}
+          />
           {[0, 1, 2].map((axis) => (
-            <NumberField key={`look-${axis}`} label={`Look ${'XYZ'[axis]}`} value={object.lookAtOffset[axis]} disabled={locked} step={0.01} onCommit={(value) => commit('Edit Camera aim', (target) => { target.lookAtOffset[axis] = value; })} />
+            <NumberField key={`look-${axis}`} label={`Look ${'XYZ'[axis]}`} value={object.lookAtOffset[axis]} step={0.01} onCommit={(value) => commit('Edit Camera aim', (target) => { target.lookAtOffset[axis] = value; })} />
           ))}
         </div>
       ) : null}
@@ -1046,11 +1198,32 @@ function ObjectInspector({ snapshot, store, onMessage }) {
 
       {selection.type === 'interaction' ? (
         <div className="about-track-editor-fields">
-          {number('startWU', object.startWU)}
+          {object.type === 'grid-ripple' ? (
+            <>
+              <RangeParameterField
+                label="Ripple starts"
+                ariaLabel="Ripple starts"
+                value={object.startWU}
+                control={getGridRippleStartControl(snapshot.document, object)}
+                disabled={locked}
+                {...bindObjectRange('Move ripple start', (target, value) => {
+                  const attackWU = Math.max(0, Number(target.activationWU) - Number(target.startWU));
+                  target.startWU = cleanWU(value);
+                  target.activationWU = cleanWU(Math.min(
+                    Number(target.endWU),
+                    Number(value) + attackWU,
+                  ));
+                })}
+              />
+              <p className="about-track-editor-parameter-note is-wide">
+                Moves the ripple onset and full-strength point together, preserving its fade-in timing.
+              </p>
+            </>
+          ) : number('startWU', object.startWU)}
           {number('activationWU', object.activationWU)}
           {number('endWU', object.endWU)}
           <SelectField
-            label="Interaction type"
+            label="Motion type"
             value={object.type}
             disabled={locked}
             options={Object.values(ABOUT_NARRATIVE_INTERACTION_DEFINITIONS).map((definition) => ({
@@ -1070,6 +1243,20 @@ function ObjectInspector({ snapshot, store, onMessage }) {
             options={snapshot.document.tracks.worlds.objects.map((world) => ({ value: world.id, label: world.label || world.id }))}
             onCommit={(value) => commit('Retarget Interaction', (target) => { target.targetWorldId = value; })}
           />
+          {object.type === 'discipline-reveal' ? (
+            <>
+              <p className="about-track-editor-parameter-note is-wide">
+                This Motion keeps the C grid geometry fixed. Start controls field travel, activation begins the discipline labels and grid isolation, and end holds that treatment until E.
+              </p>
+              <JsonField
+                label="Discipline labels"
+                value={object.parameters?.items || []}
+                disabled={locked}
+                onCommit={(value) => commit('Edit Discipline labels', (target) => { target.parameters.items = value; })}
+                onError={onMessage}
+              />
+            </>
+          ) : null}
           {ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[object.type]?.parameters.map((control) => {
             if (control.type === 'select') {
               return (

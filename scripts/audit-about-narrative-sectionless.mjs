@@ -35,7 +35,7 @@ async function auditProduction(viewport, label, expectedProfile) {
   const errors = observeErrors(page);
   await page.goto(`${baseUrl}/about.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-narrative-lab');
-  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 15);
+  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 14);
 
   const initial = await page.evaluate(() => {
     const root = document.querySelector('.about-narrative-lab');
@@ -56,7 +56,7 @@ async function auditProduction(viewport, label, expectedProfile) {
   });
   assert.equal(initial.editorCount, 0);
   assert.equal(initial.legacyContainerCount, 0);
-  assert.equal(initial.semanticFieldCount, 15);
+  assert.equal(initial.semanticFieldCount, 14);
   assert.equal(initial.stubSemanticCount, 0);
   assert.equal(initial.canvasCount, 1);
   assert.ok(initial.canvasWidth > 0 && initial.canvasHeight > 0);
@@ -93,9 +93,9 @@ async function auditProduction(viewport, label, expectedProfile) {
     };
   });
   assert.deepEqual(disciplineState, {
-    activeWorld: 'world-discipline-isolation',
+    activeWorld: 'world-background',
     gridInfluence: '0.0000',
-    worldFrom: 'calm-field-v1',
+    worldFrom: 'turbulent-field-v1',
     worldTo: 'calm-field-v1',
     labelsWithinViewport: true,
   });
@@ -123,7 +123,7 @@ async function auditEditor() {
   const errors = observeErrors(page);
   await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-track-editor');
-  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 15);
+  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 14);
 
   const initial = await page.evaluate(() => ({
     editorVersion: document.querySelector('.about-track-editor')?.dataset.editorVersion,
@@ -136,7 +136,7 @@ async function auditEditor() {
   assert.deepEqual(initial.lanes, ['camera', 'world', 'text', 'interaction']);
   assert.equal(initial.legacyContainerCount, 0);
   assert.equal(initial.plusLabels.length, 4);
-  assert.equal(initial.semanticFieldCount, 15);
+  assert.equal(initial.semanticFieldCount, 14);
 
   const editorialConnection = await page.evaluate(() => {
     const first = document.querySelector('[data-track-object-id="text-background-editorial"]');
@@ -155,13 +155,13 @@ async function auditEditor() {
     { ...editorialConnection, firstGap: undefined },
     {
       firstBefore: false,
-      firstAfter: true,
-      lastBefore: true,
+      firstAfter: false,
+      lastBefore: false,
       lastAfter: false,
       firstGap: undefined,
     },
   );
-  assert.ok(Math.abs(editorialConnection.firstGap) < 0.1, `Connected editorial gap was ${editorialConnection.firstGap}px.`);
+  assert.ok(editorialConnection.firstGap > 0, `Editorial and client-logo fields overlapped by ${editorialConnection.firstGap}px.`);
 
   const authoredStructure = await page.evaluate(() => ({
     aTitles: document.querySelectorAll('[data-track-object-id="text-promise-main"]').length,
@@ -170,7 +170,7 @@ async function auditEditor() {
     cLogos: document.querySelectorAll('[data-track-object-id="text-background-clients"]').length,
     dTitles: ['text-complexity-curiosity', 'text-complexity-listen', 'text-complexity-focus']
       .filter((id) => document.querySelector(`[data-track-object-id="${id}"]`)).length,
-    disciplines: document.querySelectorAll('[data-track-object-id="text-practice-disciplines"]').length,
+    disciplines: document.querySelectorAll('[data-track-object-id="motion-discipline-reveal"][data-track-object-type="interaction"]').length,
     dEditorial: document.querySelectorAll('[data-track-object-id="text-disciplines-title"]').length,
     eTitles: document.querySelectorAll('[data-track-object-id^="text-life-"][data-track-object-type="text-field"]').length,
     eEditorial: document.querySelectorAll('[data-track-object-id="text-role-highlight"]').length,
@@ -198,11 +198,19 @@ async function auditEditor() {
     node.dispatchEvent(new Event('input', { bubbles: true }));
     node.dispatchEvent(new Event('change', { bubbles: true }));
   }, value);
+  const editorialStartWU = await page.evaluate(async () => {
+    const response = await fetch('/config/contents-about.json');
+    const document = await response.json();
+    return document.tracks.text.fields.find(
+      (field) => field.id === 'text-background-editorial',
+    )?.startWU;
+  });
+  assert.equal(Number.isFinite(editorialStartWU), true);
 
-  await setPlayhead(5.375);
-  await page.waitForFunction(() => Math.abs(
-    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - 5.375,
-  ) < 0.01);
+  await setPlayhead(editorialStartWU);
+  await page.waitForFunction((expectedWU) => Math.abs(
+    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
+  ) < 0.01, editorialStartWU);
   const editorialTrigger = await page.evaluate(() => {
     const viewport = document.querySelector('.about-narrative-scrollport').getBoundingClientRect();
     const passage = document.querySelector('[data-text-field-id="text-background-editorial"]');
@@ -220,10 +228,11 @@ async function auditEditor() {
   assert.ok(editorialTrigger.fontSize >= 23);
   assert.ok(editorialTrigger.rowGap >= editorialTrigger.fontSize * 1.05);
 
-  await setPlayhead(5.495);
-  await page.waitForFunction(() => Math.abs(
-    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - 5.495,
-  ) < 0.01);
+  const editorialRevealWU = editorialStartWU + 0.12;
+  await setPlayhead(editorialRevealWU);
+  await page.waitForFunction((expectedWU) => Math.abs(
+    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
+  ) < 0.01, editorialRevealWU);
   const editorialReveals = await page.locator(
     '[data-text-field-id="text-background-editorial"] [data-editorial-line]',
   ).evaluateAll((nodes) => nodes.map((node) => Number(
@@ -259,9 +268,9 @@ async function auditEditor() {
     };
   });
   assert.deepEqual(disciplineDesktop, {
-    activeWorld: 'world-discipline-isolation',
+    activeWorld: 'world-background',
     gridInfluence: '0.0000',
-    worldFrom: 'calm-field-v1',
+    worldFrom: 'turbulent-field-v1',
     worldTo: 'calm-field-v1',
     labelsWithinViewport: true,
   });
@@ -289,7 +298,7 @@ async function auditEditor() {
     status: document.querySelector('[data-text-kind="stub"] .about-track-editor-clip__badge')?.textContent,
   }));
   assert.equal(draft.clipCount, 1);
-  assert.equal(draft.semanticFieldCount, 15);
+  assert.equal(draft.semanticFieldCount, 14);
   assert.equal(draft.status, 'Draft · Not published');
   await page.getByRole('button', { name: 'Undo' }).click();
   assert.equal(await page.locator('[data-text-kind="stub"]').count(), 0);
@@ -310,8 +319,33 @@ async function auditEditor() {
   assert.match(await convertedCopy.inputValue(), /Yoti/);
   await page.getByRole('button', { name: 'Undo' }).click();
 
-  await page.locator('[data-track-object-id="camera-promise-1"]').click();
+  await page.locator('[data-track-object-type="camera-key"]').first().click();
   assert.equal(await page.getByText('Easing', { exact: true }).count(), 1);
+  assert.equal(await page.getByText('Timing protected', { exact: true }).count(), 1);
+  const openingDepth = page.getByRole('slider', { name: 'Camera depth offset slider' });
+  assert.equal(await openingDepth.isEnabled(), true);
+  assert.equal(await openingDepth.inputValue(), '-2.4');
+  await openingDepth.focus();
+  await openingDepth.press('ArrowRight');
+  await openingDepth.press('Tab');
+  assert.equal(await openingDepth.inputValue(), '-2.35');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  assert.equal(await openingDepth.inputValue(), '-2.4');
+
+  await page.getByRole('button', { name: 'Camera', exact: true }).click();
+  assert.equal(await page.getByRole('heading', { name: 'Global camera & depth fog' }).count(), 1);
+  assert.equal(await page.locator('[data-track-settings="camera"] details').count(), 2);
+  const fogStart = page.getByRole('slider', { name: 'Global camera Fog begins slider' });
+  const fogEnd = page.getByRole('slider', { name: 'Global camera Fully faded slider' });
+  assert.equal(await fogStart.inputValue(), '8');
+  assert.equal(await fogEnd.inputValue(), '18');
+  await fogStart.focus();
+  await fogStart.press('ArrowRight');
+  await fogStart.press('Tab');
+  assert.equal(await fogStart.inputValue(), '8.1');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  assert.equal(await fogStart.inputValue(), '8');
+
   await page.locator('[data-track-object-id="world-complexity"]').click();
   for (const label of ['Position X', 'Rotation Z', 'Scale', 'Transition type', 'Transition easing', 'Correspondence']) {
     assert.equal(await page.getByText(label, { exact: true }).count(), 1, `${label} inspector control is missing.`);

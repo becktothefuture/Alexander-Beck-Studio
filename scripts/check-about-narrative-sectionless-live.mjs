@@ -2,9 +2,16 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import { compileAboutNarrativeRuntimePlan } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
+import {
+  compileAboutNarrativeRuntimePlan,
+  sampleAboutNarrativeRuntimePlan,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
+import {
+  getAboutNarrativeEditorialReveal,
+} from '../react-app/app/src/routes/about-narrative-lab/useAboutNarrativeTimeline.js';
 import { validateAboutNarrativeTrackDocument } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
 import {
+  ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS,
   ABOUT_NARRATIVE_DISCIPLINE_ANCHORS,
   ABOUT_NARRATIVE_GLOBAL_CONTROLS,
   ABOUT_NARRATIVE_INTERACTION_DEFINITIONS,
@@ -70,37 +77,33 @@ test('live renderer, timeline, and 3D frame contain no Section contract', () => 
   assert.match(liveSources.experience, /pointProfile=\{runtimePlan\?\.pointProfile\}/);
 });
 
-test('the grid and discipline-isolation moments share one fixed World surface', () => {
+test('C owns one fixed grid World and D is expressed only as Motion', () => {
   const background = canonical.tracks.worlds.objects.find((world) => world.id === 'world-background');
-  const isolation = canonical.tracks.worlds.objects.find((world) => world.id === 'world-discipline-isolation');
+  const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
   assert.ok(background);
-  assert.ok(isolation);
+  assert.ok(reveal);
   assert.deepEqual(background.modifiers, []);
-  assert.equal(isolation.startWU, 9.602);
-  assert.equal(isolation.anchorWU, background.anchorWU);
-  assert.equal(isolation.shapeId, background.shapeId);
-  assert.equal(isolation.seed, background.seed);
-  assert.equal(isolation.entryDistanceWU, background.entryDistanceWU);
-  assert.deepEqual(isolation.transform, background.transform);
-  assert.deepEqual(isolation.shapeParameters, background.shapeParameters);
-  assert.equal(isolation.transitionIn.correspondence, 'index-v1');
-  assert.deepEqual(isolation.modifiers, [{
-    id: 'discipline-isolation-v1',
-    enabled: true,
-    parameters: {
-      strength: 1,
-      backgroundOpacity: 0.2,
-      backgroundScale: 0.58,
-    },
-  }]);
+  assert.equal(canonical.tracks.worlds.objects.some((world) => world.id === 'world-discipline-isolation'), false);
+  assert.equal(reveal.targetWorldId, background.id);
+  assert.equal(reveal.startWU, 8.686);
+  assert.equal(reveal.activationWU, 10.45);
+  assert.equal(reveal.endWU, 14.145);
+  assert.equal(reveal.parameters.backgroundOpacity, 0.2);
+  assert.equal(reveal.parameters.backgroundScale, 0.58);
+  assert.equal(canonical.tracks.text.fields.some((field) => field.kind === 'discipline-reveal'), false);
   assert.doesNotMatch(liveSources.world, /worldDisciplineRise|resolveDisciplineStoryOffset|storyOffset/);
   assert.match(liveSources.world, /camera\.position\.fromArray\(frame\.camera\.position\)/);
+  assert.match(liveSources.world, /uniforms\.fromDisciplineIsolation\.value = isolationWeight/);
+  assert.match(liveSources.world, /writeDisciplineSide/);
+  assert.match(liveSources.experience, /data-motion-clip-id/);
+  assert.match(liveSources.styles, /data-label-side='left'/);
+  assert.match(liveSources.editorStyles, /\.about-narrative-motion-layer/);
 });
 
-test('editor World labels use the sequential taxonomy without derived-span copy', () => {
+test('editor World labels reserve D for Motion without derived-span copy', () => {
   assert.deepEqual(
     canonical.tracks.worlds.objects.map((world) => world.label),
-    ['A', 'B', 'C', 'D', 'E', 'F'],
+    ['A', 'B', 'C', 'E', 'F'],
   );
   assert.doesNotMatch(liveSources.editor, /Derived to next World Start|World width is derived/);
 });
@@ -171,6 +174,39 @@ test('the Text row header exposes only native-v3 global animation controls', () 
   assert.match(liveSources.editor, /Each Title’s duration remains its start–end width on the timeline/);
 });
 
+test('the Camera row exposes global distance fog and protected boundary poses remain editable', () => {
+  assert.deepEqual(
+    ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS.map((group) => group.id),
+    ['camera-travel', 'camera-fog'],
+  );
+  const controls = ABOUT_NARRATIVE_GLOBAL_CONTROLS
+    .find((group) => group.id === 'camera').controls;
+  assert.deepEqual(
+    controls.map((control) => control.id),
+    ['cadence', 'fov', 'distanceFogStartWU', 'distanceFogEndWU'],
+  );
+  assert.equal(canonical.globals.camera.distanceFogStartWU, 8);
+  assert.equal(canonical.globals.camera.distanceFogEndWU, 18);
+  assert.ok(canonical.globals.camera.distanceFogStartWU < canonical.globals.camera.distanceFogEndWU);
+  const previousDraft = structuredClone(canonical);
+  delete previousDraft.globals.camera.distanceFogStartWU;
+  delete previousDraft.globals.camera.distanceFogEndWU;
+  assert.equal(
+    validateAboutNarrativeTrackDocument(previousDraft).some((item) => item.level === 'error'),
+    false,
+  );
+  const invalidFog = structuredClone(canonical);
+  invalidFog.globals.camera.distanceFogStartWU = invalidFog.globals.camera.distanceFogEndWU;
+  assert.ok(validateAboutNarrativeTrackDocument(invalidFog).some(
+    (item) => item.code === 'global-camera-fog-order',
+  ));
+  assert.match(liveSources.editor, /data-track-settings="camera"/);
+  assert.match(liveSources.editor, /Global camera &amp; depth fog/);
+  assert.match(liveSources.editor, /protected start\/end keys keep their timing fixed but their pose remains editable/);
+  assert.match(liveSources.world, /float cameraDepth = max\(0\.0, -viewPoint\.z\)/);
+  assert.match(liveSources.world, /presence \*= 1\.0 - distanceFog/);
+});
+
 test('B forms a denser moving field and the Camera flies straight through it', () => {
   const complexity = canonical.tracks.worlds.objects.find((world) => world.id === 'world-complexity');
   assert.deepEqual(complexity.shapeParameters, {
@@ -201,16 +237,26 @@ test('B forms a denser moving field and the Camera flies straight through it', (
     + key.offset[2];
   const flyThroughZ = flyThrough.map(cameraZ);
   assert.ok(flyThroughZ.every((value, index) => index === 0 || value < flyThroughZ[index - 1]));
+  assert.deepEqual(flyThrough[0].offset, [0, 0, -2.4]);
+  assert.equal(flyThrough[0].easing, 'linear');
+  const openingPlan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  let previousZ = Number.POSITIVE_INFINITY;
+  for (let storyWU = 0; storyWU <= flyThrough.at(-1).atWU; storyWU += 0.005) {
+    const frame = sampleAboutNarrativeRuntimePlan(openingPlan, storyWU);
+    assert.ok(frame.camera.position[2] <= previousZ + 0.000001, `Opening Camera reversed at ${storyWU.toFixed(3)} WU.`);
+    previousZ = frame.camera.position[2];
+  }
 });
 
 test('C and D keep one top-down grid while the Camera moves continuously across it', () => {
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
+  const background = canonical.tracks.worlds.objects.find((world) => world.id === 'world-background');
   const bookend = keys.get('camera-grid-bookend-0');
   const reveal = keys.get('camera-practice-reveal-0');
   const editorial = keys.get('camera-disciplines-0');
   assert.equal(bookend.atWU, 9.602);
   assert.equal(reveal.atWU, 10.45);
-  assert.deepEqual(editorial.offset, [0, 0.9, 6.65]);
+  assert.deepEqual(editorial.offset, [0, 0.9, 6.35]);
   const downwardKeys = [
     'camera-background-1-2',
     'camera-grid-bookend-0',
@@ -230,34 +276,85 @@ test('C and D keep one top-down grid while the Camera moves continuously across 
   assert.ok(downwardZ.every((value, index) => index === 0 || value > downwardZ[index - 1]));
   assert.ok(downwardKeys.every((key, index) => index === 0 || key.fov >= downwardKeys[index - 1].fov));
 
+  const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  let previousZ = Number.NEGATIVE_INFINITY;
+  let previousFov = Number.NEGATIVE_INFINITY;
+  for (let storyWU = downwardKeys[0].atWU; storyWU <= downwardKeys.at(-1).atWU; storyWU += 0.005) {
+    const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
+    assert.ok(frame.camera.position[2] >= previousZ - 0.000001, `Camera reversed at ${storyWU.toFixed(3)} WU.`);
+    assert.ok(frame.camera.fov >= previousFov - 0.000001, `Camera FOV tightened at ${storyWU.toFixed(3)} WU.`);
+    previousZ = frame.camera.position[2];
+    previousFov = frame.camera.fov;
+  }
+
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
   assert.equal(new Set(verticalPositions).size, 6);
-  assert.ok(verticalPositions[0] >= 0.58);
-  assert.ok(verticalPositions.at(-1) - verticalPositions[0] >= 0.3);
+  assert.ok(verticalPositions[0] >= 0.918);
+  assert.ok(verticalPositions.at(-1) - verticalPositions[0] >= 0.08);
 
   const mobileCamera = canonical.profiles.mobile.overrides.camera;
   assert.deepEqual(mobileCamera, {});
   assert.deepEqual(canonical.profiles.tablet.overrides.camera, {});
+  assert.equal(background.transform.mobileZOffset, 2.4);
+  for (const layoutProfile of ['tablet', 'mobile']) {
+    const compactPlan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile });
+    const compactBackground = compactPlan.worlds.find((world) => world.id === 'world-background');
+    assert.equal(compactPlan.pointProfile, 'mobile');
+    assert.equal(compactBackground.transform.mobileZOffset, 2.4);
+    if (layoutProfile === 'mobile') assert.equal(compactBackground.transform.mobileXScale, 0.18);
+  }
+  assert.equal(canonical.profiles.mobile.overrides.worlds['world-discipline-isolation'], undefined);
 });
 
-test('D adds a timed, shader-only grid ripple without creating a new surface', () => {
+test('D is a dedicated Discipline reveal Motion and the ripple starts only in E', () => {
+  const reveal = canonical.tracks.interactions.clips.find((item) => item.type === 'discipline-reveal');
   const clip = canonical.tracks.interactions.clips.find((item) => item.id === 'interaction-grid-ripple');
   const world = canonical.tracks.worlds.objects.find((item) => item.id === clip?.targetWorldId);
   const nextWorld = canonical.tracks.worlds.objects.find((item) => item.startWU > world?.startWU);
+  assert.ok(ABOUT_NARRATIVE_INTERACTION_DEFINITIONS['discipline-reveal']);
   assert.ok(ABOUT_NARRATIVE_INTERACTION_DEFINITIONS['grid-ripple']);
+  assert.ok(reveal);
   assert.ok(clip);
+  assert.equal(reveal.targetWorldId, 'world-background');
+  assert.equal(reveal.parameters.items.length, 6);
+  assert.equal(reveal.parameters.fieldFogStrength, 0.12);
   assert.equal(clip.type, 'grid-ripple');
-  assert.equal(clip.targetWorldId, 'world-discipline-isolation');
+  assert.equal(clip.targetWorldId, 'world-bringing-life');
+  assert.equal(clip.startWU, 15.05);
+  assert.equal(clip.activationWU, 15.65);
   assert.ok(clip.startWU >= world.startWU);
-  assert.equal(clip.endWU, nextWorld.startWU);
+  assert.ok(clip.endWU <= nextWorld.startWU);
   assert.ok(clip.startWU <= clip.activationWU && clip.activationWU < clip.endWU);
   assert.ok(clip.parameters.amplitude > 0);
   assert.ok(clip.parameters.speed > 0);
-  assert.equal(canonical.tracks.text.fields.find((field) => (
-    field.id === 'text-practice-disciplines'
-  )).choreography.fieldFogStrength, 0.12);
   assert.match(liveSources.world, /gridRippleWeight/);
   assert.match(liveSources.world, /worldPoint\.y \+= gridRippleWeight \* gridRippleAmplitude/);
+  assert.match(liveSources.editor, /getGridRippleStartControl\(snapshot\.document, object\)/);
+  assert.match(liveSources.editor, /ariaLabel="Ripple starts"/);
+  assert.match(liveSources.editor, /Move ripple start/);
+  assert.match(liveSources.editor, /Number\(value\) \+ attackWU/);
+});
+
+test('every title uses one timeline duration and title sets use one gap', () => {
+  const fieldsById = new Map(canonical.tracks.text.fields.map((field) => [field.id, field]));
+  const titles = canonical.tracks.text.fields.filter((field) => field.kind === 'title');
+  titles.forEach((field) => {
+    assert.equal(Number((field.endWU - field.startWU).toFixed(4)), 0.8, `${field.id} duration`);
+    assert.equal(Number((field.focusWU - field.startWU).toFixed(4)), 0.4, `${field.id} entry timing`);
+    assert.equal(Number((field.endWU - field.focusWU).toFixed(4)), 0.4, `${field.id} exit timing`);
+    assert.equal(field.movement, 'spatial', `${field.id} movement`);
+  });
+
+  const titleSets = [
+    ['text-complexity-idea', 'text-complexity-conditions', 'text-complexity-direction'],
+    ['text-complexity-curiosity', 'text-complexity-listen', 'text-complexity-focus'],
+    ['text-life-momentum', 'text-life-form'],
+  ];
+  titleSets.forEach((ids) => ids.slice(1).forEach((id, index) => {
+    const previous = fieldsById.get(ids[index]);
+    const current = fieldsById.get(id);
+    assert.equal(Number((current.startWU - previous.endWU).toFixed(4)), 0.3, `${id} gap`);
+  }));
 });
 
 test('the narrative uses the approved A-E title, editorial, logo, and discipline structure', () => {
@@ -274,7 +371,6 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
       ['text-complexity-curiosity', 'title'],
       ['text-complexity-listen', 'title'],
       ['text-complexity-focus', 'title'],
-      ['text-practice-disciplines', 'discipline-reveal'],
       ['text-disciplines-title', 'scroll-block'],
       ['text-life-momentum', 'title'],
       ['text-life-form', 'title'],
@@ -308,13 +404,44 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /--about-editorial-ink:/);
   assert.match(liveSources.styles, /--about-editorial-strong-ink: var\(--text-primary\)/);
   assert.equal(canonical.globals.editorialRevealThreshold, 0.8);
-  assert.match(liveSources.timeline, /getEditorialReveal\(record, scrollWU, viewportHeight, viewportThreshold/);
+  assert.match(liveSources.timeline, /getAboutNarrativeEditorialReveal\(/);
+  assert.match(liveSources.timeline, /Number\(record\.startScrollWU\) \+ threshold - scrollWU/);
+  assert.doesNotMatch(liveSources.timeline, /Number\(record\.field\.(?:startWU|focusWU)\) \+ threshold - scrollWU/);
+  assert.match(liveSources.timeline, /startScrollWU: Number\(span\.scrollBounds\.startWU\)/);
   assert.match(liveSources.timeline, /viewportHeight \* 0\.08/);
   assert.match(liveSources.timeline, /editorialNode\.offsetTop - node\.offsetTop/);
   assert.match(liveSources.timeline, /scrollWUFromStoryWU\(frame\.storyWU\)/);
   assert.doesNotMatch(liveSources.timeline, /sequentialPassage/);
   assert.match(liveSources.styles, /gap: 1\.1em/);
+  assert.match(liveSources.styles, /var\(--render-span-start-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 0\.8\)/);
+  assert.doesNotMatch(liveSources.styles, /var\(--render-span-focus-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 0\.8\)/);
   assert.match(liveSources.styles, /--about-editorial-type-size: clamp\(1\.4375rem/);
+});
+
+test('editorial markers own first reveal onset in every responsive Scroll WU profile', () => {
+  for (const layoutProfile of ['desktop', 'tablet', 'mobile']) {
+    const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile });
+    const logos = plan.renderSpans.find((span) => span.fieldIds.includes('text-background-clients'));
+    const startScrollWU = logos.scrollBounds.startWU;
+    const record = { startScrollWU, layoutOffsetPx: 0 };
+    const viewportHeight = layoutProfile === 'mobile' ? 844 : 900;
+    const atMarker = getAboutNarrativeEditorialReveal(
+      record,
+      startScrollWU,
+      viewportHeight,
+      canonical.globals.editorialRevealThreshold,
+      false,
+    );
+    const entering = getAboutNarrativeEditorialReveal(
+      record,
+      startScrollWU + 0.04,
+      viewportHeight,
+      canonical.globals.editorialRevealThreshold,
+      false,
+    );
+    assert.ok(atMarker <= 0.000001, `${layoutProfile} marker must begin the reveal`);
+    assert.ok(entering > 0 && entering < 1, `${layoutProfile} must reveal immediately after its marker`);
+  }
 });
 
 test('editor exposes exactly four independent lanes and all Text creation kinds', () => {
