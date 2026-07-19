@@ -209,36 +209,16 @@
           "distanceFogEndWU": 18
         },
         {
-          "id": "camera-disciplines-exit",
-          "atWU": 14.145,
-          "offset": [
-            0,
-            8,
-            6.1
-          ],
-          "lookAtOffset": [
-            0,
-            -80,
-            0
-          ],
-          "fov": 70,
-          "roll": 0,
-          "easing": "linear",
-          "locked": false,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
-        },
-        {
           "id": "camera-grid-ripple-hold-start",
-          "atWU": 15.05,
+          "atWU": 15,
           "offset": [
             0,
-            9.408560311284045,
-            7.01556420233463
+            0,
+            7
           ],
           "lookAtOffset": [
             0,
-            -82.34760051880674,
+            -90,
             0
           ],
           "fov": 70,
@@ -253,37 +233,17 @@
           "atWU": 18,
           "offset": [
             0,
-            9.408560311284045,
-            9.96556420233463
+            8,
+            7
           ],
           "lookAtOffset": [
             0,
-            -82.34760051880674,
+            -75,
             0
           ],
           "fov": 70,
           "roll": 0,
           "easing": "linear",
-          "locked": false,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
-        },
-        {
-          "id": "camera-living-field-exit",
-          "atWU": 20.3,
-          "offset": [
-            0,
-            14,
-            12.3
-          ],
-          "lookAtOffset": [
-            0,
-            -90,
-            0
-          ],
-          "fov": 70,
-          "roll": 0,
-          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
           "locked": false,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18
@@ -470,15 +430,15 @@
           "id": "world-bringing-life",
           "label": "E",
           "startWU": 14.145,
-          "anchorWU": 14.145,
+          "anchorWU": 4.595,
           "adapterId": "point-field-v1",
-          "shapeId": "living-field-v1",
+          "shapeId": "calm-field-v1",
           "seed": 506832829,
-          "entryDistanceWU": 6,
+          "entryDistanceWU": 12,
           "transform": {
             "position": [
               0,
-              0,
+              0.2,
               0
             ],
             "rotation": [
@@ -486,22 +446,24 @@
               0,
               0
             ],
-            "scale": 1
+            "scale": 1,
+            "mobileScale": 0.8,
+            "mobileXScale": 0.55,
+            "mobileZOffset": 2.4
           },
           "transitionIn": {
             "startWU": 14.183,
             "endWU": 15,
             "type": "hold",
             "easing": "smoothstep",
-            "correspondence": "spatial-nearest-v1"
+            "correspondence": "index-v1"
           },
           "shapeParameters": {
-            "width": 13.5,
-            "depth": 18,
-            "baseY": -1.58,
-            "terrainX": 0.18,
-            "terrainZ": 0.16,
-            "density": 0.26
+            "width": 16.4,
+            "depth": 24,
+            "height": -1.72,
+            "jitter": 0.035,
+            "density": 0.22
           },
           "modifiers": [
             {
@@ -546,7 +508,7 @@
             "correspondence": "spatial-nearest-v1"
           },
           "shapeParameters": {
-            "density": 0.38
+            "density": 0.13
           },
           "modifiers": [
             {
@@ -554,7 +516,7 @@
               "enabled": true,
               "parameters": {
                 "amplitude": 0.025,
-                "speed": 0.62,
+                "speed": 1,
                 "timeMode": "mixed"
               }
             },
@@ -864,13 +826,13 @@
           "endWU": 18,
           "targetWorldId": "world-bringing-life",
           "parameters": {
-            "amplitude": 0.28,
-            "speed": 1.15,
-            "frequency": 1.3,
+            "amplitude": 0.68,
+            "speed": 1.37,
+            "frequency": 2.43,
             "centerX": 0,
-            "centerZ": -2.8,
-            "releaseWU": 0.65,
-            "timeMode": "mixed"
+            "centerZ": -2.3,
+            "releaseWU": 1.5,
+            "timeMode": "ambient"
           }
         },
         {

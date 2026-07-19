@@ -209,7 +209,7 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
     * Math.sin(
       (target.x * 0.82)
       + (target.y * 0.54)
-      - (numberOr(input?.ambientTime) * 0.45),
+      - (numberOr(input?.storyTime) * 0.45),
     );
 
   return target;

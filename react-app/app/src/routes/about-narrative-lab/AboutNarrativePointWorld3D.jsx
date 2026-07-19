@@ -266,8 +266,10 @@ const VERTEX_SHADER = `
       * mix(1.0, mix(0.28, 1.0, focusMatch), focusActive);
     float revealedGroupWeight = groupExists * disciplineRevealForGroup(group);
     float groupWeight = mix(legacyGroupWeight, revealedGroupWeight, disciplineRevealActive);
+    // Grid shaping is scroll-owned. Keeping it on story time prevents the
+    // settled C/E worlds from drifting while the visitor is still.
     worldPoint.z += gridInfluence * step(0.001, groupStrength) * 0.22 * sin(
-      (worldPoint.x * 0.82) + (worldPoint.y * 0.54) - (ambientTime * 0.45)
+      (worldPoint.x * 0.82) + (worldPoint.y * 0.54) - (storyTime * 0.45)
     );
     float colourWeight = mix(fromLivingColour, toLivingColour, morph);
     float livingBand = 0.5 + (0.5 * sin(
@@ -1662,6 +1664,18 @@ function createPointFieldAdapter({
     uniforms.distanceFogEndWU.value = Number(frame.camera.distanceFogEndWU ?? 18);
     setModifierUniforms(modifierUniformTargets.from, fromWorld, frame.globals);
     setModifierUniforms(modifierUniformTargets.to, toWorld, frame.globals);
+    const targetModifierSlots = getModifierSlots(toWorld, frame.globals);
+    const targetHasAmbientPositionMotion = Boolean(
+      targetModifierSlots?.swarm
+      || targetModifierSlots?.drift
+      || targetModifierSlots?.wave
+    );
+    // A world with no positional motion modifier is an explicitly settled
+    // field. Do not let its outgoing source keep moving through the morph.
+    if (!targetHasAmbientPositionMotion) {
+      uniforms.fromDriftAmplitude.value = 0;
+      uniforms.fromWaveWeight.value = 0;
+    }
     if (frame.reducedMotion) {
       uniforms.fromDriftAmplitude.value = 0;
       uniforms.toDriftAmplitude.value = 0;

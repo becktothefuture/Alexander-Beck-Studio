@@ -369,19 +369,30 @@ test('D is a dedicated Discipline reveal Motion and the ripple starts only in E'
   assert.match(liveSources.styles, /about-narrative-discipline-reveal__label \{[\s\S]*?filter: none;[\s\S]*?text-shadow: none;[\s\S]*?transform: none;/);
 });
 
-test('E holds a wide, centred overhead view of the living wave field', () => {
+test('E ripples C in place beneath one stationary overhead camera', () => {
+  const fixedGrid = canonical.tracks.worlds.objects.find((world) => world.id === 'world-background');
+  const rippleGrid = canonical.tracks.worlds.objects.find((world) => world.id === 'world-bringing-life');
+  assert.equal(rippleGrid.shapeId, fixedGrid.shapeId);
+  assert.equal(rippleGrid.seed, fixedGrid.seed);
+  assert.equal(rippleGrid.anchorWU, fixedGrid.anchorWU);
+  assert.equal(rippleGrid.entryDistanceWU, fixedGrid.entryDistanceWU);
+  assert.deepEqual(rippleGrid.transform, fixedGrid.transform);
+  assert.deepEqual(rippleGrid.shapeParameters, fixedGrid.shapeParameters);
+  assert.equal(rippleGrid.transitionIn.type, 'hold');
+  assert.equal(rippleGrid.transitionIn.correspondence, 'index-v1');
+
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const assertCameraValue = (actual, expected, label) => assert.ok(
     Math.abs(actual - expected) < 0.00001,
     `${label}: expected ${expected}, received ${actual}`,
   );
-  for (const storyWU of [14.145, 15.65, 18, 20.3]) {
+  for (const storyWU of [15, 15.65, 18]) {
     const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
     assertCameraValue(frame.camera.position[0], 0, `E Frame X at ${storyWU}`);
-    assertCameraValue(frame.camera.position[1], 14, `E camera height at ${storyWU}`);
-    assert.ok(Math.abs(frame.camera.position[2]) < 0.35, `E field centre at ${storyWU}`);
+    assertCameraValue(frame.camera.position[1], 9.4, `E camera height at ${storyWU}`);
+    assertCameraValue(frame.camera.position[2], 0, `E field centre at ${storyWU}`);
     assertCameraValue(frame.camera.target[0] - frame.camera.position[0], 0, `E Target X at ${storyWU}`);
-    assertCameraValue(frame.camera.target[1] - frame.camera.position[1], -90, `E Target Y at ${storyWU}`);
+    assertCameraValue(frame.camera.target[1] - frame.camera.position[1], -82.3, `E Target Y at ${storyWU}`);
     assertCameraValue(frame.camera.target[2] - frame.camera.position[2], 0, `E should look straight down at ${storyWU}`);
     assertCameraValue(frame.camera.fov, 70, `E wide lens at ${storyWU}`);
     assertCameraValue(frame.camera.roll, 0, `E level horizon at ${storyWU}`);
