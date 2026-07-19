@@ -118,11 +118,32 @@ A Camera key stores:
 - Look-at offset
 - FOV
 - Roll
-- Easing into the next key
+- A soft cubic-Bezier curve into the next key
 
 The editor interpolates aim and lens independently from the protected base dolly. Orientation is resolved by Three.js look-at math rather than interpolating authored Euler rotations.
 
 Use **Set camera key** to make a change permanent. Camera recipes—Push, Glide, Orbit, Reveal, and Resolve—create normal visible keys that can be edited or deleted.
+
+### Camera travel easing
+
+Selecting a Camera key opens its **Travel easing** graph. It always controls the outgoing segment: the move from the selected key to the next key, never the segment that arrived at it. The two horizontal Bezier handles are deliberately constrained to zero velocity at departure and arrival, so camera framing, depth, aim, lens, and roll always ease softly in and out.
+
+- **Out / acceleration** controls how long the shot holds before it gathers speed.
+- **In / deceleration** controls how early the shot starts settling into the following composition.
+- The protected forward rail continues beneath the authored pose. The curve shapes every authored camera property, including depth; intentional depth changes may therefore create a deliberate change in travel direction.
+
+The curve can be dragged directly, adjusted with arrow keys, entered numerically, or set from Balanced, Cinematic, and Measured presets. The final Camera key has no outgoing segment, so its curve is disabled.
+
+### Camera rig controls
+
+The Camera inspector separates the two gestures that are commonly confused in numeric-only editors:
+
+- **Frame position** moves the camera horizontally and vertically in its shot plane.
+- **Aim target** moves the point the camera looks at, without moving the camera itself.
+- **Depth offset** moves the camera nearer or farther along the protected forward rail.
+- **Lens & horizon** provides Wide, Natural, and Tight FOV starts plus exact FOV and roll input.
+
+Both plane pads can be dragged or nudged with arrow keys; the accompanying X/Y fields remain available for exact values. A pad edit is one undoable Camera-pose gesture.
 
 Every Section always has protected Camera keys at `0` and `1`. They remain visible and selectable as smaller locked diamonds but cannot be dragged or deleted. Existing authored framing is copied to those boundaries, so adding the keys does not change the approved camera path. Intermediate keys remain freely editable and removable.
 
@@ -233,9 +254,9 @@ Select an editorial Section, then edit its blocks under **Editorial content**. P
 
 ### Edit the six-discipline reveal
 
-Select **Discipline reveal** in the Motion lane. C remains one unchanged calm-field World for the complete grid and discipline sequence: the Motion clip owns field travel, label activation, grid isolation, resting opacity and size, point emphasis, fog, and the label hold. Its start controls field travel, activation begins the labels and isolation transition, and its end holds the treatment until E. Reorder the six labels to change reveal order without remapping their stable point groups.
+Select **Discipline reveal** in the Motion lane. C remains one unchanged calm-field World for the complete grid and discipline sequence: the Motion clip owns field travel, label activation, grid isolation, resting opacity and size, point emphasis, fog, and the label hold. Its start controls field travel, activation begins the labels and isolation transition, and its end is the restore endpoint. **Grid restore duration** begins that many WU before the clip end and gently returns the grid to its full, unhighlighted circles. Increase it to shorten the active highlighted state; set it to `0` only when an immediate endpoint is intentional. Reorder the six labels to change reveal order without remapping their stable point groups.
 
-The clip is one draggable timing object. Moving it shifts the complete sequence while preserving its relative timing. The unchanged grid begins its screen-up handoff behind the three spatial practice titles. Once the titles clear, the native DOM labels reveal from their corresponding Three.js grid points and continue into the following editorial block. The labels then leave while the six coloured points remain. Their palette is fixed to the actual Home simulation ball tokens by semantic group: `1 → --ball-1`, `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`. The separate Grid ripple Motion targets E only, after C's discipline treatment has ended.
+The clip is one draggable timing object. Moving it shifts the complete sequence while preserving its relative timing. The unchanged grid begins its screen-up handoff behind the three spatial practice titles. Once the titles clear, the native DOM labels reveal from their corresponding Three.js grid points and continue into the following editorial block. The labels then leave while the six coloured points remain. Their palette is fixed to the actual Home simulation ball tokens by semantic group: `1 → --ball-1`, `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`. E's World transition is set to **hold**, so the C grid stays in place during that boundary; the separate Grid ripple Motion targets E only after the discipline treatment has restored. The ripple modulates point size in place and never displaces grid vertices.
 
 ## History, comparison, and checkpoints
 

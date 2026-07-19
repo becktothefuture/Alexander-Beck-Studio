@@ -81,7 +81,11 @@ export const ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS = Object.freeze([
 
 export const ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS = Object.freeze([
   Object.freeze({ id: 'camera-travel', label: 'Camera · Travel & lens' }),
-  Object.freeze({ id: 'camera-fog', label: 'Camera · Distance fog' }),
+]);
+
+export const ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS = Object.freeze([
+  numberControl('distanceFogStartWU', 'Fog begins', 0, 40, 0.1, 'WU'),
+  numberControl('distanceFogEndWU', 'Fully faded', 0.1, 80, 0.1, 'WU'),
 ]);
 
 export const ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS = Object.freeze([
@@ -99,6 +103,7 @@ export const ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS = Object.freeze([
   numberControl('reconnectOpacity', 'Editorial grid opacity', 0, 0.6, 0.01),
   numberControl('pointScale', 'Active point size', 1, 8, 0.05, '×'),
   numberControl('labelOffsetPx', 'Label offset', 0, 64, 1, 'px'),
+  numberControl('labelScale', 'Label size', 0.5, 2, 0.05, '×'),
   numberControl('labelDuration', 'Label reveal duration', 0.02, 0.25, 0.005),
   numberControl('hold', 'Editorial hold', 0, 2, 0.005),
 ]);
@@ -119,8 +124,6 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     controls: Object.freeze([
       numberControl('cadence', 'Forward cadence', 0.25, 2, 0.01, 'WU', 'camera-travel'),
       numberControl('fov', 'Field of view', 25, 80, 1, '°', 'camera-travel'),
-      numberControl('distanceFogStartWU', 'Fog begins', 0, 40, 0.1, 'WU', 'camera-fog'),
-      numberControl('distanceFogEndWU', 'Fully faded', 0.1, 80, 0.1, 'WU', 'camera-fog'),
     ]),
   }),
   Object.freeze({
@@ -349,6 +352,7 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       pointScale: 1.35,
       restoreDurationWU: 0.72,
       labelOffsetPx: 10,
+      labelScale: 1,
       labelDurationWU: 0.162,
       holdWU: 0.72,
       items: Object.freeze([
@@ -375,6 +379,7 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       numberControl('pointScale', 'Discipline point size', 1, 8, 0.05, '×', 'modifier-appearance'),
       numberControl('restoreDurationWU', 'Grid restore duration', 0, 4, 0.01, 'WU', 'modifier-timing'),
       numberControl('labelOffsetPx', 'Label offset', 0, 64, 1, 'px', 'modifier-appearance'),
+      numberControl('labelScale', 'Label size', 0.5, 2, 0.05, '×', 'modifier-appearance'),
       numberControl('labelDurationWU', 'Label reveal duration', 0.01, 1, 0.005, 'WU', 'modifier-timing'),
       numberControl('holdWU', 'Label hold', 0, 3, 0.005, 'WU', 'modifier-timing'),
     ]),
@@ -392,7 +397,7 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       timeMode: 'mixed',
     }),
     parameters: Object.freeze([
-      numberControl('amplitude', 'Amplitude', 0, 1.5, 0.01, 'WU', 'modifier-motion'),
+      numberControl('amplitude', 'Pulse amplitude', 0, 1.5, 0.01, '×', 'modifier-motion'),
       numberControl('speed', 'Speed', 0, 6, 0.01, '', 'modifier-motion'),
       numberControl('frequency', 'Ring frequency', 0.1, 4, 0.01, '', 'modifier-motion'),
       numberControl('centerX', 'Centre X', -12, 12, 0.1, 'WU', 'modifier-motion'),

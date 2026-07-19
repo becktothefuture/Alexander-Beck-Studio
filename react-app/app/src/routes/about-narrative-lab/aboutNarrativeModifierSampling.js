@@ -198,23 +198,6 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
     + (numberOr(input?.ambientTime) * waveSpeed),
   );
 
-  const ripple = input?.gridRipple || {};
-  const rippleStoryMix = numberOr(ripple.storyMix);
-  const rippleClock = mix(
-    numberOr(input?.ambientTime),
-    numberOr(input?.storyTime),
-    rippleStoryMix,
-  );
-  const rippleX = target.x - numberOr(ripple.centerX);
-  const rippleZ = target.z - numberOr(ripple.centerZ);
-  const rippleDistance = Math.sqrt((rippleX * rippleX) + (rippleZ * rippleZ));
-  target.y += numberOr(ripple.weight)
-    * numberOr(ripple.amplitude)
-    * Math.sin(
-      (rippleDistance * numberOr(ripple.frequency, 1))
-      - (rippleClock * numberOr(ripple.speed) * Math.PI * 2),
-    );
-
   const groupStrength = mix(
     numberOr(input?.fromGroupStrength),
     numberOr(input?.toGroupStrength),

@@ -1,4 +1,5 @@
 import { ABOUT_NARRATIVE_INTERACTION_DEFINITIONS } from './aboutNarrativeDefinitions.js';
+import { ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING } from './aboutNarrativeCameraEasing.js';
 
 export const ABOUT_NARRATIVE_TRACK_EDITING_STEP_WU = 0.005;
 export const ABOUT_NARRATIVE_TRACK_CLIPBOARD_VERSION = 1;
@@ -473,7 +474,9 @@ export function createAboutNarrativeCameraKeyAtWU({ model, atWU, id = null, came
     lookAtOffset: clone(cameraKey.lookAtOffset || [0, 0, -1]),
     fov: Number(cameraKey.fov ?? globals.fov ?? 48),
     roll: Number(cameraKey.roll ?? 0),
-    easing: cameraKey.easing || 'smoothstep',
+    distanceFogStartWU: Number(cameraKey.distanceFogStartWU ?? globals.distanceFogStartWU ?? 8),
+    distanceFogEndWU: Number(cameraKey.distanceFogEndWU ?? globals.distanceFogEndWU ?? 18),
+    easing: cameraKey.easing || ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING,
     locked: false,
   });
 }

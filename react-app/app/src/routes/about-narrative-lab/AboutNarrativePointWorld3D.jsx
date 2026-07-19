@@ -241,7 +241,9 @@ const VERTEX_SHADER = `
       (rippleDistance * gridRippleFrequency)
       - (rippleClock * gridRippleSpeed * 6.2831853)
     );
-    worldPoint.y += gridRippleWeight * gridRippleAmplitude * ripple;
+    // The ripple is a material pulse, not a spatial displacement. Keeping the
+    // vertex fixed preserves the authored grid alignment throughout E.
+    float ripplePulse = gridRippleWeight * gridRippleAmplitude * ripple;
 
     float group = mix(fromGroup, toGroup, morph);
     float groupStrength = mix(fromGroupStrength, toGroupStrength, morph);
@@ -313,7 +315,8 @@ const VERTEX_SHADER = `
     float groupScale = mix(groupStrength, max(0.0, disciplinePointScale - 1.0), disciplineRevealActive);
     float emphasis = 1.0 + (groupWeight * groupScale) + (waveWeight * 0.18);
     float isolationScale = mix(1.0, isolatedBackgroundScale, isolatedBackground);
-    gl_PointSize = pointSize * sizeWeight * emphasis * isolationScale * pixelRatio
+    float rippleScale = clamp(1.0 + ripplePulse, 0.2, 2.5);
+    gl_PointSize = pointSize * sizeWeight * emphasis * isolationScale * rippleScale * pixelRatio
       * clamp(5.0 / max(1.0, -viewPoint.z), 0.56, 3.2);
     pointAlpha = presence;
   }
@@ -1657,12 +1660,8 @@ function createPointFieldAdapter({
     uniforms.ambientTime.value = frame.ambientTime;
     uniforms.pointSize.value = frame.globals.pointMaterial.pointSize * mobileBodyScale;
     uniforms.fieldOpacity.value = frame.globals.pointMaterial.opacity;
-    uniforms.distanceFogStartWU.value = Number(
-      frame.globals.camera.distanceFogStartWU ?? 8,
-    );
-    uniforms.distanceFogEndWU.value = Number(
-      frame.globals.camera.distanceFogEndWU ?? 18,
-    );
+    uniforms.distanceFogStartWU.value = Number(frame.camera.distanceFogStartWU ?? 8);
+    uniforms.distanceFogEndWU.value = Number(frame.camera.distanceFogEndWU ?? 18);
     setModifierUniforms(modifierUniformTargets.from, fromWorld, frame.globals);
     setModifierUniforms(modifierUniformTargets.to, toWorld, frame.globals);
     if (frame.reducedMotion) {

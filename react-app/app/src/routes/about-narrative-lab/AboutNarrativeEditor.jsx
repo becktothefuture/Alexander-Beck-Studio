@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import {
-  ABOUT_NARRATIVE_CAMERA_EASINGS,
+  ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS,
   ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS,
   ABOUT_NARRATIVE_BLOCK_KINDS,
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
@@ -25,6 +25,10 @@ import {
   getAboutNarrativeTrackObject,
   getAboutNarrativeTrackObjectRange,
 } from './aboutNarrativeTrackEditing.js';
+import {
+  ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING,
+  parseAboutNarrativeCameraEasing,
+} from './aboutNarrativeCameraEasing.js';
 import {
   clearAboutNarrativeRecoveryDraft,
   exportAboutNarrativeDocument,
@@ -209,6 +213,205 @@ function SelectField({ label, value, disabled = false, options, onCommit }) {
         ))}
       </select>
     </label>
+  );
+}
+
+function formatCameraBezier(x1, x2) {
+  return `cubic-bezier(${Number(x1).toFixed(2)}, 0, ${Number(x2).toFixed(2)}, 1)`;
+}
+
+function CameraPlanePad({
+  label,
+  x,
+  y,
+  range,
+  disabled = false,
+  onBegin,
+  onPreview,
+  onFinish,
+  onCancel,
+}) {
+  const gestureRef = useRef(false);
+  const normalizedRange = Math.max(1, Number(range) || 1);
+  const markerX = clamp(50 + ((Number(x) / normalizedRange) * 50), 0, 100);
+  const markerY = clamp(50 - ((Number(y) / normalizedRange) * 50), 0, 100);
+  const previewAtPointer = (event) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const nextX = clamp((((event.clientX - bounds.left) / Math.max(1, bounds.width)) - 0.5) * normalizedRange * 2, -normalizedRange, normalizedRange);
+    const nextY = clamp((0.5 - ((event.clientY - bounds.top) / Math.max(1, bounds.height))) * normalizedRange * 2, -normalizedRange, normalizedRange);
+    onPreview?.(Number(nextX.toFixed(2)), Number(nextY.toFixed(2)));
+  };
+  const begin = (event) => {
+    if (disabled) return;
+    gestureRef.current = onBegin?.() !== false;
+    if (!gestureRef.current) return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    previewAtPointer(event);
+  };
+  const finish = () => {
+    if (!gestureRef.current) return;
+    gestureRef.current = false;
+    onFinish?.();
+  };
+  const nudge = (event) => {
+    if (disabled) return;
+    const delta = event.shiftKey ? 1 : 0.1;
+    const changes = {
+      ArrowLeft: [-delta, 0], ArrowRight: [delta, 0], ArrowUp: [0, delta], ArrowDown: [0, -delta],
+    };
+    const change = changes[event.key];
+    if (!change) return;
+    event.preventDefault();
+    gestureRef.current = onBegin?.() !== false;
+    if (!gestureRef.current) return;
+    onPreview?.(
+      Number(clamp(Number(x) + change[0], -normalizedRange, normalizedRange).toFixed(2)),
+      Number(clamp(Number(y) + change[1], -normalizedRange, normalizedRange).toFixed(2)),
+    );
+    gestureRef.current = false;
+    onFinish?.();
+  };
+
+  return (
+    <div className="about-track-editor-camera-pad" role="group" aria-label={label}>
+      <div className="about-track-editor-camera-pad__meta"><span>{label}</span><small>±{normalizedRange.toFixed(0)} WU</small></div>
+      <div
+        className="about-track-editor-camera-pad__surface"
+        tabIndex={disabled ? -1 : 0}
+        role="slider"
+        aria-label={`${label}: horizontal ${Number(x).toFixed(2)}, vertical ${Number(y).toFixed(2)}`}
+        aria-valuetext={`X ${Number(x).toFixed(2)}, Y ${Number(y).toFixed(2)}`}
+        onPointerDown={begin}
+        onPointerMove={(event) => { if (gestureRef.current) previewAtPointer(event); }}
+        onPointerUp={finish}
+        onPointerCancel={() => { gestureRef.current = false; onCancel?.(); }}
+        onKeyDown={nudge}
+      >
+        <i className="about-track-editor-camera-pad__axis is-x" /><i className="about-track-editor-camera-pad__axis is-y" />
+        <b className="about-track-editor-camera-pad__marker" style={{ left: `${markerX}%`, top: `${markerY}%` }} />
+        <em className="about-track-editor-camera-pad__label is-top">up</em><em className="about-track-editor-camera-pad__label is-right">right</em>
+      </div>
+      <output>X {Number(x).toFixed(2)} · Y {Number(y).toFixed(2)}</output>
+    </div>
+  );
+}
+
+function CameraBezierField({
+  value,
+  disabled = false,
+  onBegin,
+  onPreview,
+  onFinish,
+  onCancel,
+  onCommit,
+}) {
+  const gestureRef = useRef(false);
+  const curve = parseAboutNarrativeCameraEasing(value)
+    || parseAboutNarrativeCameraEasing(ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING);
+  const commitCurve = (x1, x2) => onCommit?.(formatCameraBezier(x1, x2));
+  const previewCurve = (x1, x2) => onPreview?.(formatCameraBezier(x1, x2));
+  const updateHandle = (event, handle) => {
+    const bounds = event.currentTarget.ownerSVGElement?.getBoundingClientRect()
+      || event.currentTarget.getBoundingClientRect();
+    const progress = clamp((event.clientX - bounds.left) / Math.max(1, bounds.width), 0, 1);
+    if (handle === 'out') previewCurve(clamp(progress, 0.04, 0.96), curve.x2);
+    else previewCurve(curve.x1, clamp(progress, 0.04, 0.96));
+  };
+  const begin = (event, handle) => {
+    if (disabled) return;
+    gestureRef.current = onBegin?.() !== false;
+    if (!gestureRef.current) return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    updateHandle(event, handle);
+  };
+  const finish = () => {
+    if (!gestureRef.current) return;
+    gestureRef.current = false;
+    onFinish?.();
+  };
+  const keyAdjust = (event, handle) => {
+    if (disabled) return;
+    const direction = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
+    if (!direction && event.key !== 'Home' && event.key !== 'End') return;
+    event.preventDefault();
+    if (handle === 'out') {
+      const next = event.key === 'Home' ? 0.04 : event.key === 'End'
+        ? 0.96 : curve.x1 + (direction * 0.01);
+      commitCurve(clamp(next, 0.04, 0.96), curve.x2);
+      return;
+    }
+    const next = event.key === 'Home' ? 0.04 : event.key === 'End'
+      ? 0.96 : curve.x2 + (direction * 0.01);
+    commitCurve(curve.x1, clamp(next, 0.04, 0.96));
+  };
+
+  return (
+    <section className="about-track-editor-camera-curve" aria-label="Camera travel easing">
+      <div className="about-track-editor-camera-curve__heading">
+        <div><span>Travel easing</span><strong>Soft cubic curve</strong></div>
+        <code>{value}</code>
+      </div>
+      <p>Controls the framing, aim, lens, and roll from this key to the next: <b>Out</b> delays departure; <b>In</b> lengthens arrival. The protected forward rail stays continuous.</p>
+      <svg
+        className="about-track-editor-camera-curve__graph"
+        viewBox="0 0 200 100"
+        role="img"
+        aria-label="Cubic-bezier graph with adjustable departure and arrival handles"
+      >
+        <path className="about-track-editor-camera-curve__grid" d="M 0 50 H 200 M 100 0 V 100" />
+        <path className="about-track-editor-camera-curve__curve" d={`M 0 100 C ${curve.x1 * 200} 100, ${curve.x2 * 200} 0, 200 0`} />
+        <path className="about-track-editor-camera-curve__handle-line" d={`M 0 100 L ${curve.x1 * 200} 100 M 200 0 L ${curve.x2 * 200} 0`} />
+        <circle className="about-track-editor-camera-curve__anchor" cx="0" cy="100" r="3" />
+        <circle className="about-track-editor-camera-curve__anchor" cx="200" cy="0" r="3" />
+        <circle
+          className="about-track-editor-camera-curve__handle"
+          cx={curve.x1 * 200}
+          cy="100"
+          r="6"
+          tabIndex={disabled ? -1 : 0}
+          role="slider"
+          aria-label="Departure easing handle"
+          aria-valuemin="0.04"
+          aria-valuemax="0.96"
+          aria-valuenow={curve.x1}
+          onPointerDown={(event) => begin(event, 'out')}
+          onPointerMove={(event) => { if (gestureRef.current) updateHandle(event, 'out'); }}
+          onPointerUp={finish}
+          onPointerCancel={() => { gestureRef.current = false; onCancel?.(); }}
+          onKeyDown={(event) => keyAdjust(event, 'out')}
+        />
+        <circle
+          className="about-track-editor-camera-curve__handle"
+          cx={curve.x2 * 200}
+          cy="0"
+          r="6"
+          tabIndex={disabled ? -1 : 0}
+          role="slider"
+          aria-label="Arrival easing handle"
+          aria-valuemin="0.04"
+          aria-valuemax="0.96"
+          aria-valuenow={curve.x2}
+          onPointerDown={(event) => begin(event, 'in')}
+          onPointerMove={(event) => { if (gestureRef.current) updateHandle(event, 'in'); }}
+          onPointerUp={finish}
+          onPointerCancel={() => { gestureRef.current = false; onCancel?.(); }}
+          onKeyDown={(event) => keyAdjust(event, 'in')}
+        />
+      </svg>
+      <div className="about-track-editor-camera-curve__inputs">
+        <NumberField label="Out / acceleration" value={curve.x1} disabled={disabled} min={0.04} max={0.96} step={0.01} onCommit={(next) => commitCurve(clamp(next, 0.04, 0.96), curve.x2)} />
+        <NumberField label="In / deceleration" value={curve.x2} disabled={disabled} min={0.04} max={0.96} step={0.01} onCommit={(next) => commitCurve(curve.x1, clamp(next, 0.04, 0.96))} />
+      </div>
+      <div className="about-track-editor-camera-curve__presets" aria-label="Camera easing presets">
+        {[
+          ['Balanced', 0.35, 0.65],
+          ['Cinematic', 0.32, 0.18],
+          ['Measured', 0.48, 0.52],
+        ].map(([label, x1, x2]) => (
+          <button key={label} type="button" disabled={disabled} className={Math.abs(curve.x1 - x1) < 0.01 && Math.abs(curve.x2 - x2) < 0.01 ? 'is-active' : ''} onClick={() => commitCurve(x1, x2)}>{label}</button>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -578,8 +781,6 @@ function CameraTrackInspector({ snapshot, store }) {
   const camera = snapshot.document.globals.camera;
   const getCameraValue = (id) => {
     if (camera[id] != null) return camera[id];
-    if (id === 'distanceFogStartWU') return 8;
-    if (id === 'distanceFogEndWU') return 18;
     return 0;
   };
   const controlsByGroup = new Map();
@@ -587,21 +788,6 @@ function CameraTrackInspector({ snapshot, store }) {
     if (!controlsByGroup.has(control.group)) controlsByGroup.set(control.group, []);
     controlsByGroup.get(control.group).push(control);
   });
-  const getBoundedControl = (control) => {
-    if (control.id === 'distanceFogStartWU') {
-      return {
-        ...control,
-        max: Math.max(control.min, Number(camera.distanceFogEndWU ?? 18) - control.step),
-      };
-    }
-    if (control.id === 'distanceFogEndWU') {
-      return {
-        ...control,
-        min: Math.min(control.max, Number(camera.distanceFogStartWU ?? 8) + control.step),
-      };
-    }
-    return control;
-  };
   const bindRange = (control) => {
     const label = `Edit global ${control.label}`;
     const mutate = (draft, value) => {
@@ -623,12 +809,12 @@ function CameraTrackInspector({ snapshot, store }) {
     <div className="about-track-editor-inspector__content" data-track-settings="camera">
       <header>
         <span>Track settings</span>
-        <h2>Global camera &amp; depth fog</h2>
+        <h2>Global camera</h2>
         <code>globals.camera</code>
       </header>
       <div className="about-track-editor-world-folders about-track-editor-global-folders">
         <p className="about-track-editor-parameter-note">
-          Fog fades circles by camera-space distance. Select a Camera key to edit its pose; protected start/end keys keep their timing fixed but their pose remains editable.
+          Select a Camera key to edit its pose and distance fog. Protected start/end keys keep their timing fixed, while their pose and fog remain editable.
         </p>
         {ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS.map((group) => {
           const controls = controlsByGroup.get(group.id) || [];
@@ -641,9 +827,7 @@ function CameraTrackInspector({ snapshot, store }) {
               defaultOpen={group.id === 'camera-fog'}
             >
               <div className="about-track-editor-shape-controls">
-                {controls.map((sourceControl) => {
-                  const control = getBoundedControl(sourceControl);
-                  return (
+                {controls.map((control) => (
                     <RangeParameterField
                       key={control.id}
                       label={control.label}
@@ -652,8 +836,7 @@ function CameraTrackInspector({ snapshot, store }) {
                       control={control}
                       {...bindRange(control)}
                     />
-                  );
-                })}
+                ))}
               </div>
             </InspectorFolder>
           );
@@ -1087,6 +1270,15 @@ function ObjectInspector({ snapshot, store, onMessage }) {
     onCancel: () => store.cancelGesture(),
     onCommit: (value) => commit(label, (target) => mutate(target, value)),
   });
+  const bindCameraPad = (label, mutate) => ({
+    onBegin: () => store.beginGesture(label, { selection }),
+    onPreview: (x, y) => store.updateGesture((draft) => {
+      const target = getAboutNarrativeTrackObject(draft, selection);
+      if (target) mutate(target, x, y);
+    }, { selection }),
+    onFinish: () => store.commitGesture({ selectionAfter: selection, requireValid: true }),
+    onCancel: () => store.cancelGesture(),
+  });
 
   return (
     <div className="about-track-editor-inspector__content">
@@ -1100,17 +1292,52 @@ function ObjectInspector({ snapshot, store, onMessage }) {
       {selection.type === 'camera-key' ? (
         <div className="about-track-editor-fields">
           {number('atWU', object.atWU)}
+          <p className="about-track-editor-parameter-note is-wide">This is a shot key. Its pose is the camera at this exact Story WU; the curve below shapes its travel <b>to the next key</b>.</p>
           {locked ? <p className="about-track-editor-parameter-note is-wide">This boundary key stays at its Story WU, while its camera pose remains editable.</p> : null}
-          <NumberField label="FOV" value={object.fov} min={25} max={80} step={1} onCommit={(value) => commit('Edit Camera FOV', (target) => { target.fov = value; })} />
-          <NumberField label="Roll" value={object.roll} step={0.01} onCommit={(value) => commit('Edit Camera roll', (target) => { target.roll = value; })} />
-          <SelectField
-            label="Easing"
+          <div className="about-track-editor-camera-rig">
+            <CameraPlanePad label="Frame position" x={object.offset[0]} y={object.offset[1]} range={12} {...bindCameraPad('Frame Camera position', (target, x, y) => { target.offset[0] = x; target.offset[1] = y; })} />
+            <CameraPlanePad label="Aim target" x={object.lookAtOffset[0]} y={object.lookAtOffset[1]} range={Math.max(12, Math.ceil(Math.max(Math.abs(object.lookAtOffset[0]), Math.abs(object.lookAtOffset[1])) / 10) * 10)} {...bindCameraPad('Frame Camera aim', (target, x, y) => { target.lookAtOffset[0] = x; target.lookAtOffset[1] = y; })} />
+          </div>
+          <div className="about-track-editor-camera-lens">
+            <div className="about-track-editor-camera-lens__heading"><span>Lens &amp; horizon</span><small>FOV defines width; roll tilts the horizon.</small></div>
+            <div className="about-track-editor-camera-lens__presets">
+              {[[70, 'Wide'], [50, 'Natural'], [35, 'Tight']].map(([fov, label]) => <button key={label} type="button" className={object.fov === fov ? 'is-active' : ''} onClick={() => commit('Set Camera lens', (target) => { target.fov = fov; })}>{label}<small>{fov}°</small></button>)}
+            </div>
+            <NumberField label="Field of view" value={object.fov} min={25} max={80} step={1} onCommit={(value) => commit('Edit Camera FOV', (target) => { target.fov = value; })} />
+            <NumberField label="Roll / horizon" value={object.roll} step={0.01} onCommit={(value) => commit('Edit Camera roll', (target) => { target.roll = value; })} />
+          </div>
+          <div className="about-track-editor-camera-lens">
+            <div className="about-track-editor-camera-lens__heading"><span>Distance fog</span><small>This key’s fog transitions to the next key with the same camera easing.</small></div>
+            {ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS.map((sourceControl) => {
+              const control = sourceControl.id === 'distanceFogStartWU'
+                ? { ...sourceControl, max: Math.max(sourceControl.min, Number(object.distanceFogEndWU) - sourceControl.step) }
+                : { ...sourceControl, min: Math.min(sourceControl.max, Number(object.distanceFogStartWU) + sourceControl.step) };
+              return (
+                <RangeParameterField
+                  key={control.id}
+                  label={control.label}
+                  ariaLabel={`Camera ${control.label}`}
+                  value={object[control.id]}
+                  control={control}
+                  {...bindObjectRange(`Edit Camera ${control.label}`, (target, value) => { target[control.id] = value; })}
+                />
+              );
+            })}
+          </div>
+          <CameraBezierField
             value={object.easing}
-            options={ABOUT_NARRATIVE_CAMERA_EASINGS.map((value) => ({ value, label: value }))}
-            onCommit={(value) => commit('Edit Camera easing', (target) => { target.easing = value; })}
+            disabled={!snapshot.document.tracks.camera.keys.some((key) => Number(key.atWU) > Number(object.atWU))}
+            onBegin={() => store.beginGesture('Shape Camera travel easing', { selection })}
+            onPreview={(value) => store.updateGesture((draft) => {
+              const target = getAboutNarrativeTrackObject(draft, selection);
+              if (target) target.easing = value;
+            }, { selection })}
+            onFinish={() => store.commitGesture({ selectionAfter: selection, requireValid: true })}
+            onCancel={() => store.cancelGesture()}
+            onCommit={(value) => commit('Edit Camera travel easing', (target) => { target.easing = value; })}
           />
           {[0, 1].map((axis) => (
-            <NumberField key={`offset-${axis}`} label={`Offset ${'XY'[axis]}`} value={object.offset[axis]} step={0.01} onCommit={(value) => commit('Edit Camera offset', (target) => { target.offset[axis] = value; })} />
+            <NumberField key={`offset-${axis}`} label={`Camera ${'XY'[axis]}`} value={object.offset[axis]} step={0.01} onCommit={(value) => commit('Edit Camera offset', (target) => { target.offset[axis] = value; })} />
           ))}
           <RangeParameterField
             label={CAMERA_DEPTH_OFFSET_CONTROL.label}
@@ -1120,7 +1347,7 @@ function ObjectInspector({ snapshot, store, onMessage }) {
             {...bindObjectRange('Edit Camera depth', (target, value) => { target.offset[2] = value; })}
           />
           {[0, 1, 2].map((axis) => (
-            <NumberField key={`look-${axis}`} label={`Look ${'XYZ'[axis]}`} value={object.lookAtOffset[axis]} step={0.01} onCommit={(value) => commit('Edit Camera aim', (target) => { target.lookAtOffset[axis] = value; })} />
+            <NumberField key={`look-${axis}`} label={`Aim ${'XYZ'[axis]}`} value={object.lookAtOffset[axis]} step={0.01} onCommit={(value) => commit('Edit Camera aim', (target) => { target.lookAtOffset[axis] = value; })} />
           ))}
         </div>
       ) : null}

@@ -13,6 +13,10 @@ import {
   ABOUT_NARRATIVE_TRANSITION_TYPES,
 } from './aboutNarrativeDefinitions.js';
 import {
+  normalizeAboutNarrativeCameraEasing,
+  parseAboutNarrativeCameraEasing,
+} from './aboutNarrativeCameraEasing.js';
+import {
   cloneAboutNarrativeDocument,
   normalizeAboutNarrativeDocument,
   validateAboutNarrativeDocument,
@@ -55,7 +59,7 @@ const CAMERA_TRACK_KEYS = new Set(['keys']);
 const WORLD_TRACK_KEYS = new Set(['objects']);
 const TEXT_TRACK_KEYS = new Set(['fields']);
 const INTERACTION_TRACK_KEYS = new Set(['clips']);
-const CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'easing', 'locked']);
+const CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'distanceFogStartWU', 'distanceFogEndWU', 'easing', 'locked']);
 const WORLD_KEYS = new Set(['id', 'label', 'startWU', 'anchorWU', 'adapterId', 'shapeId', 'seed', 'entryDistanceWU', 'transform', 'transitionIn', 'shapeParameters', 'modifiers', 'protected']);
 const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 'mobileXScale', 'mobileYOffset', 'mobileZOffset']);
 const TRANSITION_KEYS = new Set(['startWU', 'endWU', 'type', 'easing', 'correspondence']);
@@ -68,12 +72,12 @@ const DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'fieldTravelStartWU', 'field
 const PRESENTATION_KEYS = new Set(['layout']);
 const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'emphasis', 'worldInfluence']);
 const EMPHASIS_KEYS = new Set(['text', 'tone']);
-const CHOREOGRAPHY_KEYS = new Set(['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'staggerWU', 'backgroundFadeWU', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelDurationWU', 'holdWU', 'items']);
+const CHOREOGRAPHY_KEYS = new Set(['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'staggerWU', 'backgroundFadeWU', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale', 'labelDurationWU', 'holdWU', 'items']);
 const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label']);
 const INTERACTION_KEYS = new Set(['id', 'type', 'startWU', 'activationWU', 'endWU', 'targetWorldId', 'parameters', 'protected']);
 const LIBRARY_KEYS = new Set(['presets']);
 const PRESET_KEYS = new Set(['id', 'label', 'scope', 'protected']);
-const CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'easing']);
+const CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'distanceFogStartWU', 'distanceFogEndWU', 'easing']);
 const WORLD_OVERRIDE_KEYS = new Set(['startWU', 'anchorWU', 'transform', 'transitionIn']);
 const TEXT_OVERRIDE_KEYS = new Set(['startWU', 'focusWU', 'endWU']);
 const INTERACTION_OVERRIDE_KEYS = new Set(['startWU', 'activationWU', 'endWU']);
@@ -241,14 +245,19 @@ function validateProfileOverrides(overrides, diagnostics, profilePath, durationW
       if (!base) diagnostic(diagnostics, 'override-target', itemPath, `Override target “${id}” does not exist on ${track}.`);
       if (!validateOverrideObject(override, allowed, diagnostics, itemPath)) return;
       Object.entries(override).forEach(([key, value]) => {
-        if (key.endsWith('WU')) validateTime(value, diagnostics, `${itemPath}.${key}`, { max: durationWU });
+        if (key.endsWith('WU') && key !== 'distanceFogStartWU' && key !== 'distanceFogEndWU') validateTime(value, diagnostics, `${itemPath}.${key}`, { max: durationWU });
       });
       if (track === 'camera') {
         if (override.offset != null) validateVector(override.offset, diagnostics, `${itemPath}.offset`);
         if (override.lookAtOffset != null) validateVector(override.lookAtOffset, diagnostics, `${itemPath}.lookAtOffset`);
         if (override.fov != null && (!finite(override.fov) || override.fov < 20 || override.fov > 90)) diagnostic(diagnostics, 'camera-fov', `${itemPath}.fov`, 'FOV must stay between 20 and 90.');
         if (override.roll != null && !finite(override.roll)) diagnostic(diagnostics, 'camera-roll', `${itemPath}.roll`, 'Roll must be finite.');
-        if (override.easing != null && !ABOUT_NARRATIVE_CAMERA_EASINGS.includes(override.easing)) diagnostic(diagnostics, 'camera-easing', `${itemPath}.easing`, 'Unsupported Camera easing.');
+        if (override.distanceFogStartWU != null && (!finite(override.distanceFogStartWU) || override.distanceFogStartWU < 0 || override.distanceFogStartWU > 40)) diagnostic(diagnostics, 'camera-fog-start', `${itemPath}.distanceFogStartWU`, 'Camera fog start must stay between 0 and 40 WU.');
+        if (override.distanceFogEndWU != null && (!finite(override.distanceFogEndWU) || override.distanceFogEndWU < 0.1 || override.distanceFogEndWU > 80)) diagnostic(diagnostics, 'camera-fog-end', `${itemPath}.distanceFogEndWU`, 'Camera fog end must stay between 0.1 and 80 WU.');
+        const fogStartWU = Number(override.distanceFogStartWU ?? base?.distanceFogStartWU);
+        const fogEndWU = Number(override.distanceFogEndWU ?? base?.distanceFogEndWU);
+        if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) diagnostic(diagnostics, 'camera-fog-order', itemPath, 'Camera fog must begin before circles are fully faded.');
+        if (override.easing != null && !ABOUT_NARRATIVE_CAMERA_EASINGS.includes(override.easing) && !parseAboutNarrativeCameraEasing(override.easing)) diagnostic(diagnostics, 'camera-easing', `${itemPath}.easing`, 'Camera easing must be a soft cubic-bezier curve.');
       }
       if (track === 'worlds') {
         if (override.transform != null) validateTransform(override.transform, diagnostics, `${itemPath}.transform`, true);
@@ -413,7 +422,7 @@ function validateTextField(field, index, seen, diagnostics, durationWU) {
     unknownKeys(diagnostics, field.choreography, CHOREOGRAPHY_KEYS, `${path}.choreography`);
     const choreography = field.choreography;
     if (isObject(choreography)) {
-      ['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx'].forEach((key) => {
+      ['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale'].forEach((key) => {
         if (!finite(choreography[key])) diagnostic(diagnostics, 'discipline-number', `${path}.choreography.${key}`, 'Discipline choreography values must be finite.');
       });
       ['staggerWU', 'backgroundFadeWU', 'labelDurationWU', 'holdWU'].forEach((key) => {
@@ -539,7 +548,14 @@ export function validateAboutNarrativeTrackDocument(input) {
     validateVector(key.lookAtOffset, diagnostics, `${path}.lookAtOffset`);
     if (!finite(key.fov) || key.fov < 20 || key.fov > 90) diagnostic(diagnostics, 'camera-fov', `${path}.fov`, 'FOV must stay between 20 and 90.');
     if (!finite(key.roll)) diagnostic(diagnostics, 'camera-roll', `${path}.roll`, 'Roll must be finite.');
-    if (!ABOUT_NARRATIVE_CAMERA_EASINGS.includes(key.easing)) diagnostic(diagnostics, 'camera-easing', `${path}.easing`, 'Unsupported Camera easing.');
+    // Per-key fog is optional for existing v3 documents. When absent, the
+    // canonical global camera fog values are materialized by normalization.
+    if (key.distanceFogStartWU != null && (!finite(key.distanceFogStartWU) || key.distanceFogStartWU < 0 || key.distanceFogStartWU > 40)) diagnostic(diagnostics, 'camera-fog-start', `${path}.distanceFogStartWU`, 'Camera fog start must stay between 0 and 40 WU.');
+    if (key.distanceFogEndWU != null && (!finite(key.distanceFogEndWU) || key.distanceFogEndWU < 0.1 || key.distanceFogEndWU > 80)) diagnostic(diagnostics, 'camera-fog-end', `${path}.distanceFogEndWU`, 'Camera fog end must stay between 0.1 and 80 WU.');
+    const fogStartWU = Number(key.distanceFogStartWU ?? input.globals?.camera?.distanceFogStartWU ?? 8);
+    const fogEndWU = Number(key.distanceFogEndWU ?? input.globals?.camera?.distanceFogEndWU ?? 18);
+    if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) diagnostic(diagnostics, 'camera-fog-order', path, 'Camera fog must begin before circles are fully faded.');
+    if (!ABOUT_NARRATIVE_CAMERA_EASINGS.includes(key.easing) && !parseAboutNarrativeCameraEasing(key.easing)) diagnostic(diagnostics, 'camera-easing', `${path}.easing`, 'Camera easing must be a soft cubic-bezier curve.');
     if (typeof key.locked !== 'boolean') diagnostic(diagnostics, 'camera-locked', `${path}.locked`, 'Camera locked must be boolean.');
     if (key.locked !== (index === 0 || index === cameraKeys.length - 1)) diagnostic(diagnostics, 'camera-boundary-lock', `${path}.locked`, 'Only story start and story end Camera keys may be locked.');
   });
@@ -690,7 +706,10 @@ function sortObjectKeys(value) {
 
 function normalizeOverrides(overrides = {}) {
   return {
-    camera: sortObjectKeys(overrides.camera),
+    camera: Object.fromEntries(Object.entries(overrides.camera || {}).sort(([left], [right]) => left.localeCompare(right)).map(([id, override]) => [id, {
+      ...cloneAboutNarrativeDocument(override),
+      ...(override.easing == null ? {} : { easing: normalizeAboutNarrativeCameraEasing(override.easing) }),
+    }])),
     worlds: sortObjectKeys(overrides.worlds),
     text: sortObjectKeys(overrides.text),
     interactions: sortObjectKeys(overrides.interactions),
@@ -709,7 +728,14 @@ export function normalizeAboutNarrativeTrackDocument(input) {
       'reduced-motion': { mode: 'overlay', motionPolicy: 'settled' },
     },
     tracks: {
-      camera: { keys: [...source.tracks.camera.keys].sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)) },
+      camera: { keys: [...source.tracks.camera.keys]
+        .map((key) => ({
+          ...key,
+          distanceFogStartWU: Number(key.distanceFogStartWU ?? source.globals.camera?.distanceFogStartWU ?? 8),
+          distanceFogEndWU: Number(key.distanceFogEndWU ?? source.globals.camera?.distanceFogEndWU ?? 18),
+          easing: normalizeAboutNarrativeCameraEasing(key.easing),
+        }))
+        .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)) },
       worlds: { objects: [...source.tracks.worlds.objects].sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id)) },
       text: { fields: [...source.tracks.text.fields].sort((left, right) => left.startWU - right.startWU || left.focusWU - right.focusWU || left.id.localeCompare(right.id)) },
       interactions: { clips: [...source.tracks.interactions.clips].sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id)) },
@@ -755,6 +781,8 @@ function migrateCameraKeys(document, spans, durationWU) {
       lookAtOffset: [...key.lookAtOffset],
       fov: Number(key.fov),
       roll: Number(key.roll),
+      distanceFogStartWU: Number(document.globals.camera.distanceFogStartWU ?? 8),
+      distanceFogEndWU: Number(document.globals.camera.distanceFogEndWU ?? 18),
       easing: key.easing,
       locked: false,
     }));
@@ -862,6 +890,7 @@ function migrateText(document, spans) {
           reconnectOpacity: reveal.reconnectOpacity,
           pointScale: reveal.pointScale,
           labelOffsetPx: reveal.labelOffsetPx,
+          labelScale: reveal.labelScale ?? 1,
           labelDurationWU: cleanWU(reveal.labelDuration * span.travelWU),
           holdWU: cleanWU(reveal.hold * span.travelWU),
           items: cloneAboutNarrativeDocument(reveal.items),

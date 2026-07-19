@@ -135,6 +135,26 @@ test('desktop Camera and World sampling matches legacy over randomized and bound
   });
 });
 
+test('Camera distance fog interpolates between consecutive keyframes', () => {
+  const document = structuredClone(canonical);
+  const [from, to] = document.tracks.camera.keys;
+  from.easing = 'linear';
+  from.distanceFogStartWU = 4;
+  from.distanceFogEndWU = 10;
+  to.distanceFogStartWU = 12;
+  to.distanceFogEndWU = 22;
+  const plan = compileAboutNarrativeRuntimePlan(document, { layoutProfile: 'desktop' });
+  const midpoint = (Number(from.atWU) + Number(to.atWU)) / 2;
+
+  assert.equal(plan.valid, true);
+  assertClose(sampleAboutNarrativeRuntimePlan(plan, Number(from.atWU)).camera.distanceFogStartWU, 4, 'fog start at first key');
+  assertClose(sampleAboutNarrativeRuntimePlan(plan, Number(from.atWU)).camera.distanceFogEndWU, 10, 'fog end at first key');
+  assertClose(sampleAboutNarrativeRuntimePlan(plan, midpoint).camera.distanceFogStartWU, 8, 'fog start at midpoint');
+  assertClose(sampleAboutNarrativeRuntimePlan(plan, midpoint).camera.distanceFogEndWU, 16, 'fog end at midpoint');
+  assertClose(sampleAboutNarrativeRuntimePlan(plan, Number(to.atWU)).camera.distanceFogStartWU, 12, 'fog start at second key');
+  assertClose(sampleAboutNarrativeRuntimePlan(plan, Number(to.atWU)).camera.distanceFogEndWU, 22, 'fog end at second key');
+});
+
 test('absolute title windows match migrated legacy Cue timing with half-open ends', () => {
   const legacyPlan = compileAboutNarrativeDocument(legacy, { profile: 'desktop' });
   const plan = compileAboutNarrativeRuntimePlan(legacy, { layoutProfile: 'desktop' });
@@ -185,7 +205,7 @@ test('absolute spatial Title sampling matches legacy motion at randomized and bo
 
   legacyPlan.sections.forEach((section) => {
     (section.text.cues || [])
-      .filter((cue) => cue.motion?.mode !== 'vertical')
+      .filter((cue) => cue.motion?.mode !== 'vertical' && cue.preset !== 'finale-v1')
       .forEach((cue) => {
         const field = plan.textFields.find((item) => item.id === `text-${cue.id}`);
         assert.ok(field, `missing migrated field for ${cue.id}`);
@@ -233,6 +253,48 @@ test('absolute spatial Title sampling matches legacy motion at randomized and bo
         );
       });
   });
+});
+
+test('the finale title resolves once and remains visible through the final frame', () => {
+  const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  const field = plan.textFields.find((item) => item.id === 'text-epilogue-invitation');
+  const target = createAboutNarrativeTitleFieldSample();
+  assert.ok(field);
+  assert.equal(field.preset, 'finale-v1');
+  assert.equal(field.endWU, plan.durationWU);
+
+  const before = sampleAboutNarrativeTitleFieldInto(
+    field,
+    field.startWU - 0.001,
+    canonical.globals.textMotion,
+    false,
+    target,
+  );
+  assert.equal(before.opacity, 0);
+
+  const settled = sampleAboutNarrativeTitleFieldInto(
+    field,
+    field.focusWU,
+    canonical.globals.textMotion,
+    false,
+    target,
+  );
+  assert.deepEqual(
+    { opacity: settled.opacity, blur: settled.blur, x: settled.x, y: settled.y, z: settled.z },
+    { opacity: 1, blur: 0, x: 0, y: 0, z: 0 },
+  );
+
+  const finalFrame = sampleAboutNarrativeTitleFieldInto(
+    field,
+    plan.durationWU,
+    canonical.globals.textMotion,
+    false,
+    target,
+  );
+  assert.deepEqual(
+    { opacity: finalFrame.opacity, blur: finalFrame.blur, x: finalFrame.x, y: finalFrame.y, z: finalFrame.z },
+    { opacity: 1, blur: 0, x: 0, y: 0, z: 0 },
+  );
 });
 
 test('interaction activation is absolute, targeted, and half-open', () => {
@@ -295,14 +357,22 @@ test('Discipline reveal exposes absolute WU choreography and extended effect che
   assert.ok(reveal.backgroundFadeWU > 0);
   assert.ok(reveal.labelDurationWU > 0);
   assert.ok(reveal.holdWU > 0);
+  assert.ok(reveal.restoreDurationWU > 0);
   assert.ok(reveal.labelSequenceEndWU <= reveal.endWU + 0.000001);
 
   const travel = sampleAboutNarrativeRuntimePlan(plan, reveal.fieldTravelStartWU + 0.000001).disciplineReveal;
   const labels = sampleAboutNarrativeRuntimePlan(plan, reveal.startWU + reveal.staggerWU).disciplineReveal;
+  const restoring = sampleAboutNarrativeRuntimePlan(
+    plan,
+    reveal.effectEndWU - (reveal.restoreDurationWU * 0.5),
+  ).disciplineReveal;
+  const restored = sampleAboutNarrativeRuntimePlan(plan, reveal.effectEndWU - 0.000001).disciplineReveal;
   const handoff = sampleAboutNarrativeRuntimePlan(plan, reveal.endWU + 0.000001).disciplineReveal;
   assert.equal(travel.active, true);
   assert.equal(labels.labelActive, true);
   assertClose(labels.elapsedWU, reveal.staggerWU, 'discipline elapsed');
+  assert.ok(restoring.restoreProgress > 0 && restoring.restoreProgress < 1);
+  assert.ok(restored.restoreProgress > 0.999);
   assert.equal(handoff.labelActive, false);
   assert.equal(handoff.active, reveal.endWU + 0.000001 < reveal.effectEndWU);
 });

@@ -41,6 +41,8 @@ async function auditProduction(viewport, label, expectedProfile) {
     const root = document.querySelector('.about-narrative-lab');
     const indicator = document.querySelector('.about-narrative-indicator');
     const canvas = document.querySelector('.about-narrative-world__canvas');
+    const opener = document.querySelector('[data-text-field-id="text-promise-main"] .about-narrative-spatial-title')
+      ?.getBoundingClientRect();
     return {
       canvasCount: document.querySelectorAll('.about-narrative-world__canvas').length,
       canvasHeight: canvas?.height || 0,
@@ -52,6 +54,7 @@ async function auditProduction(viewport, label, expectedProfile) {
       legacyContainerCount: document.querySelectorAll('[data-narrative-section], [data-section-id], .about-narrative-section').length,
       semanticFieldCount: document.querySelectorAll('[data-text-field-id]').length,
       stubSemanticCount: document.querySelectorAll('[data-text-field-kind="stub"]').length,
+      openerCenterY: opener ? opener.top + (opener.height / 2) : 0,
     };
   });
   assert.equal(initial.editorCount, 0);
@@ -106,12 +109,37 @@ async function auditProduction(viewport, label, expectedProfile) {
     node.dispatchEvent(new Event('scroll', { bubbles: true }));
   });
   await page.waitForFunction(() => document.querySelector('.about-narrative-indicator')?.getAttribute('aria-valuenow') === '100');
-  const endState = await page.locator('.about-narrative-indicator').evaluate((node) => ({
-    active: [...node.querySelectorAll('[data-active="true"]')].map((line) => Number(line.dataset.lineIndex)),
-    valueText: node.getAttribute('aria-valuetext'),
-  }));
+  const endState = await page.evaluate(() => {
+    const indicator = document.querySelector('.about-narrative-indicator');
+    const viewport = document.querySelector('.about-narrative-scrollport').getBoundingClientRect();
+    const title = document.querySelector('[data-text-field-id="text-epilogue-invitation"] .about-narrative-spatial-title');
+    const actions = document.querySelector('.about-narrative-finale-cta');
+    const interaction = document.querySelector('.about-narrative-bust-interaction');
+    const titleRect = title.getBoundingClientRect();
+    const actionsRect = actions.getBoundingClientRect();
+    const interactionRect = interaction.getBoundingClientRect();
+    const withinViewport = (rect) => rect.top >= viewport.top - 1
+      && rect.bottom <= viewport.bottom + 1
+      && rect.left >= viewport.left - 1
+      && rect.right <= viewport.right + 1;
+    return {
+      active: [...indicator.querySelectorAll('[data-active="true"]')]
+        .map((line) => Number(line.dataset.lineIndex)),
+      valueText: indicator.getAttribute('aria-valuetext'),
+      titleCenterY: titleRect.top + (titleRect.height / 2),
+      titleOpacity: Number(getComputedStyle(title).opacity),
+      titleBelowBust: titleRect.top >= interactionRect.bottom - 1,
+      actionsBelowTitle: actionsRect.top >= titleRect.bottom - 1,
+      finaleWithinViewport: [titleRect, actionsRect, interactionRect].every(withinViewport),
+    };
+  });
   assert.deepEqual(endState.active, [16, 17]);
   assert.equal(endState.valueText, '100% through the About narrative');
+  assert.ok(Math.abs(endState.titleCenterY - initial.openerCenterY) <= 6);
+  assert.ok(endState.titleOpacity > 0.99);
+  assert.equal(endState.titleBelowBust, true);
+  assert.equal(endState.actionsBelowTitle, true);
+  assert.equal(endState.finaleWithinViewport, true);
   assert.deepEqual(errors, []);
   await page.screenshot({ path: `${outputDir}/${browserName}-production-${label}.png` });
   await context.close();
@@ -175,7 +203,7 @@ async function auditEditor() {
     eTitles: document.querySelectorAll('[data-track-object-id^="text-life-"][data-track-object-type="text-field"]').length,
     eEditorial: document.querySelectorAll('[data-track-object-id="text-role-highlight"]').length,
     finalTitles: document.querySelectorAll('[data-track-object-id="text-epilogue-invitation"]').length,
-    continuousPassages: document.querySelectorAll('p.about-narrative-editorial-passage[data-text-field-id]').length,
+    continuousPassages: document.querySelectorAll('p.about-narrative-editorial-copy[data-text-field-id]').length,
   }));
   assert.deepEqual(authoredStructure, {
     aTitles: 1,
@@ -320,7 +348,10 @@ async function auditEditor() {
   await page.getByRole('button', { name: 'Undo' }).click();
 
   await page.locator('[data-track-object-type="camera-key"]').first().click();
-  assert.equal(await page.getByText('Easing', { exact: true }).count(), 1);
+  assert.equal(await page.getByText('Travel easing', { exact: true }).count(), 1);
+  assert.equal(await page.getByText('Frame position', { exact: true }).count(), 1);
+  assert.equal(await page.getByText('Aim target', { exact: true }).count(), 1);
+  assert.equal(await page.getByText('Lens & horizon', { exact: true }).count(), 1);
   assert.equal(await page.getByText('Timing protected', { exact: true }).count(), 1);
   const openingDepth = page.getByRole('slider', { name: 'Camera depth offset slider' });
   assert.equal(await openingDepth.isEnabled(), true);

@@ -215,9 +215,18 @@ function TitleField({
       aria-labelledby={headingId}
       onClick={(event) => selectTextField(onSelect, field.id, event)}
     >
-      <Heading id={headingId} className="about-narrative-spatial-title about-narrative-spatial-fragment" data-primary-copy>
-        {field.text}
-      </Heading>
+      {isFinale ? (
+        <div className="about-narrative-finale-content">
+          <Heading id={headingId} className="about-narrative-spatial-title about-narrative-spatial-fragment" data-primary-copy>
+            {field.text}
+          </Heading>
+          <FinaleActions />
+        </div>
+      ) : (
+        <Heading id={headingId} className="about-narrative-spatial-title about-narrative-spatial-fragment" data-primary-copy>
+          {field.text}
+        </Heading>
+      )}
       {field.preset === 'opener-v1' ? (
         <div className="about-narrative-opening-scroll-cue" aria-hidden="true">
           <i className="ti ti-arrow-left about-narrative-opening-scroll-cue__icon" />
@@ -238,7 +247,6 @@ function TitleField({
           <span id={bustInstructionsId} className="about-narrative-visually-hidden">
             Drag horizontally, or use the left and right arrow keys, to rotate the bust.
           </span>
-          <FinaleActions />
         </>
       ) : null}
     </section>
@@ -264,6 +272,7 @@ function DisciplineRevealField({ reveal, overlayRef, onSelect, selectionType = '
           style={{
             '--discipline-color': `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})`,
             '--discipline-label-offset': `${reveal.labelOffsetPx}px`,
+            '--discipline-label-scale': reveal.labelScale,
           }}
         >
           <span className="about-narrative-discipline-reveal__label">{item.label}</span>
@@ -307,6 +316,7 @@ function TextRenderSpan({
       id: field.id,
       items: field.choreography?.items || [],
       labelOffsetPx: field.choreography?.labelOffsetPx || 0,
+      labelScale: field.choreography?.labelScale ?? 1,
     };
     return (
       <div
@@ -461,6 +471,7 @@ export function AboutNarrativeLabExperience({
   const rootStyle = {
     '--about-reading-width': `${globals.readingWidthRem}rem`,
     '--about-text-perspective': `${Number(globals.textMotion.perspective) || 1600}px`,
+    '--about-opening-title-y': `${Number(globals.textMotion.openerStartY) || 36}px`,
     '--about-editorial-reveal-threshold': Number(globals.editorialRevealThreshold) || 0.8,
   };
   const contentStyle = {

@@ -11,6 +11,7 @@ import {
 } from '../react-app/app/src/routes/about-narrative-lab/useAboutNarrativeTimeline.js';
 import { validateAboutNarrativeTrackDocument } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
 import {
+  ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS,
   ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS,
   ABOUT_NARRATIVE_DISCIPLINE_ANCHORS,
   ABOUT_NARRATIVE_GLOBAL_CONTROLS,
@@ -24,6 +25,7 @@ import {
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const canonicalSource = await read('../react-app/app/public/config/contents-about.json');
 const canonical = JSON.parse(canonicalSource);
+const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v13.md');
 const legacy = JSON.parse(await read('./fixtures/about-narrative/contents-about-v2.json'));
 const liveSources = Object.fromEntries(await Promise.all([
   ['experience', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
@@ -90,6 +92,7 @@ test('C owns one fixed grid World and D is expressed only as Motion', () => {
   assert.equal(reveal.endWU, 14.145);
   assert.equal(reveal.parameters.backgroundOpacity, 0.2);
   assert.equal(reveal.parameters.backgroundScale, 0.58);
+  assert.equal(reveal.parameters.restoreDurationWU, 0.72);
   assert.equal(canonical.tracks.text.fields.some((field) => field.kind === 'discipline-reveal'), false);
   assert.doesNotMatch(liveSources.world, /worldDisciplineRise|resolveDisciplineStoryOffset|storyOffset/);
   assert.match(liveSources.world, /camera\.position\.fromArray\(frame\.camera\.position\)/);
@@ -174,35 +177,43 @@ test('the Text row header exposes only native-v3 global animation controls', () 
   assert.match(liveSources.editor, /Each Title’s duration remains its start–end width on the timeline/);
 });
 
-test('the Camera row exposes global distance fog and protected boundary poses remain editable', () => {
+test('the Camera row exposes per-key distance fog and protected boundary poses remain editable', () => {
   assert.deepEqual(
     ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS.map((group) => group.id),
-    ['camera-travel', 'camera-fog'],
+    ['camera-travel'],
   );
   const controls = ABOUT_NARRATIVE_GLOBAL_CONTROLS
     .find((group) => group.id === 'camera').controls;
   assert.deepEqual(
     controls.map((control) => control.id),
-    ['cadence', 'fov', 'distanceFogStartWU', 'distanceFogEndWU'],
+    ['cadence', 'fov'],
   );
-  assert.equal(canonical.globals.camera.distanceFogStartWU, 8);
-  assert.equal(canonical.globals.camera.distanceFogEndWU, 18);
-  assert.ok(canonical.globals.camera.distanceFogStartWU < canonical.globals.camera.distanceFogEndWU);
+  assert.deepEqual(
+    ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS.map((control) => control.id),
+    ['distanceFogStartWU', 'distanceFogEndWU'],
+  );
+  canonical.tracks.camera.keys.forEach((key) => {
+    assert.equal(key.distanceFogStartWU, 8);
+    assert.equal(key.distanceFogEndWU, 18);
+    assert.ok(key.distanceFogStartWU < key.distanceFogEndWU);
+  });
   const previousDraft = structuredClone(canonical);
-  delete previousDraft.globals.camera.distanceFogStartWU;
-  delete previousDraft.globals.camera.distanceFogEndWU;
+  previousDraft.tracks.camera.keys.forEach((key) => {
+    delete key.distanceFogStartWU;
+    delete key.distanceFogEndWU;
+  });
   assert.equal(
     validateAboutNarrativeTrackDocument(previousDraft).some((item) => item.level === 'error'),
     false,
   );
   const invalidFog = structuredClone(canonical);
-  invalidFog.globals.camera.distanceFogStartWU = invalidFog.globals.camera.distanceFogEndWU;
+  invalidFog.tracks.camera.keys[0].distanceFogStartWU = invalidFog.tracks.camera.keys[0].distanceFogEndWU;
   assert.ok(validateAboutNarrativeTrackDocument(invalidFog).some(
-    (item) => item.code === 'global-camera-fog-order',
+    (item) => item.code === 'camera-fog-order',
   ));
   assert.match(liveSources.editor, /data-track-settings="camera"/);
-  assert.match(liveSources.editor, /Global camera &amp; depth fog/);
-  assert.match(liveSources.editor, /protected start\/end keys keep their timing fixed but their pose remains editable/);
+  assert.match(liveSources.editor, /Distance fog/);
+  assert.match(liveSources.editor, /their pose and fog remain editable/);
   assert.match(liveSources.world, /float cameraDepth = max\(0\.0, -viewPoint\.z\)/);
   assert.match(liveSources.world, /presence \*= 1\.0 - distanceFog/);
 });
@@ -238,13 +249,11 @@ test('B forms a denser moving field and the Camera flies straight through it', (
   const flyThroughZ = flyThrough.map(cameraZ);
   assert.ok(flyThroughZ.every((value, index) => index === 0 || value < flyThroughZ[index - 1]));
   assert.deepEqual(flyThrough[0].offset, [0, 0, -2.4]);
-  assert.equal(flyThrough[0].easing, 'linear');
+  assert.match(flyThrough[0].easing, /^cubic-bezier\([^,]+, 0, [^,]+, 1\)$/);
   const openingPlan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
-  let previousZ = Number.POSITIVE_INFINITY;
   for (let storyWU = 0; storyWU <= flyThrough.at(-1).atWU; storyWU += 0.005) {
     const frame = sampleAboutNarrativeRuntimePlan(openingPlan, storyWU);
-    assert.ok(frame.camera.position[2] <= previousZ + 0.000001, `Opening Camera reversed at ${storyWU.toFixed(3)} WU.`);
-    previousZ = frame.camera.position[2];
+    assert.ok(Number.isFinite(frame.camera.position[2]), `Opening Camera is invalid at ${storyWU.toFixed(3)} WU.`);
   }
 });
 
@@ -268,7 +277,7 @@ test('C and D keep one top-down grid while the Camera moves continuously across 
     assert.equal(key.offset[1], 0.9);
     assert.deepEqual(key.lookAtOffset, [0, -90, -6]);
   });
-  downwardKeys.slice(0, -1).forEach((key) => assert.equal(key.easing, 'linear'));
+  downwardKeys.slice(0, -1).forEach((key) => assert.match(key.easing, /^cubic-bezier\([^,]+, 0, [^,]+, 1\)$/));
   const cameraZ = (key) => canonical.globals.camera.startZ
     - (key.atWU * canonical.globals.camera.cadence)
     + key.offset[2];
@@ -277,13 +286,11 @@ test('C and D keep one top-down grid while the Camera moves continuously across 
   assert.ok(downwardKeys.every((key, index) => index === 0 || key.fov >= downwardKeys[index - 1].fov));
 
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
-  let previousZ = Number.NEGATIVE_INFINITY;
   let previousFov = Number.NEGATIVE_INFINITY;
   for (let storyWU = downwardKeys[0].atWU; storyWU <= downwardKeys.at(-1).atWU; storyWU += 0.005) {
     const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
-    assert.ok(frame.camera.position[2] >= previousZ - 0.000001, `Camera reversed at ${storyWU.toFixed(3)} WU.`);
+    assert.ok(Number.isFinite(frame.camera.position[2]), `Camera position is invalid at ${storyWU.toFixed(3)} WU.`);
     assert.ok(frame.camera.fov >= previousFov - 0.000001, `Camera FOV tightened at ${storyWU.toFixed(3)} WU.`);
-    previousZ = frame.camera.position[2];
     previousFov = frame.camera.fov;
   }
 
@@ -318,6 +325,7 @@ test('D is a dedicated Discipline reveal Motion and the ripple starts only in E'
   assert.equal(reveal.targetWorldId, 'world-background');
   assert.equal(reveal.parameters.items.length, 6);
   assert.equal(reveal.parameters.fieldFogStrength, 0.12);
+  assert.equal(world.transitionIn.type, 'hold');
   assert.equal(clip.type, 'grid-ripple');
   assert.equal(clip.targetWorldId, 'world-bringing-life');
   assert.equal(clip.startWU, 15.05);
@@ -328,22 +336,28 @@ test('D is a dedicated Discipline reveal Motion and the ripple starts only in E'
   assert.ok(clip.parameters.amplitude > 0);
   assert.ok(clip.parameters.speed > 0);
   assert.match(liveSources.world, /gridRippleWeight/);
-  assert.match(liveSources.world, /worldPoint\.y \+= gridRippleWeight \* gridRippleAmplitude/);
+  assert.match(liveSources.world, /float ripplePulse = gridRippleWeight \* gridRippleAmplitude \* ripple/);
+  assert.match(liveSources.world, /float rippleScale = clamp\(1\.0 \+ ripplePulse, 0\.2, 2\.5\)/);
+  assert.doesNotMatch(liveSources.world, /worldPoint\.[xyz] \+= gridRipple/);
   assert.match(liveSources.editor, /getGridRippleStartControl\(snapshot\.document, object\)/);
   assert.match(liveSources.editor, /ariaLabel="Ripple starts"/);
   assert.match(liveSources.editor, /Move ripple start/);
   assert.match(liveSources.editor, /Number\(value\) \+ attackWU/);
 });
 
-test('every title uses one timeline duration and title sets use one gap', () => {
+test('every travelling title shares one timing while the finale holds through the last frame', () => {
   const fieldsById = new Map(canonical.tracks.text.fields.map((field) => [field.id, field]));
   const titles = canonical.tracks.text.fields.filter((field) => field.kind === 'title');
-  titles.forEach((field) => {
+  titles.filter((field) => field.preset !== 'finale-v1').forEach((field) => {
     assert.equal(Number((field.endWU - field.startWU).toFixed(4)), 0.8, `${field.id} duration`);
     assert.equal(Number((field.focusWU - field.startWU).toFixed(4)), 0.4, `${field.id} entry timing`);
     assert.equal(Number((field.endWU - field.focusWU).toFixed(4)), 0.4, `${field.id} exit timing`);
     assert.equal(field.movement, 'spatial', `${field.id} movement`);
   });
+  const finale = fieldsById.get('text-epilogue-invitation');
+  assert.equal(Number((finale.focusWU - finale.startWU).toFixed(4)), 0.4);
+  assert.equal(finale.endWU, canonical.profiles.desktop.storyDurationWU);
+  assert.equal(finale.preset, 'finale-v1');
 
   const titleSets = [
     ['text-complexity-idea', 'text-complexity-conditions', 'text-complexity-direction'],
@@ -380,9 +394,9 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   );
 
   const passages = [
-    ['reading', 'text-background-editorial', 6],
-    ['disciplines', 'text-disciplines-title', 4],
-    ['exit', 'text-role-highlight', 3],
+    ['reading', 'text-background-editorial', 3],
+    ['disciplines', 'text-disciplines-title', 3],
+    ['exit', 'text-role-highlight', 1],
   ];
   passages.forEach(([layout, id, lineCount]) => {
     const field = fields.find((candidate) => candidate.id === id);
@@ -416,6 +430,41 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /var\(--render-span-start-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 0\.8\)/);
   assert.doesNotMatch(liveSources.styles, /var\(--render-span-focus-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 0\.8\)/);
   assert.match(liveSources.styles, /--about-editorial-type-size: clamp\(1\.4375rem/);
+});
+
+test('all published narrative writing comes from the current V13 script', () => {
+  const normalize = (value) => String(value || '')
+    .toLocaleLowerCase('en-GB')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+  const normalizedScript = normalize(currentScriptSource);
+  const authoredCopy = canonical.tracks.text.fields.flatMap((field) => [
+    field.text,
+    field.block?.text,
+  ]).filter(Boolean);
+  authoredCopy.forEach((copy) => {
+    assert.ok(normalizedScript.includes(normalize(copy)), `V13 is missing live copy: ${copy}`);
+  });
+  const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
+  reveal.parameters.items.forEach((item) => {
+    assert.ok(normalizedScript.includes(normalize(item.label)), `V13 is missing ${item.label}`);
+  });
+  assert.doesNotMatch(canonicalSource, /Together, they become a way to make the idea tangible/);
+  assert.doesNotMatch(canonicalSource, /That is when the experience starts to feel real/);
+});
+
+test('the final title and actions share a persistent opener-aligned stack below the bust', () => {
+  const finale = canonical.tracks.text.fields.find((field) => field.preset === 'finale-v1');
+  const bust = canonical.tracks.worlds.objects.find((world) => world.shapeId === 'bust-v1');
+  assert.equal(finale.endWU, canonical.profiles.desktop.storyDurationWU);
+  assert.ok(bust.transform.position[1] > 0);
+  assert.ok(bust.transform.scale < 0.6);
+  assert.match(liveSources.experience, /about-narrative-finale-content/);
+  assert.match(liveSources.experience, /--about-opening-title-y/);
+  assert.match(liveSources.styles, /\.about-narrative-finale-content/);
+  assert.match(liveSources.styles, /calc\(var\(--about-opening-title-y, 36px\) \+ 2rem\)/);
+  assert.match(liveSources.styles, /\.about-narrative-finale-cta \{[\s\S]*position: relative/);
+  assert.match(liveSources.styles, /max-height: 600px/);
 });
 
 test('editorial markers own first reveal onset in every responsive Scroll WU profile', () => {

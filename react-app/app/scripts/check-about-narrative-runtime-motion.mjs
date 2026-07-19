@@ -202,6 +202,27 @@ test('anchor sampler mirrors drift, wave, and grid displacement formulas', () =>
   assert.ok(Math.abs(target.z - expectedZ) < 1e-12);
 });
 
+test('grid ripple leaves semantic anchor positions fixed', () => {
+  const target = { x: 0, y: 0, z: 0 };
+  const input = createSamplingInput({
+    fromPosition: [1, 2, 3],
+    toPosition: [1, 2, 3],
+    gridRipple: {
+      weight: 1,
+      amplitude: 1.5,
+      speed: 4,
+      frequency: 2,
+      centerX: -4,
+      centerZ: 5,
+      storyMix: 1,
+    },
+    storyTime: 0.75,
+    ambientTime: 12,
+  });
+  sampleAboutNarrativeAnchorPosition(input, target);
+  assert.deepEqual(target, { x: 1, y: 2, z: 3 });
+});
+
 test('anchor sampler requires caller-owned scratch and output targets', () => {
   assert.throws(() => sampleAboutNarrativeAnchorPosition({}, null), /caller-owned target/i);
   assert.throws(

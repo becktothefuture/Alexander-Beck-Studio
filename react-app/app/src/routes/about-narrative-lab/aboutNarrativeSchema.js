@@ -30,8 +30,8 @@ const CUE_KEYS = new Set(['id', 'text', 'enter', 'hold', 'exit', 'preset', 'anch
 const CUE_MOTION_KEYS = new Set(['mode']);
 const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'emphasis', 'worldInfluence']);
 const EMPHASIS_KEYS = new Set(['text', 'tone']);
-const DISCIPLINE_REVEAL_KEYS = new Set(['id', 'fieldTravelStart', 'fieldTravelEnd', 'fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'start', 'end', 'stagger', 'backgroundFade', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelDuration', 'hold', 'items']);
-const OPTIONAL_DISCIPLINE_REVEAL_CONTROL_KEYS = new Set(['fieldTravelStart', 'fieldTravelEnd', 'fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength']);
+const DISCIPLINE_REVEAL_KEYS = new Set(['id', 'fieldTravelStart', 'fieldTravelEnd', 'fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'start', 'end', 'stagger', 'backgroundFade', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale', 'labelDuration', 'hold', 'items']);
+const OPTIONAL_DISCIPLINE_REVEAL_CONTROL_KEYS = new Set(['fieldTravelStart', 'fieldTravelEnd', 'fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'labelScale']);
 const DISCIPLINE_REVEAL_ITEM_KEYS = new Set(['group', 'label']);
 const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 'mobileXScale', 'mobileYOffset', 'mobileZOffset']);
 const MODIFIER_KEYS = new Set(['id', 'enabled', 'parameters']);
@@ -141,6 +141,7 @@ function normalizeDisciplineReveal(reveal = {}) {
     reconnectOpacity: Number(reveal.reconnectOpacity ?? 0.24),
     pointScale: Number(reveal.pointScale ?? 3.6),
     labelOffsetPx: Number(reveal.labelOffsetPx ?? 18),
+    labelScale: Number(reveal.labelScale ?? 1),
     labelDuration: Number(reveal.labelDuration ?? 0.07),
     hold: Number(reveal.hold ?? 0.08),
     items: Array.isArray(reveal.items) ? reveal.items.map((item, index) => ({

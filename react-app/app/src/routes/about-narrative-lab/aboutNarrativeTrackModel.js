@@ -6,6 +6,10 @@ import {
   normalizeAboutNarrativeTrackDocument,
   validateAboutNarrativeTrackDocument,
 } from './aboutNarrativeTrackSchema.js';
+import {
+  applyAboutNarrativeCameraEasing,
+  compileAboutNarrativeCameraEasing,
+} from './aboutNarrativeCameraEasing.js';
 
 /*
  * Sectionless About Narrative track model.
@@ -82,6 +86,8 @@ function writeTrackCameraKey(target, key, fallbackFov) {
   target.lookAtOffset[2] = lookAtOffset?.[2] ?? -1;
   target.fov = key?.fov ?? fallbackFov;
   target.roll = key?.roll ?? 0;
+  target.distanceFogStartWU = key?.distanceFogStartWU ?? 8;
+  target.distanceFogEndWU = key?.distanceFogEndWU ?? 18;
   return target;
 }
 
@@ -97,11 +103,16 @@ function sampleCameraKeyInto(keys, storyWU, fallbackFov, target) {
   const from = keys[toIndex - 1];
   const to = keys[toIndex];
   const spanWU = Math.max(0.000001, to.atWU - from.atWU);
-  const progress = applyTrackEasing(from.easing, (storyWU - from.atWU) / spanWU);
+  const progress = applyAboutNarrativeCameraEasing(
+    from.easingCurve || compileAboutNarrativeCameraEasing(from.easing),
+    (storyWU - from.atWU) / spanWU,
+  );
   writeTrackVectorMix(target.offset, from.offset, to.offset, progress);
   writeTrackVectorMix(target.lookAtOffset, from.lookAtOffset, to.lookAtOffset, progress);
   target.fov = mix(from.fov, to.fov, progress);
   target.roll = mix(from.roll, to.roll, progress);
+  target.distanceFogStartWU = mix(from.distanceFogStartWU, to.distanceFogStartWU, progress);
+  target.distanceFogEndWU = mix(from.distanceFogEndWU, to.distanceFogEndWU, progress);
   return target;
 }
 
@@ -171,7 +182,9 @@ export function compileAboutNarrativeTrackModel(input) {
     model,
     durationWU,
     profiles: clone(model.profiles || {}),
-    cameraKeys: [...(model.tracks?.camera?.keys || [])].sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)),
+    cameraKeys: [...(model.tracks?.camera?.keys || [])]
+      .map((key) => ({ ...key, easingCurve: compileAboutNarrativeCameraEasing(key.easing) }))
+      .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)),
     worlds: compiledWorlds,
     textFields: [...(model.tracks?.text?.fields || [])].sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id)),
     interactionClips: [...(model.tracks?.interactions?.clips || [])].sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id)),
@@ -189,6 +202,8 @@ export function createAboutNarrativeTrackFrameSample() {
     lookAtOffset: [0, 0, -1],
     fov: 48,
     roll: 0,
+    distanceFogStartWU: 8,
+    distanceFogEndWU: 18,
   };
   const frame = {
     storyWU: 0,
@@ -199,6 +214,8 @@ export function createAboutNarrativeTrackFrameSample() {
       target: [0, 0, -1],
       fov: 48,
       roll: 0,
+      distanceFogStartWU: 8,
+      distanceFogEndWU: 18,
       cadence: 1,
     },
     world: {
@@ -270,6 +287,8 @@ export function sampleAboutNarrativeTrackPlanInto(plan, storyWU, target) {
   target.globals = globals;
   target.camera.fov = cameraKey.fov;
   target.camera.roll = cameraKey.roll;
+  target.camera.distanceFogStartWU = cameraKey.distanceFogStartWU;
+  target.camera.distanceFogEndWU = cameraKey.distanceFogEndWU;
   target.camera.cadence = globals.camera.cadence;
   sampleWorldStateInto(plan.worlds, clampedStoryWU, target.world);
   collectActiveTextFieldIds(target.text.activeFieldIds, plan.textFields, clampedStoryWU);

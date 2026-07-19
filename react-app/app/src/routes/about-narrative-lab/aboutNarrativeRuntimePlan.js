@@ -11,6 +11,10 @@ import {
 } from './aboutNarrativeProfileResolver.js';
 import { compileAboutNarrativeRenderSpans } from './aboutNarrativeRenderSpans.js';
 import { createAboutNarrativeWorldPreparationDescriptor } from './aboutNarrativeSequenceIdentity.js';
+import {
+  applyAboutNarrativeCameraEasing,
+  compileAboutNarrativeCameraEasing,
+} from './aboutNarrativeCameraEasing.js';
 
 const EMPTY_SAMPLE_OPTIONS = Object.freeze({});
 const TIME_EPSILON = 0.000001;
@@ -134,7 +138,10 @@ function applyProfileOverrides(model, resolver) {
   const overrides = model.profiles[resolver.layoutProfile].overrides;
   const durationWU = resolver.storyDurationWU;
   const cameraKeys = model.tracks.camera.keys
-    .map((key) => mergeCameraKey(key, overrides.camera[key.id]))
+    .map((key) => {
+      const merged = mergeCameraKey(key, overrides.camera[key.id]);
+      return { ...merged, easingCurve: compileAboutNarrativeCameraEasing(merged.easing) };
+    })
     .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id));
   const authoredWorlds = model.tracks.worlds.objects
     .map((world) => mergeWorld(world, overrides.worlds[world.id]))
@@ -189,14 +196,15 @@ function compileLegacyDisciplineReveal(textFields) {
     backgroundOpacity: Number(choreography.backgroundOpacity),
     reconnectOpacity: Number(choreography.reconnectOpacity),
     pointScale: Number(choreography.pointScale),
+    restoreDurationWU: 0,
     labelOffsetPx: Number(choreography.labelOffsetPx),
+    labelScale: Number(choreography.labelScale ?? 1),
     labelDurationWU,
     holdWU,
     labelSequenceEndWU,
     items: choreography.items,
     backgroundScale: 1,
     sourceType: 'legacy-text',
-    restoreDurationWU: 0,
     source: field,
     field,
   };
@@ -238,14 +246,15 @@ function compileDisciplineReveal(textFields, interactionClips) {
     backgroundScale: Number(parameters.backgroundScale),
     reconnectOpacity: Number(parameters.reconnectOpacity),
     pointScale: Number(parameters.pointScale),
+    restoreDurationWU: Number(parameters.restoreDurationWU),
     labelOffsetPx: Number(parameters.labelOffsetPx),
+    labelScale: Number(parameters.labelScale ?? 1),
     labelDurationWU,
     holdWU,
     labelSequenceEndWU: startWU
       + (Math.max(0, parameters.items.length - 1) * staggerWU)
       + labelDurationWU
       + holdWU,
-    restoreDurationWU: Number(parameters.restoreDurationWU),
     items: parameters.items,
     sourceType: 'motion',
     source: clip,
@@ -355,6 +364,8 @@ function writeCameraKey(target, key, fallbackFov) {
   target.lookAtOffset[2] = key?.lookAtOffset?.[2] ?? -1;
   target.fov = key?.fov ?? fallbackFov;
   target.roll = key?.roll ?? 0;
+  target.distanceFogStartWU = key?.distanceFogStartWU ?? 8;
+  target.distanceFogEndWU = key?.distanceFogEndWU ?? 18;
   return target;
 }
 
@@ -383,7 +394,7 @@ function sampleCameraInto(keys, storyWU, fallbackFov, reducedMotion, target) {
     return writeCameraKey(target, storyWU <= Number(keys[0].atWU) ? keys[0] : from, fallbackFov);
   }
   const spanWU = Math.max(TIME_EPSILON, Number(to.atWU) - Number(from.atWU));
-  const progress = applyEasing(from.easing, (storyWU - Number(from.atWU)) / spanWU);
+  const progress = applyAboutNarrativeCameraEasing(from.easingCurve, (storyWU - Number(from.atWU)) / spanWU);
   target.offset[0] = mix(from.offset[0], to.offset[0], progress);
   target.offset[1] = mix(from.offset[1], to.offset[1], progress);
   target.offset[2] = mix(from.offset[2], to.offset[2], progress);
@@ -392,6 +403,8 @@ function sampleCameraInto(keys, storyWU, fallbackFov, reducedMotion, target) {
   target.lookAtOffset[2] = mix(from.lookAtOffset[2], to.lookAtOffset[2], progress);
   target.fov = mix(from.fov, to.fov, progress);
   target.roll = mix(from.roll, to.roll, progress);
+  target.distanceFogStartWU = mix(from.distanceFogStartWU, to.distanceFogStartWU, progress);
+  target.distanceFogEndWU = mix(from.distanceFogEndWU, to.distanceFogEndWU, progress);
   return target;
 }
 
@@ -478,6 +491,7 @@ export function sampleAboutNarrativeTitleFieldInto(
     throw new TypeError('sampleAboutNarrativeTitleFieldInto requires a target from createAboutNarrativeTitleFieldSample().');
   }
   const isOpener = field?.preset === 'opener-v1';
+  const isFinale = field?.preset === 'finale-v1';
   const openerStartY = Number(textMotion?.openerStartY ?? 36);
   if (reducedMotion) {
     target.opacity = 1;
@@ -496,6 +510,27 @@ export function sampleAboutNarrativeTitleFieldInto(
   const entryDepth = Number(textMotion?.entryDepth ?? 360);
   const exitDepth = Number(textMotion?.exitDepth ?? 220);
   const maxBlur = Number(textMotion?.maxBlur ?? 22);
+  if (isFinale) {
+    const focusWU = Math.max(startWU + 0.00001, Number(field?.focusWU ?? endWU));
+    if (valueWU < startWU) {
+      target.opacity = 0;
+      target.blur = maxBlur;
+      target.x = 0;
+      target.y = startY;
+      target.z = -entryDepth;
+      return target;
+    }
+    const entryProgress = applyEasing(
+      'smoothstep',
+      (valueWU - startWU) / (focusWU - startWU),
+    );
+    target.opacity = entryProgress;
+    target.blur = mix(maxBlur, 0, entryProgress);
+    target.x = 0;
+    target.y = mix(startY, 0, entryProgress);
+    target.z = mix(-entryDepth, 0, entryProgress);
+    return target;
+  }
   if (valueWU < startWU || valueWU > endWU) {
     const before = valueWU < startWU;
     target.opacity = 0;
@@ -585,6 +620,8 @@ export function createAboutNarrativeRuntimeFrameSample() {
     lookAtOffset: [0, 0, -1],
     fov: 48,
     roll: 0,
+    distanceFogStartWU: 8,
+    distanceFogEndWU: 18,
   };
   const disciplineReveal = {
     id: '',
@@ -622,6 +659,8 @@ export function createAboutNarrativeRuntimeFrameSample() {
       target: [0, 0, -1],
       fov: 48,
       roll: 0,
+      distanceFogStartWU: 8,
+      distanceFogEndWU: 18,
       cadence: 1,
     },
     world: {
@@ -698,6 +737,8 @@ export function sampleAboutNarrativeRuntimePlanInto(
   target.camera.target[2] = target.camera.position[2] + cameraKey.lookAtOffset[2];
   target.camera.fov = reducedMotion ? plan.model.globals.camera.fov : cameraKey.fov;
   target.camera.roll = reducedMotion ? 0 : cameraKey.roll;
+  target.camera.distanceFogStartWU = cameraKey.distanceFogStartWU;
+  target.camera.distanceFogEndWU = cameraKey.distanceFogEndWU;
   target.camera.cadence = plan.model.globals.camera.cadence;
 
   target.globals = plan.model.globals;

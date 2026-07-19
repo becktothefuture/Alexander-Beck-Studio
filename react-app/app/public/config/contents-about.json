@@ -97,7 +97,9 @@
           ],
           "fov": 48,
           "roll": 0,
-          "easing": "linear",
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
           "locked": true
         },
         {
@@ -115,8 +117,10 @@
           ],
           "fov": 48,
           "roll": 0,
-          "easing": "smoothstep",
-          "locked": false
+          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
+          "locked": false,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
         },
         {
           "id": "camera-complexity-1",
@@ -133,8 +137,10 @@
           ],
           "fov": 48,
           "roll": 0,
-          "easing": "smoothstep",
-          "locked": false
+          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
+          "locked": false,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
         },
         {
           "id": "camera-background-1",
@@ -151,8 +157,10 @@
           ],
           "fov": 48,
           "roll": 0,
-          "easing": "smoothstep",
-          "locked": false
+          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
+          "locked": false,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
         },
         {
           "id": "camera-background-1-2",
@@ -169,8 +177,10 @@
           ],
           "fov": 48,
           "roll": 0,
-          "easing": "linear",
-          "locked": false
+          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
+          "locked": false,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
         },
         {
           "id": "camera-grid-bookend-0",
@@ -187,8 +197,10 @@
           ],
           "fov": 50,
           "roll": 0,
-          "easing": "linear",
-          "locked": false
+          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
+          "locked": false,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
         },
         {
           "id": "camera-practice-reveal-0",
@@ -205,8 +217,10 @@
           ],
           "fov": 54,
           "roll": 0,
-          "easing": "linear",
-          "locked": false
+          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
+          "locked": false,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
         },
         {
           "id": "camera-disciplines-0",
@@ -223,8 +237,10 @@
           ],
           "fov": 66,
           "roll": 0,
-          "easing": "linear",
-          "locked": false
+          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
+          "locked": false,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
         },
         {
           "id": "camera-disciplines-exit",
@@ -241,8 +257,10 @@
           ],
           "fov": 70,
           "roll": 0,
-          "easing": "smoothstep",
-          "locked": false
+          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
+          "locked": false,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
         },
         {
           "id": "camera-bringing-life-1",
@@ -259,8 +277,10 @@
           ],
           "fov": 49,
           "roll": 0,
-          "easing": "smoothstep",
-          "locked": false
+          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
+          "locked": false,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
         },
         {
           "id": "camera-role-1",
@@ -277,44 +297,10 @@
           ],
           "fov": 48,
           "roll": 0,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "camera-epilogue-0",
-          "atWU": 20.3,
-          "offset": [
-            0,
-            0,
-            0
-          ],
-          "lookAtOffset": [
-            0,
-            0,
-            -1
-          ],
-          "fov": 48,
-          "roll": 0,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "camera-epilogue-1",
-          "atWU": 20.42,
-          "offset": [
-            0,
-            0,
-            0
-          ],
-          "lookAtOffset": [
-            0,
-            0,
-            -1
-          ],
-          "fov": 48,
-          "roll": 0,
-          "easing": "smoothstep",
-          "locked": false
+          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
+          "locked": false,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
         },
         {
           "id": "camera-epilogue-2",
@@ -331,25 +317,9 @@
           ],
           "fov": 48,
           "roll": 0.38,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "camera-epilogue-3",
-          "atWU": 21.32,
-          "offset": [
-            0,
-            0,
-            0
-          ],
-          "lookAtOffset": [
-            0,
-            0,
-            -1
-          ],
-          "fov": 48,
-          "roll": 0,
-          "easing": "smoothstep",
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
           "locked": false
         },
         {
@@ -358,17 +328,19 @@
           "offset": [
             0,
             0,
-            0
+            -0.4
           ],
           "lookAtOffset": [
             0,
-            0,
+            0.19,
             -1
           ],
-          "fov": 48,
+          "fov": 30,
           "roll": 0,
-          "easing": "smoothstep",
-          "locked": true
+          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
+          "locked": true,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
         }
       ]
     },
@@ -589,7 +561,7 @@
           "transform": {
             "position": [
               0,
-              0.08,
+              0.95,
               0
             ],
             "rotation": [
@@ -597,9 +569,9 @@
               0,
               0
             ],
-            "scale": 0.84,
-            "mobileScale": 0.5,
-            "mobileYOffset": 0.58
+            "scale": 0.54,
+            "mobileScale": 0.36,
+            "mobileYOffset": 0.15
           },
           "transitionIn": {
             "startWU": 20.42,
@@ -708,7 +680,7 @@
           "block": {
             "id": "background-passage",
             "kind": "prose",
-            "text": "I studied Communication Design because I wanted to understand how meaning is made.\nIn words, images, systems, motion and the gaps between them.\nAgency work gave me a grounding in visual culture and craft.\nProduct work moved the questions closer to behaviour: how a service explains itself, how a screen earns trust, how a system holds together under pressure.\nThis is why emerging technology keeps my attention. New tools become useful only when they are translated into something people can see, try and understand.\nMy experience has taken me through startups and creative agencies, across digital products, web design, identity, interfaces, motion and creative technology, with projects in finance, mobility, healthcare, identity and product innovation.",
+            "text": "I studied Communication Design because I wanted to understand how meaning is made: in words, images, systems, motion and the gaps between them. Agency work gave me a grounding in visual culture and craft. Product work moved the questions closer to behaviour: how a service explains itself, how a screen earns trust, how a system holds together under pressure.\nThis is why emerging technology keeps my attention. New tools become useful only when they are translated into something people can see, try and understand.\nMy experience has taken me through startups and creative agencies, across digital products, web design, identity, interfaces, motion and creative technology, with projects in finance, mobility, healthcare, identity and product innovation.",
             "emphasis": [
               {
                 "text": "Communication Design",
@@ -780,7 +752,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "Together, they become a way to make the idea tangible."
+          "text": "Product and Experience Design give me the shape of the problem."
         },
         {
           "id": "text-disciplines-title",
@@ -795,14 +767,14 @@
           "block": {
             "id": "disciplines-passage",
             "kind": "prose",
-            "text": "Product and Experience Design give me the shape of the problem.\nUsers, needs, behaviour and structure. Art Direction gives it a point of view. Motion & 3D add timing, space and feel. Creative Engineering and Parametric Systems turn the idea into something that can be tested, changed and made real.\nAI belongs here as a working material. It helps me explore options, build tools around the task and push a direction further without handing over judgement.\nThe point is not breadth for its own sake. It is creating enough contact between strategy, design and implementation that the idea does not flatten as it moves through the project.",
+            "text": "Users, needs, behaviour and structure. Art Direction gives it a point of view. Motion & 3D add timing, space and feel. Creative Engineering and Parametric Systems turn the idea into something that can be tested, changed and made real.\nAI belongs here as a working material. It helps me explore options, build tools around the task and push a direction further without handing over judgement.\nThe point is not breadth for its own sake. It is creating enough contact between strategy, design and implementation that the idea does not flatten as it moves through the project.",
             "emphasis": [
               {
-                "text": "shape",
+                "text": "judgement",
                 "tone": "blue"
               },
               {
-                "text": "judgement",
+                "text": "implementation",
                 "tone": "blue"
               }
             ]
@@ -834,7 +806,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "It should become easier to enter. That is when the experience starts to feel real."
+          "text": "It should become easier to enter."
         },
         {
           "id": "text-role-highlight",
@@ -849,7 +821,7 @@
           "block": {
             "id": "role-passage",
             "kind": "prose",
-            "text": "I help teams do that.\nTurn uncertain territory into products, services and experiences.\nWith clear direction, useful behaviour and a character people can remember.",
+            "text": "I help teams do that: turn uncertain territory into products, services and experiences with clear direction, useful behaviour and a character people can remember.",
             "emphasis": [
               {
                 "text": "uncertain",
@@ -867,7 +839,7 @@
           "kind": "title",
           "startWU": 20.4,
           "focusWU": 20.8,
-          "endWU": 21.2,
+          "endWU": 21.8,
           "publishable": true,
           "presentation": {
             "layout": "text-bust-cta"
@@ -902,6 +874,7 @@
             "pointScale": 1.35,
             "restoreDurationWU": 0.72,
             "labelOffsetPx": 10,
+            "labelScale": 1,
             "labelDurationWU": 0.162,
             "holdWU": 0.72,
             "items": [
