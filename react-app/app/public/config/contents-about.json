@@ -564,7 +564,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "Complex projects hold my attention."
+          "text": "I’ve always been drawn to the complicated bit."
         },
         {
           "id": "text-complexity-conditions",
@@ -578,7 +578,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "New technology, changing behaviour, questions of trust."
+          "text": "New technology. New behaviour. Questions of trust."
         },
         {
           "id": "text-background-editorial",
@@ -593,7 +593,7 @@
           "block": {
             "id": "background-passage",
             "kind": "prose",
-            "text": "Communication Design gave me a way to study how meaning is made: through words, images, hierarchy, motion, systems and the spaces between them.\nAgency work sharpened the visual side: culture, pace and craft. Product work made the questions more practical: how a service explains itself, how a screen earns trust, how a system holds together when people actually use it.\nEmerging technology keeps my attention because it asks for that same translation. A capability is not the same as an experience. It becomes useful when people can see it, try it, question it and understand where it fits.\nMy experience has taken me through startups and creative agencies, across digital products, web design, identity, interfaces, motion and creative technology, with projects in finance, mobility, healthcare, digital identity and product innovation.",
+            "text": "The real questions usually sit there: what people need to understand, what they need to trust, and how a new capability becomes something they can use.\nI studied Communication Design because I wanted to understand how ideas become clear. Words matter, but so do images, hierarchy, motion, systems and small decisions. Often clarity comes from the order of things, the tone of a screen, or the moment an interaction feels obvious.\nThat stayed with me through agency and product work. Agencies gave me visual culture, craft and pace. Product work brought the questions closer to use: how a service explains itself, how a screen earns trust, how a system holds together.\nEmerging technology brings those questions back in new forms. A capability can be powerful and still feel distant. It needs shape, language, behaviour and a reason to be there. The interesting part is turning something unfamiliar into something people can see, try, understand and rely on.\nMy experience has moved through startups and creative agencies across digital products, web design, identity, interfaces, motion and creative technology, with projects in finance, mobility, healthcare, digital identity and product innovation.",
             "emphasis": [
               {
                 "text": "Communication Design",
@@ -637,7 +637,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "The problem usually moves between disciplines."
+          "text": "The answer rarely sits inside one discipline."
         },
         {
           "id": "text-complexity-listen",
@@ -651,7 +651,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "So the response has to move too."
+          "text": "So I use a few."
         },
         {
           "id": "text-disciplines-title",
@@ -666,14 +666,14 @@
           "block": {
             "id": "disciplines-passage",
             "kind": "prose",
-            "text": "Product and Experience Design help me understand the opportunity, users and behaviour of an experience. Art Direction gives the idea a recognisable point of view. Motion & 3D make timing, space and response easier to feel. Creative Engineering and Parametric Systems let me test ideas through code, tools and working systems.\nAI belongs in this mix as a working material. It helps me explore options, build tools around the task and push a direction further without handing over judgement.\nThe value is in letting these disciplines affect one another. A technical experiment can change the visual language. A motion study can make an interaction easier to understand. A line of copy can make a feature feel obvious instead of explained.",
+            "text": "Product and Experience Design help me understand the opportunity: who it is for, what needs to happen, and where the experience can become simpler, sharper or more useful. Art Direction gives the idea a recognisable character. Motion & 3D help me think through timing, space, behaviour and feeling. Creative Engineering and Parametric Systems let me build directly with the material of the idea: prototypes, tools, systems and experiments.\nAI runs through this as both a creative material and a practical capability. I use it to explore more directions, generate working possibilities and build around the task faster. The useful part is still judgement: knowing what to keep, what to question, what to refine and what to throw away.\nMoving between disciplines is where things start to unlock. A product insight can change the visual language. A technical experiment can suggest a new interaction. Motion can make a behaviour easier to understand. A sentence can do the job of a whole interface if it lands at the right moment.",
             "emphasis": [
               {
                 "text": "judgement",
                 "tone": "blue"
               },
               {
-                "text": "obvious",
+                "text": "unlock",
                 "tone": "blue"
               }
             ]
@@ -691,7 +691,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "When those decisions connect…"
+          "text": "Then the idea starts to behave."
         },
         {
           "id": "text-life-form",
@@ -705,7 +705,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "…the idea starts to come alive."
+          "text": "It has rhythm. Character. A reason to be there."
         },
         {
           "id": "text-life-character",
@@ -719,7 +719,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "It gains structure, behaviour and character."
+          "text": "It becomes something people can understand."
         },
         {
           "id": "text-role-highlight",
@@ -734,7 +734,7 @@
           "block": {
             "id": "role-passage",
             "kind": "prose",
-            "text": "That is what I mean by bringing an idea to life: finding the structure it can stand on, the behaviour people can trust and the character that makes it feel specific.\nIt can happen through an interface, a motion system, a prototype, an AI workflow or a small tool that changes the conversation. The format changes with the problem. The aim stays consistent: make the idea visible enough for better decisions, and real enough for people to respond to.\nI help ambitious teams bring design, creative technology and AI together from early direction to the details that make an experience convincing.",
+            "text": "That is usually the point I am working towards: enough structure for an idea to be usable, enough clarity for people to trust it, and enough character for it to feel specific.\nSometimes that means a prototype. Sometimes it is a service map, a visual system, an interaction model, an AI workflow, a motion study or a small tool that makes the idea easier to discuss. The format changes. The goal stays simple: help people see what they are making, make better decisions, and bring the idea closer to life.\nI work with ambitious teams who need design, creative technology and AI to move together early enough to shape direction, and carefully enough to make the details convincing.",
             "emphasis": [
               {
                 "text": "trust",
@@ -759,7 +759,7 @@
           },
           "movement": "spatial",
           "preset": "finale-v1",
-          "text": "If you are building something new, let’s talk."
+          "text": "If you are building something new and need it to make sense to people, let’s talk."
         }
       ]
     },
