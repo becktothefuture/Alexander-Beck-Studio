@@ -9,6 +9,7 @@ import {
   normalizeAboutNarrativeTrackSelection,
   pasteAboutNarrativeTrackClipboardPayload,
   resizeAboutNarrativeTextFieldEdge,
+  resizeAboutNarrativeWorldEnd,
   validateAboutNarrativeTrackClipboardPayload,
 } from './aboutNarrativeTrackEditing.js';
 
@@ -464,6 +465,26 @@ export function createAboutNarrativeTrackEditorStore(initialDocument, {
       return store.updateGesture(
         (draft) => replaceDraft(draft, prepareOperationDocument(result.model)),
         { selection: { type: 'text-field', id } },
+      );
+    },
+    updateGestureResizeWorldEnd(id, atWU) {
+      if (!gesture) return false;
+      const result = resizeAboutNarrativeWorldEnd({
+        model: gesture.startDocument,
+        id,
+        atWU,
+      });
+      if (!result.valid) {
+        snapshot = {
+          ...snapshot,
+          rejectedEdit: { label: gesture.label, reason: result.reason, diagnostics: [] },
+        };
+        emit();
+        return false;
+      }
+      return store.updateGesture(
+        (draft) => replaceDraft(draft, prepareOperationDocument(result.model)),
+        { selection: { type: 'world', id } },
       );
     },
     commitGesture({ selectionAfter = snapshot.selection, requireValid = false } = {}) {

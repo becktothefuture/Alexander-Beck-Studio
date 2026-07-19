@@ -35,7 +35,7 @@ async function auditProduction(viewport, label, expectedProfile) {
   const errors = observeErrors(page);
   await page.goto(`${baseUrl}/about.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-narrative-lab');
-  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 14);
+  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 13);
 
   const initial = await page.evaluate(() => {
     const root = document.querySelector('.about-narrative-lab');
@@ -59,7 +59,7 @@ async function auditProduction(viewport, label, expectedProfile) {
   });
   assert.equal(initial.editorCount, 0);
   assert.equal(initial.legacyContainerCount, 0);
-  assert.equal(initial.semanticFieldCount, 14);
+  assert.equal(initial.semanticFieldCount, 13);
   assert.equal(initial.stubSemanticCount, 0);
   assert.equal(initial.canvasCount, 1);
   assert.ok(initial.canvasWidth > 0 && initial.canvasHeight > 0);
@@ -159,7 +159,7 @@ async function auditEditor() {
   const errors = observeErrors(page);
   await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-track-editor');
-  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 14);
+  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 13);
 
   const initial = await page.evaluate(() => ({
     editorVersion: document.querySelector('.about-track-editor')?.dataset.editorVersion,
@@ -172,7 +172,37 @@ async function auditEditor() {
   assert.deepEqual(initial.lanes, ['camera', 'world', 'text', 'interaction']);
   assert.equal(initial.legacyContainerCount, 0);
   assert.equal(initial.plusLabels.length, 4);
-  assert.equal(initial.semanticFieldCount, 14);
+  assert.equal(initial.semanticFieldCount, 13);
+
+  const worldResizeHandles = page.getByRole('button', { name: /^Resize World .+ end$/ });
+  assert.equal(await worldResizeHandles.count(), 4, 'Every non-final World needs one duration handle.');
+  const worldB = page.locator('[data-track-object-id="world-complexity"]');
+  const worldC = page.locator('[data-track-object-id="world-background"]');
+  const worldE = page.locator('[data-track-object-id="world-bringing-life"]');
+  const textReference = page.locator('[data-track-object-id="text-background-editorial"]');
+  const worldRectsBefore = await Promise.all([worldB, worldC, worldE, textReference].map((locator) => locator.boundingBox()));
+  assert.ok(Math.abs(worldRectsBefore[0].x + worldRectsBefore[0].width - worldRectsBefore[1].x) < 0.6);
+  const worldBHandle = page.getByRole('button', { name: 'Resize World B end' });
+  const handleBox = await worldBHandle.boundingBox();
+  await page.mouse.move(handleBox.x + (handleBox.width / 2), handleBox.y + (handleBox.height / 2));
+  await page.mouse.down();
+  await page.mouse.move(handleBox.x - 33, handleBox.y + (handleBox.height / 2), { steps: 4 });
+  await page.mouse.up();
+  await page.waitForFunction((beforeX) => {
+    const rect = document.querySelector('[data-track-object-id="world-background"]')?.getBoundingClientRect();
+    return rect && rect.left < beforeX - 20;
+  }, worldRectsBefore[1].x);
+  const worldRectsAfter = await Promise.all([worldB, worldC, worldE, textReference].map((locator) => locator.boundingBox()));
+  const worldCShift = worldRectsAfter[1].x - worldRectsBefore[1].x;
+  const worldEShift = worldRectsAfter[2].x - worldRectsBefore[2].x;
+  assert.ok(Math.abs(worldRectsAfter[0].x + worldRectsAfter[0].width - worldRectsAfter[1].x) < 0.6, 'Resized World clips must remain edge-to-edge.');
+  assert.ok(Math.abs(worldCShift - worldEShift) < 0.6, 'Every later World must ripple by the same amount.');
+  assert.ok(Math.abs(worldRectsAfter[3].x - worldRectsBefore[3].x) < 0.6, 'Independent Text timing must not move during a World resize.');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await page.waitForFunction((beforeX) => {
+    const rect = document.querySelector('[data-track-object-id="world-background"]')?.getBoundingClientRect();
+    return rect && Math.abs(rect.left - beforeX) < 0.6;
+  }, worldRectsBefore[1].x);
 
   const editorialConnection = await page.evaluate(() => {
     const first = document.querySelector('[data-track-object-id="text-background-editorial"]');
@@ -218,7 +248,7 @@ async function auditEditor() {
   }));
   assert.deepEqual(authoredStructure, {
     aTitles: 1,
-    bTitles: 2,
+    bTitles: 1,
     cEditorial: 1,
     cLogos: 1,
     dTitles: 2,
@@ -345,7 +375,7 @@ async function auditEditor() {
     status: document.querySelector('[data-text-kind="stub"] .about-track-editor-clip__badge')?.textContent,
   }));
   assert.equal(draft.clipCount, 1);
-  assert.equal(draft.semanticFieldCount, 14);
+  assert.equal(draft.semanticFieldCount, 13);
   assert.equal(draft.status, 'Draft · Not published');
   await page.getByRole('button', { name: 'Undo' }).click();
   assert.equal(await page.locator('[data-text-kind="stub"]').count(), 0);

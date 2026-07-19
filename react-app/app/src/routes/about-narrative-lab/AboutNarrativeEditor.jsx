@@ -970,13 +970,27 @@ function TrackObject({
   connectedAfter = false,
 }) {
   const pointerRef = useRef(null);
+  const resizeRef = useRef(null);
   const range = getAboutNarrativeTrackObjectRange(document, { type: track.type, id: object.id });
   const startWU = range?.startWU ?? getObjectStart(object, track.type);
   const endWU = range?.endWU ?? startWU;
   const locked = object.locked === true || object.protected === true;
   const pointLike = track.type === 'camera-key';
   const left = startWU * pixelsPerWU;
-  const width = pointLike ? 18 : Math.max(18, (endWU - startWU) * pixelsPerWU);
+  const width = pointLike
+    ? 18
+    : track.type === 'world'
+      ? Math.max(1, (endWU - startWU) * pixelsPerWU)
+      : Math.max(18, (endWU - startWU) * pixelsPerWU);
+  const worldIndex = track.type === 'world'
+    ? [...document.tracks.worlds.objects]
+      .sort((leftWorld, rightWorld) => Number(leftWorld.startWU) - Number(rightWorld.startWU))
+      .findIndex((world) => world.id === object.id)
+    : -1;
+  const canResizeWorld = track.type === 'world'
+    && !locked
+    && worldIndex >= 0
+    && worldIndex < document.tracks.worlds.objects.length - 1;
   const activationPercent = track.type === 'interaction' && endWU > startWU
     ? clamp(((Number(object.activationWU) - startWU) / (endWU - startWU)) * 100, 0, 100)
     : null;
@@ -1004,39 +1018,98 @@ function TrackObject({
     else store.commitGesture({ requireValid: true });
   };
 
+  const beginWorldResize = (event) => {
+    if (event.button !== 0 || !canResizeWorld) return;
+    event.preventDefault();
+    event.stopPropagation();
+    store.setSelection({ type: 'world', id: object.id });
+    store.setTransport({ owner: 'timeline', playing: false, storyWU: endWU });
+    if (!store.beginGesture(`Resize World ${getObjectLabel(object, track.type)}`, {
+      selection: { type: 'world', id: object.id },
+    })) return;
+    resizeRef.current = { pointerId: event.pointerId, startX: event.clientX, startEndWU: endWU };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const updateWorldResize = (event) => {
+    if (resizeRef.current?.pointerId !== event.pointerId) return;
+    event.stopPropagation();
+    const nextEndWU = resizeRef.current.startEndWU
+      + ((event.clientX - resizeRef.current.startX) / pixelsPerWU);
+    store.updateGestureResizeWorldEnd(object.id, nextEndWU);
+  };
+
+  const finishWorldResize = (event, cancel = false) => {
+    if (resizeRef.current?.pointerId !== event.pointerId) return;
+    event.stopPropagation();
+    resizeRef.current = null;
+    if (cancel) store.cancelGesture();
+    else store.commitGesture({ selectionAfter: { type: 'world', id: object.id }, requireValid: true });
+  };
+
+  const resizeWorldWithKeyboard = (event) => {
+    if (!canResizeWorld || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const direction = event.key === 'ArrowLeft' ? -1 : 1;
+    const stepWU = event.shiftKey ? 0.25 : 0.05;
+    const selection = { type: 'world', id: object.id };
+    store.setSelection(selection);
+    if (!store.beginGesture(`Resize World ${getObjectLabel(object, track.type)}`, { selection })) return;
+    store.updateGestureResizeWorldEnd(object.id, endWU + (direction * stepWU));
+    store.commitGesture({ selectionAfter: selection, requireValid: true });
+  };
+
   return (
-    <button
-      type="button"
-      className={`about-track-editor-clip is-${track.colour}${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}${object.kind === 'stub' ? ' is-draft' : ''}${connectedBefore ? ' is-connected-before' : ''}${connectedAfter ? ' is-connected-after' : ''}`}
+    <div
+      className="about-track-editor-object"
       style={{ left, width }}
-      data-track-object-type={track.type}
-      data-track-object-id={object.id}
-      data-text-kind={track.type === 'text-field' ? object.kind : undefined}
-      data-motion-type={track.type === 'interaction' ? object.type : undefined}
-      aria-label={`${track.label}: ${getObjectLabel(object, track.type)} at ${getObjectStart(object, track.type).toFixed(3)} WU${locked ? ', protected' : ''}`}
-      title={`${getObjectLabel(object, track.type)} · ${startWU.toFixed(3)}–${endWU.toFixed(3)} WU`}
-      onPointerDown={beginDrag}
-      onPointerMove={updateDrag}
-      onPointerUp={(event) => finishDrag(event)}
-      onPointerCancel={(event) => finishDrag(event, true)}
-      onDoubleClick={(event) => {
-        if (track.type !== 'text-field') return;
-        event.stopPropagation();
-        onOpenTextEditor?.(object);
-      }}
     >
-      {activationPercent != null ? (
-        <i
-          className="about-track-editor-clip__activation"
-          style={{ left: `${activationPercent}%` }}
-          title={`Activates at ${Number(object.activationWU).toFixed(3)} WU`}
-          aria-hidden="true"
-        />
+      <button
+        type="button"
+        className={`about-track-editor-clip is-${track.colour}${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}${object.kind === 'stub' ? ' is-draft' : ''}${connectedBefore ? ' is-connected-before' : ''}${connectedAfter ? ' is-connected-after' : ''}`}
+        data-track-object-type={track.type}
+        data-track-object-id={object.id}
+        data-text-kind={track.type === 'text-field' ? object.kind : undefined}
+        data-motion-type={track.type === 'interaction' ? object.type : undefined}
+        aria-label={`${track.label}: ${getObjectLabel(object, track.type)} at ${getObjectStart(object, track.type).toFixed(3)} WU${locked ? ', protected' : ''}`}
+        title={`${getObjectLabel(object, track.type)} · ${startWU.toFixed(3)}–${endWU.toFixed(3)} WU`}
+        onPointerDown={beginDrag}
+        onPointerMove={updateDrag}
+        onPointerUp={(event) => finishDrag(event)}
+        onPointerCancel={(event) => finishDrag(event, true)}
+        onDoubleClick={(event) => {
+          if (track.type !== 'text-field') return;
+          event.stopPropagation();
+          onOpenTextEditor?.(object);
+        }}
+      >
+        {activationPercent != null ? (
+          <i
+            className="about-track-editor-clip__activation"
+            style={{ left: `${activationPercent}%` }}
+            title={`Activates at ${Number(object.activationWU).toFixed(3)} WU`}
+            aria-hidden="true"
+          />
+        ) : null}
+        {!pointLike ? <span className="about-track-editor-clip__label">{getObjectLabel(object, track.type)}</span> : null}
+        {object.kind === 'stub' ? <span className="about-track-editor-clip__badge">Draft · Not published</span> : null}
+        {pointLike ? <span className="about-track-editor-clip__point" aria-hidden="true" /> : null}
+      </button>
+      {canResizeWorld ? (
+        <button
+          type="button"
+          className="about-track-editor-world-resize"
+          aria-label={`Resize World ${getObjectLabel(object, track.type)} end`}
+          title={`Drag to resize World ${getObjectLabel(object, track.type)} · later Worlds move with it`}
+          onPointerDown={beginWorldResize}
+          onPointerMove={updateWorldResize}
+          onPointerUp={(event) => finishWorldResize(event)}
+          onPointerCancel={(event) => finishWorldResize(event, true)}
+          onKeyDown={resizeWorldWithKeyboard}
+        ><span aria-hidden="true" /></button>
       ) : null}
-      {!pointLike ? <span className="about-track-editor-clip__label">{getObjectLabel(object, track.type)}</span> : null}
-      {object.kind === 'stub' ? <span className="about-track-editor-clip__badge">Draft · Not published</span> : null}
-      {pointLike ? <span className="about-track-editor-clip__point" aria-hidden="true" /> : null}
-    </button>
+    </div>
   );
 }
 
@@ -1112,7 +1185,7 @@ function Timeline({
       <header className="about-track-editor-timeline__toolbar">
         <div>
           <strong>Global Story WU</strong>
-          <span>No containers · World Starts are anchors</span>
+          <span>Drag World ends · later Worlds ripple · no gaps</span>
         </div>
         <label>
           Zoom
@@ -1249,7 +1322,7 @@ function ObjectInspector({ snapshot, store, onMessage }) {
       <div className="about-track-editor-inspector__empty">
         <span>{track?.label || 'Timeline'}</span>
         <h2>{track ? `${track.label} track` : 'Select an object'}</h2>
-        <p>Objects are authored independently in absolute Story WU. World Starts provide visual anchors only.</p>
+        <p>Camera and Text stay independent. Drag a World’s right edge to resize it and ripple every later World without gaps.</p>
       </div>
     );
   }

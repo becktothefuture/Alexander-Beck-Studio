@@ -19,6 +19,7 @@ import {
   normalizeAboutNarrativeTrackSelection,
   pasteAboutNarrativeTrackClipboardPayload,
   resizeAboutNarrativeTextFieldEdge,
+  resizeAboutNarrativeWorldEnd,
   validateAboutNarrativeTrackClipboardPayload,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackEditing.js';
 
@@ -183,6 +184,41 @@ test('Text edge resizing preserves focus ordering and clamps to the Story range'
   assert.equal(end.object.endWU, 1.5);
   assert.equal(end.clamped, true);
   assert.equal(resizeAboutNarrativeTextFieldEdge({ model, id: 'text-intro', edge: 'focus', atWU: 2 }).valid, false);
+});
+
+test('World end resizing ripples every later World without gaps and keeps free tracks independent', () => {
+  const model = createFixture();
+  const cameraBefore = bytes(model.tracks.camera);
+  const textBefore = bytes(model.tracks.text);
+  const result = resizeAboutNarrativeWorldEnd({
+    model,
+    id: 'world-two',
+    atWU: 6.5,
+  });
+  assert.equal(result.valid, true);
+  assert.equal(result.endWU, 6.5);
+  assert.equal(result.deltaWU, -1.5);
+  assert.deepEqual(result.model.tracks.worlds.objects.map((world) => world.startWU), [0, 4, 6.5]);
+  assert.deepEqual(getAboutNarrativeTrackObjectRange(result.model, { type: 'world', id: 'world-one' }), { startWU: 0, endWU: 4 });
+  assert.deepEqual(getAboutNarrativeTrackObjectRange(result.model, { type: 'world', id: 'world-two' }), { startWU: 4, endWU: 6.5 });
+  assert.deepEqual(getAboutNarrativeTrackObjectRange(result.model, { type: 'world', id: 'world-three' }), { startWU: 6.5, endWU: 10 });
+  const laterWorld = getAboutNarrativeTrackObject(result.model, { type: 'world', id: 'world-three' });
+  assert.deepEqual([laterWorld.anchorWU, laterWorld.transitionIn.startWU, laterWorld.transitionIn.endWU], [6.5, 6.5, 7]);
+  const currentMotion = getAboutNarrativeTrackObject(result.model, { type: 'interaction', id: 'interaction-spin' });
+  assert.deepEqual([currentMotion.startWU, currentMotion.activationWU, currentMotion.endWU], [4.5, 5, 6.5]);
+  assert.equal(bytes(result.model.tracks.camera), cameraBefore);
+  assert.equal(bytes(result.model.tracks.text), textBefore);
+  assert.equal(bytes(model), bytes(createFixture()), 'The input model remains immutable.');
+});
+
+test('World end resizing clamps protected boundaries and rejects locked or final Worlds', () => {
+  const model = createFixture();
+  const clamped = resizeAboutNarrativeWorldEnd({ model, id: 'world-two', atWU: 4.1 });
+  assert.equal(clamped.valid, true);
+  assert.equal(clamped.endWU, 5, 'A bound Motion activation remains inside its World.');
+  assert.equal(clamped.clamped, true);
+  assert.equal(resizeAboutNarrativeWorldEnd({ model, id: 'world-one', atWU: 3 }).valid, false);
+  assert.equal(resizeAboutNarrativeWorldEnd({ model, id: 'world-three', atWU: 9 }).valid, false);
 });
 
 test('Title, Scroll block, Stub, Camera, World, and Interaction creation uses independent IDs and absolute WU', () => {

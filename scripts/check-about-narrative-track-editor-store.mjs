@@ -111,6 +111,48 @@ test('continuous gestures preview repeatedly, block overlap, and commit as one h
   assert.equal(getTitle(store.getSnapshot().document).text, original);
 });
 
+test('World end gestures ripple later Worlds, stay contiguous, and undo as one command', () => {
+  const model = createModel();
+  const worlds = [...model.tracks.worlds.objects].sort((left, right) => left.startWU - right.startWU);
+  const world = worlds[1];
+  const next = worlds[2];
+  const laterStartsBefore = worlds.slice(2).map((item) => item.startWU);
+  const originalEndWU = next.startWU;
+  const store = createAboutNarrativeTrackEditorStore(model, {
+    initialSelection: { type: 'world', id: world.id },
+  });
+  assert.equal(store.beginGesture(`Resize World ${world.label}`), true);
+  assert.equal(store.updateGestureResizeWorldEnd(world.id, originalEndWU - 0.1), true);
+  assert.equal(store.updateGestureResizeWorldEnd(world.id, originalEndWU - 0.2), true);
+  assert.equal(store.commitGesture({ requireValid: true }), true);
+  const resizedWorlds = [...store.getSnapshot().document.tracks.worlds.objects]
+    .sort((left, right) => left.startWU - right.startWU);
+  assert.deepEqual(resizedWorlds.slice(2).map((item) => item.startWU), laterStartsBefore.map((value) => Number((value - 0.2).toFixed(6))));
+  resizedWorlds.slice(0, -1).forEach((item, index) => {
+    assert.equal(
+      getWorldEnd(store.getSnapshot().document, item.id),
+      resizedWorlds[index + 1].startWU,
+      `${item.id} must end exactly where the next World starts.`,
+    );
+  });
+  assert.equal(store.getSnapshot().revision, 1);
+  assert.equal(store.undo(), true);
+  assert.deepEqual(
+    [...store.getSnapshot().document.tracks.worlds.objects]
+      .sort((left, right) => left.startWU - right.startWU)
+      .slice(2)
+      .map((item) => item.startWU),
+    laterStartsBefore,
+  );
+  assert.equal(store.getSnapshot().history.canUndo, false);
+});
+
+function getWorldEnd(document, id) {
+  const worlds = [...document.tracks.worlds.objects].sort((left, right) => left.startWU - right.startWU);
+  const index = worlds.findIndex((world) => world.id === id);
+  return worlds[index + 1]?.startWU ?? document.profiles.desktop.storyDurationWU;
+}
+
 test('invalid required gestures remain cancellable and never replace the last-valid plan', () => {
   const model = createModel();
   const title = getTitle(model);

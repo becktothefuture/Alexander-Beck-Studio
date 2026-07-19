@@ -2,6 +2,7 @@ import { ABOUT_NARRATIVE_INTERACTION_DEFINITIONS } from './aboutNarrativeDefinit
 import { ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING } from './aboutNarrativeCameraEasing.js';
 
 export const ABOUT_NARRATIVE_TRACK_EDITING_STEP_WU = 0.005;
+export const ABOUT_NARRATIVE_MIN_WORLD_DURATION_WU = 0.25;
 export const ABOUT_NARRATIVE_TRACK_CLIPBOARD_VERSION = 1;
 
 const CLIPBOARD_KIND = 'about-narrative-track-objects';
@@ -380,6 +381,127 @@ export function resizeAboutNarrativeTextFieldEdge({
   const validation = validateEditingModel(candidate);
   if (!validation.valid) return validation;
   return { valid: true, model: candidate, object: getAboutNarrativeTrackObject(candidate, { type: 'text-field', id }), clamped: nextWU !== requestedWU };
+}
+
+function shiftWorldOverrideTimes(override, deltaWU) {
+  if (!override || typeof override !== 'object') return;
+  const shift = (value) => cleanWU(Number(value) + deltaWU);
+  if (finite(override.startWU)) override.startWU = shift(override.startWU);
+  if (finite(override.anchorWU)) override.anchorWU = shift(override.anchorWU);
+  if (override.transitionIn) {
+    if (finite(override.transitionIn.startWU)) override.transitionIn.startWU = shift(override.transitionIn.startWU);
+    if (finite(override.transitionIn.endWU)) override.transitionIn.endWU = shift(override.transitionIn.endWU);
+  }
+}
+
+function shiftInteractionOverrideTimes(override, deltaWU, { pinEnd = false } = {}) {
+  if (!override || typeof override !== 'object') return;
+  const shift = (value) => cleanWU(Number(value) + deltaWU);
+  if (finite(override.startWU)) override.startWU = shift(override.startWU);
+  if (finite(override.activationWU)) override.activationWU = shift(override.activationWU);
+  if (!pinEnd && finite(override.endWU)) override.endWU = shift(override.endWU);
+}
+
+export function resizeAboutNarrativeWorldEnd({
+  model,
+  id,
+  atWU,
+  snap = true,
+}) {
+  if (!finite(atWU)) return resultError('World resize requires a finite Story WU.', 'world-edge-time');
+  const worlds = sortedWorlds(model);
+  const index = worlds.findIndex((world) => world.id === id);
+  if (index < 0) return resultError(`World “${id}” is not available.`, 'object-selection');
+  const world = worlds[index];
+  if (world.locked || world.protected) return resultError('A protected World cannot be resized.', 'protected-object');
+  if (index >= worlds.length - 1) return resultError('The final World ends at the Story boundary and cannot ripple later Worlds.', 'final-world-edge');
+
+  const durationWU = getStoryDurationWU(model);
+  const oldEndWU = Number(worlds[index + 1].startWU);
+  const currentClips = (model?.tracks?.interactions?.clips || [])
+    .filter((clip) => clip.targetWorldId === id);
+  const minimumEndWU = Math.max(
+    Number(world.startWU) + ABOUT_NARRATIVE_MIN_WORLD_DURATION_WU,
+    Number(world.transitionIn?.endWU ?? world.startWU),
+    ...currentClips.map((clip) => Number(clip.activationWU)),
+  );
+  const laterWorlds = worlds.slice(index + 1);
+  const laterWorldIds = new Set(laterWorlds.map((item) => item.id));
+  const laterClips = (model?.tracks?.interactions?.clips || [])
+    .filter((clip) => laterWorldIds.has(clip.targetWorldId));
+  const movableLaterTimes = [
+    ...laterWorlds.flatMap((item) => objectMovableTimes(item, 'world')),
+    ...laterClips.flatMap((clip) => [
+      Number(clip.startWU),
+      Number(clip.activationWU),
+      Math.abs(Number(clip.endWU) - durationWU) < 0.000001 ? null : Number(clip.endWU),
+    ].filter(Number.isFinite)),
+  ];
+  const maximumDeltaWU = durationWU - Math.max(...movableLaterTimes);
+  const requestedEndWU = snap ? snapWU(atWU) : cleanWU(atWU);
+  const requestedDeltaWU = cleanWU(requestedEndWU - oldEndWU);
+  const minimumDeltaWU = cleanWU(minimumEndWU - oldEndWU);
+  const appliedDeltaWU = cleanWU(clamp(requestedDeltaWU, minimumDeltaWU, maximumDeltaWU));
+  if (Math.abs(appliedDeltaWU) < 0.0000005) {
+    return {
+      valid: true,
+      model,
+      object: world,
+      endWU: oldEndWU,
+      deltaWU: 0,
+      clamped: Math.abs(requestedDeltaWU) > 0.0000005,
+    };
+  }
+
+  const candidate = clone(model);
+  const candidateWorlds = sortedWorlds(candidate);
+  candidateWorlds.slice(index + 1).forEach((item) => shiftObjectTimes(item, 'world', appliedDeltaWU));
+  const nextEndWU = cleanWU(oldEndWU + appliedDeltaWU);
+  const candidateClips = candidate.tracks?.interactions?.clips || [];
+  candidateClips.forEach((clip) => {
+    if (clip.targetWorldId === id) {
+      if (Number(clip.endWU) >= oldEndWU - 0.000001 || Number(clip.endWU) > nextEndWU) {
+        clip.endWU = nextEndWU;
+      }
+      return;
+    }
+    if (!laterWorldIds.has(clip.targetWorldId)) return;
+    const pinnedToStoryEnd = Math.abs(Number(clip.endWU) - durationWU) < 0.000001;
+    const pinnedEndWU = clip.endWU;
+    shiftObjectTimes(clip, 'interaction', appliedDeltaWU);
+    if (pinnedToStoryEnd) clip.endWU = pinnedEndWU;
+  });
+
+  Object.values(candidate.profiles || {}).forEach((profile) => {
+    const overrides = profile?.overrides;
+    if (!overrides) return;
+    laterWorlds.forEach((item) => shiftWorldOverrideTimes(overrides.worlds?.[item.id], appliedDeltaWU));
+    currentClips.forEach((clip) => {
+      const override = overrides.interactions?.[clip.id];
+      if (override && finite(override.endWU)
+        && (Number(override.endWU) >= oldEndWU - 0.000001 || Number(override.endWU) > nextEndWU)) {
+        override.endWU = nextEndWU;
+      }
+    });
+    laterClips.forEach((clip) => shiftInteractionOverrideTimes(
+      overrides.interactions?.[clip.id],
+      appliedDeltaWU,
+      { pinEnd: Math.abs(Number(clip.endWU) - durationWU) < 0.000001 },
+    ));
+  });
+
+  sortTrack(candidate, 'world');
+  sortTrack(candidate, 'interaction');
+  const validation = validateEditingModel(candidate);
+  if (!validation.valid) return validation;
+  return {
+    valid: true,
+    model: candidate,
+    object: getAboutNarrativeTrackObject(candidate, { type: 'world', id }),
+    endWU: nextEndWU,
+    deltaWU: appliedDeltaWU,
+    clamped: Math.abs(appliedDeltaWU - requestedDeltaWU) > 0.0000005,
+  };
 }
 
 function getUsedIds(model) {

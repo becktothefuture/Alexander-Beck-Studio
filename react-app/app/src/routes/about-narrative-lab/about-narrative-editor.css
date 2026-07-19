@@ -344,14 +344,22 @@
   pointer-events: none;
 }
 
-.about-track-editor-clip {
+.about-track-editor-object {
   position: absolute;
   z-index: 3;
   top: 8px;
+  height: 38px;
+  min-height: 38px;
+}
+
+.about-track-editor-clip {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 38px;
+  width: 100%;
+  height: 100%;
   min-height: 38px !important;
   padding: 0 8px !important;
   overflow: hidden;
@@ -395,6 +403,43 @@
 .about-track-editor-clip__point { display: block; width: 12px; height: 12px; border: 2px solid var(--editor-camera); border-radius: 1px; background: var(--editor-bg); box-shadow: 0 0 0 3px rgb(88 212 255 / 14%); transform: rotate(45deg); }
 .about-track-editor-clip.is-camera:hover .about-track-editor-clip__point { background: color-mix(in srgb, var(--editor-camera) 18%, var(--editor-bg)); }
 .about-track-editor-clip.is-camera:is(.is-selected, :focus-visible) .about-track-editor-clip__point { box-shadow: 0 0 0 2px var(--editor-bg), 0 0 0 4px var(--editor-camera); }
+
+.about-track-editor .about-track-editor-world-resize {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  min-width: 14px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.about-track-editor-world-resize > span {
+  position: absolute;
+  top: 6px;
+  right: 0;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--editor-world) 78%, white);
+  box-shadow: 0 0 0 1px var(--editor-bg);
+}
+
+.about-track-editor-world-resize:is(:hover, :focus-visible) > span {
+  width: 3px;
+  background: var(--editor-world);
+}
+
+.about-track-editor button.about-track-editor-world-resize:is(:hover, :focus-visible) {
+  border-color: transparent;
+  background: transparent;
+}
 
 .about-track-editor-playhead {
   position: absolute;
@@ -860,7 +905,8 @@
   .about-track-editor-timeline__body { grid-template-columns: 116px minmax(0, 1fr); }
   .about-track-editor-row-head { grid-template-columns: 1fr 44px; }
   .about-track-editor-row-head > button:first-of-type { padding-inline: 7px; }
-  .about-track-editor-clip { height: 44px; min-height: 44px !important; top: 5px; }
+  .about-track-editor-object { top: 5px; height: 44px; min-height: 44px; }
+  .about-track-editor-clip { min-height: 44px !important; }
   .about-track-editor-inspector {
     top: auto;
     right: 6px;
@@ -898,7 +944,8 @@
   .about-track-editor-canvas { grid-template-rows: 24px repeat(4, 47px); }
   .about-track-editor-canvas { height: 212px; }
   .about-track-editor-row-head .about-track-editor-add { min-height: 36px; }
-  .about-track-editor-clip { top: 4px; height: 38px; min-height: 38px !important; }
+  .about-track-editor-object { top: 4px; height: 38px; min-height: 38px; }
+  .about-track-editor-clip { min-height: 38px !important; }
   .about-track-editor-status { bottom: 260px; }
 }
 
