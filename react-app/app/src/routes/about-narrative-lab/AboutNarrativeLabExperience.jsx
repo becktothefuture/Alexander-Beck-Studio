@@ -139,7 +139,7 @@ function ScrollBlockField({ field, onSelect }) {
             <span className="about-narrative-discipline-list__number" aria-hidden="true">
               {String(itemIndex + 1).padStart(2, '0')}
             </span>
-            <span>{item}</span>
+            <span><EditorialText text={item} emphasis={block.emphasis} /></span>
           </li>
         ))}
       </ol>
@@ -155,7 +155,11 @@ function ScrollBlockField({ field, onSelect }) {
         aria-label={block.label ? undefined : 'About Alexander'}
       >
         {block.label ? <p id={labelId} className="about-narrative-editorial-list__label" data-editorial-line>{block.label}</p> : null}
-        <ul>{(block.items || []).map((item) => <li key={item} data-editorial-line>{item}</li>)}</ul>
+        <ul>{(block.items || []).map((item) => (
+          <li key={item} data-editorial-line>
+            <EditorialText text={item} emphasis={block.emphasis} />
+          </li>
+        ))}</ul>
       </section>
     );
   }

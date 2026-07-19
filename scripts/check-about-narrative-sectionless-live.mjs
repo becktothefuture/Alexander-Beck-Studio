@@ -26,7 +26,7 @@ import {
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const canonicalSource = await read('../react-app/app/public/config/contents-about.json');
 const canonical = JSON.parse(canonicalSource);
-const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v20.md');
+const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v21.md');
 const legacy = JSON.parse(await read('./fixtures/about-narrative/contents-about-v2.json'));
 const liveSources = Object.fromEntries(await Promise.all([
   ['experience', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
@@ -527,21 +527,25 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
     ],
   );
 
-  const passages = [
-    ['reading', 'text-background-editorial', 3],
-    ['disciplines', 'text-disciplines-title', 3],
-    ['exit', 'text-role-highlight', 3],
+  const structuredBlocks = [
+    ['reading', 'text-background-editorial', 'list', 6],
+    ['disciplines', 'text-disciplines-title', 'disciplines', 6],
+    ['exit', 'text-role-highlight', 'list', 5],
   ];
-  passages.forEach(([layout, id, lineCount]) => {
+  structuredBlocks.forEach(([layout, id, blockKind, itemCount]) => {
     const field = fields.find((candidate) => candidate.id === id);
     assert.equal(field.presentation?.layout, layout);
     assert.equal(field.kind, 'scroll-block');
-    assert.equal(field.block.text.split('\n').length, lineCount);
-    const emphasizedWords = field.block.emphasis
-      .flatMap((item) => item.text.trim().split(/\s+/));
-    assert.equal(emphasizedWords.length, 2);
+    assert.equal(field.block.kind, blockKind);
+    assert.equal(field.block.items.length, itemCount);
+    assert.ok(field.block.label);
+    const searchableCopy = [
+      field.block.label,
+      ...(field.block.items || []),
+      field.block.text,
+    ].filter(Boolean).join(' ');
     field.block.emphasis.forEach((item) => {
-      assert.ok(field.block.text.includes(item.text));
+      assert.ok(searchableCopy.includes(item.text));
     });
   });
   assert.equal(fields.filter((field) => field.block?.id?.endsWith('-passage')).length, 3);
@@ -554,7 +558,9 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
     endWU: 7.1,
   });
   assert.doesNotMatch(liveSources.experience, /data-emphasis-tone/);
-  assert.match(liveSources.experience, /<p[\s\S]*about-narrative-editorial-copy about-narrative-editorial-passage/);
+  assert.match(liveSources.experience, /about-narrative-editorial-list/);
+  assert.match(liveSources.experience, /about-narrative-discipline-list/);
+  assert.match(liveSources.experience, /<EditorialText text=\{item\} emphasis=\{block\.emphasis\} \/>/);
   assert.match(liveSources.experience, /<span data-editorial-line/);
   assert.doesNotMatch(liveSources.styles, /--about-emphasis-(?:blue|green|orange)/);
   assert.match(liveSources.styles, /--about-editorial-ink:/);
@@ -575,22 +581,27 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /about-narrative-spatial-title \{[\s\S]*?padding-block: 0\.2em;[\s\S]*?margin: -0\.2em auto -0\.1em;[\s\S]*?overflow: visible;/);
 });
 
-test('all published narrative writing comes from the current V20 script', () => {
+test('all published narrative writing comes from the current V21 script', () => {
   const normalize = (value) => String(value || '')
     .toLocaleLowerCase('en-GB')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
   const normalizedScript = normalize(currentScriptSource);
-  const authoredCopy = canonical.tracks.text.fields.flatMap((field) => [
-    field.text,
-    field.block?.text,
-  ]).filter(Boolean);
+  const authoredCopy = canonical.tracks.text.fields.flatMap((field) => {
+    if (field.block?.kind === 'clients') return [];
+    return [
+      field.text,
+      field.block?.text,
+      field.block?.label,
+      ...(field.block?.items || []),
+    ];
+  }).filter(Boolean);
   authoredCopy.forEach((copy) => {
-    assert.ok(normalizedScript.includes(normalize(copy)), `V20 is missing live copy: ${copy}`);
+    assert.ok(normalizedScript.includes(normalize(copy)), `V21 is missing live copy: ${copy}`);
   });
   const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
   reveal.parameters.items.forEach((item) => {
-    assert.ok(normalizedScript.includes(normalize(item.label)), `V20 is missing ${item.label}`);
+    assert.ok(normalizedScript.includes(normalize(item.label)), `V21 is missing ${item.label}`);
   });
   assert.doesNotMatch(canonicalSource, /Together, they become a way to make the idea tangible/);
   assert.doesNotMatch(canonicalSource, /That is when the experience starts to feel real/);

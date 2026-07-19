@@ -1009,11 +1009,23 @@
           },
           "block": {
             "id": "background-passage",
-            "kind": "prose",
-            "text": "The real questions usually sit there: what people need to understand, what they need to trust, and how a new capability becomes something they can use.\nI studied Communication Design to understand how ideas become clear: through words, images, hierarchy, motion, systems and the small decisions between them. Agency work gave me visual culture, craft and pace. Product work brought the questions closer to use.\nEmerging technology keeps raising those questions in new ways. Powerful capabilities need shape, language, behaviour and a reason to be there. My experience has moved through startups and creative agencies across digital products, web design, identity, interfaces, motion and creative technology, with projects in finance, mobility, healthcare, digital identity and product innovation.",
+            "kind": "list",
+            "label": "What shaped the way I work",
+            "items": [
+              "Communication Design: clarity through words, images, hierarchy, motion and systems.",
+              "Agency work: visual culture, craft and pace.",
+              "Product work: trust, behaviour and how a service explains itself.",
+              "Emerging technology: powerful capabilities given shape, language and a reason to be there.",
+              "Experience across startups and creative agencies in digital products, web, identity, interfaces, motion and creative technology.",
+              "Projects across finance, mobility, healthcare, digital identity and product innovation."
+            ],
             "emphasis": [
               {
                 "text": "Communication Design",
+                "tone": "blue"
+              },
+              {
+                "text": "Emerging technology",
                 "tone": "blue"
               }
             ]
@@ -1084,15 +1096,23 @@
           },
           "block": {
             "id": "disciplines-passage",
-            "kind": "prose",
-            "text": "Product and Experience Design help me understand who it is for, what needs to happen and where an experience can become simpler. Art Direction gives the idea character. Motion & 3D make timing, space and behaviour tangible. Creative Engineering and Parametric Systems let me test ideas as prototypes, tools and systems.\nAI runs through this as material and capability: a way to explore more directions, build faster and get to working possibilities sooner. The important part is still judgement.\nMoving between disciplines is where things unlock. A product insight can change the visual language. A technical experiment can suggest a new interaction. A sentence can carry the experience when it lands at the right moment.",
+            "kind": "disciplines",
+            "label": "Six connected disciplines",
+            "items": [
+              "Product & Experience Design — who it is for, what needs to happen, where it can be simpler.",
+              "Art Direction — character, tone and point of view.",
+              "Motion & 3D — timing, space, behaviour and feeling.",
+              "Creative Engineering — prototypes, tools and working systems.",
+              "Parametric Systems — structure, variation and scale.",
+              "AI — faster exploration, working possibilities and judgement about what to keep."
+            ],
             "emphasis": [
               {
-                "text": "judgement",
+                "text": "AI",
                 "tone": "blue"
               },
               {
-                "text": "unlock",
+                "text": "judgement",
                 "tone": "blue"
               }
             ]
@@ -1155,15 +1175,26 @@
           },
           "block": {
             "id": "role-passage",
-            "kind": "prose",
-            "text": "The point is to give an idea structure, clarity and character: usable enough to test, clear enough to trust, specific enough to feel real.\nSometimes that is a prototype, a service map, an AI workflow, a motion study or a small tool. The format changes. The goal stays the same: help teams see what they are making and move it closer to life.\nI work with ambitious teams who need design, creative technology and AI to shape direction early and carry it into convincing detail.",
+            "kind": "list",
+            "label": "What this gives the team",
+            "items": [
+              "Structure: enough to test.",
+              "Clarity: enough to trust.",
+              "Character: enough to feel specific.",
+              "Useful formats: prototypes, service maps, AI workflows, motion studies or small tools.",
+              "A direction that can move from early thinking into convincing detail."
+            ],
             "emphasis": [
               {
-                "text": "trust",
+                "text": "Structure",
                 "tone": "blue"
               },
               {
-                "text": "convincing",
+                "text": "Clarity",
+                "tone": "blue"
+              },
+              {
+                "text": "Character",
                 "tone": "blue"
               }
             ]
