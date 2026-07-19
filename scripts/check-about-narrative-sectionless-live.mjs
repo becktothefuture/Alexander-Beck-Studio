@@ -258,12 +258,12 @@ test('B forms a denser moving field and the Camera flies straight through it', (
   }
 });
 
-test('Camera keys retain a centered horizontal baseline and finite authored transforms', () => {
+test('Camera keys retain a centered horizontal baseline and clean authored transforms', () => {
   canonical.tracks.camera.keys.forEach((key) => {
     assert.equal(key.offset[0], 0, `${key.id} Frame X should be centered`);
     assert.equal(key.lookAtOffset[0], 0, `${key.id} Target X should be centered`);
     for (const value of [...key.offset, ...key.lookAtOffset, key.roll]) {
-      assert.equal(Number.isFinite(value), true, `${key.id} should use finite transforms`);
+      assert.equal(value, Number(value.toFixed(1)), `${key.id} should use 0.1 WU transform increments`);
     }
   });
 });
@@ -273,7 +273,7 @@ test('World C enters the discipline reveal and overhead view without camera dept
   const background = canonical.tracks.worlds.objects.find((world) => world.id === 'world-background');
   const shift = keys.get('camera-background-1-2');
   const reveal = keys.get('camera-disciplines-0');
-  const overhead = keys.get('camera-disciplines-exit');
+  const overhead = keys.get('camera-grid-ripple-hold-start');
   assert.equal(shift.atWU, 8.165);
   assert.equal(reveal.atWU, 12.245);
   assert.equal(shift.easing, 'linear');
@@ -404,7 +404,7 @@ test('E ripples C in place beneath one stationary overhead camera', () => {
     assertCameraValue(frame.camera.target[2] - frame.camera.position[2], 0, `E should look straight down at ${storyWU}`);
     assertCameraValue(frame.camera.fov, 70, `E wide lens at ${storyWU}`);
     assertCameraValue(frame.camera.roll, 0, `E level horizon at ${storyWU}`);
-  });
+  }
 });
 
 test('every travelling title shares one timing while the finale holds through the last frame', () => {
