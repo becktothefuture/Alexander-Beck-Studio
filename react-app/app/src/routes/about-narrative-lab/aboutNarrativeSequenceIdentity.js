@@ -113,9 +113,9 @@ export function createAboutNarrativeWorldPreparationDescriptor({
   const pointProfile = ABOUT_NARRATIVE_POINT_PROFILES[
     resolveAboutNarrativePointProfile(profile)
   ];
-  const camera = {
-    startZ: Number(globals.camera.startZ),
-    cadence: Number(globals.camera.cadence),
+  const worldRail = {
+    originZ: Number(globals?.worldRail?.originZ ?? globals?.camera?.startZ),
+    unitsPerWU: Number(globals?.worldRail?.unitsPerWU ?? globals?.camera?.cadence),
   };
   const worlds = worldSequence.map((world) => createWorldPreparationInput(world, globals));
   if (new Set(worlds.map((world) => world.id)).size !== worlds.length) {
@@ -140,7 +140,7 @@ export function createAboutNarrativeWorldPreparationDescriptor({
     profile: pointProfile.id,
     quality: pointProfile.id,
     pointCount: pointProfile.pointCount,
-    camera,
+    worldRail,
     worlds,
     runtimeWorlds: worldSequence,
     pairs,

@@ -67,10 +67,8 @@ function comparableTrackFrame(frame) {
     globals: frame.globals,
     camera: {
       position: [...frame.camera.position],
-      target: [...frame.camera.target],
+      quaternion: [...frame.camera.quaternion],
       fov: frame.camera.fov,
-      roll: frame.camera.roll,
-      cadence: frame.camera.cadence,
     },
     world: {
       from: frame.world.from,
@@ -163,7 +161,7 @@ test('sectionless track sampleInto retains every runtime-owned container and arr
     frame: target,
     camera: target.camera,
     cameraPosition: target.camera.position,
-    cameraTarget: target.camera.target,
+    cameraQuaternion: target.camera.quaternion,
     world: target.world,
     text: target.text,
     textIds: target.text.activeFieldIds,
@@ -178,7 +176,7 @@ test('sectionless track sampleInto retains every runtime-owned container and arr
     assert.equal(sampled, identities.frame);
     assert.equal(sampled.camera, identities.camera);
     assert.equal(sampled.camera.position, identities.cameraPosition);
-    assert.equal(sampled.camera.target, identities.cameraTarget);
+    assert.equal(sampled.camera.quaternion, identities.cameraQuaternion);
     assert.equal(sampled.world, identities.world);
     assert.equal(sampled.text, identities.text);
     assert.equal(sampled.text.activeFieldIds, identities.textIds);

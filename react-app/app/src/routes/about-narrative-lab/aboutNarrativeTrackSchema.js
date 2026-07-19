@@ -13,6 +13,8 @@ import {
   ABOUT_NARRATIVE_TRANSITION_TYPES,
 } from './aboutNarrativeDefinitions.js';
 import {
+  applyAboutNarrativeCameraEasing,
+  compileAboutNarrativeCameraEasing,
   normalizeAboutNarrativeCameraEasing,
   parseAboutNarrativeCameraEasing,
 } from './aboutNarrativeCameraEasing.js';
@@ -21,8 +23,13 @@ import {
   normalizeAboutNarrativeDocument,
   validateAboutNarrativeDocument,
 } from './aboutNarrativeSchema.js';
+import {
+  migrateLegacyAboutNarrativeCameraPose,
+  slerpAboutNarrativeCameraQuaternionInto,
+  writeAboutNarrativeCameraQuaternion,
+} from './aboutNarrativeCameraRig.js';
 
-export const ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION = 3;
+export const ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION = 4;
 export const ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS = Object.freeze(['desktop', 'tablet', 'mobile']);
 export const ABOUT_NARRATIVE_TRACK_PROFILE_IDS = Object.freeze([
   ...ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS,
@@ -38,9 +45,16 @@ export const ABOUT_NARRATIVE_TRACK_TEXT_KINDS = Object.freeze([
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const UNSAFE_TEXT_PATTERN = /<\/?(?:script|style|iframe)|\bon\w+\s*=|javascript:/i;
 const SECTIONLIKE_KEYS = new Set(['sections', 'groups', 'bands', 'chapters']);
+const LEGACY_CAMERA_BAKE_MAX_POSITION_ERROR_WU = 0.12;
+const LEGACY_CAMERA_BAKE_MAX_ROTATION_ERROR_DEGREES = 1.5;
+const LEGACY_CAMERA_BAKE_MAX_SCALAR_ERROR = 0.25;
+const LEGACY_CAMERA_BAKE_MAX_DEPTH = 9;
 const TOP_LEVEL_KEYS = new Set(['schemaVersion', 'globals', 'profiles', 'tracks', 'library']);
-const GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
-const GLOBAL_CAMERA_KEYS = new Set([
+const GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'worldRail', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
+const LEGACY_GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
+const GLOBAL_WORLD_RAIL_KEYS = new Set(['originZ', 'unitsPerWU']);
+const GLOBAL_CAMERA_KEYS = new Set(['fov', 'distanceFogStartWU', 'distanceFogEndWU']);
+const LEGACY_GLOBAL_CAMERA_KEYS = new Set([
   'startZ',
   'cadence',
   'cadenceLocked',
@@ -59,7 +73,8 @@ const CAMERA_TRACK_KEYS = new Set(['keys']);
 const WORLD_TRACK_KEYS = new Set(['objects']);
 const TEXT_TRACK_KEYS = new Set(['fields']);
 const INTERACTION_TRACK_KEYS = new Set(['clips']);
-const CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'distanceFogStartWU', 'distanceFogEndWU', 'easing', 'locked']);
+const CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'position', 'rotation', 'fov', 'distanceFogStartWU', 'distanceFogEndWU', 'easing', 'locked']);
+const LEGACY_CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'distanceFogStartWU', 'distanceFogEndWU', 'easing', 'locked']);
 const WORLD_KEYS = new Set(['id', 'label', 'startWU', 'anchorWU', 'adapterId', 'shapeId', 'seed', 'entryDistanceWU', 'transform', 'transitionIn', 'shapeParameters', 'modifiers', 'protected']);
 const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 'mobileXScale', 'mobileYOffset', 'mobileZOffset']);
 const TRANSITION_KEYS = new Set(['startWU', 'endWU', 'type', 'easing', 'correspondence']);
@@ -77,7 +92,8 @@ const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label']);
 const INTERACTION_KEYS = new Set(['id', 'type', 'startWU', 'activationWU', 'endWU', 'targetWorldId', 'parameters', 'protected']);
 const LIBRARY_KEYS = new Set(['presets']);
 const PRESET_KEYS = new Set(['id', 'label', 'scope', 'protected']);
-const CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'distanceFogStartWU', 'distanceFogEndWU', 'easing']);
+const CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'position', 'rotation', 'fov', 'distanceFogStartWU', 'distanceFogEndWU', 'easing']);
+const LEGACY_CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'distanceFogStartWU', 'distanceFogEndWU', 'easing']);
 const WORLD_OVERRIDE_KEYS = new Set(['startWU', 'anchorWU', 'transform', 'transitionIn']);
 const TEXT_OVERRIDE_KEYS = new Set(['startWU', 'focusWU', 'endWU']);
 const INTERACTION_OVERRIDE_KEYS = new Set(['startWU', 'activationWU', 'endWU']);
@@ -165,18 +181,37 @@ function validateControlValue(value, control, diagnostics, path) {
   }
 }
 
-function validateGlobals(globals, diagnostics) {
-  unknownKeys(diagnostics, globals, GLOBAL_KEYS, 'globals');
+function validateGlobals(globals, diagnostics, schemaVersion) {
+  const legacy = schemaVersion === 3;
+  unknownKeys(diagnostics, globals, legacy ? LEGACY_GLOBAL_KEYS : GLOBAL_KEYS, 'globals');
   if (!isObject(globals)) return;
-  unknownKeys(diagnostics, globals.camera, GLOBAL_CAMERA_KEYS, 'globals.camera');
+  if (!legacy) unknownKeys(diagnostics, globals.worldRail, GLOBAL_WORLD_RAIL_KEYS, 'globals.worldRail');
+  unknownKeys(diagnostics, globals.camera, legacy ? LEGACY_GLOBAL_CAMERA_KEYS : GLOBAL_CAMERA_KEYS, 'globals.camera');
   unknownKeys(diagnostics, globals.pointMaterial, POINT_MATERIAL_KEYS, 'globals.pointMaterial');
   unknownKeys(diagnostics, globals.swarmTurbulence, SWARM_TURBULENCE_KEYS, 'globals.swarmTurbulence');
   unknownKeys(diagnostics, globals.textMotion, TEXT_MOTION_KEYS, 'globals.textMotion');
+  if (!legacy) {
+    if (!finite(globals.worldRail?.originZ) || Number(globals.worldRail.originZ) < -100 || Number(globals.worldRail.originZ) > 100) {
+      diagnostic(diagnostics, 'world-rail-origin', 'globals.worldRail.originZ', 'World rail origin Z must stay between -100 and 100.');
+    }
+    if (!finite(globals.worldRail?.unitsPerWU) || Number(globals.worldRail.unitsPerWU) < 0.01 || Number(globals.worldRail.unitsPerWU) > 5) {
+      diagnostic(diagnostics, 'world-rail-cadence', 'globals.worldRail.unitsPerWU', 'World rail units per WU must stay between 0.01 and 5.');
+    }
+  }
+  const { worldRail, ...legacyCompatibleGlobals } = globals;
   // Reuse the established v2 global contract without allowing the legacy
-  // validator to see or normalize any authored v3 track data.
+  // validator to see or normalize any authored track data.
   const shim = {
     schemaVersion: 2,
-    globals,
+    globals: legacy ? globals : {
+      ...legacyCompatibleGlobals,
+      camera: {
+        startZ: Number(worldRail?.originZ ?? 8),
+        cadence: Number(worldRail?.unitsPerWU ?? 1),
+        cadenceLocked: true,
+        ...globals.camera,
+      },
+    },
     sections: [{
       id: 'validation-finale', label: 'Validation', type: 'finale', layout: 'center', extentWU: 1,
       mobileExtentWU: 1, text: { cues: [{ id: 'validation-copy', text: 'Validation', enter: 0, hold: 0.5, exit: 1, preset: 'travelling-title-v1', motion: { mode: 'spatial' } }] },
@@ -191,7 +226,7 @@ function validateGlobals(globals, diagnostics) {
   });
 }
 
-function validateProfiles(profiles, diagnostics, durationWU, objectIndexes) {
+function validateProfiles(profiles, diagnostics, durationWU, objectIndexes, schemaVersion) {
   if (!isObject(profiles)) {
     diagnostic(diagnostics, 'profiles-envelope', 'profiles', 'Profiles must be an object.');
     return;
@@ -207,7 +242,7 @@ function validateProfiles(profiles, diagnostics, durationWU, objectIndexes) {
     if (finite(profile.storyDurationWU) && Math.abs(Number(profile.storyDurationWU) - durationWU) > 0.000001) {
       diagnostic(diagnostics, 'profile-story-duration', `${path}.storyDurationWU`, 'Layout profiles must share the canonical Story WU duration.');
     }
-    validateProfileOverrides(profile.overrides, diagnostics, path, durationWU, objectIndexes);
+    validateProfileOverrides(profile.overrides, diagnostics, path, durationWU, objectIndexes, schemaVersion);
   });
   const reduced = profiles['reduced-motion'];
   unknownKeys(diagnostics, reduced, REDUCED_PROFILE_KEYS, 'profiles.reduced-motion');
@@ -222,12 +257,12 @@ function validateOverrideObject(value, allowed, diagnostics, path) {
   return isObject(value);
 }
 
-function validateProfileOverrides(overrides, diagnostics, profilePath, durationWU, indexes) {
+function validateProfileOverrides(overrides, diagnostics, profilePath, durationWU, indexes, schemaVersion) {
   const path = `${profilePath}.overrides`;
   unknownKeys(diagnostics, overrides, OVERRIDE_TRACK_KEYS, path);
   if (!isObject(overrides)) return;
   const definitions = [
-    ['camera', indexes.camera, CAMERA_OVERRIDE_KEYS],
+    ['camera', indexes.camera, schemaVersion === 3 ? LEGACY_CAMERA_OVERRIDE_KEYS : CAMERA_OVERRIDE_KEYS],
     ['worlds', indexes.worlds, WORLD_OVERRIDE_KEYS],
     ['text', indexes.text, TEXT_OVERRIDE_KEYS],
     ['interactions', indexes.interactions, INTERACTION_OVERRIDE_KEYS],
@@ -248,10 +283,15 @@ function validateProfileOverrides(overrides, diagnostics, profilePath, durationW
         if (key.endsWith('WU') && key !== 'distanceFogStartWU' && key !== 'distanceFogEndWU') validateTime(value, diagnostics, `${itemPath}.${key}`, { max: durationWU });
       });
       if (track === 'camera') {
-        if (override.offset != null) validateVector(override.offset, diagnostics, `${itemPath}.offset`);
-        if (override.lookAtOffset != null) validateVector(override.lookAtOffset, diagnostics, `${itemPath}.lookAtOffset`);
+        if (schemaVersion === 3) {
+          if (override.offset != null) validateVector(override.offset, diagnostics, `${itemPath}.offset`);
+          if (override.lookAtOffset != null) validateVector(override.lookAtOffset, diagnostics, `${itemPath}.lookAtOffset`);
+          if (override.roll != null && !finite(override.roll)) diagnostic(diagnostics, 'camera-roll', `${itemPath}.roll`, 'Roll must be finite.');
+        } else {
+          if (override.position != null) validateVector(override.position, diagnostics, `${itemPath}.position`);
+          if (override.rotation != null) validateVector(override.rotation, diagnostics, `${itemPath}.rotation`);
+        }
         if (override.fov != null && (!finite(override.fov) || override.fov < 20 || override.fov > 90)) diagnostic(diagnostics, 'camera-fov', `${itemPath}.fov`, 'FOV must stay between 20 and 90.');
-        if (override.roll != null && !finite(override.roll)) diagnostic(diagnostics, 'camera-roll', `${itemPath}.roll`, 'Roll must be finite.');
         if (override.distanceFogStartWU != null && (!finite(override.distanceFogStartWU) || override.distanceFogStartWU < 0 || override.distanceFogStartWU > 40)) diagnostic(diagnostics, 'camera-fog-start', `${itemPath}.distanceFogStartWU`, 'Camera fog start must stay between 0 and 40 WU.');
         if (override.distanceFogEndWU != null && (!finite(override.distanceFogEndWU) || override.distanceFogEndWU < 0.1 || override.distanceFogEndWU > 80)) diagnostic(diagnostics, 'camera-fog-end', `${itemPath}.distanceFogEndWU`, 'Camera fog end must stay between 0.1 and 80 WU.');
         const fogStartWU = Number(override.distanceFogStartWU ?? base?.distanceFogStartWU);
@@ -508,13 +548,17 @@ function validateLibrary(library, diagnostics) {
   });
 }
 
-export function validateAboutNarrativeTrackDocument(input) {
+export function validateAboutNarrativeTrackDocument(input, {
+  expectedSchemaVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+} = {}) {
   const diagnostics = [];
   if (!isObject(input)) return [{ level: 'error', code: 'document-envelope', path: 'document', message: 'Track document must be an object.' }];
   rejectSectionlikeKeys(input, diagnostics);
   unknownKeys(diagnostics, input, TOP_LEVEL_KEYS, 'document');
-  if (input.schemaVersion !== ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) diagnostic(diagnostics, 'schema-version', 'schemaVersion', 'Track schema version 3 is required.');
-  validateGlobals(input.globals, diagnostics);
+  if (input.schemaVersion !== expectedSchemaVersion) diagnostic(diagnostics, 'schema-version', 'schemaVersion', `Track schema version ${expectedSchemaVersion} is required.`);
+  const schemaVersion = Number(input.schemaVersion);
+  const legacyCamera = schemaVersion === 3;
+  validateGlobals(input.globals, diagnostics, schemaVersion);
 
   const tracks = input.tracks;
   unknownKeys(diagnostics, tracks, TRACK_KEYS, 'tracks');
@@ -538,16 +582,21 @@ export function validateAboutNarrativeTrackDocument(input) {
   let previousCameraWU = -1;
   (cameraKeys || []).forEach((key, index) => {
     const path = `tracks.camera.keys.${index}`;
-    unknownKeys(diagnostics, key, CAMERA_KEY_KEYS, path);
+    unknownKeys(diagnostics, key, legacyCamera ? LEGACY_CAMERA_KEY_KEYS : CAMERA_KEY_KEYS, path);
     if (!isObject(key)) return;
     validateId(key.id, seen, diagnostics, `${path}.id`);
     validateTime(key.atWU, diagnostics, `${path}.atWU`, { max: durationWU });
     if (Number(key.atWU) <= previousCameraWU) diagnostic(diagnostics, 'camera-order', `${path}.atWU`, 'Camera keys must be strictly ordered by atWU.');
     previousCameraWU = Number(key.atWU);
-    validateVector(key.offset, diagnostics, `${path}.offset`);
-    validateVector(key.lookAtOffset, diagnostics, `${path}.lookAtOffset`);
+    if (legacyCamera) {
+      validateVector(key.offset, diagnostics, `${path}.offset`);
+      validateVector(key.lookAtOffset, diagnostics, `${path}.lookAtOffset`);
+      if (!finite(key.roll)) diagnostic(diagnostics, 'camera-roll', `${path}.roll`, 'Roll must be finite.');
+    } else {
+      validateVector(key.position, diagnostics, `${path}.position`);
+      validateVector(key.rotation, diagnostics, `${path}.rotation`);
+    }
     if (!finite(key.fov) || key.fov < 20 || key.fov > 90) diagnostic(diagnostics, 'camera-fov', `${path}.fov`, 'FOV must stay between 20 and 90.');
-    if (!finite(key.roll)) diagnostic(diagnostics, 'camera-roll', `${path}.roll`, 'Roll must be finite.');
     // Per-key fog is optional for existing v3 documents. When absent, the
     // canonical global camera fog values are materialized by normalization.
     if (key.distanceFogStartWU != null && (!finite(key.distanceFogStartWU) || key.distanceFogStartWU < 0 || key.distanceFogStartWU > 40)) diagnostic(diagnostics, 'camera-fog-start', `${path}.distanceFogStartWU`, 'Camera fog start must stay between 0 and 40 WU.');
@@ -674,7 +723,7 @@ export function validateAboutNarrativeTrackDocument(input) {
     text: new Map((textFields || []).map((item) => [item.id, item])),
     interactions: new Map((clips || []).map((item) => [item.id, item])),
   };
-  validateProfiles(input.profiles, diagnostics, durationWU, indexes);
+  validateProfiles(input.profiles, diagnostics, durationWU, indexes, schemaVersion);
   validateLibrary(input.library, diagnostics);
 
   const finale = worlds?.at(-1);
@@ -944,7 +993,7 @@ export function migrateAboutNarrativeVersion2To3(input) {
   const worlds = migrateWorlds(document, spans);
   const emptyOverrides = () => ({ camera: {}, worlds: {}, text: {}, interactions: {} });
   const migrated = {
-    schemaVersion: ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+    schemaVersion: 3,
     globals: cloneAboutNarrativeDocument(document.globals),
     profiles: {
       desktop: { storyDurationWU: desktopDurationWU, scrollDurationWU: desktopDurationWU, overrides: emptyOverrides() },
@@ -960,7 +1009,287 @@ export function migrateAboutNarrativeVersion2To3(input) {
     },
     library: cloneAboutNarrativeDocument(document.library || { presets: [] }),
   };
+  return {
+    ...migrated,
+    profiles: {
+      desktop: { ...migrated.profiles.desktop, overrides: normalizeOverrides(migrated.profiles.desktop.overrides) },
+      tablet: { ...migrated.profiles.tablet, overrides: normalizeOverrides(migrated.profiles.tablet.overrides) },
+      mobile: { ...migrated.profiles.mobile, overrides: normalizeOverrides(migrated.profiles.mobile.overrides) },
+      'reduced-motion': { mode: 'overlay', motionPolicy: 'settled' },
+    },
+    tracks: {
+      camera: { keys: migrated.tracks.camera.keys.map((key) => ({
+        ...key,
+        distanceFogStartWU: Number(key.distanceFogStartWU ?? migrated.globals.camera?.distanceFogStartWU ?? 8),
+        distanceFogEndWU: Number(key.distanceFogEndWU ?? migrated.globals.camera?.distanceFogEndWU ?? 18),
+        easing: normalizeAboutNarrativeCameraEasing(key.easing),
+      })).sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)) },
+      worlds: { objects: migrated.tracks.worlds.objects.sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id)) },
+      text: { fields: migrated.tracks.text.fields.sort((left, right) => left.startWU - right.startWU || left.focusWU - right.focusWU || left.id.localeCompare(right.id)) },
+      interactions: { clips: migrated.tracks.interactions.clips.sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id)) },
+    },
+    library: { presets: [...migrated.library.presets].sort((left, right) => left.id.localeCompare(right.id)) },
+  };
+}
+
+function migrateLegacyCameraOverride(override, baseKey, globals) {
+  const merged = {
+    ...baseKey,
+    ...override,
+    offset: [...(override.offset || baseKey.offset)],
+    lookAtOffset: [...(override.lookAtOffset || baseKey.lookAtOffset)],
+  };
+  const pose = migrateLegacyAboutNarrativeCameraPose(merged, globals);
+  return {
+    ...(override.atWU == null ? {} : { atWU: Number(override.atWU) }),
+    position: pose.position,
+    rotation: pose.rotation,
+    ...(override.fov == null ? {} : { fov: Number(override.fov) }),
+    ...(override.distanceFogStartWU == null ? {} : { distanceFogStartWU: Number(override.distanceFogStartWU) }),
+    ...(override.distanceFogEndWU == null ? {} : { distanceFogEndWU: Number(override.distanceFogEndWU) }),
+    ...(override.easing == null ? {} : { easing: normalizeAboutNarrativeCameraEasing(override.easing) }),
+  };
+}
+
+function mixLegacyCameraValue(from, to, progress) {
+  return Number(from) + ((Number(to) - Number(from)) * progress);
+}
+
+function sampleLegacyCameraSegment(from, to, progress, globals, easingCurve) {
+  const eased = progress <= 0
+    ? 0
+    : progress >= 1
+      ? 1
+      : applyAboutNarrativeCameraEasing(easingCurve, progress);
+  const atWU = cleanWU(mixLegacyCameraValue(from.atWU, to.atWU, progress));
+  const legacyKey = {
+    atWU,
+    offset: from.offset.map((value, index) => mixLegacyCameraValue(value, to.offset[index], eased)),
+    lookAtOffset: from.lookAtOffset.map((value, index) => mixLegacyCameraValue(value, to.lookAtOffset[index], eased)),
+    roll: mixLegacyCameraValue(from.roll, to.roll, eased),
+  };
+  const pose = migrateLegacyAboutNarrativeCameraPose(legacyKey, globals);
+  return {
+    progress,
+    atWU,
+    position: pose.position,
+    rotation: pose.rotation,
+    quaternion: writeAboutNarrativeCameraQuaternion([0, 0, 0, 1], pose.rotation),
+    fov: mixLegacyCameraValue(from.fov, to.fov, eased),
+    distanceFogStartWU: mixLegacyCameraValue(
+      from.distanceFogStartWU ?? globals.camera.distanceFogStartWU ?? 8,
+      to.distanceFogStartWU ?? globals.camera.distanceFogStartWU ?? 8,
+      eased,
+    ),
+    distanceFogEndWU: mixLegacyCameraValue(
+      from.distanceFogEndWU ?? globals.camera.distanceFogEndWU ?? 18,
+      to.distanceFogEndWU ?? globals.camera.distanceFogEndWU ?? 18,
+      eased,
+    ),
+  };
+}
+
+function legacyCameraQuaternionErrorDegrees(actual, expected) {
+  const dot = Math.min(1, Math.abs(
+    (actual[0] * expected[0])
+    + (actual[1] * expected[1])
+    + (actual[2] * expected[2])
+    + (actual[3] * expected[3]),
+  ));
+  return (2 * Math.acos(dot) * 180) / Math.PI;
+}
+
+function legacyCameraBakeNeedsSplit(from, midpoint, to) {
+  const localProgress = (midpoint.progress - from.progress) / (to.progress - from.progress);
+  const interpolatedPosition = from.position.map((value, index) => (
+    mixLegacyCameraValue(value, to.position[index], localProgress)
+  ));
+  const positionError = Math.hypot(
+    midpoint.position[0] - interpolatedPosition[0],
+    midpoint.position[1] - interpolatedPosition[1],
+    midpoint.position[2] - interpolatedPosition[2],
+  );
+  const interpolatedQuaternion = slerpAboutNarrativeCameraQuaternionInto(
+    [0, 0, 0, 1],
+    from.quaternion,
+    to.quaternion,
+    localProgress,
+  );
+  const rotationError = legacyCameraQuaternionErrorDegrees(midpoint.quaternion, interpolatedQuaternion);
+  const scalarError = Math.max(
+    Math.abs(midpoint.fov - mixLegacyCameraValue(from.fov, to.fov, localProgress)),
+    Math.abs(midpoint.distanceFogStartWU - mixLegacyCameraValue(from.distanceFogStartWU, to.distanceFogStartWU, localProgress)),
+    Math.abs(midpoint.distanceFogEndWU - mixLegacyCameraValue(from.distanceFogEndWU, to.distanceFogEndWU, localProgress)),
+  );
+  return positionError > LEGACY_CAMERA_BAKE_MAX_POSITION_ERROR_WU
+    || rotationError > LEGACY_CAMERA_BAKE_MAX_ROTATION_ERROR_DEGREES
+    || scalarError > LEGACY_CAMERA_BAKE_MAX_SCALAR_ERROR;
+}
+
+function bakeLegacyCameraKeys(keys, globals) {
+  if (keys.length < 2) {
+    return keys.map((key) => {
+      const pose = migrateLegacyAboutNarrativeCameraPose(key, globals);
+      return {
+        id: key.id,
+        atWU: Number(key.atWU),
+        position: pose.position,
+        rotation: pose.rotation,
+        fov: Number(key.fov),
+        distanceFogStartWU: Number(key.distanceFogStartWU ?? globals.camera.distanceFogStartWU ?? 8),
+        distanceFogEndWU: Number(key.distanceFogEndWU ?? globals.camera.distanceFogEndWU ?? 18),
+        easing: 'linear',
+        locked: key.locked === true,
+      };
+    });
+  }
+
+  const baked = [];
+  const usedIds = new Set(keys.map((key) => key.id));
+  keys.slice(0, -1).forEach((from, segmentIndex) => {
+    const to = keys[segmentIndex + 1];
+    const easingCurve = compileAboutNarrativeCameraEasing(from.easing);
+    const samples = [sampleLegacyCameraSegment(from, to, 0, globals, easingCurve)];
+    const appendAdaptiveSamples = (left, right, depth) => {
+      const midpoint = sampleLegacyCameraSegment(
+        from,
+        to,
+        (left.progress + right.progress) * 0.5,
+        globals,
+        easingCurve,
+      );
+      const quarter = sampleLegacyCameraSegment(
+        from,
+        to,
+        left.progress + ((right.progress - left.progress) * 0.25),
+        globals,
+        easingCurve,
+      );
+      const threeQuarter = sampleLegacyCameraSegment(
+        from,
+        to,
+        left.progress + ((right.progress - left.progress) * 0.75),
+        globals,
+        easingCurve,
+      );
+      const needsSplit = legacyCameraBakeNeedsSplit(left, quarter, right)
+        || legacyCameraBakeNeedsSplit(left, midpoint, right)
+        || legacyCameraBakeNeedsSplit(left, threeQuarter, right);
+      if (depth < LEGACY_CAMERA_BAKE_MAX_DEPTH && needsSplit) {
+        appendAdaptiveSamples(left, midpoint, depth + 1);
+        appendAdaptiveSamples(midpoint, right, depth + 1);
+        return;
+      }
+      samples.push(right);
+    };
+    appendAdaptiveSamples(
+      samples[0],
+      sampleLegacyCameraSegment(from, to, 1, globals, easingCurve),
+      0,
+    );
+
+    if (segmentIndex === 0) {
+      const first = samples[0];
+      baked.push({
+        id: from.id,
+        atWU: first.atWU,
+        position: first.position,
+        rotation: first.rotation,
+        fov: Number(first.fov.toFixed(6)),
+        distanceFogStartWU: Number(first.distanceFogStartWU.toFixed(6)),
+        distanceFogEndWU: Number(first.distanceFogEndWU.toFixed(6)),
+        easing: 'linear',
+        locked: from.locked === true,
+      });
+    }
+
+    samples.slice(1).forEach((sample, sampleIndex) => {
+      const endpoint = sampleIndex === samples.length - 2;
+      let id = endpoint ? to.id : `${from.id}-path-${sampleIndex + 1}`;
+      let suffix = sampleIndex + 1;
+      while (!endpoint && usedIds.has(id)) {
+        suffix += 1;
+        id = `${from.id}-path-${suffix}`;
+      }
+      usedIds.add(id);
+      baked.push({
+        id,
+        atWU: sample.atWU,
+        position: sample.position,
+        rotation: sample.rotation,
+        fov: Number(sample.fov.toFixed(6)),
+        distanceFogStartWU: Number(sample.distanceFogStartWU.toFixed(6)),
+        distanceFogEndWU: Number(sample.distanceFogEndWU.toFixed(6)),
+        easing: 'linear',
+        locked: endpoint ? to.locked === true : false,
+      });
+    });
+  });
+  return baked;
+}
+
+export function migrateAboutNarrativeVersion3To4(input) {
+  const raw = cloneAboutNarrativeDocument(input);
+  const sourceErrors = validateAboutNarrativeTrackDocument(raw, { expectedSchemaVersion: 3 })
+    .filter((item) => item.level === 'error');
+  if (sourceErrors.length) {
+    const error = new Error(sourceErrors.map((item) => `${item.path}: ${item.message}`).join('\n'));
+    error.name = 'AboutNarrativeTrackMigrationError';
+    error.diagnostics = sourceErrors;
+    error.original = raw;
+    throw error;
+  }
+
+  const legacyGlobals = raw.globals;
+  const baseKeys = new Map(raw.tracks.camera.keys.map((key) => [key.id, key]));
+  const camera = {
+    fov: Number(legacyGlobals.camera.fov),
+    distanceFogStartWU: Number(legacyGlobals.camera.distanceFogStartWU ?? 8),
+    distanceFogEndWU: Number(legacyGlobals.camera.distanceFogEndWU ?? 18),
+  };
+  const migrateOverrides = (overrides) => ({
+    camera: Object.fromEntries(Object.entries(overrides.camera || {}).map(([id, override]) => [
+      id,
+      migrateLegacyCameraOverride(override, baseKeys.get(id), legacyGlobals),
+    ])),
+    worlds: cloneAboutNarrativeDocument(overrides.worlds || {}),
+    text: cloneAboutNarrativeDocument(overrides.text || {}),
+    interactions: cloneAboutNarrativeDocument(overrides.interactions || {}),
+  });
+  const migrated = {
+    schemaVersion: ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+    globals: {
+      scrollSmoothing: legacyGlobals.scrollSmoothing,
+      readingWidthRem: legacyGlobals.readingWidthRem,
+      editorialRevealThreshold: legacyGlobals.editorialRevealThreshold,
+      worldRail: {
+        originZ: Number(legacyGlobals.camera.startZ),
+        unitsPerWU: Number(legacyGlobals.camera.cadence),
+      },
+      camera,
+      pointMaterial: cloneAboutNarrativeDocument(legacyGlobals.pointMaterial),
+      swarmTurbulence: cloneAboutNarrativeDocument(legacyGlobals.swarmTurbulence),
+      textMotion: cloneAboutNarrativeDocument(legacyGlobals.textMotion),
+    },
+    profiles: {
+      desktop: { ...raw.profiles.desktop, overrides: migrateOverrides(raw.profiles.desktop.overrides) },
+      tablet: { ...raw.profiles.tablet, overrides: migrateOverrides(raw.profiles.tablet.overrides) },
+      mobile: { ...raw.profiles.mobile, overrides: migrateOverrides(raw.profiles.mobile.overrides) },
+      'reduced-motion': { mode: 'overlay', motionPolicy: 'settled' },
+    },
+    tracks: {
+      camera: { keys: bakeLegacyCameraKeys(raw.tracks.camera.keys, legacyGlobals) },
+      worlds: cloneAboutNarrativeDocument(raw.tracks.worlds),
+      text: cloneAboutNarrativeDocument(raw.tracks.text),
+      interactions: cloneAboutNarrativeDocument(raw.tracks.interactions),
+    },
+    library: cloneAboutNarrativeDocument(raw.library),
+  };
   const normalized = normalizeAboutNarrativeTrackDocument(migrated);
   assertValidAboutNarrativeTrackDocument(normalized);
   return normalized;
+}
+
+export function migrateAboutNarrativeVersion2To4(input) {
+  return migrateAboutNarrativeVersion3To4(migrateAboutNarrativeVersion2To3(input));
 }

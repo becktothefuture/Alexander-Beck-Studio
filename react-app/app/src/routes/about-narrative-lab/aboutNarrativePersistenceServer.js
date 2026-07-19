@@ -98,13 +98,13 @@ export function createAboutNarrativePersistenceService({
     }
     if (loaded.sourceVersion !== ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) {
       throw validationError(
-        'Only a schema v3 About document can be saved. Reload the source to migrate it before saving.',
+        `Only a schema v${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION} About document can be saved. Reload the source to migrate it before saving.`,
         loaded,
         [{
           level: 'error',
           code: 'schema-version-write',
           path: 'schemaVersion',
-          message: 'Persistence accepts only the live schema v3 document model.',
+          message: `Persistence accepts only the live schema v${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION} document model.`,
         }],
       );
     }

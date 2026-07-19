@@ -80,12 +80,22 @@ export const ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS = Object.freeze([
 ]);
 
 export const ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS = Object.freeze([
-  Object.freeze({ id: 'camera-travel', label: 'Camera · Travel & lens' }),
+  Object.freeze({ id: 'camera-travel', label: 'Camera · Default lens' }),
 ]);
 
 export const ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS = Object.freeze([
-  numberControl('distanceFogStartWU', 'Fog begins', 0, 40, 0.1, 'WU', 'camera-travel'),
-  numberControl('distanceFogEndWU', 'Fully faded', 0.1, 80, 0.1, 'WU', 'camera-travel'),
+  numberControl('distanceFogStartWU', 'Fog begins', 0, 40, 0.1, 'WU'),
+  numberControl('distanceFogEndWU', 'Fully faded', 0.1, 80, 0.1, 'WU'),
+]);
+
+export const ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS = Object.freeze([
+  numberControl('position.0', 'Position X', -40, 40, 0.01, 'WU', 'position'),
+  numberControl('position.1', 'Position Y', -40, 40, 0.01, 'WU', 'position'),
+  numberControl('position.2', 'Position Z', -40, 40, 0.01, 'WU', 'position'),
+  numberControl('rotation.0', 'Rotation X', -90, 90, 0.1, '°', 'rotation'),
+  numberControl('rotation.1', 'Rotation Y', -180, 180, 0.1, '°', 'rotation'),
+  numberControl('rotation.2', 'Rotation Z', -180, 180, 0.1, '°', 'rotation'),
+  numberControl('fov', 'Field of view', 25, 80, 1, '°', 'lens'),
 ]);
 
 export const ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS = Object.freeze([
@@ -122,9 +132,7 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     id: 'camera',
     label: 'Camera',
     controls: Object.freeze([
-      numberControl('cadence', 'Forward cadence', 0.25, 2, 0.01, 'WU', 'camera-travel'),
-      numberControl('fov', 'Field of view', 25, 80, 1, '°', 'camera-travel'),
-      ...ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS,
+      numberControl('fov', 'Default field of view', 25, 80, 1, '°', 'camera-travel'),
     ]),
   }),
   Object.freeze({
@@ -350,10 +358,10 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       backgroundOpacity: 0.2,
       backgroundScale: 0.58,
       reconnectOpacity: 0.24,
-      pointScale: 3.6,
+      pointScale: 2.25,
       restoreDurationWU: 0.72,
-      labelOffsetPx: 20,
-      labelScale: 1.4,
+      labelOffsetPx: 18,
+      labelScale: 1.2,
       labelDurationWU: 0.162,
       holdWU: 0.72,
       items: Object.freeze([
@@ -389,16 +397,16 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
     id: 'grid-ripple',
     label: 'Grid ripple',
     defaultParameters: Object.freeze({
-      amplitude: 0.28,
-      speed: 1.15,
-      frequency: 1.3,
+      amplitude: 1.15,
+      speed: 0.42,
+      frequency: 1.15,
       centerX: 0,
       centerZ: -2.8,
       releaseWU: 0.65,
       timeMode: 'mixed',
     }),
     parameters: Object.freeze([
-      numberControl('amplitude', 'Pulse amplitude', 0, 1.5, 0.01, '×', 'modifier-motion'),
+      numberControl('amplitude', 'Wave height', 0, 1.5, 0.01, 'WU', 'modifier-motion'),
       numberControl('speed', 'Speed', 0, 6, 0.01, '', 'modifier-motion'),
       numberControl('frequency', 'Ring frequency', 0.1, 4, 0.01, '', 'modifier-motion'),
       numberControl('centerX', 'Centre X', -12, 12, 0.1, 'WU', 'modifier-motion'),

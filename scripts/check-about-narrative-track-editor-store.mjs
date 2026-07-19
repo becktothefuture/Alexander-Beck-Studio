@@ -16,7 +16,7 @@ const createModel = () => structuredClone(createAboutNarrativeTrackModel(canonic
 const getTitle = (document, index = 0) => document.tracks.text.fields.filter((field) => field.kind === 'title')[index];
 const bytes = (value) => JSON.stringify(value);
 
-test('v3 store owns its input, compiles once, normalizes selection, and publishes subscriptions', () => {
+test('v4 store owns its input, compiles once, normalizes selection, and publishes subscriptions', () => {
   const input = createModel();
   const selected = getTitle(input);
   let publications = 0;
@@ -147,6 +147,36 @@ test('World end gestures ripple later Worlds, stay contiguous, and undo as one c
   assert.equal(store.getSnapshot().history.canUndo, false);
 });
 
+test('Motion edge gestures preserve activation and commit repeated previews as one command', () => {
+  const model = createModel();
+  const motion = model.tracks.interactions.clips.find((clip) => !clip.locked && !clip.protected);
+  assert.ok(motion, 'The canonical editor model needs an editable Motion clip.');
+  const original = {
+    startWU: motion.startWU,
+    activationWU: motion.activationWU,
+    endWU: motion.endWU,
+  };
+  const store = createAboutNarrativeTrackEditorStore(model, {
+    initialSelection: { type: 'interaction', id: motion.id },
+  });
+  assert.equal(store.beginGesture(`Resize Motion ${motion.id}`), true);
+  assert.equal(store.updateGestureResizeInteraction(motion.id, 'end', motion.endWU - 0.1), true);
+  assert.equal(store.updateGestureResizeInteraction(motion.id, 'end', motion.endWU - 0.2), true);
+  assert.equal(store.commitGesture({ requireValid: true }), true);
+  const resized = store.getSnapshot().document.tracks.interactions.clips.find((clip) => clip.id === motion.id);
+  assert.equal(resized.startWU, original.startWU);
+  assert.equal(resized.activationWU, original.activationWU);
+  assert.equal(resized.endWU, Number((original.endWU - 0.2).toFixed(6)));
+  assert.equal(store.getSnapshot().revision, 1);
+  assert.equal(store.undo(), true);
+  const restored = store.getSnapshot().document.tracks.interactions.clips.find((clip) => clip.id === motion.id);
+  assert.deepEqual(
+    [restored.startWU, restored.activationWU, restored.endWU],
+    [original.startWU, original.activationWU, original.endWU],
+  );
+  assert.equal(store.getSnapshot().history.canUndo, false);
+});
+
 function getWorldEnd(document, id) {
   const worlds = [...document.tracks.worlds.objects].sort((left, right) => left.startWU - right.startWU);
   const index = worlds.findIndex((world) => world.id === id);
@@ -211,16 +241,18 @@ test('selection normalizes after object removal instead of retaining stale objec
   assert.deepEqual(store.getSnapshot().selection, { type: 'track', id: 'text' });
 });
 
-test('store-backed pure operations create, move, copy, paste, duplicate, and delete valid v3 objects', () => {
+test('store-backed pure operations create, move, copy, paste, duplicate, and delete valid v4 objects', () => {
   const store = createAboutNarrativeTrackEditorStore(createModel());
   assert.equal(store.createObject({ track: 'text', kind: 'title', atWU: 7.1 }), true);
   const titleId = store.getSnapshot().selection.id;
   assert.equal(store.createObject({ track: 'text', kind: 'scroll-block', atWU: 8.2 }), true);
   assert.equal(store.createObject({ track: 'text', kind: 'stub', atWU: 9.2 }), true);
   assert.equal(store.createObject({ track: 'camera', atWU: 0.8 }), true);
-  assert.equal(store.createObject({ track: 'world', atWU: 18 }), true);
+  // Use the interaction-free opening gap so this pure-operation test remains
+  // independent of the authored ripple clip's release timing.
+  assert.equal(store.createObject({ track: 'world', atWU: 3 }), true);
   const worldId = store.getSnapshot().selection.id;
-  assert.equal(store.createObject({ track: 'interaction', atWU: 18.2, targetWorldId: worldId }), true);
+  assert.equal(store.createObject({ track: 'interaction', atWU: 3.2, targetWorldId: worldId }), true);
   assert.equal(compileAboutNarrativeTrackModel(store.getSnapshot().document).valid, true);
 
   store.setSelection({ type: 'text-field', id: titleId });

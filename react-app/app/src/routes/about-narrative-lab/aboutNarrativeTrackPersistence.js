@@ -3,7 +3,8 @@ import {
 } from './aboutNarrativeSchema.js';
 import {
   ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
-  migrateAboutNarrativeVersion2To3,
+  migrateAboutNarrativeVersion2To4,
+  migrateAboutNarrativeVersion3To4,
   normalizeAboutNarrativeTrackDocument,
   serializeAboutNarrativeTrackDocument,
   validateAboutNarrativeTrackDocument,
@@ -174,11 +175,14 @@ export function loadAboutNarrativeTrackSource(input, { preflight = null } = {}) 
   try {
     if (sourceVersion === 1) {
       const legacy = migrateAboutNarrativeDocument(parsed);
-      document = migrateAboutNarrativeVersion2To3(legacy.document);
-      migrations = [...legacy.migrations, '2->3'];
+      document = migrateAboutNarrativeVersion2To4(legacy.document);
+      migrations = [...legacy.migrations, '2->3', '3->4'];
     } else if (sourceVersion === 2) {
-      document = migrateAboutNarrativeVersion2To3(parsed);
-      migrations = ['2->3'];
+      document = migrateAboutNarrativeVersion2To4(parsed);
+      migrations = ['2->3', '3->4'];
+    } else if (sourceVersion === 3) {
+      document = migrateAboutNarrativeVersion3To4(parsed);
+      migrations = ['3->4'];
     } else {
       const diagnostics = validateAboutNarrativeTrackDocument(parsed);
       const errors = diagnostics.filter((item) => item.level === 'error');
@@ -234,12 +238,12 @@ function persistenceError(result, message = result.message) {
   return error;
 }
 
-/** Serializes v3 only. Legacy input must be migrated explicitly first. */
+/** Serializes the current track schema only. Legacy input must be migrated explicitly first. */
 export function serializeAboutNarrativeTrackSource(input, { preflight = null } = {}) {
   const loaded = loadAboutNarrativeTrackSource(input, { preflight });
   if (!loaded.valid) throw persistenceError(loaded);
   if (loaded.sourceVersion !== ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) {
-    throw persistenceError(loaded, 'Only an explicitly migrated schema v3 document can be serialized.');
+    throw persistenceError(loaded, `Only an explicitly migrated schema v${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION} document can be serialized.`);
   }
   return serializeAboutNarrativeTrackDocument(loaded.document);
 }

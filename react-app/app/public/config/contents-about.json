@@ -1,13 +1,14 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "globals": {
     "scrollSmoothing": 0.82,
     "readingWidthRem": 58,
     "editorialRevealThreshold": 0.8,
+    "worldRail": {
+      "originZ": 8,
+      "unitsPerWU": 1
+    },
     "camera": {
-      "startZ": 8,
-      "cadence": 1,
-      "cadenceLocked": true,
       "fov": 48,
       "distanceFogStartWU": 8,
       "distanceFogEndWU": 18
@@ -68,6 +69,11 @@
             "transform": {
               "mobileXScale": 0.18
             }
+          },
+          "world-bringing-life": {
+            "transform": {
+              "mobileXScale": 0.18
+            }
           }
         },
         "text": {
@@ -91,202 +97,857 @@
         {
           "id": "camera-promise-0",
           "atWU": 0,
-          "offset": [
+          "position": [
             0,
             0,
-            -2.4
+            5.6
           ],
-          "lookAtOffset": [
+          "rotation": [
+            5.710593,
             0,
-            0.1,
-            -1
+            0
           ],
           "fov": 48,
-          "roll": 0,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
+          "easing": "linear",
           "locked": true
+        },
+        {
+          "id": "camera-promise-0-path-1",
+          "atWU": 0.263125,
+          "position": [
+            0,
+            0.069821,
+            5.434625
+          ],
+          "rotation": [
+            5.314239,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-promise-0-path-2",
+          "atWU": 0.52625,
+          "position": [
+            0,
+            0.341172,
+            5.55139
+          ],
+          "rotation": [
+            3.769361,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-promise-0-path-3",
+          "atWU": 1.0525,
+          "position": [
+            0,
+            0.802581,
+            5.671114
+          ],
+          "rotation": [
+            1.130978,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
         },
         {
           "id": "camera-complexity-0",
           "atWU": 2.105,
-          "offset": [
+          "position": [
             0,
             1,
-            -1
+            4.895
           ],
-          "lookAtOffset": [
+          "rotation": [
             0,
             0,
-            -1
+            0
           ],
           "fov": 48,
-          "roll": 0,
-          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
-          "locked": false,
           "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-complexity-0-path-1",
+          "atWU": 2.366875,
+          "position": [
+            0,
+            0.959638,
+            4.326375
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-complexity-0-path-2",
+          "atWU": 2.62875,
+          "position": [
+            0,
+            0.849072,
+            3.224194
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-complexity-0-path-3",
+          "atWU": 3.1525,
+          "position": [
+            0,
+            0.500183,
+            0.048892
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-complexity-0-path-4",
+          "atWU": 3.67625,
+          "position": [
+            0,
+            0.150928,
+            -3.129194
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-complexity-0-path-5",
+          "atWU": 3.938125,
+          "position": [
+            0,
+            0.040362,
+            -4.231375
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
         },
         {
           "id": "camera-complexity-1",
           "atWU": 4.2,
-          "offset": [
+          "position": [
             0,
             0,
-            -8.6
+            -4.8
           ],
-          "lookAtOffset": [
+          "rotation": [
             0,
             0,
-            -1
+            0
           ],
           "fov": 48,
-          "roll": 0,
-          "easing": "linear",
-          "locked": false,
           "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-complexity-1-path-1",
+          "atWU": 4.69375,
+          "position": [
+            0,
+            0.225,
+            -4.76875
+          ],
+          "rotation": [
+            -6.340192,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-complexity-1-path-2",
+          "atWU": 5.1875,
+          "position": [
+            0,
+            0.45,
+            -4.7375
+          ],
+          "rotation": [
+            -8.130102,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
         },
         {
           "id": "camera-background-1",
           "atWU": 6.175,
-          "offset": [
+          "position": [
             0,
             0.9,
-            -6.5
+            -4.675
           ],
-          "lookAtOffset": [
+          "rotation": [
+            -9.462322,
             0,
-            -1,
-            -6
+            0
           ],
           "fov": 48,
-          "roll": 0,
-          "easing": "linear",
-          "locked": false,
           "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-background-1-path-1",
+          "atWU": 6.237188,
+          "position": [
+            0,
+            0.9,
+            -4.580938
+          ],
+          "rotation": [
+            -32.219472,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-background-1-path-2",
+          "atWU": 6.299375,
+          "position": [
+            0,
+            0.9,
+            -4.486875
+          ],
+          "rotation": [
+            -47.56377,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-background-1-path-3",
+          "atWU": 6.361562,
+          "position": [
+            0,
+            0.9,
+            -4.392812
+          ],
+          "rotation": [
+            -57.293838,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-background-1-path-4",
+          "atWU": 6.42375,
+          "position": [
+            0,
+            0.9,
+            -4.29875
+          ],
+          "rotation": [
+            -63.671707,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-background-1-path-5",
+          "atWU": 6.548125,
+          "position": [
+            0,
+            0.9,
+            -4.110625
+          ],
+          "rotation": [
+            -71.261902,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-background-1-path-6",
+          "atWU": 6.6725,
+          "position": [
+            0,
+            0.9,
+            -3.9225
+          ],
+          "rotation": [
+            -75.529706,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-background-1-path-7",
+          "atWU": 7.17,
+          "position": [
+            0,
+            0.9,
+            -3.17
+          ],
+          "rotation": [
+            -82.487856,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
         },
         {
           "id": "camera-background-1-2",
           "atWU": 8.165,
-          "offset": [
+          "position": [
             0,
             0.9,
-            -1.5
+            -1.665
           ],
-          "lookAtOffset": [
+          "rotation": [
+            -86.185925,
             0,
-            -90,
-            -6
+            0
           ],
           "fov": 48,
-          "roll": 0,
-          "easing": "linear",
-          "locked": false,
           "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
         },
         {
           "id": "camera-disciplines-0",
           "atWU": 12.245,
-          "offset": [
+          "position": [
             0,
             0.9,
-            4.2
+            -0.045
           ],
-          "lookAtOffset": [
+          "rotation": [
+            -86.185925,
             0,
-            -90,
-            -6
+            0
           ],
           "fov": 48,
-          "roll": 0,
-          "easing": "linear",
-          "locked": false,
           "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-disciplines-exit",
+          "atWU": 14.145,
+          "position": [
+            0,
+            5,
+            -0.045
+          ],
+          "rotation": [
+            -90,
+            0,
+            0
+          ],
+          "fov": 70,
+          "distanceFogStartWU": 0.1,
+          "distanceFogEndWU": 6.2,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-disciplines-exit-path-1",
+          "atWU": 14.5725,
+          "position": [
+            0,
+            7.2,
+            -0.0225
+          ],
+          "rotation": [
+            -84.595364,
+            0,
+            0
+          ],
+          "fov": 70,
+          "distanceFogStartWU": 4.05,
+          "distanceFogEndWU": 12.1,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-disciplines-exit-path-2",
+          "atWU": 14.78625,
+          "position": [
+            0,
+            8.3,
+            -0.01125
+          ],
+          "rotation": [
+            -77.105674,
+            0,
+            0
+          ],
+          "fov": 70,
+          "distanceFogStartWU": 6.025,
+          "distanceFogEndWU": 15.05,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-disciplines-exit-path-3",
+          "atWU": 14.893125,
+          "position": [
+            0,
+            8.85,
+            -0.005625
+          ],
+          "rotation": [
+            -68.935473,
+            0,
+            0
+          ],
+          "fov": 70,
+          "distanceFogStartWU": 7.0125,
+          "distanceFogEndWU": 16.525,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-disciplines-exit-path-4",
+          "atWU": 14.946563,
+          "position": [
+            0,
+            9.125,
+            -0.002813
+          ],
+          "rotation": [
+            -62.086515,
+            0,
+            0
+          ],
+          "fov": 70,
+          "distanceFogStartWU": 7.50625,
+          "distanceFogEndWU": 17.2625,
+          "easing": "linear",
+          "locked": false
         },
         {
           "id": "camera-grid-ripple-hold-start",
           "atWU": 15,
-          "offset": [
+          "position": [
             0,
             9.4,
-            7
+            0
           ],
-          "lookAtOffset": [
+          "rotation": [
+            -51.726884,
             0,
-            -82.3,
             0
           ],
           "fov": 70,
-          "roll": 0,
-          "easing": "linear",
-          "locked": false,
           "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
         },
         {
           "id": "camera-grid-ripple-hold-end",
-          "atWU": 18,
-          "offset": [
+          "atWU": 20,
+          "position": [
             0,
             9.4,
-            10
+            0
           ],
-          "lookAtOffset": [
+          "rotation": [
+            -51.726884,
             0,
-            -82.3,
             0
           ],
           "fov": 70,
-          "roll": 0,
-          "easing": "linear",
-          "locked": false,
           "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
         },
         {
-          "id": "camera-epilogue-2",
-          "atWU": 20.87,
-          "offset": [
+          "id": "camera-grid-ripple-hold-end-path-1",
+          "atWU": 20.435,
+          "position": [
             0,
+            5.15,
+            -6.435
+          ],
+          "rotation": [
+            -49.899092,
             0,
             0
           ],
-          "lookAtOffset": [
-            0,
-            0,
-            -1
-          ],
-          "fov": 48,
-          "roll": 0.4,
+          "fov": 59,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18,
-          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-grid-ripple-hold-end-path-2",
+          "atWU": 20.6525,
+          "position": [
+            0,
+            3.025,
+            -9.6525
+          ],
+          "rotation": [
+            -46.909152,
+            0,
+            0
+          ],
+          "fov": 53.5,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-grid-ripple-hold-end-path-3",
+          "atWU": 20.76125,
+          "position": [
+            0,
+            1.9625,
+            -11.26125
+          ],
+          "rotation": [
+            -42.70939,
+            0,
+            0
+          ],
+          "fov": 50.75,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-grid-ripple-hold-end-path-4",
+          "atWU": 20.815625,
+          "position": [
+            0,
+            1.43125,
+            -12.065625
+          ],
+          "rotation": [
+            -37.942153,
+            0,
+            0
+          ],
+          "fov": 49.375,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-key",
+          "atWU": 20.87,
+          "position": [
+            0,
+            0.9,
+            -12.87
+          ],
+          "rotation": [
+            -26.565051,
+            0,
+            0
+          ],
+          "fov": 48,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-key-path-1",
+          "atWU": 20.928125,
+          "position": [
+            0,
+            0.886711,
+            -12.934031
+          ],
+          "rotation": [
+            -26.089344,
+            0,
+            0
+          ],
+          "fov": 47.734226,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-key-path-2",
+          "atWU": 20.98625,
+          "position": [
+            0,
+            0.837161,
+            -13.014179
+          ],
+          "rotation": [
+            -24.281327,
+            0,
+            0
+          ],
+          "fov": 46.743215,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-key-path-3",
+          "atWU": 21.044375,
+          "position": [
+            0,
+            0.736626,
+            -13.116986
+          ],
+          "rotation": [
+            -20.452042,
+            0,
+            0
+          ],
+          "fov": 44.73251,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-key-path-4",
+          "atWU": 21.1025,
+          "position": [
+            0,
+            0.592945,
+            -13.238969
+          ],
+          "rotation": [
+            -14.637515,
+            0,
+            0
+          ],
+          "fov": 41.858909,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-key-path-5",
+          "atWU": 21.160625,
+          "position": [
+            0,
+            0.450165,
+            -13.360552
+          ],
+          "rotation": [
+            -8.537948,
+            0,
+            0
+          ],
+          "fov": 39.003296,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-key-path-6",
+          "atWU": 21.21875,
+          "position": [
+            0,
+            0.334008,
+            -13.470302
+          ],
+          "rotation": [
+            -3.421282,
+            0,
+            0
+          ],
+          "fov": 36.680153,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-key-path-7",
+          "atWU": 21.335,
+          "position": [
+            0,
+            0.177677,
+            -13.656033
+          ],
+          "rotation": [
+            3.536782,
+            0,
+            0
+          ],
+          "fov": 33.553534,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-key-path-8",
+          "atWU": 21.45125,
+          "position": [
+            0,
+            0.086194,
+            -13.812942
+          ],
+          "rotation": [
+            7.573647,
+            0,
+            0
+          ],
+          "fov": 31.723876,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "camera-key-path-9",
+          "atWU": 21.5675,
+          "position": [
+            0,
+            0.033842,
+            -13.952459
+          ],
+          "rotation": [
+            9.852765,
+            0,
+            0
+          ],
+          "fov": 30.676837,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "linear",
           "locked": false
         },
         {
           "id": "camera-epilogue-4",
           "atWU": 21.8,
-          "offset": [
+          "position": [
             0,
             0,
-            -0.4
+            -14.2
           ],
-          "lookAtOffset": [
+          "rotation": [
+            11.309932,
             0,
-            0.2,
-            -1
+            0
           ],
           "fov": 30,
-          "roll": 0,
-          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
-          "locked": true,
           "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
+          "distanceFogEndWU": 18,
+          "easing": "linear",
+          "locked": true
         }
       ]
     },
@@ -388,8 +1049,8 @@
         {
           "id": "world-background",
           "label": "C",
-          "startWU": 4.595,
-          "anchorWU": 4.595,
+          "startWU": 4.555,
+          "anchorWU": 4.555,
           "adapterId": "point-field-v1",
           "shapeId": "calm-field-v1",
           "seed": 506832829,
@@ -411,8 +1072,8 @@
             "mobileZOffset": 2.4
           },
           "transitionIn": {
-            "startWU": 4.595,
-            "endWU": 5.9425,
+            "startWU": 4.555,
+            "endWU": 5.9025,
             "type": "morph",
             "easing": "ease-out",
             "correspondence": "spatial-nearest-v2"
@@ -430,7 +1091,7 @@
           "id": "world-bringing-life",
           "label": "E",
           "startWU": 14.145,
-          "anchorWU": 4.595,
+          "anchorWU": 4.555,
           "adapterId": "point-field-v1",
           "shapeId": "calm-field-v1",
           "seed": 506832829,
@@ -480,11 +1141,11 @@
           "id": "world-epilogue",
           "label": "F",
           "startWU": 20.3,
-          "anchorWU": 20.3,
+          "anchorWU": 4.555,
           "adapterId": "point-field-v1",
           "shapeId": "bust-v1",
           "seed": 506832829,
-          "entryDistanceWU": 5.4,
+          "entryDistanceWU": 12,
           "transform": {
             "position": [
               0,
@@ -784,10 +1445,10 @@
             "backgroundOpacity": 0.2,
             "backgroundScale": 0.58,
             "reconnectOpacity": 0.24,
-            "pointScale": 3.6,
+            "pointScale": 2.25,
             "restoreDurationWU": 0.72,
-            "labelOffsetPx": 20,
-            "labelScale": 1.4,
+            "labelOffsetPx": 18,
+            "labelScale": 1.2,
             "labelDurationWU": 0.162,
             "holdWU": 0.72,
             "items": [
@@ -821,18 +1482,18 @@
         {
           "id": "interaction-grid-ripple",
           "type": "grid-ripple",
-          "startWU": 15.05,
-          "activationWU": 15.65,
-          "endWU": 18,
+          "startWU": 16.305,
+          "activationWU": 16.905,
+          "endWU": 19.97,
           "targetWorldId": "world-bringing-life",
           "parameters": {
-            "amplitude": 0.68,
-            "speed": 1.37,
-            "frequency": 2.43,
+            "amplitude": 1.15,
+            "speed": 0.42,
+            "frequency": 1.15,
             "centerX": 0,
             "centerZ": -2.3,
             "releaseWU": 1.5,
-            "timeMode": "ambient"
+            "timeMode": "story"
           }
         },
         {

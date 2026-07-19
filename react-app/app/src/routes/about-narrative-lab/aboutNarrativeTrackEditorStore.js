@@ -1,4 +1,8 @@
-import { compileAboutNarrativeTrackModel } from './aboutNarrativeTrackModel.js';
+import {
+  compileAboutNarrativeTrackModel,
+  sampleAboutNarrativeTrackPlan,
+} from './aboutNarrativeTrackModel.js';
+import { getAboutNarrativeCameraRotationFromQuaternion } from './aboutNarrativeCameraRig.js';
 import {
   createAboutNarrativeTrackClipboardPayload,
   createAboutNarrativeTrackObjectAtWU,
@@ -8,6 +12,7 @@ import {
   moveAboutNarrativeTrackObjectsByWU,
   normalizeAboutNarrativeTrackSelection,
   pasteAboutNarrativeTrackClipboardPayload,
+  resizeAboutNarrativeInteractionEdge,
   resizeAboutNarrativeTextFieldEdge,
   resizeAboutNarrativeWorldEnd,
   validateAboutNarrativeTrackClipboardPayload,
@@ -467,6 +472,36 @@ export function createAboutNarrativeTrackEditorStore(initialDocument, {
         { selection: { type: 'text-field', id } },
       );
     },
+    updateGestureResizeInteraction(id, edge, atWU) {
+      if (!gesture) return false;
+      const clip = getAboutNarrativeTrackObject(gesture.startDocument, { type: 'interaction', id });
+      if (clip?.protected === true || clip?.locked === true) {
+        snapshot = {
+          ...snapshot,
+          rejectedEdit: { label: gesture.label, reason: 'A protected Motion clip cannot be resized.', diagnostics: [] },
+        };
+        emit();
+        return false;
+      }
+      const result = resizeAboutNarrativeInteractionEdge({
+        model: gesture.startDocument,
+        id,
+        edge,
+        atWU,
+      });
+      if (!result.valid) {
+        snapshot = {
+          ...snapshot,
+          rejectedEdit: { label: gesture.label, reason: result.reason, diagnostics: [] },
+        };
+        emit();
+        return false;
+      }
+      return store.updateGesture(
+        (draft) => replaceDraft(draft, prepareOperationDocument(result.model)),
+        { selection: { type: 'interaction', id } },
+      );
+    },
     updateGestureResizeWorldEnd(id, atWU) {
       if (!gesture) return false;
       const result = resizeAboutNarrativeWorldEnd({
@@ -672,6 +707,16 @@ export function createAboutNarrativeTrackEditorStore(initialDocument, {
         operationOptions.template = options.template
           ? { ...options.template, protected: false }
           : options.template;
+      }
+      if (track === 'camera' && !operationOptions.cameraKey && snapshot.compiledPlan?.valid) {
+        const frame = sampleAboutNarrativeTrackPlan(snapshot.compiledPlan, atWU);
+        operationOptions.cameraKey = {
+          position: [...frame.camera.position],
+          rotation: getAboutNarrativeCameraRotationFromQuaternion(frame.camera.quaternion),
+          fov: frame.camera.fov,
+          distanceFogStartWU: frame.camera.distanceFogStartWU,
+          distanceFogEndWU: frame.camera.distanceFogEndWU,
+        };
       }
       if (track === 'interaction') operationOptions.interactionType ||= 'horizontal-spin';
       const result = createAboutNarrativeTrackObjectAtWU({

@@ -17,7 +17,18 @@ import {
   sampleAboutNarrativeRuntimePlanInto,
   sampleAboutNarrativeTitleFieldInto,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
-import { migrateAboutNarrativeVersion2To3 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
+import {
+  ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+  migrateAboutNarrativeVersion2To3,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
+import {
+  migrateLegacyAboutNarrativeCameraPose,
+  writeAboutNarrativeCameraQuaternion,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraRig.js';
+import {
+  applyAboutNarrativeCameraEasing,
+  compileAboutNarrativeCameraEasing,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraEasing.js';
 
 const canonical = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
@@ -25,6 +36,10 @@ const canonical = JSON.parse(await readFile(
 ));
 const legacy = JSON.parse(await readFile(
   new URL('./fixtures/about-narrative/contents-about-v2.json', import.meta.url),
+  'utf8',
+));
+const legacyV3 = JSON.parse(await readFile(
+  new URL('./fixtures/about-narrative/contents-about-v3.json', import.meta.url),
   'utf8',
 ));
 
@@ -71,16 +86,52 @@ function boundarySamples(plan) {
     .map((value) => Math.max(0, Math.min(plan.durationWU, value)));
 }
 
-test('runtime plan migrates v2 or accepts strict v3 without authored Section state', () => {
+function mix(from, to, progress) {
+  return Number(from) + ((Number(to) - Number(from)) * progress);
+}
+
+function sampleLegacyV3Camera(storyWU) {
+  const keys = legacyV3.tracks.camera.keys;
+  let fromIndex = 0;
+  while (fromIndex + 1 < keys.length && storyWU > Number(keys[fromIndex + 1].atWU)) fromIndex += 1;
+  const from = keys[fromIndex];
+  const to = keys[Math.min(keys.length - 1, fromIndex + 1)];
+  const rawProgress = from === to ? 0 : (storyWU - Number(from.atWU)) / (Number(to.atWU) - Number(from.atWU));
+  const progress = from === to ? 0 : applyAboutNarrativeCameraEasing(
+    compileAboutNarrativeCameraEasing(from.easing),
+    rawProgress,
+  );
+  const legacyKey = {
+    atWU: storyWU,
+    offset: from.offset.map((value, index) => mix(value, to.offset[index], progress)),
+    lookAtOffset: from.lookAtOffset.map((value, index) => mix(value, to.lookAtOffset[index], progress)),
+    roll: mix(from.roll, to.roll, progress),
+  };
+  const pose = migrateLegacyAboutNarrativeCameraPose(legacyKey, legacyV3.globals);
+  return {
+    position: pose.position,
+    quaternion: writeAboutNarrativeCameraQuaternion([0, 0, 0, 1], pose.rotation),
+    fov: mix(from.fov, to.fov, progress),
+  };
+}
+
+function quaternionDifferenceDegrees(left, right) {
+  const dot = Math.min(1, Math.abs(left.reduce((total, value, index) => (
+    total + (value * right[index])
+  ), 0)));
+  return (2 * Math.acos(dot) * 180) / Math.PI;
+}
+
+test('runtime plan migrates v2/v3 or accepts strict v4 without authored Section state', () => {
   const fromV2 = compileAboutNarrativeRuntimePlan(legacy, { layoutProfile: 'desktop' });
   const migratedV3 = migrateAboutNarrativeVersion2To3(legacy);
   const fromMigratedV3 = compileAboutNarrativeRuntimePlan(migratedV3, { layoutProfile: 'desktop' });
-  const fromCanonicalV3 = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  const fromCanonicalV4 = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
 
   assert.equal(fromV2.valid, true);
   assert.equal(fromMigratedV3.valid, true);
-  assert.equal(fromCanonicalV3.valid, true);
-  assert.equal(fromV2.model.schemaVersion, 3);
+  assert.equal(fromCanonicalV4.valid, true);
+  assert.equal(fromV2.model.schemaVersion, ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION);
   assert.equal(fromV2.layoutProfile, 'desktop');
   assert.equal(fromV2.pointProfile, 'desktop');
   assert.equal(fromV2.motionProfile, 'full');
@@ -89,7 +140,7 @@ test('runtime plan migrates v2 or accepts strict v3 without authored Section sta
   assert.deepEqual(fromV2.cameraKeys, fromMigratedV3.cameraKeys);
   assert.deepEqual(fromV2.worlds, fromMigratedV3.worlds);
   assert.equal('sections' in fromV2, false);
-  assert.equal('sections' in fromCanonicalV3, false);
+  assert.equal('sections' in fromCanonicalV4, false);
   assert.equal('sectionIndex' in sampleAboutNarrativeRuntimePlan(fromV2, 0), false);
   assert.equal('localProgress' in sampleAboutNarrativeRuntimePlan(fromV2, 0), false);
 });
@@ -101,7 +152,7 @@ test('compiled Worlds derive endWU and anchorRailZ and preparation uses stable W
     assert.equal(world.endWU, plan.worlds[index + 1]?.startWU ?? plan.durationWU);
     assertClose(
       world.anchorRailZ,
-      plan.model.globals.camera.startZ - (world.anchorWU * plan.model.globals.camera.cadence),
+      plan.model.globals.worldRail.originZ - (world.anchorWU * plan.model.globals.worldRail.unitsPerWU),
       `${world.id}.anchorRailZ`,
     );
     assert.equal('sectionId' in world, false);
@@ -117,21 +168,44 @@ test('compiled Worlds derive endWU and anchorRailZ and preparation uses stable W
   assert.equal(request.targetWorldId, epilogue.id);
 });
 
-test('desktop Camera and World sampling matches legacy over randomized and boundary-epsilon WU', () => {
+test('legacy Camera migration preserves every authored key pose and World boundary', () => {
   const legacyPlan = compileAboutNarrativeDocument(legacy, { profile: 'desktop' });
+  const migratedV3 = migrateAboutNarrativeVersion2To3(legacy);
   const plan = compileAboutNarrativeRuntimePlan(legacy, { layoutProfile: 'desktop' });
-  const samples = [...seededStorySamples(plan.durationWU), ...boundarySamples(plan)];
+  const samples = migratedV3.tracks.camera.keys.map((key) => key.atWU);
 
   samples.forEach((storyWU) => {
-    const legacy = sampleAboutNarrativePlan(legacyPlan, storyWU);
+    const legacyFrame = sampleAboutNarrativePlan(legacyPlan, storyWU);
+    const legacyKey = migratedV3.tracks.camera.keys.find((key) => key.atWU === storyWU);
+    const migratedPose = migrateLegacyAboutNarrativeCameraPose(legacyKey, migratedV3.globals);
+    const expectedQuaternion = writeAboutNarrativeCameraQuaternion([0, 0, 0, 1], migratedPose.rotation);
     const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
-    assertVectorClose(frame.camera.position, legacy.camera.position, `camera.position @ ${storyWU}`);
-    assertVectorClose(frame.camera.target, legacy.camera.target, `camera.target @ ${storyWU}`);
-    assertClose(frame.camera.fov, legacy.camera.fov, `camera.fov @ ${storyWU}`);
-    assertClose(frame.camera.roll, legacy.camera.roll, `camera.roll @ ${storyWU}`);
-    assert.equal(frame.world.to.id, `world-${legacy.world.to.sectionId}`);
-    assert.equal(frame.world.from.id, `world-${legacy.world.from.sectionId}`);
-    assertClose(frame.world.transitionProgress, legacy.world.transitionProgress, `transition @ ${storyWU}`);
+    assertVectorClose(frame.camera.position, legacyFrame.camera.position, `camera.position @ ${storyWU}`);
+    assertVectorClose(frame.camera.quaternion, expectedQuaternion, `camera.quaternion @ ${storyWU}`);
+    assertClose(frame.camera.fov, legacyFrame.camera.fov, `camera.fov @ ${storyWU}`);
+    assert.equal(frame.world.to.id, `world-${legacyFrame.world.to.sectionId}`);
+  });
+});
+
+test('absolute support keys retain the complete legacy v3 camera trajectory', () => {
+  const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  const legacyBoundaries = legacyV3.tracks.camera.keys.flatMap((key) => [
+    Math.max(0, key.atWU - 0.000001),
+    key.atWU,
+    Math.min(plan.durationWU, key.atWU + 0.000001),
+  ]);
+  const samples = [...seededStorySamples(plan.durationWU, 1000), ...legacyBoundaries];
+
+  samples.forEach((storyWU) => {
+    const expected = sampleLegacyV3Camera(storyWU);
+    const actual = sampleAboutNarrativeRuntimePlan(plan, storyWU).camera;
+    const positionError = Math.hypot(...expected.position.map((value, index) => (
+      value - actual.position[index]
+    )));
+    assert.ok(positionError <= 0.12, `Camera position drifted ${positionError} WU at ${storyWU} WU.`);
+    const rotationError = quaternionDifferenceDegrees(expected.quaternion, actual.quaternion);
+    assert.ok(rotationError <= 1.5, `Camera rotation drifted ${rotationError}° at ${storyWU} WU.`);
+    assertClose(actual.fov, expected.fov, `camera.fov @ ${storyWU}`, 0.25);
   });
 });
 
@@ -391,7 +465,7 @@ test('Reduced Motion settles Camera, transitions, and ambient time without dropp
   assert.equal(first.ambientTime, 0);
   assert.equal(first.world.transitionProgress, 1);
   assert.deepEqual(first.camera.position, second.camera.position);
-  assert.deepEqual(first.camera.target, second.camera.target);
+  assert.deepEqual(first.camera.quaternion, second.camera.quaternion);
 
   const title = plan.textFields.find((field) => field.kind === 'title' && field.startWU < field.focusWU);
   const semanticFrame = sampleAboutNarrativeRuntimePlan(plan, title.focusWU);
@@ -406,10 +480,9 @@ test('layout profile overrides apply completely by stable object ID without sour
   const text = model.tracks.text.fields.find((field) => field.kind === 'title' && !field.protected);
   const clip = model.tracks.interactions.clips[0];
   model.profiles.mobile.overrides.camera[camera.id] = {
-    offset: [2, 3, 4],
-    lookAtOffset: [0.1, 0.2, -2],
+    position: [2, 3, 4],
+    rotation: [10, 20, 30],
     fov: 44,
-    roll: 0.1,
     easing: 'ease-in-out',
   };
   model.profiles.mobile.overrides.worlds[world.id] = {
@@ -431,7 +504,8 @@ test('layout profile overrides apply completely by stable object ID without sour
   assert.equal(plan.layoutProfile, 'mobile');
   assert.equal(plan.pointProfile, 'mobile');
   assert.deepEqual(model, candidateBeforeCompile);
-  assert.deepEqual(plan.cameraKeys.find((item) => item.id === camera.id).offset, [2, 3, 4]);
+  assert.deepEqual(plan.cameraKeys.find((item) => item.id === camera.id).position, [2, 3, 4]);
+  assert.deepEqual(plan.cameraKeys.find((item) => item.id === camera.id).rotation, [10, 20, 30]);
   const resolvedWorld = plan.worlds.find((item) => item.id === world.id);
   assert.deepEqual(resolvedWorld.transform.position, [1, 2, 3]);
   assert.deepEqual(resolvedWorld.transform.rotation, world.transform.rotation);
@@ -464,7 +538,7 @@ test('runtime sampling retains every caller-owned container identity', () => {
     pointProfile: target.pointProfile,
     camera: target.camera,
     cameraPosition: target.camera.position,
-    cameraTarget: target.camera.target,
+    cameraQuaternion: target.camera.quaternion,
     world: target.world,
     transition: target.world.transition,
     text: target.text,
@@ -487,7 +561,7 @@ test('runtime sampling retains every caller-owned container identity', () => {
     assert.equal(sampled.pointProfile, identities.pointProfile);
     assert.equal(sampled.camera, identities.camera);
     assert.equal(sampled.camera.position, identities.cameraPosition);
-    assert.equal(sampled.camera.target, identities.cameraTarget);
+    assert.equal(sampled.camera.quaternion, identities.cameraQuaternion);
     assert.equal(sampled.world, identities.world);
     assert.equal(sampled.world.transition, identities.transition);
     assert.equal(sampled.text, identities.text);

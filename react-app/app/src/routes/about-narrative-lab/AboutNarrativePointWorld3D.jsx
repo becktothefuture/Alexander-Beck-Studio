@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import {
-  createAboutNarrativeColourMatchedDisciplineGroups,
   createAboutNarrativeSeeds,
   generateAboutNarrativeShape,
 } from './aboutNarrativePointShapes.js';
 import {
+  ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS,
   resolveAboutNarrativeSwarmMotion,
 } from './aboutNarrativeDefinitions.js';
 import { createAboutNarrativeBufferLru } from './aboutNarrativeBufferLru.js';
@@ -137,6 +137,12 @@ const VERTEX_SHADER = `
   uniform vec3 materialColor4;
   uniform vec3 materialColor5;
   uniform vec3 materialColor6;
+  uniform vec3 disciplineColor1;
+  uniform vec3 disciplineColor2;
+  uniform vec3 disciplineColor3;
+  uniform vec3 disciplineColor4;
+  uniform vec3 disciplineColor5;
+  uniform vec3 disciplineColor6;
   uniform vec3 disciplineBackgroundColor;
   uniform float materialThreshold1;
   uniform float materialThreshold2;
@@ -154,6 +160,15 @@ const VERTEX_SHADER = `
       value.y,
       (-sine * value.x) + (cosine * value.z)
     );
+  }
+
+  vec3 groupColor(float index) {
+    if (index < 1.5) return disciplineColor1;
+    if (index < 2.5) return disciplineColor2;
+    if (index < 3.5) return disciplineColor3;
+    if (index < 4.5) return disciplineColor4;
+    if (index < 5.5) return disciplineColor5;
+    return disciplineColor6;
   }
 
   float disciplineRevealForGroup(float index) {
@@ -222,13 +237,21 @@ const VERTEX_SHADER = `
 
     float rippleClock = mix(ambientTime, storyTime, gridRippleStoryMix);
     float rippleDistance = length(worldPoint.xz - gridRippleCenter);
-    float ripple = sin(
+    float ripplePhase = rippleClock * gridRippleSpeed * 6.2831853;
+    float radialRipple = sin(
       (rippleDistance * gridRippleFrequency)
-      - (rippleClock * gridRippleSpeed * 6.2831853)
+      - ripplePhase
     );
-    // The ripple is a material pulse, not a spatial displacement. Keeping the
-    // vertex fixed preserves the authored grid alignment throughout E.
+    float crossingRipple = sin(
+      (worldPoint.x * gridRippleFrequency * 0.68)
+      - (worldPoint.z * gridRippleFrequency * 0.51)
+      + (ripplePhase * 0.72)
+    );
+    float ripple = (radialRipple * 0.68) + (crossingRipple * 0.32);
     float ripplePulse = gridRippleWeight * gridRippleAmplitude * ripple;
+    // The base X/Z layout and point material stay unchanged. Only height
+    // departs from the preserved idle state, with a zero-weight first frame.
+    worldPoint.y += ripplePulse;
 
     float group = mix(fromGroup, toGroup, morph);
     float groupStrength = mix(fromGroupStrength, toGroupStrength, morph);
@@ -251,11 +274,6 @@ const VERTEX_SHADER = `
       * mix(1.0, mix(0.28, 1.0, focusMatch), focusActive);
     float revealedGroupWeight = groupExists * disciplineRevealForGroup(group);
     float groupWeight = mix(legacyGroupWeight, revealedGroupWeight, disciplineRevealActive);
-    // Grid shaping is scroll-owned. Keeping it on story time prevents the
-    // settled C/E worlds from drifting while the visitor is still.
-    worldPoint.z += gridInfluence * step(0.001, groupStrength) * 0.22 * sin(
-      (worldPoint.x * 0.82) + (worldPoint.y * 0.54) - (storyTime * 0.45)
-    );
     float colourWeight = mix(fromLivingColour, toLivingColour, morph);
     float livingBand = 0.5 + (0.5 * sin(
       (worldPoint.x * 0.72) + (worldPoint.z * 0.38) + (ambientTime * 0.18)
@@ -269,8 +287,7 @@ const VERTEX_SHADER = `
       colourWeight * smoothstep(0.72, 0.98, livingBand) * 0.48
     );
     pointTint = mix(pointTint, disciplineBackgroundColor, isolatedBackground);
-    // Semantic anchors retain the material colour they already had in the grid.
-    // Their reveal changes prominence, never identity.
+    pointTint = mix(pointTint, groupColor(group), groupWeight);
 
     vec4 viewPoint = modelViewMatrix * vec4(worldPoint, 1.0);
     gl_Position = projectionMatrix * viewPoint;
@@ -303,8 +320,7 @@ const VERTEX_SHADER = `
     float groupScale = mix(groupStrength, max(0.0, disciplinePointScale - 1.0), disciplineRevealActive);
     float emphasis = 1.0 + (groupWeight * groupScale) + (waveWeight * 0.18);
     float isolationScale = mix(1.0, isolatedBackgroundScale, isolatedBackground);
-    float rippleScale = clamp(1.0 + ripplePulse, 0.2, 2.5);
-    gl_PointSize = pointSize * sizeWeight * emphasis * isolationScale * rippleScale * pixelRatio
+    gl_PointSize = pointSize * sizeWeight * emphasis * isolationScale * pixelRatio
       * clamp(5.0 / max(1.0, -viewPoint.z), 0.56, 3.2);
     pointAlpha = presence;
   }
@@ -369,6 +385,14 @@ function syncMaterialPalette(uniforms, styles) {
       uniforms[`materialThreshold${index + 1}`].value = cumulative;
     }
   });
+  const disciplineFallbacks = [0, 3, 2, 6, 7, 5].map(
+    (paletteIndex) => fallbackPalette[paletteIndex] || '#ffffff',
+  );
+  ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS.forEach((token, index) => {
+    uniforms[`disciplineColor${index + 1}`].value.setStyle(
+      readColorToken(styles, token, disciplineFallbacks[index]),
+    );
+  });
   uniforms.disciplineBackgroundColor.value.setStyle(
     readColorToken(styles, '--text-muted', '#8b8f92'),
   );
@@ -432,13 +456,13 @@ function smoothRange(value, from, to) {
   return progress * progress * (3 - (2 * progress));
 }
 
-function captureDisciplinePositions(output, target, indices = null, groups = null) {
+function captureDisciplinePositions(output, target, indices = null) {
   target.fill(Number.NaN);
   indices?.fill(-1);
-  const disciplineGroups = groups || output.attributes?.disciplineGroup;
-  if (!disciplineGroups) return;
-  for (let index = 0; index < disciplineGroups.length; index += 1) {
-    const group = Math.round(disciplineGroups[index]);
+  const groups = output.attributes?.disciplineGroup;
+  if (!groups) return;
+  for (let index = 0; index < groups.length; index += 1) {
+    const group = Math.round(groups[index]);
     if (group < 1 || group > 6) continue;
     const sourceOffset = index * 3;
     const targetOffset = (group - 1) * 3;
@@ -578,6 +602,12 @@ function createPointFieldAdapter({
     materialColor4: { value: new THREE.Color() },
     materialColor5: { value: new THREE.Color() },
     materialColor6: { value: new THREE.Color() },
+    disciplineColor1: { value: new THREE.Color() },
+    disciplineColor2: { value: new THREE.Color() },
+    disciplineColor3: { value: new THREE.Color() },
+    disciplineColor4: { value: new THREE.Color() },
+    disciplineColor5: { value: new THREE.Color() },
+    disciplineColor6: { value: new THREE.Color() },
     disciplineBackgroundColor: { value: new THREE.Color('#8b8f92') },
     materialThreshold1: { value: 0.31 },
     materialThreshold2: { value: 0.44 },
@@ -704,11 +734,7 @@ function createPointFieldAdapter({
   let lastBustAmbientTime = 0;
   let dragging = false;
   let dragStart = null;
-  const director = { active: false, yaw: 0, pitch: 0, distance: 0 };
   const modifierSlotsCache = new WeakMap();
-  const directorTarget = new THREE.Vector3();
-  const directorOffset = new THREE.Vector3();
-  const directorEuler = new THREE.Euler(0, 0, 0, 'YXZ');
   const fromTransformScratch = createTransformScratch();
   const toTransformScratch = createTransformScratch();
   const correspondenceFromTransform = new THREE.Matrix4();
@@ -751,13 +777,6 @@ function createPointFieldAdapter({
   const disciplineLabelY = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelPositionUnit = new Uint8Array(6);
   const disciplineLabelSide = new Uint8Array(6).fill(255);
-  const disciplineLabelNudge = new Float64Array(6).fill(Number.NaN);
-  const disciplineLabelWidth = new Float64Array(6);
-  const disciplineLabelHeight = new Float64Array(6);
-  const disciplineProjectedX = new Float64Array(6).fill(Number.NaN);
-  const disciplineProjectedY = new Float64Array(6).fill(Number.NaN);
-  const disciplineResolvedY = new Float64Array(6);
-  const disciplinePlacementOrder = new Uint8Array(6);
   let cachedDisciplineOverlay = null;
   let cachedDisciplineChildCount = -1;
   let lastDisciplineVisibleCount = Number.NaN;
@@ -769,20 +788,8 @@ function createPointFieldAdapter({
   let lastGridInfluence = Number.NaN;
   let lastInteractionEnabled = null;
   let lastWorldStage = '';
-  let lastCameraCadence = '';
-  let lastCameraForward = Number.NaN;
-  let lastCameraRoll = Number.NaN;
   let lastCameraFov = Number.NaN;
   let lastBustStyleYaw = Number.NaN;
-
-  const measureDisciplineLabels = () => {
-    for (let index = 0; index < disciplineLabels.length; index += 1) {
-      const label = disciplineLabels[index];
-      disciplineLabelWidth[index] = label?.offsetWidth || 0;
-      disciplineLabelHeight[index] = label?.offsetHeight || 0;
-    }
-  };
-  const disciplineLabelResizeObserver = new ResizeObserver(measureDisciplineLabels);
   const getModifierSlots = (world, globals) => {
     if (!world) return null;
     const cached = modifierSlotsCache.get(world);
@@ -807,7 +814,6 @@ function createPointFieldAdapter({
     if (overlay === cachedDisciplineOverlay && childCount === cachedDisciplineChildCount) return;
     cachedDisciplineOverlay = overlay || null;
     cachedDisciplineChildCount = childCount;
-    disciplineLabelResizeObserver.disconnect();
     runtimeObserver.hotFrameOwnedAllocation();
     for (let index = 0; index < disciplineLabels.length; index += 1) {
       disciplineLabels[index] = overlay?.querySelector(DISCIPLINE_LABEL_SELECTORS[index]) || null;
@@ -817,10 +823,7 @@ function createPointFieldAdapter({
       disciplineLabelY[index] = Number.NaN;
       disciplineLabelPositionUnit[index] = 0;
       disciplineLabelSide[index] = 255;
-      disciplineLabelNudge[index] = Number.NaN;
-      if (disciplineLabels[index]) disciplineLabelResizeObserver.observe(disciplineLabels[index]);
     }
-    measureDisciplineLabels();
   };
 
   const writeDisciplineRevealStyles = (index, value) => {
@@ -862,99 +865,9 @@ function createPointFieldAdapter({
     runtimeObserver.hotFrameDomWrite();
   };
 
-  const writeDisciplineNudge = (index, value) => {
-    if (disciplineLabelNudge[index] === value) return;
-    const label = disciplineLabels[index];
-    disciplineLabelNudge[index] = value;
-    if (!label) return;
-    label.style.setProperty('--discipline-label-nudge', `${value}px`);
-    runtimeObserver.hotFrameDomWrite();
-  };
-
-  const sortDisciplineOrder = (order, count) => {
-    for (let index = 1; index < count; index += 1) {
-      const value = order[index];
-      let cursor = index - 1;
-      while (cursor >= 0 && disciplineProjectedY[order[cursor]] > disciplineProjectedY[value]) {
-        order[cursor + 1] = order[cursor];
-        cursor -= 1;
-      }
-      order[cursor + 1] = value;
-    }
-  };
-
-  const packDisciplineOrder = (order, count, safeInset) => {
-    if (!count) return;
-    const gap = compact ? 7 : 5;
-    sortDisciplineOrder(order, count);
-    for (let orderIndex = 0; orderIndex < count; orderIndex += 1) {
-      const index = order[orderIndex];
-      const halfHeight = disciplineLabelHeight[index] * 0.5;
-      const minimumY = orderIndex === 0
-        ? safeInset + halfHeight
-        : disciplineResolvedY[order[orderIndex - 1]]
-          + (disciplineLabelHeight[order[orderIndex - 1]] * 0.5)
-          + gap
-          + halfHeight;
-      disciplineResolvedY[index] = Math.max(disciplineResolvedY[index], minimumY);
-    }
-    for (let orderIndex = count - 1; orderIndex >= 0; orderIndex -= 1) {
-      const index = order[orderIndex];
-      const halfHeight = disciplineLabelHeight[index] * 0.5;
-      const maximumY = orderIndex === count - 1
-        ? height - safeInset - halfHeight
-        : disciplineResolvedY[order[orderIndex + 1]]
-          - (disciplineLabelHeight[order[orderIndex + 1]] * 0.5)
-          - gap
-          - halfHeight;
-      disciplineResolvedY[index] = Math.min(disciplineResolvedY[index], maximumY);
-    }
-  };
-
-  const placeDisciplineLabels = (offset) => {
-    const safeInset = compact ? 10 : 16;
-    let placementCount = 0;
-    for (let index = 0; index < disciplineLabels.length; index += 1) {
-      if (!Number.isFinite(disciplineProjectedX[index])) continue;
-      const labelWidth = disciplineLabelWidth[index];
-      const localX = disciplineProjectedX[index] - viewportOffsetX;
-      const roomRight = width - safeInset - localX - offset;
-      const roomLeft = localX - safeInset - offset;
-      const preferredSide = compact && index % 2 === 1 ? 1 : 0;
-      const preferredRoom = preferredSide === 1 ? roomLeft : roomRight;
-      const alternateRoom = preferredSide === 1 ? roomRight : roomLeft;
-      const side = preferredRoom >= labelWidth || preferredRoom >= alternateRoom
-        ? preferredSide
-        : 1 - preferredSide;
-      const proposedLeft = side === 1
-        ? localX - offset - labelWidth
-        : localX + offset;
-      const proposedRight = proposedLeft + labelWidth;
-      let nudge = 0;
-      if (proposedLeft < safeInset) nudge = safeInset - proposedLeft;
-      else if (proposedRight > width - safeInset) nudge = (width - safeInset) - proposedRight;
-      disciplineResolvedY[index] = disciplineProjectedY[index] - viewportOffsetY;
-      disciplinePlacementOrder[placementCount] = index;
-      placementCount += 1;
-      writeDisciplineSide(index, side);
-      writeDisciplineNudge(index, Math.round(nudge * 100) / 100);
-    }
-    packDisciplineOrder(disciplinePlacementOrder, placementCount, safeInset);
-    for (let index = 0; index < disciplineLabels.length; index += 1) {
-      if (!Number.isFinite(disciplineProjectedX[index])) continue;
-      writeDisciplinePosition(
-        index,
-        disciplineProjectedX[index],
-        viewportOffsetY + disciplineResolvedY[index],
-        1,
-      );
-    }
-  };
-
   const updateTheme = () => {
     const styles = getComputedStyle(root);
     syncMaterialPalette(uniforms, styles);
-    if (installedPair) refreshInstalledDisciplineGroups(installedPair);
   };
 
   const resize = () => {
@@ -969,7 +882,6 @@ function createPointFieldAdapter({
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     uniforms.pixelRatio.value = ratio;
-    measureDisciplineLabels();
   };
 
   const getShape = async (world, signal) => {
@@ -1012,42 +924,6 @@ function createPointFieldAdapter({
     });
   };
 
-  const refreshInstalledDisciplineGroups = (pair) => {
-    const materialThresholds = [
-      uniforms.materialThreshold1.value,
-      uniforms.materialThreshold2.value,
-      uniforms.materialThreshold3.value,
-      uniforms.materialThreshold4.value,
-      uniforms.materialThreshold5.value,
-    ];
-    const fromGroup = createAboutNarrativeColourMatchedDisciplineGroups({
-      output: pair.fromOutput,
-      pointSeeds: seeds,
-      materialThresholds,
-    }) || emptyGroup;
-    const toGroup = createAboutNarrativeColourMatchedDisciplineGroups({
-      output: pair.toOutput,
-      pointSeeds: seeds,
-      materialThresholds,
-    }) || emptyGroup;
-    fixedAttributes.fromGroup.array.set(fromGroup);
-    fixedAttributes.toGroup.array.set(toGroup);
-    fixedAttributes.fromGroup.needsUpdate = true;
-    fixedAttributes.toGroup.needsUpdate = true;
-    captureDisciplinePositions(
-      pair.fromOutput,
-      fromDisciplinePositions,
-      fromDisciplineIndices,
-      fromGroup,
-    );
-    captureDisciplinePositions(
-      pair.toOutput,
-      toDisciplinePositions,
-      toDisciplineIndices,
-      toGroup,
-    );
-  };
-
   const installPreparedPair = (pair) => {
     if (disposed || !pair || installedPair?.key === pair.key) return;
     const installStartedAt = performance.now();
@@ -1055,16 +931,21 @@ function createPointFieldAdapter({
       assertInstallOutput(pair.fromOutput, 'Source Shape');
       assertInstallOutput(pair.toOutput, 'Target Shape');
     }
+    const fromGroup = pair.fromOutput.attributes.disciplineGroup || emptyGroup;
+    const toGroup = pair.toOutput.attributes.disciplineGroup || emptyGroup;
     fixedAttributes.position.array.set(pair.fromOutput.positions);
     fixedAttributes.targetPosition.array.set(pair.toOutput.positions);
     fixedAttributes.fromPresence.array.set(pair.fromOutput.presence);
     fixedAttributes.toPresence.array.set(pair.toOutput.presence);
     fixedAttributes.fromPointSize.array.set(pair.fromOutput.size);
     fixedAttributes.toPointSize.array.set(pair.toOutput.size);
-    refreshInstalledDisciplineGroups(pair);
+    fixedAttributes.fromGroup.array.set(fromGroup);
+    fixedAttributes.toGroup.array.set(toGroup);
     Object.entries(fixedAttributes).forEach(([name, attribute]) => {
       if (name !== 'pointSeed') attribute.needsUpdate = true;
     });
+    captureDisciplinePositions(pair.fromOutput, fromDisciplinePositions, fromDisciplineIndices);
+    captureDisciplinePositions(pair.toOutput, toDisciplinePositions, toDisciplineIndices);
     resourceLedger?.releaseOwner('installed-pair');
     resourceLedger?.retain('installed-pair', [pair.fromOutput, pair.toOutput]);
     installedPair = { ...pair, progress: 0 };
@@ -1342,8 +1223,10 @@ function createPointFieldAdapter({
   const preparePlan = ({ sequenceKey, descriptor, targetWorldId = '' } = {}) => {
     lastPreparationRequest = { sequenceKey, descriptor, targetWorldId };
     const sequence = descriptor?.runtimeWorlds || descriptor?.worlds;
-    const globals = descriptor?.globals || { camera: descriptor?.camera };
-    if (!sequenceKey || !Array.isArray(sequence) || !sequence.length || !globals?.camera) return false;
+    const globals = descriptor?.globals
+      || (descriptor?.worldRail ? { worldRail: descriptor.worldRail } : { camera: descriptor?.camera });
+    if (!sequenceKey || !Array.isArray(sequence) || !sequence.length
+      || (!globals?.worldRail && !globals?.camera)) return false;
     if (descriptor?.profile && descriptor.profile !== quality) {
       root.dataset.worldError = `Point profile ${descriptor.profile} requires a renderer remount.`;
       return false;
@@ -1505,7 +1388,8 @@ function createPointFieldAdapter({
       disciplineWeights[5],
     );
     if (revealAvailable) {
-      const isolationWeight = Number(revealState.backgroundProgress || 0);
+      const isolationWeight = Number(revealState.backgroundProgress || 0)
+        * (1 - Number(revealState.restoreProgress || 0));
       const backgroundOpacity = Number(reveal.backgroundOpacity ?? 0.2);
       const backgroundScale = Number(reveal.backgroundScale ?? 0.58);
       uniforms.fromDisciplineIsolation.value = isolationWeight;
@@ -1526,8 +1410,6 @@ function createPointFieldAdapter({
     uniforms.disciplineFieldFogWeight.value = fieldFogWeight;
 
     if (overlay) {
-      disciplineProjectedX.fill(Number.NaN);
-      disciplineProjectedY.fill(Number.NaN);
       if (revealAvailable && anchorSamplingExact) {
         camera.updateMatrixWorld(true);
         anchorSampleInput.fromTransform = uniforms.fromTransform.value;
@@ -1601,23 +1483,28 @@ function createPointFieldAdapter({
             anchorSampleTarget.y,
             anchorSampleTarget.z,
           ).project(camera);
-          disciplineProjectedX[group - 1] = viewportOffsetX
-            + (((disciplinePointScratch.x * 0.5) + 0.5) * width);
-          disciplineProjectedY[group - 1] = viewportOffsetY
-            + (((-disciplinePointScratch.y * 0.5) + 0.5) * height);
+          const projectedX = viewportOffsetX + (((disciplinePointScratch.x * 0.5) + 0.5) * width);
+          writeDisciplinePosition(
+            group - 1,
+            projectedX,
+            viewportOffsetY + (((-disciplinePointScratch.y * 0.5) + 0.5) * height),
+            1,
+          );
+          writeDisciplineSide(group - 1, compact && projectedX > width * 0.62 ? 1 : 0);
         }
-        placeDisciplineLabels(Number(reveal.labelOffsetPx ?? 18));
       } else if (revealAvailable) {
         for (let group = 1; group <= 6; group += 1) {
           const labelReveal = disciplineLabelBaseReveal[group - 1];
           writeDisciplineRevealStyles(group - 1, labelReveal);
           if (labelReveal > 0.05) visibleLabels += 1;
-          disciplineProjectedX[group - 1] = viewportOffsetX
-            + (width * (group % 2 === 0 ? 0.62 : 0.26));
-          disciplineProjectedY[group - 1] = viewportOffsetY
-            + (height * ((14 + (group * 11)) / 100));
+          writeDisciplinePosition(
+            group - 1,
+            group % 2 === 0 ? 62 : 26,
+            14 + (group * 11),
+            2,
+          );
+          writeDisciplineSide(group - 1, 0);
         }
-        placeDisciplineLabels(Number(reveal.labelOffsetPx ?? 18));
       } else {
         for (let group = 1; group <= 6; group += 1) {
           writeDisciplineRevealStyles(group - 1, 0);
@@ -1733,20 +1620,7 @@ function createPointFieldAdapter({
     }
 
     camera.position.fromArray(frame.camera.position);
-    camera.up.set(0, 1, 0);
-    camera.lookAt(...frame.camera.target);
-    // Roll around the camera's local viewing axis so the current viewport centre remains fixed.
-    camera.rotateZ(-frame.camera.roll);
-    if (director.active) {
-      directorTarget.fromArray(frame.camera.target);
-      directorOffset.copy(camera.position).sub(directorTarget);
-      directorEuler.set(director.pitch, director.yaw, 0);
-      directorOffset.applyEuler(directorEuler);
-      directorOffset.setLength(Math.max(0.2, directorOffset.length() + director.distance));
-      camera.position.copy(directorTarget).add(directorOffset);
-      camera.up.set(0, 1, 0);
-      camera.lookAt(directorTarget);
-    }
+    camera.quaternion.fromArray(frame.camera.quaternion);
     if (camera.fov !== frame.camera.fov) {
       camera.fov = frame.camera.fov;
       camera.updateProjectionMatrix();
@@ -1853,25 +1727,6 @@ function createPointFieldAdapter({
       lastWorldStage = toWorld.shapeId;
       runtimeObserver.hotFrameDomWrite();
     }
-    const cameraCadence = frame.globals.camera.cadenceLocked
-      ? 'locked-world-units-v1'
-      : 'editable-world-units-v1';
-    if (cameraCadence !== lastCameraCadence) {
-      root.dataset.cameraCadence = cameraCadence;
-      lastCameraCadence = cameraCadence;
-      runtimeObserver.hotFrameDomWrite();
-    }
-    const cameraForward = frame.globals.camera.startZ - frame.camera.position[2];
-    if (cameraForward !== lastCameraForward) {
-      root.style.setProperty('--narrative-camera-forward', cameraForward.toFixed(4));
-      lastCameraForward = cameraForward;
-      runtimeObserver.hotFrameDomWrite();
-    }
-    if (frame.camera.roll !== lastCameraRoll) {
-      root.style.setProperty('--narrative-camera-roll', frame.camera.roll.toFixed(4));
-      lastCameraRoll = frame.camera.roll;
-      runtimeObserver.hotFrameDomWrite();
-    }
     if (frame.camera.fov !== lastCameraFov) {
       root.style.setProperty('--narrative-camera-fov', frame.camera.fov.toFixed(2));
       lastCameraFov = frame.camera.fov;
@@ -1960,9 +1815,6 @@ function createPointFieldAdapter({
   canvas.addEventListener('webglcontextrestored', handleContextRestored);
   window.addEventListener('bb:paletteChanged', updateTheme);
   window.addEventListener('abs:theme-changed', updateTheme);
-  document.fonts?.ready.then(() => {
-    if (!disposed) measureDisciplineLabels();
-  });
   resize();
   updateTheme();
   renderer.compile(scene, camera);
@@ -2026,13 +1878,6 @@ function createPointFieldAdapter({
       latestFrame,
     }),
     frameSelectedWorld: () => null,
-    setDirectorView: (active) => { director.active = Boolean(active); },
-    nudgeDirector: ({ yaw = 0, pitch = 0, distance = 0 }) => {
-      director.yaw += yaw;
-      director.pitch = Math.max(-1.2, Math.min(1.2, director.pitch + pitch));
-      director.distance += distance;
-    },
-    resetDirector: () => { director.yaw = 0; director.pitch = 0; director.distance = 0; },
   };
   runtimeRef.current = runtimeApi;
   if (RUNTIME_DIAGNOSTICS_ENABLED) window.__aboutNarrativeRuntime = runtimeApi;
@@ -2058,7 +1903,6 @@ function createPointFieldAdapter({
       delete window.__aboutNarrativeRuntime;
     }
     resizeObserver.disconnect();
-    disciplineLabelResizeObserver.disconnect();
     themeObserver.disconnect();
     interaction.removeEventListener('pointerdown', handlePointerDown);
     interaction.removeEventListener('pointermove', handlePointerMove);
@@ -2080,7 +1924,6 @@ function createPointFieldAdapter({
     }
     runtimeObserver.dispose();
     delete root.dataset.worldStage;
-    delete root.dataset.cameraCadence;
     delete root.dataset.pointAsset;
     delete root.dataset.pointWorldState;
     delete root.dataset.mobileSimulationBodyScale;
@@ -2104,8 +1947,6 @@ function createPointFieldAdapter({
     delete root.dataset.worldDisciplineLabels;
     delete root.dataset.worldGridBackground;
     delete root.dataset.worldDisciplineFog;
-    root.style.removeProperty('--narrative-camera-forward');
-    root.style.removeProperty('--narrative-camera-roll');
     root.style.removeProperty('--narrative-camera-fov');
     root.style.removeProperty('--narrative-bust-yaw');
   };

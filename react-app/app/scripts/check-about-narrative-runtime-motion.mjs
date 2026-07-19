@@ -161,7 +161,7 @@ test('anchor sampler mirrors morph, transforms, and bust yaw order', () => {
   assert.ok(Math.abs(target.z - 0.5) < 1e-12);
 });
 
-test('anchor sampler mirrors drift, wave, and grid displacement formulas', () => {
+test('anchor sampler mirrors drift and wave without moving the grid', () => {
   const target = { x: 0, y: 0, z: 0 };
   const input = createSamplingInput({
     fromPosition: [1, 2, 3],
@@ -193,10 +193,10 @@ test('anchor sampler mirrors drift, wave, and grid displacement formulas', () =>
   });
   sampleAboutNarrativeAnchorPosition(input, target);
 
-  // seed/time zero: smooth drift = [0, 0, 1]. Wave and grid then use displaced coordinates.
+  // seed/time zero: smooth drift = [0, 0, 1]. Wave uses the displaced position.
   const expectedX = 1;
   const expectedY = 2 + (0.25 * Math.sin(1 + 3.5));
-  const expectedZ = 3.5 + (0.5 * 0.22 * Math.sin((expectedX * 0.82) + (expectedY * 0.54)));
+  const expectedZ = 3.5;
   assert.ok(Math.abs(target.x - expectedX) < 1e-12);
   assert.ok(Math.abs(target.y - expectedY) < 1e-12);
   assert.ok(Math.abs(target.z - expectedZ) < 1e-12);
@@ -220,8 +220,9 @@ test('grid displacement remains still when ambient time advances at a fixed stor
   assert.deepEqual(after, before);
 });
 
-test('grid ripple leaves semantic anchor positions fixed', () => {
-  const target = { x: 0, y: 0, z: 0 };
+test('grid ripple preserves its idle state, then moves only in height', () => {
+  const first = { x: 0, y: 0, z: 0 };
+  const second = { x: 0, y: 0, z: 0 };
   const input = createSamplingInput({
     fromPosition: [1, 2, 3],
     toPosition: [1, 2, 3],
@@ -237,8 +238,19 @@ test('grid ripple leaves semantic anchor positions fixed', () => {
     storyTime: 0.75,
     ambientTime: 12,
   });
-  sampleAboutNarrativeAnchorPosition(input, target);
-  assert.deepEqual(target, { x: 1, y: 2, z: 3 });
+  sampleAboutNarrativeAnchorPosition(input, first);
+  input.storyTime = 0.81;
+  sampleAboutNarrativeAnchorPosition(input, second);
+  assert.equal(first.x, 1);
+  assert.equal(first.z, 3);
+  assert.equal(second.x, 1);
+  assert.equal(second.z, 3);
+  assert.notEqual(first.y, 2);
+  assert.notEqual(second.y, first.y);
+
+  input.gridRipple.weight = 0;
+  sampleAboutNarrativeAnchorPosition(input, second);
+  assert.deepEqual(second, { x: 1, y: 2, z: 3 });
 });
 
 test('anchor sampler requires caller-owned scratch and output targets', () => {

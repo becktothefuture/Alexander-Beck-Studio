@@ -8,6 +8,7 @@ import {
 } from 'react';
 import {
   ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS,
+  ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS,
   ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS,
   ABOUT_NARRATIVE_BLOCK_KINDS,
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
@@ -50,15 +51,6 @@ const TRACK_BY_ID = Object.freeze(Object.fromEntries(TRACKS.map((track) => [trac
 const MIN_TIMELINE_WIDTH = 920;
 const BASE_PIXELS_PER_WU = 66;
 const TEXT_CONNECTION_EPSILON_WU = 0.0001;
-const CAMERA_DEPTH_OFFSET_CONTROL = Object.freeze({
-  id: 'offsetZ',
-  label: 'Depth offset (− = closer)',
-  type: 'range',
-  min: -40,
-  max: 40,
-  step: 0.05,
-  unit: 'WU',
-});
 const GRID_RIPPLE_START_STEP_WU = 0.05;
 const PREVIEW_ASPECT_RATIOS = Object.freeze({
   tablet: Object.freeze({ portrait: 820 / 1180, landscape: 1180 / 820 }),
@@ -220,82 +212,6 @@ function formatCameraBezier(x1, x2) {
   return `cubic-bezier(${Number(x1).toFixed(2)}, 0, ${Number(x2).toFixed(2)}, 1)`;
 }
 
-function CameraPlanePad({
-  label,
-  x,
-  y,
-  range,
-  disabled = false,
-  onBegin,
-  onPreview,
-  onFinish,
-  onCancel,
-}) {
-  const gestureRef = useRef(false);
-  const normalizedRange = Math.max(1, Number(range) || 1);
-  const markerX = clamp(50 + ((Number(x) / normalizedRange) * 50), 0, 100);
-  const markerY = clamp(50 - ((Number(y) / normalizedRange) * 50), 0, 100);
-  const previewAtPointer = (event) => {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const nextX = clamp((((event.clientX - bounds.left) / Math.max(1, bounds.width)) - 0.5) * normalizedRange * 2, -normalizedRange, normalizedRange);
-    const nextY = clamp((0.5 - ((event.clientY - bounds.top) / Math.max(1, bounds.height))) * normalizedRange * 2, -normalizedRange, normalizedRange);
-    onPreview?.(Number(nextX.toFixed(2)), Number(nextY.toFixed(2)));
-  };
-  const begin = (event) => {
-    if (disabled) return;
-    gestureRef.current = onBegin?.() !== false;
-    if (!gestureRef.current) return;
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    previewAtPointer(event);
-  };
-  const finish = () => {
-    if (!gestureRef.current) return;
-    gestureRef.current = false;
-    onFinish?.();
-  };
-  const nudge = (event) => {
-    if (disabled) return;
-    const delta = event.shiftKey ? 1 : 0.1;
-    const changes = {
-      ArrowLeft: [-delta, 0], ArrowRight: [delta, 0], ArrowUp: [0, delta], ArrowDown: [0, -delta],
-    };
-    const change = changes[event.key];
-    if (!change) return;
-    event.preventDefault();
-    gestureRef.current = onBegin?.() !== false;
-    if (!gestureRef.current) return;
-    onPreview?.(
-      Number(clamp(Number(x) + change[0], -normalizedRange, normalizedRange).toFixed(2)),
-      Number(clamp(Number(y) + change[1], -normalizedRange, normalizedRange).toFixed(2)),
-    );
-    gestureRef.current = false;
-    onFinish?.();
-  };
-
-  return (
-    <div className="about-track-editor-camera-pad" role="group" aria-label={label}>
-      <div className="about-track-editor-camera-pad__meta"><span>{label}</span><small>±{normalizedRange.toFixed(0)} WU</small></div>
-      <div
-        className="about-track-editor-camera-pad__surface"
-        tabIndex={disabled ? -1 : 0}
-        role="slider"
-        aria-label={`${label}: horizontal ${Number(x).toFixed(2)}, vertical ${Number(y).toFixed(2)}`}
-        aria-valuetext={`X ${Number(x).toFixed(2)}, Y ${Number(y).toFixed(2)}`}
-        onPointerDown={begin}
-        onPointerMove={(event) => { if (gestureRef.current) previewAtPointer(event); }}
-        onPointerUp={finish}
-        onPointerCancel={() => { gestureRef.current = false; onCancel?.(); }}
-        onKeyDown={nudge}
-      >
-        <i className="about-track-editor-camera-pad__axis is-x" /><i className="about-track-editor-camera-pad__axis is-y" />
-        <b className="about-track-editor-camera-pad__marker" style={{ left: `${markerX}%`, top: `${markerY}%` }} />
-        <em className="about-track-editor-camera-pad__label is-top">up</em><em className="about-track-editor-camera-pad__label is-right">right</em>
-      </div>
-      <output>X {Number(x).toFixed(2)} · Y {Number(y).toFixed(2)}</output>
-    </div>
-  );
-}
-
 function CameraBezierField({
   value,
   disabled = false,
@@ -351,7 +267,7 @@ function CameraBezierField({
         <div><span>Travel easing</span><strong>Soft cubic curve</strong></div>
         <code>{value}</code>
       </div>
-      <p>Controls the framing, aim, lens, and roll from this key to the next: <b>Out</b> delays departure; <b>In</b> lengthens arrival. The protected forward rail stays continuous.</p>
+      <p>Controls the position, rotation, and lens from this key to the next: <b>Out</b> delays departure; <b>In</b> lengthens arrival.</p>
       <svg
         className="about-track-editor-camera-curve__graph"
         viewBox="0 0 200 100"
@@ -991,6 +907,9 @@ function TrackObject({
     && !locked
     && worldIndex >= 0
     && worldIndex < document.tracks.worlds.objects.length - 1;
+  const durationEdges = !locked && ['text-field', 'interaction'].includes(track.type)
+    ? ['start', 'end']
+    : canResizeWorld ? ['end'] : [];
   const activationPercent = track.type === 'interaction' && endWU > startWU
     ? clamp(((Number(object.activationWU) - startWU) / (endWU - startWU)) * 100, 0, 100)
     : null;
@@ -1018,51 +937,66 @@ function TrackObject({
     else store.commitGesture({ requireValid: true });
   };
 
-  const beginWorldResize = (event) => {
-    if (event.button !== 0 || !canResizeWorld) return;
+  const beginDurationResize = (event, edge) => {
+    if (event.button !== 0 || !durationEdges.includes(edge)) return;
     event.preventDefault();
     event.stopPropagation();
-    store.setSelection({ type: 'world', id: object.id });
-    store.setTransport({ owner: 'timeline', playing: false, storyWU: endWU });
-    if (!store.beginGesture(`Resize World ${getObjectLabel(object, track.type)}`, {
-      selection: { type: 'world', id: object.id },
+    const selection = { type: track.type, id: object.id };
+    const edgeWU = edge === 'start' ? startWU : endWU;
+    store.setSelection(selection);
+    store.setTransport({ owner: 'timeline', playing: false, storyWU: edgeWU });
+    if (!store.beginGesture(`Resize ${track.label} ${getObjectLabel(object, track.type)} ${edge}`, {
+      selection,
     })) return;
-    resizeRef.current = { pointerId: event.pointerId, startX: event.clientX, startEndWU: endWU };
+    resizeRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      edge,
+      startWU,
+      endWU,
+    };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  const updateWorldResize = (event) => {
+  const updateDurationResize = (event) => {
     if (resizeRef.current?.pointerId !== event.pointerId) return;
     event.stopPropagation();
-    const nextEndWU = resizeRef.current.startEndWU
+    const edge = resizeRef.current.edge;
+    const nextWU = resizeRef.current[`${edge}WU`]
       + ((event.clientX - resizeRef.current.startX) / pixelsPerWU);
-    store.updateGestureResizeWorldEnd(object.id, nextEndWU);
+    if (track.type === 'world') store.updateGestureResizeWorldEnd(object.id, nextWU);
+    else if (track.type === 'text-field') store.updateGestureResizeText(object.id, edge, nextWU);
+    else if (track.type === 'interaction') store.updateGestureResizeInteraction(object.id, edge, nextWU);
   };
 
-  const finishWorldResize = (event, cancel = false) => {
+  const finishDurationResize = (event, cancel = false) => {
     if (resizeRef.current?.pointerId !== event.pointerId) return;
     event.stopPropagation();
     resizeRef.current = null;
     if (cancel) store.cancelGesture();
-    else store.commitGesture({ selectionAfter: { type: 'world', id: object.id }, requireValid: true });
+    else store.commitGesture({ selectionAfter: { type: track.type, id: object.id }, requireValid: true });
   };
 
-  const resizeWorldWithKeyboard = (event) => {
-    if (!canResizeWorld || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+  const resizeDurationWithKeyboard = (event, edge) => {
+    if (!durationEdges.includes(edge) || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
     event.preventDefault();
     event.stopPropagation();
     const direction = event.key === 'ArrowLeft' ? -1 : 1;
     const stepWU = event.shiftKey ? 0.25 : 0.05;
-    const selection = { type: 'world', id: object.id };
+    const selection = { type: track.type, id: object.id };
+    const edgeWU = edge === 'start' ? startWU : endWU;
     store.setSelection(selection);
-    if (!store.beginGesture(`Resize World ${getObjectLabel(object, track.type)}`, { selection })) return;
-    store.updateGestureResizeWorldEnd(object.id, endWU + (direction * stepWU));
+    if (!store.beginGesture(`Resize ${track.label} ${getObjectLabel(object, track.type)} ${edge}`, { selection })) return;
+    const nextWU = edgeWU + (direction * stepWU);
+    if (track.type === 'world') store.updateGestureResizeWorldEnd(object.id, nextWU);
+    else if (track.type === 'text-field') store.updateGestureResizeText(object.id, edge, nextWU);
+    else if (track.type === 'interaction') store.updateGestureResizeInteraction(object.id, edge, nextWU);
     store.commitGesture({ selectionAfter: selection, requireValid: true });
   };
 
   return (
     <div
-      className="about-track-editor-object"
+      className={`about-track-editor-object is-${track.colour}${durationEdges.includes('start') ? ' has-resize-start' : ''}${durationEdges.includes('end') ? ' has-resize-end' : ''}`}
       style={{ left, width }}
     >
       <button
@@ -1096,19 +1030,23 @@ function TrackObject({
         {object.kind === 'stub' ? <span className="about-track-editor-clip__badge">Draft · Not published</span> : null}
         {pointLike ? <span className="about-track-editor-clip__point" aria-hidden="true" /> : null}
       </button>
-      {canResizeWorld ? (
+      {durationEdges.map((edge) => (
         <button
           type="button"
-          className="about-track-editor-world-resize"
-          aria-label={`Resize World ${getObjectLabel(object, track.type)} end`}
-          title={`Drag to resize World ${getObjectLabel(object, track.type)} · later Worlds move with it`}
-          onPointerDown={beginWorldResize}
-          onPointerMove={updateWorldResize}
-          onPointerUp={(event) => finishWorldResize(event)}
-          onPointerCancel={(event) => finishWorldResize(event, true)}
-          onKeyDown={resizeWorldWithKeyboard}
+          className={`about-track-editor-duration-resize is-${edge}`}
+          data-duration-edge={edge}
+          key={edge}
+          aria-label={`Resize ${track.label} ${getObjectLabel(object, track.type)} ${edge}`}
+          title={track.type === 'world'
+            ? `Drag World ${getObjectLabel(object, track.type)} end · later Worlds move with it`
+            : `Drag ${track.label} ${getObjectLabel(object, track.type)} ${edge}`}
+          onPointerDown={(event) => beginDurationResize(event, edge)}
+          onPointerMove={updateDurationResize}
+          onPointerUp={(event) => finishDurationResize(event)}
+          onPointerCancel={(event) => finishDurationResize(event, true)}
+          onKeyDown={(event) => resizeDurationWithKeyboard(event, edge)}
         ><span aria-hidden="true" /></button>
-      ) : null}
+      ))}
     </div>
   );
 }
@@ -1185,7 +1123,7 @@ function Timeline({
       <header className="about-track-editor-timeline__toolbar">
         <div>
           <strong>Global Story WU</strong>
-          <span>Drag World ends · later Worlds ripple · no gaps</span>
+          <span>Drag clip edges to set duration · World ends ripple with no gaps</span>
         </div>
         <label>
           Zoom
@@ -1322,7 +1260,7 @@ function ObjectInspector({ snapshot, store, onMessage }) {
       <div className="about-track-editor-inspector__empty">
         <span>{track?.label || 'Timeline'}</span>
         <h2>{track ? `${track.label} track` : 'Select an object'}</h2>
-        <p>Camera and Text stay independent. Drag a World’s right edge to resize it and ripple every later World without gaps.</p>
+        <p>Drag Text and Motion edges to set their windows. World ends ripple every later World without gaps; Camera keys remain points.</p>
       </div>
     );
   }
@@ -1349,16 +1287,6 @@ function ObjectInspector({ snapshot, store, onMessage }) {
     onCancel: () => store.cancelGesture(),
     onCommit: (value) => commit(label, (target) => mutate(target, value)),
   });
-  const bindCameraPad = (label, mutate) => ({
-    onBegin: () => store.beginGesture(label, { selection }),
-    onPreview: (x, y) => store.updateGesture((draft) => {
-      const target = getAboutNarrativeTrackObject(draft, selection);
-      if (target) mutate(target, x, y);
-    }, { selection }),
-    onFinish: () => store.commitGesture({ selectionAfter: selection, requireValid: true }),
-    onCancel: () => store.cancelGesture(),
-  });
-
   return (
     <div className="about-track-editor-inspector__content">
       <header>
@@ -1373,59 +1301,37 @@ function ObjectInspector({ snapshot, store, onMessage }) {
           {number('atWU', object.atWU)}
           <p className="about-track-editor-parameter-note is-wide">This is a shot key. Its pose is the camera at this exact Story WU; the curve below shapes its travel <b>to the next key</b>.</p>
           {locked ? <p className="about-track-editor-parameter-note is-wide">This boundary key stays at its Story WU, while its camera pose remains editable.</p> : null}
-          <InspectorFolder group={{ id: 'camera-framing', label: 'Shot framing & aim' }} count={5} defaultOpen>
+          <InspectorFolder group={{ id: 'camera-rig', label: 'Camera rig' }} count={7} defaultOpen>
+            <p className="about-track-editor-parameter-note">
+              Position moves the camera in world space. Rotation turns it around the centre of the viewport, like a first-person camera.
+            </p>
             <div className="about-track-editor-camera-rig">
-              <CameraPlanePad label="Frame position" x={object.offset[0]} y={object.offset[1]} range={Math.max(12, Math.ceil(Math.max(Math.abs(object.offset[0]), Math.abs(object.offset[1])) / 10) * 10)} {...bindCameraPad('Frame Camera position', (target, x, y) => { target.offset[0] = x; target.offset[1] = y; })} />
-              <CameraPlanePad label="Aim target" x={object.lookAtOffset[0]} y={object.lookAtOffset[1]} range={Math.max(12, Math.ceil(Math.max(Math.abs(object.lookAtOffset[0]), Math.abs(object.lookAtOffset[1])) / 10) * 10)} {...bindCameraPad('Frame Camera aim', (target, x, y) => { target.lookAtOffset[0] = x; target.lookAtOffset[1] = y; })} />
+              {['position', 'rotation', 'lens'].map((groupId) => (
+                <section className="about-track-editor-camera-rig__group" key={groupId}>
+                  <span>{groupId === 'lens' ? 'Lens' : groupId[0].toUpperCase() + groupId.slice(1)}</span>
+                  {ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS
+                    .filter((control) => control.group === groupId)
+                    .map((control) => {
+                      const [field, axisText] = control.id.split('.');
+                      const axis = axisText == null ? null : Number(axisText);
+                      const value = axis == null ? object[field] : object[field][axis];
+                      return (
+                        <RangeParameterField
+                          key={control.id}
+                          label={control.label}
+                          ariaLabel={`Camera ${control.label}`}
+                          value={value}
+                          control={control}
+                          {...bindObjectRange(`Edit Camera ${control.label}`, (target, next) => {
+                            if (axis == null) target[field] = next;
+                            else target[field][axis] = next;
+                          })}
+                        />
+                      );
+                    })}
+                </section>
+              ))}
             </div>
-            <div className="about-track-editor-camera-values">
-              <div className="about-track-editor-camera-values__group">
-                <span>Frame origin</span>
-                <div className="about-track-editor-folder__grid">
-                  {[0, 1].map((axis) => (
-                    <NumberField key={`offset-${axis}`} label={`Frame ${'XY'[axis]}`} value={object.offset[axis]} step={0.01} min={-40} max={40} onCommit={(value) => commit('Edit Camera offset', (target) => { target.offset[axis] = value; })} />
-                  ))}
-                </div>
-              </div>
-              <div className="about-track-editor-camera-values__group">
-                <span>Target coordinates</span>
-                <small>Precise aim · X defaults to 0</small>
-                <div className="about-track-editor-folder__grid">
-                  {[0, 1, 2].map((axis) => (
-                    <NumberField key={`look-${axis}`} label={`Target ${'XYZ'[axis]}`} value={object.lookAtOffset[axis]} step={0.001} min={-100} max={100} onCommit={(value) => commit('Edit Camera aim', (target) => { target.lookAtOffset[axis] = value; })} />
-                  ))}
-                </div>
-              </div>
-              <button
-                type="button"
-                className="about-track-editor-camera-center"
-                onClick={() => commit('Center Camera horizontal composition', (target) => {
-                  target.offset[0] = 0;
-                  target.lookAtOffset[0] = 0;
-                })}
-              >
-                Center horizontal
-              </button>
-            </div>
-          </InspectorFolder>
-          <InspectorFolder group={{ id: 'camera-lens', label: 'Lens & horizon' }} count={2}>
-            <div className="about-track-editor-camera-lens about-track-editor-camera-lens--embedded">
-              <div className="about-track-editor-camera-lens__heading"><span>FOV defines width; roll tilts the horizon.</span></div>
-              <div className="about-track-editor-camera-lens__presets">
-                {[[70, 'Wide'], [50, 'Natural'], [35, 'Tight']].map(([fov, label]) => <button key={label} type="button" className={object.fov === fov ? 'is-active' : ''} onClick={() => commit('Set Camera lens', (target) => { target.fov = fov; })}>{label}<small>{fov}°</small></button>)}
-              </div>
-              <NumberField label="Field of view" value={object.fov} min={25} max={80} step={1} onCommit={(value) => commit('Edit Camera FOV', (target) => { target.fov = value; })} />
-              <NumberField label="Roll / horizon" value={object.roll} step={0.01} onCommit={(value) => commit('Edit Camera roll', (target) => { target.roll = value; })} />
-            </div>
-          </InspectorFolder>
-          <InspectorFolder group={{ id: 'camera-depth', label: 'Depth' }} count={1}>
-            <RangeParameterField
-              label={CAMERA_DEPTH_OFFSET_CONTROL.label}
-              ariaLabel="Camera depth offset"
-              value={object.offset[2]}
-              control={CAMERA_DEPTH_OFFSET_CONTROL}
-              {...bindObjectRange('Edit Camera depth', (target, value) => { target.offset[2] = value; })}
-            />
           </InspectorFolder>
           <InspectorFolder group={{ id: 'camera-fog', label: 'Distance fog' }} count={2}>
             <p className="about-track-editor-parameter-note">This key’s fog transitions to the next key with the same camera easing.</p>
@@ -1630,7 +1536,7 @@ function ObjectInspector({ snapshot, store, onMessage }) {
   );
 }
 
-const PUBLIC_PREVIEW_BASELINE_HASH = 'public-editor-preview-v3';
+const PUBLIC_PREVIEW_BASELINE_HASH = 'public-editor-preview-v4';
 
 export default function AboutNarrativeEditor({ store, rootRef, previewOnly = false }) {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
@@ -1656,7 +1562,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       return;
     }
     setSaving(true);
-    setMessage('Validating and saving v3…');
+    setMessage('Validating and saving v4…');
     try {
       const persisted = await saveAboutNarrativeSource(store.getSnapshot().document, baselineHash);
       store.replaceDocument('Accept saved canonical source', persisted.document, { requireValid: true });
@@ -1664,7 +1570,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       setBaselineHash(persisted.hash);
       clearAboutNarrativeRecoveryDraft();
       setRecovery(null);
-      setMessage('Saved canonical v3.');
+      setMessage('Saved canonical v4.');
     } catch (error) {
       setMessage(error.status === 409
         ? 'Save conflict: canonical changed. Export this draft or reload before saving.'
@@ -1736,11 +1642,11 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
     loadAboutNarrativeSource().then((source) => {
       if (!active) return;
       const current = store.getSnapshot();
-      if (!current.dirty) store.replaceDocument('Load canonical v3', source.document, { requireValid: true });
+      if (!current.dirty) store.replaceDocument('Load canonical v4', source.document, { requireValid: true });
       store.markBaseline(source.document);
       setBaselineHash(source.hash);
       setRecovery(readAboutNarrativeRecoveryDraft({ baselineHash: source.hash }));
-      setMessage(source.migrations?.length ? 'Loaded and migrated canonical source to v3.' : 'Canonical v3 ready.');
+      setMessage(source.migrations?.length ? 'Loaded and migrated canonical source to v4.' : 'Canonical v4 ready.');
     }).catch((error) => {
       if (active) setMessage(`Canonical load failed: ${error.message}`);
     });
@@ -1853,14 +1759,14 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   return (
     <aside
       className="about-track-editor"
-      data-editor-version="sectionless-v3"
+      data-editor-version="sectionless-v4"
       data-mobile-inspector-open={mobileInspectorOpen ? 'true' : 'false'}
       aria-label="About narrative editor"
     >
       <header className="about-track-editor-topbar">
         <div className="about-track-editor-brand">
           <strong>About Timeline</strong>
-          <span>v3 · sectionless</span>
+          <span>v4 · absolute camera</span>
         </div>
         <div className="about-track-editor-transport" aria-label="Timeline transport">
           <button
@@ -1917,7 +1823,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
           <button type="button" className="is-save" disabled={!snapshot.dirty || saving || errors.length > 0 || !baselineHash} onClick={save}>
             {previewOnly
               ? snapshot.dirty ? 'Export draft' : 'Preview ready'
-              : saving ? 'Saving…' : snapshot.dirty ? 'Save v3' : 'Saved'}
+              : saving ? 'Saving…' : snapshot.dirty ? 'Save v4' : 'Saved'}
           </button>
         </div>
       </header>

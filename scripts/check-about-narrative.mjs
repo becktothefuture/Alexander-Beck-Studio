@@ -64,8 +64,10 @@ import {
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeWorldClips.js';
 import {
   migrateAboutNarrativeVersion2To3,
+  migrateAboutNarrativeVersion2To4,
   serializeAboutNarrativeTrackDocument,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
+import { migrateLegacyAboutNarrativeCameraPose } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraRig.js';
 import {
   ABOUT_NARRATIVE_TRACK_PROFILE_IDS,
   ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
@@ -155,7 +157,7 @@ test('compiler derives a single ordered WU sequence', () => {
   assert.equal(plan.totalExtentWU, canonical.sections.reduce((sum, section) => sum + section.extentWU, 0));
 });
 
-test('sectionless track-model adapter emits a v3 graph without authored containers', () => {
+test('sectionless track-model adapter emits a v4 graph without authored containers', () => {
   const model = createAboutNarrativeTrackModel(canonical);
   const validationErrors = validateAboutNarrativeTrackModel(model).filter((item) => item.level === 'error');
   assert.deepEqual(validationErrors, []);
@@ -174,9 +176,9 @@ test('sectionless track-model adapter emits a v3 graph without authored containe
   ['sourceSchemaVersion', 'modelVersion'].forEach((key) => assert.equal(Object.hasOwn(model, key), false));
 });
 
-test('v2 to v3 migration and v3 serialization are byte-deterministic', () => {
-  const first = migrateAboutNarrativeVersion2To3(canonical);
-  const second = migrateAboutNarrativeVersion2To3(structuredClone(canonical));
+test('v2 to v4 migration and v4 serialization are byte-deterministic', () => {
+  const first = migrateAboutNarrativeVersion2To4(canonical);
+  const second = migrateAboutNarrativeVersion2To4(structuredClone(canonical));
   assert.deepEqual(second, first);
   const serialized = serializeAboutNarrativeTrackDocument(first);
   assert.equal(serializeAboutNarrativeTrackDocument(JSON.parse(serialized)), serialized);
@@ -208,16 +210,16 @@ test('v3 migration validates raw v2 before normalization and preserves the rejec
   });
 });
 
-test('strict v3 validation rejects unknown fields, invalid overrides, and publishable stubs', () => {
-  const unknown = migrateAboutNarrativeVersion2To3(canonical);
+test('strict v4 validation rejects unknown fields, invalid overrides, and publishable stubs', () => {
+  const unknown = migrateAboutNarrativeVersion2To4(canonical);
   unknown.tracks.camera.keys[0].sectionId = 'promise';
   assert.ok(validateAboutNarrativeTrackModel(unknown).some((item) => item.code === 'unknown-key'));
 
-  const override = migrateAboutNarrativeVersion2To3(canonical);
+  const override = migrateAboutNarrativeVersion2To4(canonical);
   override.profiles.mobile.overrides.text.missing = { startWU: 1 };
   assert.ok(validateAboutNarrativeTrackModel(override).some((item) => item.code === 'override-target'));
 
-  const stub = migrateAboutNarrativeVersion2To3(canonical);
+  const stub = migrateAboutNarrativeVersion2To4(canonical);
   stub.tracks.text.fields.push({
     id: 'text-planning-stub',
     kind: 'stub',
@@ -231,15 +233,15 @@ test('strict v3 validation rejects unknown fields, invalid overrides, and publis
   assert.ok(validateAboutNarrativeTrackModel(stub).some((item) => item.code === 'stub-publishable'));
 });
 
-test('compiling caller-owned v3 input never freezes it by reference', () => {
-  const document = migrateAboutNarrativeVersion2To3(canonical);
+test('compiling caller-owned v4 input never freezes it by reference', () => {
+  const document = migrateAboutNarrativeVersion2To4(canonical);
   const firstKey = document.tracks.camera.keys[0];
   const plan = compileAboutNarrativeTrackModel(document);
   assert.equal(plan.valid, true);
   assert.equal(Object.isFrozen(document), false);
   assert.equal(Object.isFrozen(firstKey), false);
-  firstKey.offset[0] += 1;
-  assert.notEqual(firstKey.offset[0], plan.model.tracks.camera.keys[0].offset[0]);
+  firstKey.position[0] += 1;
+  assert.notEqual(firstKey.position[0], plan.model.tracks.camera.keys[0].position[0]);
 });
 
 test('sectionless track-model adapter treats World starts as the only structural anchors', () => {
@@ -272,15 +274,22 @@ test('sectionless track-model adapter treats World starts as the only structural
 test('sectionless track-model adapter flattens Camera keys into absolute WU', () => {
   const plan = compileAboutNarrativeDocument(canonical);
   const model = createAboutNarrativeTrackModel(canonical);
+  const legacyTrack = migrateAboutNarrativeVersion2To3(canonical);
   const expectedKeyCount = canonical.sections.reduce((sum, section) => sum + section.camera.keys.length, 0);
-  assert.equal(model.tracks.camera.keys.length, expectedKeyCount);
+  assert.ok(model.tracks.camera.keys.length >= expectedKeyCount);
+  assert.ok(
+    model.tracks.camera.keys.some((key) => key.id.includes('-path-')),
+    'Legacy camera motion should be retained with ordinary absolute support keys.',
+  );
   plan.sections.forEach((compiled) => {
     compiled.camera.keys.forEach((key, keyIndex) => {
       const flattened = model.tracks.camera.keys.find((item) => item.id === `camera-${compiled.id}-${keyIndex}`);
       assert.ok(flattened, `missing flattened key for ${compiled.id}.${keyIndex}`);
       assert.equal(flattened.atWU, cleanWU(compiled.startWU + (key.at * compiled.travelWU)));
-      assert.deepEqual(flattened.offset, key.offset);
-      assert.deepEqual(flattened.lookAtOffset, key.lookAtOffset);
+      const legacyKey = legacyTrack.tracks.camera.keys.find((item) => item.id === flattened.id);
+      const pose = migrateLegacyAboutNarrativeCameraPose(legacyKey, legacyTrack.globals);
+      assert.deepEqual(flattened.position, pose.position);
+      assert.deepEqual(flattened.rotation, pose.rotation);
       const flattenedIndex = model.tracks.camera.keys.findIndex((item) => item.id === flattened.id);
       assert.equal(flattened.locked, flattenedIndex === 0 || flattenedIndex === model.tracks.camera.keys.length - 1);
     });
@@ -408,9 +417,8 @@ test('sectionless track sampler keeps Camera and World samples continuous at fix
   checkpoints.forEach((storyWU) => {
     const track = sampleAboutNarrativeTrackPlan(trackPlan, storyWU);
     assert.ok(track.camera.position.every(Number.isFinite), `camera.position @ ${storyWU}`);
-    assert.ok(track.camera.target.every(Number.isFinite), `camera.target @ ${storyWU}`);
+    assert.ok(track.camera.quaternion.every(Number.isFinite), `camera.quaternion @ ${storyWU}`);
     assert.ok(Number.isFinite(track.camera.fov), `camera.fov @ ${storyWU}`);
-    assert.ok(Number.isFinite(track.camera.roll), `camera.roll @ ${storyWU}`);
   });
 });
 

@@ -370,7 +370,7 @@ export function resizeAboutNarrativeTextFieldEdge({
   if (!finite(atWU)) return resultError('Text resize requires a finite Story WU.', 'text-edge-time');
   const field = getAboutNarrativeTrackObject(model, { type: 'text-field', id });
   if (!field) return resultError(`Text field “${id}” is not available.`, 'object-selection');
-  if (field.locked) return resultError('A protected Text field cannot be resized.', 'protected-object');
+  if (field.locked || field.protected) return resultError('A protected Text field cannot be resized.', 'protected-object');
   const durationWU = getStoryDurationWU(model);
   const requestedWU = snap ? snapWU(atWU) : cleanWU(atWU);
   const nextWU = edge === 'start'
@@ -381,6 +381,36 @@ export function resizeAboutNarrativeTextFieldEdge({
   const validation = validateEditingModel(candidate);
   if (!validation.valid) return validation;
   return { valid: true, model: candidate, object: getAboutNarrativeTrackObject(candidate, { type: 'text-field', id }), clamped: nextWU !== requestedWU };
+}
+
+export function resizeAboutNarrativeInteractionEdge({
+  model,
+  id,
+  edge,
+  atWU,
+  snap = true,
+}) {
+  if (!['start', 'end'].includes(edge)) return resultError('Motion resize edge must be start or end.', 'interaction-edge');
+  if (!finite(atWU)) return resultError('Motion resize requires a finite Story WU.', 'interaction-edge-time');
+  const clip = getAboutNarrativeTrackObject(model, { type: 'interaction', id });
+  if (!clip) return resultError(`Motion clip “${id}” is not available.`, 'object-selection');
+  if (clip.locked || clip.protected) return resultError('A protected Motion clip cannot be resized.', 'protected-object');
+  const worldRange = getAboutNarrativeTrackObjectRange(model, { type: 'world', id: clip.targetWorldId });
+  if (!worldRange) return resultError(`Motion clip “${id}” targets a missing World.`, 'interaction-target');
+  const requestedWU = snap ? snapWU(atWU) : cleanWU(atWU);
+  const nextWU = edge === 'start'
+    ? clamp(requestedWU, Number(worldRange.startWU), Number(clip.activationWU))
+    : clamp(requestedWU, Number(clip.activationWU), Number(worldRange.endWU));
+  const candidate = clone(model);
+  getAboutNarrativeTrackObject(candidate, { type: 'interaction', id })[`${edge}WU`] = cleanWU(nextWU);
+  const validation = validateEditingModel(candidate);
+  if (!validation.valid) return validation;
+  return {
+    valid: true,
+    model: candidate,
+    object: getAboutNarrativeTrackObject(candidate, { type: 'interaction', id }),
+    clamped: nextWU !== requestedWU,
+  };
 }
 
 function shiftWorldOverrideTimes(override, deltaWU) {
@@ -592,10 +622,9 @@ export function createAboutNarrativeCameraKeyAtWU({ model, atWU, id = null, came
     ...clone(cameraKey),
     id: createUniqueId(model, id, 'camera-key'),
     atWU: time,
-    offset: clone(cameraKey.offset || [0, 0, 0]),
-    lookAtOffset: clone(cameraKey.lookAtOffset || [0, 0, -1]),
+    position: clone(cameraKey.position || [0, 0, 0]),
+    rotation: clone(cameraKey.rotation || [0, 0, 0]),
     fov: Number(cameraKey.fov ?? globals.fov ?? 48),
-    roll: Number(cameraKey.roll ?? 0),
     distanceFogStartWU: Number(cameraKey.distanceFogStartWU ?? globals.distanceFogStartWU ?? 8),
     distanceFogEndWU: Number(cameraKey.distanceFogEndWU ?? globals.distanceFogEndWU ?? 18),
     easing: cameraKey.easing || ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING,

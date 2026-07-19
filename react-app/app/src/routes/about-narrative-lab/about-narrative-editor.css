@@ -346,14 +346,20 @@
 
 .about-track-editor-object {
   position: absolute;
-  z-index: 3;
+  z-index: auto;
   top: 8px;
   height: 38px;
   min-height: 38px;
 }
 
+.about-track-editor-object.is-camera { --lane-colour: var(--editor-camera); }
+.about-track-editor-object.is-world { --lane-colour: var(--editor-world); }
+.about-track-editor-object.is-text { --lane-colour: var(--editor-text); }
+.about-track-editor-object.is-interaction { --lane-colour: var(--editor-interaction); }
+
 .about-track-editor-clip {
   position: absolute;
+  z-index: 3;
   inset: 0;
   display: flex;
   align-items: center;
@@ -404,14 +410,16 @@
 .about-track-editor-clip.is-camera:hover .about-track-editor-clip__point { background: color-mix(in srgb, var(--editor-camera) 18%, var(--editor-bg)); }
 .about-track-editor-clip.is-camera:is(.is-selected, :focus-visible) .about-track-editor-clip__point { box-shadow: 0 0 0 2px var(--editor-bg), 0 0 0 4px var(--editor-camera); }
 
-.about-track-editor .about-track-editor-world-resize {
+.about-track-editor-object.has-resize-start .about-track-editor-clip { padding-left: 20px !important; }
+.about-track-editor-object.has-resize-end .about-track-editor-clip { padding-right: 20px !important; }
+
+.about-track-editor .about-track-editor-duration-resize {
   position: absolute;
-  z-index: 5;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 14px;
-  min-width: 14px;
+  z-index: 6;
+  top: 3px;
+  bottom: 3px;
+  width: 18px;
+  min-width: 18px;
   min-height: 0;
   padding: 0;
   border: 0;
@@ -420,23 +428,42 @@
   touch-action: none;
 }
 
-.about-track-editor-world-resize > span {
+.about-track-editor-duration-resize.is-start { left: 0; }
+.about-track-editor-duration-resize.is-end { right: 0; }
+
+.about-track-editor-duration-resize > span {
   position: absolute;
-  top: 6px;
-  right: 0;
-  bottom: 6px;
-  width: 2px;
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--editor-world) 78%, white);
-  box-shadow: 0 0 0 1px var(--editor-bg);
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: calc(100% - 2px);
+  border: 1px solid color-mix(in srgb, var(--lane-colour) 82%, white);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--lane-colour) 20%, var(--editor-bg));
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 56%);
+  transform: translate(-50%, -50%);
+  transition: background 120ms ease, transform 120ms ease;
 }
 
-.about-track-editor-world-resize:is(:hover, :focus-visible) > span {
-  width: 3px;
-  background: var(--editor-world);
+.about-track-editor-duration-resize > span::before,
+.about-track-editor-duration-resize > span::after {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  width: 1px;
+  background: color-mix(in srgb, var(--lane-colour) 88%, white);
+  content: '';
 }
 
-.about-track-editor button.about-track-editor-world-resize:is(:hover, :focus-visible) {
+.about-track-editor-duration-resize > span::before { left: 3px; }
+.about-track-editor-duration-resize > span::after { right: 3px; }
+
+.about-track-editor-duration-resize:is(:hover, :focus-visible) > span {
+  background: color-mix(in srgb, var(--lane-colour) 36%, var(--editor-bg));
+  transform: translate(-50%, -50%) scaleX(1.08);
+}
+
+.about-track-editor button.about-track-editor-duration-resize:is(:hover, :focus-visible) {
   border-color: transparent;
   background: transparent;
 }
@@ -552,82 +579,24 @@
 .about-track-editor-camera-rig {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.about-track-editor-camera-rig__group {
+  display: grid;
   gap: 8px;
 }
 
-.about-track-editor-camera-values { display: grid; gap: 8px; }
-.about-track-editor-camera-values__group { display: grid; gap: 5px; }
-.about-track-editor-camera-values__group > span { color: var(--editor-ink); font-size: 10px; font-weight: 650; }
-.about-track-editor-camera-values__group > small { margin-top: -3px; color: var(--editor-muted); font-size: 9px; }
-.about-track-editor-camera-center { justify-self: start; color: var(--editor-camera); border-color: color-mix(in srgb, var(--editor-camera) 50%, var(--editor-line)); }
-
-.about-track-editor-camera-pad {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-  padding: 8px;
-  border: 1px solid color-mix(in srgb, var(--editor-camera) 27%, var(--editor-line));
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--editor-field) 84%, var(--editor-camera));
+.about-track-editor-camera-rig__group > span {
+  padding-bottom: 4px;
+  color: var(--editor-camera);
+  border-bottom: 1px solid color-mix(in srgb, var(--editor-camera) 30%, var(--editor-line));
+  font-family: var(--abs-font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
 }
-
-.about-track-editor-camera-pad__meta { display: flex; align-items: baseline; justify-content: space-between; gap: 5px; }
-.about-track-editor-camera-pad__meta span { color: var(--editor-ink); font-size: 10px; font-weight: 650; }
-.about-track-editor-camera-pad__meta small,
-.about-track-editor-camera-pad output { color: var(--editor-muted); font-family: var(--abs-font-mono); font-size: 8px; }
-.about-track-editor-camera-pad output { text-align: center; }
-.about-track-editor-camera-pad__surface {
-  position: relative;
-  min-height: 96px;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--editor-line-strong) 72%, transparent);
-  border-radius: 4px;
-  background:
-    linear-gradient(90deg, transparent 49.5%, rgb(88 212 255 / 30%) 50%, transparent 50.5%),
-    linear-gradient(0deg, transparent 49.5%, rgb(88 212 255 / 30%) 50%, transparent 50.5%),
-    repeating-linear-gradient(90deg, transparent 0 24%, rgb(255 255 255 / 4%) 24% 25%),
-    rgb(5 11 16 / 42%);
-  cursor: crosshair;
-  touch-action: none;
-}
-
-.about-track-editor-camera-pad__surface:focus-visible { outline: 2px solid var(--editor-accent); outline-offset: 2px; }
-.about-track-editor-camera-pad__axis { position: absolute; background: color-mix(in srgb, var(--editor-camera) 58%, transparent); pointer-events: none; }
-.about-track-editor-camera-pad__axis.is-x { top: 50%; right: 7px; left: 7px; height: 1px; }
-.about-track-editor-camera-pad__axis.is-y { top: 7px; bottom: 7px; left: 50%; width: 1px; }
-.about-track-editor-camera-pad__marker { position: absolute; z-index: 2; width: 12px; height: 12px; border: 2px solid var(--editor-ink); border-radius: 50%; background: var(--editor-camera); box-shadow: 0 0 0 3px rgb(11 16 22 / 64%); transform: translate(-50%, -50%); pointer-events: none; }
-.about-track-editor-camera-pad__label { position: absolute; color: color-mix(in srgb, var(--editor-muted) 75%, transparent); font-family: var(--abs-font-mono); font-size: 7px; font-style: normal; pointer-events: none; }
-.about-track-editor-camera-pad__label.is-top { top: 4px; left: 5px; }
-.about-track-editor-camera-pad__label.is-right { right: 5px; bottom: 4px; }
-
-.about-track-editor-camera-lens {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 9px;
-  border: 1px solid var(--editor-line);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--editor-bg) 40%, var(--editor-panel));
-}
-
-.about-track-editor-camera-lens--embedded {
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-
-.about-track-editor-camera-lens__heading,
-.about-track-editor-camera-lens__presets { grid-column: 1 / -1; }
-.about-track-editor-camera-lens__heading { display: grid; gap: 2px; }
-.about-track-editor-camera-lens__heading span { color: var(--editor-ink); font-size: 10px; font-weight: 650; }
-.about-track-editor-camera-lens__heading small { color: var(--editor-muted); font-size: 9px; }
-.about-track-editor-camera-lens__presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-.about-track-editor-camera-lens__presets button { display: grid; gap: 1px; min-height: 32px; padding: 4px; color: var(--editor-muted); border-color: var(--editor-line); font-size: 9px; }
-.about-track-editor-camera-lens__presets button small { color: inherit; font-family: var(--abs-font-mono); font-size: 8px; }
-.about-track-editor-camera-lens__presets button.is-active { color: var(--editor-ink); border-color: color-mix(in srgb, var(--editor-camera) 65%, var(--editor-line)); background: color-mix(in srgb, var(--editor-camera) 15%, var(--editor-field)); }
 
 .about-track-editor-field { display: grid; gap: 4px; min-width: 0; color: var(--editor-muted); }
 .about-track-editor-field.is-wide,

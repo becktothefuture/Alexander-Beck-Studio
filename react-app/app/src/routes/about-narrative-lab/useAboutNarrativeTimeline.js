@@ -132,6 +132,7 @@ export function useAboutNarrativeTimeline({
     let previousTransportOwner = 'scroll';
     let measureTimer = 0;
     let preparationTimer = 0;
+    let preparationRetryCount = 0;
     let lastPreparationIdentity = '';
     let installedDocument = null;
     let installedProfileKey = '';
@@ -169,8 +170,15 @@ export function useAboutNarrativeTimeline({
       window.clearTimeout(preparationTimer);
       preparationTimer = window.setTimeout(() => {
         preparationTimer = 0;
-        handoffPreparation(nextStoryWU, options);
-      }, 0);
+        if (handoffPreparation(nextStoryWU, options)) {
+          preparationRetryCount = 0;
+          return;
+        }
+        if (!disposed && preparationRetryCount < 20 && !lastPreparationIdentity) {
+          preparationRetryCount += 1;
+          schedulePreparationHandoff(nextStoryWU, options);
+        }
+      }, preparationRetryCount ? 50 : 0);
     };
 
     const rebuildLenis = () => {

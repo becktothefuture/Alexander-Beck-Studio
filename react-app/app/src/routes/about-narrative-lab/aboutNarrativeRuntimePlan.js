@@ -1,10 +1,15 @@
 import { cloneAboutNarrativeDocument } from './aboutNarrativeSchema.js';
 import {
   ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
-  migrateAboutNarrativeVersion2To3,
+  migrateAboutNarrativeVersion2To4,
+  migrateAboutNarrativeVersion3To4,
   normalizeAboutNarrativeTrackDocument,
   validateAboutNarrativeTrackDocument,
 } from './aboutNarrativeTrackSchema.js';
+import {
+  slerpAboutNarrativeCameraQuaternionInto,
+  writeAboutNarrativeCameraQuaternion,
+} from './aboutNarrativeCameraRig.js';
 import {
   createAboutNarrativeProfileResolver,
   resolveAboutNarrativePointProfile,
@@ -75,7 +80,9 @@ function resolveTrackModel(input) {
     };
   }
   try {
-    const migrated = migrateAboutNarrativeVersion2To3(input);
+    const migrated = input?.schemaVersion === 3
+      ? migrateAboutNarrativeVersion3To4(input)
+      : migrateAboutNarrativeVersion2To4(input);
     return {
       valid: true,
       model: normalizeAboutNarrativeTrackDocument(migrated),
@@ -112,8 +119,8 @@ function mergeCameraKey(key, override = {}) {
   return {
     ...key,
     ...override,
-    offset: [...(override.offset || key.offset)],
-    lookAtOffset: [...(override.lookAtOffset || key.lookAtOffset)],
+    position: [...(override.position || key.position)],
+    rotation: [...(override.rotation || key.rotation)],
   };
 }
 
@@ -140,7 +147,12 @@ function applyProfileOverrides(model, resolver) {
   const cameraKeys = model.tracks.camera.keys
     .map((key) => {
       const merged = mergeCameraKey(key, overrides.camera[key.id]);
-      return { ...merged, easingCurve: compileAboutNarrativeCameraEasing(merged.easing) };
+      return {
+        ...merged,
+        easingCurve: compileAboutNarrativeCameraEasing(merged.easing),
+        quaternion: writeAboutNarrativeCameraQuaternion([0, 0, 0, 1], merged.rotation),
+        reducedQuaternion: writeAboutNarrativeCameraQuaternion([0, 0, 0, 1], merged.rotation, { zeroRoll: true }),
+      };
     })
     .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id));
   const authoredWorlds = model.tracks.worlds.objects
@@ -149,8 +161,8 @@ function applyProfileOverrides(model, resolver) {
   const worlds = authoredWorlds.map((world, index) => ({
     ...world,
     endWU: Number(authoredWorlds[index + 1]?.startWU ?? durationWU),
-    anchorRailZ: Number(model.globals.camera.startZ)
-      - (Number(world.anchorWU) * Number(model.globals.camera.cadence)),
+    anchorRailZ: Number(model.globals.worldRail.originZ)
+      - (Number(world.anchorWU) * Number(model.globals.worldRail.unitsPerWU)),
   }));
   const textFields = model.tracks.text.fields
     .map((field) => ({ ...field, ...(overrides.text[field.id] || {}) }))
@@ -355,15 +367,16 @@ function mix(from, to, progress) {
   return from + ((to - from) * progress);
 }
 
-function writeCameraKey(target, key, fallbackFov) {
-  target.offset[0] = key?.offset?.[0] ?? 0;
-  target.offset[1] = key?.offset?.[1] ?? 0;
-  target.offset[2] = key?.offset?.[2] ?? 0;
-  target.lookAtOffset[0] = key?.lookAtOffset?.[0] ?? 0;
-  target.lookAtOffset[1] = key?.lookAtOffset?.[1] ?? 0;
-  target.lookAtOffset[2] = key?.lookAtOffset?.[2] ?? -1;
+function writeCameraKey(target, key, fallbackFov, reducedMotion = false) {
+  target.position[0] = key?.position?.[0] ?? 0;
+  target.position[1] = key?.position?.[1] ?? 0;
+  target.position[2] = key?.position?.[2] ?? 0;
+  const quaternion = (reducedMotion ? key?.reducedQuaternion : key?.quaternion) || [0, 0, 0, 1];
+  target.quaternion[0] = quaternion[0];
+  target.quaternion[1] = quaternion[1];
+  target.quaternion[2] = quaternion[2];
+  target.quaternion[3] = quaternion[3];
   target.fov = key?.fov ?? fallbackFov;
-  target.roll = key?.roll ?? 0;
   target.distanceFogStartWU = key?.distanceFogStartWU ?? 8;
   target.distanceFogEndWU = key?.distanceFogEndWU ?? 18;
   return target;
@@ -386,23 +399,22 @@ function findIndexAtWU(items, storyWU, key) {
 }
 
 function sampleCameraInto(keys, storyWU, fallbackFov, reducedMotion, target) {
-  if (!keys.length) return writeCameraKey(target, null, fallbackFov);
+  if (!keys.length) return writeCameraKey(target, null, fallbackFov, reducedMotion);
   const fromIndex = findIndexAtWU(keys, storyWU, 'atWU');
   const from = keys[fromIndex];
   const to = keys[Math.min(keys.length - 1, fromIndex + 1)];
   if (reducedMotion || from === to || storyWU <= Number(keys[0].atWU)) {
-    return writeCameraKey(target, storyWU <= Number(keys[0].atWU) ? keys[0] : from, fallbackFov);
+    return writeCameraKey(target, storyWU <= Number(keys[0].atWU) ? keys[0] : from, fallbackFov, reducedMotion);
   }
   const spanWU = Math.max(TIME_EPSILON, Number(to.atWU) - Number(from.atWU));
   const progress = applyAboutNarrativeCameraEasing(from.easingCurve, (storyWU - Number(from.atWU)) / spanWU);
-  target.offset[0] = mix(from.offset[0], to.offset[0], progress);
-  target.offset[1] = mix(from.offset[1], to.offset[1], progress);
-  target.offset[2] = mix(from.offset[2], to.offset[2], progress);
-  target.lookAtOffset[0] = mix(from.lookAtOffset[0], to.lookAtOffset[0], progress);
-  target.lookAtOffset[1] = mix(from.lookAtOffset[1], to.lookAtOffset[1], progress);
-  target.lookAtOffset[2] = mix(from.lookAtOffset[2], to.lookAtOffset[2], progress);
+  target.position[0] = mix(from.position[0], to.position[0], progress);
+  target.position[1] = mix(from.position[1], to.position[1], progress);
+  target.position[2] = mix(from.position[2], to.position[2], progress);
+  const fromQuaternion = reducedMotion ? from.reducedQuaternion : from.quaternion;
+  const toQuaternion = reducedMotion ? to.reducedQuaternion : to.quaternion;
+  slerpAboutNarrativeCameraQuaternionInto(target.quaternion, fromQuaternion, toQuaternion, progress);
   target.fov = mix(from.fov, to.fov, progress);
-  target.roll = mix(from.roll, to.roll, progress);
   target.distanceFogStartWU = mix(from.distanceFogStartWU, to.distanceFogStartWU, progress);
   target.distanceFogEndWU = mix(from.distanceFogEndWU, to.distanceFogEndWU, progress);
   return target;
@@ -616,10 +628,9 @@ function writeDisciplineReveal(target, config, storyWU, durationWU, reducedMotio
 
 export function createAboutNarrativeRuntimeFrameSample() {
   const cameraKey = {
-    offset: [0, 0, 0],
-    lookAtOffset: [0, 0, -1],
+    position: [0, 0, 0],
+    quaternion: [0, 0, 0, 1],
     fov: 48,
-    roll: 0,
     distanceFogStartWU: 8,
     distanceFogEndWU: 18,
   };
@@ -656,12 +667,10 @@ export function createAboutNarrativeRuntimeFrameSample() {
     reducedMotion: false,
     camera: {
       position: [0, 0, 0],
-      target: [0, 0, -1],
+      quaternion: [0, 0, 0, 1],
       fov: 48,
-      roll: 0,
       distanceFogStartWU: 8,
       distanceFogEndWU: 18,
-      cadence: 1,
     },
     world: {
       from: null,
@@ -727,19 +736,16 @@ export function sampleAboutNarrativeRuntimePlanInto(
     reducedMotion,
     target._cameraKey,
   );
-  const cameraRailZ = plan.model.globals.camera.startZ
-    - (cameraStoryWU * plan.model.globals.camera.cadence);
-  target.camera.position[0] = cameraKey.offset[0];
-  target.camera.position[1] = cameraKey.offset[1];
-  target.camera.position[2] = cameraRailZ + cameraKey.offset[2];
-  target.camera.target[0] = target.camera.position[0] + cameraKey.lookAtOffset[0];
-  target.camera.target[1] = target.camera.position[1] + cameraKey.lookAtOffset[1];
-  target.camera.target[2] = target.camera.position[2] + cameraKey.lookAtOffset[2];
+  target.camera.position[0] = cameraKey.position[0];
+  target.camera.position[1] = cameraKey.position[1];
+  target.camera.position[2] = cameraKey.position[2];
+  target.camera.quaternion[0] = cameraKey.quaternion[0];
+  target.camera.quaternion[1] = cameraKey.quaternion[1];
+  target.camera.quaternion[2] = cameraKey.quaternion[2];
+  target.camera.quaternion[3] = cameraKey.quaternion[3];
   target.camera.fov = reducedMotion ? plan.model.globals.camera.fov : cameraKey.fov;
-  target.camera.roll = reducedMotion ? 0 : cameraKey.roll;
   target.camera.distanceFogStartWU = cameraKey.distanceFogStartWU;
   target.camera.distanceFogEndWU = cameraKey.distanceFogEndWU;
-  target.camera.cadence = plan.model.globals.camera.cadence;
 
   target.globals = plan.model.globals;
   target.storyWU = clampedStoryWU;

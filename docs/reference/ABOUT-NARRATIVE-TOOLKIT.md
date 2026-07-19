@@ -80,16 +80,15 @@ The runtime has one `storyWU` value. Three sources can own it:
 
 Only one owner is active at a time. Scrubbing stops Lenis. Choosing **Follow scroll** resumes it without resetting the current page position. Wheel or touch input cancels playback.
 
-The timeline is a collapsible, development-only overlay with its own fixed palette: amber for Sequence/playhead, cyan for Camera, violet for World, coral for Text, and green for Interaction. This palette does not inherit route or website theme colours. Every Camera boundary is a visible locked diamond. A quiet dashed cyan rail shows continuous base-dolly travel; brighter solid spans show authored framing changes between keys. Left and Right arrow keys jump to the previous or next timing point unless a text field or numeric control has focus.
+The timeline is a collapsible, development-only overlay with its own fixed palette: amber for Sequence/playhead, cyan for Camera, violet for World, coral for Text, and green for Interaction. This palette does not inherit route or website theme colours. Camera keys are visible points on one lane; the first and final timing boundaries remain protected. Left and Right arrow keys jump to the previous or next timing point unless a text field or numeric control has focus.
 
 The compiler converts `storyWU` into:
 
 ```text
-Section index
-Section-local 0…1 progress
-Camera position, aim, FOV, and roll
+Global Story WU
+Camera position, rotation, FOV, and distance fog
 From/To World plus transition progress
-Text Cue envelopes
+Text field envelopes
 Interaction activation
 ```
 
@@ -97,59 +96,42 @@ The runtime samples this once per animation frame. No World adapter may start an
 
 ## Camera fundamentals
 
-The camera has a protected base dolly and editable shot offsets.
-
-### Base dolly
-
-The default camera is:
-
-```text
-z = startZ - storyWU × cadence
-```
-
-At the default cadence, one story WU moves the camera one camera-distance WU forward. This is why the camera keeps advancing through editorial and spatial Sections with the same cadence.
+The camera is one absolute six-axis rig. There is no authored frame origin, aim target, depth offset, roll control, or camera dolly underneath it.
 
 ### Editable Camera keys
 
 A Camera key stores:
 
-- Position inside its Section (`at`, from 0 to 1)
-- X, Y, and forward offset
-- Look-at offset
+- Global Story WU (`atWU`)
+- Absolute Position X, Y, and Z in world units
+- Rotation X, Y, and Z in degrees
 - FOV
-- Roll
-- A soft cubic-Bezier curve into the next key
+- Distance-fog start and end
+- A travel curve into the next key
 
-The editor interpolates aim and lens independently from the protected base dolly. Orientation is resolved by Three.js look-at math rather than interpolating authored Euler rotations.
+Rotation uses Three.js `YXZ` Euler order at authored keys and quaternion interpolation during playback. This avoids sudden flips while keeping the inspector understandable as X/Y/Z degrees. Position and FOV interpolate directly between keys. The renderer applies the sampled absolute position and quaternion without a secondary look-at, orbit, or rail adjustment.
 
-Use **Set camera key** to make a change permanent. Camera recipes—Push, Glide, Orbit, Reveal, and Resolve—create normal visible keys that can be edited or deleted.
+Adding a Camera key at the playhead samples the published pose first, so insertion does not create a jump. Migrated support keys are ordinary absolute keys that approximate the former path closely without retaining its offset/target machinery.
 
 ### Camera travel easing
 
-Selecting a Camera key opens its **Travel easing** graph. It always controls the outgoing segment: the move from the selected key to the next key, never the segment that arrived at it. The two horizontal Bezier handles are deliberately constrained to zero velocity at departure and arrival, so camera framing, depth, aim, lens, and roll always ease softly in and out.
+Selecting a Camera key opens its **Travel easing** graph. It controls the outgoing segment: the move from the selected key to the next key, never the segment that arrived at it. The two horizontal Bezier handles shape departure and arrival for position, rotation, lens, and fog.
 
 - **Out / acceleration** controls how long the shot holds before it gathers speed.
 - **In / deceleration** controls how early the shot starts settling into the following composition.
-- The protected forward rail continues beneath the authored pose. The curve shapes every authored camera property, including depth; intentional depth changes may therefore create a deliberate change in travel direction.
+- Linear travel is also supported and is used by the baked migration path where it best preserves the previous motion.
 
 The curve can be dragged directly, adjusted with arrow keys, entered numerically, or set from Balanced, Cinematic, and Measured presets. The final Camera key has no outgoing segment, so its curve is disabled.
 
 ### Camera rig controls
 
-The Camera inspector separates the two gestures that are commonly confused in numeric-only editors:
+The open **Camera rig** folder contains exactly seven paired slider/exact-value controls:
 
-- **Frame position** moves the camera horizontally and vertically in its shot plane.
-- **Aim target** moves the point the camera looks at, without moving the camera itself.
-- **Depth offset** moves the camera nearer or farther along the protected forward rail.
-- **Lens & horizon** provides Wide, Natural, and Tight FOV starts plus exact FOV and roll input.
+- **Position X**, **Position Y**, and **Position Z** move the camera in world space.
+- **Rotation X**, **Rotation Y**, and **Rotation Z** rotate around the camera itself at the centre of the viewport, like a first-person video-game camera.
+- **Field of view** widens or tightens the lens.
 
-Both plane pads can be dragged or nudged with arrow keys; the accompanying X/Y fields remain available for exact values. A pad edit is one undoable Camera-pose gesture.
-
-Every Section always has protected Camera keys at `0` and `1`. They remain visible and selectable as smaller locked diamonds but cannot be dragged or deleted. Existing authored framing is copied to those boundaries, so adding the keys does not change the approved camera path. Intermediate keys remain freely editable and removable.
-
-**Camera View** shows the published camera. **Director View** temporarily orbits, tilts, and zooms around the sampled target without writing keys. Resetting or leaving Director View restores the published framing.
-
-The editor-only **Path** overlay shows Section boundaries, fixed World anchors, the current playhead, and the constant-cadence path. It never appears in production.
+Distance fog and Travel easing remain in separate collapsed folders. Slider gestures live-apply as one undoable edit, while the adjacent number field supports precise entry. The protected first and final keys cannot move in time or be deleted, but their pose and fog remain editable.
 
 ## How Worlds stay connected
 
@@ -160,13 +142,13 @@ Every Section has either:
 
 A World clip owns a registered adapter ID, Shape ID, deterministic seed, fixed transform, entry distance, transition window, correspondence mode, modifier stack, and interaction settings.
 
-The World is placed once in world space:
+The World is placed once on its own world-placement rail:
 
 ```text
-World Z = camera Z at Section entry - entryDistanceWU
+World Z = worldRail origin - anchorWU × unitsPerWU - entryDistanceWU
 ```
 
-The camera then moves toward and through it. The World does not remain attached to the camera.
+This rail belongs to World anchoring only; it does not modify the authored camera. The World does not remain attached to the camera.
 
 Camera, World, Text, and Motion are independent tracks. Replacing a middle Shape preserves camera keys, text, World placement, and motion unless a capability check says the replacement is incompatible.
 
@@ -256,7 +238,7 @@ Select an editorial Section, then edit its blocks under **Editorial content**. P
 
 Select **Discipline reveal** in the Motion lane. C remains one unchanged calm-field World for the complete grid and discipline sequence: the Motion clip owns field travel, label activation, grid isolation, resting opacity and size, point emphasis, fog, and the label hold. Its start controls field travel, activation begins the labels and isolation transition, and its end is the restore endpoint. **Grid restore duration** begins that many WU before the clip end and gently returns the grid to its full, unhighlighted circles. Increase it to shorten the active highlighted state; set it to `0` only when an immediate endpoint is intentional. Reorder the six labels to change reveal order without remapping their stable point groups.
 
-The clip is one draggable timing object. Moving it shifts the complete sequence while preserving its relative timing. The unchanged grid begins its screen-up handoff behind the three spatial practice titles. Once the titles clear, the native DOM labels reveal from their corresponding Three.js grid points and continue into the following editorial block. The labels then leave while the six coloured points remain. Their palette is fixed to the actual Home simulation ball tokens by semantic group: `1 → --ball-1`, `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`. E's World transition is set to **hold**, so the C grid stays in place during that boundary; the separate Grid ripple Motion targets E only after the discipline treatment has restored. The ripple modulates point size in place and never displaces grid vertices.
+The clip is one draggable timing object. Moving it shifts the complete sequence while preserving its relative timing. The unchanged grid begins its screen-up handoff behind the three spatial practice titles. Once the titles clear, the native DOM labels reveal from their corresponding Three.js grid points and continue into the following editorial block. The labels then leave while the six coloured points remain. Their palette is fixed to the actual Home simulation ball tokens by semantic group: `1 → --ball-1`, `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`. E reuses C's exact generated grid, placement, and responsive overrides with index correspondence, so the hold changes only its living-colour treatment. Before the separate Grid ripple Motion starts, the camera settles into its oblique ocean view. That camera remains physically stationary until the ripple has fully released. The ripple combines a radial wave with a crossing wave and displaces dots only in height; dot size and the grid's authored X/Z footprint remain unchanged.
 
 ## History, comparison, and checkpoints
 
@@ -326,4 +308,4 @@ ABS_BROWSER=webkit npm run audit:about-narrative
 npm run check:site
 ```
 
-The browser audit verifies exact-WU sampling, constant cadence, editor/playback presence, Instrument Serif titles, portal placement, visible locked Camera boundary keys and authored-motion spans, click/keyboard keyframe navigation, the extended discipline reveal and fixed Home palette mapping, text edit and undo, WebGL readiness in Chromium, timeline collapse, and editor clearance above the persistent Button Bar at desktop and mobile sizes.
+The browser audit verifies exact-WU sampling, the absolute Position/Rotation/FOV camera rig, editor/playback presence, Instrument Serif titles, portal placement, visible protected Camera boundaries, click/keyboard keyframe navigation, the extended discipline reveal and fixed Home palette mapping, text edit and undo, WebGL readiness in Chromium, timeline collapse, and editor clearance above the persistent Button Bar at desktop and mobile sizes.

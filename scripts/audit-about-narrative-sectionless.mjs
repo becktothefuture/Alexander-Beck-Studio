@@ -168,7 +168,7 @@ async function auditEditor() {
     plusLabels: [...document.querySelectorAll('.about-track-editor-add')].map((button) => button.getAttribute('aria-label')),
     semanticFieldCount: document.querySelectorAll('[data-text-field-id]').length,
   }));
-  assert.equal(initial.editorVersion, 'sectionless-v3');
+  assert.equal(initial.editorVersion, 'sectionless-v4');
   assert.deepEqual(initial.lanes, ['camera', 'world', 'text', 'interaction']);
   assert.equal(initial.legacyContainerCount, 0);
   assert.equal(initial.plusLabels.length, 4);
@@ -176,6 +176,27 @@ async function auditEditor() {
 
   const worldResizeHandles = page.getByRole('button', { name: /^Resize World .+ end$/ });
   assert.equal(await worldResizeHandles.count(), 4, 'Every non-final World needs one duration handle.');
+  const textResizeHandles = page.getByRole('button', { name: /^Resize Text .+ (start|end)$/ });
+  assert.equal(await textResizeHandles.count(), 26, 'Every editable Text clip needs start and end duration handles.');
+  const motionResizeHandles = page.getByRole('button', { name: /^Resize Motion .+ (start|end)$/ });
+  assert.equal(await motionResizeHandles.count(), 4, 'Every editable Motion clip needs start and end duration handles.');
+  assert.equal(
+    await page.getByRole('button', { name: /^Resize Motion Horizontal spin (start|end)$/ }).count(),
+    0,
+    'Protected finale Motion must not expose duration handles.',
+  );
+  const visibleHandle = await worldResizeHandles.first().evaluate((node) => {
+    const hitTarget = node.getBoundingClientRect();
+    const grip = node.querySelector('span')?.getBoundingClientRect();
+    return {
+      hitWidth: hitTarget.width,
+      hitHeight: hitTarget.height,
+      gripWidth: grip?.width || 0,
+      gripHeight: grip?.height || 0,
+    };
+  });
+  assert.ok(visibleHandle.hitWidth >= 18 && visibleHandle.hitHeight >= 30);
+  assert.ok(visibleHandle.gripWidth >= 10 && visibleHandle.gripHeight >= 24);
   const worldB = page.locator('[data-track-object-id="world-complexity"]');
   const worldC = page.locator('[data-track-object-id="world-background"]');
   const worldE = page.locator('[data-track-object-id="world-bringing-life"]');
@@ -203,6 +224,64 @@ async function auditEditor() {
     const rect = document.querySelector('[data-track-object-id="world-background"]')?.getBoundingClientRect();
     return rect && Math.abs(rect.left - beforeX) < 0.6;
   }, worldRectsBefore[1].x);
+
+  const motionClip = page.locator('[data-track-object-id="motion-discipline-reveal"]');
+  const motionRectBefore = await motionClip.boundingBox();
+  const motionStartHandle = page.getByRole('button', { name: 'Resize Motion Discipline reveal start' });
+  const motionHandleBox = await motionStartHandle.boundingBox();
+  await page.mouse.move(
+    motionHandleBox.x + (motionHandleBox.width / 2),
+    motionHandleBox.y + (motionHandleBox.height / 2),
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    motionHandleBox.x + (motionHandleBox.width / 2) + 16,
+    motionHandleBox.y + (motionHandleBox.height / 2),
+    { steps: 4 },
+  );
+  await page.mouse.up();
+  await page.waitForFunction(({ beforeX, beforeWidth }) => {
+    const rect = document.querySelector('[data-track-object-id="motion-discipline-reveal"]')?.getBoundingClientRect();
+    return rect && rect.x > beforeX + 8 && rect.width < beforeWidth - 8;
+  }, { beforeX: motionRectBefore.x, beforeWidth: motionRectBefore.width });
+  const motionRectAfter = await motionClip.boundingBox();
+  assert.ok(
+    Math.abs(
+      (motionRectAfter.x + motionRectAfter.width) - (motionRectBefore.x + motionRectBefore.width),
+    ) < 0.6,
+    'Motion start resize must preserve its end.',
+  );
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await page.waitForFunction((beforeWidth) => {
+    const rect = document.querySelector('[data-track-object-id="motion-discipline-reveal"]')?.getBoundingClientRect();
+    return rect && Math.abs(rect.width - beforeWidth) < 0.6;
+  }, motionRectBefore.width);
+
+  const textRectBefore = await textReference.boundingBox();
+  const textEndHandle = textReference.locator('xpath=..').locator('[data-duration-edge="end"]');
+  const textHandleBox = await textEndHandle.boundingBox();
+  await page.mouse.move(
+    textHandleBox.x + (textHandleBox.width / 2),
+    textHandleBox.y + (textHandleBox.height / 2),
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    textHandleBox.x + (textHandleBox.width / 2) + 16,
+    textHandleBox.y + (textHandleBox.height / 2),
+    { steps: 4 },
+  );
+  await page.mouse.up();
+  await page.waitForFunction((beforeWidth) => {
+    const rect = document.querySelector('[data-track-object-id="text-background-editorial"]')?.getBoundingClientRect();
+    return rect && rect.width > beforeWidth + 8;
+  }, textRectBefore.width);
+  const textRectAfter = await textReference.boundingBox();
+  assert.ok(Math.abs(textRectAfter.x - textRectBefore.x) < 0.6, 'Text end resize must preserve its start.');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await page.waitForFunction((beforeWidth) => {
+    const rect = document.querySelector('[data-track-object-id="text-background-editorial"]')?.getBoundingClientRect();
+    return rect && Math.abs(rect.width - beforeWidth) < 0.6;
+  }, textRectBefore.width);
 
   const editorialConnection = await page.evaluate(() => {
     const first = document.querySelector('[data-track-object-id="text-background-editorial"]');
@@ -380,7 +459,11 @@ async function auditEditor() {
   await page.getByRole('button', { name: 'Undo' }).click();
   assert.equal(await page.locator('[data-text-kind="stub"]').count(), 0);
 
-  await page.locator('[data-track-object-id="text-background-clients"]').dblclick();
+  const clientsClip = page.locator('[data-track-object-id="text-background-clients"]');
+  const clientsClipBox = await clientsClip.boundingBox();
+  await clientsClip.dblclick({
+    position: { x: clientsClipBox.width * 0.7, y: clientsClipBox.height / 2 },
+  });
   await page.waitForFunction(() => document.activeElement?.dataset.editorFocusId === 'text-copy');
   assert.equal(await page.locator('[data-editor-focus-id="text-copy"]').inputValue(), JSON.stringify([
     'Yoti',
@@ -399,41 +482,38 @@ async function auditEditor() {
   await page.locator('[data-track-object-type="camera-key"]').first().click();
   const cameraFolderLabels = await page.locator('[data-inspector-group^="camera-"] > summary span').allTextContents();
   assert.deepEqual(cameraFolderLabels, [
-    'Shot framing & aim',
-    'Lens & horizon',
-    'Depth',
+    'Camera rig',
     'Distance fog',
     'Travel easing',
   ]);
-  assert.equal(await page.locator('[data-inspector-group="camera-framing"]').getByText('Frame position', { exact: true }).count(), 1);
-  assert.equal(await page.locator('[data-inspector-group="camera-framing"]').getByText('Aim target', { exact: true }).count(), 1);
   assert.equal(await page.getByText('Timing protected', { exact: true }).count(), 1);
   const cameraFolders = page.locator('[data-inspector-group^="camera-"]');
-  assert.equal(await cameraFolders.count(), 5);
-  assert.equal(await page.locator('[data-inspector-group="camera-framing"]').evaluate((folder) => folder.open), true);
+  assert.equal(await cameraFolders.count(), 3);
+  assert.equal(await page.locator('[data-inspector-group="camera-rig"]').evaluate((folder) => folder.open), true);
   assert.equal(await page.locator('[data-inspector-group="camera-easing"]').evaluate((folder) => folder.open), false);
   for (const axis of ['X', 'Y', 'Z']) {
-    assert.equal(await page.getByRole('spinbutton', { name: `Target ${axis}` }).getAttribute('step'), '0.001');
+    assert.equal(await page.getByRole('spinbutton', { name: `Camera Position ${axis} exact value` }).getAttribute('step'), '0.01');
+    assert.equal(await page.getByRole('spinbutton', { name: `Camera Rotation ${axis} exact value` }).getAttribute('step'), '0.1');
   }
-  assert.equal(await page.getByRole('button', { name: 'Center horizontal' }).count(), 1);
-  await page.locator('[data-inspector-group="camera-depth"] > summary').click();
-  assert.equal(await page.locator('[data-inspector-group="camera-depth"]').evaluate((folder) => folder.open), true);
-  const openingDepth = page.getByRole('slider', { name: 'Camera depth offset slider' });
-  assert.equal(await openingDepth.isEnabled(), true);
-  assert.equal(await openingDepth.inputValue(), '-2.4');
-  await openingDepth.focus();
-  await openingDepth.press('ArrowRight');
-  await openingDepth.press('Tab');
-  assert.equal(await openingDepth.inputValue(), '-2.35');
+  assert.equal(await page.getByRole('spinbutton', { name: 'Camera Field of view exact value' }).getAttribute('step'), '1');
+  assert.equal(await page.getByText(/first-person camera/i).count(), 1);
+  assert.equal(await page.getByText(/Depth offset|Frame origin|Target coordinates|Aim target|Roll \/ horizon/).count(), 0);
+  const openingPositionZ = page.getByRole('slider', { name: 'Camera Position Z slider' });
+  assert.equal(await openingPositionZ.isEnabled(), true);
+  assert.equal(await openingPositionZ.inputValue(), '5.6');
+  await openingPositionZ.focus();
+  await openingPositionZ.press('ArrowRight');
+  await openingPositionZ.press('Tab');
+  assert.equal(await openingPositionZ.inputValue(), '5.61');
   await page.getByRole('button', { name: 'Undo' }).click();
-  assert.equal(await openingDepth.inputValue(), '-2.4');
+  assert.equal(await openingPositionZ.inputValue(), '5.6');
 
   await page.getByRole('button', { name: 'Camera', exact: true }).click();
   const globalCameraSettings = page.locator('[data-track-settings="camera"]');
   await globalCameraSettings.waitFor();
   assert.equal(await page.getByRole('heading', { name: 'Global camera' }).count(), 1);
   assert.deepEqual(await globalCameraSettings.locator('details > summary span').allTextContents(), [
-    'Camera · Travel & lens',
+    'Camera · Default lens',
   ]);
   await globalCameraSettings.locator('details > summary').click();
   const fieldOfView = globalCameraSettings.getByRole('slider', { name: 'Global camera Field of view slider' });
@@ -550,6 +630,9 @@ async function auditEditor() {
   assert.equal(await page.locator('.about-narrative-world__canvas').count(), 1);
 
   await page.setViewportSize({ width: 390, height: 844 });
+  const mobileDurationHandle = await page.locator('.about-track-editor-duration-resize').first().boundingBox();
+  assert.ok(mobileDurationHandle.width >= 18, `Mobile duration handle was ${mobileDurationHandle.width}px wide.`);
+  assert.ok(mobileDurationHandle.height >= 36, `Mobile duration handle was ${mobileDurationHandle.height}px tall.`);
   const inspector = page.getByRole('region', { name: 'Selected object inspector' });
   await assert.doesNotReject(() => inspector.waitFor({ state: 'hidden' }));
   const inspectorToggle = page.getByRole('button', { name: 'Inspector' });

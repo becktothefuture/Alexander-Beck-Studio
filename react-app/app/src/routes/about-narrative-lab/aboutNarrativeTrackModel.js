@@ -2,7 +2,8 @@ import { cloneAboutNarrativeDocument } from './aboutNarrativeSchema.js';
 import {
   ABOUT_NARRATIVE_TRACK_PROFILE_IDS,
   ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
-  migrateAboutNarrativeVersion2To3,
+  migrateAboutNarrativeVersion2To4,
+  migrateAboutNarrativeVersion3To4,
   normalizeAboutNarrativeTrackDocument,
   validateAboutNarrativeTrackDocument,
 } from './aboutNarrativeTrackSchema.js';
@@ -10,11 +11,15 @@ import {
   applyAboutNarrativeCameraEasing,
   compileAboutNarrativeCameraEasing,
 } from './aboutNarrativeCameraEasing.js';
+import {
+  slerpAboutNarrativeCameraQuaternionInto,
+  writeAboutNarrativeCameraQuaternion,
+} from './aboutNarrativeCameraRig.js';
 
 /*
  * Sectionless About Narrative track model.
  *
- * Legacy v2 input is accepted only at the migration boundary. Native v3 input
+ * Legacy v2/v3 input is accepted only at the migration boundary. Native v4 input
  * is validated and normalized directly so the canonical sectionless document
  * never re-enters the legacy Section compiler.
  *
@@ -35,7 +40,9 @@ function clone(value) {
 }
 export function createAboutNarrativeTrackModel(input) {
   if (input?.schemaVersion !== ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION || !input?.tracks) {
-    return deepFreeze(migrateAboutNarrativeVersion2To3(input));
+    return deepFreeze(input?.schemaVersion === 3
+      ? migrateAboutNarrativeVersion3To4(input)
+      : migrateAboutNarrativeVersion2To4(input));
   }
   const candidate = clone(input);
   const diagnostics = validateAboutNarrativeTrackDocument(candidate);
@@ -76,16 +83,16 @@ function writeTrackVectorMix(target, from, to, progress) {
 }
 
 function writeTrackCameraKey(target, key, fallbackFov) {
-  const offset = key?.offset;
-  const lookAtOffset = key?.lookAtOffset;
-  target.offset[0] = offset?.[0] ?? 0;
-  target.offset[1] = offset?.[1] ?? 0;
-  target.offset[2] = offset?.[2] ?? 0;
-  target.lookAtOffset[0] = lookAtOffset?.[0] ?? 0;
-  target.lookAtOffset[1] = lookAtOffset?.[1] ?? 0;
-  target.lookAtOffset[2] = lookAtOffset?.[2] ?? -1;
+  const position = key?.position;
+  const quaternion = key?.quaternion;
+  target.position[0] = position?.[0] ?? 0;
+  target.position[1] = position?.[1] ?? 0;
+  target.position[2] = position?.[2] ?? 0;
+  target.quaternion[0] = quaternion?.[0] ?? 0;
+  target.quaternion[1] = quaternion?.[1] ?? 0;
+  target.quaternion[2] = quaternion?.[2] ?? 0;
+  target.quaternion[3] = quaternion?.[3] ?? 1;
   target.fov = key?.fov ?? fallbackFov;
-  target.roll = key?.roll ?? 0;
   target.distanceFogStartWU = key?.distanceFogStartWU ?? 8;
   target.distanceFogEndWU = key?.distanceFogEndWU ?? 18;
   return target;
@@ -107,10 +114,9 @@ function sampleCameraKeyInto(keys, storyWU, fallbackFov, target) {
     from.easingCurve || compileAboutNarrativeCameraEasing(from.easing),
     (storyWU - from.atWU) / spanWU,
   );
-  writeTrackVectorMix(target.offset, from.offset, to.offset, progress);
-  writeTrackVectorMix(target.lookAtOffset, from.lookAtOffset, to.lookAtOffset, progress);
+  writeTrackVectorMix(target.position, from.position, to.position, progress);
+  slerpAboutNarrativeCameraQuaternionInto(target.quaternion, from.quaternion, to.quaternion, progress);
   target.fov = mix(from.fov, to.fov, progress);
-  target.roll = mix(from.roll, to.roll, progress);
   target.distanceFogStartWU = mix(from.distanceFogStartWU, to.distanceFogStartWU, progress);
   target.distanceFogEndWU = mix(from.distanceFogEndWU, to.distanceFogEndWU, progress);
   return target;
@@ -160,7 +166,7 @@ function sampleWorldStateInto(worlds, storyWU, target) {
 export function compileAboutNarrativeTrackModel(input) {
   /*
    * Compilation produces sorted immutable indexes for tests and the next runtime
-   * migration slice. It accepts either a v3-shaped track model or a legacy v2
+   * migration slice. It accepts a v4-shaped track model or a legacy document,
    * document, but the returned plan always speaks track language.
    */
   const candidate = input?.schemaVersion === ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION && input?.tracks
@@ -183,7 +189,11 @@ export function compileAboutNarrativeTrackModel(input) {
     durationWU,
     profiles: clone(model.profiles || {}),
     cameraKeys: [...(model.tracks?.camera?.keys || [])]
-      .map((key) => ({ ...key, easingCurve: compileAboutNarrativeCameraEasing(key.easing) }))
+      .map((key) => ({
+        ...key,
+        easingCurve: compileAboutNarrativeCameraEasing(key.easing),
+        quaternion: writeAboutNarrativeCameraQuaternion([0, 0, 0, 1], key.rotation),
+      }))
       .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)),
     worlds: compiledWorlds,
     textFields: [...(model.tracks?.text?.fields || [])].sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id)),
@@ -198,10 +208,9 @@ export function createAboutNarrativeTrackFrameSample() {
    * contract before production playback is switched to tracks.
    */
   const cameraKey = {
-    offset: [0, 0, 0],
-    lookAtOffset: [0, 0, -1],
+    position: [0, 0, 0],
+    quaternion: [0, 0, 0, 1],
     fov: 48,
-    roll: 0,
     distanceFogStartWU: 8,
     distanceFogEndWU: 18,
   };
@@ -211,12 +220,10 @@ export function createAboutNarrativeTrackFrameSample() {
     globals: null,
     camera: {
       position: [0, 0, 0],
-      target: [0, 0, -1],
+      quaternion: [0, 0, 0, 1],
       fov: 48,
-      roll: 0,
       distanceFogStartWU: 8,
       distanceFogEndWU: 18,
-      cadence: 1,
     },
     world: {
       from: null,
@@ -273,23 +280,20 @@ export function sampleAboutNarrativeTrackPlanInto(plan, storyWU, target) {
   const clampedStoryWU = Math.max(0, Math.min(plan.durationWU, Number(storyWU) || 0));
   const globals = plan.model.globals;
   const cameraKey = sampleCameraKeyInto(plan.cameraKeys, clampedStoryWU, globals.camera.fov, target._cameraKey);
-  const cameraZ = globals.camera.startZ - (clampedStoryWU * globals.camera.cadence) + cameraKey.offset[2];
   const cameraPosition = target.camera.position;
-  cameraPosition[0] = cameraKey.offset[0];
-  cameraPosition[1] = cameraKey.offset[1];
-  cameraPosition[2] = cameraZ;
-  const cameraTarget = target.camera.target;
-  cameraTarget[0] = cameraPosition[0] + cameraKey.lookAtOffset[0];
-  cameraTarget[1] = cameraPosition[1] + cameraKey.lookAtOffset[1];
-  cameraTarget[2] = cameraPosition[2] + cameraKey.lookAtOffset[2];
+  cameraPosition[0] = cameraKey.position[0];
+  cameraPosition[1] = cameraKey.position[1];
+  cameraPosition[2] = cameraKey.position[2];
+  target.camera.quaternion[0] = cameraKey.quaternion[0];
+  target.camera.quaternion[1] = cameraKey.quaternion[1];
+  target.camera.quaternion[2] = cameraKey.quaternion[2];
+  target.camera.quaternion[3] = cameraKey.quaternion[3];
   target.storyWU = clampedStoryWU;
   target.durationWU = plan.durationWU;
   target.globals = globals;
   target.camera.fov = cameraKey.fov;
-  target.camera.roll = cameraKey.roll;
   target.camera.distanceFogStartWU = cameraKey.distanceFogStartWU;
   target.camera.distanceFogEndWU = cameraKey.distanceFogEndWU;
-  target.camera.cadence = globals.camera.cadence;
   sampleWorldStateInto(plan.worlds, clampedStoryWU, target.world);
   collectActiveTextFieldIds(target.text.activeFieldIds, plan.textFields, clampedStoryWU);
   collectActiveInteractionIds(target.interactions.activeClipIds, plan.interactionClips, clampedStoryWU);

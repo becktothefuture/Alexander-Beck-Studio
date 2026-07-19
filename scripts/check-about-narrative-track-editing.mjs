@@ -18,6 +18,7 @@ import {
   moveAboutNarrativeTrackObjectsByWU,
   normalizeAboutNarrativeTrackSelection,
   pasteAboutNarrativeTrackClipboardPayload,
+  resizeAboutNarrativeInteractionEdge,
   resizeAboutNarrativeTextFieldEdge,
   resizeAboutNarrativeWorldEnd,
   validateAboutNarrativeTrackClipboardPayload,
@@ -184,6 +185,54 @@ test('Text edge resizing preserves focus ordering and clamps to the Story range'
   assert.equal(end.object.endWU, 1.5);
   assert.equal(end.clamped, true);
   assert.equal(resizeAboutNarrativeTextFieldEdge({ model, id: 'text-intro', edge: 'focus', atWU: 2 }).valid, false);
+});
+
+test('Motion edge resizing preserves activation and stays inside its target World', () => {
+  const model = createFixture();
+  const start = resizeAboutNarrativeInteractionEdge({
+    model,
+    id: 'interaction-spin',
+    edge: 'start',
+    atWU: 3,
+  });
+  assert.equal(start.valid, true);
+  assert.deepEqual(
+    [start.object.startWU, start.object.activationWU, start.object.endWU],
+    [4, 5, 7],
+  );
+  assert.equal(start.clamped, true);
+
+  const end = resizeAboutNarrativeInteractionEdge({
+    model,
+    id: 'interaction-spin',
+    edge: 'end',
+    atWU: 9,
+  });
+  assert.equal(end.valid, true);
+  assert.deepEqual(
+    [end.object.startWU, end.object.activationWU, end.object.endWU],
+    [4.5, 5, 8],
+  );
+  assert.equal(end.clamped, true);
+
+  const collapsed = resizeAboutNarrativeInteractionEdge({
+    model,
+    id: 'interaction-spin',
+    edge: 'start',
+    atWU: 6,
+  });
+  assert.equal(collapsed.valid, true);
+  assert.equal(collapsed.object.startWU, 5);
+  assert.equal(collapsed.object.activationWU, 5);
+
+  const protectedModel = createFixture();
+  protectedModel.tracks.interactions.clips[0].protected = true;
+  assert.equal(resizeAboutNarrativeInteractionEdge({
+    model: protectedModel,
+    id: 'interaction-spin',
+    edge: 'end',
+    atWU: 6,
+  }).valid, false);
 });
 
 test('World end resizing ripples every later World without gaps and keeps free tracks independent', () => {

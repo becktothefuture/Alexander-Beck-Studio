@@ -36,10 +36,6 @@ function smoothstep01(value) {
   return progress * progress * (3 - (2 * progress));
 }
 
-function step(edge, value) {
-  return value < edge ? 0 : 1;
-}
-
 function coordinate(value, index) {
   if (Array.isArray(value) || ArrayBuffer.isView(value)) return numberOr(value[index]);
   return numberOr(index === 0 ? value?.x : index === 1 ? value?.y : value?.z);
@@ -91,9 +87,9 @@ export function inspectAboutNarrativeAnchorSampling(modifiers, target = null) {
 }
 
 /**
- * Writes the exact vertex-shader position (through grid influence) into a
+ * Writes the exact vertex-shader position, including the height ripple, into a
  * caller-owned { x, y, z } target. Colour, alpha, and point-size operations are
- * intentionally excluded because they do not displace semantic anchors.
+ * intentionally excluded.
  */
 export function sampleAboutNarrativeAnchorPosition(input, target) {
   if (!target) throw new TypeError('A caller-owned target is required.');
@@ -198,19 +194,27 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
     + (numberOr(input?.ambientTime) * waveSpeed),
   );
 
-  const groupStrength = mix(
-    numberOr(input?.fromGroupStrength),
-    numberOr(input?.toGroupStrength),
-    morph,
+  const rippleClock = mix(
+    numberOr(input?.ambientTime),
+    numberOr(input?.storyTime),
+    numberOr(input?.gridRipple?.storyMix),
   );
-  target.z += numberOr(input?.gridInfluence)
-    * step(0.001, groupStrength)
-    * 0.22
-    * Math.sin(
-      (target.x * 0.82)
-      + (target.y * 0.54)
-      - (numberOr(input?.storyTime) * 0.45),
-    );
+  const rippleFrequency = numberOr(input?.gridRipple?.frequency, 1);
+  const ripplePhase = rippleClock * numberOr(input?.gridRipple?.speed) * 6.2831853;
+  const rippleDistance = Math.hypot(
+    target.x - numberOr(input?.gridRipple?.centerX),
+    target.z - numberOr(input?.gridRipple?.centerZ),
+  );
+  const radialRipple = Math.sin((rippleDistance * rippleFrequency) - ripplePhase);
+  const crossingRipple = Math.sin(
+    (target.x * rippleFrequency * 0.68)
+    - (target.z * rippleFrequency * 0.51)
+    + (ripplePhase * 0.72),
+  );
+  const ripple = (radialRipple * 0.68) + (crossingRipple * 0.32);
+  target.y += numberOr(input?.gridRipple?.weight)
+    * numberOr(input?.gridRipple?.amplitude)
+    * ripple;
 
   return target;
 }

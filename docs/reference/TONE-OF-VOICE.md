@@ -4,13 +4,13 @@ Guide for all user-facing copy on the site. Single source of truth for how the s
 
 **Goal:** Confident, useful, and specific. The copy should sound like a capable creative technologist explaining what he does, why it matters, and how he thinks. It should have a point of view without becoming self-important.
 
-The current tonal anchor is the About narrative V16. Its useful pattern is:
+The current tonal anchor is the About narrative V19. Its useful pattern is:
 
-> Complex projects hold my attention.
+> I’ve always been drawn to the complicated bit.
 >
-> New technology, changing behaviour, questions of trust.
+> New technology. New behaviour. Questions of trust.
 
-That works because it sounds personal without becoming self-important, then names the concrete territory without over-explaining complexity. Apply that structure across the site: short claim, specific conditions, then evidence.
+That works because it sounds like a person beginning a conversation, then names the concrete territory without turning complexity into a thesis. Apply that structure across the site: short claim, specific conditions, then evidence.
 
 ---
 
@@ -100,7 +100,7 @@ That works because it sounds personal without becoming self-important, then name
 - choreograph, orchestrate, leverage, synergistic, holistic, world-class, best-in-class, high-impact, cutting-edge  
 - decision-grade, cohesive (without saying what’s cohesive), scalable (without saying what scales)  
 - filler adjectives: “incredibly”, “really”, “truly”, “deeply”
-- soft filler: “I like”, “I enjoy”, “I have always been drawn to” unless the sentence immediately becomes concrete
+- soft filler: “I like”, “I enjoy”, or “I have always been drawn to” when the sentence does not immediately become concrete
 - over-polished slogans: “familiar and entirely new”, “precise through constraint”, “expressive through humanity”
 
 ---
@@ -114,4 +114,4 @@ That works because it sounds personal without becoming self-important, then name
 - [ ] “I” / “you” used where it’s you or the reader; no unnecessary “we”.
 - [ ] One idea per sentence where possible.
 - [ ] CTAs are single, clear actions.
-- [ ] Tone matches V16: confident, specific, practical, warm, and earned through evidence.
+- [ ] Tone matches V19: confident, specific, practical, warm, and earned through evidence.
