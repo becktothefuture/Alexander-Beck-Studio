@@ -25,7 +25,7 @@ import {
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const canonicalSource = await read('../react-app/app/public/config/contents-about.json');
 const canonical = JSON.parse(canonicalSource);
-const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v15.md');
+const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v16.md');
 const legacy = JSON.parse(await read('./fixtures/about-narrative/contents-about-v2.json'));
 const liveSources = Object.fromEntries(await Promise.all([
   ['experience', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
@@ -267,14 +267,17 @@ test('Camera keys retain a centered horizontal baseline and clean authored trans
   });
 });
 
-test('World C enters the discipline reveal on one linear, camera-only downward rail', () => {
+test('World C enters the discipline reveal and overhead view without camera depth rebound', () => {
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const background = canonical.tracks.worlds.objects.find((world) => world.id === 'world-background');
   const shift = keys.get('camera-background-1-2');
   const reveal = keys.get('camera-disciplines-0');
+  const overhead = keys.get('camera-disciplines-exit');
   assert.equal(shift.atWU, 8.165);
-  assert.equal(reveal.atWU, 10.45);
+  assert.equal(reveal.atWU, 12.245);
   assert.equal(shift.easing, 'linear');
+  assert.equal(reveal.easing, 'linear');
+  assert.equal(overhead.easing, 'linear');
   assert.equal(keys.has('camera-grid-bookend-0'), false);
   assert.equal(keys.has('camera-practice-reveal-0'), false);
   assert.deepEqual(
@@ -303,6 +306,13 @@ test('World C enters the discipline reveal on one linear, camera-only downward r
     assert.equal(frame.camera.target[2] - frame.camera.position[2], -6);
     assert.equal(frame.camera.fov, 48, `Camera changed lens at ${storyWU.toFixed(3)} WU.`);
     assert.equal(frame.camera.roll, 0, `Camera rolled at ${storyWU.toFixed(3)} WU.`);
+    previousZ = frame.camera.position[2];
+  }
+
+  previousZ = Number.NEGATIVE_INFINITY;
+  for (let storyWU = shift.atWU; storyWU <= overhead.atWU; storyWU += 0.005) {
+    const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
+    assert.ok(frame.camera.position[2] >= previousZ - 0.000001, `Camera depth rebounded at ${storyWU.toFixed(3)} WU.`);
     previousZ = frame.camera.position[2];
   }
 
@@ -393,7 +403,7 @@ test('every travelling title shares one timing while the finale holds through th
   assert.equal(finale.preset, 'finale-v1');
 
   const titleSets = [
-    ['text-complexity-idea', 'text-complexity-conditions', 'text-complexity-direction'],
+    ['text-complexity-idea', 'text-complexity-conditions'],
     ['text-complexity-curiosity', 'text-complexity-listen'],
     ['text-life-momentum', 'text-life-form', 'text-life-character'],
   ];
@@ -412,7 +422,6 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
       ['text-promise-main', 'title'],
       ['text-complexity-idea', 'title'],
       ['text-complexity-conditions', 'title'],
-      ['text-complexity-direction', 'title'],
       ['text-background-editorial', 'scroll-block'],
       ['text-background-clients', 'scroll-block'],
       ['text-complexity-curiosity', 'title'],
@@ -474,7 +483,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /about-narrative-spatial-title \{[\s\S]*?padding-block: 0\.2em;[\s\S]*?margin: -0\.2em auto;[\s\S]*?overflow: visible;/);
 });
 
-test('all published narrative writing comes from the current V15 script', () => {
+test('all published narrative writing comes from the current V16 script', () => {
   const normalize = (value) => String(value || '')
     .toLocaleLowerCase('en-GB')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
@@ -485,11 +494,11 @@ test('all published narrative writing comes from the current V15 script', () => 
     field.block?.text,
   ]).filter(Boolean);
   authoredCopy.forEach((copy) => {
-    assert.ok(normalizedScript.includes(normalize(copy)), `V15 is missing live copy: ${copy}`);
+    assert.ok(normalizedScript.includes(normalize(copy)), `V16 is missing live copy: ${copy}`);
   });
   const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
   reveal.parameters.items.forEach((item) => {
-    assert.ok(normalizedScript.includes(normalize(item.label)), `V15 is missing ${item.label}`);
+    assert.ok(normalizedScript.includes(normalize(item.label)), `V16 is missing ${item.label}`);
   });
   assert.doesNotMatch(canonicalSource, /Together, they become a way to make the idea tangible/);
   assert.doesNotMatch(canonicalSource, /That is when the experience starts to feel real/);

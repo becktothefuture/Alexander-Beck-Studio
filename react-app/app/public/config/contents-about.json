@@ -98,7 +98,7 @@
           ],
           "lookAtOffset": [
             0,
-            0,
+            0.1,
             -1
           ],
           "fov": 48,
@@ -143,7 +143,7 @@
           ],
           "fov": 48,
           "roll": 0,
-          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
+          "easing": "linear",
           "locked": false,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18
@@ -163,7 +163,7 @@
           ],
           "fov": 48,
           "roll": 0,
-          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
+          "easing": "linear",
           "locked": false,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18
@@ -194,7 +194,7 @@
           "offset": [
             0,
             0.9,
-            9
+            4.2
           ],
           "lookAtOffset": [
             0,
@@ -203,7 +203,7 @@
           ],
           "fov": 48,
           "roll": 0,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
+          "easing": "linear",
           "locked": false,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18
@@ -213,37 +213,57 @@
           "atWU": 14.145,
           "offset": [
             0,
-            14,
+            8,
             6.1
           ],
           "lookAtOffset": [
             0,
-            -90,
+            -80,
             0
           ],
           "fov": 70,
           "roll": 0,
-          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
+          "easing": "linear",
           "locked": false,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18
         },
         {
-          "id": "camera-living-field-exit-2",
-          "atWU": 15.1245,
+          "id": "camera-grid-ripple-hold-start",
+          "atWU": 15.05,
           "offset": [
             0,
-            4,
-            7
+            9.408560311284045,
+            7.01556420233463
           ],
           "lookAtOffset": [
             0,
-            -90,
+            -82.34760051880674,
             0
           ],
           "fov": 70,
           "roll": 0,
-          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
+          "easing": "linear",
+          "locked": false,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
+        },
+        {
+          "id": "camera-grid-ripple-hold-end",
+          "atWU": 18,
+          "offset": [
+            0,
+            9.408560311284045,
+            9.96556420233463
+          ],
+          "lookAtOffset": [
+            0,
+            -82.34760051880674,
+            0
+          ],
+          "fov": 70,
+          "roll": 0,
+          "easing": "linear",
           "locked": false,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18
@@ -253,8 +273,8 @@
           "atWU": 20.3,
           "offset": [
             0,
-            4,
-            7
+            14,
+            12.3
           ],
           "lookAtOffset": [
             0,
@@ -343,7 +363,7 @@
             "correspondence": "index-v1"
           },
           "shapeParameters": {
-            "radius": 0.85,
+            "radius": 1.4,
             "density": 0.33
           },
           "modifiers": [
@@ -386,10 +406,10 @@
             "correspondence": "spatial-nearest-v1"
           },
           "shapeParameters": {
-            "width": 9.2,
-            "height": 6.4,
-            "depth": 16,
-            "chunkCount": 11,
+            "width": 13.4,
+            "height": 11.3,
+            "depth": 37.3,
+            "chunkCount": 22,
             "chunkSize": 2.3,
             "scatter": 0.14,
             "turbulence": 0.42,
@@ -434,11 +454,11 @@
             "startWU": 4.595,
             "endWU": 5.9425,
             "type": "morph",
-            "easing": "smoothstep",
-            "correspondence": "spatial-nearest-v1"
+            "easing": "ease-out",
+            "correspondence": "spatial-nearest-v2"
           },
           "shapeParameters": {
-            "width": 13.5,
+            "width": 16.4,
             "depth": 24,
             "height": -1.72,
             "jitter": 0.035,
@@ -484,27 +504,6 @@
             "density": 0.26
           },
           "modifiers": [
-            {
-              "id": "ambient-drift-v1",
-              "enabled": true,
-              "parameters": {
-                "amplitude": 0.025,
-                "speed": 0.62,
-                "timeMode": "mixed"
-              }
-            },
-            {
-              "id": "living-wave-v1",
-              "enabled": true,
-              "parameters": {
-                "strength": 0.82,
-                "amplitude": 0.18,
-                "speed": 0.42,
-                "frequencyX": 1.15,
-                "frequencyZ": 0.72,
-                "timeMode": "mixed"
-              }
-            },
             {
               "id": "living-colour-v1",
               "enabled": true,
@@ -603,7 +602,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "Some projects have several things in play: a new technology, a behaviour people need to understand, a question of trust."
+          "text": "Complex projects hold my attention."
         },
         {
           "id": "text-complexity-conditions",
@@ -617,21 +616,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "Often, the idea is promising before it is easy to explain."
-        },
-        {
-          "id": "text-complexity-direction",
-          "kind": "title",
-          "startWU": 3.2,
-          "focusWU": 3.6,
-          "endWU": 4,
-          "publishable": true,
-          "presentation": {
-            "layout": "center"
-          },
-          "movement": "spatial",
-          "preset": "travelling-title-v1",
-          "text": "That is the territory I have built my career around."
+          "text": "New technology, changing behaviour, questions of trust."
         },
         {
           "id": "text-background-editorial",

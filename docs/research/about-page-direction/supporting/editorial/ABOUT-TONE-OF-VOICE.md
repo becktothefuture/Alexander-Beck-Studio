@@ -6,12 +6,12 @@
 
 The page should sound like a thoughtful designer explaining how he sees the work—not a manifesto generator, a résumé, or a personal-brand campaign.
 
-## Current anchor: V15
+## Current anchor: V16
 
-V15 works because it does four things at once:
+V16 works because it does four things at once:
 
-1. It begins with a concrete project condition, not an abstract claim: “Some projects have several things in play.”
-2. It makes the problem practical: an idea can be promising before it is easy to explain.
+1. It begins with a clear service promise, then a short personal observation: “Complex projects hold my attention.”
+2. It makes the territory concrete without over-explaining complexity: “New technology, changing behaviour, questions of trust.”
 3. It turns biography into evidence: Communication Design, agency work, product work, emerging technology and project domains explain the current practice.
 4. It treats disciplines as working materials, not departments or a list of services.
 
@@ -23,7 +23,7 @@ Future About edits should preserve that spine. They can change wording, pacing a
 
 Open with an observation or difficult judgement that creates a question for the page to answer. Introduce “I” only when the story needs origin, action or responsibility.
 
-**Use:** “Ambition is rarely the hard part.”
+**Use:** “Complex projects hold my attention.”
 **Avoid:** “Digital experiences are often asked to make complicated things feel simple.”
 
 ### 2. State the point directly
@@ -44,7 +44,7 @@ Talk about screens, systems, interactions, brands, constraints and users. Avoid 
 
 After a belief, name the discipline, method, client or decision that makes it credible. Do not interrupt the opening with a biography, but do not leave the page floating in abstraction.
 
-For V13, proof means career trajectory, project domains, disciplines, tools, AI as working material, and the kind of output teams can use. Avoid proving a claim with more claims.
+For V16, proof means career trajectory, project domains, disciplines, tools, AI as working material, and the kind of output teams can use. Avoid proving a claim with more claims.
 
 ### 5. Use plain language with visual rhythm
 
@@ -71,7 +71,7 @@ Confidence should come from sentence shape: judgement → consequence → eviden
 
 Use these patterns repeatedly without making them formulaic:
 
-- **Judgement → practical consequence:** “Ambition is rarely the hard part. The hard part is giving ideas form people can understand, trust and use.”
+- **Judgement → practical consequence:** “Complex projects hold my attention. New technology, changing behaviour, questions of trust.”
 - **Principle → consequence:** “Structure makes decisions legible. Character gives people a reason to care.”
 - **Origin → transferable lesson:** “Learning composition, form and shape taught me that small decisions can change the whole experience.”
 - **Claim → proof:** “My work moves between product design, art direction and creative engineering. That has included…”
@@ -81,7 +81,7 @@ Use these patterns repeatedly without making them formulaic:
 
 clear, structure, character, respond, rhythm, test, build, use, attention, depth, movement, curiosity, constraint, system, interaction
 
-Also favour the V13 vocabulary: form, behaviour, trust, working material, point of view, implementation, useful, understand.
+Also favour the V16 vocabulary: form, behaviour, trust, working material, point of view, implementation, useful, understand.
 
 ## Words and habits to avoid
 
