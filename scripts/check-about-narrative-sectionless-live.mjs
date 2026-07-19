@@ -26,7 +26,7 @@ import {
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const canonicalSource = await read('../react-app/app/public/config/contents-about.json');
 const canonical = JSON.parse(canonicalSource);
-const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v21.md');
+const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v22.md');
 const legacy = JSON.parse(await read('./fixtures/about-narrative/contents-about-v2.json'));
 const liveSources = Object.fromEntries(await Promise.all([
   ['experience', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
@@ -527,23 +527,18 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
     ],
   );
 
-  const structuredBlocks = [
-    ['reading', 'text-background-editorial', 'list', 6],
-    ['disciplines', 'text-disciplines-title', 'disciplines', 6],
-    ['exit', 'text-role-highlight', 'list', 5],
+  const passages = [
+    ['reading', 'text-background-editorial', 3],
+    ['disciplines', 'text-disciplines-title', 3],
+    ['exit', 'text-role-highlight', 3],
   ];
-  structuredBlocks.forEach(([layout, id, blockKind, itemCount]) => {
+  passages.forEach(([layout, id, lineCount]) => {
     const field = fields.find((candidate) => candidate.id === id);
     assert.equal(field.presentation?.layout, layout);
     assert.equal(field.kind, 'scroll-block');
-    assert.equal(field.block.kind, blockKind);
-    assert.equal(field.block.items.length, itemCount);
-    assert.ok(field.block.label);
-    const searchableCopy = [
-      field.block.label,
-      ...(field.block.items || []),
-      field.block.text,
-    ].filter(Boolean).join(' ');
+    assert.equal(field.block.kind, 'prose');
+    assert.equal(field.block.text.split('\n').length, lineCount);
+    const searchableCopy = field.block.text;
     field.block.emphasis.forEach((item) => {
       assert.ok(searchableCopy.includes(item.text));
     });
@@ -581,7 +576,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /about-narrative-spatial-title \{[\s\S]*?padding-block: 0\.2em;[\s\S]*?margin: -0\.2em auto -0\.1em;[\s\S]*?overflow: visible;/);
 });
 
-test('all published narrative writing comes from the current V21 script', () => {
+test('all published narrative writing comes from the current V22 script', () => {
   const normalize = (value) => String(value || '')
     .toLocaleLowerCase('en-GB')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
@@ -597,11 +592,11 @@ test('all published narrative writing comes from the current V21 script', () => 
     ];
   }).filter(Boolean);
   authoredCopy.forEach((copy) => {
-    assert.ok(normalizedScript.includes(normalize(copy)), `V21 is missing live copy: ${copy}`);
+    assert.ok(normalizedScript.includes(normalize(copy)), `V22 is missing live copy: ${copy}`);
   });
   const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
   reveal.parameters.items.forEach((item) => {
-    assert.ok(normalizedScript.includes(normalize(item.label)), `V21 is missing ${item.label}`);
+    assert.ok(normalizedScript.includes(normalize(item.label)), `V22 is missing ${item.label}`);
   });
   assert.doesNotMatch(canonicalSource, /Together, they become a way to make the idea tangible/);
   assert.doesNotMatch(canonicalSource, /That is when the experience starts to feel real/);
