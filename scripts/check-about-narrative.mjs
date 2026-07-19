@@ -42,6 +42,7 @@ import {
   validateAboutNarrativeDocument,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeSchema.js';
 import {
+  createAboutNarrativeColourMatchedDisciplineGroups,
   createAboutNarrativeSeeds,
   generateAboutNarrativeShape,
   validateAboutNarrativeShapeOutput,
@@ -1324,6 +1325,36 @@ test('calm field preserves exactly six visible semantic anchor points without ch
   });
   assert.deepEqual(groups.map((item) => item.group), [1, 2, 3, 4, 5, 6]);
   assert.ok(groups.every((item) => item.presence === 1));
+});
+
+test('discipline anchors select one existing point from every material colour slot', async () => {
+  const pointCount = 5000;
+  const pointSeeds = createAboutNarrativeSeeds(pointCount, 506832829);
+  const output = await generateAboutNarrativeShape({
+    shapeId: 'calm-field-v1',
+    pointCount,
+    seeds: pointSeeds,
+    quality: 'mobile',
+    parameters: { width: 13, depth: 17, height: -1.72, jitter: 0.035, density: 0.22 },
+  });
+  const materialThresholds = [0.31, 0.44, 0.6, 0.8, 0.9];
+  const groups = createAboutNarrativeColourMatchedDisciplineGroups({
+    output,
+    pointSeeds,
+    materialThresholds,
+  });
+  const materialSlot = (seed) => {
+    const value = ((seed * 43.713) + 0.271) % 1;
+    const thresholdIndex = materialThresholds.findIndex((threshold) => value < threshold);
+    return thresholdIndex < 0 ? 5 : thresholdIndex;
+  };
+  const anchors = [];
+  groups.forEach((group, index) => {
+    if (group > 0) anchors.push({ group, slot: materialSlot(pointSeeds[index]) });
+  });
+  anchors.sort((a, b) => a.group - b.group);
+  assert.deepEqual(anchors.map(({ group }) => group), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(anchors.map(({ slot }) => slot), [0, 1, 2, 3, 4, 5]);
 });
 
 test('turbulent field creates uneven volumetric density rather than a uniform random fill', async () => {

@@ -84,8 +84,8 @@ export const ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS = Object.freeze([
 ]);
 
 export const ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS = Object.freeze([
-  numberControl('distanceFogStartWU', 'Fog begins', 0, 40, 0.1, 'WU'),
-  numberControl('distanceFogEndWU', 'Fully faded', 0.1, 80, 0.1, 'WU'),
+  numberControl('distanceFogStartWU', 'Fog begins', 0, 40, 0.1, 'WU', 'camera-travel'),
+  numberControl('distanceFogEndWU', 'Fully faded', 0.1, 80, 0.1, 'WU', 'camera-travel'),
 ]);
 
 export const ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS = Object.freeze([
@@ -124,6 +124,7 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     controls: Object.freeze([
       numberControl('cadence', 'Forward cadence', 0.25, 2, 0.01, 'WU', 'camera-travel'),
       numberControl('fov', 'Field of view', 25, 80, 1, '°', 'camera-travel'),
+      ...ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS,
     ]),
   }),
   Object.freeze({
@@ -349,10 +350,10 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       backgroundOpacity: 0.2,
       backgroundScale: 0.58,
       reconnectOpacity: 0.24,
-      pointScale: 2.25,
+      pointScale: 3.6,
       restoreDurationWU: 0.72,
-      labelOffsetPx: 18,
-      labelScale: 1.2,
+      labelOffsetPx: 20,
+      labelScale: 1.4,
       labelDurationWU: 0.162,
       holdWU: 0.72,
       items: Object.freeze([

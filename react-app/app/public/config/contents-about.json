@@ -784,10 +784,10 @@
             "backgroundOpacity": 0.2,
             "backgroundScale": 0.58,
             "reconnectOpacity": 0.24,
-            "pointScale": 2.25,
+            "pointScale": 3.6,
             "restoreDurationWU": 0.72,
-            "labelOffsetPx": 18,
-            "labelScale": 1.2,
+            "labelOffsetPx": 20,
+            "labelScale": 1.4,
             "labelDurationWU": 0.162,
             "holdWU": 0.72,
             "items": [

@@ -142,7 +142,7 @@ body.about-narrative-page .route-simulation-layer {
   width: 100%;
   max-width: 22ch;
   padding-block: 0.2em;
-  margin: -0.2em auto;
+  margin: -0.2em auto -0.1em;
   overflow: visible;
   opacity: var(--fragment-opacity, 0);
   color: var(--text-primary);
@@ -151,7 +151,7 @@ body.about-narrative-page .route-simulation-layer {
   font-size: clamp(2.4rem, 6.7vw, 7.8rem);
   font-weight: 400;
   letter-spacing: var(--abs-font-headline-letter-spacing);
-  line-height: calc(0.96 * var(--abs-font-headline-line-height-scale, 1));
+  line-height: calc(1.16 * var(--abs-font-headline-line-height-scale, 1));
   text-shadow: 0 1px 24px color-mix(in srgb, var(--studio-window-bg) 52%, transparent);
   text-wrap: balance;
   transform:
@@ -456,11 +456,13 @@ body.about-narrative-page .route-simulation-layer {
   --discipline-reveal: 0;
   --discipline-x: -20vw;
   --discipline-y: -20vh;
+  --discipline-label-nudge: 0px;
   position: absolute;
   top: var(--discipline-y);
   left: var(--discipline-x);
   display: block;
-  max-width: min(30rem, calc(100% - var(--discipline-x) - 1rem));
+  width: max-content;
+  max-width: min(30rem, calc(100% - 2rem));
   opacity: var(--discipline-reveal);
   color: var(--text-primary);
   font-family: var(--abs-font-sans);
@@ -472,14 +474,22 @@ body.about-narrative-page .route-simulation-layer {
   font-weight: 540;
   letter-spacing: -0.035em;
   line-height: 1.05;
-  text-wrap: balance;
-  transform: translate3d(var(--discipline-label-offset, 18px), -50%, 0);
+  white-space: nowrap;
+  transform: translate3d(
+    calc(var(--discipline-label-offset, 18px) + var(--discipline-label-nudge)),
+    -50%,
+    0
+  );
   transform-origin: left center;
   will-change: opacity, transform;
 }
 
 .about-narrative-discipline-reveal li[data-label-side='left'] {
-  transform: translate3d(calc(-100% - var(--discipline-label-offset, 18px)), -50%, 0);
+  transform: translate3d(
+    calc(-100% - var(--discipline-label-offset, 18px) + var(--discipline-label-nudge)),
+    -50%,
+    0
+  );
 }
 
 .about-narrative-discipline-reveal__label {
@@ -516,7 +526,7 @@ body.about-narrative-page .route-simulation-layer {
   left: 50%;
   width: min(48vw, 32rem);
   min-width: 44px;
-  height: 36%;
+  height: 29%;
   min-height: 44px;
   border: 0;
   border-radius: 50%;
@@ -718,7 +728,7 @@ body.about-narrative-page .route-simulation-layer {
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-title {
   max-width: 17ch;
   font-size: clamp(2.25rem, 11vw, 4.5rem);
-  line-height: calc(0.98 * var(--abs-font-headline-line-height-scale, 1));
+  line-height: calc(1.18 * var(--abs-font-headline-line-height-scale, 1));
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-render-span--editorial {
@@ -771,7 +781,7 @@ body.about-narrative-page .route-simulation-layer {
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-bust-interaction {
   top: 5%;
   width: min(72vw, 24rem);
-  height: 38%;
+  height: 36%;
 }
 
 @media (max-height: 600px) and (max-width: 900px) {
@@ -792,7 +802,7 @@ body.about-narrative-page .route-simulation-layer {
 
   .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-bust-interaction {
     top: 4%;
-    height: 40%;
+    height: 38%;
   }
 
 }

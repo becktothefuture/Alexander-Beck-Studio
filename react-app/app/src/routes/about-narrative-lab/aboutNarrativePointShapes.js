@@ -168,6 +168,65 @@ function createDisciplineGroups(count) {
   return groups;
 }
 
+function getMaterialSlot(seed, thresholds) {
+  const materialSeed = ((seed * 43.713) + 0.271) % 1;
+  for (let index = 0; index < thresholds.length; index += 1) {
+    if (materialSeed < thresholds[index]) return index;
+  }
+  return thresholds.length;
+}
+
+export function createAboutNarrativeColourMatchedDisciplineGroups({
+  output,
+  pointSeeds,
+  materialThresholds,
+}) {
+  const sourceGroups = output?.attributes?.disciplineGroup;
+  const pointCount = output?.presence?.length || 0;
+  if (!sourceGroups) return null;
+  if (!(pointSeeds instanceof Float32Array) || pointSeeds.length !== pointCount) {
+    throw new Error('Discipline colour matching needs one point seed per rendered point.');
+  }
+  if (!Array.isArray(materialThresholds) || materialThresholds.length !== 5) {
+    throw new Error('Discipline colour matching needs the five material thresholds.');
+  }
+
+  const groups = new Float32Array(pointCount);
+  const used = new Uint8Array(pointCount);
+  for (let group = 1; group <= 6; group += 1) {
+    let anchorIndex = -1;
+    for (let index = 0; index < pointCount; index += 1) {
+      if (Math.round(sourceGroups[index]) === group) {
+        anchorIndex = index;
+        break;
+      }
+    }
+    if (anchorIndex < 0) continue;
+
+    const anchorOffset = anchorIndex * 3;
+    let bestIndex = -1;
+    let bestDistance = Infinity;
+    for (let index = 0; index < pointCount; index += 1) {
+      if (used[index] || output.presence[index] <= 0.001) continue;
+      if (getMaterialSlot(pointSeeds[index], materialThresholds) !== group - 1) continue;
+      const offset = index * 3;
+      const dx = output.positions[offset] - output.positions[anchorOffset];
+      const dy = output.positions[offset + 1] - output.positions[anchorOffset + 1];
+      const dz = output.positions[offset + 2] - output.positions[anchorOffset + 2];
+      const distance = (dx * dx) + (dy * dy) + (dz * dz);
+      if (distance < bestDistance) {
+        bestIndex = index;
+        bestDistance = distance;
+      }
+    }
+
+    if (bestIndex < 0) bestIndex = anchorIndex;
+    groups[bestIndex] = group;
+    used[bestIndex] = 1;
+  }
+  return groups;
+}
+
 function createDisciplineGrid(count, seeds, parameters) {
   const positions = new Float32Array(count * 3);
   const { columns, rows } = getFieldDimensions(count);

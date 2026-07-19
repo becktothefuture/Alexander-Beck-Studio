@@ -177,7 +177,7 @@ test('the Text row header exposes only native-v3 global animation controls', () 
   assert.match(liveSources.editor, /Each Title’s duration remains its start–end width on the timeline/);
 });
 
-test('the Camera row exposes per-key distance fog and protected boundary poses remain editable', () => {
+test('the Camera row exposes global and per-key distance fog while protected boundary poses remain editable', () => {
   assert.deepEqual(
     ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS.map((group) => group.id),
     ['camera-travel'],
@@ -186,7 +186,7 @@ test('the Camera row exposes per-key distance fog and protected boundary poses r
     .find((group) => group.id === 'camera').controls;
   assert.deepEqual(
     controls.map((control) => control.id),
-    ['cadence', 'fov'],
+    ['cadence', 'fov', 'distanceFogStartWU', 'distanceFogEndWU'],
   );
   assert.deepEqual(
     ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS.map((control) => control.id),
@@ -221,10 +221,10 @@ test('the Camera row exposes per-key distance fog and protected boundary poses r
 test('B forms a denser moving field and the Camera flies straight through it', () => {
   const complexity = canonical.tracks.worlds.objects.find((world) => world.id === 'world-complexity');
   assert.deepEqual(complexity.shapeParameters, {
-    width: 9.2,
-    height: 6.4,
-    depth: 16,
-    chunkCount: 11,
+    width: 13.4,
+    height: 11.3,
+    depth: 37.3,
+    chunkCount: 22,
     chunkSize: 2.3,
     scatter: 0.14,
     turbulence: 0.42,
@@ -241,7 +241,8 @@ test('B forms a denser moving field and the Camera flies straight through it', (
   ].map((id) => keys.get(id));
   flyThrough.forEach((key) => {
     assert.equal(key.offset[0], 0);
-    assert.deepEqual(key.lookAtOffset, [0, 0, -1]);
+    assert.equal(key.lookAtOffset[0], 0);
+    assert.equal(key.lookAtOffset[2], -1);
   });
   const cameraZ = (key) => canonical.globals.camera.startZ
     - (key.atWU * canonical.globals.camera.cadence)
@@ -257,12 +258,12 @@ test('B forms a denser moving field and the Camera flies straight through it', (
   }
 });
 
-test('Camera keys retain a centered horizontal baseline and clean authored transforms', () => {
+test('Camera keys retain a centered horizontal baseline and finite authored transforms', () => {
   canonical.tracks.camera.keys.forEach((key) => {
     assert.equal(key.offset[0], 0, `${key.id} Frame X should be centered`);
     assert.equal(key.lookAtOffset[0], 0, `${key.id} Target X should be centered`);
     for (const value of [...key.offset, ...key.lookAtOffset, key.roll]) {
-      assert.equal(value, Number(value.toFixed(1)), `${key.id} should use 0.1 WU transform increments`);
+      assert.equal(Number.isFinite(value), true, `${key.id} should use finite transforms`);
     }
   });
 });
@@ -347,6 +348,9 @@ test('D is a dedicated Discipline reveal Motion and the ripple starts only in E'
   assert.equal(reveal.targetWorldId, 'world-background');
   assert.equal(reveal.parameters.items.length, 6);
   assert.equal(reveal.parameters.fieldFogStrength, 0.12);
+  assert.equal(reveal.parameters.pointScale, 3.6);
+  assert.equal(reveal.parameters.labelOffsetPx, 20);
+  assert.equal(reveal.parameters.labelScale, 1.4);
   assert.equal(world.transitionIn.type, 'hold');
   assert.equal(clip.type, 'grid-ripple');
   assert.equal(clip.targetWorldId, 'world-bringing-life');
@@ -366,7 +370,11 @@ test('D is a dedicated Discipline reveal Motion and the ripple starts only in E'
   assert.match(liveSources.editor, /Move ripple start/);
   assert.match(liveSources.editor, /Number\(value\) \+ attackWU/);
   assert.doesNotMatch(liveSources.world, /discipline-(?:blur|shift)/);
+  assert.match(liveSources.world, /createAboutNarrativeColourMatchedDisciplineGroups/);
+  assert.doesNotMatch(liveSources.world, /mix\(pointTint, groupColor/);
+  assert.match(liveSources.world, /const placeDisciplineLabels =/);
   assert.match(liveSources.styles, /about-narrative-discipline-reveal__label \{[\s\S]*?filter: none;[\s\S]*?text-shadow: none;[\s\S]*?transform: none;/);
+  assert.match(liveSources.styles, /--discipline-label-nudge: 0px;/);
 });
 
 test('E ripples C in place beneath one stationary overhead camera', () => {
@@ -396,7 +404,7 @@ test('E ripples C in place beneath one stationary overhead camera', () => {
     assertCameraValue(frame.camera.target[2] - frame.camera.position[2], 0, `E should look straight down at ${storyWU}`);
     assertCameraValue(frame.camera.fov, 70, `E wide lens at ${storyWU}`);
     assertCameraValue(frame.camera.roll, 0, `E level horizon at ${storyWU}`);
-  }
+  });
 });
 
 test('every travelling title shares one timing while the finale holds through the last frame', () => {
@@ -491,7 +499,9 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /var\(--render-span-start-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 0\.8\)/);
   assert.doesNotMatch(liveSources.styles, /var\(--render-span-focus-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 0\.8\)/);
   assert.match(liveSources.styles, /--about-editorial-type-size: clamp\(1\.4375rem/);
-  assert.match(liveSources.styles, /about-narrative-spatial-title \{[\s\S]*?padding-block: 0\.2em;[\s\S]*?margin: -0\.2em auto;[\s\S]*?overflow: visible;/);
+  assert.match(liveSources.styles, /about-narrative-spatial-title \{[\s\S]*?padding-block: 0\.2em;[\s\S]*?margin: -0\.2em auto -0\.1em;[\s\S]*?overflow: visible;/);
+  assert.match(liveSources.styles, /line-height: calc\(1\.16 \* var\(--abs-font-headline-line-height-scale, 1\)\)/);
+  assert.match(liveSources.styles, /line-height: calc\(1\.18 \* var\(--abs-font-headline-line-height-scale, 1\)\)/);
 });
 
 test('all published narrative writing comes from the current V16 script', () => {

@@ -82,6 +82,14 @@ async function auditProduction(viewport, label, expectedProfile) {
     const root = document.querySelector('.about-narrative-lab');
     const viewport = document.querySelector('.about-narrative-discipline-reveal').getBoundingClientRect();
     const labels = [...document.querySelectorAll('[data-discipline-group]')].map((label) => label.getBoundingClientRect());
+    const overlapPairs = [];
+    labels.forEach((rect, index) => labels.slice(index + 1).forEach((other, offset) => {
+      const separated = rect.right <= other.left + 1
+        || other.right <= rect.left + 1
+        || rect.bottom <= other.top + 1
+        || other.bottom <= rect.top + 1;
+      if (!separated) overlapPairs.push([index + 1, index + offset + 2]);
+    }));
     return {
       activeWorld: root.dataset.activeNarrativeWorld,
       gridInfluence: root.dataset.worldGridInfluence,
@@ -93,6 +101,7 @@ async function auditProduction(viewport, label, expectedProfile) {
         && rect.top >= viewport.top - 1
         && rect.bottom <= viewport.bottom + 1
       )),
+      overlapPairs,
     };
   });
   assert.deepEqual(disciplineState, {
@@ -101,6 +110,7 @@ async function auditProduction(viewport, label, expectedProfile) {
     worldFrom: 'turbulent-field-v1',
     worldTo: 'calm-field-v1',
     labelsWithinViewport: true,
+    overlapPairs: [],
   });
   await page.screenshot({ path: `${outputDir}/${browserName}-production-${label}-discipline.png` });
 
@@ -471,6 +481,17 @@ async function auditEditor() {
     const root = document.querySelector('.about-narrative-lab');
     return Number(root?.dataset.narrativeStoryWu) > 11.45
       && root?.dataset.worldDisciplineLabels === '6';
+  });
+  await page.waitForFunction(() => {
+    const viewport = document.querySelector('.about-narrative-discipline-reveal')?.getBoundingClientRect();
+    if (!viewport) return false;
+    return [...document.querySelectorAll('[data-discipline-group]')].every((label) => {
+      const rect = label.getBoundingClientRect();
+      return rect.left >= viewport.left - 1
+        && rect.right <= viewport.right + 1
+        && rect.top >= viewport.top - 1
+        && rect.bottom <= viewport.bottom + 1;
+    });
   });
   const mobileDisciplineBounds = await page.evaluate(() => {
     const viewport = document.querySelector('.about-narrative-discipline-reveal').getBoundingClientRect();
