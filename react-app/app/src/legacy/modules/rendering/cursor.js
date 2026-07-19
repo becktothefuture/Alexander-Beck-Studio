@@ -166,6 +166,16 @@ function isDevChromeCursorTarget(target) {
   return Boolean(target.closest('.panel-toggle-btn'));
 }
 
+/**
+ * Editors need native pointer affordances for dense controls, text entry, and
+ * drag handles. Keep this list rooted in the editor containers so new controls
+ * inherit the contract without bespoke cursor rules.
+ */
+function isNativeEditorCursorTarget(target) {
+  if (!target || !target.closest) return false;
+  return Boolean(target.closest('.panel, .panel-toggle-btn, .parameterizer-panel, .about-track-editor'));
+}
+
 function getHomeCursorDotDiameterCssPx() {
   const globals = getGlobals();
   const canvas = globals.canvas;
@@ -480,6 +490,16 @@ export function updateCursorPosition(clientX, clientY) {
   isInSimulation = isMouseInSimulation(clientX, clientY);
   const overlayIsActive = isOverlayActive();
   const hoverTarget = document.elementFromPoint(clientX, clientY);
+
+  // Editor surfaces retain the system cursor. Hiding only the native cursor in
+  // CSS would leave the custom dot/lens rendered above controls, so yield here
+  // before either custom-cursor form is mounted.
+  if (isNativeEditorCursorTarget(hoverTarget)) {
+    document.body.classList.remove('abs-in-simulation');
+    cursorElement.style.display = 'none';
+    return;
+  }
+
   const useDevChromeTapRing = !overlayIsActive && isDevChromeCursorTarget(hoverTarget);
 
   const shouldUseHomeDot = shouldUseHomeDotCursor();

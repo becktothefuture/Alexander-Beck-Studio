@@ -25,7 +25,7 @@ import {
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const canonicalSource = await read('../react-app/app/public/config/contents-about.json');
 const canonical = JSON.parse(canonicalSource);
-const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v13.md');
+const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v15.md');
 const legacy = JSON.parse(await read('./fixtures/about-narrative/contents-about-v2.json'));
 const liveSources = Object.fromEntries(await Promise.all([
   ['experience', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
@@ -257,41 +257,53 @@ test('B forms a denser moving field and the Camera flies straight through it', (
   }
 });
 
-test('C and D keep one top-down grid while the Camera moves continuously across it', () => {
+test('Camera keys retain a centered horizontal baseline and clean authored transforms', () => {
+  canonical.tracks.camera.keys.forEach((key) => {
+    assert.equal(key.offset[0], 0, `${key.id} Frame X should be centered`);
+    assert.equal(key.lookAtOffset[0], 0, `${key.id} Target X should be centered`);
+    for (const value of [...key.offset, ...key.lookAtOffset, key.roll]) {
+      assert.equal(value, Number(value.toFixed(1)), `${key.id} should use 0.1 WU transform increments`);
+    }
+  });
+});
+
+test('World C enters the discipline reveal on one linear, camera-only downward rail', () => {
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const background = canonical.tracks.worlds.objects.find((world) => world.id === 'world-background');
-  const bookend = keys.get('camera-grid-bookend-0');
-  const reveal = keys.get('camera-practice-reveal-0');
-  const editorial = keys.get('camera-disciplines-0');
-  assert.equal(bookend.atWU, 9.602);
+  const shift = keys.get('camera-background-1-2');
+  const reveal = keys.get('camera-disciplines-0');
+  assert.equal(shift.atWU, 8.165);
   assert.equal(reveal.atWU, 10.45);
-  assert.deepEqual(editorial.offset, [0, 0.9, 6.35]);
-  const downwardKeys = [
-    'camera-background-1-2',
-    'camera-grid-bookend-0',
-    'camera-practice-reveal-0',
-    'camera-disciplines-0',
-    'camera-disciplines-exit',
-  ].map((id) => keys.get(id));
-  downwardKeys.forEach((key) => {
+  assert.equal(shift.easing, 'linear');
+  assert.equal(keys.has('camera-grid-bookend-0'), false);
+  assert.equal(keys.has('camera-practice-reveal-0'), false);
+  assert.deepEqual(
+    canonical.tracks.camera.keys
+      .filter((key) => key.atWU >= shift.atWU && key.atWU <= reveal.atWU)
+      .map((key) => key.id),
+    ['camera-background-1-2', 'camera-disciplines-0'],
+  );
+  [shift, reveal].forEach((key) => {
     assert.equal(key.offset[1], 0.9);
     assert.deepEqual(key.lookAtOffset, [0, -90, -6]);
+    assert.equal(key.fov, 48);
+    assert.equal(key.roll, 0);
   });
-  downwardKeys.slice(0, -1).forEach((key) => assert.match(key.easing, /^cubic-bezier\([^,]+, 0, [^,]+, 1\)$/));
-  const cameraZ = (key) => canonical.globals.camera.startZ
-    - (key.atWU * canonical.globals.camera.cadence)
-    + key.offset[2];
-  const downwardZ = downwardKeys.map(cameraZ);
-  assert.ok(downwardZ.every((value, index) => index === 0 || value > downwardZ[index - 1]));
-  assert.ok(downwardKeys.every((key, index) => index === 0 || key.fov >= downwardKeys[index - 1].fov));
 
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
-  let previousFov = Number.NEGATIVE_INFINITY;
-  for (let storyWU = downwardKeys[0].atWU; storyWU <= downwardKeys.at(-1).atWU; storyWU += 0.005) {
+  let previousZ = Number.NEGATIVE_INFINITY;
+  for (let storyWU = shift.atWU; storyWU <= reveal.atWU; storyWU += 0.005) {
     const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
     assert.ok(Number.isFinite(frame.camera.position[2]), `Camera position is invalid at ${storyWU.toFixed(3)} WU.`);
-    assert.ok(frame.camera.fov >= previousFov - 0.000001, `Camera FOV tightened at ${storyWU.toFixed(3)} WU.`);
-    previousFov = frame.camera.fov;
+    assert.ok(frame.camera.position[2] >= previousZ, `Camera reversed at ${storyWU.toFixed(3)} WU.`);
+    assert.equal(frame.camera.position[0], 0, `Camera drifted horizontally at ${storyWU.toFixed(3)} WU.`);
+    assert.equal(frame.camera.position[1], 0.9, `Camera changed height at ${storyWU.toFixed(3)} WU.`);
+    assert.equal(frame.camera.target[0] - frame.camera.position[0], 0);
+    assert.equal(frame.camera.target[1] - frame.camera.position[1], -90);
+    assert.equal(frame.camera.target[2] - frame.camera.position[2], -6);
+    assert.equal(frame.camera.fov, 48, `Camera changed lens at ${storyWU.toFixed(3)} WU.`);
+    assert.equal(frame.camera.roll, 0, `Camera rolled at ${storyWU.toFixed(3)} WU.`);
+    previousZ = frame.camera.position[2];
   }
 
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
@@ -345,6 +357,25 @@ test('D is a dedicated Discipline reveal Motion and the ripple starts only in E'
   assert.match(liveSources.editor, /Number\(value\) \+ attackWU/);
 });
 
+test('E holds a wide, centred overhead view of the living wave field', () => {
+  const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  const assertCameraValue = (actual, expected, label) => assert.ok(
+    Math.abs(actual - expected) < 0.00001,
+    `${label}: expected ${expected}, received ${actual}`,
+  );
+  for (const storyWU of [14.145, 15.65, 18, 20.3]) {
+    const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
+    assertCameraValue(frame.camera.position[0], 0, `E Frame X at ${storyWU}`);
+    assertCameraValue(frame.camera.position[1], 14, `E camera height at ${storyWU}`);
+    assert.ok(Math.abs(frame.camera.position[2]) < 0.35, `E field centre at ${storyWU}`);
+    assertCameraValue(frame.camera.target[0] - frame.camera.position[0], 0, `E Target X at ${storyWU}`);
+    assertCameraValue(frame.camera.target[1] - frame.camera.position[1], -90, `E Target Y at ${storyWU}`);
+    assertCameraValue(frame.camera.target[2] - frame.camera.position[2], 0, `E should look straight down at ${storyWU}`);
+    assertCameraValue(frame.camera.fov, 70, `E wide lens at ${storyWU}`);
+    assertCameraValue(frame.camera.roll, 0, `E level horizon at ${storyWU}`);
+  }
+});
+
 test('every travelling title shares one timing while the finale holds through the last frame', () => {
   const fieldsById = new Map(canonical.tracks.text.fields.map((field) => [field.id, field]));
   const titles = canonical.tracks.text.fields.filter((field) => field.kind === 'title');
@@ -361,8 +392,8 @@ test('every travelling title shares one timing while the finale holds through th
 
   const titleSets = [
     ['text-complexity-idea', 'text-complexity-conditions', 'text-complexity-direction'],
-    ['text-complexity-curiosity', 'text-complexity-listen', 'text-complexity-focus'],
-    ['text-life-momentum', 'text-life-form'],
+    ['text-complexity-curiosity', 'text-complexity-listen'],
+    ['text-life-momentum', 'text-life-form', 'text-life-character'],
   ];
   titleSets.forEach((ids) => ids.slice(1).forEach((id, index) => {
     const previous = fieldsById.get(ids[index]);
@@ -384,19 +415,19 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
       ['text-background-clients', 'scroll-block'],
       ['text-complexity-curiosity', 'title'],
       ['text-complexity-listen', 'title'],
-      ['text-complexity-focus', 'title'],
       ['text-disciplines-title', 'scroll-block'],
       ['text-life-momentum', 'title'],
       ['text-life-form', 'title'],
+      ['text-life-character', 'title'],
       ['text-role-highlight', 'scroll-block'],
       ['text-epilogue-invitation', 'title'],
     ],
   );
 
   const passages = [
-    ['reading', 'text-background-editorial', 3],
+    ['reading', 'text-background-editorial', 4],
     ['disciplines', 'text-disciplines-title', 3],
-    ['exit', 'text-role-highlight', 1],
+    ['exit', 'text-role-highlight', 3],
   ];
   passages.forEach(([layout, id, lineCount]) => {
     const field = fields.find((candidate) => candidate.id === id);
@@ -432,7 +463,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /--about-editorial-type-size: clamp\(1\.4375rem/);
 });
 
-test('all published narrative writing comes from the current V13 script', () => {
+test('all published narrative writing comes from the current V15 script', () => {
   const normalize = (value) => String(value || '')
     .toLocaleLowerCase('en-GB')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
@@ -443,11 +474,11 @@ test('all published narrative writing comes from the current V13 script', () => 
     field.block?.text,
   ]).filter(Boolean);
   authoredCopy.forEach((copy) => {
-    assert.ok(normalizedScript.includes(normalize(copy)), `V13 is missing live copy: ${copy}`);
+    assert.ok(normalizedScript.includes(normalize(copy)), `V15 is missing live copy: ${copy}`);
   });
   const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
   reveal.parameters.items.forEach((item) => {
-    assert.ok(normalizedScript.includes(normalize(item.label)), `V13 is missing ${item.label}`);
+    assert.ok(normalizedScript.includes(normalize(item.label)), `V15 is missing ${item.label}`);
   });
   assert.doesNotMatch(canonicalSource, /Together, they become a way to make the idea tangible/);
   assert.doesNotMatch(canonicalSource, /That is when the experience starts to feel real/);

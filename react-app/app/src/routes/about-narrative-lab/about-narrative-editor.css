@@ -458,6 +458,7 @@
 }
 
 .about-track-editor-fields > .about-track-editor-parameter { grid-column: 1 / -1; }
+.about-track-editor-fields > .about-track-editor-folder { grid-column: 1 / -1; }
 
 .about-track-editor-camera-curve {
   grid-column: 1 / -1;
@@ -510,6 +511,12 @@
   gap: 8px;
 }
 
+.about-track-editor-camera-values { display: grid; gap: 8px; }
+.about-track-editor-camera-values__group { display: grid; gap: 5px; }
+.about-track-editor-camera-values__group > span { color: var(--editor-ink); font-size: 10px; font-weight: 650; }
+.about-track-editor-camera-values__group > small { margin-top: -3px; color: var(--editor-muted); font-size: 9px; }
+.about-track-editor-camera-center { justify-self: start; color: var(--editor-camera); border-color: color-mix(in srgb, var(--editor-camera) 50%, var(--editor-line)); }
+
 .about-track-editor-camera-pad {
   display: grid;
   gap: 6px;
@@ -558,6 +565,13 @@
   border: 1px solid var(--editor-line);
   border-radius: 6px;
   background: color-mix(in srgb, var(--editor-bg) 40%, var(--editor-panel));
+}
+
+.about-track-editor-camera-lens--embedded {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .about-track-editor-camera-lens__heading,

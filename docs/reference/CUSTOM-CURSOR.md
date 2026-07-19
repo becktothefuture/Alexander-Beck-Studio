@@ -15,6 +15,6 @@ Clickable in-window body targets use a cursor-led hover: the palette dot morphs 
 
 Circular controls that paint the complete shared emphasis material are the exception. The simulation chooser close control and Portfolio drawer back control own the single large circle, so the custom lens becomes invisible while either is hovered. Do not stack the lens inside a circular control: pointer, keyboard, and touch must all resolve to the same one-circle target surface.
 
-The persistent Button Bar, dev panels, and surfaces outside the framed studio window keep their own cursor contracts. The native cursor returns outside the framed window.
+The persistent Button Bar keeps its own cursor contract. Editor surfaces (legacy config panels, their toggle, parameterizer panels, and the About narrative editor) always use the native system cursor; this allows standard pointer, text-entry, and resize affordances without the custom dot or lens layered above them. The native cursor also returns outside the framed window.
 
 Pointer handling must preserve mouse, pen, touch, keyboard focus, reduced motion, and route teardown. Never add nested rings or thin field/helper lines to simulation visuals.

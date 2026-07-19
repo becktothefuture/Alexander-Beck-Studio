@@ -1294,20 +1294,62 @@ function ObjectInspector({ snapshot, store, onMessage }) {
           {number('atWU', object.atWU)}
           <p className="about-track-editor-parameter-note is-wide">This is a shot key. Its pose is the camera at this exact Story WU; the curve below shapes its travel <b>to the next key</b>.</p>
           {locked ? <p className="about-track-editor-parameter-note is-wide">This boundary key stays at its Story WU, while its camera pose remains editable.</p> : null}
-          <div className="about-track-editor-camera-rig">
-            <CameraPlanePad label="Frame position" x={object.offset[0]} y={object.offset[1]} range={12} {...bindCameraPad('Frame Camera position', (target, x, y) => { target.offset[0] = x; target.offset[1] = y; })} />
-            <CameraPlanePad label="Aim target" x={object.lookAtOffset[0]} y={object.lookAtOffset[1]} range={Math.max(12, Math.ceil(Math.max(Math.abs(object.lookAtOffset[0]), Math.abs(object.lookAtOffset[1])) / 10) * 10)} {...bindCameraPad('Frame Camera aim', (target, x, y) => { target.lookAtOffset[0] = x; target.lookAtOffset[1] = y; })} />
-          </div>
-          <div className="about-track-editor-camera-lens">
-            <div className="about-track-editor-camera-lens__heading"><span>Lens &amp; horizon</span><small>FOV defines width; roll tilts the horizon.</small></div>
-            <div className="about-track-editor-camera-lens__presets">
-              {[[70, 'Wide'], [50, 'Natural'], [35, 'Tight']].map(([fov, label]) => <button key={label} type="button" className={object.fov === fov ? 'is-active' : ''} onClick={() => commit('Set Camera lens', (target) => { target.fov = fov; })}>{label}<small>{fov}°</small></button>)}
+          <InspectorFolder group={{ id: 'camera-framing', label: 'Shot framing & aim' }} count={5} defaultOpen>
+            <div className="about-track-editor-camera-rig">
+              <CameraPlanePad label="Frame position" x={object.offset[0]} y={object.offset[1]} range={Math.max(12, Math.ceil(Math.max(Math.abs(object.offset[0]), Math.abs(object.offset[1])) / 10) * 10)} {...bindCameraPad('Frame Camera position', (target, x, y) => { target.offset[0] = x; target.offset[1] = y; })} />
+              <CameraPlanePad label="Aim target" x={object.lookAtOffset[0]} y={object.lookAtOffset[1]} range={Math.max(12, Math.ceil(Math.max(Math.abs(object.lookAtOffset[0]), Math.abs(object.lookAtOffset[1])) / 10) * 10)} {...bindCameraPad('Frame Camera aim', (target, x, y) => { target.lookAtOffset[0] = x; target.lookAtOffset[1] = y; })} />
             </div>
-            <NumberField label="Field of view" value={object.fov} min={25} max={80} step={1} onCommit={(value) => commit('Edit Camera FOV', (target) => { target.fov = value; })} />
-            <NumberField label="Roll / horizon" value={object.roll} step={0.01} onCommit={(value) => commit('Edit Camera roll', (target) => { target.roll = value; })} />
-          </div>
-          <div className="about-track-editor-camera-lens">
-            <div className="about-track-editor-camera-lens__heading"><span>Distance fog</span><small>This key’s fog transitions to the next key with the same camera easing.</small></div>
+            <div className="about-track-editor-camera-values">
+              <div className="about-track-editor-camera-values__group">
+                <span>Frame origin</span>
+                <div className="about-track-editor-folder__grid">
+                  {[0, 1].map((axis) => (
+                    <NumberField key={`offset-${axis}`} label={`Frame ${'XY'[axis]}`} value={object.offset[axis]} step={0.01} min={-40} max={40} onCommit={(value) => commit('Edit Camera offset', (target) => { target.offset[axis] = value; })} />
+                  ))}
+                </div>
+              </div>
+              <div className="about-track-editor-camera-values__group">
+                <span>Target coordinates</span>
+                <small>Precise aim · X defaults to 0</small>
+                <div className="about-track-editor-folder__grid">
+                  {[0, 1, 2].map((axis) => (
+                    <NumberField key={`look-${axis}`} label={`Target ${'XYZ'[axis]}`} value={object.lookAtOffset[axis]} step={0.001} min={-100} max={100} onCommit={(value) => commit('Edit Camera aim', (target) => { target.lookAtOffset[axis] = value; })} />
+                  ))}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="about-track-editor-camera-center"
+                onClick={() => commit('Center Camera horizontal composition', (target) => {
+                  target.offset[0] = 0;
+                  target.lookAtOffset[0] = 0;
+                })}
+              >
+                Center horizontal
+              </button>
+            </div>
+          </InspectorFolder>
+          <InspectorFolder group={{ id: 'camera-lens', label: 'Lens & horizon' }} count={2}>
+            <div className="about-track-editor-camera-lens about-track-editor-camera-lens--embedded">
+              <div className="about-track-editor-camera-lens__heading"><span>FOV defines width; roll tilts the horizon.</span></div>
+              <div className="about-track-editor-camera-lens__presets">
+                {[[70, 'Wide'], [50, 'Natural'], [35, 'Tight']].map(([fov, label]) => <button key={label} type="button" className={object.fov === fov ? 'is-active' : ''} onClick={() => commit('Set Camera lens', (target) => { target.fov = fov; })}>{label}<small>{fov}°</small></button>)}
+              </div>
+              <NumberField label="Field of view" value={object.fov} min={25} max={80} step={1} onCommit={(value) => commit('Edit Camera FOV', (target) => { target.fov = value; })} />
+              <NumberField label="Roll / horizon" value={object.roll} step={0.01} onCommit={(value) => commit('Edit Camera roll', (target) => { target.roll = value; })} />
+            </div>
+          </InspectorFolder>
+          <InspectorFolder group={{ id: 'camera-depth', label: 'Depth' }} count={1}>
+            <RangeParameterField
+              label={CAMERA_DEPTH_OFFSET_CONTROL.label}
+              ariaLabel="Camera depth offset"
+              value={object.offset[2]}
+              control={CAMERA_DEPTH_OFFSET_CONTROL}
+              {...bindObjectRange('Edit Camera depth', (target, value) => { target.offset[2] = value; })}
+            />
+          </InspectorFolder>
+          <InspectorFolder group={{ id: 'camera-fog', label: 'Distance fog' }} count={2}>
+            <p className="about-track-editor-parameter-note">This key’s fog transitions to the next key with the same camera easing.</p>
             {ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS.map((sourceControl) => {
               const control = sourceControl.id === 'distanceFogStartWU'
                 ? { ...sourceControl, max: Math.max(sourceControl.min, Number(object.distanceFogEndWU) - sourceControl.step) }
@@ -1323,32 +1365,21 @@ function ObjectInspector({ snapshot, store, onMessage }) {
                 />
               );
             })}
-          </div>
-          <CameraBezierField
-            value={object.easing}
-            disabled={!snapshot.document.tracks.camera.keys.some((key) => Number(key.atWU) > Number(object.atWU))}
-            onBegin={() => store.beginGesture('Shape Camera travel easing', { selection })}
-            onPreview={(value) => store.updateGesture((draft) => {
-              const target = getAboutNarrativeTrackObject(draft, selection);
-              if (target) target.easing = value;
-            }, { selection })}
-            onFinish={() => store.commitGesture({ selectionAfter: selection, requireValid: true })}
-            onCancel={() => store.cancelGesture()}
-            onCommit={(value) => commit('Edit Camera travel easing', (target) => { target.easing = value; })}
-          />
-          {[0, 1].map((axis) => (
-            <NumberField key={`offset-${axis}`} label={`Camera ${'XY'[axis]}`} value={object.offset[axis]} step={0.01} onCommit={(value) => commit('Edit Camera offset', (target) => { target.offset[axis] = value; })} />
-          ))}
-          <RangeParameterField
-            label={CAMERA_DEPTH_OFFSET_CONTROL.label}
-            ariaLabel="Camera depth offset"
-            value={object.offset[2]}
-            control={CAMERA_DEPTH_OFFSET_CONTROL}
-            {...bindObjectRange('Edit Camera depth', (target, value) => { target.offset[2] = value; })}
-          />
-          {[0, 1, 2].map((axis) => (
-            <NumberField key={`look-${axis}`} label={`Aim ${'XYZ'[axis]}`} value={object.lookAtOffset[axis]} step={0.01} onCommit={(value) => commit('Edit Camera aim', (target) => { target.lookAtOffset[axis] = value; })} />
-          ))}
+          </InspectorFolder>
+          <InspectorFolder group={{ id: 'camera-easing', label: 'Travel easing' }} count={2}>
+            <CameraBezierField
+              value={object.easing}
+              disabled={!snapshot.document.tracks.camera.keys.some((key) => Number(key.atWU) > Number(object.atWU))}
+              onBegin={() => store.beginGesture('Shape Camera travel easing', { selection })}
+              onPreview={(value) => store.updateGesture((draft) => {
+                const target = getAboutNarrativeTrackObject(draft, selection);
+                if (target) target.easing = value;
+              }, { selection })}
+              onFinish={() => store.commitGesture({ selectionAfter: selection, requireValid: true })}
+              onCancel={() => store.cancelGesture()}
+              onCommit={(value) => commit('Edit Camera travel easing', (target) => { target.easing = value; })}
+            />
+          </InspectorFolder>
         </div>
       ) : null}
 

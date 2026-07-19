@@ -6,12 +6,12 @@
 
 The page should sound like a thoughtful designer explaining how he sees the work—not a manifesto generator, a résumé, or a personal-brand campaign.
 
-## Current anchor: V13
+## Current anchor: V15
 
-V13 works because it does four things at once:
+V15 works because it does four things at once:
 
-1. It begins with judgement, not mood: “Ambition is rarely the hard part.”
-2. It makes the problem practical: ideas need form people can understand, trust and use.
+1. It begins with a concrete project condition, not an abstract claim: “Some projects have several things in play.”
+2. It makes the problem practical: an idea can be promising before it is easy to explain.
 3. It turns biography into evidence: Communication Design, agency work, product work, emerging technology and project domains explain the current practice.
 4. It treats disciplines as working materials, not departments or a list of services.
 

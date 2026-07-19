@@ -482,9 +482,9 @@ body.about-narrative-page .route-simulation-layer {
 
 .about-narrative-discipline-reveal__label {
   display: block;
-  filter: blur(var(--discipline-blur, 7px));
-  transform: translate3d(var(--discipline-shift, 12px), 0, 0);
-  will-change: filter, transform;
+  filter: none;
+  text-shadow: none;
+  transform: none;
 }
 
 .about-narrative-spatial-copy.is-finale {
@@ -681,8 +681,7 @@ body.about-narrative-page .route-simulation-layer {
 
 .about-narrative-lab[data-editor-active='true'] .about-narrative-render-span--title,
 .about-narrative-lab[data-editor-active='true'] .about-narrative-render-span--discipline,
-.about-narrative-lab[data-editor-active='true'] .about-narrative-spatial-copy,
-.about-narrative-lab[data-editor-active='true'] .about-narrative-discipline-reveal {
+.about-narrative-lab[data-editor-active='true'] .about-narrative-spatial-copy {
   pointer-events: auto;
 }
 

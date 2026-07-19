@@ -196,7 +196,7 @@ async function auditEditor() {
     bTitles: document.querySelectorAll('[data-track-object-id^="text-complexity-"][data-track-object-type="text-field"]').length - 3,
     cEditorial: document.querySelectorAll('[data-track-object-id="text-background-editorial"]').length,
     cLogos: document.querySelectorAll('[data-track-object-id="text-background-clients"]').length,
-    dTitles: ['text-complexity-curiosity', 'text-complexity-listen', 'text-complexity-focus']
+    dTitles: ['text-complexity-curiosity', 'text-complexity-listen']
       .filter((id) => document.querySelector(`[data-track-object-id="${id}"]`)).length,
     disciplines: document.querySelectorAll('[data-track-object-id="motion-discipline-reveal"][data-track-object-type="interaction"]').length,
     dEditorial: document.querySelectorAll('[data-track-object-id="text-disciplines-title"]').length,
@@ -207,13 +207,13 @@ async function auditEditor() {
   }));
   assert.deepEqual(authoredStructure, {
     aTitles: 1,
-    bTitles: 3,
+    bTitles: 2,
     cEditorial: 1,
     cLogos: 1,
-    dTitles: 3,
+    dTitles: 2,
     disciplines: 1,
     dEditorial: 1,
-    eTitles: 2,
+    eTitles: 3,
     eEditorial: 1,
     finalTitles: 1,
     continuousPassages: 3,
@@ -348,11 +348,27 @@ async function auditEditor() {
   await page.getByRole('button', { name: 'Undo' }).click();
 
   await page.locator('[data-track-object-type="camera-key"]').first().click();
-  assert.equal(await page.getByText('Travel easing', { exact: true }).count(), 1);
-  assert.equal(await page.getByText('Frame position', { exact: true }).count(), 1);
-  assert.equal(await page.getByText('Aim target', { exact: true }).count(), 1);
-  assert.equal(await page.getByText('Lens & horizon', { exact: true }).count(), 1);
+  const cameraFolderLabels = await page.locator('[data-inspector-group^="camera-"] > summary span').allTextContents();
+  assert.deepEqual(cameraFolderLabels, [
+    'Shot framing & aim',
+    'Lens & horizon',
+    'Depth',
+    'Distance fog',
+    'Travel easing',
+  ]);
+  assert.equal(await page.locator('[data-inspector-group="camera-framing"]').getByText('Frame position', { exact: true }).count(), 1);
+  assert.equal(await page.locator('[data-inspector-group="camera-framing"]').getByText('Aim target', { exact: true }).count(), 1);
   assert.equal(await page.getByText('Timing protected', { exact: true }).count(), 1);
+  const cameraFolders = page.locator('[data-inspector-group^="camera-"]');
+  assert.equal(await cameraFolders.count(), 5);
+  assert.equal(await page.locator('[data-inspector-group="camera-framing"]').evaluate((folder) => folder.open), true);
+  assert.equal(await page.locator('[data-inspector-group="camera-easing"]').evaluate((folder) => folder.open), false);
+  for (const axis of ['X', 'Y', 'Z']) {
+    assert.equal(await page.getByRole('spinbutton', { name: `Target ${axis}` }).getAttribute('step'), '0.001');
+  }
+  assert.equal(await page.getByRole('button', { name: 'Center horizontal' }).count(), 1);
+  await page.locator('[data-inspector-group="camera-depth"] > summary').click();
+  assert.equal(await page.locator('[data-inspector-group="camera-depth"]').evaluate((folder) => folder.open), true);
   const openingDepth = page.getByRole('slider', { name: 'Camera depth offset slider' });
   assert.equal(await openingDepth.isEnabled(), true);
   assert.equal(await openingDepth.inputValue(), '-2.4');
@@ -364,8 +380,10 @@ async function auditEditor() {
   assert.equal(await openingDepth.inputValue(), '-2.4');
 
   await page.getByRole('button', { name: 'Camera', exact: true }).click();
-  assert.equal(await page.getByRole('heading', { name: 'Global camera & depth fog' }).count(), 1);
-  assert.equal(await page.locator('[data-track-settings="camera"] details').count(), 2);
+  assert.equal(await page.getByRole('heading', { name: 'Global camera' }).count(), 1);
+  assert.deepEqual(await page.locator('[data-track-settings="camera"] details > summary span').allTextContents(), [
+    'Camera · Travel & lens',
+  ]);
   const fogStart = page.getByRole('slider', { name: 'Global camera Fog begins slider' });
   const fogEnd = page.getByRole('slider', { name: 'Global camera Fully faded slider' });
   assert.equal(await fogStart.inputValue(), '8');

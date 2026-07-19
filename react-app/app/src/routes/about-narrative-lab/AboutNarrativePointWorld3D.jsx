@@ -835,9 +835,7 @@ function createPointFieldAdapter({
     disciplineLabelReveal[index] = value;
     if (!label) return;
     label.style.setProperty('--discipline-reveal', value.toFixed(4));
-    label.style.setProperty('--discipline-blur', `${((1 - value) * 4.5).toFixed(2)}px`);
-    label.style.setProperty('--discipline-shift', `${((1 - value) * 8).toFixed(2)}px`);
-    runtimeObserver.hotFrameDomWrite(3);
+    runtimeObserver.hotFrameDomWrite();
   };
 
   const writeDisciplinePosition = (index, x, y, unit) => {

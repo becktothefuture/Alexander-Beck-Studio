@@ -349,10 +349,10 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       backgroundOpacity: 0.2,
       backgroundScale: 0.58,
       reconnectOpacity: 0.24,
-      pointScale: 1.35,
+      pointScale: 2.25,
       restoreDurationWU: 0.72,
-      labelOffsetPx: 10,
-      labelScale: 1,
+      labelOffsetPx: 18,
+      labelScale: 1.2,
       labelDurationWU: 0.162,
       holdWU: 0.72,
       items: Object.freeze([

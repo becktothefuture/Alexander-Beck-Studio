@@ -4,11 +4,11 @@ Guide for all user-facing copy on the site. Single source of truth for how the s
 
 **Goal:** Confident, useful, and specific. The copy should sound like a capable creative technologist explaining what he does, why it matters, and how he thinks. It should have a point of view without becoming self-important.
 
-The current tonal anchor is the About narrative V13. Its useful pattern is:
+The current tonal anchor is the About narrative V15. Its useful pattern is:
 
-> Ambition is rarely the hard part. The hard part is giving ideas form people can understand, trust and use.
+> Some projects have several things in play: a new technology, a behaviour people need to understand, a question of trust.
 
-That works because it makes a judgement, names a practical difficulty, and immediately connects design to use. Apply that structure across the site.
+That works because it names concrete conditions, frames the practical difficulty, and immediately connects design to use. Apply that structure across the site.
 
 ---
 
@@ -112,4 +112,4 @@ That works because it makes a judgement, names a practical difficulty, and immed
 - [ ] “I” / “you” used where it’s you or the reader; no unnecessary “we”.
 - [ ] One idea per sentence where possible.
 - [ ] CTAs are single, clear actions.
-- [ ] Tone matches V13: confident, specific, practical, warm, and earned through evidence.
+- [ ] Tone matches V15: confident, specific, practical, warm, and earned through evidence.

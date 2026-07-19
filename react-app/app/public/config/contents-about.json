@@ -148,7 +148,7 @@
           "offset": [
             0,
             0.9,
-            -6.52
+            -6.5
           ],
           "lookAtOffset": [
             0,
@@ -168,7 +168,27 @@
           "offset": [
             0,
             0.9,
-            -1.535
+            -1.5
+          ],
+          "lookAtOffset": [
+            0,
+            -90,
+            -6
+          ],
+          "fov": 48,
+          "roll": 0,
+          "easing": "linear",
+          "locked": false,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
+        },
+        {
+          "id": "camera-disciplines-0",
+          "atWU": 10.45,
+          "offset": [
+            0,
+            0.9,
+            6.4
           ],
           "lookAtOffset": [
             0,
@@ -183,77 +203,17 @@
           "distanceFogEndWU": 18
         },
         {
-          "id": "camera-grid-bookend-0",
-          "atWU": 9.602,
-          "offset": [
-            0,
-            0.9,
-            2.4
-          ],
-          "lookAtOffset": [
-            0,
-            -90,
-            -6
-          ],
-          "fov": 50,
-          "roll": 0,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
-          "locked": false,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
-        },
-        {
-          "id": "camera-practice-reveal-0",
-          "atWU": 10.45,
-          "offset": [
-            0,
-            0.9,
-            4.45
-          ],
-          "lookAtOffset": [
-            0,
-            -90,
-            -6
-          ],
-          "fov": 54,
-          "roll": 0,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
-          "locked": false,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
-        },
-        {
-          "id": "camera-disciplines-0",
-          "atWU": 11.45,
-          "offset": [
-            0,
-            0.9,
-            6.35
-          ],
-          "lookAtOffset": [
-            0,
-            -90,
-            -6
-          ],
-          "fov": 66,
-          "roll": 0,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
-          "locked": false,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
-        },
-        {
           "id": "camera-disciplines-exit",
           "atWU": 14.145,
           "offset": [
             0,
-            0.9,
-            12.145
+            14,
+            6.1
           ],
           "lookAtOffset": [
             0,
             -90,
-            -6
+            0
           ],
           "fov": 70,
           "roll": 0,
@@ -267,15 +227,15 @@
           "atWU": 15.596,
           "offset": [
             0,
-            0.35,
-            0
+            14,
+            7.6
           ],
           "lookAtOffset": [
             0,
-            -0.08,
-            -1
+            -90,
+            0
           ],
-          "fov": 49,
+          "fov": 70,
           "roll": 0,
           "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
           "locked": false,
@@ -287,15 +247,35 @@
           "atWU": 19.3,
           "offset": [
             0,
-            0,
-            0
+            14,
+            11.3
           ],
           "lookAtOffset": [
             0,
-            0,
-            -1
+            -90,
+            0
           ],
-          "fov": 48,
+          "fov": 70,
+          "roll": 0,
+          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
+          "locked": false,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18
+        },
+        {
+          "id": "camera-living-field-exit",
+          "atWU": 20.3,
+          "offset": [
+            0,
+            14,
+            12.3
+          ],
+          "lookAtOffset": [
+            0,
+            -90,
+            0
+          ],
+          "fov": 70,
           "roll": 0,
           "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
           "locked": false,
@@ -316,7 +296,7 @@
             -1
           ],
           "fov": 48,
-          "roll": 0.38,
+          "roll": 0.4,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18,
           "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
@@ -332,7 +312,7 @@
           ],
           "lookAtOffset": [
             0,
-            0.19,
+            0.2,
             -1
           ],
           "fov": 30,
@@ -623,7 +603,7 @@
           },
           "movement": "spatial",
           "preset": "opener-v1",
-          "text": "I help shape complex ideas into emotionally compelling experiences."
+          "text": "I help shape complex ideas into compelling experiences."
         },
         {
           "id": "text-complexity-idea",
@@ -637,7 +617,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "Ambition is rarely the hard part."
+          "text": "Some projects have several things in play: a new technology, a behaviour people need to understand, a question of trust."
         },
         {
           "id": "text-complexity-conditions",
@@ -651,7 +631,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "The hard part is giving them form people can understand, trust and use."
+          "text": "Often, the idea is promising before it is easy to explain."
         },
         {
           "id": "text-complexity-direction",
@@ -680,7 +660,7 @@
           "block": {
             "id": "background-passage",
             "kind": "prose",
-            "text": "I studied Communication Design because I wanted to understand how meaning is made: in words, images, systems, motion and the gaps between them. Agency work gave me a grounding in visual culture and craft. Product work moved the questions closer to behaviour: how a service explains itself, how a screen earns trust, how a system holds together under pressure.\nThis is why emerging technology keeps my attention. New tools become useful only when they are translated into something people can see, try and understand.\nMy experience has taken me through startups and creative agencies, across digital products, web design, identity, interfaces, motion and creative technology, with projects in finance, mobility, healthcare, identity and product innovation.",
+            "text": "Communication Design gave me a way to study how meaning is made: through words, images, hierarchy, motion, systems and the spaces between them.\nAgency work sharpened the visual side: culture, pace and craft. Product work made the questions more practical: how a service explains itself, how a screen earns trust, how a system holds together when people actually use it.\nEmerging technology keeps my attention because it asks for that same translation. A capability is not the same as an experience. It becomes useful when people can see it, try it, question it and understand where it fits.\nMy experience has taken me through startups and creative agencies, across digital products, web design, identity, interfaces, motion and creative technology, with projects in finance, mobility, healthcare, digital identity and product innovation.",
             "emphasis": [
               {
                 "text": "Communication Design",
@@ -692,7 +672,7 @@
         {
           "id": "text-background-clients",
           "kind": "scroll-block",
-          "startWU": 6.945,
+          "startWU": 6.865,
           "focusWU": 7.12,
           "endWU": 7.295,
           "publishable": true,
@@ -724,7 +704,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "I am not interested in disciplines as departments."
+          "text": "The problem usually moves between disciplines."
         },
         {
           "id": "text-complexity-listen",
@@ -738,21 +718,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "I am interested in what they make possible together."
-        },
-        {
-          "id": "text-complexity-focus",
-          "kind": "title",
-          "startWU": 9.54,
-          "focusWU": 9.94,
-          "endWU": 10.34,
-          "publishable": true,
-          "presentation": {
-            "layout": "constellation"
-          },
-          "movement": "spatial",
-          "preset": "travelling-title-v1",
-          "text": "Product and Experience Design give me the shape of the problem."
+          "text": "So the response has to move too."
         },
         {
           "id": "text-disciplines-title",
@@ -767,14 +733,14 @@
           "block": {
             "id": "disciplines-passage",
             "kind": "prose",
-            "text": "Users, needs, behaviour and structure. Art Direction gives it a point of view. Motion & 3D add timing, space and feel. Creative Engineering and Parametric Systems turn the idea into something that can be tested, changed and made real.\nAI belongs here as a working material. It helps me explore options, build tools around the task and push a direction further without handing over judgement.\nThe point is not breadth for its own sake. It is creating enough contact between strategy, design and implementation that the idea does not flatten as it moves through the project.",
+            "text": "Product and Experience Design help me understand the opportunity, users and behaviour of an experience. Art Direction gives the idea a recognisable point of view. Motion & 3D make timing, space and response easier to feel. Creative Engineering and Parametric Systems let me test ideas through code, tools and working systems.\nAI belongs in this mix as a working material. It helps me explore options, build tools around the task and push a direction further without handing over judgement.\nThe value is in letting these disciplines affect one another. A technical experiment can change the visual language. A motion study can make an interaction easier to understand. A line of copy can make a feature feel obvious instead of explained.",
             "emphasis": [
               {
                 "text": "judgement",
                 "tone": "blue"
               },
               {
-                "text": "implementation",
+                "text": "obvious",
                 "tone": "blue"
               }
             ]
@@ -792,7 +758,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "A good idea should not lose its character as it becomes usable."
+          "text": "When those decisions connect…"
         },
         {
           "id": "text-life-form",
@@ -806,14 +772,28 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "text": "It should become easier to enter."
+          "text": "…the idea starts to come alive."
+        },
+        {
+          "id": "text-life-character",
+          "kind": "title",
+          "startWU": 17.02,
+          "focusWU": 17.42,
+          "endWU": 17.82,
+          "publishable": true,
+          "presentation": {
+            "layout": "living-field"
+          },
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "text": "It gains structure, behaviour and character."
         },
         {
           "id": "text-role-highlight",
           "kind": "scroll-block",
-          "startWU": 17.09,
-          "focusWU": 17.331667,
-          "endWU": 18.54,
+          "startWU": 18.12,
+          "focusWU": 18.36,
+          "endWU": 20.1,
           "publishable": true,
           "presentation": {
             "layout": "exit"
@@ -821,14 +801,14 @@
           "block": {
             "id": "role-passage",
             "kind": "prose",
-            "text": "I help teams do that: turn uncertain territory into products, services and experiences with clear direction, useful behaviour and a character people can remember.",
+            "text": "That is what I mean by bringing an idea to life: finding the structure it can stand on, the behaviour people can trust and the character that makes it feel specific.\nIt can happen through an interface, a motion system, a prototype, an AI workflow or a small tool that changes the conversation. The format changes with the problem. The aim stays consistent: make the idea visible enough for better decisions, and real enough for people to respond to.\nI help ambitious teams bring design, creative technology and AI together from early direction to the details that make an experience convincing.",
             "emphasis": [
               {
-                "text": "uncertain",
+                "text": "trust",
                 "tone": "blue"
               },
               {
-                "text": "remember",
+                "text": "convincing",
                 "tone": "blue"
               }
             ]
@@ -846,7 +826,7 @@
           },
           "movement": "spatial",
           "preset": "finale-v1",
-          "text": "If you are building something new, let's talk."
+          "text": "If you are building something new, let’s talk."
         }
       ]
     },
@@ -871,10 +851,10 @@
             "backgroundOpacity": 0.2,
             "backgroundScale": 0.58,
             "reconnectOpacity": 0.24,
-            "pointScale": 1.35,
+            "pointScale": 2.25,
             "restoreDurationWU": 0.72,
-            "labelOffsetPx": 10,
-            "labelScale": 1,
+            "labelOffsetPx": 18,
+            "labelScale": 1.2,
             "labelDurationWU": 0.162,
             "holdWU": 0.72,
             "items": [
