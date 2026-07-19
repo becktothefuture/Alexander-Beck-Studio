@@ -1615,8 +1615,10 @@ function createPointFieldAdapter({
     }
 
     camera.position.fromArray(frame.camera.position);
-    camera.up.set(Math.sin(frame.camera.roll), Math.cos(frame.camera.roll), 0);
+    camera.up.set(0, 1, 0);
     camera.lookAt(...frame.camera.target);
+    // Roll around the camera's local viewing axis so the current viewport centre remains fixed.
+    camera.rotateZ(-frame.camera.roll);
     if (director.active) {
       directorTarget.fromArray(frame.camera.target);
       directorOffset.copy(camera.position).sub(directorTarget);
