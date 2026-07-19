@@ -141,7 +141,9 @@ body.about-narrative-page .route-simulation-layer {
   place-items: center;
   width: 100%;
   max-width: 22ch;
-  margin: 0 auto;
+  padding-block: 0.2em;
+  margin: -0.2em auto;
+  overflow: visible;
   opacity: var(--fragment-opacity, 0);
   color: var(--text-primary);
   filter: blur(var(--fragment-blur, 22px));
@@ -760,9 +762,9 @@ body.about-narrative-page .route-simulation-layer {
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-discipline-reveal li {
   max-width: min(18rem, calc(100% - var(--discipline-x) - 1rem));
   font-size: clamp(
-    calc(0.78rem * var(--discipline-label-scale, 1)),
-    calc(3.6vw * var(--discipline-label-scale, 1)),
-    calc(0.98rem * var(--discipline-label-scale, 1))
+    calc(0.72rem * var(--discipline-label-scale, 1)),
+    calc(3.1vw * var(--discipline-label-scale, 1)),
+    calc(0.9rem * var(--discipline-label-scale, 1))
   );
 }
 

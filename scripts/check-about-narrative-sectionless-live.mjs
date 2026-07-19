@@ -355,6 +355,8 @@ test('D is a dedicated Discipline reveal Motion and the ripple starts only in E'
   assert.match(liveSources.editor, /ariaLabel="Ripple starts"/);
   assert.match(liveSources.editor, /Move ripple start/);
   assert.match(liveSources.editor, /Number\(value\) \+ attackWU/);
+  assert.doesNotMatch(liveSources.world, /discipline-(?:blur|shift)/);
+  assert.match(liveSources.styles, /about-narrative-discipline-reveal__label \{[\s\S]*?filter: none;[\s\S]*?text-shadow: none;[\s\S]*?transform: none;/);
 });
 
 test('E holds a wide, centred overhead view of the living wave field', () => {
@@ -442,6 +444,14 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
     });
   });
   assert.equal(fields.filter((field) => field.block?.id?.endsWith('-passage')).length, 3);
+  const backgroundEditorial = fields.find((field) => field.id === 'text-background-editorial');
+  const backgroundClients = fields.find((field) => field.id === 'text-background-clients');
+  assert.equal(Number((backgroundEditorial.endWU - backgroundClients.startWU).toFixed(2)), 0.56);
+  assert.deepEqual(canonical.profiles.mobile.overrides.text['text-background-clients'], {
+    startWU: 6.04,
+    focusWU: 6.57,
+    endWU: 7.1,
+  });
   assert.doesNotMatch(liveSources.experience, /data-emphasis-tone/);
   assert.match(liveSources.experience, /<p[\s\S]*about-narrative-editorial-copy about-narrative-editorial-passage/);
   assert.match(liveSources.experience, /<span data-editorial-line/);
@@ -461,6 +471,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /var\(--render-span-start-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 0\.8\)/);
   assert.doesNotMatch(liveSources.styles, /var\(--render-span-focus-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 0\.8\)/);
   assert.match(liveSources.styles, /--about-editorial-type-size: clamp\(1\.4375rem/);
+  assert.match(liveSources.styles, /about-narrative-spatial-title \{[\s\S]*?padding-block: 0\.2em;[\s\S]*?margin: -0\.2em auto;[\s\S]*?overflow: visible;/);
 });
 
 test('all published narrative writing comes from the current V15 script', () => {

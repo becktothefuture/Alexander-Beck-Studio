@@ -619,7 +619,7 @@ function ModifierParameterGroup({
   });
 }
 
-function WorldInspector({ object, selection, store, locked, commit }) {
+function WorldInspector({ object, selection, store, locked, finaleShapeLocked, commit }) {
   const shapeDefinition = ABOUT_NARRATIVE_SHAPE_DEFINITIONS[object.shapeId];
   const shapeControlsByGroup = new Map();
   shapeDefinition?.parameters.forEach((control) => {
@@ -661,6 +661,11 @@ function WorldInspector({ object, selection, store, locked, commit }) {
       <p className="about-track-editor-parameter-note">
         Drag any slider for a live preview. Use the value field for exact input.
       </p>
+      {finaleShapeLocked ? (
+        <p className="about-track-editor-parameter-note">
+          This is the required finale bust. Its Shape and destructive timeline actions stay protected; its placement, material, and motion controls are editable.
+        </p>
+      ) : null}
 
       <InspectorFolder
         key={`${object.id}-world-setup`}
@@ -674,7 +679,7 @@ function WorldInspector({ object, selection, store, locked, commit }) {
           <SelectField
             label="Shape"
             value={object.shapeId}
-            disabled={locked}
+            disabled={locked || finaleShapeLocked}
             options={Object.values(ABOUT_NARRATIVE_SHAPE_DEFINITIONS).map((shape) => ({ value: shape.id, label: shape.label }))}
             onCommit={(value) => commit('Change World Shape', (target) => {
               const definition = ABOUT_NARRATIVE_SHAPE_DEFINITIONS[value];
@@ -1249,7 +1254,8 @@ function ObjectInspector({ snapshot, store, onMessage }) {
     );
   }
 
-  const locked = object.locked === true || object.protected === true;
+  const finaleWorld = selection.type === 'world' && object.protected === true;
+  const locked = (object.locked === true || object.protected === true) && !finaleWorld;
   const commit = (label, mutate) => store.commit(label, (draft) => {
     const target = getAboutNarrativeTrackObject(draft, selection);
     if (target) mutate(target, draft);
@@ -1390,6 +1396,7 @@ function ObjectInspector({ snapshot, store, onMessage }) {
           selection={selection}
           store={store}
           locked={locked}
+          finaleShapeLocked={finaleWorld}
           commit={commit}
         />
       ) : null}

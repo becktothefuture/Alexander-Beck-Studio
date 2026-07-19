@@ -70,7 +70,13 @@
             }
           }
         },
-        "text": {},
+        "text": {
+          "text-background-clients": {
+            "startWU": 6.04,
+            "focusWU": 6.57,
+            "endWU": 7.1
+          }
+        },
         "interactions": {}
       }
     },
@@ -184,11 +190,11 @@
         },
         {
           "id": "camera-disciplines-0",
-          "atWU": 10.45,
+          "atWU": 12.245,
           "offset": [
             0,
             0.9,
-            6.4
+            9
           ],
           "lookAtOffset": [
             0,
@@ -223,32 +229,12 @@
           "distanceFogEndWU": 18
         },
         {
-          "id": "camera-bringing-life-1",
-          "atWU": 15.596,
+          "id": "camera-living-field-exit-2",
+          "atWU": 15.1245,
           "offset": [
             0,
-            14,
-            7.6
-          ],
-          "lookAtOffset": [
-            0,
-            -90,
-            0
-          ],
-          "fov": 70,
-          "roll": 0,
-          "easing": "cubic-bezier(0.35, 0, 0.65, 1)",
-          "locked": false,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18
-        },
-        {
-          "id": "camera-role-1",
-          "atWU": 19.3,
-          "offset": [
-            0,
-            14,
-            11.3
+            4,
+            7
           ],
           "lookAtOffset": [
             0,
@@ -267,8 +253,8 @@
           "atWU": 20.3,
           "offset": [
             0,
-            14,
-            12.3
+            4,
+            7
           ],
           "lookAtOffset": [
             0,
@@ -652,7 +638,7 @@
           "kind": "scroll-block",
           "startWU": 4.745,
           "focusWU": 4.92,
-          "endWU": 6.845,
+          "endWU": 6.18,
           "publishable": true,
           "presentation": {
             "layout": "reading"
@@ -672,9 +658,9 @@
         {
           "id": "text-background-clients",
           "kind": "scroll-block",
-          "startWU": 6.865,
-          "focusWU": 7.12,
-          "endWU": 7.295,
+          "startWU": 5.62,
+          "focusWU": 6.15,
+          "endWU": 6.68,
           "publishable": true,
           "presentation": {
             "layout": "reading"
@@ -723,9 +709,9 @@
         {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
-          "startWU": 12.08,
-          "focusWU": 12.3925,
-          "endWU": 14.58,
+          "startWU": 11.52,
+          "focusWU": 11.8325,
+          "endWU": 14.02,
           "publishable": true,
           "presentation": {
             "layout": "disciplines"
