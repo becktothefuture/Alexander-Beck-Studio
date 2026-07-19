@@ -476,25 +476,8 @@ body.about-narrative-page .route-simulation-layer {
   will-change: opacity, transform;
 }
 
-.about-narrative-discipline-reveal li::before {
-  position: absolute;
-  top: 50%;
-  left: calc(-1 * var(--discipline-label-offset, 18px));
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--discipline-color);
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--text-primary) 26%, transparent);
-  content: '';
-  transform: translate(-50%, -50%);
-}
-
 .about-narrative-discipline-reveal li[data-label-side='left'] {
   transform: translate3d(calc(-100% - var(--discipline-label-offset, 18px)), -50%, 0);
-}
-
-.about-narrative-discipline-reveal li[data-label-side='left']::before {
-  left: calc(100% + var(--discipline-label-offset, 18px));
 }
 
 .about-narrative-discipline-reveal__label {
