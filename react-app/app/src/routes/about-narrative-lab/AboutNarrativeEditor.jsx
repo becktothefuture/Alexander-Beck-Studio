@@ -17,6 +17,7 @@ import {
   ABOUT_NARRATIVE_INTERACTION_DEFINITIONS,
   ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
   ABOUT_NARRATIVE_SHAPE_DEFINITIONS,
+  ABOUT_NARRATIVE_TITLE_STYLES,
   ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS,
   ABOUT_NARRATIVE_TRANSITION_TYPES,
   ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS,
@@ -1393,6 +1394,7 @@ function ObjectInspector({ snapshot, store, onMessage }) {
             <>
               <TextField label="Title" value={object.text} disabled={locked} multiline focusId="text-copy" onCommit={(value) => commit('Edit Title', (target) => { target.text = value; })} />
               <SelectField label="Movement" value={object.movement} disabled={locked} options={[{ value: 'spatial', label: 'Spatial' }, { value: 'vertical', label: 'Vertical' }]} onCommit={(value) => commit('Edit Title movement', (target) => { target.movement = value; })} />
+              <SelectField label="Title style" value={object.titleStyle || (object.preset === 'opener-v1' || object.preset === 'finale-v1' ? 'display' : 'standard')} disabled={locked} options={ABOUT_NARRATIVE_TITLE_STYLES.map((value) => ({ value, label: value === 'display' ? 'Display · Instrument' : 'Standard · Geist' }))} onCommit={(value) => commit('Edit Title style', (target) => { target.titleStyle = value; })} />
               <TextField label="Motion preset" value={object.preset} disabled={locked} onCommit={(value) => commit('Edit Title preset', (target) => { target.preset = value; })} />
             </>
           ) : null}

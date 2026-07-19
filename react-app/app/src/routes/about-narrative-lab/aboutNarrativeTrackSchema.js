@@ -9,6 +9,7 @@ import {
   ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES,
   ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
   ABOUT_NARRATIVE_SHAPE_DEFINITIONS,
+  ABOUT_NARRATIVE_TITLE_STYLES,
   ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES,
   ABOUT_NARRATIVE_TRANSITION_TYPES,
 } from './aboutNarrativeDefinitions.js';
@@ -80,7 +81,7 @@ const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 
 const TRANSITION_KEYS = new Set(['startWU', 'endWU', 'type', 'easing', 'correspondence']);
 const MODIFIER_KEYS = new Set(['id', 'enabled', 'parameters']);
 const TEXT_BASE_KEYS = new Set(['id', 'kind', 'startWU', 'focusWU', 'endWU', 'publishable', 'presentation', 'protected']);
-const TITLE_KEYS = new Set([...TEXT_BASE_KEYS, 'movement', 'preset', 'text', 'anchor']);
+const TITLE_KEYS = new Set([...TEXT_BASE_KEYS, 'movement', 'preset', 'titleStyle', 'text', 'anchor']);
 const SCROLL_BLOCK_KEYS = new Set([...TEXT_BASE_KEYS, 'block']);
 const STUB_KEYS = new Set([...TEXT_BASE_KEYS, 'label']);
 const DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'fieldTravelStartWU', 'fieldTravelEndWU', 'choreography']);
@@ -448,6 +449,7 @@ function validateTextField(field, index, seen, diagnostics, durationWU) {
     validateSafeText(field.text, diagnostics, `${path}.text`, { required: true });
     if (!ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES.includes(field.movement)) diagnostic(diagnostics, 'title-movement', `${path}.movement`, 'Title movement must be spatial or vertical.');
     validateSafeText(field.preset, diagnostics, `${path}.preset`, { required: true, maximum: 80 });
+    if (field.titleStyle != null && !ABOUT_NARRATIVE_TITLE_STYLES.includes(field.titleStyle)) diagnostic(diagnostics, 'title-style', `${path}.titleStyle`, 'Title style must be standard or display.');
     if (field.anchor != null) validateSafeText(field.anchor, diagnostics, `${path}.anchor`, { required: true, maximum: 80 });
   } else if (field.kind === 'scroll-block') {
     validateBlock(field.block, diagnostics, `${path}.block`);

@@ -65,7 +65,8 @@ Paths above are relative to `react-app/app/` unless they start with `docs/`.
 
 The core pairing is Instrument Serif plus Geist.
 
-- Instrument Serif is the editorial route-entry voice. Use it only for the Home title and top-level route-entry titles, including the Portfolio intro and gate.
+- Instrument Serif is the editorial route-entry voice. Use it for the Home title and top-level route-entry titles, including the Portfolio intro and gate, plus the explicit About sequence beats below.
+- About adds three deliberate display beats in the continuous spatial narrative: its opening, exact midpoint, and finale. All other travelling spatial titles stay in Geist at a smaller scale between display and editorial copy.
 - Geist is the structural voice for navigation, descriptions, controls, Portfolio cards, project names, project-detail titles, and ordinary headings.
 - Geist Mono is operational: kickers, metadata, access inputs, the Contact email address, and compact technical labels.
 - The script face is a rare signature, principally the London mark. It is not another heading style.
@@ -173,10 +174,13 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - About is one continuous scroll narrative inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, and Button Bar remain stable.
 - The narrative moves from a dense idea cloud through a calm field, a six-discipline grid, a living wave field, and a large point-cloud bust. These are transformations of one material, not separate decorative scenes.
 - Two vertically scrolling editorial areas carry the background, client context, reflections on the practice, AI, and multidisciplinary synthesis. Spatial copy between them must advance the argument rather than act as detachable captions.
+- Spatial titles use two explicit roles: standard Geist titles bridge the editorial passages, while Instrument Serif display titles punctuate only the opening, one midpoint beat, and the finale.
 - The calm field moves through an explicit, paced two-stage camera pitch into a near-top-down grid; the closer framing must keep its material legible rather than miniaturising the points.
 - As the first editorial area's client logos clear, the unchanged calm grid begins travelling screen-up behind the three spatial practice titles. The titles resolve before the discipline reveal begins; the grid must not reverse direction at either handoff.
 - The six disciplines are named once through a world-linked reveal projected from exactly six emphasized grid points. Their colours are fixed to the Home simulation ball palette in category order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`, `--ball-8`, `--ball-6`. The labelled grid continues into the opening of the second editorial area, then the labels leave while the six points persist.
 - The second editorial area follows that upward motion on one left-aligned measure. Its discipline copy uses one intentional highlighted phrase; the body remains unhighlighted. The final synthesis reconnects the surrounding grid before it becomes the living field.
+- The discipline composition stays physically locked while labels and editorial copy resolve. Its handoff into the living field is one paced dolly-and-tilt into a closer oblique ocean view; that view then remains fixed through the complete ripple so the motion, not the lens, carries the beat.
+- The epilogue separates formation from reframing: the grid first contracts into a recognisable bust while the camera holds, then the camera descends and tightens into the final portrait. The finale copy resolves with that arrival and holds without covering the sculpture.
 - The bust is the quiet epilogue. It may rotate or respond horizontally, while the final profile, statement, and contact actions remain readable without covering the sculpture.
 - The creative toolkit belongs to the development lab route with `?edit=1`. The production About route and production lab build use the same validated authored document but expose no tuning interface.
 

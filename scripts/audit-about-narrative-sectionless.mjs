@@ -516,7 +516,7 @@ async function auditEditor() {
     'Camera · Default lens',
   ]);
   await globalCameraSettings.locator('details > summary').click();
-  const fieldOfView = globalCameraSettings.getByRole('slider', { name: 'Global camera Field of view slider' });
+  const fieldOfView = globalCameraSettings.getByRole('slider', { name: 'Global camera Default field of view slider' });
   assert.equal(await fieldOfView.inputValue(), '48');
   await fieldOfView.focus();
   await fieldOfView.press('ArrowRight');

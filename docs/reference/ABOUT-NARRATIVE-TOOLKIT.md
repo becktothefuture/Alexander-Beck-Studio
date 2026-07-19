@@ -31,7 +31,7 @@ About Narrative
 
 - A **Sequence** is the complete scroll journey.
 - A **Section** is a reorderable unit of the story.
-- A **Camera key** adds framing, aim, lens, or roll to continuous forward travel.
+- A **Camera key** sets an absolute Position XYZ, Rotation XYZ, and lens at one Story WU.
 - A **World** is a registered Three.js system placed at a fixed point in 3D space.
 - A **Shape** is the rest arrangement of the fixed point pool.
 - A **modifier** adds deterministic or ambient movement to a Shape.
@@ -132,6 +132,13 @@ The open **Camera rig** folder contains exactly seven paired slider/exact-value 
 - **Field of view** widens or tightens the lens.
 
 Distance fog and Travel easing remain in separate collapsed folders. Slider gestures live-apply as one undoable edit, while the adjacent number field supports precise entry. The protected first and final keys cannot move in time or be deleted, but their pose and fog remain editable.
+
+### Current camera choreography
+
+- `8.165–14.145 WU`: one locked near-overhead composition carries the practice titles, six-discipline reveal, and editorial handoff. Grid isolation may change point emphasis, but the supporting grid remains legible and the lens does not drift.
+- `14.145–15 WU`: one intermediate key shapes a continuous dolly-and-tilt into the closer oblique living-field composition. Position, pitch, and FOV all move monotonically; there is no pull-back or depth rebound.
+- `15–20.3 WU`: the camera holds completely still while the living colour and grid ripple provide the motion.
+- `20.45–20.65 WU`: the ease-out formation contracts the living field into a recognisable bust while the camera holds the ocean composition. From `20.65–21.05 WU`, a separate descent and lens-tightening move reframes the sculpture while its final points settle by `20.85 WU`; the final pose then holds through `21.8 WU`.
 
 ## How Worlds stay connected
 
@@ -308,4 +315,4 @@ ABS_BROWSER=webkit npm run audit:about-narrative
 npm run check:site
 ```
 
-The browser audit verifies exact-WU sampling, the absolute Position/Rotation/FOV camera rig, editor/playback presence, Instrument Serif titles, portal placement, visible protected Camera boundaries, click/keyboard keyframe navigation, the extended discipline reveal and fixed Home palette mapping, text edit and undo, WebGL readiness in Chromium, timeline collapse, and editor clearance above the persistent Button Bar at desktop and mobile sizes.
+The browser audit verifies exact-WU sampling, the absolute Position/Rotation/FOV camera rig, editor/playback presence, the three-beat Instrument Serif display-title contract and Geist standard spatial titles, portal placement, visible protected Camera boundaries, click/keyboard keyframe navigation, the extended discipline reveal and fixed Home palette mapping, text edit and undo, WebGL readiness in Chromium, timeline collapse, and editor clearance above the persistent Button Bar at desktop and mobile sizes.

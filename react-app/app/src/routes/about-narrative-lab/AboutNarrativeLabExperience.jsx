@@ -206,12 +206,15 @@ function TitleField({
   const headingId = isPrimaryTitle ? 'about-route-title' : `${field.id}-title`;
   const isFinale = field.preset === 'finale-v1'
     || field.presentation?.layout === 'text-bust-cta';
+  const titleStyle = field.titleStyle
+    || (field.preset === 'opener-v1' || isFinale ? 'display' : 'standard');
   const bustInstructionsId = `${field.id}-bust-instructions`;
   return (
     <section
       className={`about-narrative-spatial-copy about-narrative-text-field${isFinale ? ' is-finale' : ''}`}
       data-text-field-id={field.id}
       data-text-preset={field.preset}
+      data-title-style={titleStyle}
       aria-labelledby={headingId}
       onClick={(event) => selectTextField(onSelect, field.id, event)}
     >

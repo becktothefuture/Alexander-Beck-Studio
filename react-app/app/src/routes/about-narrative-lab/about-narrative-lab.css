@@ -140,18 +140,18 @@ body.about-narrative-page .route-simulation-layer {
   grid-area: 1 / 1;
   place-items: center;
   width: 100%;
-  max-width: 22ch;
+  max-width: 28ch;
   padding-block: 0.2em;
   margin: -0.2em auto -0.1em;
   overflow: visible;
   opacity: var(--fragment-opacity, 0);
   color: var(--text-primary);
   filter: blur(var(--fragment-blur, 22px));
-  font-family: var(--abs-font-headline);
-  font-size: clamp(2.4rem, 6.7vw, 7.8rem);
-  font-weight: 400;
-  letter-spacing: var(--abs-font-headline-letter-spacing);
-  line-height: calc(1.16 * var(--abs-font-headline-line-height-scale, 1));
+  font-family: var(--abs-font-sans);
+  font-size: clamp(1.95rem, 3.6vw, 4.25rem);
+  font-weight: 480;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
   text-shadow: 0 1px 24px color-mix(in srgb, var(--studio-window-bg) 52%, transparent);
   text-wrap: balance;
   transform:
@@ -164,6 +164,15 @@ body.about-narrative-page .route-simulation-layer {
   transform-style: preserve-3d;
   backface-visibility: hidden;
   will-change: opacity, filter, transform;
+}
+
+.about-narrative-spatial-copy[data-title-style='display'] .about-narrative-spatial-title {
+  max-width: 22ch;
+  font-family: var(--abs-font-headline);
+  font-size: clamp(2.4rem, 6.7vw, 7.8rem);
+  font-weight: 400;
+  letter-spacing: var(--abs-font-headline-letter-spacing);
+  line-height: calc(1.16 * var(--abs-font-headline-line-height-scale, 1));
 }
 
 .about-narrative-opening-scroll-cue {
@@ -703,6 +712,10 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-lab[data-about-layout-profile='tablet'] .about-narrative-spatial-title {
+  font-size: clamp(1.9rem, 4.5vw, 3.6rem);
+}
+
+.about-narrative-lab[data-about-layout-profile='tablet'] .about-narrative-spatial-copy[data-title-style='display'] .about-narrative-spatial-title {
   font-size: clamp(2.5rem, 7.4vw, 6.2rem);
 }
 
@@ -726,7 +739,13 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-title {
-  max-width: 17ch;
+  max-width: 14.08ch;
+  font-size: clamp(1.75rem, 7vw, 2.75rem);
+  line-height: 1.1;
+}
+
+.about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy[data-title-style='display'] .about-narrative-spatial-title {
+  max-width: 10.88ch;
   font-size: clamp(2.25rem, 11vw, 4.5rem);
   line-height: calc(1.18 * var(--abs-font-headline-line-height-scale, 1));
 }
@@ -791,9 +810,14 @@ body.about-narrative-page .route-simulation-layer {
       max(3rem, env(safe-area-inset-bottom));
   }
 
-  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-title {
-    max-width: 19ch;
-    font-size: clamp(2rem, 8.4vh, 4rem);
+  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy[data-title-style='display'] .about-narrative-spatial-title {
+    max-width: 12.16ch;
+    font-size: clamp(1.25rem, 5.2vh, 2rem);
+  }
+
+  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy.is-finale .about-narrative-finale-content {
+    gap: 0.625rem;
+    transform: translate3d(0, 3.75rem, 0);
   }
 
   .about-narrative-opening-scroll-cue {

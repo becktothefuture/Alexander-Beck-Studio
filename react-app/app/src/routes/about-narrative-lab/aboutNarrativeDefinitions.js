@@ -11,6 +11,7 @@ export const ABOUT_NARRATIVE_MAX_TRANSITION_LOCAL = 16;
 
 export const ABOUT_NARRATIVE_SECTION_TYPES = Object.freeze(['spatial', 'editorial', 'finale']);
 export const ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES = Object.freeze(['spatial', 'vertical']);
+export const ABOUT_NARRATIVE_TITLE_STYLES = Object.freeze(['standard', 'display']);
 export const ABOUT_NARRATIVE_BLOCK_KINDS = Object.freeze([
   'prose',
   'highlight',
@@ -352,18 +353,18 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       fieldFogStartWU: 4.2,
       fieldFogEndWU: 8.4,
       fieldFogStrength: 0.12,
-      labelWindowWU: 1.62,
+      labelWindowWU: 1.35,
       staggerWU: 0.135,
       backgroundFadeWU: 0.216,
       backgroundOpacity: 0.2,
       backgroundScale: 0.58,
       reconnectOpacity: 0.24,
-      pointScale: 2.25,
+      pointScale: 3.6,
       restoreDurationWU: 0.72,
-      labelOffsetPx: 18,
-      labelScale: 1.2,
+      labelOffsetPx: 20,
+      labelScale: 1.4,
       labelDurationWU: 0.162,
-      holdWU: 0.72,
+      holdWU: 0.45,
       items: Object.freeze([
         Object.freeze({ group: 1, label: 'Product Design' }),
         Object.freeze({ group: 2, label: 'Experience Design' }),

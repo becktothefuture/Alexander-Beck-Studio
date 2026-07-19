@@ -187,14 +187,15 @@ test('legacy Camera migration preserves every authored key pose and World bounda
   });
 });
 
-test('absolute support keys retain the complete legacy v3 camera trajectory', () => {
+test('absolute support keys retain the untouched opening camera span', () => {
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const legacyBoundaries = legacyV3.tracks.camera.keys.flatMap((key) => [
     Math.max(0, key.atWU - 0.000001),
     key.atWU,
     Math.min(plan.durationWU, key.atWU + 0.000001),
   ]);
-  const samples = [...seededStorySamples(plan.durationWU, 1000), ...legacyBoundaries];
+  const samples = [...seededStorySamples(plan.durationWU, 1000), ...legacyBoundaries]
+    .filter((storyWU) => storyWU <= 7.17);
 
   samples.forEach((storyWU) => {
     const expected = sampleLegacyV3Camera(storyWU);
@@ -207,6 +208,15 @@ test('absolute support keys retain the complete legacy v3 camera trajectory', ()
     assert.ok(rotationError <= 1.5, `Camera rotation drifted ${rotationError}° at ${storyWU} WU.`);
     assertClose(actual.fov, expected.fov, `camera.fov @ ${storyWU}`, 0.25);
   });
+
+  for (const storyWU of [10, 15, 21.8]) {
+    const expected = sampleLegacyV3Camera(storyWU);
+    const actual = sampleAboutNarrativeRuntimePlan(plan, storyWU).camera;
+    const positionError = Math.hypot(...expected.position.map((value, index) => (
+      value - actual.position[index]
+    )));
+    assert.ok(positionError > 0.5, `Camera should retain the art-directed pose at ${storyWU} WU.`);
+  }
 });
 
 test('Camera distance fog interpolates between consecutive keyframes', () => {

@@ -583,6 +583,7 @@ export function createAboutNarrativeTitleAtWU({ model, atWU, id = null, template
     ...timing,
     movement: template.movement || 'spatial',
     preset: template.preset || 'travelling-title-v1',
+    titleStyle: template.titleStyle || 'standard',
     text: template.text || 'New title',
     publishable: template.publishable !== false,
   });

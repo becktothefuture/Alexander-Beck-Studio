@@ -498,15 +498,15 @@
           "atWU": 8.165,
           "position": [
             0,
-            0.9,
-            -1.665
+            3.6,
+            4
           ],
           "rotation": [
-            -86.185925,
+            -80,
             0,
             0
           ],
-          "fov": 48,
+          "fov": 52,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18,
           "easing": "linear",
@@ -517,15 +517,15 @@
           "atWU": 12.245,
           "position": [
             0,
-            0.9,
-            -0.045
+            3.6,
+            4
           ],
           "rotation": [
-            -86.185925,
+            -80,
             0,
             0
           ],
-          "fov": 48,
+          "fov": 52,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18,
           "easing": "linear",
@@ -536,94 +536,37 @@
           "atWU": 14.145,
           "position": [
             0,
-            5,
-            -0.045
+            3.6,
+            4
           ],
           "rotation": [
-            -90,
+            -80,
             0,
             0
           ],
-          "fov": 70,
-          "distanceFogStartWU": 0.1,
-          "distanceFogEndWU": 6.2,
-          "easing": "linear",
+          "fov": 52,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "ease-in-out",
           "locked": false
         },
         {
-          "id": "camera-disciplines-exit-path-1",
-          "atWU": 14.5725,
+          "id": "camera-living-field-transition",
+          "atWU": 14.575,
           "position": [
             0,
-            7.2,
-            -0.0225
+            3.8,
+            1.2
           ],
           "rotation": [
-            -84.595364,
+            -61,
             0,
             0
           ],
-          "fov": 70,
-          "distanceFogStartWU": 4.05,
-          "distanceFogEndWU": 12.1,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "camera-disciplines-exit-path-2",
-          "atWU": 14.78625,
-          "position": [
-            0,
-            8.3,
-            -0.01125
-          ],
-          "rotation": [
-            -77.105674,
-            0,
-            0
-          ],
-          "fov": 70,
-          "distanceFogStartWU": 6.025,
-          "distanceFogEndWU": 15.05,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "camera-disciplines-exit-path-3",
-          "atWU": 14.893125,
-          "position": [
-            0,
-            8.85,
-            -0.005625
-          ],
-          "rotation": [
-            -68.935473,
-            0,
-            0
-          ],
-          "fov": 70,
-          "distanceFogStartWU": 7.0125,
-          "distanceFogEndWU": 16.525,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "camera-disciplines-exit-path-4",
-          "atWU": 14.946563,
-          "position": [
-            0,
-            9.125,
-            -0.002813
-          ],
-          "rotation": [
-            -62.086515,
-            0,
-            0
-          ],
-          "fov": 70,
-          "distanceFogStartWU": 7.50625,
-          "distanceFogEndWU": 17.2625,
-          "easing": "linear",
+          "fov": 53.5,
+          "distanceFogStartWU": 8,
+          "distanceFogEndWU": 18,
+          "easing": "ease-in-out",
           "locked": false
         },
         {
@@ -631,18 +574,18 @@
           "atWU": 15,
           "position": [
             0,
-            9.4,
-            0
+            4,
+            -1
           ],
           "rotation": [
-            -51.726884,
+            -42,
             0,
             0
           ],
-          "fov": 70,
+          "fov": 55,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18,
-          "easing": "linear",
+          "easing": "ease-in-out",
           "locked": false
         },
         {
@@ -650,300 +593,110 @@
           "atWU": 20,
           "position": [
             0,
-            9.4,
-            0
+            4,
+            -1
           ],
           "rotation": [
-            -51.726884,
+            -42,
             0,
             0
           ],
-          "fov": 70,
+          "fov": 55,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18,
-          "easing": "linear",
+          "easing": "ease-in-out",
           "locked": false
         },
         {
-          "id": "camera-grid-ripple-hold-end-path-1",
-          "atWU": 20.435,
+          "id": "camera-epilogue-transition-start",
+          "atWU": 20.3,
           "position": [
             0,
-            5.15,
-            -6.435
+            4,
+            -1
           ],
           "rotation": [
-            -49.899092,
+            -42,
             0,
             0
           ],
-          "fov": 59,
+          "fov": 55,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
+          "locked": false,
+          "easing": "ease-in-out"
         },
         {
-          "id": "camera-grid-ripple-hold-end-path-2",
-          "atWU": 20.6525,
+          "id": "camera-epilogue-shape-hold",
+          "atWU": 20.65,
           "position": [
             0,
-            3.025,
-            -9.6525
+            4,
+            -1
           ],
           "rotation": [
-            -46.909152,
+            -42,
             0,
             0
           ],
-          "fov": 53.5,
+          "fov": 55,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
+          "locked": false,
+          "easing": "ease-in-out"
         },
         {
-          "id": "camera-grid-ripple-hold-end-path-3",
-          "atWU": 20.76125,
+          "id": "camera-epilogue-transition-approach",
+          "atWU": 20.85,
           "position": [
             0,
-            1.9625,
-            -11.26125
+            1.7,
+            -2.3
           ],
           "rotation": [
-            -42.70939,
+            -18,
             0,
             0
           ],
-          "fov": 50.75,
+          "fov": 40,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
+          "locked": false,
+          "easing": "ease-in-out"
         },
         {
-          "id": "camera-grid-ripple-hold-end-path-4",
-          "atWU": 20.815625,
+          "id": "camera-epilogue-arrive",
+          "atWU": 21.05,
           "position": [
             0,
-            1.43125,
-            -12.065625
+            0,
+            -3
           ],
           "rotation": [
-            -37.942153,
+            0,
             0,
             0
           ],
-          "fov": 49.375,
+          "fov": 32,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
+          "locked": false,
+          "easing": "ease-in-out"
         },
         {
-          "id": "camera-key",
-          "atWU": 20.87,
-          "position": [
-            0,
-            0.9,
-            -12.87
-          ],
-          "rotation": [
-            -26.565051,
-            0,
-            0
-          ],
-          "fov": 48,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "camera-key-path-1",
-          "atWU": 20.928125,
-          "position": [
-            0,
-            0.886711,
-            -12.934031
-          ],
-          "rotation": [
-            -26.089344,
-            0,
-            0
-          ],
-          "fov": 47.734226,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "camera-key-path-2",
-          "atWU": 20.98625,
-          "position": [
-            0,
-            0.837161,
-            -13.014179
-          ],
-          "rotation": [
-            -24.281327,
-            0,
-            0
-          ],
-          "fov": 46.743215,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "camera-key-path-3",
-          "atWU": 21.044375,
-          "position": [
-            0,
-            0.736626,
-            -13.116986
-          ],
-          "rotation": [
-            -20.452042,
-            0,
-            0
-          ],
-          "fov": 44.73251,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "camera-key-path-4",
-          "atWU": 21.1025,
-          "position": [
-            0,
-            0.592945,
-            -13.238969
-          ],
-          "rotation": [
-            -14.637515,
-            0,
-            0
-          ],
-          "fov": 41.858909,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "camera-key-path-5",
-          "atWU": 21.160625,
-          "position": [
-            0,
-            0.450165,
-            -13.360552
-          ],
-          "rotation": [
-            -8.537948,
-            0,
-            0
-          ],
-          "fov": 39.003296,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "camera-key-path-6",
-          "atWU": 21.21875,
-          "position": [
-            0,
-            0.334008,
-            -13.470302
-          ],
-          "rotation": [
-            -3.421282,
-            0,
-            0
-          ],
-          "fov": 36.680153,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "camera-key-path-7",
-          "atWU": 21.335,
-          "position": [
-            0,
-            0.177677,
-            -13.656033
-          ],
-          "rotation": [
-            3.536782,
-            0,
-            0
-          ],
-          "fov": 33.553534,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "camera-key-path-8",
-          "atWU": 21.45125,
-          "position": [
-            0,
-            0.086194,
-            -13.812942
-          ],
-          "rotation": [
-            7.573647,
-            0,
-            0
-          ],
-          "fov": 31.723876,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "camera-key-path-9",
-          "atWU": 21.5675,
-          "position": [
-            0,
-            0.033842,
-            -13.952459
-          ],
-          "rotation": [
-            9.852765,
-            0,
-            0
-          ],
-          "fov": 30.676837,
-          "distanceFogStartWU": 8,
-          "distanceFogEndWU": 18,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "camera-epilogue-4",
+          "id": "camera-epilogue-hold",
           "atWU": 21.8,
           "position": [
             0,
             0,
-            -14.2
+            -3
           ],
           "rotation": [
-            11.309932,
+            0,
             0,
             0
           ],
-          "fov": 30,
+          "fov": 32,
           "distanceFogStartWU": 8,
           "distanceFogEndWU": 18,
           "easing": "linear",
@@ -1162,10 +915,10 @@
             "mobileYOffset": 0.15
           },
           "transitionIn": {
-            "startWU": 20.42,
-            "endWU": 21.23,
+            "startWU": 20.45,
+            "endWU": 20.85,
             "type": "morph",
-            "easing": "smoothstep",
+            "easing": "ease-out",
             "correspondence": "spatial-nearest-v1"
           },
           "shapeParameters": {
@@ -1211,6 +964,7 @@
           },
           "movement": "spatial",
           "preset": "opener-v1",
+          "titleStyle": "display",
           "text": "I help shape complex ideas into compelling experiences."
         },
         {
@@ -1225,6 +979,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
+          "titleStyle": "standard",
           "text": "I’ve always been drawn to the complicated bit."
         },
         {
@@ -1239,6 +994,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
+          "titleStyle": "standard",
           "text": "New technology. New behaviour. Questions of trust."
         },
         {
@@ -1298,6 +1054,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
+          "titleStyle": "standard",
           "text": "The answer rarely sits inside one discipline."
         },
         {
@@ -1312,6 +1069,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
+          "titleStyle": "display",
           "text": "So I use a few."
         },
         {
@@ -1352,6 +1110,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
+          "titleStyle": "standard",
           "text": "Then the idea starts to behave."
         },
         {
@@ -1366,6 +1125,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
+          "titleStyle": "standard",
           "text": "It has rhythm. Character. A reason to be there."
         },
         {
@@ -1380,6 +1140,7 @@
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
+          "titleStyle": "standard",
           "text": "It becomes something people can understand."
         },
         {
@@ -1411,8 +1172,8 @@
         {
           "id": "text-epilogue-invitation",
           "kind": "title",
-          "startWU": 20.4,
-          "focusWU": 20.8,
+          "startWU": 20.65,
+          "focusWU": 21.05,
           "endWU": 21.8,
           "publishable": true,
           "presentation": {
@@ -1420,6 +1181,7 @@
           },
           "movement": "spatial",
           "preset": "finale-v1",
+          "titleStyle": "display",
           "text": "If you are building something new and need it to make sense to people, let’s talk."
         }
       ]
@@ -1439,18 +1201,18 @@
             "fieldFogStartWU": 4.2,
             "fieldFogEndWU": 8.4,
             "fieldFogStrength": 0.12,
-            "labelWindowWU": 1.62,
+            "labelWindowWU": 1.35,
             "staggerWU": 0.135,
             "backgroundFadeWU": 0.216,
-            "backgroundOpacity": 0.2,
-            "backgroundScale": 0.58,
-            "reconnectOpacity": 0.24,
-            "pointScale": 2.25,
+            "backgroundOpacity": 0.32,
+            "backgroundScale": 0.72,
+            "reconnectOpacity": 0.32,
+            "pointScale": 3.6,
             "restoreDurationWU": 0.72,
-            "labelOffsetPx": 18,
-            "labelScale": 1.2,
+            "labelOffsetPx": 20,
+            "labelScale": 1.4,
             "labelDurationWU": 0.162,
-            "holdWU": 0.72,
+            "holdWU": 0.45,
             "items": [
               {
                 "group": 1,
@@ -1500,7 +1262,7 @@
           "id": "interaction-epilogue",
           "type": "horizontal-spin",
           "startWU": 20.3,
-          "activationWU": 21.11,
+          "activationWU": 21.05,
           "endWU": 21.8,
           "targetWorldId": "world-epilogue",
           "protected": true
