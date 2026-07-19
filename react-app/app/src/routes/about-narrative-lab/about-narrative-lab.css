@@ -903,7 +903,7 @@ body.about-narrative-page .route-simulation-layer {
   top: auto;
   left: auto;
   max-width: 28rem;
-  opacity: 1;
+  opacity: var(--discipline-reveal);
   transform: none;
   will-change: auto;
 }

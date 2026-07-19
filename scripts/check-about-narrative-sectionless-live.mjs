@@ -437,10 +437,12 @@ test('D is a dedicated Discipline reveal Motion and the ripple starts only in E'
   assert.ok(clip.parameters.speed > 0);
   assert.match(liveSources.world, /gridRippleWeight/);
   assert.match(liveSources.world, /float ripple = \(radialRipple \* 0\.68\) \+ \(crossingRipple \* 0\.32\)/);
-  assert.match(liveSources.world, /float ripplePulse = gridRippleWeight \* gridRippleAmplitude \* ripple/);
+  assert.match(liveSources.world, /uniform float gridRippleProgress/);
+  assert.match(liveSources.world, /float rippleReach = mix\([\s\S]*?gridRippleProgress/);
+  assert.match(liveSources.world, /float ripplePulse = gridRippleWeight[\s\S]*?\* ripple[\s\S]*?\* rippleEnvelope/);
   assert.match(liveSources.world, /worldPoint\.y \+= ripplePulse/);
+  assert.match(liveSources.world, /worldPoint\.xz \+= rippleDirection \* radialDisplacement/);
   assert.doesNotMatch(liveSources.world, /rippleScale/);
-  assert.doesNotMatch(liveSources.world, /worldPoint\.[xz] \+= ripplePulse/);
   assert.match(liveSources.world, /const isolationWeight = Number\(revealState\.backgroundProgress \|\| 0\)[\s\S]*?\* \(1 - Number\(revealState\.restoreProgress \|\| 0\)\)/);
   assert.match(liveSources.editor, /getGridRippleStartControl\(snapshot\.document, object\)/);
   assert.match(liveSources.editor, /ariaLabel="Ripple starts"/);

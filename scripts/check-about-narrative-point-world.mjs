@@ -101,6 +101,10 @@ test('point renderer keeps visibility, fog, sizing, ripple, and orbital motion o
     '../react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
     import.meta.url,
   ), 'utf8');
+  const styles = readFileSync(new URL(
+    '../react-app/app/src/routes/about-narrative-lab/about-narrative-lab.css',
+    import.meta.url,
+  ), 'utf8');
   assert.match(source, /presence \*= clamp\(simulationVisibility, 0\.0, 1\.0\)/);
   assert.match(source, /points\.visible = simulationVisibility > 0\.001/);
   assert.match(source, /uniform float sceneEntranceScale/);
@@ -125,4 +129,8 @@ test('point renderer keeps visibility, fog, sizing, ripple, and orbital motion o
   assert.match(source, /rippleReach \+ 1\.1/);
   assert.match(source, /worldPoint\.xz \+= rippleDirection \* radialDisplacement/);
   assert.match(source, /attributeFilter: \['class', 'data-theme'\]/);
+  assert.match(
+    styles,
+    /data-about-motion-profile='reduced'[\s\S]*discipline-reveal li[\s\S]*opacity: var\(--discipline-reveal\)/,
+  );
 });

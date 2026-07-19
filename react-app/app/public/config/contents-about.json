@@ -556,7 +556,7 @@
               0
             ],
             "scale": 1.12,
-            "mobileScale": 0.68
+            "mobileScale": 0.5
           },
           "transitionIn": {
             "startWU": 17.7,
