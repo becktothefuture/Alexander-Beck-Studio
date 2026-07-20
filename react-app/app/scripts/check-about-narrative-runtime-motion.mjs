@@ -161,6 +161,27 @@ test('anchor sampler mirrors morph, transforms, and bust yaw order', () => {
   assert.ok(Math.abs(target.z - 0.5) < 1e-12);
 });
 
+test('bust correspondence resolves progressively from its lowest points upward', () => {
+  const low = { x: 0, y: 0, z: 0 };
+  const high = { x: 0, y: 0, z: 0 };
+  const base = {
+    fromPosition: [0, 0, 0],
+    morphProgress: 0.42,
+    fromBust: 0,
+    toBust: 1,
+  };
+  sampleAboutNarrativeAnchorPosition(createSamplingInput({
+    ...base,
+    toPosition: [1, -0.75, 0],
+  }), low);
+  sampleAboutNarrativeAnchorPosition(createSamplingInput({
+    ...base,
+    toPosition: [1, 0.75, 0],
+  }), high);
+  assert.ok(low.x > high.x, 'Lower bust points must advance before upper points.');
+  assert.ok(Math.abs(low.y + 0.75) < Math.abs(high.y - 0.75));
+});
+
 test('anchor sampler mirrors drift and wave without moving the grid', () => {
   const target = { x: 0, y: 0, z: 0 };
   const input = createSamplingInput({
@@ -220,7 +241,7 @@ test('grid displacement remains still when ambient time advances at a fixed stor
   assert.deepEqual(after, before);
 });
 
-test('grid ripple expands from its center and displaces the field in depth and radius', () => {
+test('grid ripple perpetually radiates from its center on ambient time alone', () => {
   const first = { x: 0, y: 0, z: 0 };
   const second = { x: 0, y: 0, z: 0 };
   const input = createSamplingInput({
@@ -233,33 +254,34 @@ test('grid ripple expands from its center and displaces the field in depth and r
       frequency: 2,
       centerX: -4,
       centerZ: 5,
-      storyMix: 1,
+      storyMix: 0,
       progress: 0,
     },
     storyTime: 0.75,
     ambientTime: 12,
   });
   sampleAboutNarrativeAnchorPosition(input, first);
-  assert.deepEqual(first, { x: 1, y: 2, z: 3 });
-
-  input.gridRipple.progress = 1;
-  sampleAboutNarrativeAnchorPosition(input, first);
   const ripplePointX = 1 - input.gridRipple.centerX;
   const ripplePointZ = 3 - input.gridRipple.centerZ;
   const rippleDistance = Math.hypot(ripplePointX, ripplePointZ);
-  const ripplePhase = input.storyTime * input.gridRipple.speed * 6.2831853;
+  const ripplePhase = input.ambientTime * input.gridRipple.speed * 6.2831853;
   const radialRipple = Math.sin((rippleDistance * input.gridRipple.frequency) - ripplePhase);
-  const crossingRipple = Math.sin(
-    (ripplePointX * input.gridRipple.frequency * 0.68)
-    - (ripplePointZ * input.gridRipple.frequency * 0.51)
-    + (ripplePhase * 0.72),
+  const harmonicRipple = Math.sin(
+    (rippleDistance * input.gridRipple.frequency * 0.52) - (ripplePhase * 0.72),
   );
+  const centerPulse = Math.cos(ripplePhase) * Math.exp(-rippleDistance * 0.42);
+  const rippleFalloff = 1 / (1 + (rippleDistance * 0.035));
   const rippleStrength = input.gridRipple.weight * input.gridRipple.amplitude;
-  const radialDisplacement = rippleStrength * radialRipple * 0.52;
+  const radialDisplacement = rippleStrength * radialRipple * rippleFalloff * 0.34;
   assert.ok(Math.abs(first.x - (1 + ((ripplePointX / rippleDistance) * radialDisplacement))) < 1e-9);
-  assert.ok(Math.abs(first.y - (2 + (rippleStrength * ((radialRipple * 0.68) + (crossingRipple * 0.32))))) < 1e-9);
+  assert.ok(Math.abs(first.y - (2 + (rippleStrength * (
+    ((radialRipple * 0.72) + (harmonicRipple * 0.2) + (centerPulse * 0.34)) * rippleFalloff
+  )))) < 1e-9);
   assert.ok(Math.abs(first.z - (3 + ((ripplePointZ / rippleDistance) * radialDisplacement))) < 1e-9);
-  input.storyTime = 0.81;
+  input.storyTime = 8.1;
+  sampleAboutNarrativeAnchorPosition(input, second);
+  assert.deepEqual(second, first, 'Story progress must not move an ambient ripple.');
+  input.ambientTime = 12.15;
   sampleAboutNarrativeAnchorPosition(input, second);
   assert.notEqual(first.x, 1);
   assert.notEqual(first.z, 3);

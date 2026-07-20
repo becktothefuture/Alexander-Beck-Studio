@@ -1,7 +1,11 @@
 {
   "identity": {
     "name": "Alexander Beck.",
-    "role": "Designer & Technologist.",
+    "role": "Designer and Technologist.",
+    "roleLines": [
+      "Designer and",
+      "Technologist."
+    ],
     "ariaLabel": "Alexander Beck. Designer and technologist."
   },
   "edge": {

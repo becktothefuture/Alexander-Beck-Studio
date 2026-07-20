@@ -98,3 +98,43 @@ Each category is scored 1–5: material continuity, narrative clarity, spatial h
 - **Decision:** Keep and close the visual feedback loop.
 - **Reasons:** The bust, three-line invitation, and 44px actions share one centered axis with clear vertical intervals and approximately 59px of studio-window clearance beneath the actions in both browsers.
 - **Next mutation:** None. Reopen only against new visual evidence or a new narrative requirement.
+
+## Iteration 8 — discipline constellation spread
+
+- **Hypothesis:** The protected inner-70% band should be used as a composition, not merely as a clamp; alternating anchors across it will make the camera pan feel intentional on desktop and retain a portrait rhythm on mobile.
+- **Changed surface:** Discipline desktop/mobile normalized anchors, label scale/offset, and emphasized-point scale. Copy, colour assignment, reveal timing, and camera timing are unchanged.
+- **Evidence:** Six fixed entry/middle/exit captures at 1440×1000 and 390×844; every visible label remained inside the inner-70% geometry gate.
+- **Score:** material continuity 5; narrative clarity 5; spatial hierarchy 5; typography 5; responsive parity 5; implementation realism 5.
+- **Decision:** Keep.
+- **Reasons:** The labels now alternate across the portrait field instead of reading as a narrow center stack, while the camera-linked top-to-bottom reveal remains intact.
+- **Next mutation:** Remove the collision between the emergence title and the forming bust.
+
+## Iteration 9 — emergence-title clearance
+
+- **Hypothesis:** Holding whole-simulation visibility low through the title's focus, then restoring the bust as the title exits, will create one clear focal plane without changing the title position or bust geometry.
+- **Changed surface:** Existing finale visibility envelope only; no text, camera, World, or typography changes.
+- **Evidence:** At WU 14.45, chromatic coverage in the padded title zone fell from 20.52% to 0.003% on desktop and from 10.12% to 0% on mobile. The bust remains fully visible before the title and restores at WU 14.75.
+- **Score:** material continuity 5; narrative clarity 5; spatial hierarchy 5; typography 5; responsive parity 5; implementation realism 5.
+- **Decision:** Keep.
+- **Reasons:** Formation, statement, and reveal now read as three orchestrated beats instead of two layers competing in the same frame.
+- **Next mutation:** Audit the opening camera continuously between the existing contact-sheet endpoints.
+
+## Iteration 10 — complexity camera centerline
+
+- **Hypothesis:** Raising the existing fly-through key to the transformed field's vertical center will keep material in frame as the orb opens around the lens without adding another camera key.
+- **Changed surface:** Camera `complexity-inside` Position Y only, from `0.35` to `1.2`; the fixed capture set adds an intermediate WU 1.75 frame on desktop and mobile.
+- **Evidence:** The new WU 1.75 capture contains 0.51% chromatic coverage on desktop and 1.02% on mobile while keeping the centered title readable. Two rejected candidates were recorded: the higher `1.6` centerline caused material/type collision, while advancing Z to `-0.8` recreated a desktop material trough.
+- **Score:** material continuity 5; narrative clarity 5; spatial hierarchy 5; typography 5; responsive parity 5; implementation realism 5.
+- **Decision:** Keep the `Y 1.2 / Z 0.35` pose.
+- **Reasons:** The camera now follows the cloud's authored center rather than passing underneath it, and the sequence retains breathing room around the title.
+- **Next mutation:** Regenerate the expanded contact sheets, including bottom/middle/top bust-formation frames, and run the complete certification gates.
+
+## Iteration 11 — compact-landscape bookend
+
+- **Hypothesis:** A short landscape viewport needs a deliberate two-column recomposition; stacking the portrait bust and CTA in 310px of studio height necessarily crops one of them.
+- **Changed surface:** Optional short-landscape World scale/XYZ offsets, matching editor controls, and a short-landscape finale layout. Portrait, tablet, desktop, camera keys, and all text content are unchanged.
+- **Evidence:** Chromium and WebKit initially showed the CTA without the bust at 844×390. The tuned frame retains a 1.65-scale bust in the left field and the complete invitation/actions in the right field with no overlap; the expanded visual audit now owns discipline, bust-hold, and finale checkpoints for this viewport.
+- **Score:** material continuity 5; narrative clarity 5; spatial hierarchy 5; typography 5; responsive parity 5; implementation realism 5.
+- **Decision:** Keep.
+- **Reasons:** The bust remains a true bookend on wide phones, and the asymmetrical composition uses the available aspect ratio instead of shrinking the portrait layout until it becomes irrelevant.
+- **Next mutation:** None unless the regenerated full evidence or project gates expose a regression.

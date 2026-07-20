@@ -129,7 +129,10 @@ async function visitSimulation(page, entry) {
     await page.goto(url.toString(), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction((id) => {
       const snapshot = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
-      return snapshot?.mode === id && snapshot.canvasTitleVisible === true;
+      const root = document.documentElement;
+      return snapshot?.mode === id
+        && snapshot.canvasTitleVisible === true
+        && root.dataset.absBootState === 'ready';
     }, entry.id, { timeout: waitMs });
   }
   await page.evaluate(() => document.fonts?.ready);
@@ -223,18 +226,26 @@ async function auditDailyFocusTitleEntrance(browser, entry) {
 
     const result = await page.evaluate(() => {
       const name = document.querySelector('#hero-title .hero-title__name');
-      const role = document.querySelector('#hero-title .hero-title__role');
+      const roles = [...document.querySelectorAll('#hero-title .hero-title__role')];
       return {
         ...window.__ABS_DAILY_TITLE_ENTRANCE_AUDIT__,
         nameOpacity: Number.parseFloat(getComputedStyle(name).opacity || '0'),
-        roleOpacity: Number.parseFloat(getComputedStyle(role).opacity || '0'),
+        roleOpacities: roles.map((role) => Number.parseFloat(getComputedStyle(role).opacity || '0')),
+        roleLines: roles.map((role) => role.textContent?.trim() || ''),
       };
     });
 
     assert(result.sawPendingHidden, `${entry.id}: title was not staged hidden before its entrance`, result);
     assert(result.sawEnterIntermediate, `${entry.id}: title did not visibly interpolate into view`, result);
     assert(result.sawEnterWithoutOverlay, `${entry.id}: title entrance began before the loader detached`, result);
-    assert(result.nameOpacity >= 0.99 && result.roleOpacity >= 0.99, `${entry.id}: title did not settle visible`, result);
+    assert(result.nameOpacity >= 0.99, `${entry.id}: title name did not settle visible`, result);
+    assert(
+      result.roleLines.length === 2
+      && result.roleLines.every(Boolean)
+      && result.roleOpacities.every((opacity) => Math.abs(opacity - 0.58) <= 0.02),
+      `${entry.id}: title role lines did not settle at the shared secondary tone`,
+      result,
+    );
     assert(result.sawEdgeCaptionPending, `${entry.id}: edge caption was not staged for entrance`, result);
     assert(result.sawEdgeCaptionIntermediate, `${entry.id}: edge caption did not visibly fade into view`, result);
     assert(

@@ -326,10 +326,10 @@ test('interaction activation is absolute, targeted, and half-open', () => {
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const clip = plan.interactionClips.find((item) => item.type === 'grid-ripple');
   assert.ok(clip);
-  const before = sampleAboutNarrativeRuntimePlan(plan, clip.activationWU - 0.000001);
+  const before = sampleAboutNarrativeRuntimePlan(plan, clip.startWU - 0.000001);
   const at = sampleAboutNarrativeRuntimePlan(plan, clip.activationWU);
   const after = sampleAboutNarrativeRuntimePlan(plan, clip.activationWU + 0.000001);
-  assert.equal(before.interactions.activeInteraction, clip);
+  assert.equal(before.interactions.activeInteraction, null);
   assert.equal(before.interactions.interactionActivated, false);
   assert.equal(at.interactions.activeInteraction, clip);
   assert.equal(at.interactions.interactionActivated, true);
@@ -344,22 +344,19 @@ test('interaction activation is absolute, targeted, and half-open', () => {
   }
 });
 
-test('grid ripple attacks, sustains, releases, and settles for Reduced Motion', () => {
+test('grid ripple starts immediately, holds perpetually, and settles for Reduced Motion', () => {
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const clip = plan.interactionClips.find((item) => item.type === 'grid-ripple');
   assert.ok(clip);
-  const releaseStartWU = clip.endWU - clip.parameters.releaseWU;
   const before = sampleAboutNarrativeRuntimePlan(plan, clip.startWU - 0.000001);
-  const attack = sampleAboutNarrativeRuntimePlan(plan, (clip.startWU + clip.activationWU) / 2);
   const activated = sampleAboutNarrativeRuntimePlan(plan, clip.activationWU);
-  const sustain = sampleAboutNarrativeRuntimePlan(plan, (clip.activationWU + releaseStartWU) / 2);
-  const release = sampleAboutNarrativeRuntimePlan(plan, (releaseStartWU + clip.endWU) / 2);
+  const sustain = sampleAboutNarrativeRuntimePlan(plan, (clip.activationWU + clip.endWU) / 2);
+  const finalActive = sampleAboutNarrativeRuntimePlan(plan, clip.endWU - 0.000001);
   const end = sampleAboutNarrativeRuntimePlan(plan, clip.endWU);
   assert.equal(before.interactions.effectWeight, 0);
-  assert.ok(attack.interactions.effectWeight > 0 && attack.interactions.effectWeight < 1);
   assert.equal(activated.interactions.effectWeight, 1);
   assert.equal(sustain.interactions.effectWeight, 1);
-  assert.ok(release.interactions.effectWeight > 0 && release.interactions.effectWeight < 1);
+  assert.equal(finalActive.interactions.effectWeight, 1);
   assert.equal(end.interactions.effectWeight, 0);
 
   const reducedPlan = compileAboutNarrativeRuntimePlan(canonical, {

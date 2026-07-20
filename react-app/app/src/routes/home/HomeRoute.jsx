@@ -50,8 +50,18 @@ export function getHomeRouteView() {
         data-canvas-title-source="home"
         aria-label={HOME_IDENTITY.ariaLabel}
       >
-        <span className="hero-title__name" data-route-enter="identity" data-route-enter-order="0">{HOME_IDENTITY.name}</span>
-        <span className="hero-title__role" data-route-enter="identity" data-route-enter-order="1">{HOME_IDENTITY.role}</span>
+        <span className="hero-title__name" data-route-enter="identity" data-route-enter-order="0" data-route-enter-variant="bookend-title">{HOME_IDENTITY.name}</span>
+        {HOME_IDENTITY.roleLines.map((line, index) => (
+          <span
+            key={line}
+            className="hero-title__role"
+            data-route-enter="identity"
+            data-route-enter-order={index + 1}
+            data-route-enter-variant="bookend-title"
+          >
+            {line}
+          </span>
+        ))}
       </h1>
     ),
     uiLayer: {

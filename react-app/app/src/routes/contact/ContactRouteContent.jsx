@@ -96,7 +96,13 @@ export function ContactRouteContent() {
   return (
     <div className="route-centered-page contact-route" data-route-content="contact">
       <section id="contact-route-content" className="route-centered-page__inner contact-route__inner" aria-labelledby="contact-route-title">
-        <h1 id="contact-route-title" className="route-centered-page__title" data-route-enter="identity" data-route-enter-order="0">
+        <h1
+          id="contact-route-title"
+          className="route-centered-page__title route-bookend-title"
+          data-route-enter="identity"
+          data-route-enter-order="0"
+          data-route-enter-variant="bookend-title"
+        >
           {title}
         </h1>
         <p id="contact-route-description" className="route-centered-page__description route-intro-description" data-route-enter="context">

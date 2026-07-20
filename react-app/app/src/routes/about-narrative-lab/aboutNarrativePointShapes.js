@@ -221,10 +221,11 @@ export function createAboutNarrativeColourMatchedDisciplineGroups({
   output,
   pointSeeds,
   materialThresholds,
+  anchors = null,
 }) {
   const sourceGroups = output?.attributes?.disciplineGroup;
   const pointCount = output?.presence?.length || 0;
-  if (!sourceGroups) return null;
+  if (!sourceGroups && !Array.isArray(anchors)) return null;
   if (!(pointSeeds instanceof Float32Array) || pointSeeds.length !== pointCount) {
     throw new Error('Discipline colour matching needs one point seed per rendered point.');
   }
@@ -234,26 +235,48 @@ export function createAboutNarrativeColourMatchedDisciplineGroups({
 
   const groups = new Float32Array(pointCount);
   const used = new Uint8Array(pointCount);
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  if (Array.isArray(anchors)) {
+    for (let index = 0; index < pointCount; index += 1) {
+      if (output.presence[index] <= 0.001) continue;
+      const offset = index * 3;
+      minX = Math.min(minX, output.positions[offset]);
+      maxX = Math.max(maxX, output.positions[offset]);
+      minZ = Math.min(minZ, output.positions[offset + 2]);
+      maxZ = Math.max(maxZ, output.positions[offset + 2]);
+    }
+  }
   for (let group = 1; group <= 6; group += 1) {
     let anchorIndex = -1;
-    for (let index = 0; index < pointCount; index += 1) {
-      if (Math.round(sourceGroups[index]) === group) {
-        anchorIndex = index;
-        break;
+    const authoredAnchor = anchors?.find((item) => Number(item?.group) === group);
+    let targetX = Number.NaN;
+    let targetZ = Number.NaN;
+    if (authoredAnchor && Number.isFinite(minX) && Number.isFinite(minZ)) {
+      targetX = minX + ((maxX - minX) * Number(authoredAnchor.x));
+      targetZ = minZ + ((maxZ - minZ) * Number(authoredAnchor.y));
+    } else if (sourceGroups) {
+      for (let index = 0; index < pointCount; index += 1) {
+        if (Math.round(sourceGroups[index]) === group) {
+          anchorIndex = index;
+          break;
+        }
       }
     }
-    if (anchorIndex < 0) continue;
+    if (anchorIndex < 0 && !Number.isFinite(targetX)) continue;
 
-    const anchorOffset = anchorIndex * 3;
+    const anchorOffset = Math.max(0, anchorIndex) * 3;
     let bestIndex = -1;
     let bestDistance = Infinity;
     for (let index = 0; index < pointCount; index += 1) {
       if (used[index] || output.presence[index] <= 0.001) continue;
       if (getMaterialSlot(pointSeeds[index], materialThresholds) !== group - 1) continue;
       const offset = index * 3;
-      const dx = output.positions[offset] - output.positions[anchorOffset];
-      const dy = output.positions[offset + 1] - output.positions[anchorOffset + 1];
-      const dz = output.positions[offset + 2] - output.positions[anchorOffset + 2];
+      const dx = output.positions[offset] - (Number.isFinite(targetX) ? targetX : output.positions[anchorOffset]);
+      const dy = Number.isFinite(targetX) ? 0 : output.positions[offset + 1] - output.positions[anchorOffset + 1];
+      const dz = output.positions[offset + 2] - (Number.isFinite(targetZ) ? targetZ : output.positions[anchorOffset + 2]);
       const distance = (dx * dx) + (dy * dy) + (dz * dz);
       if (distance < bestDistance) {
         bestIndex = index;
@@ -262,6 +285,7 @@ export function createAboutNarrativeColourMatchedDisciplineGroups({
     }
 
     if (bestIndex < 0) bestIndex = anchorIndex;
+    if (bestIndex < 0) continue;
     groups[bestIndex] = group;
     used[bestIndex] = 1;
   }

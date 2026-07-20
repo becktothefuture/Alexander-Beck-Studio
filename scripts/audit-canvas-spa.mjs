@@ -179,7 +179,7 @@ async function runCancelledPortfolioBootstrapProbe(page) {
       && !document.body.classList.contains('portfolio-page')
       && !document.body.dataset.portfolioLoadState
       && title?.canvasTitleVisible === true
-      && title?.canvasTitleLineCount >= 2
+      && title?.canvasTitleLineCount >= 3
       && title?.ballCount > 0
     );
     }, null, { timeout: BUFFER_WAIT_MS });

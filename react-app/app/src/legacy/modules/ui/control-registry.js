@@ -2445,16 +2445,16 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'brandLogoSecondaryOpacity',
-        label: 'Second Line',
+        label: 'Role Lines',
         stateKey: 'brandLogoSecondaryOpacity',
         type: 'range',
         min: 0,
         max: 1,
         step: 0.01,
-        default: 1,
+        default: 0.58,
         format: (v) => Number(v).toFixed(2),
         parse: parseFloat,
-        hint: 'Opacity for the lower line of the brand mark (1 = match primary line).',
+        hint: 'Shared opacity for the Home title role lines (1 = match the name).',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--brand-logo-secondary-opacity', String(val));
         }

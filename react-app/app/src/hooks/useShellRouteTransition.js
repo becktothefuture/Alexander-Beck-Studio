@@ -1021,7 +1021,9 @@ function isRouteBaselineReady(routeId, options = {}) {
     const runtime = getActiveLegacyRuntimeSnapshot();
     const semanticTitleReady = Boolean(
       hero?.querySelector('.hero-title__name')?.textContent?.trim()
-      && hero?.querySelector('.hero-title__role')?.textContent?.trim()
+      && hero?.querySelectorAll('.hero-title__role').length >= 2
+      && [...hero.querySelectorAll('.hero-title__role')]
+        .every((line) => line.textContent?.trim())
     );
     return Boolean(
       isHomeRoute

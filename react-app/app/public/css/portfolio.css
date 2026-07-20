@@ -941,7 +941,11 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   pointer-events: none;
 }
 
-.portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-deck-intro__title,
+.portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-deck-intro__title {
+  filter: blur(7px);
+  clip-path: inset(100% 0 0 0);
+}
+
 .portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-deck-intro__body {
   transform: translateY(var(--route-enter-ty, 3px)) scale(var(--route-enter-scale, 0.994));
 }
@@ -962,6 +966,12 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   transform: translateY(0) scale(1);
 }
 
+.portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__title,
+.portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-deck-intro__title {
+  clip-path: inset(0 0 0 0);
+  transform: none;
+}
+
 .portfolio-deck-mount.is-portfolio-deck-revealing
   .portfolio-deck-intro__title,
 .portfolio-deck-mount.is-portfolio-deck-revealing
@@ -974,8 +984,9 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-deck-mount.is-portfolio-deck-revealing
   .portfolio-deck-intro__title {
-  transition-duration: 420ms;
+  transition-duration: 720ms;
   transition-delay: 0ms;
+  transition-property: opacity, filter, clip-path;
 }
 
 .portfolio-deck-mount.is-portfolio-deck-revealing
@@ -2801,11 +2812,19 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
   }
 
   .portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__title,
+  .portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-deck-intro__title,
   .portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__body,
   .portfolio-deck-mount.is-portfolio-deck-visible .portfolio-project-card,
   .portfolio-deck-mount.is-portfolio-deck-visible .portfolio-project-card__media,
   .portfolio-deck-mount.is-portfolio-deck-visible .portfolio-carousel-dot-dial {
     transition: none;
+  }
+
+  .portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-deck-intro__title,
+  .portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-deck-intro__title,
+  .portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__title {
+    clip-path: none;
+    filter: none;
   }
 
   .portfolio-project-media-bridge {

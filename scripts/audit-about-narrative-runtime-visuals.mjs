@@ -20,40 +20,68 @@ await mkdir(outputDir, { recursive: true });
 const checkpoints = [
   { id: 'desktop-orb', storyWU: 0.35, stage: 'cluster-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectCenteredOpener: true },
   { id: 'desktop-complexity-threshold', storyWU: 1.35, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-complexity-through', storyWU: 1.75, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumChromaticCoverageRatio: 0.002, maximumChromaticTitleCoverage: 0.04 },
   { id: 'desktop-turbulent', storyWU: 2.6, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
   { id: 'desktop-void', storyWU: 3.35, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-grid-rise', storyWU: 5.25, stage: 'calm-field-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-background-editorial', storyWU: 4.3, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'desktop-client-logos', storyWU: 5.25, stage: 'calm-field-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
   { id: 'desktop-grid-flyover', storyWU: 6.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-discipline', storyWU: 7.65, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 6, expectCenteredDiscipline: true },
-  { id: 'desktop-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumVisibleEditorialLines: 1 },
+  { id: 'desktop-bridge-resolve', storyWU: 6.65, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, minimumSpatialTitles: 1 },
+  { id: 'desktop-bridge-move', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, minimumSpatialTitles: 1 },
+  { id: 'desktop-discipline-entry', storyWU: 8.25, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 3, maximumSpatialTitles: 0 },
+  { id: 'desktop-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 3, maximumSpatialTitles: 0 },
+  { id: 'desktop-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 3, maximumSpatialTitles: 0 },
+  { id: 'desktop-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'desktop-editorial-complete', storyWU: 10.2, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumVisibleEditorialLines: 3, maximumLabels: 0, maximumSpatialTitles: 0 },
   { id: 'desktop-grid-return', storyWU: 11.7, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
   { id: 'desktop-gathering-close', storyWU: 12.5, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
   { id: 'desktop-gathering-wide', storyWU: 13.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-emergent-forming', storyWU: 13.8, stage: 'emergent-form-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-emergent-resolved', storyWU: 14.75, stage: 'emergent-form-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumChromaticWidthRatio: 0.22, minimumChromaticHeightRatio: 0.25, minimumChromaticStudioEdgePx: 16 },
-  { id: 'desktop-emergent-pass', storyWU: 14.85, stage: 'emergent-form-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-finale-space', storyWU: 15.6, stage: 'emergent-form-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-bust-base', storyWU: 13.42, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-bust-forming', storyWU: 13.8, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-bust-upper', storyWU: 14.02, stage: 'bust-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-bust-title', storyWU: 14.45, stage: 'bust-v1', visibility: 0.06, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumChromaticTitleCoverage: 0.01 },
+  { id: 'desktop-bust-resolved', storyWU: 14.75, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumChromaticWidthRatio: 0.17, minimumChromaticHeightRatio: 0.25, minimumChromaticStudioEdgePx: 16 },
+  { id: 'desktop-bust-hold', storyWU: 14.85, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-finale-bust', storyWU: 15.6, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
   { id: 'mobile-orb', storyWU: 0.35, stage: 'cluster-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectCenteredOpener: true },
+  { id: 'mobile-complexity-through', storyWU: 1.75, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumChromaticCoverageRatio: 0.004, maximumChromaticTitleCoverage: 0.04 },
   { id: 'mobile-complexity-inside', storyWU: 2.6, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
   { id: 'mobile-void', storyWU: 3.35, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-background-editorial', storyWU: 4.3, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'mobile-client-logos', storyWU: 5.63, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
   { id: 'mobile-grid-floor', storyWU: 6.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-discipline', storyWU: 7.65, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 6, expectCenteredDiscipline: true },
-  { id: 'mobile-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumVisibleEditorialLines: 1 },
+  { id: 'mobile-bridge-move', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumLabels: 0, minimumSpatialTitles: 1 },
+  { id: 'mobile-discipline-entry', storyWU: 8.25, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 3, maximumSpatialTitles: 0 },
+  { id: 'mobile-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
+  { id: 'mobile-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 3, maximumSpatialTitles: 0 },
+  { id: 'mobile-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'mobile-editorial-complete', storyWU: 10.2, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumVisibleEditorialLines: 3, maximumLabels: 0, maximumSpatialTitles: 0 },
   { id: 'mobile-grid-return', storyWU: 11.7, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
   { id: 'mobile-gathering-wide', storyWU: 13.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-emergent-resolved', storyWU: 14.75, stage: 'emergent-form-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumChromaticWidthRatio: 0.3, minimumChromaticHeightRatio: 0.2 },
-  { id: 'mobile-emergent-pass', storyWU: 14.85, stage: 'emergent-form-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-finale-space', storyWU: 15.6, stage: 'emergent-form-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-bust-base', storyWU: 13.42, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-bust-forming', storyWU: 13.8, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-bust-upper', storyWU: 14.02, stage: 'bust-v1', reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-bust-title', storyWU: 14.45, stage: 'bust-v1', visibility: 0.06, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumChromaticTitleCoverage: 0.01 },
+  { id: 'mobile-bust-resolved', storyWU: 14.75, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumChromaticWidthRatio: 0.3, minimumChromaticHeightRatio: 0.2 },
+  { id: 'mobile-bust-hold', storyWU: 14.85, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-finale-bust', storyWU: 15.6, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'compact-landscape-discipline', storyWU: 8.72, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'compact-landscape', viewport: { width: 844, height: 390 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
+  { id: 'compact-landscape-bust-hold', storyWU: 14.85, stage: 'bust-v1', visibility: 1, reviewGroup: 'compact-landscape', viewport: { width: 844, height: 390 }, minimumChromaticWidthRatio: 0.08, minimumChromaticHeightRatio: 0.2, minimumChromaticStudioEdgePx: 16 },
+  { id: 'compact-landscape-finale', storyWU: 15.6, stage: 'bust-v1', visibility: 1, reviewGroup: 'compact-landscape', viewport: { width: 844, height: 390 }, minimumChromaticWidthRatio: 0.08, minimumChromaticHeightRatio: 0.2, minimumChromaticStudioEdgePx: 16 },
   { id: 'reduced-motion-orb', storyWU: 0.35, stage: 'cluster-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', expectCenteredOpener: true },
-  { id: 'reduced-motion-discipline', storyWU: 7.65, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', expectExactAnchor: true, minimumLabels: 6, expectCenteredDiscipline: true },
-  { id: 'reduced-motion-emergent', storyWU: 14.75, stage: 'emergent-form-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', minimumChromaticWidthRatio: 0.3 },
-  { id: 'reduced-motion-finale', storyWU: 15.6, stage: 'emergent-form-v1', visibility: 0, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' },
+  { id: 'reduced-motion-background-editorial', storyWU: 4.3, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'reduced-motion-client-logos', storyWU: 5.63, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'reduced-motion-bridge', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', maximumLabels: 0, minimumSpatialTitles: 1 },
+  { id: 'reduced-motion-discipline', storyWU: 8.9, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', expectExactAnchor: true, minimumLabels: 6, maximumSpatialTitles: 0, expectCenteredDiscipline: true },
+  { id: 'reduced-motion-bust', storyWU: 14.9, stage: 'bust-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', minimumChromaticWidthRatio: 0.3 },
+  { id: 'reduced-motion-finale', storyWU: 15.6, stage: 'bust-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' },
 ];
 const STORY_WU_TOLERANCE = 0.04;
 const VISIBILITY_TOLERANCE = 0.02;
 const CONTACT_SHEET_LAYOUTS = {
   desktop: { columns: 4, panelWidth: 360, imageHeight: 250, labelHeight: 32 },
   mobile: { columns: 5, panelWidth: 220, imageHeight: 476, labelHeight: 32 },
+  'compact-landscape': { columns: 3, panelWidth: 422, imageHeight: 195, labelHeight: 32 },
   'reduced-motion': { columns: 4, panelWidth: 360, imageHeight: 422, labelHeight: 32 },
 };
 
@@ -133,6 +161,35 @@ async function measureChromaticBounds(pathname) {
       width: count > 0 ? (trimmedRight - trimmedLeft) + 1 : 0,
       height: count > 0 ? (trimmedBottom - trimmedTop) + 1 : 0,
     },
+  };
+}
+
+async function measureChromaticCoverage(pathname, bounds, padding = 0) {
+  if (!bounds) return null;
+  const source = sharp(pathname).removeAlpha();
+  const metadata = await source.metadata();
+  const left = Math.max(0, Math.floor(bounds.left - padding));
+  const top = Math.max(0, Math.floor(bounds.top - padding));
+  const right = Math.min(metadata.width, Math.ceil(bounds.right + padding));
+  const bottom = Math.min(metadata.height, Math.ceil(bounds.bottom + padding));
+  if (right <= left || bottom <= top) return null;
+  const { data, info } = await source
+    .extract({ left, top, width: right - left, height: bottom - top })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let count = 0;
+  for (let offset = 0; offset < data.length; offset += info.channels) {
+    const red = data[offset];
+    const green = data[offset + 1];
+    const blue = data[offset + 2];
+    const maximum = Math.max(red, green, blue);
+    const minimum = Math.min(red, green, blue);
+    if (maximum > 90 && maximum - minimum >= 45) count += 1;
+  }
+  return {
+    count,
+    coverage: count / (info.width * info.height),
+    bounds: { left, top, right, bottom },
   };
 }
 
@@ -268,6 +325,24 @@ for (const checkpoint of checkpoints) {
     const visibleDisciplineRects = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
       .filter((node) => Number(getComputedStyle(node).opacity) > 0.05)
       .map((node) => node.getBoundingClientRect());
+    const visibleSpatialTitles = [...document.querySelectorAll('.about-narrative-spatial-fragment')]
+      .filter((node) => {
+        const rect = node.getBoundingClientRect();
+        return Number(getComputedStyle(node).opacity) > 0.05
+          && rect.bottom > 0
+          && rect.top < window.innerHeight;
+      });
+    const visibleSpatialTitleBounds = visibleSpatialTitles.map((node) => {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const rect = range.getBoundingClientRect();
+      return {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+      };
+    });
     const disciplineBounds = visibleDisciplineRects.length > 0 ? {
       left: Math.min(...visibleDisciplineRects.map((rect) => rect.left)),
       right: Math.max(...visibleDisciplineRects.map((rect) => rect.right)),
@@ -300,9 +375,15 @@ for (const checkpoint of checkpoints) {
           / rootRect.width
         : null,
       visibleEditorialLineCount: visibleEditorialLines.length,
+      visibleSpatialTitleCount: visibleSpatialTitles.length,
+      visibleSpatialTitleBounds,
       disciplineCenterOffsetRatio: rootRect && disciplineBounds
         ? Math.abs(((disciplineBounds.left + disciplineBounds.right) / 2)
           - (rootRect.left + (rootRect.width / 2))) / rootRect.width
+        : null,
+      disciplineWithinInner70: rootRect && disciplineBounds
+        ? disciplineBounds.left >= rootRect.left + (rootRect.width * 0.15) - 1
+          && disciplineBounds.right <= rootRect.right - (rootRect.width * 0.15) + 1
         : null,
     };
   });
@@ -310,6 +391,11 @@ for (const checkpoint of checkpoints) {
   await page.screenshot({ path: screenshot, fullPage: false });
   const chromaticBounds = await measureChromaticBounds(screenshot);
   state.chromaticBounds = chromaticBounds;
+  state.spatialTitleChromaticCoverage = await measureChromaticCoverage(
+    screenshot,
+    state.visibleSpatialTitleBounds[0] || null,
+    24,
+  );
   const trimmedChromaticBounds = chromaticBounds.trimmed;
   state.chromaticStudioEdgeClearance = state.canvasRect && chromaticBounds.count > 0
     ? Math.min(
@@ -338,11 +424,36 @@ for (const checkpoint of checkpoints) {
   assert.equal(state.drawCalls, state.visibility > 0.001 ? 1 : 0);
   assert.equal(state.fixedAttributeIdentityStable, true);
   assert.equal(state.resourceDiagnosticCount, 0);
-  if (checkpoint.expectExactAnchor) assert.equal(state.anchorSampling, 'exact');
+  if (checkpoint.expectExactAnchor) {
+    assert.equal(state.anchorSampling, 'exact');
+    assert.equal(
+      state.disciplineWithinInner70,
+      true,
+      `${checkpoint.id}: discipline labels must remain inside the inner 70% viewport band.`,
+    );
+  }
   if (checkpoint.minimumLabels !== undefined) {
     assert.ok(
       state.disciplineLabels >= checkpoint.minimumLabels,
       `${checkpoint.id}: expected at least ${checkpoint.minimumLabels} labels, received ${state.disciplineLabels}`,
+    );
+  }
+  if (checkpoint.maximumLabels !== undefined) {
+    assert.ok(
+      state.disciplineLabels <= checkpoint.maximumLabels,
+      `${checkpoint.id}: expected at most ${checkpoint.maximumLabels} labels, received ${state.disciplineLabels}`,
+    );
+  }
+  if (checkpoint.minimumSpatialTitles !== undefined) {
+    assert.ok(
+      state.visibleSpatialTitleCount >= checkpoint.minimumSpatialTitles,
+      `${checkpoint.id}: expected at least ${checkpoint.minimumSpatialTitles} spatial titles, received ${state.visibleSpatialTitleCount}`,
+    );
+  }
+  if (checkpoint.maximumSpatialTitles !== undefined) {
+    assert.ok(
+      state.visibleSpatialTitleCount <= checkpoint.maximumSpatialTitles,
+      `${checkpoint.id}: expected at most ${checkpoint.maximumSpatialTitles} spatial titles, received ${state.visibleSpatialTitleCount}`,
     );
   }
   if (checkpoint.expectCenteredOpener) {
@@ -374,6 +485,23 @@ for (const checkpoint of checkpoints) {
     assert.ok(
       chromaticBounds.widthRatio >= checkpoint.minimumChromaticWidthRatio,
       `${checkpoint.id}: chromatic field width ${(chromaticBounds.widthRatio * 100).toFixed(2)}% is too small.`,
+    );
+  }
+  if (checkpoint.minimumChromaticCoverageRatio !== undefined) {
+    const coverageRatio = chromaticBounds.count / (checkpoint.viewport.width * checkpoint.viewport.height);
+    assert.ok(
+      coverageRatio >= checkpoint.minimumChromaticCoverageRatio,
+      `${checkpoint.id}: chromatic coverage ${(coverageRatio * 100).toFixed(2)}% is too sparse.`,
+    );
+  }
+  if (checkpoint.maximumChromaticTitleCoverage !== undefined) {
+    assert.ok(
+      state.spatialTitleChromaticCoverage,
+      `${checkpoint.id}: expected a measurable spatial title.`,
+    );
+    assert.ok(
+      state.spatialTitleChromaticCoverage.coverage <= checkpoint.maximumChromaticTitleCoverage,
+      `${checkpoint.id}: chromatic material covers ${(state.spatialTitleChromaticCoverage.coverage * 100).toFixed(2)}% of the title clearance zone.`,
     );
   }
   if (checkpoint.minimumChromaticHeightRatio !== undefined) {

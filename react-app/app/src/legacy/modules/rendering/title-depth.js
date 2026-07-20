@@ -24,7 +24,10 @@ const titleRenderCache = {
     color: '',
     opacity: 0,
     letterSpacingPx: 0,
-    fontSizeCssPx: 0
+    fontSizeCssPx: 0,
+    lineHeightPx: 0,
+    blurPx: 0,
+    reveal: 1
   })),
   state: {
     active: false,
@@ -113,6 +116,23 @@ export function getHeroTitleCanvasCenter(globals) {
 function parseCssPx(value, fallback = 0) {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseBlurPx(value) {
+  const match = String(value || '').match(/blur\(\s*([\d.]+)px\s*\)/i);
+  return match ? Math.max(0, Number.parseFloat(match[1]) || 0) : 0;
+}
+
+function parseClipReveal(value, lineHeightPx) {
+  const clipPath = String(value || '').trim();
+  if (!clipPath || clipPath === 'none') return 1;
+  const match = clipPath.match(/^inset\(\s*([\d.]+)(%|px)/i);
+  if (!match) return 1;
+  const inset = Number.parseFloat(match[1]) || 0;
+  const clippedRatio = match[2] === '%'
+    ? inset / 100
+    : inset / Math.max(1, lineHeightPx);
+  return 1 - clamp01(clippedRatio);
 }
 
 function clamp01(value) {
@@ -245,6 +265,9 @@ function refreshCanvasTitleCache(ctx, globals) {
     target.text = '';
     target.opacity = 0;
     target.fontSizeCssPx = 0;
+    target.lineHeightPx = 0;
+    target.blurPx = 0;
+    target.reveal = 1;
     if (!source) continue;
 
     const text = source.textContent?.trim() || '';
@@ -255,6 +278,7 @@ function refreshCanvasTitleCache(ctx, globals) {
     const cssFontSize = parseCssPx(style.fontSize, 16);
     const fontSizeCssPx = Math.max(1, cssFontSize * stableTitleScale);
     const fontPx = Math.max(1, fontSizeCssPx * scaleY);
+    const lineHeightPx = Math.max(1, lineRect.height * scaleY);
     const opacity = clamp01(parseCssPx(style.opacity, 1) * canvasTitleOpacity);
     const letterSpacingPx = parseCssPx(style.letterSpacing, 0) * stableTitleScale * scaleX;
     const fontStyle = style.fontStyle && style.fontStyle !== 'normal' ? `${style.fontStyle} ` : '';
@@ -268,6 +292,9 @@ function refreshCanvasTitleCache(ctx, globals) {
     target.opacity = opacity;
     target.letterSpacingPx = Number.isFinite(letterSpacingPx) ? letterSpacingPx : 0;
     target.fontSizeCssPx = fontSizeCssPx;
+    target.lineHeightPx = lineHeightPx;
+    target.blurPx = parseBlurPx(style.filter) * scaleY;
+    target.reveal = parseClipReveal(style.clipPath, lineRect.height);
 
     titleRenderCache.lineCount += 1;
     titleRenderCache.maxOpacity = Math.max(titleRenderCache.maxOpacity, opacity);
@@ -288,7 +315,8 @@ function refreshCanvasTitleCache(ctx, globals) {
 
 export function drawHomepageCanvasTitle(ctx, globals) {
   const cache = refreshCanvasTitleCache(ctx, globals);
-  if (!cache.active || cache.lineCount <= 0) return false;
+  const canvas = globals?.canvas;
+  if (!canvas || !cache.active || cache.lineCount <= 0) return false;
 
   // Claim visual ownership before this frame is composed. This makes the DOM
   // fallback disappear in the same frame as the first visible canvas draw.
@@ -304,12 +332,31 @@ export function drawHomepageCanvasTitle(ctx, globals) {
 
   for (let i = 0; i < cache.lines.length; i += 1) {
     const line = cache.lines[i];
-    if (!line.text || line.opacity <= 0.01) continue;
+    if (!line.text || line.opacity <= 0.01 || line.reveal <= 0.001) continue;
+    ctx.save();
+    // The mask is only needed while the line is entering. Removing it at the
+    // settled frame preserves the typeface's real glyph bounds, including the
+    // descender on the final "Technologist." line.
+    if (line.reveal < 0.999) {
+      const lineTop = line.y - (line.lineHeightPx * 0.5);
+      const revealTop = lineTop + ((1 - line.reveal) * line.lineHeightPx);
+      const descenderOverscanPx = line.lineHeightPx * 0.18;
+      ctx.beginPath();
+      ctx.rect(
+        0,
+        revealTop,
+        canvas.width,
+        Math.max(0, (line.lineHeightPx * line.reveal) + descenderOverscanPx)
+      );
+      ctx.clip();
+    }
     ctx.globalAlpha = line.opacity;
     ctx.fillStyle = line.color;
     ctx.font = line.font;
+    ctx.filter = line.blurPx > 0.01 ? `blur(${line.blurPx.toFixed(3)}px)` : 'none';
     if ('letterSpacing' in ctx) ctx.letterSpacing = `${line.letterSpacingPx.toFixed(3)}px`;
     ctx.fillText(line.text, line.x, line.y);
+    ctx.restore();
   }
 
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';

@@ -129,7 +129,7 @@ test('emergent-form-v1 is deterministic, centered, and uses the fixed point pool
   assert.ok(output.bounds.max[2] > 1.8 && output.bounds.min[2] < -1.8);
 });
 
-test('point renderer keeps visibility, fog, sizing, gathering, and legacy orbital motion on one contract', () => {
+test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressive bust formation, and orbital motion on one contract', () => {
   const source = readFileSync(new URL(
     '../react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
     import.meta.url,
@@ -150,7 +150,8 @@ test('point renderer keeps visibility, fog, sizing, gathering, and legacy orbita
   assert.match(source, /globalCamera\?\.distanceFogEndWU \?\? 18/);
   assert.doesNotMatch(source, /frame\.camera\.distanceFog/);
   assert.doesNotMatch(source, /disciplineFieldFog|DisciplineBackgroundScale/);
-  assert.match(source, /gl_PointSize = max\(0\.01, clamp\(cssPointSize, 5\.25, 11\.0\) \* entranceScale\) \* pixelRatio/);
+  assert.match(source, /gl_PointSize = max\(0\.01, clamp\(cssPointSize, 5\.25, 18\.0\) \* entranceScale\) \* pixelRatio/);
+  assert.match(source, /worldPointSizeScale = mix\(fromPointSizeScale, toPointSizeScale, morph\)/);
   assert.match(source, /vec3 fromPoint = applyOrbitalLife[\s\S]*vec3 fromWorld = \(fromTransform/);
   assert.match(source, /float orbitalSeed = fract\(\(seed \* 7\.31\) \+ 0\.17\)/);
   assert.doesNotMatch(source, /ringBand|ringThickness|debris ring/i);
@@ -158,12 +159,15 @@ test('point renderer keeps visibility, fog, sizing, gathering, and legacy orbita
   assert.match(source, /const targetTransformElements = uniforms\.toTransform\.value\.elements/);
   assert.match(source, /targetTransformElements\[12\],[\s\S]*targetTransformElements\[14\]/);
   assert.doesNotMatch(source, /rippleParameters\?\.center[XYZ]/);
-  assert.match(source, /uniform float gridRippleProgress/);
-  assert.match(source, /float gatheringReach = mix\(/);
-  assert.match(source, /float gatheringFront = 1\.0 - smoothstep\(/);
-  assert.match(source, /worldPoint\.y \+= gatheringWeight[\s\S]*?gatheringFront/);
-  assert.match(source, /worldPoint\.xz -= rippleDirection[\s\S]*?gatheringWeight/);
-  assert.doesNotMatch(source, /radialRipple|crossingRipple/);
+  assert.match(source, /float bustHeight = clamp\(\(targetPosition\.y \+ 0\.86\) \/ 1\.72/);
+  assert.match(source, /float bustBuildProgress = smoothstep\(/);
+  assert.match(source, /float rippleClock = mix\([\s\S]*?ambientTime/);
+  assert.match(source, /float radialRipple = sin\(/);
+  assert.match(source, /float harmonicRipple = sin\(/);
+  assert.match(source, /float centerPulse = cos\(ripplePhase\)/);
+  assert.match(source, /worldPoint\.y \+= gatheringWeight \* perpetualRipple/);
+  assert.match(source, /worldPoint\.xz \+= rippleDirection[\s\S]*?radialRipple/);
+  assert.match(source, /gridRippleEmphasis/);
   assert.match(source, /attributeFilter: \['class', 'data-theme'\]/);
   assert.doesNotMatch(source, /--narrative-camera-fov/);
   assert.match(

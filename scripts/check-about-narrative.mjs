@@ -553,15 +553,15 @@ test('discipline reveal owns one extended clip, a paced top-down camera handoff,
   assert.equal(new Set(verticalPositions).size, 6);
   assert.equal(leftColumn.length, 3);
   assert.equal(rightColumn.length, 3);
-  assert.ok(verticalPositions.at(-1) - verticalPositions[0] >= 0.08);
+  assert.ok(verticalPositions[0] - verticalPositions.at(-1) >= 0.39);
   leftColumn.slice(1).forEach((anchor, index) => {
-    assert.ok(anchor.y - leftColumn[index].y >= 0.03);
+    assert.ok(leftColumn[index].y - anchor.y >= 0.15);
   });
   rightColumn.slice(1).forEach((anchor, index) => {
-    assert.ok(anchor.y - rightColumn[index].y >= 0.03);
+    assert.ok(rightColumn[index].y - anchor.y >= 0.15);
   });
   leftColumn.forEach((anchor, index) => {
-    assert.ok(Math.abs(rightColumn[index].y - anchor.y) <= 0.01);
+    assert.ok(Math.abs(rightColumn[index].y - anchor.y) <= 0.081);
   });
 });
 
@@ -1344,7 +1344,7 @@ test('calm field preserves exactly six visible semantic anchor points without ch
   output.attributes.disciplineGroup.forEach((group, index) => {
     if (group > 0) groups.push({ group, presence: output.presence[index] });
   });
-  assert.deepEqual(groups.map((item) => item.group), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(groups.map((item) => item.group).sort(), [1, 2, 3, 4, 5, 6]);
   assert.ok(groups.every((item) => item.presence === 1));
 });
 

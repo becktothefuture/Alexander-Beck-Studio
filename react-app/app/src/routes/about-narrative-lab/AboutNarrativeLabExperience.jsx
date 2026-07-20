@@ -193,7 +193,8 @@ function FinaleActions() {
           <span className="about-narrative-cta__label">Contact</span>
         </a>
         <a href={ABOUT_NARRATIVE_CONTACT.linkedin} target="_blank" rel="noreferrer">
-          <span className="about-narrative-cta__label">LinkedIn</span>
+          <i className="ti ti-brand-linkedin" aria-hidden="true" />
+          <span className="about-narrative-visually-hidden">LinkedIn</span>
         </a>
       </nav>
     </div>
@@ -221,24 +222,34 @@ function TitleField({
       data-text-preset={field.preset}
       data-title-style={titleStyle}
       aria-labelledby={headingId}
-      aria-describedby={isOpener && field.description ? descriptionId : undefined}
+      aria-describedby={(isOpener || isFinale) && field.description ? descriptionId : undefined}
       onClick={(event) => selectTextField(onSelect, field.id, event)}
     >
       {isFinale ? (
         <div className="about-narrative-finale-content">
-          <Heading id={headingId} className="about-narrative-spatial-title about-narrative-spatial-fragment" data-primary-copy>
+          <Heading
+            id={headingId}
+            className="about-narrative-spatial-title about-narrative-spatial-fragment route-bookend-title"
+            data-primary-copy
+          >
             {field.text}
           </Heading>
+          {field.description ? (
+            <p id={descriptionId} className="about-narrative-finale-description">
+              {field.description}
+            </p>
+          ) : null}
           <FinaleActions />
         </div>
       ) : isOpener ? (
         <div className="about-narrative-opening-copy about-narrative-spatial-fragment route-centered-page__inner">
           <Heading
             id={headingId}
-            className="route-centered-page__title"
+            className="route-centered-page__title route-bookend-title"
             data-primary-copy
             data-route-enter="identity"
             data-route-enter-order="0"
+            data-route-enter-variant="bookend-title"
           >
             {field.text}
           </Heading>

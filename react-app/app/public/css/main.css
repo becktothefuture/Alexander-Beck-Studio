@@ -1474,6 +1474,7 @@ body.styleguide-page .styleguide-type-sample--hero-role {
 
 body.styleguide-page .styleguide-type-sample--hero-role {
   margin-top: 0;
+  opacity: var(--brand-logo-secondary-opacity, 0.58);
 }
 
 body.styleguide-page .styleguide-type-sample--legend {
@@ -3132,17 +3133,17 @@ button.abs-meta-btn,
    Replaces the former canvas-rendered SVG logo.
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* Depth-emergence keyframes: blur + scale + opacity rising from behind the surface */
+/* Bookend-title fallback: a bottom-up mask resolves from soft to sharp. */
 @keyframes heroEmerge {
   0% {
     opacity: 0;
-    filter: blur(12px);
-    transform: scale(0.92);
+    filter: blur(7px);
+    clip-path: inset(100% 0 0 0);
   }
   100% {
     opacity: 1;
     filter: blur(0px);
-    transform: scale(1);
+    clip-path: none;
   }
 }
 
@@ -3158,7 +3159,11 @@ button.abs-meta-btn,
   /* Slightly above geometric center: −4vh + existing downward bias clamp */
   transform:
     translate(-50%, -50%)
-    translateY(calc(clamp(20px, 5vh, 52px) - 4vh))
+    translateY(calc(
+      clamp(20px, 5vh, 52px)
+      - 4vh
+      + var(--home-hero-title-offset-y, 0px)
+    ))
     scale(calc(
       var(--abs-scene-impact-logo-scale, 1) *
       var(--brand-logo-user-scale, 1)
@@ -3188,8 +3193,12 @@ button.abs-meta-btn,
 }
 
 html[data-shell-route='home'] .hero-title--canvas-source {
-  --home-hero-title-font-size: var(--route-entry-title-size);
-  --hero-title-line-height: calc(1.1 * var(--abs-font-headline-line-height-scale, 1));
+  --home-hero-title-scale: 1.3;
+  --home-hero-title-font-size: calc(
+    var(--route-entry-title-size) * var(--home-hero-title-scale)
+  );
+  --home-hero-title-offset-y: clamp(-36px, -4svh, -16px);
+  --hero-title-line-height: calc(1.12 * var(--abs-font-headline-line-height-scale, 1));
   --hero-title-letter-spacing: var(--abs-font-headline-letter-spacing);
   font-family: var(--abs-font-headline);
   /* Compensate for the right-hand full stop so the wordmark reads centred. */
@@ -3220,7 +3229,11 @@ html[data-shell-route='home'] body:not(.daily-focus-page) .hero-title--canvas-so
     width: max-content;
     max-width: calc(100% - (var(--content-padding-x) * 2));
     transform:
-      translateY(calc(clamp(20px, 5vh, 52px) - 4vh))
+      translateY(calc(
+        clamp(20px, 5vh, 52px)
+        - 4vh
+        + var(--home-hero-title-offset-y, 0px)
+      ))
       scale(calc(
         var(--abs-scene-impact-logo-scale, 1) *
         var(--brand-logo-user-scale, 1)
@@ -3263,8 +3276,8 @@ body.portfolio-page .hero-title:not(.hero-title--portfolio) {
 .hero-title__eyebrow {
   display: block;
   opacity: 0;
-  filter: blur(12px);
-  transform: scale(0.92);
+  filter: blur(7px);
+  clip-path: inset(100% 0 0 0);
   font-size: var(--home-hero-title-font-size);
   font-weight: 400;
   letter-spacing: var(--hero-title-letter-spacing, -0.027ch);
@@ -3284,8 +3297,8 @@ body.portfolio-page .hero-title:not(.hero-title--portfolio) {
 }
 
 @keyframes heroEmergeSubtle {
-  0% { opacity: 0; filter: blur(12px); transform: scale(0.92); }
-  100% { opacity: var(--brand-logo-secondary-opacity, 0.66); filter: blur(0px); transform: scale(1); }
+  0% { opacity: 0; filter: blur(7px); clip-path: inset(100% 0 0 0); }
+  100% { opacity: var(--brand-logo-secondary-opacity, 0.58); filter: blur(0px); clip-path: none; }
 }
 
 /* Unpause hero lines when scene starts appearing (entrance-transitioning
@@ -3402,11 +3415,12 @@ html.abs-direct-boot-ready .hero-title__eyebrow {
   opacity: 1;
   filter: none;
   transform: none;
+  clip-path: none;
 }
 
 html.abs-direct-boot-ready .hero-title__role,
 html.abs-direct-boot-ready .hero-title__line--secondary {
-  opacity: var(--brand-logo-secondary-opacity, 0.66);
+  opacity: var(--brand-logo-secondary-opacity, 0.58);
 }
 
 html.abs-direct-boot-staging .ui-main-nav .footer_link {
@@ -3445,10 +3459,11 @@ html.abs-direct-boot-staging .ui-main-nav .footer_link {
     opacity: 1;
     filter: none;
     transform: none;
+    clip-path: none;
   }
   .hero-title__role,
   .hero-title__line--secondary {
-    opacity: var(--brand-logo-secondary-opacity, 0.66);
+    opacity: var(--brand-logo-secondary-opacity, 0.58);
   }
 
 }
@@ -5210,8 +5225,8 @@ html.is-safari .noise::before {
 
   html[data-shell-route='home'] body .hero-title__role,
   html[data-shell-route='home'] body .hero-title__line--secondary {
-    color: var(--text-muted);
-    opacity: 1;
+    color: inherit;
+    opacity: var(--brand-logo-secondary-opacity, 0.58);
   }
 
   body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
@@ -7354,6 +7369,10 @@ body.portfolio-page--locked #simulations {
       62.4px
     ) * var(--abs-font-headline-scale, 1)
   );
+  --route-bookend-title-scale: 1.55;
+  --route-bookend-title-size: calc(
+    var(--route-entry-title-size) * var(--route-bookend-title-scale)
+  );
   --route-title-line-height: 1.02;
   --route-description-font-size: clamp(0.875rem, 0.76rem + 0.32vw, 1rem);
   --route-description-line-height: 1.32;
@@ -7410,6 +7429,10 @@ body.portfolio-page--locked #simulations {
   line-height: calc(var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1));
   letter-spacing: var(--abs-font-headline-letter-spacing);
   text-wrap: balance;
+}
+
+.route-bookend-title {
+  font-size: var(--route-bookend-title-size);
 }
 
 .route-centered-page__description {

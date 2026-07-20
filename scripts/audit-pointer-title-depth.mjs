@@ -145,7 +145,7 @@ async function auditDepthModes(page) {
         snap.frontDepthCanvasActive === true &&
         snap.canvasTitleActive === true &&
         snap.canvasTitleVisible === true &&
-        snap.canvasTitleLineCount >= 2 &&
+        snap.canvasTitleLineCount >= 3 &&
         snap.behindTitleCount > 0 &&
         snap.inFrontOfTitleCount > 0;
     }, { timeout: WAIT_MS });
@@ -170,7 +170,7 @@ async function auditNoDepthModes(page) {
         snap.frontDepthCanvasActive !== true &&
         snap.canvasTitleActive === true &&
         snap.canvasTitleVisible === true &&
-        snap.canvasTitleLineCount >= 2;
+        snap.canvasTitleLineCount >= 3;
     }, { timeout: WAIT_MS });
     const snap = await snapshot(page);
     results.push({

@@ -96,7 +96,7 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
 
   const fromPosition = input?.fromPosition;
   const toPosition = input?.toPosition || fromPosition;
-  const morph = smoothstep01(input?.morphProgress);
+  const globalMorph = smoothstep01(input?.morphProgress);
   const yaw = numberOr(input?.bustYaw);
   const sine = Math.sin(yaw);
   const cosine = Math.cos(yaw);
@@ -117,6 +117,11 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
   const rotatedToX = (cosine * rawToX) + (sine * rawToZ);
   const rotatedToZ = (-sine * rawToX) + (cosine * rawToZ);
   const toBust = numberOr(input?.toBust);
+  const bustHeight = Math.min(1, Math.max(0, (rawToY + 0.86) / 1.72));
+  const bustBuildProgress = smoothstep01(
+    ((globalMorph * 1.22) - bustHeight) / 0.22,
+  );
+  const morph = mix(globalMorph, bustBuildProgress, toBust * (1 - fromBust));
   const toX = mix(rawToX, rotatedToX, toBust);
   const toY = rawToY;
   const toZ = mix(rawToZ, rotatedToZ, toBust);
@@ -204,29 +209,19 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
   const ripplePointX = target.x - numberOr(input?.gridRipple?.centerX);
   const ripplePointZ = target.z - numberOr(input?.gridRipple?.centerZ);
   const rippleDistance = Math.hypot(ripplePointX, ripplePointZ);
-  const rippleReach = mix(
-    0.35,
-    14.5,
-    smoothstep01(input?.gridRipple?.progress),
-  );
-  const rippleFrontProgress = Math.min(
-    1,
-    Math.max(0, (rippleDistance - rippleReach) / 1.1),
-  );
-  const rippleEnvelope = 1 - smoothstep01(rippleFrontProgress);
   const radialRipple = Math.sin((rippleDistance * rippleFrequency) - ripplePhase);
-  const crossingRipple = Math.sin(
-    (ripplePointX * rippleFrequency * 0.68)
-    - (ripplePointZ * rippleFrequency * 0.51)
-    + (ripplePhase * 0.72),
+  const harmonicRipple = Math.sin(
+    (rippleDistance * rippleFrequency * 0.52) - (ripplePhase * 0.72),
   );
-  const ripple = (radialRipple * 0.68) + (crossingRipple * 0.32);
+  const centerPulse = Math.cos(ripplePhase) * Math.exp(-rippleDistance * 0.42);
+  const rippleFalloff = 1 / (1 + (rippleDistance * 0.035));
+  const ripple = ((radialRipple * 0.72) + (harmonicRipple * 0.2) + (centerPulse * 0.34))
+    * rippleFalloff;
   const rippleStrength = numberOr(input?.gridRipple?.weight)
-    * numberOr(input?.gridRipple?.amplitude)
-    * rippleEnvelope;
+    * numberOr(input?.gridRipple?.amplitude);
   target.y += rippleStrength * ripple;
   if (rippleDistance > 0.0001) {
-    const radialDisplacement = rippleStrength * radialRipple * 0.52;
+    const radialDisplacement = rippleStrength * radialRipple * rippleFalloff * 0.34;
     target.x += (ripplePointX / rippleDistance) * radialDisplacement;
     target.z += (ripplePointZ / rippleDistance) * radialDisplacement;
   }

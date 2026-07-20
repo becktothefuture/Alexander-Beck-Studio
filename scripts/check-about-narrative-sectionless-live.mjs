@@ -68,7 +68,7 @@ test('canonical About source is a deterministic native v5 runtime document', () 
   assert.doesNotMatch(canonicalSource, /"sections"\s*:/);
 });
 
-test('canonical v5 authors one consolidated camera, visibility, and four-World emergent sequence', () => {
+test('canonical v5 authors one consolidated camera, visibility, and four-World bust sequence', () => {
   const cameraKeys = canonical.tracks.camera.keys;
   const visibilityKeys = canonical.tracks.visibility.keys;
   const worlds = canonical.tracks.worlds.objects;
@@ -96,13 +96,17 @@ test('canonical v5 authors one consolidated camera, visibility, and four-World e
       ['atWU', 'easing', 'fov', 'id', 'locked', 'position', 'rotation'],
     );
   });
-  assert.equal(visibilityKeys.length, 15);
+  assert.equal(visibilityKeys.length, 16);
   assert.equal(visibilityKeys[0].atWU, 0);
   assert.equal(visibilityKeys.at(-1).atWU, canonical.profiles.desktop.storyDurationWU);
   assert.ok(visibilityKeys.some((key) => key.visibility === 0));
   assert.ok(visibilityKeys.some((key) => key.visibility === 1));
+  assert.equal(
+    visibilityKeys.find((key) => key.id === 'visibility-emergent-title-hold')?.visibility,
+    0.06,
+  );
   assert.equal(visibilityKeys.find((key) => key.id === 'visibility-open-space')?.atWU, throughKey.atWU);
-  assert.equal(visibilityKeys.at(-1).visibility, 0);
+  assert.equal(visibilityKeys.at(-1).visibility, 1);
   visibilityKeys.forEach((key) => {
     assert.deepEqual(
       Object.keys(key).sort(),
@@ -116,7 +120,7 @@ test('canonical v5 authors one consolidated camera, visibility, and four-World e
       ['world-promise', 'cluster-v1'],
       ['world-complexity', 'turbulent-field-v1'],
       ['world-grid', 'calm-field-v1'],
-      ['world-emergent', 'emergent-form-v1'],
+      ['world-emergent', 'bust-v1'],
     ],
   );
   assert.ok(grid);
@@ -124,8 +128,9 @@ test('canonical v5 authors one consolidated camera, visibility, and four-World e
   assert.equal(ripple.endWU, emergent.startWU);
   assert.equal(emergent.transitionIn.correspondence, 'spatial-nearest-v2');
   assert.equal(emergent.modifiers.some((modifier) => modifier.id === 'ambient-drift-v1'), true);
+  assert.equal(emergent.modifiers.some((modifier) => modifier.id === 'bust-yaw-v1'), true);
   assert.equal(emergent.protected, true);
-  assert.equal(worlds.some((world) => /orbital|bust/.test(world.shapeId)), false);
+  assert.equal(worlds.some((world) => /orbital/.test(world.shapeId)), false);
 
   assert.deepEqual(
     Object.keys(canonical.globals.camera).sort(),
@@ -157,30 +162,29 @@ test('canonical v5 authors one consolidated camera, visibility, and four-World e
   });
 });
 
-test('emergent form stays a single protected World across responsive profiles', () => {
+test('bust stays a single protected World across responsive profiles', () => {
   const authored = canonical.tracks.worlds.objects.find((world) => world.id === 'world-emergent');
   const grid = canonical.tracks.worlds.objects.find((world) => world.id === 'world-grid');
   const pulse = canonical.tracks.interactions.clips.find((clip) => clip.type === 'grid-ripple');
   assert.ok(authored);
   assert.ok(grid);
   assert.ok(pulse);
-  assert.equal(authored.shapeId, 'emergent-form-v1');
+  assert.equal(authored.shapeId, 'bust-v1');
   assert.equal(authored.startWU, pulse.endWU);
   assert.equal(authored.transitionIn.startWU, authored.startWU);
   assert.ok(authored.transitionIn.endWU > authored.transitionIn.startWU);
   assert.equal(authored.transitionIn.correspondence, 'spatial-nearest-v2');
-  assert.equal(authored.modifiers.length, 1);
+  assert.equal(authored.modifiers.length, 2);
   assert.equal(authored.modifiers[0].id, 'ambient-drift-v1');
+  assert.equal(authored.modifiers[1].id, 'bust-yaw-v1');
   assert.equal(authored.protected, true);
-  assert.ok(authored.shapeParameters.radius >= 2);
-  assert.ok(authored.shapeParameters.height >= 4.5);
-  assert.ok(authored.shapeParameters.density >= 0.5);
+  assert.ok(authored.shapeParameters.density >= 0.3);
 
   for (const layoutProfile of ['desktop', 'tablet', 'mobile']) {
     const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile });
     const resolved = plan.worlds.find((world) => world.id === authored.id);
-    assert.ok(resolved, `${layoutProfile} must retain the emergent World.`);
-    assert.equal(resolved.shapeId, 'emergent-form-v1');
+    assert.ok(resolved, `${layoutProfile} must retain the bust World.`);
+    assert.equal(resolved.shapeId, 'bust-v1');
     assert.equal(resolved.transitionIn.correspondence, 'spatial-nearest-v2');
     assert.ok(Number(resolved.transform.scale) > 0);
     if (layoutProfile === 'mobile') {
@@ -415,7 +419,7 @@ test('Camera keys retain clean finite authored transforms', () => {
   });
 });
 
-test('World C holds a top-down discipline reveal before the emergent handoff', () => {
+test('World C traverses a top-down discipline reveal before the bust handoff', () => {
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const background = canonical.tracks.worlds.objects.find((world) => world.label === 'C');
   const shift = keys.get('grid-birds-eye');
@@ -426,16 +430,21 @@ test('World C holds a top-down discipline reveal before the emergent handoff', (
   assert.ok(background);
   [shift, reveal, returnKey, ripple, emergent].forEach((key) => assert.ok(key));
   [shift, reveal].forEach((key) => {
-    assert.deepEqual(key.position, [0, 3.5, -0.32]);
     assert.deepEqual(key.rotation, [-90, 0, 0]);
     assert.equal(key.fov, 42);
   });
+  assert.deepEqual(shift.position, [0, 3.5, -3.8]);
+  assert.deepEqual(reveal.position, [0, 3.5, -12.6]);
+  assert.ok(reveal.position[2] < shift.position[2]);
 
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const heldQuaternion = [...sampleAboutNarrativeRuntimePlan(plan, shift.atWU).camera.quaternion];
   for (let storyWU = shift.atWU; storyWU <= reveal.atWU; storyWU += 0.005) {
     const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
-    assert.deepEqual([...frame.camera.position], [0, 3.5, -0.32]);
+    assert.equal(frame.camera.position[0], 0);
+    assert.equal(frame.camera.position[1], 3.5);
+    assert.ok(frame.camera.position[2] <= shift.position[2]);
+    assert.ok(frame.camera.position[2] >= reveal.position[2]);
     assert.equal(frame.camera.fov, 42);
     frame.camera.quaternion.forEach((value, index) => assertCameraValue(
       value,
@@ -455,12 +464,12 @@ test('World C holds a top-down discipline reveal before the emergent handoff', (
   assert.equal(new Set(verticalPositions).size, 6);
   assert.equal(leftColumn.length, 3);
   assert.equal(rightColumn.length, 3);
-  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) >= 0.08);
-  assert.ok(verticalPositions.at(-1) > verticalPositions[0]);
+  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) >= 0.39);
+  assert.ok(verticalPositions.at(-1) < verticalPositions[0]);
   assert.equal(canonical.profiles.mobile.overrides.camera['grid-return-centered'].fov, 64);
   assert.equal(canonical.profiles.mobile.overrides.camera['grid-ripple-zoomout'].fov, 64);
-  assert.deepEqual(canonical.profiles.mobile.overrides.camera['grid-birds-eye'].position, [0, 5, -0.32]);
-  assert.deepEqual(canonical.profiles.mobile.overrides.camera['grid-birds-eye-hold'].position, [0, 5, -0.32]);
+  assert.deepEqual(canonical.profiles.mobile.overrides.camera['grid-birds-eye'].position, [0, 5, -3.8]);
+  assert.deepEqual(canonical.profiles.mobile.overrides.camera['grid-birds-eye-hold'].position, [0, 5, -12.6]);
   assert.deepEqual(canonical.profiles.tablet.overrides.camera, {});
   for (const layoutProfile of ['tablet', 'mobile']) {
     const compactPlan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile });
@@ -470,7 +479,7 @@ test('World C holds a top-down discipline reveal before the emergent handoff', (
   }
 });
 
-test('D is a dedicated Discipline reveal Motion and the ripple starts only in E', () => {
+test('D is a dedicated Discipline reveal Motion and E starts an ambient wave generator', () => {
   const reveal = canonical.tracks.interactions.clips.find((item) => item.type === 'discipline-reveal');
   const clip = canonical.tracks.interactions.clips.find((item) => item.id === 'interaction-grid-ripple');
   const world = canonical.tracks.worlds.objects.find((item) => item.id === clip?.targetWorldId);
@@ -487,16 +496,17 @@ test('D is a dedicated Discipline reveal Motion and the ripple starts only in E'
   assert.ok(clip.startWU >= reveal.endWU);
   assert.ok(clip.startWU >= world.startWU);
   assert.ok(clip.endWU <= nextWorld.startWU);
-  assert.ok(clip.startWU <= clip.activationWU && clip.activationWU < clip.endWU);
+  assert.equal(clip.activationWU, clip.startWU);
   assert.ok(clip.parameters.amplitude > 0);
   assert.ok(clip.parameters.speed > 0);
+  assert.equal(clip.parameters.timeMode, 'ambient');
+  assert.equal(clip.parameters.releaseWU, 0);
   assert.match(liveSources.world, /gridRippleWeight/);
-  assert.doesNotMatch(liveSources.world, /radialRipple|crossingRipple/);
-  assert.match(liveSources.world, /uniform float gridRippleProgress/);
-  assert.match(liveSources.world, /float gatheringReach = mix\([\s\S]*?gridRippleProgress/);
-  assert.match(liveSources.world, /float gatheringFront = 1\.0 - smoothstep\(/);
-  assert.match(liveSources.world, /worldPoint\.y \+= gatheringWeight[\s\S]*?gatheringFront/);
-  assert.match(liveSources.world, /worldPoint\.xz -= rippleDirection[\s\S]*?gatheringWeight/);
+  assert.match(liveSources.world, /float radialRipple = sin\(/);
+  assert.match(liveSources.world, /float harmonicRipple = sin\(/);
+  assert.match(liveSources.world, /float centerPulse = cos\(ripplePhase\)/);
+  assert.match(liveSources.world, /worldPoint\.y \+= gatheringWeight \* perpetualRipple/);
+  assert.match(liveSources.world, /worldPoint\.xz \+= rippleDirection[\s\S]*?radialRipple/);
   assert.doesNotMatch(liveSources.world, /rippleScale/);
   assert.match(liveSources.world, /const isolationWeight = Number\(revealState\.backgroundProgress \|\| 0\)[\s\S]*?\* \(1 - Number\(revealState\.restoreProgress \|\| 0\)\)/);
   assert.match(liveSources.editor, /getGridRippleStartControl\(snapshot\.document, object\)/);
@@ -507,7 +517,7 @@ test('D is a dedicated Discipline reveal Motion and the ripple starts only in E'
   assert.match(liveSources.styles, /about-narrative-discipline-reveal__label \{[\s\S]*?filter: none;[\s\S]*?text-shadow: none;[\s\S]*?transform: none;/);
 });
 
-test('E begins after the C-grid pulse and resolves to one emergent World in every layout', () => {
+test('E begins after the C-grid pulse and resolves to one bust World in every layout', () => {
   const fixedGrid = canonical.tracks.worlds.objects.find((world) => world.label === 'C');
   const emergent = canonical.tracks.worlds.objects.find((world) => world.label === 'E');
   const clip = canonical.tracks.interactions.clips.find((item) => item.type === 'grid-ripple');
@@ -516,14 +526,14 @@ test('E begins after the C-grid pulse and resolves to one emergent World in ever
   assert.ok(clip);
   assert.equal(clip.targetWorldId, fixedGrid.id);
   assert.equal(clip.endWU, emergent.startWU);
-  assert.equal(emergent.shapeId, 'emergent-form-v1');
+  assert.equal(emergent.shapeId, 'bust-v1');
 
   for (const layoutProfile of ['desktop', 'tablet', 'mobile']) {
     const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile });
     const resolvedFixedGrid = plan.worlds.find((world) => world.id === fixedGrid.id);
     const resolvedEmergent = plan.worlds.find((world) => world.id === emergent.id);
     assert.equal(resolvedFixedGrid.shapeId, 'calm-field-v1');
-    assert.equal(resolvedEmergent.shapeId, 'emergent-form-v1');
+    assert.equal(resolvedEmergent.shapeId, 'bust-v1');
     assert.equal(resolvedEmergent.startWU, clip.endWU);
   }
 });
@@ -562,7 +572,7 @@ test('spatial title hierarchy reserves display type for the opening and finale b
   assert.match(liveSources.experience, /data-route-enter="action"/);
 });
 
-test('only the opener Title may carry a route description', () => {
+test('only the opener and finale Titles may carry supporting descriptions', () => {
   const invalid = structuredClone(canonical);
   invalid.tracks.text.fields.find((field) => field.id === 'text-complexity-idea').description = 'Not allowed';
   assert.ok(validateAboutNarrativeTrackDocument(invalid).some((item) => (
@@ -638,7 +648,17 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.equal(fields.filter((field) => field.block?.id?.endsWith('-passage')).length, 2);
   const backgroundEditorial = fields.find((field) => field.id === 'text-background-editorial');
   const backgroundClients = fields.find((field) => field.id === 'text-background-clients');
-  assert.equal(Number((backgroundEditorial.endWU - backgroundClients.startWU).toFixed(2)), -0.4);
+  assert.equal(Number((backgroundClients.startWU - backgroundEditorial.endWU).toFixed(2)), 0.08);
+  const firstBridgeTitle = fields.find((field) => field.id === 'text-complexity-curiosity');
+  const finalBridgeTitle = fields.find((field) => field.id === 'text-complexity-listen');
+  const disciplineReveal = canonical.tracks.interactions.clips.find((clip) => (
+    clip.type === 'discipline-reveal'
+  ));
+  const disciplineEditorial = fields.find((field) => field.id === 'text-disciplines-title');
+  assert.ok(firstBridgeTitle.startWU > backgroundClients.endWU);
+  assert.ok(finalBridgeTitle.startWU > firstBridgeTitle.endWU);
+  assert.ok(disciplineReveal.startWU > finalBridgeTitle.endWU);
+  assert.ok(disciplineEditorial.startWU > disciplineReveal.endWU);
   const boundaryTitleIds = new Set(['text-promise-main', 'text-epilogue-invitation']);
   fields
     .filter((field) => field.kind === 'title' && !boundaryTitleIds.has(field.id))
@@ -668,7 +688,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /about-narrative-spatial-title \{[\s\S]*?padding-block: 0\.2em;[\s\S]*?margin: -0\.2em auto -0\.1em;[\s\S]*?overflow: visible;/);
 });
 
-test('all published narrative writing comes from the current V24 script', () => {
+test('published narrative writing follows V24 with the authored finale CTA', () => {
   const normalize = (value) => String(value || '')
     .toLocaleLowerCase('en-GB')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
@@ -678,38 +698,44 @@ test('all published narrative writing comes from the current V24 script', () => 
     if (field.block?.kind === 'clients') return [];
     return [
       field.text,
+      field.description,
       ...(field.block?.text?.split('\n') || []),
       field.block?.label,
       ...(field.block?.items || []),
     ];
   }).filter(Boolean);
   authoredCopy.forEach((copy) => {
+    if (copy === 'Get in touch') return;
     assert.ok(normalizedScript.includes(normalize(copy)), `V24 is missing live copy: ${copy}`);
   });
   const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
   reveal.parameters.items.forEach((item) => {
     assert.ok(normalizedScript.includes(normalize(item.label)), `V24 is missing ${item.label}`);
   });
+  assert.equal(
+    canonical.tracks.text.fields.find((field) => field.preset === 'finale-v1')?.text,
+    'Get in touch',
+  );
   assert.doesNotMatch(canonicalSource, /Together, they become a way to make the idea tangible/);
   assert.doesNotMatch(canonicalSource, /That is when the experience starts to feel real/);
 });
 
-test('the final title and actions occupy centered clean space after the emergent pass', () => {
+test('the final title and actions share the closing frame with the persistent bust', () => {
   const finale = canonical.tracks.text.fields.find((field) => field.preset === 'finale-v1');
-  const emergent = canonical.tracks.worlds.objects.find((world) => world.shapeId === 'emergent-form-v1');
+  const emergent = canonical.tracks.worlds.objects.find((world) => world.shapeId === 'bust-v1');
   const visibility = new Map(canonical.tracks.visibility.keys.map((key) => [key.id, key]));
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const through = keys.get('emergent-through');
   const finalHold = keys.get('finale-hold');
   assert.equal(finale.endWU, canonical.profiles.desktop.storyDurationWU);
   assert.equal(finale.startWU, 15.2);
-  assert.equal(finale.presentation.layout, 'text-finale-cta');
+  assert.equal(finale.presentation.layout, 'text-bust-cta');
   assert.ok(finale.focusWU > through.atWU);
   assert.equal(emergent.protected, true);
-  assert.equal(canonical.tracks.worlds.objects.some((world) => world.shapeId === 'bust-v1'), false);
+  assert.equal(canonical.tracks.worlds.objects.filter((world) => world.shapeId === 'bust-v1').length, 1);
   assert.equal(visibility.get('visibility-open-space').atWU, finale.startWU);
-  assert.equal(visibility.get('visibility-open-space').visibility, 0);
-  assert.equal(visibility.get('visibility-end').visibility, 0);
+  assert.equal(visibility.get('visibility-open-space').visibility, 1);
+  assert.equal(visibility.get('visibility-end').visibility, 1);
   assert.deepEqual(finalHold.position, through.position);
   assert.match(liveSources.experience, /about-narrative-finale-content/);
   assert.match(liveSources.styles, /\.about-narrative-finale-content/);

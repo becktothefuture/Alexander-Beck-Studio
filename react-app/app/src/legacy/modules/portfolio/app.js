@@ -835,7 +835,8 @@ class PortfolioScrollApp {
 
     const heading = document.createElement('h2');
     heading.id = 'portfolioDeckIntroTitle';
-    heading.className = 'portfolio-deck-intro__title route-centered-page__title';
+    heading.className = 'portfolio-deck-intro__title route-centered-page__title route-bookend-title';
+    heading.dataset.routeEnterVariant = 'bookend-title';
     heading.textContent = title;
 
     const copy = document.createElement('p');

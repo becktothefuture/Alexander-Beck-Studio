@@ -15,6 +15,10 @@ import {
 } from './aboutNarrativeRuntimePlan.js';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
+const smooth01 = (value) => {
+  const progress = clamp01(value);
+  return progress * progress * (3 - (2 * progress));
+};
 const EMPTY_MEASUREMENTS = Object.freeze({
   dirty: true,
   viewportHeight: 0,
@@ -352,6 +356,10 @@ export function useAboutNarrativeTimeline({
         node.style.setProperty('--fragment-z', `${sample.z.toFixed(2)}px`);
         node.style.setProperty('--fragment-blur', `${sample.blur.toFixed(2)}px`);
         node.style.setProperty('--fragment-opacity', visible ? sample.opacity.toFixed(4) : '0');
+        if (field.preset === 'opener-v1' || field.preset === 'finale-v1') {
+          const reveal = visible ? sample.opacity : 0;
+          node.style.setProperty('--bookend-clip-inset', `${((1 - reveal) * 100).toFixed(2)}%`);
+        }
       }
 
       let disciplineFocus = 0;
@@ -381,14 +389,22 @@ export function useAboutNarrativeTimeline({
       frame.editorialSignals.gridInfluence = gridInfluence;
 
       for (const { node, field } of measurementsRef.current.contextFields) {
-        const contextProgress = reducedMotion
-          ? (frame.storyWU >= field.startWU ? 1 : 0)
-          : clamp01(
+        const contextProgress = frame.storyWU >= field.startWU
+          ? clamp01(
             (frame.storyWU - field.startWU)
             / Math.max(0.000001, field.focusWU - field.startWU),
-          );
+          )
+          : 0;
+        const descriptionProgress = reducedMotion
+          ? (frame.storyWU >= field.startWU ? 1 : 0)
+          : smooth01((contextProgress - 0.32) / 0.5);
+        const actionProgress = reducedMotion
+          ? (frame.storyWU >= field.startWU ? 1 : 0)
+          : smooth01((contextProgress - 0.62) / 0.38);
         node.style.setProperty('--spatial-context-opacity', contextProgress.toFixed(4));
-        node.style.setProperty('--spatial-context-y', `${((1 - contextProgress) * 16).toFixed(2)}px`);
+        node.style.setProperty('--spatial-description-opacity', descriptionProgress.toFixed(4));
+        node.style.setProperty('--spatial-action-opacity', actionProgress.toFixed(4));
+        node.style.setProperty('--spatial-context-y', `${((1 - descriptionProgress) * 16).toFixed(2)}px`);
       }
     };
 

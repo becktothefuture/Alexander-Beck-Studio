@@ -25,10 +25,10 @@ Canonical engineering contract for route and modal transitions.
 - Optional return easing marker: `data-abs-transition-returning="active"`.
 - `abs:route-ready` means the destination route is layout-settled enough to reveal, not merely mounted.
 - Runtime-backed `abs:route-ready` events include a generation. Readiness consumers compare it with the authoritative module-local runtime snapshot and ignore stale events.
-- Home readiness requires the current runtime snapshot, `data-abs-home-route-ready="true"`, and either a confirmed canvas-title draw or the restored two-line semantic title fallback. Canvas allocation alone is not readiness.
+- Home readiness requires the current runtime snapshot, `data-abs-home-route-ready="true"`, and either a confirmed canvas-title draw or the restored three-line semantic title fallback. Canvas allocation alone is not readiness.
 - First-load entrance choreography and SPA route choreography are separate systems. Direct-load helpers must not mutate route-in visibility.
 - Both systems execute route-owned child reveals through `src/lib/motion/entrance-sequence.js`. Routes declare targets; boot and route owners decide when the shared executor may run.
-- A motion target may animate opacity and filter, but never its layout `transform`. Positioned or centred elements retain their settled geometry for the complete transaction; expressive scale belongs to the route surface or simulation material layer.
+- A motion target may animate opacity and filter, but never its layout `transform`. The named `bookend-title` variant may additionally animate a rectangular `clip-path` mask while retaining its settled geometry. Positioned or centred elements retain their settled geometry for the complete transaction; expressive scale belongs to the route surface or simulation material layer.
 
 ### Simulation focus overlay ownership
 

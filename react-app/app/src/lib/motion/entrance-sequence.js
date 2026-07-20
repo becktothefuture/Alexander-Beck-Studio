@@ -20,6 +20,7 @@ const PROFILES = Object.freeze({
   direct: Object.freeze({
     easing: 'cubic-bezier(0.22, 0, 0.16, 1)',
     blurPx: 1.5,
+    bookendTitle: Object.freeze({ blurPx: 7, durationMs: 720 }),
     groups: Object.freeze({
       identity: Object.freeze({ startMs: 0, stepMs: 90, durationMs: 420 }),
       legend: Object.freeze({ startMs: 900, stepMs: 90, durationMs: 480 }),
@@ -32,6 +33,7 @@ const PROFILES = Object.freeze({
   route: Object.freeze({
     easing: 'cubic-bezier(0.22, 0, 0.16, 1)',
     blurPx: 1.5,
+    bookendTitle: Object.freeze({ blurPx: 6, durationMs: 620 }),
     groups: Object.freeze({
       identity: Object.freeze({ startMs: 0, stepMs: 58, durationMs: 420 }),
       legend: Object.freeze({ startMs: 90, stepMs: 36, durationMs: 460 }),
@@ -92,6 +94,8 @@ function collectTargets(scopes, profile) {
       const groupName = element.dataset.routeEnter || 'context';
       const fallbackOrder = groupCounts.get(groupName) || 0;
       const order = readOrder(element, fallbackOrder);
+      const variant = element.dataset.routeEnterVariant || 'default';
+      const isBookendTitle = variant === 'bookend-title';
       groupCounts.set(groupName, Math.max(fallbackOrder + 1, order + 1));
       const group = readGroup(profile, groupName);
       targets.push({
@@ -99,7 +103,11 @@ function collectTargets(scopes, profile) {
         groupName,
         order,
         delayMs: group.startMs + (group.stepMs * order),
-        durationMs: group.durationMs,
+        durationMs: isBookendTitle
+          ? profile.bookendTitle.durationMs
+          : group.durationMs,
+        blurPx: isBookendTitle ? profile.bookendTitle.blurPx : profile.blurPx,
+        variant,
         finalOpacity: readFinalOpacity(element),
       });
     });
@@ -130,6 +138,7 @@ function clearTargetStyles(target) {
   element.style.transition = 'none';
   element.style.removeProperty('opacity');
   element.style.removeProperty('filter');
+  element.style.removeProperty('clip-path');
   element.style.removeProperty('pointer-events');
   element.style.removeProperty('will-change');
   window.requestAnimationFrame(() => {
@@ -148,6 +157,9 @@ function restoreTargetInert(element) {
 function settleTarget(target) {
   target.element.style.opacity = String(target.finalOpacity);
   target.element.style.filter = 'blur(0)';
+  if (target.variant === 'bookend-title') {
+    target.element.style.clipPath = 'inset(0 0 0 0)';
+  }
   target.element.style.pointerEvents = '';
   restoreTargetInert(target.element);
 }
@@ -161,8 +173,13 @@ function stageTarget(target, blurPx) {
   target.element.style.transitionDelay = `${target.delayMs}ms`;
   target.element.style.opacity = '0';
   target.element.style.filter = `blur(${blurPx}px)`;
+  if (target.variant === 'bookend-title') {
+    target.element.style.clipPath = 'inset(100% 0 0 0)';
+  }
   target.element.style.pointerEvents = 'none';
-  target.element.style.willChange = 'opacity, filter';
+  target.element.style.willChange = target.variant === 'bookend-title'
+    ? 'opacity, filter, clip-path'
+    : 'opacity, filter';
   // Opacity and pointer-events do not remove delayed controls from sequential
   // keyboard navigation. Scope inert to targets that actually contain controls,
   // then restore their original state on completion or cancellation.
@@ -184,9 +201,10 @@ function stageTarget(target, blurPx) {
  * Creates one cancellable entrance transaction.
  *
  * Layout transforms are deliberately out of scope: anchored elements keep their
- * final geometry while this runner owns only opacity and blur. This separation is
- * what prevents centering, responsive placement, and motion from overwriting one
- * another on WebKit and other composited browsers.
+ * final geometry while this runner owns opacity and filter. The named bookend
+ * title variant may also own a clip-path mask, but never layout transform. This
+ * separation prevents centering, responsive placement, and motion from
+ * overwriting one another on WebKit and other composited browsers.
  */
 export function createEntranceSequence({
   scopes = document,
@@ -208,7 +226,7 @@ export function createEntranceSequence({
 
   const stage = () => {
     if (settled) return false;
-    targets.forEach((target) => stageTarget(target, reducedMotion ? 0 : profile.blurPx));
+    targets.forEach((target) => stageTarget(target, reducedMotion ? 0 : target.blurPx));
     staged = true;
     if (diagnosticRoot) setHomePhase(diagnosticRoot, 'pending');
     return true;
@@ -244,7 +262,7 @@ export function createEntranceSequence({
     collectTargets(scopes, profile).forEach((target) => {
       if (known.has(target.element)) return;
       targets.push(target);
-      stageTarget(target, reducedMotion ? 0 : profile.blurPx);
+      stageTarget(target, reducedMotion ? 0 : target.blurPx);
     });
 
     if (reducedMotion || targets.length === 0 || typeof Element.prototype.animate !== 'function') {
@@ -257,11 +275,17 @@ export function createEntranceSequence({
     if (diagnosticRoot) setHomePhase(diagnosticRoot, 'enter');
 
     animations = targets.map((target) => {
+      const keyframes = target.variant === 'bookend-title'
+        ? [
+            { opacity: 0, filter: `blur(${target.blurPx}px)`, clipPath: 'inset(100% 0 0 0)' },
+            { opacity: target.finalOpacity, filter: 'blur(0)', clipPath: 'inset(0 0 0 0)' },
+          ]
+        : [
+            { opacity: 0, filter: `blur(${target.blurPx}px)` },
+            { opacity: target.finalOpacity, filter: 'blur(0)' },
+          ];
       const animation = target.element.animate(
-        [
-          { opacity: 0, filter: `blur(${profile.blurPx}px)` },
-          { opacity: target.finalOpacity, filter: 'blur(0)' },
-        ],
+        keyframes,
         {
           duration: target.durationMs,
           delay: target.delayMs,

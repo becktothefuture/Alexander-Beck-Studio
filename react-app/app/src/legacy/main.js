@@ -128,7 +128,7 @@ function isCanvasHomeTitlePrepared() {
   const titleState = getGlobals().canvasTitleRenderState || {};
   return (
     titleState.active === true
-    && Number(titleState.lineCount) >= 2
+    && Number(titleState.lineCount) >= 3
     && Number(titleState.firstLineFontSizeCssPx) > 0
     && Number.isFinite(Number(titleState.firstLineX))
     && Number.isFinite(Number(titleState.firstLineY))
@@ -140,7 +140,7 @@ function isCanvasHomeTitleDrawn() {
   return (
     titleState.active === true
     && titleState.visible === true
-    && Number(titleState.lineCount) >= 2
+    && Number(titleState.lineCount) >= 3
   );
 }
 

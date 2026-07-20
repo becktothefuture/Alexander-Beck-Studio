@@ -78,6 +78,8 @@ const VERTEX_SHADER = `
   uniform float storyTime;
   uniform float ambientTime;
   uniform float pointSize;
+  uniform float fromPointSizeScale;
+  uniform float toPointSizeScale;
   uniform float pixelRatio;
   uniform float simulationVisibility;
   uniform float sceneEntranceScale;
@@ -252,7 +254,18 @@ const VERTEX_SHADER = `
   }
 
   void main() {
-    float morph = smoothstep(0.0, 1.0, morphProgress);
+    float globalMorph = smoothstep(0.0, 1.0, morphProgress);
+    float bustHeight = clamp((targetPosition.y + 0.86) / 1.72, 0.0, 1.0);
+    float bustBuildProgress = smoothstep(
+      bustHeight,
+      bustHeight + 0.22,
+      globalMorph * 1.22
+    );
+    float morph = mix(
+      globalMorph,
+      bustBuildProgress,
+      toBust * (1.0 - fromBust)
+    );
     vec3 fromPoint = applyOrbitalLife(
       position,
       pointSeed,
@@ -315,35 +328,37 @@ const VERTEX_SHADER = `
 
     vec2 ripplePoint = worldPoint.xz - gridRippleCenter;
     float rippleDistance = length(ripplePoint);
-    float gatheringProgress = smoothstep(0.0, 1.0, gridRippleProgress);
-    float gatheringReach = mix(
-      0.25,
-      14.5,
-      gatheringProgress
-    );
-    float gatheringSoftness = max(0.38, 2.0 / max(0.1, gridRippleFrequency));
-    float gatheringEnvelope = 1.0 - smoothstep(
-      gatheringReach,
-      gatheringReach + gatheringSoftness,
-      rippleDistance
-    );
-    float gatheringFront = 1.0 - smoothstep(
-      0.0,
-      gatheringSoftness,
-      abs(rippleDistance - gatheringReach)
-    );
     vec2 rippleDirection = rippleDistance > 0.0001
       ? ripplePoint / rippleDistance
       : vec2(0.0);
+    float rippleClock = mix(
+      ambientTime,
+      storyTime,
+      clamp(gridRippleStoryMix, 0.0, 1.0)
+    );
+    float ripplePhase = rippleClock * gridRippleSpeed * 6.2831853;
+    float radialRipple = sin(
+      (rippleDistance * gridRippleFrequency) - ripplePhase
+    );
+    float harmonicRipple = sin(
+      (rippleDistance * gridRippleFrequency * 0.52) - (ripplePhase * 0.72)
+    );
+    float centerPulse = cos(ripplePhase) * exp(-rippleDistance * 0.42);
+    float rippleFalloff = 1.0 / (1.0 + (rippleDistance * 0.035));
+    float perpetualRipple = (
+      (radialRipple * 0.72)
+      + (harmonicRipple * 0.20)
+      + (centerPulse * 0.34)
+    ) * rippleFalloff;
     float gatheringWeight = gridRippleWeight * gridRippleAmplitude;
-    // One expanding activation front loosens the ordered floor and draws the
-    // awakened material inward. It deliberately avoids a repeating sine wave:
-    // the next World supplies the actual woven destination.
-    worldPoint.y += gatheringWeight
-      * ((gatheringFront * 0.78) + (gatheringEnvelope * gatheringProgress * 0.16));
-    worldPoint.xz -= rippleDirection
+    worldPoint.y += gatheringWeight * perpetualRipple;
+    worldPoint.xz += rippleDirection
       * gatheringWeight
-      * ((gatheringFront * 0.10) + (gatheringEnvelope * gatheringProgress * 0.22));
+      * radialRipple
+      * rippleFalloff
+      * 0.34;
+    float gridRippleEmphasis = 1.0
+      + (abs(perpetualRipple) * gridRippleWeight * 0.34);
 
     float group = mix(fromGroup, toGroup, morph);
     float groupStrength = mix(fromGroupStrength, toGroupStrength, morph);
@@ -402,9 +417,15 @@ const VERTEX_SHADER = `
     float groupScale = mix(groupStrength, max(0.0, disciplinePointScale - 1.0), disciplineRevealActive);
     float emphasis = 1.0 + (groupWeight * groupScale) + (waveWeight * 0.18);
     float perspectiveScale = clamp(5.5 / max(1.0, -viewPoint.z), 0.68, 2.2);
-    float cssPointSize = pointSize * sizeWeight * emphasis * perspectiveScale;
+    float worldPointSizeScale = mix(fromPointSizeScale, toPointSizeScale, morph);
+    float cssPointSize = pointSize
+      * worldPointSizeScale
+      * sizeWeight
+      * emphasis
+      * gridRippleEmphasis
+      * perspectiveScale;
     float entranceScale = clamp(sceneEntranceScale, 0.0, 1.0);
-    gl_PointSize = max(0.01, clamp(cssPointSize, 5.25, 11.0) * entranceScale) * pixelRatio;
+    gl_PointSize = max(0.01, clamp(cssPointSize, 5.25, 18.0) * entranceScale) * pixelRatio;
     pointAlpha = presence * entranceScale;
   }
 `;
@@ -486,24 +507,32 @@ function shapeCacheKey(world, quality) {
   ]);
 }
 
-function writeWorldTransform(target, world, globals, compact, scratch) {
+function writeWorldTransform(target, world, globals, compact, shortLandscape, scratch) {
   if (!world) return target.identity();
   const transform = world.transform || {};
   const position = transform.position || [0, 0, 0];
   const rotation = transform.rotation || [0, 0, 0];
   const baseScale = Number(transform.scale ?? 1);
-  const scale = compact && Number.isFinite(transform.mobileScale)
-    ? Number(transform.mobileScale)
+  const responsiveScale = shortLandscape && Number.isFinite(transform.mobileLandscapeScale)
+    ? Number(transform.mobileLandscapeScale)
+    : transform.mobileScale;
+  const scale = compact && Number.isFinite(responsiveScale)
+    ? Number(responsiveScale)
     : baseScale;
-  const xScale = compact && Number.isFinite(transform.mobileXScale)
-    ? Number(transform.mobileXScale)
+  const responsiveXScale = shortLandscape && Number.isFinite(transform.mobileLandscapeXScale)
+    ? Number(transform.mobileLandscapeXScale)
+    : transform.mobileXScale;
+  const xScale = compact && Number.isFinite(responsiveXScale)
+    ? Number(responsiveXScale)
     : scale;
   const anchorRailZ = resolveAboutNarrativeWorldAnchorRailZ(world, globals);
   scratch.position.set(
-    position[0],
-    position[1] + (compact ? Number(transform.mobileYOffset || 0) : 0),
+    position[0] + (shortLandscape ? Number(transform.mobileLandscapeXOffset || 0) : 0),
+    position[1] + (compact ? Number(transform.mobileYOffset || 0) : 0)
+      + (shortLandscape ? Number(transform.mobileLandscapeYOffset || 0) : 0),
     anchorRailZ - Number(world.entryDistanceWU || 0) + position[2]
-      + (compact ? Number(transform.mobileZOffset || 0) : 0),
+      + (compact ? Number(transform.mobileZOffset || 0) : 0)
+      + (shortLandscape ? Number(transform.mobileLandscapeZOffset || 0) : 0),
   );
   scratch.euler.set(
     rotation[0],
@@ -570,6 +599,9 @@ function createPointFieldAdapter({
   });
   const quality = explicitPointProfile || resolveAboutNarrativePointProfile(layoutProfile);
   const compact = quality === 'mobile';
+  const shortLandscape = layoutProfile === 'mobile'
+    && initialBounds.width > initialBounds.height
+    && initialBounds.height <= 600;
   const mobileBodyScale = resolveMobileSimulationBodyScale(
     getGlobals().mobileSimulationBodyScale,
     {
@@ -616,6 +648,8 @@ function createPointFieldAdapter({
     storyTime: { value: 0 },
     ambientTime: { value: 0 },
     pointSize: { value: 5.4 },
+    fromPointSizeScale: { value: 1 },
+    toPointSizeScale: { value: 1 },
     pixelRatio: { value: 1 },
     simulationVisibility: { value: 1 },
     sceneEntranceScale: { value: 0 },
@@ -930,6 +964,9 @@ function createPointFieldAdapter({
   let lastInteractionEnabled = null;
   let lastWorldStage = '';
   let lastBustStyleYaw = Number.NaN;
+  let lastDisciplineConfig = null;
+  let lastDisciplineLayoutProfile = '';
+  let resolvedDisciplineAnchors = null;
 
   const measureDisciplineLabels = () => {
     for (let index = 0; index < disciplineLabels.length; index += 1) {
@@ -1070,13 +1107,18 @@ function createPointFieldAdapter({
 
   const placeDisciplineLabels = (offset) => {
     const safeInset = compact ? 10 : 16;
+    const horizontalInset = width * 0.15;
     let placementCount = 0;
     for (let index = 0; index < disciplineLabels.length; index += 1) {
       if (!Number.isFinite(disciplineProjectedX[index])) continue;
       const labelWidth = disciplineLabelWidth[index];
-      const localX = disciplineProjectedX[index] - viewportOffsetX;
-      const roomRight = width - safeInset - localX - offset;
-      const roomLeft = localX - safeInset - offset;
+      const localX = Math.min(
+        width - horizontalInset,
+        Math.max(horizontalInset, disciplineProjectedX[index] - viewportOffsetX),
+      );
+      disciplineProjectedX[index] = viewportOffsetX + localX;
+      const roomRight = width - horizontalInset - localX - offset;
+      const roomLeft = localX - horizontalInset - offset;
       const preferredSide = compact && index % 2 === 1 ? 1 : 0;
       const preferredRoom = preferredSide === 1 ? roomLeft : roomRight;
       const alternateRoom = preferredSide === 1 ? roomRight : roomLeft;
@@ -1088,8 +1130,10 @@ function createPointFieldAdapter({
         : localX + offset;
       const proposedRight = proposedLeft + labelWidth;
       let nudge = 0;
-      if (proposedLeft < safeInset) nudge = safeInset - proposedLeft;
-      else if (proposedRight > width - safeInset) nudge = (width - safeInset) - proposedRight;
+      if (proposedLeft < horizontalInset) nudge = horizontalInset - proposedLeft;
+      else if (proposedRight > width - horizontalInset) {
+        nudge = (width - horizontalInset) - proposedRight;
+      }
       disciplineResolvedY[index] = disciplineProjectedY[index] - viewportOffsetY;
       disciplinePlacementOrder[placementCount] = index;
       placementCount += 1;
@@ -1169,7 +1213,7 @@ function createPointFieldAdapter({
     });
   };
 
-  const refreshInstalledDisciplineGroups = (pair) => {
+  const refreshInstalledDisciplineGroups = (pair, anchors = resolvedDisciplineAnchors) => {
     const materialThresholds = [
       uniforms.materialThreshold1.value,
       uniforms.materialThreshold2.value,
@@ -1181,11 +1225,13 @@ function createPointFieldAdapter({
       output: pair.fromOutput,
       pointSeeds: seeds,
       materialThresholds,
+      anchors,
     }) || emptyGroup;
     const toGroup = createAboutNarrativeColourMatchedDisciplineGroups({
       output: pair.toOutput,
       pointSeeds: seeds,
       materialThresholds,
+      anchors,
     }) || emptyGroup;
     fixedAttributes.fromGroup.array.set(fromGroup);
     fixedAttributes.toGroup.array.set(toGroup);
@@ -1535,6 +1581,7 @@ function createPointFieldAdapter({
         world,
         globals,
         compact,
+        shortLandscape,
         index === 0 ? correspondenceFromScratch : correspondenceToScratch,
       ).elements.slice(),
       shapeId: world.shapeId,
@@ -1613,6 +1660,17 @@ function createPointFieldAdapter({
     const reveal = revealState?.config;
     const overlay = disciplineOverlayRef?.current;
     syncDisciplineLabels(overlay);
+    if (reveal !== lastDisciplineConfig || frame.layoutProfile !== lastDisciplineLayoutProfile) {
+      const mobile = frame.layoutProfile === 'mobile';
+      resolvedDisciplineAnchors = reveal?.items?.map((item) => {
+        const fallback = item.position || [0.5, 0.5];
+        const position = mobile ? item.mobilePosition || fallback : fallback;
+        return { group: item.group, x: position[0], y: position[1] };
+      }) || null;
+      lastDisciplineConfig = reveal || null;
+      lastDisciplineLayoutProfile = frame.layoutProfile || '';
+      if (installedPair) refreshInstalledDisciplineGroups(installedPair, resolvedDisciplineAnchors);
+    }
     const toWorldHasDisciplineAnchors = hasAllDisciplineAnchors(toDisciplineIndices);
     const fromWorldHasDisciplineAnchors = hasAllDisciplineAnchors(fromDisciplineIndices);
     const disciplineWorld = toWorldHasDisciplineAnchors
@@ -1651,16 +1709,6 @@ function createPointFieldAdapter({
       }
     }
 
-    uniforms.disciplineRevealA.value.set(
-      disciplineWeights[0],
-      disciplineWeights[1],
-      disciplineWeights[2],
-    );
-    uniforms.disciplineRevealB.value.set(
-      disciplineWeights[3],
-      disciplineWeights[4],
-      disciplineWeights[5],
-    );
     if (revealAvailable) {
       const isolationWeight = Number(revealState.backgroundProgress || 0)
         * (1 - Number(revealState.restoreProgress || 0));
@@ -1741,7 +1789,6 @@ function createPointFieldAdapter({
           const labelReveal = disciplineLabelBaseReveal[group - 1]
             * uniforms.simulationVisibility.value;
           writeDisciplineRevealStyles(group - 1, labelReveal);
-          if (labelReveal > 0.05) visibleLabels += 1;
           disciplinePointScratch.set(
             anchorSampleTarget.x,
             anchorSampleTarget.y,
@@ -1751,6 +1798,22 @@ function createPointFieldAdapter({
             + (((disciplinePointScratch.x * 0.5) + 0.5) * width);
           disciplineProjectedY[group - 1] = viewportOffsetY
             + (((-disciplinePointScratch.y * 0.5) + 0.5) * height);
+          if (!reducedActive) {
+            const viewportY = (disciplineProjectedY[group - 1] - viewportOffsetY) / height;
+            const entryReveal = 1 - smoothRange(viewportY, 0.82, 0.96);
+            const exitReveal = smoothRange(viewportY, 0.04, 0.18);
+            const spatialReveal = entryReveal * exitReveal
+              * (1 - Number(revealState.restoreProgress || 0));
+            disciplineWeights[group - 1] = spatialReveal;
+            disciplineLabelBaseReveal[group - 1] = spatialReveal;
+            writeDisciplineRevealStyles(
+              group - 1,
+              spatialReveal * uniforms.simulationVisibility.value,
+            );
+            if (spatialReveal * uniforms.simulationVisibility.value > 0.05) visibleLabels += 1;
+          } else if (labelReveal > 0.05) {
+            visibleLabels += 1;
+          }
         }
         placeDisciplineLabels(Number(reveal.labelOffsetPx ?? 18));
       } else if (revealAvailable) {
@@ -1771,6 +1834,16 @@ function createPointFieldAdapter({
         }
       }
     }
+    uniforms.disciplineRevealA.value.set(
+      disciplineWeights[0],
+      disciplineWeights[1],
+      disciplineWeights[2],
+    );
+    uniforms.disciplineRevealB.value.set(
+      disciplineWeights[3],
+      disciplineWeights[4],
+      disciplineWeights[5],
+    );
     let visibleDisciplineCount = 0;
     for (let index = 0; index < disciplineWeights.length; index += 1) {
       if (disciplineWeights[index] > 0.95) visibleDisciplineCount += 1;
@@ -1886,6 +1959,7 @@ function createPointFieldAdapter({
       fromWorld,
       frame.globals,
       compact,
+      shortLandscape,
       fromTransformScratch,
     );
     writeWorldTransform(
@@ -1893,12 +1967,15 @@ function createPointFieldAdapter({
       toWorld,
       frame.globals,
       compact,
+      shortLandscape,
       toTransformScratch,
     );
     uniforms.morphProgress.value = transitionProgress;
     uniforms.storyTime.value = frame.storyTime;
     uniforms.ambientTime.value = frame.ambientTime;
     uniforms.pointSize.value = frame.globals.pointMaterial.pointSize * mobileBodyScale;
+    uniforms.fromPointSizeScale.value = Number(fromWorld.transform?.pointSizeScale ?? 1);
+    uniforms.toPointSizeScale.value = Number(toWorld.transform?.pointSizeScale ?? 1);
     uniforms.fieldOpacity.value = frame.globals.pointMaterial.opacity;
     const requestedVisibility = Number(frame.simulation?.visibility ?? 1);
     const simulationVisibility = Number.isFinite(requestedVisibility)

@@ -84,7 +84,21 @@ const VERSION_4_CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'position', 'rotation',
 const LEGACY_CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'distanceFogStartWU', 'distanceFogEndWU', 'easing', 'locked']);
 const VISIBILITY_KEY_KEYS = new Set(['id', 'atWU', 'visibility', 'easing', 'locked']);
 const WORLD_KEYS = new Set(['id', 'label', 'startWU', 'anchorWU', 'adapterId', 'shapeId', 'seed', 'entryDistanceWU', 'transform', 'transitionIn', 'shapeParameters', 'modifiers', 'protected']);
-const TRANSFORM_KEYS = new Set(['position', 'rotation', 'scale', 'mobileScale', 'mobileXScale', 'mobileYOffset', 'mobileZOffset']);
+const TRANSFORM_KEYS = new Set([
+  'position',
+  'rotation',
+  'scale',
+  'pointSizeScale',
+  'mobileScale',
+  'mobileXScale',
+  'mobileYOffset',
+  'mobileZOffset',
+  'mobileLandscapeScale',
+  'mobileLandscapeXScale',
+  'mobileLandscapeXOffset',
+  'mobileLandscapeYOffset',
+  'mobileLandscapeZOffset',
+]);
 const TRANSITION_KEYS = new Set(['startWU', 'endWU', 'type', 'easing', 'correspondence']);
 const MODIFIER_KEYS = new Set(['id', 'enabled', 'parameters']);
 const TEXT_BASE_KEYS = new Set(['id', 'kind', 'startWU', 'focusWU', 'endWU', 'publishable', 'presentation', 'protected']);
@@ -98,7 +112,7 @@ const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'emphasis', 
 const EMPHASIS_KEYS = new Set(['text', 'tone']);
 const CHOREOGRAPHY_KEYS = new Set(['staggerWU', 'backgroundFadeWU', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale', 'labelDurationWU', 'holdWU', 'items']);
 const LEGACY_CHOREOGRAPHY_KEYS = new Set(['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', ...CHOREOGRAPHY_KEYS]);
-const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label']);
+const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label', 'position', 'mobilePosition']);
 const INTERACTION_KEYS = new Set(['id', 'type', 'startWU', 'activationWU', 'endWU', 'targetWorldId', 'parameters', 'protected']);
 const LIBRARY_KEYS = new Set(['presets']);
 const PRESET_KEYS = new Set(['id', 'label', 'scope', 'protected']);
@@ -170,6 +184,14 @@ function validateTime(value, diagnostics, path, { min = 0, max = Number.POSITIVE
 function validateVector(value, diagnostics, path) {
   if (!Array.isArray(value) || value.length !== 3 || value.some((item) => !finite(item))) {
     diagnostic(diagnostics, 'vector', path, 'Expected three finite numbers.');
+    return false;
+  }
+  return true;
+}
+
+function validateDisciplinePosition(value, diagnostics, path) {
+  if (!Array.isArray(value) || value.length !== 2 || value.some((item) => !finite(item) || Number(item) < 0.05 || Number(item) > 0.95)) {
+    diagnostic(diagnostics, 'discipline-position', path, 'Discipline positions require two normalized values between 0.05 and 0.95.');
     return false;
   }
   return true;
@@ -428,9 +450,25 @@ function validateTransform(transform, diagnostics, path, partial = false) {
   if (!partial || transform.scale != null) {
     if (!finite(transform.scale) || Number(transform.scale) <= 0) diagnostic(diagnostics, 'world-scale', `${path}.scale`, 'World scale must be positive and finite.');
   }
-  ['mobileScale', 'mobileXScale', 'mobileYOffset', 'mobileZOffset'].forEach((key) => {
+  if (transform.pointSizeScale != null && (!finite(transform.pointSizeScale) || Number(transform.pointSizeScale) <= 0)) {
+    diagnostic(diagnostics, 'world-point-size', `${path}.pointSizeScale`, 'Relative point size must be positive and finite.');
+  }
+  [
+    'mobileScale',
+    'mobileXScale',
+    'mobileYOffset',
+    'mobileZOffset',
+    'mobileLandscapeScale',
+    'mobileLandscapeXScale',
+    'mobileLandscapeXOffset',
+    'mobileLandscapeYOffset',
+    'mobileLandscapeZOffset',
+  ].forEach((key) => {
     if (transform[key] != null && !finite(transform[key])) diagnostic(diagnostics, 'world-transform-number', `${path}.${key}`, 'Responsive transform values must be finite.');
-    if ((key === 'mobileScale' || key === 'mobileXScale')
+    if ((key === 'mobileScale'
+      || key === 'mobileXScale'
+      || key === 'mobileLandscapeScale'
+      || key === 'mobileLandscapeXScale')
       && transform[key] != null
       && finite(transform[key])
       && Number(transform[key]) <= 0) {
@@ -504,7 +542,7 @@ function validateTextField(field, index, seen, diagnostics, durationWU, schemaVe
     validateSafeText(field.text, diagnostics, `${path}.text`, { required: true });
     if (field.description != null) {
       validateSafeText(field.description, diagnostics, `${path}.description`, { required: true, maximum: 320 });
-      if (field.preset !== 'opener-v1') diagnostic(diagnostics, 'title-description-preset', `${path}.description`, 'Only the opener Title may include a description.');
+      if (!['opener-v1', 'finale-v1'].includes(field.preset)) diagnostic(diagnostics, 'title-description-preset', `${path}.description`, 'Only opener and finale Titles may include a description.');
     }
     if (!ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES.includes(field.movement)) diagnostic(diagnostics, 'title-movement', `${path}.movement`, 'Title movement must be spatial or vertical.');
     validateSafeText(field.preset, diagnostics, `${path}.preset`, { required: true, maximum: 80 });
@@ -543,6 +581,8 @@ function validateTextField(field, index, seen, diagnostics, durationWU, schemaVe
           if (!Number.isInteger(item?.group) || item.group < 1 || item.group > 6 || groups.has(item.group)) diagnostic(diagnostics, 'discipline-group', `${itemPath}.group`, 'Discipline groups must uniquely cover 1 through 6.');
           groups.add(item?.group);
           validateSafeText(item?.label, diagnostics, `${itemPath}.label`, { required: true, maximum: 80 });
+          if (item?.position != null) validateDisciplinePosition(item.position, diagnostics, `${itemPath}.position`);
+          if (item?.mobilePosition != null) validateDisciplinePosition(item.mobilePosition, diagnostics, `${itemPath}.mobilePosition`);
         });
         const lastRevealEndWU = Number(field.startWU)
           + (Math.max(0, choreography.items.length - 1) * Number(choreography.staggerWU))
@@ -589,6 +629,8 @@ function validateDisciplineMotionParameters(clip, diagnostics, path, schemaVersi
     }
     groups.add(item?.group);
     validateSafeText(item?.label, diagnostics, `${itemPath}.label`, { required: true, maximum: 80 });
+    if (item?.position != null) validateDisciplinePosition(item.position, diagnostics, `${itemPath}.position`);
+    if (item?.mobilePosition != null) validateDisciplinePosition(item.mobilePosition, diagnostics, `${itemPath}.mobilePosition`);
   });
   const labelSequenceWU = (Math.max(0, items.length - 1) * Number(parameters.staggerWU))
     + Number(parameters.labelDurationWU)

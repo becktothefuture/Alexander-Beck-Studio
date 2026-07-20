@@ -11,6 +11,8 @@ import {
   ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS,
   ABOUT_NARRATIVE_BLOCK_KINDS,
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
+  ABOUT_NARRATIVE_DISCIPLINE_ANCHORS,
+  ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS,
   ABOUT_NARRATIVE_EASINGS,
   ABOUT_NARRATIVE_GLOBAL_CONTROLS,
   ABOUT_NARRATIVE_INTERACTION_DEFINITIONS,
@@ -21,6 +23,7 @@ import {
   ABOUT_NARRATIVE_TRANSITION_TYPES,
   ABOUT_NARRATIVE_VISIBILITY_EASINGS,
   ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS,
+  ABOUT_NARRATIVE_WORLD_POINT_SIZE_CONTROL,
 } from './aboutNarrativeDefinitions.js';
 import {
   deriveAboutNarrativeTrackLoopRange,
@@ -54,6 +57,12 @@ const MIN_TIMELINE_WIDTH = 920;
 const BASE_PIXELS_PER_WU = 66;
 const TEXT_CONNECTION_EPSILON_WU = 0.0001;
 const GRID_RIPPLE_START_STEP_WU = 0.05;
+const DISCIPLINE_POSITION_CONTROL = Object.freeze({
+  min: 0.15,
+  max: 0.85,
+  step: 0.01,
+  unit: '× grid',
+});
 const PREVIEW_ASPECT_RATIOS = Object.freeze({
   tablet: Object.freeze({ portrait: 820 / 1180, landscape: 1180 / 820 }),
   mobile: Object.freeze({ portrait: 390 / 844, landscape: 844 / 390 }),
@@ -622,7 +631,7 @@ function WorldInspector({ object, selection, store, locked, finaleShapeLocked, c
       <InspectorFolder
         key={`${object.id}-world-placement`}
         group={WORLD_CONTROL_GROUP_BY_ID['world-placement']}
-        count={11}
+        count={17}
       >
         <div className="about-track-editor-folder__grid">
           {[0, 1, 2].map((axis) => (
@@ -632,10 +641,23 @@ function WorldInspector({ object, selection, store, locked, finaleShapeLocked, c
             <NumberField key={`rotation-${axis}`} label={`Rotation ${'XYZ'[axis]}`} value={object.transform.rotation[axis]} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World rotation', (target) => { target.transform.rotation[axis] = value; })} />
           ))}
           <NumberField label="Scale" value={object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World scale', (target) => { target.transform.scale = value; })} />
+          <RangeParameterField
+            label={ABOUT_NARRATIVE_WORLD_POINT_SIZE_CONTROL.label}
+            ariaLabel={`World ${ABOUT_NARRATIVE_WORLD_POINT_SIZE_CONTROL.label}`}
+            value={object.transform.pointSizeScale ?? 1}
+            control={ABOUT_NARRATIVE_WORLD_POINT_SIZE_CONTROL}
+            disabled={locked}
+            {...bindRange('Edit World relative point size', (target, value) => { target.transform.pointSizeScale = value; })}
+          />
           <NumberField label="Mobile scale" value={object.transform.mobileScale ?? object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World mobile scale', (target) => { target.transform.mobileScale = value; })} />
           <NumberField label="Mobile X scale" value={object.transform.mobileXScale ?? object.transform.mobileScale ?? object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World mobile X scale', (target) => { target.transform.mobileXScale = value; })} />
           <NumberField label="Mobile Y offset" value={object.transform.mobileYOffset ?? 0} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World mobile offset', (target) => { target.transform.mobileYOffset = value; })} />
           <NumberField label="Mobile Z offset" value={object.transform.mobileZOffset ?? 0} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World mobile offset', (target) => { target.transform.mobileZOffset = value; })} />
+          <NumberField label="Landscape scale" value={object.transform.mobileLandscapeScale ?? object.transform.mobileScale ?? object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World landscape scale', (target) => { target.transform.mobileLandscapeScale = value; })} />
+          <NumberField label="Landscape X scale" value={object.transform.mobileLandscapeXScale ?? object.transform.mobileLandscapeScale ?? object.transform.mobileXScale ?? object.transform.mobileScale ?? object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World landscape X scale', (target) => { target.transform.mobileLandscapeXScale = value; })} />
+          <NumberField label="Landscape X offset" value={object.transform.mobileLandscapeXOffset ?? 0} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World landscape offset', (target) => { target.transform.mobileLandscapeXOffset = value; })} />
+          <NumberField label="Landscape Y offset" value={object.transform.mobileLandscapeYOffset ?? 0} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World landscape offset', (target) => { target.transform.mobileLandscapeYOffset = value; })} />
+          <NumberField label="Landscape Z offset" value={object.transform.mobileLandscapeZOffset ?? 0} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World landscape offset', (target) => { target.transform.mobileLandscapeZOffset = value; })} />
         </div>
       </InspectorFolder>
 
@@ -1249,7 +1271,7 @@ function Timeline({
               ) : null}
               {track.id === 'interaction' && interactionMenu ? (
                 <div className="about-track-editor-create-menu" role="menu" aria-label="Create Motion clip">
-                  <button type="button" role="menuitem" onClick={() => createAtPlayhead('interaction', null, 'grid-ripple')}>Gathering pulse</button>
+                  <button type="button" role="menuitem" onClick={() => createAtPlayhead('interaction', null, 'grid-ripple')}>Wave generator</button>
                   <button type="button" role="menuitem" onClick={() => createAtPlayhead('interaction', null, 'horizontal-spin')}>Horizontal spin</button>
                 </div>
               ) : null}
@@ -1596,15 +1618,67 @@ function ObjectInspector({ snapshot, store, onMessage }) {
           {object.type === 'discipline-reveal' ? (
             <>
               <p className="about-track-editor-parameter-note is-wide">
-                Activation begins the discipline labels and grid isolation; end holds that treatment until the next handoff.
+                Each label is pinned to a real grid point and reveals as the camera passes it. Colour is locked to its unique simulation group.
               </p>
-              <JsonField
-                label="Discipline labels"
-                value={object.parameters?.items || []}
-                disabled={locked}
-                onCommit={(value) => commit('Edit Discipline labels', (target) => { target.parameters.items = value; })}
-                onError={onMessage}
-              />
+              <div className="about-track-editor-discipline-layout is-wide">
+                {(object.parameters?.items || []).map((item) => {
+                  const fallback = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.find((anchor) => anchor.group === item.group);
+                  const desktopPosition = item.position || [fallback?.x ?? 0.5, fallback?.y ?? 0.5];
+                  const mobilePosition = item.mobilePosition || desktopPosition;
+                  const bindPosition = (profile, axis) => bindObjectRange(
+                    `Move ${item.label} ${profile} ${axis === 0 ? 'X' : 'Y'}`,
+                    (target, value) => {
+                      const targetItem = target.parameters.items.find((candidate) => candidate.group === item.group);
+                      if (!targetItem) return;
+                      const key = profile === 'mobile' ? 'mobilePosition' : 'position';
+                      const source = targetItem[key] || targetItem.position || desktopPosition;
+                      targetItem[key] = [...source];
+                      targetItem[key][axis] = value;
+                    },
+                  );
+                  return (
+                    <InspectorFolder
+                      key={`discipline-${item.group}`}
+                      group={{ id: `discipline-${item.group}`, label: item.label }}
+                      count={5}
+                      defaultOpen={item.group === 1}
+                    >
+                      <div className="about-track-editor-discipline-heading">
+                        <span
+                          className="about-track-editor-discipline-swatch"
+                          style={{ backgroundColor: `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})` }}
+                          aria-hidden="true"
+                        />
+                        <small>Colour {item.group} · unique</small>
+                      </div>
+                      <TextField
+                        label="Label"
+                        value={item.label}
+                        disabled={locked}
+                        onCommit={(value) => commit('Edit Discipline label', (target) => {
+                          const targetItem = target.parameters.items.find((candidate) => candidate.group === item.group);
+                          if (targetItem) targetItem.label = value;
+                        })}
+                      />
+                      {['Desktop X', 'Desktop Y', 'Mobile X', 'Mobile Y'].map((label, index) => {
+                        const mobile = index >= 2;
+                        const axis = index % 2;
+                        return (
+                          <RangeParameterField
+                            key={label}
+                            label={label}
+                            ariaLabel={`${item.label} ${label}`}
+                            value={(mobile ? mobilePosition : desktopPosition)[axis]}
+                            control={{ ...DISCIPLINE_POSITION_CONTROL, id: label, label }}
+                            disabled={locked}
+                            {...bindPosition(mobile ? 'mobile' : 'desktop', axis)}
+                          />
+                        );
+                      })}
+                    </InspectorFolder>
+                  );
+                })}
+              </div>
             </>
           ) : null}
           {ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[object.type]?.parameters.map((control) => {

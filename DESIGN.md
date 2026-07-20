@@ -67,6 +67,7 @@ The core pairing is Instrument Serif plus Geist.
 
 - Instrument Serif is the editorial route-entry voice. Use it for the Home title and top-level route-entry titles, including the Portfolio intro and gate, plus the explicit About sequence beats below.
 - About adds three deliberate display beats in the continuous spatial narrative: its opening, exact midpoint, and finale. All other travelling spatial titles stay in Geist at a smaller scale between display and editorial copy.
+- The Home identity, Work introduction, About opening/finale, and Contact title share one viewport-stable bookend motion: a bottom-up mask resolves from soft to sharp before context and action appear. Home uses a three-line identity at an intermediate `1.3` scale; the shorter route titles use the larger `--route-bookend-title-size`. Reduced motion removes the mask, blur, and stagger.
 - Geist is the structural voice for navigation, descriptions, controls, Portfolio cards, project names, project-detail titles, and ordinary headings.
 - Geist Mono is operational: kickers, metadata, access inputs, the Contact email address, and compact technical labels.
 - The script face is a rare signature, principally the London mark. It is not another heading style.
@@ -155,7 +156,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - The top composition is intentionally asymmetric: expertise at left, philosophy at right, identity centered in the field.
 - The social/time footer and edge caption appear only on Home.
 - The visible title belongs to the Canvas path; semantic DOM copy remains the metric and accessibility source.
-- The settled/default simulation must leave both title lines legible. Solve occlusion with density, placement, color, and motion—not text outlines, shadows, or a plate.
+- The settled/default simulation must leave all three title lines legible. Solve occlusion with density, placement, color, and motion—not text outlines, shadows, or a plate.
 - Expertise filtering is a real interaction and must have full keyboard and assistive-technology semantics.
 
 ### Work / Portfolio
@@ -180,20 +181,30 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - Spatial titles use two explicit roles: standard Geist titles bridge the editorial passages, while Instrument Serif display titles punctuate the opening and finale bookends.
 - Camera authoring is one direct rig: absolute Position XYZ, Rotation XYZ, and FOV. It has no frame
   origin, target coordinate, depth offset, look-at, orbit, or secondary dolly system.
-- The calm field rises from below as the camera flies over it and pitches to an exact bird's-eye grid;
-  the framing must keep its circles legible rather than miniaturising them.
-- The six disciplines are named once through a world-linked reveal projected from exactly six emphasized grid points. Their colours are fixed to the Home simulation ball palette in category order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`, `--ball-8`, `--ball-6`.
+- The calm field is already visible beneath the client editorial, rises continuously as the camera flies
+  over it, and then pitches to an exact bird's-eye grid. Its width, depth, and distance fog must keep
+  the physical edges and horizon out of view.
+- Point sizing has two composable controls: one global material size and one relative multiplier per
+  World. The global control sets the narrative's overall ball scale; World multipliers provide restrained
+  shot-specific compensation without changing density, camera position, or point correspondence.
+- The six disciplines are named once through a camera-linked reveal projected from exactly six emphasized grid points. Desktop and mobile each own normalized portrait-grid anchors constrained to the inner 70% of the viewport width, while colours remain fixed and unique in category order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`, `--ball-8`, `--ball-6`.
 - The second editorial area uses one left-aligned measure while whole-simulation Visibility is zero.
   Visibility, camera, and global distance fog are independent controls; fog must never substitute for
   an authored disappearance or be keyframed per camera pose.
 - The grid returns in full colour at an exact `-90°` camera and remains face-on while the camera zooms
-  straight out. One point-driven gathering front expands from the transformed grid center, lifts the
-  ordered floor, and draws its material toward a single woven destination without helper rings.
-- The resolved form is the culmination: six currents read as one spatial sculpture rather than a
-  solar system or a set of unrelated bodies. The camera leaves the bird's-eye view, observes the
-  complete form obliquely, then passes through it.
-- Visibility reaches zero as the pass completes. The final invitation and actions occupy clean,
-  centered space; no bust or secondary object competes with the culmination.
+  straight out. A continuous concentric wave generator lifts and laterally displaces the ordered floor
+  from its center without helper rings. It runs on ambient time even when scroll is stationary; during
+  this passage, scroll authors the camera rather than acting as the wave clock.
+- The resolved form is the point-cloud bust: the ordered field gathers into one authored figure rather
+  than a solar system or unrelated bodies. Its point correspondence resolves progressively from the
+  base upward so the torso and shoulders establish before the neck and head. The camera leaves the
+  bird's-eye view and observes it obliquely without a pass-through.
+- The bust remains large and horizontally centered through the final invitation. The centered bottom
+  stack reads “Get in touch”, then the smaller invitation sentence, then the email, social, and LinkedIn
+  actions; it must not displace the bust or leave the studio viewport.
+- Short mobile landscape is the deliberate exception to the stacked finale: the bust and invitation
+  recompose as equal left/right fields so both remain materially present within the shallow studio
+  window. World controls expose the short-landscape scale and XYZ offsets; this is not a hidden camera.
 - The creative toolkit belongs to the development lab route with `?edit=1`. The production About route and production lab build use the same validated authored document but expose no tuning interface.
 
 ### Contact

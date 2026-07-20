@@ -30,12 +30,12 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
   '--ball-6',
 ]);
 export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = Object.freeze([
-  Object.freeze({ group: 1, x: 0.43, y: 0.9 }),
-  Object.freeze({ group: 2, x: 0.56, y: 0.906 }),
-  Object.freeze({ group: 3, x: 0.43, y: 0.938 }),
-  Object.freeze({ group: 4, x: 0.56, y: 0.944 }),
-  Object.freeze({ group: 5, x: 0.43, y: 0.976 }),
-  Object.freeze({ group: 6, x: 0.56, y: 0.982 }),
+  Object.freeze({ group: 1, x: 0.33, y: 0.72 }),
+  Object.freeze({ group: 2, x: 0.65, y: 0.64 }),
+  Object.freeze({ group: 3, x: 0.42, y: 0.56 }),
+  Object.freeze({ group: 4, x: 0.61, y: 0.48 }),
+  Object.freeze({ group: 5, x: 0.35, y: 0.40 }),
+  Object.freeze({ group: 6, x: 0.60, y: 0.32 }),
 ]);
 export const ABOUT_NARRATIVE_TRANSITION_TYPES = Object.freeze([
   'morph',
@@ -113,6 +113,16 @@ export const ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS = Object.freeze([
   numberControl('fov', 'Field of view', 25, 80, 1, '°', 'lens'),
 ]);
 
+export const ABOUT_NARRATIVE_WORLD_POINT_SIZE_CONTROL = numberControl(
+  'pointSizeScale',
+  'Relative point size',
+  0.5,
+  2.5,
+  0.05,
+  '×',
+  'world-placement',
+);
+
 export const ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS = Object.freeze([
   numberControl('fieldTravelStart', 'Field scroll start', 0, 3.8, 0.01, '× section'),
   numberControl('fieldTravelEnd', 'Field scroll end', 0.1, 4, 0.01, '× section'),
@@ -156,7 +166,7 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     label: 'Point material',
     controls: Object.freeze([
       numberControl('opacity', 'Opacity', 0.2, 1, 0.01),
-      numberControl('pointSize', 'Point size', 1.5, 7, 0.1, 'px'),
+      numberControl('pointSize', 'Global point size', 2, 12, 0.1, 'px'),
     ]),
   }),
   Object.freeze({
@@ -412,17 +422,17 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       reconnectOpacity: 0.24,
       pointScale: 3.6,
       restoreDurationWU: 0.72,
-      labelOffsetPx: 20,
-      labelScale: 1.4,
+      labelOffsetPx: 18,
+      labelScale: 1.45,
       labelDurationWU: 0.162,
       holdWU: 0.45,
       items: Object.freeze([
-        Object.freeze({ group: 1, label: 'Product Design' }),
-        Object.freeze({ group: 2, label: 'Experience Design' }),
-        Object.freeze({ group: 3, label: 'Art Direction' }),
-        Object.freeze({ group: 4, label: 'Motion & 3D' }),
-        Object.freeze({ group: 5, label: 'Creative Engineering' }),
-        Object.freeze({ group: 6, label: 'Parametric Systems' }),
+        Object.freeze({ group: 1, label: 'Product Design', position: [0.33, 0.72], mobilePosition: [0.40, 0.72] }),
+        Object.freeze({ group: 2, label: 'Experience Design', position: [0.65, 0.64], mobilePosition: [0.61, 0.64] }),
+        Object.freeze({ group: 3, label: 'Art Direction', position: [0.42, 0.56], mobilePosition: [0.36, 0.56] }),
+        Object.freeze({ group: 4, label: 'Motion & 3D', position: [0.61, 0.48], mobilePosition: [0.62, 0.48] }),
+        Object.freeze({ group: 5, label: 'Creative Engineering', position: [0.35, 0.4], mobilePosition: [0.39, 0.4] }),
+        Object.freeze({ group: 6, label: 'Parametric Systems', position: [0.60, 0.32], mobilePosition: [0.58, 0.32] }),
       ]),
     }),
     parameters: Object.freeze([
@@ -441,18 +451,18 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
   }),
   'grid-ripple': Object.freeze({
     id: 'grid-ripple',
-    label: 'Gathering pulse',
+    label: 'Wave generator',
     defaultParameters: Object.freeze({
-      amplitude: 1.15,
-      speed: 0.42,
-      frequency: 1.15,
-      releaseWU: 0.65,
-      timeMode: 'mixed',
+      amplitude: 2,
+      speed: 0.72,
+      frequency: 1.25,
+      releaseWU: 0,
+      timeMode: 'ambient',
     }),
     parameters: Object.freeze([
-      numberControl('amplitude', 'Lift', 0, 1.5, 0.01, 'WU', 'modifier-motion'),
-      numberControl('speed', 'Front speed', 0, 6, 0.01, '', 'modifier-motion'),
-      numberControl('frequency', 'Front definition', 0.1, 4, 0.01, '', 'modifier-motion'),
+      numberControl('amplitude', 'Wave strength', 0, 3, 0.01, 'WU', 'modifier-motion'),
+      numberControl('speed', 'Wave speed', 0, 6, 0.01, '', 'modifier-motion'),
+      numberControl('frequency', 'Ring density', 0.1, 4, 0.01, '', 'modifier-motion'),
       numberControl('releaseWU', 'Fade-out', 0, 2, 0.05, 'WU', 'modifier-timing'),
       Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
     ]),

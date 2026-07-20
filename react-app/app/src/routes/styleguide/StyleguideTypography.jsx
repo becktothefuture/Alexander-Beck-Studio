@@ -165,12 +165,14 @@ export function StyleguideTypographySection() {
         <li className="styleguide-type-role">
           <div className="styleguide-type-role__label">
             <code className="styleguide-doc__code">.hero-title__name</code> /{' '}
-            <code className="styleguide-doc__code">.hero-title__role</code> · home route headline (two lines, one style)
+            <code className="styleguide-doc__code">.hero-title__role</code> · home route headline (three lines, two tones)
           </div>
           <div className="styleguide-type-role__sample">
             <div className="styleguide-type-hero-block">
               <span className="styleguide-type-sample styleguide-type-sample--hero-name">{HOME_IDENTITY.name}</span>
-              <span className="styleguide-type-sample styleguide-type-sample--hero-role">{HOME_IDENTITY.role}</span>
+              {HOME_IDENTITY.roleLines.map((line) => (
+                <span key={line} className="styleguide-type-sample styleguide-type-sample--hero-role">{line}</span>
+              ))}
             </div>
           </div>
         </li>

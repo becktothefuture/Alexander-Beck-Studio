@@ -68,20 +68,24 @@ async function auditProduction(viewport, label, expectedProfile) {
   assert.equal(initial.layoutProfile, expectedProfile);
 
   await page.locator('.about-narrative-scrollport').evaluate((node) => {
-    node.scrollTop = (node.scrollHeight - node.clientHeight) * (7.65 / 16.35);
+    node.scrollTop = (node.scrollHeight - node.clientHeight) * (8.9 / 16.35);
     node.dispatchEvent(new Event('scroll', { bubbles: true }));
   });
   await page.waitForFunction(() => {
     const root = document.querySelector('.about-narrative-lab');
     const storyWU = Number(root?.dataset.narrativeStoryWu);
-    return storyWU > 7.61
-      && storyWU < 7.69
-      && root?.dataset.worldDisciplineLabels === '6';
+    const visibleLabels = Number(root?.dataset.worldDisciplineLabels || 0);
+    return storyWU > 8.86
+      && storyWU < 8.94
+      && visibleLabels >= 1
+      && visibleLabels <= 4;
   });
   const disciplineState = await page.evaluate(() => {
     const root = document.querySelector('.about-narrative-lab');
     const viewport = document.querySelector('.about-narrative-discipline-reveal').getBoundingClientRect();
-    const labels = [...document.querySelectorAll('[data-discipline-group]')].map((label) => label.getBoundingClientRect());
+    const labels = [...document.querySelectorAll('[data-discipline-group]')]
+      .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
+      .map((label) => label.getBoundingClientRect());
     const overlapPairs = [];
     labels.forEach((rect, index) => labels.slice(index + 1).forEach((other, offset) => {
       const separated = rect.right <= other.left + 1
@@ -133,6 +137,7 @@ async function auditProduction(viewport, label, expectedProfile) {
         .map((line) => Number(line.dataset.lineIndex)),
       valueText: indicator.getAttribute('aria-valuetext'),
       titleCenterX: titleRect.left + (titleRect.width / 2),
+      landscapeTitleTargetX: viewport.left + (viewport.width * 0.75),
       titleOpacity: Number(getComputedStyle(title).opacity),
       actionsBelowTitle: actionsRect.top >= titleRect.bottom - 2,
       finaleWithinViewport: [titleRect, actionsRect].every(withinViewport),
@@ -141,11 +146,14 @@ async function auditProduction(viewport, label, expectedProfile) {
   });
   assert.deepEqual(endState.active, [16, 17]);
   assert.equal(endState.valueText, '100% through the About narrative');
-  assert.ok(Math.abs(endState.titleCenterX - initial.openerCenterX) <= 30);
+  const expectedTitleCenterX = label === 'mobile-landscape'
+    ? endState.landscapeTitleTargetX
+    : initial.openerCenterX;
+  assert.ok(Math.abs(endState.titleCenterX - expectedTitleCenterX) <= 30);
   assert.ok(endState.titleOpacity > 0.99);
   assert.equal(endState.actionsBelowTitle, true);
   assert.equal(endState.finaleWithinViewport, true, `${label} finale must remain within the studio viewport.`);
-  assert.equal(endState.simulationVisibility, 0, `${label} finale must hold in clean simulation-free space.`);
+  assert.equal(endState.simulationVisibility, 1, `${label} finale must retain the bust.`);
   assert.deepEqual(errors, []);
   await page.screenshot({ path: `${outputDir}/${browserName}-production-${label}.png` });
   await context.close();
@@ -411,15 +419,18 @@ async function auditEditor() {
   )));
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-editorial-reveal.png` });
 
-  await setPlayhead(7.65);
+  await setPlayhead(8.9);
   await page.waitForFunction(() => (
-    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) > 7.61
-    && document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels === '6'
+    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) > 8.86
+    && Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels || 0) >= 1
+    && Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels || 0) <= 4
   ));
   const disciplineDesktop = await page.evaluate(() => {
     const root = document.querySelector('.about-narrative-lab');
     const viewport = document.querySelector('[aria-label="About Alexander narrative"]').getBoundingClientRect();
-    const labels = [...document.querySelectorAll('[data-discipline-group]')].map((label) => label.getBoundingClientRect());
+    const labels = [...document.querySelectorAll('[data-discipline-group]')]
+      .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
+      .map((label) => label.getBoundingClientRect());
     return {
       activeWorld: root.dataset.activeNarrativeWorld,
       gridInfluence: root.dataset.worldGridInfluence,
@@ -526,13 +537,13 @@ async function auditEditor() {
     details.open = true;
   });
   const fogStart = globalCameraSettings.getByRole('slider', { name: 'Global camera Fog begins slider' });
-  assert.equal(await fogStart.inputValue(), '18');
+  assert.equal(await fogStart.inputValue(), '10');
   await fogStart.focus();
   await fogStart.press('ArrowRight');
   await fogStart.press('Tab');
-  assert.equal(await fogStart.inputValue(), '18.1');
+  assert.equal(await fogStart.inputValue(), '10.1');
   await page.getByRole('button', { name: 'Undo' }).click();
-  assert.equal(await fogStart.inputValue(), '18');
+  assert.equal(await fogStart.inputValue(), '10');
 
   await page.getByRole('button', { name: 'Visibility', exact: true }).click();
   const globalVisibilitySettings = page.locator('[data-track-settings="visibility"]');
@@ -546,7 +557,7 @@ async function auditEditor() {
   );
 
   await page.locator('[data-track-object-id="world-complexity"]').click();
-  for (const label of ['Position X', 'Rotation Z', 'Scale', 'Transition type', 'Transition easing', 'Correspondence']) {
+  for (const label of ['Position X', 'Rotation Z', 'Scale', 'Relative point size', 'Transition type', 'Transition easing', 'Correspondence']) {
     assert.equal(await page.getByText(label, { exact: true }).count(), 1, `${label} inspector control is missing.`);
   }
 
@@ -601,7 +612,7 @@ async function auditEditor() {
   assert.equal(mobileEditorial.withinInlineViewport, true);
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-mobile-editorial.png` });
 
-  await setPlayhead(7.65);
+  await setPlayhead(8.9);
   const mobilePortraitRatio = await page.locator('.about-narrative-scrollport').evaluate((node) => {
     const rect = node.getBoundingClientRect();
     return rect.width / rect.height;
@@ -609,13 +620,17 @@ async function auditEditor() {
   assert.ok(Math.abs(mobilePortraitRatio - (390 / 844)) < 0.01);
   await page.waitForFunction(() => {
     const root = document.querySelector('.about-narrative-lab');
-    return Number(root?.dataset.narrativeStoryWu) > 7.61
-      && root?.dataset.worldDisciplineLabels === '6';
+    const visibleLabels = Number(root?.dataset.worldDisciplineLabels || 0);
+    return Number(root?.dataset.narrativeStoryWu) > 8.86
+      && visibleLabels >= 1
+      && visibleLabels <= 4;
   });
   await page.waitForFunction(() => {
     const viewport = document.querySelector('.about-narrative-discipline-reveal')?.getBoundingClientRect();
     if (!viewport) return false;
-    return [...document.querySelectorAll('[data-discipline-group]')].every((label) => {
+    return [...document.querySelectorAll('[data-discipline-group]')]
+      .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
+      .every((label) => {
       const rect = label.getBoundingClientRect();
       return rect.left >= viewport.left - 1
         && rect.right <= viewport.right + 1

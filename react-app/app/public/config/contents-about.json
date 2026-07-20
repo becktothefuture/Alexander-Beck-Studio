@@ -9,12 +9,12 @@
       "unitsPerWU": 1
     },
     "camera": {
-      "distanceFogStartWU": 18,
-      "distanceFogEndWU": 42
+      "distanceFogStartWU": 10,
+      "distanceFogEndWU": 22
     },
     "pointMaterial": {
       "opacity": 1,
-      "pointSize": 7
+      "pointSize": 8.5
     },
     "swarmTurbulence": {
       "amplitude": 0.05,
@@ -69,22 +69,48 @@
         "camera": {
           "emergent-oblique": {
             "position": [
-              3.2,
-              5.6,
-              -2.1
+              0,
+              1.85,
+              -1
             ],
             "rotation": [
-              -32,
-              26,
+              -4,
+              0,
               0
             ],
-            "fov": 60
+            "fov": 58
+          },
+          "emergent-through": {
+            "position": [
+              0,
+              1.85,
+              -1
+            ],
+            "rotation": [
+              -4,
+              0,
+              0
+            ],
+            "fov": 58
+          },
+          "finale-hold": {
+            "position": [
+              0,
+              1.85,
+              -1
+            ],
+            "rotation": [
+              -4,
+              0,
+              0
+            ],
+            "fov": 58
           },
           "grid-birds-eye": {
             "position": [
               0,
               5,
-              -0.32
+              -3.8
             ],
             "fov": 50
           },
@@ -92,7 +118,7 @@
             "position": [
               0,
               5,
-              -0.32
+              -12.6
             ],
             "fov": 50
           },
@@ -139,7 +165,7 @@
           "atWU": 1.8375,
           "position": [
             0,
-            0.35,
+            1.2,
             0.35
           ],
           "rotation": [
@@ -170,11 +196,11 @@
         },
         {
           "id": "grid-floor-entry",
-          "atWU": 5.325,
+          "atWU": 4.65,
           "position": [
             0,
             0.65,
-            4.8
+            5.8
           ],
           "rotation": [
             -10,
@@ -204,11 +230,11 @@
         },
         {
           "id": "grid-birds-eye",
-          "atWU": 6.975,
+          "atWU": 8.05,
           "position": [
             0,
             3.5,
-            -0.32
+            -3.8
           ],
           "rotation": [
             -90,
@@ -221,11 +247,11 @@
         },
         {
           "id": "grid-birds-eye-hold",
-          "atWU": 8.385,
+          "atWU": 9.42,
           "position": [
             0,
             3.5,
-            -0.32
+            -12.6
           ],
           "rotation": [
             -90,
@@ -274,16 +300,16 @@
           "id": "emergent-oblique",
           "atWU": 14.75,
           "position": [
-            4.2,
-            6.4,
-            -1.2
+            0,
+            1.8,
+            -1
           ],
           "rotation": [
-            -33,
-            29,
+            -4,
+            0,
             0
           ],
-          "fov": 50,
+          "fov": 48,
           "easing": "cubic-bezier(0.25, 0, 0.45, 1)",
           "locked": false
         },
@@ -292,15 +318,15 @@
           "atWU": 15.2,
           "position": [
             0,
-            1.1,
-            -10.4
+            1.8,
+            -1
           ],
           "rotation": [
-            0,
+            -4,
             0,
             0
           ],
-          "fov": 50,
+          "fov": 48,
           "easing": "linear",
           "locked": false
         },
@@ -309,15 +335,15 @@
           "atWU": 16.35,
           "position": [
             0,
-            1.1,
-            -10.4
+            1.8,
+            -1
           ],
           "rotation": [
-            0,
+            -4,
             0,
             0
           ],
-          "fov": 50,
+          "fov": 48,
           "easing": "linear",
           "locked": true
         }
@@ -348,28 +374,28 @@
         },
         {
           "id": "visibility-grid-rise",
-          "atWU": 5.1,
+          "atWU": 4.55,
           "visibility": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-grid-visible",
-          "atWU": 5.4375,
+          "atWU": 4.85,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-disciplines",
-          "atWU": 8.385,
+          "atWU": 9.42,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-editorial-off",
-          "atWU": 8.535,
+          "atWU": 9.57,
           "visibility": 0,
           "easing": "linear",
           "locked": false
@@ -398,7 +424,14 @@
         {
           "id": "visibility-emergent-title-low",
           "atWU": 14.28,
-          "visibility": 0.15,
+          "visibility": 0.06,
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "visibility-emergent-title-hold",
+          "atWU": 14.62,
+          "visibility": 0.06,
           "easing": "smoothstep",
           "locked": false
         },
@@ -419,14 +452,14 @@
         {
           "id": "visibility-open-space",
           "atWU": 15.2,
-          "visibility": 0,
+          "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-end",
           "atWU": 16.35,
-          "visibility": 0,
+          "visibility": 1,
           "easing": "linear",
           "locked": true
         }
@@ -455,6 +488,7 @@
               0
             ],
             "scale": 0.52,
+            "pointSizeScale": 1.15,
             "mobileScale": 0.44
           },
           "transitionIn": {
@@ -498,7 +532,8 @@
               0,
               0
             ],
-            "scale": 0.92
+            "scale": 0.92,
+            "pointSizeScale": 1.05
           },
           "transitionIn": {
             "startWU": 0.7125,
@@ -530,7 +565,7 @@
         {
           "id": "world-grid",
           "label": "C",
-          "startWU": 5.0625,
+          "startWU": 4.55,
           "anchorWU": 4.555,
           "adapterId": "point-field-v1",
           "shapeId": "calm-field-v1",
@@ -548,22 +583,23 @@
               0
             ],
             "scale": 1,
+            "pointSizeScale": 1.2,
             "mobileScale": 0.8,
             "mobileXScale": 0.55
           },
           "transitionIn": {
-            "startWU": 5.0625,
-            "endWU": 5.5875,
+            "startWU": 4.55,
+            "endWU": 4.95,
             "type": "morph",
             "easing": "ease-out",
             "correspondence": "spatial-nearest-v2"
           },
           "shapeParameters": {
-            "width": 16.4,
-            "depth": 18,
+            "width": 28,
+            "depth": 40,
             "height": -1.72,
             "jitter": 0.035,
-            "density": 0.22
+            "density": 0.36
           },
           "modifiers": []
         },
@@ -573,13 +609,13 @@
           "startWU": 13.275,
           "anchorWU": 4.555,
           "adapterId": "point-field-v1",
-          "shapeId": "emergent-form-v1",
+          "shapeId": "bust-v1",
           "seed": 506832829,
           "entryDistanceWU": 12,
           "transform": {
             "position": [
               0,
-              1.05,
+              2.6,
               0
             ],
             "rotation": [
@@ -587,8 +623,15 @@
               0,
               0
             ],
-            "scale": 0.92,
-            "mobileScale": 0.7
+            "scale": 1.9,
+            "pointSizeScale": 1.15,
+            "mobileScale": 1.35,
+            "mobileYOffset": 0.15,
+            "mobileLandscapeScale": 1.65,
+            "mobileLandscapeXScale": 1.65,
+            "mobileLandscapeXOffset": -4.2,
+            "mobileLandscapeYOffset": -0.9,
+            "mobileLandscapeZOffset": 0
           },
           "transitionIn": {
             "startWU": 13.275,
@@ -598,12 +641,7 @@
             "correspondence": "spatial-nearest-v2"
           },
           "shapeParameters": {
-            "radius": 2.35,
-            "coreRadius": 0.32,
-            "height": 6.2,
-            "twist": 1.55,
-            "thickness": 0.18,
-            "density": 0.52
+            "density": 0.32
           },
           "modifiers": [
             {
@@ -613,6 +651,17 @@
                 "amplitude": 0.035,
                 "speed": 0.38,
                 "timeMode": "mixed"
+              }
+            },
+            {
+              "id": "bust-yaw-v1",
+              "enabled": true,
+              "parameters": {
+                "speed": 0.045,
+                "dragSensitivity": 1,
+                "resumeDelay": 1.2,
+                "resumeBlend": 1.4,
+                "timeMode": "ambient"
               }
             }
           ],
@@ -697,9 +746,9 @@
         {
           "id": "text-background-clients",
           "kind": "scroll-block",
-          "startWU": 5.411818,
-          "focusWU": 5.941818,
-          "endWU": 6.471818,
+          "startWU": 5.1,
+          "focusWU": 5.63,
+          "endWU": 6.16,
           "publishable": true,
           "presentation": {
             "layout": "reading"
@@ -720,9 +769,9 @@
         {
           "id": "text-complexity-curiosity",
           "kind": "title",
-          "startWU": 6.867273,
-          "focusWU": 7.267273,
-          "endWU": 7.667273,
+          "startWU": 6.25,
+          "focusWU": 6.65,
+          "endWU": 7.05,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -735,9 +784,9 @@
         {
           "id": "text-complexity-listen",
           "kind": "title",
-          "startWU": 8.062727,
-          "focusWU": 8.462727,
-          "endWU": 8.862727,
+          "startWU": 7.15,
+          "focusWU": 7.55,
+          "endWU": 7.95,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -750,9 +799,9 @@
         {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
-          "startWU": 9.258182,
-          "focusWU": 9.488182,
-          "endWU": 11.218182,
+          "startWU": 9.64,
+          "focusWU": 9.87,
+          "endWU": 11.6,
           "publishable": true,
           "presentation": {
             "layout": "disciplines"
@@ -838,12 +887,13 @@
           "endWU": 16.35,
           "publishable": true,
           "presentation": {
-            "layout": "text-finale-cta"
+            "layout": "text-bust-cta"
           },
           "movement": "spatial",
           "preset": "finale-v1",
           "titleStyle": "display",
-          "text": "If you’re building something new and need it to make sense to people, let’s talk."
+          "text": "Get in touch",
+          "description": "If you’re building something new and need it to make sense to people, let’s talk."
         }
       ]
     },
@@ -852,9 +902,9 @@
         {
           "id": "motion-discipline-reveal",
           "type": "discipline-reveal",
-          "startWU": 6.9375,
-          "activationWU": 7.065,
-          "endWU": 8.385,
+          "startWU": 8.05,
+          "activationWU": 8.1775,
+          "endWU": 9.42,
           "targetWorldId": "world-grid",
           "parameters": {
             "labelWindowWU": 1.2375,
@@ -862,36 +912,84 @@
             "backgroundFadeWU": 0.15,
             "backgroundOpacity": 0.28,
             "reconnectOpacity": 0.38,
-            "pointScale": 2.15,
+            "pointScale": 2.35,
             "restoreDurationWU": 0.225,
-            "labelOffsetPx": 20,
-            "labelScale": 1.3,
+            "labelOffsetPx": 18,
+            "labelScale": 1.45,
             "labelDurationWU": 0.1215,
             "holdWU": 0.3375,
             "items": [
               {
                 "group": 1,
-                "label": "Product Design"
+                "label": "Product Design",
+                "position": [
+                  0.33,
+                  0.72
+                ],
+                "mobilePosition": [
+                  0.4,
+                  0.72
+                ]
               },
               {
                 "group": 2,
-                "label": "Experience Design"
+                "label": "Experience Design",
+                "position": [
+                  0.65,
+                  0.64
+                ],
+                "mobilePosition": [
+                  0.61,
+                  0.64
+                ]
               },
               {
                 "group": 3,
-                "label": "Art Direction"
+                "label": "Art Direction",
+                "position": [
+                  0.42,
+                  0.56
+                ],
+                "mobilePosition": [
+                  0.36,
+                  0.56
+                ]
               },
               {
                 "group": 4,
-                "label": "Motion & 3D"
+                "label": "Motion & 3D",
+                "position": [
+                  0.61,
+                  0.48
+                ],
+                "mobilePosition": [
+                  0.62,
+                  0.48
+                ]
               },
               {
                 "group": 5,
-                "label": "Creative Engineering"
+                "label": "Creative Engineering",
+                "position": [
+                  0.35,
+                  0.4
+                ],
+                "mobilePosition": [
+                  0.39,
+                  0.4
+                ]
               },
               {
                 "group": 6,
-                "label": "Parametric Systems"
+                "label": "Parametric Systems",
+                "position": [
+                  0.6,
+                  0.32
+                ],
+                "mobilePosition": [
+                  0.58,
+                  0.32
+                ]
               }
             ]
           }
@@ -900,15 +998,15 @@
           "id": "interaction-grid-ripple",
           "type": "grid-ripple",
           "startWU": 11.8125,
-          "activationWU": 11.9625,
+          "activationWU": 11.8125,
           "endWU": 13.275,
           "targetWorldId": "world-grid",
           "parameters": {
-            "amplitude": 1.25,
-            "speed": 0.666667,
-            "frequency": 1.05,
-            "releaseWU": 0.15,
-            "timeMode": "story"
+            "amplitude": 2,
+            "speed": 0.72,
+            "frequency": 1.25,
+            "releaseWU": 0,
+            "timeMode": "ambient"
           }
         }
       ]
