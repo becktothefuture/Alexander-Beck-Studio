@@ -943,7 +943,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-deck-intro__title {
   filter: blur(7px);
-  clip-path: inset(100% 0 0 0);
+  clip-path: inset(100% 0 -0.22em 0);
 }
 
 .portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-deck-intro__body {
@@ -966,9 +966,13 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   transform: translateY(0) scale(1);
 }
 
-.portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__title,
 .portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-deck-intro__title {
-  clip-path: inset(0 0 0 0);
+  clip-path: inset(-0.22em 0 -0.22em 0);
+  transform: none;
+}
+
+.portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__title {
+  clip-path: none;
   transform: none;
 }
 

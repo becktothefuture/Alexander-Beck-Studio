@@ -67,7 +67,7 @@ The core pairing is Instrument Serif plus Geist.
 
 - Instrument Serif is the editorial route-entry voice. Use it for the Home title and top-level route-entry titles, including the Portfolio intro and gate, plus the explicit About sequence beats below.
 - About adds three deliberate display beats in the continuous spatial narrative: its opening, exact midpoint, and finale. All other travelling spatial titles stay in Geist at a smaller scale between display and editorial copy.
-- The Home identity, Work introduction, About opening/finale, and Contact title share one viewport-stable bookend motion: a bottom-up mask resolves from soft to sharp before context and action appear. Home uses a three-line identity at an intermediate `1.3` scale; the shorter route titles use the larger `--route-bookend-title-size`. Reduced motion removes the mask, blur, and stagger.
+- The Home identity, Work introduction, About opening/finale, and Contact title share one viewport-stable bookend motion: a bottom-up mask resolves from soft to sharp before context and action appear. The mask must overscan the serif glyph bounds so ascenders and descenders remain intact throughout the reveal. Home uses a three-line identity at an intermediate `1.56` scale; the shorter route titles use the larger `--route-bookend-title-size`. Reduced motion removes the mask, blur, and stagger.
 - Geist is the structural voice for navigation, descriptions, controls, Portfolio cards, project names, project-detail titles, and ordinary headings.
 - Geist Mono is operational: kickers, metadata, access inputs, the Contact email address, and compact technical labels.
 - The script face is a rare signature, principally the London mark. It is not another heading style.

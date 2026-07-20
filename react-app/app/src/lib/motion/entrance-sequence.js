@@ -15,6 +15,8 @@ const HOME_PHASE_CLASSES = Object.freeze([
 ]);
 const styleCleanupGeneration = new WeakMap();
 const entranceManagedInertTargets = new WeakSet();
+const BOOKEND_TITLE_CLIP_HIDDEN = 'inset(100% 0 -0.22em 0)';
+const BOOKEND_TITLE_CLIP_REVEALED = 'inset(-0.22em 0 -0.22em 0)';
 
 const PROFILES = Object.freeze({
   direct: Object.freeze({
@@ -158,7 +160,7 @@ function settleTarget(target) {
   target.element.style.opacity = String(target.finalOpacity);
   target.element.style.filter = 'blur(0)';
   if (target.variant === 'bookend-title') {
-    target.element.style.clipPath = 'inset(0 0 0 0)';
+    target.element.style.clipPath = 'none';
   }
   target.element.style.pointerEvents = '';
   restoreTargetInert(target.element);
@@ -174,7 +176,7 @@ function stageTarget(target, blurPx) {
   target.element.style.opacity = '0';
   target.element.style.filter = `blur(${blurPx}px)`;
   if (target.variant === 'bookend-title') {
-    target.element.style.clipPath = 'inset(100% 0 0 0)';
+    target.element.style.clipPath = BOOKEND_TITLE_CLIP_HIDDEN;
   }
   target.element.style.pointerEvents = 'none';
   target.element.style.willChange = target.variant === 'bookend-title'
@@ -277,8 +279,8 @@ export function createEntranceSequence({
     animations = targets.map((target) => {
       const keyframes = target.variant === 'bookend-title'
         ? [
-            { opacity: 0, filter: `blur(${target.blurPx}px)`, clipPath: 'inset(100% 0 0 0)' },
-            { opacity: target.finalOpacity, filter: 'blur(0)', clipPath: 'inset(0 0 0 0)' },
+            { opacity: 0, filter: `blur(${target.blurPx}px)`, clipPath: BOOKEND_TITLE_CLIP_HIDDEN },
+            { opacity: target.finalOpacity, filter: 'blur(0)', clipPath: BOOKEND_TITLE_CLIP_REVEALED },
           ]
         : [
             { opacity: 0, filter: `blur(${target.blurPx}px)` },
