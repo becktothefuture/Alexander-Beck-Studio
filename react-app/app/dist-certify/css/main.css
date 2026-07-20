@@ -113,8 +113,9 @@ html {
   /* Default cursor outside inner wall area; custom cursor only inside inner wall */
   cursor: default;
   /* The exposed page band must match the resolved browser chrome exactly. */
-  background: var(--abs-browser-chrome, #141414);
-  background-color: var(--abs-browser-chrome, #141414);
+  background: var(--abs-browser-chrome, #000000);
+  background-color: var(--abs-browser-chrome, #000000);
+  color-scheme: dark;
   /* 3D perspective for entrance animations */
   perspective: var(--entrance-perspective, 1000px);
   perspective-origin: center center;
@@ -147,18 +148,16 @@ html.aspect-portrait {
   --entrance-perspective: 800px;
 }
 
-/* Initial browser-default state (before entrance animation) */
-/* Unified wall color fallback: #242529 (consistent across all modes) */
+/* Initial browser-default state (before entrance animation). */
 html.entrance-pre-transition {
-  background: var(--abs-browser-chrome, #141414);
-  background-color: var(--abs-browser-chrome, #141414);
+  background: var(--abs-browser-chrome, #000000);
+  background-color: var(--abs-browser-chrome, #000000);
 }
 
-/* Dark mode override: prevent white flash on load */
-/* Unified wall color (same as light mode) */
+/* Dark mode override: prevent white flash on load. */
 html.entrance-pre-transition.dark-mode {
-  background: var(--abs-browser-chrome, #141414);
-  background-color: var(--abs-browser-chrome, #141414);
+  background: var(--abs-browser-chrome, #000000);
+  background-color: var(--abs-browser-chrome, #000000);
 }
 
 /* Background elements are visible immediately (no fade-in) */
@@ -217,8 +216,8 @@ body.body {
   letter-spacing: var(--abs-letter-spacing-global);
   /* iOS Safari can reveal the body background during rubber-band/viewport UI changes.
      Keep body aligned to the wall color so no browser-white edges appear. */
-  background: var(--abs-browser-chrome, #141414);
-  background-color: var(--abs-browser-chrome, #141414);
+  background: var(--abs-browser-chrome, #000000);
+  background-color: var(--abs-browser-chrome, #000000);
   color: var(--text-primary);
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: auto;
@@ -339,8 +338,8 @@ body.abs-in-simulation .simulation-focus-modal .gate-back *,
 
 body.dark-mode,
 body.body.dark-mode { 
-  background: var(--abs-browser-chrome, #141414);
-  background-color: var(--abs-browser-chrome, #141414);
+  background: var(--abs-browser-chrome, #000000);
+  background-color: var(--abs-browser-chrome, #000000);
   color: var(--text-primary);
   /* Inner shadow removed */
 }
@@ -352,10 +351,10 @@ body.body.dark-mode {
    ───────────────────────────────────────────────────────────────────────────── */
 .edge-caption {
   position: absolute;
-  /* Distance from bottom: clamps between min and max; 2vh scales with viewport, max caps at largest breakpoints */
-  bottom: clamp(var(--edge-caption-distance-min, 8px), 2vh, var(--edge-caption-distance-max, 48px));
+  top: 50%;
+  bottom: auto;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   z-index: 3; /* Within .fade-content stacking context */
   pointer-events: none;
   display: inline-flex;
@@ -516,6 +515,11 @@ html.fonts-loading .project-detail {
     opacity var(--duration-settle) var(--ease-settle),
     transform var(--duration-settle) var(--ease-settle);
   will-change: opacity, transform;
+}
+
+/* The footer belongs to Home; keep its control row slightly closer to the window edge. */
+html[data-shell-route='home'] .page-content {
+  padding-bottom: max(calc(var(--abs-safe-bottom) + 8px), min(var(--content-padding-y-bottom), 1.5dvh));
 }
 
 .shell-wall-slot {
@@ -1840,6 +1844,7 @@ body.styleguide-page .styleguide-type-sample--cv-body {
 .legend__item--interactive {
   position: relative;
   border-radius: var(--legend-item-radius);
+  background: transparent;
   display: flex;
   justify-content: flex-start;
   align-items: center; /* Center aligns with text container height (cap height) */
@@ -1853,6 +1858,7 @@ body.styleguide-page .styleguide-type-sample--cv-body {
   justify-self: start;
   box-sizing: border-box;
   z-index: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .legend__item--interactive::after {
@@ -1876,53 +1882,20 @@ body.styleguide-page .styleguide-type-sample--cv-body {
 
 /* Unified hover state - handled in INTERACTIVE HOVER EFFECTS section below */
 
-.legend__item--interactive:hover {
+.legend__item--interactive:is(:hover, .legend__item--active) {
   opacity: 1;
   /* Disable scale animation - keep exact same dimensions on hover */
   animation: none;
   transform: none;
 }
 
-/* Legend label text stays body color (no cursor-tint on hover) */
-.legend .legend__item--interactive:hover span {
+/* Legend label text stays body color (no cursor-tint on hover or active). */
+.legend .legend__item--interactive:is(:hover, .legend__item--active) span {
   color: var(--text-primary);
 }
 
-body.dark-mode .legend .legend__item--interactive:hover span {
+body.dark-mode .legend .legend__item--interactive:is(:hover, .legend__item--active) span {
   color: var(--text-primary);
-}
-
-/* Active filter state */
-.legend__item--active {
-  opacity: 1;
-}
-
-.legend__item--active span {
-  color: var(--cursor-hover-fg, var(--text-primary));
-  opacity: 1;
-}
-
-.legend__item--active::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: var(--legend-item-radius);
-  pointer-events: none;
-  background: var(--cursor-color, var(--link-hover-color));
-  box-shadow: var(--ui-chrome-button-edge);
-}
-
-/* Dimmed state (when another filter is active): fade label only; dots stay full strength.
-   `.legend__item.legend__item--dimmed` beats default index span opacity; dimmed:hover beats plain :hover span. */
-html[data-shell-route='home'] body:not(.detail-open) .legend__item.legend__item--dimmed span {
-  color: inherit;
-  opacity: 0.35;
-  transition: opacity 0.25s var(--ease-organic);
-}
-
-html[data-shell-route='home'] body:not(.detail-open) .legend__item.legend__item--dimmed:hover span {
-  opacity: 0.6;
 }
 
 /* Legend tooltip — floating dialog below the clicked label (position set by JS) */
@@ -2155,7 +2128,7 @@ html[data-shell-route='home'] body:not(.detail-open) .decorative-script {
 
 /* Restore full opacity on hover/focus */
 /* Note: #main-links .footer_link excluded - controlled by entrance animation state */
-html[data-shell-route='home'] body:not(.detail-open) .legend__item:hover span,
+html[data-shell-route='home'] body:not(.detail-open) .legend__item:is(:hover, .legend__item--active) span,
 html[data-shell-route='home'] body:not(.detail-open) .legend__item:focus-visible span,
 html[data-shell-route='home'] body:not(.detail-open) .decorative-script:hover,
 html[data-shell-route='home'] body:not(.detail-open) .decorative-script:focus-within,
@@ -2165,7 +2138,7 @@ html[data-shell-route='home'] body:not(.detail-open) .sound-toggle:focus-visible
   opacity: 1;
 }
 
-html[data-shell-route='home'] body:not(.detail-open) .legend__item:hover::after,
+html[data-shell-route='home'] body:not(.detail-open) .legend__item:is(:hover, .legend__item--active)::after,
 html[data-shell-route='home'] body:not(.detail-open) .decorative-script:hover::before,
 html[data-shell-route='home'] body:not(.detail-open) .decorative-script:focus-within::before {
   opacity: var(--home-text-hover-field-opacity);
@@ -2346,12 +2319,21 @@ p {
 }
 
 .simulation-focus-switcher-slot {
+  --home-simulation-switcher-title-gap: clamp(40px, 6svh, 56px);
+  --home-simulation-switcher-title-half-height: calc(
+    var(--route-entry-title-size) *
+    1.1 *
+    var(--abs-font-headline-line-height-scale, 1) *
+    var(--abs-scene-impact-logo-scale, 1) *
+    var(--brand-logo-user-scale, 1)
+  );
   position: fixed;
   left: 50%;
   top: calc(
     50% +
-    (clamp(20px, 5vh, 52px) - 4vh) -
-    var(--home-simulation-switcher-above-logo-px, clamp(124px, 13vh, 136px))
+    (clamp(20px, 5vh, 52px) - 4vh) +
+    var(--home-simulation-switcher-title-half-height) +
+    var(--home-simulation-switcher-title-gap)
   );
   transform: translateX(-50%);
   z-index: 19;
@@ -2361,13 +2343,6 @@ p {
     opacity var(--ui-logo-duration-in, 1040ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1)),
     transform var(--ui-duration-in, 780ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1)),
     filter var(--ui-duration-in, 780ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1));
-}
-
-@media (max-width: 600px) and (max-height: 680px) {
-  .simulation-focus-switcher-slot {
-    /* Seat the chooser between the mobile header and title on short screens. */
-    top: clamp(150px, 26vh, 180px);
-  }
 }
 
 html[data-abs-transition-phase='modal-open'] .simulation-focus-switcher-slot,
@@ -2390,7 +2365,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 .simulation-focus-pill {
   position: relative;
   appearance: none;
-  border: var(--abs-soft-control-edge-width, 0.5px) solid var(--abs-soft-control-outline);
+  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
   border-radius: 999px;
   background: var(--abs-soft-control-fill);
   color: var(--text-logo);
@@ -2421,7 +2396,6 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   -webkit-tap-highlight-color: transparent;
   box-shadow: none;
   transition:
-    border-color 180ms var(--ease-organic),
     color 180ms var(--ease-organic),
     background-color 180ms var(--ease-organic),
     transform 140ms var(--ease-organic),
@@ -2454,7 +2428,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 
 .simulation-focus-switcher {
   align-items: center;
-  border-color: var(--abs-soft-control-outline);
+  border-color: transparent;
   border-radius: var(--abs-radius-pill);
   background: var(--abs-soft-control-fill);
   gap: calc(var(--gap-xs) * 0.7);
@@ -2483,7 +2457,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 }
 
 .simulation-focus-pill.simulation-focus-switcher:hover {
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
 }
 
 .simulation-focus-switcher .simulation-focus-pill__icon {
@@ -2499,7 +2473,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 .simulation-focus-pill:focus-visible,
 .simulation-focus-pill:active,
 .simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill {
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
   background: var(--abs-soft-control-emphasis-fill);
   color: var(--text-primary);
 }
@@ -2507,7 +2481,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 .simulation-focus-pill.simulation-focus-switcher:hover,
 .simulation-focus-pill.simulation-focus-switcher:focus-visible,
 .simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill.simulation-focus-switcher {
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
 }
 
 .simulation-focus-pill:hover::before,
@@ -2644,6 +2618,8 @@ body.dark-mode .ui-main-nav .footer_link {
 
 /* Row 2: Socials + Meta (Space Between) */
 .ui-meta-row {
+  --home-footer-control-frame-size: var(--ui-icon-frame-size);
+
   display: flex;
   justify-content: space-between;
   align-items: flex-end; /* Bottom-align so Apple/LinkedIn icons match London button level */
@@ -2778,6 +2754,11 @@ button.abs-meta-btn,
   width: var(--shell-control-icon-size);
   height: var(--shell-control-icon-size);
   font-size: var(--shell-control-icon-size);
+}
+
+#social-links .abs-icon-btn {
+  inline-size: var(--home-footer-control-frame-size);
+  block-size: var(--home-footer-control-frame-size);
 }
 
 
@@ -3223,6 +3204,30 @@ html[data-shell-route='home'] body:not(.daily-focus-page) .hero-title--canvas-so
   transition: none;
 }
 
+/* Promoted Daily Simulations keep the semantic title visible instead of
+   redrawing it on Canvas. Centre that mobile DOM layer through layout so iOS
+   browsers do not have to composite a percentage-translated text surface. */
+@media (max-width: 600px) {
+  body.daily-focus-page .shell-hero-surface {
+    display: grid;
+    place-items: center;
+  }
+
+  body.daily-focus-page .hero-title--canvas-source {
+    position: relative;
+    top: auto;
+    left: var(--home-hero-title-optical-offset-x, 0px);
+    width: max-content;
+    max-width: calc(100% - (var(--content-padding-x) * 2));
+    transform:
+      translateY(calc(clamp(20px, 5vh, 52px) - 4vh))
+      scale(calc(
+        var(--abs-scene-impact-logo-scale, 1) *
+        var(--brand-logo-user-scale, 1)
+      ));
+  }
+}
+
 html[data-abs-simulation-shell-stable='true'] #shell-hero-slot {
   opacity: 1;
   visibility: visible;
@@ -3408,129 +3413,9 @@ html.abs-direct-boot-staging .ui-main-nav .footer_link {
   transition: none;
 }
 
-/* Home post-boot UI entrance: starts only after #abs-boot-overlay is gone.
-   The canvas and wall stay out of scope; this is a short text/chrome reveal. */
-:root {
-  --home-post-boot-ease: cubic-bezier(0.22, 0, 0.16, 1);
-  --home-post-boot-duration-identity: 420ms;
-  --home-post-boot-duration-support: 480ms;
-  --home-post-boot-delay-identity-name: 0ms;
-  --home-post-boot-delay-identity-role: 58ms;
-  --home-post-boot-delay-legend-start: 360ms;
-  --home-post-boot-delay-legend-step: 96ms;
-  --home-post-boot-delay-context-start: 1340ms;
-  --home-post-boot-delay-context-step: 120ms;
-  --home-post-boot-delay-action-start: 1740ms;
-  --home-post-boot-delay-action-step: 120ms;
-  --home-post-boot-delay-footer-start: 2100ms;
-  --home-post-boot-delay-footer-step: 100ms;
-  --home-post-boot-ty: 3px;
-  --home-post-boot-blur: 1.5px;
-  --home-post-boot-scale: 0.994;
-  --route-enter-ty: 3px;
-  --route-enter-blur: 1.5px;
-  --route-enter-scale: 0.994;
-  --route-enter-ease: var(--home-post-boot-ease);
-}
-
-html.abs-home-post-boot-pending #hero-title .hero-title__name,
-html.abs-home-post-boot-pending #hero-title .hero-title__role,
-html.abs-home-post-boot-pending #expertise-legend .legend__item,
-html.abs-home-post-boot-pending #main-links .footer_link,
-html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
-html.abs-home-post-boot-pending #social-links .footer_icon-link,
-html.abs-home-post-boot-pending #site-year.abs-meta-btn,
-html.abs-home-post-boot-pending #edge-caption,
-html.abs-home-post-boot-pending #quote-display {
-  opacity: 0;
-  filter: blur(var(--home-post-boot-blur));
-  transform: translateY(var(--home-post-boot-ty)) scale(var(--home-post-boot-scale));
-  pointer-events: none;
-  transition: none;
-}
-
-html.abs-home-post-boot-pending #main-links .footer_link {
-  transform: translateY(0) scale(1);
-}
-
-html.abs-home-post-boot-enter #hero-title .hero-title__name,
-html.abs-home-post-boot-enter #hero-title .hero-title__role,
-html.abs-home-post-boot-enter #expertise-legend .legend__item,
-html.abs-home-post-boot-enter #main-links .footer_link,
-html.abs-home-post-boot-enter #app-frame .ui-top-right .decorative-script,
-html.abs-home-post-boot-enter #social-links .footer_icon-link,
-html.abs-home-post-boot-enter #site-year.abs-meta-btn,
-html.abs-home-post-boot-enter #edge-caption,
-html.abs-home-post-boot-enter #quote-display {
-  transition:
-    opacity var(--home-post-boot-duration-support) var(--home-post-boot-ease),
-    filter var(--home-post-boot-duration-support) var(--home-post-boot-ease),
-    transform var(--home-post-boot-duration-support) var(--home-post-boot-ease);
-}
-
-html.abs-home-post-boot-enter #hero-title .hero-title__name {
-  transition-duration: var(--home-post-boot-duration-identity);
-  transition-delay: var(--home-post-boot-delay-identity-name);
-}
-
-html.abs-home-post-boot-enter #hero-title .hero-title__role {
-  transition-duration: var(--home-post-boot-duration-identity);
-  transition-delay: var(--home-post-boot-delay-identity-role);
-}
-
-html.abs-home-post-boot-enter #main-links .footer_link {
-  transition-property: opacity, filter;
-  transition-delay: calc(var(--home-post-boot-delay-action-start) + (var(--home-post-boot-delay-action-step) * var(--i, 0)));
-}
-
-html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(1) {
-  transition-delay: var(--home-post-boot-delay-legend-start);
-}
-
-html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(2) {
-  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 1));
-}
-
-html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(3) {
-  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 2));
-}
-
-html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(4) {
-  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 3));
-}
-
-html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(5) {
-  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 4));
-}
-
-html.abs-home-post-boot-enter #expertise-legend .legend__item:nth-child(6) {
-  transition-delay: calc(var(--home-post-boot-delay-legend-start) + (var(--home-post-boot-delay-legend-step) * 5));
-}
-
-html.abs-home-post-boot-enter #app-frame .ui-top-right .decorative-script {
-  transition-delay: var(--home-post-boot-delay-context-start);
-}
-
-html.abs-home-post-boot-enter[data-shell-route='home'] body:not(.detail-open) #app-frame .ui-top-right .decorative-script:hover,
-html.abs-home-post-boot-enter[data-shell-route='home'] body:not(.detail-open) #app-frame .ui-top-right .decorative-script:focus-within {
-  transition-delay: 0s;
-}
-
-html.abs-home-post-boot-enter #social-links .footer_icon-link {
-  transition-delay: var(--home-post-boot-delay-footer-start);
-}
-
-html.abs-home-post-boot-enter #site-year.abs-meta-btn {
-  transition-delay: calc(var(--home-post-boot-delay-footer-start) + var(--home-post-boot-delay-footer-step));
-}
-
-html.abs-home-post-boot-enter #edge-caption {
-  transition-delay: calc(var(--home-post-boot-delay-footer-start) + (var(--home-post-boot-delay-footer-step) * 2));
-}
-
-html.abs-home-post-boot-enter #quote-display {
-  transition-delay: calc(var(--home-post-boot-delay-footer-start) + (var(--home-post-boot-delay-footer-step) * 3));
-}
+/* Direct-load and route child entrances are executed by entrance-sequence.js.
+   CSS owns only settled layout, so responsive transforms cannot be overwritten
+   by animation state selectors. The phase classes remain diagnostic markers. */
 
 /* Reduced motion: instant transitions */
 @media (prefers-reduced-motion: reduce) {
@@ -3566,25 +3451,6 @@ html.abs-home-post-boot-enter #quote-display {
     opacity: var(--brand-logo-secondary-opacity, 0.66);
   }
 
-  html.abs-home-post-boot-pending #hero-title .hero-title__name,
-  html.abs-home-post-boot-pending #hero-title .hero-title__role,
-  html.abs-home-post-boot-pending #expertise-legend .legend__item,
-  html.abs-home-post-boot-pending #main-links .footer_link,
-  html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script,
-  html.abs-home-post-boot-pending #quote-display {
-    opacity: 1;
-    filter: none;
-    transform: none;
-    transition: none;
-  }
-
-  html.abs-home-post-boot-pending #hero-title .hero-title__role {
-    opacity: var(--brand-logo-secondary-opacity, 0.66);
-  }
-
-  html.abs-home-post-boot-pending #app-frame .ui-top-right .decorative-script {
-    opacity: var(--supporting-description-opacity);
-  }
 }
 
 /* Legacy #brand-logo state-driven rules removed — replaced by .hero-title above */
@@ -3692,14 +3558,6 @@ html[data-abs-transition-phase='modal-open'] #main-links .footer_link {
   transition-delay: calc(var(--ui-stagger) * var(--ri, 0));
 }
 
-html[data-abs-transition-phase='modal-open'].abs-home-post-boot-pending #main-links .footer_link,
-html[data-abs-transition-phase='modal-open'].abs-home-post-boot-enter #main-links .footer_link {
-  opacity: 0;
-  filter: none;
-  transform: translateY(0) scale(1);
-  transition: none;
-}
-
 html[data-abs-transition-phase='modal-open'] .ui-main-nav .footer_link:focus-visible,
 html[data-abs-transition-phase='modal-open'] .ui-main-nav .footer_link:active {
   transform: translateY(0) scale(1);
@@ -3753,6 +3611,17 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
     height var(--duration-resize) var(--ease-organic);
 }
 
+/* The document/browser surface stays dark. Native UI inside the studio window
+   receives the resolved manual/auto theme at explicit window-layer boundaries. */
+#simulations,
+#app-frame,
+#window-overlay-content-layer,
+#portfolio-sheet-host,
+#shell-persistent-route-ui-host,
+#modal-content-layer {
+  color-scheme: var(--studio-window-color-scheme, light);
+}
+
 .shell-bottom-band {
   position: fixed;
   left: var(--safari-tint-inset-x, var(--safari-tint-inset));
@@ -3784,6 +3653,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   --button-bar-figma-selected-ink: #ff4013;
   --button-bar-figma-muted-ink: rgba(191, 186, 177, 0.6);
   display: flex;
+  color-scheme: dark;
   align-items: stretch;
   width: min(100%, var(--button-bar-width, 2400px));
   max-width: var(--button-bar-max-width, 2400px);
@@ -3992,7 +3862,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   --shell-tab-text-rest: rgba(var(--abs-rgb-white), 0.73);
   --shell-tab-text-hover: rgba(var(--abs-rgb-white), 0.8);
   --shell-tab-text-active: var(--shell-tab-route-accent);
-  --shell-tab-surface-base: var(--shell-wall-bg, var(--studio-window-bg));
+  --shell-tab-surface-base: var(--shell-wall-bg, var(--abs-browser-chrome));
   --shell-tab-surface-rest: var(--shell-tab-surface-base);
   --shell-tab-surface-hover: color-mix(in srgb, var(--shell-tab-surface-base) calc(100% - var(--abs-button-hover-darken-mix, 10%)), rgba(var(--abs-rgb-black), 1) var(--abs-button-hover-darken-mix, 10%));
   --shell-tab-surface-pressed: color-mix(in srgb, var(--shell-tab-surface-base) 10%, rgba(var(--abs-rgb-black), 1) 90%);
@@ -4350,15 +4220,6 @@ svg.shell-tab__icon {
   --button-bar-gasket-text-active: var(--button-bar-outer-ink, rgba(var(--abs-rgb-white), 0.88));
   --button-bar-selected-ground-share: 84%;
   --button-bar-pressed-ground-share: 76%;
-  --button-bar-selected-shadow-opacity: 0;
-  --button-bar-pressed-shadow-opacity: 0;
-}
-
-html[data-abs-light-browser-chrome] .button-bar {
-  --button-bar-gasket-cut: rgba(var(--abs-rgb-black), 0.1);
-  --button-bar-gasket-active-cut: rgba(var(--abs-rgb-black), 0.14);
-  --button-bar-selected-ground-share: 92%;
-  --button-bar-pressed-ground-share: 86%;
   --button-bar-selected-shadow-opacity: 0;
   --button-bar-pressed-shadow-opacity: 0;
 }
@@ -4871,7 +4732,6 @@ html[data-abs-instrument-wake] #simulations::after {
 }
 
 html.simulation-focus-modal-open .window-overlay-layer,
-html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-layer,
 body.portfolio-page--locked .window-overlay-layer {
   opacity: 1;
   visibility: visible;
@@ -4879,7 +4739,6 @@ body.portfolio-page--locked .window-overlay-layer {
 }
 
 html.simulation-focus-modal-open .window-overlay-blur-layer,
-html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-blur-layer,
 body.portfolio-page--locked .window-overlay-blur-layer {
   -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
   backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
@@ -4901,6 +4760,22 @@ body.portfolio-page--locked .window-overlay-content-layer {
   pointer-events: auto;
 }
 
+/* A chooser selection hands straight back to the live simulation. Keep the
+   modal layers fully out of the scale-down/scale-up transition, even before
+   React has finished unmounting the chooser from the persistent shell. */
+html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-layer {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: none;
+}
+
+html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-blur-layer {
+  -webkit-backdrop-filter: blur(0);
+  backdrop-filter: blur(0);
+  background-color: transparent;
+}
+
 /* The legacy controller still owns chooser phase/depth timing, but its
    viewport layers must not paint above the in-window overlay system. */
 html.simulation-focus-modal-open #modal-blur-layer,
@@ -4918,7 +4793,6 @@ html.portfolio-access-gate-closing #modal-content-layer {
 
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
   html.simulation-focus-modal-open .window-overlay-blur-layer,
-  html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-blur-layer,
   body.portfolio-page--locked .window-overlay-blur-layer {
     -webkit-backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
     backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
@@ -5927,12 +5801,13 @@ body.dark-mode .ui-main-nav .footer_link:active {
 #site-year.meta-caption:hover,
 #site-year.meta-caption:focus,
 #site-year.meta-caption:active {
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  block-size: var(--ui-icon-frame-size);
-  height: var(--ui-icon-frame-size);
-  min-height: var(--ui-icon-frame-size);
+  block-size: var(--home-footer-control-frame-size, var(--ui-icon-frame-size));
+  height: var(--home-footer-control-frame-size, var(--ui-icon-frame-size));
+  min-height: var(--home-footer-control-frame-size, var(--ui-icon-frame-size));
   margin: 0;
   padding: var(--abs-space-2xs) var(--abs-space-sm);
   color: var(--text-primary);
@@ -6307,7 +6182,6 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   opacity: 0.75;
   -webkit-tap-highlight-color: transparent;
   transition:
-    border-color 160ms var(--ease-organic),
     color 160ms var(--ease-organic),
     opacity 160ms var(--ease-organic),
     transform 140ms var(--ease-organic),
@@ -6347,7 +6221,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .simulation-focus-row:focus-visible,
 .simulation-focus-row:active,
 .simulation-focus-row[aria-current='true'] {
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
   color: var(--text-primary);
   opacity: 1;
 }
@@ -6365,7 +6239,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 @media (hover: hover) and (pointer: fine) {
   .simulation-focus-row:hover {
-    border-color: var(--abs-soft-control-outline-active);
+    border-color: transparent;
     color: var(--text-primary);
     opacity: 1;
   }
@@ -6391,7 +6265,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .simulation-focus-row[aria-current='true'] {
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
   background: transparent;
   opacity: 1;
 }
@@ -6510,7 +6384,6 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
     blur(var(--abs-soft-control-blur, 18px))
     saturate(var(--abs-soft-control-saturation, 1.08));
   transition:
-    border-color 160ms var(--ease-organic),
     background-color 160ms var(--ease-organic),
     color 160ms var(--ease-organic),
     transform 0.15s var(--ease-organic),
@@ -6520,7 +6393,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .simulation-focus-modal .gate-back:hover,
 .simulation-focus-modal .gate-back:focus-visible,
 .simulation-focus-modal .gate-back:active {
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
   background: var(--abs-soft-control-emphasis-fill);
   color: var(--text-primary);
 }
@@ -7552,6 +7425,12 @@ body.portfolio-page--locked #simulations {
   text-wrap: pretty;
 }
 
+.route-centered-page__description.route-intro-description {
+  max-width: 50.4ch;
+  line-height: 1.485;
+  text-wrap: balance;
+}
+
 @media (max-width: 600px) {
   :root {
     --route-entry-title-size: calc(
@@ -8029,13 +7908,18 @@ body.dark-mode .cv-photo {
   }
 
   html[data-shell-route='home'] body .legend__item {
-    min-height: 28px;
+    min-height: 24px;
     padding: 4px 0;
     font-size: clamp(
       0.72rem,
       2.6vw,
       0.82rem
     );
+  }
+
+  html[data-shell-route='home'] body .legend__item .circle {
+    position: relative;
+    top: var(--abs-size-1px);
   }
 
   html[data-shell-route='home'] body .decorative-script {
@@ -8093,6 +7977,8 @@ body.dark-mode .cv-photo {
   }
 
   .ui-meta-row {
+    --home-footer-control-frame-size: calc(var(--ui-icon-frame-size) * 0.75);
+
     gap: clamp(12px, 4vw, 18px);
   }
 
@@ -8104,11 +7990,11 @@ body.dark-mode .cv-photo {
     gap: 4px;
   }
 
-  #site-year {
+  #site-year.meta-caption {
     box-sizing: border-box;
-    block-size: calc(var(--ui-icon-frame-size) * 0.75);
-    height: calc(var(--ui-icon-frame-size) * 0.75);
-    min-height: calc(var(--ui-icon-frame-size) * 0.75);
+    block-size: var(--home-footer-control-frame-size);
+    height: var(--home-footer-control-frame-size);
+    min-height: var(--home-footer-control-frame-size);
     padding-block: 0;
     font-size: max(calc(var(--text-sm) * 1.08), 14px);
   }
@@ -8118,10 +8004,6 @@ body.dark-mode .cv-photo {
     min-width: 8ch;
   }
 
-  .edge-caption {
-    bottom: calc(var(--abs-safe-bottom) + (var(--ui-icon-frame-size) * 0.375));
-    transform: translate(-50%, 50%);
-  }
 }
 
 @media (max-width: 475px) {
@@ -8478,7 +8360,7 @@ html {
   padding: var(--gap-xs) var(--gap-sm);
   border-radius: var(--abs-radius-9);
   border: var(--abs-size-1px) solid rgba(var(--abs-rgb-white), 0.14);
-  background: color-mix(in srgb, var(--wall-color, #242529) 84%, transparent);
+  background: color-mix(in srgb, var(--wall-color, #000000) 84%, transparent);
   color: var(--text-color-light, #161616);
   font-family: var(--abs-font-mono);
   font-size: var(--text-xs);

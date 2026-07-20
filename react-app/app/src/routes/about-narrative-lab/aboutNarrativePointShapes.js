@@ -9,7 +9,7 @@ const ORBITAL_CORE_END = 0.30;
 const ORBITAL_BODY_ENDS = Object.freeze([0.50, 0.68, 0.84, 1.01]);
 const ORBITAL_BODY_ORBIT_SCALES = Object.freeze([0.45, 0.68, 0.85, 1]);
 const ORBITAL_BODY_RADIUS_SCALES = Object.freeze([0.98, 0.80, 0.68, 0.56]);
-const ORBITAL_BODY_PHASES = Object.freeze([0.18, 1.72, 3.42, 5.08]);
+const ORBITAL_BODY_PHASES = Object.freeze([0.166, 3.364, 0.414, 4.849]);
 const ORBITAL_BODY_INCLINATIONS = Object.freeze([0.22, -0.38, 0.52, -0.28]);
 
 export function createAboutNarrativeSeeds(count, seed = 0x1e35a7bd) {

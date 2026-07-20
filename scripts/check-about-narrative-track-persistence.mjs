@@ -30,6 +30,10 @@ import {
 
 const canonicalPath = new URL('./fixtures/about-narrative/contents-about-v2.json', import.meta.url);
 const canonicalV2 = JSON.parse(await readFile(canonicalPath, 'utf8'));
+const divergentFogV3Source = await readFile(
+  new URL('./fixtures/about-narrative/contents-about-v3.json', import.meta.url),
+  'utf8',
+);
 const clone = (value) => structuredClone(value);
 
 test('raw schema v1 migrates through the established semantics into deterministic v5', () => {
@@ -199,6 +203,18 @@ test('v4 to v5 consolidates Camera fog and rejects divergent key or profile fog'
       && item.path === `profiles.mobile.overrides.camera.${cameraId}.distanceFogEndWU`
     ))
   ));
+});
+
+test('the divergent-fog v3 fixture fails closed with its exact recovery source intact', () => {
+  const loaded = loadAboutNarrativeTrackSource(divergentFogV3Source);
+  assert.equal(loaded.valid, false);
+  assert.equal(loaded.status, 'invalid');
+  assert.equal(loaded.sourceVersion, 3);
+  assert.equal(loaded.original, divergentFogV3Source);
+  assert.ok(loaded.diagnostics.some((item) => (
+    item.code === 'camera-fog-migration-divergence'
+    && item.path.startsWith('tracks.camera.keys.')
+  )));
 });
 
 test('future documents stay read-only with their exact original representation preserved', () => {

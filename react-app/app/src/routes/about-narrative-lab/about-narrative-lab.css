@@ -135,8 +135,14 @@ body.about-narrative-page .route-simulation-layer {
   transform-style: preserve-3d;
 }
 
+.about-narrative-render-span--living-field .about-narrative-spatial-copy {
+  transform: translate3d(0, -18svh, 0);
+}
+
 .about-narrative-opening-copy {
   position: relative;
+  width: 100%;
+  margin-inline: auto;
   opacity: var(--fragment-opacity, 0);
   filter: blur(var(--fragment-blur, 22px));
   color: var(--text-primary);
@@ -145,7 +151,7 @@ body.about-narrative-page .route-simulation-layer {
     translate3d(
       var(--fragment-x, 0px),
       var(--fragment-y, -110px),
-      var(--fragment-z, -360px)
+      0
     );
   transform-origin: center;
   transform-style: preserve-3d;
@@ -751,9 +757,9 @@ body.about-narrative-page .route-simulation-layer {
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-stage {
   padding:
     max(4.25rem, env(safe-area-inset-top))
-    max(1.5rem, env(safe-area-inset-right))
+    max(1.75rem, env(safe-area-inset-right))
     max(5rem, env(safe-area-inset-bottom))
-    max(2.75rem, env(safe-area-inset-left));
+    max(1.75rem, env(safe-area-inset-left));
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-title {
@@ -762,16 +768,30 @@ body.about-narrative-page .route-simulation-layer {
   line-height: 1.1;
 }
 
+.about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-render-span--living-field .about-narrative-spatial-copy {
+  transform: translate3d(0, -24svh, 0);
+}
+
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy[data-title-style='display'] .about-narrative-spatial-title {
   max-width: 10.88ch;
   font-size: clamp(2.25rem, 11vw, 4.5rem);
   line-height: calc(1.18 * var(--abs-font-headline-line-height-scale, 1));
 }
 
+.about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy.is-finale[data-title-style='display'] .about-narrative-spatial-title {
+  max-width: 13ch;
+  font-size: clamp(2.1rem, 9.5vw, 3.75rem);
+  line-height: calc(1.15 * var(--abs-font-headline-line-height-scale, 1));
+}
+
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-render-span--editorial {
   padding-inline:
     max(3rem, env(safe-area-inset-left))
     max(1.25rem, env(safe-area-inset-right));
+}
+
+.about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-render-span--disciplines {
+  --about-editorial-reveal-threshold: 0.68;
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-editorial-title,
@@ -835,7 +855,13 @@ body.about-narrative-page .route-simulation-layer {
 
   .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy.is-finale .about-narrative-finale-content {
     gap: 0.625rem;
-    transform: translate3d(0, 3.75rem, 0);
+    transform: translate3d(0, 2.5rem, 0);
+  }
+
+  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy.is-finale[data-title-style='display'] .about-narrative-spatial-title {
+    max-width: 28ch;
+    font-size: clamp(1.1rem, 5.2vh, 1.5rem);
+    line-height: 1.08;
   }
 
   .about-narrative-opening-scroll-cue {
@@ -847,10 +873,6 @@ body.about-narrative-page .route-simulation-layer {
     height: 38%;
   }
 
-}
-
-.about-narrative-lab[data-about-motion-profile='reduced'] .about-narrative-world__canvas {
-  opacity: 0.32;
 }
 
 .about-narrative-lab[data-about-motion-profile='reduced'] [data-editorial-line],
@@ -886,25 +908,11 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-lab[data-about-motion-profile='reduced'] .about-narrative-discipline-reveal {
-  display: grid;
-  align-content: center;
-  gap: 0.75rem;
-  padding:
-    max(4rem, env(safe-area-inset-top))
-    max(3rem, env(safe-area-inset-right))
-    max(4rem, env(safe-area-inset-bottom))
-    max(3rem, env(safe-area-inset-left));
-  box-sizing: border-box;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .about-narrative-lab[data-about-motion-profile='reduced'] .about-narrative-discipline-reveal li {
-  position: relative;
-  top: auto;
-  left: auto;
-  max-width: 28rem;
   opacity: var(--discipline-reveal);
-  transform: none;
   will-change: auto;
 }
 

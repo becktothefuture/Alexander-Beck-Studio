@@ -117,7 +117,7 @@ test('point renderer keeps visibility, fog, sizing, ripple, and orbital motion o
   assert.match(source, /globalCamera\?\.distanceFogEndWU \?\? 18/);
   assert.doesNotMatch(source, /frame\.camera\.distanceFog/);
   assert.doesNotMatch(source, /disciplineFieldFog|DisciplineBackgroundScale/);
-  assert.match(source, /gl_PointSize = max\(0\.01, clamp\(cssPointSize, 3\.0, 10\.0\) \* entranceScale\) \* pixelRatio/);
+  assert.match(source, /gl_PointSize = max\(0\.01, clamp\(cssPointSize, 4\.5, 11\.0\) \* entranceScale\) \* pixelRatio/);
   assert.match(source, /vec3 fromPoint = applyOrbitalLife[\s\S]*vec3 fromWorld = \(fromTransform/);
   assert.match(source, /float orbitalSeed = fract\(\(seed \* 7\.31\) \+ 0\.17\)/);
   assert.doesNotMatch(source, /ringBand|ringThickness|debris ring/i);
@@ -129,6 +129,7 @@ test('point renderer keeps visibility, fog, sizing, ripple, and orbital motion o
   assert.match(source, /rippleReach \+ 1\.1/);
   assert.match(source, /worldPoint\.xz \+= rippleDirection \* radialDisplacement/);
   assert.match(source, /attributeFilter: \['class', 'data-theme'\]/);
+  assert.doesNotMatch(source, /--narrative-camera-fov/);
   assert.match(
     styles,
     /data-about-motion-profile='reduced'[\s\S]*discipline-reveal li[\s\S]*opacity: var\(--discipline-reveal\)/,

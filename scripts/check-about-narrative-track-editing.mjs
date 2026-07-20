@@ -12,6 +12,7 @@ import {
   createAboutNarrativeWorldAtWU,
   deleteAboutNarrativeTrackObjects,
   deriveAboutNarrativeTrackLoopRange,
+  distributeAboutNarrativeTextFieldsEvenly,
   duplicateAboutNarrativeTrackObjects,
   getAboutNarrativeActiveWorld,
   getAboutNarrativeTrackObject,
@@ -155,6 +156,35 @@ test('one or many Text fields move in absolute WU and leave every unrelated trac
   assert.equal(bytes(result.model.tracks.worlds), before.worlds);
   assert.equal(bytes(result.model.tracks.interactions), before.interactions);
   assert.equal(bytes(model.tracks.text), bytes(createFixture().tracks.text), 'The input model remains immutable.');
+});
+
+test('Text focus points distribute evenly and a moved final Text element defines Story length', () => {
+  const model = createFixture();
+  const distributed = distributeAboutNarrativeTextFieldsEvenly({ model });
+  assert.equal(distributed.valid, true);
+  const focusPoints = distributed.model.tracks.text.fields.map((field) => Number(field.focusWU));
+  const gaps = focusPoints.slice(1).map((focusWU, index) => Number((focusWU - focusPoints[index]).toFixed(6)));
+  assert.equal(new Set(gaps).size, 1);
+  assert.equal(distributed.model.profiles.desktop.storyDurationWU, 10);
+
+  const textDriven = createFixture();
+  const finale = textDriven.tracks.text.fields.at(-1);
+  finale.startWU = 9;
+  finale.focusWU = 9.5;
+  finale.endWU = 10;
+  const extended = moveAboutNarrativeTrackObjectsByWU({
+    model: textDriven,
+    selection: { type: 'text-field', id: finale.id },
+    deltaWU: 2,
+    snap: false,
+  });
+  assert.equal(extended.valid, true);
+  assert.equal(extended.model.profiles.desktop.storyDurationWU, 12);
+  assert.equal(extended.model.profiles.tablet.storyDurationWU, 12);
+  assert.equal(extended.model.profiles.mobile.scrollDurationWU, 14.4);
+  assert.equal(extended.model.tracks.camera.keys.at(-1).atWU, 12);
+  assert.equal(extended.model.tracks.visibility.keys.at(-1).atWU, 12);
+  assert.equal(extended.model.tracks.text.fields.at(-1).endWU, 12);
 });
 
 test('World, Camera, and Visibility movement shifts only selected timing and rejects protected objects', () => {

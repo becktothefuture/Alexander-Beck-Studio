@@ -6,7 +6,7 @@ The About page is one authored scroll sequence played by three cooperating layer
 
 1. Native DOM text remains readable, selectable, responsive, and accessible.
 2. One Three.js point-field runtime draws every procedural World and the final bust.
-3. One world-unit playhead samples Camera, World, Text, and Interaction at the same moment.
+3. One world-unit playhead samples Camera, Visibility, World, Text, and Motion at the same moment.
 
 The creative toolkit is available only during local development:
 
@@ -21,21 +21,20 @@ The normal lab URL and `/about.html` are playback-only. Production builds remove
 ```text
 About Narrative
 └── Sequence
-    ├── Section
-    │   ├── Camera track → Camera keys
-    │   ├── World track → Shape + modifier stack
-    │   ├── Text track → travelling Cues, editorial blocks, or one world-linked reveal clip
-    │   └── Interaction track
-    └── Section …
+    ├── Camera track → absolute Camera keys
+    ├── Visibility track → whole-simulation opacity keys
+    ├── World track → Shape + modifier stack
+    ├── Text track → travelling Titles and editorial Scroll blocks
+    └── Motion track → discipline reveal, ripple, and bust interaction clips
 ```
 
 - A **Sequence** is the complete scroll journey.
-- A **Section** is a reorderable unit of the story.
 - A **Camera key** sets an absolute Position XYZ, Rotation XYZ, and lens at one Story WU.
+- A **Visibility key** fades the complete point simulation independently of camera and fog.
 - A **World** is a registered Three.js system placed at a fixed point in 3D space.
 - A **Shape** is the rest arrangement of the fixed point pool.
 - A **modifier** adds deterministic or ambient movement to a Shape.
-- A **Cue** is a large travelling statement.
+- A **Title** is a large travelling statement.
 - An **editorial block** is native vertically scrolling prose, a list, or a detail.
 - A **Discipline reveal** is one movable Motion clip that isolates six existing points and projects their labels from exact Three.js anchors without creating another World or six ordinary title keyframes.
 
@@ -62,13 +61,10 @@ Other ownership stays separate:
 
 `1 WU` means one current narrative viewport height. The inspector can reduce the preview width, but the fixed timeline is portalled above the studio window and never changes its height or authored timing.
 
-Each Section saves `extentWU` and `mobileExtentWU`:
-
-- A pinned spatial Section has about `extentWU - 1` usable travel WU because one viewport remains visible while it is pinned.
-- An editorial Section treats its authored extent as a minimum. Natural content can make the resolved extent larger.
-- Global start and end values are compiled from order and resolved extents. They are never authored twice.
-
-The editor context bar shows both authored and resolved extent.
+The sequence saves one Story duration and one Scroll duration per responsive profile. Camera,
+Visibility, World, Text, and Motion objects all use absolute Story WU, so moving one lane never
+silently retimes another. The profile resolver maps physical scroll distance to the same authored
+Story WU without measuring DOM content into the creative timing model.
 
 ## One global playhead
 
@@ -80,13 +76,18 @@ The runtime has one `storyWU` value. Three sources can own it:
 
 Only one owner is active at a time. Scrubbing stops Lenis. Choosing **Follow scroll** resumes it without resetting the current page position. Wheel or touch input cancels playback.
 
-The timeline is a collapsible, development-only overlay with its own fixed palette: amber for Sequence/playhead, cyan for Camera, violet for World, coral for Text, and green for Interaction. This palette does not inherit route or website theme colours. Camera keys are visible points on one lane; the first and final timing boundaries remain protected. Left and Right arrow keys jump to the previous or next timing point unless a text field or numeric control has focus.
+The timeline is a collapsible, development-only overlay with five independent lanes: Camera,
+Visibility, World, Text, and Motion. Its palette does not inherit route or website theme colours.
+The first and final Camera and Visibility boundaries remain protected. Left and Right arrow keys
+jump to the previous or next timing point unless a text field or numeric control has focus.
 
 The compiler converts `storyWU` into:
 
 ```text
 Global Story WU
-Camera position, rotation, FOV, and distance fog
+Camera position, rotation, and FOV
+Whole-simulation visibility
+One global distance-fog pair
 From/To World plus transition progress
 Text field envelopes
 Interaction activation
@@ -96,7 +97,9 @@ The runtime samples this once per animation frame. No World adapter may start an
 
 ## Camera fundamentals
 
-The camera is one absolute six-axis rig. There is no authored frame origin, aim target, depth offset, roll control, or camera dolly underneath it.
+The camera is one absolute six-axis rig. There is no authored frame origin, aim target, depth
+offset, orbit, look-at, or secondary roll/dolly layer underneath it. Rotation Z is the rig's direct
+roll axis, not an additional positioning system.
 
 ### Editable Camera keys
 
@@ -106,7 +109,6 @@ A Camera key stores:
 - Absolute Position X, Y, and Z in world units
 - Rotation X, Y, and Z in degrees
 - FOV
-- Distance-fog start and end
 - A travel curve into the next key
 
 Rotation uses Three.js `YXZ` Euler order at authored keys and quaternion interpolation during playback. This avoids sudden flips while keeping the inspector understandable as X/Y/Z degrees. Position and FOV interpolate directly between keys. The renderer applies the sampled absolute position and quaternion without a secondary look-at, orbit, or rail adjustment.
@@ -115,7 +117,7 @@ Adding a Camera key at the playhead samples the published pose first, so inserti
 
 ### Camera travel easing
 
-Selecting a Camera key opens its **Travel easing** graph. It controls the outgoing segment: the move from the selected key to the next key, never the segment that arrived at it. The two horizontal Bezier handles shape departure and arrival for position, rotation, lens, and fog.
+Selecting a Camera key opens its **Travel easing** graph. It controls the outgoing segment: the move from the selected key to the next key, never the segment that arrived at it. The two horizontal Bezier handles shape departure and arrival for position, rotation, and lens.
 
 - **Out / acceleration** controls how long the shot holds before it gathers speed.
 - **In / deceleration** controls how early the shot starts settling into the following composition.
@@ -131,23 +133,41 @@ The open **Camera rig** folder contains exactly seven paired slider/exact-value 
 - **Rotation X**, **Rotation Y**, and **Rotation Z** rotate around the camera itself at the centre of the viewport, like a first-person video-game camera.
 - **Field of view** widens or tightens the lens.
 
-Distance fog and Travel easing remain in separate collapsed folders. Slider gestures live-apply as one undoable edit, while the adjacent number field supports precise entry. The protected first and final keys cannot move in time or be deleted, but their pose and fog remain editable.
+Travel easing remains in a separate collapsed folder. Slider gestures live-apply as one undoable
+edit, while the adjacent number field supports precise entry. The protected first and final keys
+cannot move in time or be deleted, but their pose remains editable.
+
+### Visibility and global fog
+
+Visibility is its own lane. Each key stores `atWU`, a `0–1` whole-simulation visibility value, and
+outgoing easing. At exact zero the point object is not drawn, which lets the sequence pass through
+true empty/editorial space and return at a new camera pose without using fog as a camera cut.
+
+Distance fog is global Sequence state with one start and end distance. It remains editable, but it
+is never stored or interpolated per Camera key. Camera movement, atmospheric depth, and whether the
+simulation exists on screen are therefore three explicit, non-overlapping controls.
 
 ### Current camera choreography
 
-- `8.165–14.145 WU`: one locked near-overhead composition carries the practice titles, six-discipline reveal, and editorial handoff. Grid isolation may change point emphasis, but the supporting grid remains legible and the lens does not drift.
-- `14.145–15 WU`: one intermediate key shapes a continuous dolly-and-tilt into the closer oblique living-field composition. Position, pitch, and FOV all move monotonically; there is no pull-back or depth rebound.
-- `15–20.3 WU`: the camera holds completely still while the living colour and grid ripple provide the motion.
-- `20.45–20.65 WU`: the ease-out formation contracts the living field into a recognisable bust while the camera holds the ocean composition. From `20.65–21.05 WU`, a separate descent and lens-tightening move reframes the sculpture while its final points settle by `20.85 WU`; the final pose then holds through `21.8 WU`.
+- `0–4.2 WU`: establish the orb above the opener, fly through its threshold, enter the turbulent
+  field, and continue forward as the complexity scatters.
+- `4.2–7.25 WU`: the simulation fades completely out. The camera can cross the empty interval and
+  arrive at the floor view before the grid rises from below.
+- `7.1–9.3 WU`: fly over the grid while pitching from `-10°` through `-43°` to a true `-90°`
+  bird's-eye view.
+- `9.3–11.18 WU`: hold the bird's-eye composition while the six disciplines isolate and label.
+- `11.18–15.48 WU`: hide the simulation during editorial copy, reposition unseen, then return to
+  the same grid in full colour and exact face-on alignment.
+- `15.35–17.7 WU`: keep `-90°` pitch and zoom straight out as the center-out ripple expands.
+- `17.7–20.65 WU`: move once into an oblique orbital view, then hold while four bodies revolve
+  around the dense core and resolve directly into the bust at the same X/Z center.
+- `20.65–21.8 WU`: one final arrival frames the complete bust above the invitation and actions.
 
 ## How Worlds stay connected
 
-Every Section has either:
-
-- `world.mode: "set"`: introduce a World clip, or
-- `world.mode: "continue"`: keep the previous World unchanged.
-
-A World clip owns a registered adapter ID, Shape ID, deterministic seed, fixed transform, entry distance, transition window, correspondence mode, modifier stack, and interaction settings.
+Each World object owns an absolute `startWU`, registered adapter ID, Shape ID, deterministic seed,
+fixed transform, entry distance, transition window, correspondence mode, and modifier stack. Its end
+is derived from the next World's start; no authored Section container or duplicate boundary is needed.
 
 The World is placed once on its own world-placement rail:
 
@@ -177,7 +197,11 @@ Correspondence modes are:
 - `spatial-nearest-v1`: the editor's **Local travel (approx.)** mode; it matches visible points in world space, protects semantic anchors, and accepts only a visibility-aware improvement over the compatible baseline
 - `group-aware`: additionally preserves declared semantic groups such as the six discipline anchors
 
-The current narrative uses Local travel for its four inter-Shape transitions. The mapping is approximate rather than a mathematically global optimum: a deterministic Morton ordering and bounded local repair reduce aggregate and outlier travel without an impractical 12,000-point exact solver.
+The current sequence uses local spatial correspondence for orb → complexity and complexity → grid,
+index correspondence for grid → orbital so the ripple rearranges coherently into bodies, and local
+spatial correspondence for orbital → bust. Local mapping is approximate rather than a mathematically
+global optimum: deterministic Morton ordering and bounded repair reduce aggregate and outlier travel
+without an impractical 12,000-point exact solver.
 
 Procedural Shape generation and correspondence are prepared cumulatively in a module Worker, never in the RAF loop. The mapped endpoint of A → B becomes the exact source ordering for B → C, keeping point colour, drift phase, presence, and semantic identity continuous across the complete story. Direct seeking compiles the same chain. A complete last-known-good pair stays installed while an edited sequence prepares or fails.
 
@@ -188,6 +212,7 @@ Select a World clip and open **Transition in → Correspondence** to compare Ind
 - `cluster-v1`: a spherical complexity cloud
 - `turbulent-field-v1`: an uneven volumetric cloud assembled from weighted chunks, sparse pockets, loose particles, and an organic coordinate warp
 - `calm-field-v1`: a wide horizontal clearing whose existing points also provide the six semantic discipline anchors
+- `orbital-system-v1`: one dense core plus four deterministic 3D bodies animated by orbital life
 - `discipline-grid-v1`: a frontal field with six semantic anchors
 - `living-field-v1`: terrain designed for wave and colour modifiers
 - `bust-v1`: the loaded point bust, with a procedural fallback if its asset fails
@@ -203,6 +228,7 @@ A Shape supplies rest positions. Its ordered modifier stack supplies behaviour:
 - Group emphasis
 - Living wave
 - Living colour
+- Orbital life
 - Bust yaw
 
 Modifiers can be enabled, reordered, and parameterised. Shared turbulence range, speed, irregularity, individuality, and axis spread are edited once under **Sequence → Shared turbulence**. The World-level **Swarm life → Local strength** control changes intensity without creating a second motion profile. Each registered modifier declares safe ranges, units, cost, and reduced-motion behaviour.
@@ -221,31 +247,48 @@ During living-field → bust formation, bust yaw is held at its entry value. Aut
 
 ### Add another travelling title
 
-1. Select a spatial Section in the Sections lane.
-2. Put the playhead where the new sentence should be most readable.
-3. In the inspector choose **Add text cue at playhead**.
-4. Select the new Text clip in the Text lane.
-5. Edit the statement, then drag its pink block to the desired focus point.
+1. Put the playhead where the new sentence should begin.
+2. Use **Add** on the Text lane and choose **Title**.
+3. Select the new Text field, edit its statement, and set its start, focus, and end WU.
+4. Drag the complete field to retime it without changing its internal reading interval.
 
-Clicking a clip selects and highlights it. Clicking a Camera diamond, World transition marker, Text block, or Interaction activation marker also snaps the global playhead to that exact WU. Clicking the **Sections**, **Camera**, **World**, or **Text** track name opens that track's global controls without requiring an empty-canvas click.
+Clicking a clip selects and highlights it. Clicking a Camera/Visibility key, World start, Text field,
+or Motion activation marker also snaps the global playhead to that exact WU. Clicking a track name
+opens that track's global controls without requiring an empty-canvas click.
 
-A Spatial Text block is a duration bar with a brighter focus marker. The bar shows the title's effective travel span across 0–100% of its owning Section, so changing **Spatial titles → Travel duration** resizes every affected block in the timeline immediately. Dragging the bar moves its focus point while preserving the automatic travel envelope. Travel remains cropped to the owning Section at its edges.
+A Title is an absolute duration bar with a brighter focus marker. Dragging the bar moves its complete
+start/focus/end envelope. Shared spatial-title duration, readable window, depth path, and blur remain
+Sequence controls; there is no owning Section that can silently crop or reinterpret its timing.
 
-The saved Cue is in the same Section object as its timing. No second file or JavaScript array needs editing.
+The saved Text field owns its absolute timing. No second file or JavaScript array needs editing.
 
-The DOM contains one semantic sentence per Cue. Visual Z depth and blur are presentation only. The Spatial-title wrapper owns one shared CSS perspective, while every title travels from the shared negative-Z entry depth to the shared positive-Z exit depth. Maximum blur changes sharpness only; it does not move the title.
+The DOM contains one semantic sentence per Title field. Visual Z depth and blur are presentation only. The Spatial-title wrapper owns one shared CSS perspective, while every title travels from the shared negative-Z entry depth to the shared positive-Z exit depth. Maximum blur changes sharpness only; it does not move the title.
 
-The single `opener-v1` Cue is already sharp at `0 WU` and begins from **Spatial titles → Opener start Y**. It then continues moving toward the shared exit position. Later travelling titles continue to use the shared Start Y, dual-handle **Clear window**, depth path, and blur-in/blur-out behaviour.
+The opening Title (`text-promise-main`, using preset `opener-v1`) is already sharp at `0 WU` and begins from **Spatial titles → Opener start Y**. It then continues moving toward the shared exit position. Later travelling titles continue to use the shared Start Y, dual-handle **Clear window**, depth path, and blur-in/blur-out behaviour.
 
 ### Edit editorial prose
 
-Select an editorial Section, then edit its blocks under **Editorial content**. Paragraphs, highlights, details, clients, discipline lists, and normal lists stay native DOM content. They are not converted into hundreds of keyframes.
+Select a Scroll block in the Text lane and edit its structured content. Paragraphs, highlights,
+details, clients, discipline lists, and normal lists stay native DOM content. They are not converted
+into hundreds of keyframes.
 
 ### Edit the six-discipline reveal
 
-Select **Discipline reveal** in the Motion lane. C remains one unchanged calm-field World for the complete grid and discipline sequence: the Motion clip owns field travel, label activation, grid isolation, resting opacity and size, point emphasis, fog, and the label hold. Its start controls field travel, activation begins the labels and isolation transition, and its end is the restore endpoint. **Grid restore duration** begins that many WU before the clip end and gently returns the grid to its full, unhighlighted circles. Increase it to shorten the active highlighted state; set it to `0` only when an immediate endpoint is intentional. Reorder the six labels to change reveal order without remapping their stable point groups.
+Select **Discipline reveal** in the Motion lane. C remains one unchanged calm-field World for the
+complete grid and discipline sequence: the Motion clip owns label activation, grid isolation,
+background opacity, point emphasis, and the label hold. It never owns camera, fog, or whole-system
+visibility. **Grid restore duration** gently returns the grid to its full, unhighlighted circles near
+the clip end. Reorder the six labels without remapping their stable point groups.
 
-The clip is one draggable timing object. Moving it shifts the complete sequence while preserving its relative timing. The unchanged grid begins its screen-up handoff behind the three spatial practice titles. Once the titles clear, the native DOM labels reveal from their corresponding Three.js grid points and continue into the following editorial block. The labels then leave while the six coloured points remain. Their palette is fixed to the actual Home simulation ball tokens by semantic group: `1 → --ball-1`, `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`. E reuses C's exact generated grid, placement, and responsive overrides with index correspondence, so the hold changes only its living-colour treatment. Before the separate Grid ripple Motion starts, the camera settles into its oblique ocean view. That camera remains physically stationary until the ripple has fully released. The ripple combines a radial wave with a crossing wave and displaces dots only in height; dot size and the grid's authored X/Z footprint remain unchanged.
+The clip is one draggable timing object. The native DOM labels project from their corresponding
+Three.js points and pack inside the viewport on desktop, portrait mobile, and short landscape. Their
+palette is fixed to the Home simulation ball tokens by semantic group: `1 → --ball-1`,
+`2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`.
+After the labels restore, Visibility hides the complete simulation for editorial copy. C returns in
+full colour at the centered top-down camera. The Grid ripple Motion expands from that transformed
+center, displacing points in height and radial X/Z compression so it remains legible from a true
+bird's-eye view. The wave stays active through the wide zoom and hands its indexed point order into
+the orbital World; it does not create helper rings or alter point size to fake the effect.
 
 ## History, comparison, and checkpoints
 
@@ -283,13 +326,23 @@ Edits made while Save is in flight remain dirty after the response. Recovery dra
 
 The router preserves `?edit=1`, and editor-originated writes do not trigger Vite's generic content reload. Save therefore keeps the same editor URL, selection, and playhead open.
 
+Schema v5 deliberately has one global fog pair. Legacy v3/v4 sources migrate automatically only
+when every Camera key and responsive override agrees with that pair. A source with genuinely
+divergent per-key fog cannot be converted losslessly, so migration fails closed with a
+`camera-fog-migration-divergence` diagnostic and preserves the exact original as a recovery/export
+payload. The editor never averages or silently drops those authored fog changes; resolve them into
+one intentional global pair before importing the document as v5.
+
 ## Safeguards
 
 Validation blocks Apply and Save for duplicate IDs, invalid extents, unsafe text, unknown adapters/Shapes/modifiers, broken numeric values, unsupported transitions, invalid buffers, or a missing final bust contract.
 
 The last-known-good compiled plan continues to play while a draft is invalid. Runtime failure containment includes abortable Shape generation, cached valid buffers, resource disposal, theme-token updates outside the hot loop, WebGL context recovery, visibility pausing, procedural bust fallback, and accessible editorial content when WebGL is unavailable.
 
-The protected reduced-motion profile removes continuous flight, depth/blur travel, ambient modifiers, and automatic bust rotation. It keeps stable text, settled World states, and manual keyboard/pointer bust rotation.
+The protected reduced-motion profile step-samples camera and visibility, removes continuous flight,
+depth/blur travel, ripple motion, ambient modifiers, and automatic bust rotation. It keeps stable
+text, settled World states, the six labels only during their authored interval, and manual
+keyboard/pointer bust rotation.
 
 ## Adding a new Shape generator
 
@@ -315,4 +368,12 @@ ABS_BROWSER=webkit npm run audit:about-narrative
 npm run check:site
 ```
 
-The browser audit verifies exact-WU sampling, the absolute Position/Rotation/FOV camera rig, editor/playback presence, the three-beat Instrument Serif display-title contract and Geist standard spatial titles, portal placement, visible protected Camera boundaries, click/keyboard keyframe navigation, the extended discipline reveal and fixed Home palette mapping, text edit and undo, WebGL readiness in Chromium, timeline collapse, and editor clearance above the persistent Button Bar at desktop and mobile sizes.
+The browser audit verifies exact-WU sampling, the direct Position/Rotation/FOV camera rig, global fog,
+independent Visibility, editor/playback presence, typography roles, portal placement, protected
+boundaries, keyframe navigation, discipline anchors and palette mapping, text edit/undo, WebGL
+readiness, timeline collapse, and editor clearance above the persistent Button Bar.
+
+The certification runtime-visual audit captures the full authored arc at 32 exact Story WU
+checkpoints. It records World and Visibility state and produces independent-review contact sheets for
+desktop, mobile, and reduced motion. These contact sheets are required release evidence, not optional
+debug output.

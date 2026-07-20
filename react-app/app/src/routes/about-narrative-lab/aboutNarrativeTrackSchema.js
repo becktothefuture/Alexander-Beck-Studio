@@ -761,6 +761,12 @@ export function validateAboutNarrativeTrackDocument(input, {
     if (Number(field?.startWU) < previousTextWU) diagnostic(diagnostics, 'text-track-order', `tracks.text.fields.${index}.startWU`, 'Text fields must be ordered by startWU.');
     previousTextWU = Number(field?.startWU);
   });
+  if (currentSchema && textFields?.length) {
+    const textDurationWU = Math.max(...textFields.map((field) => Number(field?.endWU)).filter(Number.isFinite));
+    if (Math.abs(textDurationWU - durationWU) > 0.000001) {
+      diagnostic(diagnostics, 'text-story-duration', 'tracks.text.fields', 'The final Text element must define the Story WU duration.');
+    }
+  }
 
   let previousClipWU = -1;
   (clips || []).forEach((clip, index) => {

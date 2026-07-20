@@ -881,8 +881,9 @@ function TextTrackInspector({ snapshot, store }) {
       </header>
       <div className="about-track-editor-world-folders about-track-editor-global-folders">
         <p className="about-track-editor-parameter-note">
-          Spatial Titles use this shared animation timing. Their edges are fixed; drag a Title clip to reposition its complete timing window.
+          Text focus points define the narrative cadence and Story length. Drag any Text clip to move its complete window, or restore an even rhythm with the action below.
         </p>
+        <button type="button" onClick={() => store.distributeTextEvenly()}>Space text evenly</button>
         {ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS.map((group, index) => {
           const items = controlsByGroup.get(group.id) || [];
           if (!items.length) return null;
@@ -1336,15 +1337,18 @@ function ObjectInspector({ snapshot, store, onMessage }) {
   }
 
   const finaleWorld = selection.type === 'world' && object.protected === true;
-  const locked = (object.locked === true || object.protected === true) && !finaleWorld;
+  const boundaryCamera = selection.type === 'camera-key' && object.locked === true;
+  const locked = (object.locked === true || object.protected === true)
+    && !finaleWorld
+    && !boundaryCamera;
   const commit = (label, mutate) => store.commit(label, (draft) => {
     const target = getAboutNarrativeTrackObject(draft, selection);
     if (target) mutate(target, draft);
   }, { selectionAfter: selection, requireValid: true });
-  const number = (path, value) => NumberField({
+  const number = (path, value, disabled = locked) => NumberField({
     label: path,
     value,
-    disabled: locked,
+    disabled,
     onCommit: (next) => commit(`Edit ${path}`, (target) => { target[path] = cleanWU(next); }),
   });
   const bindObjectRange = (label, mutate) => ({
@@ -1363,14 +1367,15 @@ function ObjectInspector({ snapshot, store, onMessage }) {
         <span>{selection.type === 'interaction' ? 'motion' : selection.type}</span>
         <h2>{getObjectLabel(object, selection.type)}</h2>
         <code>{object.id}</code>
-        {locked ? <b>{['camera-key', 'visibility-key'].includes(selection.type) ? 'Timing protected' : 'Protected'}</b> : null}
+        {boundaryCamera ? <b>Timing fixed · Pose editable</b> : null}
+        {locked ? <b>{selection.type === 'visibility-key' ? 'Timing protected' : 'Protected'}</b> : null}
       </header>
 
       {selection.type === 'camera-key' ? (
         <div className="about-track-editor-fields">
-          {number('atWU', object.atWU)}
+          {number('atWU', object.atWU, boundaryCamera)}
           <p className="about-track-editor-parameter-note is-wide">This is a shot key. Its pose is the camera at this exact Story WU; the curve below shapes its travel <b>to the next key</b>.</p>
-          {locked ? <p className="about-track-editor-parameter-note is-wide">This boundary key stays at its Story WU, while its camera pose remains editable.</p> : null}
+          {boundaryCamera ? <p className="about-track-editor-parameter-note is-wide">This boundary key stays at its Story WU. Position, rotation and field of view are fully editable.</p> : null}
           <InspectorFolder group={{ id: 'camera-rig', label: 'Camera rig' }} count={7} defaultOpen>
             <p className="about-track-editor-parameter-note">
               Position moves the camera in world space. Rotation turns it around the centre of the viewport, like a first-person camera.
@@ -1458,9 +1463,25 @@ function ObjectInspector({ snapshot, store, onMessage }) {
             <span>{object.kind}</span>
             {object.kind === 'stub' ? <b>Draft · Not published</b> : null}
           </div>
-          {number('startWU', object.startWU)}
-          {number('focusWU', object.focusWU)}
-          {number('endWU', object.endWU)}
+          <NumberField
+            label="startWU"
+            value={object.startWU}
+            disabled={locked}
+            onCommit={(value) => store.setTextTiming(object.id, 'startWU', value)}
+          />
+          <NumberField
+            label="Position WU"
+            value={object.focusWU}
+            disabled={locked}
+            onCommit={(value) => store.moveSelection(value - Number(object.focusWU), { snap: false })}
+          />
+          <NumberField
+            label="endWU"
+            value={object.endWU}
+            disabled={locked}
+            onCommit={(value) => store.setTextTiming(object.id, 'endWU', value)}
+          />
+          <p className="about-track-editor-parameter-note is-wide">Position WU moves the whole Text element without changing its entrance or exit duration.</p>
           {object.kind === 'title' ? (
             <>
               <TextField label="Title" value={object.text} disabled={locked} multiline focusId="text-copy" onCommit={(value) => commit('Edit Title', (target) => { target.text = value; })} />
@@ -1964,7 +1985,9 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
           <button type="button" disabled={snapshot.selection.type === 'track'} onClick={() => store.copySelection()}>Copy</button>
           <button type="button" disabled={!snapshot.clipboard} onClick={() => store.pasteClipboard({ atWU: snapshot.transport.storyWU })}>Paste</button>
           <button type="button" disabled={snapshot.selection.type === 'track'} onClick={() => store.duplicateSelection()}>Duplicate</button>
-          <button type="button" className="is-danger" disabled={snapshot.selection.type === 'track'} onClick={() => store.deleteSelection()}>Delete</button>
+          <button type="button" className="is-danger" disabled={snapshot.selection.type === 'track'} onClick={() => store.deleteSelection()}>
+            {snapshot.selection.type === 'camera-key' ? 'Delete camera keyframe' : 'Delete'}
+          </button>
         </footer>
       </section>
 

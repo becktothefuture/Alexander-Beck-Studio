@@ -64,6 +64,83 @@ function getStoryDurationWU(model) {
   return Math.max(0, ...times);
 }
 
+function scaleTime(value, scale) {
+  return finite(value) ? cleanWU(Number(value) * scale) : value;
+}
+
+function scaleTransition(transition, scale) {
+  if (!transition) return;
+  transition.startWU = scaleTime(transition.startWU, scale);
+  transition.endWU = scaleTime(transition.endWU, scale);
+}
+
+function scaleNonTextTiming(model, scale) {
+  (model.tracks?.camera?.keys || []).forEach((key) => { key.atWU = scaleTime(key.atWU, scale); });
+  (model.tracks?.visibility?.keys || []).forEach((key) => { key.atWU = scaleTime(key.atWU, scale); });
+  (model.tracks?.worlds?.objects || []).forEach((world) => {
+    world.startWU = scaleTime(world.startWU, scale);
+    world.anchorWU = scaleTime(world.anchorWU, scale);
+    scaleTransition(world.transitionIn, scale);
+  });
+  (model.tracks?.interactions?.clips || []).forEach((clip) => {
+    clip.startWU = scaleTime(clip.startWU, scale);
+    clip.activationWU = scaleTime(clip.activationWU, scale);
+    clip.endWU = scaleTime(clip.endWU, scale);
+  });
+
+  Object.values(model.profiles || {}).forEach((profile) => {
+    if (finite(profile.storyDurationWU)) {
+      const scrollRatio = finite(profile.scrollDurationWU)
+        ? Number(profile.scrollDurationWU) / Number(profile.storyDurationWU)
+        : 1;
+      profile.storyDurationWU = scaleTime(profile.storyDurationWU, scale);
+      if (finite(profile.scrollDurationWU)) {
+        profile.scrollDurationWU = cleanWU(profile.storyDurationWU * scrollRatio);
+      }
+    }
+    Object.values(profile.overrides?.camera || {}).forEach((override) => {
+      if (finite(override.atWU)) override.atWU = scaleTime(override.atWU, scale);
+    });
+    Object.values(profile.overrides?.visibility || {}).forEach((override) => {
+      if (finite(override.atWU)) override.atWU = scaleTime(override.atWU, scale);
+    });
+    Object.values(profile.overrides?.worlds || {}).forEach((override) => {
+      if (finite(override.startWU)) override.startWU = scaleTime(override.startWU, scale);
+      if (finite(override.anchorWU)) override.anchorWU = scaleTime(override.anchorWU, scale);
+      scaleTransition(override.transitionIn, scale);
+    });
+    Object.values(profile.overrides?.interactions || {}).forEach((override) => {
+      if (finite(override.startWU)) override.startWU = scaleTime(override.startWU, scale);
+      if (finite(override.activationWU)) override.activationWU = scaleTime(override.activationWU, scale);
+      if (finite(override.endWU)) override.endWU = scaleTime(override.endWU, scale);
+    });
+  });
+}
+
+export function synchronizeAboutNarrativeDurationToText(
+  model,
+  previousDurationWU = getStoryDurationWU(model),
+  { allowShrink = false } = {},
+) {
+  const textDurationWU = Math.max(
+    0,
+    ...(model.tracks?.text?.fields || []).map((field) => Number(field.endWU)).filter(Number.isFinite),
+  );
+  if (!(textDurationWU > 0) || !(Number(previousDurationWU) > 0)) return model;
+  if (!allowShrink && textDurationWU < Number(previousDurationWU)) return model;
+  const scale = textDurationWU / Number(previousDurationWU);
+  if (Math.abs(scale - 1) > 0.0000005) scaleNonTextTiming(model, scale);
+  return model;
+}
+
+function shiftTextOverrideTimes(override, deltaWU) {
+  if (!override || typeof override !== 'object') return;
+  const shift = (value) => cleanWU(Number(value) + deltaWU);
+  if (finite(override.startWU)) override.startWU = shift(override.startWU);
+  if (finite(override.focusWU)) override.focusWU = shift(override.focusWU);
+  if (finite(override.endWU)) override.endWU = shift(override.endWU);
+}
+
 function allObjectEntries(model) {
   return OBJECT_TYPES.flatMap((type) => {
     const track = TYPE_TO_TRACK[type];
@@ -356,9 +433,15 @@ export function moveAboutNarrativeTrackObjectsByWU({
   if (!finite(deltaWU)) return resultError('Movement requires a finite WU delta.', 'movement-delta');
   if (resolved.objects.some((object) => object.locked)) return resultError('A protected track object cannot be moved.', 'protected-object');
   const durationWU = getStoryDurationWU(model);
+  const previousTextDurationWU = Math.max(
+    0,
+    ...(model.tracks?.text?.fields || []).map((field) => Number(field.endWU)).filter(Number.isFinite),
+  );
   const times = resolved.objects.flatMap((object) => objectMovableTimes(object, resolved.type));
   const minimumDeltaWU = -Math.min(...times);
-  const maximumDeltaWU = durationWU - Math.max(...times);
+  const maximumDeltaWU = resolved.type === 'text-field'
+    ? 80 - Math.max(...times)
+    : durationWU - Math.max(...times);
   const requestedDeltaWU = snap ? snapWU(deltaWU) : cleanWU(deltaWU);
   const appliedDeltaWU = cleanWU(clamp(requestedDeltaWU, minimumDeltaWU, maximumDeltaWU));
   if (Math.abs(appliedDeltaWU) < 0.0000005) {
@@ -368,8 +451,18 @@ export function moveAboutNarrativeTrackObjectsByWU({
   const candidate = clone(model);
   resolved.members.forEach((member) => {
     shiftObjectTimes(getAboutNarrativeTrackObject(candidate, member), resolved.type, appliedDeltaWU);
+    if (resolved.type === 'text-field') {
+      Object.values(candidate.profiles || {}).forEach((profile) => {
+        shiftTextOverrideTimes(profile.overrides?.text?.[member.id], appliedDeltaWU);
+      });
+    }
   });
   sortTrack(candidate, resolved.track);
+  if (resolved.type === 'text-field') {
+    synchronizeAboutNarrativeDurationToText(candidate, durationWU, {
+      allowShrink: Math.abs(previousTextDurationWU - durationWU) <= 0.000001,
+    });
+  }
   const validation = validateEditingModel(candidate);
   if (!validation.valid) return validation;
   return {
@@ -378,6 +471,41 @@ export function moveAboutNarrativeTrackObjectsByWU({
     selection: resolved.selection,
     deltaWU: appliedDeltaWU,
     clamped: Math.abs(appliedDeltaWU - requestedDeltaWU) > 0.0000005,
+  };
+}
+
+export function distributeAboutNarrativeTextFieldsEvenly({ model }) {
+  const fields = [...(model?.tracks?.text?.fields || [])]
+    .sort((left, right) => Number(left.focusWU) - Number(right.focusWU) || left.id.localeCompare(right.id));
+  if (fields.length < 3) return resultError('At least three Text elements are needed for even spacing.', 'text-distribution');
+  const firstFocusWU = Number(fields[0].focusWU);
+  const lastFocusWU = Number(fields.at(-1).focusWU);
+  const gapWU = (lastFocusWU - firstFocusWU) / (fields.length - 1);
+  if (!(gapWU > 0)) return resultError('Text focus positions need a positive range.', 'text-distribution');
+
+  const durationWU = getStoryDurationWU(model);
+  const candidate = clone(model);
+  const candidateFields = new Map(candidate.tracks.text.fields.map((field) => [field.id, field]));
+  fields.forEach((field, index) => {
+    const targetFocusWU = cleanWU(firstFocusWU + (gapWU * index));
+    const deltaWU = cleanWU(targetFocusWU - Number(field.focusWU));
+    const target = candidateFields.get(field.id);
+    shiftObjectTimes(target, 'text-field', deltaWU);
+    Object.values(candidate.profiles || {}).forEach((profile) => {
+      shiftTextOverrideTimes(profile.overrides?.text?.[field.id], deltaWU);
+    });
+  });
+  sortTrack(candidate, 'text');
+  synchronizeAboutNarrativeDurationToText(candidate, durationWU, {
+    allowShrink: Math.abs(Number(fields.at(-1).endWU) - durationWU) <= 0.000001,
+  });
+  const validation = validateEditingModel(candidate);
+  if (!validation.valid) return validation;
+  return {
+    valid: true,
+    model: candidate,
+    selection: { type: 'track', id: 'text' },
+    gapWU: cleanWU(gapWU),
   };
 }
 

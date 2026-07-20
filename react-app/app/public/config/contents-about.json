@@ -14,7 +14,7 @@
     },
     "pointMaterial": {
       "opacity": 1,
-      "pointSize": 6
+      "pointSize": 7
     },
     "swarmTurbulence": {
       "amplitude": 0.05,
@@ -65,6 +65,22 @@
       "scrollDurationWU": 22.65,
       "overrides": {
         "camera": {
+          "grid-birds-eye": {
+            "position": [
+              0,
+              5,
+              -0.32
+            ],
+            "fov": 50
+          },
+          "grid-birds-eye-hold": {
+            "position": [
+              0,
+              5,
+              -0.32
+            ],
+            "fov": 50
+          },
           "grid-return-centered": {
             "fov": 64
           },
@@ -91,8 +107,8 @@
           "atWU": 0,
           "position": [
             0,
-            0.05,
-            6.4
+            0.98,
+            5.9
           ],
           "rotation": [
             0,
@@ -100,25 +116,8 @@
             0
           ],
           "fov": 46,
-          "easing": "smoothstep",
+          "easing": "cubic-bezier(0.55, 0, 0.75, 1)",
           "locked": true
-        },
-        {
-          "id": "orb-threshold",
-          "atWU": 0.95,
-          "position": [
-            0,
-            0.75,
-            3.15
-          ],
-          "rotation": [
-            8,
-            0,
-            0
-          ],
-          "fov": 48,
-          "easing": "ease-in-out",
-          "locked": false
         },
         {
           "id": "complexity-inside",
@@ -193,7 +192,7 @@
           "atWU": 9.3,
           "position": [
             0,
-            5.8,
+            3.5,
             -0.32
           ],
           "rotation": [
@@ -201,7 +200,7 @@
             0,
             0
           ],
-          "fov": 52,
+          "fov": 42,
           "easing": "linear",
           "locked": false
         },
@@ -210,7 +209,7 @@
           "atWU": 11.18,
           "position": [
             0,
-            5.8,
+            3.5,
             -0.32
           ],
           "rotation": [
@@ -218,7 +217,7 @@
             0,
             0
           ],
-          "fov": 52,
+          "fov": 42,
           "easing": "smoothstep",
           "locked": false
         },
@@ -253,7 +252,7 @@
             0
           ],
           "fov": 52,
-          "easing": "ease-in-out",
+          "easing": "cubic-bezier(0.15, 0, 0.35, 1)",
           "locked": false
         },
         {
@@ -274,8 +273,8 @@
           "locked": false
         },
         {
-          "id": "bust-formation-hold",
-          "atWU": 20.65,
+          "id": "orbital-hold",
+          "atWU": 20.3,
           "position": [
             4.4,
             7.4,
@@ -287,7 +286,7 @@
             0
           ],
           "fov": 54,
-          "easing": "ease-in-out",
+          "easing": "linear",
           "locked": false
         },
         {
@@ -414,7 +413,7 @@
           "transform": {
             "position": [
               0,
-              2.05,
+              2.25,
               0
             ],
             "rotation": [
@@ -422,8 +421,8 @@
               0,
               0
             ],
-            "scale": 0.6,
-            "mobileScale": 0.5
+            "scale": 0.52,
+            "mobileScale": 0.44
           },
           "transitionIn": {
             "startWU": 0,
@@ -458,7 +457,7 @@
           "transform": {
             "position": [
               0,
-              0.25,
+              1.2,
               0
             ],
             "rotation": [
@@ -470,17 +469,17 @@
           },
           "transitionIn": {
             "startWU": 0.95,
-            "endWU": 2.55,
+            "endWU": 2.45,
             "type": "morph",
             "easing": "smoothstep",
             "correspondence": "spatial-nearest-v2"
           },
           "shapeParameters": {
-            "width": 13.4,
-            "height": 11.3,
-            "depth": 37.3,
-            "chunkCount": 22,
-            "chunkSize": 2.3,
+            "width": 12.2,
+            "height": 9.4,
+            "depth": 24,
+            "chunkCount": 18,
+            "chunkSize": 2.6,
             "scatter": 0.14,
             "turbulence": 0.42,
             "density": 0.38
@@ -556,19 +555,19 @@
               0
             ],
             "scale": 1.12,
-            "mobileScale": 0.5
+            "mobileScale": 0.49
           },
           "transitionIn": {
             "startWU": 17.7,
             "endWU": 18.55,
             "type": "morph",
-            "easing": "smoothstep",
+            "easing": "ease-out",
             "correspondence": "index-v1"
           },
           "shapeParameters": {
-            "orbitRadius": 4.6,
-            "coreRadius": 1.05,
-            "bodyRadius": 0.72,
+            "orbitRadius": 5.84,
+            "coreRadius": 0.94,
+            "bodyRadius": 0.65,
             "density": 0.62
           },
           "modifiers": [
@@ -577,7 +576,7 @@
               "enabled": true,
               "parameters": {
                 "strength": 1,
-                "speed": 0.16,
+                "speed": 0.0515,
                 "timeMode": "story"
               }
             }
@@ -663,9 +662,9 @@
         {
           "id": "text-complexity-idea",
           "kind": "title",
-          "startWU": 0.95,
-          "focusWU": 1.35,
-          "endWU": 1.75,
+          "startWU": 1.720833,
+          "focusWU": 2.120833,
+          "endWU": 2.520833,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -678,9 +677,9 @@
         {
           "id": "text-complexity-conditions",
           "kind": "title",
-          "startWU": 2.05,
-          "focusWU": 2.45,
-          "endWU": 2.85,
+          "startWU": 3.441667,
+          "focusWU": 3.841667,
+          "endWU": 4.241667,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -693,9 +692,9 @@
         {
           "id": "text-background-editorial",
           "kind": "scroll-block",
-          "startWU": 4.75,
-          "focusWU": 4.92,
-          "endWU": 6.18,
+          "startWU": 5.3925,
+          "focusWU": 5.5625,
+          "endWU": 6.8225,
           "publishable": true,
           "presentation": {
             "layout": "reading"
@@ -719,9 +718,9 @@
         {
           "id": "text-background-clients",
           "kind": "scroll-block",
-          "startWU": 5.62,
-          "focusWU": 6.15,
-          "endWU": 6.68,
+          "startWU": 6.753333,
+          "focusWU": 7.283333,
+          "endWU": 7.813333,
           "publishable": true,
           "presentation": {
             "layout": "reading"
@@ -742,9 +741,9 @@
         {
           "id": "text-complexity-curiosity",
           "kind": "title",
-          "startWU": 7.3,
-          "focusWU": 7.7,
-          "endWU": 8.1,
+          "startWU": 8.604167,
+          "focusWU": 9.004167,
+          "endWU": 9.404167,
           "publishable": true,
           "presentation": {
             "layout": "constellation"
@@ -757,9 +756,9 @@
         {
           "id": "text-complexity-listen",
           "kind": "title",
-          "startWU": 8.35,
-          "focusWU": 8.75,
-          "endWU": 9.15,
+          "startWU": 10.325,
+          "focusWU": 10.725,
+          "endWU": 11.125,
           "publishable": true,
           "presentation": {
             "layout": "constellation"
@@ -772,9 +771,9 @@
         {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
-          "startWU": 11.42,
-          "focusWU": 11.65,
-          "endWU": 13.38,
+          "startWU": 12.215833,
+          "focusWU": 12.445833,
+          "endWU": 14.175833,
           "publishable": true,
           "presentation": {
             "layout": "disciplines"
@@ -798,9 +797,9 @@
         {
           "id": "text-role-highlight",
           "kind": "scroll-block",
-          "startWU": 13.38,
-          "focusWU": 13.66,
-          "endWU": 15.18,
+          "startWU": 13.886667,
+          "focusWU": 14.166667,
+          "endWU": 15.686667,
           "publishable": true,
           "presentation": {
             "layout": "exit"
@@ -828,9 +827,9 @@
         {
           "id": "text-life-momentum",
           "kind": "title",
-          "startWU": 15.55,
-          "focusWU": 15.95,
-          "endWU": 16.35,
+          "startWU": 15.4875,
+          "focusWU": 15.8875,
+          "endWU": 16.2875,
           "publishable": true,
           "presentation": {
             "layout": "living-field"
@@ -843,9 +842,9 @@
         {
           "id": "text-life-form",
           "kind": "title",
-          "startWU": 17.75,
-          "focusWU": 18.15,
-          "endWU": 18.55,
+          "startWU": 17.208333,
+          "focusWU": 17.608333,
+          "endWU": 18.008333,
           "publishable": true,
           "presentation": {
             "layout": "living-field"
@@ -858,9 +857,9 @@
         {
           "id": "text-life-character",
           "kind": "title",
-          "startWU": 19.05,
-          "focusWU": 19.45,
-          "endWU": 19.85,
+          "startWU": 18.929167,
+          "focusWU": 19.329167,
+          "endWU": 19.729167,
           "publishable": true,
           "presentation": {
             "layout": "living-field"

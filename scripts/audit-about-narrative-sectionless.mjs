@@ -54,7 +54,7 @@ async function auditProduction(viewport, label, expectedProfile) {
       legacyContainerCount: document.querySelectorAll('[data-narrative-section], [data-section-id], .about-narrative-section').length,
       semanticFieldCount: document.querySelectorAll('[data-text-field-id]').length,
       stubSemanticCount: document.querySelectorAll('[data-text-field-kind="stub"]').length,
-      openerCenterY: opener ? opener.top + (opener.height / 2) : 0,
+      openerCenterX: opener ? opener.left + (opener.width / 2) : 0,
     };
   });
   assert.equal(initial.editorCount, 0);
@@ -68,14 +68,14 @@ async function auditProduction(viewport, label, expectedProfile) {
   assert.equal(initial.layoutProfile, expectedProfile);
 
   await page.locator('.about-narrative-scrollport').evaluate((node) => {
-    node.scrollTop = (node.scrollHeight - node.clientHeight) * (11.49 / 21.8);
+    node.scrollTop = (node.scrollHeight - node.clientHeight) * (10.5 / 21.8);
     node.dispatchEvent(new Event('scroll', { bubbles: true }));
   });
   await page.waitForFunction(() => {
     const root = document.querySelector('.about-narrative-lab');
     const storyWU = Number(root?.dataset.narrativeStoryWu);
-    return storyWU > 11.45
-      && storyWU < 11.55
+    return storyWU > 10.45
+      && storyWU < 10.55
       && root?.dataset.worldDisciplineLabels === '6';
   });
   const disciplineState = await page.evaluate(() => {
@@ -93,7 +93,6 @@ async function auditProduction(viewport, label, expectedProfile) {
     return {
       activeWorld: root.dataset.activeNarrativeWorld,
       gridInfluence: root.dataset.worldGridInfluence,
-      worldFrom: root.dataset.worldFrom,
       worldTo: root.dataset.worldTo,
       labelsWithinViewport: labels.every((rect) => (
         rect.left >= viewport.left - 1
@@ -105,9 +104,8 @@ async function auditProduction(viewport, label, expectedProfile) {
     };
   });
   assert.deepEqual(disciplineState, {
-    activeWorld: 'world-background',
+    activeWorld: 'world-grid',
     gridInfluence: '0.0000',
-    worldFrom: 'turbulent-field-v1',
     worldTo: 'calm-field-v1',
     labelsWithinViewport: true,
     overlapPairs: [],
@@ -136,7 +134,7 @@ async function auditProduction(viewport, label, expectedProfile) {
       active: [...indicator.querySelectorAll('[data-active="true"]')]
         .map((line) => Number(line.dataset.lineIndex)),
       valueText: indicator.getAttribute('aria-valuetext'),
-      titleCenterY: titleRect.top + (titleRect.height / 2),
+      titleCenterX: titleRect.left + (titleRect.width / 2),
       titleOpacity: Number(getComputedStyle(title).opacity),
       actionsBelowTitle: actionsRect.top >= titleRect.bottom - 2,
       finaleWithinViewport: [titleRect, actionsRect, interactionRect].every(withinViewport),
@@ -144,10 +142,10 @@ async function auditProduction(viewport, label, expectedProfile) {
   });
   assert.deepEqual(endState.active, [16, 17]);
   assert.equal(endState.valueText, '100% through the About narrative');
-  assert.ok(Math.abs(endState.titleCenterY - initial.openerCenterY) <= 6);
+  assert.ok(Math.abs(endState.titleCenterX - initial.openerCenterX) <= 30);
   assert.ok(endState.titleOpacity > 0.99);
   assert.equal(endState.actionsBelowTitle, true);
-  assert.equal(endState.finaleWithinViewport, true);
+  assert.equal(endState.finaleWithinViewport, true, `${label} finale must remain within the studio viewport.`);
   assert.deepEqual(errors, []);
   await page.screenshot({ path: `${outputDir}/${browserName}-production-${label}.png` });
   await context.close();
@@ -168,10 +166,16 @@ async function auditEditor() {
     plusLabels: [...document.querySelectorAll('.about-track-editor-add')].map((button) => button.getAttribute('aria-label')),
     semanticFieldCount: document.querySelectorAll('[data-text-field-id]').length,
   }));
-  assert.equal(initial.editorVersion, 'sectionless-v4');
-  assert.deepEqual(initial.lanes, ['camera', 'world', 'text', 'interaction']);
+  assert.equal(initial.editorVersion, 'sectionless-v5');
+  assert.deepEqual(initial.lanes, ['camera', 'visibility', 'world', 'text', 'interaction']);
   assert.equal(initial.legacyContainerCount, 0);
-  assert.equal(initial.plusLabels.length, 4);
+  assert.deepEqual(initial.plusLabels, [
+    'Add Camera object at playhead',
+    'Add Visibility object at playhead',
+    'Add World object at playhead',
+    'Add Text object at playhead',
+    'Add Motion object at playhead',
+  ]);
   assert.equal(initial.semanticFieldCount, 13);
 
   const worldResizeHandles = page.getByRole('button', { name: /^Resize World .+ end$/ });
@@ -206,8 +210,8 @@ async function auditEditor() {
   assert.ok(visibleHandle.hitWidth >= 18 && visibleHandle.hitHeight >= 30);
   assert.ok(visibleHandle.gripWidth >= 10 && visibleHandle.gripHeight >= 24);
   const worldB = page.locator('[data-track-object-id="world-complexity"]');
-  const worldC = page.locator('[data-track-object-id="world-background"]');
-  const worldE = page.locator('[data-track-object-id="world-bringing-life"]');
+  const worldC = page.locator('[data-track-object-id="world-grid"]');
+  const worldE = page.locator('[data-track-object-id="world-orbital"]');
   const textReference = page.locator('[data-track-object-id="text-background-editorial"]');
   const worldRectsBefore = await Promise.all([worldB, worldC, worldE, textReference].map((locator) => locator.boundingBox()));
   assert.ok(Math.abs(worldRectsBefore[0].x + worldRectsBefore[0].width - worldRectsBefore[1].x) < 0.6);
@@ -218,7 +222,7 @@ async function auditEditor() {
   await page.mouse.move(handleBox.x - 33, handleBox.y + (handleBox.height / 2), { steps: 4 });
   await page.mouse.up();
   await page.waitForFunction((beforeX) => {
-    const rect = document.querySelector('[data-track-object-id="world-background"]')?.getBoundingClientRect();
+    const rect = document.querySelector('[data-track-object-id="world-grid"]')?.getBoundingClientRect();
     return rect && rect.left < beforeX - 20;
   }, worldRectsBefore[1].x);
   const worldRectsAfter = await Promise.all([worldB, worldC, worldE, textReference].map((locator) => locator.boundingBox()));
@@ -229,7 +233,7 @@ async function auditEditor() {
   assert.ok(Math.abs(worldRectsAfter[3].x - worldRectsBefore[3].x) < 0.6, 'Independent Text timing must not move during a World resize.');
   await page.getByRole('button', { name: 'Undo' }).click();
   await page.waitForFunction((beforeX) => {
-    const rect = document.querySelector('[data-track-object-id="world-background"]')?.getBoundingClientRect();
+    const rect = document.querySelector('[data-track-object-id="world-grid"]')?.getBoundingClientRect();
     return rect && Math.abs(rect.left - beforeX) < 0.6;
   }, worldRectsBefore[1].x);
 
@@ -409,9 +413,9 @@ async function auditEditor() {
   )));
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-editorial-reveal.png` });
 
-  await setPlayhead(11.49);
+  await setPlayhead(10.5);
   await page.waitForFunction(() => (
-    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) > 11.45
+    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) > 10.45
     && document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels === '6'
   ));
   const disciplineDesktop = await page.evaluate(() => {
@@ -421,7 +425,6 @@ async function auditEditor() {
     return {
       activeWorld: root.dataset.activeNarrativeWorld,
       gridInfluence: root.dataset.worldGridInfluence,
-      worldFrom: root.dataset.worldFrom,
       worldTo: root.dataset.worldTo,
       labelsWithinViewport: labels.every((rect) => (
         rect.left >= viewport.left - 1
@@ -432,9 +435,8 @@ async function auditEditor() {
     };
   });
   assert.deepEqual(disciplineDesktop, {
-    activeWorld: 'world-background',
+    activeWorld: 'world-grid',
     gridInfluence: '0.0000',
-    worldFrom: 'turbulent-field-v1',
     worldTo: 'calm-field-v1',
     labelsWithinViewport: true,
   });
@@ -491,12 +493,11 @@ async function auditEditor() {
   const cameraFolderLabels = await page.locator('[data-inspector-group^="camera-"] > summary span').allTextContents();
   assert.deepEqual(cameraFolderLabels, [
     'Camera rig',
-    'Distance fog',
     'Travel easing',
   ]);
   assert.equal(await page.getByText('Timing protected', { exact: true }).count(), 1);
   const cameraFolders = page.locator('[data-inspector-group^="camera-"]');
-  assert.equal(await cameraFolders.count(), 3);
+  assert.equal(await cameraFolders.count(), 2);
   assert.equal(await page.locator('[data-inspector-group="camera-rig"]').evaluate((folder) => folder.open), true);
   assert.equal(await page.locator('[data-inspector-group="camera-easing"]').evaluate((folder) => folder.open), false);
   for (const axis of ['X', 'Y', 'Z']) {
@@ -508,30 +509,43 @@ async function auditEditor() {
   assert.equal(await page.getByText(/Depth offset|Frame origin|Target coordinates|Aim target|Roll \/ horizon/).count(), 0);
   const openingPositionZ = page.getByRole('slider', { name: 'Camera Position Z slider' });
   assert.equal(await openingPositionZ.isEnabled(), true);
-  assert.equal(await openingPositionZ.inputValue(), '5.6');
+  assert.equal(await openingPositionZ.inputValue(), '5.9');
   await openingPositionZ.focus();
   await openingPositionZ.press('ArrowRight');
   await openingPositionZ.press('Tab');
-  assert.equal(await openingPositionZ.inputValue(), '5.61');
+  assert.equal(await openingPositionZ.inputValue(), '5.91');
   await page.getByRole('button', { name: 'Undo' }).click();
-  assert.equal(await openingPositionZ.inputValue(), '5.6');
+  assert.equal(await openingPositionZ.inputValue(), '5.9');
 
   await page.getByRole('button', { name: 'Camera', exact: true }).click();
   const globalCameraSettings = page.locator('[data-track-settings="camera"]');
   await globalCameraSettings.waitFor();
   assert.equal(await page.getByRole('heading', { name: 'Global camera' }).count(), 1);
   assert.deepEqual(await globalCameraSettings.locator('details > summary span').allTextContents(), [
-    'Camera · Default lens',
+    'Camera · Distance fog',
   ]);
-  await globalCameraSettings.locator('details > summary').click();
-  const fieldOfView = globalCameraSettings.getByRole('slider', { name: 'Global camera Default field of view slider' });
-  assert.equal(await fieldOfView.inputValue(), '48');
-  await fieldOfView.focus();
-  await fieldOfView.press('ArrowRight');
-  await fieldOfView.press('Tab');
-  assert.equal(await fieldOfView.inputValue(), '49');
+  await globalCameraSettings.locator('details').evaluate((details) => {
+    details.open = true;
+  });
+  const fogStart = globalCameraSettings.getByRole('slider', { name: 'Global camera Fog begins slider' });
+  assert.equal(await fogStart.inputValue(), '18');
+  await fogStart.focus();
+  await fogStart.press('ArrowRight');
+  await fogStart.press('Tab');
+  assert.equal(await fogStart.inputValue(), '18.1');
   await page.getByRole('button', { name: 'Undo' }).click();
-  assert.equal(await fieldOfView.inputValue(), '48');
+  assert.equal(await fogStart.inputValue(), '18');
+
+  await page.getByRole('button', { name: 'Visibility', exact: true }).click();
+  const globalVisibilitySettings = page.locator('[data-track-settings="visibility"]');
+  await globalVisibilitySettings.waitFor();
+  assert.equal(await globalVisibilitySettings.getByRole('heading', { name: 'Simulation visibility' }).count(), 1);
+  assert.equal(await globalVisibilitySettings.getByText(/independently of the Camera/i).count(), 1);
+  await page.locator('[data-track-object-id="visibility-void-off"]').click();
+  assert.equal(
+    await page.getByRole('slider', { name: 'Simulation visibility slider' }).inputValue(),
+    '0',
+  );
 
   await page.locator('[data-track-object-id="world-complexity"]').click();
   for (const label of ['Position X', 'Rotation Z', 'Scale', 'Transition type', 'Transition easing', 'Correspondence']) {
@@ -589,7 +603,7 @@ async function auditEditor() {
   assert.equal(mobileEditorial.withinInlineViewport, true);
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-mobile-editorial.png` });
 
-  await setPlayhead(11.49);
+  await setPlayhead(10.5);
   const mobilePortraitRatio = await page.locator('.about-narrative-scrollport').evaluate((node) => {
     const rect = node.getBoundingClientRect();
     return rect.width / rect.height;
@@ -597,7 +611,7 @@ async function auditEditor() {
   assert.ok(Math.abs(mobilePortraitRatio - (390 / 844)) < 0.01);
   await page.waitForFunction(() => {
     const root = document.querySelector('.about-narrative-lab');
-    return Number(root?.dataset.narrativeStoryWu) > 11.45
+    return Number(root?.dataset.narrativeStoryWu) > 10.45
       && root?.dataset.worldDisciplineLabels === '6';
   });
   await page.waitForFunction(() => {

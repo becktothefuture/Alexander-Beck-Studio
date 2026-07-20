@@ -201,22 +201,22 @@ const VERTEX_SHADER = `
     float radiusScale = 1.0;
     float speedScale = 1.0;
     if (orbitalSeed < 0.50) {
-      basePhase = 0.18;
+      basePhase = 0.166;
       inclination = 0.22;
       radiusScale = 0.45;
       speedScale = 1.0;
     } else if (orbitalSeed < 0.68) {
-      basePhase = 1.72;
+      basePhase = 3.364;
       inclination = -0.38;
       radiusScale = 0.68;
       speedScale = 0.78;
     } else if (orbitalSeed < 0.84) {
-      basePhase = 3.42;
+      basePhase = 0.414;
       inclination = 0.52;
       radiusScale = 0.85;
       speedScale = 0.61;
     } else {
-      basePhase = 5.08;
+      basePhase = 4.849;
       inclination = -0.28;
       speedScale = 0.48;
     }
@@ -410,10 +410,10 @@ const VERTEX_SHADER = `
     float sizeWeight = mix(fromPointSize, toPointSize, morph);
     float groupScale = mix(groupStrength, max(0.0, disciplinePointScale - 1.0), disciplineRevealActive);
     float emphasis = 1.0 + (groupWeight * groupScale) + (waveWeight * 0.18);
-    float perspectiveScale = clamp(5.0 / max(1.0, -viewPoint.z), 0.56, 3.2);
+    float perspectiveScale = clamp(5.5 / max(1.0, -viewPoint.z), 0.68, 2.2);
     float cssPointSize = pointSize * sizeWeight * emphasis * perspectiveScale;
     float entranceScale = clamp(sceneEntranceScale, 0.0, 1.0);
-    gl_PointSize = max(0.01, clamp(cssPointSize, 3.0, 10.0) * entranceScale) * pixelRatio;
+    gl_PointSize = max(0.01, clamp(cssPointSize, 4.5, 11.0) * entranceScale) * pixelRatio;
     pointAlpha = presence * entranceScale;
   }
 `;
@@ -938,7 +938,6 @@ function createPointFieldAdapter({
   let lastGridInfluence = Number.NaN;
   let lastInteractionEnabled = null;
   let lastWorldStage = '';
-  let lastCameraFov = Number.NaN;
   let lastBustStyleYaw = Number.NaN;
 
   const measureDisciplineLabels = () => {
@@ -2023,11 +2022,6 @@ function createPointFieldAdapter({
       lastWorldStage = toWorld.shapeId;
       runtimeObserver.hotFrameDomWrite();
     }
-    if (frame.camera.fov !== lastCameraFov) {
-      root.style.setProperty('--narrative-camera-fov', frame.camera.fov.toFixed(2));
-      lastCameraFov = frame.camera.fov;
-      runtimeObserver.hotFrameDomWrite();
-    }
     if (bustYaw !== lastBustStyleYaw) {
       root.style.setProperty('--narrative-bust-yaw', bustYaw.toFixed(4));
       lastBustStyleYaw = bustYaw;
@@ -2253,7 +2247,6 @@ function createPointFieldAdapter({
     delete root.dataset.worldDisciplineLabels;
     delete root.dataset.worldGridBackground;
     delete root.dataset.worldVisibility;
-    root.style.removeProperty('--narrative-camera-fov');
     root.style.removeProperty('--narrative-bust-yaw');
   };
 }

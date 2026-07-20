@@ -13,7 +13,7 @@
       "abs-neutral-100": { "value": "#efefef", "type": "color" },
       "abs-neutral-50": { "value": "#ffffff", "type": "color" },
       "abs-chrome-light": { "value": "#f1f3f4", "type": "color" },
-      "abs-chrome-dark": { "value": "#202124", "type": "color" },
+      "abs-chrome-dark": { "value": "#000000", "type": "color" },
 
       "abs-accent-primary": { "value": "#f03030", "type": "color" },
       "abs-accent-emerald": { "value": "#00695c", "type": "color" },

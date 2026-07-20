@@ -1,18 +1,20 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 5,
   "globals": {
     "scrollSmoothing": 0.82,
     "readingWidthRem": 58,
-    "editorialRevealThreshold": 0.74,
+    "editorialRevealThreshold": 0.8,
+    "worldRail": {
+      "originZ": 8,
+      "unitsPerWU": 1
+    },
     "camera": {
-      "startZ": 8,
-      "cadence": 1,
-      "cadenceLocked": true,
-      "fov": 48
+      "distanceFogStartWU": 18,
+      "distanceFogEndWU": 42
     },
     "pointMaterial": {
-      "opacity": 0.96,
-      "pointSize": 5.4
+      "opacity": 1,
+      "pointSize": 7
     },
     "swarmTurbulence": {
       "amplitude": 0.05,
@@ -24,9 +26,9 @@
     "textMotion": {
       "preset": "travelling-title-v1",
       "durationScale": 1.7,
-      "startY": -110,
+      "startY": 100,
       "openerStartY": 36,
-      "endY": 130,
+      "endY": -100,
       "readableStart": 0.24,
       "readableEnd": 0.76,
       "perspective": 1600,
@@ -35,362 +37,733 @@
       "maxBlur": 22
     }
   },
-  "sections": [
-    {
-      "id": "promise",
-      "label": "Intro",
-      "type": "spatial",
-      "layout": "opener",
-      "extentWU": 1.7,
-      "mobileExtentWU": 1.65,
-      "text": {
-        "cues": [
-          {
-            "id": "promise-main",
-            "text": "I help shape complex ideas into emotionally compelling experiences.",
-            "enter": 0,
-            "hold": 0.23,
-            "exit": 0.365,
-            "preset": "opener-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "complexity-idea",
-            "text": "At the start, an idea can feel like everything at once.",
-            "enter": 0.61,
-            "hold": 0.77,
-            "exit": 1,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          }
-        ]
-      },
-      "camera": {
-        "keys": [
-          {
-            "at": 0,
-            "offset": [
-              0,
-              0,
+  "profiles": {
+    "desktop": {
+      "storyDurationWU": 21.8,
+      "scrollDurationWU": 21.8,
+      "overrides": {
+        "camera": {},
+        "visibility": {},
+        "worlds": {},
+        "text": {},
+        "interactions": {}
+      }
+    },
+    "tablet": {
+      "storyDurationWU": 21.8,
+      "scrollDurationWU": 21.8,
+      "overrides": {
+        "camera": {},
+        "visibility": {},
+        "worlds": {},
+        "text": {},
+        "interactions": {}
+      }
+    },
+    "mobile": {
+      "storyDurationWU": 21.8,
+      "scrollDurationWU": 22.65,
+      "overrides": {
+        "camera": {
+          "bust-formation-hold": {
+            "position": [
+              4.4,
+              7.4,
+              -0.6
+            ],
+            "rotation": [
+              -35.36,
+              28.95,
               0
             ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
+            "fov": 54
           },
-          {
-            "at": 1,
-            "offset": [
+          "grid-birds-eye": {
+            "position": [
               0,
-              0,
-              0
+              5,
+              -0.32
             ],
-            "lookAtOffset": [
+            "fov": 50
+          },
+          "grid-birds-eye-hold": {
+            "position": [
               0,
-              0,
-              -1
+              5,
+              -0.32
             ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
+            "fov": 50
+          },
+          "grid-return-centered": {
+            "fov": 64
+          },
+          "grid-ripple-zoomout": {
+            "fov": 64
+          },
+          "orbital-oblique": {
+            "position": [
+              4.4,
+              7.4,
+              -0.6
+            ],
+            "fov": 54
           }
-        ]
-      },
-      "world": {
-        "mode": "set",
-        "adapterId": "point-field-v1",
-        "shapeId": "cluster-v1",
-        "seed": 506832829,
-        "entryDistanceWU": 8,
-        "transform": {
+        },
+        "visibility": {},
+        "worlds": {},
+        "text": {},
+        "interactions": {}
+      }
+    },
+    "reduced-motion": {
+      "mode": "overlay",
+      "motionPolicy": "settled"
+    }
+  },
+  "tracks": {
+    "camera": {
+      "keys": [
+        {
+          "id": "orb-establish",
+          "atWU": 0,
           "position": [
             0,
-            1.55,
-            0
+            0.05,
+            5.9
           ],
           "rotation": [
             0,
             0,
             0
           ],
-          "scale": 0.48,
-          "mobileScale": 0.34
+          "fov": 46,
+          "easing": "cubic-bezier(0.55, 0, 0.75, 1)",
+          "locked": true
         },
-        "transitionIn": {
-          "start": 0,
-          "end": 0,
-          "type": "morph",
+        {
+          "id": "orb-threshold",
+          "atWU": 0.95,
+          "position": [
+            0,
+            0.75,
+            3.15
+          ],
+          "rotation": [
+            8,
+            0,
+            0
+          ],
+          "fov": 48,
+          "easing": "ease-in-out",
+          "locked": false
+        },
+        {
+          "id": "complexity-inside",
+          "atWU": 2.45,
+          "position": [
+            0,
+            0.35,
+            0.35
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "fov": 52,
           "easing": "smoothstep",
-          "correspondence": "index-v1"
+          "locked": false
         },
-        "shapeParameters": {
-          "radius": 2.7,
-          "density": 0.12
+        {
+          "id": "complexity-exit",
+          "atWU": 4.2,
+          "position": [
+            0,
+            0.1,
+            -5.2
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "fov": 52,
+          "easing": "smoothstep",
+          "locked": false
         },
-        "modifiers": [
-          {
-            "id": "swarm-life-v1",
-            "enabled": true,
-            "parameters": {
-              "strength": 1
-            }
-          }
-        ]
-      },
-      "interaction": {
-        "type": "none"
-      }
-    },
-    {
-      "id": "complexity",
-      "label": "Entering complexity",
-      "type": "spatial",
-      "layout": "center",
-      "extentWU": 2.95,
-      "mobileExtentWU": 2.6,
-      "text": {
-        "cues": [
-          {
-            "id": "complexity-conditions",
-            "text": "It has to be useful, original, technically possible and emotionally right.",
-            "enter": 0.17,
-            "hold": 0.235,
-            "exit": 0.3,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "complexity-fragmented",
-            "text": "Its shape is still fragmented.",
-            "enter": 0.34,
-            "hold": 0.405,
-            "exit": 0.47,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "complexity-curiosity",
-            "text": "This stage of an idea has always captivated me.",
-            "enter": 0.51,
-            "hold": 0.575,
-            "exit": 0.64,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "complexity-listen",
-            "text": "I learn what is there and what matters to the people involved.",
-            "enter": 0.68,
-            "hold": 0.745,
-            "exit": 0.81,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "complexity-focus",
-            "text": "Then I look for the organising thought that can bring it into focus.",
-            "enter": 0.85,
-            "hold": 0.925,
-            "exit": 1,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          }
-        ]
-      },
-      "camera": {
-        "keys": [
-          {
-            "at": 0,
-            "offset": [
-              0,
-              0,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 1,
-            "offset": [
-              0,
-              0,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          }
-        ]
-      },
-      "world": {
-        "mode": "set",
-        "adapterId": "point-field-v1",
-        "shapeId": "turbulent-field-v1",
-        "seed": 506832829,
-      "entryDistanceWU": 5,
-        "transform": {
+        {
+          "id": "grid-floor-entry",
+          "atWU": 7.1,
+          "position": [
+            0,
+            0.65,
+            4.8
+          ],
+          "rotation": [
+            -10,
+            0,
+            0
+          ],
+          "fov": 56,
+          "easing": "ease-in-out",
+          "locked": false
+        },
+        {
+          "id": "grid-flyover",
+          "atWU": 8.2,
+          "position": [
+            0,
+            2.55,
+            1.8
+          ],
+          "rotation": [
+            -43,
+            0,
+            0
+          ],
+          "fov": 54,
+          "easing": "ease-in-out",
+          "locked": false
+        },
+        {
+          "id": "grid-birds-eye",
+          "atWU": 9.3,
+          "position": [
+            0,
+            3.5,
+            -0.32
+          ],
+          "rotation": [
+            -90,
+            0,
+            0
+          ],
+          "fov": 42,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "grid-birds-eye-hold",
+          "atWU": 11.18,
+          "position": [
+            0,
+            3.5,
+            -0.32
+          ],
+          "rotation": [
+            -90,
+            0,
+            0
+          ],
+          "fov": 42,
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "grid-return-centered",
+          "atWU": 15.35,
+          "position": [
+            0,
+            5.8,
+            -8.555
+          ],
+          "rotation": [
+            -90,
+            0,
+            0
+          ],
+          "fov": 52,
+          "easing": "ease-in-out",
+          "locked": false
+        },
+        {
+          "id": "grid-ripple-zoomout",
+          "atWU": 17.7,
+          "position": [
+            0,
+            14.5,
+            -8.555
+          ],
+          "rotation": [
+            -90,
+            0,
+            0
+          ],
+          "fov": 52,
+          "easing": "ease-in-out",
+          "locked": false
+        },
+        {
+          "id": "orbital-oblique",
+          "atWU": 18.7,
+          "position": [
+            3.4,
+            6,
+            -2.35
+          ],
+          "rotation": [
+            -35.36,
+            28.95,
+            0
+          ],
+          "fov": 48,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "bust-formation-hold",
+          "atWU": 20.65,
+          "position": [
+            1.4,
+            2.8,
+            -3.1
+          ],
+          "rotation": [
+            -15,
+            12,
+            0
+          ],
+          "fov": 42,
+          "easing": "ease-in-out",
+          "locked": false
+        },
+        {
+          "id": "bust-arrive",
+          "atWU": 21.05,
           "position": [
             0,
             0.25,
-            0
+            -3.1
           ],
           "rotation": [
             0,
             0,
             0
           ],
-          "scale": 1
+          "fov": 34,
+          "easing": "linear",
+          "locked": false
         },
-        "transitionIn": {
-          "start": 0.02,
-          "end": 0.28,
-          "type": "morph",
-          "easing": "smoothstep",
-          "correspondence": "spatial-nearest-v1"
-        },
-        "shapeParameters": {
-          "width": 10,
-          "height": 7,
-        "depth": 15,
-          "chunkCount": 7,
-          "chunkSize": 1.55,
-          "scatter": 0.14,
-          "turbulence": 0.52,
-          "density": 0.26
-        },
-        "modifiers": [
-          {
-            "id": "swarm-life-v1",
-            "enabled": true,
-            "parameters": {
-              "strength": 1
-            }
-          }
-        ]
-      },
-      "interaction": {
-        "type": "none"
-      }
+        {
+          "id": "finale-hold",
+          "atWU": 21.8,
+          "position": [
+            0,
+            0.25,
+            -3.1
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "fov": 34,
+          "easing": "linear",
+          "locked": true
+        }
+      ]
     },
-    {
-      "id": "background",
-      "label": "Curiosity across aesthetics and technology",
-      "type": "editorial",
-      "layout": "reading",
-      "extentWU": 2.9,
-      "mobileExtentWU": 3.6,
-      "text": {
-        "blocks": [
+    "visibility": {
+      "keys": [
         {
-          "id": "background-title",
-          "kind": "highlight",
-          "text": "Perhaps that is why I have always been drawn to the space between aesthetics and technology.",
-          "emphasis": [
-            {
-              "text": "aesthetics and technology",
-              "tone": "blue"
-            }
-          ]
+          "id": "visibility-start",
+          "atWU": 0,
+          "visibility": 1,
+          "easing": "linear",
+          "locked": true
         },
         {
-          "id": "background-practice",
-          "kind": "prose",
-          "text": "I studied Communication Design, then built my work across digital products, web design, identity, interfaces, motion, and creative uses of AI and technology.",
-          "emphasis": [
-            {
-              "text": "Communication Design",
-              "tone": "blue"
-            },
-            {
-              "text": "AI and technology",
-              "tone": "orange"
-            }
-          ]
+          "id": "visibility-complexity",
+          "atWU": 4.1,
+          "visibility": 1,
+          "easing": "smoothstep",
+          "locked": false
         },
         {
-          "id": "background-curiosity",
-          "kind": "prose",
-          "text": "At the centre of it is curiosity: how things work, how they feel and how those qualities can strengthen one another.",
-          "emphasis": [
-            {
-              "text": "curiosity",
-              "tone": "green"
-            },
-            {
-              "text": "how things work",
-              "tone": "blue"
-            }
-          ]
+          "id": "visibility-void-off",
+          "atWU": 4.28,
+          "visibility": 0,
+          "easing": "linear",
+          "locked": false
         },
         {
-          "id": "background-technology",
-          "kind": "prose",
-          "text": "This is what draws me to emerging technology. I see the opportunity for it to play a useful role in people’s lives once it has been deconstructed, made tangible, made visual and made interactive enough to resonate.",
-          "emphasis": [
-            {
-              "text": "emerging technology",
-              "tone": "orange"
-            },
-            {
-              "text": "made tangible",
-              "tone": "blue"
-            },
-            {
-              "text": "made interactive",
-              "tone": "green"
-            }
-          ]
+          "id": "visibility-grid-rise",
+          "atWU": 6.8,
+          "visibility": 0,
+          "easing": "smoothstep",
+          "locked": false
         },
         {
-          "id": "background-context",
-          "kind": "prose",
-          "text": "That curiosity has shaped my work with technology start-ups and creative agencies, on ambitious projects across identity, finance, mobility, healthcare and digital products.",
-          "emphasis": [
-            {
-              "text": "technology start-ups",
-              "tone": "orange"
-            },
-            {
-              "text": "creative agencies",
-              "tone": "blue"
-            },
-            {
-              "text": "ambitious projects",
-              "tone": "green"
-            }
-          ]
+          "id": "visibility-grid-visible",
+          "atWU": 7.25,
+          "visibility": 1,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "visibility-disciplines",
+          "atWU": 11.18,
+          "visibility": 1,
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "visibility-editorial-off",
+          "atWU": 11.38,
+          "visibility": 0,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "visibility-return-start",
+          "atWU": 15.28,
+          "visibility": 0,
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "visibility-returned",
+          "atWU": 15.48,
+          "visibility": 1,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "visibility-end",
+          "atWU": 21.8,
+          "visibility": 1,
+          "easing": "linear",
+          "locked": true
+        }
+      ]
+    },
+    "worlds": {
+      "objects": [
+        {
+          "id": "world-promise",
+          "label": "A",
+          "startWU": 0,
+          "anchorWU": 0,
+          "adapterId": "point-field-v1",
+          "shapeId": "cluster-v1",
+          "seed": 506832829,
+          "entryDistanceWU": 8,
+          "transform": {
+            "position": [
+              0,
+              2.25,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": 0.52,
+            "mobileScale": 0.44
           },
-          {
+          "transitionIn": {
+            "startWU": 0,
+            "endWU": 0,
+            "type": "dissolve-morph",
+            "easing": "ease-in",
+            "correspondence": "index-v1"
+          },
+          "shapeParameters": {
+            "radius": 1.6,
+            "density": 0.33
+          },
+          "modifiers": [
+            {
+              "id": "swarm-life-v1",
+              "enabled": true,
+              "parameters": {
+                "strength": 3.66
+              }
+            }
+          ]
+        },
+        {
+          "id": "world-complexity",
+          "label": "B",
+          "startWU": 0.95,
+          "anchorWU": 0.95,
+          "adapterId": "point-field-v1",
+          "shapeId": "turbulent-field-v1",
+          "seed": 506832829,
+          "entryDistanceWU": 6.2,
+          "transform": {
+            "position": [
+              0,
+              1.2,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": 0.92
+          },
+          "transitionIn": {
+            "startWU": 0.95,
+            "endWU": 2.55,
+            "type": "morph",
+            "easing": "smoothstep",
+            "correspondence": "spatial-nearest-v2"
+          },
+          "shapeParameters": {
+            "width": 12.2,
+            "height": 9.4,
+            "depth": 24,
+            "chunkCount": 18,
+            "chunkSize": 2.6,
+            "scatter": 0.14,
+            "turbulence": 0.42,
+            "density": 0.38
+          },
+          "modifiers": [
+            {
+              "id": "swarm-life-v1",
+              "enabled": true,
+              "parameters": {
+                "strength": 1.5
+              }
+            }
+          ]
+        },
+        {
+          "id": "world-grid",
+          "label": "C",
+          "startWU": 6.75,
+          "anchorWU": 4.555,
+          "adapterId": "point-field-v1",
+          "shapeId": "calm-field-v1",
+          "seed": 506832829,
+          "entryDistanceWU": 12,
+          "transform": {
+            "position": [
+              0,
+              0.2,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": 1,
+            "mobileScale": 0.8,
+            "mobileXScale": 0.55
+          },
+          "transitionIn": {
+            "startWU": 6.75,
+            "endWU": 7.45,
+            "type": "morph",
+            "easing": "ease-out",
+            "correspondence": "spatial-nearest-v2"
+          },
+          "shapeParameters": {
+            "width": 16.4,
+            "depth": 18,
+            "height": -1.72,
+            "jitter": 0.035,
+            "density": 0.22
+          },
+          "modifiers": []
+        },
+        {
+          "id": "world-orbital",
+          "label": "E",
+          "startWU": 17.7,
+          "anchorWU": 4.555,
+          "adapterId": "point-field-v1",
+          "shapeId": "orbital-system-v1",
+          "seed": 506832829,
+          "entryDistanceWU": 12,
+          "transform": {
+            "position": [
+              0,
+              1.05,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": 1.12,
+            "mobileScale": 0.49
+          },
+          "transitionIn": {
+            "startWU": 17.7,
+            "endWU": 18.55,
+            "type": "morph",
+            "easing": "smoothstep",
+            "correspondence": "index-v1"
+          },
+          "shapeParameters": {
+            "orbitRadius": 4.6,
+            "coreRadius": 1.05,
+            "bodyRadius": 0.72,
+            "density": 0.62
+          },
+          "modifiers": [
+            {
+              "id": "orbital-life-v1",
+              "enabled": true,
+              "parameters": {
+                "strength": 1,
+                "speed": 0.16,
+                "timeMode": "story"
+              }
+            }
+          ]
+        },
+        {
+          "id": "world-epilogue",
+          "label": "F",
+          "startWU": 20.3,
+          "anchorWU": 4.555,
+          "adapterId": "point-field-v1",
+          "shapeId": "bust-v1",
+          "seed": 506832829,
+          "entryDistanceWU": 12,
+          "transform": {
+            "position": [
+              0,
+              1.3,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": 0.5,
+            "mobileScale": 0.38
+          },
+          "transitionIn": {
+            "startWU": 20.3,
+            "endWU": 20.65,
+            "type": "morph",
+            "easing": "ease-out",
+            "correspondence": "spatial-nearest-v2"
+          },
+          "shapeParameters": {
+            "density": 0.13
+          },
+          "modifiers": [
+            {
+              "id": "ambient-drift-v1",
+              "enabled": true,
+              "parameters": {
+                "amplitude": 0.025,
+                "speed": 1,
+                "timeMode": "mixed"
+              }
+            },
+            {
+              "id": "bust-yaw-v1",
+              "enabled": true,
+              "parameters": {
+                "speed": 0.11,
+                "dragSensitivity": 1,
+                "resumeDelay": 1.2,
+                "resumeBlend": 1.4,
+                "timeMode": "ambient"
+              }
+            }
+          ],
+          "protected": true
+        }
+      ]
+    },
+    "text": {
+      "fields": [
+        {
+          "id": "text-promise-main",
+          "kind": "title",
+          "startWU": 0,
+          "focusWU": 0.4,
+          "endWU": 0.8,
+          "publishable": true,
+          "presentation": {
+            "layout": "opener"
+          },
+          "movement": "spatial",
+          "preset": "opener-v1",
+          "titleStyle": "display",
+          "text": "About Me",
+          "description": "I help shape complexity into compelling experiences"
+        },
+        {
+          "id": "text-complexity-idea",
+          "kind": "title",
+          "startWU": 0.95,
+          "focusWU": 1.35,
+          "endWU": 1.75,
+          "publishable": true,
+          "presentation": {
+            "layout": "center"
+          },
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "titleStyle": "standard",
+          "text": "I’ve always been drawn to the complicated bit."
+        },
+        {
+          "id": "text-complexity-conditions",
+          "kind": "title",
+          "startWU": 2.05,
+          "focusWU": 2.45,
+          "endWU": 2.85,
+          "publishable": true,
+          "presentation": {
+            "layout": "center"
+          },
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "titleStyle": "standard",
+          "text": "New technology. New behaviours. How to inspire trust."
+        },
+        {
+          "id": "text-background-editorial",
+          "kind": "scroll-block",
+          "startWU": 4.75,
+          "focusWU": 4.92,
+          "endWU": 6.18,
+          "publishable": true,
+          "presentation": {
+            "layout": "reading"
+          },
+          "block": {
+            "id": "background-passage",
+            "kind": "prose",
+            "text": "The interesting part is where those things meet: when a powerful capability is unfamiliar and a service has to explain what it changes without getting in the way.\nI studied Communication Design because I wanted to understand how ideas become clear through words, aesthetics, hierarchy, motion, systems and the interplay between them. Agency work gave me visual culture, craft and pace. Product work showed me that behaviour, brand and trust often belong to the same problem.",
+            "emphasis": [
+              {
+                "text": "Communication Design",
+                "tone": "blue"
+              },
+              {
+                "text": "Product work",
+                "tone": "blue"
+              }
+            ]
+          }
+        },
+        {
+          "id": "text-background-clients",
+          "kind": "scroll-block",
+          "startWU": 5.62,
+          "focusWU": 6.15,
+          "endWU": 6.68,
+          "publishable": true,
+          "presentation": {
+            "layout": "reading"
+          },
+          "block": {
             "id": "background-clients",
             "kind": "clients",
             "items": [
@@ -402,745 +775,231 @@
               "American Heart Association"
             ]
           }
-        ]
-      },
-      "camera": {
-        "keys": [
-          {
-            "at": 0,
-            "offset": [
-              0,
-              0,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 0.5,
-            "offset": [
-              0,
-              0,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 0.74,
-            "offset": [
-              0,
-              2.8,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              -2.55,
-              -0.92
-            ],
-            "fov": 47.5,
-            "roll": 0,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 1,
-            "offset": [
-              0,
-              6.4,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              -6.4,
-              -0.45
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          }
-        ]
-      },
-      "world": {
-        "mode": "set",
-        "adapterId": "point-field-v1",
-        "shapeId": "calm-field-v1",
-        "seed": 506832829,
-        "entryDistanceWU": 1.8,
-        "transform": {
-          "position": [
-            0,
-            0.2,
-            0
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "scale": 1
         },
-        "transitionIn": {
-          "start": 0.02,
-          "end": 0.18,
-          "type": "morph",
-          "easing": "smoothstep",
-          "correspondence": "spatial-nearest-v1"
-        },
-        "shapeParameters": {
-          "width": 13.5,
-          "depth": 24,
-          "height": -1.72,
-          "jitter": 0.035,
-          "density": 0.18
-        },
-        "modifiers": [
-          {
-            "id": "swarm-life-v1",
-            "enabled": true,
-            "parameters": {
-              "strength": 0.18
-            }
-          }
-        ]
-      },
-      "interaction": {
-        "type": "none"
-      }
-    },
-    {
-      "id": "practice-reveal",
-      "label": "The practice comes into view",
-      "type": "spatial",
-      "layout": "constellation",
-      "extentWU": 1.8,
-      "mobileExtentWU": 1.75,
-      "text": {
-        "disciplineReveal": {
-          "id": "practice-disciplines",
-          "fieldTravelStart": 0.06,
-          "fieldTravelEnd": 2.7,
-          "fieldTravelWU": 6.8,
-          "fieldFogStartWU": 4.8,
-          "fieldFogEndWU": 10.5,
-          "fieldFogStrength": 0.8,
-          "start": 0.32,
-          "end": 2.9,
-          "stagger": 0.075,
-          "backgroundFade": 0.12,
-          "backgroundOpacity": 0.22,
-          "reconnectOpacity": 0.24,
-          "pointScale": 1.35,
-          "labelOffsetPx": 10,
-          "labelDuration": 0.06,
-          "hold": 1.45,
-          "items": [
-            {
-              "group": 1,
-              "label": "Product Design"
-            },
-            {
-              "group": 2,
-              "label": "Experience Design"
-            },
-            {
-              "group": 3,
-              "label": "Art Direction"
-            },
-            {
-              "group": 4,
-              "label": "Motion & 3D"
-            },
-            {
-              "group": 5,
-              "label": "Creative Engineering"
-            },
-            {
-              "group": 6,
-              "label": "Parametric Systems"
-            }
-          ]
-        }
-      },
-      "camera": {
-        "keys": [
-          {
-            "at": 0,
-            "offset": [
-              0,
-              6.4,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              -6.4,
-              -0.45
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
+        {
+          "id": "text-complexity-curiosity",
+          "kind": "title",
+          "startWU": 7.3,
+          "focusWU": 7.7,
+          "endWU": 8.1,
+          "publishable": true,
+          "presentation": {
+            "layout": "constellation"
           },
-          {
-            "at": 1,
-            "offset": [
-              0,
-              6.4,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              -6.4,
-              -0.45
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          }
-        ]
-      },
-      "world": {
-        "mode": "continue"
-      },
-      "interaction": {
-        "type": "none"
-      }
-    },
-    {
-      "id": "disciplines",
-      "label": "Six connected disciplines",
-      "type": "editorial",
-      "layout": "disciplines",
-      "extentWU": 3.2,
-      "mobileExtentWU": 4,
-      "text": {
-        "blocks": [
-          {
-            "id": "disciplines-title",
-            "kind": "highlight",
-            "text": "Each brings a different way of thinking to the work.",
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "titleStyle": "standard",
+          "text": "Resolving complexity rarely sits within one discipline."
+        },
+        {
+          "id": "text-complexity-listen",
+          "kind": "title",
+          "startWU": 8.35,
+          "focusWU": 8.75,
+          "endWU": 9.15,
+          "publishable": true,
+          "presentation": {
+            "layout": "constellation"
+          },
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "titleStyle": "display",
+          "text": "So I move between several."
+        },
+        {
+          "id": "text-disciplines-title",
+          "kind": "scroll-block",
+          "startWU": 11.42,
+          "focusWU": 11.65,
+          "endWU": 13.38,
+          "publishable": true,
+          "presentation": {
+            "layout": "disciplines"
+          },
+          "block": {
+            "id": "disciplines-passage",
+            "kind": "prose",
+            "text": "I go deep into the problem, find the organising idea and make it tangible enough for a team to question, test and build.\nAI helps me explore and build faster, but its value depends on direction, human judgement and knowing when the work feels generic.",
             "emphasis": [
               {
-                "text": "different way of thinking",
-                "tone": "green"
+                "text": "AI",
+                "tone": "blue"
+              },
+              {
+                "text": "judgement",
+                "tone": "blue"
               }
             ]
-          },
-          {
-            "id": "disciplines-practice",
-            "kind": "prose",
-            "text": "Their different perspectives help me understand an opportunity, shape how an experience works, give it character, make behaviour and feeling tangible, and explore directly through code, tools and working systems."
-          },
-          {
-            "id": "disciplines-ai",
-            "kind": "prose",
-            "text": "AI runs through all of this as a creative material and a practical capability, expanding what I can explore, generate and build."
-          },
-          {
-            "id": "disciplines-synthesis",
-            "kind": "prose",
-            "text": "Moving between disciplines lets one kind of thinking affect another. An insight can reshape a product. A technical experiment can unlock a visual language. Motion can make an interaction easier to understand.",
-            "worldInfluence": true
           }
-        ]
-      },
-      "camera": {
-        "keys": [
-          {
-            "at": 0,
-            "offset": [
-              0,
-              6.4,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              -6.4,
-              -0.45
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 1,
-            "offset": [
-              0,
-              6.4,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              -6.4,
-              -0.45
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          }
-        ]
-      },
-      "world": {
-        "mode": "continue"
-      },
-      "interaction": {
-        "type": "none"
-      }
-    },
-    {
-      "id": "bringing-life",
-      "label": "Bringing the idea to life",
-      "type": "spatial",
-      "layout": "living-field",
-      "extentWU": 3.1,
-      "mobileExtentWU": 2.85,
-      "text": {
-        "cues": [
-          {
-            "id": "life-momentum",
-            "text": "As those ways of thinking begin to influence one another, complexity starts to cohere.",
-            "enter": 0,
-            "hold": 0.08,
-            "exit": 0.16,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "life-form",
-            "text": "It takes on clear form and intuitive behaviour.",
-            "enter": 0.2,
-            "hold": 0.28,
-            "exit": 0.36,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "life-character",
-            "text": "It gains a character people can trust.",
-            "enter": 0.4,
-            "hold": 0.48,
-            "exit": 0.56,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "life-feel",
-            "text": "It becomes something they can relate to, interact with and feel.",
-            "enter": 0.6,
-            "hold": 0.68,
-            "exit": 0.76,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          },
-          {
-            "id": "life-meaning",
-            "text": "That is what excites me about bringing an idea to life.",
-            "enter": 0.82,
-            "hold": 0.91,
-            "exit": 1,
-            "preset": "travelling-title-v1",
-            "motion": {
-              "mode": "spatial"
-            }
-          }
-        ]
-      },
-      "camera": {
-        "keys": [
-          {
-            "at": 0,
-            "offset": [
-              0,
-              6.4,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              -6.4,
-              -0.45
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 0.34,
-            "offset": [
-              0,
-              0.35,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              -0.08,
-              -1
-            ],
-            "fov": 49,
-            "roll": 0,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 0.72,
-            "offset": [
-              0,
-              0.08,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0.035,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 1,
-            "offset": [
-              0,
-              0,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          }
-        ]
-      },
-      "world": {
-        "mode": "set",
-        "adapterId": "point-field-v1",
-        "shapeId": "living-field-v1",
-        "seed": 506832829,
-        "entryDistanceWU": 0.8,
-        "transform": {
-          "position": [
-            0,
-            0,
-            0
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "scale": 1
         },
-        "transitionIn": {
-          "start": 0.02,
-          "end": 0.45,
-          "type": "morph",
-          "easing": "smoothstep",
-          "correspondence": "spatial-nearest-v1"
-        },
-        "shapeParameters": {
-          "width": 13.5,
-          "depth": 18,
-          "baseY": -1.58,
-          "terrainX": 0.14,
-          "terrainZ": 0.12,
-          "density": 0.16
-        },
-        "modifiers": [
-          {
-            "id": "ambient-drift-v1",
-            "enabled": true,
-            "parameters": {
-              "amplitude": 0.025,
-              "speed": 0.62,
-              "timeMode": "mixed"
-            }
-          },
-          {
-            "id": "living-wave-v1",
-            "enabled": true,
-            "parameters": {
-              "strength": 0.68,
-              "amplitude": 0.12,
-              "speed": 0.42,
-              "frequencyX": 1.15,
-              "frequencyZ": 0.72,
-              "timeMode": "mixed"
-            }
-          },
-          {
-            "id": "living-colour-v1",
-            "enabled": true,
-            "parameters": {
-              "strength": 0.62,
-              "timeMode": "mixed"
-            }
-          }
-        ]
-      },
-      "interaction": {
-        "type": "none"
-      }
-    },
-    {
-      "id": "role",
-      "label": "Service proposition",
-      "type": "editorial",
-      "layout": "exit",
-      "extentWU": 1.35,
-      "mobileExtentWU": 1.5,
-      "text": {
-        "blocks": [
         {
-          "id": "role-highlight",
-          "kind": "highlight",
-          "text": "That is the work I do with ambitious teams: bringing design, creative technology and AI together to give early ideas a form people can understand, trust and want to engage with.",
-          "emphasis": [
-            {
-              "text": "design",
-              "tone": "blue"
-            },
-            {
-              "text": "creative technology",
-              "tone": "green"
-            },
-            {
-              "text": "AI",
-              "tone": "orange"
-            }
-          ]
+          "id": "text-role-highlight",
+          "kind": "scroll-block",
+          "startWU": 13.38,
+          "focusWU": 13.66,
+          "endWU": 15.18,
+          "publishable": true,
+          "presentation": {
+            "layout": "exit"
+          },
+          "block": {
+            "id": "role-passage",
+            "kind": "prose",
+            "text": "I work with ambitious teams on problems that are not neatly defined yet—especially where design, technology and AI need to shape direction together.",
+            "emphasis": [
+              {
+                "text": "design",
+                "tone": "blue"
+              },
+              {
+                "text": "technology",
+                "tone": "blue"
+              },
+              {
+                "text": "AI",
+                "tone": "blue"
+              }
+            ]
+          }
+        },
+        {
+          "id": "text-life-momentum",
+          "kind": "title",
+          "startWU": 15.55,
+          "focusWU": 15.95,
+          "endWU": 16.35,
+          "publishable": true,
+          "presentation": {
+            "layout": "living-field"
+          },
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "titleStyle": "standard",
+          "text": "When ideas become intentional…"
+        },
+        {
+          "id": "text-life-form",
+          "kind": "title",
+          "startWU": 16.85,
+          "focusWU": 17.25,
+          "endWU": 17.65,
+          "publishable": true,
+          "presentation": {
+            "layout": "living-field"
+          },
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "titleStyle": "standard",
+          "text": "…they find rhythm, character and use…"
+        },
+        {
+          "id": "text-life-character",
+          "kind": "title",
+          "startWU": 19.05,
+          "focusWU": 19.45,
+          "endWU": 19.85,
+          "publishable": true,
+          "presentation": {
+            "layout": "living-field"
+          },
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "titleStyle": "standard",
+          "text": "…and something new emerges."
+        },
+        {
+          "id": "text-epilogue-invitation",
+          "kind": "title",
+          "startWU": 20.65,
+          "focusWU": 21.05,
+          "endWU": 21.8,
+          "publishable": true,
+          "presentation": {
+            "layout": "text-bust-cta"
+          },
+          "movement": "spatial",
+          "preset": "finale-v1",
+          "titleStyle": "display",
+          "text": "If you’re building something new and need it to make sense to people, let’s talk."
         }
-        ]
-      },
-      "camera": {
-        "keys": [
-          {
-            "at": 0,
-            "offset": [
-              0,
-              0,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 1,
-            "offset": [
-              0,
-              0,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          }
-        ]
-      },
-      "world": {
-        "mode": "continue"
-      },
-      "interaction": {
-        "type": "none"
-      }
+      ]
     },
-    {
-      "id": "epilogue",
-      "label": "Invitation",
-      "type": "finale",
-      "layout": "text-bust-cta",
-      "extentWU": 2.5,
-      "mobileExtentWU": 2.35,
-      "text": {
-        "cues": [
-          {
-            "id": "epilogue-invitation",
-            "text": "If you are building something new, let’s talk.",
-            "enter": 0.18,
-            "hold": 0.34,
-            "exit": 1,
-            "preset": "finale-v1",
-            "motion": {
-              "mode": "spatial"
-            }
+    "interactions": {
+      "clips": [
+        {
+          "id": "motion-discipline-reveal",
+          "type": "discipline-reveal",
+          "startWU": 9.25,
+          "activationWU": 9.42,
+          "endWU": 11.18,
+          "targetWorldId": "world-grid",
+          "parameters": {
+            "labelWindowWU": 1.65,
+            "staggerWU": 0.135,
+            "backgroundFadeWU": 0.2,
+            "backgroundOpacity": 0.28,
+            "reconnectOpacity": 0.38,
+            "pointScale": 2.15,
+            "restoreDurationWU": 0.3,
+            "labelOffsetPx": 20,
+            "labelScale": 1.3,
+            "labelDurationWU": 0.162,
+            "holdWU": 0.45,
+            "items": [
+              {
+                "group": 1,
+                "label": "Product Design"
+              },
+              {
+                "group": 2,
+                "label": "Experience Design"
+              },
+              {
+                "group": 3,
+                "label": "Art Direction"
+              },
+              {
+                "group": 4,
+                "label": "Motion & 3D"
+              },
+              {
+                "group": 5,
+                "label": "Creative Engineering"
+              },
+              {
+                "group": 6,
+                "label": "Parametric Systems"
+              }
+            ]
           }
-        ]
-      },
-      "camera": {
-        "keys": [
-          {
-            "at": 0,
-            "offset": [
-              0,
-              0,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 0.08,
-            "offset": [
-              0,
-              0,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 0.38,
-            "offset": [
-              0,
-              0,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0.38,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 0.68,
-            "offset": [
-              0,
-              0,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
-          },
-          {
-            "at": 1,
-            "offset": [
-              0,
-              0,
-              0
-            ],
-            "lookAtOffset": [
-              0,
-              0,
-              -1
-            ],
-            "fov": 48,
-            "roll": 0,
-            "easing": "smoothstep"
+        },
+        {
+          "id": "interaction-grid-ripple",
+          "type": "grid-ripple",
+          "startWU": 15.75,
+          "activationWU": 15.95,
+          "endWU": 17.7,
+          "targetWorldId": "world-grid",
+          "parameters": {
+            "amplitude": 1.25,
+            "speed": 0.5,
+            "frequency": 1.05,
+            "releaseWU": 0.06,
+            "timeMode": "story"
           }
-        ]
-      },
-      "world": {
-        "mode": "set",
-        "adapterId": "point-field-v1",
-        "shapeId": "bust-v1",
-        "seed": 506832829,
-        "entryDistanceWU": 5.4,
-        "transform": {
-          "position": [
-            0,
-            0.08,
-            0
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "scale": 0.84,
-          "mobileScale": 0.5,
-          "mobileYOffset": 0.58
         },
-        "transitionIn": {
-          "start": 0.08,
-          "end": 0.62,
-          "type": "morph",
-          "easing": "smoothstep",
-          "correspondence": "spatial-nearest-v1"
-        },
-        "shapeParameters": {
-          "density": 0.38
-        },
-        "modifiers": [
-          {
-            "id": "ambient-drift-v1",
-            "enabled": true,
-            "parameters": {
-              "amplitude": 0.025,
-              "speed": 0.62,
-              "timeMode": "mixed"
-            }
-          },
-          {
-            "id": "bust-yaw-v1",
-            "enabled": true,
-            "parameters": {
-              "speed": 0.026,
-              "dragSensitivity": 1,
-              "resumeDelay": 1.2,
-              "resumeBlend": 1.4,
-              "timeMode": "ambient"
-            }
-          }
-        ]
-      },
-      "interaction": {
-        "type": "horizontal-spin",
-        "activationStart": 0.54
-      },
-      "locked": true
+        {
+          "id": "interaction-epilogue",
+          "type": "horizontal-spin",
+          "startWU": 20.3,
+          "activationWU": 21.05,
+          "endWU": 21.8,
+          "targetWorldId": "world-epilogue",
+          "protected": true
+        }
+      ]
     }
-  ],
+  },
   "library": {
     "presets": [
       {

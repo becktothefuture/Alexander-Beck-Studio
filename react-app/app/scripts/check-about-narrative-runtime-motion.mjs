@@ -244,6 +244,21 @@ test('grid ripple expands from its center and displaces the field in depth and r
 
   input.gridRipple.progress = 1;
   sampleAboutNarrativeAnchorPosition(input, first);
+  const ripplePointX = 1 - input.gridRipple.centerX;
+  const ripplePointZ = 3 - input.gridRipple.centerZ;
+  const rippleDistance = Math.hypot(ripplePointX, ripplePointZ);
+  const ripplePhase = input.storyTime * input.gridRipple.speed * 6.2831853;
+  const radialRipple = Math.sin((rippleDistance * input.gridRipple.frequency) - ripplePhase);
+  const crossingRipple = Math.sin(
+    (ripplePointX * input.gridRipple.frequency * 0.68)
+    - (ripplePointZ * input.gridRipple.frequency * 0.51)
+    + (ripplePhase * 0.72),
+  );
+  const rippleStrength = input.gridRipple.weight * input.gridRipple.amplitude;
+  const radialDisplacement = rippleStrength * radialRipple * 0.52;
+  assert.ok(Math.abs(first.x - (1 + ((ripplePointX / rippleDistance) * radialDisplacement))) < 1e-9);
+  assert.ok(Math.abs(first.y - (2 + (rippleStrength * ((radialRipple * 0.68) + (crossingRipple * 0.32))))) < 1e-9);
+  assert.ok(Math.abs(first.z - (3 + ((ripplePointZ / rippleDistance) * radialDisplacement))) < 1e-9);
   input.storyTime = 0.81;
   sampleAboutNarrativeAnchorPosition(input, second);
   assert.notEqual(first.x, 1);

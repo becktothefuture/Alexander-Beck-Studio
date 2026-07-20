@@ -172,15 +172,25 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 ### About Me
 
 - About is one continuous scroll narrative inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, and Button Bar remain stable.
-- The narrative moves from a dense idea cloud through a calm field, a six-discipline grid, a living wave field, and a large point-cloud bust. These are transformations of one material, not separate decorative scenes.
+- The narrative establishes an orb above the opening promise, flies into its complexity, scatters
+  through an empty interval, raises an organised grid from below, isolates six disciplines, expands
+  a center-out ripple into a living orbital system, and forms the bust at that same center. These are
+  transformations of one material, not separate decorative scenes.
 - Two vertically scrolling editorial areas carry the background, client context, reflections on the practice, AI, and multidisciplinary synthesis. Spatial copy between them must advance the argument rather than act as detachable captions.
 - Spatial titles use two explicit roles: standard Geist titles bridge the editorial passages, while Instrument Serif display titles punctuate only the opening, one midpoint beat, and the finale.
-- The calm field moves through an explicit, paced two-stage camera pitch into a near-top-down grid; the closer framing must keep its material legible rather than miniaturising the points.
-- As the first editorial area's client logos clear, the unchanged calm grid begins travelling screen-up behind the three spatial practice titles. The titles resolve before the discipline reveal begins; the grid must not reverse direction at either handoff.
-- The six disciplines are named once through a world-linked reveal projected from exactly six emphasized grid points. Their colours are fixed to the Home simulation ball palette in category order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`, `--ball-8`, `--ball-6`. The labelled grid continues into the opening of the second editorial area, then the labels leave while the six points persist.
-- The second editorial area follows that upward motion on one left-aligned measure. Its discipline copy uses one intentional highlighted phrase; the body remains unhighlighted. The final synthesis reconnects the surrounding grid before it becomes the living field.
-- The discipline composition stays physically locked while labels and editorial copy resolve. Its handoff into the living field is one paced dolly-and-tilt into a closer oblique ocean view; that view then remains fixed through the complete ripple so the motion, not the lens, carries the beat.
-- The epilogue separates formation from reframing: the grid first contracts into a recognisable bust while the camera holds, then the camera descends and tightens into the final portrait. The finale copy resolves with that arrival and holds without covering the sculpture.
+- Camera authoring is one direct rig: absolute Position XYZ, Rotation XYZ, and FOV. It has no frame
+  origin, target coordinate, depth offset, look-at, orbit, or secondary dolly system.
+- The calm field rises from below as the camera flies over it and pitches to an exact bird's-eye grid;
+  the framing must keep its circles legible rather than miniaturising them.
+- The six disciplines are named once through a world-linked reveal projected from exactly six emphasized grid points. Their colours are fixed to the Home simulation ball palette in category order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`, `--ball-8`, `--ball-6`.
+- The second editorial area uses one left-aligned measure while whole-simulation Visibility is zero.
+  Visibility, camera, and global distance fog are independent controls; fog must never substitute for
+  an authored disappearance or be keyframed per camera pose.
+- The grid returns in full colour at an exact `-90°` camera and remains face-on while the camera zooms
+  straight out. A point-driven ripple expands from the transformed grid center and stays visibly
+  active until it rearranges into one core and four revolving 3D bodies.
+- The orbital system resolves directly into the bust at the same X/Z center. The final camera arrival
+  frames the complete sculpture above the invitation; the finale copy never covers it.
 - The bust is the quiet epilogue. It may rotate or respond horizontally, while the final profile, statement, and contact actions remain readable without covering the sculpture.
 - The creative toolkit belongs to the development lab route with `?edit=1`. The production About route and production lab build use the same validated authored document but expose no tuning interface.
 

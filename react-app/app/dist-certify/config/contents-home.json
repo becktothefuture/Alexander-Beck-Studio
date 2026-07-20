@@ -1,4 +1,9 @@
 {
+  "identity": {
+    "name": "Alexander Beck.",
+    "role": "Designer & Technologist.",
+    "ariaLabel": "Alexander Beck. Designer and technologist."
+  },
   "edge": {
     "tagline": "A London-based design practice shaping products, interfaces, and interactive moments with a clear point of view, so complex ideas feel precise, human, and quietly inevitable.",
     "copyright": "\u00a9 2026 Alexander Beck"
@@ -63,7 +68,7 @@
   },
   "contact": {
     "title": "Let's talk",
-    "description": "Hit me up for collaborations and job opportunities. If you need innovative thinking and a creative mind to tackle complex aesthetic, visual, and system problems, get in touch.",
+    "description": "If you’re building a product, service or experience that needs design, technology and AI to move together, send me a note.",
     "email": "alexander@beck.fyi",
     "copy": {
       "buttonAriaLabel": "Copy email address",
@@ -74,14 +79,14 @@
   "portfolio": {
     "heroEyebrow": "Alexander Beck",
     "heroLines": [
-      "Selected design work."
+      "Selected design work"
     ],
     "blurb": "From early concepts to shipped websites, apps, tools, and platforms."
   },
   "gates": {
     "portfolio": {
       "title": "View Portfolio",
-      "description": "Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated."
+      "description": "Some projects include confidential finance, mobility, identity and product work. Enter the access code to view the selected case studies."
     }
   }
 }

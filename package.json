@@ -9,7 +9,9 @@
     "@tabler\/icons-webfont" : "^3.35.0",
     "lighthouse" : "^11.7.1",
     "playwright" : "^1.58.2",
-    "pngjs" : "^7.0.0"
+    "pngjs" : "^7.0.0",
+    "sharp" : "^0.33.5",
+    "three" : "^0.184.0"
   },
   "keywords" : [
     "creative",

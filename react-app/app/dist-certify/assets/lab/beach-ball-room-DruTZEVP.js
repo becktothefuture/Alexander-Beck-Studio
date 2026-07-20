@@ -1,0 +1,1 @@
+import{c as t,j as o}from"../index-CXXnCbMR.js";import{S as r}from"../SiteApp-rN83NjNZ.js";import"../ShellButtonBar-3ri64zK_.js";import"../sound-engine-BpHFsJgb.js";import"../cursor-DC-h4FER.js";import"../noise-system-CMDB-bnJ.js";import"../legend-colors-BPMHX11n.js";t.createRoot(document.getElementById("root")).render(o.jsx(r,{}));

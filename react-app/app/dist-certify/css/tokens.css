@@ -12,7 +12,7 @@
 }
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   
   /* Utility RGB (required by existing rgba(var(--abs-rgb-*), ...) usage) */
   --abs-rgb-white: 255, 255, 255;
@@ -20,7 +20,7 @@
 
   /* Essentials */
   --color-bg-light: #efefef;
-  --color-bg-dark: #141414;
+  --color-bg-dark: #1b1b1b;
   --color-accent: #f03030;
   --color-success: #22c55e;
   --color-error: #ef4444;
@@ -30,18 +30,21 @@
   /* Theme bridge (JS writes these; keep names stable) */
   --bg-light: var(--color-bg-light);
   --bg-dark: var(--color-bg-dark);
-  --abs-wall-base-light: #efefef;
-  --abs-wall-base-dark: #141414;
-  --abs-wall-base: var(--abs-wall-base-dark);
-  --shell-wall-bg: #141414;
+  --abs-wall-base: #141414;
+  --abs-wall-base-light: var(--abs-wall-base);
+  --abs-wall-base-dark: var(--abs-wall-base);
+  --shell-wall-bg: var(--abs-wall-base);
   --studio-window-bg-light: var(--bg-light);
   --studio-window-bg-dark: var(--bg-dark);
   --studio-window-bg: var(--studio-window-bg-light);
-  --frame-color-site-light: #202124;
-  --frame-color-site-dark: #121314;
-  --frame-color-light: #202124;
-  --frame-color-dark: #121314;
-  --frame-color: var(--frame-color-dark);
+  --studio-window-color-scheme: light;
+  /* RGB zero is true black in sRGB and Display P3; no gamut override is needed. */
+  --frame-color-site: #000000;
+  --frame-color-site-light: var(--frame-color-site);
+  --frame-color-site-dark: var(--frame-color-site);
+  --frame-color: var(--frame-color-site);
+  --frame-color-light: var(--frame-color);
+  --frame-color-dark: var(--frame-color);
   --wall-color-light: var(--frame-color-light);
   --wall-color-dark: var(--frame-color-dark);
   --wall-color: var(--frame-color);
@@ -335,16 +338,18 @@
     inset 0 1px 0 rgba(var(--abs-rgb-white), 0.08),
     inset 0 14px 30px rgba(var(--abs-rgb-black), 0.18);
   --button-bar-top-bevel: rgba(var(--abs-rgb-white), 0.1);
-  --button-bar-ink: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 88%, var(--cursor-color) 12%);
-  --button-bar-ink-muted: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 62%, var(--studio-window-bg) 38%);
+  --button-bar-outer-ink: rgba(var(--abs-rgb-white), 0.88);
+  --button-bar-outer-ink-muted: rgba(var(--abs-rgb-white), 0.64);
+  --button-bar-ink: var(--button-bar-outer-ink);
+  --button-bar-ink-muted: var(--button-bar-outer-ink-muted);
   --button-bar-button-bg-window-mix: 100%;
   --button-bar-button-bg-white-mix: 0%;
   --button-bar-button-hover-white-mix: 2%;
   --button-bar-button-active-window-mix: 100%;
   --button-bar-button-active-white-mix: 0%;
-  --button-bar-button-bg: color-mix(in srgb, var(--studio-window-bg) var(--button-bar-button-bg-window-mix), rgba(var(--abs-rgb-white), 1) var(--button-bar-button-bg-white-mix));
+  --button-bar-button-bg: color-mix(in srgb, var(--abs-browser-chrome) var(--button-bar-button-bg-window-mix), rgba(var(--abs-rgb-white), 1) var(--button-bar-button-bg-white-mix));
   --button-bar-button-bg-hover: color-mix(in srgb, var(--button-bar-button-bg) calc(100% - var(--abs-button-hover-darken-mix)), rgba(var(--abs-rgb-black), 1) var(--abs-button-hover-darken-mix));
-  --button-bar-button-bg-active: color-mix(in srgb, var(--studio-window-bg) var(--button-bar-button-active-window-mix), rgba(var(--abs-rgb-white), 1) var(--button-bar-button-active-white-mix));
+  --button-bar-button-bg-active: color-mix(in srgb, var(--abs-browser-chrome) var(--button-bar-button-active-window-mix), rgba(var(--abs-rgb-white), 1) var(--button-bar-button-active-white-mix));
   --button-bar-button-inner-shine: rgba(var(--abs-rgb-white), 0.12);
   --button-bar-button-inner-shadow: rgba(var(--abs-rgb-black), 0.24);
   --button-bar-button-light-color: color-mix(in srgb, var(--cursor-color) 72%, rgba(var(--abs-rgb-white), 1) 28%);
@@ -877,7 +882,7 @@
 :root[data-abs-theme='dark'],
 body.dark-mode,
 body[data-abs-theme='dark'] {
-  color-scheme: dark;
+  --studio-window-color-scheme: dark;
   --abs-soft-control-emphasis-rgb: var(--abs-rgb-black);
   --abs-soft-control-emphasis-opacity: 72%;
   --abs-indicator-ink: rgb(var(--abs-rgb-white));
@@ -896,14 +901,6 @@ body[data-abs-theme='dark'] {
   --text-muted: var(--text-color-dark-muted);
   --text-logo: #f0f0f0;
   --shell-chrome-ink: var(--text-primary);
-  --button-bar-ink: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 88%, var(--cursor-color) 12%);
-  --button-bar-ink-muted: color-mix(in srgb, rgba(var(--abs-rgb-white), 1) 62%, var(--studio-window-bg) 38%);
-  --button-bar-button-bg-window-mix: 100%;
-  --button-bar-button-bg-white-mix: 0%;
-  --button-bar-button-hover-white-mix: 2%;
-  --button-bar-button-active-window-mix: 100%;
-  --button-bar-button-active-white-mix: 0%;
-
   /* Single stroke color override for dark mode */
   --abs-stroke-medium: rgba(var(--abs-rgb-white), 0.25);
 
