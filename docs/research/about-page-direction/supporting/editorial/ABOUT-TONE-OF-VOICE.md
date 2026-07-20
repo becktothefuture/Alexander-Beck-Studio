@@ -6,9 +6,9 @@
 
 The page should sound like a thoughtful designer explaining how he sees the work—not a manifesto generator, a résumé, a personal-brand campaign or an agency pitch. The editorial passages should carry the restraint, observation and sentence craft of a well-edited magazine profile without imitating a publication or becoming literary for its own sake.
 
-## Structural anchor: V23; refined editorial register
+## Structural anchor: V24; refined editorial register
 
-V23 establishes the approved structural spine. Where wording in that draft conflicts with the refined register below, the refined register supersedes it:
+V24 establishes the approved structural spine and editorial register:
 
 1. It begins with a concise service promise, then a short personal observation: “I’ve always been drawn to the complicated bit.”
 2. It makes the territory concrete without over-explaining complexity: “New technology. New behaviours. How to inspire trust.”
@@ -111,6 +111,8 @@ Also favour the established vocabulary: form, behaviour, trust, aesthetics, inte
 
 ## Words and habits to avoid
 
+### Language and sentence habits
+
 - “I think”, “I believe”, “for me” before a clear claim;
 - vague universals such as “the world is…”;
 - context, contradiction, nuance and humanity clustered as abstract nouns;
@@ -121,8 +123,51 @@ Also favour the established vocabulary: form, behaviour, trust, aesthetics, inte
 - casual agency shorthand such as “I go deep”, “dive in”, “move fast”, “move the needle” or “get under the skin”;
 - generic productivity claims such as “AI helps me work faster” when the sentence should explain what AI extends and where judgement remains necessary;
 - vague conversational endings such as “not neatly defined yet” or “getting in the way” when the actual condition or consequence can be named;
+- mixed idioms or translated constructions such as “never losing judgement out of sight”, “questions revolving users” or “the answer to resolve complexity”;
+- using ellipses, fragments or spatial formatting to conceal weak grammar rather than create intentional rhythm;
+- vague transitional scaffolding such as “then it starts to”, “something begins to” or “in this way” when the actual change can be named;
+- redundant pairs whose meanings overlap, such as “visceral and tangible”, unless each word contributes a distinct idea;
+- replacing a precise verb with an abstract noun phrase, such as “innovation capability” instead of explaining what AI makes possible;
+- announcing taste, sophistication, humanity or strategic depth instead of allowing the decisions and distinctions to demonstrate them;
+- repeatedly using complexity, trust, idea, work, make or direction within a short passage when the repetition does not carry structural meaning;
 - sophistication performed through long words, stacked abstractions or ornate metaphors;
+- borrowed editorial mannerisms, conspicuous publication mimicry or sentences that sound written to resemble a named magazine rather than Alexander;
 - metaphors that have no visible counterpart in the experience.
+
+### Structural habits
+
+- stacking capability, sector, medium, tool and deliverable inventories in the same narrative;
+- explaining the six discipline labels again after the reader has already seen them;
+- repeating the same proposition in successive forms—for example, naming the disciplines, explaining each one, listing how they interact, then listing their outputs;
+- relying on repeated triads in every paragraph. A three-part cadence is effective once; used continuously, it becomes a catalogue;
+- making every sentence perform the same claim → list → conclusion pattern;
+- allowing the final third to become a summary of everything already said instead of advancing towards a specific working relationship and invitation;
+- using client logos as a substitute for contribution, or adding sector names merely to enlarge the apparent range;
+- turning the About page into a miniature CV, service menu, portfolio index or chronology;
+- placing production notes, section numbers, delivery labels or editorial commentary inside the clean reader-facing script;
+- leaving generic placeholders such as “[CTAs]” when the intended actions are already known. Name Contact and LinkedIn directly.
+
+### Evidence and identity habits
+
+- presenting a brief or marginal experience as a defining credential because it makes the biography sound more complete. Two semesters of Computer Science do not belong in the public narrative;
+- treating polished wording as evidence. Client contribution, outcomes and enduring use still require verification;
+- claiming responsibility for a team outcome without separating Alexander’s contribution from the wider team, agency or implementation context;
+- adding a project anecdote because it is vivid when it does not support the page’s central argument;
+- using hobbies as personality decoration. Music, objects, games or side projects need a specific causal connection to the practice;
+- converting a preference into a universal philosophy. “The complicated bit” describes Alexander’s professional attention; it is not a claim that all design should preserve complexity;
+- compressing away the personally meaningful aesthetics and interplay material merely to reach a lower word count;
+- implying certainty, infallibility or solitary authorship through phrases such as “the right solution” or “my vision” when the practice is collaborative and investigative.
+
+### Editing habits
+
+- solving repetition with synonyms while leaving the duplicated narrative function intact;
+- expanding every editorial paragraph evenly. Spend additional words only where they add a personal lens, working behaviour, consequence or evidence;
+- changing an approved phrase simply because an alternative sounds more polished. Preserve the accepted intention unless the phrase causes a real problem in grammar, clarity, tone or evidence;
+- reverting Alexander’s direct rewrites to earlier copy without identifying what the earlier wording restores;
+- confusing tighter writing with universally shorter writing. Protect distinctive material and remove explanatory duplication first;
+- changing spatial titles during an editorial-only expansion unless a title has a clear grammatical or tonal defect and the change is explicitly identified;
+- treating one successful conversational phrase as a general licence for colloquial prose;
+- making the voice more formal after feedback asks for sophistication. The target is composed and precise, not institutional or distant.
 
 ## Publishing check
 

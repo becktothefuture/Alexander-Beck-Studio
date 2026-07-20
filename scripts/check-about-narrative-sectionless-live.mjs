@@ -31,7 +31,7 @@ const canonicalV4 = JSON.parse(canonicalSource);
 const loadedCanonical = loadAboutNarrativeTrackSource(canonicalV4);
 assert.equal(loadedCanonical.valid, true);
 const canonical = loadedCanonical.document;
-const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v23.md');
+const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v24.md');
 const legacy = JSON.parse(await read('./fixtures/about-narrative/contents-about-v2.json'));
 const liveSources = Object.fromEntries(await Promise.all([
   ['experience', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
@@ -738,7 +738,7 @@ test('spatial title hierarchy reserves display type for the opening, midpoint, a
   const titles = canonical.tracks.text.fields.filter((field) => field.kind === 'title');
   const opener = titles.find((field) => field.id === 'text-promise-main');
   assert.equal(opener.text, 'About Me');
-  assert.equal(opener.description, 'I help shape complexity into compelling experiences');
+  assert.equal(opener.description, 'I help shape complexity into compelling experiences.');
   assert.deepEqual(
     titles.filter((field) => field.titleStyle === 'display').map((field) => field.id),
     ['text-promise-main', 'text-complexity-listen', 'text-epilogue-invitation'],
@@ -857,7 +857,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /about-narrative-spatial-title \{[\s\S]*?padding-block: 0\.2em;[\s\S]*?margin: -0\.2em auto -0\.1em;[\s\S]*?overflow: visible;/);
 });
 
-test('all published narrative writing comes from the current V23 script', () => {
+test('all published narrative writing comes from the current V24 script', () => {
   const normalize = (value) => String(value || '')
     .toLocaleLowerCase('en-GB')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
@@ -873,11 +873,11 @@ test('all published narrative writing comes from the current V23 script', () => 
     ];
   }).filter(Boolean);
   authoredCopy.forEach((copy) => {
-    assert.ok(normalizedScript.includes(normalize(copy)), `V23 is missing live copy: ${copy}`);
+    assert.ok(normalizedScript.includes(normalize(copy)), `V24 is missing live copy: ${copy}`);
   });
   const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
   reveal.parameters.items.forEach((item) => {
-    assert.ok(normalizedScript.includes(normalize(item.label)), `V23 is missing ${item.label}`);
+    assert.ok(normalizedScript.includes(normalize(item.label)), `V24 is missing ${item.label}`);
   });
   assert.doesNotMatch(canonicalSource, /Together, they become a way to make the idea tangible/);
   assert.doesNotMatch(canonicalSource, /That is when the experience starts to feel real/);

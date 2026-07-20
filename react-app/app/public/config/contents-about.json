@@ -659,7 +659,7 @@
           "preset": "opener-v1",
           "titleStyle": "display",
           "text": "About Me",
-          "description": "I help shape complexity into compelling experiences"
+          "description": "I help shape complexity into compelling experiences."
         },
         {
           "id": "text-complexity-idea",
@@ -704,7 +704,7 @@
           "block": {
             "id": "background-passage",
             "kind": "prose",
-            "text": "The interesting part is where those things meet: when a powerful capability is unfamiliar and a service has to explain what it changes without getting in the way.\nI studied Communication Design because I wanted to understand how ideas become clear through words, aesthetics, hierarchy, motion, systems and the interplay between them. Agency work gave me visual culture, craft and pace. Product work showed me that behaviour, brand and trust often belong to the same problem.",
+            "text": "The interesting part is where those things meet: when a powerful capability remains unfamiliar, its implications are unclear and a service must explain itself without overshadowing the experience.\nI studied Communication Design because I wanted to understand how ideas become clear through words, aesthetics, hierarchy, motion, systems and the interplay between them. Language taught me that meaning shifts with what is said and how it is carried. Agency work sharpened my visual judgement, craft and pace. Product work showed me that behaviour, brand and trust often belong to the same problem.",
             "emphasis": [
               {
                 "text": "Communication Design",
@@ -753,7 +753,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "Resolving complexity rarely sits within one discipline."
+          "text": "No single discipline resolves complexity on its own."
         },
         {
           "id": "text-complexity-listen",
@@ -783,7 +783,7 @@
           "block": {
             "id": "disciplines-passage",
             "kind": "prose",
-            "text": "I go deep into the problem, find the organising idea and make it tangible enough for a team to question, test and build.\nAI helps me explore and build faster, but its value depends on direction, human judgement and knowing when the work feels generic.",
+            "text": "Close attention comes first. I identify the organising idea, then give it a form the team can examine, question, test and develop. That is where useful disagreement begins.\nAI extends what I can explore and make. Its value depends on human judgement and recognising when the result has become generic.",
             "emphasis": [
               {
                 "text": "AI",
@@ -809,7 +809,7 @@
           "block": {
             "id": "role-passage",
             "kind": "prose",
-            "text": "I work with ambitious teams on problems that are not neatly defined yet—especially where design, technology and AI need to shape direction together.",
+            "text": "I work with ambitious teams while the problem is still taking shape—especially where design, technology and AI must inform the direction from the outset.",
             "emphasis": [
               {
                 "text": "design",
@@ -839,7 +839,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "When ideas become intentional…"
+          "text": "When an idea begins to cohere…"
         },
         {
           "id": "text-life-form",
@@ -854,7 +854,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…they find rhythm, character and use…"
+          "text": "…it finds rhythm, character and use…"
         },
         {
           "id": "text-life-character",

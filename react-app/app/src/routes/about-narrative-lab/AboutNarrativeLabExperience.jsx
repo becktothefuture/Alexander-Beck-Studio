@@ -190,7 +190,7 @@ function FinaleActions() {
     <div className="about-narrative-finale-cta is-actions-only">
       <nav className="about-narrative-cta" aria-label="Contact Alexander">
         <a href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}>
-          <span className="about-narrative-cta__label">Email</span>
+          <span className="about-narrative-cta__label">Contact</span>
         </a>
         <a href={ABOUT_NARRATIVE_CONTACT.linkedin} target="_blank" rel="noreferrer">
           <span className="about-narrative-cta__label">LinkedIn</span>
