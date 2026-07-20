@@ -236,6 +236,8 @@ export function normalizeAboutNarrativeDocument(input = {}) {
       },
       textMotion: {
         preset: String(textMotion.preset || 'travelling-title-v1'),
+        standardMaxWidthCh: Number(textMotion.standardMaxWidthCh ?? 28),
+        displayMaxWidthCh: Number(textMotion.displayMaxWidthCh ?? 22),
         durationScale: Number(textMotion.durationScale ?? 1.6),
         startY: Number(textMotion.startY ?? -110),
         openerStartY: Number(textMotion.openerStartY ?? 36),
@@ -329,6 +331,8 @@ export function validateAboutNarrativeDocument(input, {
     ['swarmTurbulence.irregularity', globals.swarmTurbulence?.irregularity, 0, 1],
     ['swarmTurbulence.individuality', globals.swarmTurbulence?.individuality, 0, 1],
     ['swarmTurbulence.axisSpread', globals.swarmTurbulence?.axisSpread, 0, 1],
+    ['textMotion.standardMaxWidthCh', globals.textMotion?.standardMaxWidthCh ?? 28, 8, 60],
+    ['textMotion.displayMaxWidthCh', globals.textMotion?.displayMaxWidthCh ?? 22, 8, 60],
     ['textMotion.durationScale', globals.textMotion?.durationScale, 0.25, 4],
     ['textMotion.startY', globals.textMotion?.startY, -500, 500],
     ['textMotion.openerStartY', globals.textMotion?.openerStartY, -500, 500],

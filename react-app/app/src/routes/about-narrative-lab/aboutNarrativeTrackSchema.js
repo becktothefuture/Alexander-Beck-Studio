@@ -67,7 +67,7 @@ const LEGACY_GLOBAL_CAMERA_KEYS = new Set([
 ]);
 const POINT_MATERIAL_KEYS = new Set(['opacity', 'pointSize']);
 const SWARM_TURBULENCE_KEYS = new Set(['amplitude', 'speed', 'irregularity', 'individuality', 'axisSpread']);
-const TEXT_MOTION_KEYS = new Set(['preset', 'durationScale', 'startY', 'openerStartY', 'endY', 'readableStart', 'readableEnd', 'perspective', 'entryDepth', 'exitDepth', 'maxBlur']);
+const TEXT_MOTION_KEYS = new Set(['preset', 'standardMaxWidthCh', 'displayMaxWidthCh', 'durationScale', 'startY', 'openerStartY', 'endY', 'readableStart', 'readableEnd', 'perspective', 'entryDepth', 'exitDepth', 'maxBlur']);
 const PROFILE_KEYS = new Set(['storyDurationWU', 'scrollDurationWU', 'overrides']);
 const REDUCED_PROFILE_KEYS = new Set(['mode', 'motionPolicy']);
 const OVERRIDE_TRACK_KEYS = new Set(['camera', 'visibility', 'worlds', 'text', 'interactions']);

@@ -489,7 +489,7 @@ test('every World exposes grouped live sliders instead of raw Shape and Modifier
 test('the Text row header exposes only native-v5 global animation controls', () => {
   assert.deepEqual(
     ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS.map((group) => group.id),
-    ['text-path', 'text-clarity', 'text-depth', 'text-editorial'],
+    ['text-layout', 'text-path', 'text-clarity', 'text-depth', 'text-editorial'],
   );
   const exposedControls = ABOUT_NARRATIVE_GLOBAL_CONTROLS.flatMap((group) => group.controls)
     .filter((control) => control.group?.startsWith('text-'));
@@ -498,6 +498,8 @@ test('the Text row header exposes only native-v5 global animation controls', () 
     [
       'readingWidthRem',
       'editorialRevealThreshold',
+      'standardMaxWidthCh',
+      'displayMaxWidthCh',
       'startY',
       'openerStartY',
       'endY',

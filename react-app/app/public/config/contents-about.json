@@ -25,6 +25,8 @@
     },
     "textMotion": {
       "preset": "travelling-title-v1",
+      "standardMaxWidthCh": 16,
+      "displayMaxWidthCh": 18,
       "durationScale": 1.7,
       "startY": 100,
       "openerStartY": 36,

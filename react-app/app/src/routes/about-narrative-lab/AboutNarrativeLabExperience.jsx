@@ -503,6 +503,8 @@ export function AboutNarrativeLabExperience({
     || playbackDocument.profiles.desktop.scrollDurationWU + 1;
   const rootStyle = {
     '--about-reading-width': `${globals.readingWidthRem}rem`,
+    '--about-title-standard-max-width': `${Number(globals.textMotion.standardMaxWidthCh) || 28}ch`,
+    '--about-title-display-max-width': `${Number(globals.textMotion.displayMaxWidthCh) || 22}ch`,
     '--about-text-perspective': `${Number(globals.textMotion.perspective) || 1600}px`,
     '--about-opening-title-y': `${Number(globals.textMotion.openerStartY) || 36}px`,
     '--about-editorial-reveal-threshold': Number(globals.editorialRevealThreshold) || 0.8,

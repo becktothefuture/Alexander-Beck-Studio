@@ -164,7 +164,7 @@ body.about-narrative-page .route-simulation-layer {
   grid-area: 1 / 1;
   place-items: center;
   width: 100%;
-  max-width: 28ch;
+  max-width: var(--about-title-standard-max-width, 28ch);
   padding-block: 0.2em;
   margin: -0.2em auto -0.1em;
   overflow: visible;
@@ -191,7 +191,7 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-spatial-copy[data-title-style='display'] .about-narrative-spatial-title {
-  max-width: 22ch;
+  max-width: var(--about-title-display-max-width, 22ch);
   font-family: var(--abs-font-headline);
   font-size: clamp(2.4rem, 6.7vw, 7.8rem);
   font-weight: 400;

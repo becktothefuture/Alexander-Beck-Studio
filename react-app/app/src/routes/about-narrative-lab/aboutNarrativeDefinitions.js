@@ -79,6 +79,7 @@ export const ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS = Object.freeze([
 ]);
 
 export const ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS = Object.freeze([
+  Object.freeze({ id: 'text-layout', label: 'Titles · Layout' }),
   Object.freeze({ id: 'text-path', label: 'Titles · Travel path' }),
   Object.freeze({ id: 'text-clarity', label: 'Titles · Clarity' }),
   Object.freeze({ id: 'text-depth', label: 'Titles · Depth' }),
@@ -173,6 +174,8 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     id: 'textMotion',
     label: 'Spatial titles',
     controls: Object.freeze([
+      numberControl('standardMaxWidthCh', 'Standard max width', 8, 60, 1, 'ch', 'text-layout'),
+      numberControl('displayMaxWidthCh', 'Display max width', 8, 60, 1, 'ch', 'text-layout'),
       numberControl('durationScale', 'Travel duration', 0.75, 2.5, 0.05, '×'),
       numberControl('startY', 'Entry Y', -500, 500, 2, 'px', 'text-path'),
       numberControl('openerStartY', 'Opener Y', -500, 500, 2, 'px', 'text-path'),
