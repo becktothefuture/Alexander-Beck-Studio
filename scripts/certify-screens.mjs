@@ -118,7 +118,7 @@ const matrix = [
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
       { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work'] },
-      { selector: '[data-route-content="about"]', minArea: 60000, requiredText: ['About Me', 'I help shape complexity into compelling experiences'] }
+      { selector: '[data-route-content="about"]', minArea: 60000, requiredText: ['Coming soon.'] }
     ]
   },
   {
