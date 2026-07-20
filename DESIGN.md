@@ -50,7 +50,7 @@ The system is distributed across these production surfaces. A design change is c
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
 | Portfolio intro, orbital deck, project access gate, cards, project drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
-| About Me scroll narrative, editorial sections, point field, and bust resolution | `AboutRoute.jsx`, `routes/about-narrative-lab/`, `about-narrative-lab.css` |
+| About Me scroll narrative, editorial sections, point field, and emergent-form resolution | `AboutRoute.jsx`, `routes/about-narrative-lab/`, `about-narrative-lab.css` |
 | Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
 | Home footer signature, social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
 | Theme, frame, wall, noise, contrast veil, and browser harmony | `dark-mode-v2.js`, `site-shell.js`, `chrome-harmony.js`, `tokens.css` |
@@ -173,11 +173,11 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 - About is one continuous scroll narrative inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, and Button Bar remain stable.
 - The narrative establishes an orb above the opening promise, flies into its complexity, scatters
-  through an empty interval, raises an organised grid from below, isolates six disciplines, expands
-  a center-out ripple into a living orbital system, and forms the bust at that same center. These are
-  transformations of one material, not separate decorative scenes.
+  through an empty interval, raises an organised grid from below, isolates six disciplines, and
+  gathers that same material into one suspended spatial form. These are transformations of one
+  material, not separate decorative scenes.
 - Two vertically scrolling editorial areas carry the background, client context, reflections on the practice, AI, and multidisciplinary synthesis. Spatial copy between them must advance the argument rather than act as detachable captions.
-- Spatial titles use two explicit roles: standard Geist titles bridge the editorial passages, while Instrument Serif display titles punctuate only the opening, one midpoint beat, and the finale.
+- Spatial titles use two explicit roles: standard Geist titles bridge the editorial passages, while Instrument Serif display titles punctuate the opening and finale bookends.
 - Camera authoring is one direct rig: absolute Position XYZ, Rotation XYZ, and FOV. It has no frame
   origin, target coordinate, depth offset, look-at, orbit, or secondary dolly system.
 - The calm field rises from below as the camera flies over it and pitches to an exact bird's-eye grid;
@@ -187,11 +187,13 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
   Visibility, camera, and global distance fog are independent controls; fog must never substitute for
   an authored disappearance or be keyframed per camera pose.
 - The grid returns in full colour at an exact `-90°` camera and remains face-on while the camera zooms
-  straight out. A point-driven ripple expands from the transformed grid center and stays visibly
-  active until it rearranges into one core and four revolving 3D bodies.
-- The orbital system resolves directly into the bust at the same X/Z center. The final camera arrival
-  frames the complete sculpture above the invitation; the finale copy never covers it.
-- The bust is the quiet epilogue. It may rotate or respond horizontally, while the final profile, statement, and contact actions remain readable without covering the sculpture.
+  straight out. One point-driven gathering front expands from the transformed grid center, lifts the
+  ordered floor, and draws its material toward a single woven destination without helper rings.
+- The resolved form is the culmination: six currents read as one spatial sculpture rather than a
+  solar system or a set of unrelated bodies. The camera leaves the bird's-eye view, observes the
+  complete form obliquely, then passes through it.
+- Visibility reaches zero as the pass completes. The final invitation and actions occupy clean,
+  centered space; no bust or secondary object competes with the culmination.
 - The creative toolkit belongs to the development lab route with `?edit=1`. The production About route and production lab build use the same validated authored document but expose no tuning interface.
 
 ### Contact

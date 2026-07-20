@@ -203,17 +203,16 @@ function FinaleActions() {
 function TitleField({
   field,
   isPrimaryTitle,
-  interactionRef,
   onSelect,
 }) {
   const Heading = isPrimaryTitle ? 'h1' : 'h2';
   const headingId = isPrimaryTitle ? 'about-route-title' : `${field.id}-title`;
   const isFinale = field.preset === 'finale-v1'
+    || field.presentation?.layout === 'text-finale-cta'
     || field.presentation?.layout === 'text-bust-cta';
   const isOpener = field.preset === 'opener-v1';
   const titleStyle = field.titleStyle
     || (isOpener || isFinale ? 'display' : 'standard');
-  const bustInstructionsId = `${field.id}-bust-instructions`;
   const descriptionId = `${field.id}-description`;
   return (
     <section
@@ -265,23 +264,6 @@ function TitleField({
           {field.text}
         </Heading>
       )}
-      {isFinale ? (
-        <>
-          <div
-            ref={interactionRef}
-            className="about-narrative-bust-interaction"
-            data-active="false"
-            role="group"
-            aria-label="Rotate the point-cloud bust horizontally"
-            aria-describedby={bustInstructionsId}
-            aria-keyshortcuts="ArrowLeft ArrowRight"
-            tabIndex={-1}
-          />
-          <span id={bustInstructionsId} className="about-narrative-visually-hidden">
-            Drag horizontally, or use the left and right arrow keys, to rotate the bust.
-          </span>
-        </>
-      ) : null}
     </section>
   );
 }
@@ -319,7 +301,6 @@ function TextRenderSpan({
   field,
   span,
   isPrimaryTitle,
-  interactionRef,
   disciplineOverlayRef,
   onSelect,
 }) {
@@ -337,7 +318,6 @@ function TextRenderSpan({
           <TitleField
             field={field}
             isPrimaryTitle={isPrimaryTitle}
-            interactionRef={interactionRef}
             onSelect={onSelect}
           />
         </div>
@@ -438,7 +418,7 @@ export function AboutNarrativeLabExperience({
   const scrollportRef = useRef(null);
   const contentRef = useRef(null);
   const worldRuntimeRef = useRef(null);
-  const bustInteractionRef = useRef(null);
+  const worldInteractionRef = useRef(null);
   const disciplineOverlayRef = useRef(null);
 
   useLayoutEffect(() => {
@@ -526,7 +506,7 @@ export function AboutNarrativeLabExperience({
       <AboutNarrativeWorld
         rendererId="three-point-world-v1"
         rootRef={rootRef}
-        interactionRef={bustInteractionRef}
+        interactionRef={worldInteractionRef}
         disciplineOverlayRef={disciplineOverlayRef}
         runtimeRef={worldRuntimeRef}
         pointProfile={runtimePlan?.pointProfile}
@@ -548,7 +528,6 @@ export function AboutNarrativeLabExperience({
                 field={field}
                 span={span}
                 isPrimaryTitle={field.id === primaryTitleId}
-                interactionRef={bustInteractionRef}
                 disciplineOverlayRef={disciplineOverlayRef}
                 onSelect={select}
               />

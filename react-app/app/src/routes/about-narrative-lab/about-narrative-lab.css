@@ -549,39 +549,7 @@ body.about-narrative-page .route-simulation-layer {
   justify-items: center;
   gap: clamp(0.875rem, 2svh, 1.25rem);
   width: 100%;
-  transform: translate3d(0, calc(var(--about-opening-title-y, 36px) + 2rem), 0);
-}
-
-.about-narrative-bust-interaction {
-  position: absolute;
-  z-index: 2;
-  top: 6%;
-  left: 50%;
-  width: min(48vw, 32rem);
-  min-width: 44px;
-  height: 29%;
-  min-height: 44px;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  cursor: grab;
-  outline: none;
-  pointer-events: none;
-  touch-action: pan-y;
-  transform: translateX(-50%);
-}
-
-.about-narrative-bust-interaction[data-active='true'] {
-  pointer-events: auto;
-}
-
-.about-narrative-bust-interaction:active {
-  cursor: grabbing;
-}
-
-.about-narrative-bust-interaction:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--about-route-accent) 68%, var(--text-primary));
-  outline-offset: 0.35rem;
+  transform: none;
 }
 
 .about-narrative-finale-cta {
@@ -835,12 +803,6 @@ body.about-narrative-page .route-simulation-layer {
   );
 }
 
-.about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-bust-interaction {
-  top: 5%;
-  width: min(72vw, 24rem);
-  height: 36%;
-}
-
 @media (max-height: 600px) and (max-width: 900px) {
   .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-stage {
     padding-block:
@@ -855,7 +817,7 @@ body.about-narrative-page .route-simulation-layer {
 
   .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy.is-finale .about-narrative-finale-content {
     gap: 0.625rem;
-    transform: translate3d(0, 2.5rem, 0);
+    transform: none;
   }
 
   .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy.is-finale[data-title-style='display'] .about-narrative-spatial-title {
@@ -866,11 +828,6 @@ body.about-narrative-page .route-simulation-layer {
 
   .about-narrative-opening-scroll-cue {
     top: calc(100% + 0.5rem);
-  }
-
-  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-bust-interaction {
-    top: 4%;
-    height: 38%;
   }
 
 }

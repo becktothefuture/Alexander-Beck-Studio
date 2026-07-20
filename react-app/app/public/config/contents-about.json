@@ -28,21 +28,21 @@
       "standardMaxWidthCh": 16,
       "displayMaxWidthCh": 18,
       "durationScale": 1.7,
-      "startY": 100,
+      "startY": 50,
       "openerStartY": 36,
-      "endY": -100,
-      "readableStart": 0.24,
-      "readableEnd": 0.76,
+      "endY": -50,
+      "readableStart": 0.4,
+      "readableEnd": 0.7,
       "perspective": 1600,
       "entryDepth": 360,
       "exitDepth": 220,
-      "maxBlur": 22
+      "maxBlur": 10
     }
   },
   "profiles": {
     "desktop": {
-      "storyDurationWU": 21.8,
-      "scrollDurationWU": 21.8,
+      "storyDurationWU": 16.35,
+      "scrollDurationWU": 16.35,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -52,8 +52,8 @@
       }
     },
     "tablet": {
-      "storyDurationWU": 21.8,
-      "scrollDurationWU": 21.8,
+      "storyDurationWU": 16.35,
+      "scrollDurationWU": 16.35,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -63,10 +63,23 @@
       }
     },
     "mobile": {
-      "storyDurationWU": 21.8,
-      "scrollDurationWU": 22.65,
+      "storyDurationWU": 16.35,
+      "scrollDurationWU": 16.9875,
       "overrides": {
         "camera": {
+          "emergent-oblique": {
+            "position": [
+              3.2,
+              5.6,
+              -2.1
+            ],
+            "rotation": [
+              -32,
+              26,
+              0
+            ],
+            "fov": 60
+          },
           "grid-birds-eye": {
             "position": [
               0,
@@ -123,7 +136,7 @@
         },
         {
           "id": "complexity-inside",
-          "atWU": 2.45,
+          "atWU": 1.8375,
           "position": [
             0,
             0.35,
@@ -140,7 +153,7 @@
         },
         {
           "id": "complexity-exit",
-          "atWU": 4.2,
+          "atWU": 3.15,
           "position": [
             0,
             0.1,
@@ -157,7 +170,7 @@
         },
         {
           "id": "grid-floor-entry",
-          "atWU": 7.1,
+          "atWU": 5.325,
           "position": [
             0,
             0.65,
@@ -174,7 +187,7 @@
         },
         {
           "id": "grid-flyover",
-          "atWU": 8.2,
+          "atWU": 6.15,
           "position": [
             0,
             2.55,
@@ -191,7 +204,7 @@
         },
         {
           "id": "grid-birds-eye",
-          "atWU": 9.3,
+          "atWU": 6.975,
           "position": [
             0,
             3.5,
@@ -208,7 +221,7 @@
         },
         {
           "id": "grid-birds-eye-hold",
-          "atWU": 11.18,
+          "atWU": 8.385,
           "position": [
             0,
             3.5,
@@ -225,7 +238,7 @@
         },
         {
           "id": "grid-return-centered",
-          "atWU": 15.35,
+          "atWU": 11.5125,
           "position": [
             0,
             5.8,
@@ -242,7 +255,7 @@
         },
         {
           "id": "grid-ripple-zoomout",
-          "atWU": 17.7,
+          "atWU": 13.275,
           "position": [
             0,
             14.5,
@@ -258,70 +271,53 @@
           "locked": false
         },
         {
-          "id": "orbital-oblique",
-          "atWU": 18.7,
+          "id": "emergent-oblique",
+          "atWU": 14.75,
           "position": [
-            4.4,
-            7.4,
-            -0.6
+            4.2,
+            6.4,
+            -1.2
           ],
           "rotation": [
-            -35.36,
-            28.95,
+            -33,
+            29,
             0
           ],
-          "fov": 54,
-          "easing": "linear",
+          "fov": 50,
+          "easing": "cubic-bezier(0.25, 0, 0.45, 1)",
           "locked": false
         },
         {
-          "id": "orbital-hold",
-          "atWU": 20.3,
-          "position": [
-            4.4,
-            7.4,
-            -0.6
-          ],
-          "rotation": [
-            -35.36,
-            28.95,
-            0
-          ],
-          "fov": 54,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "bust-arrive",
-          "atWU": 21.05,
+          "id": "emergent-through",
+          "atWU": 15.2,
           "position": [
             0,
-            0.25,
-            -3.1
+            1.1,
+            -10.4
           ],
           "rotation": [
             0,
             0,
             0
           ],
-          "fov": 34,
+          "fov": 50,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "finale-hold",
-          "atWU": 21.8,
+          "atWU": 16.35,
           "position": [
             0,
-            0.25,
-            -3.1
+            1.1,
+            -10.4
           ],
           "rotation": [
             0,
             0,
             0
           ],
-          "fov": 34,
+          "fov": 50,
           "easing": "linear",
           "locked": true
         }
@@ -338,64 +334,99 @@
         },
         {
           "id": "visibility-complexity",
-          "atWU": 4.1,
+          "atWU": 3.075,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-void-off",
-          "atWU": 4.28,
+          "atWU": 3.21,
           "visibility": 0,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-grid-rise",
-          "atWU": 6.8,
+          "atWU": 5.1,
           "visibility": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-grid-visible",
-          "atWU": 7.25,
+          "atWU": 5.4375,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-disciplines",
-          "atWU": 11.18,
+          "atWU": 8.385,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-editorial-off",
-          "atWU": 11.38,
+          "atWU": 8.535,
           "visibility": 0,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-return-start",
-          "atWU": 15.28,
+          "atWU": 11.46,
           "visibility": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-returned",
-          "atWU": 15.48,
+          "atWU": 11.61,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
-          "id": "visibility-end",
-          "atWU": 21.8,
+          "id": "visibility-emergent-title-start",
+          "atWU": 13.95,
           "visibility": 1,
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "visibility-emergent-title-low",
+          "atWU": 14.28,
+          "visibility": 0.15,
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "visibility-emergent-reveal",
+          "atWU": 14.75,
+          "visibility": 1,
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "visibility-emergent-pass",
+          "atWU": 14.85,
+          "visibility": 1,
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "visibility-open-space",
+          "atWU": 15.2,
+          "visibility": 0,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "visibility-end",
+          "atWU": 16.35,
+          "visibility": 0,
           "easing": "linear",
           "locked": true
         }
@@ -450,7 +481,7 @@
         {
           "id": "world-complexity",
           "label": "B",
-          "startWU": 0.95,
+          "startWU": 0.7125,
           "anchorWU": 0.95,
           "adapterId": "point-field-v1",
           "shapeId": "turbulent-field-v1",
@@ -470,8 +501,8 @@
             "scale": 0.92
           },
           "transitionIn": {
-            "startWU": 0.95,
-            "endWU": 2.45,
+            "startWU": 0.7125,
+            "endWU": 1.8375,
             "type": "morph",
             "easing": "smoothstep",
             "correspondence": "spatial-nearest-v2"
@@ -499,7 +530,7 @@
         {
           "id": "world-grid",
           "label": "C",
-          "startWU": 6.75,
+          "startWU": 5.0625,
           "anchorWU": 4.555,
           "adapterId": "point-field-v1",
           "shapeId": "calm-field-v1",
@@ -521,8 +552,8 @@
             "mobileXScale": 0.55
           },
           "transitionIn": {
-            "startWU": 6.75,
-            "endWU": 7.45,
+            "startWU": 5.0625,
+            "endWU": 5.5875,
             "type": "morph",
             "easing": "ease-out",
             "correspondence": "spatial-nearest-v2"
@@ -537,12 +568,12 @@
           "modifiers": []
         },
         {
-          "id": "world-orbital",
+          "id": "world-emergent",
           "label": "E",
-          "startWU": 17.7,
+          "startWU": 13.275,
           "anchorWU": 4.555,
           "adapterId": "point-field-v1",
-          "shapeId": "orbital-system-v1",
+          "shapeId": "emergent-form-v1",
           "seed": 506832829,
           "entryDistanceWU": 12,
           "transform": {
@@ -556,86 +587,32 @@
               0,
               0
             ],
-            "scale": 1.12,
-            "mobileScale": 0.49
+            "scale": 0.92,
+            "mobileScale": 0.7
           },
           "transitionIn": {
-            "startWU": 17.7,
-            "endWU": 18.55,
-            "type": "morph",
-            "easing": "ease-out",
-            "correspondence": "index-v1"
-          },
-          "shapeParameters": {
-            "orbitRadius": 5.84,
-            "coreRadius": 0.94,
-            "bodyRadius": 0.65,
-            "density": 0.62
-          },
-          "modifiers": [
-            {
-              "id": "orbital-life-v1",
-              "enabled": true,
-              "parameters": {
-                "strength": 1,
-                "speed": 0.0515,
-                "timeMode": "story"
-              }
-            }
-          ]
-        },
-        {
-          "id": "world-epilogue",
-          "label": "F",
-          "startWU": 20.3,
-          "anchorWU": 4.555,
-          "adapterId": "point-field-v1",
-          "shapeId": "bust-v1",
-          "seed": 506832829,
-          "entryDistanceWU": 12,
-          "transform": {
-            "position": [
-              0,
-              1.3,
-              0
-            ],
-            "rotation": [
-              0,
-              0,
-              0
-            ],
-            "scale": 0.5,
-            "mobileScale": 0.38
-          },
-          "transitionIn": {
-            "startWU": 20.3,
-            "endWU": 20.65,
+            "startWU": 13.275,
+            "endWU": 14.45,
             "type": "morph",
             "easing": "ease-out",
             "correspondence": "spatial-nearest-v2"
           },
           "shapeParameters": {
-            "density": 0.13
+            "radius": 2.35,
+            "coreRadius": 0.32,
+            "height": 6.2,
+            "twist": 1.55,
+            "thickness": 0.18,
+            "density": 0.52
           },
           "modifiers": [
             {
               "id": "ambient-drift-v1",
               "enabled": true,
               "parameters": {
-                "amplitude": 0.025,
-                "speed": 1,
+                "amplitude": 0.035,
+                "speed": 0.38,
                 "timeMode": "mixed"
-              }
-            },
-            {
-              "id": "bust-yaw-v1",
-              "enabled": true,
-              "parameters": {
-                "speed": 0.11,
-                "dragSensitivity": 1,
-                "resumeDelay": 1.2,
-                "resumeBlend": 1.4,
-                "timeMode": "ambient"
               }
             }
           ],
@@ -664,9 +641,9 @@
         {
           "id": "text-complexity-idea",
           "kind": "title",
-          "startWU": 1.720833,
-          "focusWU": 2.120833,
-          "endWU": 2.520833,
+          "startWU": 1.195455,
+          "focusWU": 1.595455,
+          "endWU": 1.995455,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -679,9 +656,9 @@
         {
           "id": "text-complexity-conditions",
           "kind": "title",
-          "startWU": 3.441667,
-          "focusWU": 3.841667,
-          "endWU": 4.241667,
+          "startWU": 2.390909,
+          "focusWU": 2.790909,
+          "endWU": 3.190909,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -694,9 +671,9 @@
         {
           "id": "text-background-editorial",
           "kind": "scroll-block",
-          "startWU": 5.3925,
-          "focusWU": 5.5625,
-          "endWU": 6.8225,
+          "startWU": 3.586364,
+          "focusWU": 3.756364,
+          "endWU": 5.016364,
           "publishable": true,
           "presentation": {
             "layout": "reading"
@@ -720,9 +697,9 @@
         {
           "id": "text-background-clients",
           "kind": "scroll-block",
-          "startWU": 6.753333,
-          "focusWU": 7.283333,
-          "endWU": 7.813333,
+          "startWU": 5.411818,
+          "focusWU": 5.941818,
+          "endWU": 6.471818,
           "publishable": true,
           "presentation": {
             "layout": "reading"
@@ -743,12 +720,12 @@
         {
           "id": "text-complexity-curiosity",
           "kind": "title",
-          "startWU": 8.604167,
-          "focusWU": 9.004167,
-          "endWU": 9.404167,
+          "startWU": 6.867273,
+          "focusWU": 7.267273,
+          "endWU": 7.667273,
           "publishable": true,
           "presentation": {
-            "layout": "constellation"
+            "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -758,24 +735,24 @@
         {
           "id": "text-complexity-listen",
           "kind": "title",
-          "startWU": 10.325,
-          "focusWU": 10.725,
-          "endWU": 11.125,
+          "startWU": 8.062727,
+          "focusWU": 8.462727,
+          "endWU": 8.862727,
           "publishable": true,
           "presentation": {
-            "layout": "constellation"
+            "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
-          "titleStyle": "display",
+          "titleStyle": "standard",
           "text": "So I move between several."
         },
         {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
-          "startWU": 12.215833,
-          "focusWU": 12.445833,
-          "endWU": 14.175833,
+          "startWU": 9.258182,
+          "focusWU": 9.488182,
+          "endWU": 11.218182,
           "publishable": true,
           "presentation": {
             "layout": "disciplines"
@@ -783,7 +760,7 @@
           "block": {
             "id": "disciplines-passage",
             "kind": "prose",
-            "text": "Close attention comes first. I identify the organising idea, then give it a form the team can examine, question, test and develop. That is where useful disagreement begins.\nAI extends what I can explore and make. Its value depends on human judgement and recognising when the result has become generic.",
+            "text": "Close attention comes first. I identify the organising idea, then give it a form the team can examine, question, test and develop. That is where useful disagreement begins.\nAI extends what I can explore and make. Its value depends on human judgement and recognising when the result has become generic.\nI work with ambitious teams while the problem is still taking shape—especially where design, technology and AI must inform the direction from the outset.",
             "emphasis": [
               {
                 "text": "AI",
@@ -792,25 +769,7 @@
               {
                 "text": "judgement",
                 "tone": "blue"
-              }
-            ]
-          }
-        },
-        {
-          "id": "text-role-highlight",
-          "kind": "scroll-block",
-          "startWU": 13.886667,
-          "focusWU": 14.166667,
-          "endWU": 15.686667,
-          "publishable": true,
-          "presentation": {
-            "layout": "exit"
-          },
-          "block": {
-            "id": "role-passage",
-            "kind": "prose",
-            "text": "I work with ambitious teams while the problem is still taking shape—especially where design, technology and AI must inform the direction from the outset.",
-            "emphasis": [
+              },
               {
                 "text": "design",
                 "tone": "blue"
@@ -829,12 +788,12 @@
         {
           "id": "text-life-momentum",
           "kind": "title",
-          "startWU": 15.4875,
-          "focusWU": 15.8875,
-          "endWU": 16.2875,
+          "startWU": 11.613636,
+          "focusWU": 12.013636,
+          "endWU": 12.413636,
           "publishable": true,
           "presentation": {
-            "layout": "living-field"
+            "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -844,12 +803,12 @@
         {
           "id": "text-life-form",
           "kind": "title",
-          "startWU": 17.208333,
-          "focusWU": 17.608333,
-          "endWU": 18.008333,
+          "startWU": 12.809091,
+          "focusWU": 13.209091,
+          "endWU": 13.609091,
           "publishable": true,
           "presentation": {
-            "layout": "living-field"
+            "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -859,12 +818,12 @@
         {
           "id": "text-life-character",
           "kind": "title",
-          "startWU": 18.929167,
-          "focusWU": 19.329167,
-          "endWU": 19.729167,
+          "startWU": 14.004545,
+          "focusWU": 14.404545,
+          "endWU": 14.804545,
           "publishable": true,
           "presentation": {
-            "layout": "living-field"
+            "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -874,12 +833,12 @@
         {
           "id": "text-epilogue-invitation",
           "kind": "title",
-          "startWU": 20.65,
-          "focusWU": 21.05,
-          "endWU": 21.8,
+          "startWU": 15.2,
+          "focusWU": 15.6,
+          "endWU": 16.35,
           "publishable": true,
           "presentation": {
-            "layout": "text-bust-cta"
+            "layout": "text-finale-cta"
           },
           "movement": "spatial",
           "preset": "finale-v1",
@@ -893,22 +852,22 @@
         {
           "id": "motion-discipline-reveal",
           "type": "discipline-reveal",
-          "startWU": 9.25,
-          "activationWU": 9.42,
-          "endWU": 11.18,
+          "startWU": 6.9375,
+          "activationWU": 7.065,
+          "endWU": 8.385,
           "targetWorldId": "world-grid",
           "parameters": {
-            "labelWindowWU": 1.65,
-            "staggerWU": 0.135,
-            "backgroundFadeWU": 0.2,
+            "labelWindowWU": 1.2375,
+            "staggerWU": 0.10125,
+            "backgroundFadeWU": 0.15,
             "backgroundOpacity": 0.28,
             "reconnectOpacity": 0.38,
             "pointScale": 2.15,
-            "restoreDurationWU": 0.3,
+            "restoreDurationWU": 0.225,
             "labelOffsetPx": 20,
             "labelScale": 1.3,
-            "labelDurationWU": 0.162,
-            "holdWU": 0.45,
+            "labelDurationWU": 0.1215,
+            "holdWU": 0.3375,
             "items": [
               {
                 "group": 1,
@@ -940,26 +899,17 @@
         {
           "id": "interaction-grid-ripple",
           "type": "grid-ripple",
-          "startWU": 15.75,
-          "activationWU": 15.95,
-          "endWU": 17.7,
+          "startWU": 11.8125,
+          "activationWU": 11.9625,
+          "endWU": 13.275,
           "targetWorldId": "world-grid",
           "parameters": {
             "amplitude": 1.25,
-            "speed": 0.5,
+            "speed": 0.666667,
             "frequency": 1.05,
-            "releaseWU": 0.06,
+            "releaseWU": 0.15,
             "timeMode": "story"
           }
-        },
-        {
-          "id": "interaction-epilogue",
-          "type": "horizontal-spin",
-          "startWU": 20.3,
-          "activationWU": 21.05,
-          "endWU": 21.8,
-          "targetWorldId": "world-epilogue",
-          "protected": true
         }
       ]
     }

@@ -256,7 +256,8 @@ export function useAboutNarrativeTimeline({
           }
           titleFields.push({ node, field, sample });
         }
-        if (field.presentation?.layout === 'text-bust-cta') contextFields.push({ node, field });
+        if (field.presentation?.layout === 'text-finale-cta'
+          || field.presentation?.layout === 'text-bust-cta') contextFields.push({ node, field });
       });
       measurementsRef.current = {
         ...measurementsRef.current,

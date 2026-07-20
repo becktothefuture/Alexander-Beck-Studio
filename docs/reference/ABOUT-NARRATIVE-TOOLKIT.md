@@ -5,7 +5,7 @@
 The About page is one authored scroll sequence played by three cooperating layers:
 
 1. Native DOM text remains readable, selectable, responsive, and accessible.
-2. One Three.js point-field runtime draws every procedural World and the final bust.
+2. One Three.js point-field runtime draws every procedural World, including the final emergent form.
 3. One world-unit playhead samples Camera, Visibility, World, Text, and Motion at the same moment.
 
 The creative toolkit is available only during local development:
@@ -25,7 +25,7 @@ About Narrative
     ├── Visibility track → whole-simulation opacity keys
     ├── World track → Shape + modifier stack
     ├── Text track → travelling Titles and editorial Scroll blocks
-    └── Motion track → discipline reveal, ripple, and bust interaction clips
+    └── Motion track → discipline reveal and gathering-pulse clips
 ```
 
 - A **Sequence** is the complete scroll journey.
@@ -149,19 +149,19 @@ simulation exists on screen are therefore three explicit, non-overlapping contro
 
 ### Current camera choreography
 
-- `0–4.2 WU`: establish the orb above the opener, fly through its threshold, enter the turbulent
+- `0–3.15 WU`: establish the orb above the opener, fly through its threshold, enter the turbulent
   field, and continue forward as the complexity scatters.
-- `4.2–7.25 WU`: the simulation fades completely out. The camera can cross the empty interval and
-  arrive at the floor view before the grid rises from below.
-- `7.1–9.3 WU`: fly over the grid while pitching from `-10°` through `-43°` to a true `-90°`
-  bird's-eye view.
-- `9.3–11.18 WU`: hold the bird's-eye composition while the six disciplines isolate and label.
-- `11.18–15.48 WU`: hide the simulation during editorial copy, reposition unseen, then return to
-  the same grid in full colour and exact face-on alignment.
-- `15.35–17.7 WU`: keep `-90°` pitch and zoom straight out as the center-out ripple expands.
-- `17.7–20.65 WU`: move once into an oblique orbital view, then hold while four bodies revolve
-  around the dense core and resolve directly into the bust at the same X/Z center.
-- `20.65–21.8 WU`: one final arrival frames the complete bust above the invitation and actions.
+- `3.15–6.98 WU`: the simulation fades completely out, crosses the empty interval, and returns as a
+  floor plane while the camera pitches toward a true `-90°` bird's-eye view.
+- `6.98–8.39 WU`: hold the bird's-eye composition while the six disciplines isolate and label.
+- `8.39–11.61 WU`: hide the simulation during editorial copy, reposition unseen, then return to the
+  same grid in full colour and exact face-on alignment.
+- `11.81–13.28 WU`: keep `-90°` pitch and zoom straight out as one gathering front activates from
+  the grid center.
+- `13.28–15.2 WU`: resolve the lifted floor into one suspended woven form, leave the overhead view,
+  and make one continuous oblique camera pass through the form.
+- `15.2–16.35 WU`: set whole-simulation Visibility to zero and hold the invitation and actions in
+  clean centered space.
 
 ## How Worlds stay connected
 
@@ -195,13 +195,14 @@ Correspondence modes are:
 - `index-v1`: exact compatibility with the approved sequence
 - `stable-seed`: the same canonical seeded pool, suitable for new procedural Shapes
 - `spatial-nearest-v1`: the editor's **Local travel (approx.)** mode; it matches visible points in world space, protects semantic anchors, and accepts only a visibility-aware improvement over the compatible baseline
+- `spatial-nearest-v2`: the production local-travel mapping with deterministic continuity across the full fixed point pool
 - `group-aware`: additionally preserves declared semantic groups such as the six discipline anchors
 
 The current sequence uses local spatial correspondence for orb → complexity and complexity → grid,
-index correspondence for grid → orbital so the ripple rearranges coherently into bodies, and local
-spatial correspondence for orbital → bust. Local mapping is approximate rather than a mathematically
-global optimum: deterministic Morton ordering and bounded repair reduce aggregate and outlier travel
-without an impractical 12,000-point exact solver.
+then local spatial correspondence again for grid → emergent form so each fixed-pool point travels
+toward one woven destination. Local mapping is approximate rather than a mathematically global
+optimum: deterministic Morton ordering and bounded repair reduce aggregate and outlier travel without
+an impractical 12,000-point exact solver.
 
 Procedural Shape generation and correspondence are prepared cumulatively in a module Worker, never in the RAF loop. The mapped endpoint of A → B becomes the exact source ordering for B → C, keeping point colour, drift phase, presence, and semantic identity continuous across the complete story. Direct seeking compiles the same chain. A complete last-known-good pair stays installed while an edited sequence prepares or fails.
 
@@ -212,10 +213,12 @@ Select a World clip and open **Transition in → Correspondence** to compare Ind
 - `cluster-v1`: a spherical complexity cloud
 - `turbulent-field-v1`: an uneven volumetric cloud assembled from weighted chunks, sparse pockets, loose particles, and an organic coordinate warp
 - `calm-field-v1`: a wide horizontal clearing whose existing points also provide the six semantic discipline anchors
-- `orbital-system-v1`: one dense core plus four deterministic 3D bodies animated by orbital life
+- `emergent-form-v1`: six woven currents that read together as one suspended spatial sculpture
 - `discipline-grid-v1`: a frontal field with six semantic anchors
 - `living-field-v1`: terrain designed for wave and colour modifiers
-- `bust-v1`: the loaded point bust, with a procedural fallback if its asset fails
+
+`orbital-system-v1` and `bust-v1` remain registered for legacy draft compatibility but are not part of
+the canonical sequence.
 
 Use **World → Replace Shape → Try** to preview a replacement at the same playhead. **Apply** is one undoable transaction. **Cancel** restores the active compiled plan. While a new Shape generates, the last valid buffers remain visible.
 
@@ -228,8 +231,7 @@ A Shape supplies rest positions. Its ordered modifier stack supplies behaviour:
 - Group emphasis
 - Living wave
 - Living colour
-- Orbital life
-- Bust yaw
+- Ambient drift on the resolved emergent form
 
 Modifiers can be enabled, reordered, and parameterised. Shared turbulence range, speed, irregularity, individuality, and axis spread are edited once under **Sequence → Shared turbulence**. The World-level **Swarm life → Local strength** control changes intensity without creating a second motion profile. Each registered modifier declares safe ranges, units, cost, and reduced-motion behaviour.
 
@@ -239,9 +241,9 @@ Two clocks keep editing reproducible:
 - `ambient`: wall-clock motion during live playback
 - `mixed`: authored state plus a bounded ambient layer
 
-Disable **Live ambient** to freeze ambient movement while comparing frames.
-
-During living-field → bust formation, bust yaw is held at its entry value. Automatic and pointer/keyboard rotation begin from that same settled value only after the sculpture has formed, so correspondence is measured against a stable destination.
+Disable **Live ambient** to freeze ambient movement while comparing frames. The canonical ending has
+no pointer-owned sculpture rotation: camera movement, World morphing, and global Visibility carry the
+complete final beat.
 
 ## Text editing
 
@@ -285,10 +287,10 @@ Three.js points and pack inside the viewport on desktop, portrait mobile, and sh
 palette is fixed to the Home simulation ball tokens by semantic group: `1 → --ball-1`,
 `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`.
 After the labels restore, Visibility hides the complete simulation for editorial copy. C returns in
-full colour at the centered top-down camera. The Grid ripple Motion expands from that transformed
-center, displacing points in height and radial X/Z compression so it remains legible from a true
-bird's-eye view. The wave stays active through the wide zoom and hands its indexed point order into
-the orbital World; it does not create helper rings or alter point size to fake the effect.
+full colour at the centered top-down camera. The Gathering pulse Motion expands once from that
+transformed center, lifting the floor and drawing points inward so the activation remains legible from
+a true bird's-eye view. The pulse hands the fixed point pool into the emergent World; it does not
+repeat as a sine wave, create helper rings, or alter point size to fake the effect.
 
 ## History, comparison, and checkpoints
 
@@ -335,14 +337,13 @@ one intentional global pair before importing the document as v5.
 
 ## Safeguards
 
-Validation blocks Apply and Save for duplicate IDs, invalid extents, unsafe text, unknown adapters/Shapes/modifiers, broken numeric values, unsupported transitions, invalid buffers, or a missing final bust contract.
+Validation blocks Apply and Save for duplicate IDs, invalid extents, unsafe text, unknown adapters/Shapes/modifiers, broken numeric values, unsupported transitions, invalid buffers, or a missing protected final World and publishable finale.
 
-The last-known-good compiled plan continues to play while a draft is invalid. Runtime failure containment includes abortable Shape generation, cached valid buffers, resource disposal, theme-token updates outside the hot loop, WebGL context recovery, visibility pausing, procedural bust fallback, and accessible editorial content when WebGL is unavailable.
+The last-known-good compiled plan continues to play while a draft is invalid. Runtime failure containment includes abortable Shape generation, cached valid buffers, resource disposal, theme-token updates outside the hot loop, WebGL context recovery, visibility pausing, legacy procedural-bust fallback, and accessible editorial content when WebGL is unavailable.
 
 The protected reduced-motion profile step-samples camera and visibility, removes continuous flight,
-depth/blur travel, ripple motion, ambient modifiers, and automatic bust rotation. It keeps stable
-text, settled World states, the six labels only during their authored interval, and manual
-keyboard/pointer bust rotation.
+depth/blur travel, gathering motion, and ambient modifiers. It keeps stable text, settled World
+states, and the six labels only during their authored interval.
 
 ## Adding a new Shape generator
 

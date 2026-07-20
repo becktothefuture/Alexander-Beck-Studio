@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import * as THREE from 'three';
-
 import {
   compileAboutNarrativeRuntimePlan,
   sampleAboutNarrativeRuntimePlan,
@@ -70,38 +68,41 @@ test('canonical About source is a deterministic native v5 runtime document', () 
   assert.doesNotMatch(canonicalSource, /"sections"\s*:/);
 });
 
-test('canonical v5 authors one consolidated camera, visibility, and five-World orbital sequence', () => {
+test('canonical v5 authors one consolidated camera, visibility, and four-World emergent sequence', () => {
   const cameraKeys = canonical.tracks.camera.keys;
   const visibilityKeys = canonical.tracks.visibility.keys;
   const worlds = canonical.tracks.worlds.objects;
   const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
   const ripple = canonical.tracks.interactions.clips.find((clip) => clip.type === 'grid-ripple');
   const grid = worlds.find((world) => world.id === ripple?.targetWorldId);
-  const orbital = worlds.find((world) => world.id === 'world-orbital');
-  const bust = worlds.find((world) => world.id === 'world-epilogue');
+  const emergent = worlds.find((world) => world.id === 'world-emergent');
 
   assert.ok(reveal);
   assert.ok(ripple);
-  assert.equal(cameraKeys.length, 13);
-  const orbitalKey = cameraKeys.find((key) => key.id === 'orbital-oblique');
-  const orbitalHold = cameraKeys.find((key) => key.id === 'orbital-hold');
-  assert.ok(orbitalKey);
-  assert.ok(orbitalHold);
-  assert.deepEqual(orbitalHold.position, orbitalKey.position);
-  assert.deepEqual(orbitalHold.rotation, orbitalKey.rotation);
-  assert.equal(orbitalHold.fov, orbitalKey.fov);
-  assert.equal(cameraKeys.some((key) => key.id === 'bust-formation-hold'), false);
+  assert.equal(cameraKeys.length, 12);
+  const obliqueKey = cameraKeys.find((key) => key.id === 'emergent-oblique');
+  const throughKey = cameraKeys.find((key) => key.id === 'emergent-through');
+  const finaleHold = cameraKeys.find((key) => key.id === 'finale-hold');
+  assert.ok(obliqueKey);
+  assert.ok(throughKey);
+  assert.ok(finaleHold);
+  assert.deepEqual(finaleHold.position, throughKey.position);
+  assert.deepEqual(finaleHold.rotation, throughKey.rotation);
+  assert.equal(finaleHold.fov, throughKey.fov);
+  assert.equal(cameraKeys.some((key) => /orbital|bust/.test(key.id)), false);
   cameraKeys.forEach((key) => {
     assert.deepEqual(
       Object.keys(key).sort(),
       ['atWU', 'easing', 'fov', 'id', 'locked', 'position', 'rotation'],
     );
   });
-  assert.equal(visibilityKeys.length, 10);
+  assert.equal(visibilityKeys.length, 15);
   assert.equal(visibilityKeys[0].atWU, 0);
   assert.equal(visibilityKeys.at(-1).atWU, canonical.profiles.desktop.storyDurationWU);
   assert.ok(visibilityKeys.some((key) => key.visibility === 0));
   assert.ok(visibilityKeys.some((key) => key.visibility === 1));
+  assert.equal(visibilityKeys.find((key) => key.id === 'visibility-open-space')?.atWU, throughKey.atWU);
+  assert.equal(visibilityKeys.at(-1).visibility, 0);
   visibilityKeys.forEach((key) => {
     assert.deepEqual(
       Object.keys(key).sort(),
@@ -115,17 +116,16 @@ test('canonical v5 authors one consolidated camera, visibility, and five-World o
       ['world-promise', 'cluster-v1'],
       ['world-complexity', 'turbulent-field-v1'],
       ['world-grid', 'calm-field-v1'],
-      ['world-orbital', 'orbital-system-v1'],
-      ['world-epilogue', 'bust-v1'],
+      ['world-emergent', 'emergent-form-v1'],
     ],
   );
   assert.ok(grid);
-  assert.ok(orbital);
-  assert.ok(bust);
-  assert.equal(ripple.endWU, orbital.startWU);
-  assert.equal(orbital.transitionIn.correspondence, 'index-v1');
-  assert.equal(orbital.modifiers.some((modifier) => modifier.id === 'orbital-life-v1'), true);
-  assert.equal(bust.transitionIn.correspondence, 'spatial-nearest-v2');
+  assert.ok(emergent);
+  assert.equal(ripple.endWU, emergent.startWU);
+  assert.equal(emergent.transitionIn.correspondence, 'spatial-nearest-v2');
+  assert.equal(emergent.modifiers.some((modifier) => modifier.id === 'ambient-drift-v1'), true);
+  assert.equal(emergent.protected, true);
+  assert.equal(worlds.some((world) => /orbital|bust/.test(world.shapeId)), false);
 
   assert.deepEqual(
     Object.keys(canonical.globals.camera).sort(),
@@ -157,240 +157,44 @@ test('canonical v5 authors one consolidated camera, visibility, and five-World o
   });
 });
 
-test('the complete mobile orbital system retains point-radius clearance through its full hold', () => {
-  const viewportWidth = 390;
-  const viewportHeight = 844;
-  const maximumPointRadiusPx = 5;
-  const framingSafetyPx = 3;
-  const requiredClearancePx = maximumPointRadiusPx + framingSafetyPx;
-  const sphereSamples = 512;
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-  const plan = compileAboutNarrativeRuntimePlan(canonical, {
-    layoutProfile: 'mobile',
-    inlineSize: viewportWidth,
-    blockSize: viewportHeight,
-  });
-  const orbital = plan.worlds.find((world) => world.id === 'world-orbital');
-  const orbitalModifier = orbital?.modifiers.find((modifier) => modifier.id === 'orbital-life-v1');
-  assert.ok(orbital);
-  assert.ok(orbitalModifier);
+test('emergent form stays a single protected World across responsive profiles', () => {
+  const authored = canonical.tracks.worlds.objects.find((world) => world.id === 'world-emergent');
+  const grid = canonical.tracks.worlds.objects.find((world) => world.id === 'world-grid');
+  const pulse = canonical.tracks.interactions.clips.find((clip) => clip.type === 'grid-ripple');
+  assert.ok(authored);
+  assert.ok(grid);
+  assert.ok(pulse);
+  assert.equal(authored.shapeId, 'emergent-form-v1');
+  assert.equal(authored.startWU, pulse.endWU);
+  assert.equal(authored.transitionIn.startWU, authored.startWU);
+  assert.ok(authored.transitionIn.endWU > authored.transitionIn.startWU);
+  assert.equal(authored.transitionIn.correspondence, 'spatial-nearest-v2');
+  assert.equal(authored.modifiers.length, 1);
+  assert.equal(authored.modifiers[0].id, 'ambient-drift-v1');
+  assert.equal(authored.protected, true);
+  assert.ok(authored.shapeParameters.radius >= 2);
+  assert.ok(authored.shapeParameters.height >= 4.5);
+  assert.ok(authored.shapeParameters.density >= 0.5);
 
-  const transform = orbital.transform;
-  const mobileScale = Number(transform.mobileScale ?? transform.scale ?? 1);
-  const mobileXScale = Number(transform.mobileXScale ?? mobileScale);
-  const worldPosition = new THREE.Vector3(
-    Number(transform.position[0]),
-    Number(transform.position[1]) + Number(transform.mobileYOffset || 0),
-    Number(orbital.anchorRailZ) - Number(orbital.entryDistanceWU)
-      + Number(transform.position[2]) + Number(transform.mobileZOffset || 0),
-  );
-  const worldQuaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(
-    Number(transform.rotation[0]),
-    Number(transform.rotation[1]),
-    Number(transform.rotation[2]),
-    'YXZ',
-  ));
-  const worldMatrix = new THREE.Matrix4().compose(
-    worldPosition,
-    worldQuaternion,
-    new THREE.Vector3(mobileXScale, mobileScale, mobileScale),
-  );
-  const bodyLayout = [
-    { orbitScale: 0, phase: 0, inclination: 0, speedScale: 0, radius: orbital.shapeParameters.coreRadius },
-    { orbitScale: 0.45, phase: 0.166, inclination: 0.22, speedScale: 1, radius: orbital.shapeParameters.bodyRadius * 0.98 },
-    { orbitScale: 0.68, phase: 3.364, inclination: -0.38, speedScale: 0.78, radius: orbital.shapeParameters.bodyRadius * 0.8 },
-    { orbitScale: 0.85, phase: 0.414, inclination: 0.52, speedScale: 0.61, radius: orbital.shapeParameters.bodyRadius * 0.68 },
-    { orbitScale: 1, phase: 4.849, inclination: -0.28, speedScale: 0.48, radius: orbital.shapeParameters.bodyRadius * 0.56 },
-  ];
-  const camera = new THREE.PerspectiveCamera(54, viewportWidth / viewportHeight, 0.01, 100);
-  const bodyCenter = new THREE.Vector3();
-  const projected = new THREE.Vector3();
-  const checkpoints = [];
-  for (let storyWU = orbital.transitionIn.endWU; storyWU < orbital.endWU; storyWU += 0.01) {
-    checkpoints.push(storyWU);
-  }
-  checkpoints.push(orbital.endWU);
-
-  let minimumClearancePx = Number.POSITIVE_INFINITY;
-  checkpoints.forEach((storyWU) => {
-    const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
-    camera.fov = frame.camera.fov;
-    camera.position.fromArray(frame.camera.position);
-    camera.quaternion.fromArray(frame.camera.quaternion);
-    camera.updateProjectionMatrix();
-    camera.updateMatrixWorld(true);
-    const orbitDelta = storyWU
-      * Number(orbitalModifier.parameters.speed)
-      * Math.PI
-      * 2;
-
-    bodyLayout.forEach((body) => {
-      const angle = body.phase + (orbitDelta * body.speedScale);
-      const orbitRadius = Number(orbital.shapeParameters.orbitRadius) * body.orbitScale;
-      const orbitZ = Math.sin(angle) * orbitRadius;
-      bodyCenter.set(
-        Math.cos(angle) * orbitRadius,
-        -Math.sin(body.inclination) * orbitZ,
-        Math.cos(body.inclination) * orbitZ,
-      );
-      for (let sampleIndex = 0; sampleIndex < sphereSamples; sampleIndex += 1) {
-        const y = 1 - (2 * ((sampleIndex + 0.5) / sphereSamples));
-        const ringRadius = Math.sqrt(Math.max(0, 1 - (y * y)));
-        const sphereAngle = sampleIndex * goldenAngle;
-        projected.set(
-          bodyCenter.x + (Math.cos(sphereAngle) * ringRadius * body.radius),
-          bodyCenter.y + (y * body.radius),
-          bodyCenter.z + (Math.sin(sphereAngle) * ringRadius * body.radius),
-        ).applyMatrix4(worldMatrix).project(camera);
-        assert.ok(projected.z >= -1 && projected.z <= 1, `Orbital body clipped in depth at ${storyWU} WU.`);
-        const screenX = ((projected.x + 1) * viewportWidth) / 2;
-        const screenY = ((1 - projected.y) * viewportHeight) / 2;
-        minimumClearancePx = Math.min(
-          minimumClearancePx,
-          screenX,
-          viewportWidth - screenX,
-          screenY,
-          viewportHeight - screenY,
-        );
-      }
-    });
-  });
-
-  assert.ok(
-    minimumClearancePx >= requiredClearancePx,
-    `Mobile orbital clearance ${minimumClearancePx.toFixed(2)}px is below ${requiredClearancePx}px.`,
-  );
-});
-
-test('settled and live orbital checkpoints keep five separated silhouettes inside both protected viewports', () => {
-  const requiredSeparationPx = 12;
-  const requiredEdgeClearancePx = 16;
-  const sphereSamples = 256;
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-  const checkpoints = [18.7, 19.4];
-  const viewports = [
-    { layoutProfile: 'desktop', width: 1440, height: 1000 },
-    { layoutProfile: 'mobile', width: 390, height: 844 },
-  ];
-
-  viewports.forEach(({ layoutProfile, width, height }) => {
-    const plan = compileAboutNarrativeRuntimePlan(canonical, {
-      layoutProfile,
-      inlineSize: width,
-      blockSize: height,
-    });
-    const orbital = plan.worlds.find((world) => world.id === 'world-orbital');
-    const orbitalModifier = orbital.modifiers.find((modifier) => modifier.id === 'orbital-life-v1');
-    const compact = layoutProfile === 'mobile';
-    const transform = orbital.transform;
-    const scale = Number(compact
-      ? transform.mobileScale ?? transform.scale ?? 1
-      : transform.scale ?? 1);
-    const xScale = Number(compact
-      ? transform.mobileXScale ?? scale
-      : scale);
-    const worldPosition = new THREE.Vector3(
-      Number(transform.position[0]),
-      Number(transform.position[1]) + (compact ? Number(transform.mobileYOffset || 0) : 0),
-      Number(orbital.anchorRailZ) - Number(orbital.entryDistanceWU)
-        + Number(transform.position[2]) + (compact ? Number(transform.mobileZOffset || 0) : 0),
-    );
-    const worldQuaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(
-      Number(transform.rotation[0]),
-      Number(transform.rotation[1]),
-      Number(transform.rotation[2]),
-      'YXZ',
-    ));
-    const worldMatrix = new THREE.Matrix4().compose(
-      worldPosition,
-      worldQuaternion,
-      new THREE.Vector3(xScale, scale, scale),
-    );
-    const bodyLayout = [
-      { orbitScale: 0, phase: 0, inclination: 0, speedScale: 0, radius: orbital.shapeParameters.coreRadius },
-      { orbitScale: 0.45, phase: 0.166, inclination: 0.22, speedScale: 1, radius: orbital.shapeParameters.bodyRadius * 0.98 },
-      { orbitScale: 0.68, phase: 3.364, inclination: -0.38, speedScale: 0.78, radius: orbital.shapeParameters.bodyRadius * 0.8 },
-      { orbitScale: 0.85, phase: 0.414, inclination: 0.52, speedScale: 0.61, radius: orbital.shapeParameters.bodyRadius * 0.68 },
-      { orbitScale: 1, phase: 4.849, inclination: -0.28, speedScale: 0.48, radius: orbital.shapeParameters.bodyRadius * 0.56 },
-    ];
-    const camera = new THREE.PerspectiveCamera(54, width / height, 0.01, 100);
-    const projected = new THREE.Vector3();
-
-    checkpoints.forEach((storyWU) => {
+  for (const layoutProfile of ['desktop', 'tablet', 'mobile']) {
+    const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile });
+    const resolved = plan.worlds.find((world) => world.id === authored.id);
+    assert.ok(resolved, `${layoutProfile} must retain the emergent World.`);
+    assert.equal(resolved.shapeId, 'emergent-form-v1');
+    assert.equal(resolved.transitionIn.correspondence, 'spatial-nearest-v2');
+    assert.ok(Number(resolved.transform.scale) > 0);
+    if (layoutProfile === 'mobile') {
+      assert.ok(Number(resolved.transform.mobileScale) > 0);
+      assert.ok(Number(resolved.transform.mobileScale) < Number(resolved.transform.scale));
+    }
+    for (const storyWU of [authored.startWU, authored.transitionIn.endWU, 14.85, 15.2]) {
       const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
-      camera.fov = frame.camera.fov;
-      camera.position.fromArray(frame.camera.position);
-      camera.quaternion.fromArray(frame.camera.quaternion);
-      camera.updateProjectionMatrix();
-      camera.updateMatrixWorld(true);
-      const orbitDelta = storyWU
-        * Number(orbitalModifier.parameters.speed)
-        * Math.PI
-        * 2;
-      const projectedBodies = bodyLayout.map((body) => {
-        const angle = body.phase + (orbitDelta * body.speedScale);
-        const orbitRadius = Number(orbital.shapeParameters.orbitRadius) * body.orbitScale;
-        const orbitZ = Math.sin(angle) * orbitRadius;
-        const center = new THREE.Vector3(
-          Math.cos(angle) * orbitRadius,
-          -Math.sin(body.inclination) * orbitZ,
-          Math.cos(body.inclination) * orbitZ,
-        );
-        const projectedCenter = center.clone().applyMatrix4(worldMatrix).project(camera);
-        const centerX = ((projectedCenter.x + 1) * width) / 2;
-        const centerY = ((1 - projectedCenter.y) * height) / 2;
-        let projectedRadius = 0;
-        let edgeClearance = Number.POSITIVE_INFINITY;
-        for (let sampleIndex = 0; sampleIndex < sphereSamples; sampleIndex += 1) {
-          const y = 1 - (2 * ((sampleIndex + 0.5) / sphereSamples));
-          const ringRadius = Math.sqrt(Math.max(0, 1 - (y * y)));
-          const sphereAngle = sampleIndex * goldenAngle;
-          projected.set(
-            center.x + (Math.cos(sphereAngle) * ringRadius * body.radius),
-            center.y + (y * body.radius),
-            center.z + (Math.sin(sphereAngle) * ringRadius * body.radius),
-          ).applyMatrix4(worldMatrix).project(camera);
-          const screenX = ((projected.x + 1) * width) / 2;
-          const screenY = ((1 - projected.y) * height) / 2;
-          projectedRadius = Math.max(
-            projectedRadius,
-            Math.hypot(screenX - centerX, screenY - centerY),
-          );
-          edgeClearance = Math.min(
-            edgeClearance,
-            screenX,
-            width - screenX,
-            screenY,
-            height - screenY,
-          );
-        }
-        return { centerX, centerY, projectedRadius, edgeClearance };
-      });
-
-      let minimumSeparation = Number.POSITIVE_INFINITY;
-      projectedBodies.forEach((body, bodyIndex) => {
-        assert.ok(
-          body.edgeClearance >= requiredEdgeClearancePx,
-          `${layoutProfile} orbital body ${bodyIndex + 1} is only ${body.edgeClearance.toFixed(2)}px from an edge at ${storyWU} WU.`,
-        );
-        for (let peerIndex = bodyIndex + 1; peerIndex < projectedBodies.length; peerIndex += 1) {
-          const peer = projectedBodies[peerIndex];
-          minimumSeparation = Math.min(
-            minimumSeparation,
-            Math.hypot(body.centerX - peer.centerX, body.centerY - peer.centerY)
-              - body.projectedRadius
-              - peer.projectedRadius,
-          );
-        }
-      });
-      assert.ok(
-        minimumSeparation >= requiredSeparationPx,
-        `${layoutProfile} orbital separation ${minimumSeparation.toFixed(2)}px is below ${requiredSeparationPx}px at ${storyWU} WU.`,
-      );
-    });
-  });
+      assert.ok(frame.camera.position.every(Number.isFinite));
+      assert.ok(frame.camera.quaternion.every(Number.isFinite));
+      assert.ok(Number.isFinite(frame.camera.fov));
+    }
+  }
 });
-
 test('every profile compiles one semantic span per publishable field', () => {
   for (const layoutProfile of ['desktop', 'tablet', 'mobile']) {
     for (const motionProfile of ['full', 'reduced']) {
@@ -448,7 +252,7 @@ test('C owns one fixed grid World and D is expressed only as Motion', () => {
 test('editor World labels reserve D for Motion without derived-span copy', () => {
   assert.deepEqual(
     canonical.tracks.worlds.objects.map((world) => world.label),
-    ['A', 'B', 'C', 'E', 'F'],
+    ['A', 'B', 'C', 'E'],
   );
   assert.doesNotMatch(liveSources.editor, /Derived to next World Start|World width is derived/);
 });
@@ -518,7 +322,7 @@ test('the Text row header exposes only native-v5 global animation controls', () 
   assert.match(liveSources.editor, /selection\.type === 'track' && selection\.id === 'text'/);
   assert.match(liveSources.editor, /<TextTrackInspector snapshot=\{snapshot\} store=\{store\}/);
   assert.match(liveSources.editor, /data-track-settings="text"/);
-  assert.match(liveSources.editor, /Text focus points define the narrative cadence and Story length/);
+  assert.match(liveSources.editor, /Text windows define the narrative cadence and Story length/);
   assert.match(liveSources.editor, /object\.kind !== 'title'/);
 });
 
@@ -611,16 +415,16 @@ test('Camera keys retain clean finite authored transforms', () => {
   });
 });
 
-test('World C holds a top-down discipline reveal before the orbital handoff', () => {
+test('World C holds a top-down discipline reveal before the emergent handoff', () => {
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const background = canonical.tracks.worlds.objects.find((world) => world.label === 'C');
   const shift = keys.get('grid-birds-eye');
   const reveal = keys.get('grid-birds-eye-hold');
   const returnKey = keys.get('grid-return-centered');
   const ripple = keys.get('grid-ripple-zoomout');
-  const orbital = keys.get('orbital-oblique');
+  const emergent = keys.get('emergent-oblique');
   assert.ok(background);
-  [shift, reveal, returnKey, ripple, orbital].forEach((key) => assert.ok(key));
+  [shift, reveal, returnKey, ripple, emergent].forEach((key) => assert.ok(key));
   [shift, reveal].forEach((key) => {
     assert.deepEqual(key.position, [0, 3.5, -0.32]);
     assert.deepEqual(key.rotation, [-90, 0, 0]);
@@ -642,11 +446,16 @@ test('World C holds a top-down discipline reveal before the orbital handoff', ()
   assert.deepEqual(returnKey.rotation, [-90, 0, 0]);
   assert.deepEqual(ripple.rotation, [-90, 0, 0]);
   assert.ok(ripple.position[1] > returnKey.position[1]);
-  assert.ok(orbital.atWU > ripple.atWU);
-  assert.notDeepEqual(orbital.rotation, ripple.rotation);
+  assert.ok(emergent.atWU > ripple.atWU);
+  assert.notDeepEqual(emergent.rotation, ripple.rotation);
 
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
+  const leftColumn = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.filter((anchor) => anchor.x < 0.5);
+  const rightColumn = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.filter((anchor) => anchor.x > 0.5);
   assert.equal(new Set(verticalPositions).size, 6);
+  assert.equal(leftColumn.length, 3);
+  assert.equal(rightColumn.length, 3);
+  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) >= 0.08);
   assert.ok(verticalPositions.at(-1) > verticalPositions[0]);
   assert.equal(canonical.profiles.mobile.overrides.camera['grid-return-centered'].fov, 64);
   assert.equal(canonical.profiles.mobile.overrides.camera['grid-ripple-zoomout'].fov, 64);
@@ -682,12 +491,12 @@ test('D is a dedicated Discipline reveal Motion and the ripple starts only in E'
   assert.ok(clip.parameters.amplitude > 0);
   assert.ok(clip.parameters.speed > 0);
   assert.match(liveSources.world, /gridRippleWeight/);
-  assert.match(liveSources.world, /float ripple = \(radialRipple \* 0\.68\) \+ \(crossingRipple \* 0\.32\)/);
+  assert.doesNotMatch(liveSources.world, /radialRipple|crossingRipple/);
   assert.match(liveSources.world, /uniform float gridRippleProgress/);
-  assert.match(liveSources.world, /float rippleReach = mix\([\s\S]*?gridRippleProgress/);
-  assert.match(liveSources.world, /float ripplePulse = gridRippleWeight[\s\S]*?\* ripple[\s\S]*?\* rippleEnvelope/);
-  assert.match(liveSources.world, /worldPoint\.y \+= ripplePulse/);
-  assert.match(liveSources.world, /worldPoint\.xz \+= rippleDirection \* radialDisplacement/);
+  assert.match(liveSources.world, /float gatheringReach = mix\([\s\S]*?gridRippleProgress/);
+  assert.match(liveSources.world, /float gatheringFront = 1\.0 - smoothstep\(/);
+  assert.match(liveSources.world, /worldPoint\.y \+= gatheringWeight[\s\S]*?gatheringFront/);
+  assert.match(liveSources.world, /worldPoint\.xz -= rippleDirection[\s\S]*?gatheringWeight/);
   assert.doesNotMatch(liveSources.world, /rippleScale/);
   assert.match(liveSources.world, /const isolationWeight = Number\(revealState\.backgroundProgress \|\| 0\)[\s\S]*?\* \(1 - Number\(revealState\.restoreProgress \|\| 0\)\)/);
   assert.match(liveSources.editor, /getGridRippleStartControl\(snapshot\.document, object\)/);
@@ -698,24 +507,24 @@ test('D is a dedicated Discipline reveal Motion and the ripple starts only in E'
   assert.match(liveSources.styles, /about-narrative-discipline-reveal__label \{[\s\S]*?filter: none;[\s\S]*?text-shadow: none;[\s\S]*?transform: none;/);
 });
 
-test('E begins after the C-grid ripple and resolves to the orbital World in every layout', () => {
+test('E begins after the C-grid pulse and resolves to one emergent World in every layout', () => {
   const fixedGrid = canonical.tracks.worlds.objects.find((world) => world.label === 'C');
-  const orbital = canonical.tracks.worlds.objects.find((world) => world.label === 'E');
+  const emergent = canonical.tracks.worlds.objects.find((world) => world.label === 'E');
   const clip = canonical.tracks.interactions.clips.find((item) => item.type === 'grid-ripple');
   assert.ok(fixedGrid);
-  assert.ok(orbital);
+  assert.ok(emergent);
   assert.ok(clip);
   assert.equal(clip.targetWorldId, fixedGrid.id);
-  assert.equal(clip.endWU, orbital.startWU);
-  assert.equal(orbital.shapeId, 'orbital-system-v1');
+  assert.equal(clip.endWU, emergent.startWU);
+  assert.equal(emergent.shapeId, 'emergent-form-v1');
 
   for (const layoutProfile of ['desktop', 'tablet', 'mobile']) {
     const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile });
     const resolvedFixedGrid = plan.worlds.find((world) => world.id === fixedGrid.id);
-    const resolvedOrbital = plan.worlds.find((world) => world.id === orbital.id);
+    const resolvedEmergent = plan.worlds.find((world) => world.id === emergent.id);
     assert.equal(resolvedFixedGrid.shapeId, 'calm-field-v1');
-    assert.equal(resolvedOrbital.shapeId, 'orbital-system-v1');
-    assert.equal(resolvedOrbital.startWU, clip.endWU);
+    assert.equal(resolvedEmergent.shapeId, 'emergent-form-v1');
+    assert.equal(resolvedEmergent.startWU, clip.endWU);
   }
 });
 
@@ -734,16 +543,16 @@ test('every travelling title shares one timing while the finale holds through th
   assert.equal(finale.preset, 'finale-v1');
 });
 
-test('spatial title hierarchy reserves display type for the opening, midpoint, and finale', () => {
+test('spatial title hierarchy reserves display type for the opening and finale bookends', () => {
   const titles = canonical.tracks.text.fields.filter((field) => field.kind === 'title');
   const opener = titles.find((field) => field.id === 'text-promise-main');
   assert.equal(opener.text, 'About Me');
   assert.equal(opener.description, 'I help shape complexity into compelling experiences.');
   assert.deepEqual(
     titles.filter((field) => field.titleStyle === 'display').map((field) => field.id),
-    ['text-promise-main', 'text-complexity-listen', 'text-epilogue-invitation'],
+    ['text-promise-main', 'text-epilogue-invitation'],
   );
-  assert.equal(titles.filter((field) => field.titleStyle === 'standard').length, 6);
+  assert.equal(titles.filter((field) => field.titleStyle === 'standard').length, 7);
   assert.match(liveSources.experience, /data-title-style=\{titleStyle\}/);
   assert.match(liveSources.styles, /data-title-style='display'/);
   assert.match(liveSources.experience, /route-centered-page__title/);
@@ -804,7 +613,6 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
       ['text-complexity-curiosity', 'title'],
       ['text-complexity-listen', 'title'],
       ['text-disciplines-title', 'scroll-block'],
-      ['text-role-highlight', 'scroll-block'],
       ['text-life-momentum', 'title'],
       ['text-life-form', 'title'],
       ['text-life-character', 'title'],
@@ -814,8 +622,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
 
   const passages = [
     ['reading', 'text-background-editorial', 2],
-    ['disciplines', 'text-disciplines-title', 2],
-    ['exit', 'text-role-highlight', 1],
+    ['disciplines', 'text-disciplines-title', 3],
   ];
   passages.forEach(([layout, id, lineCount]) => {
     const field = fields.find((candidate) => candidate.id === id);
@@ -828,10 +635,14 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
       assert.ok(searchableCopy.includes(item.text));
     });
   });
-  assert.equal(fields.filter((field) => field.block?.id?.endsWith('-passage')).length, 3);
+  assert.equal(fields.filter((field) => field.block?.id?.endsWith('-passage')).length, 2);
   const backgroundEditorial = fields.find((field) => field.id === 'text-background-editorial');
   const backgroundClients = fields.find((field) => field.id === 'text-background-clients');
-  assert.equal(Number((backgroundEditorial.endWU - backgroundClients.startWU).toFixed(2)), 0.07);
+  assert.equal(Number((backgroundEditorial.endWU - backgroundClients.startWU).toFixed(2)), -0.4);
+  const boundaryTitleIds = new Set(['text-promise-main', 'text-epilogue-invitation']);
+  fields
+    .filter((field) => field.kind === 'title' && !boundaryTitleIds.has(field.id))
+    .forEach((field) => assert.equal(field.presentation?.layout, 'center'));
   assert.deepEqual(canonical.profiles.mobile.overrides.text, {});
   assert.doesNotMatch(liveSources.experience, /data-emphasis-tone/);
   assert.match(liveSources.experience, /about-narrative-editorial-list/);
@@ -867,7 +678,7 @@ test('all published narrative writing comes from the current V24 script', () => 
     if (field.block?.kind === 'clients') return [];
     return [
       field.text,
-      field.block?.text,
+      ...(field.block?.text?.split('\n') || []),
       field.block?.label,
       ...(field.block?.items || []),
     ];
@@ -883,30 +694,26 @@ test('all published narrative writing comes from the current V24 script', () => 
   assert.doesNotMatch(canonicalSource, /That is when the experience starts to feel real/);
 });
 
-test('the final title and actions share a persistent opener-aligned stack below the bust', () => {
+test('the final title and actions occupy centered clean space after the emergent pass', () => {
   const finale = canonical.tracks.text.fields.find((field) => field.preset === 'finale-v1');
-  const bust = canonical.tracks.worlds.objects.find((world) => world.shapeId === 'bust-v1');
-  const grid = canonical.tracks.worlds.objects.find((world) => world.label === 'C');
+  const emergent = canonical.tracks.worlds.objects.find((world) => world.shapeId === 'emergent-form-v1');
+  const visibility = new Map(canonical.tracks.visibility.keys.map((key) => [key.id, key]));
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
-  const arrive = keys.get('bust-arrive');
+  const through = keys.get('emergent-through');
   const finalHold = keys.get('finale-hold');
   assert.equal(finale.endWU, canonical.profiles.desktop.storyDurationWU);
-  assert.equal(finale.startWU, 20.65);
-  assert.equal(finale.focusWU, arrive.atWU);
-  assert.equal(bust.anchorWU, grid.anchorWU);
-  assert.equal(bust.transform.position[0], grid.transform.position[0]);
-  assert.equal(bust.transform.position[2], grid.transform.position[2]);
-  assert.ok(bust.transform.position[1] > 0);
-  assert.ok(bust.transform.scale > 0);
-  assert.equal(bust.transitionIn.startWU, bust.startWU);
-  assert.equal(bust.transitionIn.endWU, finale.startWU);
-  assert.equal(bust.transitionIn.easing, 'ease-out');
-  assert.deepEqual(arrive.position, [0, 0.25, -3.1]);
-  assert.deepEqual(finalHold.position, arrive.position);
+  assert.equal(finale.startWU, 15.2);
+  assert.equal(finale.presentation.layout, 'text-finale-cta');
+  assert.ok(finale.focusWU > through.atWU);
+  assert.equal(emergent.protected, true);
+  assert.equal(canonical.tracks.worlds.objects.some((world) => world.shapeId === 'bust-v1'), false);
+  assert.equal(visibility.get('visibility-open-space').atWU, finale.startWU);
+  assert.equal(visibility.get('visibility-open-space').visibility, 0);
+  assert.equal(visibility.get('visibility-end').visibility, 0);
+  assert.deepEqual(finalHold.position, through.position);
   assert.match(liveSources.experience, /about-narrative-finale-content/);
-  assert.match(liveSources.experience, /--about-opening-title-y/);
   assert.match(liveSources.styles, /\.about-narrative-finale-content/);
-  assert.match(liveSources.styles, /calc\(var\(--about-opening-title-y, 36px\) \+ 2rem\)/);
+  assert.match(liveSources.styles, /about-narrative-finale-content \{[\s\S]*?transform: none;/);
   assert.match(liveSources.styles, /\.about-narrative-finale-cta \{[\s\S]*position: relative/);
   assert.match(liveSources.styles, /max-height: 600px/);
 });

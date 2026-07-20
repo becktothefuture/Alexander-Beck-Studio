@@ -30,12 +30,12 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
   '--ball-6',
 ]);
 export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = Object.freeze([
-  Object.freeze({ group: 1, x: 0.5, y: 0.918 }),
-  Object.freeze({ group: 2, x: 0.56, y: 0.934 }),
-  Object.freeze({ group: 3, x: 0.47, y: 0.95 }),
-  Object.freeze({ group: 4, x: 0.55, y: 0.967 }),
-  Object.freeze({ group: 5, x: 0.43, y: 0.984 }),
-  Object.freeze({ group: 6, x: 0.54, y: 0.999 }),
+  Object.freeze({ group: 1, x: 0.43, y: 0.9 }),
+  Object.freeze({ group: 2, x: 0.56, y: 0.906 }),
+  Object.freeze({ group: 3, x: 0.43, y: 0.938 }),
+  Object.freeze({ group: 4, x: 0.56, y: 0.944 }),
+  Object.freeze({ group: 5, x: 0.43, y: 0.976 }),
+  Object.freeze({ group: 6, x: 0.56, y: 0.982 }),
 ]);
 export const ABOUT_NARRATIVE_TRANSITION_TYPES = Object.freeze([
   'morph',
@@ -261,6 +261,21 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
       numberControl('terrainZ', 'Z terrain', 0, 4, 0.01, '', 'shape-surface'),
     ]),
   }),
+  'emergent-form-v1': Object.freeze({
+    id: 'emergent-form-v1',
+    label: 'Emergent form',
+    description: 'Six woven currents resolving into one suspended spatial form.',
+    adapterId: 'point-field-v1',
+    cost: 2,
+    parameters: Object.freeze([
+      numberControl('radius', 'Outer radius', 0.5, 8, 0.05, 'WU', 'shape-dimensions'),
+      numberControl('coreRadius', 'Core radius', 0.05, 2, 0.01, 'WU', 'shape-dimensions'),
+      numberControl('height', 'Height', 0.5, 12, 0.05, 'WU', 'shape-dimensions'),
+      numberControl('twist', 'Weave turns', 0.25, 3, 0.01, '', 'shape-surface'),
+      numberControl('thickness', 'Current thickness', 0.01, 1, 0.01, 'WU', 'shape-surface'),
+      numberControl('density', 'Presence', 0.05, 1, 0.01, '', 'shape-distribution'),
+    ]),
+  }),
   'orbital-system-v1': Object.freeze({
     id: 'orbital-system-v1',
     label: 'Orbital system',
@@ -426,7 +441,7 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
   }),
   'grid-ripple': Object.freeze({
     id: 'grid-ripple',
-    label: 'Grid ripple',
+    label: 'Gathering pulse',
     defaultParameters: Object.freeze({
       amplitude: 1.15,
       speed: 0.42,
@@ -435,9 +450,9 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       timeMode: 'mixed',
     }),
     parameters: Object.freeze([
-      numberControl('amplitude', 'Wave height', 0, 1.5, 0.01, 'WU', 'modifier-motion'),
-      numberControl('speed', 'Speed', 0, 6, 0.01, '', 'modifier-motion'),
-      numberControl('frequency', 'Ring frequency', 0.1, 4, 0.01, '', 'modifier-motion'),
+      numberControl('amplitude', 'Lift', 0, 1.5, 0.01, 'WU', 'modifier-motion'),
+      numberControl('speed', 'Front speed', 0, 6, 0.01, '', 'modifier-motion'),
+      numberControl('frequency', 'Front definition', 0.1, 4, 0.01, '', 'modifier-motion'),
       numberControl('releaseWU', 'Fade-out', 0, 2, 0.05, 'WU', 'modifier-timing'),
       Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
     ]),

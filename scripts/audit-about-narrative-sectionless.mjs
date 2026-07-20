@@ -35,7 +35,7 @@ async function auditProduction(viewport, label, expectedProfile) {
   const errors = observeErrors(page);
   await page.goto(`${baseUrl}/about.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-narrative-lab');
-  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 13);
+  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 12);
 
   const initial = await page.evaluate(() => {
     const root = document.querySelector('.about-narrative-lab');
@@ -59,7 +59,7 @@ async function auditProduction(viewport, label, expectedProfile) {
   });
   assert.equal(initial.editorCount, 0);
   assert.equal(initial.legacyContainerCount, 0);
-  assert.equal(initial.semanticFieldCount, 13);
+  assert.equal(initial.semanticFieldCount, 12);
   assert.equal(initial.stubSemanticCount, 0);
   assert.equal(initial.canvasCount, 1);
   assert.ok(initial.canvasWidth > 0 && initial.canvasHeight > 0);
@@ -68,14 +68,14 @@ async function auditProduction(viewport, label, expectedProfile) {
   assert.equal(initial.layoutProfile, expectedProfile);
 
   await page.locator('.about-narrative-scrollport').evaluate((node) => {
-    node.scrollTop = (node.scrollHeight - node.clientHeight) * (10.5 / 21.8);
+    node.scrollTop = (node.scrollHeight - node.clientHeight) * (7.65 / 16.35);
     node.dispatchEvent(new Event('scroll', { bubbles: true }));
   });
   await page.waitForFunction(() => {
     const root = document.querySelector('.about-narrative-lab');
     const storyWU = Number(root?.dataset.narrativeStoryWu);
-    return storyWU > 10.45
-      && storyWU < 10.55
+    return storyWU > 7.61
+      && storyWU < 7.69
       && root?.dataset.worldDisciplineLabels === '6';
   });
   const disciplineState = await page.evaluate(() => {
@@ -122,10 +122,8 @@ async function auditProduction(viewport, label, expectedProfile) {
     const viewport = document.querySelector('.about-narrative-scrollport').getBoundingClientRect();
     const title = document.querySelector('[data-text-field-id="text-epilogue-invitation"] .about-narrative-spatial-title');
     const actions = document.querySelector('.about-narrative-finale-cta');
-    const interaction = document.querySelector('.about-narrative-bust-interaction');
     const titleRect = title.getBoundingClientRect();
     const actionsRect = actions.getBoundingClientRect();
-    const interactionRect = interaction.getBoundingClientRect();
     const withinViewport = (rect) => rect.top >= viewport.top - 1
       && rect.bottom <= viewport.bottom + 1
       && rect.left >= viewport.left - 1
@@ -137,7 +135,8 @@ async function auditProduction(viewport, label, expectedProfile) {
       titleCenterX: titleRect.left + (titleRect.width / 2),
       titleOpacity: Number(getComputedStyle(title).opacity),
       actionsBelowTitle: actionsRect.top >= titleRect.bottom - 2,
-      finaleWithinViewport: [titleRect, actionsRect, interactionRect].every(withinViewport),
+      finaleWithinViewport: [titleRect, actionsRect].every(withinViewport),
+      simulationVisibility: Number(document.querySelector('.about-narrative-lab')?.dataset.worldVisibility),
     };
   });
   assert.deepEqual(endState.active, [16, 17]);
@@ -146,6 +145,7 @@ async function auditProduction(viewport, label, expectedProfile) {
   assert.ok(endState.titleOpacity > 0.99);
   assert.equal(endState.actionsBelowTitle, true);
   assert.equal(endState.finaleWithinViewport, true, `${label} finale must remain within the studio viewport.`);
+  assert.equal(endState.simulationVisibility, 0, `${label} finale must hold in clean simulation-free space.`);
   assert.deepEqual(errors, []);
   await page.screenshot({ path: `${outputDir}/${browserName}-production-${label}.png` });
   await context.close();
@@ -157,7 +157,7 @@ async function auditEditor() {
   const errors = observeErrors(page);
   await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-track-editor');
-  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 13);
+  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 12);
 
   const initial = await page.evaluate(() => ({
     editorVersion: document.querySelector('.about-track-editor')?.dataset.editorVersion,
@@ -176,12 +176,12 @@ async function auditEditor() {
     'Add Text object at playhead',
     'Add Motion object at playhead',
   ]);
-  assert.equal(initial.semanticFieldCount, 13);
+  assert.equal(initial.semanticFieldCount, 12);
 
   const worldResizeHandles = page.getByRole('button', { name: /^Resize World .+ end$/ });
-  assert.equal(await worldResizeHandles.count(), 4, 'Every non-final World needs one duration handle.');
+  assert.equal(await worldResizeHandles.count(), 3, 'Every non-final World needs one duration handle.');
   const textResizeHandles = page.getByRole('button', { name: /^Resize Text .+ (start|end)$/ });
-  assert.equal(await textResizeHandles.count(), 8, 'Only editable non-Title Text clips need duration handles.');
+  assert.equal(await textResizeHandles.count(), 6, 'Only editable non-Title Text clips need duration handles.');
   assert.equal(
     await page.locator('[data-track-object-type="text-field"][data-text-kind="title"]')
       .locator('xpath=..')
@@ -211,7 +211,7 @@ async function auditEditor() {
   assert.ok(visibleHandle.gripWidth >= 10 && visibleHandle.gripHeight >= 24);
   const worldB = page.locator('[data-track-object-id="world-complexity"]');
   const worldC = page.locator('[data-track-object-id="world-grid"]');
-  const worldE = page.locator('[data-track-object-id="world-orbital"]');
+  const worldE = page.locator('[data-track-object-id="world-emergent"]');
   const textReference = page.locator('[data-track-object-id="text-background-editorial"]');
   const worldRectsBefore = await Promise.all([worldB, worldC, worldE, textReference].map((locator) => locator.boundingBox()));
   assert.ok(Math.abs(worldRectsBefore[0].x + worldRectsBefore[0].width - worldRectsBefore[1].x) < 0.6);
@@ -319,8 +319,8 @@ async function auditEditor() {
     },
   );
   assert.ok(
-    editorialConnection.firstGap < 0 && editorialConnection.firstGap > -80,
-    `Editorial and client-logo fields should keep a bounded handoff overlap, received ${editorialConnection.firstGap}px.`,
+    editorialConnection.firstGap >= 0 && editorialConnection.firstGap < 80,
+    `Editorial and client-logo fields should keep one bounded timeline gap, received ${editorialConnection.firstGap}px.`,
   );
 
   const authoredStructure = await page.evaluate(() => ({
@@ -333,7 +333,6 @@ async function auditEditor() {
     disciplines: document.querySelectorAll('[data-track-object-id="motion-discipline-reveal"][data-track-object-type="interaction"]').length,
     dEditorial: document.querySelectorAll('[data-track-object-id="text-disciplines-title"]').length,
     eTitles: document.querySelectorAll('[data-track-object-id^="text-life-"][data-track-object-type="text-field"]').length,
-    eEditorial: document.querySelectorAll('[data-track-object-id="text-role-highlight"]').length,
     finalTitles: document.querySelectorAll('[data-track-object-id="text-epilogue-invitation"]').length,
     continuousPassages: document.querySelectorAll('p.about-narrative-editorial-copy[data-text-field-id]').length,
   }));
@@ -346,9 +345,8 @@ async function auditEditor() {
     disciplines: 1,
     dEditorial: 1,
     eTitles: 3,
-    eEditorial: 1,
     finalTitles: 1,
-    continuousPassages: 3,
+    continuousPassages: 2,
   });
 
   const playhead = page.getByRole('slider', { name: 'Story WU playhead' });
@@ -413,9 +411,9 @@ async function auditEditor() {
   )));
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-editorial-reveal.png` });
 
-  await setPlayhead(10.5);
+  await setPlayhead(7.65);
   await page.waitForFunction(() => (
-    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) > 10.45
+    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) > 7.61
     && document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels === '6'
   ));
   const disciplineDesktop = await page.evaluate(() => {
@@ -464,7 +462,7 @@ async function auditEditor() {
     status: document.querySelector('[data-text-kind="stub"] .about-track-editor-clip__badge')?.textContent,
   }));
   assert.equal(draft.clipCount, 1);
-  assert.equal(draft.semanticFieldCount, 13);
+  assert.equal(draft.semanticFieldCount, 12);
   assert.equal(draft.status, 'Draft · Not published');
   await page.getByRole('button', { name: 'Undo' }).click();
   assert.equal(await page.locator('[data-text-kind="stub"]').count(), 0);
@@ -495,7 +493,7 @@ async function auditEditor() {
     'Camera rig',
     'Travel easing',
   ]);
-  assert.equal(await page.getByText('Timing protected', { exact: true }).count(), 1);
+  assert.equal(await page.getByText('Timing fixed · Pose editable', { exact: true }).count(), 1);
   const cameraFolders = page.locator('[data-inspector-group^="camera-"]');
   assert.equal(await cameraFolders.count(), 2);
   assert.equal(await page.locator('[data-inspector-group="camera-rig"]').evaluate((folder) => folder.open), true);
@@ -554,7 +552,7 @@ async function auditEditor() {
 
   await page.getByRole('button', { name: 'Text', exact: true }).click();
   assert.equal(await page.getByRole('heading', { name: 'Global text animation' }).count(), 1);
-  assert.equal(await page.locator('[data-track-settings="text"] details').count(), 4);
+  assert.equal(await page.locator('[data-track-settings="text"] details').count(), 5);
   await page.locator('[data-inspector-group="text-editorial"] > summary').click();
   const revealSlider = page.getByRole('slider', { name: 'Global text Reveal viewport line slider' });
   await revealSlider.focus();
@@ -603,7 +601,7 @@ async function auditEditor() {
   assert.equal(mobileEditorial.withinInlineViewport, true);
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-mobile-editorial.png` });
 
-  await setPlayhead(10.5);
+  await setPlayhead(7.65);
   const mobilePortraitRatio = await page.locator('.about-narrative-scrollport').evaluate((node) => {
     const rect = node.getBoundingClientRect();
     return rect.width / rect.height;
@@ -611,7 +609,7 @@ async function auditEditor() {
   assert.ok(Math.abs(mobilePortraitRatio - (390 / 844)) < 0.01);
   await page.waitForFunction(() => {
     const root = document.querySelector('.about-narrative-lab');
-    return Number(root?.dataset.narrativeStoryWu) > 10.45
+    return Number(root?.dataset.narrativeStoryWu) > 7.61
       && root?.dataset.worldDisciplineLabels === '6';
   });
   await page.waitForFunction(() => {

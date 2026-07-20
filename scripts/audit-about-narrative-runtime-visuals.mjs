@@ -18,43 +18,37 @@ const browser = await chromium.launch({
 await mkdir(outputDir, { recursive: true });
 
 const checkpoints = [
-  { id: 'desktop-orb', storyWU: 0.45, stage: 'cluster-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectCenteredOpener: true },
+  { id: 'desktop-orb', storyWU: 0.35, stage: 'cluster-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectCenteredOpener: true },
   { id: 'desktop-complexity-threshold', storyWU: 1.35, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-turbulent', storyWU: 3.2, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-void', storyWU: 5.3, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-grid-rise', storyWU: 7.15, stage: 'calm-field-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-grid-flyover', storyWU: 8.7, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-discipline', storyWU: 10.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 6, expectCenteredDiscipline: true },
-  { id: 'desktop-editorial-primary', storyWU: 11.72, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumVisibleEditorialLines: 1 },
-  { id: 'desktop-editorial-empty', storyWU: 12.5, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectEditorialBlank: true },
-  { id: 'desktop-grid-return', storyWU: 15.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-ripple-close', storyWU: 16.1, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-ripple-wide', storyWU: 17.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-orbital-form', storyWU: 18.1, stage: 'orbital-system-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumChromaticStudioEdgePx: 16 },
-  { id: 'desktop-orbital-settled', storyWU: 18.7, stage: 'orbital-system-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-orbital-live', storyWU: 19.4, stage: 'orbital-system-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-bust-form', storyWU: 20.4, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumChromaticHeightRatio: 0.18 },
-  { id: 'desktop-bust', storyWU: 21.1, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'mobile-orb', storyWU: 0.45, stage: 'cluster-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectCenteredOpener: true },
+  { id: 'desktop-turbulent', storyWU: 2.6, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-void', storyWU: 3.35, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-grid-rise', storyWU: 5.25, stage: 'calm-field-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-grid-flyover', storyWU: 6.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-discipline', storyWU: 7.65, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 6, expectCenteredDiscipline: true },
+  { id: 'desktop-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumVisibleEditorialLines: 1 },
+  { id: 'desktop-grid-return', storyWU: 11.7, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-gathering-close', storyWU: 12.5, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-gathering-wide', storyWU: 13.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-emergent-forming', storyWU: 13.8, stage: 'emergent-form-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-emergent-resolved', storyWU: 14.75, stage: 'emergent-form-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumChromaticWidthRatio: 0.22, minimumChromaticHeightRatio: 0.25, minimumChromaticStudioEdgePx: 16 },
+  { id: 'desktop-emergent-pass', storyWU: 14.85, stage: 'emergent-form-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-finale-space', storyWU: 15.6, stage: 'emergent-form-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'mobile-orb', storyWU: 0.35, stage: 'cluster-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectCenteredOpener: true },
   { id: 'mobile-complexity-inside', storyWU: 2.6, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-void', storyWU: 5.3, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-grid-floor', storyWU: 7.8, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-discipline', storyWU: 10.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 6, expectCenteredDiscipline: true },
-  { id: 'mobile-editorial-primary', storyWU: 11.72, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumVisibleEditorialLines: 1 },
-  { id: 'mobile-editorial-empty', storyWU: 12.5, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectEditorialBlank: true },
-  { id: 'mobile-grid-return', storyWU: 15.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-ripple-wide', storyWU: 17.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-orbital-settled', storyWU: 18.7, stage: 'orbital-system-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumChromaticWidthRatio: 0.3 },
-  { id: 'mobile-orbital-live', storyWU: 19.4, stage: 'orbital-system-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-bust', storyWU: 21.1, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'reduced-motion-orb', storyWU: 0.45, stage: 'cluster-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', expectCenteredOpener: true },
-  { id: 'reduced-motion-discipline', storyWU: 10.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', expectExactAnchor: true, minimumLabels: 6, expectCenteredDiscipline: true },
-  { id: 'reduced-motion-editorial-primary', storyWU: 11.72, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', minimumVisibleEditorialLines: 1 },
-  { id: 'reduced-motion-editorial-empty', storyWU: 12.5, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' },
-  { id: 'reduced-motion-mobile-orbital', storyWU: 19.4, stage: 'orbital-system-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' },
-  { id: 'reduced-motion-mobile-bust', storyWU: 21.1, stage: 'bust-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' },
+  { id: 'mobile-void', storyWU: 3.35, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-grid-floor', storyWU: 6.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-discipline', storyWU: 7.65, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 6, expectCenteredDiscipline: true },
+  { id: 'mobile-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumVisibleEditorialLines: 1 },
+  { id: 'mobile-grid-return', storyWU: 11.7, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-gathering-wide', storyWU: 13.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-emergent-resolved', storyWU: 14.75, stage: 'emergent-form-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumChromaticWidthRatio: 0.3, minimumChromaticHeightRatio: 0.2 },
+  { id: 'mobile-emergent-pass', storyWU: 14.85, stage: 'emergent-form-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-finale-space', storyWU: 15.6, stage: 'emergent-form-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'reduced-motion-orb', storyWU: 0.35, stage: 'cluster-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', expectCenteredOpener: true },
+  { id: 'reduced-motion-discipline', storyWU: 7.65, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', expectExactAnchor: true, minimumLabels: 6, expectCenteredDiscipline: true },
+  { id: 'reduced-motion-emergent', storyWU: 14.75, stage: 'emergent-form-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', minimumChromaticWidthRatio: 0.3 },
+  { id: 'reduced-motion-finale', storyWU: 15.6, stage: 'emergent-form-v1', visibility: 0, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' },
 ];
-
 const STORY_WU_TOLERANCE = 0.04;
 const VISIBILITY_TOLERANCE = 0.02;
 const CONTACT_SHEET_LAYOUTS = {
@@ -223,7 +217,7 @@ for (const checkpoint of checkpoints) {
   await page.evaluate(({ storyWU }) => {
     const scrollport = document.querySelector('.about-narrative-scrollport');
     if (!scrollport) return;
-    const progress = Math.min(1, Math.max(0, storyWU / 21.8));
+    const progress = Math.min(1, Math.max(0, storyWU / 16.35));
     const scrollTravel = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
     scrollport.scrollTo(0, scrollTravel * progress);
     scrollport.dispatchEvent(new Event('scroll', { bubbles: true }));

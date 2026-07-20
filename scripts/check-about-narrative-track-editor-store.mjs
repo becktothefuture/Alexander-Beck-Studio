@@ -129,7 +129,12 @@ test('World end gestures ripple later Worlds, stay contiguous, and undo as one c
   assert.equal(store.commitGesture({ requireValid: true }), true);
   const resizedWorlds = [...store.getSnapshot().document.tracks.worlds.objects]
     .sort((left, right) => left.startWU - right.startWU);
-  assert.deepEqual(resizedWorlds.slice(2).map((item) => item.startWU), laterStartsBefore.map((value) => Number((value - 0.2).toFixed(6))));
+  const snappedEndWU = Math.round((originalEndWU - 0.2) / 0.005) * 0.005;
+  const appliedDeltaWU = snappedEndWU - originalEndWU;
+  assert.deepEqual(
+    resizedWorlds.slice(2).map((item) => item.startWU),
+    laterStartsBefore.map((value) => Number((value + appliedDeltaWU).toFixed(6))),
+  );
   resizedWorlds.slice(0, -1).forEach((item, index) => {
     assert.equal(
       getWorldEnd(store.getSnapshot().document, item.id),

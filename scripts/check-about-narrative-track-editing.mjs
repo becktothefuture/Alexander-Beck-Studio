@@ -84,7 +84,7 @@ function createFixture() {
       },
       interactions: {
         clips: [
-          { id: 'interaction-spin', type: 'bust-spin', startWU: 4.5, activationWU: 5, endWU: 7, targetWorldId: 'world-two' },
+          { id: 'interaction-spin', type: 'bust-spin', startWU: 4.5, activationWU: 5, endWU: 7, targetWorldId: 'world-two', parameters: { releaseWU: 0.5, speed: 1 } },
         ],
       },
     },
@@ -158,13 +158,20 @@ test('one or many Text fields move in absolute WU and leave every unrelated trac
   assert.equal(bytes(model.tracks.text), bytes(createFixture().tracks.text), 'The input model remains immutable.');
 });
 
-test('Text focus points distribute evenly and a moved final Text element defines Story length', () => {
+test('Text animation windows keep their duration, distribute with equal gaps, and define Story length', () => {
   const model = createFixture();
+  const durations = new Map(model.tracks.text.fields.map((field) => [
+    field.id,
+    Number((field.endWU - field.startWU).toFixed(6)),
+  ]));
   const distributed = distributeAboutNarrativeTextFieldsEvenly({ model });
   assert.equal(distributed.valid, true);
-  const focusPoints = distributed.model.tracks.text.fields.map((field) => Number(field.focusWU));
-  const gaps = focusPoints.slice(1).map((focusWU, index) => Number((focusWU - focusPoints[index]).toFixed(6)));
+  const fields = distributed.model.tracks.text.fields;
+  const gaps = fields.slice(1).map((field, index) => Number((field.startWU - fields[index].endWU).toFixed(6)));
   assert.equal(new Set(gaps).size, 1);
+  fields.forEach((field) => {
+    assert.equal(Number((field.endWU - field.startWU).toFixed(6)), durations.get(field.id));
+  });
   assert.equal(distributed.model.profiles.desktop.storyDurationWU, 10);
 
   const textDriven = createFixture();
@@ -184,6 +191,9 @@ test('Text focus points distribute evenly and a moved final Text element defines
   assert.equal(extended.model.profiles.mobile.scrollDurationWU, 14.4);
   assert.equal(extended.model.tracks.camera.keys.at(-1).atWU, 12);
   assert.equal(extended.model.tracks.visibility.keys.at(-1).atWU, 12);
+  assert.equal(extended.model.tracks.worlds.objects[1].anchorWU, 4.1);
+  assert.equal(extended.model.tracks.interactions.clips[0].parameters.releaseWU, 0.6);
+  assert.equal(extended.model.tracks.interactions.clips[0].parameters.speed, 1);
   assert.equal(extended.model.tracks.text.fields.at(-1).endWU, 12);
 });
 

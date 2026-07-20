@@ -324,7 +324,7 @@ test('the finale title resolves once and remains visible through the final frame
 
 test('interaction activation is absolute, targeted, and half-open', () => {
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
-  const clip = plan.interactionClips.find((item) => item.type === 'horizontal-spin');
+  const clip = plan.interactionClips.find((item) => item.type === 'grid-ripple');
   assert.ok(clip);
   const before = sampleAboutNarrativeRuntimePlan(plan, clip.activationWU - 0.000001);
   const at = sampleAboutNarrativeRuntimePlan(plan, clip.activationWU);

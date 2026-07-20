@@ -313,46 +313,37 @@ const VERTEX_SHADER = `
       + (ambientTime * waveSpeed)
     );
 
-    float rippleClock = mix(ambientTime, storyTime, gridRippleStoryMix);
     vec2 ripplePoint = worldPoint.xz - gridRippleCenter;
     float rippleDistance = length(ripplePoint);
-    float ripplePhase = rippleClock * gridRippleSpeed * 6.2831853;
-    float radialRipple = sin(
-      (rippleDistance * gridRippleFrequency)
-      - ripplePhase
-    );
-    float crossingRipple = sin(
-      (ripplePoint.x * gridRippleFrequency * 0.68)
-      - (ripplePoint.y * gridRippleFrequency * 0.51)
-      + (ripplePhase * 0.72)
-    );
-    float ripple = (radialRipple * 0.68) + (crossingRipple * 0.32);
-    float rippleReach = mix(
-      0.35,
+    float gatheringProgress = smoothstep(0.0, 1.0, gridRippleProgress);
+    float gatheringReach = mix(
+      0.25,
       14.5,
-      smoothstep(0.0, 1.0, gridRippleProgress)
+      gatheringProgress
     );
-    float rippleEnvelope = 1.0 - smoothstep(
-      rippleReach,
-      rippleReach + 1.1,
+    float gatheringSoftness = max(0.38, 2.0 / max(0.1, gridRippleFrequency));
+    float gatheringEnvelope = 1.0 - smoothstep(
+      gatheringReach,
+      gatheringReach + gatheringSoftness,
       rippleDistance
     );
-    float ripplePulse = gridRippleWeight
-      * gridRippleAmplitude
-      * ripple
-      * rippleEnvelope;
+    float gatheringFront = 1.0 - smoothstep(
+      0.0,
+      gatheringSoftness,
+      abs(rippleDistance - gatheringReach)
+    );
     vec2 rippleDirection = rippleDistance > 0.0001
       ? ripplePoint / rippleDistance
       : vec2(0.0);
-    float radialDisplacement = radialRipple
-      * gridRippleWeight
-      * gridRippleAmplitude
-      * rippleEnvelope
-      * 0.52;
-    // The height wave gives the oblique view volume; radial compression makes
-    // the same material wave legible from the exact bird's-eye camera.
-    worldPoint.y += ripplePulse;
-    worldPoint.xz += rippleDirection * radialDisplacement;
+    float gatheringWeight = gridRippleWeight * gridRippleAmplitude;
+    // One expanding activation front loosens the ordered floor and draws the
+    // awakened material inward. It deliberately avoids a repeating sine wave:
+    // the next World supplies the actual woven destination.
+    worldPoint.y += gatheringWeight
+      * ((gatheringFront * 0.78) + (gatheringEnvelope * gatheringProgress * 0.16));
+    worldPoint.xz -= rippleDirection
+      * gatheringWeight
+      * ((gatheringFront * 0.10) + (gatheringEnvelope * gatheringProgress * 0.22));
 
     float group = mix(fromGroup, toGroup, morph);
     float groupStrength = mix(fromGroupStrength, toGroupStrength, morph);
@@ -413,7 +404,7 @@ const VERTEX_SHADER = `
     float perspectiveScale = clamp(5.5 / max(1.0, -viewPoint.z), 0.68, 2.2);
     float cssPointSize = pointSize * sizeWeight * emphasis * perspectiveScale;
     float entranceScale = clamp(sceneEntranceScale, 0.0, 1.0);
-    gl_PointSize = max(0.01, clamp(cssPointSize, 4.5, 11.0) * entranceScale) * pixelRatio;
+    gl_PointSize = max(0.01, clamp(cssPointSize, 5.25, 11.0) * entranceScale) * pixelRatio;
     pointAlpha = presence * entranceScale;
   }
 `;
@@ -2263,8 +2254,8 @@ export function AboutNarrativePointWorld3D({
   useEffect(() => {
     const canvas = canvasRef.current;
     const root = rootRef.current;
-    const interaction = interactionRef.current;
-    if (!canvas || !root || !interaction) return undefined;
+    const interaction = interactionRef?.current || canvas;
+    if (!canvas || !root) return undefined;
     try {
       return createPointFieldAdapter({
         canvas,

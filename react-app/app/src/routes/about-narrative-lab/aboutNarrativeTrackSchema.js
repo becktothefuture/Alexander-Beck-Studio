@@ -835,9 +835,8 @@ export function validateAboutNarrativeTrackDocument(input, {
   validateLibrary(input.library, diagnostics);
 
   const finale = worlds?.at(-1);
-  if (!finale || finale.shapeId !== 'bust-v1' || finale.protected !== true) diagnostic(diagnostics, 'finale-world', 'tracks.worlds.objects', 'The final World must be a protected bust-v1 World.');
+  if (!finale || finale.protected !== true) diagnostic(diagnostics, 'finale-world', 'tracks.worlds.objects', 'The final World must remain protected.');
   if (finale && !(textFields || []).some((field) => field.publishable && field.startWU <= durationWU && field.endWU >= finale.startWU)) diagnostic(diagnostics, 'finale-text', 'tracks.text.fields', 'The final World requires publishable Text.');
-  if (finale && !(clips || []).some((clip) => clip.type === 'horizontal-spin' && clip.targetWorldId === finale.id)) diagnostic(diagnostics, 'finale-interaction', 'tracks.interactions.clips', 'The final bust requires a targeted horizontal-spin interaction.');
 
   const byteLength = new TextEncoder().encode(JSON.stringify(input)).byteLength;
   if (byteLength > ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES) diagnostic(diagnostics, 'document-size', 'document', 'The About document exceeds the 1MiB safety limit.');

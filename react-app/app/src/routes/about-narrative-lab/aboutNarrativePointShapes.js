@@ -306,6 +306,45 @@ function createLivingField(count, seeds, parameters) {
   return { positions };
 }
 
+export function createAboutNarrativeEmergentFormShape(count, seeds, parameters = {}) {
+  const positions = new Float32Array(count * 3);
+  const strandCount = Math.min(6, Math.max(1, count));
+  const radius = Number(parameters.radius ?? 2.7);
+  const coreRadius = Number(parameters.coreRadius ?? 0.38);
+  const height = Number(parameters.height ?? 5.4);
+  const twist = Number(parameters.twist ?? 1.35);
+  const thickness = Number(parameters.thickness ?? 0.3);
+
+  for (let index = 0; index < count; index += 1) {
+    const strand = index % strandCount;
+    const strandIndex = Math.floor(index / strandCount);
+    const pointsInStrand = Math.ceil((count - strand) / strandCount);
+    const progress = strandIndex / Math.max(1, pointsInStrand - 1);
+    const phase = (strand / strandCount) * TWO_PI;
+    const envelope = Math.pow(Math.max(0, Math.sin(Math.PI * progress)), 0.68);
+    const weaveAngle = phase
+      + (progress * TWO_PI * twist)
+      + (Math.sin((progress * TWO_PI * 2) + phase) * 0.09);
+    const formRadius = coreRadius + ((radius - coreRadius) * envelope);
+    const pointSeed = Number(seeds[index] ?? 0.5);
+    const tubeAngle = (((pointSeed * 31.713) + (strand * 0.173)) % 1) * TWO_PI;
+    const tubeRadius = thickness * Math.sqrt(((pointSeed * 17.371) + 0.219) % 1);
+    const radialOffset = Math.cos(tubeAngle) * tubeRadius;
+    const verticalOffset = Math.sin(tubeAngle) * tubeRadius;
+    const offset = index * 3;
+
+    positions[offset] = (formRadius + radialOffset) * Math.cos(weaveAngle)
+      + (Math.sin((progress * TWO_PI * 3) - phase) * radius * 0.045);
+    positions[offset + 1] = ((progress - 0.5) * height)
+      + (Math.sin((progress * TWO_PI) + (phase * 0.5)) * height * 0.045)
+      + verticalOffset;
+    positions[offset + 2] = (formRadius + radialOffset) * Math.sin(weaveAngle)
+      + (Math.cos((progress * TWO_PI * 2) + phase) * radius * 0.055);
+  }
+
+  return { positions };
+}
+
 export function createAboutNarrativeOrbitalSystemShape(count, seeds, parameters = {}) {
   const positions = new Float32Array(count * 3);
   const orbitRadius = Number(parameters.orbitRadius ?? 5.8);
@@ -431,6 +470,7 @@ const GENERATORS = Object.freeze({
   'calm-field-v1': createCalmField,
   'discipline-grid-v1': createDisciplineGrid,
   'living-field-v1': createLivingField,
+  'emergent-form-v1': createAboutNarrativeEmergentFormShape,
   'orbital-system-v1': createAboutNarrativeOrbitalSystemShape,
 });
 

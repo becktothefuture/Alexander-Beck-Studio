@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
+  createAboutNarrativeEmergentFormShape,
   createAboutNarrativeOrbitalSystemShape,
   createAboutNarrativeSeeds,
   generateAboutNarrativeShape,
@@ -96,7 +97,39 @@ test('orbital-system-v1 participates in the fixed point-pool Shape registry', as
   assert.equal(populatedGroups.size, 5, 'Sparse density must preserve the core and all four bodies.');
 });
 
-test('point renderer keeps visibility, fog, sizing, ripple, and orbital motion on one contract', () => {
+test('emergent-form-v1 is deterministic, centered, and uses the fixed point pool', async () => {
+  const pointCount = 1200;
+  const seeds = createAboutNarrativeSeeds(pointCount, CANONICAL_POINT_SEED);
+  const parameters = {
+    radius: 2.6,
+    coreRadius: 0.38,
+    height: 5.3,
+    twist: 1.4,
+    thickness: 0.28,
+    density: 0.58,
+  };
+  const first = createAboutNarrativeEmergentFormShape(pointCount, seeds, parameters);
+  const second = createAboutNarrativeEmergentFormShape(pointCount, seeds, parameters);
+  assert.deepEqual(first.positions, second.positions);
+  assert.equal(first.positions.length, pointCount * 3);
+  first.positions.forEach((value) => assert.ok(Number.isFinite(value)));
+
+  const output = await generateAboutNarrativeShape({
+    shapeId: 'emergent-form-v1',
+    pointCount,
+    seeds,
+    quality: 'desktop',
+    parameters,
+  });
+  assert.equal(validateAboutNarrativeShapeOutput(output, pointCount), output);
+  assert.equal(output.presence.length, pointCount);
+  assert.ok(output.presence.some((value) => value === 0));
+  assert.ok(output.bounds.max[1] - output.bounds.min[1] > 4.5);
+  assert.ok(output.bounds.max[0] > 1.8 && output.bounds.min[0] < -1.8);
+  assert.ok(output.bounds.max[2] > 1.8 && output.bounds.min[2] < -1.8);
+});
+
+test('point renderer keeps visibility, fog, sizing, gathering, and legacy orbital motion on one contract', () => {
   const source = readFileSync(new URL(
     '../react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
     import.meta.url,
@@ -117,7 +150,7 @@ test('point renderer keeps visibility, fog, sizing, ripple, and orbital motion o
   assert.match(source, /globalCamera\?\.distanceFogEndWU \?\? 18/);
   assert.doesNotMatch(source, /frame\.camera\.distanceFog/);
   assert.doesNotMatch(source, /disciplineFieldFog|DisciplineBackgroundScale/);
-  assert.match(source, /gl_PointSize = max\(0\.01, clamp\(cssPointSize, 4\.5, 11\.0\) \* entranceScale\) \* pixelRatio/);
+  assert.match(source, /gl_PointSize = max\(0\.01, clamp\(cssPointSize, 5\.25, 11\.0\) \* entranceScale\) \* pixelRatio/);
   assert.match(source, /vec3 fromPoint = applyOrbitalLife[\s\S]*vec3 fromWorld = \(fromTransform/);
   assert.match(source, /float orbitalSeed = fract\(\(seed \* 7\.31\) \+ 0\.17\)/);
   assert.doesNotMatch(source, /ringBand|ringThickness|debris ring/i);
@@ -126,8 +159,11 @@ test('point renderer keeps visibility, fog, sizing, ripple, and orbital motion o
   assert.match(source, /targetTransformElements\[12\],[\s\S]*targetTransformElements\[14\]/);
   assert.doesNotMatch(source, /rippleParameters\?\.center[XYZ]/);
   assert.match(source, /uniform float gridRippleProgress/);
-  assert.match(source, /rippleReach \+ 1\.1/);
-  assert.match(source, /worldPoint\.xz \+= rippleDirection \* radialDisplacement/);
+  assert.match(source, /float gatheringReach = mix\(/);
+  assert.match(source, /float gatheringFront = 1\.0 - smoothstep\(/);
+  assert.match(source, /worldPoint\.y \+= gatheringWeight[\s\S]*?gatheringFront/);
+  assert.match(source, /worldPoint\.xz -= rippleDirection[\s\S]*?gatheringWeight/);
+  assert.doesNotMatch(source, /radialRipple|crossingRipple/);
   assert.match(source, /attributeFilter: \['class', 'data-theme'\]/);
   assert.doesNotMatch(source, /--narrative-camera-fov/);
   assert.match(

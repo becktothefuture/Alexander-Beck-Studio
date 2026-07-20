@@ -586,7 +586,7 @@ function WorldInspector({ object, selection, store, locked, finaleShapeLocked, c
       </p>
       {finaleShapeLocked ? (
         <p className="about-track-editor-parameter-note">
-          This is the required finale bust. Its Shape and destructive timeline actions stay protected; its placement, material, and motion controls are editable.
+          This is the protected finale World. Its Shape and destructive timeline actions stay fixed; its placement, material, and motion controls remain editable.
         </p>
       ) : null}
 
@@ -881,7 +881,7 @@ function TextTrackInspector({ snapshot, store }) {
       </header>
       <div className="about-track-editor-world-folders about-track-editor-global-folders">
         <p className="about-track-editor-parameter-note">
-          Text focus points define the narrative cadence and Story length. Drag any Text clip to move its complete window, or restore an even rhythm with the action below.
+          Text windows define the narrative cadence and Story length. Drag any Text clip to move its complete animation, or restore equal breathing room between animations with the action below.
         </p>
         <button type="button" onClick={() => store.distributeTextEvenly()}>Space text evenly</button>
         {ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS.map((group, index) => {
@@ -1249,7 +1249,7 @@ function Timeline({
               ) : null}
               {track.id === 'interaction' && interactionMenu ? (
                 <div className="about-track-editor-create-menu" role="menu" aria-label="Create Motion clip">
-                  <button type="button" role="menuitem" onClick={() => createAtPlayhead('interaction', null, 'grid-ripple')}>Grid ripple</button>
+                  <button type="button" role="menuitem" onClick={() => createAtPlayhead('interaction', null, 'grid-ripple')}>Gathering pulse</button>
                   <button type="button" role="menuitem" onClick={() => createAtPlayhead('interaction', null, 'horizontal-spin')}>Horizontal spin</button>
                 </div>
               ) : null}

@@ -548,11 +548,21 @@ test('discipline reveal owns one extended clip, a paced top-down camera handoff,
   assert.ok(editorialHandoffFrame.disciplineReveal.localProgress > 1);
   assert.ok(editorialHandoffFrame.disciplineReveal.localProgress < reveal.end);
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
+  const leftColumn = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.filter((anchor) => anchor.x < 0.5);
+  const rightColumn = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.filter((anchor) => anchor.x > 0.5);
   assert.equal(new Set(verticalPositions).size, 6);
-  assert.ok(verticalPositions[0] >= 0.918);
-  assert.ok(verticalPositions.at(-1) >= 0.999);
+  assert.equal(leftColumn.length, 3);
+  assert.equal(rightColumn.length, 3);
   assert.ok(verticalPositions.at(-1) - verticalPositions[0] >= 0.08);
-  verticalPositions.slice(1).forEach((value, index) => assert.ok(value - verticalPositions[index] >= 0.014));
+  leftColumn.slice(1).forEach((anchor, index) => {
+    assert.ok(anchor.y - leftColumn[index].y >= 0.03);
+  });
+  rightColumn.slice(1).forEach((anchor, index) => {
+    assert.ok(anchor.y - rightColumn[index].y >= 0.03);
+  });
+  leftColumn.forEach((anchor, index) => {
+    assert.ok(Math.abs(rightColumn[index].y - anchor.y) <= 0.01);
+  });
 });
 
 test('discipline colours follow the canonical Home simulation distribution', () => {

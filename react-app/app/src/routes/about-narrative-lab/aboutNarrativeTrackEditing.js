@@ -74,18 +74,32 @@ function scaleTransition(transition, scale) {
   transition.endWU = scaleTime(transition.endWU, scale);
 }
 
+function scaleTimingParameters(parameters, scale) {
+  if (!parameters || typeof parameters !== 'object') return;
+  Object.entries(parameters).forEach(([key, value]) => {
+    if (key.endsWith('WU') && finite(value)) parameters[key] = scaleTime(value, scale);
+  });
+}
+
+function preserveStoryTimedMotion(parameters, scale) {
+  if (!parameters || parameters.timeMode !== 'story' || !finite(parameters.speed)) return;
+  parameters.speed = cleanWU(Number(parameters.speed) / scale);
+}
+
 function scaleNonTextTiming(model, scale) {
   (model.tracks?.camera?.keys || []).forEach((key) => { key.atWU = scaleTime(key.atWU, scale); });
   (model.tracks?.visibility?.keys || []).forEach((key) => { key.atWU = scaleTime(key.atWU, scale); });
   (model.tracks?.worlds?.objects || []).forEach((world) => {
     world.startWU = scaleTime(world.startWU, scale);
-    world.anchorWU = scaleTime(world.anchorWU, scale);
     scaleTransition(world.transitionIn, scale);
+    (world.modifiers || []).forEach((modifier) => preserveStoryTimedMotion(modifier.parameters, scale));
   });
   (model.tracks?.interactions?.clips || []).forEach((clip) => {
     clip.startWU = scaleTime(clip.startWU, scale);
     clip.activationWU = scaleTime(clip.activationWU, scale);
     clip.endWU = scaleTime(clip.endWU, scale);
+    scaleTimingParameters(clip.parameters, scale);
+    preserveStoryTimedMotion(clip.parameters, scale);
   });
 
   Object.values(model.profiles || {}).forEach((profile) => {
@@ -106,13 +120,14 @@ function scaleNonTextTiming(model, scale) {
     });
     Object.values(profile.overrides?.worlds || {}).forEach((override) => {
       if (finite(override.startWU)) override.startWU = scaleTime(override.startWU, scale);
-      if (finite(override.anchorWU)) override.anchorWU = scaleTime(override.anchorWU, scale);
       scaleTransition(override.transitionIn, scale);
     });
     Object.values(profile.overrides?.interactions || {}).forEach((override) => {
       if (finite(override.startWU)) override.startWU = scaleTime(override.startWU, scale);
       if (finite(override.activationWU)) override.activationWU = scaleTime(override.activationWU, scale);
       if (finite(override.endWU)) override.endWU = scaleTime(override.endWU, scale);
+      scaleTimingParameters(override.parameters, scale);
+      preserveStoryTimedMotion(override.parameters, scale);
     });
   });
 }
@@ -478,22 +493,27 @@ export function distributeAboutNarrativeTextFieldsEvenly({ model }) {
   const fields = [...(model?.tracks?.text?.fields || [])]
     .sort((left, right) => Number(left.focusWU) - Number(right.focusWU) || left.id.localeCompare(right.id));
   if (fields.length < 3) return resultError('At least three Text elements are needed for even spacing.', 'text-distribution');
-  const firstFocusWU = Number(fields[0].focusWU);
-  const lastFocusWU = Number(fields.at(-1).focusWU);
-  const gapWU = (lastFocusWU - firstFocusWU) / (fields.length - 1);
-  if (!(gapWU > 0)) return resultError('Text focus positions need a positive range.', 'text-distribution');
+  const firstStartWU = Number(fields[0].startWU);
+  const lastEndWU = Number(fields.at(-1).endWU);
+  const animationDurationWU = fields.reduce(
+    (total, field) => total + (Number(field.endWU) - Number(field.startWU)),
+    0,
+  );
+  const gapWU = (lastEndWU - firstStartWU - animationDurationWU) / (fields.length - 1);
+  if (!(gapWU >= 0)) return resultError('Text animation windows need more room for even spacing.', 'text-distribution');
 
   const durationWU = getStoryDurationWU(model);
   const candidate = clone(model);
   const candidateFields = new Map(candidate.tracks.text.fields.map((field) => [field.id, field]));
+  let cursorWU = firstStartWU;
   fields.forEach((field, index) => {
-    const targetFocusWU = cleanWU(firstFocusWU + (gapWU * index));
-    const deltaWU = cleanWU(targetFocusWU - Number(field.focusWU));
+    const deltaWU = cleanWU(cursorWU - Number(field.startWU));
     const target = candidateFields.get(field.id);
     shiftObjectTimes(target, 'text-field', deltaWU);
     Object.values(candidate.profiles || {}).forEach((profile) => {
       shiftTextOverrideTimes(profile.overrides?.text?.[field.id], deltaWU);
     });
+    cursorWU = Number(target.endWU) + (index < fields.length - 1 ? gapWU : 0);
   });
   sortTrack(candidate, 'text');
   synchronizeAboutNarrativeDurationToText(candidate, durationWU, {
