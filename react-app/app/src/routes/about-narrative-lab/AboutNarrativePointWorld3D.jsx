@@ -1083,6 +1083,7 @@ function createPointFieldAdapter({
   const disciplinePointScratch = new THREE.Vector3();
   const disciplineWeights = new Float32Array(6);
   const disciplineLabelBaseReveal = new Float64Array(6);
+  const disciplineArrivalHold = new Float64Array(6);
   const fromDisciplinePositions = new Float32Array(18).fill(Number.NaN);
   const toDisciplinePositions = new Float32Array(18).fill(Number.NaN);
   const fromDisciplineIndices = new Int32Array(6).fill(-1);
@@ -1758,9 +1759,7 @@ function createPointFieldAdapter({
       const mobile = frame.layoutProfile === 'mobile';
       resolvedDisciplineAnchors = reveal?.items?.map((item) => {
         const fallback = item.position || [0.5, 0.5];
-        const position = shortLandscape
-          ? item.landscapePosition || item.mobilePosition || fallback
-          : mobile ? item.mobilePosition || fallback : fallback;
+        const position = mobile ? item.mobilePosition || fallback : fallback;
         return { group: item.group, x: position[0], y: position[1] };
       }) || null;
       lastDisciplineConfig = reveal || null;
@@ -1783,6 +1782,7 @@ function createPointFieldAdapter({
     const reducedActive = Boolean(revealState?.settled && revealState?.labelActive);
     disciplineWeights.fill(0);
     disciplineLabelBaseReveal.fill(0);
+    disciplineArrivalHold.fill(0);
 
     let backgroundWeight = 0;
     let visibleLabels = 0;
@@ -1807,6 +1807,13 @@ function createPointFieldAdapter({
         const itemReveal = reducedActive
           ? 1
           : smoothRange(storyWU, itemStartWU, itemStartWU + revealState.labelDurationWU);
+        disciplineArrivalHold[item.group - 1] = reducedActive
+          ? 1
+          : smoothRange(
+            storyWU,
+            itemStartWU + (revealState.labelDurationWU * 0.75),
+            itemStartWU + revealState.labelDurationWU,
+          );
         if (reducedActive) disciplineWeights[item.group - 1] = itemReveal * restoreWeight;
         const labelReveal = storyWU <= revealState.endWU
           ? itemReveal * activationProgress * (1 - exitProgress) * restoreWeight
@@ -1934,15 +1941,23 @@ function createPointFieldAdapter({
               exitLineY,
               exitLineY + Math.max(0.04, approachBandY * 0.65),
             );
-            const dotReveal = smoothRange(
+            const spatialDotReveal = smoothRange(
               viewportY,
               viewportEntryY - approachBandY,
               viewportEntryY,
-            ) * departureReveal;
-            const labelReveal = smoothRange(
+            );
+            const spatialLabelReveal = smoothRange(
               viewportY,
               viewportEntryY,
               viewportEntryY + (approachBandY * 0.35),
+            );
+            const dotReveal = Math.max(
+              spatialDotReveal,
+              disciplineArrivalHold[group - 1],
+            ) * departureReveal;
+            const labelReveal = Math.max(
+              spatialLabelReveal,
+              disciplineArrivalHold[group - 1],
             ) * departureReveal;
             const globalReveal = disciplineLabelBaseReveal[group - 1];
             const spatialReveal = globalReveal * labelReveal;

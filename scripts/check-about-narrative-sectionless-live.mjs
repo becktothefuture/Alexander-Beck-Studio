@@ -663,7 +663,8 @@ test('D is a dedicated Discipline reveal Motion and E sustains a scroll-authored
   assert.match(liveSources.world, /worldPoint\.xz \+= rippleDirection[\s\S]*?radialRipple/);
   assert.doesNotMatch(liveSources.world, /rippleScale/);
   assert.match(liveSources.world, /const isolationWeight = Number\(revealState\.backgroundProgress \|\| 0\)[\s\S]*?\* \(1 - Number\(revealState\.restoreProgress \|\| 0\)\)/);
-  assert.match(liveSources.world, /const viewportEntryY = Math\.max\([\s\S]*?const dotReveal = smoothRange\([\s\S]*?viewportEntryY - approachBandY[\s\S]*?const labelReveal = smoothRange\(/);
+  assert.match(liveSources.world, /const viewportEntryY = Math\.max\([\s\S]*?const spatialDotReveal = smoothRange\([\s\S]*?viewportEntryY - approachBandY[\s\S]*?const spatialLabelReveal = smoothRange\(/);
+  assert.match(liveSources.world, /disciplineArrivalHold\[item\.group - 1\][\s\S]*?Math\.max\([\s\S]*?spatialLabelReveal[\s\S]*?disciplineArrivalHold\[group - 1\]/);
   assert.match(liveSources.world, /disciplineWeights\[group - 1\] = globalReveal \* dotReveal/);
   assert.match(liveSources.world, /float disciplineMonochrome = disciplineIsolation \* \(1\.0 - revealedGroupWeight\)/);
   assert.doesNotMatch(liveSources.world, /packDisciplineOrder|preferredSide/);

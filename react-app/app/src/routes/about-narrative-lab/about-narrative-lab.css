@@ -1011,6 +1011,10 @@ body.dark-mode .about-narrative-client-logos img {
     line-height: 1.38;
   }
 
+  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-discipline-reveal li {
+    font-size: clamp(0.68rem, 2.8vh, 0.8rem);
+  }
+
   .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy[data-title-style='display'] .about-narrative-spatial-title {
     max-width: 12.16ch;
     font-size: clamp(1.25rem, 5.2vh, 2rem);
