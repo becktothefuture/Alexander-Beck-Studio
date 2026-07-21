@@ -61,8 +61,7 @@ function ensureCapacity(nextCap) {
 }
 
 function getStrokeStyle() {
-  // Use the same color as the cursor dot
-  // This ensures perfect synchronization between cursor and trail
+  // Retain the legacy palette accent if this deprecated effect is re-enabled.
   return getCursorColor();
 }
 

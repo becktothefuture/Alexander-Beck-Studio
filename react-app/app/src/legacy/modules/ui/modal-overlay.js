@@ -428,24 +428,6 @@ export function showOverlay() {
     blurLayerElement.classList.add('active');
     contentLayerElement.classList.add('active');
     
-    // Transform cursor to larger transparent circle
-    const cursor = document.getElementById('custom-cursor');
-    if (cursor) {
-        let isMobileViewport = false;
-        try {
-            isMobileViewport = Boolean(window.matchMedia && window.matchMedia('(max-width: var(--size-600))').matches);
-        } catch (e) {}
-
-        if (isMobileViewport) {
-            cursor.classList.remove('modal-active');
-            cursor.style.display = 'none';
-        } else {
-            cursor.classList.add('modal-active');
-            cursor.style.display = 'block';
-            cursor.style.opacity = '';
-        }
-    }
-    
     // Apply depth effect to scene
     applyDepthEffect(true);
 }
@@ -481,10 +463,6 @@ export function hideOverlay({ clearReturnState = true, instant = false } = {}) {
     
     blurLayerElement.setAttribute('aria-hidden', 'true');
     contentLayerElement.setAttribute('aria-hidden', 'true');
-    
-    // Restore normal cursor
-    const cursor = document.getElementById('custom-cursor');
-    if (cursor) cursor.classList.remove('modal-active');
     
     // Remove depth effect from scene
     applyDepthEffect(false);

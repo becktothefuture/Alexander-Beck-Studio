@@ -268,7 +268,7 @@ const state = {
   // Custom cursor
   cursorSize: 1.0,  // Legacy field retained for backward compatibility; cursor size is now fixed in code.
   
-  // Cursor color (dot + trail)
+  // Legacy interaction accent + deprecated trail color (the cursor lens is neutral)
   // - `cursorColorMode`: 'auto' picks a new contrasty palette color on startup/mode/reset.
   // - `cursorColorIndex`: palette index 0..7 (used when manual; also the current selection in auto).
   // - `cursorColorHex`: resolved hex string stamped into CSS (--cursor-color) and used by the trail.

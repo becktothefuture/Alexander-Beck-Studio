@@ -935,7 +935,7 @@ body[data-abs-theme='dark'] {
     corner-shape: squircle;
   }
 
-  /* Keep perfect circles: palette dots + custom cursor (home dot + tap ring). */
+  /* Keep perfect circles: palette dots + the standard custom cursor lens. */
   html.abs-corner-shape-squircle #custom-cursor,
   html.abs-corner-shape-squircle #custom-cursor::before,
   html.abs-corner-shape-squircle #custom-cursor::after,

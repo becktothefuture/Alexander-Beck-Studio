@@ -124,18 +124,8 @@ async function waitForRouteReady(page, routeId) {
 
 async function readRouteCursorState(page, routeId) {
   return page.evaluate((expectedRouteId) => {
-    const normalize = (value) => String(value || '').trim().replace(/\s+/g, ' ');
-    const resolveColor = (expression) => {
-      const probe = document.createElement('div');
-      probe.style.cssText =
-        `position:fixed;left:-9999px;top:0;visibility:hidden;pointer-events:none;color:${expression};`;
-      document.documentElement.appendChild(probe);
-      const value = getComputedStyle(probe).color;
-      probe.remove();
-      return normalize(value);
-    };
-    const rootStyle = getComputedStyle(document.documentElement);
     const cursor = document.getElementById('custom-cursor');
+    const cursorStyle = cursor ? getComputedStyle(cursor) : null;
     const activeTab = document.querySelector('[data-route-tab][aria-current="page"]');
     return {
       routeId: expectedRouteId,
@@ -143,10 +133,14 @@ async function readRouteCursorState(page, routeId) {
       shellRoute: document.documentElement.dataset.shellRoute || '',
       cursorRoute: document.documentElement.dataset.cursorRoute || '',
       activeTab: activeTab?.getAttribute('data-route-tab') || '',
-      cursorColor: resolveColor(rootStyle.getPropertyValue('--cursor-color')),
-      routeAccent: resolveColor(`var(--button-bar-accent-${expectedRouteId})`),
-      cursorDisplay: cursor ? getComputedStyle(cursor).display : '',
+      cursorDisplay: cursorStyle?.display || '',
       cursorClass: cursor?.className || '',
+      cursorWidth: cursorStyle?.width || '',
+      cursorHeight: cursorStyle?.height || '',
+      cursorOpacity: cursorStyle?.opacity || '',
+      cursorTransform: cursorStyle?.transform || '',
+      cursorBackground: cursorStyle?.backgroundColor || '',
+      cursorZIndex: cursorStyle?.zIndex || '',
     };
   }, routeId);
 }
@@ -157,8 +151,17 @@ function assertRouteCursorState(state) {
       throw new Error(`${state.routeId}: expected ${key}=${state.routeId}, got ${state[key] || '(empty)'}`);
     }
   }
-  if (state.cursorColor !== state.routeAccent) {
-    throw new Error(`${state.routeId}: cursor ${state.cursorColor} did not match active tab accent ${state.routeAccent}`);
+  if (state.cursorDisplay !== 'block') {
+    throw new Error(`${state.routeId}: expected standard cursor to be visible, got ${state.cursorDisplay || '(empty)'}`);
+  }
+  if (state.cursorWidth !== '48px' || state.cursorHeight !== '48px') {
+    throw new Error(`${state.routeId}: expected 48px standard lens, got ${state.cursorWidth} × ${state.cursorHeight}`);
+  }
+  if (/abs-cursor-(?:tap|action-hover|project-hover)/.test(state.cursorClass)) {
+    throw new Error(`${state.routeId}: legacy cursor mode remained active: "${state.cursorClass}"`);
+  }
+  if (!state.cursorBackground || state.cursorBackground === 'rgba(0, 0, 0, 0)') {
+    throw new Error(`${state.routeId}: standard lens material resolved transparent`);
   }
 }
 
@@ -178,16 +181,47 @@ async function moveInsideWindow(page) {
 
 async function assertInactiveHoverDoesNotPreview(page, routeId) {
   const inactiveRouteId = routeOrder.find((candidate) => candidate !== routeId);
-  const before = await readRouteCursorState(page, routeId);
   await page.locator(`[data-route-tab="${inactiveRouteId}"]`).hover();
-  await page.waitForTimeout(120);
-  const after = await readRouteCursorState(page, routeId);
-  if (after.cursorColor !== before.cursorColor || after.cursorRoute !== routeId) {
-    throw new Error(`${routeId}: inactive ${inactiveRouteId} hover changed cursor route/color`);
+  await page.waitForTimeout(500);
+  const state = await readRouteCursorState(page, routeId);
+  assertClickableCursorState(state, `${routeId}: ${inactiveRouteId} tab`);
+}
+
+function assertClickableCursorState(state, label) {
+  if (!state.cursorClass.split(/\s+/).includes('abs-cursor-interactive')) {
+    throw new Error(`${label} did not activate the standard clickable state`);
+  }
+  if (Math.abs(Number(state.cursorOpacity) - 0.72) > 0.01) {
+    throw new Error(`${label} cursor opacity was ${state.cursorOpacity}, expected 0.72`);
+  }
+  if (!state.cursorTransform.startsWith('matrix(0.84,')) {
+    throw new Error(`${label} cursor transform was ${state.cursorTransform}, expected scale(0.84)`);
   }
 }
 
-async function assertOutsideWindowHidesCustomCursor(page, routeId) {
+async function assertHomeOverlayCursor(page) {
+  await page.locator('.simulation-focus-switcher').click();
+  await page.waitForSelector('.simulation-focus-modal.active', { timeout: routeWaitMs });
+
+  for (const [label, locator] of [
+    ['chooser row', page.locator('.simulation-focus-row').nth(1)],
+    ['chooser close control', page.locator('.simulation-focus-modal .gate-back')],
+  ]) {
+    await locator.hover();
+    await page.waitForTimeout(500);
+    const state = await readRouteCursorState(page, 'home');
+    assertRouteCursorState(state);
+    assertClickableCursorState(state, `home: ${label}`);
+    if (state.cursorZIndex !== '20000') {
+      throw new Error(`home: ${label} cursor z-index was ${state.cursorZIndex}, expected modal level 20000`);
+    }
+  }
+
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.simulation-focus-modal', { state: 'hidden', timeout: routeWaitMs });
+}
+
+async function assertOuterShellKeepsCustomCursor(page, routeId) {
   const outside = await page.evaluate(() => {
     const rect = document.getElementById('simulations')?.getBoundingClientRect();
     if (!rect) return { x: 2, y: 2 };
@@ -199,16 +233,8 @@ async function assertOutsideWindowHidesCustomCursor(page, routeId) {
   await page.mouse.move(outside.x, outside.y);
   await page.waitForTimeout(80);
   const state = await readRouteCursorState(page, routeId);
-  if (state.cursorDisplay !== 'none') {
-    throw new Error(`${routeId}: custom cursor remained visible outside the studio window`);
-  }
-}
-
-async function assertTapRingRoute(page, routeId) {
-  await moveInsideWindow(page);
-  const state = await readRouteCursorState(page, routeId);
-  if (!state.cursorClass.split(/\s+/).includes('abs-cursor-tap')) {
-    throw new Error(`${routeId}: expected unchanged tap-ring cursor, got class "${state.cursorClass}"`);
+  if (state.cursorDisplay !== 'block') {
+    throw new Error(`${routeId}: standard cursor disappeared over the outer shell`);
   }
 }
 
@@ -226,11 +252,9 @@ async function directLoadChecks(browser) {
     const state = await readRouteCursorState(page, routeId);
     assertRouteCursorState(state);
     await assertInactiveHoverDoesNotPreview(page, routeId);
-    await assertOutsideWindowHidesCustomCursor(page, routeId);
-    if (routeId === 'about' || routeId === 'contact') {
-      await assertTapRingRoute(page, routeId);
-    }
-    log(`direct ${routeId}: cursor=${state.cursorColor}`);
+    await assertOuterShellKeepsCustomCursor(page, routeId);
+    if (routeId === 'home') await assertHomeOverlayCursor(page);
+    log(`direct ${routeId}: ${state.cursorWidth} neutral lens`);
     await context.close();
   }
 }
@@ -255,10 +279,7 @@ async function spaChecks(browser) {
     await moveInsideWindow(page);
     const state = await readRouteCursorState(page, routeId);
     assertRouteCursorState(state);
-    if (routeId === 'about' || routeId === 'contact') {
-      await assertTapRingRoute(page, routeId);
-    }
-    log(`spa ${routeId}: cursor=${state.cursorColor}`);
+    log(`spa ${routeId}: ${state.cursorWidth} neutral lens`);
   }
 
   await context.close();
@@ -274,7 +295,7 @@ async function run() {
     await browser.close();
     await server?.stop();
   }
-  log('PASS: route cursor colour matches selected tab accent without hover preview or window-boundary leaks.');
+  log('PASS: one 48px neutral lens persists across routes and the outer shell, with one smaller/quieter clickable state.');
 }
 
 run().catch((error) => {

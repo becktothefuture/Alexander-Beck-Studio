@@ -129,7 +129,7 @@ The Home simulation switcher, Portfolio drawer back control, and Contact email/c
 - Emphasis is adaptive, not route-accented: use a translucent white field in light mode and a translucent black field in dark mode. Text and icons resolve through the current in-window text tokens.
 - Hover, `:focus-visible`, and pressed states use the same emphasis fill, blur, saturation, and text/icon contrast. The Home switcher also keeps that state while its chooser is open.
 - Do not stack a colored halo, glow, drop shadow, or second hover field on top of this emphasis material. State must remain calm and legible over moving simulation content.
-- A circular material control owns one complete circle. The custom cursor lens yields while hovering the simulation chooser close control or Portfolio drawer back control; never nest a smaller cursor circle inside the control surface.
+- The custom cursor remains one consistent translucent lens over every control, including circular controls. Its only interactive response is a small reduction in scale and opacity; controls do not request a route-, overlay-, or geometry-specific cursor.
 - The manual site theme owns these values because these controls live inside the studio window. Never derive them from the browser-aware wall or outer-frame palette.
 
 Inside the simulation chooser, option rows are transparent at rest and retain transparent border geometry in every state. The current simulation, hovered option, keyboard-focused option, and pressed option use one identical emphasis material; the current row remains visibly emphasized before pointer interaction. The modal close control is anchored at the studio window's top-right corner using the same safe-area-aware inset as the Portfolio drawer's top-left back control. It is transparent at rest and uses the shared emphasis material on hover, keyboard focus, and press. Reduced motion removes transitions without removing any selected, focus, or hover-state contrast.
@@ -316,7 +316,7 @@ Recalculate these from approved computed endpoints before implementation if the 
 - Frame inset/radius; they already have a canonical endpoint interpolation.
 - Portfolio orbital geometry, drawer handoff geometry, and height-led project art direction.
 - Home short-height compression and narrow landscape safeguards.
-- Borders, focus-ring widths, cursor rings, or motion timing.
+- Borders, focus-ring widths, the fixed cursor diameter, or motion timing.
 - Project titles through the route-entry serif token.
 
 ## Accessibility and performance rules
@@ -355,7 +355,6 @@ These are implementation/documentation findings, not permission for a broad refa
 | P0 | Focus visibility is broadly suppressed | Global and component `:focus-visible` rules remove outline/shadow in `main.css` and Button Bar CSS. | Define semantic focus-ring tokens, remove blanket suppression, and verify every main-page interactive state. |
 | P0 | Home expertise is click-only | Legend items are `div` elements with JS click listeners. | Render buttons or add complete button semantics, Enter/Space handling, and pressed/expanded state without changing the visual design. |
 | P1 | Light supporting copy is likely under contrast | Muted text plus `0.64` opacity resolves near a 3.25:1 contrast on the common light interior. | Use an opaque semantic muted color or raise resolved contrast; verify real composited colors in both themes. |
-| P1 | Cursor contract disagrees | Instructions specify a 64px lens for detail/About/Contact/gates/modals; runtime uses 48px and defaults About/Contact to the dot. | Define one route/state matrix and one size token, then align JS, CSS, docs, and cursor audits. |
 | P1 | Config and CSS fallbacks disagree | Frame colors, desktop inset/radius, interior light color, and some motion fallbacks differ from authored config. | Generate critical first-paint fallbacks from `design-system.json` or share one endpoint builder. |
 | P1 | Authored content-inset tokens do not own layout | `contentInset*` values are stamped, while runtime `contentPadding*` values drive the visible page. | Choose one endpoint contract and feed the same resolved value to CSS, overlays, and runtime geometry. |
 | P1 | Project-detail title drops at `640→641` | The normal Geist title falls from roughly `61.6px` to `44.9px`. | Add a local continuous project-detail title bridge; do not use the route-entry serif. |

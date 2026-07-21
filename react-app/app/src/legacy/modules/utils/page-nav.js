@@ -153,12 +153,7 @@ function closeOverlaysBeforeNavigation({ preserveBackdrop = false } = {}) {
 
   if (!preserveBackdrop) {
     const cursor = document.getElementById('custom-cursor');
-    if (cursor) {
-      cursor.classList.remove('modal-active');
-      if (cursor.style.display) {
-        cursor.style.display = '';
-      }
-    }
+    if (cursor?.style.display) cursor.style.display = '';
   }
 
 }

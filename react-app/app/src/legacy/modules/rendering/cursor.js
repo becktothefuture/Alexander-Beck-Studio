@@ -1,13 +1,11 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                          CUSTOM CURSOR RENDERER                              ║
-// ║  In-window default: solid palette dot. Translucent lens only for drawer,       ║
-// ║  modal, dev chrome, and action-hover focus states — see CUSTOM-CURSOR.         ║
+// ║  One translucent lens across the production site and every overlay.            ║
+// ║  Clickable targets only make the lens smaller and quieter — see CUSTOM-CURSOR. ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
-import { triggerCursorExplosion, updateMouseVelocity } from '../visual/cursor-explosion.js';
-import { getMouseVelocity, getMouseDirection } from '../input/pointer.js';
 
 let cursorElement = null;
 let isInitialized = false;
@@ -15,45 +13,16 @@ let isInitialized = false;
 let linkHoverListening = false;
 /** Keeps the custom cursor available on React route runtimes that do not boot legacy pointer.js. */
 let documentCursorTracking = false;
-let isInSimulation = false;
-let cachedContainerRect = null;
-let rectCacheTime = 0;
-const RECT_CACHE_MS = 100; // Cache rect for 100ms to avoid excessive layout reads
-const TAP_RING_CSS_PX = 48;
-const HOME_DOT_TO_BALL_DIAMETER = 0.88;
-const HOME_DOT_FALLBACK_CSS_PX = 24;
-const HOME_DOT_MIN_CSS_PX = 11;
-const HOME_DOT_MAX_CSS_PX = 53;
-const PORTFOLIO_DECK_CURSOR_Z_INDEX = 940;
-const HOME_CURSOR_Z_INDEX = 19990;
-const TAP_CURSOR_Z_INDEX = 19990;
+let isCustomCursorActive = false;
+const STANDARD_CURSOR_CSS_PX = 48;
+const STANDARD_CURSOR_Z_INDEX = 19990;
 const MODAL_CURSOR_Z_INDEX = 20000;
-let fadeInStarted = false;
-let fadeInAnimation = null;
-let wasOverLink = false; // Track previous hover state for transition detection
 let lastClientX = 0;
 let lastClientY = 0;
-let lastHoveredLink = null;
 let hasLastPointerPosition = false;
 
-function ensureCursorLabel() {
-  if (!cursorElement) return null;
-  let label = cursorElement.querySelector?.('.abs-cursor-label') ?? null;
-  if (!label) {
-    label = document.createElement('span');
-    label.className = 'abs-cursor-label';
-    label.setAttribute('aria-hidden', 'true');
-    cursorElement.appendChild(label);
-  }
-  return label;
-}
-
-function handleLinkHoverEvent(event) {
-  try {
-    lastHoveredLink = event?.detail?.element ?? null;
-  } catch (e) {
-    lastHoveredLink = null;
-  }
+function handleLinkHoverEvent() {
+  if (hasLastPointerPosition) refreshCursor();
 }
 
 function wireLinkHoverListener() {
@@ -96,11 +65,7 @@ function wireDocumentCursorTracking() {
 function detachCustomCursorModuleState() {
   unwireLinkHoverListener();
   isInitialized = false;
-  fadeInStarted = false;
-  fadeInAnimation = null;
   cursorElement = null;
-  cachedContainerRect = null;
-  rectCacheTime = 0;
 }
 
 function ensureLiveCustomCursorElement() {
@@ -109,61 +74,6 @@ function ensureLiveCustomCursorElement() {
     detachCustomCursorModuleState();
   }
   setupCustomCursor();
-}
-
-/**
- * Check if mouse is inside the visible studio window.
- * The native cursor returns outside this rectangle; the custom circle owns the
- * whole in-window surface, including route UI and modal controls.
- * Uses cached bounding rect for performance
- * This keeps cursor behavior aligned with the simplified frame DOM.
- */
-function isMouseInSimulation(clientX, clientY) {
-  const container = document.getElementById('simulations');
-  if (!container) return false;
-
-  // Cache rect to avoid expensive layout reads on every mouse move
-  const now = performance.now();
-  if (!cachedContainerRect || (now - rectCacheTime) > RECT_CACHE_MS) {
-    cachedContainerRect = container.getBoundingClientRect();
-    rectCacheTime = now;
-  }
-  
-  const rect = cachedContainerRect;
-  return (
-    clientX >= rect.left &&
-    clientX <= rect.right &&
-    clientY >= rect.top &&
-    clientY <= rect.bottom
-  );
-}
-
-function isPortfolioDetailViewOpen() {
-  try {
-    return Boolean(document?.body?.classList?.contains?.('portfolio-project-open'));
-  } catch (e) {
-    return false;
-  }
-}
-
-function shouldElevatePortfolioDeckCursor() {
-  try {
-    return (
-      document?.body?.classList?.contains?.('portfolio-page') &&
-      !isPortfolioDetailViewOpen()
-    );
-  } catch (e) {
-    return false;
-  }
-}
-
-function shouldUseHomeDotCursor() {
-  return !isPortfolioDetailViewOpen();
-}
-
-function isDevChromeCursorTarget(target) {
-  if (!target || !target.closest) return false;
-  return Boolean(target.closest('.panel-toggle-btn'));
 }
 
 /**
@@ -176,22 +86,21 @@ function isNativeEditorCursorTarget(target) {
   return Boolean(target.closest('.panel, .panel-toggle-btn, .parameterizer-panel, .about-track-editor'));
 }
 
-function getHomeCursorDotDiameterCssPx() {
-  const globals = getGlobals();
-  const canvas = globals.canvas;
-  if (!canvas || !(canvas.width > 0)) return HOME_DOT_FALLBACK_CSS_PX;
-  let rect;
-  try {
-    rect = canvas.getBoundingClientRect();
-  } catch (e) {
-    return HOME_DOT_FALLBACK_CSS_PX;
-  }
-  const rw = rect.width || 1;
-  const avgR = (globals.R_MIN + globals.R_MAX) * 0.5;
-  const ballDiameterCanvas = avgR * 2;
-  const cssBallDiameter = ballDiameterCanvas * (rw / canvas.width);
-  const dot = cssBallDiameter * HOME_DOT_TO_BALL_DIAMETER;
-  return Math.max(HOME_DOT_MIN_CSS_PX, Math.min(dot, HOME_DOT_MAX_CSS_PX));
+function isClickableCursorTarget(target) {
+  if (!target?.closest) return false;
+  const action = target.closest([
+    'a[href]:not([aria-disabled="true"])',
+    'button:not([disabled]):not([aria-disabled="true"])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    'summary',
+    'label[for]',
+    '[role="button"]:not([aria-disabled="true"])',
+    '[role="link"]:not([aria-disabled="true"])',
+    '[tabindex]:not([tabindex="-1"]):not([aria-disabled="true"])',
+  ].join(','));
+  return Boolean(action);
 }
 
 /**
@@ -230,21 +139,16 @@ export function setupCustomCursor() {
   if (stray?.isConnected) {
     cursorElement = stray;
     isInitialized = true;
-    ensureCursorLabel();
     wireLinkHoverListener();
     wireDocumentCursorTracking();
     updateCursorSize();
     stray.style.opacity = '1';
-    fadeInStarted = false;
-    fadeInAnimation = null;
-    startCursorFadeIn();
     return;
   }
 
   cursorElement = document.createElement('div');
   cursorElement.id = 'custom-cursor';
   cursorElement.setAttribute('aria-hidden', 'true');
-  ensureCursorLabel();
 
   // Insert cursor inside #simulations to be in same stacking context as canvas/wall
   container.appendChild(cursorElement);
@@ -256,11 +160,10 @@ export function setupCustomCursor() {
   wireLinkHoverListener();
   wireDocumentCursorTracking();
   updateCursorSize();
-  startCursorFadeIn();
 }
 
 /**
- * Stamp width/height for current route (home dot vs tap ring). Pointer move applies mount + classes.
+ * Keep one authored cursor size across every route, shell surface, and overlay.
  */
 export function updateCursorSize() {
   if (!cursorElement) return;
@@ -269,16 +172,10 @@ export function updateCursorSize() {
   cursorElement.style.marginTop = '0';
   cursorElement.style.borderRadius = '50%';
 
-  if (shouldUseHomeDotCursor()) {
-    const d = getHomeCursorDotDiameterCssPx();
-    cursorElement.style.width = `${d}px`;
-    cursorElement.style.height = `${d}px`;
-  } else {
-    cursorElement.style.width = `${TAP_RING_CSS_PX}px`;
-    cursorElement.style.height = `${TAP_RING_CSS_PX}px`;
-  }
+  cursorElement.style.width = `${STANDARD_CURSOR_CSS_PX}px`;
+  cursorElement.style.height = `${STANDARD_CURSOR_CSS_PX}px`;
 
-  if (!isInSimulation) {
+  if (!isCustomCursorActive) {
     cursorElement.style.transform = ZERO_SCALE;
   }
 }
@@ -286,52 +183,23 @@ export function updateCursorSize() {
 const ZERO_SCALE = 'translate(-50%, -50%) scale(0)';
 const FULL_SCALE = 'translate(-50%, -50%) scale(var(--abs-cursor-scale, 1))';
 
-function applyTapRingMount(clientX, clientY, overlayIsActive, actionHover = false) {
+function applyStandardCursorMount(clientX, clientY, overlayIsActive, interactive = false) {
   if (cursorElement.parentElement !== document.body) {
     document.body.appendChild(cursorElement);
   }
   cursorElement.style.position = 'fixed';
   cursorElement.style.left = `${clientX}px`;
   cursorElement.style.top = `${clientY}px`;
-  cursorElement.style.zIndex = String(overlayIsActive ? MODAL_CURSOR_Z_INDEX : TAP_CURSOR_Z_INDEX);
-  cursorElement.classList.add('abs-cursor-tap');
-  cursorElement.classList.toggle('abs-cursor-action-hover', Boolean(actionHover));
-  cursorElement.style.width = `${TAP_RING_CSS_PX}px`;
-  cursorElement.style.height = `${TAP_RING_CSS_PX}px`;
+  cursorElement.style.zIndex = String(overlayIsActive ? MODAL_CURSOR_Z_INDEX : STANDARD_CURSOR_Z_INDEX);
+  cursorElement.classList.toggle('abs-cursor-interactive', Boolean(interactive));
+  cursorElement.classList.remove('abs-cursor-tap', 'abs-cursor-action-hover', 'abs-cursor-project-hover');
+  cursorElement.style.width = `${STANDARD_CURSOR_CSS_PX}px`;
+  cursorElement.style.height = `${STANDARD_CURSOR_CSS_PX}px`;
   cursorElement.style.boxSizing = 'border-box';
   cursorElement.style.transform = FULL_SCALE;
   cursorElement.style.opacity = '';
   cursorElement.style.backgroundColor = '';
   cursorElement.style.border = '';
-  cursorElement.classList.remove('abs-cursor-project-hover');
-  const label = ensureCursorLabel();
-  if (label) label.textContent = '';
-}
-
-function applyHomeDotMount(clientX, clientY) {
-  if (cursorElement.parentElement !== document.body) {
-    document.body.appendChild(cursorElement);
-  }
-  cursorElement.style.position = 'fixed';
-  cursorElement.style.zIndex = shouldElevatePortfolioDeckCursor()
-    ? String(PORTFOLIO_DECK_CURSOR_Z_INDEX)
-    : String(HOME_CURSOR_Z_INDEX);
-  cursorElement.style.left = `${clientX}px`;
-  cursorElement.style.top = `${clientY}px`;
-  cursorElement.classList.remove('abs-cursor-tap');
-  cursorElement.classList.remove('abs-cursor-action-hover');
-  cursorElement.classList.remove('modal-active');
-  const d = getHomeCursorDotDiameterCssPx();
-  cursorElement.style.width = `${d}px`;
-  cursorElement.style.height = `${d}px`;
-  cursorElement.style.boxSizing = 'border-box';
-  cursorElement.style.transform = FULL_SCALE;
-  cursorElement.style.opacity = '1';
-  cursorElement.style.backgroundColor = '';
-  cursorElement.style.border = 'none';
-  cursorElement.classList.remove('abs-cursor-project-hover');
-  const label = ensureCursorLabel();
-  if (label) label.textContent = '';
 }
 
 /**
@@ -347,88 +215,11 @@ function isHoveringOverLink() {
 }
 
 /**
- * Check if cursor fade-in has completed
- * @returns {boolean} True if fade-in is complete or not started
- */
-function isFadeInComplete() {
-  if (!fadeInStarted) return false; // Fade-in hasn't started yet, don't allow opacity changes
-  if (!fadeInAnimation) return true; // Animation not created (fallback path), allow opacity
-  return fadeInAnimation.playState === 'finished';
-}
-
-/**
  * Update cursor position and state
  * Called from pointer.js on mouse move
  * @param {number} clientX - Mouse X position
  * @param {number} clientY - Mouse Y position
  */
-/**
- * Get canvas position from client coordinates
- * Helper for explosion trigger (converts screen coords to canvas coords)
- * Matches pattern from pointer.js for consistency
- */
-function getCanvasPosition(clientX, clientY) {
-  const globals = getGlobals();
-  const canvas = globals?.canvas;
-  if (!canvas) return null;
-  
-  const rect = canvas.getBoundingClientRect();
-  const rw = rect.width || 1;
-  const rh = rect.height || 1;
-  const sx = canvas.width / rw;
-  const sy = canvas.height / rh;
-  
-  return {
-    x: (clientX - rect.left) * sx,
-    y: (clientY - rect.top) * sy,
-    inBounds: clientX >= rect.left && clientX <= rect.right && 
-              clientY >= rect.top && clientY <= rect.bottom
-  };
-}
-
-function clampToCanvas(x, y, canvas) {
-  return {
-    x: Math.max(0, Math.min(canvas.width, x)),
-    y: Math.max(0, Math.min(canvas.height, y))
-  };
-}
-
-function getCanvasPointFromViewport(clientX, clientY) {
-  const globals = getGlobals();
-  const canvas = globals?.canvas;
-  if (!canvas) return null;
-  const canvasPos = getCanvasPosition(clientX, clientY);
-  if (!canvasPos) return null;
-  const clamped = canvasPos.inBounds ? canvasPos : clampToCanvas(canvasPos.x, canvasPos.y, canvas);
-  return { x: clamped.x, y: clamped.y };
-}
-
-function getButtonEmissionPoints(element) {
-  if (!element?.getBoundingClientRect) return null;
-  const rect = element.getBoundingClientRect();
-  if (!(rect.width > 0 && rect.height > 0)) return null;
-
-  const centerX = rect.left + rect.width * 0.5;
-  const centerY = rect.top + rect.height * 0.5;
-  const centerCanvas = getCanvasPointFromViewport(centerX, centerY);
-  if (!centerCanvas) return null;
-
-  const viewportPoints = [
-    { x: rect.left, y: centerY },
-    { x: rect.right, y: centerY },
-    { x: centerX, y: rect.top },
-    { x: centerX, y: rect.bottom }
-  ];
-
-  const points = viewportPoints
-    .map((point) => getCanvasPointFromViewport(point.x, point.y))
-    .filter(Boolean);
-
-  if (!points.length) return null;
-
-  return { center: centerCanvas, points };
-}
-
 export function updateCursorPosition(clientX, clientY) {
   ensureLiveCustomCursorElement();
   if (!cursorElement) return;
@@ -437,120 +228,24 @@ export function updateCursorPosition(clientX, clientY) {
   lastClientY = clientY;
   hasLastPointerPosition = true;
   
-  const isOverLink = isHoveringOverLink();
-  const isLinkTransition = isOverLink && !wasOverLink;
-
-  if (isLinkTransition) {
-    const globals = getGlobals();
-    const canvas = globals?.canvas;
-    const color = getCursorColor();
-    const velocity = getMouseVelocity();
-    const dir = getMouseDirection();
-    
-    const triggerExplosion = () => {
-      if (!canvas) return;
-      
-      let emitted = false;
-      
-      if (lastHoveredLink) {
-        const emission = getButtonEmissionPoints(lastHoveredLink);
-        if (emission) {
-          const particleScale = 1 / emission.points.length;
-          emission.points.forEach((point) => {
-            triggerCursorExplosion(point.x, point.y, color, velocity, {
-              emissionCenter: emission.center,
-              particleScale
-            });
-          });
-          emitted = true;
-        }
-      }
-      
-      if (!emitted) {
-        const canvasPos = getCanvasPosition(clientX, clientY);
-        if (canvasPos) {
-          const clamped = canvasPos.inBounds ? canvasPos : clampToCanvas(canvasPos.x, canvasPos.y, canvas);
-          if (clamped.x >= 0 && clamped.y >= 0 && clamped.x <= canvas.width && clamped.y <= canvas.height) {
-            triggerCursorExplosion(clamped.x, clamped.y, color, velocity);
-          }
-        }
-      }
-      
-      if (dir && (dir.x !== 0 || dir.y !== 0)) {
-        updateMouseVelocity(velocity, dir.x, dir.y);
-      }
-    };
-    
-    requestAnimationFrame(triggerExplosion);
-  }
-
-  wasOverLink = isOverLink;
-
-  const wasInSimulation = isInSimulation;
-  isInSimulation = isMouseInSimulation(clientX, clientY);
   const overlayIsActive = isOverlayActive();
   const hoverTarget = document.elementFromPoint(clientX, clientY);
 
   // Editor surfaces retain the system cursor. Hiding only the native cursor in
-  // CSS would leave the custom dot/lens rendered above controls, so yield here
-  // before either custom-cursor form is mounted.
+  // CSS would leave the custom lens rendered above controls, so yield here.
   if (isNativeEditorCursorTarget(hoverTarget)) {
     document.body.classList.remove('abs-in-simulation');
     cursorElement.style.display = 'none';
+    isCustomCursorActive = false;
     return;
   }
 
-  const useDevChromeTapRing = !overlayIsActive && isDevChromeCursorTarget(hoverTarget);
-
-  const shouldUseHomeDot = shouldUseHomeDotCursor();
-  const lensForActionHover = isOverLink && shouldUseHomeDot && !overlayIsActive && !useDevChromeTapRing;
-  const homeDot = shouldUseHomeDot && isInSimulation && !overlayIsActive && !useDevChromeTapRing && !lensForActionHover;
-  const tapRing = isInSimulation && (overlayIsActive || useDevChromeTapRing || !shouldUseHomeDot || lensForActionHover);
-
-  if (!overlayIsActive) {
-    cursorElement.classList.remove('modal-active');
-  }
-
-  const showCustomCursor = homeDot || tapRing;
-  if (showCustomCursor) {
-    document.body.classList.add('abs-in-simulation');
-  } else {
-    document.body.classList.remove('abs-in-simulation');
-  }
-
-  // LINK HOVER: mount first so the implosion reads against the right surface
-  if (isOverLink) {
-    if (overlayIsActive || tapRing) {
-      applyTapRingMount(clientX, clientY, overlayIsActive, true);
-    } else if (homeDot) {
-      applyHomeDotMount(clientX, clientY);
-    } else {
-      cursorElement.style.display = 'none';
-      return;
-    }
-    cursorElement.style.display = 'block';
-    cursorElement.style.transform = FULL_SCALE;
-    return;
-  }
-
-  if (!showCustomCursor) {
-    cursorElement.style.display = 'none';
-    if (wasInSimulation) {
-      cursorElement.style.transform = ZERO_SCALE;
-      cursorElement.style.backgroundColor = '';
-      cursorElement.style.filter = '';
-    }
-    return;
-  }
-
-  if (overlayIsActive || tapRing) {
-    applyTapRingMount(clientX, clientY, overlayIsActive, isOverLink);
-  } else {
-    applyHomeDotMount(clientX, clientY);
-  }
-
+  const interactive = isClickableCursorTarget(hoverTarget) || isHoveringOverLink();
+  isCustomCursorActive = true;
+  document.body.classList.add('abs-in-simulation');
+  cursorElement.classList.remove('modal-active');
+  applyStandardCursorMount(clientX, clientY, overlayIsActive, interactive);
   cursorElement.style.display = 'block';
-
   cursorElement.style.transform = FULL_SCALE;
 }
 
@@ -560,32 +255,20 @@ export function refreshCursor() {
 }
 
 /**
- * Hide cursor (when mouse leaves window)
+ * Hide cursor when the mouse leaves the document.
  */
 export function hideCursor() {
   if (!cursorElement) return;
   
   cursorElement.style.display = 'none';
-  // Restore default cursor when mouse leaves window
   document.body.classList.remove('abs-in-simulation');
-  isInSimulation = false;
+  isCustomCursorActive = false;
 }
 
 /**
- * Show cursor (when mouse enters window)
+ * Prepare the cursor to return on the next pointer move.
  */
 export function showCursor() {
   if (!cursorElement) return;
-  // Will be shown/hidden by updateCursorPosition based on location
-  isInSimulation = false;
-}
-
-/**
- * Start cursor fade-in animation
- * Cursor fades in slowly after page fade-in completes, ensuring alignment with trail
- */
-function startCursorFadeIn() {
-  if (fadeInStarted || !cursorElement) return;
-  fadeInStarted = true;
-  cursorElement.style.opacity = '1';
+  isCustomCursorActive = false;
 }

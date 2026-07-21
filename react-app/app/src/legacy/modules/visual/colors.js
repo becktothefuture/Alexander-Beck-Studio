@@ -157,8 +157,8 @@ export function getTimeOfDayPaletteTemplate() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CURSOR COLOR (contrasty-only palette selection)
-// - Single source of truth for cursor dot + trail
+// LEGACY INTERACTION ACCENT (contrasty-only palette selection)
+// - Shared by accent-led UI and the deprecated mouse trail; the cursor lens is neutral
 // - Event-driven (mode switch / reset / startup / palette change), not in hot paths
 // ═══════════════════════════════════════════════════════════════════════════════
 

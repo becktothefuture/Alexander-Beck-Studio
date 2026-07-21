@@ -394,7 +394,6 @@ function forceBackdropDismiss({ instant = false } = {}) {
     if (content) content.classList.remove('active');
     blur?.setAttribute('aria-hidden', 'true');
     content?.setAttribute('aria-hidden', 'true');
-    document.getElementById('custom-cursor')?.classList.remove('modal-active');
     if (instant && blur) {
       void blur.offsetWidth;
       requestAnimationFrame(() => {

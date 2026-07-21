@@ -110,7 +110,7 @@ html {
   padding: 0;
   width: 100%;
   height: 100%;
-  /* Default cursor outside inner wall area; custom cursor only inside inner wall */
+  /* cursor.js replaces this across production surfaces for fine pointers. */
   cursor: default;
   /* The exposed page band must match the resolved browser chrome exactly. */
   background: var(--abs-browser-chrome, #000000);
@@ -206,7 +206,7 @@ body.body {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  /* Default cursor outside inner wall area; custom cursor only inside inner wall */
+  /* cursor.js replaces this across production surfaces for fine pointers. */
   cursor: default;
   -webkit-user-select: none;
   user-select: none;
@@ -232,8 +232,7 @@ body.body {
 /* (Intentionally no portfolio/cv override here.)
    Portfolio/CV now run the same WAAPI fade-in sequence as index. */
 
-/* Hide default cursor only while cursor.js reports the pointer inside the studio window.
-   The custom cursor owns the in-window UI; the system cursor returns outside the window. */
+/* Hide the native cursor while cursor.js owns the current production surface. */
 body.abs-in-simulation,
 body.abs-in-simulation *,
 body.abs-in-simulation *:hover,
@@ -264,7 +263,7 @@ body.abs-in-simulation .panel a {
   cursor: pointer !important;
 }
 
-/* In-window controls keep the custom cursor. The system cursor returns only outside the studio window. */
+/* In-window controls keep the custom cursor. */
 body.abs-in-simulation #social-links .footer_icon-link,
 body.abs-in-simulation #social-links .footer_icon-link *,
 body.abs-in-simulation #social-links .footer_icon-link:hover,
@@ -3291,6 +3290,13 @@ body.portfolio-page .hero-title:not(.hero-title--portfolio) {
 }
 
 .route-entrance-glyph {
+  /* Filter/transform animation promotes each glyph to its own paint layer.
+     Keep that layer larger than the serif ink plus the 10px blur footprint,
+     while cancelling the extra box size so line geometry never changes. */
+  --route-entrance-glyph-overscan: calc(30px + 0.08em);
+  --route-entrance-glyph-overscan-negative: calc(-30px - 0.08em);
+  padding-block: var(--route-entrance-glyph-overscan);
+  margin-block: var(--route-entrance-glyph-overscan-negative);
   transform-origin: 50% 50%;
 }
 
@@ -5453,29 +5459,24 @@ a:active {
     0 8px 22px rgba(var(--abs-rgb-black), 0.12),
     inset 0 1px 0 rgba(var(--abs-rgb-white), 0.16),
     inset 0 -1px 0 rgba(var(--abs-rgb-black), 0.06);
-  /* Use absolute positioning when inside #simulations (transformed parent makes fixed relative to parent) */
+  /* cursor.js moves this to body and fixes it to the viewport on first pointer movement. */
   position: absolute;
   pointer-events: none;
   z-index: 3; /* Within UI stacking context */
   border: none;
-  background: var(--cursor-color);
+  background: var(--abs-lens-bg);
+  box-shadow: var(--abs-lens-shadow);
+  -webkit-backdrop-filter: var(--abs-lens-filter);
+  backdrop-filter: var(--abs-lens-filter);
   transform-origin: center center;
   transform: translate(-50%, -50%) scale(var(--abs-cursor-scale));
-  opacity: 0.85; /* Transparent but visible */
-  /* Power transfer: fast snap (200ms) so cursor hits first, then button reacts */
+  opacity: 1;
   transition: transform var(--abs-cursor-shrink-duration, 200ms) ease-in,
-              opacity var(--abs-cursor-shrink-duration, 200ms) ease-in,
-              width 0.35s var(--ease-hesitant),
-              height 0.35s var(--ease-hesitant),
-              background 0.35s var(--ease-hesitant),
-              box-shadow 0.35s var(--ease-hesitant),
-              -webkit-backdrop-filter 0.35s var(--ease-hesitant),
-              backdrop-filter 0.35s var(--ease-hesitant);
-  will-change: transform, opacity, width, height, background, box-shadow;
-  width: 20px;
-  height: 20px;
+              opacity var(--abs-cursor-shrink-duration, 200ms) ease-in;
+  will-change: transform, opacity;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  /* Blend mode is applied via overlay element, not here */
 }
 
 body.dark-mode #custom-cursor {
@@ -5486,29 +5487,20 @@ body.dark-mode #custom-cursor {
     inset 0 -1px 0 rgba(var(--abs-rgb-black), 0.12);
 }
 
-/* Action hover: cursor leads the hover state while targets keep restrained feedback. */
-body.abs-link-hovering #custom-cursor,
-body.abs-action-hovering #custom-cursor {
-  opacity: 1;
+/* The sole cursor response: smaller and quieter over any clickable target. */
+#custom-cursor.abs-cursor-interactive {
+  --abs-cursor-scale: 0.84;
+  opacity: 0.72;
   transform: translate(-50%, -50%) scale(var(--abs-cursor-scale));
-  transition: transform var(--abs-cursor-shrink-duration, 200ms) ease-in,
-              opacity var(--abs-cursor-shrink-duration, 200ms) ease-in;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   LINK HOVER SUBSYSTEM (TWO MODES)
-   JS: `source/modules/ui/link-cursor-hop.js`
+   ACTION HOVER TARGET FEEDBACK
+   JS: `src/legacy/modules/ui/link-cursor-hop.js`
 
-   Mode A — Index Overlay (over canvas):
-   - subtle cursor-tint pill background
-   - text illuminates to a WCAG-safe “bright cursor” color (computed in JS)
-   - dot under label appears at the cursor dot size + cursor color
-
-   Mode B — UI Overlay (portfolio + dialogs w/ circle cursor):
-   - cursor color ONLY becomes a background circle on the control
-   - label/icon slightly shifts lighter/darker (theme-aware)
-   - dot under label is suppressed
-   ═══════════════════════════════════════════════════════════════════════════════ */
+   Target surfaces may retain their own restrained local feedback. The shared
+   cursor itself is controlled exclusively by `.abs-cursor-interactive` above.
+   ════════════════════════════════════════════════════════════════════════════════ */
 
 /* Legacy keyframe (replaced by sustained scale(1.1) for power transfer; kept for reference/fallback) */
 @keyframes absHoverSnap {
@@ -5834,44 +5826,7 @@ body.dark-mode .ui-main-nav .footer_link:active {
   transform: none;
 }
 
-/* Translucent lens: focus/detail states and action-hover morph — see docs/reference/CUSTOM-CURSOR.md */
-#custom-cursor.abs-cursor-tap,
-#custom-cursor.modal-active {
-  display: block;
-  width: 48px;
-  height: 48px;
-  max-width: 48px;
-  max-height: 48px;
-  box-sizing: border-box;
-  background: var(--abs-lens-bg);
-  border: 0;
-  border-radius: 50%;
-  box-shadow: var(--abs-lens-shadow);
-  -webkit-backdrop-filter: var(--abs-lens-filter);
-  backdrop-filter: var(--abs-lens-filter);
-  transform: translate(-50%, -50%) scale(var(--abs-cursor-scale));
-  opacity: 1;
-}
-
-#custom-cursor.abs-cursor-tap.abs-cursor-action-hover,
-#custom-cursor.modal-active.abs-cursor-action-hover {
-  --abs-cursor-scale: 0.86;
-  opacity: 1;
-}
-
-/* Circular material controls own their complete hover surface. The pointer lens
-   yields here so one large control circle is never stacked with a smaller one. */
-@media (hover: hover) and (pointer: fine) {
-  body:has(.simulation-focus-modal .gate-back:hover) #custom-cursor,
-  body:has(.portfolio-project-view__back--top.abs-icon-btn:hover) #custom-cursor {
-    visibility: hidden;
-    opacity: 0;
-    transition: none;
-  }
-}
-/* position + z-index set in cursor.js: body-fixed tap vs modal stack */
-
-/* Cursor color is palette-driven via --cursor-color (no dark-mode override). */
+/* Position and z-index are set in cursor.js so the same lens clears modal stacks. */
 
 @media (hover: hover) and (pointer: fine) {
   body.abs-action-hovering :is(
@@ -5893,15 +5848,7 @@ body.dark-mode .ui-main-nav .footer_link:active {
 
 @media (prefers-reduced-motion: reduce) {
   #custom-cursor {
-    transition:
-      opacity 120ms var(--ease-organic),
-      background 120ms var(--ease-organic),
-      box-shadow 120ms var(--ease-organic);
-  }
-
-  #custom-cursor.abs-cursor-tap.abs-cursor-action-hover,
-  #custom-cursor.modal-active.abs-cursor-action-hover {
-    --abs-cursor-scale: 1;
+    transition: none;
   }
 }
 
@@ -7485,18 +7432,11 @@ body.cv-page button {
   cursor: pointer;
 }
 
-/* Rapid cursor hiding on link hover for CV page */
+/* Keep the native cursor hidden while the shared custom lens is active. */
 body.cv-page.abs-link-hovering a,
 body.cv-page.abs-link-hovering button,
 body.cv-page.abs-link-hovering {
   cursor: none !important;
-}
-
-body.cv-page.abs-link-hovering #custom-cursor {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(var(--abs-cursor-scale));
-  transition: transform var(--abs-power-transfer-duration, 300ms) var(--ease-organic),
-              opacity var(--abs-power-transfer-duration, 300ms) var(--ease-organic);
 }
 
 /* Top-left column (home legend + blurb column) */

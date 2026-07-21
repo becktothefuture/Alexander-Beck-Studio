@@ -1,20 +1,13 @@
 # Custom cursor
 
-Cross-route interaction intent lives in [`DESIGN.md`](../../DESIGN.md). There is known drift between the locked 64px route/state lens contract and the current 48px runtime/default route classifier; align the state matrix, JS, CSS, documentation, and audits in one change.
+Cross-route interaction intent lives in [`DESIGN.md`](../../DESIGN.md).
 
-The custom cursor has two current forms:
+The production site has one custom cursor: a fixed 48px translucent lens matching the lens shown over the Home simulation switcher. Its adaptive neutral material is dark over the light studio-window theme and light over the dark theme, with a restrained inset rim and shadow. It never adopts route or simulation accent colours.
 
-- solid palette dot: default in-window cursor across the primary tabs: Home, Portfolio deck/background, About Me, and Contact;
-- translucent lens: simulation chooser/modal states, Portfolio project detail, dev chrome targets, and in-window action hover.
+The lens is fixed to `body` and follows the pointer across the studio window, outer shell, persistent Button Bar, every primary route, gates, drawers, and modal overlays. Route changes and overlay transitions may alter its stacking level, but never its size, material, or shape.
 
-There is no separate project-hover cursor family.
+Hovering any semantic clickable target applies the cursor's only interaction state: the lens scales to `0.84` and its overall opacity falls to `0.72`. This includes links, buttons, form controls, route tabs, icon controls, and keyboard-focusable action roles. Controls may retain their own local hover treatment, but the cursor never changes colour, emits particles, gains a label, disappears inside a circular control, or switches to another cursor family.
 
-The cursor is fixed to `body` so overlays cannot bury it. The dot size is derived from the canvas ball mapping when available, with a stable fallback for route surfaces that do not expose the Home canvas metrics. Portfolio should match that perceptual diameter without depending on obsolete project bodies. Perfect cursor circles are excluded from squircle styling.
+Editor surfaces (legacy config panels, their toggle, parameterizer panels, and the About narrative editor) retain the native system cursor so standard pointer, text-entry, and resize affordances remain available. Mouse and fine-pointer input use the custom lens; touch and pen input do not leave a synthetic cursor behind.
 
-Clickable in-window body targets use a cursor-led hover: the palette dot morphs into the translucent lens, while the target keeps restrained local feedback such as a soft field, opacity lift, or existing card shadow. When the lens is already active, hovering a clickable target makes the lens smaller and quieter instead of adding an accent flash.
-
-Circular controls that paint the complete shared emphasis material are the exception. The simulation chooser close control and Portfolio drawer back control own the single large circle, so the custom lens becomes invisible while either is hovered. Do not stack the lens inside a circular control: pointer, keyboard, and touch must all resolve to the same one-circle target surface.
-
-The persistent Button Bar keeps its own cursor contract. Editor surfaces (legacy config panels, their toggle, parameterizer panels, and the About narrative editor) always use the native system cursor; this allows standard pointer, text-entry, and resize affordances without the custom dot or lens layered above them. The native cursor also returns outside the framed window.
-
-Pointer handling must preserve mouse, pen, touch, keyboard focus, reduced motion, and route teardown. Never add nested rings or thin field/helper lines to simulation visuals.
+Pointer handling must preserve mouse, pen, touch, keyboard focus, reduced motion, route teardown, and SPA remounts. Reduced motion keeps the smaller/quieter interactive endpoint but removes its transition.
