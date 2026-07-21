@@ -91,6 +91,7 @@
     "dev:react" : "npm run dev --prefix react-app\/app -- --port 8012",
     "figma:capture:external" : "node scripts\/figma-capture-external.mjs",
     "figma:config" : "node scripts\/setup-figma-mcp-config.js",
+    "github:cli" : "bash scripts\/github-cli.sh",
     "migrate:about-narrative:v3" : "node scripts\/migrate-about-narrative-v3.mjs --write",
     "migrate:about-narrative:v4" : "node scripts\/migrate-about-narrative-v4.mjs --write",
     "migrate:about-narrative:v5" : "node scripts\/migrate-about-narrative-v5.mjs --write",

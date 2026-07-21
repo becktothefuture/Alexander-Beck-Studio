@@ -17,6 +17,7 @@
 - `npm run studio:stop` — stop only the processes managed by `studio:dev`
 - `npm run studio:check` — canonical local site gate
 - `npm run studio:publish` — validate and explicitly push clean committed `main` to trigger GitHub Pages
+- `npm run github:cli -- <args>` — optional GitHub CLI wrapper that resolves PATH and common Homebrew locations
 - `npm run build` — entry-shell parity check, config flattening, then the Vite production build
 - `npm run preview` — serve the production build on port 8013
 - `npm run check:site` — canonical local gate: tokens, HTML entries, simulation catalog, lint, config parity, and build
@@ -43,6 +44,8 @@
 - Run targeted checks during implementation and `npm run studio:check` before calling a milestone production-ready. The publish command repeats this gate.
 - A request for a “public dev link”, “phone preview”, or “shared preview” means the development mirror. A request to update “production”, “beck.fyi”, or push/sync committed `main` means the GitHub Pages path. If the word “live” is ambiguous, ask which destination the user means.
 - Never run `npm run studio:publish`, `npm run studio:publish -- --yes`, `git push`, or another deployment action without explicit user authorization for that production-changing action. Never infer authorization from a successful build, an existing commit, or a request for a public development link.
+- Git commit and push use `git` directly and must never be blocked on GitHub CLI availability. `gh` is optional and only supports GitHub API, authentication diagnostics, PRs, and workflow verification. Invoke it through `npm run github:cli -- <args>` so Codex does not depend on the desktop process PATH or a specific package manager.
+- Homebrew is not a project dependency. The GitHub CLI wrapper checks PATH plus standard Apple Silicon Homebrew, Intel Homebrew, and Linuxbrew locations; it also accepts the explicit `ABS_GITHUB_CLI_BIN` override.
 - `studio:publish` never creates commits. Continue to commit only when explicitly asked, review the exact diff first, and never include unrelated changes.
 - After an authorized production push, report the workflow as triggered. Verify the GitHub Pages workflow and deployed site before claiming production is updated.
 - Durable rule: save to update development, commit to preserve work, publish to update production.
@@ -96,7 +99,7 @@ Read `DESIGN.md` before changing the production visual system, then read the foc
 - Manual light/dark theme affects the studio-window interior only: `--studio-window-bg`, `--frame-inner-surface`, in-window finish, route content, simulations, gates, and overlays. Never alias those surfaces to `--abs-wall-base`.
 - The exposed band and physical frame are invariant opaque black (`#000000`) across browser families, browser/OS schemes, site themes, and display gamuts. Preserve `chromeHarmonyMode: auto` only as a compatibility sentinel; no production path may approximate browser chrome or change the frame away from black.
 - The Button Bar belongs to the stable outer shell. Do not derive its ink/material from `--text-primary` or `--text-muted`, and verify all four route tabs remain legible and selected correctly in both site themes.
-- The custom cursor uses the small solid dot on Home/Portfolio backgrounds and the 64px tap ring for Portfolio detail, About, Contact, gates, and modal states. Home-dot sizing is derived from the active canvas mapping; Portfolio uses the same perceptual size.
+- The custom cursor is one fixed 48px adaptive neutral lens across every production route, outer-shell surface, Button Bar, gate, drawer, and modal. Its only interactive state is `scale(0.84)` with `opacity: 0.72`; it never switches colour, size family, or overlay-specific form.
 - Quote puck behavior includes the current air-hockey-style drag/throw response. Do not describe it as drag-only.
 - Public Daily Simulation state settles on the clean Home URL.
 

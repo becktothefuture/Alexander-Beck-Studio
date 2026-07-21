@@ -19,11 +19,14 @@ npm run studio:status    # servers, tunnel, Git, and production-sync state
 npm run studio:stop      # stop the managed public development session
 npm run studio:check     # canonical local production gate
 npm run studio:publish   # verify and push committed main to trigger GitHub Pages
+npm run github:cli -- run list --branch main  # optional workflow inspection
 ```
 
 Both development servers watch the same working tree, so saved changes update localhost and the public phone URL through Vite HMR. Production remains commit-based and deploys only after a successful push to `origin/main`. See [`docs/deployment/DEVELOPMENT-AND-RELEASE.md`](docs/deployment/DEVELOPMENT-AND-RELEASE.md) for the safety boundary, URL lifetime, and optional stable Cloudflare hostname setup.
 
 The default working rule is: **save to update development, commit to preserve work, and publish to update production**. Start with `npm run studio:status`, use `npm run studio:dev` whenever phone/public review is needed, and use `npm run studio:publish` only when the committed `main` branch is intentionally ready for `beck.fyi`.
+
+Git operations use the system `git` binary and do not require GitHub CLI or Homebrew. When GitHub API or Actions inspection is useful, `npm run github:cli -- <args>` resolves `gh` from PATH or common Homebrew locations without relying on Codex Desktop inheriting an interactive shell PATH. The CLI remains optional; the wrapper reports how to proceed when it is absent.
 
 ## Design
 
