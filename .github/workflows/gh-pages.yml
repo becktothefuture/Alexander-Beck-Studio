@@ -28,9 +28,6 @@ jobs:
         with:
           node-version: '20.19.0'
 
-      - name: Install root dependencies
-        run: npm ci --ignore-scripts --no-audit --no-fund
-
       - name: Install React dependencies
         run: |
           cd react-app/app
