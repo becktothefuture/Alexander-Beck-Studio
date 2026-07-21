@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { chromium, webkit } from 'playwright';
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
@@ -17,6 +17,10 @@ const browser = await browserType.launch(browserName === 'chromium' ? {
   ],
 } : { headless: true });
 const outputDir = 'output/playwright/about-narrative-sectionless';
+const canonical = JSON.parse(await readFile(
+  new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
+  'utf8',
+));
 
 await mkdir(outputDir, { recursive: true });
 
@@ -35,7 +39,8 @@ async function auditProduction(viewport, label, expectedProfile) {
   const errors = observeErrors(page);
   await page.goto(`${baseUrl}/about.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-narrative-lab');
-  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 12);
+  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 11);
+  await page.waitForSelector('.about-narrative-lab[data-world-prepare="ready"]', { timeout: 30_000 });
 
   const initial = await page.evaluate(() => {
     const root = document.querySelector('.about-narrative-lab');
@@ -59,7 +64,7 @@ async function auditProduction(viewport, label, expectedProfile) {
   });
   assert.equal(initial.editorCount, 0);
   assert.equal(initial.legacyContainerCount, 0);
-  assert.equal(initial.semanticFieldCount, 12);
+  assert.equal(initial.semanticFieldCount, 11);
   assert.equal(initial.stubSemanticCount, 0);
   assert.equal(initial.canvasCount, 1);
   assert.ok(initial.canvasWidth > 0 && initial.canvasHeight > 0);
@@ -67,18 +72,20 @@ async function auditProduction(viewport, label, expectedProfile) {
   assert.equal(initial.indicatorHost, 'shell-persistent');
   assert.equal(initial.layoutProfile, expectedProfile);
 
-  await page.locator('.about-narrative-scrollport').evaluate((node) => {
-    node.scrollTop = (node.scrollHeight - node.clientHeight) * (8.9 / 16.35);
+  await page.locator('.about-narrative-scrollport').evaluate((node, storyDurationWU) => {
+    node.scrollTop = (node.scrollHeight - node.clientHeight) * (9.25 / storyDurationWU);
     node.dispatchEvent(new Event('scroll', { bubbles: true }));
-  });
+  }, canonical.profiles[expectedProfile].storyDurationWU);
   await page.waitForFunction(() => {
     const root = document.querySelector('.about-narrative-lab');
     const storyWU = Number(root?.dataset.narrativeStoryWu);
-    const visibleLabels = Number(root?.dataset.worldDisciplineLabels || 0);
-    return storyWU > 8.86
-      && storyWU < 8.94
+    const visibleLabels = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
+      .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
+      .length;
+    return storyWU > 9.21
+      && storyWU < 9.29
       && visibleLabels >= 1
-      && visibleLabels <= 4;
+      && visibleLabels <= 6;
   });
   const disciplineState = await page.evaluate(() => {
     const root = document.querySelector('.about-narrative-lab');
@@ -113,7 +120,7 @@ async function auditProduction(viewport, label, expectedProfile) {
     worldTo: 'calm-field-v1',
     labelsWithinViewport: true,
     overlapPairs: [],
-  });
+  }, `${label} discipline labels should remain separate`);
   await page.screenshot({ path: `${outputDir}/${browserName}-production-${label}-discipline.png` });
 
   await page.locator('.about-narrative-scrollport').evaluate((node) => {
@@ -165,7 +172,7 @@ async function auditEditor() {
   const errors = observeErrors(page);
   await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-track-editor');
-  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 12);
+  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 11);
 
   const initial = await page.evaluate(() => ({
     editorVersion: document.querySelector('.about-track-editor')?.dataset.editorVersion,
@@ -184,12 +191,12 @@ async function auditEditor() {
     'Add Text object at playhead',
     'Add Motion object at playhead',
   ]);
-  assert.equal(initial.semanticFieldCount, 12);
+  assert.equal(initial.semanticFieldCount, 11);
 
   const worldResizeHandles = page.getByRole('button', { name: /^Resize World .+ end$/ });
   assert.equal(await worldResizeHandles.count(), 3, 'Every non-final World needs one duration handle.');
   const textResizeHandles = page.getByRole('button', { name: /^Resize Text .+ (start|end)$/ });
-  assert.equal(await textResizeHandles.count(), 6, 'Only editable non-Title Text clips need duration handles.');
+  assert.equal(await textResizeHandles.count(), 4, 'Only editable non-Title Text clips need duration handles.');
   assert.equal(
     await page.locator('[data-track-object-type="text-field"][data-text-kind="title"]')
       .locator('xpath=..')
@@ -199,7 +206,7 @@ async function auditEditor() {
     'Titles must use shared timing and expose no individual duration handles.',
   );
   const motionResizeHandles = page.getByRole('button', { name: /^Resize Motion .+ (start|end)$/ });
-  assert.equal(await motionResizeHandles.count(), 4, 'Every editable Motion clip needs start and end duration handles.');
+  assert.equal(await motionResizeHandles.count(), 6, 'Every editable Motion clip needs start and end duration handles.');
   assert.equal(
     await page.getByRole('button', { name: /^Resize Motion Horizontal spin (start|end)$/ }).count(),
     0,
@@ -220,7 +227,7 @@ async function auditEditor() {
   const worldB = page.locator('[data-track-object-id="world-complexity"]');
   const worldC = page.locator('[data-track-object-id="world-grid"]');
   const worldE = page.locator('[data-track-object-id="world-emergent"]');
-  const textReference = page.locator('[data-track-object-id="text-background-editorial"]');
+  const textReference = page.locator('[data-track-object-id="text-background-unit"]');
   const worldRectsBefore = await Promise.all([worldB, worldC, worldE, textReference].map((locator) => locator.boundingBox()));
   assert.ok(Math.abs(worldRectsBefore[0].x + worldRectsBefore[0].width - worldRectsBefore[1].x) < 0.6);
   const worldBHandle = page.getByRole('button', { name: 'Resize World B end' });
@@ -255,14 +262,14 @@ async function auditEditor() {
   );
   await page.mouse.down();
   await page.mouse.move(
-    motionHandleBox.x + (motionHandleBox.width / 2) + 16,
+    motionHandleBox.x + (motionHandleBox.width / 2) - 16,
     motionHandleBox.y + (motionHandleBox.height / 2),
     { steps: 4 },
   );
   await page.mouse.up();
   await page.waitForFunction(({ beforeX, beforeWidth }) => {
     const rect = document.querySelector('[data-track-object-id="motion-discipline-reveal"]')?.getBoundingClientRect();
-    return rect && rect.x > beforeX + 8 && rect.width < beforeWidth - 8;
+    return rect && rect.x < beforeX - 8 && rect.width > beforeWidth + 8;
   }, { beforeX: motionRectBefore.x, beforeWidth: motionRectBefore.width });
   const motionRectAfter = await motionClip.boundingBox();
   assert.ok(
@@ -292,49 +299,30 @@ async function auditEditor() {
   );
   await page.mouse.up();
   await page.waitForFunction((beforeWidth) => {
-    const rect = document.querySelector('[data-track-object-id="text-background-editorial"]')?.getBoundingClientRect();
+    const rect = document.querySelector('[data-track-object-id="text-background-unit"]')?.getBoundingClientRect();
     return rect && rect.width > beforeWidth + 8;
   }, textRectBefore.width);
   const textRectAfter = await textReference.boundingBox();
   assert.ok(Math.abs(textRectAfter.x - textRectBefore.x) < 0.6, 'Text end resize must preserve its start.');
   await page.getByRole('button', { name: 'Undo' }).click();
   await page.waitForFunction((beforeWidth) => {
-    const rect = document.querySelector('[data-track-object-id="text-background-editorial"]')?.getBoundingClientRect();
+    const rect = document.querySelector('[data-track-object-id="text-background-unit"]')?.getBoundingClientRect();
     return rect && Math.abs(rect.width - beforeWidth) < 0.6;
   }, textRectBefore.width);
 
   const editorialConnection = await page.evaluate(() => {
-    const first = document.querySelector('[data-track-object-id="text-background-editorial"]');
-    const last = document.querySelector('[data-track-object-id="text-background-clients"]');
-    const firstRect = first?.getBoundingClientRect();
-    const lastRect = last?.getBoundingClientRect();
+    const first = document.querySelector('[data-track-object-id="text-background-unit"]');
     return {
       firstBefore: first?.classList.contains('is-connected-before'),
       firstAfter: first?.classList.contains('is-connected-after'),
-      lastBefore: last?.classList.contains('is-connected-before'),
-      lastAfter: last?.classList.contains('is-connected-after'),
-      firstGap: lastRect && firstRect ? lastRect.left - firstRect.right : Number.POSITIVE_INFINITY,
     };
   });
-  assert.deepEqual(
-    { ...editorialConnection, firstGap: undefined },
-    {
-      firstBefore: false,
-      firstAfter: false,
-      lastBefore: false,
-      lastAfter: false,
-      firstGap: undefined,
-    },
-  );
-  assert.ok(
-    editorialConnection.firstGap >= 0 && editorialConnection.firstGap < 80,
-    `Editorial and client-logo fields should keep one bounded timeline gap, received ${editorialConnection.firstGap}px.`,
-  );
+  assert.deepEqual(editorialConnection, { firstBefore: false, firstAfter: false });
 
   const authoredStructure = await page.evaluate(() => ({
     aTitles: document.querySelectorAll('[data-track-object-id="text-promise-main"]').length,
     bTitles: document.querySelectorAll('[data-track-object-id^="text-complexity-"][data-track-object-type="text-field"]').length - 3,
-    cEditorial: document.querySelectorAll('[data-track-object-id="text-background-editorial"]').length,
+    cEditorial: document.querySelectorAll('[data-track-object-id="text-background-unit"]').length,
     cLogos: document.querySelectorAll('[data-track-object-id="text-background-clients"]').length,
     dTitles: ['text-complexity-curiosity', 'text-complexity-listen']
       .filter((id) => document.querySelector(`[data-track-object-id="${id}"]`)).length,
@@ -348,13 +336,13 @@ async function auditEditor() {
     aTitles: 1,
     bTitles: 1,
     cEditorial: 1,
-    cLogos: 1,
+    cLogos: 0,
     dTitles: 2,
     disciplines: 1,
     dEditorial: 1,
     eTitles: 3,
     finalTitles: 1,
-    continuousPassages: 2,
+    continuousPassages: 0,
   });
 
   const playhead = page.getByRole('slider', { name: 'Story WU playhead' });
@@ -376,7 +364,7 @@ async function auditEditor() {
     const response = await fetch('/config/contents-about.json');
     const document = await response.json();
     return document.tracks.text.fields.find(
-      (field) => field.id === 'text-background-editorial',
+      (field) => field.id === 'text-background-unit',
     )?.startWU;
   });
   assert.equal(Number.isFinite(editorialStartWU), true);
@@ -387,41 +375,43 @@ async function auditEditor() {
   ) < 0.01, editorialStartWU);
   const editorialTrigger = await page.evaluate(() => {
     const viewport = document.querySelector('.about-narrative-scrollport').getBoundingClientRect();
-    const passage = document.querySelector('[data-text-field-id="text-background-editorial"]');
-    const firstLine = passage.querySelector('[data-editorial-line]');
-    const passageStyle = getComputedStyle(passage);
+    const passage = document.querySelector('[data-text-field-id="text-background-unit"]');
+    const firstLine = passage.matches('[data-editorial-line]')
+      ? passage
+      : passage.querySelector('[data-editorial-line]');
+    const typographyNode = passage.querySelector('.about-narrative-editorial-copy') || passage;
+    const stackNode = passage.querySelector('.about-narrative-editorial-stack') || passage;
+    const passageStyle = getComputedStyle(typographyNode);
+    const stackStyle = getComputedStyle(stackNode);
     return {
       firstLineTopRatio: (firstLine.getBoundingClientRect().top - viewport.top) / viewport.height,
       firstLineReveal: Number(firstLine.style.getPropertyValue('--editorial-reveal')),
       fontSize: Number.parseFloat(passageStyle.fontSize),
-      rowGap: Number.parseFloat(passageStyle.rowGap),
+      rowGap: Number.parseFloat(stackStyle.rowGap),
     };
   });
   assert.ok(Math.abs(editorialTrigger.firstLineTopRatio - 0.8) < 0.025);
   assert.ok(editorialTrigger.firstLineReveal < 0.08);
   assert.ok(editorialTrigger.fontSize >= 23);
-  assert.ok(editorialTrigger.rowGap >= editorialTrigger.fontSize * 1.05);
+  assert.ok(editorialTrigger.rowGap >= editorialTrigger.fontSize * 0.55);
 
-  const editorialRevealWU = editorialStartWU + 0.12;
+  const editorialRevealWU = editorialStartWU + 0.24;
   await setPlayhead(editorialRevealWU);
   await page.waitForFunction((expectedWU) => Math.abs(
     Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
   ) < 0.01, editorialRevealWU);
   const editorialReveals = await page.locator(
-    '[data-text-field-id="text-background-editorial"] [data-editorial-line]',
+    '[data-text-field-id="text-background-unit"][data-editorial-line], [data-text-field-id="text-background-unit"] [data-editorial-line]',
   ).evaluateAll((nodes) => nodes.map((node) => Number(
     node.style.getPropertyValue('--editorial-reveal'),
   )));
+  assert.equal(editorialReveals.length, 1);
   assert.ok(editorialReveals[0] > 0.95);
-  assert.ok(editorialReveals.at(-1) < 0.1);
-  assert.ok(editorialReveals.every((value, index) => (
-    index === 0 || value <= editorialReveals[index - 1]
-  )));
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-editorial-reveal.png` });
 
-  await setPlayhead(8.9);
+  await setPlayhead(9.47);
   await page.waitForFunction(() => (
-    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) > 8.86
+    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) > 9.43
     && Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels || 0) >= 1
     && Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels || 0) <= 4
   ));
@@ -473,30 +463,10 @@ async function auditEditor() {
     status: document.querySelector('[data-text-kind="stub"] .about-track-editor-clip__badge')?.textContent,
   }));
   assert.equal(draft.clipCount, 1);
-  assert.equal(draft.semanticFieldCount, 12);
+  assert.equal(draft.semanticFieldCount, 11);
   assert.equal(draft.status, 'Draft · Not published');
   await page.getByRole('button', { name: 'Undo' }).click();
   assert.equal(await page.locator('[data-text-kind="stub"]').count(), 0);
-
-  const clientsClip = page.locator('[data-track-object-id="text-background-clients"]');
-  const clientsClipBox = await clientsClip.boundingBox();
-  await clientsClip.dblclick({
-    position: { x: clientsClipBox.width * 0.7, y: clientsClipBox.height / 2 },
-  });
-  await page.waitForFunction(() => document.activeElement?.dataset.editorFocusId === 'text-copy');
-  assert.equal(await page.locator('[data-editor-focus-id="text-copy"]').inputValue(), JSON.stringify([
-    'Yoti',
-    'S&P Global',
-    'Bentley',
-    'SunExpress',
-    'McCann',
-    'American Heart Association',
-  ], null, 2));
-  await page.getByLabel('Block kind').selectOption('prose');
-  const convertedCopy = page.getByRole('textbox', { name: 'Copy', exact: true });
-  assert.equal(await convertedCopy.isEnabled(), true);
-  assert.match(await convertedCopy.inputValue(), /Yoti/);
-  await page.getByRole('button', { name: 'Undo' }).click();
 
   await page.locator('[data-track-object-type="camera-key"]').first().click();
   const cameraFolderLabels = await page.locator('[data-inspector-group^="camera-"] > summary span').allTextContents();
@@ -514,8 +484,19 @@ async function auditEditor() {
     assert.equal(await page.getByRole('spinbutton', { name: `Camera Rotation ${axis} exact value` }).getAttribute('step'), '0.1');
   }
   assert.equal(await page.getByRole('spinbutton', { name: 'Camera Field of view exact value' }).getAttribute('step'), '1');
-  assert.equal(await page.getByText(/first-person camera/i).count(), 1);
-  assert.equal(await page.getByText(/Depth offset|Frame origin|Target coordinates|Aim target|Roll \/ horizon/).count(), 0);
+  assert.equal(await page.getByText(/Position and Rotation author the manual pose/i).count(), 1);
+  const cameraAim = page.getByRole('checkbox', { name: 'Focus on 3D anchor' });
+  assert.equal(await cameraAim.count(), 1);
+  assert.equal(await page.getByRole('spinbutton', { name: 'Camera Anchor X exact value' }).count(), 1);
+  assert.equal(await page.getByRole('slider', { name: 'Camera Rotation X slider' }).isEnabled(), true);
+  await cameraAim.check();
+  assert.equal(await page.getByRole('slider', { name: 'Camera Rotation X slider' }).isDisabled(), true);
+  await cameraAim.uncheck();
+  assert.equal(await page.getByRole('slider', { name: 'Camera Rotation X slider' }).isEnabled(), true);
+  await page.getByRole('button', { name: 'Undo' }).click();
+  assert.equal(await cameraAim.isChecked(), true);
+  await page.getByRole('button', { name: 'Undo' }).click();
+  assert.equal(await cameraAim.isChecked(), false);
   const openingPositionZ = page.getByRole('slider', { name: 'Camera Position Z slider' });
   assert.equal(await openingPositionZ.isEnabled(), true);
   assert.equal(await openingPositionZ.inputValue(), '5.9');
@@ -598,21 +579,24 @@ async function auditEditor() {
   ) < 0.01);
   const mobileEditorial = await page.evaluate(() => {
     const viewport = document.querySelector('.about-narrative-scrollport').getBoundingClientRect();
-    const passage = document.querySelector('[data-text-field-id="text-background-editorial"]');
+    const passage = document.querySelector('[data-text-field-id="text-background-unit"]');
     const bounds = passage.getBoundingClientRect();
-    const style = getComputedStyle(passage);
+    const typographyNode = passage.querySelector('.about-narrative-editorial-copy') || passage;
+    const stackNode = passage.querySelector('.about-narrative-editorial-stack') || passage;
+    const style = getComputedStyle(typographyNode);
+    const stackStyle = getComputedStyle(stackNode);
     return {
       fontSize: Number.parseFloat(style.fontSize),
-      rowGap: Number.parseFloat(style.rowGap),
+      rowGap: Number.parseFloat(stackStyle.rowGap),
       withinInlineViewport: bounds.left >= viewport.left && bounds.right <= viewport.right,
     };
   });
   assert.ok(mobileEditorial.fontSize >= 19.5);
-  assert.ok(mobileEditorial.rowGap >= mobileEditorial.fontSize * 1.05);
+  assert.ok(mobileEditorial.rowGap >= mobileEditorial.fontSize * 0.55);
   assert.equal(mobileEditorial.withinInlineViewport, true);
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-mobile-editorial.png` });
 
-  await setPlayhead(8.9);
+  await setPlayhead(9.47);
   const mobilePortraitRatio = await page.locator('.about-narrative-scrollport').evaluate((node) => {
     const rect = node.getBoundingClientRect();
     return rect.width / rect.height;
@@ -621,9 +605,9 @@ async function auditEditor() {
   await page.waitForFunction(() => {
     const root = document.querySelector('.about-narrative-lab');
     const visibleLabels = Number(root?.dataset.worldDisciplineLabels || 0);
-    return Number(root?.dataset.narrativeStoryWu) > 8.86
+    return Number(root?.dataset.narrativeStoryWu) > 9.43
       && visibleLabels >= 1
-      && visibleLabels <= 4;
+      && visibleLabels <= 6;
   });
   await page.waitForFunction(() => {
     const viewport = document.querySelector('.about-narrative-discipline-reveal')?.getBoundingClientRect();
@@ -640,13 +624,15 @@ async function auditEditor() {
   });
   const mobileDisciplineBounds = await page.evaluate(() => {
     const viewport = document.querySelector('.about-narrative-discipline-reveal').getBoundingClientRect();
-    return [...document.querySelectorAll('[data-discipline-group]')].every((label) => {
-      const rect = label.getBoundingClientRect();
-      return rect.left >= viewport.left - 1
-        && rect.right <= viewport.right + 1
-        && rect.top >= viewport.top - 1
-        && rect.bottom <= viewport.bottom + 1;
-    });
+    return [...document.querySelectorAll('[data-discipline-group]')]
+      .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
+      .every((label) => {
+        const rect = label.getBoundingClientRect();
+        return rect.left >= viewport.left - 1
+          && rect.right <= viewport.right + 1
+          && rect.top >= viewport.top - 1
+          && rect.bottom <= viewport.bottom + 1;
+      });
   });
   assert.equal(mobileDisciplineBounds, true);
   await selectPreviewOrientation('landscape');

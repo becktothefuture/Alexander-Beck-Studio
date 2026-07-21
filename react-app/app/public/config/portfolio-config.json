@@ -56,8 +56,8 @@
       "largeViewportContentScaleMax": 1.45,
       "mobileCardWidthPercent": 64,
       "mobileCardMaxWidthPx": 300,
-      "centerYPercent": 51.25,
-      "mobileCenterYPercent": 58,
+      "centerYPercent": 56.25,
+      "mobileCenterYPercent": 63,
       "desktopViewportYOffsetDvh": 3,
       "largeViewportOrbitCapStartProgress": 0.6,
       "largeViewportTitleCardGapDvh": 8,
@@ -87,13 +87,13 @@
       "followSmoothing": 0.18,
       "settleIdleMs": 150,
       "particleField": {
-        "idleOpacity": 0,
+        "idleOpacity": 1,
         "fastOpacity": 1,
         "quietBandHeight": 0.58,
         "quietBandOpacity": 0.44,
         "densityScale": 1.25,
-        "minRadiusPx": 3.65,
-        "maxRadiusPx": 8.5,
+        "minRadiusPx": 3.25,
+        "maxRadiusPx": 7.5,
         "motionResponse": 1,
         "parallaxDepth": 1
       }

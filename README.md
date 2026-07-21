@@ -11,6 +11,20 @@ npm run dev
 
 Development runs at `http://127.0.0.1:8012`. The live component reference is `/styleguide.html`.
 
+## Development and release workflow
+
+```bash
+npm run studio:dev       # local authoring + safe public phone URL
+npm run studio:status    # servers, tunnel, Git, and production-sync state
+npm run studio:stop      # stop the managed public development session
+npm run studio:check     # canonical local production gate
+npm run studio:publish   # verify and push committed main to trigger GitHub Pages
+```
+
+Both development servers watch the same working tree, so saved changes update localhost and the public phone URL through Vite HMR. Production remains commit-based and deploys only after a successful push to `origin/main`. See [`docs/deployment/DEVELOPMENT-AND-RELEASE.md`](docs/deployment/DEVELOPMENT-AND-RELEASE.md) for the safety boundary, URL lifetime, and optional stable Cloudflare hostname setup.
+
+The default working rule is: **save to update development, commit to preserve work, and publish to update production**. Start with `npm run studio:status`, use `npm run studio:dev` whenever phone/public review is needed, and use `npm run studio:publish` only when the committed `main` branch is intentionally ready for `beck.fyi`.
+
 ## Design
 
 [`DESIGN.md`](DESIGN.md) is the production design constitution for Home, Work/Portfolio, About Me, Contact, and the shared shell. It records the design thesis, cross-route rules, fluid responsive policy, intentional exceptions, and current outliers. Exact authored values remain in `react-app/app/public/config/design-system.json`; component-level usage remains in `docs/reference/SITE-STYLEGUIDE.md` and `docs/reference/COMPONENT-LIBRARY.md`.

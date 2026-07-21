@@ -39,6 +39,42 @@ export function writeAboutNarrativeCameraQuaternion(target, rotation, { zeroRoll
   return normalizeQuaternionInto(target);
 }
 
+export function writeAboutNarrativeCameraTargetFromRotation(
+  target,
+  position,
+  rotation,
+  distance = 1,
+) {
+  const quaternion = writeAboutNarrativeCameraQuaternion([0, 0, 0, 1], rotation);
+  const forwardX = -2 * ((quaternion[0] * quaternion[2]) + (quaternion[3] * quaternion[1]));
+  const forwardY = -2 * ((quaternion[1] * quaternion[2]) - (quaternion[3] * quaternion[0]));
+  const forwardZ = -(1 - (2 * ((quaternion[0] * quaternion[0]) + (quaternion[1] * quaternion[1]))));
+  const resolvedDistance = Math.max(0.01, Math.abs(Number(distance) || 1));
+  target[0] = Number(position?.[0] || 0) + (forwardX * resolvedDistance);
+  target[1] = Number(position?.[1] || 0) + (forwardY * resolvedDistance);
+  target[2] = Number(position?.[2] || 0) + (forwardZ * resolvedDistance);
+  return target;
+}
+
+export function writeAboutNarrativeCameraOrbitPosition(
+  target,
+  position,
+  lookAtTarget,
+  angleRadians,
+) {
+  const centerX = Number(lookAtTarget?.[0] || 0);
+  const centerZ = Number(lookAtTarget?.[2] || 0);
+  const offsetX = Number(position?.[0] || 0) - centerX;
+  const offsetZ = Number(position?.[2] || 0) - centerZ;
+  const angle = Number(angleRadians) || 0;
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  target[0] = centerX + (offsetX * cosine) + (offsetZ * sine);
+  target[1] = Number(position?.[1] || 0);
+  target[2] = centerZ - (offsetX * sine) + (offsetZ * cosine);
+  return target;
+}
+
 export function slerpAboutNarrativeCameraQuaternionInto(target, from, to, progress) {
   let toX = to[0];
   let toY = to[1];
@@ -72,8 +108,18 @@ export function slerpAboutNarrativeCameraQuaternionInto(target, from, to, progre
   return target;
 }
 
-function quaternionFromRotationMatrixInto(target, matrix) {
-  const [m11, m12, m13, m21, m22, m23, m31, m32, m33] = matrix;
+function quaternionFromRotationAxesInto(
+  target,
+  m11,
+  m12,
+  m13,
+  m21,
+  m22,
+  m23,
+  m31,
+  m32,
+  m33,
+) {
   const trace = m11 + m22 + m33;
   if (trace > 0) {
     const s = 0.5 / Math.sqrt(trace + 1);
@@ -103,6 +149,10 @@ function quaternionFromRotationMatrixInto(target, matrix) {
   return normalizeQuaternionInto(target);
 }
 
+function quaternionFromRotationMatrixInto(target, matrix) {
+  return quaternionFromRotationAxesInto(target, ...matrix);
+}
+
 function multiplyQuaternionInto(target, left, right) {
   const [leftX, leftY, leftZ, leftW] = left;
   const [rightX, rightY, rightZ, rightW] = right;
@@ -110,6 +160,56 @@ function multiplyQuaternionInto(target, left, right) {
   target[1] = (leftY * rightW) + (leftW * rightY) + (leftZ * rightX) - (leftX * rightZ);
   target[2] = (leftZ * rightW) + (leftW * rightZ) + (leftX * rightY) - (leftY * rightX);
   target[3] = (leftW * rightW) - (leftX * rightX) - (leftY * rightY) - (leftZ * rightZ);
+  return normalizeQuaternionInto(target);
+}
+
+export function writeAboutNarrativeCameraLookAtQuaternion(
+  target,
+  position,
+  lookAtTarget,
+  rollDegrees = 0,
+) {
+  const forwardX = Number(lookAtTarget?.[0] || 0) - Number(position?.[0] || 0);
+  const forwardY = Number(lookAtTarget?.[1] || 0) - Number(position?.[1] || 0);
+  const forwardZ = Number(lookAtTarget?.[2] || 0) - Number(position?.[2] || 0);
+  const backwardLength = Math.hypot(forwardX, forwardY, forwardZ) || 1;
+  const zX = -forwardX / backwardLength;
+  const zY = -forwardY / backwardLength;
+  const zZ = -forwardZ / backwardLength;
+  let xX = zZ;
+  let xY = 0;
+  let xZ = -zX;
+  const xLength = Math.hypot(xX, xY, xZ);
+  if (xLength < QUATERNION_EPSILON) {
+    xX = 1;
+    xY = 0;
+    xZ = 0;
+  } else {
+    xX /= xLength;
+    xY /= xLength;
+    xZ /= xLength;
+  }
+  const yX = (zY * xZ) - (zZ * xY);
+  const yY = (zZ * xX) - (zX * xZ);
+  const yZ = (zX * xY) - (zY * xX);
+  quaternionFromRotationAxesInto(
+    target,
+    xX, yX, zX,
+    xY, yY, zY,
+    xZ, yZ, zZ,
+  );
+
+  const halfRoll = -Number(rollDegrees || 0) * DEGREES_TO_RADIANS * 0.5;
+  const rollZ = Math.sin(halfRoll);
+  const rollW = Math.cos(halfRoll);
+  const lookX = target[0];
+  const lookY = target[1];
+  const lookZ = target[2];
+  const lookW = target[3];
+  target[0] = (lookX * rollW) + (lookY * rollZ);
+  target[1] = (lookY * rollW) - (lookX * rollZ);
+  target[2] = (lookZ * rollW) + (lookW * rollZ);
+  target[3] = (lookW * rollW) - (lookZ * rollZ);
   return normalizeQuaternionInto(target);
 }
 

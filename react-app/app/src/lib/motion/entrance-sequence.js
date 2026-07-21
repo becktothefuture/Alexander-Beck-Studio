@@ -1,4 +1,5 @@
 const ENTRANCE_SELECTOR = '[data-route-enter]';
+const ENTRANCE_GLYPH_SELECTOR = '[data-route-enter-glyph]';
 const FOCUSABLE_SELECTOR = [
   'a[href]',
   'button:not([disabled])',
@@ -15,14 +16,22 @@ const HOME_PHASE_CLASSES = Object.freeze([
 ]);
 const styleCleanupGeneration = new WeakMap();
 const entranceManagedInertTargets = new WeakSet();
-const BOOKEND_TITLE_CLIP_HIDDEN = 'inset(100% 0 -0.22em 0)';
-const BOOKEND_TITLE_CLIP_REVEALED = 'inset(-0.22em 0 -0.22em 0)';
+const BOOKEND_TITLE_MOTION = Object.freeze({
+  blurPx: 10,
+  durationMs: 560,
+  stepMs: 26,
+  driftEm: -0.12,
+  subtitleGapMs: 140,
+});
+const SEQUENCED_GROUPS = Object.freeze(['legend', 'context', 'action', 'footer', 'control']);
+const GROUP_GAP_MS = 40;
+let glyphPreparationGeneration = 0;
 
 const PROFILES = Object.freeze({
   direct: Object.freeze({
     easing: 'cubic-bezier(0.22, 0, 0.16, 1)',
     blurPx: 1.5,
-    bookendTitle: Object.freeze({ blurPx: 7, durationMs: 720 }),
+    bookendTitle: BOOKEND_TITLE_MOTION,
     groups: Object.freeze({
       identity: Object.freeze({ startMs: 0, stepMs: 90, durationMs: 420 }),
       legend: Object.freeze({ startMs: 900, stepMs: 90, durationMs: 480 }),
@@ -35,7 +44,7 @@ const PROFILES = Object.freeze({
   route: Object.freeze({
     easing: 'cubic-bezier(0.22, 0, 0.16, 1)',
     blurPx: 1.5,
-    bookendTitle: Object.freeze({ blurPx: 6, durationMs: 620 }),
+    bookendTitle: BOOKEND_TITLE_MOTION,
     groups: Object.freeze({
       identity: Object.freeze({ startMs: 0, stepMs: 58, durationMs: 420 }),
       legend: Object.freeze({ startMs: 90, stepMs: 36, durationMs: 460 }),
@@ -71,12 +80,112 @@ function readFinalOpacity(element) {
   return Number.isFinite(computed) && computed > 0.02 ? computed : 1;
 }
 
+function createGlyph(character) {
+  const glyph = document.createElement('span');
+  glyph.className = 'route-entrance-glyph';
+  glyph.dataset.routeEnterGlyph = '';
+  glyph.setAttribute('aria-hidden', 'true');
+  glyph.textContent = character;
+  return glyph;
+}
+
+/**
+ * Converts one title into stable word groups and individually animatable glyphs.
+ * The title keeps its accessible name while visual children remain aria-hidden.
+ */
+export function prepareBookendTitleGlyphs(element) {
+  if (!element) return [];
+  const existingGlyphs = Array.from(element.querySelectorAll(ENTRANCE_GLYPH_SELECTOR));
+  if (existingGlyphs.length > 0) {
+    existingGlyphs.forEach((glyph, index) => glyph.style.setProperty('--route-enter-glyph-index', index));
+    return existingGlyphs;
+  }
+
+  const text = String(element.dataset.routeEnterText || element.textContent || '').replace(/\u00a0/g, ' ');
+  if (!text) return [];
+  element.dataset.routeEnterText = text;
+  glyphPreparationGeneration += 1;
+  const titleRoot = element.closest?.('#hero-title') || element;
+  titleRoot.dataset.routeEnterGlyphRevision = String(glyphPreparationGeneration);
+  const labelledHeadingAncestor = element.parentElement?.closest?.(
+    'h1[aria-label], h2[aria-label], h3[aria-label], h4[aria-label], h5[aria-label], h6[aria-label], [role="heading"][aria-label]',
+  );
+  if (!element.getAttribute('aria-label') && !labelledHeadingAncestor) {
+    element.setAttribute('aria-label', text);
+  }
+  element.replaceChildren();
+
+  const fragment = document.createDocumentFragment();
+  const tokens = text.match(/\s+|\S+/g) || [];
+  tokens.forEach((token) => {
+    if (/^\s+$/.test(token)) {
+      const space = document.createElement('span');
+      space.className = 'route-entrance-space';
+      space.setAttribute('aria-hidden', 'true');
+      space.textContent = '\u00a0'.repeat(token.length);
+      fragment.append(space);
+      return;
+    }
+
+    const word = document.createElement('span');
+    word.className = 'route-entrance-word';
+    word.setAttribute('aria-hidden', 'true');
+    Array.from(token).forEach((character) => word.append(createGlyph(character)));
+    fragment.append(word);
+  });
+  element.append(fragment);
+  const glyphs = Array.from(element.querySelectorAll(ENTRANCE_GLYPH_SELECTOR));
+  glyphs.forEach((glyph, index) => glyph.style.setProperty('--route-enter-glyph-index', index));
+  return glyphs;
+}
+
 function resolveProfile(name) {
   return PROFILES[name] || PROFILES.route;
 }
 
 function readGroup(profile, name) {
   return profile.groups[name] || profile.groups.context;
+}
+
+function getTargetEndMs(target) {
+  if (target.variant !== 'bookend-title') return target.delayMs + target.durationMs;
+  return target.delayMs
+    + target.durationMs
+    + (Math.max(0, target.glyphs.length - 1) * target.letterStepMs);
+}
+
+function sequenceTargets(targets, profile) {
+  const identityTitles = targets
+    .filter((target) => target.groupName === 'identity' && target.variant === 'bookend-title')
+    .sort((left, right) => left.order - right.order);
+  if (identityTitles.length === 0) return targets;
+
+  let glyphOffset = 0;
+  const identityStartMs = readGroup(profile, 'identity').startMs;
+  identityTitles.forEach((target) => {
+    target.delayMs = identityStartMs + (glyphOffset * target.letterStepMs);
+    glyphOffset += target.glyphs.length;
+  });
+
+  let cursorMs = Math.max(...identityTitles.map(getTargetEndMs)) + profile.bookendTitle.subtitleGapMs;
+  SEQUENCED_GROUPS.forEach((groupName) => {
+    const groupTargets = targets
+      .filter((target) => target.groupName === groupName)
+      .sort((left, right) => left.order - right.order);
+    if (groupTargets.length === 0) return;
+    const group = readGroup(profile, groupName);
+    const groupStartMs = Math.max(cursorMs, group.startMs);
+    groupTargets.forEach((target) => {
+      target.delayMs = groupStartMs + (group.stepMs * target.order);
+    });
+    cursorMs = Math.max(...groupTargets.map(getTargetEndMs)) + GROUP_GAP_MS;
+  });
+
+  return targets.sort((left, right) => (
+    left.delayMs - right.delayMs
+    || left.groupName.localeCompare(right.groupName)
+    || left.order - right.order
+  ));
 }
 
 function collectTargets(scopes, profile) {
@@ -98,6 +207,7 @@ function collectTargets(scopes, profile) {
       const order = readOrder(element, fallbackOrder);
       const variant = element.dataset.routeEnterVariant || 'default';
       const isBookendTitle = variant === 'bookend-title';
+      const glyphs = isBookendTitle ? prepareBookendTitleGlyphs(element) : [];
       groupCounts.set(groupName, Math.max(fallbackOrder + 1, order + 1));
       const group = readGroup(profile, groupName);
       targets.push({
@@ -109,17 +219,20 @@ function collectTargets(scopes, profile) {
           ? profile.bookendTitle.durationMs
           : group.durationMs,
         blurPx: isBookendTitle ? profile.bookendTitle.blurPx : profile.blurPx,
+        letterStepMs: isBookendTitle ? profile.bookendTitle.stepMs : 0,
+        driftEm: isBookendTitle ? profile.bookendTitle.driftEm : 0,
+        glyphs,
         variant,
         finalOpacity: readFinalOpacity(element),
       });
     });
   });
 
-  return targets.sort((a, b) => (
+  return sequenceTargets(targets.sort((a, b) => (
     a.delayMs - b.delayMs
     || a.groupName.localeCompare(b.groupName)
     || a.order - b.order
-  ));
+  )), profile);
 }
 
 function setHomePhase(root, phase) {
@@ -140,9 +253,16 @@ function clearTargetStyles(target) {
   element.style.transition = 'none';
   element.style.removeProperty('opacity');
   element.style.removeProperty('filter');
-  element.style.removeProperty('clip-path');
   element.style.removeProperty('pointer-events');
   element.style.removeProperty('will-change');
+  target.glyphs.forEach((glyph) => {
+    glyph.style.removeProperty('opacity');
+    glyph.style.removeProperty('filter');
+    glyph.style.removeProperty('transform');
+    glyph.style.removeProperty('transition');
+    glyph.style.removeProperty('will-change');
+    if (glyph.__absRouteEntranceState) glyph.__absRouteEntranceState.settled = true;
+  });
   window.requestAnimationFrame(() => {
     if (styleCleanupGeneration.get(element) !== generation) return;
     element.style.removeProperty('transition');
@@ -157,10 +277,18 @@ function restoreTargetInert(element) {
 }
 
 function settleTarget(target) {
-  target.element.style.opacity = String(target.finalOpacity);
-  target.element.style.filter = 'blur(0)';
   if (target.variant === 'bookend-title') {
-    target.element.style.clipPath = 'none';
+    target.element.style.opacity = '1';
+    target.element.style.filter = 'none';
+    target.glyphs.forEach((glyph) => {
+      glyph.style.opacity = String(target.finalOpacity);
+      glyph.style.filter = 'blur(0)';
+      glyph.style.transform = 'translate3d(0, 0, 0)';
+      if (glyph.__absRouteEntranceState) glyph.__absRouteEntranceState.settled = true;
+    });
+  } else {
+    target.element.style.opacity = String(target.finalOpacity);
+    target.element.style.filter = 'blur(0)';
   }
   target.element.style.pointerEvents = '';
   restoreTargetInert(target.element);
@@ -173,14 +301,40 @@ function stageTarget(target, blurPx) {
   );
   target.element.style.transition = 'none';
   target.element.style.transitionDelay = `${target.delayMs}ms`;
-  target.element.style.opacity = '0';
-  target.element.style.filter = `blur(${blurPx}px)`;
   if (target.variant === 'bookend-title') {
-    target.element.style.clipPath = BOOKEND_TITLE_CLIP_HIDDEN;
+    target.element.style.opacity = '1';
+    target.element.style.filter = 'none';
+    target.glyphs.forEach((glyph, glyphIndex) => {
+      const rect = glyph.getBoundingClientRect();
+      glyph.__absRouteEntranceState = {
+        phase: 'staged',
+        settled: false,
+        startedAt: 0,
+        delayMs: target.delayMs + (glyphIndex * target.letterStepMs),
+        durationMs: target.durationMs,
+        blurPx,
+        driftEm: target.driftEm,
+        finalOpacity: target.finalOpacity,
+        finalRect: {
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        },
+      };
+      glyph.style.transition = 'none';
+      glyph.style.opacity = '0';
+      glyph.style.filter = `blur(${blurPx}px)`;
+      glyph.style.transform = `translate3d(${target.driftEm}em, 0, 0)`;
+      glyph.style.willChange = 'opacity, filter, transform';
+    });
+  } else {
+    target.element.style.opacity = '0';
+    target.element.style.filter = `blur(${blurPx}px)`;
   }
   target.element.style.pointerEvents = 'none';
   target.element.style.willChange = target.variant === 'bookend-title'
-    ? 'opacity, filter, clip-path'
+    ? 'auto'
     : 'opacity, filter';
   // Opacity and pointer-events do not remove delayed controls from sequential
   // keyboard navigation. Scope inert to targets that actually contain controls,
@@ -203,9 +357,9 @@ function stageTarget(target, blurPx) {
  * Creates one cancellable entrance transaction.
  *
  * Layout transforms are deliberately out of scope: anchored elements keep their
- * final geometry while this runner owns opacity and filter. The named bookend
- * title variant may also own a clip-path mask, but never layout transform. This
- * separation prevents centering, responsive placement, and motion from
+ * final geometry while this runner owns opacity and filter. Bookend titles use
+ * the same non-clipping reveal so serif ascenders and descenders remain intact.
+ * This separation prevents centering, responsive placement, and motion from
  * overwriting one another on WebKit and other composited browsers.
  */
 export function createEntranceSequence({
@@ -223,7 +377,7 @@ export function createEntranceSequence({
 
   const totalMs = () => reducedMotion ? 0 : Math.max(
     0,
-    ...targets.map((target) => target.delayMs + target.durationMs),
+    ...targets.map(getTargetEndMs),
   );
 
   const stage = () => {
@@ -266,6 +420,7 @@ export function createEntranceSequence({
       targets.push(target);
       stageTarget(target, reducedMotion ? 0 : target.blurPx);
     });
+    targets = sequenceTargets(targets, profile);
 
     if (reducedMotion || targets.length === 0 || typeof Element.prototype.animate !== 'function') {
       finish();
@@ -276,16 +431,47 @@ export function createEntranceSequence({
     if (settled) return false;
     if (diagnosticRoot) setHomePhase(diagnosticRoot, 'enter');
 
-    animations = targets.map((target) => {
-      const keyframes = target.variant === 'bookend-title'
-        ? [
-            { opacity: 0, filter: `blur(${target.blurPx}px)`, clipPath: BOOKEND_TITLE_CLIP_HIDDEN },
-            { opacity: target.finalOpacity, filter: 'blur(0)', clipPath: BOOKEND_TITLE_CLIP_REVEALED },
-          ]
-        : [
-            { opacity: 0, filter: `blur(${target.blurPx}px)` },
-            { opacity: target.finalOpacity, filter: 'blur(0)' },
-          ];
+    animations = targets.flatMap((target) => {
+      if (target.variant === 'bookend-title') {
+        const startedAt = performance.now();
+        return target.glyphs.map((glyph, glyphIndex) => {
+          const delayMs = target.delayMs + (glyphIndex * target.letterStepMs);
+          if (glyph.__absRouteEntranceState) {
+            Object.assign(glyph.__absRouteEntranceState, {
+              phase: 'playing',
+              settled: false,
+              startedAt,
+              delayMs,
+            });
+          }
+          const animation = glyph.animate(
+            [
+              {
+                opacity: 0,
+                filter: `blur(${target.blurPx}px)`,
+                transform: `translate3d(${target.driftEm}em, 0, 0)`,
+              },
+              {
+                opacity: target.finalOpacity,
+                filter: 'blur(0)',
+                transform: 'translate3d(0, 0, 0)',
+              },
+            ],
+            {
+              duration: target.durationMs,
+              delay: delayMs,
+              easing: profile.easing,
+              fill: 'both',
+            },
+          );
+          onAnimation?.(animation);
+          return animation;
+        });
+      }
+      const keyframes = [
+        { opacity: 0, filter: `blur(${target.blurPx}px)` },
+        { opacity: target.finalOpacity, filter: 'blur(0)' },
+      ];
       const animation = target.element.animate(
         keyframes,
         {
@@ -296,7 +482,7 @@ export function createEntranceSequence({
         },
       );
       onAnimation?.(animation);
-      return animation;
+      return [animation];
     });
 
     await Promise.all(animations.map((animation) => animation.finished.catch(() => undefined)));

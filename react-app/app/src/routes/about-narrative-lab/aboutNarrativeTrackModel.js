@@ -6,13 +6,9 @@ import {
   validateAboutNarrativeTrackDocument,
 } from './aboutNarrativeTrackSchema.js';
 import {
-  applyAboutNarrativeCameraEasing,
-  compileAboutNarrativeCameraEasing,
-} from './aboutNarrativeCameraEasing.js';
-import {
-  slerpAboutNarrativeCameraQuaternionInto,
-  writeAboutNarrativeCameraQuaternion,
-} from './aboutNarrativeCameraRig.js';
+  compileAboutNarrativeCameraKey,
+  sampleAboutNarrativeCameraKeysInto,
+} from './aboutNarrativeCameraSampling.js';
 
 /*
  * Sectionless About Narrative track model.
@@ -67,48 +63,6 @@ function applyTrackEasing(name, value) {
 
 function mix(from, to, progress) {
   return from + ((to - from) * progress);
-}
-
-function writeTrackVectorMix(target, from, to, progress) {
-  target[0] = mix(from[0], to[0], progress);
-  target[1] = mix(from[1], to[1], progress);
-  target[2] = mix(from[2], to[2], progress);
-}
-
-function writeTrackCameraKey(target, key) {
-  const position = key?.position;
-  const quaternion = key?.quaternion;
-  target.position[0] = position?.[0] ?? 0;
-  target.position[1] = position?.[1] ?? 0;
-  target.position[2] = position?.[2] ?? 0;
-  target.quaternion[0] = quaternion?.[0] ?? 0;
-  target.quaternion[1] = quaternion?.[1] ?? 0;
-  target.quaternion[2] = quaternion?.[2] ?? 0;
-  target.quaternion[3] = quaternion?.[3] ?? 1;
-  target.fov = key?.fov ?? 48;
-  return target;
-}
-
-function sampleCameraKeyInto(keys, storyWU, target) {
-  if (!keys.length) {
-    return writeTrackCameraKey(target, null);
-  }
-  if (storyWU <= keys[0].atWU) return writeTrackCameraKey(target, keys[0]);
-  const last = keys.at(-1);
-  if (storyWU >= last.atWU) return writeTrackCameraKey(target, last);
-  let toIndex = 1;
-  while (toIndex < keys.length && storyWU > keys[toIndex].atWU) toIndex += 1;
-  const from = keys[toIndex - 1];
-  const to = keys[toIndex];
-  const spanWU = Math.max(0.000001, to.atWU - from.atWU);
-  const progress = applyAboutNarrativeCameraEasing(
-    from.easingCurve || compileAboutNarrativeCameraEasing(from.easing),
-    (storyWU - from.atWU) / spanWU,
-  );
-  writeTrackVectorMix(target.position, from.position, to.position, progress);
-  slerpAboutNarrativeCameraQuaternionInto(target.quaternion, from.quaternion, to.quaternion, progress);
-  target.fov = mix(from.fov, to.fov, progress);
-  return target;
 }
 
 function sampleVisibility(keys, storyWU) {
@@ -192,11 +146,7 @@ export function compileAboutNarrativeTrackModel(input) {
     durationWU,
     profiles: clone(model.profiles || {}),
     cameraKeys: [...(model.tracks?.camera?.keys || [])]
-      .map((key) => ({
-        ...key,
-        easingCurve: compileAboutNarrativeCameraEasing(key.easing),
-        quaternion: writeAboutNarrativeCameraQuaternion([0, 0, 0, 1], key.rotation),
-      }))
+      .map(compileAboutNarrativeCameraKey)
       .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)),
     visibilityKeys: [...(model.tracks?.visibility?.keys || [])]
       .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)),
@@ -215,6 +165,12 @@ export function createAboutNarrativeTrackFrameSample() {
   const cameraKey = {
     position: [0, 0, 0],
     quaternion: [0, 0, 0, 1],
+    manualQuaternion: [0, 0, 0, 1],
+    aimQuaternion: [0, 0, 0, 1],
+    lookAtTarget: [0, 0, 0],
+    lookAtRoll: 0,
+    aimWeight: 0,
+    targeted: false,
     fov: 48,
   };
   const frame = {
@@ -224,6 +180,10 @@ export function createAboutNarrativeTrackFrameSample() {
     camera: {
       position: [0, 0, 0],
       quaternion: [0, 0, 0, 1],
+      lookAtTarget: [0, 0, 0],
+      lookAtRoll: 0,
+      aimWeight: 0,
+      targeted: false,
       fov: 48,
     },
     simulation: {
@@ -283,7 +243,12 @@ export function sampleAboutNarrativeTrackPlanInto(plan, storyWU, target) {
   }
   const clampedStoryWU = Math.max(0, Math.min(plan.durationWU, Number(storyWU) || 0));
   const globals = plan.model.globals;
-  const cameraKey = sampleCameraKeyInto(plan.cameraKeys, clampedStoryWU, target._cameraKey);
+  const cameraKey = sampleAboutNarrativeCameraKeysInto(
+    plan.cameraKeys,
+    clampedStoryWU,
+    false,
+    target._cameraKey,
+  );
   const cameraPosition = target.camera.position;
   cameraPosition[0] = cameraKey.position[0];
   cameraPosition[1] = cameraKey.position[1];
@@ -292,6 +257,12 @@ export function sampleAboutNarrativeTrackPlanInto(plan, storyWU, target) {
   target.camera.quaternion[1] = cameraKey.quaternion[1];
   target.camera.quaternion[2] = cameraKey.quaternion[2];
   target.camera.quaternion[3] = cameraKey.quaternion[3];
+  target.camera.lookAtTarget[0] = cameraKey.lookAtTarget[0];
+  target.camera.lookAtTarget[1] = cameraKey.lookAtTarget[1];
+  target.camera.lookAtTarget[2] = cameraKey.lookAtTarget[2];
+  target.camera.lookAtRoll = cameraKey.lookAtRoll;
+  target.camera.aimWeight = cameraKey.aimWeight;
+  target.camera.targeted = cameraKey.targeted;
   target.storyWU = clampedStoryWU;
   target.durationWU = plan.durationWU;
   target.globals = globals;

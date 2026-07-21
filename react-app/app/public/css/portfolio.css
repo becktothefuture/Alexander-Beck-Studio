@@ -908,6 +908,11 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-deck-intro {
+  --portfolio-title-glyph-count: 1;
+  --portfolio-title-duration: 560ms;
+  --portfolio-title-letter-step: 26ms;
+  --portfolio-title-subtitle-gap: 140ms;
+  --portfolio-title-subtitle-delay: 700ms;
   position: absolute;
   z-index: 8;
   top: calc(clamp(58px, 8cqh, 91px) + var(--portfolio-deck-intro-y-offset));
@@ -933,7 +938,6 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   justify-self: center;
 }
 
-.portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-deck-intro__title,
 .portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-deck-intro__body,
 .portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-carousel-dot-dial {
   opacity: 0;
@@ -942,8 +946,8 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-deck-intro__title {
-  filter: blur(7px);
-  clip-path: inset(100% 0 -0.22em 0);
+  opacity: 1;
+  filter: none;
 }
 
 .portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-deck-intro__body {
@@ -966,18 +970,11 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   transform: translateY(0) scale(1);
 }
 
-.portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-deck-intro__title {
-  clip-path: inset(-0.22em 0 -0.22em 0);
-  transform: none;
-}
-
+.portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-deck-intro__title,
 .portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__title {
-  clip-path: none;
   transform: none;
 }
 
-.portfolio-deck-mount.is-portfolio-deck-revealing
-  .portfolio-deck-intro__title,
 .portfolio-deck-mount.is-portfolio-deck-revealing
   .portfolio-deck-intro__body {
   filter: blur(0);
@@ -986,17 +983,46 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   transition-timing-function: var(--route-enter-ease, cubic-bezier(0.22, 0, 0.16, 1));
 }
 
+.portfolio-deck-intro__title .route-entrance-glyph {
+  opacity: 0;
+  filter: blur(10px);
+  transform: translate3d(-0.12em, 0, 0);
+  will-change: opacity, filter, transform;
+}
+
 .portfolio-deck-mount.is-portfolio-deck-revealing
-  .portfolio-deck-intro__title {
-  transition-duration: 720ms;
-  transition-delay: 0ms;
-  transition-property: opacity, filter, clip-path;
+  .portfolio-deck-intro__title .route-entrance-glyph {
+  animation: portfolio-title-glyph-in var(--portfolio-title-duration)
+    cubic-bezier(0.22, 0, 0.16, 1) both;
+  animation-delay: calc(var(--route-enter-glyph-index) * var(--portfolio-title-letter-step));
+}
+
+.portfolio-deck-mount.is-portfolio-deck-visible:not(.is-portfolio-deck-revealing)
+  .portfolio-deck-intro__title .route-entrance-glyph {
+  opacity: 1;
+  filter: none;
+  transform: none;
+  will-change: auto;
 }
 
 .portfolio-deck-mount.is-portfolio-deck-revealing
   .portfolio-deck-intro__body {
   transition-duration: 480ms;
-  transition-delay: 210ms;
+  transition-delay: var(--portfolio-title-subtitle-delay);
+}
+
+@keyframes portfolio-title-glyph-in {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translate3d(-0.12em, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 .portfolio-deck-viewport {
@@ -1234,8 +1260,8 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-carousel-dot-dial {
   transition:
-    opacity 420ms var(--route-enter-ease, cubic-bezier(0.22, 0, 0.16, 1)) 360ms,
-    filter 420ms var(--route-enter-ease, cubic-bezier(0.22, 0, 0.16, 1)) 360ms;
+    opacity 420ms var(--route-enter-ease, cubic-bezier(0.22, 0, 0.16, 1)) var(--portfolio-content-reveal-delay, 360ms),
+    filter 420ms var(--route-enter-ease, cubic-bezier(0.22, 0, 0.16, 1)) var(--portfolio-content-reveal-delay, 360ms);
 }
 
 .portfolio-deck-mount .portfolio-project-card:focus-visible {
@@ -2829,6 +2855,15 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
   .portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__title {
     clip-path: none;
     filter: none;
+  }
+
+  .portfolio-deck-intro__title .route-entrance-glyph,
+  .portfolio-deck-mount.is-portfolio-deck-revealing
+    .portfolio-deck-intro__title .route-entrance-glyph {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    animation: none;
   }
 
   .portfolio-project-media-bridge {

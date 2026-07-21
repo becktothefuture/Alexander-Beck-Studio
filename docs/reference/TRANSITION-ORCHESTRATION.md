@@ -28,7 +28,7 @@ Canonical engineering contract for route and modal transitions.
 - Home readiness requires the current runtime snapshot, `data-abs-home-route-ready="true"`, and either a confirmed canvas-title draw or the restored three-line semantic title fallback. Canvas allocation alone is not readiness.
 - First-load entrance choreography and SPA route choreography are separate systems. Direct-load helpers must not mutate route-in visibility.
 - Both systems execute route-owned child reveals through `src/lib/motion/entrance-sequence.js`. Routes declare targets; boot and route owners decide when the shared executor may run.
-- A motion target may animate opacity and filter, but never its layout `transform`. The named `bookend-title` variant may additionally animate a rectangular `clip-path` mask while retaining its settled geometry. Positioned or centred elements retain their settled geometry for the complete transaction; expressive scale belongs to the route surface or simulation material layer.
+- A motion target may animate opacity and filter, but never its layout `transform`. The named `bookend-title` variant keeps the title container at settled geometry while its internal glyphs resolve left to right from a restrained horizontal offset, blur, and zero opacity. It never uses a mask, crop, vertical travel, or scale. Positioned or centred containers retain their settled geometry for the complete transaction; expressive scale belongs to the route surface or simulation material layer.
 
 ### Simulation focus overlay ownership
 
@@ -77,7 +77,7 @@ Canonical engineering contract for route and modal transitions.
 - Route view ownership is intentionally two-slot: `simulationLayer` for page-owned wall/content, and `uiLayer` for page-owned chrome/actions. Optional `heroLayer` belongs to the route simulation/content side.
 - The Button Bar is a stable shell control; route transitions must not animate or hide it. The footer is Home-only content and remains absent on the other routes.
 - The stable shell preserves explicit transition surfaces as implementation details: wall, hero, chrome, and route secondary content.
-- Route-in restores readable groups first, then animates route-owned children marked with `[data-route-enter]`.
+- Route-in restores and settles its owned surfaces first, then animates route-owned children marked with `[data-route-enter]`.
 - `[data-route-enter]` accepts the named groups `identity`, `legend`, `context`, `action`, `footer`, and `control`; `data-route-enter-order` controls order inside a group. The same declaration is used by direct-load and SPA profiles. Add these markers to route content instead of adding new shell selectors when a view needs child-level entrance motion.
 - Route-out animates route-owned surfaces as a unit. It does not reverse or replay child staggers; any active child entrance is cancelled and settled before the destination transaction proceeds.
 - After `abs:route-ready`, route-in must wait for a short paint barrier before preparing child entrances so destination refs, layout, and `[data-route-enter]` markers belong to the new route.

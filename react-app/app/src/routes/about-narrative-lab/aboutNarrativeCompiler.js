@@ -594,9 +594,10 @@ export function getAboutNarrativeCueMovement(cue) {
 
 export function sampleAboutNarrativeCue(cue, localProgress, textMotion, reducedMotion = false) {
   const isOpener = cue.preset === 'opener-v1';
+  const isFinale = cue.preset === 'finale-v1';
   const openerStartY = Number(textMotion.openerStartY ?? 36);
   if (reducedMotion) {
-    return { opacity: 1, blur: 0, x: 0, y: isOpener ? openerStartY : 0, z: 0 };
+    return { opacity: 1, blur: 0, x: 0, y: 0, z: 0 };
   }
   const interval = getAboutNarrativeCueMotionInterval(cue, textMotion);
   const startY = Number(textMotion.startY ?? -110);
@@ -604,6 +605,31 @@ export function sampleAboutNarrativeCue(cue, localProgress, textMotion, reducedM
   const entryDepth = Number(textMotion.entryDepth ?? 360);
   const exitDepth = Number(textMotion.exitDepth ?? 220);
   const maxBlur = Number(textMotion.maxBlur ?? 22);
+  if (isFinale) {
+    const focus = Math.max(interval.start + 0.00001, interval.focus);
+    const progress = clamp01((localProgress - interval.start) / (focus - interval.start));
+    return {
+      opacity: localProgress < interval.start
+        ? 0
+        : applyAboutNarrativeEasing('smoothstep', progress),
+      blur: 0,
+      x: 0,
+      y: 0,
+      z: 0,
+    };
+  }
+  if (isOpener) {
+    const span = Math.max(0.00001, interval.end - interval.start);
+    const progress = clamp01((localProgress - interval.start) / span);
+    const exitProgress = applyAboutNarrativeEasing('smoothstep', progress);
+    return {
+      opacity: localProgress > interval.end ? 0 : 1 - exitProgress,
+      blur: 0,
+      x: 0,
+      y: mix(openerStartY, endY, exitProgress),
+      z: 0,
+    };
+  }
   if (localProgress < interval.start || localProgress > interval.end) {
     const before = localProgress < interval.start;
     return {
@@ -618,19 +644,6 @@ export function sampleAboutNarrativeCue(cue, localProgress, textMotion, reducedM
   const progress = clamp01((localProgress - interval.start) / span);
   const readableStart = clamp01(Number(textMotion.readableStart ?? 0.24));
   const readableEnd = clamp01(Number(textMotion.readableEnd ?? 0.76));
-  if (isOpener && interval.start === 0) {
-    const fadeOutProgress = readableEnd >= 1
-      ? 0
-      : clamp01((progress - readableEnd) / (1 - readableEnd));
-    const clarity = 1 - applyAboutNarrativeEasing('smoothstep', fadeOutProgress);
-    return {
-      opacity: clarity,
-      blur: mix(maxBlur, 0, clarity),
-      x: 0,
-      y: mix(openerStartY, endY, progress),
-      z: mix(0, exitDepth, progress),
-    };
-  }
   const clearIn = readableStart <= 0
     ? 1
     : applyAboutNarrativeEasing('smoothstep', progress / readableStart);

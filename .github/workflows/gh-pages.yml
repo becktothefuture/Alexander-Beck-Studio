@@ -14,7 +14,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     permissions:
-      contents: write
+      contents: read
       pages: write
       id-token: write
     steps:
@@ -28,13 +28,13 @@ jobs:
         with:
           node-version: '20.19.0'
 
-      - name: Install deps (React)
+      - name: Install root dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Install React dependencies
         run: |
           cd react-app/app
-          if [ -f package-lock.json ]; then npm ci --ignore-scripts --no-audit --no-fund; else npm install --no-audit --no-fund; fi
-
-      - name: Guard malformed tokenized strings (full scan)
-        run: npm run check:malformed-tokens
+          npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Enforce node_modules hygiene
         run: |
@@ -51,20 +51,8 @@ jobs:
             exit 1
           fi
 
-      - name: Lint React app
-        run: npm run lint --prefix react-app/app
-
-      - name: Validate simulation catalog
-        run: npm run sim:validate
-
-      - name: Validate production HTML entries
-        run: npm run validate:html-entries
-
-      - name: Check generated config parity
-        run: npm run check:design-config
-
-      - name: Build site
-        run: npm run build
+      - name: Run canonical site gate and build
+        run: npm run check:site
 
       - name: Build public About editor preview
         run: |

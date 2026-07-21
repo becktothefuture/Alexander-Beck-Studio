@@ -29,6 +29,7 @@ import {
   migrateLegacyAboutNarrativeCameraPose,
   slerpAboutNarrativeCameraQuaternionInto,
   writeAboutNarrativeCameraQuaternion,
+  writeAboutNarrativeCameraTargetFromRotation,
 } from './aboutNarrativeCameraRig.js';
 
 export const ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION = 5;
@@ -79,7 +80,7 @@ const VISIBILITY_TRACK_KEYS = new Set(['keys']);
 const WORLD_TRACK_KEYS = new Set(['objects']);
 const TEXT_TRACK_KEYS = new Set(['fields']);
 const INTERACTION_TRACK_KEYS = new Set(['clips']);
-const CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'position', 'rotation', 'fov', 'easing', 'locked']);
+const CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'position', 'rotation', 'aimEnabled', 'lookAtTarget', 'lookAtRoll', 'fov', 'easing', 'locked']);
 const VERSION_4_CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'position', 'rotation', 'fov', 'distanceFogStartWU', 'distanceFogEndWU', 'easing', 'locked']);
 const LEGACY_CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'distanceFogStartWU', 'distanceFogEndWU', 'easing', 'locked']);
 const VISIBILITY_KEY_KEYS = new Set(['id', 'atWU', 'visibility', 'easing', 'locked']);
@@ -103,20 +104,24 @@ const TRANSITION_KEYS = new Set(['startWU', 'endWU', 'type', 'easing', 'correspo
 const MODIFIER_KEYS = new Set(['id', 'enabled', 'parameters']);
 const TEXT_BASE_KEYS = new Set(['id', 'kind', 'startWU', 'focusWU', 'endWU', 'publishable', 'presentation', 'protected']);
 const TITLE_KEYS = new Set([...TEXT_BASE_KEYS, 'movement', 'preset', 'titleStyle', 'text', 'description', 'anchor']);
-const SCROLL_BLOCK_KEYS = new Set([...TEXT_BASE_KEYS, 'block']);
+const SCROLL_BLOCK_KEYS = new Set([...TEXT_BASE_KEYS, 'block', 'reveal']);
 const STUB_KEYS = new Set([...TEXT_BASE_KEYS, 'label']);
 const DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'choreography']);
 const LEGACY_DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'fieldTravelStartWU', 'fieldTravelEndWU', 'choreography']);
-const PRESENTATION_KEYS = new Set(['layout']);
-const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'emphasis', 'worldInfluence']);
+const PRESENTATION_KEYS = new Set(['layout', 'viewportY']);
+const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'modules', 'moduleGapRem', 'emphasis', 'worldInfluence']);
 const EMPHASIS_KEYS = new Set(['text', 'tone']);
+const REVEAL_KEYS = new Set(['fadeDelayWU', 'fadeDurationWU', 'blurDelayWU', 'blurDurationWU']);
+const MODULE_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'emphasis']);
+const MODULE_ITEM_KEYS = new Set(['id', 'label', 'src', 'alt', 'caption', 'scale', 'offsetX', 'offsetY']);
+const MODULE_KINDS = new Set(['prose', 'logo-grid', 'media-deck']);
 const CHOREOGRAPHY_KEYS = new Set(['staggerWU', 'backgroundFadeWU', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale', 'labelDurationWU', 'holdWU', 'items']);
 const LEGACY_CHOREOGRAPHY_KEYS = new Set(['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', ...CHOREOGRAPHY_KEYS]);
 const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label', 'position', 'mobilePosition']);
 const INTERACTION_KEYS = new Set(['id', 'type', 'startWU', 'activationWU', 'endWU', 'targetWorldId', 'parameters', 'protected']);
 const LIBRARY_KEYS = new Set(['presets']);
 const PRESET_KEYS = new Set(['id', 'label', 'scope', 'protected']);
-const CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'position', 'rotation', 'fov', 'easing']);
+const CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'position', 'rotation', 'aimEnabled', 'lookAtTarget', 'lookAtRoll', 'fov', 'easing']);
 const VERSION_4_CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'position', 'rotation', 'fov', 'distanceFogStartWU', 'distanceFogEndWU', 'easing']);
 const LEGACY_CAMERA_OVERRIDE_KEYS = new Set(['atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'distanceFogStartWU', 'distanceFogEndWU', 'easing']);
 const VISIBILITY_OVERRIDE_KEYS = new Set(['atWU', 'visibility', 'easing']);
@@ -343,6 +348,20 @@ function validateProfileOverrides(overrides, diagnostics, profilePath, durationW
         } else {
           if (override.position != null) validateVector(override.position, diagnostics, `${itemPath}.position`);
           if (override.rotation != null) validateVector(override.rotation, diagnostics, `${itemPath}.rotation`);
+          if (override.aimEnabled != null && typeof override.aimEnabled !== 'boolean') diagnostic(diagnostics, 'camera-aim-enabled', `${itemPath}.aimEnabled`, 'Camera aim enabled must be boolean.');
+          if (override.lookAtTarget != null) validateVector(override.lookAtTarget, diagnostics, `${itemPath}.lookAtTarget`);
+          if (override.lookAtRoll != null && !finite(override.lookAtRoll)) diagnostic(diagnostics, 'camera-look-at-roll', `${itemPath}.lookAtRoll`, 'Look-at roll must be finite.');
+          const position = override.position || base?.position;
+          const target = override.lookAtTarget || base?.lookAtTarget;
+          const aimEnabled = override.aimEnabled
+            ?? (Array.isArray(override.lookAtTarget) ? true : base?.aimEnabled)
+            ?? Array.isArray(target);
+          if (aimEnabled && !target) diagnostic(diagnostics, 'camera-look-at-target', itemPath, 'Enabled camera aim requires a look-at target.');
+          if (aimEnabled && position && target && Math.hypot(
+            Number(target[0]) - Number(position[0]),
+            Number(target[1]) - Number(position[1]),
+            Number(target[2]) - Number(position[2]),
+          ) < 0.01) diagnostic(diagnostics, 'camera-look-at-distance', itemPath, 'Camera and look-at target must be at least 0.01 WU apart.');
         }
         if (override.fov != null && (!finite(override.fov) || override.fov < 20 || override.fov > 90)) diagnostic(diagnostics, 'camera-fov', `${itemPath}.fov`, 'FOV must stay between 20 and 90.');
         if (schemaVersion <= 4) {
@@ -488,16 +507,73 @@ function validateTransition(transition, diagnostics, path, maximumWU, partial = 
   if (!partial || transition.correspondence != null) if (!ABOUT_NARRATIVE_CORRESPONDENCE_MODES.includes(transition.correspondence)) diagnostic(diagnostics, 'transition-correspondence', `${path}.correspondence`, 'Unsupported correspondence strategy.');
 }
 
+function validateEditorialModuleItem(item, diagnostics, path, { requireLabel = false } = {}) {
+  unknownKeys(diagnostics, item, MODULE_ITEM_KEYS, path);
+  if (!isObject(item)) return;
+  if (!ID_PATTERN.test(item.id || '')) diagnostic(diagnostics, 'module-item-id', `${path}.id`, 'Module item ID must be a lower-case slug.');
+  if (requireLabel || item.label != null) validateSafeText(item.label, diagnostics, `${path}.label`, { required: requireLabel, maximum: 120 });
+  if (item.src != null) validateSafeText(item.src, diagnostics, `${path}.src`, { maximum: 320 });
+  if (item.alt != null) validateSafeText(item.alt, diagnostics, `${path}.alt`, { maximum: 180 });
+  if (item.caption != null) validateSafeText(item.caption, diagnostics, `${path}.caption`, { maximum: 240 });
+  if (item.scale != null && (!finite(item.scale) || Number(item.scale) < 0.2 || Number(item.scale) > 1.4)) {
+    diagnostic(diagnostics, 'module-item-scale', `${path}.scale`, 'Logo scale must stay between 0.2 and 1.4.');
+  }
+  ['offsetX', 'offsetY'].forEach((key) => {
+    if (item[key] != null && (!finite(item[key]) || Number(item[key]) < -30 || Number(item[key]) > 30)) {
+      diagnostic(diagnostics, 'module-item-offset', `${path}.${key}`, 'Logo offsets must stay between -30 and 30 percent.');
+    }
+  });
+}
+
+function validateEditorialModule(module, diagnostics, path) {
+  unknownKeys(diagnostics, module, MODULE_KEYS, path);
+  if (!isObject(module)) return;
+  if (!ID_PATTERN.test(module.id || '')) diagnostic(diagnostics, 'module-id', `${path}.id`, 'Module ID must be a lower-case slug.');
+  if (!MODULE_KINDS.has(module.kind)) diagnostic(diagnostics, 'module-kind', `${path}.kind`, 'Unsupported editorial module kind.');
+  if (module.kind === 'prose') validateSafeText(module.text, diagnostics, `${path}.text`, { required: true });
+  if (module.label != null) validateSafeText(module.label, diagnostics, `${path}.label`, { maximum: 120 });
+  if (module.kind === 'logo-grid') {
+    if (!Array.isArray(module.items) || module.items.length === 0) diagnostic(diagnostics, 'module-items-required', `${path}.items`, 'Logo grids require at least one item.');
+    else module.items.forEach((item, index) => validateEditorialModuleItem(item, diagnostics, `${path}.items.${index}`, { requireLabel: true }));
+  }
+  if (module.kind === 'media-deck') {
+    if (!Array.isArray(module.items)) diagnostic(diagnostics, 'module-items', `${path}.items`, 'Media deck items must be an array.');
+    else module.items.forEach((item, index) => validateEditorialModuleItem(item, diagnostics, `${path}.items.${index}`));
+  }
+  if (module.emphasis != null) {
+    if (!Array.isArray(module.emphasis)) diagnostic(diagnostics, 'module-emphasis', `${path}.emphasis`, 'Module emphasis must be an array.');
+    else module.emphasis.forEach((item, index) => {
+      const itemPath = `${path}.emphasis.${index}`;
+      unknownKeys(diagnostics, item, EMPHASIS_KEYS, itemPath);
+      if (!isObject(item)) return;
+      validateSafeText(item.text, diagnostics, `${itemPath}.text`, { required: true });
+      if (!ABOUT_NARRATIVE_EMPHASIS_TONES.includes(item.tone)) diagnostic(diagnostics, 'emphasis-tone', `${itemPath}.tone`, 'Unsupported emphasis tone.');
+    });
+  }
+}
+
+function validateEditorialReveal(reveal, diagnostics, path) {
+  unknownKeys(diagnostics, reveal, REVEAL_KEYS, path);
+  if (!isObject(reveal)) return;
+  ['fadeDelayWU', 'blurDelayWU'].forEach((key) => {
+    if (!finite(reveal[key]) || Number(reveal[key]) < 0 || Number(reveal[key]) > 0.8) diagnostic(diagnostics, 'editorial-reveal-delay', `${path}.${key}`, 'Editorial reveal delays must stay between 0 and 0.8 WU.');
+  });
+  ['fadeDurationWU', 'blurDurationWU'].forEach((key) => {
+    if (!finite(reveal[key]) || Number(reveal[key]) < 0.02 || Number(reveal[key]) > 0.8) diagnostic(diagnostics, 'editorial-reveal-duration', `${path}.${key}`, 'Editorial reveal durations must stay between 0.02 and 0.8 WU.');
+  });
+}
+
 function validateBlock(block, diagnostics, path) {
   unknownKeys(diagnostics, block, BLOCK_KEYS, path);
   if (!isObject(block)) return;
   if (!ID_PATTERN.test(block.id || '')) diagnostic(diagnostics, 'block-id', `${path}.id`, 'Block ID must be a lower-case slug.');
   if (!ABOUT_NARRATIVE_BLOCK_KINDS.includes(block.kind)) diagnostic(diagnostics, 'block-kind', `${path}.kind`, 'Unsupported editorial block kind.');
   const itemKind = ['clients', 'disciplines', 'list'].includes(block.kind);
+  const stackKind = block.kind === 'stack';
   if (itemKind && (!Array.isArray(block.items) || block.items.length === 0)) {
     diagnostic(diagnostics, 'block-items-required', `${path}.items`, `${block.kind} blocks require at least one item.`);
   }
-  if (!itemKind && (typeof block.text !== 'string' || !block.text.trim())) {
+  if (!itemKind && !stackKind && (typeof block.text !== 'string' || !block.text.trim())) {
     diagnostic(diagnostics, 'block-text-required', `${path}.text`, `${block.kind || 'Editorial'} blocks require non-empty text.`);
   }
   if (block.text != null) validateSafeText(block.text, diagnostics, `${path}.text`);
@@ -505,6 +581,16 @@ function validateBlock(block, diagnostics, path) {
   if (block.items != null) {
     if (!Array.isArray(block.items)) diagnostic(diagnostics, 'block-items', `${path}.items`, 'Block items must be an array.');
     else block.items.forEach((item, index) => validateSafeText(item, diagnostics, `${path}.items.${index}`, { required: true, maximum: 240 }));
+  }
+  if (stackKind) {
+    if (!Array.isArray(block.modules) || block.modules.length === 0) diagnostic(diagnostics, 'block-modules-required', `${path}.modules`, 'Stack blocks require at least one module.');
+    else block.modules.forEach((module, index) => validateEditorialModule(module, diagnostics, `${path}.modules.${index}`));
+  } else if (block.modules != null) {
+    diagnostic(diagnostics, 'block-modules-owner', `${path}.modules`, 'Only stack blocks may contain modules.');
+  }
+  if (block.moduleGapRem != null
+    && (!finite(block.moduleGapRem) || Number(block.moduleGapRem) < 0.5 || Number(block.moduleGapRem) > 6)) {
+    diagnostic(diagnostics, 'block-module-gap', `${path}.moduleGapRem`, 'Editorial module spacing must stay between 0.5 and 6 rem.');
   }
   if (block.emphasis != null) {
     if (!Array.isArray(block.emphasis)) diagnostic(diagnostics, 'block-emphasis', `${path}.emphasis`, 'Emphasis must be an array.');
@@ -536,7 +622,30 @@ function validateTextField(field, index, seen, diagnostics, durationWU, schemaVe
   if (typeof field.publishable !== 'boolean') diagnostic(diagnostics, 'text-publishable', `${path}.publishable`, 'publishable must be boolean.');
   if (field.presentation != null) {
     unknownKeys(diagnostics, field.presentation, PRESENTATION_KEYS, `${path}.presentation`);
-    if (isObject(field.presentation)) validateSafeText(field.presentation.layout, diagnostics, `${path}.presentation.layout`, { required: true, maximum: 80 });
+    if (isObject(field.presentation)) {
+      validateSafeText(field.presentation.layout, diagnostics, `${path}.presentation.layout`, { required: true, maximum: 80 });
+      if (field.presentation.viewportY != null) {
+        const viewportY = Number(field.presentation.viewportY);
+        const minimumViewportY = 0;
+        const maximumViewportY = 100;
+        if (!Number.isFinite(viewportY) || viewportY < minimumViewportY || viewportY > maximumViewportY) {
+          diagnostic(
+            diagnostics,
+            'title-viewport-y',
+            `${path}.presentation.viewportY`,
+            'Title viewportY must be between 0 and 100 percent.',
+          );
+        }
+        if (field.kind !== 'title') {
+          diagnostic(
+            diagnostics,
+            'title-viewport-y-owner',
+            `${path}.presentation.viewportY`,
+            'viewportY is only supported by Titles.',
+          );
+        }
+      }
+    }
   }
   if (field.kind === 'title') {
     validateSafeText(field.text, diagnostics, `${path}.text`, { required: true });
@@ -550,6 +659,7 @@ function validateTextField(field, index, seen, diagnostics, durationWU, schemaVe
     if (field.anchor != null) validateSafeText(field.anchor, diagnostics, `${path}.anchor`, { required: true, maximum: 80 });
   } else if (field.kind === 'scroll-block') {
     validateBlock(field.block, diagnostics, `${path}.block`);
+    if (field.reveal != null) validateEditorialReveal(field.reveal, diagnostics, `${path}.reveal`);
   } else if (field.kind === 'stub') {
     validateSafeText(field.label, diagnostics, `${path}.label`, { required: true, maximum: 120 });
     if (field.publishable !== false) diagnostic(diagnostics, 'stub-publishable', `${path}.publishable`, 'Stub fields cannot be published.');
@@ -712,6 +822,18 @@ export function validateAboutNarrativeTrackDocument(input, {
     } else {
       validateVector(key.position, diagnostics, `${path}.position`);
       validateVector(key.rotation, diagnostics, `${path}.rotation`);
+      if (key.aimEnabled != null && typeof key.aimEnabled !== 'boolean') diagnostic(diagnostics, 'camera-aim-enabled', `${path}.aimEnabled`, 'Camera aim enabled must be boolean.');
+      const aimEnabled = key.aimEnabled ?? Array.isArray(key.lookAtTarget);
+      if (aimEnabled && key.lookAtTarget == null) diagnostic(diagnostics, 'camera-look-at-target', path, 'Enabled camera aim requires a look-at target.');
+      if (key.lookAtTarget != null) {
+        validateVector(key.lookAtTarget, diagnostics, `${path}.lookAtTarget`);
+        if (aimEnabled && Math.hypot(
+          Number(key.lookAtTarget?.[0]) - Number(key.position?.[0]),
+          Number(key.lookAtTarget?.[1]) - Number(key.position?.[1]),
+          Number(key.lookAtTarget?.[2]) - Number(key.position?.[2]),
+        ) < 0.01) diagnostic(diagnostics, 'camera-look-at-distance', path, 'Camera and look-at target must be at least 0.01 WU apart.');
+      }
+      if (key.lookAtRoll != null && !finite(key.lookAtRoll)) diagnostic(diagnostics, 'camera-look-at-roll', `${path}.lookAtRoll`, 'Look-at roll must be finite.');
     }
     if (!finite(key.fov) || key.fov < 20 || key.fov > 90) diagnostic(diagnostics, 'camera-fov', `${path}.fov`, 'FOV must stay between 20 and 90.');
     if (schemaVersion <= 4) {
@@ -848,9 +970,19 @@ export function validateAboutNarrativeTrackDocument(input, {
         allowedParameterIds,
         `${path}.parameters`,
       );
-      interactionDefinition.parameters.forEach((control) => (
-        validateControlValue(clip.parameters[control.id], control, diagnostics, `${path}.parameters.${control.id}`)
-      ));
+      interactionDefinition.parameters.forEach((control) => {
+        const viewportCrossingControl = control.id === 'readingLineY'
+          || control.id === 'mobileReadingLineY'
+          || control.id === 'approachBandY'
+          || control.id === 'exitLineY';
+        if (schemaVersion <= 4 && viewportCrossingControl) return;
+        validateControlValue(
+          clip.parameters[control.id],
+          control,
+          diagnostics,
+          `${path}.parameters.${control.id}`,
+        );
+      });
       if (clip.type === 'discipline-reveal') {
         validateDisciplineMotionParameters(clip, diagnostics, path, schemaVersion);
         if (worldIndex >= 0 && worlds[worldIndex].shapeId !== 'calm-field-v1') {
@@ -915,6 +1047,19 @@ function normalizeOverrides(overrides = {}, { includeVisibility = true } = {}) {
   };
 }
 
+function normalizeCameraAimKey(key) {
+  const aimEnabled = key.aimEnabled ?? Array.isArray(key.lookAtTarget);
+  const lookAtTarget = Array.isArray(key.lookAtTarget)
+    ? [...key.lookAtTarget]
+    : writeAboutNarrativeCameraTargetFromRotation([0, 0, 0], key.position, key.rotation, 1);
+  return {
+    ...key,
+    aimEnabled,
+    lookAtTarget,
+    lookAtRoll: Number(key.lookAtRoll || 0),
+  };
+}
+
 export function normalizeAboutNarrativeTrackDocument(input) {
   const source = cloneAboutNarrativeDocument(input);
   return {
@@ -928,10 +1073,13 @@ export function normalizeAboutNarrativeTrackDocument(input) {
     },
     tracks: {
       camera: { keys: [...source.tracks.camera.keys]
-        .map((key) => ({
-          ...key,
-          easing: normalizeAboutNarrativeCameraEasing(key.easing),
-        }))
+        .map((inputKey) => {
+          const key = normalizeCameraAimKey(inputKey);
+          return {
+            ...key,
+            easing: normalizeAboutNarrativeCameraEasing(key.easing),
+          };
+        })
         .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)) },
       visibility: { keys: [...source.tracks.visibility.keys]
         .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)) },
@@ -1496,6 +1644,15 @@ function stripRemovedDisciplineParameters(parameters) {
   return next;
 }
 
+function upgradeDisciplineMotionParameters(parameters) {
+  const next = stripRemovedDisciplineParameters(parameters);
+  const defaults = ABOUT_NARRATIVE_INTERACTION_DEFINITIONS['discipline-reveal'].defaultParameters;
+  ['readingLineY', 'mobileReadingLineY', 'approachBandY', 'exitLineY'].forEach((key) => {
+    if (!finite(next[key])) next[key] = defaults[key];
+  });
+  return next;
+}
+
 function stripRemovedGridRippleParameters(parameters) {
   const next = cloneAboutNarrativeDocument(parameters || {});
   REMOVED_GRID_RIPPLE_PARAMETER_KEYS.forEach((key) => delete next[key]);
@@ -1552,7 +1709,7 @@ export function repairAboutNarrativeVersion5Hybrid(input) {
   ));
   const interactionClips = (raw.tracks?.interactions?.clips || []).map((clip) => {
     if (clip.type === 'discipline-reveal') {
-      return { ...cloneAboutNarrativeDocument(clip), parameters: stripRemovedDisciplineParameters(clip.parameters) };
+      return { ...cloneAboutNarrativeDocument(clip), parameters: upgradeDisciplineMotionParameters(clip.parameters) };
     }
     if (clip.type === 'grid-ripple') {
       return { ...cloneAboutNarrativeDocument(clip), parameters: stripRemovedGridRippleParameters(clip.parameters) };
@@ -1705,7 +1862,7 @@ export function migrateAboutNarrativeVersion4To5(input) {
       interactions: {
         clips: raw.tracks.interactions.clips.map((clip) => {
           if (clip.type === 'discipline-reveal') {
-            return { ...cloneAboutNarrativeDocument(clip), parameters: stripRemovedDisciplineParameters(clip.parameters) };
+            return { ...cloneAboutNarrativeDocument(clip), parameters: upgradeDisciplineMotionParameters(clip.parameters) };
           }
           if (clip.type === 'grid-ripple') {
             return { ...cloneAboutNarrativeDocument(clip), parameters: stripRemovedGridRippleParameters(clip.parameters) };

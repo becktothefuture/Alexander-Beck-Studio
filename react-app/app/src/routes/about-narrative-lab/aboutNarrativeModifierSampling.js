@@ -9,6 +9,7 @@ export const ABOUT_NARRATIVE_ANCHOR_SAMPLING_CAPABILITIES = Object.freeze({
   'discipline-isolation-v1': ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT,
   'living-colour-v1': ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT,
   'bust-yaw-v1': ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT,
+  'bust-assembly-v1': ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT,
 });
 
 const IDENTITY_MATRIX = Object.freeze([
@@ -118,10 +119,28 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
   const rotatedToZ = (-sine * rawToX) + (cosine * rawToZ);
   const toBust = numberOr(input?.toBust);
   const bustHeight = Math.min(1, Math.max(0, (rawToY + 0.86) / 1.72));
-  const bustBuildProgress = smoothstep01(
-    ((globalMorph * 1.22) - bustHeight) / 0.22,
+  const bustAssembly = input?.bustAssembly || {};
+  const surfaceRiseWeight = Math.min(1, Math.max(0, numberOr(bustAssembly.surfaceRiseWeight)));
+  const bustFormationSoftness = Math.max(0.001, numberOr(bustAssembly.layerSoftness, 0.42));
+  const bustBuildThreshold = mix(
+    numberOr(bustAssembly.baseStart, 0.04),
+    numberOr(bustAssembly.headStart, 0.62),
+    bustHeight,
   );
-  const morph = mix(globalMorph, bustBuildProgress, toBust * (1 - fromBust));
+  const bustBuildEnd = Math.min(1, Math.max(
+    bustBuildThreshold + 0.001,
+    bustBuildThreshold + bustFormationSoftness,
+  ));
+  const bustBuildProgress = smoothstep01(
+    (globalMorph - bustBuildThreshold)
+      / Math.max(0.001, bustBuildEnd - bustBuildThreshold),
+  );
+  const layeredMorph = mix(
+    globalMorph,
+    bustBuildProgress,
+    toBust * (1 - fromBust) * numberOr(bustAssembly.weight, 1),
+  );
+  const morph = mix(layeredMorph, globalMorph, surfaceRiseWeight);
   const toX = mix(rawToX, rotatedToX, toBust);
   const toY = rawToY;
   const toZ = mix(rawToZ, rotatedToZ, toBust);
@@ -134,9 +153,61 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
   writeTransformedPoint(fromWorld, input?.fromTransform, fromX, fromY, fromZ);
   writeTransformedPoint(toWorld, input?.toTransform, toX, toY, toZ);
 
-  target.x = mix(fromWorld.x, toWorld.x, morph);
-  target.y = mix(fromWorld.y, toWorld.y, morph);
-  target.z = mix(fromWorld.z, toWorld.z, morph);
+  const bustTransitionWeight = toBust
+    * (1 - fromBust)
+    * numberOr(bustAssembly.weight, 1);
+  const platformProgress = smoothstep01(
+    globalMorph / Math.max(0.001, numberOr(bustAssembly.platformSettle, 0.24)),
+  ) * bustTransitionWeight * (1 - surfaceRiseWeight);
+  const platformScale = numberOr(bustAssembly.platformScale, 0.95);
+  const platformCenterX = numberOr(input?.gridRipple?.centerX);
+  const platformCenterZ = numberOr(input?.gridRipple?.centerZ);
+  fromWorld.x = mix(
+    fromWorld.x,
+    platformCenterX + ((toWorld.x - platformCenterX) * platformScale),
+    platformProgress,
+  );
+  fromWorld.z = mix(
+    fromWorld.z,
+    platformCenterZ + ((toWorld.z - platformCenterZ) * platformScale),
+    platformProgress,
+  );
+
+  const gatheredX = mix(fromWorld.x, toWorld.x, morph);
+  const gatheredY = mix(fromWorld.y, toWorld.y, morph);
+  const gatheredZ = mix(fromWorld.z, toWorld.z, morph);
+  const riseProgress = smoothstep01((globalMorph - 0.02) / 0.96);
+  const submergedY = toWorld.y
+    - (Math.max(0, numberOr(bustAssembly.submergeDepth, 3.2)) * (1 - riseProgress));
+  const surfaceHeight = numberOr(bustAssembly.surfaceHeight, -1.52);
+  const waterlineSoftness = Math.max(0.001, numberOr(bustAssembly.waterlineSoftness, 0.22));
+  const surfaceDeparture = smoothstep01(
+    (submergedY - (surfaceHeight - (waterlineSoftness * 3)))
+      / (waterlineSoftness * 1.85),
+  );
+  target.x = mix(gatheredX, mix(fromWorld.x, toWorld.x, surfaceDeparture), surfaceRiseWeight);
+  target.y = mix(gatheredY, mix(fromWorld.y, submergedY, surfaceDeparture), surfaceRiseWeight);
+  target.z = mix(gatheredZ, mix(fromWorld.z, toWorld.z, surfaceDeparture), surfaceRiseWeight);
+  const pointSeed = numberOr(input?.pointSeed);
+  const bustInfluence = mix(fromBust, toBust, morph);
+  const bustFragmentHeight = numberOr(bustAssembly.fragmentHeight, 0.62);
+  const bustFragmentFade = Math.max(0.001, numberOr(bustAssembly.fragmentFade, 0.38));
+  const bustFragmentReveal = Math.min(0.99, numberOr(bustAssembly.fragmentReveal, 0.55));
+  const bustFragmentBand = 1 - smoothstep01(
+    (bustHeight - (bustFragmentHeight - bustFragmentFade)) / bustFragmentFade,
+  );
+  const bustFragmentProgress = smoothstep01(
+    (morph - bustFragmentReveal) / Math.max(0.001, 1 - bustFragmentReveal),
+  );
+  const bustFragment = bustInfluence
+    * bustFragmentBand
+    * bustFragmentProgress
+    * numberOr(bustAssembly.weight, 1);
+  const bustFragmentSpread = numberOr(bustAssembly.fragmentSpread, 1);
+  const bustFragmentFall = numberOr(bustAssembly.fragmentFall, 0.5);
+  target.x += (fract((pointSeed * 91.17) + 0.13) - 0.5) * 1.25 * bustFragmentSpread * bustFragment;
+  target.y -= fract((pointSeed * 57.41) + 0.37) * bustFragmentFall * bustFragment;
+  target.z += (fract((pointSeed * 73.93) + 0.61) - 0.5) * 0.9 * bustFragmentSpread * bustFragment;
 
   const fromDrift = input?.fromDrift || {};
   const toDrift = input?.toDrift || {};
@@ -159,7 +230,6 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
   );
   const driftStoryMix = mix(numberOr(fromDrift.storyMix), numberOr(toDrift.storyMix), morph);
   const driftClock = mix(numberOr(input?.ambientTime), numberOr(input?.storyTime), driftStoryMix);
-  const pointSeed = numberOr(input?.pointSeed);
   const phase = pointSeed * 127.31;
   const speedVariance = mix(
     1,
@@ -209,19 +279,37 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
   const ripplePointX = target.x - numberOr(input?.gridRipple?.centerX);
   const ripplePointZ = target.z - numberOr(input?.gridRipple?.centerZ);
   const rippleDistance = Math.hypot(ripplePointX, ripplePointZ);
-  const radialRipple = Math.sin((rippleDistance * rippleFrequency) - ripplePhase);
+  const rippleAngle = Math.atan2(ripplePointZ, ripplePointX);
+  const phaseVariation = Math.sin((rippleAngle * 3) + (ripplePhase * 0.18)) * 0.24;
+  const radialRipple = Math.sin(
+    (rippleDistance * rippleFrequency) - ripplePhase + phaseVariation,
+  );
   const harmonicRipple = Math.sin(
     (rippleDistance * rippleFrequency * 0.52) - (ripplePhase * 0.72),
   );
-  const centerPulse = Math.cos(ripplePhase) * Math.exp(-rippleDistance * 0.42);
-  const rippleFalloff = 1 / (1 + (rippleDistance * 0.035));
-  const ripple = ((radialRipple * 0.72) + (harmonicRipple * 0.2) + (centerPulse * 0.34))
+  const undertowRipple = Math.cos(
+    (rippleDistance * rippleFrequency * 1.72)
+      - (ripplePhase * 0.46)
+      + (rippleAngle * 0.5),
+  );
+  const centerPulse = Math.cos(
+    (ripplePhase * 0.82) - (rippleDistance * rippleFrequency * 0.35),
+  ) * Math.exp(-rippleDistance * 0.38);
+  const rippleFalloff = 1 / (1 + (rippleDistance * 0.08));
+  const ripple = (
+    (radialRipple * 0.58)
+      + (harmonicRipple * 0.22)
+      + (undertowRipple * 0.12)
+      + (centerPulse * 0.26)
+  )
     * rippleFalloff;
+  const surfaceRippleMix = 1 - (toBust * smoothstep01((globalMorph - 0.02) / 0.3));
   const rippleStrength = numberOr(input?.gridRipple?.weight)
-    * numberOr(input?.gridRipple?.amplitude);
+    * numberOr(input?.gridRipple?.amplitude)
+    * surfaceRippleMix;
   target.y += rippleStrength * ripple;
   if (rippleDistance > 0.0001) {
-    const radialDisplacement = rippleStrength * radialRipple * rippleFalloff * 0.34;
+    const radialDisplacement = rippleStrength * radialRipple * rippleFalloff * 0.18;
     target.x += (ripplePointX / rippleDistance) * radialDisplacement;
     target.z += (ripplePointZ / rippleDistance) * radialDisplacement;
   }

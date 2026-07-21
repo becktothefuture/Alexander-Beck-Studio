@@ -12,6 +12,11 @@
 
 - `npm run install:all` — install root and app dependencies
 - `npm run dev` — Vite development server on port 8012
+- `npm run studio:dev` — local Vite plus a safe hot-reloading public mirror and Cloudflare tunnel
+- `npm run studio:status` — local/public runtime state plus Git production-sync state
+- `npm run studio:stop` — stop only the processes managed by `studio:dev`
+- `npm run studio:check` — canonical local site gate
+- `npm run studio:publish` — validate and explicitly push clean committed `main` to trigger GitHub Pages
 - `npm run build` — entry-shell parity check, config flattening, then the Vite production build
 - `npm run preview` — serve the production build on port 8013
 - `npm run check:site` — canonical local gate: tokens, HTML entries, simulation catalog, lint, config parity, and build
@@ -25,6 +30,22 @@
 - `npm run audit:portfolio-carousel` — current orbital Portfolio deck
 - `npm run audit:portfolio-drawer` — Portfolio project drawer
 - `npm run audit:transition-flows` — route and project transitions; run serially in Chromium and WebKit
+
+## Development, public preview, and production policy
+
+- Begin relevant development work with `npm run studio:status`. Use its result to reuse existing processes and understand the working tree before acting.
+- The normal authoring surface is `http://localhost:8012`. It retains the write-capable development editor and configuration APIs.
+- When the user requests phone testing, a public preview, or a shared development URL, run `npm run studio:dev`. It starts or reuses local authoring plus the read-only public mirror on port 8014 and prints the current Cloudflare URL.
+- Saved files update both development surfaces through Vite HMR. Saving, building, starting a tunnel, and making a local commit never update production.
+- Treat the public mirror as review-only. Do not weaken its `/api/*` or `/@fs/*` blocks, filesystem restriction, or disabled authoring controls.
+- Reuse an active managed session. Do not run duplicate tunnel processes, and do not stop an existing session merely because an agent task has finished.
+- Run `npm run studio:stop` only when the user asks, when a session was explicitly started as disposable validation, or when cleaning up a failed managed start. A pre-existing local Vite process is not owned by the Studio CLI and must remain running.
+- Run targeted checks during implementation and `npm run studio:check` before calling a milestone production-ready. The publish command repeats this gate.
+- A request for a “public dev link”, “phone preview”, or “shared preview” means the development mirror. A request to update “production”, “beck.fyi”, or push/sync committed `main` means the GitHub Pages path. If the word “live” is ambiguous, ask which destination the user means.
+- Never run `npm run studio:publish`, `npm run studio:publish -- --yes`, `git push`, or another deployment action without explicit user authorization for that production-changing action. Never infer authorization from a successful build, an existing commit, or a request for a public development link.
+- `studio:publish` never creates commits. Continue to commit only when explicitly asked, review the exact diff first, and never include unrelated changes.
+- After an authorized production push, report the workflow as triggered. Verify the GitHub Pages workflow and deployed site before claiming production is updated.
+- Durable rule: save to update development, commit to preserve work, publish to update production.
 
 ## Architecture and ownership
 

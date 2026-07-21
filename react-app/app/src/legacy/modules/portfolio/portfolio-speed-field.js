@@ -321,9 +321,16 @@ export class PortfolioParticleField {
       this.filteredVelocity = 0;
     }
     this.drawFrame(timestamp, dtMs / 1000);
-    this.running = Math.abs(this.targetVelocity) >= VELOCITY_EPSILON
-      || Math.abs(this.filteredVelocity) >= VELOCITY_EPSILON
-      || this.opacity > OPACITY_EPSILON;
+    const hasVelocity = Math.abs(this.targetVelocity) >= VELOCITY_EPSILON
+      || Math.abs(this.filteredVelocity) >= VELOCITY_EPSILON;
+    const targetOpacity = hasVelocity
+      ? lerp(
+        this.options.idleOpacity,
+        this.options.fastOpacity,
+        clamp(Math.abs(this.filteredVelocity || this.targetVelocity) / FULL_INTENSITY_VELOCITY, 0, 1)
+      )
+      : this.options.idleOpacity;
+    this.running = hasVelocity || Math.abs(this.opacity - targetOpacity) > OPACITY_EPSILON;
     this.scheduleFrame();
   }
 

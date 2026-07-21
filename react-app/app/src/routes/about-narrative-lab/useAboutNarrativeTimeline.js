@@ -22,6 +22,7 @@ const smooth01 = (value) => {
 const EMPTY_MEASUREMENTS = Object.freeze({
   dirty: true,
   viewportHeight: 0,
+  editorialFields: [],
   editorialLines: [],
   titleFields: [],
   contextFields: [],
@@ -70,17 +71,31 @@ export function getAboutNarrativeEditorialReveal(
   record,
   scrollWU,
   viewportHeight,
-  viewportThreshold,
+  _viewportThreshold,
   reducedMotion,
 ) {
-  const threshold = Math.min(0.95, Math.max(0.05, Number(viewportThreshold) || 0.8));
-  const triggerY = viewportHeight * threshold;
-  const lineTop = (
-    (Number(record.startScrollWU) + threshold - scrollWU) * viewportHeight
-  ) + record.layoutOffsetPx;
-  if (reducedMotion) return lineTop <= triggerY ? 1 : 0;
-  const revealTravel = Math.max(48, viewportHeight * 0.08);
-  return clamp01((triggerY - lineTop) / revealTravel);
+  const reveal = record.field?.reveal || {};
+  const layoutOffsetWU = Number(record.layoutOffsetPx || 0) / Math.max(1, viewportHeight);
+  const elapsedWU = Number(scrollWU) - Number(record.startScrollWU) - layoutOffsetWU;
+  const delayWU = Number(reveal.fadeDelayWU ?? 0);
+  const durationWU = Math.max(0.02, Number(reveal.fadeDurationWU ?? 0.12));
+  if (reducedMotion) return elapsedWU >= delayWU ? 1 : 0;
+  return clamp01((elapsedWU - delayWU) / durationWU);
+}
+
+export function getAboutNarrativeEditorialBlurReveal(
+  record,
+  scrollWU,
+  viewportHeight,
+  reducedMotion,
+) {
+  const reveal = record.field?.reveal || {};
+  const layoutOffsetWU = Number(record.layoutOffsetPx || 0) / Math.max(1, viewportHeight);
+  const elapsedWU = Number(scrollWU) - Number(record.startScrollWU) - layoutOffsetWU;
+  const delayWU = Number(reveal.blurDelayWU ?? 0);
+  const durationWU = Math.max(0.02, Number(reveal.blurDurationWU ?? 0.16));
+  if (reducedMotion) return elapsedWU >= delayWU ? 1 : 0;
+  return clamp01((elapsedWU - delayWU) / durationWU);
 }
 
 export function useAboutNarrativeTimeline({
@@ -202,6 +217,7 @@ export function useAboutNarrativeTimeline({
 
     const collectContentPressure = (viewportHeight) => {
       const pressure = {};
+      const editorialFieldHeights = new Map();
       const editorialOffsets = new Map();
       content.querySelectorAll('[data-text-field-id]').forEach((node) => {
         const fieldId = node.dataset.textFieldId;
@@ -212,6 +228,9 @@ export function useAboutNarrativeTimeline({
           measuredHeightPx: Math.max(previous, measuredHeightPx),
           viewportHeightPx: viewportHeight,
         };
+        if (node.closest('.about-narrative-render-span--editorial')) {
+          editorialFieldHeights.set(fieldId, measuredHeightPx);
+        }
         const editorialNodes = node.matches('[data-editorial-line]')
           ? [node]
           : Array.from(node.querySelectorAll('[data-editorial-line]'));
@@ -222,6 +241,7 @@ export function useAboutNarrativeTimeline({
           );
         });
       });
+      measurementsRef.current.editorialFieldHeights = editorialFieldHeights;
       measurementsRef.current.editorialOffsets = editorialOffsets;
       return pressure;
     };
@@ -232,6 +252,17 @@ export function useAboutNarrativeTimeline({
         span.fieldIds.map((fieldId) => [fieldId, span])
       )));
       const editorialNodes = Array.from(content.querySelectorAll('[data-editorial-line]'));
+      const editorialFields = plan.textFields.flatMap((field) => {
+        if (field.kind !== 'scroll-block') return [];
+        const span = spansByFieldId.get(field.id);
+        if (!span) return [];
+        return [{
+          startScrollWU: Number(span.scrollBounds.startWU),
+          measuredHeightPx: Number(
+            measurementsRef.current.editorialFieldHeights?.get(field.id) || 0,
+          ),
+        }];
+      });
       const editorialLines = editorialNodes.flatMap((node) => {
         const fieldId = node.closest('[data-text-field-id]')?.dataset.textFieldId;
         const field = fieldsById.get(fieldId);
@@ -245,6 +276,7 @@ export function useAboutNarrativeTimeline({
           startScrollWU: Number(span.scrollBounds.startWU),
           layoutOffsetPx: measurementsRef.current.editorialOffsets?.get(node) || 0,
           progress: 0,
+          blurProgress: 0,
         }];
       });
       const titleFields = [];
@@ -266,6 +298,7 @@ export function useAboutNarrativeTimeline({
       measurementsRef.current = {
         ...measurementsRef.current,
         dirty: false,
+        editorialFields,
         editorialLines,
         titleFields,
         contextFields,
@@ -356,10 +389,6 @@ export function useAboutNarrativeTimeline({
         node.style.setProperty('--fragment-z', `${sample.z.toFixed(2)}px`);
         node.style.setProperty('--fragment-blur', `${sample.blur.toFixed(2)}px`);
         node.style.setProperty('--fragment-opacity', visible ? sample.opacity.toFixed(4) : '0');
-        if (field.preset === 'opener-v1' || field.preset === 'finale-v1') {
-          const reveal = visible ? sample.opacity : 0;
-          node.style.setProperty('--bookend-clip-inset', `${((1 - reveal) * 100).toFixed(2)}%`);
-        }
       }
 
       let disciplineFocus = 0;
@@ -368,6 +397,13 @@ export function useAboutNarrativeTimeline({
       const viewportThreshold = frame.globals.editorialRevealThreshold;
       const viewportHeight = Math.max(1, measurementsRef.current.viewportHeight);
       const scrollWU = planRef.current.resolver.scrollWUFromStoryWU(frame.storyWU);
+      const editorialInView = measurementsRef.current.editorialFields.some((record) => {
+        const fieldTopWU = record.startScrollWU + viewportThreshold;
+        const fieldBottomWU = fieldTopWU
+          + (record.measuredHeightPx / viewportHeight);
+        return fieldBottomWU > scrollWU && fieldTopWU < scrollWU + 1;
+      });
+      root.dataset.editorialInView = editorialInView ? 'true' : 'false';
       for (const record of editorialLines) {
         record.progress = getAboutNarrativeEditorialReveal(
           record,
@@ -376,10 +412,16 @@ export function useAboutNarrativeTimeline({
           viewportThreshold,
           reducedMotion,
         );
+        record.blurProgress = getAboutNarrativeEditorialBlurReveal(
+          record,
+          scrollWU,
+          viewportHeight,
+          reducedMotion,
+        );
       }
-      for (const { node, progress } of editorialLines) {
+      for (const { node, progress, blurProgress } of editorialLines) {
         node.style.setProperty('--editorial-reveal', progress.toFixed(4));
-        node.style.setProperty('--editorial-blur', `${((1 - progress) * 3).toFixed(2)}px`);
+        node.style.setProperty('--editorial-blur', `${((1 - blurProgress) * 3).toFixed(2)}px`);
         node.style.setProperty('--editorial-y', `${((1 - progress) * 12).toFixed(2)}px`);
         const group = Number(node.dataset.worldGroup) || 0;
         if (group > 0 && progress >= 0.24) disciplineFocus = group;
@@ -469,9 +511,6 @@ export function useAboutNarrativeTimeline({
           lastReactPublish = time;
         }
         root.dataset.activeNarrativeWorld = frame.world.to?.id || '';
-        const openingScrollCueVisible = scrollport.scrollTop <= 16;
-        root.dataset.openingScrollCue = openingScrollCueVisible ? 'visible' : 'hidden';
-        root.style.setProperty('--opening-scroll-cue-opacity', openingScrollCueVisible ? '1' : '0');
         root.style.setProperty('--narrative-story-wu', frame.storyWU.toFixed(4));
         updateSemanticText(frame);
         worldRuntimeRef.current?.render(frame);
@@ -551,8 +590,7 @@ export function useAboutNarrativeTimeline({
       root.removeEventListener('about:world-runtime-ready', handleRuntimeReady);
       requestMeasureRef.current = () => {};
       delete root.dataset.activeNarrativeWorld;
-      delete root.dataset.openingScrollCue;
-      root.style.removeProperty('--opening-scroll-cue-opacity');
+      delete root.dataset.editorialInView;
       root.style.removeProperty('--narrative-story-wu');
       root.style.removeProperty('--narrative-viewport-height');
       root.style.removeProperty('--narrative-content-extent-wu');

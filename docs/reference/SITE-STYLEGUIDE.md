@@ -34,6 +34,8 @@ Instrument Serif is limited to the Home canvas title and route-level titles usin
 
 - `--abs-font-headline: "Instrument Serif", ...`
 - `--route-entry-title-size`: shared responsive size for Home and route-entry titles
+- `--route-bookend-title-scale: 1.32`: shared optical route-identity scale
+- `--route-title-line-height: 1.008`: shared tighter headline leading before the font optical multiplier
 - `--abs-font-headline-scale: 1.22`
 - `--abs-font-headline-line-height-scale: 0.92`
 - `--abs-font-headline-letter-spacing: -0.01ch`

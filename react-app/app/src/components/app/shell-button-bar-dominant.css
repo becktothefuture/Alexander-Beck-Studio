@@ -12,6 +12,7 @@
   --dominant-primary-tab-font-size: calc(14px * 0.8);
   --dominant-primary-tab-font-weight: 644;
   --dominant-primary-tab-letter-spacing: 0.03em;
+  --dominant-primary-tab-gap: var(--shell-tab-gap, 16px);
   --dominant-primary-active-surface: var(--studio-window-bg);
   --dominant-primary-active-ink: rgb(var(--abs-rgb-black));
   --dominant-primary-idle-ink: rgba(var(--abs-rgb-white), 0.48);
@@ -75,6 +76,7 @@
   flex: 0 0 auto;
   inline-size: max-content;
   min-inline-size: 0;
+  gap: var(--dominant-primary-tab-gap);
 }
 
 .button-bar[data-button-bar-material='dominant-tab'] .button-bar__active-pill {
@@ -411,6 +413,7 @@ body[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab']
   .button-bar[data-button-bar-material='dominant-tab'] {
     --dominant-primary-control-height: var(--button-bar-mobile-primary-height);
     --dominant-primary-tab-padding-inline: clamp(10px, 2.6vw, 12px);
+    --dominant-primary-tab-gap: 8px;
   }
 }
 
@@ -420,9 +423,16 @@ body[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab']
   }
 }
 
+@media (max-width: 360px) {
+  .button-bar[data-button-bar-material='dominant-tab'] {
+    --dominant-primary-tab-padding-inline: 6px;
+  }
+}
+
 @media (max-width: 340px) {
   .button-bar[data-button-bar-material='dominant-tab'] {
-    --dominant-primary-tab-padding-inline: 8px;
+    --dominant-primary-tab-padding-inline: 4px;
+    --dominant-primary-tab-gap: 7px;
   }
 }
 

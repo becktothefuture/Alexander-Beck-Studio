@@ -1,6 +1,6 @@
 # About Me supporting material
 
-These files support the active framework, draft and verification sheet. They are not current page direction and do not require regular review.
+These files support the active V24 narrative and its verification history. They are evidence and writing guidance, not alternative page direction, and do not require regular review.
 
 ## Editorial
 

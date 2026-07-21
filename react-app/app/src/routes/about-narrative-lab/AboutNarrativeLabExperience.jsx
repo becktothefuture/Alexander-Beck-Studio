@@ -96,6 +96,138 @@ function getEditorialLines(text = '') {
     .filter(Boolean);
 }
 
+function ClientLogoItem({ item }) {
+  const record = typeof item === 'string'
+    ? { id: item.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label: item, src: '', alt: item }
+    : item;
+  const scale = Number(record.scale);
+  const offsetX = Number(record.offsetX);
+  const offsetY = Number(record.offsetY);
+  return (
+    <li
+      data-client-logo={record.id}
+      style={{
+        '--client-logo-scale': Number.isFinite(scale) ? scale : 1,
+        '--client-logo-offset-x': `${Number.isFinite(offsetX) ? offsetX : 0}%`,
+        '--client-logo-offset-y': `${Number.isFinite(offsetY) ? offsetY : 0}%`,
+      }}
+    >
+      {record.src ? (
+        <>
+          <img
+            src={record.src}
+            alt={record.alt || record.label}
+            loading="lazy"
+            decoding="async"
+            onError={(event) => {
+              event.currentTarget.hidden = true;
+              if (event.currentTarget.nextElementSibling) event.currentTarget.nextElementSibling.hidden = false;
+            }}
+          />
+          <span hidden>{record.label}</span>
+        </>
+      ) : <span>{record.label}</span>}
+    </li>
+  );
+}
+
+function ClientLogoGrid({ items = [], label = 'Selected clients' }) {
+  return (
+    <figure className="about-narrative-client-field">
+      {label ? <figcaption>{label}</figcaption> : null}
+      <ul className="about-narrative-client-logos" aria-label="Selected clients">
+        {items.map((item) => (
+          <ClientLogoItem key={typeof item === 'string' ? item : item.id} item={item} />
+        ))}
+      </ul>
+    </figure>
+  );
+}
+
+function EditorialMediaDeck({ module }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const dragStartXRef = useRef(null);
+  const items = module.items || [];
+  const visibleItems = items.length ? items : [0, 1, 2].map((index) => ({
+    id: `placeholder-${index + 1}`,
+    label: `Artefact ${index + 1}`,
+    src: '',
+    alt: '',
+    caption: '',
+    placeholder: true,
+  }));
+  const advance = (direction = 1) => {
+    if (!items.length) return;
+    setActiveIndex((index) => (index + direction + items.length) % items.length);
+  };
+  return (
+    <section className="about-narrative-media-deck" aria-label={module.label || 'Selected artefacts'}>
+      <p>{module.label || 'Selected artefacts'}</p>
+      <button
+        type="button"
+        className="about-narrative-media-deck__stage"
+        aria-label={items.length ? 'Show next artefact' : 'Image module ready for three to five artefacts'}
+        onClick={() => advance(1)}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowLeft') advance(-1);
+          if (event.key === 'ArrowRight') advance(1);
+        }}
+        onPointerDown={(event) => { dragStartXRef.current = event.clientX; }}
+        onPointerUp={(event) => {
+          const startX = dragStartXRef.current;
+          dragStartXRef.current = null;
+          if (startX == null || Math.abs(event.clientX - startX) < 28) return;
+          advance(event.clientX < startX ? 1 : -1);
+        }}
+        disabled={!items.length}
+      >
+        {visibleItems.map((item, index) => {
+          const relativeIndex = (index - activeIndex + visibleItems.length) % visibleItems.length;
+          return (
+            <span
+              className="about-narrative-media-deck__card"
+              data-placeholder={item.placeholder ? 'true' : undefined}
+              style={{ '--media-card-index': relativeIndex }}
+              key={item.id}
+            >
+              {item.src ? <img src={item.src} alt={item.alt || item.label || ''} /> : null}
+              <b>{item.label || 'Image slot'}</b>
+              {item.caption ? <small>{item.caption}</small> : null}
+            </span>
+          );
+        })}
+      </button>
+      {!items.length ? <small>Asset-ready · add 3–5 images and captions in the editor</small> : null}
+    </section>
+  );
+}
+
+function EditorialStack({ block }) {
+  const moduleGapRem = Number(block.moduleGapRem);
+  return (
+    <div
+      className="about-narrative-editorial-stack"
+      style={Number.isFinite(moduleGapRem)
+        ? { '--about-editorial-stack-gap': `${moduleGapRem}rem` }
+        : undefined}
+    >
+      {(block.modules || []).map((module) => {
+        if (module.kind === 'logo-grid') {
+          return <ClientLogoGrid key={module.id} items={module.items} label={module.label} />;
+        }
+        if (module.kind === 'media-deck') {
+          return <EditorialMediaDeck key={module.id} module={module} />;
+        }
+        return (
+          <p className="about-narrative-editorial-copy" key={module.id}>
+            <EditorialText text={module.text} emphasis={module.emphasis} />
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 function ScrollBlockField({ field, onSelect }) {
   const block = field.block || {};
   const commonProps = {
@@ -122,12 +254,15 @@ function ScrollBlockField({ field, onSelect }) {
   if (block.kind === 'clients') {
     return (
       <ul {...commonProps} className="about-narrative-client-logos" data-editorial-line aria-label="Selected clients">
-        {(block.items || []).map((item) => (
-          <li key={item} data-client-logo={item.toLowerCase().replace(/[^a-z0-9]+/g, '-')}>
-            {item}
-          </li>
-        ))}
+        {(block.items || []).map((item) => <ClientLogoItem key={typeof item === 'string' ? item : item.id} item={item} />)}
       </ul>
+    );
+  }
+  if (block.kind === 'stack') {
+    return (
+      <section {...commonProps} className="about-narrative-editorial-unit" data-editorial-line>
+        <EditorialStack block={block} />
+      </section>
     );
   }
   if (block.kind === 'disciplines') {
@@ -214,6 +349,13 @@ function TitleField({
   const isOpener = field.preset === 'opener-v1';
   const titleStyle = field.titleStyle
     || (isOpener || isFinale ? 'display' : 'standard');
+  const authoredViewportY = field.presentation?.viewportY == null
+    ? Number.NaN
+    : Number(field.presentation.viewportY);
+  const viewportYBounds = { min: 0, max: 100 };
+  const viewportY = Number.isFinite(authoredViewportY)
+    ? Math.min(viewportYBounds.max, Math.max(viewportYBounds.min, authoredViewportY))
+    : null;
   const descriptionId = `${field.id}-description`;
   return (
     <section
@@ -221,6 +363,8 @@ function TitleField({
       data-text-field-id={field.id}
       data-text-preset={field.preset}
       data-title-style={titleStyle}
+      data-title-viewport-y={viewportY == null ? undefined : viewportY}
+      style={viewportY == null ? undefined : { '--about-title-viewport-y': `${viewportY}%` }}
       aria-labelledby={headingId}
       aria-describedby={(isOpener || isFinale) && field.description ? descriptionId : undefined}
       onClick={(event) => selectTextField(onSelect, field.id, event)}
@@ -249,7 +393,6 @@ function TitleField({
             data-primary-copy
             data-route-enter="identity"
             data-route-enter-order="0"
-            data-route-enter-variant="bookend-title"
           >
             {field.text}
           </Heading>
@@ -497,7 +640,6 @@ export function AboutNarrativeLabExperience({
     '--about-title-standard-max-width': `${Number(globals.textMotion.standardMaxWidthCh) || 28}ch`,
     '--about-title-display-max-width': `${Number(globals.textMotion.displayMaxWidthCh) || 22}ch`,
     '--about-text-perspective': `${Number(globals.textMotion.perspective) || 1600}px`,
-    '--about-opening-title-y': `${Number(globals.textMotion.openerStartY) || 36}px`,
     '--about-editorial-reveal-threshold': Number(globals.editorialRevealThreshold) || 0.8,
   };
   const contentStyle = {
@@ -521,6 +663,7 @@ export function AboutNarrativeLabExperience({
         disciplineOverlayRef={disciplineOverlayRef}
         runtimeRef={worldRuntimeRef}
         pointProfile={runtimePlan?.pointProfile}
+        showCameraFocusAnchor={editorRequested && __DEV__}
       />
       <div
         ref={scrollportRef}

@@ -4,19 +4,15 @@ import {
   validateAboutNarrativeTrackDocument,
 } from './aboutNarrativeTrackSchema.js';
 import {
-  slerpAboutNarrativeCameraQuaternionInto,
-  writeAboutNarrativeCameraQuaternion,
-} from './aboutNarrativeCameraRig.js';
+  compileAboutNarrativeCameraKey,
+  sampleAboutNarrativeCameraKeysInto,
+} from './aboutNarrativeCameraSampling.js';
 import {
   createAboutNarrativeProfileResolver,
   resolveAboutNarrativePointProfile,
 } from './aboutNarrativeProfileResolver.js';
 import { compileAboutNarrativeRenderSpans } from './aboutNarrativeRenderSpans.js';
 import { createAboutNarrativeWorldPreparationDescriptor } from './aboutNarrativeSequenceIdentity.js';
-import {
-  applyAboutNarrativeCameraEasing,
-  compileAboutNarrativeCameraEasing,
-} from './aboutNarrativeCameraEasing.js';
 
 const EMPTY_SAMPLE_OPTIONS = Object.freeze({});
 const TIME_EPSILON = 0.000001;
@@ -92,11 +88,18 @@ function resolveProfiles(model, options) {
 }
 
 function mergeCameraKey(key, override = {}) {
+  const hasTargetOverride = Object.hasOwn(override, 'lookAtTarget');
+  const lookAtTarget = hasTargetOverride ? override.lookAtTarget : key.lookAtTarget;
+  const aimEnabled = override.aimEnabled
+    ?? (hasTargetOverride && Array.isArray(lookAtTarget) ? true : key.aimEnabled);
   return {
     ...key,
     ...override,
+    aimEnabled,
     position: [...(override.position || key.position)],
     rotation: [...(override.rotation || key.rotation)],
+    ...(lookAtTarget == null ? {} : { lookAtTarget: [...lookAtTarget] }),
+    ...(lookAtTarget == null && hasTargetOverride ? { lookAtTarget: null } : {}),
   };
 }
 
@@ -123,11 +126,7 @@ function applyProfileOverrides(model, resolver) {
   const cameraKeys = model.tracks.camera.keys
     .map((key) => {
       const merged = mergeCameraKey(key, overrides.camera[key.id]);
-      return {
-        ...merged,
-        easingCurve: compileAboutNarrativeCameraEasing(merged.easing),
-        quaternion: writeAboutNarrativeCameraQuaternion([0, 0, 0, 1], merged.rotation),
-      };
+      return compileAboutNarrativeCameraKey(merged);
     })
     .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id));
   const visibilityKeys = model.tracks.visibility.keys
@@ -214,7 +213,7 @@ function compileDisciplineReveal(textFields, interactionClips) {
     effectEndWU,
     staggerWU,
     backgroundFadeWU,
-    backgroundFadeEndWU: startWU + backgroundFadeWU,
+    backgroundFadeEndWU: effectStartWU + backgroundFadeWU,
     backgroundOpacity: Number(parameters.backgroundOpacity),
     reconnectOpacity: Number(parameters.reconnectOpacity),
     pointScale: Number(parameters.pointScale),
@@ -223,6 +222,10 @@ function compileDisciplineReveal(textFields, interactionClips) {
     labelScale: Number(parameters.labelScale ?? 1),
     labelDurationWU,
     holdWU,
+    readingLineY: Number(parameters.readingLineY),
+    mobileReadingLineY: Number(parameters.mobileReadingLineY),
+    approachBandY: Number(parameters.approachBandY),
+    exitLineY: Number(parameters.exitLineY),
     labelSequenceEndWU: startWU
       + (Math.max(0, parameters.items.length - 1) * staggerWU)
       + labelDurationWU
@@ -328,19 +331,6 @@ function mix(from, to, progress) {
   return from + ((to - from) * progress);
 }
 
-function writeCameraKey(target, key) {
-  target.position[0] = key?.position?.[0] ?? 0;
-  target.position[1] = key?.position?.[1] ?? 0;
-  target.position[2] = key?.position?.[2] ?? 0;
-  const quaternion = key?.quaternion || [0, 0, 0, 1];
-  target.quaternion[0] = quaternion[0];
-  target.quaternion[1] = quaternion[1];
-  target.quaternion[2] = quaternion[2];
-  target.quaternion[3] = quaternion[3];
-  target.fov = key?.fov ?? 48;
-  return target;
-}
-
 function findIndexAtWU(items, storyWU, key) {
   let low = 0;
   let high = items.length - 1;
@@ -355,24 +345,6 @@ function findIndexAtWU(items, storyWU, key) {
     }
   }
   return result;
-}
-
-function sampleCameraInto(keys, storyWU, reducedMotion, target) {
-  if (!keys.length) return writeCameraKey(target, null);
-  const fromIndex = findIndexAtWU(keys, storyWU, 'atWU');
-  const from = keys[fromIndex];
-  const to = keys[Math.min(keys.length - 1, fromIndex + 1)];
-  if (reducedMotion || from === to || storyWU <= Number(keys[0].atWU)) {
-    return writeCameraKey(target, storyWU <= Number(keys[0].atWU) ? keys[0] : from);
-  }
-  const spanWU = Math.max(TIME_EPSILON, Number(to.atWU) - Number(from.atWU));
-  const progress = applyAboutNarrativeCameraEasing(from.easingCurve, (storyWU - Number(from.atWU)) / spanWU);
-  target.position[0] = mix(from.position[0], to.position[0], progress);
-  target.position[1] = mix(from.position[1], to.position[1], progress);
-  target.position[2] = mix(from.position[2], to.position[2], progress);
-  slerpAboutNarrativeCameraQuaternionInto(target.quaternion, from.quaternion, to.quaternion, progress);
-  target.fov = mix(from.fov, to.fov, progress);
-  return target;
 }
 
 function sampleVisibility(keys, storyWU, reducedMotion) {
@@ -477,7 +449,7 @@ export function sampleAboutNarrativeTitleFieldInto(
     target.opacity = 1;
     target.blur = 0;
     target.x = 0;
-    target.y = isOpener ? openerStartY : 0;
+    target.y = 0;
     target.z = 0;
     return target;
   }
@@ -494,10 +466,10 @@ export function sampleAboutNarrativeTitleFieldInto(
     const focusWU = Math.max(startWU + 0.00001, Number(field?.focusWU ?? endWU));
     if (valueWU < startWU) {
       target.opacity = 0;
-      target.blur = maxBlur;
+      target.blur = 0;
       target.x = 0;
-      target.y = startY;
-      target.z = -entryDepth;
+      target.y = 0;
+      target.z = 0;
       return target;
     }
     const entryProgress = applyEasing(
@@ -505,10 +477,21 @@ export function sampleAboutNarrativeTitleFieldInto(
       (valueWU - startWU) / (focusWU - startWU),
     );
     target.opacity = entryProgress;
-    target.blur = mix(maxBlur, 0, entryProgress);
+    target.blur = 0;
     target.x = 0;
-    target.y = mix(startY, 0, entryProgress);
-    target.z = mix(-entryDepth, 0, entryProgress);
+    target.y = 0;
+    target.z = 0;
+    return target;
+  }
+  if (isOpener) {
+    const spanWU = Math.max(0.00001, endWU - startWU);
+    const progress = Math.min(1, Math.max(0, (valueWU - startWU) / spanWU));
+    const exitProgress = applyEasing('smoothstep', progress);
+    target.opacity = valueWU > endWU ? 0 : 1 - exitProgress;
+    target.blur = 0;
+    target.x = 0;
+    target.y = mix(openerStartY, endY, exitProgress);
+    target.z = 0;
     return target;
   }
   if (valueWU < startWU || valueWU > endWU) {
@@ -525,21 +508,6 @@ export function sampleAboutNarrativeTitleFieldInto(
   const progress = Math.min(1, Math.max(0, (valueWU - startWU) / spanWU));
   const readableStart = Math.min(1, Math.max(0, Number(textMotion?.readableStart ?? 0.24)));
   const readableEnd = Math.min(1, Math.max(0, Number(textMotion?.readableEnd ?? 0.76)));
-  // The opener preset defines the sectionless replacement for the old
-  // `interval.start === 0` special case.
-  if (isOpener) {
-    const fadeOutProgress = readableEnd >= 1
-      ? 0
-      : Math.min(1, Math.max(0, (progress - readableEnd) / (1 - readableEnd)));
-    const clarity = 1 - applyEasing('smoothstep', fadeOutProgress);
-    target.opacity = clarity;
-    target.blur = mix(maxBlur, 0, clarity);
-    target.x = 0;
-    target.y = mix(openerStartY, endY, progress);
-    target.z = mix(0, exitDepth, progress);
-    return target;
-  }
-
   const clearIn = readableStart <= 0
     ? 1
     : applyEasing('smoothstep', progress / readableStart);
@@ -578,7 +546,7 @@ function writeDisciplineReveal(target, config, storyWU, durationWU, reducedMotio
   target.settled = reducedMotion;
   target.backgroundProgress = reducedMotion
     ? (target.labelActive ? 1 : 0)
-    : smoothRange(storyWU, config.startWU, config.backgroundFadeEndWU);
+    : smoothRange(storyWU, config.effectStartWU, config.backgroundFadeEndWU);
   const restoreStartWU = Math.max(
     config.startWU,
     config.effectEndWU - Math.max(0, config.restoreDurationWU),
@@ -593,6 +561,12 @@ export function createAboutNarrativeRuntimeFrameSample() {
   const cameraKey = {
     position: [0, 0, 0],
     quaternion: [0, 0, 0, 1],
+    manualQuaternion: [0, 0, 0, 1],
+    aimQuaternion: [0, 0, 0, 1],
+    lookAtTarget: [0, 0, 0],
+    lookAtRoll: 0,
+    aimWeight: 0,
+    targeted: false,
     fov: 48,
   };
   const disciplineReveal = {
@@ -626,6 +600,10 @@ export function createAboutNarrativeRuntimeFrameSample() {
     camera: {
       position: [0, 0, 0],
       quaternion: [0, 0, 0, 1],
+      lookAtTarget: [0, 0, 0],
+      lookAtRoll: 0,
+      aimWeight: 0,
+      targeted: false,
       fov: 48,
     },
     simulation: {
@@ -687,7 +665,7 @@ export function sampleAboutNarrativeRuntimePlanInto(
   const activeWorldIndex = findIndexAtWU(plan.worlds, clampedStoryWU, 'startWU');
   const toWorld = plan.worlds[activeWorldIndex] || null;
   const fromWorld = plan.worlds[Math.max(0, activeWorldIndex - 1)] || toWorld;
-  const cameraKey = sampleCameraInto(
+  const cameraKey = sampleAboutNarrativeCameraKeysInto(
     plan.cameraKeys,
     clampedStoryWU,
     reducedMotion,
@@ -700,6 +678,12 @@ export function sampleAboutNarrativeRuntimePlanInto(
   target.camera.quaternion[1] = cameraKey.quaternion[1];
   target.camera.quaternion[2] = cameraKey.quaternion[2];
   target.camera.quaternion[3] = cameraKey.quaternion[3];
+  target.camera.lookAtTarget[0] = cameraKey.lookAtTarget[0];
+  target.camera.lookAtTarget[1] = cameraKey.lookAtTarget[1];
+  target.camera.lookAtTarget[2] = cameraKey.lookAtTarget[2];
+  target.camera.lookAtRoll = cameraKey.lookAtRoll;
+  target.camera.aimWeight = cameraKey.aimWeight;
+  target.camera.targeted = cameraKey.targeted;
   target.camera.fov = cameraKey.fov;
   target.simulation.visibility = sampleVisibility(
     plan.visibilityKeys,

@@ -257,9 +257,9 @@ test('store-backed pure operations create, move, copy, paste, duplicate, and del
   assert.equal(store.createObject({ track: 'camera', atWU: 0.8 }), true);
   // Use the interaction-free opening gap so this pure-operation test remains
   // independent of the authored ripple clip's release timing.
-  assert.equal(store.createObject({ track: 'world', atWU: 3 }), true);
+  assert.equal(store.createObject({ track: 'world', atWU: 2.7 }), true);
   const worldId = store.getSnapshot().selection.id;
-  assert.equal(store.createObject({ track: 'interaction', atWU: 3.2, targetWorldId: worldId }), true);
+  assert.equal(store.createObject({ track: 'interaction', atWU: 2.8, targetWorldId: worldId }), true);
   assert.equal(compileAboutNarrativeTrackModel(store.getSnapshot().document).valid, true);
 
   store.setSelection({ type: 'text-field', id: titleId });

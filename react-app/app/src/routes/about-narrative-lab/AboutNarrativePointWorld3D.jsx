@@ -9,7 +9,11 @@ import {
   resolveAboutNarrativeSwarmMotion,
 } from './aboutNarrativeDefinitions.js';
 import { createAboutNarrativeBufferLru } from './aboutNarrativeBufferLru.js';
-import { createAboutNarrativeBustController } from './aboutNarrativeBustController.js';
+import {
+  ABOUT_NARRATIVE_BUST_STATES,
+  createAboutNarrativeBustController,
+} from './aboutNarrativeBustController.js';
+import { writeAboutNarrativeCameraOrbitPosition } from './aboutNarrativeCameraRig.js';
 import { createAboutNarrativePreparationController } from './aboutNarrativePreparationController.js';
 import {
   ABOUT_NARRATIVE_CACHE_LIMITS,
@@ -46,6 +50,24 @@ import { createAboutNarrativeRuntimeObserver } from 'virtual:about-narrative-run
 
 const MATERIAL_SLOT_COUNT = 6;
 const RUNTIME_DIAGNOSTICS_ENABLED = import.meta.env.DEV || __CERTIFY__;
+const DEFAULT_BUST_ASSEMBLY = Object.freeze({
+  formationMode: 'gather',
+  baseStart: 0.04,
+  headStart: 0.62,
+  layerSoftness: 0.42,
+  platformScale: 0.95,
+  platformSettle: 0.24,
+  surfaceHeight: -1.52,
+  submergeDepth: 3.2,
+  waterlineSoftness: 0.22,
+  surfaceCarry: 0.14,
+  fragmentHeight: 0.62,
+  fragmentFade: 0.38,
+  fragmentReveal: 0.55,
+  fragmentSpread: 1,
+  fragmentFall: 0.5,
+  fragmentPresence: 0.42,
+});
 const DISCIPLINE_LABEL_SELECTORS = Object.freeze([
   '[data-discipline-group="1"]',
   '[data-discipline-group="2"]',
@@ -140,6 +162,23 @@ const VERTEX_SHADER = `
   uniform float fromBust;
   uniform float toBust;
   uniform float bustYaw;
+  uniform float bustAssemblyWeight;
+  uniform float bustSurfaceRiseWeight;
+  uniform float bustBuildBaseStart;
+  uniform float bustBuildHeadStart;
+  uniform float bustBuildSoftness;
+  uniform float bustPlatformScale;
+  uniform float bustPlatformSettle;
+  uniform float bustSurfaceHeight;
+  uniform float bustSubmergeDepth;
+  uniform float bustWaterlineSoftness;
+  uniform float bustSurfaceCarry;
+  uniform float bustFragmentHeight;
+  uniform float bustFragmentFade;
+  uniform float bustFragmentReveal;
+  uniform float bustFragmentSpread;
+  uniform float bustFragmentFall;
+  uniform float bustFragmentPresence;
   uniform vec3 materialColor1;
   uniform vec3 materialColor2;
   uniform vec3 materialColor3;
@@ -256,16 +295,26 @@ const VERTEX_SHADER = `
   void main() {
     float globalMorph = smoothstep(0.0, 1.0, morphProgress);
     float bustHeight = clamp((targetPosition.y + 0.86) / 1.72, 0.0, 1.0);
-    float bustBuildProgress = smoothstep(
-      bustHeight,
-      bustHeight + 0.22,
-      globalMorph * 1.22
+    // Let the fragmented base gather and settle before the head resolves. The
+    // wider band makes formation legible across the complete scroll interval
+    // instead of allowing the low points to snap into place at its start.
+    float bustFormationSoftness = max(0.001, bustBuildSoftness);
+    float bustBuildThreshold = mix(bustBuildBaseStart, bustBuildHeadStart, bustHeight);
+    float bustBuildEnd = min(
+      1.0,
+      max(bustBuildThreshold + 0.001, bustBuildThreshold + bustFormationSoftness)
     );
-    float morph = mix(
+    float bustBuildProgress = smoothstep(
+      bustBuildThreshold,
+      bustBuildEnd,
+      globalMorph
+    );
+    float layeredMorph = mix(
       globalMorph,
       bustBuildProgress,
-      toBust * (1.0 - fromBust)
+      toBust * (1.0 - fromBust) * bustAssemblyWeight
     );
+    float morph = mix(layeredMorph, globalMorph, bustSurfaceRiseWeight);
     vec3 fromPoint = applyOrbitalLife(
       position,
       pointSeed,
@@ -286,7 +335,51 @@ const VERTEX_SHADER = `
     toPoint = mix(toPoint, rotateY(toPoint, bustYaw), toBust);
     vec3 fromWorld = (fromTransform * vec4(fromPoint, 1.0)).xyz;
     vec3 toWorld = (toTransform * vec4(toPoint, 1.0)).xyz;
-    vec3 worldPoint = mix(fromWorld, toWorld, morph);
+    float bustTransitionWeight = toBust * (1.0 - fromBust) * bustAssemblyWeight;
+    float platformProgress = smoothstep(
+      0.0,
+      max(0.001, bustPlatformSettle),
+      globalMorph
+    ) * bustTransitionWeight * (1.0 - bustSurfaceRiseWeight);
+    vec2 gatheredPlatform = gridRippleCenter
+      + ((toWorld.xz - gridRippleCenter) * bustPlatformScale);
+    fromWorld.xz = mix(fromWorld.xz, gatheredPlatform, platformProgress);
+    vec3 gatheredWorldPoint = mix(fromWorld, toWorld, morph);
+    float bustRiseProgress = smoothstep(0.02, 0.98, globalMorph);
+    vec3 submergedBust = toWorld;
+    submergedBust.y -= max(0.0, bustSubmergeDepth) * (1.0 - bustRiseProgress);
+    float waterlineSoftness = max(0.001, bustWaterlineSoftness);
+    float surfaceDeparture = smoothstep(
+      bustSurfaceHeight - (waterlineSoftness * 3.0),
+      bustSurfaceHeight - (waterlineSoftness * 1.15),
+      submergedBust.y
+    );
+    float surfaceArrival = smoothstep(
+      bustSurfaceHeight - (waterlineSoftness * 0.55),
+      bustSurfaceHeight + waterlineSoftness,
+      submergedBust.y
+    );
+    vec3 risingWorldPoint = mix(fromWorld, submergedBust, surfaceDeparture);
+    vec3 worldPoint = mix(gatheredWorldPoint, risingWorldPoint, bustSurfaceRiseWeight);
+    float surfaceTransit = max(0.0, surfaceDeparture - surfaceArrival)
+      * bustSurfaceRiseWeight;
+    float bustInfluence = mix(fromBust, toBust, morph);
+    float bustFragmentBand = 1.0 - smoothstep(
+      bustFragmentHeight - bustFragmentFade,
+      bustFragmentHeight,
+      bustHeight
+    );
+    float bustFragmentProgress = smoothstep(bustFragmentReveal, 1.0, morph);
+    float bustFragment = bustInfluence
+      * bustFragmentBand
+      * bustFragmentProgress
+      * bustAssemblyWeight;
+    vec3 bustScatter = vec3(
+      (fract((pointSeed * 91.17) + 0.13) - 0.5) * 1.25 * bustFragmentSpread,
+      -fract((pointSeed * 57.41) + 0.37) * bustFragmentFall,
+      (fract((pointSeed * 73.93) + 0.61) - 0.5) * 0.90 * bustFragmentSpread
+    );
+    worldPoint += bustScatter * bustFragment;
 
     float driftAmplitude = mix(fromDriftAmplitude, toDriftAmplitude, morph);
     float driftSpeed = mix(fromDriftSpeed, toDriftSpeed, morph);
@@ -337,34 +430,46 @@ const VERTEX_SHADER = `
       clamp(gridRippleStoryMix, 0.0, 1.0)
     );
     float ripplePhase = rippleClock * gridRippleSpeed * 6.2831853;
+    float rippleAngle = atan(ripplePoint.y, ripplePoint.x);
+    float phaseVariation = sin((rippleAngle * 3.0) + (ripplePhase * 0.18)) * 0.24;
     float radialRipple = sin(
-      (rippleDistance * gridRippleFrequency) - ripplePhase
+      (rippleDistance * gridRippleFrequency) - ripplePhase + phaseVariation
     );
     float harmonicRipple = sin(
       (rippleDistance * gridRippleFrequency * 0.52) - (ripplePhase * 0.72)
     );
-    float centerPulse = cos(ripplePhase) * exp(-rippleDistance * 0.42);
-    float rippleFalloff = 1.0 / (1.0 + (rippleDistance * 0.035));
+    float undertowRipple = cos(
+      (rippleDistance * gridRippleFrequency * 1.72)
+      - (ripplePhase * 0.46)
+      + (rippleAngle * 0.5)
+    );
+    float centerPulse = cos(
+      (ripplePhase * 0.82) - (rippleDistance * gridRippleFrequency * 0.35)
+    ) * exp(-rippleDistance * 0.38);
+    float rippleFalloff = 1.0 / (1.0 + (rippleDistance * 0.08));
     float perpetualRipple = (
-      (radialRipple * 0.72)
-      + (harmonicRipple * 0.20)
-      + (centerPulse * 0.34)
+      (radialRipple * 0.58)
+      + (harmonicRipple * 0.22)
+      + (undertowRipple * 0.12)
+      + (centerPulse * 0.26)
     ) * rippleFalloff;
-    float gatheringWeight = gridRippleWeight * gridRippleAmplitude;
+    float surfaceRippleMix = 1.0 - (
+      toBust * smoothstep(0.02, 0.32, globalMorph)
+    );
+    float gatheringWeight = gridRippleWeight * gridRippleAmplitude * surfaceRippleMix;
     worldPoint.y += gatheringWeight * perpetualRipple;
     worldPoint.xz += rippleDirection
       * gatheringWeight
       * radialRipple
       * rippleFalloff
-      * 0.34;
+      * 0.18;
     float gridRippleEmphasis = 1.0
-      + (abs(perpetualRipple) * gridRippleWeight * 0.34);
+      + (abs(perpetualRipple) * gridRippleWeight * surfaceRippleMix * 0.22);
 
     float group = mix(fromGroup, toGroup, morph);
     float groupStrength = mix(fromGroupStrength, toGroupStrength, morph);
     float groupExists = step(0.5, group);
     float disciplineIsolation = mix(fromDisciplineIsolation, toDisciplineIsolation, morph);
-    float isolatedBackground = (1.0 - groupExists) * disciplineIsolation;
     float isolatedBackgroundOpacity = mix(
       fromDisciplineBackgroundOpacity,
       toDisciplineBackgroundOpacity,
@@ -376,6 +481,7 @@ const VERTEX_SHADER = `
       * mix(1.0, mix(0.28, 1.0, focusMatch), focusActive);
     float revealedGroupWeight = groupExists * disciplineRevealForGroup(group);
     float groupWeight = mix(legacyGroupWeight, revealedGroupWeight, disciplineRevealActive);
+    float disciplineMonochrome = disciplineIsolation * (1.0 - revealedGroupWeight);
     float colourWeight = mix(fromLivingColour, toLivingColour, morph);
     float livingBand = 0.5 + (0.5 * sin(
       (worldPoint.x * 0.72) + (worldPoint.z * 0.38) + (ambientTime * 0.18)
@@ -388,13 +494,28 @@ const VERTEX_SHADER = `
       livingColor,
       colourWeight * smoothstep(0.72, 0.98, livingBand) * 0.48
     );
-    pointTint = mix(pointTint, disciplineBackgroundColor, isolatedBackground);
-    // Semantic anchors retain the material colour they already had in the grid.
-    // Their reveal changes prominence, never identity.
+    // During the camera pass every point is monochrome until its exact semantic
+    // anchor enters the scroll-authored reveal. The selected anchor then regains
+    // the material colour it already owned; no colour is reassigned at reveal time.
+    pointTint = mix(pointTint, disciplineBackgroundColor, disciplineMonochrome);
 
     vec4 viewPoint = modelViewMatrix * vec4(worldPoint, 1.0);
     gl_Position = projectionMatrix * viewPoint;
     float presence = mix(fromPresence, toPresence, morph);
+    presence *= mix(1.0, clamp(bustSurfaceCarry, 0.0, 1.0), surfaceTransit);
+    float bustFragmentKeep = step(
+      fract((pointSeed * 131.71) + 0.27),
+      mix(
+        bustFragmentPresence,
+        1.0,
+        smoothstep(
+          max(0.0, bustFragmentHeight - bustFragmentFade - 0.12),
+          bustFragmentHeight,
+          bustHeight
+        )
+      )
+    );
+    presence *= mix(1.0, bustFragmentKeep, bustFragment);
     float reconnect = clamp(gridInfluence, 0.0, 1.0);
     float textBackgroundWeight = disciplineBackgroundWeight * (1.0 - disciplineIsolation);
     float backgroundVisibility = mix(
@@ -404,7 +525,7 @@ const VERTEX_SHADER = `
     );
     float revealVisibility = mix(backgroundVisibility, 1.0, revealedGroupWeight);
     presence *= mix(1.0, revealVisibility, disciplineRevealActive);
-    presence *= mix(1.0, isolatedBackgroundOpacity, isolatedBackground);
+    presence *= mix(1.0, isolatedBackgroundOpacity, disciplineMonochrome);
     float cameraDepth = max(0.0, -viewPoint.z);
     float distanceFog = smoothstep(
       distanceFogStartWU,
@@ -446,6 +567,12 @@ const FRAGMENT_SHADER = `
 
 function modifier(world, id) {
   return world?.modifiers?.find((item) => item.id === id && item.enabled !== false)?.parameters || null;
+}
+
+function optionalModifier(world, id) {
+  const entry = world?.modifiers?.find((item) => item.id === id);
+  if (!entry) return null;
+  return entry.enabled === false ? false : entry.parameters;
 }
 
 function readColorToken(styles, token, fallback) {
@@ -584,6 +711,28 @@ function hasAllDisciplineAnchors(indices) {
   return true;
 }
 
+function createCameraFocusAnchor() {
+  const radius = 0.28;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+    -radius, 0, 0, radius, 0, 0,
+    0, -radius, 0, 0, radius, 0,
+    0, 0, -radius, 0, 0, radius,
+  ]), 3));
+  const material = new THREE.LineBasicMaterial({
+    color: 0xff0000,
+    depthTest: false,
+    depthWrite: false,
+    transparent: true,
+    opacity: 1,
+  });
+  const object = new THREE.LineSegments(geometry, material);
+  object.name = 'about-narrative-camera-focus-anchor';
+  object.frustumCulled = false;
+  object.renderOrder = 1000;
+  return { geometry, material, object };
+}
+
 function createPointFieldAdapter({
   canvas,
   root,
@@ -591,6 +740,7 @@ function createPointFieldAdapter({
   disciplineOverlayRef,
   runtimeRef,
   pointProfile: explicitPointProfile,
+  showCameraFocusAnchor = false,
 }) {
   const initialBounds = root.getBoundingClientRect();
   const layoutProfile = classifyAboutNarrativeLayoutProfile({
@@ -635,6 +785,8 @@ function createPointFieldAdapter({
   });
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(48, 1, 0.08, 80);
+  const cameraFocusAnchor = showCameraFocusAnchor ? createCameraFocusAnchor() : null;
+  if (cameraFocusAnchor) scene.add(cameraFocusAnchor.object);
   const geometry = new THREE.BufferGeometry();
   const seeds = createAboutNarrativeSeeds(pointCount, 0x1e35a7bd);
   const emptyPositions = new Float32Array(pointCount * 3);
@@ -710,6 +862,23 @@ function createPointFieldAdapter({
     fromBust: { value: 0 },
     toBust: { value: 0 },
     bustYaw: { value: 0 },
+    bustAssemblyWeight: { value: 1 },
+    bustSurfaceRiseWeight: { value: 0 },
+    bustBuildBaseStart: { value: 0.04 },
+    bustBuildHeadStart: { value: 0.62 },
+    bustBuildSoftness: { value: 0.42 },
+    bustPlatformScale: { value: 0.95 },
+    bustPlatformSettle: { value: 0.24 },
+    bustSurfaceHeight: { value: -1.52 },
+    bustSubmergeDepth: { value: 3.2 },
+    bustWaterlineSoftness: { value: 0.22 },
+    bustSurfaceCarry: { value: 0.14 },
+    bustFragmentHeight: { value: 0.62 },
+    bustFragmentFade: { value: 0.38 },
+    bustFragmentReveal: { value: 0.55 },
+    bustFragmentSpread: { value: 1 },
+    bustFragmentFall: { value: 0.5 },
+    bustFragmentPresence: { value: 0.42 },
     materialColor1: { value: new THREE.Color() },
     materialColor2: { value: new THREE.Color() },
     materialColor3: { value: new THREE.Color() },
@@ -900,6 +1069,8 @@ function createPointFieldAdapter({
   };
   let bustYaw = 0;
   let lastBustAmbientTime = 0;
+  let cameraOrbitAngle = 0;
+  const cameraOrbitPosition = [0, 0, 0];
   let dragging = false;
   let dragStart = null;
   const modifierSlotsCache = new WeakMap();
@@ -933,6 +1104,7 @@ function createPointFieldAdapter({
     fromWave: {},
     toWave: {},
     gridRipple: {},
+    bustAssembly: {},
   };
   const anchorCapability = { capability: ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT, unsupportedCount: 0, unsupported: [] };
   const anchorCapabilityTarget = { capability: ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT, unsupportedCount: 0, unsupported: [] };
@@ -944,14 +1116,10 @@ function createPointFieldAdapter({
   const disciplineLabelX = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelY = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelPositionUnit = new Uint8Array(6);
-  const disciplineLabelSide = new Uint8Array(6).fill(255);
   const disciplineLabelNudge = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelWidth = new Float64Array(6);
-  const disciplineLabelHeight = new Float64Array(6);
   const disciplineProjectedX = new Float64Array(6).fill(Number.NaN);
   const disciplineProjectedY = new Float64Array(6).fill(Number.NaN);
-  const disciplineResolvedY = new Float64Array(6);
-  const disciplinePlacementOrder = new Uint8Array(6);
   let cachedDisciplineOverlay = null;
   let cachedDisciplineChildCount = -1;
   let lastDisciplineVisibleCount = Number.NaN;
@@ -972,7 +1140,6 @@ function createPointFieldAdapter({
     for (let index = 0; index < disciplineLabels.length; index += 1) {
       const label = disciplineLabels[index];
       disciplineLabelWidth[index] = label?.offsetWidth || 0;
-      disciplineLabelHeight[index] = label?.offsetHeight || 0;
     }
   };
   const disciplineLabelResizeObserver = new ResizeObserver(measureDisciplineLabels);
@@ -991,6 +1158,7 @@ function createPointFieldAdapter({
       orbital: modifier(world, 'orbital-life-v1'),
       colour: modifier(world, 'living-colour-v1'),
       bust: modifier(world, 'bust-yaw-v1'),
+      bustAssembly: optionalModifier(world, 'bust-assembly-v1'),
     };
     modifierSlotsCache.set(world, slots);
     return slots;
@@ -1010,7 +1178,6 @@ function createPointFieldAdapter({
       disciplineLabelX[index] = Number.NaN;
       disciplineLabelY[index] = Number.NaN;
       disciplineLabelPositionUnit[index] = 0;
-      disciplineLabelSide[index] = 255;
       disciplineLabelNudge[index] = Number.NaN;
       if (disciplineLabels[index]) disciplineLabelResizeObserver.observe(disciplineLabels[index]);
     }
@@ -1047,15 +1214,6 @@ function createPointFieldAdapter({
     runtimeObserver.hotFrameDomWrite(2);
   };
 
-  const writeDisciplineSide = (index, side) => {
-    if (disciplineLabelSide[index] === side) return;
-    const label = disciplineLabels[index];
-    disciplineLabelSide[index] = side;
-    if (!label) return;
-    label.dataset.labelSide = side === 1 ? 'left' : 'right';
-    runtimeObserver.hotFrameDomWrite();
-  };
-
   const writeDisciplineNudge = (index, value) => {
     if (disciplineLabelNudge[index] === value) return;
     const label = disciplineLabels[index];
@@ -1065,88 +1223,24 @@ function createPointFieldAdapter({
     runtimeObserver.hotFrameDomWrite();
   };
 
-  const sortDisciplineOrder = (order, count) => {
-    for (let index = 1; index < count; index += 1) {
-      const value = order[index];
-      let cursor = index - 1;
-      while (cursor >= 0 && disciplineProjectedY[order[cursor]] > disciplineProjectedY[value]) {
-        order[cursor + 1] = order[cursor];
-        cursor -= 1;
-      }
-      order[cursor + 1] = value;
-    }
-  };
-
-  const packDisciplineOrder = (order, count, safeInset) => {
-    if (!count) return;
-    const gap = compact ? 7 : 5;
-    sortDisciplineOrder(order, count);
-    for (let orderIndex = 0; orderIndex < count; orderIndex += 1) {
-      const index = order[orderIndex];
-      const halfHeight = disciplineLabelHeight[index] * 0.5;
-      const minimumY = orderIndex === 0
-        ? safeInset + halfHeight
-        : disciplineResolvedY[order[orderIndex - 1]]
-          + (disciplineLabelHeight[order[orderIndex - 1]] * 0.5)
-          + gap
-          + halfHeight;
-      disciplineResolvedY[index] = Math.max(disciplineResolvedY[index], minimumY);
-    }
-    for (let orderIndex = count - 1; orderIndex >= 0; orderIndex -= 1) {
-      const index = order[orderIndex];
-      const halfHeight = disciplineLabelHeight[index] * 0.5;
-      const maximumY = orderIndex === count - 1
-        ? height - safeInset - halfHeight
-        : disciplineResolvedY[order[orderIndex + 1]]
-          - (disciplineLabelHeight[order[orderIndex + 1]] * 0.5)
-          - gap
-          - halfHeight;
-      disciplineResolvedY[index] = Math.min(disciplineResolvedY[index], maximumY);
-    }
-  };
-
   const placeDisciplineLabels = (offset) => {
     const safeInset = compact ? 10 : 16;
-    const horizontalInset = width * 0.15;
-    let placementCount = 0;
     for (let index = 0; index < disciplineLabels.length; index += 1) {
       if (!Number.isFinite(disciplineProjectedX[index])) continue;
       const labelWidth = disciplineLabelWidth[index];
-      const localX = Math.min(
-        width - horizontalInset,
-        Math.max(horizontalInset, disciplineProjectedX[index] - viewportOffsetX),
-      );
-      disciplineProjectedX[index] = viewportOffsetX + localX;
-      const roomRight = width - horizontalInset - localX - offset;
-      const roomLeft = localX - horizontalInset - offset;
-      const preferredSide = compact && index % 2 === 1 ? 1 : 0;
-      const preferredRoom = preferredSide === 1 ? roomLeft : roomRight;
-      const alternateRoom = preferredSide === 1 ? roomRight : roomLeft;
-      const side = preferredRoom >= labelWidth || preferredRoom >= alternateRoom
-        ? preferredSide
-        : 1 - preferredSide;
-      const proposedLeft = side === 1
-        ? localX - offset - labelWidth
-        : localX + offset;
-      const proposedRight = proposedLeft + labelWidth;
-      let nudge = 0;
-      if (proposedLeft < horizontalInset) nudge = horizontalInset - proposedLeft;
-      else if (proposedRight > width - horizontalInset) {
-        nudge = (width - horizontalInset) - proposedRight;
-      }
-      disciplineResolvedY[index] = disciplineProjectedY[index] - viewportOffsetY;
-      disciplinePlacementOrder[placementCount] = index;
-      placementCount += 1;
-      writeDisciplineSide(index, side);
+      const localX = disciplineProjectedX[index] - viewportOffsetX;
+      const proposedLeft = localX + offset;
+      const proposedRight = localX + offset + labelWidth;
+      const maximumNudge = Math.min(0, (width - safeInset) - proposedRight);
+      const minimumGapNudge = -Math.max(0, offset - 4);
+      const nudge = proposedLeft < safeInset
+        ? safeInset - proposedLeft
+        : Math.max(minimumGapNudge, maximumNudge);
       writeDisciplineNudge(index, Math.round(nudge * 100) / 100);
-    }
-    packDisciplineOrder(disciplinePlacementOrder, placementCount, safeInset);
-    for (let index = 0; index < disciplineLabels.length; index += 1) {
-      if (!Number.isFinite(disciplineProjectedX[index])) continue;
       writeDisciplinePosition(
         index,
         disciplineProjectedX[index],
-        viewportOffsetY + disciplineResolvedY[index],
+        disciplineProjectedY[index],
         1,
       );
     }
@@ -1693,7 +1787,17 @@ function createPointFieldAdapter({
     if (revealAvailable) {
       const restoreWeight = 1 - Number(revealState.restoreProgress || 0);
       backgroundWeight = Number(revealState.backgroundProgress || 0) * restoreWeight;
-      const exitStartWU = Math.min(revealState.endWU, Number(reveal.labelSequenceEndWU));
+      const activationProgress = reducedActive
+        ? 1
+        : smoothRange(
+          storyWU,
+          revealState.startWU,
+          revealState.startWU + Math.max(0.001, revealState.labelDurationWU * 0.65),
+        );
+      const exitStartWU = Math.max(
+        revealState.startWU,
+        revealState.endWU - Math.max(0.001, Number(revealState.restoreDurationWU || 0.1)),
+      );
       const exitProgress = reducedActive ? 0 : smoothRange(storyWU, exitStartWU, revealState.endWU);
       for (let orderIndex = 0; orderIndex < reveal.items.length; orderIndex += 1) {
         const item = reveal.items[orderIndex];
@@ -1701,9 +1805,9 @@ function createPointFieldAdapter({
         const itemReveal = reducedActive
           ? 1
           : smoothRange(storyWU, itemStartWU, itemStartWU + revealState.labelDurationWU);
-        disciplineWeights[item.group - 1] = itemReveal * restoreWeight;
+        if (reducedActive) disciplineWeights[item.group - 1] = itemReveal * restoreWeight;
         const labelReveal = storyWU <= revealState.endWU
-          ? itemReveal * (1 - exitProgress) * restoreWeight
+          ? itemReveal * activationProgress * (1 - exitProgress) * restoreWeight
           : 0;
         disciplineLabelBaseReveal[item.group - 1] = labelReveal;
       }
@@ -1735,6 +1839,23 @@ function createPointFieldAdapter({
         anchorSampleInput.bustYaw = uniforms.bustYaw.value;
         anchorSampleInput.fromBust = uniforms.fromBust.value;
         anchorSampleInput.toBust = uniforms.toBust.value;
+        anchorSampleInput.bustAssembly.weight = uniforms.bustAssemblyWeight.value;
+        anchorSampleInput.bustAssembly.surfaceRiseWeight = uniforms.bustSurfaceRiseWeight.value;
+        anchorSampleInput.bustAssembly.baseStart = uniforms.bustBuildBaseStart.value;
+        anchorSampleInput.bustAssembly.headStart = uniforms.bustBuildHeadStart.value;
+        anchorSampleInput.bustAssembly.layerSoftness = uniforms.bustBuildSoftness.value;
+        anchorSampleInput.bustAssembly.platformScale = uniforms.bustPlatformScale.value;
+        anchorSampleInput.bustAssembly.platformSettle = uniforms.bustPlatformSettle.value;
+        anchorSampleInput.bustAssembly.surfaceHeight = uniforms.bustSurfaceHeight.value;
+        anchorSampleInput.bustAssembly.submergeDepth = uniforms.bustSubmergeDepth.value;
+        anchorSampleInput.bustAssembly.waterlineSoftness = uniforms.bustWaterlineSoftness.value;
+        anchorSampleInput.bustAssembly.surfaceCarry = uniforms.bustSurfaceCarry.value;
+        anchorSampleInput.bustAssembly.fragmentHeight = uniforms.bustFragmentHeight.value;
+        anchorSampleInput.bustAssembly.fragmentFade = uniforms.bustFragmentFade.value;
+        anchorSampleInput.bustAssembly.fragmentReveal = uniforms.bustFragmentReveal.value;
+        anchorSampleInput.bustAssembly.fragmentSpread = uniforms.bustFragmentSpread.value;
+        anchorSampleInput.bustAssembly.fragmentFall = uniforms.bustFragmentFall.value;
+        anchorSampleInput.bustAssembly.fragmentPresence = uniforms.bustFragmentPresence.value;
         anchorSampleInput.storyTime = uniforms.storyTime.value;
         anchorSampleInput.ambientTime = uniforms.ambientTime.value;
         anchorSampleInput.gridInfluence = uniforms.gridInfluence.value;
@@ -1800,12 +1921,30 @@ function createPointFieldAdapter({
             + (((-disciplinePointScratch.y * 0.5) + 0.5) * height);
           if (!reducedActive) {
             const viewportY = (disciplineProjectedY[group - 1] - viewportOffsetY) / height;
-            const entryReveal = 1 - smoothRange(viewportY, 0.82, 0.96);
-            const exitReveal = smoothRange(viewportY, 0.04, 0.18);
-            const spatialReveal = entryReveal * exitReveal
-              * (1 - Number(revealState.restoreProgress || 0));
-            disciplineWeights[group - 1] = spatialReveal;
-            disciplineLabelBaseReveal[group - 1] = spatialReveal;
+            const readingLineY = frame.layoutProfile === 'mobile'
+              ? Number(reveal.mobileReadingLineY ?? 0.67)
+              : Number(reveal.readingLineY ?? 0.52);
+            const approachBandY = Math.max(0.001, Number(reveal.approachBandY ?? 0.12));
+            const exitLineY = Number(reveal.exitLineY ?? 0.9);
+            const viewportEntryY = Math.max(0.05, readingLineY - (approachBandY * 2));
+            const departureReveal = 1 - smoothRange(
+              viewportY,
+              exitLineY,
+              exitLineY + Math.max(0.04, approachBandY * 0.65),
+            );
+            const dotReveal = smoothRange(
+              viewportY,
+              viewportEntryY - approachBandY,
+              viewportEntryY,
+            ) * departureReveal;
+            const labelReveal = smoothRange(
+              viewportY,
+              viewportEntryY,
+              viewportEntryY + (approachBandY * 0.35),
+            ) * departureReveal;
+            const globalReveal = disciplineLabelBaseReveal[group - 1];
+            const spatialReveal = globalReveal * labelReveal;
+            disciplineWeights[group - 1] = globalReveal * dotReveal;
             writeDisciplineRevealStyles(
               group - 1,
               spatialReveal * uniforms.simulationVisibility.value,
@@ -1931,7 +2070,7 @@ function createPointFieldAdapter({
     bustSampleInput.active = toWorld.shapeId === 'bust-v1';
     bustSampleInput.transitionProgress = transitionProgress;
     bustSampleInput.deltaSeconds = bustDeltaSeconds;
-    bustSampleInput.speed = Number(bust?.speed || 0);
+    bustSampleInput.speed = 0;
     bustSampleInput.resumeDelay = Number(bust?.resumeDelay || 0);
     bustSampleInput.liveAmbient = frame.ambientTime > 0;
     bustSampleInput.deterministicScrub = frame.ambientTime === 0;
@@ -1947,13 +2086,38 @@ function createPointFieldAdapter({
       dragging = false;
     }
 
+    const cameraOrbitSpeed = Math.max(0, Number(bust?.speed || 0));
+    const cameraOrbiting = bustState.state === ABOUT_NARRATIVE_BUST_STATES.AUTO_ROTATING
+      && cameraOrbitSpeed > 0;
+    if (cameraOrbiting) cameraOrbitAngle += bustDeltaSeconds * cameraOrbitSpeed;
+    else if (toWorld.shapeId !== 'bust-v1' || formingBust) cameraOrbitAngle = 0;
+
     camera.position.fromArray(frame.camera.position);
     camera.quaternion.fromArray(frame.camera.quaternion);
+    if (cameraOrbitAngle !== 0 && frame.camera.aimWeight > 0.999) {
+      writeAboutNarrativeCameraOrbitPosition(
+        cameraOrbitPosition,
+        frame.camera.position,
+        frame.camera.lookAtTarget,
+        cameraOrbitAngle,
+      );
+      camera.position.fromArray(cameraOrbitPosition);
+      camera.lookAt(
+        Number(frame.camera.lookAtTarget[0] || 0),
+        Number(frame.camera.lookAtTarget[1] || 0),
+        Number(frame.camera.lookAtTarget[2] || 0),
+      );
+    }
     if (camera.fov !== frame.camera.fov) {
       camera.fov = frame.camera.fov;
       camera.updateProjectionMatrix();
     }
     camera.updateMatrixWorld(true);
+    if (cameraFocusAnchor) {
+      const aimWeight = Number(frame.camera.aimWeight || 0);
+      cameraFocusAnchor.object.position.fromArray(frame.camera.lookAtTarget);
+      cameraFocusAnchor.material.opacity = 0.32 + (Math.min(1, Math.max(0, aimWeight)) * 0.68);
+    }
     writeWorldTransform(
       uniforms.fromTransform.value,
       fromWorld,
@@ -2022,6 +2186,28 @@ function createPointFieldAdapter({
     uniforms.fromBust.value = fromWorld.shapeId === 'bust-v1' ? 1 : 0;
     uniforms.toBust.value = toWorld.shapeId === 'bust-v1' ? 1 : 0;
     uniforms.bustYaw.value = bustYaw;
+    const bustAssemblyWorld = toWorld.shapeId === 'bust-v1' ? toWorld : fromWorld;
+    const bustAssemblySlot = getModifierSlots(bustAssemblyWorld, frame.globals)?.bustAssembly;
+    const bustAssembly = bustAssemblySlot && typeof bustAssemblySlot === 'object'
+      ? bustAssemblySlot
+      : DEFAULT_BUST_ASSEMBLY;
+    uniforms.bustAssemblyWeight.value = bustAssemblySlot === false ? 0 : 1;
+    uniforms.bustSurfaceRiseWeight.value = bustAssembly.formationMode === 'surface-rise' ? 1 : 0;
+    uniforms.bustBuildBaseStart.value = Number(bustAssembly.baseStart ?? DEFAULT_BUST_ASSEMBLY.baseStart);
+    uniforms.bustBuildHeadStart.value = Number(bustAssembly.headStart ?? DEFAULT_BUST_ASSEMBLY.headStart);
+    uniforms.bustBuildSoftness.value = Number(bustAssembly.layerSoftness ?? DEFAULT_BUST_ASSEMBLY.layerSoftness);
+    uniforms.bustPlatformScale.value = Number(bustAssembly.platformScale ?? DEFAULT_BUST_ASSEMBLY.platformScale);
+    uniforms.bustPlatformSettle.value = Number(bustAssembly.platformSettle ?? DEFAULT_BUST_ASSEMBLY.platformSettle);
+    uniforms.bustSurfaceHeight.value = Number(bustAssembly.surfaceHeight ?? DEFAULT_BUST_ASSEMBLY.surfaceHeight);
+    uniforms.bustSubmergeDepth.value = Number(bustAssembly.submergeDepth ?? DEFAULT_BUST_ASSEMBLY.submergeDepth);
+    uniforms.bustWaterlineSoftness.value = Number(bustAssembly.waterlineSoftness ?? DEFAULT_BUST_ASSEMBLY.waterlineSoftness);
+    uniforms.bustSurfaceCarry.value = Number(bustAssembly.surfaceCarry ?? DEFAULT_BUST_ASSEMBLY.surfaceCarry);
+    uniforms.bustFragmentHeight.value = Number(bustAssembly.fragmentHeight ?? DEFAULT_BUST_ASSEMBLY.fragmentHeight);
+    uniforms.bustFragmentFade.value = Number(bustAssembly.fragmentFade ?? DEFAULT_BUST_ASSEMBLY.fragmentFade);
+    uniforms.bustFragmentReveal.value = Number(bustAssembly.fragmentReveal ?? DEFAULT_BUST_ASSEMBLY.fragmentReveal);
+    uniforms.bustFragmentSpread.value = Number(bustAssembly.fragmentSpread ?? DEFAULT_BUST_ASSEMBLY.fragmentSpread);
+    uniforms.bustFragmentFall.value = Number(bustAssembly.fragmentFall ?? DEFAULT_BUST_ASSEMBLY.fragmentFall);
+    uniforms.bustFragmentPresence.value = Number(bustAssembly.fragmentPresence ?? DEFAULT_BUST_ASSEMBLY.fragmentPresence);
     if (bustYaw !== lastBustShaderYaw) {
       root.dataset.worldBustShaderYaw = bustYaw.toFixed(5);
       lastBustShaderYaw = bustYaw;
@@ -2282,6 +2468,11 @@ function createPointFieldAdapter({
     geometry.dispose();
     material.dispose();
     renderer.dispose();
+    if (cameraFocusAnchor) {
+      scene.remove(cameraFocusAnchor.object);
+      cameraFocusAnchor.geometry.dispose();
+      cameraFocusAnchor.material.dispose();
+    }
     webglTracker?.dispose();
     if (resourceLedger) {
       resourceLedger.releaseOwner('installed-pair');
@@ -2325,6 +2516,7 @@ export function AboutNarrativePointWorld3D({
   disciplineOverlayRef,
   runtimeRef,
   pointProfile = '',
+  showCameraFocusAnchor = false,
 }) {
   const canvasRef = useRef(null);
 
@@ -2341,13 +2533,14 @@ export function AboutNarrativePointWorld3D({
         disciplineOverlayRef,
         runtimeRef,
         pointProfile,
+        showCameraFocusAnchor,
       });
     } catch (error) {
       root.dataset.pointWorldState = 'unavailable';
       console.warn('[About narrative] Point world unavailable; continuing with editorial content.', error);
       return () => { delete root.dataset.pointWorldState; };
     }
-  }, [disciplineOverlayRef, interactionRef, pointProfile, rootRef, runtimeRef]);
+  }, [disciplineOverlayRef, interactionRef, pointProfile, rootRef, runtimeRef, showCameraFocusAnchor]);
 
   return <canvas ref={canvasRef} className="about-narrative-world__canvas" aria-hidden="true" />;
 }

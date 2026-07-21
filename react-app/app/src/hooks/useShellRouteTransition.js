@@ -178,6 +178,7 @@ const DAILY_LAB_ROUTE_IDS = new Set([
 let transitionToken = 0;
 let activeAnimations = [];
 let activeEntranceSequence = null;
+let activeEntranceStartTimer = null;
 
 function readRootMs(name, fallback) {
   try {
@@ -419,6 +420,10 @@ function dismissGateBackdrop(options = {}) {
 /* ── animation tracking ──────────────────────────────────────────────────── */
 
 function cancelActiveAnimations() {
+  if (activeEntranceStartTimer !== null) {
+    clearStableTimeout(activeEntranceStartTimer);
+    activeEntranceStartTimer = null;
+  }
   activeEntranceSequence?.cancel();
   activeEntranceSequence = null;
   activeAnimations.forEach((a) => {
@@ -1174,6 +1179,7 @@ function staggeredEntrance({
   enterMs = ELEMENT_REVEAL_MS,
   revealEasing = EASE_OUT,
   onPrepared,
+  onViewSettled,
 } = {}) {
   return new Promise((resolve) => {
     const groups = buildRouteTransitionGroups(routeId, surfaceRefs);
@@ -1187,6 +1193,7 @@ function staggeredEntrance({
       if (hero) hero.style.opacity = '1';
       if (ui) ui.style.opacity = '1';
       if (typeof onPrepared === 'function') onPrepared();
+      if (typeof onViewSettled === 'function') onViewSettled();
       dispatchRouteEntranceStart(routeId, 'route');
       resolve();
       return;
@@ -1275,14 +1282,16 @@ function staggeredEntrance({
       });
     });
 
-    window.requestAnimationFrame(() => {
+    const surfaceTotal = Math.max(0, ...groups.map((group) => group.delayMs)) + enterMs;
+    activeEntranceStartTimer = setStableTimeout(() => {
+      activeEntranceStartTimer = null;
+      if (typeof onViewSettled === 'function') onViewSettled();
       dispatchRouteEntranceStart(routeId, 'route');
       void routeEntrance.play();
-    });
+    }, surfaceTotal);
 
-    const surfaceTotal = Math.max(0, ...groups.map((group) => group.delayMs)) + enterMs;
     const routeEnterTotal = routeEntrance.totalMs;
-    setStableTimeout(resolve, Math.max(surfaceTotal, routeEnterTotal) + 50);
+    setStableTimeout(resolve, surfaceTotal + routeEnterTotal + 50);
   });
 }
 
@@ -1709,6 +1718,8 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
                 easing: 'linear',
               });
               dismissGateBackdropOnce();
+            },
+            onViewSettled: () => {
               if (nextRouteId === 'portfolio') {
                 releasePortfolioDeck(isGate ? 'gate-success' : 'route-in');
               }

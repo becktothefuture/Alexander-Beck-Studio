@@ -177,13 +177,26 @@ async function auditDailyFocusTitleEntrance(browser, entry) {
       const root = document.documentElement;
       const titleLine = document.querySelector('#hero-title .hero-title__name');
       if (audit && titleLine) {
-        const opacity = Number.parseFloat(getComputedStyle(titleLine).opacity || '1');
-        if (root.classList.contains('abs-home-post-boot-pending') && opacity <= 0.02) {
+        const glyphOpacities = Array.from(
+          document.querySelectorAll('#hero-title [data-route-enter-glyph]'),
+          (glyph) => Number.parseFloat(getComputedStyle(glyph).opacity || '1'),
+        );
+        const opacity = glyphOpacities.length > 0
+          ? Math.max(...glyphOpacities)
+          : Number.parseFloat(getComputedStyle(titleLine).opacity || '1');
+        const titleIsStaged = glyphOpacities.length > 0
+          ? glyphOpacities.every((glyphOpacity) => glyphOpacity <= 0.02)
+          : opacity <= 0.02;
+        const titleIsInterpolating = glyphOpacities.length > 0
+          ? glyphOpacities.some((glyphOpacity) => glyphOpacity > 0.02 && glyphOpacity < 0.98)
+            || (Math.min(...glyphOpacities) <= 0.02 && opacity >= 0.98)
+          : opacity > 0.02 && opacity < 0.98;
+        if (root.classList.contains('abs-home-post-boot-pending') && titleIsStaged) {
           audit.sawPendingHidden = true;
         }
         if (root.classList.contains('abs-home-post-boot-enter')) {
           if (!document.getElementById('abs-boot-overlay')) audit.sawEnterWithoutOverlay = true;
-          if (opacity > 0.02 && opacity < 0.98) audit.sawEnterIntermediate = true;
+          if (titleIsInterpolating) audit.sawEnterIntermediate = true;
         }
       }
       const edgeCaption = document.getElementById('edge-caption');
@@ -292,18 +305,33 @@ async function auditHomeCanvasTitleEntrance(browser) {
       const audit = window.__ABS_HOME_CANVAS_TITLE_ENTRANCE_AUDIT__;
       const root = document.documentElement;
       const titleLine = document.querySelector('#hero-title .hero-title__name');
-      const domOpacity = titleLine
-        ? Number.parseFloat(getComputedStyle(titleLine).opacity || '1')
-        : 1;
+      const titleGlyphs = Array.from(
+        document.querySelectorAll('#hero-title [data-route-enter-glyph]'),
+      );
+      const glyphOpacities = titleGlyphs.map((glyph) => (
+        Number.parseFloat(getComputedStyle(glyph).opacity || '1')
+      ));
+      const domOpacity = glyphOpacities.length > 0
+        ? Math.max(...glyphOpacities)
+        : titleLine
+          ? Number.parseFloat(getComputedStyle(titleLine).opacity || '1')
+          : 1;
+      const titleIsStaged = glyphOpacities.length > 0
+        ? glyphOpacities.every((opacity) => opacity <= 0.02)
+        : domOpacity <= 0.02;
+      const titleIsInterpolating = glyphOpacities.length > 0
+        ? glyphOpacities.some((opacity) => opacity > 0.02 && opacity < 0.98)
+          || (Math.min(...glyphOpacities) <= 0.02 && domOpacity >= 0.98)
+        : domOpacity > 0.02 && domOpacity < 0.98;
       const snapshot = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
       const canvasOpacity = Number(snapshot?.canvasTitleMaxOpacity) || 0;
 
-      if (root.classList.contains('abs-home-post-boot-pending') && domOpacity <= 0.02) {
+      if (root.classList.contains('abs-home-post-boot-pending') && titleIsStaged) {
         audit.sawPendingHidden = true;
       }
       if (root.classList.contains('abs-home-post-boot-enter')) {
         if (!document.getElementById('abs-boot-overlay')) audit.sawEnterWithoutOverlay = true;
-        if (domOpacity > 0.02 && domOpacity < 0.98) audit.sawDomIntermediate = true;
+        if (titleIsInterpolating) audit.sawDomIntermediate = true;
         if (canvasOpacity > 0.02 && canvasOpacity < 0.98) audit.sawCanvasIntermediate = true;
       }
 

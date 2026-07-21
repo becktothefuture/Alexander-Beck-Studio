@@ -96,6 +96,29 @@ test('the opener description survives migration, normalization, and serializatio
   assert.equal(persistedOpener.description, opener.description);
 });
 
+test('title viewport placement survives validation and serialization', () => {
+  const source = migrateAboutNarrativeVersion2To5(canonicalV2);
+  const opener = source.tracks.text.fields.find((field) => field.preset === 'opener-v1');
+  const finale = source.tracks.text.fields.find((field) => field.preset === 'finale-v1');
+  const travellingTitle = source.tracks.text.fields.find((field) => field.preset === 'travelling-title-v1');
+  opener.presentation.viewportY = 76;
+  finale.presentation.viewportY = 78;
+  travellingTitle.presentation.viewportY = 55;
+
+  const serialized = serializeAboutNarrativeTrackSource(source);
+  const loaded = loadAboutNarrativeTrackSource(serialized);
+  assert.equal(loaded.status, 'current');
+  assert.equal(loaded.document.tracks.text.fields.find((field) => field.id === opener.id).presentation.viewportY, 76);
+  assert.equal(loaded.document.tracks.text.fields.find((field) => field.id === finale.id).presentation.viewportY, 78);
+  assert.equal(loaded.document.tracks.text.fields.find((field) => field.id === travellingTitle.id).presentation.viewportY, 55);
+
+  opener.presentation.viewportY = -1;
+  assert.throws(() => serializeAboutNarrativeTrackSource(source), /persistable|viewportY/i);
+  opener.presentation.viewportY = 76;
+  travellingTitle.presentation.viewportY = 101;
+  assert.throws(() => serializeAboutNarrativeTrackSource(source), /persistable|viewportY/i);
+});
+
 test('v5 Visibility keys and profile overrides roundtrip without loss', () => {
   const source = migrateAboutNarrativeVersion2To5(canonicalV2);
   const durationWU = source.profiles.desktop.storyDurationWU;
@@ -168,7 +191,18 @@ test('v4 to v5 consolidates Camera fog and rejects divergent key or profile fog'
   assert.deepEqual(Object.keys(v5.globals.camera).sort(), ['distanceFogEndWU', 'distanceFogStartWU']);
   assert.deepEqual(
     Object.keys(v5.tracks.camera.keys[0]).sort(),
-    ['atWU', 'easing', 'fov', 'id', 'locked', 'position', 'rotation'],
+    [
+      'aimEnabled',
+      'atWU',
+      'easing',
+      'fov',
+      'id',
+      'locked',
+      'lookAtRoll',
+      'lookAtTarget',
+      'position',
+      'rotation',
+    ],
   );
   assert.deepEqual(v5.tracks.visibility.keys, [
     { id: 'visibility-start', atWU: 0, visibility: 1, easing: 'linear', locked: true },

@@ -374,7 +374,7 @@ async function waitForParticleIdle(page) {
       if (field.reducedMotion) {
         return field.cadence === 'static' && !field.running && !field.scheduled && field.visible;
       }
-      return !field.running && !field.visible && (field.opacity || 0) <= 0.02;
+      return !field.running && !field.scheduled && field.visible && (field.opacity || 0) > 0.02;
     },
     null,
     { timeout: Math.min(WAIT_MS, 5000) }
@@ -1254,8 +1254,8 @@ async function main() {
           failures.push(`${name}: particle field backing store is out of sync`);
         }
       }
-      if ((result.particleField?.opacity ?? 1) > 0.02 || result.particleField?.visible) {
-        failures.push(`${name}: particle field should be dark while idle`);
+      if ((result.particleField?.opacity ?? 0) <= 0.02 || !result.particleField?.visible) {
+        failures.push(`${name}: particle field should remain visible while idle`);
       }
     }
     if ((summary.viewports.desktop.press?.delta ?? Infinity) > 2) failures.push('desktop: pointer-down center delta exceeded 2px');
@@ -1288,7 +1288,7 @@ async function main() {
     if (!speedPerformance?.particleCountStable) failures.push('desktop: particle field count changed during the performance burst');
     if (!speedPerformance?.cardCountStable) failures.push('desktop: permanent card count changed during the performance burst');
     if ((speedPerformance?.maxLead ?? Infinity) > 2.02) failures.push('desktop: performance burst exceeded the bounded target lead');
-    if (speedPerformance?.after?.fieldRunning || speedPerformance?.after?.fieldVisible || (speedPerformance?.after?.fieldOpacity ?? 1) > 0.02) failures.push('desktop: persistent particle field stayed visible after settlement');
+    if (speedPerformance?.after?.fieldRunning || !speedPerformance?.after?.fieldVisible || (speedPerformance?.after?.fieldOpacity ?? 0) <= 0.02) failures.push('desktop: particle field did not remain visible after settlement');
     if (speedPerformance?.after?.deckRafActive) failures.push('desktop: carousel RAF remained active after the performance burst settled');
     const rapidReversal = summary.viewports.desktop.rapidReversal;
     if (!(rapidReversal?.beforeVelocity > 0)) failures.push('desktop: reversal setup never reached forward carousel speed');
@@ -1332,7 +1332,7 @@ async function main() {
         } else {
           if (!result.fieldActivated) failures.push(`${label}: sustained input did not reveal the particle field`);
           if (!result.fieldParticleCountStable || (result.fieldParticleCount || 0) < 1) failures.push(`${label}: particle field count was not fixed`);
-          if ((result.after?.particleField?.opacity ?? 1) > 0.02 || result.after?.particleField?.visible) failures.push(`${label}: particle field stayed visible after settlement`);
+          if ((result.after?.particleField?.opacity ?? 0) <= 0.02 || !result.after?.particleField?.visible) failures.push(`${label}: particle field did not remain visible after settlement`);
         }
       }
     }

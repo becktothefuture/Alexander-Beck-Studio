@@ -35,6 +35,11 @@ import {
   parseAboutNarrativeCameraEasing,
 } from './aboutNarrativeCameraEasing.js';
 import {
+  getAboutNarrativeCameraRotationFromQuaternion,
+  writeAboutNarrativeCameraLookAtQuaternion,
+  writeAboutNarrativeCameraTargetFromRotation,
+} from './aboutNarrativeCameraRig.js';
+import {
   clearAboutNarrativeRecoveryDraft,
   exportAboutNarrativeDocument,
   loadAboutNarrativeSource,
@@ -57,11 +62,44 @@ const MIN_TIMELINE_WIDTH = 920;
 const BASE_PIXELS_PER_WU = 66;
 const TEXT_CONNECTION_EPSILON_WU = 0.0001;
 const GRID_RIPPLE_START_STEP_WU = 0.05;
-const DISCIPLINE_POSITION_CONTROL = Object.freeze({
-  min: 0.15,
-  max: 0.85,
+const DISCIPLINE_POSITION_X_CONTROL = Object.freeze({
+  min: 0.1,
+  max: 0.72,
   step: 0.01,
   unit: '× grid',
+});
+const DISCIPLINE_POSITION_Y_CONTROL = Object.freeze({
+  min: 0.4,
+  max: 1,
+  step: 0.01,
+  unit: '× grid',
+});
+const BOOKEND_VIEWPORT_Y_CONTROL = Object.freeze({
+  id: 'viewportY',
+  min: 0,
+  max: 100,
+  step: 1,
+  unit: '%',
+});
+const TRAVELLING_TITLE_VIEWPORT_Y_CONTROL = Object.freeze({
+  id: 'viewportY',
+  min: 0,
+  max: 100,
+  step: 1,
+  unit: '%',
+});
+const EDITORIAL_REVEAL_CONTROLS = Object.freeze([
+  Object.freeze({ id: 'fadeDelayWU', label: 'Fade delay', min: 0, max: 0.8, step: 0.01, unit: 'WU' }),
+  Object.freeze({ id: 'fadeDurationWU', label: 'Fade length', min: 0.02, max: 0.8, step: 0.01, unit: 'WU' }),
+  Object.freeze({ id: 'blurDelayWU', label: 'Blur delay', min: 0, max: 0.8, step: 0.01, unit: 'WU' }),
+  Object.freeze({ id: 'blurDurationWU', label: 'Blur clear length', min: 0.02, max: 0.8, step: 0.01, unit: 'WU' }),
+]);
+const EDITORIAL_MODULE_GAP_CONTROL = Object.freeze({
+  id: 'moduleGapRem',
+  min: 0.5,
+  max: 6,
+  step: 0.05,
+  unit: 'rem',
 });
 const PREVIEW_ASPECT_RATIOS = Object.freeze({
   tablet: Object.freeze({ portrait: 820 / 1180, landscape: 1180 / 820 }),
@@ -141,6 +179,11 @@ function getObjectLabel(object, type) {
   if (object.kind === 'stub') return object.label || 'Untitled stub';
   if (object.kind === 'scroll-block') {
     if (object.block?.kind === 'clients') return 'Selected clients';
+    if (object.block?.kind === 'stack') {
+      return object.block.modules?.some((module) => module.kind === 'logo-grid')
+        ? 'Editorial + logos'
+        : 'Editorial block';
+    }
     return object.block?.text || object.block?.label || 'Scroll block';
   }
   if (object.kind === 'discipline-reveal') return 'Discipline reveal';
@@ -1383,6 +1426,8 @@ function ObjectInspector({ snapshot, store, onMessage }) {
     onCancel: () => store.cancelGesture(),
     onCommit: (value) => commit(label, (target) => mutate(target, value)),
   });
+  const cameraAimEnabled = selection.type === 'camera-key'
+    && (object.aimEnabled ?? Array.isArray(object.lookAtTarget));
   return (
     <div className="about-track-editor-inspector__content">
       <header>
@@ -1398,14 +1443,56 @@ function ObjectInspector({ snapshot, store, onMessage }) {
           {number('atWU', object.atWU, boundaryCamera)}
           <p className="about-track-editor-parameter-note is-wide">This is a shot key. Its pose is the camera at this exact Story WU; the curve below shapes its travel <b>to the next key</b>.</p>
           {boundaryCamera ? <p className="about-track-editor-parameter-note is-wide">This boundary key stays at its Story WU. Position, rotation and field of view are fully editable.</p> : null}
-          <InspectorFolder group={{ id: 'camera-rig', label: 'Camera rig' }} count={7} defaultOpen>
+          <InspectorFolder group={{ id: 'camera-rig', label: 'Camera rig' }} count={11} defaultOpen>
             <p className="about-track-editor-parameter-note">
-              Position moves the camera in world space. Rotation turns it around the centre of the viewport, like a first-person camera.
+              Position and Rotation author the manual pose. Focus on 3D anchor makes the camera look at the red world-space cross instead.
             </p>
+            <label className="about-track-editor-check">
+              <input
+                type="checkbox"
+                checked={cameraAimEnabled}
+                onChange={(event) => commit('Toggle Camera focus anchor', (target) => {
+                  if (event.target.checked) {
+                    if (!Array.isArray(target.lookAtTarget)) {
+                      target.lookAtTarget = writeAboutNarrativeCameraTargetFromRotation(
+                        [0, 0, 0],
+                        target.position,
+                        target.rotation,
+                        1,
+                      );
+                      target.lookAtRoll = 0;
+                    }
+                    target.aimEnabled = true;
+                  } else {
+                    if (Array.isArray(target.lookAtTarget)) {
+                      target.rotation = getAboutNarrativeCameraRotationFromQuaternion(
+                        writeAboutNarrativeCameraLookAtQuaternion(
+                          [0, 0, 0, 1],
+                          target.position,
+                          target.lookAtTarget,
+                          target.lookAtRoll,
+                        ),
+                      );
+                    }
+                    target.aimEnabled = false;
+                  }
+                })}
+              />
+              Focus on 3D anchor
+            </label>
+            {cameraAimEnabled ? (
+              <p className="about-track-editor-parameter-note is-wide">
+                Focus owns orientation. Moving Position around the anchor creates an orbit; Horizon roll is the only rotational offset.
+              </p>
+            ) : (
+              <p className="about-track-editor-parameter-note is-wide">
+                Manual Rotation owns orientation. The anchor still exists in the 3D world and eases towards its next keyed position, ready to be focused again.
+              </p>
+            )}
             <div className="about-track-editor-camera-rig">
-              {['position', 'rotation', 'lens'].map((groupId) => (
+              {['position', 'rotation', 'target', 'lens'].map((groupId) => (
                 <section className="about-track-editor-camera-rig__group" key={groupId}>
-                  <span>{groupId === 'lens' ? 'Lens' : groupId[0].toUpperCase() + groupId.slice(1)}</span>
+                  <span>{groupId === 'lens' ? 'Lens' : groupId === 'target' ? 'Focus anchor' : groupId[0].toUpperCase() + groupId.slice(1)}</span>
                   {ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS
                     .filter((control) => control.group === groupId)
                     .map((control) => {
@@ -1419,6 +1506,7 @@ function ObjectInspector({ snapshot, store, onMessage }) {
                           ariaLabel={`Camera ${control.label}`}
                           value={value}
                           control={control}
+                          disabled={cameraAimEnabled && groupId === 'rotation'}
                           {...bindObjectRange(`Edit Camera ${control.label}`, (target, next) => {
                             if (axis == null) target[field] = next;
                             else target[field][axis] = next;
@@ -1519,6 +1607,28 @@ function ObjectInspector({ snapshot, store, onMessage }) {
                   })}
                 />
               ) : null}
+              {object.kind === 'title' ? (
+                <InspectorFolder group={{ id: 'title-viewport-placement', label: 'Viewport placement' }} count={1} defaultOpen>
+                  <RangeParameterField
+                    label="Title Y"
+                    ariaLabel={`${object.preset === 'opener-v1' ? 'Cover' : object.preset === 'finale-v1' ? 'End' : 'Travelling'} title viewport Y`}
+                    value={object.presentation?.viewportY ?? (object.preset === 'opener-v1' ? 76 : object.preset === 'finale-v1' ? 78 : 50)}
+                    control={['opener-v1', 'finale-v1'].includes(object.preset)
+                      ? BOOKEND_VIEWPORT_Y_CONTROL
+                      : TRAVELLING_TITLE_VIEWPORT_Y_CONTROL}
+                    disabled={locked}
+                    {...bindObjectRange('Edit Title viewport Y', (target, value) => {
+                      target.presentation ||= { layout: object.presentation?.layout || 'center' };
+                      target.presentation.viewportY = value;
+                    })}
+                  />
+                  <p className="about-track-editor-parameter-note">
+                    {['opener-v1', 'finale-v1'].includes(object.preset)
+                      ? 'Positions the complete title stack from the top of the preview height. The full 0–100% range is available; short landscape still keeps a safe bottom inset.'
+                      : 'Positions the travelling title by its visual centre from the top of the preview height.'}
+                  </p>
+                </InspectorFolder>
+              ) : null}
               <SelectField label="Movement" value={object.movement} disabled={locked} options={[{ value: 'spatial', label: 'Spatial' }, { value: 'vertical', label: 'Vertical' }]} onCommit={(value) => commit('Edit Title movement', (target) => { target.movement = value; })} />
               <SelectField label="Title style" value={object.titleStyle || (object.preset === 'opener-v1' || object.preset === 'finale-v1' ? 'display' : 'standard')} disabled={locked} options={ABOUT_NARRATIVE_TITLE_STYLES.map((value) => ({ value, label: value === 'display' ? 'Display · Instrument' : 'Standard · Geist' }))} onCommit={(value) => commit('Edit Title style', (target) => { target.titleStyle = value; })} />
               <TextField label="Motion preset" value={object.preset} disabled={locked} onCommit={(value) => commit('Edit Title preset', (target) => { target.preset = value; })} />
@@ -1526,7 +1636,7 @@ function ObjectInspector({ snapshot, store, onMessage }) {
           ) : null}
           {object.kind === 'scroll-block' ? (
             <>
-              <TextField label="Copy" value={object.block?.text || ''} disabled={locked || !('text' in object.block)} multiline focusId={'text' in object.block ? 'text-copy' : undefined} onCommit={(value) => commit('Edit Scroll block', (target) => { target.block.text = value; })} />
+              {object.block?.kind !== 'stack' ? <TextField label="Copy" value={object.block?.text || ''} disabled={locked || !('text' in object.block)} multiline focusId={'text' in object.block ? 'text-copy' : undefined} onCommit={(value) => commit('Edit Scroll block', (target) => { target.block.text = value; })} /> : null}
               <SelectField
                 label="Block kind"
                 value={object.block?.kind || 'prose'}
@@ -1534,10 +1644,17 @@ function ObjectInspector({ snapshot, store, onMessage }) {
                 options={ABOUT_NARRATIVE_BLOCK_KINDS.map((value) => ({ value, label: value }))}
                 onCommit={(value) => commit('Edit block kind', (target) => {
                   const itemKind = ['clients', 'disciplines', 'list'].includes(value);
+                  if (value === 'stack' && (!Array.isArray(target.block.modules) || target.block.modules.length === 0)) {
+                    target.block.modules = [{
+                      id: `${target.block.id}-copy`,
+                      kind: 'prose',
+                      text: target.block.text || 'New editorial paragraph.',
+                    }];
+                  }
                   if (itemKind && (!Array.isArray(target.block.items) || target.block.items.length === 0)) {
                     target.block.items = [target.block.text || target.block.label || 'Untitled item'];
                   }
-                  if (!itemKind && (typeof target.block.text !== 'string' || !target.block.text.trim())) {
+                  if (!itemKind && value !== 'stack' && (typeof target.block.text !== 'string' || !target.block.text.trim())) {
                     target.block.text = Array.isArray(target.block.items) && target.block.items.length
                       ? target.block.items.join(', ')
                       : target.block.label || 'Untitled copy';
@@ -1546,8 +1663,46 @@ function ObjectInspector({ snapshot, store, onMessage }) {
                 })}
               />
               <TextField label="Block label" value={object.block?.label || ''} disabled={locked} onCommit={(value) => commit('Edit block label', (target) => { target.block.label = value; })} />
-              <JsonField label="List items" value={object.block?.items || []} disabled={locked} focusId={!('text' in object.block) ? 'text-copy' : undefined} onCommit={(value) => commit('Edit block items', (target) => { target.block.items = value; })} onError={onMessage} />
+              {object.block?.kind === 'stack' ? (
+                <>
+                  <RangeParameterField
+                    label="Module spacing"
+                    ariaLabel="Editorial module spacing"
+                    value={object.block?.moduleGapRem ?? 1.75}
+                    control={EDITORIAL_MODULE_GAP_CONTROL}
+                    disabled={locked}
+                    {...bindObjectRange('Edit Editorial module spacing', (target, value) => {
+                      target.block.moduleGapRem = value;
+                    })}
+                  />
+                  <JsonField label="Stack modules" value={object.block?.modules || []} disabled={locked} focusId="text-copy" onCommit={(value) => commit('Edit stack modules', (target) => { target.block.modules = value; })} onError={onMessage} />
+                </>
+              ) : (
+                <JsonField label="List items" value={object.block?.items || []} disabled={locked} focusId={!('text' in object.block) ? 'text-copy' : undefined} onCommit={(value) => commit('Edit block items', (target) => { target.block.items = value; })} onError={onMessage} />
+              )}
               <JsonField label="Emphasis" value={object.block?.emphasis || []} disabled={locked} onCommit={(value) => commit('Edit block emphasis', (target) => { target.block.emphasis = value; })} onError={onMessage} />
+              <InspectorFolder group={{ id: 'editorial-reveal', label: 'Editorial reveal' }} count={4} defaultOpen>
+                <p className="about-track-editor-parameter-note is-wide">Fade and blur are authored independently from this block’s start.</p>
+                {EDITORIAL_REVEAL_CONTROLS.map((control) => (
+                  <RangeParameterField
+                    key={control.id}
+                    label={control.label}
+                    ariaLabel={`Editorial ${control.label}`}
+                    value={object.reveal?.[control.id] ?? (control.id === 'fadeDurationWU' ? 0.12 : control.id === 'blurDurationWU' ? 0.16 : 0)}
+                    control={control}
+                    disabled={locked}
+                    {...bindObjectRange(`Edit Editorial ${control.label}`, (target, value) => {
+                      target.reveal ||= {
+                        fadeDelayWU: 0,
+                        fadeDurationWU: 0.12,
+                        blurDelayWU: 0,
+                        blurDurationWU: 0.16,
+                      };
+                      target.reveal[control.id] = value;
+                    })}
+                  />
+                ))}
+              </InspectorFolder>
               <label className="about-track-editor-check">
                 <input type="checkbox" checked={object.block?.worldInfluence === true} disabled={locked} onChange={(event) => commit('Edit World influence', (target) => { target.block.worldInfluence = event.target.checked; })} />
                 Influences the World presentation
@@ -1669,7 +1824,13 @@ function ObjectInspector({ snapshot, store, onMessage }) {
                             label={label}
                             ariaLabel={`${item.label} ${label}`}
                             value={(mobile ? mobilePosition : desktopPosition)[axis]}
-                            control={{ ...DISCIPLINE_POSITION_CONTROL, id: label, label }}
+                            control={{
+                              ...(axis === 0
+                                ? DISCIPLINE_POSITION_X_CONTROL
+                                : DISCIPLINE_POSITION_Y_CONTROL),
+                              id: label,
+                              label,
+                            }}
                             disabled={locked}
                             {...bindPosition(mobile ? 'mobile' : 'desktop', axis)}
                           />

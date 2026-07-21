@@ -727,6 +727,9 @@ export function createAboutNarrativeTrackEditorStore(initialDocument, {
         operationOptions.cameraKey = {
           position: [...frame.camera.position],
           rotation: getAboutNarrativeCameraRotationFromQuaternion(frame.camera.quaternion),
+          aimEnabled: Number(frame.camera.aimWeight || 0) >= 0.9999,
+          lookAtTarget: [...frame.camera.lookAtTarget],
+          lookAtRoll: frame.camera.lookAtRoll,
           fov: frame.camera.fov,
         };
       }

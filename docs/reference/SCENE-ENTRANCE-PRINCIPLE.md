@@ -37,7 +37,7 @@ The homepage direct-load values are the upper bound for depth emergence: about `
 7. On close, restore the underlying page quickly as a complete group. Do not reverse a theatrical first entrance by default.
 8. Reduced motion removes travel, depth scaling, blur, parallax, and stagger while preserving state, focus, and readable continuity.
 
-The Home identity, Work introduction, About opening/finale, and Contact title use one scarce `bookend-title` exception: Instrument Serif is revealed through a bottom-up rectangular mask while a brief blur resolves. The title remains viewport-stable and is followed by context and action; it never receives spatial travel or scale. Home uses an intermediate scale for its three-line identity, while the shorter route titles use the larger bookend scale. Reduced motion settles the complete hierarchy immediately without mask or blur.
+The Home identity, Work introduction, About opening/finale, and Contact title use one scarce `bookend-title` exception: after the destination view settles, Instrument Serif resolves letter by letter from left to right using opacity, a brief blur, and a restrained horizontal offset. The title container stays at final geometry; glyphs never move vertically, mask, crop, or scale. Context waits for the final letter, then action follows. All four route identities use the same bookend size and leading. Reduced motion settles the complete hierarchy immediately without blur, travel, or stagger.
 
 ## 4. Portfolio project handoff
 

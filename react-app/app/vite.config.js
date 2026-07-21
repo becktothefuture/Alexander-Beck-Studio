@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -52,9 +53,33 @@ function absContentVirtualPlugin() {
   };
 }
 
+function publicDevGuardPlugin() {
+  return {
+    name: 'abs-public-dev-guard',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const pathname = String(req.url || '').split('?', 1)[0];
+        if (pathname === '/api' || pathname.startsWith('/api/') || pathname.startsWith('/@fs/')) {
+          res.statusCode = 404;
+          res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+          res.end('Not available on the public development mirror.');
+          return;
+        }
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => ({
   base: '/',
-  plugins: [react(), absContentVirtualPlugin(), createDevAdminPlugin({ publicConfigDir })],
+  plugins: [
+    react(),
+    absContentVirtualPlugin(),
+    ...(process.env.ABS_PUBLIC_DEV === '1'
+      ? [publicDevGuardPlugin()]
+      : [createDevAdminPlugin({ publicConfigDir })]),
+  ],
   resolve: {
     alias: {
       'virtual:about-narrative-resource-tools': resolve(
@@ -75,9 +100,17 @@ export default defineConfig(({ mode }) => ({
   },
   // Legacy bundles gate the dock + authoring UI on `__DEV__` (see main.js / portfolio app).
   define: {
-    __DEV__: mode === 'development',
+    __DEV__: mode === 'development' && process.env.ABS_PUBLIC_DEV !== '1',
     __CERTIFY__: mode === 'certification',
   },
+  server: process.env.ABS_PUBLIC_DEV === '1'
+    ? {
+      fs: {
+        strict: true,
+        allow: [__dirname],
+      },
+    }
+    : undefined,
   build: {
     rollupOptions: {
       input: {
@@ -104,6 +137,8 @@ export default defineConfig(({ mode }) => ({
         'lab/rift-rings': resolve(__dirname, 'lab/rift-rings.html'),
         'lab/spatial-scan': resolve(__dirname, 'lab/spatial-scan.html'),
         'lab/loader-playground': resolve(__dirname, 'lab/loader-playground.html'),
+        'lab/title-entrance': resolve(__dirname, 'lab/title-entrance.html'),
+        'lab/route-ball-transition': resolve(__dirname, 'lab/route-ball-transition.html'),
         ...(mode === 'development'
           ? { 'panel-host': resolve(__dirname, 'panel-host.html') }
           : {})

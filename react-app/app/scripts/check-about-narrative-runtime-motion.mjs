@@ -169,6 +169,12 @@ test('bust correspondence resolves progressively from its lowest points upward',
     morphProgress: 0.42,
     fromBust: 0,
     toBust: 1,
+    bustAssembly: {
+      platformScale: 0.95,
+      platformSettle: 0.24,
+      fragmentSpread: 0,
+      fragmentFall: 0,
+    },
   };
   sampleAboutNarrativeAnchorPosition(createSamplingInput({
     ...base,
@@ -180,6 +186,83 @@ test('bust correspondence resolves progressively from its lowest points upward',
   }), high);
   assert.ok(low.x > high.x, 'Lower bust points must advance before upper points.');
   assert.ok(Math.abs(low.y + 0.75) < Math.abs(high.y - 0.75));
+});
+
+test('surface-rise keeps submerged points in the field while the crown emerges first', () => {
+  const crown = { x: 0, y: 0, z: 0 };
+  const base = { x: 0, y: 0, z: 0 };
+  const input = {
+    fromPosition: [4, -1.52, 0],
+    morphProgress: 0.5,
+    fromBust: 0,
+    toBust: 1,
+    bustAssembly: {
+      weight: 1,
+      surfaceRiseWeight: 1,
+      surfaceHeight: -1.52,
+      submergeDepth: 3.2,
+      waterlineSoftness: 0.24,
+      fragmentSpread: 0,
+      fragmentFall: 0,
+    },
+  };
+  sampleAboutNarrativeAnchorPosition(createSamplingInput({
+    ...input,
+    toPosition: [0, 1, 0],
+  }), crown);
+  sampleAboutNarrativeAnchorPosition(createSamplingInput({
+    ...input,
+    toPosition: [0, -1.5, 0],
+  }), base);
+  assert.ok(crown.x < 0.1, 'The crown should already occupy its bust footprint.');
+  assert.ok(base.x > 3.9, 'The submerged base should remain part of the broad field.');
+  assert.ok(crown.y > base.y, 'Emergence must read from crown to base.');
+});
+
+test('bust assembly can be tuned granularly or disabled without residual fragmentation', () => {
+  const manual = { x: 0, y: 0, z: 0 };
+  const disabled = { x: 0, y: 0, z: 0 };
+  const base = createSamplingInput({
+    fromPosition: [0, 0, 0],
+    toPosition: [1, -0.75, 0],
+    pointSeed: 0.8,
+    morphProgress: 0.7,
+    fromBust: 0,
+    toBust: 1,
+  });
+  sampleAboutNarrativeAnchorPosition({
+    ...base,
+    bustAssembly: {
+      weight: 1,
+      baseStart: 0.6,
+      headStart: 0.9,
+      layerSoftness: 0.1,
+      fragmentHeight: 0.9,
+      fragmentFade: 0.8,
+      fragmentReveal: 0.2,
+      fragmentSpread: 3,
+      fragmentFall: 2,
+    },
+  }, manual);
+  sampleAboutNarrativeAnchorPosition({
+    ...base,
+    bustAssembly: {
+      weight: 0,
+      baseStart: 0.6,
+      headStart: 0.9,
+      layerSoftness: 0.1,
+      fragmentHeight: 0.9,
+      fragmentFade: 0.8,
+      fragmentReveal: 0.2,
+      fragmentSpread: 3,
+      fragmentFall: 2,
+    },
+  }, disabled);
+
+  const expectedGlobalMorph = 0.784;
+  assert.ok(Math.abs(disabled.x - expectedGlobalMorph) < 1e-12);
+  assert.ok(Math.abs(disabled.y - (-0.75 * expectedGlobalMorph)) < 1e-12);
+  assert.notDeepEqual(manual, disabled);
 });
 
 test('anchor sampler mirrors drift and wave without moving the grid', () => {
@@ -265,17 +348,31 @@ test('grid ripple perpetually radiates from its center on ambient time alone', (
   const ripplePointZ = 3 - input.gridRipple.centerZ;
   const rippleDistance = Math.hypot(ripplePointX, ripplePointZ);
   const ripplePhase = input.ambientTime * input.gridRipple.speed * 6.2831853;
-  const radialRipple = Math.sin((rippleDistance * input.gridRipple.frequency) - ripplePhase);
+  const rippleAngle = Math.atan2(ripplePointZ, ripplePointX);
+  const phaseVariation = Math.sin((rippleAngle * 3) + (ripplePhase * 0.18)) * 0.24;
+  const radialRipple = Math.sin(
+    (rippleDistance * input.gridRipple.frequency) - ripplePhase + phaseVariation,
+  );
   const harmonicRipple = Math.sin(
     (rippleDistance * input.gridRipple.frequency * 0.52) - (ripplePhase * 0.72),
   );
-  const centerPulse = Math.cos(ripplePhase) * Math.exp(-rippleDistance * 0.42);
-  const rippleFalloff = 1 / (1 + (rippleDistance * 0.035));
+  const undertowRipple = Math.cos(
+    (rippleDistance * input.gridRipple.frequency * 1.72)
+      - (ripplePhase * 0.46)
+      + (rippleAngle * 0.5),
+  );
+  const centerPulse = Math.cos(
+    (ripplePhase * 0.82) - (rippleDistance * input.gridRipple.frequency * 0.35),
+  ) * Math.exp(-rippleDistance * 0.38);
+  const rippleFalloff = 1 / (1 + (rippleDistance * 0.08));
   const rippleStrength = input.gridRipple.weight * input.gridRipple.amplitude;
-  const radialDisplacement = rippleStrength * radialRipple * rippleFalloff * 0.34;
+  const radialDisplacement = rippleStrength * radialRipple * rippleFalloff * 0.18;
   assert.ok(Math.abs(first.x - (1 + ((ripplePointX / rippleDistance) * radialDisplacement))) < 1e-9);
   assert.ok(Math.abs(first.y - (2 + (rippleStrength * (
-    ((radialRipple * 0.72) + (harmonicRipple * 0.2) + (centerPulse * 0.34)) * rippleFalloff
+    ((radialRipple * 0.58)
+      + (harmonicRipple * 0.22)
+      + (undertowRipple * 0.12)
+      + (centerPulse * 0.26)) * rippleFalloff
   )))) < 1e-9);
   assert.ok(Math.abs(first.z - (3 + ((ripplePointZ / rippleDistance) * radialDisplacement))) < 1e-9);
   input.storyTime = 8.1;

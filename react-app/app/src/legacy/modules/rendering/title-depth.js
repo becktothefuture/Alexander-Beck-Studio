@@ -3,6 +3,7 @@ import { MODES } from '../core/constants.js';
 export const TITLE_DEPTH_PLANE_Z = 0.5;
 const TITLE_RENDER_REFRESH_MS = 500;
 const TITLE_RENDER_MAX_LINES = 4;
+const TITLE_RENDER_MAX_GLYPHS = 64;
 export const TITLE_SCENE_PLACEMENT = Object.freeze({
   BEHIND: 'behind',
   DEPTH_PLANE: 'depth-plane',
@@ -25,9 +26,19 @@ const titleRenderCache = {
     opacity: 0,
     letterSpacingPx: 0,
     fontSizeCssPx: 0,
-    lineHeightPx: 0,
     blurPx: 0,
-    reveal: 1
+    glyphCount: 0,
+    glyphs: Array.from({ length: TITLE_RENDER_MAX_GLYPHS }, () => ({
+      text: '',
+      x: 0,
+      y: 0,
+      font: '',
+      color: '',
+      finalOpacity: 0,
+      blurPx: 0,
+      driftPx: 0,
+      state: null,
+    })),
   })),
   state: {
     active: false,
@@ -123,23 +134,39 @@ function parseBlurPx(value) {
   return match ? Math.max(0, Number.parseFloat(match[1]) || 0) : 0;
 }
 
-function parseClipReveal(value, lineHeightPx) {
-  const clipPath = String(value || '').trim();
-  if (!clipPath || clipPath === 'none') return 1;
-  const match = clipPath.match(/^inset\(\s*([\d.]+)(%|px)/i);
-  if (!match) return 1;
-  const inset = Number.parseFloat(match[1]) || 0;
-  const clippedRatio = match[2] === '%'
-    ? inset / 100
-    : inset / Math.max(1, lineHeightPx);
-  return 1 - clamp01(clippedRatio);
-}
-
 function clamp01(value) {
   if (!Number.isFinite(value)) return 0;
   if (value <= 0) return 0;
   if (value >= 1) return 1;
   return value;
+}
+
+// Specialized evaluator for cubic-bezier(0.22, 0, 0.16, 1). Keeping this
+// numeric avoids parsing strings or allocating objects in the render loop.
+function easeTitleGlyphProgress(progress) {
+  const t = clamp01(progress);
+  const cx = 0.66;
+  const bx = -0.84;
+  const ax = 1.18;
+  const cy = 0;
+  const by = 3;
+  const ay = -2;
+  let x = t;
+  for (let i = 0; i < 5; i += 1) {
+    const estimate = ((ax * x + bx) * x + cx) * x - t;
+    const derivative = (3 * ax * x + 2 * bx) * x + cx;
+    if (Math.abs(estimate) < 0.0001 || Math.abs(derivative) < 0.0001) break;
+    x = clamp01(x - estimate / derivative);
+  }
+  return clamp01(((ay * x + by) * x + cy) * x);
+}
+
+function resolveGlyphProgress(state, now) {
+  if (!state || state.settled) return 1;
+  if (state.phase !== 'playing' || !(state.startedAt > 0)) return 0;
+  return easeTitleGlyphProgress(
+    (now - state.startedAt - state.delayMs) / Math.max(1, state.durationMs),
+  );
 }
 
 function markCanvasTitleInactive(globals) {
@@ -186,6 +213,7 @@ function buildTitleRenderSignature(canvas, title, root, body, scene) {
     canvas.height,
     canvas.id || '',
     title.textContent,
+    title.dataset?.routeEnterGlyphRevision || '',
     root?.className || '',
     root?.dataset?.absTransitionPhase || '',
     root?.dataset?.absBootState || '',
@@ -265,9 +293,8 @@ function refreshCanvasTitleCache(ctx, globals) {
     target.text = '';
     target.opacity = 0;
     target.fontSizeCssPx = 0;
-    target.lineHeightPx = 0;
     target.blurPx = 0;
-    target.reveal = 1;
+    target.glyphCount = 0;
     if (!source) continue;
 
     const text = source.textContent?.trim() || '';
@@ -278,7 +305,6 @@ function refreshCanvasTitleCache(ctx, globals) {
     const cssFontSize = parseCssPx(style.fontSize, 16);
     const fontSizeCssPx = Math.max(1, cssFontSize * stableTitleScale);
     const fontPx = Math.max(1, fontSizeCssPx * scaleY);
-    const lineHeightPx = Math.max(1, lineRect.height * scaleY);
     const opacity = clamp01(parseCssPx(style.opacity, 1) * canvasTitleOpacity);
     const letterSpacingPx = parseCssPx(style.letterSpacing, 0) * stableTitleScale * scaleX;
     const fontStyle = style.fontStyle && style.fontStyle !== 'normal' ? `${style.fontStyle} ` : '';
@@ -292,13 +318,36 @@ function refreshCanvasTitleCache(ctx, globals) {
     target.opacity = opacity;
     target.letterSpacingPx = Number.isFinite(letterSpacingPx) ? letterSpacingPx : 0;
     target.fontSizeCssPx = fontSizeCssPx;
-    target.lineHeightPx = lineHeightPx;
     target.blurPx = parseBlurPx(style.filter) * scaleY;
-    target.reveal = parseClipReveal(style.clipPath, lineRect.height);
+
+    const glyphNodes = source.querySelectorAll?.('[data-route-enter-glyph]') || [];
+    target.glyphCount = Math.min(TITLE_RENDER_MAX_GLYPHS, glyphNodes.length);
+    for (let glyphIndex = 0; glyphIndex < target.glyphs.length; glyphIndex += 1) {
+      const glyphTarget = target.glyphs[glyphIndex];
+      const glyphSource = glyphNodes[glyphIndex];
+      glyphTarget.text = '';
+      glyphTarget.state = null;
+      if (!glyphSource || glyphIndex >= target.glyphCount) continue;
+      const state = glyphSource.__absRouteEntranceState || null;
+      const finalRect = state?.finalRect || glyphSource.getBoundingClientRect();
+      glyphTarget.text = String(glyphSource.textContent || '').replace(/\u00a0/g, ' ');
+      glyphTarget.x = ((finalRect.left + finalRect.width * 0.5) - canvasRect.left) * scaleX;
+      glyphTarget.y = ((finalRect.top + finalRect.height * 0.5) - canvasRect.top) * scaleY;
+      glyphTarget.font = target.font;
+      glyphTarget.color = target.color;
+      glyphTarget.finalOpacity = clamp01(
+        state ? state.finalOpacity * canvasTitleOpacity : opacity
+      );
+      glyphTarget.blurPx = Math.max(0, Number(state?.blurPx) || 0) * scaleY;
+      glyphTarget.driftPx = fontSizeCssPx * (Number(state?.driftEm) || 0) * scaleX;
+      glyphTarget.state = state;
+    }
 
     titleRenderCache.lineCount += 1;
-    titleRenderCache.maxOpacity = Math.max(titleRenderCache.maxOpacity, opacity);
-    if (opacity > 0.01) titleRenderCache.visible = true;
+    if (target.glyphCount === 0) {
+      titleRenderCache.maxOpacity = Math.max(titleRenderCache.maxOpacity, opacity);
+      if (opacity > 0.01) titleRenderCache.visible = true;
+    }
   }
 
   titleRenderCache.state.active = titleRenderCache.active;
@@ -318,38 +367,45 @@ export function drawHomepageCanvasTitle(ctx, globals) {
   const canvas = globals?.canvas;
   if (!canvas || !cache.active || cache.lineCount <= 0) return false;
 
-  // Claim visual ownership before this frame is composed. This makes the DOM
-  // fallback disappear in the same frame as the first visible canvas draw.
-  if (cache.visible && document.documentElement.dataset.absHomeCanvasTitleReady !== 'true') {
-    document.documentElement.dataset.absHomeCanvasTitleReady = 'true';
-  }
-
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   if ('fontKerning' in ctx) ctx.fontKerning = 'normal';
   if ('textRendering' in ctx) ctx.textRendering = 'geometricPrecision';
 
+  const now = typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now();
+  let visible = false;
+  let maxOpacity = 0;
   for (let i = 0; i < cache.lines.length; i += 1) {
     const line = cache.lines[i];
-    if (!line.text || line.opacity <= 0.01 || line.reveal <= 0.001) continue;
-    ctx.save();
-    // The mask is only needed while the line is entering. Removing it at the
-    // settled frame preserves the typeface's real glyph bounds, including the
-    // descender on the final "Technologist." line.
-    if (line.reveal < 0.999) {
-      const lineTop = line.y - (line.lineHeightPx * 0.5);
-      const revealTop = lineTop + ((1 - line.reveal) * line.lineHeightPx);
-      const descenderOverscanPx = line.lineHeightPx * 0.18;
-      ctx.beginPath();
-      ctx.rect(
-        0,
-        revealTop,
-        canvas.width,
-        Math.max(0, (line.lineHeightPx * line.reveal) + descenderOverscanPx)
-      );
-      ctx.clip();
+    if (line.glyphCount > 0) {
+      for (let glyphIndex = 0; glyphIndex < line.glyphCount; glyphIndex += 1) {
+        const glyph = line.glyphs[glyphIndex];
+        if (!glyph.text) continue;
+        const progress = resolveGlyphProgress(glyph.state, now);
+        const opacity = glyph.finalOpacity * progress;
+        maxOpacity = Math.max(maxOpacity, opacity);
+        if (opacity <= 0.01) continue;
+        visible = true;
+        ctx.save();
+        ctx.globalAlpha = opacity;
+        ctx.fillStyle = glyph.color;
+        ctx.font = glyph.font;
+        ctx.filter = glyph.blurPx * (1 - progress) > 0.01
+          ? `blur(${(glyph.blurPx * (1 - progress)).toFixed(3)}px)`
+          : 'none';
+        if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+        ctx.fillText(glyph.text, glyph.x + (glyph.driftPx * (1 - progress)), glyph.y);
+        ctx.restore();
+      }
+      continue;
     }
+    if (!line.text || line.opacity <= 0.01) continue;
+    visible = true;
+    maxOpacity = Math.max(maxOpacity, line.opacity);
+    ctx.save();
     ctx.globalAlpha = line.opacity;
     ctx.fillStyle = line.color;
     ctx.font = line.font;
@@ -361,5 +417,12 @@ export function drawHomepageCanvasTitle(ctx, globals) {
 
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   ctx.restore();
-  return cache.visible;
+  cache.visible = visible;
+  cache.maxOpacity = maxOpacity;
+  cache.state.visible = visible;
+  cache.state.maxOpacity = maxOpacity;
+  if (visible && document.documentElement.dataset.absHomeCanvasTitleReady !== 'true') {
+    document.documentElement.dataset.absHomeCanvasTitleReady = 'true';
+  }
+  return visible;
 }

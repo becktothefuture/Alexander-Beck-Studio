@@ -3133,20 +3133,6 @@ button.abs-meta-btn,
    Replaces the former canvas-rendered SVG logo.
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* Bookend-title fallback: a bottom-up mask resolves from soft to sharp. */
-@keyframes heroEmerge {
-  0% {
-    opacity: 0;
-    filter: blur(7px);
-    clip-path: inset(100% 0 -0.22em 0);
-  }
-  100% {
-    opacity: 1;
-    filter: blur(0px);
-    clip-path: inset(-0.22em 0 -0.22em 0);
-  }
-}
-
 .hero-title {
   --home-hero-title-font-size: clamp(
     28px,
@@ -3193,13 +3179,14 @@ button.abs-meta-btn,
 }
 
 html[data-shell-route='home'] .hero-title--canvas-source {
-  /* Increase the established Home identity by the requested 1.2×. */
-  --home-hero-title-scale: 1.56;
+  --home-hero-title-scale: var(--route-bookend-title-scale);
   --home-hero-title-font-size: calc(
     var(--route-entry-title-size) * var(--home-hero-title-scale)
   );
   --home-hero-title-offset-y: clamp(-36px, -4svh, -16px);
-  --hero-title-line-height: calc(1.12 * var(--abs-font-headline-line-height-scale, 1));
+  --hero-title-line-height: calc(
+    var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1)
+  );
   --hero-title-letter-spacing: var(--abs-font-headline-letter-spacing);
   font-family: var(--abs-font-headline);
   /* Compensate for the right-hand full stop so the wordmark reads centred. */
@@ -3269,23 +3256,20 @@ body.portfolio-page .hero-title:not(.hero-title--portfolio) {
   display: none;
 }
 
-/* ── Lines: depth-emergence, paused until scene starts ── */
+/* Route title lines remain at settled geometry. entrance-sequence.js owns the
+   internal glyph reveal after the route surface has finished entering. */
 
 .hero-title__name,
 .hero-title__role,
 .hero-title__line,
 .hero-title__eyebrow {
   display: block;
-  opacity: 0;
-  filter: blur(7px);
-  clip-path: inset(100% 0 -0.22em 0);
+  opacity: 1;
+  filter: none;
   font-size: var(--home-hero-title-font-size);
   font-weight: 400;
   letter-spacing: var(--hero-title-letter-spacing, -0.027ch);
   text-transform: none;
-  /* Animation defined but paused — plays when the scene starts appearing */
-  animation: heroEmerge 1100ms cubic-bezier(0.16, 1, 0.3, 1) both paused;
-  animation-delay: 0ms;
 }
 
 .hero-title__role,
@@ -3293,31 +3277,21 @@ body.portfolio-page .hero-title:not(.hero-title--portfolio) {
   margin-top: 0;
   color: inherit;
   text-shadow: none;
-  animation-name: heroEmergeSubtle;
-  animation-delay: 280ms;
+  opacity: var(--brand-logo-secondary-opacity, 0.58);
 }
 
-@keyframes heroEmergeSubtle {
-  0% { opacity: 0; filter: blur(7px); clip-path: inset(100% 0 -0.22em 0); }
-  100% { opacity: var(--brand-logo-secondary-opacity, 0.58); filter: blur(0px); clip-path: inset(-0.22em 0 -0.22em 0); }
+.route-entrance-word {
+  display: inline-block;
+  white-space: nowrap;
 }
 
-/* Unpause hero lines when scene starts appearing (entrance-transitioning
-   is set BEFORE ui-entered, so the title emerges first, then ui-entered
-   triggers the nav links afterward). */
-html.entrance-transitioning .hero-title__name,
-html.entrance-transitioning .hero-title__role,
-html.entrance-transitioning .hero-title__line,
-html.entrance-transitioning .hero-title__eyebrow,
-html.entrance-complete .hero-title__name,
-html.entrance-complete .hero-title__role,
-html.entrance-complete .hero-title__line,
-html.entrance-complete .hero-title__eyebrow,
-html.ui-entered .hero-title__name,
-html.ui-entered .hero-title__role,
-html.ui-entered .hero-title__line,
-html.ui-entered .hero-title__eyebrow {
-  animation-play-state: running;
+.route-entrance-glyph,
+.route-entrance-space {
+  display: inline-block;
+}
+
+.route-entrance-glyph {
+  transform-origin: 50% 50%;
 }
 
 body.portfolio-page .hero-title.hero-title--portfolio {
@@ -3412,11 +3386,9 @@ html.abs-direct-boot-ready .hero-title__name,
 html.abs-direct-boot-ready .hero-title__role,
 html.abs-direct-boot-ready .hero-title__line,
 html.abs-direct-boot-ready .hero-title__eyebrow {
-  animation: none;
   opacity: 1;
   filter: none;
   transform: none;
-  clip-path: none;
 }
 
 html.abs-direct-boot-ready .hero-title__role,
@@ -3456,15 +3428,19 @@ html.abs-direct-boot-staging .ui-main-nav .footer_link {
   .hero-title__role,
   .hero-title__line,
   .hero-title__eyebrow {
-    animation: none;
     opacity: 1;
     filter: none;
     transform: none;
-    clip-path: none;
   }
   .hero-title__role,
   .hero-title__line--secondary {
     opacity: var(--brand-logo-secondary-opacity, 0.58);
+  }
+
+  .route-entrance-glyph {
+    opacity: 1;
+    filter: none;
+    transform: none;
   }
 
 }
@@ -7370,11 +7346,14 @@ body.portfolio-page--locked #simulations {
       62.4px
     ) * var(--abs-font-headline-scale, 1)
   );
-  --route-bookend-title-scale: 1.55;
+  /* One optical size across the four route identities: approximately 15%
+     smaller than the previous Home (1.56) and centered-route (1.55) scales. */
+  --route-bookend-title-scale: 1.32;
   --route-bookend-title-size: calc(
     var(--route-entry-title-size) * var(--route-bookend-title-scale)
   );
-  --route-title-line-height: 1.02;
+  /* 10% tighter than the previous Home title leading of 1.12. */
+  --route-title-line-height: 1.008;
   --route-description-font-size: clamp(0.875rem, 0.76rem + 0.32vw, 1rem);
   --route-description-line-height: 1.32;
   --route-description-max-width: 40ch;

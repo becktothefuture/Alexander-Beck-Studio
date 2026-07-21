@@ -90,8 +90,7 @@ function useActivePillGeometry(primaryNavRef, activeRouteId, enabled) {
       window.cancelAnimationFrame(frameId);
       window.removeEventListener('resize', scheduleUpdate);
       resizeObserver?.disconnect();
-      primaryNav.style.removeProperty('--button-bar-active-pill-x');
-      primaryNav.style.removeProperty('--button-bar-active-pill-width');
+      // Keep the previous geometry on the persistent nav so the next route has a transition origin.
     };
   }, [activeRouteId, enabled, primaryNavRef]);
 }

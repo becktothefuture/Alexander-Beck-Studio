@@ -25,8 +25,10 @@ import {
 import { loadAboutNarrativeTrackSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackPersistence.js';
 import {
   migrateLegacyAboutNarrativeCameraPose,
+  writeAboutNarrativeCameraOrbitPosition,
   writeAboutNarrativeCameraQuaternion,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraRig.js';
+import { applyAboutNarrativeCameraEasing } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraEasing.js';
 const canonicalSource = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
@@ -85,6 +87,18 @@ function boundarySamples(plan) {
   return boundaries.flatMap((value) => [value - 0.000001, value, value + 0.000001])
     .map((value) => Math.max(0, Math.min(plan.durationWU, value)));
 }
+
+test('camera orbit preserves height and radius around the authored focus target', () => {
+  const target = [0, 0, 0];
+  const position = [1, -0.74, -1.22];
+  const focus = [0, -0.5, -7.035];
+  const originalRadius = Math.hypot(position[0] - focus[0], position[2] - focus[2]);
+  const result = writeAboutNarrativeCameraOrbitPosition(target, position, focus, Math.PI / 2);
+  assert.equal(result, target);
+  assertClose(target[1], position[1], 'orbit height');
+  assertClose(Math.hypot(target[0] - focus[0], target[2] - focus[2]), originalRadius, 'orbit radius');
+  assertVectorClose(target, [5.815, -0.74, -8.035], 'quarter orbit');
+});
 
 test('runtime accepts schema v5 only after legacy input crosses the persistence boundary', () => {
   const rejectedV2 = compileAboutNarrativeRuntimePlan(legacy, { layoutProfile: 'desktop' });
@@ -177,7 +191,78 @@ test('Camera fog is one global pair and never interpolates per key', () => {
     assert.equal('distanceFogStartWU' in frame.camera, false);
     assert.equal('distanceFogEndWU' in frame.camera, false);
   });
-  assert.deepEqual(Object.keys(from).sort(), ['atWU', 'easing', 'fov', 'id', 'locked', 'position', 'rotation']);
+  assert.deepEqual(Object.keys(from).sort(), [
+    'aimEnabled',
+    'atWU',
+    'easing',
+    'fov',
+    'id',
+    'locked',
+    'lookAtRoll',
+    'lookAtTarget',
+    'position',
+    'rotation',
+  ]);
+});
+
+test('camera focus owns orientation while preserving smooth manual-to-focus handoffs', () => {
+  const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  const manualKey = plan.cameraKeys.find((key) => key.aimEnabled === false);
+  const aimedKey = plan.cameraKeys.find((key) => key.aimEnabled === true);
+  assert.ok(manualKey);
+  assert.ok(aimedKey);
+
+  const transitionIndex = plan.cameraKeys.findIndex((key, index) => (
+    key.aimEnabled === false && plan.cameraKeys[index + 1]?.aimEnabled === true
+  ));
+  assert.ok(transitionIndex >= 0);
+  const from = plan.cameraKeys[transitionIndex];
+  const to = plan.cameraKeys[transitionIndex + 1];
+  const midpoint = sampleAboutNarrativeRuntimePlan(plan, (from.atWU + to.atWU) / 2);
+  assert.ok(midpoint.camera.aimWeight > 0 && midpoint.camera.aimWeight < 1);
+  assert.equal(midpoint.camera.targeted, true);
+  assert.equal(midpoint.camera.lookAtTarget.length, 3);
+  const manualFrame = sampleAboutNarrativeRuntimePlan(plan, from.atWU);
+  assert.equal(manualFrame.camera.targeted, false);
+  assert.deepEqual(manualFrame.camera.lookAtTarget, from.lookAtTarget);
+  const easedMidpoint = applyAboutNarrativeCameraEasing(from.easingCurve, 0.5);
+  midpoint.camera.lookAtTarget.forEach((value, axis) => {
+    assertClose(
+      value,
+      from.lookAtTarget[axis]
+        + ((to.lookAtTarget[axis] - from.lookAtTarget[axis]) * easedMidpoint),
+      `World anchor axis ${axis}`,
+    );
+  });
+
+  const aimedSegmentIndex = plan.cameraKeys.findIndex((key, index) => (
+    key.aimEnabled === true && plan.cameraKeys[index + 1]?.aimEnabled === true
+  ));
+  assert.ok(aimedSegmentIndex >= 0);
+  const aimedFrom = plan.cameraKeys[aimedSegmentIndex];
+  const aimedTo = plan.cameraKeys[aimedSegmentIndex + 1];
+  for (const progress of [0, 0.25, 0.5, 0.75, 1]) {
+    const frame = sampleAboutNarrativeRuntimePlan(
+      plan,
+      aimedFrom.atWU + ((aimedTo.atWU - aimedFrom.atWU) * progress),
+    );
+    const [x, y, z, w] = frame.camera.quaternion;
+    const forward = [
+      -2 * ((x * z) + (w * y)),
+      -2 * ((y * z) - (w * x)),
+      -(1 - (2 * ((x * x) + (y * y)))),
+    ];
+    const direction = frame.camera.lookAtTarget.map(
+      (value, axis) => value - frame.camera.position[axis],
+    );
+    const length = Math.hypot(...direction);
+    const dot = direction.reduce(
+      (sum, value, axis) => sum + ((value / length) * forward[axis]),
+      0,
+    );
+    assert.ok(dot > 0.99999, `Aim must own orientation at ${progress}: ${dot}`);
+    assert.equal(frame.camera.aimWeight, 1);
+  }
 });
 
 test('absolute title windows match migrated legacy Cue timing with half-open ends', () => {
@@ -322,9 +407,50 @@ test('the finale title resolves once and remains visible through the final frame
   );
 });
 
+test('the opener exits upward as one clear scroll-linked unit', () => {
+  const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'mobile' });
+  const field = plan.textFields.find((item) => item.id === 'text-promise-main');
+  const target = createAboutNarrativeTitleFieldSample();
+  const start = sampleAboutNarrativeTitleFieldInto(
+    field,
+    field.startWU,
+    canonical.globals.textMotion,
+    false,
+    target,
+  );
+  assert.deepEqual(
+    { opacity: start.opacity, blur: start.blur, y: start.y, z: start.z },
+    { opacity: 1, blur: 0, y: 0, z: 0 },
+  );
+
+  const middle = sampleAboutNarrativeTitleFieldInto(
+    field,
+    (field.startWU + field.endWU) * 0.5,
+    canonical.globals.textMotion,
+    false,
+    target,
+  );
+  assert.ok(middle.opacity > 0 && middle.opacity < 1);
+  assert.ok(middle.y < 0);
+  assert.equal(middle.blur, 0);
+  assert.equal(middle.z, 0);
+
+  const end = sampleAboutNarrativeTitleFieldInto(
+    field,
+    field.endWU,
+    canonical.globals.textMotion,
+    false,
+    target,
+  );
+  assert.deepEqual(
+    { opacity: end.opacity, blur: end.blur, y: end.y, z: end.z },
+    { opacity: 0, blur: 0, y: canonical.globals.textMotion.endY, z: 0 },
+  );
+});
+
 test('interaction activation is absolute, targeted, and half-open', () => {
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
-  const clip = plan.interactionClips.find((item) => item.type === 'grid-ripple');
+  const clip = plan.interactionClips.find((item) => item.type === 'discipline-reveal');
   assert.ok(clip);
   const before = sampleAboutNarrativeRuntimePlan(plan, clip.startWU - 0.000001);
   const at = sampleAboutNarrativeRuntimePlan(plan, clip.activationWU);
@@ -344,26 +470,43 @@ test('interaction activation is absolute, targeted, and half-open', () => {
   }
 });
 
-test('grid ripple starts immediately, holds perpetually, and settles for Reduced Motion', () => {
+test('grid ripple starts immediately, sustains through the scroll-authored passage, releases into the bust, and settles for Reduced Motion', () => {
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
-  const clip = plan.interactionClips.find((item) => item.type === 'grid-ripple');
+  const clip = plan.interactionClips.find((item) => item.id === 'interaction-grid-ripple');
+  const emergentClip = plan.interactionClips.find((item) => item.id === 'interaction-emergent-ripple');
   assert.ok(clip);
+  assert.ok(emergentClip);
   const before = sampleAboutNarrativeRuntimePlan(plan, clip.startWU - 0.000001);
   const activated = sampleAboutNarrativeRuntimePlan(plan, clip.activationWU);
   const sustain = sampleAboutNarrativeRuntimePlan(plan, (clip.activationWU + clip.endWU) / 2);
-  const finalActive = sampleAboutNarrativeRuntimePlan(plan, clip.endWU - 0.000001);
-  const end = sampleAboutNarrativeRuntimePlan(plan, clip.endWU);
+  const boundaryBefore = sampleAboutNarrativeRuntimePlan(plan, clip.endWU - 0.000001);
+  const boundary = sampleAboutNarrativeRuntimePlan(plan, emergentClip.startWU);
+  const platformGather = sampleAboutNarrativeRuntimePlan(plan, emergentClip.activationWU);
+  const releaseStartWU = emergentClip.endWU - emergentClip.parameters.releaseWU;
+  const beforeRelease = sampleAboutNarrativeRuntimePlan(plan, releaseStartWU - 0.000001);
+  const releasing = sampleAboutNarrativeRuntimePlan(
+    plan,
+    releaseStartWU + (emergentClip.parameters.releaseWU * 0.5),
+  );
+  const end = sampleAboutNarrativeRuntimePlan(plan, emergentClip.endWU);
   assert.equal(before.interactions.effectWeight, 0);
   assert.equal(activated.interactions.effectWeight, 1);
   assert.equal(sustain.interactions.effectWeight, 1);
-  assert.equal(finalActive.interactions.effectWeight, 1);
+  assert.ok(boundaryBefore.interactions.effectWeight < 0.001);
+  assert.equal(boundary.interactions.activeInteraction.id, emergentClip.id);
+  assert.equal(boundary.interactions.effectWeight, 0);
+  assert.equal(platformGather.interactions.activeInteraction.id, emergentClip.id);
+  assert.equal(platformGather.interactions.effectWeight, 1);
+  assert.equal(beforeRelease.interactions.effectWeight, 1);
+  assert.ok(releasing.interactions.effectWeight > 0);
+  assert.ok(releasing.interactions.effectWeight < 1);
   assert.equal(end.interactions.effectWeight, 0);
 
   const reducedPlan = compileAboutNarrativeRuntimePlan(canonical, {
     layoutProfile: 'desktop',
     motionProfile: 'reduced',
   });
-  const reduced = sampleAboutNarrativeRuntimePlan(reducedPlan, clip.activationWU);
+  const reduced = sampleAboutNarrativeRuntimePlan(reducedPlan, emergentClip.activationWU);
   assert.equal(reduced.interactions.effectWeight, 0);
 });
 
@@ -474,6 +617,7 @@ test('layout profile overrides apply completely by stable object ID without sour
   model.profiles.mobile.overrides.camera[camera.id] = {
     position: [2, 3, 4],
     rotation: [10, 20, 30],
+    lookAtTarget: [2, 3, 3],
     fov: 44,
     easing: 'ease-in-out',
   };
@@ -502,6 +646,8 @@ test('layout profile overrides apply completely by stable object ID without sour
   assert.deepEqual(model, candidateBeforeCompile);
   assert.deepEqual(plan.cameraKeys.find((item) => item.id === camera.id).position, [2, 3, 4]);
   assert.deepEqual(plan.cameraKeys.find((item) => item.id === camera.id).rotation, [10, 20, 30]);
+  assert.equal(plan.cameraKeys.find((item) => item.id === camera.id).aimEnabled, true);
+  assert.deepEqual(plan.cameraKeys.find((item) => item.id === camera.id).lookAtTarget, [2, 3, 3]);
   assert.equal(plan.visibilityKeys.find((item) => item.id === visibility.id).visibility, 0.35);
   const resolvedWorld = plan.worlds.find((item) => item.id === world.id);
   assert.deepEqual(resolvedWorld.transform.position, [1, 2, 3]);

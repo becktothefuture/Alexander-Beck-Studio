@@ -19,6 +19,7 @@ node_modules/
 test-results/
 playwright-report/
 .playwright-mcp/
+.playwright-cli/
 
 # Playwright screenshots & certify:screens output (regenerate locally)
 output/playwright/

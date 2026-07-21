@@ -97,9 +97,12 @@ The runtime samples this once per animation frame. No World adapter may start an
 
 ## Camera fundamentals
 
-The camera is one absolute six-axis rig. There is no authored frame origin, aim target, depth
-offset, orbit, look-at, or secondary roll/dolly layer underneath it. Rotation Z is the rig's direct
-roll axis, not an additional positioning system.
+The camera is one absolute rig with two explicit orientation modes and one persistent world-space
+**Focus Anchor**. Manual mode uses authored X/Y/Z rotation and ignores the anchor for orientation.
+Focus mode keeps the camera pointed at the anchor while Position moves around it; the derived
+quaternion owns orientation, with **Horizon roll** as its only rotational offset. The anchor remains
+in the world and continues its eased key-to-key movement in both modes. There is no authored frame
+origin, depth offset, orbit, dolly, or secondary rail adjustment underneath either mode.
 
 ### Editable Camera keys
 
@@ -108,12 +111,24 @@ A Camera key stores:
 - Global Story WU (`atWU`)
 - Absolute Position X, Y, and Z in world units
 - Rotation X, Y, and Z in degrees
+- Focus enabled
+- Absolute Focus Anchor X, Y, and Z in world units
+- Horizon roll in degrees
 - FOV
 - A travel curve into the next key
 
-Rotation uses Three.js `YXZ` Euler order at authored keys and quaternion interpolation during playback. This avoids sudden flips while keeping the inspector understandable as X/Y/Z degrees. Position and FOV interpolate directly between keys. The renderer applies the sampled absolute position and quaternion without a secondary look-at, orbit, or rail adjustment.
+Manual rotation uses Three.js `YXZ` Euler order at authored keys and quaternion interpolation during
+playback. Focus orientation is recalculated from the interpolated camera position and anchor on every
+frame, so moving the camera naturally produces the pan and tilt required to keep looking at that
+point. A segment that changes orientation mode blends the manual and aimed quaternions smoothly;
+between two focused keys the aim remains exact for the entire segment. Position, anchor, horizon
+roll, and FOV all use the selected key's outgoing travel easing.
 
-Adding a Camera key at the playhead samples the published pose first, so insertion does not create a jump. Migrated support keys are ordinary absolute keys that approximate the former path closely without retaining its offset/target machinery.
+Adding a Camera key at the playhead samples the published pose first, so insertion does not create a
+jump. Enabling focus derives an initial anchor along the current view direction only when an old key
+does not have one. Disabling focus bakes the current aimed orientation into manual rotation without
+moving or deleting the anchor. The editor's testing view renders the anchor as a real red three-axis
+Three.js object at its world coordinates; it never ships in the public route.
 
 ### Camera travel easing
 
@@ -127,10 +142,14 @@ The curve can be dragged directly, adjusted with arrow keys, entered numerically
 
 ### Camera rig controls
 
-The open **Camera rig** folder contains exactly seven paired slider/exact-value controls:
+The open **Camera rig** folder contains seven manual pose/lens controls, one Focus toggle, and four
+persistent anchor controls:
 
 - **Position X**, **Position Y**, and **Position Z** move the camera in world space.
 - **Rotation X**, **Rotation Y**, and **Rotation Z** rotate around the camera itself at the centre of the viewport, like a first-person video-game camera.
+- **Focus on 3D anchor** enables anchor-owned orientation. Manual rotation controls are disabled while it is active.
+- **Anchor X**, **Anchor Y**, and **Anchor Z** place the persistent world-space focus point whether focus is enabled or disabled.
+- **Horizon roll** rotates the aimed camera around its view axis without changing the point it sees.
 - **Field of view** widens or tightens the lens.
 
 Travel easing remains in a separate collapsed folder. Slider gestures live-apply as one undoable
@@ -149,19 +168,19 @@ simulation exists on screen are therefore three explicit, non-overlapping contro
 
 ### Current camera choreography
 
-- `0–3.15 WU`: establish the orb above the opener, fly through its threshold, enter the turbulent
-  field, and continue forward as the complexity scatters.
-- `3.15–6.98 WU`: the simulation fades completely out, crosses the empty interval, and returns as a
-  floor plane while the camera pitches toward a true `-90°` bird's-eye view.
-- `6.98–8.39 WU`: hold the bird's-eye composition while the six disciplines isolate and label.
-- `8.39–11.61 WU`: hide the simulation during editorial copy, reposition unseen, then return to the
-  same grid in full colour and exact face-on alignment.
-- `11.81–13.28 WU`: keep `-90°` pitch and zoom straight out as one gathering front activates from
-  the grid center.
-- `13.28–15.2 WU`: resolve the lifted floor into one suspended woven form, leave the overhead view,
-  and make one continuous oblique camera pass through the form.
-- `15.2–16.35 WU`: set whole-simulation Visibility to zero and hold the invitation and actions in
-  clean centered space.
+- `0–7.35 WU`: establish the opener, travel through the turbulent field, pass the first editorial
+  interval, and arrive above the calm grid.
+- `7.35–10.45 WU`: keep one absolute Focus Anchor on the grid while Camera X advances and Camera Y
+  descends; the six disciplines enter the viewport against that continuous flyover.
+- `10.45–11.55 WU`: hide the simulation for the editorial handoff and reposition without a visible
+  camera cut.
+- `11.55–14.55 WU`: return to the same centered surface, sustain the scroll-authored ripple beneath
+  the three travelling titles, and begin the sideways descent around its fixed center.
+- `14.55–15.85 WU`: slow the ripple into a broad footprint platform, gather the fixed point pool onto
+  that plane, and build the bust from its lower layers into the head while the aimed camera continues
+  descending and moving sideways.
+- `15.85–16.35 WU`: continue a small aimed orbit and gentle bust motion behind the complete invitation,
+  description, and actions rather than freezing the last frame.
 
 ## How Worlds stay connected
 
@@ -217,8 +236,8 @@ Select a World clip and open **Transition in → Correspondence** to compare Ind
 - `discipline-grid-v1`: a frontal field with six semantic anchors
 - `living-field-v1`: terrain designed for wave and colour modifiers
 
-`orbital-system-v1` and `bust-v1` remain registered for legacy draft compatibility but are not part of
-the canonical sequence.
+`bust-v1` is the canonical final World. `orbital-system-v1` remains registered for legacy draft
+compatibility but is not part of the canonical sequence.
 
 Use **World → Replace Shape → Try** to preview a replacement at the same playhead. **Apply** is one undoable transaction. **Cancel** restores the active compiled plan. While a new Shape generates, the last valid buffers remain visible.
 
@@ -232,6 +251,9 @@ A Shape supplies rest positions. Its ordered modifier stack supplies behaviour:
 - Living wave
 - Living colour
 - Ambient drift on the resolved emergent form
+- Bust assembly: controls platform width and gather time, bottom-to-head formation timing, layer
+  softness, the fragmented lower band, point scatter/fall, and how much of that band remains visible
+- Bust rotation
 
 Modifiers can be enabled, reordered, and parameterised. Shared turbulence range, speed, irregularity, individuality, and axis spread are edited once under **Sequence → Shared turbulence**. The World-level **Swarm life → Local strength** control changes intensity without creating a second motion profile. Each registered modifier declares safe ranges, units, cost, and reduced-motion behaviour.
 
@@ -242,8 +264,8 @@ Two clocks keep editing reproducible:
 - `mixed`: authored state plus a bounded ambient layer
 
 Disable **Live ambient** to freeze ambient movement while comparing frames. The canonical ending has
-no pointer-owned sculpture rotation: camera movement, World morphing, and global Visibility carry the
-complete final beat.
+no pointer-owned sculpture rotation: camera movement, World morphing, the Bust rotation modifier,
+and global Visibility carry the complete final beat.
 
 ## Text editing
 
@@ -287,10 +309,11 @@ Three.js points and pack inside the viewport on desktop, portrait mobile, and sh
 palette is fixed to the Home simulation ball tokens by semantic group: `1 → --ball-1`,
 `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`.
 After the labels restore, Visibility hides the complete simulation for editorial copy. C returns in
-full colour at the centered top-down camera. The Gathering pulse Motion expands once from that
-transformed center, lifting the floor and drawing points inward so the activation remains legible from
-a true bird's-eye view. The pulse hands the fixed point pool into the emergent World; it does not
-repeat as a sine wave, create helper rings, or alter point size to fake the effect.
+full colour around the same transformed center. The story-clock ripple combines a primary radial
+wave, harmonic, undertow, and center pulse while the titles cross the surface. It releases into E,
+where each point first gathers onto the base-plane footprint of its eventual bust position. Height
+thresholds then lift the lower layers, shoulders, neck, and head in order. The effect uses the material
+itself—no helper rings, point-size pulse, or second camera rig.
 
 ## History, comparison, and checkpoints
 
