@@ -621,8 +621,8 @@ body.dark-mode .about-narrative-client-logos img {
     calc(1.2vw * var(--discipline-label-scale, 1)),
     calc(1.12rem * var(--discipline-label-scale, 1))
   );
-  font-weight: 540;
-  letter-spacing: -0.035em;
+  font-weight: 580;
+  letter-spacing: -0.025em;
   line-height: 1.05;
   white-space: nowrap;
   transform: translate3d(
@@ -970,10 +970,45 @@ body.dark-mode .about-narrative-client-logos img {
 }
 
 @media (max-height: 600px) and (max-width: 900px) {
+  .about-narrative-lab[data-about-layout-profile='mobile'] {
+    --about-reading-width: min(46rem, calc(100vw - 8rem));
+    --about-editorial-type-size: clamp(0.78rem, 2.8vh, 1rem);
+  }
+
   .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-stage {
     padding-block:
       max(2.5rem, env(safe-area-inset-top))
       max(3rem, env(safe-area-inset-bottom));
+  }
+
+  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-client-logos {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: clamp(0.65rem, 2.4vh, 1rem) clamp(0.75rem, 2vw, 1.5rem);
+  }
+
+  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-client-logos li,
+  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-client-logos li:last-child:nth-child(odd) {
+    grid-column: auto;
+    width: auto;
+    height: clamp(2.25rem, 10vh, 3.25rem);
+  }
+
+  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-render-span--disciplines {
+    padding-inline:
+      max(4rem, env(safe-area-inset-left))
+      max(4rem, env(safe-area-inset-right));
+  }
+
+  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-render-span--disciplines .about-narrative-editorial-stack {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(1rem, 2.5vw, 1.75rem);
+    width: 100%;
+  }
+
+  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-render-span--disciplines .about-narrative-editorial-copy {
+    max-width: none;
+    font-size: inherit;
+    line-height: 1.38;
   }
 
   .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy[data-title-style='display'] .about-narrative-spatial-title {

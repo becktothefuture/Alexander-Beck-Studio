@@ -830,7 +830,10 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.equal(finalBridgeTitle.presentation.viewportY, 50);
   assert.ok(disciplineReveal.startWU > finalBridgeTitle.endWU);
   assert.ok(disciplineReveal.activationWU > firstBridgeTitle.focusWU);
-  assert.ok(disciplineEditorial.startWU > disciplineReveal.endWU);
+  assert.ok(disciplineEditorial.startWU >= (
+    disciplineReveal.endWU - disciplineReveal.parameters.restoreDurationWU
+  ));
+  assert.ok(disciplineEditorial.focusWU >= disciplineReveal.endWU);
   const boundaryTitleIds = new Set(['text-promise-main', 'text-epilogue-invitation']);
   fields
     .filter((field) => field.kind === 'title' && !boundaryTitleIds.has(field.id))

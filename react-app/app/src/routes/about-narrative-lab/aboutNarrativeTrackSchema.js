@@ -117,7 +117,7 @@ const MODULE_ITEM_KEYS = new Set(['id', 'label', 'src', 'alt', 'caption', 'scale
 const MODULE_KINDS = new Set(['prose', 'logo-grid', 'media-deck']);
 const CHOREOGRAPHY_KEYS = new Set(['staggerWU', 'backgroundFadeWU', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale', 'labelDurationWU', 'holdWU', 'items']);
 const LEGACY_CHOREOGRAPHY_KEYS = new Set(['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', ...CHOREOGRAPHY_KEYS]);
-const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label', 'position', 'mobilePosition']);
+const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label', 'position', 'mobilePosition', 'landscapePosition']);
 const INTERACTION_KEYS = new Set(['id', 'type', 'startWU', 'activationWU', 'endWU', 'targetWorldId', 'parameters', 'protected']);
 const LIBRARY_KEYS = new Set(['presets']);
 const PRESET_KEYS = new Set(['id', 'label', 'scope', 'protected']);
@@ -693,6 +693,7 @@ function validateTextField(field, index, seen, diagnostics, durationWU, schemaVe
           validateSafeText(item?.label, diagnostics, `${itemPath}.label`, { required: true, maximum: 80 });
           if (item?.position != null) validateDisciplinePosition(item.position, diagnostics, `${itemPath}.position`);
           if (item?.mobilePosition != null) validateDisciplinePosition(item.mobilePosition, diagnostics, `${itemPath}.mobilePosition`);
+          if (item?.landscapePosition != null) validateDisciplinePosition(item.landscapePosition, diagnostics, `${itemPath}.landscapePosition`);
         });
         const lastRevealEndWU = Number(field.startWU)
           + (Math.max(0, choreography.items.length - 1) * Number(choreography.staggerWU))
@@ -741,6 +742,7 @@ function validateDisciplineMotionParameters(clip, diagnostics, path, schemaVersi
     validateSafeText(item?.label, diagnostics, `${itemPath}.label`, { required: true, maximum: 80 });
     if (item?.position != null) validateDisciplinePosition(item.position, diagnostics, `${itemPath}.position`);
     if (item?.mobilePosition != null) validateDisciplinePosition(item.mobilePosition, diagnostics, `${itemPath}.mobilePosition`);
+    if (item?.landscapePosition != null) validateDisciplinePosition(item.landscapePosition, diagnostics, `${itemPath}.landscapePosition`);
   });
   const labelSequenceWU = (Math.max(0, items.length - 1) * Number(parameters.staggerWU))
     + Number(parameters.labelDurationWU)

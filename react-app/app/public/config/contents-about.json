@@ -425,7 +425,7 @@
           ],
           "lookAtRoll": 0,
           "fov": 56,
-          "easing": "linear",
+          "easing": "cubic-bezier(0.22, 0, 0.18, 1)",
           "locked": false
         },
         {
@@ -449,7 +449,7 @@
           ],
           "lookAtRoll": 0,
           "fov": 54,
-          "easing": "linear",
+          "easing": "cubic-bezier(0.22, 0, 0.18, 1)",
           "locked": false
         },
         {
@@ -661,14 +661,14 @@
         },
         {
           "id": "visibility-disciplines",
-          "atWU": 10.45,
+          "atWU": 10.5,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-editorial-off",
-          "atWU": 10.67,
+          "atWU": 10.72,
           "visibility": 0,
           "easing": "linear",
           "locked": false
@@ -1335,24 +1335,24 @@
           "type": "discipline-reveal",
           "startWU": 8.75,
           "activationWU": 8.95,
-          "endWU": 10.45,
+          "endWU": 10.72,
           "targetWorldId": "world-grid",
           "parameters": {
-            "labelWindowWU": 1.5,
-            "staggerWU": 0.16,
-            "backgroundFadeWU": 0.18,
-            "backgroundOpacity": 0.28,
-            "reconnectOpacity": 0.38,
-            "pointScale": 5.2,
-            "restoreDurationWU": 0.1,
-            "labelOffsetPx": 22,
-            "labelScale": 1.65,
-            "labelDurationWU": 0.12,
-            "holdWU": 0.18,
+            "labelWindowWU": 1.77,
+            "staggerWU": 0.14,
+            "backgroundFadeWU": 0.22,
+            "backgroundOpacity": 0.18,
+            "reconnectOpacity": 0.32,
+            "pointScale": 5.8,
+            "restoreDurationWU": 0.22,
+            "labelOffsetPx": 18,
+            "labelScale": 1.85,
+            "labelDurationWU": 0.16,
+            "holdWU": 0.35,
             "readingLineY": 0.66,
             "mobileReadingLineY": 0.58,
             "approachBandY": 0.1,
-            "exitLineY": 0.94,
+            "exitLineY": 1.04,
             "items": [
               {
                 "group": 1,
@@ -1364,6 +1364,10 @@
                 "mobilePosition": [
                   0.32,
                   0.59
+                ],
+                "landscapePosition": [
+                  0.18,
+                  0.68
                 ]
               },
               {
@@ -1376,6 +1380,10 @@
                 "mobilePosition": [
                   0.44,
                   0.49
+                ],
+                "landscapePosition": [
+                  0.58,
+                  0.35
                 ]
               },
               {
@@ -1388,6 +1396,10 @@
                 "mobilePosition": [
                   0.37,
                   0.46
+                ],
+                "landscapePosition": [
+                  0.35,
+                  0.25
                 ]
               },
               {
@@ -1399,6 +1411,10 @@
                 ],
                 "mobilePosition": [
                   0.55,
+                  0.56
+                ],
+                "landscapePosition": [
+                  0.78,
                   0.56
                 ]
               },
@@ -1412,6 +1428,10 @@
                 "mobilePosition": [
                   0.32,
                   0.52
+                ],
+                "landscapePosition": [
+                  0.3,
+                  0.78
                 ]
               },
               {
@@ -1424,6 +1444,10 @@
                 "mobilePosition": [
                   0.42,
                   0.64
+                ],
+                "landscapePosition": [
+                  0.65,
+                  0.82
                 ]
               }
             ]

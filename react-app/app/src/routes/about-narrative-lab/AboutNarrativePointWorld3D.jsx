@@ -1758,7 +1758,9 @@ function createPointFieldAdapter({
       const mobile = frame.layoutProfile === 'mobile';
       resolvedDisciplineAnchors = reveal?.items?.map((item) => {
         const fallback = item.position || [0.5, 0.5];
-        const position = mobile ? item.mobilePosition || fallback : fallback;
+        const position = shortLandscape
+          ? item.landscapePosition || item.mobilePosition || fallback
+          : mobile ? item.mobilePosition || fallback : fallback;
         return { group: item.group, x: position[0], y: position[1] };
       }) || null;
       lastDisciplineConfig = reveal || null;

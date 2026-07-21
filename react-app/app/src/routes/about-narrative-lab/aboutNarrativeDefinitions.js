@@ -463,12 +463,12 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       approachBandY: 0.1,
       exitLineY: 0.94,
       items: Object.freeze([
-        Object.freeze({ group: 1, label: 'Product Design', position: [0.238, 0.47], mobilePosition: [0.32, 0.59] }),
-        Object.freeze({ group: 2, label: 'Experience Design', position: [0.476, 0.605], mobilePosition: [0.44, 0.49] }),
-        Object.freeze({ group: 3, label: 'Art Direction', position: [0.333, 0.515], mobilePosition: [0.37, 0.46] }),
-        Object.freeze({ group: 4, label: 'Motion & 3D', position: [0.571, 0.635], mobilePosition: [0.55, 0.56] }),
-        Object.freeze({ group: 5, label: 'Creative Engineering', position: [0.238, 0.56], mobilePosition: [0.32, 0.52] }),
-        Object.freeze({ group: 6, label: 'Parametric Systems', position: [0.46, 0.545], mobilePosition: [0.42, 0.64] }),
+        Object.freeze({ group: 1, label: 'Product Design', position: [0.238, 0.47], mobilePosition: [0.32, 0.59], landscapePosition: [0.18, 0.68] }),
+        Object.freeze({ group: 2, label: 'Experience Design', position: [0.476, 0.605], mobilePosition: [0.44, 0.49], landscapePosition: [0.58, 0.35] }),
+        Object.freeze({ group: 3, label: 'Art Direction', position: [0.333, 0.515], mobilePosition: [0.37, 0.46], landscapePosition: [0.35, 0.25] }),
+        Object.freeze({ group: 4, label: 'Motion & 3D', position: [0.571, 0.635], mobilePosition: [0.55, 0.56], landscapePosition: [0.78, 0.56] }),
+        Object.freeze({ group: 5, label: 'Creative Engineering', position: [0.238, 0.56], mobilePosition: [0.32, 0.52], landscapePosition: [0.3, 0.78] }),
+        Object.freeze({ group: 6, label: 'Parametric Systems', position: [0.46, 0.545], mobilePosition: [0.42, 0.64], landscapePosition: [0.65, 0.82] }),
       ]),
     }),
     parameters: Object.freeze([
