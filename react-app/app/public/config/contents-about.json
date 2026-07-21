@@ -1070,99 +1070,85 @@
                     "id": "yoti",
                     "label": "Yoti",
                     "src": "/images/about/client-logos/yoti.png",
-                    "alt": "Yoti",
-                    "scale": 0.64
+                    "alt": "Yoti"
                   },
                   {
                     "id": "sp-global",
                     "label": "S&P Global",
                     "src": "/images/about/client-logos/sp-global.svg",
-                    "alt": "S&P Global",
-                    "scale": 0.82
+                    "alt": "S&P Global"
                   },
                   {
                     "id": "bentley",
                     "label": "Bentley",
                     "src": "/images/about/client-logos/bentley.svg",
-                    "alt": "Bentley",
-                    "scale": 0.78
+                    "alt": "Bentley"
                   },
                   {
                     "id": "sunexpress",
                     "label": "SunExpress",
                     "src": "/images/about/client-logos/sunexpress.svg",
-                    "alt": "SunExpress",
-                    "scale": 0.82
+                    "alt": "SunExpress"
                   },
                   {
                     "id": "mccann",
                     "label": "McCann",
                     "src": "/images/about/client-logos/mccann.svg",
-                    "alt": "McCann Worldgroup",
-                    "scale": 0.7
+                    "alt": "McCann Worldgroup"
                   },
                   {
                     "id": "american-heart-association",
                     "label": "American Heart Association",
                     "src": "/images/about/client-logos/american-heart-association.svg",
-                    "alt": "American Heart Association",
-                    "scale": 0.68
+                    "alt": "American Heart Association"
                   },
                   {
                     "id": "sony",
                     "label": "Sony",
                     "src": "/images/about/client-logos/sony.svg",
-                    "alt": "Sony",
-                    "scale": 0.56
+                    "alt": "Sony"
                   },
                   {
                     "id": "jaguar-land-rover",
                     "label": "Jaguar Land Rover",
                     "src": "/images/about/client-logos/jaguar-land-rover.svg",
-                    "alt": "JLR",
-                    "scale": 0.46
+                    "alt": "JLR"
                   },
                   {
                     "id": "maybourne-hotels",
                     "label": "Maybourne Hotels",
                     "src": "/images/about/client-logos/maybourne-hotels.svg",
-                    "alt": "Maybourne",
-                    "scale": 0.82
+                    "alt": "Maybourne"
                   },
                   {
                     "id": "experian",
                     "label": "Experian",
                     "src": "/images/about/client-logos/experian.svg",
-                    "alt": "Experian",
-                    "scale": 0.7
+                    "alt": "Experian"
                   },
                   {
                     "id": "dcc",
-                    "label": "DCC",
-                    "src": "/images/about/client-logos/dcc.svg",
-                    "alt": "DCC",
-                    "scale": 0.54
+                    "label": "Data Communications Company",
+                    "src": "/images/about/client-logos/data-communications-company.svg",
+                    "alt": "Data Communications Company"
                   },
                   {
                     "id": "tourism-ireland",
                     "label": "Tourism Ireland",
                     "src": "/images/about/client-logos/tourism-ireland.svg",
-                    "alt": "Tourism Ireland",
-                    "scale": 0.84
+                    "alt": "Tourism Ireland"
                   },
                   {
                     "id": "lufthansa",
                     "label": "Lufthansa",
                     "src": "/images/about/client-logos/lufthansa.svg",
-                    "alt": "Lufthansa",
-                    "scale": 0.88
+                    "alt": "Lufthansa"
                   },
                   {
                     "id": "general-motors",
                     "label": "General Motors",
                     "src": "/images/about/client-logos/general-motors.svg",
-                    "alt": "General Motors",
-                    "scale": 0.76
+                    "alt": "General Motors"
                   }
                 ]
               }

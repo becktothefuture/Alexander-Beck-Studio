@@ -806,7 +806,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
     assert.ok(item.id && item.label);
     assert.match(item.src, /^\/images\/about\/client-logos\/.+\.(?:svg|png)$/);
     assert.equal(typeof item.alt, 'string');
-    assert.ok(item.scale >= 0.2 && item.scale <= 1.4);
+    assert.equal(item.scale, undefined);
   });
   assert.equal(logoGrid.items.filter((item) => item.src.endsWith('.svg')).length, 13);
   assert.equal(disciplineEditorial.presentation.layout, 'disciplines');
@@ -858,6 +858,8 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.timeline, /scrollWUFromStoryWU\(frame\.storyWU\)/);
   assert.doesNotMatch(liveSources.timeline, /sequentialPassage/);
   assert.match(liveSources.styles, /about-narrative-editorial-stack/);
+  assert.match(liveSources.styles, /\.about-narrative-client-field \{[^}]*width: 100%;[^}]*\}/);
+  assert.match(liveSources.styles, /\.about-narrative-client-logos \{[^}]*width: 100%;[^}]*\}/);
   assert.match(liveSources.styles, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(liveSources.styles, /last-child:nth-child\(odd\)/);
   assert.match(liveSources.styles, /data-editorial-in-view='true'/);

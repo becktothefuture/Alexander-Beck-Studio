@@ -390,7 +390,7 @@ body.about-narrative-page .route-simulation-layer {
 .about-narrative-client-field {
   display: grid;
   gap: clamp(2rem, 4vw, 3rem);
-  width: min(100%, 52rem);
+  width: 100%;
   margin: clamp(0.75rem, 2vh, 1.5rem) 0 0;
 }
 
@@ -410,7 +410,7 @@ body.about-narrative-page .route-simulation-layer {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: clamp(2.4rem, 5vw, 4rem) clamp(2rem, 6vw, 5rem);
-  width: min(100%, 52rem);
+  width: 100%;
 }
 
 .about-narrative-client-logos li {
