@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import sharp from 'sharp';
 import {
   ABOUT_INTERACTIVE_STACK_DEFAULTS,
   ABOUT_INTERACTIVE_STACK_MAX_ITEMS,
@@ -22,6 +21,52 @@ const configPath = new URL('../react-app/app/public/config/contents-about.json',
 const canonical = JSON.parse(await readFile(configPath, 'utf8'));
 const disciplineField = canonical.tracks.text.fields.find((field) => field.id === 'text-disciplines-title');
 const stackModule = disciplineField?.block?.modules?.find((module) => module.id === 'project-impressions');
+
+function readWebpMetadata(bytes) {
+  assert.equal(bytes.subarray(0, 4).toString('ascii'), 'RIFF');
+  assert.equal(bytes.subarray(8, 12).toString('ascii'), 'WEBP');
+
+  let offset = 12;
+  while (offset + 8 <= bytes.length) {
+    const chunkType = bytes.subarray(offset, offset + 4).toString('ascii');
+    const chunkSize = bytes.readUInt32LE(offset + 4);
+    const chunkStart = offset + 8;
+
+    if (chunkType === 'VP8 ') {
+      assert.deepEqual([...bytes.subarray(chunkStart + 3, chunkStart + 6)], [0x9d, 0x01, 0x2a]);
+      return {
+        format: 'webp',
+        width: bytes.readUInt16LE(chunkStart + 6) & 0x3fff,
+        height: bytes.readUInt16LE(chunkStart + 8) & 0x3fff,
+      };
+    }
+
+    if (chunkType === 'VP8X') {
+      return {
+        format: 'webp',
+        width: 1 + bytes.readUIntLE(chunkStart + 4, 3),
+        height: 1 + bytes.readUIntLE(chunkStart + 7, 3),
+      };
+    }
+
+    if (chunkType === 'VP8L') {
+      assert.equal(bytes[chunkStart], 0x2f);
+      const byte1 = bytes[chunkStart + 1];
+      const byte2 = bytes[chunkStart + 2];
+      const byte3 = bytes[chunkStart + 3];
+      const byte4 = bytes[chunkStart + 4];
+      return {
+        format: 'webp',
+        width: 1 + byte1 + ((byte2 & 0x3f) << 8),
+        height: 1 + ((byte2 & 0xc0) >> 6) + (byte3 << 2) + ((byte4 & 0x0f) << 10),
+      };
+    }
+
+    offset = chunkStart + chunkSize + (chunkSize % 2);
+  }
+
+  assert.fail('Missing a supported WebP image chunk.');
+}
 
 function stackErrorCodes(document) {
   const fieldIndex = document.tracks.text.fields.findIndex((field) => field.id === 'text-disciplines-title');
@@ -131,14 +176,14 @@ test('all preview assets meet the authored geometry and transfer budgets', async
   let totalBytes = 0;
   for (const item of stackModule.items) {
     const file = fileURLToPath(new URL(`.${item.src}`, new URL('../react-app/app/public/', import.meta.url)));
-    const metadata = await sharp(file).metadata();
-    const details = await stat(file);
-    totalBytes += details.size;
+    const bytes = await readFile(file);
+    const metadata = readWebpMetadata(bytes);
+    totalBytes += bytes.length;
     assert.equal(metadata.format, 'webp');
     assert.equal(metadata.width, item.width);
     assert.equal(metadata.height, item.height);
     assert.ok(Math.max(metadata.width, metadata.height) <= 960);
-    assert.ok(details.size <= 120 * 1024);
+    assert.ok(bytes.length <= 120 * 1024);
   }
   assert.ok(totalBytes <= 1.5 * 1024 * 1024);
 });
