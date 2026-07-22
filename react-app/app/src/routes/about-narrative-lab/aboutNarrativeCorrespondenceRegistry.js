@@ -46,6 +46,14 @@ export const ABOUT_NARRATIVE_CORRESPONDENCE_STRATEGIES = Object.freeze([
     parameters: Object.freeze([]),
   }),
   Object.freeze({
+    id: 'radial-emergence-v1',
+    version: '1.0.0',
+    label: 'Radial emergence',
+    description: 'Feeds the earliest-rising target bands from the source points nearest the destination origin.',
+    capabilities: Object.freeze({ locality: true, semanticGroups: false, visibilityPriority: true, radialOrder: true }),
+    parameters: Object.freeze([]),
+  }),
+  Object.freeze({
     id: 'group-aware',
     version: '1.0.0',
     label: 'Group aware (legacy)',

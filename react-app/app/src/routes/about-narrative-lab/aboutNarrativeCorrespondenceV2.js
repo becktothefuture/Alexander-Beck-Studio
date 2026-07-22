@@ -26,7 +26,7 @@ function squaredDistance(fromPositions, sourceIndex, toPositions, targetIndex) {
   return (x * x) + (y * y) + (z * z);
 }
 
-function createSpatialContext(fromPositions, toPositions, count) {
+export function createAboutNarrativeSpatialContext(fromPositions, toPositions, count) {
   const min = [Infinity, Infinity, Infinity];
   const max = [-Infinity, -Infinity, -Infinity];
   let maximumMagnitude = 0;
@@ -176,7 +176,7 @@ function refinePairs(sourceOrder, mapping, fromPositions, toPositions, spatial) 
   });
 }
 
-function assignBucket({
+export function assignAboutNarrativeSpatialBucket({
   sources,
   targets,
   mapping,
@@ -358,8 +358,8 @@ export function createAboutNarrativeSpatialNearestV2({
   const mapping = new Int32Array(count).fill(-1);
   const usedSources = new Uint8Array(count);
   const usedTargets = new Uint8Array(count);
-  const spatial = createSpatialContext(fromPositions, toPositions, count);
-  const assign = (sources, targets) => assignBucket({
+  const spatial = createAboutNarrativeSpatialContext(fromPositions, toPositions, count);
+  const assign = (sources, targets) => assignAboutNarrativeSpatialBucket({
     sources,
     targets,
     mapping,

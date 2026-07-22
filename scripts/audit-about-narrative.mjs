@@ -11,6 +11,7 @@ const ACCEPTED_RUNTIME_CORRESPONDENCE = new Set([
   'constrained-index-v1',
   'spatial-nearest-v2',
   'constrained-index-v2',
+  'radial-emergence-v1',
 ]);
 const browserType = browserName === 'webkit' ? webkit : chromium;
 const launchOptions = browserName === 'chromium' ? {
@@ -1067,6 +1068,7 @@ async function auditReducedMotionCorrespondence() {
       'constrained-index-v1',
       'spatial-nearest-v2',
       'constrained-index-v2',
+      'radial-emergence-v1',
     ].includes(state?.worldCorrespondence);
   });
   const root = page.locator('.about-narrative-lab');

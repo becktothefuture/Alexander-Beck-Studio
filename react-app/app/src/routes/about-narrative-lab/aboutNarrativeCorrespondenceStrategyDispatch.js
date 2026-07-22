@@ -7,6 +7,7 @@ const DISPATCH_KEYS = Object.freeze({
   'stable-seed': 'identity',
   'spatial-nearest-v1': 'spatialV1',
   'spatial-nearest-v2': 'spatialV2',
+  'radial-emergence-v1': 'radialEmergenceV1',
   'group-aware': 'groupAwareV1',
 });
 

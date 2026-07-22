@@ -215,11 +215,12 @@ Correspondence modes are:
 - `stable-seed`: the same canonical seeded pool, suitable for new procedural Shapes
 - `spatial-nearest-v1`: the editor's **Local travel (approx.)** mode; it matches visible points in world space, protects semantic anchors, and accepts only a visibility-aware improvement over the compatible baseline
 - `spatial-nearest-v2`: the production local-travel mapping with deterministic continuity across the full fixed point pool
+- `radial-emergence-v1`: the finale mapping; it divides visible points into 64 equal-population bands so the grid points nearest the ripple centre feed the bust targets that cross the surface first, while spatial refinement remains local to each band
 - `group-aware`: additionally preserves declared semantic groups such as the six discipline anchors
 
 The current sequence uses local spatial correspondence for orb → complexity and complexity → grid,
-then local spatial correspondence again for grid → emergent form so each fixed-pool point travels
-toward one woven destination. Local mapping is approximate rather than a mathematically global
+then radial emergence correspondence for grid → bust so the material is consumed from the ripple
+centre outwards in the same order that the bust clears the surface. Local mapping is approximate rather than a mathematically global
 optimum: deterministic Morton ordering and bounded repair reduce aggregate and outlier travel without
 an impractical 12,000-point exact solver.
 

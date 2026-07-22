@@ -1,5 +1,5 @@
 export const ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION = 2;
-export const ABOUT_NARRATIVE_CORRESPONDENCE_VERSION = 'correspondence-registry-v2.0.0';
+export const ABOUT_NARRATIVE_CORRESPONDENCE_VERSION = 'correspondence-registry-v2.1.0';
 
 export const ABOUT_NARRATIVE_POINT_PROFILES = Object.freeze({
   desktop: Object.freeze({ id: 'desktop', pointCount: 12000, maximumPixelRatio: 1.5 }),

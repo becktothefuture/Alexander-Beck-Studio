@@ -16,6 +16,9 @@ import {
   ABOUT_NARRATIVE_CORRESPONDENCE_STRATEGIES,
   getAboutNarrativeCorrespondenceStrategy,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCorrespondenceRegistry.js';
+import {
+  ABOUT_NARRATIVE_RADIAL_EMERGENCE_BAND_COUNT,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRadialEmergence.js';
 
 const IDENTITY_MATRIX = [
   1, 0, 0, 0,
@@ -80,9 +83,108 @@ test('metadata and executable dispatch expose the same registered strategy set',
   assert.deepEqual([...ABOUT_NARRATIVE_CORRESPONDENCE_MODES].sort(), [...ABOUT_NARRATIVE_CORRESPONDENCE_DISPATCH_IDS]);
   assert.equal(getAboutNarrativeCorrespondenceStrategy('spatial-nearest-v2').version, '2.0.0');
   assert.equal(getAboutNarrativeCorrespondenceDispatchKey('spatial-nearest-v2'), 'spatialV2');
+  assert.equal(getAboutNarrativeCorrespondenceStrategy('radial-emergence-v1').version, '1.0.0');
+  assert.equal(getAboutNarrativeCorrespondenceDispatchKey('radial-emergence-v1'), 'radialEmergenceV1');
   assert.equal(ABOUT_NARRATIVE_CORRESPONDENCE_METRICS_SCHEMA.visibilityThreshold, 0.001);
   assert.equal(JSON.stringify(ABOUT_NARRATIVE_CORRESPONDENCE_STRATEGIES).includes('function'), false);
   assert.throws(() => getAboutNarrativeCorrespondenceDispatchKey('injected-strategy'), /Unknown correspondence strategy/);
+});
+
+test('radial emergence feeds each rising target band from the corresponding center-out source band', () => {
+  const count = 128;
+  const centerX = 10;
+  const centerZ = -4;
+  const fromMatrix = [
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    centerX, 0, centerZ, 1,
+  ];
+  const toMatrix = [...fromMatrix];
+  const sourcePoints = Array.from({ length: count }, (_, index) => {
+    const radialRank = (index * 37) % count;
+    const radius = 0.25 + (radialRank * 0.18);
+    const angle = ((index * 53) % count) / count * Math.PI * 2;
+    return [Math.cos(angle) * radius, -1.72, Math.sin(angle) * radius];
+  });
+  const targetPoints = Array.from({ length: count }, (_, index) => {
+    const emergenceRank = (index * 29) % count;
+    const angle = ((index * 41) % count) / count * Math.PI * 2;
+    return [Math.cos(angle) * 1.4, (count - emergenceRank) * 0.04, Math.sin(angle) * 1.1];
+  });
+  const from = createFixture(sourcePoints, {
+    attributes: { sentinel: Array.from({ length: count }, (_, index) => index) },
+  });
+  const to = createFixture(targetPoints, {
+    attributes: { sentinel: Array.from({ length: count }, (_, index) => count - index) },
+  });
+  const beforeFrom = snapshotOutput(from);
+  const beforeTo = snapshotOutput(to);
+  const first = createAboutNarrativeCorrespondence(from, to, 'radial-emergence-v1', {
+    fromMatrix,
+    toMatrix,
+    fromId: 'grid',
+    toId: 'bust',
+  });
+  const second = createAboutNarrativeCorrespondence(from, to, 'radial-emergence-v1', {
+    fromMatrix,
+    toMatrix,
+    fromId: 'grid',
+    toId: 'bust',
+  });
+  const sourceOrder = Array.from({ length: count }, (_, index) => index).sort((left, right) => {
+    const leftPoint = sourcePoints[left];
+    const rightPoint = sourcePoints[right];
+    return Math.hypot(leftPoint[0], leftPoint[2]) - Math.hypot(rightPoint[0], rightPoint[2])
+      || left - right;
+  });
+  const targetOrder = Array.from({ length: count }, (_, index) => index).sort((left, right) => (
+    targetPoints[right][1] - targetPoints[left][1]
+  ) || (left - right));
+  const targetRanks = new Int32Array(count);
+  targetOrder.forEach((targetIndex, rank) => { targetRanks[targetIndex] = rank; });
+
+  sourceOrder.forEach((sourceIndex, sourceRank) => {
+    const sourceBand = Math.floor(
+      (sourceRank * ABOUT_NARRATIVE_RADIAL_EMERGENCE_BAND_COUNT) / count,
+    );
+    const targetBand = Math.floor(
+      (targetRanks[first.permutation[sourceIndex]] * ABOUT_NARRATIVE_RADIAL_EMERGENCE_BAND_COUNT) / count,
+    );
+    assert.equal(targetBand, sourceBand, `Source rank ${sourceRank} crossed an emergence band.`);
+  });
+  const earliestTarget = targetOrder[0];
+  const earliestSource = first.permutation.findIndex((targetIndex) => targetIndex === earliestTarget);
+  assert.ok(sourceOrder.slice(0, 2).includes(earliestSource));
+  assert.equal(sourceOrder.slice(-2).includes(earliestSource), false);
+  assert.equal(first.installedStrategy, 'radial-emergence-v1');
+  assert.equal(first.fallbackReason, '');
+  assert.equal(first.metrics.visibleToHiddenCount, 0);
+  validateAboutNarrativePermutation(first.permutation, count);
+  assert.deepEqual(first.permutation, second.permutation);
+  assert.deepEqual(snapshotOutput(from), beforeFrom);
+  assert.deepEqual(snapshotOutput(to), beforeTo);
+});
+
+test('radial emergence preserves visibility priority when hidden capacity is interleaved', () => {
+  const count = 96;
+  const points = Array.from({ length: count }, (_, index) => {
+    const angle = (index / count) * Math.PI * 2;
+    return [Math.cos(angle) * (1 + index), 0, Math.sin(angle) * (1 + index)];
+  });
+  const targets = Array.from({ length: count }, (_, index) => [
+    (index % 8) * 0.1,
+    count - index,
+    Math.floor(index / 8) * 0.1,
+  ]);
+  const presence = Array.from({ length: count }, (_, index) => Number(index % 3 !== 0));
+  const from = createFixture(points, { presence });
+  const to = createFixture(targets, { presence: [...presence].reverse() });
+  const result = createAboutNarrativeCorrespondence(from, to, 'radial-emergence-v1');
+
+  validateAboutNarrativePermutation(result.permutation, count);
+  assert.equal(result.installedStrategy, 'radial-emergence-v1');
+  assert.equal(result.metrics.visibleToHiddenCount, 0);
 });
 test('unknown direct modes reject while all legacy permutations remain byte-compatible', () => {
   const from = createFixture([[0], [1], [2], [3]], { groups: [1, 0, 2, 0] });

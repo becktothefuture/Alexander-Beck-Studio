@@ -13,6 +13,9 @@ import {
   createAboutNarrativeSpatialNearestV2,
   validateAboutNarrativeV2Output,
 } from './aboutNarrativeCorrespondenceV2.js';
+import {
+  createAboutNarrativeRadialEmergence,
+} from './aboutNarrativeRadialEmergence.js';
 
 const VISIBLE_THRESHOLD = 0.001;
 const MORTON_SCALE = 1023;
@@ -467,7 +470,7 @@ export function createAboutNarrativeCorrespondence(fromOutput, toOutput, mode = 
   toId = 'target',
 } = {}) {
   const dispatchKey = getAboutNarrativeCorrespondenceDispatchKey(mode);
-  if (dispatchKey === 'spatialV2') {
+  if (dispatchKey === 'spatialV2' || dispatchKey === 'radialEmergenceV1') {
     const sourceValidation = validateAboutNarrativeV2Output(fromOutput, `Source Shape ${fromId}`);
     const targetValidation = validateAboutNarrativeV2Output(toOutput, `Target Shape ${toId}`);
     if (sourceValidation.count !== targetValidation.count) {
@@ -476,8 +479,10 @@ export function createAboutNarrativeCorrespondence(fromOutput, toOutput, mode = 
   }
   const count = validateOutput(fromOutput, 'Source Shape');
   if (validateOutput(toOutput, 'Target Shape') !== count) throw new Error('Correspondence Shapes must use the same point count.');
-  const fromPositions = transformPositions(fromOutput.positions, normalizeMatrix(fromMatrix));
-  const toPositions = transformPositions(toOutput.positions, normalizeMatrix(toMatrix));
+  const normalizedFromMatrix = normalizeMatrix(fromMatrix);
+  const normalizedToMatrix = normalizeMatrix(toMatrix);
+  const fromPositions = transformPositions(fromOutput.positions, normalizedFromMatrix);
+  const toPositions = transformPositions(toOutput.positions, normalizedToMatrix);
   const identity = Uint32Array.from({ length: count }, (_, index) => index);
   let permutation = identity;
   let installedStrategy = mode;
@@ -531,6 +536,32 @@ export function createAboutNarrativeCorrespondence(fromOutput, toOutput, mode = 
       installedStrategy = 'constrained-index-v2';
       fallbackReason = 'Spatial v2 candidate regressed a semantic, visibility, or protected travel safeguard.';
     }
+  } else if (dispatchKey === 'radialEmergenceV1') {
+    const candidate = createAboutNarrativeRadialEmergence({
+      fromOutput,
+      toOutput,
+      fromPositions,
+      toPositions,
+      centerX: normalizedToMatrix[12],
+      centerZ: normalizedToMatrix[14],
+      fromLabel: `Source Shape ${fromId}`,
+      toLabel: `Target Shape ${toId}`,
+    });
+    permutation = candidate.permutation;
+    baselinePermutation = createConstrainedPermutation(
+      fromOutput,
+      toOutput,
+      fromPositions,
+      toPositions,
+      false,
+    );
+    candidateMetrics = calculateMetrics(
+      fromOutput,
+      toOutput,
+      candidate.permutation,
+      fromPositions,
+      toPositions,
+    );
   }
 
   validateAboutNarrativePermutation(permutation, count);

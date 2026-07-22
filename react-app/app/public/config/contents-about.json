@@ -781,7 +781,7 @@
             "endWU": 20.75,
             "type": "morph",
             "easing": "linear",
-            "correspondence": "spatial-nearest-v2"
+            "correspondence": "radial-emergence-v1"
           },
           "shapeParameters": {
             "density": 0.32

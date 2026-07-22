@@ -31,7 +31,7 @@ function createPassingManifest() {
       schema: 2,
       compiler: 'aboutNarrativeCompiler-v1',
       workerProtocol: 2,
-      correspondenceRegistry: 'correspondence-registry-v2.0.0',
+      correspondenceRegistry: 'correspondence-registry-v2.1.0',
       pointBudgets: { desktop: 12000, mobile: 5000 },
     },
     artifacts: {
