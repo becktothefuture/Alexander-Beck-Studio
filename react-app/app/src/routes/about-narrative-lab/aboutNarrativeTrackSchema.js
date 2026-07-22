@@ -31,6 +31,15 @@ import {
   writeAboutNarrativeCameraQuaternion,
   writeAboutNarrativeCameraTargetFromRotation,
 } from './aboutNarrativeCameraRig.js';
+import {
+  ABOUT_INTERACTIVE_STACK_CONTROLS,
+  ABOUT_INTERACTIVE_STACK_FITS,
+  ABOUT_INTERACTIVE_STACK_ITEM_TYPES,
+  ABOUT_INTERACTIVE_STACK_KIND,
+  ABOUT_INTERACTIVE_STACK_MAX_ITEMS,
+  ABOUT_INTERACTIVE_STACK_MIN_ITEMS,
+  ABOUT_INTERACTIVE_STACK_SEED_CONTROL,
+} from './aboutInteractiveStackContract.js';
 
 export const ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION = 5;
 export const ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS = Object.freeze(['desktop', 'tablet', 'mobile']);
@@ -112,9 +121,14 @@ const PRESENTATION_KEYS = new Set(['layout', 'viewportY']);
 const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'modules', 'moduleGapRem', 'emphasis', 'worldInfluence']);
 const EMPHASIS_KEYS = new Set(['text', 'tone']);
 const REVEAL_KEYS = new Set(['fadeDelayWU', 'fadeDurationWU', 'blurDelayWU', 'blurDurationWU']);
-const MODULE_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'emphasis']);
+const MODULE_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'parameters', 'emphasis']);
 const MODULE_ITEM_KEYS = new Set(['id', 'label', 'src', 'alt', 'caption', 'scale', 'offsetX', 'offsetY']);
-const MODULE_KINDS = new Set(['prose', 'logo-grid', 'media-deck']);
+const INTERACTIVE_STACK_ITEM_KEYS = new Set(['id', 'type', 'src', 'poster', 'alt', 'width', 'height', 'aspectRatio', 'fit']);
+const INTERACTIVE_STACK_PARAMETER_KEYS = new Set([
+  ABOUT_INTERACTIVE_STACK_SEED_CONTROL.id,
+  ...ABOUT_INTERACTIVE_STACK_CONTROLS.map((control) => control.id),
+]);
+const MODULE_KINDS = new Set(['prose', 'logo-grid', 'media-deck', ABOUT_INTERACTIVE_STACK_KIND]);
 const CHOREOGRAPHY_KEYS = new Set(['staggerWU', 'backgroundFadeWU', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale', 'labelDurationWU', 'holdWU', 'items']);
 const LEGACY_CHOREOGRAPHY_KEYS = new Set(['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', ...CHOREOGRAPHY_KEYS]);
 const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label', 'position', 'mobilePosition']);
@@ -525,6 +539,47 @@ function validateEditorialModuleItem(item, diagnostics, path, { requireLabel = f
   });
 }
 
+function validateInteractiveStackItem(item, diagnostics, path, seenIds) {
+  unknownKeys(diagnostics, item, INTERACTIVE_STACK_ITEM_KEYS, path);
+  if (!isObject(item)) return;
+  validateId(item.id, seenIds, diagnostics, `${path}.id`);
+  if (!ABOUT_INTERACTIVE_STACK_ITEM_TYPES.includes(item.type)) {
+    diagnostic(diagnostics, 'interactive-stack-item-type', `${path}.type`, 'Interactive stack items must be images or videos.');
+  }
+  validateSafeText(item.src, diagnostics, `${path}.src`, { required: true, maximum: 400 });
+  validateSafeText(item.alt, diagnostics, `${path}.alt`, { required: true, maximum: 240 });
+  ['width', 'height'].forEach((key) => {
+    if (!Number.isInteger(Number(item[key])) || Number(item[key]) < 1 || Number(item[key]) > 8192) {
+      diagnostic(diagnostics, 'interactive-stack-item-dimensions', `${path}.${key}`, 'Media dimensions must be whole pixels between 1 and 8192.');
+    }
+  });
+  if (!finite(item.aspectRatio) || Number(item.aspectRatio) <= 0 || Number(item.aspectRatio) > 10) {
+    diagnostic(diagnostics, 'interactive-stack-item-ratio', `${path}.aspectRatio`, 'Media aspect ratio must be greater than zero and no more than 10.');
+  }
+  if (item.fit != null && !ABOUT_INTERACTIVE_STACK_FITS.includes(item.fit)) {
+    diagnostic(diagnostics, 'interactive-stack-item-fit', `${path}.fit`, 'Media fit must be cover or contain.');
+  }
+  if (item.type === 'video') {
+    validateSafeText(item.poster, diagnostics, `${path}.poster`, { required: true, maximum: 400 });
+  } else if (item.poster != null) {
+    diagnostic(diagnostics, 'interactive-stack-image-poster', `${path}.poster`, 'Image items cannot define a video poster.');
+  }
+}
+
+function validateInteractiveStackParameters(parameters, diagnostics, path) {
+  unknownKeys(diagnostics, parameters, INTERACTIVE_STACK_PARAMETER_KEYS, path);
+  if (!isObject(parameters)) return;
+  [ABOUT_INTERACTIVE_STACK_SEED_CONTROL, ...ABOUT_INTERACTIVE_STACK_CONTROLS].forEach((control) => {
+    const value = parameters[control.id];
+    if (!finite(value) || Number(value) < control.min || Number(value) > control.max) {
+      diagnostic(diagnostics, 'interactive-stack-parameter-range', `${path}.${control.id}`, `${control.label} must stay between ${control.min} and ${control.max}.`);
+    }
+    if (control.id === 'seed' && !Number.isInteger(Number(value))) {
+      diagnostic(diagnostics, 'interactive-stack-seed-integer', `${path}.${control.id}`, 'Seed must be a whole number.');
+    }
+  });
+}
+
 function validateEditorialModule(module, diagnostics, path) {
   unknownKeys(diagnostics, module, MODULE_KEYS, path);
   if (!isObject(module)) return;
@@ -539,6 +594,30 @@ function validateEditorialModule(module, diagnostics, path) {
   if (module.kind === 'media-deck') {
     if (!Array.isArray(module.items)) diagnostic(diagnostics, 'module-items', `${path}.items`, 'Media deck items must be an array.');
     else module.items.forEach((item, index) => validateEditorialModuleItem(item, diagnostics, `${path}.items.${index}`));
+  }
+  if (module.kind === ABOUT_INTERACTIVE_STACK_KIND) {
+    const itemCount = Array.isArray(module.items) ? module.items.length : 0;
+    if (!Array.isArray(module.items)
+      || itemCount < ABOUT_INTERACTIVE_STACK_MIN_ITEMS
+      || itemCount > ABOUT_INTERACTIVE_STACK_MAX_ITEMS) {
+      diagnostic(
+        diagnostics,
+        'interactive-stack-item-count',
+        `${path}.items`,
+        `Interactive stacks require ${ABOUT_INTERACTIVE_STACK_MIN_ITEMS}–${ABOUT_INTERACTIVE_STACK_MAX_ITEMS} items.`,
+      );
+    } else {
+      const seenItemIds = new Set();
+      module.items.forEach((item, index) => validateInteractiveStackItem(
+        item,
+        diagnostics,
+        `${path}.items.${index}`,
+        seenItemIds,
+      ));
+    }
+    validateInteractiveStackParameters(module.parameters, diagnostics, `${path}.parameters`);
+  } else if (module.parameters != null) {
+    diagnostic(diagnostics, 'interactive-stack-parameters-owner', `${path}.parameters`, 'Only interactive stacks may define stack parameters.');
   }
   if (module.emphasis != null) {
     if (!Array.isArray(module.emphasis)) diagnostic(diagnostics, 'module-emphasis', `${path}.emphasis`, 'Module emphasis must be an array.');
@@ -584,7 +663,14 @@ function validateBlock(block, diagnostics, path) {
   }
   if (stackKind) {
     if (!Array.isArray(block.modules) || block.modules.length === 0) diagnostic(diagnostics, 'block-modules-required', `${path}.modules`, 'Stack blocks require at least one module.');
-    else block.modules.forEach((module, index) => validateEditorialModule(module, diagnostics, `${path}.modules.${index}`));
+    else {
+      const seenModuleIds = new Set();
+      block.modules.forEach((module, index) => {
+        const modulePath = `${path}.modules.${index}`;
+        if (isObject(module)) validateId(module.id, seenModuleIds, diagnostics, `${modulePath}.id`);
+        validateEditorialModule(module, diagnostics, modulePath);
+      });
+    }
   } else if (block.modules != null) {
     diagnostic(diagnostics, 'block-modules-owner', `${path}.modules`, 'Only stack blocks may contain modules.');
   }

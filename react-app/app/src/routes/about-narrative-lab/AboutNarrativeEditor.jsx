@@ -35,6 +35,12 @@ import {
   parseAboutNarrativeCameraEasing,
 } from './aboutNarrativeCameraEasing.js';
 import {
+  ABOUT_INTERACTIVE_STACK_CONTROLS,
+  ABOUT_INTERACTIVE_STACK_DEFAULTS,
+  ABOUT_INTERACTIVE_STACK_KIND,
+  ABOUT_INTERACTIVE_STACK_SEED_CONTROL,
+} from './aboutInteractiveStackContract.js';
+import {
   getAboutNarrativeCameraRotationFromQuaternion,
   writeAboutNarrativeCameraLookAtQuaternion,
   writeAboutNarrativeCameraTargetFromRotation,
@@ -1428,6 +1434,15 @@ function ObjectInspector({ snapshot, store, onMessage }) {
   });
   const cameraAimEnabled = selection.type === 'camera-key'
     && (object.aimEnabled ?? Array.isArray(object.lookAtTarget));
+  const interactiveStackModule = object.kind === 'scroll-block'
+    ? object.block?.modules?.find((module) => module.kind === ABOUT_INTERACTIVE_STACK_KIND)
+    : null;
+  const mutateInteractiveStackParameter = (target, id, value) => {
+    const module = target.block?.modules?.find((entry) => entry.id === interactiveStackModule?.id);
+    if (!module) return;
+    module.parameters = { ...ABOUT_INTERACTIVE_STACK_DEFAULTS, ...module.parameters };
+    module.parameters[id] = value;
+  };
   return (
     <div className="about-track-editor-inspector__content">
       <header>
@@ -1675,6 +1690,54 @@ function ObjectInspector({ snapshot, store, onMessage }) {
                       target.block.moduleGapRem = value;
                     })}
                   />
+                  {interactiveStackModule ? (
+                    <InspectorFolder group={{ id: 'interactive-stack', label: 'Interactive stack' }} count={9} defaultOpen>
+                      <p className="about-track-editor-parameter-note is-wide">
+                        These values live in this module and update the production-safe preview immediately.
+                      </p>
+                      {ABOUT_INTERACTIVE_STACK_CONTROLS.map((control) => (
+                        <RangeParameterField
+                          key={control.id}
+                          label={control.label}
+                          ariaLabel={`Interactive stack ${control.label}`}
+                          value={interactiveStackModule.parameters?.[control.id] ?? ABOUT_INTERACTIVE_STACK_DEFAULTS[control.id]}
+                          control={control}
+                          disabled={locked}
+                          {...bindObjectRange(`Edit Interactive stack ${control.label}`, (target, value) => {
+                            mutateInteractiveStackParameter(target, control.id, value);
+                          })}
+                        />
+                      ))}
+                      <NumberField
+                        label="Seed"
+                        value={interactiveStackModule.parameters?.seed ?? ABOUT_INTERACTIVE_STACK_DEFAULTS.seed}
+                        disabled={locked}
+                        min={ABOUT_INTERACTIVE_STACK_SEED_CONTROL.min}
+                        max={ABOUT_INTERACTIVE_STACK_SEED_CONTROL.max}
+                        step={1}
+                        onCommit={(value) => commit('Edit Interactive stack seed', (target) => {
+                          const seed = Math.round(Math.min(
+                            ABOUT_INTERACTIVE_STACK_SEED_CONTROL.max,
+                            Math.max(ABOUT_INTERACTIVE_STACK_SEED_CONTROL.min, value),
+                          ));
+                          mutateInteractiveStackParameter(target, 'seed', seed);
+                        })}
+                      />
+                      <button
+                        type="button"
+                        disabled={locked}
+                        onClick={() => commit('Reseed Interactive stack', (target) => {
+                          mutateInteractiveStackParameter(
+                            target,
+                            'seed',
+                            Date.now() % (ABOUT_INTERACTIVE_STACK_SEED_CONTROL.max + 1),
+                          );
+                        })}
+                      >
+                        Reseed order
+                      </button>
+                    </InspectorFolder>
+                  ) : null}
                   <JsonField label="Stack modules" value={object.block?.modules || []} disabled={locked} focusId="text-copy" onCommit={(value) => commit('Edit stack modules', (target) => { target.block.modules = value; })} onError={onMessage} />
                 </>
               ) : (

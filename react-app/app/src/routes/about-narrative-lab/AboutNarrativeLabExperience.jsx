@@ -6,6 +6,8 @@ import {
 } from './aboutNarrativeLabData.js';
 import { ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS } from './aboutNarrativeDefinitions.js';
 import { normalizeAboutNarrativeTrackDocument } from './aboutNarrativeTrackSchema.js';
+import { ABOUT_INTERACTIVE_STACK_KIND } from './aboutInteractiveStackContract.js';
+import { AboutInteractiveStack } from './AboutInteractiveStack.jsx';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
 import {
   ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
@@ -202,8 +204,11 @@ function EditorialMediaDeck({ module }) {
   );
 }
 
-function EditorialStack({ block }) {
+function EditorialStack({ block, motionProfile, scrollportRef }) {
   const moduleGapRem = Number(block.moduleGapRem);
+  const revealModulesIndividually = block.modules?.some(
+    (module) => module.kind === ABOUT_INTERACTIVE_STACK_KIND,
+  );
   return (
     <div
       className="about-narrative-editorial-stack"
@@ -218,8 +223,22 @@ function EditorialStack({ block }) {
         if (module.kind === 'media-deck') {
           return <EditorialMediaDeck key={module.id} module={module} />;
         }
+        if (module.kind === ABOUT_INTERACTIVE_STACK_KIND) {
+          return (
+            <AboutInteractiveStack
+              key={module.id}
+              module={module}
+              motionProfile={motionProfile}
+              scrollportRef={scrollportRef}
+            />
+          );
+        }
         return (
-          <p className="about-narrative-editorial-copy" key={module.id}>
+          <p
+            className="about-narrative-editorial-copy"
+            data-editorial-line={revealModulesIndividually ? true : undefined}
+            key={module.id}
+          >
             <EditorialText text={module.text} emphasis={module.emphasis} />
           </p>
         );
@@ -228,7 +247,7 @@ function EditorialStack({ block }) {
   );
 }
 
-function ScrollBlockField({ field, onSelect }) {
+function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
   const block = field.block || {};
   const commonProps = {
     'data-text-field-id': field.id,
@@ -259,9 +278,20 @@ function ScrollBlockField({ field, onSelect }) {
     );
   }
   if (block.kind === 'stack') {
+    const hasInteractiveStack = block.modules?.some(
+      (module) => module.kind === ABOUT_INTERACTIVE_STACK_KIND,
+    );
     return (
-      <section {...commonProps} className="about-narrative-editorial-unit" data-editorial-line>
-        <EditorialStack block={block} />
+      <section
+        {...commonProps}
+        className="about-narrative-editorial-unit"
+        data-editorial-line={hasInteractiveStack ? undefined : true}
+      >
+        <EditorialStack
+          block={block}
+          motionProfile={motionProfile}
+          scrollportRef={scrollportRef}
+        />
       </section>
     );
   }
@@ -457,6 +487,8 @@ function TextRenderSpan({
   isPrimaryTitle,
   disciplineOverlayRef,
   onSelect,
+  motionProfile,
+  scrollportRef,
 }) {
   if (!field?.publishable || field.kind === 'stub') return null;
   const layout = field.presentation?.layout || span.layoutMode;
@@ -509,7 +541,12 @@ function TextRenderSpan({
         data-presentation-layout={layout}
         style={getRenderSpanStyle(span)}
       >
-        <ScrollBlockField field={field} onSelect={onSelect} />
+        <ScrollBlockField
+          field={field}
+          onSelect={onSelect}
+          motionProfile={motionProfile}
+          scrollportRef={scrollportRef}
+        />
       </div>
     );
   }
@@ -684,6 +721,8 @@ export function AboutNarrativeLabExperience({
                 isPrimaryTitle={field.id === primaryTitleId}
                 disciplineOverlayRef={disciplineOverlayRef}
                 onSelect={select}
+                motionProfile={runtimePlan?.motionProfile || 'full'}
+                scrollportRef={scrollportRef}
               />
             );
           })}

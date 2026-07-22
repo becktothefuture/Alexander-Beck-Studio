@@ -526,6 +526,144 @@ body.dark-mode .about-narrative-client-logos img {
   object-fit: cover;
 }
 
+.about-interactive-stack {
+  width: min(100%, 48rem, 80svh);
+  margin: 0 auto;
+  contain: layout paint style;
+}
+
+.about-interactive-stack[data-editorial-line] {
+  filter: none;
+  will-change: auto;
+}
+
+.about-interactive-stack__stage {
+  --stack-drag-x: 0px;
+  --stack-drag-rotation: 0deg;
+  --stack-drag-progress: 0;
+  --stack-drag-opacity: 1;
+  --stack-drag-blur: 0px;
+  --stack-drag-scale: 1;
+  --stack-depart-x: 0px;
+  --stack-active-duration: 420ms;
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  isolation: isolate;
+  touch-action: pan-y;
+  appearance: none;
+}
+
+.about-interactive-stack__plane {
+  position: absolute;
+  inset: calc(var(--stack-padding-pct, 10) * 1%);
+  display: block;
+}
+
+.about-interactive-stack__stage:focus-visible {
+  outline: 2px solid var(--about-route-accent);
+  outline-offset: 4px;
+}
+
+.about-interactive-stack__card {
+  position: absolute;
+  z-index: calc(20 - var(--stack-depth));
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: calc(var(--stack-card-width-pct, 62) * 1%);
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 0.28rem;
+  background: color-mix(in srgb, var(--studio-window-bg) 90%, var(--text-primary));
+  box-shadow: 0 0.55rem 1.25rem color-mix(in srgb, #000 14%, transparent);
+  transform:
+    translate3d(-50%, -50%, 0)
+    translate3d(var(--stack-slot-x), var(--stack-slot-y), 0)
+    rotate(var(--stack-slot-rotation))
+    scale(var(--stack-slot-scale));
+  transform-origin: center;
+  transition: transform var(--stack-transition-ms, 420ms) cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.about-interactive-stack__card[data-stack-depth='0'] {
+  opacity: var(--stack-drag-opacity);
+  transform:
+    translate3d(-50%, -50%, 0)
+    translate3d(var(--stack-drag-x), 0, 0)
+    rotate(var(--stack-drag-rotation));
+}
+
+.about-interactive-stack__stage[data-stack-phase='pending-pointer'] .about-interactive-stack__card[data-stack-depth='0'],
+.about-interactive-stack__stage[data-stack-phase='dragging'] .about-interactive-stack__card[data-stack-depth='0'] {
+  transition: none;
+}
+
+.about-interactive-stack__stage[data-stack-phase='settling'] .about-interactive-stack__card[data-stack-depth='0'] {
+  transition:
+    transform var(--stack-active-duration) cubic-bezier(0.34, 1.2, 0.64, 1),
+    opacity var(--stack-active-duration) ease-out;
+}
+
+.about-interactive-stack__stage[data-stack-phase='departing'] .about-interactive-stack__card[data-stack-depth='0'] {
+  opacity: 0;
+  transform:
+    translate3d(-50%, -50%, 0)
+    translate3d(var(--stack-depart-x), 0, 0)
+    rotate(var(--stack-drag-rotation));
+  transition:
+    transform var(--stack-active-duration) cubic-bezier(0.22, 1, 0.36, 1),
+    opacity var(--stack-active-duration) linear;
+}
+
+.about-interactive-stack__card img,
+.about-interactive-stack__card video,
+.about-interactive-stack__placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.about-interactive-stack__card[data-stack-depth='0'] > img,
+.about-interactive-stack__card[data-stack-depth='0'] > video,
+.about-interactive-stack__card[data-stack-depth='0'] > .about-interactive-stack__placeholder {
+  filter: blur(var(--stack-drag-blur));
+  transform: scale(var(--stack-drag-scale));
+  transform-origin: center;
+}
+
+.about-interactive-stack__stage[data-stack-phase='settling'] .about-interactive-stack__card[data-stack-depth='0'] > img,
+.about-interactive-stack__stage[data-stack-phase='settling'] .about-interactive-stack__card[data-stack-depth='0'] > video,
+.about-interactive-stack__stage[data-stack-phase='settling'] .about-interactive-stack__card[data-stack-depth='0'] > .about-interactive-stack__placeholder {
+  transition:
+    filter var(--stack-active-duration) cubic-bezier(0.34, 1.2, 0.64, 1),
+    transform var(--stack-active-duration) cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+.about-interactive-stack__stage[data-stack-phase='departing'] .about-interactive-stack__card[data-stack-depth='0'] > img,
+.about-interactive-stack__stage[data-stack-phase='departing'] .about-interactive-stack__card[data-stack-depth='0'] > video,
+.about-interactive-stack__stage[data-stack-phase='departing'] .about-interactive-stack__card[data-stack-depth='0'] > .about-interactive-stack__placeholder {
+  filter: blur(12px);
+  transform: scale(1.035);
+  transition:
+    filter var(--stack-active-duration) cubic-bezier(0.22, 1, 0.36, 1),
+    transform var(--stack-active-duration) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.about-interactive-stack__placeholder {
+  background:
+    linear-gradient(145deg, transparent, color-mix(in srgb, var(--text-primary) 7%, transparent)),
+    color-mix(in srgb, var(--studio-window-bg) 94%, var(--text-primary));
+}
+
 .about-narrative-discipline-list {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1000,9 +1138,13 @@ body.dark-mode .about-narrative-client-logos img {
   }
 
   .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-render-span--disciplines .about-narrative-editorial-stack {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: clamp(1rem, 2.5vw, 1.75rem);
     width: 100%;
+  }
+
+  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-render-span--disciplines .about-narrative-editorial-stack > :nth-child(n + 3) {
+    grid-column: 1 / -1;
   }
 
   .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-render-span--disciplines .about-narrative-editorial-copy {
@@ -1093,6 +1235,17 @@ body.dark-mode .about-narrative-client-logos img {
   opacity: var(--fragment-opacity, 0);
   transform: none;
 }
+
+.about-narrative-lab[data-about-motion-profile='reduced'] .about-interactive-stack__card {
+  transition: none;
+}
+
+.about-narrative-lab[data-about-motion-profile='reduced'] .about-interactive-stack__card > img,
+.about-narrative-lab[data-about-motion-profile='reduced'] .about-interactive-stack__card > video,
+.about-narrative-lab[data-about-motion-profile='reduced'] .about-interactive-stack__card > .about-interactive-stack__placeholder {
+  transition: none;
+}
+
 
 .about-narrative-lab[data-about-motion-profile='reduced'] .about-narrative-finale-cta {
   opacity: var(--spatial-context-opacity, 0);

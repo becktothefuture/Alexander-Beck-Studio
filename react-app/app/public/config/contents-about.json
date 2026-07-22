@@ -1229,6 +1229,223 @@
                 ]
               },
               {
+                "id": "project-impressions",
+                "kind": "interactive-stack",
+                "label": "Project impressions",
+                "parameters": {
+                  "seed": 240721,
+                  "stagePaddingPct": 10,
+                  "cardWidthPct": 77.5,
+                  "spreadXPct": 12,
+                  "spreadYPct": 9,
+                  "rotationDeg": 6,
+                  "scaleJitter": 0.12,
+                  "transitionMs": 420
+                },
+                "items": [
+                  {
+                    "id": "impression-01",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-01.webp",
+                    "alt": "Abstract cobalt poster study",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-02",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-02.webp",
+                    "alt": "Layered translucent material experiment",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-03",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-03.webp",
+                    "alt": "Orange geometric print fragment",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-04",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-04.webp",
+                    "alt": "Dark interface motion study",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-05",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-05.webp",
+                    "alt": "Red typographic poster detail",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-06",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-06.webp",
+                    "alt": "Blue architectural model photograph",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-07",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-07.webp",
+                    "alt": "Minimal editorial layout study",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-08",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-08.webp",
+                    "alt": "Violet light and texture experiment",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-09",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-09.webp",
+                    "alt": "Green product form study",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-10",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-10.webp",
+                    "alt": "Monochrome exhibition graphic",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-11",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-11.webp",
+                    "alt": "Warm studio process photograph",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-12",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-12.webp",
+                    "alt": "Cyan digital artifact composition",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-13",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-13.webp",
+                    "alt": "Folded paper prototype detail",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-14",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-14.webp",
+                    "alt": "Black and white spatial sketch",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-15",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-15.webp",
+                    "alt": "Yellow modular identity study",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-16",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-16.webp",
+                    "alt": "Reflective sculptural object photograph",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-17",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-17.webp",
+                    "alt": "Magenta animation frame study",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-18",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-18.webp",
+                    "alt": "Blue grid and light composition",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-19",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-19.webp",
+                    "alt": "Red and cream print experiment",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  },
+                  {
+                    "id": "impression-20",
+                    "type": "image",
+                    "src": "/images/about/interactive-stack/preview-20.webp",
+                    "alt": "Nighttime installation moment",
+                    "width": 640,
+                    "height": 480,
+                    "aspectRatio": 1.333,
+                    "fit": "cover"
+                  }
+                ]
+              },
+              {
                 "id": "ambitious-teams",
                 "kind": "prose",
                 "text": "I work with ambitious teams while the problem is still taking shape—especially where design, technology and AI must inform the direction from the outset.",
