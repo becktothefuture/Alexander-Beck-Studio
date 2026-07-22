@@ -791,7 +791,7 @@
             "correspondence": "radial-emergence-v1"
           },
           "shapeParameters": {
-            "density": 0.32
+            "density": 0.36
           },
           "modifiers": [
             {
@@ -816,13 +816,13 @@
                 "surfaceHeight": -1.52,
                 "submergeDepth": 3.65,
                 "waterlineSoftness": 0.34,
-                "surfaceCarry": 0.28,
+                "surfaceCarry": 1,
                 "fragmentHeight": 0.78,
                 "fragmentFade": 0.54,
                 "fragmentReveal": 0.34,
                 "fragmentSpread": 0.42,
                 "fragmentFall": 0.18,
-                "fragmentPresence": 0.56
+                "fragmentPresence": 1
               }
             },
             {

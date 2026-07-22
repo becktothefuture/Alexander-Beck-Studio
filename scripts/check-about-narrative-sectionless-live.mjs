@@ -234,12 +234,9 @@ test('bust stays a single protected World across responsive profiles', () => {
   assert.equal(authored.modifiers[1].parameters.formationMode, 'surface-rise');
   assert.ok(authored.modifiers[1].parameters.submergeDepth >= 3);
   assert.equal(authored.seed, grid.seed);
-  assert.ok(authored.shapeParameters.density >= 0.3);
-  assert.ok(authored.shapeParameters.density <= grid.shapeParameters.density);
-  assert.ok(authored.modifiers[1].parameters.surfaceCarry >= 0.2);
-  assert.ok(authored.modifiers[1].parameters.surfaceCarry <= 0.45);
-  assert.ok(authored.modifiers[1].parameters.fragmentPresence >= 0.45);
-  assert.ok(authored.modifiers[1].parameters.fragmentPresence <= 0.7);
+  assert.equal(authored.shapeParameters.density, grid.shapeParameters.density);
+  assert.equal(authored.modifiers[1].parameters.surfaceCarry, 1);
+  assert.equal(authored.modifiers[1].parameters.fragmentPresence, 1);
   assert.equal(authored.protected, true);
 
   for (const layoutProfile of ['desktop', 'tablet', 'mobile']) {
