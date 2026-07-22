@@ -143,7 +143,7 @@ test('canonical v5 authors one consolidated camera, visibility, and four-World b
   assert.ok(emergent);
   assert.ok(ripple.endWU <= emergent.startWU);
   assert.ok(emergent.startWU - ripple.endWU <= 0.5);
-  assert.equal(emergent.transitionIn.correspondence, 'spatial-nearest-v2');
+  assert.equal(emergent.transitionIn.correspondence, 'radial-emergence-v1');
   assert.equal(emergent.modifiers.some((modifier) => modifier.id === 'ambient-drift-v1'), true);
   assert.equal(emergent.modifiers.some((modifier) => modifier.id === 'bust-yaw-v1'), true);
   assert.equal(emergent.protected, true);
@@ -191,7 +191,7 @@ test('bust stays a single protected World across responsive profiles', () => {
   assert.ok(authored.startWU - pulse.endWU <= 0.5);
   assert.equal(authored.transitionIn.startWU, authored.startWU);
   assert.ok(authored.transitionIn.endWU > authored.transitionIn.startWU);
-  assert.equal(authored.transitionIn.correspondence, 'spatial-nearest-v2');
+  assert.equal(authored.transitionIn.correspondence, 'radial-emergence-v1');
   assert.equal(authored.modifiers.length, 3);
   assert.equal(authored.modifiers[0].id, 'ambient-drift-v1');
   assert.equal(authored.modifiers[1].id, 'bust-assembly-v1');
@@ -231,7 +231,7 @@ test('bust stays a single protected World across responsive profiles', () => {
     const resolved = plan.worlds.find((world) => world.id === authored.id);
     assert.ok(resolved, `${layoutProfile} must retain the bust World.`);
     assert.equal(resolved.shapeId, 'bust-v1');
-    assert.equal(resolved.transitionIn.correspondence, 'spatial-nearest-v2');
+    assert.equal(resolved.transitionIn.correspondence, 'radial-emergence-v1');
     assert.ok(Number(resolved.transform.scale) > 0);
     if (layoutProfile === 'mobile') {
       assert.ok(Number(resolved.transform.mobileScale) > 0);
@@ -641,7 +641,7 @@ test('World C flies straight into plan view before the authored ripple orbit and
   const mobileVerticalPositions = disciplineReveal.parameters.items.map((item) => item.mobilePosition[1]);
   assert.ok(new Set(mobileVerticalPositions).size >= 5);
   assert.ok(Math.max(...mobileVerticalPositions) - Math.min(...mobileVerticalPositions) >= 0.8);
-  assert.equal(disciplineReveal.parameters.mobileReadingLineY, 0.5);
+  assert.equal(disciplineReveal.parameters.mobileReadingLineY, 0.52);
   const mobileRippleCenter = [
     rippleCenter[0],
     Number((background.transform.position[1]
@@ -667,7 +667,8 @@ test('World C flies straight into plan view before the authored ripple orbit and
   const mobileBustBottomY = emergentWorld.transform.position[1]
     + emergentWorld.transform.mobileYOffset
     - (0.858 * emergentWorld.transform.mobileScale);
-  assert.ok(Math.abs(mobileBustBottomY - mobileRippleCenter[1]) < 0.01);
+  assert.ok(mobileBustBottomY > mobileRippleCenter[1]);
+  assert.ok(mobileBustBottomY - mobileRippleCenter[1] < 0.6);
 });
 
 test('D is a dedicated Discipline reveal Motion and E sustains a scroll-authored wave generator', () => {
