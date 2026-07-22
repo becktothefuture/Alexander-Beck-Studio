@@ -303,7 +303,7 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
       + (centerPulse * 0.26)
   )
     * rippleFalloff;
-  const surfaceRippleMix = 1 - (toBust * smoothstep01((globalMorph - 0.02) / 0.3));
+  const surfaceRippleMix = 1 - (toBust * smoothstep01((globalMorph - 0.08) / 0.84));
   const rippleStrength = numberOr(input?.gridRipple?.weight)
     * numberOr(input?.gridRipple?.amplitude)
     * surfaceRippleMix;
