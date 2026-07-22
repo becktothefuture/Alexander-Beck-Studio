@@ -36,13 +36,13 @@
       "perspective": 1600,
       "entryDepth": 360,
       "exitDepth": 220,
-      "maxBlur": 10
+      "maxBlur": 6
     }
   },
   "profiles": {
     "desktop": {
-      "storyDurationWU": 17.15,
-      "scrollDurationWU": 17.15,
+      "storyDurationWU": 22,
+      "scrollDurationWU": 22,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -52,74 +52,10 @@
       }
     },
     "tablet": {
-      "storyDurationWU": 17.15,
-      "scrollDurationWU": 17.15,
+      "storyDurationWU": 22,
+      "scrollDurationWU": 22,
       "overrides": {
-        "camera": {
-          "camera-key": {
-            "lookAtTarget": [
-              0,
-              -1.176,
-              -7.035
-            ]
-          },
-          "discipline-hold": {
-            "lookAtTarget": [
-              0,
-              -1.176,
-              -7.035
-            ]
-          },
-          "emergent-oblique": {
-            "lookAtTarget": [
-              0,
-              -1.176,
-              -7.035
-            ]
-          },
-          "emergent-orbit-side": {
-            "lookAtTarget": [
-              0,
-              -0.5,
-              -7.035
-            ]
-          },
-          "emergent-through": {
-            "lookAtTarget": [
-              0,
-              -0.5,
-              -7.035
-            ]
-          },
-          "finale-hold": {
-            "lookAtTarget": [
-              0,
-              -0.5,
-              -7.035
-            ]
-          },
-          "grid-birds-eye": {
-            "lookAtTarget": [
-              0,
-              -1.176,
-              -7.035
-            ]
-          },
-          "grid-return-centered": {
-            "lookAtTarget": [
-              0,
-              -1.176,
-              -7.035
-            ]
-          },
-          "grid-ripple-zoomout": {
-            "lookAtTarget": [
-              0,
-              -1.176,
-              -7.035
-            ]
-          }
-        },
+        "camera": {},
         "visibility": {},
         "worlds": {},
         "text": {},
@@ -127,54 +63,47 @@
       }
     },
     "mobile": {
-      "storyDurationWU": 17.15,
-      "scrollDurationWU": 17.82,
+      "storyDurationWU": 22,
+      "scrollDurationWU": 22.68,
       "overrides": {
         "camera": {
-          "camera-key": {
-            "position": [
-              -3.2,
-              15.5,
-              0.8
-            ],
-            "lookAtTarget": [
-              0,
-              -1.176,
-              -7.035
-            ],
-            "fov": 64
-          },
           "discipline-hold": {
             "position": [
-              -0.2,
-              9.2,
-              -3
-            ],
-            "lookAtTarget": [
               0,
-              -1.176,
+              11,
+              18
+            ],
+            "fov": 60
+          },
+          "emergent-orbit-quarter": {
+            "position": [
+              7.5,
+              3,
               -7.035
             ],
-            "fov": 62
+            "fov": 56
           },
-          "emergent-oblique": {
+          "emergent-orbit-rear": {
             "position": [
+              0,
               2.7,
-              5.25,
-              -3
+              0.5
             ],
-            "lookAtTarget": [
-              0,
-              -1.176,
+            "fov": 56
+          },
+          "emergent-orbit-three-quarter": {
+            "position": [
+              -7.5,
+              3,
               -7.035
             ],
-            "fov": 62
+            "fov": 56
           },
-          "emergent-orbit-side": {
+          "finale-hold": {
             "position": [
-              2.4,
-              3.2,
-              -1.4
+              0.45,
+              -0.2,
+              -14.2
             ],
             "lookAtTarget": [
               0,
@@ -183,83 +112,37 @@
             ],
             "fov": 56
           },
-          "emergent-through": {
-            "position": [
-              1,
-              -0.6,
-              -0.3
-            ],
-            "lookAtTarget": [
-              0,
-              -0.5,
-              -7.035
-            ],
-            "fov": 58
-          },
-          "finale-hold": {
-            "position": [
-              0.8,
-              -0.7,
-              -0.17
-            ],
-            "lookAtTarget": [
-              0,
-              -0.5,
-              -7.035
-            ],
-            "fov": 58
-          },
-          "finale-landing": {
-            "position": [
-              0.85,
-              -0.68,
-              -0.2
-            ],
-            "lookAtTarget": [
-              0,
-              -0.5,
-              -7.035
-            ],
-            "fov": 58
-          },
           "grid-birds-eye": {
             "position": [
-              -2.2,
-              12.8,
-              -1
-            ],
-            "lookAtTarget": [
               0,
-              -1.176,
-              -7.035
+              11,
+              -18
             ],
             "fov": 62
+          },
+          "grid-flight-glide": {
+            "position": [
+              0,
+              4.5,
+              -25
+            ],
+            "fov": 64
           },
           "grid-return-centered": {
             "position": [
-              0.65,
-              8,
-              -3.6
-            ],
-            "lookAtTarget": [
               0,
-              -1.176,
+              10.5,
               -7.035
             ],
             "fov": 62
           },
-          "grid-ripple-zoomout": {
+          "grid-tilt-mid": {
             "position": [
-              1.75,
-              6.8,
-              -3.15
-            ],
-            "lookAtTarget": [
               0,
-              -1.176,
-              -7.035
+              7,
+              -23.5
             ],
-            "fov": 62
+            "fov": 63
           },
           "orb-establish": {
             "aimEnabled": false,
@@ -309,32 +192,8 @@
           "locked": true
         },
         {
-          "id": "complexity-inside",
-          "atWU": 1.8375,
-          "position": [
-            0,
-            1.2,
-            0.35
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "aimEnabled": false,
-          "lookAtTarget": [
-            0,
-            1.2,
-            -0.65
-          ],
-          "lookAtRoll": 0,
-          "fov": 52,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
           "id": "complexity-exit",
-          "atWU": 3.15,
+          "atWU": 3.197041,
           "position": [
             0,
             0.1,
@@ -358,7 +217,7 @@
         },
         {
           "id": "complexity-exit-2",
-          "atWU": 3.475,
+          "atWU": 3.526894,
           "position": [
             0,
             0.5,
@@ -381,47 +240,71 @@
           "locked": false
         },
         {
+          "id": "grid-flight-glide",
+          "atWU": 7.35,
           "position": [
-            -3.8,
-            16.5,
-            0.5
+            0,
+            4.2,
+            -24
           ],
           "rotation": [
-            -64.905774,
-            -26.762413,
+            -24,
+            0,
             0
           ],
-          "aimEnabled": true,
+          "aimEnabled": false,
           "lookAtTarget": [
             0,
-            -1.52,
-            -7.035
+            -1.72,
+            -30
           ],
           "lookAtRoll": 0,
-          "fov": 58,
-          "id": "camera-key",
-          "atWU": 7.35,
+          "fov": 60,
           "easing": "linear",
           "locked": false
         },
         {
-          "id": "grid-birds-eye",
-          "atWU": 8.75,
+          "id": "grid-tilt-mid",
+          "atWU": 8.15,
           "position": [
-            -2.6,
-            13.6,
-            -1.3
+            0,
+            7,
+            -21
           ],
           "rotation": [
-            -67.390331,
-            -24.387476,
+            -62,
+            0,
             0
           ],
-          "aimEnabled": true,
+          "aimEnabled": false,
           "lookAtTarget": [
             0,
-            -1.52,
-            -7.035
+            -1.72,
+            -21
+          ],
+          "lookAtRoll": 0,
+          "fov": 58,
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "grid-birds-eye",
+          "atWU": 8.65,
+          "position": [
+            0,
+            11,
+            -18
+          ],
+          "rotation": [
+            -90,
+            0,
+            0
+          ],
+          "aimEnabled": false,
+          "lookAtTarget": [
+            0,
+            -1.72,
+            -18
           ],
           "lookAtRoll": 0,
           "fov": 56,
@@ -430,193 +313,169 @@
         },
         {
           "id": "discipline-hold",
-          "atWU": 10.35,
+          "atWU": 12.45,
           "position": [
-            -0.2,
-            9.6,
-            -3.3
+            0,
+            11,
+            18
           ],
           "rotation": [
-            -71.408991,
-            -3.06512,
+            -90,
+            0,
             0
           ],
-          "aimEnabled": true,
+          "aimEnabled": false,
           "lookAtTarget": [
             0,
-            -1.52,
-            -7.035
+            -1.72,
+            18
           ],
           "lookAtRoll": 0,
-          "fov": 54,
-          "easing": "cubic-bezier(0.22, 0, 0.18, 1)",
+          "fov": 56,
+          "easing": "linear",
           "locked": false
         },
         {
           "id": "grid-return-centered",
-          "atWU": 11.55,
-          "position": [
-            0.8,
-            8.2,
-            -3.7
-          ],
-          "rotation": [
-            -70.565093,
-            13.489235,
-            0
-          ],
-          "aimEnabled": true,
-          "lookAtTarget": [
-            0,
-            -1.52,
-            -7.035
-          ],
-          "lookAtRoll": 0,
-          "fov": 52,
-          "easing": "cubic-bezier(0.22, 0, 0.18, 1)",
-          "locked": false
-        },
-        {
-          "id": "grid-ripple-zoomout",
-          "atWU": 13.65,
-          "position": [
-            2.3,
-            6.7,
-            -3.2
-          ],
-          "rotation": [
-            -61.453026,
-            30.95277,
-            0
-          ],
-          "aimEnabled": true,
-          "lookAtTarget": [
-            0,
-            -1.52,
-            -7.035
-          ],
-          "lookAtRoll": 0,
-          "fov": 50,
-          "easing": "cubic-bezier(0.22, 0, 0.18, 1)",
-          "locked": false
-        },
-        {
-          "id": "emergent-oblique",
-          "atWU": 14.55,
-          "position": [
-            3.35,
-            5.4,
-            -3
-          ],
-          "rotation": [
-            -52.842924,
-            39.70066,
-            0
-          ],
-          "aimEnabled": true,
-          "lookAtTarget": [
-            0,
-            -1.52,
-            -7.035
-          ],
-          "lookAtRoll": 0,
-          "fov": 49,
-          "easing": "cubic-bezier(0.22, 0, 0.18, 1)",
-          "locked": false
-        },
-        {
-          "id": "emergent-orbit-side",
           "atWU": 15.15,
           "position": [
-            2.4,
-            2.8,
-            -2.6
+            0,
+            11,
+            -7.035
           ],
           "rotation": [
-            -43.865079,
-            48.312116,
+            -90,
+            0,
             0
           ],
           "aimEnabled": true,
           "lookAtTarget": [
             0,
-            -0.5,
+            -1.72,
             -7.035
           ],
           "lookAtRoll": 0,
-          "fov": 47,
-          "easing": "cubic-bezier(0.22, 0, 0.18, 1)",
+          "fov": 56,
+          "easing": "smoothstep",
           "locked": false
         },
         {
-          "id": "emergent-through",
-          "atWU": 16.15,
+          "id": "ripple-overhead-hold",
+          "atWU": 17.75,
           "position": [
-            1.2,
-            -0.65,
-            -1.35
+            0,
+            11,
+            -7.035
           ],
           "rotation": [
-            -35.800403,
-            53.443458,
+            -90,
+            0,
             0
           ],
           "aimEnabled": true,
           "lookAtTarget": [
             0,
-            -0.5,
+            -1.72,
             -7.035
           ],
           "lookAtRoll": 0,
-          "fov": 44,
-          "easing": "cubic-bezier(0.18, 0, 0.16, 1)",
+          "fov": 56,
+          "easing": "linear",
           "locked": false
         },
         {
-          "id": "finale-landing",
-          "atWU": 16.55,
+          "id": "emergent-orbit-quarter",
+          "atWU": 18.5,
           "position": [
-            1,
-            -0.72,
-            -1.25
+            8,
+            3,
+            -7.035
           ],
           "rotation": [
-            -3.396,
-            11.644,
+            0,
+            0,
             0
           ],
           "aimEnabled": true,
           "lookAtTarget": [
             0,
-            -0.5,
+            -0.35,
             -7.035
           ],
           "lookAtRoll": 0,
-          "fov": 44,
-          "easing": "cubic-bezier(0.25, 0, 0.2, 1)",
+          "fov": 48,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "emergent-orbit-rear",
+          "atWU": 19.25,
+          "position": [
+            0,
+            2.7,
+            0.8
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "aimEnabled": true,
+          "lookAtTarget": [
+            0,
+            -0.35,
+            -7.035
+          ],
+          "lookAtRoll": 0,
+          "fov": 48,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "emergent-orbit-three-quarter",
+          "atWU": 20,
+          "position": [
+            -8,
+            3,
+            -7.035
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "aimEnabled": true,
+          "lookAtTarget": [
+            0,
+            -0.35,
+            -7.035
+          ],
+          "lookAtRoll": 0,
+          "fov": 48,
+          "easing": "linear",
           "locked": false
         },
         {
           "id": "finale-hold",
-          "atWU": 17.15,
+          "atWU": 22,
           "position": [
-            0.95,
-            -0.74,
-            -1.22
+            0.55,
+            -0.2,
+            -14.2
           ],
           "rotation": [
-            -34.990819,
-            55.486464,
+            0,
+            0,
             0
           ],
           "aimEnabled": true,
           "lookAtTarget": [
             0,
-            -0.5,
+            -0.35,
             -7.035
           ],
           "lookAtRoll": 0,
-          "fov": 44,
+          "fov": 46,
           "easing": "cubic-bezier(0.22, 0, 0.12, 1)",
           "locked": true
         }
@@ -633,105 +492,105 @@
         },
         {
           "id": "visibility-complexity",
-          "atWU": 2.625,
+          "atWU": 2.263302,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-void-off",
-          "atWU": 3.21,
+          "atWU": 2.857038,
           "visibility": 0,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-grid-rise",
-          "atWU": 3.565,
+          "atWU": 4.942727,
           "visibility": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-grid-visible",
-          "atWU": 3.865,
+          "atWU": 5.551687,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-disciplines",
-          "atWU": 10.5,
+          "atWU": 8.65,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-editorial-off",
-          "atWU": 10.72,
+          "atWU": 12.65,
           "visibility": 0,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-return-start",
-          "atWU": 11.55,
+          "atWU": 15.15,
           "visibility": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-returned",
-          "atWU": 11.78,
+          "atWU": 15.48,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-emergent-title-start",
-          "atWU": 13.95,
+          "atWU": 17.2,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-emergent-title-low",
-          "atWU": 14.28,
+          "atWU": 17.48,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-emergent-title-hold",
-          "atWU": 14.62,
+          "atWU": 17.75,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-emergent-reveal",
-          "atWU": 14.75,
+          "atWU": 17.9,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-emergent-pass",
-          "atWU": 14.85,
+          "atWU": 18.1,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-open-space",
-          "atWU": 16.15,
+          "atWU": 20.75,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-end",
-          "atWU": 17.15,
+          "atWU": 22,
           "visibility": 1,
           "easing": "linear",
           "locked": true
@@ -788,7 +647,7 @@
         {
           "id": "world-complexity",
           "label": "B",
-          "startWU": 0.7125,
+          "startWU": 0.72314,
           "anchorWU": 0.95,
           "adapterId": "point-field-v1",
           "shapeId": "turbulent-field-v1",
@@ -809,18 +668,18 @@
             "pointSizeScale": 1.05
           },
           "transitionIn": {
-            "startWU": 0.7125,
-            "endWU": 1.8375,
+            "startWU": 0.72314,
+            "endWU": 1.864941,
             "type": "morph",
             "easing": "smoothstep",
             "correspondence": "spatial-nearest-v2"
           },
           "shapeParameters": {
-            "width": 12.2,
-            "height": 9.4,
-            "depth": 24,
-            "chunkCount": 18,
-            "chunkSize": 2.6,
+            "width": 10.5,
+            "height": 13.8,
+            "depth": 38.6,
+            "chunkCount": 30,
+            "chunkSize": 7.55,
             "scatter": 0.14,
             "turbulence": 0.42,
             "density": 0.38
@@ -838,7 +697,7 @@
         {
           "id": "world-grid",
           "label": "C",
-          "startWU": 3.03,
+          "startWU": 3.075249,
           "anchorWU": 3.035,
           "adapterId": "point-field-v1",
           "shapeId": "calm-field-v1",
@@ -857,29 +716,40 @@
             ],
             "scale": 1,
             "pointSizeScale": 1.2,
-            "mobileScale": 0.8,
-            "mobileXScale": 0.55
+            "mobileScale": 1,
+            "mobileXScale": 1,
+            "mobileYOffset": 0.345
           },
           "transitionIn": {
-            "startWU": 3.03,
-            "endWU": 3.43,
+            "startWU": 3.075249,
+            "endWU": 3.481223,
             "type": "morph",
             "easing": "ease-out",
             "correspondence": "spatial-nearest-v2"
           },
           "shapeParameters": {
-            "width": 28,
-            "depth": 40,
+            "width": 48,
+            "depth": 56,
             "height": -1.72,
-            "jitter": 0.035,
+            "jitter": 0,
             "density": 0.36
           },
-          "modifiers": []
+          "modifiers": [
+            {
+              "id": "ambient-drift-v1",
+              "enabled": true,
+              "parameters": {
+                "amplitude": 0.035,
+                "speed": 0.55,
+                "timeMode": "ambient"
+              }
+            }
+          ]
         },
         {
           "id": "world-emergent",
           "label": "E",
-          "startWU": 14.55,
+          "startWU": 17.75,
           "anchorWU": 3.035,
           "adapterId": "point-field-v1",
           "shapeId": "bust-v1",
@@ -888,7 +758,7 @@
           "transform": {
             "position": [
               0,
-              0.025,
+              0.36,
               0
             ],
             "rotation": [
@@ -896,10 +766,10 @@
               0,
               0
             ],
-            "scale": 1.8,
+            "scale": 1.68,
             "pointSizeScale": 1.15,
-            "mobileScale": 1.55,
-            "mobileYOffset": 0.13,
+            "mobileScale": 1.46,
+            "mobileYOffset": 0.2,
             "mobileLandscapeScale": 1.65,
             "mobileLandscapeXScale": 1.65,
             "mobileLandscapeXOffset": -4.2,
@@ -907,8 +777,8 @@
             "mobileLandscapeZOffset": 0
           },
           "transitionIn": {
-            "startWU": 14.55,
-            "endWU": 16.15,
+            "startWU": 17.75,
+            "endWU": 20.75,
             "type": "morph",
             "easing": "linear",
             "correspondence": "spatial-nearest-v2"
@@ -931,28 +801,28 @@
               "enabled": true,
               "parameters": {
                 "formationMode": "surface-rise",
-                "baseStart": 0.18,
-                "headStart": 0.6,
-                "layerSoftness": 0.34,
-                "platformScale": 2.4,
-                "platformSettle": 0.18,
+                "baseStart": 0.06,
+                "headStart": 0.62,
+                "layerSoftness": 0.48,
+                "platformScale": 2.75,
+                "platformSettle": 0.28,
                 "surfaceHeight": -1.52,
-                "submergeDepth": 3.2,
-                "waterlineSoftness": 0.24,
-                "surfaceCarry": 0.14,
-                "fragmentHeight": 0.56,
-                "fragmentFade": 0.4,
-                "fragmentReveal": 0.28,
-                "fragmentSpread": 0.58,
+                "submergeDepth": 3.65,
+                "waterlineSoftness": 0.3,
+                "surfaceCarry": 0.28,
+                "fragmentHeight": 0.78,
+                "fragmentFade": 0.54,
+                "fragmentReveal": 0.34,
+                "fragmentSpread": 0.52,
                 "fragmentFall": 0.22,
-                "fragmentPresence": 0.58
+                "fragmentPresence": 0.62
               }
             },
             {
               "id": "bust-yaw-v1",
               "enabled": true,
               "parameters": {
-                "speed": 0.018,
+                "speed": 0,
                 "dragSensitivity": 1,
                 "resumeDelay": 0.18,
                 "resumeBlend": 0.9,
@@ -991,7 +861,8 @@
           "endWU": 1.995455,
           "publishable": true,
           "presentation": {
-            "layout": "center"
+            "layout": "center",
+            "viewportY": 45
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1006,7 +877,8 @@
           "endWU": 3.190909,
           "publishable": true,
           "presentation": {
-            "layout": "center"
+            "layout": "center",
+            "viewportY": 45
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1024,15 +896,15 @@
             "layout": "reading"
           },
           "reveal": {
-            "fadeDelayWU": 0.05,
+            "fadeDelayWU": 0.27,
             "fadeDurationWU": 0.18,
-            "blurDelayWU": 0,
+            "blurDelayWU": 0.15,
             "blurDurationWU": 0.28
           },
           "block": {
             "id": "background-unit",
             "kind": "stack",
-            "moduleGapRem": 2.25,
+            "moduleGapRem": 4.6,
             "modules": [
               {
                 "id": "context",
@@ -1190,23 +1062,23 @@
         {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
-          "startWU": 10.5,
-          "focusWU": 10.72,
-          "endWU": 11.55,
+          "startWU": 12.85,
+          "focusWU": 13.15,
+          "endWU": 15.15,
           "publishable": true,
           "presentation": {
             "layout": "disciplines"
           },
           "reveal": {
-            "fadeDelayWU": 0.03,
-            "fadeDurationWU": 0.16,
+            "fadeDelayWU": 0.08,
+            "fadeDurationWU": 0.2,
             "blurDelayWU": 0,
             "blurDurationWU": 0.24
           },
           "block": {
             "id": "disciplines-passage",
             "kind": "stack",
-            "moduleGapRem": 2.25,
+            "moduleGapRem": 4.5,
             "modules": [
               {
                 "id": "attention",
@@ -1470,12 +1342,13 @@
         {
           "id": "text-life-momentum",
           "kind": "title",
-          "startWU": 11.613636,
-          "focusWU": 12.013636,
-          "endWU": 12.413636,
+          "startWU": 15.35,
+          "focusWU": 15.7,
+          "endWU": 16.1,
           "publishable": true,
           "presentation": {
-            "layout": "center"
+            "layout": "center",
+            "viewportY": 42
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1485,12 +1358,13 @@
         {
           "id": "text-life-form",
           "kind": "title",
-          "startWU": 12.809091,
-          "focusWU": 13.209091,
-          "endWU": 13.609091,
+          "startWU": 16.22,
+          "focusWU": 16.57,
+          "endWU": 16.97,
           "publishable": true,
           "presentation": {
-            "layout": "center"
+            "layout": "center",
+            "viewportY": 42
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1500,12 +1374,13 @@
         {
           "id": "text-life-character",
           "kind": "title",
-          "startWU": 13.65,
-          "focusWU": 14.05,
-          "endWU": 14.45,
+          "startWU": 17.08,
+          "focusWU": 17.38,
+          "endWU": 17.68,
           "publishable": true,
           "presentation": {
-            "layout": "center"
+            "layout": "center",
+            "viewportY": 42
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1515,13 +1390,13 @@
         {
           "id": "text-epilogue-invitation",
           "kind": "title",
-          "startWU": 16.08,
-          "focusWU": 16.65,
-          "endWU": 17.15,
+          "startWU": 20.75,
+          "focusWU": 21.32,
+          "endWU": 22,
           "publishable": true,
           "presentation": {
             "layout": "text-bust-cta",
-            "viewportY": 82
+            "viewportY": 84
           },
           "movement": "spatial",
           "preset": "finale-v1",
@@ -1536,97 +1411,103 @@
         {
           "id": "motion-discipline-reveal",
           "type": "discipline-reveal",
-          "startWU": 8.75,
-          "activationWU": 8.95,
-          "endWU": 10.72,
+          "startWU": 8.65,
+          "activationWU": 8.65,
+          "endWU": 12.45,
           "targetWorldId": "world-grid",
           "parameters": {
-            "labelWindowWU": 1.77,
-            "staggerWU": 0.14,
-            "backgroundFadeWU": 0.22,
-            "backgroundOpacity": 0.18,
-            "reconnectOpacity": 0.32,
-            "pointScale": 5.8,
-            "restoreDurationWU": 0.22,
-            "labelOffsetPx": 18,
-            "labelScale": 1.8,
-            "labelDurationWU": 0.16,
-            "holdWU": 0.35,
-            "readingLineY": 0.66,
-            "mobileReadingLineY": 0.58,
-            "approachBandY": 0.1,
-            "exitLineY": 1.1,
+            "labelWindowWU": 3.8,
+            "staggerWU": 0.5,
+            "backgroundFadeWU": 0.38,
+            "backgroundOpacity": 0.34,
+            "reconnectOpacity": 0.26,
+            "pointScale": 5.2,
+            "restoreDurationWU": 0.3,
+            "labelOffsetPx": 22,
+            "labelScale": 1.22,
+            "labelDurationWU": 0.24,
+            "holdWU": 0.12,
+            "readingLineY": 0.5,
+            "mobileReadingLineY": 0.52,
+            "approachBandY": 0.13,
+            "exitLineY": 0.92,
             "items": [
               {
                 "group": 1,
                 "label": "Product Design",
+                "description": "I turn ambiguous product problems into interfaces teams can build, test, and improve.",
                 "position": [
-                  0.238,
-                  0.47
+                  0.42,
+                  0.18
                 ],
                 "mobilePosition": [
-                  0.32,
-                  0.59
+                  0.42,
+                  0.4
                 ]
               },
               {
                 "group": 2,
                 "label": "Experience Design",
+                "description": "I connect user needs, product priorities, and the decisions that shape the journey.",
                 "position": [
-                  0.476,
-                  0.605
+                  0.43,
+                  0.32
                 ],
                 "mobilePosition": [
-                  0.44,
-                  0.49
+                  0.43,
+                  0.5
                 ]
               },
               {
                 "group": 3,
                 "label": "Art Direction",
+                "description": "I define the visual point of view that gives the work character, clarity, and intent.",
                 "position": [
-                  0.333,
-                  0.515
+                  0.42,
+                  0.46
                 ],
                 "mobilePosition": [
-                  0.37,
-                  0.46
+                  0.42,
+                  0.6
                 ]
               },
               {
                 "group": 4,
                 "label": "Motion & 3D",
+                "description": "I use motion and spatial prototypes to clarify ideas, interactions, and product stories.",
                 "position": [
-                  0.571,
-                  0.635
+                  0.43,
+                  0.6
                 ],
                 "mobilePosition": [
-                  0.55,
-                  0.56
+                  0.43,
+                  0.7
                 ]
               },
               {
                 "group": 5,
                 "label": "Creative Engineering",
+                "description": "I prototype with code and AI to move decisions from discussion into working form.",
                 "position": [
-                  0.238,
-                  0.56
+                  0.43,
+                  0.74
                 ],
                 "mobilePosition": [
-                  0.32,
-                  0.52
+                  0.43,
+                  0.75
                 ]
               },
               {
                 "group": 6,
                 "label": "Parametric Systems",
+                "description": "I build systems of tokens, rules, and patterns that scale without losing character.",
                 "position": [
-                  0.46,
-                  0.545
+                  0.43,
+                  0.88
                 ],
                 "mobilePosition": [
-                  0.42,
-                  0.64
+                  0.43,
+                  0.8
                 ]
               }
             ]
@@ -1635,30 +1516,30 @@
         {
           "id": "interaction-grid-ripple",
           "type": "grid-ripple",
-          "startWU": 11.55,
-          "activationWU": 11.55,
-          "endWU": 14.55,
+          "startWU": 15.15,
+          "activationWU": 15.15,
+          "endWU": 17.75,
           "targetWorldId": "world-grid",
           "parameters": {
-            "amplitude": 1.15,
-            "speed": 0.44,
+            "amplitude": 1.05,
+            "speed": 0.38,
             "frequency": 1.65,
-            "releaseWU": 0.5,
+            "releaseWU": 0.62,
             "timeMode": "story"
           }
         },
         {
           "id": "interaction-emergent-ripple",
           "type": "grid-ripple",
-          "startWU": 14.55,
-          "activationWU": 14.68,
-          "endWU": 16.1,
+          "startWU": 17.75,
+          "activationWU": 17.85,
+          "endWU": 20.75,
           "targetWorldId": "world-emergent",
           "parameters": {
-            "amplitude": 0.4,
-            "speed": 0.13,
+            "amplitude": 0.52,
+            "speed": 0.16,
             "frequency": 1.95,
-            "releaseWU": 0.65,
+            "releaseWU": 0.75,
             "timeMode": "story"
           }
         }

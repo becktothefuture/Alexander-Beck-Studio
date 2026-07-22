@@ -191,6 +191,8 @@ function createCalmField(count, seeds, parameters) {
     const x = ((column / Math.max(1, columns - 1)) - 0.5) * width;
     const z = ((row / Math.max(1, rows - 1)) - 0.5) * depth;
     const offset = index * 3;
+    // This is the authored floor grid. With zero jitter its intersections stay
+    // exact; shader drift supplies the quiet, individual movement.
     positions[offset] = x + ((seeds[index] - 0.5) * jitter);
     positions[offset + 1] = height;
     positions[offset + 2] = z + ((((seeds[index] * 13) % 1) - 0.5) * jitter);

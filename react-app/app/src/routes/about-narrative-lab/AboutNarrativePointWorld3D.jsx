@@ -157,6 +157,9 @@ const VERTEX_SHADER = `
   uniform float disciplineBackgroundOpacity;
   uniform float disciplineReconnectOpacity;
   uniform float disciplinePointScale;
+  uniform vec2 disciplineQuietAnchor;
+  uniform float disciplineQuietRadius;
+  uniform float disciplineQuietStrength;
   uniform float fromLivingColour;
   uniform float toLivingColour;
   uniform float fromBust;
@@ -453,8 +456,10 @@ const VERTEX_SHADER = `
       + (undertowRipple * 0.12)
       + (centerPulse * 0.26)
     ) * rippleFalloff;
+    // Keep a restrained surface response alive while the bust rises. The form
+    // should emerge through the water rather than replace it at the first beat.
     float surfaceRippleMix = 1.0 - (
-      toBust * smoothstep(0.02, 0.32, globalMorph)
+      toBust * smoothstep(0.02, 0.32, globalMorph) * 0.58
     );
     float gatheringWeight = gridRippleWeight * gridRippleAmplitude * surfaceRippleMix;
     worldPoint.y += gatheringWeight * perpetualRipple;
@@ -498,6 +503,11 @@ const VERTEX_SHADER = `
     // anchor enters the scroll-authored reveal. The selected anchor then regains
     // the material colour it already owned; no colour is reassigned at reveal time.
     pointTint = mix(pointTint, disciplineBackgroundColor, disciplineMonochrome);
+    // The finale is a single material object, not a rainbow of independently
+    // coloured particles. Preserve a faint trace of the palette at emergence,
+    // then resolve it into a cool mineral tone.
+    float bustMaterialResolve = toBust * smoothstep(0.16, 0.9, globalMorph);
+    pointTint = mix(pointTint, vec3(0.105, 0.19, 0.25), bustMaterialResolve * 0.84);
 
     vec4 viewPoint = modelViewMatrix * vec4(worldPoint, 1.0);
     gl_Position = projectionMatrix * viewPoint;
@@ -517,6 +527,14 @@ const VERTEX_SHADER = `
     );
     presence *= mix(1.0, bustFragmentKeep, bustFragment);
     float reconnect = clamp(gridInfluence, 0.0, 1.0);
+    float quietZone = (1.0 - groupWeight)
+      * disciplineQuietStrength
+      * (1.0 - smoothstep(
+        disciplineQuietRadius * 0.28,
+        max(0.001, disciplineQuietRadius),
+        length(worldPoint.xz - disciplineQuietAnchor)
+      ));
+    presence *= 1.0 - quietZone;
     float textBackgroundWeight = disciplineBackgroundWeight * (1.0 - disciplineIsolation);
     float backgroundVisibility = mix(
       1.0,
@@ -857,6 +875,9 @@ function createPointFieldAdapter({
     disciplineBackgroundOpacity: { value: 0.06 },
     disciplineReconnectOpacity: { value: 0.24 },
     disciplinePointScale: { value: 3.6 },
+    disciplineQuietAnchor: { value: new THREE.Vector2(999, 999) },
+    disciplineQuietRadius: { value: 0 },
+    disciplineQuietStrength: { value: 0 },
     fromLivingColour: { value: 0 },
     toLivingColour: { value: 0 },
     fromBust: { value: 0 },
@@ -1083,6 +1104,7 @@ function createPointFieldAdapter({
   const disciplinePointScratch = new THREE.Vector3();
   const disciplineWeights = new Float32Array(6);
   const disciplineLabelBaseReveal = new Float64Array(6);
+  const disciplineSpatialReveal = new Float64Array(6);
   const disciplineArrivalHold = new Float64Array(6);
   const fromDisciplinePositions = new Float32Array(18).fill(Number.NaN);
   const toDisciplinePositions = new Float32Array(18).fill(Number.NaN);
@@ -1118,9 +1140,13 @@ function createPointFieldAdapter({
   const disciplineLabelY = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelPositionUnit = new Uint8Array(6);
   const disciplineLabelNudge = new Float64Array(6).fill(Number.NaN);
+  const disciplineLabelVerticalNudge = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelWidth = new Float64Array(6);
+  const disciplineLabelHeight = new Float64Array(6);
   const disciplineProjectedX = new Float64Array(6).fill(Number.NaN);
   const disciplineProjectedY = new Float64Array(6).fill(Number.NaN);
+  const disciplineWorldX = new Float64Array(6).fill(Number.NaN);
+  const disciplineWorldZ = new Float64Array(6).fill(Number.NaN);
   let cachedDisciplineOverlay = null;
   let cachedDisciplineChildCount = -1;
   let lastDisciplineVisibleCount = Number.NaN;
@@ -1141,6 +1167,7 @@ function createPointFieldAdapter({
     for (let index = 0; index < disciplineLabels.length; index += 1) {
       const label = disciplineLabels[index];
       disciplineLabelWidth[index] = label?.offsetWidth || 0;
+      disciplineLabelHeight[index] = label?.offsetHeight || 0;
     }
   };
   const disciplineLabelResizeObserver = new ResizeObserver(measureDisciplineLabels);
@@ -1180,6 +1207,7 @@ function createPointFieldAdapter({
       disciplineLabelY[index] = Number.NaN;
       disciplineLabelPositionUnit[index] = 0;
       disciplineLabelNudge[index] = Number.NaN;
+      disciplineLabelVerticalNudge[index] = Number.NaN;
       if (disciplineLabels[index]) disciplineLabelResizeObserver.observe(disciplineLabels[index]);
     }
     measureDisciplineLabels();
@@ -1224,20 +1252,43 @@ function createPointFieldAdapter({
     runtimeObserver.hotFrameDomWrite();
   };
 
+  const writeDisciplineVerticalNudge = (index, value) => {
+    if (disciplineLabelVerticalNudge[index] === value) return;
+    const label = disciplineLabels[index];
+    disciplineLabelVerticalNudge[index] = value;
+    if (!label) return;
+    label.style.setProperty('--discipline-label-safe-y', `${value}px`);
+    runtimeObserver.hotFrameDomWrite();
+  };
+
   const placeDisciplineLabels = (offset) => {
-    const safeInset = compact ? 10 : 16;
+    // On a phone the travelling labels need the same composed reading column
+    // as editorial copy, rather than hugging whichever edge their projected
+    // point reaches first.
+    const safeInset = layoutProfile === 'mobile' ? 48 : compact ? 12 : 16;
+    const safeTop = compact ? 72 : 28;
+    const safeBottom = compact ? 86 : 32;
     for (let index = 0; index < disciplineLabels.length; index += 1) {
       if (!Number.isFinite(disciplineProjectedX[index])) continue;
       const labelWidth = disciplineLabelWidth[index];
+      const labelHeight = disciplineLabelHeight[index];
       const localX = disciplineProjectedX[index] - viewportOffsetX;
+      const localY = disciplineProjectedY[index] - viewportOffsetY;
       const proposedLeft = localX + offset;
       const proposedRight = localX + offset + labelWidth;
       const maximumNudge = Math.min(0, (width - safeInset) - proposedRight);
-      const minimumGapNudge = -Math.max(0, offset - 4);
       const nudge = proposedLeft < safeInset
         ? safeInset - proposedLeft
-        : Math.max(minimumGapNudge, maximumNudge);
+        : maximumNudge;
+      const proposedTop = localY - (labelHeight * 0.525);
+      const proposedBottom = proposedTop + labelHeight;
+      const verticalNudge = proposedTop < safeTop
+        ? safeTop - proposedTop
+        : proposedBottom > height - safeBottom
+          ? (height - safeBottom) - proposedBottom
+          : 0;
       writeDisciplineNudge(index, Math.round(nudge * 100) / 100);
+      writeDisciplineVerticalNudge(index, Math.round(verticalNudge * 100) / 100);
       writeDisciplinePosition(
         index,
         disciplineProjectedX[index],
@@ -1782,6 +1833,7 @@ function createPointFieldAdapter({
     const reducedActive = Boolean(revealState?.settled && revealState?.labelActive);
     disciplineWeights.fill(0);
     disciplineLabelBaseReveal.fill(0);
+    disciplineSpatialReveal.fill(0);
     disciplineArrivalHold.fill(0);
 
     let backgroundWeight = 0;
@@ -1807,16 +1859,20 @@ function createPointFieldAdapter({
         const itemReveal = reducedActive
           ? 1
           : smoothRange(storyWU, itemStartWU, itemStartWU + revealState.labelDurationWU);
+        // The physical grid decides when an anchor reaches the reading line.
+        // Keep the authored item available after its timed introduction so a
+        // slower mobile projection cannot make a discipline miss its pass.
+        const itemRelease = 1;
         disciplineArrivalHold[item.group - 1] = reducedActive
           ? 1
           : smoothRange(
             storyWU,
             itemStartWU + (revealState.labelDurationWU * 0.75),
             itemStartWU + revealState.labelDurationWU,
-          );
+          ) * itemRelease;
         if (reducedActive) disciplineWeights[item.group - 1] = itemReveal * restoreWeight;
         const labelReveal = storyWU <= revealState.endWU
-          ? itemReveal * activationProgress * (1 - exitProgress) * restoreWeight
+          ? itemReveal * itemRelease * activationProgress * (1 - exitProgress) * restoreWeight
           : 0;
         disciplineLabelBaseReveal[item.group - 1] = labelReveal;
       }
@@ -1836,10 +1892,14 @@ function createPointFieldAdapter({
     uniforms.disciplineBackgroundOpacity.value = Number(reveal?.backgroundOpacity ?? 0.06);
     uniforms.disciplineReconnectOpacity.value = Number(reveal?.reconnectOpacity ?? 0.24);
     uniforms.disciplinePointScale.value = Number(reveal?.pointScale ?? 3.6);
+    uniforms.disciplineQuietRadius.value = 0;
+    uniforms.disciplineQuietStrength.value = 0;
 
     if (overlay) {
       disciplineProjectedX.fill(Number.NaN);
       disciplineProjectedY.fill(Number.NaN);
+      disciplineWorldX.fill(Number.NaN);
+      disciplineWorldZ.fill(Number.NaN);
       if (revealAvailable && anchorSamplingExact) {
         camera.updateMatrixWorld(true);
         anchorSampleInput.fromTransform = uniforms.fromTransform.value;
@@ -1916,9 +1976,8 @@ function createPointFieldAdapter({
           anchorToPosition.z = fixedAttributes.targetPosition.array[pointOffset + 2];
           anchorSampleInput.pointSeed = fixedAttributes.pointSeed.array[pointIndex];
           sampleAboutNarrativeAnchorPosition(anchorSampleInput, anchorSampleTarget);
-          const labelReveal = disciplineLabelBaseReveal[group - 1]
-            * uniforms.simulationVisibility.value;
-          writeDisciplineRevealStyles(group - 1, labelReveal);
+          disciplineWorldX[group - 1] = anchorSampleTarget.x;
+          disciplineWorldZ[group - 1] = anchorSampleTarget.z;
           disciplinePointScratch.set(
             anchorSampleTarget.x,
             anchorSampleTarget.y,
@@ -1936,17 +1995,26 @@ function createPointFieldAdapter({
             const approachBandY = Math.max(0.001, Number(reveal.approachBandY ?? 0.12));
             const exitLineY = Number(reveal.exitLineY ?? 0.9);
             const viewportEntryY = Math.max(0.05, readingLineY - (approachBandY * 2));
-            const departureReveal = 1 - smoothRange(
+            const bottomDepartureReveal = 1 - smoothRange(
               viewportY,
               exitLineY,
               exitLineY + Math.max(0.04, approachBandY * 0.65),
             );
-            const spatialDotReveal = smoothRange(
+            const topDepartureReveal = smoothRange(
               viewportY,
-              viewportEntryY - approachBandY,
-              viewportEntryY,
+              -Math.max(0.08, approachBandY * 0.8),
+              Math.max(0.02, approachBandY * 0.2),
             );
-            const spatialLabelReveal = smoothRange(
+            const departureReveal = bottomDepartureReveal * topDepartureReveal;
+            // Discipline anchors travel upward through the plan-view camera.
+            // Reveal as they approach the reading line from below, then retain
+            // the time-authored arrival so copy never blinks after crossing it.
+            const spatialDotReveal = 1 - smoothRange(
+              viewportY,
+              viewportEntryY,
+              viewportEntryY + approachBandY,
+            );
+            const spatialLabelReveal = 1 - smoothRange(
               viewportY,
               viewportEntryY,
               viewportEntryY + (approachBandY * 0.35),
@@ -1962,14 +2030,30 @@ function createPointFieldAdapter({
             const globalReveal = disciplineLabelBaseReveal[group - 1];
             const spatialReveal = globalReveal * labelReveal;
             disciplineWeights[group - 1] = globalReveal * dotReveal;
-            writeDisciplineRevealStyles(
-              group - 1,
-              spatialReveal * uniforms.simulationVisibility.value,
-            );
-            if (spatialReveal * uniforms.simulationVisibility.value > 0.05) visibleLabels += 1;
-          } else if (labelReveal > 0.05) {
+            disciplineSpatialReveal[group - 1] = spatialReveal
+              * uniforms.simulationVisibility.value;
+          } else if (disciplineLabelBaseReveal[group - 1] > 0.05) {
             visibleLabels += 1;
           }
+        }
+        let activeLabelIndex = -1;
+        for (let index = 0; index < disciplineSpatialReveal.length; index += 1) {
+          if (disciplineSpatialReveal[index] > 0.05) activeLabelIndex = index;
+        }
+        for (let index = 0; index < disciplineSpatialReveal.length; index += 1) {
+          writeDisciplineRevealStyles(
+            index,
+            index === activeLabelIndex ? disciplineSpatialReveal[index] : 0,
+          );
+        }
+        visibleLabels = activeLabelIndex >= 0 ? 1 : 0;
+        if (activeLabelIndex >= 0) {
+          uniforms.disciplineQuietAnchor.value.set(
+            disciplineWorldX[activeLabelIndex],
+            disciplineWorldZ[activeLabelIndex],
+          );
+          uniforms.disciplineQuietRadius.value = frame.layoutProfile === 'mobile' ? 2.75 : 3.1;
+          uniforms.disciplineQuietStrength.value = 0.9;
         }
         placeDisciplineLabels(Number(reveal.labelOffsetPx ?? 18));
       } else if (revealAvailable) {

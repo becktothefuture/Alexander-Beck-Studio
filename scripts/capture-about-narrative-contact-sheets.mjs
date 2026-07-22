@@ -19,12 +19,14 @@ const viewportId = process.env.ABS_CONTACT_SHEET_VIEWPORT || 'desktop';
 const viewport = viewports[viewportId] || viewports.desktop;
 const reducedMotion = process.env.ABS_CONTACT_SHEET_REDUCED === '1' ? 'reduce' : 'no-preference';
 const sequences = {
-  editorial: [3.3, 3.48, 3.53, 3.62, 3.72, 4.2, 4.8, 5.25, 5.45, 5.65],
-  disciplines: [7.35, 8, 8.5, 8.75, 8.95, 9.11, 9.27, 9.43, 9.59, 9.75, 9.95, 10.1, 10.25, 10.35, 10.5, 10.72, 11.1, 11.55],
-  disciplineReview: [6.55, 6.95, 7.35, 7.7, 8.05, 8.4, 8.65, 8.75, 8.85, 8.95, 9.05, 9.15, 9.25, 9.35, 9.45, 9.55, 9.65, 9.75, 9.85, 9.95, 10.05, 10.15, 10.25, 10.35, 10.45, 10.5, 10.72, 10.95, 11.2, 11.55, 11.8, 12.05, 12.3, 12.45],
-  late: [10.45, 10.9, 11.6, 12, 12.6, 13.2, 13.65, 13.8, 14.05, 14.25, 14.45, 14.55, 14.75, 14.95, 15.15, 15.35, 15.55, 15.75, 15.95, 16.15, 16.35, 16.55, 16.75, 16.95, durationWU],
-  ending: [14.25, 14.45, 14.55, 14.65, 14.75, 14.85, 14.95, 15.05, 15.15, 15.3, 15.45, 15.6, 15.75, 15.9, 16.05, 16.15, 16.3, 16.45, 16.55, 16.75, 16.95, durationWU],
-  storyboard: [0, 0.4, 0.8, 1.6, 2.79, 3.2, 3.48, 3.72, 4.2, 4.8, 5.45, 6.05, 6.95, 7.75, 8.75, 8.95, 9.43, 9.95, 10.35, 10.72, 11.55, 12, 12.6, 13.2, 13.8, 14.3, 14.45, 14.75, 15.15, 15.6, 16.15, 16.65, durationWU],
+  opening: [0, 0.12, 0.28, 0.42, 0.58, 0.7, 0.9, 1.15, 1.35],
+  anchorProbe: [8.85, 9.35, 9.85, 10.35, 10.85, 11.35],
+  editorial: [3.3, 3.48, 3.53, 3.72, 4.2, 4.8, 5.25, 5.45, 12.85, 13.15, 13.75, 14.45, 15.05],
+  disciplines: [6.55, 7.35, 8.15, 8.45, 8.65, 8.9, 9.15, 9.4, 9.65, 9.9, 10.15, 10.4, 10.65, 10.9, 11.15, 11.4, 11.65, 11.9, 12.15, 12.45, 12.85],
+  disciplineReview: [7.1, 7.35, 7.7, 8.05, 8.35, 8.55, 8.65, 8.78, 8.9, 9.05, 9.2, 9.35, 9.5, 9.65, 9.8, 9.95, 10.1, 10.25, 10.4, 10.55, 10.7, 10.85, 11, 11.15, 11.3, 11.45, 11.6, 11.75, 11.9, 12.05, 12.2, 12.45, 12.65],
+  late: [12.45, 12.85, 13.15, 13.75, 14.45, 15.05, 15.15, 15.35, 15.7, 16.1, 16.22, 16.57, 16.97, 17.08, 17.38, 17.68, 17.75, 18.1, 18.5, 19.25, 20, 20.4, 20.75, 21.1, 21.5, durationWU],
+  ending: [15.05, 15.15, 15.35, 15.7, 16.1, 16.22, 16.57, 16.97, 17.08, 17.38, 17.68, 17.75, 17.95, 18.2, 18.5, 18.85, 19.25, 19.6, 20, 20.35, 20.75, 21.05, 21.35, 21.65, durationWU],
+  storyboard: [0, 0.4, 0.8, 1.6, 2.79, 3.2, 3.48, 3.72, 4.2, 4.8, 5.45, 6.05, 6.95, 7.35, 7.85, 8.15, 8.45, 8.65, 9.15, 9.65, 10.15, 10.65, 11.15, 11.65, 12.15, 12.45, 12.85, 13.75, 14.65, 15.15, 15.7, 16.57, 17.38, 17.75, 18.5, 19.25, 20, 20.75, 21.35, durationWU],
 };
 const requestedSequenceIds = new Set(
   String(process.env.ABS_CONTACT_SHEET_SEQUENCES || Object.keys(sequences).join(','))
@@ -58,13 +60,37 @@ async function setStoryWU(page, storyWU) {
 async function readFrameState(page, requestedWU) {
   return page.evaluate((value) => {
     const root = document.querySelector('.about-narrative-lab');
-    const visibleLabels = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
-      .filter((node) => Number(getComputedStyle(node).opacity) > 0.05)
-      .map((node) => ({
-        label: node.textContent.trim(),
+    const disciplineLabels = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
+      .map((node) => {
+        const rect = node.getBoundingClientRect();
+        const style = getComputedStyle(node);
+        const opacity = Number(style.opacity);
+        const anchorX = Number.parseFloat(style.getPropertyValue('--discipline-x'));
+        return {
+        label: node.querySelector('.about-narrative-discipline-reveal__label')?.textContent.trim() || '',
         side: node.dataset.labelSide || 'right',
-        opacity: Number(getComputedStyle(node).opacity),
-      }));
+        opacity,
+        inViewport: rect.right > 0 && rect.left < window.innerWidth && rect.bottom > 0 && rect.top < window.innerHeight,
+        bounds: {
+          left: Math.round(rect.left),
+          top: Math.round(rect.top),
+          right: Math.round(rect.right),
+          bottom: Math.round(rect.bottom),
+        },
+        description: node.querySelector('.about-narrative-discipline-reveal__description')?.textContent.trim() || '',
+        descriptionLines: (() => {
+          const description = node.querySelector('.about-narrative-discipline-reveal__description');
+          if (!description) return 0;
+          const style = getComputedStyle(description);
+          return Math.max(1, Math.round(description.getBoundingClientRect().height / Number.parseFloat(style.lineHeight)));
+        })(),
+        anchorX: Number.isFinite(anchorX) ? Math.round(anchorX) : null,
+        anchorGap: Number.isFinite(anchorX) ? Math.round(rect.left - anchorX) : null,
+        withinEditorialZone: rect.left >= window.innerWidth * 0.15
+          && rect.right <= window.innerWidth * 0.85,
+        };
+      });
+    const visibleLabels = disciplineLabels.filter((label) => label.opacity > 0.05 && label.inViewport);
     const visibleTitles = [...document.querySelectorAll('.about-narrative-spatial-fragment')]
       .filter((node) => {
         const rect = node.getBoundingClientRect();
@@ -106,6 +132,7 @@ async function readFrameState(page, requestedWU) {
       } : null,
       visibleLogos,
       visibleEditorial,
+      disciplineLabels,
       visibleLabels,
       visibleTitles,
     };
@@ -128,8 +155,11 @@ async function createContactSheet(id, evidence) {
       .toBuffer();
     const state = item.state;
     const worldLine = `${state.worldFrom || '—'} → ${state.worldTo || '—'} · ${state.stage || '—'}`;
+    const descriptionLines = state.visibleLabels.map((label) => label.descriptionLines).filter(Boolean);
+    const anchorGaps = state.visibleLabels.map((label) => label.anchorGap).filter(Number.isFinite);
+    const editorialCount = state.visibleLabels.filter((label) => label.withinEditorialZone).length;
     const contentLine = state.visibleLabels.length > 0
-      ? `${state.visibleLabels.length} labels: ${state.visibleLabels.map((label) => label.label).join(', ')}`
+      ? `${state.visibleLabels.length} disciplines · zone ${editorialCount}/${state.visibleLabels.length}${anchorGaps.length ? ` · right +${Math.min(...anchorGaps)}–${Math.max(...anchorGaps)}px` : ''}${descriptionLines.length ? ` · ${Math.min(...descriptionLines)}–${Math.max(...descriptionLines)} lines` : ''}`
       : state.visibleTitles[0]
         || (state.visibleEditorial.length ? `${state.visibleEditorial.map((item) => item.id).filter(Boolean).join(', ')} · ${state.visibleLogos} logos` : 'No foreground copy');
     const evidenceLine = state.finaleBounds
